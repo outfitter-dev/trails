@@ -50,3 +50,4 @@ ADRs document the significant design decisions behind Trails — the choices tha
 | [0041](0041-unified-observability.md) | Unified Observability | Accepted |
 | [0042](0042-core-topographer-boundary-doctrine.md) | Core/Topographer Boundary Doctrine | Accepted |
 | [0043](0043-layer-evolution.md) | Layer Evolution | Accepted (amended 2026-05-04) |
+| [0044](0044-trail-versioning.md) | Trail Versioning | Accepted |

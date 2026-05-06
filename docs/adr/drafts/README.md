@@ -28,8 +28,6 @@ Proposed decisions under discussion. Promoted to `docs/adr/` when accepted.
 - [Documentation structure](20260406-documentation-structure.md)
 - [Resource Bundles](20260409-resource-bundles.md)
   - depends on [ADR-0009: First-Class Resources](../0009-first-class-resources.md), [ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md), [ADR-0022: Drizzle Binds Schema-Derived Stores to SQLite](../0022-drizzle-store-connector.md)
-- [Trail Versioning](20260409-trail-versioning.md)
-  - depends on [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md), [ADR-0008: Deterministic Surface Derivation](../0008-deterministic-trailhead-derivation.md), [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md)
 
 ## 2026-05
 

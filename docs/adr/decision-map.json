@@ -313,11 +313,6 @@
           "fromPath": "docs/adr/0038-typed-signal-emission.md"
         },
         {
-          "context": "- [ADR-0002: Built-In Result Type](../0002-built-in-result-type.md) — the Result and error taxonomy that gains `VersionNotSupportedError`",
-          "from": "20260409",
-          "fromPath": "docs/adr/drafts/20260409-trail-versioning.md"
-        },
-        {
           "context": "- **[ADR-0002: Built-In Result Type](./adr/0002-built-in-result-type.md)** — Own the Result primitive, zero dependencies",
           "from": "index",
           "fromPath": "docs/index.md"
@@ -387,6 +382,11 @@
           "fromPath": "docs/adr/0039-reactive-trail-activation.md"
         },
         {
+          "context": "- [ADR-0003: Unified Trail Primitive](0003-unified-trail-primitive.md)",
+          "from": "0044",
+          "fromPath": "docs/adr/0044-trail-versioning.md"
+        },
+        {
           "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) -- every trail is runnable, whether atomic or composite",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
@@ -400,11 +400,6 @@
           "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) -- the trail definition that packs contain",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-packs-namespace-boundaries.md"
-        },
-        {
-          "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) — the trail as the single unit of work, the unit that versioning targets",
-          "from": "20260409",
-          "fromPath": "docs/adr/drafts/20260409-trail-versioning.md"
         },
         {
           "context": "- **[ADR-0003: Unified Trail Primitive](./adr/0003-unified-trail-primitive.md)** — One `trail()`, composition as a property",
@@ -589,6 +584,11 @@
           "fromPath": "docs/adr/0043-layer-evolution.md"
         },
         {
+          "context": "- [ADR-0006: Shared Execution Pipeline](0006-shared-execution-pipeline.md)",
+          "from": "0044",
+          "fromPath": "docs/adr/0044-trail-versioning.md"
+        },
+        {
           "context": "- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) -- `trails run` executes through the pipeline, the same as every trailhead",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
@@ -737,6 +737,11 @@
           "fromPath": "docs/adr/0035-surface-apis-render-the-graph.md"
         },
         {
+          "context": "- [ADR-0008: Deterministic Surface Derivation](0008-deterministic-trailhead-derivation.md)",
+          "from": "0044",
+          "fromPath": "docs/adr/0044-trail-versioning.md"
+        },
+        {
           "context": "- [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) -- rigged trails get trailhead derivation for free",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-external-trailheads-as-trails.md"
@@ -755,11 +760,6 @@
           "context": "- [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md): the derivation properties (pure, deterministic, explicit lookup tables, overridable) that the library t",
           "from": "20260401",
           "fromPath": "docs/adr/drafts/20260401-compiled-pack-trailhead.md"
-        },
-        {
-          "context": "- [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) — derivation rules that versioned trailhead projections extend",
-          "from": "20260409",
-          "fromPath": "docs/adr/drafts/20260409-trail-versioning.md"
         },
         {
           "context": "- [ADR-0008: Deterministic Surface Derivation](../0008-deterministic-trailhead-derivation.md)",
@@ -1032,7 +1032,12 @@
           "fromPath": "docs/adr/0043-layer-evolution.md"
         },
         {
-          "context": "- [ADR-0013: Tracing](../0013-tracing.md) -- the tracing primitive; live tracing during `trails run`, historical tracing via `trails trace`",
+          "context": "- [ADR-0013: Tracing](0013-tracing.md)",
+          "from": "0044",
+          "fromPath": "docs/adr/0044-trail-versioning.md"
+        },
+        {
+          "context": "- [ADR-0013: Tracing](../0013-tracing.md) -- the tracing primitive; current-run trace rendering during `trails run`, historical tracing via `trails trace`",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
         },
@@ -1055,11 +1060,6 @@
           "context": "- [ADR-0013: Tracing](../0013-tracing.md) -- observability and replay buffer backing store",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-websocket-trailhead.md"
-        },
-        {
-          "context": "- [ADR-0013: Tracing](../0013-tracing.md) — runtime recording that powers version traffic monitoring",
-          "from": "20260409",
-          "fromPath": "docs/adr/drafts/20260409-trail-versioning.md"
         },
         {
           "context": "- [ADR-0013: Tracing](../0013-tracing.md) and",
@@ -1283,6 +1283,11 @@
           "fromPath": "docs/adr/0042-core-topographer-boundary-doctrine.md"
         },
         {
+          "context": "- [ADR-0017: The Serialized Topo Graph](0017-serialized-topo-graph.md)",
+          "from": "0044",
+          "fromPath": "docs/adr/0044-trail-versioning.md"
+        },
+        {
           "context": "- [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md) -- rig state captured in the lockfile graph; rig lock state occupies a section in `trails.lock`",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-external-trailheads-as-trails.md"
@@ -1291,11 +1296,6 @@
           "context": "- [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md) -- captures WebSocket trailhead configuration in the resolved topo graph",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-websocket-trailhead.md"
-        },
-        {
-          "context": "- [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md) — the lockfile that captures version state",
-          "from": "20260409",
-          "fromPath": "docs/adr/drafts/20260409-trail-versioning.md"
         },
         {
           "context": "- [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md) — the",
@@ -1576,9 +1576,9 @@
           "fromPath": "docs/adr/0043-layer-evolution.md"
         },
         {
-          "context": "- [ADR-0024: Typed Trail Composition](../0024-typed-trail-composition.md) — `crossInput` and its interaction with versioning",
-          "from": "20260409",
-          "fromPath": "docs/adr/drafts/20260409-trail-versioning.md"
+          "context": "- [ADR-0024: Typed Trail Composition](0024-typed-trail-composition.md)",
+          "from": "0044",
+          "fromPath": "docs/adr/0044-trail-versioning.md"
         },
         {
           "context": "caller can pass both. See [ADR-0024](adr/0024-typed-trail-composition.md).",
@@ -1632,6 +1632,11 @@
           "context": "- [ADR-0026: Error Taxonomy as Transport-Independent Behavior Contract](0026-error-taxonomy-as-transport-independent-behavior-contract.md) -",
           "from": "0039",
           "fromPath": "docs/adr/0039-reactive-trail-activation.md"
+        },
+        {
+          "context": "- [ADR-0026: Error Taxonomy as Transport-Independent Behavior Contract](0026-error-taxonomy-as-transport-independent-behavior-contract.md)",
+          "from": "0044",
+          "fromPath": "docs/adr/0044-trail-versioning.md"
         },
         {
           "context": "- [ADR-0026: Error Taxonomy as Transport-Independent Behavior Contract](../0026-error-taxonomy-as-transport-independent-behavior-contract.md) -- WebSocket close code mapping deferred there; the error ",
@@ -1976,6 +1981,11 @@
           "context": "- Decide the public teaching path for build-time surfaces (SDK, OpenAPI, docs). [ADR-0035: Surface APIs Render the Graph](0035-surface-apis-render-the-graph.md) already establishes `surface(graph, { o",
           "from": "0042",
           "fromPath": "docs/adr/0042-core-topographer-boundary-doctrine.md"
+        },
+        {
+          "context": "- [ADR-0035: Surface APIs Render the Graph](0035-surface-apis-render-the-graph.md)",
+          "from": "0044",
+          "fromPath": "docs/adr/0044-trail-versioning.md"
         }
       ],
       "number": "0035",
@@ -2228,6 +2238,19 @@
       "superseded_by": null,
       "title": "Layer Evolution",
       "updated": "2026-05-04"
+    },
+    {
+      "created": "2026-04-09",
+      "depends_on": ["3", "6", "8", "13", "17", "24", "26", "35"],
+      "inbound": [],
+      "number": "0044",
+      "owners": ["[galligan](https://github.com/galligan)"],
+      "path": "docs/adr/0044-trail-versioning.md",
+      "slug": "trail-versioning",
+      "status": "accepted",
+      "superseded_by": null,
+      "title": "Trail Versioning",
+      "updated": "2026-05-06"
     }
   ],
   "version": 1

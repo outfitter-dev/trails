@@ -180,19 +180,6 @@
       "updated": "2026-04-09"
     },
     {
-      "created": "2026-04-09",
-      "depends_on": ["3", "8", "17"],
-      "inbound": [],
-      "number": null,
-      "owners": ["[galligan](https://github.com/galligan)"],
-      "path": "docs/adr/drafts/20260409-trail-versioning.md",
-      "slug": "trail-versioning",
-      "status": "draft",
-      "superseded_by": null,
-      "title": "Trail Versioning",
-      "updated": "2026-04-09"
-    },
-    {
       "created": "2026-05-03",
       "depends_on": ["17", "27", "42"],
       "inbound": [],
