@@ -11,6 +11,7 @@ import type {
   ResourceContext,
   ResourceOverrideMap,
 } from './resource.js';
+import type { SurfaceConfigValues } from './surface-derivation.js';
 import type { AnyTrail } from './trail.js';
 import type { TrailContext } from './types.js';
 
@@ -22,7 +23,9 @@ type MutableTrailContext = {
   -readonly [K in keyof TrailContext]: TrailContext[K];
 };
 
-type ConfigValues = Readonly<Record<string, Record<string, unknown>>>;
+export type ResourceConfigValues = SurfaceConfigValues;
+
+type ConfigValues = ResourceConfigValues;
 
 // ---------------------------------------------------------------------------
 // Singleton caches
@@ -84,7 +87,7 @@ const toResourceContextKey = (ctx: ResourceContext): string =>
 // ---------------------------------------------------------------------------
 
 /** Validate and resolve a resource's config from the provided configValues map. */
-const resolveResourceConfig = (
+export const resolveResourceConfig = (
   declaredResource: AnyResource,
   configValues?: ConfigValues
 ): Result<unknown, Error> => {
@@ -93,6 +96,10 @@ const resolveResourceConfig = (
   }
   const raw = configValues?.[declaredResource.id];
   if (raw === undefined) {
+    const parsed = declaredResource.config.safeParse(raw);
+    if (parsed.success) {
+      return Result.ok(parsed.data);
+    }
     return Result.err(
       new ValidationError(
         `Resource "${declaredResource.id}" declares a config schema but no config was provided`

@@ -178,6 +178,33 @@ describe('auth.verify trail', () => {
       expect(value.error).toBeUndefined();
     });
 
+    test('materializes the auth resource from configValues', async () => {
+      const now = Math.floor(Date.now() / 1000);
+      const token = await signJwt(
+        { exp: now + 3600, scope: 'read write', sub: 'user-42' },
+        TEST_SECRET
+      );
+
+      const result = await executeTrail(
+        authVerify,
+        { token },
+        {
+          configValues: {
+            [authResource.id]: { connector: 'jwt', secret: TEST_SECRET },
+          },
+        }
+      );
+
+      expect(result.isOk()).toBe(true);
+      expect(result.unwrap()).toMatchObject({
+        permit: {
+          id: 'user-42',
+          scopes: ['read', 'write'],
+        },
+        valid: true,
+      });
+    });
+
     test('returns the full permit payload from the connector', async () => {
       const permit: Permit = {
         id: 'user-42',

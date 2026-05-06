@@ -2,6 +2,7 @@ import type {
   AnyResource,
   BasePermit,
   ResourceOverrideMap,
+  SurfaceConfigValues,
   Topo,
 } from '@ontrails/core';
 import {
@@ -9,6 +10,7 @@ import {
   Result,
   ValidationError,
   basePermitSchema,
+  resolveResourceConfig,
 } from '@ontrails/core';
 
 import type { AuthConnector } from './connectors/connector.js';
@@ -32,6 +34,7 @@ export interface ResolvePermitFromBearerTokenOptions {
   readonly requestId: string;
   readonly surface: PermitExtractionInput['surface'];
   readonly resources?: ResourceOverrideMap | undefined;
+  readonly configValues?: SurfaceConfigValues | undefined;
   readonly headers?: Headers | undefined;
   readonly sessionId?: string | undefined;
   readonly cwd?: string | undefined;
@@ -73,7 +76,7 @@ const materializeAuthConnector = async (
   resolved: LocatedAuthResource,
   options: Pick<
     ResolvePermitFromBearerTokenOptions,
-    'cwd' | 'env' | 'workspaceRoot'
+    'configValues' | 'cwd' | 'env' | 'workspaceRoot'
   >
 ): Promise<Result<AuthConnector, Error>> => {
   if (resolved.kind === 'override') {
@@ -89,8 +92,15 @@ const materializeAuthConnector = async (
   }
 
   const cwd = options.cwd ?? process.cwd();
+  const configResult = resolveResourceConfig(
+    resolved.resource,
+    options.configValues
+  );
+  if (configResult.isErr()) {
+    return configResult;
+  }
   const created = await resolved.resource.create({
-    config: undefined,
+    config: configResult.value,
     cwd,
     env: options.env ?? {},
     workspaceRoot: options.workspaceRoot ?? cwd,

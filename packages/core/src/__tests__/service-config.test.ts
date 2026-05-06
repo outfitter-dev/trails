@@ -153,6 +153,32 @@ describe('ResourceContext.config', () => {
     expect(result.error.message).toContain(id);
   });
 
+  test('defaulted config schema receives its default when configValues omits the resource', async () => {
+    const id = nextId('defaulted-config');
+    let capturedConfig: unknown;
+
+    const svc = resource(id, {
+      config: z.object({ mode: z.literal('noop') }).default({ mode: 'noop' }),
+      create: (ctx: ResourceContext<{ mode: 'noop' }>) => {
+        capturedConfig = ctx.config;
+        return Result.ok({ mode: ctx.config.mode });
+      },
+    });
+
+    const svcTrail = trail('svc-config.defaulted', {
+      blaze: (_input, ctx) => Result.ok({ mode: svc.from(ctx).mode }),
+      input: z.object({}),
+      output: z.object({ mode: z.literal('noop') }),
+      resources: [svc],
+    });
+
+    const result = await executeTrail(svcTrail, {});
+
+    expect(result.isOk()).toBe(true);
+    expect(result.unwrap()).toEqual({ mode: 'noop' });
+    expect(capturedConfig).toEqual({ mode: 'noop' });
+  });
+
   test('resource override bypasses config validation', async () => {
     const id = nextId('override-bypass');
 

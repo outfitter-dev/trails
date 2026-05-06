@@ -76,6 +76,7 @@ export interface ActionResultContext {
 }
 
 export interface ResolveCliPermitFromTokenInput {
+  readonly configValues?: BaseSurfaceOptions['configValues'] | undefined;
   readonly graph: Topo;
   readonly requestId: string;
   readonly resources?: ResourceOverrideMap | undefined;
@@ -686,6 +687,7 @@ const resolvePermitForExecution = async (
   }
   const requestId = Bun.randomUUIDv7();
   return await options.resolvePermitFromToken({
+    configValues: options.configValues,
     graph,
     requestId,
     resources: options.resources,

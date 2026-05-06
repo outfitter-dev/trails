@@ -8,8 +8,10 @@ import {
   topo,
 } from '@ontrails/core';
 
+import { authResource } from '../auth-resource.js';
 import { resolvePermitFromBearerToken } from '../boundary.js';
 import type { PermitExtractionInput } from '../extraction.js';
+import { TEST_SECRET, signJwt } from './helpers/jwt.js';
 
 const authResourceDef = resource<{
   readonly authenticate: (
@@ -29,6 +31,9 @@ const authResourceDef = resource<{
 });
 
 const app = topo('auth-boundary-test', { auth: authResourceDef });
+const configuredApp = topo('auth-boundary-config-test', {
+  auth: authResource,
+});
 
 describe('resolvePermitFromBearerToken', () => {
   test('resolves a bearer token through an override auth connector', async () => {
@@ -70,6 +75,29 @@ describe('resolvePermitFromBearerToken', () => {
     expect(result.unwrap()).toEqual({
       id: 'created-user',
       scopes: ['created:read'],
+    });
+  });
+
+  test('materializes a declared auth resource with configValues', async () => {
+    const now = Math.floor(Date.now() / 1000);
+    const token = await signJwt(
+      { exp: now + 3600, scope: 'read write', sub: 'configured-user' },
+      TEST_SECRET
+    );
+
+    const result = await resolvePermitFromBearerToken({
+      bearerToken: token,
+      configValues: {
+        [authResource.id]: { connector: 'jwt', secret: TEST_SECRET },
+      },
+      graph: configuredApp,
+      requestId: 'req-config',
+      surface: 'cli',
+    });
+
+    expect(result.unwrap()).toEqual({
+      id: 'configured-user',
+      scopes: ['read', 'write'],
     });
   });
 

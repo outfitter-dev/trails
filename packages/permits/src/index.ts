@@ -9,7 +9,11 @@ export {
   type JwtAlgorithm,
   type JwtConnectorOptions,
 } from './connectors/jwt.js';
-export { authResource } from './auth-resource.js';
+export {
+  authResource,
+  authResourceConfigSchema,
+  type AuthResourceConfig,
+} from './auth-resource.js';
 export {
   AUTH_RESOURCE_ID,
   resolvePermitFromBearerToken,

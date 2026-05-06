@@ -107,8 +107,11 @@ export {
   isResource,
   resource,
 } from './resource.js';
-export { drainResources } from './resource-config.js';
-export type { ResourceDrainReport } from './resource-config.js';
+export { drainResources, resolveResourceConfig } from './resource-config.js';
+export type {
+  ResourceConfigValues,
+  ResourceDrainReport,
+} from './resource-config.js';
 export type {
   AnyResource,
   Resource,

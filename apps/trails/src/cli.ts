@@ -86,6 +86,7 @@ const maybeInstallTraceSession = (): TraceSession | undefined =>
 const resolveCliPermitFromToken: ResolveCliPermitFromToken = (input) =>
   resolvePermitFromBearerToken({
     bearerToken: input.token,
+    configValues: input.configValues,
     env: process.env as Record<string, string | undefined>,
     graph: input.graph,
     missingAuthResourceMessage:
