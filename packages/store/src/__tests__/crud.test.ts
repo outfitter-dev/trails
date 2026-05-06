@@ -1,9 +1,15 @@
 import { describe, expect, mock, test } from 'bun:test';
-import { Result, createTrailContext, resource, topo } from '@ontrails/core';
+import {
+  Result,
+  createTrailContext,
+  executeTrail,
+  resource,
+  topo,
+  validateTopo,
+} from '@ontrails/core';
 import { z } from 'zod';
 
 import type { EntityOf, InsertOf, StoreAccessor } from '../index.js';
-import { testAll } from '../../../testing/src/index.js';
 import { crudAccessorExpectations, crudOperations, store } from '../index.js';
 import {
   crud,
@@ -114,6 +120,17 @@ const [createNote, readNote, updateNote, deleteNote, listNote] = crud(
   notesResource
 );
 
+const crudTopo = topo('store-crud-app', {
+  createNote,
+  deleteNote,
+  listNote,
+  notesResource,
+  readNote,
+  updateNote,
+} as Record<string, unknown>);
+
+const crudTrails = [createNote, deleteNote, listNote, readNote, updateNote];
+
 type CreateNoteInput = Parameters<typeof createNote.blaze>[0];
 type UpdateNoteInput = Parameters<typeof updateNote.blaze>[0];
 
@@ -129,18 +146,6 @@ const updateInputHasIdentity: 'id' extends keyof UpdateNoteInput
 const updateInputHasWritableFields: 'title' extends keyof UpdateNoteInput
   ? true
   : false = true;
-
-// oxlint-disable-next-line jest/require-hook -- testAll generates describe/test blocks, not setup code
-testAll(
-  topo('store-crud-app', {
-    createNote,
-    deleteNote,
-    listNote,
-    notesResource,
-    readNote,
-    updateNote,
-  } as Record<string, unknown>)
-);
 
 const createCrudContext = () =>
   createTrailContext({
@@ -206,6 +211,61 @@ const expectOk = <T>(result: Result<T, Error>): T => {
 
   return result.value;
 };
+
+describe('governance', () => {
+  test('topo validates', () => {
+    const validation = validateTopo(crudTopo);
+    if (validation.isErr()) {
+      throw validation.error;
+    }
+
+    expect(validation.isOk()).toBe(true);
+  });
+
+  describe.each(crudTrails)('$id', (trail) => {
+    const examples = [...(trail.examples ?? [])];
+
+    test('has examples for governance coverage', () => {
+      expect(examples.length).toBeGreaterThan(0);
+    });
+
+    test.each(examples)('example: $name', async (example) => {
+      const result = await executeTrail(trail, example.input, {
+        ctx: createCrudContext(),
+        topo: crudTopo,
+      });
+
+      if (example.error !== undefined) {
+        expect(result.isErr()).toBe(true);
+        return;
+      }
+
+      const value = expectOk(result);
+      if (example.expected !== undefined) {
+        expect(value).toEqual(example.expected);
+      } else if (trail.output !== undefined) {
+        expect(trail.output.safeParse(value).success).toBe(true);
+      }
+    });
+
+    if (trail.output === undefined) {
+      return;
+    }
+
+    test.each(examples.filter((example) => example.error === undefined))(
+      'contract: $name',
+      async (example) => {
+        const result = await executeTrail(trail, example.input, {
+          ctx: createCrudContext(),
+          topo: crudTopo,
+        });
+        const value = expectOk(result);
+
+        expect(trail.output?.safeParse(value).success).toBe(true);
+      }
+    );
+  });
+});
 
 describe('crud()', () => {
   test('exports the store-owned CRUD doctrine constants', () => {

@@ -80,7 +80,7 @@ This exposes MCP tools: `demo_entity_show`, `demo_entity_add`, `demo_entity_dele
 ### Trail definition: `entity.show`
 
 ```typescript
-import { entityStoreResource } from '../src/resources/entity-store.js';
+import { entityStoreResource } from './src/resources/entity-store.js';
 
 export const show = trail('entity.show', {
   description: 'Show an entity by name',
@@ -147,8 +147,8 @@ export const onboard = trail('entity.onboard', {
 
 ```typescript
 import { testAll } from '@ontrails/testing';
-import { graph } from '../src/app.js';
-import { createMockEntityStore, entityStoreResource } from '../src/resources/entity-store.js';
+import { graph } from './src/app.js';
+import { createMockEntityStore, entityStoreResource } from './src/resources/entity-store.js';
 
 testAll(graph, () => ({
   resources: {
@@ -175,9 +175,9 @@ Pass a factory function (not a plain object) when your explicit resource overrid
 ### Custom scenarios
 
 ```typescript
-import { createStore } from '../src/store.js';
+import { createStore } from './src/store.js';
 import { testTrail } from '@ontrails/testing';
-import { entityStoreResource } from '../src/resources/entity-store.js';
+import { entityStoreResource } from './src/resources/entity-store.js';
 
 testTrail(
   show,

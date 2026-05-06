@@ -9,7 +9,7 @@ import {
   trail,
   type AnyTrail,
   type TraceSink,
-} from '../../core/src/index.ts';
+} from '@ontrails/core';
 import { z } from 'zod';
 
 interface Scenario {
