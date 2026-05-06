@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, test } from 'bun:test';
+import type { Database } from 'bun:sqlite';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -24,6 +25,7 @@ import {
 } from '../index.js';
 import { pinTopoSnapshot } from '../internal/topo-snapshots.js';
 import type { TopoSnapshot } from '../internal/topo-snapshots.js';
+import { listTopoStoreSignals } from '../internal/topo-store-read.js';
 
 const noop = () => Result.ok({ ok: true });
 
@@ -42,6 +44,44 @@ const requireValue = <T>(value: T | undefined, message: string): T => {
     throw new Error(message);
   }
   return value;
+};
+
+const countSignalRelationQueries = (
+  db: Database
+): {
+  readonly counts: Record<
+    'topo_trail_fires' | 'topo_trail_on' | 'topo_trail_signals',
+    number
+  >;
+  readonly db: Database;
+} => {
+  const counts = {
+    topo_trail_fires: 0,
+    topo_trail_on: 0,
+    topo_trail_signals: 0,
+  };
+  const query = db.query.bind(db);
+  const proxied = new Proxy(db, {
+    get(target, prop, receiver) {
+      if (prop !== 'query') {
+        return Reflect.get(target, prop, receiver);
+      }
+      return ((sql: string) => {
+        if (sql.includes('FROM topo_trail_fires')) {
+          counts.topo_trail_fires += 1;
+        }
+        if (sql.includes('FROM topo_trail_on')) {
+          counts.topo_trail_on += 1;
+        }
+        if (sql.includes('FROM topo_trail_signals')) {
+          counts.topo_trail_signals += 1;
+        }
+        return query(sql);
+      }) as Database['query'];
+    },
+  });
+
+  return { counts, db: proxied };
 };
 
 const exampleApp = () => {
@@ -106,6 +146,75 @@ const exampleApp = () => {
     entityAdd,
     entityAdded,
     entityList,
+  });
+};
+
+const signalBatchApp = () => {
+  const created = signal('entity.created', {
+    from: ['entity.create'],
+    payload: z.object({ id: z.string() }),
+  });
+  const updated = signal('entity.updated', {
+    from: ['entity.update'],
+    payload: z.object({ id: z.string() }),
+  });
+  const deleted = signal('entity.deleted', {
+    from: ['entity.delete'],
+    payload: z.object({ id: z.string() }),
+  });
+  const archived = signal('entity.archived', {
+    from: ['entity.archive'],
+    payload: z.object({ id: z.string() }),
+  });
+
+  const createTrail = trail('entity.create', {
+    blaze: noop,
+    fires: ['entity.created', 'entity.updated'],
+    input: z.object({}),
+    output: z.object({ ok: z.boolean() }),
+  });
+  const updateTrail = trail('entity.update', {
+    blaze: noop,
+    fires: [updated],
+    input: z.object({}),
+    output: z.object({ ok: z.boolean() }),
+  });
+  const deleteTrail = trail('entity.delete', {
+    blaze: noop,
+    fires: [deleted],
+    input: z.object({}),
+    output: z.object({ ok: z.boolean() }),
+  });
+  const archiveTrail = trail('entity.archive', {
+    blaze: noop,
+    fires: [archived],
+    input: z.object({}),
+    output: z.object({ ok: z.boolean() }),
+  });
+  const auditTrail = trail('entity.audit', {
+    blaze: noop,
+    input: z.object({}),
+    on: ['entity.created', 'entity.updated', 'entity.deleted'],
+    output: z.object({ ok: z.boolean() }),
+  });
+  const indexTrail = trail('entity.index', {
+    blaze: noop,
+    input: z.object({}),
+    on: [created],
+    output: z.object({ ok: z.boolean() }),
+  });
+
+  return topo('signal-batch-app', {
+    archiveTrail,
+    archived,
+    auditTrail,
+    createTrail,
+    created,
+    deleteTrail,
+    deleted,
+    indexTrail,
+    updateTrail,
+    updated,
   });
 };
 
@@ -198,6 +307,48 @@ describe('read-only topo store', () => {
         producers: [],
       }),
     ]);
+  });
+
+  test('lists signal relations with three batched relation queries for multiple signals', async () => {
+    const rootDir = makeRoot();
+    const snapshot = await expectOk(
+      createTopoSnapshot(signalBatchApp(), {
+        createdAt: '2026-04-03T15:00:00.000Z',
+        gitSha: 'abc123',
+        rootDir,
+      })
+    );
+    const db = openWriteTrailsDb({ rootDir });
+
+    try {
+      const counted = countSignalRelationQueries(db);
+      const records = listTopoStoreSignals(counted.db, {
+        snapshot: { snapshotId: snapshot.id },
+      });
+
+      expect(records).toHaveLength(4);
+      expect(records.find((record) => record.id === 'entity.created')).toEqual(
+        expect.objectContaining({
+          consumers: ['entity.audit', 'entity.index'],
+          from: ['entity.create'],
+          producers: ['entity.create'],
+        })
+      );
+      expect(records.find((record) => record.id === 'entity.updated')).toEqual(
+        expect.objectContaining({
+          consumers: ['entity.audit'],
+          from: ['entity.update'],
+          producers: ['entity.create', 'entity.update'],
+        })
+      );
+      expect(counted.counts).toEqual({
+        topo_trail_fires: 1,
+        topo_trail_on: 1,
+        topo_trail_signals: 1,
+      });
+    } finally {
+      db.close();
+    }
   });
 
   test('filters trails by intent', () => {

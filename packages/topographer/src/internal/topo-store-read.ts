@@ -137,6 +137,10 @@ interface TopoSignalRelationRow {
   readonly trail_id: string;
 }
 
+interface TopoSignalRelationBatchRow extends TopoSignalRelationRow {
+  readonly signal_id: string;
+}
+
 interface StoredSurfaceMapEntry {
   readonly description?: string;
   readonly detours?: readonly {
@@ -321,9 +325,7 @@ const readResourceUsage = (
     usage.set(row.resource_id, trails);
   }
 
-  return new Map(
-    [...usage.entries()].map(([id, trails]) => [id, trails] as const)
-  );
+  return usage as ReadonlyMap<string, readonly string[]>;
 };
 
 type SignalRelationTable =
@@ -350,6 +352,21 @@ const SIGNAL_RELATION_QUERIES = {
        ORDER BY trail_id ASC`,
 } as const satisfies Record<SignalRelationTable, string>;
 
+const SIGNAL_RELATION_BATCH_QUERIES = {
+  topo_trail_fires: `SELECT signal_id, trail_id
+       FROM topo_trail_fires
+       WHERE snapshot_id = ?
+       ORDER BY signal_id ASC, trail_id ASC`,
+  topo_trail_on: `SELECT signal_id, trail_id
+       FROM topo_trail_on
+       WHERE snapshot_id = ?
+       ORDER BY signal_id ASC, trail_id ASC`,
+  topo_trail_signals: `SELECT signal_id, trail_id
+       FROM topo_trail_signals
+       WHERE snapshot_id = ?
+       ORDER BY signal_id ASC, trail_id ASC`,
+} as const satisfies Record<SignalRelationTable, string>;
+
 const readSignalTrailIds = (
   db: Database,
   table: SignalRelationTable,
@@ -362,6 +379,29 @@ const readSignalTrailIds = (
     )
     .all(snapshotId, signalId)
     .map((row) => row.trail_id);
+
+const readSignalRelationUsage = (
+  db: Database,
+  table: SignalRelationTable,
+  snapshotId: string
+): ReadonlyMap<string, readonly string[]> => {
+  const rows = db
+    .query<TopoSignalRelationBatchRow, [string]>(
+      SIGNAL_RELATION_BATCH_QUERIES[table]
+    )
+    .all(snapshotId);
+
+  const usage = new Map<string, string[]>();
+  for (const row of rows) {
+    const trails = usage.get(row.signal_id) ?? [];
+    trails.push(row.trail_id);
+    usage.set(row.signal_id, trails);
+  }
+
+  return new Map(
+    [...usage.entries()].map(([id, trails]) => [id, trails] as const)
+  );
+};
 
 const signalExamplePayload = (example: unknown): unknown => {
   if (typeof example !== 'object' || example === null) {
@@ -632,12 +672,31 @@ export const listTopoStoreSignals = (
   const entries = stored
     ? (JSON.parse(stored.surfaceMapJson) as StoredSurfaceMap).entries
     : [];
+  const consumersBySignal = readSignalRelationUsage(
+    db,
+    'topo_trail_on',
+    snapshot.id
+  );
+  const fromBySignal = readSignalRelationUsage(
+    db,
+    'topo_trail_signals',
+    snapshot.id
+  );
+  const producersBySignal = readSignalRelationUsage(
+    db,
+    'topo_trail_fires',
+    snapshot.id
+  );
 
   return rows.map((row) =>
     mapSignalRow(
       row,
       entries.find((entry) => entry.id === row.id && entry.kind === 'signal'),
-      readSignalRelations(db, snapshot.id, row.id)
+      {
+        consumers: consumersBySignal.get(row.id) ?? [],
+        from: fromBySignal.get(row.id) ?? [],
+        producers: producersBySignal.get(row.id) ?? [],
+      }
     )
   );
 };
