@@ -1,0 +1,12 @@
+id: trails-no-direct-blaze-call
+language: TypeScript
+severity: error
+message: Use ctx.cross(...) instead of direct .blaze() calls.
+ignores:
+  - '**/__tests__/**'
+  - '**/*.test.ts'
+  - '**/*.spec.ts'
+  - 'packages/testing/**'
+  - 'packages/warden/**'
+rule:
+  pattern: $TARGET.blaze($$$ARGS)

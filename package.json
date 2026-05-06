@@ -14,6 +14,7 @@
     "build": "turbo run build",
     "test": "turbo run test",
     "lint": "turbo run lint",
+    "lint:ast-grep": "ast-grep scan --config .ast-grep/sgconfig.yml",
     "changeset:check": "bun scripts/check-changeset-gate.ts",
     "vocab:audit": "bun scripts/vocab-cutover-audit.ts",
     "vocab:audit:json": "bun scripts/vocab-cutover-audit.ts --json",
@@ -28,7 +29,7 @@
     "format:guard": "if git grep -nE \"(\\\\./)?node_modules/\\\\.bin/ultra[c]ite\" -- ':!bun.lock'; then echo 'Direct node_modules/.bin formatter invocation found'; exit 1; fi",
     "mdlint:fix": "./node_modules/.bin/markdownlint-cli2 --fix",
     "typecheck": "turbo run typecheck",
-    "check": "bun run lint && bun run format:check && bun run typecheck && bun run docs:snippets && bun run scaffold-versions:check",
+    "check": "bun run lint && bun run lint:ast-grep && bun run format:check && bun run typecheck && bun run docs:snippets && bun run scaffold-versions:check",
     "clean": "turbo run clean --no-cache && rm -rf node_modules",
     "oxlint-plugin:build": "bun run --cwd packages/oxlint-plugin build:oxlint",
     "publish:check": "bun scripts/publish.ts --check",
@@ -39,6 +40,7 @@
     "commander": "^14.0.0"
   },
   "devDependencies": {
+    "@ast-grep/cli": "0.42.1",
     "@changesets/cli": "^2.29.8",
     "@ontrails/oxlint-plugin": "workspace:*",
     "@types/bun": "^1.3.11",
@@ -61,6 +63,7 @@
     "zod": "^4.3.5"
   },
   "trustedDependencies": [
+    "@ast-grep/cli",
     "lefthook",
     "oxfmt",
     "oxlint"

@@ -45,6 +45,9 @@ jobs:
       - name: Lint
         run: bun run lint
 
+      - name: Structural lint
+        run: bun run lint:ast-grep
+
       - name: Format check
         run: bun run format:check
 

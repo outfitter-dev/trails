@@ -10,6 +10,7 @@ Use repo scripts first:
 bun run build
 bun run test
 bun run lint
+bun run lint:ast-grep
 bun run typecheck
 bun run check
 bun run clean

@@ -1,0 +1,19 @@
+id: trails-no-native-error-result
+language: TypeScript
+severity: error
+message: Use a specific TrailsError subclass with Result.err(...) instead of native Error.
+ignores:
+  - '**/__tests__/**'
+  - '**/*.test.ts'
+  - '**/*.spec.ts'
+  - 'packages/testing/**'
+  - 'packages/warden/**'
+rule:
+  any:
+    - pattern: Result.err(new $ERROR($$$ARGS))
+    - pattern: $NAMESPACE.Result.err(new $ERROR($$$ARGS))
+    - pattern: Result.err(new $ERROR)
+    - pattern: $NAMESPACE.Result.err(new $ERROR)
+constraints:
+  ERROR:
+    regex: '^(AggregateError|Error|EvalError|RangeError|ReferenceError|SyntaxError|TypeError|URIError)$'
