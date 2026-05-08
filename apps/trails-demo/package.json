@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@ontrails/cli": "workspace:^",
+    "@ontrails/commander": "workspace:^",
     "@ontrails/core": "workspace:^",
     "@ontrails/drizzle": "workspace:^",
     "@ontrails/hono": "workspace:^",
@@ -23,7 +24,6 @@
     "@ontrails/logging": "workspace:^",
     "@ontrails/mcp": "workspace:^",
     "@ontrails/store": "workspace:^",
-    "commander": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {

@@ -3,10 +3,9 @@
  */
 
 import { isTrailsError, mapSurfaceError } from '@ontrails/core';
+import type { CliCommand, CliFlag } from '@ontrails/cli';
+import { validateCliCommands } from '@ontrails/cli';
 import { Command, InvalidArgumentError, Option } from 'commander';
-
-import type { CliCommand, CliFlag } from '../command.js';
-import { validateCliCommands } from '../validate.js';
 
 // ---------------------------------------------------------------------------
 // Options

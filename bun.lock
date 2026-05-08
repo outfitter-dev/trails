@@ -27,6 +27,18 @@
         "zod": "catalog:",
       },
     },
+    "adapters/commander": {
+      "name": "@ontrails/commander",
+      "version": "1.0.0-beta.15",
+      "dependencies": {
+        "@ontrails/cli": "workspace:^",
+        "@ontrails/core": "workspace:^",
+        "commander": "^14.0.3",
+      },
+      "peerDependencies": {
+        "zod": "catalog:",
+      },
+    },
     "adapters/drizzle": {
       "name": "@ontrails/drizzle",
       "version": "1.0.0-beta.15",
@@ -69,6 +81,7 @@
       "dependencies": {
         "@clack/prompts": "^1.1.0",
         "@ontrails/cli": "workspace:^",
+        "@ontrails/commander": "workspace:^",
         "@ontrails/core": "workspace:^",
         "@ontrails/http": "workspace:^",
         "@ontrails/logging": "workspace:^",
@@ -92,6 +105,7 @@
       },
       "dependencies": {
         "@ontrails/cli": "workspace:^",
+        "@ontrails/commander": "workspace:^",
         "@ontrails/core": "workspace:^",
         "@ontrails/drizzle": "workspace:^",
         "@ontrails/hono": "workspace:^",
@@ -99,7 +113,6 @@
         "@ontrails/logging": "workspace:^",
         "@ontrails/mcp": "workspace:^",
         "@ontrails/store": "workspace:^",
-        "commander": "catalog:",
         "zod": "catalog:",
       },
       "devDependencies": {
@@ -115,12 +128,8 @@
         "@ontrails/core": "workspace:^",
       },
       "peerDependencies": {
-        "commander": "^14.0.3",
         "zod": "catalog:",
       },
-      "optionalPeers": [
-        "commander",
-      ],
     },
     "packages/config": {
       "name": "@ontrails/config",
@@ -363,6 +372,8 @@
     "@nodelib/fs.walk": ["@nodelib/fs.walk@1.2.8", "", { "dependencies": { "@nodelib/fs.scandir": "2.1.5", "fastq": "^1.6.0" } }, "sha512-oGB+UxlgWcgQkgwo8GcEGwemoTFt3FIO9ababBmaGwXIoBKZ+GTy0pP185beGg7Llih/NSHSV2XAs1lnznocSg=="],
 
     "@ontrails/cli": ["@ontrails/cli@workspace:packages/cli"],
+
+    "@ontrails/commander": ["@ontrails/commander@workspace:adapters/commander"],
 
     "@ontrails/config": ["@ontrails/config@workspace:packages/config"],
 

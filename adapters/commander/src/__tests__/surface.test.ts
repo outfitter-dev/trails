@@ -1,12 +1,11 @@
 import { describe, expect, test } from 'bun:test';
 
 import { Result, trail, topo } from '@ontrails/core';
+import { defaultOnResult, deriveCliCommands } from '@ontrails/cli';
 import { z } from 'zod';
 
-import { deriveCliCommands } from '../build.js';
-import { createProgram, surface } from '../commander/surface.js';
-import { toCommander } from '../commander/to-commander.js';
-import { defaultOnResult } from '../on-result.js';
+import { createProgram, surface } from '../surface.js';
+import { toCommander } from '../to-commander.js';
 
 const unwrapOk = <T>(result: Result<T, Error>): T =>
   result.match({

@@ -1,14 +1,17 @@
 import {
   invokesMemberCall,
-  isAllowedPackage,
-  isPackageSourceFile,
+  isAllowedPackageOrAdapter,
+  isPackageOrAdapterSourceFile,
   reportNode,
 } from './shared.js';
 import type { RuleModule } from './shared.js';
 
 export const noProcessExitInPackagesRule: RuleModule = {
   create(context) {
-    if (!isPackageSourceFile(context.filename) || isAllowedPackage(context)) {
+    if (
+      !isPackageOrAdapterSourceFile(context.filename) ||
+      isAllowedPackageOrAdapter(context)
+    ) {
       return {};
     }
 
@@ -35,7 +38,7 @@ export const noProcessExitInPackagesRule: RuleModule = {
   meta: {
     docs: {
       description:
-        'Disallow process.exit() in packages/*/src except configured surface boundaries.',
+        'Disallow process.exit() in package source except configured surface boundaries.',
       recommended: true,
     },
     messages: {
@@ -48,7 +51,7 @@ export const noProcessExitInPackagesRule: RuleModule = {
         properties: {
           allowedPackages: {
             description:
-              'Directory names under packages/ that own process-exit surface boundaries.',
+              'Directory names under packages/ or adapters/ that own process-exit surface boundaries.',
             items: { type: 'string' },
             type: 'array',
             uniqueItems: true,

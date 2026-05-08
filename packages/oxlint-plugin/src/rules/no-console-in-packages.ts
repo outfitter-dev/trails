@@ -1,14 +1,17 @@
 import {
   invokesMemberCall,
-  isAllowedPackage,
-  isPackageSourceFile,
+  isAllowedPackageOrAdapter,
+  isPackageOrAdapterSourceFile,
   reportNode,
 } from './shared.js';
 import type { RuleModule } from './shared.js';
 
 export const noConsoleInPackagesRule: RuleModule = {
   create(context) {
-    if (!isPackageSourceFile(context.filename) || isAllowedPackage(context)) {
+    if (
+      !isPackageOrAdapterSourceFile(context.filename) ||
+      isAllowedPackageOrAdapter(context)
+    ) {
       return {};
     }
 
@@ -29,7 +32,7 @@ export const noConsoleInPackagesRule: RuleModule = {
   meta: {
     docs: {
       description:
-        'Disallow console.* calls in packages/*/src source files except configured package boundaries.',
+        'Disallow console.* calls in packages/*/src and adapters/*/src source files except configured boundaries.',
       recommended: true,
     },
     messages: {
@@ -42,7 +45,7 @@ export const noConsoleInPackagesRule: RuleModule = {
         properties: {
           allowedPackages: {
             description:
-              'Directory names under packages/ that are allowed to write to console.*.',
+              'Directory names under packages/ or adapters/ that are allowed to write to console.*.',
             items: { type: 'string' },
             type: 'array',
             uniqueItems: true,

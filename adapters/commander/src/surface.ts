@@ -9,15 +9,13 @@ import type {
   Topo,
   TrailContextInit,
 } from '@ontrails/core';
-
 import type {
   ActionResultContext,
+  CliFlag,
+  InputResolver,
   ResolveCliPermitFromToken,
-} from '../build.js';
-import { deriveCliCommands } from '../build.js';
-import type { CliFlag } from '../command.js';
-import { defaultOnResult } from '../on-result.js';
-import type { InputResolver } from '../prompt.js';
+} from '@ontrails/cli';
+import { defaultOnResult, deriveCliCommands } from '@ontrails/cli';
 import type { ToCommanderOptions } from './to-commander.js';
 import { toCommander } from './to-commander.js';
 

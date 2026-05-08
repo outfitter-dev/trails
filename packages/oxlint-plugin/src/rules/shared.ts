@@ -10,6 +10,10 @@ export type RuleModule = CreateRule;
 
 const PACKAGES_SRC_PATTERN = /(?:^|\/)packages\/[^/]+\/src\//u;
 const PACKAGE_NAME_PATTERN = /(?:^|\/)packages\/([^/]+)\/src\//u;
+const PACKAGE_OR_ADAPTER_SRC_PATTERN =
+  /(?:^|\/)(?:adapters|packages)\/[^/]+\/src\//u;
+const PACKAGE_OR_ADAPTER_NAME_PATTERN =
+  /(?:^|\/)(?:adapters|packages)\/([^/]+)\/src\//u;
 const REPO_SOURCE_PATTERN =
   /(?:^|\/)(?:adapters|apps|packages)\/[^/]+\/src\/.+\.[cm]?[jt]sx?$/u;
 const SCRIPT_SOURCE_PATTERN = /(?:^|\/)scripts\/.+\.[cm]?[jt]sx?$/u;
@@ -58,6 +62,26 @@ export const isPackageSourceFile = (filePath: string | undefined): boolean => {
   return !TEMPLATE_FILE_PATTERN.test(normalized);
 };
 
+export const isPackageOrAdapterSourceFile = (
+  filePath: string | undefined
+): boolean => {
+  if (!filePath) {
+    return false;
+  }
+
+  const normalized = normalizeFilePath(filePath);
+
+  if (!PACKAGE_OR_ADAPTER_SRC_PATTERN.test(normalized)) {
+    return false;
+  }
+
+  if (TEST_FILE_PATTERN.test(normalized)) {
+    return false;
+  }
+
+  return !TEMPLATE_FILE_PATTERN.test(normalized);
+};
+
 export const isRepoSourceFile = (filePath: string | undefined): boolean => {
   if (!filePath) {
     return false;
@@ -88,6 +112,18 @@ export const extractPackageName = (
   return normalizeFilePath(filePath).match(PACKAGE_NAME_PATTERN)?.[1];
 };
 
+export const extractPackageOrAdapterName = (
+  filePath: string | undefined
+): string | undefined => {
+  if (!filePath) {
+    return undefined;
+  }
+
+  return normalizeFilePath(filePath).match(
+    PACKAGE_OR_ADAPTER_NAME_PATTERN
+  )?.[1];
+};
+
 export const resolveAllowedPackages = (
   options: readonly unknown[]
 ): ReadonlySet<string> => {
@@ -108,6 +144,14 @@ export const resolveAllowedPackages = (
 
 export const isAllowedPackage = (context: RuleContext): boolean => {
   const packageName = extractPackageName(context.filename);
+  return (
+    typeof packageName === 'string' &&
+    resolveAllowedPackages(context.options).has(packageName)
+  );
+};
+
+export const isAllowedPackageOrAdapter = (context: RuleContext): boolean => {
+  const packageName = extractPackageOrAdapterName(context.filename);
   return (
     typeof packageName === 'string' &&
     resolveAllowedPackages(context.options).has(packageName)

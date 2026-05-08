@@ -25,7 +25,7 @@ export default defineConfig({
     'require-await': 'off',
     'trails-local/no-console-in-packages': [
       'error',
-      { allowedPackages: ['logging', 'observe'] },
+      { allowedPackages: ['drizzle', 'hono', 'logging', 'observe'] },
     ],
     'trails-local/no-deep-relative-import': ['warn', { maxParentSegments: 2 }],
     'trails-local/no-nested-barrel': ['warn', { maxDepth: 2 }],
@@ -35,7 +35,7 @@ export default defineConfig({
     ],
     'trails-local/no-process-exit-in-packages': [
       'error',
-      { allowedPackages: ['cli'] },
+      { allowedPackages: ['commander'] },
     ],
     'trails-local/no-retired-lexicon-terms': 'error',
     'trails-local/prefer-bun-api': 'warn',

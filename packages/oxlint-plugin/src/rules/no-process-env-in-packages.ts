@@ -1,6 +1,6 @@
 import {
-  isAllowedPackage,
-  isPackageSourceFile,
+  isAllowedPackageOrAdapter,
+  isPackageOrAdapterSourceFile,
   matchesMemberExpression,
   reportNode,
 } from './shared.js';
@@ -8,7 +8,10 @@ import type { RuleModule } from './shared.js';
 
 export const noProcessEnvInPackagesRule: RuleModule = {
   create(context) {
-    if (!isPackageSourceFile(context.filename) || isAllowedPackage(context)) {
+    if (
+      !isPackageOrAdapterSourceFile(context.filename) ||
+      isAllowedPackageOrAdapter(context)
+    ) {
       return {};
     }
 
@@ -35,7 +38,7 @@ export const noProcessEnvInPackagesRule: RuleModule = {
   meta: {
     docs: {
       description:
-        'Warn on process.env usage in packages/*/src except configured environment seams.',
+        'Warn on process.env usage in packages/*/src and adapters/*/src except configured environment seams.',
       recommended: true,
     },
     messages: {
@@ -48,7 +51,7 @@ export const noProcessEnvInPackagesRule: RuleModule = {
         properties: {
           allowedPackages: {
             description:
-              'Directory names under packages/ that are allowed to read process.env at boundary seams.',
+              'Directory names under packages/ or adapters/ that are allowed to read process.env at boundary seams.',
             items: { type: 'string' },
             type: 'array',
             uniqueItems: true,

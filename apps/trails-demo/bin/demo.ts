@@ -9,7 +9,7 @@
  *   bun run bin/demo.ts search --query Alpha
  */
 
-import { surface } from '@ontrails/cli/commander';
+import { surface } from '@ontrails/commander';
 
 import { graph } from '../src/app.js';
 

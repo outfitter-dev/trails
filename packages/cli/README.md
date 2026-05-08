@@ -1,14 +1,14 @@
 # @ontrails/cli
 
-CLI surface model and Commander adapter. Import framework-agnostic command
-derivation from `@ontrails/cli`; import the Commander runtime from
-`@ontrails/cli/commander`.
+Framework-agnostic CLI command model for Trails. Import command derivation from
+`@ontrails/cli`; import the Commander runtime adapter from
+`@ontrails/commander`.
 
 ## Usage
 
 ```typescript
 import { trail, topo, Result } from '@ontrails/core';
-import { surface } from '@ontrails/cli/commander';
+import { surface } from '@ontrails/commander';
 import { z } from 'zod';
 
 const greet = trail('greet', {
@@ -36,7 +36,7 @@ For more control, build the commands yourself:
 
 ```typescript
 import { deriveCliCommands } from '@ontrails/cli';
-import { toCommander } from '@ontrails/cli/commander';
+import { toCommander } from '@ontrails/commander';
 
 const commands = deriveCliCommands(graph);
 if (commands.isErr()) throw commands.error;
@@ -61,7 +61,7 @@ commands.
 | `output(data, mode)` | Format output as JSON, JSONL, or text |
 | `deriveOutputMode(flags, topoName)` | Derive output mode from flags and topo-derived env vars (`<TOPO>_JSON`, `<TOPO>_JSONL`) |
 
-### `@ontrails/cli/commander`
+### `@ontrails/commander`
 
 | Export | What it does |
 | --- | --- |
@@ -210,7 +210,8 @@ wiring.
 ## Installation
 
 ```bash
-bun add @ontrails/cli commander
+bun add @ontrails/cli @ontrails/commander
 ```
 
-`commander` is a peer dependency, required only for the `/commander` subpath.
+`@ontrails/cli` owns command derivation. `@ontrails/commander` owns Commander
+program materialization and parsing.

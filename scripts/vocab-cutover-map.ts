@@ -116,7 +116,7 @@ export const auditRules: readonly VocabAuditRule[] = [
     excludePaths: [
       'apps/trails/src/__tests__/run-watch-compose.test.ts',
       'apps/trails/src/run-watch.ts',
-      'packages/cli/src/__tests__/to-commander.test.ts',
+      'adapters/commander/src/__tests__/to-commander.test.ts',
       'packages/store/src/__tests__/jsonfile.test.ts',
       'packages/store/src/testing.ts',
       'packages/testing/src/harness-cli.ts',

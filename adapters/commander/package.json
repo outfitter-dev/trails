@@ -1,5 +1,5 @@
 {
-  "name": "@ontrails/cli",
+  "name": "@ontrails/commander",
   "version": "1.0.0-beta.15",
   "files": [
     "src/**/*.ts",
@@ -22,7 +22,9 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
-    "@ontrails/core": "workspace:^"
+    "@ontrails/cli": "workspace:^",
+    "@ontrails/core": "workspace:^",
+    "commander": "^14.0.3"
   },
   "peerDependencies": {
     "zod": "catalog:"

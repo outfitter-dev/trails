@@ -7,11 +7,11 @@ import {
   trail,
   topo,
 } from '@ontrails/core';
+import type { AnyTrail, CliCommand } from '@ontrails/cli';
+import { deriveCliCommands } from '@ontrails/cli';
 import { z } from 'zod';
 
-import { deriveCliCommands } from '../build.js';
-import type { AnyTrail, CliCommand } from '../command.js';
-import { toCommander } from '../commander/to-commander.js';
+import { toCommander } from '../to-commander.js';
 
 // ---------------------------------------------------------------------------
 // Helpers

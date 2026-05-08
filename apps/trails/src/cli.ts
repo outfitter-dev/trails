@@ -15,7 +15,7 @@ import type {
   ActionResultContext,
   ResolveCliPermitFromToken,
 } from '@ontrails/cli';
-import { createProgram } from '@ontrails/cli/commander';
+import { createProgram } from '@ontrails/commander';
 import { resolvePermitFromBearerToken } from '@ontrails/permits';
 import { deriveSurfaceMap } from '@ontrails/topographer';
 

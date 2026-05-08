@@ -36,6 +36,12 @@ describe('repo-local rules', () => {
       nodes: [createCallExpressionNode('console', 'log')],
       rule: noConsoleInPackagesRule,
     });
+    const adapterReports = runRuleForEvent({
+      event: 'CallExpression',
+      filename: 'adapters/hono/src/surface.ts',
+      nodes: [createCallExpressionNode('console', 'log')],
+      rule: noConsoleInPackagesRule,
+    });
     const allowedReports = runRuleForEvent({
       event: 'CallExpression',
       filename: 'packages/logging/src/sinks.ts',
@@ -43,11 +49,22 @@ describe('repo-local rules', () => {
       options: [{ allowedPackages: ['logging'] }],
       rule: noConsoleInPackagesRule,
     });
+    const allowedAdapterReports = runRuleForEvent({
+      event: 'CallExpression',
+      filename: 'adapters/commander/src/surface.ts',
+      nodes: [createCallExpressionNode('console', 'error')],
+      options: [{ allowedPackages: ['commander'] }],
+      rule: noConsoleInPackagesRule,
+    });
 
     expect(reports.map((report) => report.messageId)).toEqual([
       'noConsoleInPackages',
     ]);
+    expect(adapterReports.map((report) => report.messageId)).toEqual([
+      'noConsoleInPackages',
+    ]);
     expect(allowedReports).toHaveLength(0);
+    expect(allowedAdapterReports).toHaveLength(0);
   });
 
   test('reports process.exit calls in package source but respects allowed packages', () => {
@@ -59,9 +76,9 @@ describe('repo-local rules', () => {
     });
     const allowedReports = runRuleForEvent({
       event: 'CallExpression',
-      filename: 'packages/cli/src/commander/to-commander.ts',
+      filename: 'adapters/commander/src/to-commander.ts',
       nodes: [createCallExpressionNode('process', 'exit')],
-      options: [{ allowedPackages: ['cli'] }],
+      options: [{ allowedPackages: ['commander'] }],
       rule: noProcessExitInPackagesRule,
     });
 
@@ -78,6 +95,12 @@ describe('repo-local rules', () => {
       nodes: [createMemberExpressionNode('process', 'env')],
       rule: noProcessEnvInPackagesRule,
     });
+    const adapterReports = runRuleForEvent({
+      event: 'MemberExpression',
+      filename: 'adapters/hono/src/surface.ts',
+      nodes: [createMemberExpressionNode('process', 'env')],
+      rule: noProcessEnvInPackagesRule,
+    });
     const allowedReports = runRuleForEvent({
       event: 'MemberExpression',
       filename: 'packages/config/src/define-config.ts',
@@ -85,11 +108,22 @@ describe('repo-local rules', () => {
       options: [{ allowedPackages: ['config'] }],
       rule: noProcessEnvInPackagesRule,
     });
+    const allowedAdapterReports = runRuleForEvent({
+      event: 'MemberExpression',
+      filename: 'adapters/commander/src/surface.ts',
+      nodes: [createMemberExpressionNode('process', 'env')],
+      options: [{ allowedPackages: ['commander'] }],
+      rule: noProcessEnvInPackagesRule,
+    });
 
     expect(reports.map((report) => report.messageId)).toEqual([
       'noProcessEnvInPackages',
     ]);
+    expect(adapterReports.map((report) => report.messageId)).toEqual([
+      'noProcessEnvInPackages',
+    ]);
     expect(allowedReports).toHaveLength(0);
+    expect(allowedAdapterReports).toHaveLength(0);
   });
 
   test('reports deep relative imports beyond the configured depth', () => {
