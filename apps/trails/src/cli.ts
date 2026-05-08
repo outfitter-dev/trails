@@ -39,6 +39,7 @@ import {
   readRunTrailId,
   runWatchLoop,
 } from './run-watch.js';
+import { tryWardenOutput } from './run-warden.js';
 import { tryLoadFreshAppLease } from './trails/load-app.js';
 import { resolveRunModulePath } from './trails/run.js';
 import { resolveTrailRootDir } from './trails/root-dir.js';
@@ -74,6 +75,9 @@ const buildOnResult =
       return;
     }
     if (await tryQuietRunOutput(resolvedCtx)) {
+      return;
+    }
+    if (tryWardenOutput(resolvedCtx)) {
       return;
     }
     await defaultOnResult(resolvedCtx);
@@ -212,6 +216,47 @@ const readWatchSurfaceHash = async (
   }
 };
 
+const wardenValueFlags = new Set([
+  '--apps',
+  '--config-path',
+  '--depth',
+  '--drafts',
+  '--fail-on',
+  '--format',
+  '--lock',
+  '--root-dir',
+]);
+
+const normalizeWardenArgv = (argv: readonly string[]): string[] => {
+  if (argv[2] !== 'warden') {
+    return [...argv];
+  }
+
+  const normalized = [...argv];
+  let previousFlagConsumesValue = false;
+  for (let index = 3; index < normalized.length; index += 1) {
+    const arg = normalized[index];
+    if (arg === undefined) {
+      continue;
+    }
+
+    if (previousFlagConsumesValue) {
+      previousFlagConsumesValue = false;
+      continue;
+    }
+
+    if (arg === '-a') {
+      normalized[index] = '--apps';
+      previousFlagConsumesValue = true;
+      continue;
+    }
+
+    previousFlagConsumesValue = wardenValueFlags.has(arg);
+  }
+
+  return normalized;
+};
+
 /**
  * Invoke `surface()` once with an optional fresh trace session.
  *
@@ -241,7 +286,7 @@ const runSurfaceOnce = async (): Promise<void> => {
       version: trailsPackageVersion,
     });
     attachCompletionsInstallCommand(program);
-    await program.parseAsync();
+    await program.parseAsync(normalizeWardenArgv(process.argv));
   } finally {
     if (session !== undefined) {
       const records = session.finalize();
