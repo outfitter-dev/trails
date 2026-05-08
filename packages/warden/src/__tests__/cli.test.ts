@@ -556,6 +556,49 @@ describe('runWarden basics', () => {
       rmSync(dir, { force: true, recursive: true });
     }
   });
+
+  test('multi-topo runs do not multiply source-scoped diagnostics', async () => {
+    const dir = makeTempDir();
+    try {
+      writeFileSync(
+        join(dir, 'bad-source.ts'),
+        `trail("entity.show", {
+  blaze: async () => {
+    throw new Error("boom");
+  },
+});`
+      );
+      const seen: string[] = [];
+      const report = await runWarden({
+        depth: 'topo',
+        extraTopoRules: [buildPlaceholderTopoRule(seen)],
+        rootDir: dir,
+        topos: [
+          { name: 'primary', topo: buildFixtureTopo('fixture.primary') },
+          { name: 'admin', topo: buildFixtureTopo('fixture.admin') },
+        ],
+      });
+
+      const sourceDiagnostics = report.diagnostics.filter(
+        (diagnostic) => diagnostic.rule === 'no-throw-in-implementation'
+      );
+      const topoDiagnostics = report.diagnostics.filter(
+        (diagnostic) => diagnostic.rule === 'placeholder-topo-aware'
+      );
+
+      expect(seen).toEqual(['fixture.primary', 'fixture.admin']);
+      expect(sourceDiagnostics).toHaveLength(1);
+      expect(sourceDiagnostics[0]?.topoName).toBeUndefined();
+      expect(topoDiagnostics).toHaveLength(2);
+      expect(topoDiagnostics.map((diagnostic) => diagnostic.topoName)).toEqual([
+        'primary',
+        'admin',
+      ]);
+      expect(report.topoNames).toEqual(['primary', 'admin']);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
 });
 
 describe('runWarden project context', () => {
