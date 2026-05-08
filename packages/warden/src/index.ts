@@ -49,6 +49,20 @@ export type {
 } from './cli.js';
 export { formatWardenReport, runWarden } from './cli.js';
 
+// CLI command surface
+export type {
+  ParsedWardenCommand,
+  RunWardenCommandOptions,
+  WardenCommandResult,
+} from './command.js';
+export {
+  formatWardenCommandOutput,
+  loadWardenConfig,
+  parseWardenCommandArgs,
+  resolveWardenTopoTargets,
+  runWardenCommand,
+} from './command.js';
+
 // Config schema
 export {
   wardenConfigSchema,

@@ -40,6 +40,10 @@ import { createStore } from '../src/store.js';
 const moduleDir = dirname(fileURLToPath(import.meta.url));
 const entitySourcePath = resolve(moduleDir, '../src/trails/entity.ts');
 const notifySourcePath = resolve(moduleDir, '../src/trails/notify.ts');
+const entityDeletePermit = {
+  id: 'test-permit',
+  scopes: ['entity:delete'],
+} as const;
 
 const buildCtxExtensions = (
   entityStore: ReturnType<typeof createStore>,
@@ -84,7 +88,10 @@ describe('entity.updated signal flow', () => {
       'entity.delete',
       { name: 'Disposable' },
       {
-        ctx: { extensions: buildCtxExtensions(entityStore, notificationStore) },
+        ctx: {
+          extensions: buildCtxExtensions(entityStore, notificationStore),
+          permit: entityDeletePermit,
+        },
       }
     );
     expect(result.isOk()).toBe(true);

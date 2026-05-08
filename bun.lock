@@ -24,16 +24,6 @@
         "ultracite": "7.6.2",
       },
     },
-    "apps/ci": {
-      "name": "trails-ci",
-      "dependencies": {
-        "@ontrails/cli": "workspace:^",
-        "@ontrails/core": "workspace:^",
-        "@ontrails/topographer": "workspace:^",
-        "@ontrails/warden": "workspace:^",
-        "zod": "catalog:",
-      },
-    },
     "apps/trails": {
       "name": "@ontrails/trails",
       "version": "1.0.0-beta.15",
@@ -245,7 +235,11 @@
     "packages/warden": {
       "name": "@ontrails/warden",
       "version": "1.0.0-beta.15",
+      "bin": {
+        "warden": "./bin/warden.ts",
+      },
       "dependencies": {
+        "@ontrails/cli": "workspace:^",
         "@ontrails/permits": "workspace:^",
         "@ontrails/store": "workspace:^",
         "oxc-parser": "^0.121.0",
@@ -1012,8 +1006,6 @@
     "to-regex-range": ["to-regex-range@5.0.1", "", { "dependencies": { "is-number": "^7.0.0" } }, "sha512-65P7iz6X5yEr1cwcgvQxbbIw7Uk3gOy5dIdtZ4rDveLqhrdJP+Li/Hx6tyK0NEb+2GCyneCMJiGqrADCSNk8sQ=="],
 
     "toidentifier": ["toidentifier@1.0.1", "", {}, "sha512-o5sSPKEkg/DIQNmH43V0/uerLrpzVedkUh8tGNvaeXpfpuwjKenlSox/2O/BTlZUtEe+JG7s5YhEz608PlAHRA=="],
-
-    "trails-ci": ["trails-ci@workspace:apps/ci"],
 
     "trails-demo": ["trails-demo@workspace:apps/trails-demo"],
 

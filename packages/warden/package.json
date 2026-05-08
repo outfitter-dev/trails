@@ -1,7 +1,11 @@
 {
   "name": "@ontrails/warden",
   "version": "1.0.0-beta.15",
+  "bin": {
+    "warden": "./bin/warden.ts"
+  },
   "files": [
+    "bin/**/*.ts",
     "src/**/*.ts",
     "!src/**/__tests__/**",
     "!src/**/*.test.ts",
@@ -23,6 +27,7 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
+    "@ontrails/cli": "workspace:^",
     "@ontrails/permits": "workspace:^",
     "@ontrails/store": "workspace:^",
     "oxc-parser": "^0.121.0",

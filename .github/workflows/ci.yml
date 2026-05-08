@@ -87,7 +87,7 @@ jobs:
       - uses: ./.github/actions/setup
 
       - name: Warden
-        run: bun apps/ci/bin/ci.ts --format github --fail-on error
+        run: bun packages/warden/bin/warden.ts --ci --apps trails,trails-demo
 
   changeset:
     name: Changeset

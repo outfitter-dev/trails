@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 set -euo pipefail
-bun apps/ci/bin/ci.ts --format summary "$@"
+bun packages/warden/bin/warden.ts --ci --summary "$@"

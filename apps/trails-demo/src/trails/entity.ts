@@ -183,6 +183,7 @@ export const remove = trail('entity.delete', {
     deleted: z.boolean(),
     name: z.string(),
   }),
+  permit: { scopes: ['entity:delete'] },
   resources: [entityStoreResource],
 });
 
