@@ -11,7 +11,7 @@ export type RuleModule = CreateRule;
 const PACKAGES_SRC_PATTERN = /(?:^|\/)packages\/[^/]+\/src\//u;
 const PACKAGE_NAME_PATTERN = /(?:^|\/)packages\/([^/]+)\/src\//u;
 const REPO_SOURCE_PATTERN =
-  /(?:^|\/)(?:apps|connectors|packages)\/[^/]+\/src\/.+\.[cm]?[jt]sx?$/u;
+  /(?:^|\/)(?:adapters|apps|packages)\/[^/]+\/src\/.+\.[cm]?[jt]sx?$/u;
 const SCRIPT_SOURCE_PATTERN = /(?:^|\/)scripts\/.+\.[cm]?[jt]sx?$/u;
 const TEST_FILE_PATTERN = /(?:^|\/)__tests__\/|\.(test|spec)\.[cm]?[jt]sx?$/u;
 const TEMPLATE_FILE_PATTERN = /\.template\.[cm]?[jt]sx?$/u;

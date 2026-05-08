@@ -11,9 +11,9 @@
       "devDependencies": {
         "@ast-grep/cli": "0.42.1",
         "@changesets/cli": "^2.29.8",
-        "@ontrails/config": "workspace:^",
+        "@ontrails/config": "workspace:*",
         "@ontrails/oxlint-plugin": "workspace:*",
-        "@ontrails/warden": "workspace:^",
+        "@ontrails/warden": "workspace:*",
         "@types/bun": "^1.3.11",
         "@types/node": "^25.5.0",
         "drizzle-orm": "^0.45.2",
@@ -24,6 +24,39 @@
         "turbo": "^2.8.10",
         "typescript": "^5.9.3",
         "ultracite": "7.6.2",
+        "zod": "catalog:",
+      },
+    },
+    "adapters/drizzle": {
+      "name": "@ontrails/drizzle",
+      "version": "1.0.0-beta.15",
+      "dependencies": {
+        "@ontrails/core": "workspace:^",
+        "drizzle-orm": "^0.45.2",
+      },
+      "peerDependencies": {
+        "@ontrails/store": "workspace:^",
+        "zod": "catalog:",
+      },
+    },
+    "adapters/hono": {
+      "name": "@ontrails/hono",
+      "version": "1.0.0-beta.15",
+      "dependencies": {
+        "@ontrails/core": "workspace:^",
+        "hono": "^4.7.0",
+      },
+      "peerDependencies": {
+        "@ontrails/http": "workspace:^",
+        "zod": "catalog:",
+      },
+    },
+    "adapters/vite": {
+      "name": "@ontrails/vite",
+      "version": "1.0.0-beta.15",
+      "devDependencies": {
+        "@ontrails/core": "workspace:^",
+        "@ontrails/hono": "workspace:^",
         "zod": "catalog:",
       },
     },
@@ -73,39 +106,6 @@
         "@ontrails/testing": "workspace:^",
         "@ontrails/topographer": "workspace:^",
         "@ontrails/warden": "workspace:^",
-      },
-    },
-    "connectors/drizzle": {
-      "name": "@ontrails/drizzle",
-      "version": "1.0.0-beta.15",
-      "dependencies": {
-        "@ontrails/core": "workspace:^",
-        "drizzle-orm": "^0.45.2",
-      },
-      "peerDependencies": {
-        "@ontrails/store": "workspace:^",
-        "zod": "catalog:",
-      },
-    },
-    "connectors/hono": {
-      "name": "@ontrails/hono",
-      "version": "1.0.0-beta.15",
-      "dependencies": {
-        "@ontrails/core": "workspace:^",
-        "hono": "^4.7.0",
-      },
-      "peerDependencies": {
-        "@ontrails/http": "workspace:^",
-        "zod": "catalog:",
-      },
-    },
-    "connectors/vite": {
-      "name": "@ontrails/vite",
-      "version": "1.0.0-beta.15",
-      "devDependencies": {
-        "@ontrails/core": "workspace:^",
-        "@ontrails/hono": "workspace:^",
-        "zod": "catalog:",
       },
     },
     "packages/cli": {
@@ -368,9 +368,9 @@
 
     "@ontrails/core": ["@ontrails/core@workspace:packages/core"],
 
-    "@ontrails/drizzle": ["@ontrails/drizzle@workspace:connectors/drizzle"],
+    "@ontrails/drizzle": ["@ontrails/drizzle@workspace:adapters/drizzle"],
 
-    "@ontrails/hono": ["@ontrails/hono@workspace:connectors/hono"],
+    "@ontrails/hono": ["@ontrails/hono@workspace:adapters/hono"],
 
     "@ontrails/http": ["@ontrails/http@workspace:packages/http"],
 
@@ -396,7 +396,7 @@
 
     "@ontrails/trails": ["@ontrails/trails@workspace:apps/trails"],
 
-    "@ontrails/vite": ["@ontrails/vite@workspace:connectors/vite"],
+    "@ontrails/vite": ["@ontrails/vite@workspace:adapters/vite"],
 
     "@ontrails/warden": ["@ontrails/warden@workspace:packages/warden"],
 

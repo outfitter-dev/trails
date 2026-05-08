@@ -143,7 +143,7 @@ $ myapp greet --name World
 | [`@ontrails/cli`](./packages/cli) | CLI surface — flag derivation, output formatting, Commander connector |
 | [`@ontrails/mcp`](./packages/mcp) | MCP surface — tool generation, annotations, progress bridge |
 | [`@ontrails/http`](./packages/http) | HTTP surface model — route derivation, verb mapping, error responses |
-| [`@ontrails/hono`](./connectors/hono) | Hono connector that opens a topo on the HTTP surface |
+| [`@ontrails/hono`](./adapters/hono) | Hono connector that opens a topo on the HTTP surface |
 | [`@ontrails/store`](./packages/store) | Schema-derived store definitions, typed accessors, Drizzle bindings, read-only stores |
 | [`@ontrails/testing`](./packages/testing) | `testAll()`, `testTrail()`, `testCrosses()`, contract testing, surface harnesses |
 | [`@ontrails/topographer`](./packages/topographer) | Surface maps, semantic diffing, lock files for CI governance |

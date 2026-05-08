@@ -277,10 +277,10 @@ const collectReadmeBindings = (
 };
 
 // Workspace roots to search for @ontrails/* packages, in priority order.
-// `connectors/` holds third-party integrations (hono, vite, drizzle) alongside
+// `adapters/` holds third-party integrations (hono, vite, drizzle) alongside
 // the first-party `packages/`. `apps/` is included so an allowlisted README
 // can reference an app-owned module if that ever becomes useful.
-const WORKSPACE_ROOTS = ['packages', 'connectors', 'apps'] as const;
+const WORKSPACE_ROOTS = ['packages', 'adapters', 'apps'] as const;
 
 interface PackageJson {
   readonly exports?: Record<string, string | Record<string, string>>;

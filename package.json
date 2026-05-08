@@ -6,7 +6,7 @@
   },
   "workspaces": [
     "packages/*",
-    "connectors/*",
+    "adapters/*",
     "apps/*"
   ],
   "type": "module",
