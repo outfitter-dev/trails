@@ -1,5 +1,5 @@
 /**
- * Hono connector for Trails HTTP routes.
+ * Hono adapter for Trails HTTP routes.
  *
  * Takes framework-agnostic HttpRouteDefinition[] and wires them into a
  * Hono application, handling request parsing, response mapping, and errors.
@@ -66,7 +66,7 @@ export interface SurfaceHttpResult {
  *
  * A single `?tag=one` stays a scalar string, while repeated keys like
  * `?tag=one&tag=two` become arrays. Schema validation owns whether that shape
- * is accepted; the connector does not coerce singleton values into arrays.
+ * is accepted; the adapter does not coerce singleton values into arrays.
  */
 const parseQueryParams = (c: HonoContext): Record<string, unknown> => {
   const result: Record<string, unknown> = {};

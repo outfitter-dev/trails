@@ -778,29 +778,6 @@ const safeRules: readonly VocabRewriteRule[] = [
     apply: (context) =>
       context.isCodeFile
         ? []
-        : [
-            ...collectRegexEdits(
-              context.source,
-              'adapter-prose',
-              /\badapters\b/gi,
-              (match) =>
-                replaceMatchedCase(match[0], 'connectors', 'Connectors')
-            ),
-            ...collectRegexEdits(
-              context.source,
-              'adapter-prose',
-              /\badapter\b/gi,
-              (match) => replaceMatchedCase(match[0], 'connector', 'Connector')
-            ),
-          ],
-    description:
-      'Replace prose-only integration terminology from `adapter` / `adapters` to `connector` / `connectors` in non-code files.',
-    id: 'adapter-prose',
-  },
-  {
-    apply: (context) =>
-      context.isCodeFile
-        ? []
         : collectRegexEdits(
             context.source,
             'entity-prose',
@@ -1105,7 +1082,7 @@ const printRuleList = () => {
     console.log(`- ${rule.id}: ${rule.description}`);
   }
   console.log(
-    '\nAudit-only concepts still needing human review: trigger-call, on-field, layer-type, layers-term, broad surface-term, broad adapter-term.'
+    '\nAudit-only concepts still needing human review: trigger-call, on-field, layer-type, layers-term, broad surface-term, connector-term.'
   );
 };
 

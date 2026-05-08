@@ -3,7 +3,7 @@ import type { StoreAccessorProtocol } from '@ontrails/core/store';
 import type { z } from 'zod';
 
 /**
- * Backend-agnostic persistence shapes that a connector can interpret.
+ * Backend-agnostic persistence shapes that an adapter can interpret.
  */
 export type StoreKind = 'tabular' | 'document' | 'file' | 'kv' | 'cache';
 
@@ -133,10 +133,10 @@ export type StoreFixtureRow<
   : never;
 
 /**
- * Connector-owned search metadata.
+ * Adapter-owned search metadata.
  *
  * The core package keeps this opaque on purpose. Search behavior is declared
- * here and interpreted by a concrete connector later.
+ * here and interpreted by a concrete adapter later.
  */
 export type StoreSearchDefinition = Readonly<Record<string, unknown>>;
 
@@ -353,7 +353,7 @@ export interface StoreDefinition<
 /**
  * Structural view of any normalized store table.
  *
- * This stays broad on purpose so connector packages can accept concrete store
+ * This stays broad on purpose so adapter packages can accept concrete store
  * definitions returned by `store(...)` without erasing their table-specific
  * types back to one canonical generic instantiation.
  */
@@ -455,8 +455,8 @@ export type UpdateOf<TTable extends AnyStoreTable> = Partial<
 /**
  * Upsert shape: entity payload with generated fields remaining optional.
  *
- * This matches the connector-agnostic "create or replace" contract while
- * still allowing connectors to synthesize generated values like IDs and
+ * This matches the backend-agnostic "create or replace" contract while
+ * still allowing adapters to synthesize generated values like IDs and
  * timestamps when the caller omits them.
  */
 export type UpsertOf<TTable extends AnyStoreTable> = FixtureInputOf<TTable>;
@@ -502,7 +502,7 @@ export interface ReadOnlyStoreTableAccessor<TTable extends AnyStoreTable> {
 }
 
 /**
- * Connector-agnostic writable operations layered on top of the read contract.
+ * Backend-agnostic writable operations layered on top of the read contract.
  */
 export interface StoreAccessor<
   TTable extends AnyStoreTable,
@@ -513,11 +513,11 @@ export interface StoreAccessor<
    * @throws {AlreadyExistsError} On primary key or unique constraint violation.
    *
    * @remarks
-   * This is an intentional throw-based boundary: store connectors throw typed
+   * This is an intentional throw-based boundary: store adapters throw typed
    * errors (`AlreadyExistsError`) rather than returning `Result`. Trail
    * implementations that call store accessors should catch and convert to
    * `Result.err()` at their level. A future safe variant returning `Result`
-   * is planned but deferred to avoid cascading changes across all connectors.
+   * is planned but deferred to avoid cascading changes across all adapters.
    */
   upsert(input: UpsertOf<TTable>): Promise<EntityOf<TTable>>;
   /**
@@ -561,7 +561,7 @@ export type AssertStoreAccessorSatisfiesProtocol = AssertExtends<
 >;
 
 /**
- * Tabular writable operations layered on top of the connector-agnostic
+ * Tabular writable operations layered on top of the backend-agnostic
  * contract.
  */
 export interface StoreTableAccessor<
@@ -570,7 +570,7 @@ export interface StoreTableAccessor<
   /**
    * Insert a new entity.
    *
-   * Tabular connectors can expose this convenience when the backend has a
+   * Tabular adapters can expose this convenience when the backend has a
    * native distinction between create and update.
    */
   insert(input: InsertOf<TTable>): Promise<EntityOf<TTable>>;
@@ -582,8 +582,8 @@ export interface StoreTableAccessor<
    * On versioned tables, `update` does **not** participate in optimistic
    * concurrency control. The `UpdateOf<TTable>` shape is derived by omitting
    * generated fields — including the framework-managed `version` column — so
-   * any `version` value is dropped before reaching the connector and the
-   * connector always auto-increments without comparing. Callers that need
+   * any `version` value is dropped before reaching the adapter and the
+   * adapter always auto-increments without comparing. Callers that need
    * lost-update protection must use {@link StoreAccessor.upsert | `upsert`}
    * instead and pass the expected `version` in the payload.
    */
@@ -603,7 +603,7 @@ export type ReadOnlyStoreConnection<TStore extends AnyStoreDefinition> = {
 };
 
 /**
- * Connector-agnostic connection shape exposed by a writable bound store.
+ * Backend-agnostic connection shape exposed by a writable bound store.
  */
 export type StoreConnection<TStore extends AnyStoreDefinition> = {
   readonly [TName in keyof TStore['tables']]: StoreAccessor<
@@ -612,7 +612,7 @@ export type StoreConnection<TStore extends AnyStoreDefinition> = {
 };
 
 /**
- * Tabular connection shape exposed by connectors that distinguish insert and
+ * Tabular connection shape exposed by adapters that distinguish insert and
  * patch operations from the generalized `upsert` contract.
  */
 export type StoreTableConnection<TStore extends AnyStoreDefinition> = {
@@ -625,7 +625,7 @@ export type StoreTableConnection<TStore extends AnyStoreDefinition> = {
  * Optional fixture overrides used when building a mock store connection.
  *
  * The shape is a partial map keyed by table name; each entry is a list of
- * fixture inputs validated against the table's fixture schema. Connectors
+ * fixture inputs validated against the table's fixture schema. Adapters
  * share this type so every store backend seeds mocks the same way.
  */
 export type StoreMockSeed<TDef extends AnyStoreDefinition> = Partial<{
@@ -635,13 +635,13 @@ export type StoreMockSeed<TDef extends AnyStoreDefinition> = Partial<{
 }>;
 
 /**
- * Shared connector options every store backend accepts.
+ * Shared adapter options every store backend accepts.
  *
- * Concrete connectors extend this shape with their backend-specific fields
+ * Concrete adapters extend this shape with their backend-specific fields
  * (e.g. `url`, `dir`). Aligning the authored surface here lets the framework
- * reason about connector options uniformly — one shape, many projections.
+ * reason about adapter options uniformly — one shape, many projections.
  */
-export interface StoreConnectorOptions<TDef extends AnyStoreDefinition> {
+export interface StoreAdapterOptions<TDef extends AnyStoreDefinition> {
   /** Optional resource id override. Defaults to `"store"`. */
   readonly id?: string;
   /** Human-readable description surfaced on the resource definition. */

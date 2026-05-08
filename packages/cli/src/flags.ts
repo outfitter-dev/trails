@@ -170,7 +170,7 @@ export const permitPreset = (): CliFlag[] => [
  * The surface caller supplies `resolvePermitFromToken` to turn the token into
  * a `Permit`, which is overlaid onto `ctx.permit`. The `apps/trails` binary
  * wires this to `@ontrails/permits`; the CLI package itself stays
- * connector-agnostic.
+ * adapter-agnostic.
  *
  * Mutually exclusive with `--permit`; passing both surfaces a
  * `ValidationError`. The flag is treated as a meta flag — it never routes

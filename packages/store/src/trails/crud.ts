@@ -319,7 +319,7 @@ const buildCrudTrails = <TTable extends AnyStoreTable>(
  * Produce the standard CRUD trail tuple for one normalized store table.
  *
  * The factory derives schemas, examples, resources, and contour linkage from
- * the table metadata. Blazes default to the connector-agnostic store accessor
+ * the table metadata. Blazes default to the backend-agnostic store accessor
  * contract via `deriveTrail()`'s single-resource synthesis path. Per-operation
  * blaze overrides stay available for callers that need custom persistence
  * behavior and are layered onto the derived trails in a single pass.

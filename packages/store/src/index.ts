@@ -32,7 +32,7 @@ export type {
   ReferencesOfInput,
   StoreAccessMode,
   StoreConnection,
-  StoreConnectorOptions,
+  StoreAdapterOptions,
   StoreDefinition,
   StoreFieldKey,
   StoreFixtureInput,

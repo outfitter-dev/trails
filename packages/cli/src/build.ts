@@ -625,7 +625,7 @@ const synthesizeDevPermit = (graph: Topo): BasePermit => ({
  *
  * The three flags are pairwise mutually exclusive: passing any
  * combination surfaces a `ValidationError` (exit 1). When only `--token`
- * is supplied the auth connector resolves it into a permit; failures map
+ * is supplied the auth adapter resolves it into a permit; failures map
  * to `AuthError` (exit 9). When `--dev-permit` is supplied, a synthetic
  * permit covering every scope declared on the topo is injected. When
  * none of the three registered meta flags are supplied the call returns

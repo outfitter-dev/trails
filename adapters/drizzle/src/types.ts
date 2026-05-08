@@ -3,7 +3,7 @@ import type {
   AnyStoreDefinition,
   ReadOnlyStoreConnection,
   StoreAccessMode,
-  StoreConnectorOptions,
+  StoreAdapterOptions,
   StoreMockSeed,
   StoreTableConnection,
 } from '@ontrails/store';
@@ -22,29 +22,29 @@ export interface DrizzleQueryContext<TStore extends AnyStoreDefinition> {
 }
 
 /**
- * Options accepted by the Drizzle store connector.
+ * Options accepted by the Drizzle store adapter.
  *
- * Extends {@link StoreConnectorOptions} with drizzle-specific fields. The
+ * Extends {@link StoreAdapterOptions} with drizzle-specific fields. The
  * read-only vs writable distinction is enforced by the factory that consumes
  * these options, not by the options type itself.
  */
 export interface DrizzleStoreOptions<
   TDef extends AnyStoreDefinition = AnyStoreDefinition,
-> extends StoreConnectorOptions<TDef> {
+> extends StoreAdapterOptions<TDef> {
   /** Path to the SQLite database file. Use `":memory:"` for ephemeral runs. */
   readonly url: string;
   /**
    * Optional fixture overrides applied when the writable runtime database is
    * first created.
    *
-   * Mirrors {@link StoreConnectorOptions.mockSeed} but for the `create`
-   * (runtime) path: when supplied, the connector seeds these rows into the
+   * Mirrors {@link StoreAdapterOptions.mockSeed} but for the `create`
+   * (runtime) path: when supplied, the adapter seeds these rows into the
    * writable database immediately after schema initialization. Use this for
    * demo/dogfood apps that want commands and examples to find pre-loaded
    * entities on a fresh `:memory:` boot. Defaults to `undefined` — runtime
    * databases are not auto-seeded from `table.fixtures`.
    *
-   * Has no effect on the read-only connector, which receives runtime data
+   * Has no effect on the read-only adapter, which receives runtime data
    * from disk rather than from fixtures.
    */
   readonly seed?: StoreMockSeed<TDef>;

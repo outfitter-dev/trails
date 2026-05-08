@@ -99,7 +99,7 @@ const toError = (value: unknown): Error =>
  *
  * @remarks
  * This zero-dependency sink does not rotate log files. Pair it with external
- * log rotation or use a production connector when retention policy matters.
+ * log rotation or use a production adapter when retention policy matters.
  */
 export function createFileSink(
   path: string,

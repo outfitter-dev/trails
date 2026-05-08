@@ -139,6 +139,7 @@ describe('repo-local rules', () => {
 | --- | --- |
 | \`trailhead\` | Historical boundary term retired from active user-facing vocabulary. Use \`surface\` in docs, examples, and public APIs. |
 | \`dispatch\` | Retired runtime wording; use \`cross\` in active APIs. |
+| \`connector\` | Historical package-boundary term retired from active user-facing taxonomy. Use \`adapter\` in docs, examples, and public APIs. |
 | \`pack\` | Distributable capability bundle |
 
 ## Grammar
@@ -155,6 +156,12 @@ describe('repo-local rules', () => {
         concept: 'Retired runtime wording; use `cross` in active APIs.',
         replacement: 'cross',
         term: 'dispatch',
+      },
+      {
+        concept:
+          'Historical package-boundary term retired from active user-facing taxonomy. Use `adapter` in docs, examples, and public APIs.',
+        replacement: 'adapter',
+        term: 'connector',
       },
     ]);
   });
@@ -266,6 +273,80 @@ describe('repo-local rules', () => {
     });
   });
 
+  test('reports connector terms in source-owned roles', () => {
+    const retiredTerms = [
+      {
+        replacement: 'adapter',
+        term: 'connector',
+      },
+    ];
+    const identifierReports = runRuleForEvent({
+      event: 'Identifier',
+      filename: 'packages/permits/src/auth.ts',
+      nodes: [{ name: 'AuthConnector', type: 'Identifier' }],
+      options: [{ retiredTerms }],
+      rule: noRetiredLexiconTermsRule,
+    });
+    const importReports = runRuleForEvent({
+      event: 'ImportDeclaration',
+      filename: 'packages/permits/src/auth.ts',
+      nodes: [createImportDeclarationNode('@ontrails/permits/connectors/jwt')],
+      options: [{ retiredTerms }],
+      rule: noRetiredLexiconTermsRule,
+    });
+    const objectKeyReports = runRuleForEvent({
+      event: 'Property',
+      filename: 'packages/core/src/runtime.ts',
+      nodes: [
+        {
+          computed: false,
+          key: {
+            type: 'Literal',
+            value: 'connector',
+          },
+          type: 'Property',
+        },
+      ],
+      options: [{ retiredTerms }],
+      rule: noRetiredLexiconTermsRule,
+    });
+    const memberReports = runRuleForEvent({
+      event: 'MemberExpression',
+      filename: 'packages/core/src/runtime.ts',
+      nodes: [
+        {
+          object: {
+            name: 'metadata',
+            type: 'Identifier',
+          },
+          property: {
+            type: 'Literal',
+            value: 'connector',
+          },
+          type: 'MemberExpression',
+        },
+      ],
+      options: [{ retiredTerms }],
+      rule: noRetiredLexiconTermsRule,
+    });
+
+    expect(identifierReports[0]?.data).toEqual({
+      replacement: " Use 'adapter'.",
+      role: 'identifier',
+      term: 'connector',
+      value: 'AuthConnector',
+    });
+    expect(importReports.map((report) => report.messageId)).toEqual([
+      'noRetiredLexiconTerms',
+    ]);
+    expect(objectKeyReports.map((report) => report.messageId)).toEqual([
+      'noRetiredLexiconTerms',
+    ]);
+    expect(memberReports.map((report) => report.messageId)).toEqual([
+      'noRetiredLexiconTerms',
+    ]);
+  });
+
   test('does not report retired terms outside source-owned roles', () => {
     const externalImportReports = runRuleForEvent({
       event: 'ImportDeclaration',
@@ -277,6 +358,22 @@ describe('repo-local rules', () => {
             {
               replacement: 'surface',
               term: 'trailhead',
+            },
+          ],
+        },
+      ],
+      rule: noRetiredLexiconTermsRule,
+    });
+    const externalConnectorImportReports = runRuleForEvent({
+      event: 'ImportDeclaration',
+      filename: 'packages/permits/src/auth.ts',
+      nodes: [createImportDeclarationNode('external-connector-sdk')],
+      options: [
+        {
+          retiredTerms: [
+            {
+              replacement: 'adapter',
+              term: 'connector',
             },
           ],
         },
@@ -351,6 +448,7 @@ describe('repo-local rules', () => {
     });
 
     expect(externalImportReports).toHaveLength(0);
+    expect(externalConnectorImportReports).toHaveLength(0);
     expect(docsPathReports).toHaveLength(0);
     expect(identifierObjectKeyReports).toHaveLength(0);
     expect(computedObjectKeyReports).toHaveLength(0);

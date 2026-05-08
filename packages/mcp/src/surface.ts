@@ -198,7 +198,7 @@ export const createServer = (
  * Build MCP tools from a topo, create a server, and connect via stdio.
  *
  * @remarks Opens the MCP server on stdio. For custom transports, use
- * `createServer(graph)` with `connectStdio` or your own connector.
+ * `createServer(graph)` with `connectStdio` or your own adapter.
  */
 export const surface = async (
   graph: Topo,

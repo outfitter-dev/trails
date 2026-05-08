@@ -98,6 +98,17 @@ const reviewedSurfaceMentionPaths = [
   'scripts/rename-audit.sh',
 ] as const;
 
+const reviewedRetiredTaxonomyMentionPaths = [
+  ...changelogHistoryPaths,
+  'docs/adr',
+  'docs/index.md',
+  'docs/lexicon.md',
+  'docs/migration',
+  'docs/releases',
+  'packages/oxlint-plugin/src/__tests__/rules.test.ts',
+  'plugin/rules/lexicon.md',
+] as const;
+
 export const auditRules: readonly VocabAuditRule[] = [
   {
     description:
@@ -231,12 +242,10 @@ export const auditRules: readonly VocabAuditRule[] = [
   },
   {
     description:
-      'Semantic split from connector to runtime adapter requires manual review; mechanical matching is disabled.',
-    excludePaths: ['plugin/rules/vocabulary.md'],
-    id: 'adapter-term',
-    // Intentionally inert: `adapter` is allowed as a runtime-specific layer term.
-    // Connector-vs-adapter drift needs manual role-aware review, not a global regex.
-    pattern: String.raw`(?!)`,
+      'Retired package-boundary terminology still uses connector instead of adapter.',
+    excludePaths: reviewedRetiredTaxonomyMentionPaths,
+    id: 'connector-term',
+    pattern: String.raw`\b[Cc]onnector(s)?\b|[A-Za-z_$][\w$]*[Cc]onnector[A-Za-z_$\d]*|(?:^|/)connectors/`,
   },
   {
     description:

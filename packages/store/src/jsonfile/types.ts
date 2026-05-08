@@ -3,7 +3,7 @@ import type {
   AnyStoreDefinition,
   AnyStoreTable,
   StoreAccessor,
-  StoreConnectorOptions,
+  StoreAdapterOptions,
 } from '../types.js';
 
 /** Connection shape: one StoreAccessor per table name. */
@@ -13,7 +13,7 @@ export type JsonFileConnection<TStore extends Record<string, AnyStoreTable>> =
 /** Options for creating a jsonfile store. */
 export interface JsonFileStoreOptions<
   TStore extends AnyStoreDefinition = AnyStoreDefinition,
-> extends StoreConnectorOptions<TStore> {
+> extends StoreAdapterOptions<TStore> {
   /** Directory where JSON files are written. One `<tableName>.json` per table. */
   readonly dir: string;
   /**

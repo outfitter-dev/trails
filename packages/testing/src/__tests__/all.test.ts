@@ -88,7 +88,7 @@ const mockedTrail = trail('resource.mocked.all', {
     return Result.ok({ name: entity.name, source: entity.source });
   },
   description:
-    'Trail that uses a mocked connector-bound resource through testAll',
+    'Trail that uses a mocked adapter-bound resource through testAll',
   examples: [
     {
       expected: { name: 'Alpha', source: 'mock' },

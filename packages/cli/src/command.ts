@@ -2,7 +2,7 @@
  * Framework-agnostic CLI command model.
  *
  * These interfaces are the intermediate representation that
- * `deriveCliCommands()` produces and framework connectors consume.
+ * `deriveCliCommands()` produces and framework adapters consume.
  * No Commander (or any other framework) imports here.
  */
 
@@ -13,7 +13,7 @@ import type { Layer, Result, Trail, TrailContext } from '@ontrails/core';
 // ---------------------------------------------------------------------------
 
 /**
- * Type-erased trail reference. At the CLI connector boundary we lose
+ * Type-erased trail reference. At the CLI adapter boundary we lose
  * generic type information since flags/args are parsed as strings.
  * Using `any` here is intentional -- the Zod schema validates at runtime.
  */

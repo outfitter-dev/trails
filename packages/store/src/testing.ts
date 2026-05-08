@@ -84,9 +84,9 @@ const seedExistingEntity = async <TTable extends AnyStoreTable>(
 };
 
 /**
- * Shared contract cases for connector-agnostic writable store accessors.
+ * Shared contract cases for backend-agnostic writable store accessors.
  *
- * Connectors can register these with their own `test(...)` wrappers so the
+ * Adapters can register these with their own `test(...)` wrappers so the
  * baseline `get/list/upsert/remove` contract stays aligned across runtimes
  * without fighting repository-specific test-lint rules.
  */

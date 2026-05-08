@@ -924,7 +924,7 @@ describe('@ontrails/drizzle read-only resource access', () => {
     await db.dispose?.(mock as ReadonlyUserStoreRuntime);
   });
 
-  test('preserves connector metadata on the resource definition', () => {
+  test('preserves adapter metadata on the resource definition', () => {
     const db = createReadonlyUserStore(':memory:');
     expect(db.meta).toEqual({ domain: 'readonly-demo' });
   });
@@ -1007,7 +1007,7 @@ describe('@ontrails/drizzle edge cases', () => {
       try {
         run();
         throw new Error(
-          'expected connector binding to reject a non-tabular store'
+          'expected adapter binding to reject a non-tabular store'
         );
       } catch (error) {
         expect(error).toBeInstanceOf(ValidationError);

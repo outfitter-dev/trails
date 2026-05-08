@@ -200,7 +200,7 @@ const inferFieldKind = (
     }
     default: {
       throw new ValidationError(
-        `Store field "${field}" uses unsupported schema type "${schema.def.type}" for the Drizzle SQLite connector`
+        `Store field "${field}" uses unsupported schema type "${schema.def.type}" for the Drizzle SQLite adapter`
       );
     }
   }

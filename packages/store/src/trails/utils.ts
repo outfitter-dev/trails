@@ -23,7 +23,7 @@ export type TableContour<TTable extends AnyStoreTable> = Contour<
  * Contour validates every example against the shape passed in, so the shape
  * must match how fixtures are actually shaped. Store fixtures may omit
  * framework-generated fields (`createdAt`, `version`, ...) because the
- * connector populates them, so we mirror `fixtureSchema`'s treatment of
+ * adapter populates them, so we mirror `fixtureSchema`'s treatment of
  * generated fields: generated, non-identity fields are made optional; the
  * identity field stays required because read/delete/update all derive their
  * input from it. Previously reconcile.ts and sync.ts passed

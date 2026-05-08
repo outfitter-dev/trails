@@ -195,7 +195,7 @@ const isVersionManagedField = <TTable extends AnyStoreTable>(
 /**
  * Synthesize a value for a generated field during insert.
  *
- * The connector recognizes these conventions for generated fields:
+ * The adapter recognizes these conventions for generated fields:
  *
  * - **Primary key** (`integer` type): auto-increment, left to SQLite.
  * - **Timestamp fields** (`createdAt`, `updatedAt`, `created_at`,
@@ -473,7 +473,7 @@ const ensureNotCyclic = (
   }
 
   throw new ValidationError(
-    `Store definition contains a reference cycle involving "${tableName}", which the SQLite connector cannot seed automatically`
+    `Store definition contains a reference cycle involving "${tableName}", which the SQLite adapter cannot seed automatically`
   );
 };
 
@@ -1234,7 +1234,7 @@ const connectionHealth = (
  * `Database` client is tracked via `WeakMap`).
  *
  * Note: the `search` field on `StoreTableInput` is not yet interpreted by
- * this connector — it is reserved for future full-text search support.
+ * this adapter — it is reserved for future full-text search support.
  */
 export const connectDrizzle = <const TStore extends AnyStoreDefinition>(
   definition: TStore,

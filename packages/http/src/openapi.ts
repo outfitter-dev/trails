@@ -183,7 +183,7 @@ const buildInputSpec = (
   };
 };
 
-/** Wrap a raw output schema in the `{ data: ... }` envelope the HTTP connector uses. */
+/** Wrap a raw output schema in the `{ data: ... }` envelope the HTTP adapter uses. */
 const wrapInDataEnvelope = (outputSchema: JsonSchema): JsonSchema => ({
   properties: { data: outputSchema },
   required: ['data'],

@@ -164,7 +164,7 @@ const recoverConflict = async <TTable extends AnyStoreTable>(
  * Build the input schema for a reconcile trail.
  *
  * `fixtureSchema` makes generated fields (including `version` on versioned
- * tables) optional because connectors populate them. Reconcile, however,
+ * tables) optional because adapters populate them. Reconcile, however,
  * relies on optimistic concurrency: the caller must pass the expected
  * `version` so `assertExpectedVersionMatch` can detect stale payloads. We
  * therefore extend `fixtureSchema` with a required `version` field so
@@ -244,7 +244,7 @@ const createReconcileDetour = <
  * For versioned tables, the derived input schema requires an explicit
  * `version` field so callers cannot sidestep optimistic concurrency at the
  * input boundary. `fixtureSchema` alone makes `version` optional because
- * connectors populate it for writes; reconcile must reject that relaxed
+ * adapters populate it for writes; reconcile must reject that relaxed
  * shape.
  */
 export const reconcile = <

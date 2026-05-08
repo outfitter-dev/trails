@@ -448,7 +448,7 @@ const executeRemove = async <TTable extends AnyStoreTable>(
 
 // Module-level registry: ensures all connections to the same file share one
 // in-memory table instance. Keyed by resolved file path.
-// Note: entries are never evicted. This is acceptable for v1 — the connector
+// Note: entries are never evicted. This is acceptable for v1 — the adapter
 // targets single-process, short-lived servers where the number of distinct
 // table paths is bounded by the store definition.
 interface JsonFileTableRegistration<TTable extends AnyStoreTable> {
@@ -522,7 +522,7 @@ const buildAndRegisterTable = <TTable extends AnyStoreTable>(
  * @remarks
  * Tables are shared per resolved file path so multiple connections stay
  * coherent in-process. Reuse is only allowed when table-affecting config
- * matches exactly; otherwise the connector throws instead of silently
+ * matches exactly; otherwise the adapter throws instead of silently
  * inheriting the first connection's runtime semantics.
  */
 const createJsonFileTable = <TTable extends AnyStoreTable>(

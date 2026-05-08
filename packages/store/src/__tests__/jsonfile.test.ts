@@ -142,7 +142,7 @@ const stableGeneratedId = (): string => 'generated-id';
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('jsonfile connector', () => {
+describe('jsonfile adapter', () => {
   describe('upsert and get', () => {
     test('creates new entity', async () => {
       const conn = await connectJsonFile(itemStore, { dir });
@@ -422,7 +422,7 @@ describe('jsonfile connector', () => {
       await store.dispose?.(mock);
     });
 
-    test('preserves connector metadata on the resource definition', () => {
+    test('preserves adapter metadata on the resource definition', () => {
       const store = jsonFile(fixtureStore, {
         dir,
         meta: { domain: 'fixtures' },

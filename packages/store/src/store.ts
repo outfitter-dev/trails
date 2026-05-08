@@ -18,7 +18,7 @@ const isStoreObjectSchema = (schema: z.ZodType): schema is StoreObjectSchema =>
 
 /**
  * Name of the framework-managed version column used by versioned tables for
- * optimistic concurrency control. Exported so connectors can gate their own
+ * optimistic concurrency control. Exported so adapters can gate their own
  * version-handling logic without duplicating the literal.
  */
 export const versionFieldName = 'version';
@@ -498,10 +498,10 @@ const collectStoreSignals = <const TTables extends StoreTablesInput>(
   );
 
 /**
- * Declare a connector-agnostic store definition from entity schemas and
+ * Declare a backend-agnostic store definition from entity schemas and
  * persistence metadata.
  *
- * The returned value is a normalized, read-only contract that connectors can
+ * The returned value is a normalized, read-only contract that adapters can
  * bind to a concrete runtime later.
  */
 export const store = <const TTables extends StoreTablesInput>(

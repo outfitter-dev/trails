@@ -519,7 +519,7 @@ describe('@ontrails/store', () => {
     expect(db.tables.gists.indexes).toEqual(['ownerId']);
   });
 
-  test('type-level helpers expose connector-facing contracts', () => {
+  test('type-level helpers expose adapter-facing contracts', () => {
     const db = createTypeTestStore();
 
     type GistTable = typeof db.tables.gists;

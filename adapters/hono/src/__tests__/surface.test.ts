@@ -94,7 +94,7 @@ const createCapturingSink = (records: TraceRecord[]): TraceSink => ({
   },
 });
 
-describe('surface API (Hono connector)', () => {
+describe('surface API (Hono adapter)', () => {
   test('createApp materializes the Hono surface without serving', async () => {
     const graph = topo('surface-api', { echoTrail });
     const app = createApp(graph);
