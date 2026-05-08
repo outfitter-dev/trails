@@ -1,14 +1,18 @@
 ---
 id: 12
 slug: connector-agnostic-permits
-title: Connector-Agnostic Permits
+title: Adapter-Agnostic Permits
 status: accepted
 created: 2026-03-30
-updated: 2026-04-02
+updated: 2026-05-08
 owners: ['[galligan](https://github.com/galligan)']
 ---
 
-# ADR-0012: Connector-Agnostic Permits
+# ADR-0012: Adapter-Agnostic Permits
+
+The historical slug is preserved for reference stability. The 2026-05-08
+amendment renames the current auth boundary from connector vocabulary to
+adapter vocabulary.
 
 ## Context
 
@@ -62,7 +66,11 @@ interface Permit {
 }
 ```
 
-Core enforcement keys off `scopes` only. Roles are connector output — the auth connector resolves them, and implementations can read them, but the framework's own enforcement doesn't branch on roles. `metadata` stays `Record<string, unknown>` for v1. No generic `Permit<T>` — the complexity isn't justified until concrete use cases demand it.
+Core enforcement keys off `scopes` only. Roles are adapter output — the auth
+adapter resolves them, and implementations can read them, but the framework's
+own enforcement doesn't branch on roles. `metadata` stays
+`Record<string, unknown>` for v1. No generic `Permit<T>` — the complexity isn't
+justified until concrete use cases demand it.
 
 ### `ctx.permit` is `Permit | undefined`
 
@@ -90,19 +98,25 @@ interface PermitExtractionInput {
 }
 ```
 
-Surfaces do raw extraction — pulling tokens from headers, sessions, or environment. The auth connector receives this normalized input and returns a `Permit` or an error. Core auth never imports `Request`, `McpSession`, or any surface-specific type.
+Surfaces do raw extraction — pulling tokens from headers, sessions, or
+environment. The auth adapter receives this normalized input and returns a
+`Permit` or an error. Core auth never imports `Request`, `McpSession`, or any
+surface-specific type.
 
-### Auth connector interface
+### Auth adapter interface
 
 ```typescript
-interface AuthConnector {
+interface AuthAdapter {
   authenticate(
     credentials: AuthCredentials,
   ): Promise<Result<Permit | null, AuthError>>;
 }
 ```
 
-The port is deliberately narrow. No session management, no token refresh, no user lookup. Connectors can provide those as additional services outside the core interface. The framework needs exactly one capability: given credentials, produce a permit or an error.
+The port is deliberately narrow. No session management, no token refresh, no
+user lookup. Adapters can provide those as additional resources outside the core
+interface. The framework needs exactly one capability: given credentials,
+produce a permit or an error.
 
 ### Auth layer re-checks on every invocation including crosses
 
@@ -129,15 +143,19 @@ New rules for scope hygiene:
 
 Strict mode disables auto-minting entirely. Tests must provide explicit permits, which validates that the auth surface works end-to-end rather than being papered over by test conveniences.
 
-### Connector strategy
+### Adapter strategy
 
 Built-in: JWT/JWKS verification, provider-agnostic. Validates tokens, extracts claims, maps to `Permit`. No provider lock-in.
 
-First external connector target: BetterAuth or Clerk, depending on which ships a cleaner token contract. OpenAuth later, once the connector pattern is proven.
+First external adapter target: BetterAuth or Clerk, depending on which ships a
+cleaner token contract. OpenAuth later, once the adapter pattern is proven.
 
 ### Bearer-only for v1
 
-No cookies. No session-based auth at the framework level. Session management via cookies is a connector concern — a future connector can extract session tokens from cookies and feed them into the same `PermitExtractionInput`. The core model doesn't change; only the extraction surface does.
+No cookies. No session-based auth at the framework level. Session management
+via cookies is an adapter concern — a future adapter can extract session tokens
+from cookies and feed them into the same `PermitExtractionInput`. The core
+model doesn't change; only the extraction surface does.
 
 ## Consequences
 
@@ -151,12 +169,12 @@ No cookies. No session-based auth at the framework level. Session management via
 ### Tradeoffs
 
 - **Explicit scopes require more authoring than convention-derived.** Every trail that needs auth must declare its scopes. This is intentional — auth policy should be visible and authored, not inferred — but it's more work.
-- **Bearer-only limits session-based auth patterns in v1.** Cookie-based session auth is deferred to connectors. Apps that need it will build extraction logic outside the core model.
+- **Bearer-only limits session-based auth patterns in v1.** Cookie-based session auth is deferred to adapters. Apps that need it will build extraction logic outside the core model.
 - **`permit: 'public'` is another thing to learn.** The distinction between omitted and explicitly public adds a concept. The warden makes the distinction actionable rather than academic.
 
 ### What this does NOT decide
 
-- **Cookie/session auth.** An connector concern. The extraction input has the seam; the core model doesn't prescribe it.
+- **Cookie/session auth.** An adapter concern. The extraction input has the seam; the core model doesn't prescribe it.
 - **Resource-level authorization.** "Can this user access *this specific* entity?" is an implementation concern. The permit model covers capability scopes, not resource ownership.
 - **RBAC framework.** Role-based access control is an app-level pattern. `roles` on the Permit type is informational, not enforced by the framework.
 - **Scope derivation helpers.** Convenience functions that suggest scopes from trail ID patterns may ship later. They won't replace explicit declaration — they'll accelerate authoring it.
@@ -164,5 +182,11 @@ No cookies. No session-based auth at the framework level. Session management via
 ## References
 
 - [ADR-0004: Intent as a First-Class Property](0004-intent-as-first-class-property.md) — intent compounds with permit for governance; `destroy` + no permit is an error
-- [ADR-0009: Resources as a First-Class Primitive](0009-first-class-resources.md) — auth connector is a service; auth layer consumes it via `resource.from(ctx)`
+- [ADR-0009: Resources as a First-Class Primitive](0009-first-class-resources.md) — auth adapter is a resource; auth layer consumes it via `resource.from(ctx)`
 - [ADR-0010: Trails-Native Infrastructure Pattern](0010-native-infrastructure.md) — auth layer follows the shared layer model for cross-cutting enforcement
+
+## Amendment log
+
+- 2026-05-08: Connector-to-adapter taxonomy cutover — current permit docs and
+  examples use `AuthAdapter` and auth adapter vocabulary. Historical slug kept
+  stable.

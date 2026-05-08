@@ -140,7 +140,7 @@
       ],
       "inbound": [
         {
-          "context": "- **Defining the connector lifecycle contract.** How a connector declares what it bridges, what lifecycle hooks it supports, and how it reports health — that's a separate decision. This ADR moves the ",
+          "context": "- **Defining the adapter lifecycle contract.** How an adapter declares what it bridges, what lifecycle hooks it supports, and how it reports health — that's a separate decision. This ADR moves package",
           "from": "0029",
           "fromPath": "docs/adr/0029-connector-extraction-and-the-with-packaging-model.md"
         },

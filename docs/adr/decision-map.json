@@ -796,7 +796,7 @@
           "fromPath": "docs/adr/0011-schema-driven-config.md"
         },
         {
-          "context": "- [ADR-0009: Resources as a First-Class Primitive](0009-first-class-resources.md) — auth connector is a service; auth layer consumes it via `resource.from(ctx)`",
+          "context": "- [ADR-0009: Resources as a First-Class Primitive](0009-first-class-resources.md) — auth adapter is a resource; auth layer consumes it via `resource.from(ctx)`",
           "from": "0012",
           "fromPath": "docs/adr/0012-connector-agnostic-permits.md"
         },
@@ -826,7 +826,7 @@
           "fromPath": "docs/adr/0023-simplifying-the-trails-lexicon.md"
         },
         {
-          "context": "- [ADR-0009: First-Class Resources](0009-first-class-resources.md) — the `resource()` primitive that connectors produce and trails consume",
+          "context": "- [ADR-0009: First-Class Resources](0009-first-class-resources.md) — the `resource()` primitive that adapters produce and trails consume",
           "from": "0029",
           "fromPath": "docs/adr/0029-connector-extraction-and-the-with-packaging-model.md"
         },
@@ -969,8 +969,8 @@
       "slug": "connector-agnostic-permits",
       "status": "accepted",
       "superseded_by": null,
-      "title": "Connector-Agnostic Permits",
-      "updated": "2026-04-02"
+      "title": "Adapter-Agnostic Permits",
+      "updated": "2026-05-08"
     },
     {
       "created": "2026-03-30",
@@ -1184,7 +1184,7 @@
           "fromPath": "docs/adr/0022-drizzle-store-connector.md"
         },
         {
-          "context": "- [ADR-0016: Schema-Derived Persistence](0016-schema-derived-persistence.md) — the store contract that connectors bind to concrete backends",
+          "context": "- [ADR-0016: Schema-Derived Persistence](0016-schema-derived-persistence.md) — the store contract that adapters bind to concrete backends",
           "from": "0029",
           "fromPath": "docs/adr/0029-connector-extraction-and-the-with-packaging-model.md"
         },
@@ -1477,7 +1477,7 @@
           "fromPath": "docs/adr/0013-tracing.md"
         },
         {
-          "context": "- [ADR-0023: Simplifying the Trails Lexicon](0023-simplifying-the-trails-lexicon.md) — the naming heuristic that now favors clear owned-integration names over prefix magic",
+          "context": "- [ADR-0023: Simplifying the Trails Lexicon](0023-simplifying-the-trails-lexicon.md) — the naming heuristic that now favors clear owned-adapter names over prefix magic",
           "from": "0029",
           "fromPath": "docs/adr/0029-connector-extraction-and-the-with-packaging-model.md"
         },
@@ -1787,8 +1787,8 @@
       "slug": "connector-extraction-and-the-with-packaging-model",
       "status": "accepted",
       "superseded_by": null,
-      "title": "Connector Extraction and Composition Around Core Contracts",
-      "updated": "2026-04-16"
+      "title": "Adapter Extraction and Composition Around Core Contracts",
+      "updated": "2026-05-08"
     },
     {
       "created": "2026-04-09",

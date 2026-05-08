@@ -338,7 +338,7 @@ await surface(graph);
 
 ### `store`
 
-A persistence declaration. `store(definition)` declares what is persisted for a domain object — schema, identity, generated fields, relationships, and fixtures — without choosing how that persistence is realized. The store itself is connector-agnostic. A connector binding interprets it for a specific backend and persistence shape.
+A persistence declaration. `store(definition)` declares what is persisted for a domain object — schema, identity, generated fields, relationships, and fixtures — without choosing how that persistence is realized. The store itself is backend-agnostic. An adapter binding interprets it for a specific backend and persistence shape.
 
 ```typescript
 const db = store({
@@ -355,9 +355,9 @@ A store is infrastructure declared as data. A resource is how that infrastructur
 
 ### `kind`
 
-The plain word for the persistence shape a connector binds a store through. Current examples include `tabular`, `document`, `file`, `kv`, and `cache`.
+The plain word for the persistence shape an adapter binds a store through. Current examples include `tabular`, `document`, `file`, `kv`, and `cache`.
 
-The store declaration stays kind-agnostic. The connector or binding chooses the kind and interprets the store schema accordingly.
+The store declaration stays kind-agnostic. The adapter or binding chooses the kind and interprets the store schema accordingly.
 
 ### `projection`
 
@@ -377,8 +377,9 @@ projections; developers author the source.
 | `meta` | Annotations for tooling and filtering |
 | `Result` | Ok/Err return type |
 | `error` | Error types |
-| `adapter` | A thinner runtime-specific layer that composes on top of an existing surface or connector |
-| `connector` | Integration-specific bridge to third-party systems (e.g., Hono, Commander, Drizzle) |
+| `adapter` | Canonical public category for a package or subpath that bridges Trails to a named external library, framework, tool, platform, format, or ecosystem |
+| `facet` | Projection slice of authored contract or surface data, such as a surface facet or schema facet; not a package category |
+| `integration (colloquial)` | Ordinary English for places Trails integrates with an external system; not a public taxonomy category |
 | `logger` / `logging` | Structured logging — framework provides the interface; developers bring their own |
 | `health` | Health checks |
 | `derive*` | Mechanically project surface definitions from a graph |
@@ -407,6 +408,7 @@ These are directional. They should not be reused for unrelated concepts.
 | `depot` | Registry or distribution point for packs and shared assets |
 | `dispatch` | Activation/source fan-out from a source to consuming trails; not the direct execution helper |
 | `trailhead` | Historical boundary term retired from active user-facing vocabulary. Use `surface` in docs, examples, and public APIs. |
+| `connector` | Historical package-boundary term retired from active user-facing taxonomy. Use `adapter` in docs, examples, and public APIs. |
 | `_draft.` | Reserved ID prefix for draft state. Trails, signals, and other primitives with `_draft.` IDs are visible in source but excluded from the resolved graph, established surfaces, and graph exports. Draft state is visible debt — it must never leak into established outputs. See ADR-0021. |
 
 ## Grammar
