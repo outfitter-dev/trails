@@ -16,6 +16,7 @@ const trailsBinPath = fileURLToPath(
   new URL('../../bin/trails.ts', import.meta.url)
 );
 const repoRoot = fileURLToPath(new URL('../../../..', import.meta.url));
+const cliTimeoutMs = 30_000;
 
 const makeTempDir = (): string => {
   const dir = join(
@@ -50,21 +51,47 @@ const runCli = (
   args: readonly string[],
   cwd: string
 ): CliRun => {
+  const command = [process.execPath, binPath, ...args];
   const proc = Bun.spawnSync({
-    cmd: [process.execPath, binPath, ...args],
+    cmd: command,
     cwd,
     env: { ...process.env, NO_COLOR: '1' } as Record<string, string>,
     stderr: 'pipe',
     stdout: 'pipe',
+    timeout: cliTimeoutMs,
   });
   const stdout = proc.stdout.toString();
   const stderr = proc.stderr.toString();
+  const signalCode = proc.signalCode ?? undefined;
+  if (proc.exitedDueToTimeout || signalCode !== undefined) {
+    throw new Error(
+      [
+        `Warden CLI subprocess ${proc.exitedDueToTimeout ? 'timed out' : 'terminated'} before producing JSON output.`,
+        `command: ${command.join(' ')}`,
+        `cwd: ${cwd}`,
+        ...(proc.exitedDueToTimeout ? [`timeoutMs: ${cliTimeoutMs}`] : []),
+        `exitCode: ${proc.exitCode ?? 'null'}`,
+        `signal: ${signalCode ?? 'null'}`,
+        `stdout: ${stdout}`,
+        `stderr: ${stderr}`,
+      ].join('\n')
+    );
+  }
+
   let json: WardenJsonOutput;
   try {
     json = JSON.parse(stdout) as WardenJsonOutput;
   } catch (error) {
     throw new Error(
-      `Failed to parse JSON output from ${binPath}\nstdout: ${stdout}\nstderr: ${stderr}`,
+      [
+        `Failed to parse JSON output from ${binPath}`,
+        `command: ${command.join(' ')}`,
+        `cwd: ${cwd}`,
+        `exitCode: ${proc.exitCode ?? 'null'}`,
+        `signal: ${proc.signalCode ?? 'null'}`,
+        `stdout: ${stdout}`,
+        `stderr: ${stderr}`,
+      ].join('\n'),
       { cause: error }
     );
   }
