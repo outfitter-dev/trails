@@ -121,6 +121,7 @@ describe('runWarden basics', () => {
       const report = await runWarden({ rootDir: dir });
       expect(report.errorCount).toBe(0);
       expect(report.passed).toBe(true);
+      expect(report.topoNames).toBeUndefined();
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }

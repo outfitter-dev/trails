@@ -1166,6 +1166,10 @@ export const runWarden = async (
     (d) => d.severity === 'error'
   ).length;
   const warnCount = allDiagnostics.filter((d) => d.severity === 'warn').length;
+  const topoNames =
+    topoTargets.length > 0
+      ? topoTargets.map((target) => target.name ?? target.topo.name)
+      : undefined;
 
   return {
     diagnostics: allDiagnostics,
@@ -1178,7 +1182,7 @@ export const runWarden = async (
       failOn: effectiveConfig.failOn,
       warnCount,
     }),
-    topoNames: topoTargets.map((target) => target.name ?? target.topo.name),
+    ...(topoNames === undefined ? {} : { topoNames }),
     warnCount,
   };
 };
