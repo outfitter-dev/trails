@@ -1,0 +1,99 @@
+name: Trails Warden Check
+description: Run Trails Warden in CI using the published @ontrails/warden bin
+
+inputs:
+  fail-on:
+    description: 'Failure threshold: error or warning.'
+    required: false
+    default: ''
+  strict:
+    description: Alias for --fail-on warning.
+    required: false
+    default: 'false'
+  depth:
+    description: 'Cumulative analysis depth: source, project, topo, or all.'
+    required: false
+    default: ''
+  format:
+    description: 'Output format: summary, github, or json.'
+    required: false
+    default: ''
+  lock:
+    description: 'Lockfile mode: auto, cached, refresh, or skip.'
+    required: false
+    default: ''
+  drafts:
+    description: 'Draft mode: include, exclude, or only.'
+    required: false
+    default: ''
+  apps:
+    description: Comma-delimited app names or module paths to inspect.
+    required: false
+    default: ''
+  config-path:
+    description: Path to trails.config.ts, relative to the workflow working directory.
+    required: false
+    default: ''
+  warden-version:
+    description: Override the @ontrails/warden npm version. Defaults to the action ref with a leading v stripped.
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - name: Run Warden
+      shell: bash
+      env:
+        ACTION_REF: ${{ github.action_ref }}
+        INPUT_APPS: ${{ inputs.apps }}
+        INPUT_CONFIG_PATH: ${{ inputs.config-path }}
+        INPUT_DEPTH: ${{ inputs.depth }}
+        INPUT_DRAFTS: ${{ inputs.drafts }}
+        INPUT_FAIL_ON: ${{ inputs.fail-on }}
+        INPUT_FORMAT: ${{ inputs.format }}
+        INPUT_LOCK: ${{ inputs.lock }}
+        INPUT_STRICT: ${{ inputs.strict }}
+        INPUT_WARDEN_VERSION: ${{ inputs.warden-version }}
+      run: |
+        set -euo pipefail
+
+        if [ -n "$INPUT_WARDEN_VERSION" ]; then
+          warden_version="$INPUT_WARDEN_VERSION"
+          warden_package="@ontrails/warden@$warden_version"
+        elif [ -z "$ACTION_REF" ] || [ "$ACTION_REF" = "main" ] || [ "$ACTION_REF" = "master" ]; then
+          warden_package="@ontrails/warden"
+        elif [[ "$ACTION_REF" =~ ^v?[0-9]+\.[0-9] ]]; then
+          warden_version="${ACTION_REF#v}"
+          warden_package="@ontrails/warden@$warden_version"
+        else
+          echo "::error::Unable to infer an @ontrails/warden npm version from action ref '$ACTION_REF'. Set the warden-version input when pinning the action by SHA or non-version branch."
+          exit 1
+        fi
+
+        args=(--ci)
+        if [ "$INPUT_STRICT" = "true" ]; then
+          args+=(--strict)
+        elif [ -n "$INPUT_FAIL_ON" ]; then
+          args+=(--fail-on "$INPUT_FAIL_ON")
+        fi
+        if [ -n "$INPUT_DEPTH" ]; then
+          args+=(--depth "$INPUT_DEPTH")
+        fi
+        if [ -n "$INPUT_FORMAT" ]; then
+          args+=(--format "$INPUT_FORMAT")
+        fi
+        if [ -n "$INPUT_LOCK" ]; then
+          args+=(--lock "$INPUT_LOCK")
+        fi
+        if [ -n "$INPUT_DRAFTS" ]; then
+          args+=(--drafts "$INPUT_DRAFTS")
+        fi
+        if [ -n "$INPUT_APPS" ]; then
+          args+=(--apps "$INPUT_APPS")
+        fi
+        if [ -n "$INPUT_CONFIG_PATH" ]; then
+          args+=(--config-path "$INPUT_CONFIG_PATH")
+        fi
+
+        bunx "$warden_package" "${args[@]}"

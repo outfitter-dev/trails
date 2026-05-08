@@ -44,6 +44,58 @@ lifecycle.
 `runWarden({ tier })` can execute one tier at a time; omitting `tier` preserves
 the full lint-plus-drift run.
 
+## Running Warden
+
+Local development usually goes through the integrated Trails CLI:
+
+```bash
+bun trails warden
+bun trails warden --pre-push
+```
+
+CI can use the direct Warden bin:
+
+```bash
+bunx @ontrails/warden --ci --apps trails,trails-demo
+```
+
+`--ci` is a preset on the Warden bin. It runs all depths, emits GitHub
+annotations by default, fails on errors, and suppresses lockfile mutation.
+Use `--fail-on warning` or `--strict` when warnings should block the run.
+
+GitHub adopters can use the reusable action after checkout, Bun setup, and
+dependency installation:
+
+```yaml
+jobs:
+  warden:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - uses: outfitter-dev/trails/.github/actions/check@v1.0.0
+        with:
+          apps: trails,trails-demo
+          depth: all
+          fail-on: error
+```
+
+The action wraps `bunx @ontrails/warden --ci`. When the action is used from a
+version tag such as `@v1.0.0`, it runs `@ontrails/warden@1.0.0` by default; use
+the `warden-version` input only when the action tag and npm package version must
+intentionally diverge. Workflows that pin the action by SHA or by a non-version
+branch must set `warden-version` explicitly because those refs do not identify an
+npm package version. Framework PR CI should keep using the local workspace bin so
+PRs test branch code rather than the latest published package.
+
+For non-GitHub CI, call the bin directly after installing Bun and project
+dependencies:
+
+```bash
+bunx @ontrails/warden@1.0.0 --ci --apps trails,trails-demo --fail-on error
+```
+
 ## Authoring Durable Rules
 
 Durable Warden rules should explain the doctrine they enforce. When adding one:
