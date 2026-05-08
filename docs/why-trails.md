@@ -63,7 +63,7 @@ Collect trails into an app with `topo()`. Open it on any surface with `surface()
 const graph = topo('myapp', entityModule, searchModule);
 
 // CLI
-import { surface } from '@ontrails/cli/commander';
+import { surface } from '@ontrails/commander';
 await surface(graph);
 
 // MCP

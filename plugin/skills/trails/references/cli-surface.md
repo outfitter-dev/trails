@@ -127,7 +127,7 @@ For full control over the Commander.js program, use `deriveCliCommands()` to get
 
 ```typescript
 import { deriveCliCommands } from '@ontrails/cli';
-import { toCommander } from '@ontrails/cli/commander';
+import { toCommander } from '@ontrails/commander';
 import { graph } from './app';
 
 const commands = deriveCliCommands(graph);

@@ -145,4 +145,4 @@ No separate CLI authoring language is introduced. The override is still a projec
 - 2026-04-16: In-place vocabulary update per ADR-0035 Cutover 3 — `buildCliCommands` → `deriveCliCommands`, `trailhead map` → `surface map`.
 
 [^build-cli]: [`packages/cli/src/build.ts`](../../packages/cli/src/build.ts) previously parsed a trail ID into `{ group, name }` by splitting on the first dot. It will call `deriveCliPath` which splits on all dots to produce a full command path.
-[^to-commander]: [`packages/cli/src/commander/to-commander.ts`](../../packages/cli/src/commander/to-commander.ts) previously created only one parent layer keyed by `group`. It will build a full nested command tree via `ensureCommandNode`.
+[^to-commander]: [`adapters/commander/src/to-commander.ts`](../../adapters/commander/src/to-commander.ts) previously created only one parent layer keyed by `group`. It will build a full nested command tree via `ensureCommandNode`.

@@ -146,7 +146,7 @@ DeriveTrailSpec<TContour, TOp, TGenerated>
 
 ## `@ontrails/cli`
 
-Current shipped surface packages are `@ontrails/cli`, `@ontrails/mcp`, `@ontrails/http`, and `@ontrails/hono`. A WebSocket surface is planned but has no public package or API yet.
+Current shipped surface packages are `@ontrails/cli`, `@ontrails/commander`, `@ontrails/mcp`, `@ontrails/http`, and `@ontrails/hono`. A WebSocket surface is planned but has no public package or API yet.
 
 ```typescript
 deriveCliCommands(graph, options?)     // projection: Result-returning command definitions
@@ -162,7 +162,7 @@ defaultOnResult(ctx), passthroughResolver, isInteractive(options?)
 InputResolver, ResolveInputOptions
 ```
 
-## `@ontrails/cli/commander`
+## `@ontrails/commander`
 
 ```typescript
 surface(graph, options?)               // one-liner: parse argv, execute, return exit code

@@ -9,8 +9,7 @@
 bunx @ontrails/trails create
 
 # Or install manually
-bun add @ontrails/core @ontrails/cli zod
-bun add commander                    # Commander adapter
+bun add @ontrails/core @ontrails/cli @ontrails/commander zod
 bun add @ontrails/mcp @modelcontextprotocol/sdk # MCP surface (optional)
 bun add -d @ontrails/testing         # Testing (dev)
 ```
@@ -72,7 +71,7 @@ export const graph = topo('myapp', greetModule);
 Create `src/cli.ts`:
 
 ```typescript
-import { surface } from '@ontrails/cli/commander';
+import { surface } from '@ontrails/commander';
 import { graph } from './app';
 
 await surface(graph);

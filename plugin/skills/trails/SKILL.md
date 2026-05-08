@@ -26,7 +26,7 @@ const greet = trail('greet', {
 const graph = topo('myapp', greetModule);
 
 // 3. Open surfaces
-await surface(graph);        // CLI — from @ontrails/cli/commander
+await surface(graph);        // CLI — from @ontrails/commander
 // await surface(graph);     // MCP — from @ontrails/mcp
 
 // 4. Headless execution (no surface needed)
@@ -103,7 +103,7 @@ Adding a surface is a `surface()` call, not an architecture change. The framewor
 **CLI**: Flags from Zod, subcommands from dotted IDs, exit codes from error taxonomy.
 
 ```typescript
-import { surface } from '@ontrails/cli/commander';
+import { surface } from '@ontrails/commander';
 await surface(graph);
 ```
 

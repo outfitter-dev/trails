@@ -15,16 +15,13 @@ import {
   resolveProjectPath,
   writeProjectFile,
 } from '../project-writes.js';
-import {
-  ontrailsPackageRange,
-  scaffoldDependencyVersions,
-} from '../versions.js';
+import { ontrailsPackageRange } from '../versions.js';
 import { findTopoPath } from './project.js';
 
 type Surface = 'cli' | 'http' | 'mcp';
 
 const generateCliEntry = (appImportPath: string): string =>
-  `import { surface } from '@ontrails/cli/commander';
+  `import { surface } from '@ontrails/commander';
 
 import { app } from '${appImportPath}';
 
@@ -54,7 +51,7 @@ const surfaceEntryFiles = {
 } satisfies Record<Surface, string>;
 
 const surfaceDependencies = {
-  cli: ['@ontrails/cli'],
+  cli: ['@ontrails/cli', '@ontrails/commander'],
   http: ['@ontrails/hono', '@ontrails/http'],
   mcp: ['@ontrails/mcp'],
 } satisfies Record<Surface, readonly string[]>;
@@ -78,7 +75,6 @@ const patchPkgDeps = (
     deps[dependency] = ontrailsPackageRange;
   }
   if (surface === 'cli') {
-    deps['commander'] = scaffoldDependencyVersions.commander;
     pkg['bin'] = {
       [(pkg['name'] as string | undefined) ?? basename(cwd)]: './src/cli.ts',
     };

@@ -13,10 +13,7 @@ This guide demonstrates CLI and MCP first because they are the shortest path to 
 bunx @ontrails/trails create
 
 # Or install manually
-bun add @ontrails/core @ontrails/cli
-
-# Add Commander adapter (for the /commander subpath)
-bun add commander
+bun add @ontrails/core @ontrails/cli @ontrails/commander zod
 
 # Add MCP surface (optional)
 bun add @ontrails/mcp
@@ -93,7 +90,7 @@ export const graph = topo('myapp', greetModule);
 Create `src/cli.ts`:
 
 ```typescript
-import { surface } from '@ontrails/cli/commander';
+import { surface } from '@ontrails/commander';
 import { graph } from './app';
 
 await surface(graph);

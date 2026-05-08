@@ -40,7 +40,7 @@ The boundary-owned rendering where the outside world reaches the trail system.
 CLI, MCP, HTTP, and WebSocket are surfaces.
 
 ```typescript
-import { surface } from '@ontrails/cli/commander';
+import { surface } from '@ontrails/commander';
 await surface(graph);
 
 import { surface as surfaceMcp } from '@ontrails/mcp';

@@ -9,12 +9,11 @@ automatically.
 ## Setup
 
 ```bash
-bun add @ontrails/cli
-bun add commander  # required for the /commander subpath
+bun add @ontrails/cli @ontrails/commander
 ```
 
 ```typescript
-import { surface } from '@ontrails/cli/commander';
+import { surface } from '@ontrails/commander';
 import { graph } from './app';
 
 await surface(graph);
@@ -22,11 +21,8 @@ await surface(graph);
 
 That is the entire CLI setup. Every trail in the app becomes a command.
 
-> **Beta 15 package shape:** Commander is still exposed through the
-> `@ontrails/cli/commander` subpath, with `commander` installed as a peer
-> dependency. The planned beta.16 cleanup is to move Commander into a dedicated
-> `@ontrails/commander` adapter package by direct cutover. Do not use that
-> future import path until the adapter package exists.
+`@ontrails/cli` owns command derivation; `@ontrails/commander` owns Commander
+program materialization and argv parsing.
 
 ## How Trail IDs Map to Commands
 
@@ -234,7 +230,7 @@ The error message is written to stderr. Non-`TrailsError` errors default to exit
 Override the default result handler for custom formatting, logging, or metrics:
 
 ```typescript
-import { surface } from '@ontrails/cli/commander';
+import { surface } from '@ontrails/commander';
 import { output, deriveOutputMode } from '@ontrails/cli';
 
 await surface(graph, {
@@ -278,8 +274,8 @@ strings into ISO 8601 dates before validation:
 ## The Two-Level Architecture
 
 `@ontrails/cli` is framework-agnostic. It produces a `Result<CliCommand[], Error>`
-projection that any CLI framework can consume. The `/commander` subpath
-connects that model to Commander specifically.
+projection that any CLI framework can consume. The `@ontrails/commander`
+adapter connects that model to Commander specifically.
 
 ```typescript
 // Framework-agnostic: build the model
@@ -288,7 +284,7 @@ const commands = deriveCliCommands(graph);
 if (commands.isErr()) throw commands.error;
 
 // Framework-specific: adapt to Commander
-import { toCommander } from '@ontrails/cli/commander';
+import { toCommander } from '@ontrails/commander';
 const program = toCommander(commands.value, { name: 'myapp' });
 program.parse();
 ```
@@ -296,7 +292,7 @@ program.parse();
 Or use `surface()` which does both in one call:
 
 ```typescript
-import { surface } from '@ontrails/cli/commander';
+import { surface } from '@ontrails/commander';
 await surface(graph);
 ```
 

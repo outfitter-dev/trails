@@ -159,7 +159,8 @@ const assertCliPackage = (dir: string): void => {
   const deps = pkg['dependencies'] as Record<string, string>;
   expect(deps['@ontrails/core']).toBe(ontrailsPackageRange);
   expect(deps['@ontrails/cli']).toBe(ontrailsPackageRange);
-  expect(deps['commander']).toBe(scaffoldDependencyVersions.commander);
+  expect(deps['@ontrails/commander']).toBe(ontrailsPackageRange);
+  expect(deps['commander']).toBeUndefined();
 };
 
 const assertVerifyPackage = (dir: string): void => {

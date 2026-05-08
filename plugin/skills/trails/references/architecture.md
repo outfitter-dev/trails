@@ -86,7 +86,7 @@ Warden uses inference to verify declarations match actual code. The surface map 
 | Package | Purpose | External dep |
 |---------|---------|-------------|
 | `@ontrails/cli` | Command model, flag derivation, output formatting | None beyond core |
-| `@ontrails/cli/commander` | Commander adapter, `surface()` | `commander` (peer) |
+| `@ontrails/commander` | Commander adapter, `surface()` | `commander` |
 | `@ontrails/mcp` | MCP tools, annotations, progress bridge, `surface()` | `@modelcontextprotocol/sdk` |
 | `@ontrails/http` | HTTP route definitions (framework-agnostic) | None beyond core |
 | `@ontrails/hono` | Hono adapter, `surface()` | `hono` |
@@ -125,7 +125,7 @@ Warden uses inference to verify declarations match actual code. The surface map 
   <- @ontrails/drizzle (store, drizzle-orm)
   <- @ontrails/testing (core, cli, mcp, logging)
   <- @ontrails/topographer (core)
-     <- @ontrails/cli/commander (cli, commander)
+     <- @ontrails/commander (cli, commander)
      <- @ontrails/hono (http, hono)
      <- @ontrails/vite (node:stream only)
      <- @ontrails/logtape (logging)

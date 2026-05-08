@@ -27,7 +27,7 @@ The CLI surface still uses the current beta.15 import path:
 import { surface } from '@ontrails/cli/commander';
 ```
 
-Moving Commander into a dedicated `@ontrails/commander` connector package is planned for beta 16, not beta 15.
+Moving Commander into a dedicated `@ontrails/commander` adapter package is planned for beta 16, not beta 15.
 
 ### Generated project toolchain
 
@@ -108,7 +108,7 @@ Keep `commander` installed separately for CLI apps in beta.15:
 }
 ```
 
-Do not move CLI imports to `@ontrails/commander` yet. That connector split is planned for beta 16.
+Do not move CLI imports to `@ontrails/commander` yet. That adapter split is planned for beta 16.
 
 ### Existing generated projects
 
@@ -206,7 +206,7 @@ Beta 15 intentionally does not take on the larger CLI grammar and package-shape 
 
 - **Trails CLI improvements** — command grammar and authoring ergonomics for `add trail`, `add surface`, `draft promote`, dry-run plans, and flagless project discovery.
 - **Trails CLI schemas** — a framework-level `schema` command in `@ontrails/cli` so CLI apps can expose derived command contracts by default.
-- **Trails Commander connector** — beta.16 direct cutover from `@ontrails/cli/commander` to a dedicated `@ontrails/commander` connector package, with no compatibility subpath.
+- **Trails Commander adapter** — beta.16 direct cutover from `@ontrails/cli/commander` to a dedicated `@ontrails/commander` adapter package, with no compatibility subpath.
 
 ## Packages
 

@@ -36,7 +36,7 @@ Follow the prompts — pick a name, choose a starter, select your surfaces. The 
 Or install manually:
 
 ```bash
-bun add @ontrails/core @ontrails/cli commander zod
+bun add @ontrails/core @ontrails/cli @ontrails/commander zod
 bun add -d @ontrails/testing
 ```
 
@@ -108,7 +108,7 @@ The value isn't any single feature. It's that they multiply — each declaration
 
 ```typescript
 import { trail, topo, Result } from '@ontrails/core';
-import { surface as cliSurface } from '@ontrails/cli/commander';
+import { surface as cliSurface } from '@ontrails/commander';
 import { surface as mcpSurface } from '@ontrails/mcp';
 import { z } from 'zod';
 
@@ -140,7 +140,8 @@ $ myapp greet --name World
 | Package | What it does |
 |---------|-------------|
 | [`@ontrails/core`](./packages/core) | Result, errors, trail/signal/contour/topo, validation, schema derivation |
-| [`@ontrails/cli`](./packages/cli) | CLI surface — flag derivation, output formatting, Commander adapter |
+| [`@ontrails/cli`](./packages/cli) | CLI command model - flag derivation, output formatting |
+| [`@ontrails/commander`](./adapters/commander) | Commander adapter for the CLI surface |
 | [`@ontrails/mcp`](./packages/mcp) | MCP surface — tool generation, annotations, progress bridge |
 | [`@ontrails/http`](./packages/http) | HTTP surface model — route derivation, verb mapping, error responses |
 | [`@ontrails/hono`](./adapters/hono) | Hono adapter that opens a topo on the HTTP surface |

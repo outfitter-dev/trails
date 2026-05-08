@@ -95,7 +95,7 @@ Wire to CLI or MCP with the same trails. The `db.mock()` factory is used automat
 ```typescript
 // cli.ts
 import { topo } from '@ontrails/core';
-import { surface } from '@ontrails/cli/commander';
+import { surface } from '@ontrails/commander';
 import * as project from './trails/project.js';
 import * as resources from './resources/db.js';
 

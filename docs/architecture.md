@@ -146,7 +146,7 @@ Overrides are escape hatches. They're visible in the surface map as explicit dev
 | Package | What it does | External dep |
 | --- | --- | --- |
 | `@ontrails/cli` | Framework-agnostic command model, flag derivation, output formatting | None beyond core |
-| `@ontrails/cli/commander` | Commander adapter, `surface()` | `commander` (optional peer) |
+| `@ontrails/commander` | Commander adapter, `surface()` | `commander` |
 | `@ontrails/mcp` | MCP tools, annotations, progress bridge, `surface()` | `@modelcontextprotocol/sdk` |
 | `@ontrails/http` | HTTP routes, error mapping, and OpenAPI generation | None beyond core |
 | `@ontrails/hono` | Hono adapter, `surface()` | `hono` |
@@ -196,7 +196,7 @@ Overrides are escape hatches. They're visible in the surface map as explicit dev
 @ontrails/testing (core, cli, mcp, logging)
 @ontrails/topographer (core)
      ^
-@ontrails/cli/commander (cli, commander)
+@ontrails/commander (cli, commander)
 @ontrails/hono (http, hono)
 @ontrails/vite (node:stream only, no workspace deps)
 @ontrails/logtape (logging)

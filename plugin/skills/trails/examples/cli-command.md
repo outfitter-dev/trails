@@ -74,7 +74,7 @@ Dotted IDs become subcommands. Flags derive from the Zod schema:
 ```typescript
 // cli.ts
 import { topo } from '@ontrails/core';
-import { surface } from '@ontrails/cli/commander';
+import { surface } from '@ontrails/commander';
 import * as deploy from './trails/deploy.js';
 
 const graph = topo('myapp', deploy);
