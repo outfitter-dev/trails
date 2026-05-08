@@ -459,7 +459,7 @@ writeSignalTraceRecord(ctx, name, attrs, status?, category?) // write a signal l
 createMemorySink(options?)           // bounded in-memory sink for testing
 createBoundedMemorySink(options?)    // explicit alias for createMemorySink
 createDevStore(options?)             // SQLite-backed persistent sink for development
-createOtelConnector(options?)        // OpenTelemetry span exporter
+createOtelAdapter(options?)          // OpenTelemetry span exporter
 toTraceStore(store)                  // read-only TraceStore view that does not own the writable connection
 countTraceRecords(db), previewTraceCleanup(db, options?), applyTraceCleanup(db, options?)
 withTraceStoreDb(options, run), ensureTraceSchema(db)

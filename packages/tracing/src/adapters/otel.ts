@@ -1,6 +1,6 @@
 import type { TraceRecord, TraceSink } from '@ontrails/core';
 
-/** OTel span representation produced by the connector. */
+/** OTel span representation produced by the adapter. */
 export interface OtelSpan {
   readonly traceId: string;
   readonly spanId: string;
@@ -16,8 +16,8 @@ export interface OtelSpan {
 /** Callback that receives translated OTel spans. */
 export type OtelExporter = (spans: readonly OtelSpan[]) => void | Promise<void>;
 
-/** Configuration for the OTel connector. */
-export interface OtelConnectorOptions {
+/** Configuration for the OTel adapter. */
+export interface OtelAdapterOptions {
   readonly exporter: OtelExporter;
   readonly batchSize?: number;
 }
@@ -90,16 +90,14 @@ export interface OtelSink extends TraceSink {
 /**
  * Create a TraceSink that translates Tracing to OTel spans.
  *
- * The connector maps Trails-native fields to OpenTelemetry span attributes
+ * The adapter maps Trails-native fields to OpenTelemetry span attributes
  * under a `trails.*` namespace. Pass any OTel-compatible exporter callback
  * to forward spans to your collector.
  *
  * Translates and exports spans on each write. Call `flush()` on shutdown
  * to send any remaining buffered spans.
  */
-export const createOtelConnector = (
-  options: OtelConnectorOptions
-): OtelSink => {
+export const createOtelAdapter = (options: OtelAdapterOptions): OtelSink => {
   const batchSize = options.batchSize ?? 1;
   const buffer: OtelSpan[] = [];
 

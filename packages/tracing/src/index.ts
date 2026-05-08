@@ -75,11 +75,11 @@ export {
 } from './internal/dev-state.js';
 export type { TraceCleanupReport } from './internal/dev-state.js';
 
-// OTel connector
+// OTel adapter
 export {
-  createOtelConnector,
-  type OtelConnectorOptions,
+  createOtelAdapter,
+  type OtelAdapterOptions,
   type OtelExporter,
   type OtelSink,
   type OtelSpan,
-} from './connectors/otel.js';
+} from './adapters/otel.js';

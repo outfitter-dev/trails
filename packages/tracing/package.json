@@ -12,7 +12,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./otel": "./src/connectors/otel.ts",
+    "./otel": "./src/adapters/otel.ts",
     "./package.json": "./package.json"
   },
   "scripts": {

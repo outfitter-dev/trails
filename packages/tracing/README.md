@@ -15,7 +15,7 @@ const sink = createMemorySink({ maxRecords: 1000 });
 registerTraceSink(sink);
 ```
 
-Sinks receive completed `TraceRecord` records. The default sink is `NOOP_SINK` — tracing APIs still work without configuration, but root/span/signal/activation record allocation is skipped until you register a real sink. Use a bounded memory sink for testing and local trace rendering, a dev store for local development, or an OTel connector to forward to your collector. Use `registerTraceSink(NOOP_SINK)` or `clearTraceSink()` to switch back to the silent baseline.
+Sinks receive completed `TraceRecord` records. The default sink is `NOOP_SINK` — tracing APIs still work without configuration, but root/span/signal/activation record allocation is skipped until you register a real sink. Use a bounded memory sink for testing and local trace rendering, a dev store for local development, or an OTel adapter to forward to your collector. Use `registerTraceSink(NOOP_SINK)` or `clearTraceSink()` to switch back to the silent baseline.
 
 Signal fan-out records use lexicon-aligned names: `signal.fired`, `signal.invalid`, `signal.handler.invoked`, `signal.handler.completed`, and `signal.handler.failed`. Signal record attrs carry IDs and redacted payload summaries, never raw payloads by default.
 
@@ -131,14 +131,14 @@ The dev store uses WAL mode and prunes automatically. Use `toTraceStore(store)`
 only when you need a read-only view for consumers that must not own the
 underlying writable connection.
 
-### OpenTelemetry connector
+### OpenTelemetry adapter
 
 Export traces to any OTel-compatible collector:
 
 ```typescript
-import { createOtelConnector, registerTraceSink } from '@ontrails/tracing';
+import { createOtelAdapter, registerTraceSink } from '@ontrails/tracing';
 
-const sink = createOtelConnector({
+const sink = createOtelAdapter({
   exporter: async (spans) => {
     await myOtelCollector.send(spans);
   },
@@ -147,7 +147,7 @@ const sink = createOtelConnector({
 registerTraceSink(sink);
 ```
 
-The connector translates `TraceRecord` records to OTel spans with Trails-namespaced attributes (`trails.trail.id`, `trails.intent`, `trails.surface`, `trails.permit.id`).
+The adapter translates `TraceRecord` records to OTel spans with Trails-namespaced attributes (`trails.trail.id`, `trails.intent`, `trails.surface`, `trails.permit.id`).
 
 ## Sampling
 

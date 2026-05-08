@@ -74,7 +74,7 @@ declare module '@ontrails/tracing' {
     readonly path?: string;
   }): unknown;
   export function createMemorySink(options?: MemorySinkOptions): MemorySink;
-  export function createOtelConnector(options: {
+  export function createOtelAdapter(options: {
     readonly batchSize?: number;
     readonly exporter: (spans: unknown) => Promise<void>;
   }): unknown;
