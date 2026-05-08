@@ -28,6 +28,39 @@ metadata exposes them from `@ontrails/warden`; runtime tier filtering and
 advisory report shape build on that metadata rather than inventing another rule
 registry.
 
+## Authority Model
+
+Use the narrowest effective authority layer. Trails should make mistakes
+impossible by type when it can, catch them with tests when runtime behavior is
+the contract, and put durable semantic checks in Warden when the invariant needs
+source, project, topo, or drift context. Prose or repo-local lint can orient,
+coach, and clean up, but they should not become parallel authority for framework
+facts.
+
+| Need | Authority | Notes |
+| --- | --- | --- |
+| Formatting | `oxfmt` / Ultracite | Style stays boring and mechanical. |
+| General JS/TS lint | Upstream `oxlint` rules | Standard language hygiene, not Trails doctrine. |
+| Repo-local JS/TS hygiene | Private `@ontrails/oxlint-plugin` | Console/process leakage, deep imports, barrels, Bun-native preference, retired source vocabulary, snapshot location, test naming, and temporary cleanup. |
+| Syntax tripwires and codemods | `ast-grep` | Useful for audits and high-confidence syntax shapes. New durable Trails rules should graduate into Warden instead of living here. |
+| Trails semantic correctness | Warden | The durable public correctness surface for trail/resource/signal/cross/permit/topo invariants. |
+| Topology and resolved-graph drift | Warden + Topographer | Lockfile drift, surface map drift, and topo-aware checks. |
+| Contract/runtime behavior | `testAll` and focused tests | Examples, output contracts, detours, and surface projection validation. |
+| Impossible-by-type constraints | TypeScript | Output schemas, typed `ctx.cross()`, `resource.from(ctx)`, and other compile-time contracts. |
+| Human and agent orientation | `AGENTS.md` | A map over the executable system, not the only enforcement point. |
+
+Owner-first data beats duplicated rule lists. If Warden needs framework facts
+such as reserved lexicon terms, intent values, error categories, permit rules,
+or Result accessors, it should read them from the module that owns the fact. If
+the owner does not expose a clean typed value, strengthen that owner before
+hardcoding a second list in the rule.
+
+Temporary repo-local rules are allowed when they have a clear lifecycle. TRL-575
+is the precedent: a temporary audit scanner needs an owner, reason, baseline
+count, deletion or promotion trigger, and issue reference. Temporary rules are
+visible debt; durable framework semantics belong in Warden once the invariant is
+understood.
+
 ## Core Principle
 
 Express rules as invariants the framework holds, not as instances of bugs found
