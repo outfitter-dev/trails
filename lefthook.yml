@@ -17,6 +17,8 @@ pre-commit:
 
 pre-push:
   commands:
+    warden:
+      run: bun trails warden --pre-push
     test:
       run: bun run test
     typecheck:
