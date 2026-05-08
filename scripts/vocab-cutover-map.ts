@@ -109,6 +109,16 @@ const reviewedRetiredTaxonomyMentionPaths = [
   'plugin/rules/lexicon.md',
 ] as const;
 
+const legacyExtractedAdapterSubpathMentionPaths = [
+  ...historicalMentionPaths,
+  'adapters/commander/README.md',
+  'adapters/drizzle/README.md',
+  'adapters/hono/README.md',
+  'docs/adr/0022-drizzle-store-connector.md',
+  'packages/http/README.md',
+  'packages/store/README.md',
+] as const;
+
 export const auditRules: readonly VocabAuditRule[] = [
   {
     description:
@@ -246,6 +256,13 @@ export const auditRules: readonly VocabAuditRule[] = [
     excludePaths: reviewedRetiredTaxonomyMentionPaths,
     id: 'connector-term',
     pattern: String.raw`\b[Cc]onnector(s)?\b|[A-Za-z_$][\w$]*[Cc]onnector[A-Za-z_$\d]*|(?:^|/)connectors/`,
+  },
+  {
+    description:
+      'Legacy extracted adapter subpaths still appear outside history and migration notes.',
+    excludePaths: legacyExtractedAdapterSubpathMentionPaths,
+    id: 'legacy-extracted-adapter-subpath',
+    pattern: String.raw`@ontrails/(?:http/hono|store/drizzle|cli/commander)`,
   },
   {
     description:
