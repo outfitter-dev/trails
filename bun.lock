@@ -249,11 +249,12 @@
         "@ontrails/permits": "workspace:^",
         "@ontrails/store": "workspace:^",
         "oxc-parser": "^0.121.0",
+        "zod": "catalog:",
       },
       "devDependencies": {
+        "@ontrails/config": "workspace:^",
         "@ontrails/testing": "workspace:^",
         "@oxc-project/types": "^0.122.0",
-        "zod": "catalog:",
       },
       "peerDependencies": {
         "@ontrails/core": "workspace:^",

@@ -42,6 +42,25 @@ export { clearImplementationReturnsResultCache } from './rules/implementation-re
 export type { WardenOptions, WardenReport } from './cli.js';
 export { formatWardenReport, runWarden } from './cli.js';
 
+// Config schema
+export {
+  wardenConfigSchema,
+  wardenDepthValues,
+  wardenDraftsValues,
+  wardenFailOnValues,
+  wardenFormatValues,
+  wardenLockValues,
+} from './config.js';
+export type {
+  WardenConfig,
+  WardenConfigInput,
+  WardenDepth,
+  WardenDraftsMode,
+  WardenFailOn,
+  WardenFormat,
+  WardenLockMode,
+} from './config.js';
+
 // CI formatters
 export {
   formatGitHubAnnotations,

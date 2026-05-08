@@ -21,6 +21,15 @@ describe('@ontrails/warden public API', () => {
     expect(warden.listWardenRuleMetadata().length).toBeGreaterThan(0);
   });
 
+  test('exports the composable Warden config schema from the root entrypoint', () => {
+    const omittedSection: unknown = undefined;
+    const result = warden.wardenConfigSchema.safeParse(omittedSection);
+
+    expect(result.success).toBe(true);
+    expect(result.data?.depth).toBe('all');
+    expect(result.data?.failOn).toBe('error');
+  });
+
   test('keeps parser helpers on the ast entrypoint', () => {
     expect('parse' in warden).toBe(false);
     expect('walk' in warden).toBe(false);
