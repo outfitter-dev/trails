@@ -5,6 +5,7 @@ import {
   getWardenRuleMetadata,
   listWardenRuleMetadata,
   wardenRuleLifecycleStates,
+  wardenRuleConcerns,
   wardenRuleScopes,
   wardenRuleTiers,
   wardenRules,
@@ -30,12 +31,23 @@ describe('warden rule metadata', () => {
     ).toEqual([]);
   });
 
-  test('uses the supported tier, scope, and lifecycle vocabulary', () => {
+  test('uses the supported tier, depth, concern, scope, and lifecycle vocabulary', () => {
     for (const [, metadata] of metadataEntries) {
       expect(wardenRuleTiers).toContain(metadata.tier);
+      expect(['source', 'project', 'topo', 'all']).toContain(metadata.depth);
+      expect(wardenRuleConcerns).toContain(metadata.concern);
       expect(wardenRuleScopes).toContain(metadata.scope);
       expect(wardenRuleLifecycleStates).toContain(metadata.lifecycle.state);
     }
+  });
+
+  test('derives queryable rule depth from the execution tier', () => {
+    expect(getWardenRuleMetadata('no-throw-in-implementation')?.depth).toBe(
+      'source'
+    );
+    expect(getWardenRuleMetadata('on-references-exist')?.depth).toBe('project');
+    expect(getWardenRuleMetadata('permit-governance')?.depth).toBe('topo');
+    expect(getWardenRuleMetadata('prefer-schema-inference')?.depth).toBe('all');
   });
 
   test('requires retirement criteria for non-durable rules', () => {
@@ -49,6 +61,7 @@ describe('warden rule metadata', () => {
 
   test('exposes metadata lookup helpers for built-in rules', () => {
     expect(getWardenRuleMetadata('permit-governance')?.tier).toBe('topo-aware');
+    expect(getWardenRuleMetadata('permit-governance')?.concern).toBe('permits');
     expect(getWardenRuleMetadata('warden-export-symmetry')?.scope).toBe(
       'repo-local'
     );

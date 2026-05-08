@@ -58,7 +58,7 @@ export const wardenTrail = trail('warden', {
     const formatted = formatter(report);
 
     return Result.ok({
-      diagnostics: report.diagnostics,
+      diagnostics: [...report.diagnostics],
       drift: report.drift,
       errorCount: report.errorCount,
       formatted,

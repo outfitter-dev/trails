@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { defineConfig } from '@ontrails/config';
 import { z } from 'zod';
 
-import { wardenConfigSchema } from '../config.js';
+import { resolveWardenConfig, wardenConfigSchema } from '../config.js';
 
 describe('wardenConfigSchema', () => {
   test('applies Warden defaults when the section is omitted', () => {
@@ -78,5 +78,52 @@ describe('wardenConfigSchema', () => {
         lock: 'auto',
       },
     });
+  });
+
+  test('resolves config with CLI over env over config over defaults precedence', () => {
+    const { diagnostics, effectiveConfig } = resolveWardenConfig({
+      cli: { failOn: 'error', format: 'json' },
+      config: { depth: 'source', failOn: 'warning', lock: 'cached' },
+      defaults: { lock: 'skip' },
+      env: {
+        TRAILS_DEPTH: 'project',
+        TRAILS_FAIL_ON: 'warning',
+        TRAILS_FORMAT: 'github',
+      },
+    });
+
+    expect(diagnostics).toEqual([]);
+    expect(effectiveConfig).toEqual({
+      depth: 'project',
+      drafts: 'include',
+      failOn: 'error',
+      format: 'json',
+      lock: 'cached',
+      noLockMutation: false,
+    });
+  });
+
+  test('surfaces invalid environment config as diagnostics', () => {
+    const { diagnostics, effectiveConfig } = resolveWardenConfig({
+      env: {
+        TRAILS_DEPTH: 'shallow',
+      },
+    });
+
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0]?.rule).toBe('warden-config');
+    expect(diagnostics[0]?.message).toContain('Invalid environment');
+    expect(effectiveConfig.depth).toBe('all');
+  });
+
+  test('carries no-lock-mutation as invocation state, not config schema', () => {
+    const { diagnostics, effectiveConfig } = resolveWardenConfig({
+      cli: {
+        noLockMutation: true,
+      },
+    });
+
+    expect(diagnostics).toEqual([]);
+    expect(effectiveConfig.noLockMutation).toBe(true);
   });
 });

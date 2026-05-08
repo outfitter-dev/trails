@@ -15,6 +15,7 @@ export type {
   TopoAwareWardenRule,
   WardenDiagnostic,
   WardenRule,
+  WardenRuleConcern,
   WardenRuleLifecycle,
   WardenRuleLifecycleState,
   WardenRuleMetadata,
@@ -28,6 +29,7 @@ export {
   builtinWardenRuleMetadata,
   getWardenRuleMetadata,
   listWardenRuleMetadata,
+  wardenRuleConcerns,
   wardenRuleLifecycleStates,
   wardenRuleScopes,
   wardenRuleTiers,
@@ -39,7 +41,12 @@ export {
 export { clearImplementationReturnsResultCache } from './rules/implementation-returns-result.js';
 
 // CLI runner
-export type { WardenOptions, WardenReport } from './cli.js';
+export type {
+  WardenOptions,
+  WardenReport,
+  WardenRunOptions,
+  WardenTopoTarget,
+} from './cli.js';
 export { formatWardenReport, runWarden } from './cli.js';
 
 // Config schema
@@ -59,7 +66,12 @@ export type {
   WardenFailOn,
   WardenFormat,
   WardenLockMode,
+  EffectiveWardenConfig,
+  ResolveWardenConfigOptions,
+  WardenConfigLayer,
+  WardenConfigResolution,
 } from './config.js';
+export { resolveWardenConfig } from './config.js';
 
 // CI formatters
 export {

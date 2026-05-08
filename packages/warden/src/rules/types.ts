@@ -1,5 +1,7 @@
 import type { Intent, Topo } from '@ontrails/core';
 
+import type { WardenDepth } from '../config.js';
+
 /**
  * Severity level for warden diagnostics.
  */
@@ -36,6 +38,19 @@ export type WardenRuleScope =
 export type WardenRuleLifecycleState = 'deprecated' | 'durable' | 'temporary';
 
 /**
+ * Queryable concern dimension for Warden rule metadata.
+ */
+export type WardenRuleConcern =
+  | 'composition'
+  | 'general'
+  | 'lifecycle'
+  | 'meta'
+  | 'permits'
+  | 'resources'
+  | 'results'
+  | 'signals';
+
+/**
  * Lifecycle metadata for a Warden rule.
  */
 export interface WardenRuleLifecycle {
@@ -49,6 +64,10 @@ export interface WardenRuleLifecycle {
  * Stable metadata used to classify Warden rules before dispatch filtering.
  */
 export interface WardenRuleMetadata {
+  /** Cumulative Warden depth where this rule first becomes relevant. */
+  readonly depth: WardenDepth;
+  /** Queryable rule concern for agent-facing surfaces. */
+  readonly concern: WardenRuleConcern;
   /** One-line invariant the rule protects. */
   readonly invariant: string;
   /** Rule lifecycle. */
@@ -73,6 +92,8 @@ export interface WardenDiagnostic {
   readonly line: number;
   /** File path that was analyzed */
   readonly filePath: string;
+  /** Topo/app identity for diagnostics emitted during multi-topo runs. */
+  readonly topoName?: string | undefined;
 }
 
 /**

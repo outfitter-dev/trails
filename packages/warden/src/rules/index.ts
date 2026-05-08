@@ -49,6 +49,7 @@ import { webhookRouteCollision } from './webhook-route-collision.js';
 export type {
   WardenRuleLifecycle,
   WardenRuleLifecycleState,
+  WardenRuleConcern,
   WardenRuleMetadata,
   WardenRuleScope,
   ProjectAwareWardenRule,
@@ -64,6 +65,7 @@ export {
   builtinWardenRuleMetadata,
   getWardenRuleMetadata,
   listWardenRuleMetadata,
+  wardenRuleConcerns,
   wardenRuleLifecycleStates,
   wardenRuleScopes,
   wardenRuleTiers,

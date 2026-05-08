@@ -3,10 +3,22 @@ import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { ConflictError, Result, topo, trail } from '@ontrails/core';
+import {
+  ConflictError,
+  deriveTrailsDir,
+  Result,
+  topo,
+  trail,
+} from '@ontrails/core';
+import {
+  deriveSurfaceMap,
+  deriveSurfaceMapHash,
+  writeSurfaceLock,
+} from '@ontrails/topographer';
 import { z } from 'zod';
 
 import { formatWardenReport, runWarden } from '../cli.js';
+import type { TopoAwareWardenRule, WardenDiagnostic } from '../rules/types.js';
 
 const DEV_PERMIT_FLAG = ['--dev', '-permit'].join('');
 
@@ -36,6 +48,42 @@ const makeTempDir = (): string => {
   mkdirSync(dir, { recursive: true });
   return dir;
 };
+
+const buildFixtureTopo = (name = 'fixture') => {
+  const echo = trail('fixture.echo', {
+    blaze: (input: { value: string }) => Result.ok({ value: input.value }),
+    input: z.object({ value: z.string() }),
+    intent: 'read',
+    output: z.object({ value: z.string() }),
+  });
+  return topo(name, { echo });
+};
+
+const PLACEHOLDER_TOPO_FINDING: WardenDiagnostic = {
+  filePath: '<topo>',
+  line: 1,
+  message: 'synthetic topo-level finding',
+  rule: 'placeholder-topo-aware',
+  severity: 'warn',
+};
+
+const buildPlaceholderTopoRule = (seen: string[]): TopoAwareWardenRule => ({
+  checkTopo: (inspectedTopo) => {
+    seen.push(inspectedTopo.name);
+    return [PLACEHOLDER_TOPO_FINDING];
+  },
+  description: 'placeholder rule returning one diagnostic',
+  name: 'placeholder-topo-aware',
+  severity: 'warn',
+});
+
+const throwDiagnosticFilePaths = (
+  report: Awaited<ReturnType<typeof runWarden>>
+): readonly string[] =>
+  report.diagnostics
+    .filter((diagnostic) => diagnostic.rule === 'no-throw-in-implementation')
+    .map((diagnostic) => diagnostic.filePath)
+    .toSorted();
 
 describe('runWarden basics', () => {
   test('produces a report with diagnostics for bad code', async () => {
@@ -367,6 +415,147 @@ describe('runWarden basics', () => {
       rmSync(dir, { force: true, recursive: true });
     }
   });
+
+  test('depth project runs source and project rules but skips topo and drift', async () => {
+    const dir = makeTempDir();
+    try {
+      writeFileSync(
+        join(dir, 'mixed.ts'),
+        `trail('entity.show', {
+  on: ['entity.changed'],
+  blaze: async () => {
+    throw new Error('boom');
+  },
+});`
+      );
+      const seen: string[] = [];
+      const report = await runWarden({
+        depth: 'project',
+        extraTopoRules: [buildPlaceholderTopoRule(seen)],
+        rootDir: dir,
+        topo: buildFixtureTopo(),
+      });
+      const rules = new Set(report.diagnostics.map((d) => d.rule));
+
+      expect(rules.has('no-throw-in-implementation')).toBe(true);
+      expect(rules.has('on-references-exist')).toBe(true);
+      expect(rules.has('placeholder-topo-aware')).toBe(false);
+      expect(seen).toEqual([]);
+      expect(report.drift).toBeNull();
+      expect(report.effectiveConfig?.depth).toBe('project');
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('depth source ignores deeper project findings', async () => {
+    const dir = makeTempDir();
+    try {
+      writeFileSync(
+        join(dir, 'source-only.ts'),
+        `trail('entity.show', {
+  on: ['entity.changed'],
+  blaze: async () => Result.ok({ ok: true }),
+});`
+      );
+      const report = await runWarden({
+        depth: 'source',
+        rootDir: dir,
+      });
+      const rules = new Set(report.diagnostics.map((d) => d.rule));
+
+      expect(rules.has('on-references-exist')).toBe(false);
+      expect(report.errorCount).toBe(0);
+      expect(report.passed).toBe(true);
+      expect(report.drift).toBeNull();
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('failOn warning turns warning-only reports into failures', async () => {
+    const dir = makeTempDir();
+    try {
+      const seen: string[] = [];
+      const report = await runWarden({
+        depth: 'topo',
+        extraTopoRules: [buildPlaceholderTopoRule(seen)],
+        failOn: 'warning',
+        rootDir: dir,
+        topo: buildFixtureTopo(),
+      });
+
+      expect(seen).toEqual(['fixture']);
+      expect(report.errorCount).toBe(0);
+      expect(report.warnCount).toBeGreaterThan(0);
+      expect(report.passed).toBe(false);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('multi-topo runs tag topo-aware diagnostics', async () => {
+    const dir = makeTempDir();
+    try {
+      const seen: string[] = [];
+      const report = await runWarden({
+        depth: 'topo',
+        extraTopoRules: [buildPlaceholderTopoRule(seen)],
+        rootDir: dir,
+        topos: [
+          { name: 'primary', topo: buildFixtureTopo('fixture.primary') },
+          { name: 'admin', topo: buildFixtureTopo('fixture.admin') },
+        ],
+      });
+
+      const emitted = report.diagnostics.filter(
+        (diagnostic) => diagnostic.rule === 'placeholder-topo-aware'
+      );
+
+      expect(seen).toEqual(['fixture.primary', 'fixture.admin']);
+      expect(emitted.map((diagnostic) => diagnostic.topoName)).toEqual([
+        'primary',
+        'admin',
+      ]);
+      expect(report.topoNames).toEqual(['primary', 'admin']);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('multi-topo drift compares every supplied topo when no stored hash exists', async () => {
+    const dir = makeTempDir();
+    try {
+      const primary = buildFixtureTopo('fixture.primary');
+      const adminTrail = trail('admin.echo', {
+        blaze: (input: { value: string }) => Result.ok({ value: input.value }),
+        input: z.object({ value: z.string() }),
+        intent: 'read',
+        output: z.object({ value: z.string() }),
+      });
+      const admin = topo('fixture.admin', { adminTrail });
+      const primaryHash = deriveSurfaceMapHash(deriveSurfaceMap(primary));
+      await writeSurfaceLock(primaryHash, {
+        dir: deriveTrailsDir({ rootDir: dir }),
+      });
+
+      const report = await runWarden({
+        depth: 'all',
+        rootDir: dir,
+        topos: [
+          { name: 'primary', topo: primary },
+          { name: 'admin', topo: admin },
+        ],
+      });
+
+      expect(report.drift?.committedHash).toBe(primaryHash);
+      expect(report.drift?.currentHash).not.toBe(primaryHash);
+      expect(report.drift?.stale).toBe(true);
+      expect(report.passed).toBe(false);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
 });
 
 describe('runWarden project context', () => {
@@ -694,6 +883,61 @@ describe('runWarden draft markers', () => {
 
       expect(hasDraftFileMarkingError).toBe(false);
       expect(hasDraftVisibleDebt).toBe(true);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('filters source files by draft mode', async () => {
+    const dir = makeTempDir();
+    try {
+      writeFileSync(
+        join(dir, '_draft.entity.ts'),
+        `trail("_draft.entity.prepare", {
+  blaze: async () => {
+    throw new Error("draft boom");
+  },
+})`
+      );
+      writeFileSync(
+        join(dir, 'entity.ts'),
+        `trail("entity.show", {
+  blaze: async () => {
+    throw new Error("established boom");
+  },
+})`
+      );
+
+      const includeReport = await runWarden({
+        drafts: 'include',
+        rootDir: dir,
+      });
+      const excludeReport = await runWarden({
+        drafts: 'exclude',
+        rootDir: dir,
+      });
+      const onlyReport = await runWarden({ drafts: 'only', rootDir: dir });
+
+      expect(throwDiagnosticFilePaths(includeReport)).toEqual([
+        join(dir, '_draft.entity.ts'),
+        join(dir, 'entity.ts'),
+      ]);
+      expect(throwDiagnosticFilePaths(excludeReport)).toEqual([
+        join(dir, 'entity.ts'),
+      ]);
+      expect(throwDiagnosticFilePaths(onlyReport)).toEqual([
+        join(dir, '_draft.entity.ts'),
+      ]);
+      expect(
+        excludeReport.diagnostics.some((diagnostic) =>
+          isDraftVisibleDebt(diagnostic.rule)
+        )
+      ).toBe(false);
+      expect(
+        onlyReport.diagnostics.some((diagnostic) =>
+          isDraftVisibleDebt(diagnostic.rule)
+        )
+      ).toBe(true);
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }

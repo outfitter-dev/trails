@@ -1,5 +1,6 @@
 import type {
   WardenRule,
+  WardenRuleConcern,
   WardenRuleLifecycleState,
   WardenRuleMetadata,
   WardenRuleScope,
@@ -23,11 +24,69 @@ export const wardenRuleScopes = [
   'advisory',
 ] as const satisfies readonly WardenRuleScope[];
 
+export const wardenRuleConcerns = [
+  'composition',
+  'general',
+  'lifecycle',
+  'meta',
+  'permits',
+  'resources',
+  'results',
+  'signals',
+] as const satisfies readonly WardenRuleConcern[];
+
 export const wardenRuleLifecycleStates = [
   'durable',
   'temporary',
   'deprecated',
 ] as const satisfies readonly WardenRuleLifecycleState[];
+
+type BuiltinWardenRuleMetadataInput = Omit<
+  WardenRuleMetadata,
+  'concern' | 'depth'
+> &
+  Partial<Pick<WardenRuleMetadata, 'concern' | 'depth'>>;
+
+const depthByTier = {
+  advisory: 'all',
+  drift: 'all',
+  'project-static': 'project',
+  'source-static': 'source',
+  'topo-aware': 'topo',
+} as const satisfies Record<WardenRuleTier, WardenRuleMetadata['depth']>;
+
+const concernByRuleName: Partial<Record<string, WardenRuleConcern>> = {
+  'activation-orphan': 'signals',
+  'context-no-surface-types': 'composition',
+  'cross-declarations': 'composition',
+  'dead-internal-trail': 'composition',
+  'draft-file-marking': 'lifecycle',
+  'draft-visible-debt': 'lifecycle',
+  'error-mapping-completeness': 'results',
+  'fires-declarations': 'signals',
+  'implementation-returns-result': 'results',
+  'intent-propagation': 'composition',
+  'missing-reconcile': 'resources',
+  'missing-visibility': 'composition',
+  'no-dev-permit-in-source': 'permits',
+  'no-direct-implementation-call': 'composition',
+  'no-native-error-result': 'results',
+  'no-sync-result-assumption': 'results',
+  'no-throw-in-detour-recover': 'results',
+  'no-throw-in-implementation': 'results',
+  'on-references-exist': 'signals',
+  'orphaned-signal': 'signals',
+  'permit-governance': 'permits',
+  'read-intent-fires': 'signals',
+  'resource-declarations': 'resources',
+  'resource-exists': 'resources',
+  'resource-id-grammar': 'resources',
+  'scheduled-destroy-intent': 'lifecycle',
+  'signal-graph-coaching': 'signals',
+  'unmaterialized-activation-source': 'lifecycle',
+  'valid-detour-contract': 'results',
+  'webhook-route-collision': 'composition',
+};
 
 const durableExternal = {
   lifecycle: { state: 'durable' },
@@ -44,7 +103,7 @@ const durableRepoLocal = {
   scope: 'repo-local',
 } as const;
 
-export const builtinWardenRuleMetadata = {
+const builtinWardenRuleMetadataInput = {
   'activation-orphan': {
     ...durableExternal,
     invariant:
@@ -295,9 +354,25 @@ export const builtinWardenRuleMetadata = {
       'Webhook routes do not collide with each other or direct HTTP trail routes.',
     tier: 'topo-aware',
   },
-} as const satisfies Record<string, WardenRuleMetadata>;
+} as const satisfies Record<string, BuiltinWardenRuleMetadataInput>;
 
-export type BuiltinWardenRuleName = keyof typeof builtinWardenRuleMetadata;
+export type BuiltinWardenRuleName = keyof typeof builtinWardenRuleMetadataInput;
+
+const withFacetDefaults = (
+  name: string,
+  metadata: BuiltinWardenRuleMetadataInput
+): WardenRuleMetadata => ({
+  concern: concernByRuleName[name] ?? 'general',
+  depth: metadata.scope === 'advisory' ? 'all' : depthByTier[metadata.tier],
+  ...metadata,
+});
+
+export const builtinWardenRuleMetadata = Object.fromEntries(
+  Object.entries(builtinWardenRuleMetadataInput).map(([name, metadata]) => [
+    name,
+    withFacetDefaults(name, metadata),
+  ])
+) as Readonly<Record<BuiltinWardenRuleName, WardenRuleMetadata>>;
 
 const metadataByName: Readonly<Record<string, WardenRuleMetadata>> =
   builtinWardenRuleMetadata;

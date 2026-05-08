@@ -10,6 +10,17 @@ import { resolve } from 'node:path';
 import type { Topo } from '@ontrails/core';
 import { getContourReferences } from '@ontrails/core';
 
+import type {
+  EffectiveWardenConfig,
+  WardenConfigInput,
+  WardenConfigLayer,
+  WardenDepth,
+  WardenFailOn,
+  WardenFormat,
+  WardenLockMode,
+} from './config.js';
+import { resolveWardenConfig } from './config.js';
+import { isDraftMarkedFile } from './draft.js';
 import type { DriftResult } from './drift.js';
 import { checkDrift } from './drift.js';
 import {
@@ -38,11 +49,39 @@ import type {
 } from './rules/types.js';
 
 /**
- * Options for the warden CLI runner.
+ * Resolved topo input for Warden runs that govern multiple apps.
  */
-export interface WardenOptions {
+export interface WardenTopoTarget {
+  /** Stable app/topo label used to tag topo-aware diagnostics. */
+  readonly name?: string | undefined;
+  /** Resolved topo module to inspect. */
+  readonly topo: Topo;
+}
+
+/**
+ * Options for the shared Warden runner.
+ */
+export interface WardenRunOptions {
   /** Root directory to scan for TypeScript files. Defaults to cwd. */
   readonly rootDir?: string | undefined;
+  /** Warden config section from `trails.config.ts`, if already loaded. */
+  readonly config?: WardenConfigInput | undefined;
+  /** CLI/config-layer app names carried through shared resolution. */
+  readonly apps?: readonly string[] | undefined;
+  /** Cumulative analysis depth for the final M1 surfaces. */
+  readonly depth?: WardenDepth | undefined;
+  /** Draft-state handling mode for final M1 surfaces. */
+  readonly drafts?: EffectiveWardenConfig['drafts'] | undefined;
+  /** Failure threshold used to compute `report.passed`. */
+  readonly failOn?: WardenFailOn | undefined;
+  /** Output format requested by the caller. */
+  readonly format?: WardenFormat | undefined;
+  /** Lockfile mode requested by the caller. */
+  readonly lock?: WardenLockMode | undefined;
+  /** Suppress lockfile mutation for CI/pre-push callers. */
+  readonly noLockMutation?: boolean | undefined;
+  /** Environment layer for config resolution. Pass `process.env` at process boundaries. */
+  readonly env?: Record<string, string | undefined> | undefined;
   /** Only run lint rules, skip drift detection */
   readonly lintOnly?: boolean | undefined;
   /** Only run drift detection, skip lint rules */
@@ -66,6 +105,12 @@ export interface WardenOptions {
    */
   readonly topo?: Topo | undefined;
   /**
+   * Multiple resolved topos to govern in one invocation.
+   *
+   * Source/project rules run once; topo-aware rules run once per target.
+   */
+  readonly topos?: readonly WardenTopoTarget[] | undefined;
+  /**
    * Extra topo-aware rules to run in addition to the built-in registry.
    *
    * Primarily a test hook — production callers should register rules via
@@ -74,6 +119,9 @@ export interface WardenOptions {
    */
   readonly extraTopoRules?: readonly TopoAwareWardenRule[] | undefined;
 }
+
+/** Backwards-compatible name for older consumers. */
+export type WardenOptions = WardenRunOptions;
 
 /**
  * Result of a warden run.
@@ -89,6 +137,10 @@ export interface WardenReport {
   readonly drift: DriftResult | null;
   /** Whether the warden run passed (no errors, no drift) */
   readonly passed: boolean;
+  /** Effective shared config consumed by this run. */
+  readonly effectiveConfig?: EffectiveWardenConfig | undefined;
+  /** Resolved topo/app labels governed by this run. */
+  readonly topoNames?: readonly string[] | undefined;
 }
 
 /**
@@ -137,6 +189,30 @@ const collectFilesMatching = (
 
 const collectTsFiles = (dir: string): readonly string[] =>
   collectFilesMatching(dir, '**/*.ts');
+
+const draftModeIncludesFile = (
+  filePath: string,
+  drafts: EffectiveWardenConfig['drafts']
+): boolean => {
+  const isDraftFile = isDraftMarkedFile(filePath);
+  if (drafts === 'exclude') {
+    return !isDraftFile;
+  }
+  if (drafts === 'only') {
+    return isDraftFile;
+  }
+  return true;
+};
+
+const filterSourceFilesByDraftMode = (
+  sourceFiles: readonly SourceFile[],
+  drafts: EffectiveWardenConfig['drafts']
+): readonly SourceFile[] =>
+  drafts === 'include'
+    ? sourceFiles
+    : sourceFiles.filter((sourceFile) =>
+        draftModeIncludesFile(sourceFile.filePath, drafts)
+      );
 
 const collectDevPermitTestFiles = (dir: string): readonly string[] => {
   const glob = new Bun.Glob('**/*.ts');
@@ -597,15 +673,17 @@ const collectFileContourReferences = (
 
 const buildProjectContext = (
   sourceFiles: readonly SourceFile[],
-  appTopo?: Topo | undefined
+  appTopos: readonly Topo[] = []
 ): ProjectContext => {
   const context = createMutableProjectContext();
   const typeScriptSourceFiles = sourceFiles.filter(
     (sourceFile) => sourceFile.kind === 'typescript'
   );
 
-  if (appTopo) {
-    collectTopoTrailContext(appTopo, context);
+  if (appTopos.length > 0) {
+    for (const appTopo of appTopos) {
+      collectTopoTrailContext(appTopo, context);
+    }
     for (const sourceFile of typeScriptSourceFiles) {
       collectFileSupplementalProjectContext(sourceFile, context);
     }
@@ -633,6 +711,38 @@ const createOptionsDiagnostic = (message: string): WardenDiagnostic => ({
   severity: 'error',
 });
 
+interface WardenRuleSelector {
+  readonly depth?: WardenDepth | undefined;
+  readonly tier?: WardenRuleTier | undefined;
+}
+
+const depthIncludesTier = (
+  depth: WardenDepth,
+  tier: WardenRuleTier
+): boolean => {
+  switch (depth) {
+    case 'source': {
+      return tier === 'source-static';
+    }
+    case 'project': {
+      return tier === 'source-static' || tier === 'project-static';
+    }
+    case 'topo': {
+      return (
+        tier === 'source-static' ||
+        tier === 'project-static' ||
+        tier === 'topo-aware'
+      );
+    }
+    case 'all': {
+      return true;
+    }
+    default: {
+      return false;
+    }
+  }
+};
+
 const ruleMatchesTier = (
   metadata: ReturnType<typeof getWardenRuleMetadata>,
   tier: WardenRuleTier | undefined
@@ -650,21 +760,47 @@ const ruleMatchesTier = (
     : metadata.tier === tier;
 };
 
-const isSelectedRule = (
-  rule: WardenRule | TopoAwareWardenRule,
-  tier: WardenRuleTier | undefined
-): boolean => ruleMatchesTier(getWardenRuleMetadata(rule), tier);
-
-const isSelectedTopoRule = (
-  rule: TopoAwareWardenRule,
-  tier: WardenRuleTier | undefined
+const ruleMatchesDepth = (
+  metadata: ReturnType<typeof getWardenRuleMetadata>,
+  depth: WardenDepth | undefined
 ): boolean => {
-  if (!tier) {
+  if (!depth) {
     return true;
   }
 
+  if (!metadata) {
+    return false;
+  }
+
+  if (metadata.scope === 'advisory') {
+    return depth === 'all';
+  }
+
+  return depthIncludesTier(depth, metadata.tier);
+};
+
+const isSelectedRule = (
+  rule: WardenRule | TopoAwareWardenRule,
+  selector: WardenRuleSelector
+): boolean => {
   const metadata = getWardenRuleMetadata(rule);
-  return metadata ? ruleMatchesTier(metadata, tier) : tier === 'topo-aware';
+  return selector.tier
+    ? ruleMatchesTier(metadata, selector.tier)
+    : ruleMatchesDepth(metadata, selector.depth);
+};
+
+const isSelectedTopoRule = (
+  rule: TopoAwareWardenRule,
+  selector: WardenRuleSelector
+): boolean => {
+  const metadata = getWardenRuleMetadata(rule);
+  if (selector.tier) {
+    return metadata
+      ? ruleMatchesTier(metadata, selector.tier)
+      : selector.tier === 'topo-aware';
+  }
+
+  return metadata ? ruleMatchesDepth(metadata, selector.depth) : true;
 };
 
 const topoRuleFailureDiagnostic = (
@@ -690,13 +826,13 @@ const topoRuleFailureDiagnostic = (
 const lintTopo = async (
   appTopo: Topo,
   extraTopoRules: readonly TopoAwareWardenRule[],
-  tier: WardenRuleTier | undefined
+  selector: WardenRuleSelector
 ): Promise<readonly WardenDiagnostic[]> => {
   const diagnostics: WardenDiagnostic[] = [];
   const rules: readonly TopoAwareWardenRule[] = [
     ...wardenTopoRules.values(),
     ...extraTopoRules,
-  ].filter((rule) => isSelectedTopoRule(rule, tier));
+  ].filter((rule) => isSelectedTopoRule(rule, selector));
   for (const rule of rules) {
     try {
       diagnostics.push(...(await rule.checkTopo(appTopo)));
@@ -710,7 +846,7 @@ const lintTopo = async (
 const lintSourceFiles = (
   sourceFiles: readonly SourceFile[],
   context: ProjectContext,
-  tier: WardenRuleTier | undefined
+  selector: WardenRuleSelector
 ): readonly WardenDiagnostic[] => {
   const diagnostics: WardenDiagnostic[] = [];
   for (const sourceFile of sourceFiles) {
@@ -722,7 +858,7 @@ const lintSourceFiles = (
         continue;
       }
 
-      if (!isSelectedRule(rule, tier)) {
+      if (!isSelectedRule(rule, selector)) {
         continue;
       }
 
@@ -744,39 +880,255 @@ const lintSourceFiles = (
   return diagnostics;
 };
 
+const tagTopoDiagnostic = (
+  diagnostic: WardenDiagnostic,
+  topoName: string | undefined
+): WardenDiagnostic =>
+  topoName === undefined ? diagnostic : { ...diagnostic, topoName };
+
+const lintTopoTargets = async (
+  topoTargets: readonly WardenTopoTarget[],
+  extraTopoRules: readonly TopoAwareWardenRule[],
+  selector: WardenRuleSelector,
+  tagDiagnostics: boolean
+): Promise<readonly WardenDiagnostic[]> => {
+  const diagnostics: WardenDiagnostic[] = [];
+
+  for (const target of topoTargets) {
+    const topoDiagnostics = await lintTopo(
+      target.topo,
+      extraTopoRules,
+      selector
+    );
+    const topoName = target.name ?? target.topo.name;
+    diagnostics.push(
+      ...(tagDiagnostics
+        ? topoDiagnostics.map((diagnostic) =>
+            tagTopoDiagnostic(diagnostic, topoName)
+          )
+        : topoDiagnostics)
+    );
+  }
+
+  return diagnostics;
+};
+
+const selectorIncludesTopoRules = (selector: WardenRuleSelector): boolean => {
+  if (selector.tier) {
+    return selector.tier === 'advisory';
+  }
+
+  return !selector.depth || depthIncludesTier(selector.depth, 'topo-aware');
+};
+
 /**
  * Lint all files against all warden rules.
  */
 const lintFiles = async (
   rootDir: string,
-  appTopo?: Topo | undefined,
-  extraTopoRules: readonly TopoAwareWardenRule[] = [],
-  tier?: WardenRuleTier | undefined
+  drafts: EffectiveWardenConfig['drafts'],
+  topoTargets: readonly WardenTopoTarget[],
+  extraTopoRules: readonly TopoAwareWardenRule[],
+  selector: WardenRuleSelector
 ): Promise<WardenDiagnostic[]> => {
-  if (tier === 'topo-aware') {
-    return appTopo ? [...(await lintTopo(appTopo, extraTopoRules, tier))] : [];
+  if (selector.tier === 'topo-aware') {
+    return [
+      ...(await lintTopoTargets(topoTargets, extraTopoRules, selector, true)),
+    ];
   }
 
-  const sourceFiles = await loadSourceFiles(rootDir);
-  const context = buildProjectContext(sourceFiles, appTopo);
+  const sourceFiles = filterSourceFilesByDraftMode(
+    await loadSourceFiles(rootDir),
+    drafts
+  );
+  const context = buildProjectContext(
+    sourceFiles,
+    topoTargets.map((target) => target.topo)
+  );
   const allDiagnostics: WardenDiagnostic[] = [
-    ...lintSourceFiles(sourceFiles, context, tier),
+    ...lintSourceFiles(sourceFiles, context, selector),
   ];
 
-  if (appTopo && (!tier || tier === 'advisory')) {
-    allDiagnostics.push(...(await lintTopo(appTopo, extraTopoRules, tier)));
+  if (
+    topoTargets.length > 0 &&
+    (selector.tier === undefined || selector.tier === 'advisory') &&
+    selectorIncludesTopoRules(selector)
+  ) {
+    allDiagnostics.push(
+      ...(await lintTopoTargets(
+        topoTargets,
+        extraTopoRules,
+        selector,
+        topoTargets.length > 1
+      ))
+    );
   }
 
   return allDiagnostics;
 };
 
+const topoTargetsFromOptions = (
+  options: WardenRunOptions
+): readonly WardenTopoTarget[] => {
+  if (options.topos !== undefined && options.topos.length > 0) {
+    return options.topos;
+  }
+
+  return options.topo ? [{ name: options.topo.name, topo: options.topo }] : [];
+};
+
+const aggregateDriftHash = (
+  topoTargets: readonly WardenTopoTarget[],
+  driftResults: readonly DriftResult[]
+): string => {
+  const currentHashes = new Set(
+    driftResults.map((result) => result.currentHash)
+  );
+  const [onlyHash] = currentHashes;
+  if (currentHashes.size === 1 && onlyHash !== undefined) {
+    return onlyHash;
+  }
+
+  const payload = driftResults
+    .map((result, index) => {
+      const target = topoTargets[index];
+      return {
+        currentHash: result.currentHash,
+        topoName: target?.name ?? target?.topo.name ?? `topo-${String(index)}`,
+      };
+    })
+    .toSorted((left, right) => left.topoName.localeCompare(right.topoName));
+  const hasher = new Bun.CryptoHasher('sha256');
+  hasher.update(JSON.stringify(payload));
+  return hasher.digest('hex');
+};
+
+const describeTopoDriftHash = (
+  topoTargets: readonly WardenTopoTarget[],
+  driftResults: readonly DriftResult[]
+): string =>
+  driftResults
+    .map((result, index) => {
+      const target = topoTargets[index];
+      const topoName =
+        target?.name ?? target?.topo.name ?? `topo-${String(index)}`;
+      return `${topoName}=${result.committedHash ?? '<none>'}`;
+    })
+    .join(', ');
+
+const checkDriftForTopoTargets = async (
+  rootDir: string,
+  topoTargets: readonly WardenTopoTarget[]
+): Promise<DriftResult> => {
+  if (topoTargets.length <= 1) {
+    return checkDrift(rootDir, topoTargets[0]?.topo);
+  }
+
+  const driftResults = await Promise.all(
+    topoTargets.map((target) => checkDrift(rootDir, target.topo))
+  );
+  const committedHashes = new Set(
+    driftResults.map((result) => result.committedHash)
+  );
+  if (committedHashes.size > 1) {
+    return {
+      blockedReason: `multi-topo drift expected one committed trails.lock hash but found conflicting hashes: ${describeTopoDriftHash(topoTargets, driftResults)}`,
+      committedHash: null,
+      currentHash: 'blocked',
+      stale: true,
+    };
+  }
+  const committedHash = driftResults[0]?.committedHash ?? null;
+  const blockedReasons = driftResults.flatMap((result, index) => {
+    if (result.blockedReason === undefined) {
+      return [];
+    }
+    const target = topoTargets[index];
+    const topoName =
+      target?.name ?? target?.topo.name ?? `topo-${String(index)}`;
+    return [`${topoName}: ${result.blockedReason}`];
+  });
+
+  if (blockedReasons.length > 0) {
+    return {
+      blockedReason: blockedReasons.join('; '),
+      committedHash,
+      currentHash: 'blocked',
+      stale: true,
+    };
+  }
+
+  const currentHash = aggregateDriftHash(topoTargets, driftResults);
+  return {
+    committedHash,
+    currentHash,
+    stale: committedHash !== null && committedHash !== currentHash,
+  };
+};
+
+const shouldRunLint = (options: WardenRunOptions): boolean =>
+  options.tier ? options.tier !== 'drift' : !options.driftOnly;
+
+const shouldRunDrift = (
+  options: WardenRunOptions,
+  effectiveConfig: EffectiveWardenConfig
+): boolean => {
+  if (effectiveConfig.lock === 'skip') {
+    return false;
+  }
+
+  if (options.tier) {
+    return options.tier === 'drift';
+  }
+
+  if (options.lintOnly) {
+    return false;
+  }
+
+  return options.driftOnly || effectiveConfig.depth === 'all';
+};
+
+const reportPassed = ({
+  drift,
+  errorCount,
+  failOn,
+  warnCount,
+}: {
+  readonly drift: DriftResult | null;
+  readonly errorCount: number;
+  readonly failOn: WardenFailOn;
+  readonly warnCount: number;
+}): boolean =>
+  errorCount === 0 &&
+  (failOn === 'error' || warnCount === 0) &&
+  !(drift?.stale ?? false) &&
+  drift?.blockedReason === undefined;
+
+const buildCliConfigLayer = (options: WardenRunOptions): WardenConfigLayer => ({
+  ...(options.apps ? { apps: [...options.apps] } : {}),
+  ...(options.depth ? { depth: options.depth } : {}),
+  ...(options.drafts ? { drafts: options.drafts } : {}),
+  ...(options.failOn ? { failOn: options.failOn } : {}),
+  ...(options.format ? { format: options.format } : {}),
+  ...(options.lock ? { lock: options.lock } : {}),
+  ...(options.noLockMutation === undefined
+    ? {}
+    : { noLockMutation: options.noLockMutation }),
+});
+
 /**
  * Run all warden checks and return a structured report.
  */
 export const runWarden = async (
-  options: WardenOptions = {}
+  options: WardenRunOptions = {}
 ): Promise<WardenReport> => {
   const rootDir = resolve(options.rootDir ?? process.cwd());
+  const { diagnostics: configDiagnostics, effectiveConfig } =
+    resolveWardenConfig({
+      cli: buildCliConfigLayer(options),
+      config: options.config,
+      env: options.env,
+    });
   const optionDiagnostics =
     !options.tier && options.lintOnly && options.driftOnly
       ? [
@@ -785,21 +1137,30 @@ export const runWarden = async (
           ),
         ]
       : [];
-  const runLint = options.tier ? options.tier !== 'drift' : !options.driftOnly;
-  const runDrift = options.tier ? options.tier === 'drift' : !options.lintOnly;
+  const topoTargets = topoTargetsFromOptions(options);
+  const selector = {
+    depth: options.tier ? undefined : effectiveConfig.depth,
+    tier: options.tier,
+  } satisfies WardenRuleSelector;
+  const runLint = shouldRunLint(options);
+  const runDrift = shouldRunDrift(options, effectiveConfig);
 
   const allDiagnostics = [
+    ...configDiagnostics,
     ...optionDiagnostics,
     ...(runLint
       ? await lintFiles(
           rootDir,
-          options.topo,
+          effectiveConfig.drafts,
+          topoTargets,
           options.extraTopoRules ?? [],
-          options.tier
+          selector
         )
       : []),
   ];
-  const drift = runDrift ? await checkDrift(rootDir, options.topo) : null;
+  const drift = runDrift
+    ? await checkDriftForTopoTargets(rootDir, topoTargets)
+    : null;
 
   const errorCount = allDiagnostics.filter(
     (d) => d.severity === 'error'
@@ -809,11 +1170,15 @@ export const runWarden = async (
   return {
     diagnostics: allDiagnostics,
     drift,
+    effectiveConfig,
     errorCount,
-    passed:
-      errorCount === 0 &&
-      !(drift?.stale ?? false) &&
-      drift?.blockedReason === undefined,
+    passed: reportPassed({
+      drift,
+      errorCount,
+      failOn: effectiveConfig.failOn,
+      warnCount,
+    }),
+    topoNames: topoTargets.map((target) => target.name ?? target.topo.name),
     warnCount,
   };
 };
@@ -866,6 +1231,9 @@ const formatResultLine = (report: WardenReport): string => {
   const parts: string[] = [];
   if (report.errorCount > 0) {
     parts.push(`${report.errorCount} errors`);
+  }
+  if (report.warnCount > 0 && report.effectiveConfig?.failOn === 'warning') {
+    parts.push(`${report.warnCount} warnings`);
   }
   if (report.drift?.blockedReason !== undefined) {
     parts.push('established exports blocked');
