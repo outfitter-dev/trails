@@ -117,7 +117,7 @@ expiry plan.
 Does the rule duplicate framework data that an owner module already declares?
 
 Read owner exports for error classes, surface code mappings, intent values, CRUD
-doctrine, detour caps, Result accessor names, connector descriptors, and reserved
+doctrine, detour caps, Result accessor names, adapter descriptors, and reserved
 lexicon terms. If the owner does not expose the data cleanly, strengthen the
 owner first.
 
@@ -149,7 +149,7 @@ Framework values live in the module that owns the concept.
 | `DETOUR_MAX_ATTEMPTS_CAP` | Detour retry limit |
 | `resultAccessorNames` | Result accessors that imply sync assumptions |
 | Lexicon reserved terms | Retired vocabulary for source-file checks |
-| Connector descriptors, once formalized | Extension and surface declarations |
+| Adapter descriptors, once formalized | Extension and surface declarations |
 | Capability matrix, once formalized | Primitive lifecycle expectations |
 
 When a rule needs one of these values:

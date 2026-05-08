@@ -2,7 +2,7 @@
 
 Schema-derived configuration for Trails.
 
-The root package owns the connector-agnostic config declaration and resolution engine. Schemas define the contract, and `configResource` exposes resolved values to trail execution.
+The root package owns the runtime-agnostic config declaration and resolution engine. Schemas define the contract, and `configResource` exposes resolved values to trail execution.
 
 ## The core pattern
 

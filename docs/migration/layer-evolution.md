@@ -148,7 +148,7 @@ Run `bun run lint` after migration to verify stale references are gone.
 
 - [ADR-0043: Layer Evolution](../adr/0043-layer-evolution.md)
 - [ADR-0006: Shared Execution Pipeline](../adr/0006-shared-execution-pipeline.md)
-- [ADR-0012: Connector-Agnostic Permits](../adr/0012-connector-agnostic-permits.md)
+- [ADR-0012: Adapter-Agnostic Permits](../adr/0012-connector-agnostic-permits.md)
 - [ADR-0041: Unified Observability](../adr/0041-unified-observability.md)
 
 [TRL-473]: https://linear.app/outfitter/issue/TRL-473

@@ -149,7 +149,7 @@ One write, three reads. If someone changes the business rule, they change the ex
 
 Great tools already exist for each surface. tRPC, Hono, and Fastify are excellent for HTTP. Commander and oclif are battle-tested for CLIs. FastMCP and the official SDK make MCP server development straightforward. NestJS spans multiple transports with a mature ecosystem.
 
-Trails doesn't try to replace any of them. It occupies a different layer: the **contract layer** that sits above individual surface implementations. A trail definition captures the schema, examples, error types, intent and metadata, and composition graph in one place. Surface connectors — CLI, MCP, and HTTP today, with WebSocket planned — project that contract into whatever runtime format the surface needs.
+Trails doesn't try to replace any of them. It occupies a different layer: the **contract layer** that sits above individual surface implementations. A trail definition captures the schema, examples, error types, intent and metadata, and composition graph in one place. Surface adapters — CLI, MCP, and HTTP today, with WebSocket planned — project that contract into whatever runtime format the surface needs.
 
 The value isn't in being better at any single surface. It's in making the contract the source of truth so that every surface stays consistent with it — not because anyone was careful, but because the framework derives each surface from the same definition.
 

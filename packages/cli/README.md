@@ -1,6 +1,6 @@
 # @ontrails/cli
 
-CLI surface model and Commander connector. Import framework-agnostic command
+CLI surface model and Commander adapter. Import framework-agnostic command
 derivation from `@ontrails/cli`; import the Commander runtime from
 `@ontrails/cli/commander`.
 
@@ -46,7 +46,7 @@ program.parse();
 ```
 
 `deriveCliCommands` returns `Result<CliCommand[], Error>`. Use `toCommander`
-with `commands.value` on success, or write your own connector.
+with `commands.value` on success, or write your own adapter.
 Invalid command models are rejected before adapter wiring, including duplicate
 CLI paths and executable parents that also declare positional args beneath child
 commands.

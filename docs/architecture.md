@@ -1,6 +1,6 @@
 # Architecture
 
-Trails uses a hexagonal architecture. Core defines ports. Everything on the edges is a connector.
+Trails uses a hexagonal architecture. Core defines ports. Everything on the edges is an adapter.
 
 ## The Hexagonal Model
 
@@ -46,11 +46,11 @@ The left side is where the world calls in -- CLI commands, MCP tool calls, HTTP 
 
 **Drift is structurally harder than alignment.** One schema, one `Result` type, one error taxonomy. You cannot have different parameter names across surfaces because there is only one schema.
 
-**Surfaces are peers.** No surface is privileged. CLI, MCP, HTTP, and WebSocket are all equal connectors reading from the same topo. CLI, MCP, and HTTP ship today; WebSocket is still planned. Adding a surface is a `surface()` call, not an architecture change.
+**Surfaces are peers.** No surface is privileged. CLI, MCP, HTTP, and WebSocket are all equal adapters reading from the same topo. CLI, MCP, and HTTP ship today; WebSocket is still planned. Adding a surface is a `surface()` call, not an architecture change.
 
 **Implementations are pure functions.** Input in, `Result` out. No `process.exit()`, no `console.log()`, no `req.headers`. The implementation does not know which surface invoked it. Authoring can be sync or async; runtime execution is normalized to one awaitable shape before layers and surfaces run.
 
-**The framework defines ports -- everything concrete is a connector.** CLI framework (Commander, yargs), logging backend (LogTape, pino), storage engine, telemetry exporter -- all pluggable. The framework never imports a concrete implementation.
+**The framework defines ports -- everything concrete is an adapter.** CLI framework (Commander, yargs), logging backend (LogTape, pino), storage engine, telemetry exporter -- all pluggable. The framework never imports a concrete implementation.
 
 **The contract is machine-readable at runtime.** The topo, survey, guide, and committed lock artifacts make the trail system queryable by agents, tooling, and CI.
 
@@ -137,32 +137,32 @@ Overrides are escape hatches. They're visible in the surface map as explicit dev
 
 ### Foundation
 
-`@ontrails/core` is the only package with an external dependency: `zod`. It contains Result, error taxonomy, `contour()`/`trail()`/`signal()`, `topo()`, validation, patterns, redaction, branded types, guards, collections, execution pipeline utilities including `Layer`/`composeLayers()`, generic `trails-db` helpers (`openReadTrailsDb`, `ensureSubsystemSchema`, etc.), and connector port interfaces. Persistence of the resolved topo graph (the topo-store API) lives in `@ontrails/topographer` per ADR-0042.
+`@ontrails/core` is the only package with an external dependency: `zod`. It contains Result, error taxonomy, `contour()`/`trail()`/`signal()`, `topo()`, validation, patterns, redaction, branded types, guards, collections, execution pipeline utilities including `Layer`/`composeLayers()`, generic `trails-db` helpers (`openReadTrailsDb`, `ensureSubsystemSchema`, etc.), and adapter port interfaces. Persistence of the resolved topo graph (the topo-store API) lives in `@ontrails/topographer` per ADR-0042.
 
-**The test:** if you are building a surface connector or ecosystem package, you should only need `@ontrails/core`.
+**The test:** if you are building a surface adapter or ecosystem package, you should only need `@ontrails/core`.
 
-### Surface Connectors (left side)
+### Surface Adapters (left side)
 
 | Package | What it does | External dep |
 | --- | --- | --- |
 | `@ontrails/cli` | Framework-agnostic command model, flag derivation, output formatting | None beyond core |
-| `@ontrails/cli/commander` | Commander connector, `surface()` | `commander` (optional peer) |
+| `@ontrails/cli/commander` | Commander adapter, `surface()` | `commander` (optional peer) |
 | `@ontrails/mcp` | MCP tools, annotations, progress bridge, `surface()` | `@modelcontextprotocol/sdk` |
 | `@ontrails/http` | HTTP routes, error mapping, and OpenAPI generation | None beyond core |
-| `@ontrails/hono` | Hono connector, `surface()` | `hono` |
+| `@ontrails/hono` | Hono adapter, `surface()` | `hono` |
 | `@ontrails/vite` | Vite middleware adapter, `vite()` | None (node:stream only) |
 
-### Infrastructure Connectors (right side)
+### Infrastructure Adapters (right side)
 
 | Package | What it does | External dep |
 | --- | --- | --- |
 | `@ontrails/config` | Config resolution, profiles, resource config schemas, diagnostics | None beyond core |
-| `@ontrails/permits` | Auth layer, permit model, JWT connector, scope enforcement | None beyond core |
-| `@ontrails/store` | Connector-agnostic schema-derived store definitions | None beyond core |
-| `@ontrails/drizzle` | Drizzle SQLite connector, typed store bindings, read-only bindings | `drizzle-orm` |
+| `@ontrails/permits` | Auth layer, permit model, JWT adapter, scope enforcement | None beyond core |
+| `@ontrails/store` | Backend-agnostic schema-derived store definitions | None beyond core |
+| `@ontrails/drizzle` | Drizzle SQLite adapter, typed store bindings, read-only bindings | `drizzle-orm` |
 | `@ontrails/tracing` | Telemetry recording, trace context, `trails.db` dev-state sinks | None beyond core |
 | `@ontrails/logging` | Structured logging, sinks, formatters | None beyond core |
-| `@ontrails/logtape` | LogTape sink connector | None (accepts any LogTape-shaped logger via a structural interface) |
+| `@ontrails/logtape` | LogTape sink adapter | None (accepts any LogTape-shaped logger via a structural interface) |
 
 ### Ecosystem
 
@@ -205,7 +205,7 @@ Overrides are escape hatches. They're visible in the surface map as explicit dev
 apps/trails (cli/commander, http, topographer, tracing)
 ```
 
-Clean DAG. Core at the center. No cycles. Surface connectors depend only on core. Framework connectors depend on their parent package.
+Clean DAG. Core at the center. No cycles. Surface adapters depend only on core. Framework adapters depend on their parent package.
 
 ## Data Flow
 
@@ -231,7 +231,7 @@ of sibling signal sequencing.
 ```text
 CLI input ("myapp entity show --name Alpha")
   -> Commander parses args/flags
-  -> CLI connector matches to trail via CliCommand model
+  -> CLI adapter matches to trail via CliCommand model
   -> Zod validates input against trail's schema
   -> TrailContext created (requestId, logger, abortSignal, env, cwd)
   -> Declared resources resolved into ctx
@@ -246,7 +246,7 @@ CLI input ("myapp entity show --name Alpha")
 
 ```text
 MCP tool call ({ name: "myapp_entity_show", arguments: { name: "Alpha" } })
-  -> MCP connector matches to trail
+  -> MCP adapter matches to trail
   -> Zod validates input
   -> TrailContext created
   -> Declared resources resolved into ctx
@@ -272,7 +272,7 @@ The implementation is identical. Only the edges change.
 
 ### Headless Execution via `run()`
 
-`run()` is the headless path -- no surface connector needed:
+`run()` is the headless path -- no surface adapter needed:
 
 ```text
 run(topo, 'entity.show', { name: 'Alpha' }, options?)

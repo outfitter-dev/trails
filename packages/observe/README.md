@@ -3,8 +3,8 @@
 Primitive observability contracts for Trails.
 
 This package is the public home for log and trace sink shapes used by Trails
-apps and connectors. It includes zero-dependency sinks for local and server
-baselines, plus connector composition for production observability.
+apps and adapters. It includes zero-dependency sinks for local and server
+baselines, plus adapter composition for production observability.
 
 ```typescript
 import {
@@ -22,4 +22,4 @@ const sink = combine(
 ```
 
 `createFileSink()` is append-only and does not rotate files. Use external log
-rotation or a production connector when retention policy matters.
+rotation or a production adapter when retention policy matters.

@@ -2,7 +2,7 @@
 
 ## Hexagonal Model
 
-Core defines ports. Everything on the edges is a connector.
+Core defines ports. Everything on the edges is an adapter.
 
 ```text
             LEFT SIDE (inbound)             RIGHT SIDE (outbound)
@@ -25,7 +25,7 @@ Core defines ports. Everything on the edges is a connector.
 
 - The trail is the product, not the surface. Surfaces are projections.
 - Drift is structurally harder than alignment — one schema, one Result type, one error taxonomy.
-- Surfaces are peers. CLI, MCP, and HTTP are shipped connectors. Adding a surface is a `surface()` call.
+- Surfaces are peers. CLI, MCP, and HTTP are shipped adapters. Adding a surface is a `surface()` call.
 - Implementations are pure functions. Input in, Result out. No surface awareness.
 - The contract is machine-readable at runtime via topo, survey, and guide.
 
@@ -79,28 +79,28 @@ Warden uses inference to verify declarations match actual code. The surface map 
 
 ### Foundation
 
-`@ontrails/core` — only external dependency is `zod`. Contains Result, error taxonomy, `trail()`/`signal()`, `topo()`, validation, layers, connector port interfaces, `executeTrail()` (the shared pipeline), and `run()` (headless execution by trail ID).
+`@ontrails/core` — only external dependency is `zod`. Contains Result, error taxonomy, `trail()`/`signal()`, `topo()`, validation, layers, adapter port interfaces, `executeTrail()` (the shared pipeline), and `run()` (headless execution by trail ID).
 
-### Surface Connectors (left side)
+### Surface Adapters (left side)
 
 | Package | Purpose | External dep |
 |---------|---------|-------------|
 | `@ontrails/cli` | Command model, flag derivation, output formatting | None beyond core |
-| `@ontrails/cli/commander` | Commander connector, `surface()` | `commander` (peer) |
+| `@ontrails/cli/commander` | Commander adapter, `surface()` | `commander` (peer) |
 | `@ontrails/mcp` | MCP tools, annotations, progress bridge, `surface()` | `@modelcontextprotocol/sdk` |
 | `@ontrails/http` | HTTP route definitions (framework-agnostic) | None beyond core |
-| `@ontrails/hono` | Hono connector, `surface()` | `hono` |
+| `@ontrails/hono` | Hono adapter, `surface()` | `hono` |
 | `@ontrails/vite` | Vite dev server adapter | `vite` |
 
-### Infrastructure Connectors (right side)
+### Infrastructure Adapters (right side)
 
 | Package | Purpose | External dep |
 |---------|---------|-------------|
 | `@ontrails/config` | Config resolution, profiles, resource config schemas, diagnostics | None beyond core |
-| `@ontrails/permits` | Auth layer, permit model, JWT connector, scope enforcement | None beyond core |
+| `@ontrails/permits` | Auth layer, permit model, JWT adapter, scope enforcement | None beyond core |
 | `@ontrails/tracing` | Telemetry recording, trace context, memory/OTel sinks | None beyond core |
 | `@ontrails/logging` | Structured logging, sinks, formatters | None beyond core |
-| `@ontrails/logtape` | LogTape sink connector | None (accepts any LogTape-shaped logger via a structural interface) |
+| `@ontrails/logtape` | LogTape sink adapter | None (accepts any LogTape-shaped logger via a structural interface) |
 
 ### Ecosystem
 
@@ -155,7 +155,7 @@ Surfaces only differ in how they parse inbound requests and map Results to their
 ```text
 CLI input ("myapp entity show --name Alpha")
   -> Commander parses args/flags
-  -> CLI connector matches trail via CliCommand model
+  -> CLI adapter matches trail via CliCommand model
   -> Delegates to executeTrail(trail, parsedInput, { layers, ... })
   -> Result mapped to exit code + stdout
 ```
@@ -164,7 +164,7 @@ CLI input ("myapp entity show --name Alpha")
 
 ```text
 MCP tool call ({ name: "myapp_entity_show", arguments: { name: "Alpha" } })
-  -> MCP connector matches trail
+  -> MCP adapter matches trail
   -> Delegates to executeTrail(trail, args, { layers, signal, ... })
   -> Result mapped to MCP tool response (content[], isError)
 ```

@@ -1,6 +1,6 @@
 # @ontrails/http
 
-Framework-agnostic HTTP route derivation for Trails. Pair this package with `@ontrails/hono` when you want the Hono surface connector.
+Framework-agnostic HTTP route derivation for Trails. Pair this package with `@ontrails/hono` when you want the Hono surface adapter.
 
 ## Usage
 
@@ -107,7 +107,7 @@ Each route definition produced by `deriveHttpRoutes` includes:
 
 For GET routes on the Hono surface, repeated query keys are passed through as
 arrays (`?tag=one&tag=two` -> `{ tag: ['one', 'two'] }`) while a single
-occurrence stays a scalar string. The connector does not coerce singleton query
+occurrence stays a scalar string. The adapter does not coerce singleton query
 values into arrays.
 
 ## Installation

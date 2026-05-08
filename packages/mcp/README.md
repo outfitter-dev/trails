@@ -1,6 +1,6 @@
 # @ontrails/mcp
 
-MCP surface connector. One `surface()` call turns a topo into an MCP server with tool definitions, annotations, and progress bridging -- all derived from the trail contracts.
+MCP surface adapter. One `surface()` call turns a topo into an MCP server with tool definitions, annotations, and progress bridging -- all derived from the trail contracts.
 
 ## Usage
 

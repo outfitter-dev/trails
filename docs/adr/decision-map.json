@@ -495,7 +495,7 @@
           "fromPath": "docs/adr/0039-reactive-trail-activation.md"
         },
         {
-          "context": "- **[ADR-0005: Framework-Agnostic HTTP Route Model](./adr/0005-framework-agnostic-http-route-model.md)** — `HttpRoute[]` with thin connector subpaths",
+          "context": "- **[ADR-0005: Framework-Agnostic HTTP Route Model](./adr/0005-framework-agnostic-http-route-model.md)** — `HttpRoute[]` with thin adapter packages",
           "from": "index",
           "fromPath": "docs/index.md"
         }
@@ -958,7 +958,7 @@
           "fromPath": "docs/adr/0043-layer-evolution.md"
         },
         {
-          "context": "- **[ADR-0012: Connector-Agnostic Permits](./adr/0012-connector-agnostic-permits.md)** — Permission model independent of surface",
+          "context": "- **[ADR-0012: Adapter-Agnostic Permits](./adr/0012-connector-agnostic-permits.md)** — Permission model independent of surface",
           "from": "index",
           "fromPath": "docs/index.md"
         }
@@ -1219,7 +1219,7 @@
           "fromPath": "docs/adr/drafts/20260409-resource-bundles.md"
         },
         {
-          "context": "- **[ADR-0016: Schema-Derived Persistence](./adr/0016-schema-derived-persistence.md)** — `store()` declaration, connector binding, fixtures",
+          "context": "- **[ADR-0016: Schema-Derived Persistence](./adr/0016-schema-derived-persistence.md)** — `store()` declaration, adapter binding, fixtures",
           "from": "index",
           "fromPath": "docs/index.md"
         }
@@ -1448,7 +1448,7 @@
           "fromPath": "docs/adr/drafts/20260409-resource-bundles.md"
         },
         {
-          "context": "- **[ADR-0022: Drizzle Store Connector](./adr/0022-drizzle-store-connector.md)** — Drizzle binds schema-derived stores to SQLite",
+          "context": "- **[ADR-0022: Drizzle Binds Schema-Derived Stores to SQLite](./adr/0022-drizzle-store-connector.md)** — Drizzle binds schema-derived stores to SQLite",
           "from": "index",
           "fromPath": "docs/index.md"
         }

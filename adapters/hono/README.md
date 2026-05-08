@@ -1,6 +1,6 @@
 # @ontrails/hono
 
-Hono surface connector for Trails. Use this package when you want to serve a topo over HTTP with Hono while keeping `@ontrails/http` focused on framework-agnostic route building.
+Hono surface adapter for Trails. Use this package when you want to serve a topo over HTTP with Hono while keeping `@ontrails/http` focused on framework-agnostic route building.
 
 ## Usage
 

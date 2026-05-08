@@ -1,6 +1,6 @@
 # @ontrails/drizzle
 
-Drizzle connector for Trails stores. Use this package to bind a connector-agnostic `store(...)` definition from `@ontrails/store` to a concrete Drizzle runtime.
+Drizzle adapter for Trails stores. Use this package to bind a backend-agnostic `store(...)` definition from `@ontrails/store` to a concrete Drizzle runtime.
 
 ## Usage
 

@@ -2,7 +2,7 @@
 
 ## 1. Throwing in implementations
 
-**Symptom:** Unhandled exception crashes the surface connector. Stack trace instead of structured error.
+**Symptom:** Unhandled exception crashes the surface adapter. Stack trace instead of structured error.
 
 **Why it's wrong:** Trail implementations must return `Result`, never throw. Surfaces expect `Result.ok` or `Result.err` — a thrown exception bypasses error mapping, exit codes, and serialization.
 

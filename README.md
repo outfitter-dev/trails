@@ -123,7 +123,7 @@ const greet = trail('greet', {
 // 2. Collect into topo
 const graph = topo('myapp', { greet });
 
-// 3. Open surfaces in any connector
+// 3. Open surfaces with any adapter
 await cliSurface(graph);      // CLI
 // await mcpSurface(graph);   // MCP — same trails, same run function
 ```
@@ -140,16 +140,16 @@ $ myapp greet --name World
 | Package | What it does |
 |---------|-------------|
 | [`@ontrails/core`](./packages/core) | Result, errors, trail/signal/contour/topo, validation, schema derivation |
-| [`@ontrails/cli`](./packages/cli) | CLI surface — flag derivation, output formatting, Commander connector |
+| [`@ontrails/cli`](./packages/cli) | CLI surface — flag derivation, output formatting, Commander adapter |
 | [`@ontrails/mcp`](./packages/mcp) | MCP surface — tool generation, annotations, progress bridge |
 | [`@ontrails/http`](./packages/http) | HTTP surface model — route derivation, verb mapping, error responses |
-| [`@ontrails/hono`](./adapters/hono) | Hono connector that opens a topo on the HTTP surface |
+| [`@ontrails/hono`](./adapters/hono) | Hono adapter that opens a topo on the HTTP surface |
 | [`@ontrails/store`](./packages/store) | Schema-derived store definitions, typed accessors, Drizzle bindings, read-only stores |
 | [`@ontrails/testing`](./packages/testing) | `testAll()`, `testTrail()`, `testCrosses()`, contract testing, surface harnesses |
 | [`@ontrails/topographer`](./packages/topographer) | Surface maps, semantic diffing, lock files for CI governance |
 | [`@ontrails/tracing`](./packages/tracing) | Execution recording, `trails.db` dev-state storage, telemetry helpers |
 | [`@ontrails/warden`](./packages/warden) | AST-based convention rules, drift detection, CI formatters |
-| [`@ontrails/logging`](./packages/logging) | Structured logging — sinks, formatters, LogTape connector |
+| [`@ontrails/logging`](./packages/logging) | Structured logging — sinks, formatters, LogTape adapter |
 
 ## Documentation
 

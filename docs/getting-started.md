@@ -15,7 +15,7 @@ bunx @ontrails/trails create
 # Or install manually
 bun add @ontrails/core @ontrails/cli
 
-# Add Commander connector (for the /commander subpath)
+# Add Commander adapter (for the /commander subpath)
 bun add commander
 
 # Add MCP surface (optional)
@@ -161,7 +161,7 @@ import { graph } from './app';
 await surface(graph, { port: 3000 });
 ```
 
-Same topo. Same implementation. Different shipped surface. The HTTP connector derives routes from trail IDs and verbs from `intent`:
+Same topo. Same implementation. Different shipped surface. The HTTP adapter derives routes from trail IDs and verbs from `intent`:
 
 - `greet` becomes `GET /greet` because the trail declares `intent: 'read'`
 - Input validation still comes from the same Zod schema

@@ -4,7 +4,7 @@
 
 ## Shipped
 
-**HTTP surface (`@ontrails/http`).** The third surface connector. `intent: 'read'` maps to GET, mutations to POST, `'destroy'` to DELETE. Route paths derived from trail IDs. Error taxonomy maps to HTTP status codes. One `surface()` call, same pattern as CLI and MCP. Built on Hono.
+**HTTP surface (`@ontrails/http`).** The third surface adapter. `intent: 'read'` maps to GET, mutations to POST, `'destroy'` to DELETE. Route paths derived from trail IDs. Error taxonomy maps to HTTP status codes. One `surface()` call, same pattern as CLI and MCP. Built on Hono.
 
 **OpenAPI generation (`@ontrails/http`).** `deriveOpenApiSpec()` produces a complete OpenAPI 3.1 spec from the topo for HTTP clients. The topo already carries everything OpenAPI needs; the HTTP package owns the surface-specific projection.
 
@@ -24,9 +24,9 @@
 
 **Implementation synthesis from examples.** For trails with comprehensive examples that fully specify behavior (pure transformations, mapping logic, validation rules), an agent could synthesize the implementation from the examples alone. The examples become the source of truth; the code becomes the derived artifact.
 
-**Cross-app composition (mount).** One Trails app consumes another's trails over a connector boundary. Contract compatibility verified at startup — input schemas match, expected errors exist, required trails are present. Version compatibility becomes structural, not documentary.
+**Cross-app composition (mount).** One Trails app consumes another's trails over an adapter boundary. Contract compatibility verified at startup — input schemas match, expected errors exist, required trails are present. Version compatibility becomes structural, not documentary.
 
-**Resource-level recovery declarations.** A mechanism for resources to declare their own recovery policies that apply uniformly to every trail using them — for cases where the recovery is not uniform retry (handled by the framework retry layer on `retryable` errors), not derivable from store declarations (handled by `deriveTrail` synthesis), and not domain-specific (handled by authored trail-level `detours:`). The motivating cases are third-party connectors with protocol-specific recovery semantics — OAuth token refresh on 401, idiosyncratic retry windows in API response bodies, credential-aware recovery actions. Deferred from ADR-0033 pending a concrete case; prerequisite is a backend-agnostic taxonomy extension. The `detours` vocabulary is trail-specific per ADR-0023 — if this lands, it needs its own word.
+**Resource-level recovery declarations.** A mechanism for resources to declare their own recovery policies that apply uniformly to every trail using them — for cases where the recovery is not uniform retry (handled by the framework retry layer on `retryable` errors), not derivable from store declarations (handled by `deriveTrail` synthesis), and not domain-specific (handled by authored trail-level `detours:`). The motivating cases are third-party adapters with protocol-specific recovery semantics — OAuth token refresh on 401, idiosyncratic retry windows in API response bodies, credential-aware recovery actions. Deferred from ADR-0033 pending a concrete case; prerequisite is a backend-agnostic taxonomy extension. The `detours` vocabulary is trail-specific per ADR-0023 — if this lands, it needs its own word.
 
 **Packs.** Distributable capability bundles. A pack carries trails, resources, signals, and config for a domain. The unit of sharing and reuse across apps.
 

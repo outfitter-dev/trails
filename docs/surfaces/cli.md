@@ -1,6 +1,6 @@
 # CLI Surface
 
-The CLI surface connector turns every trail into a command. Flags are
+The CLI surface adapter turns every trail into a command. Flags are
 derived from faithfully representable Zod schema fields, and structured JSON
 channels are available when the input shape is richer than flags can express
 honestly. Output formatting, error handling, and exit codes are handled
@@ -25,8 +25,8 @@ That is the entire CLI setup. Every trail in the app becomes a command.
 > **Beta 15 package shape:** Commander is still exposed through the
 > `@ontrails/cli/commander` subpath, with `commander` installed as a peer
 > dependency. The planned beta.16 cleanup is to move Commander into a dedicated
-> `@ontrails/commander` connector package by direct cutover. Do not use that
-> future import path until the connector package exists.
+> `@ontrails/commander` adapter package by direct cutover. Do not use that
+> future import path until the adapter package exists.
 
 ## How Trail IDs Map to Commands
 
@@ -212,7 +212,7 @@ The `<TOPO>` prefix is derived from the topo name: uppercased, with non-alphanum
 
 ## Error Handling
 
-When a trail returns `Result.err()`, the Commander connector maps the error category to an exit code:
+When a trail returns `Result.err()`, the Commander adapter maps the error category to an exit code:
 
 | Category     | Exit code |
 | ------------ | --------- |
@@ -301,7 +301,7 @@ await surface(graph);
 ```
 
 To use a different CLI framework (yargs, oclif, etc.), consume the successful
-`CliCommand[]` result directly and write your own connector. The model carries
+`CliCommand[]` result directly and write your own adapter. The model carries
 everything needed: a full ordered command path, flags, args, and an
 `execute()` function.
 

@@ -74,7 +74,7 @@ Custom `TraceSink` implementations should persist `surface` and should not accep
 
 ## Observability
 
-The OTel connector now emits `trails.surface`.
+The OTel adapter now emits `trails.surface`.
 
 ```diff
 -span.attributes['trails.trailhead']

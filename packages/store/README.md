@@ -2,7 +2,7 @@
 
 Schema-derived persistence for Trails.
 
-The root package owns the connector-agnostic `store(...)` declaration. External connector packages such as `@ontrails/drizzle` bind that declaration to a concrete runtime, and first-party built-ins such as `@ontrails/store/jsonfile` live as opt-in subpaths on the same package.
+The root package owns the backend-agnostic `store(...)` declaration. External adapter packages such as `@ontrails/drizzle` bind that declaration to a concrete runtime, and first-party built-ins such as `@ontrails/store/jsonfile` live as opt-in subpaths on the same package.
 
 ## The two layers
 
@@ -100,7 +100,7 @@ export const db = jsonFile(definition, {
 
 ## Typed accessors
 
-Every writable table on a bound connection exposes the connector-agnostic accessor contract:
+Every writable table on a bound connection exposes the backend-agnostic accessor contract:
 
 ```typescript
 const conn = db.from(ctx);
@@ -135,7 +135,7 @@ const updatedHandle = definition.tables.gists.signals.updated;
 const removedHandle = definition.tables.gists.signals.removed;
 ```
 
-These pre-bind handles preserve payload shape, but the canonical signal id materializes only when a connector binds the store to a resource. The bound form is always `resource:table.change`:
+These pre-bind handles preserve payload shape, but the canonical signal id materializes only when an adapter binds the store to a resource. The bound form is always `resource:table.change`:
 
 ```typescript
 const created = db.store.tables.gists.signals.created;
@@ -148,7 +148,7 @@ Writable bindings fire those canonical scoped signals automatically when you acc
 
 See [Store Signal Identity Migration](../../docs/store-signal-identity-migration.md) when updating existing `on:` clauses, surface-map fixtures, or custom resource wrappers from bare ids to scoped ids.
 
-Tabular connectors such as `@ontrails/drizzle` also expose `insert()` and `update()` as convenience methods when the backend natively distinguishes create and patch operations.
+Tabular adapters such as `@ontrails/drizzle` also expose `insert()` and `update()` as convenience methods when the backend natively distinguishes create and patch operations.
 
 ## Fixtures and mocks
 
@@ -167,13 +167,13 @@ export const db = store({
 });
 ```
 
-When a connector binds the store, those fixtures feed the resource mock automatically. Connector options can also add or override seed data for tests.
+When an adapter binds the store, those fixtures feed the resource mock automatically. Adapter options can also add or override seed data for tests.
 
-That means `testAll(app)` can auto-resolve connector-bound store resources without extra ceremony, as long as the resource is registered in the topo.
+That means `testAll(app)` can auto-resolve adapter-bound store resources without extra ceremony, as long as the resource is registered in the topo.
 
 ## Read-only bindings
 
-Use the Drizzle connector's read-only binding when a trail should inspect persisted state without exposing writes:
+Use the Drizzle adapter's read-only binding when a trail should inspect persisted state without exposing writes:
 
 ```typescript
 import { connectReadOnlyDrizzle } from '@ontrails/drizzle';
@@ -188,17 +188,17 @@ Read-only bindings expose `get()`, `list()`, and `query()`, but not `upsert()`, 
 
 ## Accessor contract testing
 
-Connectors can reuse the shared writable-accessor contract tests from `@ontrails/store/testing`:
+Adapters can reuse the shared writable-accessor contract tests from `@ontrails/store/testing`:
 
 ```typescript
 import { createStoreAccessorContractCases } from '@ontrails/store/testing';
 ```
 
-That helper provides reusable cases for the baseline `get()`, `list()`, `upsert()`, and `remove()` behavior so connector suites only need to wrap them with their normal `test(...)` calls and add backend-specific coverage on top.
+That helper provides reusable cases for the baseline `get()`, `list()`, `upsert()`, and `remove()` behavior so adapter suites only need to wrap them with their normal `test(...)` calls and add backend-specific coverage on top.
 
 ## Drizzle escape hatch
 
-Complex queries use the connector-native query builder through `query()`:
+Complex queries use the adapter-native query builder through `query()`:
 
 ```typescript
 const conn = db.from(ctx);
@@ -210,9 +210,9 @@ const rows = await conn.query(({ drizzle, tables }) =>
 );
 ```
 
-This keeps the default happy path derived and typed, while still giving you full access to the underlying connector when the CRUD accessors are not enough.
+This keeps the default happy path derived and typed, while still giving you full access to the underlying adapter when the CRUD accessors are not enough.
 
-## Connector binding
+## Adapter binding
 
 `@ontrails/drizzle` keeps the durable `store(...)` declaration in
 `@ontrails/store` and binds it to a concrete runtime:
@@ -236,7 +236,7 @@ export const readonly = connectReadOnlyDrizzle(definition, {
 });
 ```
 
-The root package still owns the authored persistence model; connector packages
+The root package still owns the authored persistence model; adapter packages
 project that model into runnable resources.
 
 ## Schema export for external tooling
@@ -266,7 +266,7 @@ const schema = db.tables;
 bun add @ontrails/store zod
 ```
 
-Add Drizzle only when you want the external SQLite/ORM connector:
+Add Drizzle only when you want the external SQLite/ORM adapter:
 
 ```bash
 bun add @ontrails/drizzle
@@ -277,4 +277,4 @@ bun add @ontrails/drizzle
 The Drizzle binding now lives in `@ontrails/drizzle`.
 
 - Replace `import { ... } from '@ontrails/store/drizzle'` with `import { ... } from '@ontrails/drizzle'`
-- Keep connector-agnostic store declarations on `@ontrails/store`
+- Keep backend-agnostic store declarations on `@ontrails/store`

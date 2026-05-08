@@ -237,7 +237,7 @@ CreateTopoSnapshotInput, ListTopoSnapshotsOptions, StoredTopoExport
 ## `@ontrails/store`
 
 ```typescript
-store(tables)                      // connector-agnostic store definition
+store(tables)                      // backend-agnostic store definition
 crudOperations                     // canonical create/read/update/delete/list order
 crudAccessorExpectations           // canonical accessor methods/fallbacks per CRUD operation
 bindStoreDefinition(definition, scope) // bind derived store signals to a resource scope

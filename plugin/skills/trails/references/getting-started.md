@@ -10,7 +10,7 @@ bunx @ontrails/trails create
 
 # Or install manually
 bun add @ontrails/core @ontrails/cli zod
-bun add commander                    # Commander connector
+bun add commander                    # Commander adapter
 bun add @ontrails/mcp @modelcontextprotocol/sdk # MCP surface (optional)
 bun add -d @ontrails/testing         # Testing (dev)
 ```

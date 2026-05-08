@@ -1,8 +1,8 @@
 # HTTP Surface
 
-The HTTP surface connector turns every trail into an endpoint. Routes are derived from trail IDs, HTTP verbs from intent, input parsing from the method, and error responses from the error taxonomy. One `surface()` call starts a Hono server.
+The HTTP surface adapter turns every trail into an endpoint. Routes are derived from trail IDs, HTTP verbs from intent, input parsing from the method, and error responses from the error taxonomy. One `surface()` call starts a Hono server.
 
-The package separates framework-agnostic route building (`@ontrails/http`) from the Hono connector (`@ontrails/hono`).
+The package separates framework-agnostic route building (`@ontrails/http`) from the Hono adapter (`@ontrails/hono`).
 
 ## Setup
 
@@ -55,13 +55,13 @@ Input parsing depends on the HTTP method:
 
 - **GET** -- Query parameters are parsed into an object. Repeated keys become arrays; single keys stay strings. The trail's input schema owns any coercion.
 - **POST / DELETE** -- The JSON request body is parsed via `req.json()`.
-- **Webhook routes** -- The Hono connector reads the raw body first, runs the webhook `verify` hook if one is defined, parses JSON, then validates the parsed payload against the source's `parse` schema before executing the trail.
+- **Webhook routes** -- The Hono adapter reads the raw body first, runs the webhook `verify` hook if one is defined, parses JSON, then validates the parsed payload against the source's `parse` schema before executing the trail.
 
 For direct routes, the parsed input is validated against the trail's Zod schema before the implementation runs. For webhook routes, the source `parse` schema validates the JSON payload first, then the receiving trail's `input` schema validates the value passed into the trail.
 
 ## Webhook Activation Sources
 
-Webhook activation is declared in core with `webhook()` and materialized by the HTTP surface. The source is provider-agnostic: Stripe, GitHub, Slack, or an internal webhook connector should all produce the same universal source shape instead of inventing provider-specific activation kinds.
+Webhook activation is declared in core with `webhook()` and materialized by the HTTP surface. The source is provider-agnostic: Stripe, GitHub, Slack, or an internal webhook adapter should all produce the same universal source shape instead of inventing provider-specific activation kinds.
 
 ```typescript
 import { createHmac, timingSafeEqual } from 'node:crypto';
@@ -130,7 +130,7 @@ When `surface(graph)` runs, the source above becomes `POST /webhooks/payment`. A
 
 The `parse` schema describes the payload after JSON parsing and before the trail runs. Its output must be compatible with the receiving trail's `input` schema. The optional `verify` hook receives the raw body plus request headers, method, and path so signature checks can run before JSON parsing changes the bytes being signed.
 
-Provider connector helpers should wrap this shape, not replace it:
+Provider adapter helpers should wrap this shape, not replace it:
 
 ```typescript
 export const stripePaymentSucceeded = webhook(

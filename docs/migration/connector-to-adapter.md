@@ -1,4 +1,4 @@
-# Connector To Adapter Migration Guide
+# Connector to Adapter Migration Guide
 
 How to migrate consumers from the retired `connector` vocabulary to the
 canonical `adapter` vocabulary. This is a clean cut: Trails does not ship
@@ -6,7 +6,8 @@ compatibility aliases for connector-era public names, source paths, or package
 subpaths.
 
 This guide is temporary. Deprecate it after first-party Trails projects and
-downstream consumers have migrated.
+downstream consumers have migrated. Until then, treat it as the rename checklist
+for current-facing docs, APIs, package README files, and workspace paths.
 
 ## Overview
 

@@ -16,7 +16,7 @@ created.id;
 // "users.created"
 ```
 
-After a connector binds the store to a resource, the canonical id includes the
+After an adapter binds the store to a resource, the canonical id includes the
 resource scope:
 
 ```typescript
@@ -56,7 +56,7 @@ trail('users.notify-identity', {
 });
 ```
 
-If an app wraps a connector resource in a custom resource, carry the connector
+If an app wraps an adapter resource in a custom resource, carry the adapter
 signals onto the wrapper so the topo can see the scoped store signals:
 
 ```typescript
