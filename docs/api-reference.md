@@ -407,7 +407,7 @@ DefineConfigOptions, ConfigState, ConfigFieldMeta, ConfigDiagnostic
 
 ```typescript
 // Resource
-authResource                         // resource for auth connector lifecycle
+authResource                         // resource for auth adapter lifecycle
                                      // (permit scope enforcement is intrinsic to executeTrail)
 
 // Permits
@@ -415,9 +415,9 @@ getPermit(ctx)                       // extract the resolved permit from context
 Permit                               // { id, scopes, roles?, tenantId?, metadata? }
 PermitExtractionInput                // surface-agnostic auth input
 
-// Connectors
-AuthConnector                        // interface: authenticate(input) → Result<Permit | null>
-createJwtConnector(options)          // built-in HS256 JWT connector (from @ontrails/permits/jwt)
+// Adapters
+AuthAdapter                          // interface: authenticate(input) -> Result<Permit | null>
+createJwtAdapter(options)            // built-in HS256 JWT adapter (from @ontrails/permits/jwt)
 
 // Trail definitions
 authVerify                           // verify a bearer token and return a permit

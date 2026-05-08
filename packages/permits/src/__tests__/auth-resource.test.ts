@@ -3,7 +3,7 @@ import { describe, expect, test } from 'bun:test';
 import type { ResourceContext } from '@ontrails/core';
 
 import type { AuthResourceConfig } from '../auth-resource.js';
-import type { AuthConnector } from '../connectors/connector.js';
+import type { AuthAdapter } from '../adapters/adapter.js';
 import { authResource, authResourceConfigSchema } from '../auth-resource.js';
 import type { PermitExtractionInput } from '../extraction.js';
 import { TEST_SECRET, signJwt } from './helpers/jwt.js';
@@ -42,33 +42,33 @@ describe('authResource', () => {
     expect(authResource.meta).toEqual({ category: 'infrastructure' });
   });
 
-  test('defaults config to the no-op connector', () => {
+  test('defaults config to the no-op adapter', () => {
     expect(authResourceConfigSchema.parse()).toEqual({
-      connector: 'none',
+      adapter: 'none',
     });
   });
 
-  test('mock returns an AuthConnector', async () => {
+  test('mock returns an AuthAdapter', async () => {
     const mock = authResource.mock?.();
     expect(mock).toBeDefined();
 
-    const connector = mock as AuthConnector;
-    const result = await connector.authenticate(testInput());
+    const adapter = mock as AuthAdapter;
+    const result = await adapter.authenticate(testInput());
     expect(result.isOk()).toBe(true);
     expect(result.unwrap()).toBeNull();
   });
 
-  test('create returns Result.ok with an AuthConnector', async () => {
+  test('create returns Result.ok with an AuthAdapter', async () => {
     const result = await authResource.create(testSvcCtx);
     expect(result.isOk()).toBe(true);
 
-    const connector = result.unwrap() as AuthConnector;
-    const authResult = await connector.authenticate(testInput());
+    const adapter = result.unwrap() as AuthAdapter;
+    const authResult = await adapter.authenticate(testInput());
     expect(authResult.isOk()).toBe(true);
     expect(authResult.unwrap()).toBeNull();
   });
 
-  test('create wires JWT config into a real connector', async () => {
+  test('create wires JWT config into a real adapter', async () => {
     const now = Math.floor(Date.now() / 1000);
     const token = await signJwt(
       { exp: now + 3600, scope: 'read write', sub: 'user-42' },
@@ -77,12 +77,12 @@ describe('authResource', () => {
 
     const result = await authResource.create({
       ...testSvcCtx,
-      config: { connector: 'jwt', secret: TEST_SECRET },
+      config: { adapter: 'jwt', secret: TEST_SECRET },
     });
 
     expect(result.isOk()).toBe(true);
-    const connector = result.unwrap() as AuthConnector;
-    const authResult = await connector.authenticate(
+    const adapter = result.unwrap() as AuthAdapter;
+    const authResult = await adapter.authenticate(
       testInput({ bearerToken: token })
     );
     expect(authResult.isOk()).toBe(true);
@@ -92,9 +92,9 @@ describe('authResource', () => {
     });
   });
 
-  test('JWT config requires the implemented secret-backed connector path', () => {
+  test('JWT config requires the implemented secret-backed adapter path', () => {
     const parsed = authResourceConfigSchema.safeParse({
-      connector: 'jwt',
+      adapter: 'jwt',
       jwksUrl: 'https://example.com/.well-known/jwks.json',
     });
 

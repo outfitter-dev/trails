@@ -63,7 +63,7 @@ describe('public-internal-deep-imports', () => {
     const diagnostics = check(`
 import { trail } from '@ontrails/core';
 import { deriveTrail } from '@ontrails/core/trails';
-import { createJwtConnector } from '@ontrails/permits/jwt';
+import { createJwtAdapter } from '@ontrails/permits/jwt';
 import { parse } from '@ontrails/warden/ast';
 `);
 

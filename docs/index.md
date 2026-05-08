@@ -18,7 +18,7 @@
 - **[Store Guide](../packages/store/README.md)** — Declare schema-derived stores, bind them with Drizzle, use fixtures and read-only access
 - **[Store Signal Identity Migration](./store-signal-identity-migration.md)** — Update store-derived signal ids from bare table changes to resource-scoped form
 - **[Config Guide](../packages/config/README.md)** — Schema-derived configuration, resolution stack, extensions, profiles
-- **[Permits Guide](../packages/permits/README.md)** — Scope-based authorization, auth connectors, permit governance
+- **[Permits Guide](../packages/permits/README.md)** — Scope-based authorization, auth adapters, permit governance
 - **[Tracing Guide](../packages/tracing/README.md)** — Execution recording, sinks, sampling, manual instrumentation
 - **[Testing Guide](./testing.md)** — TDD with examples, `testAll()`, contract testing, surface harnesses
 

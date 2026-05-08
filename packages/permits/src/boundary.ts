@@ -13,15 +13,12 @@ import {
   resolveResourceConfig,
 } from '@ontrails/core';
 
-import type { AuthConnector } from './connectors/connector.js';
-import {
-  authConnectorSchema,
-  authErrorSchema,
-} from './connectors/connector.js';
+import type { AuthAdapter } from './adapters/adapter.js';
+import { authAdapterSchema, authErrorSchema } from './adapters/adapter.js';
 import type { PermitExtractionInput } from './extraction.js';
 import { permitExtractionInputSchema } from './extraction.js';
 
-/** Resource id of the auth connector resource provided by `@ontrails/permits`. */
+/** Resource id of the auth adapter resource provided by `@ontrails/permits`. */
 export const AUTH_RESOURCE_ID = 'auth';
 
 type LocatedAuthResource =
@@ -63,24 +60,24 @@ const lookupAuthResource = (
   return Result.err(
     new ValidationError(
       missingAuthResourceMessage ??
-        'Bearer token auth requires an auth connector. Register authResource from @ontrails/permits in your topo.'
+        'Bearer token auth requires an auth adapter. Register authResource from @ontrails/permits in your topo.'
     )
   );
 };
 
 /**
- * Materialize the auth connector from an override or by invoking the declared
+ * Materialize the auth adapter from an override or by invoking the declared
  * resource's `create()` factory.
  */
-const materializeAuthConnector = async (
+const materializeAuthAdapter = async (
   resolved: LocatedAuthResource,
   options: Pick<
     ResolvePermitFromBearerTokenOptions,
     'configValues' | 'cwd' | 'env' | 'workspaceRoot'
   >
-): Promise<Result<AuthConnector, Error>> => {
+): Promise<Result<AuthAdapter, Error>> => {
   if (resolved.kind === 'override') {
-    const parsed = authConnectorSchema.safeParse(resolved.value);
+    const parsed = authAdapterSchema.safeParse(resolved.value);
     if (!parsed.success) {
       return Result.err(
         new ValidationError(
@@ -88,7 +85,7 @@ const materializeAuthConnector = async (
         )
       );
     }
-    return Result.ok(resolved.value as AuthConnector);
+    return Result.ok(resolved.value as AuthAdapter);
   }
 
   const cwd = options.cwd ?? process.cwd();
@@ -108,7 +105,7 @@ const materializeAuthConnector = async (
   if (created.isErr()) {
     return created;
   }
-  const parsed = authConnectorSchema.safeParse(created.value);
+  const parsed = authAdapterSchema.safeParse(created.value);
   if (!parsed.success) {
     return Result.err(
       new ValidationError(
@@ -116,14 +113,14 @@ const materializeAuthConnector = async (
       )
     );
   }
-  return Result.ok(created.value as AuthConnector);
+  return Result.ok(created.value as AuthAdapter);
 };
 
 /**
  * Resolve a surface-extracted bearer token to a `BasePermit`.
  *
  * Surfaces own credential extraction. This helper owns the shared auth
- * connector lookup, invocation, error normalization, and BasePermit projection.
+ * adapter lookup, invocation, error normalization, and BasePermit projection.
  */
 export const resolvePermitFromBearerToken = async (
   options: ResolvePermitFromBearerTokenOptions
@@ -136,12 +133,9 @@ export const resolvePermitFromBearerToken = async (
   if (located.isErr()) {
     return located;
   }
-  const connectorResult = await materializeAuthConnector(
-    located.value,
-    options
-  );
-  if (connectorResult.isErr()) {
-    return connectorResult;
+  const adapterResult = await materializeAuthAdapter(located.value, options);
+  if (adapterResult.isErr()) {
+    return adapterResult;
   }
   const inputResult = permitExtractionInputSchema.safeParse({
     bearerToken: options.bearerToken,
@@ -159,16 +153,16 @@ export const resolvePermitFromBearerToken = async (
       })
     );
   }
-  let authResult: Awaited<ReturnType<AuthConnector['authenticate']>>;
+  let authResult: Awaited<ReturnType<AuthAdapter['authenticate']>>;
   try {
-    authResult = await connectorResult.value.authenticate(inputResult.data);
+    authResult = await adapterResult.value.authenticate(inputResult.data);
   } catch (error) {
     const errorOptions =
       error instanceof Error
         ? { cause: error, context: { code: 'invalid_token' } }
         : { context: { code: 'invalid_token' } };
     return Result.err(
-      new AuthError('Auth connector threw while authenticating bearer token', {
+      new AuthError('Auth adapter threw while authenticating bearer token', {
         ...errorOptions,
       })
     );
@@ -179,7 +173,7 @@ export const resolvePermitFromBearerToken = async (
       ? parsedError.data
       : {
           code: 'invalid_token' as const,
-          message: 'Auth connector returned a malformed error',
+          message: 'Auth adapter returned a malformed error',
         };
     return Result.err(new AuthError(message, { context: { code } }));
   }
@@ -187,7 +181,7 @@ export const resolvePermitFromBearerToken = async (
     return Result.err(
       new AuthError(
         options.nullPermitMessage ??
-          'Auth connector did not produce a permit for bearer token',
+          'Auth adapter did not produce a permit for bearer token',
         {
           context: { code: 'missing_credentials' },
         }
@@ -197,7 +191,7 @@ export const resolvePermitFromBearerToken = async (
   const permit = basePermitSchema.safeParse(authResult.value);
   if (!permit.success) {
     return Result.err(
-      new AuthError('Auth connector returned a malformed permit', {
+      new AuthError('Auth adapter returned a malformed permit', {
         context: { code: 'invalid_token', issues: permit.error.issues },
       })
     );

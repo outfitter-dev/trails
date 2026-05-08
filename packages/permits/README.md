@@ -2,7 +2,7 @@
 
 Scope-based authorization for Trails.
 
-The permits package owns connector-agnostic auth resources, connectors, and helpers. Core `executeTrail` enforces trail `permit` declarations once a surface has resolved a permit into `ctx.permit`.
+The permits package owns adapter-agnostic auth resources, adapters, and helpers. Core `executeTrail` enforces trail `permit` declarations once a surface has resolved a permit into `ctx.permit`.
 
 ## The core pattern
 
@@ -40,30 +40,30 @@ The execution pipeline reads each trail's `permit` field:
 
 Permit enforcement is intrinsic to `executeTrail`; there is no opt-in layer to wire. The previously deprecated `authLayer` compatibility wrapper has been removed (TRL-475).
 
-### 3. Bind a connector at bootstrap
+### 3. Bind an adapter at bootstrap
 
 ```typescript
-import { createJwtConnector } from '@ontrails/permits/jwt';
+import { createJwtAdapter } from '@ontrails/permits/jwt';
 
-const connector = createJwtConnector({
+const adapter = createJwtAdapter({
   secret: process.env.JWT_SECRET,
   issuer: 'https://auth.example.com',
   audience: 'api.example.com',
 });
 ```
 
-## Auth connectors
+## Auth adapters
 
-An auth connector authenticates requests and produces permits.
+An auth adapter authenticates requests and produces permits.
 
-### Built-in: JWT connector
+### Built-in: JWT adapter
 
 Verifies HS256-signed JWTs and extracts claims into permits:
 
 ```typescript
-import { createJwtConnector } from '@ontrails/permits/jwt';
+import { createJwtAdapter } from '@ontrails/permits/jwt';
 
-const connector = createJwtConnector({
+const adapter = createJwtAdapter({
   secret: 'your-hmac-secret',
   issuer: 'https://auth.example.com',
   audience: 'api.example.com',
@@ -72,14 +72,18 @@ const connector = createJwtConnector({
 });
 ```
 
-### Custom connectors
+`@ontrails/permits/jwt` is the stable built-in JWT adapter subpath. The root
+package also re-exports the JWT adapter names for convenience; the subpath keeps
+adapter-specific imports explicit in generated and documented examples.
 
-Implement the `AuthConnector` interface:
+### Custom adapters
+
+Implement the `AuthAdapter` interface:
 
 ```typescript
-import type { AuthConnector, PermitExtractionInput, Permit } from '@ontrails/permits';
+import type { AuthAdapter, PermitExtractionInput, Permit } from '@ontrails/permits';
 
-const myConnector: AuthConnector = {
+const myAdapter: AuthAdapter = {
   authenticate: async (input: PermitExtractionInput) => {
     if (!input.bearerToken) return Result.ok(null);
     const permit: Permit = {

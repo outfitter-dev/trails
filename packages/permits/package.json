@@ -12,7 +12,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./jwt": "./src/connectors/jwt.ts",
+    "./jwt": "./src/adapters/jwt.ts",
     "./testing": "./src/testing.ts",
     "./package.json": "./package.json"
   },

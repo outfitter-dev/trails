@@ -1507,7 +1507,7 @@ describe('--permit wiring', () => {
 });
 
 describe('--token wiring', () => {
-  interface StubAuthConnector {
+  interface StubAuthAdapter {
     readonly authenticate: (input: {
       readonly bearerToken?: string | undefined;
       readonly requestId: string;
@@ -1521,7 +1521,7 @@ describe('--token wiring', () => {
   }
 
   /**
-   * Build a topo containing a trail plus an auth resource whose connector is
+   * Build a topo containing a trail plus an auth resource whose adapter is
    * supplied via `options.resources` so the test does not need to instantiate
    * the real `@ontrails/permits` factory.
    */
@@ -1542,7 +1542,7 @@ describe('--token wiring', () => {
   }>('auth', {
     create: () =>
       Result.ok({
-        // oxlint-disable-next-line require-await -- fallback connector
+        // oxlint-disable-next-line require-await -- fallback adapter
         authenticate: async () => Result.ok(null),
       }),
   });
@@ -1555,15 +1555,15 @@ describe('--token wiring', () => {
     resources,
     token,
   }) => {
-    const connector = resources?.['auth'] as StubAuthConnector | undefined;
-    if (connector === undefined) {
+    const adapter = resources?.['auth'] as StubAuthAdapter | undefined;
+    if (adapter === undefined) {
       return Result.err(
         new ValidationError(
-          '--token requires an auth connector. Register authResource from @ontrails/permits in your topo.'
+          '--token requires an auth adapter. Register authResource from @ontrails/permits in your topo.'
         )
       );
     }
-    const authResult = await connector.authenticate({
+    const authResult = await adapter.authenticate({
       bearerToken: token,
       requestId,
       surface: 'cli',
@@ -1577,7 +1577,7 @@ describe('--token wiring', () => {
     }
     if (authResult.value === null) {
       return Result.err(
-        new AuthError('Auth connector did not produce a permit for --token', {
+        new AuthError('Auth adapter did not produce a permit for --token', {
           context: { code: 'missing_credentials' },
         })
       );
@@ -1595,7 +1595,7 @@ describe('--token wiring', () => {
       resolvePermitFromToken: resolvePermitFromTokenForTest,
     });
 
-  test('--token resolves a permit via the auth connector and lands ctx.permit', async () => {
+  test('--token resolves a permit via the auth adapter and lands ctx.permit', async () => {
     let observed: TrailContext['permit'];
     const t = trail('thing.token-read', {
       blaze: (_input, ctx) => {
@@ -1606,7 +1606,7 @@ describe('--token wiring', () => {
       output: z.object({ ok: z.boolean() }),
     });
 
-    const stubConnector = {
+    const stubAdapter = {
       authenticate: (input: { readonly bearerToken?: string | undefined }) =>
         Promise.resolve(
           input.bearerToken === 'good-token'
@@ -1616,7 +1616,7 @@ describe('--token wiring', () => {
     };
 
     const app = makeAuthApp(t);
-    const cmd = requireCommand(buildAuthCommands(app, { auth: stubConnector }));
+    const cmd = requireCommand(buildAuthCommands(app, { auth: stubAdapter }));
 
     const result = await cmd.execute(
       { id: 'abc' },
@@ -1658,14 +1658,14 @@ describe('--token wiring', () => {
       output: z.object({ ok: z.boolean() }),
     });
 
-    const stubConnector = {
-      // oxlint-disable-next-line require-await -- stub connector
+    const stubAdapter = {
+      // oxlint-disable-next-line require-await -- stub adapter
       authenticate: async () =>
         Result.err({ code: 'invalid_token', message: 'bad signature' }),
     };
 
     const app = makeAuthApp(t);
-    const cmd = requireCommand(buildAuthCommands(app, { auth: stubConnector }));
+    const cmd = requireCommand(buildAuthCommands(app, { auth: stubAdapter }));
 
     const result = await cmd.execute(
       { id: 'abc' },
@@ -1690,13 +1690,13 @@ describe('--token wiring', () => {
       output: z.object({ ok: z.boolean() }),
     });
 
-    const stubConnector = {
-      // oxlint-disable-next-line require-await -- stub connector
+    const stubAdapter = {
+      // oxlint-disable-next-line require-await -- stub adapter
       authenticate: async () => Result.ok(null),
     };
 
     const app = makeAuthApp(t);
-    const cmd = requireCommand(buildAuthCommands(app, { auth: stubConnector }));
+    const cmd = requireCommand(buildAuthCommands(app, { auth: stubAdapter }));
 
     const result = await cmd.execute(
       { id: 'abc' },
@@ -1722,13 +1722,13 @@ describe('--token wiring', () => {
       output: z.object({ ok: z.boolean() }),
     });
 
-    const stubConnector = {
-      // oxlint-disable-next-line require-await -- stub connector
+    const stubAdapter = {
+      // oxlint-disable-next-line require-await -- stub adapter
       authenticate: async () => Result.ok({ id: 'u', scopes: [] }),
     };
 
     const app = makeAuthApp(t);
-    const cmd = requireCommand(buildAuthCommands(app, { auth: stubConnector }));
+    const cmd = requireCommand(buildAuthCommands(app, { auth: stubAdapter }));
 
     const result = await cmd.execute(
       { id: 'abc' },
@@ -1758,13 +1758,13 @@ describe('--token wiring', () => {
       output: z.object({ ok: z.boolean() }),
     });
 
-    const stubConnector = {
-      // oxlint-disable-next-line require-await -- stub connector
+    const stubAdapter = {
+      // oxlint-disable-next-line require-await -- stub adapter
       authenticate: async () => Result.ok({ id: 'u', scopes: [] }),
     };
 
     const app = makeAuthApp(t);
-    const cmd = requireCommand(buildAuthCommands(app, { auth: stubConnector }));
+    const cmd = requireCommand(buildAuthCommands(app, { auth: stubAdapter }));
 
     const result = await cmd.execute({ id: 'abc' }, { id: 'abc' });
 
@@ -1783,13 +1783,13 @@ describe('--token wiring', () => {
       output: z.object({ ok: z.boolean() }),
     });
 
-    const stubConnector = {
-      // oxlint-disable-next-line require-await -- stub connector
+    const stubAdapter = {
+      // oxlint-disable-next-line require-await -- stub adapter
       authenticate: async () => Result.ok({ id: 'user-42', scopes: ['read'] }),
     };
 
     const app = makeAuthApp(t);
-    const cmd = requireCommand(buildAuthCommands(app, { auth: stubConnector }));
+    const cmd = requireCommand(buildAuthCommands(app, { auth: stubAdapter }));
 
     const result = await cmd.execute(
       { id: 'abc' },
@@ -1800,7 +1800,7 @@ describe('--token wiring', () => {
     expect(receivedInput).toEqual({ id: 'abc' });
   });
 
-  test('--token forwards surface "cli" and a bearer token to the connector', async () => {
+  test('--token forwards surface "cli" and a bearer token to the adapter', async () => {
     let seenInput:
       | {
           readonly surface?: string;
@@ -1814,7 +1814,7 @@ describe('--token wiring', () => {
       output: z.object({ ok: z.boolean() }),
     });
 
-    const stubConnector = {
+    const stubAdapter = {
       authenticate: (input: {
         readonly surface: string;
         readonly bearerToken?: string | undefined;
@@ -1826,7 +1826,7 @@ describe('--token wiring', () => {
     };
 
     const app = makeAuthApp(t);
-    const cmd = requireCommand(buildAuthCommands(app, { auth: stubConnector }));
+    const cmd = requireCommand(buildAuthCommands(app, { auth: stubAdapter }));
 
     const result = await cmd.execute(
       { id: 'abc' },
@@ -1952,7 +1952,7 @@ describe('dev permit flag wiring', () => {
     }>('auth', {
       create: () =>
         Result.ok({
-          // oxlint-disable-next-line require-await -- stub connector
+          // oxlint-disable-next-line require-await -- stub adapter
           authenticate: async () => Result.ok({ id: 'u', scopes: [] }),
         }),
     });

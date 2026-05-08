@@ -1,22 +1,22 @@
 import { Result, resource } from '@ontrails/core';
 import { z } from 'zod';
 
-import type { AuthConnector } from './connectors/connector.js';
-import { createJwtConnector } from './connectors/jwt.js';
-import type { JwtConnectorOptions } from './connectors/jwt.js';
+import type { AuthAdapter } from './adapters/adapter.js';
+import { createJwtAdapter } from './adapters/jwt.js';
+import type { JwtAdapterOptions } from './adapters/jwt.js';
 
 const authNoneConfigSchema = z
   .object({
-    connector: z.literal('none'),
+    adapter: z.literal('none'),
   })
   .readonly();
 
 const authJwtConfigSchema = z
   .object({
+    adapter: z.literal('jwt'),
     allowedAlgorithms: z.array(z.literal('HS256')).readonly().optional(),
     audience: z.string().optional(),
     clockSkewSeconds: z.number().int().nonnegative().optional(),
-    connector: z.literal('jwt'),
     issuer: z.string().optional(),
     requireExpiration: z.boolean().optional(),
     rolesClaim: z.string().min(1).optional(),
@@ -27,23 +27,23 @@ const authJwtConfigSchema = z
   .readonly();
 
 export const authResourceConfigSchema = z
-  .discriminatedUnion('connector', [authNoneConfigSchema, authJwtConfigSchema])
-  .default({ connector: 'none' });
+  .discriminatedUnion('adapter', [authNoneConfigSchema, authJwtConfigSchema])
+  .default({ adapter: 'none' });
 
 export type AuthResourceConfig = z.infer<typeof authResourceConfigSchema>;
 
-const createNoopConnector = (): AuthConnector => ({
-  // oxlint-disable-next-line require-await -- no-op connector satisfies async interface
+const createNoopAdapter = (): AuthAdapter => ({
+  // oxlint-disable-next-line require-await -- no-op adapter satisfies async interface
   authenticate: async () => Result.ok(null),
 });
 
-const createConnector = (config: AuthResourceConfig): AuthConnector => {
-  switch (config.connector) {
+const createAdapter = (config: AuthResourceConfig): AuthAdapter => {
+  switch (config.adapter) {
     case 'none': {
-      return createNoopConnector();
+      return createNoopAdapter();
     }
     case 'jwt': {
-      const jwtOptions: JwtConnectorOptions = {
+      const jwtOptions: JwtAdapterOptions = {
         ...(config.allowedAlgorithms === undefined
           ? {}
           : { allowedAlgorithms: config.allowedAlgorithms }),
@@ -63,27 +63,27 @@ const createConnector = (config: AuthResourceConfig): AuthConnector => {
           : { scopesClaim: config.scopesClaim }),
         secret: config.secret,
       };
-      return createJwtConnector(jwtOptions);
+      return createJwtAdapter(jwtOptions);
     }
     default: {
       const exhaustive: never = config;
       void exhaustive;
-      return createNoopConnector();
+      return createNoopAdapter();
     }
   }
 };
 
 /**
- * Auth resource — manages the auth connector lifecycle.
+ * Auth resource — manages the auth adapter lifecycle.
  *
- * Defaults to a no-op connector that always succeeds with a null permit, and
+ * Defaults to a no-op adapter that always succeeds with a null permit, and
  * can be configured through `ResourceSpec.config` to materialize built-in
- * connectors such as JWT.
+ * adapters such as JWT.
  */
-export const authResource = resource<AuthConnector>('auth', {
+export const authResource = resource<AuthAdapter>('auth', {
   config: authResourceConfigSchema,
-  create: (svc) => Result.ok(createConnector(svc.config as AuthResourceConfig)),
-  description: 'Authentication connector',
+  create: (svc) => Result.ok(createAdapter(svc.config as AuthResourceConfig)),
+  description: 'Authentication adapter',
   meta: { category: 'infrastructure' },
-  mock: createNoopConnector,
+  mock: createNoopAdapter,
 });

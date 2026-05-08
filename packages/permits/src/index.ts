@@ -1,14 +1,14 @@
 export {
-  authConnectorSchema,
+  authAdapterSchema,
   authErrorSchema,
-  type AuthConnector,
+  type AuthAdapter,
   type AuthError,
-} from './connectors/connector.js';
+} from './adapters/adapter.js';
 export {
-  createJwtConnector,
+  createJwtAdapter,
   type JwtAlgorithm,
-  type JwtConnectorOptions,
-} from './connectors/jwt.js';
+  type JwtAdapterOptions,
+} from './adapters/jwt.js';
 export {
   authResource,
   authResourceConfigSchema,

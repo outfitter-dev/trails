@@ -36,7 +36,7 @@ const configuredApp = topo('auth-boundary-config-test', {
 });
 
 describe('resolvePermitFromBearerToken', () => {
-  test('resolves a bearer token through an override auth connector', async () => {
+  test('resolves a bearer token through an override auth adapter', async () => {
     let observed: PermitExtractionInput | undefined;
     const result = await resolvePermitFromBearerToken({
       bearerToken: 'good-token',
@@ -88,7 +88,7 @@ describe('resolvePermitFromBearerToken', () => {
     const result = await resolvePermitFromBearerToken({
       bearerToken: token,
       configValues: {
-        [authResource.id]: { connector: 'jwt', secret: TEST_SECRET },
+        [authResource.id]: { adapter: 'jwt', secret: TEST_SECRET },
       },
       graph: configuredApp,
       requestId: 'req-config',
@@ -101,11 +101,11 @@ describe('resolvePermitFromBearerToken', () => {
     });
   });
 
-  test('returns ValidationError when no auth connector is registered', async () => {
+  test('returns ValidationError when no auth adapter is registered', async () => {
     const result = await resolvePermitFromBearerToken({
       bearerToken: 'no-auth',
       graph: topo('without-auth'),
-      missingAuthResourceMessage: 'missing auth connector',
+      missingAuthResourceMessage: 'missing auth adapter',
       requestId: 'req-3',
       surface: 'cli',
     });
@@ -113,11 +113,11 @@ describe('resolvePermitFromBearerToken', () => {
     expect(result.isErr()).toBe(true);
     if (result.isErr()) {
       expect(result.error).toBeInstanceOf(ValidationError);
-      expect(result.error.message).toBe('missing auth connector');
+      expect(result.error.message).toBe('missing auth adapter');
     }
   });
 
-  test('normalizes connector errors to AuthError', async () => {
+  test('normalizes adapter errors to AuthError', async () => {
     const result = await resolvePermitFromBearerToken({
       bearerToken: 'bad-token',
       graph: app,
@@ -186,7 +186,7 @@ describe('resolvePermitFromBearerToken', () => {
     }
   });
 
-  test('normalizes thrown connector failures to AuthError', async () => {
+  test('normalizes thrown adapter failures to AuthError', async () => {
     const result = await resolvePermitFromBearerToken({
       bearerToken: 'throw-token',
       graph: app,
@@ -194,7 +194,7 @@ describe('resolvePermitFromBearerToken', () => {
       resources: {
         auth: {
           authenticate: async () => {
-            throw new Error('connector exploded');
+            throw new Error('adapter exploded');
           },
         },
       },
@@ -205,13 +205,13 @@ describe('resolvePermitFromBearerToken', () => {
     if (result.isErr()) {
       expect(result.error).toBeInstanceOf(AuthError);
       expect(result.error.message).toBe(
-        'Auth connector threw while authenticating bearer token'
+        'Auth adapter threw while authenticating bearer token'
       );
       expect(result.error.context).toMatchObject({ code: 'invalid_token' });
     }
   });
 
-  test('normalizes malformed connector permits to AuthError', async () => {
+  test('normalizes malformed adapter permits to AuthError', async () => {
     const result = await resolvePermitFromBearerToken({
       bearerToken: 'malformed-token',
       graph: app,
@@ -229,7 +229,7 @@ describe('resolvePermitFromBearerToken', () => {
     if (result.isErr()) {
       expect(result.error).toBeInstanceOf(AuthError);
       expect(result.error.message).toBe(
-        'Auth connector returned a malformed permit'
+        'Auth adapter returned a malformed permit'
       );
       expect(result.error.context).toMatchObject({ code: 'invalid_token' });
     }

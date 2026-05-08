@@ -16,7 +16,7 @@ export const permitExtractionInputSchema = z
   .readonly();
 
 /**
- * Normalized input for auth connectors.
+ * Normalized input for auth adapters.
  *
  * Each surface extracts raw credentials from its transport and normalizes them
  * into this shape. No surface types (Request, McpSession, etc.) cross into

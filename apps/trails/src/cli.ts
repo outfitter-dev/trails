@@ -94,8 +94,8 @@ const resolveCliPermitFromToken: ResolveCliPermitFromToken = (input) =>
     env: process.env as Record<string, string | undefined>,
     graph: input.graph,
     missingAuthResourceMessage:
-      '--token requires an auth connector. Register authResource from @ontrails/permits in your topo.',
-    nullPermitMessage: 'Auth connector did not produce a permit for --token',
+      '--token requires an auth adapter. Register authResource from @ontrails/permits in your topo.',
+    nullPermitMessage: 'Auth adapter did not produce a permit for --token',
     requestId: input.requestId,
     resources: input.resources,
     surface: 'cli',

@@ -43,14 +43,14 @@ const getSurface = (ctx: TrailContext): PermitExtractionInput['surface'] => {
 /**
  * Infrastructure trail that verifies a bearer token and returns the resolved permit.
  *
- * Reads the auth connector from `authResource` — the connector is configured
- * at bootstrap (e.g. JWT with HMAC secret). The mock connector always
+ * Reads the auth adapter from `authResource` — the adapter is configured
+ * at bootstrap (e.g. JWT with HMAC secret). The mock adapter always
  * succeeds with a null permit, so `testAll(app)` works without configuration.
  */
 export const authVerify = trail('auth.verify', {
   blaze: async (input, ctx) => {
-    const connector = authResource.from(ctx);
-    const result = await connector.authenticate({
+    const adapter = authResource.from(ctx);
+    const result = await adapter.authenticate({
       bearerToken: input.token,
       requestId: ctx.requestId,
       surface: getSurface(ctx),

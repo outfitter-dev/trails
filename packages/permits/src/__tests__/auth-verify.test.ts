@@ -7,9 +7,9 @@ import {
   executeTrail,
 } from '@ontrails/core';
 
-import type { AuthConnector } from '../connectors/connector.js';
+import type { AuthAdapter } from '../adapters/adapter.js';
 import { authResource } from '../auth-resource.js';
-import { createJwtConnector } from '../connectors/jwt.js';
+import { createJwtAdapter } from '../adapters/jwt.js';
 import type { Permit } from '../permit.js';
 import { authVerify } from '../trails/auth-verify.js';
 
@@ -55,14 +55,13 @@ const signJwt = async (
 
 const TEST_SECRET = 'test-secret-for-hmac-256';
 
-/** Create an AuthConnector wired to a JWT secret. */
-const jwtConnector = (): AuthConnector =>
-  createJwtConnector({ secret: TEST_SECRET });
+/** Create an AuthAdapter wired to a JWT secret. */
+const jwtAdapter = (): AuthAdapter => createJwtAdapter({ secret: TEST_SECRET });
 
-/** Execute auth.verify with a given connector injected as the auth resource. */
+/** Execute auth.verify with a given adapter injected as the auth resource. */
 const runVerify = async (
   token: string,
-  connector: AuthConnector,
+  adapter: AuthAdapter,
   options?: {
     surface?: 'http' | 'mcp' | 'cli';
   }
@@ -95,7 +94,7 @@ const runVerify = async (
         options?.surface === undefined
           ? undefined
           : { extensions: { [SURFACE_KEY]: options.surface } },
-      resources: { [authResource.id]: connector },
+      resources: { [authResource.id]: adapter },
     }
   );
   return result as Result<
@@ -140,14 +139,14 @@ describe('auth.verify trail', () => {
     });
   });
 
-  describe('with mock connector (no credentials)', () => {
+  describe('with mock adapter (no credentials)', () => {
     test('returns valid: false with error message', async () => {
-      const noopConnector: AuthConnector = {
+      const noopAdapter: AuthAdapter = {
         // oxlint-disable-next-line require-await -- satisfies async interface
         authenticate: async () => Result.ok(null),
       };
 
-      const result = await runVerify('some-token', noopConnector);
+      const result = await runVerify('some-token', noopAdapter);
 
       expect(result.isOk()).toBe(true);
       const value = result.unwrap();
@@ -166,7 +165,7 @@ describe('auth.verify trail', () => {
         TEST_SECRET
       );
 
-      const result = await runVerify(token, jwtConnector());
+      const result = await runVerify(token, jwtAdapter());
 
       expect(result.isOk()).toBe(true);
       const value = result.unwrap();
@@ -190,7 +189,7 @@ describe('auth.verify trail', () => {
         { token },
         {
           configValues: {
-            [authResource.id]: { connector: 'jwt', secret: TEST_SECRET },
+            [authResource.id]: { adapter: 'jwt', secret: TEST_SECRET },
           },
         }
       );
@@ -205,7 +204,7 @@ describe('auth.verify trail', () => {
       });
     });
 
-    test('returns the full permit payload from the connector', async () => {
+    test('returns the full permit payload from the adapter', async () => {
       const permit: Permit = {
         id: 'user-42',
         metadata: { plan: 'pro' },
@@ -213,12 +212,12 @@ describe('auth.verify trail', () => {
         scopes: ['read', 'write'],
         tenantId: 'tenant-1',
       };
-      const connector: AuthConnector = {
+      const adapter: AuthAdapter = {
         // oxlint-disable-next-line require-await -- satisfies async interface
         authenticate: async () => Result.ok(permit),
       };
 
-      const result = await runVerify('full-permit-token', connector);
+      const result = await runVerify('full-permit-token', adapter);
 
       expect(result.isOk()).toBe(true);
       expect(result.unwrap().permit).toEqual({
@@ -232,8 +231,8 @@ describe('auth.verify trail', () => {
 
     test('forwards the invoking surface from trail context', async () => {
       let seenSurface: string | undefined;
-      const connector: AuthConnector = {
-        // oxlint-disable-next-line require-await -- captures connector input
+      const adapter: AuthAdapter = {
+        // oxlint-disable-next-line require-await -- captures adapter input
         authenticate: async (input) => {
           seenSurface = input.surface;
           return Result.ok({
@@ -243,7 +242,7 @@ describe('auth.verify trail', () => {
         },
       };
 
-      const result = await runVerify('surface-aware-token', connector, {
+      const result = await runVerify('surface-aware-token', adapter, {
         surface: 'mcp',
       });
 
@@ -260,7 +259,7 @@ describe('auth.verify trail', () => {
         'wrong-secret'
       );
 
-      const result = await runVerify(token, jwtConnector());
+      const result = await runVerify(token, jwtAdapter());
 
       expect(result.isOk()).toBe(true);
       const value = result.unwrap();
@@ -277,7 +276,7 @@ describe('auth.verify trail', () => {
         TEST_SECRET
       );
 
-      const result = await runVerify(token, jwtConnector());
+      const result = await runVerify(token, jwtAdapter());
 
       expect(result.isOk()).toBe(true);
       const value = result.unwrap();
@@ -294,7 +293,7 @@ describe('auth.verify trail', () => {
         authVerify,
         { token: '' },
         {
-          resources: { [authResource.id]: jwtConnector() },
+          resources: { [authResource.id]: jwtAdapter() },
         }
       );
 

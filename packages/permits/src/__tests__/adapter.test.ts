@@ -2,15 +2,12 @@ import { describe, expect, test } from 'bun:test';
 
 import { Result } from '@ontrails/core';
 
-import type { AuthConnector, AuthError } from '../connectors/connector.js';
-import {
-  authConnectorSchema,
-  authErrorSchema,
-} from '../connectors/connector.js';
+import type { AuthAdapter, AuthError } from '../adapters/adapter.js';
+import { authAdapterSchema, authErrorSchema } from '../adapters/adapter.js';
 import type { PermitExtractionInput } from '../extraction.js';
 import type { Permit } from '../permit.js';
-import { createJwtConnector } from '../connectors/jwt.js';
-import type { JwtAlgorithm } from '../connectors/jwt.js';
+import { createJwtAdapter } from '../adapters/jwt.js';
+import type { JwtAlgorithm } from '../adapters/jwt.js';
 
 // ---------------------------------------------------------------------------
 // Test helper: sign a JWT with HMAC-SHA256 using crypto.subtle
@@ -77,28 +74,28 @@ const testInput = (
   ...overrides,
 });
 
-describe('AuthConnector interface', () => {
-  test('accepts a valid connector implementation', async () => {
-    const connector: AuthConnector = {
-      // oxlint-disable-next-line require-await -- stub connector for type test
+describe('AuthAdapter interface', () => {
+  test('accepts a valid adapter implementation', async () => {
+    const adapter: AuthAdapter = {
+      // oxlint-disable-next-line require-await -- stub adapter for type test
       authenticate: async (_input: PermitExtractionInput) => Result.ok(null),
     };
-    const result = await connector.authenticate(testInput());
+    const result = await adapter.authenticate(testInput());
     expect(result.isOk()).toBe(true);
   });
 
-  test('authConnectorSchema validates the connector shape', () => {
+  test('authAdapterSchema validates the adapter shape', () => {
     expect(
-      authConnectorSchema.safeParse({
+      authAdapterSchema.safeParse({
         authenticate: () => Promise.resolve(Result.ok(null)),
       }).success
     ).toBe(true);
-    expect(
-      authConnectorSchema.safeParse({ authenticate: 'nope' }).success
-    ).toBe(false);
+    expect(authAdapterSchema.safeParse({ authenticate: 'nope' }).success).toBe(
+      false
+    );
   });
 
-  test('authErrorSchema validates canonical connector error codes', () => {
+  test('authErrorSchema validates canonical adapter error codes', () => {
     const parsed = authErrorSchema.parse({
       code: 'invalid_token',
       message: 'bad token',
@@ -111,21 +108,21 @@ describe('AuthConnector interface', () => {
 });
 
 /* oxlint-disable max-statements -- test suite with multiple concern groups */
-describe('createJwtConnector', () => {
-  test('returns an AuthConnector', () => {
-    const connector = createJwtConnector({ secret: TEST_SECRET });
-    expect(connector).toBeDefined();
-    expect(connector.authenticate).toBeInstanceOf(Function);
+describe('createJwtAdapter', () => {
+  test('returns an AuthAdapter', () => {
+    const adapter = createJwtAdapter({ secret: TEST_SECRET });
+    expect(adapter).toBeDefined();
+    expect(adapter.authenticate).toBeInstanceOf(Function);
   });
 
   test('verifies a valid HS256 token and returns a Permit', async () => {
-    const connector = createJwtConnector({ secret: TEST_SECRET });
+    const adapter = createJwtAdapter({ secret: TEST_SECRET });
     const now = Math.floor(Date.now() / 1000);
     const token = await signJwt(
       { exp: now + 3600, scope: 'read write', sub: 'user-123' },
       TEST_SECRET
     );
-    const result = await connector.authenticate(
+    const result = await adapter.authenticate(
       testInput({ bearerToken: token })
     );
     expect(result.isOk()).toBe(true);
@@ -136,13 +133,13 @@ describe('createJwtConnector', () => {
   });
 
   test('rejects an expired token', async () => {
-    const connector = createJwtConnector({ secret: TEST_SECRET });
+    const adapter = createJwtAdapter({ secret: TEST_SECRET });
     const past = Math.floor(Date.now() / 1000) - 3600;
     const token = await signJwt(
       { exp: past, sub: 'user-expired' },
       TEST_SECRET
     );
-    const result = await connector.authenticate(
+    const result = await adapter.authenticate(
       testInput({ bearerToken: token })
     );
     expect(result.isErr()).toBe(true);
@@ -151,20 +148,20 @@ describe('createJwtConnector', () => {
   });
 
   test('accepts an exp just inside the default clock skew', async () => {
-    const connector = createJwtConnector({ secret: TEST_SECRET });
+    const adapter = createJwtAdapter({ secret: TEST_SECRET });
     const now = Math.floor(Date.now() / 1000);
     const token = await signJwt(
       { exp: now - 30, sub: 'user-skew-exp' },
       TEST_SECRET
     );
-    const result = await connector.authenticate(
+    const result = await adapter.authenticate(
       testInput({ bearerToken: token })
     );
     expect(result.isOk()).toBe(true);
   });
 
   test('rejects expired tokens when clock skew is non-finite', async () => {
-    const connector = createJwtConnector({
+    const adapter = createJwtAdapter({
       clockSkewSeconds: Number.NaN,
       secret: TEST_SECRET,
     });
@@ -173,7 +170,7 @@ describe('createJwtConnector', () => {
       { exp: past, sub: 'user-nan-skew-exp' },
       TEST_SECRET
     );
-    const result = await connector.authenticate(
+    const result = await adapter.authenticate(
       testInput({ bearerToken: token })
     );
     expect(result.isErr()).toBe(true);
@@ -182,7 +179,7 @@ describe('createJwtConnector', () => {
   });
 
   test('uses the default clock skew when configured skew is non-finite', async () => {
-    const connector = createJwtConnector({
+    const adapter = createJwtAdapter({
       clockSkewSeconds: Number.NaN,
       secret: TEST_SECRET,
     });
@@ -191,16 +188,16 @@ describe('createJwtConnector', () => {
       { exp: now - 30, nbf: now + 30, sub: 'user-nan-skew-default' },
       TEST_SECRET
     );
-    const result = await connector.authenticate(
+    const result = await adapter.authenticate(
       testInput({ bearerToken: token })
     );
     expect(result.isOk()).toBe(true);
   });
 
   test('rejects tokens missing an expiration claim by default', async () => {
-    const connector = createJwtConnector({ secret: TEST_SECRET });
+    const adapter = createJwtAdapter({ secret: TEST_SECRET });
     const token = await signJwt({ sub: 'user-no-exp' }, TEST_SECRET);
-    const result = await connector.authenticate(
+    const result = await adapter.authenticate(
       testInput({ bearerToken: token })
     );
     expect(result.isErr()).toBe(true);
@@ -210,12 +207,12 @@ describe('createJwtConnector', () => {
   });
 
   test('treats null expiration as missing when expiration is required', async () => {
-    const connector = createJwtConnector({ secret: TEST_SECRET });
+    const adapter = createJwtAdapter({ secret: TEST_SECRET });
     const token = await signJwtPayload(
       '{"exp":null,"sub":"user-null-exp"}',
       TEST_SECRET
     );
-    const result = await connector.authenticate(
+    const result = await adapter.authenticate(
       testInput({ bearerToken: token })
     );
     expect(result.isErr()).toBe(true);
@@ -225,12 +222,12 @@ describe('createJwtConnector', () => {
   });
 
   test('allows missing expiration only when explicitly configured', async () => {
-    const connector = createJwtConnector({
+    const adapter = createJwtAdapter({
       requireExpiration: false,
       secret: TEST_SECRET,
     });
     const token = await signJwt({ sub: 'user-no-exp-allowed' }, TEST_SECRET);
-    const result = await connector.authenticate(
+    const result = await adapter.authenticate(
       testInput({ bearerToken: token })
     );
     expect(result.isOk()).toBe(true);
@@ -239,7 +236,7 @@ describe('createJwtConnector', () => {
   });
 
   test('rejects null expiration even when expiration is optional', async () => {
-    const connector = createJwtConnector({
+    const adapter = createJwtAdapter({
       requireExpiration: false,
       secret: TEST_SECRET,
     });
@@ -247,7 +244,7 @@ describe('createJwtConnector', () => {
       '{"exp":null,"sub":"user-null-exp-optional"}',
       TEST_SECRET
     );
-    const result = await connector.authenticate(
+    const result = await adapter.authenticate(
       testInput({ bearerToken: token })
     );
     expect(result.isErr()).toBe(true);
@@ -257,7 +254,7 @@ describe('createJwtConnector', () => {
   });
 
   test('rejects expired tokens even when expiration is optional', async () => {
-    const connector = createJwtConnector({
+    const adapter = createJwtAdapter({
       requireExpiration: false,
       secret: TEST_SECRET,
     });
@@ -266,7 +263,7 @@ describe('createJwtConnector', () => {
       { exp: past, sub: 'user-expired-optional' },
       TEST_SECRET
     );
-    const result = await connector.authenticate(
+    const result = await adapter.authenticate(
       testInput({ bearerToken: token })
     );
     expect(result.isErr()).toBe(true);
@@ -275,12 +272,12 @@ describe('createJwtConnector', () => {
   });
 
   test('rejects non-finite expiration claims', async () => {
-    const connector = createJwtConnector({ secret: TEST_SECRET });
+    const adapter = createJwtAdapter({ secret: TEST_SECRET });
     const token = await signJwtPayload(
       '{"exp":1e9999,"sub":"user-infinite-exp"}',
       TEST_SECRET
     );
-    const result = await connector.authenticate(
+    const result = await adapter.authenticate(
       testInput({ bearerToken: token })
     );
     expect(result.isErr()).toBe(true);
@@ -290,13 +287,13 @@ describe('createJwtConnector', () => {
   });
 
   test('rejects tokens before nbf outside clock skew', async () => {
-    const connector = createJwtConnector({ secret: TEST_SECRET });
+    const adapter = createJwtAdapter({ secret: TEST_SECRET });
     const now = Math.floor(Date.now() / 1000);
     const token = await signJwt(
       { exp: now + 3600, nbf: now + 120, sub: 'user-future' },
       TEST_SECRET
     );
-    const result = await connector.authenticate(
+    const result = await adapter.authenticate(
       testInput({ bearerToken: token })
     );
     expect(result.isErr()).toBe(true);
@@ -306,13 +303,13 @@ describe('createJwtConnector', () => {
   });
 
   test('rejects non-finite not-before claims', async () => {
-    const connector = createJwtConnector({ secret: TEST_SECRET });
+    const adapter = createJwtAdapter({ secret: TEST_SECRET });
     const now = Math.floor(Date.now() / 1000);
     const token = await signJwtPayload(
       `{"exp":${now + 3600},"nbf":1e9999,"sub":"user-infinite-nbf"}`,
       TEST_SECRET
     );
-    const result = await connector.authenticate(
+    const result = await adapter.authenticate(
       testInput({ bearerToken: token })
     );
     expect(result.isErr()).toBe(true);
@@ -322,20 +319,20 @@ describe('createJwtConnector', () => {
   });
 
   test('accepts nbf inside the default clock skew', async () => {
-    const connector = createJwtConnector({ secret: TEST_SECRET });
+    const adapter = createJwtAdapter({ secret: TEST_SECRET });
     const now = Math.floor(Date.now() / 1000);
     const token = await signJwt(
       { exp: now + 3600, nbf: now + 30, sub: 'user-future-skew' },
       TEST_SECRET
     );
-    const result = await connector.authenticate(
+    const result = await adapter.authenticate(
       testInput({ bearerToken: token })
     );
     expect(result.isOk()).toBe(true);
   });
 
   test('rejects future nbf claims when clock skew is non-finite', async () => {
-    const connector = createJwtConnector({
+    const adapter = createJwtAdapter({
       clockSkewSeconds: Number.NaN,
       secret: TEST_SECRET,
     });
@@ -344,7 +341,7 @@ describe('createJwtConnector', () => {
       { exp: now + 3600, nbf: now + 120, sub: 'user-nan-skew-nbf' },
       TEST_SECRET
     );
-    const result = await connector.authenticate(
+    const result = await adapter.authenticate(
       testInput({ bearerToken: token })
     );
     expect(result.isErr()).toBe(true);
@@ -354,13 +351,13 @@ describe('createJwtConnector', () => {
   });
 
   test('rejects an invalid signature', async () => {
-    const connector = createJwtConnector({ secret: TEST_SECRET });
+    const adapter = createJwtAdapter({ secret: TEST_SECRET });
     const now = Math.floor(Date.now() / 1000);
     const token = await signJwt(
       { exp: now + 3600, sub: 'user-bad-sig' },
       'wrong-secret'
     );
-    const result = await connector.authenticate(
+    const result = await adapter.authenticate(
       testInput({ bearerToken: token })
     );
     expect(result.isErr()).toBe(true);
@@ -369,14 +366,14 @@ describe('createJwtConnector', () => {
   });
 
   test('rejects tokens with missing alg headers', async () => {
-    const connector = createJwtConnector({ secret: TEST_SECRET });
+    const adapter = createJwtAdapter({ secret: TEST_SECRET });
     const now = Math.floor(Date.now() / 1000);
     const token = await signJwt(
       { exp: now + 3600, sub: 'user-no-alg' },
       TEST_SECRET,
       { alg: undefined }
     );
-    const result = await connector.authenticate(
+    const result = await adapter.authenticate(
       testInput({ bearerToken: token })
     );
     expect(result.isErr()).toBe(true);
@@ -386,14 +383,14 @@ describe('createJwtConnector', () => {
   });
 
   test('rejects tokens with unexpected alg headers', async () => {
-    const connector = createJwtConnector({ secret: TEST_SECRET });
+    const adapter = createJwtAdapter({ secret: TEST_SECRET });
     const now = Math.floor(Date.now() / 1000);
     const token = await signJwt(
       { exp: now + 3600, sub: 'user-wrong-alg' },
       TEST_SECRET,
       { alg: 'HS512' }
     );
-    const result = await connector.authenticate(
+    const result = await adapter.authenticate(
       testInput({ bearerToken: token })
     );
     expect(result.isErr()).toBe(true);
@@ -402,8 +399,8 @@ describe('createJwtConnector', () => {
     expect(err.message).toContain('Unsupported JWT alg');
   });
 
-  test('reports an empty algorithm allowlist as connector misconfiguration', async () => {
-    const connector = createJwtConnector({
+  test('reports an empty algorithm allowlist as adapter misconfiguration', async () => {
+    const adapter = createJwtAdapter({
       allowedAlgorithms: [],
       secret: TEST_SECRET,
     });
@@ -412,7 +409,7 @@ describe('createJwtConnector', () => {
       { exp: now + 3600, sub: 'user-empty-alg-list' },
       TEST_SECRET
     );
-    const result = await connector.authenticate(
+    const result = await adapter.authenticate(
       testInput({ bearerToken: token })
     );
     expect(result.isErr()).toBe(true);
@@ -422,7 +419,7 @@ describe('createJwtConnector', () => {
   });
 
   test('rejects unsupported runtime algorithms even when config is malformed', async () => {
-    const connector = createJwtConnector({
+    const adapter = createJwtAdapter({
       allowedAlgorithms: ['HS512' as JwtAlgorithm],
       secret: TEST_SECRET,
     });
@@ -432,7 +429,7 @@ describe('createJwtConnector', () => {
       TEST_SECRET,
       { alg: 'HS512' }
     );
-    const result = await connector.authenticate(
+    const result = await adapter.authenticate(
       testInput({ bearerToken: token })
     );
     expect(result.isErr()).toBe(true);
@@ -442,14 +439,14 @@ describe('createJwtConnector', () => {
   });
 
   test('rejects tokens with alg none headers', async () => {
-    const connector = createJwtConnector({ secret: TEST_SECRET });
+    const adapter = createJwtAdapter({ secret: TEST_SECRET });
     const now = Math.floor(Date.now() / 1000);
     const token = await signJwt(
       { exp: now + 3600, sub: 'user-none-alg' },
       TEST_SECRET,
       { alg: 'none' }
     );
-    const result = await connector.authenticate(
+    const result = await adapter.authenticate(
       testInput({ bearerToken: token })
     );
     expect(result.isErr()).toBe(true);
@@ -459,13 +456,13 @@ describe('createJwtConnector', () => {
   });
 
   test('rejects tokens with a missing subject claim', async () => {
-    const connector = createJwtConnector({ secret: TEST_SECRET });
+    const adapter = createJwtAdapter({ secret: TEST_SECRET });
     const now = Math.floor(Date.now() / 1000);
     const token = await signJwt(
       { exp: now + 3600, scope: 'read' },
       TEST_SECRET
     );
-    const result = await connector.authenticate(
+    const result = await adapter.authenticate(
       testInput({ bearerToken: token })
     );
     expect(result.isErr()).toBe(true);
@@ -475,7 +472,7 @@ describe('createJwtConnector', () => {
   });
 
   test('extracts scopes from token claims', async () => {
-    const connector = createJwtConnector({
+    const adapter = createJwtAdapter({
       scopesClaim: 'permissions',
       secret: TEST_SECRET,
     });
@@ -488,7 +485,7 @@ describe('createJwtConnector', () => {
       },
       TEST_SECRET
     );
-    const result = await connector.authenticate(
+    const result = await adapter.authenticate(
       testInput({ bearerToken: token })
     );
     expect(result.isOk()).toBe(true);
@@ -497,13 +494,13 @@ describe('createJwtConnector', () => {
   });
 
   test('extracts roles from token claims', async () => {
-    const connector = createJwtConnector({ secret: TEST_SECRET });
+    const adapter = createJwtAdapter({ secret: TEST_SECRET });
     const now = Math.floor(Date.now() / 1000);
     const token = await signJwt(
       { exp: now + 3600, roles: ['admin', 'editor'], sub: 'user-roles' },
       TEST_SECRET
     );
-    const result = await connector.authenticate(
+    const result = await adapter.authenticate(
       testInput({ bearerToken: token })
     );
     expect(result.isOk()).toBe(true);
@@ -512,14 +509,14 @@ describe('createJwtConnector', () => {
   });
 
   test('returns null for missing credentials', async () => {
-    const connector = createJwtConnector({ secret: TEST_SECRET });
-    const result = await connector.authenticate(testInput());
+    const adapter = createJwtAdapter({ secret: TEST_SECRET });
+    const result = await adapter.authenticate(testInput());
     expect(result.isOk()).toBe(true);
     expect(result.unwrap()).toBeNull();
   });
 
   test('checks issuer claim when configured', async () => {
-    const connector = createJwtConnector({
+    const adapter = createJwtAdapter({
       issuer: 'https://auth.example.com',
       secret: TEST_SECRET,
     });
@@ -528,7 +525,7 @@ describe('createJwtConnector', () => {
       { exp: now + 3600, iss: 'https://evil.example.com', sub: 'user-iss' },
       TEST_SECRET
     );
-    const result = await connector.authenticate(
+    const result = await adapter.authenticate(
       testInput({ bearerToken: token })
     );
     expect(result.isErr()).toBe(true);
@@ -537,7 +534,7 @@ describe('createJwtConnector', () => {
   });
 
   test('checks audience claim when configured', async () => {
-    const connector = createJwtConnector({
+    const adapter = createJwtAdapter({
       audience: 'my-api',
       secret: TEST_SECRET,
     });
@@ -546,7 +543,7 @@ describe('createJwtConnector', () => {
       { aud: 'other-api', exp: now + 3600, sub: 'user-aud' },
       TEST_SECRET
     );
-    const result = await connector.authenticate(
+    const result = await adapter.authenticate(
       testInput({ bearerToken: token })
     );
     expect(result.isErr()).toBe(true);
@@ -555,7 +552,7 @@ describe('createJwtConnector', () => {
   });
 
   test('accepts array-format audience containing configured value', async () => {
-    const connector = createJwtConnector({
+    const adapter = createJwtAdapter({
       audience: 'my-api',
       secret: TEST_SECRET,
     });
@@ -564,7 +561,7 @@ describe('createJwtConnector', () => {
       { aud: ['my-api', 'account'], exp: now + 3600, sub: 'user-arr-aud' },
       TEST_SECRET
     );
-    const result = await connector.authenticate(
+    const result = await adapter.authenticate(
       testInput({ bearerToken: token })
     );
     expect(result.isOk()).toBe(true);
@@ -573,7 +570,7 @@ describe('createJwtConnector', () => {
   });
 
   test('rejects array-format audience not containing configured value', async () => {
-    const connector = createJwtConnector({
+    const adapter = createJwtAdapter({
       audience: 'my-api',
       secret: TEST_SECRET,
     });
@@ -582,7 +579,7 @@ describe('createJwtConnector', () => {
       { aud: ['other-api', 'account'], exp: now + 3600, sub: 'user-no-aud' },
       TEST_SECRET
     );
-    const result = await connector.authenticate(
+    const result = await adapter.authenticate(
       testInput({ bearerToken: token })
     );
     expect(result.isErr()).toBe(true);
@@ -591,13 +588,13 @@ describe('createJwtConnector', () => {
   });
 
   test('extracts scopes from array-format claim', async () => {
-    const connector = createJwtConnector({ secret: TEST_SECRET });
+    const adapter = createJwtAdapter({ secret: TEST_SECRET });
     const now = Math.floor(Date.now() / 1000);
     const token = await signJwt(
       { exp: now + 3600, scope: ['read', 'write'], sub: 'user-arr-scope' },
       TEST_SECRET
     );
-    const result = await connector.authenticate(
+    const result = await adapter.authenticate(
       testInput({ bearerToken: token })
     );
     expect(result.isOk()).toBe(true);
@@ -606,7 +603,7 @@ describe('createJwtConnector', () => {
   });
 
   test('filters empty strings from array-format scope claims', async () => {
-    const connector = createJwtConnector({ secret: TEST_SECRET });
+    const adapter = createJwtAdapter({ secret: TEST_SECRET });
     const now = Math.floor(Date.now() / 1000);
     const token = await signJwt(
       {
@@ -616,7 +613,7 @@ describe('createJwtConnector', () => {
       },
       TEST_SECRET
     );
-    const result = await connector.authenticate(
+    const result = await adapter.authenticate(
       testInput({ bearerToken: token })
     );
     expect(result.isOk()).toBe(true);
@@ -625,7 +622,7 @@ describe('createJwtConnector', () => {
   });
 
   test('returns error for malformed signature bytes', async () => {
-    const connector = createJwtConnector({ secret: TEST_SECRET });
+    const adapter = createJwtAdapter({ secret: TEST_SECRET });
     const now = Math.floor(Date.now() / 1000);
     const token = await signJwt(
       { exp: now + 3600, sub: 'user-bad' },
@@ -633,7 +630,7 @@ describe('createJwtConnector', () => {
     );
     const parts = token.split('.');
     const malformed = `${parts[0]}.${parts[1]}.!!!invalid-base64!!!`;
-    const result = await connector.authenticate(
+    const result = await adapter.authenticate(
       testInput({ bearerToken: malformed })
     );
     expect(result.isErr()).toBe(true);
@@ -642,7 +639,7 @@ describe('createJwtConnector', () => {
   });
 
   test('accepts token with matching issuer and audience', async () => {
-    const connector = createJwtConnector({
+    const adapter = createJwtAdapter({
       audience: 'my-api',
       issuer: 'https://auth.example.com',
       secret: TEST_SECRET,
@@ -658,7 +655,7 @@ describe('createJwtConnector', () => {
       },
       TEST_SECRET
     );
-    const result = await connector.authenticate(
+    const result = await adapter.authenticate(
       testInput({ bearerToken: token })
     );
     expect(result.isOk()).toBe(true);

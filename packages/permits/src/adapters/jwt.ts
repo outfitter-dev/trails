@@ -1,11 +1,11 @@
 import { Result } from '@ontrails/core';
 
-import type { AuthConnector, AuthError } from './connector.js';
+import type { AuthAdapter, AuthError } from './adapter.js';
 import type { PermitExtractionInput } from '../extraction.js';
 import type { Permit } from '../permit.js';
 
-/** Configuration for the JWT auth connector. */
-export interface JwtConnectorOptions {
+/** Configuration for the JWT auth adapter. */
+export interface JwtAdapterOptions {
   /** Accepted JWT header algorithms (default: ['HS256']). */
   readonly allowedAlgorithms?: readonly JwtAlgorithm[];
   /** Clock skew tolerated for exp/nbf checks, in seconds (default: 60). */
@@ -26,7 +26,7 @@ export interface JwtConnectorOptions {
   readonly rolesClaim?: string;
 }
 
-/** JWT algorithms this connector can verify today. */
+/** JWT algorithms this adapter can verify today. */
 export type JwtAlgorithm = 'HS256';
 
 interface JwtHeader {
@@ -95,7 +95,7 @@ const decodeJsonPart = <T>(part: string): T | undefined => {
   }
 };
 
-const normalizeClockSkewSeconds = (options: JwtConnectorOptions): number => {
+const normalizeClockSkewSeconds = (options: JwtAdapterOptions): number => {
   const raw = options.clockSkewSeconds ?? DEFAULT_CLOCK_SKEW_SECONDS;
   const value = Math.floor(raw);
   return Number.isFinite(value)
@@ -104,7 +104,7 @@ const normalizeClockSkewSeconds = (options: JwtConnectorOptions): number => {
 };
 
 const allowedAlgorithms = (
-  options: JwtConnectorOptions
+  options: JwtAdapterOptions
 ): readonly JwtAlgorithm[] =>
   options.allowedAlgorithms ?? DEFAULT_ALLOWED_ALGORITHMS;
 
@@ -115,7 +115,7 @@ const isSupportedJwtAlgorithm = (
 
 const validateHeader = (
   header: JwtHeader,
-  options: JwtConnectorOptions
+  options: JwtAdapterOptions
 ): Result<JwtAlgorithm, AuthError> => {
   if (typeof header.alg !== 'string') {
     return authErr('invalid_token', 'Missing JWT alg header');
@@ -189,7 +189,7 @@ const verifyJwtSignature = async (
 /** Validate standard claims (exp, iss, aud). */
 const validateClaims = (
   payload: JwtPayload,
-  options: JwtConnectorOptions
+  options: JwtAdapterOptions
 ): AuthError | undefined => {
   const now = Math.floor(Date.now() / 1000);
   const skew = normalizeClockSkewSeconds(options);
@@ -268,7 +268,7 @@ const extractRoles = (
 /** Build a Permit from a validated JWT payload. */
 const buildPermit = (
   payload: JwtPayload,
-  options: JwtConnectorOptions
+  options: JwtAdapterOptions
 ): Result<Permit, AuthError> => {
   if (!payload.sub) {
     return authErr('invalid_token', 'Missing subject claim (sub)');
@@ -285,7 +285,7 @@ const buildPermit = (
 const decodeAndVerify = async (
   token: string,
   secret: string,
-  options: JwtConnectorOptions
+  options: JwtAdapterOptions
 ): Promise<Result<JwtPayload, AuthError>> => {
   const parts = splitToken(token);
   if (!parts) {
@@ -317,7 +317,7 @@ const decodeAndVerify = async (
 /** Validate claims and build a permit from a verified payload. */
 const payloadToPermit = (
   payload: JwtPayload,
-  options: JwtConnectorOptions
+  options: JwtAdapterOptions
 ): Result<Permit, AuthError> => {
   const claimError = validateClaims(payload, options);
   if (claimError) {
@@ -331,15 +331,13 @@ const payloadToPermit = (
 // ---------------------------------------------------------------------------
 
 /**
- * Create a JWT auth connector using Bun's native crypto.
+ * Create a JWT auth adapter using Bun's native crypto.
  *
  * Verifies HS256-signed JWTs, extracts claims into a Permit, and checks
  * issuer/audience when configured. Returns `Result.ok(null)` when no
  * credentials are provided.
  */
-export const createJwtConnector = (
-  options: JwtConnectorOptions
-): AuthConnector => {
+export const createJwtAdapter = (options: JwtAdapterOptions): AuthAdapter => {
   const authenticate = async (
     input: PermitExtractionInput
   ): Promise<Result<Permit | null, AuthError>> => {

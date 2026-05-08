@@ -1,6 +1,8 @@
 import { describe, expect, test } from 'bun:test';
 
 import * as permits from '@ontrails/permits';
+import { authAdapterSchema, createJwtAdapter } from '@ontrails/permits';
+import { createJwtAdapter as createJwtAdapterFromSubpath } from '@ontrails/permits/jwt';
 import {
   createPermitForTrail,
   createTestPermit,
@@ -19,5 +21,12 @@ describe('@ontrails/permits public API', () => {
 
   test('does not expose the legacy auth layer wrapper', () => {
     expect('authLayer' in permits).toBe(false);
+  });
+
+  test('keeps JWT adapter APIs on the root and jwt subpath', () => {
+    expect(createJwtAdapter).toBe(createJwtAdapterFromSubpath);
+    expect(
+      authAdapterSchema.safeParse({ authenticate: () => {} }).success
+    ).toBe(true);
   });
 });
