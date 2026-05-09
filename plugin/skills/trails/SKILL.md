@@ -228,7 +228,7 @@ trails topo compile        # Regenerate committed topo artifacts
 trails topo verify         # Verify committed topo artifacts
 ```
 
-Key rules: no throw in blaze functions, no surface imports, crosses declarations match ctx.cross() calls, resource declarations match db.from(ctx) / ctx.resource() calls, output schemas present, .describe() on fields.
+For the current generated rule index, read [warden-guide.md](references/warden-guide.md) instead of relying on copied rule prose.
 
 ## References
 
@@ -241,6 +241,7 @@ Key rules: no throw in blaze functions, no surface imports, crosses declarations
 | MCP surface docs | Tool naming, annotations, progress |
 | [testing-patterns.md](references/testing-patterns.md) | testAll, testTrail, harnesses |
 | [error-taxonomy.md](references/error-taxonomy.md) | Error classes and signatures |
+| [warden-guide.md](references/warden-guide.md) | Generated Warden rule guidance from the live manifest |
 | [common-pitfalls.md](references/common-pitfalls.md) | 12 anti-patterns with fixes |
 | [migration-checklist.md](references/migration-checklist.md) | Step-by-step conversion guide |
 | [trail.md](templates/trail.md) | Annotated trail skeleton |

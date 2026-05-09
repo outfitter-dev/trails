@@ -120,6 +120,7 @@ Read at point of need. Do not rely on cached knowledge when specifics matter.
 - `docs/architecture.md` — hexagonal model, information categories
 - `docs/horizons.md` — future directions
 - `AGENTS.md` — repo conventions and workflow
+- `references/warden-guide.md` — generated Warden rule guidance for repo-tracked skills, agents, and plugin prompts
 
 When evaluating code, also check the actual package structure in `packages/` and the current API surface. The docs describe intent. The code describes reality. Both matter.
 

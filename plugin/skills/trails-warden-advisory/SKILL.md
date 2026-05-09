@@ -31,6 +31,7 @@ Use this skill before filing or implementing static guardrails from a Trails aud
 - `docs/adr/0037-owner-first-authority.md`
 - `packages/warden/src/rules/metadata.ts`
 - `packages/warden/src/rules/types.ts`
+- `plugin/skills/trails/references/warden-guide.md`
 - The owner module for the concept being protected.
 
 ## Advisory Context
