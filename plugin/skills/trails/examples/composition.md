@@ -111,7 +111,7 @@ export const create = trail('order.create', {
 `testAll` checks that every declared cross was actually called:
 
 ```typescript
-// __tests__/governance.test.ts
+// __tests__/contract.test.ts
 import { testAll } from '@ontrails/testing';
 import { topo } from '@ontrails/core';
 import * as customer from '../trails/customer.js';

@@ -157,7 +157,7 @@ testAll(graph, () => ({
 }));
 ```
 
-`testAll` runs the full governance suite in one call:
+`testAll` runs the full contract suite in one call:
 
 1. **`validateTopo`** -- structural validation (cross targets exist, declarations are consistent).
 2. **`testExamples`** -- progressive assertion over every trail example.

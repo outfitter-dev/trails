@@ -33,7 +33,7 @@ await surface(graph);        // CLI — from @ontrails/commander
 const result = await run(graph, 'greet', { name: 'Alice' });
 
 // 5. Test
-testAll(graph);            // Examples + governance in one line
+testAll(graph);            // Examples + contract suite in one line
 ```
 
 ## Lexicon
@@ -168,7 +168,7 @@ See [contract-patterns.md](references/contract-patterns.md) for declaration patt
 
 ## Testing
 
-`testAll(graph)` runs the full governance suite in one line:
+`testAll(graph)` runs the full contract suite in one line:
 
 1. Topo validation (crosses, schemas, signals, resources)
 2. Example execution (every example as an assertion)

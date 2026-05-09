@@ -1,8 +1,8 @@
 # Testing Patterns Reference
 
-## `testAll(graph)` -- One-Liner Governance Suite
+## `testAll(graph)` -- One-Liner Contract Suite
 
-Runs topo validation + example execution + contract checks + detour verification in a single `describe('governance')` block.
+Runs topo validation + example execution + contract checks + detour verification in a single `describe('contract')` block.
 
 ```typescript
 import { testAll } from '@ontrails/testing';
@@ -239,13 +239,13 @@ expect(result.isError).toBe(false);
 
 ```text
 src/__tests__/
-  governance.test.ts    # testAll(graph) -- the one-liner
+  contract.test.ts      # testAll(graph) -- the one-liner
   entity.test.ts        # testTrail edge cases per domain
   onboard.test.ts       # testCrosses composition scenarios
   cli.test.ts           # CLI harness integration
   mcp.test.ts           # MCP harness integration
 ```
 
-- `governance.test.ts` is the minimum. One file, one line, full coverage of examples and contracts.
+- `contract.test.ts` is the minimum. One file, one line, full coverage of examples and contracts.
 - Add `*.test.ts` files per domain when edge cases accumulate beyond what examples cover.
 - Surface harness tests are optional but valuable for verifying flag parsing, output formatting, and tool naming.

@@ -182,7 +182,7 @@ Run it:
 ```bash
 $ bun test
  PASS  src/__tests__/app.test.ts
-  governance
+  contract
     topo validation
     greet
       example: Basic greeting
@@ -191,7 +191,7 @@ $ bun test
     detours
 ```
 
-That single `testAll(graph)` call runs the full governance suite:
+That single `testAll(graph)` call runs the full contract suite:
 
 1. **Topo validation** via `validateTopo` -- crosses exist, no recursive crossing, signal origins, example schema validation, output schema presence
 2. **Example execution** -- for each trail, validates input, runs the implementation, asserts the result matches `expected` (or validates against the output schema when no `expected` is declared)

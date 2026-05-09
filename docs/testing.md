@@ -50,7 +50,7 @@ Red -> Green -> Refactor, with examples as the starting point:
 
 ## `testAll(graph)`
 
-One line runs the full governance suite -- structural validation, example execution, contract checks, and detour verification:
+One line runs the full contract suite -- structural validation, example execution, contract checks, and detour verification:
 
 ```typescript
 import { testAll } from '@ontrails/testing';
@@ -84,7 +84,7 @@ testAll(graph, () => ({
 
 Pass a factory when your explicit overrides contain mutable state, so each test gets a fresh instance.
 
-Generates a `governance` describe block containing:
+Generates a `contract` describe block containing:
 
 - **Topo validation** via `validateTopo` (crosses exist, no recursive crossing, signal origins, example schema validation, output schema presence)
 - **Example execution** via `testExamples`
@@ -416,7 +416,7 @@ src/
     entity.ts          # Trail definitions with examples
     search.ts
   __tests__/
-    governance.test.ts # testAll(graph) -- full governance suite
+    contract.test.ts   # testAll(graph) -- full contract suite
     entity.test.ts     # testTrail(show, [...]) -- edge cases
     cli.test.ts        # CLI harness integration tests
     mcp.test.ts        # MCP harness integration tests

@@ -1,5 +1,5 @@
 /**
- * testAll — single-line governance suite for any Topo.
+ * testAll — single-line contract suite for any Topo.
  *
  * Wraps topo validation, example execution, contract checks, and detour
  * contract validation into one describe block.
@@ -19,9 +19,9 @@ import { testExamples } from './examples.js';
 import type { TestAllEstablishedOptions } from './types.js';
 
 /**
- * Run the full governance test suite for a Topo.
+ * Run the full contract test suite for a Topo.
  *
- * Generates a `governance` describe block containing:
+ * Generates a `contract` describe block containing:
  * - Structural validation via `validateTopo`
  * - Example execution via `testExamples`
  * - Output contract checks via `testContracts`
@@ -73,12 +73,12 @@ const assertValidTopo = (result: ReturnType<typeof validateTopo>): void => {
   }
 };
 
-const registerGovernanceSuite = (
+const registerContractSuite = (
   topo: Topo,
   ctxOrFactory: TestAllInput | undefined,
   validate: (topo: Topo) => ReturnType<typeof validateTopo>
 ): void => {
-  describe('governance', () => {
+  describe('contract', () => {
     test('topo validates', () => {
       expect(() => assertValidTopo(validate(topo))).not.toThrow();
     });
@@ -93,7 +93,7 @@ const registerGovernanceSuite = (
 };
 
 export const testAll = (topo: Topo, ctxOrFactory?: TestAllInput): void => {
-  registerGovernanceSuite(topo, ctxOrFactory, validateTopo);
+  registerContractSuite(topo, ctxOrFactory, validateTopo);
 };
 
 type EstablishedInput =
@@ -187,7 +187,7 @@ export const testAllEstablished = (
       ? optionsOrFactory
       : () => optionsOrFactory;
 
-  registerGovernanceSuite(
+  registerContractSuite(
     topo,
     () => toExecutionOptions(normalizeEstablishedOptions(resolveInput())),
     validateEstablishedTopo

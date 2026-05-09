@@ -54,7 +54,7 @@ For each handler:
 ## Phase 5: Testing
 
 - [ ] Add examples to every trail (happy path + key error cases)
-- [ ] Create `governance.test.ts` with `testAll(graph)`
+- [ ] Create `contract.test.ts` with `testAll(graph)`
 - [ ] Add edge-case tests with `testTrail()` for complex trails
 - [ ] Add surface integration tests with CLI/MCP harnesses
 - [ ] All tests pass

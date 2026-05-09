@@ -1,6 +1,6 @@
 # @ontrails/testing
 
-Contract-driven testing for Trails. Add examples to your trails, then `testAll(graph)` runs them as assertions, validates output schemas, checks composition graphs, and verifies structural integrity. One line of test code, full governance.
+Contract-driven testing for Trails. Add examples to your trails, then `testAll(graph)` runs them as assertions, validates output schemas, checks composition graphs, and verifies structural integrity. One line of test code, full contract coverage.
 
 ## Usage
 
@@ -27,7 +27,7 @@ testDetours(graph);    // Validate detour constructor, recover, and ordering sem
 
 | Export | What it does |
 | --- | --- |
-| `testAll(topo, ctx?)` | Single-line governance suite: validation + examples + contracts + detours |
+| `testAll(topo, ctx?)` | Single-line contract suite: validation + examples + contracts + detours |
 | `testExamples(topo, ctx?)` | Run trail examples as `describe`/`test` blocks |
 | `testTrail(trail, scenarios)` | Custom scenarios for edge cases, error paths, and cross chains |
 | `testContracts(topo, ctx?)` | Validate output against declared schemas |

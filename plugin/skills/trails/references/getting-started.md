@@ -118,7 +118,7 @@ Run it:
 ```bash
 $ bun test
  PASS  src/__tests__/app.test.ts
-  governance
+  contract
     topo validation
     greet
       example: Basic greeting
