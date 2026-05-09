@@ -4,7 +4,7 @@
 
 import { isTrailsError, mapSurfaceError } from '@ontrails/core';
 import type { CliCommand, CliFlag } from '@ontrails/cli';
-import { validateCliCommands } from '@ontrails/cli';
+import { applyCliFlagValueAliases, validateCliCommands } from '@ontrails/cli';
 import { Command, InvalidArgumentError, Option } from 'commander';
 
 // ---------------------------------------------------------------------------
@@ -67,14 +67,21 @@ const applyOptionModifiers = (opt: Option, flag: CliFlag): void => {
 const buildOptions = (flag: CliFlag): Option[] => {
   const opt = new Option(buildFlagString(flag), flag.description);
   applyOptionModifiers(opt, flag);
+  const valueAliasOptions = (flag.valueAliases ?? []).map(
+    (alias) =>
+      new Option(
+        `--${alias.name}`,
+        alias.description ?? `Shorthand for --${flag.name} ${alias.value}`
+      )
+  );
   if (flag.type === 'boolean') {
     const negation = new Option(
       `--no-${flag.name}`,
       flag.description ? `Negate ${flag.description}` : undefined
     );
-    return [opt, negation];
+    return [opt, negation, ...valueAliasOptions];
   }
-  return [opt];
+  return [opt, ...valueAliasOptions];
 };
 
 /** Add positional args to a Commander subcommand. */
@@ -151,6 +158,33 @@ const getActionTarget = (fallbackTarget: Command, actionArgs: unknown[]) => {
 const getParsedFlags = (command: Command): Record<string, unknown> =>
   command.optsWithGlobals() as Record<string, unknown>;
 
+const getFlagOptionKeys = (flags: readonly CliCommand['flags'][number][]) =>
+  new Set(
+    flags.flatMap((flag) => [
+      flag.name.replaceAll(/-([a-zA-Z0-9])/g, (_, ch: string) =>
+        ch.toUpperCase()
+      ),
+      ...(flag.valueAliases ?? []).map((alias) =>
+        alias.name.replaceAll(/-([a-zA-Z0-9])/g, (_, ch: string) =>
+          ch.toUpperCase()
+        )
+      ),
+    ])
+  );
+
+const getUserSuppliedFlagKeys = (
+  command: Command,
+  flags: readonly CliCommand['flags'][number][]
+): ReadonlySet<string> => {
+  const userSupplied = new Set<string>();
+  for (const key of getFlagOptionKeys(flags)) {
+    if (isUserSuppliedOption(command, key)) {
+      userSupplied.add(key);
+    }
+  }
+  return userSupplied;
+};
+
 const getFallbackParsedFlags = (
   parentTarget: Command,
   target: Command
@@ -164,6 +198,23 @@ const getFallbackParsedFlags = (
     }
   }
   return flags;
+};
+
+const getFallbackUserSuppliedFlagKeys = (
+  parentTarget: Command,
+  target: Command,
+  flags: readonly CliCommand['flags'][number][]
+): ReadonlySet<string> => {
+  const userSupplied = new Set<string>();
+  for (const key of getFlagOptionKeys(flags)) {
+    if (
+      isUserSuppliedOption(parentTarget, key) ||
+      isUserSuppliedOption(target, key)
+    ) {
+      userSupplied.add(key);
+    }
+  }
+  return userSupplied;
 };
 
 /** Handle execution errors with appropriate exit codes. */
@@ -195,6 +246,7 @@ const maybeUseBareChildFallback = (
   readonly command: CliCommand;
   readonly parsedArgs: Record<string, unknown>;
   readonly parsedFlags: Record<string, unknown>;
+  readonly userSuppliedFlagKeys: ReadonlySet<string>;
 } => {
   if (
     !fallback ||
@@ -205,6 +257,7 @@ const maybeUseBareChildFallback = (
       command: cmd,
       parsedArgs: { ...parsedArgs },
       parsedFlags: getParsedFlags(target),
+      userSuppliedFlagKeys: getUserSuppliedFlagKeys(target, cmd.flags),
     };
   }
 
@@ -212,6 +265,11 @@ const maybeUseBareChildFallback = (
     command: fallback.parentCommand,
     parsedArgs: { [fallback.argName]: fallback.argValue },
     parsedFlags: getFallbackParsedFlags(fallback.parentTarget, target),
+    userSuppliedFlagKeys: getFallbackUserSuppliedFlagKeys(
+      fallback.parentTarget,
+      target,
+      fallback.parentCommand.flags
+    ),
   };
 };
 
@@ -236,7 +294,14 @@ const wireAction = (
           }
     );
     try {
-      await action.command.execute(action.parsedArgs, action.parsedFlags);
+      await action.command.execute(
+        action.parsedArgs,
+        applyCliFlagValueAliases(
+          action.command.flags,
+          action.parsedFlags,
+          action.userSuppliedFlagKeys
+        )
+      );
     } catch (error: unknown) {
       handleError(error);
     }

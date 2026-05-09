@@ -10,7 +10,7 @@ const makeTempDir = (): string =>
   mkdtempSync(join(tmpdir(), 'warden-command-'));
 
 describe('parseWardenCommandArgs', () => {
-  test('expands presets and local aliases without @ontrails/cli alias generalization', () => {
+  test('expands presets and generic CLI value aliases', () => {
     const parsed = parseWardenCommandArgs([
       '--ci',
       '--json',
@@ -33,6 +33,32 @@ describe('parseWardenCommandArgs', () => {
       noLockMutation: true,
     });
     expect(parsed.diagnostics).toEqual([]);
+  });
+
+  test('accepts canonical enum flag values alongside value aliases', () => {
+    const parsed = parseWardenCommandArgs([
+      '--format',
+      'github',
+      '--lock',
+      'refresh',
+      '--drafts',
+      'only',
+    ]);
+
+    expect(parsed.cli).toMatchObject({
+      drafts: 'only',
+      format: 'github',
+      lock: 'refresh',
+    });
+    expect(parsed.diagnostics).toEqual([]);
+  });
+
+  test('reports invalid canonical enum flag values', () => {
+    const parsed = parseWardenCommandArgs(['--format', 'xml']);
+
+    expect(parsed.diagnostics[0]?.message).toContain(
+      'Invalid --format value "xml". Expected one of: summary, github, json.'
+    );
   });
 });
 

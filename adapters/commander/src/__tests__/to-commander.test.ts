@@ -253,6 +253,111 @@ describe('toCommander validation', () => {
     expect(() => toCommander(commands)).toThrow('Duplicate CLI path: topo pin');
   });
 
+  test('throws when a value alias collides with another flag', () => {
+    const commands: CliCommand[] = [
+      {
+        args: [],
+        execute: async () => await Result.ok('ok'),
+        flags: [
+          {
+            choices: ['json', 'text'],
+            name: 'format',
+            required: false,
+            type: 'string' as const,
+            valueAliases: [{ name: 'json', value: 'json' }],
+            variadic: false,
+          },
+          {
+            name: 'json',
+            required: false,
+            type: 'boolean' as const,
+            variadic: false,
+          },
+        ],
+        intent: 'read' as const,
+        path: ['render'] as const,
+        trail: trail('render', {
+          blaze: () => Result.ok('ok'),
+          input: z.object({}),
+        }),
+      },
+    ];
+
+    expect(() => toCommander(commands)).toThrow(
+      'CLI flag alias --json for --format collides on command render'
+    );
+  });
+
+  test('throws when a value alias collides with a normalized flag key', () => {
+    const commands: CliCommand[] = [
+      {
+        args: [],
+        execute: async () => await Result.ok('ok'),
+        flags: [
+          {
+            choices: ['json', 'text'],
+            name: 'format',
+            required: false,
+            type: 'string' as const,
+            valueAliases: [{ name: 'jsonOutput', value: 'json' }],
+            variadic: false,
+          },
+          {
+            name: 'json-output',
+            required: false,
+            type: 'boolean' as const,
+            variadic: false,
+          },
+        ],
+        intent: 'read' as const,
+        path: ['render'] as const,
+        trail: trail('render', {
+          blaze: () => Result.ok('ok'),
+          input: z.object({}),
+        }),
+      },
+    ];
+
+    expect(() => toCommander(commands)).toThrow(
+      'CLI flag alias --jsonOutput for --format collides on command render'
+    );
+  });
+
+  test('throws when a value alias collides with a boolean negation', () => {
+    const commands: CliCommand[] = [
+      {
+        args: [],
+        execute: async () => await Result.ok('ok'),
+        flags: [
+          {
+            choices: ['fresh', 'stale'],
+            name: 'mode',
+            required: false,
+            type: 'string' as const,
+            valueAliases: [{ name: 'no-cache', value: 'fresh' }],
+            variadic: false,
+          },
+          {
+            name: 'cache',
+            required: false,
+            type: 'boolean' as const,
+            variadic: false,
+          },
+        ],
+        intent: 'read' as const,
+        path: ['render'] as const,
+        trail: trail('render', {
+          blaze: () => Result.ok('ok'),
+          input: z.object({}),
+        }),
+      },
+    ];
+
+    expect(() => toCommander(commands)).toThrow(
+      'CLI flag alias --no-cache for --mode collides on command render'
+    );
+  });
+
   test('routes child commands before parent positional args', async () => {
     const calls: string[] = [];
     const commands = [
@@ -750,6 +855,131 @@ describe('toCommander option wiring', () => {
     const formatOpt = opts.find((entry) => entry.long === '--format');
     expect(formatOpt).toBeDefined();
     expect(formatOpt?.argChoices).toEqual(['json', 'text']);
+  });
+
+  test('value aliases parse as canonical enum flag values', async () => {
+    let received: Record<string, unknown> | undefined;
+    const commands: CliCommand[] = [
+      {
+        args: [],
+        execute: async (
+          _args: Record<string, unknown>,
+          opts: Record<string, unknown>
+        ) => {
+          received = opts;
+          return await Result.ok('ok');
+        },
+        flags: [
+          {
+            choices: ['json', 'text'],
+            name: 'format',
+            required: false,
+            type: 'string' as const,
+            valueAliases: [{ name: 'json', value: 'json' }],
+            variadic: false,
+          },
+        ],
+        intent: 'read' as const,
+        path: ['render'] as const,
+        trail: trail('render', {
+          blaze: () => Result.ok('ok'),
+          input: z.object({}),
+        }),
+      },
+    ];
+    const program = toCommander(commands, { name: 'test' });
+    program.exitOverride();
+
+    await program.parseAsync(['node', 'test', 'render', '--json']);
+
+    expect(received).toEqual({ format: 'json' });
+  });
+
+  test('canonical enum flags still parse when value aliases exist', async () => {
+    let received: Record<string, unknown> | undefined;
+    const commands: CliCommand[] = [
+      {
+        args: [],
+        execute: async (
+          _args: Record<string, unknown>,
+          opts: Record<string, unknown>
+        ) => {
+          received = opts;
+          return await Result.ok('ok');
+        },
+        flags: [
+          {
+            choices: ['json', 'text'],
+            name: 'format',
+            required: false,
+            type: 'string' as const,
+            valueAliases: [{ name: 'json', value: 'json' }],
+            variadic: false,
+          },
+        ],
+        intent: 'read' as const,
+        path: ['render'] as const,
+        trail: trail('render', {
+          blaze: () => Result.ok('ok'),
+          input: z.object({}),
+        }),
+      },
+    ];
+    const program = toCommander(commands, { name: 'test' });
+    program.exitOverride();
+
+    await program.parseAsync(['node', 'test', 'render', '--format', 'text']);
+
+    expect(received).toEqual({ format: 'text' });
+  });
+
+  test('value aliases reject simultaneous canonical enum flags', async () => {
+    let received: Record<string, unknown> | undefined;
+    const commands: CliCommand[] = [
+      {
+        args: [],
+        execute: async (
+          _args: Record<string, unknown>,
+          opts: Record<string, unknown>
+        ) => {
+          received = opts;
+          return await Result.ok('ok');
+        },
+        flags: [
+          {
+            choices: ['json', 'text'],
+            name: 'format',
+            required: false,
+            type: 'string' as const,
+            valueAliases: [{ name: 'json', value: 'json' }],
+            variadic: false,
+          },
+        ],
+        intent: 'read' as const,
+        path: ['render'] as const,
+        trail: trail('render', {
+          blaze: () => Result.ok('ok'),
+          input: z.object({}),
+        }),
+      },
+    ];
+    const program = toCommander(commands, { name: 'test' });
+    program.exitOverride();
+
+    await withMockedProcess(async () => {
+      await expect(
+        program.parseAsync([
+          'node',
+          'test',
+          'render',
+          '--json',
+          '--format',
+          'text',
+        ])
+      ).rejects.toThrow('EXIT');
+    });
+
+    expect(received).toBeUndefined();
   });
 
   test('complex schemas expose structured input options instead of lossy nested flags', () => {

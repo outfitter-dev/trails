@@ -24,6 +24,13 @@ export type AnyTrail = Trail<any, any, any>;
 // CliFlag
 // ---------------------------------------------------------------------------
 
+/** A standalone boolean alias that maps to a canonical enum flag value. */
+export interface CliFlagValueAlias {
+  readonly name: string;
+  readonly value: string;
+  readonly description?: string | undefined;
+}
+
 /** A single CLI flag derived from a Zod schema field or preset. */
 export interface CliFlag {
   readonly name: string;
@@ -33,6 +40,7 @@ export interface CliFlag {
   readonly required: boolean;
   readonly default?: unknown | undefined;
   readonly choices?: string[] | undefined;
+  readonly valueAliases?: readonly CliFlagValueAlias[] | undefined;
   readonly variadic: boolean;
 }
 

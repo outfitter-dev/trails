@@ -3,6 +3,8 @@ import { describe, expect, test } from 'bun:test';
 import { z } from 'zod';
 
 import {
+  applyCliFlagValueAliases,
+  deriveCliFlagValueAliases,
   cwdPreset,
   deriveFlags,
   dryRunPreset,
@@ -46,6 +48,116 @@ describe('deriveFlags', () => {
       expect(flags).toHaveLength(1);
       expect(flag.type).toBe('boolean');
       expect(flag.required).toBe(true);
+    });
+  });
+
+  describe('value aliases', () => {
+    test('derives enum value aliases from a truthy override', () => {
+      const flags = deriveFlags(
+        z.object({ format: z.enum(['json', 'text']) }),
+        { format: { aliases: true } }
+      );
+      const flag = requireFlag(flags, 'format');
+
+      expect(flag.valueAliases).toEqual([
+        { name: 'json', value: 'json' },
+        { name: 'text', value: 'text' },
+      ]);
+    });
+
+    test('derives explicit enum value aliases', () => {
+      const flags = deriveFlags(
+        z.object({ drafts: z.enum(['include', 'exclude', 'only']) }),
+        {
+          drafts: {
+            aliases: {
+              include: {
+                description: 'Include draft state',
+                name: 'include-drafts',
+              },
+              only: 'only-drafts',
+            },
+          },
+        }
+      );
+      const flag = requireFlag(flags, 'drafts');
+
+      expect(flag.valueAliases).toEqual([
+        {
+          description: 'Include draft state',
+          name: 'include-drafts',
+          value: 'include',
+        },
+        { name: 'only-drafts', value: 'only' },
+      ]);
+    });
+
+    test('rejects aliases for values outside the flag choices', () => {
+      expect(() =>
+        deriveCliFlagValueAliases({
+          aliases: { csv: 'csv' },
+          choices: ['json', 'text'],
+          flagName: 'format',
+        })
+      ).toThrow('targets unknown value "csv"');
+    });
+
+    test('rejects aliases on non-enum fields', () => {
+      expect(() =>
+        deriveFlags(z.object({ verbose: z.boolean() }), {
+          verbose: { aliases: true },
+        })
+      ).toThrow('requires enum choices');
+    });
+
+    test('applies parsed aliases to canonical camelCase flag keys', () => {
+      const flags = deriveFlags(
+        z.object({ outputFormat: z.enum(['json', 'text']) }),
+        { outputFormat: { aliases: { json: 'json-output' } } }
+      );
+
+      expect(
+        applyCliFlagValueAliases(flags, {
+          jsonOutput: true,
+          untouched: 'yes',
+        })
+      ).toEqual({
+        outputFormat: 'json',
+        untouched: 'yes',
+      });
+    });
+
+    test('rejects aliases combined with user supplied canonical flags', () => {
+      const flags = deriveFlags(
+        z.object({ outputFormat: z.enum(['json', 'text']) }),
+        { outputFormat: { aliases: { json: 'json-output' } } }
+      );
+
+      expect(() =>
+        applyCliFlagValueAliases(
+          flags,
+          { jsonOutput: true, outputFormat: 'text' },
+          new Set(['jsonOutput', 'outputFormat'])
+        )
+      ).toThrow(
+        'CLI flag "--output-format" cannot be combined with value alias "--json-output"'
+      );
+    });
+
+    test('rejects multiple aliases for the same canonical flag', () => {
+      const flags = deriveFlags(
+        z.object({ format: z.enum(['json', 'summary', 'text']) }),
+        { format: { aliases: true } }
+      );
+
+      expect(() =>
+        applyCliFlagValueAliases(flags, {
+          json: true,
+          summary: true,
+        })
+      ).toThrow(
+        'CLI flag "--format" received multiple value aliases: --json, --summary'
+      );
     });
   });
 

@@ -2,11 +2,11 @@
  * Flag derivation from surface-agnostic fields and reusable flag presets.
  */
 
-import { deriveFields } from '@ontrails/core';
+import { ValidationError, deriveFields } from '@ontrails/core';
 import type { Field, FieldOverride } from '@ontrails/core';
 import type { z } from 'zod';
 
-import type { CliFlag } from './command.js';
+import type { CliFlag, CliFlagValueAlias } from './command.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -16,10 +16,26 @@ import type { CliFlag } from './command.js';
 const toKebab = (str: string): string =>
   str.replaceAll(/[A-Z]/g, (ch) => `-${ch.toLowerCase()}`);
 
+const toCamel = (str: string): string =>
+  str.replaceAll(/-([a-zA-Z0-9])/g, (_, ch: string) => ch.toUpperCase());
+
 interface CliFlagShape {
   readonly choices?: string[] | undefined;
   readonly type: CliFlag['type'];
   readonly variadic: boolean;
+}
+
+interface CliFlagValueAliasSpec {
+  readonly description?: string | undefined;
+  readonly name: string;
+}
+
+export type CliFlagValueAliasDeclaration =
+  | true
+  | Readonly<Record<string, string | CliFlagValueAliasSpec>>;
+
+interface CliFieldOverride extends FieldOverride {
+  readonly aliases?: CliFlagValueAliasDeclaration | undefined;
 }
 
 const fieldTypeToCliFlag: Record<Field['type'], CliFlagShape> = {
@@ -32,16 +48,92 @@ const fieldTypeToCliFlag: Record<Field['type'], CliFlagShape> = {
   'string[]': { type: 'string[]', variadic: true },
 };
 
+const renderFlagName = (flagName: string): string => `--${flagName}`;
+
+const validateAliasName = (flagName: string, aliasName: string): void => {
+  if (aliasName.trim().length === 0) {
+    throw new ValidationError(
+      `CLI flag alias for ${renderFlagName(flagName)} cannot be empty`
+    );
+  }
+};
+
+const validateAliasValue = (
+  flagName: string,
+  value: string,
+  choices: readonly string[]
+): void => {
+  if (!choices.includes(value)) {
+    throw new ValidationError(
+      `CLI flag alias for ${renderFlagName(flagName)} targets unknown value "${value}". Expected one of: ${choices.join(', ')}.`
+    );
+  }
+};
+
+const normalizeAliasSpec = (
+  flagName: string,
+  choices: readonly string[],
+  value: string,
+  spec: string | CliFlagValueAliasSpec
+): CliFlagValueAlias => {
+  validateAliasValue(flagName, value, choices);
+  const alias =
+    typeof spec === 'string' ? { name: spec } : { ...spec, name: spec.name };
+  validateAliasName(flagName, alias.name);
+  return { ...alias, value };
+};
+
+export const deriveCliFlagValueAliases = ({
+  aliases,
+  choices,
+  flagName,
+}: {
+  readonly aliases?: CliFlagValueAliasDeclaration | undefined;
+  readonly choices: readonly string[];
+  readonly flagName: string;
+}): readonly CliFlagValueAlias[] | undefined => {
+  if (aliases === undefined) {
+    return undefined;
+  }
+
+  if (aliases === true) {
+    return choices.map((value) =>
+      normalizeAliasSpec(flagName, choices, value, value)
+    );
+  }
+
+  return Object.entries(aliases).map(([value, spec]) =>
+    normalizeAliasSpec(flagName, choices, value, spec)
+  );
+};
+
 /** Convert a derived field into a CLI flag descriptor. */
-const toCliFlag = (field: Field): CliFlag => {
+const toCliFlag = (
+  field: Field,
+  override?: CliFieldOverride | undefined
+): CliFlag => {
   const shape = fieldTypeToCliFlag[field.type];
+  const choices = field.options?.map((option) => option.value);
+  if (override?.aliases !== undefined && choices === undefined) {
+    throw new ValidationError(
+      `CLI flag alias for ${renderFlagName(toKebab(field.name))} requires enum choices`
+    );
+  }
   return {
-    choices: field.options?.map((option) => option.value),
+    choices,
     default: field.default,
     description: field.label,
     name: toKebab(field.name),
     required: field.required,
     type: shape.type,
+    valueAliases:
+      choices === undefined
+        ? undefined
+        : deriveCliFlagValueAliases({
+            aliases: override?.aliases,
+            choices,
+            flagName: toKebab(field.name),
+          }),
     variadic: shape.variadic,
   };
 };
@@ -51,14 +143,66 @@ const toCliFlag = (field: Field): CliFlag => {
 // ---------------------------------------------------------------------------
 
 /** Convert derived fields to CLI flags. */
-export const toFlags = (fields: readonly Field[]): CliFlag[] =>
-  fields.map(toCliFlag);
+export const toFlags = (
+  fields: readonly Field[],
+  overrides?: Readonly<Record<string, CliFieldOverride>> | undefined
+): CliFlag[] =>
+  fields.map((field) => toCliFlag(field, overrides?.[field.name]));
 
 /** Derive CLI flags from a Zod input schema. */
 export const deriveFlags = (
   schema: z.ZodType,
-  overrides?: Readonly<Record<string, FieldOverride>> | undefined
-): CliFlag[] => toFlags(deriveFields(schema, overrides));
+  overrides?: Readonly<Record<string, CliFieldOverride>> | undefined
+): CliFlag[] => toFlags(deriveFields(schema, overrides), overrides);
+
+export const applyCliFlagValueAliases = (
+  flags: readonly CliFlag[],
+  parsedFlags: Readonly<Record<string, unknown>>,
+  userSuppliedFlagKeys?: ReadonlySet<string> | undefined
+): Record<string, unknown> => {
+  const aliasKeys = new Set(
+    flags.flatMap((flag) =>
+      (flag.valueAliases ?? []).map((alias) => toCamel(alias.name))
+    )
+  );
+  const normalized = Object.fromEntries(
+    Object.entries(parsedFlags).filter(([key]) => !aliasKeys.has(key))
+  );
+
+  for (const flag of flags) {
+    const aliases = flag.valueAliases ?? [];
+    const activeAliases = aliases.filter(
+      (alias) => parsedFlags[toCamel(alias.name)] === true
+    );
+    if (activeAliases.length === 0) {
+      continue;
+    }
+    if (activeAliases.length > 1) {
+      throw new ValidationError(
+        `CLI flag "--${flag.name}" received multiple value aliases: ${activeAliases.map((alias) => `--${alias.name}`).join(', ')}`
+      );
+    }
+
+    const canonicalKey = toCamel(flag.name);
+    const canonicalWasSupplied =
+      userSuppliedFlagKeys?.has(canonicalKey) ??
+      (normalized[canonicalKey] !== undefined &&
+        normalized[canonicalKey] !== flag.default);
+    const [activeAlias] = activeAliases;
+    if (!activeAlias) {
+      continue;
+    }
+    if (canonicalWasSupplied) {
+      throw new ValidationError(
+        `CLI flag "--${flag.name}" cannot be combined with value alias "--${activeAlias.name}"`
+      );
+    }
+
+    normalized[canonicalKey] = activeAlias.value;
+  }
+
+  return normalized;
+};
 
 // ---------------------------------------------------------------------------
 // Presets

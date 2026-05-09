@@ -138,6 +138,27 @@ describe('buildCommands path derivation', () => {
     expect(limitFlag?.required).toBe(false);
   });
 
+  test('passes field value aliases into derived flags', () => {
+    const fields = {
+      format: { aliases: true },
+    } as const;
+    const t = trail('render', {
+      blaze: (input: { format: 'agent-json' | 'markdown' }) =>
+        Result.ok(input.format),
+      fields,
+      input: z.object({
+        format: z.enum(['markdown', 'agent-json']).default('markdown'),
+      }),
+    });
+    const app = makeApp(t);
+    const { flags } = requireCommand(buildCommands(app));
+
+    expect(flags.find((flag) => flag.name === 'format')?.valueAliases).toEqual([
+      { name: 'markdown', value: 'markdown' },
+      { name: 'agent-json', value: 'agent-json' },
+    ]);
+  });
+
   test('adds structured input flags for non-empty object schemas', () => {
     const t = trail('search', {
       blaze: () => Result.ok([]),

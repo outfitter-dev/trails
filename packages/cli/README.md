@@ -89,6 +89,19 @@ represented truthfully on the command line. No manual flag definitions.
 Nested objects and arrays of objects are intentionally omitted from automatic
 flag derivation. The CLI prefers fewer flags over dishonest flags.
 
+Enum flags can expose standalone boolean aliases when a surface wants
+pipe-friendly shortcuts without inventing parallel flags. The alias still
+normalizes to the canonical enum field before the trail input is validated:
+
+```typescript
+deriveFlags(z.object({ format: z.enum(['summary', 'json']) }), {
+  format: { aliases: { json: 'json' } },
+});
+```
+
+An adapter such as `@ontrails/commander` will parse `--json` as if the caller
+had passed `--format json`.
+
 ## Positional arguments
 
 When a trail's input schema has exactly one required `string` field with no

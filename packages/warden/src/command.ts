@@ -3,7 +3,15 @@ import { isAbsolute, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 
-import { findAppModule, findAppModuleCandidates } from '@ontrails/cli';
+import {
+  deriveCliFlagValueAliases,
+  findAppModule,
+  findAppModuleCandidates,
+} from '@ontrails/cli';
+import type {
+  CliFlagValueAlias,
+  CliFlagValueAliasDeclaration,
+} from '@ontrails/cli';
 import type { Topo } from '@ontrails/core';
 import { AmbiguousError, NotFoundError } from '@ontrails/core';
 
@@ -148,23 +156,73 @@ interface CommandParserState {
   rootDir?: string | undefined;
 }
 
-const formatAliases: Readonly<Record<string, WardenFormat | undefined>> = {
-  github: 'github',
-  json: 'json',
-  summary: 'summary',
-};
+type AliasConfigKey = 'drafts' | 'format' | 'lock';
 
-const lockAliases: Readonly<Record<string, WardenLockMode | undefined>> = {
-  cached: 'cached',
-  refresh: 'refresh',
-  'skip-lock': 'skip',
-};
+interface WardenAliasSpec {
+  readonly aliases: CliFlagValueAliasDeclaration;
+  readonly choices: readonly string[];
+  readonly configKey: AliasConfigKey;
+  readonly flagName: string;
+}
 
-const draftAliases: Readonly<Record<string, WardenDraftsMode | undefined>> = {
-  'exclude-drafts': 'exclude',
-  'include-drafts': 'include',
-  'only-drafts': 'only',
-};
+interface WardenValueAliasTarget {
+  readonly alias: CliFlagValueAlias;
+  readonly configKey: AliasConfigKey;
+}
+
+const wardenAliasSpecs = [
+  {
+    aliases: true,
+    choices: wardenFormatValues,
+    configKey: 'format',
+    flagName: 'format',
+  },
+  {
+    aliases: {
+      cached: 'cached',
+      refresh: 'refresh',
+      skip: 'skip-lock',
+    },
+    choices: wardenLockValues,
+    configKey: 'lock',
+    flagName: 'lock',
+  },
+  {
+    aliases: {
+      exclude: 'exclude-drafts',
+      include: 'include-drafts',
+      only: 'only-drafts',
+    },
+    choices: wardenDraftsValues,
+    configKey: 'drafts',
+    flagName: 'drafts',
+  },
+] satisfies readonly WardenAliasSpec[];
+
+const wardenValueAliasTargets: readonly WardenValueAliasTarget[] =
+  wardenAliasSpecs.flatMap((spec) =>
+    (
+      deriveCliFlagValueAliases({
+        aliases: spec.aliases,
+        choices: spec.choices,
+        flagName: spec.flagName,
+      }) ?? []
+    ).map((alias) => ({
+      alias,
+      configKey: spec.configKey,
+    }))
+  );
+
+const wardenValueAliasTargetByName = new Map(
+  wardenValueAliasTargets.map((target) => [target.alias.name, target])
+);
+
+const valueAliasParseOptions = Object.fromEntries(
+  wardenValueAliasTargets.map((target) => [
+    target.alias.name,
+    { type: 'boolean' as const },
+  ])
+);
 
 const parseTokens = (
   args: readonly string[]
@@ -175,26 +233,18 @@ const parseTokens = (
       args: [...args],
       options: {
         apps: { multiple: true, short: 'a', type: 'string' },
-        cached: { type: 'boolean' },
         ci: { type: 'boolean' },
         'config-path': { type: 'string' },
         depth: { type: 'string' },
         drafts: { type: 'string' },
-        'exclude-drafts': { type: 'boolean' },
         'fail-on': { type: 'string' },
         format: { type: 'string' },
-        github: { type: 'boolean' },
-        'include-drafts': { type: 'boolean' },
-        json: { type: 'boolean' },
         lock: { type: 'string' },
         'no-lock-mutation': { type: 'boolean' },
-        'only-drafts': { type: 'boolean' },
         'pre-push': { type: 'boolean' },
-        refresh: { type: 'boolean' },
         'root-dir': { type: 'string' },
-        'skip-lock': { type: 'boolean' },
         strict: { type: 'boolean' },
-        summary: { type: 'boolean' },
+        ...valueAliasParseOptions,
       },
       strict: true,
       tokens: true,
@@ -237,25 +287,18 @@ const applyPresetToken = (
 };
 
 const applyAliasOption = (name: string, state: CommandParserState): boolean => {
-  const format = formatAliases[name];
-  if (format !== undefined) {
-    state.cli.format = format;
-    return true;
+  const target = wardenValueAliasTargetByName.get(name);
+  if (target === undefined) {
+    return false;
   }
-
-  const lock = lockAliases[name];
-  if (lock !== undefined) {
-    state.cli.lock = lock;
-    return true;
+  if (target.configKey === 'format') {
+    state.cli.format = target.alias.value as WardenFormat;
+  } else if (target.configKey === 'lock') {
+    state.cli.lock = target.alias.value as WardenLockMode;
+  } else {
+    state.cli.drafts = target.alias.value as WardenDraftsMode;
   }
-
-  const drafts = draftAliases[name];
-  if (drafts !== undefined) {
-    state.cli.drafts = drafts;
-    return true;
-  }
-
-  return false;
+  return true;
 };
 
 const applyEnumOption = (

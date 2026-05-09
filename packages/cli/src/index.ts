@@ -1,5 +1,11 @@
 // Command model
-export type { AnyTrail, CliCommand, CliFlag, CliArg } from './command.js';
+export type {
+  AnyTrail,
+  CliCommand,
+  CliFlag,
+  CliArg,
+  CliFlagValueAlias,
+} from './command.js';
 
 // Build
 export { deriveCliCommands } from './build.js';
@@ -13,6 +19,8 @@ export { validateCliCommands } from './validate.js';
 
 // Flags
 export {
+  applyCliFlagValueAliases,
+  deriveCliFlagValueAliases,
   deriveFlags,
   outputModePreset,
   cwdPreset,
@@ -23,6 +31,7 @@ export {
   tracePreset,
   watchPreset,
 } from './flags.js';
+export type { CliFlagValueAliasDeclaration } from './flags.js';
 
 // Output
 export { output, deriveOutputMode } from './output.js';

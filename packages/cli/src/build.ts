@@ -1024,7 +1024,7 @@ const buildFlags = (
   intent: 'read' | 'write' | 'destroy',
   options?: DeriveCliCommandsOptions
 ): CliFlag[] => {
-  let flags = toFlags(fields);
+  let flags = toFlags(fields, t.fields);
   if (supportsStructuredInput(t.input)) {
     flags = mergeStructuredInputFlags(flags);
   }
