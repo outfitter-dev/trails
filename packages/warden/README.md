@@ -115,9 +115,14 @@ const diagnostics = await runWardenTrails(filePath, sourceCode, {
 const topoDiagnostics = await runTopoAwareWardenTrails(myApp);
 ```
 
-To wrap a custom rule as a trail, use `wrapRule` (imported from
-`@ontrails/warden/trails/wrap-rule`). This is the same factory used internally
-to build all built-in rule trails.
+To wrap a custom rule as a trail, import `wrapRule` from the root package
+entrypoint:
+
+```typescript
+import { wrapRule } from '@ontrails/warden';
+```
+
+This is the same factory used internally to build all built-in rule trails.
 
 ## API
 
@@ -136,6 +141,7 @@ to build all built-in rule trails.
 | `formatGitHubAnnotations(report)` | GitHub Actions annotation format |
 | `formatJson(report)` | Machine-readable JSON |
 | `formatSummary(report)` | Compact summary line |
+| `wrapRule(rule)` | Wrap a custom rule as a trail (same factory used for all built-in rule trails) |
 
 AST parser helpers are exported from `@ontrails/warden/ast`, not the root
 runtime barrel. The stable authoring surface includes `parse`, `walk`,
