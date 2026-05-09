@@ -81,6 +81,16 @@ const buildProjectContext = (input: ProjectAwareRuleInput): ProjectContext => ({
         ),
       }
     : {}),
+  ...(input.documentedImportResolutionsByFile
+    ? {
+        documentedImportResolutionsByFile: new Map(
+          Object.entries(input.documentedImportResolutionsByFile)
+        ),
+      }
+    : {}),
+  ...(input.publicWorkspaces
+    ? { publicWorkspaces: new Map(Object.entries(input.publicWorkspaces)) }
+    : {}),
   knownTrailIds: input.knownTrailIds
     ? new Set(input.knownTrailIds)
     : new Set<string>(),

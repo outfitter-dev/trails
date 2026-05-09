@@ -15,6 +15,12 @@ import type {
   WardenImportResolution,
   WardenResolverOptions,
 } from './resolve.js';
+import { offsetToLine } from './rules/ast.js';
+import { collectPublicWorkspaces } from './workspaces.js';
+import type { WardenPublicWorkspace } from './workspaces.js';
+
+const ONTRAILS_DOCUMENTATION_SPECIFIER_PATTERN =
+  /@ontrails\/[a-z0-9-]+(?:\/[A-Za-z0-9._~-]+)+/g;
 
 const normalizeRealPath = (path: string): string => {
   try {
@@ -39,9 +45,41 @@ const setResolutionsForFile = (
 
 export interface WardenProjectContextSourceFile {
   readonly filePath: string;
-  readonly kind: 'text' | 'typescript';
+  readonly kind: 'documentation' | 'text' | 'typescript';
   readonly sourceCode: string;
 }
+
+const collectDocumentationImportSpecifiers = (
+  sourceCode: string
+): readonly { readonly importSource: string; readonly line: number }[] => {
+  const specifiers: { importSource: string; line: number }[] = [];
+  for (const match of sourceCode.matchAll(
+    ONTRAILS_DOCUMENTATION_SPECIFIER_PATTERN
+  )) {
+    if (match.index === undefined) {
+      continue;
+    }
+    specifiers.push({
+      importSource: match[0],
+      line: offsetToLine(sourceCode, match.index),
+    });
+  }
+  return specifiers;
+};
+
+const exportAliasesForWorkspaces = (
+  workspaces: ReadonlyMap<string, WardenPublicWorkspace>
+): Record<string, string[]> => {
+  const aliases: Record<string, string[]> = {};
+  for (const workspace of workspaces.values()) {
+    for (const [specifier, target] of Object.entries(
+      workspace.exportTargets ?? {}
+    )) {
+      aliases[`${specifier}$`] = [target];
+    }
+  }
+  return aliases;
+};
 
 export const collectProjectImportResolutions = ({
   resolveOptions,
@@ -78,3 +116,48 @@ export const collectProjectImportResolutions = ({
 
   return resolutionsByFile;
 };
+
+export const collectProjectDocumentationImportResolutions = ({
+  rootDir,
+  sourceFiles,
+}: {
+  readonly rootDir: string;
+  readonly sourceFiles: readonly WardenProjectContextSourceFile[];
+}): ReadonlyMap<string, readonly WardenImportResolution[]> => {
+  const publicWorkspaces = collectPublicWorkspaces(rootDir);
+  const resolver = createWardenResolver({
+    resolveOptions: { alias: exportAliasesForWorkspaces(publicWorkspaces) },
+    rootDir,
+  });
+  const resolutionsByFile = new Map<
+    string,
+    readonly WardenImportResolution[]
+  >();
+
+  for (const sourceFile of sourceFiles) {
+    if (sourceFile.kind !== 'documentation') {
+      continue;
+    }
+    const resolutions = collectDocumentationImportSpecifiers(
+      sourceFile.sourceCode
+    ).map((specifier) =>
+      resolver.resolveImport(
+        sourceFile.filePath,
+        specifier.importSource,
+        specifier.line
+      )
+    );
+    if (resolutions.length > 0) {
+      setResolutionsForFile(
+        resolutionsByFile,
+        sourceFile.filePath,
+        resolutions
+      );
+    }
+  }
+
+  return resolutionsByFile;
+};
+
+export { collectPublicWorkspaces };
+export type { WardenPublicWorkspace } from './workspaces.js';

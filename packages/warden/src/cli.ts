@@ -23,7 +23,11 @@ import { resolveWardenConfig } from './config.js';
 import { isDraftMarkedFile } from './draft.js';
 import type { DriftResult } from './drift.js';
 import { checkDrift } from './drift.js';
-import { collectProjectImportResolutions } from './project-context.js';
+import {
+  collectProjectDocumentationImportResolutions,
+  collectProjectImportResolutions,
+  collectPublicWorkspaces,
+} from './project-context.js';
 import {
   collectContourDefinitionIds,
   collectContourReferenceTargetsByName,
@@ -243,9 +247,43 @@ const collectTextScanFiles = (dir: string): readonly string[] => [
   ...collectFilesMatching(dir, '**/package.json', true),
 ];
 
+const isDocumentationScanTarget = (match: string): boolean => {
+  if (match === 'README.md') {
+    return true;
+  }
+  if (/^(?:packages|adapters|apps)\/[^/]+\/README\.md$/.test(match)) {
+    return true;
+  }
+  return (
+    match.startsWith('docs/') &&
+    !match.startsWith('docs/adr/') &&
+    !match.startsWith('docs/migration/') &&
+    !match.startsWith('docs/releases/') &&
+    match.endsWith('.md')
+  );
+};
+
+const collectDocumentationFiles = (dir: string): readonly string[] => {
+  const glob = new Bun.Glob('**/*.md');
+  let matches: IterableIterator<string>;
+  try {
+    matches = glob.scanSync({ cwd: dir, onlyFiles: true });
+  } catch {
+    return [];
+  }
+
+  const files: string[] = [];
+  for (const match of matches) {
+    if (isAllowedScanTarget(match) && isDocumentationScanTarget(match)) {
+      files.push(`${dir}/${match}`);
+    }
+  }
+  return files;
+};
+
 interface SourceFile {
   readonly filePath: string;
-  readonly kind: 'text' | 'typescript';
+  readonly kind: 'documentation' | 'text' | 'typescript';
   readonly sourceCode: string;
 }
 
@@ -259,7 +297,12 @@ interface MutableProjectContext {
   knownSignalIds: Set<string>;
   knownTrailIds: Set<string>;
   importResolutionsByFile: Map<string, readonly WardenImportResolution[]>;
+  documentedImportResolutionsByFile: Map<
+    string,
+    readonly WardenImportResolution[]
+  >;
   onTargetSignalIds: Set<string>;
+  publicWorkspaces: ReturnType<typeof collectPublicWorkspaces>;
   reconcileTableIds: Set<string>;
   trailIntentsById: Map<string, 'destroy' | 'read' | 'write'>;
 }
@@ -269,12 +312,17 @@ const createMutableProjectContext = (): MutableProjectContext => ({
   crossTargetTrailIds: new Set<string>(),
   crudCoverageByEntity: new Map<string, Set<string>>(),
   crudTableIds: new Set<string>(),
+  documentedImportResolutionsByFile: new Map<
+    string,
+    readonly WardenImportResolution[]
+  >(),
   importResolutionsByFile: new Map<string, readonly WardenImportResolution[]>(),
   knownContourIds: new Set<string>(),
   knownResourceIds: new Set<string>(),
   knownSignalIds: new Set<string>(),
   knownTrailIds: new Set<string>(),
   onTargetSignalIds: new Set<string>(),
+  publicWorkspaces: new Map(),
   reconcileTableIds: new Set<string>(),
   trailIntentsById: new Map<string, 'destroy' | 'read' | 'write'>(),
 });
@@ -328,8 +376,17 @@ const toProjectContext = (context: MutableProjectContext): ProjectContext => ({
   ...(context.importResolutionsByFile.size > 0
     ? { importResolutionsByFile: context.importResolutionsByFile }
     : {}),
+  ...(context.documentedImportResolutionsByFile.size > 0
+    ? {
+        documentedImportResolutionsByFile:
+          context.documentedImportResolutionsByFile,
+      }
+    : {}),
   ...(context.onTargetSignalIds.size > 0
     ? { onTargetSignalIds: context.onTargetSignalIds }
+    : {}),
+  ...(context.publicWorkspaces.size > 0
+    ? { publicWorkspaces: context.publicWorkspaces }
     : {}),
   ...(context.reconcileTableIds.size > 0
     ? { reconcileTableIds: context.reconcileTableIds }
@@ -506,6 +563,18 @@ const loadSourceFiles = async (
       sourceFiles.push({
         filePath,
         kind: 'text',
+        sourceCode: await Bun.file(filePath).text(),
+      });
+    } catch {
+      continue;
+    }
+  }
+
+  for (const filePath of collectDocumentationFiles(rootDir)) {
+    try {
+      sourceFiles.push({
+        filePath,
+        kind: 'documentation',
         sourceCode: await Bun.file(filePath).text(),
       });
     } catch {
@@ -692,6 +761,20 @@ const collectFileImportResolutions = (
   }
 };
 
+const collectFileDocumentedImportResolutions = (
+  rootDir: string,
+  sourceFiles: readonly SourceFile[],
+  context: MutableProjectContext
+): void => {
+  const resolutionsByFile = collectProjectDocumentationImportResolutions({
+    rootDir,
+    sourceFiles,
+  });
+  for (const [filePath, resolutions] of resolutionsByFile) {
+    context.documentedImportResolutionsByFile.set(filePath, resolutions);
+  }
+};
+
 const buildProjectContext = (
   sourceFiles: readonly SourceFile[],
   rootDir: string,
@@ -701,6 +784,10 @@ const buildProjectContext = (
   const typeScriptSourceFiles = sourceFiles.filter(
     (sourceFile) => sourceFile.kind === 'typescript'
   );
+  const documentationSourceFiles = sourceFiles.filter(
+    (sourceFile) => sourceFile.kind === 'documentation'
+  );
+  context.publicWorkspaces = collectPublicWorkspaces(rootDir);
 
   if (appTopos.length > 0) {
     for (const appTopo of appTopos) {
@@ -719,6 +806,11 @@ const buildProjectContext = (
     collectFileContourReferences(sourceFile, context);
   }
   collectFileImportResolutions(rootDir, typeScriptSourceFiles, context);
+  collectFileDocumentedImportResolutions(
+    rootDir,
+    documentationSourceFiles,
+    context
+  );
 
   return toProjectContext(context);
 };
@@ -876,7 +968,15 @@ const lintSourceFiles = (
     for (const rule of wardenRules.values()) {
       if (
         sourceFile.kind === 'text' &&
-        rule.name !== 'no-dev-permit-in-source'
+        rule.name !== 'no-dev-permit-in-source' &&
+        rule.name !== 'public-internal-deep-imports'
+      ) {
+        continue;
+      }
+
+      if (
+        sourceFile.kind === 'documentation' &&
+        rule.name !== 'public-internal-deep-imports'
       ) {
         continue;
       }

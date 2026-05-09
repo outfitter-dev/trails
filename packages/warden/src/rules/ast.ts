@@ -332,7 +332,10 @@ export const collectFrameworkDraftPrefixConstantOffsets = (
   return offsets;
 };
 
-const WARDEN_IGNORE_NEXT_LINE_PRAGMA = '// warden-ignore-next-line';
+const WARDEN_IGNORE_NEXT_LINE_PRAGMAS = new Set([
+  '// warden-ignore-next-line',
+  '<!-- warden-ignore-next-line -->',
+]);
 
 /**
  * Split source code into lines for pragma lookups. Callers should split once
@@ -345,7 +348,7 @@ export const splitSourceLines = (sourceCode: string): readonly string[] =>
 
 /**
  * Check whether the line immediately preceding `line` contains a
- * `// warden-ignore-next-line` pragma (leading/trailing whitespace tolerated).
+ * `warden-ignore-next-line` pragma (leading/trailing whitespace tolerated).
  * Pragma scope is strictly one line — an intervening blank line breaks it.
  *
  * Takes a pre-split `lines` array so callers can split the source once per
@@ -370,7 +373,7 @@ export const hasIgnoreCommentOnLine = (
     return false;
   }
 
-  return previous.trim() === WARDEN_IGNORE_NEXT_LINE_PRAGMA;
+  return WARDEN_IGNORE_NEXT_LINE_PRAGMAS.has(previous.trim());
 };
 
 export const findStringLiterals = (

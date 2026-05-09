@@ -120,5 +120,6 @@ bun add @ontrails/http @ontrails/hono
 
 Hono integration now lives in `@ontrails/hono`.
 
+<!-- warden-ignore-next-line -->
 - Replace `import { trailhead } from '@ontrails/http/hono'` with `import { surface } from '@ontrails/hono'`
 - Keep `deriveHttpRoutes()` and the route model imports on `@ontrails/http`

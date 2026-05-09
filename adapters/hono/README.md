@@ -34,7 +34,9 @@ bun add @ontrails/http @ontrails/hono
 
 ## Migration
 
+<!-- warden-ignore-next-line -->
 This package replaces the old `@ontrails/http/hono` subpath.
 
+<!-- warden-ignore-next-line -->
 - Before: `import { trailhead } from '@ontrails/http/hono'`
 - After: `import { surface } from '@ontrails/hono'`

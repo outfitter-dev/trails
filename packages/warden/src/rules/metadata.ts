@@ -272,7 +272,7 @@ const builtinWardenRuleMetadataInput = {
     invariant: 'Cross-package imports stay on package-owned public exports.',
     lifecycle: { state: 'durable' },
     scope: 'internal',
-    tier: 'source-static',
+    tier: 'project-static',
   },
   'public-union-output-discriminants': {
     ...durableExternal,

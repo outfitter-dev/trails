@@ -2,6 +2,7 @@ import type { Intent, Topo } from '@ontrails/core';
 
 import type { WardenDepth } from '../config.js';
 import type { WardenImportResolution } from '../resolve.js';
+import type { WardenPublicWorkspace } from '../workspaces.js';
 
 /**
  * Severity level for warden diagnostics.
@@ -147,6 +148,13 @@ export interface ProjectContext {
     string,
     readonly WardenImportResolution[]
   >;
+  /** Resolved docs/specifier facts keyed by documentation file path. */
+  readonly documentedImportResolutionsByFile?: ReadonlyMap<
+    string,
+    readonly WardenImportResolution[]
+  >;
+  /** Non-private published @ontrails workspaces discovered from the root manifest. */
+  readonly publicWorkspaces?: ReadonlyMap<string, WardenPublicWorkspace>;
   /** Normalized trail intents by trail ID across the project. */
   readonly trailIntentsById?: ReadonlyMap<string, Intent>;
   /**

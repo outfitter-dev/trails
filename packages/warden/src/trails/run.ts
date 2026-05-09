@@ -12,6 +12,7 @@ import { run } from '@ontrails/core';
 import { wardenTopoRules } from '../rules/index.js';
 import type { WardenDiagnostic } from '../rules/types.js';
 import type { WardenImportResolution } from '../resolve.js';
+import type { WardenPublicWorkspace } from '../workspaces.js';
 import type { RuleOutput } from './schema.js';
 import { wardenTopo } from './topo.js';
 
@@ -43,10 +44,14 @@ interface ProjectRuleOptions {
   readonly importResolutionsByFile?: Readonly<
     Record<string, readonly WardenImportResolution[]>
   >;
+  readonly documentedImportResolutionsByFile?: Readonly<
+    Record<string, readonly WardenImportResolution[]>
+  >;
   readonly knownResourceIds?: readonly string[];
   readonly knownSignalIds?: readonly string[];
   readonly knownTrailIds?: readonly string[];
   readonly onTargetSignalIds?: readonly string[];
+  readonly publicWorkspaces?: Readonly<Record<string, WardenPublicWorkspace>>;
   readonly reconcileTableIds?: readonly string[];
   readonly trailIntentsById?: TrailIntentMap;
 }
@@ -58,10 +63,12 @@ const PROJECT_OPTION_KEYS = [
   'crudCoverageByEntity',
   'knownContourIds',
   'importResolutionsByFile',
+  'documentedImportResolutionsByFile',
   'knownResourceIds',
   'knownSignalIds',
   'knownTrailIds',
   'onTargetSignalIds',
+  'publicWorkspaces',
   'reconcileTableIds',
   'trailIntentsById',
 ] as const satisfies readonly (keyof ProjectRuleOptions)[];

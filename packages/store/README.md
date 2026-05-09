@@ -276,5 +276,6 @@ bun add @ontrails/drizzle
 
 The Drizzle binding now lives in `@ontrails/drizzle`.
 
+<!-- warden-ignore-next-line -->
 - Replace `import { ... } from '@ontrails/store/drizzle'` with `import { ... } from '@ontrails/drizzle'`
 - Keep backend-agnostic store declarations on `@ontrails/store`

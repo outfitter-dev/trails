@@ -30,7 +30,9 @@ bun add @ontrails/store @ontrails/drizzle zod
 
 ## Migration
 
+<!-- warden-ignore-next-line -->
 This package replaces the old `@ontrails/store/drizzle` subpath.
 
+<!-- warden-ignore-next-line -->
 - Before: `import { connectDrizzle } from '@ontrails/store/drizzle'`
 - After: `import { connectDrizzle } from '@ontrails/drizzle'`

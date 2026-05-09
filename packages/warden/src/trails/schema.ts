@@ -40,6 +40,16 @@ export const importResolutionSchema = z.object({
   usesPublicExport: z.boolean(),
 });
 
+export const publicWorkspaceSchema = z.object({
+  bin: z.record(z.string(), z.string()).optional(),
+  exportTargets: z.record(z.string(), z.string()).optional(),
+  files: z.array(z.string()).optional(),
+  hasExports: z.boolean(),
+  name: z.string(),
+  packageJsonPath: z.string(),
+  rootDir: z.string(),
+});
+
 /**
  * Extended input for project-aware warden rule trails.
  *
@@ -65,6 +75,10 @@ export const projectAwareRuleInput = ruleInput.extend({
     .array(z.string())
     .optional()
     .describe('Store table IDs used with CRUD factories across the project'),
+  documentedImportResolutionsByFile: z
+    .record(z.string(), z.array(importResolutionSchema))
+    .optional()
+    .describe('Resolved docs/specifier facts keyed by documentation file path'),
   importResolutionsByFile: z
     .record(z.string(), z.array(importResolutionSchema))
     .optional()
@@ -89,6 +103,10 @@ export const projectAwareRuleInput = ruleInput.extend({
     .array(z.string())
     .optional()
     .describe('Signal IDs referenced by trail on arrays across the project'),
+  publicWorkspaces: z
+    .record(z.string(), publicWorkspaceSchema)
+    .optional()
+    .describe('Non-private published @ontrails workspaces by package name'),
   reconcileTableIds: z
     .array(z.string())
     .optional()

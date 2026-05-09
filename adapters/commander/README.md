@@ -44,7 +44,9 @@ bun add @ontrails/cli @ontrails/commander
 
 ## Migration
 
+<!-- warden-ignore-next-line -->
 This package replaces the old `@ontrails/cli/commander` subpath.
 
+<!-- warden-ignore-next-line -->
 - Before: `import { surface } from '@ontrails/cli/commander'`
 - After: `import { surface } from '@ontrails/commander'`

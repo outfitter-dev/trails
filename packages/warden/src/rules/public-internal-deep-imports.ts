@@ -1,297 +1,60 @@
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
-import { join, resolve, sep } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { existsSync, realpathSync } from 'node:fs';
+import { resolve, sep } from 'node:path';
 
 import {
   extractStringLiteral,
-  identifierName,
+  hasIgnoreCommentOnLine,
   offsetToLine,
   parse,
+  splitSourceLines,
   walk,
 } from './ast.js';
 import type { AstNode } from './ast.js';
-import type { WardenDiagnostic, WardenRule } from './types.js';
+import type {
+  ProjectAwareWardenRule,
+  ProjectContext,
+  WardenDiagnostic,
+} from './types.js';
+import type { WardenImportResolution } from '../resolve.js';
+import type { WardenPublicWorkspace } from '../workspaces.js';
 
 const RULE_NAME = 'public-internal-deep-imports';
-const WORKSPACE_ROOT = resolve(
-  fileURLToPath(new URL('../../../../', import.meta.url))
-);
 const ONTRAILS_SPECIFIER_PATTERN = /^(@ontrails\/[^/]+)(?:\/(.+))?$/;
+const ROOT_BARREL_INTERNAL_RE_EXPORT_ALLOWLIST = new Set([
+  '@ontrails/core:./internal/cross-batch.js',
+  '@ontrails/core:./internal/layer-projection.js',
+  '@ontrails/core:./internal/signal-ref.js',
+  '@ontrails/core:./internal/tracing.js',
+  '@ontrails/core:./internal/trails-db.js',
+  '@ontrails/core:./internal/zod-wrappers.js',
+  '@ontrails/store:./internal/signal-identity.js',
+  '@ontrails/topographer:./internal/topo-snapshots.js',
+  '@ontrails/topographer:./internal/topo-store.js',
+  '@ontrails/tracing:./internal/dev-state.js',
+]);
 
-interface ExportPattern {
-  readonly prefix: string;
-  readonly suffix: string;
+interface ReExportSite {
+  readonly importSource: string;
+  readonly line: number;
 }
 
-interface WorkspacePackage {
-  readonly exportedSpecifiers: ReadonlySet<string>;
-  readonly name: string;
-  readonly patterns: readonly ExportPattern[];
-  readonly rootDir: string;
-}
+const normalizePath = (path: string): string => path.replaceAll('\\', '/');
 
-interface PackageManifest {
-  readonly exports?: unknown;
-  readonly name?: unknown;
-  readonly workspaces?: unknown;
-}
-
-interface ImportSite {
-  readonly node: AstNode;
-  readonly specifier: string;
-}
-
-/**
- * Workspace package metadata is stable during a normal Warden run, so cache it
- * once per process instead of re-reading every package manifest for each file.
- *
- * Long-running callers that mutate manifests or workspace layout between runs
- * should call `clearPublicInternalDeepImportsCache()` before checking again.
- */
-let workspacePackagesCache: ReadonlyMap<string, WorkspacePackage> | undefined;
-
-export const clearPublicInternalDeepImportsCache = (): void => {
-  workspacePackagesCache = undefined;
-};
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  Boolean(value && typeof value === 'object' && !Array.isArray(value));
-
-const readPackageManifest = (
-  packageDir: string
-): PackageManifest | undefined => {
-  const manifestPath = join(packageDir, 'package.json');
-  if (!existsSync(manifestPath)) {
-    return undefined;
-  }
-
+const normalizeRealPath = (path: string): string => {
   try {
-    return JSON.parse(readFileSync(manifestPath, 'utf8')) as PackageManifest;
+    return normalizePath(realpathSync(path));
   } catch {
-    return undefined;
+    return normalizePath(resolve(path));
   }
-};
-
-const exportKeys = (exportsValue: unknown): readonly string[] => {
-  if (!isRecord(exportsValue)) {
-    return [];
-  }
-  return Object.keys(exportsValue).filter((key) => key.startsWith('.'));
-};
-
-const exportPatternFromKey = (
-  packageName: string,
-  key: string
-): ExportPattern | undefined => {
-  if (!key.includes('*')) {
-    return undefined;
-  }
-  const subpath = key.slice(2);
-  const [prefix = '', suffix = ''] = subpath.split('*');
-  return {
-    prefix: `${packageName}/${prefix}`,
-    suffix,
-  };
-};
-
-const exportedSpecifierFromKey = (
-  packageName: string,
-  key: string
-): string | undefined => {
-  if (key === '.') {
-    return packageName;
-  }
-  if (key.includes('*')) {
-    return undefined;
-  }
-  if (!key.startsWith('./')) {
-    return undefined;
-  }
-  return `${packageName}/${key.slice(2)}`;
-};
-
-const buildWorkspacePackage = (
-  packageDir: string,
-  manifest: PackageManifest
-): WorkspacePackage | undefined => {
-  if (typeof manifest.name !== 'string') {
-    return undefined;
-  }
-  if (!manifest.name.startsWith('@ontrails/')) {
-    return undefined;
-  }
-
-  const exportedSpecifiers = new Set<string>([manifest.name]);
-  const patterns: ExportPattern[] = [];
-  for (const key of exportKeys(manifest.exports)) {
-    const exactSpecifier = exportedSpecifierFromKey(manifest.name, key);
-    if (exactSpecifier) {
-      exportedSpecifiers.add(exactSpecifier);
-      continue;
-    }
-    const pattern = exportPatternFromKey(manifest.name, key);
-    if (pattern) {
-      patterns.push(pattern);
-    }
-  }
-
-  return {
-    exportedSpecifiers,
-    name: manifest.name,
-    patterns,
-    rootDir: resolve(packageDir),
-  };
-};
-
-const workspacePatterns = (): readonly string[] => {
-  const rootManifest = readPackageManifest(WORKSPACE_ROOT);
-  const { workspaces } = rootManifest ?? {};
-  if (Array.isArray(workspaces)) {
-    return workspaces.filter(
-      (pattern): pattern is string => typeof pattern === 'string'
-    );
-  }
-  const workspacePackages = isRecord(workspaces)
-    ? workspaces['packages']
-    : undefined;
-  if (Array.isArray(workspacePackages)) {
-    return workspacePackages.filter(
-      (pattern): pattern is string => typeof pattern === 'string'
-    );
-  }
-  return [];
-};
-
-const packageDirsForPattern = (pattern: string): readonly string[] => {
-  if (!pattern.endsWith('/*')) {
-    const packageDir = join(WORKSPACE_ROOT, pattern);
-    return existsSync(packageDir) ? [packageDir] : [];
-  }
-
-  const groupDir = join(WORKSPACE_ROOT, pattern.slice(0, -2));
-  if (!existsSync(groupDir)) {
-    return [];
-  }
-  return readdirSync(groupDir, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => join(groupDir, entry.name))
-    .toSorted();
-};
-
-const collectWorkspacePackages = (): ReadonlyMap<string, WorkspacePackage> => {
-  const workspacePackages = new Map<string, WorkspacePackage>();
-
-  for (const packageDir of workspacePatterns().flatMap(packageDirsForPattern)) {
-    const manifest = readPackageManifest(packageDir);
-    if (!manifest) {
-      continue;
-    }
-    const workspacePackage = buildWorkspacePackage(packageDir, manifest);
-    if (workspacePackage) {
-      workspacePackages.set(workspacePackage.name, workspacePackage);
-    }
-  }
-
-  return workspacePackages;
-};
-
-const getWorkspacePackages = (): ReadonlyMap<string, WorkspacePackage> => {
-  workspacePackagesCache ??= collectWorkspacePackages();
-  return workspacePackagesCache;
 };
 
 const pathIsInside = (filePath: string, rootDir: string): boolean => {
-  const absoluteFilePath = resolve(filePath);
-  const absoluteRootDir = resolve(rootDir);
+  const absoluteFilePath = normalizeRealPath(filePath);
+  const absoluteRootDir = normalizeRealPath(rootDir);
   return (
     absoluteFilePath === absoluteRootDir ||
-    absoluteFilePath.startsWith(`${absoluteRootDir}${sep}`)
+    absoluteFilePath.startsWith(`${absoluteRootDir}/`)
   );
-};
-
-const sourcePackageNameForFile = (
-  filePath: string,
-  workspacePackages: ReadonlyMap<string, WorkspacePackage>
-): string | undefined => {
-  for (const workspacePackage of workspacePackages.values()) {
-    if (pathIsInside(filePath, workspacePackage.rootDir)) {
-      return workspacePackage.name;
-    }
-  }
-  return undefined;
-};
-
-const matchesExportPattern = (
-  specifier: string,
-  pattern: ExportPattern
-): boolean => {
-  if (!specifier.startsWith(pattern.prefix)) {
-    return false;
-  }
-  if (!specifier.endsWith(pattern.suffix)) {
-    return false;
-  }
-
-  const wildcardEnd =
-    pattern.suffix.length === 0
-      ? specifier.length
-      : specifier.length - pattern.suffix.length;
-  const wildcardSegment = specifier.slice(pattern.prefix.length, wildcardEnd);
-  return wildcardSegment.length > 0 && !wildcardSegment.includes('/');
-};
-
-export const __matchesExportPatternForTest = (
-  specifier: string,
-  pattern: { readonly prefix: string; readonly suffix: string }
-): boolean => matchesExportPattern(specifier, pattern);
-
-const isExportedSpecifier = (
-  specifier: string,
-  workspacePackage: WorkspacePackage
-): boolean => {
-  if (workspacePackage.exportedSpecifiers.has(specifier)) {
-    return true;
-  }
-  return workspacePackage.patterns.some((pattern) =>
-    matchesExportPattern(specifier, pattern)
-  );
-};
-
-const sourceFromModuleNode = (node: AstNode): string | null => {
-  if (
-    node.type === 'ExportAllDeclaration' ||
-    node.type === 'ExportNamedDeclaration' ||
-    node.type === 'ImportDeclaration' ||
-    node.type === 'ImportExpression' ||
-    node.type === 'TSImportType'
-  ) {
-    return extractStringLiteral(
-      (node as unknown as { source?: AstNode }).source
-    );
-  }
-
-  if (node.type !== 'CallExpression') {
-    return null;
-  }
-  const { arguments: args, callee } = node as unknown as {
-    arguments?: readonly AstNode[];
-    callee?: AstNode;
-  };
-  if (identifierName(callee) !== 'require') {
-    return null;
-  }
-  return extractStringLiteral(args?.[0]);
-};
-
-const collectImportSites = (ast: AstNode): readonly ImportSite[] => {
-  const sites: ImportSite[] = [];
-  walk(ast, (node) => {
-    const specifier = sourceFromModuleNode(node);
-    if (specifier) {
-      sites.push({ node, specifier });
-    }
-  });
-  return sites;
 };
 
 const packageNameFromSpecifier = (specifier: string): string | undefined => {
@@ -299,68 +62,465 @@ const packageNameFromSpecifier = (specifier: string): string | undefined => {
   return match?.[1];
 };
 
-const diagnosticForSite = (
-  site: ImportSite,
-  filePath: string,
-  sourceCode: string,
-  sourcePackageName: string | undefined,
-  workspacePackages: ReadonlyMap<string, WorkspacePackage>
-): WardenDiagnostic | undefined => {
-  const packageName = packageNameFromSpecifier(site.specifier);
-  if (!packageName) {
-    return undefined;
-  }
-  const workspacePackage = workspacePackages.get(packageName);
-  if (!workspacePackage) {
-    return undefined;
-  }
-  if (sourcePackageName === packageName) {
-    return undefined;
-  }
-  if (isExportedSpecifier(site.specifier, workspacePackage)) {
-    return undefined;
-  }
+const specifierHasSubpath = (specifier: string): boolean =>
+  Boolean(ONTRAILS_SPECIFIER_PATTERN.exec(specifier)?.[2]);
 
-  return {
-    filePath,
-    line: offsetToLine(sourceCode, site.node.start),
-    message:
-      `${RULE_NAME}: cross-package import "${site.specifier}" is not exported by ${packageName}. ` +
-      'Use the package root or an exported subpath; if the API is missing, add an owner export follow-up instead of importing internals.',
-    rule: RULE_NAME,
-    severity: 'error',
-  };
+const sourcePackageNameForFile = (
+  filePath: string,
+  workspaces: ReadonlyMap<string, WardenPublicWorkspace>
+): string | undefined => {
+  for (const workspace of workspaces.values()) {
+    if (pathIsInside(filePath, workspace.rootDir)) {
+      return workspace.name;
+    }
+  }
+  return undefined;
 };
 
-export const publicInternalDeepImports: WardenRule = {
-  check(sourceCode: string, filePath: string): readonly WardenDiagnostic[] {
-    const ast = parse(filePath, sourceCode);
-    if (!ast) {
-      return [];
+const importResolutionsForFile = (
+  context: ProjectContext,
+  filePath: string
+): readonly WardenImportResolution[] =>
+  context.importResolutionsByFile?.get(filePath) ?? [];
+
+const documentedImportResolutionsForFile = (
+  context: ProjectContext,
+  filePath: string
+): readonly WardenImportResolution[] =>
+  context.documentedImportResolutionsByFile?.get(filePath) ?? [];
+
+const diagnosticMessage = (
+  resolution: WardenImportResolution,
+  packageName: string
+): string => {
+  if (resolution.errorKind === 'not-found') {
+    return `@ontrails specifier "${resolution.importSource}" could not be resolved from the public workspace package ${packageName}. Use the package root, an exported subpath, or the package binary when the package is bin-only.`;
+  }
+
+  return (
+    `@ontrails specifier "${resolution.importSource}" is not exported by ${packageName}. ` +
+    'Use the package root or an exported subpath; if the API is missing, add an owner export follow-up instead of importing internals.'
+  );
+};
+
+const shouldReportResolution = (
+  resolution: WardenImportResolution,
+  workspace: WardenPublicWorkspace,
+  sourcePackageName: string | undefined,
+  isDocumentation: boolean
+): boolean => {
+  if (!isDocumentation && sourcePackageName === workspace.name) {
+    return false;
+  }
+
+  if (resolution.errorKind === 'package-path-not-exported') {
+    return true;
+  }
+
+  if (resolution.errorKind === 'not-found') {
+    return isDocumentation
+      ? specifierHasSubpath(resolution.importSource)
+      : resolution.importSource === workspace.name ||
+          specifierHasSubpath(resolution.importSource);
+  }
+
+  if (isDocumentation && specifierHasSubpath(resolution.importSource)) {
+    return !resolution.usesPublicExport;
+  }
+
+  return false;
+};
+
+const diagnosticsForResolutions = ({
+  context,
+  filePath,
+  isDocumentation,
+  sourceCode,
+}: {
+  readonly context: ProjectContext;
+  readonly filePath: string;
+  readonly isDocumentation: boolean;
+  readonly sourceCode: string;
+}): readonly WardenDiagnostic[] => {
+  const workspaces = context.publicWorkspaces;
+  if (!workspaces || workspaces.size === 0) {
+    return [];
+  }
+
+  const sourcePackageName = sourcePackageNameForFile(filePath, workspaces);
+  const lines = splitSourceLines(sourceCode);
+  const resolutions = isDocumentation
+    ? documentedImportResolutionsForFile(context, filePath)
+    : importResolutionsForFile(context, filePath);
+  const diagnostics: WardenDiagnostic[] = [];
+
+  for (const resolution of resolutions) {
+    if (hasIgnoreCommentOnLine(lines, resolution.line)) {
+      continue;
     }
 
-    const workspacePackages = getWorkspacePackages();
-    if (workspacePackages.size === 0) {
-      return [];
+    const packageName =
+      resolution.packageName ??
+      packageNameFromSpecifier(resolution.importSource);
+    const workspace = packageName ? workspaces.get(packageName) : undefined;
+    if (!packageName || !workspace) {
+      continue;
     }
 
-    const sourcePackageName = sourcePackageNameForFile(
-      filePath,
-      workspacePackages
-    );
-    return collectImportSites(ast).flatMap((site) => {
-      const diagnostic = diagnosticForSite(
-        site,
-        filePath,
-        sourceCode,
+    if (
+      shouldReportResolution(
+        resolution,
+        workspace,
         sourcePackageName,
-        workspacePackages
-      );
-      return diagnostic ? [diagnostic] : [];
+        isDocumentation
+      )
+    ) {
+      diagnostics.push({
+        filePath,
+        line: resolution.line,
+        message: diagnosticMessage(resolution, packageName),
+        rule: RULE_NAME,
+        severity: 'error',
+      });
+    }
+  }
+
+  return diagnostics;
+};
+
+const isRootBarrel = (
+  filePath: string,
+  workspace: WardenPublicWorkspace
+): boolean => {
+  const rootExportTarget = workspace.exportTargets?.[workspace.name];
+  if (rootExportTarget) {
+    return normalizeRealPath(filePath) === rootExportTarget;
+  }
+  return (
+    normalizeRealPath(filePath) ===
+    normalizeRealPath(resolve(workspace.rootDir, 'src/index.ts'))
+  );
+};
+
+const rootBarrelWorkspace = (
+  filePath: string,
+  workspaces: ReadonlyMap<string, WardenPublicWorkspace>
+): WardenPublicWorkspace | undefined => {
+  for (const workspace of workspaces.values()) {
+    if (isRootBarrel(filePath, workspace)) {
+      return workspace;
+    }
+  }
+  return undefined;
+};
+
+const collectReExportSites = (
+  sourceCode: string,
+  filePath: string
+): readonly ReExportSite[] => {
+  const ast = parse(filePath, sourceCode);
+  if (!ast) {
+    return [];
+  }
+
+  const sites: ReExportSite[] = [];
+  walk(ast, (node) => {
+    if (
+      node.type !== 'ExportNamedDeclaration' &&
+      node.type !== 'ExportAllDeclaration'
+    ) {
+      return;
+    }
+
+    const { source } = node as unknown as { source?: AstNode };
+    const value = extractStringLiteral(source);
+    if (typeof value !== 'string') {
+      return;
+    }
+
+    sites.push({
+      importSource: value,
+      line: offsetToLine(sourceCode, node.start),
     });
+  });
+  return sites;
+};
+
+const reExportResolution = (
+  resolutions: readonly WardenImportResolution[],
+  site: ReExportSite
+): WardenImportResolution | undefined =>
+  resolutions.find(
+    (resolution) =>
+      resolution.importSource === site.importSource &&
+      resolution.line === site.line
+  );
+
+const isAllowlistedRootBarrelInternalExport = (
+  workspace: WardenPublicWorkspace,
+  importSource: string
+): boolean =>
+  ROOT_BARREL_INTERNAL_RE_EXPORT_ALLOWLIST.has(
+    `${workspace.name}:${importSource}`
+  );
+
+const rootBarrelDiagnostics = (
+  sourceCode: string,
+  filePath: string,
+  context: ProjectContext
+): readonly WardenDiagnostic[] => {
+  const workspaces = context.publicWorkspaces;
+  if (!workspaces || workspaces.size === 0) {
+    return [];
+  }
+
+  const workspace = rootBarrelWorkspace(filePath, workspaces);
+  if (!workspace) {
+    return [];
+  }
+
+  const resolutions = importResolutionsForFile(context, filePath);
+  const lines = splitSourceLines(sourceCode);
+  const diagnostics: WardenDiagnostic[] = [];
+  for (const site of collectReExportSites(sourceCode, filePath)) {
+    if (isAllowlistedRootBarrelInternalExport(workspace, site.importSource)) {
+      continue;
+    }
+    if (hasIgnoreCommentOnLine(lines, site.line)) {
+      continue;
+    }
+
+    const resolution = reExportResolution(resolutions, site);
+    if (!resolution?.isInternalTarget) {
+      continue;
+    }
+
+    diagnostics.push({
+      filePath,
+      line: site.line,
+      message:
+        `${workspace.name} root barrel re-exports internal target "${site.importSource}". ` +
+        'Move the symbol behind an explicit public module or keep it private to the package.',
+      rule: RULE_NAME,
+      severity: 'error',
+    });
+  }
+
+  return diagnostics;
+};
+
+const stripLeadingDotSlash = (path: string): string =>
+  path.startsWith('./') ? path.slice(2) : path;
+
+const escapeRegExp = (value: string): string =>
+  value.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const wildcardPatternSource = (pattern: string): string => {
+  let regexSource = '';
+  for (let index = 0; index < pattern.length; index += 1) {
+    const char = pattern[index];
+    if (char === '*') {
+      if (pattern[index + 1] === '*') {
+        regexSource += '.*';
+        index += 1;
+      } else {
+        regexSource += '[^/]*';
+      }
+      continue;
+    }
+    regexSource += escapeRegExp(char ?? '');
+  }
+  return regexSource;
+};
+
+const segmentWildcardPatternCovers = (
+  filePath: string,
+  pattern: string
+): boolean => new RegExp(`^${wildcardPatternSource(pattern)}$`).test(filePath);
+
+const deepWildcardPatternCovers = (
+  filePath: string,
+  pattern: string,
+  globIndex: number
+): boolean => {
+  const prefix = pattern.slice(0, globIndex + 1);
+  if (!filePath.startsWith(prefix)) {
+    return false;
+  }
+  const suffixPattern = pattern.slice(globIndex + '/**/'.length);
+  if (suffixPattern.length === 0) {
+    return true;
+  }
+  const remainingPath = filePath.slice(prefix.length);
+  const regexSource = `^(?:.*/)?${wildcardPatternSource(suffixPattern)}$`;
+  return new RegExp(regexSource).test(remainingPath);
+};
+
+const filePatternCovers = (filePath: string, pattern: string): boolean => {
+  const normalizedFilePath = normalizePath(stripLeadingDotSlash(filePath));
+  const normalizedPattern = normalizePath(stripLeadingDotSlash(pattern));
+  if (normalizedPattern.startsWith('!')) {
+    return false;
+  }
+  if (normalizedPattern === normalizedFilePath) {
+    return true;
+  }
+  if (normalizedPattern === '**') {
+    return true;
+  }
+  if (normalizedPattern.endsWith('/**')) {
+    const prefix = normalizedPattern.slice(0, -2);
+    return normalizedFilePath.startsWith(prefix);
+  }
+
+  const globIndex = normalizedPattern.indexOf('/**/');
+  if (globIndex === -1) {
+    if (normalizedPattern.includes('*')) {
+      return segmentWildcardPatternCovers(
+        normalizedFilePath,
+        normalizedPattern
+      );
+    }
+    return normalizedFilePath.startsWith(`${normalizedPattern}/`);
+  }
+
+  return deepWildcardPatternCovers(
+    normalizedFilePath,
+    normalizedPattern,
+    globIndex
+  );
+};
+
+const filesCoverTarget = (
+  files: readonly string[] | undefined,
+  target: string
+): boolean => {
+  if (!files || files.length === 0) {
+    return true;
+  }
+  let covered = false;
+  for (const pattern of files) {
+    const normalizedPattern = normalizePath(stripLeadingDotSlash(pattern));
+    if (normalizedPattern.startsWith('!')) {
+      if (filePatternCovers(target, normalizedPattern.slice(1))) {
+        covered = false;
+      }
+      continue;
+    }
+    if (filePatternCovers(target, normalizedPattern)) {
+      covered = true;
+    }
+  }
+  return covered;
+};
+
+const workspaceForPackageJson = (
+  filePath: string,
+  workspaces: ReadonlyMap<string, WardenPublicWorkspace>
+): WardenPublicWorkspace | undefined => {
+  const normalizedFilePath = normalizeRealPath(filePath);
+  for (const workspace of workspaces.values()) {
+    if (normalizePath(workspace.packageJsonPath) === normalizedFilePath) {
+      return workspace;
+    }
+  }
+  return undefined;
+};
+
+const binSurfaceDiagnostics = (
+  filePath: string,
+  context: ProjectContext
+): readonly WardenDiagnostic[] => {
+  if (
+    !filePath.endsWith(`${sep}package.json`) &&
+    !filePath.endsWith('/package.json')
+  ) {
+    return [];
+  }
+
+  const workspaces = context.publicWorkspaces;
+  if (!workspaces || workspaces.size === 0) {
+    return [];
+  }
+
+  const workspace = workspaceForPackageJson(filePath, workspaces);
+  if (!workspace) {
+    return [];
+  }
+
+  const diagnostics: WardenDiagnostic[] = [];
+  const binEntries = Object.entries(workspace.bin ?? {});
+  if (!workspace.hasExports && binEntries.length === 0) {
+    diagnostics.push({
+      filePath,
+      line: 1,
+      message:
+        `Public workspace ${workspace.name} has no exports map and no bin surface. ` +
+        'Add an exports map for library APIs or declare the package binary surface explicitly.',
+      rule: RULE_NAME,
+      severity: 'error',
+    });
+  }
+
+  for (const [binName, target] of binEntries) {
+    const targetPath = resolve(workspace.rootDir, target);
+    if (!existsSync(targetPath)) {
+      diagnostics.push({
+        filePath,
+        line: 1,
+        message: `Bin "${binName}" for ${workspace.name} points at missing file ${target}.`,
+        rule: RULE_NAME,
+        severity: 'error',
+      });
+    }
+
+    if (!filesCoverTarget(workspace.files, target)) {
+      diagnostics.push({
+        filePath,
+        line: 1,
+        message:
+          `Bin "${binName}" for ${workspace.name} points at ${target}, ` +
+          'but the package files list does not include that target.',
+        rule: RULE_NAME,
+        severity: 'error',
+      });
+    }
+  }
+
+  return diagnostics;
+};
+
+export const publicInternalDeepImports: ProjectAwareWardenRule = {
+  check(): readonly WardenDiagnostic[] {
+    return [];
+  },
+  checkWithContext(
+    sourceCode: string,
+    filePath: string,
+    context: ProjectContext
+  ): readonly WardenDiagnostic[] {
+    if (filePath.endsWith('.md')) {
+      return diagnosticsForResolutions({
+        context,
+        filePath,
+        isDocumentation: true,
+        sourceCode,
+      });
+    }
+
+    return [
+      ...diagnosticsForResolutions({
+        context,
+        filePath,
+        isDocumentation: false,
+        sourceCode,
+      }),
+      ...rootBarrelDiagnostics(sourceCode, filePath, context),
+      ...binSurfaceDiagnostics(filePath, context),
+    ];
   },
   description:
-    'Disallow cross-package @ontrails/* deep imports that bypass the owner package exports map.',
+    'Keep @ontrails/* imports, docs specifiers, root barrels, and bin-only surfaces aligned with public package exports.',
   name: RULE_NAME,
   severity: 'error',
 };
