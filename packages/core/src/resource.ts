@@ -18,6 +18,11 @@ export type ResourceContext<C = unknown> = Pick<
   readonly config: C;
 };
 
+/** Explicit marker for resources that intentionally cannot provide a mock. */
+export interface ResourceUnmockable {
+  readonly reason: string;
+}
+
 /**
  * Everything needed to describe a resource before a factory is introduced.
  *
@@ -41,6 +46,8 @@ export interface ResourceSpec<T, C = unknown> {
     | undefined;
   /** Optional test factory used by higher-level helpers. */
   readonly mock?: (() => T | Promise<T>) | undefined;
+  /** Document why this resource intentionally cannot provide a test mock. */
+  readonly unmockable?: ResourceUnmockable | undefined;
   /** Human-readable description. */
   readonly description?: string | undefined;
   /** Arbitrary meta for tooling and filtering. */
@@ -112,6 +119,19 @@ export const resource = <T>(id: string, spec: ResourceSpec<T>): Resource<T> =>
     if (id.includes(':')) {
       throw new InternalError(
         `Resource "${id}" is invalid because resource ids may not contain ":"`
+      );
+    }
+    if (spec.mock !== undefined && spec.unmockable !== undefined) {
+      throw new InternalError(
+        `Resource "${id}" cannot define both mock and unmockable`
+      );
+    }
+    if (
+      spec.unmockable !== undefined &&
+      spec.unmockable.reason.trim().length === 0
+    ) {
+      throw new InternalError(
+        `Resource "${id}" is invalid because unmockable.reason must not be empty`
       );
     }
 

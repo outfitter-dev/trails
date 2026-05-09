@@ -62,6 +62,7 @@ testAll(graph);
 When trails declare resources, the testing helpers respect them in two ways:
 
 - Resources with a `mock` factory auto-resolve during `testAll`, `testExamples`, and `testContracts`.
+- Resources marked `unmockable: { reason }` are intentionally skipped during auto-mock resolution; provide an explicit override for examples or contracts that need them.
 - Explicit `resources` overrides let you inject a specific test double when you need one.
 
 ```typescript

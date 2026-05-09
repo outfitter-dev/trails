@@ -117,6 +117,22 @@ import { graph } from '../app';
 testAll(graph);
 ```
 
+If a resource cannot honestly provide a mock, mark that explicitly instead of
+leaving the gap ambiguous:
+
+```typescript
+const hsm = resource('hsm.signer', {
+  create: () => connectToHsm(),
+  unmockable: {
+    reason: 'Signing depends on a hardware-backed key that has no faithful in-memory double.',
+  },
+});
+```
+
+Testing helpers skip `unmockable` resources during auto-mock resolution. Trails
+that need them still require explicit resource overrides when their examples or
+contracts execute.
+
 Override explicitly when you need specific behavior:
 
 ```typescript

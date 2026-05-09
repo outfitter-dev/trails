@@ -184,6 +184,9 @@ export const mergeResourceOverrides = (
 const buildMockResources = async (app: Topo): Promise<ResourceOverrideMap> => {
   const resources: Record<string, unknown> = {};
   for (const declaredResource of app.listResources()) {
+    if (declaredResource.unmockable !== undefined) {
+      continue;
+    }
     if (!declaredResource.mock) {
       continue;
     }

@@ -118,6 +118,7 @@ export type {
   ResourceContext,
   ResourceOverrideMap,
   ResourceSpec,
+  ResourceUnmockable,
 } from './resource.js';
 
 // Trail

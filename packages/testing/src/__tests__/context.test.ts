@@ -163,8 +163,21 @@ describe('createMockResources', () => {
     const plain = resource(`resource.plain.${Bun.randomUUIDv7()}`, {
       create: () => Result.ok({ source: 'factory' }),
     });
-    const app = topo('plain-app', { plain } as Record<string, unknown>);
+    const app = topo('plain-app', { plain });
 
+    expect(await createMockResources(app)).toEqual({});
+  });
+
+  test('skips resources marked intentionally unmockable', async () => {
+    const unmockable = resource(`resource.unmockable.${Bun.randomUUIDv7()}`, {
+      create: () => Result.ok({ source: 'factory' }),
+      unmockable: {
+        reason: 'Requires a live external service for integration tests.',
+      },
+    });
+    const app = topo('unmockable-app', { unmockable });
+
+    expect(unmockable.unmockable?.reason).toContain('external service');
     expect(await createMockResources(app)).toEqual({});
   });
 });

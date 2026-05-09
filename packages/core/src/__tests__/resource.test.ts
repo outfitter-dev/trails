@@ -86,6 +86,17 @@ describe('resource types', () => {
     expect(disposedValue).toBe(3);
   });
 
+  test('ResourceSpec can document intentionally unmockable resources', () => {
+    const spec: ResourceSpec<number> = {
+      create: () => Result.ok(1),
+      unmockable: {
+        reason: 'Requires a hardware security module in integration tests.',
+      },
+    };
+
+    expect(spec.unmockable?.reason).toContain('hardware security module');
+  });
+
   test('ResourceSpec create can be async', async () => {
     const spec: ResourceSpec<number> = {
       create: async () => {
@@ -131,6 +142,31 @@ describe('resource()', () => {
   test('rejects resource ids containing a scope separator', () => {
     expect(() => resource('billing:primary', counterResourceSpec)).toThrow(
       'Resource "billing:primary" is invalid because resource ids may not contain ":"'
+    );
+  });
+
+  test('rejects unmockable resources without a reason', () => {
+    expect(() =>
+      resource('db.unmockable.empty', {
+        create: () => Result.ok({ ok: true }),
+        unmockable: { reason: '   ' },
+      })
+    ).toThrow(
+      'Resource "db.unmockable.empty" is invalid because unmockable.reason must not be empty'
+    );
+  });
+
+  test('rejects resources that define both mock and unmockable', () => {
+    expect(() =>
+      resource('db.unmockable.conflict', {
+        create: () => Result.ok({ ok: true }),
+        mock: () => ({ ok: true }),
+        unmockable: {
+          reason: 'The real dependency has no faithful local double.',
+        },
+      })
+    ).toThrow(
+      'Resource "db.unmockable.conflict" cannot define both mock and unmockable'
     );
   });
 
