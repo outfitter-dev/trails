@@ -2,7 +2,7 @@ import type { ActionResultContext } from '@ontrails/cli';
 
 interface WardenResultValue {
   readonly formatted: string;
-  readonly passed: boolean;
+  readonly passed?: boolean | undefined;
 }
 
 const isWardenResultValue = (value: unknown): value is WardenResultValue => {
@@ -12,12 +12,16 @@ const isWardenResultValue = (value: unknown): value is WardenResultValue => {
   const candidate = value as Record<string, unknown>;
   return (
     typeof candidate['formatted'] === 'string' &&
-    typeof candidate['passed'] === 'boolean'
+    (candidate['passed'] === undefined ||
+      typeof candidate['passed'] === 'boolean')
   );
 };
 
 export const tryWardenOutput = (ctx: ActionResultContext): boolean => {
-  if (ctx.trail.id !== 'warden' || ctx.result.isErr()) {
+  if (
+    (ctx.trail.id !== 'warden' && ctx.trail.id !== 'warden.guide') ||
+    ctx.result.isErr()
+  ) {
     return false;
   }
   const { value } = ctx.result;
@@ -28,6 +32,8 @@ export const tryWardenOutput = (ctx: ActionResultContext): boolean => {
   if (value.formatted.length > 0) {
     process.stdout.write(`${value.formatted}\n`);
   }
-  process.exitCode = value.passed ? 0 : 1;
+  if (typeof value.passed === 'boolean') {
+    process.exitCode = value.passed ? 0 : 1;
+  }
   return true;
 };

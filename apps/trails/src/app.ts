@@ -23,6 +23,7 @@ import * as topoCommand from './trails/topo.js';
 import * as topoUnpin from './trails/topo-unpin.js';
 import * as topoVerify from './trails/topo-verify.js';
 import * as warden from './trails/warden.js';
+import * as wardenGuide from './trails/warden-guide.js';
 
 export const app = topo(
   'trails',
@@ -42,6 +43,7 @@ export const app = topo(
   guide,
   draftPromote,
   warden,
+  wardenGuide,
   create,
   createScaffold,
   addSurface,

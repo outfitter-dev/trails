@@ -7,6 +7,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { tryWardenOutput } from '../run-warden.js';
+import { wardenGuideTrail } from '../trails/warden-guide.js';
 import { buildWardenCommandArgs, wardenTrail } from '../trails/warden.js';
 
 const wardenBinPath = fileURLToPath(
@@ -48,6 +49,51 @@ interface CliRun {
   readonly stderr: string;
   readonly stdout: string;
 }
+
+interface RawCliRun {
+  readonly exitCode: number;
+  readonly stderr: string;
+  readonly stdout: string;
+}
+
+const runRawCli = (
+  binPath: string,
+  args: readonly string[],
+  cwd: string
+): RawCliRun => {
+  const command = [process.execPath, binPath, ...args];
+  const proc = Bun.spawnSync({
+    cmd: command,
+    cwd,
+    env: { ...process.env, NO_COLOR: '1' } as Record<string, string>,
+    stderr: 'pipe',
+    stdout: 'pipe',
+    timeout: cliTimeoutMs,
+  });
+  const stdout = proc.stdout.toString();
+  const stderr = proc.stderr.toString();
+  const signalCode = proc.signalCode ?? undefined;
+  if (proc.exitedDueToTimeout || signalCode !== undefined) {
+    throw new Error(
+      [
+        `Warden CLI subprocess ${proc.exitedDueToTimeout ? 'timed out' : 'terminated'} before producing raw output.`,
+        `command: ${command.join(' ')}`,
+        `cwd: ${cwd}`,
+        ...(proc.exitedDueToTimeout ? [`timeoutMs: ${cliTimeoutMs}`] : []),
+        `exitCode: ${proc.exitCode ?? 'null'}`,
+        `signal: ${signalCode ?? 'null'}`,
+        `stdout: ${stdout}`,
+        `stderr: ${stderr}`,
+      ].join('\n')
+    );
+  }
+
+  return {
+    exitCode: proc.exitCode ?? -1,
+    stderr,
+    stdout,
+  };
+};
 
 const runCli = (
   binPath: string,
@@ -223,6 +269,45 @@ describe('trails warden', () => {
     }
   });
 
+  test('warden guide projects markdown from the Warden manifest', async () => {
+    const result = await wardenGuideTrail.blaze({ guideFormat: 'markdown' }, {
+      cwd: repoRoot,
+      env: {},
+    } as never);
+
+    expect(result.isOk()).toBe(true);
+    if (result.isErr()) {
+      throw result.error;
+    }
+    expect(result.value.manifest.kind).toBe('trails-warden-guide-manifest');
+    expect(result.value.formatted).toContain('# Trails Warden Guide');
+    expect(result.value.formatted).toContain(
+      '### `no-throw-in-implementation`'
+    );
+    expect(result.value.formatted).toContain(
+      'Convert thrown implementation failures into explicit Result.err() outcomes.'
+    );
+  });
+
+  test('warden guide format aliases work through the CLI', () => {
+    const raw = runRawCli(
+      trailsBinPath,
+      ['warden', 'guide', '--agent-json'],
+      repoRoot
+    );
+    const parsed = JSON.parse(raw.stdout) as {
+      readonly kind: string;
+      readonly rules: readonly { readonly id: string }[];
+    };
+
+    expect(raw.exitCode).toBe(0);
+    expect(raw.stderr).toBe('');
+    expect(parsed.kind).toBe('trails-warden-agent-guide');
+    expect(parsed.rules.map((rule) => rule.id)).toContain(
+      'no-throw-in-implementation'
+    );
+  });
+
   test('onResult bridge writes formatted output and sets the exit code', () => {
     const originalWrite = process.stdout.write;
     const originalExitCode = process.exitCode;
@@ -231,7 +316,7 @@ describe('trails warden', () => {
       output += chunk;
       return true;
     }) as typeof process.stdout.write;
-    process.exitCode = undefined;
+    process.exitCode = 0;
 
     try {
       const handled = tryWardenOutput({
@@ -249,6 +334,35 @@ describe('trails warden', () => {
     } finally {
       process.stdout.write = originalWrite;
       // Bun does not clear a non-zero exitCode when assigned undefined.
+      process.exitCode = originalExitCode ?? 0;
+    }
+  });
+
+  test('onResult bridge writes guide output without changing exit code', () => {
+    const originalWrite = process.stdout.write;
+    const originalExitCode = process.exitCode;
+    let output = '';
+    process.stdout.write = ((chunk: string) => {
+      output += chunk;
+      return true;
+    }) as typeof process.stdout.write;
+    process.exitCode = 7;
+
+    try {
+      const handled = tryWardenOutput({
+        args: {},
+        flags: {},
+        input: {},
+        result: Result.ok({ formatted: '# Guide' }),
+        topoName: 'trails',
+        trail: wardenGuideTrail as unknown as ActionResultContext['trail'],
+      });
+
+      expect(handled).toBe(true);
+      expect(output).toBe('# Guide\n');
+      expect(process.exitCode).toBe(7);
+    } finally {
+      process.stdout.write = originalWrite;
       process.exitCode = originalExitCode ?? 0;
     }
   });

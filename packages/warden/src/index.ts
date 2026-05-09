@@ -100,6 +100,20 @@ export {
 export type { DriftResult } from './drift.js';
 export { checkDrift } from './drift.js';
 
+// Guide projection
+export type {
+  WardenGuideFormat,
+  WardenGuideManifest,
+  WardenRuleGuideEntry,
+} from './guide.js';
+export {
+  buildWardenAgentGuide,
+  buildWardenGuideManifest,
+  formatWardenGuide,
+  formatWardenGuideMarkdown,
+  wardenGuideFormatValues,
+} from './guide.js';
+
 // Resolver helpers
 export {
   collectImportResolutionsForFile,
