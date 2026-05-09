@@ -14,6 +14,8 @@ export type {
   ProjectContext,
   TopoAwareWardenRule,
   WardenDiagnostic,
+  WardenGuidance,
+  WardenGuidanceLink,
   WardenRule,
   WardenRuleConcern,
   WardenRuleLifecycle,

@@ -104,6 +104,16 @@ const durableRepoLocal = {
   scope: 'repo-local',
 } as const;
 
+const trailContractDocs = {
+  label: 'Trail Rules',
+  path: 'AGENTS.md#trail-rules',
+} as const;
+
+const wardenDocs = {
+  label: 'Warden',
+  path: 'docs/warden.md',
+} as const;
+
 const builtinWardenRuleMetadataInput = {
   'activation-orphan': {
     ...durableExternal,
@@ -153,6 +163,14 @@ const builtinWardenRuleMetadataInput = {
   },
   'example-valid': {
     ...durableExternal,
+    guidance: {
+      docs: [trailContractDocs],
+      steps: [
+        'Update the example input, expected output, or schema so they describe the same contract.',
+        'Run the package tests that exercise the affected trail examples.',
+      ],
+      summary: 'Keep trail examples synchronized with their authored schemas.',
+    },
     invariant: 'Trail examples remain valid against their authored schema.',
     tier: 'source-static',
   },
@@ -237,6 +255,16 @@ const builtinWardenRuleMetadataInput = {
   },
   'no-throw-in-implementation': {
     ...durableExternal,
+    guidance: {
+      docs: [trailContractDocs],
+      relatedRules: ['implementation-returns-result', 'no-native-error-result'],
+      steps: [
+        'Return Result.err() with the most specific TrailsError subclass available.',
+        'Use detours for recoverable runtime strategies instead of throwing inside the blaze.',
+      ],
+      summary:
+        'Convert thrown implementation failures into explicit Result.err() outcomes.',
+    },
     invariant: 'Trail implementations return Result.err() instead of throwing.',
     tier: 'source-static',
   },
@@ -259,10 +287,31 @@ const builtinWardenRuleMetadataInput = {
   },
   'permit-governance': {
     ...durableExternal,
+    guidance: {
+      docs: [
+        trailContractDocs,
+        { label: 'Permits', path: 'packages/permits/README.md' },
+      ],
+      steps: [
+        'Declare the permit required for the destructive trail.',
+        'If the write is intentionally development-only, keep the dev permit out of committed runtime source.',
+      ],
+      summary:
+        'Make destructive trail authorization visible on the trail contract.',
+    },
     invariant: 'Destroy trails declare explicit permit requirements.',
     tier: 'topo-aware',
   },
   'prefer-schema-inference': {
+    guidance: {
+      docs: [trailContractDocs],
+      steps: [
+        'Remove field overrides that only repeat labels or enum options already inferable from the schema.',
+        'Keep field metadata only when it adds meaning the schema cannot derive.',
+      ],
+      summary:
+        'Let schemas remain the owner for field metadata unless an override adds new information.',
+    },
     invariant: 'Trail schemas should be inferred unless overrides add meaning.',
     lifecycle: { state: 'durable' },
     scope: 'advisory',
@@ -296,11 +345,31 @@ const builtinWardenRuleMetadataInput = {
   },
   'resource-declarations': {
     ...durableExternal,
+    guidance: {
+      docs: [trailContractDocs],
+      relatedRules: ['resource-exists'],
+      steps: [
+        'Declare each external dependency in the trail resources array.',
+        'Access statically known resources through the resource definition helper rather than constructing dependencies inline.',
+      ],
+      summary:
+        'Keep infrastructure dependencies declared on the trail contract.',
+    },
     invariant: 'Resource usage is declared on the trail contract.',
     tier: 'source-static',
   },
   'resource-exists': {
     ...durableExternal,
+    guidance: {
+      docs: [trailContractDocs, wardenDocs],
+      relatedRules: ['resource-declarations'],
+      steps: [
+        'Define the referenced resource in project source or import the existing resource definition.',
+        'When a resource is testable, include a mock factory so contract tests can run without real infrastructure.',
+      ],
+      summary:
+        'Make declared resources resolve to authored resource definitions.',
+    },
     invariant: 'Declared resources resolve to known resource definitions.',
     tier: 'project-static',
   },

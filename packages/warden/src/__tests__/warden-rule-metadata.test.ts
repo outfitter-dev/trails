@@ -67,4 +67,24 @@ describe('warden rule metadata', () => {
     );
     expect(listWardenRuleMetadata().length).toBe(allRuleNames.length);
   });
+
+  test('exposes structured guidance for guided built-in rules', () => {
+    expect(
+      getWardenRuleMetadata('no-throw-in-implementation')?.guidance
+    ).toEqual(
+      expect.objectContaining({
+        docs: [{ label: 'Trail Rules', path: 'AGENTS.md#trail-rules' }],
+        relatedRules: [
+          'implementation-returns-result',
+          'no-native-error-result',
+        ],
+        summary:
+          'Convert thrown implementation failures into explicit Result.err() outcomes.',
+      })
+    );
+  });
+
+  test('continues to allow unguided built-in rules', () => {
+    expect(getWardenRuleMetadata('circular-refs')?.guidance).toBeUndefined();
+  });
 });

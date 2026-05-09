@@ -21,6 +21,20 @@ import { resolveTrailRootDir } from './root-dir.js';
 // Trail definition
 // ---------------------------------------------------------------------------
 
+const wardenGuidanceLinkSchema = z.object({
+  label: z.string(),
+  path: z.string().optional(),
+  url: z.string().optional(),
+});
+
+const wardenGuidanceSchema = z.object({
+  commands: z.array(z.string()).readonly().optional(),
+  docs: z.array(wardenGuidanceLinkSchema).readonly().optional(),
+  relatedRules: z.array(z.string()).readonly().optional(),
+  steps: z.array(z.string()).readonly().optional(),
+  summary: z.string(),
+});
+
 const wardenInputSchema = z.object({
   apps: z
     .array(z.string())
@@ -178,6 +192,7 @@ export const wardenTrail = trail('warden', {
     diagnostics: z.array(
       z.object({
         filePath: z.string(),
+        guidance: wardenGuidanceSchema.optional(),
         line: z.number(),
         message: z.string(),
         rule: z.string(),

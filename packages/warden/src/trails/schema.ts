@@ -10,9 +10,26 @@ import type { Topo } from '@ontrails/core';
 import { z } from 'zod';
 import { wardenImportResolutionErrorKinds } from '../resolve.js';
 
+export const guidanceLinkSchema = z.object({
+  label: z.string(),
+  path: z.string().optional(),
+  url: z.string().optional(),
+});
+
+export const guidanceSchema = z.object({
+  commands: z.array(z.string()).readonly().optional(),
+  docs: z.array(guidanceLinkSchema).readonly().optional(),
+  relatedRules: z.array(z.string()).readonly().optional(),
+  steps: z.array(z.string()).readonly().optional(),
+  summary: z.string(),
+});
+
 /** A single diagnostic emitted by a warden rule trail. */
 export const diagnosticSchema = z.object({
   filePath: z.string().describe('File path that was analyzed'),
+  guidance: guidanceSchema
+    .optional()
+    .describe('Structured remediation guidance'),
   line: z.number().describe('1-based line number'),
   message: z.string().describe('Human-readable diagnostic message'),
   rule: z.string().describe('Rule name'),

@@ -19,6 +19,13 @@ const reportWithDiagnostics: WardenReport = {
   diagnostics: [
     {
       filePath: 'packages/core/src/result.ts',
+      guidance: {
+        commands: ['bun test packages/core'],
+        docs: [{ label: 'Trail Rules', path: 'AGENTS.md#trail-rules' }],
+        relatedRules: ['implementation-returns-result'],
+        steps: ['Return Result.err() instead of throwing.'],
+        summary: 'Convert thrown implementation failures into Result.err().',
+      },
       line: 42,
       message: 'Throw statement found in trail implementation',
       rule: 'no-throw-in-implementation',
@@ -104,6 +111,18 @@ describe('formatJson', () => {
     expect(parsed.diagnostics[0].rule).toBe('no-throw-in-implementation');
   });
 
+  test('exposes diagnostic guidance as structured JSON', () => {
+    const parsed = JSON.parse(formatJson(reportWithDiagnostics));
+    expect(parsed.diagnostics[0].guidance).toMatchObject({
+      commands: ['bun test packages/core'],
+      docs: [{ label: 'Trail Rules', path: 'AGENTS.md#trail-rules' }],
+      relatedRules: ['implementation-returns-result'],
+      steps: ['Return Result.err() instead of throwing.'],
+      summary: 'Convert thrown implementation failures into Result.err().',
+    });
+    expect(parsed.diagnostics[1].guidance).toBeUndefined();
+  });
+
   test('includes null drift when absent', () => {
     const parsed = JSON.parse(formatJson(reportWithDiagnostics));
     expect(parsed.drift).toBeNull();
@@ -143,6 +162,18 @@ describe('formatSummary', () => {
   test('includes file:line in backticks', () => {
     const output = formatSummary(reportWithDiagnostics);
     expect(output).toContain('`packages/core/src/result.ts:42`');
+  });
+
+  test('renders guidance next steps when present', () => {
+    const output = formatSummary(reportWithDiagnostics);
+    expect(output).toContain(
+      'Next: Convert thrown implementation failures into Result.err().'
+    );
+    expect(output).toContain('Docs: [Trail Rules](AGENTS.md#trail-rules)');
+    expect(output).toContain('Commands: `bun test packages/core`');
+    expect(output).not.toContain(
+      'Trail "entity.show" has no output schema\n  - Next:'
+    );
   });
 
   test('includes drift section when stale', () => {

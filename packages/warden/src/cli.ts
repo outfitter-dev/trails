@@ -918,6 +918,17 @@ const isSelectedTopoRule = (
   return metadata ? ruleMatchesDepth(metadata, selector.depth) : true;
 };
 
+const withDiagnosticGuidance = (
+  diagnostic: WardenDiagnostic
+): WardenDiagnostic => {
+  if (diagnostic.guidance !== undefined) {
+    return diagnostic;
+  }
+
+  const guidance = getWardenRuleMetadata(diagnostic.rule)?.guidance;
+  return guidance === undefined ? diagnostic : { ...diagnostic, guidance };
+};
+
 const topoRuleFailureDiagnostic = (
   rule: TopoAwareWardenRule,
   error: unknown
@@ -1269,7 +1280,7 @@ export const runWarden = async (
   const runLint = shouldRunLint(options);
   const runDrift = shouldRunDrift(options, effectiveConfig);
 
-  const allDiagnostics = [
+  const rawDiagnostics = [
     ...configDiagnostics,
     ...optionDiagnostics,
     ...(runLint
@@ -1282,6 +1293,7 @@ export const runWarden = async (
         )
       : []),
   ];
+  const allDiagnostics = rawDiagnostics.map(withDiagnosticGuidance);
   const drift = runDrift
     ? await checkDriftForTopoTargets(rootDir, topoTargets)
     : null;
@@ -1328,6 +1340,27 @@ const formatLintSection = (report: WardenReport): string[] => {
     lines.push(
       `  ${d.filePath}:${String(d.line)}  [${prefix}] ${d.rule}  ${d.message}`
     );
+    if (d.guidance !== undefined) {
+      lines.push(`    Next: ${d.guidance.summary}`);
+      for (const [index, step] of (d.guidance.steps ?? []).entries()) {
+        lines.push(`    ${String(index + 1)}. ${step}`);
+      }
+      if (d.guidance.commands !== undefined) {
+        lines.push(
+          `    Commands: ${d.guidance.commands.map((cmd) => `\`${cmd}\``).join(', ')}`
+        );
+      }
+      if (d.guidance.docs !== undefined) {
+        lines.push(
+          `    Docs: ${d.guidance.docs
+            .map((doc) => doc.path ?? doc.url ?? doc.label)
+            .join(', ')}`
+        );
+      }
+      if (d.guidance.relatedRules !== undefined) {
+        lines.push(`    Related: ${d.guidance.relatedRules.join(', ')}`);
+      }
+    }
   }
 
   return lines;

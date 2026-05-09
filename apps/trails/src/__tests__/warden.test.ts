@@ -29,6 +29,9 @@ const makeTempDir = (): string => {
 
 interface WardenJsonOutput {
   readonly diagnostics: readonly {
+    readonly guidance?: {
+      readonly summary: string;
+    };
     readonly rule: string;
     readonly severity: 'error' | 'warn';
   }[];
@@ -188,6 +191,9 @@ describe('trails warden', () => {
       }
       expect(result.value.passed).toBe(false);
       expect(result.value.errorCount).toBe(1);
+      expect(result.value.diagnostics[0]?.guidance?.summary).toBe(
+        'Convert thrown implementation failures into explicit Result.err() outcomes.'
+      );
       expect(result.value.formatted).toContain('## Warden Report');
     } finally {
       rmSync(dir, { force: true, recursive: true });

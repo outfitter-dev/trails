@@ -7,7 +7,7 @@
  */
 
 import type { WardenReport } from './cli.js';
-import type { WardenSeverity } from './rules/types.js';
+import type { WardenGuidanceLink, WardenSeverity } from './rules/types.js';
 
 /** Map warden severity to GitHub Actions annotation level. */
 const ghLevel: Record<WardenSeverity, string> = {
@@ -68,9 +68,56 @@ export const formatJson = (report: WardenReport): string => {
   );
 };
 
-/** Format a diagnostic as a markdown list item. */
-const diagnosticLine = (d: WardenReport['diagnostics'][number]): string =>
-  `- \`${d.filePath}:${String(d.line)}\` — ${d.rule}: ${d.message}`;
+const formatGuidanceLink = (link: WardenGuidanceLink): string => {
+  if (link.path !== undefined) {
+    return `[${link.label}](${link.path})`;
+  }
+  if (link.url !== undefined) {
+    return `[${link.label}](${link.url})`;
+  }
+  return link.label;
+};
+
+/** Format diagnostic guidance as indented markdown lines. */
+const diagnosticGuidanceLines = (
+  d: WardenReport['diagnostics'][number]
+): readonly string[] => {
+  const { guidance } = d;
+  if (guidance === undefined) {
+    return [];
+  }
+
+  const lines = [`  - Next: ${guidance.summary}`];
+  if (guidance.steps !== undefined && guidance.steps.length > 0) {
+    lines.push(
+      `  - Steps: ${guidance.steps
+        .map((step, index) => `${String(index + 1)}. ${step}`)
+        .join(' ')}`
+    );
+  }
+  if (guidance.docs !== undefined && guidance.docs.length > 0) {
+    lines.push(`  - Docs: ${guidance.docs.map(formatGuidanceLink).join(', ')}`);
+  }
+  if (guidance.commands !== undefined && guidance.commands.length > 0) {
+    lines.push(
+      `  - Commands: ${guidance.commands.map((cmd) => `\`${cmd}\``).join(', ')}`
+    );
+  }
+  if (guidance.relatedRules !== undefined && guidance.relatedRules.length > 0) {
+    lines.push(
+      `  - Related: ${guidance.relatedRules.map((rule) => `\`${rule}\``).join(', ')}`
+    );
+  }
+  return lines;
+};
+
+/** Format a diagnostic as markdown lines. */
+const diagnosticLines = (
+  d: WardenReport['diagnostics'][number]
+): readonly string[] => [
+  `- \`${d.filePath}:${String(d.line)}\` — ${d.rule}: ${d.message}`,
+  ...diagnosticGuidanceLines(d),
+];
 
 /** Render a severity group as a headed markdown section, or empty array. */
 const severitySection = (
@@ -80,7 +127,7 @@ const severitySection = (
   if (diagnostics.length === 0) {
     return [];
   }
-  return ['', `### ${heading}`, ...diagnostics.map(diagnosticLine)];
+  return ['', `### ${heading}`, ...diagnostics.flatMap(diagnosticLines)];
 };
 
 /** Render a drift section if stale, otherwise empty array. */

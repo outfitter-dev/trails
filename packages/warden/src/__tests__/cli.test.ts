@@ -212,6 +212,79 @@ describe('runWarden basics', () => {
     }
   });
 
+  test('applies default rule guidance to diagnostics from guided rules', async () => {
+    const dir = makeTempDir();
+    try {
+      writeFileSync(
+        join(dir, 'trail.ts'),
+        `import { Result, trail } from '@ontrails/core';
+
+export const badTrail = trail('bad.throw', {
+  blaze: async () => {
+    throw new Error('boom');
+  },
+});
+`
+      );
+
+      const report = await runWarden({
+        rootDir: dir,
+        tier: 'source-static',
+      });
+      const diagnostic = report.diagnostics.find(
+        (entry) => entry.rule === 'no-throw-in-implementation'
+      );
+
+      expect(diagnostic?.guidance).toEqual(
+        expect.objectContaining({
+          relatedRules: [
+            'implementation-returns-result',
+            'no-native-error-result',
+          ],
+          summary:
+            'Convert thrown implementation failures into explicit Result.err() outcomes.',
+        })
+      );
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('leaves diagnostics from unguided rules unguided', async () => {
+    const dir = makeTempDir();
+    try {
+      writeFileSync(
+        join(dir, 'contours.ts'),
+        `import { contour } from '@ontrails/core';
+import { z } from 'zod';
+
+export const first = contour('first', {
+  secondId: second.id(),
+  id: z.string().uuid(),
+}, { identity: 'id' });
+
+export const second = contour('second', {
+  firstId: first.id(),
+  id: z.string().uuid(),
+}, { identity: 'id' });
+`
+      );
+
+      const report = await runWarden({
+        rootDir: dir,
+        tier: 'project-static',
+      });
+      const diagnostic = report.diagnostics.find(
+        (entry) => entry.rule === 'circular-refs'
+      );
+
+      expect(diagnostic).toBeDefined();
+      expect(diagnostic?.guidance).toBeUndefined();
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
   test('source-static tier scans CI YAML and shell scripts for dev permit usage', async () => {
     const dir = makeTempDir();
     try {
@@ -1045,6 +1118,35 @@ describe('formatWardenReport', () => {
     expect(output).toContain('1 errors');
     expect(output).toContain('Result: FAIL');
     expect(output).toContain('entity.ts:3');
+  });
+
+  test('formats related guidance rules in the lint section', () => {
+    const output = formatWardenReport({
+      diagnostics: [
+        {
+          filePath: 'src/trails/entity.ts',
+          guidance: {
+            relatedRules: [
+              'implementation-returns-result',
+              'no-native-error-result',
+            ],
+            summary: 'Convert thrown failures into Result.err().',
+          },
+          line: 3,
+          message: 'Do not throw inside implementation.',
+          rule: 'no-throw-in-implementation',
+          severity: 'error',
+        },
+      ],
+      drift: { committedHash: null, currentHash: 'stub', stale: false },
+      errorCount: 1,
+      passed: false,
+      warnCount: 0,
+    });
+
+    expect(output).toContain(
+      'Related: implementation-returns-result, no-native-error-result'
+    );
   });
 
   test('formats a report with stale drift', () => {

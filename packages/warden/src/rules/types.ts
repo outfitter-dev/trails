@@ -63,6 +63,35 @@ export interface WardenRuleLifecycle {
 }
 
 /**
+ * Documentation or reference target for Warden remediation guidance.
+ */
+export interface WardenGuidanceLink {
+  /** Human-readable link label. */
+  readonly label: string;
+  /** Repository-relative documentation path, when the target is in-tree. */
+  readonly path?: string | undefined;
+  /** External documentation URL, when the target is outside the repo. */
+  readonly url?: string | undefined;
+}
+
+/**
+ * Structured remediation guidance that can be rendered for humans or projected
+ * into agent-facing manifests without scraping diagnostic prose.
+ */
+export interface WardenGuidance {
+  /** Concise next step for the finding or rule. */
+  readonly summary: string;
+  /** Ordered remediation steps, when the rule benefits from more detail. */
+  readonly steps?: readonly string[] | undefined;
+  /** Reference docs that explain the invariant. */
+  readonly docs?: readonly WardenGuidanceLink[] | undefined;
+  /** Example commands. These are guidance examples, not autofix contracts. */
+  readonly commands?: readonly string[] | undefined;
+  /** Related rule identifiers that help agents navigate nearby doctrine. */
+  readonly relatedRules?: readonly string[] | undefined;
+}
+
+/**
  * Stable metadata used to classify Warden rules before dispatch filtering.
  */
 export interface WardenRuleMetadata {
@@ -78,6 +107,8 @@ export interface WardenRuleMetadata {
   readonly scope: WardenRuleScope;
   /** Narrowest Warden tier that can answer the rule. */
   readonly tier: WardenRuleTier;
+  /** Structured remediation guidance for diagnostics emitted by this rule. */
+  readonly guidance?: WardenGuidance | undefined;
 }
 
 /**
@@ -96,6 +127,8 @@ export interface WardenDiagnostic {
   readonly filePath: string;
   /** Topo/app identity for diagnostics emitted during multi-topo runs. */
   readonly topoName?: string | undefined;
+  /** Optional finding-level guidance. Defaults from rule metadata when absent. */
+  readonly guidance?: WardenGuidance | undefined;
 }
 
 /**
