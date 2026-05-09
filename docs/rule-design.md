@@ -49,6 +49,12 @@ facts.
 | Impossible-by-type constraints | TypeScript | Output schemas, typed `ctx.cross()`, `resource.from(ctx)`, and other compile-time contracts. |
 | Human and agent orientation | `AGENTS.md` | A map over the executable system, not the only enforcement point. |
 
+When auditing `AGENTS.md`, map each rule to the strongest current authority
+layer and file focused follow-ups for any enforceable rule that remains
+prose-only. The audit is not itself the durable authority; it is a queueing step
+that either points at existing enforcement, explains why prose is intentional, or
+turns the gap into Warden, TypeScript, `testAll`, Oxlint, or ast-grep work.
+
 Owner-first data beats duplicated rule lists. If Warden needs framework facts
 such as reserved lexicon terms, intent values, error categories, permit rules,
 or Result accessors, it should read them from the module that owns the fact. If
