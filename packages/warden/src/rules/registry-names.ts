@@ -37,6 +37,7 @@ import { ownerProjectionParity } from './owner-projection-parity.js';
 import { permitGovernance } from './permit-governance.js';
 import { preferSchemaInference } from './prefer-schema-inference.js';
 import { publicInternalDeepImports } from './public-internal-deep-imports.js';
+import { publicOutputSchema } from './public-output-schema.js';
 import { publicUnionOutputDiscriminants } from './public-union-output-discriminants.js';
 import { readIntentFires } from './read-intent-fires.js';
 import { referenceExists } from './reference-exists.js';
@@ -91,6 +92,7 @@ export const registeredRuleNames: readonly string[] = [
   permitGovernance.name,
   preferSchemaInference.name,
   publicInternalDeepImports.name,
+  publicOutputSchema.name,
   publicUnionOutputDiscriminants.name,
   readIntentFires.name,
   referenceExists.name,

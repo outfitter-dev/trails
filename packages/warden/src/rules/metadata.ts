@@ -77,6 +77,7 @@ const concernByRuleName: Partial<Record<string, WardenRuleConcern>> = {
   'on-references-exist': 'signals',
   'orphaned-signal': 'signals',
   'permit-governance': 'permits',
+  'public-output-schema': 'results',
   'read-intent-fires': 'signals',
   'resolved-import-boundary': 'composition',
   'resource-declarations': 'resources',
@@ -322,6 +323,21 @@ const builtinWardenRuleMetadataInput = {
     lifecycle: { state: 'durable' },
     scope: 'internal',
     tier: 'project-static',
+  },
+  'public-output-schema': {
+    ...durableExternal,
+    guidance: {
+      docs: [trailContractDocs, wardenDocs],
+      relatedRules: ['public-union-output-discriminants'],
+      steps: [
+        'Add an explicit output schema to public trails that can be projected onto MCP or HTTP surfaces.',
+        'If the trail is composition-only, mark it visibility: "internal" instead of exposing it by default.',
+      ],
+      summary:
+        'Make public surface result contracts explicit before MCP/HTTP projection.',
+    },
+    invariant: 'Public MCP/HTTP surface trails declare output schemas.',
+    tier: 'topo-aware',
   },
   'public-union-output-discriminants': {
     ...durableExternal,

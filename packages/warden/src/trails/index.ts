@@ -29,6 +29,7 @@ export { ownerProjectionParityTrail } from './owner-projection-parity.trail.js';
 export { permitGovernanceTrail } from './permit-governance.trail.js';
 export { preferSchemaInferenceTrail } from './prefer-schema-inference.trail.js';
 export { publicInternalDeepImportsTrail } from './public-internal-deep-imports.trail.js';
+export { publicOutputSchemaTrail } from './public-output-schema.trail.js';
 export { publicUnionOutputDiscriminantsTrail } from './public-union-output-discriminants.trail.js';
 export { readIntentFiresTrail } from './read-intent-fires.trail.js';
 export { referenceExistsTrail } from './reference-exists.trail.js';

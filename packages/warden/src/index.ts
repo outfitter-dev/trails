@@ -160,6 +160,7 @@ export {
   preferSchemaInferenceTrail,
   projectAwareRuleInput,
   publicInternalDeepImportsTrail,
+  publicOutputSchemaTrail,
   publicUnionOutputDiscriminantsTrail,
   readIntentFiresTrail,
   referenceExistsTrail,
