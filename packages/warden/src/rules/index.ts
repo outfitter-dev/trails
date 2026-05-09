@@ -32,6 +32,7 @@ import { publicInternalDeepImports } from './public-internal-deep-imports.js';
 import { publicUnionOutputDiscriminants } from './public-union-output-discriminants.js';
 import { readIntentFires } from './read-intent-fires.js';
 import { referenceExists } from './reference-exists.js';
+import { resolvedImportBoundary } from './resolved-import-boundary.js';
 import { resourceDeclarations } from './resource-declarations.js';
 import { resourceExists } from './resource-exists.js';
 import { resourceIdGrammar } from './resource-id-grammar.js';
@@ -106,6 +107,7 @@ export { publicInternalDeepImports } from './public-internal-deep-imports.js';
 export { publicUnionOutputDiscriminants } from './public-union-output-discriminants.js';
 export { readIntentFires } from './read-intent-fires.js';
 export { referenceExists } from './reference-exists.js';
+export { resolvedImportBoundary } from './resolved-import-boundary.js';
 export { resourceDeclarations } from './resource-declarations.js';
 export { resourceExists } from './resource-exists.js';
 export { resourceIdGrammar } from './resource-id-grammar.js';
@@ -145,6 +147,7 @@ export const wardenRules: ReadonlyMap<string, WardenRule> = new Map<
   [resourceDeclarations.name, resourceDeclarations],
   [readIntentFires.name, readIntentFires],
   [referenceExists.name, referenceExists],
+  [resolvedImportBoundary.name, resolvedImportBoundary],
   [resourceIdGrammar.name, resourceIdGrammar],
   [resourceExists.name, resourceExists],
   [preferSchemaInference.name, preferSchemaInference],

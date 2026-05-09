@@ -40,6 +40,7 @@ import { publicInternalDeepImports } from './public-internal-deep-imports.js';
 import { publicUnionOutputDiscriminants } from './public-union-output-discriminants.js';
 import { readIntentFires } from './read-intent-fires.js';
 import { referenceExists } from './reference-exists.js';
+import { resolvedImportBoundary } from './resolved-import-boundary.js';
 import { resourceDeclarations } from './resource-declarations.js';
 import { resourceExists } from './resource-exists.js';
 import { resourceIdGrammar } from './resource-id-grammar.js';
@@ -93,6 +94,7 @@ export const registeredRuleNames: readonly string[] = [
   publicUnionOutputDiscriminants.name,
   readIntentFires.name,
   referenceExists.name,
+  resolvedImportBoundary.name,
   resourceDeclarations.name,
   resourceExists.name,
   resourceIdGrammar.name,

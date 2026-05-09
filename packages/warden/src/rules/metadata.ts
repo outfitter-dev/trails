@@ -78,6 +78,7 @@ const concernByRuleName: Partial<Record<string, WardenRuleConcern>> = {
   'orphaned-signal': 'signals',
   'permit-governance': 'permits',
   'read-intent-fires': 'signals',
+  'resolved-import-boundary': 'composition',
   'resource-declarations': 'resources',
   'resource-exists': 'resources',
   'resource-id-grammar': 'resources',
@@ -286,6 +287,11 @@ const builtinWardenRuleMetadataInput = {
   'reference-exists': {
     ...durableExternal,
     invariant: 'Reference declarations resolve to known contours.',
+    tier: 'project-static',
+  },
+  'resolved-import-boundary': {
+    ...durableExternal,
+    invariant: 'Cross-package imports resolve through public export maps.',
     tier: 'project-static',
   },
   'resource-declarations': {

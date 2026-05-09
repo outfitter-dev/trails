@@ -161,6 +161,7 @@ export {
   publicUnionOutputDiscriminantsTrail,
   readIntentFiresTrail,
   referenceExistsTrail,
+  resolvedImportBoundaryTrail,
   ruleInput,
   ruleOutput,
   resourceDeclarationsTrail,

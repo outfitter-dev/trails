@@ -32,6 +32,7 @@ export { publicInternalDeepImportsTrail } from './public-internal-deep-imports.t
 export { publicUnionOutputDiscriminantsTrail } from './public-union-output-discriminants.trail.js';
 export { readIntentFiresTrail } from './read-intent-fires.trail.js';
 export { referenceExistsTrail } from './reference-exists.trail.js';
+export { resolvedImportBoundaryTrail } from './resolved-import-boundary.trail.js';
 export { resourceDeclarationsTrail } from './resource-declarations.trail.js';
 export { resourceIdGrammarTrail } from './resource-id-grammar.trail.js';
 export { resourceExistsTrail } from './resource-exists.trail.js';
