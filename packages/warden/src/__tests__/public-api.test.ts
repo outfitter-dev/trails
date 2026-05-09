@@ -11,6 +11,10 @@ import {
   walkScope,
 } from '@ontrails/warden/ast';
 import type { FrameworkNamespaceContext } from '@ontrails/warden/ast';
+import {
+  collectImportSpecifiers,
+  defaultWardenResolveOptions,
+} from '@ontrails/warden/resolve';
 
 describe('@ontrails/warden public API', () => {
   test('exports built-in rule metadata from the root entrypoint', () => {
@@ -44,6 +48,23 @@ describe('@ontrails/warden public API', () => {
       });
     }
     expect(visited).toBeGreaterThan(0);
+  });
+
+  test('keeps resolver helpers on the resolve entrypoint', () => {
+    expect('collectImportSpecifiers' in warden).toBe(true);
+    expect('defaultWardenResolveOptions' in warden).toBe(true);
+    expect(defaultWardenResolveOptions.conditionNames).toEqual([
+      'bun',
+      'node',
+      'import',
+      'default',
+    ]);
+    expect(
+      collectImportSpecifiers(
+        'example.ts',
+        "import { value } from '@ontrails/core';\n"
+      )
+    ).toEqual([{ importSource: '@ontrails/core', line: 1 }]);
   });
 
   test('exposes stable rule-authoring helpers on the ast entrypoint', () => {

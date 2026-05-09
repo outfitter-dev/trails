@@ -17,6 +17,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./ast": "./src/ast.ts",
+    "./resolve": "./src/resolve.ts",
     "./package.json": "./package.json"
   },
   "scripts": {
@@ -31,6 +32,7 @@
     "@ontrails/permits": "workspace:^",
     "@ontrails/store": "workspace:^",
     "oxc-parser": "^0.121.0",
+    "oxc-resolver": "11.19.1",
     "zod": "catalog:"
   },
   "devDependencies": {

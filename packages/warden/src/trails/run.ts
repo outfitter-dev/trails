@@ -11,6 +11,7 @@ import { run } from '@ontrails/core';
 
 import { wardenTopoRules } from '../rules/index.js';
 import type { WardenDiagnostic } from '../rules/types.js';
+import type { WardenImportResolution } from '../resolve.js';
 import type { RuleOutput } from './schema.js';
 import { wardenTopo } from './topo.js';
 
@@ -39,6 +40,9 @@ interface ProjectRuleOptions {
   readonly crudTableIds?: readonly string[];
   readonly crudCoverageByEntity?: Readonly<Record<string, readonly string[]>>;
   readonly knownContourIds?: readonly string[];
+  readonly importResolutionsByFile?: Readonly<
+    Record<string, readonly WardenImportResolution[]>
+  >;
   readonly knownResourceIds?: readonly string[];
   readonly knownSignalIds?: readonly string[];
   readonly knownTrailIds?: readonly string[];
@@ -53,6 +57,7 @@ const PROJECT_OPTION_KEYS = [
   'crudTableIds',
   'crudCoverageByEntity',
   'knownContourIds',
+  'importResolutionsByFile',
   'knownResourceIds',
   'knownSignalIds',
   'knownTrailIds',

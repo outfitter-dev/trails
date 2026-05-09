@@ -23,6 +23,7 @@ import { resolveWardenConfig } from './config.js';
 import { isDraftMarkedFile } from './draft.js';
 import type { DriftResult } from './drift.js';
 import { checkDrift } from './drift.js';
+import { collectProjectImportResolutions } from './project-context.js';
 import {
   collectContourDefinitionIds,
   collectContourReferenceTargetsByName,
@@ -47,6 +48,7 @@ import type {
   WardenRule,
   WardenRuleTier,
 } from './rules/types.js';
+import type { WardenImportResolution } from './resolve.js';
 
 /**
  * Resolved topo input for Warden runs that govern multiple apps.
@@ -256,6 +258,7 @@ interface MutableProjectContext {
   knownResourceIds: Set<string>;
   knownSignalIds: Set<string>;
   knownTrailIds: Set<string>;
+  importResolutionsByFile: Map<string, readonly WardenImportResolution[]>;
   onTargetSignalIds: Set<string>;
   reconcileTableIds: Set<string>;
   trailIntentsById: Map<string, 'destroy' | 'read' | 'write'>;
@@ -266,6 +269,7 @@ const createMutableProjectContext = (): MutableProjectContext => ({
   crossTargetTrailIds: new Set<string>(),
   crudCoverageByEntity: new Map<string, Set<string>>(),
   crudTableIds: new Set<string>(),
+  importResolutionsByFile: new Map<string, readonly WardenImportResolution[]>(),
   knownContourIds: new Set<string>(),
   knownResourceIds: new Set<string>(),
   knownSignalIds: new Set<string>(),
@@ -321,6 +325,9 @@ const toProjectContext = (context: MutableProjectContext): ProjectContext => ({
   knownResourceIds: context.knownResourceIds,
   knownSignalIds: context.knownSignalIds,
   knownTrailIds: context.knownTrailIds,
+  ...(context.importResolutionsByFile.size > 0
+    ? { importResolutionsByFile: context.importResolutionsByFile }
+    : {}),
   ...(context.onTargetSignalIds.size > 0
     ? { onTargetSignalIds: context.onTargetSignalIds }
     : {}),
@@ -671,8 +678,23 @@ const collectFileContourReferences = (
   }
 };
 
+const collectFileImportResolutions = (
+  rootDir: string,
+  sourceFiles: readonly SourceFile[],
+  context: MutableProjectContext
+): void => {
+  const resolutionsByFile = collectProjectImportResolutions({
+    rootDir,
+    sourceFiles,
+  });
+  for (const [filePath, resolutions] of resolutionsByFile) {
+    context.importResolutionsByFile.set(filePath, resolutions);
+  }
+};
+
 const buildProjectContext = (
   sourceFiles: readonly SourceFile[],
+  rootDir: string,
   appTopos: readonly Topo[] = []
 ): ProjectContext => {
   const context = createMutableProjectContext();
@@ -696,6 +718,7 @@ const buildProjectContext = (
   for (const sourceFile of typeScriptSourceFiles) {
     collectFileContourReferences(sourceFile, context);
   }
+  collectFileImportResolutions(rootDir, typeScriptSourceFiles, context);
 
   return toProjectContext(context);
 };
@@ -943,6 +966,7 @@ const lintFiles = async (
   );
   const context = buildProjectContext(
     sourceFiles,
+    rootDir,
     topoTargets.map((target) => target.topo)
   );
   const allDiagnostics: WardenDiagnostic[] = [

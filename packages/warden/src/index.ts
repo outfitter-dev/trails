@@ -98,6 +98,21 @@ export {
 export type { DriftResult } from './drift.js';
 export { checkDrift } from './drift.js';
 
+// Resolver helpers
+export {
+  collectImportResolutionsForFile,
+  collectImportSpecifiers,
+  createWardenResolver,
+  defaultWardenResolveOptions,
+} from './resolve.js';
+export type {
+  WardenImportResolution,
+  WardenImportResolutionErrorKind,
+  WardenImportSpecifier,
+  WardenProjectResolver,
+  WardenResolverOptions,
+} from './resolve.js';
+
 // Draft helpers
 export {
   DRAFT_FILE_PREFIX,

@@ -74,6 +74,13 @@ const buildProjectContext = (input: ProjectAwareRuleInput): ProjectContext => ({
   ...(input.knownContourIds
     ? { knownContourIds: new Set(input.knownContourIds) }
     : {}),
+  ...(input.importResolutionsByFile
+    ? {
+        importResolutionsByFile: new Map(
+          Object.entries(input.importResolutionsByFile)
+        ),
+      }
+    : {}),
   knownTrailIds: input.knownTrailIds
     ? new Set(input.knownTrailIds)
     : new Set<string>(),

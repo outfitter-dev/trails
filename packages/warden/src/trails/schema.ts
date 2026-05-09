@@ -8,6 +8,7 @@
 import { intentValues } from '@ontrails/core';
 import type { Topo } from '@ontrails/core';
 import { z } from 'zod';
+import { wardenImportResolutionErrorKinds } from '../resolve.js';
 
 /** A single diagnostic emitted by a warden rule trail. */
 export const diagnosticSchema = z.object({
@@ -22,6 +23,21 @@ export const diagnosticSchema = z.object({
 export const ruleInput = z.object({
   filePath: z.string().describe('Path to the source file'),
   sourceCode: z.string().describe('Source code content'),
+});
+
+export const importResolutionSchema = z.object({
+  builtinModule: z.string().optional(),
+  crossesPackageBoundary: z.boolean(),
+  errorKind: z.enum(wardenImportResolutionErrorKinds).optional(),
+  errorMessage: z.string().optional(),
+  importSource: z.string(),
+  importerPath: z.string(),
+  isInternalTarget: z.boolean(),
+  line: z.number(),
+  packageName: z.string().optional(),
+  packageRoot: z.string().optional(),
+  resolvedPath: z.string().optional(),
+  usesPublicExport: z.boolean(),
 });
 
 /**
@@ -49,6 +65,10 @@ export const projectAwareRuleInput = ruleInput.extend({
     .array(z.string())
     .optional()
     .describe('Store table IDs used with CRUD factories across the project'),
+  importResolutionsByFile: z
+    .record(z.string(), z.array(importResolutionSchema))
+    .optional()
+    .describe('Resolved import facts keyed by importer file path'),
   knownContourIds: z
     .array(z.string())
     .optional()
