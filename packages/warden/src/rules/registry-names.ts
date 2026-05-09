@@ -47,6 +47,7 @@ import { resourceExists } from './resource-exists.js';
 import { resourceIdGrammar } from './resource-id-grammar.js';
 import { scheduledDestroyIntent } from './scheduled-destroy-intent.js';
 import { signalGraphCoaching } from './signal-graph-coaching.js';
+import { staticResourceAccessorPreference } from './static-resource-accessor-preference.js';
 import { unmaterializedActivationSource } from './unmaterialized-activation-source.js';
 import { unreachableDetourShadowing } from './unreachable-detour-shadowing.js';
 import { validDetourContract } from './valid-detour-contract.js';
@@ -102,6 +103,7 @@ export const registeredRuleNames: readonly string[] = [
   resourceIdGrammar.name,
   scheduledDestroyIntent.name,
   signalGraphCoaching.name,
+  staticResourceAccessorPreference.name,
   unmaterializedActivationSource.name,
   unreachableDetourShadowing.name,
   validDetourContract.name,

@@ -85,6 +85,7 @@ const concernByRuleName: Partial<Record<string, WardenRuleConcern>> = {
   'resource-id-grammar': 'resources',
   'scheduled-destroy-intent': 'lifecycle',
   'signal-graph-coaching': 'signals',
+  'static-resource-accessor-preference': 'resources',
   'unmaterialized-activation-source': 'lifecycle',
   'valid-detour-contract': 'results',
   'webhook-route-collision': 'composition',
@@ -405,6 +406,24 @@ const builtinWardenRuleMetadataInput = {
     invariant:
       'Typed signal contracts either declare a producer or participate in reactive consumption.',
     tier: 'topo-aware',
+  },
+  'static-resource-accessor-preference': {
+    ...durableExternal,
+    guidance: {
+      docs: [trailContractDocs],
+      relatedRules: ['resource-declarations', 'resource-exists'],
+      steps: [
+        'Replace ctx.resource(db) or ctx.resource("id") with db.from(ctx) when the resource definition is statically in scope.',
+        'Move external client construction behind resource() and declare that resource on the trail contract.',
+        'Keep ctx.resource(...) for dynamic IDs, generic framework code, or cases where the definition is not statically available.',
+      ],
+      summary:
+        'Use statically scoped resource helpers when the resource definition is already available.',
+    },
+    invariant:
+      'Trail logic should prefer static resource helpers over dynamic accessors.',
+    scope: 'advisory',
+    tier: 'source-static',
   },
   'unmaterialized-activation-source': {
     ...durableExternal,

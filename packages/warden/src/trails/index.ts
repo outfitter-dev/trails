@@ -39,6 +39,7 @@ export { resourceIdGrammarTrail } from './resource-id-grammar.trail.js';
 export { resourceExistsTrail } from './resource-exists.trail.js';
 export { scheduledDestroyIntentTrail } from './scheduled-destroy-intent.trail.js';
 export { signalGraphCoachingTrail } from './signal-graph-coaching.trail.js';
+export { staticResourceAccessorPreferenceTrail } from './static-resource-accessor-preference.trail.js';
 export { unmaterializedActivationSourceTrail } from './unmaterialized-activation-source.trail.js';
 export { unreachableDetourShadowingTrail } from './unreachable-detour-shadowing.trail.js';
 export { validDetourContractTrail } from './valid-detour-contract.trail.js';

@@ -172,6 +172,7 @@ export {
   resourceExistsTrail,
   scheduledDestroyIntentTrail,
   signalGraphCoachingTrail,
+  staticResourceAccessorPreferenceTrail,
   unmaterializedActivationSourceTrail,
   topoAwareRuleInput,
   unreachableDetourShadowingTrail,

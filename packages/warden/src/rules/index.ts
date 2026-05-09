@@ -39,6 +39,7 @@ import { resourceExists } from './resource-exists.js';
 import { resourceIdGrammar } from './resource-id-grammar.js';
 import { scheduledDestroyIntent } from './scheduled-destroy-intent.js';
 import { signalGraphCoaching } from './signal-graph-coaching.js';
+import { staticResourceAccessorPreference } from './static-resource-accessor-preference.js';
 import type { TopoAwareWardenRule, WardenRule } from './types.js';
 import { unmaterializedActivationSource } from './unmaterialized-activation-source.js';
 import { unreachableDetourShadowing } from './unreachable-detour-shadowing.js';
@@ -117,6 +118,7 @@ export { resourceExists } from './resource-exists.js';
 export { resourceIdGrammar } from './resource-id-grammar.js';
 export { scheduledDestroyIntent } from './scheduled-destroy-intent.js';
 export { signalGraphCoaching } from './signal-graph-coaching.js';
+export { staticResourceAccessorPreference } from './static-resource-accessor-preference.js';
 export { unmaterializedActivationSource } from './unmaterialized-activation-source.js';
 export { unreachableDetourShadowing } from './unreachable-detour-shadowing.js';
 export { validDetourContract } from './valid-detour-contract.js';
@@ -155,6 +157,7 @@ export const wardenRules: ReadonlyMap<string, WardenRule> = new Map<
   [resourceIdGrammar.name, resourceIdGrammar],
   [resourceExists.name, resourceExists],
   [preferSchemaInference.name, preferSchemaInference],
+  [staticResourceAccessorPreference.name, staticResourceAccessorPreference],
   [validDescribeRefs.name, validDescribeRefs],
   [noDevPermitInSource.name, noDevPermitInSource],
   [noDirectImplementationCall.name, noDirectImplementationCall],
