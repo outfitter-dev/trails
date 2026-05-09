@@ -698,5 +698,3 @@ export const jsonFile = <TStore extends AnyStoreDefinition>(
     signals: store.signals,
   });
 };
-
-export { jsonFile as store };

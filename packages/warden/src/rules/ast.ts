@@ -486,11 +486,6 @@ export const collectResourceDefinitionIds = (
   return ids;
 };
 
-/** Backward-compatible aliases while the migration is in flight. */
-export const collectNamedServiceIds = collectNamedResourceIds;
-/** Backward-compatible aliases while the migration is in flight. */
-export const collectServiceDefinitionIds = collectResourceDefinitionIds;
-
 // ---------------------------------------------------------------------------
 // Config property extraction helpers
 // ---------------------------------------------------------------------------
@@ -2484,25 +2479,6 @@ const collectStringIdsFromDeclaration = (
   }
 };
 
-/** Collect module-scope `const foo = signal('id', ...)` bindings from a file. */
-export const collectNamedSignalIds = (
-  ast: AstNode
-): ReadonlyMap<string, string> => {
-  const ids = new Map<string, string>();
-  const context = buildFrameworkNamespaceContext(ast);
-  const statements =
-    (ast as unknown as { body?: readonly AstNode[] }).body ?? [];
-
-  for (const statement of statements) {
-    const declaration = unwrapTopLevelDeclaration(statement);
-    if (declaration.type === 'VariableDeclaration') {
-      collectSignalIdsFromDeclaration(declaration, context, ids);
-    }
-  }
-
-  return ids;
-};
-
 export type SignalIdentifierResolution =
   | {
       readonly id: string;
@@ -2911,14 +2887,6 @@ export const extractStoreTableFromMember = (
 };
 
 /**
- * Back-compat shim for rule code that only needs the table name. Prefer
- * `extractStoreTableFromMember` so the caller can build a composite key.
- */
-export const extractStoreTableIdFromMember = (
-  node: AstNode | undefined
-): string | null => extractStoreTableFromMember(node)?.tableName ?? null;
-
-/**
  * Collect `const foo = <store>.tables.<name>` bindings from a parsed file,
  * keyed by the local binding name. Values are the composite table key
  * (`${storeBinding}:${tableName}`) so callers can dedupe across stores that
@@ -3056,15 +3024,6 @@ export const findStoreTableDefinitions = (
 
   return definitions;
 };
-
-export const collectVersionedStoreTableIds = (
-  ast: AstNode
-): ReadonlySet<string> =>
-  new Set(
-    findStoreTableDefinitions(ast).flatMap((definition) =>
-      definition.versioned ? [definition.key] : []
-    )
-  );
 
 export const collectCrudTableIds = (ast: AstNode): ReadonlySet<string> => {
   const ids = new Set<string>();

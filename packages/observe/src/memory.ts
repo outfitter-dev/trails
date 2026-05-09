@@ -57,4 +57,5 @@ export const createMemorySink = (
   };
 };
 
+/** @alias */
 export const createBoundedMemorySink = createMemorySink;

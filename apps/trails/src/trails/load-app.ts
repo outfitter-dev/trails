@@ -772,15 +772,3 @@ export const loadApp = async (
         )) as Record<string, unknown>);
   return resolveLoadedTopo(effectivePath, mod);
 };
-
-export const tryLoadApp = async (
-  modulePath: string | undefined,
-  cwd: string,
-  options: LoadAppOptions = {}
-): Promise<Result<Topo, Error>> => {
-  try {
-    return Result.ok(await loadApp(modulePath, cwd, options));
-  } catch (error) {
-    return Result.err(toLoadAppError(error));
-  }
-};

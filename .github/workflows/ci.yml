@@ -51,6 +51,17 @@ jobs:
       - name: Format check
         run: bun run format:check
 
+  dead-code:
+    name: Dead Code
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/setup
+
+      - name: Knip
+        run: bun run dead-code
+
   typecheck:
     name: Typecheck
     runs-on: ubuntu-latest
@@ -124,7 +135,7 @@ jobs:
   ci-gate:
     name: CI Gate
     if: always()
-    needs: [build, lint, typecheck, test, governance, changeset]
+    needs: [build, lint, dead-code, typecheck, test, governance, changeset]
     runs-on: ubuntu-latest
     steps:
       - name: Summary
@@ -135,6 +146,7 @@ jobs:
           echo "|-----|--------|" >> "$GITHUB_STEP_SUMMARY"
           echo "| Build | \`${{ needs.build.result }}\` |" >> "$GITHUB_STEP_SUMMARY"
           echo "| Lint & Format | \`${{ needs.lint.result }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Dead Code | \`${{ needs.dead-code.result }}\` |" >> "$GITHUB_STEP_SUMMARY"
           echo "| Typecheck | \`${{ needs.typecheck.result }}\` |" >> "$GITHUB_STEP_SUMMARY"
           echo "| Test | \`${{ needs.test.result }}\` |" >> "$GITHUB_STEP_SUMMARY"
           echo "| Governance | \`${{ needs.governance.result }}\` |" >> "$GITHUB_STEP_SUMMARY"

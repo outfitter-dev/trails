@@ -168,24 +168,6 @@ export const deserializeError = (data: SerializedError): TrailsError => {
   return error;
 };
 
-// ---------------------------------------------------------------------------
-// Safe JSON
-// ---------------------------------------------------------------------------
-
-/** Parse a JSON string, returning a Result instead of throwing. */
-export const safeParse = (json: string): Result<unknown, ValidationError> => {
-  try {
-    return Result.ok(JSON.parse(json) as unknown);
-  } catch (error) {
-    return Result.err(
-      new ValidationError('Invalid JSON', {
-        cause: error instanceof Error ? error : new Error(String(error)),
-        context: { input: json.slice(0, 200) },
-      })
-    );
-  }
-};
-
 /** Stringify a value, returning a Result. Handles circular references. */
 export const safeStringify = (
   value: unknown

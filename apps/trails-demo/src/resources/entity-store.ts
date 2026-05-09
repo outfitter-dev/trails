@@ -52,6 +52,8 @@ export const entityStoreResource = connectDrizzle(entityStoreDefinition, {
  *
  * Returned synchronously to keep example code paths terse. Tests that need a
  * differently-seeded mock should import `createStore` from `../store.js`.
+ *
+ * @public
  */
 export const createMockEntityStore = () => {
   const { mock } = entityStoreResource;

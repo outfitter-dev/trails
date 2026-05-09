@@ -32,7 +32,6 @@ export const topoSnapshotOutput = z.object({
   trailCount: z.number(),
 });
 
-export const DEFAULT_APP_MODULE = './src/app.ts';
 export const DEFAULT_TOPO_HISTORY_LIMIT = 10;
 export const LOCK_PATH = '.trails/trails.lock';
 const EXAMPLE_APP_MODULE = fileURLToPath(new URL('../app.ts', import.meta.url));
@@ -150,21 +149,6 @@ export const createIsolatedExampleInput = (
     module: writeIsolatedExampleAppModule(rootDir, EXAMPLE_APP_MODULE),
     rootDir,
   };
-};
-
-export const createCurrentTopoSnapshot = (
-  app: Topo,
-  options?: { readonly rootDir?: string }
-): TopoSnapshot => {
-  const rootDir = deriveRootDir(options?.rootDir);
-  const result = persistTopoSnapshot(app, {
-    rootDir,
-    ...buildSnapshotInput(app, rootDir),
-  });
-  if (result.isErr()) {
-    throw result.error;
-  }
-  return result.value;
 };
 
 export const listTopoHistory = (options?: {

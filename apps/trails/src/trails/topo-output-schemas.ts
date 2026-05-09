@@ -102,9 +102,3 @@ export const signalDetailOutput = z.object({
   payload: z.record(z.string(), z.unknown()).nullable(),
   producers: z.array(z.string()).readonly(),
 });
-
-export const topoDetailOutput = z.discriminatedUnion('kind', [
-  trailDetailOutput,
-  resourceDetailOutput,
-  signalDetailOutput,
-]);

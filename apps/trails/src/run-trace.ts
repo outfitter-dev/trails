@@ -141,8 +141,8 @@ export type TraceJsonEnvelope =
  *
  * The `value` and `error` properties may be present at the same time on a
  * Result instance (the discriminated union narrows by `isOk` / `isErr`),
- * so this interface keeps both optional and lets the builder branch on the
- * type guard rather than asserting either side.
+ * so this interface keeps both optional and lets the builder branch without
+ * asserting either side.
  */
 interface ResultLike {
   readonly isOk: () => boolean;
@@ -150,17 +150,6 @@ interface ResultLike {
   readonly value?: unknown;
   readonly error?: unknown;
 }
-
-const hasResultMethods = (value: unknown): value is ResultLike => {
-  if (typeof value !== 'object' || value === null) {
-    return false;
-  }
-  const candidate: { isOk?: unknown; isErr?: unknown } = value;
-  return (
-    typeof candidate.isOk === 'function' &&
-    typeof candidate.isErr === 'function'
-  );
-};
 
 const errorFromUnknown = (
   value: unknown
@@ -282,9 +271,3 @@ export const tryTraceJsonOutput = (
   process.stdout.write(formatTraceJsonEnvelope(envelope));
   return true;
 };
-
-// ---------------------------------------------------------------------------
-// Result-shape detection helpers (re-exported for consumers in cli.ts)
-// ---------------------------------------------------------------------------
-
-export const isResultShape = hasResultMethods;

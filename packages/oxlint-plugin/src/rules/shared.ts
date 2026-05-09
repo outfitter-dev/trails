@@ -9,7 +9,6 @@ export type RuleContext = Context;
 export type RuleModule = CreateRule;
 
 const PACKAGES_SRC_PATTERN = /(?:^|\/)packages\/[^/]+\/src\//u;
-const PACKAGE_NAME_PATTERN = /(?:^|\/)packages\/([^/]+)\/src\//u;
 const PACKAGE_OR_ADAPTER_SRC_PATTERN =
   /(?:^|\/)(?:adapters|packages)\/[^/]+\/src\//u;
 const PACKAGE_OR_ADAPTER_NAME_PATTERN =
@@ -102,16 +101,6 @@ export const isRepoSourceFile = (filePath: string | undefined): boolean => {
   );
 };
 
-export const extractPackageName = (
-  filePath: string | undefined
-): string | undefined => {
-  if (!filePath) {
-    return undefined;
-  }
-
-  return normalizeFilePath(filePath).match(PACKAGE_NAME_PATTERN)?.[1];
-};
-
 export const extractPackageOrAdapterName = (
   filePath: string | undefined
 ): string | undefined => {
@@ -139,14 +128,6 @@ export const resolveAllowedPackages = (
     allowedPackages.filter(
       (packageName): packageName is string => typeof packageName === 'string'
     )
-  );
-};
-
-export const isAllowedPackage = (context: RuleContext): boolean => {
-  const packageName = extractPackageName(context.filename);
-  return (
-    typeof packageName === 'string' &&
-    resolveAllowedPackages(context.options).has(packageName)
   );
 };
 

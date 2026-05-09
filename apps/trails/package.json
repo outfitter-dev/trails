@@ -26,7 +26,6 @@
     "@ontrails/cli": "workspace:^",
     "@ontrails/commander": "workspace:^",
     "@ontrails/core": "workspace:^",
-    "@ontrails/http": "workspace:^",
     "@ontrails/logging": "workspace:^",
     "@ontrails/observe": "workspace:^",
     "@ontrails/permits": "workspace:^",

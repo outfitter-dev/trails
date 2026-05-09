@@ -545,12 +545,11 @@ type AssertExtends<TActual, TExpected> = TActual extends TExpected
 
 /**
  * Pins the structural relationship between `StoreAccessor` and the core
- * `StoreAccessorProtocol`. Exported so `noUnusedLocals` sees it as live; the
- * type is purely a compile-time marker and contributes no runtime shape. If
- * this type ever resolves to `never`, the protocol in core has drifted from
- * the store accessor contract — fix the protocol shape, not this assertion.
+ * `StoreAccessorProtocol`. If this check resolves to `never`, the protocol in
+ * core has drifted from the store accessor contract — fix the protocol shape,
+ * not this assertion.
  */
-export type AssertStoreAccessorSatisfiesProtocol = AssertExtends<
+const storeAccessorProtocolCheck: AssertExtends<
   StoreAccessor<AnyStoreTable>,
   StoreAccessorProtocol<
     UpsertOf<AnyStoreTable>,
@@ -558,7 +557,9 @@ export type AssertStoreAccessorSatisfiesProtocol = AssertExtends<
     StoreIdentifierOf<AnyStoreTable>,
     FiltersOf<AnyStoreTable>
   >
->;
+> = true;
+
+void storeAccessorProtocolCheck;
 
 /**
  * Tabular writable operations layered on top of the backend-agnostic
