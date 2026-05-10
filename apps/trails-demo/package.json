@@ -21,7 +21,6 @@
     "@ontrails/drizzle": "workspace:^",
     "@ontrails/hono": "workspace:^",
     "@ontrails/http": "workspace:^",
-    "@ontrails/logging": "workspace:^",
     "@ontrails/mcp": "workspace:^",
     "@ontrails/store": "workspace:^",
     "zod": "catalog:"
