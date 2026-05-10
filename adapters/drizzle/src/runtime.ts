@@ -10,7 +10,8 @@ import {
   ValidationError,
   resource,
 } from '@ontrails/core';
-import { bindStoreDefinition, versionFieldName } from '@ontrails/store';
+import { versionFieldName } from '@ontrails/store';
+import { bindStoreDefinition } from '@ontrails/store/adapter-support';
 import type {
   AnyStoreDefinition,
   AnyStoreTable,

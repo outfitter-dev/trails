@@ -223,15 +223,22 @@ writeSurfaceLock(lock, options?), readSurfaceLockData(options?), readSurfaceLock
 createTopoStore(options?), createMockTopoStore(seed?), topoStore
 createTopoSnapshot(topo, options?), listTopoSnapshots(options?)
 pinTopoSnapshot(id, name, options?), unpinTopoSnapshot(nameOrId, options?)
-createStoredTopoSnapshot(db, topo, input?), getStoredTopoExport(db, snapshotId)
-countTopoSnapshots(db), countPinnedSnapshots(db), countPrunableSnapshots(db, options?)
-pruneUnpinnedSnapshots(db, options?)
 
 SurfaceMap, SurfaceMapEntry, SurfaceMapContourReference, SurfaceLock, DiffResult, DiffEntry, JsonSchema
 WriteOptions, ReadOptions
 ReadOnlyTopoStore, MockTopoStoreSeed, TopoSnapshot, TopoStoreRef
 TopoStoreExportRecord, TopoStoreResourceRecord, TopoStoreTrailRecord, TopoStoreTrailDetailRecord
-CreateTopoSnapshotInput, ListTopoSnapshotsOptions, StoredTopoExport
+CreateTopoSnapshotInput, ListTopoSnapshotsOptions
+```
+
+### `@ontrails/topographer/backend-support`
+
+```typescript
+createStoredTopoSnapshot(db, topo, input?), getStoredTopoExport(db, snapshotId)
+countTopoSnapshots(db), countPinnedSnapshots(db), countPrunableSnapshots(db, options?)
+pruneUnpinnedSnapshots(db, options?)
+
+StoredTopoExport
 ```
 
 ## `@ontrails/store`
@@ -240,9 +247,6 @@ CreateTopoSnapshotInput, ListTopoSnapshotsOptions, StoredTopoExport
 store(tables)                      // backend-agnostic store definition
 crudOperations                     // canonical create/read/update/delete/list order
 crudAccessorExpectations           // canonical accessor methods/fallbacks per CRUD operation
-bindStoreDefinition(definition, scope) // bind derived store signals to a resource scope
-createStoreTableSignals(tableName, payload), composeStoreSignalId(scope, tableName, change)
-isValidResourceId(resourceId)
 // every normalized table exposes derived schemas and signals directly:
 // table.schema          — normalized full entity schema
 // table.insertSchema    — entity schema minus generated fields
@@ -257,11 +261,20 @@ FiltersOf<T>, StoreListOptions
 StoreConnection<T>, StoreTableConnection<T>, ReadOnlyStoreConnection<T>
 StoreAccessor<T>, StoreTableAccessor<T>, ReadOnlyStoreTableAccessor<T>
 CrudOperation, CrudAccessorExpectation
-StoreSignalChange
 
 // `versioned: true` on a store table adds a framework-managed integer `version`
 // field to returned entities and allows `upsert()` optimistic concurrency.
 // writable store resources fire canonical scoped signals when accessed through `db.from(ctx)`.
+```
+
+### `@ontrails/store/adapter-support`
+
+```typescript
+bindStoreDefinition(definition, scope) // bind derived store signals to a resource scope
+createStoreTableSignals(tableName, payload), composeStoreSignalId(scope, tableName, change)
+isValidResourceId(resourceId)
+
+StoreSignalChange
 ```
 
 ## `@ontrails/store/testing`

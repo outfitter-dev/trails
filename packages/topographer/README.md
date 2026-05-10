@@ -70,8 +70,26 @@ The typical exported artifact pair is:
 | `createTopoSnapshot(topo, options?)` | Persist a new topo snapshot row plus its denormalized projections |
 | `listTopoSnapshots(options?)` | List historical topo snapshots (filterable by pinned status) |
 | `pinTopoSnapshot(id, name, options?)` / `unpinTopoSnapshot(nameOrId, options?)` | Manage human-named pins |
-| `countTopoSnapshots(db)` / `countPinnedSnapshots(db)` / `countPrunableSnapshots(db, options?)` / `pruneUnpinnedSnapshots(db, options?)` | Lower-level snapshot counters and pruning over an open `trails.db` handle |
-| `createStoredTopoSnapshot(db, topo, input?)` / `getStoredTopoExport(db, snapshotId)` | Direct DB-handle variants for callers that already hold an open writer |
+
+### Backend Support Subpath
+
+Direct `trails.db` helper APIs are public, but they are backend-support APIs
+rather than root graph contracts. Import them from
+`@ontrails/topographer/backend-support`:
+
+```typescript
+import {
+  countPinnedSnapshots,
+  countPrunableSnapshots,
+  countTopoSnapshots,
+  createStoredTopoSnapshot,
+  getStoredTopoExport,
+  pruneUnpinnedSnapshots,
+} from '@ontrails/topographer/backend-support';
+```
+
+This subpath owns lower-level snapshot counters, pruning helpers, and direct
+DB-handle variants for callers that already hold an open `trails.db` handle.
 
 ## Breaking change detection
 

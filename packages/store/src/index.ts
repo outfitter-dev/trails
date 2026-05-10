@@ -3,13 +3,6 @@ export type {
   CrudAccessorExpectation,
   CrudOperation,
 } from './crud-doctrine.js';
-export {
-  bindStoreDefinition,
-  composeStoreSignalId,
-  createStoreTableSignals,
-  isValidResourceId,
-} from './internal/signal-identity.js';
-export type { StoreSignalChange } from './internal/signal-identity.js';
 export { store, versionFieldName } from './store.js';
 export type {
   AnyStoreDefinition,

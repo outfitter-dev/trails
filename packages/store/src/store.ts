@@ -2,7 +2,7 @@ import { stripDefaultsFromShape, ValidationError } from '@ontrails/core';
 import type { AnySignal } from '@ontrails/core';
 import { z } from 'zod';
 
-import { createStoreTableSignals } from './internal/signal-identity.js';
+import { createStoreTableSignals } from './adapter-support.js';
 import type {
   StoreDefinition,
   StoreKind,

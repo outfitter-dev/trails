@@ -11,7 +11,7 @@ import type {
   UpdateOf,
 } from '../index.js';
 import { store } from '../index.js';
-import { bindStoreDefinition } from '../internal/signal-identity.js';
+import { bindStoreDefinition } from '../adapter-support.js';
 
 const userSchema = z.object({
   email: z.string().email(),

@@ -12,6 +12,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./adapter-support": "./src/adapter-support.ts",
     "./jsonfile": "./src/jsonfile/index.ts",
     "./trails": "./src/trails/index.ts",
     "./testing": "./src/testing.ts",

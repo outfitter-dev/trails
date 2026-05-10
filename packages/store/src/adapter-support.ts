@@ -11,7 +11,7 @@ import type {
   AnyStoreDefinition,
   AnyStoreTable,
   StoreTableSignals,
-} from '../types.js';
+} from './types.js';
 
 type MutableTables<TStore extends AnyStoreDefinition> = {
   -readonly [TName in keyof TStore['tables']]: TStore['tables'][TName];

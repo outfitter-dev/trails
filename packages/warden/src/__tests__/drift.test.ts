@@ -11,12 +11,12 @@ import {
   Result,
 } from '@ontrails/core';
 import {
-  createStoredTopoSnapshot,
   createTopoStore,
   deriveSurfaceMapHash,
   deriveSurfaceMap,
   writeSurfaceLock,
 } from '@ontrails/topographer';
+import { createStoredTopoSnapshot } from '@ontrails/topographer/backend-support';
 import { z } from 'zod';
 
 import { checkDrift } from '../drift.js';

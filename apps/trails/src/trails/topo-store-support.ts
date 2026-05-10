@@ -15,17 +15,16 @@ import {
   Result,
 } from '@ontrails/core';
 import type {
-  StoredTopoExport,
   SurfaceLock,
   SurfaceMap,
   TopoSnapshot,
 } from '@ontrails/topographer';
+import type { StoredTopoExport } from '@ontrails/topographer/backend-support';
+import { writeSurfaceLock, writeSurfaceMap } from '@ontrails/topographer';
 import {
   createStoredTopoSnapshot,
   getStoredTopoExport,
-  writeSurfaceLock,
-  writeSurfaceMap,
-} from '@ontrails/topographer';
+} from '@ontrails/topographer/backend-support';
 
 import type { TopoExportReport } from './topo-support.js';
 import {

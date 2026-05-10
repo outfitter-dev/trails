@@ -13,6 +13,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./backend-support": "./src/backend-support.ts",
     "./package.json": "./package.json"
   },
   "scripts": {

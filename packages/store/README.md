@@ -144,6 +144,19 @@ created.id;
 // "db.main:gists.created"
 ```
 
+## Adapter Support Subpath
+
+Adapter authors who bind a `store(...)` definition to a concrete backend should
+import signal-binding helpers from `@ontrails/store/adapter-support`:
+
+```typescript
+import { bindStoreDefinition } from '@ontrails/store/adapter-support';
+```
+
+The subpath owns `bindStoreDefinition`, `createStoreTableSignals`,
+`composeStoreSignalId`, `isValidResourceId`, and `StoreSignalChange`. The root
+package stays focused on backend-agnostic store contracts.
+
 Writable bindings fire those canonical scoped signals automatically when you access the resource through `db.from(ctx)` inside a trail context.
 
 See [Store Signal Identity Migration](../../docs/store-signal-identity-migration.md) when updating existing `on:` clauses, surface-map fixtures, or custom resource wrappers from bare ids to scoped ids.

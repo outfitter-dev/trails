@@ -10,7 +10,7 @@ import type {
   StoreListOptions,
   UpsertOf,
 } from '../types.js';
-import { bindStoreDefinition } from '../internal/signal-identity.js';
+import { bindStoreDefinition } from '../adapter-support.js';
 import { versionFieldName } from '../store.js';
 
 import type {

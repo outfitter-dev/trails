@@ -136,7 +136,7 @@ countPinnedSnapshots
 countPrunableSnapshots
 countTopoSnapshots
 pruneUnpinnedSnapshots
-createStoredTopoSnapshot   // re-exported as createTopoSnapshot from internal/topo-store.js
+createStoredTopoSnapshot   // direct DB-handle helper on backend-support
 getStoredTopoExport
 
 // Types
@@ -161,6 +161,10 @@ Migration from teaching docs and consumer code is one-line per import:
 ```
 
 `docs/topo-store.md` and `docs/topo-store-reference.md` update accordingly. The changeset entry flags this as a breaking beta change with explicit migration notes. Core gains no dependency on Topographer. Downstream apps and packages that need the topo store import Topographer directly.
+
+Lower-level direct DB-handle helpers are intentionally public through
+`@ontrails/topographer/backend-support`; the root package remains focused on
+durable graph contracts and read-oriented topo-store conveniences.
 
 The `trails-db` helpers listed earlier ([above](#the-shared-database-primitive-is-not-the-topo-subsystem)) are explicitly out of scope for this relocation.
 
