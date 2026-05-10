@@ -21,13 +21,14 @@ trails create my-app --surfaces cli http
 trails add surface http
 ```
 
-The CLI surface still uses the current beta.15 import path:
+The CLI surface uses the dedicated Commander adapter package:
 
 ```ts
-import { surface } from '@ontrails/cli/commander';
+import { surface } from '@ontrails/commander';
 ```
 
-Moving Commander into a dedicated `@ontrails/commander` adapter package is planned for beta 16, not beta 15.
+Older generated projects that still import the retired `@ontrails/cli/commander`
+subpath should migrate to `@ontrails/commander`.
 
 ### Generated project toolchain
 
@@ -39,7 +40,11 @@ Destructive developer/topo trails now declare scoped permits so the CLI app dogf
 
 ### Publish matrix cleanup
 
-The package publishing script now includes the Vite connector. Active Changesets prerelease metadata has also been cleaned up so beta.15 status checks report the intended release plan.
+The package publishing script now includes the Vite adapter. Active Changesets prerelease metadata has also been cleaned up so beta.15 status checks report the intended release plan.
+
+### Observability cleanup
+
+`@ontrails/logging` has been retired before v1. Use `@ontrails/observe` for log and trace sink contracts, built-in console/file/memory sinks, sink composition, and trace rendering. Keep `@ontrails/tracing` for intrinsic tracing compatibility, tracing query/status trails, the SQLite dev store, sampling helpers, and the supported `@ontrails/tracing/otel` adapter subpath. Use `@ontrails/logtape` when forwarding Trails log records to an existing LogTape-shaped logger.
 
 ## Migration from beta.14
 
@@ -51,10 +56,10 @@ The published `CHANGELOG.md` for `@ontrails/cli` and `@ontrails/mcp` attributes 
 
 | Old (beta.14) | New (beta.15) | Where |
 | --- | --- | --- |
-| `import { trailhead } from '@ontrails/cli/commander'` | `import { surface } from '@ontrails/cli/commander'` | CLI entry |
+| `import { trailhead } from '@ontrails/cli/commander'` | `import { surface } from '@ontrails/commander'` | CLI entry |
 | `import { trailhead } from '@ontrails/mcp'` | `import { surface } from '@ontrails/mcp'` | MCP entry |
 | `trailhead(app)` / `await trailhead(app)` | `surface(app)` / `await surface(app)` | Both |
-| `TrailheadCliOptions` | `CreateProgramOptions` | `@ontrails/cli/commander` |
+| `TrailheadCliOptions` | `CreateProgramOptions` | `@ontrails/commander` |
 | `TrailheadMcpOptions` | `CreateServerOptions` | `@ontrails/mcp` |
 | MCP options `serverInfo: { name, version }` | flat `name`, `version` on the options object | `@ontrails/mcp` |
 | MCP options `transport: ...` | dropped (stdio-only) | `@ontrails/mcp` |
@@ -76,9 +81,10 @@ The published `CHANGELOG.md` for `@ontrails/cli` and `@ontrails/mcp` attributes 
 | Generated scripts but no local toolchain dev dependencies | Add TypeScript, Ultracite, oxlint, and Bun types |
 | A generated Warden hook using `--exit-code` | Remove the unsupported flag |
 | A project that wants HTTP | Add `@ontrails/http` and `@ontrails/hono`, then add `src/http.ts` |
+| `@ontrails/logging` | Migrate to `@ontrails/observe`; use `@ontrails/logtape` for LogTape forwarding |
 | `@ontrails/tracker` | Migrate to `@ontrails/tracing` |
 | `@ontrails/crumbs` | Remove it unless you have a private compatibility reason |
-| `@ontrails/cli/commander` | Keep it for beta 15; do not move to `@ontrails/commander` yet |
+| `@ontrails/cli/commander` | Migrate to `@ontrails/commander` |
 
 ### Package versions
 
@@ -89,6 +95,7 @@ Upgrade `@ontrails/*` packages together. Trails packages are versioned in lockst
   "dependencies": {
     "@ontrails/core": "^1.0.0-beta.15",
     "@ontrails/cli": "^1.0.0-beta.15",
+    "@ontrails/commander": "^1.0.0-beta.15",
     "@ontrails/mcp": "^1.0.0-beta.15",
     "@ontrails/http": "^1.0.0-beta.15",
     "@ontrails/hono": "^1.0.0-beta.15",
@@ -98,17 +105,10 @@ Upgrade `@ontrails/*` packages together. Trails packages are versioned in lockst
 }
 ```
 
-Keep `commander` installed separately for CLI apps in beta.15:
-
-```json
-{
-  "dependencies": {
-    "commander": "^14.0.3"
-  }
-}
-```
-
-Do not move CLI imports to `@ontrails/commander` yet. That adapter split is planned for beta 16.
+Move CLI imports to `@ontrails/commander`; the old `@ontrails/cli/commander`
+subpath is not exported by the beta.15 CLI package. `@ontrails/commander` owns
+the Commander runtime dependency, so apps only need a direct `commander`
+dependency when they import Commander APIs themselves.
 
 ### Existing generated projects
 
@@ -120,7 +120,8 @@ Projects created before beta.15 may contain monorepo-only dependency ranges such
 -   "@ontrails/core": "workspace:^",
 -   "@ontrails/cli": "workspace:^"
 +   "@ontrails/core": "^1.0.0-beta.15",
-+   "@ontrails/cli": "^1.0.0-beta.15"
++   "@ontrails/cli": "^1.0.0-beta.15",
++   "@ontrails/commander": "^1.0.0-beta.15"
   }
 }
 ```
@@ -140,7 +141,7 @@ Generated projects should also include the toolchain dependencies used by their 
 
 If the project uses generated verification, keep `@ontrails/testing`, `@ontrails/warden`, and `lefthook` in `devDependencies`.
 
-If an older generated project still imports an extracted connector through an old subpath, prefer the connector package:
+If an older generated project still imports an extracted adapter through an old subpath, prefer the adapter package:
 
 | Old import | Beta 15 import |
 | --- | --- |
@@ -149,10 +150,10 @@ If an older generated project still imports an extracted connector through an ol
 
 ### CLI surface
 
-No import migration is required for beta.15 CLI apps. Keep the current subpath:
+Generated beta.15 CLI apps should import the Commander adapter package:
 
 ```ts
-import { surface } from '@ontrails/cli/commander';
+import { surface } from '@ontrails/commander';
 ```
 
 Generated CLI entrypoints should continue to call:
@@ -183,6 +184,29 @@ The Trails CLI can generate the same entrypoint:
 trails add surface http
 ```
 
+### Observability
+
+Move logging and trace sink imports to `@ontrails/observe`:
+
+```diff
+- import { createConsoleSink, createFileSink } from '@ontrails/logging';
++ import { createConsoleSink, createFileSink } from '@ontrails/observe';
+```
+
+Use `@ontrails/logtape` for LogTape forwarding:
+
+```ts
+import { createLogtapeSink } from '@ontrails/logtape';
+
+const sink = createLogtapeSink({ logger });
+```
+
+Use `@ontrails/tracing/otel` for the v1 OpenTelemetry trace adapter:
+
+```ts
+import { createOtelAdapter } from '@ontrails/tracing/otel';
+```
+
 ### Warden hook
 
 If a generated `lefthook.yml` includes an unsupported Warden flag such as `--exit-code`, remove it. The beta.15 scaffold uses:
@@ -206,7 +230,6 @@ Beta 15 intentionally does not take on the larger CLI grammar and package-shape 
 
 - **Trails CLI improvements** — command grammar and authoring ergonomics for `add trail`, `add surface`, `draft promote`, dry-run plans, and flagless project discovery.
 - **Trails CLI schemas** — a framework-level `schema` command in `@ontrails/cli` so CLI apps can expose derived command contracts by default.
-- **Trails Commander adapter** — beta.16 direct cutover from `@ontrails/cli/commander` to a dedicated `@ontrails/commander` adapter package, with no compatibility subpath.
 
 ## Packages
 
@@ -217,7 +240,11 @@ New or newly publishable packages in the beta.15 publish flow include:
 - `@ontrails/hono`
 - `@ontrails/vite`
 - `@ontrails/drizzle`
+- `@ontrails/observe`
 - `@ontrails/logtape`
 - `@ontrails/tracing`
+- `@ontrails/commander`
 
 Deprecated package names `@ontrails/tracker` and `@ontrails/crumbs` have been retired on npm with `npm deprecate`. Both point at `@ontrails/tracing` in their deprecation messages; new installs surface a visible warning.
+
+`@ontrails/logging` is not part of the beta.15 package set. New apps should not install it.

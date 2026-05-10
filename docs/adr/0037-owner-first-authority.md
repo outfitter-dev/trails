@@ -78,7 +78,7 @@ This means:
 | Result accessor names used for static assumptions | `@ontrails/core` Result owner |
 | Detour retry attempt cap | `@ontrails/core` detour execution owner |
 | Reserved framework vocabulary | the lexicon and the package that enforces the rule |
-| Connector descriptors | the connector package or descriptor owner once the descriptor model lands |
+| Adapter descriptors | the adapter package or descriptor owner once the descriptor model lands |
 
 The export is boring on purpose. Prefer an `as const` array, a typed object, or
 a small mapper that directly represents the owner's knowledge. Do not introduce

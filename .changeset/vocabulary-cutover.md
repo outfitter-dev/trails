@@ -13,9 +13,9 @@
 
 Trail-native vocabulary cutover. Breaking API field renames across all packages:
 
-- Trail spec: `run:` → `blaze:`, `follow:` → `crosses:`, `services:` → `provisions:`, `metadata:` → `meta:`, `emits:` → `signals:`
-- Runtime: `ctx.follow()` → `ctx.cross()`, `ctx.emit()` → `ctx.signal()`, `ctx.signal` (abort) → `ctx.abortSignal`
-- Entry points: `blaze(app)` → `trailhead(app)`
-- Package rename: `@ontrails/crumbs` → `@ontrails/tracker`
-- Wrapper types: `Layer` → `Gate`, `layers`/`middleware` → `gates`
-- Transport: `surface` → `trailhead`, `adapter` → `connector`
+- Trail spec: `run:` → `blaze:`, `follow:` → `crosses:`, `services:` → `resources:`, `metadata:` → `meta:`, `emits:` → `fires:`
+- Runtime: `ctx.follow()` → `ctx.cross()`, `ctx.emit()` → `ctx.fire()`, `ctx.signal` (abort) → `ctx.abortSignal`
+- Entry points: `trailhead(app)` → `surface(app)`
+- Package rename: `@ontrails/crumbs` / `@ontrails/tracker` → `@ontrails/tracing`
+- Wrapper types: retired gate/middleware vocabulary in favor of `Layer` and `layers`
+- Package taxonomy: retired connector vocabulary in favor of adapters

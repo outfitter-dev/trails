@@ -15,7 +15,8 @@ depends_on: [6, 13, 39]
 
 ### Two packages, one concern
 
-Trails currently ships two packages for understanding what an app does at runtime:
+Before the v1 observability cleanup, Trails shipped two packages for
+understanding what an app does at runtime:
 
 - **`@ontrails/logging`** — structured logging with sinks and formatters. The developer writes `ctx.logger.info('creating gist')`.
 - **`@ontrails/tracing`** — execution recording with trace propagation. The framework writes a `TraceRecord` for every trail invocation via the execution pipeline.
@@ -171,7 +172,7 @@ const app = topo('myapp', trails)
 // Still zero configuration
 ```
 
-For local tooling or production, plug in a connector or sink:
+For local tooling or production, plug in an adapter or sink:
 
 ```typescript
 import { createMemorySink } from '@ontrails/observe'
@@ -184,10 +185,11 @@ const app = topo('myapp', trails, {
 The sink or adapter owns the details: sampling rates, log levels, formatting, batching. These are adapter configuration, not topo configuration. The topo says "observe with this." One declaration.
 
 ```typescript
-futureOtelConnector({
-  endpoint: 'https://otel.example.com',
-  sampling: { read: 0.1, write: 1.0, destroy: 1.0 },
-  logging: { level: 'warn' },
+createOtelAdapter({
+  exporter: async (spans) => {
+    await collector.send(spans)
+  },
+  batchSize: 50,
 })
 ```
 
@@ -210,7 +212,7 @@ const app = topo('myapp', trails, {
 })
 ```
 
-Still one `observe:` declaration. The complexity lives in the connector, not the topo.
+Still one `observe:` declaration. The complexity lives in the adapter, not the topo.
 
 ### Vocabulary changes
 
@@ -249,7 +251,7 @@ Everything else — developer-configurable memory sinks, OTel, file sinks, SQLit
 
 - **Metrics.** Core does not ship a metrics primitive. If metrics are needed, `@ontrails/observe` can add a metrics adapter. Trace data (duration, error rates) can be derived into metrics at the OTel layer.
 - **Distributed tracing.** Trace context propagation across trail crossings within a single process is in scope. Propagation across network boundaries (cross-app) is a future concern for the mount/pack system.
-- **Replacing OpenTelemetry.** The framework maintains a Trails-native model internally. OTel is the export format, not the internal representation. An OTel connector translates outward from `TraceRecord` to OTel spans.
+- **Replacing OpenTelemetry.** The framework maintains a Trails-native model internally. OTel is the export format, not the internal representation. An OTel adapter translates outward from `TraceRecord` to OTel spans.
 
 ## Consequences
 
@@ -257,7 +259,7 @@ Everything else — developer-configurable memory sinks, OTel, file sinks, SQLit
 
 - **Two-package getting started.** `@ontrails/core` + `@ontrails/cli` gives a working app with logging and tracing. No extra installs for the inner development loop.
 - **`trails run --trace` works out of the box.** Every getting-started guide and demo can show the execution tree. Every debugging session starts with "add `--trace`."
-- **One observability config.** The developer plugs in one connector. Logs and traces flow through the same pipeline. No nested config objects, no growing DSL at the topo level.
+- **One observability config.** The developer plugs in one adapter or composed sink. Logs and traces flow through the same pipeline. No nested config objects, no growing DSL at the topo level.
 - **Plain vocabulary.** "Logging" and "tracing" need no explanation. No branded terms for concepts the industry already named.
 - **Fewer packages.** Two packages merge into one, and core absorbs the essentials. The total package count drops by one.
 
@@ -269,12 +271,12 @@ Everything else — developer-configurable memory sinks, OTel, file sinks, SQLit
 
 ### Risks
 
-- **Core surface area creep.** If the boundary between "essential dev-time observability" and "production connector" is not held firmly, core accumulates features that belong in `@ontrails/observe`. The test: if it requires a dependency beyond core's existing set, it belongs in the observe package.
+- **Core surface area creep.** If the boundary between "essential dev-time observability" and "production adapter" is not held firmly, core accumulates features that belong in `@ontrails/observe`. The test: if it requires a dependency beyond core's existing set, it belongs in the observe package.
 - **The `Track` to `TraceRecord` rename.** "Track" was a good Trails-native word that paired with "tracker." With tracker gone, `TraceRecord` is the plain-language internal type. The developer-facing word is just "trace" — as a verb (`ctx.trace()`) and as a CLI flag (`--trace`). The internal type name avoids overloading "trace" (which can mean one record or an entire execution tree in industry usage). Careful API naming is required.
 
 ## Non-decisions
 
-- **The exact production connector set.** Which connectors `@ontrails/observe` ships at launch is a packaging decision, not an architectural one.
+- **The exact production adapter set.** Which adapters `@ontrails/observe` ships at launch is a packaging decision, not an architectural one.
 - **Replay or catch-up semantics.** Whether trace data supports execution replay is a separate concern.
 - **Long-lived manual spans beyond the callback API.** A raw `start` / `end` pair may be needed eventually. The callback API is sufficient for v1.
 - **Compliance-grade immutable audit retention.** Audit trails with tamper-evidence and retention policies are a future concern beyond observability.

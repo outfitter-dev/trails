@@ -4,7 +4,7 @@ slug: native-infrastructure
 title: Trails-Native Infrastructure Pattern
 status: accepted
 created: 2026-03-30
-updated: 2026-04-01
+updated: 2026-05-09
 owners: ['[galligan](https://github.com/galligan)']
 ---
 
@@ -18,7 +18,11 @@ The hexagonal architecture has a clear story on the left. Surfaces — CLI, MCP,
 
 The right side — logging, storage, telemetry, auth — had no primitive until ADR-0009 introduced resources. Before that, every trail that talked to infrastructure created its own connections inline. No lifecycle, no governance, no testability.
 
-`@ontrails/logging` established the connector pattern before resources existed: abstract API (`Logger`) → extension point (`LogSink`) → built-in implementations → subpath connectors (`/logtape`). It works, but it's hand-wired. There's no standard way to manage its lifecycle, compose it with execution, or mock it in tests. Resources generalize what logging pioneered.
+The legacy logging package established the adapter pattern before resources
+existed: abstract API (`Logger`) -> extension point (`LogSink`) -> built-in
+implementations -> provider adapters. It worked, but it was hand-wired. There
+was no standard way to manage its lifecycle, compose it with execution, or mock
+it in tests. Resources generalize what that early pattern pioneered.
 
 ### The production readiness layer
 
@@ -30,7 +34,7 @@ Three infrastructure capabilities form the "production readiness" layer:
 
 These aren't independent. Config resolves first — it tells permits which auth provider to use and tracing where to send telemetry. Permits checks identity before trails run. Tracing observes everything. The dependency chain is: config → permits → tracing.
 
-Each needs the same three constructs. A **service** for lifecycle — create the auth client, cache it, dispose it, health-check it, mock it. A **layer** for cross-cutting execution wrapping — check permissions before every trail, record spans around every trail. And **trails** for inspectable operations — `config.explain` to show resolved config, `auth.verify` to check a token, `tracing.status` to report telemetry health.
+Each needs the same three constructs. A **resource** for lifecycle — create the auth client, cache it, dispose it, health-check it, mock it. A **layer** for cross-cutting execution wrapping — check permissions before every trail, record spans around every trail. And **trails** for inspectable operations — `config.explain` to show resolved config, `auth.verify` to check a token, `tracing.status` to report telemetry health.
 
 ### The pattern gap
 
@@ -48,9 +52,9 @@ Every infrastructure package ships three kinds of primitives:
 | **Layer** | Cross-cutting execution wrapping | `configLayer` | `authLayer` | *(collapsed into `executeTrail` per ADR-0023)* |
 | **Trail** | Inspectable operations (`intent: 'read'` in v1) | `config.explain` | `auth.verify` | `tracing.status` |
 
-Resources manage the connector lifecycle. Layers inject behavior into the execution pipeline. Trails expose infrastructure operations as first-class contracts — queryable, testable, governable.
+Resources manage the adapter lifecycle. Layers inject behavior into the execution pipeline. Trails expose infrastructure operations as first-class contracts — queryable, testable, governable.
 
-The trifecta is the unit of infrastructure. If a package ships a service without a layer, the cross-cutting concern isn't integrated. If it ships a layer without trails, the operations aren't inspectable. All three, every time.
+The trifecta is the unit of infrastructure. If a package ships a resource without a layer, the cross-cutting concern isn't integrated. If it ships a layer without trails, the operations aren't inspectable. All three, every time.
 
 ### Infrastructure trails live in the same topo
 
@@ -80,7 +84,7 @@ Infrastructure has a bootstrap problem. Config resolution runs before `executeTr
 The solution is two phases:
 
 1. **Bootstrap phase.** Config resolves from static sources — TypeScript config files, environment variables, `.trails/config/` overrides. No trails involved. This produces the resolved config that resources need to create.
-2. **Execution phase.** The topo is built. Services are registered. Now `config.explain`, `auth.verify`, and other infrastructure trails are available through the normal execution pipeline.
+2. **Execution phase.** The topo is built. Resources are registered. Now `config.explain`, `auth.verify`, and other infrastructure trails are available through the normal execution pipeline.
 
 Bootstrap is pure resolution — no side effects, no trail execution, no layers. It runs once at startup. Everything after bootstrap goes through `executeTrail`.
 
@@ -100,21 +104,26 @@ Auto-created on first framework operation. The framework generates a `.gitignore
 
 The workspace gives infrastructure a known home. Config reads overrides from `.trails/config/`. Local framework state and topo history live in `.trails/trails.db`. Derived contract artifacts land alongside them in `.trails/_surface.json` and `.trails/trails.lock`. No more scattering framework files across the project root.
 
-### Connectors are the integration point
+### Adapters are the integration point
 
-Each infrastructure package ships a zero-dependency built-in and optional connectors as subpath exports:
+Each infrastructure package ships a zero-dependency built-in and optional
+adapters as subpath exports:
 
-- **Config:** TypeScript config + env resolution built-in. No connectors needed in v1 — the built-in covers the common case.
-- **Permits:** JWT/JWKS verification built-in. Connectors: `/openauth`, `/better-auth`, `/clerk` for provider-specific integration.
-- **Tracing:** `bun:sqlite` dev store built-in — records spans locally for development inspection. Connectors: `/otel` for OpenTelemetry export.
+- **Config:** TypeScript config + env resolution built-in. No adapters needed in v1 — the built-in covers the common case.
+- **Permits:** JWT/JWKS verification built-in. Adapters: `/openauth`, `/better-auth`, `/clerk` for provider-specific integration.
+- **Tracing:** `bun:sqlite` dev store built-in — records spans locally for development inspection. Adapter: `/otel` for OpenTelemetry export.
 
-Connectors carry optional peer dependencies. Installing `@ontrails/permits` doesn't pull in Clerk's SDK. Installing `@ontrails/permits/clerk` does.
+Adapters carry optional peer dependencies. Installing `@ontrails/permits`
+doesn't pull in Clerk's SDK. Installing `@ontrails/permits/clerk` does.
 
-The built-in for each package is functional enough for development and simple production cases. Connectors are for teams that need specific providers. This follows the logging precedent: `@ontrails/logging` works out of the box, `/logtape` is there when you need it.
+The built-in for each package is functional enough for development and simple
+production cases. Adapters are for teams that need specific providers. The v1
+observability package graph follows this posture through `@ontrails/observe`
+for sink contracts and `@ontrails/logtape` for LogTape forwarding.
 
 ### `testAll(graph)` just works
 
-The mock factory pattern from ADR-0009 makes zero-config testing possible for every infrastructure service:
+The mock factory pattern from ADR-0009 makes zero-config testing possible for every infrastructure resource:
 
 - Config resolves a test profile — minimal, deterministic, no env vars required.
 - Auth mints synthetic permits — valid tokens with minimal claims, enough to satisfy intrinsic permit enforcement without a real provider.
@@ -154,8 +163,13 @@ Each ADR can refine the shared pattern based on what the previous package learne
 
 ### What this does NOT decide
 
-- **Which specific connectors ship first.** The connector list above is directional. Actual connector selection depends on user demand and the packages available at build time.
-- **Request-scoped resource support.** Per-request auth context, per-request trace spans — these need request-scoped resources, which are deferred per ADR-0009. The singleton model handles the connector lifecycle; request-scoped state flows through layers and context extensions.
+- **Which specific adapters ship first.** The adapter list above is directional.
+  Actual adapter selection depends on user demand and the packages available at
+  build time.
+- **Request-scoped resource support.** Per-request auth context, per-request
+  trace spans — these need request-scoped resources, which are deferred per
+  ADR-0009. The singleton model handles the adapter lifecycle; request-scoped
+  state flows through layers and context extensions.
 - **Runtime declaration validation.** Tracing observing that a `read`-intent trail actually writes to a database is powerful but requires runtime instrumentation. Deferred.
 - **Mock scaffolding and capture-based mock generation.** Running a trail against real resources and recording response shapes at the resource boundary could seed mock factories automatically. This is a tooling concern — the framework records, tooling generates — and is deferred to a future ADR or CLI feature.
 
@@ -165,3 +179,9 @@ Each ADR can refine the shared pattern based on what the previous package learne
 - [ADR-0006: Shared Execution Pipeline](0006-shared-execution-pipeline.md) — the `executeTrail` pipeline that infrastructure layers compose into
 - [ADR-0007: Governance as Trails](0007-governance-as-trails.md) — the warden model that governs infrastructure trails alongside business trails
 - [ADR-0009: Resources as a First-Class Primitive](0009-first-class-resources.md) — the resource primitive that infrastructure packages build on
+
+### Amendment log
+
+- 2026-05-09: Public-surface cleanup updated current-facing infrastructure
+  vocabulary from connector/logging precedent to adapter/resource precedent and
+  the `@ontrails/observe` package graph.

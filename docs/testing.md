@@ -377,7 +377,7 @@ expect(result.isError).toBe(false);
 
 The config, permits, and tracing packages each provide test-friendly primitives that work with `testAll(graph)` and `testExamples(graph)` without external dependencies.
 
-**Config test profile.** Use `defineConfig()` with a `test` profile that uses safe defaults (port 0, debug enabled, in-memory stores). When the `TRAILS_ENV` environment variable is set to `test`, the test profile is selected automatically during resolution. Services with `config` schemas receive the test profile values through `svc.config`.
+**Config test profile.** Use `defineConfig()` with a `test` profile that uses safe defaults (port 0, debug enabled, in-memory stores). When the `TRAILS_ENV` environment variable is set to `test`, the test profile is selected automatically during resolution. Resources with `config` schemas receive the test profile values through their resource-create input.
 
 **Synthetic permit creation.** `createTestPermit()` creates a `Permit` with exactly the scopes you specify -- no admin privileges, no wildcards. `createPermitForTrail()` reads a trail's `permit` declaration and creates a permit with exactly the declared scopes, so tests exercise the real authorization path without a running auth provider:
 
@@ -394,13 +394,14 @@ const trailPermit = createPermitForTrail(showTrail);
 **Tracing memory sink.** Tracing is intrinsic to `executeTrail`, but records are only emitted when a real sink is installed. Register `createMemorySink()` to capture records in memory for assertion, then use `clearTraceSink()` to restore the `NOOP_SINK` baseline:
 
 ```typescript
-import { createMemorySink, registerTraceSink, clearTraceSink } from '@ontrails/tracing';
+import { createMemorySink } from '@ontrails/observe';
+import { registerTraceSink, clearTraceSink } from '@ontrails/tracing';
 
 const sink = createMemorySink({ maxRecords: 100 });
 registerTraceSink(sink);
 try {
   // ...run trails...
-  expect(sink.records).toHaveLength(1);
+  expect(sink.records()).toHaveLength(1);
 } finally {
   clearTraceSink();
 }

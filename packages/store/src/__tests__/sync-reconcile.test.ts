@@ -638,7 +638,7 @@ describe('reconcile()', () => {
       },
     });
     expect(err).toBeInstanceOf(RetryExhaustedError);
-    // Inherits the conflict category for trailhead mapping.
+    // Inherits the conflict category for surface mapping.
     expect((err as RetryExhaustedError).category).toBe('conflict');
     // The cause is the original ConflictError.
     expect(err.cause).toBeInstanceOf(ConflictError);

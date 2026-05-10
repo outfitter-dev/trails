@@ -110,9 +110,9 @@ await ctx.trace('db-query', async () => {
 
 No raw `start` / `end` pair in v1. Structural safety beats flexibility here.
 
-### Dev store and export connectors
+### Dev store and export adapters
 
-The development store remains local SQLite. Production export remains an optional connector. The important language change is that these are **connectors**, not stores. Tracing owns the Trails-native model; connectors translate it into storage or observability systems.
+The development store remains local SQLite. Production export remains an optional adapter. The important language change is that these are **adapters**, not stores. Tracing owns the Trails-native model; adapters translate it into storage or observability systems.
 
 ## Overhead Envelope
 
@@ -149,7 +149,7 @@ The benchmark note lives at `.scratch/2026-04-19-trl-201-tracing-overhead-benchm
 
 ### What this does NOT decide
 
-- the exact production connector set
+- the exact production adapter set
 - replay or catch-up semantics
 - long-lived manual spans beyond the callback API
 - compliance-grade immutable audit retention

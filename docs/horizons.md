@@ -14,7 +14,7 @@
 
 **Auth and permit model (`@ontrails/permits`).** The `permit` field on trail specs declares scope requirements. Surface-specific extraction resolves credentials, `AuthAdapter` turns them into a `Permit` (identity, scopes, roles), and `executeTrail` enforces scope intrinsically before the implementation runs. Includes JWT adapter, governance rules (`validatePermits`), and test helpers through `@ontrails/permits/testing`.
 
-**Tracing (intrinsic in `@ontrails/core`, sinks in `@ontrails/tracing`).** With a real sink installed, `executeTrail` produces a `TraceRecord` automatically, `ctx.trace(label, fn)` records nested spans inside a trail blaze, and activation materializers record `activation.*` boundary entries. With `NOOP_SINK`, the tracing path short-circuits without layer attachment or per-trail wiring. Pluggable sinks register via `registerTraceSink()`: bounded `createMemorySink` for testing, `createDevStore` for local development, `createOtelAdapter` for production OpenTelemetry export. Sampling configuration controls recording volume.
+**Tracing and observability.** Intrinsic execution recording lives in `@ontrails/core`: with a real sink installed, `executeTrail` produces a `TraceRecord` automatically, `ctx.trace(label, fn)` records nested spans inside a trail blaze, and activation materializers record `activation.*` boundary entries. Production sink contracts and built-in console/file/memory sinks live in `@ontrails/observe`; tracing-specific developer state, query/status trails, SQLite dev stores, sampling helpers, and the supported `@ontrails/tracing/otel` adapter subpath live in `@ontrails/tracing`. With `NOOP_SINK`, the tracing path short-circuits without layer attachment or per-trail wiring.
 
 ## Mid-term (v1.3+)
 

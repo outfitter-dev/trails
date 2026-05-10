@@ -4,7 +4,7 @@ slug: first-class-resources
 title: First-Class Resources
 status: accepted
 created: 2026-03-30
-updated: 2026-04-02
+updated: 2026-05-09
 owners: ['[galligan](https://github.com/galligan)']
 ---
 
@@ -46,9 +46,13 @@ That's the gap. The trail contract has no way to express dependencies on externa
 
 ### The right side of the hexagon
 
-The Trails architecture is hexagonal. The left side (inbound) has its primitive: surfaces via `surface()`. The right side (outbound) — logging, storage, telemetry, search — doesn't have one yet. The architecture doc says: *"The framework defines ports. Everything concrete is a connector."* But there's no mechanism to register, resolve, or govern those connectors.
+The Trails architecture is hexagonal. The left side (inbound) has its primitive: surfaces via `surface()`. The right side (outbound) — logging, storage, telemetry, search — doesn't have one yet. The architecture doc says: *"The framework defines ports. Everything concrete is an adapter."* But there's no mechanism to register, resolve, or govern those adapters.
 
-The logging package already established the connector pattern: abstract API (`Logger`) → extension point (`LogSink`) → built-in implementations → subpath connectors (`/logtape`). Resources generalize this pattern. They're the primitive that fills the right side of the hexagon — how you register concrete implementations of connector ports and make them available to trails.
+The legacy logging package established the adapter pattern before resources
+existed: abstract API (`Logger`) -> extension point (`LogSink`) -> built-in
+implementations -> provider adapters. Resources generalize this pattern. They're
+the primitive that fills the right side of the hexagon: how you register
+concrete implementations of adapter ports and make them available to trails.
 
 ### The principle
 
@@ -302,8 +306,14 @@ The layer receives the resource definition as a parameter. It reads from context
 - **Intent-based type narrowing.** `intent: 'read'` returning a read-only projection of a resource is powerful but complex. Deferred.
 - **Resource-to-resource dependencies.** Whether one resource's factory can depend on another resource. The expected pattern when this is needed: resource factories receive a resource resolver alongside `ctx`, and resolution order is topologically sorted from the dependency graph. The graph is already queryable — this follows naturally. Config resolution will be the first instance of this.
 - **Composable config resolution.** The reserved `config` field on `ResourceSpec` enables resources to declare their own config schemas. When `@ontrails/config` ships, resource config schemas compose into the app-level config automatically. The field is reserved now to prevent breaking changes.
-- **Specific connector port interfaces.** The architecture plans `IndexConnector`, `StorageConnector`, `CacheConnector`, and `AuthConnector` as port interfaces. Resources are the mechanism to register concrete implementations of these ports. Which ports ship first, and whether they live in core or in dedicated packages like `@ontrails/storage`, is separate from the resources primitive itself.
-- **Infrastructure resources pattern.** Config, permits, and tracing will each ship as a resource + layer + trails package following the pattern established by `@ontrails/logging`. The resources primitive enables this but doesn't prescribe it.
+- **Specific adapter port interfaces.** The architecture plans provider ports
+  such as index, storage, cache, and auth adapters. Resources are the mechanism
+  to register concrete implementations of these ports. Which ports ship first,
+  and whether they live in core or in dedicated packages like
+  `@ontrails/storage`, is separate from the resources primitive itself.
+- **Infrastructure resources pattern.** Config, permits, and tracing each ship
+  as resource-oriented packages following the adapter pattern that resources
+  standardize. The resources primitive enables this but doesn't prescribe it.
 
 ## References
 
@@ -317,3 +327,5 @@ The layer receives the resource definition as a parameter. It reads from context
 ### Amendment log
 
 - 2026-04-16: In-place vocabulary update per ADR-0035 Cutover 3 — `trailhead(` → `surface(`.
+- 2026-05-09: Public-surface cleanup updated current-facing infrastructure
+  vocabulary from connector/logging precedent to adapter/resource precedent.

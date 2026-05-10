@@ -25,7 +25,8 @@ adapter path. It exports adapter-named APIs such as `createOtelAdapter` and
 ### 1. Register a sink
 
 ```typescript
-import { createMemorySink, registerTraceSink } from '@ontrails/tracing';
+import { createMemorySink } from '@ontrails/observe';
+import { registerTraceSink } from '@ontrails/tracing';
 
 const sink = createMemorySink({ maxRecords: 1000 });
 registerTraceSink(sink);
@@ -214,5 +215,5 @@ Use `clearTraceSink()` or `registerTraceSink(NOOP_SINK)` to switch back to the s
 ## Installation
 
 ```bash
-bun add @ontrails/tracing
+bun add @ontrails/observe @ontrails/tracing
 ```

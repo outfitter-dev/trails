@@ -11,9 +11,9 @@
 
 Complete trifecta for config, permits, and tracker (formerly tracks)
 
-- **config**: Add `configProvision`, `configGate`, `config.trail`, and `config.workspace` trails with full `defineConfig`, `resolve`, `describe`, `explain`, `doctor`, and code generation support
-- **permits**: Add `authService` and `auth.verify` trail for runtime authorization checks
-- **tracker**: Rename tracks to tracker; add `trackerProvision` and `tracker.status` trail for structured signal tracking
+- **config**: Add `configResource`, `config.trail`, and `config.workspace` trails with full `defineConfig`, `resolve`, `describe`, `explain`, `doctor`, and code generation support
+- **permits**: Add `authResource` and `auth.verify` trail for runtime authorization checks
+- **tracing**: Rename tracks to tracing; add `tracingResource` and `tracing.status` trail for structured signal tracking
 - **cli**: Fix build flag handling and improve bootstrap scaffolding
 - **testing**: Expand test context helpers and example-based testing utilities
-- **core/mcp/http**: Internal alignment for provision and composition updates
+- **core/mcp/http**: Internal alignment for resource and composition updates

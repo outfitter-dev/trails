@@ -10,7 +10,8 @@ Use `resource()` to create a typed resource definition:
 import { resource, Result } from '@ontrails/core';
 
 const db = resource('db.main', {
-  create: (svc) => Result.ok(openDatabase(svc.env?.DATABASE_URL)),
+  create: (resourceCtx) =>
+    Result.ok(openDatabase(resourceCtx.env?.DATABASE_URL)),
   dispose: (conn) => conn.close(),
   health: (conn) => conn.ping(),
   mock: () => createInMemoryDb(),
@@ -32,7 +33,7 @@ The `create` factory receives `ResourceContext` -- a narrow subset of `TrailCont
 
 ## Resource Config Schemas
 
-Resources can declare a `config` field with a Zod schema. When present, the framework validates the resource's config slice during resolution and passes the typed result to the `create` factory via `svc.config`:
+Resources can declare a `config` field with a Zod schema. When present, the framework validates the resource's config slice during resolution and passes the typed result to the `create` factory through `ResourceContext.config`:
 
 ```typescript
 import { resource, Result } from '@ontrails/core';
@@ -40,13 +41,14 @@ import { z } from 'zod';
 
 const db = resource('db.main', {
   config: z.object({ poolSize: z.number(), url: z.string().url() }),
-  create: (svc) => Result.ok(openPool(svc.config.url, svc.config.poolSize)),
+  create: (resourceCtx) =>
+    Result.ok(openPool(resourceCtx.config.url, resourceCtx.config.poolSize)),
   dispose: (pool) => pool.end(),
   mock: () => createInMemoryDb(),
 });
 ```
 
-The config values come from the resolved app config, keyed by resource ID. `@ontrails/config` provides `collectResourceConfigs()` to gather all resource config schemas from a topo, and `defineConfig()` to wire profile-based resolution into the bootstrap pipeline. Resources without a `config` schema receive `unknown` and ignore `svc.config`.
+The config values come from the resolved app config, keyed by resource ID. `@ontrails/config` provides `collectResourceConfigs()` to gather all resource config schemas from a topo, and `defineConfig()` to wire profile-based resolution into the bootstrap pipeline. Resources without a `config` schema receive `unknown` and ignore `ResourceContext.config`.
 
 ## Declaring Resources on a Trail
 

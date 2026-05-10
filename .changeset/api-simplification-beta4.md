@@ -20,4 +20,4 @@ API simplification: unified trail model, intent enum, blaze, metadata.
 - `implementation` field renamed to `blaze`
 - `markers` field renamed to `metadata`
 - `testHike` renamed to `testCrosses`, `HikeScenario` to `CrossScenario`
-- `blaze()` now returns the trailhead handle (`Command` for CLI, `Server` for MCP)
+- `surface()` now returns the surface handle (`Command` for CLI, `Server` for MCP)

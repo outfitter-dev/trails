@@ -11,8 +11,10 @@ Core defines ports. Everything on the edges is an adapter.
             |  CLI (commander)   |          |  Resources (core)  |
             |  MCP (sdk)         |          |  Config (config)   |
             |  HTTP (hono)       |          |  Permits (permits) |
-            |  WebSocket (plan.) |          |  Tracing (tracing) |
-            |                    |          |  Logging (logtape) |
+            |  WebSocket (plan.) |          |  Observe (observe) |
+            |                    |          |  Trace state       |
+            |                    |          |  (tracing)         |
+            |                    |          |  LogTape (logtape) |
             +---------+----------+          +---------+----------+
                       |                               |
                       +-------> @ontrails/core <------+
@@ -98,9 +100,9 @@ Warden uses inference to verify declarations match actual code. The surface map 
 |---------|---------|-------------|
 | `@ontrails/config` | Config resolution, profiles, resource config schemas, diagnostics | None beyond core |
 | `@ontrails/permits` | Auth layer, permit model, JWT adapter, scope enforcement | None beyond core |
-| `@ontrails/tracing` | Telemetry recording, trace context, memory/OTel sinks | None beyond core |
-| `@ontrails/logging` | Structured logging, sinks, formatters | None beyond core |
-| `@ontrails/logtape` | LogTape sink adapter | None (accepts any LogTape-shaped logger via a structural interface) |
+| `@ontrails/observe` | Log and trace sink contracts, sink composition, built-in sinks, trace rendering | None beyond core |
+| `@ontrails/tracing` | Compatibility tracing exports, SQLite dev store, query/status trails, OTel adapter | None beyond core |
+| `@ontrails/logtape` | LogTape sink adapter over `@ontrails/observe` | None (accepts any LogTape-shaped logger via a structural interface) |
 
 ### Ecosystem
 
@@ -120,15 +122,15 @@ Warden uses inference to verify declarations match actual code. The surface map 
   <- @ontrails/config (core)
   <- @ontrails/permits (core)
   <- @ontrails/tracing (core)
-  <- @ontrails/logging (core)
+  <- @ontrails/observe (core)
   <- @ontrails/store (core)
   <- @ontrails/drizzle (store, drizzle-orm)
-  <- @ontrails/testing (core, cli, mcp, logging)
+  <- @ontrails/testing (core, cli, mcp, observe)
   <- @ontrails/topographer (core)
      <- @ontrails/commander (cli, commander)
      <- @ontrails/hono (http, hono)
      <- @ontrails/vite (node:stream only)
-     <- @ontrails/logtape (logging)
+     <- @ontrails/logtape (observe)
      <- @ontrails/warden (core, topographer)
 ```
 

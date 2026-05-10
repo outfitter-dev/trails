@@ -197,9 +197,9 @@ concept count flat.
 
 - Whether future surfaces such as WebSocket expose all three rungs as separate
   public APIs
-- Whether every connector package should eventually support additional runtime
+- Whether every adapter package should eventually support additional runtime
   adapters
-- How connector-contributed trails and platform bundles should present their
+- How adapter-contributed trails and platform bundles should present their
   own surface helpers
 
 ## References
@@ -216,6 +216,6 @@ concept count flat.
 - [ADR-0008: Deterministic Surface Derivation](0008-deterministic-trailhead-derivation.md)
   — surface projections are deterministic renderings of the graph
 - [ADR-0029: Connector Extraction and Composition Around Core Contracts](0029-connector-extraction-and-the-with-packaging-model.md)
-  — package boundaries and composition layers around extracted connectors
+  — package boundaries and composition layers around extracted adapters
 - [API Reference](../api-reference.md) — the concrete public API that this ADR
   explains

@@ -95,7 +95,7 @@ Fix any violations before considering the work done. Common issues:
 If warden reports drift:
 
 ```bash
-trails warden --drift-only
+trails warden --lock cached --no-lock-mutation
 trails topo compile
 trails topo verify
 ```

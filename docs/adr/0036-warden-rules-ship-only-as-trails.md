@@ -87,7 +87,7 @@ No separate raw-call path exists. The direct-drive idiom collapses into the stan
 
 ### Extension slots into the same shape
 
-When a connector package contributes a warden rule, or a project defines its own, the rule is a trail — not a raw rule plus optional wrapper. Third-party rules and built-ins share one public shape. `runWarden` grows its extension hooks on top of trails, not on top of two parallel shapes.
+When an adapter package contributes a warden rule, or a project defines its own, the rule is a trail — not a raw rule plus optional wrapper. Third-party rules and built-ins share one public shape. `runWarden` grows its extension hooks on top of trails, not on top of two parallel shapes.
 
 This closes the loop [ADR-0007](0007-governance-as-trails.md) left open in "Whether custom user-defined rules will be supported beyond the built-in set": user-defined rules, when they arrive, are trails. That is the only shape to support.
 
@@ -117,7 +117,7 @@ Implementation is tracked separately in [TRL-341](https://linear.app/outfitter/i
 
 ### Positive
 
-- One canonical public shape for every warden rule — built-in, connector-contributed, or project-local. Third parties do not have to straddle two shapes.
+- One canonical public shape for every warden rule — built-in, adapter-contributed, or project-local. Third parties do not have to straddle two shapes.
 - The "forgot to add the third export" drift class disappears. Adding a rule adds one registry entry and one trail wrapper export. There is no third step to forget.
 - Extension design simplifies. `runWarden` can accept user trails alongside built-in trails without negotiating between raw objects and wrappers.
 - [ADR-0007](0007-governance-as-trails.md)'s intent — governance is trails — now holds at the package boundary, not only inside the package.
@@ -131,7 +131,7 @@ Implementation is tracked separately in [TRL-341](https://linear.app/outfitter/i
 
 - The shape of `runWarden`'s extension hooks. `extraTopoRules` today is a test-only seam; a full public API comes later, informed by real third-party use cases.
 - Whether project-local warden trails should be auto-discovered from the project's topo or registered explicitly. Same dependency on use cases.
-- Whether the self-governance check later extends to third-party packages that contribute warden rules. The current commitment is to enforce symmetry on `@ontrails/warden` itself; extending the check to connectors or projects is a follow-up when that extension path exists.
+- Whether the self-governance check later extends to third-party packages that contribute warden rules. The current commitment is to enforce symmetry on `@ontrails/warden` itself; extending the check to adapters or projects is a follow-up when that extension path exists.
 - Whether auto-fix capabilities eventually attach to the trail wrapper or to a new primitive — deferred from [ADR-0007](0007-governance-as-trails.md) and still deferred here.
 
 ## References

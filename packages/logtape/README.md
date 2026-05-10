@@ -14,3 +14,7 @@ const sink = createLogtapeSink({ logger: getLogger('app') });
 
 The package does not depend on `@logtape/logtape`; it accepts any object shaped
 like a LogTape logger through `LogtapeLoggerLike`.
+
+If you previously depended on `@ontrails/logging` for LogTape forwarding, move
+that forwarding code to `@ontrails/logtape` and pair it with the sink contracts
+from `@ontrails/observe`.

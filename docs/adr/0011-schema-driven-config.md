@@ -18,7 +18,8 @@ Real apps need config. Database URLs, API keys, feature flags, sampling rates, J
 
 ```typescript
 const db = resource('db.main', {
-  create: (svc) => Result.ok(openDatabase(svc.env?.DATABASE_URL)),
+  create: (resourceCtx) =>
+    Result.ok(openDatabase(resourceCtx.env?.DATABASE_URL)),
 });
 ```
 
@@ -30,7 +31,7 @@ Config feeds everything in a Trails app. Resource factories need connection stri
 
 Config is upstream of everything that runs:
 
-- **Resources** — `svc.config.db.url` instead of `svc.env?.DATABASE_URL`
+- **Resources** — `resourceCtx.config.db.url` instead of `resourceCtx.env?.DATABASE_URL`
 - **Auth** — JWT secrets, issuer URLs, token lifetimes
 - **Tracing** — sampling rates, enabled/disabled, export targets
 - **Layers** — transaction boundaries, caching TTLs, rate limits
@@ -167,7 +168,7 @@ No separate mapping file that drifts from the schema. The warden lints env bindi
 
 ### Composable config from resources
 
-Services declare their own config schemas via the reserved `config` field from ADR-0009:
+Resources declare their own config schemas via the reserved `config` field from ADR-0009:
 
 ```typescript
 const entityStore = resource('entity.store', {
@@ -175,7 +176,7 @@ const entityStore = resource('entity.store', {
     url: env(z.string(), 'ENTITY_STORE_URL'),
     poolSize: z.number().default(5),
   }),
-  create: (svc) => Result.ok(openStore(svc.config.url)),
+  create: (resourceCtx) => Result.ok(openStore(resourceCtx.config.url)),
 });
 ```
 
@@ -193,7 +194,7 @@ If every field has a default, the resource works with zero config. Install a pac
 
 ### Config enriches ResourceContext
 
-`ResourceContext` gains a typed `config` field. `svc.config.url` instead of `svc.env?.DATABASE_URL` with manual `parseInt` for numbers. Validated, defaulted, typed. The `env` field remains as a fallback for one-off values that don't warrant schema definition.
+`ResourceContext` gains a typed `config` field. `resourceCtx.config.url` replaces `resourceCtx.env?.DATABASE_URL` plus manual `parseInt` calls. Validated, defaulted, typed. The `env` field remains as a fallback for one-off values that don't warrant schema definition.
 
 ### Config as runtime bootstrap, not topo
 
@@ -210,11 +211,11 @@ Resolution order:
 
 1. Resolve and validate config
 2. Attach config to `ResourceContext`
-3. Resolve resources (factories read `svc.config` instead of `svc.env`)
+3. Resolve resources (factories read `ResourceContext.config` instead of `ResourceContext.env`)
 4. Compose layers
 5. Execute
 
-Config resolution is synchronous and deterministic. Resource factories that follow may be sync or async — connecting to a remote database, validating credentials, or performing any other async initialization. The boundary is clean: config is fully resolved before any factory runs, and factories receive typed, validated config through `svc.config`.
+Config resolution is synchronous and deterministic. Resource factories that follow may be sync or async — connecting to a remote database, validating credentials, or performing any other async initialization. The boundary is clean: config is fully resolved before any factory runs, and factories receive typed, validated config through `ResourceContext.config`.
 
 ### `explain()` for debuggability
 
@@ -326,7 +327,7 @@ This keeps config resolution predictable and fast. The entire config tree resolv
 ### Positive
 
 - **One schema defines everything.** Type, validation, defaults, env mapping, secret annotation, deprecation, descriptions, and value constraints — all co-located on the field definition.
-- **Resources get typed config.** `svc.config.url` instead of raw env parsing and manual type coercion.
+- **Resources get typed config.** `ResourceContext.config.url` instead of raw env parsing and manual type coercion.
 - **Generated artifacts never drift.** Example files, JSON Schema, `.env.example` — all derived from the same schemas that validate at runtime.
 - **`explain()` makes debugging config trivial.** Structured provenance answers "where did this value come from?" without guessing.
 - **`describe()` makes introspection trivial.** Agents and CLI users can enumerate every config option without reading source code or documentation.

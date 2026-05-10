@@ -28,11 +28,11 @@ reserved for projection slices of authored contracts or surfaces.
 | `JwtConnectorOptions` | `JwtAdapterOptions` | Update JWT option type imports from `@ontrails/permits/jwt`. |
 | `createJwtConnector(options)` | `createJwtAdapter(options)` | Update JWT auth factory imports from `@ontrails/permits/jwt`. |
 | auth resource config `{ connector: 'jwt' \| 'none' }` | `{ adapter: 'jwt' \| 'none' }` | Rename the discriminant in auth resource config and test fixtures. |
-| `createOtelConnector(options?)` | `createOtelAdapter(options?)` | Update OTel trace sink factory imports from `@ontrails/tracing/otel` or `@ontrails/tracing`. |
+| `createOtelConnector(options)` | `createOtelAdapter(options)` | Update OTel trace sink factory imports from `@ontrails/tracing/otel` or `@ontrails/tracing`; the exporter option is required. |
 | `OtelConnectorOptions` | `OtelAdapterOptions` | Update OTel option type imports. |
 | `StoreConnectorOptions` | `StoreAdapterOptions` | Update store adapter option type imports from `@ontrails/store`. |
 | workspace root `connectors/` | `adapters/` | Update local workspace paths and regenerate `bun.lock` with `bun install`. |
-| `@ontrails/cli/commander` | `@ontrails/commander` | Move active Commander consumers to the dedicated adapter package once it exists. |
+| `@ontrails/cli/commander` | `@ontrails/commander` | Move active Commander consumers to the dedicated adapter package. |
 | public taxonomy term `connector` | `adapter` | Rewrite current-facing package, subpath, and API prose. Keep historical, migration, and changelog mentions when clearly marked. |
 
 Built-in adapter subpaths remain intentionally scoped to their owning package

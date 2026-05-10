@@ -19,7 +19,7 @@
 - Every trail exposed on MCP or HTTP must define an `output` schema.
 - Prefer the most specific `TrailsError` subclass available.
 
-## Service Access
+## Resource Access
 
 Declare infrastructure dependencies as resources. Access them through `db.from(ctx)`.
 

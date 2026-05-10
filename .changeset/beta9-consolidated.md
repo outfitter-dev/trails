@@ -8,7 +8,7 @@
 "@ontrails/warden": minor
 ---
 
-Consolidated improvements across all trailhead packages.
+Consolidated improvements across all surface packages.
 
 **core**: Add `TrailResult<T>` utility type, `topo.ids()` and `topo.count` accessors, `dispatch()` for headless trail execution, and extract shared `executeTrail` pipeline used by CLI/MCP/HTTP.
 

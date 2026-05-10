@@ -19,6 +19,7 @@
 - **[Store Signal Identity Migration](./store-signal-identity-migration.md)** — Update store-derived signal ids from bare table changes to resource-scoped form
 - **[Config Guide](../packages/config/README.md)** — Schema-derived configuration, resolution stack, extensions, profiles
 - **[Permits Guide](../packages/permits/README.md)** — Scope-based authorization, auth adapters, permit governance
+- **[Observability Guide](../packages/observe/README.md)** — Log/trace sink contracts, built-in sinks, sink composition
 - **[Tracing Guide](../packages/tracing/README.md)** — Execution recording, sinks, sampling, manual instrumentation
 - **[Testing Guide](./testing.md)** — TDD with examples, `testAll()`, contract testing, surface harnesses
 
@@ -61,6 +62,12 @@
 - **[ADR-0021: Draft State Containment](./adr/0021-draft-state-stays-out-of-the-resolved-graph.md)** — Draft state stays out of the resolved graph
 - **[ADR-0022: Drizzle Binds Schema-Derived Stores to SQLite](./adr/0022-drizzle-store-connector.md)** — Drizzle binds schema-derived stores to SQLite
 - **[ADR-0023: Simplifying the Trails Lexicon](./adr/0023-simplifying-the-trails-lexicon.md)** — Brand-vs-plain heuristic, four pre-1.0 renames, vocabulary → lexicon
+
+## Migration Guides
+
+- **[Logging to Observe](./migration/logging-to-observe.md)** — Move off the retired `@ontrails/logging` package
+- **[Connector to Adapter](./migration/connector-to-adapter.md)** — Move current-facing package taxonomy to adapters
+- **[Trailhead to Surface](./migration/trailhead-to-surface.md)** — Move active surface vocabulary from trailhead to surface
 
 ## Where to next?
 

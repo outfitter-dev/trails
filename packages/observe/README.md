@@ -38,3 +38,10 @@ const sink = combine(
 
 `createFileSink()` is append-only and does not rotate files. Use external log
 rotation or a production adapter when retention policy matters.
+
+## Migration from `@ontrails/logging`
+
+`@ontrails/logging` was retired before v1. Move sink contracts, console/file
+sinks, formatters, and bounded memory sinks to `@ontrails/observe`. Use
+`@ontrails/logtape` for LogTape forwarding and `@ontrails/tracing` for tracing
+registry, dev-store, query/status, sampling, and OTel adapter APIs.

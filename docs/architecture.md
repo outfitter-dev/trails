@@ -31,14 +31,15 @@ Trails uses a hexagonal architecture. Core defines ports. Everything on the edge
                 |  Config (config)      |
                 |  Permits (permits)    |
                 |  Store (store/drizzle)|
+                |  Observe (observe)    |
                 |  Tracing (tracing)    |
-                |  Logging (logtape)    |
+                |  LogTape (logtape)    |
                 +-----------------------+
                 RIGHT SIDE (outbound)
                 How the framework calls out
 ```
 
-The left side is where the world calls in -- CLI commands, MCP tool calls, HTTP requests. The right side is where the framework calls out -- config, auth permits, telemetry tracking, and logging. Core sits in the middle and defines the contracts for both sides.
+The left side is where the world calls in -- CLI commands, MCP tool calls, HTTP requests. The right side is where the framework calls out -- config, auth permits, observability sinks, tracing state, and storage. Core sits in the middle and defines the contracts for both sides.
 
 ## Core Principles
 
@@ -114,7 +115,7 @@ Warden uses inference to verify that declarations match actual code. The surface
 
 ### Observed — learned from runtime
 
-The tracing (`@ontrails/tracing`) system captures what actually happens at runtime: execution duration, error distributions, trace context propagation. Observations close the loop -- declarations define intent, observations verify reality.
+Intrinsic tracing in `@ontrails/core` captures what actually happens at runtime: execution duration, error distributions, and trace context propagation. `@ontrails/observe` owns production log/trace sink contracts and built-in sinks; `@ontrails/tracing` owns developer-state query tooling, dev stores, sampling helpers, and the supported OTel adapter subpath. Observations close the loop -- declarations define intent, observations verify reality.
 
 ### Overridden — when derivation doesn't fit
 
@@ -161,7 +162,7 @@ Overrides are escape hatches. They're visible in the surface map as explicit dev
 | `@ontrails/store` | Backend-agnostic schema-derived store definitions | None beyond core |
 | `@ontrails/drizzle` | Drizzle SQLite adapter, typed store bindings, read-only bindings | `drizzle-orm` |
 | `@ontrails/observe` | Production log and trace sink contracts, composition, and built-in sinks | None beyond core |
-| `@ontrails/tracing` | Telemetry recording, trace context, `trails.db` dev-state sinks | None beyond core |
+| `@ontrails/tracing` | Tracing compatibility, query/status trails, `trails.db` dev-state storage, sampling helpers, OTel adapter | None beyond core |
 | `@ontrails/logtape` | LogTape sink adapter for `@ontrails/observe` | None (accepts any LogTape-shaped logger via a structural interface) |
 
 ### Ecosystem

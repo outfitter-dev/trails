@@ -89,9 +89,9 @@ export const db = store({
 });
 ```
 
-This root-level `store()` is the durable authored primitive. It declares the schema-derived persistence model without choosing a connector. That keeps non-Drizzle connectors first-class from the beginning and matches the rest of Trails: the authored primitive lives at the top level, connector packages project it into a runnable surface.
+This root-level `store()` is the durable authored primitive. It declares the schema-derived persistence model without choosing an adapter. That keeps non-Drizzle adapters first-class from the beginning and matches the rest of Trails: the authored primitive lives at the top level, adapter packages project it into a runnable surface.
 
-A connector consumes the declaration and binds it to a concrete runtime:
+An adapter consumes the declaration and binds it to a concrete runtime:
 
 ```typescript
 import { store } from '@ontrails/store';
