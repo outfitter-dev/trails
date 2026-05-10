@@ -6,6 +6,8 @@ import {
   AssertionError,
   NetworkError,
   RateLimitError,
+  RecoverableCompletionError,
+  RetryExhaustedError,
   InternalError,
   TimeoutError,
   NotFoundError,
@@ -182,6 +184,7 @@ describe('deserializeError', () => {
       { Ctor: TimeoutError, category: 'timeout' },
       { Ctor: NetworkError, category: 'network' },
       { Ctor: InternalError, category: 'internal' },
+      { Ctor: RecoverableCompletionError, category: 'internal' },
       { Ctor: AuthError, category: 'auth' },
       { Ctor: CancelledError, category: 'cancelled' },
     ] as const;
@@ -216,6 +219,56 @@ describe('deserializeError', () => {
       expect(restored.constructor.name).toBe('RateLimitError');
       expect((restored as RateLimitError).retryAfter).toBe(42);
       expect(restored.context).toEqual({ endpoint: '/api' });
+    });
+
+    test('RetryExhaustedError round-trips wrapped identity and metadata', () => {
+      const original = new RetryExhaustedError(
+        new NotFoundError('missing resource', {
+          context: { id: 'abc' },
+        }),
+        { attempts: 3, detour: 'recoverMissing' }
+      );
+
+      const serialized = serializeError(original);
+      const restored = deserializeError(serialized);
+
+      expect(serialized).toMatchObject({
+        attempts: 3,
+        category: 'not_found',
+        detour: 'recoverMissing',
+        name: 'RetryExhaustedError',
+        retryable: false,
+      });
+      expect(serialized.cause).toMatchObject({
+        category: 'not_found',
+        context: { id: 'abc' },
+        message: 'missing resource',
+        name: 'NotFoundError',
+      });
+      expect(restored).toBeInstanceOf(RetryExhaustedError);
+      expect(restored.category).toBe('not_found');
+      expect(restored.retryable).toBe(false);
+      const retryError = restored as RetryExhaustedError;
+      expect(retryError.attempts).toBe(3);
+      expect(retryError.detour).toBe('recoverMissing');
+      expect(retryError.cause).toBeInstanceOf(NotFoundError);
+      expect(retryError.cause.context).toEqual({ id: 'abc' });
+    });
+
+    test('legacy RetryExhaustedError payloads deserialize safely', () => {
+      const err = deserializeError({
+        category: 'conflict',
+        message: 'Recovery exhausted after 2 attempts: stale version',
+        name: 'RetryExhaustedError',
+      });
+
+      expect(err).toBeInstanceOf(RetryExhaustedError);
+      expect(err.category).toBe('conflict');
+      expect(err.message).toBe(
+        'Recovery exhausted after 2 attempts: stale version'
+      );
+      expect((err as RetryExhaustedError).attempts).toBe(0);
+      expect((err as RetryExhaustedError).detour).toBe('unknown');
     });
 
     test('falls back to category when name is unknown', () => {

@@ -7,21 +7,18 @@
 
 import type { ErrorCategory, TrailsError } from './errors.js';
 import {
-  ValidationError,
-  AmbiguousError,
-  AssertionError,
-  NotFoundError,
-  AlreadyExistsError,
-  ConflictError,
-  PermissionError,
-  PermitError,
-  TimeoutError,
-  RateLimitError,
-  NetworkError,
-  InternalError,
-  DerivationError,
   AuthError,
   CancelledError,
+  ConflictError,
+  ValidationError,
+  InternalError,
+  NetworkError,
+  NotFoundError,
+  PermissionError,
+  RateLimitError,
+  RetryExhaustedError,
+  TimeoutError,
+  errorClasses,
   isTrailsError,
 } from './errors.js';
 import { Result } from './result.js';
@@ -33,7 +30,10 @@ import { Result } from './result.js';
 export interface SerializedError {
   readonly name: string;
   readonly message: string;
+  readonly attempts?: number | undefined;
   readonly category?: ErrorCategory | undefined;
+  readonly cause?: SerializedError | undefined;
+  readonly detour?: string | undefined;
   readonly retryable?: boolean | undefined;
   readonly retryAfter?: number | undefined;
   readonly context?: Record<string, unknown> | undefined;
@@ -58,8 +58,13 @@ const buildOpts = (
 
 type ErrorFactory = (
   message: string,
-  opts: { context?: Record<string, unknown> },
+  opts: { cause?: Error; context?: Record<string, unknown> },
   retryAfter: number | undefined
+) => TrailsError;
+
+type FixedErrorConstructor = new (
+  message: string,
+  options?: { cause?: Error; context?: Record<string, unknown> }
 ) => TrailsError;
 
 const errorFactories: Record<ErrorCategory, ErrorFactory> = {
@@ -94,32 +99,42 @@ const createErrorByCategory = (
   return factory(message, opts, retryAfter);
 };
 
-/** Map error class names to their constructors for precise round-tripping. */
-const errorConstructorsByName: Record<string, ErrorFactory> = {
-  AlreadyExistsError: (msg, opts) => new AlreadyExistsError(msg, opts),
-  AmbiguousError: (msg, opts) => new AmbiguousError(msg, opts),
-  AssertionError: (msg, opts) => new AssertionError(msg, opts),
-  AuthError: (msg, opts) => new AuthError(msg, opts),
-  CancelledError: (msg, opts) => new CancelledError(msg, opts),
-  ConflictError: (msg, opts) => new ConflictError(msg, opts),
-  DerivationError: (msg, opts) => new DerivationError(msg, opts),
-  InternalError: (msg, opts) => new InternalError(msg, opts),
-  NetworkError: (msg, opts) => new NetworkError(msg, opts),
-  NotFoundError: (msg, opts) => new NotFoundError(msg, opts),
-  PermissionError: (msg, opts) => new PermissionError(msg, opts),
-  PermitError: (msg, opts) => new PermitError(msg, opts),
-  RateLimitError: (msg, opts, retryAfter) => {
-    const rlOpts: { context?: Record<string, unknown>; retryAfter?: number } = {
-      ...opts,
-    };
-    if (retryAfter !== undefined) {
-      rlOpts.retryAfter = retryAfter;
-    }
-    return new RateLimitError(msg, rlOpts);
-  },
-  TimeoutError: (msg, opts) => new TimeoutError(msg, opts),
-  ValidationError: (msg, opts) => new ValidationError(msg, opts),
-};
+/** Map fixed error class names to constructors for precise round-tripping. */
+const errorConstructorsByName: Readonly<Record<string, ErrorFactory>> =
+  Object.fromEntries(
+    errorClasses.flatMap((entry): [string, ErrorFactory][] => {
+      if (entry.category === 'dynamic') {
+        return [];
+      }
+      const ctor = entry.ctor as FixedErrorConstructor;
+      return [
+        [
+          entry.name,
+          (message, opts, retryAfter) => {
+            if (ctor === RateLimitError) {
+              const rateLimitOptions:
+                | {
+                    cause?: Error;
+                    context?: Record<string, unknown>;
+                    retryAfter?: number;
+                  }
+                | undefined =
+                opts.context === undefined &&
+                opts.cause === undefined &&
+                retryAfter === undefined
+                  ? undefined
+                  : {
+                      ...opts,
+                      ...(retryAfter === undefined ? {} : { retryAfter }),
+                    };
+              return new RateLimitError(message, rateLimitOptions);
+            }
+            return new ctor(message, opts);
+          },
+        ],
+      ];
+    })
+  );
 
 // ---------------------------------------------------------------------------
 // Error serialization
@@ -138,6 +153,13 @@ export const serializeError = (error: Error): SerializedError => {
       ...result,
       category: error.category,
       context: error.context,
+      ...(error instanceof RetryExhaustedError
+        ? {
+            attempts: error.attempts,
+            cause: serializeError(error.cause),
+            detour: error.detour,
+          }
+        : {}),
       retryAfter:
         error instanceof RateLimitError ? error.retryAfter : undefined,
       retryable: error.retryable,
@@ -150,6 +172,28 @@ export const serializeError = (error: Error): SerializedError => {
 /** Reconstruct a TrailsError from serialized data. */
 export const deserializeError = (data: SerializedError): TrailsError => {
   const opts = buildOpts(data.context);
+  if (data.name === 'RetryExhaustedError') {
+    const wrapped =
+      data.cause === undefined
+        ? createErrorByCategory(
+            data.category ?? 'internal',
+            data.message,
+            data.context,
+            data.retryAfter
+          )
+        : deserializeError(data.cause);
+    const error = new RetryExhaustedError(wrapped, {
+      attempts: data.attempts ?? 0,
+      detour: data.detour ?? 'unknown',
+    });
+    if (data.message !== error.message) {
+      error.message = data.message;
+    }
+    if (data.stack) {
+      error.stack = data.stack;
+    }
+    return error;
+  }
   const nameFactory = errorConstructorsByName[data.name];
 
   const error = nameFactory
