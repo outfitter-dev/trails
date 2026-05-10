@@ -44,9 +44,9 @@ describe('repo-local rules', () => {
     });
     const allowedReports = runRuleForEvent({
       event: 'CallExpression',
-      filename: 'packages/logging/src/sinks.ts',
+      filename: 'packages/observe/src/sinks.ts',
       nodes: [createCallExpressionNode('console', 'error')],
-      options: [{ allowedPackages: ['logging'] }],
+      options: [{ allowedPackages: ['observe'] }],
       rule: noConsoleInPackagesRule,
     });
     const allowedAdapterReports = runRuleForEvent({

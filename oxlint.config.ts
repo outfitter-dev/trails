@@ -25,13 +25,13 @@ export default defineConfig({
     'require-await': 'off',
     'trails-local/no-console-in-packages': [
       'error',
-      { allowedPackages: ['drizzle', 'hono', 'logging', 'observe'] },
+      { allowedPackages: ['drizzle', 'hono', 'observe'] },
     ],
     'trails-local/no-deep-relative-import': ['warn', { maxParentSegments: 2 }],
     'trails-local/no-nested-barrel': ['warn', { maxDepth: 2 }],
     'trails-local/no-process-env-in-packages': [
       'warn',
-      { allowedPackages: ['cli', 'config', 'core', 'logging'] },
+      { allowedPackages: ['cli', 'config', 'core'] },
     ],
     'trails-local/no-process-exit-in-packages': [
       'error',

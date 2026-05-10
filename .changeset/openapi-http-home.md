@@ -1,6 +1,6 @@
 ---
 "@ontrails/http": minor
-"@ontrails/schema": major
+"@ontrails/topographer": major
 ---
 
 Move OpenAPI generation ownership to the HTTP surface.

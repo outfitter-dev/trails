@@ -4,7 +4,6 @@
 "@ontrails/drizzle": patch
 "@ontrails/hono": patch
 "@ontrails/http": patch
-"@ontrails/logging": patch
 "@ontrails/mcp": patch
 "@ontrails/observe": patch
 "@ontrails/store": patch

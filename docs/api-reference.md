@@ -455,6 +455,38 @@ createTestPermit(overrides?)         // create a permit for tests
 createPermitForTrail(trail)          // create a permit matching a trail's requirements
 ```
 
+## `@ontrails/observe`
+
+```typescript
+// Log and trace sink contracts
+LogLevel, LogRecord, Logger, LogSink, LogFormatter
+TraceRecord, TraceContext, TraceSink
+ObserveCapabilities, ObserveConfig, ObserveInput
+
+// Sink composition
+combine(...sinks)                    // compose log and trace sink contracts
+
+// Built-in sinks and formatters
+createConsoleSink(options?)          // write log records to console output
+createFileSink(options)              // append log records to a file
+createMemorySink(options?)           // bounded in-memory trace sink
+createBoundedMemorySink(options?)    // explicit alias for createMemorySink
+createJsonFormatter()                // JSON log formatter
+createPrettyFormatter(options?)      // human-readable log formatter
+renderTraceTree(records)             // render trace records as a tree
+
+CombinedSink, ConsoleSinkOptions, FileSinkOptions, FileLogSink, FileSinkConfig
+MemorySinkOptions, MemoryTraceSink, PrettyFormatterOptions
+```
+
+## `@ontrails/logtape`
+
+```typescript
+createLogtapeSink({ logger })         // forward observe LogRecord values to a LogTape-shaped logger
+
+LogtapeLoggerLike, LogtapeSinkOptions
+```
+
 ## `@ontrails/tracing`
 
 Tracing is intrinsic in `executeTrail`. With a real sink installed, a trail execution writes a root `TraceRecord`, `ctx.trace(label, fn)` writes child spans, typed signal fan-out records `signal.*` lifecycle entries, and activation materializers record `activation.*` boundary entries. With `NOOP_SINK`, `executeTrail` short-circuits the tracing allocation path and `ctx.trace(label, fn)` stays a passthrough.
@@ -476,11 +508,13 @@ writeActivationTraceRecord(name, attrs, status?, category?, parent?) // write an
 createSignalTraceRecord(parent, name, attrs?) // construct a signal lifecycle TraceRecord
 writeSignalTraceRecord(ctx, name, attrs, status?, category?) // write a signal lifecycle TraceRecord
 
-// Sinks
+// Compatibility/local testing sinks (implemented by @ontrails/tracing; prefer @ontrails/observe for new sink usage)
 createMemorySink(options?)           // bounded in-memory sink for testing
 createBoundedMemorySink(options?)    // explicit alias for createMemorySink
 createDevStore(options?)             // SQLite-backed persistent sink for development
-createOtelAdapter(options?)          // OpenTelemetry span exporter
+registerTraceStore(store)            // expose a store to tracing query/status trails
+registerTracingState(state)          // bootstrap full tracing state
+createOtelAdapter(options)           // OpenTelemetry span exporter; exporter is required
 toTraceStore(store)                  // read-only TraceStore view that does not own the writable connection
 countTraceRecords(db), previewTraceCleanup(db, options?), applyTraceCleanup(db, options?)
 withTraceStoreDb(options, run), ensureTraceSchema(db)
@@ -502,21 +536,6 @@ DEFAULT_SAMPLING                     // default sampling rates by intent
 
 TraceRecord, TraceSink, SamplingConfig, TraceContext, TraceFn, TraceCleanupReport
 ```
-
-## `@ontrails/logging`
-
-```typescript
-createLogger(config?)
-createConsoleSink(options?), createFileSink(options)
-createJsonFormatter(), createPrettyFormatter(options?)
-LEVEL_PRIORITY
-
-LogLevel, LogRecord, LogMetadata, Logger, LoggerConfig
-LogSink, LogFormatter
-ConsoleSinkOptions, FileSinkOptions, PrettyFormatterOptions
-```
-
----
 
 ## Reserved
 

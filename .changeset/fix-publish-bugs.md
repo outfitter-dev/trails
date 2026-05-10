@@ -2,10 +2,9 @@
 "@ontrails/core": patch
 "@ontrails/cli": patch
 "@ontrails/mcp": patch
-"@ontrails/logging": patch
 "@ontrails/testing": patch
 "@ontrails/warden": patch
-"@ontrails/schema": patch
+"@ontrails/topographer": patch
 "@ontrails/trails": patch
 ---
 

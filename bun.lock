@@ -149,13 +149,6 @@
         "zod": "catalog:",
       },
     },
-    "packages/logging": {
-      "name": "@ontrails/logging",
-      "version": "1.0.0-beta.15",
-      "peerDependencies": {
-        "@ontrails/core": "workspace:^",
-      },
-    },
     "packages/logtape": {
       "name": "@ontrails/logtape",
       "version": "1.0.0-beta.15",
@@ -377,8 +370,6 @@
     "@ontrails/hono": ["@ontrails/hono@workspace:adapters/hono"],
 
     "@ontrails/http": ["@ontrails/http@workspace:packages/http"],
-
-    "@ontrails/logging": ["@ontrails/logging@workspace:packages/logging"],
 
     "@ontrails/logtape": ["@ontrails/logtape@workspace:packages/logtape"],
 

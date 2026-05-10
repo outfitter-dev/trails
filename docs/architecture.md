@@ -160,9 +160,9 @@ Overrides are escape hatches. They're visible in the surface map as explicit dev
 | `@ontrails/permits` | Auth layer, permit model, JWT adapter, scope enforcement | None beyond core |
 | `@ontrails/store` | Backend-agnostic schema-derived store definitions | None beyond core |
 | `@ontrails/drizzle` | Drizzle SQLite adapter, typed store bindings, read-only bindings | `drizzle-orm` |
+| `@ontrails/observe` | Production log and trace sink contracts, composition, and built-in sinks | None beyond core |
 | `@ontrails/tracing` | Telemetry recording, trace context, `trails.db` dev-state sinks | None beyond core |
-| `@ontrails/logging` | Structured logging, sinks, formatters | None beyond core |
-| `@ontrails/logtape` | LogTape sink adapter | None (accepts any LogTape-shaped logger via a structural interface) |
+| `@ontrails/logtape` | LogTape sink adapter for `@ontrails/observe` | None (accepts any LogTape-shaped logger via a structural interface) |
 
 ### Ecosystem
 
@@ -191,15 +191,15 @@ Overrides are escape hatches. They're visible in the surface map as explicit dev
 @ontrails/permits (core)
 @ontrails/store (core)
 @ontrails/drizzle (store, drizzle-orm)
+@ontrails/observe (core)
 @ontrails/tracing (core)
-@ontrails/logging (core)
-@ontrails/testing (core, cli, mcp, logging)
+@ontrails/testing (core, cli, mcp, observe)
 @ontrails/topographer (core)
      ^
 @ontrails/commander (cli, commander)
 @ontrails/hono (http, hono)
 @ontrails/vite (node:stream only, no workspace deps)
-@ontrails/logtape (logging)
+@ontrails/logtape (observe)
 @ontrails/warden (core, topographer)
      ^
 apps/trails (cli/commander, http, topographer, tracing)

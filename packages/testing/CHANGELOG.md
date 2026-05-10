@@ -11,7 +11,7 @@
 - Updated dependencies [4ad6b25]
   - @ontrails/core@1.0.0-beta.15
   - @ontrails/cli@1.0.0-beta.15
-  - @ontrails/logging@1.0.0-beta.15
+  - @ontrails/observe@1.0.0-beta.15
   - @ontrails/mcp@1.0.0-beta.15
 
 ## 1.0.0-beta.14

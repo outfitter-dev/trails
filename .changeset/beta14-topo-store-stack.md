@@ -3,10 +3,9 @@
 '@ontrails/config': minor
 '@ontrails/core': minor
 '@ontrails/http': minor
-'@ontrails/logging': minor
 '@ontrails/mcp': minor
 '@ontrails/permits': minor
-'@ontrails/schema': minor
+'@ontrails/topographer': minor
 '@ontrails/store': minor
 '@ontrails/testing': minor
 '@ontrails/tracing': minor

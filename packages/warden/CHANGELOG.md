@@ -16,7 +16,7 @@
 - Updated dependencies [4ad6b25]
   - @ontrails/core@1.0.0-beta.15
   - @ontrails/permits@1.0.0-beta.15
-  - @ontrails/schema@1.0.0-beta.15
+  - @ontrails/topographer@1.0.0-beta.15
 
 ## 1.0.0-beta.14
 

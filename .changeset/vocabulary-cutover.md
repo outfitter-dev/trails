@@ -5,11 +5,10 @@
 "@ontrails/http": minor
 "@ontrails/mcp": minor
 "@ontrails/permits": minor
-"@ontrails/schema": minor
+"@ontrails/topographer": minor
 "@ontrails/testing": minor
 "@ontrails/tracing": minor
 "@ontrails/warden": minor
-"@ontrails/logging": minor
 ---
 
 Trail-native vocabulary cutover. Breaking API field renames across all packages:

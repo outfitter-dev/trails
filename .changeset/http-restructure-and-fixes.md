@@ -1,6 +1,6 @@
 ---
 "@ontrails/http": major
-"@ontrails/schema": patch
+"@ontrails/topographer": patch
 ---
 
 Restructure HTTP package and fix Codex review findings.

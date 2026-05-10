@@ -10,8 +10,8 @@
   - @ontrails/cli@1.0.0-beta.15
   - @ontrails/tracing@1.0.0-beta.15
   - @ontrails/warden@1.0.0-beta.15
-  - @ontrails/logging@1.0.0-beta.15
-  - @ontrails/schema@1.0.0-beta.15
+  - @ontrails/observe@1.0.0-beta.15
+  - @ontrails/topographer@1.0.0-beta.15
 
 ## 1.0.0-beta.14
 

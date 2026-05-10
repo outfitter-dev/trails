@@ -6,7 +6,6 @@
     "trails-demo": "0.1.0",
     "@ontrails/cli": "0.1.0",
     "@ontrails/core": "0.1.0",
-    "@ontrails/logging": "0.1.0",
     "@ontrails/observe": "0.1.0",
     "@ontrails/mcp": "0.1.0",
     "@ontrails/topographer": "0.1.0",
