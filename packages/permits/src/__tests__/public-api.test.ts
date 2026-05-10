@@ -1,8 +1,9 @@
 import { describe, expect, test } from 'bun:test';
 
 import * as permits from '@ontrails/permits';
-import { authAdapterSchema, createJwtAdapter } from '@ontrails/permits';
+import { authAdapterSchema } from '@ontrails/permits';
 import { createJwtAdapter as createJwtAdapterFromSubpath } from '@ontrails/permits/jwt';
+import type { JwtAdapterOptions } from '@ontrails/permits/jwt';
 import {
   createPermitForTrail,
   createTestPermit,
@@ -23,8 +24,11 @@ describe('@ontrails/permits public API', () => {
     expect('authLayer' in permits).toBe(false);
   });
 
-  test('keeps JWT adapter APIs on the root and jwt subpath', () => {
-    expect(createJwtAdapter).toBe(createJwtAdapterFromSubpath);
+  test('keeps JWT adapter APIs canonical on the jwt subpath with root convenience', () => {
+    const options: JwtAdapterOptions = { secret: 'test-secret' };
+
+    expect(createJwtAdapterFromSubpath(options)).toBeDefined();
+    expect(permits.createJwtAdapter).toBe(createJwtAdapterFromSubpath);
     expect(
       authAdapterSchema.safeParse({ authenticate: () => {} }).success
     ).toBe(true);

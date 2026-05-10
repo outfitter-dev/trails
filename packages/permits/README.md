@@ -72,9 +72,10 @@ const adapter = createJwtAdapter({
 });
 ```
 
-`@ontrails/permits/jwt` is the stable built-in JWT adapter subpath. The root
-package also re-exports the JWT adapter names for convenience; the subpath keeps
-adapter-specific imports explicit in generated and documented examples.
+`@ontrails/permits/jwt` is the canonical built-in JWT adapter subpath. The root
+package intentionally keeps convenience re-exports for interactive discovery,
+but generated code, docs, and adapter-specific examples should import JWT names
+from the subpath.
 
 ### Custom adapters
 

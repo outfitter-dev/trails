@@ -430,7 +430,8 @@ PermitExtractionInput                // surface-agnostic auth input
 
 // Adapters
 AuthAdapter                          // interface: authenticate(input) -> Result<Permit | null>
-createJwtAdapter(options)            // built-in HS256 JWT adapter (from @ontrails/permits/jwt)
+// The root also re-exports JWT adapter names for convenience.
+// Prefer the @ontrails/permits/jwt subpath for JWT adapter imports.
 
 // Trail definitions
 authVerify                           // verify a bearer token and return a permit
@@ -438,6 +439,13 @@ authVerify                           // verify a bearer token and return a permi
 // Governance
 validatePermits(trails)              // check trails against permit governance rules
 PermitDiagnostic
+```
+
+### `@ontrails/permits/jwt`
+
+```typescript
+createJwtAdapter(options)            // built-in HS256 JWT adapter
+JwtAlgorithm, JwtAdapterOptions
 ```
 
 ## `@ontrails/permits/testing`
