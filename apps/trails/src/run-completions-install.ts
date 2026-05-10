@@ -12,8 +12,7 @@ import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 
 import {
-  isTrailsError,
-  mapSurfaceError,
+  projectPublicSurfaceError,
   Result,
   ValidationError,
 } from '@ontrails/core';
@@ -138,12 +137,10 @@ export const runCompletionsInstall = async (
 };
 
 const handleCliError = (error: unknown): void => {
-  if (error instanceof Error) {
-    process.stderr.write(`Error: ${error.message}\n`);
-    process.exit(isTrailsError(error) ? mapSurfaceError('cli', error) : 8);
-  }
-  process.stderr.write(`Error: ${String(error)}\n`);
-  process.exit(8);
+  const err = error instanceof Error ? error : new Error(String(error));
+  const projection = projectPublicSurfaceError('cli', err);
+  process.stderr.write(`Error: ${projection.message}\n`);
+  process.exit(projection.code);
 };
 
 const findCompletionsCommand = (program: Command): Command | undefined =>

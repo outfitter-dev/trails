@@ -134,6 +134,12 @@ status, and JSON-RPC codes on every surface.
 
 `RetryExhaustedError` wraps another `TrailsError`, inherits the wrapped error's category for surface mappings, and always reports `retryable: false`.
 
+Public surface projections redact sensitive substrings before exposing a
+non-internal `TrailsError` message. Internal-category `TrailsError` instances and
+unknown native errors project with the generic message `Internal server error`;
+diagnostics and serialized payloads keep their useful structure while redacting
+messages, context, and stack strings.
+
 The developer returns `Result.err(new NotFoundError(...))`. The framework maps it to the right code on every surface.
 
 ### Other exports
@@ -161,9 +167,10 @@ packages build on:
 - **Trails DB** -- `deriveTrailsDbPath`, `deriveTrailsDir`,
   `ensureSubsystemSchema`, `openReadTrailsDb`, and `openWriteTrailsDb` are the
   generic database primitive used by framework subsystems.
-- **Surface projection helpers** -- layer field projection, cross-batch
-  validation, late-bound signal references, and Zod default-wrapper stripping
-  are stable root exports for first-party surfaces, store helpers, and tests.
+- **Surface projection helpers** -- safe error projection, layer field
+  projection, cross-batch validation, late-bound signal references, and Zod
+  default-wrapper stripping are stable root exports for first-party surfaces,
+  store helpers, and tests.
 
 See the [API Reference](../../docs/api-reference.md) for the full list.
 

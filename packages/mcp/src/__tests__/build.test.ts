@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 
 import {
   NotFoundError,
+  PermissionError,
   Result,
   SURFACE_KEY,
   blobRefSchema,
@@ -50,6 +51,13 @@ const notFoundTrail = trail('item.find', {
   blaze: () => Result.err(new NotFoundError('Item not found')),
   description: 'Always fails with a TrailsError',
   input: z.object({ id: z.string() }),
+});
+
+const sensitivePermissionTrail = trail('secret.permission', {
+  blaze: () =>
+    Result.err(new PermissionError('Denied Bearer abcdefghijklmnop')),
+  description: 'Always fails with a sensitive TrailsError message',
+  input: z.object({}),
 });
 
 const exampleTrail = trail('with.examples', {
@@ -427,7 +435,7 @@ describe('deriveMcpTools', () => {
 
       const result = await tool.handler({ reason: 'broken' }, noExtra);
       expect(result?.isError).toBe(true);
-      expect(result?.content[0]?.text).toBe('broken');
+      expect(result?.content[0]?.text).toBe('Internal server error');
     });
 
     test('handler projects TrailsError metadata onto MCP tool-result errors', async () => {
@@ -451,6 +459,24 @@ describe('deriveMcpTools', () => {
       expect(result?.structuredContent).toBeUndefined();
     });
 
+    test('handler redacts TrailsError metadata and model-visible text', async () => {
+      const app = topo('myapp', { sensitivePermissionTrail });
+      const tool = requireOnlyTool(buildTools(app));
+
+      const result = await tool.handler({}, noExtra);
+
+      expect(result?.isError).toBe(true);
+      expect(result?.content).toEqual([
+        { text: 'Denied [REDACTED]', type: 'text' },
+      ]);
+      expect(result?._meta?.[MCP_TOOL_ERROR_META_KEY]).toMatchObject({
+        category: 'permission',
+        message: 'Denied [REDACTED]',
+        name: 'PermissionError',
+      });
+      expect(JSON.stringify(result)).not.toContain('abcdefghijklmnop');
+    });
+
     test('handler catches thrown exceptions', async () => {
       const throwTrail = trail('throw', {
         blaze: () => {
@@ -463,7 +489,7 @@ describe('deriveMcpTools', () => {
       const result = await tool.handler({}, noExtra);
 
       expect(result?.isError).toBe(true);
-      expect(result?.content[0]?.text).toBe('unexpected crash');
+      expect(result?.content[0]?.text).toBe('Internal server error');
     });
   });
 

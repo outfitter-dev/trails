@@ -125,8 +125,13 @@ Result.err(new NotFoundError('Entity not found'));
 Trail failures are MCP tool-result errors, not JSON-RPC protocol errors. The
 model-visible payload stays text-only on error, while `_meta["ontrails/error"]`
 contains the same JSON-RPC-family code projection used by
-`mapSurfaceError('mcp', error)`. Protocol errors remain reserved for invalid
-MCP requests such as malformed methods or unknown tools.
+`mapSurfaceError('mcp', error)`. Both fields use the shared public error
+projection: `TrailsError` messages are redacted, and unknown native errors return
+the generic `Internal server error` text without framework error metadata.
+Internal-category `TrailsError` instances also use the generic public message
+while keeping their taxonomy metadata.
+Protocol errors remain reserved for invalid MCP requests such as malformed
+methods or unknown tools.
 
 **Binary data:**
 

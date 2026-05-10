@@ -18,7 +18,7 @@ import {
   isTrailsError,
   LAYER_FIELD_RESERVED_NAMES,
   projectLayerFieldName,
-  projectSurfaceError,
+  projectPublicSurfaceError,
   toBlobRefDescriptor,
   validateSurfaceTopo,
   withSurfaceLayerNames,
@@ -654,12 +654,12 @@ const partitionMcpArgs = (
 // ---------------------------------------------------------------------------
 
 const buildMcpErrorMeta = (
-  error: Error
+  error: Error,
+  projection: SurfaceErrorProjection
 ): Record<string, McpToolErrorMeta> | undefined => {
   if (!isTrailsError(error)) {
     return undefined;
   }
-  const projection = projectSurfaceError('mcp', error);
   return {
     [MCP_TOOL_ERROR_META_KEY]: {
       ...projection,
@@ -670,10 +670,11 @@ const buildMcpErrorMeta = (
 
 /** Create an error result for MCP responses. */
 const mcpError = (error: Error): McpToolResult => {
-  const meta = buildMcpErrorMeta(error);
+  const projection = projectPublicSurfaceError('mcp', error);
+  const meta = buildMcpErrorMeta(error, projection);
   return {
     ...(meta === undefined ? {} : { _meta: meta }),
-    content: [{ text: error.message, type: 'text' }],
+    content: [{ text: projection.message, type: 'text' }],
     isError: true,
   };
 };

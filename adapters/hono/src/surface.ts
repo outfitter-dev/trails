@@ -12,7 +12,8 @@
 
 import {
   isTrailsError,
-  projectSurfaceError,
+  projectErrorDiagnostics,
+  projectPublicSurfaceError,
   ValidationError,
 } from '@ontrails/core';
 import type {
@@ -318,28 +319,16 @@ const readInput = async (
 const mapErrorResponse = (
   error: Error
 ): { body: Record<string, unknown>; status: ContentfulStatusCode } => {
-  if (isTrailsError(error)) {
-    const projection = projectSurfaceError('http', error);
-    return {
-      body: {
-        error: {
-          category: projection.category,
-          code: projection.name,
-          message: projection.message,
-        },
-      },
-      status: projection.code as ContentfulStatusCode,
-    };
-  }
+  const projection = projectPublicSurfaceError('http', error);
   return {
     body: {
       error: {
-        category: 'internal',
-        code: 'InternalError',
-        message: 'Internal server error',
+        category: projection.category,
+        code: projection.name,
+        message: projection.message,
       },
     },
-    status: 500,
+    status: projection.code as ContentfulStatusCode,
   };
 };
 
@@ -365,7 +354,7 @@ const reportInternalDiagnostics = (error: Error, c: HonoContext): void => {
     safeRequestId === undefined
       ? '[ontrails:hono] Internal error'
       : `[ontrails:hono] Internal error (${safeRequestId})`;
-  console.error(label, error);
+  console.error(label, projectErrorDiagnostics(error));
 };
 
 // ---------------------------------------------------------------------------

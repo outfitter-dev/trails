@@ -9,9 +9,14 @@ import {
   codesByCategory,
   errorClasses,
   exitCodeMap,
+  isTrailsError,
   jsonRpcCodeMap,
   statusCodeMap,
 } from './errors.js';
+import {
+  INTERNAL_ERROR_PUBLIC_MESSAGE,
+  redactErrorString,
+} from './error-projection.js';
 
 export const surfaceNames = ['cli', 'http', 'jsonRpc', 'mcp'] as const;
 
@@ -108,6 +113,31 @@ export const projectSurfaceError = (
   retryable: error.retryable,
   surface,
 });
+
+export const projectPublicSurfaceError = (
+  surface: SurfaceName,
+  error: Error
+): SurfaceErrorProjection => {
+  if (isTrailsError(error)) {
+    const projection = projectSurfaceError(surface, error);
+    return {
+      ...projection,
+      message:
+        projection.category === 'internal'
+          ? INTERNAL_ERROR_PUBLIC_MESSAGE
+          : redactErrorString(projection.message),
+    };
+  }
+
+  return {
+    category: 'internal',
+    code: codesByCategory.internal[surfaceCodeKeys[surface]],
+    message: INTERNAL_ERROR_PUBLIC_MESSAGE,
+    name: 'InternalError',
+    retryable: false,
+    surface,
+  };
+};
 
 const isFixedErrorClassEntry = (
   entry: ErrorClassRegistryEntry

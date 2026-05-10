@@ -21,6 +21,11 @@ import {
   errorClasses,
   isTrailsError,
 } from './errors.js';
+import {
+  redactErrorContext,
+  redactErrorStack,
+  redactErrorString,
+} from './error-projection.js';
 import { Result } from './result.js';
 
 // ---------------------------------------------------------------------------
@@ -143,16 +148,16 @@ const errorConstructorsByName: Readonly<Record<string, ErrorFactory>> =
 /** Extract structured data from an Error for transport. */
 export const serializeError = (error: Error): SerializedError => {
   const result: SerializedError = {
-    message: error.message,
+    message: redactErrorString(error.message),
     name: error.name,
-    stack: error.stack,
+    stack: redactErrorStack(error.stack),
   };
 
   if (isTrailsError(error)) {
     return {
       ...result,
       category: error.category,
-      context: error.context,
+      context: redactErrorContext(error.context),
       ...(error instanceof RetryExhaustedError
         ? {
             attempts: error.attempts,

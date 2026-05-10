@@ -59,6 +59,14 @@ const genericErrorTrail = trail('generic.error', {
   output: z.object({ ok: z.boolean() }),
 });
 
+const sensitivePermissionTrail = trail('sensitive.permission', {
+  blaze: () =>
+    Result.err(new PermissionError('Denied Bearer abcdefghijklmnop')),
+  input: z.object({}),
+  intent: 'read',
+  output: z.object({ ok: z.boolean() }),
+});
+
 const webhookSecret = 'secret';
 const paymentWebhook = webhook('webhook.payment.received', {
   parse: z.object({ paymentId: z.string() }),
@@ -386,8 +394,30 @@ describe('surface API (Hono adapter)', () => {
       '[ontrails:hono] Internal error (req-123)'
     );
     const loggedError = loggedErrors[0]?.[1];
-    expect(loggedError).toBeInstanceOf(Error);
-    expect((loggedError as Error).message).toBe('database password=secret');
+    expect(loggedError).toMatchObject({
+      message: 'database [REDACTED]',
+      name: 'Error',
+    });
+    expect(JSON.stringify(loggedError)).not.toContain('secret');
+  });
+
+  test('TrailsError responses redact public error messages', async () => {
+    const graph = topo('surface-api', { sensitivePermissionTrail });
+    const app = createApp(graph);
+
+    const response = await app.request('/sensitive/permission', {
+      method: 'GET',
+    });
+
+    expect(response.status).toBe(403);
+    expect(await response.json()).toEqual({
+      error: {
+        category: 'permission',
+        code: 'PermissionError',
+        message: 'Denied [REDACTED]',
+      },
+    });
+    expect(loggedErrors).toHaveLength(0);
   });
 
   test('sanitizes request ids before logging diagnostics', async () => {
@@ -446,7 +476,10 @@ describe('surface API (Hono adapter)', () => {
     expect(loggedErrors).toHaveLength(1);
     expect(loggedErrors[0]?.[0]).toBe('[ontrails:hono] Internal error');
     const loggedError = loggedErrors[0]?.[1];
-    expect(loggedError).toBeInstanceOf(Error);
-    expect((loggedError as Error).message).toBe('token=secret');
+    expect(loggedError).toMatchObject({
+      message: '[REDACTED]',
+      name: 'Error',
+    });
+    expect(JSON.stringify(loggedError)).not.toContain('secret');
   });
 });

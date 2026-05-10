@@ -170,6 +170,10 @@ HTTP 200 for all successful responses.
 ```
 
 The `code` is the error class name. The `category` matches the error taxonomy.
+HTTP bodies use the shared public error projection: `TrailsError` messages are
+redacted before they are returned, internal-category errors are made opaque, and
+unknown native errors are reported as `InternalError` with `Internal server
+error`.
 
 ## Status Code Mapping
 

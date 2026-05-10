@@ -44,6 +44,7 @@ export {
   createSurfaceErrorMapper,
   mapSurfaceError,
   projectErrorClassSurface,
+  projectPublicSurfaceError,
   projectSurfaceError,
   surfaceErrorMap,
   surfaceErrorRegistry,
@@ -57,6 +58,14 @@ export type {
   SurfaceErrorProjection,
   SurfaceName,
 } from './transport-error-map.js';
+export {
+  INTERNAL_ERROR_PUBLIC_MESSAGE,
+  projectErrorDiagnostics,
+  redactErrorContext,
+  redactErrorStack,
+  redactErrorString,
+} from './error-projection.js';
+export type { ErrorDiagnosticsProjection } from './error-projection.js';
 
 // Types
 export type {

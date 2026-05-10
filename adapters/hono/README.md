@@ -21,8 +21,10 @@ await surface(graph, {
 });
 ```
 
-Generic non-TrailsError failures return a redacted 500 response while the
-original error is written to server diagnostics.
+Generic non-TrailsError failures return a redacted 500 response while a
+redacted diagnostic projection is written to server diagnostics. `TrailsError`
+responses keep their taxonomy category and class name but redact sensitive
+message fragments before writing the public body.
 
 For custom HTTP integrations or route inspection, keep using `deriveHttpRoutes()` from `@ontrails/http`.
 

@@ -69,6 +69,34 @@ describe('serializeError', () => {
     const serialized = serializeError(err);
     expect(serialized.retryAfter).toBeUndefined();
   });
+
+  test('redacts serialized message, context, stack, and nested causes', () => {
+    const cause = new PermissionError('Denied Bearer abcdefghijklmnop', {
+      context: { authorization: 'Bearer abcdefghijklmnop', userId: 'u-1' },
+    });
+    cause.stack = 'PermissionError: Denied Bearer abcdefghijklmnop';
+    const err = new RetryExhaustedError(cause, {
+      attempts: 2,
+      detour: 'recoverSecret',
+    });
+    err.stack =
+      'RetryExhaustedError: Recovery exhausted after 2 attempts: Denied Bearer abcdefghijklmnop';
+
+    const serialized = serializeError(err);
+
+    expect(serialized.message).toBe(
+      'Recovery exhausted after 2 attempts: Denied [REDACTED]'
+    );
+    expect(serialized.stack).toBe(
+      'RetryExhaustedError: Recovery exhausted after 2 attempts: Denied [REDACTED]'
+    );
+    expect(serialized.cause).toMatchObject({
+      context: { authorization: '[REDACTED]', userId: 'u-1' },
+      message: 'Denied [REDACTED]',
+      stack: 'PermissionError: Denied [REDACTED]',
+    });
+    expect(JSON.stringify(serialized)).not.toContain('abcdefghijklmnop');
+  });
 });
 
 // ---------------------------------------------------------------------------

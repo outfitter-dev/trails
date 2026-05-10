@@ -2,7 +2,7 @@
  * Adapt framework-agnostic CliCommand[] to a Commander program.
  */
 
-import { isTrailsError, mapSurfaceError } from '@ontrails/core';
+import { projectPublicSurfaceError } from '@ontrails/core';
 import type { CliCommand, CliFlag } from '@ontrails/cli';
 import { applyCliFlagValueAliases, validateCliCommands } from '@ontrails/cli';
 import { Command, InvalidArgumentError, Option } from 'commander';
@@ -219,15 +219,10 @@ const getFallbackUserSuppliedFlagKeys = (
 
 /** Handle execution errors with appropriate exit codes. */
 const handleError = (error: unknown): void => {
-  if (error instanceof Error) {
-    process.stderr.write(`Error: ${error.message}\n`);
-    if (isTrailsError(error)) {
-      process.exit(mapSurfaceError('cli', error));
-    }
-  } else {
-    process.stderr.write(`Error: ${String(error)}\n`);
-  }
-  process.exit(8);
+  const err = error instanceof Error ? error : new Error(String(error));
+  const projection = projectPublicSurfaceError('cli', err);
+  process.stderr.write(`Error: ${projection.message}\n`);
+  process.exit(projection.code);
 };
 
 interface BareChildFallback {

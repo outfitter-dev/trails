@@ -1202,4 +1202,32 @@ describe('toCommander option wiring', () => {
       expect(process.stderr.write).toHaveBeenCalledWith('Error: missing\n');
     });
   });
+
+  test('error handling hides unknown error messages from stderr', async () => {
+    await withMockedProcess(async () => {
+      const failTrail = trail('fail', {
+        blaze: () => Result.ok('ok'),
+        input: z.object({}),
+      });
+      const program = toCommander([
+        {
+          args: [],
+          execute: () => {
+            throw new Error('token=secret');
+          },
+          flags: [],
+          intent: 'read' as const,
+          path: ['fail'] as const,
+          trail: failTrail,
+        },
+      ]);
+
+      await expect(
+        program.parseAsync(['node', 'test', 'fail'], { from: 'node' })
+      ).rejects.toThrow('EXIT 8');
+      expect(process.stderr.write).toHaveBeenCalledWith(
+        'Error: Internal server error\n'
+      );
+    });
+  });
 });

@@ -16,11 +16,14 @@ export const DEFAULT_PATTERNS: RegExp[] = [
   // SSN: XXX-XX-XXXX
   /\b\d{3}-\d{2}-\d{4}\b/g,
 
-  // Bearer tokens
-  /Bearer\s+[A-Za-z0-9\-._~+/]+=*/g,
+  // Bearer tokens. Keep the threshold above short prose like "Bearer token".
+  /Bearer\s+[A-Za-z0-9\-._~+/=]{6,}/g,
 
   // Basic auth
-  /Basic\s+[A-Za-z0-9+/]+=*/g,
+  /Basic\s+[A-Za-z0-9+/=]{8,}/g,
+
+  // Common key/value secrets embedded in strings
+  /\b(?:password|secret|token|api[_-]?key|cookie)\s*[:=]\s*[^\s,;]+/gi,
 
   // API keys: sk-*, pk_*, sk_* prefixed tokens
   /\b(?:sk-|pk_|sk_)[A-Za-z0-9_-]{8,}\b/g,
