@@ -1,8 +1,24 @@
 # @ontrails/tracing
 
-Sinks and query trails for the intrinsic tracing that ships in `@ontrails/core`.
+Compatibility and developer-state tooling for the intrinsic tracing that ships
+in `@ontrails/core`.
 
-Tracing is built into `executeTrail`. When a real sink is installed, each trail execution writes a root `TraceRecord` automatically, `ctx.trace()` writes child spans, typed signal fan-out writes `signal.*` lifecycle records, and runtime materializers write activation boundary records. When `NOOP_SINK` is installed, the tracing path short-circuits and `ctx.trace()` remains a passthrough. This package provides the pluggable sinks, the `NOOP_SINK` sentinel, the manual span API via `ctx.trace()`, and query trails that let you inspect recorded history. See [ADR-0023](../../docs/adr/0023-simplifying-the-trails-lexicon.md) for the design rationale.
+Tracing is built into `executeTrail`. When a real sink is installed, each trail execution writes a root `TraceRecord` automatically, `ctx.trace()` writes child spans, typed signal fan-out writes `signal.*` lifecycle records, and runtime materializers write activation boundary records. When `NOOP_SINK` is installed, the tracing path short-circuits and `ctx.trace()` remains a passthrough. This package re-exports the core tracing primitives for compatibility and provides tracing-specific local tooling: sampling helpers, the tracing resource, query/status trails, the SQLite dev store, dev-state maintenance helpers, and the OpenTelemetry adapter. See [ADR-0041](../../docs/adr/0041-unified-observability.md) for the v1 observability boundary and [ADR-0023](../../docs/adr/0023-simplifying-the-trails-lexicon.md) for the rename history.
+
+## V1 package boundary
+
+Use `@ontrails/observe` for the production observability boundary: log and
+trace sink contracts, `combine(...)`, console/file sinks, bounded memory sinks,
+and trace tree rendering.
+
+Use `@ontrails/tracing` when you need compatibility imports for core tracing
+primitives or tracing-specific developer-state APIs such as `tracingResource`,
+`tracingStatus`, `tracingQuery`, `createDevStore`, sampling helpers, or
+dev-store cleanup helpers.
+
+The `@ontrails/tracing/otel` subpath remains the supported v1 OpenTelemetry
+adapter path. It exports adapter-named APIs such as `createOtelAdapter` and
+`OtelAdapterOptions`; no separate `@ontrails/otel` package is required for v1.
 
 ## The core pattern
 
@@ -15,7 +31,7 @@ const sink = createMemorySink({ maxRecords: 1000 });
 registerTraceSink(sink);
 ```
 
-Sinks receive completed `TraceRecord` records. The default sink is `NOOP_SINK` — tracing APIs still work without configuration, but root/span/signal/activation record allocation is skipped until you register a real sink. Use a bounded memory sink for testing and local trace rendering, a dev store for local development, or an OTel adapter to forward to your collector. Use `registerTraceSink(NOOP_SINK)` or `clearTraceSink()` to switch back to the silent baseline.
+Sinks receive completed `TraceRecord` records. The default sink is `NOOP_SINK` — tracing APIs still work without configuration, but root/span/signal/activation record allocation is skipped until you register a real sink. Use `@ontrails/observe` for app-level sink contracts and zero-dependency sinks, use this package's dev store for local tracing state, or use the OTel adapter to forward to your collector. Use `registerTraceSink(NOOP_SINK)` or `clearTraceSink()` to switch back to the silent baseline.
 
 Signal fan-out records use lexicon-aligned names: `signal.fired`, `signal.invalid`, `signal.handler.invoked`, `signal.handler.completed`, and `signal.handler.failed`. Signal record attrs carry IDs and redacted payload summaries, never raw payloads by default.
 
@@ -28,7 +44,7 @@ Tracing happens automatically when a real sink is installed. No layer attachment
 ```typescript
 await run(graph, 'user.create', { name: 'alice' });
 
-// sink.records now contains a root TraceRecord for the execution
+// sink.records() now contains a root TraceRecord for the execution
 ```
 
 ### 3. Manual spans inside a blaze
@@ -94,14 +110,16 @@ Invoke programmatically via `run()` or `ctx.cross('tracing.query', { trailId: 'u
 For testing and demos:
 
 ```typescript
-import { createMemorySink, registerTraceSink, clearTraceSink } from '@ontrails/tracing';
+import { createMemorySink } from '@ontrails/observe';
+import { registerTraceSink, clearTraceSink } from '@ontrails/tracing';
 
 const sink = createMemorySink({ maxRecords: 500 });
 registerTraceSink(sink);
 try {
   // ... run trails ...
-  expect(sink.records).toHaveLength(3);
-  expect(sink.records[0]?.status).toBe('ok');
+  const records = sink.records();
+  expect(records).toHaveLength(3);
+  expect(records[0]?.status).toBe('ok');
 } finally {
   clearTraceSink();
 }
@@ -117,7 +135,11 @@ same factory. `clearTraceSink()` restores `NOOP_SINK`.
 SQLite-backed persistence for local development:
 
 ```typescript
-import { createDevStore, registerTraceSink } from '@ontrails/tracing';
+import {
+  createDevStore,
+  registerTraceSink,
+  registerTraceStore,
+} from '@ontrails/tracing';
 
 const store = createDevStore({
   path: './debug.db',
@@ -125,6 +147,7 @@ const store = createDevStore({
   maxAge: 1000 * 60 * 60 * 24 * 30,
 });
 registerTraceSink(store);
+registerTraceStore(store);
 ```
 
 The dev store uses WAL mode and prunes automatically. Use `toTraceStore(store)`
@@ -136,7 +159,8 @@ underlying writable connection.
 Export traces to any OTel-compatible collector:
 
 ```typescript
-import { createOtelAdapter, registerTraceSink } from '@ontrails/tracing';
+import { createOtelAdapter } from '@ontrails/tracing/otel';
+import { registerTraceSink } from '@ontrails/tracing';
 
 const sink = createOtelAdapter({
   exporter: async (spans) => {
@@ -169,15 +193,17 @@ if (shouldSample('read', config)) {
 ## Testing
 
 ```typescript
-import { createMemorySink, registerTraceSink, clearTraceSink } from '@ontrails/tracing';
+import { createMemorySink } from '@ontrails/observe';
+import { registerTraceSink, clearTraceSink } from '@ontrails/tracing';
 import { testAll } from '@ontrails/testing';
 
 const sink = createMemorySink();
 registerTraceSink(sink);
 try {
   testAll(app);
-  expect(sink.records).toHaveLength(5);
-  expect(sink.records.filter((r) => r.status === 'err')).toHaveLength(0);
+  const records = sink.records();
+  expect(records).toHaveLength(5);
+  expect(records.filter((r) => r.status === 'err')).toHaveLength(0);
 } finally {
   clearTraceSink();
 }

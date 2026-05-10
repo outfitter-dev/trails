@@ -4,7 +4,7 @@ slug: unified-observability
 title: Unified Observability
 status: accepted
 created: 2026-04-09
-updated: 2026-05-02
+updated: 2026-05-09
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [6, 13, 39]
 ---
@@ -120,7 +120,7 @@ This keeps activation visible in traces even when no normal trail record exists,
 
 ### Production observability in `@ontrails/observe`
 
-`@ontrails/observe` is the public package for production and durable observability adapters. The first shipped surface is intentionally small and dependency-free: root exports for log/trace sink contracts, `combine(...)`, console/file log sinks, and bounded memory trace sinks. Connector packages can build on those contracts without importing framework internals directly.
+`@ontrails/observe` is the public package for production and durable observability adapters. The first shipped surface is intentionally small and dependency-free: root exports for log/trace sink contracts, `combine(...)`, console/file log sinks, bounded memory trace sinks, and trace rendering helpers. Adapter packages can build on those contracts without importing framework internals directly.
 
 | Initial primitive | Purpose |
 | --- | --- |
@@ -129,20 +129,28 @@ This keeps activation visible in traces even when no normal trail record exists,
 | `createFileSink(options)` | Append log records to a file; retention and rotation stay external. |
 | `createMemorySink(options?)` | Retain bounded trace records for local tooling and tests. |
 
-Future connector exports, such as OpenTelemetry export or a SQLite dev store, remain packaging decisions. They belong in or beside `@ontrails/observe`, but this ADR does not canonize exact subpath names or the complete connector set.
+Future adapter exports beyond the v1 boundary remain packaging decisions. For v1, the dependency-light production sink contracts live in `@ontrails/observe`, while `@ontrails/tracing` intentionally owns tracing-specific developer-state tooling and the supported `@ontrails/tracing/otel` adapter subpath.
+
+### V1 package boundary
+
+For v1, `@ontrails/observe` is the canonical production observability package. App code and adapters that need log and trace sink contracts, sink composition, zero-dependency console/file/memory sinks, or trace rendering should import those APIs from `@ontrails/observe`.
+
+`@ontrails/tracing` remains an intentional compatibility and developer-state package. It re-exports core tracing primitives so existing imports continue to work, and it owns tracing-specific local tooling that is not just a sink contract: sampling helpers, the tracing resource, tracing query/status trails, the SQLite dev store, and dev-state maintenance helpers.
+
+`@ontrails/tracing/otel` remains the supported v1 OpenTelemetry adapter subpath. The API uses adapter vocabulary (`createOtelAdapter`, `OtelAdapterOptions`) and may move to a dedicated adapter package in a later release, but v1 does not require creating `@ontrails/otel`.
 
 ### Dev-time tracing vs production observability
 
 The split is deliberate. Core handles the inner development loop. `@ontrails/observe` handles production.
 
-| Concern | Core (intrinsic) | `@ontrails/observe` and connectors |
+| Concern | Core and `@ontrails/tracing` | `@ontrails/observe` and adapters |
 | --- | --- | --- |
-| Logging | Console logger, `ctx.logger` | OTel export, file sinks, pretty formatter |
-| Tracing | `TraceRecord`, `ctx.trace()`, propagation, sink registry, `NOOP_SINK` | Bounded memory sink, OTel export, SQLite dev store |
-| Configuration | Zero — works out of the box | Connector-level options (sampling, batching, levels) |
-| Dependencies | None beyond core | OpenTelemetry SDK, `bun:sqlite` |
+| Logging | Core logger contract, `ctx.logger` | Console/file sinks, pretty formatter, LogTape adapter |
+| Tracing | `TraceRecord`, `ctx.trace()`, propagation, sink registry, `NOOP_SINK`, sampling helpers, SQLite dev store, `@ontrails/tracing/otel` | Bounded memory sink, trace rendering, future production adapters |
+| Configuration | Zero — works out of the box; tracing dev-state bootstrap when query trails need a store | Adapter-level options for sinks, formatting, batching, and forwarding |
+| Dependencies | Core stays dependency-free; `@ontrails/tracing` owns `bun:sqlite` dev-state and the v1 OTel bridge | No dependencies beyond core for the shipped `@ontrails/observe` package |
 
-A developer never needs `@ontrails/observe` to build, test, or debug locally. They need it when traces and logs must leave the process.
+A developer never needs `@ontrails/observe` to define or run trails. They need it when app code wants an explicit sink, trace rendering, file/console log output, or durable/exported observability. `@ontrails/tracing` remains the v1 home for local tracing state and query tooling.
 
 ### Topo configuration
 
@@ -173,7 +181,7 @@ const app = topo('myapp', trails, {
 })
 ```
 
-The sink or connector owns the details: sampling rates, log levels, formatting, batching. These are connector configuration, not topo configuration. The topo says "observe with this." One declaration.
+The sink or adapter owns the details: sampling rates, log levels, formatting, batching. These are adapter configuration, not topo configuration. The topo says "observe with this." One declaration.
 
 ```typescript
 futureOtelConnector({
@@ -228,18 +236,18 @@ Logger, TrailContext, executeTrail
 
 // New in core:
 TraceRecord                          // one recorded execution footprint
-createConsoleLogger(options?)        // default logger, no deps
+createObserveLogger(options?)        // default structured logger, no deps
 ctx.trace(name, fn)                  // manual sub-step recording
 TraceSink, NOOP_SINK                 // sink contract and disabled baseline
 registerTraceSink, getTraceSink      // process-level sink registry
 // Built-in tracing intrinsic to executeTrail
 ```
 
-Everything else — developer-configurable memory sinks, OTel, file sinks, SQLite dev stores, pretty formatters, sampling configuration — belongs in `@ontrails/observe` or compatibility/connector packages that build on the same contracts.
+Everything else — developer-configurable memory sinks, OTel, file sinks, SQLite dev stores, pretty formatters, sampling configuration — belongs in `@ontrails/observe` or compatibility/adapter packages that build on the same contracts.
 
 ## Non-goals
 
-- **Metrics.** Core does not ship a metrics primitive. If metrics are needed, `@ontrails/observe` can add a metrics connector. Trace data (duration, error rates) can be derived into metrics at the OTel layer.
+- **Metrics.** Core does not ship a metrics primitive. If metrics are needed, `@ontrails/observe` can add a metrics adapter. Trace data (duration, error rates) can be derived into metrics at the OTel layer.
 - **Distributed tracing.** Trace context propagation across trail crossings within a single process is in scope. Propagation across network boundaries (cross-app) is a future concern for the mount/pack system.
 - **Replacing OpenTelemetry.** The framework maintains a Trails-native model internally. OTel is the export format, not the internal representation. An OTel connector translates outward from `TraceRecord` to OTel spans.
 
@@ -257,7 +265,7 @@ Everything else — developer-configurable memory sinks, OTel, file sinks, SQLit
 
 - **Core grows.** Adding built-in tracing, the trace record model, and console logger to core increases its surface area. This is justified because `executeTrail` is already in core and tracing wraps it — the natural home for automatic recording is next to the thing being recorded.
 - **Migration from earlier trace packaging.** Package imports and sink configuration restructure around `@ontrails/observe`. This is a pre-1.0 change, so the migration cost is limited to internal and early adopters.
-- **Connector owns config details.** Sampling, log level, and formatting are connector concerns, not topo concerns. This keeps the topo config surface minimal but means developers configure observability behavior through their connector, not through a central config object.
+- **Adapter owns config details.** Sampling, log level, and formatting are adapter concerns, not topo concerns. This keeps the topo config surface minimal but means developers configure observability behavior through their adapter, not through a central config object.
 
 ### Risks
 

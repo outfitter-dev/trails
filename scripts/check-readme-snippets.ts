@@ -43,6 +43,21 @@ declare module '@ontrails/testing' {
   export function testAll(app: import('@ontrails/core').Topo): Promise<unknown>;
 }
 
+declare module '@ontrails/observe' {
+  export interface MemorySink {
+    readonly maxRecords: number;
+    readonly droppedCount: number;
+    readonly clear: () => void;
+    readonly records: () => readonly import('@ontrails/tracing').TraceRecord[];
+  }
+
+  export interface MemorySinkOptions {
+    readonly maxRecords?: number | undefined;
+  }
+
+  export function createMemorySink(options?: MemorySinkOptions): MemorySink;
+}
+
 declare module '@ontrails/tracing' {
   export interface TraceRecord {
     readonly status?: string;
@@ -78,6 +93,7 @@ declare module '@ontrails/tracing' {
     readonly batchSize?: number;
     readonly exporter: (spans: unknown) => Promise<void>;
   }): unknown;
+  export function registerTraceStore(store: unknown): void;
   export function registerTraceSink(sink: unknown): void;
   export function shouldSample(
     intent: 'destroy' | 'read' | 'write',
@@ -86,6 +102,13 @@ declare module '@ontrails/tracing' {
   export const tracingResource: {
     from(ctx: unknown): { active: boolean; store?: { count(): number } };
   };
+}
+
+declare module '@ontrails/tracing/otel' {
+  export function createOtelAdapter(options: {
+    readonly batchSize?: number;
+    readonly exporter: (spans: unknown) => Promise<void>;
+  }): unknown;
 }
 
 declare const app: import('@ontrails/core').Topo;
