@@ -302,24 +302,28 @@ This guarantees consistent validation, layer ordering, and error handling regard
 
 ## Error Taxonomy
 
-17 error classes across 10 categories. `RetryExhaustedError` inherits the
-wrapped error's category; each class maps to CLI exit codes, HTTP status codes,
-JSON-RPC codes, and retryability:
+The current taxonomy is generated from the `errorClasses` owner registry and
+category code maps in `@ontrails/core`.
 
-| Category | Exit | HTTP | Retryable | Classes |
-| --- | --- | --- | --- | --- |
-| `validation` | 1 | 400 | No | `ValidationError`, `AmbiguousError` |
-| `not_found` | 2 | 404 | No | `NotFoundError` |
-| `conflict` | 3 | 409 | No | `AlreadyExistsError`, `ConflictError` |
-| `permission` | 4 | 403 | No | `PermissionError`, `PermitError` |
-| `timeout` | 5 | 504 | Yes | `TimeoutError` |
-| `rate_limit` | 6 | 429 | Yes | `RateLimitError` |
-| `network` | 7 | 502 | Yes | `NetworkError` |
-| `internal` | 8 | 500 | No | `InternalError`, `DerivationError`, `RecoverableCompletionError`, `AssertionError` |
-| `auth` | 9 | 401 | No | `AuthError` |
-| `cancelled` | 130 | 499 | No | `CancelledError` |
+<!-- error-taxonomy:start -->
+<!-- GENERATED: run `bun run error-taxonomy:sync`; check with `bun run error-taxonomy:check`. Variant: category. -->
 
-`RetryExhaustedError` wraps another `TrailsError`, inherits the wrapped error's category for surface mappings, and always reports `retryable: false`.
+| Category | CLI Exit | HTTP | JSON-RPC | Retryable | Fixed Classes |
+| --- | --- | --- | --- | --- | --- |
+| `validation` | 1 | 400 | -32602 | No | `ValidationError`, `AmbiguousError` |
+| `not_found` | 2 | 404 | -32601 | No | `NotFoundError` |
+| `conflict` | 3 | 409 | -32603 | No | `AlreadyExistsError`, `ConflictError` |
+| `permission` | 4 | 403 | -32600 | No | `PermissionError`, `PermitError` |
+| `timeout` | 5 | 504 | -32603 | Yes | `TimeoutError` |
+| `rate_limit` | 6 | 429 | -32603 | Yes | `RateLimitError` |
+| `network` | 7 | 502 | -32603 | Yes | `NetworkError` |
+| `internal` | 8 | 500 | -32603 | No | `AssertionError`, `InternalError`, `DerivationError`, `RecoverableCompletionError` |
+| `auth` | 9 | 401 | -32600 | No | `AuthError` |
+| `cancelled` | 130 | 499 | -32603 | No | `CancelledError` |
+
+Dynamic classes:
+- `RetryExhaustedError` inherits category and surface codes from its wrapped `TrailsError`; retryable is always No.
+<!-- error-taxonomy:end -->
 
 All extend `TrailsError` (direct class inheritance). Pattern matching uses `instanceof` or `error.category`.
 

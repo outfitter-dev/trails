@@ -80,31 +80,36 @@ const result = await Result.fromFetch('https://api.example.com/data');
 
 ### Error taxonomy integration
 
-The Result type exists in tight partnership with the error taxonomy. Trails
-defines 15 fixed-category error classes, each extending `TrailsError` with a
-`category` and `retryable` flag:
+The Result type exists in tight partnership with the error taxonomy. The table
+below is a current implementation snapshot generated from the `errorClasses`
+owner registry in `@ontrails/core`; ADR-0026 is the current taxonomy behavior
+contract.
 
-| Error class | Category | HTTP | CLI exit | JSON-RPC | Retryable |
+<!-- error-taxonomy:start -->
+<!-- GENERATED: run `bun run error-taxonomy:sync`; check with `bun run error-taxonomy:check`. Variant: class. -->
+
+| Error class | Category | HTTP | CLI Exit | JSON-RPC | Retryable |
 | --- | --- | --- | --- | --- | --- |
-| `ValidationError` | `validation` | 400 | 1 | -32602 | no |
-| `AmbiguousError` | `validation` | 400 | 1 | -32602 | no |
-| `NotFoundError` | `not_found` | 404 | 2 | -32601 | no |
-| `ConflictError` | `conflict` | 409 | 3 | -32603 | no |
-| `AlreadyExistsError` | `conflict` | 409 | 3 | -32603 | no |
-| `PermissionError` | `permission` | 403 | 4 | -32600 | no |
-| `PermitError` | `permission` | 403 | 4 | -32600 | no |
-| `TimeoutError` | `timeout` | 504 | 5 | -32603 | yes |
-| `RateLimitError` | `rate_limit` | 429 | 6 | -32603 | yes |
-| `NetworkError` | `network` | 502 | 7 | -32603 | yes |
-| `InternalError` | `internal` | 500 | 8 | -32603 | no |
-| `AssertionError` | `internal` | 500 | 8 | -32603 | no |
-| `DerivationError` | `internal` | 500 | 8 | -32603 | no |
-| `AuthError` | `auth` | 401 | 9 | -32600 | no |
-| `CancelledError` | `cancelled` | 499 | 130 | -32603 | no |
+| `ValidationError` | `validation` | 400 | 1 | -32602 | No |
+| `AmbiguousError` | `validation` | 400 | 1 | -32602 | No |
+| `AssertionError` | `internal` | 500 | 8 | -32603 | No |
+| `NotFoundError` | `not_found` | 404 | 2 | -32601 | No |
+| `AlreadyExistsError` | `conflict` | 409 | 3 | -32603 | No |
+| `ConflictError` | `conflict` | 409 | 3 | -32603 | No |
+| `PermissionError` | `permission` | 403 | 4 | -32600 | No |
+| `PermitError` | `permission` | 403 | 4 | -32600 | No |
+| `TimeoutError` | `timeout` | 504 | 5 | -32603 | Yes |
+| `RateLimitError` | `rate_limit` | 429 | 6 | -32603 | Yes |
+| `NetworkError` | `network` | 502 | 7 | -32603 | Yes |
+| `InternalError` | `internal` | 500 | 8 | -32603 | No |
+| `DerivationError` | `internal` | 500 | 8 | -32603 | No |
+| `RecoverableCompletionError` | `internal` | 500 | 8 | -32603 | No |
+| `AuthError` | `auth` | 401 | 9 | -32600 | No |
+| `CancelledError` | `cancelled` | 499 | 130 | -32603 | No |
 
-`RetryExhaustedError` is dynamic: it wraps another `TrailsError`, inherits the
-wrapped error's category for surface mappings, and always reports
-`retryable: false`.
+Dynamic classes:
+- `RetryExhaustedError` inherits category and surface codes from its wrapped `TrailsError`; retryable is always No.
+<!-- error-taxonomy:end -->
 
 The mapping is deterministic and lives in three lookup tables (`statusCodeMap`, `exitCodeMap`, `jsonRpcCodeMap`). The developer returns `Result.err(new NotFoundError('User not found'))`. The framework looks up the category and renders the right status code, exit code, or JSON-RPC code for the current surface. The developer never thinks about surface-specific error codes.
 

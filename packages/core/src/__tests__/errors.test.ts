@@ -3,19 +3,12 @@ import { describe, test, expect } from 'bun:test';
 import {
   TrailsError,
   ValidationError,
-  AmbiguousError,
-  AssertionError,
   NotFoundError,
-  AlreadyExistsError,
   ConflictError,
-  PermissionError,
-  PermitError,
   TimeoutError,
   RateLimitError,
   NetworkError,
   InternalError,
-  DerivationError,
-  RecoverableCompletionError,
   AuthError,
   CancelledError,
   RetryExhaustedError,
@@ -30,12 +23,14 @@ import {
   isTrailsError,
 } from '../errors.js';
 import type { ErrorCategory } from '../errors.js';
+import { fixedErrorEntries } from './test-helpers.js';
+import type { TestErrorConstructor } from './test-helpers.js';
 
 // ---------------------------------------------------------------------------
 // Error class matrix
 // ---------------------------------------------------------------------------
 
-const errorMatrix: readonly {
+const fixedErrorMatrix: readonly {
   Class: new (
     message: string,
     options?: { cause?: Error; context?: Record<string, unknown> }
@@ -43,103 +38,16 @@ const errorMatrix: readonly {
   category: ErrorCategory;
   retryable: boolean;
   name: string;
-}[] = [
-  {
-    Class: ValidationError,
-    category: 'validation',
-    name: 'ValidationError',
-    retryable: false,
-  },
-  {
-    Class: AmbiguousError,
-    category: 'validation',
-    name: 'AmbiguousError',
-    retryable: false,
-  },
-  {
-    Class: AssertionError,
-    category: 'internal',
-    name: 'AssertionError',
-    retryable: false,
-  },
-  {
-    Class: NotFoundError,
-    category: 'not_found',
-    name: 'NotFoundError',
-    retryable: false,
-  },
-  {
-    Class: AlreadyExistsError,
-    category: 'conflict',
-    name: 'AlreadyExistsError',
-    retryable: false,
-  },
-  {
-    Class: ConflictError,
-    category: 'conflict',
-    name: 'ConflictError',
-    retryable: false,
-  },
-  {
-    Class: PermissionError,
-    category: 'permission',
-    name: 'PermissionError',
-    retryable: false,
-  },
-  {
-    Class: PermitError,
-    category: 'permission',
-    name: 'PermitError',
-    retryable: false,
-  },
-  {
-    Class: TimeoutError,
-    category: 'timeout',
-    name: 'TimeoutError',
-    retryable: true,
-  },
-  {
-    Class: RateLimitError,
-    category: 'rate_limit',
-    name: 'RateLimitError',
-    retryable: true,
-  },
-  {
-    Class: NetworkError,
-    category: 'network',
-    name: 'NetworkError',
-    retryable: true,
-  },
-  {
-    Class: InternalError,
-    category: 'internal',
-    name: 'InternalError',
-    retryable: false,
-  },
-  {
-    Class: DerivationError,
-    category: 'internal',
-    name: 'DerivationError',
-    retryable: false,
-  },
-  {
-    Class: RecoverableCompletionError,
-    category: 'internal',
-    name: 'RecoverableCompletionError',
-    retryable: false,
-  },
-  { Class: AuthError, category: 'auth', name: 'AuthError', retryable: false },
-  {
-    Class: CancelledError,
-    category: 'cancelled',
-    name: 'CancelledError',
-    retryable: false,
-  },
-];
+}[] = fixedErrorEntries.map((entry) => ({
+  Class: entry.ctor as TestErrorConstructor,
+  category: entry.category,
+  name: entry.name,
+  retryable: entry.retryable,
+}));
 
 describe('error classes', () => {
   // oxlint-disable-next-line prefer-each -- describe.each loses type safety on heterogeneous class matrix
-  for (const { Class, category, retryable, name } of errorMatrix) {
+  for (const { Class, category, retryable, name } of fixedErrorMatrix) {
     describe(name, () => {
       test('sets correct category', () => {
         const err = new Class('test');
@@ -201,17 +109,13 @@ describe('error classes', () => {
 // ---------------------------------------------------------------------------
 
 describe('errorClasses', () => {
-  test('represents every concrete TrailsError subclass', () => {
-    const registeredConstructors = new Set(
-      errorClasses.map(({ ctor }) => ctor)
+  test('has unique class names and constructors', () => {
+    expect(new Set(errorClasses.map(({ name }) => name)).size).toBe(
+      errorClasses.length
     );
-    const expectedConstructors = new Set([
-      ...errorMatrix.map(({ Class }) => Class),
-      RetryExhaustedError,
-    ]);
-
-    expect(registeredConstructors).toEqual(expectedConstructors);
-    expect(errorClasses).toHaveLength(expectedConstructors.size);
+    expect(new Set(errorClasses.map(({ ctor }) => ctor)).size).toBe(
+      errorClasses.length
+    );
   });
 
   test('carries fixed category metadata without requiring instantiation', () => {
@@ -220,7 +124,7 @@ describe('errorClasses', () => {
     );
 
     expect(fixedErrorClasses).toEqual(
-      errorMatrix.map(({ Class, category, name, retryable }) => ({
+      fixedErrorMatrix.map(({ Class, category, name, retryable }) => ({
         category,
         ctor: Class,
         name,

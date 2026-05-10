@@ -3,21 +3,12 @@ import type { TrailsError } from '../errors.js';
 import { describe, expect, test } from 'bun:test';
 
 import {
-  AlreadyExistsError,
-  AmbiguousError,
-  AssertionError,
-  AuthError,
   CancelledError,
-  ConflictError,
-  DerivationError,
-  InternalError,
   NetworkError,
   NotFoundError,
-  PermissionError,
-  RateLimitError,
   RetryExhaustedError,
-  TimeoutError,
   ValidationError,
+  codesByCategory,
   errorCategories,
   exitCodeMap,
   jsonRpcCodeMap,
@@ -32,6 +23,11 @@ import {
   surfaceErrorRegistry,
   surfaceNames,
 } from '../transport-error-map.js';
+import { fixedErrorEntries } from './test-helpers.js';
+import type { TestErrorConstructor } from './test-helpers.js';
+
+const instantiate = (ctor: unknown, message: string): TrailsError =>
+  new (ctor as TestErrorConstructor)(message);
 
 describe('surfaceErrorMap', () => {
   test('covers every error category for every surface', () => {
@@ -73,76 +69,16 @@ describe('mapSurfaceError', () => {
       readonly mcp: number;
     };
   }[] = [
-    {
-      error: new ValidationError('bad input'),
-      name: 'ValidationError',
-      values: { cli: 1, http: 400, jsonRpc: -32_602, mcp: -32_602 },
-    },
-    {
-      error: new AmbiguousError('ambiguous input'),
-      name: 'AmbiguousError',
-      values: { cli: 1, http: 400, jsonRpc: -32_602, mcp: -32_602 },
-    },
-    {
-      error: new NotFoundError('missing'),
-      name: 'NotFoundError',
-      values: { cli: 2, http: 404, jsonRpc: -32_601, mcp: -32_601 },
-    },
-    {
-      error: new AlreadyExistsError('exists'),
-      name: 'AlreadyExistsError',
-      values: { cli: 3, http: 409, jsonRpc: -32_603, mcp: -32_603 },
-    },
-    {
-      error: new ConflictError('conflict'),
-      name: 'ConflictError',
-      values: { cli: 3, http: 409, jsonRpc: -32_603, mcp: -32_603 },
-    },
-    {
-      error: new PermissionError('forbidden'),
-      name: 'PermissionError',
-      values: { cli: 4, http: 403, jsonRpc: -32_600, mcp: -32_600 },
-    },
-    {
-      error: new TimeoutError('timed out'),
-      name: 'TimeoutError',
-      values: { cli: 5, http: 504, jsonRpc: -32_603, mcp: -32_603 },
-    },
-    {
-      error: new RateLimitError('too many requests'),
-      name: 'RateLimitError',
-      values: { cli: 6, http: 429, jsonRpc: -32_603, mcp: -32_603 },
-    },
-    {
-      error: new NetworkError('offline'),
-      name: 'NetworkError',
-      values: { cli: 7, http: 502, jsonRpc: -32_603, mcp: -32_603 },
-    },
-    {
-      error: new InternalError('internal'),
-      name: 'InternalError',
-      values: { cli: 8, http: 500, jsonRpc: -32_603, mcp: -32_603 },
-    },
-    {
-      error: new AssertionError('assertion failed'),
-      name: 'AssertionError',
-      values: { cli: 8, http: 500, jsonRpc: -32_603, mcp: -32_603 },
-    },
-    {
-      error: new DerivationError('derivation failed'),
-      name: 'DerivationError',
-      values: { cli: 8, http: 500, jsonRpc: -32_603, mcp: -32_603 },
-    },
-    {
-      error: new AuthError('unauthorized'),
-      name: 'AuthError',
-      values: { cli: 9, http: 401, jsonRpc: -32_600, mcp: -32_600 },
-    },
-    {
-      error: new CancelledError('cancelled'),
-      name: 'CancelledError',
-      values: { cli: 130, http: 499, jsonRpc: -32_603, mcp: -32_603 },
-    },
+    ...fixedErrorEntries.map((entry) => ({
+      error: instantiate(entry.ctor, `test ${entry.name}`),
+      name: entry.name,
+      values: {
+        cli: codesByCategory[entry.category].exit,
+        http: codesByCategory[entry.category].http,
+        jsonRpc: codesByCategory[entry.category].jsonRpc,
+        mcp: codesByCategory[entry.category].jsonRpc,
+      },
+    })),
     {
       error: new RetryExhaustedError(new NotFoundError('missing'), {
         attempts: 5,
@@ -197,21 +133,16 @@ describe('projectSurfaceError', () => {
 });
 
 describe('projectErrorClassSurface', () => {
-  test('projects fixed error class names without constructing errors', () => {
-    expect(projectErrorClassSurface('http', 'DerivationError')).toEqual({
-      category: 'internal',
-      code: 500,
-      name: 'DerivationError',
-      retryable: false,
-      surface: 'http',
-    });
-    expect(projectErrorClassSurface('mcp', 'PermissionError')).toEqual({
-      category: 'permission',
-      code: -32_600,
-      name: 'PermissionError',
-      retryable: false,
-      surface: 'mcp',
-    });
+  test('projects every fixed error class name without constructing errors', () => {
+    for (const entry of fixedErrorEntries) {
+      expect(projectErrorClassSurface('http', entry.name)).toEqual({
+        category: entry.category,
+        code: codesByCategory[entry.category].http,
+        name: entry.name,
+        retryable: entry.retryable,
+        surface: 'http',
+      });
+    }
   });
 
   test('does not invent fixed projections for dynamic or unknown class names', () => {

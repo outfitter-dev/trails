@@ -179,20 +179,25 @@ error`.
 
 Status codes come directly from the error taxonomy -- the same mapping used across all surfaces:
 
-| Category     | HTTP Status | Classes                              |
-| ------------ | ----------- | ------------------------------------ |
-| `validation` | 400         | `ValidationError`, `AmbiguousError`  |
-| `not_found`  | 404         | `NotFoundError`                      |
-| `conflict`   | 409         | `AlreadyExistsError`, `ConflictError`|
-| `permission` | 403         | `PermissionError`, `PermitError`     |
-| `timeout`    | 504         | `TimeoutError`                       |
-| `rate_limit` | 429         | `RateLimitError`                     |
-| `network`    | 502         | `NetworkError`                       |
-| `internal`   | 500         | `InternalError`, `DerivationError`, `RecoverableCompletionError`, `AssertionError` |
-| `auth`       | 401         | `AuthError`                          |
-| `cancelled`  | 499         | `CancelledError`                     |
+<!-- error-taxonomy:start -->
+<!-- GENERATED: run `bun run error-taxonomy:sync`; check with `bun run error-taxonomy:check`. Variant: http. -->
 
-`RetryExhaustedError` wraps another `TrailsError` and uses the wrapped error's category, so its HTTP status varies with the underlying failure.
+| Category | HTTP Status | Retryable | Fixed Classes |
+| --- | --- | --- | --- |
+| `validation` | 400 | No | `ValidationError`, `AmbiguousError` |
+| `not_found` | 404 | No | `NotFoundError` |
+| `conflict` | 409 | No | `AlreadyExistsError`, `ConflictError` |
+| `permission` | 403 | No | `PermissionError`, `PermitError` |
+| `timeout` | 504 | Yes | `TimeoutError` |
+| `rate_limit` | 429 | Yes | `RateLimitError` |
+| `network` | 502 | Yes | `NetworkError` |
+| `internal` | 500 | No | `AssertionError`, `InternalError`, `DerivationError`, `RecoverableCompletionError` |
+| `auth` | 401 | No | `AuthError` |
+| `cancelled` | 499 | No | `CancelledError` |
+
+Dynamic classes:
+- `RetryExhaustedError` inherits category and surface codes from its wrapped `TrailsError`; retryable is always No.
+<!-- error-taxonomy:end -->
 
 Unrecognized errors (non-`TrailsError` exceptions) return 500 with `category: 'internal'`.
 

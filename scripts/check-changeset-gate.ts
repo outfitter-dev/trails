@@ -282,6 +282,37 @@ const readChangedFiles = (path: string): readonly string[] =>
     .map((line) => line.trim())
     .filter((line) => line.length > 0);
 
+const parseChangedFilesOutput = (output: string): readonly string[] =>
+  output
+    .split(/\r?\n/u)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+
+const readLocalChangedFiles = (repoRoot: string): readonly string[] => {
+  const result = Bun.spawnSync({
+    cmd: [
+      'git',
+      'diff',
+      '--name-only',
+      '--diff-filter=ACMRTUXB',
+      'origin/main...HEAD',
+      '--',
+      '.',
+    ],
+    cwd: repoRoot,
+    stderr: 'pipe',
+    stdout: 'pipe',
+  });
+
+  if (result.exitCode !== 0) {
+    throw new Error(
+      `Failed to derive local changed files: ${result.stderr.toString()}`
+    );
+  }
+
+  return parseChangedFilesOutput(result.stdout.toString());
+};
+
 const parseArgs = (args: readonly string[]): CliOptions => {
   let changedFilesPath: string | undefined;
   let releaseNone = false;
@@ -368,13 +399,12 @@ const renderResult = (result: ChangesetGateResult): void => {
 const main = async (): Promise<number> => {
   const options = parseArgs(process.argv.slice(2));
 
-  if (!options.changedFilesPath) {
-    throw new Error('Pass --changed-files <path> with the PR-local file list');
-  }
-
   const workspaces = await discoverWorkspaces(options.repoRoot);
+  const changedFiles = options.changedFilesPath
+    ? readChangedFiles(options.changedFilesPath)
+    : readLocalChangedFiles(options.repoRoot);
   const result = checkChangesetGate({
-    changedFiles: readChangedFiles(options.changedFilesPath),
+    changedFiles,
     releaseNone: options.releaseNone,
     repoRoot: options.repoRoot,
     workspaces,

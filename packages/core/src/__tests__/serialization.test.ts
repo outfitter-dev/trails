@@ -2,21 +2,15 @@ import { describe, test, expect } from 'bun:test';
 
 import {
   ValidationError,
-  AmbiguousError,
-  AssertionError,
   NetworkError,
   RateLimitError,
-  RecoverableCompletionError,
   RetryExhaustedError,
   InternalError,
   TimeoutError,
   NotFoundError,
-  AlreadyExistsError,
   ConflictError,
   PermissionError,
-  PermitError,
-  AuthError,
-  CancelledError,
+  errorCategories,
 } from '../errors.js';
 import {
   serializeError,
@@ -25,6 +19,8 @@ import {
 } from '../serialization.js';
 import { Result } from '../result.js';
 import type { SerializedError } from '../serialization.js';
+import { fixedErrorEntries } from './test-helpers.js';
+import type { TestErrorConstructor } from './test-helpers.js';
 
 // ---------------------------------------------------------------------------
 // serializeError
@@ -175,20 +171,7 @@ describe('deserializeError', () => {
   });
 
   test('handles all error categories', () => {
-    const categories = [
-      'validation',
-      'not_found',
-      'conflict',
-      'permission',
-      'timeout',
-      'rate_limit',
-      'network',
-      'internal',
-      'auth',
-      'cancelled',
-    ] as const;
-
-    for (const category of categories) {
+    for (const category of errorCategories) {
       const data: SerializedError = {
         category,
         message: 'test',
@@ -200,37 +183,26 @@ describe('deserializeError', () => {
   });
 
   describe('round-trips all subclasses by name', () => {
-    const subclasses = [
-      { Ctor: ValidationError, category: 'validation' },
-      { Ctor: AmbiguousError, category: 'validation' },
-      { Ctor: AssertionError, category: 'internal' },
-      { Ctor: NotFoundError, category: 'not_found' },
-      { Ctor: AlreadyExistsError, category: 'conflict' },
-      { Ctor: ConflictError, category: 'conflict' },
-      { Ctor: PermissionError, category: 'permission' },
-      { Ctor: PermitError, category: 'permission' },
-      { Ctor: TimeoutError, category: 'timeout' },
-      { Ctor: NetworkError, category: 'network' },
-      { Ctor: InternalError, category: 'internal' },
-      { Ctor: RecoverableCompletionError, category: 'internal' },
-      { Ctor: AuthError, category: 'auth' },
-      { Ctor: CancelledError, category: 'cancelled' },
-    ] as const;
+    const subclasses = fixedErrorEntries.map((entry) => ({
+      Ctor: entry.ctor as TestErrorConstructor,
+      category: entry.category,
+      name: entry.name,
+    }));
 
     test.each(subclasses)(
       '$Ctor.name round-trips with correct identity',
-      ({ Ctor, category }) => {
-        const original = new Ctor(`test ${Ctor.name}`, {
+      ({ Ctor, category, name }) => {
+        const original = new Ctor(`test ${name}`, {
           context: { key: 'value' },
         });
         const serialized = serializeError(original);
         const restored = deserializeError(serialized);
 
         expect(restored).toBeInstanceOf(Ctor);
-        expect(restored.constructor.name).toBe(Ctor.name);
-        expect(restored.name).toBe(Ctor.name);
+        expect(restored.constructor.name).toBe(name);
+        expect(restored.name).toBe(name);
         expect(restored.category).toBe(category);
-        expect(restored.message).toBe(`test ${Ctor.name}`);
+        expect(restored.message).toBe(`test ${name}`);
         expect(restored.context).toEqual({ key: 'value' });
       }
     );

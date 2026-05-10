@@ -48,25 +48,29 @@ Transports map these properties to their native representations. The framework p
 
 ### The complete mapping
 
+<!-- error-taxonomy:start -->
+<!-- GENERATED: run `bun run error-taxonomy:sync`; check with `bun run error-taxonomy:check`. Variant: behavior. -->
+
 | Error class | Category | Retryable | HTTP | CLI | JSON-RPC | Queue | Signal delivery |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `ValidationError` | `validation` | no | 400 | 1 | -32602 | nack → dead-letter | drop + dead-event |
-| `AmbiguousError` | `validation` | no | 400 | 1 | -32602 | nack → dead-letter | drop + dead-event |
-| `NotFoundError` | `not_found` | no | 404 | 2 | -32601 | nack → dead-letter | drop + dead-event |
-| `ConflictError` | `conflict` | no | 409 | 3 | -32603 | nack → dead-letter | drop + dead-event |
-| `AlreadyExistsError` | `conflict` | no | 409 | 3 | -32603 | nack → dead-letter | drop + dead-event |
-| `PermissionError` | `permission` | no | 403 | 4 | -32600 | nack → dead-letter | drop + dead-event |
-| `PermitError` | `permission` | no | 403 | 4 | -32600 | nack → dead-letter | drop + dead-event |
-| `TimeoutError` | `timeout` | yes | 504 | 5 | -32603 | nack → retry | retry |
-| `RateLimitError` | `rate_limit` | yes | 429 | 6 | -32603 | nack → retry (with backoff) | retry (with backoff) |
-| `NetworkError` | `network` | yes | 502 | 7 | -32603 | nack → retry | retry |
-| `InternalError` | `internal` | no | 500 | 8 | -32603 | nack → dead-letter | drop + dead-event |
-| `AssertionError` | `internal` | no | 500 | 8 | -32603 | nack → dead-letter | drop + dead-event |
-| `DerivationError` | `internal` | no | 500 | 8 | -32603 | nack → dead-letter | drop + dead-event |
-| `RecoverableCompletionError` | `internal` | no | 500 | 8 | -32603 | nack → dead-letter | drop + dead-event |
-| `RetryExhaustedError` | wrapped error category | no | wrapped status | wrapped exit | wrapped code | wrapped category behavior | wrapped category behavior |
-| `AuthError` | `auth` | no | 401 | 9 | -32600 | nack → dead-letter | drop + dead-event |
-| `CancelledError` | `cancelled` | no | 499 | 130 | -32603 | nack → discard | discard |
+| `ValidationError` | `validation` | No | 400 | 1 | -32602 | nack -> dead-letter | drop + dead-event |
+| `AmbiguousError` | `validation` | No | 400 | 1 | -32602 | nack -> dead-letter | drop + dead-event |
+| `AssertionError` | `internal` | No | 500 | 8 | -32603 | nack -> dead-letter | drop + dead-event |
+| `NotFoundError` | `not_found` | No | 404 | 2 | -32601 | nack -> dead-letter | drop + dead-event |
+| `AlreadyExistsError` | `conflict` | No | 409 | 3 | -32603 | nack -> dead-letter | drop + dead-event |
+| `ConflictError` | `conflict` | No | 409 | 3 | -32603 | nack -> dead-letter | drop + dead-event |
+| `PermissionError` | `permission` | No | 403 | 4 | -32600 | nack -> dead-letter | drop + dead-event |
+| `PermitError` | `permission` | No | 403 | 4 | -32600 | nack -> dead-letter | drop + dead-event |
+| `TimeoutError` | `timeout` | Yes | 504 | 5 | -32603 | nack -> retry | retry |
+| `RateLimitError` | `rate_limit` | Yes | 429 | 6 | -32603 | nack -> retry (with backoff) | retry (with backoff) |
+| `NetworkError` | `network` | Yes | 502 | 7 | -32603 | nack -> retry | retry |
+| `InternalError` | `internal` | No | 500 | 8 | -32603 | nack -> dead-letter | drop + dead-event |
+| `DerivationError` | `internal` | No | 500 | 8 | -32603 | nack -> dead-letter | drop + dead-event |
+| `RecoverableCompletionError` | `internal` | No | 500 | 8 | -32603 | nack -> dead-letter | drop + dead-event |
+| `AuthError` | `auth` | No | 401 | 9 | -32600 | nack -> dead-letter | drop + dead-event |
+| `CancelledError` | `cancelled` | No | 499 | 130 | -32603 | nack -> discard | discard |
+| `RetryExhaustedError` | wrapped error category | No | wrapped status | wrapped exit | wrapped code | wrapped category behavior | wrapped category behavior |
+<!-- error-taxonomy:end -->
 
 The first four columns (HTTP, CLI, JSON-RPC) are established by ADR-0002. The last two (Queue, Signal delivery) extend the contract to new transports.
 
