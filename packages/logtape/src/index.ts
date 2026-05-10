@@ -1,4 +1,4 @@
-import type { LogRecord, LogSink } from '@ontrails/logging';
+import type { LogRecord, LogSink } from '@ontrails/observe';
 
 // ---------------------------------------------------------------------------
 // Minimal logtape logger interface (avoids importing @logtape/logtape)
@@ -27,7 +27,7 @@ export interface LogtapeSinkOptions {
 }
 
 // ---------------------------------------------------------------------------
-// logtapeSink
+// createLogtapeSink
 // ---------------------------------------------------------------------------
 
 type ForwardMethod = 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal';
@@ -46,7 +46,7 @@ const LEVEL_MAP: Record<string, ForwardMethod> = {
  * logger. Redaction runs _before_ the sink receives records, so sensitive
  * data is scrubbed regardless of the backend.
  */
-export const logtapeSink = (options: LogtapeSinkOptions): LogSink => {
+export const createLogtapeSink = (options: LogtapeSinkOptions): LogSink => {
   const { logger } = options;
 
   return {

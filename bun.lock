@@ -160,7 +160,7 @@
       "name": "@ontrails/logtape",
       "version": "1.0.0-beta.15",
       "peerDependencies": {
-        "@ontrails/logging": "workspace:^",
+        "@ontrails/observe": "workspace:^",
       },
     },
     "packages/mcp": {

@@ -77,12 +77,12 @@ logger.info('Auth', { user: 'admin', password: 'hunter2' });
 Bridge to an existing LogTape setup via the dedicated `@ontrails/logtape` package:
 
 ```typescript
-import { logtapeSink } from '@ontrails/logtape';
+import { createLogtapeSink } from '@ontrails/logtape';
 import { getLogger } from '@logtape/logtape';
 
 const logger = createLogger({
   name: 'app',
-  sinks: [logtapeSink({ logger: getLogger('app') })],
+  sinks: [createLogtapeSink({ logger: getLogger('app') })],
 });
 ```
 

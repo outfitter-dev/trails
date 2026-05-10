@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { logtapeSink } from '../index.js';
+import { createLogtapeSink } from '../index.js';
 import type { LogtapeLoggerLike } from '../index.js';
 
 const createRecordingLogger = () => {
@@ -34,10 +34,10 @@ const createRecordingLogger = () => {
   return { calls, logger };
 };
 
-describe('logtapeSink', () => {
+describe('createLogtapeSink', () => {
   test('forwards records to the underlying logtape logger by level', () => {
     const { calls, logger } = createRecordingLogger();
-    const sink = logtapeSink({ logger });
+    const sink = createLogtapeSink({ logger });
 
     sink.write({
       category: 'app.http',
@@ -58,7 +58,7 @@ describe('logtapeSink', () => {
 
   test('ignores records whose level does not map to a logtape method', () => {
     const { calls, logger } = createRecordingLogger();
-    const sink = logtapeSink({ logger });
+    const sink = createLogtapeSink({ logger });
 
     sink.write({
       category: 'app',
