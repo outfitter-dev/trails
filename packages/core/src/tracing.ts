@@ -3,9 +3,9 @@
  *
  * This module is the home for the trace record type, the sink interface,
  * the sink registry, and the helpers `executeTrail` uses to create root
- * trace records and child spans. It is intentionally framework-internal —
- * the `@ontrails/tracing` package re-exports the public surface so callers
- * can continue to import from there.
+ * trace records and child spans. Core keeps this minimal contract public so
+ * `@ontrails/observe`, `@ontrails/tracing`, adapters, and tests share the
+ * same intrinsic execution record shape.
  *
  * Tracing is intrinsic: every `executeTrail` call automatically produces a
  * root `TraceRecord`, `ctx.trace(label, fn)` creates nested child spans, and

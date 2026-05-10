@@ -4,8 +4,8 @@ import { z } from 'zod';
 
 import type { ActivationProvenance } from '../activation-provenance';
 import { createFireFn } from '../fire';
-import { clearTraceSink, registerTraceSink } from '../internal/tracing';
-import type { TraceRecord, TraceSink } from '../internal/tracing';
+import { clearTraceSink, registerTraceSink } from '../tracing';
+import type { TraceRecord, TraceSink } from '../tracing';
 import type { Layer } from '../layer';
 import { Result } from '../result';
 import { run } from '../run';

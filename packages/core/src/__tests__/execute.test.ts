@@ -19,8 +19,8 @@ import {
   TRACE_CONTEXT_KEY,
   clearTraceSink,
   registerTraceSink,
-} from '../internal/tracing';
-import type { TraceRecord } from '../internal/tracing';
+} from '../tracing';
+import type { TraceRecord } from '../tracing';
 import { createTrailContext } from '../context';
 import type { Layer } from '../layer';
 import { Result } from '../result';

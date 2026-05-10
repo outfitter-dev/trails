@@ -292,11 +292,11 @@ export {
   createLateBoundSignalMarker,
   getLateBoundSignalRef,
   parseLateBoundSignalMarker,
-} from './internal/signal-ref.js';
+} from './signal-ref.js';
 export type {
   LateBoundSignalMarker,
   LateBoundSignalRef,
-} from './internal/signal-ref.js';
+} from './signal-ref.js';
 
 // Contour
 export { contour } from './contour.js';
@@ -329,11 +329,11 @@ export {
   ensureSubsystemSchema,
   openReadTrailsDb,
   openWriteTrailsDb,
-} from './internal/trails-db.js';
+} from './trails-db.js';
 export type {
   EnsureSubsystemSchemaOptions,
   TrailsDbLocationOptions,
-} from './internal/trails-db.js';
+} from './trails-db.js';
 
 // Draft state
 export {
@@ -362,7 +362,7 @@ export {
   LAYER_FIELD_RESERVED_NAMES,
   LAYER_FIELD_RESERVED_NAMES_KEBAB,
   projectLayerFieldName,
-} from './internal/layer-projection.js';
+} from './layer-projection.js';
 export type {
   AttachedLayerScope,
   AttachedTypedLayer,
@@ -370,7 +370,7 @@ export type {
   LayerFieldRenameReason,
   ProjectedLayerField,
   RenamedLayerFieldProjection,
-} from './internal/layer-projection.js';
+} from './layer-projection.js';
 
 // Derive
 export { deriveCliPath, deriveFields } from './derive.js';
@@ -382,7 +382,7 @@ export {
   claimNextCrossBatchIndex,
   createCrossBatchValidationResults,
   normalizeCrossBatchConcurrency,
-} from './internal/cross-batch.js';
+} from './cross-batch.js';
 
 // Execute
 export { DETOUR_MAX_ATTEMPTS_CAP } from './detours.js';
@@ -401,14 +401,14 @@ export {
   TRACE_CONTEXT_KEY,
   traceContextFromRecord,
   writeActivationTraceRecord,
-} from './internal/tracing.js';
+} from './tracing.js';
 export type {
   ActivationTraceRecordName,
   SignalTraceRecordName,
   TraceContext,
   TraceRecord,
   TraceSink,
-} from './internal/tracing.js';
+} from './tracing.js';
 export type { TraceFn } from './types.js';
 
 // Observe
@@ -452,7 +452,7 @@ export {
 export {
   stripDefaultWrappers,
   stripDefaultsFromShape,
-} from './internal/zod-wrappers.js';
+} from './zod-wrappers.js';
 
 // Serialization
 export { serializeError, deserializeError } from './serialization.js';

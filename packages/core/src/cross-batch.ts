@@ -9,9 +9,9 @@
  * the two call sites cannot drift.
  */
 
-import { ValidationError } from '../errors.js';
-import { Result } from '../result.js';
-import type { CrossBatchOptions } from '../types.js';
+import { ValidationError } from './errors.js';
+import { Result } from './result.js';
+import type { CrossBatchOptions } from './types.js';
 
 /**
  * Validate the `concurrency` option on a batch `ctx.cross()` call.

@@ -2,7 +2,7 @@ import { Database } from 'bun:sqlite';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 
-import { NotFoundError } from '../errors.js';
+import { NotFoundError } from './errors.js';
 
 const TRAILS_DIR = '.trails';
 const TRAILS_DB_FILE = 'trails.db';

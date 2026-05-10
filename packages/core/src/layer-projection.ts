@@ -22,9 +22,9 @@
  * @see TRL-474 for the MCP and HTTP projections that lifted these helpers.
  */
 
-import type { Layer } from '../layer.js';
-import type { Topo } from '../topo.js';
-import type { AnyTrail } from '../trail.js';
+import type { Layer } from './layer.js';
+import type { Topo } from './topo.js';
+import type { AnyTrail } from './trail.js';
 
 export const LAYER_FIELD_RESERVED_NAMES: ReadonlySet<string> = new Set([
   'all',

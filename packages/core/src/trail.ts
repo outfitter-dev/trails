@@ -19,7 +19,7 @@ import type { AnySignal } from './signal.js';
 import {
   createLateBoundSignalMarker,
   getLateBoundSignalRef,
-} from './internal/signal-ref.js';
+} from './signal-ref.js';
 import type { TrailsError } from './errors.js';
 import type {
   Detour,

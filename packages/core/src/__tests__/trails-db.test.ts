@@ -8,7 +8,7 @@ import {
   openReadTrailsDb,
   openWriteTrailsDb,
   deriveTrailsDbPath,
-} from '../internal/trails-db.js';
+} from '../trails-db.js';
 
 describe('trails db foundation', () => {
   let tmpRoot: string | undefined;

@@ -11,8 +11,8 @@ import type {
 } from '../schedule-runtime.js';
 import { createTrailContext } from '../context.js';
 import { ValidationError } from '../errors.js';
-import { clearTraceSink, registerTraceSink } from '../internal/tracing.js';
-import type { TraceRecord, TraceSink } from '../internal/tracing.js';
+import { clearTraceSink, registerTraceSink } from '../tracing.js';
+import type { TraceRecord, TraceSink } from '../tracing.js';
 import { Result } from '../result.js';
 import { resource } from '../resource.js';
 import { createScheduleRuntime } from '../schedule-runtime.js';

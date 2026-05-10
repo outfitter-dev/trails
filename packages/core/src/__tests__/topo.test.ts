@@ -4,10 +4,7 @@ import { z } from 'zod';
 
 import { contour } from '../contour.js';
 import { ValidationError } from '../errors.js';
-import {
-  attachLateBoundSignalRef,
-  cloneSignalWithId,
-} from '../internal/signal-ref.js';
+import { attachLateBoundSignalRef, cloneSignalWithId } from '../signal-ref.js';
 import { resource } from '../resource.js';
 import { Result } from '../result.js';
 import { run } from '../run.js';
@@ -15,7 +12,7 @@ import { schedule } from '../schedule.js';
 import { signal } from '../signal.js';
 import { trail } from '../trail.js';
 import { topo } from '../topo.js';
-import type { TraceRecord, TraceSink } from '../internal/tracing.js';
+import type { TraceRecord, TraceSink } from '../tracing.js';
 import type { LogRecord, LogSink } from '../types.js';
 import { webhook } from '../webhook.js';
 

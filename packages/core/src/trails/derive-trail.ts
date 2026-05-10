@@ -7,7 +7,7 @@ import {
   isTrailsError,
   NotFoundError,
 } from '../errors.js';
-import { stripDefaultsFromShape } from '../internal/zod-wrappers.js';
+import { stripDefaultsFromShape } from '../zod-wrappers.js';
 import type { AnyResource } from '../resource.js';
 import { Result } from '../result.js';
 import type { StoreAccessorProtocol } from '../store/accessor-protocol.js';

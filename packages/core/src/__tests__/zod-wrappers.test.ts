@@ -4,7 +4,7 @@ import { z } from 'zod';
 import {
   stripDefaultsFromShape,
   stripDefaultWrappers,
-} from '../internal/zod-wrappers.js';
+} from '../zod-wrappers.js';
 
 describe('stripDefaultWrappers', () => {
   test('drops plain default wrappers', () => {

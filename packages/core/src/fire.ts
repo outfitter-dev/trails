@@ -49,8 +49,8 @@ import {
   isTracingDisabled,
   writeActivationTraceRecord,
   writeSignalTraceRecord,
-} from './internal/tracing.js';
-import type { SignalTraceRecordName, TraceSink } from './internal/tracing.js';
+} from './tracing.js';
+import type { SignalTraceRecordName, TraceSink } from './tracing.js';
 import { Result } from './result.js';
 import type { AnySignal } from './signal.js';
 import {

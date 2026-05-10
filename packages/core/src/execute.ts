@@ -11,7 +11,7 @@ import type { z } from 'zod';
 import type { AnyTrail } from './trail.js';
 import type { Layer } from './layer.js';
 import type { ResourceOverrideMap } from './resource.js';
-import type { TraceContext, TraceRecord } from './internal/tracing.js';
+import type { TraceContext, TraceRecord } from './tracing.js';
 import type { Topo } from './topo.js';
 
 import {
@@ -50,7 +50,7 @@ import {
   claimNextCrossBatchIndex,
   createCrossBatchValidationResults,
   normalizeCrossBatchConcurrency,
-} from './internal/cross-batch.js';
+} from './cross-batch.js';
 import { forkCtx } from './internal/fork-ctx.js';
 import {
   TRACE_CONTEXT_KEY,
@@ -60,7 +60,7 @@ import {
   getTraceSink,
   isTracingDisabled,
   writeToSink,
-} from './internal/tracing.js';
+} from './tracing.js';
 import {
   OBSERVE_LOGGER_CONTEXT_KEY,
   OBSERVE_LOGGER_METADATA_KEY,

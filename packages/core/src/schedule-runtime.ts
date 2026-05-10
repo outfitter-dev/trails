@@ -14,8 +14,8 @@ import {
   TRACE_CONTEXT_KEY,
   traceContextFromRecord,
   writeActivationTraceRecord,
-} from './internal/tracing.js';
-import type { TraceContext } from './internal/tracing.js';
+} from './tracing.js';
+import type { TraceContext } from './tracing.js';
 import { Result } from './result.js';
 import { drainResources } from './resource-config.js';
 import type { ResourceDrainReport } from './resource-config.js';

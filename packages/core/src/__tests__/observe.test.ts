@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import type { TraceSink } from '../internal/tracing.js';
+import type { TraceSink } from '../tracing.js';
 import { isLogSink, isObserveInput, normalizeObserve } from '../observe.js';
 import type { LogRecord, LogSink, Logger } from '../types.js';
 

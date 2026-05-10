@@ -188,10 +188,10 @@ packages/topographer/src/
 ```text
 packages/core/src/
   ... all current files except topo-store.ts and the topo internals ...
-  internal/trails-db.ts       # generic shared-infra helpers stay here
+  trails-db.ts                # generic shared-infra helpers stay here
 ```
 
-If a future ADR moves the database primitive itself, the `internal/trails-db.ts` line moves with it.
+If a future ADR moves the database primitive itself, the `trails-db.ts` line moves with it.
 
 ## Non-goals
 

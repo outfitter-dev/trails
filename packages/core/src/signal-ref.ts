@@ -1,4 +1,4 @@
-import type { AnySignal, Signal } from '../signal.js';
+import type { AnySignal, Signal } from './signal.js';
 
 export interface LateBoundSignalRef {
   readonly kind: 'store-derived';

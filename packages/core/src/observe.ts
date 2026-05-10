@@ -1,5 +1,5 @@
 import { ValidationError } from './errors.js';
-import type { TraceSink } from './internal/tracing.js';
+import type { TraceSink } from './tracing.js';
 import type { Layer } from './layer.js';
 import { safeStringify } from './serialization.js';
 import type { Logger, LogLevel, LogRecord, LogSink } from './types.js';

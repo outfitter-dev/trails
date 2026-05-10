@@ -4,8 +4,8 @@ import {
   clearTraceSink,
   registerTraceSink,
   writeActivationTraceRecord,
-} from '../internal/tracing';
-import type { TraceSink } from '../internal/tracing';
+} from '../tracing';
+import type { TraceSink } from '../tracing';
 
 afterEach(() => {
   clearTraceSink();

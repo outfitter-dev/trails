@@ -8,7 +8,7 @@ import type { ActivationEntry } from './activation-source.js';
 import {
   getLateBoundSignalRef,
   parseLateBoundSignalMarker,
-} from './internal/signal-ref.js';
+} from './signal-ref.js';
 import type { Layer } from './layer.js';
 import {
   hasObserveCapabilities,

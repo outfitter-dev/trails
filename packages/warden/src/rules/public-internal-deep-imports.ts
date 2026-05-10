@@ -21,12 +21,6 @@ import type { WardenPublicWorkspace } from '../workspaces.js';
 const RULE_NAME = 'public-internal-deep-imports';
 const ONTRAILS_SPECIFIER_PATTERN = /^(@ontrails\/[^/]+)(?:\/(.+))?$/;
 const ROOT_BARREL_INTERNAL_RE_EXPORT_ALLOWLIST = new Set([
-  '@ontrails/core:./internal/cross-batch.js',
-  '@ontrails/core:./internal/layer-projection.js',
-  '@ontrails/core:./internal/signal-ref.js',
-  '@ontrails/core:./internal/tracing.js',
-  '@ontrails/core:./internal/trails-db.js',
-  '@ontrails/core:./internal/zod-wrappers.js',
   '@ontrails/store:./internal/signal-identity.js',
   '@ontrails/topographer:./internal/topo-snapshots.js',
   '@ontrails/topographer:./internal/topo-store.js',
