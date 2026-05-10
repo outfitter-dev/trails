@@ -1410,6 +1410,37 @@ describe('deriveHttpRoutes', () => {
       }
     });
 
+    test('non-Bearer Authorization on public routes is ignored before permit resolution', async () => {
+      let resolveCalled = false;
+      const app = topo('permit-http', { echoTrail });
+      const buildResult = deriveHttpRoutes(app, {
+        resolvePermit: () => {
+          resolveCalled = true;
+          return Result.ok({ id: 'user-1', scopes: [] });
+        },
+      });
+
+      expect(buildResult.isOk()).toBe(true);
+      if (!buildResult.isOk()) {
+        return;
+      }
+      const [route] = buildResult.value;
+      const result = await route?.execute(
+        { message: 'hello' },
+        'req-1',
+        undefined,
+        {
+          headers: { authorization: 'Basic dXNlcjpwYXNz' },
+        }
+      );
+
+      expect(result?.isOk()).toBe(true);
+      if (result?.isOk()) {
+        expect(result.value).toEqual({ reply: 'hello' });
+      }
+      expect(resolveCalled).toBe(false);
+    });
+
     test('Bearer Authorization without a resolver still lets protected routes fail at the permit gate', async () => {
       const protectedTrail = trail('permit.no-resolver', {
         blaze: () => Result.ok({ ok: true }),

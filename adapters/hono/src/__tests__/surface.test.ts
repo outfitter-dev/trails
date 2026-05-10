@@ -420,6 +420,92 @@ describe('surface API (Hono adapter)', () => {
     expect(loggedErrors).toHaveLength(0);
   });
 
+  test('malformed Authorization fails as 401 through Hono permit resolution', async () => {
+    let invoked = false;
+    const protectedTrail = trail('permit.malformed', {
+      blaze: () => {
+        invoked = true;
+        return Result.ok({ ok: true });
+      },
+      input: z.object({}),
+      intent: 'read',
+      output: z.object({ ok: z.boolean() }),
+      permit: { scopes: ['thing:read'] },
+    });
+    const graph = topo('surface-api', { protectedTrail });
+    const app = createApp(graph, {
+      resolvePermit: () => Result.ok({ id: 'user-1', scopes: ['thing:read'] }),
+    });
+
+    const response = await app.request('/permit/malformed', {
+      headers: { Authorization: 'Basic nope' },
+      method: 'GET',
+    });
+
+    expect(response.status).toBe(401);
+    expect(await response.json()).toEqual({
+      error: {
+        category: 'auth',
+        code: 'AuthError',
+        message: 'Malformed Authorization header; expected Bearer token',
+      },
+    });
+    expect(invoked).toBe(false);
+  });
+
+  test('non-Bearer Authorization does not reject public Hono routes', async () => {
+    const graph = topo('surface-api', { echoTrail });
+    const app = createApp(graph);
+
+    const response = await app.request('/echo?message=hello', {
+      headers: { Authorization: 'Basic dXNlcjpwYXNz' },
+      method: 'GET',
+    });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ data: { reply: 'hello' } });
+  });
+
+  test('resolved permits with missing scopes fail as 403 through Hono', async () => {
+    let observedBearerToken: string | undefined;
+    let observedHeaders: Headers | undefined;
+    const protectedTrail = trail('permit.scope', {
+      blaze: () => Result.ok({ ok: true }),
+      input: z.object({}),
+      intent: 'read',
+      output: z.object({ ok: z.boolean() }),
+      permit: { scopes: ['thing:read'] },
+    });
+    const graph = topo('surface-api', { protectedTrail });
+    const app = createApp(graph, {
+      resolvePermit: ({ bearerToken, headers }) => {
+        observedBearerToken = bearerToken;
+        observedHeaders = headers instanceof Headers ? headers : undefined;
+        return Result.ok({ id: 'user-1', scopes: [] });
+      },
+    });
+
+    const response = await app.request('/permit/scope', {
+      headers: {
+        Authorization: 'Bearer weak',
+        'X-Tenant-ID': 'tenant-1',
+      },
+      method: 'GET',
+    });
+
+    expect(response.status).toBe(403);
+    expect(await response.json()).toEqual({
+      error: {
+        category: 'permission',
+        code: 'PermitError',
+        message: 'Missing scopes: thing:read',
+      },
+    });
+    expect(observedBearerToken).toBe('weak');
+    expect(observedHeaders).toBeInstanceOf(Headers);
+    expect(observedHeaders?.get('x-tenant-id')).toBe('tenant-1');
+  });
+
   test('sanitizes request ids before logging diagnostics', async () => {
     const graph = topo('surface-api', { genericErrorTrail });
     const app = createApp(graph);

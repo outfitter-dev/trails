@@ -209,12 +209,27 @@ const parseBearerAuthorization = (
   return Result.ok(token);
 };
 
+const isBearerAuthorization = (authorization: string | undefined): boolean =>
+  authorization !== undefined && /^Bearer(?:\s|$)/i.test(authorization.trim());
+
+const shouldResolveHttpPermit = (
+  options: DeriveHttpRoutesOptions,
+  authorization: string | undefined,
+  requiresPermit: boolean
+): boolean =>
+  requiresPermit ||
+  (options.resolvePermit !== undefined && isBearerAuthorization(authorization));
+
 const resolveHttpPermit = async (
   options: DeriveHttpRoutesOptions,
   request: HttpExecutionContext | undefined,
-  requestId: string | undefined
+  requestId: string | undefined,
+  requiresPermit: boolean
 ): Promise<Result<BasePermit | undefined, Error>> => {
   const authorization = readHeader(request?.headers, 'authorization');
+  if (!shouldResolveHttpPermit(options, authorization, requiresPermit)) {
+    return Result.ok();
+  }
   const token = parseBearerAuthorization(authorization);
   if (token.isErr()) {
     return token;
@@ -631,7 +646,8 @@ const createExecute =
     const permitResolution = await resolveHttpPermit(
       options,
       request,
-      requestId
+      requestId,
+      t.permit !== undefined
     );
     if (permitResolution.isErr()) {
       return Result.err(permitResolution.error);
@@ -712,7 +728,8 @@ const createWebhookConsumerExecute =
     const permitResolution = await resolveHttpPermit(
       options,
       request,
-      requestId
+      requestId,
+      t.permit !== undefined
     );
     if (permitResolution.isErr()) {
       return Result.err(permitResolution.error);

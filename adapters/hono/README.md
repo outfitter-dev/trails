@@ -21,6 +21,12 @@ await surface(graph, {
 });
 ```
 
+Pass `resolvePermit` to resolve HTTP `Authorization: Bearer ...` credentials
+into `ctx.permit` before protected trails execute. The adapter forwards request
+headers to the framework-agnostic HTTP route executor, so malformed
+Authorization headers return `401` and resolved permits with insufficient scopes
+return `403`.
+
 Generic non-TrailsError failures return a redacted 500 response while a
 redacted diagnostic projection is written to server diagnostics. `TrailsError`
 responses keep their taxonomy category and class name but redact sensitive

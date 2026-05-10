@@ -27,7 +27,12 @@ import { Hono } from 'hono';
 import type { Context as HonoContext } from 'hono';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import { deriveHttpRoutes } from '@ontrails/http';
-import type { HttpMethod, HttpRouteDefinition } from '@ontrails/http';
+import type {
+  HttpExecutionContext,
+  HttpMethod,
+  HttpRouteDefinition,
+  ResolveHttpPermit,
+} from '@ontrails/http';
 
 // ---------------------------------------------------------------------------
 // Options
@@ -45,6 +50,7 @@ export interface CreateAppOptions extends BaseSurfaceOptions {
   readonly name?: string | undefined;
   readonly port?: number | undefined;
   readonly resources?: ResourceOverrideMap | undefined;
+  readonly resolvePermit?: ResolveHttpPermit | undefined;
 }
 
 interface RuntimeOptions {
@@ -430,6 +436,10 @@ const collectHeaders = (c: HonoContext): Record<string, string> => {
   return headers;
 };
 
+const createHttpExecutionContext = (c: HonoContext): HttpExecutionContext => ({
+  headers: c.req.raw.headers,
+});
+
 const createWebhookVerifyRequest = (
   c: HonoContext,
   body: string
@@ -507,7 +517,12 @@ const handleWebhookRoute = async (
 
   const requestId = c.req.header('X-Request-ID') ?? undefined;
   const { signal: abortSignal } = c.req.raw;
-  const result = await route.execute(parsed.value, requestId, abortSignal);
+  const result = await route.execute(
+    parsed.value,
+    requestId,
+    abortSignal,
+    createHttpExecutionContext(c)
+  );
   return mapResultToResponse(result, c);
 };
 
@@ -541,7 +556,12 @@ const createHonoHandler =
     const { signal: abortSignal } = c.req.raw;
 
     try {
-      const result = await route.execute(rawInput, requestId, abortSignal);
+      const result = await route.execute(
+        rawInput,
+        requestId,
+        abortSignal,
+        createHttpExecutionContext(c)
+      );
       return mapResultToResponse(result, c);
     } catch (error: unknown) {
       return handleCaughtError(error, c);
@@ -628,6 +648,7 @@ export const createApp = (
     include: options.include,
     intent: options.intent,
     layers: options.layers,
+    resolvePermit: options.resolvePermit,
     resources: options.resources,
     validate: options.validate,
   });
