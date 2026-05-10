@@ -11,7 +11,7 @@ import type {
   TraceFn,
   TrailContext,
 } from '@ontrails/core';
-import type { LogLevel, LogRecord } from '@ontrails/logging';
+import type { LogLevel, LogRecord } from '@ontrails/observe';
 
 // ---------------------------------------------------------------------------
 // Test Scenario (for testTrail)

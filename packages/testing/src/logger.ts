@@ -2,9 +2,11 @@
  * Test logger that captures log records for assertion.
  */
 
-import type { LogLevel, LogMetadata, LogRecord } from '@ontrails/logging';
+import type { LogLevel, LogRecord } from '@ontrails/observe';
 
 import type { TestLogger } from './types.js';
+
+type LogMetadata = Readonly<Record<string, unknown>>;
 
 // ---------------------------------------------------------------------------
 // Level ordering for filtering
