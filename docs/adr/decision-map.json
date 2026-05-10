@@ -313,6 +313,11 @@
           "fromPath": "docs/adr/0038-typed-signal-emission.md"
         },
         {
+          "context": "- [ADR-0002: Built-In Result Type](0002-built-in-result-type.md)",
+          "from": "0045",
+          "fromPath": "docs/adr/0045-v1-resolved-graph-error-scope.md"
+        },
+        {
           "context": "- **[ADR-0002: Built-In Result Type](./adr/0002-built-in-result-type.md)** — Own the Result primitive, zero dependencies",
           "from": "index",
           "fromPath": "docs/index.md"
@@ -1150,6 +1155,11 @@
           "fromPath": "docs/adr/0042-core-topographer-boundary-doctrine.md"
         },
         {
+          "context": "- [ADR-0015: Topo Store](0015-topo-store.md)",
+          "from": "0045",
+          "fromPath": "docs/adr/0045-v1-resolved-graph-error-scope.md"
+        },
+        {
           "context": "- **[ADR-0015: Topo Store](./adr/0015-topo-store.md)** — Queryable relational projection of the resolved graph",
           "from": "index",
           "fromPath": "docs/index.md"
@@ -1286,6 +1296,11 @@
           "context": "- [ADR-0017: The Serialized Topo Graph](0017-serialized-topo-graph.md)",
           "from": "0044",
           "fromPath": "docs/adr/0044-trail-versioning.md"
+        },
+        {
+          "context": "- [ADR-0017: The Serialized Topo Graph](0017-serialized-topo-graph.md)",
+          "from": "0045",
+          "fromPath": "docs/adr/0045-v1-resolved-graph-error-scope.md"
         },
         {
           "context": "- [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md) -- rig state captured in the lockfile graph; rig lock state occupies a section in `trails.lock`",
@@ -1639,6 +1654,11 @@
           "fromPath": "docs/adr/0044-trail-versioning.md"
         },
         {
+          "context": "- [ADR-0026: Error Taxonomy as Transport-Independent Behavior Contract](0026-error-taxonomy-as-transport-independent-behavior-contract.md)",
+          "from": "0045",
+          "fromPath": "docs/adr/0045-v1-resolved-graph-error-scope.md"
+        },
+        {
           "context": "- [ADR-0026: Error Taxonomy as Transport-Independent Behavior Contract](../0026-error-taxonomy-as-transport-independent-behavior-contract.md) -- WebSocket close code mapping deferred there; the error ",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-websocket-trailhead.md"
@@ -1935,7 +1955,13 @@
     {
       "created": "2026-04-11",
       "depends_on": ["2", "6", "23", "32"],
-      "inbound": [],
+      "inbound": [
+        {
+          "context": "- [ADR-0033: Detour Execution for Recovery](0033-detour-execution-for-recovery.md)",
+          "from": "0045",
+          "fromPath": "docs/adr/0045-v1-resolved-graph-error-scope.md"
+        }
+      ],
       "number": "0033",
       "owners": ["[galligan](https://github.com/galligan)"],
       "path": "docs/adr/0033-detour-execution-for-recovery.md",
@@ -2186,6 +2212,11 @@
       "depends_on": ["14", "15", "17", "35"],
       "inbound": [
         {
+          "context": "- [ADR-0042: Core/Topographer Boundary Doctrine](0042-core-topographer-boundary-doctrine.md)",
+          "from": "0045",
+          "fromPath": "docs/adr/0045-v1-resolved-graph-error-scope.md"
+        },
+        {
           "context": "- [ADR-0042: Core/Topographer Boundary Doctrine](../0042-core-topographer-boundary-doctrine.md)",
           "from": "20260503",
           "fromPath": "docs/adr/drafts/20260503-wayfinding.md"
@@ -2251,6 +2282,30 @@
       "superseded_by": null,
       "title": "Trail Versioning",
       "updated": "2026-05-06"
+    },
+    {
+      "created": "2026-05-10",
+      "depends_on": ["2", "15", "17", "26", "33", "42"],
+      "inbound": [
+        {
+          "context": "Extends trail record with `crosses`, `detours`, `resources`, and `examples` arrays. Detailed examples preserve `expected`, `expectedMatch`, and structured signal assertions when they are JSON-serializ",
+          "from": "topo-store-reference",
+          "fromPath": "docs/topo-store-reference.md"
+        },
+        {
+          "context": "These fields are not exhaustive per-trail error contracts. Error categories, retryability, and surface codes stay owned by the core error taxonomy registry, while public body redaction stays owned by ",
+          "from": "topo-store",
+          "fromPath": "docs/topo-store.md"
+        }
+      ],
+      "number": "0045",
+      "owners": ["[galligan](https://github.com/galligan)"],
+      "path": "docs/adr/0045-v1-resolved-graph-error-scope.md",
+      "slug": "v1-resolved-graph-error-scope",
+      "status": "accepted",
+      "superseded_by": null,
+      "title": "v1 Resolved Graph Error Scope",
+      "updated": "2026-05-10"
     }
   ],
   "version": 1

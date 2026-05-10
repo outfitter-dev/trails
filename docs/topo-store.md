@@ -20,8 +20,8 @@ Trails creates a `.trails/` directory in your workspace root on first use:
 ```
 
 - **`trails.db`** — SQLite database containing all topo saves, pins, and schema cache. Not git-tracked.
-- **`trails.lock`** — Committed lockfile. Text format, git-tracked. This is your contract's current state for CI.
-- **`_surface.json`** — Full surface map with all metadata, written by `topo compile`.
+- **`trails.lock`** — Committed lockfile. Text format, git-tracked. In v1 this is a drift/hash guard plus optional workspace trail index, not the full inspectable graph.
+- **`_surface.json`** — Rich surface map with trail, signal, resource, relation, example, and detour metadata, written by `topo compile`.
 
 ## What trails.db contains
 
@@ -36,6 +36,15 @@ A **pin** is a durable, human-friendly name you assign to a save you care about.
 ### Metadata
 
 For each save, the database stores trail IDs, intents, descriptions, examples, crossings, signals, resources, and their relationships. The schema cache avoids recomputing `zodToJsonSchema()` when schemas haven't changed.
+
+### Error scope
+
+For v1, the topo store and surface map record authored error-related contract facts:
+
+- `examples` may include named error examples from `trail.examples`.
+- `detours` include the declared recovery error class name and effective capped attempt count.
+
+These fields are not exhaustive per-trail error contracts. Error categories, retryability, and surface codes stay owned by the core error taxonomy registry, while public body redaction stays owned by the shared error projection policy. See [ADR-0045](./adr/0045-v1-resolved-graph-error-scope.md).
 
 ## Commands
 

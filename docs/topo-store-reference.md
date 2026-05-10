@@ -143,7 +143,9 @@ CREATE TABLE topo_trail_on (
 
 ### `topo_examples`
 
-Trail examples with input, expected output, and error cases.
+Trail examples with input, expected output, and authored error cases. The
+`error` column stores the example's declared error class name; it is not an
+exhaustive per-trail error contract.
 
 ```sql
 CREATE TABLE topo_examples (
@@ -180,7 +182,9 @@ CREATE TABLE topo_surfaces (
 
 ### `topo_exports`
 
-Serialized surface maps and lockfiles.
+Serialized surface maps and lockfiles. In v1, `surface_map` is the richer
+inspectable graph artifact. `serialized_lock` carries the committed lock
+payload used for drift/hash verification and workspace trail indexing.
 
 ```sql
 CREATE TABLE topo_exports (
@@ -345,7 +349,7 @@ interface TopoStoreRef {
 
 ### `TopoStoreTrailDetailRecord`
 
-Extends trail record with `crosses`, `detours`, `resources`, and `examples` arrays. Detailed examples preserve `expected`, `expectedMatch`, and structured signal assertions when they are JSON-serializable.
+Extends trail record with `crosses`, `detours`, `resources`, and `examples` arrays. Detailed examples preserve `expected`, `expectedMatch`, and structured signal assertions when they are JSON-serializable. Detours preserve authored recovery declarations, including the matched error class name and effective attempt count. Neither examples nor detours are exhaustive per-trail error inference; see [ADR-0045](./adr/0045-v1-resolved-graph-error-scope.md).
 
 ### `TopoStoreResourceRecord`
 

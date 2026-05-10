@@ -51,3 +51,4 @@ ADRs document the significant design decisions behind Trails — the choices tha
 | [0042](0042-core-topographer-boundary-doctrine.md) | Core/Topographer Boundary Doctrine | Accepted |
 | [0043](0043-layer-evolution.md) | Layer Evolution | Accepted (amended 2026-05-04) |
 | [0044](0044-trail-versioning.md) | Trail Versioning | Accepted |
+| [0045](0045-v1-resolved-graph-error-scope.md) | v1 Resolved Graph Error Scope | Accepted |
