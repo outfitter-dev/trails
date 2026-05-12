@@ -5,8 +5,8 @@ import { join } from 'node:path';
 
 import { Result, resource, signal, topo, trail } from '@ontrails/core';
 import type { Layer, Topo } from '@ontrails/core';
-import { deriveSurfaceMap } from '@ontrails/topographer';
-import type { SurfaceMapEntry } from '@ontrails/topographer';
+import { deriveTopoGraph } from '@ontrails/topographer';
+import type { TopoGraphEntry } from '@ontrails/topographer';
 import { z } from 'zod';
 
 import {
@@ -14,7 +14,7 @@ import {
   WATCH_WARMUP_MS,
   argvHasWatchFlag,
   createTrailWatcher,
-  hashSurfaceMapEntry,
+  hashTopoGraphEntry,
   readRunTrailId,
 } from '../run-watch.js';
 
@@ -127,8 +127,8 @@ const buildWatchedApp = (options: WatchedAppOptions = {}): Topo => {
   });
 };
 
-const watchedEntry = (app: Topo): SurfaceMapEntry => {
-  const entry = deriveSurfaceMap(app).entries.find(
+const watchedEntry = (app: Topo): TopoGraphEntry => {
+  const entry = deriveTopoGraph(app).entries.find(
     (candidate) => candidate.kind === 'trail' && candidate.id === 'entity.watch'
   );
   if (entry === undefined) {
@@ -138,7 +138,7 @@ const watchedEntry = (app: Topo): SurfaceMapEntry => {
 };
 
 const watchedEntryHash = (app: Topo): string =>
-  hashSurfaceMapEntry(watchedEntry(app));
+  hashTopoGraphEntry(watchedEntry(app));
 
 // ---------------------------------------------------------------------------
 // Argv detection
@@ -208,8 +208,8 @@ describe('createTrailWatcher', () => {
     expect(WATCH_DEBOUNCE_MS).toBeLessThanOrEqual(200);
   });
 
-  test('hashes a surface-map entry deterministically', () => {
-    const entry: SurfaceMapEntry = {
+  test('hashes a TopoGraph entry deterministically', () => {
+    const entry: TopoGraphEntry = {
       exampleCount: 0,
       id: 'entity.show',
       input: { type: 'object' },
@@ -219,9 +219,9 @@ describe('createTrailWatcher', () => {
       surfaces: ['cli'],
     } as const;
 
-    expect(hashSurfaceMapEntry(entry)).toBe(hashSurfaceMapEntry(entry));
-    expect(hashSurfaceMapEntry({ ...entry, intent: 'write' })).not.toBe(
-      hashSurfaceMapEntry(entry)
+    expect(hashTopoGraphEntry(entry)).toBe(hashTopoGraphEntry(entry));
+    expect(hashTopoGraphEntry({ ...entry, intent: 'write' })).not.toBe(
+      hashTopoGraphEntry(entry)
     );
   });
 
@@ -293,21 +293,21 @@ describe('createTrailWatcher', () => {
     expect(changedSibling).toBe(baseline);
   });
 
-  test('triggers a rerun when the watched surface-map entry changes', async () => {
+  test('triggers a rerun when the watched TopoGraph entry changes', async () => {
     const reruns: number[] = [];
-    let surfaceHash = 'contract:v1';
+    let topoGraphEntryHash = 'contract:v1';
     const watcher = createTrailWatcher({
-      initialSurfaceHash: surfaceHash,
+      initialTopoGraphEntryHash: topoGraphEntryHash,
       onRerun: () => {
         reruns.push(Date.now());
       },
-      readSurfaceHash: () => surfaceHash,
+      readTopoGraphEntryHash: () => topoGraphEntryHash,
       sourcePath: join(fixture.watchedDir, 'trail.ts'),
     });
 
     try {
       await Bun.sleep(WATCHER_SETTLE_MS);
-      surfaceHash = 'contract:v2';
+      topoGraphEntryHash = 'contract:v2';
       writeFileSync(
         join(fixture.watchedDir, 'trail.ts'),
         'export const v = 2;\n'
@@ -323,19 +323,19 @@ describe('createTrailWatcher', () => {
 
   test('triggers exactly one rerun for a derived contract hash change', async () => {
     const reruns: number[] = [];
-    let surfaceHash = watchedEntryHash(buildWatchedApp());
+    let topoGraphEntryHash = watchedEntryHash(buildWatchedApp());
     const watcher = createTrailWatcher({
-      initialSurfaceHash: surfaceHash,
+      initialTopoGraphEntryHash: topoGraphEntryHash,
       onRerun: () => {
         reruns.push(Date.now());
       },
-      readSurfaceHash: () => surfaceHash,
+      readTopoGraphEntryHash: () => topoGraphEntryHash,
       sourcePath: join(fixture.watchedDir, 'trail.ts'),
     });
 
     try {
       await Bun.sleep(WATCHER_SETTLE_MS);
-      surfaceHash = watchedEntryHash(
+      topoGraphEntryHash = watchedEntryHash(
         buildWatchedApp({
           input: z.object({ id: z.string(), verbose: z.boolean() }),
         })
@@ -354,14 +354,14 @@ describe('createTrailWatcher', () => {
     }
   });
 
-  test('does not rerun for comment-only edits with the same surface hash', async () => {
+  test('does not rerun for comment-only edits with the same topo graph entry hash', async () => {
     const reruns: number[] = [];
     const watcher = createTrailWatcher({
-      initialSurfaceHash: 'contract:v1',
+      initialTopoGraphEntryHash: 'contract:v1',
       onRerun: () => {
         reruns.push(Date.now());
       },
-      readSurfaceHash: () => 'contract:v1',
+      readTopoGraphEntryHash: () => 'contract:v1',
       sourcePath: join(fixture.watchedDir, 'trail.ts'),
     });
 
@@ -383,11 +383,11 @@ describe('createTrailWatcher', () => {
   test('does not rerun for sibling source edits when the watched contract is unchanged', async () => {
     const reruns: number[] = [];
     const watcher = createTrailWatcher({
-      initialSurfaceHash: 'contract:v1',
+      initialTopoGraphEntryHash: 'contract:v1',
       onRerun: () => {
         reruns.push(Date.now());
       },
-      readSurfaceHash: () => 'contract:v1',
+      readTopoGraphEntryHash: () => 'contract:v1',
       sourcePath: join(fixture.watchedDir, 'trail.ts'),
     });
 
@@ -409,11 +409,11 @@ describe('createTrailWatcher', () => {
   test('does not rerun for non .ts/.js files', async () => {
     const reruns: number[] = [];
     const watcher = createTrailWatcher({
-      initialSurfaceHash: 'contract:v1',
+      initialTopoGraphEntryHash: 'contract:v1',
       onRerun: () => {
         reruns.push(Date.now());
       },
-      readSurfaceHash: () => 'contract:v1',
+      readTopoGraphEntryHash: () => 'contract:v1',
       sourcePath: join(fixture.watchedDir, 'trail.ts'),
     });
 
@@ -433,11 +433,11 @@ describe('createTrailWatcher', () => {
   test('does not rerun for changes in unrelated directories', async () => {
     const reruns: number[] = [];
     const watcher = createTrailWatcher({
-      initialSurfaceHash: 'contract:v1',
+      initialTopoGraphEntryHash: 'contract:v1',
       onRerun: () => {
         reruns.push(Date.now());
       },
-      readSurfaceHash: () => 'contract:v1',
+      readTopoGraphEntryHash: () => 'contract:v1',
       sourcePath: join(fixture.watchedDir, 'trail.ts'),
     });
 
@@ -458,13 +458,13 @@ describe('createTrailWatcher', () => {
 
   test('debounces rapid changes into a single rerun', async () => {
     const reruns: number[] = [];
-    let surfaceHash = 'contract:v1';
+    let topoGraphEntryHash = 'contract:v1';
     const watcher = createTrailWatcher({
-      initialSurfaceHash: surfaceHash,
+      initialTopoGraphEntryHash: topoGraphEntryHash,
       onRerun: () => {
         reruns.push(Date.now());
       },
-      readSurfaceHash: () => surfaceHash,
+      readTopoGraphEntryHash: () => topoGraphEntryHash,
       sourcePath: join(fixture.watchedDir, 'trail.ts'),
     });
 
@@ -472,7 +472,7 @@ describe('createTrailWatcher', () => {
       await Bun.sleep(WATCHER_SETTLE_MS);
       // Burst of writes within the debounce window.
       for (let i = 0; i < 5; i += 1) {
-        surfaceHash = `contract:v${i + 2}`;
+        topoGraphEntryHash = `contract:v${i + 2}`;
         writeFileSync(
           join(fixture.watchedDir, 'trail.ts'),
           `export const v = ${i};\n`
@@ -489,20 +489,20 @@ describe('createTrailWatcher', () => {
     }
   });
 
-  test('skips invalid surface states and resumes on the next valid contract change', async () => {
+  test('skips invalid TopoGraph states and resumes on the next valid contract change', async () => {
     const reruns: number[] = [];
     let mode: 'invalid' | 'valid' = 'invalid';
-    let surfaceHash = 'contract:v1';
+    let topoGraphEntryHash = 'contract:v1';
     const watcher = createTrailWatcher({
-      initialSurfaceHash: surfaceHash,
+      initialTopoGraphEntryHash: topoGraphEntryHash,
       onRerun: () => {
         reruns.push(Date.now());
       },
-      readSurfaceHash: () => {
+      readTopoGraphEntryHash: () => {
         if (mode === 'invalid') {
           throw new Error('schema invalid');
         }
-        return surfaceHash;
+        return topoGraphEntryHash;
       },
       sourcePath: join(fixture.watchedDir, 'trail.ts'),
     });
@@ -517,7 +517,7 @@ describe('createTrailWatcher', () => {
       expect(reruns.length).toBe(0);
 
       mode = 'valid';
-      surfaceHash = 'contract:v2';
+      topoGraphEntryHash = 'contract:v2';
       writeFileSync(
         join(fixture.watchedDir, 'trail.ts'),
         'export const fixed = 1;\n'
@@ -531,13 +531,13 @@ describe('createTrailWatcher', () => {
 
   test('holds when the watched trail is removed and reruns once it returns changed', async () => {
     const reruns: number[] = [];
-    let surfaceHash: string | null = null;
+    let topoGraphEntryHash: string | null = null;
     const watcher = createTrailWatcher({
-      initialSurfaceHash: 'contract:v1',
+      initialTopoGraphEntryHash: 'contract:v1',
       onRerun: () => {
         reruns.push(Date.now());
       },
-      readSurfaceHash: () => surfaceHash,
+      readTopoGraphEntryHash: () => topoGraphEntryHash,
       sourcePath: join(fixture.watchedDir, 'trail.ts'),
     });
 
@@ -547,7 +547,7 @@ describe('createTrailWatcher', () => {
       await Bun.sleep(WATCH_DEBOUNCE_MS + 200);
       expect(reruns.length).toBe(0);
 
-      surfaceHash = 'contract:v2';
+      topoGraphEntryHash = 'contract:v2';
       writeFileSync(
         join(fixture.watchedDir, 'trail.ts'),
         'export const restored = 1;\n'
@@ -565,7 +565,7 @@ describe('createTrailWatcher', () => {
       onRerun: () => {
         reruns.push(Date.now());
       },
-      readSurfaceHash: () => 'contract:v1',
+      readTopoGraphEntryHash: () => 'contract:v1',
       sourcePath: join(fixture.watchedDir, 'trail.ts'),
     });
 
@@ -581,17 +581,17 @@ describe('createTrailWatcher', () => {
     expect(reruns.length).toBe(0);
   });
 
-  test('close() suppresses rerun when surface hash read is already in flight', async () => {
+  test('close() suppresses rerun when topo graph entry hash read is already in flight', async () => {
     const reruns: number[] = [];
     const hashRead = Promise.withResolvers<string>();
     let readStarted = false;
     const watcher = createTrailWatcher({
       debounceMs: 10,
-      initialSurfaceHash: 'contract:v1',
+      initialTopoGraphEntryHash: 'contract:v1',
       onRerun: () => {
         reruns.push(Date.now());
       },
-      readSurfaceHash: () => {
+      readTopoGraphEntryHash: () => {
         readStarted = true;
         return hashRead.promise;
       },
@@ -621,7 +621,7 @@ describe('createTrailWatcher', () => {
       onRerun: () => {
         // no-op
       },
-      readSurfaceHash: () => 'contract:v1',
+      readTopoGraphEntryHash: () => 'contract:v1',
       sourcePath: join(fixture.watchedDir, 'trail.ts'),
     });
 

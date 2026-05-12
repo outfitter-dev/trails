@@ -20,12 +20,12 @@ import {
   trail,
 } from '@ontrails/core';
 import {
-  deriveSurfaceMap,
-  deriveSurfaceMapHash,
-  deriveSurfaceMapDiff,
-  writeSurfaceMap,
+  deriveTopoGraph,
+  deriveTopoGraphHash,
+  deriveTopoGraphDiff,
+  writeTopoGraph,
 } from '@ontrails/topographer';
-import type { SurfaceMap } from '@ontrails/topographer';
+import type { TopoGraph } from '@ontrails/topographer';
 import { z } from 'zod';
 
 import {
@@ -232,8 +232,8 @@ const repoTempDir = (): string =>
 // ---------------------------------------------------------------------------
 
 describe('trails survey', () => {
-  test('deriveSurfaceMap includes all trails', () => {
-    const surfaceMap = deriveSurfaceMap(app);
+  test('deriveTopoGraph includes all trails', () => {
+    const surfaceMap = deriveTopoGraph(app);
     expect(surfaceMap.entries.length).toBe(3);
     const ids = surfaceMap.entries.map((e) => e.id);
     expect(ids).toContain('hello');
@@ -242,7 +242,7 @@ describe('trails survey', () => {
   });
 
   test('surface map entries have expected fields', () => {
-    const surfaceMap = deriveSurfaceMap(app);
+    const surfaceMap = deriveTopoGraph(app);
     const hello = surfaceMap.entries.find((e) => e.id === 'hello');
     expect(hello).toBeDefined();
     expect(hello?.cli?.path).toEqual(['hello']);
@@ -253,28 +253,28 @@ describe('trails survey', () => {
   });
 
   test('JSON output is valid JSON', () => {
-    const surfaceMap = deriveSurfaceMap(app);
+    const surfaceMap = deriveTopoGraph(app);
     const json = JSON.stringify(surfaceMap, null, 2);
-    const parsed = JSON.parse(json) as SurfaceMap;
+    const parsed = JSON.parse(json) as TopoGraph;
     expect(parsed.version).toBe('1.0');
     expect(parsed.entries.length).toBe(3);
   });
 
-  test('deriveSurfaceMapHash produces stable hash', () => {
-    const surfaceMap = deriveSurfaceMap(app);
-    const hash1 = deriveSurfaceMapHash(surfaceMap);
-    const hash2 = deriveSurfaceMapHash(surfaceMap);
+  test('deriveTopoGraphHash produces stable hash', () => {
+    const surfaceMap = deriveTopoGraph(app);
+    const hash1 = deriveTopoGraphHash(surfaceMap);
+    const hash2 = deriveTopoGraphHash(surfaceMap);
     expect(hash1).toBe(hash2);
     // SHA-256 hex
     expect(hash1.length).toBe(64);
   });
 
-  test('deriveSurfaceMapDiff detects added trails', () => {
-    const prev = deriveSurfaceMap(
+  test('deriveTopoGraphDiff detects added trails', () => {
+    const prev = deriveTopoGraph(
       topo('test', { dbResource, hello: helloTrail })
     );
-    const curr = deriveSurfaceMap(app);
-    const diff = deriveSurfaceMapDiff(prev, curr);
+    const curr = deriveTopoGraph(app);
+    const diff = deriveTopoGraphDiff(prev, curr);
 
     expect(diff.info.length).toBeGreaterThan(0);
     const addedBye = diff.info.find((e) => e.id === 'bye');
@@ -282,12 +282,12 @@ describe('trails survey', () => {
     expect(addedBye?.change).toBe('added');
   });
 
-  test('deriveSurfaceMapDiff detects removed trails', () => {
-    const prev = deriveSurfaceMap(app);
-    const curr = deriveSurfaceMap(
+  test('deriveTopoGraphDiff detects removed trails', () => {
+    const prev = deriveTopoGraph(app);
+    const curr = deriveTopoGraph(
       topo('test', { dbResource, hello: helloTrail })
     );
-    const diff = deriveSurfaceMapDiff(prev, curr);
+    const diff = deriveTopoGraphDiff(prev, curr);
 
     expect(diff.hasBreaking).toBe(true);
     const removedBye = diff.breaking.find((e) => e.id === 'bye');
@@ -295,9 +295,9 @@ describe('trails survey', () => {
     expect(removedBye?.change).toBe('removed');
   });
 
-  test('deriveSurfaceMapDiff returns empty for identical maps', () => {
-    const surfaceMap = deriveSurfaceMap(app);
-    const diff = deriveSurfaceMapDiff(surfaceMap, surfaceMap);
+  test('deriveTopoGraphDiff returns empty for identical maps', () => {
+    const surfaceMap = deriveTopoGraph(app);
+    const diff = deriveTopoGraphDiff(surfaceMap, surfaceMap);
     expect(diff.entries.length).toBe(0);
     expect(diff.hasBreaking).toBe(false);
   });
@@ -962,7 +962,7 @@ describe('trails survey diff', () => {
     try {
       writeSurveyAppFixture(dir);
       const baselineApp = await loadApp('./src/app.ts', dir);
-      await writeSurfaceMap(deriveSurfaceMap(baselineApp), {
+      await writeTopoGraph(deriveTopoGraph(baselineApp), {
         dir: join(dir, '.trails'),
       });
 
@@ -995,7 +995,7 @@ describe('trails survey diff', () => {
     try {
       writeSurveyAppFixture(dir);
       const baselineApp = await loadApp('./src/app.ts', dir);
-      await writeSurfaceMap(deriveSurfaceMap(baselineApp), {
+      await writeTopoGraph(deriveTopoGraph(baselineApp), {
         dir: join(dir, 'baselines'),
       });
 
@@ -1027,7 +1027,7 @@ describe('trails survey diff', () => {
       const baselineApp = await loadApp('./src/app.ts', dir);
       writeFileSync(
         join(dir, 'baseline.json'),
-        JSON.stringify(deriveSurfaceMap(baselineApp))
+        JSON.stringify(deriveTopoGraph(baselineApp))
       );
 
       writeSurveyAppFixture(dir, { withBye: true });
@@ -1086,7 +1086,7 @@ describe('trails survey diff', () => {
     try {
       writeSurveyAppFixture(dir);
       const baselineApp = await loadApp('./src/app.ts', dir);
-      await writeSurfaceMap(deriveSurfaceMap(baselineApp), {
+      await writeTopoGraph(deriveTopoGraph(baselineApp), {
         dir: join(dir, 'baselines'),
       });
       mkdirSync(join(dir, '.trails'), { recursive: true });

@@ -15,7 +15,7 @@ import {
 import type { Layer, Topo, TopoIssue } from '@ontrails/core';
 import { z } from 'zod';
 
-import { deriveSurfaceMap } from '../derive.js';
+import { deriveTopoGraph } from '../derive.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -54,11 +54,11 @@ const gistContour = contour(
   { identity: 'id' }
 );
 
-const getFirstEntry = (map: ReturnType<typeof deriveSurfaceMap>) => {
+const getFirstEntry = (map: ReturnType<typeof deriveTopoGraph>) => {
   const [entry] = map.entries;
   expect(entry).toBeDefined();
   if (!entry) {
-    throw new Error('Expected surface map entry');
+    throw new Error('Expected topo graph entry');
   }
   return entry;
 };
@@ -75,9 +75,9 @@ const expectSchemaProperties = (
   );
 };
 
-const expectSurfaceMapTopoIssue = (tp: Topo, rule: string) => {
+const expectTopoGraphTopoIssue = (tp: Topo, rule: string) => {
   try {
-    deriveSurfaceMap(tp);
+    deriveTopoGraph(tp);
   } catch (error) {
     expect(error).toBeInstanceOf(ValidationError);
     const issues = (error as ValidationError).context?.['issues'] as
@@ -87,14 +87,14 @@ const expectSurfaceMapTopoIssue = (tp: Topo, rule: string) => {
     return;
   }
 
-  throw new Error(`Expected deriveSurfaceMap to reject with ${rule}`);
+  throw new Error(`Expected deriveTopoGraph to reject with ${rule}`);
 };
 
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('deriveSurfaceMap', () => {
+describe('deriveTopoGraph', () => {
   describe('entries', () => {
     test('produces entries for all trails in the topo', () => {
       const a = trail('a.create', {
@@ -106,7 +106,7 @@ describe('deriveSurfaceMap', () => {
         input: z.object({}),
       });
       const tp = topoFrom({ a, b });
-      const map = deriveSurfaceMap(tp);
+      const map = deriveTopoGraph(tp);
 
       expect(map.entries).toHaveLength(2);
       expect(map.entries.map((e) => e.id)).toEqual(['a.create', 'b.list']);
@@ -126,7 +126,7 @@ describe('deriveSurfaceMap', () => {
         input: z.object({}),
       });
       const tp = topoFrom({ a2, m2, z2 });
-      const map = deriveSurfaceMap(tp);
+      const map = deriveTopoGraph(tp);
 
       expect(map.entries.map((e) => e.id)).toEqual([
         'a.trail',
@@ -142,7 +142,7 @@ describe('deriveSurfaceMap', () => {
         output: z.object({ id: z.string(), name: z.string() }),
         resources: [dbResource],
       });
-      const map = deriveSurfaceMap(topoFrom({ dbResource, t }));
+      const map = deriveTopoGraph(topoFrom({ dbResource, t }));
       const entry = map.entries.find(
         (candidate) => candidate.id === 'entity.create'
       );
@@ -176,7 +176,7 @@ describe('deriveSurfaceMap', () => {
         input: z.object({}),
         layers: [trailLayer],
       });
-      const map = deriveSurfaceMap(
+      const map = deriveTopoGraph(
         topo('layered-app', { t }, { layers: [topoLayer] })
       );
       const entry = map.entries.find(
@@ -213,7 +213,7 @@ describe('deriveSurfaceMap', () => {
         contours: [gistContour, userContour],
         input: z.object({}),
       });
-      const entry = deriveSurfaceMap(topoFrom({ t })).entries.find(
+      const entry = deriveTopoGraph(topoFrom({ t })).entries.find(
         (candidate) => candidate.id === 'gist.create'
       );
 
@@ -226,7 +226,7 @@ describe('deriveSurfaceMap', () => {
         input: z.object({ msg: z.string() }),
       });
       const tp = topoFrom({ t });
-      const map = deriveSurfaceMap(tp);
+      const map = deriveTopoGraph(tp);
 
       expect(map.entries[0]?.output).toBeUndefined();
     });
@@ -242,7 +242,7 @@ describe('deriveSurfaceMap', () => {
         input: z.object({ id: z.string(), name: z.string() }),
       });
       const tp = topoFrom({ base, r });
-      const map = deriveSurfaceMap(tp);
+      const map = deriveTopoGraph(tp);
       const crossesEntry = map.entries.find((e) => e.id === 'user.update');
       expect(crossesEntry).toBeDefined();
 
@@ -262,7 +262,7 @@ describe('deriveSurfaceMap', () => {
         blaze: noop,
         input: z.object({}),
       });
-      const entry = deriveSurfaceMap(topoFrom({ createUser, e })).entries.find(
+      const entry = deriveTopoGraph(topoFrom({ createUser, e })).entries.find(
         (candidate) => candidate.id === 'user.created'
       );
 
@@ -300,7 +300,7 @@ describe('deriveSurfaceMap', () => {
         input: z.object({}),
         on: [created],
       });
-      const entry = deriveSurfaceMap(
+      const entry = deriveTopoGraph(
         topoFrom({ consumer, created, producer })
       ).entries.find((candidate) => candidate.id === 'user.created');
 
@@ -354,7 +354,7 @@ describe('deriveSurfaceMap', () => {
         on: [nightly],
       });
 
-      const map = deriveSurfaceMap(
+      const map = deriveTopoGraph(
         topoFrom({ consumer, created, producer, scheduled })
       );
       const consumerEntry = map.entries.find(
@@ -430,7 +430,7 @@ describe('deriveSurfaceMap', () => {
         on: [webhookSource],
       });
 
-      const map = deriveSurfaceMap(topoFrom({ receiver }));
+      const map = deriveTopoGraph(topoFrom({ receiver }));
       const source = map.activationSources['webhook:webhook.user.upsert'];
 
       expect(source).toMatchObject({
@@ -455,7 +455,7 @@ describe('deriveSurfaceMap', () => {
     });
 
     test('resource entries are included with description and healthcheck metadata', () => {
-      const map = deriveSurfaceMap(topoFrom({ dbResource }));
+      const map = deriveTopoGraph(topoFrom({ dbResource }));
       const entry = getFirstEntry(map);
 
       expect(entry.kind).toBe('resource');
@@ -466,7 +466,7 @@ describe('deriveSurfaceMap', () => {
     });
 
     test('contour entries are included with schema and references', () => {
-      const entry = deriveSurfaceMap(
+      const entry = deriveTopoGraph(
         topoFrom({ gistContour, userContour })
       ).entries.find((candidate) => candidate.id === 'gist');
 
@@ -497,7 +497,7 @@ describe('deriveSurfaceMap', () => {
         input: z.object({}),
         intent: 'read',
       });
-      const entry = getFirstEntry(deriveSurfaceMap(topoFrom({ t })));
+      const entry = getFirstEntry(deriveTopoGraph(topoFrom({ t })));
 
       expect(entry.intent).toBe('read');
       expect(entry.idempotent).toBe(true);
@@ -515,7 +515,7 @@ describe('deriveSurfaceMap', () => {
         input: z.object({}),
         permit: 'public',
       });
-      const { entries } = deriveSurfaceMap(topoFrom({ publicTrail, scoped }));
+      const { entries } = deriveTopoGraph(topoFrom({ publicTrail, scoped }));
 
       expect(
         entries.find((entry) => entry.id === 'secure.write')?.permit
@@ -537,7 +537,7 @@ describe('deriveSurfaceMap', () => {
         output: z.object({ y: z.number() }),
       });
       const tp = topoFrom({ t });
-      const map = deriveSurfaceMap(tp);
+      const map = deriveTopoGraph(tp);
 
       expect(map.entries[0]?.exampleCount).toBe(3);
     });
@@ -570,7 +570,7 @@ describe('deriveSurfaceMap', () => {
         input: z.object({ x: z.number() }),
         output: z.object({ y: z.number() }),
       });
-      const entry = getFirstEntry(deriveSurfaceMap(topoFrom({ t })));
+      const entry = getFirstEntry(deriveTopoGraph(topoFrom({ t })));
 
       expect(entry.examples).toEqual([
         {
@@ -608,7 +608,7 @@ describe('deriveSurfaceMap', () => {
         ],
         input: z.any(),
       });
-      const map = deriveSurfaceMap(topoFrom({ t }));
+      const map = deriveTopoGraph(topoFrom({ t }));
       const entry = getFirstEntry(map);
 
       expect(entry.exampleCount).toBe(1);
@@ -633,7 +633,7 @@ describe('deriveSurfaceMap', () => {
           status: z.enum(['active', 'inactive']),
         }),
       });
-      const entry = getFirstEntry(deriveSurfaceMap(topoFrom({ t })));
+      const entry = getFirstEntry(deriveTopoGraph(topoFrom({ t })));
 
       expect(entry.fieldOverrides).toEqual([
         {
@@ -662,7 +662,7 @@ describe('deriveSurfaceMap', () => {
         ],
         input: z.object({}),
       });
-      const entry = getFirstEntry(deriveSurfaceMap(topoFrom({ t })));
+      const entry = getFirstEntry(deriveTopoGraph(topoFrom({ t })));
 
       expect(entry.detours).toEqual([
         { maxAttempts: DETOUR_MAX_ATTEMPTS_CAP, on: 'ConflictError' },
@@ -682,7 +682,7 @@ describe('deriveSurfaceMap', () => {
         ],
         input: z.object({}),
       });
-      const entry = getFirstEntry(deriveSurfaceMap(topoFrom({ t })));
+      const entry = getFirstEntry(deriveTopoGraph(topoFrom({ t })));
 
       expect(entry.detours).toEqual([{ maxAttempts: 2, on: 'ConflictError' }]);
     });
@@ -694,7 +694,7 @@ describe('deriveSurfaceMap', () => {
         input: z.object({}),
       });
       const tp = topoFrom({ t });
-      const map = deriveSurfaceMap(tp);
+      const map = deriveTopoGraph(tp);
 
       expect(map.entries[0]?.description).toBe('A described trail');
     });
@@ -711,8 +711,8 @@ describe('deriveSurfaceMap', () => {
       });
       const tp = topoFrom({ t });
 
-      const map1 = deriveSurfaceMap(tp);
-      const map2 = deriveSurfaceMap(tp);
+      const map1 = deriveTopoGraph(tp);
+      const map2 = deriveTopoGraph(tp);
 
       expect(map1.entries).toEqual(map2.entries);
       expect(map1.version).toBe(map2.version);
@@ -724,7 +724,7 @@ describe('deriveSurfaceMap', () => {
         input: z.object({}),
       });
       const tp = topoFrom({ t });
-      const map = deriveSurfaceMap(tp);
+      const map = deriveTopoGraph(tp);
 
       expect(map.version).toBe('1.0');
     });
@@ -735,7 +735,7 @@ describe('deriveSurfaceMap', () => {
         input: z.object({}),
       });
       const tp = topoFrom({ t });
-      const map = deriveSurfaceMap(tp);
+      const map = deriveTopoGraph(tp);
 
       expect(new Date(map.generatedAt).toISOString()).toBe(map.generatedAt);
     });
@@ -749,7 +749,7 @@ describe('deriveSurfaceMap', () => {
         input: z.object({}),
       });
 
-      expect(() => deriveSurfaceMap(topoFrom({ exportTrail }))).toThrowError(
+      expect(() => deriveTopoGraph(topoFrom({ exportTrail }))).toThrowError(
         /draft/i
       );
     });
@@ -761,7 +761,7 @@ describe('deriveSurfaceMap', () => {
         input: z.object({}),
       });
 
-      expectSurfaceMapTopoIssue(topoFrom({ producer }), 'signal-fire-exists');
+      expectTopoGraphTopoIssue(topoFrom({ producer }), 'signal-fire-exists');
     });
 
     test('rejects consumer references to missing signals', () => {
@@ -771,7 +771,7 @@ describe('deriveSurfaceMap', () => {
         on: ['entity.missing'],
       });
 
-      expectSurfaceMapTopoIssue(topoFrom({ consumer }), 'signal-on-exists');
+      expectTopoGraphTopoIssue(topoFrom({ consumer }), 'signal-on-exists');
     });
   });
 });

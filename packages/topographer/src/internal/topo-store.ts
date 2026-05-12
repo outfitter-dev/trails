@@ -34,17 +34,17 @@ import {
   insertTopoSnapshotRecord,
 } from './topo-snapshots.js';
 
-type SurfaceMapEntryRecord = Readonly<Record<string, unknown>> & {
+type TopoGraphEntryRecord = Readonly<Record<string, unknown>> & {
   readonly id: string;
   readonly kind: 'contour' | 'resource' | 'signal' | 'trail';
 };
 
-type SurfaceMapRecord = Readonly<{
+type TopoGraphRecord = Readonly<{
   readonly activationGraph: ActivationGraphRecord;
   readonly activationSources: Readonly<
     Record<string, ActivationSourceCatalogRecord>
   >;
-  readonly entries: readonly SurfaceMapEntryRecord[];
+  readonly entries: readonly TopoGraphEntryRecord[];
   readonly generatedAt: string;
   readonly version: '1.0';
 }>;
@@ -1037,21 +1037,21 @@ const trailToEntryRecord = (
     readonly input: JsonRecord;
     readonly output?: JsonRecord;
   }>
-): SurfaceMapEntryRecord => {
+): TopoGraphEntryRecord => {
   const { entry, raw } = buildTrailEntryBase(trail, trailSchema);
   addSafetyMarkers(entry, trail);
   addPermitRequirement(entry, trail);
   addExtendedMetadata(entry, raw, trail);
   addTrailRelations(entry, trail);
   addLayerAttachments(entry, topoLayers, trail);
-  return sortKeys(entry) as SurfaceMapEntryRecord;
+  return sortKeys(entry) as TopoGraphEntryRecord;
 };
 
 const signalToEntryRecord = (
   signal: AnySignal,
   payloadSchema: JsonRecord,
   relations: SignalGraphRelations
-): SurfaceMapEntryRecord => {
+): TopoGraphEntryRecord => {
   const raw = signal as unknown as Record<string, unknown>;
   const examples = deriveStructuredSignalExamples(signal.examples);
   const entry: Record<string, unknown> = {
@@ -1091,12 +1091,10 @@ const signalToEntryRecord = (
     entry['replacedBy'] = raw['replacedBy'];
   }
 
-  return sortKeys(entry) as SurfaceMapEntryRecord;
+  return sortKeys(entry) as TopoGraphEntryRecord;
 };
 
-const resourceToEntryRecord = (
-  resource: AnyResource
-): SurfaceMapEntryRecord => {
+const resourceToEntryRecord = (resource: AnyResource): TopoGraphEntryRecord => {
   const entry: Record<string, unknown> = {
     exampleCount: 0,
     id: resource.id,
@@ -1112,10 +1110,10 @@ const resourceToEntryRecord = (
     entry['healthcheck'] = true;
   }
 
-  return sortKeys(entry) as SurfaceMapEntryRecord;
+  return sortKeys(entry) as TopoGraphEntryRecord;
 };
 
-const contourToEntryRecord = (contour: AnyContour): SurfaceMapEntryRecord => {
+const contourToEntryRecord = (contour: AnyContour): TopoGraphEntryRecord => {
   const schema = sortedJsonSchema(contour);
   const entry: Record<string, unknown> = {
     exampleCount: contour.examples?.length ?? 0,
@@ -1131,7 +1129,7 @@ const contourToEntryRecord = (contour: AnyContour): SurfaceMapEntryRecord => {
     entry['references'] = references;
   }
 
-  return sortKeys(entry) as SurfaceMapEntryRecord;
+  return sortKeys(entry) as TopoGraphEntryRecord;
 };
 
 const requireTrailSchema = (
@@ -1190,7 +1188,7 @@ const collectSignalGraphRelations = (
   );
 };
 
-const buildSurfaceMap = (
+const buildTopoGraph = (
   contours: readonly AnyContour[],
   generatedAt: string,
   resources: readonly AnyResource[],
@@ -1205,7 +1203,7 @@ const buildSurfaceMap = (
     }>
   >,
   trails: readonly AnyTrail[]
-): SurfaceMapRecord => {
+): TopoGraphRecord => {
   const signalRelations = collectSignalGraphRelations(signals, trails);
   const activationSources = collectActivationSourceCatalog(trails);
   const activationEdges = collectActivationGraphEdges(trails);
@@ -1242,21 +1240,21 @@ const buildSurfaceMap = (
   };
 };
 
-const hashSurfaceMapRecord = (surfaceMap: SurfaceMapRecord): string => {
+const hashTopoGraphRecord = (surfaceMap: TopoGraphRecord): string => {
   const { generatedAt: _unused, ...rest } = surfaceMap;
   return hashValue(rest);
 };
 
 const entryPayload = (
-  entry: SurfaceMapEntryRecord
+  entry: TopoGraphEntryRecord
 ): Readonly<Record<string, unknown>> => {
   const { id: _unusedId, kind: _unusedKind, ...rest } = entry;
   return sortKeys(rest);
 };
 
 const entriesForKind = (
-  entries: readonly SurfaceMapEntryRecord[],
-  kind: SurfaceMapEntryRecord['kind']
+  entries: readonly TopoGraphEntryRecord[],
+  kind: TopoGraphEntryRecord['kind']
 ): Readonly<Record<string, Readonly<Record<string, unknown>>>> =>
   Object.fromEntries(
     entries
@@ -1267,7 +1265,7 @@ const entriesForKind = (
 const buildSerializedLock = (
   hash: string,
   topo: Topo,
-  surfaceMap: SurfaceMapRecord
+  surfaceMap: TopoGraphRecord
 ): Readonly<Record<string, unknown>> =>
   sortKeys({
     apps: sortKeys({
@@ -1301,7 +1299,7 @@ const buildStoredTopoExport = (
     .listSignals()
     .toSorted((a, b) => a.id.localeCompare(b.id));
   const schemas = materializeSchemas(db, snapshot.id, signals, trails);
-  const surfaceMap = buildSurfaceMap(
+  const surfaceMap = buildTopoGraph(
     contours,
     snapshot.createdAt,
     resources,
@@ -1311,7 +1309,7 @@ const buildStoredTopoExport = (
     schemas.trailSchemas,
     trails
   );
-  const surfaceHash = hashSurfaceMapRecord(surfaceMap);
+  const surfaceHash = hashTopoGraphRecord(surfaceMap);
   const serializedLock = `${JSON.stringify(
     buildSerializedLock(surfaceHash, topo, surfaceMap),
     null,

@@ -17,7 +17,7 @@ import type {
 } from '@ontrails/cli';
 import { createProgram } from '@ontrails/commander';
 import { resolvePermitFromBearerToken } from '@ontrails/permits';
-import { deriveSurfaceMap } from '@ontrails/topographer';
+import { deriveTopoGraph } from '@ontrails/topographer';
 
 import { app } from './app.js';
 import { resolveInputWithClack } from './clack.js';
@@ -35,7 +35,7 @@ import {
 import type { TraceSession } from './run-trace.js';
 import {
   argvHasWatchFlag,
-  hashSurfaceMapEntry,
+  hashTopoGraphEntry,
   readRunTrailId,
   runWatchLoop,
 } from './run-watch.js';
@@ -144,7 +144,7 @@ const resolveWatchRunTarget = (
 
 /**
  * Resolve the directory whose source-file events wake the `--watch` loop.
- * Reruns still depend on the resolved surface-map entry hash; this path is
+ * Reruns still depend on the resolved TopoGraph entry hash; this path is
  * only the cheap filesystem event source.
  */
 const toWatchSourcePath = (rootDir: string, modulePath: string): string => {
@@ -180,7 +180,7 @@ const resolveWatchDirectorySourcePath = async (
   return join(cwd, 'app.ts');
 };
 
-const readWatchSurfaceHash = async (
+const readWatchTopoGraphEntryHash = async (
   target: WatchRunTarget | null
 ): Promise<string | null> => {
   if (target === null) {
@@ -206,11 +206,11 @@ const readWatchSurfaceHash = async (
   }
   const lease = leaseResult.value;
   try {
-    const surfaceMap = deriveSurfaceMap(lease.app);
-    const entry = surfaceMap.entries.find(
+    const topoGraph = deriveTopoGraph(lease.app);
+    const entry = topoGraph.entries.find(
       (candidate) => candidate.kind === 'trail' && candidate.id === target.id
     );
-    return entry === undefined ? null : hashSurfaceMapEntry(entry);
+    return entry === undefined ? null : hashTopoGraphEntry(entry);
   } finally {
     lease.release();
   }
@@ -301,7 +301,7 @@ const watchTarget = argvHasWatchFlag(process.argv)
 
 await (argvHasWatchFlag(process.argv)
   ? runWatchLoop({
-      readSurfaceHash: () => readWatchSurfaceHash(watchTarget),
+      readTopoGraphEntryHash: () => readWatchTopoGraphEntryHash(watchTarget),
       run: runSurfaceOnce,
       sourcePath: await resolveWatchDirectorySourcePath(watchTarget),
     })

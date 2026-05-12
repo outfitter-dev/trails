@@ -4,14 +4,14 @@
  * `--watch` is a local-development ergonomics affordance for `trails run`.
  * After the first invocation completes, the CLI installs a filesystem
  * watcher as a cheap event source. On each debounced event, the watcher
- * re-derives the watched trail's resolved-contract hash from its surface-map
+ * re-derives the watched trail's resolved-contract hash from its TopoGraph
  * entry and invokes the supplied `onRerun` callback only when that hash
  * changes. The loop runs until the user sends `SIGINT`.
  *
  * Design notes:
  *
  * - **Scope.** Watching is intentionally narrow. Filesystem events only wake
- *   the loop; the rerun decision is the watched trail's surface-map entry.
+ *   the loop; the rerun decision is the watched trail's TopoGraph entry.
  *   Comments, whitespace, and unrelated sibling trail changes wake the loop
  *   but do not rerun unless the resolved contract changes.
  * - **Debounce.** Editor saves often produce multiple `fs.watch` events
@@ -27,7 +27,7 @@ import { watch as nodeWatch } from 'node:fs';
 import type { FSWatcher } from 'node:fs';
 import { dirname, extname } from 'node:path';
 
-import type { SurfaceMapEntry } from '@ontrails/topographer';
+import type { TopoGraphEntry } from '@ontrails/topographer';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -170,13 +170,16 @@ const canonicalize = (value: unknown): unknown => {
   return value;
 };
 
-export const hashSurfaceMapEntry = (entry: SurfaceMapEntry): string => {
+export const hashTopoGraphEntry = (entry: TopoGraphEntry): string => {
   const hasher = new Bun.CryptoHasher('sha256');
   hasher.update(JSON.stringify(canonicalize(entry)));
   return hasher.digest('hex');
 };
 
-export type ReadSurfaceHash = () => Promise<string | null> | string | null;
+export type ReadTopoGraphEntryHash = () =>
+  | Promise<string | null>
+  | string
+  | null;
 
 // ---------------------------------------------------------------------------
 // Watcher
@@ -199,14 +202,14 @@ export interface CreateTrailWatcherOptions {
   /**
    * Derive the watched trail's current resolved-contract hash. Return `null`
    * when the watched trail is temporarily absent. Throw when the current
-   * source state cannot produce a valid surface map.
+   * source state cannot produce a valid TopoGraph.
    */
-  readonly readSurfaceHash: ReadSurfaceHash;
+  readonly readTopoGraphEntryHash: ReadTopoGraphEntryHash;
   /**
    * Last known good resolved-contract hash captured after the initial run.
    * When omitted, the next valid changed hash becomes the first rerun signal.
    */
-  readonly initialSurfaceHash?: string | null | undefined;
+  readonly initialTopoGraphEntryHash?: string | null | undefined;
   /**
    * Override for the debounce window. Primarily a test seam; production
    * callers should rely on {@link WATCH_DEBOUNCE_MS}.
@@ -235,7 +238,7 @@ export interface TrailWatcher {
  * The watcher targets the directory of `sourcePath` (non-recursive). Events
  * are filtered to TypeScript/JavaScript file extensions and coalesced through
  * a short debounce window. Each debounced event re-reads the watched trail's
- * surface-map entry hash; only a hash change reruns the trail.
+ * TopoGraph entry hash; only a hash change reruns the trail.
  *
  * @remarks Reruns are not serialized. If a save lands while a previous
  * rerun is still awaiting `onRerun`, the new debounce window can fire
@@ -254,16 +257,18 @@ export const createTrailWatcher = (
   const startedAt = Date.now();
 
   let closed = false;
-  let currentSurfaceHash = options.initialSurfaceHash ?? null;
-  let invalidSurfaceWarned = false;
+  let currentTopoGraphEntryHash = options.initialTopoGraphEntryHash ?? null;
+  let invalidTopoGraphWarned = false;
   let trailRemovedWarned = false;
   let pending: ReturnType<typeof setTimeout> | undefined;
   let watcher: FSWatcher | undefined;
 
-  const readNextSurfaceHash = async (): Promise<string | null | undefined> => {
+  const readNextTopoGraphEntryHash = async (): Promise<
+    string | null | undefined
+  > => {
     try {
-      const nextHash = await options.readSurfaceHash();
-      invalidSurfaceWarned = false;
+      const nextHash = await options.readTopoGraphEntryHash();
+      invalidTopoGraphWarned = false;
       if (nextHash !== null) {
         trailRemovedWarned = false;
       } else if (!trailRemovedWarned) {
@@ -272,9 +277,9 @@ export const createTrailWatcher = (
       }
       return nextHash;
     } catch {
-      if (!invalidSurfaceWarned) {
+      if (!invalidTopoGraphWarned) {
         process.stderr.write(WATCH_SCHEMA_INVALID_MESSAGE);
-        invalidSurfaceWarned = true;
+        invalidTopoGraphWarned = true;
       }
       return undefined;
     }
@@ -285,17 +290,17 @@ export const createTrailWatcher = (
     if (closed) {
       return;
     }
-    const nextHash = await readNextSurfaceHash();
+    const nextHash = await readNextTopoGraphEntryHash();
     if (closed) {
       return;
     }
     if (nextHash === undefined || nextHash === null) {
       return;
     }
-    if (nextHash === currentSurfaceHash) {
+    if (nextHash === currentTopoGraphEntryHash) {
       return;
     }
-    currentSurfaceHash = nextHash;
+    currentTopoGraphEntryHash = nextHash;
     try {
       await options.onRerun();
     } catch (error: unknown) {
@@ -363,7 +368,7 @@ export interface RunWatchLoopOptions {
   /** Invoked once per debounced change burst (and once initially). */
   readonly run: () => Promise<void>;
   /** Derive the watched trail's current resolved-contract hash. */
-  readonly readSurfaceHash: ReadSurfaceHash;
+  readonly readTopoGraphEntryHash: ReadTopoGraphEntryHash;
   /**
    * Override for the debounce window. Primarily a test seam.
    */
@@ -403,18 +408,18 @@ export const runWatchLoop = async (
 
   await performRun();
 
-  let initialSurfaceHash: string | null = null;
+  let initialTopoGraphEntryHash: string | null = null;
   try {
-    initialSurfaceHash = await options.readSurfaceHash();
+    initialTopoGraphEntryHash = await options.readTopoGraphEntryHash();
   } catch {
     process.stderr.write(WATCH_SCHEMA_INVALID_MESSAGE);
   }
 
   const watcher = createTrailWatcher({
     debounceMs: options.debounceMs,
-    initialSurfaceHash,
+    initialTopoGraphEntryHash,
     onRerun: performRun,
-    readSurfaceHash: options.readSurfaceHash,
+    readTopoGraphEntryHash: options.readTopoGraphEntryHash,
     sourcePath: options.sourcePath,
   });
 

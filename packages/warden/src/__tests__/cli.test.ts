@@ -11,8 +11,8 @@ import {
   trail,
 } from '@ontrails/core';
 import {
-  deriveSurfaceMap,
-  deriveSurfaceMapHash,
+  deriveTopoGraph,
+  deriveTopoGraphHash,
   writeSurfaceLock,
 } from '@ontrails/topographer';
 import { z } from 'zod';
@@ -608,7 +608,7 @@ export const second = contour('second', {
         output: z.object({ value: z.string() }),
       });
       const admin = topo('fixture.admin', { adminTrail });
-      const primaryHash = deriveSurfaceMapHash(deriveSurfaceMap(primary));
+      const primaryHash = deriveTopoGraphHash(deriveTopoGraph(primary));
       await writeSurfaceLock(primaryHash, {
         dir: deriveTrailsDir({ rootDir: dir }),
       });

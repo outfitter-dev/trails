@@ -4,7 +4,7 @@
  * Integration tests proving the full governance loop works end-to-end.
  *
  * The "five things" that make Trails real:
- * 1. Surface map generation
+ * 1. TopoGraph generation
  * 2. Deterministic hashing
  * 3. Breaking change detection
  * 4. Non-breaking change detection
@@ -15,9 +15,9 @@ import { describe, expect, test } from 'bun:test';
 
 import { Result, trail, topo, validateTopo } from '@ontrails/core';
 import {
-  deriveSurfaceMapDiff,
-  deriveSurfaceMap,
-  deriveSurfaceMapHash,
+  deriveTopoGraphDiff,
+  deriveTopoGraph,
+  deriveTopoGraphHash,
 } from '@ontrails/topographer';
 import { z } from 'zod';
 
@@ -32,14 +32,14 @@ import * as onboard from '../src/trails/onboard.js';
 import * as search from '../src/trails/search.js';
 
 // ---------------------------------------------------------------------------
-// 1. Surface map generation
+// 1. TopoGraph generation
 // ---------------------------------------------------------------------------
 
-describe('surface map generation', () => {
-  const surfaceMap = deriveSurfaceMap(graph);
+describe('TopoGraph generation', () => {
+  const topoGraph = deriveTopoGraph(graph);
 
   test('contains all expected trail, signal, and resource IDs', () => {
-    const ids = surfaceMap.entries.map((e) => e.id);
+    const ids = topoGraph.entries.map((e) => e.id);
 
     expect(ids).toContain('entity.show');
     expect(ids).toContain('entity.add');
@@ -56,21 +56,21 @@ describe('surface map generation', () => {
   });
 
   test('has exactly 14 entries (8 trails + 4 signals + 2 resources)', () => {
-    const ids = surfaceMap.entries.map((e) => e.id);
+    const ids = topoGraph.entries.map((e) => e.id);
 
-    expect(surfaceMap.entries).toHaveLength(14);
+    expect(topoGraph.entries).toHaveLength(14);
     expect(ids).toContain('entity.notify-updated');
     expect(ids).toContain('demo.notification-store');
   });
 
   test('entries are sorted alphabetically by id', () => {
-    const ids = surfaceMap.entries.map((e) => e.id);
+    const ids = topoGraph.entries.map((e) => e.id);
     const sorted = [...ids].toSorted();
     expect(ids).toEqual(sorted);
   });
 
   test('each entry has the expected fields', () => {
-    for (const entry of surfaceMap.entries) {
+    for (const entry of topoGraph.entries) {
       expect(entry.id).toBeString();
       expect(entry.kind).toBeOneOf(['trail', 'signal', 'resource']);
       expect(entry.exampleCount).toBeNumber();
@@ -79,7 +79,7 @@ describe('surface map generation', () => {
   });
 
   test('trail entries include input schema', () => {
-    const showEntry = surfaceMap.entries.find((e) => e.id === 'entity.show');
+    const showEntry = topoGraph.entries.find((e) => e.id === 'entity.show');
     expect(showEntry).toBeDefined();
     if (showEntry) {
       expect(showEntry.input).toBeDefined();
@@ -88,17 +88,15 @@ describe('surface map generation', () => {
   });
 
   test('safety markers are preserved', () => {
-    const showEntry = surfaceMap.entries.find((e) => e.id === 'entity.show');
-    const deleteEntry = surfaceMap.entries.find(
-      (e) => e.id === 'entity.delete'
-    );
+    const showEntry = topoGraph.entries.find((e) => e.id === 'entity.show');
+    const deleteEntry = topoGraph.entries.find((e) => e.id === 'entity.delete');
 
     expect(showEntry?.intent).toBe('read');
     expect(deleteEntry?.intent).toBe('destroy');
   });
 
   test('route entries include crosses', () => {
-    const onboardEntry = surfaceMap.entries.find(
+    const onboardEntry = topoGraph.entries.find(
       (e) => e.id === 'entity.onboard'
     );
     expect(onboardEntry).toBeDefined();
@@ -111,7 +109,7 @@ describe('surface map generation', () => {
   });
 
   test('signal entries include payload schema as input', () => {
-    const updatedEntry = surfaceMap.entries.find(
+    const updatedEntry = topoGraph.entries.find(
       (e) => e.id === 'entity.updated'
     );
     expect(updatedEntry).toBeDefined();
@@ -122,7 +120,7 @@ describe('surface map generation', () => {
   });
 
   test('resource entries include their description', () => {
-    const resourceEntry = surfaceMap.entries.find(
+    const resourceEntry = topoGraph.entries.find(
       (e) => e.id === 'demo.entity-store'
     );
     expect(resourceEntry).toBeDefined();
@@ -139,26 +137,26 @@ describe('surface map generation', () => {
 // 2. Deterministic hashing
 // ---------------------------------------------------------------------------
 
-describe('surface map hashing is deterministic', () => {
+describe('TopoGraph hashing is deterministic', () => {
   test('identical topos produce identical hashes', () => {
-    const map1 = deriveSurfaceMap(graph);
-    const map2 = deriveSurfaceMap(graph);
+    const map1 = deriveTopoGraph(graph);
+    const map2 = deriveTopoGraph(graph);
 
-    const hash1 = deriveSurfaceMapHash(map1);
-    const hash2 = deriveSurfaceMapHash(map2);
+    const hash1 = deriveTopoGraphHash(map1);
+    const hash2 = deriveTopoGraphHash(map2);
 
     expect(hash1).toBe(hash2);
   });
 
   test('hash is a valid 64-character hex string', () => {
-    const surfaceMap = deriveSurfaceMap(graph);
-    const hash = deriveSurfaceMapHash(surfaceMap);
+    const topoGraph = deriveTopoGraph(graph);
+    const hash = deriveTopoGraphHash(topoGraph);
 
     expect(hash).toMatch(/^[0-9a-f]{64}$/);
   });
 
   test('generatedAt timestamp does not affect hash', () => {
-    const map1 = deriveSurfaceMap(graph);
+    const map1 = deriveTopoGraph(graph);
 
     // Manually create a copy with a different generatedAt
     const map2 = {
@@ -166,7 +164,7 @@ describe('surface map hashing is deterministic', () => {
       generatedAt: '2099-12-31T23:59:59.999Z',
     };
 
-    expect(deriveSurfaceMapHash(map1)).toBe(deriveSurfaceMapHash(map2));
+    expect(deriveTopoGraphHash(map1)).toBe(deriveTopoGraphHash(map2));
   });
 });
 
@@ -207,10 +205,10 @@ const makeModifiedShow = (inputSchema: z.ZodType) =>
 
 /** Diff the baseline app against a modified app. */
 const diffAgainst = (...modules: Record<string, unknown>[]) => {
-  const before = deriveSurfaceMap(graph);
+  const before = deriveTopoGraph(graph);
   const modifiedApp = topo('demo-modified', ...modules);
-  const after = deriveSurfaceMap(modifiedApp);
-  return deriveSurfaceMapDiff(before, after);
+  const after = deriveTopoGraph(modifiedApp);
+  return deriveTopoGraphDiff(before, after);
 };
 
 describe('breaking change detection', () => {
@@ -322,9 +320,9 @@ describe('non-breaking change detection', () => {
   });
 
   test('no changes produces empty diff', () => {
-    const map1 = deriveSurfaceMap(graph);
-    const map2 = deriveSurfaceMap(graph);
-    const diff = deriveSurfaceMapDiff(map1, map2);
+    const map1 = deriveTopoGraph(graph);
+    const map2 = deriveTopoGraph(graph);
+    const diff = deriveTopoGraphDiff(map1, map2);
 
     expect(diff.hasBreaking).toBe(false);
     expect(diff.entries).toHaveLength(0);

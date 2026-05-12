@@ -12,8 +12,8 @@ import {
 } from '@ontrails/core';
 import {
   createTopoStore,
-  deriveSurfaceMapHash,
-  deriveSurfaceMap,
+  deriveTopoGraphHash,
+  deriveTopoGraph,
   writeSurfaceLock,
 } from '@ontrails/topographer';
 import { createStoredTopoSnapshot } from '@ontrails/topographer/backend-support';
@@ -94,7 +94,7 @@ describe('checkDrift', () => {
     const dir = createTempDir();
     try {
       const tp = makeTopo();
-      const hash = deriveSurfaceMapHash(deriveSurfaceMap(tp));
+      const hash = deriveTopoGraphHash(deriveTopoGraph(tp));
       await writeSurfaceLock(
         { hash, version: 1 },
         { dir: committedLockDir(dir) }

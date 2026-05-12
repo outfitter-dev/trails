@@ -1,10 +1,10 @@
 /**
- * SHA-256 hashing for surface maps.
+ * SHA-256 hashing for topo graphs.
  *
  * Uses Bun.CryptoHasher for native hashing.
  */
 
-import type { SurfaceMap } from './types.js';
+import type { TopoGraph } from './types.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -33,14 +33,14 @@ const canonicalize = (value: unknown): unknown => {
 // ---------------------------------------------------------------------------
 
 /**
- * Compute a SHA-256 hash of a surface map.
+ * Compute a SHA-256 hash of a topo graph.
  *
  * The `generatedAt` field is excluded so that identical topos always
  * produce the same hash regardless of when they were generated.
  */
-export const deriveSurfaceMapHash = (surfaceMap: SurfaceMap): string => {
+export const deriveTopoGraphHash = (topoGraph: TopoGraph): string => {
   // Strip generatedAt before hashing
-  const { generatedAt: _unused, ...rest } = surfaceMap;
+  const { generatedAt: _unused, ...rest } = topoGraph;
 
   const canonical = canonicalize(rest);
   const json = JSON.stringify(canonical);

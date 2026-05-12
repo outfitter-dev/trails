@@ -1,5 +1,5 @@
 /**
- * Types for surface maps, diffing, and lock files.
+ * Types for topo graphs, diffing, and lock files.
  */
 
 import type {
@@ -8,9 +8,7 @@ import type {
 } from '@ontrails/core';
 import { z } from 'zod';
 
-export type SurfaceMapExample =
-  | StructuredSignalExample
-  | StructuredTrailExample;
+export type TopoGraphExample = StructuredSignalExample | StructuredTrailExample;
 
 // ---------------------------------------------------------------------------
 // JSON Schema (lightweight alias)
@@ -19,33 +17,33 @@ export type SurfaceMapExample =
 /** A JSON Schema object produced by zodToJsonSchema. */
 export type JsonSchema = Readonly<Record<string, unknown>>;
 
-export interface SurfaceMapContourReference {
+export interface TopoGraphContourReference {
   readonly contour: string;
   readonly field: string;
   readonly identity: string;
 }
 
-export type SurfaceMapFieldOverrideKey =
+export type TopoGraphFieldOverrideKey =
   | 'hint'
   | 'label'
   | 'message'
   | 'options';
 
-export interface SurfaceMapFieldOverride {
+export interface TopoGraphFieldOverride {
   readonly field: string;
-  readonly overrides: readonly SurfaceMapFieldOverrideKey[];
+  readonly overrides: readonly TopoGraphFieldOverrideKey[];
   readonly provenance: {
     readonly source: 'trail.fields';
   };
 }
 
-export interface SurfaceMapLayerReference {
+export interface TopoGraphLayerReference {
   readonly input?: JsonSchema | undefined;
   readonly name: string;
   readonly scope: 'topo' | 'trail';
 }
 
-export interface SurfaceMapActivationSource extends Readonly<
+export interface TopoGraphActivationSource extends Readonly<
   Record<string, unknown>
 > {
   readonly cron?: string | undefined;
@@ -62,7 +60,7 @@ export interface SurfaceMapActivationSource extends Readonly<
   readonly timezone?: string | undefined;
 }
 
-export interface SurfaceMapActivationEdge extends Readonly<
+export interface TopoGraphActivationEdge extends Readonly<
   Record<string, unknown>
 > {
   readonly hasWhere: boolean;
@@ -73,29 +71,29 @@ export interface SurfaceMapActivationEdge extends Readonly<
   readonly where?: { readonly predicate: true } | undefined;
 }
 
-export interface SurfaceMapActivationGraph {
+export interface TopoGraphActivationGraph {
   readonly edgeCount: number;
-  readonly edges: readonly SurfaceMapActivationEdge[];
+  readonly edges: readonly TopoGraphActivationEdge[];
   readonly sourceCount: number;
   readonly sourceKeys: readonly string[];
   readonly trailIds: readonly string[];
 }
 
-export interface SurfaceMapActivationEntry {
+export interface TopoGraphActivationEntry {
   readonly meta?: Readonly<Record<string, unknown>> | undefined;
-  readonly source: SurfaceMapActivationSource;
+  readonly source: TopoGraphActivationSource;
   readonly where?: { readonly predicate: true } | undefined;
 }
 
-export interface SurfaceMapPermitRequirement {
+export interface TopoGraphPermitRequirement {
   readonly scopes: readonly string[];
 }
 
 // ---------------------------------------------------------------------------
-// Surface Map
+// TopoGraph
 // ---------------------------------------------------------------------------
 
-export interface SurfaceMapEntry {
+export interface TopoGraphEntry {
   readonly id: string;
   readonly kind: 'contour' | 'trail' | 'signal' | 'resource';
   readonly surfaces: readonly string[];
@@ -110,16 +108,16 @@ export interface SurfaceMapEntry {
   readonly intent?: 'read' | 'write' | 'destroy' | undefined;
   readonly idempotent?: boolean | undefined;
   readonly dryRunCapable?: boolean | undefined;
-  readonly permit?: 'public' | SurfaceMapPermitRequirement | undefined;
+  readonly permit?: 'public' | TopoGraphPermitRequirement | undefined;
   readonly pattern?: string | undefined;
   readonly deprecated?: boolean | undefined;
   readonly replacedBy?: string | undefined;
-  readonly activationSources?: readonly SurfaceMapActivationEntry[] | undefined;
+  readonly activationSources?: readonly TopoGraphActivationEntry[] | undefined;
   readonly crosses?: readonly string[] | undefined;
   readonly contours?: readonly string[] | undefined;
   readonly schema?: JsonSchema | undefined;
   readonly identity?: string | undefined;
-  readonly references?: readonly SurfaceMapContourReference[] | undefined;
+  readonly references?: readonly TopoGraphContourReference[] | undefined;
   readonly resources?: readonly string[] | undefined;
   readonly fires?: readonly string[] | undefined;
   readonly on?: readonly string[] | undefined;
@@ -129,25 +127,25 @@ export interface SurfaceMapEntry {
   readonly diagnostics?: Readonly<Record<string, unknown>> | undefined;
   readonly governance?: Readonly<Record<string, unknown>> | undefined;
   readonly meta?: Readonly<Record<string, unknown>> | undefined;
-  readonly fieldOverrides?: readonly SurfaceMapFieldOverride[] | undefined;
-  readonly layers?: readonly SurfaceMapLayerReference[] | undefined;
+  readonly fieldOverrides?: readonly TopoGraphFieldOverride[] | undefined;
+  readonly layers?: readonly TopoGraphLayerReference[] | undefined;
   readonly detours?:
     | readonly { readonly on: string; readonly maxAttempts: number }[]
     | undefined;
   readonly healthcheck?: boolean | undefined;
   readonly exampleCount: number;
-  readonly examples?: readonly SurfaceMapExample[] | undefined;
+  readonly examples?: readonly TopoGraphExample[] | undefined;
   readonly description?: string | undefined;
 }
 
-export interface SurfaceMap {
+export interface TopoGraph {
   readonly version: string;
-  readonly activationGraph: SurfaceMapActivationGraph;
+  readonly activationGraph: TopoGraphActivationGraph;
   readonly activationSources: Readonly<
-    Record<string, SurfaceMapActivationSource>
+    Record<string, TopoGraphActivationSource>
   >;
   readonly generatedAt: string;
-  readonly entries: readonly SurfaceMapEntry[];
+  readonly entries: readonly TopoGraphEntry[];
 }
 
 // ---------------------------------------------------------------------------

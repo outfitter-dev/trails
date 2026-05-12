@@ -1,13 +1,13 @@
 /**
- * Semantic diffing of surface maps.
+ * Semantic diffing of topo graphs.
  */
 
 import type {
   DiffEntry,
   DiffResult,
   JsonSchema,
-  SurfaceMap,
-  SurfaceMapEntry,
+  TopoGraph,
+  TopoGraphEntry,
 } from './types.js';
 
 // ---------------------------------------------------------------------------
@@ -44,7 +44,7 @@ const addDetail = (
 const capitalize = (s: string): string =>
   `${s.charAt(0).toUpperCase()}${s.slice(1)}`;
 
-const labelForKind = (kind: SurfaceMapEntry['kind']): string => {
+const labelForKind = (kind: TopoGraphEntry['kind']): string => {
   if (kind === 'contour') {
     return 'Contour';
   }
@@ -75,15 +75,15 @@ const stableStringify = (value: unknown): string =>
   });
 
 const permitScopes = (
-  permit: SurfaceMapEntry['permit'] | undefined
+  permit: TopoGraphEntry['permit'] | undefined
 ): ReadonlySet<string> | undefined =>
   permit === undefined || permit === 'public'
     ? undefined
     : new Set(permit.scopes);
 
 const permitChangeSeverity = (
-  prevPermit: SurfaceMapEntry['permit'] | undefined,
-  currPermit: SurfaceMapEntry['permit'] | undefined
+  prevPermit: TopoGraphEntry['permit'] | undefined,
+  currPermit: TopoGraphEntry['permit'] | undefined
 ): Severity => {
   const prevScopes = permitScopes(prevPermit);
   const currScopes = permitScopes(currPermit);
@@ -277,8 +277,8 @@ const diffSchemaFields = (
 /** Diff surface additions and removals. */
 const diffSurfaces = (
   acc: DetailAccumulator,
-  prev: SurfaceMapEntry,
-  curr: SurfaceMapEntry
+  prev: TopoGraphEntry,
+  curr: TopoGraphEntry
 ): void => {
   const prevSurfaces = new Set(prev.surfaces);
   const currSurfaces = new Set(curr.surfaces);
@@ -297,8 +297,8 @@ const diffSurfaces = (
 /** Diff safety markers, description, and deprecation. */
 const diffMetadata = (
   acc: DetailAccumulator,
-  prev: SurfaceMapEntry,
-  curr: SurfaceMapEntry
+  prev: TopoGraphEntry,
+  curr: TopoGraphEntry
 ): void => {
   if (prev.intent !== curr.intent) {
     addDetail(
@@ -345,8 +345,8 @@ const diffMetadata = (
 
 const diffCliPath = (
   acc: DetailAccumulator,
-  prev: SurfaceMapEntry,
-  curr: SurfaceMapEntry
+  prev: TopoGraphEntry,
+  curr: TopoGraphEntry
 ): void => {
   const prevPath = prev.cli?.path.join(' ');
   const currPath = curr.cli?.path.join(' ');
@@ -406,8 +406,8 @@ const buildContoursMessage = (added: string[], removed: string[]): string => {
 /** Diff crosses arrays. */
 const diffCrosses = (
   acc: DetailAccumulator,
-  prev: SurfaceMapEntry,
-  curr: SurfaceMapEntry
+  prev: TopoGraphEntry,
+  curr: TopoGraphEntry
 ): void => {
   const prevCrosses = new Set(prev.crosses);
   const currCrosses = new Set(curr.crosses);
@@ -425,8 +425,8 @@ const diffCrosses = (
 /** Diff declared resource arrays on trail entries. */
 const diffResources = (
   acc: DetailAccumulator,
-  prev: SurfaceMapEntry,
-  curr: SurfaceMapEntry
+  prev: TopoGraphEntry,
+  curr: TopoGraphEntry
 ): void => {
   const prevResources = new Set(prev.resources);
   const currResources = new Set(curr.resources);
@@ -444,8 +444,8 @@ const diffResources = (
 /** Diff declared contour arrays on trail entries. */
 const diffContours = (
   acc: DetailAccumulator,
-  prev: SurfaceMapEntry,
-  curr: SurfaceMapEntry
+  prev: TopoGraphEntry,
+  curr: TopoGraphEntry
 ): void => {
   const prevContours = new Set(prev.contours);
   const currContours = new Set(curr.contours);
@@ -462,8 +462,8 @@ const diffContours = (
 
 const diffContourSchema = (
   acc: DetailAccumulator,
-  prev: SurfaceMapEntry,
-  curr: SurfaceMapEntry
+  prev: TopoGraphEntry,
+  curr: TopoGraphEntry
 ): void => {
   diffSchemaFields(acc, 'contour', prev.schema, curr.schema);
 
@@ -484,8 +484,8 @@ const referenceLabel = (reference: {
 
 const diffContourReferences = (
   acc: DetailAccumulator,
-  prev: SurfaceMapEntry,
-  curr: SurfaceMapEntry
+  prev: TopoGraphEntry,
+  curr: TopoGraphEntry
 ): void => {
   const prevReferences = new Set(
     (prev.references ?? []).map((reference) => referenceLabel(reference))
@@ -519,8 +519,8 @@ const diffContourReferences = (
 
 const diffTrailEntryDetails = (
   acc: DetailAccumulator,
-  prev: SurfaceMapEntry,
-  curr: SurfaceMapEntry
+  prev: TopoGraphEntry,
+  curr: TopoGraphEntry
 ): void => {
   diffSchemaFields(acc, 'input', prev.input, curr.input);
   diffSchemaFields(acc, 'output', prev.output, curr.output);
@@ -532,8 +532,8 @@ const diffTrailEntryDetails = (
 
 const diffEntryDetails = (
   acc: DetailAccumulator,
-  prev: SurfaceMapEntry,
-  curr: SurfaceMapEntry
+  prev: TopoGraphEntry,
+  curr: TopoGraphEntry
 ): void => {
   diffSurfaces(acc, prev, curr);
   diffMetadata(acc, prev, curr);
@@ -548,8 +548,8 @@ const diffEntryDetails = (
 };
 
 const diffEntry = (
-  prev: SurfaceMapEntry,
-  curr: SurfaceMapEntry
+  prev: TopoGraphEntry,
+  curr: TopoGraphEntry
 ): DiffEntry | undefined => {
   const acc: DetailAccumulator = { details: [], severity: 'info' };
 
@@ -573,7 +573,7 @@ const diffEntry = (
 // ---------------------------------------------------------------------------
 
 /**
- * Compute a semantic diff between two surface maps.
+ * Compute a semantic diff between two topo graphs.
  *
  * Classifies each change with a severity:
  * - `info`: new trail, optional field added, output field added, description change
@@ -582,8 +582,8 @@ const diffEntry = (
  */
 /** Find entries added in curr that don't exist in prev. */
 const findAdded = (
-  prevById: Map<string, SurfaceMapEntry>,
-  currById: Map<string, SurfaceMapEntry>
+  prevById: Map<string, TopoGraphEntry>,
+  currById: Map<string, TopoGraphEntry>
 ): DiffEntry[] =>
   [...currById.entries()]
     .filter(([id]) => !prevById.has(id))
@@ -597,8 +597,8 @@ const findAdded = (
 
 /** Find entries removed from prev that don't exist in curr. */
 const findRemoved = (
-  prevById: Map<string, SurfaceMapEntry>,
-  currById: Map<string, SurfaceMapEntry>
+  prevById: Map<string, TopoGraphEntry>,
+  currById: Map<string, TopoGraphEntry>
 ): DiffEntry[] =>
   [...prevById.entries()]
     .filter(([id]) => !currById.has(id))
@@ -612,8 +612,8 @@ const findRemoved = (
 
 /** Find entries modified between prev and curr. */
 const findModified = (
-  prevById: Map<string, SurfaceMapEntry>,
-  currById: Map<string, SurfaceMapEntry>
+  prevById: Map<string, TopoGraphEntry>,
+  currById: Map<string, TopoGraphEntry>
 ): DiffEntry[] => {
   const results: DiffEntry[] = [];
   for (const [id, currEntry] of currById) {
@@ -630,17 +630,17 @@ const findModified = (
 
 /** Collect all diff entries (added, removed, modified) between two maps. */
 const collectDiffEntries = (
-  prevById: Map<string, SurfaceMapEntry>,
-  currById: Map<string, SurfaceMapEntry>
+  prevById: Map<string, TopoGraphEntry>,
+  currById: Map<string, TopoGraphEntry>
 ): DiffEntry[] => [
   ...findAdded(prevById, currById),
   ...findRemoved(prevById, currById),
   ...findModified(prevById, currById),
 ];
 
-export const deriveSurfaceMapDiff = (
-  prev: SurfaceMap,
-  curr: SurfaceMap
+export const deriveTopoGraphDiff = (
+  prev: TopoGraph,
+  curr: TopoGraph
 ): DiffResult => {
   const prevById = new Map(prev.entries.map((e) => [e.id, e]));
   const currById = new Map(curr.entries.map((e) => [e.id, e]));

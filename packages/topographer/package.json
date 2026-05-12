@@ -1,7 +1,7 @@
 {
   "name": "@ontrails/topographer",
   "version": "1.0.0-beta.15",
-  "description": "Durable graph substrate for Trails: deterministic surface maps, lockfile helpers, and semantic diffing.",
+  "description": "Durable graph substrate for Trails: deterministic TopoGraphs, lockfile helpers, and semantic diffing.",
   "files": [
     "src/**/*.ts",
     "!src/**/__tests__/**",

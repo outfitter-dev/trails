@@ -141,7 +141,7 @@ interface TopoSignalRelationBatchRow extends TopoSignalRelationRow {
   readonly signal_id: string;
 }
 
-interface StoredSurfaceMapEntry {
+interface StoredTopoGraphEntry {
   readonly description?: string;
   readonly detours?: readonly {
     readonly on: string;
@@ -157,8 +157,8 @@ interface StoredSurfaceMapEntry {
   readonly kind: 'contour' | 'resource' | 'signal' | 'trail';
 }
 
-interface StoredSurfaceMap {
-  readonly entries: readonly StoredSurfaceMapEntry[];
+interface StoredTopoGraph {
+  readonly entries: readonly StoredTopoGraphEntry[];
 }
 
 const ensureSingleRefSelector = (ref?: TopoStoreRef): void => {
@@ -219,15 +219,15 @@ const readSnapshotRef = (
 const readStoredEntry = (
   db: Database,
   snapshotId: string,
-  kind: StoredSurfaceMapEntry['kind'],
+  kind: StoredTopoGraphEntry['kind'],
   id: string
-): StoredSurfaceMapEntry | undefined => {
+): StoredTopoGraphEntry | undefined => {
   const stored = getStoredTopoExport(db, snapshotId);
   if (stored === undefined) {
     return undefined;
   }
 
-  const map = JSON.parse(stored.surfaceMapJson) as StoredSurfaceMap;
+  const map = JSON.parse(stored.surfaceMapJson) as StoredTopoGraph;
   return map.entries.find((entry) => entry.id === id && entry.kind === kind);
 };
 
@@ -417,7 +417,7 @@ const signalExamplePayload = (example: unknown): unknown => {
 };
 
 const signalExamplesFromEntry = (
-  storedEntry: StoredSurfaceMapEntry | undefined
+  storedEntry: StoredTopoGraphEntry | undefined
 ): readonly unknown[] =>
   storedEntry?.examples?.map((example) => signalExamplePayload(example)) ?? [];
 
@@ -527,7 +527,7 @@ export const getTopoStoreTrail = (
 const mapResourceRow = (
   row: TopoResourceRow,
   usedBy: readonly string[],
-  storedEntry?: StoredSurfaceMapEntry
+  storedEntry?: StoredTopoGraphEntry
 ): TopoStoreResourceRecord => ({
   description: storedEntry?.description ?? null,
   hasHealth: row.has_health === 1,
@@ -564,7 +564,7 @@ export const listTopoStoreResources = (
 
   const stored = getStoredTopoExport(db, snapshot.id);
   const entries = stored
-    ? (JSON.parse(stored.surfaceMapJson) as StoredSurfaceMap).entries
+    ? (JSON.parse(stored.surfaceMapJson) as StoredTopoGraph).entries
     : [];
 
   return rows.map((row) =>
@@ -609,7 +609,7 @@ export const getTopoStoreResource = (
 
 const mapSignalRow = (
   row: TopoSignalRow,
-  storedEntry: StoredSurfaceMapEntry | undefined,
+  storedEntry: StoredTopoGraphEntry | undefined,
   relations: {
     readonly consumers: readonly string[];
     readonly from: readonly string[];
@@ -670,7 +670,7 @@ export const listTopoStoreSignals = (
 
   const stored = getStoredTopoExport(db, snapshot.id);
   const entries = stored
-    ? (JSON.parse(stored.surfaceMapJson) as StoredSurfaceMap).entries
+    ? (JSON.parse(stored.surfaceMapJson) as StoredTopoGraph).entries
     : [];
   const consumersBySignal = readSignalRelationUsage(
     db,

@@ -103,11 +103,11 @@ describe('runWatchLoop with run.example', () => {
     // implementation flipping from a passing example to a failing one
     // by mutating a flag the stub reads each rerun.
     let nextMatch = true;
-    let surfaceHash = 'contract:v1';
+    let topoGraphEntryHash = 'contract:v1';
     const envelopes: { readonly match: boolean }[] = [];
 
     const watcher = createTrailWatcher({
-      initialSurfaceHash: surfaceHash,
+      initialTopoGraphEntryHash: topoGraphEntryHash,
       onRerun: () => {
         // Imagine the run trail produces a fresh comparison envelope
         // each invocation. The `run example --watch` contract is that
@@ -116,7 +116,7 @@ describe('runWatchLoop with run.example', () => {
         // the example.
         envelopes.push({ match: nextMatch });
       },
-      readSurfaceHash: () => surfaceHash,
+      readTopoGraphEntryHash: () => topoGraphEntryHash,
       sourcePath: join(fixture.watchedDir, 'trail.ts'),
     });
 
@@ -124,7 +124,7 @@ describe('runWatchLoop with run.example', () => {
       await Bun.sleep(WATCHER_SETTLE_MS);
 
       // First edit: example matches.
-      surfaceHash = 'contract:v2';
+      topoGraphEntryHash = 'contract:v2';
       writeFileSync(
         join(fixture.watchedDir, 'trail.ts'),
         'export const v = 2;\n'
@@ -133,7 +133,7 @@ describe('runWatchLoop with run.example', () => {
 
       // Second edit: implementation drifts, example mismatches.
       nextMatch = false;
-      surfaceHash = 'contract:v3';
+      topoGraphEntryHash = 'contract:v3';
       writeFileSync(
         join(fixture.watchedDir, 'trail.ts'),
         'export const v = 3;\n'
@@ -166,7 +166,7 @@ describe('runWatchLoop with --trace', () => {
   });
 
   test('each rerun gets a fresh trace sink (records do not bleed)', async () => {
-    let surfaceHash = 'contract:v1';
+    let topoGraphEntryHash = 'contract:v1';
     const recordCounts: number[] = [];
 
     // Simulate `runSurfaceOnce` under `--trace`: each invocation installs
@@ -184,23 +184,23 @@ describe('runWatchLoop with --trace', () => {
     };
 
     const watcher = createTrailWatcher({
-      initialSurfaceHash: surfaceHash,
+      initialTopoGraphEntryHash: topoGraphEntryHash,
       onRerun: performRun,
-      readSurfaceHash: () => surfaceHash,
+      readTopoGraphEntryHash: () => topoGraphEntryHash,
       sourcePath: join(fixture.watchedDir, 'trail.ts'),
     });
 
     try {
       await Bun.sleep(WATCHER_SETTLE_MS);
 
-      surfaceHash = 'contract:v2';
+      topoGraphEntryHash = 'contract:v2';
       writeFileSync(
         join(fixture.watchedDir, 'trail.ts'),
         'export const v = 2;\n'
       );
       await waitFor(() => recordCounts.length >= 1, WATCH_DEBOUNCE_MS + 1000);
 
-      surfaceHash = 'contract:v3';
+      topoGraphEntryHash = 'contract:v3';
       writeFileSync(
         join(fixture.watchedDir, 'trail.ts'),
         'export const v = 3;\n'
@@ -247,11 +247,11 @@ describe('runWatchLoop error recovery', () => {
 
   test('a thrown rerun does not exit the watch loop; subsequent saves still trigger reruns', async () => {
     let runs = 0;
-    let surfaceHash = 'contract:v1';
+    let topoGraphEntryHash = 'contract:v1';
     let throwOnNextRun = false;
 
     const watcher = createTrailWatcher({
-      initialSurfaceHash: surfaceHash,
+      initialTopoGraphEntryHash: topoGraphEntryHash,
       onRerun: () => {
         runs += 1;
         if (throwOnNextRun) {
@@ -259,7 +259,7 @@ describe('runWatchLoop error recovery', () => {
           throw new Error('synthetic syntax error');
         }
       },
-      readSurfaceHash: () => surfaceHash,
+      readTopoGraphEntryHash: () => topoGraphEntryHash,
       sourcePath: join(fixture.watchedDir, 'trail.ts'),
     });
 
@@ -268,7 +268,7 @@ describe('runWatchLoop error recovery', () => {
 
       // First save: rerun throws.
       throwOnNextRun = true;
-      surfaceHash = 'contract:v2';
+      topoGraphEntryHash = 'contract:v2';
       writeFileSync(
         join(fixture.watchedDir, 'trail.ts'),
         'export const v = 2;\n'
@@ -276,7 +276,7 @@ describe('runWatchLoop error recovery', () => {
       await waitFor(() => runs >= 1, WATCH_DEBOUNCE_MS + 1000);
 
       // Watcher must still be live: a second save triggers another rerun.
-      surfaceHash = 'contract:v3';
+      topoGraphEntryHash = 'contract:v3';
       writeFileSync(
         join(fixture.watchedDir, 'trail.ts'),
         'export const v = 3;\n'
@@ -294,12 +294,12 @@ describe('runWatchLoop error recovery', () => {
 
   test('runWatchLoop continues across a thrown run() and exits cleanly on SIGINT', async () => {
     let runs = 0;
-    let surfaceHash = 'contract:v1';
+    let topoGraphEntryHash = 'contract:v1';
     let throwOnNextRun = false;
 
     const loopPromise = runWatchLoop({
       clearScreen: false,
-      readSurfaceHash: () => surfaceHash,
+      readTopoGraphEntryHash: () => topoGraphEntryHash,
       run: async () => {
         runs += 1;
         if (throwOnNextRun) {
@@ -319,7 +319,7 @@ describe('runWatchLoop error recovery', () => {
 
       // First save throws.
       throwOnNextRun = true;
-      surfaceHash = 'contract:v2';
+      topoGraphEntryHash = 'contract:v2';
       writeFileSync(
         join(fixture.watchedDir, 'trail.ts'),
         'export const v = 2;\n'
@@ -327,7 +327,7 @@ describe('runWatchLoop error recovery', () => {
       await waitFor(() => runs >= 2, WATCH_DEBOUNCE_MS + 1000);
 
       // Second save: loop is still alive, rerun succeeds.
-      surfaceHash = 'contract:v3';
+      topoGraphEntryHash = 'contract:v3';
       writeFileSync(
         join(fixture.watchedDir, 'trail.ts'),
         'export const v = 3;\n'

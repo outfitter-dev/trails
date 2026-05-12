@@ -1,22 +1,22 @@
 import { describe, test, expect } from 'bun:test';
 
-import { deriveSurfaceMapDiff } from '../diff.js';
-import type { SurfaceMap, SurfaceMapEntry } from '../types.js';
+import { deriveTopoGraphDiff } from '../diff.js';
+import type { TopoGraph, TopoGraphEntry } from '../types.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 const entry = (
-  overrides: Partial<SurfaceMapEntry> & { id: string }
-): SurfaceMapEntry => ({
+  overrides: Partial<TopoGraphEntry> & { id: string }
+): TopoGraphEntry => ({
   exampleCount: 0,
   kind: 'trail',
   surfaces: [],
   ...overrides,
 });
 
-const surfaceMap = (entries: SurfaceMapEntry[]): SurfaceMap => ({
+const topoGraph = (entries: TopoGraphEntry[]): TopoGraph => ({
   activationGraph: {
     edgeCount: 0,
     edges: [],
@@ -34,20 +34,20 @@ const surfaceMap = (entries: SurfaceMapEntry[]): SurfaceMap => ({
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('deriveSurfaceMapDiff', () => {
+describe('deriveTopoGraphDiff', () => {
   describe('top-level changes', () => {
     test('empty diff for identical maps', () => {
       const e = entry({ id: 'user.create' });
-      const result = deriveSurfaceMapDiff(surfaceMap([e]), surfaceMap([e]));
+      const result = deriveTopoGraphDiff(topoGraph([e]), topoGraph([e]));
 
       expect(result.entries).toHaveLength(0);
       expect(result.hasBreaking).toBe(false);
     });
 
     test('added trail detected as info', () => {
-      const prev = surfaceMap([]);
-      const curr = surfaceMap([entry({ id: 'user.create' })]);
-      const result = deriveSurfaceMapDiff(prev, curr);
+      const prev = topoGraph([]);
+      const curr = topoGraph([entry({ id: 'user.create' })]);
+      const result = deriveTopoGraphDiff(prev, curr);
 
       expect(result.entries).toHaveLength(1);
       expect(result.entries[0]?.change).toBe('added');
@@ -56,27 +56,27 @@ describe('deriveSurfaceMapDiff', () => {
     });
 
     test('added resource detected as info', () => {
-      const prev = surfaceMap([]);
-      const curr = surfaceMap([entry({ id: 'db.main', kind: 'resource' })]);
-      const result = deriveSurfaceMapDiff(prev, curr);
+      const prev = topoGraph([]);
+      const curr = topoGraph([entry({ id: 'db.main', kind: 'resource' })]);
+      const result = deriveTopoGraphDiff(prev, curr);
 
       expect(result.entries[0]?.details).toContain('Resource "db.main" added');
       expect(result.info).toHaveLength(1);
     });
 
     test('added contour detected as info', () => {
-      const prev = surfaceMap([]);
-      const curr = surfaceMap([entry({ id: 'user', kind: 'contour' })]);
-      const result = deriveSurfaceMapDiff(prev, curr);
+      const prev = topoGraph([]);
+      const curr = topoGraph([entry({ id: 'user', kind: 'contour' })]);
+      const result = deriveTopoGraphDiff(prev, curr);
 
       expect(result.entries[0]?.details).toContain('Contour "user" added');
       expect(result.info).toHaveLength(1);
     });
 
     test('removed trail detected as breaking', () => {
-      const prev = surfaceMap([entry({ id: 'user.delete' })]);
-      const curr = surfaceMap([]);
-      const result = deriveSurfaceMapDiff(prev, curr);
+      const prev = topoGraph([entry({ id: 'user.delete' })]);
+      const curr = topoGraph([]);
+      const result = deriveTopoGraphDiff(prev, curr);
 
       expect(result.entries).toHaveLength(1);
       expect(result.entries[0]?.change).toBe('removed');
@@ -85,9 +85,9 @@ describe('deriveSurfaceMapDiff', () => {
     });
 
     test('removed resource detected as breaking', () => {
-      const prev = surfaceMap([entry({ id: 'db.main', kind: 'resource' })]);
-      const curr = surfaceMap([]);
-      const result = deriveSurfaceMapDiff(prev, curr);
+      const prev = topoGraph([entry({ id: 'db.main', kind: 'resource' })]);
+      const curr = topoGraph([]);
+      const result = deriveTopoGraphDiff(prev, curr);
 
       expect(result.entries[0]?.details).toContain(
         'Resource "db.main" removed'
@@ -96,9 +96,9 @@ describe('deriveSurfaceMapDiff', () => {
     });
 
     test('DiffResult.hasBreaking is true when any breaking entries exist', () => {
-      const prev = surfaceMap([entry({ id: 'user.delete' })]);
-      const curr = surfaceMap([]);
-      const result = deriveSurfaceMapDiff(prev, curr);
+      const prev = topoGraph([entry({ id: 'user.delete' })]);
+      const curr = topoGraph([]);
+      const result = deriveTopoGraphDiff(prev, curr);
 
       expect(result.hasBreaking).toBe(true);
       expect(result.breaking.length).toBeGreaterThan(0);
@@ -107,7 +107,7 @@ describe('deriveSurfaceMapDiff', () => {
 
   describe('schema changes', () => {
     test('required input field added classified as breaking', () => {
-      const prev = surfaceMap([
+      const prev = topoGraph([
         entry({
           id: 'user.create',
           input: {
@@ -117,7 +117,7 @@ describe('deriveSurfaceMapDiff', () => {
           },
         }),
       ]);
-      const curr = surfaceMap([
+      const curr = topoGraph([
         entry({
           id: 'user.create',
           input: {
@@ -130,7 +130,7 @@ describe('deriveSurfaceMapDiff', () => {
           },
         }),
       ]);
-      const result = deriveSurfaceMapDiff(prev, curr);
+      const result = deriveTopoGraphDiff(prev, curr);
 
       expect(result.hasBreaking).toBe(true);
       expect(result.breaking).toHaveLength(1);
@@ -144,7 +144,7 @@ describe('deriveSurfaceMapDiff', () => {
     });
 
     test('optional input field added classified as info', () => {
-      const prev = surfaceMap([
+      const prev = topoGraph([
         entry({
           id: 'user.create',
           input: {
@@ -154,7 +154,7 @@ describe('deriveSurfaceMapDiff', () => {
           },
         }),
       ]);
-      const curr = surfaceMap([
+      const curr = topoGraph([
         entry({
           id: 'user.create',
           input: {
@@ -167,7 +167,7 @@ describe('deriveSurfaceMapDiff', () => {
           },
         }),
       ]);
-      const result = deriveSurfaceMapDiff(prev, curr);
+      const result = deriveTopoGraphDiff(prev, curr);
 
       expect(result.info).toHaveLength(1);
       const [infoEntry] = result.info;
@@ -180,7 +180,7 @@ describe('deriveSurfaceMapDiff', () => {
     });
 
     test('output field removed classified as breaking', () => {
-      const prev = surfaceMap([
+      const prev = topoGraph([
         entry({
           id: 'user.get',
           output: {
@@ -192,7 +192,7 @@ describe('deriveSurfaceMapDiff', () => {
           },
         }),
       ]);
-      const curr = surfaceMap([
+      const curr = topoGraph([
         entry({
           id: 'user.get',
           output: {
@@ -203,7 +203,7 @@ describe('deriveSurfaceMapDiff', () => {
           },
         }),
       ]);
-      const result = deriveSurfaceMapDiff(prev, curr);
+      const result = deriveTopoGraphDiff(prev, curr);
 
       expect(result.hasBreaking).toBe(true);
       expect(
@@ -214,7 +214,7 @@ describe('deriveSurfaceMapDiff', () => {
     });
 
     test('output field type changed classified as breaking', () => {
-      const prev = surfaceMap([
+      const prev = topoGraph([
         entry({
           id: 'user.get',
           output: {
@@ -223,7 +223,7 @@ describe('deriveSurfaceMapDiff', () => {
           },
         }),
       ]);
-      const curr = surfaceMap([
+      const curr = topoGraph([
         entry({
           id: 'user.get',
           output: {
@@ -232,7 +232,7 @@ describe('deriveSurfaceMapDiff', () => {
           },
         }),
       ]);
-      const result = deriveSurfaceMapDiff(prev, curr);
+      const result = deriveTopoGraphDiff(prev, curr);
 
       expect(result.hasBreaking).toBe(true);
       expect(
@@ -245,11 +245,11 @@ describe('deriveSurfaceMapDiff', () => {
 
   describe('meta and surfaces', () => {
     test('surface removed classified as breaking', () => {
-      const prev = surfaceMap([
+      const prev = topoGraph([
         entry({ id: 'user.list', surfaces: ['cli', 'mcp'] }),
       ]);
-      const curr = surfaceMap([entry({ id: 'user.list', surfaces: ['mcp'] })]);
-      const result = deriveSurfaceMapDiff(prev, curr);
+      const curr = topoGraph([entry({ id: 'user.list', surfaces: ['mcp'] })]);
+      const result = deriveTopoGraphDiff(prev, curr);
 
       expect(result.hasBreaking).toBe(true);
       expect(
@@ -260,13 +260,13 @@ describe('deriveSurfaceMapDiff', () => {
     });
 
     test('CLI path change is classified as breaking', () => {
-      const prev = surfaceMap([
+      const prev = topoGraph([
         entry({ cli: { path: ['topo', 'pin'] }, id: 'topo.pin' }),
       ]);
-      const curr = surfaceMap([
+      const curr = topoGraph([
         entry({ cli: { path: ['topo', 'save'] }, id: 'topo.pin' }),
       ]);
-      const result = deriveSurfaceMapDiff(prev, curr);
+      const result = deriveTopoGraphDiff(prev, curr);
 
       expect(result.hasBreaking).toBe(true);
       expect(
@@ -277,12 +277,12 @@ describe('deriveSurfaceMapDiff', () => {
     });
 
     test('safety marker changes partition by severity', () => {
-      const prev = surfaceMap([
+      const prev = topoGraph([
         entry({ id: 'data.wipe', intent: 'read' }),
         entry({ id: 'data.preview' }),
         entry({ id: 'data.secure', permit: 'public' }),
       ]);
-      const curr = surfaceMap([
+      const curr = topoGraph([
         entry({ id: 'data.wipe', intent: 'destroy' }),
         entry({ dryRunCapable: true, id: 'data.preview' }),
         entry({
@@ -290,7 +290,7 @@ describe('deriveSurfaceMapDiff', () => {
           permit: { scopes: ['data:write'] },
         }),
       ]);
-      const result = deriveSurfaceMapDiff(prev, curr);
+      const result = deriveTopoGraphDiff(prev, curr);
 
       expect(result.warnings).toHaveLength(2);
       expect(result.breaking).toHaveLength(1);
@@ -314,19 +314,19 @@ describe('deriveSurfaceMapDiff', () => {
     });
 
     test('adding permit scopes is classified as breaking', () => {
-      const prev = surfaceMap([
+      const prev = topoGraph([
         entry({
           id: 'data.secure',
           permit: { scopes: ['data:read'] },
         }),
       ]);
-      const curr = surfaceMap([
+      const curr = topoGraph([
         entry({
           id: 'data.secure',
           permit: { scopes: ['data:read', 'data:write'] },
         }),
       ]);
-      const result = deriveSurfaceMapDiff(prev, curr);
+      const result = deriveTopoGraphDiff(prev, curr);
 
       expect(result.hasBreaking).toBe(true);
       expect(result.breaking[0]?.details).toContain(
@@ -335,32 +335,32 @@ describe('deriveSurfaceMapDiff', () => {
     });
 
     test('permit scope order does not produce a warning', () => {
-      const prev = surfaceMap([
+      const prev = topoGraph([
         entry({
           id: 'data.secure',
           permit: { scopes: ['data:write', 'data:read'] },
         }),
       ]);
-      const curr = surfaceMap([
+      const curr = topoGraph([
         entry({
           id: 'data.secure',
           permit: { scopes: ['data:read', 'data:write'] },
         }),
       ]);
-      const result = deriveSurfaceMapDiff(prev, curr);
+      const result = deriveTopoGraphDiff(prev, curr);
 
       expect(result.warnings).toHaveLength(0);
       expect(result.hasBreaking).toBe(false);
     });
 
     test('description change classified as info', () => {
-      const prev = surfaceMap([
+      const prev = topoGraph([
         entry({ description: 'Get a user', id: 'user.get' }),
       ]);
-      const curr = surfaceMap([
+      const curr = topoGraph([
         entry({ description: 'Fetch a user by ID', id: 'user.get' }),
       ]);
-      const result = deriveSurfaceMapDiff(prev, curr);
+      const result = deriveTopoGraphDiff(prev, curr);
 
       expect(result.info).toHaveLength(1);
       expect(
@@ -369,15 +369,15 @@ describe('deriveSurfaceMapDiff', () => {
     });
 
     test('deprecation added classified as warning', () => {
-      const prev = surfaceMap([entry({ id: 'entity.list' })]);
-      const curr = surfaceMap([
+      const prev = topoGraph([entry({ id: 'entity.list' })]);
+      const curr = topoGraph([
         entry({
           deprecated: true,
           id: 'entity.list',
           replacedBy: 'entity.show',
         }),
       ]);
-      const result = deriveSurfaceMapDiff(prev, curr);
+      const result = deriveTopoGraphDiff(prev, curr);
 
       expect(result.warnings).toHaveLength(1);
       expect(
@@ -388,21 +388,21 @@ describe('deriveSurfaceMapDiff', () => {
     });
 
     test('crosses changed produces warning', () => {
-      const prev = surfaceMap([
+      const prev = topoGraph([
         entry({
           crosses: ['user.get', 'user.lookup'],
           id: 'user.update',
           kind: 'trail',
         }),
       ]);
-      const curr = surfaceMap([
+      const curr = topoGraph([
         entry({
           crosses: ['user.get', 'user.search'],
           id: 'user.update',
           kind: 'trail',
         }),
       ]);
-      const result = deriveSurfaceMapDiff(prev, curr);
+      const result = deriveTopoGraphDiff(prev, curr);
 
       expect(result.warnings).toHaveLength(1);
       const crossesDetail = result.warnings[0]?.details.find((d) =>
@@ -414,19 +414,19 @@ describe('deriveSurfaceMapDiff', () => {
     });
 
     test('declared resources changed produces warning', () => {
-      const prev = surfaceMap([
+      const prev = topoGraph([
         entry({
           id: 'user.update',
           resources: ['db.main', 'search.index'],
         }),
       ]);
-      const curr = surfaceMap([
+      const curr = topoGraph([
         entry({
           id: 'user.update',
           resources: ['db.main', 'cache.main'],
         }),
       ]);
-      const result = deriveSurfaceMapDiff(prev, curr);
+      const result = deriveTopoGraphDiff(prev, curr);
 
       expect(result.warnings).toHaveLength(1);
       const resourceDetail = result.warnings[0]?.details.find((detail) =>
@@ -440,7 +440,7 @@ describe('deriveSurfaceMapDiff', () => {
 
   describe('severity partitioning', () => {
     test('DiffResult partitions correctly into breaking, warnings, info', () => {
-      const prev = surfaceMap([
+      const prev = topoGraph([
         entry({
           description: 'old',
           id: 'a.trail',
@@ -451,7 +451,7 @@ describe('deriveSurfaceMapDiff', () => {
           },
         }),
       ]);
-      const curr = surfaceMap([
+      const curr = topoGraph([
         entry({
           description: 'new',
           id: 'a.trail',
@@ -463,7 +463,7 @@ describe('deriveSurfaceMapDiff', () => {
         }),
         entry({ id: 'b.trail' }),
       ]);
-      const result = deriveSurfaceMapDiff(prev, curr);
+      const result = deriveTopoGraphDiff(prev, curr);
 
       expect(result.entries.length).toBeGreaterThanOrEqual(2);
 

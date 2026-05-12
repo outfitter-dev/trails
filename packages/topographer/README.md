@@ -1,16 +1,16 @@
 # @ontrails/topographer
 
-Durable graph substrate for Trails: deterministic surface maps, lockfile helpers, and semantic diffing.
+Durable graph substrate for Trails: deterministic TopoGraphs, lockfile helpers, and semantic diffing.
 
 Most applications reach this package through `trails topo compile` and `trails topo verify`. Those CLI trails layer workspace and topo-store behavior on top of the building blocks in `@ontrails/topographer`.
 
 ## What it owns
 
-- deterministic surface-map generation from an established topo
-- structured example and field-override provenance projection for surface-map entries
+- deterministic TopoGraph generation from an established topo
+- structured example and field-override provenance projection for TopoGraph entries
 - stable hashing for CI drift detection
-- semantic diffing between two surface maps
-- file I/O helpers for `.trails/_surface.json` and `.trails/trails.lock`
+- semantic diffing between two TopoGraphs
+- file I/O helpers for the current graph artifact and `.trails/trails.lock`
 - the topo-store: queryable persistence of the resolved topo graph in `trails.db`, including snapshots, pinning, history, and read-only query accessors (relocated from `@ontrails/core` per ADR-0042)
 
 `@ontrails/topographer` is the durable graph substrate for Trails. Generic `trails-db` plumbing (read/write SQLite handles, subsystem schema management, derived paths) stays in `@ontrails/core` so other subsystems (tracing, signals) can share it without depending on topographer.
@@ -19,35 +19,35 @@ Most applications reach this package through `trails topo compile` and `trails t
 
 ```typescript
 import {
-  deriveSurfaceMap,
-  deriveSurfaceMapDiff,
-  deriveSurfaceMapHash,
+  deriveTopoGraph,
+  deriveTopoGraphDiff,
+  deriveTopoGraphHash,
   writeSurfaceLock,
-  writeSurfaceMap,
+  writeTopoGraph,
 } from '@ontrails/topographer';
 
-const map = deriveSurfaceMap(graph);
-const hash = deriveSurfaceMapHash(map);
+const topoGraph = deriveTopoGraph(graph);
+const hash = deriveTopoGraphHash(topoGraph);
 
-await writeSurfaceMap(map);
+await writeTopoGraph(topoGraph);
 await writeSurfaceLock({ hash });
 
 // Later, after changes:
-const nextMap = deriveSurfaceMap(graph);
-const diff = deriveSurfaceMapDiff(map, nextMap);
+const nextTopoGraph = deriveTopoGraph(graph);
+const diff = deriveTopoGraphDiff(topoGraph, nextTopoGraph);
 
 if (diff.hasBreaking) {
   console.error('Breaking changes:', diff.breaking);
 }
 ```
 
-`deriveSurfaceMap()` rejects draft-contaminated topos. Only established state can be serialized into the committed artifacts.
+`deriveTopoGraph()` rejects draft-contaminated topos. Only established state can be serialized into the committed artifacts.
 
 ## File outputs
 
 The typical exported artifact pair is:
 
-- `.trails/_surface.json` — detailed derived map, useful for inspection and diffing
+- `.trails/_surface.json` — current detailed derived graph artifact, useful for inspection and diffing
 - `.trails/trails.lock` — committed lock artifact, stored as structured JSON or legacy hash-only text
 
 `trails topo compile` writes both from the current topo. `trails topo verify` and `@ontrails/warden` use the lockfile helpers here to detect drift.
@@ -56,11 +56,11 @@ The typical exported artifact pair is:
 
 | Export | What it does |
 | --- | --- |
-| `deriveSurfaceMap(topo)` | Deterministic surface map of every established trail, signal, and resource |
-| `deriveSurfaceMapHash(map)` | Stable SHA-256 hash of the map |
-| `deriveSurfaceMapDiff(prev, curr)` | Semantic diff with `breaking`, `warning`, and `info` classifications |
-| `writeSurfaceMap(map, options?)` | Write `.trails/_surface.json` |
-| `readSurfaceMap(options?)` | Read `.trails/_surface.json` |
+| `deriveTopoGraph(topo)` | Deterministic TopoGraph of every established trail, signal, resource, and contour |
+| `deriveTopoGraphHash(topoGraph)` | Stable SHA-256 hash of the TopoGraph |
+| `deriveTopoGraphDiff(prev, curr)` | Semantic diff with `breaking`, `warning`, and `info` classifications |
+| `writeTopoGraph(topoGraph, options?)` | Write the current graph artifact |
+| `readTopoGraph(options?)` | Read the current graph artifact |
 | `writeSurfaceLock(lock, options?)` | Write `.trails/trails.lock` as either structured JSON or legacy hash text |
 | `readSurfaceLockData(options?)` | Read the full normalized lock payload from `.trails/trails.lock` |
 | `readSurfaceLock(options?)` | Read just the committed lock hash |
@@ -117,9 +117,9 @@ Because CLI paths are now full hierarchical command paths, command-tree changes 
 ## Drift detection with warden
 
 ```typescript
-import { deriveSurfaceMap, deriveSurfaceMapHash, readSurfaceLock } from '@ontrails/topographer';
+import { deriveTopoGraph, deriveTopoGraphHash, readSurfaceLock } from '@ontrails/topographer';
 
-const current = deriveSurfaceMapHash(deriveSurfaceMap(graph));
+const current = deriveTopoGraphHash(deriveTopoGraph(graph));
 const committed = await readSurfaceLock();
 
 if (committed !== current) {

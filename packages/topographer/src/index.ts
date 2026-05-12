@@ -4,14 +4,14 @@
 // in the wayfinding draft ADR at docs/adr/drafts/20260503-wayfinding.md.
 
 // Derivation
-export { deriveSurfaceMap } from './derive.js';
-export { deriveSurfaceMapHash } from './hash.js';
-export { deriveSurfaceMapDiff } from './diff.js';
+export { deriveTopoGraph } from './derive.js';
+export { deriveTopoGraphHash } from './hash.js';
+export { deriveTopoGraphDiff } from './diff.js';
 
 // File I/O
 export {
-  writeSurfaceMap,
-  readSurfaceMap,
+  writeTopoGraph,
+  readTopoGraph,
   writeSurfaceLock,
   readSurfaceLockData,
   readSurfaceLock,
@@ -43,18 +43,18 @@ export type {
 
 // Types
 export type {
-  SurfaceMap,
-  SurfaceMapEntry,
-  SurfaceMapFieldOverride,
-  SurfaceMapFieldOverrideKey,
-  SurfaceMapLayerReference,
+  TopoGraph,
+  TopoGraphEntry,
+  TopoGraphFieldOverride,
+  TopoGraphFieldOverrideKey,
+  TopoGraphLayerReference,
   SurfaceLock,
   WorkspaceTrailEntry,
   WorkspaceTrailIndex,
   DiffEntry,
   DiffResult,
   JsonSchema,
-  SurfaceMapContourReference,
+  TopoGraphContourReference,
   WriteOptions,
   ReadOptions,
 } from './types.js';

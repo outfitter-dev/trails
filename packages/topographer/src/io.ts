@@ -1,5 +1,5 @@
 /**
- * File I/O for surface maps and lock files.
+ * File I/O for topo graphs and lock files.
  */
 
 import { mkdir } from 'node:fs/promises';
@@ -8,7 +8,7 @@ import { join } from 'node:path';
 import type {
   ReadOptions,
   SurfaceLock,
-  SurfaceMap,
+  TopoGraph,
   WorkspaceTrailIndex,
   WriteOptions,
 } from './types.js';
@@ -19,7 +19,7 @@ import { surfaceLockSchema } from './types.js';
 // ---------------------------------------------------------------------------
 
 const DEFAULT_DIR = '.trails';
-const SURFACE_MAP_FILE = '_surface.json';
+const TOPO_GRAPH_FILE = '_surface.json';
 const SURFACE_LOCK_FILE = 'trails.lock';
 
 // ---------------------------------------------------------------------------
@@ -79,35 +79,35 @@ const parseSurfaceLock = (content: string): SurfaceLock => {
 };
 
 // ---------------------------------------------------------------------------
-// Surface Map
+// TopoGraph
 // ---------------------------------------------------------------------------
 
 /**
- * Write a surface map to `<dir>/_surface.json`.
+ * Write a topo graph to `<dir>/_surface.json`.
  *
  * Creates the directory if it doesn't exist. Returns the file path.
  */
-export const writeSurfaceMap = async (
-  surfaceMap: SurfaceMap,
+export const writeTopoGraph = async (
+  topoGraph: TopoGraph,
   options?: WriteOptions
 ): Promise<string> => {
   const dir = resolveDir(options);
   await ensureDir(dir);
-  const filePath = join(dir, SURFACE_MAP_FILE);
-  const json = `${JSON.stringify(surfaceMap, null, 2)}\n`;
+  const filePath = join(dir, TOPO_GRAPH_FILE);
+  const json = `${JSON.stringify(topoGraph, null, 2)}\n`;
   await Bun.write(filePath, json);
   return filePath;
 };
 
 /**
- * Read a surface map from `<dir>/_surface.json`.
+ * Read a topo graph from `<dir>/_surface.json`.
  */
-export const readSurfaceMap = async (
+export const readTopoGraph = async (
   options?: ReadOptions
-): Promise<SurfaceMap | null> => {
+): Promise<TopoGraph | null> => {
   const dir = resolveDir(options);
-  const content = await readTextIfExists(join(dir, SURFACE_MAP_FILE));
-  return content ? (JSON.parse(content) as SurfaceMap) : null;
+  const content = await readTextIfExists(join(dir, TOPO_GRAPH_FILE));
+  return content ? (JSON.parse(content) as TopoGraph) : null;
 };
 
 // ---------------------------------------------------------------------------

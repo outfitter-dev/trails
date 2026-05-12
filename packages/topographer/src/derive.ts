@@ -1,5 +1,5 @@
 /**
- * Derive a deterministic surface map from a Topo.
+ * Derive a deterministic topo graph from a Topo.
  */
 
 import {
@@ -27,13 +27,13 @@ import type {
 import { addPermitRequirement } from './permit.js';
 import type {
   JsonSchema,
-  SurfaceMap,
-  SurfaceMapActivationEdge,
-  SurfaceMapActivationGraph,
-  SurfaceMapActivationSource,
-  SurfaceMapEntry,
-  SurfaceMapFieldOverride,
-  SurfaceMapFieldOverrideKey,
+  TopoGraph,
+  TopoGraphActivationEdge,
+  TopoGraphActivationGraph,
+  TopoGraphActivationSource,
+  TopoGraphEntry,
+  TopoGraphFieldOverride,
+  TopoGraphFieldOverrideKey,
 } from './types.js';
 
 // ---------------------------------------------------------------------------
@@ -169,7 +169,7 @@ const activationParseOutputSchema = (
 
 const projectActivationSource = (
   source: ActivationSource
-): SurfaceMapActivationSource => {
+): TopoGraphActivationSource => {
   const record: Record<string, unknown> = {
     id: source.id,
     key: activationSourceKey(source),
@@ -206,13 +206,13 @@ const projectActivationSource = (
     record['timezone'] = source.timezone;
   }
 
-  return sortKeys(record) as SurfaceMapActivationSource;
+  return sortKeys(record) as TopoGraphActivationSource;
 };
 
 const projectActivationEdge = (
   trailId: string,
   activation: ActivationEntry
-): SurfaceMapActivationEdge => {
+): TopoGraphActivationEdge => {
   const sourceKey = activationSourceKey(activation.source);
   const edge: Record<string, unknown> = {
     hasWhere: activation.where !== undefined,
@@ -229,13 +229,13 @@ const projectActivationEdge = (
     edge['where'] = { predicate: true };
   }
 
-  return sortKeys(edge) as SurfaceMapActivationEdge;
+  return sortKeys(edge) as TopoGraphActivationEdge;
 };
 
 const collectActivationSourceCatalog = (
   topo: Topo
-): readonly SurfaceMapActivationSource[] => {
-  const sources = new Map<string, SurfaceMapActivationSource>();
+): readonly TopoGraphActivationSource[] => {
+  const sources = new Map<string, TopoGraphActivationSource>();
   for (const trail of topo.trails.values()) {
     for (const activation of trail.activationSources) {
       const projected = projectActivationSource(activation.source);
@@ -247,8 +247,8 @@ const collectActivationSourceCatalog = (
 
 const collectActivationGraphEdges = (
   topo: Topo
-): readonly SurfaceMapActivationEdge[] => {
-  const edges = new Map<string, SurfaceMapActivationEdge>();
+): readonly TopoGraphActivationEdge[] => {
+  const edges = new Map<string, TopoGraphActivationEdge>();
   for (const trail of topo.trails.values()) {
     for (const activation of trail.activationSources) {
       const edge = projectActivationEdge(trail.id, activation);
@@ -271,16 +271,16 @@ const collectActivationGraphEdges = (
 };
 
 const buildActivationGraph = (
-  edges: readonly SurfaceMapActivationEdge[],
-  sources: readonly SurfaceMapActivationSource[]
-): SurfaceMapActivationGraph =>
+  edges: readonly TopoGraphActivationEdge[],
+  sources: readonly TopoGraphActivationSource[]
+): TopoGraphActivationGraph =>
   sortKeys({
     edgeCount: edges.length,
     edges,
     sourceCount: sources.length,
     sourceKeys: sources.map((source) => source.key),
     trailIds: [...new Set(edges.map((edge) => edge.trailId))].toSorted(),
-  }) as SurfaceMapActivationGraph;
+  }) as TopoGraphActivationGraph;
 
 const collectSignalGraphRelations = (
   topo: Topo
@@ -465,7 +465,7 @@ const addLayerAttachments = (
   }
 };
 
-const FIELD_OVERRIDE_KEYS: readonly SurfaceMapFieldOverrideKey[] = [
+const FIELD_OVERRIDE_KEYS: readonly TopoGraphFieldOverrideKey[] = [
   'hint',
   'label',
   'message',
@@ -474,12 +474,12 @@ const FIELD_OVERRIDE_KEYS: readonly SurfaceMapFieldOverrideKey[] = [
 
 const collectFieldOverrideKeys = (
   override: FieldOverride
-): readonly SurfaceMapFieldOverrideKey[] =>
+): readonly TopoGraphFieldOverrideKey[] =>
   FIELD_OVERRIDE_KEYS.filter((key) => override[key] !== undefined);
 
 const deriveFieldOverrides = (
   fields: Readonly<Record<string, FieldOverride>> | undefined
-): readonly SurfaceMapFieldOverride[] | undefined => {
+): readonly TopoGraphFieldOverride[] | undefined => {
   if (fields === undefined) {
     return undefined;
   }
@@ -526,7 +526,7 @@ const addExamples = (
 const trailToEntry = (
   t: Trail<unknown, unknown, unknown>,
   topoLayers: readonly Layer[]
-): SurfaceMapEntry => {
+): TopoGraphEntry => {
   const raw = t as unknown as Record<string, unknown>;
   const surfaces = extractSurfaces(raw);
   const entry: Record<string, unknown> = {
@@ -545,7 +545,7 @@ const trailToEntry = (
   addFieldOverrides(entry, t);
   addExamples(entry, t);
 
-  return sortKeys(entry) as unknown as SurfaceMapEntry;
+  return sortKeys(entry) as unknown as TopoGraphEntry;
 };
 
 /** Add optional signal-specific fields. */
@@ -588,7 +588,7 @@ const addSignalFields = (
 const signalToEntry = (
   e: Signal<unknown>,
   relations: SignalGraphRelations
-): SurfaceMapEntry => {
+): TopoGraphEntry => {
   const raw = e as unknown as Record<string, unknown>;
   const surfaces = extractSurfaces(raw);
   const entry: Record<string, unknown> = {
@@ -598,10 +598,10 @@ const signalToEntry = (
     surfaces,
   };
   addSignalFields(entry, e, raw, relations);
-  return sortKeys(entry) as unknown as SurfaceMapEntry;
+  return sortKeys(entry) as unknown as TopoGraphEntry;
 };
 
-const resourceToEntry = (resource: AnyResource): SurfaceMapEntry => {
+const resourceToEntry = (resource: AnyResource): TopoGraphEntry => {
   const entry: Record<string, unknown> = {
     exampleCount: 0,
     id: resource.id,
@@ -616,10 +616,10 @@ const resourceToEntry = (resource: AnyResource): SurfaceMapEntry => {
     entry['healthcheck'] = true;
   }
 
-  return sortKeys(entry) as unknown as SurfaceMapEntry;
+  return sortKeys(entry) as unknown as TopoGraphEntry;
 };
 
-const contourToEntry = (contour: AnyContour): SurfaceMapEntry => {
+const contourToEntry = (contour: AnyContour): TopoGraphEntry => {
   const entry: Record<string, unknown> = {
     exampleCount: contour.examples?.length ?? 0,
     id: contour.name,
@@ -635,7 +635,7 @@ const contourToEntry = (contour: AnyContour): SurfaceMapEntry => {
     entry['references'] = references;
   }
 
-  return sortKeys(entry) as unknown as SurfaceMapEntry;
+  return sortKeys(entry) as unknown as TopoGraphEntry;
 };
 
 const assertEstablishedTopo = (topo: Topo): void => {
@@ -645,7 +645,7 @@ const assertEstablishedTopo = (topo: Topo): void => {
   }
 };
 
-const collectEntries = (topo: Topo): SurfaceMapEntry[] => {
+const collectEntries = (topo: Topo): TopoGraphEntry[] => {
   const signalRelations = collectSignalGraphRelations(topo);
   return [
     ...[...topo.contours.values()].map((contour) => contourToEntry(contour)),
@@ -669,12 +669,12 @@ const collectEntries = (topo: Topo): SurfaceMapEntry[] => {
 // ---------------------------------------------------------------------------
 
 /**
- * Derive a deterministic surface map from a Topo.
+ * Derive a deterministic topo graph from a Topo.
  *
  * Entries are sorted alphabetically by id. Object keys within each entry
  * are sorted lexicographically for stable serialization.
  */
-export const deriveSurfaceMap = (topo: Topo): SurfaceMap => {
+export const deriveTopoGraph = (topo: Topo): TopoGraph => {
   assertEstablishedTopo(topo);
   const sorted = collectEntries(topo).toSorted((a, b) =>
     a.id.localeCompare(b.id)

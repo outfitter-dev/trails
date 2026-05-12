@@ -4,21 +4,21 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import {
-  writeSurfaceMap,
-  readSurfaceMap,
+  writeTopoGraph,
+  readTopoGraph,
   writeSurfaceLock,
   readSurfaceLockData,
   readSurfaceLock,
   readWorkspaceLock,
 } from '../io.js';
 import { surfaceLockSchema } from '../types.js';
-import type { SurfaceMap } from '../types.js';
+import type { TopoGraph } from '../types.js';
 
 // ---------------------------------------------------------------------------
 // Fixtures
 // ---------------------------------------------------------------------------
 
-const makeSurfaceMap = (): SurfaceMap => ({
+const makeTopoGraph = (): TopoGraph => ({
   activationGraph: {
     edgeCount: 0,
     edges: [],
@@ -69,10 +69,10 @@ afterEach(async () => {
 // Surface map tests
 // ---------------------------------------------------------------------------
 
-describe('writeSurfaceMap / readSurfaceMap', () => {
+describe('writeTopoGraph / readTopoGraph', () => {
   test('writes valid JSON to _surface.json', async () => {
-    const map = makeSurfaceMap();
-    const filePath = await writeSurfaceMap(map, { dir: tempDir });
+    const map = makeTopoGraph();
+    const filePath = await writeTopoGraph(map, { dir: tempDir });
 
     expect(filePath).toBe(join(tempDir, '_surface.json'));
 
@@ -83,15 +83,15 @@ describe('writeSurfaceMap / readSurfaceMap', () => {
   });
 
   test('reads it back and produces identical data', async () => {
-    const map = makeSurfaceMap();
-    await writeSurfaceMap(map, { dir: tempDir });
-    const result = await readSurfaceMap({ dir: tempDir });
+    const map = makeTopoGraph();
+    await writeTopoGraph(map, { dir: tempDir });
+    const result = await readTopoGraph({ dir: tempDir });
 
     expect(result).toEqual(map);
   });
 
   test('returns null for missing file', async () => {
-    const result = await readSurfaceMap({
+    const result = await readTopoGraph({
       dir: join(tempDir, 'nonexistent'),
     });
     expect(result).toBeNull();
@@ -165,13 +165,13 @@ describe('default directory', () => {
   test('defaults to .trails/', async () => {
     // We can't easily test the actual default without polluting the repo,
     // so we verify the custom directory option works and trust the default
-    const map = makeSurfaceMap();
+    const map = makeTopoGraph();
     const customDir = join(tempDir, 'custom-trails');
-    const filePath = await writeSurfaceMap(map, { dir: customDir });
+    const filePath = await writeTopoGraph(map, { dir: customDir });
 
     expect(filePath).toBe(join(customDir, '_surface.json'));
 
-    const result = await readSurfaceMap({ dir: customDir });
+    const result = await readTopoGraph({ dir: customDir });
     expect(result).toEqual(map);
   });
 

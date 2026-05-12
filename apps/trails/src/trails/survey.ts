@@ -15,12 +15,12 @@ import {
   trail,
   ValidationError,
 } from '@ontrails/core';
-import type { DiffEntry, DiffResult, SurfaceMap } from '@ontrails/topographer';
+import type { DiffEntry, DiffResult, TopoGraph } from '@ontrails/topographer';
 import {
   createTopoStore,
-  deriveSurfaceMapDiff,
-  deriveSurfaceMap,
-  readSurfaceMap,
+  deriveTopoGraphDiff,
+  deriveTopoGraph,
+  readTopoGraph,
 } from '@ontrails/topographer';
 import { z } from 'zod';
 
@@ -103,7 +103,7 @@ const createDiffExampleInput = (): {
     entries: [],
     generatedAt: '2026-01-01T00:00:00.000Z',
     version: '1.0',
-  } satisfies SurfaceMap);
+  } satisfies TopoGraph);
   return { ...input, against: 'baseline' };
 };
 
@@ -112,11 +112,11 @@ const isNotFound = (error: unknown): boolean =>
   error !== null &&
   (error as NodeJS.ErrnoException).code === 'ENOENT';
 
-const readSurfaceMapFile = async (
+const readTopoGraphFile = async (
   filePath: string
-): Promise<SurfaceMap | null> => {
+): Promise<TopoGraph | null> => {
   try {
-    return (await Bun.file(filePath).json()) as SurfaceMap;
+    return (await Bun.file(filePath).json()) as TopoGraph;
   } catch (error: unknown) {
     if (isNotFound(error)) {
       return null;
@@ -125,10 +125,10 @@ const readSurfaceMapFile = async (
   }
 };
 
-const readStoredSurfaceMap = (
+const readStoredTopoGraph = (
   rootDir: string,
   against: string
-): SurfaceMap | undefined => {
+): TopoGraph | undefined => {
   try {
     const store = createTopoStore({ rootDir });
     const stored =
@@ -136,7 +136,7 @@ const readStoredSurfaceMap = (
       store.exports.get({ snapshotId: against });
     return stored === undefined
       ? undefined
-      : (JSON.parse(stored.surfaceMapJson) as SurfaceMap);
+      : (JSON.parse(stored.surfaceMapJson) as TopoGraph);
   } catch (error: unknown) {
     if (error instanceof NotFoundError) {
       return undefined;
@@ -145,10 +145,10 @@ const readStoredSurfaceMap = (
   }
 };
 
-const readPathSurfaceMap = async (
+const readPathTopoGraph = async (
   rootDir: string,
   against: string
-): Promise<Result<SurfaceMap | null, Error>> => {
+): Promise<Result<TopoGraph | null, Error>> => {
   const safePath = deriveSafePath(rootDir, against);
   if (safePath.isErr()) {
     return safePath;
@@ -156,8 +156,8 @@ const readPathSurfaceMap = async (
 
   return Result.ok(
     extname(safePath.value) === '.json'
-      ? await readSurfaceMapFile(safePath.value)
-      : await readSurfaceMap({ dir: safePath.value })
+      ? await readTopoGraphFile(safePath.value)
+      : await readTopoGraph({ dir: safePath.value })
   );
 };
 
@@ -166,19 +166,19 @@ const describeAgainstPathTarget = (against: string): string =>
     ? 'workspace-relative JSON surface-map file'
     : 'workspace-relative directory containing _surface.json';
 
-const surfaceMapNotFound = (against: string): NotFoundError =>
+const topoGraphNotFound = (against: string): NotFoundError =>
   new NotFoundError(
     `No surface map found for: ${against}. Tried ${describeAgainstPathTarget(
       against
     )}, then topo-store pin and snapshot references.`
   );
 
-const readAgainstSurfaceMap = async (
+const readAgainstTopoGraph = async (
   rootDir: string,
   against?: string | undefined
-): Promise<Result<{ against: string; map: SurfaceMap }, Error>> => {
+): Promise<Result<{ against: string; map: TopoGraph }, Error>> => {
   if (against === undefined || against === 'saved') {
-    const map = await readSurfaceMap({ dir: join(rootDir, '.trails') });
+    const map = await readTopoGraph({ dir: join(rootDir, '.trails') });
     return map === null
       ? Result.err(
           new NotFoundError(
@@ -190,7 +190,7 @@ const readAgainstSurfaceMap = async (
 
   // Treat explicit filesystem targets as the most local user intent; stored
   // pins and snapshot ids are fallback references when no path exists.
-  const pathMap = await readPathSurfaceMap(rootDir, against);
+  const pathMap = await readPathTopoGraph(rootDir, against);
   if (pathMap.isErr()) {
     return pathMap;
   }
@@ -198,12 +198,12 @@ const readAgainstSurfaceMap = async (
     return Result.ok({ against, map: pathMap.value });
   }
 
-  const storedMap = readStoredSurfaceMap(rootDir, against);
+  const storedMap = readStoredTopoGraph(rootDir, against);
   if (storedMap !== undefined) {
     return Result.ok({ against, map: storedMap });
   }
 
-  return Result.err(surfaceMapNotFound(against));
+  return Result.err(topoGraphNotFound(against));
 };
 
 const buildSurveyDiff = async (
@@ -212,13 +212,13 @@ const buildSurveyDiff = async (
   breakingOnly: boolean,
   against?: string | undefined
 ): Promise<Result<SurveyDiffReport, Error>> => {
-  const currentMap = deriveSurfaceMap(app);
-  const previous = await readAgainstSurfaceMap(rootDir, against);
+  const currentMap = deriveTopoGraph(app);
+  const previous = await readAgainstTopoGraph(rootDir, against);
   if (previous.isErr()) {
     return previous;
   }
 
-  const diff = deriveSurfaceMapDiff(previous.value.map, currentMap);
+  const diff = deriveTopoGraphDiff(previous.value.map, currentMap);
   return Result.ok(
     breakingOnly
       ? formatDiff({ ...diff, info: [], warnings: [] }, previous.value.against)

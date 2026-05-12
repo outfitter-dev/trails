@@ -2,7 +2,7 @@
  * Topo lock drift detection.
  *
  * Compares the committed `trails.lock` hash against a freshly generated
- * surface map hash to detect when the trail topology has changed without
+ * TopoGraph hash to detect when the trail topology has changed without
  * updating the lock file. The committed lock may be structured JSON or the
  * legacy single-line hash format.
  */
@@ -17,8 +17,8 @@ import {
 } from '@ontrails/core';
 import {
   createTopoStore,
-  deriveSurfaceMap,
-  deriveSurfaceMapHash,
+  deriveTopoGraph,
+  deriveTopoGraphHash,
   readSurfaceLockData,
 } from '@ontrails/topographer';
 
@@ -67,7 +67,7 @@ export const checkDrift = async (
       storedHash ??
       (topo === undefined
         ? 'unknown'
-        : deriveSurfaceMapHash(deriveSurfaceMap(topo)));
+        : deriveTopoGraphHash(deriveTopoGraph(topo)));
 
     return {
       committedHash: committedLock?.hash ?? null,
