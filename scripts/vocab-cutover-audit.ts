@@ -37,6 +37,14 @@ const isExcludedFromRule = (path: string, rule: (typeof auditRules)[number]) =>
   ) ??
     false);
 
+const isAllowedMatch = (
+  match: MatchDetail,
+  rule: (typeof auditRules)[number]
+) =>
+  rule.allowMatches?.some(
+    (allowed) => allowed.path === match.path && allowed.line === match.line
+  ) ?? false;
+
 const getSelectedRules = () =>
   selectedRules.length > 0
     ? auditRules.filter((rule) => selectedRules.includes(rule.id))
@@ -88,11 +96,10 @@ const findRuleResult = async (
   const matches = await Promise.all(
     scopedFiles.map((path) => findMatchDetail(path, rule.pattern))
   );
-  const details = matches.flatMap((match) => match ?? []);
-  const fileCount = matches.reduce(
-    (sum, match) => sum + (match === undefined ? 0 : 1),
-    0
-  );
+  const details = matches
+    .flatMap((match) => match ?? [])
+    .filter((match) => !isAllowedMatch(match, rule));
+  const fileCount = new Set(details.map((match) => match.path)).size;
 
   return {
     description: rule.description,
@@ -117,7 +124,13 @@ const printRuleList = () => {
       (rule.excludePaths?.length ?? 0)
         ? ` (excludes: ${rule.excludePaths?.join(', ')})`
         : '';
-    console.log(`- ${rule.id}: ${rule.description}${exclusions}`);
+    const allowed =
+      (rule.allowMatches?.length ?? 0)
+        ? ` (allows: ${rule.allowMatches
+            ?.map((match) => `${match.path}:${match.line}`)
+            .join(', ')})`
+        : '';
+    console.log(`- ${rule.id}: ${rule.description}${exclusions}${allowed}`);
   }
 };
 

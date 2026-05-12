@@ -59,7 +59,7 @@ ready and again before final handoff.
 | 2 | `TRL-656` | `trl-656-make-persisted-surface-rows-complete-or-explicitly-partial` | TBD | Implemented locally |
 | 3 | `TRL-657` | `trl-657-add-complete-resolved-contract-detail-view-for-blind-agents` | TBD | Implemented locally |
 | 4 | `TRL-653` | `trl-653-sweep-docs-api-references-and-agent-guidance-for-topograph` | TBD | Implemented locally |
-| 5 | `TRL-702` | `trl-702-add-retired-vocabulary-guard-for-active-topograph-surfaces` | TBD | Not started |
+| 5 | `TRL-702` | `trl-702-add-retired-vocabulary-guard-for-active-topograph-surfaces` | TBD | Implemented locally |
 | 6 | `TRL-692` | `trl-692-clarify-warden-guide-manifest-category-naming-before` | TBD | Not started |
 | 7 | `TRL-690` | `trl-690-polish-warden-guidance-link-rendering-and-schema-reuse` | TBD | Not started |
 | 8 | `TRL-691` | `trl-691-polish-generated-warden-guide-headers-and-generator-tests` | TBD | Not started |
@@ -148,6 +148,12 @@ ready waves, and remote review turns here.
   for current artifact-family vocabulary, a migration guide for retired
   SurfaceMap/root-state names, a tracked archive note for ignored v1 plans, and
   updated stale tenet citations plus draft wayfinding substrate wording.
+- 2026-05-12 15:10 EDT: Moved `TRL-702` to `In Progress`, created
+  `trl-702-add-retired-vocabulary-guard-for-active-topograph-surfaces`, and
+  added the TopoGraph artifact-family retired-vocabulary guard to the repo vocab
+  audit. The normal `bun run check` gate now runs `bun run vocab:audit`, with
+  explicit exemptions for history, migration notes, accepted ADR context, and
+  legacy cleanup seams.
 
 ## Verification Log
 
@@ -203,6 +209,19 @@ Branch `TRL-653` focused checks:
 - Manual active stale-term sweep excluding historical/migration/retired-vocabulary
   files - clean.
 - `bun run typecheck` - passed.
+- `bun run format:check` - passed.
+- `git diff --check` - passed.
+
+Branch `TRL-702` focused checks:
+
+- `bun scripts/vocab-cutover-audit.ts --list-rules` - passed and showed the new
+  `topograph-artifact-family-retired-term` rule.
+- `bun scripts/vocab-cutover-audit.ts --rule
+  topograph-artifact-family-retired-term` - passed after keeping guard
+  documentation free of banned retired literals.
+- `bun scripts/vocab-cutover-audit.ts` - passed after adding
+  `docs/adr/0044-trail-versioning.md` to reviewed ADR mention paths.
+- `bun run lint:ast-grep` - passed.
 - `bun run format:check` - passed.
 - `git diff --check` - passed.
 

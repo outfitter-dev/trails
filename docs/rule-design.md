@@ -210,6 +210,12 @@ local or `@ontrails/*` import paths, object keys, and literal member properties.
 It intentionally does not lint Markdown prose; docs and historical mention-class
 coverage stays in the vocabulary audit path so migration docs, changelogs, ADRs,
 and contrastive explanations can be classified instead of blindly rewritten.
+`bun run check` runs `bun run vocab:audit` so active docs, scripts, and package
+sources also fail when retired cutover vocabulary reappears outside explicit
+history, migration, or legacy-cleanup seams. The TopoGraph artifact-family guard
+uses this path for the retired artifact-family names listed in the lexicon's
+retired-vocabulary table, including legacy root DB paths and pre-M4b workspace
+directories.
 
 ## Ast-Grep Structural Rules
 

@@ -1,5 +1,11 @@
+export interface VocabAuditAllowedMatch {
+  readonly line: number;
+  readonly path: string;
+}
+
 export interface VocabAuditRule {
   readonly id: string;
+  readonly allowMatches?: readonly VocabAuditAllowedMatch[];
   readonly description: string;
   readonly excludePaths?: readonly string[];
   readonly pattern: string;
@@ -62,6 +68,7 @@ const adrReviewedMentionPaths = [
   'docs/adr/0038-typed-signal-emission.md',
   'docs/adr/0041-unified-observability.md',
   'docs/adr/0043-layer-evolution.md',
+  'docs/adr/0044-trail-versioning.md',
   'docs/adr/README.md',
   'docs/adr/decision-map.json',
   'docs/adr/drafts/20260331-direct-invocation.md',
@@ -117,6 +124,59 @@ const legacyExtractedAdapterSubpathMentionPaths = [
   'docs/adr/0022-drizzle-store-connector.md',
   'packages/http/README.md',
   'packages/store/README.md',
+] as const;
+
+const topographArtifactFamilyRetiredMentionPaths = [
+  ...historicalMentionPaths,
+  'docs/adr/0042-core-topographer-boundary-doctrine.md',
+  'docs/adr/0046-lock-v3-artifact-family.md',
+  'docs/lexicon.md',
+] as const;
+
+const legacyBootstrapCleanupMatches = [
+  { line: 71, path: 'scripts/bootstrap/config.toml' },
+  { line: 72, path: 'scripts/bootstrap/config.toml' },
+  { line: 73, path: 'scripts/bootstrap/config.toml' },
+  { line: 74, path: 'scripts/bootstrap/config.toml' },
+  { line: 75, path: 'scripts/bootstrap/config.toml' },
+  { line: 76, path: 'scripts/bootstrap/config.toml' },
+] as const;
+
+const topographArtifactFamilyRetiredMatches = [
+  ...legacyBootstrapCleanupMatches,
+  // Legacy root DB and dev-state sidecars are still removed by dev.reset/dev.clean
+  // so upgraded workspaces do not leave stale local files behind.
+  { line: 265, path: 'apps/trails/src/trails/dev-support.ts' },
+  { line: 266, path: 'apps/trails/src/trails/dev-support.ts' },
+  { line: 267, path: 'apps/trails/src/trails/dev-support.ts' },
+  { line: 268, path: 'apps/trails/src/trails/dev-support.ts' },
+  { line: 269, path: 'apps/trails/src/trails/dev-support.ts' },
+  { line: 270, path: 'apps/trails/src/trails/dev-support.ts' },
+  // The topo-store migration and fixture must name pre-v12 columns exactly.
+  {
+    line: 325,
+    path: 'packages/topographer/src/internal/topo-snapshots.ts',
+  },
+  {
+    line: 335,
+    path: 'packages/topographer/src/internal/topo-snapshots.ts',
+  },
+  {
+    line: 1323,
+    path: 'packages/topographer/src/__tests__/topo-store.test.ts',
+  },
+  {
+    line: 1325,
+    path: 'packages/topographer/src/__tests__/topo-store.test.ts',
+  },
+  {
+    line: 1339,
+    path: 'packages/topographer/src/__tests__/topo-store.test.ts',
+  },
+  {
+    line: 1341,
+    path: 'packages/topographer/src/__tests__/topo-store.test.ts',
+  },
 ] as const;
 
 export const auditRules: readonly VocabAuditRule[] = [
@@ -263,6 +323,14 @@ export const auditRules: readonly VocabAuditRule[] = [
     excludePaths: legacyExtractedAdapterSubpathMentionPaths,
     id: 'legacy-extracted-adapter-subpath',
     pattern: String.raw`@ontrails/(?:http/hono|store/drizzle|cli/commander)`,
+  },
+  {
+    allowMatches: topographArtifactFamilyRetiredMatches,
+    description:
+      'Retired TopoGraph artifact-family vocabulary still appears outside history, migration notes, and legacy cleanup seams.',
+    excludePaths: topographArtifactFamilyRetiredMentionPaths,
+    id: 'topograph-artifact-family-retired-term',
+    pattern: String.raw`\bSurfaceMap(?:Entry)?\b|_surface\.json|\bsurface_map\b|\bserialized_lock\b|\.trails/config/local(?:\.[tj]s)?|\.trails/trails\.db(?:-(?:shm|wal))?|\.trails/dev/|\.trails/generated/`,
   },
   {
     description:
