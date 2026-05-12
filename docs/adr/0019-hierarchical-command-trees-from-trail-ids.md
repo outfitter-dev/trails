@@ -43,7 +43,7 @@ The canonical CLI projection of a trail ID is its full ordered segment path.
 This means:
 
 - every dot in the trail ID is structurally meaningful to the CLI
-- the surface map and lockfile record the full path, not a special CLI-only `group` abstraction
+- the TopoGraph records the full path, not a special CLI-only `group` abstraction
 - the CLI is free to render an arbitrary-depth command tree from that path
 
 The first-dot rule goes away. A trail ID is not "a group plus a command." It is a path.
@@ -83,7 +83,7 @@ topo.pin -> /api/topo/pin
 
 MCP remains flat because MCP tool names are flat strings by protocol. The command-tree ADR does not change that.
 
-### Surface maps record the path explicitly
+### TopoGraph records the path explicitly
 
 The serialized CLI projection must record the full path:
 
@@ -119,7 +119,7 @@ No separate CLI authoring language is introduced. The override is still a projec
 - **Nested subcommands become a normal rendering, not a workaround.** The CLI can represent the same hierarchy the trail IDs already express.
 - **Executable parents fit the model directly.** `trails topo` and `trails topo pin` no longer compete for the same namespace slot.
 - **The projection compounds across surfaces.** HTTP and CLI both benefit from the same segment story, even though they render it differently.
-- **The queryable contract stays complete.** Surface maps and the lockfile can record the actual path instead of a shallow adapter-specific shape.
+- **The queryable contract stays complete.** The TopoGraph records the actual path instead of a shallow adapter-specific shape.
 
 ### Tradeoffs
 

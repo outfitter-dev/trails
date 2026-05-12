@@ -2,14 +2,23 @@
 id: 17
 slug: serialized-topo-graph
 title: The Serialized Topo Graph
-status: accepted
+status: partially-superseded
+superseded_by: ['46']
 created: 2026-03-31
-updated: 2026-04-02
+updated: 2026-05-11
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [7, 8]
 ---
 
 # ADR-0017: The Serialized Topo Graph
+
+> **Status update (2026-05-11):** Partially superseded by
+> [ADR-0046: Lock v3 Artifact Family](0046-lock-v3-artifact-family.md).
+> This ADR still states the durable promise that the resolved topo should be
+> inspectable, committed, and drift-governed. ADR-0046 replaces the one-file
+> container with the v1 artifact family: `.trails/trails.lock` as a compact
+> manifest and `.trails/topo.lock` as the serialized `TopoGraph` content
+> artifact.
 
 ## Context
 

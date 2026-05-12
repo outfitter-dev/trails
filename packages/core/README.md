@@ -135,6 +135,7 @@ category code maps in `@ontrails/core`.
 | `cancelled` | 130 | 499 | -32603 | No | `CancelledError` |
 
 Dynamic classes:
+
 - `RetryExhaustedError` inherits category and surface codes from its wrapped `TrailsError`; retryable is always No.
 <!-- error-taxonomy:end -->
 

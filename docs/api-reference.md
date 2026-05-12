@@ -214,17 +214,17 @@ CreateAppOptions, SurfaceHttpResult
 ## `@ontrails/topographer`
 
 ```typescript
-// Surface maps and lockfile helpers
-deriveSurfaceMap(graph), deriveSurfaceMapHash(map), deriveSurfaceMapDiff(before, after)
-writeSurfaceMap(map, options?), readSurfaceMap(options?)
-writeSurfaceLock(lock, options?), readSurfaceLockData(options?), readSurfaceLock(options?)
+// TopoGraph and lock artifact helpers
+deriveTopoGraph(graph), deriveTopoGraphHash(topoGraph), deriveTopoGraphDiff(before, after)
+writeTopoGraph(topoGraph, options?), readTopoGraph(options?)
+writeLockManifest(manifest, options?), readLockManifest(options?), readWorkspaceTrailIndex(options?)
 
 // Topo store (durable graph substrate; relocated from @ontrails/core per ADR-0042)
 createTopoStore(options?), createMockTopoStore(seed?), topoStore
 createTopoSnapshot(topo, options?), listTopoSnapshots(options?)
 pinTopoSnapshot(id, name, options?), unpinTopoSnapshot(nameOrId, options?)
 
-SurfaceMap, SurfaceMapEntry, SurfaceMapContourReference, SurfaceLock, DiffResult, DiffEntry, JsonSchema
+TopoGraph, TopoGraphEntry, TopoGraphContourReference, LockManifest, DiffResult, DiffEntry, JsonSchema
 WriteOptions, ReadOptions
 ReadOnlyTopoStore, MockTopoStoreSeed, TopoSnapshot, TopoStoreRef
 TopoStoreExportRecord, TopoStoreResourceRecord, TopoStoreTrailRecord, TopoStoreTrailDetailRecord

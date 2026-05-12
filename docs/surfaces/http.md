@@ -196,6 +196,7 @@ Status codes come directly from the error taxonomy -- the same mapping used acro
 | `cancelled` | 499 | No | `CancelledError` |
 
 Dynamic classes:
+
 - `RetryExhaustedError` inherits category and surface codes from its wrapped `TrailsError`; retryable is always No.
 <!-- error-taxonomy:end -->
 

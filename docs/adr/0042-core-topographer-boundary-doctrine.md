@@ -4,7 +4,7 @@ slug: core-topographer-boundary-doctrine
 title: Core/Topographer Boundary Doctrine
 status: accepted
 created: 2026-05-02
-updated: 2026-05-02
+updated: 2026-05-11
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [14, 15, 17, 35]
 ---
@@ -15,7 +15,14 @@ depends_on: [14, 15, 17, 35]
 
 ### `@ontrails/schema` is misnamed for what it actually owns
 
-The package called `@ontrails/schema` exports almost nothing about authoring schemas. Its `src/index.ts` lists six functions and a handful of types: `deriveSurfaceMap`, `deriveSurfaceMapHash`, `deriveSurfaceMapDiff`, `writeSurfaceMap` / `readSurfaceMap`, and `writeSurfaceLock` / `readSurfaceLockData` / `readSurfaceLock`.[^schema-index] Every one of those is a derivation, hash, diff, or file I/O over a *resolved* graph. None of them are used while a trail executes.
+Before the package rename, `@ontrails/schema` exported almost nothing about
+authoring schemas. Its `src/index.ts` listed derivation, hash, diff, and
+file-I/O helpers for a *resolved* graph rather than primitive schema authoring
+APIs.[^schema-index] The current Topographer API keeps that lifecycle role
+explicit through `deriveTopoGraph()`, `deriveTopoGraphHash()`,
+`deriveTopoGraphDiff()`, `writeTopoGraph()`, `readTopoGraph()`,
+`writeLockManifest()`, and `readLockManifest()`. None of these are used while a
+trail executes.
 
 The naming wasn't always wrong. OpenAPI generation lived in `@ontrails/schema` until the precedent was set that "schema is for primitive schema declarations, not surface-specific projections," and OpenAPI was relocated to `@ontrails/http`.[^trl-586] What's left after that move isn't primitive schema declarations — it's durable artifacts derived from the graph. The package's content is one shape; its name describes another.
 
@@ -27,7 +34,13 @@ The mirror problem lives inside `@ontrails/core`. `packages/core/src/index.ts` l
 import { topoStore } from '@ontrails/core';
 ```
 
-But the topo store is the read-only *projection of a persisted snapshot* established by [ADR-0015: Topo Store](0015-topo-store.md). It writes rows to `.trails/trails.db`. It tracks history across builds. It produces lockfile exports. None of that runs to dispatch a trail; the in-memory `ReadonlyMap` is the dispatch engine.[^adr-15-execution] What ships from core today as if it were a graph primitive is, in lifecycle terms, a tooling artifact.
+But the topo store is the read-only *projection of a persisted snapshot*
+established by [ADR-0015: Topo Store](0015-topo-store.md). It writes rows to
+`.trails/state/trails.db`. It tracks history across builds. It produces
+TopoGraph and lock-manifest exports. None of that runs to dispatch a trail; the
+in-memory `ReadonlyMap` is the dispatch engine.[^adr-15-execution] What ships
+from core today as if it were a graph primitive is, in lifecycle terms, a
+tooling artifact.
 
 ### Two misfiles, one boundary
 
@@ -35,7 +48,13 @@ Both misfiles point at the same missing piece: there is no single, declared rule
 
 ### The forcing artifact is on the backlog
 
-[TRL-403] proposes extending the lockfile schema to catalog trail IDs across apps so `trails run <id>` can resolve a trail ID workspace-wide. That requires changes to `SurfaceLock` schema and snapshot identity (adding `appName` / `appId` to `TopoSnapshot`). Settling the package boundary inside that feature PR is exactly the wrong order. Settling it now lets TRL-403, the wayfinder draft work, and any future workspace-catalog feature land into a defined home instead of an unlabeled basement.
+[TRL-403] proposes extending the committed topo artifacts to catalog trail IDs
+across apps so `trails run <id>` can resolve a trail ID workspace-wide. That
+requires `topo.lock` workspace metadata and snapshot identity updates (adding
+`appName` / `appId` to `TopoSnapshot`). Settling the package boundary inside
+that feature PR is exactly the wrong order. Settling it now lets TRL-403, the
+wayfinder draft work, and any future workspace-catalog feature land into a
+defined home instead of an unlabeled basement.
 
 ### The frame that does the work
 
@@ -55,7 +74,7 @@ The package boundary is the durability boundary, stated as one rule.
 
 **Core (`@ontrails/core`):** Everything required to resolve, validate, and execute the graph in a single process. `trail()`, `topo()`, `contour()`, `signal()`, `resource()`, `Result`, the error taxonomy, the execution pipeline, and the in-memory read API on the `Topo` value sufficient for runtime surfaces and in-process build-time projection.[^read-api-scope]
 
-**Topographer (`@ontrails/topographer`):** Everything that survives outside a single process. Surface map derivation, stable hashing, semantic diffing, lockfile and surface-map persistence, and the topo store's snapshot/pin/history subsystem inside `.trails/trails.db`.
+**Topographer (`@ontrails/topographer`):** Everything that survives outside a single process. TopoGraph derivation, stable hashing, semantic diffing, lock/topo artifact persistence, and the topo store's snapshot/pin/history subsystem inside `.trails/state/trails.db`.
 
 The test that decides where a new piece of code lives:
 
@@ -64,7 +83,7 @@ The test that decides where a new piece of code lives:
 
 This means the keeper sentence:
 
-> `topo()` is the graph. `@ontrails/topographer` maps the graph.
+> `topo()` is the graph. `@ontrails/topographer` derives durable topo artifacts.
 
 If a Topographer artifact disagrees with the core `Topo`, the artifact is wrong. The graph is truth. Topographer artifacts are derived and regenerable.
 
@@ -90,7 +109,7 @@ Conflating these makes Topographer look like it's on the runtime path. It isn't.
 
 ### The shared database primitive is not the topo subsystem
 
-[ADR-0014: Core Database Primitive](0014-core-database-primitive.md) treats `.trails/trails.db` as shared framework infrastructure with subsystem namespaces (`topo_*`, `track_*`, `cache_*`). This ADR moves the **topo subsystem** out of core and into Topographer. It does **not** move the generic `trails-db` primitive.
+[ADR-0014: Core Database Primitive](0014-core-database-primitive.md) treats `.trails/state/trails.db` as shared framework infrastructure with subsystem namespaces (`topo_*`, `track_*`, `cache_*`). This ADR moves the **topo subsystem** out of core and into Topographer. It does **not** move the generic `trails-db` primitive.
 
 The following helpers, currently exported from `@ontrails/core` next to the topo-store API, stay in core unless a separate later ADR moves them:
 
@@ -112,7 +131,7 @@ Why `topographer`:
 
 - **It aligns with the framework's `topo`-rooted vocabulary.** `topo()` is the primitive; `topographer` is the package that derives durable artifacts from the topo. The lineage reads cleanly.
 - **It fits the existing actor-noun family.** `warden` enforces. `wayfinder` navigates. `topographer` maps. Adding a fourth member of the same family completes a pattern instead of expanding the vocabulary.
-- **It names the role, not one artifact.** "Schema" describes one output (the surface map). "Topographer" names the producer of all of them — surface map, lockfile, snapshots, pins, diffs.
+- **It names the role, not one artifact.** "Schema" described one output. "Topographer" names the producer of the resolved topo artifact family — TopoGraph, lock manifest, snapshots, pins, and diffs.
 - **It matches the verb shape.** The package exports `derive*` functions, hash and diff helpers, and persistence I/O. Topographers do those things.
 
 `topography` reads slightly better in prose ("the topography of this app") and is more honest that the package is mostly data and pure functions. `topographer` reads better as an import statement and matches the family. We import roles. We describe artifacts.
@@ -176,10 +195,10 @@ For grounding, the file-level shape after the rename and migration:
 
 ```text
 packages/topographer/src/
-  derive.ts                   # deriveSurfaceMap
-  hash.ts                     # deriveSurfaceMapHash
-  diff.ts                     # deriveSurfaceMapDiff
-  io.ts                       # writeSurfaceMap, readSurfaceMap, writeSurfaceLock, readSurfaceLock(Data)
+  derive.ts                   # deriveTopoGraph
+  hash.ts                     # deriveTopoGraphHash
+  diff.ts                     # deriveTopoGraphDiff
+  io.ts                       # writeTopoGraph, readTopoGraph, writeLockManifest, readLockManifest
   topo-store.ts               # public topoStore resource + factories (relocated from core)
   internal/topo-store.ts      # storage primitives (relocated from core)
   internal/topo-snapshots.ts  # snapshot lifecycle (relocated from core)
@@ -228,7 +247,11 @@ This ADR does not:
 
 ### Risks
 
-- **Drift between in-memory read APIs and persisted artifacts.** If core grows a richer `Topo` read API while Topographer's surface map shape doesn't keep pace, the two views of "what's in the graph" can disagree. Mitigation: the surface map derivation reads from the same `Topo` value at build time, so disagreement surfaces as a derivation difference, not as silent drift.
+- **Drift between in-memory read APIs and persisted artifacts.** If core grows a
+  richer `Topo` read API while Topographer's `TopoGraph` shape doesn't keep
+  pace, the two views of "what's in the graph" can disagree. Mitigation: the
+  TopoGraph derivation reads from the same `Topo` value at build time, so
+  disagreement surfaces as a derivation difference, not as silent drift.
 - **Pressure to reintroduce a Topographer dependency in core.** A future feature might want core to import Topographer for "just one thing." The boundary holds only if that pressure is rejected. Mitigation: this ADR is the explicit answer when that pressure arrives — core does not depend on Topographer.
 - **Lockfile creep onto the runtime path.** A future optimization (signed lockfiles, frozen production graphs) could argue for runtime lockfile reads. That is a real future decision, [explicitly flagged below](#non-decisions). Until that ADR is written and accepted, the runtime never reads the lockfile.
 
@@ -237,14 +260,24 @@ This ADR does not:
 The following are deliberately deferred:
 
 - **Whether the lockfile ever becomes a runtime artifact.** A future ADR may decide that production deployments load the lockfile and trust it instead of running resolution. Reasons one might want it: faster startup, frozen production resolution, audit trail of the reviewed graph. Reasons to defer: it couples runtime to a serialization format and pulls drift-detection complexity into the hot path. For v1, the lockfile is firmly a tooling artifact. Production-frozen-from-lockfile is its own future ADR.
-- **Whether the shared database primitive eventually moves out of core.** [ADR-0014: Core Database Primitive](0014-core-database-primitive.md) established `.trails/trails.db` as shared framework infrastructure used by both topo and tracing. Moving the connection primitive itself out of core touches both subsystems and warrants its own decision. This ADR carves out the topo subsystem only.
+- **Whether the shared database primitive eventually moves out of core.** [ADR-0014: Core Database Primitive](0014-core-database-primitive.md) established `.trails/state/trails.db` as shared framework infrastructure used by both topo and tracing. Moving the connection primitive itself out of core touches both subsystems and warrants its own decision. This ADR carves out the topo subsystem only.
+
 - **The exact `Topo` read API surface area.** [Core](#core-owns-the-graph-topographer-owns-durable-graph-artifacts) commits to "an in-memory read API sufficient for runtime surfaces and in-process build-time projection." The exact accessors grow as concrete consumers (surface connectors, build-time generators) need them. Naming the full accessor list in this ADR risks turning core into a mini-Topographer by demand.
 - **Build-time surface packages' internal use of Topographer.** `@ontrails/sdk`, `@ontrails/openapi`, and `@ontrails/docs` may use Topographer internally for richer graph facts (semantic diff of generated artifacts, for example). The public teaching path stays `surface(graph, { outDir })`. Whether they take Topographer as a real dependency is each package's decision, not this ADR's.
 - **Migration ordering between rename and topo-store relocation.** Two valid orders exist: rename first then relocate, or relocate first then rename. The boundary doctrine is the same either way. Sequencing is a milestone-planning concern, not a doctrinal one.
 
+## Amendments
+
+- 2026-05-11: [ADR-0046: Lock v3 Artifact Family](0046-lock-v3-artifact-family.md)
+  renamed the durable public artifact family from the `SurfaceMap`/single-lockfile
+  story to `TopoGraph`, `.trails/trails.lock` manifest, and `.trails/topo.lock`
+  content terminology. The lifecycle boundary in this ADR is unchanged:
+  Topographer owns durable artifacts, while core owns in-process graph resolution
+  and execution.
+
 ## References
 
-- [ADR-0014: Core Database Primitive](0014-core-database-primitive.md) — the shared `.trails/trails.db` and its subsystem namespacing. This ADR carves the topo subsystem out of core; the database primitive stays.
+- [ADR-0014: Core Database Primitive](0014-core-database-primitive.md) — the shared `.trails/state/trails.db` and its subsystem namespacing. This ADR carves the topo subsystem out of core; the database primitive stays.
 - [ADR-0015: Topo Store](0015-topo-store.md) — the queryable relational projection. This ADR moves its public API into Topographer.
 - [ADR-0017: The Serialized Topo Graph](0017-serialized-topo-graph.md) — the lockfile as the resolved-graph artifact. This ADR keeps the lockfile firmly in tooling, not on the runtime path.
 - [ADR-0035: Surface APIs Render the Graph](0035-surface-apis-render-the-graph.md) — the accepted `derive*` / `create*` / `surface()` grammar. This ADR builds on the same lineage by clarifying which package owns the durable derivations.

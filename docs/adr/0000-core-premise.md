@@ -136,7 +136,7 @@ The topo isn't just a collection. It's a queryable graph:
 - `survey` introspects the full topology — trails, schemas, examples, cross graph, intent and meta (`meta`)
 - `warden` governs the topology — lint rules, drift detection, coaching suggestions
 - `guide` generates guidance from the topology — documentation, agent instructions, API references
-- Surface map generation captures the full contract as a diffable, hashable artifact
+- TopoGraph generation captures the full contract as a diffable, hashable artifact
 
 Agents and tooling can inspect the system without running it. An agent connecting to an unfamiliar topo can discover what's available, what inputs are expected, what outputs to anticipate, and what errors to handle — all from the contract, before making a single call.
 

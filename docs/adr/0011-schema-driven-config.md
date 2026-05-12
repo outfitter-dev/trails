@@ -146,7 +146,7 @@ Resolution stack (later overrides earlier):
 
 1. **Schema defaults** — `z.number().default(10)`
 2. **App-authored config** — `base` merged with the selected profile, keyed by `TRAILS_ENV`
-3. **Local overrides** — `.trails/config/local.ts`, gitignored, per-developer
+3. **Local overrides** — `.trails/config.local.ts`, gitignored, per-developer
 4. **Environment variables** — auto-mapped from `.env()` bindings on schema fields
 
 Five layers were considered. **CLI flag derivation from config was explicitly rejected.** Config flags would conflict with trail input flags on the same CLI surface. Environment variables are the command-line override mechanism.

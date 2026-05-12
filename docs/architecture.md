@@ -109,9 +109,9 @@ These are derived from the implementation code itself. Useful for governance and
 | ---------------------------- | ------------------------------------------ |
 | Which trails a trail crosses | `ctx.cross()` calls in the implementation |
 | Error types returned | `Result.err(new XError(...))` patterns |
-| Surface map entries and lock metadata | All of the above, canonicalized |
+| TopoGraph entries and lock metadata | All of the above, canonicalized |
 
-Warden uses inference to verify that declarations match actual code. The surface map captures inferred information for CI governance.
+Warden uses inference to verify that declarations match actual code. The TopoGraph captures inferred information for CI governance.
 
 ### Observed — learned from runtime
 
@@ -128,7 +128,7 @@ Any derived value can be overridden when the default is wrong for your case:
 | Flag name or description | Zod field name doesn't make a good flag |
 | `crosses` list | Lock the composition boundary tighter than the code implies |
 
-Overrides are escape hatches. They're visible in the surface map as explicit deviations from derivation. They should be rare — if you're overriding everything, the derivation rules are wrong.
+Overrides are escape hatches. They're visible in the TopoGraph as explicit deviations from derivation. They should be rare — if you're overriding everything, the derivation rules are wrong.
 
 **The design heuristic:** when evaluating any new feature, ask "does this require the developer to author information the framework already has?" If yes, derive it. If it genuinely can't be derived, it earns a place on the trail spec. If it can be derived but might be wrong sometimes, derive it with an override.
 
@@ -162,7 +162,7 @@ Overrides are escape hatches. They're visible in the surface map as explicit dev
 | `@ontrails/store` | Backend-agnostic schema-derived store definitions | None beyond core |
 | `@ontrails/drizzle` | Drizzle SQLite adapter, typed store bindings, read-only bindings | `drizzle-orm` |
 | `@ontrails/observe` | Production log and trace sink contracts, composition, and built-in sinks | None beyond core |
-| `@ontrails/tracing` | Tracing compatibility, query/status trails, `trails.db` dev-state storage, sampling helpers, OTel adapter | None beyond core |
+| `@ontrails/tracing` | Tracing compatibility, query/status trails, `.trails/state/trails.db` dev-state storage, sampling helpers, OTel adapter | None beyond core |
 | `@ontrails/logtape` | LogTape sink adapter for `@ontrails/observe` | None (accepts any LogTape-shaped logger via a structural interface) |
 
 ### Ecosystem
@@ -170,7 +170,7 @@ Overrides are escape hatches. They're visible in the surface map as explicit dev
 | Package | What it does |
 | --- | --- |
 | `@ontrails/testing` | `testAll()`, `testExamples()`, `testTrail()`, contract testing, surface harnesses |
-| `@ontrails/topographer` | Surface maps, semantic diffing, lock helpers, topo-store persistence (relocated from `@ontrails/core` per ADR-0042) |
+| `@ontrails/topographer` | TopoGraphs, semantic diffing, lock manifest and `topo.lock` helpers, topo-store persistence (relocated from `@ontrails/core` per ADR-0042) |
 | `@ontrails/warden` | Lint rules, drift detection, CI gating |
 
 ### Apps
@@ -322,6 +322,7 @@ category code maps in `@ontrails/core`.
 | `cancelled` | 130 | 499 | -32603 | No | `CancelledError` |
 
 Dynamic classes:
+
 - `RetryExhaustedError` inherits category and surface codes from its wrapped `TrailsError`; retryable is always No.
 <!-- error-taxonomy:end -->
 

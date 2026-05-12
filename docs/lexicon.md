@@ -84,7 +84,7 @@ Governance and contract enforcement tooling. Active governance — completeness 
 
 ### `topographer`
 
-The durable graph substrate. `@ontrails/topographer` owns the artifacts derived from the resolved graph that survive across processes or compare state across time: surface maps, hashes, semantic diffs, lockfile I/O, snapshots, and pinned history. Core resolves the graph; Topographer persists and compares it.
+The durable graph substrate. `@ontrails/topographer` owns the artifacts derived from the resolved graph that survive across processes or compare state across time: TopoGraphs, hashes, semantic diffs, lock manifest and `topo.lock` I/O, snapshots, and pinned history. Core resolves the graph; Topographer persists and compares it.
 
 A package needs Topographer only when it crosses a process boundary or compares state across time. The runtime never reads Topographer artifacts to execute trails — every `topo()` call resolves entirely in core. See [ADR-0042](adr/0042-core-topographer-boundary-doctrine.md) for the boundary doctrine.
 
@@ -213,8 +213,8 @@ Trails signals are authored, typed notifications in the contract graph. Schedule
 ### `pin`
 
 A named snapshot of the graph state at a point in time. Pins are stored in
-`trails.db` and enable comparison between the current resolved graph and a
-previous known-good state.
+the shared `trails.db` at `.trails/state/trails.db` and enable comparison
+between the current resolved graph and a previous known-good state.
 
 ```bash
 trails topo pin --name v1.0

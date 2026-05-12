@@ -1,6 +1,6 @@
 # Topo Store
 
-The topo store is Trails' queryable database of your application's topology — every trail, signal, resource, and their relationships. It lives in `.trails/trails.db` and is created automatically when you run topo commands.
+The topo store is Trails' queryable database of your application's topology — every trail, signal, resource, and their relationships. It lives in `.trails/state/trails.db` and is created automatically when you run topo commands.
 
 For the full SQLite schema and programmatic query API, see the [Topo Store Reference](./topo-store-reference.md).
 
@@ -11,17 +11,18 @@ Trails creates a `.trails/` directory in your workspace root on first use:
 ```text
 .trails/
 ├── .gitignore             # Auto-generated gitignore for this directory
-├── config/                # Local config overrides (gitignored)
-├── dev/                   # Development state (gitignored)
-├── generated/             # Generated artifacts (gitignored)
-├── trails.db              # SQLite database (topology store)
-├── trails.lock            # Lockfile (text, git-tracked)
-└── _surface.json          # Full surface map (compiled artifact)
+├── config.local.ts        # Local TypeScript config overrides (gitignored)
+├── config.local.js        # Local JavaScript config overrides (gitignored)
+├── cache/                 # Rebuildable derived data (gitignored)
+├── state/                 # Mutable framework state (gitignored)
+│   └── trails.db          # SQLite database (topology store)
+├── topo.lock              # Serialized TopoGraph (git-tracked)
+└── trails.lock            # Lock v3 manifest (text, git-tracked)
 ```
 
-- **`trails.db`** — SQLite database containing all topo saves, pins, and schema cache. Not git-tracked.
-- **`trails.lock`** — Committed lockfile. Text format, git-tracked. In v1 this is a drift/hash guard plus optional workspace trail index, not the full inspectable graph.
-- **`_surface.json`** — Rich surface map with trail, signal, resource, relation, example, and detour metadata, written by `topo compile`.
+- **`state/trails.db`** — SQLite database containing topo snapshots, pins, and schema cache. Not git-tracked.
+- **`topo.lock`** — Committed serialized TopoGraph with trail, signal, resource, relation, example, detour, and workspace metadata.
+- **`trails.lock`** — Committed compact v3 manifest that points at `topo.lock` and verifies its hash.
 
 ## What trails.db contains
 
@@ -39,7 +40,7 @@ For each save, the database stores trail IDs, intents, descriptions, examples, c
 
 ### Error scope
 
-For v1, the topo store and surface map record authored error-related contract facts:
+For v1, the topo store and TopoGraph record authored error-related contract facts:
 
 - `examples` may include named error examples from `trail.examples`.
 - `detours` include the declared recovery error class name and effective capped attempt count.
@@ -88,7 +89,7 @@ trails topo history --limit 20
 
 ### `trails topo compile`
 
-Compile the current topo to `.trails/trails.lock` and `.trails/_surface.json`.
+Compile the current topo to `.trails/topo.lock` and `.trails/trails.lock`.
 
 ```bash
 trails topo compile

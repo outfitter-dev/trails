@@ -23,7 +23,7 @@ ADRs document the significant design decisions behind Trails — the choices tha
 | [0014](0014-core-database-primitive.md) | Core Database Primitive | Accepted |
 | [0015](0015-topo-store.md) | Topo Store | Accepted |
 | [0016](0016-schema-derived-persistence.md) | Schema-Derived Persistence | Accepted |
-| [0017](0017-serialized-topo-graph.md) | The Serialized Topo Graph | Accepted |
+| [0017](0017-serialized-topo-graph.md) | The Serialized Topo Graph | Partially-superseded |
 | [0018](0018-signal-driven-governance.md) | Signal-Driven Governance | Accepted |
 | [0019](0019-hierarchical-command-trees-from-trail-ids.md) | Hierarchical Command Trees from Trail IDs | Accepted |
 | [0020](0020-flags-for-fields-structured-input-on-the-cli.md) | Flags for Fields, Structured Input on the CLI | Accepted |
@@ -52,3 +52,4 @@ ADRs document the significant design decisions behind Trails — the choices tha
 | [0043](0043-layer-evolution.md) | Layer Evolution | Accepted (amended 2026-05-04) |
 | [0044](0044-trail-versioning.md) | Trail Versioning | Accepted |
 | [0045](0045-v1-resolved-graph-error-scope.md) | v1 Resolved Graph Error Scope | Accepted |
+| [0046](0046-lock-v3-artifact-family.md) | Lock v3 Artifact Family | Accepted |

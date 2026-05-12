@@ -4,7 +4,7 @@ slug: v1-resolved-graph-error-scope
 title: v1 Resolved Graph Error Scope
 status: accepted
 created: 2026-05-10
-updated: 2026-05-10
+updated: 2026-05-11
 accepted: 2026-05-10
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [2, 15, 17, 26, 33, 42]
@@ -14,23 +14,19 @@ depends_on: [2, 15, 17, 26, 33, 42]
 
 ## Context
 
-Trails' target architecture says the resolved graph should let blind agents
-inspect the system without guessing from source. ADR-0017 describes a future
-where `.trails/trails.lock` is the serialized topo graph, while ADR-0015 and
-ADR-0042 describe today's Topographer-owned artifact family: surface maps,
-hashes, semantic diffs, lock helpers, topo-store exports, and query views.
+Trails' target architecture says the resolved topo should let blind agents
+inspect the system without guessing from source. ADR-0017 established that
+promise. ADR-0046 refines the v1 container: `.trails/trails.lock` is the compact
+manifest, and `.trails/topo.lock` is the serialized `TopoGraph` content
+artifact.
 
-The v1 implementation is narrower than the target. The richest inspectable
-artifact is the surface-map/export family:
+The v1 implementation is narrower than future whole-program inference, but the
+inspectable graph target is now the TopoGraph artifact family:
 
-- `deriveSurfaceMap()`
-- `.trails/_surface.json`
-- `topo_exports.surface_map`
-- `topo_exports.serialized_lock`
-
-The committed `.trails/trails.lock` is currently a versioned hash envelope with
-an optional workspace trail index. It is a drift guard and resolution aid, not
-the full inspectable graph promised by the long-term ADR-0017 shape.
+- `deriveTopoGraph()`
+- `.trails/topo.lock`
+- `topo_exports.topo_graph`
+- `topo_exports.lock_manifest`, when stored manifest content is still needed
 
 The error contract closed in the TRL-649/TRL-651/TRL-652 stack establishes a
 clearer boundary:
@@ -55,7 +51,7 @@ For v1, resolved graph error scope is:
 | Taxonomy categories, retryability, and surface codes | Registry-owned, not duplicated per graph entry | `@ontrails/core` `errorClasses`, ADR-0026, TRL-652 |
 | Public and diagnostic redaction policy | Runtime projection contract, not graph payload | `@ontrails/core` projection helpers, ADR-0026, TRL-651 |
 | Serialized error identity | Runtime serialization contract, not graph payload | `serializeError()` / `deserializeError()`, TRL-649 |
-| Trail error examples | Authored example cases in surface maps and topo-store examples | `trail.examples` |
+| Trail error examples | Authored example cases in TopoGraph entries and topo-store examples | `trail.examples` |
 | Trail detours | Authored recovery declarations: matched error class name and capped max attempts | `trail.detours`, ADR-0033 |
 | Exhaustive per-trail emitted errors | Deferred | Future authored or inferred error contract work |
 | Observed runtime failures | Deferred | Future trace or telemetry graph merge work |
@@ -112,11 +108,12 @@ graph state.
 
 - No new v1 graph field is added for exhaustive per-trail errors in this ADR.
   Adding such a field would imply a contract Trails cannot yet keep.
-- Docs and agents should describe `.trails/trails.lock` as a drift guard and
-  optional workspace trail index for v1. Use `.trails/_surface.json`,
-  `deriveSurfaceMap()`, and topo-store exports when full JSON fidelity matters.
-- Surface maps and topo-store detail records can continue to expose `examples`
-  and `detours` as authored contract facts.
+- Docs and agents should describe `.trails/trails.lock` as a compact manifest
+  and `.trails/topo.lock` as the serialized `TopoGraph` content artifact. Use
+  `topo.lock`, `deriveTopoGraph()`, and typed topo-store query views when full
+  JSON fidelity matters.
+- TopoGraph entries and topo-store detail records can continue to expose
+  `examples` and `detours` as authored contract facts.
 - Public error bodies remain governed by the redaction/projection policy from
   TRL-651, not by resolved graph artifacts.
 - Future error graph work should pick an explicit source of authority before
@@ -131,9 +128,7 @@ graph state.
   through `Result.err`, `ctx.cross()`, resources, layers, and detour recovery.
 - Add typed topo-store accessors for error examples and detour projections if
   agents need ergonomic error-specific queries instead of reading trail detail
-  records or surface-map JSON.
-- Decide whether a future lock v3 embeds the full graph or remains a hash
-  pointer to adjacent graph artifacts.
+  records or `TopoGraph` JSON.
 
 ## References
 
@@ -143,6 +138,7 @@ graph state.
 - [ADR-0026: Error Taxonomy as Transport-Independent Behavior Contract](0026-error-taxonomy-as-transport-independent-behavior-contract.md)
 - [ADR-0033: Detour Execution for Recovery](0033-detour-execution-for-recovery.md)
 - [ADR-0042: Core/Topographer Boundary Doctrine](0042-core-topographer-boundary-doctrine.md)
+- [ADR-0046: Lock v3 Artifact Family](0046-lock-v3-artifact-family.md)
 
 [TRL-649]: https://linear.app/outfitter/issue/TRL-649
 [TRL-651]: https://linear.app/outfitter/issue/TRL-651

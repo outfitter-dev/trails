@@ -108,6 +108,7 @@ contract.
 | `CancelledError` | `cancelled` | 499 | 130 | -32603 | No |
 
 Dynamic classes:
+
 - `RetryExhaustedError` inherits category and surface codes from its wrapped `TrailsError`; retryable is always No.
 <!-- error-taxonomy:end -->
 

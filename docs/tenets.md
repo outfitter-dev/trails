@@ -126,13 +126,22 @@ The framework validates input before the implementation runs. If the implementat
 
 Validation is a framework guarantee enforced once at the boundary, not a developer responsibility scattered across every function.
 
-### The resolved graph is the story
+### The resolved topo artifact family is the story
 
-The lockfile is the serialized topology: the compiled, resolved, deduplicated story of a Trails application. Every trail, resource, signal, and surface is a node. Relationships are edges. An agent reading just the lockfile can understand the entire system without source code.
+The resolved topo artifact family is the compiled, resolved, deduplicated story
+of a Trails application. Every trail, resource, signal, contour, and surface
+projection is inspectable as graph content. Relationships are explicit. An
+agent reading the committed artifact family can understand the system without
+guessing from source code.
 
-The lockfile is generated, checked in, and CI-diffable. Drift between code and lockfile is a governance finding.
+The family is generated, checked in, and CI-diffable. `.trails/trails.lock` is
+the compact manifest that verifies adjacent content artifacts by hash.
+`.trails/topo.lock` is the serialized `TopoGraph` content artifact. Drift
+between code and the committed artifact family is a governance finding.
 
-> The surface map provides the foundation today: surface map generation and semantic diffing. The full lockfile-as-resolved-graph, capturing the complete topology with all nodes and edges, is the target architecture. The principle holds now; the scope expands as the schema package matures.
+> ADR-0017 established the right promise but put too much responsibility on one
+> file. ADR-0046 keeps the promise and splits the jobs: the manifest verifies,
+> the TopoGraph content artifact explains.
 
 ## Primitives
 

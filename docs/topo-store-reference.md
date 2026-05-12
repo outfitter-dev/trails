@@ -182,16 +182,16 @@ CREATE TABLE topo_surfaces (
 
 ### `topo_exports`
 
-Serialized surface maps and lockfiles. In v1, `surface_map` is the richer
-inspectable graph artifact. `serialized_lock` carries the committed lock
-payload used for drift/hash verification and workspace trail indexing.
+Serialized TopoGraphs and lock manifests. In v1, `topo_graph` is the richer
+inspectable graph artifact. `lock_manifest` carries the committed manifest
+payload used for drift/hash verification.
 
 ```sql
 CREATE TABLE topo_exports (
   snapshot_id TEXT PRIMARY KEY,
-  surface_map TEXT NOT NULL,
-  surface_hash TEXT NOT NULL,
-  serialized_lock TEXT NOT NULL,
+  topo_graph TEXT NOT NULL,
+  topo_graph_hash TEXT NOT NULL,
+  lock_manifest TEXT NOT NULL,
   FOREIGN KEY (snapshot_id) REFERENCES topo_snapshots(id) ON DELETE CASCADE
 );
 ```

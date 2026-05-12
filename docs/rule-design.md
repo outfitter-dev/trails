@@ -44,7 +44,7 @@ facts.
 | Repo-local JS/TS hygiene | Private `@ontrails/oxlint-plugin` | Console/process leakage, deep imports, barrels, Bun-native preference, retired source vocabulary, snapshot location, test naming, and temporary cleanup. |
 | Syntax tripwires and codemods | `ast-grep` | Useful for audits and high-confidence syntax shapes. New durable Trails rules should graduate into Warden instead of living here. |
 | Trails semantic correctness | Warden | The durable public correctness surface for trail/resource/signal/cross/permit/topo invariants. |
-| Topology and resolved-graph drift | Warden + Topographer | Lockfile drift, surface map drift, and topo-aware checks. |
+| Topology and resolved-graph drift | Warden + Topographer | Lock manifest drift, TopoGraph drift, and topo-aware checks. |
 | Contract/runtime behavior | `testAll` and focused tests | Examples, output contracts, detours, and surface projection validation. |
 | Impossible-by-type constraints | TypeScript | Output schemas, typed `ctx.cross()`, `resource.from(ctx)`, and other compile-time contracts. |
 | Human and agent orientation | `AGENTS.md` | A map over the executable system, not the only enforcement point. |

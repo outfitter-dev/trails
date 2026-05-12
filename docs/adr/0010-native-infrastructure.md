@@ -83,7 +83,10 @@ Infrastructure has a bootstrap problem. Config resolution runs before `executeTr
 
 The solution is two phases:
 
-1. **Bootstrap phase.** Config resolves from static sources — TypeScript config files, environment variables, `.trails/config/` overrides. No trails involved. This produces the resolved config that resources need to create.
+1. **Bootstrap phase.** Config resolves from static sources — TypeScript config
+   files, environment variables, and `.trails/config.local.ts` or
+   `.trails/config.local.js` overrides. No trails involved. This produces the
+   resolved config that resources need to create.
 2. **Execution phase.** The topo is built. Resources are registered. Now `config.explain`, `auth.verify`, and other infrastructure trails are available through the normal execution pipeline.
 
 Bootstrap is pure resolution — no side effects, no trail execution, no layers. It runs once at startup. Everything after bootstrap goes through `executeTrail`.
@@ -94,15 +97,18 @@ Trails establishes `.trails/` as the workspace directory for framework state:
 
 ```text
 .trails/
-├── config/          — local overrides (gitignored)
-├── trails.db        — local framework database (gitignored)
-├── _surface.json  — derived detail map
-└── trails.lock      — committed lock artifact
+├── config.local.ts  — local TypeScript overrides (gitignored)
+├── config.local.js  — local JavaScript overrides (gitignored)
+├── cache/           — rebuildable derived data (gitignored)
+├── state/           — mutable framework state (gitignored)
+│   └── trails.db    — local framework database
+├── topo.lock        — committed serialized TopoGraph
+└── trails.lock      — committed v3 lock manifest
 ```
 
-Auto-created on first framework operation. The framework generates a `.gitignore` inside `.trails/` that excludes local mutable state such as `config/` and `trails.db`. `_surface.json` and `trails.lock` are the derived artifacts that support inspection and review; `trails.lock` is the committed contract artifact.
+Auto-created on first framework operation. The framework generates a `.gitignore` inside `.trails/` that excludes local mutable state such as `config.local.{ts,js}`, `cache/`, and `state/`. `topo.lock` and `trails.lock` are the committed artifact family that supports inspection and review: `topo.lock` carries the serialized TopoGraph, and `trails.lock` is the compact v3 manifest that points at it.
 
-The workspace gives infrastructure a known home. Config reads overrides from `.trails/config/`. Local framework state and topo history live in `.trails/trails.db`. Derived contract artifacts land alongside them in `.trails/_surface.json` and `.trails/trails.lock`. No more scattering framework files across the project root.
+The workspace gives infrastructure a known home. Config reads overrides from `.trails/config.local.ts` or `.trails/config.local.js`. Local framework state and topo history live in `.trails/state/trails.db`. Derived contract artifacts land alongside them in `.trails/topo.lock` and `.trails/trails.lock`. No more scattering framework files across the project root.
 
 ### Adapters are the integration point
 
