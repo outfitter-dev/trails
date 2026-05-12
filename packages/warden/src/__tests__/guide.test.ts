@@ -20,11 +20,12 @@ describe('warden guide manifest', () => {
       (rule) => rule.id === 'no-throw-in-implementation'
     );
     expect(throwRule).toMatchObject({
-      category: 'results',
+      concern: 'results',
       depth: 'source',
       severity: 'error',
       tier: 'source-static',
     });
+    expect(throwRule).not.toHaveProperty('category');
     expect(throwRule?.guidance?.summary).toBe(
       'Convert thrown implementation failures into explicit Result.err() outcomes.'
     );
@@ -35,6 +36,8 @@ describe('warden guide manifest', () => {
 
     expect(markdown).toContain('# Trails Warden Guide');
     expect(markdown).toContain('### `no-throw-in-implementation`');
+    expect(markdown).toContain('- Concern: `results`');
+    expect(markdown).not.toContain('- Category: `results`');
     expect(markdown).toContain(
       'Guidance: Convert thrown implementation failures into explicit Result.err() outcomes.'
     );
@@ -50,6 +53,8 @@ describe('warden guide manifest', () => {
     expect(parsed.kind).toBe('trails-warden-agent-guide');
     expect(parsed.rules).toHaveLength(manifest.ruleCount);
     expect(parsed.rules[0]?.id).toBe(manifest.rules[0]?.id);
+    expect(parsed.rules[0]).toHaveProperty('concern');
+    expect(parsed.rules[0]).not.toHaveProperty('category');
   });
 
   test('manifest rendering is stable and parseable', () => {
@@ -60,5 +65,7 @@ describe('warden guide manifest', () => {
     expect(parsed.kind).toBe('trails-warden-guide-manifest');
     expect(parsed.ruleCount).toBe(manifest.ruleCount);
     expect(parsed.rules.at(-1)?.id).toBe(manifest.rules.at(-1)?.id);
+    expect(parsed.rules.at(-1)).toHaveProperty('concern');
+    expect(parsed.rules.at(-1)).not.toHaveProperty('category');
   });
 });

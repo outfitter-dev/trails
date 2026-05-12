@@ -27,7 +27,7 @@ const wardenGuidanceSchema = z.object({
 });
 
 const wardenRuleGuideEntrySchema = z.object({
-  category: z.enum(wardenRuleConcerns),
+  concern: z.enum(wardenRuleConcerns),
   depth: z.enum(wardenDepthValues),
   description: z.string(),
   docs: z.array(wardenGuidanceLinkSchema).readonly(),

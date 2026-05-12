@@ -30,12 +30,12 @@ const CATEGORY_LABELS: Record<WardenRuleConcern, string> = {
   signals: 'Signals',
 };
 
-const groupRulesByCategory = (
+const groupRulesByConcern = (
   rules: readonly WardenRuleGuideEntry[]
 ): ReadonlyMap<WardenRuleConcern, readonly WardenRuleGuideEntry[]> => {
   const grouped = new Map<WardenRuleConcern, WardenRuleGuideEntry[]>();
   for (const rule of rules) {
-    grouped.set(rule.category, [...(grouped.get(rule.category) ?? []), rule]);
+    grouped.set(rule.concern, [...(grouped.get(rule.concern) ?? []), rule]);
   }
   return grouped;
 };
@@ -76,7 +76,7 @@ const renderRule = (rule: WardenRuleGuideEntry): string => {
 };
 
 const renderRuleIndex = (manifest: WardenGuideManifest): readonly string[] => {
-  const grouped = groupRulesByCategory(manifest.rules);
+  const grouped = groupRulesByConcern(manifest.rules);
   const lines = ['## Rule Index', ''];
 
   for (const category of Object.keys(CATEGORY_LABELS) as WardenRuleConcern[]) {

@@ -23,7 +23,7 @@ export const wardenGuideFormatValues = [
 export type WardenGuideFormat = (typeof wardenGuideFormatValues)[number];
 
 export interface WardenRuleGuideEntry {
-  readonly category: WardenRuleConcern;
+  readonly concern: WardenRuleConcern;
   readonly depth: WardenDepth;
   readonly description: string;
   readonly docs: readonly WardenGuidanceLink[];
@@ -54,7 +54,7 @@ interface WardenAgentRuleGuide {
     readonly scope: WardenRuleScope;
     readonly tier: WardenRuleTier;
   };
-  readonly category: WardenRuleConcern;
+  readonly concern: WardenRuleConcern;
   readonly guidance?: WardenGuidance | undefined;
   readonly id: string;
   readonly invariant: string;
@@ -83,7 +83,7 @@ export const buildWardenGuideManifest = (): WardenGuideManifest => {
       const rule = lookupRule(id);
       const docs = metadata.guidance?.docs ?? [];
       return {
-        category: metadata.concern,
+        concern: metadata.concern,
         depth: metadata.depth,
         description: rule?.description ?? '',
         docs,
@@ -140,7 +140,7 @@ const renderRuleMarkdown = (rule: WardenRuleGuideEntry): readonly string[] => {
     `### \`${rule.id}\``,
     '',
     `- Severity: \`${rule.severity}\``,
-    `- Category: \`${rule.category}\``,
+    `- Concern: \`${rule.concern}\``,
     `- Depth: \`${rule.depth}\``,
     `- Tier: \`${rule.tier}\``,
     `- Scope: \`${rule.scope}\``,
@@ -200,7 +200,7 @@ export const buildWardenAgentGuide = (
   instructions: [
     'Treat Warden rules as enforceable Trails doctrine when working in this repository.',
     'Prefer the rule guidance summary and ordered steps over diagnostic prose when deciding how to remediate a finding.',
-    'When guidance is absent, use the invariant, category, tier, and scope as classification metadata rather than inventing a rule-specific fix.',
+    'When guidance is absent, use the invariant, concern, tier, and scope as classification metadata rather than inventing a rule-specific fix.',
   ],
   kind: 'trails-warden-agent-guide',
   rules: manifest.rules.map((rule) => ({
@@ -209,7 +209,7 @@ export const buildWardenAgentGuide = (
       scope: rule.scope,
       tier: rule.tier,
     },
-    category: rule.category,
+    concern: rule.concern,
     guidance: rule.guidance,
     id: rule.id,
     invariant: rule.invariant,

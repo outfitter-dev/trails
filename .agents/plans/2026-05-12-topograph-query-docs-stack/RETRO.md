@@ -60,7 +60,7 @@ ready and again before final handoff.
 | 3 | `TRL-657` | `trl-657-add-complete-resolved-contract-detail-view-for-blind-agents` | TBD | Implemented locally |
 | 4 | `TRL-653` | `trl-653-sweep-docs-api-references-and-agent-guidance-for-topograph` | TBD | Implemented locally |
 | 5 | `TRL-702` | `trl-702-add-retired-vocabulary-guard-for-active-topograph-surfaces` | TBD | Implemented locally |
-| 6 | `TRL-692` | `trl-692-clarify-warden-guide-manifest-category-naming-before` | TBD | Not started |
+| 6 | `TRL-692` | `trl-692-clarify-warden-guide-manifest-category-naming-before` | TBD | Implemented locally |
 | 7 | `TRL-690` | `trl-690-polish-warden-guidance-link-rendering-and-schema-reuse` | TBD | Not started |
 | 8 | `TRL-691` | `trl-691-polish-generated-warden-guide-headers-and-generator-tests` | TBD | Not started |
 | 9 | `TRL-693` | `trl-693-tighten-cli-value-alias-conflicts-for-non-commander-callers` | TBD | Not started |
@@ -154,6 +154,12 @@ ready waves, and remote review turns here.
   audit. The normal `bun run check` gate now runs `bun run vocab:audit`, with
   explicit exemptions for history, migration notes, accepted ADR context, and
   legacy cleanup seams.
+- 2026-05-12 15:30 EDT: Moved `TRL-692` to `In Progress`, created
+  `trl-692-clarify-warden-guide-manifest-category-naming-before`, and renamed
+  the Warden guide manifest grouping field from `category` to `concern` so it
+  matches the source `WardenRuleMetadata.concern` taxonomy. Updated package/app
+  schemas, generator grouping helpers, generated skill guide references, and
+  branch-local changeset metadata.
 
 ## Verification Log
 
@@ -222,6 +228,19 @@ Branch `TRL-702` focused checks:
 - `bun scripts/vocab-cutover-audit.ts` - passed after adding
   `docs/adr/0044-trail-versioning.md` to reviewed ADR mention paths.
 - `bun run lint:ast-grep` - passed.
+- `bun run format:check` - passed.
+- `git diff --check` - passed.
+
+Branch `TRL-692` focused checks:
+
+- `bun test packages/warden` - passed, 886 tests / 2180 expects.
+- `bun test apps/trails/src/__tests__/warden.test.ts` - passed, 15 tests /
+  87 expects.
+- `bun run typecheck` - passed.
+- `bun run warden:skills:sync` - refreshed generated skill Warden references
+  after the agent instruction wording changed from category to concern.
+- `bun run warden:agents:check` - passed.
+- `bun run warden:skills:check` - passed after sync.
 - `bun run format:check` - passed.
 - `git diff --check` - passed.
 

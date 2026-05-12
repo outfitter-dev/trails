@@ -11,7 +11,7 @@ This file is generated from the live `@ontrails/warden` rule manifest. Repo-trac
 
 - Treat Warden rules as enforceable Trails doctrine when working in this repository.
 - Prefer the rule guidance summary and ordered steps over diagnostic prose when deciding how to remediate a finding.
-- When guidance is absent, use the invariant, category, tier, and scope as classification metadata rather than inventing a rule-specific fix.
+- When guidance is absent, use the invariant, concern, tier, and scope as classification metadata rather than inventing a rule-specific fix.
 - Treat `docs/tenets.md`, `docs/lexicon.md`, and `AGENTS.md` as higher-authority orientation when prose conflicts with generated rule summaries.
 - Do not manually duplicate the rule index into skill prompts. Refresh this file when Warden metadata changes.
 
