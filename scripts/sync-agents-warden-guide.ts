@@ -29,7 +29,7 @@ const renderGeneratedHeader = (
   '',
   'This section is generated from the live `@ontrails/warden` rule manifest. Keep the human-authored guidance above as orientation; use this block as the enforceable-rule index.',
   '',
-  `- Source command: \`bun apps/trails/bin/trails.ts warden guide --manifest\``,
+  `- Guide input command: \`bun apps/trails/bin/trails.ts warden guide --manifest\``,
   `- Rule count: ${manifest.ruleCount}`,
 ];
 

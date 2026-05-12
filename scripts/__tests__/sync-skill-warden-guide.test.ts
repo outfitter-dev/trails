@@ -20,6 +20,9 @@ describe('sync-skill-warden-guide', () => {
     );
     expect(SKILL_WARDEN_GUIDE_PATHS).toHaveLength(2);
     expect(guide).toStartWith('# Warden Guidance For Trails Skills');
+    expect(guide).toContain(
+      '- Guide input command: `bun apps/trails/bin/trails.ts warden guide --agent-json`'
+    );
     expect(guide).toMatch(/Rule count: \d+/);
     expect(guide).toContain('## Agent Instructions');
     expect(guide).toContain('Repo-tracked skills, agents, and plugin prompts');

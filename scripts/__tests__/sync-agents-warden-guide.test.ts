@@ -1,5 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 
+import type { WardenGuideManifest } from '@ontrails/warden';
+
 import {
   WARDEN_GUIDE_END,
   WARDEN_GUIDE_START,
@@ -7,14 +9,44 @@ import {
   replaceAgentsWardenGuideBlock,
 } from '../sync-agents-warden-guide.js';
 
+const manifestFixture = {
+  generatedFrom: {
+    package: '@ontrails/warden',
+    registries: ['wardenRules', 'wardenTopoRules'],
+    source: 'builtin-rule-metadata',
+  },
+  kind: 'trails-warden-guide-manifest',
+  ruleCount: 1,
+  rules: [
+    {
+      concern: 'results',
+      depth: 'source',
+      description: 'Prevents thrown trail failures.',
+      docs: [],
+      id: 'no-throw-in-implementation',
+      invariant: 'Trail implementations return Result values.',
+      lifecycle: { state: 'durable' },
+      scope: 'external',
+      severity: 'error',
+      tier: 'source-static',
+    },
+  ],
+  version: 1,
+} satisfies WardenGuideManifest;
+
 describe('sync-agents-warden-guide', () => {
-  test('renders a generated block from the live Warden manifest', () => {
-    const block = renderAgentsWardenGuideBlock();
+  test('renders a generated block from the Warden manifest', () => {
+    const block = renderAgentsWardenGuideBlock(manifestFixture);
 
     expect(block).toStartWith(WARDEN_GUIDE_START);
-    expect(block).toMatch(/Rule count: \d+/);
+    expect(block).toContain(
+      '- Guide input command: `bun apps/trails/bin/trails.ts warden guide --manifest`'
+    );
+    expect(block).toContain('- Rule count: 1');
     expect(block).toContain('#### Results');
-    expect(block).toContain('`no-throw-in-implementation`');
+    expect(block).toMatch(
+      /- `no-throw-in-implementation` \(error, source\/source-static, external\): Trail implementations return Result values\./
+    );
     expect(block).toEndWith(WARDEN_GUIDE_END);
   });
 
@@ -62,13 +94,30 @@ describe('sync-agents-warden-guide', () => {
     expect(updated).toContain(replacement);
   });
 
-  test('rejects orphaned generated block markers', () => {
+  test('rejects orphaned start-only generated block markers', () => {
     const replacement = `${WARDEN_GUIDE_START}\nnew\n${WARDEN_GUIDE_END}`;
     const source = [
       '# AGENTS.md',
       '',
       WARDEN_GUIDE_START,
       'old',
+      '',
+      '## Draft State',
+      '',
+      'Drafts.',
+    ].join('\n');
+
+    expect(() => replaceAgentsWardenGuideBlock(source, replacement)).toThrow(
+      'found only one Warden guide marker'
+    );
+  });
+
+  test('rejects orphaned end-only generated block markers', () => {
+    const replacement = `${WARDEN_GUIDE_START}\nnew\n${WARDEN_GUIDE_END}`;
+    const source = [
+      '# AGENTS.md',
+      '',
+      WARDEN_GUIDE_END,
       '',
       '## Draft State',
       '',

@@ -49,7 +49,7 @@ const renderGeneratedHeader = (
   '',
   'This file is generated from the live `@ontrails/warden` rule manifest. Repo-tracked skills, agents, and plugin prompts should reference this file instead of copying rule prose by hand.',
   '',
-  `- Source command: \`bun apps/trails/bin/trails.ts warden guide --agent-json\``,
+  `- Guide input command: \`bun apps/trails/bin/trails.ts warden guide --agent-json\``,
   `- Rule count: ${manifest.ruleCount}`,
   '',
 ];
