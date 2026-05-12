@@ -65,7 +65,7 @@ ready and again before final handoff.
 | 8 | `TRL-691` | `trl-691-polish-generated-warden-guide-headers-and-generator-tests` | TBD | Implemented locally |
 | 9 | `TRL-693` | `trl-693-tighten-cli-value-alias-conflicts-for-non-commander-callers` | TBD | Implemented locally |
 | 10 | `TRL-694` | `trl-694-suppress-static-resource-accessor-warnings-when-string` | TBD | Implemented locally |
-| 11 | `TRL-634` | `trl-634-audit-cross-surface-parity-coverage-gaps` | TBD | Not started |
+| 11 | `TRL-634` | `trl-634-audit-cross-surface-parity-coverage-gaps` | TBD | Implemented locally |
 | 12 | `TRL-636` | `trl-636-audit-docs-and-examples-for-v1-readiness` | TBD | Not started |
 | 13 | `TRL-637` | `trl-637-audit-release-process-and-beta-to-10-cutover-requirements` | TBD | Not started |
 
@@ -79,6 +79,10 @@ issues created or updated during execution.
 | `TRL-634` | Updated deliverable and acceptance criteria from ignored `.scratch/v1-release-prep/m3-parity-audit.md` to tracked `.agents/plans/2026-05-12-topograph-query-docs-stack/reports/m3-parity-audit.md`; added note to use TopoGraph/topo-store query APIs from `TRL-655`/`TRL-657`. | Planning alignment |
 | `TRL-636` | Updated deliverable and acceptance criteria from ignored `.scratch/v1-release-prep/m5-docs-audit.md` to tracked `.agents/plans/2026-05-12-topograph-query-docs-stack/reports/m5-docs-audit.md`; added note that this runs after `TRL-653`/`TRL-702`. | Planning alignment |
 | `TRL-637` | Updated deliverable and acceptance criteria from ignored `.scratch/v1-release-prep/m6-release-process-audit.md` to tracked `.agents/plans/2026-05-12-topograph-query-docs-stack/reports/m6-release-process-audit.md`; changed release wording from npm publish flow to Bun publish flow and repo scripts. | Planning alignment |
+| `TRL-634` | Moved to `In Progress` when the audit branch started. | [TRL-634](https://linear.app/outfitter/issue/TRL-634/audit-cross-surface-parity-coverage-gaps) |
+| `TRL-704` | Created M3 follow-up for a first-party HTTP harness and `testAllEstablished()` HTTP projection validation. | [TRL-704](https://linear.app/outfitter/issue/TRL-704/add-http-surface-harness-and-include-it-in-testallestablished) |
+| `TRL-705` | Created M3 follow-up for example-driven CLI/MCP/HTTP parity execution and CI gate. | [TRL-705](https://linear.app/outfitter/issue/TRL-705/add-example-driven-climcphttp-parity-runner-and-ci-gate) |
+| `TRL-706` | Created M3 follow-up for a complete shipped-surface projection inventory consumable by blind parity audits. | [TRL-706](https://linear.app/outfitter/issue/TRL-706/expose-complete-shipped-surface-projection-inventory-for-blind-parity) |
 
 ## Local Review Reports
 
@@ -110,7 +114,9 @@ If round 3 still finds any P0/P1/P2 issue, add round 4+ rows and continue.
 
 | Issue | Discovery | Why Out Of Goal | Link |
 | --- | --- | --- | --- |
-|  |  |  |  |
+| M3 parity | `@ontrails/testing` exports CLI and MCP harnesses, but no HTTP harness, and `testAllEstablished()` validates only CLI/MCP projection builds. | Audit-only branch; implementation belongs in focused follow-up. | [TRL-704](https://linear.app/outfitter/issue/TRL-704/add-http-surface-harness-and-include-it-in-testallestablished) |
+| M3 parity | No current runner executes the same trail example across CLI, MCP, and HTTP and compares normalized Result/error semantics. | Audit-only branch; implementation belongs in focused follow-up. | [TRL-705](https://linear.app/outfitter/issue/TRL-705/add-example-driven-climcphttp-parity-runner-and-ci-gate) |
+| M3 parity | Blind agents cannot query a complete shipped-surface projection inventory from one artifact-backed view; the audit had to combine topo-store reads with surface-package derivation. | Needs a small design choice about app-level helper versus durable schema expansion. | [TRL-706](https://linear.app/outfitter/issue/TRL-706/expose-complete-shipped-surface-projection-inventory-for-blind-parity) |
 
 ## Execution Log
 
@@ -184,6 +190,15 @@ ready waves, and remote review turns here.
   resource lookups now carry the declared resource names shadowed at the lookup
   site so an ID-resolved warning is suppressed when its suggested static helper
   name is locally rebound inside `blaze`.
+- 2026-05-12: Moved `TRL-634` to `In Progress`, created
+  `trl-634-audit-cross-surface-parity-coverage-gaps`, produced
+  `reports/m3-parity-audit.md`, and filed follow-ups `TRL-704`, `TRL-705`, and
+  `TRL-706`. The audit found 37 trails across `@ontrails/trails` and
+  `trails-demo`: 34 public surface-eligible trails project on CLI/MCP/HTTP, 2
+  are intentionally internal (`create.scaffold`, `add.verify`), 1 public
+  activation consumer (`entity.notify-updated`) is excluded from callable
+  surfaces by activation-source filtering, and WebSocket remains
+  planned/not shipped.
 
 ## Verification Log
 
@@ -306,6 +321,13 @@ Branch `TRL-694` focused checks:
   packages/warden/src/__tests__/static-resource-accessor-preference.test.ts` -
   passed, 15 tests / 28 expects.
 - `bun run lint` - passed.
+- `bun run format:check` - passed.
+- `git diff --check` - passed.
+
+Branch `TRL-634` focused checks:
+
+- `bun run check` - passed. Warden reported existing warnings only and still
+  returned `PASS`; no P0/P1/P2 branch findings.
 - `bun run format:check` - passed.
 - `git diff --check` - passed.
 
