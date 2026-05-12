@@ -144,6 +144,22 @@ describe('deriveFlags', () => {
       );
     });
 
+    test('rejects ambiguous canonical defaults combined with aliases without caller-supplied key tracking', () => {
+      const flags = deriveFlags(
+        z.object({ outputFormat: z.enum(['json', 'text']).default('text') }),
+        { outputFormat: { aliases: { json: 'json-output' } } }
+      );
+
+      expect(() =>
+        applyCliFlagValueAliases(flags, {
+          jsonOutput: true,
+          outputFormat: 'text',
+        })
+      ).toThrow(
+        'CLI flag "--output-format" cannot be combined with value alias "--json-output"'
+      );
+    });
+
     test('rejects multiple aliases for the same canonical flag', () => {
       const flags = deriveFlags(
         z.object({ format: z.enum(['json', 'summary', 'text']) }),

@@ -184,10 +184,13 @@ export const applyCliFlagValueAliases = (
     }
 
     const canonicalKey = toCamel(flag.name);
+    // Adapters should pass the exact user-supplied key set when they preserve
+    // defaulted canonical values in parsed flags. Without that set, an active
+    // value alias plus any parsed canonical key is ambiguous and must fail
+    // loudly instead of guessing whether the canonical value was a default.
     const canonicalWasSupplied =
       userSuppliedFlagKeys?.has(canonicalKey) ??
-      (normalized[canonicalKey] !== undefined &&
-        normalized[canonicalKey] !== flag.default);
+      Object.hasOwn(normalized, canonicalKey);
     const [activeAlias] = activeAliases;
     if (!activeAlias) {
       continue;

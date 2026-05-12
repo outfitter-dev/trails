@@ -63,7 +63,7 @@ ready and again before final handoff.
 | 6 | `TRL-692` | `trl-692-clarify-warden-guide-manifest-category-naming-before` | TBD | Implemented locally |
 | 7 | `TRL-690` | `trl-690-polish-warden-guidance-link-rendering-and-schema-reuse` | TBD | Implemented locally |
 | 8 | `TRL-691` | `trl-691-polish-generated-warden-guide-headers-and-generator-tests` | TBD | Implemented locally |
-| 9 | `TRL-693` | `trl-693-tighten-cli-value-alias-conflicts-for-non-commander-callers` | TBD | Not started |
+| 9 | `TRL-693` | `trl-693-tighten-cli-value-alias-conflicts-for-non-commander-callers` | TBD | Implemented locally |
 | 10 | `TRL-694` | `trl-694-suppress-static-resource-accessor-warnings-when-string` | TBD | Not started |
 | 11 | `TRL-634` | `trl-634-audit-cross-surface-parity-coverage-gaps` | TBD | Not started |
 | 12 | `TRL-636` | `trl-636-audit-docs-and-examples-for-v1-readiness` | TBD | Not started |
@@ -172,6 +172,12 @@ ready waves, and remote review turns here.
   `Guide input command`, refreshed AGENTS and skill guide generated blocks, and
   added generator tests for the end-only orphaned marker case plus stable
   fixture-based rendering assertions.
+- 2026-05-12 16:12 EDT: Moved `TRL-693` to `In Progress`, created
+  `trl-693-tighten-cli-value-alias-conflicts-for-non-commander-callers`, and
+  tightened `applyCliFlagValueAliases()` for non-Commander callers. When an
+  active value alias is present without caller-supplied key tracking, any parsed
+  canonical key is treated as ambiguous and rejected instead of guessing whether
+  it was only a defaulted value.
 
 ## Verification Log
 
@@ -277,6 +283,14 @@ Branch `TRL-691` focused checks:
 - `bun run warden:skills:sync` - refreshed generated skill Warden references.
 - `bun run warden:agents:check` - passed.
 - `bun run warden:skills:check` - passed.
+- `bun run format:check` - passed.
+- `git diff --check` - passed.
+
+Branch `TRL-693` focused checks:
+
+- `bun test packages/cli` - passed, 221 tests / 561 expects.
+- `bun test adapters/commander` - passed, 43 tests / 84 expects.
+- `bun run typecheck` - passed.
 - `bun run format:check` - passed.
 - `git diff --check` - passed.
 
