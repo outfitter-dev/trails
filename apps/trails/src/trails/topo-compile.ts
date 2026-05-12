@@ -49,7 +49,7 @@ export const topoCompileTrail = trail('topo.compile', {
   output: z.object({
     hash: z.string(),
     lockPath: z.string(),
-    mapPath: z.string(),
     snapshot: topoSnapshotOutput,
+    topoPath: z.string(),
   }),
 });

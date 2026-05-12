@@ -177,6 +177,38 @@ describe('topo and dev trails', () => {
       expect(verifyResult.stale).toBe(false);
       expect(countTopoSnapshots(dir)).toBe(snapshotCountAfterExport);
 
+      const committedLock = JSON.parse(
+        readFileSync(join(dir, '.trails', 'trails.lock'), 'utf8')
+      ) as {
+        artifacts: { path: string; role: 'topo'; sha256: string }[];
+        scope: Record<string, string>;
+        summary: Record<string, number>;
+        version: 3;
+      };
+      writeFileSync(
+        join(dir, '.trails', 'trails.lock'),
+        `${JSON.stringify(
+          {
+            ...committedLock,
+            artifacts: committedLock.artifacts.map((artifact) => ({
+              ...artifact,
+              path: 'other.lock',
+            })),
+          },
+          null,
+          2
+        )}\n`
+      );
+      const wrongArtifactError = expectErr(
+        await topoVerifyTrail.blaze(moduleInput, { cwd: dir } as never)
+      );
+      expect(wrongArtifactError.message).toContain('topo.lock artifact');
+
+      writeFileSync(
+        join(dir, '.trails', 'trails.lock'),
+        `${JSON.stringify(committedLock, null, 2)}\n`
+      );
+
       writeAppFixture(dir, { includeAuthTrail: true });
       const currentSummary = expectOk(
         await topoTrail.blaze(moduleInput, { cwd: dir } as never)

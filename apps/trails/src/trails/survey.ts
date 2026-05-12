@@ -5,7 +5,7 @@
  * versions.
  */
 
-import { extname, join } from 'node:path';
+import { basename, extname, join } from 'node:path';
 
 import type { Topo } from '@ontrails/core';
 import {
@@ -156,20 +156,21 @@ const readPathTopoGraph = async (
   }
 
   return Result.ok(
-    extname(safePath.value) === '.json'
+    basename(safePath.value) === 'topo.lock' ||
+      extname(safePath.value) === '.json'
       ? await readTopoGraphFile(safePath.value)
       : await readTopoGraph({ dir: safePath.value })
   );
 };
 
 const describeAgainstPathTarget = (against: string): string =>
-  extname(against) === '.json'
-    ? 'workspace-relative JSON surface-map file'
-    : 'workspace-relative directory containing _surface.json';
+  basename(against) === 'topo.lock' || extname(against) === '.json'
+    ? 'workspace-relative TopoGraph file'
+    : 'workspace-relative directory containing topo.lock';
 
 const topoGraphNotFound = (against: string): NotFoundError =>
   new NotFoundError(
-    `No surface map found for: ${against}. Tried ${describeAgainstPathTarget(
+    `No TopoGraph found for: ${against}. Tried ${describeAgainstPathTarget(
       against
     )}, then topo-store pin and snapshot references.`
   );
@@ -183,7 +184,7 @@ const readAgainstTopoGraph = async (
     return map === null
       ? Result.err(
           new NotFoundError(
-            'No saved surface map found. Run `trails topo compile` first.'
+            'No saved TopoGraph found. Run `trails topo compile` first.'
           )
         )
       : Result.ok({ against: 'saved', map });
@@ -510,10 +511,10 @@ export const surveyDiffTrail = trail('survey.diff', {
     withResolvedSurveyApp(input, ctx.cwd, (app, rootDir) =>
       buildSurveyDiff(app, rootDir, input.breakingOnly, input.against)
     ),
-  description: 'Diff the current topo against a saved surface map',
+  description: 'Diff the current topo against a saved TopoGraph',
   examples: [
     {
-      description: 'Compare current topo to a saved surface map directory',
+      description: 'Compare current topo to a saved TopoGraph directory',
       input: createDiffExampleInput(),
       name: 'Diff against baseline',
     },
@@ -539,7 +540,7 @@ export const surveyDiffTrail = trail('survey.diff', {
       .min(1)
       .optional()
       .describe(
-        'Saved map target: "saved", a workspace path (.json file or directory with _surface.json), then a pin/snapshot id'
+        'Saved TopoGraph target: "saved", a workspace path (topo.lock, .json file, or directory with topo.lock), then a pin/snapshot id'
       ),
     breakingOnly: z
       .boolean()

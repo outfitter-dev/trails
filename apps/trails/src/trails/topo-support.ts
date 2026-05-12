@@ -58,8 +58,8 @@ export interface TopoHistoryReport {
 export interface TopoExportReport {
   readonly hash: string;
   readonly lockPath: string;
-  readonly mapPath: string;
   readonly snapshot: TopoSnapshot;
+  readonly topoPath: string;
 }
 
 export interface TopoVerifyReport {

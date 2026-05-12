@@ -101,7 +101,8 @@ const TSCONFIG_CONTENT = JSON.stringify(
 const GITIGNORE_CONTENT = `node_modules/
 dist/
 *.tsbuildinfo
-.trails/_surface.json
+.trails/trails.db
+.trails/config.local.ts
 `;
 
 const OXLINT_CONFIG_CONTENT = `import { defineConfig } from 'oxlint';

@@ -242,7 +242,7 @@ describe('trails survey', () => {
     expect(ids).toContain('db.main');
   });
 
-  test('surface map entries have expected fields', () => {
+  test('TopoGraph entries have expected fields', () => {
     const surfaceMap = deriveTopoGraph(app);
     const hello = surfaceMap.entries.find((e) => e.id === 'hello');
     expect(hello).toBeDefined();
@@ -906,11 +906,12 @@ describe('trails topo compile', () => {
       ) as {
         readonly hash: string;
         readonly lockPath: string;
-        readonly mapPath: string;
         readonly snapshot: unknown;
+        readonly topoPath: string;
       };
 
       expect(compiled.hash).toHaveLength(64);
+      expect(compiled.topoPath).toBe(join(dir, '.trails', 'topo.lock'));
       expect(existsSync(join(dir, '.trails', 'topo.lock'))).toBe(true);
       expect(existsSync(join(dir, '.trails', 'trails.lock'))).toBe(true);
       expect(
@@ -940,7 +941,7 @@ describe('trails survey diff', () => {
     }
   });
 
-  test('returns an error when no saved surface map exists yet', async () => {
+  test('returns an error when no saved TopoGraph exists yet', async () => {
     const dir = repoTempDir();
 
     try {
@@ -957,7 +958,7 @@ describe('trails survey diff', () => {
     }
   });
 
-  test('diffs against the saved local surface map', async () => {
+  test('diffs against the saved local TopoGraph', async () => {
     const dir = repoTempDir();
 
     try {
@@ -990,7 +991,7 @@ describe('trails survey diff', () => {
     }
   });
 
-  test('can diff against a workspace-relative surface map directory', async () => {
+  test('can diff against a workspace-relative TopoGraph directory', async () => {
     const dir = repoTempDir();
 
     try {
@@ -1020,7 +1021,7 @@ describe('trails survey diff', () => {
     }
   });
 
-  test('can diff against a workspace-relative JSON surface map file', async () => {
+  test('can diff against a workspace-relative JSON TopoGraph file', async () => {
     const dir = repoTempDir();
 
     try {
@@ -1055,6 +1056,40 @@ describe('trails survey diff', () => {
     }
   });
 
+  test('can diff against a workspace-relative topo.lock file', async () => {
+    const dir = repoTempDir();
+
+    try {
+      writeSurveyAppFixture(dir);
+      const baselineApp = await loadApp('./src/app.ts', dir);
+      await writeTopoGraph(deriveTopoGraph(baselineApp), {
+        dir: join(dir, 'baseline-dir'),
+      });
+
+      writeSurveyAppFixture(dir, { withBye: true });
+
+      const result = await surveyDiffTrail.blaze(
+        { against: 'baseline-dir/topo.lock', module: './src/app.ts' },
+        { cwd: dir } as never
+      );
+
+      expect(result.isOk()).toBe(true);
+      expect(result.value).toMatchObject({
+        against: 'baseline-dir/topo.lock',
+        hasBreaking: false,
+        info: [
+          expect.objectContaining({
+            change: 'added',
+            id: 'bye',
+          }),
+        ],
+        mode: 'diff',
+      });
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
   test('reports attempted resolution strategies for missing diff targets', async () => {
     const dir = repoTempDir();
 
@@ -1068,10 +1103,10 @@ describe('trails survey diff', () => {
 
       expect(result.isErr()).toBe(true);
       expect(result.error.message).toContain(
-        'No surface map found for: baselins'
+        'No TopoGraph found for: baselins'
       );
       expect(result.error.message).toContain(
-        'workspace-relative directory containing _surface.json'
+        'workspace-relative directory containing topo.lock'
       );
       expect(result.error.message).toContain(
         'topo-store pin and snapshot references'
@@ -1166,7 +1201,6 @@ describe('trails survey output schema', () => {
       topoCompileTrail.output.safeParse({
         hash: 'a'.repeat(64),
         lockPath: '.trails/trails.lock',
-        mapPath: '.trails/topo.lock',
         snapshot: {
           createdAt: new Date(0).toISOString(),
           gitDirty: false,
@@ -1175,6 +1209,7 @@ describe('trails survey output schema', () => {
           signalCount: 0,
           trailCount: 2,
         },
+        topoPath: '.trails/topo.lock',
       }).success
     ).toBe(true);
     expect(

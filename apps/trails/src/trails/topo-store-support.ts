@@ -86,8 +86,8 @@ export const deriveCurrentTopoExport = (
 const writeStoredExportArtifacts = async (
   storedExport: StoredTopoExport,
   trailsDir: string
-): Promise<Pick<TopoExportReport, 'hash' | 'lockPath' | 'mapPath'>> => {
-  const mapPath = await writeTopoGraph(
+): Promise<Pick<TopoExportReport, 'hash' | 'lockPath' | 'topoPath'>> => {
+  const topoPath = await writeTopoGraph(
     JSON.parse(storedExport.topoGraphJson) as TopoGraph,
     { dir: trailsDir }
   );
@@ -99,7 +99,7 @@ const writeStoredExportArtifacts = async (
   return {
     hash: storedExport.topoGraphHash,
     lockPath,
-    mapPath,
+    topoPath,
   };
 };
 
