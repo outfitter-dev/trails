@@ -56,7 +56,7 @@ ready and again before final handoff.
 | Order | Issue | Branch | PR | Status |
 | --- | --- | --- | --- | --- |
 | 1 | `TRL-655` | `trl-655-add-typed-topo-store-views-over-topograph-saved-state` | TBD | Implemented locally |
-| 2 | `TRL-656` | `trl-656-make-persisted-surface-rows-complete-or-explicitly-partial` | TBD | Not started |
+| 2 | `TRL-656` | `trl-656-make-persisted-surface-rows-complete-or-explicitly-partial` | TBD | Implemented locally |
 | 3 | `TRL-657` | `trl-657-add-complete-resolved-contract-detail-view-for-blind-agents` | TBD | Not started |
 | 4 | `TRL-653` | `trl-653-sweep-docs-api-references-and-agent-guidance-for-topograph` | TBD | Not started |
 | 5 | `TRL-702` | `trl-702-add-retired-vocabulary-guard-for-active-topograph-surfaces` | TBD | Not started |
@@ -130,6 +130,11 @@ ready waves, and remote review turns here.
   payloads; existing resource/signal read paths share the helper instead of
   parsing `topoGraphJson` inline. Added topographer docs, tests, and a
   `@ontrails/topographer` patch changeset.
+- 2026-05-12 14:05 EDT: Moved `TRL-656` to `In Progress`, created
+  `trl-656-make-persisted-surface-rows-complete-or-explicitly-partial`, and
+  implemented the explicit partial-row posture for `topo_surfaces`. The SQL
+  rows are documented and tested as CLI-only operational projections, while
+  complete graph detail stays in `TopoGraph` and typed entry views.
 
 ## Verification Log
 
@@ -154,6 +159,15 @@ Branch `TRL-655` focused checks:
 - `bun run typecheck` - passed.
 - `bun run format:check` - passed.
 - `bun run lint` - passed.
+- `git diff --check` - passed.
+
+Branch `TRL-656` focused checks:
+
+- `bun test packages/topographer/src/__tests__/topo-store.test.ts
+  packages/topographer/src/__tests__/topo-store-read.test.ts` - passed,
+  29 tests / 169 expects.
+- `bun run typecheck` - passed.
+- `bun run format:check` - passed.
 - `git diff --check` - passed.
 
 ## Review Feedback

@@ -254,11 +254,19 @@ const readSurfaceRows = (
   snapshotId: string
 ) =>
   db
-    .query<{ derived_name: string; trail_id: string }, [string]>(
-      `SELECT trail_id, derived_name
+    .query<
+      {
+        derived_name: string;
+        method: string | null;
+        surface: string;
+        trail_id: string;
+      },
+      [string]
+    >(
+      `SELECT trail_id, surface, derived_name, method
        FROM topo_surfaces
        WHERE snapshot_id = ?
-       ORDER BY trail_id ASC`
+       ORDER BY trail_id ASC, surface ASC`
     )
     .all(snapshotId);
 
@@ -365,8 +373,18 @@ const expectProjectedFixtureRows = (
     { signal_id: 'entity.added', trail_id: 'entity.add' },
   ]);
   expect(readSurfaceRows(db, snapshotId)).toEqual([
-    { derived_name: 'entity add', trail_id: 'entity.add' },
-    { derived_name: 'entity list', trail_id: 'entity.list' },
+    {
+      derived_name: 'entity add',
+      method: null,
+      surface: 'cli',
+      trail_id: 'entity.add',
+    },
+    {
+      derived_name: 'entity list',
+      method: null,
+      surface: 'cli',
+      trail_id: 'entity.list',
+    },
   ]);
   expect(readExampleRows(db, snapshotId)).toEqual([
     {

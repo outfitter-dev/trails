@@ -688,6 +688,53 @@ describe('read-only topo store', () => {
     ).toBeUndefined();
   });
 
+  test('distinguishes CLI surface rows from canonical TopoGraph detail', async () => {
+    const rootDir = makeRoot();
+    const snapshot = await expectOk(
+      createTopoSnapshot(graphAttachmentApp(), {
+        createdAt: '2026-04-03T16:30:00.000Z',
+        gitSha: 'abc123',
+        rootDir,
+      })
+    );
+    const store = createTopoStore({ rootDir });
+
+    expect(
+      store.query<{
+        derived_name: string;
+        method: string | null;
+        surface: string;
+        trail_id: string;
+      }>(
+        `SELECT trail_id, surface, derived_name, method
+         FROM topo_surfaces
+         WHERE snapshot_id = ?
+         ORDER BY trail_id ASC, surface ASC`,
+        [snapshot.id]
+      )
+    ).toEqual([
+      {
+        derived_name: 'entity process',
+        method: null,
+        surface: 'cli',
+        trail_id: 'entity.process',
+      },
+    ]);
+
+    const graphDetail = store.entries.get('entity.process', {
+      kind: 'trail',
+      snapshot: { snapshotId: snapshot.id },
+    });
+    expect(graphDetail).toEqual(
+      expect.objectContaining({
+        activationSources: expect.any(Array),
+        fieldOverrides: expect.any(Array),
+        layers: expect.any(Array),
+        output: expect.objectContaining({ type: 'object' }),
+      })
+    );
+  });
+
   test('defaults omitted detour maxAttempts to one in detailed views', async () => {
     const rootDir = makeRoot();
     const withDefaultDetour = trail('entity.with-default-detour', {

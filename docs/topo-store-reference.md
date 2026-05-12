@@ -168,6 +168,15 @@ CREATE TABLE topo_examples (
 
 Which surfaces expose which trails.
 
+This table is an operational query projection, not the canonical complete
+surface graph. In the current v1 posture it records CLI-derived rows only:
+`surface = 'cli'`, the CLI command name in `derived_name`, and `method = NULL`.
+Schema-rich contract detail lives in the saved `TopoGraph`
+(`topo_exports.topo_graph`) and the typed `store.topoGraph` / `store.entries`
+accessors. Today the TopoGraph's surface-related facts are the authored
+`surfaces` list and CLI path metadata; complete multi-surface projection rows
+remain future work.
+
 ```sql
 CREATE TABLE topo_surfaces (
   trail_id TEXT NOT NULL,
