@@ -1,13 +1,9 @@
 # Local config overrides
-config/
+config.local.js
+config.local.ts
 
-# Development state
-dev/
+# Rebuildable cache
+cache/
 
-# Generated artifacts
-generated/
-
-# Shared Trails database
-trails.db
-trails.db-shm
-trails.db-wal
+# Mutable runtime state
+state/

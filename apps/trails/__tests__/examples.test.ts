@@ -3,27 +3,14 @@ import { afterAll, beforeAll } from 'bun:test';
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
+import { WORKSPACE_GITIGNORE_CONTENT } from '@ontrails/core';
 import { testExamples } from '@ontrails/testing';
 
 import { app } from '../src/app.js';
 
 const trailsWorkspaceDir = resolve(import.meta.dir, '..', '.trails');
 const trailsGitignorePath = join(trailsWorkspaceDir, '.gitignore');
-const trailsWorkspaceSubdirs = ['config', 'dev', 'generated'] as const;
-const trailsGitignore = `# Local config overrides
-config/
-
-# Development state
-dev/
-
-# Generated artifacts
-generated/
-
-# Shared Trails database
-trails.db
-trails.db-shm
-trails.db-wal
-`;
+const trailsWorkspaceSubdirs = ['cache', 'state'] as const;
 
 const resetTrailsWorkspace = (): void => {
   rmSync(trailsWorkspaceDir, { force: true, recursive: true });
@@ -31,7 +18,7 @@ const resetTrailsWorkspace = (): void => {
   for (const subdir of trailsWorkspaceSubdirs) {
     mkdirSync(join(trailsWorkspaceDir, subdir), { recursive: true });
   }
-  writeFileSync(trailsGitignorePath, trailsGitignore);
+  writeFileSync(trailsGitignorePath, WORKSPACE_GITIGNORE_CONTENT);
 };
 
 beforeAll(() => {

@@ -36,10 +36,13 @@ interface DefineConfigResolveOptions {
 // Local overrides discovery
 // ---------------------------------------------------------------------------
 
-const LOCAL_OVERRIDE_CANDIDATES = ['local.ts', 'local.js'] as const;
+const LOCAL_OVERRIDE_CANDIDATES = [
+  'config.local.ts',
+  'config.local.js',
+] as const;
 
 /**
- * Discover and synchronously import a `.trails/config/local.{ts,js}` file.
+ * Discover and synchronously import a `.trails/config.local.{ts,js}` file.
  *
  * Skipped when `TRAILS_ENV=test` for hermetic test environments.
  */
@@ -52,7 +55,7 @@ const discoverLocalOverrides = async (
   }
 
   for (const filename of LOCAL_OVERRIDE_CANDIDATES) {
-    const candidate = join(cwd, '.trails', 'config', filename);
+    const candidate = join(cwd, '.trails', filename);
     if (existsSync(candidate)) {
       const mod: Record<string, unknown> = await import(candidate);
       return (mod['default'] ?? mod) as Record<string, unknown>;

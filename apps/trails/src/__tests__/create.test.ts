@@ -322,7 +322,7 @@ describe('trails create', () => {
           expect.arrayContaining([
             { kind: 'write', path: 'package.json' },
             { kind: 'write', path: 'src/app.ts' },
-            { kind: 'mkdir', path: '.trails' },
+            { kind: 'write', path: '.trails/.gitignore' },
           ])
         );
         expect(existsSync(dir)).toBe(false);

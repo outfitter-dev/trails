@@ -6,24 +6,37 @@ import { NotFoundError } from './errors.js';
 
 const TRAILS_DIR = '.trails';
 const TRAILS_DB_FILE = 'trails.db';
+const TRAILS_CACHE_DIR = 'cache';
+const TRAILS_STATE_DIR = 'state';
 const SCHEMA_VERSION_TABLE = 'meta_schema_versions';
-const WORKSPACE_SUBDIRS = ['config', 'dev', 'generated'] as const;
-const REQUIRED_GITIGNORE_LINES = [
+const WORKSPACE_SUBDIRS = [TRAILS_CACHE_DIR, TRAILS_STATE_DIR] as const;
+
+/**
+ * The canonical lines written to a freshly-bootstrapped
+ * `.trails/.gitignore`. Kept as the source of truth for every consumer that
+ * needs to either write the file (scaffold) or audit its content (tests).
+ *
+ * @see {@link WORKSPACE_GITIGNORE_CONTENT} for the rendered string form.
+ */
+export const WORKSPACE_GITIGNORE_LINES = [
   '# Local config overrides',
-  'config/',
+  'config.local.js',
+  'config.local.ts',
   '',
-  '# Development state',
-  'dev/',
+  '# Rebuildable cache',
+  'cache/',
   '',
-  '# Generated artifacts',
-  'generated/',
+  '# Mutable runtime state',
+  'state/',
   '',
-  '# Shared Trails database',
-  'trails.db',
-  'trails.db-shm',
-  'trails.db-wal',
-  '',
-];
+] as const;
+
+/**
+ * The canonical rendered `.trails/.gitignore` content. Use this when writing
+ * the file eagerly (e.g. during `trails create` scaffolding) or when asserting
+ * on the workspace bootstrap output.
+ */
+export const WORKSPACE_GITIGNORE_CONTENT = `${WORKSPACE_GITIGNORE_LINES.join('\n').trimEnd()}\n`;
 
 export interface TrailsDbLocationOptions {
   readonly path?: string;
@@ -49,20 +62,18 @@ export const deriveTrailsDir = (options?: TrailsDbLocationOptions): string =>
 export const deriveTrailsDbPath = (options?: TrailsDbLocationOptions): string =>
   options?.path
     ? resolve(options.path)
-    : join(deriveTrailsDir(options), TRAILS_DB_FILE);
+    : join(deriveTrailsDir(options), TRAILS_STATE_DIR, TRAILS_DB_FILE);
 
 const ensureDbParentDir = (dbPath: string): void => {
   mkdirSync(dirname(dbPath), { recursive: true });
 };
-
-const GITIGNORE_TEMPLATE = `${REQUIRED_GITIGNORE_LINES.join('\n').trimEnd()}\n`;
 
 const appendMissingGitignoreLines = (
   gitignorePath: string,
   content: string
 ): void => {
   const existingLines = new Set(content.split('\n').map((l) => l.trim()));
-  const missing = REQUIRED_GITIGNORE_LINES.filter(
+  const missing = WORKSPACE_GITIGNORE_LINES.filter(
     (line) => line !== '' && !existingLines.has(line)
   );
 
@@ -78,7 +89,7 @@ const ensureWorkspaceGitignore = (trailsDir: string): void => {
   const gitignorePath = join(trailsDir, '.gitignore');
 
   if (!existsSync(gitignorePath)) {
-    writeFileSync(gitignorePath, GITIGNORE_TEMPLATE);
+    writeFileSync(gitignorePath, WORKSPACE_GITIGNORE_CONTENT);
     return;
   }
 
@@ -88,7 +99,17 @@ const ensureWorkspaceGitignore = (trailsDir: string): void => {
   );
 };
 
-const ensureWorkspaceDir = (rootDir: string): void => {
+/**
+ * Bootstrap the `.trails/` workspace at `rootDir`.
+ *
+ * Creates the workspace directory plus the canonical `cache/` and `state/`
+ * subdirectories, then either writes a fresh `.gitignore` matching
+ * {@link WORKSPACE_GITIGNORE_CONTENT} or appends any missing canonical lines
+ * to an existing one. Safe to call repeatedly. This is the single canonical
+ * source of truth for workspace layout — scaffolding, configuration loading,
+ * and runtime DB initialization all flow through here.
+ */
+export const ensureTrailsWorkspace = (rootDir: string): void => {
   const trailsDir = deriveTrailsDir({ rootDir });
   mkdirSync(trailsDir, { recursive: true });
   for (const subdir of WORKSPACE_SUBDIRS) {
@@ -144,7 +165,7 @@ export const openWriteTrailsDb = (
   );
 
   if (options?.path === undefined) {
-    ensureWorkspaceDir(rootDir);
+    ensureTrailsWorkspace(rootDir);
   } else {
     ensureDbParentDir(dbPath);
   }

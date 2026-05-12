@@ -40,4 +40,3 @@ export { configCheck } from './trails/config-check.js';
 export { configDescribe } from './trails/config-describe.js';
 export { configExplain } from './trails/config-explain.js';
 export { configInit } from './trails/config-init.js';
-export { ensureWorkspace } from './workspace.js';

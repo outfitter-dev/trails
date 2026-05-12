@@ -73,13 +73,13 @@ describe('createDevStore', () => {
   });
 
   describe('lifecycle', () => {
-    test('defaults to the shared .trails/trails.db path under rootDir', () => {
+    test('defaults to the shared .trails/state/trails.db path under rootDir', () => {
       const dir = makeTmpDir();
 
       store = createDevStore({ rootDir: dir });
       store.write(makeRecord());
 
-      expect(existsSync(join(dir, '.trails', 'trails.db'))).toBe(true);
+      expect(existsSync(join(dir, '.trails', 'state', 'trails.db'))).toBe(true);
     });
 
     test('creates a database file at the specified path', () => {

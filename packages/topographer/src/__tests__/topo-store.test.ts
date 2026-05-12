@@ -577,7 +577,7 @@ const replaceStoreWithHistoryOnlyStore = async (
 ): Promise<void> => {
   // Ensure mtime/size differs so the cached identity is invalidated even on
   // filesystems with coarse mtime granularity.
-  const dbPath = join(rootDir, '.trails', 'trails.db');
+  const dbPath = join(rootDir, '.trails', 'state', 'trails.db');
   rmSync(dbPath, { force: true });
   rmSync(`${dbPath}-shm`, { force: true });
   rmSync(`${dbPath}-wal`, { force: true });

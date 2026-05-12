@@ -6,7 +6,7 @@
 
 import { resolve } from 'node:path';
 
-import { Result, trail } from '@ontrails/core';
+import { Result, trail, WORKSPACE_GITIGNORE_CONTENT } from '@ontrails/core';
 import { z } from 'zod';
 
 import {
@@ -101,7 +101,9 @@ const TSCONFIG_CONTENT = JSON.stringify(
 const GITIGNORE_CONTENT = `node_modules/
 dist/
 *.tsbuildinfo
-.trails/trails.db
+.trails/cache/
+.trails/state/
+.trails/config.local.js
 .trails/config.local.ts
 `;
 
@@ -330,20 +332,19 @@ const collectScaffoldFiles = (
     ['.gitignore', GITIGNORE_CONTENT],
     ['oxlint.config.ts', OXLINT_CONFIG_CONTENT],
     ['.oxfmtrc.jsonc', OXFMTRC_CONTENT],
+    ['.trails/.gitignore', WORKSPACE_GITIGNORE_CONTENT],
     ['src/app.ts', generateAppTs(name, starter)],
     ...starterFileGenerators[starter](),
   ]);
 
 const collectScaffoldOperations = (
   fileMap: Map<string, string>
-): ProjectWriteOperation[] => [
-  ...[...fileMap].map(([path, content]) => ({
+): ProjectWriteOperation[] =>
+  [...fileMap].map(([path, content]) => ({
     content,
     kind: 'write' as const,
     path,
-  })),
-  { kind: 'mkdir' as const, path: '.trails' },
-];
+  }));
 
 // ---------------------------------------------------------------------------
 // Trail definition

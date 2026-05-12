@@ -336,8 +336,11 @@ export {
   deriveTrailsDbPath,
   deriveTrailsDir,
   ensureSubsystemSchema,
+  ensureTrailsWorkspace,
   openReadTrailsDb,
   openWriteTrailsDb,
+  WORKSPACE_GITIGNORE_CONTENT,
+  WORKSPACE_GITIGNORE_LINES,
 } from './trails-db.js';
 export type {
   EnsureSubsystemSchemaOptions,

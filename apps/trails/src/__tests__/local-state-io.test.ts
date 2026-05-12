@@ -22,7 +22,7 @@ describe('local state I/O helpers', () => {
     const root = tempRoot();
 
     try {
-      const relativePath = '.trails/trails.db';
+      const relativePath = '.trails/state/trails.db';
       const targetPath = join(root, relativePath);
       const outsideName = `${basename(root)}-outside.db`;
       const outsidePath = join(dirname(root), outsideName);

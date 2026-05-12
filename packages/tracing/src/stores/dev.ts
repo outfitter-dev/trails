@@ -15,9 +15,9 @@ import type { TraceRecord, TraceSink } from '@ontrails/core';
 
 /** Configuration for the SQLite dev store. */
 export interface DevStoreOptions {
-  /** Path to the SQLite database file. Defaults to `.trails/trails.db`. */
+  /** Path to the SQLite database file. Defaults to `.trails/state/trails.db`. */
   readonly path?: string;
-  /** Root directory used when resolving the default `.trails/trails.db` path. */
+  /** Root directory used when resolving the default `.trails/state/trails.db` path. */
   readonly rootDir?: string;
   /** Maximum number of records to retain. Defaults to 10000. */
   readonly maxRecords?: number;

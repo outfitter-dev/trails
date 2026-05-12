@@ -1125,8 +1125,8 @@ describe('trails survey diff', () => {
       await writeTopoGraph(deriveTopoGraph(baselineApp), {
         dir: join(dir, 'baselines'),
       });
-      mkdirSync(join(dir, '.trails'), { recursive: true });
-      writeFileSync(join(dir, '.trails', 'trails.db'), 'not sqlite');
+      mkdirSync(join(dir, '.trails', 'state'), { recursive: true });
+      writeFileSync(join(dir, '.trails', 'state', 'trails.db'), 'not sqlite');
 
       writeSurveyAppFixture(dir, { withBye: true });
 

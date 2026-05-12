@@ -492,15 +492,17 @@ describe('topo and dev trails', () => {
         await devResetTrail.blaze({ dryRun: true }, { cwd: dir } as never)
       );
       expect(resetPreview.dryRun).toBe(true);
-      expect(resetPreview.removedFiles).toContain('.trails/trails.db');
+      expect(resetPreview.removedFiles).toContain('.trails/state/trails.db');
 
       const resetResult = expectOk(
         await devResetTrail.blaze({ dryRun: false, yes: true }, {
           cwd: dir,
         } as never)
       );
-      expect(resetResult.removedFiles).toContain('.trails/trails.db');
-      expect(existsSync(join(dir, '.trails', 'trails.db'))).toBe(false);
+      expect(resetResult.removedFiles).toContain('.trails/state/trails.db');
+      expect(existsSync(join(dir, '.trails', 'state', 'trails.db'))).toBe(
+        false
+      );
       expect(
         readFileSync(join(dir, '.trails', 'trails.lock'), 'utf8').length
       ).toBeGreaterThan(0);
@@ -521,7 +523,9 @@ describe('topo and dev trails', () => {
       expect(preview.dryRun).toBe(true);
       expect(preview.removed.topoSnapshots).toBe(0);
       expect(preview.removed.traceRecords).toBe(0);
-      expect(existsSync(join(dir, '.trails', 'trails.db'))).toBe(false);
+      expect(existsSync(join(dir, '.trails', 'state', 'trails.db'))).toBe(
+        false
+      );
 
       const applied = expectOk(
         await devCleanTrail.blaze({ dryRun: false, yes: true }, {
@@ -531,7 +535,9 @@ describe('topo and dev trails', () => {
       expect(applied.dryRun).toBe(false);
       expect(applied.removed.topoSnapshots).toBe(0);
       expect(applied.removed.traceRecords).toBe(0);
-      expect(existsSync(join(dir, '.trails', 'trails.db'))).toBe(false);
+      expect(existsSync(join(dir, '.trails', 'state', 'trails.db'))).toBe(
+        false
+      );
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }

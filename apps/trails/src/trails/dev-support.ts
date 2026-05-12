@@ -139,7 +139,7 @@ const buildDbStats = (
 ): DevStatsReport['db'] => ({
   exists,
   fileSizeBytes: exists ? statSync(dbPath).size : 0,
-  path: '.trails/trails.db',
+  path: '.trails/state/trails.db',
 });
 
 const emptyDevStats = (
@@ -257,6 +257,11 @@ const buildCleanReport = (
 };
 
 const RESET_FILES = [
+  '.trails/state/trails.db',
+  '.trails/state/trails.db-shm',
+  '.trails/state/trails.db-wal',
+  // Legacy paths (pre-state migration) — cleaned for one cycle so upgrading
+  // workspaces do not leave stale DB sidecars at old locations.
   '.trails/trails.db',
   '.trails/trails.db-shm',
   '.trails/trails.db-wal',
