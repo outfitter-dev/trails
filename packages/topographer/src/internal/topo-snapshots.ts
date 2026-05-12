@@ -100,9 +100,9 @@ const TOPO_TABLE_STATEMENTS = [
   )`,
   `CREATE TABLE IF NOT EXISTS topo_exports (
     snapshot_id TEXT PRIMARY KEY,
-    surface_map TEXT NOT NULL,
-    surface_hash TEXT NOT NULL,
-    serialized_lock TEXT NOT NULL,
+    topo_graph TEXT NOT NULL,
+    topo_graph_hash TEXT NOT NULL,
+    lock_manifest TEXT NOT NULL,
     FOREIGN KEY (snapshot_id) REFERENCES topo_snapshots(id) ON DELETE CASCADE
   )`,
   `CREATE TABLE IF NOT EXISTS topo_trail_fires (
@@ -251,6 +251,21 @@ const addColumnIfMissing = (
   }
 };
 
+const renameColumnIfNeeded = (
+  db: Database,
+  tableName: string,
+  from: string,
+  to: string
+): void => {
+  if (
+    tableExists(db, tableName) &&
+    columnExists(db, tableName, from) &&
+    !columnExists(db, tableName, to)
+  ) {
+    db.run(`ALTER TABLE ${tableName} RENAME COLUMN ${from} TO ${to}`);
+  }
+};
+
 const runStatements = (db: Database, statements: readonly string[]): void => {
   for (const statement of statements) {
     db.run(statement);
@@ -264,6 +279,10 @@ const createAllTopoTables = (db: Database): void => {
 
 /**
  * Current topo subsystem schema version.
+ *
+ * Version 12 renames the serialized export columns from surface-era names to
+ * topo-graph artifact-family names: `topo_graph`, `topo_graph_hash`, and
+ * `lock_manifest`.
  *
  * Version 11 adds optional `app_name` attribution to `topo_snapshots` so a
  * single trails-db can host snapshots from multiple apps in workspace-aware
@@ -281,7 +300,7 @@ const createAllTopoTables = (db: Database): void => {
  * tables and advance the subsystem version without translating or deleting
  * legacy rows.
  */
-export const TOPO_SCHEMA_VERSION = 11;
+export const TOPO_SCHEMA_VERSION = 12;
 
 export const ensureTopoSnapshotSchema = (db: Database): void => {
   ensureSubsystemSchema(db, {
@@ -301,6 +320,21 @@ export const ensureTopoSnapshotSchema = (db: Database): void => {
       }
       if (currentVersion >= 7 && currentVersion < 11) {
         addColumnIfMissing(db, 'topo_snapshots', 'app_name', 'app_name TEXT');
+      }
+      if (currentVersion < 12) {
+        renameColumnIfNeeded(db, 'topo_exports', 'surface_map', 'topo_graph');
+        renameColumnIfNeeded(
+          db,
+          'topo_exports',
+          'surface_hash',
+          'topo_graph_hash'
+        );
+        renameColumnIfNeeded(
+          db,
+          'topo_exports',
+          'serialized_lock',
+          'lock_manifest'
+        );
       }
     },
     subsystem: TOPO_SUBSYSTEM,

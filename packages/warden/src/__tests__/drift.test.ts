@@ -66,7 +66,7 @@ const seedSavedTopo = (dir: string): string | undefined => {
     db.close();
   }
 
-  return createTopoStore({ rootDir: dir }).exports.get()?.surfaceHash;
+  return createTopoStore({ rootDir: dir }).exports.get()?.topoGraphHash;
 };
 
 describe('checkDrift', () => {

@@ -227,7 +227,7 @@ const readStoredEntry = (
     return undefined;
   }
 
-  const map = JSON.parse(stored.surfaceMapJson) as StoredTopoGraph;
+  const map = JSON.parse(stored.topoGraphJson) as StoredTopoGraph;
   return map.entries.find((entry) => entry.id === id && entry.kind === kind);
 };
 
@@ -564,7 +564,7 @@ export const listTopoStoreResources = (
 
   const stored = getStoredTopoExport(db, snapshot.id);
   const entries = stored
-    ? (JSON.parse(stored.surfaceMapJson) as StoredTopoGraph).entries
+    ? (JSON.parse(stored.topoGraphJson) as StoredTopoGraph).entries
     : [];
 
   return rows.map((row) =>
@@ -670,7 +670,7 @@ export const listTopoStoreSignals = (
 
   const stored = getStoredTopoExport(db, snapshot.id);
   const entries = stored
-    ? (JSON.parse(stored.surfaceMapJson) as StoredTopoGraph).entries
+    ? (JSON.parse(stored.topoGraphJson) as StoredTopoGraph).entries
     : [];
   const consumersBySignal = readSignalRelationUsage(
     db,

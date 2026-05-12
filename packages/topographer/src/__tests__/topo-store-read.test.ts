@@ -412,7 +412,7 @@ describe('read-only topo store', () => {
 
     const exported = store.exports.get({ pin: 'baseline' });
     expect(exported?.snapshot.id).toBe(snapshot.id);
-    expect(exported?.surfaceHash).toHaveLength(64);
+    expect(exported?.topoGraphHash).toHaveLength(64);
 
     const signalDetail = store.signals.get('entity.added', {
       snapshot: { snapshotId: snapshot.id },

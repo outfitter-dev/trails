@@ -137,7 +137,7 @@ const readStoredTopoGraph = (
       store.exports.get({ snapshotId: against });
     return stored === undefined
       ? undefined
-      : (JSON.parse(stored.surfaceMapJson) as TopoGraph);
+      : (JSON.parse(stored.topoGraphJson) as TopoGraph);
   } catch (error: unknown) {
     if (error instanceof NotFoundError) {
       return undefined;

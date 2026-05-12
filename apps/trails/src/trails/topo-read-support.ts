@@ -275,7 +275,7 @@ export const verifyCurrentTopo = async (
   if (currentExport.isErr()) {
     return currentExport;
   }
-  const currentHash = currentExport.value.surfaceHash;
+  const currentHash = currentExport.value.topoGraphHash;
   const topoArtifact = lockManifest.artifacts.find(
     (artifact) => artifact.role === 'topo'
   );

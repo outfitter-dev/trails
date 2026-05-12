@@ -88,16 +88,16 @@ const writeStoredExportArtifacts = async (
   trailsDir: string
 ): Promise<Pick<TopoExportReport, 'hash' | 'lockPath' | 'mapPath'>> => {
   const mapPath = await writeTopoGraph(
-    JSON.parse(storedExport.surfaceMapJson) as TopoGraph,
+    JSON.parse(storedExport.topoGraphJson) as TopoGraph,
     { dir: trailsDir }
   );
   const lockPath = await writeLockManifest(
-    JSON.parse(storedExport.lockContent) as LockManifest,
+    JSON.parse(storedExport.lockManifestJson) as LockManifest,
     { dir: trailsDir }
   );
 
   return {
-    hash: storedExport.surfaceHash,
+    hash: storedExport.topoGraphHash,
     lockPath,
     mapPath,
   };

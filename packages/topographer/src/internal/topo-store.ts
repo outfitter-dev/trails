@@ -20,13 +20,18 @@ import type {
   AnyResource,
   AnySignal,
   AnyTrail,
+  FieldOverride,
   Layer,
   Topo,
 } from '@ontrails/core';
 
 import { addPermitRequirement } from '../permit.js';
 import { TOPO_GRAPH_SCHEMA_VERSION } from '../types.js';
-import type { LockManifest } from '../types.js';
+import type {
+  LockManifest,
+  TopoGraphFieldOverride,
+  TopoGraphFieldOverrideKey,
+} from '../types.js';
 import type {
   CreateTopoSnapshotInput,
   TopoSnapshot,
@@ -161,21 +166,21 @@ interface TopoSchemaRow {
 
 interface StoredTopoExportRow {
   readonly snapshotId: string;
-  readonly serializedLock: string;
-  readonly surfaceHash: string;
-  readonly surfaceMap: string;
+  readonly lockManifest: string;
+  readonly topoGraphHash: string;
+  readonly topoGraph: string;
 }
 
 interface StoredTopoExportDbRow {
-  readonly serialized_lock: string;
-  readonly surface_hash: string;
-  readonly surface_map: string;
+  readonly lock_manifest: string;
+  readonly topo_graph: string;
+  readonly topo_graph_hash: string;
 }
 
 export interface StoredTopoExport {
-  readonly lockContent: string;
-  readonly surfaceHash: string;
-  readonly surfaceMapJson: string;
+  readonly lockManifestJson: string;
+  readonly topoGraphHash: string;
+  readonly topoGraphJson: string;
 }
 
 interface MaterializedSchemas {
@@ -588,7 +593,7 @@ const normalizeTrailSignalRows = (
  *
  * Currently records only CLI-derived rows. MCP, HTTP, and other surface
  * projections are intentionally deferred until the topo-store schema supports
- * multi-surface representation. The JSON export (`surface_map` in
+ * multi-surface representation. The JSON export (`topo_graph` in
  * `topo_exports`) is more faithful for now. See ADR-0015 for the target shape.
  */
 const normalizeSurfaceRows = (
@@ -989,6 +994,54 @@ const addLayerAttachments = (
   }
 };
 
+const FIELD_OVERRIDE_KEYS: readonly TopoGraphFieldOverrideKey[] = [
+  'hint',
+  'label',
+  'message',
+  'options',
+];
+
+const collectFieldOverrideKeys = (
+  override: FieldOverride
+): readonly TopoGraphFieldOverrideKey[] =>
+  FIELD_OVERRIDE_KEYS.filter((key) => override[key] !== undefined);
+
+const deriveFieldOverrides = (
+  fields: Readonly<Record<string, FieldOverride>> | undefined
+): readonly TopoGraphFieldOverride[] | undefined => {
+  if (fields === undefined) {
+    return undefined;
+  }
+
+  const overrides = Object.entries(fields)
+    .flatMap(([field, override]) => {
+      const overrideKeys = collectFieldOverrideKeys(override);
+      if (overrideKeys.length === 0) {
+        return [];
+      }
+      return [
+        {
+          field,
+          overrides: overrideKeys,
+          provenance: { source: 'trail.fields' as const },
+        },
+      ];
+    })
+    .toSorted((a, b) => a.field.localeCompare(b.field));
+
+  return overrides.length > 0 ? overrides : undefined;
+};
+
+const addFieldOverrides = (
+  entry: Record<string, unknown>,
+  trail: AnyTrail
+): void => {
+  const fieldOverrides = deriveFieldOverrides(trail.fields);
+  if (fieldOverrides !== undefined) {
+    entry['fieldOverrides'] = fieldOverrides;
+  }
+};
+
 const buildTrailEntryBase = (
   trail: AnyTrail,
   trailSchema: Readonly<{
@@ -1046,6 +1099,7 @@ const trailToEntryRecord = (
   addExtendedMetadata(entry, raw, trail);
   addTrailRelations(entry, trail);
   addLayerAttachments(entry, topoLayers, trail);
+  addFieldOverrides(entry, trail);
   return sortKeys(entry) as TopoGraphEntryRecord;
 };
 
@@ -1242,8 +1296,8 @@ const buildTopoGraph = (
   };
 };
 
-const hashTopoGraphRecord = (surfaceMap: TopoGraphRecord): string => {
-  const { generatedAt: _unused, ...rest } = surfaceMap;
+const hashTopoGraphRecord = (topoGraph: TopoGraphRecord): string => {
+  const { generatedAt: _unused, ...rest } = topoGraph;
   return hashValue(rest);
 };
 
@@ -1255,16 +1309,16 @@ const countEntriesForKind = (
 const buildLockManifest = (
   hash: string,
   topo: Topo,
-  surfaceMap: TopoGraphRecord
+  topoGraph: TopoGraphRecord
 ): LockManifest =>
   sortKeys({
     artifacts: [{ path: 'topo.lock', role: 'topo', sha256: hash }],
     scope: { app: topo.name },
     summary: {
-      contours: countEntriesForKind(surfaceMap.entries, 'contour'),
-      resources: countEntriesForKind(surfaceMap.entries, 'resource'),
-      signals: countEntriesForKind(surfaceMap.entries, 'signal'),
-      trails: countEntriesForKind(surfaceMap.entries, 'trail'),
+      contours: countEntriesForKind(topoGraph.entries, 'contour'),
+      resources: countEntriesForKind(topoGraph.entries, 'resource'),
+      signals: countEntriesForKind(topoGraph.entries, 'signal'),
+      trails: countEntriesForKind(topoGraph.entries, 'trail'),
     },
     version: 3,
   }) as LockManifest;
@@ -1285,7 +1339,7 @@ const buildStoredTopoExport = (
     .listSignals()
     .toSorted((a, b) => a.id.localeCompare(b.id));
   const schemas = materializeSchemas(db, snapshot.id, signals, trails);
-  const surfaceMap = buildTopoGraph(
+  const topoGraph = buildTopoGraph(
     contours,
     snapshot.createdAt,
     resources,
@@ -1295,19 +1349,19 @@ const buildStoredTopoExport = (
     schemas.trailSchemas,
     trails
   );
-  const surfaceHash = hashTopoGraphRecord(surfaceMap);
-  const serializedLock = `${JSON.stringify(
-    buildLockManifest(surfaceHash, topo, surfaceMap),
+  const topoGraphHash = hashTopoGraphRecord(topoGraph);
+  const lockManifest = `${JSON.stringify(
+    buildLockManifest(topoGraphHash, topo, topoGraph),
     null,
     2
   )}\n`;
 
   return {
     exportRow: {
-      serializedLock,
+      lockManifest,
       snapshotId: snapshot.id,
-      surfaceHash,
-      surfaceMap: `${JSON.stringify(surfaceMap, null, 2)}\n`,
+      topoGraph: `${JSON.stringify(topoGraph, null, 2)}\n`,
+      topoGraphHash,
     },
     schemaRows: schemas.rows,
   };
@@ -1486,13 +1540,13 @@ const insertStoredExport = (
 ): void => {
   db.run(
     `INSERT INTO topo_exports (
-      snapshot_id, surface_map, surface_hash, serialized_lock
+      snapshot_id, topo_graph, topo_graph_hash, lock_manifest
     ) VALUES (?, ?, ?, ?)`,
     [
       exportRow.snapshotId,
-      exportRow.surfaceMap,
-      exportRow.surfaceHash,
-      exportRow.serializedLock,
+      exportRow.topoGraph,
+      exportRow.topoGraphHash,
+      exportRow.lockManifest,
     ]
   );
 };
@@ -1503,7 +1557,7 @@ export const getStoredTopoExport = (
 ): StoredTopoExport | undefined => {
   const row = db
     .query<StoredTopoExportDbRow, [string]>(
-      `SELECT surface_map, surface_hash, serialized_lock
+      `SELECT topo_graph, topo_graph_hash, lock_manifest
        FROM topo_exports
        WHERE snapshot_id = ?`
     )
@@ -1514,9 +1568,9 @@ export const getStoredTopoExport = (
   }
 
   return {
-    lockContent: row.serialized_lock,
-    surfaceHash: row.surface_hash,
-    surfaceMapJson: row.surface_map,
+    lockManifestJson: row.lock_manifest,
+    topoGraphHash: row.topo_graph_hash,
+    topoGraphJson: row.topo_graph,
   };
 };
 

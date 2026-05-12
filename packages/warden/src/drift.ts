@@ -58,7 +58,7 @@ export const checkDrift = async (
     // divergence between the schema and store hash pipelines.
     const storedHash = (() => {
       try {
-        return createTopoStore({ rootDir }).exports.get()?.surfaceHash;
+        return createTopoStore({ rootDir }).exports.get()?.topoGraphHash;
       } catch (error) {
         if (error instanceof NotFoundError) {
           return;

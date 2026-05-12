@@ -629,9 +629,9 @@ describe('topo store projection', () => {
       expectProjectedFixtureRows(db, snapshot.id);
 
       const stored = requireStoredExport(db, snapshot.id);
-      const surfaceMap = JSON.parse(stored.surfaceMapJson);
-      const { entries } = surfaceMap as { entries?: unknown[] };
-      expect(surfaceMap).toMatchObject({
+      const topoGraph = JSON.parse(stored.topoGraphJson);
+      const { entries } = topoGraph as { entries?: unknown[] };
+      expect(topoGraph).toMatchObject({
         entries: expect.any(Array),
         generatedAt: '2026-04-03T12:00:00.000Z',
         topoGraphSchemaVersion: TOPO_GRAPH_SCHEMA_VERSION,
@@ -678,10 +678,10 @@ describe('topo store projection', () => {
       expect(listEntry?.dryRunCapable).toBe(true);
       expect(listEntry?.permit).toEqual({ scopes: ['entity:read'] });
 
-      const lock = JSON.parse(stored.lockContent);
+      const lock = JSON.parse(stored.lockManifestJson);
       expect(lock).toMatchObject({
         artifacts: [
-          { path: 'topo.lock', role: 'topo', sha256: stored.surfaceHash },
+          { path: 'topo.lock', role: 'topo', sha256: stored.topoGraphHash },
         ],
         scope: { app: 'projection-app' },
         summary: { contours: 1, resources: 2, signals: 1, trails: 2 },
@@ -710,6 +710,7 @@ describe('topo store projection', () => {
       });
       const process = trail('entity.process', {
         blaze: () => Result.ok({ ok: true }),
+        fields: { id: { hint: 'Entity id to process' } },
         fires: [created],
         input: z.object({ id: z.string() }),
         layers: [trailAudit],
@@ -734,16 +735,17 @@ describe('topo store projection', () => {
       );
 
       const stored = requireStoredExport(db, snapshot.id);
-      const surfaceMap = JSON.parse(stored.surfaceMapJson) as {
+      const topoGraph = JSON.parse(stored.topoGraphJson) as {
         entries: readonly unknown[];
       };
-      const entry = surfaceMap.entries.find(
+      const entry = topoGraph.entries.find(
         (candidate) =>
           typeof candidate === 'object' &&
           candidate !== null &&
           (candidate as { id?: unknown }).id === 'entity.process'
       ) as
         | {
+            fieldOverrides?: unknown;
             fires?: unknown;
             layers?: readonly {
               readonly input?: { readonly properties?: unknown };
@@ -774,10 +776,17 @@ describe('topo store projection', () => {
           scope: 'trail',
         },
       ]);
+      expect(entry?.fieldOverrides).toEqual([
+        {
+          field: 'id',
+          overrides: ['hint'],
+          provenance: { source: 'trail.fields' },
+        },
+      ]);
 
-      expect(JSON.parse(stored.lockContent)).toMatchObject({
+      expect(JSON.parse(stored.lockManifestJson)).toMatchObject({
         artifacts: [
-          { path: 'topo.lock', role: 'topo', sha256: stored.surfaceHash },
+          { path: 'topo.lock', role: 'topo', sha256: stored.topoGraphHash },
         ],
         scope: { app: 'contract-export-app' },
         summary: { contours: 0, resources: 0, signals: 2, trails: 1 },
@@ -809,8 +818,8 @@ describe('topo store projection', () => {
         'entity.add',
         'entity.list',
       ]);
-      expect(requireStoredExport(db, firstSnapshot.id).surfaceHash).not.toBe(
-        requireStoredExport(db, secondSnapshot.id).surfaceHash
+      expect(requireStoredExport(db, firstSnapshot.id).topoGraphHash).not.toBe(
+        requireStoredExport(db, secondSnapshot.id).topoGraphHash
       );
     });
   });
@@ -1030,7 +1039,7 @@ describe('topo store projection', () => {
       ]);
 
       const topoGraph = JSON.parse(
-        requireStoredExport(db, snapshot.id).surfaceMapJson
+        requireStoredExport(db, snapshot.id).topoGraphJson
       ) as {
         activationGraph: {
           edges: readonly Record<string, unknown>[];
@@ -1125,7 +1134,7 @@ describe('topo store projection', () => {
         createTopoSnapshot(db, topo('webhook-app', { receiver }))
       );
       const topoGraph = JSON.parse(
-        requireStoredExport(db, snapshot.id).surfaceMapJson
+        requireStoredExport(db, snapshot.id).topoGraphJson
       ) as {
         activationSources: Record<string, Record<string, unknown>>;
       };
@@ -1229,7 +1238,7 @@ describe('topo store projection', () => {
               "SELECT version FROM meta_schema_versions WHERE subsystem = 'topo'"
             )
             .get()?.version
-        ).toBe(11);
+        ).toBe(12);
         expect(countRows(db, 'topo_snapshots')).toBe(0);
       });
     });
@@ -1280,7 +1289,47 @@ describe('topo store projection', () => {
               "SELECT version FROM meta_schema_versions WHERE subsystem = 'topo'"
             )
             .get()?.version
-        ).toBe(11);
+        ).toBe(12);
+      });
+    });
+
+    test('ensureTopoSnapshotSchema migrates v11 export artifact columns', () => {
+      withProjectionDb((db) => {
+        db.run(
+          `INSERT INTO meta_schema_versions (subsystem, version, updated_at)
+           VALUES ('topo', 11, ?)`,
+          ['2026-05-11T11:00:00.000Z']
+        );
+        db.run(`CREATE TABLE topo_exports (
+          snapshot_id TEXT PRIMARY KEY,
+          surface_map TEXT NOT NULL,
+          surface_hash TEXT NOT NULL,
+          serialized_lock TEXT NOT NULL
+        )`);
+
+        ensureTopoSnapshotSchema(db);
+
+        expect(tableColumns(db, 'topo_exports')).toEqual(
+          expect.arrayContaining([
+            'topo_graph',
+            'topo_graph_hash',
+            'lock_manifest',
+          ])
+        );
+        expect(tableColumns(db, 'topo_exports')).not.toEqual(
+          expect.arrayContaining([
+            'surface_map',
+            'surface_hash',
+            'serialized_lock',
+          ])
+        );
+        expect(
+          db
+            .query<{ version: number }, []>(
+              "SELECT version FROM meta_schema_versions WHERE subsystem = 'topo'"
+            )
+            .get()?.version
+        ).toBe(12);
       });
     });
 
@@ -1321,7 +1370,7 @@ describe('topo store projection', () => {
             "SELECT version FROM meta_schema_versions WHERE subsystem = 'topo'"
           )
           .get()?.version
-      ).toBe(11);
+      ).toBe(12);
       for (const table of [
         'topo_activation_edges',
         'topo_activation_sources',
