@@ -49,6 +49,7 @@ import type {
   ProjectContext,
   TopoAwareWardenRule,
   WardenDiagnostic,
+  WardenGuidanceLink,
   WardenRule,
   WardenRuleTier,
 } from './rules/types.js';
@@ -1323,6 +1324,14 @@ export const runWarden = async (
   };
 };
 
+const formatPlainGuidanceLink = (link: WardenGuidanceLink): string => {
+  const target = link.path ?? link.url;
+  if (target === undefined || target === link.label) {
+    return link.label;
+  }
+  return `${link.label} (${target})`;
+};
+
 /**
  * Format the lint section of the report.
  */
@@ -1352,9 +1361,7 @@ const formatLintSection = (report: WardenReport): string[] => {
       }
       if (d.guidance.docs !== undefined) {
         lines.push(
-          `    Docs: ${d.guidance.docs
-            .map((doc) => doc.path ?? doc.url ?? doc.label)
-            .join(', ')}`
+          `    Docs: ${d.guidance.docs.map(formatPlainGuidanceLink).join(', ')}`
         );
       }
       if (d.guidance.relatedRules !== undefined) {

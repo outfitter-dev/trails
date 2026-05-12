@@ -289,6 +289,33 @@ describe('trails warden', () => {
     );
   });
 
+  test('warden output schema accepts shared structured guidance diagnostics', () => {
+    const parsed = wardenTrail.output.safeParse({
+      diagnostics: [
+        {
+          filePath: 'src/trails/entity.ts',
+          guidance: {
+            docs: [{ label: 'Trail Rules', path: 'AGENTS.md#trail-rules' }],
+            summary:
+              'Convert thrown implementation failures into Result.err().',
+          },
+          line: 3,
+          message: 'Do not throw inside implementation.',
+          rule: 'no-throw-in-implementation',
+          severity: 'error',
+          topoName: 'demo',
+        },
+      ],
+      drift: null,
+      errorCount: 1,
+      formatted: 'Result: FAIL',
+      passed: false,
+      warnCount: 0,
+    });
+
+    expect(parsed.success).toBe(true);
+  });
+
   test('warden guide format aliases work through the CLI', () => {
     const raw = runRawCli(
       trailsBinPath,

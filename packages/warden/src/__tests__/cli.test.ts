@@ -1158,6 +1158,39 @@ describe('formatWardenReport', () => {
     );
   });
 
+  test('formats guidance docs with labels and copyable targets in the lint section', () => {
+    const output = formatWardenReport({
+      diagnostics: [
+        {
+          filePath: 'src/trails/entity.ts',
+          guidance: {
+            docs: [
+              { label: 'Trail Rules', path: 'AGENTS.md#trail-rules' },
+              {
+                label: 'Warden docs',
+                url: 'https://docs.example.test/warden',
+              },
+              { label: 'Label-only reference' },
+            ],
+            summary: 'Use the Warden guidance.',
+          },
+          line: 3,
+          message: 'Do not throw inside implementation.',
+          rule: 'no-throw-in-implementation',
+          severity: 'error',
+        },
+      ],
+      drift: { committedHash: null, currentHash: 'stub', stale: false },
+      errorCount: 1,
+      passed: false,
+      warnCount: 0,
+    });
+
+    expect(output).toContain(
+      'Docs: Trail Rules (AGENTS.md#trail-rules), Warden docs (https://docs.example.test/warden), Label-only reference'
+    );
+  });
+
   test('formats a report with stale drift', () => {
     const output = formatWardenReport({
       diagnostics: [],

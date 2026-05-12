@@ -6,6 +6,7 @@
 
 import { Result, trail } from '@ontrails/core';
 import {
+  diagnosticSchema,
   runWardenCommand,
   wardenDepthValues,
   wardenDraftsValues,
@@ -20,20 +21,6 @@ import { resolveTrailRootDir } from './root-dir.js';
 // ---------------------------------------------------------------------------
 // Trail definition
 // ---------------------------------------------------------------------------
-
-const wardenGuidanceLinkSchema = z.object({
-  label: z.string(),
-  path: z.string().optional(),
-  url: z.string().optional(),
-});
-
-const wardenGuidanceSchema = z.object({
-  commands: z.array(z.string()).readonly().optional(),
-  docs: z.array(wardenGuidanceLinkSchema).readonly().optional(),
-  relatedRules: z.array(z.string()).readonly().optional(),
-  steps: z.array(z.string()).readonly().optional(),
-  summary: z.string(),
-});
 
 const wardenInputSchema = z.object({
   apps: z
@@ -190,15 +177,7 @@ export const wardenTrail = trail('warden', {
   intent: 'read',
   output: z.object({
     diagnostics: z.array(
-      z.object({
-        filePath: z.string(),
-        guidance: wardenGuidanceSchema.optional(),
-        line: z.number(),
-        message: z.string(),
-        rule: z.string(),
-        severity: z.enum(['error', 'warn']),
-        topoName: z.string().optional(),
-      })
+      diagnosticSchema.extend({ topoName: z.string().optional() })
     ),
     drift: z
       .object({
