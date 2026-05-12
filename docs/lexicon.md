@@ -88,6 +88,73 @@ The durable graph substrate. `@ontrails/topographer` owns the artifacts derived 
 
 A package needs Topographer only when it crosses a process boundary or compares state across time. The runtime never reads Topographer artifacts to execute trails — every `topo()` call resolves entirely in core. See [ADR-0042](adr/0042-core-topographer-boundary-doctrine.md) for the boundary doctrine.
 
+### TopoGraph Artifact Family
+
+These names are the current durable artifact-family vocabulary established by
+[ADR-0046](adr/0046-lock-v3-artifact-family.md).
+
+#### `TopoGraph`
+
+The exported TypeScript type family for the serialized, inspectable graph
+content. A TopoGraph contains trail, signal, resource, contour, activation,
+schema, layer, example, and surface-projection facts. It is the content artifact
+written to `.trails/topo.lock`.
+
+#### `topoGraph`
+
+The JavaScript field and variable spelling for a TopoGraph value, for example
+`stored.topoGraph`, `topoGraphJson`, or `deriveTopoGraph(graph)`.
+
+#### `topo_graph`
+
+The SQL/storage spelling for serialized TopoGraph content. In the topo store,
+`topo_exports.topo_graph` holds the graph content that corresponds to
+`.trails/topo.lock`.
+
+#### `lock_manifest`
+
+The SQL/storage spelling for the stored lock manifest export. The manifest is
+the compact `.trails/trails.lock` artifact that points at `topo.lock` and
+verifies the TopoGraph hash; it is not a second copy of the graph.
+
+#### `.trails/state/`
+
+Ignored mutable runtime state. The default local SQLite database lives at
+`.trails/state/trails.db`; its `-wal` and `-shm` sidecars are transient local
+state and must not be committed.
+
+#### `.trails/cache/`
+
+Ignored rebuildable cache state. Generated helper artifacts that can be rebuilt
+from source contracts belong here rather than beside committed lock artifacts.
+
+#### `.trails/config.local.{ts,js}`
+
+Ignored per-developer config overrides. Use `.trails/config.local.ts` or
+`.trails/config.local.js`; do not create nested `.trails/config/local.*` files.
+
+#### Retired Vocabulary
+
+These names are historical or migration vocabulary, not current target-state
+language for active docs, examples, or agent guidance:
+
+| Retired | Current |
+| --- | --- |
+| `SurfaceMap` | `TopoGraph` |
+| `SurfaceMapEntry` | `TopoGraphEntry` |
+| `_surface.json` | `.trails/topo.lock` |
+| `surface_map` | `topo_graph` |
+| `serialized_lock` | `lock_manifest` when referring to stored manifest export content; `.trails/trails.lock` when referring to the committed manifest file |
+| `.trails/config/local` | `.trails/config.local.{ts,js}` |
+| `.trails/trails.db` | `.trails/state/trails.db` |
+| `.trails/trails.db-shm` / `.trails/trails.db-wal` | `.trails/state/trails.db-shm` / `.trails/state/trails.db-wal` |
+| `.trails/dev/` | `.trails/state/` for mutable runtime state |
+| `.trails/generated/` | `.trails/cache/` for rebuildable generated state |
+
+Historical release notes, old migrations, accepted ADR history, and explicitly
+superseded planning archives may mention retired names when the surrounding text
+clearly marks them as legacy. Active guidance should teach the current names.
+
 ### `permit`
 
 The resolved identity shape that authentication produces. A permit is the artifact the trail receives: identity, scopes, roles — typed and resolved. Auth is the boundary work; the permit is what the trail sees.
@@ -329,7 +396,8 @@ const result = await run(graph, 'entity.show', { id: '123' });
 ### `graph`
 
 The assembled, queryable value returned by `topo()`. The graph is the runtime
-shape that surfaces render, survey inspects, and the lockfile serializes.
+shape that surfaces render, survey inspects, and the TopoGraph artifact family
+serializes for review.
 
 ```typescript
 const graph = topo('myapp', entityModule, searchModule);

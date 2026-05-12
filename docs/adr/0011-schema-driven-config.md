@@ -78,7 +78,7 @@ From this declaration, the framework derives:
 
 - **Discovery** — `config.resolve()` searches for `.myapprc.toml`, `.myapprc.jsonc`, `.myapprc.yaml` (walking up from cwd or a specified path). Bun native imports handle parsing with zero dependencies.
 - **Example generation** — `config.generateExample('toml')` produces a commented example file derived from the schema. Defaults shown, required fields marked, `.describe()` text as comments, `.deprecated()` fields annotated with migration guidance. Value constraints (min/max, regex patterns, enum options) are rendered as inline comments.
-- **JSON Schema generation** — `config.jsonSchema()` produces a standard JSON Schema derived from the Zod schema. Shippable as a generated artifact (`.trails/generated/myapp.schema.json`), publishable to a URL, or bundled in the package. IDEs that support `$schema` references get autocomplete and validation for free — the same experience developers get from `biome.json` or `tsconfig.json`.
+- **JSON Schema generation** — `config.jsonSchema()` produces a standard JSON Schema derived from the Zod schema. Shippable as a generated artifact (`.trails/cache/generated/myapp.schema.json`), publishable to a URL, or bundled in the package. IDEs that support `$schema` references get autocomplete and validation for free — the same experience developers get from `biome.json` or `tsconfig.json`.
 - **Introspection** — `config.describe()` returns a structured catalog of every field: path, type, default, description, deprecated status, env binding, and value constraints. Powers `myapp config options` on CLI and agent inspection via MCP. No config file needs to exist — this describes what's possible, not what's configured.
 - **Validation / doctor** — `config.check(path?)` finds the config, parses it, validates through the Zod schema, and returns structured diagnostics: which fields are valid, which are missing, which use defaults, which are deprecated. CLI renders a human-readable checklist. Agents consume the structured form.
 - **Init** — `config.init(dir?, format?)` writes the example file to the target directory. One command to bootstrap a config file for end users.
@@ -250,7 +250,7 @@ Testing auto-resolves the `test` profile when `TRAILS_ENV=test` (the default in 
 
 Every `appConfig` declaration generates three artifact types:
 
-**Example config files** in any supported format. For `defineConfig` (Trails' own config), the framework also generates `.trails/generated/.env.example` from composed resource config schemas:
+**Example config files** in any supported format. For `defineConfig` (Trails' own config), the framework also generates `.trails/cache/generated/.env.example` from composed resource config schemas:
 
 ```bash
 # DATABASE_URL=           # required, string, secret
@@ -276,7 +276,7 @@ For app-facing config, `config.generateExample('toml')` produces format-appropri
 
 JSONC format includes the same comments. Plain JSON omits them — the developer's `formats` declaration controls this.
 
-**JSON Schema** at `.trails/generated/<name>.schema.json`. Derived from the Zod schema. Publishable to a URL or bundled in the package's `exports`. IDEs with `$schema` support get autocomplete and inline validation — the config file lights up like `tsconfig.json` does.
+**JSON Schema** at `.trails/cache/generated/<name>.schema.json`. Derived from the Zod schema. Publishable to a URL or bundled in the package's `exports`. IDEs with `$schema` support get autocomplete and inline validation — the config file lights up like `tsconfig.json` does.
 
 **Introspection output** — not a file, but a queryable structure. `config.describe()` returns the full field catalog. CLI renders it as `myapp config options`. Survey includes it. Agents query it via MCP.
 

@@ -378,7 +378,9 @@ see [ADR-0045](./adr/0045-v1-resolved-graph-error-scope.md).
 
 ### `TopoStoreTopoGraphRecord`
 
-Typed view over the saved `TopoGraph` content artifact for a snapshot:
+Typed view over the saved `TopoGraph` content artifact for a snapshot. This is
+the `topo_graph` member of the lock v3 artifact family defined in
+[ADR-0046](./adr/0046-lock-v3-artifact-family.md):
 
 ```typescript
 {

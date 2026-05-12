@@ -3,6 +3,8 @@
 The topo store is Trails' queryable database of your application's topology — every trail, signal, resource, and their relationships. It lives in `.trails/state/trails.db` and is created automatically when you run topo commands.
 
 For the full SQLite schema and programmatic query API, see the [Topo Store Reference](./topo-store-reference.md).
+If you are migrating from the old surface-map or root database layout, see the
+[TopoGraph Artifact Family Migration](./migration/topograph-artifact-family.md).
 
 ## The `.trails/` directory
 
@@ -97,7 +99,8 @@ trails topo compile
 
 ### `trails topo verify`
 
-Check that `.trails/trails.lock` matches your current topo. Fails if the lockfile has drifted.
+Check that the `.trails/trails.lock` / `.trails/topo.lock` artifact family
+matches your current topo. Fails if either committed artifact has drifted.
 
 ```bash
 # In CI
@@ -110,7 +113,7 @@ trails topo verify || exit 1
 
 1. Make topology changes
 2. Compile: `trails topo compile`
-3. Commit `.trails/trails.lock`
+3. Commit `.trails/trails.lock` and `.trails/topo.lock`
 4. In CI, verify: `trails topo verify`
 
 ### Pin before refactoring

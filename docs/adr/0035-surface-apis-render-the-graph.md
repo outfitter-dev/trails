@@ -146,7 +146,7 @@ await surface(graph);
 ```
 
 `topo()` names the primitive. `graph` names the thing returned by it. That
-matches the tenet that the resolved graph is the story.
+matches the tenet that the resolved topo artifact family is the story.
 
 ### Runtime adapters compose on created surfaces, not by inventing new projections
 
@@ -205,7 +205,7 @@ concept count flat.
 ## References
 
 - [ADR-0000: Core Premise](0000-core-premise.md) — the trail is the product;
-  the resolved graph is the story
+  the resolved topo artifact family is the story
 - [ADR-0001: Naming Conventions](0001-naming-conventions.md) — the verb and
   grammar rules this ADR extends
 - [ADR-0005: Framework-Agnostic HTTP Route Model](0005-framework-agnostic-http-route-model.md)

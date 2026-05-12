@@ -2318,7 +2318,7 @@
           "fromPath": "docs/adr/0046-lock-v3-artifact-family.md"
         },
         {
-          "context": "Extends trail record with `crosses`, `detours`, `resources`, and `examples` arrays. Detailed examples preserve `expected`, `expectedMatch`, and structured signal assertions when they are JSON-serializ",
+          "context": "see [ADR-0045](./adr/0045-v1-resolved-graph-error-scope.md).",
           "from": "topo-store-reference",
           "fromPath": "docs/topo-store-reference.md"
         },
@@ -2355,6 +2355,16 @@
           "context": "- [ADR-0046: Lock v3 Artifact Family](0046-lock-v3-artifact-family.md)",
           "from": "0045",
           "fromPath": "docs/adr/0045-v1-resolved-graph-error-scope.md"
+        },
+        {
+          "context": "[ADR-0046](adr/0046-lock-v3-artifact-family.md).",
+          "from": "lexicon",
+          "fromPath": "docs/lexicon.md"
+        },
+        {
+          "context": "[ADR-0046](./adr/0046-lock-v3-artifact-family.md):",
+          "from": "topo-store-reference",
+          "fromPath": "docs/topo-store-reference.md"
         }
       ],
       "number": "0046",

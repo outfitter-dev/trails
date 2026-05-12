@@ -58,7 +58,7 @@ ready and again before final handoff.
 | 1 | `TRL-655` | `trl-655-add-typed-topo-store-views-over-topograph-saved-state` | TBD | Implemented locally |
 | 2 | `TRL-656` | `trl-656-make-persisted-surface-rows-complete-or-explicitly-partial` | TBD | Implemented locally |
 | 3 | `TRL-657` | `trl-657-add-complete-resolved-contract-detail-view-for-blind-agents` | TBD | Implemented locally |
-| 4 | `TRL-653` | `trl-653-sweep-docs-api-references-and-agent-guidance-for-topograph` | TBD | Not started |
+| 4 | `TRL-653` | `trl-653-sweep-docs-api-references-and-agent-guidance-for-topograph` | TBD | Implemented locally |
 | 5 | `TRL-702` | `trl-702-add-retired-vocabulary-guard-for-active-topograph-surfaces` | TBD | Not started |
 | 6 | `TRL-692` | `trl-692-clarify-warden-guide-manifest-category-naming-before` | TBD | Not started |
 | 7 | `TRL-690` | `trl-690-polish-warden-guidance-link-rendering-and-schema-reuse` | TBD | Not started |
@@ -142,6 +142,12 @@ ready waves, and remote review turns here.
   contour, activation, governance, and surface-projection facts; `survey.trail`
   exposes the same contract-facing shape through its output schema; docs and
   changesets were updated for the public package behavior.
+- 2026-05-12 14:55 EDT: Moved `TRL-653` to `In Progress`, created
+  `trl-653-sweep-docs-api-references-and-agent-guidance-for-topograph`, and
+  completed the TopoGraph docs/API/agent-guidance sweep. Added lexicon entries
+  for current artifact-family vocabulary, a migration guide for retired
+  SurfaceMap/root-state names, a tracked archive note for ignored v1 plans, and
+  updated stale tenet citations plus draft wayfinding substrate wording.
 
 ## Verification Log
 
@@ -186,6 +192,17 @@ Branch `TRL-657` focused checks:
 - `bun run typecheck` - passed after aligning `CurrentTrailDetail` with
   `TrailDetailReport` and exporting the TopoGraph activation edge/source types
   used by the survey report.
+- `bun run format:check` - passed.
+- `git diff --check` - passed.
+
+Branch `TRL-653` focused checks:
+
+- `bun scripts/adr.ts map` - passed and refreshed ADR decision maps.
+- `bun scripts/adr.ts check` - passed with 0 errors / 0 warnings.
+- `bun scripts/vocab-cutover-audit.ts --rule connector-term` - passed.
+- Manual active stale-term sweep excluding historical/migration/retired-vocabulary
+  files - clean.
+- `bun run typecheck` - passed.
 - `bun run format:check` - passed.
 - `git diff --check` - passed.
 

@@ -281,7 +281,7 @@ The following are deliberately deferred:
 - [ADR-0015: Topo Store](0015-topo-store.md) — the queryable relational projection. This ADR moves its public API into Topographer.
 - [ADR-0017: The Serialized Topo Graph](0017-serialized-topo-graph.md) — the lockfile as the resolved-graph artifact. This ADR keeps the lockfile firmly in tooling, not on the runtime path.
 - [ADR-0035: Surface APIs Render the Graph](0035-surface-apis-render-the-graph.md) — the accepted `derive*` / `create*` / `surface()` grammar. This ADR builds on the same lineage by clarifying which package owns the durable derivations.
-- [Trails Design Tenets](../tenets.md) — especially "the resolved graph is the story" and "the contract is queryable", which this ADR operationalizes as a package boundary.
+- [Trails Design Tenets](../tenets.md) — especially "the resolved topo artifact family is the story" and "the contract is queryable", which this ADR operationalizes as a package boundary.
 - [Lexicon](../lexicon.md) — adds `topographer` as the actor noun for the durable graph artifact role.
 
 [^schema-index]: See `packages/schema/src/index.ts`. The full export list is six functions plus types — no schema authoring helpers.

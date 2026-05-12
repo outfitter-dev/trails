@@ -39,17 +39,17 @@ memorize because go-to-definition did not exist for them.
   trail definitions. No new authoring is required from app developers.
 - **Surfaces are peers.** Wayfinding queries are trails, so CLI, MCP, and HTTP
   project them naturally.
-- **The resolved graph is the story.** Wayfinding makes the serialized graph
-  interactive.
+- **The resolved topo artifact family is the story.** Wayfinding makes the
+  serialized graph content interactive.
 
 ### Substrate honesty
 
-The serialized graph today is the surface map plus the topo store, not yet the
-full resolved topology described in [ADR-0017]. [ADR-0042] settled the
+The serialized graph today is the TopoGraph plus the topo store, not yet every
+possible runtime observation described in [ADR-0017]. [ADR-0042] settled the
 substrate boundary: durable graph artifacts live in `@ontrails/topographer`,
 core stays runtime-only. Wayfinding v0 sits on top of those artifacts, and must
 be honest about what they contain — every query must be answerable from the
-shipped `SurfaceMap` and topo-store record shapes, or be marked deferred.
+shipped `TopoGraph` and topo-store record shapes, or be marked deferred.
 
 ### The recursive property
 
@@ -67,7 +67,7 @@ the tools that traverse the graph.
 
 Wayfinding does not introduce a new primitive. The wayfinder is a package of
 trails whose blazes read the durable graph artifacts owned by
-`@ontrails/topographer`: `SurfaceMap`, `SurfaceLock`, `DiffResult`, and the
+`@ontrails/topographer`: `TopoGraph`, lock manifest helpers, `DiffResult`, and the
 read-only topo store records (`TopoStoreTrailRecord`,
 `TopoStoreTrailDetailRecord`, `TopoStoreResourceRecord`,
 `TopoStoreSignalRecord`).
@@ -88,22 +88,22 @@ This means:
 ### v0 query catalog
 
 The v0 catalog is deliberately narrow. The test for inclusion: every query
-must answer from the data already present in `SurfaceMap` and the topo-store
+must answer from the data already present in `TopoGraph` and the topo-store
 read API today. Queries that need substrate the graph does not yet expose are
 deferred, not ambitiously promised.
 
 | Trail ID | Purpose | Substrate today | Status |
 |---|---|---|---|
-| `wayfind.overview` | Summarize the topo: counts of trails, resources, signals, contours, surfaces, examples; intent distribution; activation source counts | `SurfaceMap.entries`, `SurfaceMap.activationGraph` | v0 |
-| `wayfind.search` | Find trails, contours, resources, or signals by ID, namespace pattern, or intent filter | `SurfaceMap.entries[].id`, `kind`, `intent` | v0 |
-| `wayfind.describe` | Return the full record for one entity by ID | `SurfaceMapEntry` plus `TopoStoreTrailDetailRecord` for the requested entity | v0 |
-| `wayfind.signature` | Tight input / output / intent / idempotent view for a trail | `SurfaceMapEntry.input`, `output`, `intent`, `idempotent` | v0 |
-| `wayfind.neighborhood` | Nearby graph: `crosses`, `crossed-by`, `contours`, `resources`, `signals` (one query, `direction` parameter) | `SurfaceMapEntry.crosses`, `producers`, `consumers`, `resources`, `contours` | v0 |
-| `wayfind.projections` | Show CLI, MCP, and HTTP projections for a trail | `SurfaceMapEntry.cli`, `SurfaceMapEntry.surfaces`, plus surface-derived projections | v0 |
-| `wayfind.examples` | Return examples for a trail or contour | `SurfaceMapEntry.examples`, `TopoStoreExampleRecord` | v0 |
-| `wayfind.diff` | Compare two graph snapshots (e.g. `main` vs branch) | `DiffResult` from `deriveSurfaceMapDiff` | v0 |
+| `wayfind.overview` | Summarize the topo: counts of trails, resources, signals, contours, surfaces, examples; intent distribution; activation source counts | `TopoGraph.entries`, `TopoGraph.activationGraph` | v0 |
+| `wayfind.search` | Find trails, contours, resources, or signals by ID, namespace pattern, or intent filter | `TopoGraph.entries[].id`, `kind`, `intent` | v0 |
+| `wayfind.describe` | Return the full record for one entity by ID | `TopoGraphEntry` plus `TopoStoreTrailDetailRecord` for the requested entity | v0 |
+| `wayfind.signature` | Tight input / output / intent / idempotent view for a trail | `TopoGraphEntry.input`, `output`, `intent`, `idempotent` | v0 |
+| `wayfind.neighborhood` | Nearby graph: `crosses`, `crossed-by`, `contours`, `resources`, `signals` (one query, `direction` parameter) | `TopoGraphEntry.crosses`, `producers`, `consumers`, `resources`, `contours` | v0 |
+| `wayfind.projections` | Show CLI, MCP, and HTTP projections for a trail | `TopoGraphEntry.cli`, `TopoGraphEntry.surfaces`, plus surface-derived projections | v0 |
+| `wayfind.examples` | Return examples for a trail or contour | `TopoGraphEntry.examples`, `TopoStoreExampleRecord` | v0 |
+| `wayfind.diff` | Compare two graph snapshots (e.g. `main` vs branch) | `DiffResult` from `deriveTopoGraphDiff` | v0 |
 
-The proto's `wayfind.errors` is **deferred**. Today's `SurfaceMapEntry` and
+The proto's `wayfind.errors` is **deferred**. Today's `TopoGraphEntry` and
 `TopoStoreTrailRecord` do not catalog declared error classes per trail; the
 error taxonomy ships per surface mapping but is not yet a node-level edge set.
 Reintroduce when the graph carries the data.

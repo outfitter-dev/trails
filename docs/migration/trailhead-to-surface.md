@@ -18,7 +18,7 @@ The framework now consistently uses `surface` for CLI, MCP, HTTP, and WebSocket 
 | `tracing.query` record field `trailhead` | `surface` | Update CLI/MCP/HTTP/API consumers that inspect query results. |
 | Extension key value `__trails_trailhead` | `__trails_surface` | Update any direct `ctx.extensions` reads/writes to use `SURFACE_KEY`. |
 | `TRAILHEAD_KEY` | removed | Import `SURFACE_KEY` from `@ontrails/core`. |
-| `SurfaceMapEntry.trailheads` | `SurfaceMapEntry.surfaces` | Update surface-map JSON consumers and regenerate maps. |
+| Legacy `SurfaceMapEntry.trailheads` | `TopoGraphEntry.surfaces` | Update JSON consumers to the current TopoGraph artifact family and regenerate artifacts. |
 | `extractTrailheads` | `extractSurfaces` | Update internal imports if you reached into non-public helpers. |
 | `Trailhead "<name>" added/removed` | `Surface "<name>" added/removed` | Update diff-output tests or parsers. |
 | `transportNames` / `TransportName` | `surfaceNames` / `SurfaceName` | Import the surface-named error projection API. |
@@ -93,7 +93,7 @@ Reset local Trails state before upgrading:
 trails dev reset --yes
 ```
 
-If you manage the database manually, delete `.trails/trails.db` and its SQLite sidecar files (`.trails/trails.db-wal`, `.trails/trails.db-shm`) before recreating local state.
+If you manage the database manually on current builds, delete `.trails/state/trails.db` and its SQLite sidecar files (`.trails/state/trails.db-wal`, `.trails/state/trails.db-shm`) before recreating local state. Very old beta workspaces may also have legacy root files at `.trails/trails.db*`; remove those only as migration cleanup.
 
 ## Query Trail
 
@@ -124,9 +124,10 @@ Use `SURFACE_KEY` for surface identity in `ctx.extensions`.
 
 The runtime key value is now `__trails_surface`. Any persisted state keyed by `__trails_trailhead` is invalid after the cutover.
 
-## Surface Maps
+## TopoGraph Entries
 
-Surface maps now store `surfaces` on each entry:
+The current TopoGraph artifact stores `surfaces` on each entry. Historical
+surface-map artifacts used the same field after the trailhead cutover:
 
 ```diff
  {
@@ -136,7 +137,7 @@ Surface maps now store `surfaces` on each entry:
  }
 ```
 
-Regenerate surface maps and locks after upgrading. For the Trails app, use:
+Regenerate TopoGraph artifacts after upgrading. For the Trails app, use:
 
 ```bash
 trails topo compile

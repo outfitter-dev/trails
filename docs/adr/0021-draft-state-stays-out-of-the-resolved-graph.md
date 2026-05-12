@@ -19,9 +19,9 @@ But the current validation path makes that hard in exactly the places where the 
 
 The obvious escape hatch in most frameworks is "just use a placeholder and
 clean it up later." Trails can do better than that, but it also cannot weaken
-the resolved graph to make authoring easier. The resolved graph is the story.
-The lock manifest, `topo.lock`, CI, and runtime surfaces all depend on it being
-fully established and queryable.[^tenets]
+the resolved graph to make authoring easier. The resolved topo artifact family
+is the story. The lock manifest, `topo.lock`, CI, and runtime surfaces all
+depend on it being fully established and queryable.[^tenets]
 
 This is one of the few places where Trails has unusually strong structural leverage. We already have:
 
@@ -158,7 +158,7 @@ Draft state is a deliberate sketching tool, not an invisible shortcut.
 
 - [ADR-0017: The Serialized Topo Graph](0017-serialized-topo-graph.md) — the resolved graph and lockfile must remain established and queryable
 - [ADR-0001: Naming Conventions](0001-naming-conventions.md) — trail IDs are meaningful authored artifacts, so the draft marker must be deliberate and visible
-- [Trails Design Tenets](../tenets.md) — especially "the resolved graph is the story" and "the contract is queryable"
+- [Trails Design Tenets](../tenets.md) — especially "the resolved topo artifact family is the story" and "the contract is queryable"
 
 [^retro]: The Stash dogfood retro identified eager validation of event `from` references as a barrier to incremental authoring.
-[^tenets]: [Trails Design Tenets](../tenets.md) states that the resolved graph is the story and that the contract must stay queryable.
+[^tenets]: [Trails Design Tenets](../tenets.md) states that the resolved topo artifact family is the story and that the contract must stay queryable.

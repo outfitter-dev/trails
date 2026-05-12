@@ -14,7 +14,10 @@ owners: ['[galligan](https://github.com/galligan)']
 
 Trails is Bun-native. Bun ships `bun:sqlite` as a first-class built-in: in-process, zero-latency, WAL-capable, with prepared statements and transactions. It adds no dependency. It's the same non-dependency as `node:fs`.
 
-Today the framework has exactly one SQLite usage: the tracing DevStore in `@ontrails/tracing`, which records execution tracks to `.trails/dev/tracing.db`.[^devstore] It's an island. The tracing writes to it; nothing else reads from it or benefits from its existence.
+Before this ADR, the framework had exactly one SQLite usage: the tracing
+DevStore in `@ontrails/tracing`, which recorded execution tracks to a
+subsystem-local database.[^devstore] It was an island. The tracing wrote to it;
+nothing else read from it or benefited from its existence.
 
 Meanwhile, the framework generates and consumes several categories of structural and operational data that are persisted as JSON files or held in memory:
 
@@ -205,7 +208,9 @@ All values have sensible defaults. Zero configuration required.
 - [ADR-0018: Signal-Driven Governance](0018-signal-driven-governance.md) — the framework lifecycle as a topo
 - [ADR-0016: Schema-Derived Persistence](0016-schema-derived-persistence.md) — app-level persistence building on the patterns established here
 
-[^devstore]: The DevStore default path is `.trails/dev/tracing.db`. See `packages/tracing/src/stores/dev.ts`.
+[^devstore]: The current DevStore default path is `.trails/state/trails.db`,
+    shared with other framework subsystems through the core database primitive.
+    Older beta builds used a tracing-local `.trails/dev/tracing.db` path.
 
 ### Amendment log
 
