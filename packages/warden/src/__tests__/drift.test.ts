@@ -30,6 +30,15 @@ const makeTopo = () => {
   return topo('test-app', { t });
 };
 
+const makeChangedTopo = () => {
+  const t = trail('test.hello', {
+    blaze: () => Result.ok({ greeting: 'hi', punctuation: '!' }),
+    input: z.object({ name: z.string() }),
+    output: z.object({ greeting: z.string(), punctuation: z.string() }),
+  });
+  return topo('test-app', { t });
+};
+
 const createTempDir = (): string => {
   const dir = join(tmpdir(), `drift-test-${Date.now()}`);
   mkdirSync(dir, { recursive: true });
@@ -117,6 +126,25 @@ describe('checkDrift', () => {
     }
   });
 
+  test('uses the live topo hash even when a saved topo export exists', async () => {
+    const dir = createTempDir();
+    try {
+      const savedHash = seedSavedTopo(dir);
+      if (savedHash === undefined) {
+        throw new Error('expected saved hash');
+      }
+      await writeManifest(dir, savedHash);
+
+      const result = await checkDrift(dir, makeChangedTopo());
+
+      expect(result.stale).toBe(true);
+      expect(result.committedHash).toBe(savedHash);
+      expect(result.currentHash).not.toBe(savedHash);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
   test('returns stale: true when lock does not match', async () => {
     const dir = createTempDir();
     try {
@@ -144,6 +172,35 @@ describe('checkDrift', () => {
       expect(result.blockedReason).toContain(
         'regenerate with `trails topo compile`'
       );
+      expect(result.currentHash).toBe('blocked');
+      expect(result.committedHash).toBeNull();
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('blocks drift calculation when the manifest lacks the topo.lock artifact', async () => {
+    const dir = createTempDir();
+    try {
+      await writeLockManifest(
+        {
+          artifacts: [
+            {
+              path: 'other.lock',
+              role: 'topo',
+              sha256: 'f'.repeat(64),
+            },
+          ],
+          scope: { app: 'test-app' },
+          summary: { contours: 0, resources: 0, signals: 0, trails: 1 },
+          version: 3,
+        },
+        { dir: committedLockDir(dir) }
+      );
+
+      const result = await checkDrift(dir, makeTopo());
+      expect(result.stale).toBe(true);
+      expect(result.blockedReason).toContain('topo.lock artifact');
       expect(result.currentHash).toBe('blocked');
       expect(result.committedHash).toBeNull();
     } finally {

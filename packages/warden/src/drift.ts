@@ -21,6 +21,7 @@ import {
   isTopoArtifactRegenerationError,
   readLockManifest,
 } from '@ontrails/topographer';
+import type { LockManifest } from '@ontrails/topographer';
 
 /**
  * Result of a drift check comparing committed trails.lock against the current state.
@@ -36,6 +37,44 @@ export interface DriftResult {
   readonly currentHash: string;
 }
 
+interface BlockedLockRead {
+  readonly drift: DriftResult;
+  readonly kind: 'blocked-lock-read';
+}
+
+const blockedDrift = (reason: string): DriftResult => ({
+  blockedReason: reason,
+  committedHash: null,
+  currentHash: 'blocked',
+  stale: true,
+});
+
+const blockedLockRead = (reason: string): BlockedLockRead => ({
+  drift: blockedDrift(reason),
+  kind: 'blocked-lock-read',
+});
+
+const readCommittedLockManifest = async (
+  rootDir: string
+): Promise<BlockedLockRead | LockManifest | null> => {
+  const trailsDir = deriveTrailsDir({ rootDir });
+  try {
+    return existsSync(rootDir) && statSync(rootDir).isDirectory()
+      ? await readLockManifest({ dir: trailsDir })
+      : null;
+  } catch (error) {
+    if (isTopoArtifactRegenerationError(error)) {
+      return blockedLockRead(error.message);
+    }
+    throw error;
+  }
+};
+
+const isBlockedLockRead = (
+  result: BlockedLockRead | LockManifest | null
+): result is BlockedLockRead =>
+  result !== null && 'kind' in result && result.kind === 'blocked-lock-read';
+
 /**
  * Check whether the committed trails.lock is stale compared to the current topology.
  *
@@ -46,17 +85,20 @@ export const checkDrift = async (
   topo?: Topo | undefined
 ): Promise<DriftResult> => {
   try {
-    const trailsDir = deriveTrailsDir({ rootDir });
-    const lockManifest =
-      existsSync(rootDir) && statSync(rootDir).isDirectory()
-        ? await readLockManifest({ dir: trailsDir })
-        : null;
+    const lockManifest = await readCommittedLockManifest(rootDir);
+    if (isBlockedLockRead(lockManifest)) {
+      return lockManifest.drift;
+    }
     const topoArtifact =
-      lockManifest?.artifacts.find((artifact) => artifact.role === 'topo') ??
-      null;
-    // Prefer the stored hash (computed by the export pipeline) to avoid
-    // divergence between the schema and store hash pipelines.
-    const storedHash = (() => {
+      lockManifest?.artifacts.find(
+        (artifact) => artifact.role === 'topo' && artifact.path === 'topo.lock'
+      ) ?? null;
+    if (lockManifest !== null && topoArtifact === null) {
+      return blockedDrift(
+        'trails.lock does not contain a topo.lock artifact. Regenerate with `trails topo compile`.'
+      );
+    }
+    const readStoredHash = (): string | undefined => {
       try {
         return createTopoStore({ rootDir }).exports.get()?.topoGraphHash;
       } catch (error) {
@@ -65,12 +107,11 @@ export const checkDrift = async (
         }
         throw error;
       }
-    })();
+    };
     const currentHash =
-      storedHash ??
-      (topo === undefined
-        ? 'unknown'
-        : deriveTopoGraphHash(deriveTopoGraph(topo)));
+      topo === undefined
+        ? (readStoredHash() ?? 'unknown')
+        : deriveTopoGraphHash(deriveTopoGraph(topo));
 
     return {
       committedHash: topoArtifact?.sha256 ?? null,
@@ -88,11 +129,6 @@ export const checkDrift = async (
       throw error;
     }
 
-    return {
-      blockedReason: error.message,
-      committedHash: null,
-      currentHash: 'blocked',
-      stale: true,
-    };
+    return blockedDrift(error.message);
   }
 };
