@@ -16,6 +16,7 @@ import type { Layer, Topo, TopoIssue } from '@ontrails/core';
 import { z } from 'zod';
 
 import { deriveTopoGraph } from '../derive.js';
+import { TOPO_GRAPH_SCHEMA_VERSION } from '../types.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -715,10 +716,10 @@ describe('deriveTopoGraph', () => {
       const map2 = deriveTopoGraph(tp);
 
       expect(map1.entries).toEqual(map2.entries);
-      expect(map1.version).toBe(map2.version);
+      expect(map1.topoGraphSchemaVersion).toBe(map2.topoGraphSchemaVersion);
     });
 
-    test('version is set to 1.0', () => {
+    test('schema version is set to 1', () => {
       const t = trail('v.check', {
         blaze: noop,
         input: z.object({}),
@@ -726,7 +727,7 @@ describe('deriveTopoGraph', () => {
       const tp = topoFrom({ t });
       const map = deriveTopoGraph(tp);
 
-      expect(map.version).toBe('1.0');
+      expect(map.topoGraphSchemaVersion).toBe(TOPO_GRAPH_SCHEMA_VERSION);
     });
 
     test('generatedAt is an ISO timestamp', () => {

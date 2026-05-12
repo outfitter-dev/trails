@@ -20,6 +20,7 @@ import {
   createTopoStore,
   deriveTopoGraphDiff,
   deriveTopoGraph,
+  TOPO_GRAPH_SCHEMA_VERSION,
   readTopoGraph,
 } from '@ontrails/topographer';
 import { z } from 'zod';
@@ -91,7 +92,7 @@ const createDiffExampleInput = (): {
   readonly rootDir: string;
 } => {
   const input = createIsolatedExampleInput('survey-diff');
-  writeIsolatedExampleJsonFile(input.rootDir, 'baseline/_surface.json', {
+  writeIsolatedExampleJsonFile(input.rootDir, 'baseline/topo.lock', {
     activationGraph: {
       edgeCount: 0,
       edges: [],
@@ -102,7 +103,7 @@ const createDiffExampleInput = (): {
     activationSources: {},
     entries: [],
     generatedAt: '2026-01-01T00:00:00.000Z',
-    version: '1.0',
+    topoGraphSchemaVersion: TOPO_GRAPH_SCHEMA_VERSION,
   } satisfies TopoGraph);
   return { ...input, against: 'baseline' };
 };

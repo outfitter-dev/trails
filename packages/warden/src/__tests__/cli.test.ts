@@ -13,7 +13,7 @@ import {
 import {
   deriveTopoGraph,
   deriveTopoGraphHash,
-  writeSurfaceLock,
+  writeLockManifest,
 } from '@ontrails/topographer';
 import { z } from 'zod';
 
@@ -48,6 +48,17 @@ const makeTempDir = (): string => {
   mkdirSync(dir, { recursive: true });
   return dir;
 };
+
+const writeManifest = (rootDir: string, hash: string): Promise<string> =>
+  writeLockManifest(
+    {
+      artifacts: [{ path: 'topo.lock', role: 'topo', sha256: hash }],
+      scope: { app: 'fixture.primary' },
+      summary: { contours: 0, resources: 0, signals: 0, trails: 1 },
+      version: 3,
+    },
+    { dir: deriveTrailsDir({ rootDir }) }
+  );
 
 const buildFixtureTopo = (name = 'fixture') => {
   const echo = trail('fixture.echo', {
@@ -609,9 +620,7 @@ export const second = contour('second', {
       });
       const admin = topo('fixture.admin', { adminTrail });
       const primaryHash = deriveTopoGraphHash(deriveTopoGraph(primary));
-      await writeSurfaceLock(primaryHash, {
-        dir: deriveTrailsDir({ rootDir: dir }),
-      });
+      await writeManifest(dir, primaryHash);
 
       const report = await runWarden({
         depth: 'all',

@@ -23,6 +23,7 @@ import {
   deriveTopoGraph,
   deriveTopoGraphHash,
   deriveTopoGraphDiff,
+  TOPO_GRAPH_SCHEMA_VERSION,
   writeTopoGraph,
 } from '@ontrails/topographer';
 import type { TopoGraph } from '@ontrails/topographer';
@@ -256,7 +257,7 @@ describe('trails survey', () => {
     const surfaceMap = deriveTopoGraph(app);
     const json = JSON.stringify(surfaceMap, null, 2);
     const parsed = JSON.parse(json) as TopoGraph;
-    expect(parsed.version).toBe('1.0');
+    expect(parsed.topoGraphSchemaVersion).toBe(TOPO_GRAPH_SCHEMA_VERSION);
     expect(parsed.entries.length).toBe(3);
   });
 
@@ -910,13 +911,13 @@ describe('trails topo compile', () => {
       };
 
       expect(compiled.hash).toHaveLength(64);
-      expect(existsSync(join(dir, '.trails', '_surface.json'))).toBe(true);
+      expect(existsSync(join(dir, '.trails', 'topo.lock'))).toBe(true);
       expect(existsSync(join(dir, '.trails', 'trails.lock'))).toBe(true);
       expect(
         JSON.parse(readFileSync(join(dir, '.trails', 'trails.lock'), 'utf8'))
       ).toMatchObject({
-        hash: compiled.hash,
-        version: '2',
+        artifacts: [{ path: 'topo.lock', role: 'topo', sha256: compiled.hash }],
+        version: 3,
       });
       expect(topoCompileTrail.output.safeParse(compiled).success).toBe(true);
     } finally {
@@ -1165,7 +1166,7 @@ describe('trails survey output schema', () => {
       topoCompileTrail.output.safeParse({
         hash: 'a'.repeat(64),
         lockPath: '.trails/trails.lock',
-        mapPath: '.trails/_surface.json',
+        mapPath: '.trails/topo.lock',
         snapshot: {
           createdAt: new Date(0).toISOString(),
           gitDirty: false,

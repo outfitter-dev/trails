@@ -8,6 +8,8 @@ import type {
 } from '@ontrails/core';
 import { z } from 'zod';
 
+export const TOPO_GRAPH_SCHEMA_VERSION = 1;
+
 export type TopoGraphExample = StructuredSignalExample | StructuredTrailExample;
 
 // ---------------------------------------------------------------------------
@@ -139,7 +141,7 @@ export interface TopoGraphEntry {
 }
 
 export interface TopoGraph {
-  readonly version: string;
+  readonly topoGraphSchemaVersion: typeof TOPO_GRAPH_SCHEMA_VERSION;
   readonly activationGraph: TopoGraphActivationGraph;
   readonly activationSources: Readonly<
     Record<string, TopoGraphActivationSource>
@@ -149,7 +151,7 @@ export interface TopoGraph {
 }
 
 // ---------------------------------------------------------------------------
-// Surface Lock
+// Lock Manifest
 // ---------------------------------------------------------------------------
 
 /** Workspace-owned trail entry serialized into a workspace lock. */
@@ -168,7 +170,7 @@ export type WorkspaceTrailEntry = z.infer<typeof workspaceTrailEntrySchema>;
  * that owns it plus the app module path used by consumers that need to load
  * the owning topo without re-walking workspace manifests.
  *
- * @see SurfaceLock for the lock envelope that may carry this index.
+ * @see LockManifest for the lock envelope that may carry this index.
  */
 export const workspaceTrailIndexSchema = z.record(
   z.string(),
@@ -177,26 +179,66 @@ export const workspaceTrailIndexSchema = z.record(
 
 export type WorkspaceTrailIndex = z.infer<typeof workspaceTrailIndexSchema>;
 
-/**
- * Normalized lock data read from `trails.lock`.
- *
- * The file may be stored as structured JSON or legacy single-line text.
- * The normalized shape always exposes the committed hash and preserves any
- * extra structured metadata.
- *
- * @remarks
- * **Migration story.** Historical locks may be a single line containing a hash
- * or a JSON string hash. Structured lock envelopes authored by Topographer use
- * `version: '2'` and parse through {@link surfaceLockSchema}. Future lockfile
- * versions should update this schema and add an explicit migration path.
- */
-export const surfaceLockSchema = z.object({
-  hash: z.string(),
-  version: z.literal('2').optional(),
-  workspaceTrails: workspaceTrailIndexSchema.optional(),
-});
+export const topoGraphSchema = z
+  .object({
+    activationGraph: z
+      .object({
+        edgeCount: z.number().int().nonnegative(),
+        edges: z.array(z.unknown()),
+        sourceCount: z.number().int().nonnegative(),
+        sourceKeys: z.array(z.string()),
+        trailIds: z.array(z.string()),
+      })
+      .strict(),
+    activationSources: z.record(z.string(), z.unknown()),
+    entries: z.array(
+      z
+        .object({
+          exampleCount: z.number().int().nonnegative(),
+          id: z.string(),
+          kind: z.enum(['contour', 'trail', 'signal', 'resource']),
+          surfaces: z.array(z.string()),
+        })
+        .passthrough()
+    ),
+    generatedAt: z.string(),
+    topoGraphSchemaVersion: z.literal(TOPO_GRAPH_SCHEMA_VERSION),
+  })
+  .strict();
 
-export type SurfaceLock = z.infer<typeof surfaceLockSchema>;
+/**
+ * Lock v3 manifest artifact pointer.
+ */
+export const lockManifestArtifactSchema = z
+  .object({
+    path: z.string(),
+    role: z.literal('topo'),
+    sha256: z.string().regex(/^[0-9a-f]{64}$/),
+  })
+  .strict();
+
+export const lockManifestSummarySchema = z
+  .object({
+    contours: z.number().int().nonnegative(),
+    resources: z.number().int().nonnegative(),
+    signals: z.number().int().nonnegative(),
+    trails: z.number().int().nonnegative(),
+  })
+  .strict();
+
+export const lockManifestSchema = z
+  .object({
+    artifacts: z.array(lockManifestArtifactSchema).min(1),
+    scope: z.record(z.string(), z.string()),
+    summary: lockManifestSummarySchema,
+    version: z.literal(3),
+    workspaceTrails: workspaceTrailIndexSchema.optional(),
+  })
+  .strict();
+
+export type LockManifestArtifact = z.infer<typeof lockManifestArtifactSchema>;
+export type LockManifestSummary = z.infer<typeof lockManifestSummarySchema>;
+export type LockManifest = z.infer<typeof lockManifestSchema>;
 
 // ---------------------------------------------------------------------------
 // Diff

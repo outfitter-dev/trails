@@ -1,6 +1,7 @@
 import { describe, test, expect } from 'bun:test';
 
 import { deriveTopoGraphHash } from '../hash.js';
+import { TOPO_GRAPH_SCHEMA_VERSION } from '../types.js';
 import type { TopoGraph } from '../types.js';
 
 // ---------------------------------------------------------------------------
@@ -35,7 +36,7 @@ const makeTopoGraph = (overrides?: Partial<TopoGraph>): TopoGraph => ({
     },
   ],
   generatedAt: '2025-01-01T00:00:00.000Z',
-  version: '1.0',
+  topoGraphSchemaVersion: TOPO_GRAPH_SCHEMA_VERSION,
   ...overrides,
 });
 

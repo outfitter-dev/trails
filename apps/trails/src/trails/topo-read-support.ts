@@ -16,8 +16,9 @@ import {
   NotFoundError,
   Result,
   SURFACE_LAYER_NAMES_KEY,
+  ValidationError,
 } from '@ontrails/core';
-import { readSurfaceLockData } from '@ontrails/topographer';
+import { readLockManifest } from '@ontrails/topographer';
 
 import type {
   BriefReport,
@@ -245,11 +246,24 @@ export const verifyCurrentTopo = async (
   options?: { readonly rootDir?: string }
 ): Promise<Result<TopoVerifyReport, Error>> => {
   const rootDir = deriveRootDir(options?.rootDir);
-  const committedLock = await readSurfaceLockData({
-    dir: deriveTrailsDir({ rootDir }),
-  });
+  let lockManifest: Awaited<ReturnType<typeof readLockManifest>>;
+  try {
+    lockManifest = await readLockManifest({
+      dir: deriveTrailsDir({ rootDir }),
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : 'Unable to read committed trails.lock manifest.';
+    return Result.err(
+      error instanceof Error
+        ? new ValidationError(message, { cause: error })
+        : new ValidationError(message)
+    );
+  }
 
-  if (committedLock === null) {
+  if (lockManifest === null) {
     return Result.err(
       new NotFoundError(
         'No committed trails.lock found. Run `trails topo compile` first.'
@@ -262,8 +276,18 @@ export const verifyCurrentTopo = async (
     return currentExport;
   }
   const currentHash = currentExport.value.surfaceHash;
+  const topoArtifact = lockManifest.artifacts.find(
+    (artifact) => artifact.role === 'topo'
+  );
+  if (topoArtifact === undefined) {
+    return Result.err(
+      new NotFoundError(
+        'No topo.lock artifact found in trails.lock. Run `trails topo compile` first.'
+      )
+    );
+  }
 
-  if (committedLock.hash !== currentHash) {
+  if (topoArtifact.sha256 !== currentHash) {
     return Result.err(
       new ConflictError(
         'trails.lock is stale. Run `trails topo compile` to refresh it.'
@@ -272,7 +296,7 @@ export const verifyCurrentTopo = async (
   }
 
   return Result.ok({
-    committedHash: committedLock.hash,
+    committedHash: topoArtifact.sha256,
     currentHash,
     lockPath: LOCK_PATH,
     stale: false,

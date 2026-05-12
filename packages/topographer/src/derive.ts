@@ -25,6 +25,7 @@ import type {
 } from '@ontrails/core';
 
 import { addPermitRequirement } from './permit.js';
+import { TOPO_GRAPH_SCHEMA_VERSION } from './types.js';
 import type {
   JsonSchema,
   TopoGraph,
@@ -689,6 +690,6 @@ export const deriveTopoGraph = (topo: Topo): TopoGraph => {
     ),
     entries: sorted,
     generatedAt: new Date().toISOString(),
-    version: '1.0',
+    topoGraphSchemaVersion: TOPO_GRAPH_SCHEMA_VERSION,
   };
 };

@@ -15,12 +15,12 @@ import {
   Result,
 } from '@ontrails/core';
 import type {
-  SurfaceLock,
+  LockManifest,
   TopoGraph,
   TopoSnapshot,
 } from '@ontrails/topographer';
 import type { StoredTopoExport } from '@ontrails/topographer/backend-support';
-import { writeSurfaceLock, writeTopoGraph } from '@ontrails/topographer';
+import { writeLockManifest, writeTopoGraph } from '@ontrails/topographer';
 import {
   createStoredTopoSnapshot,
   getStoredTopoExport,
@@ -91,8 +91,8 @@ const writeStoredExportArtifacts = async (
     JSON.parse(storedExport.surfaceMapJson) as TopoGraph,
     { dir: trailsDir }
   );
-  const lockPath = await writeSurfaceLock(
-    JSON.parse(storedExport.lockContent) as SurfaceLock,
+  const lockPath = await writeLockManifest(
+    JSON.parse(storedExport.lockContent) as LockManifest,
     { dir: trailsDir }
   );
 

@@ -155,13 +155,15 @@ describe('topo and dev trails', () => {
       );
       const snapshotCountAfterExport = countTopoSnapshots(dir);
       expect(compileResult.hash).toHaveLength(64);
-      expect(existsSync(join(dir, '.trails', '_surface.json'))).toBe(true);
+      expect(existsSync(join(dir, '.trails', 'topo.lock'))).toBe(true);
       expect(existsSync(join(dir, '.trails', 'trails.lock'))).toBe(true);
       expect(
         JSON.parse(readFileSync(join(dir, '.trails', 'trails.lock'), 'utf8'))
       ).toMatchObject({
-        hash: compileResult.hash,
-        version: '2',
+        artifacts: [
+          { path: 'topo.lock', role: 'topo', sha256: compileResult.hash },
+        ],
+        version: 3,
       });
 
       const summaryAfterExport = expectOk(
@@ -190,11 +192,16 @@ describe('topo and dev trails', () => {
       expect(driftError.message).toContain('trails.lock is stale');
       expect(countTopoSnapshots(dir)).toBe(snapshotCountAfterExport);
 
-      writeFileSync(join(dir, '.trails', 'trails.lock'), 'stale\n');
+      writeFileSync(
+        join(dir, '.trails', 'trails.lock'),
+        `${JSON.stringify({ hash: '1'.repeat(64), version: 2 }, null, 2)}\n`
+      );
       const verifyError = expectErr(
         await topoVerifyTrail.blaze(moduleInput, { cwd: dir } as never)
       );
-      expect(verifyError.message).toContain('trails.lock is stale');
+      expect(verifyError.message).toContain(
+        'regenerate with `trails topo compile`'
+      );
       expect(countTopoSnapshots(dir)).toBe(snapshotCountAfterExport);
     } finally {
       rmSync(dir, { force: true, recursive: true });
@@ -321,8 +328,10 @@ describe('topo and dev trails', () => {
       expect(
         JSON.parse(readFileSync(join(dir, '.trails', 'trails.lock'), 'utf8'))
       ).toMatchObject({
-        hash: secondCompile.hash,
-        version: '2',
+        artifacts: [
+          { path: 'topo.lock', role: 'topo', sha256: secondCompile.hash },
+        ],
+        version: 3,
       });
 
       const projectionDb = openReadTrailsDb({ rootDir: dir });

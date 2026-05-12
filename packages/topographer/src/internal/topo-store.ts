@@ -25,6 +25,8 @@ import type {
 } from '@ontrails/core';
 
 import { addPermitRequirement } from '../permit.js';
+import { TOPO_GRAPH_SCHEMA_VERSION } from '../types.js';
+import type { LockManifest } from '../types.js';
 import type {
   CreateTopoSnapshotInput,
   TopoSnapshot,
@@ -46,7 +48,7 @@ type TopoGraphRecord = Readonly<{
   >;
   readonly entries: readonly TopoGraphEntryRecord[];
   readonly generatedAt: string;
-  readonly version: '1.0';
+  readonly topoGraphSchemaVersion: typeof TOPO_GRAPH_SCHEMA_VERSION;
 }>;
 
 type JsonRecord = Readonly<Record<string, unknown>>;
@@ -1236,7 +1238,7 @@ const buildTopoGraph = (
     ),
     entries,
     generatedAt,
-    version: '1.0',
+    topoGraphSchemaVersion: TOPO_GRAPH_SCHEMA_VERSION,
   };
 };
 
@@ -1245,43 +1247,27 @@ const hashTopoGraphRecord = (surfaceMap: TopoGraphRecord): string => {
   return hashValue(rest);
 };
 
-const entryPayload = (
-  entry: TopoGraphEntryRecord
-): Readonly<Record<string, unknown>> => {
-  const { id: _unusedId, kind: _unusedKind, ...rest } = entry;
-  return sortKeys(rest);
-};
-
-const entriesForKind = (
+const countEntriesForKind = (
   entries: readonly TopoGraphEntryRecord[],
   kind: TopoGraphEntryRecord['kind']
-): Readonly<Record<string, Readonly<Record<string, unknown>>>> =>
-  Object.fromEntries(
-    entries
-      .filter((entry) => entry.kind === kind)
-      .map((entry) => [entry.id, entryPayload(entry)])
-  );
+): number => entries.filter((entry) => entry.kind === kind).length;
 
-const buildSerializedLock = (
+const buildLockManifest = (
   hash: string,
   topo: Topo,
   surfaceMap: TopoGraphRecord
-): Readonly<Record<string, unknown>> =>
+): LockManifest =>
   sortKeys({
-    apps: sortKeys({
-      [topo.name]: sortKeys({
-        activationGraph: surfaceMap.activationGraph,
-        activationSources: surfaceMap.activationSources,
-        contours: entriesForKind(surfaceMap.entries, 'contour'),
-        resources: entriesForKind(surfaceMap.entries, 'resource'),
-        signals: entriesForKind(surfaceMap.entries, 'signal'),
-        trails: entriesForKind(surfaceMap.entries, 'trail'),
-      }),
-    }),
-    generatedAt: surfaceMap.generatedAt,
-    hash,
-    version: 1,
-  });
+    artifacts: [{ path: 'topo.lock', role: 'topo', sha256: hash }],
+    scope: { app: topo.name },
+    summary: {
+      contours: countEntriesForKind(surfaceMap.entries, 'contour'),
+      resources: countEntriesForKind(surfaceMap.entries, 'resource'),
+      signals: countEntriesForKind(surfaceMap.entries, 'signal'),
+      trails: countEntriesForKind(surfaceMap.entries, 'trail'),
+    },
+    version: 3,
+  }) as LockManifest;
 
 const buildStoredTopoExport = (
   db: Database,
@@ -1311,7 +1297,7 @@ const buildStoredTopoExport = (
   );
   const surfaceHash = hashTopoGraphRecord(surfaceMap);
   const serializedLock = `${JSON.stringify(
-    buildSerializedLock(surfaceHash, topo, surfaceMap),
+    buildLockManifest(surfaceHash, topo, surfaceMap),
     null,
     2
   )}\n`;

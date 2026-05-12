@@ -1,6 +1,7 @@
 import { describe, test, expect } from 'bun:test';
 
 import { deriveTopoGraphDiff } from '../diff.js';
+import { TOPO_GRAPH_SCHEMA_VERSION } from '../types.js';
 import type { TopoGraph, TopoGraphEntry } from '../types.js';
 
 // ---------------------------------------------------------------------------
@@ -27,7 +28,7 @@ const topoGraph = (entries: TopoGraphEntry[]): TopoGraph => ({
   activationSources: {},
   entries,
   generatedAt: new Date().toISOString(),
-  version: '1.0',
+  topoGraphSchemaVersion: TOPO_GRAPH_SCHEMA_VERSION,
 });
 
 // ---------------------------------------------------------------------------

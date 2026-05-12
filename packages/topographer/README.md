@@ -10,7 +10,7 @@ Most applications reach this package through `trails topo compile` and `trails t
 - structured example and field-override provenance projection for TopoGraph entries
 - stable hashing for CI drift detection
 - semantic diffing between two TopoGraphs
-- file I/O helpers for the current graph artifact and `.trails/trails.lock`
+- file I/O helpers for `.trails/topo.lock` and `.trails/trails.lock`
 - the topo-store: queryable persistence of the resolved topo graph in `trails.db`, including snapshots, pinning, history, and read-only query accessors (relocated from `@ontrails/core` per ADR-0042)
 
 `@ontrails/topographer` is the durable graph substrate for Trails. Generic `trails-db` plumbing (read/write SQLite handles, subsystem schema management, derived paths) stays in `@ontrails/core` so other subsystems (tracing, signals) can share it without depending on topographer.
@@ -22,7 +22,7 @@ import {
   deriveTopoGraph,
   deriveTopoGraphDiff,
   deriveTopoGraphHash,
-  writeSurfaceLock,
+  writeLockManifest,
   writeTopoGraph,
 } from '@ontrails/topographer';
 
@@ -30,7 +30,12 @@ const topoGraph = deriveTopoGraph(graph);
 const hash = deriveTopoGraphHash(topoGraph);
 
 await writeTopoGraph(topoGraph);
-await writeSurfaceLock({ hash });
+await writeLockManifest({
+  artifacts: [{ path: 'topo.lock', role: 'topo', sha256: hash }],
+  scope: { app: 'demo' },
+  summary: { contours: 0, resources: 0, signals: 0, trails: 1 },
+  version: 3,
+});
 
 // Later, after changes:
 const nextTopoGraph = deriveTopoGraph(graph);
@@ -47,8 +52,8 @@ if (diff.hasBreaking) {
 
 The typical exported artifact pair is:
 
-- `.trails/_surface.json` — current detailed derived graph artifact, useful for inspection and diffing
-- `.trails/trails.lock` — committed lock artifact, stored as structured JSON or legacy hash-only text
+- `.trails/topo.lock` — serialized TopoGraph, useful for inspection and diffing
+- `.trails/trails.lock` — compact v3 manifest that verifies the TopoGraph by hash
 
 `trails topo compile` writes both from the current topo. `trails topo verify` and `@ontrails/warden` use the lockfile helpers here to detect drift.
 
@@ -59,11 +64,10 @@ The typical exported artifact pair is:
 | `deriveTopoGraph(topo)` | Deterministic TopoGraph of every established trail, signal, resource, and contour |
 | `deriveTopoGraphHash(topoGraph)` | Stable SHA-256 hash of the TopoGraph |
 | `deriveTopoGraphDiff(prev, curr)` | Semantic diff with `breaking`, `warning`, and `info` classifications |
-| `writeTopoGraph(topoGraph, options?)` | Write the current graph artifact |
-| `readTopoGraph(options?)` | Read the current graph artifact |
-| `writeSurfaceLock(lock, options?)` | Write `.trails/trails.lock` as either structured JSON or legacy hash text |
-| `readSurfaceLockData(options?)` | Read the full normalized lock payload from `.trails/trails.lock` |
-| `readSurfaceLock(options?)` | Read just the committed lock hash |
+| `writeTopoGraph(topoGraph, options?)` | Write `.trails/topo.lock` |
+| `readTopoGraph(options?)` | Read `.trails/topo.lock` |
+| `writeLockManifest(manifest, options?)` | Write `.trails/trails.lock` as a v3 manifest |
+| `readLockManifest(options?)` | Read the v3 manifest from `.trails/trails.lock` |
 | `createTopoStore(options?)` | Read-only query interface over the persisted topo state in `trails.db` |
 | `createMockTopoStore(seed?)` | Seeded in-memory mock for tests that need a `ReadOnlyTopoStore` |
 | `topoStore` | Read-only `resource()` wrapper around `createTopoStore`, suitable for `resources: [...]` |
@@ -117,12 +121,13 @@ Because CLI paths are now full hierarchical command paths, command-tree changes 
 ## Drift detection with warden
 
 ```typescript
-import { deriveTopoGraph, deriveTopoGraphHash, readSurfaceLock } from '@ontrails/topographer';
+import { deriveTopoGraph, deriveTopoGraphHash, readLockManifest } from '@ontrails/topographer';
 
 const current = deriveTopoGraphHash(deriveTopoGraph(graph));
-const committed = await readSurfaceLock();
+const committed = await readLockManifest();
+const topoArtifact = committed?.artifacts.find((artifact) => artifact.role === 'topo');
 
-if (committed !== current) {
+if (topoArtifact?.sha256 !== current) {
   // lock file is stale -- topo has changed
 }
 ```

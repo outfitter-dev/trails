@@ -14,7 +14,7 @@ import {
   createTopoStore,
   deriveTopoGraphHash,
   deriveTopoGraph,
-  writeSurfaceLock,
+  writeLockManifest,
 } from '@ontrails/topographer';
 import { createStoredTopoSnapshot } from '@ontrails/topographer/backend-support';
 import { z } from 'zod';
@@ -41,6 +41,17 @@ const committedLockDir = (dir: string): string => {
   mkdirSync(trailsDir, { recursive: true });
   return trailsDir;
 };
+
+const writeManifest = (dir: string, hash: string): Promise<string> =>
+  writeLockManifest(
+    {
+      artifacts: [{ path: 'topo.lock', role: 'topo', sha256: hash }],
+      scope: { app: 'test-app' },
+      summary: { contours: 0, resources: 0, signals: 0, trails: 1 },
+      version: 3,
+    },
+    { dir: committedLockDir(dir) }
+  );
 
 const seedSavedTopo = (dir: string): string | undefined => {
   const db = openWriteTrailsDb({ rootDir: dir });
@@ -95,10 +106,7 @@ describe('checkDrift', () => {
     try {
       const tp = makeTopo();
       const hash = deriveTopoGraphHash(deriveTopoGraph(tp));
-      await writeSurfaceLock(
-        { hash, version: 1 },
-        { dir: committedLockDir(dir) }
-      );
+      await writeManifest(dir, hash);
 
       const result = await checkDrift(dir, tp);
       expect(result.stale).toBe(false);
@@ -112,14 +120,32 @@ describe('checkDrift', () => {
   test('returns stale: true when lock does not match', async () => {
     const dir = createTempDir();
     try {
+      const outdatedHash = '0'.repeat(64);
+      await writeManifest(dir, outdatedHash);
+
+      const result = await checkDrift(dir, makeTopo());
+      expect(result.stale).toBe(true);
+      expect(result.committedHash).toBe(outdatedHash);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('blocks drift calculation for malformed legacy lock manifests', async () => {
+    const dir = createTempDir();
+    try {
       writeFileSync(
         join(committedLockDir(dir), 'trails.lock'),
-        'outdated-hash\n'
+        `${JSON.stringify({ hash: '1'.repeat(64), version: 2 }, null, 2)}\n`
       );
 
       const result = await checkDrift(dir, makeTopo());
       expect(result.stale).toBe(true);
-      expect(result.committedHash).toBe('outdated-hash');
+      expect(result.blockedReason).toContain(
+        'regenerate with `trails topo compile`'
+      );
+      expect(result.currentHash).toBe('blocked');
+      expect(result.committedHash).toBeNull();
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }

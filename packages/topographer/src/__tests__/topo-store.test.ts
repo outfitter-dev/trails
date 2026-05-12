@@ -20,6 +20,7 @@ import {
 import type { Layer } from '@ontrails/core';
 
 import { __topoStoreMigrationStats, createTopoStore } from '../topo-store.js';
+import { TOPO_GRAPH_SCHEMA_VERSION } from '../types.js';
 import {
   ensureTopoSnapshotSchema,
   pinTopoSnapshot,
@@ -633,7 +634,7 @@ describe('topo store projection', () => {
       expect(surfaceMap).toMatchObject({
         entries: expect.any(Array),
         generatedAt: '2026-04-03T12:00:00.000Z',
-        version: '1.0',
+        topoGraphSchemaVersion: TOPO_GRAPH_SCHEMA_VERSION,
       });
       expect(Array.isArray(entries)).toBe(true);
       expect(
@@ -678,34 +679,18 @@ describe('topo store projection', () => {
       expect(listEntry?.permit).toEqual({ scopes: ['entity:read'] });
 
       const lock = JSON.parse(stored.lockContent);
-      const lockTrail = lock.apps['projection-app'].trails['entity.add'];
       expect(lock).toMatchObject({
-        apps: {
-          'projection-app': {
-            contours: {
-              entity: expect.objectContaining({
-                identity: 'id',
-              }),
-            },
-            resources: expect.any(Object),
-            signals: expect.any(Object),
-            trails: expect.any(Object),
-          },
-        },
-        generatedAt: '2026-04-03T12:00:00.000Z',
-        hash: stored.surfaceHash,
-        version: 1,
+        artifacts: [
+          { path: 'topo.lock', role: 'topo', sha256: stored.surfaceHash },
+        ],
+        scope: { app: 'projection-app' },
+        summary: { contours: 1, resources: 2, signals: 1, trails: 2 },
+        version: 3,
       });
-      expect(lockTrail.examples?.[0]?.signals).toEqual([
-        {
-          payloadMatch: { id: 'ada' },
-          signalId: 'entity.added',
-        },
-      ]);
     });
   });
 
-  test('stored surface map and lock include trail signal and layer contract fields', () => {
+  test('stored TopoGraph includes trail signal and layer contract fields', () => {
     withProjectionDb((db) => {
       const topoPolicy: Layer = {
         input: z.object({ tenant: z.string() }),
@@ -790,12 +775,14 @@ describe('topo store projection', () => {
         },
       ]);
 
-      const lock = JSON.parse(stored.lockContent);
-      const lockTrail =
-        lock.apps['contract-export-app'].trails['entity.process'];
-      expect(lockTrail.fires).toEqual(['entity.created']);
-      expect(lockTrail.on).toEqual(['entity.updated']);
-      expect(lockTrail.layers).toEqual(entry?.layers);
+      expect(JSON.parse(stored.lockContent)).toMatchObject({
+        artifacts: [
+          { path: 'topo.lock', role: 'topo', sha256: stored.surfaceHash },
+        ],
+        scope: { app: 'contract-export-app' },
+        summary: { contours: 0, resources: 0, signals: 2, trails: 1 },
+        version: 3,
+      });
     });
   });
 
@@ -1042,27 +1029,22 @@ describe('topo store projection', () => {
         },
       ]);
 
-      const lock = JSON.parse(
-        requireStoredExport(db, snapshot.id).lockContent
+      const topoGraph = JSON.parse(
+        requireStoredExport(db, snapshot.id).surfaceMapJson
       ) as {
-        apps: Record<
-          string,
-          {
-            activationGraph: {
-              edges: readonly Record<string, unknown>[];
-              sourceKeys: readonly string[];
-            };
-            activationSources: Record<string, Record<string, unknown>>;
-            signals: Record<string, Record<string, unknown>>;
-            trails: Record<string, Record<string, unknown>>;
-          }
-        >;
+        activationGraph: {
+          edges: readonly Record<string, unknown>[];
+          sourceKeys: readonly string[];
+        };
+        activationSources: Record<string, Record<string, unknown>>;
+        entries: readonly Record<string, unknown>[];
       };
-      const createdLockEntry =
-        lock.apps['signal-edges-app']?.signals['entity.created'];
-      const indexLockEntry =
-        lock.apps['signal-edges-app']?.trails['entity.index'];
-      const appLock = lock.apps['signal-edges-app'];
+      const createdLockEntry = topoGraph.entries.find(
+        (entry) => entry.id === 'entity.created'
+      );
+      const indexLockEntry = topoGraph.entries.find(
+        (entry) => entry.id === 'entity.index'
+      );
       expect(createdLockEntry).toMatchObject({
         consumers: ['entity.audit', 'entity.index'],
         diagnostics: expect.objectContaining({
@@ -1079,7 +1061,7 @@ describe('topo store projection', () => {
         producers: ['entity.create'],
       });
       expect(createdLockEntry?.payload).toEqual(createdLockEntry?.input);
-      expect(appLock?.activationSources).toMatchObject({
+      expect(topoGraph.activationSources).toMatchObject({
         'schedule:schedule.entity.audit': {
           cron: '0 2 * * *',
           id: 'schedule.entity.audit',
@@ -1095,7 +1077,7 @@ describe('topo store projection', () => {
           kind: 'signal',
         },
       });
-      expect(appLock?.activationGraph).toMatchObject({
+      expect(topoGraph.activationGraph).toMatchObject({
         edgeCount: 4,
         sourceCount: 3,
         sourceKeys: [
@@ -1142,20 +1124,12 @@ describe('topo store projection', () => {
       const snapshot = unwrap(
         createTopoSnapshot(db, topo('webhook-app', { receiver }))
       );
-      const lock = JSON.parse(
-        requireStoredExport(db, snapshot.id).lockContent
+      const topoGraph = JSON.parse(
+        requireStoredExport(db, snapshot.id).surfaceMapJson
       ) as {
-        apps: Record<
-          string,
-          {
-            activationSources: Record<string, Record<string, unknown>>;
-          }
-        >;
+        activationSources: Record<string, Record<string, unknown>>;
       };
-      const source =
-        lock.apps['webhook-app']?.activationSources[
-          'webhook:webhook.user.upsert'
-        ];
+      const source = topoGraph.activationSources['webhook:webhook.user.upsert'];
 
       expect(source).toMatchObject({
         hasParse: true,

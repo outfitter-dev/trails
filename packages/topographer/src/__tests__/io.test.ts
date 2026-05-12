@@ -6,13 +6,13 @@ import { join } from 'node:path';
 import {
   writeTopoGraph,
   readTopoGraph,
-  writeSurfaceLock,
-  readSurfaceLockData,
-  readSurfaceLock,
+  isTopoArtifactRegenerationError,
+  writeLockManifest,
+  readLockManifest,
   readWorkspaceLock,
 } from '../io.js';
-import { surfaceLockSchema } from '../types.js';
-import type { TopoGraph } from '../types.js';
+import { TOPO_GRAPH_SCHEMA_VERSION } from '../types.js';
+import type { LockManifest, TopoGraph } from '../types.js';
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -38,18 +38,35 @@ const makeTopoGraph = (): TopoGraph => ({
     },
   ],
   generatedAt: '2025-01-01T00:00:00.000Z',
-  version: '1.0',
+  topoGraphSchemaVersion: TOPO_GRAPH_SCHEMA_VERSION,
 });
 
-const makeStructuredLock = (hash: string) => ({
-  hash,
-  version: '2' as const,
+const makeLockManifest = (
+  hash: string,
+  overrides?: Partial<LockManifest>
+): LockManifest => ({
+  artifacts: [{ path: 'topo.lock', role: 'topo', sha256: hash }],
+  scope: { app: 'demo' },
+  summary: { contours: 0, resources: 0, signals: 0, trails: 1 },
+  version: 3,
+  ...overrides,
 });
 
 const readParsedLock = async (
   filePath: string
 ): Promise<Record<string, unknown>> =>
   JSON.parse(await readFile(filePath, 'utf8')) as Record<string, unknown>;
+
+const captureError = async (
+  operation: () => Promise<unknown>
+): Promise<unknown> => {
+  try {
+    await operation();
+  } catch (error) {
+    return error;
+  }
+  throw new Error('Expected operation to throw');
+};
 
 // ---------------------------------------------------------------------------
 // Setup / Teardown
@@ -66,19 +83,19 @@ afterEach(async () => {
 });
 
 // ---------------------------------------------------------------------------
-// Surface map tests
+// TopoGraph tests
 // ---------------------------------------------------------------------------
 
 describe('writeTopoGraph / readTopoGraph', () => {
-  test('writes valid JSON to _surface.json', async () => {
+  test('writes valid JSON to topo.lock', async () => {
     const map = makeTopoGraph();
     const filePath = await writeTopoGraph(map, { dir: tempDir });
 
-    expect(filePath).toBe(join(tempDir, '_surface.json'));
+    expect(filePath).toBe(join(tempDir, 'topo.lock'));
 
     const content = await readFile(filePath, 'utf8');
     const parsed = JSON.parse(content);
-    expect(parsed.version).toBe('1.0');
+    expect(parsed.topoGraphSchemaVersion).toBe(TOPO_GRAPH_SCHEMA_VERSION);
     expect(parsed.entries).toHaveLength(1);
   });
 
@@ -96,61 +113,150 @@ describe('writeTopoGraph / readTopoGraph', () => {
     });
     expect(result).toBeNull();
   });
+
+  test('rejects topo.lock files with invalid shape', async () => {
+    await Bun.write(
+      join(tempDir, 'topo.lock'),
+      `${JSON.stringify({ entries: [] }, null, 2)}\n`
+    );
+
+    await expect(readTopoGraph({ dir: tempDir })).rejects.toThrow(
+      'regenerate with `trails topo compile`'
+    );
+  });
+
+  test('rejects legacy topo graph versions', async () => {
+    await Bun.write(
+      join(tempDir, 'topo.lock'),
+      `${JSON.stringify(
+        { ...makeTopoGraph(), topoGraphSchemaVersion: '1.0' },
+        null,
+        2
+      )}\n`
+    );
+
+    await expect(readTopoGraph({ dir: tempDir })).rejects.toThrow(
+      'regenerate with `trails topo compile`'
+    );
+  });
+});
+
+describe('isTopoArtifactRegenerationError', () => {
+  test('recognizes unsupported topo artifact read errors', async () => {
+    await Bun.write(join(tempDir, 'topo.lock'), '{}\n');
+    const topoError = await captureError(() => readTopoGraph({ dir: tempDir }));
+
+    await Bun.write(join(tempDir, 'trails.lock'), '{}\n');
+    const lockError = await captureError(() =>
+      readLockManifest({ dir: tempDir })
+    );
+
+    expect(isTopoArtifactRegenerationError(topoError)).toBe(true);
+    expect(isTopoArtifactRegenerationError(lockError)).toBe(true);
+    expect(isTopoArtifactRegenerationError(new Error('different'))).toBe(false);
+  });
 });
 
 // ---------------------------------------------------------------------------
-// Surface Lock tests
+// Lock manifest tests
 // ---------------------------------------------------------------------------
 
-describe('writeSurfaceLock / readSurfaceLock', () => {
-  test('writes a single line with the hash', async () => {
-    const hash = 'abc123def456'.repeat(4);
-    const filePath = await writeSurfaceLock(hash, { dir: tempDir });
-
-    expect(filePath).toBe(join(tempDir, 'trails.lock'));
-
-    const content = await readFile(filePath, 'utf8');
-    expect(content.trim()).toBe(hash);
-    // Single line (content is hash + newline)
-    expect(content).toBe(`${hash}\n`);
-  });
-
-  test('writes and reads structured JSON locks', async () => {
+describe('writeLockManifest / readLockManifest', () => {
+  test('writes and reads v3 manifest JSON', async () => {
     const hash = 'deadbeef'.repeat(8);
-    const filePath = await writeSurfaceLock(makeStructuredLock(hash), {
+    const manifest = makeLockManifest(hash);
+    const filePath = await writeLockManifest(manifest, {
       dir: tempDir,
     });
 
     expect(filePath).toBe(join(tempDir, 'trails.lock'));
 
     const parsed = await readParsedLock(filePath);
-    expect(parsed.hash).toBe(hash);
-    expect(parsed.version).toBe('2');
+    expect(parsed.version).toBe(3);
+    expect(parsed.artifacts).toEqual([
+      { path: 'topo.lock', role: 'topo', sha256: hash },
+    ]);
 
-    const result = await readSurfaceLockData({ dir: tempDir });
+    const result = await readLockManifest({ dir: tempDir });
 
-    expect(result).toEqual(makeStructuredLock(hash));
-
-    const legacyResult = await readSurfaceLock({ dir: tempDir });
-    expect(legacyResult).toBe(hash);
+    expect(result).toEqual(manifest);
   });
 
-  test('normalizes legacy structured JSON locks with numeric versions', async () => {
+  test('rejects legacy structured JSON locks', async () => {
     const hash = 'facefeed'.repeat(8);
     await Bun.write(
       join(tempDir, 'trails.lock'),
       `${JSON.stringify({ hash, version: 1 }, null, 2)}\n`
     );
 
-    const data = await readSurfaceLockData({ dir: tempDir });
-    expect(data).toEqual({ hash });
+    await expect(readLockManifest({ dir: tempDir })).rejects.toThrow(
+      'regenerate with `trails topo compile`'
+    );
+  });
 
-    const result = await readSurfaceLock({ dir: tempDir });
-    expect(result).toBe(hash);
+  test('rejects v3 manifests with unknown top-level fields', async () => {
+    const hash = 'facefeed'.repeat(8);
+    await Bun.write(
+      join(tempDir, 'trails.lock'),
+      `${JSON.stringify(
+        { ...makeLockManifest(hash), generatedAt: '2026-05-11T12:00:00.000Z' },
+        null,
+        2
+      )}\n`
+    );
+
+    await expect(readLockManifest({ dir: tempDir })).rejects.toThrow(
+      'regenerate with `trails topo compile`'
+    );
+  });
+
+  test('rejects v3 artifacts with unknown fields', async () => {
+    const hash = 'facefeed'.repeat(8);
+    await Bun.write(
+      join(tempDir, 'trails.lock'),
+      `${JSON.stringify(
+        {
+          ...makeLockManifest(hash),
+          artifacts: [
+            {
+              generatedAt: '2026-05-11T12:00:00.000Z',
+              path: 'topo.lock',
+              role: 'topo',
+              sha256: hash,
+            },
+          ],
+        },
+        null,
+        2
+      )}\n`
+    );
+
+    await expect(readLockManifest({ dir: tempDir })).rejects.toThrow(
+      'regenerate with `trails topo compile`'
+    );
+  });
+
+  test('rejects v3 artifacts with malformed sha256 values', async () => {
+    await Bun.write(
+      join(tempDir, 'trails.lock'),
+      `${JSON.stringify(makeLockManifest('not-a-sha'), null, 2)}\n`
+    );
+
+    await expect(readLockManifest({ dir: tempDir })).rejects.toThrow(
+      'regenerate with `trails topo compile`'
+    );
+  });
+
+  test('rejects legacy single-line hash locks', async () => {
+    await Bun.write(join(tempDir, 'trails.lock'), `${'a'.repeat(64)}\n`);
+
+    await expect(readLockManifest({ dir: tempDir })).rejects.toThrow(
+      'regenerate with `trails topo compile`'
+    );
   });
 
   test('returns null for missing file', async () => {
-    const result = await readSurfaceLock({
+    const result = await readLockManifest({
       dir: join(tempDir, 'nonexistent'),
     });
     expect(result).toBeNull();
@@ -169,7 +275,7 @@ describe('default directory', () => {
     const customDir = join(tempDir, 'custom-trails');
     const filePath = await writeTopoGraph(map, { dir: customDir });
 
-    expect(filePath).toBe(join(customDir, '_surface.json'));
+    expect(filePath).toBe(join(customDir, 'topo.lock'));
 
     const result = await readTopoGraph({ dir: customDir });
     expect(result).toEqual(map);
@@ -177,13 +283,14 @@ describe('default directory', () => {
 
   test('custom directory option works for lock files', async () => {
     const customDir = join(tempDir, 'custom-lock-dir');
-    const hash = 'a1b2c3d4e5f6'.repeat(5);
-    const filePath = await writeSurfaceLock(hash, { dir: customDir });
+    const hash = 'a1b2c3d4e5f67890'.repeat(4);
+    const manifest = makeLockManifest(hash);
+    const filePath = await writeLockManifest(manifest, { dir: customDir });
 
     expect(filePath).toBe(join(customDir, 'trails.lock'));
 
-    const result = await readSurfaceLock({ dir: customDir });
-    expect(result).toBe(hash);
+    const result = await readLockManifest({ dir: customDir });
+    expect(result).toEqual(manifest);
   });
 });
 
@@ -194,7 +301,7 @@ describe('default directory', () => {
 describe('readWorkspaceLock', () => {
   test('returns null for a single-app structured lock without workspace metadata', async () => {
     const hash = 'cafebabe'.repeat(8);
-    await writeSurfaceLock(makeStructuredLock(hash), { dir: tempDir });
+    await writeLockManifest(makeLockManifest(hash), { dir: tempDir });
 
     const result = await readWorkspaceLock({ dir: tempDir });
     expect(result).toBeNull();
@@ -214,36 +321,26 @@ describe('readWorkspaceLock', () => {
         trailId: 'b.trail',
       },
     } as const;
-    const filePath = await writeSurfaceLock(
-      { hash, workspaceTrails },
+    const filePath = await writeLockManifest(
+      makeLockManifest(hash, { workspaceTrails }),
       { dir: tempDir }
     );
 
     const parsed = await readParsedLock(filePath);
-    expect(parsed.hash).toBe(hash);
-    expect(parsed.version).toBe('2');
+    expect(parsed.version).toBe(3);
     expect(parsed.workspaceTrails).toEqual(workspaceTrails);
 
     const result = await readWorkspaceLock({ dir: tempDir });
     expect(result).toEqual(workspaceTrails);
   });
 
-  test('rejects out-of-band structured lock versions', () => {
-    const hash = '0badf00d'.repeat(8);
-    const result = surfaceLockSchema.safeParse({
-      hash,
-      version: 'banana',
-    });
-
-    expect(result.success).toBe(false);
-  });
-
-  test('returns null for the legacy single-line hash file', async () => {
+  test('rejects the legacy single-line hash file', async () => {
     const hash = 'aaaaaaaa'.repeat(8);
-    await writeSurfaceLock(hash, { dir: tempDir });
+    await Bun.write(join(tempDir, 'trails.lock'), `${hash}\n`);
 
-    const result = await readWorkspaceLock({ dir: tempDir });
-    expect(result).toBeNull();
+    await expect(readWorkspaceLock({ dir: tempDir })).rejects.toThrow(
+      'regenerate with `trails topo compile`'
+    );
   });
 
   test('returns null when the lock file is missing', async () => {

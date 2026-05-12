@@ -1,10 +1,9 @@
 /**
  * Topo lock drift detection.
  *
- * Compares the committed `trails.lock` hash against a freshly generated
- * TopoGraph hash to detect when the trail topology has changed without
- * updating the lock file. The committed lock may be structured JSON or the
- * legacy single-line hash format.
+ * Compares the `topo.lock` artifact hash listed in `trails.lock` against a
+ * freshly generated TopoGraph hash to detect when the trail topology has
+ * changed without updating the artifact family.
  */
 
 import { existsSync, statSync } from 'node:fs';
@@ -19,7 +18,8 @@ import {
   createTopoStore,
   deriveTopoGraph,
   deriveTopoGraphHash,
-  readSurfaceLockData,
+  isTopoArtifactRegenerationError,
+  readLockManifest,
 } from '@ontrails/topographer';
 
 /**
@@ -47,10 +47,13 @@ export const checkDrift = async (
 ): Promise<DriftResult> => {
   try {
     const trailsDir = deriveTrailsDir({ rootDir });
-    const committedLock =
+    const lockManifest =
       existsSync(rootDir) && statSync(rootDir).isDirectory()
-        ? await readSurfaceLockData({ dir: trailsDir })
+        ? await readLockManifest({ dir: trailsDir })
         : null;
+    const topoArtifact =
+      lockManifest?.artifacts.find((artifact) => artifact.role === 'topo') ??
+      null;
     // Prefer the stored hash (computed by the export pipeline) to avoid
     // divergence between the schema and store hash pipelines.
     const storedHash = (() => {
@@ -70,15 +73,18 @@ export const checkDrift = async (
         : deriveTopoGraphHash(deriveTopoGraph(topo)));
 
     return {
-      committedHash: committedLock?.hash ?? null,
+      committedHash: topoArtifact?.sha256 ?? null,
       currentHash,
       stale:
-        committedLock !== null &&
+        topoArtifact !== null &&
         currentHash !== 'unknown' &&
-        committedLock.hash !== currentHash,
+        topoArtifact.sha256 !== currentHash,
     };
   } catch (error) {
-    if (!(error instanceof ValidationError)) {
+    if (
+      !(error instanceof ValidationError) &&
+      !isTopoArtifactRegenerationError(error)
+    ) {
       throw error;
     }
 

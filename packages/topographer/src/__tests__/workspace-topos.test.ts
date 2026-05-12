@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { topo } from '@ontrails/core';
 import type { Topo } from '@ontrails/core';
 
-import { writeSurfaceLock } from '../io.js';
+import { writeLockManifest } from '../io.js';
 import { buildWorkspaceTrailIndex } from '../workspace-topos.js';
 import type { WorkspaceTopoLoader } from '../workspace-topos.js';
 
@@ -393,9 +393,18 @@ describe('buildWorkspaceTrailIndex (lockfile path)', () => {
     const registry = new Map(fixtures.map((f) => [f.name, f]));
     await writeWorkspace(workspaceRoot, fixtures);
 
-    await writeSurfaceLock(
+    await writeLockManifest(
       {
-        hash: 'deadbeef'.repeat(8),
+        artifacts: [
+          {
+            path: 'topo.lock',
+            role: 'topo',
+            sha256: 'deadbeef'.repeat(8),
+          },
+        ],
+        scope: { workspace: 'test-workspace' },
+        summary: { contours: 0, resources: 0, signals: 0, trails: 1 },
+        version: 3,
         workspaceTrails: {
           'lock.entry': {
             appName: 'lock-app',
@@ -442,9 +451,18 @@ describe('buildWorkspaceTrailIndex (lockfile path)', () => {
     const registry = new Map(fixtures.map((f) => [f.name, f]));
     await writeWorkspace(workspaceRoot, fixtures);
 
-    await writeSurfaceLock(
+    await writeLockManifest(
       {
-        hash: 'cafebabe'.repeat(8),
+        artifacts: [
+          {
+            path: 'topo.lock',
+            role: 'topo',
+            sha256: 'cafebabe'.repeat(8),
+          },
+        ],
+        scope: { workspace: 'test-workspace' },
+        summary: { contours: 0, resources: 0, signals: 0, trails: 1 },
+        version: 3,
         workspaceTrails: {
           'relative.lock': {
             appName: 'lock-app',

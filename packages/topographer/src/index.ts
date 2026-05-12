@@ -12,13 +12,16 @@ export { deriveTopoGraphDiff } from './diff.js';
 export {
   writeTopoGraph,
   readTopoGraph,
-  writeSurfaceLock,
-  readSurfaceLockData,
-  readSurfaceLock,
+  isTopoArtifactRegenerationError,
+  writeLockManifest,
+  readLockManifest,
   readWorkspaceLock,
 } from './io.js';
 export {
-  surfaceLockSchema,
+  lockManifestArtifactSchema,
+  lockManifestSchema,
+  lockManifestSummarySchema,
+  TOPO_GRAPH_SCHEMA_VERSION,
   workspaceTrailEntrySchema,
   workspaceTrailIndexSchema,
 } from './types.js';
@@ -48,7 +51,9 @@ export type {
   TopoGraphFieldOverride,
   TopoGraphFieldOverrideKey,
   TopoGraphLayerReference,
-  SurfaceLock,
+  LockManifest,
+  LockManifestArtifact,
+  LockManifestSummary,
   WorkspaceTrailEntry,
   WorkspaceTrailIndex,
   DiffEntry,
