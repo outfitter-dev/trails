@@ -13,11 +13,27 @@ import {
 } from './topo-snapshots.js';
 import type { StoredTopoExport } from './topo-store.js';
 import { getStoredTopoExport } from './topo-store.js';
+import type { LockManifest, TopoGraph, TopoGraphEntry } from '../types.js';
 
 export interface TopoStoreRef {
   readonly pin?: string;
   readonly snapshotId?: string;
 }
+
+export type TopoStoreEntryKind = TopoGraphEntry['kind'];
+
+export interface TopoStoreTopoGraphRecord {
+  readonly snapshot: TopoSnapshot;
+  readonly topoGraph: TopoGraph;
+}
+
+export interface TopoStoreTopoGraphEntryRecord extends TopoGraphEntry {
+  readonly snapshotId: string;
+}
+
+export type TopoStoreContourRecord = TopoStoreTopoGraphEntryRecord & {
+  readonly kind: 'contour';
+};
 
 export interface TopoStoreTrailRecord {
   readonly description: string | null;
@@ -85,7 +101,9 @@ export interface TopoStoreSignalDetailRecord extends TopoStoreSignalRecord {
 }
 
 export interface TopoStoreExportRecord extends StoredTopoExport {
+  readonly lockManifest: LockManifest;
   readonly snapshot: TopoSnapshot;
+  readonly topoGraph: TopoGraph;
 }
 
 interface TopoTrailRow {
@@ -141,26 +159,6 @@ interface TopoSignalRelationBatchRow extends TopoSignalRelationRow {
   readonly signal_id: string;
 }
 
-interface StoredTopoGraphEntry {
-  readonly description?: string;
-  readonly detours?: readonly {
-    readonly on: string;
-    readonly maxAttempts: number;
-  }[];
-  readonly exampleCount?: number;
-  readonly examples?: readonly unknown[];
-  readonly from?: readonly string[];
-  readonly healthcheck?: boolean;
-  readonly id: string;
-  readonly input?: Readonly<Record<string, unknown>>;
-  readonly payload?: Readonly<Record<string, unknown>>;
-  readonly kind: 'contour' | 'resource' | 'signal' | 'trail';
-}
-
-interface StoredTopoGraph {
-  readonly entries: readonly StoredTopoGraphEntry[];
-}
-
 const ensureSingleRefSelector = (ref?: TopoStoreRef): void => {
   if (ref?.pin !== undefined && ref.snapshotId !== undefined) {
     throw new ValidationError(
@@ -199,6 +197,12 @@ const parseMeta = (
 
 const parseJson = (value: string): unknown => JSON.parse(value) as unknown;
 
+const parseLockManifest = (stored: StoredTopoExport): LockManifest =>
+  JSON.parse(stored.lockManifestJson) as LockManifest;
+
+const parseTopoGraph = (stored: StoredTopoExport): TopoGraph =>
+  JSON.parse(stored.topoGraphJson) as TopoGraph;
+
 const readSnapshotRef = (
   db: Database,
   ref?: TopoStoreRef
@@ -216,20 +220,39 @@ const readSnapshotRef = (
   return listTopoSnapshots(db, { limit: 1 })[0];
 };
 
+const readStoredTopoGraph = (
+  db: Database,
+  snapshotId: string
+): TopoGraph | undefined => {
+  const stored = getStoredTopoExport(db, snapshotId);
+  return stored === undefined ? undefined : parseTopoGraph(stored);
+};
+
+const toTopoGraphEntryRecord = (
+  snapshotId: string,
+  entry: TopoGraphEntry
+): TopoStoreTopoGraphEntryRecord => ({
+  ...entry,
+  snapshotId,
+});
+
+const listStoredEntries = (
+  db: Database,
+  snapshotId: string
+): readonly TopoStoreTopoGraphEntryRecord[] =>
+  readStoredTopoGraph(db, snapshotId)?.entries.map((entry) =>
+    toTopoGraphEntryRecord(snapshotId, entry)
+  ) ?? [];
+
 const readStoredEntry = (
   db: Database,
   snapshotId: string,
-  kind: StoredTopoGraphEntry['kind'],
+  kind: TopoStoreEntryKind,
   id: string
-): StoredTopoGraphEntry | undefined => {
-  const stored = getStoredTopoExport(db, snapshotId);
-  if (stored === undefined) {
-    return undefined;
-  }
-
-  const map = JSON.parse(stored.topoGraphJson) as StoredTopoGraph;
-  return map.entries.find((entry) => entry.id === id && entry.kind === kind);
-};
+): TopoStoreTopoGraphEntryRecord | undefined =>
+  listStoredEntries(db, snapshotId).find(
+    (entry) => entry.id === id && entry.kind === kind
+  );
 
 const mapTrailRow = (row: TopoTrailRow): TopoStoreTrailRecord => {
   const intent = normalizeIntent(row.intent);
@@ -398,9 +421,7 @@ const readSignalRelationUsage = (
     usage.set(row.signal_id, trails);
   }
 
-  return new Map(
-    [...usage.entries()].map(([id, trails]) => [id, trails] as const)
-  );
+  return usage as ReadonlyMap<string, readonly string[]>;
 };
 
 const signalExamplePayload = (example: unknown): unknown => {
@@ -417,7 +438,7 @@ const signalExamplePayload = (example: unknown): unknown => {
 };
 
 const signalExamplesFromEntry = (
-  storedEntry: StoredTopoGraphEntry | undefined
+  storedEntry: TopoGraphEntry | undefined
 ): readonly unknown[] =>
   storedEntry?.examples?.map((example) => signalExamplePayload(example)) ?? [];
 
@@ -447,9 +468,69 @@ export const getTopoStoreExport = (
 
   return {
     ...stored,
+    lockManifest: parseLockManifest(stored),
     snapshot,
+    topoGraph: parseTopoGraph(stored),
   };
 };
+
+export const getTopoStoreTopoGraph = (
+  db: Database,
+  ref?: TopoStoreRef
+): TopoStoreTopoGraphRecord | undefined => {
+  const exported = getTopoStoreExport(db, ref);
+  if (exported === undefined) {
+    return undefined;
+  }
+  return { snapshot: exported.snapshot, topoGraph: exported.topoGraph };
+};
+
+export const listTopoStoreEntries = (
+  db: Database,
+  options?: {
+    readonly kind?: TopoStoreEntryKind;
+    readonly snapshot?: TopoStoreRef;
+  }
+): readonly TopoStoreTopoGraphEntryRecord[] => {
+  const snapshot = readSnapshotRef(db, options?.snapshot);
+  if (snapshot === undefined) {
+    return [];
+  }
+
+  const entries = listStoredEntries(db, snapshot.id);
+  return options?.kind === undefined
+    ? entries
+    : entries.filter((entry) => entry.kind === options.kind);
+};
+
+export const getTopoStoreEntry = (
+  db: Database,
+  id: string,
+  options?: {
+    readonly kind?: TopoStoreEntryKind;
+    readonly snapshot?: TopoStoreRef;
+  }
+): TopoStoreTopoGraphEntryRecord | undefined => {
+  const entries = listTopoStoreEntries(db, options);
+  return entries.find((entry) => entry.id === id);
+};
+
+export const listTopoStoreContours = (
+  db: Database,
+  options?: { readonly snapshot?: TopoStoreRef }
+): readonly TopoStoreContourRecord[] =>
+  listTopoStoreEntries(db, { ...options, kind: 'contour' }).map(
+    (entry) => entry as TopoStoreContourRecord
+  );
+
+export const getTopoStoreContour = (
+  db: Database,
+  id: string,
+  options?: { readonly snapshot?: TopoStoreRef }
+): TopoStoreContourRecord | undefined =>
+  getTopoStoreEntry(db, id, { ...options, kind: 'contour' }) as
+    | TopoStoreContourRecord
+    | undefined;
 
 export const listTopoStoreTrails = (
   db: Database,
@@ -476,7 +557,7 @@ export const listTopoStoreTrails = (
   } else if (options.intent === 'write') {
     rows = db
       .query<TopoTrailRow, [string]>(
-        `${baseQuery} WHERE snapshot_id = ? AND intent = 'write' ORDER BY id ASC`
+        `${baseQuery} WHERE snapshot_id = ? AND (intent = 'write' OR intent IS NULL) ORDER BY id ASC`
       )
       .all(snapshot.id);
   } else {
@@ -527,7 +608,7 @@ export const getTopoStoreTrail = (
 const mapResourceRow = (
   row: TopoResourceRow,
   usedBy: readonly string[],
-  storedEntry?: StoredTopoGraphEntry
+  storedEntry?: TopoGraphEntry
 ): TopoStoreResourceRecord => ({
   description: storedEntry?.description ?? null,
   hasHealth: row.has_health === 1,
@@ -562,10 +643,7 @@ export const listTopoStoreResources = (
     )
     .all(snapshot.id);
 
-  const stored = getStoredTopoExport(db, snapshot.id);
-  const entries = stored
-    ? (JSON.parse(stored.topoGraphJson) as StoredTopoGraph).entries
-    : [];
+  const entries = listStoredEntries(db, snapshot.id);
 
   return rows.map((row) =>
     mapResourceRow(
@@ -609,7 +687,7 @@ export const getTopoStoreResource = (
 
 const mapSignalRow = (
   row: TopoSignalRow,
-  storedEntry: StoredTopoGraphEntry | undefined,
+  storedEntry: TopoGraphEntry | undefined,
   relations: {
     readonly consumers: readonly string[];
     readonly from: readonly string[];
@@ -627,9 +705,9 @@ const mapSignalRow = (
     hasExamples: exampleCount > 0,
     id: row.id,
     kind: 'signal',
-    // Derived from the stored surface-map entry rather than hard-coded so the
+    // Derived from the stored TopoGraph entry rather than hard-coded so the
     // list flag stays coherent with the detail record's `payload` field. If the
-    // surface-map entry is missing for a signal row (e.g. partial import or
+    // TopoGraph entry is missing for a signal row (e.g. partial import or
     // schema migration), `payload` would be null in the detail; signaling
     // `payloadSchema: true` here would mislead consumers into skipping the
     // detail call.
@@ -668,10 +746,7 @@ export const listTopoStoreSignals = (
     )
     .all(snapshot.id);
 
-  const stored = getStoredTopoExport(db, snapshot.id);
-  const entries = stored
-    ? (JSON.parse(stored.topoGraphJson) as StoredTopoGraph).entries
-    : [];
+  const entries = listStoredEntries(db, snapshot.id);
   const consumersBySignal = readSignalRelationUsage(
     db,
     'topo_trail_on',

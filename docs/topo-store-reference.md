@@ -279,6 +279,9 @@ import { createTopoStore } from '@ontrails/topographer';
 const store = createTopoStore({ rootDir: '/path/to/workspace' });
 store.trails.list({ intent: 'write' });
 store.resources.get('db.main');
+store.entries.get('auth.login', { kind: 'trail' });
+store.contours.list();
+store.topoGraph.get();
 store.snapshots.list({ pinned: true });
 store.snapshots.latest();
 ```
@@ -307,7 +310,7 @@ trail('warden.check', {
   resources: [topoStore],
   blaze: async (_input, ctx) => {
     const store = topoStore.from(ctx);
-    // store.trails, store.resources, store.snapshots, store.query()
+    // store.trails, store.resources, store.entries, store.topoGraph, store.query()
   },
 });
 ```
@@ -350,6 +353,34 @@ interface TopoStoreRef {
 ### `TopoStoreTrailDetailRecord`
 
 Extends trail record with `crosses`, `detours`, `resources`, and `examples` arrays. Detailed examples preserve `expected`, `expectedMatch`, and structured signal assertions when they are JSON-serializable. Detours preserve authored recovery declarations, including the matched error class name and effective attempt count. Neither examples nor detours are exhaustive per-trail error inference; see [ADR-0045](./adr/0045-v1-resolved-graph-error-scope.md).
+
+### `TopoStoreTopoGraphRecord`
+
+Typed view over the saved `TopoGraph` content artifact for a snapshot:
+
+```typescript
+{
+  snapshot: TopoSnapshot;
+  topoGraph: TopoGraph;
+}
+```
+
+Use `store.topoGraph.get(ref?)` when a caller needs the canonical graph content
+without parsing `topoGraphJson` itself.
+
+### `TopoStoreTopoGraphEntryRecord`
+
+Extends a `TopoGraphEntry` with the owning `snapshotId`. Use
+`store.entries.list({ kind })` or `store.entries.get(id, { kind })` to inspect
+typed saved graph entries, including surfaces, schemas, examples, activation
+metadata, layer attachments, field overrides, governance metadata, and contour
+references.
+
+### `TopoStoreContourRecord`
+
+Contour-specific entry record returned by `store.contours.get(id)` and
+`store.contours.list()`. It is a `TopoStoreTopoGraphEntryRecord` whose `kind` is
+`'contour'`.
 
 ### `TopoStoreResourceRecord`
 

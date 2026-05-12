@@ -8,7 +8,12 @@ dist/
 *.tsbuildinfo
 .DS_Store
 .trail/
-.agents/plans/
+.agents/plans/*
+!.agents/plans/PLANNING.md
+!.agents/plans/20*/
+!.agents/plans/20*/**
+!.agents/plans/archive/
+!.agents/plans/archive/**
 .agents/notes/
 .claude/agent-memory/
 .claude/scheduled_tasks.lock

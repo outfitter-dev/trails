@@ -1,0 +1,180 @@
+# Execution Retro: TopoGraph Query + V1 Closeout Stack
+
+Date started: 2026-05-12
+Plan: `.agents/plans/2026-05-12-topograph-query-docs-stack/PLAN.md`
+
+Maintain this retro during execution. It should be current before PRs are marked
+ready and again before final handoff.
+
+## Planning Discoveries
+
+- The first scratch packet lived under ignored `.scratch/`; this tracked packet
+  now owns the source-of-truth plan, goal prompt, refs, and retro.
+- The `goal-planning` context primer found no existing `.agents/plans/PLANNING.md`
+  and showed `main` at `bbb1ea4ff` (`feat: move workspace index to topo lock
+  (#487)`) at packet creation time.
+- The context primer produced useful Graphite context, then hit a local
+  `jq --argfile` compatibility error while listing open PRs. Re-check live
+  PR/Linear state during preflight.
+- Prior no-absorb branch repair language was folded into the packet: review from
+  the tip, fix on the bottom-most owning branch via `gt checkout`, then restack
+  and walk upward.
+- Local review is intentionally biased toward at least three passes and must
+  continue until the latest pass is P3-only or clean.
+
+## Preflight Local State
+
+- Stack 1 merge verified: 2026-05-12 13:46 EDT; GitHub PRs
+  `#480` through `#487` all reported `MERGED`, with `#487` merged at
+  `2026-05-12T14:44:15Z` and merge commit
+  `bbb1ea4ff47a050094e1100e510e6e6196a21c57`.
+- `gt sync` completed: 2026-05-12 13:46 EDT; output `ok synced`.
+- Current branch before execution: `main`, with `HEAD` equal to `origin/main`
+  at `bbb1ea4ff47a050094e1100e510e6e6196a21c57`.
+- Legacy root DB sidecars checked/removed: no staged or untracked
+  `.trails/trails.db`, `.trails/trails.db-shm`, `.trails/trails.db-wal`,
+  `.trails/state/trails.db`, `.trails/state/trails.db-shm`, or
+  `.trails/state/trails.db-wal` were present during preflight, so no DB files
+  were removed.
+- Legacy `.trails/dev/` and `.trails/generated/` checked/removed: neither
+  directory existed during preflight; active local directories were
+  `.trails/clark` and `.trails/config`.
+- Linear preflight: natural-language Linear research still failed with
+  `Tool research not found`, so issue state was checked through direct Linear
+  issue lookups. Target branch names matched the packet. M4b issues
+  `TRL-655`, `TRL-656`, `TRL-657`, `TRL-653`, and `TRL-702` were `Todo`;
+  Warden/CLI follow-ups `TRL-692`, `TRL-690`, `TRL-691`, `TRL-693`, and
+  `TRL-694` were `Todo`; audit issues `TRL-634`, `TRL-636`, and `TRL-637`
+  were open in `Backlog`; parent `TRL-659` was open in `Todo`.
+- `.agents/plans/2026-05-12-topograph-query-docs-stack/` committed on lowest
+  branch: yes, on
+  `trl-655-add-typed-topo-store-views-over-topograph-saved-state` as
+  `chore: add topograph closeout plan packet`.
+
+## Stack
+
+| Order | Issue | Branch | PR | Status |
+| --- | --- | --- | --- | --- |
+| 1 | `TRL-655` | `trl-655-add-typed-topo-store-views-over-topograph-saved-state` | TBD | Implemented locally |
+| 2 | `TRL-656` | `trl-656-make-persisted-surface-rows-complete-or-explicitly-partial` | TBD | Not started |
+| 3 | `TRL-657` | `trl-657-add-complete-resolved-contract-detail-view-for-blind-agents` | TBD | Not started |
+| 4 | `TRL-653` | `trl-653-sweep-docs-api-references-and-agent-guidance-for-topograph` | TBD | Not started |
+| 5 | `TRL-702` | `trl-702-add-retired-vocabulary-guard-for-active-topograph-surfaces` | TBD | Not started |
+| 6 | `TRL-692` | `trl-692-clarify-warden-guide-manifest-category-naming-before` | TBD | Not started |
+| 7 | `TRL-690` | `trl-690-polish-warden-guidance-link-rendering-and-schema-reuse` | TBD | Not started |
+| 8 | `TRL-691` | `trl-691-polish-generated-warden-guide-headers-and-generator-tests` | TBD | Not started |
+| 9 | `TRL-693` | `trl-693-tighten-cli-value-alias-conflicts-for-non-commander-callers` | TBD | Not started |
+| 10 | `TRL-694` | `trl-694-suppress-static-resource-accessor-warnings-when-string` | TBD | Not started |
+| 11 | `TRL-634` | `trl-634-audit-cross-surface-parity-coverage-gaps` | TBD | Not started |
+| 12 | `TRL-636` | `trl-636-audit-docs-and-examples-for-v1-readiness` | TBD | Not started |
+| 13 | `TRL-637` | `trl-637-audit-release-process-and-beta-to-10-cutover-requirements` | TBD | Not started |
+
+## Tracker Mutations
+
+Record issues, milestones, dependency links, comments, labels, and follow-up
+issues created or updated during execution.
+
+| Item | Mutation | Link / Notes |
+| --- | --- | --- |
+| `TRL-634` | Updated deliverable and acceptance criteria from ignored `.scratch/v1-release-prep/m3-parity-audit.md` to tracked `.agents/plans/2026-05-12-topograph-query-docs-stack/reports/m3-parity-audit.md`; added note to use TopoGraph/topo-store query APIs from `TRL-655`/`TRL-657`. | Planning alignment |
+| `TRL-636` | Updated deliverable and acceptance criteria from ignored `.scratch/v1-release-prep/m5-docs-audit.md` to tracked `.agents/plans/2026-05-12-topograph-query-docs-stack/reports/m5-docs-audit.md`; added note that this runs after `TRL-653`/`TRL-702`. | Planning alignment |
+| `TRL-637` | Updated deliverable and acceptance criteria from ignored `.scratch/v1-release-prep/m6-release-process-audit.md` to tracked `.agents/plans/2026-05-12-topograph-query-docs-stack/reports/m6-release-process-audit.md`; changed release wording from npm publish flow to Bun publish flow and repo scripts. | Planning alignment |
+
+## Local Review Reports
+
+Reports should live under
+`.agents/plans/2026-05-12-topograph-query-docs-stack/reports/`.
+
+| Round | Lane | Report | Result |
+| --- | --- | --- | --- |
+| 1 | Topographer API | `reports/local-review-topographer-round-1.md` | Pending |
+| 1 | Persistence honesty | `reports/local-review-persistence-round-1.md` | Pending |
+| 1 | Docs/vocab | `reports/local-review-docs-vocab-round-1.md` | Pending |
+| 1 | Warden/CLI polish | `reports/local-review-warden-cli-round-1.md` | Pending |
+| 1 | V1 audit | `reports/local-review-v1-audit-round-1.md` | Pending |
+| 2 | Topographer API | `reports/local-review-topographer-round-2.md` | Pending |
+| 2 | Persistence honesty | `reports/local-review-persistence-round-2.md` | Pending |
+| 2 | Docs/vocab | `reports/local-review-docs-vocab-round-2.md` | Pending |
+| 2 | Warden/CLI polish | `reports/local-review-warden-cli-round-2.md` | Pending |
+| 2 | V1 audit | `reports/local-review-v1-audit-round-2.md` | Pending |
+| 3 | Topographer API | `reports/local-review-topographer-round-3.md` | Pending |
+| 3 | Persistence honesty | `reports/local-review-persistence-round-3.md` | Pending |
+| 3 | Docs/vocab | `reports/local-review-docs-vocab-round-3.md` | Pending |
+| 3 | Warden/CLI polish | `reports/local-review-warden-cli-round-3.md` | Pending |
+| 3 | V1 audit | `reports/local-review-v1-audit-round-3.md` | Pending |
+| Doctrine | Post-execution verification | `reports/post-execution-verification.md` | Pending |
+
+If round 3 still finds any P0/P1/P2 issue, add round 4+ rows and continue.
+
+## Deferred / Follow-Up Discoveries
+
+| Issue | Discovery | Why Out Of Goal | Link |
+| --- | --- | --- | --- |
+|  |  |  |  |
+
+## Execution Log
+
+Record branch creation, implementation checkpoints, restacks, PR submission,
+ready waves, and remote review turns here.
+
+- 2026-05-12 13:46 EDT: Completed preflight. Stack 1 was fully merged, `gt sync`
+  succeeded, current base was refreshed `main`, legacy DB sidecars were absent,
+  and stale `.trails/dev/` / `.trails/generated/` directories were absent.
+- 2026-05-12 13:47 EDT: Moved `TRL-655` to `In Progress`, created
+  `trl-655-add-typed-topo-store-views-over-topograph-saved-state`, and committed
+  the tracked plan packet on the lowest branch.
+- 2026-05-12 13:57 EDT: Implemented `TRL-655` typed topo-store views:
+  `store.topoGraph.get()`, `store.entries.get/list()`, and
+  `store.contours.get/list()` now read saved `TopoGraph` content through typed
+  helpers; `store.exports.get()` exposes parsed `lockManifest` and `topoGraph`
+  payloads; existing resource/signal read paths share the helper instead of
+  parsing `topoGraphJson` inline. Added topographer docs, tests, and a
+  `@ontrails/topographer` patch changeset.
+
+## Verification Log
+
+| Check | Result | Notes |
+| --- | --- | --- |
+| `bun scripts/adr.ts map` | Pending |  |
+| `bun scripts/adr.ts check` | Pending |  |
+| `bun run typecheck` | Pending |  |
+| `bun run test` | Pending |  |
+| `bun run lint` | Pending |  |
+| `bun run lint:ast-grep` | Pending |  |
+| `bun run build` | Pending |  |
+| `bun run format:check` | Pending |  |
+| `bun run check` | Pending |  |
+| `bun run dead-code` | Pending |  |
+| `git diff --check` | Pending |  |
+
+Branch `TRL-655` focused checks:
+
+- `bun test packages/topographer/src/__tests__/topo-store-read.test.ts` -
+  passed, 8 tests / 41 expects.
+- `bun run typecheck` - passed.
+- `bun run format:check` - passed.
+- `bun run lint` - passed.
+- `git diff --check` - passed.
+
+## Review Feedback
+
+Record P0/P1/P2 feedback, owning branches, fixes, replies, and unresolved P3s.
+
+| Source | Branch | Severity | Finding | Resolution |
+| --- | --- | --- | --- | --- |
+|  |  |  |  |  |
+
+## Final State
+
+Do not mark complete until:
+
+- all thirteen PRs have been built and submitted;
+- local review is P3-only or clean;
+- post-execution doctrine verification is complete;
+- CI is green before ready;
+- ready waves have completed;
+- P2+ remote feedback is resolved or reported after the allowed review turns;
+- no merge queue label was added;
+- nothing was merged;
+- the final transcript contains branch/PR status, checks run, skipped checks,
+  remaining P3s/risks, and blocker status.

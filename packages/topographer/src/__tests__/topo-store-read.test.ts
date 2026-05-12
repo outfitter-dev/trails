@@ -9,13 +9,16 @@ import { z } from 'zod';
 import {
   ConflictError,
   DETOUR_MAX_ATTEMPTS_CAP,
+  contour,
   resource,
   Result,
+  schedule,
   signal,
   topo,
   trail,
   openWriteTrailsDb,
 } from '@ontrails/core';
+import type { Layer } from '@ontrails/core';
 
 import {
   createMockTopoStore,
@@ -23,11 +26,23 @@ import {
   createTopoStore,
   topoStore,
 } from '../index.js';
+import type {
+  TopoStoreContourRecord,
+  TopoStoreResourceRecord,
+  TopoStoreTopoGraphEntryRecord,
+  TopoStoreTrailDetailRecord,
+} from '../index.js';
 import { pinTopoSnapshot } from '../internal/topo-snapshots.js';
 import type { TopoSnapshot } from '../internal/topo-snapshots.js';
 import { listTopoStoreSignals } from '../internal/topo-store-read.js';
 
 const noop = () => Result.ok({ ok: true });
+
+const passThroughLayer = (name: string, input?: Layer['input']): Layer => ({
+  ...(input === undefined ? {} : { input }),
+  name,
+  wrap: (_trail, implementation) => implementation,
+});
 
 const expectOk = async <T>(
   result: Promise<Result<T, Error>> | Result<T, Error>
@@ -218,6 +233,65 @@ const signalBatchApp = () => {
   });
 };
 
+const graphAttachmentApp = () => {
+  const account = contour(
+    'account',
+    {
+      id: z.string(),
+      name: z.string(),
+    },
+    { identity: 'id' }
+  );
+  const entity = contour(
+    'entity',
+    {
+      accountId: account.id(),
+      id: z.string(),
+      name: z.string(),
+    },
+    { identity: 'id' }
+  );
+  const topoPolicy = passThroughLayer(
+    'topo.policy',
+    z.object({ tenant: z.string() })
+  );
+  const trailAudit = passThroughLayer(
+    'trail.audit',
+    z.object({ requestId: z.string() })
+  );
+  const created = signal('entity.created', {
+    payload: z.object({ id: z.string() }),
+  });
+  const auditSchedule = schedule('schedule.entity.audit', {
+    cron: '0 2 * * *',
+    input: { id: 'daily' },
+    meta: { owner: 'entity' },
+    timezone: 'UTC',
+  });
+  const process = trail('entity.process', {
+    blaze: () => Result.ok({ ok: true }),
+    contours: [entity],
+    fields: { id: { hint: 'Entity id to process' } },
+    fires: [created],
+    input: z.object({ id: z.string() }),
+    layers: [trailAudit],
+    meta: { owner: 'core' },
+    on: [auditSchedule],
+    output: z.object({ ok: z.boolean() }),
+  });
+
+  return topo(
+    'graph-attachment-app',
+    {
+      account,
+      created,
+      entity,
+      process,
+    },
+    { layers: [topoPolicy] }
+  );
+};
+
 describe('read-only topo store', () => {
   let tmpRoot: string | undefined;
 
@@ -368,6 +442,62 @@ describe('read-only topo store', () => {
     });
     expect(readTrails).toHaveLength(1);
     expect(readTrails[0]?.id).toBe('entity.list');
+
+    const db = openWriteTrailsDb({ rootDir });
+    try {
+      db.query(
+        `UPDATE topo_trails
+         SET intent = NULL
+         WHERE snapshot_id = ? AND id = ?`
+      ).run(snapshot.id, 'entity.add');
+    } finally {
+      db.close();
+    }
+
+    const defaultWriteTrails = store.trails.list({
+      intent: 'write',
+      snapshot: { snapshotId: snapshot.id },
+    });
+    expect(defaultWriteTrails).toHaveLength(1);
+    expect(defaultWriteTrails[0]?.id).toBe('entity.add');
+    expect(defaultWriteTrails[0]?.intent).toBe('write');
+  });
+
+  test('mock get accessors require a resolved snapshot', () => {
+    const snapshotId = 'snap-missing';
+    const mock = createMockTopoStore({
+      contours: [
+        {
+          id: 'entity',
+          kind: 'contour',
+          snapshotId,
+        } as TopoStoreContourRecord,
+      ],
+      entries: [
+        {
+          id: 'entity.add',
+          kind: 'trail',
+          snapshotId,
+        } as TopoStoreTopoGraphEntryRecord,
+      ],
+      resources: [
+        {
+          id: 'db.main',
+          snapshotId,
+        } as TopoStoreResourceRecord,
+      ],
+      trails: [
+        {
+          id: 'entity.add',
+          snapshotId,
+        } as TopoStoreTrailDetailRecord,
+      ],
+    });
+
+    expect(mock.contours.get('entity')).toBeUndefined();
+    expect(mock.entries.get('entity.add')).toBeUndefined();
+    expect(mock.resources.get('db.main')).toBeUndefined();
+    expect(mock.trails.get('entity.add')).toBeUndefined();
   });
 
   test('returns detailed trail and export views, plus a query escape hatch', () => {
@@ -431,6 +561,131 @@ describe('read-only topo store', () => {
       [snapshot.id]
     );
     expect(rows).toEqual([{ id: 'entity.add' }, { id: 'entity.list' }]);
+  });
+
+  test('exposes typed views over saved TopoGraph content', async () => {
+    const rootDir = makeRoot();
+    const snapshot = await expectOk(
+      createTopoSnapshot(graphAttachmentApp(), {
+        createdAt: '2026-04-03T16:00:00.000Z',
+        gitSha: 'abc123',
+        rootDir,
+      })
+    );
+    const store = createTopoStore({ rootDir });
+
+    const exported = store.exports.get({ snapshotId: snapshot.id });
+    expect(exported?.lockManifest.artifacts[0]?.sha256).toBe(
+      exported?.topoGraphHash
+    );
+    expect(exported?.topoGraph.topoGraphSchemaVersion).toBe(1);
+
+    const topoGraph = store.topoGraph.get({ snapshotId: snapshot.id });
+    expect(topoGraph?.snapshot.id).toBe(snapshot.id);
+    expect(topoGraph?.topoGraph.activationGraph.sourceKeys).toContain(
+      'schedule:schedule.entity.audit'
+    );
+
+    const processEntry = store.entries.get('entity.process', {
+      kind: 'trail',
+      snapshot: { snapshotId: snapshot.id },
+    });
+    expect(processEntry).toEqual(
+      expect.objectContaining({
+        fieldOverrides: [
+          {
+            field: 'id',
+            overrides: ['hint'],
+            provenance: { source: 'trail.fields' },
+          },
+        ],
+        fires: ['entity.created'],
+        id: 'entity.process',
+        kind: 'trail',
+        surfaces: [],
+      })
+    );
+    expect(processEntry?.activationSources).toEqual([
+      {
+        source: {
+          cron: '0 2 * * *',
+          id: 'schedule.entity.audit',
+          input: { id: 'daily' },
+          key: 'schedule:schedule.entity.audit',
+          kind: 'schedule',
+          meta: { owner: 'entity' },
+          timezone: 'UTC',
+        },
+      },
+    ]);
+    expect(processEntry?.input).toEqual(
+      expect.objectContaining({
+        properties: { id: { type: 'string' } },
+        type: 'object',
+      })
+    );
+    expect(processEntry?.layers).toEqual([
+      {
+        input: expect.objectContaining({
+          properties: { tenant: { type: 'string' } },
+          type: 'object',
+        }),
+        name: 'topo.policy',
+        scope: 'topo',
+      },
+      {
+        input: expect.objectContaining({
+          properties: { requestId: { type: 'string' } },
+          type: 'object',
+        }),
+        name: 'trail.audit',
+        scope: 'trail',
+      },
+    ]);
+
+    const contours = store.contours.list({
+      snapshot: { snapshotId: snapshot.id },
+    });
+    expect(contours.map((entry) => entry.id)).toEqual(['account', 'entity']);
+    expect(
+      store.contours.get('entity', {
+        snapshot: { snapshotId: snapshot.id },
+      })
+    ).toEqual(
+      expect.objectContaining({
+        identity: 'id',
+        references: [
+          {
+            contour: 'account',
+            field: 'accountId',
+            identity: 'id',
+          },
+        ],
+        schema: expect.objectContaining({
+          properties: expect.objectContaining({
+            accountId: { type: 'string' },
+            id: { type: 'string' },
+          }),
+          type: 'object',
+        }),
+      })
+    );
+
+    expect(
+      store.entries.list({
+        kind: 'signal',
+        snapshot: { snapshotId: snapshot.id },
+      })
+    ).toEqual([
+      expect.objectContaining({
+        id: 'entity.created',
+        kind: 'signal',
+        payload: expect.objectContaining({ type: 'object' }),
+      }),
+    ]);
+    expect(
+      store.entries.get('missing', { snapshot: { snapshotId: snapshot.id } })
+    ).toBeUndefined();
   });
 
   test('defaults omitted detour maxAttempts to one in detailed views', async () => {
