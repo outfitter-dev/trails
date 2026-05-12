@@ -64,7 +64,7 @@ ready and again before final handoff.
 | 7 | `TRL-690` | `trl-690-polish-warden-guidance-link-rendering-and-schema-reuse` | TBD | Implemented locally |
 | 8 | `TRL-691` | `trl-691-polish-generated-warden-guide-headers-and-generator-tests` | TBD | Implemented locally |
 | 9 | `TRL-693` | `trl-693-tighten-cli-value-alias-conflicts-for-non-commander-callers` | TBD | Implemented locally |
-| 10 | `TRL-694` | `trl-694-suppress-static-resource-accessor-warnings-when-string` | TBD | Not started |
+| 10 | `TRL-694` | `trl-694-suppress-static-resource-accessor-warnings-when-string` | TBD | Implemented locally |
 | 11 | `TRL-634` | `trl-634-audit-cross-surface-parity-coverage-gaps` | TBD | Not started |
 | 12 | `TRL-636` | `trl-636-audit-docs-and-examples-for-v1-readiness` | TBD | Not started |
 | 13 | `TRL-637` | `trl-637-audit-release-process-and-beta-to-10-cutover-requirements` | TBD | Not started |
@@ -178,6 +178,12 @@ ready waves, and remote review turns here.
   active value alias is present without caller-supplied key tracking, any parsed
   canonical key is treated as ambiguous and rejected instead of guessing whether
   it was only a defaulted value.
+- 2026-05-12 16:22 EDT: Moved `TRL-694` to `In Progress`, created
+  `trl-694-suppress-static-resource-accessor-warnings-when-string`, and fixed
+  the `static-resource-accessor-preference` shadowing edge. String-literal
+  resource lookups now carry the declared resource names shadowed at the lookup
+  site so an ID-resolved warning is suppressed when its suggested static helper
+  name is locally rebound inside `blaze`.
 
 ## Verification Log
 
@@ -291,6 +297,15 @@ Branch `TRL-693` focused checks:
 - `bun test packages/cli` - passed, 221 tests / 561 expects.
 - `bun test adapters/commander` - passed, 43 tests / 84 expects.
 - `bun run typecheck` - passed.
+- `bun run format:check` - passed.
+- `git diff --check` - passed.
+
+Branch `TRL-694` focused checks:
+
+- `bun test
+  packages/warden/src/__tests__/static-resource-accessor-preference.test.ts` -
+  passed, 15 tests / 28 expects.
+- `bun run lint` - passed.
 - `bun run format:check` - passed.
 - `git diff --check` - passed.
 

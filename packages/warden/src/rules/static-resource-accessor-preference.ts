@@ -45,6 +45,7 @@ interface ResourceLookup {
   readonly id: string | null;
   readonly name: string | null;
   readonly rendered: string;
+  readonly shadowedDeclaredNames: ReadonlySet<string>;
   readonly start: number;
 }
 
@@ -288,6 +289,7 @@ const extractResourceLookup = (
       id: extractFirstStringArg(node),
       name: extractFirstIdentifierArg(node),
       rendered: `${memberCall.ctxName}.resource(${renderedArg})`,
+      shadowedDeclaredNames: new Set(),
       start: node.start,
     };
   }
@@ -298,6 +300,7 @@ const extractResourceLookup = (
       id: extractFirstStringArg(node),
       name: extractFirstIdentifierArg(node),
       rendered: `${calleeName}(${renderedArg})`,
+      shadowedDeclaredNames: new Set(),
       start: node.start,
     };
   }
@@ -308,6 +311,19 @@ const extractResourceLookup = (
 const buildDeclaredNameSet = (
   resources: readonly DeclaredStaticResource[]
 ): ReadonlySet<string> => new Set(resources.map((resource) => resource.name));
+
+const collectShadowedNames = (
+  names: ReadonlySet<string>,
+  scopes: readonly ReadonlySet<string>[]
+): ReadonlySet<string> => {
+  const shadowed = new Set<string>();
+  for (const name of names) {
+    if (isShadowedModuleBinding(name, scopes)) {
+      shadowed.add(name);
+    }
+  }
+  return shadowed;
+};
 
 const buildDeclaredNameById = (
   resources: readonly DeclaredStaticResource[]
@@ -336,7 +352,10 @@ const collectResourceLookups = (
       (node, scopes) => {
         const lookup = extractResourceLookup(node, ctxNames, resourceAliases);
         if (lookup && !isShadowedModuleBinding(lookup.name, scopes)) {
-          lookups.push(lookup);
+          lookups.push({
+            ...lookup,
+            shadowedDeclaredNames: collectShadowedNames(declaredNames, scopes),
+          });
         }
       },
       {
@@ -528,6 +547,9 @@ const reportAccessorLookups = (
       (lookup.id ? (declaredNameById.get(lookup.id) ?? null) : null);
 
     if (!resourceName) {
+      continue;
+    }
+    if (lookup.shadowedDeclaredNames.has(resourceName)) {
       continue;
     }
 

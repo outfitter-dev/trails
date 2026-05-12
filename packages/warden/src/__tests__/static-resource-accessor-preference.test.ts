@@ -185,6 +185,26 @@ trail('entity.show', {
     expect(staticResourceAccessorPreference.check(code, TEST_FILE)).toEqual([]);
   });
 
+  test('does not warn when a string resource lookup resolves to a shadowed declared name', () => {
+    const code = `
+import { Result, resource, trail } from '@ontrails/core';
+
+const db = resource('db.main', {
+  create: () => Result.ok({ source: 'factory' }),
+});
+
+trail('entity.show', {
+  resources: [db],
+  blaze: async (input, ctx) => {
+    const db = input.override;
+    return Result.ok(ctx.resource('db.main'));
+  },
+});
+`;
+
+    expect(staticResourceAccessorPreference.check(code, TEST_FILE)).toEqual([]);
+  });
+
   test('does not warn when a local constructor shadows an imported dependency constructor', () => {
     const code = `
 import { Result, trail } from '@ontrails/core';
