@@ -13,7 +13,16 @@ import {
 } from './topo-snapshots.js';
 import type { StoredTopoExport } from './topo-store.js';
 import { getStoredTopoExport } from './topo-store.js';
-import type { LockManifest, TopoGraph, TopoGraphEntry } from '../types.js';
+import type {
+  JsonSchema,
+  LockManifest,
+  TopoGraph,
+  TopoGraphActivationEdge,
+  TopoGraphActivationEntry,
+  TopoGraphFieldOverride,
+  TopoGraphLayerReference,
+  TopoGraphEntry,
+} from '../types.js';
 
 export interface TopoStoreRef {
   readonly pin?: string;
@@ -34,6 +43,20 @@ export interface TopoStoreTopoGraphEntryRecord extends TopoGraphEntry {
 export type TopoStoreContourRecord = TopoStoreTopoGraphEntryRecord & {
   readonly kind: 'contour';
 };
+
+export interface TopoStoreActivationContextRecord {
+  readonly edgeCount: number;
+  readonly sourceCount: number;
+  readonly sourceKeys: readonly string[];
+  readonly trailIds: readonly string[];
+}
+
+export interface TopoStoreSurfaceProjectionRecord {
+  readonly derivedName: string;
+  readonly method: string | null;
+  readonly surface: string;
+  readonly trailId: string;
+}
 
 export interface TopoStoreTrailRecord {
   readonly description: string | null;
@@ -62,12 +85,25 @@ export interface TopoStoreExampleRecord {
 }
 
 export interface TopoStoreTrailDetailRecord extends TopoStoreTrailRecord {
+  readonly activationContext: TopoStoreActivationContextRecord;
+  readonly activationEdges: readonly TopoGraphActivationEdge[];
+  readonly activationSources: readonly TopoGraphActivationEntry[];
+  readonly cli: TopoGraphEntry['cli'] | null;
+  readonly contourDetails: readonly TopoStoreContourRecord[];
+  readonly contours: readonly string[];
   readonly crosses: readonly string[];
   readonly detours:
     | readonly { readonly on: string; readonly maxAttempts: number }[]
     | null;
   readonly examples: readonly TopoStoreExampleRecord[];
+  readonly fieldOverrides: readonly TopoGraphFieldOverride[];
+  readonly governance: Readonly<Record<string, unknown>> | null;
+  readonly input: JsonSchema | null;
+  readonly layers: readonly TopoGraphLayerReference[];
+  readonly output: JsonSchema | null;
   readonly resources: readonly string[];
+  readonly surfaceProjections: readonly TopoStoreSurfaceProjectionRecord[];
+  readonly surfaces: readonly string[];
 }
 
 export interface TopoStoreResourceRecord {
@@ -136,6 +172,13 @@ interface TopoExampleRow {
   readonly name: string;
   readonly ordinal: number;
   readonly signals: string | null;
+}
+
+interface TopoSurfaceProjectionRow {
+  readonly derived_name: string;
+  readonly method: string | null;
+  readonly surface: string;
+  readonly trail_id: string;
 }
 
 interface TopoResourceRow {
@@ -254,6 +297,13 @@ const readStoredEntry = (
     (entry) => entry.id === id && entry.kind === kind
   );
 
+const findTopoGraphEntry = (
+  topoGraph: TopoGraph | undefined,
+  kind: TopoStoreEntryKind,
+  id: string
+): TopoGraphEntry | undefined =>
+  topoGraph?.entries.find((entry) => entry.id === id && entry.kind === kind);
+
 const mapTrailRow = (row: TopoTrailRow): TopoStoreTrailRecord => {
   const intent = normalizeIntent(row.intent);
 
@@ -327,6 +377,178 @@ const readTrailExamples = (
       ordinal: row.ordinal,
       signals: row.signals === null ? null : parseJson(row.signals),
     }));
+
+const readTrailSurfaceProjections = (
+  db: Database,
+  snapshotId: string,
+  trailId: string
+): readonly TopoStoreSurfaceProjectionRecord[] =>
+  db
+    .query<TopoSurfaceProjectionRow, [string, string]>(
+      `SELECT trail_id, surface, derived_name, method
+       FROM topo_surfaces
+       WHERE snapshot_id = ? AND trail_id = ?
+       ORDER BY surface ASC, derived_name ASC`
+    )
+    .all(snapshotId, trailId)
+    .map((row) => ({
+      derivedName: row.derived_name,
+      method: row.method,
+      surface: row.surface,
+      trailId: row.trail_id,
+    }));
+
+const emptyActivationContext = (): TopoStoreActivationContextRecord => ({
+  edgeCount: 0,
+  sourceCount: 0,
+  sourceKeys: [],
+  trailIds: [],
+});
+
+const mapActivationContext = (
+  topoGraph: TopoGraph | undefined,
+  trailId: string
+): TopoStoreActivationContextRecord => {
+  const edges =
+    topoGraph?.activationGraph.edges.filter(
+      (edge) => edge.trailId === trailId
+    ) ?? [];
+  if (edges.length === 0) {
+    return emptyActivationContext();
+  }
+  return {
+    edgeCount: edges.length,
+    sourceCount: new Set(edges.map((edge) => edge.sourceKey)).size,
+    sourceKeys: [...new Set(edges.map((edge) => edge.sourceKey))].toSorted(),
+    trailIds: [...new Set(edges.map((edge) => edge.trailId))].toSorted(),
+  };
+};
+
+const readTrailActivationEdges = (
+  topoGraph: TopoGraph | undefined,
+  trailId: string
+): readonly TopoGraphActivationEdge[] =>
+  topoGraph?.activationGraph.edges.filter((edge) => edge.trailId === trailId) ??
+  [];
+
+const readTrailContourDetails = (
+  topoGraph: TopoGraph | undefined,
+  snapshotId: string,
+  contourIds: readonly string[]
+): readonly TopoStoreContourRecord[] =>
+  contourIds
+    .map((contourId) => findTopoGraphEntry(topoGraph, 'contour', contourId))
+    .filter((entry): entry is TopoGraphEntry => entry !== undefined)
+    .map((entry) => toTopoGraphEntryRecord(snapshotId, entry))
+    .map((entry) => entry as TopoStoreContourRecord);
+
+type StoredTrailEntryDetail = Pick<
+  TopoStoreTrailDetailRecord,
+  | 'activationSources'
+  | 'cli'
+  | 'contours'
+  | 'detours'
+  | 'fieldOverrides'
+  | 'governance'
+  | 'input'
+  | 'layers'
+  | 'output'
+  | 'surfaces'
+>;
+
+const emptyStoredTrailEntryDetail = (): StoredTrailEntryDetail => ({
+  activationSources: [],
+  cli: null,
+  contours: [],
+  detours: null,
+  fieldOverrides: [],
+  governance: null,
+  input: null,
+  layers: [],
+  output: null,
+  surfaces: [],
+});
+
+const mapStoredTrailEntryDetail = (
+  storedEntry: TopoGraphEntry | undefined
+): StoredTrailEntryDetail => {
+  if (storedEntry === undefined) {
+    return emptyStoredTrailEntryDetail();
+  }
+
+  const {
+    activationSources = [],
+    cli = null,
+    contours = [],
+    detours = null,
+    fieldOverrides = [],
+    governance = null,
+    input = null,
+    layers = [],
+    output = null,
+    surfaces = [],
+  } = storedEntry;
+
+  return {
+    activationSources,
+    cli,
+    contours,
+    detours,
+    fieldOverrides,
+    governance,
+    input,
+    layers,
+    output,
+    surfaces,
+  };
+};
+
+const buildTrailGraphDetail = (
+  db: Database,
+  snapshotId: string,
+  trailId: string
+): Pick<
+  TopoStoreTrailDetailRecord,
+  | 'activationContext'
+  | 'activationEdges'
+  | 'activationSources'
+  | 'cli'
+  | 'contourDetails'
+  | 'contours'
+  | 'detours'
+  | 'fieldOverrides'
+  | 'governance'
+  | 'input'
+  | 'layers'
+  | 'output'
+  | 'surfaceProjections'
+  | 'surfaces'
+> => {
+  const storedTopoGraph = readStoredTopoGraph(db, snapshotId);
+  const storedEntry = findTopoGraphEntry(storedTopoGraph, 'trail', trailId);
+  const entryDetail = mapStoredTrailEntryDetail(storedEntry);
+
+  return {
+    activationContext: mapActivationContext(storedTopoGraph, trailId),
+    activationEdges: readTrailActivationEdges(storedTopoGraph, trailId),
+    activationSources: entryDetail.activationSources,
+    cli: entryDetail.cli,
+    contourDetails: readTrailContourDetails(
+      storedTopoGraph,
+      snapshotId,
+      entryDetail.contours
+    ),
+    contours: entryDetail.contours,
+    detours: entryDetail.detours,
+    fieldOverrides: entryDetail.fieldOverrides,
+    governance: entryDetail.governance,
+    input: entryDetail.input,
+    layers: entryDetail.layers,
+    output: entryDetail.output,
+    surfaceProjections: readTrailSurfaceProjections(db, snapshotId, trailId),
+    surfaces: entryDetail.surfaces,
+  };
+};
 
 const readResourceUsage = (
   db: Database,
@@ -594,14 +816,27 @@ export const getTopoStoreTrail = (
     return undefined;
   }
 
-  const storedEntry = readStoredEntry(db, snapshot.id, 'trail', trailId);
+  const graphDetail = buildTrailGraphDetail(db, snapshot.id, trailId);
 
   return {
     ...mapTrailRow(row),
+    activationContext: graphDetail.activationContext,
+    activationEdges: graphDetail.activationEdges,
+    activationSources: graphDetail.activationSources,
+    cli: graphDetail.cli,
+    contourDetails: graphDetail.contourDetails,
+    contours: graphDetail.contours,
     crosses: readTrailCrossings(db, snapshot.id, trailId),
-    detours: storedEntry?.detours ?? null,
+    detours: graphDetail.detours,
     examples: readTrailExamples(db, snapshot.id, trailId),
+    fieldOverrides: graphDetail.fieldOverrides,
+    governance: graphDetail.governance,
+    input: graphDetail.input,
+    layers: graphDetail.layers,
+    output: graphDetail.output,
     resources: readTrailResourceIds(db, snapshot.id, trailId),
+    surfaceProjections: graphDetail.surfaceProjections,
+    surfaces: graphDetail.surfaces,
   };
 };
 

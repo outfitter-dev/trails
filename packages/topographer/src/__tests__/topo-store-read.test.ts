@@ -643,6 +643,58 @@ describe('read-only topo store', () => {
       },
     ]);
 
+    const processDetail = store.trails.get('entity.process', {
+      snapshot: { snapshotId: snapshot.id },
+    });
+    expect(processDetail).toEqual(
+      expect.objectContaining({
+        activationContext: expect.objectContaining({
+          edgeCount: 1,
+          sourceCount: 1,
+          sourceKeys: ['schedule:schedule.entity.audit'],
+          trailIds: ['entity.process'],
+        }),
+        activationEdges: [
+          {
+            hasWhere: false,
+            sourceId: 'schedule.entity.audit',
+            sourceKey: 'schedule:schedule.entity.audit',
+            sourceKind: 'schedule',
+            trailId: 'entity.process',
+          },
+        ],
+        activationSources: processEntry?.activationSources,
+        cli: { path: ['entity', 'process'] },
+        contours: ['entity'],
+        fieldOverrides: processEntry?.fieldOverrides,
+        governance: null,
+        input: processEntry?.input,
+        layers: processEntry?.layers,
+        output: expect.objectContaining({ type: 'object' }),
+        surfaceProjections: [
+          {
+            derivedName: 'entity process',
+            method: null,
+            surface: 'cli',
+            trailId: 'entity.process',
+          },
+        ],
+        surfaces: [],
+      })
+    );
+    expect(processDetail?.contourDetails).toEqual([
+      expect.objectContaining({
+        id: 'entity',
+        references: [
+          {
+            contour: 'account',
+            field: 'accountId',
+            identity: 'id',
+          },
+        ],
+      }),
+    ]);
+
     const contours = store.contours.list({
       snapshot: { snapshotId: snapshot.id },
     });
@@ -686,6 +738,59 @@ describe('read-only topo store', () => {
     expect(
       store.entries.get('missing', { snapshot: { snapshotId: snapshot.id } })
     ).toBeUndefined();
+  });
+
+  test('scopes stored activation context to the requested trail', async () => {
+    const rebuildSchedule = schedule('schedule.report.rebuild', {
+      cron: '0 3 * * *',
+      timezone: 'UTC',
+    });
+    const pruneSchedule = schedule('schedule.report.prune', {
+      cron: '0 4 * * *',
+      timezone: 'UTC',
+    });
+    const rebuild = trail('report.rebuild', {
+      blaze: () => Result.ok({ ok: true }),
+      input: z.object({}),
+      on: [rebuildSchedule],
+      output: z.object({ ok: z.boolean() }),
+    });
+    const prune = trail('report.prune', {
+      blaze: () => Result.ok({ ok: true }),
+      input: z.object({}),
+      on: [pruneSchedule],
+      output: z.object({ ok: z.boolean() }),
+    });
+    const app = topo('stored-multi-activation-app', { prune, rebuild });
+    const rootDir = makeRoot();
+    const snapshot = await expectOk(
+      createTopoSnapshot(app, {
+        createdAt: '2026-04-03T16:15:00.000Z',
+        gitSha: 'abc123',
+        rootDir,
+      })
+    );
+    const store = createTopoStore({ rootDir });
+
+    const detail = store.trails.get('report.rebuild', {
+      snapshot: { snapshotId: snapshot.id },
+    });
+
+    expect(detail?.activationContext).toEqual({
+      edgeCount: 1,
+      sourceCount: 1,
+      sourceKeys: ['schedule:schedule.report.rebuild'],
+      trailIds: ['report.rebuild'],
+    });
+    expect(detail?.activationEdges).toEqual([
+      {
+        hasWhere: false,
+        sourceId: 'schedule.report.rebuild',
+        sourceKey: 'schedule:schedule.report.rebuild',
+        sourceKind: 'schedule',
+        trailId: 'report.rebuild',
+      },
+    ]);
   });
 
   test('distinguishes CLI surface rows from canonical TopoGraph detail', async () => {

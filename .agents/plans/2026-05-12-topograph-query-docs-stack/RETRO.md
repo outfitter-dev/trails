@@ -57,7 +57,7 @@ ready and again before final handoff.
 | --- | --- | --- | --- | --- |
 | 1 | `TRL-655` | `trl-655-add-typed-topo-store-views-over-topograph-saved-state` | TBD | Implemented locally |
 | 2 | `TRL-656` | `trl-656-make-persisted-surface-rows-complete-or-explicitly-partial` | TBD | Implemented locally |
-| 3 | `TRL-657` | `trl-657-add-complete-resolved-contract-detail-view-for-blind-agents` | TBD | Not started |
+| 3 | `TRL-657` | `trl-657-add-complete-resolved-contract-detail-view-for-blind-agents` | TBD | Implemented locally |
 | 4 | `TRL-653` | `trl-653-sweep-docs-api-references-and-agent-guidance-for-topograph` | TBD | Not started |
 | 5 | `TRL-702` | `trl-702-add-retired-vocabulary-guard-for-active-topograph-surfaces` | TBD | Not started |
 | 6 | `TRL-692` | `trl-692-clarify-warden-guide-manifest-category-naming-before` | TBD | Not started |
@@ -135,6 +135,13 @@ ready waves, and remote review turns here.
   implemented the explicit partial-row posture for `topo_surfaces`. The SQL
   rows are documented and tested as CLI-only operational projections, while
   complete graph detail stays in `TopoGraph` and typed entry views.
+- 2026-05-12 14:30 EDT: Moved `TRL-657` to `In Progress`, created
+  `trl-657-add-complete-resolved-contract-detail-view-for-blind-agents`, and
+  implemented resolved contract detail for blind-agent review.
+  `topoStore.trails.get()` now includes saved `TopoGraph` schema, layer,
+  contour, activation, governance, and surface-projection facts; `survey.trail`
+  exposes the same contract-facing shape through its output schema; docs and
+  changesets were updated for the public package behavior.
 
 ## Verification Log
 
@@ -167,6 +174,18 @@ Branch `TRL-656` focused checks:
   packages/topographer/src/__tests__/topo-store-read.test.ts` - passed,
   29 tests / 169 expects.
 - `bun run typecheck` - passed.
+- `bun run format:check` - passed.
+- `git diff --check` - passed.
+
+Branch `TRL-657` focused checks:
+
+- `bun test packages/topographer/src/__tests__/topo-store-read.test.ts` -
+  passed, 9 tests / 45 expects.
+- `bun test apps/trails/src/__tests__/survey.test.ts` - passed, 41 tests /
+  136 expects.
+- `bun run typecheck` - passed after aligning `CurrentTrailDetail` with
+  `TrailDetailReport` and exporting the TopoGraph activation edge/source types
+  used by the survey report.
 - `bun run format:check` - passed.
 - `git diff --check` - passed.
 

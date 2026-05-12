@@ -1,8 +1,13 @@
 import type {
   ActivationEntry,
   ActivationSource,
+  ActivationSourceProjection,
   AnyTrail,
   Topo,
+} from '@ontrails/core';
+import {
+  activationSourceKey,
+  projectActivationSourceDeclaration,
 } from '@ontrails/core';
 
 export interface ActivationChainReport {
@@ -11,17 +16,23 @@ export interface ActivationChainReport {
   readonly signal: string;
 }
 
-export interface ActivationSourceReport extends Readonly<
-  Record<string, unknown>
-> {
+type JsonSchemaReport = Readonly<Record<string, unknown>>;
+
+export interface ActivationSourceReport extends ActivationSourceProjection {
   readonly cron?: string | undefined;
   readonly hasParse?: true | undefined;
   readonly hasPayloadSchema?: true | undefined;
+  readonly hasVerify?: true | undefined;
   readonly id: string;
   readonly input?: unknown;
+  readonly inputSchema?: JsonSchemaReport | undefined;
   readonly kind: string;
   readonly key: string;
   readonly meta?: Readonly<Record<string, unknown>> | undefined;
+  readonly method?: string | undefined;
+  readonly parseOutputSchema?: JsonSchemaReport | undefined;
+  readonly path?: string | undefined;
+  readonly payloadSchema?: JsonSchemaReport | undefined;
   readonly timezone?: string | undefined;
 }
 
@@ -142,39 +153,10 @@ const compareChains = (
 const sortedUnique = (values: Iterable<string>): readonly string[] =>
   [...new Set(values)].toSorted();
 
-const activationSourceKey = (source: Pick<ActivationSource, 'id' | 'kind'>) =>
-  `${source.kind}:${source.id}`;
-
 const projectActivationSource = (
   source: ActivationSource
-): ActivationSourceReport => {
-  const record: Record<string, unknown> = {
-    id: source.id,
-    key: activationSourceKey(source),
-    kind: source.kind,
-  };
-
-  if (source.cron !== undefined) {
-    record['cron'] = source.cron;
-  }
-  if (Object.hasOwn(source, 'input')) {
-    record['input'] = canonicalize(source.input);
-  }
-  if (source.meta !== undefined) {
-    record['meta'] = canonicalize(source.meta);
-  }
-  if (source.parse !== undefined) {
-    record['hasParse'] = true;
-  }
-  if (source.payload !== undefined) {
-    record['hasPayloadSchema'] = true;
-  }
-  if (source.timezone !== undefined) {
-    record['timezone'] = source.timezone;
-  }
-
-  return sortKeys(record) as ActivationSourceReport;
-};
+): ActivationSourceReport =>
+  projectActivationSourceDeclaration(source) as ActivationSourceReport;
 
 const projectActivationEdge = (
   trailId: string,

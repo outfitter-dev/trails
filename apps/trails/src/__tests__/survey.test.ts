@@ -13,12 +13,15 @@ import {
   DETOUR_MAX_ATTEMPTS_CAP,
   Result,
   SURFACE_LAYER_NAMES_KEY,
+  contour,
   resource,
   schedule,
   signal,
   topo,
   trail,
+  webhook,
 } from '@ontrails/core';
+import type { TrailSpec } from '@ontrails/core';
 import {
   deriveTopoGraph,
   deriveTopoGraphHash,
@@ -47,6 +50,7 @@ import {
   buildCurrentTrailDetail,
   readSurfaceLayerNamesFromContext,
 } from '../trails/topo-read-support.js';
+import { trailDetailOutput } from '../trails/topo-output-schemas.js';
 import { topoCompileTrail } from '../trails/topo-compile.js';
 import type {
   BriefReport,
@@ -541,6 +545,203 @@ describe('trails survey detail', () => {
     });
   });
 
+  test('trail detail includes resolved TopoGraph contract fields for blind agents', () => {
+    const account = contour(
+      'account',
+      {
+        id: z.string(),
+        name: z.string(),
+      },
+      { identity: 'id' }
+    );
+    const entity = contour(
+      'entity',
+      {
+        accountId: account.id(),
+        id: z.string(),
+      },
+      { identity: 'id' }
+    );
+    const topoPolicy = {
+      input: z.object({ tenant: z.string() }),
+      name: 'topo.policy',
+      wrap: (_trail: unknown, implementation: unknown) =>
+        implementation as never,
+    };
+    const trailAudit = {
+      input: z.object({ requestId: z.string() }),
+      name: 'trail.audit',
+      wrap: (_trail: unknown, implementation: unknown) =>
+        implementation as never,
+    };
+    const created = signal('entity.created', {
+      payload: z.object({ id: z.string() }),
+    });
+    const auditSchedule = schedule('schedule.entity.audit', {
+      cron: '0 2 * * *',
+      input: { id: 'daily' },
+      meta: { owner: 'entity' },
+      timezone: 'UTC',
+    });
+    const process = trail('entity.process', {
+      blaze: () => Result.ok({ ok: true }),
+      contours: [entity],
+      fields: { id: { hint: 'Entity id to process' } },
+      fires: [created],
+      input: z.object({ id: z.string() }),
+      layers: [trailAudit],
+      on: [auditSchedule],
+      output: z.object({ ok: z.boolean() }),
+    });
+    const appWithGraphDetail = topo(
+      'graph-detail-app',
+      {
+        account,
+        created,
+        entity,
+        process,
+      },
+      { layers: [topoPolicy] }
+    );
+
+    const detail = structuredClone(
+      deriveTrailDetail(process, appWithGraphDetail)
+    ) as TrailDetailReport;
+
+    expect(detail).toMatchObject({
+      activationContext: {
+        edgeCount: 1,
+        sourceCount: 1,
+        sourceKeys: ['schedule:schedule.entity.audit'],
+        trailIds: ['entity.process'],
+      },
+      activationEdges: [
+        {
+          hasWhere: false,
+          sourceId: 'schedule.entity.audit',
+          sourceKey: 'schedule:schedule.entity.audit',
+          sourceKind: 'schedule',
+          trailId: 'entity.process',
+        },
+      ],
+      cli: { path: ['entity', 'process'] },
+      contours: ['entity'],
+      fieldOverrides: [
+        {
+          field: 'id',
+          overrides: ['hint'],
+          provenance: { source: 'trail.fields' },
+        },
+      ],
+      governance: null,
+      layers: [
+        {
+          name: 'topo.policy',
+          scope: 'topo',
+        },
+        {
+          name: 'trail.audit',
+          scope: 'trail',
+        },
+      ],
+      surfaceProjections: [
+        {
+          derivedName: 'entity process',
+          method: null,
+          surface: 'cli',
+          trailId: 'entity.process',
+        },
+      ],
+      surfaces: [],
+    });
+    expect(detail.contourDetails).toEqual([
+      expect.objectContaining({
+        id: 'entity',
+        references: [
+          {
+            contour: 'account',
+            field: 'accountId',
+            identity: 'id',
+          },
+        ],
+      }),
+    ]);
+    expect(detail.input).toMatchObject({ type: 'object' });
+    expect(detail.output).toMatchObject({ type: 'object' });
+    expect(trailDetailOutput.safeParse(detail).success).toBe(true);
+  });
+
+  test('trail detail scopes activation context to the requested trail', () => {
+    const rebuildSchedule = schedule('schedule.report.rebuild', {
+      cron: '0 3 * * *',
+      timezone: 'UTC',
+    });
+    const pruneSchedule = schedule('schedule.report.prune', {
+      cron: '0 4 * * *',
+      timezone: 'UTC',
+    });
+    const rebuild = trail('report.rebuild', {
+      blaze: () => Result.ok({ ok: true }),
+      input: z.object({}),
+      on: [rebuildSchedule],
+      output: z.object({ ok: z.boolean() }),
+    });
+    const prune = trail('report.prune', {
+      blaze: () => Result.ok({ ok: true }),
+      input: z.object({}),
+      on: [pruneSchedule],
+      output: z.object({ ok: z.boolean() }),
+    });
+    const multiActivationApp = topo('multi-activation-app', { prune, rebuild });
+    const topoGraph = deriveTopoGraph(multiActivationApp);
+
+    const detail = structuredClone(
+      deriveTrailDetail(rebuild, multiActivationApp, undefined, { topoGraph })
+    ) as TrailDetailReport;
+
+    expect(detail.activationContext).toEqual({
+      edgeCount: 1,
+      sourceCount: 1,
+      sourceKeys: ['schedule:schedule.report.rebuild'],
+      trailIds: ['report.rebuild'],
+    });
+    expect(detail.activationEdges).toEqual([
+      {
+        hasWhere: false,
+        sourceId: 'schedule.report.rebuild',
+        sourceKey: 'schedule:schedule.report.rebuild',
+        sourceKind: 'schedule',
+        trailId: 'report.rebuild',
+      },
+    ]);
+  });
+
+  test('trail detail keeps non-CLI authored surfaces out of partial projection rows', () => {
+    const httpVisible = trail('entity.http', {
+      blaze: () => Result.ok({ ok: true }),
+      input: z.object({}),
+      output: z.object({ ok: z.boolean() }),
+      surfaces: ['http'],
+    } satisfies TrailSpec<unknown, { readonly ok: boolean }> & {
+      readonly surfaces: readonly string[];
+    });
+    const authoredSurfaceApp = topo('authored-surface-app', { httpVisible });
+
+    const detail = structuredClone(
+      deriveTrailDetail(httpVisible, authoredSurfaceApp)
+    ) as TrailDetailReport;
+
+    expect(detail.surfaces).toEqual(['http']);
+    expect(detail.surfaceProjections).toEqual([
+      {
+        derivedName: 'entity http',
+        method: null,
+        surface: 'cli',
+        trailId: 'entity.http',
+      },
+    ]);
+  });
+
   test('trail detail clamps detour maxAttempts to the owner cap', () => {
     const detail = deriveTrailDetail(
       trail('retrying', {
@@ -848,6 +1049,61 @@ describe('trails survey activation graph', () => {
       },
     ]);
     expect(detail.activationEdges).toEqual(overview.activation.edges);
+  });
+
+  test('trail detail activation sources preserve parse and payload schemas', () => {
+    const webhookSource = webhook('webhook.user.upsert', {
+      method: 'post',
+      parse: {
+        output: z.object({
+          email: z.string().optional(),
+          userId: z.string(),
+        }),
+      },
+      path: '/webhooks/users/upsert',
+      payload: z.object({ userId: z.string() }),
+      verify: () => Result.ok(),
+    });
+    const receiver = trail('user.webhook.receive', {
+      blaze: () => Result.ok({ ok: true }),
+      input: z.object({ userId: z.string() }),
+      on: [webhookSource],
+      output: z.object({ ok: z.boolean() }),
+    });
+    const webhookApp = topo('webhook-app', { receiver });
+
+    const detail = structuredClone(
+      deriveTrailDetail(receiver, webhookApp)
+    ) as TrailDetailReport;
+
+    expect(trailDetailOutput.safeParse(detail).success).toBe(true);
+    expect(detail.activationSources).toEqual([
+      {
+        hasParse: true,
+        hasPayloadSchema: true,
+        hasVerify: true,
+        id: 'webhook.user.upsert',
+        key: 'webhook:webhook.user.upsert',
+        kind: 'webhook',
+        method: 'POST',
+        parseOutputSchema: {
+          properties: {
+            email: { type: 'string' },
+            userId: { type: 'string' },
+          },
+          required: ['userId'],
+          type: 'object',
+        },
+        path: '/webhooks/users/upsert',
+        payloadSchema: {
+          properties: {
+            userId: { type: 'string' },
+          },
+          required: ['userId'],
+          type: 'object',
+        },
+      },
+    ]);
   });
 });
 

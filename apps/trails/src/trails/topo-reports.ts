@@ -1,5 +1,14 @@
 import { DETOUR_MAX_ATTEMPTS_CAP, zodToJsonSchema } from '@ontrails/core';
 import type { AnyTrail, Signal, Topo } from '@ontrails/core';
+import { deriveTopoGraph } from '@ontrails/topographer';
+import type {
+  JsonSchema,
+  TopoGraph,
+  TopoGraphActivationEdge,
+  TopoGraphEntry,
+  TopoGraphFieldOverride,
+  TopoGraphLayerReference,
+} from '@ontrails/topographer';
 import { z } from 'zod';
 
 import type {
@@ -57,8 +66,11 @@ export type SurfaceLayerNames = Readonly<
   Record<SurfaceLayerKey, readonly string[]>
 >;
 
+type TopoGraphContourEntry = TopoGraphEntry & { readonly kind: 'contour' };
+
 export interface TrailDetailOptions {
   readonly surfaceLayerNames?: Partial<SurfaceLayerNames> | undefined;
+  readonly topoGraph?: TopoGraph | undefined;
 }
 
 export interface SurveyListReport {
@@ -98,8 +110,17 @@ export interface TrailDetailReport {
   readonly activatedBy: readonly string[];
   readonly activates: readonly string[];
   readonly activationChains: readonly ActivationChainReport[];
+  readonly activationContext: {
+    readonly edgeCount: number;
+    readonly sourceCount: number;
+    readonly sourceKeys: readonly string[];
+    readonly trailIds: readonly string[];
+  };
   readonly activationEdges: readonly ActivationEdgeReport[];
   readonly activationSources: readonly ActivationSourceReport[];
+  readonly cli: {
+    readonly path: readonly string[];
+  } | null;
   /**
    * Composed layer names visible at the survey boundary.
    *
@@ -113,20 +134,34 @@ export interface TrailDetailReport {
     readonly surface: SurfaceLayerNames;
     readonly trail: readonly string[];
   };
+  readonly contourDetails: readonly TopoGraphContourEntry[];
+  readonly contours: readonly string[];
   readonly description: string | null;
   readonly detours:
     | readonly { readonly on: string; readonly maxAttempts: number }[]
     | null;
   readonly examples: readonly unknown[];
+  readonly fieldOverrides: readonly TopoGraphFieldOverride[];
   readonly crosses: readonly string[];
   readonly fires: readonly string[];
+  readonly governance: Readonly<Record<string, unknown>> | null;
   readonly id: string;
+  readonly input: JsonSchema | null;
   readonly intent: 'read' | 'write' | 'destroy';
   readonly kind: 'trail';
+  readonly layers: readonly TopoGraphLayerReference[];
   readonly on: readonly string[];
+  readonly output: JsonSchema | null;
   readonly pattern: string | null;
   readonly safety: string;
   readonly resources: readonly string[];
+  readonly surfaceProjections: readonly {
+    readonly derivedName: string;
+    readonly method: string | null;
+    readonly surface: string;
+    readonly trailId: string;
+  }[];
+  readonly surfaces: readonly string[];
 }
 
 export interface SignalDetailReport {
@@ -377,6 +412,135 @@ const normalizeSurfaceLayerNames = (
   };
 };
 
+const emptyActivationContext = (): TrailDetailReport['activationContext'] => ({
+  edgeCount: 0,
+  sourceCount: 0,
+  sourceKeys: [],
+  trailIds: [],
+});
+
+const activationContextFromTopoGraph = (
+  topoGraph: TopoGraph | undefined,
+  trailId: string,
+  fallbackEdges: readonly TopoGraphActivationEdge[]
+): TrailDetailReport['activationContext'] => {
+  const edges =
+    topoGraph?.activationGraph.edges.filter(
+      (edge) => edge.trailId === trailId
+    ) ?? fallbackEdges;
+  if (edges.length === 0) {
+    return emptyActivationContext();
+  }
+  return {
+    edgeCount: edges.length,
+    sourceCount: new Set(edges.map((edge) => edge.sourceKey)).size,
+    sourceKeys: [...new Set(edges.map((edge) => edge.sourceKey))].toSorted(),
+    trailIds: [...new Set(edges.map((edge) => edge.trailId))].toSorted(),
+  };
+};
+
+const findTopoEntry = (
+  topoGraph: TopoGraph | undefined,
+  id: string,
+  kind: TopoGraphEntry['kind']
+): TopoGraphEntry | undefined =>
+  topoGraph?.entries.find((entry) => entry.id === id && entry.kind === kind);
+
+const trailActivationEdgesFromTopoGraph = (
+  topoGraph: TopoGraph | undefined,
+  trailId: string,
+  fallback: readonly TopoGraphActivationEdge[]
+): readonly TopoGraphActivationEdge[] =>
+  topoGraph?.activationGraph.edges.filter((edge) => edge.trailId === trailId) ??
+  fallback;
+
+const deriveSurfaceProjections = (
+  entry: TopoGraphEntry | undefined
+): TrailDetailReport['surfaceProjections'] => {
+  if (entry === undefined) {
+    return [];
+  }
+
+  const cliProjection =
+    entry.cli === undefined
+      ? []
+      : [
+          {
+            derivedName: entry.cli.path.join(' '),
+            method: null,
+            surface: 'cli',
+            trailId: entry.id,
+          },
+        ];
+  return cliProjection.toSorted((a, b) => a.surface.localeCompare(b.surface));
+};
+
+const deriveResolvedTrailGraphDetail = (
+  app: Topo | undefined,
+  trailId: string,
+  fallbackActivationEdges: readonly TopoGraphActivationEdge[],
+  topoGraphOverride?: TopoGraph | undefined
+): Pick<
+  TrailDetailReport,
+  | 'activationContext'
+  | 'activationEdges'
+  | 'cli'
+  | 'contourDetails'
+  | 'contours'
+  | 'fieldOverrides'
+  | 'governance'
+  | 'input'
+  | 'layers'
+  | 'output'
+  | 'surfaceProjections'
+  | 'surfaces'
+> => {
+  const topoGraph =
+    topoGraphOverride ?? (app === undefined ? undefined : deriveTopoGraph(app));
+  const topoEntry = findTopoEntry(topoGraph, trailId, 'trail');
+  const contours = topoEntry?.contours ?? [];
+  const contourDetails = contours
+    .map((contourId) => findTopoEntry(topoGraph, contourId, 'contour'))
+    .filter(
+      (entry): entry is TopoGraphContourEntry =>
+        entry !== undefined && entry.kind === 'contour'
+    );
+
+  return {
+    activationContext: activationContextFromTopoGraph(
+      topoGraph,
+      trailId,
+      fallbackActivationEdges
+    ),
+    activationEdges: trailActivationEdgesFromTopoGraph(
+      topoGraph,
+      trailId,
+      fallbackActivationEdges
+    ),
+    cli: topoEntry?.cli ?? null,
+    contourDetails,
+    contours,
+    fieldOverrides: topoEntry?.fieldOverrides ?? [],
+    governance: topoEntry?.governance ?? null,
+    input: topoEntry?.input ?? null,
+    layers: topoEntry?.layers ?? [],
+    output: topoEntry?.output ?? null,
+    surfaceProjections: deriveSurfaceProjections(topoEntry),
+    surfaces: topoEntry?.surfaces ?? [],
+  };
+};
+
+const formatTrailDetours = (item: AnyTrail): TrailDetailReport['detours'] =>
+  item.detours.length > 0
+    ? item.detours.map((d) => ({
+        maxAttempts: Math.max(
+          1,
+          Math.min(d.maxAttempts ?? 1, DETOUR_MAX_ATTEMPTS_CAP)
+        ),
+        on: d.on.name,
+      }))
+    : null;
+
 export const deriveTrailDetail = (
   item: AnyTrail,
   app?: Topo | undefined,
@@ -394,38 +558,46 @@ export const deriveTrailDetail = (
 
   const trailLayerNames = item.layers.map((layer) => layer.name);
   const topoLayerNames = (app?.layers ?? []).map((layer) => layer.name);
+  const graphDetail = deriveResolvedTrailGraphDetail(
+    app,
+    item.id,
+    activation.edges,
+    options.topoGraph
+  );
 
   return {
     activatedBy: activation.activatedBy,
     activates: activation.activates,
     activationChains: activation.chains,
-    activationEdges: activation.edges,
+    activationContext: graphDetail.activationContext,
+    activationEdges: graphDetail.activationEdges,
     activationSources: activation.sources,
+    cli: graphDetail.cli,
     composedLayers: {
       surface: normalizeSurfaceLayerNames(options.surfaceLayerNames),
       topo: topoLayerNames,
       trail: trailLayerNames,
     },
+    contourDetails: graphDetail.contourDetails,
+    contours: graphDetail.contours,
     crosses: item.crosses.toSorted(),
     description: item.description ?? null,
-    detours:
-      item.detours.length > 0
-        ? item.detours.map((d) => ({
-            maxAttempts: Math.max(
-              1,
-              Math.min(d.maxAttempts ?? 1, DETOUR_MAX_ATTEMPTS_CAP)
-            ),
-            on: d.on.name,
-          }))
-        : null,
+    detours: formatTrailDetours(item),
     examples: item.examples ?? [],
+    fieldOverrides: graphDetail.fieldOverrides,
     fires: activation.fires,
+    governance: graphDetail.governance,
     id: item.id,
+    input: graphDetail.input,
     intent: item.intent,
     kind: 'trail',
+    layers: graphDetail.layers,
     on: activation.on,
+    output: graphDetail.output,
     pattern: item.pattern ?? null,
     resources: item.resources.map((resource) => resource.id).toSorted(),
     safety,
+    surfaceProjections: graphDetail.surfaceProjections,
+    surfaces: graphDetail.surfaces,
   };
 };

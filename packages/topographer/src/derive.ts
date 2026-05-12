@@ -4,10 +4,12 @@
 
 import {
   DETOUR_MAX_ATTEMPTS_CAP,
+  activationSourceKey,
   deriveCliPath,
   deriveStructuredSignalExamples,
   deriveStructuredTrailExamples,
   getContourReferences,
+  projectActivationSourceDeclaration,
   validateEstablishedTopo,
   signalDiagnosticDefinitions,
   zodToJsonSchema,
@@ -145,70 +147,10 @@ const SIGNAL_GOVERNANCE_HOOKS = {
   producers: 'trail.fires',
 } as const;
 
-const activationSourceKey = (source: Pick<ActivationSource, 'id' | 'kind'>) =>
-  `${source.kind}:${source.id}`;
-
-const isObjectRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
-
-const isZodSchema = (value: unknown): boolean =>
-  isObjectRecord(value) &&
-  typeof value['safeParse'] === 'function' &&
-  isObjectRecord(value['_zod']);
-
-const activationParseOutputSchema = (
-  source: ActivationSource
-): unknown | undefined => {
-  if (isZodSchema(source.parse)) {
-    return source.parse;
-  }
-  if (isObjectRecord(source.parse) && isZodSchema(source.parse['output'])) {
-    return source.parse['output'];
-  }
-  return undefined;
-};
-
 const projectActivationSource = (
   source: ActivationSource
-): TopoGraphActivationSource => {
-  const record: Record<string, unknown> = {
-    id: source.id,
-    key: activationSourceKey(source),
-    kind: source.kind,
-  };
-
-  if (source.cron !== undefined) {
-    record['cron'] = source.cron;
-  }
-  if (Object.hasOwn(source, 'input')) {
-    if (isZodSchema(source.input)) {
-      record['inputSchema'] = toSortedJsonSchema(source.input);
-    } else {
-      record['input'] = canonicalize(source.input);
-    }
-  }
-  if (source.meta !== undefined) {
-    record['meta'] = canonicalize(source.meta);
-  }
-  if (source.parse !== undefined) {
-    record['hasParse'] = true;
-    const parseOutput = activationParseOutputSchema(source);
-    if (parseOutput !== undefined) {
-      record['parseOutputSchema'] = toSortedJsonSchema(parseOutput);
-    }
-  }
-  if (source.payload !== undefined) {
-    record['hasPayloadSchema'] = true;
-    if (isZodSchema(source.payload)) {
-      record['payloadSchema'] = toSortedJsonSchema(source.payload);
-    }
-  }
-  if (source.timezone !== undefined) {
-    record['timezone'] = source.timezone;
-  }
-
-  return sortKeys(record) as TopoGraphActivationSource;
-};
+): TopoGraphActivationSource =>
+  projectActivationSourceDeclaration(source) as TopoGraphActivationSource;
 
 const projectActivationEdge = (
   trailId: string,

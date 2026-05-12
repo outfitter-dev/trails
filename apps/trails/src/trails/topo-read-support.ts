@@ -18,13 +18,14 @@ import {
   SURFACE_LAYER_NAMES_KEY,
   ValidationError,
 } from '@ontrails/core';
-import { readLockManifest } from '@ontrails/topographer';
+import { deriveTopoGraph, readLockManifest } from '@ontrails/topographer';
 
 import type {
   BriefReport,
   SignalDetailReport,
   SurfaceLayerNames,
   SurveyListReport,
+  TrailDetailReport,
 } from './topo-reports.js';
 import {
   deriveBriefReport,
@@ -33,50 +34,13 @@ import {
   deriveSurveyList,
   deriveTrailDetail,
 } from './topo-reports.js';
-import type {
-  ActivationEdgeReport,
-  ActivationGraphReport,
-  ActivationSourceReport,
-} from './topo-activation.js';
+import type { ActivationGraphReport } from './topo-activation.js';
 import { deriveActivationGraph } from './topo-activation.js';
 import type { TopoSummaryReport, TopoVerifyReport } from './topo-support.js';
 import { deriveRootDir, LOCK_PATH } from './topo-support.js';
 import { deriveCurrentTopoExport } from './topo-store-support.js';
 
-export interface CurrentTrailDetail {
-  readonly activatedBy: readonly string[];
-  readonly activates: readonly string[];
-  readonly activationChains: readonly {
-    readonly consumer: string;
-    readonly producer: string;
-    readonly signal: string;
-  }[];
-  readonly activationEdges: readonly ActivationEdgeReport[];
-  readonly activationSources: readonly ActivationSourceReport[];
-  readonly composedLayers: {
-    readonly topo: readonly string[];
-    readonly trail: readonly string[];
-    readonly surface: {
-      readonly cli: readonly string[];
-      readonly http: readonly string[];
-      readonly mcp: readonly string[];
-    };
-  };
-  readonly crosses: readonly string[];
-  readonly description: string | null;
-  readonly detours:
-    | readonly { readonly on: string; readonly maxAttempts: number }[]
-    | null;
-  readonly examples: readonly unknown[];
-  readonly fires: readonly string[];
-  readonly id: string;
-  readonly intent: 'destroy' | 'read' | 'write';
-  readonly kind: 'trail';
-  readonly on: readonly string[];
-  readonly pattern: string | null;
-  readonly resources: readonly string[];
-  readonly safety: string;
-}
+export type CurrentTrailDetail = TrailDetailReport;
 
 export interface CurrentResourceDetail {
   readonly description: string | null;
@@ -217,12 +181,16 @@ export const buildCurrentTopoMatches = (
   let activationGraph: ActivationGraphReport | undefined;
   const getActivationGraph = (): ActivationGraphReport =>
     (activationGraph ??= deriveActivationGraph(app));
+  let topoGraph: ReturnType<typeof deriveTopoGraph> | undefined;
+  const getTopoGraph = (): ReturnType<typeof deriveTopoGraph> =>
+    (topoGraph ??= deriveTopoGraph(app));
 
   const trail = app.get(id);
   if (trail !== undefined) {
     matches.push({
       detail: deriveTrailDetail(trail, app, getActivationGraph(), {
         surfaceLayerNames: options?.surfaceLayerNames,
+        topoGraph: getTopoGraph(),
       }),
       kind: 'trail',
     });

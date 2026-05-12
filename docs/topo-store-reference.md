@@ -287,6 +287,7 @@ import { createTopoStore } from '@ontrails/topographer';
 
 const store = createTopoStore({ rootDir: '/path/to/workspace' });
 store.trails.list({ intent: 'write' });
+store.trails.get('auth.login');
 store.resources.get('db.main');
 store.entries.get('auth.login', { kind: 'trail' });
 store.contours.list();
@@ -361,7 +362,19 @@ interface TopoStoreRef {
 
 ### `TopoStoreTrailDetailRecord`
 
-Extends trail record with `crosses`, `detours`, `resources`, and `examples` arrays. Detailed examples preserve `expected`, `expectedMatch`, and structured signal assertions when they are JSON-serializable. Detours preserve authored recovery declarations, including the matched error class name and effective attempt count. Neither examples nor detours are exhaustive per-trail error inference; see [ADR-0045](./adr/0045-v1-resolved-graph-error-scope.md).
+Extends trail record with `crosses`, `detours`, `resources`, and `examples`
+arrays. It also carries resolved `TopoGraph` contract facts for blind agents:
+`input`, `output`, `cli`, `surfaces`, `surfaceProjections`, `contours`,
+`contourDetails`, `activationContext`, `activationEdges`, `activationSources`,
+`fieldOverrides`, `layers`, and `governance`. `surfaceProjections` are the
+operational rows from `topo_surfaces`; `surfaces` and the schema-rich contract
+fields come from the saved `TopoGraph`.
+
+Detailed examples preserve `expected`, `expectedMatch`, and structured signal
+assertions when they are JSON-serializable. Detours preserve authored recovery
+declarations, including the matched error class name and effective attempt
+count. Neither examples nor detours are exhaustive per-trail error inference;
+see [ADR-0045](./adr/0045-v1-resolved-graph-error-scope.md).
 
 ### `TopoStoreTopoGraphRecord`
 

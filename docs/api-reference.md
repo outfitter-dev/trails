@@ -227,7 +227,8 @@ pinTopoSnapshot(id, name, options?), unpinTopoSnapshot(nameOrId, options?)
 TopoGraph, TopoGraphEntry, TopoGraphContourReference, LockManifest, DiffResult, DiffEntry, JsonSchema
 WriteOptions, ReadOptions
 ReadOnlyTopoStore, MockTopoStoreSeed, TopoSnapshot, TopoStoreRef
-TopoStoreExportRecord, TopoStoreResourceRecord, TopoStoreTrailRecord, TopoStoreTrailDetailRecord
+TopoStoreActivationContextRecord, TopoStoreExportRecord, TopoStoreResourceRecord
+TopoStoreSurfaceProjectionRecord, TopoStoreTrailRecord, TopoStoreTrailDetailRecord
 CreateTopoSnapshotInput, ListTopoSnapshotsOptions
 ```
 

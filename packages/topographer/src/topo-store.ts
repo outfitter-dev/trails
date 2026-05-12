@@ -180,6 +180,7 @@ const ensureTopoMigratedIfExists = (
 };
 
 export type {
+  TopoStoreActivationContextRecord,
   TopoStoreContourRecord,
   TopoStoreEntryKind,
   TopoStoreExportRecord,
@@ -187,6 +188,7 @@ export type {
   TopoStoreRef,
   TopoStoreSignalDetailRecord,
   TopoStoreSignalRecord,
+  TopoStoreSurfaceProjectionRecord,
   TopoStoreTopoGraphEntryRecord,
   TopoStoreTopoGraphRecord,
   TopoStoreTrailDetailRecord,

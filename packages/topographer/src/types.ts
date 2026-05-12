@@ -51,13 +51,16 @@ export interface TopoGraphActivationSource extends Readonly<
   readonly cron?: string | undefined;
   readonly hasParse?: true | undefined;
   readonly hasPayloadSchema?: true | undefined;
+  readonly hasVerify?: true | undefined;
   readonly id: string;
   readonly input?: unknown;
   readonly inputSchema?: JsonSchema | undefined;
   readonly kind: string;
   readonly key: string;
   readonly meta?: Readonly<Record<string, unknown>> | undefined;
+  readonly method?: string | undefined;
   readonly parseOutputSchema?: JsonSchema | undefined;
+  readonly path?: string | undefined;
   readonly payloadSchema?: JsonSchema | undefined;
   readonly timezone?: string | undefined;
 }

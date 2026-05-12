@@ -11,6 +11,7 @@ import {
   schedule,
   topo,
   trail,
+  webhook,
 } from '@ontrails/core';
 import type { Layer, Topo, TopoIssue } from '@ontrails/core';
 import { z } from 'zod';
@@ -414,17 +415,18 @@ describe('deriveTopoGraph', () => {
     });
 
     test('activation source projection records source payload and parse schemas', () => {
-      const webhookSource = {
-        id: 'webhook.user.upsert',
-        kind: 'webhook' as const,
+      const webhookSource = webhook('webhook.user.upsert', {
+        method: 'post',
         parse: {
           output: z.object({
             email: z.string().optional(),
             userId: z.string(),
           }),
         },
+        path: '/webhooks/users/upsert',
         payload: z.object({ userId: z.string() }),
-      };
+        verify: () => Result.ok(),
+      });
       const receiver = trail('user.webhook.receive', {
         blaze: noop,
         input: z.object({ userId: z.string() }),
@@ -437,19 +439,25 @@ describe('deriveTopoGraph', () => {
       expect(source).toMatchObject({
         hasParse: true,
         hasPayloadSchema: true,
+        hasVerify: true,
         id: 'webhook.user.upsert',
         key: 'webhook:webhook.user.upsert',
         kind: 'webhook',
+        method: 'POST',
         parseOutputSchema: {
           properties: {
+            email: { type: 'string' },
             userId: { type: 'string' },
           },
+          required: ['userId'],
           type: 'object',
         },
+        path: '/webhooks/users/upsert',
         payloadSchema: {
           properties: {
             userId: { type: 'string' },
           },
+          required: ['userId'],
           type: 'object',
         },
       });
