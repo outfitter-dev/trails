@@ -55,19 +55,19 @@ ready and again before final handoff.
 
 | Order | Issue | Branch | PR | Status |
 | --- | --- | --- | --- | --- |
-| 1 | `TRL-655` | `trl-655-add-typed-topo-store-views-over-topograph-saved-state` | TBD | Implemented locally |
-| 2 | `TRL-656` | `trl-656-make-persisted-surface-rows-complete-or-explicitly-partial` | TBD | Implemented locally |
-| 3 | `TRL-657` | `trl-657-add-complete-resolved-contract-detail-view-for-blind-agents` | TBD | Implemented locally |
-| 4 | `TRL-653` | `trl-653-sweep-docs-api-references-and-agent-guidance-for-topograph` | TBD | Implemented locally |
-| 5 | `TRL-702` | `trl-702-add-retired-vocabulary-guard-for-active-topograph-surfaces` | TBD | Implemented locally |
-| 6 | `TRL-692` | `trl-692-clarify-warden-guide-manifest-category-naming-before` | TBD | Implemented locally |
-| 7 | `TRL-690` | `trl-690-polish-warden-guidance-link-rendering-and-schema-reuse` | TBD | Implemented locally |
-| 8 | `TRL-691` | `trl-691-polish-generated-warden-guide-headers-and-generator-tests` | TBD | Implemented locally |
-| 9 | `TRL-693` | `trl-693-tighten-cli-value-alias-conflicts-for-non-commander-callers` | TBD | Implemented locally |
-| 10 | `TRL-694` | `trl-694-suppress-static-resource-accessor-warnings-when-string` | TBD | Implemented locally |
-| 11 | `TRL-634` | `trl-634-audit-cross-surface-parity-coverage-gaps` | TBD | Implemented locally |
-| 12 | `TRL-636` | `trl-636-audit-docs-and-examples-for-v1-readiness` | TBD | Implemented locally |
-| 13 | `TRL-637` | `trl-637-audit-release-process-and-beta-to-10-cutover-requirements` | TBD | Not started |
+| 1 | `TRL-655` | `trl-655-add-typed-topo-store-views-over-topograph-saved-state` | [#488](https://github.com/outfitter-dev/trails/pull/488) | Ready; CI green; review clean |
+| 2 | `TRL-656` | `trl-656-make-persisted-surface-rows-complete-or-explicitly-partial` | [#489](https://github.com/outfitter-dev/trails/pull/489) | Ready; CI green; review clean |
+| 3 | `TRL-657` | `trl-657-add-complete-resolved-contract-detail-view-for-blind-agents` | [#490](https://github.com/outfitter-dev/trails/pull/490) | Ready; CI green; review clean |
+| 4 | `TRL-653` | `trl-653-sweep-docs-api-references-and-agent-guidance-for-topograph` | [#491](https://github.com/outfitter-dev/trails/pull/491) | Ready; CI green; review clean |
+| 5 | `TRL-702` | `trl-702-add-retired-vocabulary-guard-for-active-topograph-surfaces` | [#492](https://github.com/outfitter-dev/trails/pull/492) | Ready; CI green; review clean |
+| 6 | `TRL-692` | `trl-692-clarify-warden-guide-manifest-category-naming-before` | [#493](https://github.com/outfitter-dev/trails/pull/493) | Ready; CI green; review clean after changeset fix |
+| 7 | `TRL-690` | `trl-690-polish-warden-guidance-link-rendering-and-schema-reuse` | [#494](https://github.com/outfitter-dev/trails/pull/494) | Ready; CI green; review neutral/clean |
+| 8 | `TRL-691` | `trl-691-polish-generated-warden-guide-headers-and-generator-tests` | [#495](https://github.com/outfitter-dev/trails/pull/495) | Ready; CI green; review clean |
+| 9 | `TRL-693` | `trl-693-tighten-cli-value-alias-conflicts-for-non-commander-callers` | [#496](https://github.com/outfitter-dev/trails/pull/496) | Ready; CI green; review clean |
+| 10 | `TRL-694` | `trl-694-suppress-static-resource-accessor-warnings-when-string` | [#497](https://github.com/outfitter-dev/trails/pull/497) | Ready; CI green; review neutral/clean |
+| 11 | `TRL-634` | `trl-634-audit-cross-surface-parity-coverage-gaps` | [#498](https://github.com/outfitter-dev/trails/pull/498) | Ready; CI green; review clean |
+| 12 | `TRL-636` | `trl-636-audit-docs-and-examples-for-v1-readiness` | [#499](https://github.com/outfitter-dev/trails/pull/499) | Ready; CI green; review clean after audit wording fix |
+| 13 | `TRL-637` | `trl-637-audit-release-process-and-beta-to-10-cutover-requirements` | [#500](https://github.com/outfitter-dev/trails/pull/500) | Ready; CI green; review clean after runbook fix |
 
 ## Tracker Mutations
 
@@ -89,6 +89,14 @@ issues created or updated during execution.
 | `TRL-709` | Created M5 follow-up for a code-fence-aware relative Markdown link integrity check. | [TRL-709](https://linear.app/outfitter/issue/TRL-709/add-markdown-link-integrity-check-for-docs-and-readmes) |
 | `TRL-710` | Created M5 follow-up for a public API `@example` coverage inventory/gate. | [TRL-710](https://linear.app/outfitter/issue/TRL-710/create-public-api-example-coverage-inventory-and-gate) |
 | `TRL-636` | Moved to `In Review` when PR #499 was marked ready. | [TRL-636](https://linear.app/outfitter/issue/TRL-636/audit-docs-and-examples-for-v1-readiness) |
+| `TRL-637` | Moved to `In Progress` when the release audit branch started. | [TRL-637](https://linear.app/outfitter/issue/TRL-637/audit-release-process-and-beta-to-10-cutover-requirements) |
+| `TRL-711` | Created M6 follow-up to codify the beta-to-1.0 release runbook. | [TRL-711](https://linear.app/outfitter/issue/TRL-711/codify-the-beta-to-10-release-runbook) |
+| `TRL-712` | Created M6 follow-up to author the stable 1.x release doctrine ADR. | [TRL-712](https://linear.app/outfitter/issue/TRL-712/author-stable-release-doctrine-adr-for-the-1x-line) |
+| `TRL-713` | Created M6 follow-up to repair stale Changesets references before stable cutover. | [TRL-713](https://linear.app/outfitter/issue/TRL-713/repair-stale-changesets-references-before-stable-cutover) |
+| `TRL-714` | Created M6 follow-up to add registry availability and dist-tag release preflights. | [TRL-714](https://linear.app/outfitter/issue/TRL-714/add-registry-availability-and-dist-tag-release-preflights) |
+| `TRL-634` | Moved to `In Review` when PR #498 was marked ready. | [TRL-634](https://linear.app/outfitter/issue/TRL-634/audit-cross-surface-parity-coverage-gaps) |
+| `TRL-637` | Moved to `In Review` when PR #500 was marked ready. | [TRL-637](https://linear.app/outfitter/issue/TRL-637/audit-release-process-and-beta-to-10-cutover-requirements) |
+| Stack issues | Confirmed all thirteen stack issues are `In Review` after ready waves; no issue was moved to `Done`. | `TRL-655`, `TRL-656`, `TRL-657`, `TRL-653`, `TRL-702`, `TRL-692`, `TRL-690`, `TRL-691`, `TRL-693`, `TRL-694`, `TRL-634`, `TRL-636`, `TRL-637` |
 
 ## Local Review Reports
 
@@ -97,22 +105,23 @@ Reports should live under
 
 | Round | Lane | Report | Result |
 | --- | --- | --- | --- |
-| 1 | Topographer API | `reports/local-review-topographer-round-1.md` | Pending |
-| 1 | Persistence honesty | `reports/local-review-persistence-round-1.md` | Pending |
-| 1 | Docs/vocab | `reports/local-review-docs-vocab-round-1.md` | Pending |
-| 1 | Warden/CLI polish | `reports/local-review-warden-cli-round-1.md` | Pending |
-| 1 | V1 audit | `reports/local-review-v1-audit-round-1.md` | Pending |
-| 2 | Topographer API | `reports/local-review-topographer-round-2.md` | Pending |
-| 2 | Persistence honesty | `reports/local-review-persistence-round-2.md` | Pending |
-| 2 | Docs/vocab | `reports/local-review-docs-vocab-round-2.md` | Pending |
-| 2 | Warden/CLI polish | `reports/local-review-warden-cli-round-2.md` | Pending |
-| 2 | V1 audit | `reports/local-review-v1-audit-round-2.md` | Pending |
-| 3 | Topographer API | `reports/local-review-topographer-round-3.md` | Pending |
-| 3 | Persistence honesty | `reports/local-review-persistence-round-3.md` | Pending |
-| 3 | Docs/vocab | `reports/local-review-docs-vocab-round-3.md` | Pending |
-| 3 | Warden/CLI polish | `reports/local-review-warden-cli-round-3.md` | Pending |
-| 3 | V1 audit | `reports/local-review-v1-audit-round-3.md` | Pending |
-| Doctrine | Post-execution verification | `reports/post-execution-verification.md` | Pending |
+| 1 | Topographer API | `reports/local-review-topographer-round-1.md` | P2 fixed on `TRL-657`; P3 carried |
+| 1 | Persistence honesty | `reports/local-review-persistence-round-1.md` | P2 fixed on `TRL-656` |
+| 1 | Docs/vocab | `reports/local-review-docs-vocab-round-1.md` | P2 fixed on `TRL-653`/`TRL-702`; P3 carried |
+| 1 | Warden/CLI polish | `reports/local-review-warden-cli-round-1.md` | Clean |
+| 1 | V1 audit | `reports/local-review-v1-audit-round-1.md` | P2 fixed on `TRL-634`; P3 tracked |
+| 2 | Topographer API | `reports/local-review-topographer-round-2.md` | P2 fixed on `TRL-657`; P3 carried |
+| 2 | Persistence honesty | `reports/local-review-persistence-round-2.md` | Clean |
+| 2 | Docs/vocab | `reports/local-review-docs-vocab-round-2.md` | P3-only |
+| 2 | Warden/CLI polish | `reports/local-review-warden-cli-round-2.md` | Clean |
+| 2 | V1 audit | `reports/local-review-v1-audit-round-2.md` | P2 fixed on `TRL-634` |
+| 3 | Topographer API | `reports/local-review-topographer-round-3.md` | P3-only |
+| 3 | Persistence honesty | `reports/local-review-persistence-round-3.md` | Clean |
+| 3 | Docs/vocab | `reports/local-review-docs-vocab-round-3.md` | P2 reported from stale evidence; superseded by round 4 |
+| 3 | Warden/CLI polish | `reports/local-review-warden-cli-round-3.md` | Clean |
+| 3 | V1 audit | `reports/local-review-v1-audit-round-3.md` | Clean |
+| 4 | Docs/vocab | `reports/local-review-docs-vocab-round-4.md` | Clean |
+| Doctrine | Post-execution verification | `reports/post-execution-verification.md` | Clean/P3-only after `TRL-702` fix |
 
 If round 3 still finds any P0/P1/P2 issue, add round 4+ rows and continue.
 
@@ -127,6 +136,10 @@ If round 3 still finds any P0/P1/P2 issue, add round 4+ rows and continue.
 | M5 docs | README TypeScript snippet verification covers only `packages/tracing/README.md` despite 21 consumer-facing package/app/adapter READMEs. | Audit-only branch; checker expansion belongs in follow-up. | [TRL-708](https://linear.app/outfitter/issue/TRL-708/expand-readme-typescript-snippet-verification-beyond-tracing) |
 | M5 docs | Ad hoc relative-link scan found broken docs/ADR links and one false positive from a code fence, proving the need for a proper Markdown-aware checker. | Audit-only branch; checker plus fixes belong in follow-up. | [TRL-709](https://linear.app/outfitter/issue/TRL-709/add-markdown-link-integrity-check-for-docs-and-readmes) |
 | M5 docs | Public API `@example` coverage is sparse and ungated, especially across shipped surface package entrypoints. | Needs M1 public-export inventory before a clean coverage gate. | [TRL-710](https://linear.app/outfitter/issue/TRL-710/create-public-api-example-coverage-inventory-and-gate) |
+| M6 release | Stable cutover lacks a durable runbook with preconditions, command order, post-publish verification, and partial-publish handling. | Audit-only branch; durable release docs belong in follow-up. | [TRL-711](https://linear.app/outfitter/issue/TRL-711/codify-the-beta-to-10-release-runbook) |
+| M6 release | Stable 1.x release doctrine is not captured in an ADR. | Needs a focused doctrine PR instead of being buried in an audit report. | [TRL-712](https://linear.app/outfitter/issue/TRL-712/author-stable-release-doctrine-adr-for-the-1x-line) |
+| M6 release | `bunx changeset status --verbose` fails because `.changeset/logtape-observe-target.md` references retired `@ontrails/logging`. | Audit-only branch; release-state repair belongs in follow-up. | [TRL-713](https://linear.app/outfitter/issue/TRL-713/repair-stale-changesets-references-before-stable-cutover) |
+| M6 release | `bun run publish:check` passes while registry probes show several non-private packages missing or inaccessible at `1.0.0-beta.15`. | Needs a release preflight/gate that complements local packability. | [TRL-714](https://linear.app/outfitter/issue/TRL-714/add-registry-availability-and-dist-tag-release-preflights) |
 
 ## Execution Log
 
@@ -215,22 +228,43 @@ ready waves, and remote review turns here.
   `TRL-709`, and `TRL-710`. The audit found one hard fresh-start blocker
   (`@ontrails/commander` missing from npm) plus README snippet, link-integrity,
   and `@example` coverage gaps.
+- 2026-05-12: Moved `TRL-637` to `In Progress`, created
+  `trl-637-audit-release-process-and-beta-to-10-cutover-requirements`,
+  produced `reports/m6-release-process-audit.md`, and filed follow-ups
+  `TRL-711`, `TRL-712`, `TRL-713`, and `TRL-714`. The audit confirmed the Bun
+  publish script and prerelease dist-tag behavior, then found stable-runbook,
+  stable-doctrine, stale Changesets, and registry preflight gaps.
+- 2026-05-12: Completed three local review rounds from the stack tip. Round 1
+  P2 findings were fixed on owning branches `TRL-656`, `TRL-657`, `TRL-653`,
+  `TRL-702`, and `TRL-634`; round 2 P2 findings were fixed on `TRL-657` and
+  `TRL-634`; round 3 returned clean/P3-only in four lanes, while docs/vocab
+  reported a stale P2 against `TRL-702`.
+- 2026-05-12: Ran a focused round 4 docs/vocab verification from the live stack
+  tip. It confirmed `TRL-702` already uses exact line-scoped
+  `topographArtifactFamilyRetiredMatches` for active cleanup/migration seams
+  and returned clean for P0/P1/P2.
+- 2026-05-12: Ran the distinct post-execution doctrine verification pass. It
+  returned clean for P0/P1/P2, with only P3 internal generator variable naming,
+  compact API-reference polish, optional Linear readback, and absent physical
+  lock artifacts noted as residual context.
 
 ## Verification Log
 
 | Check | Result | Notes |
 | --- | --- | --- |
-| `bun scripts/adr.ts map` | Pending |  |
-| `bun scripts/adr.ts check` | Pending |  |
-| `bun run typecheck` | Pending |  |
-| `bun run test` | Pending |  |
-| `bun run lint` | Pending |  |
-| `bun run lint:ast-grep` | Pending |  |
-| `bun run build` | Pending |  |
-| `bun run format:check` | Pending |  |
-| `bun run check` | Pending |  |
-| `bun run dead-code` | Pending |  |
-| `git diff --check` | Pending |  |
+| `bun scripts/adr.ts map` | Passed | Refreshed ADR maps; no persisted diff remained. |
+| `bun scripts/adr.ts check` | Passed | 0 errors, 0 warnings. |
+| `bun run typecheck` | Passed | 21 successful tasks. |
+| `bun run test` | Passed | 36 successful tasks after the `TRL-657` guide schema fixture repair. |
+| `bun run lint` | Passed | 22 successful tasks. |
+| `bun run lint:ast-grep` | Passed | ast-grep scan completed cleanly. |
+| `bun run build` | Passed | 21 successful tasks. |
+| `bun run format:check` | Passed | Ultracite check clean. |
+| `bun run check` | Passed | Aggregate gate passed; Warden report remained PASS with known warnings. |
+| `bun run dead-code` | Passed | knip completed cleanly. |
+| `bun run warden:agents:sync && bun run warden:skills:sync && bun run warden:agents:check && bun run warden:skills:check` | Passed | Generated Warden guidance stayed synced. |
+| `bun run publish:check` | Passed | All non-private package pack checks passed. |
+| `git diff --check` | Passed | Whitespace check clean. |
 
 Branch `TRL-655` focused checks:
 
@@ -356,25 +390,49 @@ Branch `TRL-636` focused checks:
 - `bun run format:check` - passed.
 - `git diff --check` - passed.
 
+Branch `TRL-637` focused checks:
+
+- `bun run publish:check` - passed for every non-private packable workspace.
+- `bunx changeset status --verbose` - failed because
+  `.changeset/logtape-observe-target.md` references retired
+  `@ontrails/logging`; captured as release-process follow-up `TRL-713`, not a
+  branch implementation failure.
+- Read-only registry probe with `npm view <package> version --json` found
+  missing or inaccessible package versions for `@ontrails/commander`,
+  `@ontrails/observe`, `@ontrails/topographer`, and `@ontrails/wayfinder`;
+  captured as follow-up `TRL-714`.
+- `bun run check` - passed. Warden reported existing warnings only and still
+  returned `PASS`; no P0/P1/P2 branch implementation findings.
+- `bun run format:check` - passed.
+- `git diff --check` - passed.
+
 ## Review Feedback
 
 Record P0/P1/P2 feedback, owning branches, fixes, replies, and unresolved P3s.
 
 | Source | Branch | Severity | Finding | Resolution |
 | --- | --- | --- | --- | --- |
-|  |  |  |  |  |
+| Greptile PR #488 | `TRL-655` | P2 | Topo-store write-intent filtering, signal usage map allocation, and mock `.get` snapshot behavior diverged from the intended query contract. | Fixed in `032b2fd51e46`; replied to and resolved the review thread. |
+| Greptile PR #490 | `TRL-657` | P2 | Resolved trail detail mixed graph-wide activation context with per-trail records and rederived `TopoGraph` unnecessarily. | Fixed in `49ea3979d043`; new focused store/survey coverage passed. |
+| Greptile PR #491 | `TRL-653` | P2 | `decision-map.json` had a misleading ADR-0046 inbound context from `docs/topo-store-reference.md`. | Fixed in `34be13aaf331`; added explicit ADR-0046 link and regenerated the map, then replied/resolved the thread. |
+| Greptile PR #492 | `TRL-702` | P2 | Retired-vocabulary exclusions duplicated historical paths. | Fixed in `8444ff95dff3`; replied to and resolved the review thread. |
+| Greptile PR #493 | `TRL-692` | P2 | Warden guide `category` to `concern` contract rename was represented as a patch bump instead of a minor release bump. | Fixed in `4e85a96b7d7e`; changeset now marks `@ontrails/trails` and `@ontrails/warden` as minor, then replied to the review thread. |
+| Greptile PR #499 | `TRL-636` | P2 | M5 audit severity wording did not match the high-priority TRL-707 blocker, and `RETRO.md` missed the `TRL-636` In Review transition. | Fixed in `8e0afca06247`; replied to and resolved both review threads. |
+| Greptile PR #500 | `TRL-637` | P2 | Release runbook used hardcoded `/usr/bin/git` paths. | Fixed in `b497680720d8`; replied to and resolved the review thread. |
 
 ## Final State
 
-Do not mark complete until:
-
-- all thirteen PRs have been built and submitted;
-- local review is P3-only or clean;
-- post-execution doctrine verification is complete;
-- CI is green before ready;
-- ready waves have completed;
-- P2+ remote feedback is resolved or reported after the allowed review turns;
-- no merge queue label was added;
-- nothing was merged;
-- the final transcript contains branch/PR status, checks run, skipped checks,
-  remaining P3s/risks, and blocker status.
+- All thirteen PRs have been built, submitted, and marked ready in the planned
+  waves.
+- Local review completed with the latest pass clean or P3-only; post-execution
+  doctrine verification is clean/P3-only.
+- Core CI is green on every PR. Graphite `mergeability_check` remains pending
+  on stack descendants because the stack has not been merged.
+- P2+ remote feedback has been fixed and replied to; final review-thread scrape
+  showed no unresolved threads.
+- No merge queue label was added.
+- Nothing was merged.
+- Remaining P3s/risks: compact API docs omit some exported topo-store record
+  types; Warden guide internals still use local `category` variable names while
+  the public contract is `concern`; physical `.trails/trails.lock` and
+  `.trails/topo.lock` were not present in the local workspace snapshot.
