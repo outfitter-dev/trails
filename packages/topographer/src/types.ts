@@ -148,29 +148,32 @@ export interface TopoGraph {
   >;
   readonly generatedAt: string;
   readonly entries: readonly TopoGraphEntry[];
+  readonly workspace?: WorkspaceTopoMetadata | undefined;
 }
 
 // ---------------------------------------------------------------------------
 // Lock Manifest
 // ---------------------------------------------------------------------------
 
-/** Workspace-owned trail entry serialized into a workspace lock. */
-export const workspaceTrailEntrySchema = z.object({
-  appName: z.string(),
-  modulePath: z.string(),
-  trailId: z.string(),
-});
+/** Workspace-owned trail entry serialized into a workspace topo graph. */
+export const workspaceTrailEntrySchema = z
+  .object({
+    appName: z.string(),
+    modulePath: z.string(),
+    trailId: z.string(),
+  })
+  .strict();
 
 export type WorkspaceTrailEntry = z.infer<typeof workspaceTrailEntrySchema>;
 
 /**
- * Workspace-wide trail-id index serialized into a workspace lock.
+ * Workspace-wide trail-id index serialized into a workspace topo graph.
  *
  * Each key is a fully-qualified trail identifier. Each value carries the app
  * that owns it plus the app module path used by consumers that need to load
  * the owning topo without re-walking workspace manifests.
  *
- * @see LockManifest for the lock envelope that may carry this index.
+ * @see TopoGraph for the artifact envelope that may carry this index.
  */
 export const workspaceTrailIndexSchema = z.record(
   z.string(),
@@ -178,6 +181,29 @@ export const workspaceTrailIndexSchema = z.record(
 );
 
 export type WorkspaceTrailIndex = z.infer<typeof workspaceTrailIndexSchema>;
+
+/** A trail id exported by more than one app in a workspace topo graph. */
+export const workspaceTrailCollisionSchema = z
+  .object({
+    apps: z.array(z.string()).min(2),
+    owners: z.array(workspaceTrailEntrySchema).min(2),
+    trailId: z.string(),
+  })
+  .strict();
+
+export type WorkspaceTrailCollision = z.infer<
+  typeof workspaceTrailCollisionSchema
+>;
+
+/** Workspace metadata serialized into a workspace-scope TopoGraph. */
+export const workspaceTopoMetadataSchema = z
+  .object({
+    collisions: z.array(workspaceTrailCollisionSchema).optional(),
+    trails: workspaceTrailIndexSchema,
+  })
+  .strict();
+
+export type WorkspaceTopoMetadata = z.infer<typeof workspaceTopoMetadataSchema>;
 
 export const topoGraphSchema = z
   .object({
@@ -203,6 +229,7 @@ export const topoGraphSchema = z
     ),
     generatedAt: z.string(),
     topoGraphSchemaVersion: z.literal(TOPO_GRAPH_SCHEMA_VERSION),
+    workspace: workspaceTopoMetadataSchema.optional(),
   })
   .strict();
 
@@ -232,7 +259,6 @@ export const lockManifestSchema = z
     scope: z.record(z.string(), z.string()),
     summary: lockManifestSummarySchema,
     version: z.literal(3),
-    workspaceTrails: workspaceTrailIndexSchema.optional(),
   })
   .strict();
 

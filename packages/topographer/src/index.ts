@@ -15,6 +15,8 @@ export {
   isTopoArtifactRegenerationError,
   writeLockManifest,
   readLockManifest,
+  readWorkspaceTopoMetadata,
+  readWorkspaceTrailIndex,
   readWorkspaceLock,
 } from './io.js';
 export {
@@ -22,6 +24,8 @@ export {
   lockManifestSchema,
   lockManifestSummarySchema,
   TOPO_GRAPH_SCHEMA_VERSION,
+  workspaceTopoMetadataSchema,
+  workspaceTrailCollisionSchema,
   workspaceTrailEntrySchema,
   workspaceTrailIndexSchema,
 } from './types.js';
@@ -40,7 +44,6 @@ export type {
   BuildWorkspaceTrailIndexOptions,
   RootManifest,
   WorkspaceTopoLoader,
-  WorkspaceTrailCollision,
   WorkspaceTrailIndexResult,
 } from './workspace-topos.js';
 
@@ -54,6 +57,8 @@ export type {
   LockManifest,
   LockManifestArtifact,
   LockManifestSummary,
+  WorkspaceTopoMetadata,
+  WorkspaceTrailCollision,
   WorkspaceTrailEntry,
   WorkspaceTrailIndex,
   DiffEntry,

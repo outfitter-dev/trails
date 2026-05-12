@@ -9,6 +9,7 @@ import type {
   LockManifest,
   ReadOptions,
   TopoGraph,
+  WorkspaceTopoMetadata,
   WorkspaceTrailIndex,
   WriteOptions,
 } from './types.js';
@@ -163,18 +164,29 @@ export const readLockManifest = async (
 };
 
 /**
- * Read the workspace trail-id index from the current lock manifest.
+ * Read workspace metadata from the current topo graph artifact.
  */
-export const readWorkspaceLock = async (
+export const readWorkspaceTopoMetadata = async (
+  options?: ReadOptions
+): Promise<WorkspaceTopoMetadata | null> => {
+  const topoGraph = await readTopoGraph(options);
+  if (topoGraph === null) {
+    return null;
+  }
+  return topoGraph.workspace ?? null;
+};
+
+/**
+ * Read the workspace trail-id index from the current topo graph artifact.
+ */
+export const readWorkspaceTrailIndex = async (
   options?: ReadOptions
 ): Promise<WorkspaceTrailIndex | null> => {
-  const lock = await readLockManifest(options);
-  if (lock === null) {
-    return null;
-  }
-  const { workspaceTrails } = lock;
-  if (workspaceTrails === undefined) {
-    return null;
-  }
-  return workspaceTrails;
+  const workspace = await readWorkspaceTopoMetadata(options);
+  return workspace?.trails ?? null;
 };
+
+/** @deprecated Use {@link readWorkspaceTrailIndex}. */
+export const readWorkspaceLock = async (
+  options?: ReadOptions
+): Promise<WorkspaceTrailIndex | null> => readWorkspaceTrailIndex(options);

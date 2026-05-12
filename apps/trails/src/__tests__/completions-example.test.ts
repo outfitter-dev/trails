@@ -125,16 +125,27 @@ const writeBrokenWorkspace = (workspaceRoot: string): void => {
   );
 
   writeFixture(
-    join(workspaceRoot, '.trails', 'trails.lock'),
+    join(workspaceRoot, '.trails', 'topo.lock'),
     `${JSON.stringify(
       {
-        hash: 'deadbeef'.repeat(8),
-        version: '2',
-        workspaceTrails: {
-          'demo.alpha': {
-            appName: 'broken-app',
-            modulePath: 'apps/broken-app/src/missing.ts',
-            trailId: 'demo.alpha',
+        activationGraph: {
+          edgeCount: 0,
+          edges: [],
+          sourceCount: 0,
+          sourceKeys: [],
+          trailIds: [],
+        },
+        activationSources: {},
+        entries: [],
+        generatedAt: '2026-05-11T12:00:00.000Z',
+        topoGraphSchemaVersion: 1,
+        workspace: {
+          trails: {
+            'demo.alpha': {
+              appName: 'broken-app',
+              modulePath: 'apps/broken-app/src/missing.ts',
+              trailId: 'demo.alpha',
+            },
           },
         },
       },

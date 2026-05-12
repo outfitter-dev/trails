@@ -9,7 +9,7 @@ import {
   isTopoArtifactRegenerationError,
   writeLockManifest,
   readLockManifest,
-  readWorkspaceLock,
+  readWorkspaceTrailIndex,
 } from '../io.js';
 import { TOPO_GRAPH_SCHEMA_VERSION } from '../types.js';
 import type { LockManifest, TopoGraph } from '../types.js';
@@ -298,18 +298,16 @@ describe('default directory', () => {
 // Workspace trail index
 // ---------------------------------------------------------------------------
 
-describe('readWorkspaceLock', () => {
-  test('returns null for a single-app structured lock without workspace metadata', async () => {
-    const hash = 'cafebabe'.repeat(8);
-    await writeLockManifest(makeLockManifest(hash), { dir: tempDir });
+describe('readWorkspaceTrailIndex', () => {
+  test('returns null for a single-app topo graph without workspace metadata', async () => {
+    await writeTopoGraph(makeTopoGraph(), { dir: tempDir });
 
-    const result = await readWorkspaceLock({ dir: tempDir });
+    const result = await readWorkspaceTrailIndex({ dir: tempDir });
     expect(result).toBeNull();
   });
 
-  test('returns the trail-id index for a multi-app workspace lock', async () => {
-    const hash = 'feedface'.repeat(8);
-    const workspaceTrails = {
+  test('returns the trail-id index from a multi-app workspace topo graph', async () => {
+    const workspaceIndex = {
       'a.trail': {
         appName: 'app-one',
         modulePath: 'apps/one/src/app.ts',
@@ -321,30 +319,29 @@ describe('readWorkspaceLock', () => {
         trailId: 'b.trail',
       },
     } as const;
-    const filePath = await writeLockManifest(
-      makeLockManifest(hash, { workspaceTrails }),
+    const filePath = await writeTopoGraph(
+      { ...makeTopoGraph(), workspace: { trails: workspaceIndex } },
       { dir: tempDir }
     );
 
-    const parsed = await readParsedLock(filePath);
-    expect(parsed.version).toBe(3);
-    expect(parsed.workspaceTrails).toEqual(workspaceTrails);
+    const parsed = JSON.parse(await readFile(filePath, 'utf8')) as TopoGraph;
+    expect(parsed.topoGraphSchemaVersion).toBe(TOPO_GRAPH_SCHEMA_VERSION);
+    expect(parsed.workspace?.trails).toEqual(workspaceIndex);
 
-    const result = await readWorkspaceLock({ dir: tempDir });
-    expect(result).toEqual(workspaceTrails);
+    const result = await readWorkspaceTrailIndex({ dir: tempDir });
+    expect(result).toEqual(workspaceIndex);
   });
 
-  test('rejects the legacy single-line hash file', async () => {
+  test('ignores the legacy trails.lock path when no topo graph exists', async () => {
     const hash = 'aaaaaaaa'.repeat(8);
     await Bun.write(join(tempDir, 'trails.lock'), `${hash}\n`);
 
-    await expect(readWorkspaceLock({ dir: tempDir })).rejects.toThrow(
-      'regenerate with `trails topo compile`'
-    );
+    const result = await readWorkspaceTrailIndex({ dir: tempDir });
+    expect(result).toBeNull();
   });
 
-  test('returns null when the lock file is missing', async () => {
-    const result = await readWorkspaceLock({
+  test('returns null when the topo graph file is missing', async () => {
+    const result = await readWorkspaceTrailIndex({
       dir: join(tempDir, 'nonexistent'),
     });
     expect(result).toBeNull();

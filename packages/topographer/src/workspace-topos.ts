@@ -3,7 +3,7 @@
  *
  * Builds a `{ trailId → appName }` index that lets `trails run <id>` resolve
  * a trail to its owning app without scanning every app's source. The index is
- * either read from a committed workspace lockfile (the cached, fast path) or
+ * either read from a committed `topo.lock` workspace index (the cached, fast path) or
  * discovered by walking the workspace's `workspaces` glob, loading each app's
  * topo, and reading its trail ids.
  *
@@ -15,12 +15,18 @@
  * unaware of workspace topology.
  */
 
+import { existsSync } from 'node:fs';
 import { basename, isAbsolute, join, relative } from 'node:path';
 
 import type { Topo } from '@ontrails/core';
 
-import { readWorkspaceLock } from './io.js';
-import type { WorkspaceTrailEntry, WorkspaceTrailIndex } from './types.js';
+import { readWorkspaceTopoMetadata } from './io.js';
+import type {
+  WorkspaceTopoMetadata,
+  WorkspaceTrailCollision,
+  WorkspaceTrailEntry,
+  WorkspaceTrailIndex,
+} from './types.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -53,29 +59,12 @@ export interface BuildWorkspaceTrailIndexOptions {
    */
   readonly loadTopo?: WorkspaceTopoLoader;
   /**
-   * Lock directory consulted before discovery runs. Defaults to `.trails`
-   * relative to `cwd` — matches {@link readWorkspaceLock}'s default.
+   * Topo artifact directory consulted before discovery runs. Defaults to `.trails`
+   * relative to `cwd` — matches {@link readWorkspaceTopoMetadata}'s default.
    */
+  readonly artifactDir?: string | undefined;
+  /** @deprecated Use `artifactDir`. */
   readonly lockDir?: string;
-}
-
-/**
- * A trail id exported by more than one app in the workspace.
- *
- * @remarks
- * Collisions are facts, not warnings. Callers (e.g. `trails run <id>`) decide
- * whether to prompt the user, error out, or honor an explicit `--app` override
- * — none of which the discovery layer can decide on its own.
- *
- * `owners` carries the same app/module-path entries as non-colliding index
- * values so consumers can resolve an explicit app override without repeating
- * workspace manifest discovery. `apps` is the stable, display-ready projection
- * of those owners and is guaranteed to contain at least two entries.
- */
-export interface WorkspaceTrailCollision {
-  readonly trailId: string;
-  readonly apps: readonly string[];
-  readonly owners: readonly WorkspaceTrailEntry[];
 }
 
 /**
@@ -87,16 +76,16 @@ export interface WorkspaceTrailCollision {
  * and recorded in `collisions` instead — callers must consult `collisions`
  * to resolve ambiguous ids deterministically.
  *
- * `source` distinguishes a cache hit (the lockfile already carried
- * `workspaceTrails`) from discovery (apps were walked and loaded). The
- * lockfile path cannot collide because the lockfile is itself a flat
+ * `source` distinguishes a cache hit (the topo artifact already carried the
+ * workspace trail index) from discovery (apps were walked and loaded). The
+ * topo artifact path cannot collide because the index is itself a flat
  * `{ trailId → appName }` map. `apps` lists the app names actually represented
  * in the index. `warnings` reports load failures and other non-collision
  * issues; collisions live in their own structured field.
  */
 export interface WorkspaceTrailIndexResult {
   readonly index: WorkspaceTrailIndex;
-  readonly source: 'lockfile' | 'discovery';
+  readonly source: 'topo-lock' | 'discovery';
   readonly apps: readonly string[];
   readonly warnings: readonly string[];
   readonly collisions: readonly WorkspaceTrailCollision[];
@@ -357,18 +346,25 @@ const resolveOwners = (
   return { collisions, index };
 };
 
-const buildFromLockfile = (
-  workspaceTrails: WorkspaceTrailIndex
+const buildFromTopoLock = (
+  workspace: WorkspaceTopoMetadata
 ): WorkspaceTrailIndexResult => {
   const apps = new Set<string>();
-  for (const entry of Object.values(workspaceTrails)) {
+  const collisions = Object.freeze([...(workspace.collisions ?? [])]);
+  const workspaceIndex = workspace.trails;
+  for (const entry of Object.values(workspaceIndex)) {
     apps.add(entry.appName);
+  }
+  for (const collision of collisions) {
+    for (const appName of collision.apps) {
+      apps.add(appName);
+    }
   }
   return {
     apps: [...apps].toSorted(),
-    collisions: [],
-    index: Object.freeze({ ...workspaceTrails }),
-    source: 'lockfile',
+    collisions,
+    index: Object.freeze({ ...workspaceIndex }),
+    source: 'topo-lock',
     warnings: [],
   };
 };
@@ -443,14 +439,14 @@ const buildFromDiscovery = async (
 /**
  * Build a workspace-wide trail-id-to-app-name index.
  *
- * Prefers a committed workspace lockfile (`.trails/trails.lock` carrying a
- * `workspaceTrails` entry) when present; otherwise walks the workspace's
+ * Prefers a committed topo artifact (`.trails/topo.lock` carrying a workspace
+ * trail index) when present; otherwise walks the workspace's
  * `workspaces` globs, loads each app's topo, and reads its trail ids.
  *
  * @example
  * ```ts
  * const result = await buildWorkspaceTrailIndex({ cwd: process.cwd() });
- * if (result.source === 'lockfile') {
+ * if (result.source === 'topo-lock') {
  *   // Cached path — no app loading happened.
  * }
  * const owningApp = result.index['my-app.do-thing'];
@@ -459,24 +455,29 @@ const buildFromDiscovery = async (
 export const buildWorkspaceTrailIndex = async (
   options: BuildWorkspaceTrailIndexOptions
 ): Promise<WorkspaceTrailIndexResult> => {
-  const { cwd, loadTopo = defaultLoadTopo, lockDir } = options;
+  const {
+    artifactDir = options.lockDir,
+    cwd,
+    loadTopo = defaultLoadTopo,
+  } = options;
 
-  let resolvedLockDir: string;
-  if (lockDir === undefined) {
-    resolvedLockDir = join(cwd, '.trails');
-  } else if (isAbsolute(lockDir)) {
-    resolvedLockDir = lockDir;
+  let resolvedArtifactDir: string;
+  if (artifactDir === undefined) {
+    resolvedArtifactDir = join(cwd, '.trails');
+  } else if (isAbsolute(artifactDir)) {
+    resolvedArtifactDir = artifactDir;
   } else {
-    resolvedLockDir = join(cwd, lockDir);
+    resolvedArtifactDir = join(cwd, artifactDir);
   }
-  const lockedIndex = await readWorkspaceLock({
-    dir: resolvedLockDir,
+  const workspace = await readWorkspaceTopoMetadata({
+    dir: resolvedArtifactDir,
   });
-  if (lockedIndex !== null) {
-    return buildFromLockfile(lockedIndex);
+  if (workspace !== null) {
+    return buildFromTopoLock(workspace);
   }
 
-  return await buildFromDiscovery(cwd, loadTopo, [
-    `No workspace lockfile found in "${resolvedLockDir}"; falling back to discovery.`,
-  ]);
+  const fallbackWarning = existsSync(join(resolvedArtifactDir, 'topo.lock'))
+    ? `Workspace topo.lock in "${resolvedArtifactDir}" does not include workspace metadata; falling back to discovery.`
+    : `No workspace topo.lock found in "${resolvedArtifactDir}"; falling back to discovery.`;
+  return await buildFromDiscovery(cwd, loadTopo, [fallbackWarning]);
 };

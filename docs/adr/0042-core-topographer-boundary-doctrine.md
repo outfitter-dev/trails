@@ -94,16 +94,16 @@ The architectural decision underneath the boundary is the split between *resolvi
 - **Resolution** — go from authored declarations to a fully validated, deduplicated, identity-stable in-memory graph. Happens every time `topo()` runs. Core.
 - **Persistence** — serialize that resolved graph to a stable, versioned, on-disk format that can be read back, diffed, and pinned. Topographer.
 
-`trails build` and `trails compile` call resolution (core) *and* persistence (Topographer). A surface connector calls only resolution. **The runtime never reads the lockfile to execute trails.** The lockfile is a tooling artifact, not a runtime artifact.
+`trails build` and `trails compile` call resolution (core) *and* persistence (Topographer). A surface connector calls only resolution. **The runtime never reads resolved topo artifacts to execute trails.** The committed artifact family is tooling state, not runtime state.
 
-This is the test that catches every subtle violation. If a feature requires reading the lockfile to dispatch a trail, the boundary has been crossed in the wrong direction.
+This is the test that catches every subtle violation. If a feature requires reading the committed manifest or `topo.lock` to dispatch a trail, the boundary has been crossed in the wrong direction.
 
 ### `trails run` is two different things along the same boundary
 
 The CLI's `run` subcommand splits cleanly along the same axis, and the split is what keeps Topographer off the runtime hot path:
 
 - **`trails run` against an already-loaded app graph** (in-process invocation of a known trail). Core only. No Topographer needed.
-- **`trails run <id>` with workspace-wide resolution** (CLI looks up which app owns this trail ID across the workspace). Topographer territory. This is exactly the workspace lockfile catalog [TRL-403] sketches: the CLI consults a persisted, cross-app artifact to resolve the ID *before* runtime execution begins. Once the right app is identified and loaded, execution is core-only.
+- **`trails run <id>` with workspace-wide resolution** (CLI looks up which app owns this trail ID across the workspace). Topographer territory. The CLI consults `topo.lock` workspace metadata to resolve the ID *before* runtime execution begins. Once the right app is identified and loaded, execution is core-only.
 
 Conflating these makes Topographer look like it's on the runtime path. It isn't. Workspace-wide resolution is a CLI-level lookup that happens against a tooling artifact. After that lookup, the in-process pipeline is the pipeline core has always owned.
 
@@ -223,7 +223,7 @@ This ADR does not:
 - Rename the `topo()` primitive or change what `topo()` returns.
 - Define a new package boundary for the database connection primitive established by [ADR-0014: Core Database Primitive](0014-core-database-primitive.md).
 - Define `Topographer`-side APIs for snapshots, pins, or diffs beyond what already exists in `@ontrails/schema` and the relocated topo-store. Maturation of those APIs is downstream work.
-- Specify the workspace lockfile catalog format from [TRL-403]. This ADR settles which package owns it; the schema evolution is a separate decision.
+- Specify every future workspace metadata field in `topo.lock`. This ADR settles which package owns persisted resolved-topo artifacts; schema evolution remains a separate decision.
 - Decide the public teaching path for build-time surfaces (SDK, OpenAPI, docs). [ADR-0035: Surface APIs Render the Graph](0035-surface-apis-render-the-graph.md) already establishes `surface(graph, { outDir })` as the convenience path; this ADR doesn't change that.
 - Move signposts, wayfinder trails, or warden rules into Topographer. Trails-over-data is a separate architectural layer and stays separate.
 

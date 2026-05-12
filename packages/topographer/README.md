@@ -11,7 +11,10 @@ Most applications reach this package through `trails topo compile` and `trails t
 - stable hashing for CI drift detection
 - semantic diffing between two TopoGraphs
 - file I/O helpers for `.trails/topo.lock` and `.trails/trails.lock`
-- the topo-store: queryable persistence of the resolved topo graph in `trails.db`, including snapshots, pinning, history, and read-only query accessors (relocated from `@ontrails/core` per ADR-0042)
+- the topo-store: queryable persistence of the resolved topo graph in the shared
+  `trails.db` at `.trails/state/trails.db`, including snapshots, pinning,
+  history, and read-only query accessors (relocated from `@ontrails/core` per
+  ADR-0042)
 
 `@ontrails/topographer` is the durable graph substrate for Trails. Generic `trails-db` plumbing (read/write SQLite handles, subsystem schema management, derived paths) stays in `@ontrails/core` so other subsystems (tracing, signals) can share it without depending on topographer.
 
@@ -68,7 +71,7 @@ The typical exported artifact pair is:
 | `readTopoGraph(options?)` | Read `.trails/topo.lock` |
 | `writeLockManifest(manifest, options?)` | Write `.trails/trails.lock` as a v3 manifest |
 | `readLockManifest(options?)` | Read the v3 manifest from `.trails/trails.lock` |
-| `createTopoStore(options?)` | Read-only query interface over the persisted topo state in `trails.db` |
+| `createTopoStore(options?)` | Read-only query interface over the persisted topo state in `.trails/state/trails.db` |
 | `createMockTopoStore(seed?)` | Seeded in-memory mock for tests that need a `ReadOnlyTopoStore` |
 | `topoStore` | Read-only `resource()` wrapper around `createTopoStore`, suitable for `resources: [...]` |
 | `createTopoSnapshot(topo, options?)` | Persist a new topo snapshot row plus its denormalized projections |
@@ -77,7 +80,7 @@ The typical exported artifact pair is:
 
 ### Backend Support Subpath
 
-Direct `trails.db` helper APIs are public, but they are backend-support APIs
+Direct shared database helper APIs are public, but they are backend-support APIs
 rather than root graph contracts. Import them from
 `@ontrails/topographer/backend-support`:
 
