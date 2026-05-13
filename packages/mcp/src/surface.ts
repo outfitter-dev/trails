@@ -162,6 +162,14 @@ const createMcpServer = (
  * @remarks This is a host materialization boundary. Derivation failures are
  * thrown for server bootstrap code after `deriveMcpTools` has already
  * represented the framework error as a Result.
+ *
+ * @example
+ * ```ts
+ * import { connectStdio, createServer } from '@ontrails/mcp';
+ *
+ * const server = createServer(graph, { name: 'demo' });
+ * await connectStdio(server);
+ * ```
  */
 export const createServer = (
   graph: Topo,
@@ -199,6 +207,13 @@ export const createServer = (
  *
  * @remarks Opens the MCP server on stdio. For custom transports, use
  * `createServer(graph)` with `connectStdio` or your own adapter.
+ *
+ * @example
+ * ```ts
+ * import { surface } from '@ontrails/mcp';
+ *
+ * await surface(graph, { name: 'demo' });
+ * ```
  */
 export const surface = async (
   graph: Topo,

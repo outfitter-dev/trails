@@ -331,6 +331,16 @@ const buildInfo = (
  * Iterates all trails, skipping signals and internal trails, and produces
  * paths, operations, parameters, and response schemas derived from
  * the trail contract.
+ *
+ * @example
+ * ```ts
+ * import { deriveOpenApiSpec } from '@ontrails/http';
+ *
+ * const spec = deriveOpenApiSpec(graph, {
+ *   basePath: '/api',
+ *   title: 'Demo API',
+ * });
+ * ```
  */
 export const deriveOpenApiSpec = (
   graph: Topo,

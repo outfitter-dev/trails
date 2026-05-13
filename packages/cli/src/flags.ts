@@ -149,7 +149,20 @@ export const toFlags = (
 ): CliFlag[] =>
   fields.map((field) => toCliFlag(field, overrides?.[field.name]));
 
-/** Derive CLI flags from a Zod input schema. */
+/**
+ * Derive CLI flags from a Zod input schema.
+ *
+ * @example
+ * ```ts
+ * import { deriveFlags } from '@ontrails/cli';
+ * import { z } from 'zod';
+ *
+ * const flags = deriveFlags(
+ *   z.object({ format: z.enum(['summary', 'json']) }),
+ *   { format: { aliases: { json: 'json' } } }
+ * );
+ * ```
+ */
 export const deriveFlags = (
   schema: z.ZodType,
   overrides?: Readonly<Record<string, CliFieldOverride>> | undefined

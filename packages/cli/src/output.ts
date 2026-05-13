@@ -39,6 +39,16 @@ const outputWriters: Record<OutputMode, (value: unknown) => void> = {
   },
 };
 
+/**
+ * Write a value to stdout in a CLI output mode.
+ *
+ * @example
+ * ```ts
+ * import { output } from '@ontrails/cli';
+ *
+ * output({ id: 'entity_1', name: 'Alpha' }, 'json');
+ * ```
+ */
 export const output = (value: unknown, mode: OutputMode): void => {
   const writer = outputWriters[mode];
   writer(value);
@@ -108,6 +118,14 @@ const resolveEnvMode = (topoName: string): OutputMode | undefined => {
  * `<TOPO>` is derived from the topo name per ADR-0023: uppercased, with
  * non-alphanumerics replaced by underscores. A topo named `stash` reads
  * `STASH_JSON` / `STASH_JSONL`.
+ *
+ * @example
+ * ```ts
+ * import { deriveOutputMode } from '@ontrails/cli';
+ *
+ * const { mode } = deriveOutputMode({ json: true }, 'demo');
+ * // mode === 'json'
+ * ```
  */
 export const deriveOutputMode = (
   flags: Record<string, unknown>,

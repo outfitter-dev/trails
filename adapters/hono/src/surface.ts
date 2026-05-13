@@ -628,6 +628,14 @@ const registerErrorHandler = (hono: Hono): void => {
  * @remarks This is a host materialization boundary. Derivation failures are
  * thrown for HTTP bootstrap code after `deriveHttpRoutes` has already
  * represented the framework error as a Result.
+ *
+ * @example
+ * ```ts
+ * import { createApp } from '@ontrails/hono';
+ *
+ * const app = createApp(graph, { basePath: '/api' });
+ * Bun.serve({ fetch: app.fetch, port: 3000 });
+ * ```
  */
 export const createApp = (
   graph: Topo,
@@ -688,6 +696,14 @@ const startServer = (
  *
  * @remarks Always starts a Bun server. Use `createApp(graph)` for an
  * unserved Hono app that you can wire into your own server.
+ *
+ * @example
+ * ```ts
+ * import { surface } from '@ontrails/hono';
+ *
+ * const server = await surface(graph, { port: 3000 });
+ * console.log(server.url);
+ * ```
  */
 export const surface = async (
   graph: Topo,

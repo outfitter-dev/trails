@@ -68,6 +68,14 @@ const deriveCommanderOptions = (
  * @remarks This is a host materialization boundary. Derivation failures are
  * thrown for the caller's CLI bootstrap code after `deriveCliCommands` has
  * already represented the framework error as a Result.
+ *
+ * @example
+ * ```ts
+ * import { createProgram } from '@ontrails/commander';
+ *
+ * const program = createProgram(graph, { name: 'demo' });
+ * program.parse();
+ * ```
  */
 export const createProgram = (
   graph: Topo,
@@ -108,6 +116,13 @@ export const createProgram = (
  * Returns the process exit code without calling `process.exit()`, so callers
  * can run cleanup before terminating. The CLI `surface()` entry point
  * delegates here and lets the process exit naturally.
+ *
+ * @example
+ * ```ts
+ * import { surface } from '@ontrails/commander';
+ *
+ * const { exitCode } = await surface(graph, { name: 'demo' });
+ * ```
  */
 export const surface = async (
   graph: Topo,

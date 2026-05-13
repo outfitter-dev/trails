@@ -10,6 +10,14 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 
 /**
  * Connect an MCP server to stdio transport.
+ *
+ * @example
+ * ```ts
+ * import { connectStdio, createServer } from '@ontrails/mcp';
+ *
+ * const server = createServer(graph);
+ * await connectStdio(server);
+ * ```
  */
 export const connectStdio = async (server: Server): Promise<void> => {
   const transport = new StdioServerTransport();

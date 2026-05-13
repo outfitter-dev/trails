@@ -46,7 +46,7 @@ before handoff or merge readiness.
 | 5 | `TRL-711` | `trl-711-codify-the-beta-to-10-release-runbook` | TBD | Focused checks passed |
 | 6 | `TRL-709` | `trl-709-add-markdown-link-integrity-check-for-docs-and-readmes` | TBD | Focused checks passed |
 | 7 | `TRL-708` | `trl-708-expand-readme-typescript-snippet-verification-beyond-tracing` | TBD | Focused checks passed |
-| 8 | `TRL-710` | `trl-710-create-public-api-example-coverage-inventory-and-gate` | TBD | Not started |
+| 8 | `TRL-710` | `trl-710-create-public-api-example-coverage-inventory-and-gate` | TBD | Focused checks passed |
 | 9 | `TRL-704` | `trl-704-add-http-surface-harness-and-include-it-in` | TBD | Not started |
 | 10 | `TRL-706` | `trl-706-expose-complete-shipped-surface-projection-inventory-for` | TBD | Not started |
 | 11 | `TRL-705` | `trl-705-add-example-driven-climcphttp-parity-runner-and-ci-gate` | TBD | Not started |
@@ -71,6 +71,7 @@ issues created or updated during execution.
 | `TRL-711` | Changed status to `In Progress`. | Branch execution started. |
 | `TRL-709` | Changed status to `In Progress`. | Branch execution started. |
 | `TRL-708` | Changed status to `In Progress`. | Branch execution started. |
+| `TRL-710` | Changed status to `In Progress`. | Branch execution started. |
 
 ## Local Review Reports
 
@@ -104,7 +105,7 @@ discovery is real and outside this goal.
 
 | Issue | Discovery | Why Out Of Goal | Link |
 | --- | --- | --- | --- |
-| TBD | TBD | TBD | TBD |
+| `TRL-710` residual inventory-only examples | `bun run docs:api-examples` now prints remaining public exports without `@example` coverage outside the v1-minimum set, including CLI presets/prompt helpers, HTTP `httpMethodByIntent`, MCP metadata constants, and MCP annotation/progress helpers. | The branch gates the v1-minimum surface package entrypoints and records the broader inventory for later docs hardening. | Tracked in `scripts/check-public-api-examples.ts` output. |
 
 ## Execution Log
 
@@ -213,6 +214,15 @@ ready waves, and remote review turns here.
   `secret()` example without importing it. Both README examples were corrected,
   and a branch-local changeset was added for `@ontrails/core` and
   `@ontrails/config`.
+- 2026-05-13T16:45Z: Started `TRL-710` on
+  `trl-710-create-public-api-example-coverage-inventory-and-gate` and added
+  `scripts/check-public-api-examples.ts`, which inventories value exports from
+  the CLI, HTTP, MCP, Commander, and Hono public barrels, resolves their source
+  declarations, and requires local `@example` coverage for the configured
+  v1-minimum export set. Added minimum examples for 20 shipped surface
+  entrypoints and wired `bun run docs:api-examples` into `bun run check`.
+  Remaining non-minimum missing examples are reported in the script output and
+  recorded as residual inventory in this retro.
 
 ## Verification Log
 
@@ -264,6 +274,12 @@ Record focused branch checks and full tip gate results here.
 | `trl-708-expand-readme-typescript-snippet-verification-beyond-tracing` | `bun run check` | Passed; includes lint, ast-grep, vocab audit, format, typecheck, docs link/snippet checks, scaffold checks, Warden, and dead-code gate. |
 | `trl-708-expand-readme-typescript-snippet-verification-beyond-tracing` | `bun run changeset:check` | Passed; branch includes `.changeset/curvy-readmes-verify.md` for the core/config README fixes. |
 | `trl-708-expand-readme-typescript-snippet-verification-beyond-tracing` | `git diff --check` | Passed. |
+| `trl-710-create-public-api-example-coverage-inventory-and-gate` | `bun run docs:api-examples` | Passed; v1-minimum `@example` coverage is present for 20 public surface exports, and inventory-only gaps are printed without failing the branch. |
+| `trl-710-create-public-api-example-coverage-inventory-and-gate` | `bun test scripts` | Passed, 46 tests and 84 assertions. |
+| `trl-710-create-public-api-example-coverage-inventory-and-gate` | `bun run format:check` | Passed. |
+| `trl-710-create-public-api-example-coverage-inventory-and-gate` | `bun run typecheck` | Passed. |
+| `trl-710-create-public-api-example-coverage-inventory-and-gate` | `bun run check` | Passed; includes the new `docs:api-examples` check alongside lint, ast-grep, vocab audit, format, typecheck, docs link/snippet checks, scaffold checks, Warden, and dead-code gate. |
+| `trl-710-create-public-api-example-coverage-inventory-and-gate` | `git diff --check` | Passed. |
 
 ## Review Feedback
 

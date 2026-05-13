@@ -1279,6 +1279,18 @@ const accumulateRoutes = (
  *
  * Returns `Result.err(ValidationError)` if two trails derive the same
  * (method, path) pair. Returns `Result.ok(routes)` on success.
+ *
+ * @example
+ * ```ts
+ * import { deriveHttpRoutes } from '@ontrails/http';
+ *
+ * const routes = deriveHttpRoutes(graph, { basePath: '/api' });
+ * if (routes.isErr()) throw routes.error;
+ *
+ * for (const route of routes.value) {
+ *   console.log(`${route.method} ${route.path}`);
+ * }
+ * ```
  */
 export const deriveHttpRoutes = (
   graph: Topo,

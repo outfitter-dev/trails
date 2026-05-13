@@ -950,6 +950,21 @@ const registerTools = (
   return Result.ok(tools);
 };
 
+/**
+ * Build MCP tool definitions from a topo without opening a transport.
+ *
+ * @example
+ * ```ts
+ * import { deriveMcpTools } from '@ontrails/mcp';
+ *
+ * const tools = deriveMcpTools(graph, { include: ['entity.**'] });
+ * if (tools.isErr()) throw tools.error;
+ *
+ * for (const tool of tools.value) {
+ *   console.log(tool.name);
+ * }
+ * ```
+ */
 export const deriveMcpTools = (
   graph: Topo,
   options: DeriveMcpToolsOptions = {}

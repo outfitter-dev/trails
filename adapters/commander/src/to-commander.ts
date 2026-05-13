@@ -438,6 +438,20 @@ const applyCliCommand = (
   state.executable = true;
 };
 
+/**
+ * Convert framework-agnostic CLI commands into a Commander program.
+ *
+ * @example
+ * ```ts
+ * import { deriveCliCommands } from '@ontrails/cli';
+ * import { toCommander } from '@ontrails/commander';
+ *
+ * const commands = deriveCliCommands(graph);
+ * if (commands.isErr()) throw commands.error;
+ *
+ * const program = toCommander(commands.value, { name: 'demo' });
+ * ```
+ */
 export const toCommander = (
   commands: CliCommand[],
   options?: ToCommanderOptions

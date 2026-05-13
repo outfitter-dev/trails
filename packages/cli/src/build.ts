@@ -1193,6 +1193,21 @@ const collectCommands = (
     intent: options?.intent,
   }).map((trail) => toCliCommand(graph, trail, options));
 
+/**
+ * Build an array of framework-agnostic CLI commands from a graph.
+ *
+ * @example
+ * ```ts
+ * import { deriveCliCommands } from '@ontrails/cli';
+ *
+ * const commands = deriveCliCommands(graph, { include: ['entity.**'] });
+ * if (commands.isErr()) throw commands.error;
+ *
+ * for (const command of commands.value) {
+ *   console.log(command.path.join(' '));
+ * }
+ * ```
+ */
 export const deriveCliCommands = (
   graph: Topo,
   options?: DeriveCliCommandsOptions
