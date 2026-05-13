@@ -18,7 +18,7 @@ ADRs document the significant design decisions behind Trails — the choices tha
 | [0009](0009-first-class-resources.md) | First-Class Resources | Accepted |
 | [0010](0010-native-infrastructure.md) | Trails-Native Infrastructure Pattern | Accepted |
 | [0011](0011-schema-driven-config.md) | Schema-Driven Config | Accepted |
-| [0012](0012-connector-agnostic-permits.md) | Connector-Agnostic Permits | Accepted |
+| [0012](0012-connector-agnostic-permits.md) | Adapter-Agnostic Permits | Accepted |
 | [0013](0013-tracing.md) | Tracing — Runtime Recording Primitive | Partially-superseded |
 | [0014](0014-core-database-primitive.md) | Core Database Primitive | Accepted |
 | [0015](0015-topo-store.md) | Topo Store | Accepted |
@@ -35,7 +35,7 @@ ADRs document the significant design decisions behind Trails — the choices tha
 | [0026](0026-error-taxonomy-as-transport-independent-behavior-contract.md) | Error Taxonomy as Transport-Independent Behavior Contract | Accepted |
 | [0027](0027-visibility-and-filtering.md) | Trail Visibility and Surface Filtering | Accepted |
 | [0028](0028-concurrent-crossing.md) | Concurrent Trail Crossing | Accepted |
-| [0029](0029-connector-extraction-and-the-with-packaging-model.md) | Connector Extraction and Composition Around Core Contracts | Accepted |
+| [0029](0029-connector-extraction-and-the-with-packaging-model.md) | Adapter Extraction and Composition Around Core Contracts | Accepted |
 | [0030](0030-contours-as-first-class-domain-objects.md) | Contours as First-Class Domain Objects | Accepted |
 | [0031](0031-backend-agnostic-store-schemas.md) | Backend-Agnostic Store Schemas | Accepted |
 | [0032](0032-derivetrail-and-trail-factories.md) | deriveTrail() and Trail Factories | Accepted |
@@ -53,3 +53,4 @@ ADRs document the significant design decisions behind Trails — the choices tha
 | [0044](0044-trail-versioning.md) | Trail Versioning | Accepted |
 | [0045](0045-v1-resolved-graph-error-scope.md) | v1 Resolved Graph Error Scope | Accepted |
 | [0046](0046-lock-v3-artifact-family.md) | Lock v3 Artifact Family | Accepted |
+| [0047](0047-stable-release-line-discipline.md) | Stable Release Line Discipline | Accepted |

@@ -1796,6 +1796,11 @@
           "fromPath": "docs/adr/0035-surface-apis-render-the-graph.md"
         },
         {
+          "context": "- [ADR-0029: Adapter Extraction and Composition Around Core Contracts](0029-connector-extraction-and-the-with-packaging-model.md)",
+          "from": "0047",
+          "fromPath": "docs/adr/0047-stable-release-line-discipline.md"
+        },
+        {
           "context": "- [ADR-0029: Connector Extraction and the `with-*` Packaging Model](../0029-connector-extraction-and-the-with-packaging-model.md) -- the packaging model for connector-contributed capabilities that rig",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-external-trailheads-as-trails.md"
@@ -2032,6 +2037,11 @@
           "context": "- [ADR-0035: Surface APIs Render the Graph](0035-surface-apis-render-the-graph.md)",
           "from": "0044",
           "fromPath": "docs/adr/0044-trail-versioning.md"
+        },
+        {
+          "context": "- [ADR-0035: Surface APIs Render the Graph](0035-surface-apis-render-the-graph.md)",
+          "from": "0047",
+          "fromPath": "docs/adr/0047-stable-release-line-discipline.md"
         }
       ],
       "number": "0035",
@@ -2076,6 +2086,11 @@
       "created": "2026-04-30",
       "depends_on": ["0", "7", "26", "35", "36"],
       "inbound": [
+        {
+          "context": "- [ADR-0037: Owner-First Authority](0037-owner-first-authority.md) — release",
+          "from": "0047",
+          "fromPath": "docs/adr/0047-stable-release-line-discipline.md"
+        },
         {
           "context": "and [ADR-0037](./adr/0037-owner-first-authority.md).",
           "from": "rule-design",
@@ -2298,7 +2313,13 @@
     {
       "created": "2026-04-09",
       "depends_on": ["3", "6", "8", "13", "17", "24", "26", "35"],
-      "inbound": [],
+      "inbound": [
+        {
+          "context": "- [ADR-0044: Trail Versioning](0044-trail-versioning.md) — trail contract",
+          "from": "0047",
+          "fromPath": "docs/adr/0047-stable-release-line-discipline.md"
+        }
+      ],
       "number": "0044",
       "owners": ["[galligan](https://github.com/galligan)"],
       "path": "docs/adr/0044-trail-versioning.md",
@@ -2357,6 +2378,11 @@
           "fromPath": "docs/adr/0045-v1-resolved-graph-error-scope.md"
         },
         {
+          "context": "- [ADR-0046: Lock v3 Artifact Family](0046-lock-v3-artifact-family.md) — stable",
+          "from": "0047",
+          "fromPath": "docs/adr/0047-stable-release-line-discipline.md"
+        },
+        {
           "context": "[ADR-0046](adr/0046-lock-v3-artifact-family.md).",
           "from": "lexicon",
           "fromPath": "docs/lexicon.md"
@@ -2375,6 +2401,19 @@
       "superseded_by": null,
       "title": "Lock v3 Artifact Family",
       "updated": "2026-05-11"
+    },
+    {
+      "created": "2026-05-13",
+      "depends_on": ["29", "35", "37", "44", "46"],
+      "inbound": [],
+      "number": "0047",
+      "owners": ["[galligan](https://github.com/galligan)"],
+      "path": "docs/adr/0047-stable-release-line-discipline.md",
+      "slug": "stable-release-line-discipline",
+      "status": "accepted",
+      "superseded_by": null,
+      "title": "Stable Release Line Discipline",
+      "updated": "2026-05-13"
     }
   ],
   "version": 1

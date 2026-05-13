@@ -42,7 +42,7 @@ before handoff or merge readiness.
 | 1 | `TRL-713` | `trl-713-repair-stale-changesets-references-before-stable-cutover` | TBD | Focused checks passed |
 | 2 | `TRL-714` | `trl-714-add-registry-availability-and-dist-tag-release-preflights` | TBD | Focused checks passed |
 | 3 | `TRL-707` | `trl-707-fix-fresh-start-install-blocker-for-generated-cli-projects` | TBD | Fresh-start gate passed after beta.16 unblock |
-| 4 | `TRL-712` | `trl-712-author-stable-release-doctrine-adr-for-the-1x-line` | TBD | Not started |
+| 4 | `TRL-712` | `trl-712-author-stable-release-doctrine-adr-for-the-1x-line` | TBD | Focused checks passed |
 | 5 | `TRL-711` | `trl-711-codify-the-beta-to-10-release-runbook` | TBD | Not started |
 | 6 | `TRL-709` | `trl-709-add-markdown-link-integrity-check-for-docs-and-readmes` | TBD | Not started |
 | 7 | `TRL-708` | `trl-708-expand-readme-typescript-snippet-verification-beyond-tracing` | TBD | Not started |
@@ -67,6 +67,7 @@ issues created or updated during execution.
 | `TRL-707` | Added Linear blocker comment. | Comment `58a5e8c5-74b9-4378-963b-c404368b9696` records the npm 404 evidence and smallest publish action. |
 | `TRL-707` | Rechecked after packages were published. | Registry presence gate now passes, but fresh-start typecheck fails because published `@ontrails/commander@1.0.0-beta.15` imports public symbols absent from the published `@ontrails/core` and `@ontrails/cli` artifacts at the same version. Added Linear comment `f2c45844-1fe4-45e1-ba1b-eb2fd7d223ea`. |
 | `TRL-707` | Rechecked after PR #501 beta.16 unblock. | Fresh-start gate passed from clean Bun cache: generated app requested `@ontrails/*@^1.0.0-beta.16`, install selected `@ontrails/cli`, `@ontrails/commander`, `@ontrails/core`, `@ontrails/hono`, `@ontrails/http`, `@ontrails/mcp`, `@ontrails/testing`, and `@ontrails/warden` at `1.0.0-beta.16`, then `bun run typecheck` and `bun test` passed. Added Linear comment `b0c10985-12d8-4a24-adc6-7d2c9140833a`. |
+| `TRL-712` | Changed status to `In Progress`. | Branch execution started. |
 
 ## Local Review Reports
 
@@ -169,6 +170,14 @@ ready waves, and remote review turns here.
   The beta.16 fresh-start smoke then passed from
   `/tmp/trails-docs-smoke-beta16.DtBa2o/docs-smoke` with clean Bun cache
   `/tmp/bun-cache-beta16.cuxqcC`.
+- 2026-05-13T16:14Z: Started `TRL-712` on
+  `trl-712-author-stable-release-doctrine-adr-for-the-1x-line` and added
+  accepted ADR-0047, "Stable Release Line Discipline." The ADR keeps public
+  `@ontrails/*` packages lockstep for the 1.x line, separates package semver
+  from trail versioning, sets stable/prerelease dist-tag posture, makes
+  generated-app installability a release gate, keeps Changesets as
+  version/changelog authority and Bun as publish authority, and documents
+  explicit partial-publish recovery and release PR evidence expectations.
 
 ## Verification Log
 
@@ -198,6 +207,10 @@ Record focused branch checks and full tip gate results here.
 | `trl-707-fix-fresh-start-install-blocker-for-generated-cli-projects` | `BUN_INSTALL_CACHE_DIR=/tmp/bun-cache-beta16.cuxqcC bun install` | Passed from a clean Bun cache; install selected `@ontrails/cli@1.0.0-beta.16`, `@ontrails/commander@1.0.0-beta.16`, `@ontrails/core@1.0.0-beta.16`, `@ontrails/hono@1.0.0-beta.16`, `@ontrails/http@1.0.0-beta.16`, `@ontrails/mcp@1.0.0-beta.16`, `@ontrails/testing@1.0.0-beta.16`, and `@ontrails/warden@1.0.0-beta.16`. The lock also resolved transitive `@ontrails/observe`, `@ontrails/permits`, `@ontrails/store`, and `@ontrails/topographer` at `1.0.0-beta.16`. |
 | `trl-707-fix-fresh-start-install-blocker-for-generated-cli-projects` | `bun run typecheck` | Passed in the generated app. |
 | `trl-707-fix-fresh-start-install-blocker-for-generated-cli-projects` | `bun test` | Passed in the generated app: 7 tests, 11 assertions. |
+| `trl-712-author-stable-release-doctrine-adr-for-the-1x-line` | `bun scripts/adr.ts map` | Passed; regenerated `docs/adr/decision-map.json` and draft ADR indexes. |
+| `trl-712-author-stable-release-doctrine-adr-for-the-1x-line` | `bun scripts/adr.ts check` | Passed; 0 errors, 0 warnings. |
+| `trl-712-author-stable-release-doctrine-adr-for-the-1x-line` | `bun run format:check` | Passed. |
+| `trl-712-author-stable-release-doctrine-adr-for-the-1x-line` | `git diff --check` | Passed. |
 
 ## Review Feedback
 

@@ -2,6 +2,14 @@ import { writeFileSync } from 'node:fs';
 import { INDEX_PATH } from './paths.ts';
 import { listNumberedAdrs, parseAdrNumber, padNumber } from './discovery.ts';
 
+const formatStatus = (status: string, amended: unknown): string => {
+  const capitalStatus = status.charAt(0).toUpperCase() + status.slice(1);
+  if (typeof amended !== 'string' || amended.length === 0) {
+    return capitalStatus;
+  }
+  return `${capitalStatus} (amended ${amended})`;
+};
+
 export const rebuildIndex = (): void => {
   const adrs = listNumberedAdrs();
   const rows = adrs.map((adr) => {
@@ -9,8 +17,8 @@ export const rebuildIndex = (): void => {
     const displayNum = num === null ? '????' : padNumber(num);
     const title = adr.title.replace(/^ADR-\d+:\s*/, '');
     const status = String(adr.frontmatter.status ?? 'unknown');
-    const capitalStatus = status.charAt(0).toUpperCase() + status.slice(1);
-    return `| [${displayNum}](${adr.filename}) | ${title} | ${capitalStatus} |`;
+    const displayStatus = formatStatus(status, adr.frontmatter.amended);
+    return `| [${displayNum}](${adr.filename}) | ${title} | ${displayStatus} |`;
   });
 
   const content = `# Architecture Decision Records
