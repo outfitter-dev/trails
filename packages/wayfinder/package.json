@@ -1,6 +1,6 @@
 {
   "name": "@ontrails/wayfinder",
-  "version": "1.0.0-beta.15",
+  "version": "1.0.0-beta.16",
   "description": "Agent-shaped wayfinding trails over @ontrails/topographer artifacts. v0 trails defined in the wayfinding draft ADR; package shell only — no trails ship yet.",
   "files": [
     "src/**/*.ts",

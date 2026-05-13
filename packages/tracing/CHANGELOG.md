@@ -1,5 +1,67 @@
 # @ontrails/tracing
 
+## 1.0.0-beta.16
+
+### Major Changes
+
+- 578e674: BREAKING: rename the OpenTelemetry tracing connector API to adapter vocabulary.
+
+  - `createOtelConnector` -> `createOtelAdapter`
+  - `OtelConnectorOptions` -> `OtelAdapterOptions`
+
+  The `@ontrails/tracing/otel` subpath is unchanged. The internal OTel source path
+  moves from `src/connectors/otel.ts` to `src/adapters/otel.ts`.
+
+- 10eae9a: Migrate the Trails workspace to the documented `.trails/` layout: committed `.lock` files at the workspace root, ignored `cache/` for rebuildable derived data, ignored `state/` for mutable runtime state, and `.trails/config.local.{ts,js}` for local overrides. The default SQLite path is now `.trails/state/trails.db`. Workspace bootstrap creates only `cache/` and `state/` — the legacy `dev/` and `generated/` subdirectories are no longer created. Dev reset cleans both the new `.trails/state/` paths and legacy `.trails/trails.db*` and `.trails/dev/tracing.db*` paths for one cycle. Scaffold and workspace gitignores reflect the new layout.
+
+  Workspace bootstrap is now owned by a single canonical source in `@ontrails/core`. The package exposes `ensureTrailsWorkspace()`, `WORKSPACE_GITIGNORE_CONTENT`, and `WORKSPACE_GITIGNORE_LINES`. `@ontrails/config` no longer exports its own `ensureWorkspace` (consumers should import from `@ontrails/core`). `trails create` now writes `.trails/.gitignore` during scaffolding so a fresh-scaffolded project's initial commit includes the workspace gitignore (resolves TRL-703).
+
+### Minor Changes
+
+- 4b8d13b: **BREAKING:** Complete the tracing wire-format cutover from `trailhead` to `surface`.
+
+  - OTel attributes now use `trails.surface` instead of `trails.trailhead`.
+  - The SQLite dev-store schema now writes the `surface` column instead of `trailhead`.
+  - `tracing.query` records now expose `surface` instead of `trailhead`.
+  - The legacy `.trails/dev/tracing.db` migration bridge has been removed; reset local dev stores before upgrading.
+
+  See `docs/migration/trailhead-to-surface.md` for the full migration map.
+
+- 22c6c06: Accept ADR-0041 Unified Observability and ship the first activation and
+  observability primitives it depends on: activation trace records, topo-level
+  observe configuration, webhook activation materialization, signal/webhook
+  warden coaching, the `@ontrails/observe` package, sink composition, and
+  zero-dependency observe sinks.
+
+### Patch Changes
+
+- e898cc4: Add repo-level Knip dead-code detection and remove stale internal exports and unused package dependencies surfaced by the new check.
+- a8997ed: Add migration guidance for the retired `@ontrails/logging` package and align observability README examples around `@ontrails/observe`, `@ontrails/tracing`, and `@ontrails/logtape`.
+- fe03945: Document the v1 observability package boundary: `@ontrails/observe` is the production sink contract package, while `@ontrails/tracing` remains the compatibility and developer-state package with the supported `@ontrails/tracing/otel` adapter subpath.
+- d40430d: Remove the retired `@ontrails/logging` workspace from the prerelease package set. Use `@ontrails/observe` for log and trace sink contracts and `@ontrails/logtape` for LogTape forwarding.
+- Updated dependencies [73622ae]
+- Updated dependencies [6300f70]
+- Updated dependencies [d172013]
+- Updated dependencies [c3fc5c3]
+- Updated dependencies [20d7a5c]
+- Updated dependencies [be5fb46]
+- Updated dependencies [e898cc4]
+- Updated dependencies [3395234]
+- Updated dependencies [bcdc484]
+- Updated dependencies [331e3a9]
+- Updated dependencies [4399fdb]
+- Updated dependencies [4b8d13b]
+- Updated dependencies [112b9f2]
+- Updated dependencies [893025e]
+- Updated dependencies [eec5e9d]
+- Updated dependencies [ebd4434]
+- Updated dependencies [863d473]
+- Updated dependencies [344f2f7]
+- Updated dependencies [26f9ffd]
+- Updated dependencies [10eae9a]
+- Updated dependencies [22c6c06]
+  - @ontrails/core@1.0.0-beta.16
+
 ## 1.0.0-beta.15
 
 ### Minor Changes

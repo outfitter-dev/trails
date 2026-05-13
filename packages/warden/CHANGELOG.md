@@ -1,5 +1,136 @@
 # @ontrails/warden
 
+## 1.0.0-beta.16
+
+### Minor Changes
+
+- e991a5b: Add generic enum value aliases for CLI flags and migrate Warden command aliases onto the shared alias model.
+- 2e05e27: Add `--dev-permit` for local-development synthetic full-access. New `devPermitPreset()` exposes a boolean flag; when set, the CLI synthesizes a `BasePermit` (`id: 'dev-permit'`, scopes enumerated from every declared scope across the topo) and overlays it on `ctx.permit`. Mutually exclusive with `--permit` and `--token` — any combination fails with `ValidationError` listing the conflicting flags. New Warden rule `no-dev-permit-in-source` flags any committed source file containing `--dev-permit` as an error, with a tight allow-list (`packages/cli/src/flags.ts`, `packages/cli/src/build.ts`, the rule itself). The Warden runner still scans test TypeScript files for this literal while keeping unrelated source rules filtered out of tests. Apps that import `authResource`/`authLayer` are unaffected.
+- ad553a6: Add one warden rule coaching against the removed legacy layer API. `no-legacy-layer-imports` (error) flags any source-string reference to `authLayer`, `autoIterateLayer`, or `dateShortcutsLayer` and points the developer at the migration paths (CLI surface derivation for pagination/date-shortcuts; intrinsic permit enforcement for auth). Allow-list covers the migration notes in `packages/cli/src/{pagination,date-shortcuts}.ts` and the rule's own files. The rule is classified `lifecycle: temporary` with a `retireWhen` string tying it to the legacy layer migration window. Trail count bumps 45 → 46.
+- 802fdfc: Rename Warden guide manifest rule grouping from `category` to `concern` so the
+  public JSON contract matches the source metadata field.
+- 22c6c06: Accept ADR-0041 Unified Observability and ship the first activation and
+  observability primitives it depends on: activation trace records, topo-level
+  observe configuration, webhook activation materialization, signal/webhook
+  warden coaching, the `@ontrails/observe` package, sink composition, and
+  zero-dependency observe sinks.
+- 767eb41: Ship the default `warden` bin from `@ontrails/warden` and migrate the old private `apps/ci` runner into the package-local CLI surface.
+
+  The new bin supports `--ci`, `--pre-push`, `--depth`, `--fail-on`, `--strict`, `--format`, `--lock`, `--drafts`, `--apps`, and the Sprint 1 standalone aliases. CI output now uses the package Warden formatters directly, so GitHub annotations and JSON payloads follow the `@ontrails/warden` report shape instead of the retired `apps/ci` wrapper shape.
+
+- 82019a7: Export `wardenConfigSchema` for composing Warden options into `trails.config.ts`.
+- f6fdc62: Add structured Warden remediation guidance to rule metadata, diagnostics, report output, and the `trails warden` result schema.
+- a10ffa4: Add a Warden guide manifest projection and expose it through `trails warden guide` in markdown, agent-json, and manifest formats.
+- 7085f01: Add a Warden topo-aware rule that requires public MCP/HTTP surface-eligible trails to declare output schemas.
+- 8ddf5ff: Extend `runWarden` into the shared Warden orchestration entrypoint with effective config resolution, depth/fail thresholds, rule facets, and multi-topo report metadata.
+
+  Adapt the built-in `trails warden` wrapper to consume the readonly Warden report diagnostics contract without weakening its output schema.
+
+- f5b6112: Add an advisory Warden rule that prefers static resource helpers over dynamic context resource lookups when the resource definition is already in scope.
+
+### Patch Changes
+
+- c3fc5c3: Move previously root-exported helper contracts out of `src/internal/*` to stable core module homes, document their public boundary, and guard the public barrel against future internal re-exports.
+- e898cc4: Add repo-level Knip dead-code detection and remove stale internal exports and unused package dependencies surfaced by the new check.
+- 3395234: Move store adapter-binding helpers to `@ontrails/store/adapter-support` and topographer direct database/admin helpers to `@ontrails/topographer/backend-support`, keeping root exports focused on contract-level APIs.
+- d40430d: Remove the retired `@ontrails/logging` workspace from the prerelease package set. Use `@ontrails/observe` for log and trace sink contracts and `@ontrails/logtape` for LogTape forwarding.
+- de30d6c: Introduce `topo.compile` as the canonical trail for writing `.trails` lockfile
+  and surface artifacts, remove the `survey --generate` mode, and update drift
+  guidance to point at the compile command.
+- 331e3a9: Relocate the topo-store public API from `@ontrails/core` to `@ontrails/topographer` per ADR-0042. Generic `trails-db` helpers (`openReadTrailsDb`, `openWriteTrailsDb`, `ensureSubsystemSchema`, `deriveTrailsDbPath`, `deriveTrailsDir`) stay in core because tracing and other subsystems share them.
+
+  Breaking pre-1.0 beta change. Update consumer imports:
+
+  ```diff
+  - import { topoStore, createTopoStore, createMockTopoStore, createTopoSnapshot, listTopoSnapshots, pinTopoSnapshot, unpinTopoSnapshot, createStoredTopoSnapshot, getStoredTopoExport, countTopoSnapshots, countPinnedSnapshots, countPrunableSnapshots, pruneUnpinnedSnapshots } from '@ontrails/core';
+  + import { topoStore, createTopoStore, createMockTopoStore, createTopoSnapshot, listTopoSnapshots, pinTopoSnapshot, unpinTopoSnapshot } from '@ontrails/topographer';
+  + import { createStoredTopoSnapshot, getStoredTopoExport, countTopoSnapshots, countPinnedSnapshots, countPrunableSnapshots, pruneUnpinnedSnapshots } from '@ontrails/topographer/backend-support';
+  ```
+
+  The same root move applies to types `ReadOnlyTopoStore`, `MockTopoStoreSeed`, `TopoSnapshot`, `TopoStoreRef`, `TopoStoreExportRecord`, `TopoStoreResourceRecord`, `TopoStoreTrailRecord`, `TopoStoreTrailDetailRecord`, `CreateTopoSnapshotInput`, and `ListTopoSnapshotsOptions`. The direct DB helper type `StoredTopoExport` moves to `@ontrails/topographer/backend-support`.
+
+  Core newly exports `activationSourceKey`, `projectActivationSourceDeclaration`, `activationSourceDeclarationSignature`, and the `ActivationSourceProjection` type — these were already used internally and are now part of the public surface so `@ontrails/topographer` (the only consumer that needs them) can import them through normal package channels.
+
+- 4399fdb: Renamed `@ontrails/schema` to `@ontrails/topographer`. Mechanical rename only — no API changes. Update import sites from `@ontrails/schema` to `@ontrails/topographer`. See ADR-0042 for the durable graph substrate doctrine.
+- 2dd9cda: Promote ADR-0043 (Layer Evolution) from draft to accepted, amend it on 2026-05-04 to remove the briefly proposed `Middleware` split, and publish the Layer Evolution Migration Guide at `docs/migration/layer-evolution.md`.
+
+  Documentation-only change capturing the post-implementation state of the layer-evolution work shipped across TRL-471 through TRL-476: typed `Layer` primitive with optional `input` schema, three attachment scopes (trail, surface, topo), CLI/MCP/HTTP surface projection of layer inputs, removal of `authLayer`, `autoIterateLayer`, and `dateShortcutsLayer`, and warden coaching via `no-legacy-layer-imports` (error). The migration guide is the durable countermeasure to the vocabulary churn flagged in ADR-0043's tradeoffs.
+
+- fb10112: Polish Warden guidance projection by preserving labels in plain-text doc links
+  and reusing the shared diagnostic schema from the Trails CLI wrapper.
+- bfabe09: Suppress static resource accessor warnings when a string lookup resolves to a
+  resource variable name shadowed inside `blaze`.
+- 7a1d4a9: Rename the public resolved graph API from `SurfaceMap` to `TopoGraph`, including
+  the derive, hash, diff, and current graph artifact I/O helpers.
+- 84f595a: Add lock v3 manifest and `topo.lock` I/O. `trails.lock` now reads as a compact v3 manifest that points at the serialized TopoGraph artifact, and legacy v2/hash-only lock inputs fail with a regenerate instruction.
+- d2cb9ba: Rename topo-store export artifacts from surface-era names to TopoGraph names. The `topo_exports` table now stores `topo_graph`, `topo_graph_hash`, and `lock_manifest`, and backend-support export records expose `topoGraphJson`, `topoGraphHash`, and `lockManifestJson`.
+- 2cc05da: Harden Warden drift checks for lock v3 manifests. Malformed legacy lock files and manifests without the `topo.lock` artifact now report blocked drift with a regenerate instruction instead of throwing or silently passing.
+- df9a7d0: Add project-aware public export-map governance for @ontrails workspace docs,
+  imports, root barrels, and bin-only package surfaces.
+- 30a2c7e: Add the resolver-backed `resolved-import-boundary` Warden rule for cross-package import boundary enforcement.
+- 81bffec: Add Warden import-resolution substrate backed by `oxc-resolver`.
+- d675a53: Omit `topoNames` from Warden reports when no topo targets were governed, matching the optional report contract.
+- Updated dependencies [73622ae]
+- Updated dependencies [e991a5b]
+- Updated dependencies [25f3c5c]
+- Updated dependencies [6300f70]
+- Updated dependencies [d172013]
+- Updated dependencies [c3fc5c3]
+- Updated dependencies [20d7a5c]
+- Updated dependencies [be5fb46]
+- Updated dependencies [199304e]
+- Updated dependencies [e898cc4]
+- Updated dependencies [2bf239e]
+- Updated dependencies [200bece]
+- Updated dependencies [e4beec9]
+- Updated dependencies [3395234]
+- Updated dependencies [bcdc484]
+- Updated dependencies [6300f70]
+- Updated dependencies [3f678d4]
+- Updated dependencies [ed171d5]
+- Updated dependencies [49c2e7d]
+- Updated dependencies [de30d6c]
+- Updated dependencies [331e3a9]
+- Updated dependencies [c40865a]
+- Updated dependencies [4399fdb]
+- Updated dependencies [4b8d13b]
+- Updated dependencies [4b8d13b]
+- Updated dependencies [4b8d13b]
+- Updated dependencies [fbd42fc]
+- Updated dependencies [63d1aef]
+- Updated dependencies [6be2e95]
+- Updated dependencies [819de09]
+- Updated dependencies [be08686]
+- Updated dependencies [112b9f2]
+- Updated dependencies [893025e]
+- Updated dependencies [ed888e2]
+- Updated dependencies [2e05e27]
+- Updated dependencies [c8caa5e]
+- Updated dependencies [f4b90c9]
+- Updated dependencies [eec5e9d]
+- Updated dependencies [4e75129]
+- Updated dependencies [47505fe]
+- Updated dependencies [ebd4434]
+- Updated dependencies [863d473]
+- Updated dependencies [344f2f7]
+- Updated dependencies [26f9ffd]
+- Updated dependencies [66056ac]
+- Updated dependencies [b12e19b]
+- Updated dependencies [ed7f6f6]
+- Updated dependencies [0bad534]
+- Updated dependencies [7a1d4a9]
+- Updated dependencies [84f595a]
+- Updated dependencies [d2cb9ba]
+- Updated dependencies [10eae9a]
+- Updated dependencies [bbb1ea4]
+- Updated dependencies [22c6c06]
+- Updated dependencies [df9a7d0]
+  - @ontrails/core@1.0.0-beta.16
+  - @ontrails/cli@1.0.0-beta.16
+  - @ontrails/permits@1.0.0-beta.16
+  - @ontrails/store@1.0.0-beta.16
+  - @ontrails/topographer@1.0.0-beta.16
+
 ## 1.0.0-beta.15
 
 ### Minor Changes

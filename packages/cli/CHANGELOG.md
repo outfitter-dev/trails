@@ -1,5 +1,73 @@
 # @ontrails/cli
 
+## 1.0.0-beta.16
+
+### Minor Changes
+
+- e991a5b: Add generic enum value aliases for CLI flags and migrate Warden command aliases onto the shared alias model.
+- 25f3c5c: Add the dedicated `@ontrails/commander` adapter package and move the Commander runtime out of the `@ontrails/cli/commander` subpath. Extend the repo-local package-source guardrails to cover adapter package source as the Commander runtime moves under `adapters/`.
+- ed171d5: Split `trails survey` detail inspection into role-anchored `survey.trail`, `survey.resource`, and `survey.signal` trails while keeping bare `survey <id>` as an all-kinds lookup. Remove the temporary `survey --openapi` and `topo.show` CLI shapes. CLI command projection now supports executable parent commands with positional arguments alongside child commands.
+- fbd42fc: Unify structured CLI input around `--input <path|->` and `--input-json`.
+  `--input` reads JSON from a file path or from stdin when the value is `-`;
+  `--input-file`, `--stdin`, and the `structuredInputFieldByTrail` routing
+  option are removed. Structured payloads now merge directly into each trail's
+  typed input object, so `trails run` callers provide the inner trail payload
+  under the run trail's `input` field.
+- 63d1aef: Add `--quiet` / `-q` flag to strip the `inner-trail-result` envelope from `trails run` stdout. On success, stdout becomes the inner value JSON only (no `{ kind, trailId, value }` wrapper). Composes with `--json` / `--jsonl` (those control format; `--quiet` controls envelope vs unwrapped). Wired as a global CLI flag via `outputModePreset()` so all commands surface it; the run-trail-specific unwrap logic lives in `apps/trails/src/cli.ts` next to the existing collision-recovery wrapper.
+- 112b9f2: Add `dryRun` to `TrailContext` and wire `--dry-run`. `TrailContext` gains an optional `dryRun?: boolean` field, defaulted to `false` in `createTrailContext`. `ExecuteTrailOptions` carries `dryRun?: boolean` through `applyContextOverrides` so `executeTrail(t, input, { dryRun: true })` produces `ctx.dryRun === true`. The CLI's existing `dryRunPreset` (auto-derived for `intent: 'write' | 'destroy'` trails) now flows through `META_FLAG_CANDIDATES` and reaches the executor via `runTrailOnce`, so `trails run booking.cancel … --dry-run` lands `ctx.dryRun === true` on the trail's blaze. Trails that don't read the field are unchanged. Read-intent trails don't get `--dry-run` exposed.
+- 893025e: Add `--permit '<json>'` to inject an inline permit on `trails run`. New `permitPreset()` exposes a `--permit` string flag that the CLI build parses and validates against the `BasePermit` shape (`{ id: string, scopes: string[] }`) using a small Zod schema. Valid permits flow through `ExecuteTrailOptions.permit` → `applyContextOverrides` → `ctx.permit` so existing `enforcePermitRequirement` behavior just sees a populated permit. Invalid JSON or schema mismatch surface as `Result.err(ValidationError)` (exit code 1) before the trail runs, avoiding spurious `PermitError` results from malformed input. The flag is global, never routed into trail input (added to `META_FLAG_CANDIDATES`), and overlays only when defined.
+
+  Topographer now projects permit requirements into surface-map entries and classifies permit-tightening diffs as breaking when new scopes are required.
+
+- ed888e2: Add `--token <token>` to `trails run` for permit resolution via the topo's auth adapter. New `tokenPreset()` exposes the flag; `'token'` is added to `META_FLAG_CANDIDATES`. The CLI resolves the `auth` resource through the shared permit-boundary helper, calls `adapter.authenticate({ surface: 'cli', bearerToken, requestId })`, and projects the resolved `Permit` into `ExecuteTrailOptions.permit` (added in TRL-408) so it reaches `ctx.permit`. Failures: missing adapter → `ValidationError` (exit 1); adapter returns `Err(AuthError)` or `Ok(null)` → `AuthError` (category `'auth'`, exit 9, with the adapter's code preserved on `error.context.code`). `--token` and `--permit` are mutually exclusive — supplying both yields `ValidationError`.
+- 2e05e27: Add `--dev-permit` for local-development synthetic full-access. New `devPermitPreset()` exposes a boolean flag; when set, the CLI synthesizes a `BasePermit` (`id: 'dev-permit'`, scopes enumerated from every declared scope across the topo) and overlays it on `ctx.permit`. Mutually exclusive with `--permit` and `--token` — any combination fails with `ValidationError` listing the conflicting flags. New Warden rule `no-dev-permit-in-source` flags any committed source file containing `--dev-permit` as an error, with a tight allow-list (`packages/cli/src/flags.ts`, `packages/cli/src/build.ts`, the rule itself). The Warden runner still scans test TypeScript files for this literal while keeping unrelated source rules filtered out of tests. Apps that import `authResource`/`authLayer` are unaffected.
+- c8caa5e: Wire the `--trace` flag for the `trails run` family. Adds `tracePreset()` to `@ontrails/cli` (registered via the `presets` option) and threads `'trace'` through `META_FLAG_CANDIDATES` so the flag is treated as CLI metadata (never routed into trail input). On activation, `apps/trails/src/cli.ts` installs a per-invocation memory sink before `surface()` runs and finalizes it in a `finally` block: the post-execution tree (rendered via `renderTraceTree` from TRL-411) goes to stderr; the result still goes to stdout. With `--trace --json`, regular `trails run <id>` emits a single JSON envelope on stdout that includes `tracing: TraceRecord[]`; `trails run example <id> <exampleName>` keeps its comparison envelope, and `trails run examples <id>` remains a metadata read. `--quiet` keeps the tree on stderr and the unwrapped value on stdout, while `--jsonl` streams items as before. Sink registration is per-invocation so concurrent runs don't bleed records.
+- f4b90c9: Add `--watch` for the `trails run` family. File-system events are cheap wake-ups; the rerun gate compares the resolved trail's surface-map entry hash so edits only rerun when the public contract for the watched trail changes. New `watchPreset()` exposes the boolean flag; `'watch'` is added to `META_FLAG_CANDIDATES` so the flag never routes into trail input. The watch loop in `apps/trails/src/run-watch.ts` runs once, then sets up a debounced (`100ms`) `node:fs.watch` filtered to `.ts`/`.tsx`/`.js`/`.mjs`/`.cjs` extensions in the trail's source directory. SIGINT closes the watcher cleanly. A short startup warmup window (`150ms`) suppresses the macOS FSEvents replay event that would otherwise produce a phantom rerun on first invocation.
+- 4e75129: Absorb `autoIterateLayer` behavior into CLI surface derivation. Trails whose output schema matches the paginated shape (`{ items, hasMore, nextCursor }`) now auto-emit a `--all` flag on the CLI command. When `--all` is set, the executor iterates pages with the trail's cursor field until `hasMore: false` and aggregates `items[]` across pages. With `--jsonl --all`, items stream one per line as they arrive (no in-memory aggregation). If a page reports `hasMore: true` without a non-empty `nextCursor`, `--all` now fails with `ValidationError` instead of silently truncating results. Detection lives in `packages/cli/src/pagination.ts`. The legacy `autoIterateLayer` export is **kept** through Phase 2–7 for back-compat; removal lands in TRL-475 (Phase 8).
+- 47505fe: Absorb `dateShortcutsLayer` behavior into CLI surface derivation. Trails with date input fields (`z.iso.datetime()`, `z.iso.date()`, `z.string().datetime()`, `z.date()`, plus optional/default wrappers) now auto-accept shortcuts on the CLI: `today`, `yesterday`, `Nd` (N days ago), `this-week` (start-of-week Monday UTC), `this-month` (first-of-this-month UTC). Shortcuts expand to UTC ISO before Zod validation. Plain ISO strings pass through unchanged. Digit-led typos like `7day`/`3w` surface a `ValidationError`. Detection lives in `packages/cli/src/date-shortcuts.ts`. The legacy `dateShortcutsLayer` export is kept through Phase 2–7 for back-compat; removal lands in TRL-475 (Phase 8).
+- 863d473: Add three attachment scopes for typed layers — trail, surface, topo — with composition order **topo → surface → trail → blaze**. `TrailSpec` and `Trail` gain `layers?: readonly Layer[]` (default `[]`). `topo()` accepts `{ layers: [...] }` as the third options argument; the topo carries those layers and they reach the executor via `ExecuteTrailOptions.topoLayers`. The CLI's `surface()`/`createProgram()`/`deriveCliCommands` already supports a `layers` option; that now flows through `runTrailOnce` as `surfaceLayers`. The executor builds the layer chain `[...topoLayers, ...surfaceLayers, ...trail.layers, ...options.layers]` so topo wraps surface wraps trail wraps blaze (verified by composition-order tests at every level). Survey's `TrailDetailReport` adds `composedLayers: { topo, surface, trail }` so agents can introspect the layer chain per trail. Backward-compatible: every new field is optional with a non-undefined default; existing call sites are unchanged.
+- 344f2f7: Project typed-layer `input` schemas onto CLI flags. Each effective layer (topo + surface + trail composition order) with a non-undefined `input` schema gets its fields auto-derived into `--flag` options on every command it attaches to. Parsed values route to the layer at runtime via `ctx.extensions[LAYER_INPUTS_KEY][layer.name]` — `Layer.wrap` is unchanged. Collision rule: if a layer field name collides with a trail input field, another layer's projected name, or a CLI meta flag, the layer's flag is renamed to `--<layer-name>-<original-flag-name>` and a one-line warning emits to stderr (`[trails] ...`). Renames are deterministic across builds. New `LAYER_INPUTS_KEY` (exported from `@ontrails/core`) reserves the `ctx.extensions` slot.
+- 26f9ffd: Project typed-layer `input` schemas onto MCP and HTTP surfaces. Closes Phase 7. Lifts `collectAttachedTypedLayers` and `projectLayerFieldName` (collision-rename rule) into `@ontrails/core/internal/layer-projection` so all three surfaces share one source of truth. The CLI surface refactors to consume the lifted helpers (no behavior change). MCP merges layer fields into each tool's `inputSchema` and partitions inbound args at invocation time. HTTP merges layer fields into the route's request schema (query for reads, body for writes) and exposes new optional `HttpRouteDefinition.inputSchema` + `layerInputProjections` for surface adapters / OpenAPI generators. Collision rule matches TRL-473's: deterministic rename to a layer-prefixed camelCase name with the original captured in the routing table. Side fix: MCP and HTTP handlers now forward `topoLayers: graph.layers` + `surfaceLayers: layers` so topo-scope layers actually compose at runtime (previously the handlers used the deprecated `layers` alias and never read `graph.layers`).
+- 66056ac: **BREAKING:** TRL-475 drops user-facing exports of `authLayer`, `autoIterateLayer`, and `dateShortcutsLayer`. Breaking change for any app still wiring these layers manually.
+
+  Migration:
+
+  - **`autoIterateLayer`** — remove from `blaze`/`run`/`surface` options. The CLI surface now derives the `--all` flag and multi-page collection automatically from any trail whose output matches the pagination pattern (`items`, `hasMore`, `nextCursor`). See TRL-469.
+  - **`dateShortcutsLayer`** — remove from `blaze`/`run`/`surface` options. The CLI surface now expands `since`/`until` shortcut strings (`today`, `yesterday`, `7d`, `30d`, `this-week`, `this-month`) automatically from input schema shape. See TRL-470.
+  - **`authLayer`** — remove from `blaze`/`run`/`surface` options. Permit scope enforcement is intrinsic to `executeTrail` (`enforcePermitRequirement` runs before resource creation and layer composition). The compatibility shim was already a no-op.
+
+  The `Layer` type, `composeLayers`, and canonical per-call `executeTrail({ layers })` option remain available; only the legacy layer exports were removed.
+
+### Patch Changes
+
+- 73622ae: Thread `ResourceSpec.config` through the built-in auth resource. Resource config schemas that accept `undefined` now receive their parsed default when config values are omitted, and `authResource` can materialize the no-op or JWT adapter from typed config while preserving existing mock and override paths.
+- 6300f70: Refresh source comments and test labels for retired connector terminology as adapter guardrails become strict.
+- 49c2e7d: Refresh published package README taxonomy to use adapter language instead of retired connector vocabulary.
+- 0bad534: Reject ambiguous CLI value-alias conflicts when non-Commander callers provide a
+  defaulted canonical flag value without caller-supplied key tracking.
+- Updated dependencies [73622ae]
+- Updated dependencies [6300f70]
+- Updated dependencies [d172013]
+- Updated dependencies [c3fc5c3]
+- Updated dependencies [20d7a5c]
+- Updated dependencies [be5fb46]
+- Updated dependencies [e898cc4]
+- Updated dependencies [3395234]
+- Updated dependencies [bcdc484]
+- Updated dependencies [331e3a9]
+- Updated dependencies [4399fdb]
+- Updated dependencies [4b8d13b]
+- Updated dependencies [112b9f2]
+- Updated dependencies [893025e]
+- Updated dependencies [eec5e9d]
+- Updated dependencies [ebd4434]
+- Updated dependencies [863d473]
+- Updated dependencies [344f2f7]
+- Updated dependencies [26f9ffd]
+- Updated dependencies [10eae9a]
+- Updated dependencies [22c6c06]
+  - @ontrails/core@1.0.0-beta.16
+
 ## 1.0.0-beta.15
 
 ### Minor Changes

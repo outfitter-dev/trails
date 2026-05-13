@@ -1,5 +1,52 @@
 # @ontrails/http
 
+## 1.0.0-beta.16
+
+### Minor Changes
+
+- 2bf239e: Move OpenAPI generation ownership to the HTTP surface.
+
+  **http**: Export `deriveOpenApiSpec()` and its OpenAPI types from `@ontrails/http`.
+
+  **schema**: Remove the OpenAPI helper export so schema stays focused on surface maps, locks, and semantic diffing.
+
+- 26f9ffd: Project typed-layer `input` schemas onto MCP and HTTP surfaces. Closes Phase 7. Lifts `collectAttachedTypedLayers` and `projectLayerFieldName` (collision-rename rule) into `@ontrails/core/internal/layer-projection` so all three surfaces share one source of truth. The CLI surface refactors to consume the lifted helpers (no behavior change). MCP merges layer fields into each tool's `inputSchema` and partitions inbound args at invocation time. HTTP merges layer fields into the route's request schema (query for reads, body for writes) and exposes new optional `HttpRouteDefinition.inputSchema` + `layerInputProjections` for surface adapters / OpenAPI generators. Collision rule matches TRL-473's: deterministic rename to a layer-prefixed camelCase name with the original captured in the routing table. Side fix: MCP and HTTP handlers now forward `topoLayers: graph.layers` + `surfaceLayers: layers` so topo-scope layers actually compose at runtime (previously the handlers used the deprecated `layers` alias and never read `graph.layers`).
+- 22c6c06: Accept ADR-0041 Unified Observability and ship the first activation and
+  observability primitives it depends on: activation trace records, topo-level
+  observe configuration, webhook activation materialization, signal/webhook
+  warden coaching, the `@ontrails/observe` package, sink composition, and
+  zero-dependency observe sinks.
+
+### Patch Changes
+
+- 6300f70: Refresh source comments and test labels for retired connector terminology as adapter guardrails become strict.
+- 95bf132: Wire HTTP permit resolution through the Hono adapter, including request headers for Bearer Authorization handling.
+- 49c2e7d: Refresh published package README taxonomy to use adapter language instead of retired connector vocabulary.
+- df9a7d0: Add project-aware public export-map governance for @ontrails workspace docs,
+  imports, root barrels, and bin-only package surfaces.
+- Updated dependencies [73622ae]
+- Updated dependencies [6300f70]
+- Updated dependencies [d172013]
+- Updated dependencies [c3fc5c3]
+- Updated dependencies [20d7a5c]
+- Updated dependencies [be5fb46]
+- Updated dependencies [e898cc4]
+- Updated dependencies [3395234]
+- Updated dependencies [bcdc484]
+- Updated dependencies [331e3a9]
+- Updated dependencies [4399fdb]
+- Updated dependencies [4b8d13b]
+- Updated dependencies [112b9f2]
+- Updated dependencies [893025e]
+- Updated dependencies [eec5e9d]
+- Updated dependencies [ebd4434]
+- Updated dependencies [863d473]
+- Updated dependencies [344f2f7]
+- Updated dependencies [26f9ffd]
+- Updated dependencies [10eae9a]
+- Updated dependencies [22c6c06]
+  - @ontrails/core@1.0.0-beta.16
+
 ## 1.0.0-beta.15
 
 ### Patch Changes
