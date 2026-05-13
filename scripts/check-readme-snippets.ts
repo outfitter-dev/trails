@@ -150,6 +150,7 @@ export const createConsoleSink: any;
 export const createCrossContext: any;
 export const createDevStore: any;
 export const createFileSink: any;
+export const createHttpHarness: any;
 export const createJwtAdapter: any;
 export const createLogtapeSink: any;
 export const createMcpHarness: any;

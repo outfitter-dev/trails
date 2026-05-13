@@ -47,7 +47,7 @@ before handoff or merge readiness.
 | 6 | `TRL-709` | `trl-709-add-markdown-link-integrity-check-for-docs-and-readmes` | TBD | Focused checks passed |
 | 7 | `TRL-708` | `trl-708-expand-readme-typescript-snippet-verification-beyond-tracing` | TBD | Focused checks passed |
 | 8 | `TRL-710` | `trl-710-create-public-api-example-coverage-inventory-and-gate` | TBD | Focused checks passed |
-| 9 | `TRL-704` | `trl-704-add-http-surface-harness-and-include-it-in` | TBD | Not started |
+| 9 | `TRL-704` | `trl-704-add-http-surface-harness-and-include-it-in` | TBD | Focused checks passed |
 | 10 | `TRL-706` | `trl-706-expose-complete-shipped-surface-projection-inventory-for` | TBD | Not started |
 | 11 | `TRL-705` | `trl-705-add-example-driven-climcphttp-parity-runner-and-ci-gate` | TBD | Not started |
 
@@ -72,6 +72,7 @@ issues created or updated during execution.
 | `TRL-709` | Changed status to `In Progress`. | Branch execution started. |
 | `TRL-708` | Changed status to `In Progress`. | Branch execution started. |
 | `TRL-710` | Changed status to `In Progress`. | Branch execution started. |
+| `TRL-704` | Changed status to `In Progress`. | Branch execution started. |
 
 ## Local Review Reports
 
@@ -223,6 +224,15 @@ ready waves, and remote review turns here.
   entrypoints and wired `bun run docs:api-examples` into `bun run check`.
   Remaining non-minimum missing examples are reported in the script output and
   recorded as residual inventory in this retro.
+- 2026-05-13T16:54Z: Started `TRL-704` on
+  `trl-704-add-http-surface-harness-and-include-it-in` and added a
+  framework-agnostic `createHttpHarness` to `@ontrails/testing`. The harness
+  derives HTTP routes from an established topo, executes read/write trails with
+  query or body input, projects public HTTP error envelopes, supports test
+  resource overrides, and is now included in `testAllEstablished` as the HTTP
+  projection validation alongside CLI and MCP. Updated testing docs, the
+  package README, peer metadata, the README snippet checker stub, and a
+  branch-local `@ontrails/testing` changeset.
 
 ## Verification Log
 
@@ -280,6 +290,15 @@ Record focused branch checks and full tip gate results here.
 | `trl-710-create-public-api-example-coverage-inventory-and-gate` | `bun run typecheck` | Passed. |
 | `trl-710-create-public-api-example-coverage-inventory-and-gate` | `bun run check` | Passed; includes the new `docs:api-examples` check alongside lint, ast-grep, vocab audit, format, typecheck, docs link/snippet checks, scaffold checks, Warden, and dead-code gate. |
 | `trl-710-create-public-api-example-coverage-inventory-and-gate` | `git diff --check` | Passed. |
+| `trl-704-add-http-surface-harness-and-include-it-in` | `bun test packages/testing/src/__tests__/harness-http.test.ts` | Passed, 4 tests and 11 assertions. |
+| `trl-704-add-http-surface-harness-and-include-it-in` | `bun test packages/testing/src/__tests__/all.test.ts --bail` | Passed, 12 tests and 24 assertions. |
+| `trl-704-add-http-surface-harness-and-include-it-in` | `bun run --cwd packages/testing typecheck` | Passed. |
+| `trl-704-add-http-surface-harness-and-include-it-in` | `bun test packages/testing` | Passed, 157 tests and 304 assertions. |
+| `trl-704-add-http-surface-harness-and-include-it-in` | `bun run docs:snippets` | Passed; checked all 21 package/app/adapter READMEs, including 92 TypeScript snippets and 3 explicit no-TypeScript-snippet classifications. |
+| `trl-704-add-http-surface-harness-and-include-it-in` | `bun run format:check` | Passed. |
+| `trl-704-add-http-surface-harness-and-include-it-in` | `bun run check` | Passed; includes lint, ast-grep, vocab audit, format, typecheck, docs link/snippet/API example checks, scaffold checks, Warden, and dead-code gate. |
+| `trl-704-add-http-surface-harness-and-include-it-in` | `bun scripts/check-changeset-gate.ts --changed-files <(git diff --cached --name-only)` | Passed for `@ontrails/testing` with `.changeset/soft-http-harness.md`. |
+| `trl-704-add-http-surface-harness-and-include-it-in` | `git diff --check` | Passed. |
 
 ## Review Feedback
 

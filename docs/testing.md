@@ -373,6 +373,20 @@ const result = await harness.callTool('myapp_entity_show', { name: 'Alpha' });
 expect(result.isError).toBe(false);
 ```
 
+### HTTP Harness
+
+Execute derived HTTP routes in-process without Hono or a listening server:
+
+```typescript
+import { createHttpHarness } from '@ontrails/testing';
+
+const harness = createHttpHarness({ graph });
+const result = await harness.get('/entity/show', { name: 'Alpha' });
+
+expect(result.status).toBe(200);
+expect(result.data).toMatchObject({ name: 'Alpha' });
+```
+
 ## Testing with Infrastructure Resources
 
 The config, permits, and tracing packages each provide test-friendly primitives that work with `testAll(graph)` and `testExamples(graph)` without external dependencies.

@@ -28,6 +28,7 @@
   "peerDependencies": {
     "@ontrails/cli": "workspace:^",
     "@ontrails/core": "workspace:^",
+    "@ontrails/http": "workspace:^",
     "@ontrails/mcp": "workspace:^",
     "@ontrails/observe": "workspace:^",
     "zod": "catalog:"

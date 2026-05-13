@@ -3,6 +3,11 @@
  */
 
 import type { DeriveCliCommandsOptions } from '@ontrails/cli';
+import type {
+  DeriveHttpRoutesOptions,
+  HttpHeaderSource,
+  HttpMethod,
+} from '@ontrails/http';
 import type { McpExtra, DeriveMcpToolsOptions } from '@ontrails/mcp';
 import type {
   AnyTrail,
@@ -131,6 +136,90 @@ export interface McpHarnessResult {
 }
 
 // ---------------------------------------------------------------------------
+// HTTP Harness
+// ---------------------------------------------------------------------------
+
+/** Options for creating an HTTP harness. */
+export interface HttpHarnessOptions extends DeriveHttpRoutesOptions {
+  readonly ctx?: Partial<TrailContext> | undefined;
+  readonly graph: Topo;
+}
+
+export interface HttpHarnessRequest {
+  readonly abortSignal?: AbortSignal | undefined;
+  readonly body?: unknown | undefined;
+  readonly headers?: HttpHeaderSource | undefined;
+  readonly method: HttpMethod;
+  readonly path: string;
+  readonly query?: Record<string, unknown> | undefined;
+  readonly requestId?: string | undefined;
+}
+
+export interface HttpHarnessRequestOptions extends Omit<
+  HttpHarnessRequest,
+  'body' | 'method' | 'path' | 'query'
+> {
+  readonly query?: Record<string, unknown> | undefined;
+}
+
+/** A test harness for HTTP route projections. */
+export interface HttpHarness {
+  /** Execute a raw HTTP-style harness request. */
+  request(request: HttpHarnessRequest): Promise<HttpHarnessResult>;
+  /** Execute a GET request, reading input from query params. */
+  get(
+    path: string,
+    query?: Record<string, unknown>,
+    options?: HttpHarnessRequestOptions
+  ): Promise<HttpHarnessResult>;
+  /** Execute a POST request, reading input from the JSON-like body value. */
+  post(
+    path: string,
+    body?: unknown,
+    options?: HttpHarnessRequestOptions
+  ): Promise<HttpHarnessResult>;
+  /** Execute a PUT request. */
+  put(
+    path: string,
+    body?: unknown,
+    options?: HttpHarnessRequestOptions
+  ): Promise<HttpHarnessResult>;
+  /** Execute a PATCH request. */
+  patch(
+    path: string,
+    body?: unknown,
+    options?: HttpHarnessRequestOptions
+  ): Promise<HttpHarnessResult>;
+  /** Execute a DELETE request. */
+  delete(
+    path: string,
+    body?: unknown,
+    options?: HttpHarnessRequestOptions
+  ): Promise<HttpHarnessResult>;
+}
+
+export interface HttpHarnessErrorBody {
+  readonly error: {
+    readonly category: string;
+    readonly code: string;
+    readonly message: string;
+  };
+}
+
+export interface HttpHarnessSuccessBody {
+  readonly data: unknown;
+}
+
+/** The result of an HTTP harness request. */
+export interface HttpHarnessResult {
+  readonly body: HttpHarnessErrorBody | HttpHarnessSuccessBody;
+  readonly data?: unknown | undefined;
+  readonly error?: HttpHarnessErrorBody['error'] | undefined;
+  readonly ok: boolean;
+  readonly status: number;
+}
+
+// ---------------------------------------------------------------------------
 // Established verification
 // ---------------------------------------------------------------------------
 
@@ -150,6 +239,7 @@ export interface TestAllEstablishedOptions {
         | undefined)
     | undefined;
   readonly ctx?: Partial<TrailContext> | undefined;
+  readonly http?: Omit<HttpHarnessOptions, 'graph'> | undefined;
   readonly mcp?: Omit<McpHarnessOptions, 'graph'> | undefined;
   readonly resources?: Record<string, unknown> | undefined;
   readonly strictPermits?: boolean | undefined;

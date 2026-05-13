@@ -32,6 +32,7 @@ export { createTestLogger } from './logger.js';
 
 // Surface harnesses
 export { createCliHarness } from './harness-cli.js';
+export { createHttpHarness } from './harness-http.js';
 export { createMcpHarness } from './harness-mcp.js';
 
 // Types
@@ -54,6 +55,13 @@ export type {
   CliHarness,
   CliHarnessOptions,
   CliHarnessResult,
+  HttpHarness,
+  HttpHarnessErrorBody,
+  HttpHarnessOptions,
+  HttpHarnessRequest,
+  HttpHarnessRequestOptions,
+  HttpHarnessResult,
+  HttpHarnessSuccessBody,
   McpHarness,
   McpHarnessOptions,
   McpHarnessResult,

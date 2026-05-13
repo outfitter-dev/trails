@@ -199,6 +199,55 @@ ${helperName}(topo('draft-topo', { draftTrail }));
   }
 };
 
+const runGeneratedEstablishedSuite = (): {
+  readonly exitCode: number;
+  readonly output: string;
+} => {
+  const dir = repoTempDir();
+  const testFile = join(dir, 'testAllEstablished-surfaces.test.ts');
+
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(
+    testFile,
+    `import { Result, trail, topo } from '@ontrails/core';
+import { testAllEstablished } from '../../src/index.ts';
+import { z } from 'zod';
+
+const show = trail('entity.show', {
+  blaze: async (input) => Result.ok({ name: input.name }),
+  examples: [
+    {
+      expected: { name: 'Alpha' },
+      input: { name: 'Alpha' },
+      name: 'Show Alpha',
+    },
+  ],
+  input: z.object({ name: z.string() }),
+  intent: 'read',
+  output: z.object({ name: z.string() }),
+});
+
+testAllEstablished(topo('established-topo', { show }));
+`
+  );
+
+  try {
+    const proc = Bun.spawnSync({
+      cmd: ['bun', 'test', testFile],
+      cwd: resolve(import.meta.dir, '..', '..', '..'),
+      stderr: 'pipe',
+      stdout: 'pipe',
+    });
+
+    return {
+      exitCode: proc.exitCode,
+      output: `${proc.stdout.toString()}\n${proc.stderr.toString()}`,
+    };
+  } finally {
+    rmSync(dir, { force: true, recursive: true });
+  }
+};
+
 describe('testAll resource mocks', () => {
   // eslint-disable-next-line jest/require-hook
   testAll(
@@ -250,5 +299,20 @@ describe('testAllEstablished draft hygiene', () => {
 
     expect(result.exitCode).toBe(1);
     expect(result.output).toContain('_draft.entity.prepare');
+  });
+
+  test('includes CLI, MCP, and HTTP surface projection checks', () => {
+    const result = runGeneratedEstablishedSuite();
+
+    expect(result.exitCode).toBe(0);
+    expect(result.output).toContain(
+      'CLI projection validates established topo'
+    );
+    expect(result.output).toContain(
+      'MCP projection validates established topo'
+    );
+    expect(result.output).toContain(
+      'HTTP projection validates established topo'
+    );
   });
 });

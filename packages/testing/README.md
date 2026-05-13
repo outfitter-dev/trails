@@ -37,6 +37,7 @@ testDetours(graph);    // Validate detour constructor, recover, and ordering sem
 | `createTestLogger()` | Logger that captures entries in memory for assertions |
 | `createCliHarness(options)` | Execute CLI commands in-process, capture stdout/stderr |
 | `createMcpHarness(options)` | Invoke MCP tools directly without transport |
+| `createHttpHarness(options)` | Execute HTTP route projections in-process without a server |
 
 See the [API Reference](../../docs/api-reference.md) for the full list.
 
@@ -89,7 +90,11 @@ Calls to unregistered trail IDs return `Result.err` with a descriptive message, 
 ## Surface Harnesses
 
 ```typescript
-import { createCliHarness, createMcpHarness } from '@ontrails/testing';
+import {
+  createCliHarness,
+  createHttpHarness,
+  createMcpHarness,
+} from '@ontrails/testing';
 
 // CLI
 const cli = createCliHarness({ graph });
@@ -100,6 +105,11 @@ expect(result.exitCode).toBe(0);
 const mcp = createMcpHarness({ graph });
 const tool = await mcp.callTool('myapp_entity_show', { name: 'Alpha' });
 expect(tool.isError).toBe(false);
+
+// HTTP
+const http = createHttpHarness({ graph });
+const response = await http.get('/entity/show', { name: 'Alpha' });
+expect(response.status).toBe(200);
 ```
 
 ## Installation

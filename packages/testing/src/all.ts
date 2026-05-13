@@ -11,6 +11,7 @@ import type { Topo, TrailContext } from '@ontrails/core';
 import { validateEstablishedTopo, validateTopo } from '@ontrails/core';
 
 import { createCliHarness } from './harness-cli.js';
+import { createHttpHarness } from './harness-http.js';
 import { createMcpHarness } from './harness-mcp.js';
 import { testContracts } from './contracts.js';
 import type { TestExecutionOptions } from './context.js';
@@ -108,6 +109,7 @@ const isEstablishedOptions = (
   (Object.hasOwn(input, 'cli') ||
     Object.hasOwn(input, 'createPermit') ||
     Object.hasOwn(input, 'ctx') ||
+    Object.hasOwn(input, 'http') ||
     Object.hasOwn(input, 'mcp') ||
     Object.hasOwn(input, 'resources') ||
     Object.hasOwn(input, 'strictPermits'));
@@ -154,6 +156,22 @@ const toMcpHarnessOptions = (
   ...options.mcp,
 });
 
+const toHttpHarnessOptions = (
+  topo: Topo,
+  options: TestAllEstablishedOptions
+) => {
+  const httpOptions = {
+    graph: topo,
+    ...options.http,
+  };
+
+  if (options.ctx !== undefined) {
+    httpOptions.ctx = options.ctx;
+  }
+
+  return httpOptions;
+};
+
 const registerEstablishedSurfaceSuite = (
   topo: Topo,
   resolveInput: () =>
@@ -173,6 +191,13 @@ const registerEstablishedSurfaceSuite = (
       const options = normalizeEstablishedOptions(resolveInput());
       expect(() =>
         createMcpHarness(toMcpHarnessOptions(topo, options))
+      ).not.toThrow();
+    });
+
+    test('HTTP projection validates established topo', () => {
+      const options = normalizeEstablishedOptions(resolveInput());
+      expect(() =>
+        createHttpHarness(toHttpHarnessOptions(topo, options))
       ).not.toThrow();
     });
   });
