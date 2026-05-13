@@ -63,6 +63,8 @@ export const createMcpHarness = (options: McpHarnessOptions): McpHarness => {
       return {
         content: result.content,
         isError: result.isError ?? false,
+        meta: result._meta,
+        structuredContent: result.structuredContent,
       };
     },
   };

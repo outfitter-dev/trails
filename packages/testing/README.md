@@ -32,6 +32,7 @@ testDetours(graph);    // Validate detour constructor, recover, and ordering sem
 | `testTrail(trail, scenarios)` | Custom scenarios for edge cases, error paths, and cross chains |
 | `testContracts(topo, ctx?)` | Validate output against declared schemas |
 | `testDetours(topo)` | Validate detour constructor, recover, and shadowing semantics |
+| `testSurfaceParity(topo, options?)` | Run trail examples through CLI, MCP, and HTTP and compare normalized semantics |
 | `createCrossContext(options?)` | Mock `CrossFn` for testing composite trails; returns preconfigured `Result` values keyed by trail ID |
 | `createTestContext(options?)` | `TrailContext` with sensible test defaults |
 | `createTestLogger()` | Logger that captures entries in memory for assertions |
@@ -111,6 +112,39 @@ const http = createHttpHarness({ graph });
 const response = await http.get('/entity/show', { name: 'Alpha' });
 expect(response.status).toBe(200);
 ```
+
+## Surface Parity
+
+`testSurfaceParity()` is a focused gate for established apps that want to prove
+their examples behave the same through every shipped surface.
+
+```typescript
+import { testSurfaceParity } from '@ontrails/testing';
+import { graph } from '../app';
+
+const createDeterministicTestDb = () => ({});
+
+testSurfaceParity(graph, {
+  createResources: () => ({
+    'db.main': createDeterministicTestDb(),
+  }),
+  exclusions: [
+    {
+      example: 'Creates generated data',
+      reason: 'output includes generated IDs that intentionally differ per surface run',
+      trailId: 'entity.add',
+    },
+  ],
+});
+```
+
+The helper compares normalized success payloads and normalized TrailsError
+category/code pairs. CLI command names, MCP tool names, HTTP method/path values,
+transport envelopes, activation consumers, internal trails, and planned
+WebSocket work stay outside the equality check. Use `createResources` when
+examples need deterministic fixtures for each surface invocation, and use
+exclusions for intentional semantic differences that should not be silently
+skipped.
 
 ## Installation
 

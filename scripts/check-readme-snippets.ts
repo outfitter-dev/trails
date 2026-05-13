@@ -212,6 +212,7 @@ export const testAll: any;
 export const testContracts: any;
 export const testDetours: any;
 export const testExamples: any;
+export const testSurfaceParity: any;
 export const testTrail: any;
 export const toCommander: any;
 export const tokenPreset: any;

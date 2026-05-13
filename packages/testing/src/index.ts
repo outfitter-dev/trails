@@ -6,6 +6,10 @@ export { testCrosses } from './crosses.js';
 export { testTrail } from './trail.js';
 export { testContracts } from './contracts.js';
 export { testDetours } from './detours.js';
+export {
+  runSurfaceParityExample,
+  testSurfaceParity,
+} from './surface-parity.js';
 
 // Assertions
 export {
@@ -65,4 +69,9 @@ export type {
   McpHarness,
   McpHarnessOptions,
   McpHarnessResult,
+  NormalizedSurfaceParityResult,
+  SurfaceParityExclusion,
+  SurfaceParityOptions,
+  SurfaceParitySurface,
 } from './types.js';
+export type { SurfaceParityComparison } from './surface-parity.js';

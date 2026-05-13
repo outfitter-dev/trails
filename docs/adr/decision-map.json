@@ -1713,12 +1713,12 @@
           "fromPath": "docs/adr/0039-reactive-trail-activation.md"
         },
         {
-          "context": "- [ADR: Trail Visibility and Trailhead Filtering](0027-visibility-and-filtering.md) (draft) -- `trails run` can invoke internal trails (it's programmatic, like `run()`)",
+          "context": "- [ADR-0027: Trail Visibility and Surface Filtering](../0027-visibility-and-filtering.md) -- `trails run` can invoke internal trails (it's programmatic, like `run()`)",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
         },
         {
-          "context": "- [ADR: Trail Visibility and Trailhead Filtering](0027-visibility-and-filtering.md) (draft) -- rigged SDK wrapper packs use `visibility: 'internal'`",
+          "context": "- [ADR-0027: Trail Visibility and Surface Filtering](../0027-visibility-and-filtering.md) -- rigged SDK wrapper packs use `visibility: 'internal'`",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-external-trailheads-as-trails.md"
         },
@@ -1806,7 +1806,7 @@
           "fromPath": "docs/adr/drafts/20260331-external-trailheads-as-trails.md"
         },
         {
-          "context": "- [ADR-0029: Connector Extraction and the `with-*` Packaging Model](0029-connector-extraction-and-the-with-packaging-model.md) -- connectors move to `@ontrails/with-*` packages; affects how connector ",
+          "context": "- [ADR-0029: Adapter Extraction and Composition Around Core Contracts](../0029-connector-extraction-and-the-with-packaging-model.md) -- connectors move to `@ontrails/with-*` packages; affects how conn",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-pack-resources.md"
         },
@@ -1816,12 +1816,12 @@
           "fromPath": "docs/adr/drafts/20260331-packs-namespace-boundaries.md"
         },
         {
-          "context": "- [ADR-0029: Connector Extraction and the `with-*` Packaging Model](0029-connector-extraction-and-the-with-packaging-model.md) -- connectors as `@ontrails/with-*` packages; compiled packs may depend o",
+          "context": "- [ADR-0029: Adapter Extraction and Composition Around Core Contracts](../0029-connector-extraction-and-the-with-packaging-model.md) -- connectors as `@ontrails/with-*` packages; compiled packs may de",
           "from": "20260401",
           "fromPath": "docs/adr/drafts/20260401-compiled-pack-trailhead.md"
         },
         {
-          "context": "- [ADR-0029: Connector Extraction and the `with-*` Packaging Model](0029-connector-extraction-and-the-with-packaging-model.md) — the packaging model for connector bundles",
+          "context": "- [ADR-0029: Adapter Extraction and Composition Around Core Contracts](../0029-connector-extraction-and-the-with-packaging-model.md) — the packaging model for connector bundles",
           "from": "20260409",
           "fromPath": "docs/adr/drafts/20260409-resource-bundles.md"
         }
@@ -1966,6 +1966,16 @@
           "context": "- [ADR-0032: `deriveTrail()` and Trail Factories](../0032-derivetrail-and-trail-factories.md) -- `ingest()` factory for webhook-to-trail flows that can feed signals to WebSocket subscribers",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-websocket-trailhead.md"
+        },
+        {
+          "context": "When search is declared on a store entity and the developer uses `crud()` (see [ADR-0032: `deriveTrail()` and Trail Factories](../0032-derivetrail-and-trail-factories.md)), a search trail is automatic",
+          "from": "20260401",
+          "fromPath": "docs/adr/drafts/20260401-declarative-search.md"
+        },
+        {
+          "context": "- [ADR-0032: `deriveTrail()` and Trail Factories](../0032-derivetrail-and-trail-factories.md) — trail factories that produce trails carried by pack bundles",
+          "from": "20260409",
+          "fromPath": "docs/adr/drafts/20260409-resource-bundles.md"
         }
       ],
       "number": "0032",
@@ -2405,7 +2415,13 @@
     {
       "created": "2026-05-13",
       "depends_on": ["29", "35", "37", "44", "46"],
-      "inbound": [],
+      "inbound": [
+        {
+          "context": "Stable 1.x release doctrine is captured in [ADR-0047](docs/adr/0047-stable-release-line-discipline.md), and the copy-pasteable beta-to-1.0 operator sequence lives in [Stable Cutover Runbook](docs/rele",
+          "from": "AGENTS",
+          "fromPath": "AGENTS.md"
+        }
+      ],
       "number": "0047",
       "owners": ["[galligan](https://github.com/galligan)"],
       "path": "docs/adr/0047-stable-release-line-discipline.md",

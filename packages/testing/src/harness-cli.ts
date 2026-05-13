@@ -8,6 +8,7 @@
 import { deriveCliCommands } from '@ontrails/cli';
 import type { CliCommand } from '@ontrails/cli';
 import type { TrailContext } from '@ontrails/core';
+import { projectPublicSurfaceError } from '@ontrails/core';
 
 import { mergeTestContext } from './context.js';
 import type {
@@ -207,10 +208,16 @@ const buildErrorResult = (
   streams: CapturedStreams
 ): CliHarnessResult => {
   streams.restore();
-  const message = error instanceof Error ? error.message : String(error);
+  const actualError = error instanceof Error ? error : new Error(String(error));
+  const projection = projectPublicSurfaceError('cli', actualError);
   return {
+    error: {
+      category: projection.category,
+      code: projection.name,
+      message: projection.message,
+    },
     exitCode: 1,
-    stderr: streams.getStderr() || message,
+    stderr: streams.getStderr() || projection.message,
     stdout: streams.getStdout(),
   };
 };
@@ -227,9 +234,15 @@ const executeCommand = async (
   streams.restore();
 
   if (result.isErr()) {
+    const projection = projectPublicSurfaceError('cli', result.error);
     return {
+      error: {
+        category: projection.category,
+        code: projection.name,
+        message: projection.message,
+      },
       exitCode: 1,
-      stderr: streams.getStderr() || result.error.message,
+      stderr: streams.getStderr() || projection.message,
       stdout: streams.getStdout(),
     };
   }

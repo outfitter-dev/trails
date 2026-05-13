@@ -39,17 +39,17 @@ before handoff or merge readiness.
 
 | Order | Issue | Branch | PR | Status |
 | --- | --- | --- | --- | --- |
-| 1 | `TRL-713` | `trl-713-repair-stale-changesets-references-before-stable-cutover` | TBD | Focused checks passed |
-| 2 | `TRL-714` | `trl-714-add-registry-availability-and-dist-tag-release-preflights` | TBD | Focused checks passed |
-| 3 | `TRL-707` | `trl-707-fix-fresh-start-install-blocker-for-generated-cli-projects` | TBD | Fresh-start gate passed after beta.16 unblock |
-| 4 | `TRL-712` | `trl-712-author-stable-release-doctrine-adr-for-the-1x-line` | TBD | Focused checks passed |
-| 5 | `TRL-711` | `trl-711-codify-the-beta-to-10-release-runbook` | TBD | Focused checks passed |
-| 6 | `TRL-709` | `trl-709-add-markdown-link-integrity-check-for-docs-and-readmes` | TBD | Focused checks passed |
-| 7 | `TRL-708` | `trl-708-expand-readme-typescript-snippet-verification-beyond-tracing` | TBD | Focused checks passed |
-| 8 | `TRL-710` | `trl-710-create-public-api-example-coverage-inventory-and-gate` | TBD | Focused checks passed |
-| 9 | `TRL-704` | `trl-704-add-http-surface-harness-and-include-it-in` | TBD | Focused checks passed |
-| 10 | `TRL-706` | `trl-706-expose-complete-shipped-surface-projection-inventory-for` | TBD | Focused checks passed |
-| 11 | `TRL-705` | `trl-705-add-example-driven-climcphttp-parity-runner-and-ci-gate` | TBD | Not started |
+| 1 | `TRL-713` | `trl-713-repair-stale-changesets-references-before-stable-cutover` | #502 | Ready PR; no remote P2+ feedback. |
+| 2 | `TRL-714` | `trl-714-add-registry-availability-and-dist-tag-release-preflights` | #503 | Ready PR; Greptile P2 feedback addressed locally. |
+| 3 | `TRL-707` | `trl-707-fix-fresh-start-install-blocker-for-generated-cli-projects` | #504 | Ready PR; fresh-start gate passed after beta.16 unblock. |
+| 4 | `TRL-712` | `trl-712-author-stable-release-doctrine-adr-for-the-1x-line` | #505 | Ready PR; Greptile P2 feedback addressed locally. |
+| 5 | `TRL-711` | `trl-711-codify-the-beta-to-10-release-runbook` | #506 | Ready PR; Greptile P1 feedback addressed locally. |
+| 6 | `TRL-709` | `trl-709-add-markdown-link-integrity-check-for-docs-and-readmes` | #507 | Ready PR; Greptile P1/P2 feedback addressed locally. |
+| 7 | `TRL-708` | `trl-708-expand-readme-typescript-snippet-verification-beyond-tracing` | #508 | Ready PR; Greptile P2 feedback addressed locally. |
+| 8 | `TRL-710` | `trl-710-create-public-api-example-coverage-inventory-and-gate` | #509 | Ready PR; Greptile P2 feedback addressed locally. |
+| 9 | `TRL-704` | `trl-704-add-http-surface-harness-and-include-it-in` | #510 | Ready PR; Greptile P1/P2 feedback addressed locally. |
+| 10 | `TRL-706` | `trl-706-expose-complete-shipped-surface-projection-inventory-for` | #511 | Ready PR; Greptile P2 feedback addressed locally. |
+| 11 | `TRL-705` | `trl-705-add-example-driven-climcphttp-parity-runner-and-ci-gate` | #512 | Ready PR; Greptile P1/P2 feedback addressed locally. |
 
 ## Tracker Mutations
 
@@ -74,6 +74,8 @@ issues created or updated during execution.
 | `TRL-710` | Changed status to `In Progress`. | Branch execution started. |
 | `TRL-704` | Changed status to `In Progress`. | Branch execution started. |
 | `TRL-706` | Changed status to `In Progress`. | Branch execution started. |
+| `TRL-705` | Changed status to `In Progress`. | Branch execution started. |
+| `TRL-704`-`TRL-714` | Changed status to `In Review`. | Stack PRs #502 through #512 submitted and attached through Linear/GitHub integration. |
 
 ## Local Review Reports
 
@@ -244,6 +246,45 @@ ready waves, and remote review turns here.
   `surfaceProjections` now reports all shipped CLI/MCP/HTTP projections with
   authored-vs-default provenance, and docs call out WebSocket as planned and
   excluded until a public package/API exists.
+- 2026-05-13T17:27Z: Started and completed the focused implementation for
+  `TRL-705` on
+  `trl-705-add-example-driven-climcphttp-parity-runner-and-ci-gate`. Added
+  `testSurfaceParity` and `runSurfaceParityExample` to `@ontrails/testing`,
+  normalizing success payloads and public TrailsError category/code pairs
+  across CLI, MCP, and HTTP. Extended the CLI and MCP harness result shapes so
+  parity can read projected errors and MCP metadata without transport-specific
+  assertions. Wired `apps/trails-demo` into the new parity gate with
+  deterministic per-surface resources and explicit exclusions for generated
+  identity examples. Added a whitespace-in-JSON regression so the CLI leg does
+  not false-fail examples whose string input contains spaces. Updated the
+  testing README, README snippet checker stub, and branch-local
+  `@ontrails/testing` changeset.
+- 2026-05-13T17:31Z: Completed full tip-of-stack local verification at
+  `6fec6071f5f6e6dc3a17f46cda9273db861d3fb9`. `bun scripts/adr.ts map`
+  initially regenerated `docs/adr/decision-map.json` with cumulative stack
+  reference updates; the generated artifact was committed at the stack tip, and
+  rerunning the map left the worktree clean. The full gate list passed,
+  including ADR checks, typecheck, tests, lint, ast-grep, build, format, the
+  integrated `bun run check`, dead-code, no-publish `publish:check`, and
+  `git diff --check`.
+- 2026-05-13T17:58Z: Submitted the full stack as PRs #502 through #512, marked
+  each PR ready after CI went green, then processed Greptile P1/P2 feedback
+  bottom-up without `gt absorb`. Local fixes now cover registry preflight
+  concurrency and unreadable workspace handling (#503), ADR amended-status index
+  preservation (#505), subshell-scoped release-runbook smoke commands (#506),
+  fenced-code markdown anchor parsing and single-pass file discovery (#507),
+  duplicate README snippet config detection (#508), robust public API example
+  detection and unsupported re-export failures (#509), HTTP harness Result
+  narrowing and PUT/PATCH helpers (#510), discriminated surface projection
+  output schemas (#511), and per-surface context preservation plus MCP
+  structuredContent normalization (#512). No package publish, registry mutation,
+  merge, merge queue label, or `gt absorb` command was performed.
+- 2026-05-13T18:09Z: Processed a second Greptile P1 on PR #506 after the first
+  v2 resubmit. The stable-cutover runbook no longer asks the version PR branch
+  to run `bun install` against an unpublished stable package range. It now runs
+  the install-backed generated-app smoke before exiting prerelease mode, limits
+  the post-version PR branch smoke to scaffold/package-range inspection, and
+  keeps the registry-backed stable install proof in the post-publish section.
 
 ## Verification Log
 
@@ -320,6 +361,28 @@ Record focused branch checks and full tip gate results here.
 | `trl-706-expose-complete-shipped-surface-projection-inventory-for` | `bun test apps/trails` | Passed, 381 tests and 1227 assertions. |
 | `trl-706-expose-complete-shipped-surface-projection-inventory-for` | `bun scripts/check-changeset-gate.ts --changed-files <(git diff --cached --name-only)` | Passed for `@ontrails/trails` with `.changeset/bright-surface-inventory.md`. |
 | `trl-706-expose-complete-shipped-surface-projection-inventory-for` | `bun run check` | Passed; includes lint, ast-grep, vocab audit, format, typecheck, docs link/snippet/API example checks, scaffold checks, Warden, and dead-code gate. |
+| `trl-705-add-example-driven-climcphttp-parity-runner-and-ci-gate` | `bun test packages/testing/src/__tests__/surface-parity.test.ts --bail` | Passed, 2 tests and 2 assertions, including a spaced-string `--input-json` regression. |
+| `trl-705-add-example-driven-climcphttp-parity-runner-and-ci-gate` | `bun test apps/trails-demo/__tests__/surface-parity.test.ts --bail` | Passed, 10 tests, 2 explicit skips, and 20 assertions. |
+| `trl-705-add-example-driven-climcphttp-parity-runner-and-ci-gate` | `bun test packages/testing` | Passed, 159 tests and 306 assertions. |
+| `trl-705-add-example-driven-climcphttp-parity-runner-and-ci-gate` | `bun test apps/trails-demo` | Passed, 74 tests, 2 explicit skips, and 228 assertions. |
+| `trl-705-add-example-driven-climcphttp-parity-runner-and-ci-gate` | `bun run --cwd packages/testing typecheck` | Passed. |
+| `trl-705-add-example-driven-climcphttp-parity-runner-and-ci-gate` | `bun run typecheck` | Passed; 21 packages. |
+| `trl-705-add-example-driven-climcphttp-parity-runner-and-ci-gate` | `bun run format:check` | Passed. |
+| `trl-705-add-example-driven-climcphttp-parity-runner-and-ci-gate` | `bun run docs:snippets` | Passed; checked all 21 package/app/adapter READMEs after adding the new testing README example and stub export. |
+| `trl-705-add-example-driven-climcphttp-parity-runner-and-ci-gate` | `bun run check` | Passed; includes lint, ast-grep, vocab audit, format, typecheck, docs link/snippet/API example checks, scaffold checks, Warden, and dead-code gate. |
+| `trl-705-add-example-driven-climcphttp-parity-runner-and-ci-gate` | `git diff --check` | Passed. |
+| `tip @ 6fec6071f5f6e6dc3a17f46cda9273db861d3fb9` | `bun scripts/adr.ts map` | Passed; after committing the regenerated `docs/adr/decision-map.json`, rerunning the map left the worktree clean. |
+| `tip @ 6fec6071f5f6e6dc3a17f46cda9273db861d3fb9` | `bun scripts/adr.ts check` | Passed; 0 errors, 0 warnings. |
+| `tip @ 6fec6071f5f6e6dc3a17f46cda9273db861d3fb9` | `bun run typecheck` | Passed; 21 packages. |
+| `tip @ 6fec6071f5f6e6dc3a17f46cda9273db861d3fb9` | `bun run test` | Passed; 36 Turbo tasks. |
+| `tip @ 6fec6071f5f6e6dc3a17f46cda9273db861d3fb9` | `bun run lint` | Passed; 22 Turbo tasks. |
+| `tip @ 6fec6071f5f6e6dc3a17f46cda9273db861d3fb9` | `bun run lint:ast-grep` | Passed. |
+| `tip @ 6fec6071f5f6e6dc3a17f46cda9273db861d3fb9` | `bun run build` | Passed; 21 Turbo tasks. |
+| `tip @ 6fec6071f5f6e6dc3a17f46cda9273db861d3fb9` | `bun run format:check` | Passed. |
+| `tip @ 6fec6071f5f6e6dc3a17f46cda9273db861d3fb9` | `bun run check` | Passed; includes lint, ast-grep, vocab audit, format, typecheck, docs link/snippet/API example checks, scaffold checks, Warden, and dead-code gate. |
+| `tip @ 6fec6071f5f6e6dc3a17f46cda9273db861d3fb9` | `bun run dead-code` | Passed. |
+| `tip @ 6fec6071f5f6e6dc3a17f46cda9273db861d3fb9` | `bun run publish:check` | Passed; all public package pack checks passed at `1.0.0-beta.16`. No publish command was run. |
+| `tip @ 6fec6071f5f6e6dc3a17f46cda9273db861d3fb9` | `git diff --check` | Passed. |
 
 ## Review Feedback
 
@@ -327,7 +390,16 @@ Record P0/P1/P2 feedback, owning branches, fixes, replies, and unresolved P3s.
 
 | Source | Branch | Severity | Finding | Resolution |
 | --- | --- | --- | --- | --- |
-| TBD | TBD | TBD | TBD | TBD |
+| Greptile | `TRL-714` / PR #503 | P2 | Registry preflight probed workspaces sequentially and silently skipped unreadable workspace directories. | Addressed locally with concurrent workspace probes, ENOENT-only missing-parent handling, and focused tests. |
+| Greptile | `TRL-712` / PR #505 | P2 | ADR index regeneration dropped amended status metadata for ADR-0043. | Addressed locally by preserving `amended` frontmatter in index status rendering and regenerating ADR indexes. |
+| Greptile | `TRL-711` / PR #506 | P1 | Stable-cutover smoke commands changed shell cwd for subsequent commands. | Addressed locally by wrapping both generated-app smoke sequences in subshells. |
+| Greptile | `TRL-711` / PR #506 | P1 | Version PR smoke would install generated `^1.0.0` dependencies before stable packages were published. | Addressed locally by moving the install-backed generated-app smoke before prerelease exit and keeping post-version scaffold inspection separate from the post-publish registry smoke. |
+| Greptile | `TRL-709` / PR #507 | P1/P2 | Markdown anchor collection counted fenced headings, tests depended on live repository files, and CLI scanned files twice. | Addressed locally with shared fence-state parsing, injectable filesystem hooks, single-pass file reuse, and focused tests. |
+| Greptile | `TRL-708` / PR #508 | P2 | Duplicate README snippet checker configs were not detected. | Addressed locally by failing coverage on duplicate config paths with focused tests. |
+| Greptile | `TRL-710` / PR #509 | P2 | Public API example detection only inspected the nearest leading comment and star exports were silently omitted. | Addressed locally by scanning all leading comments for examples and failing unsupported re-export forms. |
+| Greptile | `TRL-704` / PR #510 | P1/P2 | HTTP harness could misclassify user payloads as webhook parse Results and lacked PUT/PATCH helpers. | Addressed locally with webhook-route-only Result narrowing and PUT/PATCH helpers/tests. |
+| Greptile | `TRL-706` / PR #511 | P2 | Surface projection output schema flattened CLI/MCP/HTTP invariants. | Addressed locally with a discriminated union keyed by `surface` and survey tests. |
+| Greptile | `TRL-705` / PR #512 | P1/P2 | Surface parity runner clobbered per-surface contexts, ignored MCP structuredContent, and raised a parallelization suggestion. | Addressed locally by merging base and per-surface context, preferring MCP structuredContent with `{ data }` unwrapping, and documenting why CLI output capture keeps surface execution ordered. |
 
 ## Publish / Registry Safety
 

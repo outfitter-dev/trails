@@ -12,6 +12,7 @@ import type { McpExtra, DeriveMcpToolsOptions } from '@ontrails/mcp';
 import type {
   AnyTrail,
   Logger,
+  ResourceOverrideMap,
   Topo,
   TraceFn,
   TrailContext,
@@ -103,6 +104,13 @@ export interface CliHarness {
 
 /** The result of a CLI harness command execution. */
 export interface CliHarnessResult {
+  readonly error?:
+    | {
+        readonly category: string;
+        readonly code: string;
+        readonly message: string;
+      }
+    | undefined;
   readonly exitCode: number;
   /** Parsed JSON output if --output json was used. */
   readonly json?: unknown | undefined;
@@ -133,6 +141,8 @@ export interface McpHarness {
 export interface McpHarnessResult {
   readonly content: unknown;
   readonly isError: boolean;
+  readonly meta?: Record<string, unknown> | undefined;
+  readonly structuredContent?: Record<string, unknown> | undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -218,6 +228,41 @@ export interface HttpHarnessResult {
   readonly ok: boolean;
   readonly status: number;
 }
+
+// ---------------------------------------------------------------------------
+// Surface parity
+// ---------------------------------------------------------------------------
+
+export type SurfaceParitySurface = 'cli' | 'mcp' | 'http';
+
+export interface SurfaceParityExclusion {
+  /** Optional example name. Omit to exclude every example for the trail. */
+  readonly example?: string | undefined;
+  /** Human-readable reason shown in the skipped test name. */
+  readonly reason: string;
+  /** Trail ID to exclude. */
+  readonly trailId: string;
+}
+
+export interface SurfaceParityOptions extends TestAllEstablishedOptions {
+  readonly createResources?:
+    | (() => ResourceOverrideMap | Promise<ResourceOverrideMap>)
+    | undefined;
+  readonly exclusions?: readonly SurfaceParityExclusion[] | undefined;
+}
+
+export type NormalizedSurfaceParityResult =
+  | {
+      readonly ok: true;
+      readonly value: unknown;
+    }
+  | {
+      readonly error: {
+        readonly category: string;
+        readonly code: string;
+      };
+      readonly ok: false;
+    };
 
 // ---------------------------------------------------------------------------
 // Established verification
