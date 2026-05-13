@@ -81,6 +81,13 @@ trails survey resource db.main
 trails survey signal user.created
 ```
 
+Use `trails survey surfaces` when a blind agent or parity check needs the
+complete shipped-surface projection inventory. The report lists every public
+trail eligible for CLI, MCP, and HTTP, including CLI command paths, MCP tool
+names, HTTP method/path pairs, and whether each projection came from explicit
+authored surface metadata or default derivation. WebSocket is still planned and
+is intentionally reported as excluded until a public package/API exists.
+
 ### `trails topo history`
 
 List saved topo states (pinned and recent autosaves).

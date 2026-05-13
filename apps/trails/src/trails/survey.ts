@@ -41,23 +41,30 @@ import {
 import {
   activationOverviewOutput,
   resourceDetailOutput,
+  shippedSurfaceInventoryOutput,
   signalDetailOutput,
   trailDetailOutput,
 } from './topo-output-schemas.js';
 import { createIsolatedExampleInput } from './topo-support.js';
-import { briefReportSchema } from './topo-reports.js';
+import {
+  briefReportSchema,
+  deriveShippedSurfaceProjectionInventory,
+} from './topo-reports.js';
 import type { SurfaceLayerNames } from './topo-reports.js';
 
 export {
   briefReportSchema,
   deriveBriefReport,
   deriveResourceDetail,
+  deriveShippedSurfaceProjectionInventory,
   deriveSignalDetail,
   deriveSurveyList,
   deriveTrailDetail,
 } from './topo-reports.js';
 export type {
   BriefReport,
+  ShippedSurfaceInventoryReport,
+  ShippedSurfaceProjection,
   SignalDetailReport,
   SurfaceLayerNames,
   SurveyListReport,
@@ -277,6 +284,9 @@ const buildSurveySignalDetail = (
     ? Result.err(new NotFoundError(`Signal not found: ${id}`))
     : Result.ok(detail);
 };
+
+const buildSurveySurfaceInventory = (app: Topo): Result<object, Error> =>
+  Result.ok(deriveShippedSurfaceProjectionInventory(app));
 
 interface SurveyInput {
   id?: string | undefined;
@@ -504,6 +514,24 @@ export const surveyBriefTrail = trail('survey.brief', {
   input: moduleInputSchema,
   intent: 'read',
   output: briefReportSchema,
+});
+
+export const surveySurfacesTrail = trail('survey.surfaces', {
+  blaze: async (input, ctx) =>
+    withResolvedSurveyApp(input, ctx.cwd, (app) =>
+      buildSurveySurfaceInventory(app)
+    ),
+  description: 'Inventory shipped surface projections',
+  examples: [
+    {
+      description: 'Show CLI, MCP, and HTTP projections for public trails',
+      input: createIsolatedExampleInput('survey-surfaces'),
+      name: 'Shipped surface inventory',
+    },
+  ],
+  input: moduleInputSchema,
+  intent: 'read',
+  output: shippedSurfaceInventoryOutput,
 });
 
 export const surveyDiffTrail = trail('survey.diff', {

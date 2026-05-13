@@ -1,5 +1,13 @@
-import { DETOUR_MAX_ATTEMPTS_CAP, zodToJsonSchema } from '@ontrails/core';
+import {
+  DETOUR_MAX_ATTEMPTS_CAP,
+  deriveCliPath,
+  filterSurfaceTrails,
+  zodToJsonSchema,
+} from '@ontrails/core';
 import type { AnyTrail, Signal, Topo } from '@ontrails/core';
+import { deriveHttpMethod } from '@ontrails/http';
+import type { HttpMethod } from '@ontrails/http';
+import { deriveToolName } from '@ontrails/mcp';
 import { deriveTopoGraph } from '@ontrails/topographer';
 import type {
   JsonSchema,
@@ -65,6 +73,52 @@ export type SurfaceLayerKey = 'cli' | 'http' | 'mcp';
 export type SurfaceLayerNames = Readonly<
   Record<SurfaceLayerKey, readonly string[]>
 >;
+
+export type ShippedSurfaceKey = 'cli' | 'mcp' | 'http';
+
+export type SurfaceProjectionSource = 'authored' | 'default-derived';
+
+export type ShippedSurfaceProjection =
+  | {
+      readonly commandPath: readonly string[];
+      readonly derivedName: string;
+      readonly method: null;
+      readonly source: SurfaceProjectionSource;
+      readonly surface: 'cli';
+      readonly trailId: string;
+    }
+  | {
+      readonly derivedName: string;
+      readonly method: null;
+      readonly source: SurfaceProjectionSource;
+      readonly surface: 'mcp';
+      readonly toolName: string;
+      readonly trailId: string;
+    }
+  | {
+      readonly derivedName: string;
+      readonly method: HttpMethod;
+      readonly path: string;
+      readonly source: SurfaceProjectionSource;
+      readonly surface: 'http';
+      readonly trailId: string;
+    };
+
+export interface ShippedSurfaceInventoryReport {
+  readonly count: number;
+  readonly excludedSurfaces: readonly {
+    readonly reason: string;
+    readonly status: 'planned';
+    readonly surface: 'websocket';
+  }[];
+  readonly projections: readonly ShippedSurfaceProjection[];
+  readonly shippedSurfaces: readonly ShippedSurfaceKey[];
+  readonly trails: readonly {
+    readonly explicitSurfaces: readonly string[];
+    readonly projections: readonly ShippedSurfaceProjection[];
+    readonly trailId: string;
+  }[];
+}
 
 type TopoGraphContourEntry = TopoGraphEntry & { readonly kind: 'contour' };
 
@@ -155,12 +209,7 @@ export interface TrailDetailReport {
   readonly pattern: string | null;
   readonly safety: string;
   readonly resources: readonly string[];
-  readonly surfaceProjections: readonly {
-    readonly derivedName: string;
-    readonly method: string | null;
-    readonly surface: string;
-    readonly trailId: string;
-  }[];
+  readonly surfaceProjections: readonly ShippedSurfaceProjection[];
   readonly surfaces: readonly string[];
 }
 
@@ -454,25 +503,158 @@ const trailActivationEdgesFromTopoGraph = (
   topoGraph?.activationGraph.edges.filter((edge) => edge.trailId === trailId) ??
   fallback;
 
-const deriveSurfaceProjections = (
+const SHIPPED_SURFACES = ['cli', 'mcp', 'http'] as const;
+
+const PLANNED_SURFACE_EXCLUSIONS = [
+  {
+    reason: 'WebSocket is planned, but no public package or API ships yet.',
+    status: 'planned' as const,
+    surface: 'websocket' as const,
+  },
+] as const;
+
+const surfaceOrder = (surface: ShippedSurfaceKey): number =>
+  SHIPPED_SURFACES.indexOf(surface);
+
+const sortSurfaceProjections = (
+  projections: readonly ShippedSurfaceProjection[]
+): readonly ShippedSurfaceProjection[] =>
+  projections.toSorted(
+    (a, b) =>
+      a.trailId.localeCompare(b.trailId) ||
+      surfaceOrder(a.surface) - surfaceOrder(b.surface)
+  );
+
+const explicitSurfacesForEntry = (
   entry: TopoGraphEntry | undefined
-): TrailDetailReport['surfaceProjections'] => {
-  if (entry === undefined) {
+): readonly string[] => entry?.surfaces ?? [];
+
+const projectionSource = (
+  entry: TopoGraphEntry | undefined,
+  surface: ShippedSurfaceKey
+): SurfaceProjectionSource =>
+  explicitSurfacesForEntry(entry).includes(surface)
+    ? 'authored'
+    : 'default-derived';
+
+const deriveHttpPath = (trailId: string): string =>
+  `/${trailId.replaceAll('.', '/')}`;
+
+const isSurfaceEligibleTrail = (app: Topo, trail: AnyTrail): boolean =>
+  filterSurfaceTrails([trail]).length > 0 &&
+  app.trails.get(trail.id) !== undefined;
+
+export const deriveShippedSurfaceProjectionsForTrail = (
+  app: Topo,
+  trail: AnyTrail,
+  topoGraph?: TopoGraph | undefined
+): readonly ShippedSurfaceProjection[] => {
+  if (!isSurfaceEligibleTrail(app, trail)) {
     return [];
   }
 
-  const cliProjection =
-    entry.cli === undefined
-      ? []
-      : [
-          {
-            derivedName: entry.cli.path.join(' '),
-            method: null,
-            surface: 'cli',
-            trailId: entry.id,
-          },
-        ];
-  return cliProjection.toSorted((a, b) => a.surface.localeCompare(b.surface));
+  const entry = findTopoEntry(
+    topoGraph ?? deriveTopoGraph(app),
+    trail.id,
+    'trail'
+  );
+  const commandPath = deriveCliPath(trail.id);
+  const httpMethod = deriveHttpMethod(trail.intent);
+  const httpPath = deriveHttpPath(trail.id);
+  const mcpToolName = deriveToolName(app.name, trail.id);
+
+  return sortSurfaceProjections([
+    {
+      commandPath,
+      derivedName: commandPath.join(' '),
+      method: null,
+      source: projectionSource(entry, 'cli'),
+      surface: 'cli',
+      trailId: trail.id,
+    },
+    {
+      derivedName: mcpToolName,
+      method: null,
+      source: projectionSource(entry, 'mcp'),
+      surface: 'mcp',
+      toolName: mcpToolName,
+      trailId: trail.id,
+    },
+    {
+      derivedName: httpPath,
+      method: httpMethod,
+      path: httpPath,
+      source: projectionSource(entry, 'http'),
+      surface: 'http',
+      trailId: trail.id,
+    },
+  ]);
+};
+
+const deriveFallbackSurfaceProjections = (
+  entry: TopoGraphEntry | undefined
+): readonly ShippedSurfaceProjection[] => {
+  if (entry?.cli === undefined) {
+    return [];
+  }
+
+  return [
+    {
+      commandPath: entry.cli.path,
+      derivedName: entry.cli.path.join(' '),
+      method: null,
+      source: projectionSource(entry, 'cli'),
+      surface: 'cli',
+      trailId: entry.id,
+    },
+  ];
+};
+
+export const deriveShippedSurfaceProjectionInventory = (
+  app: Topo
+): ShippedSurfaceInventoryReport => {
+  const topoGraph = deriveTopoGraph(app);
+  const trails = filterSurfaceTrails(app.list()).map((trail) => {
+    const entry = findTopoEntry(topoGraph, trail.id, 'trail');
+    const projections = deriveShippedSurfaceProjectionsForTrail(
+      app,
+      trail,
+      topoGraph
+    );
+
+    return {
+      explicitSurfaces: explicitSurfacesForEntry(entry),
+      projections,
+      trailId: trail.id,
+    };
+  });
+  const projections = sortSurfaceProjections(
+    trails.flatMap((trail) => trail.projections)
+  );
+
+  return {
+    count: trails.length,
+    excludedSurfaces: PLANNED_SURFACE_EXCLUSIONS,
+    projections,
+    shippedSurfaces: SHIPPED_SURFACES,
+    trails: trails.toSorted((a, b) => a.trailId.localeCompare(b.trailId)),
+  };
+};
+
+const deriveResolvedSurfaceProjections = (
+  app: Topo | undefined,
+  trailId: string,
+  topoEntry: TopoGraphEntry | undefined,
+  topoGraph: TopoGraph | undefined
+): readonly ShippedSurfaceProjection[] => {
+  if (app === undefined) {
+    return deriveFallbackSurfaceProjections(topoEntry);
+  }
+
+  const trail = app.trails.get(trailId);
+  return trail === undefined
+    ? deriveFallbackSurfaceProjections(topoEntry)
+    : deriveShippedSurfaceProjectionsForTrail(app, trail, topoGraph);
 };
 
 const deriveResolvedTrailGraphDetail = (
@@ -525,7 +707,12 @@ const deriveResolvedTrailGraphDetail = (
     input: topoEntry?.input ?? null,
     layers: topoEntry?.layers ?? [],
     output: topoEntry?.output ?? null,
-    surfaceProjections: deriveSurfaceProjections(topoEntry),
+    surfaceProjections: deriveResolvedSurfaceProjections(
+      app,
+      trailId,
+      topoEntry,
+      topoGraph
+    ),
     surfaces: topoEntry?.surfaces ?? [],
   };
 };

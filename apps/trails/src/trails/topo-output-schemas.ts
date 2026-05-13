@@ -86,11 +86,55 @@ const contourDetailOutput = z.object({
   surfaces: z.array(z.string()).readonly(),
 });
 
-const surfaceProjectionOutput = z.object({
+const surfaceProjectionBaseOutput = {
   derivedName: z.string(),
-  method: z.string().nullable(),
-  surface: z.string(),
+  source: z.enum(['authored', 'default-derived']),
   trailId: z.string(),
+} as const;
+
+export const surfaceProjectionOutput = z.discriminatedUnion('surface', [
+  z.object({
+    ...surfaceProjectionBaseOutput,
+    commandPath: z.array(z.string()).readonly(),
+    method: z.null(),
+    surface: z.literal('cli'),
+  }),
+  z.object({
+    ...surfaceProjectionBaseOutput,
+    method: z.null(),
+    surface: z.literal('mcp'),
+    toolName: z.string(),
+  }),
+  z.object({
+    ...surfaceProjectionBaseOutput,
+    method: z.string(),
+    path: z.string(),
+    surface: z.literal('http'),
+  }),
+]);
+
+export const shippedSurfaceInventoryOutput = z.object({
+  count: z.number(),
+  excludedSurfaces: z
+    .array(
+      z.object({
+        reason: z.string(),
+        status: z.literal('planned'),
+        surface: z.literal('websocket'),
+      })
+    )
+    .readonly(),
+  projections: z.array(surfaceProjectionOutput).readonly(),
+  shippedSurfaces: z.array(z.enum(['cli', 'mcp', 'http'])).readonly(),
+  trails: z
+    .array(
+      z.object({
+        explicitSurfaces: z.array(z.string()).readonly(),
+        projections: z.array(surfaceProjectionOutput).readonly(),
+        trailId: z.string(),
+      })
+    )
+    .readonly(),
 });
 
 export const trailDetailOutput = z.object({

@@ -34,6 +34,7 @@ import { z } from 'zod';
 
 import {
   deriveBriefReport,
+  deriveShippedSurfaceProjectionInventory,
   deriveSignalDetail,
   deriveSurveyList,
   deriveTrailDetail,
@@ -41,6 +42,7 @@ import {
   surveyDiffTrail,
   surveyResourceTrail,
   surveySignalTrail,
+  surveySurfacesTrail,
   surveyTrail,
   surveyTrailDetailTrail,
 } from '../trails/survey.js';
@@ -50,10 +52,15 @@ import {
   buildCurrentTrailDetail,
   readSurfaceLayerNamesFromContext,
 } from '../trails/topo-read-support.js';
-import { trailDetailOutput } from '../trails/topo-output-schemas.js';
+import {
+  shippedSurfaceInventoryOutput,
+  surfaceProjectionOutput,
+  trailDetailOutput,
+} from '../trails/topo-output-schemas.js';
 import { topoCompileTrail } from '../trails/topo-compile.js';
 import type {
   BriefReport,
+  ShippedSurfaceInventoryReport,
   SignalDetailReport,
   SurveyListReport,
   TrailDetailReport,
@@ -376,6 +383,31 @@ describe('trails survey brief', () => {
       rmSync(dir, { force: true, recursive: true });
     }
   });
+
+  test('survey.surfaces returns the shipped projection inventory directly', async () => {
+    const dir = repoTempDir();
+
+    try {
+      writeSurveyAppFixture(dir);
+
+      const report = expectOk(
+        await surveySurfacesTrail.blaze({ module: './src/app.ts' }, {
+          cwd: dir,
+        } as never)
+      ) as ShippedSurfaceInventoryReport;
+
+      expect(report).toMatchObject({
+        count: 1,
+        shippedSurfaces: ['cli', 'mcp', 'http'],
+      });
+      expect(report.projections).toHaveLength(3);
+      expect(shippedSurfaceInventoryOutput.safeParse(report).success).toBe(
+        true
+      );
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
 });
 
 describe('trails survey detail', () => {
@@ -644,14 +676,7 @@ describe('trails survey detail', () => {
           scope: 'trail',
         },
       ],
-      surfaceProjections: [
-        {
-          derivedName: 'entity process',
-          method: null,
-          surface: 'cli',
-          trailId: 'entity.process',
-        },
-      ],
+      surfaceProjections: [],
       surfaces: [],
     });
     expect(detail.contourDetails).toEqual([
@@ -716,7 +741,7 @@ describe('trails survey detail', () => {
     ]);
   });
 
-  test('trail detail keeps non-CLI authored surfaces out of partial projection rows', () => {
+  test('trail detail reports complete shipped projections with authored provenance', () => {
     const httpVisible = trail('entity.http', {
       blaze: () => Result.ok({ ok: true }),
       input: z.object({}),
@@ -734,12 +759,118 @@ describe('trails survey detail', () => {
     expect(detail.surfaces).toEqual(['http']);
     expect(detail.surfaceProjections).toEqual([
       {
+        commandPath: ['entity', 'http'],
         derivedName: 'entity http',
         method: null,
+        source: 'default-derived',
         surface: 'cli',
         trailId: 'entity.http',
       },
+      {
+        derivedName: 'authored_surface_app_entity_http',
+        method: null,
+        source: 'default-derived',
+        surface: 'mcp',
+        toolName: 'authored_surface_app_entity_http',
+        trailId: 'entity.http',
+      },
+      {
+        derivedName: '/entity/http',
+        method: 'POST',
+        path: '/entity/http',
+        source: 'authored',
+        surface: 'http',
+        trailId: 'entity.http',
+      },
     ]);
+  });
+
+  test('surface projection output enforces surface-specific fields', () => {
+    expect(
+      surfaceProjectionOutput.safeParse({
+        commandPath: ['entity', 'show'],
+        derivedName: 'entity show',
+        method: null,
+        source: 'default-derived',
+        surface: 'cli',
+        trailId: 'entity.show',
+      }).success
+    ).toBe(true);
+    expect(
+      surfaceProjectionOutput.safeParse({
+        derivedName: '/entity/show',
+        method: 'GET',
+        source: 'default-derived',
+        surface: 'http',
+        trailId: 'entity.show',
+      }).success
+    ).toBe(false);
+  });
+
+  test('shipped surface inventory covers public trails and planned websocket exclusion', () => {
+    const internal = trail('entity.internal', {
+      blaze: () => Result.ok({ ok: true }),
+      input: z.object({}),
+      output: z.object({ ok: z.boolean() }),
+      visibility: 'internal',
+    });
+    const rebuildSchedule = schedule('schedule.entity.rebuild', {
+      cron: '0 5 * * *',
+    });
+    const activated = trail('entity.activated', {
+      blaze: () => Result.ok({ ok: true }),
+      input: z.object({}),
+      on: [rebuildSchedule],
+      output: z.object({ ok: z.boolean() }),
+    });
+    const show = trail('entity.show', {
+      blaze: () => Result.ok({ ok: true }),
+      input: z.object({}),
+      intent: 'read',
+      output: z.object({ ok: z.boolean() }),
+      surfaces: ['mcp'],
+    } satisfies TrailSpec<unknown, { readonly ok: boolean }> & {
+      readonly surfaces: readonly string[];
+    });
+    const inventoryApp = topo('inventory-app', { activated, internal, show });
+
+    const report = deriveShippedSurfaceProjectionInventory(inventoryApp);
+
+    expect(report.shippedSurfaces).toEqual(['cli', 'mcp', 'http']);
+    expect(report.excludedSurfaces).toEqual([
+      expect.objectContaining({
+        status: 'planned',
+        surface: 'websocket',
+      }),
+    ]);
+    expect(report.trails.map((row) => row.trailId)).toEqual(['entity.show']);
+    expect(report.projections).toEqual([
+      {
+        commandPath: ['entity', 'show'],
+        derivedName: 'entity show',
+        method: null,
+        source: 'default-derived',
+        surface: 'cli',
+        trailId: 'entity.show',
+      },
+      {
+        derivedName: 'inventory_app_entity_show',
+        method: null,
+        source: 'authored',
+        surface: 'mcp',
+        toolName: 'inventory_app_entity_show',
+        trailId: 'entity.show',
+      },
+      {
+        derivedName: '/entity/show',
+        method: 'GET',
+        path: '/entity/show',
+        source: 'default-derived',
+        surface: 'http',
+        trailId: 'entity.show',
+      },
+    ]);
+    expect(shippedSurfaceInventoryOutput.safeParse(report).success).toBe(true);
   });
 
   test('trail detail clamps detour maxAttempts to the owner cap', () => {
@@ -799,6 +930,24 @@ describe('trails survey lookup', () => {
       expect(parsedOverview.data.rootDir).toBe(overviewInput?.rootDir);
       expect(parsedDetail.data.rootDir).toBe(detailInput?.rootDir);
       expect(parsedBrief.data.rootDir).toBe(briefInput?.rootDir);
+    }
+  });
+
+  test('surface inventory survey example keeps its rootDir through input validation', () => {
+    const example = surveySurfacesTrail.examples?.find(
+      (item) => item.name === 'Shipped surface inventory'
+    );
+    const input = example?.input as
+      | { readonly module?: string; readonly rootDir?: string }
+      | undefined;
+
+    expect(input?.rootDir).toBeDefined();
+
+    const parsed = surveySurfacesTrail.input.safeParse(input);
+
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.rootDir).toBe(input?.rootDir);
     }
   });
 
@@ -1442,6 +1591,11 @@ describe('trails survey output schema', () => {
     ).toBe(true);
     expect(
       surveyBriefTrail.output.safeParse(deriveBriefReport(app)).success
+    ).toBe(true);
+    expect(
+      surveySurfacesTrail.output.safeParse(
+        deriveShippedSurfaceProjectionInventory(app)
+      ).success
     ).toBe(true);
     expect(
       surveyDiffTrail.output.safeParse({

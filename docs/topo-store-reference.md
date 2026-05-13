@@ -173,9 +173,12 @@ surface graph. In the current v1 posture it records CLI-derived rows only:
 `surface = 'cli'`, the CLI command name in `derived_name`, and `method = NULL`.
 Schema-rich contract detail lives in the saved `TopoGraph`
 (`topo_exports.topo_graph`) and the typed `store.topoGraph` / `store.entries`
-accessors. Today the TopoGraph's surface-related facts are the authored
-`surfaces` list and CLI path metadata; complete multi-surface projection rows
-remain future work.
+accessors. The TopoGraph's durable surface-related facts are the authored
+`surfaces` list and CLI path metadata. Complete shipped-surface projection
+inventory is derived at survey/report time from the loaded topo; use
+`trails survey surfaces` or trail detail `surfaceProjections` for the CLI, MCP,
+and HTTP projection matrix. WebSocket remains planned and excluded until a
+public package/API exists.
 
 ```sql
 CREATE TABLE topo_surfaces (
@@ -368,7 +371,9 @@ arrays. It also carries resolved `TopoGraph` contract facts for blind agents:
 `contourDetails`, `activationContext`, `activationEdges`, `activationSources`,
 `fieldOverrides`, `layers`, and `governance`. `surfaceProjections` are the
 operational rows from `topo_surfaces`; `surfaces` and the schema-rich contract
-fields come from the saved `TopoGraph`.
+fields come from the saved `TopoGraph`. For the complete shipped CLI/MCP/HTTP
+surface inventory, use the app-level survey projection instead of treating the
+operational rows as canonical.
 
 Detailed examples preserve `expected`, `expectedMatch`, and structured signal
 assertions when they are JSON-serializable. Detours preserve authored recovery

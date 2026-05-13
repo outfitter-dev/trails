@@ -48,7 +48,7 @@ before handoff or merge readiness.
 | 7 | `TRL-708` | `trl-708-expand-readme-typescript-snippet-verification-beyond-tracing` | TBD | Focused checks passed |
 | 8 | `TRL-710` | `trl-710-create-public-api-example-coverage-inventory-and-gate` | TBD | Focused checks passed |
 | 9 | `TRL-704` | `trl-704-add-http-surface-harness-and-include-it-in` | TBD | Focused checks passed |
-| 10 | `TRL-706` | `trl-706-expose-complete-shipped-surface-projection-inventory-for` | TBD | Not started |
+| 10 | `TRL-706` | `trl-706-expose-complete-shipped-surface-projection-inventory-for` | TBD | Focused checks passed |
 | 11 | `TRL-705` | `trl-705-add-example-driven-climcphttp-parity-runner-and-ci-gate` | TBD | Not started |
 
 ## Tracker Mutations
@@ -73,6 +73,7 @@ issues created or updated during execution.
 | `TRL-708` | Changed status to `In Progress`. | Branch execution started. |
 | `TRL-710` | Changed status to `In Progress`. | Branch execution started. |
 | `TRL-704` | Changed status to `In Progress`. | Branch execution started. |
+| `TRL-706` | Changed status to `In Progress`. | Branch execution started. |
 
 ## Local Review Reports
 
@@ -233,6 +234,16 @@ ready waves, and remote review turns here.
   projection validation alongside CLI and MCP. Updated testing docs, the
   package README, peer metadata, the README snippet checker stub, and a
   branch-local `@ontrails/testing` changeset.
+- 2026-05-13T17:07Z: Started `TRL-706` on
+  `trl-706-expose-complete-shipped-surface-projection-inventory-for` and added
+  a survey/report-time shipped surface inventory. The new helper keeps
+  `@ontrails/topographer`'s persisted `topo_surfaces` rows operational rather
+  than canonical, while app-level survey output now derives CLI command paths,
+  MCP tool names, and HTTP method/path projections for every surface-eligible
+  public trail. `survey.surfaces` exposes the inventory directly, trail detail
+  `surfaceProjections` now reports all shipped CLI/MCP/HTTP projections with
+  authored-vs-default provenance, and docs call out WebSocket as planned and
+  excluded until a public package/API exists.
 
 ## Verification Log
 
@@ -299,6 +310,16 @@ Record focused branch checks and full tip gate results here.
 | `trl-704-add-http-surface-harness-and-include-it-in` | `bun run check` | Passed; includes lint, ast-grep, vocab audit, format, typecheck, docs link/snippet/API example checks, scaffold checks, Warden, and dead-code gate. |
 | `trl-704-add-http-surface-harness-and-include-it-in` | `bun scripts/check-changeset-gate.ts --changed-files <(git diff --cached --name-only)` | Passed for `@ontrails/testing` with `.changeset/soft-http-harness.md`. |
 | `trl-704-add-http-surface-harness-and-include-it-in` | `git diff --check` | Passed. |
+| `trl-706-expose-complete-shipped-surface-projection-inventory-for` | `bun test apps/trails/src/__tests__/survey.test.ts --bail` | Passed, 47 tests and 154 assertions. |
+| `trl-706-expose-complete-shipped-surface-projection-inventory-for` | `bun run --cwd apps/trails typecheck` | Passed. |
+| `trl-706-expose-complete-shipped-surface-projection-inventory-for` | `bun test packages/topographer` | Passed, 121 tests and 422 assertions. |
+| `trl-706-expose-complete-shipped-surface-projection-inventory-for` | `bun run typecheck` | Passed; 21 packages. |
+| `trl-706-expose-complete-shipped-surface-projection-inventory-for` | `bun run format:check` | Passed. |
+| `trl-706-expose-complete-shipped-surface-projection-inventory-for` | `bun run docs:links` | Passed; checked 113 markdown files. |
+| `trl-706-expose-complete-shipped-surface-projection-inventory-for` | `git diff --check` | Passed. |
+| `trl-706-expose-complete-shipped-surface-projection-inventory-for` | `bun test apps/trails` | Passed, 381 tests and 1227 assertions. |
+| `trl-706-expose-complete-shipped-surface-projection-inventory-for` | `bun scripts/check-changeset-gate.ts --changed-files <(git diff --cached --name-only)` | Passed for `@ontrails/trails` with `.changeset/bright-surface-inventory.md`. |
+| `trl-706-expose-complete-shipped-surface-projection-inventory-for` | `bun run check` | Passed; includes lint, ast-grep, vocab audit, format, typecheck, docs link/snippet/API example checks, scaffold checks, Warden, and dead-code gate. |
 
 ## Review Feedback
 
