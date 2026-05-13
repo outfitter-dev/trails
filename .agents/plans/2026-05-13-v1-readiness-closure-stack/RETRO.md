@@ -40,7 +40,7 @@ before handoff or merge readiness.
 | Order | Issue | Branch | PR | Status |
 | --- | --- | --- | --- | --- |
 | 1 | `TRL-713` | `trl-713-repair-stale-changesets-references-before-stable-cutover` | TBD | Focused checks passed |
-| 2 | `TRL-714` | `trl-714-add-registry-availability-and-dist-tag-release-preflights` | TBD | Not started |
+| 2 | `TRL-714` | `trl-714-add-registry-availability-and-dist-tag-release-preflights` | TBD | Focused checks passed |
 | 3 | `TRL-707` | `trl-707-fix-fresh-start-install-blocker-for-generated-cli-projects` | TBD | Not started |
 | 4 | `TRL-712` | `trl-712-author-stable-release-doctrine-adr-for-the-1x-line` | TBD | Not started |
 | 5 | `TRL-711` | `trl-711-codify-the-beta-to-10-release-runbook` | TBD | Not started |
@@ -62,6 +62,7 @@ issues created or updated during execution.
 | `TRL-711` | Added blockers `TRL-712`, `TRL-713`, and `TRL-714`. | Planning alignment |
 | `TRL-707` | Related to `TRL-714`. | Planning alignment |
 | `TRL-713` | Changed status to `In Progress`. | Branch execution started. |
+| `TRL-714` | Changed status to `In Progress`. | Branch execution started. |
 
 ## Local Review Reports
 
@@ -116,6 +117,11 @@ ready waves, and remote review turns here.
   retired `@ontrails/logging` package from
   `.changeset/logtape-observe-target.md` while preserving the
   `@ontrails/logtape` release note.
+- 2026-05-13T13:15Z: Added `TRL-714` registry preflight script and package
+  scripts. `bun run publish:registry-check` performs read-only npm probes and
+  reports missing packages as first-time package candidates; the stricter
+  `bun run publish:registry-check:published` mode requires every package to be
+  present after publication.
 
 ## Verification Log
 
@@ -127,6 +133,11 @@ Record focused branch checks and full tip gate results here.
 | `trl-713-repair-stale-changesets-references-before-stable-cutover` | `bun run changeset:check` | Passed. |
 | `trl-713-repair-stale-changesets-references-before-stable-cutover` | `bun run format:check` | Passed. |
 | `trl-713-repair-stale-changesets-references-before-stable-cutover` | `git diff --check` | Passed. |
+| `trl-714-add-registry-availability-and-dist-tag-release-preflights` | `bun test scripts` | Passed, 35 tests. |
+| `trl-714-add-registry-availability-and-dist-tag-release-preflights` | `bun run publish:registry-check` | Passed; reported first-time package candidates `@ontrails/commander`, `@ontrails/observe`, `@ontrails/topographer`, and `@ontrails/wayfinder`; all other packages had `beta=1.0.0-beta.15`. |
+| `trl-714-add-registry-availability-and-dist-tag-release-preflights` | `bun run publish:check` | Passed. |
+| `trl-714-add-registry-availability-and-dist-tag-release-preflights` | `bun run format:check` | Passed. |
+| `trl-714-add-registry-availability-and-dist-tag-release-preflights` | `git diff --check` | Passed. |
 
 ## Review Feedback
 
@@ -144,7 +155,7 @@ confirmation.
 
 | Check | Result | Notes |
 | --- | --- | --- |
-| TBD | TBD | TBD |
+| `bun run publish:registry-check` | Read-only probe only; no publish. | First-time candidates: `@ontrails/commander`, `@ontrails/observe`, `@ontrails/topographer`, `@ontrails/wayfinder`. |
 
 ## Final State
 
