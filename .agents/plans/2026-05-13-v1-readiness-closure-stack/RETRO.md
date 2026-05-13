@@ -43,7 +43,7 @@ before handoff or merge readiness.
 | 2 | `TRL-714` | `trl-714-add-registry-availability-and-dist-tag-release-preflights` | TBD | Focused checks passed |
 | 3 | `TRL-707` | `trl-707-fix-fresh-start-install-blocker-for-generated-cli-projects` | TBD | Fresh-start gate passed after beta.16 unblock |
 | 4 | `TRL-712` | `trl-712-author-stable-release-doctrine-adr-for-the-1x-line` | TBD | Focused checks passed |
-| 5 | `TRL-711` | `trl-711-codify-the-beta-to-10-release-runbook` | TBD | Not started |
+| 5 | `TRL-711` | `trl-711-codify-the-beta-to-10-release-runbook` | TBD | Focused checks passed |
 | 6 | `TRL-709` | `trl-709-add-markdown-link-integrity-check-for-docs-and-readmes` | TBD | Not started |
 | 7 | `TRL-708` | `trl-708-expand-readme-typescript-snippet-verification-beyond-tracing` | TBD | Not started |
 | 8 | `TRL-710` | `trl-710-create-public-api-example-coverage-inventory-and-gate` | TBD | Not started |
@@ -68,6 +68,7 @@ issues created or updated during execution.
 | `TRL-707` | Rechecked after packages were published. | Registry presence gate now passes, but fresh-start typecheck fails because published `@ontrails/commander@1.0.0-beta.15` imports public symbols absent from the published `@ontrails/core` and `@ontrails/cli` artifacts at the same version. Added Linear comment `f2c45844-1fe4-45e1-ba1b-eb2fd7d223ea`. |
 | `TRL-707` | Rechecked after PR #501 beta.16 unblock. | Fresh-start gate passed from clean Bun cache: generated app requested `@ontrails/*@^1.0.0-beta.16`, install selected `@ontrails/cli`, `@ontrails/commander`, `@ontrails/core`, `@ontrails/hono`, `@ontrails/http`, `@ontrails/mcp`, `@ontrails/testing`, and `@ontrails/warden` at `1.0.0-beta.16`, then `bun run typecheck` and `bun test` passed. Added Linear comment `b0c10985-12d8-4a24-adc6-7d2c9140833a`. |
 | `TRL-712` | Changed status to `In Progress`. | Branch execution started. |
+| `TRL-711` | Changed status to `In Progress`. | Branch execution started. |
 
 ## Local Review Reports
 
@@ -178,6 +179,14 @@ ready waves, and remote review turns here.
   generated-app installability a release gate, keeps Changesets as
   version/changelog authority and Bun as publish authority, and documents
   explicit partial-publish recovery and release PR evidence expectations.
+- 2026-05-13T16:17Z: Started `TRL-711` on
+  `trl-711-codify-the-beta-to-10-release-runbook` and added
+  `docs/releases/stable-cutover.md`. The runbook separates version PR work from
+  post-merge publication, cites ADR-0047, uses `bun run publish:check` and
+  `bun run publish:packages`, includes registry/dist-tag verification and
+  clean-cache generated-app smoke evidence, and documents partial-publish
+  recovery with explicit resume sets. Added narrow pointers from `docs/index.md`
+  and `AGENTS.md`.
 
 ## Verification Log
 
@@ -211,6 +220,10 @@ Record focused branch checks and full tip gate results here.
 | `trl-712-author-stable-release-doctrine-adr-for-the-1x-line` | `bun scripts/adr.ts check` | Passed; 0 errors, 0 warnings. |
 | `trl-712-author-stable-release-doctrine-adr-for-the-1x-line` | `bun run format:check` | Passed. |
 | `trl-712-author-stable-release-doctrine-adr-for-the-1x-line` | `git diff --check` | Passed. |
+| `trl-711-codify-the-beta-to-10-release-runbook` | `bun run publish:check` | Passed; all public package pack checks passed at `1.0.0-beta.16`. No publish command was run. |
+| `trl-711-codify-the-beta-to-10-release-runbook` | `bun scripts/adr.ts check` | Passed; 0 errors, 0 warnings. |
+| `trl-711-codify-the-beta-to-10-release-runbook` | `bun run format:check` | Passed. |
+| `trl-711-codify-the-beta-to-10-release-runbook` | `git diff --check` | Passed. |
 
 ## Review Feedback
 

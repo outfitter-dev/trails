@@ -292,6 +292,7 @@ whole local stack. Use `release:none` only for package-touching changes that
 truly do not ship user-visible package content.
 
 To exit pre-release mode for a stable release: `bunx changeset pre exit`, then version as usual.
+Stable 1.x release doctrine is captured in [ADR-0047](docs/adr/0047-stable-release-line-discipline.md), and the copy-pasteable beta-to-1.0 operator sequence lives in [Stable Cutover Runbook](docs/releases/stable-cutover.md).
 
 `bun run publish:check` auto-discovers every non-private workspace, topo-sorts by `workspace:` dep edges, runs `bun pm pack --dry-run` per package (required because `npm pack` does not resolve `catalog:`), and asserts the packed `package.json` contains no unresolved `workspace:` or `catalog:` ranges. `bun run publish:registry-check` performs read-only registry/dist-tag probes before publication; missing packages are reported as first-time package candidates. After publishing, use `bun run publish:registry-check:published` to require every package and expected dist-tag to be present. `bun run publish:packages` uses the same discovery and applies the explicit dist-tag from `.changeset/pre.json` (falling back to `latest` outside prerelease mode). Packages intentionally ship source `.ts` files while their `exports` map points at `src`; test files, `dist`, `.turbo`, and `*.tsbuildinfo` should stay out of the published tarballs.
 

@@ -8,6 +8,7 @@
 
 ## Release Notes
 
+- **[Stable Cutover Runbook](./releases/stable-cutover.md)** — Beta-to-1.0 cutover sequence, publish boundaries, and recovery checks
 - **[Beta 15](./releases/beta15.md)** — Current release-prep notes and known CLI follow-up work
 
 ## Building something?
