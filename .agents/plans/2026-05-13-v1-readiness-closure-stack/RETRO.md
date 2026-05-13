@@ -44,7 +44,7 @@ before handoff or merge readiness.
 | 3 | `TRL-707` | `trl-707-fix-fresh-start-install-blocker-for-generated-cli-projects` | TBD | Fresh-start gate passed after beta.16 unblock |
 | 4 | `TRL-712` | `trl-712-author-stable-release-doctrine-adr-for-the-1x-line` | TBD | Focused checks passed |
 | 5 | `TRL-711` | `trl-711-codify-the-beta-to-10-release-runbook` | TBD | Focused checks passed |
-| 6 | `TRL-709` | `trl-709-add-markdown-link-integrity-check-for-docs-and-readmes` | TBD | Not started |
+| 6 | `TRL-709` | `trl-709-add-markdown-link-integrity-check-for-docs-and-readmes` | TBD | Focused checks passed |
 | 7 | `TRL-708` | `trl-708-expand-readme-typescript-snippet-verification-beyond-tracing` | TBD | Not started |
 | 8 | `TRL-710` | `trl-710-create-public-api-example-coverage-inventory-and-gate` | TBD | Not started |
 | 9 | `TRL-704` | `trl-704-add-http-surface-harness-and-include-it-in` | TBD | Not started |
@@ -69,6 +69,7 @@ issues created or updated during execution.
 | `TRL-707` | Rechecked after PR #501 beta.16 unblock. | Fresh-start gate passed from clean Bun cache: generated app requested `@ontrails/*@^1.0.0-beta.16`, install selected `@ontrails/cli`, `@ontrails/commander`, `@ontrails/core`, `@ontrails/hono`, `@ontrails/http`, `@ontrails/mcp`, `@ontrails/testing`, and `@ontrails/warden` at `1.0.0-beta.16`, then `bun run typecheck` and `bun test` passed. Added Linear comment `b0c10985-12d8-4a24-adc6-7d2c9140833a`. |
 | `TRL-712` | Changed status to `In Progress`. | Branch execution started. |
 | `TRL-711` | Changed status to `In Progress`. | Branch execution started. |
+| `TRL-709` | Changed status to `In Progress`. | Branch execution started. |
 
 ## Local Review Reports
 
@@ -187,6 +188,17 @@ ready waves, and remote review turns here.
   clean-cache generated-app smoke evidence, and documents partial-publish
   recovery with explicit resume sets. Added narrow pointers from `docs/index.md`
   and `AGENTS.md`.
+- 2026-05-13T16:28Z: Started `TRL-709` on
+  `trl-709-add-markdown-link-integrity-check-for-docs-and-readmes` and added
+  `scripts/check-markdown-links.ts` plus focused tests. The checker scans
+  markdown and MDX under `docs`, `packages`, `apps`, and `adapters`, skips code
+  fences and inline code, validates local relative links and GitHub-style
+  heading anchors, and is wired into `bun run check` as `bun run docs:links`.
+  The implementation fixed the known broken M5 audit links in ADR docs and
+  draft ADRs. Full `bun run check` also exposed stale changelog-history vocab
+  allowlist coverage after the beta.16 version PR added current package
+  changelogs, so `scripts/vocab-cutover-map.ts` now includes those generated
+  changelog paths.
 
 ## Verification Log
 
@@ -224,6 +236,13 @@ Record focused branch checks and full tip gate results here.
 | `trl-711-codify-the-beta-to-10-release-runbook` | `bun scripts/adr.ts check` | Passed; 0 errors, 0 warnings. |
 | `trl-711-codify-the-beta-to-10-release-runbook` | `bun run format:check` | Passed. |
 | `trl-711-codify-the-beta-to-10-release-runbook` | `git diff --check` | Passed. |
+| `trl-709-add-markdown-link-integrity-check-for-docs-and-readmes` | `bun test scripts/__tests__/check-markdown-links.test.ts` | Passed, 5 tests. |
+| `trl-709-add-markdown-link-integrity-check-for-docs-and-readmes` | `bun run docs:links` | Passed; checked 113 markdown files. |
+| `trl-709-add-markdown-link-integrity-check-for-docs-and-readmes` | `bun test scripts` | Passed, 40 tests and 77 assertions. |
+| `trl-709-add-markdown-link-integrity-check-for-docs-and-readmes` | `bun run vocab:audit` | Passed after extending the generated changelog-history allowlist to the current beta.16 package changelogs. |
+| `trl-709-add-markdown-link-integrity-check-for-docs-and-readmes` | `bun run format:check` | Passed. |
+| `trl-709-add-markdown-link-integrity-check-for-docs-and-readmes` | `bun run check` | Passed; includes lint, ast-grep, vocab audit, format, typecheck, docs link/snippet checks, scaffold checks, Warden, and dead-code gate. |
+| `trl-709-add-markdown-link-integrity-check-for-docs-and-readmes` | `git diff --check` | Passed. |
 
 ## Review Feedback
 

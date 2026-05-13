@@ -29,19 +29,28 @@ const scriptSelfExclusions = [
 ] as const;
 
 const changelogHistoryPaths = [
+  'adapters/commander/CHANGELOG.md',
+  'adapters/drizzle/CHANGELOG.md',
+  'adapters/hono/CHANGELOG.md',
+  'adapters/vite/CHANGELOG.md',
+  'apps/trails-demo/CHANGELOG.md',
   'apps/trails/CHANGELOG.md',
   'packages/cli/CHANGELOG.md',
   'packages/config/CHANGELOG.md',
   'packages/core/CHANGELOG.md',
   'packages/http/CHANGELOG.md',
+  'packages/logtape/CHANGELOG.md',
   'packages/logging/CHANGELOG.md',
   'packages/mcp/CHANGELOG.md',
+  'packages/observe/CHANGELOG.md',
+  'packages/oxlint-plugin/CHANGELOG.md',
   'packages/permits/CHANGELOG.md',
   'packages/store/CHANGELOG.md',
   'packages/testing/CHANGELOG.md',
   'packages/topographer/CHANGELOG.md',
   'packages/tracing/CHANGELOG.md',
   'packages/warden/CHANGELOG.md',
+  'packages/wayfinder/CHANGELOG.md',
 ] as const;
 
 const adrReviewedMentionPaths = [
