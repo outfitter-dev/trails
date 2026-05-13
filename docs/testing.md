@@ -425,3 +425,9 @@ src/
 ```
 
 The examples on trails cover the happy path. Test files cover edge cases, error paths, and integration scenarios.
+
+## README Snippet Check
+
+`bun run docs:snippets` extracts TypeScript fences from package, adapter, and app READMEs and typechecks them with source path and line diagnostics. The checker also verifies that every `@ontrails/*` runtime import used in a snippet is still exported by the package's public export map.
+
+When adding or renaming a package/app/adapter README, update `README_SNIPPET_CONFIGS` in `scripts/check-readme-snippets.ts`. READMEs with no TypeScript fences should be listed with `allowNoSnippets: true`; READMEs that import local example files should use explicit `localFiles` stubs instead of relying on repo-local paths that do not exist for downstream readers.

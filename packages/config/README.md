@@ -113,7 +113,7 @@ Environment variables are coerced to the schema type. Apply `env()` before `.def
 Mark a schema field as sensitive:
 
 ```typescript
-import { secret } from '@ontrails/config';
+import { env, secret } from '@ontrails/config';
 
 const schema = z.object({
   apiKey: secret(z.string()),

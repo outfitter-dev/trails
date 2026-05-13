@@ -59,11 +59,11 @@ const onboard = trail('entity.onboard', {
 
 ```typescript
 // executeTrail — surfaces use this directly
-const result = await executeTrail(greet, { name: 'Alice' });
+const surfaceResult = await executeTrail(greet, { name: 'Alice' });
 
 // run — headless execution by trail ID
-const result = await run(graph, 'greet', { name: 'Alice' });
-if (result.isOk()) console.log(result.value);
+const runResult = await run(graph, 'greet', { name: 'Alice' });
+if (runResult.isOk()) console.log(runResult.value);
 ```
 
 ### Topo accessors

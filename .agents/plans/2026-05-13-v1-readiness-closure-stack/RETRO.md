@@ -45,7 +45,7 @@ before handoff or merge readiness.
 | 4 | `TRL-712` | `trl-712-author-stable-release-doctrine-adr-for-the-1x-line` | TBD | Focused checks passed |
 | 5 | `TRL-711` | `trl-711-codify-the-beta-to-10-release-runbook` | TBD | Focused checks passed |
 | 6 | `TRL-709` | `trl-709-add-markdown-link-integrity-check-for-docs-and-readmes` | TBD | Focused checks passed |
-| 7 | `TRL-708` | `trl-708-expand-readme-typescript-snippet-verification-beyond-tracing` | TBD | Not started |
+| 7 | `TRL-708` | `trl-708-expand-readme-typescript-snippet-verification-beyond-tracing` | TBD | Focused checks passed |
 | 8 | `TRL-710` | `trl-710-create-public-api-example-coverage-inventory-and-gate` | TBD | Not started |
 | 9 | `TRL-704` | `trl-704-add-http-surface-harness-and-include-it-in` | TBD | Not started |
 | 10 | `TRL-706` | `trl-706-expose-complete-shipped-surface-projection-inventory-for` | TBD | Not started |
@@ -70,6 +70,7 @@ issues created or updated during execution.
 | `TRL-712` | Changed status to `In Progress`. | Branch execution started. |
 | `TRL-711` | Changed status to `In Progress`. | Branch execution started. |
 | `TRL-709` | Changed status to `In Progress`. | Branch execution started. |
+| `TRL-708` | Changed status to `In Progress`. | Branch execution started. |
 
 ## Local Review Reports
 
@@ -199,6 +200,19 @@ ready waves, and remote review turns here.
   allowlist coverage after the beta.16 version PR added current package
   changelogs, so `scripts/vocab-cutover-map.ts` now includes those generated
   changelog paths.
+- 2026-05-13T16:38Z: Started `TRL-708` on
+  `trl-708-expand-readme-typescript-snippet-verification-beyond-tracing` and
+  expanded `bun run docs:snippets` from the single tracing README to all 21
+  package/app/adapter READMEs inventoried by the M5 audit. The checker now
+  reports per-README TypeScript snippet counts, explicitly classifies READMEs
+  with no TypeScript snippets, verifies the v1 README inventory is fully
+  configured, and uses explicit local-file stubs for snippets that demonstrate
+  consumer-owned app files. The expanded check found two real README snippet
+  defects: `packages/core/README.md` reused `const result` for two independent
+  execution examples, and `packages/config/README.md` used `env()` in the
+  `secret()` example without importing it. Both README examples were corrected,
+  and a branch-local changeset was added for `@ontrails/core` and
+  `@ontrails/config`.
 
 ## Verification Log
 
@@ -243,6 +257,13 @@ Record focused branch checks and full tip gate results here.
 | `trl-709-add-markdown-link-integrity-check-for-docs-and-readmes` | `bun run format:check` | Passed. |
 | `trl-709-add-markdown-link-integrity-check-for-docs-and-readmes` | `bun run check` | Passed; includes lint, ast-grep, vocab audit, format, typecheck, docs link/snippet checks, scaffold checks, Warden, and dead-code gate. |
 | `trl-709-add-markdown-link-integrity-check-for-docs-and-readmes` | `git diff --check` | Passed. |
+| `trl-708-expand-readme-typescript-snippet-verification-beyond-tracing` | `bun test scripts/__tests__/check-readme-snippets.test.ts` | Passed, 5 tests. |
+| `trl-708-expand-readme-typescript-snippet-verification-beyond-tracing` | `bun run docs:snippets` | Passed; checked all 21 package/app/adapter READMEs, including 92 TypeScript snippets and 3 explicit no-TypeScript-snippet classifications. |
+| `trl-708-expand-readme-typescript-snippet-verification-beyond-tracing` | `bun test scripts` | Passed, 43 tests and 81 assertions. |
+| `trl-708-expand-readme-typescript-snippet-verification-beyond-tracing` | `bun run format:check` | Passed. |
+| `trl-708-expand-readme-typescript-snippet-verification-beyond-tracing` | `bun run check` | Passed; includes lint, ast-grep, vocab audit, format, typecheck, docs link/snippet checks, scaffold checks, Warden, and dead-code gate. |
+| `trl-708-expand-readme-typescript-snippet-verification-beyond-tracing` | `bun run changeset:check` | Passed; branch includes `.changeset/curvy-readmes-verify.md` for the core/config README fixes. |
+| `trl-708-expand-readme-typescript-snippet-verification-beyond-tracing` | `git diff --check` | Passed. |
 
 ## Review Feedback
 
