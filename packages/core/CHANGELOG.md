@@ -1,5 +1,11 @@
 # @ontrails/core
 
+## 1.0.0-beta.17
+
+### Patch Changes
+
+- 3dc8254: Fix README TypeScript snippets so the expanded documentation snippet gate can verify them.
+
 ## 1.0.0-beta.16
 
 ### Major Changes

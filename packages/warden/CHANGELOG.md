@@ -1,5 +1,17 @@
 # @ontrails/warden
 
+## 1.0.0-beta.17
+
+### Patch Changes
+
+- Updated dependencies [3dc8254]
+- Updated dependencies [61497c5]
+  - @ontrails/core@1.0.0-beta.17
+  - @ontrails/cli@1.0.0-beta.17
+  - @ontrails/permits@1.0.0-beta.17
+  - @ontrails/store@1.0.0-beta.17
+  - @ontrails/topographer@1.0.0-beta.17
+
 ## 1.0.0-beta.16
 
 ### Minor Changes

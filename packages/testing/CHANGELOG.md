@@ -1,5 +1,19 @@
 # @ontrails/testing
 
+## 1.0.0-beta.17
+
+### Patch Changes
+
+- ce42573: Add an example-driven CLI/MCP/HTTP surface parity helper.
+- e1eb4ee: Add an HTTP surface harness and include HTTP projection validation in `testAllEstablished`.
+- Updated dependencies [3dc8254]
+- Updated dependencies [61497c5]
+  - @ontrails/core@1.0.0-beta.17
+  - @ontrails/cli@1.0.0-beta.17
+  - @ontrails/http@1.0.0-beta.17
+  - @ontrails/mcp@1.0.0-beta.17
+  - @ontrails/observe@1.0.0-beta.17
+
 ## 1.0.0-beta.16
 
 ### Minor Changes

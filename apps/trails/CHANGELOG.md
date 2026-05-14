@@ -1,5 +1,23 @@
 # trails
 
+## 1.0.0-beta.17
+
+### Patch Changes
+
+- 41276d2: Expose a shipped surface projection inventory through survey output and trail detail reports.
+- Updated dependencies [3dc8254]
+- Updated dependencies [61497c5]
+  - @ontrails/core@1.0.0-beta.17
+  - @ontrails/cli@1.0.0-beta.17
+  - @ontrails/commander@1.0.0-beta.17
+  - @ontrails/http@1.0.0-beta.17
+  - @ontrails/mcp@1.0.0-beta.17
+  - @ontrails/observe@1.0.0-beta.17
+  - @ontrails/permits@1.0.0-beta.17
+  - @ontrails/topographer@1.0.0-beta.17
+  - @ontrails/tracing@1.0.0-beta.17
+  - @ontrails/warden@1.0.0-beta.17
+
 ## 1.0.0-beta.16
 
 ### Major Changes

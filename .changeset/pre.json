@@ -34,6 +34,7 @@
     "beta14-topo-store-stack",
     "beta15-trails-cli-release-prep",
     "beta9-consolidated",
+    "bright-surface-inventory",
     "bug-fixes-beta3",
     "cli-value-aliases",
     "codex-review-fixes",
@@ -42,8 +43,10 @@
     "connector-guardrail-source-comments",
     "core-error-serialization-identity",
     "core-internal-escape-hatches",
+    "curvy-readmes-verify",
     "error-redaction-policy",
     "error-taxonomy-docs-registry",
+    "fair-surface-parity",
     "fix-publish-bugs",
     "fix-workspace-publish",
     "graph-rename-harness",
@@ -65,6 +68,7 @@
     "remove-legacy-logging-package",
     "resource-unmockable-marker",
     "services-primitive",
+    "soft-http-harness",
     "store-adapter-options",
     "surface-map-layer-attachments",
     "survey-brief-trail",
@@ -141,6 +145,7 @@
     "warden-shared-orchestrator",
     "warden-static-resource-accessor",
     "warden-toponames-empty",
+    "warm-api-examples",
     "wayfinder-shell"
   ]
 }

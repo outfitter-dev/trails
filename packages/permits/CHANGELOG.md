@@ -1,5 +1,12 @@
 # @ontrails/permits
 
+## 1.0.0-beta.17
+
+### Patch Changes
+
+- Updated dependencies [3dc8254]
+  - @ontrails/core@1.0.0-beta.17
+
 ## 1.0.0-beta.16
 
 ### Major Changes
