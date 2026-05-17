@@ -123,6 +123,209 @@ describe('otelAdapter', () => {
       expect(spans[0]?.attributes.sampled).toBe(true);
       expect(spans[0]?.attributes.skipped).toBeUndefined();
     });
+
+    test('maps stable trace identity, lineage, status, and timing attributes', async () => {
+      const spans: OtelSpan[] = [];
+      const adapter = createOtelAdapter({
+        exporter: (s) => {
+          spans.push(...s);
+        },
+      });
+
+      await adapter.write(
+        makeRecord({
+          endedAt: 175,
+          errorCategory: 'validation',
+          id: 'span-child',
+          intent: 'destroy',
+          parentId: 'span-parent',
+          permit: { id: 'permit-1', tenantId: 'tenant-1' },
+          rootId: 'span-root',
+          sampled: false,
+          startedAt: 125,
+          status: 'err',
+          surface: 'http',
+          traceId: 'trace-stable',
+          trailId: 'orders.destroy',
+        })
+      );
+
+      expect(spans[0]?.attributes).toMatchObject({
+        'trails.error.category': 'validation',
+        'trails.intent': 'destroy',
+        'trails.permit.id': 'permit-1',
+        'trails.permit.tenant_id': 'tenant-1',
+        'trails.record.kind': 'trail',
+        'trails.record.name': 'test.echo',
+        'trails.sampled': false,
+        'trails.span.id': 'span-child',
+        'trails.span.parent_id': 'span-parent',
+        'trails.span.root_id': 'span-root',
+        'trails.status': 'err',
+        'trails.surface': 'http',
+        'trails.timing.duration_ms': 50,
+        'trails.timing.ended_at_ms': 175,
+        'trails.timing.started_at_ms': 125,
+        'trails.trace.id': 'trace-stable',
+        'trails.trail.id': 'orders.destroy',
+      });
+    });
+
+    test('preserves stable fields when custom attrs try to override them', async () => {
+      const spans: OtelSpan[] = [];
+      const adapter = createOtelAdapter({
+        exporter: (s) => {
+          spans.push(...s);
+        },
+      });
+
+      await adapter.write(
+        makeRecord({
+          attrs: {
+            'trails.error.category': 'forged-validation',
+            'trails.intent': 'destroy',
+            'trails.record.kind': 'forged',
+            'trails.sampled': false,
+            'trails.span.parent_id': 'forged-parent',
+            'trails.surface': 'http',
+            'trails.timing.ended_at_ms': 1234,
+            'trails.trace.id': 'forged-trace',
+            'trails.trail.id': 'orders.destroy',
+          },
+          endedAt: undefined,
+          kind: 'trail',
+          traceId: 'trace-real',
+        })
+      );
+
+      expect(spans[0]?.attributes['trails.record.kind']).toBe('trail');
+      expect(spans[0]?.attributes['trails.trace.id']).toBe('trace-real');
+      expect(spans[0]?.attributes['trails.error.category']).toBeUndefined();
+      expect(spans[0]?.attributes['trails.intent']).toBeUndefined();
+      expect(spans[0]?.attributes['trails.sampled']).toBeUndefined();
+      expect(spans[0]?.attributes['trails.span.parent_id']).toBeUndefined();
+      expect(spans[0]?.attributes['trails.surface']).toBeUndefined();
+      expect(spans[0]?.attributes['trails.timing.ended_at_ms']).toBeUndefined();
+      expect(spans[0]?.attributes['trails.trail.id']).toBeUndefined();
+    });
+
+    test('drops raw payload and unredacted error message attributes', async () => {
+      const spans: OtelSpan[] = [];
+      const adapter = createOtelAdapter({
+        exporter: (s) => {
+          spans.push(...s);
+        },
+      });
+
+      await adapter.write(
+        makeRecord({
+          attrs: {
+            authorization: 'Bearer secret',
+            body: '{"secret":true}',
+            'error.message': 'card number leaked',
+            'http.response.body.byte_length': 128,
+            input: '{"secret":true}',
+            output: '{"secret":true}',
+            payload: '{"secret":true}',
+            'trails.input.schema_hash': 'sha256:input',
+            'trails.output.schema_hash': 'sha256:output',
+            'trails.signal.payload.byte_length': 42,
+            'trails.signal.payload.digest': 'sha256:abc',
+            'trails.signal.payload.preview': 'redacted?',
+            'trails.signal.payload.redacted': true,
+            'trails.signal.payload.top_level_entry_count': 3,
+          },
+        })
+      );
+
+      expect(spans[0]?.attributes.authorization).toBeUndefined();
+      expect(spans[0]?.attributes.body).toBeUndefined();
+      expect(spans[0]?.attributes['error.message']).toBeUndefined();
+      expect(spans[0]?.attributes.input).toBeUndefined();
+      expect(spans[0]?.attributes.output).toBeUndefined();
+      expect(spans[0]?.attributes.payload).toBeUndefined();
+      expect(spans[0]?.attributes['http.response.body.byte_length']).toBe(128);
+      expect(spans[0]?.attributes['trails.input.schema_hash']).toBe(
+        'sha256:input'
+      );
+      expect(spans[0]?.attributes['trails.output.schema_hash']).toBe(
+        'sha256:output'
+      );
+      expect(spans[0]?.attributes['trails.signal.payload.byte_length']).toBe(
+        42
+      );
+      expect(spans[0]?.attributes['trails.signal.payload.digest']).toBe(
+        'sha256:abc'
+      );
+      expect(
+        spans[0]?.attributes['trails.signal.payload.preview']
+      ).toBeUndefined();
+      expect(spans[0]?.attributes['trails.signal.payload.redacted']).toBe(true);
+      expect(
+        spans[0]?.attributes['trails.signal.payload.top_level_entry_count']
+      ).toBe(3);
+    });
+
+    test('maps signal lifecycle attributes without payload leakage', async () => {
+      const spans: OtelSpan[] = [];
+      const adapter = createOtelAdapter({
+        exporter: (s) => {
+          spans.push(...s);
+        },
+      });
+
+      await adapter.write(
+        makeRecord({
+          attrs: {
+            'trails.signal.id': 'order.placed',
+            'trails.signal.payload.shape': 'object',
+            'trails.signal.producer_trail.id': 'orders.create',
+          },
+          kind: 'signal',
+          name: 'signal.fired',
+        })
+      );
+
+      expect(spans[0]?.attributes).toMatchObject({
+        'trails.record.kind': 'signal',
+        'trails.record.name': 'signal.fired',
+        'trails.signal.event': 'signal.fired',
+        'trails.signal.id': 'order.placed',
+        'trails.signal.payload.shape': 'object',
+        'trails.signal.producer_trail.id': 'orders.create',
+      });
+    });
+
+    test('maps activation boundary attributes without error message leakage', async () => {
+      const spans: OtelSpan[] = [];
+      const adapter = createOtelAdapter({
+        exporter: (s) => {
+          spans.push(...s);
+        },
+      });
+
+      await adapter.write(
+        makeRecord({
+          attrs: {
+            'exception.message': 'includes raw webhook body',
+            'trails.activation.source.id': 'webhook.payment.received',
+            'trails.activation.source.kind': 'webhook',
+            'trails.activation.target_trail.id': 'payments.receive',
+          },
+          kind: 'activation',
+          name: 'activation.webhook',
+        })
+      );
+
+      expect(spans[0]?.attributes).toMatchObject({
+        'trails.activation.event': 'activation.webhook',
+        'trails.activation.source.id': 'webhook.payment.received',
+        'trails.activation.source.kind': 'webhook',
+        'trails.activation.target_trail.id': 'payments.receive',
+        'trails.record.kind': 'activation',
+      });
+      expect(spans[0]?.attributes['exception.message']).toBeUndefined();
+    });
   });
 
   describe('status mapping', () => {

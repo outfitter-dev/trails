@@ -1,5 +1,7 @@
 import type { TraceRecord, TraceSink } from '@ontrails/core';
 
+type OtelAttributeValue = string | number | boolean;
+
 /** OTel span representation produced by the adapter. */
 export interface OtelSpan {
   readonly traceId: string;
@@ -10,7 +12,7 @@ export interface OtelSpan {
   readonly endTime?: number | undefined;
   readonly status: 'OK' | 'ERROR' | 'UNSET';
   readonly kind: 'INTERNAL' | 'SERVER';
-  readonly attributes: Readonly<Record<string, string | number | boolean>>;
+  readonly attributes: Readonly<Record<string, OtelAttributeValue>>;
 }
 
 /** Callback that receives translated OTel spans. */
@@ -33,23 +35,116 @@ const STATUS_MAP: Record<TraceRecord['status'], OtelSpan['status']> = {
 const deriveKind = (parentId: string | undefined): OtelSpan['kind'] =>
   parentId === undefined ? 'SERVER' : 'INTERNAL';
 
+const SAFE_SIGNAL_PAYLOAD_ATTRIBUTE_KEYS = new Set([
+  'trails.signal.payload.byte_length',
+  'trails.signal.payload.digest',
+  'trails.signal.payload.redacted',
+  'trails.signal.payload.shape',
+  'trails.signal.payload.top_level_entry_count',
+]);
+
+const UNSAFE_SENSITIVE_ATTRIBUTE_SEGMENTS = new Set([
+  'authorization',
+  'cookie',
+  'password',
+  'secret',
+  'token',
+]);
+const UNSAFE_RAW_ATTRIBUTE_NAMES = new Set([
+  'body',
+  'input',
+  'output',
+  'payload',
+]);
+
+const UNSAFE_ATTRIBUTE_KEYS = new Set([
+  'error.message',
+  'error.stack',
+  'exception.message',
+  'exception.stacktrace',
+  'message',
+  'stack',
+  'stacktrace',
+]);
+
+const normalizeAttributeKey = (key: string): string =>
+  key.replaceAll(/([a-z\d])([A-Z])/g, '$1_$2').toLowerCase();
+
+const splitAttributeKey = (key: string): readonly string[] =>
+  normalizeAttributeKey(key).split(/[._-]+/u);
+
+const isUnsafeCustomAttributeKey = (key: string): boolean => {
+  const normalized = normalizeAttributeKey(key);
+  if (SAFE_SIGNAL_PAYLOAD_ATTRIBUTE_KEYS.has(normalized)) {
+    return false;
+  }
+  if (
+    UNSAFE_ATTRIBUTE_KEYS.has(normalized) ||
+    normalized.endsWith('.error.message') ||
+    normalized.endsWith('.error.stack') ||
+    normalized.endsWith('.exception.message') ||
+    normalized.endsWith('.exception.stacktrace')
+  ) {
+    return true;
+  }
+  const parts = splitAttributeKey(normalized);
+  if (parts.some((part) => UNSAFE_SENSITIVE_ATTRIBUTE_SEGMENTS.has(part))) {
+    return true;
+  }
+  const last = parts.at(-1);
+  if (last !== undefined && UNSAFE_RAW_ATTRIBUTE_NAMES.has(last)) {
+    return true;
+  }
+  return parts.includes('payload');
+};
+
+const isOtelAttributeValue = (value: unknown): value is OtelAttributeValue =>
+  typeof value === 'string' ||
+  typeof value === 'number' ||
+  typeof value === 'boolean';
+
 /** Attribute mapping: record field → OTel attribute key + extractor. */
 const ATTR_MAP: readonly {
   key: string;
-  get: (r: TraceRecord) => string | undefined;
+  get: (r: TraceRecord) => OtelAttributeValue | undefined;
 }[] = [
-  { get: (r) => r.trailId, key: 'trails.trail.id' },
+  {
+    get: (r) => (r.kind === 'activation' ? r.name : undefined),
+    key: 'trails.activation.event',
+  },
+  { get: (r) => r.errorCategory, key: 'trails.error.category' },
   { get: (r) => r.intent, key: 'trails.intent' },
-  { get: (r) => r.surface, key: 'trails.surface' },
   { get: (r) => r.permit?.id, key: 'trails.permit.id' },
   { get: (r) => r.permit?.tenantId, key: 'trails.permit.tenant_id' },
+  { get: (r) => r.kind, key: 'trails.record.kind' },
+  { get: (r) => r.name, key: 'trails.record.name' },
+  { get: (r) => r.sampled, key: 'trails.sampled' },
+  {
+    get: (r) => (r.kind === 'signal' ? r.name : undefined),
+    key: 'trails.signal.event',
+  },
+  { get: (r) => r.id, key: 'trails.span.id' },
+  { get: (r) => r.parentId, key: 'trails.span.parent_id' },
+  { get: (r) => r.rootId, key: 'trails.span.root_id' },
+  { get: (r) => r.status, key: 'trails.status' },
+  { get: (r) => r.surface, key: 'trails.surface' },
+  {
+    get: (r) => (r.endedAt === undefined ? undefined : r.endedAt - r.startedAt),
+    key: 'trails.timing.duration_ms',
+  },
+  { get: (r) => r.endedAt, key: 'trails.timing.ended_at_ms' },
+  { get: (r) => r.startedAt, key: 'trails.timing.started_at_ms' },
+  { get: (r) => r.traceId, key: 'trails.trace.id' },
+  { get: (r) => r.trailId, key: 'trails.trail.id' },
 ];
+
+const STABLE_ATTRIBUTE_KEYS = new Set(ATTR_MAP.map(({ key }) => key));
 
 /** Build the trails-namespaced attributes from a TraceRecord. */
 const buildAttributes = (
   record: TraceRecord
-): Record<string, string | number | boolean> => {
-  const attrs: Record<string, string | number | boolean> = {};
+): Record<string, OtelAttributeValue> => {
+  const attrs: Record<string, OtelAttributeValue> = {};
   for (const { key, get } of ATTR_MAP) {
     const val = get(record);
     if (val !== undefined) {
@@ -58,9 +153,10 @@ const buildAttributes = (
   }
   for (const [key, val] of Object.entries(record.attrs)) {
     if (
-      typeof val === 'string' ||
-      typeof val === 'number' ||
-      typeof val === 'boolean'
+      attrs[key] === undefined &&
+      !STABLE_ATTRIBUTE_KEYS.has(key) &&
+      !isUnsafeCustomAttributeKey(key) &&
+      isOtelAttributeValue(val)
     ) {
       attrs[key] = val;
     }
