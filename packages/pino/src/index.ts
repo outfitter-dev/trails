@@ -1,15 +1,90 @@
-import type { LogSink } from '@ontrails/observe';
+import type { LogLevel, LogRecord, LogSink } from '@ontrails/observe';
 
 /**
  * Package identifier for the publishable Pino adapter package.
  */
 export const pinoPackageName = '@ontrails/pino';
 
+export type PinoLogMethod = (
+  payload: Record<string, unknown>,
+  message?: string
+) => void;
+
 /**
- * Placeholder sink type for the package scaffold.
- *
- * @remarks The structural Pino sink is implemented in the follow-up Pino
- * issue; this alias keeps the scaffold tied to the public observe contract
- * without adding a runtime dependency on `pino`.
+ * Structural subset of a Pino logger.
  */
-export type PinoLogSink = LogSink;
+export interface PinoLoggerLike {
+  debug: PinoLogMethod;
+  error: PinoLogMethod;
+  fatal: PinoLogMethod;
+  info: PinoLogMethod;
+  trace: PinoLogMethod;
+  warn: PinoLogMethod;
+}
+
+export interface PinoSinkOptions {
+  /** Sink name exposed to Trails observe configuration. Defaults to `pino`. */
+  readonly name?: string | undefined;
+}
+
+type ForwardMethod = Exclude<LogLevel, 'silent'>;
+
+const LEVEL_MAP: Record<LogLevel, ForwardMethod | undefined> = {
+  debug: 'debug',
+  error: 'error',
+  fatal: 'fatal',
+  info: 'info',
+  silent: undefined,
+  trace: 'trace',
+  warn: 'warn',
+};
+
+const buildPayload = (record: LogRecord): Record<string, unknown> => ({
+  ...record.metadata,
+  category: record.category,
+  timestamp: record.timestamp.toISOString(),
+});
+
+const resolveLoggerMethod = (
+  logger: PinoLoggerLike,
+  method: ForwardMethod
+): PinoLogMethod => {
+  const loggerMethod = logger[method];
+  if (typeof loggerMethod !== 'function') {
+    throw new TypeError(`Pino logger is missing "${method}" method`);
+  }
+  return loggerMethod.bind(logger);
+};
+
+const resolveLoggerMethods = (
+  logger: PinoLoggerLike
+): Record<ForwardMethod, PinoLogMethod> => ({
+  debug: resolveLoggerMethod(logger, 'debug'),
+  error: resolveLoggerMethod(logger, 'error'),
+  fatal: resolveLoggerMethod(logger, 'fatal'),
+  info: resolveLoggerMethod(logger, 'info'),
+  trace: resolveLoggerMethod(logger, 'trace'),
+  warn: resolveLoggerMethod(logger, 'warn'),
+});
+
+/**
+ * Create a Trails log sink that forwards records to a structural Pino logger.
+ */
+export const createPinoSink = (
+  logger: PinoLoggerLike,
+  options: PinoSinkOptions = {}
+): LogSink => {
+  const methods = resolveLoggerMethods(logger);
+
+  return {
+    name: options.name ?? 'pino',
+    write(record: LogRecord): void {
+      const method = LEVEL_MAP[record.level];
+      if (method === undefined) {
+        return;
+      }
+
+      methods[method](buildPayload(record), record.message);
+    },
+  };
+};

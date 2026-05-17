@@ -5,3 +5,4 @@
 ### Minor Changes
 
 - Initial publishable package scaffold.
+- Add structural Pino log sink.
