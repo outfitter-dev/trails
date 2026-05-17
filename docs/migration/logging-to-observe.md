@@ -55,8 +55,17 @@ const exporter = async (spans: unknown) => {
   // Forward spans to your collector.
 };
 
-registerTraceSink(createOtelAdapter({ exporter }));
+const sink = createOtelAdapter({ exporter });
+registerTraceSink(sink);
+
+// During shutdown, stop accepting work first, then:
+await sink.flush();
 ```
+
+There is no standalone `@ontrails/otel` package in v1. The adapter keeps the
+Trails-native `TraceRecord` model internal, emits stable `trails.*` attributes,
+and forwards OTel-shaped span batches through the exporter callback without
+forcing an OpenTelemetry SDK runtime dependency.
 
 Use `@ontrails/pino` when an app already owns a Pino logger:
 

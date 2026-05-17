@@ -21,6 +21,12 @@ tracing-specific local tooling: query/status trails, the SQLite dev store,
 sampling helpers, and the supported `@ontrails/tracing/otel` OpenTelemetry
 adapter subpath.
 
+For v1, OpenTelemetry trace export lives at `@ontrails/tracing/otel`; there is
+no standalone `@ontrails/otel` package. That adapter translates Trails-native
+`TraceRecord` values to callback-delivered OTel-shaped spans without requiring
+the OpenTelemetry SDK as a runtime dependency. Use `@ontrails/pino` separately
+when forwarding log records to a Pino-shaped logger.
+
 ```typescript
 import {
   combine,

@@ -16,9 +16,12 @@ primitives or tracing-specific developer-state APIs such as `tracingResource`,
 `tracingStatus`, `tracingQuery`, `createDevStore`, sampling helpers, or
 dev-store cleanup helpers.
 
-The `@ontrails/tracing/otel` subpath remains the supported v1 OpenTelemetry
-adapter path. It exports adapter-named APIs such as `createOtelAdapter` and
-`OtelAdapterOptions`; no separate `@ontrails/otel` package is required for v1.
+The `@ontrails/tracing/otel` subpath is the supported v1 OpenTelemetry
+adapter path. It exports adapter-named APIs such as `createOtelAdapter`,
+`OtelAdapterOptions`, `OtelExporter`, and `OtelSpan`; no separate
+`@ontrails/otel` package exists for v1. Trails keeps the internal trace model
+native to `TraceRecord`, then translates outward at this subpath so the adapter
+does not force an OpenTelemetry SDK dependency on every tracing user.
 
 ## The core pattern
 
@@ -170,9 +173,58 @@ const sink = createOtelAdapter({
   batchSize: 50,
 });
 registerTraceSink(sink);
+
+// On shutdown, stop accepting work first, then flush queued spans.
+await sink.flush();
 ```
 
-The adapter translates `TraceRecord` records to OTel spans with Trails-namespaced attributes (`trails.trail.id`, `trails.intent`, `trails.surface`, `trails.permit.id`).
+The exporter callback receives `readonly OtelSpan[]` batches. `OtelSpan`
+contains the OTel-facing shape derived from each `TraceRecord`: `traceId`,
+`spanId`, optional `parentSpanId`, `operationName`, `startTime`, optional
+`endTime`, `status`, `kind`, and primitive `attributes`. The adapter is
+callback-based on purpose: applications can bridge this output to an OTel SDK,
+collector client, worker queue, or test double without this package importing
+the SDK.
+
+The stable `trails.*` attribute family includes:
+
+- Trace identity and lineage: `trails.trace.id`, `trails.span.id`,
+  `trails.span.root_id`, `trails.span.parent_id`, `trails.record.kind`, and
+  `trails.record.name`.
+- Trail execution context: `trails.trail.id`, `trails.intent`,
+  `trails.surface`, `trails.permit.id`, and `trails.permit.tenant_id`.
+- Status and timing: `trails.status`, `trails.error.category`,
+  `trails.sampled`, `trails.timing.started_at_ms`,
+  `trails.timing.ended_at_ms`, and `trails.timing.duration_ms`.
+- Signal and activation context: `trails.signal.*` and
+  `trails.activation.*` records, including lifecycle names such as
+  `trails.signal.event` and `trails.activation.event`.
+
+Custom primitive `record.attrs` are forwarded when they are OTel-safe, but they
+cannot override stable attributes. Raw payload/body/input/output fields,
+authorization/cookie/token/password/secret fields, and unredacted
+`error.message` or `exception.message` style fields are filtered. Signal payload
+summaries remain available through the redacted `trails.signal.payload.*`
+digest/shape/size attributes.
+
+Lineage follows the Trails-native `TraceRecord` fields. Root records without a
+parent map to OTel `SERVER`; child spans, crossed trails, signal lifecycle
+records, and activated trails with `parentId` map to `INTERNAL` and keep the
+same `traceId`. Status maps `ok` to `OK`, `err` to `ERROR`, and `cancelled` to
+`UNSET`; the Trails error category remains on `trails.error.category`.
+
+`batchSize` must be a positive integer and defaults to `1`, which means every
+write flushes immediately unless you set a higher value. Writes auto-flush when
+the buffer reaches that threshold, and `flush()` drains any remaining records.
+Concurrent `flush()` calls share the same in-flight drain. If the exporter
+rejects, the failed batch is restored ahead of newer queued records so a later
+`flush()` can retry without silent loss.
+
+Use `@ontrails/observe` for app-facing sink contracts, `combine(...)`, built-in
+console/file/memory sinks, and trace tree rendering. Use `@ontrails/pino` when
+you need to forward Trails log records to a Pino-shaped logger. The OTel adapter
+is trace export only; it complements those packages rather than replacing the
+observability boundary.
 
 ## Sampling
 

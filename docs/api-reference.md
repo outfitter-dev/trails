@@ -515,7 +515,6 @@ createBoundedMemorySink(options?)    // explicit alias for createMemorySink
 createDevStore(options?)             // SQLite-backed persistent sink for development
 registerTraceStore(store)            // expose a store to tracing query/status trails
 registerTracingState(state)          // bootstrap full tracing state
-createOtelAdapter(options)           // OpenTelemetry span exporter; exporter is required
 toTraceStore(store)                  // read-only TraceStore view that does not own the writable connection
 countTraceRecords(db), previewTraceCleanup(db, options?), applyTraceCleanup(db, options?)
 withTraceStoreDb(options, run), ensureTraceSchema(db)
@@ -537,6 +536,23 @@ DEFAULT_SAMPLING                     // default sampling rates by intent
 
 TraceRecord, TraceSink, SamplingConfig, TraceContext, TraceFn, TraceCleanupReport
 ```
+
+For v1, OpenTelemetry trace export lives at `@ontrails/tracing/otel`; there is no standalone `@ontrails/otel` package. Use `@ontrails/pino` separately for Pino-shaped log forwarding.
+
+## `@ontrails/tracing/otel`
+
+`@ontrails/tracing/otel` is the v1 OpenTelemetry adapter home. It translates Trails-native `TraceRecord` values outward and does not require an OpenTelemetry SDK runtime dependency.
+
+```typescript
+createOtelAdapter(options)           // create a TraceSink with explicit flush()
+
+OtelAdapterOptions                   // { exporter, batchSize? }
+OtelExporter                         // (spans: readonly OtelSpan[]) => void | Promise<void>
+OtelSink                             // TraceSink plus flush()
+OtelSpan                             // OTel-shaped span record
+```
+
+The adapter emits stable `trails.*` attributes for trace identity, lineage, trail IDs, intent, surface, permits, status, timing, signal lifecycle, and activation boundaries. Custom primitive attrs are forwarded only when they are safe and cannot override stable `trails.*` fields. Call `sink.flush()` during shutdown after the app stops accepting work; failed exporter batches remain buffered for retry.
 
 ## Reserved
 
