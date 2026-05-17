@@ -22,6 +22,18 @@ await surface(graph, { port: 3000 });
 
 This starts a Hono-based HTTP server. The `greet` trail becomes `GET /greet?name=...` because its `intent` is `'read'`.
 
+For Bun-native HTTP without Hono, use the Bun materializer subpath:
+
+```typescript
+import { surface } from '@ontrails/http/bun';
+
+await surface(graph, { port: 3000 });
+```
+
+`@ontrails/http/bun` uses Bun's native `Bun.serve({ routes })` fast path and
+keeps the shared Web Fetch handler as the fallback. It requires Bun `>=1.2.3`
+and does not add a third-party runtime dependency.
+
 For more control, build the routes yourself:
 
 ```typescript
@@ -53,6 +65,8 @@ contracts used by `deriveHttpRoutes()`.
 | --- | --- |
 | `deriveHttpRoutes(graph, options?)` | Build framework-agnostic route definitions from a topo |
 | `deriveOpenApiSpec(graph, options?)` | Generate an OpenAPI 3.1 document for the HTTP surface |
+| `@ontrails/http/fetch` | Shared Web Fetch request/response kernel for route materializers |
+| `@ontrails/http/bun` | Bun-native `createApp()` and `surface()` materializer |
 
 ## Route derivation
 
@@ -114,6 +128,8 @@ values into arrays.
 
 ```bash
 bun add @ontrails/http @ontrails/hono
+# or, for Bun-native serving:
+bun add @ontrails/http
 ```
 
 ## Migration

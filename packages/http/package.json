@@ -12,6 +12,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./bun": "./src/bun.ts",
     "./fetch": "./src/fetch.ts",
     "./package.json": "./package.json"
   },
