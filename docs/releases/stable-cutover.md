@@ -40,6 +40,11 @@ Before creating the version PR:
    bun run publish:registry-check
    ```
 
+   First-time public packages can be reported as first-time package
+   candidates during this read-only probe. That is expected before their first
+   publication; after publishing, use `bun run publish:registry-check:published`
+   to require every package and dist-tag to exist.
+
 6. The local package tarballs are clean:
 
    ```bash

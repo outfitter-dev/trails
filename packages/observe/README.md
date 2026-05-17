@@ -43,5 +43,6 @@ rotation or a production adapter when retention policy matters.
 
 `@ontrails/logging` was retired before v1. Move sink contracts, console/file
 sinks, formatters, and bounded memory sinks to `@ontrails/observe`. Use
-`@ontrails/logtape` for LogTape forwarding and `@ontrails/tracing` for tracing
-registry, dev-store, query/status, sampling, and OTel adapter APIs.
+`@ontrails/logtape` for LogTape forwarding, `@ontrails/pino` for Pino
+forwarding, and `@ontrails/tracing` for tracing registry, dev-store,
+query/status, sampling, and OTel adapter APIs.
