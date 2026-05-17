@@ -16,6 +16,12 @@ export {
   httpMethodByIntent,
 } from './method.js';
 export type { HttpMethod, HttpOperationMethod, InputSource } from './method.js';
+export {
+  createFetchHandler,
+  createRouteHandler,
+  type CreateFetchHandlerOptions,
+  type CreateRouteHandlerOptions,
+} from './fetch.js';
 
 // OpenAPI
 export { deriveOpenApiSpec } from './openapi.js';

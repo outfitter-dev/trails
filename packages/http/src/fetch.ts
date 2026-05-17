@@ -1,0 +1,577 @@
+import {
+  CancelledError,
+  isTrailsError,
+  NotFoundError,
+  projectErrorDiagnostics,
+  projectPublicSurfaceError,
+  ValidationError,
+} from '@ontrails/core';
+import type { Topo } from '@ontrails/core';
+
+import { deriveHttpRoutes } from './build.js';
+import type { DeriveHttpRoutesOptions, HttpRouteDefinition } from './build.js';
+
+export interface CreateRouteHandlerOptions {
+  /** Maximum JSON request body size in bytes. Defaults to 1 MiB. */
+  readonly maxJsonBodyBytes?: number | undefined;
+}
+
+export interface CreateFetchHandlerOptions
+  extends DeriveHttpRoutesOptions, CreateRouteHandlerOptions {}
+
+interface RuntimeOptions {
+  readonly maxJsonBodyBytes: number;
+}
+
+interface JsonObject {
+  readonly [key: string]: JsonValue;
+}
+
+type JsonValue =
+  | null
+  | boolean
+  | number
+  | string
+  | readonly JsonValue[]
+  | JsonObject;
+type JsonBodyReadResult =
+  | JsonValue
+  | typeof JSON_BODY_INVALID_CONTENT_LENGTH
+  | typeof JSON_BODY_TOO_LARGE
+  | typeof JSON_PARSE_ERROR;
+type JsonBodyTextReadResult = string | typeof JSON_BODY_TOO_LARGE;
+type InputReadResult = Record<string, unknown> | JsonBodyReadResult;
+type ParsedContentLength =
+  | number
+  | typeof JSON_BODY_INVALID_CONTENT_LENGTH
+  | undefined;
+
+const DEFAULT_MAX_JSON_BODY_BYTES = 1024 * 1024;
+const CONTENT_LENGTH_DECIMAL_PATTERN = /^\d+$/;
+
+const JSON_PARSE_ERROR = Symbol('JSON_PARSE_ERROR');
+const JSON_BODY_TOO_LARGE = Symbol('JSON_BODY_TOO_LARGE');
+const JSON_BODY_INVALID_CONTENT_LENGTH = Symbol(
+  'JSON_BODY_INVALID_CONTENT_LENGTH'
+);
+
+const LOG_UNSAFE_LABEL_CHARACTERS = /[^\w:.-]/g;
+const MAX_DIAGNOSTIC_LABEL_VALUE_LENGTH = 128;
+
+const routeKey = (method: string, path: string): `${string} ${string}` =>
+  `${method.toUpperCase()} ${path}`;
+
+const parseQueryParams = (request: Request): Record<string, unknown> => {
+  const result: Record<string, unknown> = {};
+  const url = new URL(request.url);
+  const seenKeys = new Set<string>();
+
+  for (const key of url.searchParams.keys()) {
+    if (seenKeys.has(key)) {
+      continue;
+    }
+    seenKeys.add(key);
+    const all = url.searchParams.getAll(key);
+    result[key] = all.length > 1 ? all : all[0];
+  }
+
+  return result;
+};
+
+const parseContentLength = (
+  contentLength: string | null | undefined
+): ParsedContentLength => {
+  if (contentLength === null || contentLength === undefined) {
+    return undefined;
+  }
+  if (!CONTENT_LENGTH_DECIMAL_PATTERN.test(contentLength)) {
+    return JSON_BODY_INVALID_CONTENT_LENGTH;
+  }
+  const size = Number(contentLength);
+  return Number.isSafeInteger(size) ? size : Number.MAX_SAFE_INTEGER;
+};
+
+const isEmptyBody = (request: Request): boolean => {
+  const contentLength = parseContentLength(
+    request.headers.get('Content-Length')
+  );
+  if (contentLength === JSON_BODY_INVALID_CONTENT_LENGTH) {
+    return false;
+  }
+  if (contentLength !== undefined) {
+    return contentLength === 0;
+  }
+  return request.headers.get('Content-Type') === null;
+};
+
+const resolveMaxJsonBodyBytes = (value: number | undefined): number => {
+  const maxJsonBodyBytes = value ?? DEFAULT_MAX_JSON_BODY_BYTES;
+
+  if (!Number.isFinite(maxJsonBodyBytes) || maxJsonBodyBytes < 1) {
+    throw new ValidationError(
+      'maxJsonBodyBytes must be a positive finite number'
+    );
+  }
+
+  return maxJsonBodyBytes;
+};
+
+const hasOversizedContentLength = (
+  request: Request,
+  maxJsonBodyBytes: number
+): boolean => {
+  const contentLength = request.headers.get('Content-Length');
+  if (contentLength === null) {
+    return false;
+  }
+  const size = parseContentLength(contentLength);
+  if (size === JSON_BODY_INVALID_CONTENT_LENGTH) {
+    return false;
+  }
+  return size !== undefined && size > maxJsonBodyBytes;
+};
+
+const measureBodyTextBytes = (text: string): number => new Blob([text]).size;
+
+const validateBodyText = (
+  text: string,
+  maxJsonBodyBytes: number
+): JsonBodyTextReadResult =>
+  measureBodyTextBytes(text) > maxJsonBodyBytes ? JSON_BODY_TOO_LARGE : text;
+
+const cancelBodyReader = async (
+  reader: ReadableStreamDefaultReader<Uint8Array>,
+  reason?: unknown
+): Promise<void> => {
+  try {
+    await reader.cancel(reason);
+  } catch {
+    // The request is already being cancelled; preserve the surface-level
+    // cancelled response instead of replacing it with a reader cleanup error.
+  }
+};
+
+const assertRequestNotAborted = async (
+  request: Request,
+  reader: ReadableStreamDefaultReader<Uint8Array>
+): Promise<void> => {
+  if (!request.signal.aborted) {
+    return;
+  }
+  await cancelBodyReader(reader, request.signal.reason);
+  throw new CancelledError('Request aborted');
+};
+
+const readBodyText = async (
+  request: Request,
+  maxJsonBodyBytes: number
+): Promise<JsonBodyTextReadResult> => {
+  const { body } = request;
+  if (body === null) {
+    return '';
+  }
+
+  const reader = body.getReader();
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+
+  try {
+    while (true) {
+      await assertRequestNotAborted(request, reader);
+      let read: Awaited<ReturnType<typeof reader.read>>;
+      try {
+        read = await reader.read();
+      } catch (error) {
+        await assertRequestNotAborted(request, reader);
+        throw error;
+      }
+      await assertRequestNotAborted(request, reader);
+      const { done, value } = read;
+      if (done) {
+        break;
+      }
+      if (value === undefined) {
+        continue;
+      }
+      totalBytes += value.byteLength;
+      if (totalBytes > maxJsonBodyBytes) {
+        await cancelBodyReader(reader);
+        return JSON_BODY_TOO_LARGE;
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  const bytes = new Uint8Array(totalBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+
+  return new TextDecoder().decode(bytes);
+};
+
+const readJsonBody = async (
+  request: Request,
+  maxJsonBodyBytes: number
+): Promise<JsonBodyReadResult> => {
+  if (
+    parseContentLength(request.headers.get('Content-Length')) ===
+    JSON_BODY_INVALID_CONTENT_LENGTH
+  ) {
+    return JSON_BODY_INVALID_CONTENT_LENGTH;
+  }
+
+  if (hasOversizedContentLength(request, maxJsonBodyBytes)) {
+    return JSON_BODY_TOO_LARGE;
+  }
+
+  const text = await readBodyText(request, maxJsonBodyBytes);
+  if (text === JSON_BODY_TOO_LARGE) {
+    return JSON_BODY_TOO_LARGE;
+  }
+
+  const validated = validateBodyText(text, maxJsonBodyBytes);
+  if (validated === JSON_BODY_TOO_LARGE) {
+    return JSON_BODY_TOO_LARGE;
+  }
+
+  try {
+    return JSON.parse(validated) as JsonValue;
+  } catch {
+    return JSON_PARSE_ERROR;
+  }
+};
+
+const parseJsonBodyText = (text: string): JsonBodyReadResult => {
+  try {
+    return JSON.parse(text) as JsonValue;
+  } catch {
+    return JSON_PARSE_ERROR;
+  }
+};
+
+const parseWebhookBodyText = (
+  request: Request,
+  text: string
+): JsonBodyReadResult =>
+  isEmptyBody(request) || text.length === 0 ? {} : parseJsonBodyText(text);
+
+const readWebhookBodyText = async (
+  request: Request,
+  maxJsonBodyBytes: number
+): Promise<
+  string | typeof JSON_BODY_INVALID_CONTENT_LENGTH | typeof JSON_BODY_TOO_LARGE
+> => {
+  if (
+    parseContentLength(request.headers.get('Content-Length')) ===
+    JSON_BODY_INVALID_CONTENT_LENGTH
+  ) {
+    return JSON_BODY_INVALID_CONTENT_LENGTH;
+  }
+  if (hasOversizedContentLength(request, maxJsonBodyBytes)) {
+    return JSON_BODY_TOO_LARGE;
+  }
+  return await readBodyText(request, maxJsonBodyBytes);
+};
+
+const readInput = async (
+  request: Request,
+  inputSource: 'body' | 'query',
+  options: RuntimeOptions
+): Promise<InputReadResult> => {
+  if (inputSource === 'query') {
+    return parseQueryParams(request);
+  }
+  if (isEmptyBody(request)) {
+    return {};
+  }
+  return await readJsonBody(request, options.maxJsonBodyBytes);
+};
+
+const json = (body: Record<string, unknown>, status: number): Response =>
+  Response.json(body, { status });
+
+const mapErrorResponse = (error: Error): Response => {
+  const projection = projectPublicSurfaceError('http', error);
+  return json(
+    {
+      error: {
+        category: projection.category,
+        code: projection.name,
+        message: projection.message,
+      },
+    },
+    projection.code
+  );
+};
+
+const sanitizeDiagnosticLabelValue = (value: string): string =>
+  value
+    .replace(LOG_UNSAFE_LABEL_CHARACTERS, '_')
+    .slice(0, MAX_DIAGNOSTIC_LABEL_VALUE_LENGTH);
+
+const reportInternalDiagnostics = (error: Error, request: Request): void => {
+  if (isTrailsError(error)) {
+    return;
+  }
+
+  const requestId = request.headers.get('X-Request-ID') ?? undefined;
+  const safeRequestId =
+    requestId === undefined
+      ? undefined
+      : sanitizeDiagnosticLabelValue(requestId);
+  const label =
+    safeRequestId === undefined
+      ? '[ontrails:http/fetch] Internal error'
+      : `[ontrails:http/fetch] Internal error (${safeRequestId})`;
+  console.error(label, projectErrorDiagnostics(error));
+};
+
+interface ResultLike {
+  readonly error?: Error | undefined;
+  isOk(): boolean;
+  readonly value?: unknown;
+}
+
+const mapResultToResponse = (
+  result: ResultLike,
+  request: Request
+): Response => {
+  if (result.isOk()) {
+    return json({ data: result.value }, 200);
+  }
+  const error = result.error ?? new Error('Unknown error');
+  reportInternalDiagnostics(error, request);
+  return mapErrorResponse(error);
+};
+
+const handleCaughtError = (error: unknown, request: Request): Response => {
+  const err = error instanceof Error ? error : new Error(String(error));
+  reportInternalDiagnostics(err, request);
+  return mapErrorResponse(err);
+};
+
+const invalidJsonResponse = (): Response =>
+  json(
+    {
+      error: {
+        category: 'validation',
+        code: 'ValidationError',
+        message: 'Invalid JSON in request body',
+      },
+    },
+    400
+  );
+
+const invalidContentLengthResponse = (): Response =>
+  json(
+    {
+      error: {
+        category: 'validation',
+        code: 'ValidationError',
+        message: 'Invalid Content-Length header',
+      },
+    },
+    400
+  );
+
+const oversizedJsonBodyResponse = (options: RuntimeOptions): Response =>
+  json(
+    {
+      error: {
+        category: 'validation',
+        code: 'ValidationError',
+        message: `JSON request body exceeds ${options.maxJsonBodyBytes} bytes`,
+      },
+    },
+    413
+  );
+
+const notFoundResponse = (request: Request): Response => {
+  const path = new URL(request.url).pathname;
+  return mapErrorResponse(new NotFoundError(`HTTP route not found: ${path}`));
+};
+
+const collectHeaders = (request: Request): Record<string, string> => {
+  const headers: Record<string, string> = {};
+  for (const [key, value] of request.headers) {
+    headers[key] = value;
+  }
+  return headers;
+};
+
+const createWebhookVerifyRequest = (
+  request: Request,
+  body: string
+): {
+  readonly body: string;
+  readonly headers: Record<string, string>;
+  readonly method: string;
+  readonly path: string;
+} => ({
+  body,
+  headers: collectHeaders(request),
+  method: request.method,
+  path: new URL(request.url).pathname,
+});
+
+const recordInvalidWebhook = async (
+  route: HttpRouteDefinition,
+  errorCategory = 'validation'
+): Promise<void> => {
+  await route.recordWebhookInvalid?.(errorCategory);
+};
+
+const errorCategoryForWebhookFailure = (error: Error | undefined): string =>
+  error !== undefined && isTrailsError(error) ? error.category : 'internal';
+
+const handleWebhookRoute = async (
+  route: HttpRouteDefinition,
+  options: RuntimeOptions,
+  request: Request
+): Promise<Response> => {
+  const rawBody = await readWebhookBodyText(request, options.maxJsonBodyBytes);
+
+  if (rawBody === JSON_BODY_INVALID_CONTENT_LENGTH) {
+    await recordInvalidWebhook(route);
+    return invalidContentLengthResponse();
+  }
+
+  if (rawBody === JSON_BODY_TOO_LARGE) {
+    await recordInvalidWebhook(route);
+    return oversizedJsonBodyResponse(options);
+  }
+
+  const verified = await route.verifyWebhook?.(
+    createWebhookVerifyRequest(request, rawBody)
+  );
+  if (verified?.isErr()) {
+    await recordInvalidWebhook(
+      route,
+      errorCategoryForWebhookFailure(verified.error)
+    );
+    return mapResultToResponse(verified, request);
+  }
+
+  const jsonBody = parseWebhookBodyText(request, rawBody);
+  if (jsonBody === JSON_PARSE_ERROR) {
+    await recordInvalidWebhook(route);
+    return invalidJsonResponse();
+  }
+
+  const parsed = route.parseWebhookInput?.(jsonBody);
+  if (parsed === undefined) {
+    await recordInvalidWebhook(route, 'internal');
+    return mapResultToResponse(
+      {
+        error: new Error('Webhook route is missing parse handler'),
+        isOk: () => false,
+      },
+      request
+    );
+  }
+  if (parsed.isErr()) {
+    await recordInvalidWebhook(route);
+    return mapResultToResponse(parsed, request);
+  }
+
+  const requestId = request.headers.get('X-Request-ID') ?? undefined;
+  const result = await route.execute(parsed.value, requestId, request.signal, {
+    headers: request.headers,
+  });
+  return mapResultToResponse(result, request);
+};
+
+/**
+ * Build a Web Fetch handler for one framework-agnostic HTTP route.
+ */
+export const createRouteHandler = (
+  route: HttpRouteDefinition,
+  options: CreateRouteHandlerOptions = {}
+): ((request: Request) => Promise<Response>) => {
+  const runtimeOptions = {
+    maxJsonBodyBytes: resolveMaxJsonBodyBytes(options.maxJsonBodyBytes),
+  };
+
+  return async (request) => {
+    try {
+      if (route.inputSource === 'webhook') {
+        return await handleWebhookRoute(route, runtimeOptions, request);
+      }
+
+      const rawInput = await readInput(
+        request,
+        route.inputSource,
+        runtimeOptions
+      );
+
+      if (rawInput === JSON_PARSE_ERROR) {
+        return invalidJsonResponse();
+      }
+
+      if (rawInput === JSON_BODY_INVALID_CONTENT_LENGTH) {
+        return invalidContentLengthResponse();
+      }
+
+      if (rawInput === JSON_BODY_TOO_LARGE) {
+        return oversizedJsonBodyResponse(runtimeOptions);
+      }
+
+      const requestId = request.headers.get('X-Request-ID') ?? undefined;
+      const result = await route.execute(rawInput, requestId, request.signal, {
+        headers: request.headers,
+      });
+      return mapResultToResponse(result, request);
+    } catch (error: unknown) {
+      return handleCaughtError(error, request);
+    }
+  };
+};
+
+/**
+ * Build a Web Fetch dispatcher for all HTTP routes in a topo.
+ */
+export const createFetchHandler = (
+  graph: Topo,
+  options: CreateFetchHandlerOptions = {}
+): ((request: Request) => Promise<Response>) => {
+  const routesResult = deriveHttpRoutes(graph, {
+    basePath: options.basePath,
+    configValues: options.configValues,
+    createContext: options.createContext,
+    exclude: options.exclude,
+    include: options.include,
+    intent: options.intent,
+    layers: options.layers,
+    resolvePermit: options.resolvePermit,
+    resources: options.resources,
+    validate: options.validate,
+  });
+
+  if (routesResult.isErr()) {
+    throw routesResult.error;
+  }
+
+  const routeHandlers = new Map<
+    string,
+    (request: Request) => Promise<Response>
+  >();
+  for (const route of routesResult.value) {
+    routeHandlers.set(
+      routeKey(route.method, route.path),
+      createRouteHandler(route, {
+        maxJsonBodyBytes: options.maxJsonBodyBytes,
+      })
+    );
+  }
+
+  return async (request) => {
+    const path = new URL(request.url).pathname;
+    const handler = routeHandlers.get(routeKey(request.method, path));
+    return handler === undefined ? notFoundResponse(request) : handler(request);
+  };
+};

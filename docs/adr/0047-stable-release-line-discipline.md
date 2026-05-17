@@ -291,7 +291,7 @@ evidence prove the public release line will be coherent?"
   versions are separate from package semver
 - [ADR-0046: Lock v3 Artifact Family](0046-lock-v3-artifact-family.md) — stable
   artifact contracts are part of the public release line
-- [Release Process And Beta-To-1.0 Cutover Audit](../../.agents/plans/2026-05-13-v1-readiness-closure-stack/reports/source-m6-release-process-audit.md)
-  — source audit that identified the missing doctrine
+- Release Process And Beta-To-1.0 Cutover Audit — archived local planning
+  artifact that identified the missing doctrine
 - [Releasing](../../AGENTS.md#releasing) — current repo release commands and
   publish posture
