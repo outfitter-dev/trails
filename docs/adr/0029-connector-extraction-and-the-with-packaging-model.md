@@ -4,9 +4,9 @@ slug: connector-extraction-and-the-with-packaging-model
 title: Adapter Extraction and Composition Around Core Contracts
 status: accepted
 created: 2026-04-09
-updated: 2026-05-08
+updated: 2026-05-16
 owners: ['[galligan](https://github.com/galligan)']
-depends_on: [9, 16, 22, 23]
+depends_on: [5, 9, 16, 22, 23]
 ---
 
 # ADR-0029: Adapter Extraction and Composition Around Core Contracts
@@ -142,6 +142,51 @@ That preserves the one-way dependency arrow at the root package while still
 letting Trails ship "quick win" backends as part of the first-party store
 experience.
 
+### Built-in runtime materializers may stay under the owning surface package
+
+The same dependency test applies to runtime surface materializers:
+
+- A runtime materializer that depends only on platform built-ins may live as a
+  subpath of the owning projection package.
+- A runtime materializer that binds Trails to a third-party framework, library,
+  or ecosystem gets an extracted adapter package.
+
+That distinction keeps `derive*` projection APIs pure without forcing every
+`create*` helper into a top-level package. A projection answers, "what does this
+graph look like on this surface?" A materializer answers, "how do I run that
+projection on this host runtime?"
+
+For HTTP:
+
+```text
+@ontrails/http        deriveHttpRoutes(graph)
+@ontrails/http/fetch  createFetchHandler(graph), createRouteHandler(route)
+@ontrails/http/bun    createApp(graph), surface(graph)
+@ontrails/hono        createApp(graph), surface(graph)
+```
+
+`@ontrails/http/fetch` uses Web Standard `Request` and `Response`, which are
+runtime boundary types rather than a third-party framework. It can therefore
+live under `@ontrails/http` without weakening the HTTP route model:
+
+- [ADR-0005: Framework-Agnostic HTTP Route Model](0005-framework-agnostic-http-route-model.md) — `deriveHttpRoutes` continues to expose a framework-agnostic route projection, while the `./fetch` subpath exposes a reusable Web Fetch materializer for adapters and runtimes.
+
+`@ontrails/http/bun` uses Bun's built-in `Bun.serve` routes table. It adds a
+Bun runtime requirement but no package dependency on a third-party framework, so
+it stays as a subpath on `@ontrails/http`. A standalone `@ontrails/bun` package
+would add package ceremony without buying a new dependency or governance
+boundary.
+
+`@ontrails/hono` remains extracted because Hono is a third-party framework and a
+real dependency boundary. It composes over `@ontrails/http/fetch` rather than
+duplicating Web request parsing, error projection, webhook handling, or
+diagnostics.
+
+This rule does not imply a standalone package for every vendor-named adapter.
+For example, v1 OTel support remains at `@ontrails/tracing/otel` unless the
+implementation needs a hard OpenTelemetry SDK dependency or a separate release
+boundary.
+
 ### Adapters can stack
 
 An extracted package can bind a core contract directly, or it can layer on top
@@ -243,6 +288,7 @@ The return type is identical. The topo registration is identical. The trail's `r
 - [ADR-0022: Drizzle Binds Schema-Derived Stores to SQLite](0022-drizzle-store-connector.md) — the first extracted store binding that motivated the packaging model
 - [ADR-0023: Simplifying the Trails Lexicon](0023-simplifying-the-trails-lexicon.md) — the naming heuristic that now favors clear owned-adapter names over prefix magic
 - [ADR-0035: Surface APIs Render the Graph](0035-surface-apis-render-the-graph.md) — the surface composition ladder that extracted runtime adapters build on
+- [ADR-0005: Framework-Agnostic HTTP Route Model](0005-framework-agnostic-http-route-model.md) — the HTTP projection model that `@ontrails/http/fetch` and `@ontrails/http/bun` now materialize without turning `deriveHttpRoutes` into a framework adapter
 - [ADR-0030: Contours as First-Class Domain Objects](0030-contours-as-first-class-domain-objects.md) — upstream of the `/trails` subpath design on adapters
 - [ADR-0031: Backend-Agnostic Store Schemas](0031-backend-agnostic-store-schemas.md) — the store-kind model that makes first-party backends meaningful
 - [ADR: Resource Bundles](drafts/20260409-resource-bundles.md) (draft) — the bundling mechanism for adapter and pack resources
@@ -251,6 +297,7 @@ The return type is identical. The topo registration is identical. The trail's `r
 
 - 2026-04-16: In-place vocabulary update per ADR-0035 Cutover 3 — title updated to drop `with-*` prefix convention, naming rules revised for extracted connectors, migration table and composition layer table aligned with surface API grammar.
 - 2026-05-08: Connector-to-adapter taxonomy cutover — `adapter` becomes the canonical public package category, `integration` is retained only as colloquial prose, `facet` is reserved for projection slices, and the historical `connectors/` workspace root is superseded by `adapters/`.
+- 2026-05-16: Web Fetch kernel amendment — runtime materializers with no third-party dependency may stay as subpaths on the owning projection package, covering `@ontrails/http/fetch` and `@ontrails/http/bun` while preserving `@ontrails/hono` as the extracted Hono adapter.
 
 [^1]: [ADR-0009: First-Class Resources](0009-first-class-resources.md)
 [^2]: See the evaluation hierarchy in [Tenets: Primitives](../tenets.md#the-bar-for-new-primitives)

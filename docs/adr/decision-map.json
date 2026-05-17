@@ -490,6 +490,11 @@
           "fromPath": "docs/adr/0016-schema-derived-persistence.md"
         },
         {
+          "context": "- [ADR-0005: Framework-Agnostic HTTP Route Model](0005-framework-agnostic-http-route-model.md) — `deriveHttpRoutes` continues to expose a framework-agnostic route projection, while the `./fetch` subpa",
+          "from": "0029",
+          "fromPath": "docs/adr/0029-connector-extraction-and-the-with-packaging-model.md"
+        },
+        {
           "context": "- [ADR-0005: Framework-Agnostic HTTP Route Model](0005-framework-agnostic-http-route-model.md)",
           "from": "0035",
           "fromPath": "docs/adr/0035-surface-apis-render-the-graph.md"
@@ -1763,7 +1768,7 @@
     },
     {
       "created": "2026-04-09",
-      "depends_on": ["9", "16", "22", "23"],
+      "depends_on": ["5", "9", "16", "22", "23"],
       "inbound": [
         {
           "context": "The Hono connector lives in its own workspace package (originally shipped as the `@ontrails/http/hono` subpath; see [ADR-0029](./0029-connector-extraction-and-the-with-packaging-model.md)). Two functi",
@@ -1833,7 +1838,7 @@
       "status": "accepted",
       "superseded_by": null,
       "title": "Adapter Extraction and Composition Around Core Contracts",
-      "updated": "2026-05-08"
+      "updated": "2026-05-16"
     },
     {
       "created": "2026-04-09",
