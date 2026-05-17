@@ -179,7 +179,13 @@ const toOtelSpan = (record: TraceRecord): OtelSpan => ({
 
 /** A TraceSink extended with an explicit flush for shutdown. */
 export interface OtelSink extends TraceSink {
-  /** Flush any remaining buffered spans to the exporter. */
+  /**
+   * Flush any remaining buffered spans to the exporter.
+   *
+   * Call this during shutdown after the app stops accepting new work. Concurrent
+   * flush calls await the same in-flight export. If the exporter rejects, the
+   * failed batch is restored to the buffer so a later flush can retry it.
+   */
   readonly flush: () => Promise<void>;
 }
 
@@ -195,19 +201,66 @@ export interface OtelSink extends TraceSink {
  */
 export const createOtelAdapter = (options: OtelAdapterOptions): OtelSink => {
   const batchSize = options.batchSize ?? 1;
+  if (!(Number.isSafeInteger(batchSize) && batchSize > 0)) {
+    throw new RangeError('OTel adapter batchSize must be a positive integer');
+  }
   const buffer: OtelSpan[] = [];
+  let activeFlush: Promise<void> | undefined;
+  let flushAllRequested = false;
 
-  const flush = async (): Promise<void> => {
-    if (buffer.length === 0) {
-      return;
-    }
+  const exportBuffered = async (): Promise<void> => {
     const batch = buffer.splice(0);
     try {
       await options.exporter(batch);
     } catch (error) {
-      // Restore batch on exporter failure so data is not lost
+      // Restore batch on exporter failure so data is not lost.
       buffer.unshift(...batch);
       throw error;
+    }
+  };
+
+  const startFlush = (request?: {
+    readonly flushAll?: boolean;
+  }): Promise<void> => {
+    if (request?.flushAll === true) {
+      flushAllRequested = true;
+    }
+    if (activeFlush !== undefined) {
+      return activeFlush;
+    }
+    if (
+      buffer.length === 0 ||
+      (request?.flushAll !== true && buffer.length < batchSize)
+    ) {
+      if (buffer.length === 0) {
+        flushAllRequested = false;
+      }
+      return Promise.resolve();
+    }
+    activeFlush = (async () => {
+      try {
+        let shouldContinue = true;
+        do {
+          await exportBuffered();
+          shouldContinue =
+            buffer.length > 0 &&
+            (flushAllRequested || buffer.length >= batchSize);
+        } while (shouldContinue);
+      } finally {
+        activeFlush = undefined;
+        if (buffer.length === 0) {
+          flushAllRequested = false;
+        }
+      }
+    })();
+    return activeFlush;
+  };
+
+  const flush = (): Promise<void> => startFlush({ flushAll: true });
+
+  const maybeFlush = async (): Promise<void> => {
+    while (buffer.length >= batchSize) {
+      await startFlush();
     }
   };
 
@@ -215,9 +268,7 @@ export const createOtelAdapter = (options: OtelAdapterOptions): OtelSink => {
     flush,
     write: async (record: TraceRecord): Promise<void> => {
       buffer.push(toOtelSpan(record));
-      if (buffer.length >= batchSize) {
-        await flush();
-      }
+      await maybeFlush();
     },
   };
 };

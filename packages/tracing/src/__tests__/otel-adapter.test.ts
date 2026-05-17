@@ -687,6 +687,18 @@ describe('otelAdapter', () => {
   });
 
   describe('flush', () => {
+    test.each([0, -1, 1.5, Number.NaN])(
+      'rejects invalid batchSize %p',
+      (batchSize) => {
+        expect(() =>
+          createOtelAdapter({
+            batchSize,
+            exporter: () => {},
+          })
+        ).toThrow('OTel adapter batchSize must be a positive integer');
+      }
+    );
+
     test('sends buffered spans that have not yet reached batchSize', async () => {
       const exported: OtelSpan[][] = [];
       const adapter = createOtelAdapter({
@@ -732,6 +744,97 @@ describe('otelAdapter', () => {
       expect(exported[0]).toHaveLength(3);
     });
 
+    test('concurrent flush calls await the same exporter drain', async () => {
+      const exported: OtelSpan[][] = [];
+      const exporterStarted = Promise.withResolvers<undefined>();
+      const exporterReleased = Promise.withResolvers<undefined>();
+      const adapter = createOtelAdapter({
+        batchSize: 10,
+        exporter: async (s) => {
+          exported.push([...s]);
+          exporterStarted.resolve();
+          await exporterReleased.promise;
+        },
+      });
+
+      await adapter.write(makeRecord({ id: 'span-a' }));
+      await adapter.write(makeRecord({ id: 'span-b' }));
+
+      const firstFlush = adapter.flush();
+      await exporterStarted.promise;
+      const secondFlush = adapter.flush();
+
+      exporterReleased.resolve();
+      await Promise.all([firstFlush, secondFlush]);
+
+      expect(exported).toHaveLength(1);
+      expect(exported[0]?.map((span) => span.spanId)).toEqual([
+        'span-a',
+        'span-b',
+      ]);
+    });
+
+    test('auto-flush drains records queued during an active export', async () => {
+      const exported: string[][] = [];
+      const exporterStarted = Promise.withResolvers<undefined>();
+      const exporterReleased = Promise.withResolvers<undefined>();
+      let exportCount = 0;
+      const adapter = createOtelAdapter({
+        batchSize: 1,
+        exporter: async (s) => {
+          exportCount += 1;
+          exported.push(s.map((span) => span.spanId));
+          // eslint-disable-next-line jest/no-conditional-in-test -- only the first export is held open
+          if (exportCount === 1) {
+            exporterStarted.resolve();
+            await exporterReleased.promise;
+          }
+        },
+      });
+
+      const firstWrite = adapter.write(makeRecord({ id: 'span-a' }));
+      await exporterStarted.promise;
+      const secondWrite = adapter.write(makeRecord({ id: 'span-b' }));
+
+      expect(exported).toEqual([['span-a']]);
+
+      exporterReleased.resolve();
+      await Promise.all([firstWrite, secondWrite]);
+
+      expect(exported).toEqual([['span-a'], ['span-b']]);
+    });
+
+    test('auto-flush leaves below-threshold records buffered', async () => {
+      const exported: string[][] = [];
+      const exporterStarted = Promise.withResolvers<undefined>();
+      const exporterReleased = Promise.withResolvers<undefined>();
+      const adapter = createOtelAdapter({
+        batchSize: 2,
+        exporter: async (s) => {
+          exported.push(s.map((span) => span.spanId));
+          // eslint-disable-next-line jest/no-conditional-in-test -- only the first export is held open
+          if (exported.length === 1) {
+            exporterStarted.resolve();
+            await exporterReleased.promise;
+          }
+        },
+      });
+
+      await adapter.write(makeRecord({ id: 'span-a' }));
+      const secondWrite = adapter.write(makeRecord({ id: 'span-b' }));
+      await exporterStarted.promise;
+      await adapter.write(makeRecord({ id: 'span-c' }));
+
+      exporterReleased.resolve();
+      await secondWrite;
+
+      expect(exported).toEqual([['span-a', 'span-b']]);
+
+      await adapter.flush();
+
+      expect(exported).toEqual([['span-a', 'span-b'], ['span-c']]);
+    });
+
     test('rethrows exporter failures and restores the buffer', async () => {
       let shouldFail = true;
       const exported: OtelSpan[][] = [];
@@ -761,6 +864,60 @@ describe('otelAdapter', () => {
       await adapter.flush();
       expect(exported).toHaveLength(1);
       expect(exported[0]).toHaveLength(2);
+    });
+
+    test('restores failed batches ahead of queued records for retry', async () => {
+      let shouldFail = true;
+      const attempts: string[][] = [];
+      const exported: string[][] = [];
+      const adapter = createOtelAdapter({
+        batchSize: 3,
+        exporter: (s) => {
+          const spanIds = s.map((span) => span.spanId);
+          attempts.push(spanIds);
+          // eslint-disable-next-line jest/no-conditional-in-test -- exporter failure is the behavior under test
+          if (shouldFail) {
+            shouldFail = false;
+            throw new Error('partial exporter failure');
+          }
+          exported.push(spanIds);
+        },
+      });
+
+      await adapter.write(makeRecord({ id: 'span-a' }));
+      await adapter.write(makeRecord({ id: 'span-b' }));
+      await expect(adapter.write(makeRecord({ id: 'span-c' }))).rejects.toThrow(
+        'partial exporter failure'
+      );
+
+      await adapter.write(makeRecord({ id: 'span-d' }));
+
+      expect(attempts[0]).toEqual(['span-a', 'span-b', 'span-c']);
+      expect(attempts[1]).toEqual(['span-a', 'span-b', 'span-c', 'span-d']);
+      expect(exported).toHaveLength(1);
+      expect(exported.flat()).toEqual(['span-a', 'span-b', 'span-c', 'span-d']);
+    });
+
+    test('keeps explicit flush and auto-flush to one exporter call each', async () => {
+      const exported: string[][] = [];
+      const adapter = createOtelAdapter({
+        batchSize: 3,
+        exporter: (s) => {
+          exported.push(s.map((span) => span.spanId));
+        },
+      });
+
+      await adapter.write(makeRecord({ id: 'span-a' }));
+      await adapter.write(makeRecord({ id: 'span-b' }));
+      await adapter.flush();
+      await adapter.write(makeRecord({ id: 'span-c' }));
+      await adapter.write(makeRecord({ id: 'span-d' }));
+      await adapter.write(makeRecord({ id: 'span-e' }));
+
+      expect(exported).toEqual([
+        ['span-a', 'span-b'],
+        ['span-c', 'span-d', 'span-e'],
+      ]);
     });
 
     test('is a no-op when buffer is empty', async () => {
