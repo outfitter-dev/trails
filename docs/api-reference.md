@@ -202,6 +202,28 @@ DeriveHttpRoutesOptions, HttpMethod, HttpOperationMethod, HttpRouteDefinition, I
 OpenApiOptions, OpenApiSpec, OpenApiServer
 ```
 
+## `@ontrails/http/fetch`
+
+```typescript
+createRouteHandler(route, options?)    // materialize one Web Fetch Request -> Response handler
+createFetchHandler(graph, options?)    // materialize a full topo Web Fetch dispatcher
+
+CreateRouteHandlerOptions, CreateFetchHandlerOptions
+```
+
+The fetch kernel owns query/body parsing, content-length checks, public HTTP error projection, diagnostics, request ID/header forwarding, abort propagation, and webhook verification/parsing semantics for HTTP materializers.
+
+## `@ontrails/http/bun`
+
+```typescript
+createApp(graph, options?)             // create Bun routes + fetch fallback + onError handler
+surface(graph, options?)               // serve the topo with Bun.serve()
+
+BunHttpApp, CreateAppOptions, SurfaceHttpResult
+```
+
+Use this subpath for Bun-native serving without Hono or another third-party HTTP framework.
+
 ## `@ontrails/hono`
 
 ```typescript
@@ -486,6 +508,14 @@ MemorySinkOptions, MemoryTraceSink, PrettyFormatterOptions
 createLogtapeSink({ logger })         // forward observe LogRecord values to a LogTape-shaped logger
 
 LogtapeLoggerLike, LogtapeSinkOptions
+```
+
+## `@ontrails/pino`
+
+```typescript
+createPinoSink(logger, options?)       // forward observe LogRecord values to a Pino-shaped logger
+
+PinoLoggerLike, PinoSinkOptions
 ```
 
 ## `@ontrails/tracing`

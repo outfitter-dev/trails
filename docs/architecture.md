@@ -149,7 +149,7 @@ Overrides are escape hatches. They're visible in the TopoGraph as explicit devia
 | `@ontrails/cli` | Framework-agnostic command model, flag derivation, output formatting | None beyond core |
 | `@ontrails/commander` | Commander adapter, `surface()` | `commander` |
 | `@ontrails/mcp` | MCP tools, annotations, progress bridge, `surface()` | `@modelcontextprotocol/sdk` |
-| `@ontrails/http` | HTTP routes, error mapping, and OpenAPI generation | None beyond core |
+| `@ontrails/http` | HTTP routes, Web Fetch kernel, Bun-native subpath, and OpenAPI generation | None beyond core |
 | `@ontrails/hono` | Hono adapter, `surface()` | `hono` |
 | `@ontrails/vite` | Vite middleware adapter, `vite()` | None (node:stream only) |
 
@@ -164,6 +164,7 @@ Overrides are escape hatches. They're visible in the TopoGraph as explicit devia
 | `@ontrails/observe` | Production log and trace sink contracts, composition, and built-in sinks | None beyond core |
 | `@ontrails/tracing` | Tracing compatibility, query/status trails, `.trails/state/trails.db` dev-state storage, sampling helpers, OTel adapter | None beyond core |
 | `@ontrails/logtape` | LogTape sink adapter for `@ontrails/observe` | None (accepts any LogTape-shaped logger via a structural interface) |
+| `@ontrails/pino` | Pino sink adapter for `@ontrails/observe` | None (accepts any Pino-shaped logger via a structural interface) |
 
 ### Ecosystem
 
@@ -260,7 +261,8 @@ MCP tool call ({ name: "myapp_entity_show", arguments: { name: "Alpha" } })
 
 ```text
 HTTP request (GET /entity/show?name=Alpha)
-  -> Hono matches route derived from trail ID
+  -> Hono or Bun matches route derived from trail ID
+  -> Shared Web Fetch kernel parses the request
   -> Zod validates input (query params for GET, JSON body for POST/DELETE)
   -> TrailContext created
   -> Declared resources resolved into ctx

@@ -28,7 +28,7 @@
 
 - **[CLI Surface](./surfaces/cli.md)** — Shipped today. Flag derivation, output modes, exit codes, `--dry-run`
 - **[MCP Surface](./surfaces/mcp.md)** — Shipped today. Tool naming, annotations, progress bridge
-- **[HTTP Surface](./surfaces/http.md)** — Shipped today. Route derivation, webhook activation, verb mapping, error responses, Hono adapter
+- **[HTTP Surface](./surfaces/http.md)** — Shipped today. Route derivation, Web Fetch kernel, Hono adapter, Bun-native serving, webhook activation
 - **WebSocket Surface** — Planned, not yet implemented. See [Horizons](./horizons.md) for the current direction.
 
 ## Governing your codebase?

@@ -1,6 +1,6 @@
 # @ontrails/hono
 
-Hono surface adapter for Trails. Use this package when you want to serve a topo over HTTP with Hono while keeping `@ontrails/http` focused on framework-agnostic route building.
+Hono surface adapter for Trails. Use this package when you want to serve a topo over HTTP with Hono while keeping `@ontrails/http` focused on framework-agnostic route building and the shared Web Fetch kernel.
 
 ## Usage
 
@@ -32,7 +32,7 @@ redacted diagnostic projection is written to server diagnostics. `TrailsError`
 responses keep their taxonomy category and class name but redact sensitive
 message fragments before writing the public body.
 
-For custom HTTP integrations or route inspection, keep using `deriveHttpRoutes()` from `@ontrails/http`.
+For custom HTTP integrations or route inspection, keep using `deriveHttpRoutes()` from `@ontrails/http`. For a framework-neutral runtime handler, use `createRouteHandler()` or `createFetchHandler()` from `@ontrails/http/fetch`. For Bun-native serving without Hono, use `@ontrails/http/bun`.
 
 ## Installation
 

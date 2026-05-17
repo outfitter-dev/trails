@@ -128,7 +128,7 @@ await cliSurface(graph);      // CLI
 // await mcpSurface(graph);   // MCP — same trails, same run function
 ```
 
-The same topo can be opened on HTTP today with `@ontrails/hono`. WebSocket follows the same peer-surface model, but is still planned.
+The same topo can be opened on HTTP today with `@ontrails/hono` or Bun-native `@ontrails/http/bun`. WebSocket follows the same peer-surface model, but is still planned.
 
 ```bash
 $ myapp greet --name World
@@ -143,8 +143,8 @@ $ myapp greet --name World
 | [`@ontrails/cli`](./packages/cli) | CLI command model - flag derivation, output formatting |
 | [`@ontrails/commander`](./adapters/commander) | Commander adapter for the CLI surface |
 | [`@ontrails/mcp`](./packages/mcp) | MCP surface — tool generation, annotations, progress bridge |
-| [`@ontrails/http`](./packages/http) | HTTP surface model — route derivation, verb mapping, error responses |
-| [`@ontrails/hono`](./adapters/hono) | Hono adapter that opens a topo on the HTTP surface |
+| [`@ontrails/http`](./packages/http) | HTTP surface model — route derivation, Web Fetch kernel, Bun-native subpath |
+| [`@ontrails/hono`](./adapters/hono) | Hono adapter that opens a topo on the HTTP surface using the shared kernel |
 | [`@ontrails/store`](./packages/store) | Backend-agnostic store definitions, typed accessors, adapter-support helpers |
 | [`@ontrails/testing`](./packages/testing) | `testAll()`, `testTrail()`, `testCrosses()`, contract testing, surface harnesses |
 | [`@ontrails/topographer`](./packages/topographer) | Surface maps, semantic diffing, lock files for CI governance |

@@ -4,7 +4,7 @@
 
 ## Shipped
 
-**HTTP surface (`@ontrails/http`).** The third surface adapter. `intent: 'read'` maps to GET, mutations to POST, `'destroy'` to DELETE. Route paths derived from trail IDs. Error taxonomy maps to HTTP status codes. One `surface()` call, same pattern as CLI and MCP. Built on Hono.
+**HTTP surface (`@ontrails/http`).** The third surface adapter. `intent: 'read'` maps to GET, mutations to POST, `'destroy'` to DELETE. Route paths derived from trail IDs. Error taxonomy maps to HTTP status codes. `@ontrails/http` owns the framework-agnostic route projection and shared Web Fetch kernel; `@ontrails/hono` provides Hono portability, while `@ontrails/http/bun` provides Bun-native serving without a third-party framework.
 
 **OpenAPI generation (`@ontrails/http`).** `deriveOpenApiSpec()` produces a complete OpenAPI 3.1 spec from the topo for HTTP clients. The topo already carries everything OpenAPI needs; the HTTP package owns the surface-specific projection.
 

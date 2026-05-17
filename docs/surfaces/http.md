@@ -1,8 +1,8 @@
 # HTTP Surface
 
-The HTTP surface adapter turns every trail into an endpoint. Routes are derived from trail IDs, HTTP verbs from intent, input parsing from the method, and error responses from the error taxonomy. One `surface()` call starts a Hono server.
+The HTTP surface turns every trail into an endpoint. Routes are derived from trail IDs, HTTP verbs from intent, input parsing from the method, and error responses from the error taxonomy.
 
-The package separates framework-agnostic route building (`@ontrails/http`) from the Hono adapter (`@ontrails/hono`).
+The package separates framework-agnostic route building (`@ontrails/http`), shared Web Fetch request handling (`@ontrails/http/fetch`), the Hono adapter (`@ontrails/hono`), and Bun-native serving (`@ontrails/http/bun`).
 
 ## Setup
 
@@ -18,6 +18,40 @@ await surface(graph, { port: 3000 });
 ```
 
 That starts an HTTP server with every trail registered as a route.
+
+For Bun-native serving without Hono:
+
+```bash
+bun add @ontrails/http
+```
+
+```typescript
+import { surface } from '@ontrails/http/bun';
+import { graph } from './app';
+
+await surface(graph, { port: 3000 });
+```
+
+`@ontrails/hono` is the portable Hono integration. `@ontrails/http/bun` uses
+Bun's native `routes` fast path, keeps a Fetch fallback for unmatched requests,
+and adds no third-party HTTP framework dependency.
+
+## Projection and runtime materialization
+
+HTTP follows the surface naming split:
+
+- `deriveHttpRoutes()` and `deriveOpenApiSpec()` are `derive*` projections from
+  the topo. They do not open a server.
+- `createRouteHandler()` and `createFetchHandler()` from
+  `@ontrails/http/fetch` are `create*` runtime materializers. They return Web
+  Standard `Request` -> `Response` handlers without listening on a port.
+- `surface()` opens the boundary: `@ontrails/hono` starts Hono;
+  `@ontrails/http/bun` starts `Bun.serve()`.
+
+The shared Fetch kernel owns query/body parsing, content-length validation,
+public error projection, diagnostics, request ID/header forwarding, abort
+propagation, and webhook verification/parsing. Hono and Bun consume the same
+kernel so those behaviors stay in parity.
 
 ## How Trail IDs Map to Routes
 
@@ -55,7 +89,7 @@ Input parsing depends on the HTTP method:
 
 - **GET** -- Query parameters are parsed into an object. Repeated keys become arrays; single keys stay strings. The trail's input schema owns any coercion.
 - **POST / DELETE** -- The JSON request body is parsed via `req.json()`.
-- **Webhook routes** -- The Hono adapter reads the raw body first, runs the webhook `verify` hook if one is defined, parses JSON, then validates the parsed payload against the source's `parse` schema before executing the trail.
+- **Webhook routes** -- The shared Fetch kernel reads the raw body first, runs the webhook `verify` hook if one is defined, parses JSON, then validates the parsed payload against the source's `parse` schema before executing the trail.
 
 For direct routes, the parsed input is validated against the trail's Zod schema before the implementation runs. For webhook routes, the source `parse` schema validates the JSON payload first, then the receiving trail's `input` schema validates the value passed into the trail.
 
@@ -246,13 +280,26 @@ The handler reads `X-Request-ID` from inbound requests and passes it through to 
 
 ## Escape Hatch
 
-For custom setups, use `deriveHttpRoutes()` from the base package to get framework-agnostic route definitions. Each route has an `execute` function that validates input, composes Layers, and runs the trail -- you wire it into whatever HTTP framework you use:
+For custom setups, use `@ontrails/http/fetch` when you want Trails to keep
+owning the request/response semantics and your runtime to own the server:
 
 ```typescript
-import { isTrailsError, mapSurfaceError } from '@ontrails/core';
+import { createFetchHandler } from '@ontrails/http/fetch';
+
+const fetch = createFetchHandler(graph, { basePath: '/api' });
+
+export default {
+  fetch,
+};
+```
+
+If your framework needs route-by-route registration, combine
+`deriveHttpRoutes()` with `createRouteHandler()`:
+
+```typescript
 import { deriveHttpRoutes } from '@ontrails/http';
+import { createRouteHandler } from '@ontrails/http/fetch';
 import { Hono } from 'hono';
-import type { ContentfulStatusCode } from 'hono/utils/http-status';
 
 const hono = new Hono();
 const routesResult = deriveHttpRoutes(graph, { basePath: '/api' });
@@ -261,91 +308,15 @@ if (routesResult.isErr()) {
   throw routesResult.error; // ValidationError if route collisions are detected
 }
 
-// Project any error onto an HTTP status using the shared error taxonomy.
-// `TrailsError` subclasses (validation, auth, permission, internal, ...) get
-// the documented status; anything else falls back to 500.
-const statusFor = (error: unknown): ContentfulStatusCode =>
-  isTrailsError(error)
-    ? (mapSurfaceError('http', error) as ContentfulStatusCode)
-    : 500;
-
 for (const route of routesResult.value) {
-  const method = route.method.toLowerCase() as
-    | 'delete'
-    | 'get'
-    | 'patch'
-    | 'post'
-    | 'put';
-  hono[method](route.path, async (c) => {
-    if (route.inputSource === 'webhook') {
-      const body = await c.req.text();
-      const verified = await route.verifyWebhook?.({
-        body,
-        headers: Object.fromEntries(c.req.raw.headers),
-        method: c.req.method,
-        path: new URL(c.req.url).pathname,
-      });
-      if (verified?.isErr()) {
-        // Route through the taxonomy: PermissionError -> 403, AuthError -> 401,
-        // wrapped InternalError -> 500, etc.
-        return c.json(
-          { error: { message: verified.error?.message } },
-          statusFor(verified.error)
-        );
-      }
-      let payload: unknown;
-      try {
-        payload = body.length === 0 ? {} : JSON.parse(body);
-      } catch {
-        return c.json({ error: { message: 'Invalid JSON in request body' } }, 400);
-      }
-      const parsed = route.parseWebhookInput?.(payload);
-      if (parsed === undefined) {
-        return c.json(
-          { error: { message: 'Webhook route is missing parse handler' } },
-          500
-        );
-      }
-      if (parsed.isErr()) {
-        return c.json(
-          { error: { message: parsed.error?.message } },
-          statusFor(parsed.error)
-        );
-      }
-      const result = await route.execute(
-        parsed.value,
-        undefined,
-        c.req.raw.signal,
-        { headers: c.req.raw.headers }
-      );
-      return result.isOk()
-        ? c.json({ data: result.value }, 200)
-        : c.json(
-            { error: { message: result.error?.message } },
-            statusFor(result.error)
-          );
-    }
-
-    const input =
-      route.inputSource === 'query'
-        ? Object.fromEntries(new URL(c.req.url).searchParams)
-        : await c.req.json();
-    const result = await route.execute(input, undefined, c.req.raw.signal, {
-      headers: c.req.raw.headers,
-    });
-    return result.isOk()
-      ? c.json({ data: result.value }, 200)
-      : c.json(
-          { error: { message: result.error?.message } },
-          statusFor(result.error)
-        );
-  });
+  const handler = createRouteHandler(route);
+  hono.on(route.method, route.path, (c) => handler(c.req.raw));
 }
 
 export default hono;
 ```
 
-This gives you full control over the HTTP framework while still deriving routes from the topo.
+This gives you full control over the HTTP framework while preserving the shared query/body parsing, error projection, diagnostics, abort propagation, and webhook behavior.
 
 `deriveHttpRoutes()` returns `Result<HttpRouteDefinition[], Error>`. If two trails resolve to the same method + path (e.g. two trails both map to `POST /entity/add`), it returns a `ValidationError` describing the collision instead of silently overwriting a route.
 
