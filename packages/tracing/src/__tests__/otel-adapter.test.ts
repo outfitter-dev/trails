@@ -18,6 +18,31 @@ const makeRecord = (overrides: Partial<TraceRecord> = {}): TraceRecord => ({
   ...overrides,
 });
 
+/** Collect translated spans without exporting until flush is called. */
+const createSpanCollector = (): {
+  readonly adapter: ReturnType<typeof createOtelAdapter>;
+  readonly spans: OtelSpan[];
+} => {
+  const spans: OtelSpan[] = [];
+  return {
+    adapter: createOtelAdapter({
+      batchSize: 100,
+      exporter: (exported) => {
+        spans.push(...exported);
+      },
+    }),
+    spans,
+  };
+};
+
+const spanById = (spans: readonly OtelSpan[], spanId: string): OtelSpan => {
+  const span = spans.find((entry) => entry.spanId === spanId);
+  if (span === undefined) {
+    throw new Error(`missing span ${spanId}`);
+  }
+  return span;
+};
+
 describe('otelAdapter', () => {
   describe('attribute mapping', () => {
     test('maps trailId to attributes["trails.trail.id"]', async () => {
@@ -394,6 +419,253 @@ describe('otelAdapter', () => {
       await adapter.write(makeRecord({ parentId: 'parent-1' }));
 
       expect(spans[0]?.kind).toBe('INTERNAL');
+    });
+  });
+
+  describe('lineage semantics', () => {
+    test('preserves root trail, crossed trail, and child span lineage', async () => {
+      const { adapter, spans } = createSpanCollector();
+
+      await adapter.write(
+        makeRecord({
+          id: 'span-root',
+          name: 'orders.checkout',
+          parentId: undefined,
+          rootId: 'span-root',
+          traceId: 'trace-lineage',
+          trailId: 'orders.checkout',
+        })
+      );
+      await adapter.write(
+        makeRecord({
+          id: 'span-crossed',
+          name: 'inventory.reserve',
+          parentId: 'span-root',
+          rootId: 'span-root',
+          traceId: 'trace-lineage',
+          trailId: 'inventory.reserve',
+        })
+      );
+      await adapter.write(
+        makeRecord({
+          id: 'span-child',
+          kind: 'span',
+          name: 'inventory.reserve.validate',
+          parentId: 'span-crossed',
+          rootId: 'span-root',
+          traceId: 'trace-lineage',
+          trailId: undefined,
+        })
+      );
+      await adapter.flush();
+
+      const root = spanById(spans, 'span-root');
+      const crossed = spanById(spans, 'span-crossed');
+      const child = spanById(spans, 'span-child');
+
+      expect(root.kind).toBe('SERVER');
+      expect(root.parentSpanId).toBeUndefined();
+      expect(root.attributes['trails.span.root_id']).toBe('span-root');
+      expect(root.attributes['trails.trail.id']).toBe('orders.checkout');
+
+      expect(crossed.kind).toBe('INTERNAL');
+      expect(crossed.parentSpanId).toBe('span-root');
+      expect(crossed.traceId).toBe(root.traceId);
+      expect(crossed.attributes['trails.span.parent_id']).toBe('span-root');
+      expect(crossed.attributes['trails.span.root_id']).toBe('span-root');
+      expect(crossed.attributes['trails.trail.id']).toBe('inventory.reserve');
+
+      expect(child.kind).toBe('INTERNAL');
+      expect(child.parentSpanId).toBe('span-crossed');
+      expect(child.traceId).toBe(root.traceId);
+      expect(child.attributes['trails.record.kind']).toBe('span');
+      expect(child.attributes['trails.record.name']).toBe(
+        'inventory.reserve.validate'
+      );
+      expect(child.attributes['trails.span.root_id']).toBe('span-root');
+      expect(child.attributes['trails.trail.id']).toBeUndefined();
+    });
+
+    test('preserves scheduled activation to activated trail lineage', async () => {
+      const { adapter, spans } = createSpanCollector();
+
+      await adapter.write(
+        makeRecord({
+          attrs: {
+            'trails.activation.fire_id': 'fire-schedule-1',
+            'trails.activation.source.id': 'schedule.provenance.trace',
+            'trails.activation.source.kind': 'schedule',
+            'trails.activation.target_trail.id': 'provenance.trace',
+          },
+          id: 'activation-1',
+          kind: 'activation',
+          name: 'activation.scheduled',
+          parentId: undefined,
+          rootId: 'activation-1',
+          traceId: 'trace-activation',
+          trailId: undefined,
+        })
+      );
+      await adapter.write(
+        makeRecord({
+          attrs: {
+            'trails.activation.fire_id': 'fire-schedule-1',
+          },
+          id: 'trail-1',
+          name: 'provenance.trace',
+          parentId: 'activation-1',
+          rootId: 'activation-1',
+          traceId: 'trace-activation',
+          trailId: 'provenance.trace',
+        })
+      );
+      await adapter.flush();
+
+      const activation = spanById(spans, 'activation-1');
+      const activatedTrail = spanById(spans, 'trail-1');
+
+      expect(activation.kind).toBe('SERVER');
+      expect(activation.attributes['trails.activation.event']).toBe(
+        'activation.scheduled'
+      );
+      expect(activation.attributes['trails.activation.source.kind']).toBe(
+        'schedule'
+      );
+      expect(activatedTrail.kind).toBe('INTERNAL');
+      expect(activatedTrail.parentSpanId).toBe('activation-1');
+      expect(activatedTrail.traceId).toBe(activation.traceId);
+      expect(activatedTrail.attributes['trails.span.root_id']).toBe(
+        'activation-1'
+      );
+      expect(activation.attributes['trails.activation.fire_id']).toBe(
+        'fire-schedule-1'
+      );
+      expect(activatedTrail.attributes['trails.activation.fire_id']).toBe(
+        'fire-schedule-1'
+      );
+      expect(activation.attributes['trails.activation.target_trail.id']).toBe(
+        'provenance.trace'
+      );
+    });
+
+    test('preserves signal lifecycle lineage under the producer trail', async () => {
+      const { adapter, spans } = createSpanCollector();
+
+      await adapter.write(
+        makeRecord({
+          id: 'producer-1',
+          name: 'order.create',
+          parentId: undefined,
+          rootId: 'producer-1',
+          traceId: 'trace-signal',
+          trailId: 'order.create',
+        })
+      );
+      await adapter.write(
+        makeRecord({
+          attrs: {
+            'trails.activation.fire_id': 'fire-signal-1',
+            'trails.activation.source.id': 'order.placed',
+            'trails.activation.source.kind': 'signal',
+            'trails.signal.id': 'order.placed',
+            'trails.signal.payload.digest': 'sha256:abc',
+            'trails.signal.payload.redacted': true,
+            'trails.signal.payload.shape': 'object',
+            'trails.signal.run.id': 'producer-1',
+          },
+          id: 'signal-1',
+          kind: 'signal',
+          name: 'signal.fired',
+          parentId: 'producer-1',
+          rootId: 'producer-1',
+          traceId: 'trace-signal',
+          trailId: undefined,
+        })
+      );
+      await adapter.flush();
+
+      const producer = spanById(spans, 'producer-1');
+      const signal = spanById(spans, 'signal-1');
+
+      expect(signal.kind).toBe('INTERNAL');
+      expect(signal.parentSpanId).toBe('producer-1');
+      expect(signal.traceId).toBe(producer.traceId);
+      expect(signal.attributes['trails.signal.event']).toBe('signal.fired');
+      expect(signal.attributes['trails.signal.id']).toBe('order.placed');
+      expect(signal.attributes['trails.signal.payload.digest']).toBe(
+        'sha256:abc'
+      );
+      expect(signal.attributes['trails.signal.payload.redacted']).toBe(true);
+      expect(signal.attributes['trails.signal.run.id']).toBe('producer-1');
+    });
+  });
+
+  describe('status semantics', () => {
+    const errorCases = [
+      'validation',
+      'not_found',
+      'conflict',
+      'auth',
+      'permission',
+      'rate_limit',
+      'internal',
+    ] as const;
+
+    test('keeps successful spans OK without an error category', async () => {
+      const { adapter, spans } = createSpanCollector();
+
+      await adapter.write(
+        makeRecord({
+          errorCategory: undefined,
+          id: 'ok-span',
+          status: 'ok',
+        })
+      );
+      await adapter.flush();
+
+      const span = spanById(spans, 'ok-span');
+      expect(span.status).toBe('OK');
+      expect(span.attributes['trails.status']).toBe('ok');
+      expect(span.attributes['trails.error.category']).toBeUndefined();
+    });
+
+    test.each(errorCases)(
+      'maps %s failures to ERROR while preserving category',
+      async (category) => {
+        const { adapter, spans } = createSpanCollector();
+
+        await adapter.write(
+          makeRecord({
+            errorCategory: category,
+            id: `err-${category}`,
+            status: 'err',
+          })
+        );
+        await adapter.flush();
+
+        const span = spanById(spans, `err-${category}`);
+        expect(span.status).toBe('ERROR');
+        expect(span.attributes['trails.status']).toBe('err');
+        expect(span.attributes['trails.error.category']).toBe(category);
+      }
+    );
+
+    test('maps cancelled spans to UNSET without inventing an error category', async () => {
+      const { adapter, spans } = createSpanCollector();
+
+      await adapter.write(
+        makeRecord({
+          errorCategory: undefined,
+          id: 'cancelled-span',
+          status: 'cancelled',
+        })
+      );
+      await adapter.flush();
+
+      const span = spanById(spans, 'cancelled-span');
+      expect(span.status).toBe('UNSET');
+      expect(span.attributes['trails.status']).toBe('cancelled');
+      expect(span.attributes['trails.error.category']).toBeUndefined();
     });
   });
 
