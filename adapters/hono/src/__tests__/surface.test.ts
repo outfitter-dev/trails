@@ -391,7 +391,7 @@ describe('surface API (Hono adapter)', () => {
     });
     expect(loggedErrors).toHaveLength(1);
     expect(loggedErrors[0]?.[0]).toBe(
-      '[ontrails:hono] Internal error (req-123)'
+      '[ontrails:http/fetch] Internal error (req-123)'
     );
     const loggedError = loggedErrors[0]?.[1];
     expect(loggedError).toMatchObject({
@@ -518,7 +518,9 @@ describe('surface API (Hono adapter)', () => {
     expect(response.status).toBe(500);
     expect(loggedErrors).toHaveLength(1);
     const label = loggedErrors[0]?.[0];
-    expect(label).toBe('[ontrails:hono] Internal error (req-123_forged_line)');
+    expect(label).toBe(
+      '[ontrails:http/fetch] Internal error (req-123_forged_line)'
+    );
     expect(String(label)).not.toContain('req-123 forged');
     expect(String(label)).not.toContain('forged/line');
   });
@@ -536,7 +538,7 @@ describe('surface API (Hono adapter)', () => {
     expect(response.status).toBe(500);
     expect(loggedErrors).toHaveLength(1);
     expect(loggedErrors[0]?.[0]).toBe(
-      `[ontrails:hono] Internal error (${'x'.repeat(128)})`
+      `[ontrails:http/fetch] Internal error (${'x'.repeat(128)})`
     );
   });
 
@@ -560,7 +562,7 @@ describe('surface API (Hono adapter)', () => {
       },
     });
     expect(loggedErrors).toHaveLength(1);
-    expect(loggedErrors[0]?.[0]).toBe('[ontrails:hono] Internal error');
+    expect(loggedErrors[0]?.[0]).toBe('[ontrails:http/fetch] Internal error');
     const loggedError = loggedErrors[0]?.[1];
     expect(loggedError).toMatchObject({
       message: '[REDACTED]',

@@ -10,12 +10,6 @@
  * ```
  */
 
-import {
-  isTrailsError,
-  projectErrorDiagnostics,
-  projectPublicSurfaceError,
-  ValidationError,
-} from '@ontrails/core';
 import type {
   BaseSurfaceOptions,
   Layer,
@@ -25,14 +19,13 @@ import type {
 } from '@ontrails/core';
 import { Hono } from 'hono';
 import type { Context as HonoContext } from 'hono';
-import type { ContentfulStatusCode } from 'hono/utils/http-status';
-import { deriveHttpRoutes } from '@ontrails/http';
+import { createRouteHandler, deriveHttpRoutes } from '@ontrails/http';
 import type {
-  HttpExecutionContext,
   HttpMethod,
   HttpRouteDefinition,
   ResolveHttpPermit,
 } from '@ontrails/http';
+import { handleCaughtHonoError } from './caught-error.js';
 
 // ---------------------------------------------------------------------------
 // Options
@@ -54,10 +47,8 @@ export interface CreateAppOptions extends BaseSurfaceOptions {
 }
 
 interface RuntimeOptions {
-  readonly maxJsonBodyBytes: number;
+  readonly maxJsonBodyBytes?: number | undefined;
 }
-
-const DEFAULT_MAX_JSON_BODY_BYTES = 1024 * 1024;
 
 export interface SurfaceHttpResult {
   readonly close: () => Promise<void>;
@@ -65,508 +56,33 @@ export interface SurfaceHttpResult {
 }
 
 // ---------------------------------------------------------------------------
-// Request parsing
-// ---------------------------------------------------------------------------
-
-/**
- * Parse query params into a plain object, preserving scalar-vs-array shape.
- *
- * A single `?tag=one` stays a scalar string, while repeated keys like
- * `?tag=one&tag=two` become arrays. Schema validation owns whether that shape
- * is accepted; the adapter does not coerce singleton values into arrays.
- */
-const parseQueryParams = (c: HonoContext): Record<string, unknown> => {
-  const result: Record<string, unknown> = {};
-  const url = new URL(c.req.url);
-  const seenKeys = new Set<string>();
-
-  for (const key of url.searchParams.keys()) {
-    if (seenKeys.has(key)) {
-      continue;
-    }
-    seenKeys.add(key);
-    const all = url.searchParams.getAll(key);
-    result[key] = all.length > 1 ? all : all[0];
-  }
-
-  return result;
-};
-
-/** Sentinel indicating a JSON parse failure. */
-const JSON_PARSE_ERROR = Symbol('JSON_PARSE_ERROR');
-
-/** Sentinel indicating a JSON body rejected before parsing. */
-const JSON_BODY_TOO_LARGE = Symbol('JSON_BODY_TOO_LARGE');
-
-/** Sentinel indicating malformed body metadata. */
-const JSON_BODY_INVALID_CONTENT_LENGTH = Symbol(
-  'JSON_BODY_INVALID_CONTENT_LENGTH'
-);
-
-interface JsonObject {
-  readonly [key: string]: JsonValue;
-}
-
-type JsonValue =
-  | null
-  | boolean
-  | number
-  | string
-  | readonly JsonValue[]
-  | JsonObject;
-type JsonBodyReadResult =
-  | JsonValue
-  | typeof JSON_BODY_INVALID_CONTENT_LENGTH
-  | typeof JSON_PARSE_ERROR
-  | typeof JSON_BODY_TOO_LARGE;
-type JsonBodyTextReadResult = string | typeof JSON_BODY_TOO_LARGE;
-type InputReadResult = Record<string, unknown> | JsonBodyReadResult;
-
-const CONTENT_LENGTH_DECIMAL_PATTERN = /^\d+$/;
-
-/** Return true when the request has no body content. */
-type ParsedContentLength =
-  | number
-  | typeof JSON_BODY_INVALID_CONTENT_LENGTH
-  | undefined;
-
-const parseContentLength = (
-  contentLength: string | undefined
-): ParsedContentLength => {
-  if (contentLength === undefined) {
-    return undefined;
-  }
-  if (!CONTENT_LENGTH_DECIMAL_PATTERN.test(contentLength)) {
-    return JSON_BODY_INVALID_CONTENT_LENGTH;
-  }
-  const size = Number(contentLength);
-  return Number.isSafeInteger(size) ? size : Number.MAX_SAFE_INTEGER;
-};
-
-const isEmptyBody = (c: HonoContext): boolean => {
-  const contentLength = parseContentLength(c.req.header('Content-Length'));
-  if (contentLength === JSON_BODY_INVALID_CONTENT_LENGTH) {
-    return false;
-  }
-  if (contentLength !== undefined) {
-    return contentLength === 0;
-  }
-  // No Content-Length header — treat as empty when Content-Type is also absent.
-  return c.req.header('Content-Type') === undefined;
-};
-
-const resolveMaxJsonBodyBytes = (value: number | undefined): number => {
-  const maxJsonBodyBytes = value ?? DEFAULT_MAX_JSON_BODY_BYTES;
-
-  if (!Number.isFinite(maxJsonBodyBytes) || maxJsonBodyBytes < 1) {
-    throw new ValidationError(
-      'maxJsonBodyBytes must be a positive finite number'
-    );
-  }
-
-  return maxJsonBodyBytes;
-};
-
-const hasOversizedContentLength = (
-  c: HonoContext,
-  maxJsonBodyBytes: number
-): boolean => {
-  const contentLength = c.req.header('Content-Length');
-  if (contentLength === undefined) {
-    return false;
-  }
-  const size = parseContentLength(contentLength);
-  if (size === JSON_BODY_INVALID_CONTENT_LENGTH) {
-    return false;
-  }
-  return size !== undefined && size > maxJsonBodyBytes;
-};
-
-const measureBodyTextBytes = (text: string): number => new Blob([text]).size;
-
-const validateCachedBodyText = (
-  text: string,
-  maxJsonBodyBytes: number
-): JsonBodyTextReadResult =>
-  measureBodyTextBytes(text) > maxJsonBodyBytes ? JSON_BODY_TOO_LARGE : text;
-
-const readCachedBodyText = async (
-  c: HonoContext,
-  maxJsonBodyBytes: number
-): Promise<JsonBodyTextReadResult> =>
-  validateCachedBodyText(await c.req.text(), maxJsonBodyBytes);
-
-const readBodyText = async (
-  c: HonoContext,
-  maxJsonBodyBytes: number
-): Promise<string | typeof JSON_BODY_TOO_LARGE> => {
-  if (c.req.raw.bodyUsed) {
-    return await readCachedBodyText(c, maxJsonBodyBytes);
-  }
-
-  const { body } = c.req.raw;
-  if (body === null) {
-    return '';
-  }
-
-  const reader = body.getReader();
-  const chunks: Uint8Array[] = [];
-  let totalBytes = 0;
-
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) {
-        break;
-      }
-      if (value === undefined) {
-        continue;
-      }
-      totalBytes += value.byteLength;
-      if (totalBytes > maxJsonBodyBytes) {
-        await reader.cancel();
-        return JSON_BODY_TOO_LARGE;
-      }
-      chunks.push(value);
-    }
-  } finally {
-    reader.releaseLock();
-  }
-
-  const bytes = new Uint8Array(totalBytes);
-  let offset = 0;
-  for (const chunk of chunks) {
-    bytes.set(chunk, offset);
-    offset += chunk.byteLength;
-  }
-
-  return new TextDecoder().decode(bytes);
-};
-
-const readJsonBody = async (
-  c: HonoContext,
-  maxJsonBodyBytes: number
-): Promise<JsonBodyReadResult> => {
-  if (
-    parseContentLength(c.req.header('Content-Length')) ===
-    JSON_BODY_INVALID_CONTENT_LENGTH
-  ) {
-    return JSON_BODY_INVALID_CONTENT_LENGTH;
-  }
-
-  if (hasOversizedContentLength(c, maxJsonBodyBytes)) {
-    return JSON_BODY_TOO_LARGE;
-  }
-
-  const text = await readBodyText(c, maxJsonBodyBytes);
-  if (text === JSON_BODY_TOO_LARGE) {
-    return JSON_BODY_TOO_LARGE;
-  }
-
-  try {
-    return JSON.parse(text) as JsonValue;
-  } catch {
-    return JSON_PARSE_ERROR;
-  }
-};
-
-const parseJsonBodyText = (text: string): JsonBodyReadResult => {
-  try {
-    return JSON.parse(text) as JsonValue;
-  } catch {
-    return JSON_PARSE_ERROR;
-  }
-};
-
-const parseWebhookBodyText = (
-  c: HonoContext,
-  text: string
-): JsonBodyReadResult =>
-  isEmptyBody(c) || text.length === 0 ? {} : parseJsonBodyText(text);
-
-const readWebhookBodyText = async (
-  c: HonoContext,
-  maxJsonBodyBytes: number
-): Promise<
-  string | typeof JSON_BODY_INVALID_CONTENT_LENGTH | typeof JSON_BODY_TOO_LARGE
-> => {
-  if (
-    parseContentLength(c.req.header('Content-Length')) ===
-    JSON_BODY_INVALID_CONTENT_LENGTH
-  ) {
-    return JSON_BODY_INVALID_CONTENT_LENGTH;
-  }
-  if (hasOversizedContentLength(c, maxJsonBodyBytes)) {
-    return JSON_BODY_TOO_LARGE;
-  }
-  return await readBodyText(c, maxJsonBodyBytes);
-};
-
-/** Read input from request based on input source. */
-const readInput = async (
-  c: HonoContext,
-  inputSource: 'query' | 'body',
-  options: RuntimeOptions
-): Promise<InputReadResult> => {
-  if (inputSource === 'query') {
-    return parseQueryParams(c);
-  }
-  if (isEmptyBody(c)) {
-    return {};
-  }
-  return await readJsonBody(c, options.maxJsonBodyBytes);
-};
-
-// ---------------------------------------------------------------------------
-// Response mapping
-// ---------------------------------------------------------------------------
-
-/** Map a TrailsError or generic Error to an HTTP error response. */
-const mapErrorResponse = (
-  error: Error
-): { body: Record<string, unknown>; status: ContentfulStatusCode } => {
-  const projection = projectPublicSurfaceError('http', error);
-  return {
-    body: {
-      error: {
-        category: projection.category,
-        code: projection.name,
-        message: projection.message,
-      },
-    },
-    status: projection.code as ContentfulStatusCode,
-  };
-};
-
-const LOG_UNSAFE_LABEL_CHARACTERS = /[^\w:.-]/g;
-const MAX_DIAGNOSTIC_LABEL_VALUE_LENGTH = 128;
-
-const sanitizeDiagnosticLabelValue = (value: string): string =>
-  value
-    .replace(LOG_UNSAFE_LABEL_CHARACTERS, '_')
-    .slice(0, MAX_DIAGNOSTIC_LABEL_VALUE_LENGTH);
-
-const reportInternalDiagnostics = (error: Error, c: HonoContext): void => {
-  if (isTrailsError(error)) {
-    return;
-  }
-
-  const requestId = c.req.header('X-Request-ID');
-  const safeRequestId =
-    requestId === undefined
-      ? undefined
-      : sanitizeDiagnosticLabelValue(requestId);
-  const label =
-    safeRequestId === undefined
-      ? '[ontrails:hono] Internal error'
-      : `[ontrails:hono] Internal error (${safeRequestId})`;
-  console.error(label, projectErrorDiagnostics(error));
-};
-
-// ---------------------------------------------------------------------------
 // Route registration
 // ---------------------------------------------------------------------------
 
-/** Map a Result to an HTTP response via Hono context. */
-const mapResultToResponse = (
-  result: { isOk(): boolean; value?: unknown; error?: Error },
-  c: HonoContext
-): Response => {
-  if (result.isOk()) {
-    return c.json({ data: result.value }, 200);
-  }
-  const error = result.error ?? new Error('Unknown error');
-  reportInternalDiagnostics(error, c);
-  const { body, status } = mapErrorResponse(error);
-  return c.json(body, status);
-};
-
-/** Convert a caught unknown value to an error response. */
-const handleCaughtError = (error: unknown, c: HonoContext): Response => {
-  const err = error instanceof Error ? error : new Error(String(error));
-  reportInternalDiagnostics(err, c);
-  const { body, status } = mapErrorResponse(err);
-  return c.json(body, status);
-};
-
-const invalidJsonResponse = (c: HonoContext): Response =>
-  c.json(
-    {
-      error: {
-        category: 'validation',
-        code: 'ValidationError',
-        message: 'Invalid JSON in request body',
-      },
-    },
-    400
-  );
-
-const invalidContentLengthResponse = (c: HonoContext): Response =>
-  c.json(
-    {
-      error: {
-        category: 'validation',
-        code: 'ValidationError',
-        message: 'Invalid Content-Length header',
-      },
-    },
-    400
-  );
-
-const oversizedJsonBodyResponse = (
-  c: HonoContext,
-  options: RuntimeOptions
-): Response =>
-  c.json(
-    {
-      error: {
-        category: 'validation',
-        code: 'ValidationError',
-        message: `JSON request body exceeds ${options.maxJsonBodyBytes} bytes`,
-      },
-    },
-    413
-  );
-
-const collectHeaders = (c: HonoContext): Record<string, string> => {
-  const headers: Record<string, string> = {};
-  for (const [key, value] of c.req.raw.headers) {
-    headers[key] = value;
-  }
-  return headers;
-};
-
-const createHttpExecutionContext = (c: HonoContext): HttpExecutionContext => ({
-  headers: c.req.raw.headers,
-});
-
-const createWebhookVerifyRequest = (
-  c: HonoContext,
-  body: string
-): {
-  readonly body: string;
-  readonly headers: Record<string, string>;
-  readonly method: string;
-  readonly path: string;
-} => ({
-  body,
-  headers: collectHeaders(c),
-  method: c.req.method,
-  path: new URL(c.req.url).pathname,
-});
-
-const recordInvalidWebhook = async (
-  route: HttpRouteDefinition,
-  errorCategory = 'validation'
-): Promise<void> => {
-  await route.recordWebhookInvalid?.(errorCategory);
-};
-
-const errorCategoryForWebhookFailure = (error: Error | undefined): string =>
-  error !== undefined && isTrailsError(error) ? error.category : 'internal';
-
-const handleWebhookRoute = async (
-  route: HttpRouteDefinition,
-  options: RuntimeOptions,
-  c: HonoContext
-): Promise<Response> => {
-  const rawBody = await readWebhookBodyText(c, options.maxJsonBodyBytes);
-
-  if (rawBody === JSON_BODY_INVALID_CONTENT_LENGTH) {
-    await recordInvalidWebhook(route);
-    return invalidContentLengthResponse(c);
+const materializeHonoRequest = async (c: HonoContext): Promise<Request> => {
+  if (!c.req.raw.bodyUsed) {
+    return c.req.raw;
   }
 
-  if (rawBody === JSON_BODY_TOO_LARGE) {
-    await recordInvalidWebhook(route);
-    return oversizedJsonBodyResponse(c, options);
-  }
-
-  const verified = await route.verifyWebhook?.(
-    createWebhookVerifyRequest(c, rawBody)
-  );
-  if (verified?.isErr()) {
-    await recordInvalidWebhook(
-      route,
-      errorCategoryForWebhookFailure(verified.error)
-    );
-    return mapResultToResponse(verified, c);
-  }
-
-  const jsonBody = parseWebhookBodyText(c, rawBody);
-  if (jsonBody === JSON_PARSE_ERROR) {
-    await recordInvalidWebhook(route);
-    return invalidJsonResponse(c);
-  }
-
-  const parsed = route.parseWebhookInput?.(jsonBody);
-  if (parsed === undefined) {
-    await recordInvalidWebhook(route);
-    return mapResultToResponse(
-      {
-        error: new ValidationError('Webhook route is missing parse handler'),
-        isOk: () => false,
-      },
-      c
-    );
-  }
-  if (parsed.isErr()) {
-    await recordInvalidWebhook(route);
-    return mapResultToResponse(parsed, c);
-  }
-
-  const requestId = c.req.header('X-Request-ID') ?? undefined;
-  const { signal: abortSignal } = c.req.raw;
-  const result = await route.execute(
-    parsed.value,
-    requestId,
-    abortSignal,
-    createHttpExecutionContext(c)
-  );
-  return mapResultToResponse(result, c);
+  const body = await c.req.text();
+  return new Request(c.req.raw.url, {
+    body,
+    headers: c.req.raw.headers,
+    method: c.req.raw.method,
+    signal: c.req.raw.signal,
+  });
 };
 
 /** Create a Hono handler from a route definition. */
-const createHonoHandler =
-  (route: HttpRouteDefinition, options: RuntimeOptions) =>
-  async (c: HonoContext): Promise<Response> => {
-    if (route.inputSource === 'webhook') {
-      try {
-        return await handleWebhookRoute(route, options, c);
-      } catch (error: unknown) {
-        return handleCaughtError(error, c);
-      }
-    }
-
-    const rawInput = await readInput(c, route.inputSource, options);
-
-    if (rawInput === JSON_PARSE_ERROR) {
-      return invalidJsonResponse(c);
-    }
-
-    if (rawInput === JSON_BODY_INVALID_CONTENT_LENGTH) {
-      return invalidContentLengthResponse(c);
-    }
-
-    if (rawInput === JSON_BODY_TOO_LARGE) {
-      return oversizedJsonBodyResponse(c, options);
-    }
-
-    const requestId = c.req.header('X-Request-ID') ?? undefined;
-    const { signal: abortSignal } = c.req.raw;
-
-    try {
-      const result = await route.execute(
-        rawInput,
-        requestId,
-        abortSignal,
-        createHttpExecutionContext(c)
-      );
-      return mapResultToResponse(result, c);
-    } catch (error: unknown) {
-      return handleCaughtError(error, c);
-    }
-  };
+const createHonoHandler = (
+  route: HttpRouteDefinition,
+  options: RuntimeOptions
+): ((c: HonoContext) => Promise<Response>) => {
+  const handler = createRouteHandler(route, {
+    maxJsonBodyBytes: options.maxJsonBodyBytes,
+  });
+  return async (c) => handler(await materializeHonoRequest(c));
+};
 
 /** Route registration keyed by HTTP method. */
 const routeRegistrars: Record<
@@ -609,6 +125,11 @@ const registerRoutes = (
 // Global error handler
 // ---------------------------------------------------------------------------
 
+const handleCaughtError = async (
+  error: unknown,
+  c: HonoContext
+): Promise<Response> => handleCaughtHonoError(error, c.req.raw);
+
 const registerErrorHandler = (hono: Hono): void => {
   // oxlint-disable-next-line prefer-await-to-callbacks -- Hono's onError API requires a callback
   hono.onError((err, c) => handleCaughtError(err, c));
@@ -643,7 +164,7 @@ export const createApp = (
 ): Hono => {
   const hono = new Hono();
   const runtimeOptions = {
-    maxJsonBodyBytes: resolveMaxJsonBodyBytes(options.maxJsonBodyBytes),
+    maxJsonBodyBytes: options.maxJsonBodyBytes,
   };
 
   registerErrorHandler(hono);
