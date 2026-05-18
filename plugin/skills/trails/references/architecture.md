@@ -196,7 +196,7 @@ The implementation is identical across all paths. Only the edges change.
 
 ## Error Taxonomy
 
-15 fixed-category error classes across 10 categories, plus the dynamic
+16 fixed-category error classes across 10 categories, plus the dynamic
 `RetryExhaustedError` wrapper. All extend `TrailsError`. Pattern match with
 `instanceof` or `error.category`.
 
@@ -209,7 +209,7 @@ The implementation is identical across all paths. Only the edges change.
 | `timeout` | 5 | 504 | Yes | `TimeoutError` |
 | `rate_limit` | 6 | 429 | Yes | `RateLimitError` |
 | `network` | 7 | 502 | Yes | `NetworkError` |
-| `internal` | 8 | 500 | No | `InternalError`, `DerivationError`, `AssertionError` |
+| `internal` | 8 | 500 | No | `AssertionError`, `InternalError`, `DerivationError`, `RecoverableCompletionError` |
 | `auth` | 9 | 401 | No | `AuthError` |
 | `cancelled` | 130 | 499 | No | `CancelledError` |
 

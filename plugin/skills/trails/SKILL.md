@@ -3,7 +3,7 @@ name: trails
 description: Build with the Trails framework — define trail contracts, open CLI/MCP surfaces, test with examples, debug errors, migrate codebases, run governance. Use when creating trails, adding surfaces, testing, debugging Trails errors, migrating to Trails, running warden, or any work involving @ontrails/* packages.
 metadata:
   trails:
-    version: 1.0.0-beta.15
+    version: 1.0.0-beta.17
 ---
 
 # Trails
@@ -183,7 +183,7 @@ See [testing-patterns.md](references/testing-patterns.md) for the full testing A
 
 ## Error Taxonomy
 
-15 fixed-category error classes across 10 categories, plus the dynamic `RetryExhaustedError` wrapper, with deterministic mapping to exit codes, HTTP status, and JSON-RPC codes:
+16 fixed-category error classes across 10 categories, plus the dynamic `RetryExhaustedError` wrapper, with deterministic mapping to exit codes, HTTP status, and JSON-RPC codes:
 
 | Category | Classes | Exit | HTTP | Retry |
 |----------|---------|------|------|-------|
@@ -194,7 +194,7 @@ See [testing-patterns.md](references/testing-patterns.md) for the full testing A
 | timeout | TimeoutError | 5 | 504 | Yes |
 | rate_limit | RateLimitError | 6 | 429 | Yes |
 | network | NetworkError | 7 | 502 | Yes |
-| internal | InternalError, DerivationError, AssertionError | 8 | 500 | No |
+| internal | AssertionError, InternalError, DerivationError, RecoverableCompletionError | 8 | 500 | No |
 | auth | AuthError | 9 | 401 | No |
 | cancelled | CancelledError | 130 | 499 | No |
 
