@@ -1,5 +1,19 @@
 # @ontrails/http
 
+## 1.0.0-beta.18
+
+### Minor Changes
+
+- c0b2948: Add `@ontrails/http/fetch`, a shared Web Fetch request/response kernel for HTTP
+  surface materializers.
+- fc3219c: Add `@ontrails/http/bun`, a Bun-native HTTP surface materializer backed by the
+  shared Web Fetch kernel.
+
+### Patch Changes
+
+- bc2d327: Close HTTP package documentation around the shared `@ontrails/http/fetch` kernel, Bun-native `@ontrails/http/bun` subpath, and Hono adapter boundary before versioning.
+  - @ontrails/core@1.0.0-beta.18
+
 ## 1.0.0-beta.17
 
 ### Patch Changes

@@ -1,5 +1,12 @@
 # @ontrails/commander
 
+## 1.0.0-beta.18
+
+### Patch Changes
+
+- @ontrails/cli@1.0.0-beta.18
+- @ontrails/core@1.0.0-beta.18
+
 ## 1.0.0-beta.17
 
 ### Patch Changes

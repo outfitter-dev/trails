@@ -23,7 +23,8 @@
     "@ontrails/vite": "1.0.0-beta.14",
     "@ontrails/logtape": "1.0.0-beta.14",
     "@ontrails/commander": "1.0.0-beta.15",
-    "@ontrails/oxlint-plugin": "1.0.0-beta.15"
+    "@ontrails/oxlint-plugin": "1.0.0-beta.15",
+    "@ontrails/pino": "1.0.0-beta.17"
   },
   "changesets": [
     "adapter-workspace-root",
@@ -131,6 +132,16 @@
     "trl-699-warden-lock-v3-drift",
     "trl-700-trails-workspace-layout",
     "trl-701-workspace-index-topolock",
+    "trl-715-http-fetch-kernel",
+    "trl-716-http-bun",
+    "trl-718-http-observability-docs",
+    "trl-719-hono-fetch-kernel",
+    "trl-720-pino-package",
+    "trl-721-pino-sink",
+    "trl-722-pino-docs",
+    "trl-723-otel-attribute-mapping",
+    "trl-725-otel-buffering",
+    "trl-726-tracing-otel-docs",
     "type-utils-and-follow-rule",
     "unified-observability-adr",
     "vocabulary-cutover",

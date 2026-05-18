@@ -28,6 +28,7 @@ export interface ChangesetGateResult {
   readonly errors: readonly string[];
   readonly passed: boolean;
   readonly releaseNone: boolean;
+  readonly versionRelease: boolean;
 }
 
 interface CliOptions {
@@ -50,7 +51,12 @@ const NON_SHIPPING_PACKAGE_PATTERNS = [
 const CHANGESET_PATH_PATTERN = /^\.changeset\/[^/]+\.md$/u;
 const CHANGESET_PACKAGE_PATTERN =
   /^['"]?(@ontrails\/[^'":]+)['"]?\s*:\s*(?:major|minor|patch)$/u;
+const CHANGESET_PRERELEASE_STATE_PATH = '.changeset/pre.json';
 const WORKSPACE_GLOB_SYNTAX_PATTERN = /[*?[\]{}]/u;
+const VERSION_RELEASE_WORKSPACE_FILES = new Set([
+  'CHANGELOG.md',
+  'package.json',
+]);
 
 const normalizePath = (path: string): string =>
   path.replaceAll('\\', '/').replace(/^\.\//u, '');
@@ -191,6 +197,47 @@ const findAffectedPackages = (
   return [...affected].toSorted();
 };
 
+const isVersionReleaseChangeSet = (
+  changedFiles: readonly string[],
+  workspaces: readonly WorkspaceInfo[]
+): boolean => {
+  const normalizedFiles = changedFiles.map(normalizePath);
+
+  if (!normalizedFiles.includes(CHANGESET_PRERELEASE_STATE_PATH)) {
+    return false;
+  }
+
+  const publishableWorkspaces = workspaces.filter(
+    isPublishableOnTrailsWorkspace
+  );
+  let hasWorkspaceVersionFile = false;
+
+  for (const file of normalizedFiles) {
+    for (const workspace of publishableWorkspaces) {
+      if (!isUnderWorkspace(file, workspace.relativePath)) {
+        continue;
+      }
+
+      const workspaceRelativePath = getWorkspaceRelativePath(
+        file,
+        workspace.relativePath
+      );
+
+      if (isNonShippingPackagePath(workspaceRelativePath)) {
+        continue;
+      }
+
+      if (!VERSION_RELEASE_WORKSPACE_FILES.has(workspaceRelativePath)) {
+        return false;
+      }
+
+      hasWorkspaceVersionFile = true;
+    }
+  }
+
+  return hasWorkspaceVersionFile;
+};
+
 const parseChangesetPackages = (content: string): readonly string[] => {
   const lines = content.split(/\r?\n/u);
 
@@ -249,6 +296,10 @@ export const checkChangesetGate = (
   const coveredPackages = [
     ...new Set(changesets.flatMap((changeset) => changeset.packages)),
   ].toSorted();
+  const versionRelease = isVersionReleaseChangeSet(
+    input.changedFiles,
+    input.workspaces
+  );
   const uncoveredPackages = affectedPackages.filter(
     (packageName) => !coveredPackages.includes(packageName)
   );
@@ -260,7 +311,7 @@ export const checkChangesetGate = (
     );
   }
 
-  if (!releaseNone && uncoveredPackages.length > 0) {
+  if (!releaseNone && !versionRelease && uncoveredPackages.length > 0) {
     errors.push(
       `Package-affecting changes need changeset entries for: ${uncoveredPackages.join(', ')}`
     );
@@ -273,6 +324,7 @@ export const checkChangesetGate = (
     errors,
     passed: errors.length === 0,
     releaseNone,
+    versionRelease,
   };
 };
 
@@ -372,6 +424,13 @@ const renderResult = (result: ChangesetGateResult): void => {
     if (result.releaseNone) {
       console.log(
         `Changeset gate passed via release:none for: ${result.affectedPackages.join(', ')}`
+      );
+      return;
+    }
+
+    if (result.versionRelease) {
+      console.log(
+        `Changeset gate passed for generated version release: ${result.affectedPackages.join(', ')}`
       );
       return;
     }

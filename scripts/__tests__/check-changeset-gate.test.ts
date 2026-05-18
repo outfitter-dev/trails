@@ -124,6 +124,58 @@ describe('checkChangesetGate', () => {
     }
   });
 
+  test('allows generated version release changes from changeset version', () => {
+    const { repoRoot } = withTempRepo(() => {});
+
+    try {
+      const result = checkChangesetGate({
+        changedFiles: [
+          '.changeset/pre.json',
+          'packages/core/CHANGELOG.md',
+          'packages/core/package.json',
+          'packages/http/CHANGELOG.md',
+          'packages/http/package.json',
+        ],
+        repoRoot,
+        workspaces,
+      });
+
+      expect(result.passed).toBe(true);
+      expect(result.versionRelease).toBe(true);
+      expect(result.affectedPackages).toEqual([
+        '@ontrails/core',
+        '@ontrails/http',
+      ]);
+    } finally {
+      rmSync(repoRoot, { force: true, recursive: true });
+    }
+  });
+
+  test('does not treat prerelease state plus source edits as a generated version release', () => {
+    const { repoRoot } = withTempRepo(() => {});
+
+    try {
+      const result = checkChangesetGate({
+        changedFiles: [
+          '.changeset/pre.json',
+          'packages/core/CHANGELOG.md',
+          'packages/core/package.json',
+          'packages/core/src/index.ts',
+        ],
+        repoRoot,
+        workspaces,
+      });
+
+      expect(result.passed).toBe(false);
+      expect(result.versionRelease).toBe(false);
+      expect(result.errors).toEqual([
+        'Package-affecting changes need changeset entries for: @ontrails/core',
+      ]);
+    } finally {
+      rmSync(repoRoot, { force: true, recursive: true });
+    }
+  });
+
   test('ignores non-shipping package test artifacts and private workspaces', () => {
     const { repoRoot } = withTempRepo(() => {});
 

@@ -1,5 +1,13 @@
 # @ontrails/logtape
 
+## 1.0.0-beta.18
+
+### Patch Changes
+
+- Updated dependencies [bf44972]
+- Updated dependencies [e0ae995]
+  - @ontrails/observe@1.0.0-beta.18
+
 ## 1.0.0-beta.17
 
 ### Patch Changes

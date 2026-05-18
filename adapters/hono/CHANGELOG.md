@@ -1,5 +1,19 @@
 # @ontrails/hono
 
+## 1.0.0-beta.18
+
+### Patch Changes
+
+- bc2d327: Close HTTP package documentation around the shared `@ontrails/http/fetch` kernel, Bun-native `@ontrails/http/bun` subpath, and Hono adapter boundary before versioning.
+- 20cb72c: Refactor Hono route handling to delegate Web request parsing, response
+  projection, diagnostics, permits, and webhook handling through
+  `@ontrails/http/fetch`.
+- Updated dependencies [c0b2948]
+- Updated dependencies [fc3219c]
+- Updated dependencies [bc2d327]
+  - @ontrails/http@1.0.0-beta.18
+  - @ontrails/core@1.0.0-beta.18
+
 ## 1.0.0-beta.17
 
 ### Patch Changes

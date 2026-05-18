@@ -1,5 +1,17 @@
 # @ontrails/tracing
 
+## 1.0.0-beta.18
+
+### Minor Changes
+
+- 57c8672: Complete the stable `trails.*` OpenTelemetry attribute mapping for trace identity, lineage, status, timing, signal lifecycle, and activation boundary records while filtering raw payload and unredacted error-message custom attributes.
+
+### Patch Changes
+
+- 510ea50: Harden the OTel adapter flush lifecycle by validating batch sizes, sharing concurrent flush drains, and preserving failed batches for retry without silent record loss.
+- e0ae995: Document the v1 `@ontrails/tracing/otel` OpenTelemetry adapter boundary, including callback export, stable `trails.*` attributes, flush behavior, and the absence of a standalone `@ontrails/otel` package.
+  - @ontrails/core@1.0.0-beta.18
+
 ## 1.0.0-beta.17
 
 ### Patch Changes

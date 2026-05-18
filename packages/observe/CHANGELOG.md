@@ -1,5 +1,13 @@
 # @ontrails/observe
 
+## 1.0.0-beta.18
+
+### Patch Changes
+
+- bf44972: Document Pino sink usage and publish-readiness checks.
+- e0ae995: Document the v1 `@ontrails/tracing/otel` OpenTelemetry adapter boundary, including callback export, stable `trails.*` attributes, flush behavior, and the absence of a standalone `@ontrails/otel` package.
+  - @ontrails/core@1.0.0-beta.18
+
 ## 1.0.0-beta.17
 
 ### Patch Changes
