@@ -2,7 +2,7 @@
 
 ## Error Classes
 
-The taxonomy has 15 fixed-category classes across 10 categories, plus the
+The taxonomy has 16 fixed-category classes across 10 categories, plus the
 dynamic `RetryExhaustedError` wrapper.
 
 ### validation (exit 1, HTTP 400)
@@ -40,6 +40,7 @@ dynamic `RetryExhaustedError` wrapper.
 
 - **InternalError** — Unexpected failure. Catch-all for bugs. `new InternalError('unexpected null in pipeline')`
 - **DerivationError** — Framework or projection derivation failure. `new DerivationError('could not derive CLI fields from schema')`
+- **RecoverableCompletionError** — Internal completion failure where recovery may still run before the final result is reported. `new RecoverableCompletionError('trace sink flush failed')`
 - **AssertionError** — Invariant violation. `new AssertionError('items array must not be empty after filter')`
 
 ### auth (exit 9, HTTP 401)

@@ -183,7 +183,7 @@ See [testing-patterns.md](references/testing-patterns.md) for the full testing A
 
 ## Error Taxonomy
 
-15 fixed-category error classes across 10 categories, plus the dynamic `RetryExhaustedError` wrapper, with deterministic mapping to exit codes, HTTP status, and JSON-RPC codes:
+16 fixed-category error classes across 10 categories, plus the dynamic `RetryExhaustedError` wrapper, with deterministic mapping to exit codes, HTTP status, and JSON-RPC codes:
 
 | Category | Classes | Exit | HTTP | Retry |
 |----------|---------|------|------|-------|
@@ -194,7 +194,7 @@ See [testing-patterns.md](references/testing-patterns.md) for the full testing A
 | timeout | TimeoutError | 5 | 504 | Yes |
 | rate_limit | RateLimitError | 6 | 429 | Yes |
 | network | NetworkError | 7 | 502 | Yes |
-| internal | InternalError, DerivationError, AssertionError | 8 | 500 | No |
+| internal | InternalError, DerivationError, RecoverableCompletionError, AssertionError | 8 | 500 | No |
 | auth | AuthError | 9 | 401 | No |
 | cancelled | CancelledError | 130 | 499 | No |
 
