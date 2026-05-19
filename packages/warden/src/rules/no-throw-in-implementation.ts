@@ -25,8 +25,7 @@ export const noThrowInImplementation: WardenRule = {
           diagnostics.push({
             filePath,
             line: offsetToLine(sourceCode, node.start),
-            message:
-              'Do not throw inside implementation. Use Result.err() instead.',
+            message: 'Do not throw inside the blaze. Use Result.err() instead.',
             rule: 'no-throw-in-implementation',
             severity: 'error',
           });
@@ -37,7 +36,7 @@ export const noThrowInImplementation: WardenRule = {
     return diagnostics;
   },
   description:
-    'Disallow throw statements inside trail/route implementation bodies. Use Result.err() instead.',
+    'Disallow throw statements inside blaze bodies. Use Result.err() instead.',
   name: 'no-throw-in-implementation',
   severity: 'error',
 };

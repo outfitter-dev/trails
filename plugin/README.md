@@ -22,6 +22,7 @@ claude plugin install trails@trails
 | `trails-error-format` | Review error taxonomy, projection, redaction, retryability, and Result-vs-throw boundaries. |
 | `trails-discriminate-union` | Review public/queryable union-like outputs for stable branch discriminants. |
 | `trails-primitive-parity` | Compare primitive maturity without forcing trail-equivalent scope or speculative public API. |
+| `trails-language-styleguide` | Tighten Trails prose, docs, ADRs, prompts, and examples against the lexicon and `blaze` grammar. |
 
 ### Agent
 
@@ -32,7 +33,7 @@ claude plugin install trails@trails
 ### Rules
 
 - **lexicon** — Enforces Trails-branded terms (trail, surface, topo, blaze, cross, resource, signal, layer, tracing)
-- **patterns** — Core coding patterns (Result over throw, surface-agnostic implementations)
+- **patterns** — Core coding patterns (Result over throw, surface-agnostic blazes)
 
 ## License
 

@@ -4,7 +4,7 @@ slug: built-in-result-type
 title: Built-In Result Type
 status: accepted
 created: 2026-03-29
-updated: 2026-04-01
+updated: 2026-05-19
 owners: ['[galligan](https://github.com/galligan)']
 ---
 
@@ -14,7 +14,7 @@ owners: ['[galligan](https://github.com/galligan)']
 
 ### The problem
 
-Trails implementations never throw. That's a hard rule — [ADR-0000](0000-core-premise.md) established it. Input in, `Result` out. The warden enforces it. If an implementation throws, it's a bug.
+Blazes never throw. That's a hard rule — [ADR-0000](0000-core-premise.md) established it. Input in, `Result` out. The warden enforces it. If a blaze throws, it's a bug.
 
 This means Result isn't optional infrastructure. It's the return type of every trail, the input to every surface renderer, the thing every error flows through. The framework's contract model depends on it completely.
 
@@ -54,7 +54,7 @@ Both `Ok` and `Err` carry the same method signatures. No runtime type checks nee
 - **`flatMap(fn)`** — chain operations that themselves return Result
 - **`mapErr(fn)`** — transform the error, short-circuit on success
 - **`match({ ok, err })`** — exhaustive branching
-- **`unwrap()`** — extract the value or throw (testing only — never in implementations)
+- **`unwrap()`** — extract the value or throw (testing only — never in blazes)
 - **`unwrapOr(fallback)`** — extract the value or use a default
 
 This is a small, deliberate API. Every method earns its place by being used in the framework itself.
@@ -132,7 +132,7 @@ The `isRetryable(error)` helper checks the category map. Detours (trail-level re
 ### Tradeoffs
 
 - **We maintain ~80 LOC of core infrastructure.** If the Result implementation has a bug, we fix it ourselves. No upstream community to catch edge cases. In practice, the API surface is small enough that this is manageable — the combinators are individually trivial.
-- **No community ecosystem.** Libraries built around `neverthrow` or `oxide.ts` won't compose directly with our Result. This is acceptable because trail implementations are self-contained — they don't pass Results to third-party code.
+- **No community ecosystem.** Libraries built around `neverthrow` or `oxide.ts` won't compose directly with our Result. This is acceptable because blazes are self-contained — they don't pass Results to third-party code.
 - **`unwrap()` exists and it throws.** This is intentional for testing (`expectOk` uses it internally) but would be wrong in production trail code. The warden could enforce this in the future.
 
 ### What this does NOT decide
@@ -143,7 +143,7 @@ The `isRetryable(error)` helper checks the category map. Detours (trail-level re
 
 ## References
 
-- [ADR-0000: Core Premise](0000-core-premise.md) — establishes Result as mandatory and implementations as pure
+- [ADR-0000: Core Premise](0000-core-premise.md) — establishes Result as mandatory and blazes as pure
 - [ADR-0001: Naming Conventions](0001-naming-conventions.md) — naming rules for `Result.ok()`, `Result.err()`, and the `validate*` family
 - [API Reference](../api-reference.md) — the canonical public API surface
 - [Architecture](../architecture.md) — system architecture and how Result flows through surfaces

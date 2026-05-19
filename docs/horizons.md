@@ -8,11 +8,11 @@
 
 **OpenAPI generation (`@ontrails/http`).** `deriveOpenApiSpec()` produces a complete OpenAPI 3.1 spec from the topo for HTTP clients. The topo already carries everything OpenAPI needs; the HTTP package owns the surface-specific projection.
 
-**Resources (`resource()` and trail `resources: [...]`).** Trails now declare infrastructure dependencies explicitly. `executeTrail()` resolves app-scoped singletons before layers and implementations run. Testing can auto-resolve `mock` factories, and survey / schema tooling exposes the full resource graph.
+**Resources (`resource()` and trail `resources: [...]`).** Trails now declare infrastructure dependencies explicitly. `executeTrail()` resolves app-scoped singletons before layers compose and before execution enters each blaze. Testing can auto-resolve `mock` factories, and survey / schema tooling exposes the full resource graph.
 
 **Config resolution (`@ontrails/config`).** `defineConfig()` provides schema-validated config with profiles (named environment profiles), env variable mapping, and `ResourceSpec.config` for resource-level config schemas. Includes diagnostics (`checkConfig`), introspection (`deriveConfigFields`, `deriveConfigProvenance`), and generation (`deriveConfigEnvExample`).
 
-**Auth and permit model (`@ontrails/permits`).** The `permit` field on trail specs declares scope requirements. Surface-specific extraction resolves credentials, `AuthAdapter` turns them into a `Permit` (identity, scopes, roles), and `executeTrail` enforces scope intrinsically before the implementation runs. Includes JWT adapter, governance rules (`validatePermits`), and test helpers through `@ontrails/permits/testing`.
+**Auth and permit model (`@ontrails/permits`).** The `permit` field on trail specs declares scope requirements. Surface-specific extraction resolves credentials, `AuthAdapter` turns them into a `Permit` (identity, scopes, roles), and `executeTrail` enforces scope intrinsically before execution enters the blaze. Includes JWT adapter, governance rules (`validatePermits`), and test helpers through `@ontrails/permits/testing`.
 
 **Tracing and observability.** Intrinsic execution recording lives in `@ontrails/core`: with a real sink installed, `executeTrail` produces a `TraceRecord` automatically, `ctx.trace(label, fn)` records nested spans inside a trail blaze, and activation materializers record `activation.*` boundary entries. Production sink contracts and built-in console/file/memory sinks live in `@ontrails/observe`; tracing-specific developer state, query/status trails, SQLite dev stores, sampling helpers, and the supported `@ontrails/tracing/otel` adapter subpath live in `@ontrails/tracing`. With `NOOP_SINK`, the tracing path short-circuits without layer attachment or per-trail wiring.
 
@@ -20,9 +20,9 @@
 
 **WebSocket surface.** A peer surface to CLI, MCP, and HTTP for long-lived request/response sessions plus subscription-style updates where the contract supports them. The design goal is the same as every other surface: derive names, validation, and error mapping from the topo instead of hand-authoring a separate runtime model.
 
-**Derived dependency graphs.** Instead of hand-maintaining `crosses` declarations, the framework infers them from `ctx.cross()` calls in the implementation via static analysis. The same idea could eventually extend beyond today's declared `resources: [...]` model to richer resource capability inference. The TopoGraph captures the graph. Changes show up in diffs.
+**Derived dependency graphs.** Instead of hand-maintaining `crosses` declarations, the framework infers them from `ctx.cross()` calls in the blaze via static analysis. The same idea could eventually extend beyond today's declared `resources: [...]` model to richer resource capability inference. The TopoGraph captures the graph. Changes show up in diffs.
 
-**Implementation synthesis from examples.** For trails with comprehensive examples that fully specify behavior (pure transformations, mapping logic, validation rules), an agent could synthesize the implementation from the examples alone. The examples become the source of truth; the code becomes the derived artifact.
+**Blaze synthesis from examples.** For trails with comprehensive examples that fully specify behavior (pure transformations, mapping logic, validation rules), an agent could synthesize the blaze from the examples alone. The examples become the source of truth; the code becomes the derived artifact.
 
 **Cross-app composition (mount).** One Trails app consumes another's trails over an adapter boundary. Contract compatibility verified at startup — input schemas match, expected errors exist, required trails are present. Version compatibility becomes structural, not documentary.
 

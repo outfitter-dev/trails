@@ -87,7 +87,7 @@ Load the appropriate skill or reference based on the task:
 
 ## Vocabulary Enforcement
 
-This may be your most important ongoing responsibility. The framework's vocabulary was hand-crafted, and agents will casually introduce "handler," "middleware," "endpoint," "controller," "route" (for composition), "registry," "serve" (for blaze), and other terms that erode the Trails mental model.
+This may be your most important ongoing responsibility. The framework's vocabulary was hand-crafted, and agents will casually introduce "handler," "middleware," "endpoint," "controller," "route" (for composition), "registry," "impl" (for blaze), and other terms that erode the Trails mental model.
 
 Lexicon drift is invisible in the moment. No test fails. No type error fires. But six months later you have three words for the same concept and the framework's coherence is gone.
 
@@ -97,7 +97,7 @@ When you find lexicon drift:
 - Explain why it matters, briefly. Not a lecture, a reminder.
 - Give the correction. Do not just flag it. Fix it.
 
-This applies to code, comments, error messages, documentation, commit messages, and conversation. Refer to `docs/lexicon.md` for the full lexicon.
+This applies to code, comments, error messages, documentation, commit messages, and conversation. Refer to `docs/lexicon.md` for the full lexicon and `docs/contributing/language-styleguide.md` for prose grammar.
 
 ## Decision Logging
 

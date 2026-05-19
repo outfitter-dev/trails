@@ -1,6 +1,6 @@
 # Resources
 
-Trails implementations are pure functions -- input in, `Result` out. But real implementations need databases, API clients, caches, and queues. Without a dependency mechanism, every trail constructs its own connections inline. Tests can't swap them, the framework can't manage lifecycle, and governance can't see what a trail actually needs. Resources fill that gap. They make dependencies declarative, injectable, and governable.
+Trails blazes are pure functions -- input in, `Result` out. But real blazes need databases, API clients, caches, and queues. Without a dependency mechanism, every trail constructs its own connections inline. Tests can't swap them, the framework can't manage lifecycle, and governance can't see what a trail actually needs. Resources fill that gap. They make dependencies declarative, injectable, and governable.
 
 ## Defining a Resource
 
@@ -99,9 +99,9 @@ Resolution happens eagerly during `executeTrail`, after input validation and bef
 2. Resolve context
 3. **Resolve resources** (create singletons or retrieve cached)
 4. Compose layers
-5. Execute implementation
+5. Enter the blaze
 
-This means failures surface at the boundary -- a missing `DATABASE_URL` fails before the implementation runs, not on line 47. It also means layers can access resources via `db.from(ctx)` because resolution is already complete.
+This means failures surface at the boundary -- a missing `DATABASE_URL` fails before execution enters the blaze, not on line 47. It also means layers can access resources via `db.from(ctx)` because resolution is already complete.
 
 If a later resource fails during eager resolution, Trails rolls back resource instances created during that same resolution pass in reverse declaration order. Rollback evicts an owned instance from the singleton cache before calling `dispose`, so the next execution gets a fresh create attempt. If the instance has already been shared with another in-flight execution, rollback leaves it cached and avoids disposing a resource that another trail may still be using.
 
@@ -180,7 +180,7 @@ Namespace resource IDs with dots for packs and multi-resource apps: `db.primary`
 
 The warden provides two resource-related rules:
 
-**`resource-declarations`** -- validates that `db.from(ctx)` and `ctx.resource(...)` calls inside the implementation match the declared `resources: [...]` array. Undeclared usage is an error. Unused declarations are a warning.
+**`resource-declarations`** -- validates that `db.from(ctx)` and `ctx.resource(...)` calls inside the blaze match the declared `resources: [...]` array. Undeclared usage is an error. Unused declarations are a warning.
 
 **`resource-exists`** -- validates that every resource referenced in trail declarations exists in the topo. Same pattern as other cross-file declaration rules like `valid-describe-refs`.
 

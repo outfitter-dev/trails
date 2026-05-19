@@ -26,9 +26,9 @@ A bare function wrapper can be reconsidered only if future evidence satisfies fo
 
 ### Layers sat outside the governance loop
 
-Every other concept in Trails participates in a feedback cycle: author a declaration, derive behavior, validate with the warden, report with survey, test with examples. Layers didn't. They were opaque functions passed to blaze options, invisible to every feedback system the framework provides.
+Every other concept in Trails participates in a feedback cycle: author a declaration, derive behavior, validate with the warden, report with survey, test with examples. Layers didn't. They were opaque functions passed to execution options, invisible to every feedback system the framework provides.
 
-ADR-0006[^1] established the shared execution pipeline. Step 3 was "compose layers" — wrap the implementation with any layers passed via `options.layers`. The mechanism worked, but the layers themselves were black boxes. The warden couldn't inspect them. Survey couldn't report them. Schema diffing couldn't detect when a layer added or removed a field. Layers were the one execution-time concern that escaped governance.
+ADR-0006[^1] established the shared execution pipeline. Step 3 was "compose layers" — wrap the blaze with any layers passed via `options.layers`. The mechanism worked, but the layers themselves were black boxes. The warden couldn't inspect them. Survey couldn't report them. Schema diffing couldn't detect when a layer added or removed a field. Layers were the one execution-time concern that escaped governance.
 
 ### Framework concerns were dressed as user configuration
 
@@ -87,7 +87,7 @@ executeTrail(trail, rawInput, options?)
   2. Resolve context (includes permit resolution)
   3. Enforce permit (pipeline stage; derived from trail.permit)
   4. Compose layers (scoped to authored concerns only)
-  5. Run implementation
+  5. Enter the blaze
   6. Catch unexpected throws
   7. Record execution (pipeline stage; derived from trail properties + tracing config)
   8. Emit lifecycle events (trail.completed / trail.failed)
@@ -95,14 +95,14 @@ executeTrail(trail, rawInput, options?)
 
 Steps 3, 7, and 8 are pipeline stages that replaced framework layers. Step 4 is scoped to authored concerns only.
 
-**Permit enforcement is a pipeline stage.** The pipeline reads `trail.permit`. When defined, it checks `ctx.permit` against declared scopes. On failure, it returns `Result.err(PermitError)` before the implementation runs. A trail with `permit: { scopes: ['billing:write'] }` is protected on every surface automatically. A surface that forgets to configure auth doesn't silently leave trails unprotected.
+**Permit enforcement is a pipeline stage.** The pipeline reads `trail.permit`. When defined, it checks `ctx.permit` against declared scopes. On failure, it returns `Result.err(PermitError)` before execution enters the blaze. A trail with `permit: { scopes: ['billing:write'] }` is protected on every surface automatically. A surface that forgets to configure auth doesn't silently leave trails unprotected.
 
 **Recording is a pipeline stage.** The pipeline always records. In development, the default sink writes to the local dev store with 100% sampling. In production, the sink is configured at bootstrap. Sampling policy is derived from trail properties: mutations default to 100%, reads to a configured rate. Per-trail overrides are declarations on the trail spec, not wrapper configuration.
 
 **Layers compose inside the auth/record envelope:**
 
 ```text
-auth check -> layer chain -> implementation -> recording
+auth check -> layer chain -> blaze -> recording
 ```
 
 Layers can trust that `ctx.permit` is populated. Layer rejections are always recorded. The ordering bug is structurally impossible.
@@ -172,7 +172,7 @@ Why flat over nested: CLI projection. `--dry-run` is natural. `--layer-dry-run-d
 
 ### The blaze receives only trail input
 
-The layer intercepts its own fields before the blaze runs. The blaze function receives only the trail's input, typed against the trail's input schema:
+The layer intercepts its own fields before execution enters the blaze. The blaze function receives only the trail's input, typed against the trail's input schema:
 
 ```typescript
 // dryRun layer receives { ...trailInput, dryRun: true }
@@ -300,7 +300,7 @@ One warden rule guards the migration ([TRL-476], [TRL-477]):
 
 ### Positive
 
-- **Governance got stronger for free.** Pipeline stages are derived from declarations the warden already validates. `no-legacy-layer-imports` flags references to removed exports. Before this work, the warden couldn't see whether auth was configured because it was an opaque function in blaze options.
+- **Governance got stronger for free.** Pipeline stages are derived from declarations the warden already validates. `no-legacy-layer-imports` flags references to removed exports. Before this work, the warden couldn't see whether auth was configured because it was an opaque function in execution options.
 - **Concept count dropped.** Developers no longer need to understand layers as a framework concept to get auth, recording, and CLI-specific behavior. Those are pipeline stages and surface derivations. The `Layer` concept survives for authored cross-cutting behavior with optional input schemas.
 - **Packs got simpler.** A pack carries trails, resources, and signals. When a trail declares `permit`, enforcement follows automatically in any app that composes the pack. No layer wiring. No "remember to add `authLayer`."
 - **New surfaces get framework behavior automatically.** Auth enforcement, recording, input validation, and error wrapping work immediately for any new surface. The new surface only implements its own surface derivations.
@@ -320,8 +320,8 @@ One warden rule guards the migration ([TRL-476], [TRL-477]):
 
 ## Non-decisions
 
-- **`resolvePermit` location.** Whether permit resolution lives on blaze options (per-surface, different extraction per transport) or on the topo (configure once). Settled with the permits implementation as blaze options because permit resolution is transport-specific (bearer token vs session vs keyring).
-- **Tracing sampling configuration location.** Whether sampling policy lives on blaze options or app-level config. Settled with the tracing implementation as bootstrap configuration with per-trail overrides.
+- **`resolvePermit` location.** Whether permit resolution lives on execution options (per-surface, different extraction per transport) or on the topo (configure once). Settled with the permits implementation as execution options because permit resolution is transport-specific (bearer token vs session vs keyring).
+- **Tracing sampling configuration location.** Whether sampling policy lives on execution options or app-level config. Settled with the tracing implementation as bootstrap configuration with per-trail overrides.
 - **Per-trail surface override syntax.** The `surface: { cli: { autoIterate: false } }` field on trail specs is reserved in types but not documented further until demand materializes.
 - **Layer ordering within a level.** If a trail has `layers: [dryRun, audit]`, the first wraps the second. Whether this is intuitive enough or needs explicit ordering declarations is deferred to implementation experience.
 - **Lifecycle event ownership.** Whether `trail.completed` and `trail.failed` events are part of the signal system (registered in topo, subscribable) or a separate pipeline concern is decided alongside the signal implementation.

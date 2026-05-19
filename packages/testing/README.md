@@ -73,7 +73,7 @@ testTrail(onboardTrail, [
 When you need to isolate a composite trail and stub out its dependencies, use `createCrossContext`:
 
 ```typescript
-import { createCrossContext, createTestContext } from '@ontrails/testing';
+import { createCrossContext, testTrail } from '@ontrails/testing';
 import { Result } from '@ontrails/core';
 
 const cross = createCrossContext({
@@ -82,8 +82,13 @@ const cross = createCrossContext({
     'search': Result.ok({ results: [] }),
   },
 });
-const ctx = { ...createTestContext(), cross };
-const result = await onboardTrail.blaze({ name: 'Delta', type: 'tool' }, ctx);
+testTrail(onboardTrail, [
+  {
+    description: 'uses mocked crosses',
+    input: { name: 'Delta', type: 'tool' },
+    expectOk: true,
+  },
+], { cross });
 ```
 
 Calls to unregistered trail IDs return `Result.err` with a descriptive message, so missing stubs fail loudly.

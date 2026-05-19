@@ -22,7 +22,7 @@ dynamic `RetryExhaustedError` wrapper.
 ### permission (exit 4, HTTP 403)
 
 - **PermissionError** — Authenticated but not authorized. `new PermissionError('cannot delete admin users')`
-- **PermitError** — Permit extraction or enforcement failed before the blaze ran. `new PermitError('Missing required scope', { context: { scope: 'entity:write' } })`
+- **PermitError** — Permit extraction or enforcement failed before execution entered the blaze. `new PermitError('Missing required scope', { context: { scope: 'entity:write' } })`
 
 ### timeout (exit 5, HTTP 504)
 

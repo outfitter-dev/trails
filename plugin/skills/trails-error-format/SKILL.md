@@ -21,7 +21,7 @@ Use this skill when a change touches error classes, `Result.err`, CLI/HTTP/MCP p
 ## Authoritative Sources
 
 - `plugin/skills/trails/references/error-taxonomy.md`
-- `docs/rule-design.md`
+- `docs/contributing/warden-rules.md`
 - `packages/core/src/errors.ts`
 - `packages/core/src/transport-error-map.ts`
 - Surface packages: CLI, MCP, HTTP, and Hono.

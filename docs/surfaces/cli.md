@@ -179,7 +179,7 @@ Adds `--cwd <path>` flag.
 import { dryRunPreset } from '@ontrails/cli';
 ```
 
-Adds a `--dry-run` flag. Automatically added for trails with `intent: 'write'` or `intent: 'destroy'`. If the blaze needs to branch on it, read `ctx.dryRun`; dry-run is execution context, not trail input.
+Adds a `--dry-run` flag. Automatically added for trails with `intent: 'write'` or `intent: 'destroy'`. If the trail's blaze needs to branch on it, read `ctx.dryRun`; dry-run is execution context, not trail input.
 
 ## Output Formatting
 
@@ -256,8 +256,8 @@ removed in TRL-475.
 
 For trails with paginated output (matching the pagination pattern from
 `@ontrails/core/patterns`), the CLI command exposes an `--all` flag. When set,
-the surface repeatedly invokes the implementation with incrementing cursors
-and collects every page into a single result.
+the surface runs the blazed trail with incrementing cursors and collects every
+page into a single result.
 
 ### Date shortcut expansion
 

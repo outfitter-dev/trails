@@ -89,7 +89,7 @@ A `'write'` trail sets no hint — the MCP SDK defaults apply. A `'read'` trail 
 
 **CLI** — safety presets:
 
-A `'destroy'` trail automatically receives a `--dry-run` flag preset. The framework adds the surface flag because destroy trails should always offer a dry run. If the blaze needs to branch on the value, the trail should also declare `dryRun` in its input schema so Zod preserves it for the implementation.
+A `'destroy'` trail automatically receives a `--dry-run` flag preset. The framework adds the surface flag because destroy trails should always offer a dry run. If the blaze needs to branch on the value, the trail should also declare `dryRun` in its input schema so Zod preserves it for the blaze.
 
 ```typescript
 if (intent === 'destroy') {

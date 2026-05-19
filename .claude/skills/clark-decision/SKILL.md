@@ -54,10 +54,10 @@ Append to `.trails/clark/decisions.md`:
     - If it derives surface configuration, `build*`.
 - **Lexicon:** "Can we call this a 'middleware'?"
   - Decide based on `lexicon.md`. If it is a layer, call it a layer. "Middleware" is not in the Trails lexicon.
-- **Architecture:** "Should this logic go in the trail blaze or in a gate?"
+- **Architecture:** "Should this logic go in the trail blaze or in a layer?"
   - Decide based on the hexagonal model.
     - If it is surface-agnostic domain logic, it belongs in the blaze.
-    - If it is cross-cutting, it is a gate.
+    - If it is cross-cutting, it is a layer.
 - **Scope:** "Should we add this feature now or defer it?"
   - Decide based on the current sprint plan, the horizons doc, and the compound test.
     - Does it multiply value now, or is it additive? If additive, defer.

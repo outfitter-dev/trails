@@ -52,13 +52,23 @@ export interface DecisionMap {
 const listDocFiles = (): { path: string; filename: string }[] => {
   const files: { path: string; filename: string }[] = [];
 
-  // docs/*.md (non-recursive — subdirs are ADR-managed)
   const docsDir = join(ROOT, 'docs');
-  for (const f of readdirSync(docsDir)) {
-    if (f.endsWith('.md')) {
-      files.push({ filename: f, path: join(docsDir, f) });
+  const visitDocs = (dir: string): void => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const path = join(dir, entry.name);
+      if (entry.isDirectory()) {
+        if (path === join(docsDir, 'adr')) {
+          continue;
+        }
+        visitDocs(path);
+        continue;
+      }
+      if (entry.isFile() && entry.name.endsWith('.md')) {
+        files.push({ filename: entry.name, path });
+      }
     }
-  }
+  };
+  visitDocs(docsDir);
 
   // AGENTS.md at repo root
   const agentsPath = join(ROOT, 'AGENTS.md');

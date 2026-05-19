@@ -43,7 +43,7 @@ export const normalizeCrossBatchConcurrency = (
 /**
  * Produce one validation-error result per call, preserving the original
  * call order. Used when `normalizeCrossBatchConcurrency` fails so the caller
- * can surface a uniform batch shape to the trail implementation.
+ * can surface a uniform batch shape to the blaze.
  */
 export const createCrossBatchValidationResults = <TCall>(
   calls: readonly TCall[],

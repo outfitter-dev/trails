@@ -90,7 +90,7 @@ export interface ExecuteTrailOptions {
   /**
    * Typed layers supplied for this execution.
    *
-   * Layers compose around the trail implementation. Layers without `input`
+   * Layers compose around the blaze. Layers without `input`
    * schemas are surface-invisible wrappers for concerns such as tenant guards,
    * rate limiting, circuit breaking, or custom audit logging.
    */

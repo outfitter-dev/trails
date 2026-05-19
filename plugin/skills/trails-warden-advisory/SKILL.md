@@ -25,7 +25,7 @@ Use this skill before filing or implementing static guardrails from a Trails aud
 
 ## Authoritative Sources
 
-- `docs/rule-design.md`
+- `docs/contributing/warden-rules.md`
 - `docs/warden.md`
 - `docs/adr/0036-warden-rules-ship-only-as-trails.md`
 - `docs/adr/0037-owner-first-authority.md`

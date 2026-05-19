@@ -56,11 +56,11 @@ trailhead(app, { port: 3001 });
 Or sharing a port with the HTTP trailhead via upgrade:
 
 ```typescript
-import { trailhead as trailheadHttp } from '@ontrails/with-hono';
-import { trailhead as trailheadWs } from '@ontrails/ws';
+import { surface as httpSurface } from '@ontrails/http/bun';
+import { surface as wsSurface } from '@ontrails/ws';
 
-const http = blazeHttp(app, { port: 3000, serve: false });
-blazeWs(app, { server: http });
+const http = await httpSurface(app, { port: 3000, serve: false });
+await wsSurface(app, { server: http });
 ```
 
 `buildWsHandlers(topo)` produces handler definitions. `trailhead()` wires them to a WebSocket server. The same two-step pattern as every other trailhead.
@@ -89,7 +89,7 @@ On error:
 
 The `id` field correlates requests to responses. The client manages its own request IDs. The framing is JSON-RPC-adjacent but simplified: no JSON-RPC version field, no `jsonrpc: "2.0"` boilerplate, just `type`, `id`, `trail`, `input`.
 
-Trail invocation respects the same filtering as other trailheads: visibility (internal trails are not callable), intent filtering (if configured on blaze), and permit-gated discovery (the client only sees trails it can call, based on its connection permit).
+Trail invocation respects the same filtering as other trailheads: visibility (internal trails are not callable), intent filtering (if configured on the surface), and permit-gated discovery (the client only sees trails it can call, based on its connection permit).
 
 #### Signal subscription (server-push)
 
@@ -226,7 +226,7 @@ The trailhead responds with trails filtered by the connection's permit, same as 
 }
 ```
 
-Only trails the permit authorizes are included. Internal trails are excluded. Intent filtering from blaze options applies.
+Only trails the permit authorizes are included. Internal trails are excluded. Intent filtering from surface options applies.
 
 **Signal discovery.** The client could request available signals:
 
@@ -251,7 +251,7 @@ Each connection has a send queue. When the queue depth exceeds a configurable th
 
 1. **Disconnect.** If the queue is critically full, close the connection with a reason. The client reconnects and replays.
 
-Backpressure thresholds are configurable on blaze options:
+Backpressure thresholds are configurable on surface options:
 
 ```typescript
 trailhead(app, {
@@ -285,7 +285,7 @@ Signal ID to subscription channel follows the same convention: the signal ID is 
 | `backpressure` | `BackpressureConfig` | defaults | Backpressure thresholds |
 | `authTimeout` | `number` | `5000` | Ms to wait for auth message before disconnecting |
 
-The options follow the same patterns as HTTP and MCP blaze options. Intent filtering, glob patterns, and layers work identically.
+The options follow the same patterns as HTTP and MCP surface options. Intent filtering, glob patterns, and layers work identically.
 
 ### Package structure
 

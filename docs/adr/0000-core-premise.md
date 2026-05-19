@@ -26,23 +26,23 @@ There's a meaningful delta right now between writing scripts that work and build
 
 ### The approach
 
-Lots of frameworks do individual pieces well. There are great tools for building CLIs, great tools for HTTP APIs, great tools for MCP servers. Trails doesn't try to replace any of them. It occupies a different layer: the **contract** layer that sits above implementations and below surfaces.
+Lots of frameworks do individual pieces well. There are great tools for building CLIs, great tools for HTTP APIs, great tools for MCP servers. Trails doesn't try to replace any of them. It occupies a different layer: the **contract** layer that sits above blazes and below surfaces.
 
-A trail is a typed contract — input schema, output schema, error types, examples, safety properties, composition graph — that happens to have an implementation attached. The contract is the product. The implementation is one rendering of it. CLI, MCP, HTTP, and WebSocket surfaces are others. You author the contract once. The framework projects it onto whatever surfaces you need.
+A trail is a typed contract — input schema, output schema, error types, examples, safety properties, composition graph — that has a blaze establishing how it runs. The contract is the product. The blaze makes it runnable. CLI, MCP, HTTP, and WebSocket surfaces render it for their contexts. You author the contract once. The framework projects it onto whatever surfaces you need.
 
 The core question behind every design decision: *does this require the developer to author information the framework already has?* If yes, derive it instead.
 
 ### Why the contract layer matters more over time
 
-Models are getting better at writing implementations. That's great. But the better they get, the more the bottleneck shifts to: defining the right capability, keeping it coherent across surfaces, making it testable, composing it with other capabilities, and sharing it safely. That's all contract work.
+Models are getting better at writing blazes. That's great. But the better they get, the more the bottleneck shifts to: defining the right capability, keeping it coherent across surfaces, making it testable, composing it with other capabilities, and sharing it safely. That's all contract work.
 
-If an agent can write any implementation correctly, the value isn't in the code — it's in the specification that tells the code what to be. The contract is what keeps intent and behavior aligned, even across sessions, surfaces, and contributors.
+If an agent can write any blaze correctly, the value isn't only in the code — it's in the specification that tells the code what to be. The contract is what keeps intent and behavior aligned, even across sessions, surfaces, and contributors.
 
 ### Who this is for
 
-- **Developers** who want to define a capability once and surface it on CLI, MCP, and HTTP without maintaining parallel implementations.
+- **Developers** who want to define a capability once and surface it on CLI, MCP, and HTTP without maintaining parallel behavior paths.
 - **Agents** that build more consistently when the contract tells them what to produce, rather than relying on memory of what they produced yesterday.
-- **Non-developers** who can describe behavior in terms of names, examples, fields, and safety properties. That description is close to a trail definition. The only part requiring programming skill is the run function — and that's the part most amenable to agent synthesis.
+- **Non-developers** who can describe behavior in terms of names, examples, fields, and safety properties. That description is close to a trail definition. The only part requiring programming skill is the blaze — and that's the part most amenable to agent synthesis.
 
 This ADR captures the foundational decisions that make Trails what it is. If any of these were reversed, it would be a different framework. Everything else — naming conventions, package structure, testing patterns, tooling — follows from these.
 
@@ -50,7 +50,7 @@ This ADR captures the foundational decisions that make Trails what it is. If any
 
 ### The trail is the product
 
-A trail definition is not a wrapper around an implementation. It's the source of truth. Surfaces (CLI, MCP, HTTP, WebSocket) are renderings of the trail contract, not separate implementations. One trail, many surfaces, zero divergence.
+A trail definition is not a wrapper around a blaze. It's the source of truth. Surfaces (CLI, MCP, HTTP, WebSocket) are renderings of the trail contract, not separate implementations. One trail, many surfaces, zero divergence.
 
 This means:
 
@@ -59,11 +59,11 @@ This means:
 - HTTP routes, OpenAPI specs, agent guidance, documentation — all derived
 - If the trail changes, every surface changes automatically
 
-When implementations are maintained per-surface, APIs drift from documentation, CLIs drift from HTTP endpoints, and agent tool definitions drift from both. The single-contract approach makes this drift structurally difficult.
+When behavior is maintained per-surface, APIs drift from documentation, CLIs drift from HTTP routes, and agent tool definitions drift from both. The single-contract approach makes this drift structurally difficult.
 
 ### One schema, one Result, one error taxonomy
 
-Every trail has one input schema and one output schema. Every implementation returns one `Result` type. Every error is a `TrailsError` with a category that maps deterministically to every surface's error representation.
+Every trail has one input schema and one output schema. Every blaze returns one `Result` type. Every error is a `TrailsError` with a category that maps deterministically to every surface's error representation.
 
 - `NotFoundError` → HTTP 404, CLI exit code 1, JSON-RPC -32001 — always, everywhere
 - `ValidationError` → HTTP 400, CLI exit code 2, JSON-RPC -32602 — always, everywhere
@@ -76,19 +76,19 @@ This eliminates an entire class of inconsistency: the error behavior on one surf
 
 CLI is not the primary surface with MCP as an afterthought. MCP is not the primary surface with CLI as a debug tool. All surfaces are equal connectors over the same topo. They derive from the same contracts, share the same validation, and map the same error taxonomy.
 
-A trail author writes one implementation. It runs on every surface without modification. The trail doesn't know and doesn't care which surface invoked it.
+A trail author writes one blaze. The blazed trail runs on every surface without modification. The trail doesn't know and doesn't care which surface invoked it.
 
-### Implementations are pure
+### Blazes are pure
 
 Input in, `Result` out. No `process.exit()`. No `console.log()`. No `Request` or `Response` objects. No surface-specific types in domain logic.
 
-This is what makes surface-agnosticism possible. If an implementation touches `stdout`, it can't run on MCP. If it reads from `Request`, it can't run on CLI. Purity is the boundary that enables universality.
+This is what makes surface-agnosticism possible. If a blaze touches `stdout`, it can't run on MCP. If it reads from `Request`, it can't run on CLI. Purity is the boundary that enables universality.
 
 Side effects happen through structured channels: `ctx.cross()` for composition, `ctx.logger` for logging, `ctx.progress` for progress reporting. All surface-agnostic.
 
 ### Validate at the boundary, trust internally
 
-Zod validates input before the implementation runs. If the implementation receives `input`, the input is already valid. No defensive checking inside implementations. No `if (!input.name)` guards for required fields.
+Zod validates input before execution enters the blaze. If the blaze receives `input`, the input is already valid. No defensive checking inside blazes. No `if (!input.name)` guards for required fields.
 
 This moves validation from a developer responsibility scattered across every function to a framework guarantee enforced once at the boundary. It also means examples can be validated statically — the warden checks that example inputs parse against the schema before any code runs.
 
@@ -156,9 +156,9 @@ If none of these catch it, the feature needs redesign.
 
 There's a real difference between "the framework computed this deterministically" and "the framework inferred this from your code." Every piece of information in the system falls into one of six categories:
 
-- **Authored.** New information only the developer knows. Zod schemas, intent, meta (`meta`), examples, the run function, trail IDs. Creative contributions that can't be derived because they don't exist until someone writes them.
+- **Authored.** New information only the developer knows. Zod schemas, intent, meta (`meta`), examples, blazes, trail IDs. Creative contributions that can't be derived because they don't exist until someone writes them.
 - **Projected.** Mechanically derived, guaranteed correct. MCP tool name from app name + trail ID. CLI flags from Zod fields. Exit codes from error classes. If the authored input exists, the projection is unambiguous.
-- **Enforced.** Constrained by the type system at compile time. Output schemas bind the return type. `Result<T, Error>` eliminates throw/catch. `TrailContext` scopes what the implementation can access. The compiler rejects non-compliance.
+- **Enforced.** Constrained by the type system at compile time. Output schemas bind the return type. `Result<T, Error>` eliminates throw/catch. `TrailContext` scopes what the blaze can access. The compiler rejects non-compliance.
 - **Inferred.** Detected by static analysis, best-effort. Which trails a trail follows (from `ctx.cross()` calls). Which error types are returned (from `Result.err()` patterns). The warden uses inference to verify declarations match actual code. Useful for governance, but not compiler-guaranteed.
 - **Observed.** Learned from runtime. The tracing system captures what actually happens: execution duration, error distributions, latency profiles, usage patterns. Observations close the loop between declared intent and actual behavior.
 - **Overridden.** When derivation doesn't fit. Any derived value can be explicitly set. Override the CLI command name when the default doesn't read well. Overrides are escape hatches — if you're overriding everything, the derivation rules are wrong.
@@ -175,16 +175,16 @@ But the surfaces Trails produces are universally consumable. A CLI built with Tr
 
 ### Positive
 
-- **Define once, surface everywhere.** One trail definition produces CLI commands, MCP tools, HTTP endpoints, WebSocket handlers, documentation, tests, and governance checks.
+- **Define once, surface everywhere.** One trail definition produces CLI commands, MCP tools, HTTP routes, WebSocket sessions, documentation, tests, and governance checks.
 - **Drift-resistant contracts.** Schema changes propagate to all surfaces. Error behavior is consistent. Examples stay in sync because they're on the definition, not in separate files.
 - **Agent-native development.** Agents can inspect, consume, and build with Trails because the contract is queryable, typed, and self-documenting.
-- **Progressive tightening.** Start with examples and a run function. Add output schemas. Add intent. Add error declarations. Each step tightens the contract without rewriting anything.
+- **Progressive tightening.** Start with examples and a blaze. Add output schemas. Add intent. Add error declarations. Each step tightens the contract without rewriting anything.
 
 ### Tradeoffs
 
-- **No surface-specific logic in implementations.** If a trail needs to behave differently on CLI vs MCP, that logic lives in layers or surface connectors, not in the implementation.
+- **No surface-specific logic in blazes.** If a trail needs to behave differently on CLI vs MCP, that logic lives in layers or surface connectors, not in the blaze.
 - **Zod is the schema language.** The framework is built on Zod for schema definition. Swapping to a different schema library would be a major rearchitecture.
-- **Result is mandatory.** Implementations return Result, not exceptions. This is a hard requirement, not a suggestion. The warden enforces it.
+- **Result is mandatory.** Blazes return Result, not exceptions. This is a hard requirement, not a suggestion. The warden enforces it.
 - **Bun is the development runtime.** The framework uses Bun APIs. Running in Node.js is not a goal (though the surfaces Trails produces are runtime-agnostic).
 
 ### What this does NOT decide

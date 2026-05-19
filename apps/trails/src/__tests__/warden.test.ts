@@ -238,7 +238,7 @@ describe('trails warden', () => {
       expect(result.value.passed).toBe(false);
       expect(result.value.errorCount).toBe(1);
       expect(result.value.diagnostics[0]?.guidance?.summary).toBe(
-        'Convert thrown implementation failures into explicit Result.err() outcomes.'
+        'Convert thrown failures in blazes into explicit Result.err() outcomes.'
       );
       expect(result.value.formatted).toContain('## Warden Report');
     } finally {
@@ -285,7 +285,7 @@ describe('trails warden', () => {
       '### `no-throw-in-implementation`'
     );
     expect(result.value.formatted).toContain(
-      'Convert thrown implementation failures into explicit Result.err() outcomes.'
+      'Convert thrown failures in blazes into explicit Result.err() outcomes.'
     );
   });
 
@@ -296,11 +296,10 @@ describe('trails warden', () => {
           filePath: 'src/trails/entity.ts',
           guidance: {
             docs: [{ label: 'Trail Rules', path: 'AGENTS.md#trail-rules' }],
-            summary:
-              'Convert thrown implementation failures into Result.err().',
+            summary: 'Convert thrown failures in blazes into Result.err().',
           },
           line: 3,
-          message: 'Do not throw inside implementation.',
+          message: 'Do not throw inside the blaze.',
           rule: 'no-throw-in-implementation',
           severity: 'error',
           topoName: 'demo',

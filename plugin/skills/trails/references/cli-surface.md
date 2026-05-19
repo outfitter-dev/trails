@@ -119,7 +119,7 @@ surface(graph, {
 
 ## Execution Pipeline
 
-The CLI surface delegates to `executeTrail()` from `@ontrails/core` — the same pipeline used by MCP, HTTP, and `run()`. Input is validated by Zod before the implementation runs. Layers are applied in order. The Result is mapped to an exit code and stdout/stderr by the surface; implementations never call `process.exit()` directly.
+The CLI surface delegates to `executeTrail()` from `@ontrails/core` — the same pipeline used by MCP, HTTP, and `run()`. Input is validated by Zod before the blaze receives it. Layers are applied in order. The Result is mapped to an exit code and stdout/stderr by the surface; blazes never call `process.exit()` directly.
 
 ## Escape Hatch
 

@@ -1,4 +1,13 @@
-# Agent Symbol Navigation
+# Codebase Navigation
+
+This guide orients people and agents inside the Trails repository. Keep durable
+repo-map material here: important source-of-truth locations, generated artifacts,
+package layout notes, and tool setup that helps contributors navigate the code
+without guessing.
+
+For now, the main committed setup is symbolic navigation.
+
+## Symbol Navigation
 
 Trails keeps a repository-level Serena project configuration at
 `.serena/project.yml`. Serena is the default symbolic navigation path for
@@ -6,7 +15,7 @@ agents because it provides TypeScript LSP-backed tools for symbol search,
 references, declarations, diagnostics, and rename support without requiring a
 paid IDE plugin or machine-local absolute paths.
 
-## Default: Serena
+## Default Symbol Tool: Serena
 
 Install the Serena CLI once from the same upstream source path used for local
 verification:

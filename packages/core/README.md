@@ -54,7 +54,7 @@ const onboard = trail('entity.onboard', {
 
 | Export | What it does |
 | --- | --- |
-| `executeTrail(trail, rawInput, options?)` | Centralized execution pipeline: validates input, builds context, composes layers, runs the implementation. Never throws -- exceptions become `Result.err(InternalError)`. |
+| `executeTrail(trail, rawInput, options?)` | Centralized execution pipeline: validates input, builds context, composes layers, runs the blazed trail. Never throws -- exceptions become `Result.err(InternalError)`. |
 | `run(topo, id, input, options?)` | Headless trail execution by ID. Looks up the trail in the topo, then delegates to `executeTrail`. Returns `Result.err(NotFoundError)` if the ID is not registered. |
 
 ```typescript

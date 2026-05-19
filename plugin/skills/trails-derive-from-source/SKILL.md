@@ -19,7 +19,7 @@ Use this skill when a proposal adds a table, projection, metadata map, generated
 ## Authoritative Sources
 
 - `docs/adr/0037-owner-first-authority.md`
-- `docs/rule-design.md`
+- `docs/contributing/warden-rules.md`
 - Owner modules in `packages/core/src`, `packages/topographer/src`, `packages/warden/src/rules`, or the package that owns the primitive.
 - Projection consumers in CLI, MCP, HTTP/Hono, Warden, docs generation, or topo compile/verify paths.
 

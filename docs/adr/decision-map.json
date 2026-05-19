@@ -10,7 +10,7 @@
           "fromPath": "docs/adr/0001-naming-conventions.md"
         },
         {
-          "context": "Trails implementations never throw. That's a hard rule — [ADR-0000](0000-core-premise.md) established it. Input in, `Result` out. The warden enforces it. If an implementation throws, it's a bug.",
+          "context": "Blazes never throw. That's a hard rule — [ADR-0000](0000-core-premise.md) established it. Input in, `Result` out. The warden enforces it. If a blaze throws, it's a bug.",
           "from": "0002",
           "fromPath": "docs/adr/0002-built-in-result-type.md"
         },
@@ -30,7 +30,7 @@
           "fromPath": "docs/adr/0005-framework-agnostic-http-route-model.md"
         },
         {
-          "context": "- [ADR-0000: Core Premise](0000-core-premise.md) — the foundational decisions this pipeline serves, especially \"implementations are pure\" and \"surfaces are peers\"",
+          "context": "- [ADR-0000: Core Premise](0000-core-premise.md) — the foundational decisions this pipeline serves, especially \"blazes are pure\" and \"surfaces are peers\"",
           "from": "0006",
           "fromPath": "docs/adr/0006-shared-execution-pipeline.md"
         },
@@ -264,7 +264,7 @@
           "fromPath": "docs/index.md"
         },
         {
-          "context": "See [ADR-0023: Simplifying the Trails Lexicon](adr/0023-simplifying-the-trails-lexicon.md) for the decision that produced the current shape, and [ADR-0001: Naming Conventions](adr/0001-naming-conventi",
+          "context": "See [ADR-0023: Simplifying the Trails Lexicon](adr/0023-simplifying-the-trails-lexicon.md) for the decision that produced the current shape, [ADR-0001: Naming Conventions](adr/0001-naming-conventions.",
           "from": "lexicon",
           "fromPath": "docs/lexicon.md"
         }
@@ -276,7 +276,7 @@
       "status": "accepted",
       "superseded_by": null,
       "title": "Naming Conventions — Guessable API Through Structural Rules",
-      "updated": "2026-04-16"
+      "updated": "2026-05-19"
     },
     {
       "created": "2026-03-29",
@@ -330,7 +330,7 @@
       "status": "accepted",
       "superseded_by": null,
       "title": "Built-In Result Type",
-      "updated": "2026-04-01"
+      "updated": "2026-05-19"
     },
     {
       "created": "2026-03-29",
@@ -622,6 +622,11 @@
           "context": "- **[ADR-0006: Shared Execution Pipeline](./adr/0006-shared-execution-pipeline.md)** — One `executeTrail`, Result-returning builders",
           "from": "index",
           "fromPath": "docs/index.md"
+        },
+        {
+          "context": "- [ADR-0006: Shared Execution Pipeline](../adr/0006-shared-execution-pipeline.md)",
+          "from": "layer-evolution",
+          "fromPath": "docs/migration/layer-evolution.md"
         }
       ],
       "number": "0006",
@@ -631,7 +636,7 @@
       "status": "accepted",
       "superseded_by": null,
       "title": "Shared Execution Pipeline with Result-Returning Builders",
-      "updated": "2026-04-01"
+      "updated": "2026-05-19"
     },
     {
       "created": "2026-03-29",
@@ -690,7 +695,7 @@
       "status": "accepted",
       "superseded_by": null,
       "title": "Governance as Trails with AST-Based Analysis",
-      "updated": "2026-04-22"
+      "updated": "2026-05-19"
     },
     {
       "created": "2026-03-29",
@@ -893,7 +898,7 @@
       "status": "accepted",
       "superseded_by": null,
       "title": "First-Class Resources",
-      "updated": "2026-05-09"
+      "updated": "2026-05-19"
     },
     {
       "created": "2026-03-30",
@@ -981,6 +986,11 @@
           "context": "- **[ADR-0012: Adapter-Agnostic Permits](./adr/0012-connector-agnostic-permits.md)** — Permission model independent of surface",
           "from": "index",
           "fromPath": "docs/index.md"
+        },
+        {
+          "context": "- [ADR-0012: Adapter-Agnostic Permits](../adr/0012-connector-agnostic-permits.md)",
+          "from": "layer-evolution",
+          "fromPath": "docs/migration/layer-evolution.md"
         }
       ],
       "number": "0012",
@@ -990,7 +1000,7 @@
       "status": "accepted",
       "superseded_by": null,
       "title": "Adapter-Agnostic Permits",
-      "updated": "2026-05-08"
+      "updated": "2026-05-19"
     },
     {
       "created": "2026-03-30",
@@ -1099,7 +1109,7 @@
       "status": "partially-superseded",
       "superseded_by": ["23"],
       "title": "Tracing — Runtime Recording Primitive",
-      "updated": "2026-04-19"
+      "updated": "2026-05-19"
     },
     {
       "created": "2026-04-02",
@@ -1134,6 +1144,11 @@
           "context": "- **[ADR-0014: Core Database Primitive](./adr/0014-core-database-primitive.md)** — Shared `trails.db`, subsystem schema versioning",
           "from": "index",
           "fromPath": "docs/index.md"
+        },
+        {
+          "context": "**ADRs:** [0014](../adr/0014-core-database-primitive.md), [0015](../adr/0015-topo-store.md)",
+          "from": "beta14",
+          "fromPath": "docs/releases/beta14.md"
         }
       ],
       "number": "0014",
@@ -1183,6 +1198,11 @@
           "context": "- **[ADR-0015: Topo Store](./adr/0015-topo-store.md)** — Queryable relational projection of the resolved graph",
           "from": "index",
           "fromPath": "docs/index.md"
+        },
+        {
+          "context": "**ADRs:** [0014](../adr/0014-core-database-primitive.md), [0015](../adr/0015-topo-store.md)",
+          "from": "beta14",
+          "fromPath": "docs/releases/beta14.md"
         }
       ],
       "number": "0015",
@@ -1252,6 +1272,11 @@
           "context": "- **[ADR-0016: Schema-Derived Persistence](./adr/0016-schema-derived-persistence.md)** — `store()` declaration, adapter binding, fixtures",
           "from": "index",
           "fromPath": "docs/index.md"
+        },
+        {
+          "context": "**ADRs:** [0016](../adr/0016-schema-derived-persistence.md), [0022](../adr/0022-drizzle-store-connector.md)",
+          "from": "beta14",
+          "fromPath": "docs/releases/beta14.md"
         }
       ],
       "number": "0016",
@@ -1346,6 +1371,11 @@
           "context": "- **[ADR-0017: The Serialized Topo Graph](./adr/0017-serialized-topo-graph.md)** — Lockfile as resolved graph",
           "from": "index",
           "fromPath": "docs/index.md"
+        },
+        {
+          "context": "**ADR:** [0017](../adr/0017-serialized-topo-graph.md)",
+          "from": "beta14",
+          "fromPath": "docs/releases/beta14.md"
         }
       ],
       "number": "0017",
@@ -1375,6 +1405,11 @@
           "context": "- **[ADR-0018: Signal-Driven Governance](./adr/0018-signal-driven-governance.md)** — Governance through signals",
           "from": "index",
           "fromPath": "docs/index.md"
+        },
+        {
+          "context": "**ADR:** [0018](../adr/0018-signal-driven-governance.md)",
+          "from": "beta14",
+          "fromPath": "docs/releases/beta14.md"
         }
       ],
       "number": "0018",
@@ -1404,6 +1439,11 @@
           "context": "- **[ADR-0019: Hierarchical Command Trees](./adr/0019-hierarchical-command-trees-from-trail-ids.md)** — Full CLI path derivation from dotted trail IDs",
           "from": "index",
           "fromPath": "docs/index.md"
+        },
+        {
+          "context": "**ADR:** [0019](../adr/0019-hierarchical-command-trees-from-trail-ids.md)",
+          "from": "beta14",
+          "fromPath": "docs/releases/beta14.md"
         }
       ],
       "number": "0019",
@@ -1428,6 +1468,11 @@
           "context": "- **[ADR-0020: Structured CLI Input](./adr/0020-flags-for-fields-structured-input-on-the-cli.md)** — Flags for fields, JSON/file/stdin channels",
           "from": "index",
           "fromPath": "docs/index.md"
+        },
+        {
+          "context": "**ADR:** [0020](../adr/0020-flags-for-fields-structured-input-on-the-cli.md)",
+          "from": "beta14",
+          "fromPath": "docs/releases/beta14.md"
         }
       ],
       "number": "0020",
@@ -1452,6 +1497,11 @@
           "context": "- **[ADR-0021: Draft State Containment](./adr/0021-draft-state-stays-out-of-the-resolved-graph.md)** — Draft state stays out of the resolved graph",
           "from": "index",
           "fromPath": "docs/index.md"
+        },
+        {
+          "context": "**ADR:** [0021](../adr/0021-draft-state-stays-out-of-the-resolved-graph.md)",
+          "from": "beta14",
+          "fromPath": "docs/releases/beta14.md"
         }
       ],
       "number": "0021",
@@ -1461,7 +1511,7 @@
       "status": "accepted",
       "superseded_by": null,
       "title": "Draft State Stays Out of the Resolved Graph",
-      "updated": "2026-04-03"
+      "updated": "2026-05-19"
     },
     {
       "created": "2026-04-01",
@@ -1491,6 +1541,11 @@
           "context": "- **[ADR-0022: Drizzle Binds Schema-Derived Stores to SQLite](./adr/0022-drizzle-store-connector.md)** — Drizzle binds schema-derived stores to SQLite",
           "from": "index",
           "fromPath": "docs/index.md"
+        },
+        {
+          "context": "**ADRs:** [0016](../adr/0016-schema-derived-persistence.md), [0022](../adr/0022-drizzle-store-connector.md)",
+          "from": "beta14",
+          "fromPath": "docs/releases/beta14.md"
         }
       ],
       "number": "0022",
@@ -1532,7 +1587,7 @@
           "fromPath": "docs/adr/0032-derivetrail-and-trail-factories.md"
         },
         {
-          "context": "Detours are already in the Trails lexicon as a trail-level field: *\"recovery paths when the trail is blocked or fails. The trail blazes forward; if blocked, it detours.\"* See [ADR-0023](0023-simplifyi",
+          "context": "Detours are already in the Trails lexicon as a trail-level field: *\"recovery paths when the trail is blocked or fails. A blazed trail has a normal path; if blocked, it detours.\"* See [ADR-0023](0023-s",
           "from": "0033",
           "fromPath": "docs/adr/0033-detour-execution-for-recovery.md"
         },
@@ -1567,7 +1622,7 @@
           "fromPath": "docs/index.md"
         },
         {
-          "context": "See [ADR-0023: Simplifying the Trails Lexicon](adr/0023-simplifying-the-trails-lexicon.md) for the decision that produced the current shape, and [ADR-0001: Naming Conventions](adr/0001-naming-conventi",
+          "context": "See [ADR-0023: Simplifying the Trails Lexicon](adr/0023-simplifying-the-trails-lexicon.md) for the decision that produced the current shape, [ADR-0001: Naming Conventions](adr/0001-naming-conventions.",
           "from": "lexicon",
           "fromPath": "docs/lexicon.md"
         }
@@ -1579,7 +1634,7 @@
       "status": "accepted",
       "superseded_by": null,
       "title": "Simplifying the Trails Lexicon",
-      "updated": "2026-04-07"
+      "updated": "2026-05-19"
     },
     {
       "created": "2026-04-09",
@@ -1633,7 +1688,7 @@
       "status": "accepted",
       "superseded_by": null,
       "title": "Typed Trail Composition",
-      "updated": "2026-04-09"
+      "updated": "2026-05-19"
     },
     {
       "created": "2026-04-09",
@@ -1652,7 +1707,7 @@
       "status": "accepted",
       "superseded_by": null,
       "title": "Composition Testing",
-      "updated": "2026-04-09"
+      "updated": "2026-05-19"
     },
     {
       "created": "2026-04-09",
@@ -1764,7 +1819,7 @@
       "status": "accepted",
       "superseded_by": null,
       "title": "Concurrent Trail Crossing",
-      "updated": "2026-04-10"
+      "updated": "2026-05-19"
     },
     {
       "created": "2026-04-09",
@@ -2022,7 +2077,7 @@
       "status": "accepted",
       "superseded_by": null,
       "title": "Store Accessor Contract Refinement: Lessons from Two Backends",
-      "updated": "2026-04-13"
+      "updated": "2026-05-19"
     },
     {
       "created": "2026-04-16",
@@ -2057,6 +2112,11 @@
           "context": "- [ADR-0035: Surface APIs Render the Graph](0035-surface-apis-render-the-graph.md)",
           "from": "0047",
           "fromPath": "docs/adr/0047-stable-release-line-discipline.md"
+        },
+        {
+          "context": "The published `CHANGELOG.md` for `@ontrails/cli` and `@ontrails/mcp` attributes the lexicon work to ADR-0023, but the surface-API renames listed here are governed by [ADR-0035: Surface APIs Render the",
+          "from": "beta15",
+          "fromPath": "docs/releases/beta15.md"
         }
       ],
       "number": "0035",
@@ -2066,7 +2126,7 @@
       "status": "accepted",
       "superseded_by": null,
       "title": "Surface APIs Render the Graph",
-      "updated": "2026-04-16"
+      "updated": "2026-05-19"
     },
     {
       "created": "2026-04-20",
@@ -2078,9 +2138,9 @@
           "fromPath": "docs/adr/0037-owner-first-authority.md"
         },
         {
-          "context": "Use it with [Warden](./warden.md), [ADR-0036](./adr/0036-warden-rules-ship-only-as-trails.md),",
-          "from": "rule-design",
-          "fromPath": "docs/rule-design.md"
+          "context": "[ADR-0036](../adr/0036-warden-rules-ship-only-as-trails.md), and",
+          "from": "warden-rules",
+          "fromPath": "docs/contributing/warden-rules.md"
         },
         {
           "context": "4. Wrap built-in rules as trails, in line with [ADR-0036](./adr/0036-warden-rules-ship-only-as-trails.md).",
@@ -2095,7 +2155,7 @@
       "status": "accepted",
       "superseded_by": null,
       "title": "Warden rules ship only as trails",
-      "updated": "2026-04-20"
+      "updated": "2026-05-19"
     },
     {
       "created": "2026-04-30",
@@ -2107,9 +2167,9 @@
           "fromPath": "docs/adr/0047-stable-release-line-discipline.md"
         },
         {
-          "context": "and [ADR-0037](./adr/0037-owner-first-authority.md).",
-          "from": "rule-design",
-          "fromPath": "docs/rule-design.md"
+          "context": "[ADR-0037](../adr/0037-owner-first-authority.md).",
+          "from": "warden-rules",
+          "fromPath": "docs/contributing/warden-rules.md"
         }
       ],
       "number": "0037",
@@ -2246,6 +2306,11 @@
           "context": "[ADR-0041: Unified Observability](../0041-unified-observability.md) — the",
           "from": "20260503",
           "fromPath": "docs/adr/drafts/20260503-wayfinding.md"
+        },
+        {
+          "context": "- [ADR-0041: Unified Observability](../adr/0041-unified-observability.md)",
+          "from": "layer-evolution",
+          "fromPath": "docs/migration/layer-evolution.md"
         }
       ],
       "number": "0041",
@@ -2255,7 +2320,7 @@
       "status": "accepted",
       "superseded_by": null,
       "title": "Unified Observability",
-      "updated": "2026-05-09"
+      "updated": "2026-05-19"
     },
     {
       "created": "2026-05-02",
@@ -2311,9 +2376,19 @@
           "fromPath": "docs/adr/drafts/20260401-compiled-pack-trailhead.md"
         },
         {
+          "context": "Source code, including TSDoc, inline comments, runtime strings, error messages, and log payloads, should reference accepted ADRs by stable number, such as `docs/adr/0043-layer-evolution.md`. It should",
+          "from": "code-standards",
+          "fromPath": "docs/contributing/code-standards.md"
+        },
+        {
           "context": "[ADR-0043: Layer Evolution](./adr/0043-layer-evolution.md).",
           "from": "lexicon",
           "fromPath": "docs/lexicon.md"
+        },
+        {
+          "context": "How to migrate apps off the legacy layer model onto the typed `Layer` model that ships with Trails today. See [ADR-0043: Layer Evolution](../adr/0043-layer-evolution.md) for the full rationale.",
+          "from": "layer-evolution",
+          "fromPath": "docs/migration/layer-evolution.md"
         }
       ],
       "number": "0043",
@@ -2342,7 +2417,7 @@
       "status": "accepted",
       "superseded_by": null,
       "title": "Trail Versioning",
-      "updated": "2026-05-06"
+      "updated": "2026-05-19"
     },
     {
       "created": "2026-05-10",
@@ -2371,7 +2446,7 @@
       "status": "accepted",
       "superseded_by": null,
       "title": "v1 Resolved Graph Error Scope",
-      "updated": "2026-05-11"
+      "updated": "2026-05-19"
     },
     {
       "created": "2026-05-11",
@@ -2425,6 +2500,11 @@
           "context": "Stable 1.x release doctrine is captured in [ADR-0047](docs/adr/0047-stable-release-line-discipline.md), and the copy-pasteable beta-to-1.0 operator sequence lives in [Stable Cutover Runbook](docs/rele",
           "from": "AGENTS",
           "fromPath": "AGENTS.md"
+        },
+        {
+          "context": "It is governed by [ADR-0047: Stable Release Line Discipline](../adr/0047-stable-release-line-discipline.md).",
+          "from": "stable-cutover",
+          "fromPath": "docs/releases/stable-cutover.md"
         }
       ],
       "number": "0047",

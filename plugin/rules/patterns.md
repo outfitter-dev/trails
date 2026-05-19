@@ -1,10 +1,10 @@
 # Trails Code Patterns
 
-## Blaze Functions
+## Blazes
 
 - Return `Result`, never throw. Use `Result.ok(value)` and `Result.err(new XError(...))`.
-- Keep blaze functions surface-agnostic. No `process.exit()`, no `console.log()`, no `Request`/`Response`.
-- Blaze functions receive `(input, ctx)` — validated input and `TrailContext`.
+- Keep the blaze surface-agnostic. No `process.exit()`, no `console.log()`, no `Request`/`Response`.
+- A blaze receives `(input, ctx)` — validated input and `TrailContext`.
 - Sync authoring is fine for pure work. The runtime normalizes to async.
 
 ## Composition

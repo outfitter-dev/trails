@@ -146,7 +146,7 @@ content entries. Image MIME types become image content:
 
 ## Progress Bridging
 
-Trail implementations can report progress via `ctx.progress`. On the MCP surface, these are bridged to MCP `notifications/progress`:
+A trail's blaze can report progress via `ctx.progress`. On the MCP surface, these are bridged to MCP `notifications/progress`:
 
 ```typescript
 const importTrail = trail('data.import', {
@@ -201,7 +201,7 @@ needs to override them.
 
 ## AbortSignal Propagation
 
-The MCP client's abort signal is propagated through to `TrailContext.abortSignal`. If the client cancels a tool call, the implementation's signal is aborted.
+The MCP client's abort signal is propagated through to `TrailContext.abortSignal`. If the client cancels a tool call, the trail's blaze sees the aborted signal.
 
 ```typescript
 const longTask = trail('long.task', {
@@ -220,7 +220,7 @@ const longTask = trail('long.task', {
 ## Layers
 
 The MCP surface accepts execution layers in its options and uses
-`composeLayers()` from `@ontrails/core` to wrap the implementation.
+`composeLayers()` from `@ontrails/core` to wrap execution before the blaze.
 
 No MCP-specific layers ship in v1. The infrastructure is wired for
 surface-scoped behavior such as rate limiting, caching, or auth layers, but

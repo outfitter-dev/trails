@@ -2,7 +2,7 @@
  * testContracts — output schema verification.
  *
  * For every trail that has both examples and an output schema,
- * run each example and validate the implementation output against
+ * run each example and validate the Result.ok value against
  * the declared schema.
  */
 
@@ -46,8 +46,8 @@ const validateOutputSchema = (
 // ---------------------------------------------------------------------------
 
 /**
- * Verify that every trail implementation output matches its declared
- * output schema. Catches implementation-schema drift.
+ * Verify that every successful trail result matches its declared
+ * output schema. Catches output-schema drift.
  *
  * Trails without output schemas or examples are skipped.
  */

@@ -4,7 +4,7 @@ slug: composition-testing
 title: Composition Testing
 status: accepted
 created: 2026-04-09
-updated: 2026-04-09
+updated: 2026-05-19
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [3, 7, 24]
 ---
@@ -17,7 +17,7 @@ depends_on: [3, 7, 24]
 
 The examples-as-tests system is the framework's crown jewel. One `testAll(graph)` call runs every example as an assertion. The developer writes structured data on the trail definition and gets six consumers for free: testing, agent guidance, schema validation, mock data, composition testing, and contract coverage[^1].
 
-For single trails, this works perfectly. The trail receives input, runs the blaze, returns a Result. The example declares input and expected output. The assertion is a deep equality check or schema validation.
+For single trails, this works perfectly. The trail receives input, runs through the shared pipeline, and returns a Result. The example declares input and expected output. The assertion is a deep equality check or schema validation.
 
 ### Composite trails break the assertion model
 

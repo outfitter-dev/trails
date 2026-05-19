@@ -4,7 +4,7 @@ slug: connector-agnostic-permits
 title: Adapter-Agnostic Permits
 status: accepted
 created: 2026-03-30
-updated: 2026-05-08
+updated: 2026-05-19
 owners: ['[galligan](https://github.com/galligan)']
 ---
 
@@ -22,7 +22,7 @@ adapter vocabulary.
 
 ### Surfaces resolve auth differently
 
-HTTP reads a bearer token from the `Authorization` header. MCP receives a session token from the transport handshake. CLI might pull credentials from a keyring or environment variable. Each surface has its own extraction mechanism, but the trail implementation shouldn't know or care which one ran. The implementation needs a single, surface-agnostic permit — or the knowledge that no permit was required.
+HTTP reads a bearer token from the `Authorization` header. MCP receives a session token from the transport handshake. CLI might pull credentials from a keyring or environment variable. Each surface has its own extraction mechanism, but the blaze shouldn't know or care which one ran. The blaze needs a single, surface-agnostic permit — or the knowledge that no permit was required.
 
 ### Auth is a resource + layer hybrid
 
@@ -67,16 +67,16 @@ interface Permit {
 ```
 
 Core enforcement keys off `scopes` only. Roles are adapter output — the auth
-adapter resolves them, and implementations can read them, but the framework's
+adapter resolves them, and blazes can read them, but the framework's
 own enforcement doesn't branch on roles. `metadata` stays
 `Record<string, unknown>` for v1. No generic `Permit<T>` — the complexity isn't
 justified until concrete use cases demand it.
 
 ### `ctx.permit` is `Permit | undefined`
 
-`undefined` means no permit declaration or public trail. `Permit` means auth succeeded. Failed auth never reaches the implementation — the execution pipeline short-circuits with `Result.err(PermitError)` before the blaze runs.
+`undefined` means no permit declaration or public trail. `Permit` means auth succeeded. Failed auth never reaches the blaze — the execution pipeline short-circuits with `Result.err(PermitError)` before execution enters the blaze.
 
-This means implementations can trust `ctx.permit` structurally. If it's present, it's valid. No defensive checks inside domain logic.
+This means blazes can trust `ctx.permit` structurally. If it's present, it's valid. No defensive checks inside domain logic.
 
 ### Three-part model: declaration + extraction + enforcement
 
@@ -161,7 +161,7 @@ model doesn't change; only the extraction surface does.
 
 ### Positive
 
-- **Auth requirements are part of the trail contract.** Visible, verifiable, introspectable. An agent can query a topo and see every trail's auth posture without reading implementation code.
+- **Auth requirements are part of the trail contract.** Visible, verifiable, introspectable. An agent can query a topo and see every trail's auth posture without reading blaze code.
 - **Same auth model works across all surfaces.** HTTP, MCP, CLI — one enforcement path. No surface-specific auth bugs.
 - **Testing fails closed.** Auto-minted permits match declared scopes exactly. No silent privilege escalation in tests. Strict mode proves the full auth path.
 - **Warden catches unprotected destructive trails before deployment.** The `destroy` + no permit rule is a structural guarantee, not a code review convention.
@@ -175,7 +175,7 @@ model doesn't change; only the extraction surface does.
 ### What this does NOT decide
 
 - **Cookie/session auth.** An adapter concern. The extraction input has the seam; the core model doesn't prescribe it.
-- **Resource-level authorization.** "Can this user access *this specific* entity?" is an implementation concern. The permit model covers capability scopes, not resource ownership.
+- **Resource-level authorization.** "Can this user access *this specific* entity?" is a blaze concern. The permit model covers capability scopes, not resource ownership.
 - **RBAC framework.** Role-based access control is an app-level pattern. `roles` on the Permit type is informational, not enforced by the framework.
 - **Scope derivation helpers.** Convenience functions that suggest scopes from trail ID patterns may ship later. They won't replace explicit declaration — they'll accelerate authoring it.
 

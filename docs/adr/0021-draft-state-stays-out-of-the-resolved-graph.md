@@ -4,7 +4,7 @@ slug: draft-state-stays-out-of-the-resolved-graph
 title: Draft State Stays Out of the Resolved Graph
 status: accepted
 created: 2026-04-03
-updated: 2026-04-03
+updated: 2026-05-19
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [17]
 ---
@@ -13,7 +13,7 @@ depends_on: [17]
 
 ## Context
 
-Trails wants top-down authoring. Sketch the system, tighten the contracts, then fill in the implementation. That is how the framework reads best, and it is how agents naturally work.
+Trails wants top-down authoring. Sketch the system, tighten the contracts, then blaze the trail. That is how the framework reads best, and it is how agents naturally work.
 
 But the current validation path makes that hard in exactly the places where the graph matters most. The Stash retro hit one clear example: an event wanted to declare `from: ['gist.fork']` before `gist.fork` existed, and topo validation rejected the entire shape.[^retro]
 

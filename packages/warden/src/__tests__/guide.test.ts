@@ -27,7 +27,7 @@ describe('warden guide manifest', () => {
     });
     expect(throwRule).not.toHaveProperty('category');
     expect(throwRule?.guidance?.summary).toBe(
-      'Convert thrown implementation failures into explicit Result.err() outcomes.'
+      'Convert thrown failures in blazes into explicit Result.err() outcomes.'
     );
   });
 
@@ -39,7 +39,7 @@ describe('warden guide manifest', () => {
     expect(markdown).toContain('- Concern: `results`');
     expect(markdown).not.toContain('- Category: `results`');
     expect(markdown).toContain(
-      'Guidance: Convert thrown implementation failures into explicit Result.err() outcomes.'
+      'Guidance: Convert thrown failures in blazes into explicit Result.err() outcomes.'
     );
     expect(markdown).toContain('- Docs: [Trail Rules](AGENTS.md#trail-rules)');
   });

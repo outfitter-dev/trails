@@ -102,7 +102,7 @@ Composition-specific fields: `expectCrossed` (ordered trail IDs), `expectCrossed
 
 ## `testContracts(graph)` / `testDetours(graph)`
 
-`testContracts` verifies every trail's implementation output matches its declared output schema -- catches drift. `testDetours` validates detour constructor, `recover`, and shadowing semantics. Both are included in `testAll` automatically; use standalone when debugging a specific failure.
+`testContracts` verifies successful trail results against declared output schemas -- catches drift. `testDetours` validates detour constructor, `recover`, and shadowing semantics. Both are included in `testAll` automatically; use standalone when debugging a specific failure.
 
 ```typescript
 import { testContracts, testDetours } from '@ontrails/testing';
@@ -162,7 +162,7 @@ When unit-testing a composite trail in isolation (without a full topo), use `cre
 
 ```typescript
 import { Result } from '@ontrails/core';
-import { createCrossContext, createTestContext } from '@ontrails/testing';
+import { createCrossContext, testTrail } from '@ontrails/testing';
 
 const cross = createCrossContext({
   responses: {
@@ -171,17 +171,20 @@ const cross = createCrossContext({
   },
 });
 
-const ctx = { ...createTestContext(), cross };
-
-const result = await onboardTrail.blaze({ name: 'Alpha' }, ctx);
-expect(result.isOk()).toBe(true);
+testTrail(onboardTrail, [
+  {
+    description: 'uses mocked crosses',
+    input: { name: 'Alpha' },
+    expectOk: true,
+  },
+], { cross });
 ```
 
 Calls to IDs not registered in `responses` return `Result.err` with a descriptive message, making missing mocks visible immediately.
 
 ## `run()` -- Headless Testing Against a Topo
 
-For integration-style tests that verify the full pipeline (validation, layers, implementation) without opening a surface, use `run()` from `@ontrails/core`:
+For integration-style tests that verify the full pipeline (validation, layers, blazed trail) without opening a surface, use `run()` from `@ontrails/core`:
 
 ```typescript
 import { run } from '@ontrails/core';

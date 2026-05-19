@@ -4,7 +4,7 @@ slug: concurrent-crossing
 title: Concurrent Trail Crossing
 status: accepted
 created: 2026-03-31
-updated: 2026-04-10
+updated: 2026-05-19
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [3]
 ---
@@ -167,7 +167,7 @@ The developer expresses optionality by how they handle the Result, the same way 
 crosses: ['notify.email', 'notify.sms', 'notify.push', 'user.enrich'],
 ```
 
-The declaration lists every trail this trail might cross. Whether those crossings are sequential, concurrent, optional, or conditional is a runtime decision expressed in the implementation. The declaration is the vocabulary (what trails am I allowed to talk to). The implementation is the grammar (how I compose them).
+The declaration lists every trail this trail might cross. Whether those crossings are sequential, concurrent, optional, or conditional is a runtime decision expressed in the blaze. The declaration is the vocabulary (what trails am I allowed to talk to). The blaze is the grammar (how I compose them).
 
 The warden's job is unchanged: verify that every ID in a `ctx.cross()` call (single or array form) appears in the crossing declaration. If you call something you didn't declare, error. If you declare something you never call, warning. Whether the crossing is sequential or concurrent doesn't affect the governance rule.
 
@@ -216,7 +216,7 @@ crosses: {
 
 This approach would let the declaration express composition shape: which crossings are concurrent (grouped), which are optional, which are conditional. The warden could check that grouped crossings are actually called concurrently, and that optional crossings' errors aren't propagated.
 
-Rejected for several reasons. The declaration becomes a second place where composition logic lives, separate from the implementation. The declaration can say `group: 'notifications'` but the code might call them sequentially. That's a new drift surface. The annotations are governance hints that duplicate information already present in the code's control flow.
+Rejected for several reasons. The declaration becomes a second place where composition logic lives, separate from the blaze. The declaration can say `group: 'notifications'` but the code might call them sequentially. That's a new drift surface. The annotations are governance hints that duplicate information already present in the code's control flow.
 
 The flat array is beautifully simple. It says "here's what I might call." Everything else is in the code, where TypeScript provides the full expressiveness of a real programming language. Adding structure to the declaration is adding a limited DSL that competes with TypeScript for expressing the same things.
 
@@ -248,9 +248,9 @@ const workflow = compose(app)
   .end('order.confirm');
 ```
 
-A builder pattern that constructs a composition graph declaratively. Rejected because it introduces a parallel execution model that competes with the trail's `run` function. The `run` function is the implementation. It's TypeScript. It can do anything a graph builder can do and more: exception handling, local variables, complex conditions, early returns, logging, debugging.
+A builder pattern that constructs a composition graph declaratively. Rejected because it introduces a parallel execution model that competes with the trail's blaze. The blaze is TypeScript. It can do anything a graph builder can do and more: exception handling, local variables, complex conditions, early returns, logging, debugging.
 
-Workflow DSLs exist for a reason (they're inspectable, serializable, replayable), but they trade expressiveness for structure. Trails' design philosophy is that the trail contract provides the structure (schemas, examples, governance) and the implementation provides the expressiveness (TypeScript). A workflow DSL would split implementations into two kinds: code implementations and graph implementations. That's the `trail()`/`hike()` split from ADR-003 revisited, and it was rejected for the same reason: a conceptual distinction that doesn't produce a structural difference.
+Workflow DSLs exist for a reason (they're inspectable, serializable, replayable), but they trade expressiveness for structure. Trails' design philosophy is that the trail contract provides the structure (schemas, examples, governance) and the blaze provides the expressiveness (TypeScript). A workflow DSL would split blazes into two kinds: code blazes and graph blazes. That's the `trail()`/`hike()` split from ADR-003 revisited, and it was rejected for the same reason: a conceptual distinction that doesn't produce a structural difference.
 
 ### `ctx.cross.concurrent()` / `ctx.cross.optional()`
 
@@ -276,7 +276,7 @@ crosses: {
 },
 ```
 
-Weights for load balancing or priority across concurrent crossings. Rejected because this is a scheduling concern, not a composition concern. If a trail needs to route between providers based on load, latency, or preference, that logic belongs in the implementation or in a resource that manages provider selection. The crossing declaration is about what trails can be called, not how often or in what proportion.
+Weights for load balancing or priority across concurrent crossings. Rejected because this is a scheduling concern, not a composition concern. If a trail needs to route between providers based on load, latency, or preference, that logic belongs in the blaze or in a resource that manages provider selection. The crossing declaration is about what trails can be called, not how often or in what proportion.
 
 ### Automatic concurrency detection via static analysis
 

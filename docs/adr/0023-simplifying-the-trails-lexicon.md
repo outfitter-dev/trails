@@ -4,7 +4,7 @@ slug: simplifying-the-trails-lexicon
 title: Simplifying the Trails Lexicon
 status: accepted
 created: 2026-04-07
-updated: 2026-04-07
+updated: 2026-05-19
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [1]
 ---
@@ -75,9 +75,9 @@ Six terms that appear as field names inside `trail()`. The constrained context â
 
 | Term | What it is | Why branded |
 |---|---|---|
-| `blaze` | The implementation field on a trail. | "Blaze a trail" is real English, not manufactured. Only appears inside `trail()`. Short alongside `input:`, `intent:`, `output:`. Alternatives are worse (`impl` abbreviates, `implementation` is a brick). |
+| `blaze` | The authored implementation that establishes how a trail runs. | "Blaze a trail" is real English, not manufactured. Only appears inside `trail()`. Short alongside `input:`, `intent:`, `output:`. Alternatives are worse (`impl` abbreviates, `implementation` is a brick). The term preserves `run` for execution: the runtime runs trails, not blazes. |
 | `fires` | Producer-side signal declaration. This trail fires these signals. | "Fire off" is standard English for dispatching. Pairs with `blaze` for vocabulary coherence. Combined with `signal`, the resonance is mnemonic: signal fire. |
-| `detour` | Recovery paths when the trail is blocked or fails. | Coherent pair with `blaze`. The trail blazes forward; if blocked, it detours. `fallback` is generic and says nothing about the relationship to the trail. |
+| `detour` | Recovery paths when the trail is blocked or fails. | Coherent pair with `blaze`. A blazed trail has a normal path; if blocked, it detours. `fallback` is generic and says nothing about the relationship to the trail. |
 | `cross` / `crosses` | Trail-to-trail composition. Declaration and runtime call. | More precise than "compose." `ctx.cross()` says you're invoking another trail. Compact, visual, avoids FP connotations. |
 | `signal` | Typed notification primitive with schema, sources, and routing. | Developers would reach for "event." But Trails signals go beyond events: cron triggers, webhook sources, file watchers, bare triggers with no domain payload. "Event" would mislead. |
 | `pin` | Named topo snapshot for diffing and verification. | Carries intent that "snapshot" doesn't â€” "this state is my reference point." Verb-friendly (`trails topo pin`). Precedent in package managers. |

@@ -4,7 +4,7 @@ slug: store-accessor-contract-refinement-lessons-from-two-backends
 title: Store Accessor Contract Refinement: Lessons from Two Backends
 status: accepted
 created: 2026-04-12
-updated: 2026-04-13
+updated: 2026-05-19
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [31]
 ---
@@ -100,7 +100,7 @@ Both connectors validate this: Drizzle uses SQL defaults and application-side ma
 
 ### Tradeoffs
 
-- **Filter expressiveness varies.** Portable code is limited to equality matching. Developers who need range queries or full-text search must either use connector-specific APIs (breaking portability) or build filtering logic in trail implementations (moving work from the store to the trail). This is acceptable for v1 — the filter contract can be enriched later without breaking existing code.
+- **Filter expressiveness varies.** Portable code is limited to equality matching. Developers who need range queries or full-text search must either use connector-specific APIs (breaking portability) or build filtering logic in blazes (moving work from the store to the trail). This is acceptable for v1 — the filter contract can be enriched later without breaking existing code.
 - **No protocol-level identity generation hook.** Connectors handle identity differently enough that a unified hook would be either too abstract to be useful or too opinionated to be universal. The cost is that switching connectors may require adjusting identity strategies. The benefit is that each connector can use the most natural identity mechanism for its backend.
 
 ### Risks

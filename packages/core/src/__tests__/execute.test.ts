@@ -1,4 +1,4 @@
-/* oxlint-disable require-await -- trail implementations satisfy async interface without awaiting */
+/* oxlint-disable require-await -- blazes satisfy async interface without awaiting */
 import { describe, test, expect } from 'bun:test';
 
 import { z } from 'zod';
@@ -1810,7 +1810,7 @@ describe('executeTrail', () => {
   });
 
   describe('error handling', () => {
-    test('propagates Result.err from run function', async () => {
+    test('propagates Result.err from blaze', async () => {
       const result = await executeTrail(failingTrail, {});
 
       expect(result.isErr()).toBe(true);

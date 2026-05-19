@@ -4,7 +4,7 @@ slug: first-class-resources
 title: First-Class Resources
 status: accepted
 created: 2026-03-30
-updated: 2026-05-09
+updated: 2026-05-19
 owners: ['[galligan](https://github.com/galligan)']
 ---
 
@@ -14,7 +14,7 @@ owners: ['[galligan](https://github.com/galligan)']
 
 ### The gap
 
-Trails implementations are pure functions. Input in, `Result` out. No side effects, no surface knowledge. But real implementations talk to databases, call external APIs, read from caches, and publish to queues. Today, every trail that touches an external system creates its own connection inline:
+Trails blazes are pure functions. Input in, `Result` out. No side effects, no surface knowledge. But real blazes talk to databases, call external APIs, read from caches, and publish to queues. Today, every trail that touches an external system creates its own connection inline:
 
 ```typescript
 const search = trail('search', {
@@ -157,14 +157,14 @@ executeTrail pipeline:
 3. Resolve resources (create singletons or retrieve cached) ← new
 4. Create cross via createCross(topo, scope)                 ← centralized
 5. Compose layers (layers can now access resources via ctx)
-6. Execute implementation
+6. Enter the blaze
 ```
 
 Eager resolution means:
 
-- **Failures happen at the boundary.** A missing `DATABASE_URL` fails before the implementation runs, not on line 47 of the business logic.
+- **Failures happen at the boundary.** A missing `DATABASE_URL` fails before execution enters the blaze, not on line 47 of the business logic.
 - **Layers can access resources.** A transaction layer calls `db.from(ctx)` in its wrapper — the resource is already resolved.
-- **Resolution is synchronous from the implementation's perspective.** `db.from(ctx)` is a lookup in an already-resolved map, not an async factory call.
+- **Resolution is synchronous from the blaze's perspective.** `db.from(ctx)` is a lookup in an already-resolved map, not an async factory call.
 
 Resource `create` factories return `Result`. Thrown exceptions are wrapped as `InternalError` with the resource ID in context. A failed resource resolution short-circuits execution with a clear error.
 
@@ -216,7 +216,7 @@ surface(graph, {
 
 Two new rules, both following the established AST analysis pattern:
 
-**`resource-declarations`** — validates that `db.from(ctx)` and `ctx.resource(...)` calls in the implementation match the declared `resources: [...]` array. Undeclared usage is an error. Unused declarations are a warning.
+**`resource-declarations`** — validates that `db.from(ctx)` and `ctx.resource(...)` calls in the blaze match the declared `resources: [...]` array. Undeclared usage is an error. Unused declarations are a warning.
 
 **`resource-exists`** — validates that every resource referenced in trail declarations exists in the topo. Same pattern as other cross-file declaration rules like `valid-describe-refs`.
 
@@ -296,7 +296,7 @@ The layer receives the resource definition as a parameter. It reads from context
 
 ### Tradeoffs
 
-- **One more core concept.** `resource()` joins `trail()`, `signal()`, and `topo()` as a framework primitive. The API surface grows. The justification: without it, the framework can't manage lifecycle, govern dependencies, or make examples work for real implementations.
+- **One more core concept.** `resource()` joins `trail()`, `signal()`, and `topo()` as a framework primitive. The API surface grows. The justification: without it, the framework can't manage lifecycle, govern dependencies, or make examples work for real blazes.
 - **Singleton-only limits some patterns.** Request-scoped resources (per-invocation transaction contexts, request-scoped loggers) aren't supported in v1. Workaround: use layers for request-scoped concerns, or pass request-specific state through `ctx.extensions`.
 - **Mock factories are optional.** If a resource doesn't define `mock`, `testExamples` still needs explicit overrides. The convenience is opt-in, not guaranteed.
 

@@ -1,4 +1,4 @@
-/* oxlint-disable require-await -- trail implementations satisfy async interface without awaiting */
+/* oxlint-disable require-await -- blazes satisfy async interface without awaiting */
 import { describe, expect, test } from 'bun:test';
 import { z } from 'zod';
 

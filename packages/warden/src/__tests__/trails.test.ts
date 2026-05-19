@@ -36,10 +36,10 @@ describe('wardenTopo', () => {
         guidance: {
           docs: [{ label: 'Trail Rules', path: 'AGENTS.md#trail-rules' }],
           steps: ['Return Result.err() instead of throwing.'],
-          summary: 'Convert thrown failures into Result outcomes.',
+          summary: 'Convert thrown failures in blazes into Result outcomes.',
         },
         line: 1,
-        message: 'Do not throw inside implementation.',
+        message: 'Do not throw inside the blaze.',
         rule: 'no-throw-in-implementation',
         severity: 'error',
       }).success
@@ -55,7 +55,7 @@ describe('wardenTopo', () => {
           summary: 'Read the nearby doctrine.',
         },
         line: 1,
-        message: 'Do not throw inside implementation.',
+        message: 'Do not throw inside the blaze.',
         rule: 'no-throw-in-implementation',
         severity: 'error',
       }).success

@@ -41,7 +41,7 @@ trail("entity.report", {
 };
 
 describe('implementation-returns-result', () => {
-  test('flags raw object return in trail implementation', () => {
+  test('flags raw object return in blaze', () => {
     const code = `
 trail("entity.show", {
   blaze: async (input, ctx) => {
@@ -75,7 +75,7 @@ trail("entity.create", {
     expect(diagnostics.length).toBe(0);
   });
 
-  test('flags concise raw implementation bodies', () => {
+  test('flags concise raw blaze bodies', () => {
     const code = `
 trail("entity.create", {
   blaze: async (input, ctx) => ({ id: "123" })

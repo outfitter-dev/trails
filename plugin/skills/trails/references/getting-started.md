@@ -51,7 +51,7 @@ export const greet = trail('greet', {
 });
 ```
 
-This gives you CLI flags (`--name`, `--loud`), an MCP tool with JSON Schema and `readOnlyHint: true`, examples as test cases, and sync authoring normalized to async at runtime.
+This gives you a blazed trail plus CLI flags (`--name`, `--loud`), an MCP tool with JSON Schema and `readOnlyHint: true`, examples as test cases, and sync authoring normalized to async at runtime.
 
 ## Collect Into a Topo
 
@@ -100,7 +100,7 @@ import { graph } from './app';
 await surface(graph);
 ```
 
-Same trail, same implementation, different surface. The MCP server exposes `myapp_greet` with JSON Schema input, `readOnlyHint: true`, and examples for agent planning.
+Same blazed trail, different surface. The MCP server exposes `myapp_greet` with JSON Schema input, `readOnlyHint: true`, and examples for agent planning.
 
 ## Test with testAll
 

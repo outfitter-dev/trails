@@ -4,7 +4,7 @@ slug: surface-apis-render-the-graph
 title: Surface APIs Render the Graph
 status: accepted
 created: 2026-04-16
-updated: 2026-04-16
+updated: 2026-05-19
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [0, 1, 5, 6, 8, 29]
 ---
@@ -96,7 +96,7 @@ createApp(graph)       -> Hono app
 
 `create*` materializes a runtime instance. It may fail fast by throwing if the
 graph cannot produce a valid projection. That does not weaken the
-"implementations return Result" rule from
+"blazes return Result" rule from
 [ADR-0000](0000-core-premise.md). The purity rule governs trail execution.
 `create*` lives at startup and runtime ownership boundaries, not inside trail
 logic.
