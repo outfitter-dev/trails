@@ -34,7 +34,7 @@ If the decision is genuinely uncertain, say so. State the best answer you can gi
 
 ### 4. Log It
 
-Append to `.trails/clark/decisions.md`:
+Append to `.agents/memory/clark-decisions.md`:
 
 ```markdown
 ### [date] [brief topic]
