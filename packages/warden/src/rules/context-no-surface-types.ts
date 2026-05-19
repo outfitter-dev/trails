@@ -153,7 +153,7 @@ const checkSpecifiersForSurfaceTypes = (
     filePath,
     sourceCode,
     node,
-    `Do not import surface type "${typeName}" in trail implementation files.`
+    `Do not import surface type "${typeName}" in trail files.`
   );
 };
 
@@ -172,7 +172,7 @@ const classifyImport = (
       filePath,
       sourceCode,
       node,
-      `Do not import from surface module "${moduleName}" in trail implementation files.`
+      `Do not import from surface module "${moduleName}" in trail files.`
     );
   }
 
@@ -180,7 +180,7 @@ const classifyImport = (
 };
 
 /**
- * Detects imports of surface-specific types in trail implementation files.
+ * Detects imports of surface-specific types in trail files.
  */
 export const contextNoSurfaceTypes: WardenRule = {
   check(sourceCode: string, filePath: string): readonly WardenDiagnostic[] {
@@ -203,7 +203,7 @@ export const contextNoSurfaceTypes: WardenRule = {
     return diagnostics;
   },
   description:
-    'Disallow surface-specific type imports (Request, Response, McpSession, etc.) in trail implementation files.',
+    'Disallow surface-specific type imports (Request, Response, McpSession, etc.) in trail files.',
   name: 'context-no-surface-types',
 
   severity: 'error',

@@ -4,7 +4,7 @@ slug: naming-conventions
 title: Naming Conventions — Guessable API Through Structural Rules
 status: accepted
 created: 2026-03-27
-updated: 2026-04-16
+updated: 2026-05-19
 owners: ['[galligan](https://github.com/galligan)']
 ---
 
@@ -118,7 +118,7 @@ The framework should read like one system:
 
 ```text
 trail()         -> define a unit of work
-blaze:          -> give the trail its implementation
+blaze:          -> establish how the trail runs
 signal()        -> define a typed notification
 topo()          -> assemble the graph
 derive*()       -> project the graph onto a surface
@@ -128,7 +128,10 @@ run()           -> execute a specific trail directly
 ```
 
 The sentence that explains the framework is now:
-**"You blaze a trail, assemble a graph, then surface it."**
+**"Define the contract. Blaze the trail. Run it anywhere."**
+
+`run` remains execution language. The runtime runs trails, not blazes; the
+`blaze` establishes the path that makes the trail runnable.
 
 ### Suffix instances when the type isn't obvious from context
 

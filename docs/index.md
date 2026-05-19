@@ -34,8 +34,15 @@
 ## Governing your codebase?
 
 - **[Warden](./warden.md)** — Trails correctness rules, rule-home boundaries, drift detection, CI integration
-- **[Rule Design](./rule-design.md)** — Methodology for durable Warden rules, owner-held rule data, and rule-family collapse
 - **[Topographer](../packages/topographer/README.md)** — TopoGraphs, topo compile helpers, semantic diffing, lock artifact helpers
+
+## Contributing to Trails?
+
+- **[Contributing Guide](./contributing/README.md)** — House guides for changing the Trails repository
+- **[Language Styleguide](./contributing/language-styleguide.md)** — How to write about Trails terms precisely, starting with `blaze`
+- **[Code Standards](./contributing/code-standards.md)** — TSDoc, source anchors, escape-hatch criteria, and code-shape conventions
+- **[Codebase Navigation](./contributing/codebase-navigation.md)** — Repo orientation, source-of-truth locations, generated files, and symbol navigation
+- **[Warden Rules](./contributing/warden-rules.md)** — Methodology for durable Warden rules, owner-held rule data, and rule-family collapse
 
 ## Design decisions
 

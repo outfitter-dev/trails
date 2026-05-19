@@ -197,7 +197,7 @@ try {
 }
 ```
 
-Internally, the trail implementation still returns `Result`. The library trailhead connector unwraps it. This is the same pattern as HTTP mapping `Result.err(NotFoundError)` to a 404 response.
+Internally, the blaze still returns `Result`. The library trailhead connector unwraps it. This is the same pattern as HTTP mapping `Result.err(NotFoundError)` to a 404 response.
 
 ### Part 7: Packaging and publication
 

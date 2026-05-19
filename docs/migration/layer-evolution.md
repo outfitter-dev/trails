@@ -16,7 +16,7 @@ There is no rename away from `executeTrail({ layers })`. That option is canonica
 
 ### `authLayer` from `@ontrails/permits`
 
-Permit enforcement is now intrinsic to `executeTrail`. The pipeline reads `trail.permit`, checks `ctx.permit` against the declared scopes, and returns `Result.err(PermitError)` before the implementation runs. No layer to wire.
+Permit enforcement is now intrinsic to `executeTrail`. The pipeline reads `trail.permit`, checks `ctx.permit` against the declared scopes, and returns `Result.err(PermitError)` before execution enters the blaze. No layer to wire.
 
 ```diff
 - import { authLayer } from '@ontrails/permits';
@@ -102,7 +102,7 @@ surface(app, {
 const app = topo('myapp', { trails }, { layers: [telemetry] });
 ```
 
-Composition order is `topo -> surface -> trail -> execution-supplied -> blaze`. Topo layers run outermost; the blaze runs innermost.
+Composition order is `topo -> surface -> trail -> execution-supplied -> blaze`. Topo layers run outermost; execution enters the blaze innermost.
 
 ## Runtime-Only Wrappers
 

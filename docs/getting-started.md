@@ -27,7 +27,7 @@ bun add -d @ontrails/testing
 
 ## Your First Trail
 
-A trail is the atomic unit of work in Trails. It has a Zod input schema, an implementation that returns `Result`, and optional examples that double as tests and agent documentation.
+A trail is the atomic unit of work in Trails. It has a Zod input schema, a `blaze` that establishes how the trail runs and returns `Result`, and optional examples that double as tests and agent documentation.
 
 Create `src/trails/greet.ts`:
 
@@ -66,7 +66,7 @@ export const greet = trail('greet', {
 
 What you get from this single definition:
 
-- A typed implementation that receives validated input and returns `Result`
+- A typed blaze that receives validated input and returns `Result`
 - CLI derivation: `name` auto-promoted to a positional arg (sole required string), `--loud` as a flag
 - An MCP tool with JSON Schema input and annotations (`readOnlyHint: true`)
 - Two examples that serve as agent documentation AND test cases
@@ -139,13 +139,13 @@ import { graph } from './app';
 await surface(graph);
 ```
 
-Same trail. Same implementation. Different surface. The MCP server exposes a `myapp_greet` tool with:
+Same blazed trail. Different surface. The MCP server exposes a `myapp_greet` tool with:
 
 - JSON Schema input derived from the Zod schema
 - `readOnlyHint: true` annotation from `intent: 'read'`
 - Examples available for agent planning
 
-Pure trails can return `Result` directly. Trails with `crosses` and I/O-heavy trails can stay `async`; Trails normalizes both forms before surfaces run them.
+Pure blazes can return `Result` directly. Trails with `crosses` and I/O-heavy blazes can stay `async`; Trails normalizes both forms before surfaces run the trail.
 
 ## Open an HTTP Surface
 
@@ -158,7 +158,7 @@ import { graph } from './app';
 await surface(graph, { port: 3000 });
 ```
 
-Same topo. Same implementation. Different shipped surface. The HTTP adapter derives routes from trail IDs and verbs from `intent`:
+Same topo. Same blazed trail. Different shipped surface. The HTTP adapter derives routes from trail IDs and verbs from `intent`:
 
 - `greet` becomes `GET /greet` because the trail declares `intent: 'read'`
 - Input validation still comes from the same Zod schema
@@ -194,8 +194,8 @@ $ bun test
 That single `testAll(graph)` call runs the full contract suite:
 
 1. **Topo validation** via `validateTopo` -- crosses exist, no recursive crossing, signal origins, example schema validation, output schema presence
-2. **Example execution** -- for each trail, validates input, runs the implementation, asserts the result matches `expected` (or validates against the output schema when no `expected` is declared)
-3. **Contract checks** -- verifies implementation output matches declared output schemas
+2. **Example execution** -- for each trail, validates input, runs the blazed trail, asserts the result matches `expected` (or validates against the output schema when no `expected` is declared)
+3. **Contract checks** -- verifies successful trail results against declared output schemas
 4. **Detour contract validation** -- confirms detours declare valid `on` / `recover` semantics and sane ordering
 
 No separate test files for the happy path. The examples ARE the tests.

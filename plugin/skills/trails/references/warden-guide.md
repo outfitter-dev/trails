@@ -70,11 +70,11 @@ This file is generated from the live `@ontrails/warden` rule manifest. Repo-trac
 ### Results
 
 - `error-mapping-completeness` (error, source/source-static, extension): Registered surface error mappers cover every error category.
-- `implementation-returns-result` (error, source/source-static, external): Trail implementations return Result values.
+- `implementation-returns-result` (error, source/source-static, external): Blazes return Result values.
 - `no-native-error-result` (error, source/source-static, external): Result error boundaries carry specific TrailsError subclasses.
 - `no-sync-result-assumption` (error, source/source-static, external): Result accessors are not used before async results are awaited.
 - `no-throw-in-detour-recover` (error, source/source-static, external): Detour recovery returns Result instead of throwing.
-- `no-throw-in-implementation` (error, source/source-static, external): Trail implementations return Result.err() instead of throwing. Guidance: Convert thrown implementation failures into explicit Result.err() outcomes.
+- `no-throw-in-implementation` (error, source/source-static, external): Blazes return Result.err() instead of throwing. Guidance: Convert thrown failures in blazes into explicit Result.err() outcomes.
 - `public-output-schema` (error, topo/topo-aware, external): Public MCP/HTTP surface trails declare output schemas. Guidance: Make public surface result contracts explicit before MCP/HTTP projection.
 - `valid-detour-contract` (error, topo/topo-aware, external): Runtime detour contracts use error constructors and recover functions.
 

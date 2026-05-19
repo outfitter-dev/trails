@@ -5,7 +5,7 @@ title: Tracing — Runtime Recording Primitive
 status: partially-superseded
 superseded_by: ['23']
 created: 2026-03-30
-updated: 2026-04-19
+updated: 2026-05-19
 owners: ['[galligan](https://github.com/galligan)']
 ---
 
@@ -44,7 +44,7 @@ The core recording model remains Trails-shaped. A `TraceRecord` knows about trai
 Tracing now integrates in two ways:
 
 - **Intrinsic recording in `executeTrail`** writes a root `TraceRecord` automatically whenever a real sink is installed
-- **`ctx.trace(label, fn)`** gives trail implementations scoped manual spans for important internal work
+- **`ctx.trace(label, fn)`** gives blazes scoped manual spans for important internal work
 
 The automatic path is the default when tracing is enabled. When the installed sink is `NOOP_SINK`, `executeTrail` short-circuits the tracing allocation path and `ctx.trace(label, fn)` stays in passthrough mode. The manual path exists for trails that need extra detail around internal work inside the shared root trace.
 

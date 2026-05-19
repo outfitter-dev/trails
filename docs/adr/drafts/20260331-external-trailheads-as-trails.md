@@ -18,7 +18,7 @@ Trails defines a contract (the trail) and projects it onto trailheads (CLI, MCP,
 
 But the world is full of existing trailheads that developers want to compose with: CLI tools (`git`, `docker`, `kubectl`, `ffmpeg`, `gh`), MCP servers (GitHub, Slack, Linear), and HTTP APIs (REST endpoints, third-party services). These trailheads already exist. They have capabilities. They have implicit or explicit contracts. But they're not trails, so they can't participate in the Trails ecosystem: no typed composition via `ctx.cross()`, no cross-trailhead derivation, no `testExamples`, no warden governance, no survey introspection.
 
-Developers bridge this gap today by writing ad-hoc wrappers: shell out to `git` in a trail implementation, call `fetch` against an API, instantiate an MCP client. The implementation works, but the bridge is invisible to the framework. The warden doesn't know the trail depends on `git 2.45`. Survey doesn't report external dependencies. `testExamples` can't run without the binary. The contract boundary between the trail and the external world is untracked.
+Developers bridge this gap today by writing ad-hoc wrappers: shell out to `git` in a blaze, call `fetch` against an API, instantiate an MCP client. The blaze works, but the bridge is invisible to the framework. The warden doesn't know the trail depends on `git 2.45`. Survey doesn't report external dependencies. `testExamples` can't run without the binary. The contract boundary between the trail and the external world is untracked.
 
 ### The inverse of derivation
 

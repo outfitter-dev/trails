@@ -4,7 +4,7 @@ slug: typed-trail-composition
 title: Typed Trail Composition
 status: accepted
 created: 2026-04-09
-updated: 2026-04-09
+updated: 2026-05-19
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [3, 7]
 ---
@@ -151,7 +151,7 @@ This is a new scope, but not a new mechanism. The framework already handles `inp
 
 ### The blaze receives the merged input
 
-The implementation function receives a single `input` parameter that merges `input` and `crossInput`. The developer doesn't handle two separate objects:
+The blaze receives a single `input` parameter that merges `input` and `crossInput`. The developer doesn't handle two separate objects:
 
 ```typescript
 blaze: async (input, ctx) => {

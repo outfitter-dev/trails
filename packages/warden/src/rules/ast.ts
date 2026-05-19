@@ -2,7 +2,7 @@
  * Shared AST utilities for warden rules.
  *
  * Uses oxc-parser for native-speed TypeScript parsing. Provides a lightweight
- * walker and helpers for finding trail implementation bodies.
+ * walker and helpers for finding blaze bodies.
  */
 
 import { resolve } from 'node:path';

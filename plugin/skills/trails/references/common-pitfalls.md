@@ -1,10 +1,10 @@
 # Common Pitfalls
 
-## 1. Throwing in implementations
+## 1. Throwing in blazes
 
 **Symptom:** Unhandled exception crashes the surface adapter. Stack trace instead of structured error.
 
-**Why it's wrong:** Trail implementations must return `Result`, never throw. Surfaces expect `Result.ok` or `Result.err` — a thrown exception bypasses error mapping, exit codes, and serialization.
+**Why it's wrong:** Blazes must return `Result`, never throw. Surfaces expect `Result.ok` or `Result.err` — a thrown exception bypasses error mapping, exit codes, and serialization.
 
 **Fix:** Wrap risky code with try/catch and return `Result.err`:
 
@@ -21,11 +21,11 @@ blaze: async (input) => {
 
 ## 2. Importing surface types
 
-**Symptom:** Implementation depends on `Request`, `Response`, `McpSession`, or `process`.
+**Symptom:** Blaze depends on `Request`, `Response`, `McpSession`, or `process`.
 
-**Why it's wrong:** Implementations must be surface-agnostic. Importing surface types couples logic to a specific transport and breaks portability.
+**Why it's wrong:** Blazes must be surface-agnostic. Importing surface types couples logic to a specific surface and breaks portability.
 
-**Fix:** Keep implementations pure: `(input, ctx) => Result`. Access surface-specific features through `ctx` only.
+**Fix:** Keep blazes pure: `(input, ctx) => Result`. Access surface-specific features through `ctx` only.
 
 ## 3. Calling .blaze() directly
 
@@ -71,7 +71,7 @@ input: z.object({
 
 **Why it's wrong:** A trail's `crosses` array must match the actual `ctx.cross()` calls. The warden enforces this to prevent undeclared dependencies and dead declarations.
 
-**Fix:** Keep `crosses` in sync with implementation. If you add or remove a `ctx.cross()` call, update `crosses`:
+**Fix:** Keep `crosses` in sync with the blaze. If you add or remove a `ctx.cross()` call, update `crosses`:
 
 ```typescript
 trail('onboard', {
@@ -166,6 +166,6 @@ const api = resource('api.client', {
 
 **Symptom:** Test expects synchronous execution but gets a pending Promise.
 
-**Why it's wrong:** Even synchronous implementations are awaited at runtime. The framework wraps all implementations uniformly.
+**Why it's wrong:** Even synchronous blazes are awaited at runtime. The framework normalizes all blazes uniformly.
 
 **Fix:** Always `await` trail results in tests. Use `testTrail(myTrail, input)` instead of calling `.blaze()` directly.

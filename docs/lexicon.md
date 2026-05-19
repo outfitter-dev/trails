@@ -4,7 +4,7 @@ The Trails lexicon is the curated set of terms, their definitions, and the gramm
 
 Where the lexicon and the codebase diverge, the lexicon governs and the code is brought into alignment.
 
-See [ADR-0023: Simplifying the Trails Lexicon](adr/0023-simplifying-the-trails-lexicon.md) for the decision that produced the current shape, and [ADR-0001: Naming Conventions](adr/0001-naming-conventions.md) for the grammar rules.
+See [ADR-0023: Simplifying the Trails Lexicon](adr/0023-simplifying-the-trails-lexicon.md) for the decision that produced the current shape, [ADR-0001: Naming Conventions](adr/0001-naming-conventions.md) for the grammar rules, and [Language Styleguide](contributing/language-styleguide.md) for prose guidance.
 
 ## The Heuristic
 
@@ -167,7 +167,15 @@ Six terms that appear as field names inside `trail()`. The constrained context �
 
 ### `blaze`
 
-The implementation field on a trail. A blaze marks what the trail actually does. A trail without a blaze is only a contract; a blazed trail is runnable.
+The authored implementation that makes a trail runnable.
+
+A trail can be specified before it is blazed: schemas, examples, intent,
+resources, crossings, signals, detours, and metadata can all exist as contract.
+The `blaze` establishes the path through that contract, from validated input to
+`Result` output.
+
+The runtime runs trails, not blazes. A blazed trail can be exposed through any
+surface because its implementation is surface-agnostic: input in, `Result` out.
 
 ```typescript
 const create = trail('entity.create', {
@@ -181,7 +189,7 @@ const create = trail('entity.create', {
 });
 ```
 
-"Blaze a trail" is real English, not manufactured. Only appears inside `trail()`.
+"Blaze a trail" is real English, not manufactured. In Trails, it means establishing the trail for use, not walking it. See [Language Styleguide](contributing/language-styleguide.md#blaze) for the full grammar.
 
 ### `fires`
 
@@ -215,7 +223,7 @@ const notify = trail('entity.notify', {
 
 ### `detour` / `detours`
 
-Recovery paths when the trail is blocked or fails. The trail blazes forward; if blocked, it detours. Coherent pair with `blaze`.
+Recovery paths when the trail is blocked or fails. A blazed trail proceeds through the normal path; if blocked, it detours. Coherent pair with `blaze`.
 
 ### `cross` / `crosses`
 
@@ -391,7 +399,7 @@ Direct programmatic execution through the full pipeline.
 const result = await run(graph, 'entity.show', { id: '123' });
 ```
 
-`run()` is for "invoke this specific trail now." It is not the implementation field on a trail.
+`run()` is for "invoke this specific trail now." It is not the authored `blaze` on a trail.
 
 ### `graph`
 
@@ -419,7 +427,7 @@ const db = store({
 });
 ```
 
-A store is infrastructure declared as data. A resource is how that infrastructure reaches trail implementations. A store becomes usable through a resource; they are complementary, not interchangeable.
+A store is infrastructure declared as data. A resource is how that infrastructure reaches blazes. A store becomes usable through a resource; they are complementary, not interchangeable.
 
 ### `kind`
 
@@ -498,7 +506,7 @@ When introducing Trails, use this order.
 ### Beginner
 
 1. `trail()` — define a unit of work
-2. `blaze:` — give the trail its implementation
+2. `blaze:` — establish how the trail runs
 3. `topo()` — collect trails into a graph
 4. `surface()` — open the graph on CLI, MCP, HTTP, or WebSocket
 
@@ -530,3 +538,4 @@ When introducing Trails, use this order.
   instead of generic transport vocabulary
 - Keep the metaphor disciplined. The words should clarify behavior, not turn the docs into theme writing.
 - Prefer the lexicon's nouns even for internal architecture explanations. Leaving generic words in place only creates translation tax later.
+- Use `implementation` to clarify `blaze`, not to replace it as the concept. A blazed trail is a runnable contract.

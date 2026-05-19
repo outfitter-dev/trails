@@ -72,7 +72,7 @@ export interface CliCommand {
   readonly idempotent?: boolean | undefined;
 
   /**
-   * Validate input, compose layers, and execute the trail implementation.
+   * Validate input, compose layers, and run the blazed trail.
    *
    * The caller is responsible for parsing raw args and flags from the CLI
    * invocation and mapping the Result to a process exit. This function is

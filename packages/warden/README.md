@@ -10,7 +10,7 @@ recursive crossing, example schema validation) live in `validateTopo()` from
 
 For rule-home boundaries and authoring doctrine, see the
 [Warden guide](../../docs/warden.md) and
-[Rule Design](../../docs/rule-design.md).
+[Warden Rules](../../docs/contributing/warden-rules.md).
 
 ## Usage
 
@@ -43,7 +43,7 @@ Rules cover several families:
 - source-static guardrails such as surface-type leakage
 - topo-aware checks that need the resolved graph or resource mock shape
 
-When adding or auditing rules, follow [Rule Design](../../docs/rule-design.md):
+When adding or auditing rules, follow [Warden Rules](../../docs/contributing/warden-rules.md):
 name the invariant, import owner-held framework data, choose the narrowest
 Warden tier, and collapse families only when the data model, traversal, and
 diagnostic shape are shared.

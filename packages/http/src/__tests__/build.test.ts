@@ -1162,7 +1162,7 @@ describe('deriveHttpRoutes', () => {
       expect(result.error.message).toBe('Something broke');
     });
 
-    test('returns err Result when run function throws', async () => {
+    test('returns err Result when blaze throws', async () => {
       const throwingTrail = trail('throwing', {
         blaze: () => {
           throw new Error('unexpected throw');

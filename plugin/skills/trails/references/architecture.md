@@ -28,7 +28,7 @@ Core defines ports. Everything on the edges is an adapter.
 - The trail is the product, not the surface. Surfaces are projections.
 - Drift is structurally harder than alignment — one schema, one Result type, one error taxonomy.
 - Surfaces are peers. CLI, MCP, and HTTP are shipped adapters. Adding a surface is a `surface()` call.
-- Implementations are pure functions. Input in, Result out. No surface awareness.
+- Blazes are surface-agnostic authored implementations: input in, `Result` out.
 - The contract is machine-readable at runtime via topo, survey, and guide.
 
 ## Information Architecture
@@ -42,7 +42,7 @@ Every piece of information has a clear ownership model.
 | Input/output Zod schemas | The shape of your domain |
 | Intent and flags: `intent`, `idempotent` | Behavioral assertions |
 | Examples (input + expected result or error) | Concrete specifications |
-| The implementation function | Your business logic |
+| The `blaze` | Authored implementation that establishes how the trail runs |
 | Trail ID (`entity.show`) | Your domain hierarchy |
 
 ### Projected — mechanically derived, guaranteed correct
@@ -61,9 +61,9 @@ Every piece of information has a clear ownership model.
 
 | Declaration | Constrains |
 |------------|-----------|
-| `output: z.object({...})` | Implementation return type must match |
+| `output: z.object({...})` | Blaze return type must match |
 | `Result<T, Error>` | Cannot throw — must return `Result.ok()` or `Result.err()` |
-| `TrailContext` interface | Implementation receives only framework-provided fields |
+| `TrailContext` interface | Blaze receives only framework-provided fields |
 | `crosses: [...]` on trail | Warden verifies `ctx.cross()` calls match |
 | `resources: [...]` on trail | Warden verifies `resource.from(ctx)` / `ctx.resource()` calls match |
 
@@ -138,15 +138,15 @@ Warden uses inference to verify declarations match actual code. The surface map 
 
 ### Shared Execution Pipeline
 
-All surfaces delegate to `executeTrail(trail, rawInput, options)` from `@ontrails/core`. It is the single implementation of the validate-context-layers-run pipeline:
+All surfaces delegate to `executeTrail(trail, rawInput, options)` from `@ontrails/core`. It is the single runtime path for validation, context setup, layers, and the blazed trail:
 
 ```text
 executeTrail(trail, rawInput, options)
   -> Zod validates input against trail's schema  -> Result.err(ValidationError) on failure
   -> TrailContext created (requestId, logger, abortSignal)
   -> Resources resolved (create singletons or retrieve cached)
-  -> Layers composed around implementation (layers can access resources)
-  -> implementation(validatedInput, ctx) called
+  -> Layers composed around the blaze (layers can access resources)
+  -> blaze(validatedInput, ctx) entered
   -> Result returned (never throws)
 ```
 
@@ -192,7 +192,7 @@ run(myTopo, 'entity.show', { name: 'Alpha' })
   -> Result returned
 ```
 
-The implementation is identical across all paths. Only the edges change.
+The blazed trail is identical across all paths. Only the edges change.
 
 ## Error Taxonomy
 

@@ -1,12 +1,13 @@
-# Rule Design
+# Warden Rules
 
 This guide explains how to author and audit Trails correctness rules so they
 survive framework evolution instead of encoding one audit incident. It applies to
 Warden rules, repo-local lint delivery, advisory guidance, and temporary
 hardening scanners.
 
-Use it with [Warden](./warden.md), [ADR-0036](./adr/0036-warden-rules-ship-only-as-trails.md),
-and [ADR-0037](./adr/0037-owner-first-authority.md).
+Use it with [Warden](../warden.md),
+[ADR-0036](../adr/0036-warden-rules-ship-only-as-trails.md), and
+[ADR-0037](../adr/0037-owner-first-authority.md).
 
 ## Rule Home Doctrine
 

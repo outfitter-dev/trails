@@ -24,7 +24,7 @@ Scan all changed or new files for vocabulary violations. Highest-priority check.
 | serve, start, wire up | surface |
 | call, invoke, dispatch (for cross) | cross |
 | transport, adapter, interface | surface |
-| impl, fn, handler (for run function) | blaze |
+| impl, fn, handler (for trail blaze) | blaze |
 | annotations, tags | metadata |
 | fallbacks, retries, recovery | detours |
 | linter, checker, validator | warden |
@@ -34,6 +34,9 @@ Scan all changed or new files for vocabulary violations. Highest-priority check.
 | middleware (as plain English) | layer |
 | provision (legacy) | resource |
 | gate (legacy) | layer |
+
+For `blaze`, preserve the distinction that a `blaze` establishes how a trail
+runs. The runtime runs the blazed trail; surfaces expose trails, not blazes.
 
 The current Trails lexicon canonicalizes `resource` (the declared
 infrastructure primitive — see `docs/lexicon.md` and ADR-0009) and

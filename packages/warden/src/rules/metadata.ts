@@ -183,7 +183,7 @@ const builtinWardenRuleMetadataInput = {
   },
   'implementation-returns-result': {
     ...durableExternal,
-    invariant: 'Trail implementations return Result values.',
+    invariant: 'Blazes return Result values.',
     tier: 'source-static',
   },
   'incomplete-accessor-for-standard-op': {
@@ -265,9 +265,9 @@ const builtinWardenRuleMetadataInput = {
         'Use detours for recoverable runtime strategies instead of throwing inside the blaze.',
       ],
       summary:
-        'Convert thrown implementation failures into explicit Result.err() outcomes.',
+        'Convert thrown failures in blazes into explicit Result.err() outcomes.',
     },
-    invariant: 'Trail implementations return Result.err() instead of throwing.',
+    invariant: 'Blazes return Result.err() instead of throwing.',
     tier: 'source-static',
   },
   'on-references-exist': {

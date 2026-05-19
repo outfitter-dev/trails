@@ -85,11 +85,11 @@ Trail IDs become MCP tool names with the app prefix: `entity.show` in app `myapp
 
 ## Resource resolution
 
-Declared resources on each trail are resolved into the context before the implementation runs.
+Declared resources on each trail are resolved into the context before the blaze receives input.
 
 ## Progress bridge
 
-Implementations report progress through `ctx.progress`. On MCP, these bridge to `notifications/progress` when the client sends a `progressToken`:
+Blazes report progress through `ctx.progress`. On MCP, these bridge to `notifications/progress` when the client sends a `progressToken`:
 
 ```typescript
 const importTrail = trail('data.import', {

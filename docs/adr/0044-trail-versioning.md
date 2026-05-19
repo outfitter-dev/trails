@@ -4,7 +4,7 @@ slug: trail-versioning
 title: Trail Versioning
 status: accepted
 created: 2026-04-09
-updated: 2026-05-06
+updated: 2026-05-19
 accepted: 2026-05-06
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [3, 6, 8, 13, 17, 24, 26, 35]
@@ -30,12 +30,12 @@ the surfaces, and avoid duplicate hand-authored compatibility logic.
 
 Most version changes are schema changes. A field is renamed, a required field
 is added, an output shape expands, or a field becomes structured. The current
-implementation can still handle the work once old input is adapted into the
+blaze can still handle the work once old input is adapted into the
 current shape and current output is adapted back into the old shape.
 
 Less often, a version change is behavioral. The algorithm changes, the data
 source changes, side effects change, or a resource interaction cannot be
-adapted as pure data. Those versions need their own implementation.
+adapted as pure data. Those versions need their own blaze.
 
 The model needs to make the common schema-only case compact without hiding the
 rare behavioral case behind fragile branches in one `blaze` function.
@@ -47,7 +47,7 @@ one more derived dimension. HTTP, MCP, CLI, and future WebSocket surfaces each
 negotiate requested versions through their native protocol conventions, then
 pass the resolved version into the shared execution pipeline.[^adr-6]
 
-The trail implementation does not inspect the requested version. Version is a
+The blaze does not inspect the requested version. Version is a
 surface and execution concern, not business logic.
 
 ### Durable graph artifacts must record version state
@@ -173,7 +173,7 @@ When `version` is an object, `current` is the active current version and
 numbered keys describe previous supported versions. A numbered entry can be:
 
 - A schema adapter: `{ input, output, adapt }`.
-- A separate inline implementation: `{ input, output, blaze }`.
+- A separate inline blaze: `{ input, output, blaze }`.
 - Metadata for a file-based version: `{ deprecated }`.
 
 If both a numbered inline entry and a `.v*.ts` file exist for the same version,
@@ -183,8 +183,8 @@ supported.
 ### Schema changes use adapters
 
 Schema-only changes use adapters. The framework validates old input against
-the old schema, adapts it to the current schema, runs the current `blaze`, then
-adapts current output back to the old output schema.
+the old schema, adapts it to the current schema, runs the current blazed trail,
+then adapts current output back to the old output schema.
 
 ```typescript
 const createUser = trail('user.create', {
@@ -256,17 +256,17 @@ surface extracts requested version
   -> executeTrail(trail, input, { version })
   -> resolve version:
       if requested is current:
-        validate current input, run current blaze, validate current output
+        validate current input, run current blazed trail, validate current output
       if requested is previous and an adapter exists:
-        validate version input, adapt input, run current blaze, adapt output
-      if requested is previous and a file implementation exists:
-        validate version input, run version blaze, validate version output
+        validate version input, adapt input, run current blazed trail, adapt output
+      if requested is previous and a file blaze exists:
+        validate version input, run versioned blazed trail, validate version output
       otherwise:
         return Result.err(VersionNotSupportedError)
 ```
 
-The implementation receives exactly the input shape declared by the version it
-runs. The current implementation never branches on requested version.
+The blaze receives exactly the input shape declared by the version being run.
+The current blaze never branches on requested version.
 
 ### Each surface negotiates version in its own idiom
 
@@ -312,7 +312,7 @@ for migrations, but they should not become permanent architecture.
 
 Version context does not cascade through cross chains. If a consumer requests
 v1 of trail A, the consumer requested A's v1 contract. A owns that
-compatibility. Downstream trails remain A's internal implementation detail.
+compatibility. Downstream trails remain A's internal blaze detail.
 
 ### Deprecation is a lifecycle
 
@@ -446,7 +446,7 @@ added, deprecated, sunset, or accidentally orphaned.
 
 ### Resources do not version independently
 
-Resources are internal contracts between implementations and infrastructure.
+Resources are internal contracts between blazes and infrastructure.
 They do not gain independent versioning. If a previous trail version needs an
 old resource shape, that previous version file imports or references the
 resource it needs. Versioning complexity stays on trails.
@@ -466,8 +466,8 @@ resource it needs. Versioning complexity stays on trails.
 ### Positive
 
 - Trails evolve independently without flag days.
-- Schema-only changes keep one current implementation with explicit adapters.
-- Behavioral changes remain honest by preserving old implementations in version
+- Schema-only changes keep one current blaze with explicit adapters.
+- Behavioral changes remain honest by preserving old blazes in version
   files.
 - Surfaces derive version negotiation and deprecation behavior instead of
   requiring per-surface wiring.

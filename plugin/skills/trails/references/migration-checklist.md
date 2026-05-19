@@ -19,7 +19,7 @@ For each trail candidate:
   - [ ] Enums use `z.enum([...])` for CLI choices
   - [ ] Arrays have `.default([])` when empty is valid
 - [ ] Define Zod output schema
-  - [ ] Matches what the implementation actually returns
+  - [ ] Matches what the blaze actually returns
   - [ ] Required for any trail exposed on MCP or HTTP
 - [ ] Identify shared schemas (entity shapes used across multiple trails)
 
@@ -30,7 +30,7 @@ For each handler:
 - [ ] Create `trail()` definition (use `crosses:` for composition)
 - [ ] Choose appropriate ID with dotted namespacing
 - [ ] Set flags: `intent`, `idempotent`
-- [ ] Move business logic to `blaze`
+- [ ] Blaze the trail by moving behavior into `blaze`
 - [ ] Replace all `throw` with `Result.err(new XError(...))`
   - `throw new Error('not found')` → `Result.err(new NotFoundError(...))`
   - `throw new Error('already exists')` → `Result.err(new AlreadyExistsError(...))`
@@ -41,7 +41,7 @@ For each handler:
   - `res.json(data)` → `Result.ok(data)`
   - `console.log(output)` → `Result.ok(output)`
   - `process.exit(1)` → `Result.err(new InternalError(...))`
-- [ ] Remove surface imports from implementation files
+- [ ] Remove surface imports from trail files
 - [ ] Convert handler-to-handler calls to `ctx.cross()` in composite trails
 
 ## Phase 4: Composition

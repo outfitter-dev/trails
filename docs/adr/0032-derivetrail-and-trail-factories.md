@@ -110,7 +110,7 @@ const githubPush = ingest({
 });
 ```
 
-Each `ingest` call produces one trail. The trail's blaze verifies the source (via a layer derived from `verify`), validates the payload against `schema`, applies `transform`, and calls `ctx.fire()` with the result. Verification uses the existing permit model[^4] — HMAC signature checking is structurally identical to any other credential verification, producing a verified identity. The trail is a regular trail: testable, governable, surfaceable on any surface.
+Each `ingest` call produces one trail. The trail's blaze establishes this path: verify the source (via a layer derived from `verify`), validate the payload against `schema`, apply `transform`, and call `ctx.fire()` with the result. Verification uses the existing permit model[^4] — HMAC signature checking is structurally identical to any other credential verification, producing a verified identity. The trail is a regular trail: testable, governable, surfaceable on any surface.
 
 The `verify` option is optional. An internal service posting payloads to your API doesn't need signature verification — skip it and the trail validates and fires directly. The `transform` option is also optional — if the external payload already matches the signal schema, omit it and the payload passes through.
 
@@ -270,7 +270,7 @@ Start small. Ship store trail factories and composition trail factories in their
 
 ### Tradeoffs
 
-- **Implicit blaze.** When `deriveTrail()` derives a blaze for standard operations, the implementation isn't visible in the developer's source code. The tradeoff is accepted because: (a) the operation is standard and well-defined, (b) the developer can always provide their own blaze to override, and (c) the derived trail is inspectable at runtime.
+- **Implicit blaze.** When `deriveTrail()` derives a blaze for standard operations, the authored path is not visible in the developer's source code. The tradeoff is accepted because: (a) the operation is standard and well-defined, (b) the developer can always provide their own blaze to override, and (c) the derived trail is inspectable at runtime.
 - **API surface on `deriveTrail()`.** How much domain logic `deriveTrail()` absorbs vs. how much stays in the developer's blaze needs careful boundary design. The `transform` function in `sync()` is the seam.
 
 ### Risks

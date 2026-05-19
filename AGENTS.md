@@ -43,16 +43,15 @@ The architecture is designed to make consistency easier than drift. Agents build
 1. Contracts are at the core of how Trails works, and the contract for how Trails is worked on is governed by our [Tenets](docs/tenets.md).
 2. Decisions that define what Trails is, and what it is not, are defined by our [ADRs](docs/adr/README.md).
    - Future directions for Trails are outlined in speculative or [draft ADRs](docs/adr/drafts/README.md).
-3. Durable Warden rule methodology lives in [Rule Design](docs/rule-design.md).
+3. Repo contribution guidance lives in [Contributing to Trails](docs/contributing/README.md), including [Language Styleguide](docs/contributing/language-styleguide.md), [Code Standards](docs/contributing/code-standards.md), [Codebase Navigation](docs/contributing/codebase-navigation.md), and [Warden Rules](docs/contributing/warden-rules.md).
 4. We keep a log of our working notes, session recaps, learnings, etc. in `.agents/notes/` (gitignored — local only) as a historical record of our journey.
-5. Agent symbol-level navigation setup lives in [Agent Symbol Navigation](docs/agent-symbol-navigation.md). The committed `.serena/project.yml` is the repo-level Serena project config; client-specific MCP launch config stays local unless a client provides a portable project config shape.
 
 ## Lexicon
 
 Use the project language consistently:
 
 - `trail`, not action or handler
-- `blaze`, not handler or impl (the implementation field on a trail)
+- `blaze`, not handler or impl (the authored implementation that establishes how a trail runs)
 - `topo`, not registry or collection
 - `cross`, not follow (for composition declaration and runtime invocation)
 - `surface`, not transport terminology (the API function and user-facing noun)
@@ -63,11 +62,11 @@ Use the project language consistently:
 
 ## Trail Rules
 
-- Implementations return `Result`, never throw.
+- Blazes return `Result`, never throw.
 - Use `Result.ok()` and `Result.err()` to construct outcomes.
 - Branch on results with `isOk()`, `isErr()`, or `match()`.
-- Keep `TrailContext` and implementations surface-agnostic. Do not import `Request`, `Response`, `McpSession`, or similar surface types into trail logic.
-- Trails with `crosses` compose through `ctx.cross()`, never by calling another trail's `.implementation()` directly.
+- Keep `TrailContext` and blazes surface-agnostic. Do not import `Request`, `Response`, `McpSession`, or similar surface types into trail logic.
+- Trails with `crosses` compose through `ctx.cross()`, never by calling another trail's `.blaze()` directly.
 - Keep `crosses` declarations aligned with actual `ctx.cross()` usage.
 - Every trail exposed on MCP or HTTP surfaces must define an `output` schema.
 - Use `meta` for annotations and ownership data.
@@ -145,11 +144,11 @@ This section is generated from the live `@ontrails/warden` rule manifest. Keep t
 #### Results
 
 - `error-mapping-completeness` (error, source/source-static, extension): Registered surface error mappers cover every error category.
-- `implementation-returns-result` (error, source/source-static, external): Trail implementations return Result values.
+- `implementation-returns-result` (error, source/source-static, external): Blazes return Result values.
 - `no-native-error-result` (error, source/source-static, external): Result error boundaries carry specific TrailsError subclasses.
 - `no-sync-result-assumption` (error, source/source-static, external): Result accessors are not used before async results are awaited.
 - `no-throw-in-detour-recover` (error, source/source-static, external): Detour recovery returns Result instead of throwing.
-- `no-throw-in-implementation` (error, source/source-static, external): Trail implementations return Result.err() instead of throwing.
+- `no-throw-in-implementation` (error, source/source-static, external): Blazes return Result.err() instead of throwing.
 - `public-output-schema` (error, topo/topo-aware, external): Public MCP/HTTP surface trails declare output schemas.
 - `valid-detour-contract` (error, topo/topo-aware, external): Runtime detour contracts use error constructors and recover functions.
 
@@ -165,7 +164,7 @@ This section is generated from the live `@ontrails/warden` rule manifest. Keep t
 ### Structured Guidance Summaries
 
 - `example-valid`: Keep trail examples synchronized with their authored schemas.
-- `no-throw-in-implementation`: Convert thrown implementation failures into explicit Result.err() outcomes.
+- `no-throw-in-implementation`: Convert thrown failures in blazes into explicit Result.err() outcomes.
 - `permit-governance`: Make destructive trail authorization visible on the trail contract.
 - `prefer-schema-inference`: Let schemas remain the owner for field metadata unless an override adds new information.
 - `public-output-schema`: Make public surface result contracts explicit before MCP/HTTP projection.
@@ -185,7 +184,7 @@ This section is generated from the live `@ontrails/warden` rule manifest. Keep t
 
 ## Shared Conventions
 
-Shared TSDoc and code-shape guidance for packages and apps lives in [`.claude/rules/coding-conventions.md`](.claude/rules/coding-conventions.md). `apps/AGENTS.md` and `packages/AGENTS.md` should remain thin pointers there plus any small local overrides.
+Shared TSDoc and code-shape guidance for packages and apps lives in [Code Standards](docs/contributing/code-standards.md). `apps/AGENTS.md` and `packages/AGENTS.md` should remain thin pointers there plus any small local overrides. `.claude/rules/coding-conventions.md` is a compatibility pointer for Claude rule loaders and older prompts.
 
 ## Workflow
 

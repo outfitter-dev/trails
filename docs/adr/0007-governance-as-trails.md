@@ -4,7 +4,7 @@ slug: governance-as-trails
 title: Governance as Trails with AST-Based Analysis
 status: accepted
 created: 2026-03-29
-updated: 2026-04-22
+updated: 2026-05-19
 owners: ['[galligan](https://github.com/galligan)']
 ---
 
@@ -12,9 +12,9 @@ owners: ['[galligan](https://github.com/galligan)']
 
 ## Context
 
-The warden is Trails' governance system. It checks that code follows framework conventions: no throws in implementations, Result returns, cross declarations matching usage, no surface types in domain logic, and so on. It exists because the type system alone can't catch everything — `throw` is legal TypeScript, and nothing in the compiler prevents importing `Request` into a trail implementation.
+The warden is Trails' governance system. It checks that code follows framework conventions: no throws in blazes, Result returns, cross declarations matching usage, no surface types in domain logic, and so on. It exists because the type system alone can't catch everything — `throw` is legal TypeScript, and nothing in the compiler prevents importing `Request` into a blaze.
 
-Early warden rules used regex pattern matching on source code. This worked for the simplest cases but broke down fast. A `throw` inside a JSDoc comment triggered false positives. A string literal containing `new Request` looked like a surface type import. Nested scopes were invisible — regex can't tell the difference between a `throw` inside a `.map()` callback and a `throw` inside the implementation body itself.
+Early warden rules used regex pattern matching on source code. This worked for the simplest cases but broke down fast. A `throw` inside a JSDoc comment triggered false positives. A string literal containing `new Request` looked like a surface type import. Nested scopes were invisible — regex can't tell the difference between a `throw` inside a `.map()` callback and a `throw` inside the blaze body itself.
 
 Rules were standalone functions with ad-hoc interfaces. Each had a `name`, a `check` function, and a `severity`, but there were no schemas, no examples, no composition through the topo. The governance system was the one part of Trails that didn't use the Trails contract model.
 
@@ -51,7 +51,7 @@ The warden provides lightweight helpers over the raw AST:
 - `findConfigProperty()` — find a named property inside an ObjectExpression
 - `offsetToLine()` — convert byte offset to 1-based line number
 
-One critical addition: `walkScope()`. Standard `walk()` descends into everything, including nested function expressions inside `.map()`, `.filter()`, and other callbacks. `walkScope()` stops at function boundaries. This prevents false positives — a `throw` inside a callback passed to an external library is not a `throw` in the implementation body. Rules that need finer-grained behavior (for example hoisted `var` handling or assignment tracking) layer their own specialized walkers on top of this baseline helper.
+One critical addition: `walkScope()`. Standard `walk()` descends into everything, including nested function expressions inside `.map()`, `.filter()`, and other callbacks. `walkScope()` stops at function boundaries. This prevents false positives — a `throw` inside a callback passed to an external library is not a `throw` in the blaze body. Rules that need finer-grained behavior (for example hoisted `var` handling or assignment tracking) layer their own specialized walkers on top of this baseline helper.
 
 ### Representative rule families
 

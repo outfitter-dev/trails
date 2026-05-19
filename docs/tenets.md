@@ -4,13 +4,14 @@
 
 This is the stable doctrinal layer for the Trails framework. It governs. Where the repo may at times drift from this document, it's the repo that should be brought into alignment, not our tenets.
 
-## Contributor docs
+## Documentation Tiers
 
 This document sits at the top of a purposeful, multi-tier documentation structure, organized by rate of change:
 
 - **Tenets** (you are here): What we believe and why. Changes when our model of the world changes, which should be rare.
 - **Decisions** (ADRs): Where we've been, what's true today, and what might change down the path. These are our human-readable contracts that govern the state of the project. Once accepted, the contracts remain stable until there is a sufficient justification to blaze a new trail.
 - **Fieldguides**: How we build, with technical patterns, code examples, and dependency choices. Changes when we ship features or refine APIs. These are more stable, but still change.
+- **Contribution guides** (`docs/contributing/`): Repo maintenance standards for language, code shape, Warden rules, and agent navigation. Changes when our working discipline changes.
 - **Trail Notes** (`AGENTS.md`): Repo conventions, commands, and workflow. Changes when the repo changes. Frequent.
 
 ## Principles
@@ -25,7 +26,7 @@ The trail is the unit of everything. Testing targets the trail. Governance targe
 
 ### One schema, one Result, one error taxonomy
 
-Every trail has one input schema and one output schema. Every implementation returns one Result type. Every error belongs to a taxonomy that maps deterministically to every surface's error representation.
+Every trail has one input schema and one output schema. Every blaze returns one Result type. Every error belongs to a taxonomy that maps deterministically to every surface's error representation.
 
 Drift across surfaces is structurally harder than alignment. You cannot have different parameter names across surfaces because there is only one schema.
 
@@ -69,11 +70,11 @@ This does not preclude experimentation. Trails itself was formed through iterati
 
 Six categories describe how information flows through the system. Understanding these categories is essential for evaluating any proposed feature or API change.
 
-**Authored.** New information only the developer knows. Schemas, intent, meta, examples, the blaze function, trail IDs. Creative contributions that cannot be derived because they don't exist until someone writes them.
+**Authored.** New information only the developer knows. Schemas, intent, meta, examples, the `blaze` that establishes how the trail runs, trail IDs. Creative contributions that cannot be derived because they don't exist until someone writes them.
 
 **Projected.** Mechanically derived from authored information, guaranteed correct. MCP tool names from trail IDs. CLI flags from schema fields. Exit codes from error classes. HTTP verbs from intent. If the authored input exists, the projection is unambiguous. "Derive" is the verb for what the framework does. "Projected" is the category for the deterministic output.
 
-**Enforced.** Constrained by the type system at compile time. Output schemas bind the return type. The Result type eliminates throw/catch. Context types scope what the implementation can access. The compiler rejects non-compliance.
+**Enforced.** Constrained by the type system at compile time. Output schemas bind the return type. The Result type eliminates throw/catch. Context types scope what the blaze can access. The compiler rejects non-compliance.
 
 **Inferred.** Detected by static analysis, best-effort. Which trails a trail crosses, which error types are returned. Useful for governance, but not compiler-guaranteed.
 
@@ -114,15 +115,15 @@ CLI, MCP, HTTP, and WebSocket are equal surfaces over the same graph. No surface
 
 New surfaces don't require new trail code. They derive from the contract. If a trail works on one surface, it works on all of them.
 
-### Implementations are pure
+### Blazes are pure
 
-Input in, Result out. No process exits, no direct console output, no surface-specific request or response types in domain logic. The implementation does not know which surface invoked it.
+Input in, Result out. No process exits, no direct console output, no surface-specific request or response types in domain logic. The blaze does not know which surface invoked the trail.
 
-Purity is what makes surface-agnosticism possible. If an implementation touches stdout, it can't run on MCP. If it reads from a request object, it can't run on CLI. Side effects happen through structured, surface-agnostic channels.
+Purity is what makes surface-agnosticism possible. If a blaze touches stdout, the trail cannot run on MCP. If it reads from a request object, the trail cannot run on CLI. Side effects happen through structured, surface-agnostic channels.
 
 ### Validate at the boundary, trust internally
 
-The framework validates input before the implementation runs. If the implementation receives input, the input is valid. No defensive checking inside implementations. No guards for required fields.
+The framework validates input before the blaze receives it. If the blaze receives input, the input is valid. No defensive checking inside blazes. No guards for required fields.
 
 Validation is a framework guarantee enforced once at the boundary, not a developer responsibility scattered across every function.
 
@@ -220,8 +221,8 @@ No separate data sources, no sync problems.
 
 The testing and development workflow follows a progression:
 
-- **Specify.** Define the trail with schema and examples, no implementation yet. The warden checks spec consistency.
-- **Satisfy.** Write the implementation that makes examples pass.
+- **Specify.** Define the trail with schema and examples, before it is blazed. The warden checks spec consistency.
+- **Satisfy.** Blaze the trail so examples pass.
 - **Tighten.** Explicitly author the output schema, add safety markers, write error examples, extract compositions. The warden suggests improvements.
 
 Repeat until the warden is quiet. One line tests every trail against every example.

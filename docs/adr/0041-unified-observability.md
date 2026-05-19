@@ -4,7 +4,7 @@ slug: unified-observability
 title: Unified Observability
 status: accepted
 created: 2026-04-09
-updated: 2026-05-09
+updated: 2026-05-19
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [6, 13, 39]
 ---
@@ -77,7 +77,7 @@ No extra packages. No configuration. The framework traces automatically because 
 
 ### `ctx.trace()` as first-class API
 
-The manual tracing API lives on `TrailContext`. Trail implementations use it for important internal work that warrants its own span within the automatic root trace:
+The manual tracing API lives on `TrailContext`. Blazes use it for important internal work that warrants its own span within the automatic root trace:
 
 ```typescript
 const result = await ctx.trace('db-query', async () => {
@@ -91,9 +91,9 @@ The API is callback-based to guarantee closure. No raw `start` / `end` pair. Str
 
 `executeTrail`[^1] is the shared chokepoint every surface uses for every trail invocation. Tracing wraps it intrinsically:
 
-1. **Before the blaze runs** — create a root `TraceRecord` with trail ID, intent, surface, and `traceId`. Write `traceId` and root record ID into execution scope.
+1. **Before execution enters the blaze** — create a root `TraceRecord` with trail ID, intent, surface, and `traceId`. Write `traceId` and root record ID into execution scope.
 2. **During execution** — `ctx.trace()` calls create child records parented to the current scope. When a trail crosses another trail, the child inherits the same trace and parent linkage through the shared execution scope.
-3. **After the blaze completes** — close the root record with duration, status (`ok` | `err` | `cancelled`), and error category if applicable.
+3. **After the blazed trail completes** — close the root record with duration, status (`ok` | `err` | `cancelled`), and error category if applicable.
 
 This is not an attached layer or gate. It is intrinsic to `executeTrail`. The developer does not install it, configure it, or opt into it. Every trail execution is recorded.
 

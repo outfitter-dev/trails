@@ -8,7 +8,7 @@ metadata:
 
 # Trails
 
-Contract-first TypeScript framework. Define a trail once with typed input, Result output, examples, and meta — then surface it on CLI, MCP, HTTP, or WebSocket without drift.
+Contract-first TypeScript framework. Define a trail once with typed input, Result output, examples, meta, and a blaze that establishes how it runs — then surface it on CLI, MCP, HTTP, or WebSocket without drift.
 
 ## Quick Start
 
@@ -45,7 +45,7 @@ Use these terms — they are non-negotiable in Trails codebases.
 | `trail` | Unit of work (atomic or composite) | handler, action |
 | `cross` | Composition declaration and runtime verb | workflow, route |
 | `topo` | Queryable graph of trails, signals, resources, and relationships | registry, collection |
-| `blaze` | Implementation function — input to Result | handler, impl |
+| `blaze` | Authored implementation that establishes how a trail runs from validated input to Result | handler, impl |
 | `surface` | The boundary-owned one-liner that opens a graph | serve, mount |
 | `graph` | Local name for a topo instance | app, registry |
 | `projection` | Deterministic derivation of graph onto a surface shape | mapping |
@@ -58,6 +58,7 @@ Use these terms — they are non-negotiable in Trails codebases.
 
 - **Atomic trail**: does one thing. `(input, ctx) => Result`. Default choice.
 - **Composite trail**: composes other trails. Declares `crosses: [...]`, uses `ctx.cross()`.
+- **Blazed trail**: a runnable contract. The runtime runs trails, not blazes.
 
 ### Trail ID Conventions
 
@@ -210,7 +211,7 @@ Converting existing code to Trails:
 
 1. Inventory handlers (routes, CLI commands, MCP tools)
 2. Extract Zod input/output schemas
-3. Convert implementations to return Result (replace throw/console.log/process.exit)
+3. Convert blazes to return Result (replace throw/console.log/process.exit)
 4. Compose into topo, open surfaces
 5. Add examples, run `testAll()`
 6. Run warden for governance
@@ -237,6 +238,7 @@ For the current generated rule index, read [warden-guide.md](references/warden-g
 | [getting-started.md](references/getting-started.md) | Full install-to-test walkthrough |
 | [architecture.md](references/architecture.md) | Hexagonal model, package boundaries, data flow |
 | [contract-patterns.md](references/contract-patterns.md) | ID naming, schema design, example authoring |
+| [trails-language-styleguide](../trails-language-styleguide/SKILL.md) | Prose grammar for lexicon-sensitive docs, ADRs, prompts, and examples |
 | CLI surface docs | Flag derivation, output modes, exit codes |
 | MCP surface docs | Tool naming, annotations, progress |
 | [testing-patterns.md](references/testing-patterns.md) | testAll, testTrail, harnesses |

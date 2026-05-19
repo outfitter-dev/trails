@@ -43,8 +43,8 @@ Those examples serve six consumers at once:
 Red -> Green -> Refactor, with examples as the starting point:
 
 1. **Define the trail** with input schema, output schema, and examples
-2. **Run tests** -- examples fail because there is no implementation yet (red)
-3. **Implement** until examples pass (green)
+2. **Run tests** -- examples fail because the trail is not blazed yet (red)
+3. **Blaze the trail** until examples pass (green)
 4. **Refactor** while tests stay green
 5. **Add edge-case tests** with `testTrail()` for scenarios that should not appear in agent-facing examples
 
@@ -119,7 +119,7 @@ describe("search") {
 
 Trails with no examples produce no tests -- they simply do not participate in example-driven testing.
 
-The implementation is always awaited at runtime, so `testExamples()` behaves the same for sync-authored and async-authored trails.
+The blaze is always awaited at runtime, so `testExamples()` behaves the same for sync-authored and async-authored trails.
 
 ## Progressive Assertion
 
@@ -236,20 +236,20 @@ testTrail(onboardTrail, [
 
 ## `testContracts(graph)`
 
-Catches implementation-schema drift. Runs every example through the implementation, then validates the result against the trail's `output` schema. Reports detailed Zod errors on mismatch.
+Catches output-schema drift. Runs every example through the blazed trail, then validates the `Result.ok` value against the trail's `output` schema. Reports detailed Zod errors on mismatch.
 
 ```typescript
 import { testContracts } from '@ontrails/testing';
 
 testContracts(graph);
-// Fails if any implementation returns data that doesn't match its declared output schema
+// Fails if any trail returns data that doesn't match its declared output schema
 ```
 
-TypeScript checks types at compile time, but the implementation could return `{ name: "foo" }` when the output schema says `{ title: string }`. `testContracts` catches this at runtime.
+TypeScript checks types at compile time, but a trail could return `{ name: "foo" }` when the output schema says `{ title: string }`. `testContracts` catches this at runtime.
 
 ## `testDetours(graph)`
 
-Structural validation. Verifies every detour declares a real `on` error constructor, a callable `recover`, and no later detour is shadowed by an earlier broader `on:` type. No implementation execution needed.
+Structural validation. Verifies every detour declares a real `on` error constructor, a callable `recover`, and no later detour is shadowed by an earlier broader `on:` type. No blaze execution needed.
 
 ```typescript
 import { testDetours } from '@ontrails/testing';
@@ -311,7 +311,7 @@ If you need a resource override at the context level, pass it through `resources
 Creates a mock `CrossFn` for testing composite trails that call `ctx.cross()`. Pre-configure responses per trail ID:
 
 ```typescript
-import { createCrossContext, createTestContext } from '@ontrails/testing';
+import { createCrossContext, testTrail } from '@ontrails/testing';
 import { Result } from '@ontrails/core';
 
 const cross = createCrossContext({
@@ -321,10 +321,13 @@ const cross = createCrossContext({
   },
 });
 
-const ctx = { ...createTestContext(), cross };
-const result = await onboardTrail.blaze({ name: 'Delta' }, ctx);
-
-expect(result.isOk()).toBe(true);
+testTrail(onboardTrail, [
+  {
+    description: 'uses mocked crosses',
+    input: { name: 'Delta' },
+    expectOk: true,
+  },
+], { cross });
 ```
 
 Calls to unregistered trail IDs return an error Result. If you need real execution instead of mocked responses, use `run()` from `@ontrails/core`.

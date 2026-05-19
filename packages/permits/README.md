@@ -12,7 +12,7 @@ The permits package owns adapter-agnostic auth resources, adapters, and helpers.
 export const create = trail('gist.create', {
   permit: { scopes: ['gist:write'] },
   blaze: async (input, ctx) => {
-    // executeTrail enforces scopes before blaze runs
+    // executeTrail enforces scopes before execution enters the blaze
     return Result.ok(newGist);
   },
 });

@@ -68,7 +68,7 @@ describe('trail-level layers', () => {
 // ---------------------------------------------------------------------------
 
 describe('surface-level layers', () => {
-  test('surfaceLayers wrap the trail implementation', async () => {
+  test('surfaceLayers wrap the blaze', async () => {
     const log: string[] = [];
     const layerB = recordingLayer('B', log);
     const echo = buildEchoTrail();
@@ -105,7 +105,7 @@ describe('topo-level layers', () => {
     expect(app.layers).toEqual([]);
   });
 
-  test('topoLayers wrap the trail implementation', async () => {
+  test('topoLayers wrap the blaze', async () => {
     const log: string[] = [];
     const layerC = recordingLayer('C', log);
     const echo = buildEchoTrail();

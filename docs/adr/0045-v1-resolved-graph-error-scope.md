@@ -4,7 +4,7 @@ slug: v1-resolved-graph-error-scope
 title: v1 Resolved Graph Error Scope
 status: accepted
 created: 2026-05-10
-updated: 2026-05-11
+updated: 2026-05-19
 accepted: 2026-05-10
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [2, 15, 17, 26, 33, 42]
@@ -92,7 +92,7 @@ propagation, resource factories, layers, or detour recovery functions. Whole
 program error inference is out of scope because it would require static
 analysis that Trails has not made a contract yet.
 
-Warden still validates local rules that are checkable today: implementations
+Warden still validates local rules that are checkable today: blazes
 return `Result`, native throws are rejected, detour contracts are shaped
 correctly, and surface mappers cover taxonomy categories. Those checks support
 the error contract, but they do not create an inferred per-trail error graph.

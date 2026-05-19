@@ -253,7 +253,7 @@ export const badTrail = trail('bad.throw', {
             'no-native-error-result',
           ],
           summary:
-            'Convert thrown implementation failures into explicit Result.err() outcomes.',
+            'Convert thrown failures in blazes into explicit Result.err() outcomes.',
         })
       );
     } finally {
@@ -1114,7 +1114,7 @@ describe('formatWardenReport', () => {
         {
           filePath: 'src/trails/entity.ts',
           line: 3,
-          message: 'Do not throw inside implementation.',
+          message: 'Do not throw inside the blaze.',
           rule: 'no-throw-in-implementation',
           severity: 'error',
         },
@@ -1142,7 +1142,7 @@ describe('formatWardenReport', () => {
             summary: 'Convert thrown failures into Result.err().',
           },
           line: 3,
-          message: 'Do not throw inside implementation.',
+          message: 'Do not throw inside the blaze.',
           rule: 'no-throw-in-implementation',
           severity: 'error',
         },
@@ -1175,7 +1175,7 @@ describe('formatWardenReport', () => {
             summary: 'Use the Warden guidance.',
           },
           line: 3,
-          message: 'Do not throw inside implementation.',
+          message: 'Do not throw inside the blaze.',
           rule: 'no-throw-in-implementation',
           severity: 'error',
         },

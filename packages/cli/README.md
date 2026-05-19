@@ -192,7 +192,7 @@ beneath that path.
 
 ## Resource Resolution
 
-Declared resources on each trail are resolved into the context before the blaze runs.
+Declared resources on each trail are resolved into the context before execution enters the blaze.
 
 ## Filtering
 

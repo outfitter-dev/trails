@@ -4,7 +4,7 @@ slug: warden-rules-ship-only-as-trails
 title: Warden rules ship only as trails
 status: accepted
 created: 2026-04-20
-updated: 2026-04-20
+updated: 2026-05-19
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [0, 7]
 ---
@@ -25,7 +25,7 @@ By the time the first topo-aware rule landed, `@ontrails/warden` was exporting e
 2. **The trail wrapper** — `export { noThrowInImplementationTrail } from './trails/index.js';`
 3. **The registry** — `wardenRules` / `wardenTopoRules`, keyed by rule name.
 
-All three point at the same behavior. A consumer reaches the same lint by importing the raw object, calling `.implementation()` on the trail wrapper, or looking up the entry in the registry.
+All three point at the same behavior. A consumer reaches the same lint by importing the raw object, running the trail wrapper through Warden's shared runner, or looking up the entry in the registry.
 
 ### The three-path shape does not self-maintain
 
@@ -37,7 +37,7 @@ That is exactly the drift class the framework exists to prevent, showing up in t
 
 A trail wrapper is a `trail()` instance. It carries:
 
-- `.implementation` — the function that runs the rule
+- `.blaze` — the authored implementation that establishes how the rule trail runs
 - `.input` / `.output` — schemas describing the contract
 - `.examples` — the happy-path and violation cases that feed `testAll()`
 - `.id` — the canonical `warden.rule.<name>` identifier
@@ -70,20 +70,32 @@ import { wardenRules } from '@ontrails/warden'; // registry
 
 The registry stays public because it is the concrete shape `runWarden` and external runners consume — a `ReadonlyMap<string, Trail>` keyed by rule name, used for iteration and name-based lookup. It is derivable from the trail set, but multiple consumers want the same derived view, so the framework provides it once rather than forcing every caller to rebuild it.
 
-### Consumers drive rules through the trail
+### Consumers drive rules through Warden trail runners
 
-A consumer who wants to run a rule directly goes through `.implementation(ctx, input)` on the trail wrapper, the same pathway every other trail uses:
+A consumer who wants to run a rule goes through the shared Warden runner or the exported registry-backed execution path. The trail wrapper is the public rule shape; its `blaze` is the authored behavior that establishes how the rule runs.
 
 ```typescript
-import { firesDeclarationsTrail } from '@ontrails/warden';
+import { runWardenTrails } from '@ontrails/warden';
 
-const result = await firesDeclarationsTrail.implementation(ctx, {
+const diagnostics = await runWardenTrails(
+  'src/trails/entity.ts',
+  sourceCode
+);
+```
+
+The runner resolves the rule trail from the registry and runs it through the standard trail execution path:
+
+```typescript
+import { run } from '@ontrails/core';
+import { wardenTopo } from '@ontrails/warden';
+
+const result = await run(wardenTopo, 'warden.rule.fires-declarations', {
   filePath: 'src/trails/entity.ts',
   sourceCode,
 });
 ```
 
-No separate raw-call path exists. The direct-drive idiom collapses into the standard trail execution path.
+No separate raw-call path exists. Direct rule execution stays a trail execution concern instead of a second public rule object shape.
 
 ### Extension slots into the same shape
 
@@ -111,7 +123,7 @@ Implementation is tracked separately in [TRL-341](https://linear.app/outfitter/i
 
 - Implementing extension hooks on `runWarden` (`extraRules` for file-scoped rules, auto-discovery of project-local warden trails). Those are follow-up work this ADR unblocks but does not scope.
 - Changing the internal `WardenRule` / `TopoAwareWardenRule` types. They remain the shape the wrappers build on; they just do not escape the package.
-- Altering rule execution semantics. `.implementation()` on the trail wrapper runs the same code the raw `.check()` method did.
+- Altering rule execution semantics. The trail wrapper preserves the same rule behavior the raw `.check()` method provided; this ADR changes the public shape, not what each rule detects.
 
 ## Consequences
 
@@ -124,8 +136,8 @@ Implementation is tracked separately in [TRL-341](https://linear.app/outfitter/i
 
 ### Tradeoffs
 
-- Backwards-incompatible for the one external consumer using the raw path. `apps/trails-demo/__tests__/signals.test.ts` was the only file in the monorepo importing raw rule objects; it migrates to `.implementation()` on the trail wrapper. Acceptable in the pre-1.0 cutover window.
-- Driving a single rule directly gains one indirection. `rule.check(ctx, input)` becomes `ruleTrail.implementation(ctx, input)`. The call signature is the same; the receiver changes.
+- Backwards-incompatible for the one external consumer using the raw path. `apps/trails-demo/__tests__/signals.test.ts` was the only file in the monorepo importing raw rule objects; it migrates to the trail wrapper or registry-backed runner. Acceptable in the pre-1.0 cutover window.
+- Driving a single rule directly gains one indirection. `rule.check(ctx, input)` becomes `run(wardenTopo, 'warden.rule.<name>', input)` or the corresponding Warden runner. The same behavior is reached through the trail wrapper; the receiver changes.
 
 ## Non-decisions
 
