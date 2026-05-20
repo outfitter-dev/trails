@@ -9,6 +9,7 @@ import type {
   Layer,
   LayerInputSchema,
   ResourceOverrideMap,
+  TrailVersionReference,
   Topo,
   TrailContext,
   TrailContextInit,
@@ -20,6 +21,7 @@ import {
   collectAttachedTypedLayers as collectTypedLayers,
   deriveCliPath,
   deriveFields,
+  deriveSurfaceTrailVersionProjections,
   executeTrail,
   filterSurfaceTrails,
   LAYER_FIELD_RESERVED_NAMES,
@@ -36,7 +38,7 @@ import {
   expandDateShortcuts,
 } from './date-shortcuts.js';
 import type { DateShortcutKind } from './date-shortcuts.js';
-import { dryRunPreset, toFlags } from './flags.js';
+import { dryRunPreset, toFlags, trailVersionPreset } from './flags.js';
 import {
   inputHasCursorField,
   isPaginatedOutput,
@@ -452,6 +454,7 @@ const runTrailOnce = async (
   input: Record<string, unknown>,
   dryRun: boolean | undefined,
   permit: BasePermit | undefined,
+  version: TrailVersionReference | undefined,
   layerInputs: Readonly<Record<string, unknown>> | undefined
 ): Promise<Result<unknown, Error>> =>
   await executeTrail(t, input, {
@@ -467,6 +470,7 @@ const runTrailOnce = async (
     surfaceLayers: options?.layers,
     topo: graph,
     topoLayers: graph.layers,
+    ...(version === undefined ? {} : { version }),
   });
 
 /**
@@ -491,6 +495,19 @@ const readDryRunFlag = (
     return false;
   }
   return undefined;
+};
+
+const readTrailVersionFlag = (
+  parsedFlags: Record<string, unknown>,
+  metaFlagNames: ReadonlySet<string>
+): TrailVersionReference | undefined => {
+  if (!metaFlagNames.has('trailVersion')) {
+    return undefined;
+  }
+  const value = parsedFlags['trailVersion'] ?? parsedFlags['trail-version'];
+  return typeof value === 'string' || typeof value === 'number'
+    ? value
+    : undefined;
 };
 
 /**
@@ -532,6 +549,7 @@ const runPaginatedIteration = async (
   jsonl: boolean,
   dryRun: boolean | undefined,
   permit: BasePermit | undefined,
+  version: TrailVersionReference | undefined,
   layerInputs: Readonly<Record<string, unknown>> | undefined
 ): Promise<IterationOutcome> => {
   if (!inputHasCursorField(t)) {
@@ -558,6 +576,7 @@ const runPaginatedIteration = async (
         input,
         dryRun,
         permit,
+        version,
         layerInputs
       ),
   });
@@ -962,6 +981,10 @@ const createExecute =
     const layerInputs = buildLayerInputs(layerProjections, normalizedFlags);
 
     const dryRun = readDryRunFlag(parsedFlags, trailInputExcludeKeys);
+    const trailVersion = readTrailVersionFlag(
+      parsedFlags,
+      trailInputExcludeKeys
+    );
     let result: Result<unknown, Error>;
     let streamed = false;
     if (shouldIteratePages(t, parsedFlags, trailInputExcludeKeys)) {
@@ -974,6 +997,7 @@ const createExecute =
         isJsonlMode(parsedFlags),
         dryRun,
         permit,
+        trailVersion,
         layerInputs
       );
       ({ result } = outcome);
@@ -989,6 +1013,7 @@ const createExecute =
           : mergedInput,
         dryRun,
         permit,
+        trailVersion,
         layerInputs
       );
     }
@@ -1033,6 +1058,9 @@ const buildFlags = (
   }
   if (options?.presets) {
     flags = mergeFlags(options.presets.flat(), flags);
+  }
+  if (t.version !== undefined) {
+    flags = mergeFlags(trailVersionPreset(), flags);
   }
   if (intent === 'destroy' || intent === 'write') {
     flags = mergeFlags(dryRunPreset(), flags);
@@ -1159,6 +1187,7 @@ const toCliCommand = (
   );
   const dateFields = detectDateFields(t.input);
   const dateFieldKinds = detectDateFieldKinds(t.input);
+  const versions = deriveSurfaceTrailVersionProjections(t);
 
   return {
     args,
@@ -1180,6 +1209,7 @@ const toCliCommand = (
     layers: options?.layers,
     path: deriveCliPath(t.id),
     trail: t,
+    ...(versions === undefined ? {} : { versions }),
   };
 };
 

@@ -251,3 +251,10 @@ for (const tool of result.value) {
 ```
 
 Each `McpToolDefinition` includes a `trailId` field containing the original trail ID (e.g. `'entity.show'`). This is useful for logging, filtering, or routing when managing tool definitions outside of `surface()`.
+
+For versioned trails, the tool input schema includes a surface-owned
+`trailVersion` parameter. MCP handlers strip it before trail input validation
+and forward the selected live version or marker prefix to the shared execution
+pipeline. The `versions` field on each tool lists the live projected versions;
+archived historical entries remain inspectable through topo artifacts but are
+not runtime tool targets.

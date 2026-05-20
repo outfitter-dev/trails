@@ -283,6 +283,17 @@ export const dryRunPreset = (): CliFlag[] => [
   },
 ];
 
+/** Flag for selecting a live trail version: --trail-version */
+export const trailVersionPreset = (): CliFlag[] => [
+  {
+    description: 'Execute a live trail version by number or marker prefix',
+    name: 'trail-version',
+    required: false,
+    type: 'string',
+    variadic: false,
+  },
+];
+
 /**
  * Flag for trace collection: --trace
  *

@@ -67,6 +67,10 @@ needed.
 Nested objects and arrays of objects are intentionally omitted from automatic
 flag derivation. The CLI prefers fewer flags over dishonest flags.
 
+Versioned trails also get a surface-owned `--trail-version <version>` flag. The
+flag accepts a live version number or unambiguous marker prefix and is stripped
+before trail input validation, so version negotiation stays at the CLI boundary.
+
 ```typescript
 const search = trail('search', {
   input: z.object({

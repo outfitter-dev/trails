@@ -53,6 +53,11 @@ public error projection, diagnostics, request ID/header forwarding, abort
 propagation, and webhook verification/parsing. Hono and Bun consume the same
 kernel so those behaviors stay in parity.
 
+Versioned trails expose a surface-owned `trailVersion` request field and also
+accept `X-Trails-Version` / `X-Trail-Version` headers. The selected version is
+stripped before trail input validation and forwarded to the shared execution
+pipeline.
+
 ## How Trail IDs Map to Routes
 
 Dots in trail IDs become path segments:

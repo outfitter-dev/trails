@@ -365,6 +365,71 @@ describe('deriveMcpTools', () => {
       expect(result?.structuredContent).toEqual({ reply: 'hello' });
     });
 
+    test('handler ignores trailVersion args for unversioned tools', async () => {
+      const app = topo('myapp', { echoTrail });
+      const tool = requireOnlyTool(buildTools(app));
+
+      expect(
+        (tool.inputSchema['properties'] as Record<string, unknown>)[
+          'trailVersion'
+        ]
+      ).toBeUndefined();
+
+      const result = await tool.handler(
+        { message: 'hello', trailVersion: '2' },
+        noExtra
+      );
+
+      expect(result?.isError).toBeUndefined();
+      expect(result?.structuredContent).toEqual({ reply: 'hello' });
+    });
+
+    test('projects live versions and executes selected tool version', async () => {
+      const versioned = trail('versioned.greet', {
+        blaze: (input: { name: string }) =>
+          Result.ok({ message: `Hello, ${input.name}!` }),
+        input: z.object({ name: z.string() }),
+        output: z.object({ message: z.string() }),
+        version: 3,
+        versions: {
+          1: {
+            input: z.object({ firstName: z.string(), legacyId: z.string() }),
+            output: z.object({ message: z.string() }),
+            status: { state: 'archived' },
+            transpose: {
+              input: ({ input }) => ({ name: input.firstName }),
+              output: ({ output }) => output,
+            },
+          },
+          2: {
+            input: z.object({ firstName: z.string() }),
+            output: z.object({ message: z.string() }),
+            status: { note: 'Use name.', state: 'deprecated' },
+            transpose: {
+              input: ({ input }) => ({ name: input.firstName }),
+              output: ({ output }) => output,
+            },
+          },
+        },
+      });
+      const tool = requireOnlyTool(buildTools(topo('myapp', { versioned })));
+
+      expect(tool.inputSchema).toMatchObject({
+        properties: {
+          trailVersion: { type: 'string' },
+        },
+      });
+      expect(tool.versions?.map((entry) => entry.version)).toEqual([2, 3]);
+
+      const result = await tool.handler(
+        { firstName: 'Ada', trailVersion: '2' },
+        noExtra
+      );
+
+      expect(result?.isError).toBeUndefined();
+      expect(result?.structuredContent).toEqual({ message: 'Hello, Ada!' });
+    });
+
     test('handler wraps non-object outputs as structured content data', async () => {
       const listTrail = trail('items.list', {
         blaze: () => Result.ok(['one', 'two']),

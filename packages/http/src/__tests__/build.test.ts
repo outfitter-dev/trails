@@ -1112,6 +1112,89 @@ describe('deriveHttpRoutes', () => {
       expect(result.value).toEqual({ reply: 'hello' });
     });
 
+    test('projects live versions and executes selected request version', async () => {
+      const versioned = trail('versioned.greet', {
+        blaze: (input: { name: string }) =>
+          Result.ok({ message: `Hello, ${input.name}!` }),
+        input: z.object({ name: z.string() }),
+        output: z.object({ message: z.string() }),
+        version: 3,
+        versions: {
+          1: {
+            input: z.object({ firstName: z.string(), legacyId: z.string() }),
+            output: z.object({ message: z.string() }),
+            status: { state: 'archived' },
+            transpose: {
+              input: ({ input }) => ({ name: input.firstName }),
+              output: ({ output }) => output,
+            },
+          },
+          2: {
+            input: z.object({ firstName: z.string() }),
+            output: z.object({ message: z.string() }),
+            status: { note: 'Use name.', state: 'deprecated' },
+            transpose: {
+              input: ({ input }) => ({ name: input.firstName }),
+              output: ({ output }) => output,
+            },
+          },
+        },
+      });
+      const buildResult = deriveHttpRoutes(topo('testapp', { versioned }));
+
+      expect(buildResult.isOk()).toBe(true);
+      if (!buildResult.isOk()) {
+        return;
+      }
+      const [route] = buildResult.value;
+
+      expect(route?.inputSchema).toMatchObject({
+        properties: {
+          trailVersion: { type: 'string' },
+        },
+      });
+      expect(route?.versions?.map((entry) => entry.version)).toEqual([2, 3]);
+
+      const result = await route?.execute({
+        firstName: 'Ada',
+        trailVersion: '2',
+      });
+
+      expect(result?.isOk()).toBe(true);
+      if (!result?.isOk()) {
+        return;
+      }
+      expect(result.value).toEqual({ message: 'Hello, Ada!' });
+    });
+
+    test('ignores version headers on unversioned routes', async () => {
+      const app = topo('testapp', { echoTrail });
+      const buildResult = deriveHttpRoutes(app);
+
+      expect(buildResult.isOk()).toBe(true);
+      if (!buildResult.isOk()) {
+        return;
+      }
+      const [route] = buildResult.value;
+      expect(route?.versions).toBeUndefined();
+      expect(
+        route === undefined ? false : Object.hasOwn(route, 'versions')
+      ).toBe(false);
+
+      const result = await route?.execute(
+        { message: 'hello' },
+        undefined,
+        undefined,
+        { headers: { 'x-trails-version': '2' } }
+      );
+
+      expect(result?.isOk()).toBe(true);
+      if (!result?.isOk()) {
+        return;
+      }
+      expect(result.value).toEqual({ reply: 'hello' });
+    });
+
     test('returns err Result on invalid input', async () => {
       const app = topo('testapp', { echoTrail });
       const buildResult = deriveHttpRoutes(app);

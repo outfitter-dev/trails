@@ -12,6 +12,7 @@ import {
   ValidationError,
   buildActivationProvenanceTraceAttrs,
   collectAttachedTypedLayers,
+  deriveSurfaceTrailVersionProjections,
   executeTrail,
   filterSurfaceTrails,
   getActivationWherePredicate,
@@ -39,9 +40,11 @@ import type {
   BaseSurfaceOptions,
   Layer,
   ResourceOverrideMap,
+  SurfaceTrailVersionProjection,
   TraceContext,
   Topo,
   Trail,
+  TrailVersionReference,
   TrailContextInit,
   WebhookSource,
   WebhookVerifyRequest,
@@ -72,6 +75,7 @@ export type HttpHeaderSource =
 
 export interface HttpExecutionContext {
   readonly headers?: HttpHeaderSource | undefined;
+  readonly version?: TrailVersionReference | undefined;
 }
 
 export interface ResolveHttpPermitInput {
@@ -93,6 +97,7 @@ export interface HttpRouteDefinition {
   readonly trailId: string;
   readonly inputSource: InputSource;
   readonly trail: Trail<unknown, unknown, unknown>;
+  readonly versions?: readonly SurfaceTrailVersionProjection[] | undefined;
   /**
    * JSON Schema for the merged request input (trail input + projected layer
    * input fields). Empty/undefined when the trail declares no input and no
@@ -572,6 +577,67 @@ const mergeHttpInputSchemas = (
   return merged;
 };
 
+const TRAIL_VERSION_INPUT_FIELD = 'trailVersion';
+const TRAILS_VERSION_HEADERS = ['x-trails-version', 'x-trail-version'];
+
+const versionInputSchema = (): Record<string, unknown> => ({
+  properties: {
+    [TRAIL_VERSION_INPUT_FIELD]: {
+      description: 'Live trail version number or marker prefix',
+      type: 'string',
+    },
+  },
+  type: 'object',
+});
+
+const addVersionInputSchema = (
+  trail: Trail<unknown, unknown, unknown>,
+  schema: Record<string, unknown> | undefined
+): Record<string, unknown> | undefined =>
+  trail.version === undefined
+    ? schema
+    : mergeHttpInputSchemas(schema, versionInputSchema());
+
+const readVersionFromHeaders = (
+  headers: HttpHeaderSource | undefined
+): TrailVersionReference | undefined => {
+  for (const name of TRAILS_VERSION_HEADERS) {
+    const value = readHeader(headers, name);
+    if (value !== undefined && value.length > 0) {
+      return value;
+    }
+  }
+  return undefined;
+};
+
+const splitHttpSurfaceVersion = (
+  input: unknown,
+  context: HttpExecutionContext | undefined,
+  supportsVersions: boolean
+): {
+  readonly input: unknown;
+  readonly version: TrailVersionReference | undefined;
+} => {
+  if (!supportsVersions) {
+    return { input, version: undefined };
+  }
+
+  const headerVersion =
+    context?.version ?? readVersionFromHeaders(context?.headers);
+  if (!isJsonObjectSchema(input)) {
+    return { input, version: headerVersion };
+  }
+
+  const record = input as Record<string, unknown>;
+  const { [TRAIL_VERSION_INPUT_FIELD]: fieldVersion, ...rest } = record;
+  const version =
+    headerVersion ??
+    (typeof fieldVersion === 'string' || typeof fieldVersion === 'number'
+      ? fieldVersion
+      : undefined);
+  return { input: rest, version };
+};
+
 /**
  * Partition a parsed request input into the trail input plus per-layer
  * inputs, using each layer's routing table.
@@ -639,8 +705,13 @@ const createExecute =
     layerProjections: readonly HttpLayerInputProjection[]
   ): HttpRouteDefinition['execute'] =>
   async (input, requestId, abortSignal, request) => {
-    const { trailInput, layerInputs } = partitionHttpInput(
+    const versionedInput = splitHttpSurfaceVersion(
       input,
+      request,
+      t.version !== undefined
+    );
+    const { trailInput, layerInputs } = partitionHttpInput(
+      versionedInput.input,
       layerProjections
     );
     const permitResolution = await resolveHttpPermit(
@@ -664,6 +735,9 @@ const createExecute =
       surfaceLayers: layers,
       topo: graph,
       topoLayers: graph.layers,
+      ...(versionedInput.version === undefined
+        ? {}
+        : { version: versionedInput.version }),
     });
   };
 
@@ -721,8 +795,13 @@ const createWebhookConsumerExecute =
       'activation.webhook',
       'ok'
     );
-    const { trailInput, layerInputs } = partitionHttpInput(
+    const versionedInput = splitHttpSurfaceVersion(
       input,
+      request,
+      t.version !== undefined
+    );
+    const { trailInput, layerInputs } = partitionHttpInput(
+      versionedInput.input,
       layerProjections
     );
     const permitResolution = await resolveHttpPermit(
@@ -746,6 +825,9 @@ const createWebhookConsumerExecute =
       surfaceLayers: layers,
       topo: graph,
       topoLayers: graph.layers,
+      ...(versionedInput.version === undefined
+        ? {}
+        : { version: versionedInput.version }),
     });
   };
 
@@ -836,6 +918,8 @@ const buildRoute = (
     options.layers
   );
   const inputProjection = projectHttpInputSchema(trail, attachedLayers);
+  const inputSchema = addVersionInputSchema(trail, inputProjection.schema);
+  const versions = deriveSurfaceTrailVersionProjections(trail);
   return {
     execute: createExecute(
       graph,
@@ -844,9 +928,7 @@ const buildRoute = (
       options,
       inputProjection.projections
     ),
-    ...(inputProjection.schema === undefined
-      ? {}
-      : { inputSchema: inputProjection.schema }),
+    ...(inputSchema === undefined ? {} : { inputSchema }),
     inputSource: deriveHttpInputSource(method),
     ...(inputProjection.projections.length === 0
       ? {}
@@ -855,6 +937,7 @@ const buildRoute = (
     path,
     trail,
     trailId: trail.id,
+    ...(versions === undefined ? {} : { versions }),
   };
 };
 
@@ -973,6 +1056,8 @@ const buildWebhookRoute = (
     options.layers
   );
   const inputProjection = projectHttpInputSchema(trail, attachedLayers);
+  const inputSchema = addVersionInputSchema(trail, inputProjection.schema);
+  const versions = deriveSurfaceTrailVersionProjections(trail);
   const consumerExecute = createWebhookConsumerExecute(
     graph,
     trail,
@@ -991,9 +1076,7 @@ const buildWebhookRoute = (
     [WEBHOOK_CONSUMERS]: [consumerExecute],
     [WEBHOOK_INVALID_RECORDERS]: [consumerInvalidRecorder],
     execute: createWebhookExecute(consumerExecute),
-    ...(inputProjection.schema === undefined
-      ? {}
-      : { inputSchema: inputProjection.schema }),
+    ...(inputSchema === undefined ? {} : { inputSchema }),
     inputSource: 'webhook',
     ...(inputProjection.projections.length === 0
       ? {}
@@ -1007,6 +1090,7 @@ const buildWebhookRoute = (
     trail,
     trailId: trail.id,
     verifyWebhook: (request) => verifyWebhookRequest(source.value, request),
+    ...(versions === undefined ? {} : { versions }),
     webhookSource: source.value,
   };
   return Result.ok(route);

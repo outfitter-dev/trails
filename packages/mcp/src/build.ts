@@ -11,6 +11,7 @@ import {
   Result,
   ValidationError,
   collectAttachedTypedLayers,
+  deriveSurfaceTrailVersionProjections,
   deriveStructuredTrailExamples,
   executeTrail,
   filterSurfaceTrails,
@@ -32,9 +33,11 @@ import type {
   Layer,
   ResourceOverrideMap,
   SurfaceErrorProjection,
+  SurfaceTrailVersionProjection,
   Topo,
   Trail,
   TrailContextInit,
+  TrailVersionReference,
 } from '@ontrails/core';
 
 import type { McpAnnotations } from './annotations.js';
@@ -84,6 +87,7 @@ export interface McpToolDefinition {
   readonly outputSchema?: Record<string, unknown> | undefined;
   /** The trail ID this tool was derived from. */
   readonly trailId: string;
+  readonly versions?: readonly SurfaceTrailVersionProjection[] | undefined;
 }
 
 export interface McpExtra {
@@ -602,6 +606,48 @@ const projectMcpInputSchema = (
   return { projections, schema: mergedSchema };
 };
 
+const TRAIL_VERSION_PARAM = 'trailVersion';
+
+const addMcpVersionInputSchema = (
+  trail: Trail<unknown, unknown, unknown>,
+  schema: Record<string, unknown>
+): Record<string, unknown> => {
+  if (trail.version === undefined) {
+    return schema;
+  }
+  const properties =
+    isJsonObjectSchema(schema) && schema.properties !== undefined
+      ? schema.properties
+      : undefined;
+  return {
+    ...schema,
+    properties: {
+      ...properties,
+      [TRAIL_VERSION_PARAM]: {
+        description: 'Live trail version number or marker prefix',
+        type: 'string',
+      },
+    },
+    type: 'object',
+  };
+};
+
+const splitMcpSurfaceVersion = (
+  args: Record<string, unknown>
+): {
+  readonly args: Record<string, unknown>;
+  readonly version: TrailVersionReference | undefined;
+} => {
+  const { [TRAIL_VERSION_PARAM]: rawVersion, ...rest } = args;
+  return {
+    args: rest,
+    version:
+      typeof rawVersion === 'string' || typeof rawVersion === 'number'
+        ? rawVersion
+        : undefined,
+  };
+};
+
 /**
  * Partition a parsed MCP `args` record into the trail input plus per-layer
  * inputs, using each layer's routing table.
@@ -750,8 +796,12 @@ const createHandler =
   ) => Promise<McpToolResult>) =>
   async (args, extra): Promise<McpToolResult> => {
     const progressCb = createMcpProgressCallback(extra);
+    const versionedArgs =
+      t.version === undefined
+        ? { args, version: undefined }
+        : splitMcpSurfaceVersion(args);
     const { trailInput, layerInputs } = partitionMcpArgs(
-      args,
+      versionedArgs.args,
       layerProjections
     );
     const permitResolution = await resolveMcpPermit(options, extra);
@@ -770,6 +820,9 @@ const createHandler =
       surfaceLayers: layers,
       topo: graph,
       topoLayers: graph.layers,
+      ...(versionedArgs.version === undefined
+        ? {}
+        : { version: versionedArgs.version }),
     });
     if (result.isOk()) {
       return {
@@ -867,6 +920,8 @@ const buildToolDefinition = (
     options.layers
   );
   const inputProjection = projectMcpInputSchema(trail, attachedLayers);
+  const inputSchema = addMcpVersionInputSchema(trail, inputProjection.schema);
+  const versions = deriveSurfaceTrailVersionProjections(trail);
   return {
     _meta: buildMeta(trail),
     annotations,
@@ -879,10 +934,11 @@ const buildToolDefinition = (
       projection?.wrapAsData ?? false,
       inputProjection.projections
     ),
-    inputSchema: inputProjection.schema,
+    inputSchema,
     name: deriveToolName(graph.name, trail.id),
     outputSchema: projection?.schema,
     trailId: trail.id,
+    ...(versions === undefined ? {} : { versions }),
   };
 };
 

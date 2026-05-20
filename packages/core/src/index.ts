@@ -228,6 +228,8 @@ export {
   shouldIncludeTrailForSurface,
 } from './surface-filter.js';
 export type { SurfaceFilterOptions } from './surface-filter.js';
+export { deriveSurfaceTrailVersionProjections } from './surface-versioning.js';
+export type { SurfaceTrailVersionProjection } from './surface-versioning.js';
 export {
   shouldValidateSurfaceTopo,
   validateSurfaceTopo,

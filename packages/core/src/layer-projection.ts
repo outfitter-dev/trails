@@ -38,6 +38,7 @@ export const LAYER_FIELD_RESERVED_NAMES: ReadonlySet<string> = new Set([
   'permit',
   'quiet',
   'token',
+  'trailVersion',
   'trace',
   'watch',
 ]);

@@ -129,6 +129,17 @@ Append meaningful state changes, especially before handoff points.
 - Result: TRL-730 local version-aware diff surface is implemented. Remaining branch-local checks still need formatting, `git diff --check`, and commit-hook validation before committing.
 - Next: Run branch formatting/whitespace checks, commit TRL-730, restack upward, then implement TRL-118 surface negotiation.
 - Blockers: None.
+
+2026-05-20 10:34 EDT - TRL-118 surface version negotiation
+- Changed: Committed TRL-730 as `f702dd59e feat(trails): add version-aware topo diff`; Graphite restacked the descendant branches.
+- Changed: Implemented TRL-118 on `trl-118-project-version-negotiation-across-http-mcp-cli-and`: added shared core live-version surface projections, exposed live version metadata from CLI/HTTP/MCP definitions, added CLI `--trail-version`, added HTTP `trailVersion` plus `X-Trails-Version` / `X-Trail-Version`, added MCP `trailVersion`, and threaded all three through `executeTrail` as the shared version reference.
+- Changed: Archived entries remain excluded from projected live surface metadata by `deriveSupportedTrailVersions`; deprecated entries remain projected with status metadata; unsupported/archived requests continue through core `VersionNotSupportedError` handling.
+- Note: No shipped WebSocket surface package exists in this repo; TRL-118 implementation covered the real shipped surfaces (`cli`, `http`, `mcp`) and left WebSocket as planned docs-only surface state.
+- Verified: Focused surface/runtime tests passed: `bun test packages/cli/src/__tests__/build.test.ts packages/http/src/__tests__/build.test.ts packages/mcp/src/__tests__/build.test.ts packages/core/src/__tests__/version-execution.test.ts` (211 pass).
+- Verified: `bun run --cwd packages/core typecheck`, `bun run --cwd packages/cli typecheck`, `bun run --cwd packages/http typecheck`, and `bun run --cwd packages/mcp typecheck` passed.
+- Result: TRL-118 local surface negotiation is implemented for shipped surfaces. Remaining branch-local checks still need formatting, `git diff --check`, and commit-hook validation before committing.
+- Next: Run branch formatting/whitespace checks, commit TRL-118, restack upward, then implement lifecycle CLI commands in TRL-119.
+- Blockers: None.
 ```
 
 ## Local Review Log
@@ -164,6 +175,11 @@ Record exact commands and artifact checks. Include skipped checks with reasons.
 | `bun test packages/topographer/src/__tests__/diff.test.ts apps/trails/src/__tests__/survey.test.ts` | TRL-730 targeted tests | Passed | 79 pass, 0 fail. |
 | `bun run --cwd packages/topographer typecheck` | TRL-730 targeted typecheck | Passed | `tsc --noEmit` passed. |
 | `bun run --cwd apps/trails typecheck` | TRL-730 targeted typecheck | Passed | `tsc --noEmit` passed. |
+| `bun test packages/cli/src/__tests__/build.test.ts packages/http/src/__tests__/build.test.ts packages/mcp/src/__tests__/build.test.ts packages/core/src/__tests__/version-execution.test.ts` | TRL-118 targeted tests | Passed | 211 pass, 0 fail. |
+| `bun run --cwd packages/core typecheck` | TRL-118 targeted typecheck | Passed | `tsc --noEmit` passed. |
+| `bun run --cwd packages/cli typecheck` | TRL-118 targeted typecheck | Passed | `tsc --noEmit` passed. |
+| `bun run --cwd packages/http typecheck` | TRL-118 targeted typecheck | Passed | `tsc --noEmit` passed. |
+| `bun run --cwd packages/mcp typecheck` | TRL-118 targeted typecheck | Passed | `tsc --noEmit` passed. |
 | `bun run check` | Execution tip | Pending | Required by goal. |
 | `bun run build` | Execution tip | Pending | Required by goal. |
 | `bun run test` | Execution tip | Pending | Required by goal. |

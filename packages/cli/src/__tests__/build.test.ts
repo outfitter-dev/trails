@@ -583,6 +583,56 @@ describe('buildCommands execution', () => {
     expect(result.isErr()).toBe(true);
     expect(result.error.message).toContain('unexpected kaboom');
   });
+
+  test('projects live versions and executes selected version flag', async () => {
+    const versioned = trail('versioned.greet', {
+      blaze: (input: { name: string }) =>
+        Result.ok({ message: `Hello, ${input.name}!` }),
+      input: z.object({ name: z.string() }),
+      output: z.object({ message: z.string() }),
+      version: 3,
+      versions: {
+        1: {
+          input: z.object({ firstName: z.string(), legacyId: z.string() }),
+          output: z.object({ message: z.string() }),
+          status: { state: 'archived' },
+          transpose: {
+            input: ({ input }) => ({ name: input.firstName }),
+            output: ({ output }) => output,
+          },
+        },
+        2: {
+          input: z.object({ firstName: z.string() }),
+          output: z.object({ message: z.string() }),
+          status: { note: 'Use name.', state: 'deprecated' },
+          transpose: {
+            input: ({ input }) => ({ name: input.firstName }),
+            output: ({ output }) => output,
+          },
+        },
+      },
+    });
+    const cmd = requireCommand(buildCommands(makeApp(versioned)));
+
+    expect(cmd.flags.map((flag) => flag.name)).toContain('trail-version');
+    expect(cmd.versions?.map((entry) => entry.version)).toEqual([2, 3]);
+    expect(cmd.versions?.[0]).toMatchObject({
+      current: false,
+      deprecated: true,
+      version: 2,
+    });
+
+    const result = await cmd.execute(
+      {},
+      {
+        firstName: 'Ada',
+        trailVersion: '2',
+      }
+    );
+
+    expect(result.isOk()).toBe(true);
+    expect(result.value).toEqual({ message: 'Hello, Ada!' });
+  });
 });
 
 describe('buildCommands resource overrides', () => {
