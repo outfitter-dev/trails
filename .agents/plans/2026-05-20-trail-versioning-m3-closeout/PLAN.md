@@ -100,12 +100,13 @@ should verify the final shape rather than guess at intermediate contracts.
 
 ## Work Plan
 
-### Phase 0: Preflight And Packet Commit
+### Phase 0: Preflight And Packet Baseline
 
 Intent:
 
-- Confirm the executor is starting from current `main`, not the unrelated
-  TRL-738 branch or another local worktree state.
+- Confirm the executor is starting from current `main`, where this packet has
+  already landed via PR #539, not from the old docs planning branch, the
+  unrelated TRL-738 branch, or another local worktree state.
 
 Actions:
 
@@ -114,8 +115,9 @@ Actions:
   `git status --short`, and `gt log --stack --reverse`.
 - Verify Linear issue states, branch names, and milestones are unchanged from
   this packet.
-- Commit this packet on the lowest execution branch after creating the stack
-  skeleton.
+- Verify this packet already exists on `main`. Do not create a duplicate packet.
+  Future `RETRO.md` or report updates made during execution should be committed
+  on the relevant execution branch as normal stack work.
 
 Verification:
 
@@ -125,8 +127,8 @@ Verification:
 Done when:
 
 - The executor can prove the starting point is current `main`, the active packet
-  is on the bottom branch, and any stale tracker drift has been corrected or
-  called out.
+  is already present, and any stale tracker drift has been corrected or called
+  out.
 
 ### Phase 1: TRL-740 Cleanup Branch
 
@@ -393,7 +395,9 @@ Required during execution:
 - Subagents may edit files, run checks, and write review reports, but they must
   not run `git add`, `git commit`, `git push`, `gt create`, `gt modify`,
   `gt restack`, `gt submit`, merge commands, or PR mutation commands.
-- Commit the active plan packet on the lowest branch in the stack.
+- The active plan packet has already landed on `main` via PR #539. Do not
+  duplicate it. Commit future `RETRO.md` or report updates on the relevant
+  execution branch as part of normal stack work.
 - Use Conventional Commit-style commits and PR titles.
 - Use branch-local changesets for package-content changes unless a PR is truly
   `release:none`.

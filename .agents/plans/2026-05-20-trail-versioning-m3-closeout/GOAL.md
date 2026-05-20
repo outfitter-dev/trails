@@ -48,7 +48,7 @@ Scope:
 Source-control rules:
 - Use Graphite for branch and stack operations.
 - It is fine to create the local branch chain up front, but do not submit or push empty branches.
-- Commit this plan packet on the lowest branch in the stack.
+- This plan packet has already landed on `main` via PR #539. Do not duplicate it. Commit future `RETRO.md` or report updates on the relevant execution branch as part of normal stack work.
 - Main agent owns all `git` and `gt` writes.
 - Subagents may edit files, run checks, and write review reports, but must not run `git add`, `git commit`, `git push`, `gt create`, `gt modify`, `gt restack`, `gt submit`, merge commands, or PR mutation commands.
 - Do not use `gt absorb`.

@@ -80,8 +80,8 @@
 - PR #532 through PR #538 - merged M1/M2 stack through current `main`.
 - PR #531 / `trl-738-add-codex-clark-agent-wiring` - unrelated open PR. Do not
   base this stack on it unless it merges into `main` first.
-- Current planning branch:
-  `docs/versioning-m1-m2-housekeeping-and-m3-plan`.
+- PR #539 / `docs/versioning-m1-m2-housekeeping-and-m3-plan` - merged planning
+  packet and M1/M2 active-packet archive housekeeping into `main`.
 
 ## Exact Branch Order
 
