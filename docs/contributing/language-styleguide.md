@@ -270,6 +270,35 @@ The same discipline applies to every Trails term:
   unless comparing to external framework terminology.
 - Use `meta`, not metadata, when naming the trail field.
 
+## Versioning Grammar
+
+Use the ADR-0048 source shape when writing current-facing versioning guidance:
+
+- `version: N` for the current trail version.
+- `versions: { N: ... }` for explicit historical entries.
+- `revision` for a historical entry that uses pure `transpose:` transforms.
+- `fork` for a historical entry with its own `blaze:`.
+- `status` for lifecycle metadata such as deprecated or archived.
+- `marker` for projected content-addressed identities.
+- `@N` and `@<marker-prefix>` for version references.
+- `(trail, version)` for the runtime contract-resolution pair.
+
+Keep `blaze` grammar intact when explaining versioning. A fork entry may own a
+historical `blaze`, but the runtime still runs a blazed trail. Surfaces do not
+call blazes directly.
+
+Avoid these shapes in current-facing versioning prose:
+
+- `.v*.ts` auto-discovery
+- `version.current` or `version.markers`
+- `adapt:` for version-entry transforms
+- source-authored `kind:`
+- source-authored `marker:`
+- `trails version`, `trails sunset`, `trails mark`, `trails fork`, or
+  `trails archive`
+- `handler`, `implementation file`, or `surface route` as the canonical name
+  for a versioned trail's behavior
+
 The lexicon remains the source of truth for term definitions. This styleguide is
 the source of truth for how those terms should sound in prose.
 

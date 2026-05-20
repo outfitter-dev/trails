@@ -401,6 +401,77 @@ const result = await run(graph, 'entity.show', { id: '123' });
 
 `run()` is for "invoke this specific trail now." It is not the authored `blaze` on a trail.
 
+### `version` / `versions`
+
+Trail-only contract evolution fields. `version: N` declares the current version
+number on a trail. `versions: { N: ... }` declares explicit historical version
+entries for that same trail.
+
+```typescript
+const create = trail('invite.create', {
+  input: currentInput,
+  output: currentOutput,
+  blaze: currentBlaze,
+  version: 3,
+  versions: {
+    2: { input: v2Input, output: v2Output, transpose: v2Transpose },
+  },
+});
+```
+
+The current contract stays top-level. Historical entries must declare `input`
+and `output`; they do not inherit from current. In v1, this shape belongs only
+to trails. Non-trail primitives reserve the field name for future
+primitive-specific designs.
+
+### `revision` / `fork`
+
+Kinds of trail version entries, projected by the resolved graph rather than
+authored as a source `kind:` field.
+
+A **revision** has `transpose:` and uses pure data transforms into and out of
+current. The current blazed trail still runs.
+
+A **fork** has its own `blaze:` and may own `crosses`, `resources`, and
+`detours` because its historical blazed trail runs for that version.
+
+### `transpose`
+
+The schema-transform field on a revision entry. It is a pure
+`{ input, output }` pair for translating data between one historical contract
+and current.
+
+`transpose` is not an adapter. `adapter` names a package or subpath that bridges
+Trails to an external library, framework, tool, platform, format, or ecosystem.
+`transpose` is local version-entry grammar.
+
+### `status`
+
+Lifecycle metadata on a historical version entry. Absence means active.
+Supported v1 states are `deprecated` and `archived`.
+
+Deprecated entries remain live. Archived entries remain inspectable but do not
+resolve at runtime by default.
+
+### `marker`
+
+A framework-projected, content-addressed contract identifier. Authors do not
+write `marker:` in source. The resolved graph stores a 16-character SHA-256
+prefix and surfaces display the shortest unambiguous prefix with a minimum of
+four characters.
+
+### `@N` / `(trail, version)`
+
+`trail.id@2` is a version reference. `trail.id@<marker-prefix>` is a marker
+reference when the prefix is unambiguous. The `(trail, version)` pair is the
+contract-resolution unit; a bare trail ID means current.
+
+### `forces`
+
+Compiler-managed graph audit records for future `--force` compile behavior.
+`forces:` appears only in the resolved graph, not in source, and is not a
+version entry.
+
 ### `graph`
 
 The assembled, queryable value returned by `topo()`. The graph is the runtime

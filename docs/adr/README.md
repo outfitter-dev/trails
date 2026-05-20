@@ -50,7 +50,8 @@ ADRs document the significant design decisions behind Trails — the choices tha
 | [0041](0041-unified-observability.md) | Unified Observability | Accepted |
 | [0042](0042-core-topographer-boundary-doctrine.md) | Core/Topographer Boundary Doctrine | Accepted |
 | [0043](0043-layer-evolution.md) | Layer Evolution | Accepted (amended 2026-05-04) |
-| [0044](0044-trail-versioning.md) | Trail Versioning | Accepted |
+| [0044](0044-trail-versioning.md) | Trail Versioning | Superseded |
 | [0045](0045-v1-resolved-graph-error-scope.md) | v1 Resolved Graph Error Scope | Accepted |
 | [0046](0046-lock-v3-artifact-family.md) | Lock v3 Artifact Family | Accepted |
 | [0047](0047-stable-release-line-discipline.md) | Stable Release Line Discipline | Accepted |
+| [0048](0048-trail-versioning-v3.md) | Trail Versioning v3 | Accepted |

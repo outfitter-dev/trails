@@ -114,6 +114,17 @@ const reviewedSurfaceMentionPaths = [
   'scripts/rename-audit.sh',
 ] as const;
 
+const surfaceTermAllowedMatches = [
+  {
+    line: 326,
+    path: 'docs/adr/0048-trail-versioning-v3.md',
+  },
+  {
+    line: 327,
+    path: 'docs/adr/0048-trail-versioning-v3.md',
+  },
+] as const;
+
 const reviewedRetiredTaxonomyMentionPaths = [
   ...changelogHistoryPaths,
   'docs/adr',
@@ -313,6 +324,7 @@ export const auditRules: readonly VocabAuditRule[] = [
     pattern: String.raw`\bgates\b|\bmiddleware\b`,
   },
   {
+    allowMatches: surfaceTermAllowedMatches,
     description:
       'Old boundary terminology still uses trailhead instead of surface',
     excludePaths: reviewedSurfaceMentionPaths,

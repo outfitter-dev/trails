@@ -2,7 +2,8 @@
 id: 44
 slug: trail-versioning
 title: Trail Versioning
-status: accepted
+status: superseded
+superseded_by: ['48']
 created: 2026-04-09
 updated: 2026-05-19
 accepted: 2026-05-06
@@ -11,6 +12,13 @@ depends_on: [3, 6, 8, 13, 17, 24, 26, 35]
 ---
 
 # ADR-0044: Trail Versioning
+
+> **Status update (2026-05-19):** Superseded by
+> [ADR-0048: Trail Versioning v3](0048-trail-versioning-v3.md).
+> This ADR remains historical source material for the per-trail versioning
+> premise, but its `.v*.ts` discovery, `version.current` object, `adapt:`
+> transforms, sunset lifecycle, and `trails version` command grammar are no
+> longer current doctrine.
 
 ## Context
 

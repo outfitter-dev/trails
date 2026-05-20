@@ -329,7 +329,7 @@ const stringifyFormattedJson = (
     }
     if (value.every(isJsonPrimitive)) {
       const inline = `[${value.map((item) => JSON.stringify(item)).join(', ')}]`;
-      if (jsonIndent(depth).length + linePrefixLength + inline.length <= 100) {
+      if (jsonIndent(depth).length + linePrefixLength + inline.length <= 80) {
         return inline;
       }
       const nextDepth = depth + 1;

@@ -392,6 +392,11 @@
           "fromPath": "docs/adr/0044-trail-versioning.md"
         },
         {
+          "context": "- [ADR-0003: Unified Trail Primitive](0003-unified-trail-primitive.md)",
+          "from": "0048",
+          "fromPath": "docs/adr/0048-trail-versioning-v3.md"
+        },
+        {
           "context": "- [ADR-0003: Unified Trail Primitive](../0003-unified-trail-primitive.md) -- every trail is runnable, whether atomic or composite",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
@@ -599,6 +604,11 @@
           "fromPath": "docs/adr/0044-trail-versioning.md"
         },
         {
+          "context": "- [ADR-0006: Shared Execution Pipeline](0006-shared-execution-pipeline.md)",
+          "from": "0048",
+          "fromPath": "docs/adr/0048-trail-versioning-v3.md"
+        },
+        {
           "context": "- [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md) -- `trails run` executes through the pipeline, the same as every trailhead",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
@@ -755,6 +765,11 @@
           "context": "- [ADR-0008: Deterministic Surface Derivation](0008-deterministic-trailhead-derivation.md)",
           "from": "0044",
           "fromPath": "docs/adr/0044-trail-versioning.md"
+        },
+        {
+          "context": "- [ADR-0008: Deterministic Surface Derivation](0008-deterministic-trailhead-derivation.md)",
+          "from": "0048",
+          "fromPath": "docs/adr/0048-trail-versioning-v3.md"
         },
         {
           "context": "- [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md) -- rigged trails get trailhead derivation for free",
@@ -1067,6 +1082,11 @@
           "fromPath": "docs/adr/0044-trail-versioning.md"
         },
         {
+          "context": "- [ADR-0013: Tracing](0013-tracing.md)",
+          "from": "0048",
+          "fromPath": "docs/adr/0048-trail-versioning-v3.md"
+        },
+        {
           "context": "- [ADR-0013: Tracing](../0013-tracing.md) -- the tracing primitive; current-run trace rendering during `trails run`, historical tracing via `trails trace`",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
@@ -1259,6 +1279,11 @@
           "fromPath": "docs/adr/0040-resource-scoped-store-signal-identity.md"
         },
         {
+          "context": "- [ADR-0016: Schema-Derived Persistence](0016-schema-derived-persistence.md)",
+          "from": "0048",
+          "fromPath": "docs/adr/0048-trail-versioning-v3.md"
+        },
+        {
           "context": "- [ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md) -- the store abstraction that search extends",
           "from": "20260401",
           "fromPath": "docs/adr/drafts/20260401-declarative-search.md"
@@ -1351,6 +1376,11 @@
           "context": "- [ADR-0017: The Serialized Topo Graph](0017-serialized-topo-graph.md)",
           "from": "0046",
           "fromPath": "docs/adr/0046-lock-v3-artifact-family.md"
+        },
+        {
+          "context": "- [ADR-0017: The Serialized Topo Graph](0017-serialized-topo-graph.md)",
+          "from": "0048",
+          "fromPath": "docs/adr/0048-trail-versioning-v3.md"
         },
         {
           "context": "- [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md) -- rig state captured in the lockfile graph; rig lock state occupies a section in `trails.lock`",
@@ -1676,6 +1706,11 @@
           "fromPath": "docs/adr/0044-trail-versioning.md"
         },
         {
+          "context": "- [ADR-0024: Typed Trail Composition](0024-typed-trail-composition.md)",
+          "from": "0048",
+          "fromPath": "docs/adr/0048-trail-versioning-v3.md"
+        },
+        {
           "context": "caller can pass both. See [ADR-0024](adr/0024-typed-trail-composition.md).",
           "from": "lexicon",
           "fromPath": "docs/lexicon.md"
@@ -1737,6 +1772,11 @@
           "context": "- [ADR-0026: Error Taxonomy as Transport-Independent Behavior Contract](0026-error-taxonomy-as-transport-independent-behavior-contract.md)",
           "from": "0045",
           "fromPath": "docs/adr/0045-v1-resolved-graph-error-scope.md"
+        },
+        {
+          "context": "- [ADR-0026: Error Taxonomy as Transport-Independent Behavior Contract](0026-error-taxonomy-as-transport-independent-behavior-contract.md)",
+          "from": "0048",
+          "fromPath": "docs/adr/0048-trail-versioning-v3.md"
         },
         {
           "context": "- [ADR-0026: Error Taxonomy as Transport-Independent Behavior Contract](../0026-error-taxonomy-as-transport-independent-behavior-contract.md) -- WebSocket close code mapping deferred there; the error ",
@@ -2114,6 +2154,11 @@
           "fromPath": "docs/adr/0047-stable-release-line-discipline.md"
         },
         {
+          "context": "- [ADR-0035: Surface APIs Render the Graph](0035-surface-apis-render-the-graph.md)",
+          "from": "0048",
+          "fromPath": "docs/adr/0048-trail-versioning-v3.md"
+        },
+        {
           "context": "The published `CHANGELOG.md` for `@ontrails/cli` and `@ontrails/mcp` attributes the lexicon work to ADR-0023, but the surface-API renames listed here are governed by [ADR-0035: Surface APIs Render the",
           "from": "beta15",
           "fromPath": "docs/releases/beta15.md"
@@ -2408,14 +2453,19 @@
           "context": "- [ADR-0044: Trail Versioning](0044-trail-versioning.md) — trail contract",
           "from": "0047",
           "fromPath": "docs/adr/0047-stable-release-line-discipline.md"
+        },
+        {
+          "context": "- [ADR-0044: Trail Versioning](0044-trail-versioning.md)",
+          "from": "0048",
+          "fromPath": "docs/adr/0048-trail-versioning-v3.md"
         }
       ],
       "number": "0044",
       "owners": ["[galligan](https://github.com/galligan)"],
       "path": "docs/adr/0044-trail-versioning.md",
       "slug": "trail-versioning",
-      "status": "accepted",
-      "superseded_by": null,
+      "status": "superseded",
+      "superseded_by": ["48"],
       "title": "Trail Versioning",
       "updated": "2026-05-19"
     },
@@ -2473,6 +2523,11 @@
           "fromPath": "docs/adr/0047-stable-release-line-discipline.md"
         },
         {
+          "context": "- [ADR-0046: Lock v3 Artifact Family](0046-lock-v3-artifact-family.md)",
+          "from": "0048",
+          "fromPath": "docs/adr/0048-trail-versioning-v3.md"
+        },
+        {
           "context": "[ADR-0046](adr/0046-lock-v3-artifact-family.md).",
           "from": "lexicon",
           "fromPath": "docs/lexicon.md"
@@ -2502,6 +2557,11 @@
           "fromPath": "AGENTS.md"
         },
         {
+          "context": "- [ADR-0047: Stable Release Line Discipline](0047-stable-release-line-discipline.md)",
+          "from": "0048",
+          "fromPath": "docs/adr/0048-trail-versioning-v3.md"
+        },
+        {
           "context": "It is governed by [ADR-0047: Stable Release Line Discipline](../adr/0047-stable-release-line-discipline.md).",
           "from": "stable-cutover",
           "fromPath": "docs/releases/stable-cutover.md"
@@ -2515,6 +2575,42 @@
       "superseded_by": null,
       "title": "Stable Release Line Discipline",
       "updated": "2026-05-13"
+    },
+    {
+      "created": "2026-05-19",
+      "depends_on": [
+        "3",
+        "6",
+        "8",
+        "13",
+        "16",
+        "17",
+        "24",
+        "26",
+        "35",
+        "46",
+        "47"
+      ],
+      "inbound": [
+        {
+          "context": "> [ADR-0048: Trail Versioning v3](0048-trail-versioning-v3.md) uses projected",
+          "from": "0016",
+          "fromPath": "docs/adr/0016-schema-derived-persistence.md"
+        },
+        {
+          "context": "> [ADR-0048: Trail Versioning v3](0048-trail-versioning-v3.md).",
+          "from": "0044",
+          "fromPath": "docs/adr/0044-trail-versioning.md"
+        }
+      ],
+      "number": "0048",
+      "owners": ["[galligan](https://github.com/galligan)"],
+      "path": "docs/adr/0048-trail-versioning-v3.md",
+      "slug": "trail-versioning-v3",
+      "status": "accepted",
+      "superseded_by": null,
+      "title": "Trail Versioning v3",
+      "updated": "2026-05-19"
     }
   ],
   "version": 1

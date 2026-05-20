@@ -11,6 +11,11 @@ depends_on: [14, 9]
 
 # ADR-0016: Schema-Derived Persistence
 
+> **Forward pointer (2026-05-19):** The draft `mark()` naming reservation that
+> appeared during persistence exploration is not the Trail Versioning grammar.
+> [ADR-0048: Trail Versioning v3](0048-trail-versioning-v3.md) uses projected
+> `marker:` identities plus `trails revise` / `trails deprecate` operator verbs.
+
 ## Context
 
 The hexagonal architecture places surfaces (CLI, MCP, HTTP) on the left and infrastructure (databases, caches, APIs) on the right. Surfaces have first-class framework support: `surface()` derives a full CLI from the trail contract, `deriveMcpTools()` derives MCP tool definitions, `deriveHttpRoutes()` derives HTTP routes. The left side of the hexagon is solved.
