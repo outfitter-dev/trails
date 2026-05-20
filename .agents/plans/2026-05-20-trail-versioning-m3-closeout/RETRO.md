@@ -33,8 +33,8 @@ handoff. Meaningful review-flow changes require a new retro entry.
 | 3 | TRL-731 | `trl-731-featcore-add-archive-status-lifecycle-for-version-entries` | Pending | Planned | Archive status lifecycle |
 | 4 | TRL-732 | `trl-732-feattrails-add-compilevalidate-break-detection-and-force` | Pending | Planned | Break classifier and graph-only force events |
 | 5 | TRL-730 | `trl-730-feattrails-add-version-and-marker-aware-trails-diff` | Pending | Planned | Version-aware `trails diff` |
-| 6 | TRL-118 | `trl-118-project-version-negotiation-across-http-mcp-cli-and` | Pending | Planned | Surface version negotiation |
-| 7 | TRL-119 | `trl-119-add-cli-lifecycle-commands-revise-deprecate-and-doctor` | Pending | Planned | CLI lifecycle commands |
+| 6 | TRL-118 | `trl-118-project-version-negotiation-across-http-mcp-cli-and` | Pending | Implemented locally | Surface version negotiation committed as `ecebbd416` |
+| 7 | TRL-119 | `trl-119-add-cli-lifecycle-commands-revise-deprecate-and-doctor` | Pending | Implemented locally | CLI lifecycle commands ready to commit |
 | 8 | TRL-120 | `trl-120-add-warden-rules-for-trail-version-entries-and-markers` | Pending | Planned | Warden capstone |
 
 ## Planning Discoveries
@@ -140,6 +140,16 @@ Append meaningful state changes, especially before handoff points.
 - Result: TRL-118 local surface negotiation is implemented for shipped surfaces. Remaining branch-local checks still need formatting, `git diff --check`, and commit-hook validation before committing.
 - Next: Run branch formatting/whitespace checks, commit TRL-118, restack upward, then implement lifecycle CLI commands in TRL-119.
 - Blockers: None.
+
+2026-05-20 10:43 EDT - TRL-119 lifecycle CLI commands
+- Changed: Committed TRL-118 as `ecebbd416 feat(surfaces): negotiate trail versions`; Graphite restacked the descendant branches.
+- Changed: Implemented TRL-119 on `trl-119-add-cli-lifecycle-commands-revise-deprecate-and-doctor`: added `trails revise`, `trails deprecate`, and `trails doctor`; registered them in the Trails app; added source lifecycle rewrite helpers; added a local lifecycle source IO boundary; documented the settled command grammar; and added a branch-local changeset.
+- Changed: `trails revise <trail>` scaffolds a revision entry and bumps current `version`; `trails revise <trail> --as fork` scaffolds a fork entry; `trails revise <trail>@<v> --as fork` upgrades an existing historical entry into a fork placeholder; `trails deprecate <trail>@<v>` writes deprecated status guidance; `trails deprecate <trail>@<v> --archive` writes archived status; `trails doctor` summarizes lifecycle counts and force-event audit state.
+- Verified: Focused lifecycle/survey tests passed: `bun test apps/trails/src/__tests__/version-lifecycle.test.ts apps/trails/src/__tests__/survey.test.ts` (57 pass).
+- Verified: `bun run --cwd apps/trails typecheck`, `bun run --cwd apps/trails lint`, and `git diff --check` passed; the lint run reported 0 warnings and 0 errors after routing raw source writes through `lifecycle-source-io.ts`.
+- Result: TRL-119 local lifecycle CLI commands are implemented and ready to commit. The command set intentionally does not add `trails version`, `trails sunset`, `trails mark`, `trails fork`, or `trails archive`.
+- Next: Commit TRL-119, restack upward, then implement Warden capstone rules on TRL-120.
+- Blockers: None.
 ```
 
 ## Local Review Log
@@ -180,6 +190,9 @@ Record exact commands and artifact checks. Include skipped checks with reasons.
 | `bun run --cwd packages/cli typecheck` | TRL-118 targeted typecheck | Passed | `tsc --noEmit` passed. |
 | `bun run --cwd packages/http typecheck` | TRL-118 targeted typecheck | Passed | `tsc --noEmit` passed. |
 | `bun run --cwd packages/mcp typecheck` | TRL-118 targeted typecheck | Passed | `tsc --noEmit` passed. |
+| `bun test apps/trails/src/__tests__/version-lifecycle.test.ts apps/trails/src/__tests__/survey.test.ts` | TRL-119 targeted tests | Passed | 57 pass, 0 fail. |
+| `bun run --cwd apps/trails typecheck` | TRL-119 targeted typecheck | Passed | `tsc --noEmit` passed. |
+| `bun run --cwd apps/trails lint` | TRL-119 targeted lint | Passed | 0 warnings, 0 errors. |
 | `bun run check` | Execution tip | Pending | Required by goal. |
 | `bun run build` | Execution tip | Pending | Required by goal. |
 | `bun run test` | Execution tip | Pending | Required by goal. |

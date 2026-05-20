@@ -117,6 +117,37 @@ trails diff --breaks
 trails diff --forces
 ```
 
+### `trails revise`
+
+Scaffold trail version lifecycle entries from source. The default shape creates a
+revision entry for the current version and bumps the trail to the next version.
+Use `--as fork` when the historical version needs its own preserved blaze.
+
+```bash
+trails revise billing.quote
+trails revise billing.quote --as fork
+trails revise billing.quote@1 --as fork
+```
+
+### `trails deprecate`
+
+Mark a historical version entry deprecated, or archived when the historical
+version should remain inspectable but leave default runtime negotiation.
+
+```bash
+trails deprecate billing.quote@1 --successor 2 --note "Use v2."
+trails deprecate billing.quote@1 --archive --reason "Superseded before GA."
+```
+
+### `trails doctor`
+
+Summarize version lifecycle state for the loaded app, including deprecated and
+archived historical entries plus forced topo break audit events.
+
+```bash
+trails doctor
+```
+
 ### `trails validate`
 
 Check that the `.trails/trails.lock` / `.trails/topo.lock` artifact family
