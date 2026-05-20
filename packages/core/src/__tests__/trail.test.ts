@@ -148,6 +148,85 @@ describe('trail()', () => {
       expect('transpose' in (entry as Record<string, unknown>)).toBe(false);
     });
 
+    test('allows metadata-only revisions when equivalent schema arrays differ in order', () => {
+      const versioned = trail('metadata.reordered-schema', {
+        blaze: (input) => Result.ok({ state: input.state }),
+        input: z.object({
+          id: z.string(),
+          state: z.enum(['queued', 'sent']),
+        }),
+        output: z.object({
+          state: z.enum(['queued', 'sent']),
+        }),
+        version: 2,
+        versions: {
+          1: {
+            input: z.object({
+              id: z.string(),
+              state: z.enum(['sent', 'queued']),
+            }),
+            output: z.object({
+              state: z.enum(['sent', 'queued']),
+            }),
+          },
+        },
+      });
+
+      const entry = versioned.versions?.[1];
+      expect(entry && getTrailVersionEntryKind(entry)).toBe('revision');
+      expect('transpose' in (entry as Record<string, unknown>)).toBe(false);
+    });
+
+    test('allows metadata-only revisions when current output schema is absent', () => {
+      const versioned = trail('metadata.no-current-output', {
+        blaze: () => Result.ok(),
+        input: z.object({ id: z.string() }),
+        version: 2,
+        versions: {
+          1: {
+            input: z.object({ id: z.string() }),
+            output: z.void(),
+          },
+        },
+      });
+
+      const entry = versioned.versions?.[1];
+      expect(entry && getTrailVersionEntryKind(entry)).toBe('revision');
+      expect('transpose' in (entry as Record<string, unknown>)).toBe(false);
+    });
+
+    test('rejects schema-changing revision entries without transpose', () => {
+      expect(() =>
+        trail('missing.input.transpose', {
+          blaze: (input) => Result.ok({ id: input.id }),
+          input: z.object({ id: z.string(), requiredNow: z.string() }),
+          output: z.object({ id: z.string() }),
+          version: 2,
+          versions: {
+            1: {
+              input: z.object({ id: z.string() }),
+              output: z.object({ id: z.string() }),
+            },
+          },
+        })
+      ).toThrow(ValidationError);
+
+      expect(() =>
+        trail('missing.output.transpose', {
+          blaze: () => Result.ok({ state: 'queued' as const }),
+          input: z.object({}),
+          output: z.object({ state: z.enum(['queued', 'sent']) }),
+          version: 2,
+          versions: {
+            1: {
+              input: z.object({}),
+              output: z.object({ state: z.literal('sent') }),
+            },
+          },
+        })
+      ).toThrow(ValidationError);
+    });
+
     test('stores fork entries with normalized runtime references', () => {
       const target = trail('target.read', {
         blaze: () => Result.ok({ ok: true }),
@@ -253,6 +332,19 @@ describe('trail()', () => {
               input: z.object({}),
               output: z.object({ ok: z.boolean() }),
               resources: [dbResource],
+            } as never,
+          },
+        })
+      ).toThrow(ValidationError);
+
+      expect(() =>
+        trail('bad.revision-cross-input', {
+          ...base,
+          versions: {
+            1: {
+              crossInput: z.object({ caller: z.string() }),
+              input: z.object({}),
+              output: z.object({ ok: z.boolean() }),
             } as never,
           },
         })

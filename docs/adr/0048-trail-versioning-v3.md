@@ -121,7 +121,8 @@ versions: {
 }
 ```
 
-A revision is a schema-only bridge between a historical contract and current.
+A revision is a schema-only translation path between a historical contract and
+current.
 The current blazed trail still runs. Transpose functions are pure data
 transforms: no `ctx`, no resources, no crosses, no signal firing, no permit
 state, and no surface state.

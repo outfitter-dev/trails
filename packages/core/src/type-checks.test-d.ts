@@ -10,7 +10,7 @@
  */
 
 import type { Signal, SignalSpec } from './signal.js';
-import type { Trail, TrailSpec } from './trail.js';
+import type { Trail, TrailSpec, TrailVersionRevisionEntry } from './trail.js';
 import type { ResourceSpec } from './resource.js';
 import type { ContourOptions } from './contour.js';
 import type { ScheduleSpec } from './schedule.js';
@@ -136,6 +136,60 @@ export type NonTrailVersionReservations = [
   AssertVersionReserved<ScheduleSpec>,
   AssertVersionReserved<WebhookSpec>,
 ] extends [true, true, true, true, true]
+  ? 'pass'
+  : never;
+
+interface RevisionInput {
+  readonly legacyName: string;
+}
+interface RevisionOutput {
+  readonly greeting: string;
+}
+interface CurrentInput {
+  readonly name: string;
+  readonly notify: boolean;
+}
+interface CurrentOutput {
+  readonly auditLevel: 'current' | 'legacy';
+  readonly greeting: string;
+}
+type RevisionTranspose = NonNullable<
+  TrailVersionRevisionEntry<
+    RevisionInput,
+    RevisionOutput,
+    CurrentInput,
+    CurrentOutput
+  >['transpose']
+>;
+
+type AssertRevisionInputTranspose = RevisionTranspose['input'] extends (value: {
+  readonly input: RevisionInput;
+}) => CurrentInput | Promise<CurrentInput>
+  ? true
+  : false;
+type AssertRevisionOutputTranspose =
+  RevisionTranspose['output'] extends (value: {
+    readonly output: CurrentOutput;
+  }) => RevisionOutput | Promise<RevisionOutput>
+    ? true
+    : false;
+type AssertRevisionNoCrossInput = TrailVersionRevisionEntry<
+  RevisionInput,
+  RevisionOutput,
+  CurrentInput,
+  CurrentOutput
+>['crossInput'] extends never | undefined
+  ? true
+  : false;
+export type RevisionTransposeContract = [
+  AssertRevisionInputTranspose,
+  AssertRevisionOutputTranspose,
+] extends [true, true]
+  ? 'pass'
+  : never;
+export type RevisionRuntimeFieldContract = [
+  AssertRevisionNoCrossInput,
+] extends [true]
   ? 'pass'
   : never;
 

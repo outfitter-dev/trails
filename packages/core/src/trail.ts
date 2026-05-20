@@ -28,6 +28,7 @@ import type {
   PermitRequirement,
   TrailContext,
 } from './types.js';
+import { zodToJsonSchema } from './validation.js';
 
 // ---------------------------------------------------------------------------
 // Trail example
@@ -133,6 +134,7 @@ export interface TrailVersionRevisionEntry<
   CurrentOutput = unknown,
 > extends VersionEntry<VersionContract<VersionInput, VersionOutput>> {
   readonly blaze?: never;
+  readonly crossInput?: never;
   readonly crosses?: never;
   readonly detours?: never;
   readonly kind?: never;
@@ -521,6 +523,45 @@ const assertVersionNumber = (
 const hasOwn = (value: Record<string, unknown>, key: string): boolean =>
   Object.hasOwn(value, key);
 
+const ORDER_INSENSITIVE_SCHEMA_ARRAY_KEYS = new Set([
+  'allOf',
+  'anyOf',
+  'enum',
+  'oneOf',
+  'required',
+  'type',
+]);
+
+const canonicalizeVersionSchema = (
+  value: unknown,
+  parentKey?: string
+): unknown => {
+  if (Array.isArray(value)) {
+    const items = value.map((item) => canonicalizeVersionSchema(item));
+    return parentKey !== undefined &&
+      ORDER_INSENSITIVE_SCHEMA_ARRAY_KEYS.has(parentKey)
+      ? items.toSorted((left, right) =>
+          JSON.stringify(left).localeCompare(JSON.stringify(right))
+        )
+      : items;
+  }
+  if (value !== null && typeof value === 'object') {
+    const sorted: Record<string, unknown> = {};
+    for (const key of Object.keys(value).toSorted()) {
+      sorted[key] = canonicalizeVersionSchema(
+        (value as Record<string, unknown>)[key],
+        key
+      );
+    }
+    return sorted;
+  }
+  return value;
+};
+
+const schemasMatch = (left: z.ZodType, right: z.ZodType): boolean =>
+  JSON.stringify(canonicalizeVersionSchema(zodToJsonSchema(left))) ===
+  JSON.stringify(canonicalizeVersionSchema(zodToJsonSchema(right)));
+
 const assertZodSchema = (
   trailId: string,
   version: number,
@@ -597,7 +638,7 @@ const assertRevisionOwnsNoRuntimeFields = (
   version: number,
   entry: Record<string, unknown>
 ): void => {
-  const forbidden = ['crosses', 'resources', 'detours'];
+  const forbidden = ['crossInput', 'crosses', 'resources', 'detours'];
   const declared = forbidden.filter((field) => hasOwn(entry, field));
   if (declared.length > 0) {
     throw new ValidationError(
@@ -609,6 +650,8 @@ const assertRevisionOwnsNoRuntimeFields = (
 const normalizeVersionEntry = <CurrentInput, CurrentOutput>(
   trailId: string,
   version: number,
+  currentInput: z.ZodType<CurrentInput>,
+  currentOutput: z.ZodType<CurrentOutput> | undefined,
   entry: TrailVersionEntry<unknown, unknown, CurrentInput, CurrentOutput>
 ): TrailVersionEntry<unknown, unknown, CurrentInput, CurrentOutput> => {
   if (typeof entry !== 'object' || entry === null || Array.isArray(entry)) {
@@ -671,6 +714,18 @@ const normalizeVersionEntry = <CurrentInput, CurrentOutput>(
   }
 
   assertRevisionOwnsNoRuntimeFields(trailId, version, raw);
+  const inputMatchesCurrent = schemasMatch(
+    raw['input'] as z.ZodType,
+    currentInput
+  );
+  const outputMatchesCurrent =
+    currentOutput === undefined ||
+    schemasMatch(raw['output'] as z.ZodType, currentOutput);
+  if (!hasTranspose && (!inputMatchesCurrent || !outputMatchesCurrent)) {
+    throw new ValidationError(
+      `Trail "${trailId}" version ${version} changes schema and must declare transpose`
+    );
+  }
 
   return Object.freeze({
     ...base,
@@ -682,6 +737,8 @@ const normalizeVersionEntry = <CurrentInput, CurrentOutput>(
 
 const normalizeTrailVersions = <CurrentInput, CurrentOutput>(
   trailId: string,
+  currentInput: z.ZodType<CurrentInput>,
+  currentOutput: z.ZodType<CurrentOutput> | undefined,
   currentVersion: number | undefined,
   versions: TrailVersions<CurrentInput, CurrentOutput> | undefined
 ): TrailVersions<CurrentInput, CurrentOutput> | undefined => {
@@ -732,6 +789,8 @@ const normalizeTrailVersions = <CurrentInput, CurrentOutput>(
     normalized[historicalVersion] = normalizeVersionEntry(
       trailId,
       historicalVersion,
+      currentInput,
+      currentOutput,
       entry
     );
   }
@@ -828,6 +887,8 @@ export function trail<I, O, CI = never>(
   const collections = normalizeCollections(resolved.spec);
   const versions = normalizeTrailVersions<I, O>(
     resolved.id,
+    resolved.spec.input,
+    resolved.spec.output,
     rawVersion,
     rawVersions
   );

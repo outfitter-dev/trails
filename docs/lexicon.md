@@ -441,7 +441,7 @@ The schema-transform field on a revision entry. It is a pure
 `{ input, output }` pair for translating data between one historical contract
 and current.
 
-`transpose` is not an adapter. `adapter` names a package or subpath that bridges
+`transpose` is not an adapter. `adapter` names a package or subpath that connects
 Trails to an external library, framework, tool, platform, format, or ecosystem.
 `transpose` is local version-entry grammar.
 
@@ -524,7 +524,7 @@ projections; developers author the source.
 | `meta` | Annotations for tooling and filtering |
 | `Result` | Ok/Err return type |
 | `error` | Error types |
-| `adapter` | Canonical public category for a package or subpath that bridges Trails to a named external library, framework, tool, platform, format, or ecosystem |
+| `adapter` | Canonical public category for a package or subpath that connects Trails to a named external library, framework, tool, platform, format, or ecosystem |
 | `facet` | Projection slice of authored contract or surface data, such as a surface facet or schema facet; not a package category |
 | `integration (colloquial)` | Ordinary English for places Trails integrates with an external system; not a public taxonomy category |
 | `logger` / `logging` | Structured logging — framework provides the interface; developers bring their own |
