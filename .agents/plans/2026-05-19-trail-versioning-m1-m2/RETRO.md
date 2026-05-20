@@ -184,9 +184,13 @@ P3s. Do not mark local review complete while P0/P1/P2 findings remain.
 | `bun run --cwd packages/core test` | TRL-739 | passed | 1126 tests, 0 failures. |
 | `bun run --cwd packages/topographer test` | TRL-739 | passed | 127 tests, 0 failures. |
 | `bun run typecheck` | TRL-739 | passed | 22 package tasks successful. |
+| `bun run format:check` | TRL-739 | passed | Passed after formatter cleanup. |
+| `git diff --check` | TRL-739 | passed | No whitespace errors. |
 | `bun test packages/core/src/__tests__/version-runtime.test.ts packages/core/src/__tests__/version-execution.test.ts` | TRL-115 | passed | 13 tests, 0 failures. |
 | `bun run --cwd packages/core test` | TRL-115 | passed | 1147 tests, 0 failures. |
 | `bun run typecheck` | TRL-115 | passed | 22 package tasks successful. |
+| `bun run format:check` | TRL-115 | passed | Passed after removing the runtime import cycle and updating direct unit tests. |
+| `git diff --check` | TRL-115 | passed | No whitespace errors. |
 | `bun run --cwd packages/core typecheck` | TRL-116 | passed | `tsc --noEmit` exited 0. |
 | `bun run --cwd packages/testing typecheck` | TRL-116 | passed | `tsc --noEmit` exited 0. |
 | `bun run --cwd packages/topographer typecheck` | TRL-116 | passed | `tsc --noEmit` exited 0. |

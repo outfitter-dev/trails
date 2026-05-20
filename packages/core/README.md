@@ -124,7 +124,7 @@ category code maps in `@ontrails/core`.
 | Category | CLI Exit | HTTP | JSON-RPC | Retryable | Fixed Classes |
 | --- | --- | --- | --- | --- | --- |
 | `validation` | 1 | 400 | -32602 | No | `ValidationError`, `AmbiguousError` |
-| `not_found` | 2 | 404 | -32601 | No | `NotFoundError` |
+| `not_found` | 2 | 404 | -32601 | No | `NotFoundError`, `VersionNotSupportedError` |
 | `conflict` | 3 | 409 | -32603 | No | `AlreadyExistsError`, `ConflictError` |
 | `permission` | 4 | 403 | -32600 | No | `PermissionError`, `PermitError` |
 | `timeout` | 5 | 504 | -32603 | Yes | `TimeoutError` |

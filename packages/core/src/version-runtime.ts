@@ -1,10 +1,15 @@
 import { InternalError, ValidationError } from './errors.js';
 import { Result } from './result.js';
-import { executeTrail } from './execute.js';
 import type { ExecuteTrailOptions } from './execute.js';
 import { getTrailVersionEntryKind } from './trail.js';
 import type { AnyTrail, TrailVersionEntry } from './trail.js';
 import { validateInput, validateOutput } from './validation.js';
+
+export type TrailVersionCurrentExecutor = (
+  trail: AnyTrail,
+  input: unknown,
+  options?: ExecuteTrailOptions
+) => Promise<Result<unknown, Error>>;
 
 const normalizeTransposeError = (
   trail: AnyTrail,
@@ -59,21 +64,13 @@ const runTransposeOutput = async (
   }
 };
 
-const executeCurrentTrail = async (
-  trail: AnyTrail,
-  input: unknown,
-  options?: ExecuteTrailOptions
-): Promise<Result<unknown, Error>> => {
-  const { validationSchema: _validationSchema, ...forwarded } = options ?? {};
-  return await executeTrail(trail, input, forwarded);
-};
-
 export const executeTrailRevision = async (
   trail: AnyTrail,
   version: number,
   entry: TrailVersionEntry,
   rawInput: unknown,
-  options?: ExecuteTrailOptions
+  options: ExecuteTrailOptions | undefined,
+  executeCurrentTrail: TrailVersionCurrentExecutor
 ): Promise<Result<unknown, Error>> => {
   if (getTrailVersionEntryKind(entry) !== 'revision') {
     return Result.err(

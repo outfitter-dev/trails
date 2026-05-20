@@ -94,6 +94,7 @@ contract.
 | `AmbiguousError` | `validation` | 400 | 1 | -32602 | No |
 | `AssertionError` | `internal` | 500 | 8 | -32603 | No |
 | `NotFoundError` | `not_found` | 404 | 2 | -32601 | No |
+| `VersionNotSupportedError` | `not_found` | 404 | 2 | -32601 | No |
 | `AlreadyExistsError` | `conflict` | 409 | 3 | -32603 | No |
 | `ConflictError` | `conflict` | 409 | 3 | -32603 | No |
 | `PermissionError` | `permission` | 403 | 4 | -32600 | No |

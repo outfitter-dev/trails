@@ -8,7 +8,8 @@
 import type { Topo } from './topo.js';
 import { executeTrail } from './execute.js';
 import type { ExecuteTrailOptions } from './execute.js';
-import { NotFoundError } from './errors.js';
+import { parseTrailIdVersionReference } from './version-resolution.js';
+import { NotFoundError, ValidationError } from './errors.js';
 import { Result } from './result.js';
 
 // ---------------------------------------------------------------------------
@@ -43,7 +44,21 @@ export const run = (
   input: unknown,
   options?: RunOptions
 ): Promise<Result<unknown, Error>> => {
-  const trail = topo.get(id);
+  const parsed = parseTrailIdVersionReference(id);
+  if (parsed.isErr()) {
+    return Promise.resolve(Result.err(parsed.error));
+  }
+  if (parsed.value.version !== undefined && options?.version !== undefined) {
+    return Promise.resolve(
+      Result.err(
+        new ValidationError(
+          `Trail "${parsed.value.id}" cannot combine an @version suffix with options.version`
+        )
+      )
+    );
+  }
+
+  const trail = topo.get(parsed.value.id);
   if (trail === undefined) {
     return Promise.resolve(
       Result.err(
@@ -51,5 +66,11 @@ export const run = (
       )
     );
   }
-  return executeTrail(trail, input, { ...options, topo });
+  return executeTrail(trail, input, {
+    ...options,
+    ...(parsed.value.version === undefined
+      ? {}
+      : { version: parsed.value.version }),
+    topo,
+  });
 };

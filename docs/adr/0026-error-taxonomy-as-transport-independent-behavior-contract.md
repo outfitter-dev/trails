@@ -57,6 +57,7 @@ Transports map these properties to their native representations. The framework p
 | `AmbiguousError` | `validation` | No | 400 | 1 | -32602 | nack -> dead-letter | drop + dead-event |
 | `AssertionError` | `internal` | No | 500 | 8 | -32603 | nack -> dead-letter | drop + dead-event |
 | `NotFoundError` | `not_found` | No | 404 | 2 | -32601 | nack -> dead-letter | drop + dead-event |
+| `VersionNotSupportedError` | `not_found` | No | 404 | 2 | -32601 | nack -> dead-letter | drop + dead-event |
 | `AlreadyExistsError` | `conflict` | No | 409 | 3 | -32603 | nack -> dead-letter | drop + dead-event |
 | `ConflictError` | `conflict` | No | 409 | 3 | -32603 | nack -> dead-letter | drop + dead-event |
 | `PermissionError` | `permission` | No | 403 | 4 | -32600 | nack -> dead-letter | drop + dead-event |

@@ -219,7 +219,7 @@ Status codes come directly from the error taxonomy -- the same mapping used acro
 | Category | HTTP Status | Retryable | Fixed Classes |
 | --- | --- | --- | --- |
 | `validation` | 400 | No | `ValidationError`, `AmbiguousError` |
-| `not_found` | 404 | No | `NotFoundError` |
+| `not_found` | 404 | No | `NotFoundError`, `VersionNotSupportedError` |
 | `conflict` | 409 | No | `AlreadyExistsError`, `ConflictError` |
 | `permission` | 403 | No | `PermissionError`, `PermitError` |
 | `timeout` | 504 | Yes | `TimeoutError` |

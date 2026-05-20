@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 
 import { z } from 'zod';
 
+import { executeTrail } from '../execute';
 import { executeTrailRevision } from '../version-runtime';
 import { Result } from '../result';
 import { trail } from '../trail';
@@ -68,7 +69,9 @@ describe('executeTrailRevision', () => {
       createInvite,
       1,
       createInvite.versions?.[1] ?? expect.unreachable(),
-      { name: 'Ada' }
+      { name: 'Ada' },
+      undefined,
+      executeTrail
     );
 
     expect(result.unwrap()).toEqual({
@@ -102,7 +105,9 @@ describe('executeTrailRevision', () => {
       echo,
       1,
       echo.versions?.[1] ?? expect.unreachable(),
-      { value: 'stable' }
+      { value: 'stable' },
+      undefined,
+      executeTrail
     );
 
     expect(result.unwrap()).toEqual({ value: 'stable' });
@@ -130,7 +135,9 @@ describe('executeTrailRevision', () => {
       stateTrail,
       1,
       stateTrail.versions?.[1] ?? expect.unreachable(),
-      {}
+      {},
+      undefined,
+      executeTrail
     );
 
     expect(result.isErr()).toBe(true);
@@ -159,7 +166,9 @@ describe('executeTrailRevision', () => {
       requiresCurrent,
       1,
       requiresCurrent.versions?.[1] ?? expect.unreachable(),
-      { id: 'old' }
+      { id: 'old' },
+      undefined,
+      executeTrail
     );
 
     expect(result.isErr()).toBe(true);

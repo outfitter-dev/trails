@@ -68,6 +68,64 @@ export class NotFoundError extends TrailsError {
   readonly retryable = false as const;
 }
 
+export class VersionNotSupportedError extends NotFoundError {
+  readonly reason?: string | undefined;
+  readonly requested?: number | string | undefined;
+  readonly supported?: readonly number[] | undefined;
+  readonly trailId?: string | undefined;
+
+  constructor(
+    message: string,
+    options?: { cause?: Error; context?: Record<string, unknown> }
+  );
+  constructor(
+    trailId: string,
+    requested: number | string,
+    supported: readonly number[],
+    reason?: string | undefined
+  );
+  constructor(
+    messageOrTrailId: string,
+    optionsOrRequested?:
+      | { cause?: Error; context?: Record<string, unknown> }
+      | number
+      | string,
+    supported?: readonly number[],
+    reason?: string | undefined
+  ) {
+    if (supported === undefined) {
+      super(
+        messageOrTrailId,
+        optionsOrRequested as
+          | { cause?: Error; context?: Record<string, unknown> }
+          | undefined
+      );
+      this.name = 'VersionNotSupportedError';
+      return;
+    }
+
+    const requested = optionsOrRequested as number | string;
+    const supportedLabel =
+      supported.length === 0 ? 'none' : supported.join(', ');
+    super(
+      `Trail "${messageOrTrailId}" version ${String(requested)} is not supported (supported: ${supportedLabel})`,
+      {
+        context: {
+          ...(reason === undefined ? {} : { reason }),
+          requested,
+          supported,
+          trailId: messageOrTrailId,
+        },
+      }
+    );
+    this.name = 'VersionNotSupportedError';
+    this.reason = reason;
+    this.requested = requested;
+    this.supported = supported;
+    this.trailId = messageOrTrailId;
+  }
+}
+
 export class AlreadyExistsError extends TrailsError {
   readonly category = 'conflict' as const;
   readonly retryable = false as const;
@@ -236,6 +294,12 @@ export const errorClasses = [
     category: 'not_found',
     ctor: NotFoundError,
     name: 'NotFoundError',
+    retryable: false,
+  },
+  {
+    category: 'not_found',
+    ctor: VersionNotSupportedError,
+    name: 'VersionNotSupportedError',
     retryable: false,
   },
   {

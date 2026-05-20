@@ -8,11 +8,12 @@
 
 import type { z } from 'zod';
 
-import type { AnyTrail } from './trail.js';
+import type { AnyTrail, TrailVersionForkEntry } from './trail.js';
 import type { Layer } from './layer.js';
 import type { ResourceOverrideMap } from './resource.js';
 import type { TraceContext, TraceRecord } from './tracing.js';
 import type { Topo } from './topo.js';
+import type { TrailVersionReference } from './version-resolution.js';
 
 import {
   buildActivationProvenanceTraceAttrs,
@@ -27,6 +28,7 @@ import {
 import type { BasePermit } from './permits.js';
 import type {
   CrossBatchOptions,
+  CrossOptions,
   CrossFn,
   Detour,
   Implementation,
@@ -72,10 +74,21 @@ import { createResourceLookup } from './resource.js';
 import { createResources } from './resource-config.js';
 import { LAYER_INPUTS_KEY, SURFACE_KEY } from './types.js';
 import { validateInput, validateOutput } from './validation.js';
+import { executeTrailRevision } from './version-runtime.js';
+import type { TrailVersionCurrentExecutor } from './version-runtime.js';
+import {
+  parseTrailIdVersionReference,
+  resolveTrailVersion,
+} from './version-resolution.js';
 
 type MutableTrailContext = {
   -readonly [K in keyof TrailContext]: TrailContext[K];
 };
+
+type CrossForwardOptions = Omit<
+  ExecuteTrailOptions,
+  'createContext' | 'crossValidation' | 'validationSchema' | 'version'
+>;
 
 // ---------------------------------------------------------------------------
 // Options
@@ -153,6 +166,23 @@ export interface ExecuteTrailOptions {
    * @see TRL-473 for the CLI projection contract.
    */
   readonly layerInputs?: Readonly<Record<string, unknown>> | undefined;
+  /**
+   * Execute a specific live trail version.
+   *
+   * Omit for the current top-level contract. Number and numeric-string
+   * references select authored versions; marker references select projected
+   * content-addressed markers by unambiguous prefix.
+   */
+  readonly version?: TrailVersionReference | undefined;
+  /**
+   * Marks this invocation as a `ctx.cross()` dispatch so versioned fork
+   * entries validate against their own `crossInput`.
+   *
+   * Used by the cross execution path; not part of the public API.
+   *
+   * @internal
+   */
+  readonly crossValidation?: boolean | undefined;
   /**
    * Override the validation schema used for input validation.
    *
@@ -553,12 +583,22 @@ const runImplWithRootRecord = async (
   }
 };
 
+interface ResolvedCrossTarget {
+  readonly trail: AnyTrail;
+  readonly version?: TrailVersionReference | undefined;
+}
+
 const resolveCrossTarget = (
   trailOrId: AnyTrail | string,
   topo: Topo | undefined
-): Result<AnyTrail, Error> => {
+): Result<ResolvedCrossTarget, Error> => {
   if (typeof trailOrId !== 'string') {
-    return Result.ok(trailOrId);
+    return Result.ok({ trail: trailOrId });
+  }
+
+  const parsed = parseTrailIdVersionReference(trailOrId);
+  if (parsed.isErr()) {
+    return parsed;
   }
 
   if (topo === undefined) {
@@ -569,9 +609,9 @@ const resolveCrossTarget = (
     );
   }
 
-  const target = topo.get(trailOrId);
+  const target = topo.get(parsed.value.id);
   return target
-    ? Result.ok(target)
+    ? Result.ok({ trail: target, version: parsed.value.version })
     : Result.err(
         new NotFoundError(
           `Trail "${trailOrId}" not found in topo "${topo.name}"`
@@ -677,13 +717,16 @@ const executeResolvedCrossTarget = async (
   input: unknown,
   ctx: TrailContext,
   topo: Topo | undefined,
-  forwarded: Omit<ExecuteTrailOptions, 'createContext' | 'validationSchema'>
+  forwarded: CrossForwardOptions,
+  version?: TrailVersionReference | undefined
 ): Promise<Result<unknown, Error>> =>
   await // eslint-disable-next-line no-use-before-define -- executor closure runs only after executeTrail is defined
   executeTrail(target, input, {
     ...forwarded,
+    crossValidation: true,
     ctx,
     topo,
+    ...(version === undefined ? {} : { version }),
     validationSchema: buildCrossValidationSchema(target),
   });
 
@@ -692,19 +735,31 @@ const executeCrossTarget = async (
   input: unknown,
   ctx: TrailContext,
   topo: Topo | undefined,
-  forwarded: Omit<ExecuteTrailOptions, 'createContext' | 'validationSchema'>
+  forwarded: CrossForwardOptions,
+  crossOptions?: CrossOptions | undefined
 ): Promise<Result<unknown, Error>> => {
   const target = resolveCrossTarget(trailOrId, topo);
   if (target.isErr()) {
     return target;
   }
+  if (
+    target.value.version !== undefined &&
+    crossOptions?.version !== undefined
+  ) {
+    return Result.err(
+      new ValidationError(
+        `Trail "${target.value.trail.id}" version was provided both in the id reference and ctx.cross() options`
+      )
+    );
+  }
 
   return await executeResolvedCrossTarget(
-    target.value,
+    target.value.trail,
     input,
     ctx,
     topo,
-    forwarded
+    forwarded,
+    crossOptions?.version ?? target.value.version
   );
 };
 
@@ -715,7 +770,7 @@ const executeConcurrentCrossBatchCall = async (
   branchIndex: number,
   ctx: TrailContext,
   topo: Topo | undefined,
-  forwarded: Omit<ExecuteTrailOptions, 'createContext' | 'validationSchema'>
+  forwarded: CrossForwardOptions
 ): Promise<Result<unknown, Error>> => {
   const [trailOrId, batchInput] = call;
   const target = resolveCrossTarget(trailOrId, topo);
@@ -724,11 +779,12 @@ const executeConcurrentCrossBatchCall = async (
   }
 
   return await executeResolvedCrossTarget(
-    target.value,
+    target.value.trail,
     batchInput,
-    buildConcurrentBranchContext(ctx, target.value, topo, branchIndex),
+    buildConcurrentBranchContext(ctx, target.value.trail, topo, branchIndex),
     topo,
-    forwarded
+    forwarded,
+    target.value.version
   );
 };
 
@@ -736,7 +792,7 @@ const executeUnlimitedCrossBatch = async (
   calls: readonly CrossBatchCall[],
   ctx: TrailContext,
   topo: Topo | undefined,
-  forwarded: Omit<ExecuteTrailOptions, 'createContext' | 'validationSchema'>
+  forwarded: CrossForwardOptions
 ): Promise<Result<unknown, Error>[]> =>
   await Promise.all(
     calls.map((call, branchIndex) =>
@@ -753,7 +809,7 @@ const executeLimitedCrossBatch = async (
   calls: readonly CrossBatchCall[],
   ctx: TrailContext,
   topo: Topo | undefined,
-  forwarded: Omit<ExecuteTrailOptions, 'createContext' | 'validationSchema'>,
+  forwarded: CrossForwardOptions,
   limit: number
 ): Promise<Result<unknown, Error>[]> => {
   const results = createCrossBatchResults(calls);
@@ -798,7 +854,7 @@ const executeCrossBatch = async (
   calls: readonly CrossBatchCall[],
   ctx: TrailContext,
   topo: Topo | undefined,
-  forwarded: Omit<ExecuteTrailOptions, 'createContext' | 'validationSchema'>,
+  forwarded: CrossForwardOptions,
   batchOptions?: CrossBatchOptions
 ): Promise<Result<unknown, Error>[]> => {
   if (calls.length === 0) {
@@ -827,7 +883,9 @@ const bindCrossToCtx = (
 
   const {
     createContext: _omit,
+    crossValidation: _omitCrossValidation,
     validationSchema: _omitSchema,
+    version: _omitVersion,
     ...forwarded
   } = options ?? {};
   const cross = (async (
@@ -835,7 +893,8 @@ const bindCrossToCtx = (
       | AnyTrail
       | string
       | readonly (readonly [AnyTrail | string, unknown])[],
-    inputOrOptions?: CrossBatchOptions | unknown
+    inputOrOptions?: unknown,
+    singleOptions?: CrossOptions
   ) => {
     if (Array.isArray(trailOrCalls)) {
       return await executeCrossBatch(
@@ -852,7 +911,8 @@ const bindCrossToCtx = (
       inputOrOptions,
       ctx,
       topo,
-      forwarded
+      forwarded,
+      singleOptions
     );
   }) as CrossFn;
 
@@ -889,7 +949,9 @@ const bindFireToCtx = (
   // (consumers validate against their own schema, not the producer's cross schema).
   const {
     createContext: _omit,
+    crossValidation: _omitCrossValidation,
     validationSchema: _omitSchema,
+    version: _omitVersion,
     ...forwarded
   } = options ?? {};
   const trackedCtx = withFireDispatchTracking(ctx);
@@ -1246,6 +1308,125 @@ const composeAttachedLayers = (
   ...(options?.layers ?? []),
 ];
 
+const stripVersionOption = (
+  options?: ExecuteTrailOptions
+): Omit<ExecuteTrailOptions, 'version'> | undefined => {
+  if (options === undefined) {
+    return undefined;
+  }
+  const { version: _version, ...forwarded } = options;
+  return forwarded;
+};
+
+const executeRequestedCurrentTrailVersion = async (
+  trail: AnyTrail,
+  rawInput: unknown,
+  options: ExecuteTrailOptions
+): Promise<Result<unknown, Error>> =>
+  // eslint-disable-next-line no-use-before-define -- recursive dispatch strips version before re-entering the current pipeline
+  await executeTrail(trail, rawInput, stripVersionOption(options));
+
+const executeCurrentTrailForRevision: TrailVersionCurrentExecutor = async (
+  trail,
+  input,
+  options
+) => {
+  const {
+    validationSchema: _validationSchema,
+    version: _version,
+    ...forwarded
+  } = options ?? {};
+  // eslint-disable-next-line no-use-before-define -- revision runtime calls back into current execution after options are normalized
+  return await executeTrail(trail, input, forwarded);
+};
+
+const createForkTrailVersion = (
+  trail: AnyTrail,
+  entry: TrailVersionForkEntry
+): AnyTrail => {
+  const {
+    blaze: _blaze,
+    crossInput: _crossInput,
+    crosses: _crosses,
+    detours: _detours,
+    input: _input,
+    output: _output,
+    resources: _resources,
+    version: _version,
+    versions: _versions,
+    ...base
+  } = trail;
+
+  return Object.freeze({
+    ...base,
+    blaze: entry.blaze,
+    crosses: Object.freeze([...(entry.crosses ?? [])]),
+    detours: Object.freeze([...(entry.detours ?? [])]),
+    ...(entry.crossInput === undefined ? {} : { crossInput: entry.crossInput }),
+    input: entry.input,
+    output: entry.output,
+    resources: Object.freeze([...(entry.resources ?? [])]),
+  }) as AnyTrail;
+};
+
+const executeRequestedForkTrailVersion = async (
+  trail: AnyTrail,
+  entry: TrailVersionForkEntry,
+  rawInput: unknown,
+  options: ExecuteTrailOptions
+): Promise<Result<unknown, Error>> => {
+  const forkTrail = createForkTrailVersion(trail, entry);
+  const validationSchema = options.crossValidation
+    ? buildCrossValidationSchema(forkTrail)
+    : options.validationSchema;
+
+  // eslint-disable-next-line no-use-before-define -- recursive dispatch strips version before re-entering the fork pipeline
+  return await executeTrail(forkTrail, rawInput, {
+    ...stripVersionOption(options),
+    validationSchema,
+  });
+};
+
+const executeRequestedTrailVersion = async (
+  trail: AnyTrail,
+  rawInput: unknown,
+  options: ExecuteTrailOptions
+): Promise<Result<unknown, Error>> => {
+  const reference = options.version;
+  if (reference === undefined) {
+    return Result.err(
+      new InternalError(
+        'unreachable: executeRequestedTrailVersion without reference'
+      )
+    );
+  }
+
+  const resolved = resolveTrailVersion(trail, reference);
+  if (resolved.isErr()) {
+    return Result.err(resolved.error);
+  }
+
+  if (resolved.value.current) {
+    return await executeRequestedCurrentTrailVersion(trail, rawInput, options);
+  }
+
+  return resolved.value.kind === 'revision'
+    ? await executeTrailRevision(
+        trail,
+        resolved.value.version,
+        resolved.value.entry,
+        rawInput,
+        options,
+        executeCurrentTrailForRevision
+      )
+    : await executeRequestedForkTrailVersion(
+        trail,
+        resolved.value.entry,
+        rawInput,
+        options
+      );
+};
+
 const isLayerInputMap = (
   value: unknown
 ): value is Readonly<Record<string, unknown>> =>
@@ -1336,6 +1517,10 @@ export const executeTrail = async (
   options?: ExecuteTrailOptions
 ): Promise<Result<unknown, Error>> => {
   try {
+    if (options?.version !== undefined) {
+      return await executeRequestedTrailVersion(trail, rawInput, options);
+    }
+
     const validated = validateInput(
       options?.validationSchema ?? trail.input,
       rawInput

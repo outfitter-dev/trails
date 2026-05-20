@@ -5,6 +5,7 @@ import type { Signal } from './signal.js';
 import type { AnyTrail } from './trail.js';
 import type { CrossInput, TrailOutput } from './type-utils.js';
 import type { ActivationProvenance } from './activation-provenance.js';
+import type { TrailVersionReference } from './version-resolution.js';
 
 // ---------------------------------------------------------------------------
 // Detour
@@ -62,6 +63,17 @@ export interface CrossBatchOptions {
   readonly concurrency?: number | undefined;
 }
 
+/** Runtime options for a single `ctx.cross(trail, input, options)` call. */
+export interface CrossOptions {
+  /**
+   * Execute a specific live version of the crossed trail.
+   *
+   * Omit to keep composition current by default. Historical revision entries
+   * transpose through the current trail; fork entries run their own blaze.
+   */
+  readonly version?: TrailVersionReference | undefined;
+}
+
 /**
  * Trail implementation — sync or async.
  *
@@ -95,9 +107,14 @@ export interface CrossFn {
   ): Promise<CrossBatchResults<TCalls>>;
   <T extends AnyTrail>(
     trail: T,
-    input: CrossInput<T>
+    input: CrossInput<T>,
+    options?: CrossOptions
   ): Promise<Result<TrailOutput<T>, Error>>;
-  <O = unknown>(id: string, input: unknown): Promise<Result<O, Error>>;
+  <O = unknown>(
+    id: string,
+    input: unknown,
+    options?: CrossOptions
+  ): Promise<Result<O, Error>>;
 }
 
 /**

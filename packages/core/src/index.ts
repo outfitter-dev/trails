@@ -9,6 +9,7 @@ export {
   AmbiguousError,
   AssertionError,
   NotFoundError,
+  VersionNotSupportedError,
   AlreadyExistsError,
   ConflictError,
   PermissionError,
@@ -75,6 +76,7 @@ export type {
   TrailContext,
   TrailContextInit,
   CrossBatchOptions,
+  CrossOptions,
   CrossFn,
   FireFn,
   LogLevel,
@@ -180,6 +182,10 @@ export {
   normalizeTrailVersionMarkerPrefix,
   resolveTrailVersionMarkerPrefix,
 } from './version-marker.js';
+export {
+  parseTrailIdVersionReference,
+  resolveTrailVersion,
+} from './version-resolution.js';
 export type {
   AnyTrail,
   BlazeInput,
@@ -206,6 +212,11 @@ export type {
   TrailVersionMarkerRecord,
   TrailVersionMarkerResolution,
 } from './version-marker.js';
+export type {
+  ParsedTrailVersionReference,
+  ResolvedTrailVersion,
+  TrailVersionReference,
+} from './version-resolution.js';
 export {
   filterSurfaceTrails,
   matchesTrailPattern,
