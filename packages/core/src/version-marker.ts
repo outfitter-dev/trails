@@ -361,6 +361,11 @@ export const deriveShortestUnambiguousTrailVersionMarkerPrefix = (
     assertTrailVersionMarker(candidate);
     return candidate;
   });
+  if (!normalizedMarkers.includes(marker)) {
+    throw new ValidationError(
+      `Trail version marker ${marker} is not in the provided marker set`
+    );
+  }
 
   for (
     let length = Math.max(minLength, TRAIL_VERSION_MARKER_MIN_PREFIX_LENGTH);

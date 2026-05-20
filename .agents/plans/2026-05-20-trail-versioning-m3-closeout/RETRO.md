@@ -2,7 +2,7 @@
 
 Date started: 2026-05-20
 Date finalized: pending
-Status: Seeded
+Status: Executing
 Plan: `.agents/plans/2026-05-20-trail-versioning-m3-closeout/PLAN.md`
 Goal: `.agents/plans/2026-05-20-trail-versioning-m3-closeout/GOAL.md`
 
@@ -56,6 +56,9 @@ they represent real future work.
 | --- | --- | --- | --- |
 | Pending | `context-prime.sh` uses a `jq --argfile` invocation that fails in this environment. | Tooling hygiene, not Trail Versioning M3 implementation. | Pending follow-up if it remains reproducible. |
 | TRL-508 | Consumer codemod/migration path remains M4. | M3 must settle core lifecycle/surface/gates first. | <https://linear.app/outfitter/issue/TRL-508/codemod-path-scope-trails-migrate-and-align-with-ontrailstrailworks> |
+| Pending | HTTP/MCP/CLI do not yet carry trail-version requests or project lifecycle status, while no WebSocket surface was found. | In scope for TRL-117/TRL-118; recorded from local seam map before implementation. | Local explorer report summarized in execution log. |
+| Pending | `forces` exists in TopoGraph types only as a loose placeholder and is not populated by derive/versioning code. | In scope for TRL-732/TRL-730; recorded from local seam map before implementation. | Local explorer report summarized in execution log. |
+| Pending | Warden versioning rules will require manual rule registry, metadata, trail wrapper, and generated-guide updates. | In scope for TRL-120; recorded from local seam map before implementation. | Local explorer report summarized in execution log. |
 
 ## Tracker Mutations
 
@@ -79,6 +82,16 @@ Append meaningful state changes, especially before handoff points.
 - Result: Packet seeded; context-prime script produced useful context but failed on open-PR matching with jq --argfile.
 - Next: Commit packet on the lowest execution branch when the executor starts the stack.
 - Blockers: None for planning.
+
+2026-05-20 10:05 EDT - execution preflight and TRL-740 implementation
+- Changed: Synced `main`, pruned merged local planning branches, created the eight local Graphite branches in the requested order, and kept unrelated PR #531 / `trl-738-add-codex-clark-agent-wiring` as a sibling stack off `main`.
+- Changed: Implemented TRL-740 cleanup on `trl-740-chorecore-tighten-trail-versioning-publicinternal-api`: explicit absent-marker diagnostic in `deriveShortestUnambiguousTrailVersionMarkerPrefix`, clearer marker-resolution narrowing, public/internal split for executor cross-validation options, testing harness casts for internal cross validation, public API type assertion, and branch-local changeset.
+- Verified: Linear project and issues TRL-740, TRL-117, TRL-731, TRL-732, TRL-730, TRL-118, TRL-119, TRL-120 still match the packet at start; PR #539 and #540 are merged; live `main` is `2044e3721`.
+- Verified: Focused tests passed: `bun test packages/core/src/__tests__/version-marker.test.ts packages/core/src/__tests__/version-execution.test.ts packages/testing/src/__tests__/all.test.ts packages/testing/src/__tests__/contracts.test.ts packages/testing/src/__tests__/examples.test.ts` (82 pass).
+- Verified: `bun run --cwd packages/core typecheck`, `bun run --cwd packages/testing typecheck`, and `git diff --check` passed.
+- Result: TRL-740 is locally implemented and ready to commit at the bottom of the stack.
+- Next: Commit TRL-740, restack upward, then implement lifecycle status work in TRL-117/TRL-731.
+- Blockers: None. Local seam maps identified expected M3 gaps in surfaces, diff/forces, and Warden.
 ```
 
 ## Local Review Log
@@ -98,12 +111,15 @@ Record exact commands and artifact checks. Include skipped checks with reasons.
 | --- | --- | --- | --- |
 | `bash /Users/mg/.agents/skills/goal-planning/scripts/context-prime.sh .` | Planning snapshot | Partial | Produced repo/plan context, then failed at open-PR matching with `jq: Unknown option --argfile`. |
 | `bun scripts/adr.ts check` | Execution tip | Pending | Required by goal. |
+| `bun test packages/core/src/__tests__/version-marker.test.ts packages/core/src/__tests__/version-execution.test.ts packages/testing/src/__tests__/all.test.ts packages/testing/src/__tests__/contracts.test.ts packages/testing/src/__tests__/examples.test.ts` | TRL-740 targeted tests | Passed | 82 pass, 0 fail. |
+| `bun run --cwd packages/core typecheck` | TRL-740 targeted typecheck | Passed | `tsc --noEmit` passed. |
+| `bun run --cwd packages/testing typecheck` | TRL-740 targeted typecheck | Passed | `tsc --noEmit` passed. |
 | `bun run check` | Execution tip | Pending | Required by goal. |
 | `bun run build` | Execution tip | Pending | Required by goal. |
 | `bun run test` | Execution tip | Pending | Required by goal. |
 | `bun run lint:ast-grep` | Execution tip | Pending | Required by goal. |
 | `bun run publish:check` | Execution tip | Pending | Required by goal; Bun-based only. |
-| `git diff --check` | Planning branch and execution tip | Pending | Required before handoff. |
+| `git diff --check` | TRL-740 local diff | Passed | No whitespace/conflict-marker output. Required again before handoff. |
 
 ## Remote Review / CI Log
 

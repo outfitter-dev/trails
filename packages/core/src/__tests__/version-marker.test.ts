@@ -81,6 +81,15 @@ describe('trail version markers', () => {
     expect(display).toBe('abcd');
   });
 
+  test('rejects display prefix derivation for markers outside the candidate set', () => {
+    expect(() =>
+      deriveShortestUnambiguousTrailVersionMarkerPrefix('abcd000000000000', [
+        'abce000000000000',
+        'f000000000000000',
+      ])
+    ).toThrow('not in the provided marker set');
+  });
+
   test('resolves marker prefixes and rejects invalid or ambiguous prefixes', () => {
     const markers = [
       { marker: 'abcd000000000000', version: 1 },

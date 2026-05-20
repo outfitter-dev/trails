@@ -12,6 +12,7 @@ import { describe, expect, test } from 'bun:test';
 import type {
   CrossFn,
   CrossOptions,
+  ExecuteTrailOptions,
   ResourceOverrideMap,
   Topo,
   TrailExample,
@@ -65,6 +66,10 @@ import {
 } from './effective-examples.js';
 import type { TrailExampleTarget } from './effective-examples.js';
 import { withSignalAssertions } from './signals.js';
+
+type TestingExecuteTrailOptions = ExecuteTrailOptions & {
+  readonly validationSchema?: ReturnType<typeof buildCrossValidationSchema>;
+};
 
 // ---------------------------------------------------------------------------
 // Error class name -> constructor map
@@ -277,12 +282,13 @@ const createCoverageCross = (
 
     const trailDef = topo.get(id);
     if (trailDef !== undefined) {
-      return await executeTrail(trailDef, input, {
+      const options: TestingExecuteTrailOptions = {
         ctx: { ...ctx, cross: self },
         resources,
         ...(version === undefined ? {} : { version }),
         validationSchema: buildCrossValidationSchema(trailDef),
-      });
+      };
+      return await executeTrail(trailDef, input, options);
     }
 
     return Result.ok();

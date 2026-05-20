@@ -12,6 +12,7 @@ import type {
   AnyTrail,
   CrossBatchOptions,
   CrossFn,
+  ExecuteTrailOptions,
   ResourceOverrideMap,
   Result,
   Topo,
@@ -32,6 +33,9 @@ import type { RefToken, ScenarioStep } from './types.js';
 
 type ScenarioCrossTarget = string | { readonly id: string };
 type ScenarioCrossCall = readonly [ScenarioCrossTarget, unknown];
+type TestingExecuteTrailOptions = ExecuteTrailOptions & {
+  readonly validationSchema?: ReturnType<typeof buildCrossValidationSchema>;
+};
 
 // ---------------------------------------------------------------------------
 // ref() — cross-step reference marker
@@ -247,12 +251,13 @@ const createScenarioCross = (
       return R.err(new InternalError(`cross: trail "${id}" not found in topo`));
     }
     const baseCtx = createTestContext();
-    return await executeTrail(trailDef, input, {
+    const options: TestingExecuteTrailOptions = {
       ctx: { ...baseCtx, cross: self },
       resources,
       topo: app,
       validationSchema: buildCrossValidationSchema(trailDef),
-    });
+    };
+    return await executeTrail(trailDef, input, options);
   };
 
   const executeCrossBatch = async (

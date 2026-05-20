@@ -209,10 +209,7 @@ const resolveMarkerReference = (
     );
   }
 
-  const [match] = matches;
-  if (match === undefined) {
-    return Result.err(unsupportedVersion(trail, requested, 'marker missing'));
-  }
+  const match = matches[0] as (typeof matches)[number];
 
   return Result.ok({ marker: match.marker, version: match.version });
 };

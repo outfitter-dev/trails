@@ -5,10 +5,12 @@ import { getTrailVersionEntryKind } from './trail.js';
 import type { AnyTrail, TrailVersionEntry } from './trail.js';
 import { validateInput, validateOutput } from './validation.js';
 
-export type TrailVersionCurrentExecutor = (
+export type TrailVersionCurrentExecutor<
+  Options extends ExecuteTrailOptions = ExecuteTrailOptions,
+> = (
   trail: AnyTrail,
   input: unknown,
-  options?: ExecuteTrailOptions
+  options?: Options
 ) => Promise<Result<unknown, Error>>;
 
 const normalizeTransposeError = (
@@ -64,13 +66,15 @@ const runTransposeOutput = async (
   }
 };
 
-export const executeTrailRevision = async (
+export const executeTrailRevision = async <
+  Options extends ExecuteTrailOptions = ExecuteTrailOptions,
+>(
   trail: AnyTrail,
   version: number,
   entry: TrailVersionEntry,
   rawInput: unknown,
-  options: ExecuteTrailOptions | undefined,
-  executeCurrentTrail: TrailVersionCurrentExecutor
+  options: Options | undefined,
+  executeCurrentTrail: TrailVersionCurrentExecutor<Options>
 ): Promise<Result<unknown, Error>> => {
   if (getTrailVersionEntryKind(entry) !== 'revision') {
     return Result.err(

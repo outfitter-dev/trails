@@ -11,6 +11,7 @@
 
 import type { Signal, SignalSpec } from './signal.js';
 import type { Trail, TrailSpec, TrailVersionRevisionEntry } from './trail.js';
+import type { ExecuteTrailOptions } from './execute.js';
 import type { ResourceSpec } from './resource.js';
 import type { ContourOptions } from './contour.js';
 import type { ScheduleSpec } from './schedule.js';
@@ -214,6 +215,21 @@ export type RevisionTransposeContract = [
 export type RevisionRuntimeFieldContract = [
   AssertRevisionNoCrossInput,
 ] extends [true]
+  ? 'pass'
+  : never;
+
+// ---------------------------------------------------------------------------
+// ExecuteTrailOptions keeps cross-validation internals out of the public API
+// ---------------------------------------------------------------------------
+
+type AssertExecuteOptionsHideCrossValidation =
+  'crossValidation' extends keyof ExecuteTrailOptions ? false : true;
+type AssertExecuteOptionsHideValidationSchema =
+  'validationSchema' extends keyof ExecuteTrailOptions ? false : true;
+export type ExecuteOptionsPublicBoundary = [
+  AssertExecuteOptionsHideCrossValidation,
+  AssertExecuteOptionsHideValidationSchema,
+] extends [true, true]
   ? 'pass'
   : never;
 

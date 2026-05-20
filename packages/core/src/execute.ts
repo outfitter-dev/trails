@@ -86,7 +86,7 @@ type MutableTrailContext = {
 };
 
 type CrossForwardOptions = Omit<
-  ExecuteTrailOptions,
+  ExecuteTrailInternalOptions,
   'createContext' | 'crossValidation' | 'validationSchema' | 'version'
 >;
 
@@ -174,6 +174,15 @@ export interface ExecuteTrailOptions {
    * content-addressed markers by unambiguous prefix.
    */
   readonly version?: TrailVersionReference | undefined;
+}
+
+/**
+ * Internal executor options used by framework-managed cross and fork dispatch.
+ *
+ * These fields intentionally stay out of the exported public
+ * {@link ExecuteTrailOptions} surface.
+ */
+interface ExecuteTrailInternalOptions extends ExecuteTrailOptions {
   /**
    * Marks this invocation as a `ctx.cross()` dispatch so versioned fork
    * entries validate against their own `crossInput`.
@@ -204,7 +213,7 @@ export interface ExecuteTrailOptions {
 
 const applyContextOverrides = (
   base: TrailContextInit,
-  options?: ExecuteTrailOptions
+  options?: ExecuteTrailInternalOptions
 ): TrailContextInit => {
   const withOverrides = options?.ctx
     ? {
@@ -251,7 +260,7 @@ const applyContextOverrides = (
 
 const bindResourceLookup = (
   resolved: TrailContextInit,
-  options?: ExecuteTrailOptions
+  options?: ExecuteTrailInternalOptions
 ): TrailContext => {
   if (
     options?.ctx?.extensions === undefined &&
@@ -280,7 +289,7 @@ const bindResourceLookup = (
  *    already carries.
  */
 const resolveContext = async (
-  options?: ExecuteTrailOptions
+  options?: ExecuteTrailInternalOptions
 ): Promise<TrailContext> => {
   const seed = options?.createContext
     ? await options.createContext()
@@ -365,7 +374,7 @@ const enforcePermitRequirement = (
 
 const prepareContext = async (
   trail: AnyTrail,
-  options?: ExecuteTrailOptions
+  options?: ExecuteTrailInternalOptions
 ): Promise<
   Result<
     { readonly ctx: TrailContext; readonly releaseResources: () => void },
@@ -721,7 +730,7 @@ const executeResolvedCrossTarget = async (
   version?: TrailVersionReference | undefined
 ): Promise<Result<unknown, Error>> =>
   await // eslint-disable-next-line no-use-before-define -- executor closure runs only after executeTrail is defined
-  executeTrail(target, input, {
+  executeTrailInternal(target, input, {
     ...forwarded,
     crossValidation: true,
     ctx,
@@ -875,7 +884,7 @@ const executeCrossBatch = async (
 const bindCrossToCtx = (
   ctx: TrailContext,
   topo: Topo | undefined,
-  options: ExecuteTrailOptions | undefined
+  options: ExecuteTrailInternalOptions | undefined
 ): TrailContext => {
   if (ctx.cross !== undefined) {
     return ctx;
@@ -925,7 +934,7 @@ const bindCrossToCtx = (
 const bindFireToCtx = (
   ctx: TrailContext,
   topo: Topo | undefined,
-  options: ExecuteTrailOptions | undefined,
+  options: ExecuteTrailInternalOptions | undefined,
   producerTrailId?: string | undefined
 ): TrailContext => {
   // Symmetric with bindCrossToCtx: a caller-supplied ctx.fire (e.g. test
@@ -960,7 +969,7 @@ const bindFireToCtx = (
     trackedCtx,
     (consumer, input, consumerCtx) =>
       // eslint-disable-next-line no-use-before-define -- executor closure runs only after executeTrail is defined
-      executeTrail(consumer, input, {
+      executeTrailInternal(consumer, input, {
         ...forwarded,
         ctx: consumerCtx,
         topo,
@@ -974,7 +983,7 @@ const bindCrossAtLayerBoundary =
   <I, O>(
     implementation: Implementation<I, O>,
     topo: Topo | undefined,
-    options: ExecuteTrailOptions | undefined
+    options: ExecuteTrailInternalOptions | undefined
   ): Implementation<I, O> =>
   (input, ctx) =>
     implementation(input, bindCrossToCtx(ctx, topo, options));
@@ -983,7 +992,7 @@ const bindFireAtLayerBoundary = <I, O>(
   implementation: Implementation<I, O>,
   trail: AnyTrail,
   topo: Topo | undefined,
-  options: ExecuteTrailOptions | undefined
+  options: ExecuteTrailInternalOptions | undefined
 ): Implementation<I, O> => {
   if (topo === undefined) {
     return implementation;
@@ -1169,7 +1178,7 @@ const prepareRunImpl = (
   ctx: TrailContext,
   layers: readonly Layer[],
   topo: Topo | undefined,
-  options: ExecuteTrailOptions | undefined
+  options: ExecuteTrailInternalOptions | undefined
 ): {
   readonly ctxWithIntrinsics: TrailContext;
   readonly impl: Implementation<unknown, unknown>;
@@ -1223,7 +1232,7 @@ const runImplWithoutTracing = async (
   ctx: TrailContext,
   layers: readonly Layer[],
   topo: Topo | undefined,
-  options: ExecuteTrailOptions | undefined
+  options: ExecuteTrailInternalOptions | undefined
 ): Promise<Result<unknown, Error>> => {
   const prepared = prepareRunImpl(
     trail,
@@ -1245,7 +1254,7 @@ const runTrailWithTracing = async (
   ctx: TrailContext,
   layers: readonly Layer[],
   topo: Topo | undefined,
-  options: ExecuteTrailOptions | undefined,
+  options: ExecuteTrailInternalOptions | undefined,
   sink: ReturnType<typeof getTraceSink>
 ): Promise<Result<unknown, Error>> => {
   const { record, tracedCtx } = buildTracedContext(trail, ctx, sink);
@@ -1278,7 +1287,7 @@ const runTrail = async (
   ctx: TrailContext,
   layers: readonly Layer[],
   topo: Topo | undefined,
-  options: ExecuteTrailOptions | undefined
+  options: ExecuteTrailInternalOptions | undefined
 ): Promise<Result<unknown, Error>> => {
   const sink = topo?.observe?.trace ?? getTraceSink();
   return isTracingDisabled(sink)
@@ -1300,7 +1309,7 @@ const runTrail = async (
  */
 const composeAttachedLayers = (
   trail: AnyTrail,
-  options: ExecuteTrailOptions | undefined
+  options: ExecuteTrailInternalOptions | undefined
 ): readonly Layer[] => [
   ...(options?.topoLayers ?? []),
   ...(options?.surfaceLayers ?? []),
@@ -1309,8 +1318,8 @@ const composeAttachedLayers = (
 ];
 
 const stripVersionOption = (
-  options?: ExecuteTrailOptions
-): Omit<ExecuteTrailOptions, 'version'> | undefined => {
+  options?: ExecuteTrailInternalOptions
+): Omit<ExecuteTrailInternalOptions, 'version'> | undefined => {
   if (options === undefined) {
     return undefined;
   }
@@ -1321,23 +1330,21 @@ const stripVersionOption = (
 const executeRequestedCurrentTrailVersion = async (
   trail: AnyTrail,
   rawInput: unknown,
-  options: ExecuteTrailOptions
+  options: ExecuteTrailInternalOptions
 ): Promise<Result<unknown, Error>> =>
   // eslint-disable-next-line no-use-before-define -- recursive dispatch strips version before re-entering the current pipeline
-  await executeTrail(trail, rawInput, stripVersionOption(options));
+  await executeTrailInternal(trail, rawInput, stripVersionOption(options));
 
-const executeCurrentTrailForRevision: TrailVersionCurrentExecutor = async (
-  trail,
-  input,
-  options
-) => {
+const executeCurrentTrailForRevision: TrailVersionCurrentExecutor<
+  ExecuteTrailInternalOptions
+> = async (trail, input, internalOptions) => {
   const {
     validationSchema: _validationSchema,
     version: _version,
     ...forwarded
-  } = options ?? {};
+  } = internalOptions ?? {};
   // eslint-disable-next-line no-use-before-define -- revision runtime calls back into current execution after options are normalized
-  return await executeTrail(trail, input, forwarded);
+  return await executeTrailInternal(trail, input, forwarded);
 };
 
 const createForkTrailVersion = (
@@ -1373,7 +1380,7 @@ const executeRequestedForkTrailVersion = async (
   trail: AnyTrail,
   entry: TrailVersionForkEntry,
   rawInput: unknown,
-  options: ExecuteTrailOptions
+  options: ExecuteTrailInternalOptions
 ): Promise<Result<unknown, Error>> => {
   const forkTrail = createForkTrailVersion(trail, entry);
   const validationSchema = options.crossValidation
@@ -1381,7 +1388,7 @@ const executeRequestedForkTrailVersion = async (
     : options.validationSchema;
 
   // eslint-disable-next-line no-use-before-define -- recursive dispatch strips version before re-entering the fork pipeline
-  return await executeTrail(forkTrail, rawInput, {
+  return await executeTrailInternal(forkTrail, rawInput, {
     ...stripVersionOption(options),
     validationSchema,
   });
@@ -1390,7 +1397,7 @@ const executeRequestedForkTrailVersion = async (
 const executeRequestedTrailVersion = async (
   trail: AnyTrail,
   rawInput: unknown,
-  options: ExecuteTrailOptions
+  options: ExecuteTrailInternalOptions
 ): Promise<Result<unknown, Error>> => {
   const reference = options.version;
   if (reference === undefined) {
@@ -1511,10 +1518,10 @@ const validateContextLayerInputs = (
  * The function never throws -- unexpected exceptions are caught and
  * returned as `Result.err(InternalError)`.
  */
-export const executeTrail = async (
+const executeTrailInternal = async (
   trail: AnyTrail,
   rawInput: unknown,
-  options?: ExecuteTrailOptions
+  options?: ExecuteTrailInternalOptions
 ): Promise<Result<unknown, Error>> => {
   try {
     if (options?.version !== undefined) {
@@ -1559,3 +1566,10 @@ export const executeTrail = async (
     return Result.err(new InternalError(message));
   }
 };
+
+export const executeTrail = async (
+  trail: AnyTrail,
+  rawInput: unknown,
+  options?: ExecuteTrailOptions
+): Promise<Result<unknown, Error>> =>
+  await executeTrailInternal(trail, rawInput, options);

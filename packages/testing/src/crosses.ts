@@ -10,6 +10,7 @@ import { describe, expect, test } from 'bun:test';
 import type {
   AnyTrail,
   CrossFn,
+  ExecuteTrailOptions,
   ResourceOverrideMap,
   TrailContext,
 } from '@ontrails/core';
@@ -29,6 +30,10 @@ import {
 } from './assertions.js';
 import { mergeResourceOverrides, mergeTestContext } from './context.js';
 import type { CrossScenario } from './types.js';
+
+type TestingExecuteTrailOptions = ExecuteTrailOptions & {
+  readonly validationSchema?: ReturnType<typeof buildCrossValidationSchema>;
+};
 
 // ---------------------------------------------------------------------------
 // Cross trace
@@ -158,11 +163,12 @@ const executeFromMap = (
   }
 
   const nestedCtx = cross ? { ...ctx, cross } : ctx;
-  return executeTrail(trailDef, input, {
+  const options: TestingExecuteTrailOptions = {
     ctx: nestedCtx,
     resources,
     validationSchema: buildCrossValidationSchema(trailDef),
-  });
+  };
+  return executeTrail(trailDef, input, options);
 };
 
 /** Extract trail ID from either a trail object or a string. */
