@@ -104,6 +104,19 @@ Compile the current topo to `.trails/topo.lock` and `.trails/trails.lock`.
 trails compile
 ```
 
+### `trails diff`
+
+Compare the current topo against a saved TopoGraph target. The default target is
+the committed `.trails/topo.lock`; explicit targets may be workspace-relative
+`topo.lock` files, JSON TopoGraphs, TopoGraph directories, pins, or snapshots.
+
+```bash
+trails diff
+trails diff user.create@1..2 --against pre-refactor
+trails diff --breaks
+trails diff --forces
+```
+
 ### `trails validate`
 
 Check that the `.trails/trails.lock` / `.trails/topo.lock` artifact family

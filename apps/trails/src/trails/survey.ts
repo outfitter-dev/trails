@@ -20,6 +20,7 @@ import {
   createTopoStore,
   deriveTopoGraphDiff,
   deriveTopoGraph,
+  resolveTopoGraphVersionReference,
   TOPO_GRAPH_SCHEMA_VERSION,
   readTopoGraph,
 } from '@ontrails/topographer';
@@ -84,6 +85,21 @@ interface SurveyDiffReport {
   readonly warnings: readonly DiffEntry[];
 }
 
+interface DiffInput {
+  readonly against?: string | undefined;
+  readonly breakingOnly?: boolean | undefined;
+  readonly breaks?: boolean | undefined;
+  readonly forces?: boolean | undefined;
+  readonly module?: string | undefined;
+  readonly rootDir?: string | undefined;
+  readonly target?: string | undefined;
+}
+
+interface ParsedDiffTarget {
+  readonly id: string;
+  readonly versions?: ReadonlySet<number> | undefined;
+}
+
 const formatDiff = (diff: DiffResult, against: string): SurveyDiffReport => ({
   against,
   breaking: diff.breaking,
@@ -92,6 +108,252 @@ const formatDiff = (diff: DiffResult, against: string): SurveyDiffReport => ({
   mode: 'diff',
   warnings: diff.warnings,
 });
+
+const partitionDiffEntries = (entries: readonly DiffEntry[]): DiffResult => {
+  const sorted = [...entries].toSorted((left, right) =>
+    left.id.localeCompare(right.id)
+  );
+  const breaking = sorted.filter((entry) => entry.severity === 'breaking');
+  const warnings = sorted.filter((entry) => entry.severity === 'warning');
+  const info = sorted.filter((entry) => entry.severity === 'info');
+
+  return {
+    breaking,
+    entries: sorted,
+    hasBreaking: breaking.length > 0,
+    info,
+    warnings,
+  };
+};
+
+const parseVersionRange = (
+  reference: string
+): ReadonlySet<number> | undefined => {
+  const match = /^(\d+)\.\.(\d+)$/.exec(reference);
+  if (match === null) {
+    return undefined;
+  }
+  const start = Number(match[1]);
+  const end = Number(match[2]);
+  if (start < 1 || end < start) {
+    throw new ValidationError(
+      `Diff version range must use ascending positive versions: ${reference}`
+    );
+  }
+
+  return new Set(
+    Array.from({ length: end - start + 1 }, (_value, index) => start + index)
+  );
+};
+
+const findDiffTargetEntry = (
+  previous: TopoGraph,
+  current: TopoGraph,
+  id: string
+) =>
+  current.entries.find((entry) => entry.id === id) ??
+  previous.entries.find((entry) => entry.id === id);
+
+const parseDiffTarget = (
+  previous: TopoGraph,
+  current: TopoGraph,
+  target: string | undefined
+): Result<ParsedDiffTarget | undefined, Error> => {
+  if (target === undefined || target.length === 0) {
+    return Result.ok();
+  }
+
+  const separator = target.lastIndexOf('@');
+  const id = separator === -1 ? target : target.slice(0, separator);
+  const reference =
+    separator === -1 ? undefined : target.slice(separator + 1).trim();
+  if (id.length === 0 || reference === '') {
+    return Result.err(
+      new ValidationError('Diff target must use trail.id or trail.id@version')
+    );
+  }
+
+  const entry = findDiffTargetEntry(previous, current, id);
+  if (entry === undefined) {
+    return Result.err(new NotFoundError(`Trail not found for diff: ${id}`));
+  }
+
+  if (reference === undefined) {
+    return Result.ok({ id });
+  }
+
+  try {
+    const range = parseVersionRange(reference);
+    if (range !== undefined) {
+      return Result.ok({ id, versions: range });
+    }
+
+    return Result.ok({
+      id,
+      versions: new Set([
+        resolveTopoGraphVersionReference(entry, reference).version,
+      ]),
+    });
+  } catch (error: unknown) {
+    return Result.err(
+      error instanceof Error ? error : new Error(String(error))
+    );
+  }
+};
+
+const detailVersions = (detail: string): readonly number[] => {
+  const match = /^(?:Live version|Version) (\d+)\b/.exec(detail);
+  if (match !== null) {
+    return [Number(match[1])];
+  }
+
+  const supportMatch = /^Supported versions (?:added|removed): (.+)$/.exec(
+    detail
+  );
+  if (supportMatch === null) {
+    return [];
+  }
+
+  return (supportMatch[1] ?? '')
+    .split(',')
+    .map((part) => Number(part.trim()))
+    .filter((version) => Number.isInteger(version) && version > 0);
+};
+
+type DiffSeverity = DiffEntry['severity'];
+
+const severityRank: Record<DiffSeverity, number> = {
+  breaking: 2,
+  info: 0,
+  warning: 1,
+};
+
+const higherSeverity = (
+  left: DiffSeverity,
+  right: DiffSeverity
+): DiffSeverity => (severityRank[right] > severityRank[left] ? right : left);
+
+const versionStatus = (detail: string): string | undefined =>
+  /^Version \d+ (?:added|removed) \(([^)]+)\)$/.exec(detail)?.[1];
+
+const visibleDetailSeverity = (detail: string): DiffSeverity => {
+  if (detail.startsWith('Force event ')) {
+    return 'warning';
+  }
+  if (detail.startsWith('Supported versions removed: ')) {
+    return 'breaking';
+  }
+  if (detail.startsWith('Supported versions added: ')) {
+    return 'info';
+  }
+  if (
+    /^Live version \d+ (?:added without examples|example coverage removed)$/.test(
+      detail
+    )
+  ) {
+    return 'warning';
+  }
+  if (detail.startsWith('Live version ') && detail.includes(' examples: ')) {
+    return 'info';
+  }
+  if (/^Version \d+ status changed: .+ -> archived$/.test(detail)) {
+    return 'warning';
+  }
+  if (detail.startsWith('Version ') && detail.includes(' status changed: ')) {
+    return 'info';
+  }
+
+  const status = versionStatus(detail);
+  if (detail.startsWith('Version ') && detail.includes(' removed (')) {
+    return status === 'archived' ? 'warning' : 'breaking';
+  }
+  if (detail.startsWith('Version ') && detail.includes(' added (')) {
+    return status === 'archived' ? 'info' : 'warning';
+  }
+  if (
+    /^Version \d+ (?:kind changed:|Required (?:input|contour) field ".+" added|(?:Input|Output|Contour) field ".+" (?:removed|type changed:|changed from optional to required))/.test(
+      detail
+    )
+  ) {
+    return 'breaking';
+  }
+  if (
+    /^Version \d+ (?:marker changed:|Optional (?:input|contour) field ".+" added|Output field ".+" added)/.test(
+      detail
+    )
+  ) {
+    return 'info';
+  }
+
+  return 'info';
+};
+
+const visibleDetailsSeverity = (details: readonly string[]): DiffSeverity => {
+  let severity: DiffSeverity = 'info';
+  for (const detail of details) {
+    severity = higherSeverity(severity, visibleDetailSeverity(detail));
+  }
+  return severity;
+};
+
+const detailsChanged = (
+  previous: readonly string[],
+  next: readonly string[]
+): boolean =>
+  previous.length !== next.length ||
+  previous.some((detail, index) => detail !== next[index]);
+
+const filterDetails = (
+  details: readonly string[],
+  target: ParsedDiffTarget | undefined,
+  forcesOnly: boolean
+): readonly string[] => {
+  const visible = forcesOnly
+    ? details.filter((detail) => detail.startsWith('Force event '))
+    : [...details];
+  if (target?.versions === undefined || forcesOnly) {
+    return visible;
+  }
+
+  return visible.filter((detail) => {
+    const versions = detailVersions(detail);
+    return versions.some((version) => target.versions?.has(version));
+  });
+};
+
+const filterDiff = (
+  diff: DiffResult,
+  target: ParsedDiffTarget | undefined,
+  options: Pick<DiffInput, 'breakingOnly' | 'breaks' | 'forces'>
+): DiffResult => {
+  const entries = diff.entries.flatMap((entry): DiffEntry[] => {
+    if (target !== undefined && entry.id !== target.id) {
+      return [];
+    }
+    const details = filterDetails(
+      entry.details,
+      target,
+      options.forces === true
+    );
+    if (details.length === 0) {
+      return [];
+    }
+    return [
+      {
+        ...entry,
+        details,
+        severity: detailsChanged(entry.details, details)
+          ? visibleDetailsSeverity(details)
+          : entry.severity,
+      },
+    ];
+  });
+
+  const partitioned = partitionDiffEntries(entries);
+  return options.breakingOnly === true || options.breaks === true
+    ? partitionDiffEntries(partitioned.breaking)
+    : partitioned;
+};
 
 const createDiffExampleInput = (): {
   readonly against: string;
@@ -218,21 +480,25 @@ const readAgainstTopoGraph = async (
 const buildSurveyDiff = async (
   app: Topo,
   rootDir: string,
-  breakingOnly: boolean,
-  against?: string | undefined
+  input: DiffInput
 ): Promise<Result<SurveyDiffReport, Error>> => {
   const currentMap = deriveTopoGraph(app);
-  const previous = await readAgainstTopoGraph(rootDir, against);
+  const previous = await readAgainstTopoGraph(rootDir, input.against);
   if (previous.isErr()) {
     return previous;
   }
 
-  const diff = deriveTopoGraphDiff(previous.value.map, currentMap);
-  return Result.ok(
-    breakingOnly
-      ? formatDiff({ ...diff, info: [], warnings: [] }, previous.value.against)
-      : formatDiff(diff, previous.value.against)
+  const target = parseDiffTarget(previous.value.map, currentMap, input.target);
+  if (target.isErr()) {
+    return target;
+  }
+
+  const diff = filterDiff(
+    deriveTopoGraphDiff(previous.value.map, currentMap),
+    target.value,
+    input
   );
+  return Result.ok(formatDiff(diff, previous.value.against));
 };
 
 const buildSurveyLookup = (
@@ -404,6 +670,32 @@ const diffOutput = z.object({
   warnings: z.array(diffEntryOutput),
 });
 
+const diffInputSchema = z.object({
+  against: z
+    .string()
+    .min(1)
+    .optional()
+    .describe(
+      'Saved TopoGraph target: "saved", a workspace path (topo.lock, .json file, or directory with topo.lock), then a pin/snapshot id'
+    ),
+  breakingOnly: z
+    .boolean()
+    .default(false)
+    .describe('Legacy alias for --breaks; only show breaking changes'),
+  breaks: z.boolean().default(false).describe('Only show breaking changes'),
+  forces: z
+    .boolean()
+    .default(false)
+    .describe('Only show graph force audit events'),
+  module: z.string().optional().describe('Path to the app module'),
+  rootDir: z.string().optional().describe('Workspace root directory'),
+  target: z
+    .string()
+    .min(1)
+    .optional()
+    .describe('Trail or trail version target, such as user.create@1..2'),
+});
+
 const surveyMatchOutput = z.discriminatedUnion('kind', [
   z.object({
     detail: trailDetailOutput,
@@ -537,7 +829,7 @@ export const surveySurfacesTrail = trail('survey.surfaces', {
 export const surveyDiffTrail = trail('survey.diff', {
   blaze: async (input, ctx) =>
     withResolvedSurveyApp(input, ctx.cwd, (app, rootDir) =>
-      buildSurveyDiff(app, rootDir, input.breakingOnly, input.against)
+      buildSurveyDiff(app, rootDir, input)
     ),
   description: 'Diff the current topo against a saved TopoGraph',
   examples: [
@@ -562,21 +854,36 @@ export const surveyDiffTrail = trail('survey.diff', {
       name: 'Reject empty breaking-only target',
     },
   ],
-  input: z.object({
-    against: z
-      .string()
-      .min(1)
-      .optional()
-      .describe(
-        'Saved TopoGraph target: "saved", a workspace path (topo.lock, .json file, or directory with topo.lock), then a pin/snapshot id'
-      ),
-    breakingOnly: z
-      .boolean()
-      .default(false)
-      .describe('Only show breaking changes'),
-    module: z.string().optional().describe('Path to the app module'),
-    rootDir: z.string().optional().describe('Workspace root directory'),
-  }),
+  input: diffInputSchema,
+  intent: 'read',
+  output: diffOutput,
+});
+
+export const diffTrail = trail('diff', {
+  args: ['target'],
+  blaze: async (input, ctx) =>
+    withResolvedSurveyApp(input, ctx.cwd, (app, rootDir) =>
+      buildSurveyDiff(app, rootDir, input)
+    ),
+  description: 'Diff the current topo against a saved TopoGraph',
+  examples: [
+    {
+      description: 'Compare current topo to a saved TopoGraph directory',
+      input: createDiffExampleInput(),
+      name: 'Diff against baseline',
+    },
+    {
+      description: 'Show only breaking contract drift',
+      input: { ...createDiffExampleInput(), breaks: true },
+      name: 'Breaking changes',
+    },
+    {
+      description: 'Show graph-only force audit events',
+      input: { ...createDiffExampleInput(), forces: true },
+      name: 'Force audit events',
+    },
+  ],
+  input: diffInputSchema,
   intent: 'read',
   output: diffOutput,
 });

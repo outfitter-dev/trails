@@ -22,6 +22,7 @@ import {
   webhook,
 } from '@ontrails/core';
 import type { TrailSpec } from '@ontrails/core';
+import { deriveCliCommands } from '@ontrails/cli';
 import {
   deriveTopoGraph,
   deriveTopoGraphHash,
@@ -39,6 +40,7 @@ import {
   deriveSignalDetail,
   deriveSurveyList,
   deriveTrailDetail,
+  diffTrail,
   surveyBriefTrail,
   surveyDiffTrail,
   surveyResourceTrail,
@@ -197,6 +199,54 @@ if (!dbMain) {
 ${byeSource}
 
 export const app = topo('survey-fixture', ${topoMembers});
+`
+  );
+};
+
+const writeVersionedDiffAppFixture = (
+  dir: string,
+  options?: {
+    readonly archiveV1?: boolean;
+    readonly deprecateV1?: boolean;
+    readonly deprecateV2?: boolean;
+    readonly omitV1?: boolean;
+  }
+) => {
+  const versionOneSource = options?.omitV1
+    ? ''
+    : `    1: {
+      input: z.object({}),
+      output: z.object({ ok: z.boolean() }),
+      ${options?.archiveV1 ? "status: { reason: 'No callers remain.', state: 'archived' }," : ''}
+      ${options?.deprecateV1 ? "status: { migration: ['Use v3.'], state: 'deprecated' }," : ''}
+    },
+`;
+  mkdirSync(join(dir, 'src'), { recursive: true });
+  writeFileSync(
+    join(dir, 'src', 'app.ts'),
+    `import { Result, topo, trail } from '@ontrails/core';
+import { z } from 'zod';
+
+const versioned = trail('versioned', {
+  blaze: async () => Result.ok({ ok: true }),
+  input: z.object({}),
+  output: z.object({ ok: z.boolean() }),
+  version: 3,
+  versions: {
+${versionOneSource}\
+    2: {
+      input: z.object({}),
+      output: z.object({ ok: z.boolean() }),
+      ${options?.deprecateV2 ? "status: { migration: ['Use v3.'], state: 'deprecated' }," : ''}
+      transpose: {
+        input: ({ input }) => input,
+        output: ({ output }) => output,
+      },
+    },
+  },
+});
+
+export const app = topo('versioned-diff-fixture', { versioned });
 `
   );
 };
@@ -1561,6 +1611,18 @@ describe('trails compile', () => {
 });
 
 describe('trails survey diff', () => {
+  test('top-level diff projects as a root CLI command with target arg', () => {
+    const commands = expectOk(
+      deriveCliCommands(topo('diff-cli', { diffTrail, surveyDiffTrail }))
+    );
+    const command = commands.find((candidate) => candidate.trail.id === 'diff');
+
+    expect(command?.path).toEqual(['diff']);
+    expect(command?.args.map((arg) => arg.name)).toContain('target');
+    expect(command?.flags.map((flag) => flag.name)).toContain('breaks');
+    expect(command?.flags.map((flag) => flag.name)).toContain('forces');
+  });
+
   test('input validation preserves an isolated example rootDir', () => {
     const parsed = surveyDiffTrail.input.safeParse({
       against: 'saved',
@@ -1624,6 +1686,116 @@ describe('trails survey diff', () => {
     }
   });
 
+  test('top-level diff filters by trail target', async () => {
+    const dir = repoTempDir();
+
+    try {
+      writeSurveyAppFixture(dir);
+      const baselineApp = await loadApp('./src/app.ts', dir);
+      await writeTopoGraph(deriveTopoGraph(baselineApp), {
+        dir: join(dir, '.trails'),
+      });
+
+      writeSurveyAppFixture(dir, { withBye: true });
+
+      const byeDiff = await diffTrail.blaze(
+        { module: './src/app.ts', target: 'bye' },
+        { cwd: dir } as never
+      );
+      const helloDiff = await diffTrail.blaze(
+        { module: './src/app.ts', target: 'hello' },
+        { cwd: dir } as never
+      );
+
+      expect(byeDiff.isOk()).toBe(true);
+      expect(byeDiff.value.info).toEqual([
+        expect.objectContaining({ id: 'bye' }),
+      ]);
+      expect(helloDiff.isOk()).toBe(true);
+      expect(helloDiff.value.info).toEqual([]);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('top-level diff rejects unknown plain trail targets', async () => {
+    const dir = repoTempDir();
+
+    try {
+      writeSurveyAppFixture(dir);
+      const baselineApp = await loadApp('./src/app.ts', dir);
+      await writeTopoGraph(deriveTopoGraph(baselineApp), {
+        dir: join(dir, '.trails'),
+      });
+
+      const result = await diffTrail.blaze(
+        { module: './src/app.ts', target: 'missing.plain' },
+        { cwd: dir } as never
+      );
+
+      expect(result.isErr()).toBe(true);
+      expect(result.error.message).toContain(
+        'Trail not found for diff: missing.plain'
+      );
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('top-level diff filters graph-only force audit events', async () => {
+    const dir = repoTempDir();
+
+    try {
+      writeSurveyAppFixture(dir);
+      const baselineApp = await loadApp('./src/app.ts', dir);
+      const baseline = deriveTopoGraph(baselineApp);
+      const hello = baseline.entries.find((entry) => entry.id === 'hello');
+      if (hello === undefined) {
+        throw new Error('expected fixture topo entry');
+      }
+      writeFileSync(
+        join(dir, 'baseline.json'),
+        JSON.stringify({
+          ...baseline,
+          entries: [
+            {
+              ...hello,
+              forces: [
+                {
+                  acceptedAt: '2026-05-20T00:00:00.000Z',
+                  change: 'modified',
+                  detail: 'Required input field "name" added',
+                  id: 'hello',
+                  kind: 'trail',
+                  severity: 'breaking',
+                  source: 'trails compile --force',
+                },
+              ],
+            },
+          ],
+        } satisfies TopoGraph)
+      );
+
+      const result = await diffTrail.blaze(
+        {
+          against: 'baseline.json',
+          forces: true,
+          module: './src/app.ts',
+          target: 'hello@1..2',
+        },
+        { cwd: dir } as never
+      );
+
+      expect(result.isOk()).toBe(true);
+      expect(result.value.warnings[0]?.details).toEqual([
+        'Force event removed: modified Required input field "name" added',
+      ]);
+      expect(result.value.info).toEqual([]);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
   test('can diff against a workspace-relative TopoGraph directory', async () => {
     const dir = repoTempDir();
 
@@ -1649,6 +1821,154 @@ describe('trails survey diff', () => {
         mode: 'diff',
         warnings: [],
       });
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('version-range diff keeps supported-version details in range', async () => {
+    const dir = repoTempDir();
+
+    try {
+      writeVersionedDiffAppFixture(dir);
+      const baselineApp = await loadApp('./src/app.ts', dir);
+      await writeTopoGraph(deriveTopoGraph(baselineApp), {
+        dir: join(dir, 'baselines'),
+      });
+
+      writeVersionedDiffAppFixture(dir, { archiveV1: true });
+
+      const result = await diffTrail.blaze(
+        {
+          against: 'baselines',
+          module: './src/app.ts',
+          target: 'versioned@1..1',
+        },
+        { cwd: dir } as never
+      );
+
+      expect(result.isOk()).toBe(true);
+      expect(result.value.breaking[0]?.details).toContain(
+        'Supported versions removed: 1'
+      );
+      expect(result.value.breaking[0]?.details).toContain(
+        'Version 1 status changed: live -> archived'
+      );
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('version-range diff recomputes severity after filtering details', async () => {
+    const dir = repoTempDir();
+
+    try {
+      writeVersionedDiffAppFixture(dir);
+      const baselineApp = await loadApp('./src/app.ts', dir);
+      await writeTopoGraph(deriveTopoGraph(baselineApp), {
+        dir: join(dir, 'baselines'),
+      });
+
+      writeVersionedDiffAppFixture(dir, {
+        archiveV1: true,
+        deprecateV2: true,
+      });
+
+      const result = await diffTrail.blaze(
+        {
+          against: 'baselines',
+          module: './src/app.ts',
+          target: 'versioned@2..2',
+        },
+        { cwd: dir } as never
+      );
+
+      expect(result.isOk()).toBe(true);
+      expect(result.value).toMatchObject({
+        breaking: [],
+        hasBreaking: false,
+        warnings: [],
+      });
+      expect(result.value.info[0]).toMatchObject({
+        details: ['Version 2 status changed: live -> deprecated'],
+        severity: 'info',
+      });
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('version-range diff keeps removed deprecated versions breaking', async () => {
+    const dir = repoTempDir();
+
+    try {
+      writeVersionedDiffAppFixture(dir, { deprecateV1: true });
+      const baselineApp = await loadApp('./src/app.ts', dir);
+      const baselineGraph = deriveTopoGraph(baselineApp);
+      await writeTopoGraph(
+        {
+          ...baselineGraph,
+          entries: baselineGraph.entries.map((entry) =>
+            entry.id === 'versioned'
+              ? {
+                  ...entry,
+                  supports: entry.supports?.filter((version) => version !== 1),
+                }
+              : entry
+          ),
+        },
+        { dir: join(dir, 'baselines') }
+      );
+
+      writeVersionedDiffAppFixture(dir, { omitV1: true });
+
+      const result = await diffTrail.blaze(
+        {
+          against: 'baselines',
+          module: './src/app.ts',
+          target: 'versioned@1..1',
+        },
+        { cwd: dir } as never
+      );
+
+      expect(result.isOk()).toBe(true);
+      expect(result.value).toMatchObject({
+        hasBreaking: true,
+        info: [],
+        warnings: [],
+      });
+      expect(result.value.breaking[0]).toMatchObject({
+        details: ['Version 1 removed (deprecated)'],
+        severity: 'breaking',
+      });
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('version-range diff rejects unknown trail ids', async () => {
+    const dir = repoTempDir();
+
+    try {
+      writeVersionedDiffAppFixture(dir);
+      const baselineApp = await loadApp('./src/app.ts', dir);
+      await writeTopoGraph(deriveTopoGraph(baselineApp), {
+        dir: join(dir, 'baselines'),
+      });
+
+      const result = await diffTrail.blaze(
+        {
+          against: 'baselines',
+          module: './src/app.ts',
+          target: 'missing.versioned@1..2',
+        },
+        { cwd: dir } as never
+      );
+
+      expect(result.isErr()).toBe(true);
+      expect(result.error.message).toContain(
+        'Trail not found for diff: missing.versioned'
+      );
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }
@@ -1827,6 +2147,16 @@ describe('trails survey output schema', () => {
     ).toBe(true);
     expect(
       surveyDiffTrail.output.safeParse({
+        against: 'saved',
+        breaking: [],
+        hasBreaking: false,
+        info: [],
+        mode: 'diff',
+        warnings: [],
+      }).success
+    ).toBe(true);
+    expect(
+      diffTrail.output.safeParse({
         against: 'saved',
         breaking: [],
         hasBreaking: false,

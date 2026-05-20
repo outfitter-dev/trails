@@ -504,6 +504,137 @@ describe('deriveTopoGraphDiff', () => {
         'Live version 1 examples: 1 -> 2'
       );
     });
+
+    test('version markers, support removals, and archived status are visible', () => {
+      const versionContract = {
+        input: { properties: {}, type: 'object' },
+        kind: 'revision' as const,
+        output: { properties: {}, type: 'object' },
+      };
+      const prev = topoGraph([
+        entry({
+          id: 'versioned.trail',
+          marker: 'aaaa000000000000',
+          supports: [1, 2, 3],
+          version: 3,
+          versions: {
+            1: {
+              ...versionContract,
+              exampleCount: 1,
+              marker: 'bbbb000000000000',
+            },
+            2: {
+              ...versionContract,
+              exampleCount: 1,
+              marker: 'cccc000000000000',
+            },
+          },
+        }),
+      ]);
+      const curr = topoGraph([
+        entry({
+          id: 'versioned.trail',
+          marker: 'dddd000000000000',
+          supports: [2, 3],
+          version: 3,
+          versions: {
+            1: {
+              ...versionContract,
+              exampleCount: 1,
+              marker: 'eeee000000000000',
+              status: { state: 'archived' },
+            },
+            2: {
+              ...versionContract,
+              exampleCount: 1,
+              marker: 'cccc000000000000',
+            },
+          },
+        }),
+      ]);
+
+      const result = deriveTopoGraphDiff(prev, curr);
+
+      expect(result.hasBreaking).toBe(true);
+      expect(result.breaking[0]?.details).toContain(
+        'Supported versions removed: 1'
+      );
+      expect(result.breaking[0]?.details).toContain(
+        'Current marker changed: aaaa000000000000 -> dddd000000000000'
+      );
+      expect(result.breaking[0]?.details).toContain(
+        'Version 1 status changed: live -> archived'
+      );
+      expect(result.breaking[0]?.details).toContain(
+        'Version 1 marker changed: bbbb000000000000 -> eeee000000000000'
+      );
+    });
+
+    test('force event changes are reported as audit warnings', () => {
+      const prev = topoGraph([
+        entry({
+          id: 'versioned.trail',
+        }),
+      ]);
+      const curr = topoGraph([
+        entry({
+          forces: [
+            {
+              acceptedAt: '2026-05-20T00:00:00.000Z',
+              change: 'modified',
+              detail: 'Required input field "name" added',
+              id: 'versioned.trail',
+              kind: 'trail',
+              severity: 'breaking',
+              source: 'trails compile --force',
+            },
+          ],
+          id: 'versioned.trail',
+        }),
+      ]);
+
+      const result = deriveTopoGraphDiff(prev, curr);
+
+      expect(result.warnings[0]?.details).toContain(
+        'Force event recorded: modified Required input field "name" added'
+      );
+    });
+
+    test('graph-level force event changes are reported as audit warnings', () => {
+      const prev = topoGraph([
+        entry({
+          id: 'hello',
+        }),
+      ]);
+      const curr = {
+        ...topoGraph([
+          entry({
+            id: 'hello',
+          }),
+        ]),
+        forces: [
+          {
+            acceptedAt: '2026-05-20T00:00:00.000Z',
+            change: 'removed' as const,
+            detail: 'Trail "bye" removed',
+            id: 'bye',
+            kind: 'trail' as const,
+            severity: 'breaking' as const,
+            source: 'trails compile --force' as const,
+          },
+        ],
+      };
+
+      const result = deriveTopoGraphDiff(prev, curr);
+
+      expect(result.warnings[0]).toMatchObject({
+        id: 'bye',
+        kind: 'trail',
+      });
+      expect(result.warnings[0]?.details).toContain(
+        'Force event recorded: removed Trail "bye" removed'
+      );
+    });
   });
 
   describe('severity partitioning', () => {

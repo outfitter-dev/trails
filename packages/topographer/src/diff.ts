@@ -8,6 +8,7 @@ import type {
   JsonSchema,
   TopoGraph,
   TopoGraphEntry,
+  TopoGraphForceEntry,
   TopoGraphVersionEntry,
 } from './types.js';
 
@@ -445,6 +446,147 @@ const diffResources = (
 const isLiveVersionEntry = (entry: TopoGraphVersionEntry): boolean =>
   entry.status?.state !== 'archived';
 
+const statusLabel = (
+  status: TopoGraphVersionEntry['status'] | undefined
+): string => status?.state ?? 'live';
+
+const diffNumberSet = (
+  acc: DetailAccumulator,
+  label: string,
+  previous: readonly number[] | undefined,
+  current: readonly number[] | undefined,
+  removedSeverity: Severity
+): void => {
+  const prevValues = new Set(previous);
+  const currValues = new Set(current);
+  const added = [...currValues]
+    .filter((value) => !prevValues.has(value))
+    .toSorted((left, right) => left - right);
+  const removed = [...prevValues]
+    .filter((value) => !currValues.has(value))
+    .toSorted((left, right) => left - right);
+
+  if (added.length > 0) {
+    addDetail(acc, 'info', `${label} added: ${added.join(', ')}`);
+  }
+  if (removed.length > 0) {
+    addDetail(acc, removedSeverity, `${label} removed: ${removed.join(', ')}`);
+  }
+};
+
+const diffVersionSchemaFields = (
+  acc: DetailAccumulator,
+  version: string,
+  prev: TopoGraphVersionEntry,
+  curr: TopoGraphVersionEntry
+): void => {
+  const versionAcc: DetailAccumulator = { details: [], severity: 'info' };
+  diffSchemaFields(versionAcc, 'input', prev.input, curr.input);
+  diffSchemaFields(versionAcc, 'output', prev.output, curr.output);
+
+  for (const detail of versionAcc.details) {
+    addDetail(acc, versionAcc.severity, `Version ${version} ${detail}`);
+  }
+};
+
+const diffVersionEntry = (
+  acc: DetailAccumulator,
+  version: string,
+  prev: TopoGraphVersionEntry,
+  curr: TopoGraphVersionEntry
+): void => {
+  if (prev.kind !== curr.kind) {
+    addDetail(
+      acc,
+      'breaking',
+      `Version ${version} kind changed: ${prev.kind} -> ${curr.kind}`
+    );
+  }
+
+  const prevStatus = statusLabel(prev.status);
+  const currStatus = statusLabel(curr.status);
+  if (prevStatus !== currStatus) {
+    addDetail(
+      acc,
+      currStatus === 'archived' ? 'warning' : 'info',
+      `Version ${version} status changed: ${prevStatus} -> ${currStatus}`
+    );
+  }
+
+  if (prev.marker !== curr.marker) {
+    addDetail(
+      acc,
+      'info',
+      `Version ${version} marker changed: ${prev.marker} -> ${curr.marker}`
+    );
+  }
+
+  diffVersionSchemaFields(acc, version, prev, curr);
+};
+
+const diffVersionEntries = (
+  acc: DetailAccumulator,
+  prev: TopoGraphEntry,
+  curr: TopoGraphEntry
+): void => {
+  diffNumberSet(
+    acc,
+    'Supported versions',
+    prev.supports,
+    curr.supports,
+    'breaking'
+  );
+
+  if (prev.version !== curr.version) {
+    addDetail(
+      acc,
+      'info',
+      `Current version changed: ${String(prev.version ?? '(none)')} -> ${String(curr.version ?? '(none)')}`
+    );
+  }
+
+  if (prev.marker !== curr.marker) {
+    addDetail(
+      acc,
+      'info',
+      `Current marker changed: ${String(prev.marker ?? '(none)')} -> ${String(curr.marker ?? '(none)')}`
+    );
+  }
+
+  const prevVersions = prev.versions ?? {};
+  const currVersions = curr.versions ?? {};
+  const versions = new Set([
+    ...Object.keys(prevVersions),
+    ...Object.keys(currVersions),
+  ]);
+
+  for (const version of [...versions].toSorted(
+    (left, right) => Number(left) - Number(right)
+  )) {
+    const previous = prevVersions[version];
+    const current = currVersions[version];
+    if (previous === undefined && current !== undefined) {
+      addDetail(
+        acc,
+        isLiveVersionEntry(current) ? 'warning' : 'info',
+        `Version ${version} added (${statusLabel(current.status)})`
+      );
+      continue;
+    }
+    if (previous !== undefined && current === undefined) {
+      addDetail(
+        acc,
+        isLiveVersionEntry(previous) ? 'breaking' : 'warning',
+        `Version ${version} removed (${statusLabel(previous.status)})`
+      );
+      continue;
+    }
+    if (previous !== undefined && current !== undefined) {
+      diffVersionEntry(acc, version, previous, current);
+    }
+  }
+};
+
 const diffVersionExampleCoverage = (
   acc: DetailAccumulator,
   prev: TopoGraphEntry,
@@ -490,6 +632,93 @@ const diffVersionExampleCoverage = (
       );
     }
   }
+};
+
+const forceKey = (force: TopoGraphForceEntry): string =>
+  stableStringify({
+    change: force.change,
+    detail: force.detail,
+    id: force.id,
+    kind: force.kind,
+    reason: force.reason,
+    severity: force.severity,
+    source: force.source,
+  });
+
+const diffForces = (
+  acc: DetailAccumulator,
+  prev: TopoGraphEntry,
+  curr: TopoGraphEntry
+): void => {
+  const prevForces = new Map(
+    (prev.forces ?? []).map((force) => [forceKey(force), force])
+  );
+  const currForces = new Map(
+    (curr.forces ?? []).map((force) => [forceKey(force), force])
+  );
+
+  for (const [key, force] of [...currForces].toSorted(([left], [right]) =>
+    left.localeCompare(right)
+  )) {
+    if (!prevForces.has(key)) {
+      addDetail(
+        acc,
+        'warning',
+        `Force event recorded: ${force.change} ${force.detail}`
+      );
+    }
+  }
+
+  for (const [key, force] of [...prevForces].toSorted(([left], [right]) =>
+    left.localeCompare(right)
+  )) {
+    if (!currForces.has(key)) {
+      addDetail(
+        acc,
+        'warning',
+        `Force event removed: ${force.change} ${force.detail}`
+      );
+    }
+  }
+};
+
+const forceDiffEntry = (
+  force: TopoGraphForceEntry,
+  direction: 'recorded' | 'removed'
+): DiffEntry => ({
+  change: 'modified',
+  details: [`Force event ${direction}: ${force.change} ${force.detail}`],
+  id: force.id,
+  kind: force.kind,
+  severity: 'warning',
+});
+
+const diffGraphForces = (prev: TopoGraph, curr: TopoGraph): DiffEntry[] => {
+  const prevForces = new Map(
+    (prev.forces ?? []).map((force) => [forceKey(force), force])
+  );
+  const currForces = new Map(
+    (curr.forces ?? []).map((force) => [forceKey(force), force])
+  );
+  const entries: DiffEntry[] = [];
+
+  for (const [key, force] of [...currForces].toSorted(([left], [right]) =>
+    left.localeCompare(right)
+  )) {
+    if (!prevForces.has(key)) {
+      entries.push(forceDiffEntry(force, 'recorded'));
+    }
+  }
+
+  for (const [key, force] of [...prevForces].toSorted(([left], [right]) =>
+    left.localeCompare(right)
+  )) {
+    if (!currForces.has(key)) {
+      entries.push(forceDiffEntry(force, 'removed'));
+    }
+  }
+
+  return entries;
 };
 
 /** Diff declared contour arrays on trail entries. */
@@ -579,7 +808,9 @@ const diffTrailEntryDetails = (
   diffCrosses(acc, prev, curr);
   diffContours(acc, prev, curr);
   diffResources(acc, prev, curr);
+  diffVersionEntries(acc, prev, curr);
   diffVersionExampleCoverage(acc, prev, curr);
+  diffForces(acc, prev, curr);
 };
 
 const diffEntryDetails = (
@@ -682,12 +913,15 @@ const findModified = (
 
 /** Collect all diff entries (added, removed, modified) between two maps. */
 const collectDiffEntries = (
+  prev: TopoGraph,
+  curr: TopoGraph,
   prevById: Map<string, TopoGraphEntry>,
   currById: Map<string, TopoGraphEntry>
 ): DiffEntry[] => [
   ...findAdded(prevById, currById),
   ...findRemoved(prevById, currById),
   ...findModified(prevById, currById),
+  ...diffGraphForces(prev, curr),
 ];
 
 export const deriveTopoGraphDiff = (
@@ -696,8 +930,8 @@ export const deriveTopoGraphDiff = (
 ): DiffResult => {
   const prevById = new Map(prev.entries.map((e) => [e.id, e]));
   const currById = new Map(curr.entries.map((e) => [e.id, e]));
-  const sorted = collectDiffEntries(prevById, currById).toSorted((a, b) =>
-    a.id.localeCompare(b.id)
+  const sorted = collectDiffEntries(prev, curr, prevById, currById).toSorted(
+    (a, b) => a.id.localeCompare(b.id)
   );
 
   const breaking = sorted.filter((e) => e.severity === 'breaking');
