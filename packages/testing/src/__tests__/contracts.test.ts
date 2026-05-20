@@ -206,6 +206,74 @@ const derivedContractTrail = trail('contract.derived', {
   output: derivedContractContour,
 });
 
+const versionContractCurrentBlaze = mock((input: { name: string }) =>
+  Result.ok({ message: `current:${input.name}` })
+);
+const versionContractForkBlaze = mock((input: { code: string }) =>
+  Result.ok({ message: `fork:${input.code}` })
+);
+const versionedContractTrail = trail('contract.versioned', {
+  blaze: (input: { name: string }) => versionContractCurrentBlaze(input),
+  examples: [
+    {
+      expected: { message: 'current:Ada' },
+      input: { name: 'Ada' },
+      name: 'Current contract example',
+    },
+  ],
+  input: z.object({ name: z.string() }),
+  output: z.object({ message: z.string() }),
+  version: 5,
+  versions: {
+    1: {
+      examples: [
+        {
+          expected: { legacyMessage: 'legacy:Ada' },
+          input: { legacyName: 'Ada' },
+          name: 'Revision contract example',
+        },
+      ],
+      input: z.object({ legacyName: z.string() }),
+      output: z.object({ legacyMessage: z.string() }),
+      transpose: {
+        input: ({ input }) => ({ name: input.legacyName }),
+        output: ({ output }) => ({
+          legacyMessage: output.message.replace('current:', 'legacy:'),
+        }),
+      },
+    },
+    2: {
+      blaze: (input: { code: string }) => versionContractForkBlaze(input),
+      examples: [
+        {
+          expected: { message: 'fork:beta' },
+          input: { code: 'beta' },
+          name: 'Fork contract example',
+        },
+      ],
+      input: z.object({ code: z.string() }),
+      output: z.object({ message: z.string() }),
+      status: { state: 'deprecated' },
+    },
+    4: {
+      examples: [
+        {
+          expected: { archivedMessage: 'skip' },
+          input: {},
+          name: 'Archived contract example',
+        },
+      ],
+      input: z.object({}),
+      output: z.object({ archivedMessage: z.string() }),
+      status: { state: 'archived' },
+      transpose: {
+        input: () => ({ name: 'archived' }),
+        output: () => ({ archivedMessage: 'skip' }),
+      },
+    },
+  },
+});
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -335,5 +403,15 @@ describe('testContracts derives contour examples when trail examples are absent'
 
   afterAll(() => {
     expect(derivedContractBlaze).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('testContracts validates live version-entry outputs', () => {
+  // eslint-disable-next-line jest/require-hook
+  testContracts(topo('version-contract-app', { versionedContractTrail }));
+
+  afterAll(() => {
+    expect(versionContractCurrentBlaze).toHaveBeenCalledTimes(2);
+    expect(versionContractForkBlaze).toHaveBeenCalledTimes(1);
   });
 });

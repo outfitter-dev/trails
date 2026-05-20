@@ -1,7 +1,7 @@
 import type { TrailExample, TrailExampleSignalAssertion } from './trail.js';
 
 export interface StructuredTrailExampleProvenance {
-  readonly source: 'trail.examples';
+  readonly source: 'trail.examples' | 'trail.versions.examples';
 }
 
 export interface StructuredSignalExampleProvenance {
@@ -152,7 +152,8 @@ const projectSignalAssertions = (
 };
 
 const projectExample = (
-  example: TrailExample<unknown, unknown>
+  example: TrailExample<unknown, unknown>,
+  provenance: StructuredTrailExampleProvenance
 ): StructuredTrailExample | undefined => {
   const input = toJsonSerializable(example.input);
   if (input === undefined) {
@@ -163,7 +164,7 @@ const projectExample = (
     input,
     kind: example.error === undefined ? 'success' : 'error',
     name: example.name,
-    provenance: { source: 'trail.examples' },
+    provenance,
   };
 
   if (example.description !== undefined) {
@@ -213,14 +214,16 @@ const projectSignalExample = (
 };
 
 export const deriveStructuredTrailExamples = (
-  examples: readonly TrailExample<unknown, unknown>[] | undefined
+  examples: readonly TrailExample<unknown, unknown>[] | undefined,
+  options?: { readonly provenance?: StructuredTrailExampleProvenance }
 ): readonly StructuredTrailExample[] | undefined => {
   if (examples === undefined || examples.length === 0) {
     return undefined;
   }
 
+  const provenance = options?.provenance ?? { source: 'trail.examples' };
   const projected = examples
-    .map(projectExample)
+    .map((example) => projectExample(example, provenance))
     .filter(
       (example): example is StructuredTrailExample => example !== undefined
     );

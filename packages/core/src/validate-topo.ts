@@ -234,20 +234,21 @@ const checkOneExample = (
     error?: string | undefined;
   },
   inputSchema: { safeParse: (data: unknown) => { success: boolean } },
-  hasOutput: boolean
+  hasOutput: boolean,
+  label = `Example "${example.name}"`
 ): TopoIssue[] => {
   const issues: TopoIssue[] = [];
   const result = validateInput(inputSchema as AnyTrail['input'], example.input);
   if (result.isErr() && example.error !== 'ValidationError') {
     issues.push({
-      message: `Example "${example.name}" input does not parse against schema`,
+      message: `${label} input does not parse against schema`,
       rule: 'example-input-valid',
       trailId: id,
     });
   }
   if (example.expected !== undefined && !hasOutput) {
     issues.push({
-      message: `Example "${example.name}" has expected output but trail has no output schema`,
+      message: `${label} has expected output but trail has no output schema`,
       rule: 'output-schema-present',
       trailId: id,
     });
@@ -255,15 +256,34 @@ const checkOneExample = (
   return issues;
 };
 
+const checkVersionExamples = (id: string, trail: AnyTrail): TopoIssue[] =>
+  Object.entries(trail.versions ?? {}).flatMap(([version, entry]) => {
+    if (isArchivedTrailVersionEntry(entry)) {
+      return [];
+    }
+
+    return (entry.examples ?? []).flatMap((example) =>
+      checkOneExample(
+        id,
+        example,
+        entry.input,
+        true,
+        `Example "${example.name}" on version ${version}`
+      )
+    );
+  });
+
 const checkExamples = (trails: ReadonlyMap<string, AnyTrail>): TopoIssue[] => {
   const issues: TopoIssue[] = [];
   for (const [id, trail] of trails) {
-    if (!trail.examples) {
-      continue;
+    if (trail.examples) {
+      for (const example of trail.examples) {
+        issues.push(
+          ...checkOneExample(id, example, trail.input, !!trail.output)
+        );
+      }
     }
-    for (const example of trail.examples) {
-      issues.push(...checkOneExample(id, example, trail.input, !!trail.output));
-    }
+    issues.push(...checkVersionExamples(id, trail));
   }
   return issues;
 };

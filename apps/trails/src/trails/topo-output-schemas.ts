@@ -137,6 +137,32 @@ export const shippedSurfaceInventoryOutput = z.object({
     .readonly(),
 });
 
+const trailVersionEntryOutput = z.object({
+  crosses: z.array(z.string()).readonly().optional(),
+  detours: z
+    .array(
+      z.object({
+        maxAttempts: z.number(),
+        on: z.string(),
+      })
+    )
+    .readonly()
+    .optional(),
+  exampleCount: z.number(),
+  examples: z.array(z.unknown()).readonly().optional(),
+  input: jsonSchemaOutput,
+  kind: z.enum(['revision', 'fork']),
+  marker: z.string(),
+  output: jsonSchemaOutput,
+  resources: z.array(z.string()).readonly().optional(),
+  status: z
+    .object({
+      state: z.enum(['deprecated', 'archived']),
+    })
+    .catchall(z.unknown())
+    .optional(),
+});
+
 export const trailDetailOutput = z.object({
   activatedBy: z.array(z.string()).readonly(),
   activates: z.array(z.string()).readonly(),
@@ -190,8 +216,11 @@ export const trailDetailOutput = z.object({
   pattern: z.string().nullable(),
   resources: z.array(z.string()).readonly(),
   safety: z.string(),
+  supports: z.array(z.number()).readonly(),
   surfaceProjections: z.array(surfaceProjectionOutput).readonly(),
   surfaces: z.array(z.string()).readonly(),
+  version: z.number().nullable(),
+  versions: z.record(z.string(), trailVersionEntryOutput),
 });
 
 export const resourceDetailOutput = z.object({

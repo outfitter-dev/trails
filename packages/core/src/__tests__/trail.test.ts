@@ -101,6 +101,13 @@ describe('trail()', () => {
     test('stores revision entries and derives live support', () => {
       const v2Input = z.object({ name: z.string() });
       const v2Output = z.object({ greeting: z.string() });
+      const v2Examples = [
+        {
+          expected: { greeting: 'Hello, Ada!' },
+          input: { name: 'Ada' },
+          name: 'Legacy greeting',
+        },
+      ];
       const versioned = trail('invite.create', {
         blaze: (input) => Result.ok({ greeting: `Hello, ${input.name}!` }),
         input: inputSchema,
@@ -108,6 +115,7 @@ describe('trail()', () => {
         version: 3,
         versions: {
           2: {
+            examples: v2Examples,
             input: v2Input,
             output: v2Output,
             status: { state: 'deprecated', successor: 3 },
@@ -124,6 +132,8 @@ describe('trail()', () => {
       expect(Object.isFrozen(versioned.versions)).toBe(true);
       expect(entry?.input).toBe(v2Input);
       expect(entry?.output).toBe(v2Output);
+      expect(entry?.examples).toEqual(v2Examples);
+      expect(Object.isFrozen(entry?.examples)).toBe(true);
       expect(entry?.status).toEqual({ state: 'deprecated', successor: 3 });
       expect(entry && getTrailVersionEntryKind(entry)).toBe('revision');
       expect(deriveSupportedTrailVersions(versioned)).toEqual([2, 3]);
@@ -406,6 +416,19 @@ describe('trail()', () => {
           },
         })
       ).toThrow('must be less than the current version');
+
+      expect(() =>
+        trail('bad.version-examples', {
+          ...base,
+          versions: {
+            1: {
+              examples: { input: {}, name: 'not an array' },
+              input: z.object({}),
+              output: z.object({ ok: z.boolean() }),
+            } as never,
+          },
+        })
+      ).toThrow(ValidationError);
 
       expect(() =>
         trail('bad.no-current', {

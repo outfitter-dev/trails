@@ -28,6 +28,7 @@ import type {
   TrailDetailReport,
 } from './topo-reports.js';
 import {
+  countTrailExamples,
   deriveBriefReport,
   deriveResourceDetail,
   deriveSignalDetail,
@@ -129,7 +130,7 @@ export const buildCurrentGuideEntries = (
     .list()
     .map((trail) => ({
       description: trail.description ?? '(no description)',
-      exampleCount: trail.examples?.length ?? 0,
+      exampleCount: countTrailExamples(trail),
       id: trail.id,
       kind: 'trail' as const,
     }))

@@ -101,6 +101,8 @@ export interface TopoGraphVersionDetour {
 }
 
 export interface TopoGraphVersionEntry {
+  readonly exampleCount: number;
+  readonly examples?: readonly StructuredTrailExample[] | undefined;
   readonly kind: 'revision' | 'fork';
   readonly input: JsonSchema;
   readonly marker: string;

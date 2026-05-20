@@ -152,6 +152,74 @@ const contourDerivedTrail = trail('contour.derived.all', {
   output: contourFixture,
 });
 
+const versionAllCurrentBlaze = mock((input: { name: string }) =>
+  Result.ok({ message: `current:${input.name}` })
+);
+const versionAllForkBlaze = mock((input: { code: string }) =>
+  Result.ok({ message: `fork:${input.code}` })
+);
+const versionedAllTrail = trail('versioned.all', {
+  blaze: (input: { name: string }) => versionAllCurrentBlaze(input),
+  examples: [
+    {
+      expected: { message: 'current:Ada' },
+      input: { name: 'Ada' },
+      name: 'Current version example',
+    },
+  ],
+  input: z.object({ name: z.string() }),
+  output: z.object({ message: z.string() }),
+  version: 5,
+  versions: {
+    1: {
+      examples: [
+        {
+          expected: { message: 'legacy:Ada' },
+          input: { legacyName: 'Ada' },
+          name: 'Revision version example',
+        },
+      ],
+      input: z.object({ legacyName: z.string() }),
+      output: z.object({ message: z.string() }),
+      transpose: {
+        input: ({ input }) => ({ name: input.legacyName }),
+        output: ({ output }) => ({
+          message: output.message.replace('current:', 'legacy:'),
+        }),
+      },
+    },
+    2: {
+      blaze: (input: { code: string }) => versionAllForkBlaze(input),
+      examples: [
+        {
+          expected: { message: 'fork:beta' },
+          input: { code: 'beta' },
+          name: 'Deprecated fork version example',
+        },
+      ],
+      input: z.object({ code: z.string() }),
+      output: z.object({ message: z.string() }),
+      status: { state: 'deprecated' },
+    },
+    4: {
+      examples: [
+        {
+          expected: { message: 'archived' },
+          input: { archived: 42 },
+          name: 'Archived version example',
+        },
+      ],
+      input: z.object({ archived: z.boolean() }),
+      output: z.object({ message: z.string() }),
+      status: { state: 'archived' },
+      transpose: {
+        input: () => ({ name: 'archived' }),
+        output: () => ({ message: 'archived' }),
+      },
+    },
+  },
+});
+
 const repoTempDir = (): string =>
   join(
     resolve(import.meta.dir, '../..'),
@@ -284,6 +352,16 @@ describe('testAll contour-derived fixtures', () => {
 
   afterAll(() => {
     expect(contourDerivedBlaze).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('testAll version entries', () => {
+  // eslint-disable-next-line jest/require-hook
+  testAll(topo('test-all-versioned-app', { versionedAllTrail }));
+
+  afterAll(() => {
+    expect(versionAllCurrentBlaze).toHaveBeenCalledTimes(4);
+    expect(versionAllForkBlaze).toHaveBeenCalledTimes(2);
   });
 });
 

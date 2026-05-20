@@ -437,6 +437,73 @@ describe('deriveTopoGraphDiff', () => {
       expect(resourceDetail).toContain('cache.main');
       expect(resourceDetail).toContain('search.index');
     });
+
+    test('new live version entries without examples produce a warning', () => {
+      const versionContract = {
+        input: { properties: {}, type: 'object' },
+        kind: 'revision' as const,
+        marker: 'abcd000000000000',
+        output: { properties: {}, type: 'object' },
+      };
+      const prev = topoGraph([
+        entry({
+          id: 'versioned.trail',
+          version: 2,
+          versions: {},
+        }),
+      ]);
+      const curr = topoGraph([
+        entry({
+          id: 'versioned.trail',
+          version: 3,
+          versions: {
+            2: {
+              ...versionContract,
+              exampleCount: 0,
+              status: { state: 'deprecated' },
+            },
+          },
+        }),
+      ]);
+
+      const result = deriveTopoGraphDiff(prev, curr);
+
+      expect(result.warnings).toHaveLength(1);
+      expect(result.warnings[0]?.details).toContain(
+        'Live version 2 added without examples'
+      );
+    });
+
+    test('version-entry example count changes are informational', () => {
+      const versionContract = {
+        input: { properties: {}, type: 'object' },
+        kind: 'revision' as const,
+        marker: 'abcd000000000000',
+        output: { properties: {}, type: 'object' },
+      };
+      const prev = topoGraph([
+        entry({
+          id: 'versioned.trail',
+          versions: {
+            1: { ...versionContract, exampleCount: 1 },
+          },
+        }),
+      ]);
+      const curr = topoGraph([
+        entry({
+          id: 'versioned.trail',
+          versions: {
+            1: { ...versionContract, exampleCount: 2 },
+          },
+        }),
+      ]);
+
+      const result = deriveTopoGraphDiff(prev, curr);
+
+      expect(result.info[0]?.details).toContain(
+        'Live version 1 examples: 1 -> 2'
+      );
+    });
   });
 
   describe('severity partitioning', () => {

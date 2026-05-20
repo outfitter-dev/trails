@@ -266,6 +266,13 @@ describe('deriveTopoGraph', () => {
             },
           },
           2: {
+            examples: [
+              {
+                expected: { inviteId: 'i_2' },
+                input: { email: 'ada@example.test' },
+                name: 'Deprecated invite',
+              },
+            ],
             input: z.object({ email: z.string() }),
             output: z.object({ inviteId: z.string() }),
             status: { state: 'deprecated', successor: 3 },
@@ -295,6 +302,13 @@ describe('deriveTopoGraph', () => {
         status: { reason: 'No supported callers remain.', state: 'archived' },
       });
       expect(entry?.versions?.['2']).toMatchObject({
+        exampleCount: 1,
+        examples: [
+          expect.objectContaining({
+            name: 'Deprecated invite',
+            provenance: { source: 'trail.versions.examples' },
+          }),
+        ],
         kind: 'revision',
         status: { state: 'deprecated', successor: 3 },
       });

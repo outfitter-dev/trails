@@ -11,6 +11,7 @@ import { describe, expect, test } from 'bun:test';
 
 import type {
   CrossFn,
+  CrossOptions,
   ResourceOverrideMap,
   Topo,
   TrailExample,
@@ -35,6 +36,7 @@ import {
   RateLimitError,
   RetryExhaustedError,
   executeTrail,
+  parseTrailIdVersionReference,
   Result,
   TimeoutError,
   TrailsError,
@@ -57,7 +59,11 @@ import {
   createMockResources,
 } from './context.js';
 import type { PermittedTrail, TestExecutionOptions } from './context.js';
-import { isDerivedExample, deriveTrailExamples } from './effective-examples.js';
+import {
+  deriveTrailExampleTargets,
+  isDerivedExample,
+} from './effective-examples.js';
+import type { TrailExampleTarget } from './effective-examples.js';
 import { withSignalAssertions } from './signals.js';
 
 // ---------------------------------------------------------------------------
@@ -161,6 +167,32 @@ const applyAutoPermit = (
   return { ...ctx, permit };
 };
 
+const runTargetExample = async (
+  target: TrailExampleTarget,
+  example: TrailExample<unknown, unknown>,
+  testCtx: TrailContext,
+  resources?: ResourceOverrideMap,
+  opts?: TestExecutionOptions
+): Promise<void> => {
+  const { output, trail: t } = target;
+  const ctx = opts ? applyAutoPermit(testCtx, t, opts) : testCtx;
+  const signals = withSignalAssertions(ctx, example);
+  const validated = validateInput(target.input, example.input);
+
+  if (handleValidationError(validated, example)) {
+    signals.assert();
+    return;
+  }
+
+  const result = await executeTrail(t, example.input, {
+    ctx: signals.ctx,
+    resources: resources ?? opts?.resources,
+    ...(target.version === undefined ? {} : { version: target.version }),
+  });
+  assertProgressiveMatch(result, example, output);
+  signals.assert();
+};
+
 /**
  * Run a single example against a trail.
  * Handles validation, execution, and assertions.
@@ -173,21 +205,21 @@ export const runExample = async (
   resources?: ResourceOverrideMap,
   opts?: TestExecutionOptions
 ): Promise<void> => {
-  const ctx = opts ? applyAutoPermit(testCtx, t, opts) : testCtx;
-  const signals = withSignalAssertions(ctx, example);
-  const validated = validateInput(t.input, example.input);
-
-  if (handleValidationError(validated, example)) {
-    signals.assert();
-    return;
-  }
-
-  const result = await executeTrail(t, example.input, {
-    ctx: signals.ctx,
-    resources: resources ?? opts?.resources,
-  });
-  assertProgressiveMatch(result, example, output);
-  signals.assert();
+  await runTargetExample(
+    {
+      crosses: t.crosses,
+      current: true,
+      examples: [example],
+      id: t.id,
+      input: t.input,
+      output,
+      trail: t,
+    },
+    example,
+    testCtx,
+    resources,
+    opts
+  );
 };
 
 // ---------------------------------------------------------------------------
@@ -211,13 +243,36 @@ const createCoverageCross = (
   const invokeCross = async (
     idOrTrail: string | { readonly id: string },
     input: unknown,
-    self: CrossFn
+    self: CrossFn,
+    crossOptions?: CrossOptions | undefined
   ) => {
-    const id = typeof idOrTrail === 'string' ? idOrTrail : idOrTrail.id;
+    const parsed =
+      typeof idOrTrail === 'string'
+        ? parseTrailIdVersionReference(idOrTrail)
+        : Result.ok({ id: idOrTrail.id });
+    if (parsed.isErr()) {
+      return parsed;
+    }
+    const parsedVersion =
+      'version' in parsed.value ? parsed.value.version : undefined;
+    if (parsedVersion !== undefined && crossOptions?.version !== undefined) {
+      return Result.err(
+        new ValidationError(
+          `Trail "${parsed.value.id}" version was provided both in the id reference and ctx.cross() options`
+        )
+      );
+    }
+
+    const { id } = parsed.value;
     called.add(id);
+    const version = crossOptions?.version ?? parsedVersion;
 
     if (baseCross !== undefined) {
-      return await baseCross(id, input);
+      const forwardedOptions =
+        parsedVersion === undefined
+          ? crossOptions
+          : { ...crossOptions, version: parsedVersion };
+      return await baseCross(id, input, forwardedOptions);
     }
 
     const trailDef = topo.get(id);
@@ -225,6 +280,7 @@ const createCoverageCross = (
       return await executeTrail(trailDef, input, {
         ctx: { ...ctx, cross: self },
         resources,
+        ...(version === undefined ? {} : { version }),
         validationSchema: buildCrossValidationSchema(trailDef),
       });
     }
@@ -239,7 +295,8 @@ const createCoverageCross = (
       | string
       | { readonly id: string }
       | readonly (readonly [string | { readonly id: string }, unknown])[],
-    input?: unknown
+    inputOrOptions?: unknown,
+    singleOptions?: CrossOptions
   ) {
     if (Array.isArray(idOrTrail)) {
       return await Promise.all(
@@ -251,8 +308,9 @@ const createCoverageCross = (
 
     return await invokeCross(
       idOrTrail as string | { readonly id: string },
-      input,
-      cross as CrossFn
+      inputOrOptions,
+      cross as CrossFn,
+      singleOptions
     );
   } as CrossFn;
 
@@ -263,20 +321,20 @@ const createCoverageCross = (
  * Run a single example against a trail with crossings, recording cross calls.
  */
 const runCompositionExample = async (
-  trailDef: Trail<unknown, unknown, unknown>,
+  target: TrailExampleTarget,
   example: TrailExample<unknown, unknown>,
-  output: z.ZodType | undefined,
   baseCtx: TrailContext,
   called: Set<string>,
   topo: Topo,
   resources?: ResourceOverrideMap,
   opts?: TestExecutionOptions
 ): Promise<void> => {
+  const { output, trail: trailDef } = target;
   const permittedCtx = opts
     ? applyAutoPermit(baseCtx, trailDef, opts)
     : baseCtx;
   const signals = withSignalAssertions(permittedCtx, example);
-  const validated = validateInput(trailDef.input, example.input);
+  const validated = validateInput(target.input, example.input);
 
   if (handleValidationError(validated, example)) {
     signals.assert();
@@ -297,6 +355,7 @@ const runCompositionExample = async (
   const result = await executeTrail(trailDef, example.input, {
     ctx: testCtx,
     resources: resources ?? opts?.resources,
+    ...(target.version === undefined ? {} : { version: target.version }),
   });
   assertProgressiveMatch(result, example, output);
   signals.assert();
@@ -327,18 +386,15 @@ export const testExamples = (
   const resolveInput =
     typeof ctxOrFactory === 'function' ? ctxOrFactory : () => ctxOrFactory;
   const withExamples = (app.list() as Trail<unknown, unknown, unknown>[])
-    .map((trailDef) => ({
-      ...trailDef,
-      examples: deriveTrailExamples(trailDef),
-    }))
-    .filter((trailDef) => trailDef.examples.length > 0);
+    .flatMap(deriveTrailExampleTargets)
+    .filter((target) => target.examples.length > 0);
   const simpleTrails = withExamples.filter((t) => t.crosses.length === 0);
   const compositionTrails = withExamples.filter((t) => t.crosses.length > 0);
 
   // Simple trails: run examples directly
   if (simpleTrails.length > 0) {
     describe.each(simpleTrails)('$id', (t) => {
-      const { examples, output } = t;
+      const { examples } = t;
       if (!examples) {
         return;
       }
@@ -353,7 +409,7 @@ export const testExamples = (
             resolved.resources
           );
           const testCtx = mergeTestContext(resolved.ctx);
-          await runExample(t, example, output, testCtx, resources, resolved);
+          await runTargetExample(t, example, testCtx, resources, resolved);
         }
       );
     });
@@ -370,7 +426,7 @@ export const testExamples = (
   // execute, but they are not required to cover declared crossings.
   if (compositionTrails.length > 0) {
     describe.each(compositionTrails)('$id', (t) => {
-      const { examples, output } = t;
+      const { examples } = t;
       if (!examples) {
         return;
       }
@@ -403,7 +459,6 @@ export const testExamples = (
           await runCompositionExample(
             t,
             example,
-            output,
             baseCtx,
             pickCoverageSink(example),
             app,

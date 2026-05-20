@@ -1,6 +1,7 @@
 import {
   DETOUR_MAX_ATTEMPTS_CAP,
   TRAIL_VERSION_MARKER_MIN_PREFIX_LENGTH,
+  deriveStructuredTrailExamples,
   ValidationError,
   deriveCurrentTrailVersionMarker,
   deriveShortestUnambiguousTrailVersionMarkerPrefix,
@@ -89,12 +90,20 @@ export const projectTrailVersionEntry = (
   projectSchema: SchemaProjector
 ): TopoGraphVersionEntry => {
   const kind = getTrailVersionEntryKind(entry);
+  const examples = deriveStructuredTrailExamples(entry.examples, {
+    provenance: { source: 'trail.versions.examples' },
+  });
   const projected: Record<string, unknown> = {
+    exampleCount: entry.examples?.length ?? 0,
     input: projectSchema(entry.input),
     kind,
     marker: deriveTrailVersionEntryMarker(entry),
     output: projectSchema(entry.output),
   };
+
+  if (examples !== undefined) {
+    projected['examples'] = examples;
+  }
 
   if (entry.status !== undefined) {
     projected['status'] = sortPlainRecord({ ...entry.status });

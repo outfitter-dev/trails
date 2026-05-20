@@ -2,6 +2,7 @@ import {
   DETOUR_MAX_ATTEMPTS_CAP,
   deriveCliPath,
   filterSurfaceTrails,
+  isArchivedTrailVersionEntry,
   zodToJsonSchema,
 } from '@ontrails/core';
 import type { AnyTrail, Signal, Topo } from '@ontrails/core';
@@ -16,6 +17,7 @@ import type {
   TopoGraphEntry,
   TopoGraphFieldOverride,
   TopoGraphLayerReference,
+  TopoGraphVersionEntry,
 } from '@ontrails/topographer';
 import { z } from 'zod';
 
@@ -211,6 +213,9 @@ export interface TrailDetailReport {
   readonly resources: readonly string[];
   readonly surfaceProjections: readonly ShippedSurfaceProjection[];
   readonly surfaces: readonly string[];
+  readonly supports: readonly number[];
+  readonly version: number | null;
+  readonly versions: Readonly<Record<string, TopoGraphVersionEntry>>;
 }
 
 export interface SignalDetailReport {
@@ -231,12 +236,19 @@ export interface SignalDetailReport {
   readonly producers: readonly string[];
 }
 
-const trailHas = (raw: Record<string, unknown>, key: string): boolean => {
-  if (key === 'examples' || key === 'detours') {
-    return Array.isArray(raw[key]) && (raw[key] as unknown[]).length > 0;
+const countLiveTrailVersionExamples = (trail: AnyTrail): number => {
+  let count = 0;
+  for (const entry of Object.values(trail.versions ?? {})) {
+    if (isArchivedTrailVersionEntry(entry)) {
+      continue;
+    }
+    count += entry.examples?.length ?? 0;
   }
-  return Boolean(raw[key]);
+  return count;
 };
+
+export const countTrailExamples = (trail: AnyTrail): number =>
+  (trail.examples?.length ?? 0) + countLiveTrailVersionExamples(trail);
 
 const detectFeatures = (
   app: Topo
@@ -246,18 +258,12 @@ const detectFeatures = (
   hasOutputSchemas: boolean;
   hasResources: boolean;
 } => {
-  const trails = [...app.trails.values()].map(
-    (item) => item as unknown as Record<string, unknown>
-  );
+  const trails = [...app.trails.values()];
   return {
-    hasDetours: trails.some((r) => trailHas(r, 'detours')),
-    hasExamples: trails.some((r) => trailHas(r, 'examples')),
-    hasOutputSchemas: trails.some((r) => trailHas(r, 'output')),
-    hasResources: trails.some(
-      (r) =>
-        Array.isArray(r['resources']) &&
-        (r['resources'] as unknown[]).length > 0
-    ),
+    hasDetours: trails.some((trail) => trail.detours.length > 0),
+    hasExamples: trails.some((trail) => countTrailExamples(trail) > 0),
+    hasOutputSchemas: trails.some((trail) => trail.output !== undefined),
+    hasResources: trails.some((trail) => trail.resources.length > 0),
   };
 };
 
@@ -386,11 +392,7 @@ export const deriveSurveyList = (app: Topo): SurveyListReport => {
     const safety = safetyLabel(
       item as unknown as { intent?: 'read' | 'write' | 'destroy' }
     );
-    const examples = Array.isArray(
-      (item as unknown as { examples?: unknown[] }).examples
-    )
-      ? (item as unknown as { examples: unknown[] }).examples.length
-      : 0;
+    const examples = countTrailExamples(item);
 
     return {
       activatedBy: trailActivation.activatedBy,
@@ -657,6 +659,14 @@ const deriveResolvedSurfaceProjections = (
     : deriveShippedSurfaceProjectionsForTrail(app, trail, topoGraph);
 };
 
+const deriveResolvedTrailVersionDetail = (
+  topoEntry: TopoGraphEntry | undefined
+): Pick<TrailDetailReport, 'supports' | 'version' | 'versions'> => ({
+  supports: topoEntry?.supports ?? [],
+  version: topoEntry?.version ?? null,
+  versions: topoEntry?.versions ?? {},
+});
+
 const deriveResolvedTrailGraphDetail = (
   app: Topo | undefined,
   trailId: string,
@@ -676,6 +686,9 @@ const deriveResolvedTrailGraphDetail = (
   | 'output'
   | 'surfaceProjections'
   | 'surfaces'
+  | 'supports'
+  | 'version'
+  | 'versions'
 > => {
   const topoGraph =
     topoGraphOverride ?? (app === undefined ? undefined : deriveTopoGraph(app));
@@ -714,6 +727,7 @@ const deriveResolvedTrailGraphDetail = (
       topoGraph
     ),
     surfaces: topoEntry?.surfaces ?? [],
+    ...deriveResolvedTrailVersionDetail(topoEntry),
   };
 };
 
@@ -784,7 +798,10 @@ export const deriveTrailDetail = (
     pattern: item.pattern ?? null,
     resources: item.resources.map((resource) => resource.id).toSorted(),
     safety,
+    supports: graphDetail.supports,
     surfaceProjections: graphDetail.surfaceProjections,
     surfaces: graphDetail.surfaces,
+    version: graphDetail.version,
+    versions: graphDetail.versions,
   };
 };

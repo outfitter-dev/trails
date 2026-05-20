@@ -103,6 +103,9 @@ export interface TrailVersionStatus {
 export interface VersionEntry<
   TContract extends VersionContract = VersionContract,
 > {
+  readonly examples?:
+    | readonly TrailExample<TContract['input'], TContract['output']>[]
+    | undefined;
   readonly input: z.ZodType<TContract['input']>;
   readonly marker?: never;
   readonly output: z.ZodType<TContract['output']>;
@@ -602,6 +605,26 @@ const normalizeVersionStatus = (
   return Object.freeze({ ...raw, state: raw['state'] }) as TrailVersionStatus;
 };
 
+const normalizeVersionExamples = (
+  trailId: string,
+  version: number,
+  examples: unknown
+): readonly TrailExample<unknown, unknown>[] | undefined => {
+  if (examples === undefined) {
+    return undefined;
+  }
+  if (!Array.isArray(examples)) {
+    throw new ValidationError(
+      `Trail "${trailId}" version ${version} examples must be an array`
+    );
+  }
+
+  return Object.freeze([...examples]) as readonly TrailExample<
+    unknown,
+    unknown
+  >[];
+};
+
 const normalizeTranspose = (
   trailId: string,
   version: number,
@@ -687,6 +710,11 @@ const normalizeVersionEntry = <CurrentInput, CurrentOutput>(
   }
 
   const base = {
+    ...(raw['examples'] === undefined
+      ? {}
+      : {
+          examples: normalizeVersionExamples(trailId, version, raw['examples']),
+        }),
     input: raw['input'],
     output: raw['output'],
     ...(raw['status'] === undefined

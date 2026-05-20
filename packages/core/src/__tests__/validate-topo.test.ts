@@ -454,6 +454,70 @@ describe('validateTopo', () => {
       const result = validateTopo(app);
       expect(result.isOk()).toBe(true);
     });
+
+    test('version entry examples validate against historical schemas', () => {
+      const versioned = trail('versioned.example', {
+        blaze: () => Result.ok({ current: true }),
+        input: z.object({ current: z.string() }),
+        output: z.object({ current: z.boolean() }),
+        version: 2,
+        versions: {
+          1: {
+            examples: [
+              {
+                expected: { legacy: true },
+                input: { legacy: 123 },
+                name: 'Invalid legacy input',
+              },
+            ],
+            input: z.object({ legacy: z.string() }),
+            output: z.object({ legacy: z.boolean() }),
+            transpose: {
+              input: () => ({ current: 'legacy' }),
+              output: () => ({ legacy: true }),
+            },
+          },
+        },
+      });
+
+      const result = validateTopo(topo('app', { versioned }));
+      expect(result.isErr()).toBe(true);
+
+      const issues = extractIssues(result);
+      expect(issues).toHaveLength(1);
+      expect(issues[0]?.rule).toBe('example-input-valid');
+      expect(issues[0]?.message).toContain('version 1');
+      expect(issues[0]?.message).toContain('Invalid legacy input');
+    });
+
+    test('archived version entry examples are preserved but skipped by default validation', () => {
+      const versioned = trail('versioned.archived.example', {
+        blaze: () => Result.ok({ current: true }),
+        input: z.object({ current: z.string() }),
+        output: z.object({ current: z.boolean() }),
+        version: 2,
+        versions: {
+          1: {
+            examples: [
+              {
+                expected: { legacy: true },
+                input: { legacy: 123 },
+                name: 'Archived invalid legacy input',
+              },
+            ],
+            input: z.object({ legacy: z.string() }),
+            output: z.object({ legacy: z.boolean() }),
+            status: { state: 'archived' },
+            transpose: {
+              input: () => ({ current: 'legacy' }),
+              output: () => ({ legacy: true }),
+            },
+          },
+        },
+      });
+
+      expect(validateTopo(topo('app', { versioned })).isOk()).toBe(true);
+    });
   });
 
   describe('contour references', () => {

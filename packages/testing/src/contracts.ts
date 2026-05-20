@@ -20,7 +20,8 @@ import {
   createMockResources,
 } from './context.js';
 import type { TestExecutionOptions } from './context.js';
-import { deriveTrailExamples } from './effective-examples.js';
+import type { TrailExampleTarget } from './effective-examples.js';
+import { deriveTrailExampleTargets } from './effective-examples.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -41,6 +42,15 @@ const validateOutputSchema = (
   }
 };
 
+type ContractExampleTarget = TrailExampleTarget & {
+  readonly output: z.ZodType;
+};
+
+const hasContractExamples = (
+  target: TrailExampleTarget
+): target is ContractExampleTarget =>
+  target.output !== undefined && target.examples.length > 0;
+
 // ---------------------------------------------------------------------------
 // testContracts
 // ---------------------------------------------------------------------------
@@ -60,21 +70,12 @@ export const testContracts = (
 ): void => {
   const resolveInput =
     typeof ctxOrFactory === 'function' ? ctxOrFactory : () => ctxOrFactory;
-  const allEntries = (app.list() as Trail<unknown, unknown, unknown>[]).map(
-    (trailDef) => ({
-      ...trailDef,
-      examples: deriveTrailExamples(trailDef),
-    })
-  );
+  const allEntries = (app.list() as Trail<unknown, unknown, unknown>[])
+    .flatMap(deriveTrailExampleTargets)
+    .filter(hasContractExamples);
 
   describe('contracts', () => {
     describe.each(allEntries)('$id', (t) => {
-      if (t.output === undefined) {
-        return;
-      }
-      if (t.examples.length === 0) {
-        return;
-      }
       const { examples, output: outputSchema } = t;
       const successExamples = examples.filter((e) => e.error === undefined);
 
@@ -92,10 +93,11 @@ export const testContracts = (
           const validated = validateInput(t.input, example.input);
           expectOk(validated);
 
-          const result = await executeTrail(t, example.input, {
+          const result = await executeTrail(t.trail, example.input, {
             ctx: testCtx,
             resources,
             topo: app,
+            ...(t.version === undefined ? {} : { version: t.version }),
           });
           const resultValue = expectOk(result);
 

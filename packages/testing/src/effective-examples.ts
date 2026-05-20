@@ -1,8 +1,26 @@
 import type { AnyContour, Trail, TrailExample } from '@ontrails/core';
-import { getContourReferences } from '@ontrails/core';
+import {
+  getContourReferences,
+  getTrailVersionEntryKind,
+  isArchivedTrailVersionEntry,
+} from '@ontrails/core';
 import { z } from 'zod';
 
 type ExampleRecord = Readonly<Record<string, unknown>>;
+
+export interface TrailExampleTarget {
+  readonly crosses: readonly string[];
+  readonly current: boolean;
+  readonly examples: readonly TrailExample<unknown, unknown>[];
+  readonly id: string;
+  readonly input: Trail<unknown, unknown, unknown>['input'];
+  readonly output: Trail<unknown, unknown, unknown>['output'];
+  readonly trail: Trail<unknown, unknown, unknown>;
+  readonly version?: number | undefined;
+}
+
+const normalizeCrossRef = (value: string | { readonly id: string }): string =>
+  typeof value === 'string' ? value : value.id;
 
 /**
  * Tracks examples that `deriveTrailExamples` synthesizes from contour
@@ -347,4 +365,50 @@ export const deriveTrailExamples = (
     derivedExamples.add(derived);
     return [derived];
   });
+};
+
+export const deriveTrailExampleTargets = (
+  trail: Trail<unknown, unknown, unknown>
+): readonly TrailExampleTarget[] => {
+  const targets: TrailExampleTarget[] = [];
+  const currentExamples = deriveTrailExamples(trail);
+  if (currentExamples.length > 0) {
+    targets.push({
+      crosses: trail.crosses,
+      current: true,
+      examples: currentExamples,
+      id: trail.id,
+      input: trail.input,
+      output: trail.output,
+      trail,
+    });
+  }
+
+  for (const [rawVersion, entry] of Object.entries(
+    trail.versions ?? {}
+  ).toSorted(([left], [right]) => Number(left) - Number(right))) {
+    if (isArchivedTrailVersionEntry(entry)) {
+      continue;
+    }
+    const examples = entry.examples ?? [];
+    if (examples.length === 0) {
+      continue;
+    }
+    const kind = getTrailVersionEntryKind(entry);
+    targets.push({
+      crosses:
+        kind === 'fork'
+          ? (entry.crosses ?? []).map(normalizeCrossRef)
+          : trail.crosses,
+      current: false,
+      examples,
+      id: `${trail.id}@${rawVersion}`,
+      input: entry.input,
+      output: entry.output,
+      trail,
+      version: Number(rawVersion),
+    });
+  }
+
+  return targets;
 };

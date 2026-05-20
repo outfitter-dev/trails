@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+import { afterAll, describe, expect, mock, test } from 'bun:test';
 
 import {
   ConflictError,
@@ -488,6 +488,145 @@ describe('testExamples resource mocks through cross', () => {
       crossRootTrail,
     } as Record<string, unknown>)
   );
+});
+
+const versionExampleCurrentBlaze = mock((input: { name: string }) =>
+  Result.ok({ message: `current:${input.name}` })
+);
+const versionExampleForkBlaze = mock((input: { code: string }) =>
+  Result.ok({ message: `fork:${input.code}` })
+);
+const versionedExampleTrail = trail('version.examples', {
+  blaze: (input: { name: string }) => versionExampleCurrentBlaze(input),
+  examples: [
+    {
+      expected: { message: 'current:Ada' },
+      input: { name: 'Ada' },
+      name: 'Current example',
+    },
+  ],
+  input: z.object({ name: z.string() }),
+  output: z.object({ message: z.string() }),
+  version: 5,
+  versions: {
+    1: {
+      examples: [
+        {
+          expected: { message: 'legacy:Ada' },
+          input: { legacyName: 'Ada' },
+          name: 'Revision example',
+        },
+      ],
+      input: z.object({ legacyName: z.string() }),
+      output: z.object({ message: z.string() }),
+      transpose: {
+        input: ({ input }) => ({ name: input.legacyName }),
+        output: ({ output }) => ({
+          message: output.message.replace('current:', 'legacy:'),
+        }),
+      },
+    },
+    2: {
+      blaze: (input: { code: string }) => versionExampleForkBlaze(input),
+      examples: [
+        {
+          expected: { message: 'fork:beta' },
+          input: { code: 'beta' },
+          name: 'Deprecated fork example',
+        },
+      ],
+      input: z.object({ code: z.string() }),
+      output: z.object({ message: z.string() }),
+      status: { state: 'deprecated' },
+    },
+    4: {
+      examples: [
+        {
+          expected: { message: 'archived should not run' },
+          input: { archived: true },
+          name: 'Archived example',
+        },
+      ],
+      input: z.object({ archived: z.boolean() }),
+      output: z.object({ message: z.string() }),
+      status: { state: 'archived' },
+      transpose: {
+        input: () => ({ name: 'archived' }),
+        output: ({ output }) => output,
+      },
+    },
+  },
+});
+
+describe('testExamples runs current plus live version-entry examples', () => {
+  // eslint-disable-next-line jest/require-hook
+  testExamples(topo('version-examples-app', { versionedExampleTrail }));
+
+  afterAll(() => {
+    expect(versionExampleCurrentBlaze).toHaveBeenCalledTimes(2);
+    expect(versionExampleForkBlaze).toHaveBeenCalledTimes(1);
+  });
+});
+
+const batchVersionChildBlaze = mock((input: { name: string }) =>
+  Result.ok({ message: `batch:${input.name}` })
+);
+const batchVersionChildTrail = trail('version.examples.batch.child', {
+  blaze: (input: { name: string }) => batchVersionChildBlaze(input),
+  input: z.object({ name: z.string() }),
+  output: z.object({ message: z.string() }),
+  version: 2,
+  versions: {
+    1: {
+      input: z.object({ legacyName: z.string() }),
+      output: z.object({ message: z.string() }),
+      transpose: {
+        input: ({ input }) => ({ name: input.legacyName }),
+        output: ({ output }) => output,
+      },
+    },
+  },
+});
+const batchVersionParentTrail = trail('version.examples.batch.parent', {
+  blaze: async (_input, ctx) => {
+    if (!ctx.cross) {
+      return Result.err(new Error('cross not available'));
+    }
+    const [child] = await ctx.cross([
+      ['version.examples.batch.child@1', { legacyName: 'Ada' }],
+    ]);
+    if (child === undefined) {
+      return Result.err(new Error('batch cross returned no result'));
+    }
+    if (child.isErr()) {
+      return child;
+    }
+    return Result.ok(child.value as { message: string });
+  },
+  crosses: [batchVersionChildTrail],
+  examples: [
+    {
+      expected: { message: 'batch:Ada' },
+      input: {},
+      name: 'Batch cross resolves inline version reference',
+    },
+  ],
+  input: z.object({}),
+  output: z.object({ message: z.string() }),
+});
+
+describe('testExamples resolves inline version references through batch cross', () => {
+  // eslint-disable-next-line jest/require-hook
+  testExamples(
+    topo('version-examples-batch-cross-app', {
+      batchVersionChildTrail,
+      batchVersionParentTrail,
+    })
+  );
+
+  afterAll(() => {
+    expect(batchVersionChildBlaze).toHaveBeenCalledTimes(1);
+  });
 });
 
 // ---------------------------------------------------------------------------

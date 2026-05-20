@@ -5,6 +5,7 @@ import { ConflictError, trail, topo, Result } from '@ontrails/core';
 import { z } from 'zod';
 
 import { guideTrail } from '../trails/guide.js';
+import { buildCurrentGuideEntries } from '../trails/topo-read-support.js';
 
 // ---------------------------------------------------------------------------
 // Test fixtures
@@ -84,6 +85,49 @@ describe('trails guide', () => {
     expect(parsed['description']).toBe('Say hello');
   });
 
+  test('guide list counts live version-entry examples', () => {
+    const versioned = trail('guide.versioned', {
+      blaze: () => Result.ok({ ok: true }),
+      input: z.object({ name: z.string() }),
+      output: z.object({ ok: z.boolean() }),
+      version: 3,
+      versions: {
+        1: {
+          examples: [
+            {
+              expected: { ok: true },
+              input: { name: 'legacy' },
+              name: 'Legacy guide example',
+            },
+          ],
+          input: z.object({ name: z.string() }),
+          output: z.object({ ok: z.boolean() }),
+          status: { state: 'deprecated' },
+        },
+        2: {
+          examples: [
+            {
+              expected: { ok: true },
+              input: { name: 'archived' },
+              name: 'Archived guide example',
+            },
+          ],
+          input: z.object({ name: z.string() }),
+          output: z.object({ ok: z.boolean() }),
+          status: { state: 'archived' },
+        },
+      },
+    });
+    const versionedApp = topo('guide-versioned-app', { versioned });
+
+    expect(buildCurrentGuideEntries(versionedApp)).toEqual([
+      expect.objectContaining({
+        exampleCount: 1,
+        id: 'guide.versioned',
+      }),
+    ]);
+  });
+
   test('non-existent trail returns undefined from topo', () => {
     const item = app.get('does-not-exist');
     expect(item).toBeUndefined();
@@ -155,8 +199,11 @@ describe('trails guide', () => {
           pattern: null,
           resources: [],
           safety: 'read',
+          supports: [],
           surfaceProjections: [],
           surfaces: [],
+          version: null,
+          versions: {},
         },
         mode: 'detail',
       }).success

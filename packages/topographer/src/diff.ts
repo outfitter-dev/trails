@@ -8,6 +8,7 @@ import type {
   JsonSchema,
   TopoGraph,
   TopoGraphEntry,
+  TopoGraphVersionEntry,
 } from './types.js';
 
 // ---------------------------------------------------------------------------
@@ -441,6 +442,56 @@ const diffResources = (
   }
 };
 
+const isLiveVersionEntry = (entry: TopoGraphVersionEntry): boolean =>
+  entry.status?.state !== 'archived';
+
+const diffVersionExampleCoverage = (
+  acc: DetailAccumulator,
+  prev: TopoGraphEntry,
+  curr: TopoGraphEntry
+): void => {
+  const previousVersions = prev.versions ?? {};
+  for (const [version, entry] of Object.entries(curr.versions ?? {}).toSorted(
+    ([left], [right]) => Number(left) - Number(right)
+  )) {
+    if (!isLiveVersionEntry(entry)) {
+      continue;
+    }
+
+    const previous = previousVersions[version];
+    if (entry.exampleCount === 0 && previous === undefined) {
+      addDetail(
+        acc,
+        'warning',
+        `Live version ${version} added without examples`
+      );
+      continue;
+    }
+
+    if (
+      previous !== undefined &&
+      isLiveVersionEntry(previous) &&
+      previous.exampleCount > 0 &&
+      entry.exampleCount === 0
+    ) {
+      addDetail(
+        acc,
+        'warning',
+        `Live version ${version} example coverage removed`
+      );
+      continue;
+    }
+
+    if (previous?.exampleCount !== entry.exampleCount) {
+      addDetail(
+        acc,
+        'info',
+        `Live version ${version} examples: ${previous?.exampleCount ?? 0} -> ${entry.exampleCount}`
+      );
+    }
+  }
+};
+
 /** Diff declared contour arrays on trail entries. */
 const diffContours = (
   acc: DetailAccumulator,
@@ -528,6 +579,7 @@ const diffTrailEntryDetails = (
   diffCrosses(acc, prev, curr);
   diffContours(acc, prev, curr);
   diffResources(acc, prev, curr);
+  diffVersionExampleCoverage(acc, prev, curr);
 };
 
 const diffEntryDetails = (

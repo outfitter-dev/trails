@@ -342,6 +342,47 @@ describe('trails survey brief', () => {
     expect(report.features.resources).toBe(true);
   });
 
+  test('detects and counts live version-entry examples', () => {
+    const versioned = trail('brief.versioned', {
+      blaze: () => Result.ok({ ok: true }),
+      input: z.object({ name: z.string() }),
+      output: z.object({ ok: z.boolean() }),
+      version: 3,
+      versions: {
+        1: {
+          examples: [
+            {
+              expected: { ok: true },
+              input: { name: 'legacy' },
+              name: 'Legacy brief example',
+            },
+          ],
+          input: z.object({ name: z.string() }),
+          output: z.object({ ok: z.boolean() }),
+          status: { state: 'deprecated' },
+        },
+        2: {
+          examples: [
+            {
+              expected: { ok: true },
+              input: { name: 'archived' },
+              name: 'Archived brief example',
+            },
+          ],
+          input: z.object({ name: z.string() }),
+          output: z.object({ ok: z.boolean() }),
+          status: { state: 'archived' },
+        },
+      },
+    });
+    const versionedApp = topo('brief-versioned-app', { versioned });
+
+    expect(deriveBriefReport(versionedApp).features.examples).toBe(true);
+    expect(deriveSurveyList(versionedApp).entries).toEqual([
+      expect.objectContaining({ examples: 1, id: 'brief.versioned' }),
+    ]);
+  });
+
   test('JSON output is valid', () => {
     const report = deriveBriefReport(app);
     const json = JSON.stringify(report, null, 2);
@@ -430,6 +471,51 @@ describe('trails survey detail', () => {
       topo: [],
       trail: [],
     });
+  });
+
+  test('trail detail reports version-entry example coverage', () => {
+    const versioned = trail('survey.versioned', {
+      blaze: () => Result.ok({ ok: true }),
+      input: z.object({ id: z.string() }),
+      output: z.object({ ok: z.boolean() }),
+      version: 2,
+      versions: {
+        1: {
+          examples: [
+            {
+              expected: { ok: true },
+              input: { legacyId: 'old' },
+              name: 'Legacy survey example',
+            },
+          ],
+          input: z.object({ legacyId: z.string() }),
+          output: z.object({ ok: z.boolean() }),
+          status: { state: 'deprecated' },
+          transpose: {
+            input: ({ input }) => ({ id: input.legacyId }),
+            output: ({ output }) => output,
+          },
+        },
+      },
+    });
+    const detail = structuredClone(
+      deriveTrailDetail(versioned, topo('version-survey-app', { versioned }))
+    ) as TrailDetailReport;
+
+    expect(detail.version).toBe(2);
+    expect(detail.supports).toEqual([1, 2]);
+    expect(detail.versions['1']).toMatchObject({
+      exampleCount: 1,
+      examples: [
+        expect.objectContaining({
+          name: 'Legacy survey example',
+          provenance: { source: 'trail.versions.examples' },
+        }),
+      ],
+      kind: 'revision',
+      status: { state: 'deprecated' },
+    });
+    expect(trailDetailOutput.safeParse(detail).success).toBe(true);
   });
 
   test('trail detail surfaces composed layers from every scope', () => {
