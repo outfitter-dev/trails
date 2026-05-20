@@ -13,7 +13,7 @@ import {
 
 export const compileCurrentTopo = async (
   app: Topo,
-  options?: { readonly rootDir?: string }
+  options?: { readonly force?: boolean | undefined; readonly rootDir?: string }
 ): Promise<Result<TopoExportReport, Error>> => exportCurrentTopo(app, options);
 
 export const compileTrail = trail('compile', {
@@ -29,7 +29,10 @@ export const compileTrail = trail('compile', {
     }
     const lease = leaseResult.value;
     try {
-      return await compileCurrentTopo(lease.app, { rootDir });
+      return await compileCurrentTopo(lease.app, {
+        force: input.force,
+        rootDir,
+      });
     } finally {
       lease.release();
     }
@@ -42,6 +45,10 @@ export const compileTrail = trail('compile', {
     },
   ],
   input: z.object({
+    force: z
+      .boolean()
+      .optional()
+      .describe('Record graph-only force events for breaking changes'),
     module: z.string().optional().describe('Path to the app module'),
     rootDir: z.string().optional().describe('Workspace root directory'),
   }),

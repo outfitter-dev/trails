@@ -26,6 +26,7 @@ import {
   deriveTopoGraph,
   deriveTopoGraphHash,
   deriveTopoGraphDiff,
+  stripTopoGraphForces,
   TOPO_GRAPH_SCHEMA_VERSION,
   writeTopoGraph,
 } from '@ontrails/topographer';
@@ -58,6 +59,7 @@ import {
   trailDetailOutput,
 } from '../trails/topo-output-schemas.js';
 import { compileTrail } from '../trails/compile.js';
+import { validateTrail } from '../trails/validate.js';
 import type {
   BriefReport,
   ShippedSurfaceInventoryReport,
@@ -154,7 +156,7 @@ const expectOk = <T>(result: Result<T, Error>): T => {
 
 const writeSurveyAppFixture = (
   dir: string,
-  options?: { withBye?: boolean }
+  options?: { readonly helloNameRequired?: boolean; readonly withBye?: boolean }
 ) => {
   mkdirSync(join(dir, 'src'), { recursive: true });
   const byeSource = options?.withBye
@@ -177,7 +179,7 @@ import { z } from 'zod';
 
 const hello = trail('hello', {
   blaze: async (input) => Result.ok({ message: \`Hello, \${input.name ?? 'world'}!\` }),
-  input: z.object({ name: z.string().optional() }),
+  input: z.object({ name: z.string()${options?.helloNameRequired ? '' : '.optional()'} }),
   intent: 'read',
   output: z.object({ message: z.string() }),
   resources: [
@@ -1412,6 +1414,146 @@ describe('trails compile', () => {
         version: 3,
       });
       expect(compileTrail.output.safeParse(compiled).success).toBe(true);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('blocks breaking topo changes unless forced and records force events', async () => {
+    const dir = repoTempDir();
+
+    try {
+      writeSurveyAppFixture(dir);
+      expectOk(
+        await compileTrail.blaze({ module: './src/app.ts' }, {
+          cwd: dir,
+        } as never)
+      );
+
+      writeSurveyAppFixture(dir, { helloNameRequired: true });
+      const blocked = await compileTrail.blaze({ module: './src/app.ts' }, {
+        cwd: dir,
+      } as never);
+      expect(blocked.isErr()).toBe(true);
+      expect(blocked.error).toBeInstanceOf(ConflictError);
+      expect(blocked.error?.message).toContain('breaking change');
+
+      const forced = expectOk(
+        await compileTrail.blaze({ force: true, module: './src/app.ts' }, {
+          cwd: dir,
+        } as never)
+      ) as {
+        readonly hash: string;
+        readonly lockPath: string;
+        readonly topoPath: string;
+      };
+      const graph = JSON.parse(
+        readFileSync(join(dir, '.trails', 'topo.lock'), 'utf8')
+      ) as TopoGraph;
+      const hello = graph.entries.find((entry) => entry.id === 'hello');
+
+      expect(hello?.forces?.[0]).toMatchObject({
+        severity: 'breaking',
+        source: 'trails compile --force',
+      });
+      expect(
+        JSON.parse(readFileSync(join(dir, '.trails', 'trails.lock'), 'utf8'))
+      ).toMatchObject({
+        artifacts: [{ path: 'topo.lock', role: 'topo', sha256: forced.hash }],
+      });
+      const validated = expectOk(
+        await validateTrail.blaze({ module: './src/app.ts' }, {
+          cwd: dir,
+        } as never)
+      );
+      expect(validated.stale).toBe(false);
+      expect(validated.currentHash).toBe(
+        deriveTopoGraphHash(stripTopoGraphForces(graph))
+      );
+      expect(validated.currentHash).not.toBe(validated.committedHash);
+      const recompiled = expectOk(
+        await compileTrail.blaze({ module: './src/app.ts' }, {
+          cwd: dir,
+        } as never)
+      ) as {
+        readonly hash: string;
+      };
+      const recompiledGraph = JSON.parse(
+        readFileSync(join(dir, '.trails', 'topo.lock'), 'utf8')
+      ) as TopoGraph;
+      const recompiledHello = recompiledGraph.entries.find(
+        (entry) => entry.id === 'hello'
+      );
+
+      expect(recompiledHello?.forces?.[0]).toMatchObject({
+        severity: 'breaking',
+        source: 'trails compile --force',
+      });
+      expect(recompiled.hash).toBe(forced.hash);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('forced removed trails are recorded as graph force events', async () => {
+    const dir = repoTempDir();
+
+    try {
+      writeSurveyAppFixture(dir, { withBye: true });
+      expectOk(
+        await compileTrail.blaze({ module: './src/app.ts' }, {
+          cwd: dir,
+        } as never)
+      );
+
+      writeSurveyAppFixture(dir);
+      const forced = expectOk(
+        await compileTrail.blaze({ force: true, module: './src/app.ts' }, {
+          cwd: dir,
+        } as never)
+      ) as {
+        readonly hash: string;
+      };
+      const graph = JSON.parse(
+        readFileSync(join(dir, '.trails', 'topo.lock'), 'utf8')
+      ) as TopoGraph;
+
+      expect(graph.entries.some((entry) => entry.id === 'bye')).toBe(false);
+      expect(graph.forces?.[0]).toMatchObject({
+        change: 'removed',
+        id: 'bye',
+        kind: 'trail',
+        source: 'trails compile --force',
+      });
+      expect(
+        JSON.parse(readFileSync(join(dir, '.trails', 'trails.lock'), 'utf8'))
+      ).toMatchObject({
+        artifacts: [{ path: 'topo.lock', role: 'topo', sha256: forced.hash }],
+      });
+      const validated = expectOk(
+        await validateTrail.blaze({ module: './src/app.ts' }, {
+          cwd: dir,
+        } as never)
+      );
+      expect(validated.stale).toBe(false);
+      const recompiled = expectOk(
+        await compileTrail.blaze({ module: './src/app.ts' }, {
+          cwd: dir,
+        } as never)
+      ) as {
+        readonly hash: string;
+      };
+      const recompiledGraph = JSON.parse(
+        readFileSync(join(dir, '.trails', 'topo.lock'), 'utf8')
+      ) as TopoGraph;
+
+      expect(recompiledGraph.forces?.[0]).toMatchObject({
+        change: 'removed',
+        id: 'bye',
+        kind: 'trail',
+        source: 'trails compile --force',
+      });
+      expect(recompiled.hash).toBe(forced.hash);
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }

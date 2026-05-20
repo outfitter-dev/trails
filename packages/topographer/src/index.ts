@@ -8,6 +8,13 @@ export { deriveTopoGraph } from './derive.js';
 export { deriveTopoGraphHash } from './hash.js';
 export { deriveTopoGraphDiff } from './diff.js';
 export {
+  annotateTopoGraphForces,
+  carryForwardTopoGraphForces,
+  deriveTopoGraphForceEntries,
+  stripTopoGraphForces,
+} from './forces.js';
+export type { TopoGraphForceOptions } from './forces.js';
+export {
   collectTopoGraphVersionMarkers,
   deriveTopoGraphVersionMarkerRecords,
   resolveTopoGraphVersionReference,

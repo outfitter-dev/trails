@@ -9,6 +9,7 @@ import { Database } from 'bun:sqlite';
 
 import type { Topo } from '@ontrails/core';
 import {
+  ConflictError,
   deriveTrailsDir,
   InternalError,
   openWriteTrailsDb,
@@ -20,7 +21,15 @@ import type {
   TopoSnapshot,
 } from '@ontrails/topographer';
 import type { StoredTopoExport } from '@ontrails/topographer/backend-support';
-import { writeLockManifest, writeTopoGraph } from '@ontrails/topographer';
+import {
+  annotateTopoGraphForces,
+  carryForwardTopoGraphForces,
+  deriveTopoGraphDiff,
+  deriveTopoGraphHash,
+  readTopoGraph,
+  writeLockManifest,
+  writeTopoGraph,
+} from '@ontrails/topographer';
 import {
   createStoredTopoSnapshot,
   getStoredTopoExport,
@@ -85,19 +94,46 @@ export const deriveCurrentTopoExport = (
 
 const writeStoredExportArtifacts = async (
   storedExport: StoredTopoExport,
-  trailsDir: string
+  trailsDir: string,
+  options?: { readonly force?: boolean | undefined }
 ): Promise<Pick<TopoExportReport, 'hash' | 'lockPath' | 'topoPath'>> => {
-  const topoPath = await writeTopoGraph(
-    JSON.parse(storedExport.topoGraphJson) as TopoGraph,
-    { dir: trailsDir }
-  );
-  const lockPath = await writeLockManifest(
-    JSON.parse(storedExport.lockManifestJson) as LockManifest,
-    { dir: trailsDir }
-  );
+  const previousTopo = await readTopoGraph({ dir: trailsDir });
+  const nextTopo = JSON.parse(storedExport.topoGraphJson) as TopoGraph;
+  const diff =
+    previousTopo === null
+      ? undefined
+      : deriveTopoGraphDiff(previousTopo, nextTopo);
+  if (diff !== undefined && diff.breaking.length > 0 && !options?.force) {
+    throw new ConflictError(
+      `Topo contains ${diff.breaking.length} breaking change(s). Add a version entry, revert the change, or rerun with --force.`
+    );
+  }
+
+  const topoGraphBase =
+    previousTopo === null
+      ? nextTopo
+      : carryForwardTopoGraphForces(previousTopo, nextTopo);
+  const topoGraph =
+    diff === undefined || diff.breaking.length === 0
+      ? topoGraphBase
+      : annotateTopoGraphForces(topoGraphBase, diff.breaking);
+  const hash = deriveTopoGraphHash(topoGraph);
+  const lockManifest = {
+    ...(JSON.parse(storedExport.lockManifestJson) as LockManifest),
+    artifacts: [
+      {
+        path: 'topo.lock',
+        role: 'topo',
+        sha256: hash,
+      },
+    ],
+  } satisfies LockManifest;
+
+  const topoPath = await writeTopoGraph(topoGraph, { dir: trailsDir });
+  const lockPath = await writeLockManifest(lockManifest, { dir: trailsDir });
 
   return {
-    hash: storedExport.topoGraphHash,
+    hash,
     lockPath,
     topoPath,
   };
@@ -105,7 +141,7 @@ const writeStoredExportArtifacts = async (
 
 export const exportCurrentTopo = async (
   app: Topo,
-  options?: { readonly rootDir?: string }
+  options?: { readonly force?: boolean | undefined; readonly rootDir?: string }
 ): Promise<Result<TopoExportReport, Error>> => {
   const rootDir = deriveRootDir(options?.rootDir);
   const db = openWriteTrailsDb({ rootDir });
@@ -117,10 +153,20 @@ export const exportCurrentTopo = async (
     }
 
     const { snapshot, storedExport } = persisted.value;
-    const artifacts = await writeStoredExportArtifacts(
-      storedExport,
-      deriveTrailsDir({ rootDir })
-    );
+    let artifacts: Pick<TopoExportReport, 'hash' | 'lockPath' | 'topoPath'>;
+    try {
+      artifacts = await writeStoredExportArtifacts(
+        storedExport,
+        deriveTrailsDir({ rootDir }),
+        { force: options?.force }
+      );
+    } catch (error: unknown) {
+      return Result.err(
+        error instanceof Error
+          ? error
+          : new InternalError('Unable to write topo artifacts')
+      );
+    }
     return Result.ok({ ...artifacts, snapshot });
   } finally {
     db.close();

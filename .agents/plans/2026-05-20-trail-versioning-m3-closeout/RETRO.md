@@ -111,6 +111,15 @@ Append meaningful state changes, especially before handoff points.
 - Result: TRL-731 archive status lifecycle is locally implemented on top of the already-landed runtime exclusion and graph visibility substrate.
 - Next: Commit TRL-731, restack upward, then implement shared break/force substrate for TRL-732.
 - Blockers: None.
+
+2026-05-20 10:15 EDT - TRL-732 compile break gate and force events
+- Changed: Committed TRL-731 as `7c4681a48 feat(core): expose archived version lifecycle helpers`; Graphite restacked the descendant branches.
+- Changed: Implemented TRL-732 substrate on `trl-732-feattrails-add-compilevalidate-break-detection-and-force`: formalized `TopoGraphForceEntry`, added topographer force annotation helpers, threaded `force` through `trails compile`, blocked unforced breaking topo diffs against existing `topo.lock`, annotated forced breaking entries as graph-only `forces`, recomputed the forced graph hash for `trails.lock`, and improved stale validate messaging with breaking-change counts.
+- Verified: Targeted tests passed: `bun test apps/trails/src/__tests__/survey.test.ts packages/topographer/src/__tests__/diff.test.ts packages/topographer/src/__tests__/derive.test.ts` (110 pass).
+- Verified: `bun run --cwd packages/topographer typecheck`, `bun run --cwd apps/trails typecheck`, and `git diff --check` passed.
+- Result: TRL-732 local compile/force substrate is implemented. The richer user-facing `trails diff` filtering/history surface remains for TRL-730.
+- Next: Commit TRL-732, restack upward, then promote/version-aware diff work on TRL-730.
+- Blockers: None.
 ```
 
 ## Local Review Log
@@ -140,6 +149,9 @@ Record exact commands and artifact checks. Include skipped checks with reasons.
 | `bun run --cwd apps/trails typecheck` | TRL-117 targeted typecheck | Passed | `tsc --noEmit` passed. |
 | `bun test packages/core/src/__tests__/trail.test.ts packages/core/src/__tests__/version-execution.test.ts packages/core/src/__tests__/validate-topo.test.ts packages/topographer/src/__tests__/derive.test.ts apps/trails/src/__tests__/survey.test.ts` | TRL-731 targeted tests | Passed | 218 pass, 0 fail. |
 | `bun run --cwd packages/core typecheck` | TRL-731 targeted typecheck | Passed | `tsc --noEmit` passed. |
+| `bun test apps/trails/src/__tests__/survey.test.ts packages/topographer/src/__tests__/diff.test.ts packages/topographer/src/__tests__/derive.test.ts` | TRL-732 targeted tests | Passed | 110 pass, 0 fail. |
+| `bun run --cwd packages/topographer typecheck` | TRL-732 targeted typecheck | Passed | `tsc --noEmit` passed. |
+| `bun run --cwd apps/trails typecheck` | TRL-732 targeted typecheck | Passed | `tsc --noEmit` passed. |
 | `bun run check` | Execution tip | Pending | Required by goal. |
 | `bun run build` | Execution tip | Pending | Required by goal. |
 | `bun run test` | Execution tip | Pending | Required by goal. |

@@ -113,7 +113,16 @@ export interface TopoGraphVersionEntry {
   readonly resources?: readonly string[] | undefined;
 }
 
-export type TopoGraphForceEntry = Readonly<Record<string, unknown>>;
+export interface TopoGraphForceEntry {
+  readonly acceptedAt: string;
+  readonly change: 'modified' | 'removed';
+  readonly detail: string;
+  readonly id: string;
+  readonly kind: 'contour' | 'trail' | 'signal' | 'resource';
+  readonly reason?: string | undefined;
+  readonly severity: 'breaking';
+  readonly source: 'trails compile --force';
+}
 
 // ---------------------------------------------------------------------------
 // TopoGraph
@@ -179,6 +188,7 @@ export interface TopoGraph {
   >;
   readonly generatedAt: string;
   readonly entries: readonly TopoGraphEntry[];
+  readonly forces?: readonly TopoGraphForceEntry[] | undefined;
   readonly workspace?: WorkspaceTopoMetadata | undefined;
 }
 
@@ -236,6 +246,19 @@ export const workspaceTopoMetadataSchema = z
 
 export type WorkspaceTopoMetadata = z.infer<typeof workspaceTopoMetadataSchema>;
 
+const topoGraphForceEntrySchema = z
+  .object({
+    acceptedAt: z.string(),
+    change: z.enum(['modified', 'removed']),
+    detail: z.string(),
+    id: z.string(),
+    kind: z.enum(['contour', 'trail', 'signal', 'resource']),
+    reason: z.string().optional(),
+    severity: z.literal('breaking'),
+    source: z.literal('trails compile --force'),
+  })
+  .strict();
+
 export const topoGraphSchema = z
   .object({
     activationGraph: z
@@ -258,6 +281,7 @@ export const topoGraphSchema = z
         })
         .passthrough()
     ),
+    forces: z.array(topoGraphForceEntrySchema).optional(),
     generatedAt: z.string(),
     topoGraphSchemaVersion: z.literal(TOPO_GRAPH_SCHEMA_VERSION),
     workspace: workspaceTopoMetadataSchema.optional(),

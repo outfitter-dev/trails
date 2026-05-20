@@ -18,7 +18,15 @@ import {
   SURFACE_LAYER_NAMES_KEY,
   ValidationError,
 } from '@ontrails/core';
-import { deriveTopoGraph, readLockManifest } from '@ontrails/topographer';
+import {
+  deriveTopoGraph,
+  deriveTopoGraphDiff,
+  deriveTopoGraphHash,
+  readLockManifest,
+  readTopoGraph,
+  stripTopoGraphForces,
+} from '@ontrails/topographer';
+import type { TopoGraph } from '@ontrails/topographer';
 
 import type {
   BriefReport,
@@ -244,6 +252,9 @@ export const validateCurrentTopo = async (
   if (currentExport.isErr()) {
     return currentExport;
   }
+  const currentTopo = JSON.parse(
+    currentExport.value.topoGraphJson
+  ) as TopoGraph;
   const currentHash = currentExport.value.topoGraphHash;
   const topoArtifact = lockManifest.artifacts.find(
     (artifact) => artifact.role === 'topo' && artifact.path === 'topo.lock'
@@ -257,9 +268,38 @@ export const validateCurrentTopo = async (
   }
 
   if (topoArtifact.sha256 !== currentHash) {
+    const committedTopo = await readTopoGraph({
+      dir: deriveTrailsDir({ rootDir }),
+    });
+    if (committedTopo !== null) {
+      const committedHash = deriveTopoGraphHash(committedTopo);
+      const forceStrippedHash = deriveTopoGraphHash(
+        stripTopoGraphForces(committedTopo)
+      );
+      if (
+        committedHash === topoArtifact.sha256 &&
+        forceStrippedHash === currentHash
+      ) {
+        return Result.ok({
+          committedHash: topoArtifact.sha256,
+          currentHash,
+          lockPath: LOCK_PATH,
+          stale: false,
+        });
+      }
+    }
+    const breakingSummary =
+      committedTopo === null
+        ? ''
+        : (() => {
+            const diff = deriveTopoGraphDiff(committedTopo, currentTopo);
+            return diff.breaking.length > 0
+              ? ` Breaking changes detected: ${diff.breaking.length}.`
+              : '';
+          })();
     return Result.err(
       new ConflictError(
-        'trails.lock is stale. Run `trails compile` to refresh it.'
+        `trails.lock is stale. Run \`trails compile\` to refresh it.${breakingSummary}`
       )
     );
   }
