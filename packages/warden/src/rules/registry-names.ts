@@ -48,6 +48,17 @@ import { resourceIdGrammar } from './resource-id-grammar.js';
 import { scheduledDestroyIntent } from './scheduled-destroy-intent.js';
 import { signalGraphCoaching } from './signal-graph-coaching.js';
 import { staticResourceAccessorPreference } from './static-resource-accessor-preference.js';
+import {
+  forkWithoutPreservedBlaze,
+  markerSchemaUnsupported,
+  versionPinnedCross,
+} from './trail-versioning-source.js';
+import {
+  deprecationWithoutGuidance,
+  pendingForce,
+  versionGap,
+  versionWithoutExamples,
+} from './trail-versioning-topo.js';
 import { unmaterializedActivationSource } from './unmaterialized-activation-source.js';
 import { unreachableDetourShadowing } from './unreachable-detour-shadowing.js';
 import { validDetourContract } from './valid-detour-contract.js';
@@ -68,16 +79,19 @@ export const registeredRuleNames: readonly string[] = [
   contourExists.name,
   crossDeclarations.name,
   deadInternalTrail.name,
+  deprecationWithoutGuidance.name,
   draftFileMarking.name,
   draftVisibleDebt.name,
   errorMappingCompleteness.name,
   exampleValid.name,
   firesDeclarations.name,
+  forkWithoutPreservedBlaze.name,
   implementationReturnsResult.name,
   incompleteAccessorForStandardOp.name,
   incompleteCrud.name,
   intentPropagation.name,
   layerFieldNameDrift.name,
+  markerSchemaUnsupported.name,
   missingReconcile.name,
   missingVisibility.name,
   noDevPermitInSource.name,
@@ -90,6 +104,7 @@ export const registeredRuleNames: readonly string[] = [
   onReferencesExist.name,
   orphanedSignal.name,
   ownerProjectionParity.name,
+  pendingForce.name,
   permitGovernance.name,
   preferSchemaInference.name,
   publicInternalDeepImports.name,
@@ -108,6 +123,9 @@ export const registeredRuleNames: readonly string[] = [
   unreachableDetourShadowing.name,
   validDetourContract.name,
   validDescribeRefs.name,
+  versionGap.name,
+  versionPinnedCross.name,
+  versionWithoutExamples.name,
   wardenRulesUseAst.name,
   webhookRouteCollision.name,
 ];

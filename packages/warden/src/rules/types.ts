@@ -1,4 +1,5 @@
 import type { Intent, Topo } from '@ontrails/core';
+import type { TopoGraph } from '@ontrails/topographer';
 
 import type { WardenDepth } from '../config.js';
 import type { WardenImportResolution } from '../resolve.js';
@@ -239,6 +240,7 @@ export interface TopoAwareWardenRule {
   readonly metadata?: WardenRuleMetadata | undefined;
   /** Run the rule against the resolved topo and return any diagnostics */
   readonly checkTopo: (
-    topo: Topo
+    topo: Topo,
+    context?: { readonly graph?: TopoGraph | undefined } | undefined
   ) => readonly WardenDiagnostic[] | Promise<readonly WardenDiagnostic[]>;
 }

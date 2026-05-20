@@ -40,6 +40,17 @@ import { resourceIdGrammar } from './resource-id-grammar.js';
 import { scheduledDestroyIntent } from './scheduled-destroy-intent.js';
 import { signalGraphCoaching } from './signal-graph-coaching.js';
 import { staticResourceAccessorPreference } from './static-resource-accessor-preference.js';
+import {
+  forkWithoutPreservedBlaze,
+  markerSchemaUnsupported,
+  versionPinnedCross,
+} from './trail-versioning-source.js';
+import {
+  deprecationWithoutGuidance,
+  pendingForce,
+  versionGap,
+  versionWithoutExamples,
+} from './trail-versioning-topo.js';
 import type { TopoAwareWardenRule, WardenRule } from './types.js';
 import { unmaterializedActivationSource } from './unmaterialized-activation-source.js';
 import { unreachableDetourShadowing } from './unreachable-detour-shadowing.js';
@@ -119,6 +130,17 @@ export { resourceIdGrammar } from './resource-id-grammar.js';
 export { scheduledDestroyIntent } from './scheduled-destroy-intent.js';
 export { signalGraphCoaching } from './signal-graph-coaching.js';
 export { staticResourceAccessorPreference } from './static-resource-accessor-preference.js';
+export {
+  forkWithoutPreservedBlaze,
+  markerSchemaUnsupported,
+  versionPinnedCross,
+} from './trail-versioning-source.js';
+export {
+  deprecationWithoutGuidance,
+  pendingForce,
+  versionGap,
+  versionWithoutExamples,
+} from './trail-versioning-topo.js';
 export { unmaterializedActivationSource } from './unmaterialized-activation-source.js';
 export { unreachableDetourShadowing } from './unreachable-detour-shadowing.js';
 export { validDetourContract } from './valid-detour-contract.js';
@@ -169,6 +191,9 @@ export const wardenRules: ReadonlyMap<string, WardenRule> = new Map<
   [unreachableDetourShadowing.name, unreachableDetourShadowing],
   [wardenExportSymmetry.name, wardenExportSymmetry],
   [wardenRulesUseAst.name, wardenRulesUseAst],
+  [forkWithoutPreservedBlaze.name, forkWithoutPreservedBlaze],
+  [markerSchemaUnsupported.name, markerSchemaUnsupported],
+  [versionPinnedCross.name, versionPinnedCross],
 ]);
 
 /**
@@ -195,5 +220,9 @@ export const wardenTopoRules: ReadonlyMap<string, TopoAwareWardenRule> =
     [signalGraphCoaching.name, signalGraphCoaching],
     [unmaterializedActivationSource.name, unmaterializedActivationSource],
     [validDetourContract.name, validDetourContract],
+    [deprecationWithoutGuidance.name, deprecationWithoutGuidance],
+    [pendingForce.name, pendingForce],
+    [versionGap.name, versionGap],
+    [versionWithoutExamples.name, versionWithoutExamples],
     [webhookRouteCollision.name, webhookRouteCollision],
   ]);

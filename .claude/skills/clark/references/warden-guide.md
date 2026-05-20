@@ -5,7 +5,7 @@
 This file is generated from the live `@ontrails/warden` rule manifest. Repo-tracked skills, agents, and plugin prompts should reference this file instead of copying rule prose by hand.
 
 - Guide input command: `bun apps/trails/bin/trails.ts warden guide --agent-json`
-- Rule count: 49
+- Rule count: 56
 
 ## Agent Instructions
 
@@ -26,6 +26,7 @@ This file is generated from the live `@ontrails/warden` rule manifest. Repo-trac
 - `missing-visibility` (warn, project/project-static, external): Composition-only trails declare internal visibility.
 - `no-direct-implementation-call` (warn, source/source-static, external): Application code composes trails through ctx.cross().
 - `resolved-import-boundary` (error, project/project-static, external): Cross-package imports resolve through public export maps.
+- `version-pinned-cross` (warn, source/source-static, external): Version-pinned ctx.cross() calls stay visible migration debt.
 - `webhook-route-collision` (error, topo/topo-aware, external): Webhook routes do not collide with each other or direct HTTP trail routes.
 
 ### General
@@ -49,10 +50,16 @@ This file is generated from the live `@ontrails/warden` rule manifest. Repo-trac
 
 ### Lifecycle
 
+- `deprecation-without-guidance` (error, topo/topo-aware, external): Deprecated trail version entries carry successor, migration, or note guidance.
 - `draft-file-marking` (error, source/source-static, external): Draft-authored state is visibly marked in filenames.
 - `draft-visible-debt` (warn, source/source-static, external): Draft-authored IDs remain visible debt.
+- `fork-without-preserved-blaze` (error, source/source-static, external): Fork version entries preserve their historical blaze.
+- `marker-schema-unsupported` (error, source/source-static, external): Versioned schemas stay inside the supported marker projection subset.
+- `pending-force` (warn, topo/topo-aware, external): Forced topo break audit events do not remain pending indefinitely.
 - `scheduled-destroy-intent` (warn, topo/topo-aware, external): Schedule-activated destroy trails make unattended destructive work visible for review.
 - `unmaterialized-activation-source` (warn, topo/topo-aware, external): Activation sources have an available runtime materializer before runtime delivery is assumed.
+- `version-gap` (error, topo/topo-aware, external): Trail version coverage remains contiguous through the current version.
+- `version-without-examples` (warn, topo/topo-aware, external): Live historical version entries include examples.
 
 ### Permits
 

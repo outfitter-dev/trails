@@ -189,7 +189,9 @@ export const wrapTopoRule = (
   return trail(`warden.rule.${rule.name}`, {
     blaze: async (input: TopoAwareRuleInput) => {
       try {
-        const diagnostics = await rule.checkTopo(input.topo);
+        const diagnostics = await rule.checkTopo(input.topo, {
+          graph: input.graph,
+        });
         return Result.ok({ diagnostics: [...diagnostics] });
       } catch (error) {
         const cause = error instanceof Error ? error : new Error(String(error));

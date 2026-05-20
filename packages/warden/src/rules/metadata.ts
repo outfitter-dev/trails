@@ -60,12 +60,15 @@ const concernByRuleName: Partial<Record<string, WardenRuleConcern>> = {
   'context-no-surface-types': 'composition',
   'cross-declarations': 'composition',
   'dead-internal-trail': 'composition',
+  'deprecation-without-guidance': 'lifecycle',
   'draft-file-marking': 'lifecycle',
   'draft-visible-debt': 'lifecycle',
   'error-mapping-completeness': 'results',
   'fires-declarations': 'signals',
+  'fork-without-preserved-blaze': 'lifecycle',
   'implementation-returns-result': 'results',
   'intent-propagation': 'composition',
+  'marker-schema-unsupported': 'lifecycle',
   'missing-reconcile': 'resources',
   'missing-visibility': 'composition',
   'no-dev-permit-in-source': 'permits',
@@ -76,6 +79,7 @@ const concernByRuleName: Partial<Record<string, WardenRuleConcern>> = {
   'no-throw-in-implementation': 'results',
   'on-references-exist': 'signals',
   'orphaned-signal': 'signals',
+  'pending-force': 'lifecycle',
   'permit-governance': 'permits',
   'public-output-schema': 'results',
   'read-intent-fires': 'signals',
@@ -88,6 +92,9 @@ const concernByRuleName: Partial<Record<string, WardenRuleConcern>> = {
   'static-resource-accessor-preference': 'resources',
   'unmaterialized-activation-source': 'lifecycle',
   'valid-detour-contract': 'results',
+  'version-gap': 'lifecycle',
+  'version-pinned-cross': 'composition',
+  'version-without-examples': 'lifecycle',
   'webhook-route-collision': 'composition',
 };
 
@@ -148,6 +155,12 @@ const builtinWardenRuleMetadataInput = {
     invariant: 'Internal trails should be reachable through declared crosses.',
     tier: 'project-static',
   },
+  'deprecation-without-guidance': {
+    ...durableExternal,
+    invariant:
+      'Deprecated trail version entries carry successor, migration, or note guidance.',
+    tier: 'topo-aware',
+  },
   'draft-file-marking': {
     ...durableExternal,
     invariant: 'Draft-authored state is visibly marked in filenames.',
@@ -181,6 +194,11 @@ const builtinWardenRuleMetadataInput = {
     invariant: 'Declared fires stay aligned with signal firing usage.',
     tier: 'source-static',
   },
+  'fork-without-preserved-blaze': {
+    ...durableExternal,
+    invariant: 'Fork version entries preserve their historical blaze.',
+    tier: 'source-static',
+  },
   'implementation-returns-result': {
     ...durableExternal,
     invariant: 'Blazes return Result values.',
@@ -205,6 +223,12 @@ const builtinWardenRuleMetadataInput = {
     ...durableExternal,
     invariant:
       'Layer input field reserved names are shared across surface projections.',
+    tier: 'source-static',
+  },
+  'marker-schema-unsupported': {
+    ...durableExternal,
+    invariant:
+      'Versioned schemas stay inside the supported marker projection subset.',
     tier: 'source-static',
   },
   'missing-reconcile': {
@@ -286,6 +310,12 @@ const builtinWardenRuleMetadataInput = {
     lifecycle: { state: 'durable' },
     scope: 'internal',
     tier: 'source-static',
+  },
+  'pending-force': {
+    ...durableExternal,
+    invariant:
+      'Forced topo break audit events do not remain pending indefinitely.',
+    tier: 'topo-aware',
   },
   'permit-governance': {
     ...durableExternal,
@@ -446,6 +476,22 @@ const builtinWardenRuleMetadataInput = {
     ...durableExternal,
     invariant:
       'Runtime detour contracts use error constructors and recover functions.',
+    tier: 'topo-aware',
+  },
+  'version-gap': {
+    ...durableExternal,
+    invariant:
+      'Trail version coverage remains contiguous through the current version.',
+    tier: 'topo-aware',
+  },
+  'version-pinned-cross': {
+    ...durableExternal,
+    invariant: 'Version-pinned ctx.cross() calls stay visible migration debt.',
+    tier: 'source-static',
+  },
+  'version-without-examples': {
+    ...durableExternal,
+    invariant: 'Live historical version entries include examples.',
     tier: 'topo-aware',
   },
   'warden-export-symmetry': {

@@ -46,6 +46,22 @@ const buildFixtureTopo = () => {
   return topo('fixture', { echo });
 };
 
+const buildBrokenFixtureTopo = () => {
+  const alpha = trail('fixture.alpha', {
+    blaze: () => Result.ok({ value: 'a' }),
+    crosses: ['fixture.beta'],
+    input: z.object({}),
+    output: z.object({ value: z.string() }),
+  });
+  const beta = trail('fixture.beta', {
+    blaze: () => Result.ok({ value: 'b' }),
+    crosses: ['fixture.alpha'],
+    input: z.object({}),
+    output: z.object({ value: z.string() }),
+  });
+  return topo('broken-fixture', { alpha, beta });
+};
+
 const PLACEHOLDER_FINDING: WardenDiagnostic = {
   filePath: '<topo>',
   line: 1,
@@ -83,6 +99,33 @@ describe('TopoAwareWardenRule dispatch', () => {
       expect(emitted).toHaveLength(1);
       expect(emitted[0]).toEqual(PLACEHOLDER_FINDING);
       expect(report.warnCount).toBeGreaterThanOrEqual(1);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('CLI contains topo graph derivation failures as topo rule diagnostics', async () => {
+    const dir = makeTempDir();
+    try {
+      const seen: string[] = [];
+
+      const report = await runWarden({
+        extraTopoRules: [buildPlaceholderRule(seen)],
+        lintOnly: true,
+        rootDir: dir,
+        topo: buildBrokenFixtureTopo(),
+      });
+      const diagnostic = report.diagnostics.find(
+        (entry) => entry.rule === 'placeholder-topo-aware'
+      );
+
+      expect(seen).toEqual([]);
+      expect(diagnostic).toMatchObject({
+        filePath: '<topo>',
+        message: expect.stringContaining('Topo validation failed'),
+        rule: 'placeholder-topo-aware',
+        severity: 'error',
+      });
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }

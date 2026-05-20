@@ -7,6 +7,7 @@
 
 import { intentValues } from '@ontrails/core';
 import type { Topo } from '@ontrails/core';
+import type { TopoGraph } from '@ontrails/topographer';
 import { z } from 'zod';
 import { wardenImportResolutionErrorKinds } from '../resolve.js';
 
@@ -143,6 +144,14 @@ export const projectAwareRuleInput = ruleInput.extend({
  * to be called across a network boundary.
  */
 export const topoAwareRuleInput = z.object({
+  graph: z
+    .custom<TopoGraph>(
+      (value) =>
+        typeof value === 'object' && value !== null && 'entries' in value,
+      { message: 'Expected a serialized TopoGraph object' }
+    )
+    .optional()
+    .describe('Optional derived TopoGraph with graph-only audit annotations'),
   topo: z
     .custom<Topo>(
       (value) =>

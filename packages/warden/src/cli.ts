@@ -8,6 +8,8 @@
 import { resolve } from 'node:path';
 
 import type { Topo } from '@ontrails/core';
+import { deriveTopoGraph } from '@ontrails/topographer';
+import type { TopoGraph } from '@ontrails/topographer';
 import { getContourReferences } from '@ontrails/core';
 
 import type {
@@ -59,6 +61,8 @@ import type { WardenImportResolution } from './resolve.js';
  * Resolved topo input for Warden runs that govern multiple apps.
  */
 export interface WardenTopoTarget {
+  /** Optional precomputed topo graph, including graph-only audit annotations. */
+  readonly graph?: TopoGraph | undefined;
   /** Stable app/topo label used to tag topo-aware diagnostics. */
   readonly name?: string | undefined;
   /** Resolved topo module to inspect. */
@@ -952,6 +956,7 @@ const topoRuleFailureDiagnostic = (
  */
 const lintTopo = async (
   appTopo: Topo,
+  graph: TopoGraph | undefined,
   extraTopoRules: readonly TopoAwareWardenRule[],
   selector: WardenRuleSelector
 ): Promise<readonly WardenDiagnostic[]> => {
@@ -960,9 +965,21 @@ const lintTopo = async (
     ...wardenTopoRules.values(),
     ...extraTopoRules,
   ].filter((rule) => isSelectedTopoRule(rule, selector));
+  let contextGraph: TopoGraph;
+  try {
+    contextGraph = graph ?? deriveTopoGraph(appTopo);
+  } catch (error) {
+    for (const rule of rules) {
+      diagnostics.push(topoRuleFailureDiagnostic(rule, error));
+    }
+    return diagnostics;
+  }
+
   for (const rule of rules) {
     try {
-      diagnostics.push(...(await rule.checkTopo(appTopo)));
+      diagnostics.push(
+        ...(await rule.checkTopo(appTopo, { graph: contextGraph }))
+      );
     } catch (error) {
       diagnostics.push(topoRuleFailureDiagnostic(rule, error));
     }
@@ -1032,6 +1049,7 @@ const lintTopoTargets = async (
   for (const target of topoTargets) {
     const topoDiagnostics = await lintTopo(
       target.topo,
+      target.graph,
       extraTopoRules,
       selector
     );
