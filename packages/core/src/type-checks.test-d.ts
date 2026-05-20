@@ -9,11 +9,16 @@
  * re-exported from the package index.
  */
 
-import type { Trail } from './trail.js';
-import type { Signal } from './signal.js';
+import type { Signal, SignalSpec } from './signal.js';
+import type { Trail, TrailSpec } from './trail.js';
+import type { ResourceSpec } from './resource.js';
+import type { ContourOptions } from './contour.js';
+import type { ScheduleSpec } from './schedule.js';
+import type { WebhookSpec } from './webhook.js';
 import type { BasePermit } from './permits.js';
 import type { FireFn } from './types.js';
 import type { CrossInput, TrailInput } from './type-utils.js';
+import type { z } from 'zod';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -107,6 +112,32 @@ type AssertDefault =
     ? true
     : false;
 export type Default = [AssertDefault] extends [true] ? 'pass' : never;
+
+// ---------------------------------------------------------------------------
+// Version field is trail-only for the v1 authoring shape
+// ---------------------------------------------------------------------------
+
+type AssertTrailVersionAllowed = TrailSpec<
+  { name: string },
+  { id: string }
+>['version'] extends number | undefined
+  ? true
+  : false;
+export type TrailVersionAllowed = [AssertTrailVersionAllowed] extends [true]
+  ? 'pass'
+  : never;
+
+type AssertVersionReserved<T extends { readonly version?: never }> =
+  T['version'] extends never | undefined ? true : false;
+export type NonTrailVersionReservations = [
+  AssertVersionReserved<ResourceSpec<unknown>>,
+  AssertVersionReserved<SignalSpec<unknown>>,
+  AssertVersionReserved<ContourOptions<{ readonly id: z.ZodString }, 'id'>>,
+  AssertVersionReserved<ScheduleSpec>,
+  AssertVersionReserved<WebhookSpec>,
+] extends [true, true, true, true, true]
+  ? 'pass'
+  : never;
 
 // ---------------------------------------------------------------------------
 // FireFn requires signal values and preserves payload inference

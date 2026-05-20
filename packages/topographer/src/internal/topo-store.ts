@@ -27,6 +27,7 @@ import type {
 
 import { addPermitRequirement } from '../permit.js';
 import { TOPO_GRAPH_SCHEMA_VERSION } from '../types.js';
+import { projectTrailVersions } from '../versioning.js';
 import type {
   LockManifest,
   TopoGraphFieldOverride,
@@ -1085,6 +1086,25 @@ const buildTrailEntryBase = (
   };
 };
 
+const addVersioning = (
+  entry: Record<string, unknown>,
+  trail: AnyTrail
+): void => {
+  const projection = projectTrailVersions(
+    trail,
+    (schema) => sortedJsonSchema(schema as ZodSchemaInput).value
+  );
+  if (projection === undefined) {
+    return;
+  }
+
+  entry['supports'] = projection.supports;
+  entry['version'] = projection.version;
+  if (projection.versions !== undefined) {
+    entry['versions'] = projection.versions;
+  }
+};
+
 const trailToEntryRecord = (
   trail: AnyTrail,
   topoLayers: readonly Layer[],
@@ -1100,6 +1120,7 @@ const trailToEntryRecord = (
   addTrailRelations(entry, trail);
   addLayerAttachments(entry, topoLayers, trail);
   addFieldOverrides(entry, trail);
+  addVersioning(entry, trail);
   return sortKeys(entry) as TopoGraphEntryRecord;
 };
 

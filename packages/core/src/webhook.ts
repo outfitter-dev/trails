@@ -39,6 +39,8 @@ export interface WebhookSpec<TOutput = unknown> {
   readonly path: string;
   readonly payload?: ActivationSource['payload'] | undefined;
   readonly verify?: WebhookVerify | undefined;
+  /** Reserved for future webhook-specific design; trail versioning is trail-only. */
+  readonly version?: never;
 }
 
 export interface WebhookSource<TOutput = unknown> extends ActivationSource {

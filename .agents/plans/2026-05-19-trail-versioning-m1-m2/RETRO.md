@@ -28,11 +28,19 @@ handoff. Meaningful review-flow changes require a new retro entry.
 | --- | --- | --- | --- | --- | --- |
 | 1 | `TRL-728` | `trl-728-docsadr-supersede-adr-0044-with-trail-versioning-v3-doctrine` | pending | locally committed | ADR-0048 and ADR-0044 supersession; local commit `a2ca7b710`. |
 | 2 | `TRL-729` | `trl-729-feattrails-settle-top-level-cli-namespace-before-versioning` | pending | locally committed | Top-level CLI namespace; local commit `ecf7fa87a`. |
+<<<<<<< HEAD
 | 3 | `TRL-113` | `trl-113-define-trail-version-versions-authoring-shape` | pending | locally committed | Source and graph authoring shape; local commit `f1a7284b2`. |
 | 4 | `TRL-114` | `trl-114-add-pure-transpose-transforms-for-revision-entries` | pending | locally committed | Pure `transpose:` revision transforms; local commit `ccaed90fa`. |
 | 5 | `TRL-739` | `trl-739-featcore-compute-content-addressed-version-markers` | pending | locally committed | Projected content-addressed markers; local commit `db49d4571`. |
 | 6 | `TRL-115` | `trl-115-resolve-trail-versions-during-execution` | pending | locally committed | Runtime version resolution; local commit `168416a5b`. |
 | 7 | `TRL-116` | `trl-116-run-examples-and-testall-across-live-version-entries` | pending | locally validated | Version-aware examples and `testAll`; branch-local commit pending. |
+=======
+| 3 | `TRL-113` | `trl-113-define-trail-version-versions-authoring-shape` | pending | in progress | Source and graph authoring shape; implementation verified and ready to commit. |
+| 4 | `TRL-114` | `trl-114-add-pure-transpose-transforms-for-revision-entries` | pending | planned | Pure `transpose:` revision transforms. |
+| 5 | `TRL-739` | `trl-739-featcore-compute-content-addressed-version-markers` | pending | planned | Projected content-addressed markers. |
+| 6 | `TRL-115` | `trl-115-resolve-trail-versions-during-execution` | pending | planned | Runtime version resolution. |
+| 7 | `TRL-116` | `trl-116-run-examples-and-testall-across-live-version-entries` | pending | planned | Version-aware examples and `testAll`. |
+>>>>>>> f1a7284b2 (feat(core): add trail version authoring shape)
 
 ## Planning Discoveries
 
@@ -65,10 +73,13 @@ they represent real future work.
 | 2026-05-19 18:18 EDT | `TRL-728` | Moved to In Progress when the first execution branch started. | Linear issue update |
 | 2026-05-19 18:22 EDT | `TRL-729` | Moved to In Progress when the CLI namespace branch started. | Linear issue update |
 | 2026-05-19 18:32 EDT | `TRL-113` | Moved to In Progress when the authoring-shape branch started. | Linear issue update |
+<<<<<<< HEAD
 | 2026-05-19 18:42 EDT | `TRL-114` | Moved to In Progress when the pure-transpose branch started. | Linear issue update |
 | 2026-05-19 18:49 EDT | `TRL-739` | Moved to In Progress when the marker branch started. | Linear issue update |
 | 2026-05-19 19:03 EDT | `TRL-115` | Moved to In Progress when the runtime-resolution branch started. | Linear issue update |
 | 2026-05-19 19:26 EDT | `TRL-116` | Moved to In Progress when the examples/testAll branch started. | Linear issue update |
+=======
+>>>>>>> f1a7284b2 (feat(core): add trail version authoring shape)
 
 ## Execution Log
 
@@ -137,6 +148,13 @@ Append meaningful state changes, especially before handoff points.
 - Result: TRL-728 is ready for `gt modify`; descendants need restack and the stack-tip verification must restart from `bun scripts/adr.ts map`.
 - Next: Amend TRL-728, restack descendants, then return to TRL-116.
 - Blockers: none.
+
+2026-05-19 18:39 EDT - TRL-113 authoring-shape branch
+- Changed: Created `trl-113-define-trail-version-versions-authoring-shape`, added trail-only `version` / `versions` source shape, normalized version-entry runtime data, rejected authored `kind` and invalid historical contracts, reserved `version?: never` on non-trail specs, projected version entries into `TopoGraph`, and added core/topographer tests plus a branch-local changeset.
+- Verified: Core and topographer focused tests passed; package and root typechecks passed; `bun run format:check` and `git diff --check` passed; live-code sweep found no `.v*.ts` version-file discovery.
+- Result: TRL-113 is ready for commit as the third stack branch.
+- Next: Commit TRL-113, then create the TRL-114 pure-transpose branch.
+- Blockers: none.
 ```
 
 ## Local Review Log
@@ -178,6 +196,7 @@ P3s. Do not mark local review complete while P0/P1/P2 findings remain.
 | `git diff --check` | TRL-729 | passed | No whitespace errors. |
 | `bun run --cwd packages/core test` | TRL-113 | passed | 1116 tests, 0 failures. |
 | `bun run --cwd packages/topographer test` | TRL-113 | passed | 122 tests, 0 failures. |
+<<<<<<< HEAD
 | `bun run typecheck` | TRL-113 | passed | 22 package tasks successful. |
 | `.v*.ts` live-code sweep | TRL-113 | passed | No current code matches for version-file discovery or `.vN.ts` filenames. |
 | `bun run --cwd packages/core test` | TRL-114 | passed | 1121 tests, 0 failures. |
@@ -200,6 +219,14 @@ P3s. Do not mark local review complete while P0/P1/P2 findings remain.
 | `bun run --cwd apps/trails test` | TRL-116 | passed | 320 tests, 0 failures after updating the guide detail fixture for version fields. |
 | `bun run format:check` | TRL-116 | passed | Initial check found one formatting issue in `packages/testing/src/examples.ts`; targeted `bunx ultracite fix` applied; rerun passed. |
 | `git diff --check` | TRL-116 | passed | No whitespace errors. |
+=======
+| `bun run --cwd packages/core typecheck` | TRL-113 | passed | `tsc --noEmit` exited 0. |
+| `bun run --cwd packages/topographer typecheck` | TRL-113 | passed | `tsc --noEmit` exited 0. |
+| `bun run typecheck` | TRL-113 | passed | 22 package tasks successful. |
+| `.v*.ts` live-code sweep | TRL-113 | passed | No current code matches for version-file discovery or `.vN.ts` filenames. |
+| `bun run format:check` | TRL-113 | passed | Initial check found format/lint issues; `bun run format:fix` plus minimal lint fix cleaned them, rerun passed. |
+| `git diff --check` | TRL-113 | passed | No whitespace errors. |
+>>>>>>> f1a7284b2 (feat(core): add trail version authoring shape)
 
 ## Remote Review / CI Log
 

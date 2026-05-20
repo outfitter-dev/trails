@@ -233,6 +233,76 @@ describe('deriveTopoGraph', () => {
       expect(map.entries[0]?.output).toBeUndefined();
     });
 
+    test('versioned trail entries project historical contracts and support', () => {
+      const audit = trail('audit.log', {
+        blaze: noop,
+        input: z.object({ id: z.string() }),
+        output: z.object({ ok: z.boolean() }),
+      });
+      const versioned = trail('invite.create', {
+        blaze: noop,
+        input: z.object({ email: z.string(), notify: z.boolean() }),
+        output: z.object({ inviteId: z.string(), status: z.string() }),
+        version: 3,
+        versions: {
+          1: {
+            blaze: noop,
+            crosses: [audit],
+            detours: [
+              {
+                maxAttempts: 100,
+                on: ConflictError,
+                /* oxlint-disable-next-line require-await -- test stub, no real async work */
+                recover: async () => Result.ok({ legacyId: 'i_1' }),
+              },
+            ],
+            input: z.object({ email: z.string() }),
+            output: z.object({ legacyId: z.string() }),
+            resources: [dbResource],
+            status: {
+              reason: 'No supported callers remain.',
+              state: 'archived',
+            },
+          },
+          2: {
+            input: z.object({ email: z.string() }),
+            output: z.object({ inviteId: z.string() }),
+            status: { state: 'deprecated', successor: 3 },
+            transpose: {
+              input: ({ input }) => ({ ...input, notify: true }),
+              output: ({ output }) => ({ inviteId: output.inviteId }),
+            },
+          },
+        },
+      });
+
+      const entry = deriveTopoGraph(
+        topoFrom({ audit, dbResource, versioned })
+      ).entries.find((candidate) => candidate.id === 'invite.create');
+
+      expect(entry).toMatchObject({
+        supports: [2, 3],
+        version: 3,
+      });
+      expect(entry?.versions?.['1']).toMatchObject({
+        crosses: ['audit.log'],
+        detours: [
+          { maxAttempts: DETOUR_MAX_ATTEMPTS_CAP, on: 'ConflictError' },
+        ],
+        kind: 'fork',
+        resources: ['db.main'],
+        status: { reason: 'No supported callers remain.', state: 'archived' },
+      });
+      expect(entry?.versions?.['2']).toMatchObject({
+        kind: 'revision',
+        status: { state: 'deprecated', successor: 3 },
+      });
+      expect(entry?.versions?.['1']?.input).toMatchObject({ type: 'object' });
+      expect(entry?.versions?.['1']?.output).toMatchObject({ type: 'object' });
+      expect(entry?.versions?.['2']?.input).toMatchObject({ type: 'object' });
+      expect(entry?.versions?.['2']?.output).toMatchObject({ type: 'object' });
+    });
+
     test('trail entries include crosses array when non-empty', () => {
       const base = trail('user.get', {
         blaze: noop,

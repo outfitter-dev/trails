@@ -28,6 +28,7 @@ import type {
 
 import { addPermitRequirement } from './permit.js';
 import { TOPO_GRAPH_SCHEMA_VERSION } from './types.js';
+import { projectTrailVersions } from './versioning.js';
 import type {
   JsonSchema,
   TopoGraph,
@@ -466,6 +467,22 @@ const addExamples = (
   }
 };
 
+const addVersioning = (
+  entry: Record<string, unknown>,
+  t: Trail<unknown, unknown, unknown>
+): void => {
+  const projection = projectTrailVersions(t, toSortedJsonSchema);
+  if (projection === undefined) {
+    return;
+  }
+
+  entry['supports'] = projection.supports;
+  entry['version'] = projection.version;
+  if (projection.versions !== undefined) {
+    entry['versions'] = projection.versions;
+  }
+};
+
 const trailToEntry = (
   t: Trail<unknown, unknown, unknown>,
   topoLayers: readonly Layer[]
@@ -487,6 +504,7 @@ const trailToEntry = (
   addLayerAttachments(entry, topoLayers, t);
   addFieldOverrides(entry, t);
   addExamples(entry, t);
+  addVersioning(entry, t);
 
   return sortKeys(entry) as unknown as TopoGraphEntry;
 };

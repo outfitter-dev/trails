@@ -4,12 +4,17 @@ import { z } from 'zod';
 
 import { contour } from '../contour';
 import { createTrailContext } from '../context';
-import { ConflictError } from '../errors';
+import { ConflictError, ValidationError } from '../errors';
 import { Result } from '../result';
 import { resource } from '../resource';
 import { schedule } from '../schedule';
 import { signal } from '../signal';
-import { intentValues, trail } from '../trail';
+import {
+  deriveSupportedTrailVersions,
+  getTrailVersionEntryKind,
+  intentValues,
+  trail,
+} from '../trail';
 import type { TrailContext } from '../types';
 import { webhook } from '../webhook';
 
@@ -77,6 +82,232 @@ describe('trail()', () => {
       const result = await greet.blaze({ name: 'World' }, stubCtx);
       expect(result.isOk()).toBe(true);
       expect(result.unwrap()).toEqual({ greeting: 'Hello, World!' });
+    });
+  });
+
+  describe('versioning', () => {
+    test('keeps unversioned trails current-only', () => {
+      const unversioned = trail('plain.current', {
+        blaze: () => Result.ok({ ok: true }),
+        input: z.object({}),
+        output: z.object({ ok: z.boolean() }),
+      });
+
+      expect(unversioned.version).toBeUndefined();
+      expect(unversioned.versions).toBeUndefined();
+      expect(deriveSupportedTrailVersions(unversioned)).toEqual([]);
+    });
+
+    test('stores revision entries and derives live support', () => {
+      const v2Input = z.object({ name: z.string() });
+      const v2Output = z.object({ greeting: z.string() });
+      const versioned = trail('invite.create', {
+        blaze: (input) => Result.ok({ greeting: `Hello, ${input.name}!` }),
+        input: inputSchema,
+        output: outputSchema,
+        version: 3,
+        versions: {
+          2: {
+            input: v2Input,
+            output: v2Output,
+            status: { state: 'deprecated', successor: 3 },
+            transpose: {
+              input: ({ input }) => input,
+              output: ({ output }) => output,
+            },
+          },
+        },
+      });
+
+      const entry = versioned.versions?.[2];
+      expect(versioned.version).toBe(3);
+      expect(Object.isFrozen(versioned.versions)).toBe(true);
+      expect(entry?.input).toBe(v2Input);
+      expect(entry?.output).toBe(v2Output);
+      expect(entry?.status).toEqual({ state: 'deprecated', successor: 3 });
+      expect(entry && getTrailVersionEntryKind(entry)).toBe('revision');
+      expect(deriveSupportedTrailVersions(versioned)).toEqual([2, 3]);
+    });
+
+    test('allows metadata-only revision entries for unchanged schemas', () => {
+      const versioned = trail('metadata.revision', {
+        blaze: () => Result.ok({ ok: true }),
+        input: z.object({ id: z.string() }),
+        output: z.object({ ok: z.boolean() }),
+        version: 2,
+        versions: {
+          1: {
+            input: z.object({ id: z.string() }),
+            output: z.object({ ok: z.boolean() }),
+          },
+        },
+      });
+
+      const entry = versioned.versions?.[1];
+      expect(entry && getTrailVersionEntryKind(entry)).toBe('revision');
+      expect('transpose' in (entry as Record<string, unknown>)).toBe(false);
+    });
+
+    test('stores fork entries with normalized runtime references', () => {
+      const target = trail('target.read', {
+        blaze: () => Result.ok({ ok: true }),
+        input: z.object({}),
+        output: z.object({ ok: z.boolean() }),
+      });
+      const versioned = trail('forked.run', {
+        blaze: () => Result.ok({ ok: true }),
+        input: z.object({}),
+        output: z.object({ ok: z.boolean() }),
+        version: 2,
+        versions: {
+          1: {
+            blaze: () => Result.ok({ ok: true }),
+            crosses: [target],
+            detours: [
+              {
+                on: ConflictError,
+                recover: async () => Result.ok({ ok: true }),
+              },
+            ],
+            input: z.object({}),
+            output: z.object({ ok: z.boolean() }),
+            resources: [dbResource],
+          },
+        },
+      });
+
+      const entry = versioned.versions?.[1] as
+        | (Record<string, unknown> & { crosses: readonly string[] })
+        | undefined;
+      expect(entry && getTrailVersionEntryKind(entry)).toBe('fork');
+      expect(entry?.crosses).toEqual(['target.read']);
+      expect(entry?.resources).toEqual([dbResource]);
+      expect(entry?.detours).toHaveLength(1);
+      expect(Object.isFrozen(entry?.crosses)).toBe(true);
+    });
+
+    test('allows version gaps and excludes archived entries from support', () => {
+      const versioned = trail('gap.versioned', {
+        blaze: () => Result.ok({ ok: true }),
+        input: z.object({}),
+        output: z.object({ ok: z.boolean() }),
+        version: 5,
+        versions: {
+          2: {
+            input: z.object({}),
+            output: z.object({ ok: z.boolean() }),
+          },
+          4: {
+            input: z.object({}),
+            output: z.object({ ok: z.boolean() }),
+            status: { reason: 'No callers remain.', state: 'archived' },
+          },
+        },
+      });
+
+      expect(Object.keys(versioned.versions ?? {})).toEqual(['2', '4']);
+      expect(deriveSupportedTrailVersions(versioned)).toEqual([2, 5]);
+    });
+
+    test('rejects invalid version entry shapes', () => {
+      const base = {
+        blaze: () => Result.ok({ ok: true }),
+        input: z.object({}),
+        output: z.object({ ok: z.boolean() }),
+        version: 2,
+      };
+
+      expect(() =>
+        trail('bad.mixed', {
+          ...base,
+          versions: {
+            1: {
+              blaze: () => Result.ok({ ok: true }),
+              input: z.object({}),
+              output: z.object({ ok: z.boolean() }),
+              transpose: {
+                input: ({ input }: { input: unknown }) => input,
+                output: ({ output }: { output: unknown }) => output,
+              },
+            } as never,
+          },
+        })
+      ).toThrow(ValidationError);
+
+      expect(() =>
+        trail('bad.missing-output', {
+          ...base,
+          versions: {
+            1: {
+              input: z.object({}),
+            } as never,
+          },
+        })
+      ).toThrow(ValidationError);
+
+      expect(() =>
+        trail('bad.revision-runtime-fields', {
+          ...base,
+          versions: {
+            1: {
+              input: z.object({}),
+              output: z.object({ ok: z.boolean() }),
+              resources: [dbResource],
+            } as never,
+          },
+        })
+      ).toThrow(ValidationError);
+
+      expect(() =>
+        trail('bad.kind', {
+          ...base,
+          versions: {
+            1: {
+              input: z.object({}),
+              kind: 'revision',
+              output: z.object({ ok: z.boolean() }),
+            } as never,
+          },
+        })
+      ).toThrow(ValidationError);
+
+      expect(() =>
+        trail('bad.current-duplicate', {
+          ...base,
+          versions: {
+            2: {
+              input: z.object({}),
+              output: z.object({ ok: z.boolean() }),
+            },
+          },
+        })
+      ).toThrow(ValidationError);
+
+      expect(() =>
+        trail('bad.future-history', {
+          ...base,
+          versions: {
+            3: {
+              input: z.object({}),
+              output: z.object({ ok: z.boolean() }),
+            },
+          },
+        })
+      ).toThrow('must be less than the current version');
+
+      expect(() =>
+        trail('bad.no-current', {
+          blaze: () => Result.ok({ ok: true }),
+          input: z.object({}),
+          output: z.object({ ok: z.boolean() }),
+          versions: {
+            1: {
+              input: z.object({}),
+              output: z.object({ ok: z.boolean() }),
+            },
+          },
+        } as never)
+      ).toThrow(ValidationError);
     });
   });
 

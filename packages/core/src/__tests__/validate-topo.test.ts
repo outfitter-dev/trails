@@ -116,6 +116,122 @@ describe('validateTopo', () => {
       expect(issues[0]?.message).toContain('entity.missing');
     });
 
+    test('live fork version crossing a non-existent trail fails', () => {
+      const ok = async () => Result.ok({ ok: true });
+      const app = topo('app', {
+        versioned: trail('entity.versioned', {
+          blaze: ok,
+          input: z.object({ name: z.string() }),
+          output: z.object({ ok: z.boolean() }),
+          version: 2,
+          versions: {
+            1: {
+              blaze: ok,
+              crosses: ['entity.missing'],
+              input: z.object({ name: z.string() }),
+              output: z.object({ ok: z.boolean() }),
+            },
+          },
+        }),
+      });
+
+      const result = validateTopo(app);
+      expect(result.isErr()).toBe(true);
+
+      const issues = extractIssues(result);
+      expect(issues).toHaveLength(1);
+      expect(issues[0]?.rule).toBe('cross-exists');
+      expect(issues[0]?.trailId).toBe('entity.versioned');
+      expect(issues[0]?.message).toContain('Version 1');
+      expect(issues[0]?.message).toContain('entity.missing');
+    });
+
+    test('archived fork version crossing a missing trail is not live-validated', () => {
+      const ok = async () => Result.ok({ ok: true });
+      const app = topo('app', {
+        versioned: trail('entity.versioned', {
+          blaze: ok,
+          input: z.object({ name: z.string() }),
+          output: z.object({ ok: z.boolean() }),
+          version: 2,
+          versions: {
+            1: {
+              blaze: ok,
+              crosses: ['entity.missing'],
+              input: z.object({ name: z.string() }),
+              output: z.object({ ok: z.boolean() }),
+              status: { state: 'archived' },
+            },
+          },
+        }),
+      });
+
+      const result = validateTopo(app);
+      expect(result.isOk()).toBe(true);
+    });
+
+    test('live fork version crossings participate in cycle detection', () => {
+      const ok = async () => Result.ok({ ok: true });
+      const app = topo('app', {
+        a: trail('a', {
+          blaze: ok,
+          crosses: ['b'],
+          input: z.object({ name: z.string() }),
+          output: z.object({ ok: z.boolean() }),
+        }),
+        b: trail('b', {
+          blaze: ok,
+          input: z.object({ name: z.string() }),
+          output: z.object({ ok: z.boolean() }),
+          version: 2,
+          versions: {
+            1: {
+              blaze: ok,
+              crosses: ['a'],
+              input: z.object({ name: z.string() }),
+              output: z.object({ ok: z.boolean() }),
+            },
+          },
+        }),
+      });
+
+      const result = validateTopo(app);
+      expect(result.isErr()).toBe(true);
+
+      const issues = extractIssues(result);
+      expect(issues.some((issue) => issue.rule === 'cross-cycle')).toBe(true);
+    });
+
+    test('archived fork version crossings do not participate in cycle detection', () => {
+      const ok = async () => Result.ok({ ok: true });
+      const app = topo('app', {
+        a: trail('a', {
+          blaze: ok,
+          crosses: ['b'],
+          input: z.object({ name: z.string() }),
+          output: z.object({ ok: z.boolean() }),
+        }),
+        b: trail('b', {
+          blaze: ok,
+          input: z.object({ name: z.string() }),
+          output: z.object({ ok: z.boolean() }),
+          version: 2,
+          versions: {
+            1: {
+              blaze: ok,
+              crosses: ['a'],
+              input: z.object({ name: z.string() }),
+              output: z.object({ ok: z.boolean() }),
+              status: { state: 'archived' },
+            },
+          },
+        }),
+      });
+
+      const result = validateTopo(app);
+      expect(result.isOk()).toBe(true);
+    });
+
     test('trail crossing itself fails', () => {
       const app = topo('app', {
         loop: mockTrail('entity.loop', { crosses: ['entity.loop'] }),
@@ -211,6 +327,37 @@ describe('validateTopo', () => {
       const issues = extractIssues(result);
       expect(issues).toHaveLength(1);
       expect(issues[0]?.rule).toBe('resource-exists');
+      expect(issues[0]?.message).toContain('db.main');
+    });
+
+    test('live fork version declaring a missing resource fails', () => {
+      const db = mockResource('db.main');
+      const ok = async () => Result.ok({ ok: true });
+      const app = topo('app', {
+        versioned: trail('entity.versioned', {
+          blaze: ok,
+          input: z.object({ name: z.string() }),
+          output: z.object({ ok: z.boolean() }),
+          version: 2,
+          versions: {
+            1: {
+              blaze: ok,
+              input: z.object({ name: z.string() }),
+              output: z.object({ ok: z.boolean() }),
+              resources: [db],
+            },
+          },
+        }),
+      });
+
+      const result = validateTopo(app);
+      expect(result.isErr()).toBe(true);
+
+      const issues = extractIssues(result);
+      expect(issues).toHaveLength(1);
+      expect(issues[0]?.rule).toBe('resource-exists');
+      expect(issues[0]?.trailId).toBe('entity.versioned');
+      expect(issues[0]?.message).toContain('Version 1');
       expect(issues[0]?.message).toContain('db.main');
     });
   });

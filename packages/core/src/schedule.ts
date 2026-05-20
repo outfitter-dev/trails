@@ -11,6 +11,8 @@ export interface ScheduleSpec<TInput = unknown> {
   readonly input?: TInput | undefined;
   readonly meta?: ActivationSourceMeta | undefined;
   readonly timezone?: string | undefined;
+  /** Reserved for future schedule-specific design; trail versioning is trail-only. */
+  readonly version?: never;
 }
 
 export interface ScheduleSource<TInput = unknown> extends ActivationSource {

@@ -13,6 +13,8 @@ export interface ContourOptions<
   readonly identity: TIdentity;
   /** Example instances validated against the contour schema at declaration time. */
   readonly examples?: readonly z.output<z.ZodObject<TShape>>[] | undefined;
+  /** Reserved for future contour-specific design; trail versioning is trail-only. */
+  readonly version?: never;
 }
 
 /** Type-level brand name applied to a contour's identity schema. */

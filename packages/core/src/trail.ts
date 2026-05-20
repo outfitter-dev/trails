@@ -1,5 +1,6 @@
 import type { z } from 'zod';
 
+import { ValidationError } from './errors.js';
 import type {
   ActivationEntry,
   ActivationEntrySpec,
@@ -80,6 +81,145 @@ export interface TrailExample<I, O> {
  * cast. Falls back to plain `I` when `CI` is `never` (the default).
  */
 export type BlazeInput<I, CI> = [CI] extends [never] ? I : I & CI;
+
+// ---------------------------------------------------------------------------
+// Trail versioning
+// ---------------------------------------------------------------------------
+
+/** Contract pair represented by a version entry. */
+export interface VersionContract<I = unknown, O = unknown> {
+  readonly input: I;
+  readonly output: O;
+}
+
+/** Shared lifecycle metadata for historical version entries. */
+export interface TrailVersionStatus {
+  readonly state: 'deprecated' | 'archived';
+  readonly [key: string]: unknown;
+}
+
+/** Shared base for version entries. Historical entries never inherit schemas. */
+export interface VersionEntry<
+  TContract extends VersionContract = VersionContract,
+> {
+  readonly input: z.ZodType<TContract['input']>;
+  readonly output: z.ZodType<TContract['output']>;
+  readonly status?: TrailVersionStatus | undefined;
+}
+
+export type TrailVersionTransposeInput<VersionInput, CurrentInput> = (value: {
+  readonly input: VersionInput;
+}) => CurrentInput | Promise<CurrentInput>;
+
+export type TrailVersionTransposeOutput<CurrentOutput, VersionOutput> =
+  (value: {
+    readonly output: CurrentOutput;
+  }) => VersionOutput | Promise<VersionOutput>;
+
+export interface TrailVersionTranspose<
+  VersionInput,
+  VersionOutput,
+  CurrentInput,
+  CurrentOutput,
+> {
+  readonly input: TrailVersionTransposeInput<VersionInput, CurrentInput>;
+  readonly output: TrailVersionTransposeOutput<CurrentOutput, VersionOutput>;
+}
+
+export interface TrailVersionRevisionEntry<
+  VersionInput = unknown,
+  VersionOutput = unknown,
+  CurrentInput = unknown,
+  CurrentOutput = unknown,
+> extends VersionEntry<VersionContract<VersionInput, VersionOutput>> {
+  readonly blaze?: never;
+  readonly crosses?: never;
+  readonly detours?: never;
+  readonly kind?: never;
+  readonly resources?: never;
+  readonly transpose?:
+    | TrailVersionTranspose<
+        VersionInput,
+        VersionOutput,
+        CurrentInput,
+        CurrentOutput
+      >
+    | undefined;
+}
+
+export interface TrailVersionForkEntry<
+  VersionInput = unknown,
+  VersionOutput = unknown,
+  CrossInput = never,
+> extends VersionEntry<VersionContract<VersionInput, VersionOutput>> {
+  readonly blaze: Implementation<
+    BlazeInput<VersionInput, CrossInput>,
+    VersionOutput
+  >;
+  readonly crosses?: readonly (string | AnyTrail)[] | undefined;
+  readonly crossInput?: z.ZodType<CrossInput> | undefined;
+  readonly detours?:
+    | readonly Detour<VersionInput, VersionOutput, TrailsError>[]
+    | undefined;
+  readonly kind?: never;
+  readonly resources?: readonly AnyResource[] | undefined;
+  readonly transpose?: never;
+}
+
+export type TrailVersionEntry<
+  VersionInput = unknown,
+  VersionOutput = unknown,
+  CurrentInput = unknown,
+  CurrentOutput = unknown,
+  CrossInput = never,
+> =
+  | TrailVersionRevisionEntry<
+      VersionInput,
+      VersionOutput,
+      CurrentInput,
+      CurrentOutput
+    >
+  | TrailVersionForkEntry<VersionInput, VersionOutput, CrossInput>;
+
+export type TrailVersionEntryKind = 'revision' | 'fork';
+
+export type TrailVersions<
+  CurrentInput = unknown,
+  CurrentOutput = unknown,
+> = Readonly<
+  Record<
+    number,
+    TrailVersionEntry<unknown, unknown, CurrentInput, CurrentOutput>
+  >
+>;
+
+export const getTrailVersionEntryKind = (
+  entry: TrailVersionEntry
+): TrailVersionEntryKind => {
+  const raw = entry as unknown as Record<string, unknown>;
+  return typeof raw['blaze'] === 'function' ? 'fork' : 'revision';
+};
+
+export const isArchivedTrailVersionEntry = (
+  entry: Pick<TrailVersionEntry, 'status'>
+): boolean => entry.status?.state === 'archived';
+
+export const deriveSupportedTrailVersions = (
+  trail: Pick<AnyTrail, 'version' | 'versions'>
+): readonly number[] => {
+  if (trail.version === undefined) {
+    return [];
+  }
+
+  const supported = new Set<number>([trail.version]);
+  for (const [rawVersion, entry] of Object.entries(trail.versions ?? {})) {
+    if (!isArchivedTrailVersionEntry(entry)) {
+      supported.add(Number(rawVersion));
+    }
+  }
+
+  return Object.freeze([...supported].toSorted((a, b) => a - b));
+};
 
 // ---------------------------------------------------------------------------
 // Trail spec
@@ -171,6 +311,10 @@ export interface TrailSpec<I, O, CI = never> {
   readonly permit?: PermitRequirement | undefined;
   /** Primary input fields and their order. CLI projects as positional args. */
   readonly args?: readonly string[] | false | undefined;
+  /** Current trail version number. Omit for current-only unversioned trails. */
+  readonly version?: number | undefined;
+  /** Explicit historical trail versions. Current stays top-level. */
+  readonly versions?: TrailVersions<I, O> | undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -362,6 +506,239 @@ const extractSignalActivationIds = (
 const normalizeCrossRef = (entry: string | AnyTrail): string =>
   typeof entry === 'string' ? entry : entry.id;
 
+const assertVersionNumber = (
+  trailId: string,
+  label: string,
+  version: number
+): void => {
+  if (!Number.isSafeInteger(version) || version <= 0) {
+    throw new ValidationError(
+      `Trail "${trailId}" ${label} must be a positive integer`
+    );
+  }
+};
+
+const hasOwn = (value: Record<string, unknown>, key: string): boolean =>
+  Object.hasOwn(value, key);
+
+const assertZodSchema = (
+  trailId: string,
+  version: number,
+  entry: Record<string, unknown>,
+  field: 'input' | 'output'
+): void => {
+  if (!hasOwn(entry, field) || entry[field] === undefined) {
+    throw new ValidationError(
+      `Trail "${trailId}" version ${version} must declare explicit ${field}`
+    );
+  }
+};
+
+const normalizeVersionStatus = (
+  trailId: string,
+  version: number,
+  status: unknown
+): TrailVersionStatus | undefined => {
+  if (status === undefined) {
+    return undefined;
+  }
+  if (typeof status !== 'object' || status === null || Array.isArray(status)) {
+    throw new ValidationError(
+      `Trail "${trailId}" version ${version} status must be an object`
+    );
+  }
+
+  const raw = status as Record<string, unknown>;
+  if (raw['state'] !== 'deprecated' && raw['state'] !== 'archived') {
+    throw new ValidationError(
+      `Trail "${trailId}" version ${version} status.state must be "deprecated" or "archived"`
+    );
+  }
+
+  return Object.freeze({ ...raw, state: raw['state'] }) as TrailVersionStatus;
+};
+
+const normalizeTranspose = (
+  trailId: string,
+  version: number,
+  transpose: unknown
+): TrailVersionTranspose<unknown, unknown, unknown, unknown> | undefined => {
+  if (transpose === undefined) {
+    return undefined;
+  }
+  if (
+    typeof transpose !== 'object' ||
+    transpose === null ||
+    Array.isArray(transpose)
+  ) {
+    throw new ValidationError(
+      `Trail "${trailId}" version ${version} transpose must be an object`
+    );
+  }
+
+  const raw = transpose as Record<string, unknown>;
+  if (
+    typeof raw['input'] !== 'function' ||
+    typeof raw['output'] !== 'function'
+  ) {
+    throw new ValidationError(
+      `Trail "${trailId}" version ${version} transpose must define input and output functions`
+    );
+  }
+
+  return Object.freeze({
+    input: raw['input'],
+    output: raw['output'],
+  }) as TrailVersionTranspose<unknown, unknown, unknown, unknown>;
+};
+
+const assertRevisionOwnsNoRuntimeFields = (
+  trailId: string,
+  version: number,
+  entry: Record<string, unknown>
+): void => {
+  const forbidden = ['crosses', 'resources', 'detours'];
+  const declared = forbidden.filter((field) => hasOwn(entry, field));
+  if (declared.length > 0) {
+    throw new ValidationError(
+      `Trail "${trailId}" version ${version} is a revision and cannot declare ${declared.join(', ')}`
+    );
+  }
+};
+
+const normalizeVersionEntry = <CurrentInput, CurrentOutput>(
+  trailId: string,
+  version: number,
+  entry: TrailVersionEntry<unknown, unknown, CurrentInput, CurrentOutput>
+): TrailVersionEntry<unknown, unknown, CurrentInput, CurrentOutput> => {
+  if (typeof entry !== 'object' || entry === null || Array.isArray(entry)) {
+    throw new ValidationError(
+      `Trail "${trailId}" version ${version} must be an object`
+    );
+  }
+
+  const raw = entry as unknown as Record<string, unknown>;
+  assertZodSchema(trailId, version, raw, 'input');
+  assertZodSchema(trailId, version, raw, 'output');
+
+  if (hasOwn(raw, 'kind')) {
+    throw new ValidationError(
+      `Trail "${trailId}" version ${version} must not author kind; it is projected`
+    );
+  }
+
+  const hasBlaze = typeof raw['blaze'] === 'function';
+  const hasTranspose = raw['transpose'] !== undefined;
+  if (hasBlaze && hasTranspose) {
+    throw new ValidationError(
+      `Trail "${trailId}" version ${version} cannot declare both blaze and transpose`
+    );
+  }
+
+  const base = {
+    input: raw['input'],
+    output: raw['output'],
+    ...(raw['status'] === undefined
+      ? {}
+      : { status: normalizeVersionStatus(trailId, version, raw['status']) }),
+  };
+
+  if (hasBlaze) {
+    return Object.freeze({
+      ...base,
+      blaze: async (input: unknown, ctx: TrailContext) =>
+        await (raw['blaze'] as Implementation<unknown, unknown>)(input, ctx),
+      ...(raw['crossInput'] === undefined
+        ? {}
+        : { crossInput: raw['crossInput'] }),
+      crosses: Object.freeze(
+        (
+          (raw['crosses'] as readonly (string | AnyTrail)[] | undefined) ?? []
+        ).map(normalizeCrossRef)
+      ),
+      detours: Object.freeze([
+        ...(((raw['detours'] as readonly Detour<
+          unknown,
+          unknown,
+          TrailsError
+        >[]) ?? []) as readonly Detour<unknown, unknown, TrailsError>[]),
+      ]),
+      resources: Object.freeze([
+        ...(((raw['resources'] as readonly AnyResource[]) ??
+          []) as readonly AnyResource[]),
+      ]),
+    }) as TrailVersionEntry<unknown, unknown, CurrentInput, CurrentOutput>;
+  }
+
+  assertRevisionOwnsNoRuntimeFields(trailId, version, raw);
+
+  return Object.freeze({
+    ...base,
+    ...(hasTranspose
+      ? { transpose: normalizeTranspose(trailId, version, raw['transpose']) }
+      : {}),
+  }) as TrailVersionEntry<unknown, unknown, CurrentInput, CurrentOutput>;
+};
+
+const normalizeTrailVersions = <CurrentInput, CurrentOutput>(
+  trailId: string,
+  currentVersion: number | undefined,
+  versions: TrailVersions<CurrentInput, CurrentOutput> | undefined
+): TrailVersions<CurrentInput, CurrentOutput> | undefined => {
+  if (currentVersion === undefined) {
+    if (versions !== undefined) {
+      throw new ValidationError(
+        `Trail "${trailId}" declares versions without a current version`
+      );
+    }
+    return undefined;
+  }
+
+  assertVersionNumber(trailId, 'version', currentVersion);
+
+  if (versions === undefined) {
+    return undefined;
+  }
+  if (
+    typeof versions !== 'object' ||
+    versions === null ||
+    Array.isArray(versions)
+  ) {
+    throw new ValidationError(`Trail "${trailId}" versions must be an object`);
+  }
+
+  const normalized: Record<
+    number,
+    TrailVersionEntry<unknown, unknown, CurrentInput, CurrentOutput>
+  > = {};
+  for (const [rawVersion, entry] of Object.entries(versions)) {
+    const historicalVersion = Number(rawVersion);
+    if (`${historicalVersion}` !== rawVersion) {
+      throw new ValidationError(
+        `Trail "${trailId}" versions key "${rawVersion}" must be a positive integer`
+      );
+    }
+    assertVersionNumber(trailId, `versions.${rawVersion}`, historicalVersion);
+    if (historicalVersion === currentVersion) {
+      throw new ValidationError(
+        `Trail "${trailId}" version ${historicalVersion} is current and must stay top-level`
+      );
+    }
+    if (historicalVersion > currentVersion) {
+      throw new ValidationError(
+        `Trail "${trailId}" version ${historicalVersion} must be less than the current version (${currentVersion})`
+      );
+    }
+    normalized[historicalVersion] = normalizeVersionEntry(
+      trailId,
+      historicalVersion,
+      entry
+    );
+  }
+
+  return Object.freeze(normalized);
+};
+
 /** Freeze and normalize all collection fields from a trail spec. */
 const normalizeCollections = <I, O, CI>(
   spec: TrailSpec<I, O, CI>
@@ -444,9 +821,16 @@ export function trail<I, O, CI = never>(
     layers: _l,
     on: _o,
     resources: _r,
+    version: rawVersion,
+    versions: rawVersions,
     ...spec
   } = resolved.spec;
   const collections = normalizeCollections(resolved.spec);
+  const versions = normalizeTrailVersions<I, O>(
+    resolved.id,
+    rawVersion,
+    rawVersions
+  );
 
   return Object.freeze({
     ...spec,
@@ -458,6 +842,8 @@ export function trail<I, O, CI = never>(
     id: resolved.id,
     intent: rawIntent ?? 'write',
     kind: 'trail' as const,
+    ...(rawVersion === undefined ? {} : { version: rawVersion }),
+    ...(versions === undefined ? {} : { versions }),
     visibility: rawVisibility ?? 'public',
   });
 }

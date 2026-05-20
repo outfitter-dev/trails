@@ -39,6 +39,8 @@ export interface SignalSpec<T> {
   readonly meta?: Readonly<Record<string, unknown>> | undefined;
   /** Trail IDs that produce this signal (e.g. the trails it originates from). */
   readonly from?: readonly string[] | undefined;
+  /** Reserved for future signal-specific design; trail versioning is trail-only. */
+  readonly version?: never;
 }
 
 // ---------------------------------------------------------------------------

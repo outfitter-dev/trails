@@ -51,9 +51,12 @@ export type {
 export type {
   TopoGraph,
   TopoGraphEntry,
+  TopoGraphForceEntry,
   TopoGraphFieldOverride,
   TopoGraphFieldOverrideKey,
   TopoGraphLayerReference,
+  TopoGraphVersionDetour,
+  TopoGraphVersionEntry,
   LockManifest,
   LockManifestArtifact,
   LockManifestSummary,

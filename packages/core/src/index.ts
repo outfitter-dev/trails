@@ -157,16 +157,33 @@ export {
   projectActivationSourceDeclaration,
 } from './activation-source-projection.js';
 export type { ActivationSourceProjection } from './activation-source-projection.js';
-export { intentValues, trail } from './trail.js';
+export {
+  deriveSupportedTrailVersions,
+  getTrailVersionEntryKind,
+  intentValues,
+  isArchivedTrailVersionEntry,
+  trail,
+} from './trail.js';
 export type {
   AnyTrail,
   BlazeInput,
   Intent,
   Trail,
+  TrailVersionEntry,
+  TrailVersionEntryKind,
+  TrailVersionForkEntry,
+  TrailVersionRevisionEntry,
+  TrailVersions,
+  TrailVersionStatus,
+  TrailVersionTranspose,
+  TrailVersionTransposeInput,
+  TrailVersionTransposeOutput,
   TrailSpec,
   TrailExample,
   TrailExampleSignalAssertion,
   TrailVisibility,
+  VersionContract,
+  VersionEntry,
 } from './trail.js';
 export {
   filterSurfaceTrails,

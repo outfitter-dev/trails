@@ -22,7 +22,11 @@ import type { AnySignal } from './signal.js';
 import { validateScheduleSource } from './schedule.js';
 import { Result } from './result.js';
 import type { Topo } from './topo.js';
-import type { AnyTrail } from './trail.js';
+import type { AnyTrail, TrailVersionForkEntry } from './trail.js';
+import {
+  getTrailVersionEntryKind,
+  isArchivedTrailVersionEntry,
+} from './trail.js';
 import { validateInput } from './validation.js';
 import { validateWebhookSource } from './webhook.js';
 
@@ -58,9 +62,24 @@ const buildCrossGraph = (
   color: Map<string, number>;
 } => {
   const graph = new Map<string, readonly string[]>();
-  for (const [id, t] of trails) {
-    if (t.crosses.length > 0) {
-      graph.set(id, t.crosses);
+  for (const [id, trail] of trails) {
+    const crossedIds = new Set<string>(trail.crosses);
+    for (const entry of Object.values(trail.versions ?? {})) {
+      if (
+        isArchivedTrailVersionEntry(entry) ||
+        getTrailVersionEntryKind(entry) !== 'fork'
+      ) {
+        continue;
+      }
+
+      const fork = entry as TrailVersionForkEntry;
+      for (const crossed of fork.crosses ?? []) {
+        crossedIds.add(typeof crossed === 'string' ? crossed : crossed.id);
+      }
+    }
+
+    if (crossedIds.size > 0) {
+      graph.set(id, [...crossedIds]);
     }
   }
   const color = new Map<string, number>();
@@ -127,6 +146,33 @@ const checkCrosses = (
         });
       }
     }
+    for (const [rawVersion, entry] of Object.entries(trail.versions ?? {})) {
+      if (
+        isArchivedTrailVersionEntry(entry) ||
+        getTrailVersionEntryKind(entry) !== 'fork'
+      ) {
+        continue;
+      }
+
+      const version = Number(rawVersion);
+      const fork = entry as TrailVersionForkEntry;
+      for (const crossed of fork.crosses ?? []) {
+        const crossedId = typeof crossed === 'string' ? crossed : crossed.id;
+        if (crossedId === id) {
+          issues.push({
+            message: `Trail version ${version} crosses itself`,
+            rule: 'no-self-cross',
+            trailId: id,
+          });
+        } else if (!topo.has(crossedId) && !isDraftId(crossedId)) {
+          issues.push({
+            message: `Version ${version} crosses "${crossedId}" which is not in the topo`,
+            rule: 'cross-exists',
+            trailId: id,
+          });
+        }
+      }
+    }
   }
   issues.push(...detectCrossCycles(trails));
   return issues;
@@ -149,6 +195,29 @@ const checkResources = (
           rule: 'resource-exists',
           trailId: id,
         });
+      }
+    }
+    for (const [rawVersion, entry] of Object.entries(trail.versions ?? {})) {
+      if (
+        isArchivedTrailVersionEntry(entry) ||
+        getTrailVersionEntryKind(entry) !== 'fork'
+      ) {
+        continue;
+      }
+
+      const version = Number(rawVersion);
+      const fork = entry as TrailVersionForkEntry;
+      for (const declaredResource of fork.resources ?? []) {
+        if (
+          !topo.hasResource(declaredResource.id) &&
+          !isDraftId(declaredResource.id)
+        ) {
+          issues.push({
+            message: `Version ${version} resource "${declaredResource.id}" is not in the topo`,
+            rule: 'resource-exists',
+            trailId: id,
+          });
+        }
       }
     }
   }

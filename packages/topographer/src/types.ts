@@ -5,6 +5,7 @@
 import type {
   StructuredSignalExample,
   StructuredTrailExample,
+  TrailVersionStatus,
 } from '@ontrails/core';
 import { z } from 'zod';
 
@@ -94,6 +95,23 @@ export interface TopoGraphPermitRequirement {
   readonly scopes: readonly string[];
 }
 
+export interface TopoGraphVersionDetour {
+  readonly maxAttempts: number;
+  readonly on: string;
+}
+
+export interface TopoGraphVersionEntry {
+  readonly kind: 'revision' | 'fork';
+  readonly input: JsonSchema;
+  readonly output: JsonSchema;
+  readonly status?: TrailVersionStatus | undefined;
+  readonly crosses?: readonly string[] | undefined;
+  readonly detours?: readonly TopoGraphVersionDetour[] | undefined;
+  readonly resources?: readonly string[] | undefined;
+}
+
+export type TopoGraphForceEntry = Readonly<Record<string, unknown>>;
+
 // ---------------------------------------------------------------------------
 // TopoGraph
 // ---------------------------------------------------------------------------
@@ -110,6 +128,12 @@ export interface TopoGraphEntry {
   readonly input?: JsonSchema | undefined;
   readonly payload?: JsonSchema | undefined;
   readonly output?: JsonSchema | undefined;
+  readonly version?: number | undefined;
+  readonly versions?:
+    | Readonly<Record<string, TopoGraphVersionEntry>>
+    | undefined;
+  readonly supports?: readonly number[] | undefined;
+  readonly forces?: readonly TopoGraphForceEntry[] | undefined;
   readonly intent?: 'read' | 'write' | 'destroy' | undefined;
   readonly idempotent?: boolean | undefined;
   readonly dryRunCapable?: boolean | undefined;
