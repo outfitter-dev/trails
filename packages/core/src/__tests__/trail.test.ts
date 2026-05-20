@@ -12,6 +12,8 @@ import { signal } from '../signal';
 import {
   deriveSupportedTrailVersions,
   getTrailVersionEntryKind,
+  isArchivedTrailVersionEntry,
+  isLiveTrailVersionEntry,
   intentValues,
   trail,
 } from '../trail';
@@ -286,6 +288,11 @@ describe('trail()', () => {
             input: z.object({}),
             output: z.object({ ok: z.boolean() }),
           },
+          3: {
+            input: z.object({}),
+            output: z.object({ ok: z.boolean() }),
+            status: { state: 'deprecated', successor: 5 },
+          },
           4: {
             input: z.object({}),
             output: z.object({ ok: z.boolean() }),
@@ -294,8 +301,25 @@ describe('trail()', () => {
         },
       });
 
-      expect(Object.keys(versioned.versions ?? {})).toEqual(['2', '4']);
-      expect(deriveSupportedTrailVersions(versioned)).toEqual([2, 5]);
+      expect(Object.keys(versioned.versions ?? {})).toEqual(['2', '3', '4']);
+      expect(deriveSupportedTrailVersions(versioned)).toEqual([2, 3, 5]);
+      const archivedEntry = versioned.versions?.[4];
+      const deprecatedEntry = versioned.versions?.[3];
+      const liveEntry = versioned.versions?.[2];
+      expect(archivedEntry).toBeDefined();
+      expect(deprecatedEntry).toBeDefined();
+      expect(liveEntry).toBeDefined();
+      if (
+        archivedEntry === undefined ||
+        deprecatedEntry === undefined ||
+        liveEntry === undefined
+      ) {
+        throw new Error('expected versioned entries to be normalized');
+      }
+      expect(isArchivedTrailVersionEntry(archivedEntry)).toBe(true);
+      expect(isLiveTrailVersionEntry(archivedEntry)).toBe(false);
+      expect(isLiveTrailVersionEntry(deprecatedEntry)).toBe(true);
+      expect(isLiveTrailVersionEntry(liveEntry)).toBe(true);
     });
 
     test('rejects invalid version entry shapes', () => {
@@ -555,6 +579,32 @@ describe('trail()', () => {
       ).toThrow(
         'status.successor must reference the current version or another known historical version'
       );
+
+      expect(() =>
+        trail('bad.archived-reason', {
+          ...base,
+          versions: {
+            1: {
+              input: z.object({}),
+              output: z.object({ ok: z.boolean() }),
+              status: { reason: 42, state: 'archived' },
+            } as never,
+          },
+        })
+      ).toThrow('status.reason must be a non-empty string');
+
+      expect(() =>
+        trail('bad.archived-blank-reason', {
+          ...base,
+          versions: {
+            1: {
+              input: z.object({}),
+              output: z.object({ ok: z.boolean() }),
+              status: { reason: '   ', state: 'archived' },
+            },
+          },
+        })
+      ).toThrow('status.reason must be a non-empty string');
     });
   });
 

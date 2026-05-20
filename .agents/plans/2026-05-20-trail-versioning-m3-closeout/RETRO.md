@@ -102,6 +102,15 @@ Append meaningful state changes, especially before handoff points.
 - Result: TRL-117 core lifecycle status guidance is locally implemented. HTTP/MCP/CLI warning projection is still expected to attach when TRL-118 adds surface version negotiation.
 - Next: Commit TRL-117, restack upward, then isolate any remaining archive lifecycle polish on TRL-731.
 - Blockers: None.
+
+2026-05-20 10:11 EDT - TRL-731 archive lifecycle helpers
+- Changed: Committed TRL-117 as `c69c77903 feat(core): require deprecated version guidance`; Graphite restacked the descendant branches.
+- Changed: Implemented TRL-731 archive lifecycle polish on `trl-731-featcore-add-archive-status-lifecycle-for-version-entries`: exported `isLiveTrailVersionEntry`, routed supported-version derivation through it, validated archived `status.reason` when present, added archived/live helper assertions, and added a branch-local core changeset.
+- Verified: Targeted archive/runtime/topo/survey tests passed: `bun test packages/core/src/__tests__/trail.test.ts packages/core/src/__tests__/version-execution.test.ts packages/core/src/__tests__/validate-topo.test.ts packages/topographer/src/__tests__/derive.test.ts apps/trails/src/__tests__/survey.test.ts` (218 pass).
+- Verified: `bun run --cwd packages/core typecheck` and `git diff --check` passed.
+- Result: TRL-731 archive status lifecycle is locally implemented on top of the already-landed runtime exclusion and graph visibility substrate.
+- Next: Commit TRL-731, restack upward, then implement shared break/force substrate for TRL-732.
+- Blockers: None.
 ```
 
 ## Local Review Log
@@ -129,6 +138,8 @@ Record exact commands and artifact checks. Include skipped checks with reasons.
 | `bun run --cwd packages/topographer typecheck` | TRL-117 targeted typecheck | Passed | `tsc --noEmit` passed. |
 | `bun run --cwd packages/testing typecheck` | TRL-117 targeted typecheck | Passed | `tsc --noEmit` passed. |
 | `bun run --cwd apps/trails typecheck` | TRL-117 targeted typecheck | Passed | `tsc --noEmit` passed. |
+| `bun test packages/core/src/__tests__/trail.test.ts packages/core/src/__tests__/version-execution.test.ts packages/core/src/__tests__/validate-topo.test.ts packages/topographer/src/__tests__/derive.test.ts apps/trails/src/__tests__/survey.test.ts` | TRL-731 targeted tests | Passed | 218 pass, 0 fail. |
+| `bun run --cwd packages/core typecheck` | TRL-731 targeted typecheck | Passed | `tsc --noEmit` passed. |
 | `bun run check` | Execution tip | Pending | Required by goal. |
 | `bun run build` | Execution tip | Pending | Required by goal. |
 | `bun run test` | Execution tip | Pending | Required by goal. |

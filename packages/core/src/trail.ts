@@ -227,6 +227,10 @@ export const isDeprecatedTrailVersionEntry = (
   entry: Pick<TrailVersionEntry, 'status'>
 ): boolean => entry.status?.state === 'deprecated';
 
+export const isLiveTrailVersionEntry = (
+  entry: Pick<TrailVersionEntry, 'status'>
+): boolean => entry.status === undefined || entry.status.state === 'deprecated';
+
 export const hasDeprecatedTrailVersionGuidance = (
   status: Pick<TrailVersionDeprecatedStatus, 'migration' | 'note' | 'successor'>
 ): boolean =>
@@ -243,7 +247,7 @@ export const deriveSupportedTrailVersions = (
 
   const supported = new Set<number>([trail.version]);
   for (const [rawVersion, entry] of Object.entries(trail.versions ?? {})) {
-    if (!isArchivedTrailVersionEntry(entry)) {
+    if (isLiveTrailVersionEntry(entry)) {
       supported.add(Number(rawVersion));
     }
   }
@@ -687,6 +691,15 @@ const normalizeVersionStatus = (
       );
     }
     return normalized;
+  }
+
+  if (
+    raw['reason'] !== undefined &&
+    (typeof raw['reason'] !== 'string' || raw['reason'].trim().length === 0)
+  ) {
+    throw new ValidationError(
+      `Trail "${trailId}" version ${version} status.reason must be a non-empty string`
+    );
   }
 
   return Object.freeze({ ...raw, state: 'archived' }) as TrailVersionStatus;

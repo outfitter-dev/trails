@@ -166,6 +166,7 @@ export {
   intentValues,
   isArchivedTrailVersionEntry,
   isDeprecatedTrailVersionEntry,
+  isLiveTrailVersionEntry,
   trail,
 } from './trail.js';
 export {
