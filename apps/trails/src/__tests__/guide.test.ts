@@ -102,7 +102,7 @@ describe('trails guide', () => {
           ],
           input: z.object({ name: z.string() }),
           output: z.object({ ok: z.boolean() }),
-          status: { state: 'deprecated' },
+          status: { note: 'Use the current version.', state: 'deprecated' },
         },
         2: {
           examples: [

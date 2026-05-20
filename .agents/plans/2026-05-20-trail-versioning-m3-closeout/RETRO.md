@@ -92,6 +92,16 @@ Append meaningful state changes, especially before handoff points.
 - Result: TRL-740 is locally implemented and ready to commit at the bottom of the stack.
 - Next: Commit TRL-740, restack upward, then implement lifecycle status work in TRL-117/TRL-731.
 - Blockers: None. Local seam maps identified expected M3 gaps in surfaces, diff/forces, and Warden.
+
+2026-05-20 10:09 EDT - TRL-117 deprecated status guidance
+- Changed: Committed TRL-740 as `0248259a3 chore(core): tighten trail versioning api boundaries`; Graphite restacked the descendant branches.
+- Changed: Implemented TRL-117 deprecated lifecycle substrate on `trl-117-add-status-deprecation-metadata-and-surface-signals`: split typed deprecated/archived status shapes, exported deprecated-status helpers, required deprecated entries to declare `successor`, `migration`, or `note`, validated `successor` and `migration`, updated fixtures to carry actionable deprecation guidance, and added a branch-local core changeset.
+- Verified: First targeted run caught two expected lifecycle fixture/validation-order failures; fixed both.
+- Verified: Targeted lifecycle/app/topographer/testing suite passed: `bun test packages/core/src/__tests__/trail.test.ts packages/core/src/__tests__/version-execution.test.ts packages/testing/src/__tests__/all.test.ts packages/testing/src/__tests__/contracts.test.ts packages/testing/src/__tests__/examples.test.ts packages/topographer/src/__tests__/derive.test.ts packages/topographer/src/__tests__/diff.test.ts apps/trails/src/__tests__/guide.test.ts apps/trails/src/__tests__/survey.test.ts` (242 pass).
+- Verified: `bun run --cwd packages/core typecheck`, `bun run --cwd packages/topographer typecheck`, `bun run --cwd packages/testing typecheck`, `bun run --cwd apps/trails typecheck`, and `git diff --check` passed.
+- Result: TRL-117 core lifecycle status guidance is locally implemented. HTTP/MCP/CLI warning projection is still expected to attach when TRL-118 adds surface version negotiation.
+- Next: Commit TRL-117, restack upward, then isolate any remaining archive lifecycle polish on TRL-731.
+- Blockers: None.
 ```
 
 ## Local Review Log
@@ -114,6 +124,11 @@ Record exact commands and artifact checks. Include skipped checks with reasons.
 | `bun test packages/core/src/__tests__/version-marker.test.ts packages/core/src/__tests__/version-execution.test.ts packages/testing/src/__tests__/all.test.ts packages/testing/src/__tests__/contracts.test.ts packages/testing/src/__tests__/examples.test.ts` | TRL-740 targeted tests | Passed | 82 pass, 0 fail. |
 | `bun run --cwd packages/core typecheck` | TRL-740 targeted typecheck | Passed | `tsc --noEmit` passed. |
 | `bun run --cwd packages/testing typecheck` | TRL-740 targeted typecheck | Passed | `tsc --noEmit` passed. |
+| `bun test packages/core/src/__tests__/trail.test.ts packages/core/src/__tests__/version-execution.test.ts packages/testing/src/__tests__/all.test.ts packages/testing/src/__tests__/contracts.test.ts packages/testing/src/__tests__/examples.test.ts packages/topographer/src/__tests__/derive.test.ts packages/topographer/src/__tests__/diff.test.ts apps/trails/src/__tests__/guide.test.ts apps/trails/src/__tests__/survey.test.ts` | TRL-117 targeted tests | Passed after fixture/validation-order fix | First run failed on two deprecated-guidance fallout cases; rerun passed with 242 pass, 0 fail. |
+| `bun run --cwd packages/core typecheck` | TRL-117 targeted typecheck | Passed | `tsc --noEmit` passed. |
+| `bun run --cwd packages/topographer typecheck` | TRL-117 targeted typecheck | Passed | `tsc --noEmit` passed. |
+| `bun run --cwd packages/testing typecheck` | TRL-117 targeted typecheck | Passed | `tsc --noEmit` passed. |
+| `bun run --cwd apps/trails typecheck` | TRL-117 targeted typecheck | Passed | `tsc --noEmit` passed. |
 | `bun run check` | Execution tip | Pending | Required by goal. |
 | `bun run build` | Execution tip | Pending | Required by goal. |
 | `bun run test` | Execution tip | Pending | Required by goal. |

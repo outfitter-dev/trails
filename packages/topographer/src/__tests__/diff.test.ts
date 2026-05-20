@@ -460,7 +460,7 @@ describe('deriveTopoGraphDiff', () => {
             2: {
               ...versionContract,
               exampleCount: 0,
-              status: { state: 'deprecated' },
+              status: { note: 'Use the current version.', state: 'deprecated' },
             },
           },
         }),

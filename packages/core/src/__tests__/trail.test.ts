@@ -443,6 +443,118 @@ describe('trail()', () => {
           },
         } as never)
       ).toThrow(ValidationError);
+
+      expect(() =>
+        trail('bad.deprecated-without-guidance', {
+          ...base,
+          versions: {
+            1: {
+              input: z.object({}),
+              output: z.object({ ok: z.boolean() }),
+              status: { state: 'deprecated' },
+            } as never,
+          },
+        })
+      ).toThrow('must declare successor, migration, or note guidance');
+
+      expect(() =>
+        trail('bad.deprecated-migration', {
+          ...base,
+          versions: {
+            1: {
+              input: z.object({}),
+              output: z.object({ ok: z.boolean() }),
+              status: { migration: 'Use v2.', state: 'deprecated' },
+            } as never,
+          },
+        })
+      ).toThrow('status.migration must be an array');
+
+      expect(() =>
+        trail('bad.deprecated-migration-item', {
+          ...base,
+          versions: {
+            1: {
+              input: z.object({}),
+              output: z.object({ ok: z.boolean() }),
+              status: { migration: ['Use v2.', 2], state: 'deprecated' },
+            } as never,
+          },
+        })
+      ).toThrow('status.migration[1] must be a non-empty string');
+
+      expect(() =>
+        trail('bad.deprecated-migration-blank', {
+          ...base,
+          versions: {
+            1: {
+              input: z.object({}),
+              output: z.object({ ok: z.boolean() }),
+              status: { migration: ['   '], state: 'deprecated' },
+            },
+          },
+        })
+      ).toThrow('status.migration[0] must be a non-empty string');
+
+      expect(() =>
+        trail('bad.deprecated-note', {
+          ...base,
+          versions: {
+            1: {
+              input: z.object({}),
+              output: z.object({ ok: z.boolean() }),
+              status: {
+                migration: ['Use v2.'],
+                note: 42,
+                state: 'deprecated',
+              },
+            } as never,
+          },
+        })
+      ).toThrow('status.note must be a string');
+
+      expect(() =>
+        trail('bad.deprecated-blank-note', {
+          ...base,
+          versions: {
+            1: {
+              input: z.object({}),
+              output: z.object({ ok: z.boolean() }),
+              status: { note: '   ', state: 'deprecated' },
+            },
+          },
+        })
+      ).toThrow('status.note must be a non-empty string');
+
+      expect(() =>
+        trail('bad.deprecated-successor', {
+          ...base,
+          versions: {
+            1: {
+              input: z.object({}),
+              output: z.object({ ok: z.boolean() }),
+              status: { state: 'deprecated', successor: 999 },
+            },
+          },
+        })
+      ).toThrow(
+        'status.successor must reference the current version or another known historical version'
+      );
+
+      expect(() =>
+        trail('bad.deprecated-self-successor', {
+          ...base,
+          versions: {
+            1: {
+              input: z.object({}),
+              output: z.object({ ok: z.boolean() }),
+              status: { state: 'deprecated', successor: 1 },
+            },
+          },
+        })
+      ).toThrow(
+        'status.successor must reference the current version or another known historical version'
+      );
     });
   });
 

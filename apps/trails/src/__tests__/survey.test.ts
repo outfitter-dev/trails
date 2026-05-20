@@ -359,7 +359,7 @@ describe('trails survey brief', () => {
           ],
           input: z.object({ name: z.string() }),
           output: z.object({ ok: z.boolean() }),
-          status: { state: 'deprecated' },
+          status: { note: 'Use the current version.', state: 'deprecated' },
         },
         2: {
           examples: [
@@ -490,7 +490,7 @@ describe('trails survey detail', () => {
           ],
           input: z.object({ legacyId: z.string() }),
           output: z.object({ ok: z.boolean() }),
-          status: { state: 'deprecated' },
+          status: { note: 'Use the current version.', state: 'deprecated' },
           transpose: {
             input: ({ input }) => ({ id: input.legacyId }),
             output: ({ output }) => output,
@@ -513,7 +513,7 @@ describe('trails survey detail', () => {
         }),
       ],
       kind: 'revision',
-      status: { state: 'deprecated' },
+      status: { note: 'Use the current version.', state: 'deprecated' },
     });
     expect(trailDetailOutput.safeParse(detail).success).toBe(true);
   });

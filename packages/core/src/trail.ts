@@ -93,11 +93,24 @@ export interface VersionContract<I = unknown, O = unknown> {
   readonly output: O;
 }
 
-/** Shared lifecycle metadata for historical version entries. */
-export interface TrailVersionStatus {
-  readonly state: 'deprecated' | 'archived';
+export interface TrailVersionDeprecatedStatus {
+  readonly migration?: readonly string[] | undefined;
+  readonly note?: string | undefined;
+  readonly state: 'deprecated';
+  readonly successor?: number | undefined;
   readonly [key: string]: unknown;
 }
+
+export interface TrailVersionArchivedStatus {
+  readonly reason?: string | undefined;
+  readonly state: 'archived';
+  readonly [key: string]: unknown;
+}
+
+/** Shared lifecycle metadata for historical version entries. */
+export type TrailVersionStatus =
+  | TrailVersionArchivedStatus
+  | TrailVersionDeprecatedStatus;
 
 /** Shared base for version entries. Historical entries never inherit schemas. */
 export interface VersionEntry<
@@ -209,6 +222,17 @@ export const getTrailVersionEntryKind = (
 export const isArchivedTrailVersionEntry = (
   entry: Pick<TrailVersionEntry, 'status'>
 ): boolean => entry.status?.state === 'archived';
+
+export const isDeprecatedTrailVersionEntry = (
+  entry: Pick<TrailVersionEntry, 'status'>
+): boolean => entry.status?.state === 'deprecated';
+
+export const hasDeprecatedTrailVersionGuidance = (
+  status: Pick<TrailVersionDeprecatedStatus, 'migration' | 'note' | 'successor'>
+): boolean =>
+  status.successor !== undefined ||
+  (Array.isArray(status.migration) && status.migration.length > 0) ||
+  (typeof status.note === 'string' && status.note.trim().length > 0);
 
 export const deriveSupportedTrailVersions = (
   trail: Pick<AnyTrail, 'version' | 'versions'>
@@ -581,6 +605,32 @@ const assertZodSchema = (
   }
 };
 
+const normalizeVersionStatusMigration = (
+  trailId: string,
+  version: number,
+  migration: unknown
+): readonly string[] | undefined => {
+  if (migration === undefined) {
+    return undefined;
+  }
+  if (!Array.isArray(migration)) {
+    throw new ValidationError(
+      `Trail "${trailId}" version ${version} status.migration must be an array`
+    );
+  }
+
+  return Object.freeze(
+    migration.map((step, index) => {
+      if (typeof step !== 'string' || step.trim().length === 0) {
+        throw new ValidationError(
+          `Trail "${trailId}" version ${version} status.migration[${index}] must be a non-empty string`
+        );
+      }
+      return step;
+    })
+  );
+};
+
 const normalizeVersionStatus = (
   trailId: string,
   version: number,
@@ -601,8 +651,45 @@ const normalizeVersionStatus = (
       `Trail "${trailId}" version ${version} status.state must be "deprecated" or "archived"`
     );
   }
+  if (raw['state'] === 'deprecated') {
+    if (raw['successor'] !== undefined) {
+      assertVersionNumber(
+        trailId,
+        `version ${version} status.successor`,
+        raw['successor'] as number
+      );
+    }
+    if (raw['note'] !== undefined) {
+      if (typeof raw['note'] !== 'string') {
+        throw new ValidationError(
+          `Trail "${trailId}" version ${version} status.note must be a string`
+        );
+      }
+      if (raw['note'].trim().length === 0) {
+        throw new ValidationError(
+          `Trail "${trailId}" version ${version} status.note must be a non-empty string`
+        );
+      }
+    }
+    const migration = normalizeVersionStatusMigration(
+      trailId,
+      version,
+      raw['migration']
+    );
+    const normalized = Object.freeze({
+      ...raw,
+      ...(migration === undefined ? {} : { migration }),
+      state: 'deprecated',
+    }) as TrailVersionDeprecatedStatus;
+    if (!hasDeprecatedTrailVersionGuidance(normalized)) {
+      throw new ValidationError(
+        `Trail "${trailId}" version ${version} deprecated status must declare successor, migration, or note guidance`
+      );
+    }
+    return normalized;
+  }
 
-  return Object.freeze({ ...raw, state: raw['state'] }) as TrailVersionStatus;
+  return Object.freeze({ ...raw, state: 'archived' }) as TrailVersionStatus;
 };
 
 const normalizeVersionExamples = (
@@ -829,6 +916,23 @@ const normalizeTrailVersions = <CurrentInput, CurrentOutput>(
       currentOutput,
       entry
     );
+  }
+
+  const knownVersions = new Set([
+    currentVersion,
+    ...Object.keys(normalized).map(Number),
+  ]);
+  for (const [rawVersion, entry] of Object.entries(normalized)) {
+    if (
+      entry.status?.state === 'deprecated' &&
+      entry.status.successor !== undefined &&
+      (!knownVersions.has(entry.status.successor) ||
+        entry.status.successor === Number(rawVersion))
+    ) {
+      throw new ValidationError(
+        `Trail "${trailId}" version ${rawVersion} status.successor must reference the current version or another known historical version`
+      );
+    }
   }
 
   return Object.freeze(normalized);

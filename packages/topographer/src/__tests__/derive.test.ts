@@ -330,7 +330,7 @@ describe('deriveTopoGraph', () => {
             1: {
               input: z.object({ legacy: z.string() }),
               output: z.object({ ok: z.boolean() }),
-              status: { reason: statusReason, state: 'deprecated' },
+              status: { note: statusReason, state: 'deprecated' },
               transpose: {
                 input: () => ({}),
                 output: ({ output }) => output,
@@ -365,7 +365,7 @@ describe('deriveTopoGraph', () => {
               output: required
                 ? z.object({ ok: z.boolean(), required: z.boolean() })
                 : z.object({ ok: z.boolean() }),
-              status: { state: 'deprecated' },
+              status: { note: 'Use the current version.', state: 'deprecated' },
               transpose: {
                 input: () =>
                   required

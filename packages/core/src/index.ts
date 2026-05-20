@@ -162,8 +162,10 @@ export type { ActivationSourceProjection } from './activation-source-projection.
 export {
   deriveSupportedTrailVersions,
   getTrailVersionEntryKind,
+  hasDeprecatedTrailVersionGuidance,
   intentValues,
   isArchivedTrailVersionEntry,
+  isDeprecatedTrailVersionEntry,
   trail,
 } from './trail.js';
 export {
@@ -193,6 +195,8 @@ export type {
   Trail,
   TrailVersionEntry,
   TrailVersionEntryKind,
+  TrailVersionArchivedStatus,
+  TrailVersionDeprecatedStatus,
   TrailVersionForkEntry,
   TrailVersionRevisionEntry,
   TrailVersions,

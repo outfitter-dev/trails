@@ -253,7 +253,7 @@ const versionedContractTrail = trail('contract.versioned', {
       ],
       input: z.object({ code: z.string() }),
       output: z.object({ message: z.string() }),
-      status: { state: 'deprecated' },
+      status: { note: 'Use the current version.', state: 'deprecated' },
     },
     4: {
       examples: [
