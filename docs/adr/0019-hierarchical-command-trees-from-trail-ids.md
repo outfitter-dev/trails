@@ -60,7 +60,7 @@ That means `topo` and `topo pin` can coexist naturally.
 ```text
 trails topo
 trails topo pin --name before-auth
-trails topo verify
+trails topo history
 ```
 
 This is not a special case. It falls out of the path model directly.

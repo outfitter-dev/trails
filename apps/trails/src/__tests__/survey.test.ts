@@ -57,7 +57,7 @@ import {
   surfaceProjectionOutput,
   trailDetailOutput,
 } from '../trails/topo-output-schemas.js';
-import { topoCompileTrail } from '../trails/topo-compile.js';
+import { compileTrail } from '../trails/compile.js';
 import type {
   BriefReport,
   ShippedSurfaceInventoryReport,
@@ -1297,7 +1297,7 @@ describe('trails survey signals section', () => {
   });
 });
 
-describe('trails topo compile', () => {
+describe('trails compile', () => {
   test('writes the structured topo artifacts', async () => {
     const dir = repoTempDir();
 
@@ -1305,7 +1305,7 @@ describe('trails topo compile', () => {
       writeSurveyAppFixture(dir);
 
       const compiled = expectOk(
-        await topoCompileTrail.blaze({ module: './src/app.ts' }, {
+        await compileTrail.blaze({ module: './src/app.ts' }, {
           cwd: dir,
         } as never)
       ) as {
@@ -1325,7 +1325,7 @@ describe('trails topo compile', () => {
         artifacts: [{ path: 'topo.lock', role: 'topo', sha256: compiled.hash }],
         version: 3,
       });
-      expect(topoCompileTrail.output.safeParse(compiled).success).toBe(true);
+      expect(compileTrail.output.safeParse(compiled).success).toBe(true);
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }
@@ -1357,7 +1357,7 @@ describe('trails survey diff', () => {
       } as never);
 
       expect(result.isErr()).toBe(true);
-      expect(result.error.message).toContain('Run `trails topo compile` first');
+      expect(result.error.message).toContain('Run `trails compile` first');
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }
@@ -1608,7 +1608,7 @@ describe('trails survey output schema', () => {
       }).success
     ).toBe(true);
     expect(
-      topoCompileTrail.output.safeParse({
+      compileTrail.output.safeParse({
         hash: 'a'.repeat(64),
         lockPath: '.trails/trails.lock',
         snapshot: {

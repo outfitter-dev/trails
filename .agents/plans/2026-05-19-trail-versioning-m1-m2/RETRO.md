@@ -174,6 +174,8 @@ P3s. Do not mark local review complete while P0/P1/P2 findings remain.
 | `bun apps/trails/bin/trails.ts --help` | TRL-729 | passed | Shows top-level `compile` and `validate`; no `topo compile`/`topo verify` commands. |
 | `bun apps/trails/bin/trails.ts compile --help` | TRL-729 | passed | Top-level compile command renders expected help. |
 | `bun apps/trails/bin/trails.ts validate --help` | TRL-729 | passed | Top-level validate command renders expected help. |
+| `bun run format:check` | TRL-729 | passed | Initial check found two files; `bun run format:fix` applied mechanical cleanup, rerun passed. |
+| `git diff --check` | TRL-729 | passed | No whitespace errors. |
 | `bun run --cwd packages/core test` | TRL-113 | passed | 1116 tests, 0 failures. |
 | `bun run --cwd packages/topographer test` | TRL-113 | passed | 122 tests, 0 failures. |
 | `bun run typecheck` | TRL-113 | passed | 22 package tasks successful. |

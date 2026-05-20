@@ -23,9 +23,9 @@ const DEFAULT_DIR = '.trails';
 const LOCK_MANIFEST_FILE = 'trails.lock';
 const TOPO_GRAPH_FILE = 'topo.lock';
 const REGENERATE_LOCK_MESSAGE =
-  'Unsupported trails.lock format; regenerate with `trails topo compile`.';
+  'Unsupported trails.lock format; regenerate with `trails compile`.';
 const REGENERATE_TOPO_GRAPH_MESSAGE =
-  'Unsupported topo.lock format; regenerate with `trails topo compile`.';
+  'Unsupported topo.lock format; regenerate with `trails compile`.';
 
 export const isTopoArtifactRegenerationError = (
   error: unknown

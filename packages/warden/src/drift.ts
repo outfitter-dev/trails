@@ -95,7 +95,7 @@ export const checkDrift = async (
       ) ?? null;
     if (lockManifest !== null && topoArtifact === null) {
       return blockedDrift(
-        'trails.lock does not contain a topo.lock artifact. Regenerate with `trails topo compile`.'
+        'trails.lock does not contain a topo.lock artifact. Regenerate with `trails compile`.'
       );
     }
     const readStoredHash = (): string | undefined => {

@@ -2,7 +2,9 @@
 
 Durable graph substrate for Trails: deterministic TopoGraphs, lockfile helpers, and semantic diffing.
 
-Most applications reach this package through `trails topo compile` and `trails topo verify`. Those CLI trails layer workspace and topo-store behavior on top of the building blocks in `@ontrails/topographer`.
+Most applications reach this package through `trails compile` and
+`trails validate`. Those CLI trails layer workspace and topo-store behavior on
+top of the building blocks in `@ontrails/topographer`.
 
 ## What it owns
 
@@ -58,7 +60,8 @@ The typical exported artifact pair is:
 - `.trails/topo.lock` — serialized TopoGraph, useful for inspection and diffing
 - `.trails/trails.lock` — compact v3 manifest that verifies the TopoGraph by hash
 
-`trails topo compile` writes both from the current topo. `trails topo verify` and `@ontrails/warden` use the lockfile helpers here to detect drift.
+`trails compile` writes both from the current topo. `trails validate` and
+`@ontrails/warden` use the lockfile helpers here to detect drift.
 
 ## API
 

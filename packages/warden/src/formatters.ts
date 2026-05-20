@@ -36,7 +36,7 @@ export const formatGitHubAnnotations = (report: WardenReport): string => {
     lines.push(`::error::drift: ${report.drift.blockedReason}`);
   } else if (report.drift?.stale) {
     lines.push(
-      '::error::drift: trails.lock is stale (regenerate with `trails topo compile`)'
+      '::error::drift: trails.lock is stale (regenerate with `trails compile`)'
     );
   }
 
@@ -146,7 +146,7 @@ const driftSection = (drift: WardenReport['drift']): readonly string[] => {
   return [
     '',
     '### Drift',
-    '- trails.lock is stale (regenerate with `trails topo compile`)',
+    '- trails.lock is stale (regenerate with `trails compile`)',
   ];
 };
 

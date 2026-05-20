@@ -96,8 +96,8 @@ If warden reports drift:
 
 ```bash
 trails warden --lock cached --no-lock-mutation
-trails topo compile
-trails topo verify
+trails compile
+trails validate
 ```
 
 Review the diff, update the lock if the change is intentional.

@@ -282,16 +282,16 @@ FROM topo_crossings WHERE snapshot_id = :previous
 EXCEPT SELECT source_id, target_id, 'removed' FROM topo_crossings WHERE snapshot_id = :current;
 ```
 
-This is the `trails topo diff` concept made continuous. The lockfile captures the latest state as a text file for git. The topo store captures snapshot history and pins for queryable analysis.
+This is the `trails survey diff` concept made continuous. The lockfile captures the latest state as a text file for git. The topo store captures snapshot history and pins for queryable analysis.
 
 ### Lockfile as an export
 
 The lockfile (`.trails/trails.lock`) becomes a deterministic text export of the current topo state:
 
 ```bash
-trails topo compile         # Write .trails/trails.lock from the current topo
-trails topo diff --lock     # Compare current topo against .trails/trails.lock
-trails topo verify          # CI: fail if .trails/trails.lock is stale
+trails compile                      # Write .trails/trails.lock from the current topo
+trails survey diff --against saved  # Compare current topo against .trails/trails.lock
+trails validate                     # CI: fail if .trails/trails.lock is stale
 ```
 
 The topo store is the queryable source of truth. The lockfile is its text projection for git diffing. The database generates the lockfile, not the other way around.

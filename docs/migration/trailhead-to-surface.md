@@ -32,7 +32,9 @@ The framework now consistently uses `surface` for CLI, MCP, HTTP, and WebSocket 
 | `MapTransportError` | `typeof mapSurfaceError` | Use the canonical function type. |
 | `AuthCredentials` | `PermitExtractionInput` | Import `PermitExtractionInput` from `@ontrails/permits`. |
 | `isVisibleToTrailheads` | `isVisibleToSurfaces` | Update internal callers if you imported non-public helpers. |
-| `topo.export` / `topoExportTrail` | `topo.compile` | Call `topo.compile` for topo artifact generation. |
+| `topo.export` / `topoExportTrail` | `compile` | Call `compile` for topo artifact generation. |
+| `topo.compile` / `topoCompileTrail` | `compile` | Trail ID and export were renamed; update any programmatic lookups. |
+| `topo.verify` / `topoVerifyTrail` | `validate` | Trail ID and export were renamed; update any programmatic lookups. |
 
 ## Code Imports
 
@@ -140,21 +142,22 @@ surface-map artifacts used the same field after the trailhead cutover:
 Regenerate TopoGraph artifacts after upgrading. For the Trails app, use:
 
 ```bash
-trails topo compile
+trails compile
 ```
 
 Update any direct JSON consumers, fixtures, or snapshot assertions that read `entry.trailheads`.
 
-## Topo Compile
+## Compile
 
-The legacy `topo.export` trail has been removed. Use `topo.compile` for current topo artifacts:
+The legacy `topo.export` trail has been removed. Use `compile` for current topo
+artifacts:
 
 ```diff
 -trails topo export
-+trails topo compile
++trails compile
 ```
 
-Any programmatic lookup for `topo.export` should move to `topo.compile`.
+Any programmatic lookup for `topo.export` should move to `compile`.
 
 ## Warden And Comments
 

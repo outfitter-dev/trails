@@ -225,8 +225,8 @@ The warden enforces conventions and detects drift:
 ```bash
 trails warden          # Convention checks
 trails warden --lock cached --no-lock-mutation # Governance against cached lock data
-trails topo compile        # Regenerate committed topo artifacts
-trails topo verify         # Verify committed topo artifacts
+trails compile        # Regenerate committed topo artifacts
+trails validate       # Verify committed topo artifacts
 ```
 
 For the current generated rule index, read [warden-guide.md](references/warden-guide.md) instead of relying on copied rule prose.

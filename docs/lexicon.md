@@ -293,7 +293,7 @@ between the current resolved graph and a previous known-good state.
 
 ```bash
 trails topo pin --name v1.0
-trails topo verify
+trails validate
 ```
 
 Carries intent that "snapshot" doesn't — "this state is my reference point."

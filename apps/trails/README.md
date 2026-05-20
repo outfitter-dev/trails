@@ -14,7 +14,9 @@ Common workflows:
 - `trails create` starts a new Trails project with generated trail, topo, surface,
   and verification files.
 - `trails add surface` adds another surface entrypoint to an existing project.
-- `trails topo` inspects, exports, verifies, pins, and unpins topo state.
+- `trails topo` inspects topo state and manages pins/history.
+- `trails compile` writes committed topo artifacts.
+- `trails validate` checks committed topo artifacts for drift.
 - `trails warden` runs Trails governance checks for contract and architecture
   drift.
 - `trails guide` shows available trails and examples from a project.

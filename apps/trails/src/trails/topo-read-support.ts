@@ -36,7 +36,7 @@ import {
 } from './topo-reports.js';
 import type { ActivationGraphReport } from './topo-activation.js';
 import { deriveActivationGraph } from './topo-activation.js';
-import type { TopoSummaryReport, TopoVerifyReport } from './topo-support.js';
+import type { TopoSummaryReport, TopoValidateReport } from './topo-support.js';
 import { deriveRootDir, LOCK_PATH } from './topo-support.js';
 import { deriveCurrentTopoExport } from './topo-store-support.js';
 
@@ -209,10 +209,10 @@ export const buildCurrentTopoMatches = (
   return matches;
 };
 
-export const verifyCurrentTopo = async (
+export const validateCurrentTopo = async (
   app: Topo,
   options?: { readonly rootDir?: string }
-): Promise<Result<TopoVerifyReport, Error>> => {
+): Promise<Result<TopoValidateReport, Error>> => {
   const rootDir = deriveRootDir(options?.rootDir);
   let lockManifest: Awaited<ReturnType<typeof readLockManifest>>;
   try {
@@ -234,7 +234,7 @@ export const verifyCurrentTopo = async (
   if (lockManifest === null) {
     return Result.err(
       new NotFoundError(
-        'No committed trails.lock found. Run `trails topo compile` first.'
+        'No committed trails.lock found. Run `trails compile` first.'
       )
     );
   }
@@ -250,7 +250,7 @@ export const verifyCurrentTopo = async (
   if (topoArtifact === undefined) {
     return Result.err(
       new NotFoundError(
-        'No topo.lock artifact found in trails.lock. Run `trails topo compile` first.'
+        'No topo.lock artifact found in trails.lock. Run `trails compile` first.'
       )
     );
   }
@@ -258,7 +258,7 @@ export const verifyCurrentTopo = async (
   if (topoArtifact.sha256 !== currentHash) {
     return Result.err(
       new ConflictError(
-        'trails.lock is stale. Run `trails topo compile` to refresh it.'
+        'trails.lock is stale. Run `trails compile` to refresh it.'
       )
     );
   }

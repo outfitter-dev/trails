@@ -121,7 +121,7 @@ describe('writeTopoGraph / readTopoGraph', () => {
     );
 
     await expect(readTopoGraph({ dir: tempDir })).rejects.toThrow(
-      'regenerate with `trails topo compile`'
+      'regenerate with `trails compile`'
     );
   });
 
@@ -136,7 +136,7 @@ describe('writeTopoGraph / readTopoGraph', () => {
     );
 
     await expect(readTopoGraph({ dir: tempDir })).rejects.toThrow(
-      'regenerate with `trails topo compile`'
+      'regenerate with `trails compile`'
     );
   });
 });
@@ -190,7 +190,7 @@ describe('writeLockManifest / readLockManifest', () => {
     );
 
     await expect(readLockManifest({ dir: tempDir })).rejects.toThrow(
-      'regenerate with `trails topo compile`'
+      'regenerate with `trails compile`'
     );
   });
 
@@ -206,7 +206,7 @@ describe('writeLockManifest / readLockManifest', () => {
     );
 
     await expect(readLockManifest({ dir: tempDir })).rejects.toThrow(
-      'regenerate with `trails topo compile`'
+      'regenerate with `trails compile`'
     );
   });
 
@@ -232,7 +232,7 @@ describe('writeLockManifest / readLockManifest', () => {
     );
 
     await expect(readLockManifest({ dir: tempDir })).rejects.toThrow(
-      'regenerate with `trails topo compile`'
+      'regenerate with `trails compile`'
     );
   });
 
@@ -243,7 +243,7 @@ describe('writeLockManifest / readLockManifest', () => {
     );
 
     await expect(readLockManifest({ dir: tempDir })).rejects.toThrow(
-      'regenerate with `trails topo compile`'
+      'regenerate with `trails compile`'
     );
   });
 
@@ -251,7 +251,7 @@ describe('writeLockManifest / readLockManifest', () => {
     await Bun.write(join(tempDir, 'trails.lock'), `${'a'.repeat(64)}\n`);
 
     await expect(readLockManifest({ dir: tempDir })).rejects.toThrow(
-      'regenerate with `trails topo compile`'
+      'regenerate with `trails compile`'
     );
   });
 

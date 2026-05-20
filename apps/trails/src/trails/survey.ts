@@ -191,7 +191,7 @@ const readAgainstTopoGraph = async (
     return map === null
       ? Result.err(
           new NotFoundError(
-            'No saved TopoGraph found. Run `trails topo compile` first.'
+            'No saved TopoGraph found. Run `trails compile` first.'
           )
         )
       : Result.ok({ against: 'saved', map });

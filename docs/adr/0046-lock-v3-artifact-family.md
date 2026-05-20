@@ -140,7 +140,7 @@ Workspace ownership is a projection over the graph, not an ordinary
 
 Lock v3 is the v1 target. Legacy v2 hash envelopes and hash-only files are not
 silently upgraded or interpreted as valid v3 manifests. Readers should fail
-loudly with an instruction to regenerate with `trails topo compile`.
+loudly with an instruction to regenerate with `trails compile`.
 
 ## Consequences
 

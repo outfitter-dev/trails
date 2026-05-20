@@ -119,7 +119,7 @@ Developers create **pins** to keep and name important topo states (setting `pinn
 ```bash
 trails topo pin "before auth refactor"
 trails topo history
-trails topo diff --since "before auth refactor"
+trails survey diff --against "before auth refactor"
 ```
 
 Pins are durable names on topo snapshots. They are not a second storage primitive. They are a retention and discovery affordance on top of autosaved topo history.
@@ -147,10 +147,10 @@ In production, the framework operates exactly as it does today: in-memory topo, 
 trails topo                         # Show the current topo summary
 trails topo history                 # List pins and recent autosaves
 trails topo pin "name"              # Pin the current topo snapshot
-trails topo diff --since "name"     # Structural diff since a pin or prior snapshot
+trails survey diff --against "name" # Structural diff since a pin or prior snapshot
 trails topo unpin "name"            # Remove a pin but keep the underlying snapshot eligible for pruning
-trails topo compile                 # Write .trails/trails.lock and .trails/topo.lock
-trails topo verify                  # Verify committed topo artifacts reflect the current topo
+trails compile                      # Write .trails/trails.lock and .trails/topo.lock
+trails validate                     # Verify committed topo artifacts reflect the current topo
 
 # Developer maintenance
 trails dev stats                    # Table sizes, row counts, file size, and retention overview

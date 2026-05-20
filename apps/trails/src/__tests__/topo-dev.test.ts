@@ -23,12 +23,12 @@ import {
   surveyTrail,
   surveyTrailDetailTrail,
 } from '../trails/survey.js';
-import { topoCompileTrail } from '../trails/topo-compile.js';
+import { compileTrail } from '../trails/compile.js';
 import { topoHistoryTrail } from '../trails/topo-history.js';
 import { topoPinTrail } from '../trails/topo-pin.js';
 import { topoTrail } from '../trails/topo.js';
 import { topoUnpinTrail } from '../trails/topo-unpin.js';
-import { topoVerifyTrail } from '../trails/topo-verify.js';
+import { validateTrail } from '../trails/validate.js';
 
 const repoTempDir = (): string =>
   join(
@@ -151,7 +151,7 @@ describe('topo and dev trails', () => {
       );
 
       const compileResult = expectOk(
-        await topoCompileTrail.blaze(moduleInput, { cwd: dir } as never)
+        await compileTrail.blaze(moduleInput, { cwd: dir } as never)
       );
       const snapshotCountAfterExport = countTopoSnapshots(dir);
       expect(compileResult.hash).toHaveLength(64);
@@ -172,7 +172,7 @@ describe('topo and dev trails', () => {
       expect(summaryAfterExport.lockExists).toBe(true);
 
       const verifyResult = expectOk(
-        await topoVerifyTrail.blaze(moduleInput, { cwd: dir } as never)
+        await validateTrail.blaze(moduleInput, { cwd: dir } as never)
       );
       expect(verifyResult.stale).toBe(false);
       expect(countTopoSnapshots(dir)).toBe(snapshotCountAfterExport);
@@ -200,7 +200,7 @@ describe('topo and dev trails', () => {
         )}\n`
       );
       const wrongArtifactError = expectErr(
-        await topoVerifyTrail.blaze(moduleInput, { cwd: dir } as never)
+        await validateTrail.blaze(moduleInput, { cwd: dir } as never)
       );
       expect(wrongArtifactError.message).toContain('topo.lock artifact');
 
@@ -219,7 +219,7 @@ describe('topo and dev trails', () => {
       );
 
       const driftError = expectErr(
-        await topoVerifyTrail.blaze(moduleInput, { cwd: dir } as never)
+        await validateTrail.blaze(moduleInput, { cwd: dir } as never)
       );
       expect(driftError.message).toContain('trails.lock is stale');
       expect(countTopoSnapshots(dir)).toBe(snapshotCountAfterExport);
@@ -229,11 +229,9 @@ describe('topo and dev trails', () => {
         `${JSON.stringify({ hash: '1'.repeat(64), version: 2 }, null, 2)}\n`
       );
       const verifyError = expectErr(
-        await topoVerifyTrail.blaze(moduleInput, { cwd: dir } as never)
+        await validateTrail.blaze(moduleInput, { cwd: dir } as never)
       );
-      expect(verifyError.message).toContain(
-        'regenerate with `trails topo compile`'
-      );
+      expect(verifyError.message).toContain('regenerate with `trails compile`');
       expect(countTopoSnapshots(dir)).toBe(snapshotCountAfterExport);
     } finally {
       rmSync(dir, { force: true, recursive: true });
@@ -351,10 +349,10 @@ describe('topo and dev trails', () => {
       expect(firstPin.snapshot.pinnedAs).toBe('before-auth');
 
       const firstCompile = expectOk(
-        await topoCompileTrail.blaze(moduleInput, { cwd: dir } as never)
+        await compileTrail.blaze(moduleInput, { cwd: dir } as never)
       );
       const secondCompile = expectOk(
-        await topoCompileTrail.blaze(moduleInput, { cwd: dir } as never)
+        await compileTrail.blaze(moduleInput, { cwd: dir } as never)
       );
       expect(firstCompile.hash).toBe(secondCompile.hash);
       expect(

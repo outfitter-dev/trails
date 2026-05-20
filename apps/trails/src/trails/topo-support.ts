@@ -62,7 +62,7 @@ export interface TopoExportReport {
   readonly topoPath: string;
 }
 
-export interface TopoVerifyReport {
+export interface TopoValidateReport {
   readonly committedHash: string;
   readonly currentHash: string;
   readonly lockPath: string;

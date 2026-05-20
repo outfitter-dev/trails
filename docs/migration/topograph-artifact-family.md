@@ -14,13 +14,13 @@ content artifact:
 Regenerate the current artifact family with:
 
 ```bash
-trails topo compile
+trails compile
 ```
 
-Verify committed artifacts with:
+Validate committed artifacts with:
 
 ```bash
-trails topo verify
+trails validate
 ```
 
 ## Rename Map

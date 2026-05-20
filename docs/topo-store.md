@@ -96,22 +96,22 @@ List saved topo states (pinned and recent autosaves).
 trails topo history --limit 20
 ```
 
-### `trails topo compile`
+### `trails compile`
 
 Compile the current topo to `.trails/topo.lock` and `.trails/trails.lock`.
 
 ```bash
-trails topo compile
+trails compile
 ```
 
-### `trails topo verify`
+### `trails validate`
 
 Check that the `.trails/trails.lock` / `.trails/topo.lock` artifact family
 matches your current topo. Fails if either committed artifact has drifted.
 
 ```bash
 # In CI
-trails topo verify || exit 1
+trails validate || exit 1
 ```
 
 ## Workflows
@@ -119,16 +119,16 @@ trails topo verify || exit 1
 ### Pre-deployment
 
 1. Make topology changes
-2. Compile: `trails topo compile`
+2. Compile: `trails compile`
 3. Commit `.trails/trails.lock` and `.trails/topo.lock`
-4. In CI, verify: `trails topo verify`
+4. In CI, validate: `trails validate`
 
 ### Pin before refactoring
 
 ```bash
 trails topo pin --name pre-refactor
 # ... make changes ...
-trails topo compile
+trails compile
 # Compare lockfile diff against the pinned baseline
 ```
 
