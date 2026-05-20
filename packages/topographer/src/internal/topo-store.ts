@@ -1090,6 +1090,9 @@ const addVersioning = (
   entry: Record<string, unknown>,
   trail: AnyTrail
 ): void => {
+  if (trail.version === undefined) {
+    return;
+  }
   const projection = projectTrailVersions(
     trail,
     (schema) => sortedJsonSchema(schema as ZodSchemaInput).value
@@ -1098,6 +1101,7 @@ const addVersioning = (
     return;
   }
 
+  entry['marker'] = projection.marker;
   entry['supports'] = projection.supports;
   entry['version'] = projection.version;
   if (projection.versions !== undefined) {

@@ -364,6 +364,26 @@ describe('trail()', () => {
       ).toThrow(ValidationError);
 
       expect(() =>
+        trail('bad.marker', {
+          ...base,
+          marker: 'abcd000000000000',
+        } as never)
+      ).toThrow(ValidationError);
+
+      expect(() =>
+        trail('bad.version-marker', {
+          ...base,
+          versions: {
+            1: {
+              input: z.object({}),
+              marker: 'abcd000000000000',
+              output: z.object({ ok: z.boolean() }),
+            } as never,
+          },
+        })
+      ).toThrow(ValidationError);
+
+      expect(() =>
         trail('bad.current-duplicate', {
           ...base,
           versions: {

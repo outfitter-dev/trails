@@ -471,11 +471,15 @@ const addVersioning = (
   entry: Record<string, unknown>,
   t: Trail<unknown, unknown, unknown>
 ): void => {
+  if (t.version === undefined) {
+    return;
+  }
   const projection = projectTrailVersions(t, toSortedJsonSchema);
   if (projection === undefined) {
     return;
   }
 
+  entry['marker'] = projection.marker;
   entry['supports'] = projection.supports;
   entry['version'] = projection.version;
   if (projection.versions !== undefined) {

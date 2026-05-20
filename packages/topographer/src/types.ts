@@ -103,6 +103,7 @@ export interface TopoGraphVersionDetour {
 export interface TopoGraphVersionEntry {
   readonly kind: 'revision' | 'fork';
   readonly input: JsonSchema;
+  readonly marker: string;
   readonly output: JsonSchema;
   readonly status?: TrailVersionStatus | undefined;
   readonly crosses?: readonly string[] | undefined;
@@ -126,6 +127,7 @@ export interface TopoGraphEntry {
       }
     | undefined;
   readonly input?: JsonSchema | undefined;
+  readonly marker?: string | undefined;
   readonly payload?: JsonSchema | undefined;
   readonly output?: JsonSchema | undefined;
   readonly version?: number | undefined;

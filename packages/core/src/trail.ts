@@ -104,6 +104,7 @@ export interface VersionEntry<
   TContract extends VersionContract = VersionContract,
 > {
   readonly input: z.ZodType<TContract['input']>;
+  readonly marker?: never;
   readonly output: z.ZodType<TContract['output']>;
   readonly status?: TrailVersionStatus | undefined;
 }
@@ -317,6 +318,8 @@ export interface TrailSpec<I, O, CI = never> {
   readonly version?: number | undefined;
   /** Explicit historical trail versions. Current stays top-level. */
   readonly versions?: TrailVersions<I, O> | undefined;
+  /** Version markers are projected into the resolved graph, not authored. */
+  readonly marker?: never;
 }
 
 // ---------------------------------------------------------------------------
@@ -669,6 +672,11 @@ const normalizeVersionEntry = <CurrentInput, CurrentOutput>(
       `Trail "${trailId}" version ${version} must not author kind; it is projected`
     );
   }
+  if (hasOwn(raw, 'marker')) {
+    throw new ValidationError(
+      `Trail "${trailId}" version ${version} must not author marker; it is projected`
+    );
+  }
 
   const hasBlaze = typeof raw['blaze'] === 'function';
   const hasTranspose = raw['transpose'] !== undefined;
@@ -864,6 +872,11 @@ export function trail<I, O, CI = never>(
 
   if (!resolved.spec) {
     throw new TypeError('trail() requires a spec when an id is provided');
+  }
+  if (hasOwn(resolved.spec as unknown as Record<string, unknown>, 'marker')) {
+    throw new ValidationError(
+      `Trail "${resolved.id}" must not author marker; it is projected`
+    );
   }
 
   const {

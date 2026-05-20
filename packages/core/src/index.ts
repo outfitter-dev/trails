@@ -164,6 +164,22 @@ export {
   isArchivedTrailVersionEntry,
   trail,
 } from './trail.js';
+export {
+  TRAIL_VERSION_MARKER_LENGTH,
+  TRAIL_VERSION_MARKER_MIN_PREFIX_LENGTH,
+  assertTrailVersionMarker,
+  assertUniqueTrailVersionMarkers,
+  canonicalizeTrailVersionMarkerContent,
+  deriveCurrentTrailVersionMarker,
+  deriveCurrentTrailVersionMarkerContent,
+  deriveShortestUnambiguousTrailVersionMarkerPrefix,
+  deriveTrailVersionEntryMarker,
+  deriveTrailVersionEntryMarkerContent,
+  deriveTrailVersionMarker,
+  deriveTrailVersionMarkers,
+  normalizeTrailVersionMarkerPrefix,
+  resolveTrailVersionMarkerPrefix,
+} from './version-marker.js';
 export type {
   AnyTrail,
   BlazeInput,
@@ -185,6 +201,11 @@ export type {
   VersionContract,
   VersionEntry,
 } from './trail.js';
+export type {
+  TrailVersionMarkerBinding,
+  TrailVersionMarkerRecord,
+  TrailVersionMarkerResolution,
+} from './version-marker.js';
 export {
   filterSurfaceTrails,
   matchesTrailPattern,

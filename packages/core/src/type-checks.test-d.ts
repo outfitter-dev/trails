@@ -127,6 +127,16 @@ export type TrailVersionAllowed = [AssertTrailVersionAllowed] extends [true]
   ? 'pass'
   : never;
 
+type AssertTrailMarkerProjected = TrailSpec<
+  { name: string },
+  { id: string }
+>['marker'] extends never | undefined
+  ? true
+  : false;
+export type TrailMarkerProjected = [AssertTrailMarkerProjected] extends [true]
+  ? 'pass'
+  : never;
+
 type AssertVersionReserved<T extends { readonly version?: never }> =
   T['version'] extends never | undefined ? true : false;
 export type NonTrailVersionReservations = [
@@ -161,6 +171,20 @@ type RevisionTranspose = NonNullable<
     CurrentOutput
   >['transpose']
 >;
+
+type AssertRevisionMarkerProjected = TrailVersionRevisionEntry<
+  RevisionInput,
+  RevisionOutput,
+  CurrentInput,
+  CurrentOutput
+>['marker'] extends never | undefined
+  ? true
+  : false;
+export type RevisionMarkerProjected = [AssertRevisionMarkerProjected] extends [
+  true,
+]
+  ? 'pass'
+  : never;
 
 type AssertRevisionInputTranspose = RevisionTranspose['input'] extends (value: {
   readonly input: RevisionInput;

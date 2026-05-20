@@ -1,11 +1,26 @@
 import {
   DETOUR_MAX_ATTEMPTS_CAP,
+  TRAIL_VERSION_MARKER_MIN_PREFIX_LENGTH,
+  ValidationError,
+  deriveCurrentTrailVersionMarker,
+  deriveShortestUnambiguousTrailVersionMarkerPrefix,
   deriveSupportedTrailVersions,
+  deriveTrailVersionEntryMarker,
+  deriveTrailVersionMarkers,
   getTrailVersionEntryKind,
+  resolveTrailVersionMarkerPrefix,
 } from '@ontrails/core';
-import type { AnyTrail, TrailVersionEntry } from '@ontrails/core';
+import type {
+  AnyTrail,
+  TrailVersionEntry,
+  TrailVersionMarkerBinding,
+} from '@ontrails/core';
 
-import type { JsonSchema, TopoGraphVersionEntry } from './types.js';
+import type {
+  JsonSchema,
+  TopoGraphEntry,
+  TopoGraphVersionEntry,
+} from './types.js';
 
 type SchemaProjector = (schema: unknown) => JsonSchema;
 
@@ -73,9 +88,11 @@ export const projectTrailVersionEntry = (
   entry: TrailVersionEntry,
   projectSchema: SchemaProjector
 ): TopoGraphVersionEntry => {
+  const kind = getTrailVersionEntryKind(entry);
   const projected: Record<string, unknown> = {
     input: projectSchema(entry.input),
-    kind: getTrailVersionEntryKind(entry),
+    kind,
+    marker: deriveTrailVersionEntryMarker(entry),
     output: projectSchema(entry.output),
   };
 
@@ -83,7 +100,7 @@ export const projectTrailVersionEntry = (
     projected['status'] = sortPlainRecord({ ...entry.status });
   }
 
-  if (projected['kind'] === 'fork') {
+  if (kind === 'fork') {
     const crosses = projectVersionRuntimeRefs(entry, 'crosses');
     const resources = projectVersionRuntimeRefs(entry, 'resources');
     const detours = projectVersionDetours(entry);
@@ -101,11 +118,126 @@ export const projectTrailVersionEntry = (
   return sortPlainRecord(projected) as unknown as TopoGraphVersionEntry;
 };
 
+export interface TopoGraphVersionMarkerRecord {
+  readonly current: boolean;
+  readonly displayMarker?: string | undefined;
+  readonly marker?: string | undefined;
+  readonly version: number;
+}
+
+export interface TopoGraphVersionMarkerResolution extends TopoGraphVersionMarkerRecord {
+  readonly prefix: string;
+}
+
+export const collectTopoGraphVersionMarkers = (
+  entry: Pick<TopoGraphEntry, 'marker' | 'version' | 'versions'>
+): readonly TrailVersionMarkerBinding[] => {
+  if (entry.version === undefined) {
+    return [];
+  }
+
+  const markers: TrailVersionMarkerBinding[] = [];
+  if (entry.marker !== undefined) {
+    markers.push({ marker: entry.marker, version: entry.version });
+  }
+
+  for (const [version, versionEntry] of Object.entries(entry.versions ?? {})) {
+    const { marker } = versionEntry as { readonly marker?: unknown };
+    if (typeof marker === 'string') {
+      markers.push({ marker, version: Number(version) });
+    }
+  }
+
+  return markers.toSorted((left, right) => left.version - right.version);
+};
+
+export const deriveTopoGraphVersionMarkerRecords = (
+  entry: Pick<TopoGraphEntry, 'marker' | 'version' | 'versions'>
+): readonly TopoGraphVersionMarkerRecord[] => {
+  const markers = collectTopoGraphVersionMarkers(entry);
+  const markerValues = markers.map((candidate) => candidate.marker);
+
+  return markers.map((candidate) => ({
+    ...candidate,
+    current: candidate.version === entry.version,
+    displayMarker: deriveShortestUnambiguousTrailVersionMarkerPrefix(
+      candidate.marker,
+      markerValues
+    ),
+  }));
+};
+
+const hasTopoGraphVersion = (
+  entry: Pick<TopoGraphEntry, 'version' | 'versions'>,
+  version: number
+): boolean =>
+  entry.version === version || Object.hasOwn(entry.versions ?? {}, version);
+
+export const resolveTopoGraphVersionReference = (
+  entry: Pick<TopoGraphEntry, 'marker' | 'version' | 'versions'>,
+  reference: number | string
+): TopoGraphVersionMarkerResolution => {
+  const markers = collectTopoGraphVersionMarkers(entry);
+  const markerValues = markers.map((candidate) => candidate.marker);
+
+  if (typeof reference === 'number') {
+    const match = markers.find((candidate) => candidate.version === reference);
+    if (match !== undefined) {
+      return {
+        ...match,
+        current: match.version === entry.version,
+        displayMarker: deriveShortestUnambiguousTrailVersionMarkerPrefix(
+          match.marker,
+          markerValues
+        ),
+        prefix: String(reference),
+      };
+    }
+    if (!hasTopoGraphVersion(entry, reference)) {
+      throw new ValidationError(
+        `Trail version ${reference} is not in the TopoGraph`
+      );
+    }
+
+    return {
+      current: reference === entry.version,
+      prefix: String(reference),
+      version: reference,
+    };
+  }
+
+  if (/^\d+$/.test(reference)) {
+    const version = Number(reference);
+    if (hasTopoGraphVersion(entry, version)) {
+      return resolveTopoGraphVersionReference(entry, version);
+    }
+    if (reference.length < TRAIL_VERSION_MARKER_MIN_PREFIX_LENGTH) {
+      throw new ValidationError(
+        `Trail version ${version} is not in the TopoGraph`
+      );
+    }
+  }
+
+  const markerPrefix = reference.startsWith('@')
+    ? reference.slice(1)
+    : reference;
+  const resolved = resolveTrailVersionMarkerPrefix(markers, markerPrefix);
+  return {
+    ...resolved,
+    current: resolved.version === entry.version,
+    displayMarker: deriveShortestUnambiguousTrailVersionMarkerPrefix(
+      resolved.marker,
+      markerValues
+    ),
+  };
+};
+
 export const projectTrailVersions = (
   trail: AnyTrail,
   projectSchema: SchemaProjector
 ):
   | {
+      readonly marker: string;
       readonly supports: readonly number[];
       readonly version: number;
       readonly versions?: Readonly<Record<string, TopoGraphVersionEntry>>;
@@ -125,7 +257,11 @@ export const projectTrailVersions = (
     );
   }
 
+  const currentMarker = deriveCurrentTrailVersionMarker(trail);
+  deriveTrailVersionMarkers(trail);
+
   return {
+    marker: currentMarker,
     supports: deriveSupportedTrailVersions(trail),
     version: trail.version,
     ...(Object.keys(projectedEntries).length > 0

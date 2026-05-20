@@ -7,6 +7,15 @@
 export { deriveTopoGraph } from './derive.js';
 export { deriveTopoGraphHash } from './hash.js';
 export { deriveTopoGraphDiff } from './diff.js';
+export {
+  collectTopoGraphVersionMarkers,
+  deriveTopoGraphVersionMarkerRecords,
+  resolveTopoGraphVersionReference,
+} from './versioning.js';
+export type {
+  TopoGraphVersionMarkerRecord,
+  TopoGraphVersionMarkerResolution,
+} from './versioning.js';
 
 // File I/O
 export {

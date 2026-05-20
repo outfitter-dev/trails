@@ -18,6 +18,7 @@ import { z } from 'zod';
 
 import { deriveTopoGraph } from '../derive.js';
 import { TOPO_GRAPH_SCHEMA_VERSION } from '../types.js';
+import { resolveTopoGraphVersionReference } from '../versioning.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -301,6 +302,206 @@ describe('deriveTopoGraph', () => {
       expect(entry?.versions?.['1']?.output).toMatchObject({ type: 'object' });
       expect(entry?.versions?.['2']?.input).toMatchObject({ type: 'object' });
       expect(entry?.versions?.['2']?.output).toMatchObject({ type: 'object' });
+    });
+
+    test('version markers ignore mutable examples and status', () => {
+      const makeVersioned = (statusReason: string, exampleName: string) =>
+        trail('marker.stable', {
+          blaze: () => Result.ok({ ok: true }),
+          examples: [{ expected: { ok: true }, input: {}, name: exampleName }],
+          input: z.object({}),
+          output: z.object({ ok: z.boolean() }),
+          version: 2,
+          versions: {
+            1: {
+              input: z.object({ legacy: z.string() }),
+              output: z.object({ ok: z.boolean() }),
+              status: { reason: statusReason, state: 'deprecated' },
+              transpose: {
+                input: () => ({}),
+                output: ({ output }) => output,
+              },
+            },
+          },
+        });
+
+      const left = getFirstEntry(
+        deriveTopoGraph(topoFrom({ versioned: makeVersioned('old', 'one') }))
+      );
+      const right = getFirstEntry(
+        deriveTopoGraph(topoFrom({ versioned: makeVersioned('new', 'two') }))
+      );
+
+      expect(left.marker).toBe(right.marker);
+      expect(left.versions?.['1']?.marker).toBe(right.versions?.['1']?.marker);
+    });
+
+    test('version markers change when resolved contract content changes', () => {
+      const makeVersioned = (required: boolean) =>
+        trail('marker.contract', {
+          blaze: () => Result.ok({ ok: true }),
+          input: required
+            ? z.object({ id: z.string(), required: z.boolean() })
+            : z.object({ id: z.string() }),
+          output: z.object({ ok: z.boolean() }),
+          version: 2,
+          versions: {
+            1: {
+              input: z.object({ legacy: z.string() }),
+              output: required
+                ? z.object({ ok: z.boolean(), required: z.boolean() })
+                : z.object({ ok: z.boolean() }),
+              status: { state: 'deprecated' },
+              transpose: {
+                input: () =>
+                  required
+                    ? { id: 'legacy', required: true }
+                    : { id: 'legacy' },
+                output: ({ output }) => output,
+              },
+            },
+          },
+        });
+
+      const left = getFirstEntry(
+        deriveTopoGraph(topoFrom({ versioned: makeVersioned(false) }))
+      );
+      const right = getFirstEntry(
+        deriveTopoGraph(topoFrom({ versioned: makeVersioned(true) }))
+      );
+
+      expect(left.marker).not.toBe(right.marker);
+      expect(left.versions?.['1']?.marker).not.toBe(
+        right.versions?.['1']?.marker
+      );
+    });
+
+    test('resolves version references by unambiguous marker prefix', () => {
+      const versioned = trail('marker.resolve', {
+        blaze: () => Result.ok({ ok: true }),
+        input: z.object({ id: z.string() }),
+        output: z.object({ ok: z.boolean() }),
+        version: 2,
+        versions: {
+          1: {
+            input: z.object({ legacy: z.string() }),
+            output: z.object({ ok: z.boolean() }),
+            transpose: {
+              input: ({ input }) => ({ id: input.legacy }),
+              output: ({ output }) => output,
+            },
+          },
+        },
+      });
+      const entry = getFirstEntry(deriveTopoGraph(topoFrom({ versioned })));
+      const marker = entry.versions?.['1']?.marker;
+      expect(marker).toBeDefined();
+
+      expect(
+        resolveTopoGraphVersionReference(entry, `@${marker?.slice(0, 4)}`)
+      ).toMatchObject({
+        marker,
+        version: 1,
+      });
+      expect(resolveTopoGraphVersionReference(entry, 2)).toMatchObject({
+        current: true,
+        marker: entry.marker,
+        version: 2,
+      });
+    });
+
+    test('resolves all-digit marker prefixes when they are not live version numbers', () => {
+      const entry = {
+        marker: 'abcd000000000000',
+        version: 2,
+        versions: {
+          1: { marker: '1234000000000000' },
+        },
+      } as unknown as Parameters<typeof resolveTopoGraphVersionReference>[0];
+
+      expect(resolveTopoGraphVersionReference(entry, '1234')).toMatchObject({
+        marker: '1234000000000000',
+        prefix: '1234',
+        version: 1,
+      });
+      expect(resolveTopoGraphVersionReference(entry, '2')).toMatchObject({
+        current: true,
+        marker: 'abcd000000000000',
+        prefix: '2',
+        version: 2,
+      });
+      expect(() => resolveTopoGraphVersionReference(entry, '5')).toThrow(
+        'Trail version 5 is not in the TopoGraph'
+      );
+    });
+
+    test('resolves numeric versions when graph markers are absent', () => {
+      const entry = {
+        version: 2,
+        versions: {
+          1: {},
+        },
+      } as unknown as Parameters<typeof resolveTopoGraphVersionReference>[0];
+
+      expect(resolveTopoGraphVersionReference(entry, 1)).toEqual({
+        current: false,
+        prefix: '1',
+        version: 1,
+      });
+      expect(resolveTopoGraphVersionReference(entry, '2')).toEqual({
+        current: true,
+        prefix: '2',
+        version: 2,
+      });
+      expect(() => resolveTopoGraphVersionReference(entry, '1234')).toThrow(
+        'No trail version marker matches prefix 1234'
+      );
+    });
+
+    test('rejects duplicate version markers within a trail', () => {
+      const versioned = trail('marker.collision', {
+        blaze: () => Result.ok({ ok: true }),
+        input: z.object({ id: z.string() }),
+        output: z.object({ ok: z.boolean() }),
+        version: 3,
+        versions: {
+          1: {
+            input: z.object({ id: z.string() }),
+            output: z.object({ ok: z.boolean() }),
+          },
+          2: {
+            input: z.object({ id: z.string() }),
+            output: z.object({ ok: z.boolean() }),
+          },
+        },
+      });
+
+      expect(() => deriveTopoGraph(topoFrom({ versioned }))).toThrow(
+        ValidationError
+      );
+    });
+
+    test('rejects unsupported marker schema projections', () => {
+      const versioned = trail('marker.unsupported', {
+        blaze: (input) => Result.ok({ value: input.value }),
+        input: z.object({ value: z.any() }),
+        output: z.object({ value: z.string() }),
+        version: 2,
+        versions: {
+          1: {
+            input: z.object({ value: z.string() }),
+            output: z.object({ value: z.string() }),
+            transpose: {
+              input: ({ input }) => input,
+              output: ({ output }) => output,
+            },
+          },
+        },
+      });
+
+      expect(() => deriveTopoGraph(topoFrom({ versioned }))).toThrow(
+        ValidationError
+      );
     });
 
     test('trail entries include crosses array when non-empty', () => {
