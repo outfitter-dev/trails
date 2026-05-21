@@ -1,7 +1,6 @@
 # Goal Planning Preferences
 
-This file is tracked project guidance for preparing autonomous `/goal` packets
-in Trails. It supplements `AGENTS.md`; when instructions conflict, follow
+This file is tracked project guidance for preparing autonomous `/goal` packets in Trails. It supplements `AGENTS.md`; when instructions conflict, follow
 current user instructions first, then platform safety rules, then `AGENTS.md`,
 then this file.
 
@@ -20,8 +19,7 @@ Active goal packets should use the four-file core:
 - `RETRO.md`
 - `REFS.md`
 
-Add extra Markdown files or subdirectories only when they make the packet easier
-to execute without chat history, such as `reports/` for local review findings or
+Add extra Markdown files or subdirectories only when they make the packet easier to execute without chat history, such as `reports/` for local review findings or
 audit outputs.
 
 ## Tracker
@@ -98,8 +96,7 @@ Additional allowed files:
 - `DESIGN.md`, `MIGRATION.md`, `ISSUES.md`, or `REVIEW.md` when the topic is too
   large for `PLAN.md`.
 
-Do not make a tracked packet depend on ignored or untracked scratch docs. If a
-scratch note is load-bearing, copy the relevant detail into the packet, summarize
+Do not make a tracked packet depend on ignored or untracked scratch docs. If a scratch note is load-bearing, copy the relevant detail into the packet, summarize
 it in `REFS.md`, or move the canonical output under `.agents/plans/`.
 
 ## Execution Preferences

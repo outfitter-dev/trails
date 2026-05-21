@@ -424,8 +424,7 @@ try {
 }
 ```
 
-The memory sink is bounded by default and drops the oldest records when it
-passes `maxRecords`; `sink.droppedCount` reports discarded records.
+The memory sink is bounded by default and drops the oldest records when it passes `maxRecords`; `sink.droppedCount` reports discarded records.
 
 ## Recommended Test Structure
 

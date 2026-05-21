@@ -35,18 +35,13 @@ Scan all changed or new files for vocabulary violations. Highest-priority check.
 | provision (legacy) | resource |
 | gate (legacy) | layer |
 
-For `blaze`, preserve the distinction that a `blaze` establishes how a trail
-runs. The runtime runs the blazed trail; surfaces expose trails, not blazes.
+For `blaze`, preserve the distinction that a `blaze` establishes how a trail runs. The runtime runs the blazed trail; surfaces expose trails, not blazes.
 
-The current Trails lexicon canonicalizes `resource` (the declared
-infrastructure primitive — see `docs/lexicon.md` and ADR-0009) and
+The current Trails lexicon canonicalizes `resource` (the declared infrastructure primitive — see `docs/lexicon.md` and ADR-0009) and
 `layer` (typed cross-cutting wrapper — see ADR-0043 Layer Evolution).
-Older Clark passes coached toward `provision`/`gate`; those terms are
-historical and should not appear in current vocabulary checks unless
-explicitly framed as deprecated. **Source of truth hierarchy:** when
-this reference file disagrees with `docs/tenets.md`, `docs/lexicon.md`,
-or `AGENTS.md`, the docs win — calibrate flags drift, not lexicon
-shifts.
+Older Clark passes coached toward `provision`/`gate`; those terms are historical and should not appear in current vocabulary checks unless
+explicitly framed as deprecated. **Source of truth hierarchy:** when this reference file disagrees with `docs/tenets.md`, `docs/lexicon.md`,
+or `AGENTS.md`, the docs win — calibrate flags drift, not lexicon shifts.
 
 Also check that standard terms stay standard. `config` is not "settings." `Result` is not "response."
 

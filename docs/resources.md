@@ -119,8 +119,7 @@ import { graph } from '../app';
 testAll(graph);
 ```
 
-If a resource cannot honestly provide a mock, mark that explicitly instead of
-leaving the gap ambiguous:
+If a resource cannot honestly provide a mock, mark that explicitly instead of leaving the gap ambiguous:
 
 ```typescript
 const hsm = resource('hsm.signer', {
@@ -131,8 +130,7 @@ const hsm = resource('hsm.signer', {
 });
 ```
 
-Testing helpers skip `unmockable` resources during auto-mock resolution. Trails
-that need them still require explicit resource overrides when their examples or
+Testing helpers skip `unmockable` resources during auto-mock resolution. Trails that need them still require explicit resource overrides when their examples or
 contracts execute.
 
 Override explicitly when you need specific behavior:

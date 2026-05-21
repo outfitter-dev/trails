@@ -122,10 +122,8 @@ Options:
   -h, --help      display help for command
 ```
 
-When a trail has exactly one required string field with no default, the CLI
-automatically promotes it to a positional argument. You can still pass it as a
-flag (`--name World`), but the positional form is shorter. To suppress
-auto-promotion, set `args: false` on the trail definition (see the
+When a trail has exactly one required string field with no default, the CLI automatically promotes it to a positional argument. You can still pass it as a
+flag (`--name World`), but the positional form is shorter. To suppress auto-promotion, set `args: false` on the trail definition (see the
 [CLI surface guide](./surfaces/cli.md#positional-args)).
 
 ## Open an MCP Surface
@@ -200,8 +198,7 @@ That single `testAll(graph)` call runs the full contract suite:
 
 No separate test files for the happy path. The examples ARE the tests.
 
-If your app declares resources with `mock` factories, `testAll(graph)` and
-`testExamples(graph)` pick them up automatically. Use explicit `resources`
+If your app declares resources with `mock` factories, `testAll(graph)` and `testExamples(graph)` pick them up automatically. Use explicit `resources`
 overrides only when you need a specific fake or fresh mutable state.
 
 For finer control, use `testExamples(graph)` to run only example assertions without structural checks:

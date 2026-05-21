@@ -1,9 +1,7 @@
 # CLI Surface
 
-The CLI surface adapter turns every trail into a command. Flags are
-derived from faithfully representable Zod schema fields, and structured JSON
-channels are available when the input shape is richer than flags can express
-honestly. Output formatting, error handling, and exit codes are handled
+The CLI surface adapter turns every trail into a command. Flags are derived from faithfully representable Zod schema fields, and structured JSON
+channels are available when the input shape is richer than flags can express honestly. Output formatting, error handling, and exit codes are handled
 automatically.
 
 ## Setup
@@ -21,8 +19,7 @@ await surface(graph);
 
 That is the entire CLI setup. Every trail in the app becomes a command.
 
-`@ontrails/cli` owns command derivation; `@ontrails/commander` owns Commander
-program materialization and argv parsing.
+`@ontrails/cli` owns command derivation; `@ontrails/commander` owns Commander program materialization and argv parsing.
 
 ## How Trail IDs Map to Commands
 
@@ -36,18 +33,15 @@ Trail IDs derive to full ordered command paths:
 | `math.add`    | `myapp math add`    |
 | `topo.pin`    | `myapp topo pin`    |
 
-Each dot becomes another command-path segment. A path node may be both
-executable and a parent, so `myapp topo` and `myapp topo pin` can coexist
+Each dot becomes another command-path segment. A path node may be both executable and a parent, so `myapp topo` and `myapp topo pin` can coexist
 naturally.
 
-The CLI model is validated before adapter wiring. Duplicate command paths are
-rejected, and executable parents cannot also declare positional args if child
+The CLI model is validated before adapter wiring. Duplicate command paths are rejected, and executable parents cannot also declare positional args if child
 commands exist beneath that path.
 
 ## Flag Derivation
 
-Flags are derived from the trail's Zod input schema when the shape can be
-represented truthfully on the command line. No manual flag configuration
+Flags are derived from the trail's Zod input schema when the shape can be represented truthfully on the command line. No manual flag configuration
 needed.
 
 | Zod type | CLI flag | Example |
@@ -64,11 +58,9 @@ needed.
 
 **Descriptions:** `.describe("text")` on Zod fields becomes the flag help text.
 
-Nested objects and arrays of objects are intentionally omitted from automatic
-flag derivation. The CLI prefers fewer flags over dishonest flags.
+Nested objects and arrays of objects are intentionally omitted from automatic flag derivation. The CLI prefers fewer flags over dishonest flags.
 
-Versioned trails also get a surface-owned `--trail-version <version>` flag. The
-flag accepts a live version number or unambiguous marker prefix and is stripped
+Versioned trails also get a surface-owned `--trail-version <version>` flag. The flag accepts a live version number or unambiguous marker prefix and is stripped
 before trail input validation, so version negotiation stays at the CLI boundary.
 
 ```typescript
@@ -153,8 +145,7 @@ myapp gist create \
 cat payload.json | myapp gist create --input -
 ```
 
-When a schema includes fields that cannot be expressed truthfully as flags, the
-command help still shows the structured input options so the escape hatch stays
+When a schema includes fields that cannot be expressed truthfully as flags, the command help still shows the structured input options so the escape hatch stays
 discoverable.
 
 ## Flag Presets
@@ -251,22 +242,17 @@ await surface(graph, {
 
 ## Derived CLI Behavior
 
-The CLI surface derives previously layer-shaped behavior directly from trail
-schemas. There is no opt-in wiring; if the trail shape matches, the behavior
-is on. The legacy `autoIterateLayer` and `dateShortcutsLayer` exports were
-removed in TRL-475.
+The CLI surface derives previously layer-shaped behavior directly from trail schemas. There is no opt-in wiring; if the trail shape matches, the behavior
+is on. The legacy `autoIterateLayer` and `dateShortcutsLayer` exports were removed in TRL-475.
 
 ### Auto-iterate (paginated trails)
 
-For trails with paginated output (matching the pagination pattern from
-`@ontrails/core/patterns`), the CLI command exposes an `--all` flag. When set,
-the surface runs the blazed trail with incrementing cursors and collects every
-page into a single result.
+For trails with paginated output (matching the pagination pattern from `@ontrails/core/patterns`), the CLI command exposes an `--all` flag. When set,
+the surface runs the blazed trail with incrementing cursors and collects every page into a single result.
 
 ### Date shortcut expansion
 
-For trails with `since`/`until` date fields, the CLI surface expands shortcut
-strings into ISO 8601 dates before validation:
+For trails with `since`/`until` date fields, the CLI surface expands shortcut strings into ISO 8601 dates before validation:
 
 - `"today"` -> today's date range
 - `"yesterday"` -> yesterday's date range
@@ -300,15 +286,12 @@ import { surface } from '@ontrails/commander';
 await surface(graph);
 ```
 
-To use a different CLI framework (yargs, oclif, etc.), consume the successful
-`CliCommand[]` result directly and write your own adapter. The model carries
-everything needed: a full ordered command path, flags, args, and an
-`execute()` function.
+To use a different CLI framework (yargs, oclif, etc.), consume the successful `CliCommand[]` result directly and write your own adapter. The model carries
+everything needed: a full ordered command path, flags, args, and an `execute()` function.
 
 ## Planned Schema Command
 
-Trails CLI apps should eventually expose command schemas for free. The planned
-shape is a default-on `schema` command derived from the same topo and
+Trails CLI apps should eventually expose command schemas for free. The planned shape is a default-on `schema` command derived from the same topo and
 framework-agnostic CLI command model as the derived commands.
 
 ```bash
@@ -322,10 +305,7 @@ Targeted schema lookup should return the full Trails command-contract envelope:
 command path, trail id, args, flags, aliases, input schema, output schema,
 output formats, examples, and deprecation metadata when derivable.
 
-Schema visibility should describe the surface-bound CLI commands by default. Apps may
-configure broader schema visibility for dev or agent environments, but runtime
-flags should not reveal hidden/internal schemas that the app author did not
-choose to expose.
+Schema visibility should describe the surface-bound CLI commands by default. Apps may configure broader schema visibility for dev or agent environments, but runtime
+flags should not reveal hidden/internal schemas that the app author did not choose to expose.
 
-This schema command is planned future work in `@ontrails/cli`; it is not part
-of beta 15.
+This schema command is planned future work in `@ontrails/cli`; it is not part of beta 15.

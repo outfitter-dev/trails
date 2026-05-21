@@ -290,12 +290,9 @@ bun run publish:check
 bun run publish:packages
 ```
 
-Every PR that changes publishable `@ontrails/*` package contents must include a
-branch-local `.changeset/*.md` entry for the affected package unless the PR is
-explicitly labeled `release:none`. The CI changeset gate reads the GitHub PR file
-list, so stacked PRs are checked against their immediate PR diff rather than the
-whole local stack. Use `release:none` only for package-touching changes that
-truly do not ship user-visible package content.
+Every PR that changes publishable `@ontrails/*` package contents must include a branch-local `.changeset/*.md` entry for the affected package unless the PR is
+explicitly labeled `release:none`. The CI changeset gate reads the GitHub PR file list, so stacked PRs are checked against their immediate PR diff rather than the
+whole local stack. Use `release:none` only for package-touching changes that truly do not ship user-visible package content.
 
 To exit pre-release mode for a stable release: `bunx changeset pre exit`, then version as usual.
 Stable 1.x release doctrine is captured in [ADR-0047](docs/adr/0047-stable-release-line-discipline.md), and the copy-pasteable beta-to-1.0 operator sequence lives in [Stable Cutover Runbook](docs/releases/stable-cutover.md).

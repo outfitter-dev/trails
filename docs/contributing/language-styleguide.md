@@ -1,13 +1,10 @@
 # Trails Language Styleguide
 
 This guide defines how Trails uses framework language in docs, ADRs, examples,
-agent prompts, comments, and contributor guidance. The lexicon names the
-concepts; this guide explains the grammar around those names.
+agent prompts, comments, and contributor guidance. The lexicon names the concepts; this guide explains the grammar around those names.
 
-Start with `blaze` because it is easy to flatten into "implementation." That is
-accurate but too small. The larger rule applies across the framework: Trails
-terms should make the architecture easier to think with, not decorate ordinary
-software nouns.
+Start with `blaze` because it is easy to flatten into "implementation." That is accurate but too small. The larger rule applies across the framework: Trails
+terms should make the architecture easier to think with, not decorate ordinary software nouns.
 
 ## Core Model
 
@@ -42,24 +39,20 @@ A `blaze` is the authored implementation that makes a trail runnable.
 
 A trail can be specified before it is blazed. Its schemas, examples, intent,
 resources, crossings, signals, detours, and metadata can all exist as contract.
-The `blaze` establishes the path through that contract, from validated input to
-`Result` output.
+The `blaze` establishes the path through that contract, from validated input to `Result` output.
 
-The Trails runtime runs trails, not blazes. Once a trail is blazed, it can be
-exposed through any surface because its implementation is surface-agnostic:
+The Trails runtime runs trails, not blazes. Once a trail is blazed, it can be exposed through any surface because its implementation is surface-agnostic:
 input in, `Result` out.
 
 ## Outdoor Meaning
 
-In outdoor trail language, to blaze a trail means to establish it for use. That
-usually means one of two things:
+In outdoor trail language, to blaze a trail means to establish it for use. That usually means one of two things:
 
 - Cutting or establishing a new path where one did not clearly exist before.
 - Marking an existing path so others can recognize and follow it consistently.
 
 Both senses map cleanly to Trails. A `trail()` defines the contract. The `blaze`
-establishes how that contract is carried out. Once blazed, the trail can be run
-consistently from CLI, MCP, HTTP, WebSocket, tests, agents, and direct
+establishes how that contract is carried out. Once blazed, the trail can be run consistently from CLI, MCP, HTTP, WebSocket, tests, agents, and direct
 programmatic calls.
 
 The key distinction:
@@ -99,8 +92,7 @@ Avoid these shapes:
 - "The blaze is runnable."
 - "The CLI exposes the blaze."
 
-The trail is runnable. The trail is exposed. The `blaze` establishes how it
-runs.
+The trail is runnable. The trail is exposed. The `blaze` establishes how it runs.
 
 ## Teaching Sequence
 
@@ -189,8 +181,7 @@ Avoid these substitutions when they claim the canonical concept slot:
 - runner
 - executor
 
-They may be useful in contrast or external-system explanations, but they should
-not replace `blaze` when naming the Trails concept.
+They may be useful in contrast or external-system explanations, but they should not replace `blaze` when naming the Trails concept.
 
 ## Guardrails
 
@@ -232,12 +223,10 @@ More precise:
 
 ### Authorship
 
-Schemas, flags, tool names, HTTP routes, and error mappings can be derived or
-projected. The `blaze` is authored because it contains behavior only the
+Schemas, flags, tool names, HTTP routes, and error mappings can be derived or projected. The `blaze` is authored because it contains behavior only the
 developer can know.
 
-This distinction matters because Trails separates authored information from
-projected information. The `blaze` belongs to the authored category: it is the
+This distinction matters because Trails separates authored information from projected information. The `blaze` belongs to the authored category: it is the
 irreducible behavior that makes the contract real.
 
 ## Replacement Patterns
@@ -283,8 +272,7 @@ Use the ADR-0048 source shape when writing current-facing versioning guidance:
 - `@N` and `@<marker-prefix>` for version references.
 - `(trail, version)` for the runtime contract-resolution pair.
 
-Keep `blaze` grammar intact when explaining versioning. A fork entry may own a
-historical `blaze`, but the runtime still runs a blazed trail. Surfaces do not
+Keep `blaze` grammar intact when explaining versioning. A fork entry may own a historical `blaze`, but the runtime still runs a blazed trail. Surfaces do not
 call blazes directly.
 
 Avoid these shapes in current-facing versioning prose:
@@ -299,8 +287,7 @@ Avoid these shapes in current-facing versioning prose:
 - `handler`, `implementation file`, or `surface route` as the canonical name
   for a versioned trail's behavior
 
-The lexicon remains the source of truth for term definitions. This styleguide is
-the source of truth for how those terms should sound in prose.
+The lexicon remains the source of truth for term definitions. This styleguide is the source of truth for how those terms should sound in prose.
 
 ## Agent Review Checklist
 
