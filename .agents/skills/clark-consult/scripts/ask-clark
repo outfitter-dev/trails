@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../../../.." && pwd)"
+clark_agent="${repo_root}/.codex/agents/clark.toml"
+
+require_command() {
+  if ! command -v "$1" >/dev/null 2>&1; then
+    printf "ask-clark: required command '%s' was not found on PATH\n" "$1" >&2
+    exit 127
+  fi
+}
+
+require_command bun
+require_command codex
+
+read_clark_field() {
+  bun --silent - "$clark_agent" "$1" <<'TS'
+import { readFileSync } from "node:fs";
+
+const [, , configPath, fieldName] = process.argv;
+const config = Bun.TOML.parse(readFileSync(configPath, "utf8"));
+const value = config[fieldName];
+
+if (typeof value !== "string") {
+  throw new Error(`Unable to read string field ${fieldName} from ${configPath}`);
+}
+
+process.stdout.write(value);
+TS
+}
+
+clark_model="$(read_clark_field model)"
+toml_basic_string() {
+  bun --silent - "$1" <<'TS'
+const [, , value] = process.argv;
+
+process.stdout.write(JSON.stringify(value));
+TS
+}
+
+clark_reasoning_effort="$(toml_basic_string "$(read_clark_field model_reasoning_effort)")"
+clark_sandbox_mode="$(toml_basic_string "$(read_clark_field sandbox_mode)")"
+clark_instructions="$(toml_basic_string "$(read_clark_field developer_instructions)")"
+
+exec codex \
+  -m "$clark_model" \
+  -C "${repo_root}" \
+  -c "sandbox_mode=${clark_sandbox_mode}" \
+  -c "model_reasoning_effort=${clark_reasoning_effort}" \
+  -c "developer_instructions=${clark_instructions}" \
+  "$@"

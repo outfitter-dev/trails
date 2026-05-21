@@ -9,8 +9,13 @@ pre-commit:
       glob: '**/*.{ts,tsx,js,jsx,json,jsonc}'
       run: bun run format:file {staged_files}
       stage_fixed: true
-    markdownlint:
+    clark_agent:
       priority: 3
+      glob: '{.claude/skills/clark/**,.agents/skills/clark-consult/scripts/render-clark-agent}'
+      run: bun run clark:sync
+      stage_fixed: true
+    markdownlint:
+      priority: 4
       glob: '*.md'
       run: bun run mdlint:fix {staged_files}
       stage_fixed: true
