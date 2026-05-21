@@ -1131,7 +1131,7 @@ const addStructuredInlineJsonArg = (
   shouldAdd: boolean
 ): CliArg[] => (shouldAdd ? [...args, STRUCTURED_INLINE_JSON_ARG] : [...args]);
 
-/** Convert a trail or route into a CLI command when it is publicly exposed. */
+/** Convert a trail into a CLI command when it is publicly exposed. */
 const toCliCommand = (
   graph: Topo,
   t: AnyTrail,
