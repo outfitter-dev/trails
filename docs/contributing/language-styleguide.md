@@ -54,8 +54,8 @@ input in, `Result` out.
 In outdoor trail language, to blaze a trail means to establish it for use. That
 usually means one of two things:
 
-- Cutting or establishing a new route where one did not clearly exist before.
-- Marking an existing route so others can recognize and follow it consistently.
+- Cutting or establishing a new path where one did not clearly exist before.
+- Marking an existing path so others can recognize and follow it consistently.
 
 Both senses map cleanly to Trails. A `trail()` defines the contract. The `blaze`
 establishes how that contract is carried out. Once blazed, the trail can be run

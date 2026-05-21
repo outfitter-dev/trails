@@ -1271,7 +1271,7 @@ describe('buildCommands date-shortcut absorption', () => {
       throw new Error('expected err');
     }
     // Preserve the error class so downstream surfaces (CLI exit code,
-    // HTTP status, JSON-RPC code) route via the validation taxonomy.
+    // HTTP status, JSON-RPC code) stay aligned with the validation taxonomy.
     expect(result.error).toBeInstanceOf(ValidationError);
     expect(result.error.message).toContain('7day');
     expect(result.error.message).toContain('today');

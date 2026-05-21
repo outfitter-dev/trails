@@ -43,7 +43,7 @@ type GeneratedFieldNames<
   ? TGenerated[number]
   : never;
 
-// We intentionally use Zod v4's shape-routed object infer helpers here because
+// We intentionally use Zod v4's shape-based object infer helpers here because
 // the public z.input/z.output path widens away the generic equality we need at
 // store/core trail boundaries. These $-prefixed helpers are semi-internal Zod
 // v4 API; that maintenance tradeoff is acceptable here because the public path
@@ -65,7 +65,7 @@ type ObjectOutputOf<TShape extends z.ZodRawShape> = z.core.$InferObjectOutput<
  * fixtures can omit timestamps and similar server-managed values when the mock
  * store can synthesize them.
  *
- * Routes input inference through the object's `shape` via a conditional
+ * Feeds input inference through the object's `shape` via a conditional
  * `infer` so fixture inputs stay structurally aligned with the derived
  * create/upsert inputs they meet at store/core trail boundaries.
  *
@@ -101,11 +101,11 @@ export type StoreFixtureInput<
 /**
  * Normalized fixture row after schema validation and default application.
  *
- * Mirror of {@link StoreFixtureInput} on the output side — routed through
+ * Mirror of {@link StoreFixtureInput} on the output side — computed through
  * `$InferObjectOutput<TShape, Record<never, never>>` so row types stay
  * structurally aligned with the contour output shapes they compose against.
  *
- * As with {@link StoreFixtureInput}, this is a shape-routed equivalent rather
+ * As with {@link StoreFixtureInput}, this is a shape-based equivalent rather
  * than the identical `z.output<TSchema>` inference path core uses directly.
  */
 export type StoreFixtureRow<
@@ -428,11 +428,11 @@ export type GeneratedKeysOf<TTable extends AnyStoreTable> = Extract<
 /**
  * Insert shape: entity minus generated fields, with defaulted fields optional.
  *
- * Routes through `$InferObjectInput<TShape, Record<never, never>>` via a
+ * Uses `$InferObjectInput<TShape, Record<never, never>>` via a
  * conditional `infer` on the object's `shape`. At concrete instantiations
  * this collapses to the same structural shape as
  * `Omit<z.input<TTable['schema']>, GeneratedKeysOf<TTable>>`, but the
- * shape-routed form lets TypeScript prove structural equality with
+ * shape-based form lets TypeScript prove structural equality with
  * `CreateInputOf<Contour, ...>` at trail boundaries without widening
  * generic call sites to `Record<string, unknown>`.
  *

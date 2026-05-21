@@ -13,7 +13,7 @@ import { Result, ValidationError } from '@ontrails/core';
 
 import { addSurface } from '../trails/add-surface.js';
 import { addVerify } from '../trails/add-verify.js';
-import { createRoute } from '../trails/create.js';
+import { createTrail } from '../trails/create.js';
 import { createScaffold } from '../trails/create-scaffold.js';
 import { isInsideProject } from '../trails/project.js';
 import { PROJECT_NAME_MESSAGE } from '../project-writes.js';
@@ -101,7 +101,7 @@ const runCreate = (
     verify: boolean;
   }>
 ) =>
-  createRoute.blaze(
+  createTrail.blaze(
     {
       dir: dirname(projectDir),
       name: basename(projectDir),
@@ -406,8 +406,8 @@ describe('trails create', () => {
       });
     });
 
-    test('rejects path-shaped project names at the create route boundary', () => {
-      const result = createRoute.input.safeParse({
+    test('rejects path-shaped project names at the create trail boundary', () => {
+      const result = createTrail.input.safeParse({
         dir: tmpdir(),
         name: '../escape',
         starter: 'hello',

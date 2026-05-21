@@ -270,7 +270,7 @@ export const parsePositionalInlineJson = (
 };
 
 /**
- * Resolve a routed structured-input payload from flags or a positional
+ * Resolve a structured-input payload from flags or a positional
  * inline-JSON argument.
  *
  * Returns the parsed object plus a flag indicating whether any structured

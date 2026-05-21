@@ -39,7 +39,7 @@ type GeneratedFieldsOf<TTable extends AnyStoreTable> =
 
 /**
  * Input type `deriveTrail` projects for a given CRUD operation against a
- * store table. Routes through `TableContour<TTable>` so the projected input
+ * store table. Uses `TableContour<TTable>` so the projected input
  * structurally matches the contour-backed derivation path in
  * `@ontrails/core`'s `deriveTrail`.
  */

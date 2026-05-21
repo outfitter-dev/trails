@@ -3,11 +3,11 @@
  *
  * Structured input merges into the `run` trail's typed input object. The
  * inner trail payload therefore lives under the `input` field in the supplied
- * JSON object, without any per-trail CLI routing table.
+ * JSON object, without any per-trail CLI mapping table.
  *
  * The inner `run()` invocation then fails (the workspace fixture has no
  * matching trail), but that is by design — what matters here is that
- * structured-input payloads were routed to `input.input` before execution.
+ * structured-input payloads were assigned to `input.input` before execution.
  */
 /* oxlint-disable-next-line eslint-plugin-jest/no-conditional-expect -- Result-shape assertions branch on isOk/isErr */
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
@@ -69,7 +69,7 @@ afterEach(() => {
   rmSync(workspaceRoot, { force: true, recursive: true });
 });
 
-describe('trails run structured-input routing', () => {
+describe('trails run structured-input mapping', () => {
   test('exposes id and inline JSON as run command positional arguments', () => {
     const cmd = buildRunCommand();
     expect(cmd.args.map((a) => a.name)).toEqual(['id', 'inline-json']);

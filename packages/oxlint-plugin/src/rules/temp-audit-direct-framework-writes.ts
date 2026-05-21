@@ -359,7 +359,7 @@ const getWriteCallName = (
 /**
  * Temporary TRL-575 audit rule.
  *
- * Delete after the framework write-path audit either routes these calls through
+ * Delete after the framework write-path audit either sends these calls through
  * containment/plan/apply helpers or classifies the remaining call sites as
  * intentional framework boundaries.
  */
@@ -417,7 +417,7 @@ export const tempAuditDirectFrameworkWritesRule: RuleModule = {
     },
     messages: {
       tempAuditDirectFrameworkWrites:
-        "Temporary TRL-575 audit: '{{callName}}' writes directly from framework trail code. Route writes through containment/plan/apply helpers or document this as an intentional boundary.",
+        "Temporary TRL-575 audit: '{{callName}}' writes directly from framework trail code. Send writes through containment/plan/apply helpers or document this as an intentional boundary.",
     },
     schema: [
       {

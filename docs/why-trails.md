@@ -16,7 +16,7 @@ Trails is Bun-native — the framework uses Bun APIs throughout for I/O, hashing
 
 Agents write good code, fast. But they write code that drifts.
 
-An agent that builds `users` routes on Monday and `billing` routes on Thursday produces slightly different patterns — different error formats, different validation approaches, different response envelopes. A human reviewing the PR might catch it. Another agent inheriting the codebase won't — it reads what's there and perpetuates whatever it finds first.
+An agent that builds the `users` area on Monday and the `billing` area on Thursday produces slightly different patterns — different error formats, different validation approaches, different response envelopes. A human reviewing the PR might catch it. Another agent inheriting the codebase won't — it reads what's there and perpetuates whatever it finds first.
 
 The problem isn't speed. The problem is that every decision is freeform. Parameter names, error shapes, validation placement, response formatting — an agent using Express or Fastify makes all of these choices from scratch, every time, in every file.
 
@@ -160,7 +160,7 @@ The value isn't in being better at any single surface. It's in making the contra
 Trails wasn't designed from framework theory. It emerged from 18 months of building with agents — paying attention to every time things went wrong.
 
 - Adding MCP to an existing CLI app required restating every schema, duplicating error handling, and maintaining two parallel behavior paths.
-- Agents building routes in different sessions produced working but structurally inconsistent code — different error formats, different validation approaches, different naming conventions.
+- Agents building feature areas in different sessions produced working but structurally inconsistent code — different error formats, different validation approaches, different naming conventions.
 - Test suites drifted from blazes because they were separate artifacts maintained by separate authoring acts.
 - Agent-to-agent communication was fragile because there was no machine-readable contract — just freeform documentation that might be outdated.
 

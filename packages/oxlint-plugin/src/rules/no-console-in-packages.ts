@@ -37,7 +37,7 @@ export const noConsoleInPackagesRule: RuleModule = {
     },
     messages: {
       noConsoleInPackages:
-        'Avoid console.* in packages source. Route diagnostics through the Trails logging surface or an explicit sink boundary.',
+        'Avoid console.* in packages source. Send diagnostics through the Trails logging surface or an explicit sink boundary.',
     },
     schema: [
       {

@@ -3,7 +3,7 @@
  *
  * When a layer attached at trail/surface/topo scope declares an `input`
  * schema, the CLI command derives flags from that schema, parses values from
- * argv, and routes them into the layer's runtime input via
+ * argv, and passes them into the layer's runtime input via
  * `ctx.extensions[LAYER_INPUTS_KEY][layer.name]`.
  */
 
@@ -205,11 +205,11 @@ describe('TRL-473 layer input projection — flag derivation', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Runtime routing
+// Runtime mapping
 // ---------------------------------------------------------------------------
 
-describe('TRL-473 layer input projection — runtime routing', () => {
-  test('parsed flag values are routed to the layer at runtime', async () => {
+describe('TRL-473 layer input projection — runtime mapping', () => {
+  test('parsed flag values reach the layer at runtime', async () => {
     const bucket: InputBucket = { value: undefined };
     const layer = captureLayerInput(
       'trace',
@@ -258,7 +258,7 @@ describe('TRL-473 layer input projection — runtime routing', () => {
     expect(trailInput).toEqual({ value: 'hi' });
   });
 
-  test('topo-scope layer routes runtime input through ctx.extensions', async () => {
+  test('topo-scope layer receives runtime input through ctx.extensions', async () => {
     const bucket: InputBucket = { value: undefined };
     const layer = captureLayerInput(
       'audit',
@@ -304,7 +304,7 @@ describe('TRL-473 layer input projection — runtime routing', () => {
 // ---------------------------------------------------------------------------
 
 describe('TRL-473 layer input projection — collisions', () => {
-  test('a layer field colliding with a trail field is renamed and routed', async () => {
+  test('a layer field colliding with a trail field is renamed and delivered', async () => {
     const bucket: InputBucket = { value: undefined };
     const collidingLayer = captureLayerInput(
       'collide',

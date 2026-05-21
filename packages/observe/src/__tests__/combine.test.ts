@@ -108,7 +108,7 @@ describe('combine', () => {
     expect(sink.observes).toEqual({ log: true, trace: true });
   });
 
-  test('routes mixed records only to compatible child sinks', async () => {
+  test('sends mixed records only to compatible child sinks', async () => {
     const logRecords: LogRecord[] = [];
     const traceRecords: TraceRecord[] = [];
     const log: LogSink = {
@@ -123,8 +123,8 @@ describe('combine', () => {
       },
     };
     const sink = combine(log, trace);
-    const logRecord = createLogRecord('routed log');
-    const traceRecord = createTraceRecord('observe.routed');
+    const logRecord = createLogRecord('mapped log');
+    const traceRecord = createTraceRecord('observe.mapped');
 
     sink.write(logRecord);
     await sink.write(traceRecord);

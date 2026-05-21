@@ -94,7 +94,7 @@ describe('createConsoleSink', () => {
     ['error', 'error'],
     ['fatal', 'error'],
   ] as const)(
-    'routes %s records to console.%s',
+    'writes %s records to console.%s',
     (level: LogLevel, method: 'debug' | 'error' | 'info' | 'warn') => {
       const sink = createConsoleSink({
         formatter: { format: (record) => `formatted:${record.level}` },
@@ -106,7 +106,7 @@ describe('createConsoleSink', () => {
     }
   );
 
-  test('drops silent records even when stderr routing is enabled', () => {
+  test('drops silent records even when stderr mapping is enabled', () => {
     const formatter: LogFormatter = {
       format: () => 'should not be emitted',
     };
@@ -120,7 +120,7 @@ describe('createConsoleSink', () => {
     expect(console.warn).not.toHaveBeenCalled();
   });
 
-  test('routes every non-silent record to console.error when stderr is enabled', () => {
+  test('writes every non-silent record to console.error when stderr is enabled', () => {
     const sink = createConsoleSink({
       formatter: { format: (record) => `formatted:${record.level}` },
       stderr: true,

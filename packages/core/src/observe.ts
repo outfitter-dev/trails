@@ -128,7 +128,7 @@ export const isObserveInput = (
   }
   if (isTraceSink(value) && !isLogSink(value)) {
     // A bare TraceSink (no `name`) is unambiguous — `normalizeObserve`
-    // routes it via the `isTraceSink` fallthrough. A LogSink shape is
+    // accepts it via the `isTraceSink` fallthrough. A LogSink shape is
     // ambiguous (matches both guards) and would be rejected by
     // `normalizeObserve`, so the guard rejects it here too.
     return true;
@@ -148,7 +148,7 @@ export const hasObserveCapabilities = (value: unknown): boolean =>
 /**
  * Returns true when `value` is shaped like the explicit `{ log?, trace? }`
  * `ObserveConfig` payload. Exposed for the topo classifier so a config-style
- * trailing argument is unambiguously routed to options.
+ * trailing argument is unambiguously classified as options.
  */
 export const isObserveConfig = (value: unknown): value is ObserveConfig =>
   isObserveConfigShape(value);
@@ -212,15 +212,15 @@ const stringifyDefaultConsoleRecord = (record: LogRecord): string => {
 /**
  * In-core mirror of `@ontrails/observe`'s `createConsoleSink` shape, kept
  * minimal and private to avoid a reverse dependency from `@ontrails/core`
- * onto `@ontrails/observe`. It mirrors the console level routing in
+ * onto `@ontrails/observe`. It mirrors the console level mapping in
  * `packages/observe/src/sinks.ts:50` and emits each record as a single-line
- * JSON object routed to the matching `console.{debug|info|warn|error}` method.
+ * JSON object written to the matching `console.{debug|info|warn|error}` method.
  *
  * @remarks
  * Used as the default `observe.log` target when `topo()` is called without an
  * explicit `observe` option, so every app gets a non-null `ctx.logger` with
  * structured stdout output and zero configuration. Apps that want richer
- * formatting, file destinations, or custom routing should pass an explicit
+ * formatting, file destinations, or custom sink behavior should pass an explicit
  * `observe` option, which fully replaces this default.
  */
 const createDefaultConsoleSink = (): LogSink => ({

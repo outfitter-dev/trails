@@ -300,7 +300,7 @@ export const trailVersionPreset = (): CliFlag[] => [
  * When set, the CLI installs a per-invocation in-memory trace sink, renders
  * the resulting trace tree to stderr after execution, and (under `--json`)
  * includes the structured `TraceRecord[]` on the stdout envelope. The flag
- * is treated as a meta flag — it never routes into trail input.
+ * is treated as a meta flag — it never flows into trail input.
  */
 export const tracePreset = (): CliFlag[] => [
   {
@@ -319,7 +319,7 @@ export const tracePreset = (): CliFlag[] => [
  * Accepts a JSON-encoded `BasePermit` (`{ id: string; scopes: string[] }`)
  * which the CLI parses, validates, and overlays onto the trail's
  * `ctx.permit`. Failures (invalid JSON, schema mismatch) are surfaced as
- * `ValidationError`. The flag is treated as a meta flag — it never routes
+ * `ValidationError`. The flag is treated as a meta flag — it never flows
  * into trail input.
  *
  * Mutually exclusive with `--token`; passing both surfaces a
@@ -344,7 +344,7 @@ export const permitPreset = (): CliFlag[] => [
  * adapter-agnostic.
  *
  * Mutually exclusive with `--permit`; passing both surfaces a
- * `ValidationError`. The flag is treated as a meta flag — it never routes
+ * `ValidationError`. The flag is treated as a meta flag — it never flows
  * into trail input.
  */
 export const tokenPreset = (): CliFlag[] => [
@@ -365,7 +365,7 @@ export const tokenPreset = (): CliFlag[] => [
  * watcher scoped to the trail's source file (and its sibling
  * `*.ts`/`*.js` files in the same directory), and reruns the trail
  * whenever a watched file changes. The loop runs until the user sends
- * `SIGINT`. The flag is treated as a meta flag — it never routes into
+ * `SIGINT`. The flag is treated as a meta flag — it never flows into
  * trail input.
  *
  * `--watch` is local-development ergonomics only and is implemented in
@@ -401,7 +401,7 @@ export const watchPreset = (): CliFlag[] => [
  *
  * Mutually exclusive with `--permit` and `--token`; passing any pair
  * surfaces a `ValidationError`. The flag is treated as a meta flag — it
- * never routes into trail input.
+ * never flows into trail input.
  */
 export const devPermitPreset = (): CliFlag[] => [
   {

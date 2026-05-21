@@ -241,7 +241,7 @@ const applyContextOverrides = (
     return withPermit;
   }
   // Merge per-layer inputs onto any inherited LAYER_INPUTS_KEY slot so
-  // crossed/forked contexts can preserve outer-surface routing.
+  // crossed/forked contexts can preserve outer-surface metadata.
   const inheritedExtensions = withPermit.extensions ?? {};
   const inheritedLayerInputs = (inheritedExtensions[LAYER_INPUTS_KEY] ?? {}) as
     | Readonly<Record<string, unknown>>
@@ -1019,7 +1019,7 @@ const findMatchingDetour = (
 ): Detour<any, any, TrailsError> | undefined =>
   detours.find((d) => error instanceof d.on);
 
-/** Execute a single detour recovery attempt, routing through ctx.trace when available. */
+/** Execute a single detour recovery attempt, tracing through ctx.trace when available. */
 const executeDetourAttempt = async (
   /* oxlint-disable-next-line no-explicit-any -- existential detour from AnyTrail */
   detour: Detour<any, any, TrailsError>,

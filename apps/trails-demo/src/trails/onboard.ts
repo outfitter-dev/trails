@@ -1,5 +1,5 @@
 /**
- * entity.onboard route -- creates an entity and verifies it is searchable.
+ * entity.onboard trail -- creates an entity and verifies it is searchable.
  *
  * Demonstrates: trail(), crossing declaration, ctx.cross() composition,
  * error propagation from downstream trails.
@@ -15,7 +15,7 @@ import { z } from 'zod';
 export const onboard = trail('entity.onboard', {
   blaze: async (input, ctx) => {
     if (!ctx.cross) {
-      return Result.err(new InternalError('Route requires a cross function'));
+      return Result.err(new InternalError('Trail requires a cross function'));
     }
 
     const added = await ctx.cross<{

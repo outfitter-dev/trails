@@ -115,7 +115,7 @@ const namedSiteFromDeclId = (
 /**
  * Extract an identifier or `AssignmentPattern`'s left-hand identifier as a
  * single export site. Returns null for anything else (nested patterns should
- * be routed through `sitesFromPattern`).
+ * be handled through `sitesFromPattern`).
  */
 const siteFromSimpleBinding = (
   node: AstNode | undefined,

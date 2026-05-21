@@ -45,7 +45,7 @@ const CONSOLE_METHOD: Record<string, ConsoleMethod | undefined> = {
  *
  * Trace/debug records use `console.debug`, info uses `console.info`, warn uses
  * `console.warn`, and error/fatal use `console.error`. Set `stderr: true` to
- * route every record to `console.error`.
+ * send every record to `console.error`.
  */
 export const createConsoleSink = (
   options: ConsoleSinkOptions = {}
@@ -57,8 +57,8 @@ export const createConsoleSink = (
     name: 'console',
     write(record: LogRecord): void {
       // Always consult the level mapping first so `silent` records are dropped
-      // regardless of stderr routing. Falling back to `error` when stderr
-      // routing is enabled preserves the documented behavior for every other
+      // regardless of stderr mapping. Falling back to `error` when stderr
+      // mapping is enabled preserves the documented behavior for every other
       // level while keeping `silent` semantics intact.
       const levelMethod = CONSOLE_METHOD[record.level];
       if (levelMethod === undefined) {

@@ -191,7 +191,7 @@ describe('topo', () => {
       expect(typeof log.write).toBe('function');
     });
 
-    test('default ctx.logger is non-null and routes records to stdout', async () => {
+    test('default ctx.logger is non-null and writes records to stdout', async () => {
       // The brief: with no `observe:` option, `ctx.logger` must be callable
       // and emit a structured record to stdout via the default console sink.
       const lines: string[] = [];
@@ -305,7 +305,7 @@ describe('topo', () => {
       expect(t.get('observe')).toBe(observe);
     });
 
-    test('routes trail trace records to the topo trace sink', async () => {
+    test('writes trail trace records to the topo trace sink', async () => {
       const records: TraceRecord[] = [];
       const trace: TraceSink = {
         write: (record) => {
@@ -696,9 +696,9 @@ describe('topo', () => {
       );
     });
 
-    test('topo.options() routes a bare LogSink to the explicit log slot', () => {
+    test('topo.options() maps a bare LogSink to the explicit log slot', () => {
       // The brand is the documented escape hatch for bare-sink shorthand.
-      // A bare LogSink (`{ name, write }`) under branding must auto-route
+      // A bare LogSink (`{ name, write }`) under branding must map
       // to `{ log: sink }` rather than tripping `normalizeObserve`'s
       // ambiguity guard, which assumes no brand was applied.
       const log: LogSink = { name: 'capture', write: () => {} };
@@ -727,7 +727,7 @@ describe('topo', () => {
     });
 
     test('rejects a bare LogSink shorthand without topo.options()', () => {
-      // The auto-routing only kicks in under branding. Without the brand
+      // The auto-mapping only kicks in under branding. Without the brand
       // the call remains genuinely ambiguous and must continue to throw,
       // preserving the documented behavior that only `topo.options()`
       // unlocks the escape hatch.

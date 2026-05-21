@@ -1,5 +1,5 @@
 /**
- * trails-demo application -- wires all trails, routes, and signals into a topo.
+ * trails-demo application -- wires trails and signals into a topo.
  */
 
 import { topo } from '@ontrails/core';

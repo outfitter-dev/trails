@@ -95,7 +95,7 @@ describe('TopoGraph generation', () => {
     expect(deleteEntry?.intent).toBe('destroy');
   });
 
-  test('route entries include crosses', () => {
+  test('trail entries include crosses', () => {
     const onboardEntry = topoGraph.entries.find(
       (e) => e.id === 'entity.onboard'
     );

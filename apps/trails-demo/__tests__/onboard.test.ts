@@ -1,7 +1,7 @@
 /**
- * Route tests for entity.onboard.
+ * Trail tests for entity.onboard.
  *
- * Tests the composite route that creates an entity and verifies searchability.
+ * Tests the composite trail that creates an entity and verifies searchability.
  */
 
 import { describe, test, expect } from 'bun:test';

@@ -578,7 +578,7 @@ const disambiguateBrandedObserve = (options: TopoOptions): TopoOptions => {
  *   1. Branded via `topo.options()` → always options. Unknown option
  *      keys throw, and downstream `normalizeObserve` rejects malformed
  *      values. A bare `LogSink` (`{ name, write }`) in the `observe`
- *      slot is auto-routed to `{ log: sink }` so the brand is the
+ *      slot is auto-wrapped as `{ log: sink }` so the brand is the
  *      complete escape hatch the docs promise.
  *   2. The shape does not look like `TopoOptions` (mixed keys or no
  *      keys) → module.
@@ -621,11 +621,11 @@ const classifyTrailingArgument = (
       };
     }
     // Branding via `topo.options()` is the documented escape hatch for
-    // disambiguating bare-sink shorthand. Route a bare `LogSink` into the
+    // disambiguating bare-sink shorthand. Wrap a bare `LogSink` in the
     // explicit `{ log: sink }` slot before handing off to `normalizeObserve`,
     // which would otherwise reject it as ambiguous (a LogSink shape matches
     // both `isLogSink` and `isTraceSink`). A bare TraceSink (no `name`) does
-    // not need rewriting because `normalizeObserve` already routes it via
+    // not need rewriting because `normalizeObserve` already accepts it via
     // the `isTraceSink` fallthrough.
     return {
       kind: 'options',

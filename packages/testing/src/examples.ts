@@ -444,7 +444,7 @@ export const testExamples = (
 
       // Only record cross calls from authored examples. Derived fixtures
       // execute normally but do not contribute to coverage — the sink map
-      // routes each example to the right bucket without an inline
+      // puts each example in the right bucket without an inline
       // conditional inside the test body.
       const discardSink = new Set<string>();
       const pickCoverageSink = (

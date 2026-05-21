@@ -696,7 +696,7 @@ describe('intrinsic tracing via executeTrail + ctx.trace', () => {
       expect(fastPath).toEqual(traced);
     });
 
-    test('registerTraceSink routes subsequent executions to the new sink', async () => {
+    test('registerTraceSink sends subsequent executions to the new sink', async () => {
       const firstSink = createMemorySink();
       const secondSink = createMemorySink();
       registerTraceSink(firstSink);

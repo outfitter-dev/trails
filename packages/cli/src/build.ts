@@ -305,7 +305,7 @@ const splitStructuredInlineJsonArg = (
  * Apply date-shortcut expansion in place over a merged-input record.
  *
  * Throws a `ValidationError` when any field carries a malformed
- * shortcut-shaped value so the surrounding `safeMergeInput` can route
+ * shortcut-shaped value so the surrounding `safeMergeInput` can forward
  * the failure through the standard onResult path.
  */
 const applyDateShortcutsInPlace = (
@@ -895,11 +895,11 @@ const buildLayerInputs = (
 };
 
 /**
- * Collect every camelCase key that any layer projection routes through —
+ * Collect every camelCase key that any layer projection uses —
  * those are flag names the executor must keep out of the trail's input
  * record (alongside the existing meta flags).
  */
-const collectLayerRoutedKeys = (
+const collectLayerMappedKeys = (
   projections: readonly LayerFlagProjection[]
 ): ReadonlySet<string> => {
   const keys = new Set<string>();
@@ -1168,12 +1168,12 @@ const toCliCommand = (
     claimedFlagKebabs
   );
   const flags = [...trailFlags, ...layerProjection.flags];
-  const layerRoutedKeys = collectLayerRoutedKeys(layerProjection.projections);
-  // The executor strips both meta flags and layer-routed flag values from
+  const layerMappedKeys = collectLayerMappedKeys(layerProjection.projections);
+  // The executor strips both meta flags and layer-mapped flag values from
   // the trail input so layer-only flags never reach trail validation.
   const trailInputExcludeKeys = new Set<string>([
     ...metaFlagNames,
-    ...layerRoutedKeys,
+    ...layerMappedKeys,
   ]);
 
   const shouldHintStructuredInput = hasStructuredOnlyFields(

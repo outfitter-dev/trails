@@ -1,5 +1,5 @@
 /**
- * `create` route -- Create a new Trails project.
+ * `create` trail -- Create a new Trails project.
  *
  * Composes create.scaffold, add.surface, and add.verify sub-trails
  * via ctx.cross.
@@ -105,13 +105,13 @@ const collectCreatedFiles = (
 ): string[] => [...scaffolded, ...surfaces, ...verify];
 
 // ---------------------------------------------------------------------------
-// Route definition
+// Trail definition
 // ---------------------------------------------------------------------------
 
-export const createRoute = trail('create', {
+export const createTrail = trail('create', {
   blaze: async (input: CreateInput, ctx) => {
     if (!ctx.cross) {
-      return Result.err(new InternalError('create route requires ctx.cross'));
+      return Result.err(new InternalError('create trail requires ctx.cross'));
     }
     const { cross } = ctx;
 

@@ -3,7 +3,7 @@
  *
  * When a layer attached at trail/surface/topo scope declares an `input`
  * schema, the MCP tool definition merges that schema into the published
- * `inputSchema`, parses values from the incoming `args`, and routes them
+ * `inputSchema`, parses values from the incoming `args`, and passes them
  * into the layer's runtime input via
  * `ctx.extensions[LAYER_INPUTS_KEY][layer.name]`.
  */
@@ -184,11 +184,11 @@ describe('TRL-474 MCP layer input projection — schema merge', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Runtime routing
+// Runtime mapping
 // ---------------------------------------------------------------------------
 
-describe('TRL-474 MCP layer input projection — runtime routing', () => {
-  test('parsed layer parameters are routed to the layer at runtime', async () => {
+describe('TRL-474 MCP layer input projection — runtime mapping', () => {
+  test('parsed layer parameters reach the layer at runtime', async () => {
     const bucket: InputBucket = { value: undefined };
     const layer = captureLayerInput(
       'trace',
@@ -237,7 +237,7 @@ describe('TRL-474 MCP layer input projection — runtime routing', () => {
     expect(observedInput).toEqual({ value: 'hi' });
   });
 
-  test('topo-scope layer routes runtime input through ctx.extensions', async () => {
+  test('topo-scope layer receives runtime input through ctx.extensions', async () => {
     const bucket: InputBucket = { value: undefined };
     const layer = captureLayerInput(
       'audit',
@@ -263,7 +263,7 @@ describe('TRL-474 MCP layer input projection — runtime routing', () => {
 // ---------------------------------------------------------------------------
 
 describe('TRL-474 MCP layer input projection — collisions', () => {
-  test('a layer field colliding with a trail field is renamed and routed', async () => {
+  test('a layer field colliding with a trail field is renamed and delivered', async () => {
     const bucket: InputBucket = { value: undefined };
     const collidingLayer = captureLayerInput(
       'collide',
@@ -294,7 +294,7 @@ describe('TRL-474 MCP layer input projection — collisions', () => {
     expect(bucket.value).toEqual({ value: true });
   });
 
-  test('a layer field colliding with a reserved tool field is renamed and routed', async () => {
+  test('a layer field colliding with a reserved tool field is renamed and delivered', async () => {
     const bucket: InputBucket = { value: undefined };
     const reservedLayer = captureLayerInput(
       'audit',
