@@ -57,6 +57,18 @@ To ignore the hook for a session, continue without running the suggested probe.
 To disable it, remove or disable this plugin's `SessionStart` hook in Claude's
 plugin configuration.
 
+## Release Path
+
+Plugin release and republish steps are tracked in the repo runbook:
+
+- [Plugin Release Runbook](../docs/releases/plugin-release.md)
+
+The runbook keeps plugin version `0.3.0` separate from the bundled skill's
+Trails framework target version. It also names the stop rules for marketplace,
+registry, `npx skills`, and global installed-skill mutations. Do not treat a
+local/global `trails` skill as current until `bun run plugin:installed-skill:check`
+passes or an operator explicitly chooses to keep it decoupled.
+
 ## What's Included
 
 ### Skills

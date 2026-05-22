@@ -1,8 +1,8 @@
 # Execution Retro: plugin-skills-refresh-stack
 
 Date started: 2026-05-21
-Date finalized: pending
-Status: Seeded for execution
+Date finalized: 2026-05-22
+Status: Complete through remote review; not merged or published
 Plan: `.agents/plans/2026-05-21-plugin-skills-refresh-stack/PLAN.md`
 Goal: `.agents/plans/2026-05-21-plugin-skills-refresh-stack/GOAL.md`
 
@@ -11,27 +11,27 @@ Use this as the durable execution ledger. For stacked work, this should normally
 ## Execution Summary
 
 - Objective: Execute the Trails Plugin & Skills One-Stop Shop refresh stack from public docs cleanup through release readiness.
-- Final outcome:
-- Final branch / stack tip:
-- Final PR range:
-- Final tracker state:
-- Final verification state:
-- Remaining risks / P3s:
-- Archive state:
+- Final outcome: Nine-branch stack implemented, locally reviewed, submitted, marked ready, CI-green, and remote-review clean. No merge or publish action was performed.
+- Final branch / stack tip: `trl-753-republish-trails-plugin-and-document-the-release-path`.
+- Final PR range: #560 through #568.
+- Final tracker state: `TRL-755`, `TRL-746` through `TRL-753` moved to `In Review` with PR links; Linear project status update `65348777-49ee-4ce2-b1d7-455f121b6730` posted.
+- Final verification state: local targeted checks and full repo checks passed; GitHub CI green on all nine PRs; Greptile success on #560-#566 and #568, neutral/no-review-needed on #567; unresolved review-thread count is 0 on every PR.
+- Remaining risks / P3s: release/runbook snapshot literals need normal release-cycle maintenance; raw scaffold cleanliness and published CLI `compile`/`validate` availability remain tracked release-readiness risks; `TRL-757` through `TRL-760` stay follow-ups.
+- Archive state: M1 audit packet archived at `.agents/plans/archive/2026-05-21-plugin-skills-m1-audit/`; active packet paths and Linear comments point to the archive.
 
 ## Branch / PR / Issue Ledger
 
 | Order | Issue | Branch | PR | Status | Notes |
 | --- | --- | --- | --- | --- | --- |
-| 1 | `TRL-755` | `trl-755-refresh-public-docs-drift-found-during-plugin-skills-audit` | | Local commit | Public docs drift and M1 packet archive |
-| 2 | `TRL-746` | `trl-746-refresh-the-main-trails-skill-into-the-canonical-one-stop` | | Local commit | Main skill entrypoint |
-| 3 | `TRL-747` | `trl-747-refresh-trails-skill-references-templates-and-examples` | | Local commit | Deep references/templates/examples |
-| 4 | `TRL-748` | `trl-748-refresh-plugin-agent-rules-advisory-skills-and-hook` | | In progress | Agent/rules/advisory/hook copy |
-| 5 | `TRL-749` | `trl-749-add-plugin-metadata-sync-and-drift-checks` | | Planned | Metadata policy/checks |
-| 6 | `TRL-750` | `trl-750-add-local-installed-trails-skill-synccheck-path` | | Planned | Installed skill drift check |
-| 7 | `TRL-751` | `trl-751-improve-trails-plugin-hooks-for-project-detection-and` | | Planned | Hook detection/version guidance |
-| 8 | `TRL-752` | `trl-752-dogfood-refreshed-trails-plugin-with-a-fresh-consumer-smoke` | | Planned | Dogfood smoke |
-| 9 | `TRL-753` | `trl-753-republish-trails-plugin-and-document-the-release-path` | | Planned | Release path/dry run |
+| 1 | `TRL-755` | `trl-755-refresh-public-docs-drift-found-during-plugin-skills-audit` | <https://github.com/outfitter-dev/trails/pull/560> | Ready; CI/Greptile clean | Public docs drift and M1 packet archive |
+| 2 | `TRL-746` | `trl-746-refresh-the-main-trails-skill-into-the-canonical-one-stop` | <https://github.com/outfitter-dev/trails/pull/561> | Ready; CI/Greptile clean | Main skill entrypoint |
+| 3 | `TRL-747` | `trl-747-refresh-trails-skill-references-templates-and-examples` | <https://github.com/outfitter-dev/trails/pull/562> | Ready; CI/Greptile clean | Deep references/templates/examples |
+| 4 | `TRL-748` | `trl-748-refresh-plugin-agent-rules-advisory-skills-and-hook` | <https://github.com/outfitter-dev/trails/pull/563> | Ready; CI/Greptile clean | Agent/rules/advisory/hook copy |
+| 5 | `TRL-749` | `trl-749-add-plugin-metadata-sync-and-drift-checks` | <https://github.com/outfitter-dev/trails/pull/564> | Ready; CI/Greptile clean | Metadata policy/checks |
+| 6 | `TRL-750` | `trl-750-add-local-installed-trails-skill-synccheck-path` | <https://github.com/outfitter-dev/trails/pull/565> | Ready; CI/Greptile clean | Installed skill drift check |
+| 7 | `TRL-751` | `trl-751-improve-trails-plugin-hooks-for-project-detection-and` | <https://github.com/outfitter-dev/trails/pull/566> | Ready; CI/Greptile clean | Hook detection/version guidance |
+| 8 | `TRL-752` | `trl-752-dogfood-refreshed-trails-plugin-with-a-fresh-consumer-smoke` | <https://github.com/outfitter-dev/trails/pull/567> | Ready; CI green, Greptile neutral | Dogfood smoke |
+| 9 | `TRL-753` | `trl-753-republish-trails-plugin-and-document-the-release-path` | <https://github.com/outfitter-dev/trails/pull/568> | Ready; CI/Greptile clean | Release path/dry run |
 
 ## Planning Discoveries
 
@@ -73,6 +73,10 @@ Use this as the durable execution ledger. For stacked work, this should normally
 | 2026-05-22 11:39 EDT | `TRL-751` | Moved to `In Progress` for execution. | Linear issue update returned successfully; `startedAt=2026-05-22T15:39:33Z`. |
 | 2026-05-22 11:44 EDT | `TRL-752` | Moved to `In Progress` for execution. | Linear issue update returned successfully; `startedAt=2026-05-22T15:44:21Z`. |
 | 2026-05-22 11:53 EDT | `TRL-752` | Added dogfood evidence comment. | Comment `ca4f6b4a-4a28-4cc7-853b-8dd3c38c4998`. |
+| 2026-05-22 11:54 EDT | `TRL-753` | Moved to `In Progress` for execution. | Linear issue update returned successfully; `startedAt=2026-05-22T15:54:35Z`. |
+| 2026-05-22 12:00 EDT | `TRL-753` | Added release-runbook and dry/read-only check evidence comment, including external/manual blockers and dogfood risks. | Comment `eb57e690-531f-4b04-9c27-06518a12938e`. |
+| 2026-05-22 12:50 EDT | `TRL-755`, `TRL-746` through `TRL-753` | Moved all nine issues to `In Review` and attached PR links #560 through #568. | Linear issue update payloads returned successfully. |
+| 2026-05-22 12:50 EDT | Linear project | Posted final on-track project update with PR list, CI/review state, Graphite service-lag note, and forbidden-action audit. | Status update `65348777-49ee-4ce2-b1d7-455f121b6730`. |
 
 ## Execution Log
 
@@ -161,34 +165,73 @@ YYYY-MM-DD HH:MM TZ - <branch/issue/checkpoint>
 - Result: `TRL-752` implementation/report is locally complete pending repo checks and commit.
 - Next: run repo `format:check`/`git diff --check`, commit `TRL-752`, then create `TRL-753` for release path/dry-run docs.
 - Blockers: none, but scaffold cleanliness and published CLI command availability are release-readiness risks for `TRL-753`.
+
+2026-05-22 11:56 EDT - trl-753 / Phase 9 release path and dry-run docs
+- Changed: created branch `trl-753-republish-trails-plugin-and-document-the-release-path`; added `docs/releases/plugin-release.md`; linked it from `docs/index.md`, `plugin/README.md`, and root `README.md`.
+- Release path: documented plugin/framework version independence, external mutation stop rules, preflight checks, dogfood gate, changes since plugin `0.3.0`, manual/external checks, publication handoff, `TRL-755` inclusion, and `TRL-757` through `TRL-760` disposition. `npx skills`, Claude marketplace mutation, Claude runtime precedence, and global skill refresh are explicitly manual/external blocked without approval.
+- Linear: moved `TRL-753` to `In Progress`.
+- Verified: `bun run plugin:metadata:check` passed; `bun run plugin:installed-skill:check` expected-failed read-only for stale installed skill state; `bun run warden:skills:check` passed; `bun run warden:agents:check` passed; `bun run clark:check` passed; targeted script tests passed 16 tests/47 assertions; `bun run docs:links` passed for 119 files; `bun run format:check` passed; `bun run publish:check` passed all package pack checks; `bun run publish:registry-check` passed for dist-tag `beta` with `beta=1.0.0-beta.18`; `git diff --check` passed.
+- Result: `TRL-753` implementation is locally complete pending commit. No publish, marketplace mutation, `npx skills` mutation, global skill mutation, merge, merge queue label, or `gt absorb` occurred.
+- Next: commit `TRL-753`, then run stack-tip checks and the required local review passes before remote draft submission.
+- Blockers: no implementation blocker. External/manual release actions remain blocked by stop rule until operator approval.
+
+2026-05-22 12:04 EDT - stack tip / vocabulary check retry
+- Changed: amended vocabulary-audit fixes onto owning branches without `gt absorb`: `README.md` on `TRL-755`, `plugin/skills/trails/SKILL.md` on `TRL-746`, `scripts/check-installed-trails-skill.ts` and its test on `TRL-750`, and `docs/index.md` on `TRL-753`; added review reports under this packet's `reports/` directory.
+- Verified: initial `bun run check` failed only in `vocab:audit` for stale terms introduced by docs/tooling and then in `format:check` for the drift-checker test formatting; after bottom-up amendments, `bun test scripts/__tests__/check-installed-trails-skill.test.ts` passed 5 tests/16 assertions and full `bun run check` passed.
+- Result: check failure was resolved with scoped branch-owner amendments. Restacked branch commits are now `3a0814564`, `e29dc768b`, `01acd9b65`, `b4bc87ac0`, `f7fd343b4`, `b54eeac42`, `1536d4be9`, `477434f2d`, `f8eda849c` before final ledger amend.
+- Next: complete local review reports, commit ledger/review artifacts on the stack tip, then submit draft PR stack.
+- Blockers: none.
+
+2026-05-22 12:07 EDT - stack tip / validation and local review
+- Changed: added local review reports: `reports/local-review-round-1-skill-docs.md`, `reports/local-review-round-2-tooling-hooks.md`, and `reports/local-review-round-3-dogfood-release.md`.
+- Verified: `bun run plugin:metadata:check` passed; `bun run plugin:installed-skill:check` expected-failed read-only with stale local/global skill copies; `bun run warden:skills:check`, `bun run warden:agents:check`, `bun run clark:check`, targeted script tests, `bun run typecheck`, `bun run test`, `bun run lint`, `bun run build`, `bun run check`, `bun run format:check`, and `git diff --check` all passed at the final stack tip. Local review scores: skill/docs doctrine 5/5; tooling/hooks safety 4/5 with one P3 readability note; dogfood/release readiness 4/5 with one P3 release-handoff note.
+- Result: no unresolved local P0/P1/P2 findings. P3 notes are style/operational polish and do not block draft submission.
+- Next: commit ledger/review artifacts and submit the nine-branch stack as drafts.
+- Blockers: none.
+
+2026-05-22 12:48 EDT - stack tip / remote review closeout
+- Changed: submitted review-fix restack after remote-review fixes on `TRL-747`, `TRL-749`, and `TRL-750`; posted PR audit comments on #561 through #568 explaining fixed review feedback; moved Linear issues to `In Review`; posted Linear project status update; submitted this ledger-only closeout on the top branch.
+- Verified: final v4 local checks passed: targeted script tests (18 tests, 54 assertions), `bun run plugin:metadata:check`, `bun run warden:skills:check`, `bun run docs:links`, `bun run format:check`, `git diff --check`, and full `bun run check`. GitHub CI passed on #560 through #568. Greptile passed on #560 through #566 and #568; #567 returned neutral/no-review-needed. GraphQL review-thread query returned 0 unresolved active threads on every PR.
+- Result: all P0/P1/P2 local and remote findings are resolved. Remaining notes are P3/maintenance only. Graphite mergeability is complete on #560 and pending above it, treated as service lag because GitHub checks and reviews are clean.
+- Next: hand off for human merge/release decision; do not merge or publish from this goal.
+- Blockers: none for the requested build/review/submit objective. Release publication remains operator-approved external action only.
 ```
 
 ## Local Review Log
 
 | Round | Scope / Lanes | Report Paths | P0/P1/P2 Result | Fix Commits / Notes |
 | --- | --- | --- | --- | --- |
-| | | | | |
+| 1 | Skill/docs doctrine | `.agents/plans/2026-05-21-plugin-skills-refresh-stack/reports/local-review-round-1-skill-docs.md` | Clean: no P0/P1/P2/P3 findings; score 5/5. | No fixes required. |
+| 2 | Tooling/hooks safety | `.agents/plans/2026-05-21-plugin-skills-refresh-stack/reports/local-review-round-2-tooling-hooks.md` | Clean for P0/P1/P2; one P3 readability note; score 4/5. | No blocking fix. Stale-term fragments are intentional under the repo vocab audit. |
+| 3 | Dogfood/release readiness | `.agents/plans/2026-05-21-plugin-skills-refresh-stack/reports/local-review-round-3-dogfood-release.md` | Clean for P0/P1/P2; one P3 release-handoff note; score 4/5. | No blocking fix. Dogfood risks remain documented release handoff checks. |
 
 ## Remote Review
 
 | PR | CI State | Review Scores / Summaries | Unresolved Threads | Fix Notes |
 | --- | --- | --- | --- | --- |
-| | | | | |
+| #560 | Green | Greptile 5/5: docs-only public README/API drift and M1 archive verified. | 0 | No fixes required. |
+| #561 | Green | Greptile 5/5: main skill refresh accurate, WebSocket planned, HTTP quick-start current. | 0 | Fixed v2 quick-start to use `surface(graph, { port: 3000 })`; PR audit comment posted. |
+| #562 | Green | Greptile 5/5: references/templates/examples current, HTTP reference copyable, trail-object crossing consistent. | 0 | Fixed getting-started import, Fetch Kernel usage, common-pitfalls imports, and composition quick-reference placeholders; PR audit comment posted. |
+| #563 | Green | Greptile 5/5: agent/rules/hook/advisory vocabulary and Warden IDs current. | 0 | Fixed public-output wording to public MCP/HTTP trails; PR audit comment posted. |
+| #564 | Green | Greptile 5/5: metadata policy/check/sync solid; P3 note on `--root`/frontmatter edge cases. | 0 | Fixed post-sync diagnostics so the CLI prints remaining drift and exits non-zero; PR audit comment posted. |
+| #565 | Green | Greptile 5/5: installed-skill checker read-only and covered. | 0 | Fixed stale-vocabulary fixture to exercise singular `connector`; PR audit comment posted. |
+| #566 | Green | Greptile 5/5: hook is read-only, scoped, and covered by hermetic tests. | 0 | Fixed earlier false-positive/CLI-guidance issues and verified again in v4; PR audit comment posted. |
+| #567 | Green | Greptile neutral/no-review-needed on v4; prior 5/5 summary documented dogfood report accuracy. | 0 | Fixed absolute local path in dogfood report; PR audit comment posted. |
+| #568 | Green | Greptile 5/5: release runbook and cross-links are docs-only and stop rules preserved; P3 maintenance note for dated release literals. | 0 | Fixed dogfood gate wording to active packet/latest-report convention; PR audit comment posted. |
 
 ## Verification Log
 
 | Command | Result | Notes |
 | --- | --- | --- |
 | `git status --short --branch` | Baseline: `## main...origin/main` plus pre-existing modified `GOAL.md`. | Left untouched. |
-| `gt log --stack --reverse --no-interactive` | Baseline passed. | Current branch `main` at `e2982ad81 docs: add plugin skills refresh plan (#559)`. |
-| `bun run warden:skills:check` | `TRL-746`, `TRL-747`, `TRL-748`, `TRL-749` passed. | `bun scripts/sync-skill-warden-guide.ts --check`. |
-| `bun run warden:agents:check` | `TRL-748` passed. | `bun scripts/sync-agents-warden-guide.ts --check`. |
-| `bun run clark:check` | `TRL-748` passed. | Clark Codex custom-agent wrapper is up to date. |
-| `bun run plugin:metadata:check` | `TRL-749` passed. | Plugin manifest, marketplace manifest, framework target version, and skill frontmatter are synchronized under the documented two-source policy. |
-| `bun test scripts/__tests__/sync-plugin-metadata.test.ts` | `TRL-749` passed. | 4 tests, 13 assertions. |
-| `bun test scripts/__tests__/check-installed-trails-skill.test.ts` | `TRL-750` passed. | 5 tests, 16 assertions. |
-| `bun run plugin:installed-skill:check` | `TRL-750` expected-failed on current machine. | Read-only check detected stale `.agents/skills/trails`, Claude symlink to that stale copy, and absent optional Codex home skill path. No files were mutated. |
-| `bun test scripts/__tests__/detect-trails-hook.test.ts` | `TRL-751` passed. | 7 tests, 18 assertions. |
+| `gt log --stack --reverse --no-interactive` | Final submitted stack shape passed. | #560 through #567 remained in their clean submitted review-fix versions; #568 contains the top-branch release runbook and ledger-only closeout. Pre-ledger-closeout lower commits: `3a0814564`, `698e32bd0`, `18ecbf5ec`, `898e3a05c`, `0fd6730be`, `528042633`, `1e475fdff`, `41d84d7ae`. |
+| `bun run warden:skills:check` | Final stack-tip passed. | `bun scripts/sync-skill-warden-guide.ts --check`. |
+| `bun run warden:agents:check` | Final stack-tip passed. | `bun scripts/sync-agents-warden-guide.ts --check`. |
+| `bun run clark:check` | Final stack-tip passed. | Clark Codex custom-agent wrapper is up to date. |
+| `bun run plugin:metadata:check` | Final stack-tip passed. | Plugin manifest, marketplace manifest, framework target version, and skill frontmatter are synchronized under the documented two-source policy. |
+| `bun test scripts/__tests__/sync-plugin-metadata.test.ts scripts/__tests__/check-installed-trails-skill.test.ts scripts/__tests__/detect-trails-hook.test.ts` | Final stack-tip passed. | 18 tests, 54 assertions after hook fixture and review-fix coverage. |
+| `bun test scripts/__tests__/check-installed-trails-skill.test.ts` | Final retry passed. | 5 tests, 16 assertions after vocab/format cleanup. |
+| `bun run plugin:installed-skill:check` | Expected-failed read-only on current machine. | Detected stale `.agents/skills/trails`, Claude symlink to that stale copy, and absent optional Codex home skill path. No files were mutated. |
 | Dogfood `bun install` | `TRL-752` passed. | Registry install succeeded for scaffolded package ranges at `1.0.0-beta.18`. |
 | Dogfood `bun run typecheck` | `TRL-752` passed after disposable repair. | Raw scaffold failed first on optional `ctx.cross`; report records the gap. |
 | Dogfood `bun run test` | `TRL-752` passed after disposable repair. | 17 tests, 34 assertions; includes `testAllEstablished`, `testSurfaceParity`, CLI/MCP/HTTP harnesses, and resource mock. |
@@ -197,30 +240,36 @@ YYYY-MM-DD HH:MM TZ - <branch/issue/checkpoint>
 | Dogfood `bun run format:check` | `TRL-752` passed after disposable repair. | Raw scaffold failed first; report records the gap. |
 | Dogfood `trails warden --lock cached --no-lock-mutation` | `TRL-752` passed with warnings. | Published `@ontrails/trails@1.0.0-beta.18` returned PASS, 0 errors, 4 expected warnings. |
 | Dogfood local `trails compile` / `trails validate` | `TRL-752` passed. | Current repo CLI passed; published `@ontrails/trails@1.0.0-beta.18` did not expose these commands. |
-| `bun run typecheck` | | |
-| `bun run test` | | |
-| `bun run lint` | | |
-| `bun run build` | | |
-| `bun run check` | | |
-| `bun run format:check` | `TRL-755`, `TRL-746`, `TRL-747`, `TRL-748`, `TRL-749`, `TRL-750`, `TRL-751` passed. | 0 warnings, 0 errors after targeted formatting/key-order fix for new script tests. |
-| `git diff --check` | `TRL-755`, `TRL-746`, `TRL-747`, `TRL-748`, `TRL-749`, `TRL-750`, `TRL-751` passed. | No whitespace/conflict-marker errors. |
+| `bun run docs:links` | `TRL-747`, `TRL-753` passed. | Latest run passed for 119 files. |
+| `bun run publish:check` | `TRL-753` passed. | Read-only pack checks passed for all non-private packages; private `@ontrails/oxlint-plugin` skipped. |
+| `bun run publish:registry-check` | `TRL-753` passed. | Read-only registry preflight passed for dist-tag `beta`; all public packages reported `beta=1.0.0-beta.18`. |
+| `bun run typecheck` | Final stack-tip passed. | 22 successful packages. |
+| `bun run test` | Final stack-tip passed. | 37 successful package tasks; final run reported `@ontrails/trails` 345 pass / 0 fail and full turbo success. |
+| `bun run lint` | Final stack-tip passed. | 23 successful tasks, 0 warnings/errors. |
+| `bun run build` | Final stack-tip passed. | 22 successful packages. |
+| `bun run check` | Final v4 stack-tip passed after focused retries. | First run caught vocabulary/format issues; remote review later prompted bottom-up fixes on #562/#564/#565. Final run passed lint, ast-grep, vocab audit, format, typecheck, docs links/snippets/API examples, error taxonomy, scaffold versions, Warden agents/skills, Clark, Trails Warden, and dead-code checks. |
+| `bun run format:check` | Final stack-tip passed. | 839 matched files formatted; 0 warnings/errors. |
+| `git diff --check` | Final stack-tip passed. | No whitespace/conflict-marker errors. |
+| GitHub PR checks #560-#568 | Passed. | CI green on every PR. Graphite mergeability passed on #560 and remained pending above it as service lag. |
+| Greptile Review #560-#568 | Passed or neutral. | Success on #560-#566 and #568; neutral/no-review-needed on #567. No bot error comments remain. |
+| GitHub review-thread GraphQL query | Passed. | Unresolved active thread count was 0 on every PR. |
 
 ## Forbidden-Action Audit
 
 | Action | Status | Notes |
 | --- | --- | --- |
-| Merge | | |
-| Publish / registry mutation | | |
-| Marketplace mutation | | |
-| `npx skills` mutation | | |
-| Global installed skill mutation | | |
-| Merge queue label | | |
-| `gt absorb` | | |
-| Source-control writes by subagents | | |
+| Merge | Not performed | No merge or merge queue action. |
+| Publish / registry mutation | Not performed | Only read-only `publish:check` and `publish:registry-check` ran. |
+| Marketplace mutation | Not performed | Marketplace actions documented as external/manual blocked. |
+| `npx skills` mutation | Not performed | README/runbook warn that this mutates local skill installs. |
+| Global installed skill mutation | Not performed | `plugin:installed-skill:check` was read-only and expected-failed. |
+| Merge queue label | Not performed | No merge queue label or queue action. |
+| `gt absorb` | Not performed | Bottom-up fixes used `gt modify --into`; no `gt absorb`. |
+| Source-control writes by subagents | Not performed | No subagents were dispatched. |
 
 ## Final State
 
-- Completed:
-- Remaining risks:
-- Skipped checks:
-- Archive readiness:
+- Completed: `TRL-755` public docs and M1 archive; `TRL-746` main skill refresh; `TRL-747` references/templates/examples/HTTP guidance; `TRL-748` agent/rules/advisory/hook copy and Clark calibration; `TRL-749` metadata policy/check/sync tooling; `TRL-750` installed-skill drift checker; `TRL-751` hook detection/guidance; `TRL-752` disposable dogfood and report; `TRL-753` release runbook/dry-run docs.
+- Remaining risks: raw scaffold typecheck/lint/format cleanliness and published CLI `compile`/`validate` availability remain release-readiness risks from dogfood; runbook/version literals need normal release-cycle refresh; `TRL-757` through `TRL-760` remain tracked follow-ups.
+- Skipped checks: no required local validation ladder checks were skipped. External mutation checks were intentionally not run: no publish, registry mutation, marketplace mutation, `npx skills` mutation, or global installed-skill mutation was approved.
+- Archive readiness: active M1 packet removed from `.agents/plans/`; archived copy exists under `.agents/plans/archive/2026-05-21-plugin-skills-m1-audit/`; refresh packet and Linear comments reference the archive.

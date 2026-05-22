@@ -17,11 +17,16 @@ claude plugin marketplace add outfitter-dev/trails
 claude plugin install trails@trails
 ```
 
-**Codex, Cursor, and others** — install the skill:
+**Codex, Cursor, and others** — install the skill in the target agent profile:
 
 ```bash
 npx skills outfitter-dev/trails
 ```
+
+That command mutates the selected local skill install. Use a disposable or
+profile-specific target when testing installer behavior, and prefer the repo's
+[plugin release runbook](./docs/releases/plugin-release.md) for operator
+preflight checks.
 
 The skill gives your agent the full Trails reference: lexicon, patterns, error taxonomy, surface wiring, testing, and before/after migration examples.
 
