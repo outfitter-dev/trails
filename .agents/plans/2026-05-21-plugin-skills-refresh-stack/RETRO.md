@@ -69,6 +69,7 @@ Use this as the durable execution ledger. For stacked work, this should normally
 | 2026-05-22 11:15 EDT | `TRL-747` | Moved to `In Progress` for execution. | Linear issue update returned successfully; `startedAt=2026-05-22T15:15:10Z`. |
 | 2026-05-22 11:22 EDT | `TRL-748` | Moved to `In Progress` for execution. | Linear issue update returned successfully; `startedAt=2026-05-22T15:22:59Z`. |
 | 2026-05-22 11:26 EDT | `TRL-749` | Moved to `In Progress` for execution. | Linear issue update returned successfully; `startedAt=2026-05-22T15:26:15Z`. |
+| 2026-05-22 11:33 EDT | `TRL-750` | Moved to `In Progress` for execution. | Linear issue update returned successfully; `startedAt=2026-05-22T15:33:20Z`. |
 
 ## Execution Log
 
@@ -129,6 +130,15 @@ YYYY-MM-DD HH:MM TZ - <branch/issue/checkpoint>
 - Result: `TRL-749` implementation is locally complete pending commit/branch checkpoint.
 - Next: commit `TRL-749`, then create `TRL-750` for installed-skill drift checking.
 - Blockers: none.
+
+2026-05-22 11:38 EDT - trl-750 / Phase 6 installed skill drift check
+- Changed: created branch `trl-750-add-local-installed-trails-skill-synccheck-path`; added read-only `scripts/check-installed-trails-skill.ts`; added `scripts/__tests__/check-installed-trails-skill.test.ts`; added root script `plugin:installed-skill:check`; documented local skill drift checking in `plugin/README.md`.
+- Behavior: default candidates are `$HOME/.agents/skills/trails`, `$HOME/.config/claude/skills/trails`, and optional `$HOME/.config/codex/skills/trails`; the checker reports copy/symlink/missing state, file drift, stale vocabulary, and `metadata.trails.version` drift. It never mutates installed skill files.
+- Linear: moved `TRL-750` to `In Progress`; corrected the branch name to Linear's recommended `trl-750-add-local-installed-trails-skill-synccheck-path` before committing work.
+- Verified: `bun test scripts/__tests__/check-installed-trails-skill.test.ts` passed 5 tests/16 assertions; `bun run plugin:installed-skill:check` intentionally exited 1 and detected the audited local stale state: `.agents/skills/trails` is a drifted copy with 13 file drift items and 5 stale vocabulary hits, Claude is a symlink to that stale copy, and Codex home is an absent optional path; `bun run format:check` passed after targeted formatter cleanup; `git diff --check` passed.
+- Result: `TRL-750` implementation is locally complete pending commit/branch checkpoint; the current machine's installed skill remains unchanged by design.
+- Next: commit `TRL-750`, then create `TRL-751` for hook detection and version guidance.
+- Blockers: none.
 ```
 
 ## Local Review Log
@@ -154,15 +164,16 @@ YYYY-MM-DD HH:MM TZ - <branch/issue/checkpoint>
 | `bun run clark:check` | `TRL-748` passed. | Clark Codex custom-agent wrapper is up to date. |
 | `bun run plugin:metadata:check` | `TRL-749` passed. | Plugin manifest, marketplace manifest, framework target version, and skill frontmatter are synchronized under the documented two-source policy. |
 | `bun test scripts/__tests__/sync-plugin-metadata.test.ts` | `TRL-749` passed. | 4 tests, 13 assertions. |
-| `bun test scripts/__tests__/check-installed-trails-skill.test.ts` | | |
+| `bun test scripts/__tests__/check-installed-trails-skill.test.ts` | `TRL-750` passed. | 5 tests, 16 assertions. |
+| `bun run plugin:installed-skill:check` | `TRL-750` expected-failed on current machine. | Read-only check detected stale `.agents/skills/trails`, Claude symlink to that stale copy, and absent optional Codex home skill path. No files were mutated. |
 | `bun test scripts/__tests__/detect-trails-hook.test.ts` | | |
 | `bun run typecheck` | | |
 | `bun run test` | | |
 | `bun run lint` | | |
 | `bun run build` | | |
 | `bun run check` | | |
-| `bun run format:check` | `TRL-755`, `TRL-746`, `TRL-747`, `TRL-748`, `TRL-749` passed. | 0 warnings, 0 errors after targeted formatting/key-order fix for new script tests. |
-| `git diff --check` | `TRL-755`, `TRL-746`, `TRL-747`, `TRL-748`, `TRL-749` passed. | No whitespace/conflict-marker errors. |
+| `bun run format:check` | `TRL-755`, `TRL-746`, `TRL-747`, `TRL-748`, `TRL-749`, `TRL-750` passed. | 0 warnings, 0 errors after targeted formatting/key-order fix for new script tests. |
+| `git diff --check` | `TRL-755`, `TRL-746`, `TRL-747`, `TRL-748`, `TRL-749`, `TRL-750` passed. | No whitespace/conflict-marker errors. |
 
 ## Forbidden-Action Audit
 

@@ -22,6 +22,22 @@ The plugin and framework versions are intentionally tracked separately:
 
 Run `bun run plugin:metadata:check` before submitting plugin metadata changes.
 
+## Local Skill Drift Check
+
+Use the read-only drift checker before relying on a locally installed `trails`
+skill:
+
+```bash
+bun run plugin:installed-skill:check
+```
+
+The checker compares the repo-bundled `plugin/skills/trails` source against
+standard `$HOME` install locations for shared agent skills, Claude, and Codex.
+It reports whether each path is a copy, symlink, or missing optional path, then
+checks file drift, stale vocabulary, and `metadata.trails.version` drift. It
+does not update installed skill files; refreshing a local install remains an
+explicit operator action after reviewing the report.
+
 ## What's Included
 
 ### Skills

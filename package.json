@@ -26,6 +26,7 @@
     "scaffold-versions:check": "bun scripts/sync-scaffold-versions.ts --check",
     "plugin:metadata:sync": "bun scripts/sync-plugin-metadata.ts",
     "plugin:metadata:check": "bun scripts/sync-plugin-metadata.ts --check",
+    "plugin:installed-skill:check": "bun scripts/check-installed-trails-skill.ts",
     "warden:agents:sync": "bun scripts/sync-agents-warden-guide.ts",
     "warden:agents:check": "bun scripts/sync-agents-warden-guide.ts --check",
     "warden:skills:sync": "bun scripts/sync-skill-warden-guide.ts",
