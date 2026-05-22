@@ -1,0 +1,6 @@
+{
+  "name": "plain-app",
+  "dependencies": {
+    "zod": "^4.3.5"
+  }
+}

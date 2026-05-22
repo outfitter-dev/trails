@@ -38,6 +38,25 @@ checks file drift, stale vocabulary, and `metadata.trails.version` drift. It
 does not update installed skill files; refreshing a local install remains an
 explicit operator action after reviewing the report.
 
+## SessionStart Hook
+
+The Claude plugin installs a read-only `SessionStart` hook that emits guidance
+only in likely Trails projects. It detects `@ontrails/*` dependencies,
+`package.json.trails.module`, root `trails.config.*` files, root `.trails/`,
+and guarded `src/app.ts`/`src/index.ts` topo sources. Outside those signals it
+stays silent.
+
+When a local or PATH `trails` CLI is discoverable, the hook suggests a
+non-mutating Warden probe with `--lock cached --no-lock-mutation`; otherwise it
+asks the operator to use a project-pinned `@ontrails/trails` before running
+Warden. The hook never syncs global skills or edits project files. Codex hook
+parity is not claimed here; treat this as Claude `SessionStart` behavior until
+verified separately.
+
+To ignore the hook for a session, continue without running the suggested probe.
+To disable it, remove or disable this plugin's `SessionStart` hook in Claude's
+plugin configuration.
+
 ## What's Included
 
 ### Skills

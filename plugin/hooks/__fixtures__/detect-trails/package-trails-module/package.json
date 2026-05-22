@@ -1,0 +1,6 @@
+{
+  "name": "trails-module-app",
+  "trails": {
+    "module": "src/app.ts"
+  }
+}

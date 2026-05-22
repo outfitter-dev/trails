@@ -70,6 +70,7 @@ Use this as the durable execution ledger. For stacked work, this should normally
 | 2026-05-22 11:22 EDT | `TRL-748` | Moved to `In Progress` for execution. | Linear issue update returned successfully; `startedAt=2026-05-22T15:22:59Z`. |
 | 2026-05-22 11:26 EDT | `TRL-749` | Moved to `In Progress` for execution. | Linear issue update returned successfully; `startedAt=2026-05-22T15:26:15Z`. |
 | 2026-05-22 11:33 EDT | `TRL-750` | Moved to `In Progress` for execution. | Linear issue update returned successfully; `startedAt=2026-05-22T15:33:20Z`. |
+| 2026-05-22 11:39 EDT | `TRL-751` | Moved to `In Progress` for execution. | Linear issue update returned successfully; `startedAt=2026-05-22T15:39:33Z`. |
 
 ## Execution Log
 
@@ -139,6 +140,15 @@ YYYY-MM-DD HH:MM TZ - <branch/issue/checkpoint>
 - Result: `TRL-750` implementation is locally complete pending commit/branch checkpoint; the current machine's installed skill remains unchanged by design.
 - Next: commit `TRL-750`, then create `TRL-751` for hook detection and version guidance.
 - Blockers: none.
+
+2026-05-22 11:41 EDT - trl-751 / Phase 7 hook detection and version guidance
+- Changed: created branch `trl-751-improve-trails-plugin-hooks-for-project-detection-and`; expanded `plugin/hooks/detect-trails.sh`; added fixture coverage under `plugin/hooks/__fixtures__/detect-trails/`; added `scripts/__tests__/detect-trails-hook.test.ts`; documented Claude `SessionStart` hook behavior and Codex-parity caveat in `plugin/README.md`.
+- Behavior: the hook stays silent outside likely Trails projects; detects `@ontrails/*` dependency keys, `package.json.trails.module`, root `trails.config.*`, root `.trails/`, and guarded topo source files; suggests only non-mutating Warden probes when a project-local, script, or PATH `trails` command is discoverable; points installed/global skill freshness to the `TRL-750` checker instead of mutating or syncing.
+- Linear: moved `TRL-751` to `In Progress`.
+- Verified: `bun test scripts/__tests__/detect-trails-hook.test.ts` passed 7 tests/18 assertions; `bun run format:check` passed after targeted test formatting; `git diff --check` passed.
+- Result: `TRL-751` implementation is locally complete pending commit/branch checkpoint.
+- Next: commit `TRL-751`, then create `TRL-752` for disposable dogfood and report.
+- Blockers: none.
 ```
 
 ## Local Review Log
@@ -166,14 +176,14 @@ YYYY-MM-DD HH:MM TZ - <branch/issue/checkpoint>
 | `bun test scripts/__tests__/sync-plugin-metadata.test.ts` | `TRL-749` passed. | 4 tests, 13 assertions. |
 | `bun test scripts/__tests__/check-installed-trails-skill.test.ts` | `TRL-750` passed. | 5 tests, 16 assertions. |
 | `bun run plugin:installed-skill:check` | `TRL-750` expected-failed on current machine. | Read-only check detected stale `.agents/skills/trails`, Claude symlink to that stale copy, and absent optional Codex home skill path. No files were mutated. |
-| `bun test scripts/__tests__/detect-trails-hook.test.ts` | | |
+| `bun test scripts/__tests__/detect-trails-hook.test.ts` | `TRL-751` passed. | 7 tests, 18 assertions. |
 | `bun run typecheck` | | |
 | `bun run test` | | |
 | `bun run lint` | | |
 | `bun run build` | | |
 | `bun run check` | | |
-| `bun run format:check` | `TRL-755`, `TRL-746`, `TRL-747`, `TRL-748`, `TRL-749`, `TRL-750` passed. | 0 warnings, 0 errors after targeted formatting/key-order fix for new script tests. |
-| `git diff --check` | `TRL-755`, `TRL-746`, `TRL-747`, `TRL-748`, `TRL-749`, `TRL-750` passed. | No whitespace/conflict-marker errors. |
+| `bun run format:check` | `TRL-755`, `TRL-746`, `TRL-747`, `TRL-748`, `TRL-749`, `TRL-750`, `TRL-751` passed. | 0 warnings, 0 errors after targeted formatting/key-order fix for new script tests. |
+| `git diff --check` | `TRL-755`, `TRL-746`, `TRL-747`, `TRL-748`, `TRL-749`, `TRL-750`, `TRL-751` passed. | No whitespace/conflict-marker errors. |
 
 ## Forbidden-Action Audit
 
