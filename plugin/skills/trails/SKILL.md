@@ -8,7 +8,7 @@ metadata:
 
 # Trails
 
-Contract-first TypeScript framework. Define a trail once with typed input, Result output, examples, meta, and a blaze that establishes how it runs — then surface it on CLI, MCP, HTTP, or WebSocket without drift.
+Contract-first TypeScript framework. Define a trail once with typed input, Result output, examples, meta, and a blaze that establishes how it runs — then surface it on CLI, MCP, or HTTP today, with WebSocket planned on the same contract-first model.
 
 ## Quick Start
 
@@ -28,6 +28,7 @@ const graph = topo('myapp', greetModule);
 // 3. Open surfaces
 await surface(graph);        // CLI — from @ontrails/commander
 // await surface(graph);     // MCP — from @ontrails/mcp
+// await surface(graph, { port: 3000 }); // HTTP — from @ontrails/hono or @ontrails/http/bun
 
 // 4. Headless execution (no surface needed)
 const result = await run(graph, 'greet', { name: 'Alice' });
@@ -51,6 +52,16 @@ Use these terms — they are non-negotiable in Trails codebases.
 | `projection` | Deterministic derivation of graph onto a surface shape | mapping |
 | `meta` | Trail annotations and ownership data | tags, metadata |
 | `warden` | Governance enforcement | linter |
+
+## Package Orientation
+
+Current public packages are lockstep at the same Trails framework version.
+
+- **Core model:** `@ontrails/core` owns Result, errors, trail/signal/contour/topo contracts, resources, layers, execution, validation, and adapter ports.
+- **Surfaces:** `@ontrails/commander`, `@ontrails/mcp`, `@ontrails/hono`, and `@ontrails/http/bun` open the same topo on CLI, MCP, Hono HTTP, or Bun-native HTTP. `@ontrails/http` owns shared route derivation, OpenAPI, and the Web Fetch kernel; `@ontrails/cli` owns the framework-agnostic CLI command model; `@ontrails/vite` adapts Trails surfaces for Vite projects.
+- **Infrastructure:** `@ontrails/config`, `@ontrails/permits`, `@ontrails/store`, and `@ontrails/drizzle` cover config, authorization, schema-derived stores, and Drizzle SQLite bindings.
+- **Observability:** `@ontrails/observe` defines sink contracts; `@ontrails/tracing`, `@ontrails/logtape`, and `@ontrails/pino` provide tracing/dev-state and sink adapters.
+- **Ecosystem:** `@ontrails/testing` provides contract tests and surface harnesses; `@ontrails/topographer` owns TopoGraphs, semantic diffing, lock manifests, and topo-store persistence; `@ontrails/warden` owns governance rules; `@ontrails/wayfinder` is shell-only for future agent wayfinding trails and ships no trails yet.
 
 ## Creating Trails
 
@@ -115,14 +126,19 @@ import { surface } from '@ontrails/mcp';
 await surface(graph);
 ```
 
-**HTTP**: Routes from trail IDs (dots become path segments), verbs from intent, error responses from taxonomy.
+**HTTP**: Routes from trail IDs (dots become path segments), verbs from intent, error responses from taxonomy. Use Hono for framework portability or Bun-native HTTP when you want Bun serving without a third-party runtime; both share the `@ontrails/http` route/fetch kernel.
 
 ```typescript
 import { surface } from '@ontrails/hono';
 await surface(graph, { port: 3000 });
 ```
 
-See the CLI surface docs, the MCP surface docs, and the HTTP surface docs for derivation details.
+```typescript
+import { surface } from '@ontrails/http/bun';
+await surface(graph, { port: 3000 });
+```
+
+WebSocket is planned, not shipped. See the CLI surface docs, the MCP surface docs, and the HTTP package docs for derivation details.
 
 ## Resources
 
@@ -139,7 +155,7 @@ const db = resource('db.main', {
 });
 ```
 
-The `create` factory receives `ResourceContext` (env, cwd, workspaceRoot only — not the full `TrailContext`). Resources are singletons, resolved once per process and cached.
+The `create` factory receives `ResourceContext` (`env`, `cwd`, `workspaceRoot`, and validated `config` when the resource declares a config schema — not the full `TrailContext`). Resources are singletons, resolved once per process and cached.
 
 **Declare** on trails with `resources: [...]`:
 
@@ -157,7 +173,7 @@ const search = trail('search', {
 
 **Access** via `db.from(ctx)` (typed, preferred) or `ctx.resource<Database>('db.main')` (dynamic escape hatch).
 
-**Test** with zero config — resources with `mock` factories auto-resolve in `testAll(graph)`. Override explicitly when needed:
+**Test** with zero config — resources with `mock` factories auto-resolve in `testAll(graph)`. Mark live-only dependencies with `unmockable: { reason }` and provide explicit overrides for examples or contracts that need them.
 
 ```typescript
 testAll(graph, () => ({ resources: { 'db.main': createSpecialTestDb() } }));
@@ -178,18 +194,18 @@ See [contract-patterns.md](references/contract-patterns.md) for declaration patt
 
 **TDD workflow**: Define trail with examples → run tests (red) → implement (green) → refactor.
 
-Edge cases go in `testTrail(trail, scenarios)`. Use `createCrossContext()` to mock `ctx.cross` for composite trail unit tests. Surface integration uses `createCliHarness()` / `createMcpHarness()`.
+Edge cases go in `testTrail(trail, scenarios)`. Use `createCrossContext()` to mock `ctx.cross` for composite trail unit tests. Surface integration uses `createCliHarness()`, `createMcpHarness()`, `createHttpHarness()`, and `testSurfaceParity()`.
 
 See [testing-patterns.md](references/testing-patterns.md) for the full testing API.
 
 ## Error Taxonomy
 
-16 fixed-category error classes across 10 categories, plus the dynamic `RetryExhaustedError` wrapper, with deterministic mapping to exit codes, HTTP status, and JSON-RPC codes:
+17 fixed-category error classes across 10 categories, plus the dynamic `RetryExhaustedError` wrapper, with deterministic mapping to exit codes, HTTP status, and JSON-RPC codes:
 
 | Category | Classes | Exit | HTTP | Retry |
 |----------|---------|------|------|-------|
 | validation | ValidationError, AmbiguousError | 1 | 400 | No |
-| not_found | NotFoundError | 2 | 404 | No |
+| not_found | NotFoundError, VersionNotSupportedError | 2 | 404 | No |
 | conflict | AlreadyExistsError, ConflictError | 3 | 409 | No |
 | permission | PermissionError, PermitError | 4 | 403 | No |
 | timeout | TimeoutError | 5 | 504 | Yes |
