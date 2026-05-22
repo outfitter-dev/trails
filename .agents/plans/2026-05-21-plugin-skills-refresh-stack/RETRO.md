@@ -63,6 +63,8 @@ Use this as the durable execution ledger. For stacked work, this should normally
 | 2026-05-21 18:17 EDT | `TRL-757` through `TRL-760` | Filed four adjacent PatchOS-derived upstream follow-ups for testing subpaths, Topographer CLI/docs ergonomics, beta channel policy, and beta.15 -> beta.18 migration docs. | Linear create payloads returned successfully. |
 | 2026-05-21 18:18 EDT | `TRL-741`, `TRL-749`, `TRL-750`, `TRL-752`, `TRL-753` | Added PatchOS retro comments tying the new evidence back to plugin metadata, installed-skill drift, dogfood, and release/install docs. | Linear comment payloads returned successfully. |
 | 2026-05-21 18:18 EDT | `TRL-747`, `TRL-752`, `TRL-753`, `TRL-749`, `TRL-750` | Added related-issue links to PatchOS-derived follow-ups where relevant. | Linear update payloads returned successfully. |
+| 2026-05-22 11:09 EDT | `TRL-755` | Moved to `In Progress` for execution. | Linear issue update returned successfully; `startedAt=2026-05-22T15:09:03Z`. |
+| 2026-05-22 11:09 EDT | `TRL-755`, `TRL-746` through `TRL-753` | Added archive-path comments pointing M1 report consumers at `.agents/plans/archive/2026-05-21-plugin-skills-m1-audit/`. | Comment IDs: `63a1644e-651d-4ed3-8068-25fd86955b44`, `1b2125f5-e08f-4769-9d0f-052bb266d2dc`, `8e161197-540e-4e99-a4bc-4ad0d4bb07a3`, `c123afa3-1e8b-4474-af22-a0c7f5a28541`, `c5923cbd-86e2-4ee2-847c-02d46a875247`, `171cccfe-2bc7-4a46-aee2-593ac8c49cf9`, `82ebbb07-ec2a-46de-b5ce-701cd15a8a41`, `c60e53f5-02ef-46b2-931d-2f17f45b2243`, `9e124e67-ca4f-4445-8070-77ed33a09df8`. |
 
 ## Execution Log
 
@@ -73,6 +75,22 @@ YYYY-MM-DD HH:MM TZ - <branch/issue/checkpoint>
 - Result:
 - Next:
 - Blockers:
+
+2026-05-22 11:06 EDT - main / Phase 0 baseline
+- Changed: no repo files changed for baseline yet; pre-existing local modification observed in `.agents/plans/2026-05-21-plugin-skills-refresh-stack/GOAL.md` and left untouched.
+- Verified: `gt sync` returned `ok synced`; `gt checkout main` returned `Already on main.`; `git log -1 --oneline` returned `e2982ad81 docs: add plugin skills refresh plan (#559)`; `gt log --stack --reverse --no-interactive` showed only current `main` at `e2982ad81`; `gh pr view 559 ...` showed PR #559 merged at `2026-05-22T14:42:38Z` with merge commit `e2982ad81ffae525591a9ea7c73d431071336804`; PRs #554 through #558 were verified merged with merge commits `a2a92b9a`, `a5e40f10`, `0411bb8c`, `8763f9e6`, and `20564d6b`; `gh pr list --state open ...` returned `[]`.
+- Linear: read project `Trails Plugin & Skills One-Stop Shop`, issues `TRL-755`, `TRL-746` through `TRL-753`, and follow-ups `TRL-757` through `TRL-760`; dependency chain and follow-up relationships match the packet.
+- Result: start condition satisfied: M1 audit stack and refresh packet are on `main`. Baseline is clean except for the pre-existing `GOAL.md` user edit, which is out of scope for this execution ledger unless Matt says otherwise.
+- Next: create bottom branch `TRL-755`, archive the completed M1 packet, update stale M1 report-path references, and apply public README/API docs drift fixes.
+- Blockers: none.
+
+2026-05-22 11:10 EDT - trl-755 / Phase 1 public docs and M1 archive
+- Changed: created branch `trl-755-refresh-public-docs-drift-found-during-plugin-skills-audit`; moved `.agents/plans/2026-05-21-plugin-skills-m1-audit/` to `.agents/plans/archive/2026-05-21-plugin-skills-m1-audit/`; updated refresh-stack `REFS.md` known starting state to point at the archive; completed the README package table by adding `@ontrails/vite`, `@ontrails/config`, `@ontrails/permits`, `@ontrails/drizzle`, and shell-only `@ontrails/wayfinder`; changed README Topographer copy from surface-map wording to `TopoGraph`/lock wording; added `VersionNotSupportedError` to `docs/api-reference.md`.
+- Linear: moved `TRL-755` to `In Progress`; added archive-path comments to `TRL-755` and `TRL-746` through `TRL-753`.
+- Verified: `rg -n "Surface maps|SurfaceMap|VersionNotSupportedError|@ontrails/config|@ontrails/permits|@ontrails/drizzle|@ontrails/vite|@ontrails/wayfinder" README.md docs/api-reference.md` returned expected new package/error hits and no `Surface maps`/`SurfaceMap` hits; `bun run format:check` passed; `git diff --check` passed.
+- Result: `TRL-755` implementation and tracker/archive-path update are locally complete and committed on the branch.
+- Next: stage only `TRL-755`-owned changes (excluding the pre-existing `GOAL.md` edit), commit with Graphite, then create `TRL-746`.
+- Blockers: none.
 ```
 
 ## Local Review Log
@@ -91,8 +109,8 @@ YYYY-MM-DD HH:MM TZ - <branch/issue/checkpoint>
 
 | Command | Result | Notes |
 | --- | --- | --- |
-| `git status --short --branch` | | |
-| `gt log --stack --reverse --no-interactive` | | |
+| `git status --short --branch` | Baseline: `## main...origin/main` plus pre-existing modified `GOAL.md`. | Left untouched. |
+| `gt log --stack --reverse --no-interactive` | Baseline passed. | Current branch `main` at `e2982ad81 docs: add plugin skills refresh plan (#559)`. |
 | `bun run warden:skills:check` | | |
 | `bun run warden:agents:check` | | |
 | `bun run clark:check` | | |
@@ -104,8 +122,8 @@ YYYY-MM-DD HH:MM TZ - <branch/issue/checkpoint>
 | `bun run lint` | | |
 | `bun run build` | | |
 | `bun run check` | | |
-| `bun run format:check` | | |
-| `git diff --check` | | |
+| `bun run format:check` | `TRL-755` passed. | 0 warnings, 0 errors. |
+| `git diff --check` | `TRL-755` passed. | No whitespace/conflict-marker errors. |
 
 ## Forbidden-Action Audit
 

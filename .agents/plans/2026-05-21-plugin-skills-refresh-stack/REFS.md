@@ -99,7 +99,7 @@ Adjacent PatchOS-derived v1 follow-ups:
 ## Known Starting State
 
 - Current `main` after `gt sync`: `20564d6bc docs: synthesize plugin audit stack (#558)`.
-- The M1 audit packet is merged and active under `.agents/plans/2026-05-21-plugin-skills-m1-audit/`.
+- The M1 audit packet was merged under `.agents/plans/2026-05-21-plugin-skills-m1-audit/`; Phase 1 archives it under `.agents/plans/archive/2026-05-21-plugin-skills-m1-audit/`.
 - `TRL-755` remains in the plugin project and is intentionally included as the base branch.
 - `TRL-753` explicitly forbids publish/registry/marketplace/global-skill mutation without approval; preserve that stop rule.
 

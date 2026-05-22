@@ -145,14 +145,19 @@ $ myapp greet --name World
 | [`@ontrails/mcp`](./packages/mcp) | MCP surface — tool generation, annotations, progress bridge |
 | [`@ontrails/http`](./packages/http) | HTTP surface model — route derivation, Web Fetch kernel, Bun-native subpath |
 | [`@ontrails/hono`](./adapters/hono) | Hono adapter that opens a topo on the HTTP surface using the shared kernel |
+| [`@ontrails/vite`](./adapters/vite) | Vite adapter for opening Trails surfaces inside Vite projects |
+| [`@ontrails/config`](./packages/config) | Config resolution, profiles, resource config schemas, diagnostics |
+| [`@ontrails/permits`](./packages/permits) | Auth layer, permit model, JWT adapter, scope enforcement |
 | [`@ontrails/store`](./packages/store) | Backend-agnostic store definitions, typed accessors, adapter-support helpers |
+| [`@ontrails/drizzle`](./adapters/drizzle) | Drizzle SQLite adapter, typed store bindings, read-only bindings |
 | [`@ontrails/testing`](./packages/testing) | `testAll()`, `testTrail()`, `testCrosses()`, contract testing, surface harnesses |
-| [`@ontrails/topographer`](./packages/topographer) | Surface maps, semantic diffing, lock files for CI governance |
+| [`@ontrails/topographer`](./packages/topographer) | TopoGraphs, semantic diffing, lock manifest and `topo.lock` helpers |
 | [`@ontrails/observe`](./packages/observe) | Log and trace sink contracts, sink composition, built-in sinks, trace rendering |
 | [`@ontrails/tracing`](./packages/tracing) | Tracing compatibility, query/status trails, `trails.db` dev-state storage, sampling helpers, OTel adapter |
 | [`@ontrails/logtape`](./packages/logtape) | Adapter that forwards Trails log records to a LogTape-shaped logger |
 | [`@ontrails/pino`](./packages/pino) | Adapter that forwards Trails log records to a Pino-shaped logger |
 | [`@ontrails/warden`](./packages/warden) | AST-based convention rules, drift detection, CI formatters |
+| [`@ontrails/wayfinder`](./packages/wayfinder) | Shell package for future agent wayfinding trails; no trails ship yet |
 
 ## Documentation
 

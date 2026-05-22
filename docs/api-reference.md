@@ -54,7 +54,7 @@ Result.ok(value?), Result.err(error), Result.combine(results)
 Result.fromFetch(url, opts?), Result.fromJson(string), Result.toJson(value)
 
 // Error taxonomy
-TrailsError, ValidationError, NotFoundError, AlreadyExistsError,
+TrailsError, ValidationError, NotFoundError, VersionNotSupportedError, AlreadyExistsError,
 ConflictError, PermissionError, PermitError, AuthError, TimeoutError,
 RateLimitError, NetworkError, InternalError, DerivationError,
 RecoverableCompletionError, CancelledError, AmbiguousError, AssertionError,
