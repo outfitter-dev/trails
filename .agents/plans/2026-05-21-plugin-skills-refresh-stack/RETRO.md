@@ -71,6 +71,8 @@ Use this as the durable execution ledger. For stacked work, this should normally
 | 2026-05-22 11:26 EDT | `TRL-749` | Moved to `In Progress` for execution. | Linear issue update returned successfully; `startedAt=2026-05-22T15:26:15Z`. |
 | 2026-05-22 11:33 EDT | `TRL-750` | Moved to `In Progress` for execution. | Linear issue update returned successfully; `startedAt=2026-05-22T15:33:20Z`. |
 | 2026-05-22 11:39 EDT | `TRL-751` | Moved to `In Progress` for execution. | Linear issue update returned successfully; `startedAt=2026-05-22T15:39:33Z`. |
+| 2026-05-22 11:44 EDT | `TRL-752` | Moved to `In Progress` for execution. | Linear issue update returned successfully; `startedAt=2026-05-22T15:44:21Z`. |
+| 2026-05-22 11:53 EDT | `TRL-752` | Added dogfood evidence comment. | Comment `ca4f6b4a-4a28-4cc7-853b-8dd3c38c4998`. |
 
 ## Execution Log
 
@@ -149,6 +151,16 @@ YYYY-MM-DD HH:MM TZ - <branch/issue/checkpoint>
 - Result: `TRL-751` implementation is locally complete pending commit/branch checkpoint.
 - Next: commit `TRL-751`, then create `TRL-752` for disposable dogfood and report.
 - Blockers: none.
+
+2026-05-22 11:52 EDT - trl-752 / Phase 8 disposable dogfood
+- Changed: created branch `trl-752-dogfood-refreshed-trails-plugin-with-a-fresh-consumer-smoke`; added `.agents/plans/2026-05-21-plugin-skills-refresh-stack/reports/trl-752-dogfood.md`.
+- Dogfood scope: scaffolded `.trails-tmp/plugin-dogfood/` with `bun run trails create plugin-dogfood --dir .trails-tmp --starter entity --surfaces cli mcp http --json`; installed registry packages; added a disposable resource-backed greeting trail with `mock`; expanded disposable tests to cover `testAllEstablished`, `testSurfaceParity`, `createCliHarness`, `createMcpHarness`, and `createHttpHarness`; cleaned `.trails-tmp/plugin-dogfood/` after the smoke.
+- Findings: raw scaffold tests passed, but raw scaffold typecheck failed on optional `ctx.cross`, and raw lint/format failed on generated code shape. Disposable repairs got the app green. Published `@ontrails/trails@1.0.0-beta.18` exposed `warden` but not `compile`/`validate`; current local repo CLI exposed and passed `compile`/`validate`.
+- Linear: moved `TRL-752` to `In Progress`; added dogfood evidence comment `ca4f6b4a-4a28-4cc7-853b-8dd3c38c4998`.
+- Verified: dogfood `bun install` passed; repaired app `bun run typecheck`, `bun run test` (17 tests/34 assertions), `bun run build`, `bun run lint`, and `bun run format:check` passed; CLI smoke commands returned expected JSON; published `trails warden --lock cached --no-lock-mutation` passed with 0 errors/4 expected warnings; local current `trails compile` and `trails validate` passed; repo `bun run plugin:metadata:check` passed; repo `bun run plugin:installed-skill:check` expected-failed read-only for stale local install.
+- Result: `TRL-752` implementation/report is locally complete pending repo checks and commit.
+- Next: run repo `format:check`/`git diff --check`, commit `TRL-752`, then create `TRL-753` for release path/dry-run docs.
+- Blockers: none, but scaffold cleanliness and published CLI command availability are release-readiness risks for `TRL-753`.
 ```
 
 ## Local Review Log
@@ -177,6 +189,14 @@ YYYY-MM-DD HH:MM TZ - <branch/issue/checkpoint>
 | `bun test scripts/__tests__/check-installed-trails-skill.test.ts` | `TRL-750` passed. | 5 tests, 16 assertions. |
 | `bun run plugin:installed-skill:check` | `TRL-750` expected-failed on current machine. | Read-only check detected stale `.agents/skills/trails`, Claude symlink to that stale copy, and absent optional Codex home skill path. No files were mutated. |
 | `bun test scripts/__tests__/detect-trails-hook.test.ts` | `TRL-751` passed. | 7 tests, 18 assertions. |
+| Dogfood `bun install` | `TRL-752` passed. | Registry install succeeded for scaffolded package ranges at `1.0.0-beta.18`. |
+| Dogfood `bun run typecheck` | `TRL-752` passed after disposable repair. | Raw scaffold failed first on optional `ctx.cross`; report records the gap. |
+| Dogfood `bun run test` | `TRL-752` passed after disposable repair. | 17 tests, 34 assertions; includes `testAllEstablished`, `testSurfaceParity`, CLI/MCP/HTTP harnesses, and resource mock. |
+| Dogfood `bun run build` | `TRL-752` passed after disposable repair. | `tsc -b`. |
+| Dogfood `bun run lint` | `TRL-752` passed after disposable repair. | Raw scaffold failed first on generated lint shape; report records the gap. |
+| Dogfood `bun run format:check` | `TRL-752` passed after disposable repair. | Raw scaffold failed first; report records the gap. |
+| Dogfood `trails warden --lock cached --no-lock-mutation` | `TRL-752` passed with warnings. | Published `@ontrails/trails@1.0.0-beta.18` returned PASS, 0 errors, 4 expected warnings. |
+| Dogfood local `trails compile` / `trails validate` | `TRL-752` passed. | Current repo CLI passed; published `@ontrails/trails@1.0.0-beta.18` did not expose these commands. |
 | `bun run typecheck` | | |
 | `bun run test` | | |
 | `bun run lint` | | |
