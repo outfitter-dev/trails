@@ -257,6 +257,7 @@ For the current generated rule index, read [warden-guide.md](references/warden-g
 | [trails-language-styleguide](../trails-language-styleguide/SKILL.md) | Prose grammar for lexicon-sensitive docs, ADRs, prompts, and examples |
 | CLI surface docs | Flag derivation, output modes, exit codes |
 | MCP surface docs | Tool naming, annotations, progress |
+| [http-surface.md](references/http-surface.md) | Route derivation, OpenAPI, Hono, Bun-native HTTP, fetch kernel |
 | [testing-patterns.md](references/testing-patterns.md) | testAll, testTrail, harnesses |
 | [error-taxonomy.md](references/error-taxonomy.md) | Error classes and signatures |
 | [warden-guide.md](references/warden-guide.md) | Generated Warden rule guidance from the live manifest |

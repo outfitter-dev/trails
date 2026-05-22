@@ -10,11 +10,13 @@ Core defines ports. Everything on the edges is an adapter.
             +--------------------+          +--------------------+
             |  CLI (commander)   |          |  Resources (core)  |
             |  MCP (sdk)         |          |  Config (config)   |
-            |  HTTP (hono)       |          |  Permits (permits) |
+            |  HTTP (hono/bun)   |          |  Permits (permits) |
             |  WebSocket (plan.) |          |  Observe (observe) |
             |                    |          |  Trace state       |
             |                    |          |  (tracing)         |
-            |                    |          |  LogTape (logtape) |
+            |                    |          |  Store (store)     |
+            |                    |          |  Drizzle (drizzle) |
+            |                    |          |  LogTape/Pino      |
             +---------+----------+          +---------+----------+
                       |                               |
                       +-------> @ontrails/core <------+
@@ -73,9 +75,9 @@ Every piece of information has a clear ownership model.
 |----------|------|
 | Which trails a trail crosses | `ctx.cross()` calls in the blaze function |
 | Error types returned | `Result.err(new XError(...))` patterns |
-| Surface map entries and hash | All of the above, canonicalized |
+| TopoGraph entries and lock hash | All established trails, resources, signals, contours, examples, and derived fields, canonicalized |
 
-Warden uses inference to verify declarations match actual code. The surface map captures inferred information for CI governance.
+Warden uses inference to verify declarations match actual code. Topographer captures the resolved `TopoGraph`, semantic diff, lock manifest, and `topo.lock` artifacts for CI governance.
 
 ## Package Layout
 
@@ -90,9 +92,9 @@ Warden uses inference to verify declarations match actual code. The surface map 
 | `@ontrails/cli` | Command model, flag derivation, output formatting | None beyond core |
 | `@ontrails/commander` | Commander adapter, `surface()` | `commander` |
 | `@ontrails/mcp` | MCP tools, annotations, progress bridge, `surface()` | `@modelcontextprotocol/sdk` |
-| `@ontrails/http` | HTTP route definitions (framework-agnostic) | None beyond core |
+| `@ontrails/http` | HTTP routes, Web Fetch kernel, Bun-native subpath, OpenAPI generation | None beyond core |
 | `@ontrails/hono` | Hono adapter, `surface()` | `hono` |
-| `@ontrails/vite` | Vite dev server adapter | `vite` |
+| `@ontrails/vite` | Vite dev server adapter | None (node:stream only) |
 
 ### Infrastructure Adapters (right side)
 
@@ -100,17 +102,21 @@ Warden uses inference to verify declarations match actual code. The surface map 
 |---------|---------|-------------|
 | `@ontrails/config` | Config resolution, profiles, resource config schemas, diagnostics | None beyond core |
 | `@ontrails/permits` | Auth layer, permit model, JWT adapter, scope enforcement | None beyond core |
+| `@ontrails/store` | Backend-agnostic schema-derived store definitions | None beyond core |
+| `@ontrails/drizzle` | Drizzle SQLite adapter, typed store bindings, read-only bindings | `drizzle-orm` |
 | `@ontrails/observe` | Log and trace sink contracts, sink composition, built-in sinks, trace rendering | None beyond core |
 | `@ontrails/tracing` | Compatibility tracing exports, SQLite dev store, query/status trails, OTel adapter | None beyond core |
 | `@ontrails/logtape` | LogTape sink adapter over `@ontrails/observe` | None (accepts any LogTape-shaped logger via a structural interface) |
+| `@ontrails/pino` | Pino sink adapter over `@ontrails/observe` | None (accepts any Pino-shaped logger via a structural interface) |
 
 ### Ecosystem
 
 | Package | Purpose |
 |---------|---------|
-| `@ontrails/testing` | `testAll()`, `testExamples()`, `testTrail()`, contract testing |
-| `@ontrails/topographer` | Surface maps, semantic diffing, lock files |
+| `@ontrails/testing` | `testAll()`, `testExamples()`, `testTrail()`, contract testing, surface harnesses |
+| `@ontrails/topographer` | TopoGraphs, semantic diffing, lock manifest and `topo.lock` helpers, topo-store persistence |
 | `@ontrails/warden` | Lint rules, drift detection, CI gating |
+| `@ontrails/wayfinder` | Shell-only package home for future agent wayfinding trails; no trails ship yet |
 
 ### Dependency graph
 
@@ -125,12 +131,14 @@ Warden uses inference to verify declarations match actual code. The surface map 
   <- @ontrails/observe (core)
   <- @ontrails/store (core)
   <- @ontrails/drizzle (store, drizzle-orm)
-  <- @ontrails/testing (core, cli, mcp, observe)
+  <- @ontrails/testing (core, cli, mcp, http, observe)
   <- @ontrails/topographer (core)
+  <- @ontrails/wayfinder (shell only)
      <- @ontrails/commander (cli, commander)
      <- @ontrails/hono (http, hono)
      <- @ontrails/vite (node:stream only)
      <- @ontrails/logtape (observe)
+     <- @ontrails/pino (observe)
      <- @ontrails/warden (core, topographer)
 ```
 
@@ -175,7 +183,7 @@ MCP tool call ({ name: "myapp_entity_show", arguments: { name: "Alpha" } })
 
 ```text
 HTTP request (GET /entity/show?name=Alpha)
-  -> Hono matches route derived from trail ID
+  -> Hono or Bun-native surface matches route derived from trail ID
   -> Parses input (query params for GET, JSON body for POST/DELETE)
   -> Delegates to executeTrail(trail, parsedInput, { layers, ... })
   -> Result mapped to JSON response with status code from error taxonomy
@@ -196,14 +204,14 @@ The blazed trail is identical across all paths. Only the edges change.
 
 ## Error Taxonomy
 
-16 fixed-category error classes across 10 categories, plus the dynamic
+17 fixed-category error classes across 10 categories, plus the dynamic
 `RetryExhaustedError` wrapper. All extend `TrailsError`. Pattern match with
 `instanceof` or `error.category`.
 
 | Category | Exit | HTTP | Retryable | Classes |
 |----------|------|------|-----------|---------|
 | `validation` | 1 | 400 | No | `ValidationError`, `AmbiguousError` |
-| `not_found` | 2 | 404 | No | `NotFoundError` |
+| `not_found` | 2 | 404 | No | `NotFoundError`, `VersionNotSupportedError` |
 | `conflict` | 3 | 409 | No | `AlreadyExistsError`, `ConflictError` |
 | `permission` | 4 | 403 | No | `PermissionError`, `PermitError` |
 | `timeout` | 5 | 504 | Yes | `TimeoutError` |

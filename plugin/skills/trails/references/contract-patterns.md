@@ -75,6 +75,11 @@ examples: [
     input: { limit: 20, offset: 0 },          // No expected, no error — validates output schema
   },
   {
+    name: 'Partial match',
+    input: { name: 'generated-id' },
+    expectedMatch: { name: 'generated-id' },  // Subset match — ignores generated fields
+  },
+  {
     name: 'Error path',
     input: { name: 'nonexistent' },
     error: 'NotFoundError',                   // Error match — asserts error type name
@@ -138,13 +143,22 @@ fields: {
 
 Trails that compose others use `crosses` and `ctx.cross()`.
 
-**`crosses`** — declare which trails this trail composes. The warden verifies these match actual `ctx.cross()` calls: `crosses: ['entity.add', 'search']`.
+**`crosses`** — declare which trails this trail composes. Prefer trail objects when the target is statically in scope: `crosses: [entityAdd, search]`. Use string IDs only for dynamic or cross-package escape hatches: `crosses: ['entity.add', 'search']`.
 
-**`ctx.cross()`** — compose at runtime. Always `await`, always check `isErr()` before accessing `.value`, never call `.run()` directly. Type the generic for return shape: `ctx.cross<OutputType>(...)`.
+**`ctx.cross()`** — compose at runtime. Prefer typed trail-object calls (`ctx.cross(entityAdd, input)`) so TypeScript infers input/output. String IDs remain available when the object is not statically in scope. Always `await`, always check `isErr()` before accessing `.value`, never call `.run()` directly.
 
 ```typescript
-const result = await ctx.cross('entity.add', { name: 'Beta', type: 'tool' });
+const result = await ctx.cross(entityAdd, { name: 'Beta', type: 'tool' });
 if (result.isErr()) return result;
+```
+
+For independent concurrent crossings, use the batch form:
+
+```typescript
+const [profile, audit] = await ctx.cross([
+  [profileLoad, { id: input.id }],
+  [auditRead, { id: input.id }],
+]);
 ```
 
 ## Resource Declarations

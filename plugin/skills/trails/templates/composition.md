@@ -5,6 +5,7 @@ Annotated skeleton for composing trails via `cross`. Copy, rename, fill in.
 ```typescript
 import { trail, Result } from '@ontrails/core';
 import { z } from 'zod';
+import { namespaceFirst, namespaceSecond } from './downstream.js';
 
 // ---------------------------------------------------------------------------
 // namespace.compound-verb
@@ -17,7 +18,7 @@ export const myComposite = trail('namespace.compound-verb', {
   // --- Declare downstream trails ---
   // List every trail this trail calls via ctx.cross().
   // The warden verifies these match actual ctx.cross() calls.
-  crosses: ['namespace.first', 'namespace.second'],
+  crosses: [namespaceFirst, namespaceSecond],
 
   // --- Resources (optional) ---
   // Declare resources the composite trail needs directly.
@@ -60,11 +61,7 @@ export const myComposite = trail('namespace.compound-verb', {
   blaze: async (input, ctx) => {
     // Step 1: Cross the first trail
     // Type the generic when you need the return shape.
-    const first = await ctx.cross<{
-      id: string;
-      name: string;
-      type: string;
-    }>('namespace.first', {
+    const first = await ctx.cross(namespaceFirst, {
       name: input.name,
       type: input.type,
       tags: input.tags,
@@ -74,10 +71,7 @@ export const myComposite = trail('namespace.compound-verb', {
     if (first.isErr()) return first;
 
     // Step 2: Cross the second trail, using results from the first
-    const second = await ctx.cross<{
-      results: { id: string; name: string }[];
-      total: number;
-    }>('namespace.second', {
+    const second = await ctx.cross(namespaceSecond, {
       query: first.value.name,
     });
 
@@ -105,23 +99,31 @@ export const myComposite = trail('namespace.compound-verb', {
 **Sequential** — each step depends on the previous:
 
 ```typescript
-const a = await ctx.cross('step.one', input);
+import { stepOne, stepTwo } from './steps.js';
+
+const a = await ctx.cross(stepOne, input);
 if (a.isErr()) return a;
-const b = await ctx.cross('step.two', { id: a.value.id });
+const b = await ctx.cross(stepTwo, { id: a.value.id });
 ```
+
+Use string IDs when the target trail object is not statically in scope; prefer trail objects when it is.
 
 **Parallel** — independent steps run concurrently:
 
 ```typescript
-const [a, b] = await Promise.all([
-  ctx.cross('step.one', { name }),
-  ctx.cross('step.two', { name }),
+import { stepOne, stepTwo } from './steps.js';
+
+const [a, b] = await ctx.cross([
+  [stepOne, { name }],
+  [stepTwo, { name }],
 ]);
 ```
 
 **Graceful degradation** — non-critical steps can fail without failing the trail:
 
 ```typescript
-const optional = await ctx.cross('step.enrich', data);
+import { enrichProfile } from './steps.js';
+
+const optional = await ctx.cross(enrichProfile, data);
 const enriched = optional.isOk() ? optional.value : null;
 ```

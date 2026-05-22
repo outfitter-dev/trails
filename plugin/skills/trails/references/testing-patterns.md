@@ -137,7 +137,7 @@ run(graph, 'search', input, {
 });
 ```
 
-If a resource definition omits `mock`, `testAll` requires an explicit override for any trail that uses it. Always define `mock` on resource definitions to keep the zero-config `testAll(graph)` promise.
+If a resource definition omits `mock`, `testAll` requires an explicit override for any trail that uses it. Define `mock` on resource definitions to keep the zero-config `testAll(graph)` promise. When a dependency cannot be mocked safely, mark it with `unmockable: { reason }`; testing helpers skip auto-mock resolution for that resource and require explicit overrides for examples or contracts that need it.
 
 ## Progressive Assertion Modes
 
@@ -147,14 +147,17 @@ Applied automatically per example based on which fields are present:
 // Full match -- `expected` triggers deep equals
 { name: 'Add', input: { a: 1, b: 2 }, expected: { sum: 3 } }
 
-// Schema-only -- no `expected` or `error`, validates against output schema
+// Partial match -- `expectedMatch` asserts a subset and ignores generated fields
+{ name: 'Create', input: { name: 'Alpha' }, expectedMatch: { name: 'Alpha' } }
+
+// Schema-only -- no `expected`, `expectedMatch`, or `error`, validates against output schema
 { name: 'List entities', input: { type: 'concept' } }
 
 // Error match -- `error` string matches class name from core taxonomy
 { name: 'Not found', input: { name: 'nope' }, error: 'NotFoundError' }
 ```
 
-Error class names: `ValidationError`, `NotFoundError`, `AlreadyExistsError`, `ConflictError`, `AuthError`, `PermissionError`, `PermitError`, `TimeoutError`, `NetworkError`, `RateLimitError`, `InternalError`, `DerivationError`, `RecoverableCompletionError`, `AmbiguousError`, `CancelledError`, `AssertionError`, `RetryExhaustedError`.
+Error class names: `ValidationError`, `AmbiguousError`, `NotFoundError`, `VersionNotSupportedError`, `AlreadyExistsError`, `ConflictError`, `AuthError`, `PermissionError`, `PermitError`, `TimeoutError`, `NetworkError`, `RateLimitError`, `InternalError`, `DerivationError`, `RecoverableCompletionError`, `AssertionError`, `CancelledError`, `RetryExhaustedError`.
 
 ## `createCrossContext()` -- Mock Cross for Composite Trails
 
@@ -238,6 +241,39 @@ expect(result.isError).toBe(false);
 
 `McpHarnessResult`: `content`, `isError`.
 
+### HTTP Harness
+
+```typescript
+import { createHttpHarness } from '@ontrails/testing';
+
+const http = createHttpHarness({ graph });
+const response = await http.get('/entity/show', { name: 'Alpha' });
+expect(response.status).toBe(200);
+expect(response.data).toEqual({ name: 'Alpha', type: 'concept' });
+```
+
+The HTTP harness runs derived routes in-process; it does not open a network port.
+
+## Surface Parity
+
+`testSurfaceParity()` runs eligible examples through CLI, MCP, and HTTP and compares normalized success payloads and normalized TrailsError category/code pairs.
+
+```typescript
+import { testSurfaceParity } from '@ontrails/testing';
+
+testSurfaceParity(graph, {
+  exclusions: [
+    {
+      example: 'generates unique id',
+      reason: 'generated values intentionally differ per surface run',
+      trailId: 'entity.add',
+    },
+  ],
+});
+```
+
+Surface-specific helper imports may move behind subpaths in `TRL-757`; until that lands, use the current root imports shown here.
+
 ## Recommended Test Structure
 
 ```text
@@ -247,8 +283,10 @@ src/__tests__/
   onboard.test.ts       # testCrosses composition scenarios
   cli.test.ts           # CLI harness integration
   mcp.test.ts           # MCP harness integration
+  http.test.ts          # HTTP harness integration
+  surface-parity.test.ts # optional cross-surface example parity
 ```
 
 - `contract.test.ts` is the minimum. One file, one line, full coverage of examples and contracts.
 - Add `*.test.ts` files per domain when edge cases accumulate beyond what examples cover.
-- Surface harness tests are optional but valuable for verifying flag parsing, output formatting, and tool naming.
+- Surface harness tests are optional but valuable for verifying flag parsing, output formatting, tool naming, route derivation, and cross-surface parity.

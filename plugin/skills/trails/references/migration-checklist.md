@@ -49,6 +49,7 @@ For each handler:
 - [ ] Create topo: `topo('appname', ...modules)`
 - [ ] Open CLI surface: `await surface(graph)` from `@ontrails/commander`
 - [ ] Open MCP surface: `await surface(graph)` from `@ontrails/mcp`
+- [ ] Open HTTP surface: `await surface(graph, { port })` from `@ontrails/hono` or `@ontrails/http/bun`
 - [ ] Remove old routing/command setup code
 
 ## Phase 5: Testing
@@ -56,7 +57,7 @@ For each handler:
 - [ ] Add examples to every trail (happy path + key error cases)
 - [ ] Create `contract.test.ts` with `testAll(graph)`
 - [ ] Add edge-case tests with `testTrail()` for complex trails
-- [ ] Add surface integration tests with CLI/MCP harnesses
+- [ ] Add surface integration tests with CLI/MCP/HTTP harnesses and `testSurfaceParity()` where useful
 - [ ] All tests pass
 
 ## Phase 6: Governance

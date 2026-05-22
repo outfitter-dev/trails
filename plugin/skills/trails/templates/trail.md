@@ -77,6 +77,12 @@ export const myTrail = trail('namespace.verb', {
       input: { name: 'Another', verbose: true },
     },
     {
+      // Partial match: asserts the output contains this subset
+      name: 'Partial match for generated output',
+      input: { name: 'Generated' },
+      expectedMatch: { name: 'Generated' },
+    },
+    {
       // Error match: asserts the error type by name
       name: 'Error case description',
       input: { name: 'nonexistent' },

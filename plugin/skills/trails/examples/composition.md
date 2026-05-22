@@ -75,6 +75,8 @@ export const check = trail('inventory.check', {
 
 // trails/order.ts — the composition trail
 import { InternalError, ValidationError } from '@ontrails/core';
+import { get as customerGet } from './customer.js';
+import { check as inventoryCheck } from './inventory.js';
 import { db } from '../resources/db.js';
 
 export const create = trail('order.create', {
@@ -84,7 +86,7 @@ export const create = trail('order.create', {
   }),
   output: z.object({ orderId: z.string(), total: z.number() }),
   intent: 'write',
-  crosses: ['customer.get', 'inventory.check'],
+  crosses: [customerGet, inventoryCheck],
   resources: [db],
   examples: [
     { name: 'happy path', input: { customerId: 'cust_123', items: [{ sku: 'TRAIL-001', qty: 1 }] } },
@@ -94,10 +96,10 @@ export const create = trail('order.create', {
       return Result.err(new InternalError('order.create requires ctx.cross'));
     }
 
-    const customer = await ctx.cross<{ id: string; email: string }>('customer.get', { id: input.customerId });
+    const customer = await ctx.cross(customerGet, { id: input.customerId });
     if (customer.isErr()) return customer;
 
-    const stock = await ctx.cross<{ available: boolean; total: number }>('inventory.check', { items: input.items });
+    const stock = await ctx.cross(inventoryCheck, { items: input.items });
     if (stock.isErr()) return stock;
     if (!stock.value.available) return Result.err(new ValidationError('Items out of stock'));
 

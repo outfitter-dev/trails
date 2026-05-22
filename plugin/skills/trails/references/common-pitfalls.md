@@ -74,12 +74,16 @@ input: z.object({
 **Fix:** Keep `crosses` in sync with the blaze. If you add or remove a `ctx.cross()` call, update `crosses`:
 
 ```typescript
+import { trail } from '@ontrails/core';
+import { userCreate } from './user-create.js';
+import { userWelcome } from './user-welcome.js';
+
 trail('onboard', {
-  crosses: ['user.create', 'user.welcome'], // must match ctx.cross() calls
+  crosses: [userCreate, userWelcome], // must match ctx.cross() calls
   blaze: async (input, ctx) => {
-    const user = await ctx.cross('user.create', input);
+    const user = await ctx.cross(userCreate, input);
     if (user.isErr()) return user;
-    return ctx.cross('user.welcome', { userId: user.value.id });
+    return ctx.cross(userWelcome, { userId: user.value.id });
   },
 });
 ```
@@ -151,13 +155,16 @@ const db = resource('db.main', {
 
 **Symptom:** A resource factory imports `Request`, `McpSession`, or reads `process.argv`. It works on one surface but breaks on others.
 
-**Why it's wrong:** Resource factories receive `ResourceContext` — a narrow subset with `env`, `cwd`, and `workspaceRoot` only. Resources are singletons resolved once per process, not per request. Surface-specific state would be stale after the first resolution.
+**Why it's wrong:** Resource factories receive `ResourceContext` — a narrow subset with stable process-scoped fields (`env`, `cwd`, `workspaceRoot`, and validated `config` when the resource declares a config schema). Resources are singletons resolved once per process, not per request. Surface-specific state would be stale after the first resolution.
 
-**Fix:** Keep resource factories surface-agnostic. Use `svc.env` for configuration:
+**Fix:** Keep resource factories surface-agnostic. Use `svc.config` for declared resource config or `svc.env` for one-off environment values:
 
 ```typescript
+import { z } from 'zod';
+
 const api = resource('api.client', {
-  create: (svc) => Result.ok(new ApiClient(svc.env?.API_BASE_URL)),
+  config: z.object({ baseUrl: z.string().url() }),
+  create: (svc) => Result.ok(new ApiClient(svc.config.baseUrl)),
   // Not this: create: (svc) => new ApiClient(process.argv[2])
 });
 ```

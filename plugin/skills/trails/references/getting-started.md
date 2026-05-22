@@ -11,6 +11,9 @@ bunx @ontrails/trails create
 # Or install manually
 bun add @ontrails/core @ontrails/cli @ontrails/commander zod
 bun add @ontrails/mcp @modelcontextprotocol/sdk # MCP surface (optional)
+bun add @ontrails/http @ontrails/hono       # Hono HTTP surface (optional)
+# or, for Bun-native HTTP without Hono:
+bun add @ontrails/http
 bun add -d @ontrails/testing         # Testing (dev)
 ```
 
@@ -64,7 +67,7 @@ import * as greetModule from './trails/greet';
 export const graph = topo('myapp', greetModule);
 ```
 
-`topo()` scans module exports for `Trail` shapes and builds the collection.
+`topo()` scans module exports for Trails primitives and builds the queryable graph.
 
 ## Open a CLI Surface
 
@@ -101,6 +104,28 @@ await surface(graph);
 ```
 
 Same blazed trail, different surface. The MCP server exposes `myapp_greet` with JSON Schema input, `readOnlyHint: true`, and examples for agent planning.
+
+## Open an HTTP Surface
+
+Use Hono when you want framework portability:
+
+```typescript
+import { surface } from '@ontrails/hono';
+import { graph } from './app';
+
+await surface(graph, { port: 3000 });
+```
+
+Use Bun-native HTTP when you want Bun's `Bun.serve({ routes })` path without a third-party runtime:
+
+```typescript
+import { surface } from '@ontrails/http/bun';
+import { graph } from './app';
+
+await surface(graph, { port: 3000 });
+```
+
+The same `greet` trail becomes `GET /greet?name=World` because `intent: 'read'` maps to HTTP GET. See [http-surface.md](http-surface.md) for route derivation, OpenAPI, Hono, and Bun-native details.
 
 ## Test with testAll
 
@@ -175,13 +200,14 @@ A trail can cross other trails to accomplish a higher-level task:
 ```typescript
 import { trail, Result } from '@ontrails/core';
 import { z } from 'zod';
+import { add } from './math.js';
 
 export const addAndDouble = trail('math.add-and-double', {
-  crosses: ['math.add'],
+  crosses: [add],
   input: z.object({ a: z.number(), b: z.number() }),
   output: z.object({ result: z.number() }),
   blaze: async (input, ctx) => {
-    const sum = await ctx.cross('math.add', input);
+    const sum = await ctx.cross(add, input);
     if (sum.isErr()) return sum;
     return Result.ok({ result: sum.value.result * 2 });
   },
@@ -191,7 +217,7 @@ export const addAndDouble = trail('math.add-and-double', {
 Rules for composition:
 
 - Declare dependencies with `crosses`
-- Call them with `ctx.cross()` — never call `.run()` directly
+- Call them with `ctx.cross()` — prefer trail objects where in scope, use string IDs as an escape hatch, and never call `.run()` directly
 - Propagate errors: `if (result.isErr()) return result;`
 - The warden verifies `crosses` matches actual `ctx.cross()` calls
 

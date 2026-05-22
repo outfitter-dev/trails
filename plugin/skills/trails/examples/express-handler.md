@@ -90,7 +90,7 @@ export const destroy = trail('project.destroy', {
 });
 ```
 
-Wire to CLI or MCP with the same trails. The `db.mock()` factory is used automatically by `testAll`.
+Wire to CLI, MCP, or HTTP with the same trails. The `db.mock()` factory is used automatically by `testAll`.
 
 ```typescript
 // cli.ts
@@ -105,4 +105,8 @@ await surface(graph); // "myapp project show --id ..."
 // mcp.ts
 import { surface } from '@ontrails/mcp';
 await surface(graph); // tool: myapp_project_show, myapp_project_destroy
+
+// http.ts
+import { surface } from '@ontrails/hono';
+await surface(graph, { port: 3000 }); // GET /project/show?id=..., DELETE /project/destroy
 ```

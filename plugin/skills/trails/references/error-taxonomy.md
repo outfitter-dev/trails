@@ -2,7 +2,7 @@
 
 ## Error Classes
 
-The taxonomy has 16 fixed-category classes across 10 categories, plus the
+The taxonomy has 17 fixed-category classes across 10 categories, plus the
 dynamic `RetryExhaustedError` wrapper.
 
 ### validation (exit 1, HTTP 400)
@@ -13,6 +13,7 @@ dynamic `RetryExhaustedError` wrapper.
 ### not_found (exit 2, HTTP 404)
 
 - **NotFoundError** — Entity or resource not found. `new NotFoundError("User 'alice' not found", { context: { entity: 'User', id: 'alice' } })`
+- **VersionNotSupportedError** — Requested trail version is not available. `new VersionNotSupportedError('entity.show', 3, [1, 2], 'v3 was removed')`
 
 ### conflict (exit 3, HTTP 409)
 
@@ -101,7 +102,7 @@ if (isRetryable(error)) {
 
 ## Serialization
 
-Errors serialize cleanly for logging, transport, and persistence:
+Errors serialize cleanly for logging, surface projection, and persistence:
 
 ```typescript
 import { serializeError, deserializeError } from '@ontrails/core';

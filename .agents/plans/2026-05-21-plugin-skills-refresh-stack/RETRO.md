@@ -24,8 +24,8 @@ Use this as the durable execution ledger. For stacked work, this should normally
 | Order | Issue | Branch | PR | Status | Notes |
 | --- | --- | --- | --- | --- | --- |
 | 1 | `TRL-755` | `trl-755-refresh-public-docs-drift-found-during-plugin-skills-audit` | | Local commit | Public docs drift and M1 packet archive |
-| 2 | `TRL-746` | `trl-746-refresh-the-main-trails-skill-into-the-canonical-one-stop` | | In progress | Main skill entrypoint |
-| 3 | `TRL-747` | `trl-747-refresh-trails-skill-references-templates-and-examples` | | Planned | Deep references/templates/examples |
+| 2 | `TRL-746` | `trl-746-refresh-the-main-trails-skill-into-the-canonical-one-stop` | | Local commit | Main skill entrypoint |
+| 3 | `TRL-747` | `trl-747-refresh-trails-skill-references-templates-and-examples` | | In progress | Deep references/templates/examples |
 | 4 | `TRL-748` | `trl-748-refresh-plugin-agent-rules-advisory-skills-and-hook` | | Planned | Agent/rules/advisory/hook copy |
 | 5 | `TRL-749` | `trl-749-add-plugin-metadata-sync-and-drift-checks` | | Planned | Metadata policy/checks |
 | 6 | `TRL-750` | `trl-750-add-local-installed-trails-skill-synccheck-path` | | Planned | Installed skill drift check |
@@ -66,6 +66,7 @@ Use this as the durable execution ledger. For stacked work, this should normally
 | 2026-05-22 11:09 EDT | `TRL-755` | Moved to `In Progress` for execution. | Linear issue update returned successfully; `startedAt=2026-05-22T15:09:03Z`. |
 | 2026-05-22 11:09 EDT | `TRL-755`, `TRL-746` through `TRL-753` | Added archive-path comments pointing M1 report consumers at `.agents/plans/archive/2026-05-21-plugin-skills-m1-audit/`. | Comment IDs: `63a1644e-651d-4ed3-8068-25fd86955b44`, `1b2125f5-e08f-4769-9d0f-052bb266d2dc`, `8e161197-540e-4e99-a4bc-4ad0d4bb07a3`, `c123afa3-1e8b-4474-af22-a0c7f5a28541`, `c5923cbd-86e2-4ee2-847c-02d46a875247`, `171cccfe-2bc7-4a46-aee2-593ac8c49cf9`, `82ebbb07-ec2a-46de-b5ce-701cd15a8a41`, `c60e53f5-02ef-46b2-931d-2f17f45b2243`, `9e124e67-ca4f-4445-8070-77ed33a09df8`. |
 | 2026-05-22 11:14 EDT | `TRL-746` | Moved to `In Progress` for execution. | Linear issue update returned successfully; `startedAt=2026-05-22T15:13:59Z`. |
+| 2026-05-22 11:15 EDT | `TRL-747` | Moved to `In Progress` for execution. | Linear issue update returned successfully; `startedAt=2026-05-22T15:15:10Z`. |
 
 ## Execution Log
 
@@ -100,6 +101,15 @@ YYYY-MM-DD HH:MM TZ - <branch/issue/checkpoint>
 - Result: `TRL-746` implementation is locally complete pending commit/branch checkpoint.
 - Next: commit `TRL-746`, then create `TRL-747` for deep references/templates/examples.
 - Blockers: none.
+
+2026-05-22 11:21 EDT - trl-747 / Phase 3 references templates examples
+- Changed: created branch `trl-747-refresh-trails-skill-references-templates-and-examples`; added `plugin/skills/trails/references/http-surface.md`; updated deep architecture, getting-started, contract-patterns, testing-patterns, error-taxonomy, common-pitfalls, migration-checklist, composition/trail templates, and composition/Express examples; added the HTTP reference link to `plugin/skills/trails/SKILL.md`.
+- Scope covered: current package/subpath map including `@ontrails/http/bun`, `@ontrails/pino`, and shell-only `@ontrails/wayfinder`; TopoGraph/topo.lock wording; Hono plus Bun-native HTTP; `deriveHttpRoutes`, `deriveOpenApiSpec`, `@ontrails/http/fetch`, `createHttpHarness()`, `testSurfaceParity()`, `expectedMatch`, `VersionNotSupportedError`, `ResourceContext.config`, `unmockable`, trail-object crossing, and batch `ctx.cross([...])`.
+- Linear: moved `TRL-747` to `In Progress`.
+- Verified: targeted `rg` returned expected new guidance and no retired `SurfaceMap`/surface-map/`trailhead`/`connector`/`transport`/`Promise.all` hits in plugin references/templates/examples; `bun run warden:skills:check` passed; `bun run format:check` passed; `git diff --check` passed; `bun run docs:links` passed for 118 files; `bun run docs:snippets` passed for 21 README files; `bun run docs:api-examples` passed public API example coverage.
+- Result: `TRL-747` implementation is locally complete pending commit/branch checkpoint.
+- Next: commit `TRL-747`, then create `TRL-748` for agent/rules/advisory skill/hook copy and Clark calibration.
+- Blockers: none.
 ```
 
 ## Local Review Log
@@ -120,7 +130,7 @@ YYYY-MM-DD HH:MM TZ - <branch/issue/checkpoint>
 | --- | --- | --- |
 | `git status --short --branch` | Baseline: `## main...origin/main` plus pre-existing modified `GOAL.md`. | Left untouched. |
 | `gt log --stack --reverse --no-interactive` | Baseline passed. | Current branch `main` at `e2982ad81 docs: add plugin skills refresh plan (#559)`. |
-| `bun run warden:skills:check` | `TRL-746` passed. | `bun scripts/sync-skill-warden-guide.ts --check`. |
+| `bun run warden:skills:check` | `TRL-746`, `TRL-747` passed. | `bun scripts/sync-skill-warden-guide.ts --check`. |
 | `bun run warden:agents:check` | | |
 | `bun run clark:check` | | |
 | `bun test scripts/__tests__/sync-plugin-metadata.test.ts` | | |
@@ -131,8 +141,8 @@ YYYY-MM-DD HH:MM TZ - <branch/issue/checkpoint>
 | `bun run lint` | | |
 | `bun run build` | | |
 | `bun run check` | | |
-| `bun run format:check` | `TRL-755`, `TRL-746` passed. | 0 warnings, 0 errors. |
-| `git diff --check` | `TRL-755`, `TRL-746` passed. | No whitespace/conflict-marker errors. |
+| `bun run format:check` | `TRL-755`, `TRL-746`, `TRL-747` passed. | 0 warnings, 0 errors. |
+| `git diff --check` | `TRL-755`, `TRL-746`, `TRL-747` passed. | No whitespace/conflict-marker errors. |
 
 ## Forbidden-Action Audit
 
