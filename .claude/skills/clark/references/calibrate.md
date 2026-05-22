@@ -12,7 +12,7 @@ Scan all changed or new files for vocabulary violations. Highest-priority check.
 
 **Documentation files (.md):** All prose, headings, and code examples. README files, guides, and any new docs.
 
-**Configuration and metadata:** Package names, descriptions. Trail descriptions and example names. Commit messages in the range being reviewed.
+**Configuration and meta:** Package names, descriptions. Trail `meta`, descriptions, and example names. Commit messages in the range being reviewed.
 
 **What to flag:**
 
@@ -23,9 +23,9 @@ Scan all changed or new files for vocabulary violations. Highest-priority check.
 | registry, collection, manifest | topo |
 | serve, start, wire up | surface |
 | call, invoke, dispatch (for cross) | cross |
-| transport, adapter, interface | surface |
+| transport, interface | surface |
 | impl, fn, handler (for trail blaze) | blaze |
-| annotations, tags | metadata |
+| annotations, tags | meta |
 | fallbacks, retries, recovery | detours |
 | linter, checker, validator | warden |
 | introspect, inspect, describe | survey |

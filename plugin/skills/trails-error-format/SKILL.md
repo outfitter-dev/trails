@@ -11,11 +11,11 @@ Use this skill when a change touches error classes, `Result.err`, CLI/HTTP/MCP p
 
 1. Classify the failure boundary:
    - Trail runtime failures return `Result.err(new TrailsErrorSubclass(...))`.
-   - Surface presentation maps existing `TrailsError` values to transport-specific output.
+   - Surface presentation maps existing `TrailsError` values to surface-specific output.
    - Construction or programmer errors may throw when the boundary is explicit.
 2. Choose the most specific `TrailsError` subclass for runtime failures.
 3. Trace projection data back to owner exports such as error categories, retryability, and status or code maps.
-4. Check redaction at the boundary that exposes data to agents, users, logs, or transport clients.
+4. Check redaction at the boundary that exposes data to agents, users, logs, or surface clients.
 5. Verify tests cover both the raw error object and the projected surface shape when both are public behavior.
 
 ## Authoritative Sources

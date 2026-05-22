@@ -25,8 +25,8 @@ Use this as the durable execution ledger. For stacked work, this should normally
 | --- | --- | --- | --- | --- | --- |
 | 1 | `TRL-755` | `trl-755-refresh-public-docs-drift-found-during-plugin-skills-audit` | | Local commit | Public docs drift and M1 packet archive |
 | 2 | `TRL-746` | `trl-746-refresh-the-main-trails-skill-into-the-canonical-one-stop` | | Local commit | Main skill entrypoint |
-| 3 | `TRL-747` | `trl-747-refresh-trails-skill-references-templates-and-examples` | | In progress | Deep references/templates/examples |
-| 4 | `TRL-748` | `trl-748-refresh-plugin-agent-rules-advisory-skills-and-hook` | | Planned | Agent/rules/advisory/hook copy |
+| 3 | `TRL-747` | `trl-747-refresh-trails-skill-references-templates-and-examples` | | Local commit | Deep references/templates/examples |
+| 4 | `TRL-748` | `trl-748-refresh-plugin-agent-rules-advisory-skills-and-hook` | | In progress | Agent/rules/advisory/hook copy |
 | 5 | `TRL-749` | `trl-749-add-plugin-metadata-sync-and-drift-checks` | | Planned | Metadata policy/checks |
 | 6 | `TRL-750` | `trl-750-add-local-installed-trails-skill-synccheck-path` | | Planned | Installed skill drift check |
 | 7 | `TRL-751` | `trl-751-improve-trails-plugin-hooks-for-project-detection-and` | | Planned | Hook detection/version guidance |
@@ -67,6 +67,7 @@ Use this as the durable execution ledger. For stacked work, this should normally
 | 2026-05-22 11:09 EDT | `TRL-755`, `TRL-746` through `TRL-753` | Added archive-path comments pointing M1 report consumers at `.agents/plans/archive/2026-05-21-plugin-skills-m1-audit/`. | Comment IDs: `63a1644e-651d-4ed3-8068-25fd86955b44`, `1b2125f5-e08f-4769-9d0f-052bb266d2dc`, `8e161197-540e-4e99-a4bc-4ad0d4bb07a3`, `c123afa3-1e8b-4474-af22-a0c7f5a28541`, `c5923cbd-86e2-4ee2-847c-02d46a875247`, `171cccfe-2bc7-4a46-aee2-593ac8c49cf9`, `82ebbb07-ec2a-46de-b5ce-701cd15a8a41`, `c60e53f5-02ef-46b2-931d-2f17f45b2243`, `9e124e67-ca4f-4445-8070-77ed33a09df8`. |
 | 2026-05-22 11:14 EDT | `TRL-746` | Moved to `In Progress` for execution. | Linear issue update returned successfully; `startedAt=2026-05-22T15:13:59Z`. |
 | 2026-05-22 11:15 EDT | `TRL-747` | Moved to `In Progress` for execution. | Linear issue update returned successfully; `startedAt=2026-05-22T15:15:10Z`. |
+| 2026-05-22 11:22 EDT | `TRL-748` | Moved to `In Progress` for execution. | Linear issue update returned successfully; `startedAt=2026-05-22T15:22:59Z`. |
 
 ## Execution Log
 
@@ -110,6 +111,14 @@ YYYY-MM-DD HH:MM TZ - <branch/issue/checkpoint>
 - Result: `TRL-747` implementation is locally complete pending commit/branch checkpoint.
 - Next: commit `TRL-747`, then create `TRL-748` for agent/rules/advisory skill/hook copy and Clark calibration.
 - Blockers: none.
+
+2026-05-22 11:25 EDT - trl-748 / Phase 4 agent rules advisory hook copy
+- Changed: created branch `trl-748-refresh-plugin-agent-rules-advisory-skills-and-hook`; updated `plugin/agents/trail-engineer.md` to reference current generated Warden guidance and rule IDs; updated `plugin/rules/patterns.md` resource copy for `ResourceContext.config` and `unmockable`; changed `plugin/hooks/detect-trails.sh` message text from stale global-skill/blaze-command wording to repo-bundled/current skill guidance and plain shell-command install copy; updated `.claude/skills/clark/references/calibrate.md` from trail `metadata` to `meta`; changed `plugin/skills/trails-error-format/SKILL.md` from transport wording to surface wording.
+- Linear: moved `TRL-748` to `In Progress`.
+- Verified: targeted stale-copy `rg` showed only acceptable remaining hits in lexicon "not this" rows, actual source filenames, or advisory non-trail metadata language; `bun run warden:agents:check` passed; `bun run clark:check` passed; `bun run warden:skills:check` passed; `bun run format:check` passed; `git diff --check` passed.
+- Result: `TRL-748` implementation is locally complete pending commit/branch checkpoint.
+- Next: commit `TRL-748`, then create `TRL-749` for plugin metadata policy/check tooling.
+- Blockers: none.
 ```
 
 ## Local Review Log
@@ -130,9 +139,9 @@ YYYY-MM-DD HH:MM TZ - <branch/issue/checkpoint>
 | --- | --- | --- |
 | `git status --short --branch` | Baseline: `## main...origin/main` plus pre-existing modified `GOAL.md`. | Left untouched. |
 | `gt log --stack --reverse --no-interactive` | Baseline passed. | Current branch `main` at `e2982ad81 docs: add plugin skills refresh plan (#559)`. |
-| `bun run warden:skills:check` | `TRL-746`, `TRL-747` passed. | `bun scripts/sync-skill-warden-guide.ts --check`. |
-| `bun run warden:agents:check` | | |
-| `bun run clark:check` | | |
+| `bun run warden:skills:check` | `TRL-746`, `TRL-747`, `TRL-748` passed. | `bun scripts/sync-skill-warden-guide.ts --check`. |
+| `bun run warden:agents:check` | `TRL-748` passed. | `bun scripts/sync-agents-warden-guide.ts --check`. |
+| `bun run clark:check` | `TRL-748` passed. | Clark Codex custom-agent wrapper is up to date. |
 | `bun test scripts/__tests__/sync-plugin-metadata.test.ts` | | |
 | `bun test scripts/__tests__/check-installed-trails-skill.test.ts` | | |
 | `bun test scripts/__tests__/detect-trails-hook.test.ts` | | |
@@ -141,8 +150,8 @@ YYYY-MM-DD HH:MM TZ - <branch/issue/checkpoint>
 | `bun run lint` | | |
 | `bun run build` | | |
 | `bun run check` | | |
-| `bun run format:check` | `TRL-755`, `TRL-746`, `TRL-747` passed. | 0 warnings, 0 errors. |
-| `git diff --check` | `TRL-755`, `TRL-746`, `TRL-747` passed. | No whitespace/conflict-marker errors. |
+| `bun run format:check` | `TRL-755`, `TRL-746`, `TRL-747`, `TRL-748` passed. | 0 warnings, 0 errors. |
+| `git diff --check` | `TRL-755`, `TRL-746`, `TRL-747`, `TRL-748` passed. | No whitespace/conflict-marker errors. |
 
 ## Forbidden-Action Audit
 

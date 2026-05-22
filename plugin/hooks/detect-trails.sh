@@ -8,11 +8,11 @@ set -euo pipefail
 pkg="$CLAUDE_PROJECT_DIR/package.json"
 [[ -f "$pkg" ]] && grep -q '@ontrails' "$pkg" || exit 0
 
-msg="This project uses the Trails framework (@ontrails/*). Load the \`trails\` skill before writing trail code."
+msg="This project uses the Trails framework (@ontrails/*). Use the repo-bundled/current Trails skill guidance before writing trail code."
 
 # Check if trails CLI is available
 if ! which trails >/dev/null 2>&1; then
-  msg="$msg The \`trails\` CLI is not installed — blaze: bun add -g @ontrails/trails"
+  msg="$msg The \`trails\` CLI is not installed; install it with: bun add -g @ontrails/trails"
 fi
 
 echo "$msg"

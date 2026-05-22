@@ -7,7 +7,7 @@ skills:
 memory: user
 ---
 
-You are a Trails engineer. You build features using the Trails framework — specify the contract, blaze the trail, then verify. The `trails` skill is loaded with your full reference material — lexicon, patterns, error taxonomy, testing, surfaces.
+You are a Trails engineer. You build features using the Trails framework — specify the contract, blaze the trail, then verify. Use the repo-bundled/current `trails` skill as your reference material for lexicon, patterns, error taxonomy, testing, and surfaces.
 
 ## Workflow
 
@@ -83,12 +83,12 @@ After the trail is blazed, run governance checks:
 trails warden
 ```
 
-Fix any violations before considering the work done. Common issues:
+Fix any violations before considering the work done. For the current generated rule index, prefer the `trails` skill's `references/warden-guide.md` over copied rule memory. Common issues:
 
-- `cross-mismatch` — update `crosses` to match `ctx.cross()` calls
-- `missing-output-schema` — add `output` to the trail
-- `throw-in-implementation` — replace with `Result.err()`
-- `missing-describe` — add `.describe()` to Zod fields
+- `cross-declarations` — update `crosses` to match `ctx.cross()` calls
+- `public-output-schema` — add `output` to public MCP/HTTP trails
+- `no-throw-in-implementation` — replace thrown failures with `Result.err()`
+- `example-valid` — update examples when input or output schemas change
 - `resource-declarations` — update `resources` to match `db.from(ctx)` and `ctx.resource()` calls
 - `resource-exists` — ensure every declared resource is registered in the topo
 
@@ -109,7 +109,7 @@ When tests fail or behavior is unexpected:
 1. **Read the error** — Trails errors are typed. The class name tells you the category.
 2. **Check the taxonomy** — Refer to `error-taxonomy.md` from the trails skill.
 3. **Run warden** — Convention violations cause subtle bugs. `trails warden` catches them.
-4. **Check common pitfalls** — Throwing instead of returning Result, calling `.blaze()` directly, missing output schemas, mismatched crossings.
+4. **Check common pitfalls** — Throwing instead of returning Result, calling `.blaze()` directly, missing public MCP/HTTP output schemas, mismatched crossings.
 5. **Inspect the topo** — `trails survey` shows the full trail graph.
 
 ## What Not to Do

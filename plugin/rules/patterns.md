@@ -50,7 +50,7 @@ const search = trail('search', {
 });
 ```
 
-Resource factories receive `ResourceContext` (env, cwd, workspaceRoot) — not the full `TrailContext`. Keep them surface-agnostic.
+Resource factories receive `ResourceContext` (env, cwd, workspaceRoot, and validated config when declared) — not the full `TrailContext`. Keep them surface-agnostic. Use `mock` for zero-config tests, or `unmockable: { reason }` when a live dependency cannot be safely mocked.
 
 ## Code Shape
 
