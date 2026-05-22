@@ -24,6 +24,8 @@
     "error-taxonomy:check": "bun scripts/sync-error-taxonomy-docs.ts --check",
     "scaffold-versions:sync": "bun scripts/sync-scaffold-versions.ts",
     "scaffold-versions:check": "bun scripts/sync-scaffold-versions.ts --check",
+    "plugin:metadata:sync": "bun scripts/sync-plugin-metadata.ts",
+    "plugin:metadata:check": "bun scripts/sync-plugin-metadata.ts --check",
     "warden:agents:sync": "bun scripts/sync-agents-warden-guide.ts",
     "warden:agents:check": "bun scripts/sync-agents-warden-guide.ts --check",
     "warden:skills:sync": "bun scripts/sync-skill-warden-guide.ts",

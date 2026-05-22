@@ -9,6 +9,19 @@ claude plugin marketplace add outfitter-dev/trails
 claude plugin install trails@trails
 ```
 
+## Metadata Policy
+
+The plugin and framework versions are intentionally tracked separately:
+
+- `plugin/.claude-plugin/plugin.json` owns the Claude plugin version.
+- `packages/core/package.json` owns the Trails framework version targeted by
+  the bundled `trails` skill.
+- `.claude-plugin/marketplace.json` and `plugin/skills/trails/SKILL.md`
+  contain derived copies and should be refreshed with
+  `bun run plugin:metadata:sync`.
+
+Run `bun run plugin:metadata:check` before submitting plugin metadata changes.
+
 ## What's Included
 
 ### Skills

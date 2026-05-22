@@ -68,6 +68,7 @@ Use this as the durable execution ledger. For stacked work, this should normally
 | 2026-05-22 11:14 EDT | `TRL-746` | Moved to `In Progress` for execution. | Linear issue update returned successfully; `startedAt=2026-05-22T15:13:59Z`. |
 | 2026-05-22 11:15 EDT | `TRL-747` | Moved to `In Progress` for execution. | Linear issue update returned successfully; `startedAt=2026-05-22T15:15:10Z`. |
 | 2026-05-22 11:22 EDT | `TRL-748` | Moved to `In Progress` for execution. | Linear issue update returned successfully; `startedAt=2026-05-22T15:22:59Z`. |
+| 2026-05-22 11:26 EDT | `TRL-749` | Moved to `In Progress` for execution. | Linear issue update returned successfully; `startedAt=2026-05-22T15:26:15Z`. |
 
 ## Execution Log
 
@@ -119,6 +120,15 @@ YYYY-MM-DD HH:MM TZ - <branch/issue/checkpoint>
 - Result: `TRL-748` implementation is locally complete pending commit/branch checkpoint.
 - Next: commit `TRL-748`, then create `TRL-749` for plugin metadata policy/check tooling.
 - Blockers: none.
+
+2026-05-22 11:34 EDT - trl-749 / Phase 5 plugin metadata policy and sync checks
+- Changed: created branch `trl-749-add-plugin-metadata-sync-and-drift-checks`; added `scripts/sync-plugin-metadata.ts`; added `scripts/__tests__/sync-plugin-metadata.test.ts`; added root scripts `plugin:metadata:sync` and `plugin:metadata:check`; documented the plugin/framework version policy in `plugin/README.md`.
+- Policy: `plugin/.claude-plugin/plugin.json.version` owns the Claude plugin version; `packages/core/package.json.version` owns the Trails framework target version for the bundled `trails` skill; `.claude-plugin/marketplace.json` and `plugin/skills/trails/SKILL.md` hold derived copies. Plugin version `0.3.0` and framework target `1.0.0-beta.18` are intentionally allowed to differ.
+- Linear: moved `TRL-749` to `In Progress`.
+- Verified: `bun test scripts/__tests__/sync-plugin-metadata.test.ts` passed 4 tests/13 assertions; `bun run plugin:metadata:check` passed; `bun test scripts/__tests__/sync-plugin-metadata.test.ts scripts/__tests__/sync-skill-warden-guide.test.ts scripts/__tests__/sync-agents-warden-guide.test.ts` passed 12 tests/37 assertions; `bun run warden:skills:check` passed; `bun run format:check` passed after targeted formatting/key-order fix; `git diff --check` passed.
+- Result: `TRL-749` implementation is locally complete pending commit/branch checkpoint.
+- Next: commit `TRL-749`, then create `TRL-750` for installed-skill drift checking.
+- Blockers: none.
 ```
 
 ## Local Review Log
@@ -139,10 +149,11 @@ YYYY-MM-DD HH:MM TZ - <branch/issue/checkpoint>
 | --- | --- | --- |
 | `git status --short --branch` | Baseline: `## main...origin/main` plus pre-existing modified `GOAL.md`. | Left untouched. |
 | `gt log --stack --reverse --no-interactive` | Baseline passed. | Current branch `main` at `e2982ad81 docs: add plugin skills refresh plan (#559)`. |
-| `bun run warden:skills:check` | `TRL-746`, `TRL-747`, `TRL-748` passed. | `bun scripts/sync-skill-warden-guide.ts --check`. |
+| `bun run warden:skills:check` | `TRL-746`, `TRL-747`, `TRL-748`, `TRL-749` passed. | `bun scripts/sync-skill-warden-guide.ts --check`. |
 | `bun run warden:agents:check` | `TRL-748` passed. | `bun scripts/sync-agents-warden-guide.ts --check`. |
 | `bun run clark:check` | `TRL-748` passed. | Clark Codex custom-agent wrapper is up to date. |
-| `bun test scripts/__tests__/sync-plugin-metadata.test.ts` | | |
+| `bun run plugin:metadata:check` | `TRL-749` passed. | Plugin manifest, marketplace manifest, framework target version, and skill frontmatter are synchronized under the documented two-source policy. |
+| `bun test scripts/__tests__/sync-plugin-metadata.test.ts` | `TRL-749` passed. | 4 tests, 13 assertions. |
 | `bun test scripts/__tests__/check-installed-trails-skill.test.ts` | | |
 | `bun test scripts/__tests__/detect-trails-hook.test.ts` | | |
 | `bun run typecheck` | | |
@@ -150,8 +161,8 @@ YYYY-MM-DD HH:MM TZ - <branch/issue/checkpoint>
 | `bun run lint` | | |
 | `bun run build` | | |
 | `bun run check` | | |
-| `bun run format:check` | `TRL-755`, `TRL-746`, `TRL-747`, `TRL-748` passed. | 0 warnings, 0 errors. |
-| `git diff --check` | `TRL-755`, `TRL-746`, `TRL-747`, `TRL-748` passed. | No whitespace/conflict-marker errors. |
+| `bun run format:check` | `TRL-755`, `TRL-746`, `TRL-747`, `TRL-748`, `TRL-749` passed. | 0 warnings, 0 errors after targeted formatting/key-order fix for new script tests. |
+| `git diff --check` | `TRL-755`, `TRL-746`, `TRL-747`, `TRL-748`, `TRL-749` passed. | No whitespace/conflict-marker errors. |
 
 ## Forbidden-Action Audit
 
