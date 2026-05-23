@@ -24,7 +24,7 @@ Use this as the durable execution ledger. For stacked work, this should normally
 | Order | Issue | Branch | PR | Status | Notes |
 | --- | --- | --- | --- | --- | --- |
 | 1 | `TRL-767` | `trl-767-audit-pending-force-events-as-a-v1-stable-cutover-gate` | pending | In Progress | Audit/report drafted: pending force events as stable cutover gate. |
-| 2 | `TRL-766` | `trl-766-audit-version-marker-failure-ux-and-bounded-zod-diagnostics` | pending | Todo | Audit/report: marker failure UX and bounded Zod diagnostics. |
+| 2 | `TRL-766` | `trl-766-audit-version-marker-failure-ux-and-bounded-zod-diagnostics` | pending | In Progress | Audit/report drafted: stable-cutover blocker found in marker handling for validation constraints. |
 | 3 | `TRL-756` | `trl-756-audit-v1-doctrine-and-lexicon-drift-after-versioning-m3` | pending | Todo | Audit/report: doctrine and lexicon drift. |
 | 4 | `TRL-757` | `trl-757-split-ontrailstesting-surface-harnesses-behind-subpaths` | pending | Todo | Package/API: testing harness subpaths and changeset. |
 | 5 | `TRL-758` | `trl-758-clarify-topographer-artifact-cli-workflow-and-retired-topo` | pending | Todo | CLI/docs: Topographer artifact workflow. |
@@ -50,6 +50,8 @@ Out-of-goal discoveries belong here first. Create focused follow-up issues when 
 | `TRL-769` | Stable cutover runbook does not name the pending-force gate. | Docs-only release-gate follow-up discovered by `TRL-767`; not part of the audit branch implementation contract. | <https://linear.app/outfitter/issue/TRL-769/document-pending-force-stable-cutover-gate> |
 | `TRL-770` | `trails doctor` force-event output is aggregate-only and appears to miss graph-level removed-entry forces. | Implementation polish discovered by `TRL-767`; larger than an audit report and should land as a focused follow-up. | <https://linear.app/outfitter/issue/TRL-770/make-trails-doctor-pending-force-output-complete-and-actionable> |
 | `TRL-771` | Accepted-exception semantics for pending force events are not artifact-backed. | Design/policy follow-up; the current hard zero-pending gate is usable, but named exceptions need their own decision. | <https://linear.app/outfitter/issue/TRL-771/define-accepted-exception-semantics-for-pending-force-events> |
+| `TRL-772` | Version markers accept Zod validation checks/refinements that do not affect marker content. | Stable-cutover blocker discovered by `TRL-766`; the fix requires a policy choice and implementation/tests beyond an audit report. | <https://linear.app/outfitter/issue/TRL-772/make-version-markers-account-for-or-reject-zod-validation-checks> |
+| `TRL-773` | Source Warden `marker-schema-unsupported` misses `lazy`, `intersection`, and `record` even though runtime marker projection rejects them. | Diagnostic coverage follow-up discovered by `TRL-766`; smaller than `TRL-772` but still out of the audit-report branch scope. | <https://linear.app/outfitter/issue/TRL-773/align-marker-schema-unsupported-warden-coverage-with-runtime-marker> |
 
 ## Tracker Mutations
 
@@ -69,6 +71,10 @@ Record issues, milestones, labels, dependency links, comments, and follow-up iss
 | 2026-05-22 18:01 EDT | `TRL-770` | Created follow-up issue for complete/actionable `trails doctor` pending-force output. | Linear create, related to `TRL-767` |
 | 2026-05-22 18:01 EDT | `TRL-771` | Created follow-up issue for accepted-exception semantics. | Linear create, related to `TRL-767` |
 | 2026-05-22 18:04 EDT | `TRL-767` | Added audit summary comment with report path, verdict, follow-ups, and targeted checks. | Linear comment `0316d7a9-e625-4067-8e76-b69c0bfec82f` |
+| 2026-05-22 18:05 EDT | `TRL-766` | Confirmed status In Progress before marker diagnostic audit. | Linear update |
+| 2026-05-22 18:11 EDT | `TRL-772` | Created follow-up issue for marker handling of validation checks/refinements. | Linear create, related to `TRL-766` |
+| 2026-05-22 18:11 EDT | `TRL-773` | Created follow-up issue for Warden parity with runtime marker failures. | Linear create, related to `TRL-766` |
+| 2026-05-22 18:14 EDT | `TRL-766` | Added audit summary comment with report path, verdict, follow-ups, and targeted checks. | Linear comment `082ab1bb-ce4b-4db2-875d-20b7f5c5cadd` |
 
 ## Execution Log
 
@@ -116,6 +122,20 @@ YYYY-MM-DD HH:MM TZ - <branch/issue/checkpoint>
 - Result: Comment `0316d7a9-e625-4067-8e76-b69c0bfec82f` created successfully.
 - Next: Move to `TRL-766` marker diagnostics audit.
 - Blockers: None.
+
+2026-05-22 18:14 EDT - TRL-766 marker diagnostics audit
+- Changed: Added `reports/trl-766-marker-diagnostics.md`; filed follow-ups `TRL-772` and `TRL-773`.
+- Verified: Zod construct matrix via `bun --eval` over `deriveTopoGraph` and `markerSchemaUnsupported`; Zod constraint-pair matrix via `bun --eval`; default projection check via `bun --eval`; Warden unsupported-call check via `bun --eval`; `bun test packages/core/src/__tests__/version-marker.test.ts packages/topographer/src/__tests__/derive.test.ts packages/warden/src/__tests__/trail-versioning-rules.test.ts`; `bunx markdownlint-cli2 .agents/plans/2026-05-22-v1-release-readiness-closeout/reports/trl-766-marker-diagnostics.md`; `git diff --check`.
+- Result: Verdict is `stable-cutover blocker`; runtime projection rejects several unsupported constructs with pathful diagnostics, but Zod validation checks/refinements can change runtime validation semantics without changing markers or emitting Warden diagnostics.
+- Next: Commit the `TRL-766` audit report, comment on Linear, then stop/ask before continuing because the audit found a blocker larger than a small in-stack fix.
+- Blockers: `TRL-772` should be resolved or explicitly scoped out before stable markers are presented as content-addressed contract identities.
+
+2026-05-22 18:14 EDT - TRL-766 tracker comment and handoff stop
+- Changed: Added Linear comment `082ab1bb-ce4b-4db2-875d-20b7f5c5cadd`; amended the branch commit to keep unrelated `.claude/worktrees/` out of the branch.
+- Verified: `git status --short --branch`; `git show --stat --oneline --name-status HEAD`; `gt log --stack --reverse --no-interactive`.
+- Result: Branch commit `docs: audit marker diagnostics` contains only `RETRO.md` and `reports/trl-766-marker-diagnostics.md`; unrelated `.claude/worktrees/` is again untracked only; stack order remains intact.
+- Next: Ask whether to add `TRL-772` as a blocking implementation branch before continuing, narrow the stable marker guarantee, or continue the planned audit stack with the blocker recorded.
+- Blockers: Stable marker contract needs a decision before the goal can honestly proceed to "done".
 ```
 
 ## Local Review Log
@@ -154,6 +174,13 @@ Record exact commands and artifact checks. Include skipped checks with reasons.
 | `bun apps/trails/bin/trails.ts doctor --module apps/trails/src/app.ts --json` | `TRL-767` | failed | Returned `Error: Internal server error`; no artifacts created. |
 | `bun apps/trails/bin/trails.ts diff --module apps/trails/src/app.ts --forces --json` | `TRL-767` | failed | Returned `Error: Internal server error`; no artifacts created. |
 | `git status --short -- .trails .trails-tmp` | `TRL-767` | pass | No generated local topo artifacts present. |
+| `bun --eval` marker construct matrix | `TRL-766` | pass | Runtime rejects `transform`, `preprocess`, `lazy`, `intersection`, `any`, `unknown`, `custom`, and `record`; Warden misses `lazy`, `intersection`, and `record`. |
+| `bun --eval` marker constraint-pair matrix | `TRL-766` | pass | `.min()`, `.email()`, `.regex()`, `.int()`, array `.min()`, object `.strict()`, `.passthrough()`, `.catchall()`, `.refine()`, and `.superRefine()` did not change markers from the unconstrained schema. |
+| `bun --eval` marker default projection check | `TRL-766` | pass | Static defaults and stable object defaults remain deterministic; dynamic random defaults are omitted from marker content. |
+| `bun --eval` Warden unsupported-call check | `TRL-766` | pass | Warden emits no diagnostics for validation checks/refinements/object policy calls from the tested set. |
+| `bun test packages/core/src/__tests__/version-marker.test.ts packages/topographer/src/__tests__/derive.test.ts packages/warden/src/__tests__/trail-versioning-rules.test.ts` | `TRL-766` | pass | 55 pass, 0 fail. |
+| `bunx markdownlint-cli2 .agents/plans/2026-05-22-v1-release-readiness-closeout/reports/trl-766-marker-diagnostics.md` | `TRL-766` | pass | 0 markdownlint errors. |
+| `git diff --check` | `TRL-766` | pass | No whitespace or conflict-marker errors. |
 
 ## Remote Review / CI Log
 
