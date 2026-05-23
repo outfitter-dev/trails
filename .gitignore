@@ -15,6 +15,7 @@ dist/
 .agents/notes/
 .claude/agent-memory/
 .claude/scheduled_tasks.lock
+.claude/worktrees/
 .npmrc
 .envrc
 .claude/settings.local.json
