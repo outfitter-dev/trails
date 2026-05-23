@@ -39,7 +39,7 @@ const program = toCommander(commands.value, { name: 'myapp' });
 ## Installation
 
 ```bash
-bun add @ontrails/cli @ontrails/commander
+bun add @ontrails/cli@beta @ontrails/commander@beta
 ```
 
 ## Migration

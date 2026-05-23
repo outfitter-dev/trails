@@ -41,9 +41,13 @@ Follow the prompts — pick a name, choose a starter, select your surfaces. The 
 Or install manually:
 
 ```bash
-bun add @ontrails/core @ontrails/cli @ontrails/commander zod
-bun add -d @ontrails/testing
+bun add @ontrails/core@beta @ontrails/cli@beta @ontrails/commander@beta zod
+bun add -d @ontrails/testing@beta
 ```
+
+During the active beta line, use `@beta` for the newest published beta or exact
+`1.0.0-beta.N` pins for reproducible handoffs. Do not rely on unqualified
+`latest` unless release notes explicitly say it has been advanced.
 
 ## Before and after
 

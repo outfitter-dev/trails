@@ -276,13 +276,13 @@ const schema = db.tables;
 ## Installation
 
 ```bash
-bun add @ontrails/store zod
+bun add @ontrails/store@beta zod
 ```
 
 Add Drizzle only when you want the external SQLite/ORM adapter:
 
 ```bash
-bun add @ontrails/drizzle
+bun add @ontrails/drizzle@beta
 ```
 
 ## Migration

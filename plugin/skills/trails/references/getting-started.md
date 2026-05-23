@@ -9,13 +9,17 @@
 bunx @ontrails/trails create
 
 # Or install manually
-bun add @ontrails/core @ontrails/cli @ontrails/commander zod
-bun add @ontrails/mcp @modelcontextprotocol/sdk # MCP surface (optional)
-bun add @ontrails/http @ontrails/hono       # Hono HTTP surface (optional)
+bun add @ontrails/core@beta @ontrails/cli@beta @ontrails/commander@beta zod
+bun add @ontrails/mcp@beta @modelcontextprotocol/sdk # MCP surface (optional)
+bun add @ontrails/http@beta @ontrails/hono@beta # Hono HTTP surface (optional)
 # or, for Bun-native HTTP without Hono:
-bun add @ontrails/http
-bun add -d @ontrails/testing         # Testing (dev)
+bun add @ontrails/http@beta
+bun add -d @ontrails/testing@beta # Testing (dev)
 ```
+
+During the active beta line, use `@beta` for the newest published beta or exact
+`1.0.0-beta.N` pins for reproducible handoffs. Do not rely on unqualified
+`latest` unless release notes explicitly say it has been advanced.
 
 ## Define Your First Trail
 

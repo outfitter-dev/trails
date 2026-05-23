@@ -7,7 +7,7 @@ The package separates framework-agnostic route building (`@ontrails/http`), shar
 ## Setup
 
 ```bash
-bun add @ontrails/http @ontrails/hono
+bun add @ontrails/http@beta @ontrails/hono@beta
 ```
 
 ```typescript
@@ -22,7 +22,7 @@ That starts an HTTP server with every exposed trail registered as a route.
 For Bun-native serving without Hono:
 
 ```bash
-bun add @ontrails/http
+bun add @ontrails/http@beta
 ```
 
 ```typescript

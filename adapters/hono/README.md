@@ -37,7 +37,7 @@ For custom HTTP integrations or route inspection, keep using `deriveHttpRoutes()
 ## Installation
 
 ```bash
-bun add @ontrails/http @ontrails/hono
+bun add @ontrails/http@beta @ontrails/hono@beta
 ```
 
 ## Migration

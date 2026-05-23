@@ -162,5 +162,5 @@ skipped.
 ## Installation
 
 ```bash
-bun add -d @ontrails/testing
+bun add -d @ontrails/testing@beta
 ```

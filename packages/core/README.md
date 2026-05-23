@@ -196,5 +196,5 @@ Types `ReadOnlyTopoStore`, `MockTopoStoreSeed`, `TopoSnapshot`, `TopoStoreRef`, 
 ## Installation
 
 ```bash
-bun add @ontrails/core zod
+bun add @ontrails/core@beta zod
 ```

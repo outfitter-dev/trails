@@ -13,17 +13,21 @@ This guide demonstrates CLI and MCP first because they are the shortest path to 
 bunx @ontrails/trails create
 
 # Or install manually
-bun add @ontrails/core @ontrails/cli @ontrails/commander zod
+bun add @ontrails/core@beta @ontrails/cli@beta @ontrails/commander@beta zod
 
 # Add MCP surface (optional)
-bun add @ontrails/mcp
+bun add @ontrails/mcp@beta
 
 # Add HTTP surface (optional, shipped today)
-bun add @ontrails/http @ontrails/hono
+bun add @ontrails/http@beta @ontrails/hono@beta
 
 # Add testing (dev dependency)
-bun add -d @ontrails/testing
+bun add -d @ontrails/testing@beta
 ```
+
+During the active beta line, use `@beta` for the newest published beta or pin
+exact `1.0.0-beta.N` versions for reproducible handoffs. Do not rely on
+unqualified `latest` unless release notes explicitly say it has been advanced.
 
 ## Your First Trail
 

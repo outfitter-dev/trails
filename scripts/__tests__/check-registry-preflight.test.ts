@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import {
   checkRegistryPosture,
   discoverRegistryWorkspaces,
+  formatDistTagSummary,
   registryPostureErrors,
 } from '../check-registry-preflight.ts';
 import type {
@@ -51,6 +52,20 @@ const staleTagRegistryView: RegistryView = async (name) => ({
 const failingRegistryView: RegistryView = async () => {
   throw new Error('registry unavailable');
 };
+
+describe('formatDistTagSummary', () => {
+  test('formats latest and beta dist-tags together for beta-channel audits', () => {
+    expect(
+      formatDistTagSummary({
+        beta: '1.0.0-beta.18',
+        latest: '1.0.0-beta.16',
+      })
+    ).toBe('latest=1.0.0-beta.16, beta=1.0.0-beta.18');
+    expect(formatDistTagSummary({ beta: '1.0.0-beta.18' })).toBe(
+      'latest=missing, beta=1.0.0-beta.18'
+    );
+  });
+});
 
 describe('checkRegistryPosture', () => {
   test('classifies published and first-time package candidates', async () => {

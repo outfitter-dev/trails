@@ -9,6 +9,7 @@
 ## Release Notes
 
 - **[Stable Cutover Runbook](./releases/stable-cutover.md)** — Beta-to-1.0 cutover sequence, publish boundaries, and recovery checks
+- **[Beta Channel Policy](./releases/beta-channel-policy.md)** — Beta install tags, `latest` posture, version cadence, and read-only registry checks
 - **[Plugin Release Runbook](./releases/plugin-release.md)** — Claude plugin/skills refresh, dogfood, and manual publication checks
 - **[Beta 15](./releases/beta15.md)** — Current release-prep notes and known CLI follow-up work
 

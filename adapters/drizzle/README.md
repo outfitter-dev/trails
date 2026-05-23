@@ -25,7 +25,7 @@ export const db = connectDrizzle(definition, {
 ## Installation
 
 ```bash
-bun add @ontrails/store @ontrails/drizzle zod
+bun add @ontrails/store@beta @ontrails/drizzle@beta zod
 ```
 
 ## Migration

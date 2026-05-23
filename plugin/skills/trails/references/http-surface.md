@@ -10,9 +10,9 @@ Trails HTTP support has a shared core plus runtime materializers:
 ## Install
 
 ```bash
-bun add @ontrails/http @ontrails/hono
+bun add @ontrails/http@beta @ontrails/hono@beta
 # or, for Bun-native serving:
-bun add @ontrails/http
+bun add @ontrails/http@beta
 ```
 
 ## Open With Hono

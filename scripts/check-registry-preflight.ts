@@ -4,6 +4,7 @@ import { readdir } from 'node:fs/promises';
 import { join, relative, resolve } from 'node:path';
 
 const REPO_ROOT = resolve(import.meta.dir, '..');
+const SUMMARY_DIST_TAGS = ['latest', 'beta'] as const;
 
 interface Options {
   readonly requirePublished: boolean;
@@ -283,6 +284,13 @@ export const registryPostureErrors = (
   return errors;
 };
 
+export const formatDistTagSummary = (
+  distTags: Readonly<Record<string, string>>
+): string =>
+  SUMMARY_DIST_TAGS.map((tag) => `${tag}=${distTags[tag] ?? 'missing'}`).join(
+    ', '
+  );
+
 const printResults = (
   results: readonly RegistryResult[],
   expectedTag: string
@@ -291,7 +299,7 @@ const printResults = (
   for (const result of results) {
     if (result.status === 'published') {
       console.log(
-        `✓ ${result.name}@${result.workspaceVersion}: published (registry version ${result.version}, ${expectedTag}=${result.expectedTagVersion ?? 'missing'})`
+        `✓ ${result.name}@${result.workspaceVersion}: published (registry version ${result.version}, expected ${expectedTag}=${result.expectedTagVersion ?? 'missing'}, tags ${formatDistTagSummary(result.distTags)})`
       );
     } else if (result.status === 'missing') {
       console.log(

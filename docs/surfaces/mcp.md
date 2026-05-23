@@ -5,7 +5,7 @@ The MCP surface adapter turns every trail into an MCP tool. Annotations are auto
 ## Setup
 
 ```bash
-bun add @ontrails/mcp
+bun add @ontrails/mcp@beta
 ```
 
 ```typescript

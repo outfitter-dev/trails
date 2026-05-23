@@ -116,5 +116,5 @@ await surface(graph, { exclude: ['internal.debug'] });
 ## Installation
 
 ```bash
-bun add @ontrails/mcp
+bun add @ontrails/mcp@beta
 ```

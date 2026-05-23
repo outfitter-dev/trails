@@ -28,7 +28,7 @@ Use this as the durable execution ledger. For stacked work, this should normally
 | 3 | `TRL-756` | `trl-756-audit-v1-doctrine-and-lexicon-drift-after-versioning-m3` | pending | In Progress | Audit/report drafted: minor doctrine and lexicon drift found. |
 | 4 | `TRL-757` | `trl-757-split-ontrailstesting-surface-harnesses-behind-subpaths` | pending | In Progress | Package/API implementation drafted: root contract helpers isolated, surface helpers moved behind subpaths, optional surface peers, regression coverage, docs, and changeset. |
 | 5 | `TRL-758` | `trl-758-clarify-topographer-artifact-cli-workflow-and-retired-topo` | pending | In Progress | CLI/docs implementation drafted: top-level artifact workflow clarified, retired `trails topo ...` diagnostic added, changeset included. |
-| 6 | `TRL-759` | `trl-759-document-beta-channel-install-policy-and-version-bump` | pending | Todo | Release docs/policy: beta install, dist-tag, bump cadence. |
+| 6 | `TRL-759` | `trl-759-document-beta-channel-install-policy-and-version-bump` | pending | In Progress | Release policy/docs implementation drafted: beta install policy, latest/beta registry reporting, version cadence, package install snippets, and changeset. |
 | 7 | `TRL-760` | `trl-760-add-beta15-to-beta18-downstream-migration-guide` | pending | Todo | Migration docs: beta.15 to beta.18 guide. |
 
 ## Planning Discoveries
@@ -85,6 +85,7 @@ Record issues, milestones, labels, dependency links, comments, and follow-up iss
 | 2026-05-22 18:44 EDT | `TRL-757` | Added implementation summary comment with changed surfaces, docs, changeset, and targeted checks. | Linear comment `6b7a972d-86b9-4698-bcc3-55fbb1734c50` |
 | 2026-05-22 18:45 EDT | `TRL-758` | Moved from Todo to In Progress before Topographer CLI workflow implementation. | Linear update |
 | 2026-05-22 18:50 EDT | `TRL-758` | Added implementation summary comment with retired-command diagnostic, docs, changeset, and targeted checks. | Linear comment `ee4176ff-aa16-44db-a3f4-a51a384e20b6` |
+| 2026-05-22 18:52 EDT | `TRL-759` | Moved from Todo to In Progress before beta channel policy implementation. | Linear update |
 
 ## Execution Log
 
@@ -188,6 +189,20 @@ YYYY-MM-DD HH:MM TZ - <branch/issue/checkpoint>
 - Result: Branch commit contains the retired-command diagnostic, Topographer workflow docs, changeset, and this retro entry; upper branches were restacked; unrelated `.claude/worktrees/` remains untracked only.
 - Next: Move to `TRL-759` beta channel install policy docs.
 - Blockers: None for `TRL-758`; `TRL-766` marker semantics remains the stable-cutover blocker already recorded.
+
+2026-05-22 18:57 EDT - TRL-759 beta channel install and version cadence policy
+- Changed: Added `docs/releases/beta-channel-policy.md`; linked it from docs index; updated root, getting-started, package, surface, and Trails skill install snippets to use `@beta`; documented exact beta pins vs `@beta`, intentional `latest` lag, prerelease default tag behavior, no `npm publish`/`changeset publish`, version-bump cadence, and future-channel scope; updated `publish:registry-check` output to print both `latest` and `beta`; added `.changeset/beta-install-policy.md`.
+- Verified: `bun test scripts/__tests__/check-registry-preflight.test.ts`; `bun run publish:registry-check`; representative `npm view <pkg> dist-tags --json` probes for `@ontrails/core`, `@ontrails/commander`, `@ontrails/testing`, and `@ontrails/topographer`; stale install-command sweep; `bun run docs:snippets`; `bun run docs:links`; `bun run warden:skills:check`; focused `markdownlint-cli2`; `bun run format:check`; `bun run publish:check`; `git diff --check`.
+- Result: All targeted checks passed. `publish:registry-check` now passes for `beta` and visibly reports most packages at `latest=1.0.0-beta.16, beta=1.0.0-beta.18`; representative npm probes confirm the same split for sampled packages. The final stale install sweep found no unqualified current `@ontrails/core`/CLI/MCP/HTTP/testing install commands in the checked docs/plugin/package targets.
+- Next: Commit `TRL-759`, add the Linear implementation summary comment, then move to `TRL-760`.
+- Blockers: None for `TRL-759`; `TRL-766` marker semantics remains the stable-cutover blocker already recorded.
+
+2026-05-22 (post-18:57) - Cross-session handoff prepared for fresh Claude executor
+- Changed: Updated packet `GOAL.md` with a resume-from-Codex `/goal` prompt that names current branch, working-tree state, and the next-steps sequence (commit TRL-759 → TRL-760 → final gate → local review → submit/ready/remote review). No source files changed; `RETRO.md` and `GOAL.md` only.
+- Verified: `git status --short --branch` (branch `trl-759-document-beta-channel-install-policy-and-version-bump`; 17 M files matching Codex's 18:57 entry; new `.changeset/beta-install-policy.md` and `docs/releases/beta-channel-policy.md` untracked as expected; `.claude/worktrees/` untracked and unrelated); `gt log --stack --reverse --no-interactive` (TRL-767 → TRL-758 committed in order; TRL-759 + TRL-760 branches exist; TRL-759 working tree carries the drafted changes).
+- Result: Working tree matches Codex's 18:57 EDT execution-log entry. Resume executor can commit TRL-759 without re-running drafted work. TRL-772 stable-cutover blocker is documented and intentionally out of scope for this stack.
+- Next: New executor session runs `gt modify` to commit TRL-759, adds the Linear implementation summary comment, then proceeds to TRL-760.
+- Blockers: None for the resume sequence. Stable 1.0 cutover remains gated on TRL-772, but this stack ships independently.
 ```
 
 ## Local Review Log
@@ -275,6 +290,20 @@ Record exact commands and artifact checks. Include skipped checks with reasons.
 | `bun run format:check` | `TRL-758` | pass | Repo format and Ultracite check exited 0 after TRL-758 edits. |
 | `bun run publish:check` | `TRL-758` | pass | Pack dry-run passed for all publishable workspaces; `@ontrails/trails` tarball includes `src/retired-topo-command.ts`; `@ontrails/topographer` README is included. |
 | `git diff --check` | `TRL-758` | pass | No whitespace or conflict-marker errors. |
+| `bun test scripts/__tests__/check-registry-preflight.test.ts` | `TRL-759` | pass | 7 pass, 0 fail; added coverage for formatting `latest` and `beta` tag summaries together. |
+| `bun run publish:registry-check` | `TRL-759` | pass | Read-only registry preflight checked `beta` by default from `.changeset/pre.json`; output now reports `expected beta=...` plus `tags latest=..., beta=...` for each package. |
+| `npm view @ontrails/core dist-tags --json` | `TRL-759` | pass | Read-only probe returned `latest=1.0.0-beta.16`, `beta=1.0.0-beta.18`. |
+| `npm view @ontrails/commander dist-tags --json` | `TRL-759` | pass | Read-only probe returned `latest=1.0.0-beta.16`, `beta=1.0.0-beta.18`. |
+| `npm view @ontrails/testing dist-tags --json` | `TRL-759` | pass | Read-only probe returned `latest=1.0.0-beta.16`, `beta=1.0.0-beta.18`. |
+| `npm view @ontrails/topographer dist-tags --json` | `TRL-759` | pass | Read-only probe returned `latest=1.0.0-beta.16`, `beta=1.0.0-beta.18`. |
+| `rg -n 'bun add (-d )?@ontrails/(core\|cli\|commander\|mcp\|http\|hono\|testing)(\\s\|$)\|bun add @ontrails/core @ontrails/cli' README.md docs plugin/skills packages/*/README.md --glob '!**/CHANGELOG.md'` | `TRL-759` | pass | Final sweep exited 1 with no matches, confirming checked current install docs no longer show unqualified core/CLI/MCP/HTTP/testing install commands. An earlier sweep with unescaped backticks emitted a zsh `latest` command-substitution error; rerun used single-quoted regex. |
+| `bun run docs:snippets` | `TRL-759` | pass | README snippet typecheck passed for 21 README files after package install snippet edits. |
+| `bun run docs:links` | `TRL-759` | pass | Markdown link check passed for 120 files after adding `docs/releases/beta-channel-policy.md`. |
+| `bun run warden:skills:check` | `TRL-759` | pass | Skill Warden guide sync check exited 0. |
+| `bunx markdownlint-cli2 README.md docs/index.md docs/getting-started.md docs/releases/beta-channel-policy.md docs/surfaces/cli.md docs/surfaces/mcp.md docs/surfaces/http.md packages/core/README.md packages/cli/README.md packages/http/README.md packages/testing/README.md packages/mcp/README.md plugin/skills/trails/SKILL.md plugin/skills/trails/references/getting-started.md plugin/skills/trails/references/http-surface.md .changeset/beta-install-policy.md` | `TRL-759` | pass | 0 markdownlint errors across changed docs, plugin guidance, package READMEs, and changeset. |
+| `bun run format:check` | `TRL-759` | pass | Repo format and Ultracite check exited 0 after TRL-759 edits. |
+| `bun run publish:check` | `TRL-759` | pass | Pack dry-run passed for all publishable workspaces after package README and changeset edits. |
+| `git diff --check` | `TRL-759` | pass | No whitespace or conflict-marker errors. |
 
 ## Remote Review / CI Log
 
