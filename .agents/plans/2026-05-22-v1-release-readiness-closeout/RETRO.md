@@ -25,7 +25,7 @@ Use this as the durable execution ledger. For stacked work, this should normally
 | --- | --- | --- | --- | --- | --- |
 | 1 | `TRL-767` | `trl-767-audit-pending-force-events-as-a-v1-stable-cutover-gate` | pending | In Progress | Audit/report drafted: pending force events as stable cutover gate. |
 | 2 | `TRL-766` | `trl-766-audit-version-marker-failure-ux-and-bounded-zod-diagnostics` | pending | In Progress | Audit/report drafted: stable-cutover blocker found in marker handling for validation constraints. |
-| 3 | `TRL-756` | `trl-756-audit-v1-doctrine-and-lexicon-drift-after-versioning-m3` | pending | Todo | Audit/report: doctrine and lexicon drift. |
+| 3 | `TRL-756` | `trl-756-audit-v1-doctrine-and-lexicon-drift-after-versioning-m3` | pending | In Progress | Audit/report drafted: minor doctrine and lexicon drift found. |
 | 4 | `TRL-757` | `trl-757-split-ontrailstesting-surface-harnesses-behind-subpaths` | pending | Todo | Package/API: testing harness subpaths and changeset. |
 | 5 | `TRL-758` | `trl-758-clarify-topographer-artifact-cli-workflow-and-retired-topo` | pending | Todo | CLI/docs: Topographer artifact workflow. |
 | 6 | `TRL-759` | `trl-759-document-beta-channel-install-policy-and-version-bump` | pending | Todo | Release docs/policy: beta install, dist-tag, bump cadence. |
@@ -52,6 +52,8 @@ Out-of-goal discoveries belong here first. Create focused follow-up issues when 
 | `TRL-771` | Accepted-exception semantics for pending force events are not artifact-backed. | Design/policy follow-up; the current hard zero-pending gate is usable, but named exceptions need their own decision. | <https://linear.app/outfitter/issue/TRL-771/define-accepted-exception-semantics-for-pending-force-events> |
 | `TRL-772` | Version markers accept Zod validation checks/refinements that do not affect marker content. | Stable-cutover blocker discovered by `TRL-766`; the fix requires a policy choice and implementation/tests beyond an audit report. | <https://linear.app/outfitter/issue/TRL-772/make-version-markers-account-for-or-reject-zod-validation-checks> |
 | `TRL-773` | Source Warden `marker-schema-unsupported` misses `lazy`, `intersection`, and `record` even though runtime marker projection rejects them. | Diagnostic coverage follow-up discovered by `TRL-766`; smaller than `TRL-772` but still out of the audit-report branch scope. | <https://linear.app/outfitter/issue/TRL-773/align-marker-schema-unsupported-warden-coverage-with-runtime-marker> |
+| `TRL-774` | Public resource factory docs/examples and tests still use `svc`, `service*`, and `provision*` residue around the resource context surface. | Cross-cutting mechanical lexicon cleanup discovered by `TRL-756`; not part of the report-only audit branch. | <https://linear.app/outfitter/issue/TRL-774/rename-resource-factory-svc-residue-to-current-resource-context-naming> |
+| `TRL-775` | `.trails/clark/survey-latest.md` is tracked and stale while still labeled as the latest survey. | Clark survey lifecycle cleanup discovered by `TRL-756`; out of scope for the audit report branch. | <https://linear.app/outfitter/issue/TRL-775/refresh-or-archive-stale-committed-clark-survey-snapshot> |
 
 ## Tracker Mutations
 
@@ -75,6 +77,10 @@ Record issues, milestones, labels, dependency links, comments, and follow-up iss
 | 2026-05-22 18:11 EDT | `TRL-772` | Created follow-up issue for marker handling of validation checks/refinements. | Linear create, related to `TRL-766` |
 | 2026-05-22 18:11 EDT | `TRL-773` | Created follow-up issue for Warden parity with runtime marker failures. | Linear create, related to `TRL-766` |
 | 2026-05-22 18:14 EDT | `TRL-766` | Added audit summary comment with report path, verdict, follow-ups, and targeted checks. | Linear comment `082ab1bb-ce4b-4db2-875d-20b7f5c5cadd` |
+| 2026-05-22 18:21 EDT | `TRL-756` | Moved from Todo to In Progress before doctrine/lexicon audit report writing. | Linear update |
+| 2026-05-22 18:23 EDT | `TRL-774` | Created follow-up issue for resource factory `svc` and related service/provision residue. | Linear create, related to `TRL-756` |
+| 2026-05-22 18:23 EDT | `TRL-775` | Created follow-up issue for stale committed Clark survey snapshot lifecycle. | Linear create, related to `TRL-756` |
+| 2026-05-22 18:28 EDT | `TRL-756` | Added audit summary comment with report path, verdict, follow-ups, checks, and stable-cutover assessment. | Linear comment `15bbfeef-de73-46c8-b572-1777e8d3e8ed` |
 
 ## Execution Log
 
@@ -136,6 +142,20 @@ YYYY-MM-DD HH:MM TZ - <branch/issue/checkpoint>
 - Result: Branch commit `docs: audit marker diagnostics` contains only `RETRO.md` and `reports/trl-766-marker-diagnostics.md`; unrelated `.claude/worktrees/` is again untracked only; stack order remains intact.
 - Next: Ask whether to add `TRL-772` as a blocking implementation branch before continuing, narrow the stable marker guarantee, or continue the planned audit stack with the blocker recorded.
 - Blockers: Stable marker contract needs a decision before the goal can honestly proceed to "done".
+
+2026-05-22 18:24 EDT - TRL-756 doctrine and lexicon drift audit
+- Changed: Added `reports/trl-756-doctrine-lexicon-drift.md`; filed follow-ups `TRL-774` and `TRL-775`.
+- Verified: Required retired-term search with `git grep`; active-target `rg` classification; `bun run vocab:audit`; `bun run vocab:audit:json`; `bun run lint:ast-grep`; `bun run warden:skills:check`; `bun run warden:agents:check`; `bun run plugin:installed-skill:check`.
+- Result: Verdict is `minor drift`; repo-enforced lexicon gates are clean; the remaining branch-source drift is resource factory `svc`/service/provision naming and the stale committed Clark survey snapshot; installed local skill drift is external operator state and the check remained read-only.
+- Next: Run report/retro markdown checks, commit the `TRL-756` audit report, then add the Linear audit summary comment.
+- Blockers: None for the lexicon cutover gate; `TRL-766` marker semantics remains the stable-cutover blocker already recorded.
+
+2026-05-22 18:28 EDT - TRL-756 tracker comment and branch verification
+- Changed: Committed the `TRL-756` audit report as `docs: audit doctrine lexicon drift`; added Linear comment `15bbfeef-de73-46c8-b572-1777e8d3e8ed`.
+- Verified: `gt modify -m "docs: audit doctrine lexicon drift" --no-interactive`; `git status --short --branch`; `gt log --stack --reverse --no-interactive`; `git show --stat --oneline --name-status HEAD`; Linear `_save_comment`.
+- Result: Branch commit contains only `RETRO.md` and `reports/trl-756-doctrine-lexicon-drift.md`; upper branches were restacked; unrelated `.claude/worktrees/` remains untracked only.
+- Next: Move to `TRL-757` testing package surface-harness subpath implementation.
+- Blockers: None for `TRL-756`; `TRL-766` marker semantics remains the stable-cutover blocker already recorded.
 ```
 
 ## Local Review Log
@@ -181,6 +201,19 @@ Record exact commands and artifact checks. Include skipped checks with reasons.
 | `bun test packages/core/src/__tests__/version-marker.test.ts packages/topographer/src/__tests__/derive.test.ts packages/warden/src/__tests__/trail-versioning-rules.test.ts` | `TRL-766` | pass | 55 pass, 0 fail. |
 | `bunx markdownlint-cli2 .agents/plans/2026-05-22-v1-release-readiness-closeout/reports/trl-766-marker-diagnostics.md` | `TRL-766` | pass | 0 markdownlint errors. |
 | `git diff --check` | `TRL-766` | pass | No whitespace or conflict-marker errors. |
+| `git grep -nE '\b(trailhead\|trailheads\|provision\|provisions\|gate\|gates\|loadout\|tracker\|tracks\|vocabulary)\b' -- ':!bun.lock'` | `TRL-756` | pass | Required search form checked; Git ERE word-boundary behavior produced no useful hits, so the same term set was rerun with `-P` for classification. |
+| `git grep -nP '\b(trailhead\|trailheads\|provision\|provisions\|gate\|gates\|loadout\|tracker\|tracks\|vocabulary)\b' -- ':!bun.lock' \| wc -l` | `TRL-756` | pass | 1063 raw hits before classification. |
+| `rg -n 'trailhead\|trailheads\|provision\|provisions\|loadout\|tracker\|tracks\|\bgate\b\|\bgates\b\|vocabulary' packages/*/README.md adapters/*/README.md apps/*/README.md README.md docs/*.md docs/releases/*.md plugin/skills .claude/skills .agents/skills --glob '!**/CHANGELOG.md' \| wc -l` | `TRL-756` | pass | 69 active-target hits after changelog exclusion; classified as history/migration, false positives, compatibility coverage, or tracked follow-up drift. |
+| `rg -n '\bsvc\b\|provisionLeafTrail\|provisionRootTrail\|provisionTrailsMap\|service-config\|service.test\|tracing-provision' packages plugin/skills --glob '!**/CHANGELOG.md' \| head -80` | `TRL-756` | pass | Confirmed public `ResourceSpec.create`/skill examples and resource tests still carry `svc`, `service*`, and `provision*` residue; follow-up `TRL-774` created. |
+| `git ls-files packages/tracker .trails/clark/survey-latest.md` | `TRL-756` | pass | Only `.trails/clark/survey-latest.md` is tracked; no tracked `packages/tracker` files remain. |
+| `bun run vocab:audit` | `TRL-756` | pass | `vocab-cutover audit passed for entire repo target set: no legacy patterns found.` |
+| `bun run vocab:audit:json` | `TRL-756` | pass | All retired-vocabulary rules reported `total: 0`. |
+| `bun run lint:ast-grep` | `TRL-756` | pass | `ast-grep scan --config .ast-grep/sgconfig.yml` exited 0. |
+| `bun run warden:skills:check` | `TRL-756` | pass | `sync-skill-warden-guide.ts --check` exited 0. |
+| `bun run warden:agents:check` | `TRL-756` | pass | `sync-agents-warden-guide.ts --check` exited 0. |
+| `bun run plugin:installed-skill:check` | `TRL-756` | expected failure | Read-only external state check found content drift and stale vocabulary in `/Users/mg/.agents/skills/trails` and the symlinked Claude skill; no installed files changed. |
+| `bunx markdownlint-cli2 .agents/plans/2026-05-22-v1-release-readiness-closeout/RETRO.md .agents/plans/2026-05-22-v1-release-readiness-closeout/reports/trl-756-doctrine-lexicon-drift.md` | `TRL-756` | pass | 0 markdownlint errors after removing an extra trailing blank line. |
+| `git diff --check` | `TRL-756` | pass | No whitespace or conflict-marker errors. |
 
 ## Remote Review / CI Log
 
