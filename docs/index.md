@@ -35,7 +35,7 @@
 ## Governing your codebase?
 
 - **[Warden](./warden.md)** — Trails correctness rules, rule-home boundaries, drift detection, CI integration
-- **[Topographer](../packages/topographer/README.md)** — TopoGraphs, topo compile helpers, semantic diffing, lock artifact helpers
+- **[Topographer](../packages/topographer/README.md)** — TopoGraphs, durable artifact helpers, semantic diffing, lock manifests, topo-store persistence
 
 ## Contributing to Trails?
 

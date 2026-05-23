@@ -99,7 +99,7 @@ Each declaration you add to a trail unlocks derived behavior across every surfac
 | You add | You get for free |
 |---------|-----------------|
 | `input` (Zod schema) | CLI flags + `--help` text, MCP JSON Schema, input validation |
-| `output` (Zod schema) | Contract tests, MCP response typing, surface map entries |
+| `output` (Zod schema) | Contract tests, MCP response typing, TopoGraph surface entries |
 | `intent: 'read'` | MCP `readOnlyHint`, CLI skips confirmation, HTTP GET |
 | `intent: 'destroy'` | MCP `destructiveHint`, CLI auto-adds `--dry-run`, HTTP DELETE |
 | `examples` | Tests (happy + error path), agent guidance, documentation |
@@ -156,7 +156,7 @@ $ myapp greet --name World
 | [`@ontrails/store`](./packages/store) | Backend-agnostic store definitions, typed accessors, adapter-support helpers |
 | [`@ontrails/drizzle`](./adapters/drizzle) | Drizzle SQLite adapter, typed store bindings, read-only bindings |
 | [`@ontrails/testing`](./packages/testing) | `testAll()`, `testTrail()`, `testCrosses()`, contract testing, surface harnesses |
-| [`@ontrails/topographer`](./packages/topographer) | TopoGraphs, semantic diffing, lock manifest and `topo.lock` helpers |
+| [`@ontrails/topographer`](./packages/topographer) | TopoGraphs, semantic diffing, durable artifact helpers, lock manifests, topo-store persistence |
 | [`@ontrails/observe`](./packages/observe) | Log and trace sink contracts, sink composition, built-in sinks, trace rendering |
 | [`@ontrails/tracing`](./packages/tracing) | Tracing compatibility, query/status trails, `trails.db` dev-state storage, sampling helpers, OTel adapter |
 | [`@ontrails/logtape`](./packages/logtape) | Adapter that forwards Trails log records to a LogTape-shaped logger |

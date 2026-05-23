@@ -77,7 +77,7 @@ Every piece of information has a clear ownership model.
 | Error types returned | `Result.err(new XError(...))` patterns |
 | TopoGraph entries and lock hash | All established trails, resources, signals, contours, examples, and derived fields, canonicalized |
 
-Warden uses inference to verify declarations match actual code. Topographer captures the resolved `TopoGraph`, semantic diff, lock manifest, and `topo.lock` artifacts for CI governance.
+Warden uses inference to verify declarations match actual code. Topographer captures the resolved `TopoGraph`, semantic diff, lock manifest, and `topo.lock` artifacts for CI governance. Consumer artifact workflow uses the top-level CLI commands `trails compile`, `trails validate`, and `trails diff`; `trails topo` is for topo-store history and pin management.
 
 ## Package Layout
 

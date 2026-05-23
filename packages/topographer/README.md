@@ -2,9 +2,12 @@
 
 Durable graph substrate for Trails: deterministic TopoGraphs, lockfile helpers, and semantic diffing.
 
-Most applications reach this package through `trails compile` and
-`trails validate`. Those CLI trails layer workspace and topo-store behavior on
-top of the building blocks in `@ontrails/topographer`.
+Most applications reach this package through top-level `trails compile`,
+`trails validate`, and `trails diff`. Those CLI trails layer workspace and
+topo-store behavior on top of the building blocks in
+`@ontrails/topographer`. The package itself ships library entry points, not a
+separate CLI binary, and retired `trails topo compile`,
+`trails topo verify`, and `trails topo check` forms are not aliases.
 
 ## What it owns
 

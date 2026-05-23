@@ -27,7 +27,7 @@ Use this as the durable execution ledger. For stacked work, this should normally
 | 2 | `TRL-766` | `trl-766-audit-version-marker-failure-ux-and-bounded-zod-diagnostics` | pending | In Progress | Audit/report drafted: stable-cutover blocker found in marker handling for validation constraints. |
 | 3 | `TRL-756` | `trl-756-audit-v1-doctrine-and-lexicon-drift-after-versioning-m3` | pending | In Progress | Audit/report drafted: minor doctrine and lexicon drift found. |
 | 4 | `TRL-757` | `trl-757-split-ontrailstesting-surface-harnesses-behind-subpaths` | pending | In Progress | Package/API implementation drafted: root contract helpers isolated, surface helpers moved behind subpaths, optional surface peers, regression coverage, docs, and changeset. |
-| 5 | `TRL-758` | `trl-758-clarify-topographer-artifact-cli-workflow-and-retired-topo` | pending | Todo | CLI/docs: Topographer artifact workflow. |
+| 5 | `TRL-758` | `trl-758-clarify-topographer-artifact-cli-workflow-and-retired-topo` | pending | In Progress | CLI/docs implementation drafted: top-level artifact workflow clarified, retired `trails topo ...` diagnostic added, changeset included. |
 | 6 | `TRL-759` | `trl-759-document-beta-channel-install-policy-and-version-bump` | pending | Todo | Release docs/policy: beta install, dist-tag, bump cadence. |
 | 7 | `TRL-760` | `trl-760-add-beta15-to-beta18-downstream-migration-guide` | pending | Todo | Migration docs: beta.15 to beta.18 guide. |
 
@@ -83,6 +83,8 @@ Record issues, milestones, labels, dependency links, comments, and follow-up iss
 | 2026-05-22 18:28 EDT | `TRL-756` | Added audit summary comment with report path, verdict, follow-ups, checks, and stable-cutover assessment. | Linear comment `15bbfeef-de73-46c8-b572-1777e8d3e8ed` |
 | 2026-05-22 18:29 EDT | `TRL-757` | Moved from Todo to In Progress before package implementation. | Linear update |
 | 2026-05-22 18:44 EDT | `TRL-757` | Added implementation summary comment with changed surfaces, docs, changeset, and targeted checks. | Linear comment `6b7a972d-86b9-4698-bcc3-55fbb1734c50` |
+| 2026-05-22 18:45 EDT | `TRL-758` | Moved from Todo to In Progress before Topographer CLI workflow implementation. | Linear update |
+| 2026-05-22 18:50 EDT | `TRL-758` | Added implementation summary comment with retired-command diagnostic, docs, changeset, and targeted checks. | Linear comment `ee4176ff-aa16-44db-a3f4-a51a384e20b6` |
 
 ## Execution Log
 
@@ -172,6 +174,20 @@ YYYY-MM-DD HH:MM TZ - <branch/issue/checkpoint>
 - Result: Branch commit contains the package/API split, regression, docs/plugin guidance, changeset, and this retro entry; upper branches were restacked; unrelated `.claude/worktrees/` remains untracked only.
 - Next: Move to `TRL-758` Topographer CLI workflow docs.
 - Blockers: None for `TRL-757`; `TRL-766` marker semantics remains the stable-cutover blocker already recorded.
+
+2026-05-22 18:49 EDT - TRL-758 Topographer artifact command workflow
+- Changed: Added a small CLI bootstrap diagnostic for retired `trails topo compile`, `trails topo verify`, and `trails topo check` attempts; documented top-level `trails compile`, `trails validate`, and `trails diff` as the consumer artifact workflow; clarified `@ontrails/topographer` as programmatic APIs/no separate bin; refreshed README/index/plugin Topographer wording; added `.changeset/topographer-cli-workflow.md`.
+- Verified: `bun test apps/trails/src/__tests__/retired-topo-command.test.ts`; actual CLI attempts for `topo compile`, `topo verify`, and `topo check`; help snapshots for root, `topo`, `compile`, `validate`, and `diff`; `bun run --cwd apps/trails typecheck`; `bun run docs:snippets`; `bun run docs:api-examples`; `bun run docs:links`; `bun run warden:skills:check`; focused `markdownlint-cli2`; stale-command text sweep; `bun run format:check`; `bun run publish:check`; `git diff --check`.
+- Result: All targeted checks passed. Stale-command sweep found only intentional current-facing retirement notes in `docs/topo-store.md`, `docs/api-reference.md`, and `packages/topographer/README.md`; root/topo help remains on the current command grammar, with no retired children under `trails topo --help`.
+- Next: Commit `TRL-758`, add the Linear implementation summary comment, then move to `TRL-759`.
+- Blockers: None for `TRL-758`; `TRL-766` marker semantics remains the stable-cutover blocker already recorded.
+
+2026-05-22 18:50 EDT - TRL-758 tracker comment and branch verification
+- Changed: Committed `TRL-758` as `docs: clarify topographer cli workflow`; added Linear comment `ee4176ff-aa16-44db-a3f4-a51a384e20b6`.
+- Verified: `gt modify -m "docs: clarify topographer cli workflow" --no-interactive`; `git status --short --branch`; `gt log --stack --reverse --no-interactive`; `git show --stat --oneline --name-status HEAD`; Linear `_save_comment`.
+- Result: Branch commit contains the retired-command diagnostic, Topographer workflow docs, changeset, and this retro entry; upper branches were restacked; unrelated `.claude/worktrees/` remains untracked only.
+- Next: Move to `TRL-759` beta channel install policy docs.
+- Blockers: None for `TRL-758`; `TRL-766` marker semantics remains the stable-cutover blocker already recorded.
 ```
 
 ## Local Review Log
@@ -240,6 +256,25 @@ Record exact commands and artifact checks. Include skipped checks with reasons.
 | `bun run publish:check` | `TRL-757` | pass | Pack dry-run passed for all publishable workspaces; `@ontrails/testing` tarball includes new subpath source files. |
 | `bun run format:check` | `TRL-757` | pass after fix | First run found formatting issues in `public-subpaths.test.ts` and `types.ts`; `bun run format:fix` changed only formatted repo files, and rerun passed. |
 | `git diff --check` | `TRL-757` | pass | No whitespace or conflict-marker errors after formatting. |
+| `bun test apps/trails/src/__tests__/retired-topo-command.test.ts` | `TRL-758` | pass | 2 pass, 0 fail; covers replacements and live command exclusions. |
+| `bun apps/trails/bin/trails.ts topo compile` | `TRL-758` | expected failure | Exit 1 with diagnostic: use `trails compile`; top-level artifact commands are `compile`, `validate`, and `diff`. |
+| `bun apps/trails/bin/trails.ts topo verify` | `TRL-758` | expected failure | Exit 1 with diagnostic: use `trails validate`. |
+| `bun apps/trails/bin/trails.ts topo check` | `TRL-758` | expected failure | Exit 1 with diagnostic: use `trails validate`. |
+| `bun apps/trails/bin/trails.ts --help` | `TRL-758` | pass | Root help lists top-level `compile`, `diff`, `topo`, and `validate`. |
+| `bun apps/trails/bin/trails.ts topo --help` | `TRL-758` | pass | `topo` help lists only `history`, `pin`, and `unpin` children. |
+| `bun apps/trails/bin/trails.ts compile --help` | `TRL-758` | pass | Help describes top-level artifact compile command. |
+| `bun apps/trails/bin/trails.ts validate --help` | `TRL-758` | pass | Help describes top-level artifact validation command. |
+| `bun apps/trails/bin/trails.ts diff --help` | `TRL-758` | pass | Help describes top-level TopoGraph diff command. |
+| `bun run --cwd apps/trails typecheck` | `TRL-758` | pass | App package typecheck exited 0. |
+| `bun run docs:snippets` | `TRL-758` | pass | README snippet typecheck passed for 21 README files, including `packages/topographer/README.md`. |
+| `bun run docs:api-examples` | `TRL-758` | pass | Public API example coverage passed for the minimum export set; inventory-only missing examples remain pre-existing. |
+| `bun run docs:links` | `TRL-758` | pass | Markdown link check passed for 119 files. |
+| `bun run warden:skills:check` | `TRL-758` | pass | Skill Warden guide sync check exited 0. |
+| `bunx markdownlint-cli2 README.md docs/index.md docs/topo-store.md docs/api-reference.md packages/topographer/README.md plugin/skills/trails/references/architecture.md .changeset/topographer-cli-workflow.md` | `TRL-758` | pass | 0 markdownlint errors across changed docs and changeset. |
+| `rg -n "trails topo (compile\|verify\|check)\|topo compile helpers\|SurfaceMap\|Surface maps\|surface map entries" README.md docs/index.md docs/topo-store.md docs/api-reference.md packages/topographer/README.md plugin/skills/trails/references/architecture.md apps/trails/src --glob '!**/CHANGELOG.md'` | `TRL-758` | pass | Only intentional retirement notes remain in current docs; no root README/index/plugin active SurfaceMap wording found. |
+| `bun run format:check` | `TRL-758` | pass | Repo format and Ultracite check exited 0 after TRL-758 edits. |
+| `bun run publish:check` | `TRL-758` | pass | Pack dry-run passed for all publishable workspaces; `@ontrails/trails` tarball includes `src/retired-topo-command.ts`; `@ontrails/topographer` README is included. |
+| `git diff --check` | `TRL-758` | pass | No whitespace or conflict-marker errors. |
 
 ## Remote Review / CI Log
 

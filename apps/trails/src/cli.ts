@@ -21,6 +21,7 @@ import { deriveTopoGraph } from '@ontrails/topographer';
 
 import { app } from './app.js';
 import { resolveInputWithClack } from './clack.js';
+import { getRetiredTopoCommandDiagnostic } from './retired-topo-command.js';
 import { attachCompletionsInstallCommand } from './run-completions-install.js';
 import { tryRecoverFromRunCollision } from './run-collision.js';
 import { tryExampleRunOutput } from './run-example.js';
@@ -267,6 +268,13 @@ const normalizeWardenArgv = (argv: readonly string[]): string[] => {
  * process-lifetime sink.
  */
 const runSurfaceOnce = async (): Promise<void> => {
+  const retiredTopoCommand = getRetiredTopoCommandDiagnostic(process.argv);
+  if (retiredTopoCommand !== null) {
+    process.stderr.write(`${retiredTopoCommand.message}\n`);
+    process.exitCode = 1;
+    return;
+  }
+
   const session = maybeInstallTraceSession();
   try {
     const program = createProgram(app, {

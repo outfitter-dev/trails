@@ -235,6 +235,13 @@ CreateAppOptions, SurfaceHttpResult
 
 ## `@ontrails/topographer`
 
+These are programmatic Topographer APIs for deriving, hashing, diffing, reading,
+and writing TopoGraph artifacts. App authors usually run the artifact lifecycle
+through the top-level CLI commands instead: `trails compile`, `trails validate`,
+and `trails diff`. The package does not expose a separate CLI binary, and
+retired `trails topo compile` / `trails topo verify` / `trails topo check`
+forms are not aliases.
+
 ```typescript
 // TopoGraph and lock artifact helpers
 deriveTopoGraph(graph), deriveTopoGraphHash(topoGraph), deriveTopoGraphDiff(before, after)

@@ -51,6 +51,20 @@ These fields are not exhaustive per-trail error contracts. Error categories, ret
 
 ## Commands
 
+Artifact lifecycle commands are top-level `trails` commands:
+`trails compile`, `trails validate`, and `trails diff`. The `trails topo`
+namespace is reserved for topo-store history and pin management.
+
+Retired shapes such as `trails topo compile`, `trails topo verify`, and
+`trails topo check` are not aliases. Use the top-level commands instead:
+
+- `trails compile` writes `.trails/topo.lock` and `.trails/trails.lock`.
+- `trails validate` checks committed artifacts against the current topo.
+- `trails diff` compares the current topo against a saved TopoGraph target.
+
+Programmatic consumers use `@ontrails/topographer` APIs directly; the package
+does not ship a separate CLI binary.
+
 ### `trails topo pin`
 
 Create a named pin for the current topo state.
