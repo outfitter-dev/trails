@@ -65,8 +65,10 @@ dogfood evidence. The report must cover:
 
 - registry `bun install` succeeds for scaffolded package ranges;
 - a repaired disposable app passes typecheck, tests, build, lint, format,
-  CLI smoke, Warden, `testAllEstablished`, `testSurfaceParity`,
-  `createCliHarness`, `createMcpHarness`, and `createHttpHarness`;
+  CLI smoke, Warden, `testAllEstablished` from
+  `@ontrails/testing/established`, `testSurfaceParity` from
+  `@ontrails/testing/surface-parity`, and the CLI, MCP, and HTTP harness
+  helpers from their matching testing subpaths;
 - raw scaffold output findings are recorded, including any lint, format,
   typecheck, or Warden coaching needed before the disposable app is clean;
 - published CLI command coverage is compared against current repo CLI command

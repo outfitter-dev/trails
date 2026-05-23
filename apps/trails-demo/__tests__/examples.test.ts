@@ -4,7 +4,7 @@
  * projections still build.
  */
 
-import { testAllEstablished } from '@ontrails/testing';
+import { testAllEstablished } from '@ontrails/testing/established';
 
 import { graph } from '../src/app.js';
 

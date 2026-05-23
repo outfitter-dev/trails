@@ -5,11 +5,18 @@
 import { describe, expect, test } from 'bun:test';
 
 import { deriveCliPath, filterSurfaceTrails } from '@ontrails/core';
-import type { Topo, Trail, TrailContext, TrailExample } from '@ontrails/core';
+import type {
+  ResourceOverrideMap,
+  Topo,
+  Trail,
+  TrailContext,
+  TrailExample,
+} from '@ontrails/core';
 import { deriveHttpInputSource, deriveHttpMethod } from '@ontrails/http';
 import type { HttpMethod } from '@ontrails/http';
 import { MCP_TOOL_ERROR_META_KEY, deriveToolName } from '@ontrails/mcp';
 
+import type { TestAllEstablishedOptions } from './all-established.js';
 import {
   createMockResources,
   defaultCreatePermit,
@@ -18,18 +25,44 @@ import {
 } from './context.js';
 import { deriveTrailExamples } from './effective-examples.js';
 import { createCliHarness } from './harness-cli.js';
+import type { CliHarnessResult } from './harness-cli.js';
 import { createHttpHarness } from './harness-http.js';
+import type { HttpHarnessResult } from './harness-http.js';
 import { createMcpHarness } from './harness-mcp.js';
-import type {
-  CliHarnessResult,
-  HttpHarnessResult,
-  McpHarnessResult,
-  NormalizedSurfaceParityResult,
-  SurfaceParityExclusion,
-  SurfaceParityOptions,
-} from './types.js';
+import type { McpHarnessResult } from './harness-mcp.js';
 
 type ParityTrail = Trail<unknown, unknown, unknown>;
+
+export type SurfaceParitySurface = 'cli' | 'mcp' | 'http';
+
+export interface SurfaceParityExclusion {
+  /** Optional example name. Omit to exclude every example for the trail. */
+  readonly example?: string | undefined;
+  /** Human-readable reason shown in the skipped test name. */
+  readonly reason: string;
+  /** Trail ID to exclude. */
+  readonly trailId: string;
+}
+
+export interface SurfaceParityOptions extends TestAllEstablishedOptions {
+  readonly createResources?:
+    | (() => ResourceOverrideMap | Promise<ResourceOverrideMap>)
+    | undefined;
+  readonly exclusions?: readonly SurfaceParityExclusion[] | undefined;
+}
+
+export type NormalizedSurfaceParityResult =
+  | {
+      readonly ok: true;
+      readonly value: unknown;
+    }
+  | {
+      readonly error: {
+        readonly category: string;
+        readonly code: string;
+      };
+      readonly ok: false;
+    };
 
 export interface SurfaceParityComparison {
   readonly cli: NormalizedSurfaceParityResult;
@@ -308,7 +341,7 @@ const parityTrails = (app: Topo): readonly ParityTrail[] =>
  *
  * @example
  * ```ts
- * import { testSurfaceParity } from '@ontrails/testing';
+ * import { testSurfaceParity } from '@ontrails/testing/surface-parity';
  * import { graph } from '../src/app.js';
  *
  * testSurfaceParity(graph);

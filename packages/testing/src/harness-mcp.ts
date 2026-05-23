@@ -6,13 +6,35 @@
  */
 
 import { deriveMcpTools } from '@ontrails/mcp';
-import type { McpToolDefinition } from '@ontrails/mcp';
-
 import type {
-  McpHarness,
-  McpHarnessOptions,
-  McpHarnessResult,
-} from './types.js';
+  DeriveMcpToolsOptions,
+  McpExtra,
+  McpToolDefinition,
+} from '@ontrails/mcp';
+import type { Topo } from '@ontrails/core';
+
+/** Options for creating an MCP harness. */
+export interface McpHarnessOptions extends DeriveMcpToolsOptions {
+  readonly extra?: Partial<McpExtra> | undefined;
+  readonly graph: Topo;
+}
+
+/** A test harness for MCP tools. */
+export interface McpHarness {
+  /** Call an MCP tool by name with arguments. */
+  callTool(
+    name: string,
+    args: Record<string, unknown>
+  ): Promise<McpHarnessResult>;
+}
+
+/** The result of an MCP harness tool invocation. */
+export interface McpHarnessResult {
+  readonly content: unknown;
+  readonly isError: boolean;
+  readonly meta?: Record<string, unknown> | undefined;
+  readonly structuredContent?: Record<string, unknown> | undefined;
+}
 
 // ---------------------------------------------------------------------------
 // createMcpHarness
@@ -25,6 +47,8 @@ import type {
  * that invokes tools directly without any transport boundary.
  *
  * ```ts
+ * import { createMcpHarness } from '@ontrails/testing/mcp';
+ *
  * const harness = createMcpHarness({ graph });
  * const result = await harness.callTool("myapp_entity_show", { name: "Alpha" });
  * expect(result.isError).toBe(false);

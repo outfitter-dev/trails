@@ -232,12 +232,16 @@ const runGeneratedGovernanceSuite = (
 ): { readonly exitCode: number; readonly output: string } => {
   const dir = repoTempDir();
   const testFile = join(dir, `${helperName}.test.ts`);
+  const helperImport =
+    helperName === 'testAllEstablished'
+      ? '../../src/all-established.ts'
+      : '../../src/index.ts';
 
   mkdirSync(dir, { recursive: true });
   writeFileSync(
     testFile,
     `import { Result, trail, topo } from '@ontrails/core';
-import { ${helperName} } from '../../src/index.ts';
+import { ${helperName} } from '${helperImport}';
 import { z } from 'zod';
 
 const draftTrail = trail('_draft.entity.prepare', {
@@ -278,7 +282,7 @@ const runGeneratedEstablishedSuite = (): {
   writeFileSync(
     testFile,
     `import { Result, trail, topo } from '@ontrails/core';
-import { testAllEstablished } from '../../src/index.ts';
+import { testAllEstablished } from '../../src/all-established.ts';
 import { z } from 'zod';
 
 const show = trail('entity.show', {

@@ -2,7 +2,7 @@
  * Example-driven parity across shipped surfaces.
  */
 
-import { testSurfaceParity } from '@ontrails/testing';
+import { testSurfaceParity } from '@ontrails/testing/surface-parity';
 
 import { graph } from '../src/app.js';
 import { createNotificationStore } from '../src/resources/notification-store.js';

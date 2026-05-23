@@ -349,12 +349,16 @@ logger.clear(); // reset
 
 ## Surface Harnesses
 
+Surface harnesses are opt-in subpaths. Root `@ontrails/testing` stays focused
+on contract helpers; import surface-specific helpers from the subpath matching
+the peer package you use.
+
 ### CLI Harness
 
 Execute CLI commands in-process and capture stdout/stderr:
 
 ```typescript
-import { createCliHarness } from '@ontrails/testing';
+import { createCliHarness } from '@ontrails/testing/cli';
 
 const harness = createCliHarness({ graph });
 const result = await harness.run('entity show --name Alpha --output json');
@@ -368,7 +372,7 @@ expect(result.json).toMatchObject({ name: 'Alpha' });
 Invoke MCP tools directly without transport:
 
 ```typescript
-import { createMcpHarness } from '@ontrails/testing';
+import { createMcpHarness } from '@ontrails/testing/mcp';
 
 const harness = createMcpHarness({ graph });
 const result = await harness.callTool('myapp_entity_show', { name: 'Alpha' });
@@ -381,7 +385,7 @@ expect(result.isError).toBe(false);
 Execute derived HTTP routes in-process without Hono or a listening server:
 
 ```typescript
-import { createHttpHarness } from '@ontrails/testing';
+import { createHttpHarness } from '@ontrails/testing/http';
 
 const harness = createHttpHarness({ graph });
 const result = await harness.get('/entity/show', { name: 'Alpha' });

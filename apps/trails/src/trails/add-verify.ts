@@ -24,7 +24,7 @@ import {
 // ---------------------------------------------------------------------------
 
 const generateTestFile = (): string =>
-  `import { testAllEstablished } from '@ontrails/testing';
+  `import { testAllEstablished } from '@ontrails/testing/established';
 import { app } from '../src/app.js';
 
 testAllEstablished(app);

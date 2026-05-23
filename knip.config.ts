@@ -72,6 +72,22 @@ const workspaceEntries = [
   ),
 ];
 
+const workspaceMap = Object.fromEntries(workspaceEntries);
+
+// `@ontrails/testing` exposes the surface harnesses behind subpaths
+// (`./cli`, `./mcp`, `./http`) and marks the surface peers optional via
+// `peerDependenciesMeta`. The subpath modules statically import those peers
+// because consumers opt into them by importing the matching subpath; knip's
+// "Referenced optional peerDependencies" hint is intentional in this layout.
+const testingWorkspace = 'packages/testing';
+const testingWorkspaceEntry = workspaceMap[testingWorkspace];
+if (testingWorkspaceEntry) {
+  workspaceMap[testingWorkspace] = {
+    ...testingWorkspaceEntry,
+    ignoreDependencies: ['@ontrails/cli', '@ontrails/http', '@ontrails/mcp'],
+  };
+}
+
 const config: KnipConfig = {
   ignoreExportsUsedInFile: true,
   treatConfigHintsAsErrors: true,
@@ -86,7 +102,7 @@ const config: KnipConfig = {
       ],
       project: ['scripts/**/*.ts'],
     },
-    ...Object.fromEntries(workspaceEntries),
+    ...workspaceMap,
   },
 };
 

@@ -6,16 +6,42 @@
  */
 
 import { deriveCliCommands } from '@ontrails/cli';
-import type { CliCommand } from '@ontrails/cli';
-import type { TrailContext } from '@ontrails/core';
+import type { CliCommand, DeriveCliCommandsOptions } from '@ontrails/cli';
+import type { Topo, TrailContext } from '@ontrails/core';
 import { projectPublicSurfaceError } from '@ontrails/core';
 
 import { mergeTestContext } from './context.js';
-import type {
-  CliHarness,
-  CliHarnessOptions,
-  CliHarnessResult,
-} from './types.js';
+
+/** Options for creating a CLI harness. */
+export interface CliHarnessOptions extends Omit<
+  DeriveCliCommandsOptions,
+  'onResult' | 'presets' | 'resolveInput'
+> {
+  readonly ctx?: Partial<TrailContext> | undefined;
+  readonly graph: Topo;
+}
+
+/** A test harness for CLI commands. */
+export interface CliHarness {
+  /** Execute a CLI command string and capture output. */
+  run(command: string): Promise<CliHarnessResult>;
+}
+
+/** The result of a CLI harness command execution. */
+export interface CliHarnessResult {
+  readonly error?:
+    | {
+        readonly category: string;
+        readonly code: string;
+        readonly message: string;
+      }
+    | undefined;
+  readonly exitCode: number;
+  /** Parsed JSON output if --output json was used. */
+  readonly json?: unknown | undefined;
+  readonly stderr: string;
+  readonly stdout: string;
+}
 
 // ---------------------------------------------------------------------------
 // Tokenizer
@@ -288,6 +314,8 @@ const runCommand = async (
  * that parses command strings and executes them in-process.
  *
  * ```ts
+ * import { createCliHarness } from '@ontrails/testing/cli';
+ *
  * const harness = createCliHarness({ graph });
  * const result = await harness.run("entity show --name Alpha --output json");
  * expect(result.exitCode).toBe(0);

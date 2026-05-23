@@ -194,7 +194,7 @@ See [contract-patterns.md](references/contract-patterns.md) for declaration patt
 
 **TDD workflow**: Define trail with examples → run tests (red) → implement (green) → refactor.
 
-Edge cases go in `testTrail(trail, scenarios)`. Use `createCrossContext()` to mock `ctx.cross` for composite trail unit tests. Surface integration uses `createCliHarness()`, `createMcpHarness()`, `createHttpHarness()`, and `testSurfaceParity()`.
+Edge cases go in `testTrail(trail, scenarios)`. Use `createCrossContext()` to mock `ctx.cross` for composite trail unit tests. Surface integration uses `@ontrails/testing/cli`, `@ontrails/testing/mcp`, `@ontrails/testing/http`, and `@ontrails/testing/surface-parity`.
 
 See [testing-patterns.md](references/testing-patterns.md) for the full testing API.
 

@@ -2,7 +2,7 @@
 
 Date started: 2026-05-22
 Date finalized: pending
-Status: Seeded
+Status: In Progress
 Plan: `.agents/plans/2026-05-22-v1-release-readiness-closeout/PLAN.md`
 Goal: `.agents/plans/2026-05-22-v1-release-readiness-closeout/GOAL.md`
 
@@ -26,7 +26,7 @@ Use this as the durable execution ledger. For stacked work, this should normally
 | 1 | `TRL-767` | `trl-767-audit-pending-force-events-as-a-v1-stable-cutover-gate` | pending | In Progress | Audit/report drafted: pending force events as stable cutover gate. |
 | 2 | `TRL-766` | `trl-766-audit-version-marker-failure-ux-and-bounded-zod-diagnostics` | pending | In Progress | Audit/report drafted: stable-cutover blocker found in marker handling for validation constraints. |
 | 3 | `TRL-756` | `trl-756-audit-v1-doctrine-and-lexicon-drift-after-versioning-m3` | pending | In Progress | Audit/report drafted: minor doctrine and lexicon drift found. |
-| 4 | `TRL-757` | `trl-757-split-ontrailstesting-surface-harnesses-behind-subpaths` | pending | Todo | Package/API: testing harness subpaths and changeset. |
+| 4 | `TRL-757` | `trl-757-split-ontrailstesting-surface-harnesses-behind-subpaths` | pending | In Progress | Package/API implementation drafted: root contract helpers isolated, surface helpers moved behind subpaths, optional surface peers, regression coverage, docs, and changeset. |
 | 5 | `TRL-758` | `trl-758-clarify-topographer-artifact-cli-workflow-and-retired-topo` | pending | Todo | CLI/docs: Topographer artifact workflow. |
 | 6 | `TRL-759` | `trl-759-document-beta-channel-install-policy-and-version-bump` | pending | Todo | Release docs/policy: beta install, dist-tag, bump cadence. |
 | 7 | `TRL-760` | `trl-760-add-beta15-to-beta18-downstream-migration-guide` | pending | Todo | Migration docs: beta.15 to beta.18 guide. |
@@ -81,6 +81,8 @@ Record issues, milestones, labels, dependency links, comments, and follow-up iss
 | 2026-05-22 18:23 EDT | `TRL-774` | Created follow-up issue for resource factory `svc` and related service/provision residue. | Linear create, related to `TRL-756` |
 | 2026-05-22 18:23 EDT | `TRL-775` | Created follow-up issue for stale committed Clark survey snapshot lifecycle. | Linear create, related to `TRL-756` |
 | 2026-05-22 18:28 EDT | `TRL-756` | Added audit summary comment with report path, verdict, follow-ups, checks, and stable-cutover assessment. | Linear comment `15bbfeef-de73-46c8-b572-1777e8d3e8ed` |
+| 2026-05-22 18:29 EDT | `TRL-757` | Moved from Todo to In Progress before package implementation. | Linear update |
+| 2026-05-22 18:44 EDT | `TRL-757` | Added implementation summary comment with changed surfaces, docs, changeset, and targeted checks. | Linear comment `6b7a972d-86b9-4698-bcc3-55fbb1734c50` |
 
 ## Execution Log
 
@@ -156,6 +158,20 @@ YYYY-MM-DD HH:MM TZ - <branch/issue/checkpoint>
 - Result: Branch commit contains only `RETRO.md` and `reports/trl-756-doctrine-lexicon-drift.md`; upper branches were restacked; unrelated `.claude/worktrees/` remains untracked only.
 - Next: Move to `TRL-757` testing package surface-harness subpath implementation.
 - Blockers: None for `TRL-756`; `TRL-766` marker semantics remains the stable-cutover blocker already recorded.
+
+2026-05-22 18:42 EDT - TRL-757 testing subpath implementation and targeted verification
+- Changed: Isolated root `@ontrails/testing` exports to contract helpers; added `@ontrails/testing/cli`, `/mcp`, `/http`, `/established`, and `/surface-parity` subpaths; moved `testAllEstablished()` into `all-established.ts`; localized surface harness/parity types; marked CLI/MCP/HTTP peers optional; added `public-subpaths.test.ts`; updated docs and Trails plugin testing guidance; added `.changeset/testing-surface-subpaths.md`.
+- Verified: `bun run --cwd packages/testing typecheck`; targeted six-file `bun test` slice for public subpaths, all/testAllEstablished, CLI/MCP/HTTP harnesses, and surface parity; `bun run docs:snippets`; `bun run docs:api-examples`; `bun run warden:skills:check`; focused `markdownlint-cli2`; `bun run docs:links`; `bun run publish:check`; `bun run format:check`; `git diff --check`.
+- Result: All post-format targeted package, docs, Warden skill, publish dry-run, format, and whitespace checks pass. Initial `format:check` found formatting issues in `packages/testing/src/__tests__/public-subpaths.test.ts` and `packages/testing/src/types.ts`; `bun run format:fix` corrected them and the same check then passed.
+- Next: Commit `TRL-757`, add the Linear implementation summary comment, then move to `TRL-758`.
+- Blockers: None for `TRL-757`; `TRL-766` marker semantics remains the stable-cutover blocker already recorded.
+
+2026-05-22 18:44 EDT - TRL-757 tracker comment and branch verification
+- Changed: Committed `TRL-757` as `feat: split testing surface harness subpaths`; added Linear comment `6b7a972d-86b9-4698-bcc3-55fbb1734c50`.
+- Verified: `gt modify -m "feat: split testing surface harness subpaths" --no-interactive`; `git status --short --branch`; `gt log --stack --reverse --no-interactive`; `git show --stat --oneline --name-status HEAD`; Linear `_save_comment`.
+- Result: Branch commit contains the package/API split, regression, docs/plugin guidance, changeset, and this retro entry; upper branches were restacked; unrelated `.claude/worktrees/` remains untracked only.
+- Next: Move to `TRL-758` Topographer CLI workflow docs.
+- Blockers: None for `TRL-757`; `TRL-766` marker semantics remains the stable-cutover blocker already recorded.
 ```
 
 ## Local Review Log
@@ -214,6 +230,16 @@ Record exact commands and artifact checks. Include skipped checks with reasons.
 | `bun run plugin:installed-skill:check` | `TRL-756` | expected failure | Read-only external state check found content drift and stale vocabulary in `/Users/mg/.agents/skills/trails` and the symlinked Claude skill; no installed files changed. |
 | `bunx markdownlint-cli2 .agents/plans/2026-05-22-v1-release-readiness-closeout/RETRO.md .agents/plans/2026-05-22-v1-release-readiness-closeout/reports/trl-756-doctrine-lexicon-drift.md` | `TRL-756` | pass | 0 markdownlint errors after removing an extra trailing blank line. |
 | `git diff --check` | `TRL-756` | pass | No whitespace or conflict-marker errors. |
+| `bun run --cwd packages/testing typecheck` | `TRL-757` | pass | Initial run failed on an unused `TrailContext` import in `packages/testing/src/types.ts`; after cleanup, post-format rerun exited 0. |
+| `bun test packages/testing/src/__tests__/public-subpaths.test.ts packages/testing/src/__tests__/all.test.ts packages/testing/src/__tests__/harness-cli.test.ts packages/testing/src/__tests__/harness-http.test.ts packages/testing/src/__tests__/harness-mcp.test.ts packages/testing/src/__tests__/surface-parity.test.ts` | `TRL-757` | pass | Initial public-subpaths run exposed an inherited `rootDir` problem in the temporary consumer fixture; after setting `rootDir` to repo root, post-format rerun passed: 37 pass, 0 fail. |
+| `bun run docs:snippets` | `TRL-757` | pass | README snippet typecheck passed for 21 README files, including `packages/testing/README.md`. |
+| `bun run docs:api-examples` | `TRL-757` | pass | Public API example coverage passed for the minimum export set; inventory-only missing examples remain pre-existing. |
+| `bun run warden:skills:check` | `TRL-757` | pass | Skill Warden guide sync check exited 0. |
+| `bunx markdownlint-cli2 docs/api-reference.md docs/testing.md docs/releases/plugin-release.md packages/testing/README.md plugin/skills/trails/SKILL.md plugin/skills/trails/references/testing-patterns.md plugin/skills/trails/references/http-surface.md plugin/skills/trails/references/architecture.md` | `TRL-757` | pass | 0 markdownlint errors across changed docs and plugin guidance. |
+| `bun run docs:links` | `TRL-757` | pass | Markdown link check passed for 119 files. |
+| `bun run publish:check` | `TRL-757` | pass | Pack dry-run passed for all publishable workspaces; `@ontrails/testing` tarball includes new subpath source files. |
+| `bun run format:check` | `TRL-757` | pass after fix | First run found formatting issues in `public-subpaths.test.ts` and `types.ts`; `bun run format:fix` changed only formatted repo files, and rerun passed. |
+| `git diff --check` | `TRL-757` | pass | No whitespace or conflict-marker errors after formatting. |
 
 ## Remote Review / CI Log
 

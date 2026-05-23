@@ -94,7 +94,8 @@ The kernel owns query/body parsing, public error projection, request IDs, abort 
 Use `createHttpHarness()` for in-process HTTP checks and `testSurfaceParity()` when you want CLI, MCP, and HTTP examples to agree:
 
 ```typescript
-import { createHttpHarness, testSurfaceParity } from '@ontrails/testing';
+import { createHttpHarness } from '@ontrails/testing/http';
+import { testSurfaceParity } from '@ontrails/testing/surface-parity';
 import { graph } from './app.js';
 
 const http = createHttpHarness({ graph });

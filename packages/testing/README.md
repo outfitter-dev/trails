@@ -32,13 +32,9 @@ testDetours(graph);    // Validate detour constructor, recover, and ordering sem
 | `testTrail(trail, scenarios)` | Custom scenarios for edge cases, error paths, and cross chains |
 | `testContracts(topo, ctx?)` | Validate output against declared schemas |
 | `testDetours(topo)` | Validate detour constructor, recover, and shadowing semantics |
-| `testSurfaceParity(topo, options?)` | Run trail examples through CLI, MCP, and HTTP and compare normalized semantics |
 | `createCrossContext(options?)` | Mock `CrossFn` for testing composite trails; returns preconfigured `Result` values keyed by trail ID |
 | `createTestContext(options?)` | `TrailContext` with sensible test defaults |
 | `createTestLogger()` | Logger that captures entries in memory for assertions |
-| `createCliHarness(options)` | Execute CLI commands in-process, capture stdout/stderr |
-| `createMcpHarness(options)` | Invoke MCP tools directly without transport |
-| `createHttpHarness(options)` | Execute HTTP route projections in-process without a server |
 
 See the [API Reference](../../docs/api-reference.md) for the full list.
 
@@ -95,12 +91,20 @@ Calls to unregistered trail IDs return `Result.err` with a descriptive message, 
 
 ## Surface Harnesses
 
+Surface harnesses live on explicit subpaths so projects that only import
+contract helpers from `@ontrails/testing` do not need CLI, MCP, or HTTP peers.
+Install the peer package for the subpath you use:
+
+- `@ontrails/testing/cli` requires `@ontrails/cli`
+- `@ontrails/testing/mcp` requires `@ontrails/mcp`
+- `@ontrails/testing/http` requires `@ontrails/http`
+- `@ontrails/testing/established` and `@ontrails/testing/surface-parity`
+  require all three shipped surface peers
+
 ```typescript
-import {
-  createCliHarness,
-  createHttpHarness,
-  createMcpHarness,
-} from '@ontrails/testing';
+import { createCliHarness } from '@ontrails/testing/cli';
+import { createHttpHarness } from '@ontrails/testing/http';
+import { createMcpHarness } from '@ontrails/testing/mcp';
 
 // CLI
 const cli = createCliHarness({ graph });
@@ -118,13 +122,17 @@ const response = await http.get('/entity/show', { name: 'Alpha' });
 expect(response.status).toBe(200);
 ```
 
+Use `testAllEstablished()` from `@ontrails/testing/established` when an
+established app should run the root contract suite and validate CLI, MCP, and
+HTTP projections in one call.
+
 ## Surface Parity
 
 `testSurfaceParity()` is a focused gate for established apps that want to prove
 their examples behave the same through every shipped surface.
 
 ```typescript
-import { testSurfaceParity } from '@ontrails/testing';
+import { testSurfaceParity } from '@ontrails/testing/surface-parity';
 import { graph } from '../app';
 
 const createDeterministicTestDb = () => ({});

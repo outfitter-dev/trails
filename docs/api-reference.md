@@ -337,12 +337,34 @@ assertErrorMatch(result, errorClass)
 // Factories
 createTestContext(options?), createTestLogger()
 createCrossContext(options?)       // minimal context for testing trail composition via ctx.cross()
-createCliHarness(options: { graph: Topo }), createMcpHarness(options: { graph: Topo })
 
 TestExecutionOptions, TestCrossOptions
 TestScenario, CrossScenario, TestLogger, TestTrailContextOptions
+```
+
+Surface harnesses and all-surface validation live on explicit subpaths so the
+root contract-testing import path does not require CLI, MCP, or HTTP peers:
+
+```typescript
+// @ontrails/testing/cli
+createCliHarness(options: { graph: Topo })
 CliHarness, CliHarnessOptions, CliHarnessResult
+
+// @ontrails/testing/mcp
+createMcpHarness(options: { graph: Topo })
 McpHarness, McpHarnessOptions, McpHarnessResult
+
+// @ontrails/testing/http
+createHttpHarness(options: { graph: Topo })
+HttpHarness, HttpHarnessOptions, HttpHarnessResult
+
+// @ontrails/testing/established
+testAllEstablished(topo, optionsOrFactory?)
+TestAllEstablishedOptions
+
+// @ontrails/testing/surface-parity
+testSurfaceParity(topo, options?), runSurfaceParityExample(...)
+SurfaceParityOptions, SurfaceParityComparison
 ```
 
 ## `@ontrails/warden`

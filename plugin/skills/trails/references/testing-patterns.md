@@ -216,10 +216,14 @@ logger.clear(); // reset captured entries
 
 ## Surface Harnesses
 
+Surface harnesses are opt-in subpaths. Keep root `@ontrails/testing` for
+contract helpers; import surface helpers from the subpath for the peer package
+you are exercising.
+
 ### CLI Harness
 
 ```typescript
-import { createCliHarness } from '@ontrails/testing';
+import { createCliHarness } from '@ontrails/testing/cli';
 
 const cli = createCliHarness({ graph });
 const result = await cli.run('entity show --name Alpha --output json');
@@ -232,7 +236,7 @@ expect(result.json).toEqual({ name: 'Alpha', type: 'concept' });
 ### MCP Harness
 
 ```typescript
-import { createMcpHarness } from '@ontrails/testing';
+import { createMcpHarness } from '@ontrails/testing/mcp';
 
 const mcp = createMcpHarness({ graph });
 const result = await mcp.callTool('myapp_entity_show', { name: 'Alpha' });
@@ -244,7 +248,7 @@ expect(result.isError).toBe(false);
 ### HTTP Harness
 
 ```typescript
-import { createHttpHarness } from '@ontrails/testing';
+import { createHttpHarness } from '@ontrails/testing/http';
 
 const http = createHttpHarness({ graph });
 const response = await http.get('/entity/show', { name: 'Alpha' });
@@ -259,7 +263,7 @@ The HTTP harness runs derived routes in-process; it does not open a network port
 `testSurfaceParity()` runs eligible examples through CLI, MCP, and HTTP and compares normalized success payloads and normalized TrailsError category/code pairs.
 
 ```typescript
-import { testSurfaceParity } from '@ontrails/testing';
+import { testSurfaceParity } from '@ontrails/testing/surface-parity';
 
 testSurfaceParity(graph, {
   exclusions: [
@@ -272,7 +276,9 @@ testSurfaceParity(graph, {
 });
 ```
 
-Surface-specific helper imports may move behind subpaths in `TRL-757`; until that lands, use the current root imports shown here.
+Use `@ontrails/testing/established` for `testAllEstablished()` when an
+established app should run root contract checks plus CLI, MCP, and HTTP
+projection validation in one call.
 
 ## Recommended Test Structure
 
