@@ -134,7 +134,7 @@ export const addSurface = trail('add.surface', {
     const entryFile = getEntryFile(surface);
     const entryExists = projectPathExists(cwd, entryFile);
     if (entryExists.isErr()) {
-      return Result.err(entryExists.error);
+      return entryExists;
     }
 
     if (entryExists.value) {
@@ -147,12 +147,12 @@ export const addSurface = trail('add.surface', {
 
     const created = await writeSurfaceEntry(cwd, surface);
     if (created.isErr()) {
-      return Result.err(created.error);
+      return created;
     }
 
     const dependency = await updatePkgJsonForSurface(cwd, surface);
     if (dependency.isErr()) {
-      return Result.err(dependency.error);
+      return dependency;
     }
 
     return Result.ok({

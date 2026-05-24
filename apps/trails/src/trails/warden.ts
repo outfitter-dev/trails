@@ -139,7 +139,7 @@ export const wardenTrail = trail('warden', {
   blaze: async (input, ctx) => {
     const rootDirResult = resolveTrailRootDir(input.rootDir, ctx.cwd);
     if (rootDirResult.isErr()) {
-      return Result.err(rootDirResult.error);
+      return rootDirResult;
     }
     const rootDir = rootDirResult.value;
     const result = await runWardenCommand({

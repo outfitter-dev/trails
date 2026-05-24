@@ -83,7 +83,7 @@ export const addTrail = trail('add.trail', {
     const { id } = input;
     const validated = validateTrailId(id);
     if (validated.isErr()) {
-      return Result.err(validated.error);
+      return validated;
     }
 
     const moduleName = trailIdToModuleName(validated.value);
@@ -108,7 +108,7 @@ export const addTrail = trail('add.trail', {
     for (const [relativePath, content] of files) {
       const written = await writeProjectFile(cwd, relativePath, content);
       if (written.isErr()) {
-        return Result.err(written.error);
+        return written;
       }
     }
 

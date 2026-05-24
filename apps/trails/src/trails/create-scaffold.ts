@@ -445,7 +445,7 @@ export const createScaffold = trail('create.scaffold', {
   blaze: async (input) => {
     const projectDirResult = resolveProjectDir(input.dir ?? '.', input.name);
     if (projectDirResult.isErr()) {
-      return Result.err(projectDirResult.error);
+      return projectDirResult;
     }
 
     const projectDir = projectDirResult.value;

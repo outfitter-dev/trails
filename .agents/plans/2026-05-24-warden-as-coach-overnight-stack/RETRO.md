@@ -12,11 +12,11 @@ Use this as the durable execution ledger. For stacked work, this should normally
 
 - Objective: clear Warden-as-coach slices that convert Radio/Fieldwork learnings into Trails guidance.
 - Final outcome: pending.
-- Final branch / stack tip: `trl-786-warden-detect-redundant-resulterrxerror-re-wraps-inverse-of`.
-- Final PR range: PR #582 for TRL-791; PR #583 for TRL-793; PR #584 for TRL-785; TRL-786 pending submission.
-- Final tracker state: TRL-793 In Review; TRL-794 filed for partial diagnostics; TRL-785 In Review; TRL-786 local verified, tracker update pending.
-- Final verification state: TRL-791 verified and CI green; TRL-793 CI green; TRL-785 CI green; TRL-786 locally verified through `bun run check`.
-- Remaining risks / P3s: TRL-794 partial diagnostics remain follow-up; TRL-786 surfaces existing redundant re-wrap warnings for a separate cleanup lane.
+- Final branch / stack tip: `trl-795-warden-cleanup-return-result-values-directly-at-existing`.
+- Final PR range: PR #582 for TRL-791; PR #583 for TRL-793; PR #584 for TRL-785; PR #585 for TRL-786; PR #586 for TRL-795.
+- Final tracker state: TRL-793 In Review; TRL-794 filed for partial diagnostics; TRL-785 In Review; TRL-786 In Review; TRL-795 In Review.
+- Final verification state: TRL-791 verified and CI green; TRL-793 CI green; TRL-785 CI green; TRL-786 CI green; TRL-795 local gates pass through `bun run check`.
+- Remaining risks / P3s: TRL-794 partial diagnostics remain follow-up; TRL-790 remains optional/independent.
 - Archive state: active packet, not archive-ready.
 
 ## Branch / PR / Issue Ledger
@@ -27,8 +27,9 @@ Use this as the durable execution ledger. For stacked work, this should normally
 | 2 | TRL-793 | `trl-793-warden-upgrade-names-only-diagnostics-to-teach-the-fix-8` | #583 | Draft, CI running | Names-only diagnostics upgraded. |
 | 3 | TRL-794 | pending | pending | Todo | Follow-up for 13 partial diagnostics. |
 | 4 | TRL-785 | `trl-785-warden-extend-implementation-returns-result-to-track-helper` | #584 | Draft, CI running | Alias-aware Result helper provenance gap; local checks green. |
-| 5 | TRL-786 | `trl-786-warden-detect-redundant-resulterrxerror-re-wraps-inverse-of` | pending | Local verified | New redundant `Result.err(x.error)` re-wrap detector; draft PR pending. |
-| 6 | TRL-790 | pending | pending | Optional | Keep isolated. |
+| 5 | TRL-786 | `trl-786-warden-detect-redundant-resulterrxerror-re-wraps-inverse-of` | #585 | Draft, CI green | New redundant `Result.err(x.error)` re-wrap detector. |
+| 6 | TRL-795 | `trl-795-warden-cleanup-return-result-values-directly-at-existing` | #586 | Draft, CI green | Dogfood cleanup for all 37 live redundant re-wrap warnings. |
+| 7 | TRL-790 | pending | pending | Optional | Keep isolated. |
 
 ## Planning Discoveries
 
@@ -56,6 +57,11 @@ Use this as the durable execution ledger. For stacked work, this should normally
 | 2026-05-24 01:00 EDT | TRL-793 | Added CI green comment for PR #583. | Linear comment `c2b165e8-b261-4354-b127-7f3053a84aef`. |
 | 2026-05-24 00:57 EDT | TRL-785 | Moved to In Progress and commented implementation start/scope. | Linear comment `4752fcc9-ecc6-4288-bfa9-0f684cc87282`. |
 | 2026-05-24 01:07 EDT | TRL-785 | Moved to In Review and commented PR/local verification/review state. | Linear comment `6d2ed339-0c67-485c-930f-ea82373d7dd0`. |
+| 2026-05-24 01:33 EDT | TRL-786 | Moved to In Review, attached PR #585, and commented local verification/review state. | Linear comment `a5048f32-aa7f-4bdc-8797-a9c8b9ef5b9c`. |
+| 2026-05-24 01:34 EDT | TRL-786 | Added CI green comment for PR #585. | Linear comment `9c89d3be-44d4-46ea-93a7-9fec39accaa4`. |
+| 2026-05-24 01:42 EDT | TRL-795 | Created cleanup issue/branch and locally verified the dogfood change. | Linear update pending PR submission. |
+| 2026-05-24 01:44 EDT | TRL-795 | Moved to In Review, attached PR #586, and commented local verification state. | Linear comment `af4508e7-6ba0-497e-a257-ce729d86b917`. |
+| 2026-05-24 01:49 EDT | TRL-795 | Added CI green comment for PR #586. | Linear comment `e6cb7e96-22a2-44a0-98a6-16e19333af14`. |
 
 ## Execution Log
 
@@ -116,6 +122,41 @@ Use this as the durable execution ledger. For stacked work, this should normally
 - Result: local branch verified and ready to commit/submit as draft PR.
 - Next: commit with Graphite, submit draft PR, update Linear/shared note, then decide whether the next branch should clean existing warning sites or move to TRL-790.
 - Blockers: none.
+
+2026-05-24 01:33 EDT - TRL-786 draft PR submission
+- Changed: committed `b7f3f1bb0`, submitted PR #585, wrote PR body, moved TRL-786 to In Review, added Linear verification/review comment.
+- Verified: PR opened as draft and CI started.
+- Result: TRL-786 is In Review with PR #585.
+- Next: watch CI; then choose cleanup branch versus TRL-790.
+- Blockers: none.
+
+2026-05-24 01:34 EDT - TRL-786 remote CI green
+- Changed: updated Linear with PR #585 CI green state.
+- Verified: Build, Lint & Format, Dead Code, Typecheck, Test, Governance, Changeset, and CI Gate all green; GitHub merge state `CLEAN`.
+- Result: PR #585 remains draft with green CI.
+- Next: start the redundant re-wrap cleanup follow-up unless redirected.
+- Blockers: none.
+
+2026-05-24 01:42 EDT - TRL-795 local verification
+- Changed: replaced all 37 Warden-flagged redundant `Result.err(x.error)` passthroughs in `@ontrails/trails` and `trails-demo` with direct Result returns; added a patch changeset for `@ontrails/trails`.
+- Verified: `bun trails warden` PASS with 0 `no-redundant-result-error-wrap` warnings; `bun --cwd apps/trails test` 347 pass; `bun --cwd apps/trails-demo test` 74 pass / 2 skip; `bun run typecheck`; `bun run lint`; `bun run format:check`; `git diff --check`; `bun run check`.
+- Result: local branch verified and ready to commit/submit as draft PR.
+- Next: commit with Graphite, submit draft PR, update Linear/shared note, then watch CI.
+- Blockers: none.
+
+2026-05-24 01:44 EDT - TRL-795 draft PR submission
+- Changed: committed the current branch tip, submitted PR #586, wrote PR body, moved TRL-795 to In Review, added Linear verification comment.
+- Verified: PR opened as draft and CI started.
+- Result: TRL-795 is In Review with PR #586.
+- Next: watch CI.
+- Blockers: none.
+
+2026-05-24 01:49 EDT - TRL-795 remote CI green
+- Changed: updated shared note and Linear with PR #586 CI green state.
+- Verified: Build, Lint & Format, Dead Code, Typecheck, Test, Governance, Changeset, and CI Gate all green; GitHub merge state `CLEAN`.
+- Result: PR #586 remains draft with green CI.
+- Next: continue TRL-790 as isolated config slice.
+- Blockers: none.
 ```
 
 ## Local Review Log
@@ -153,6 +194,15 @@ Use this as the durable execution ledger. For stacked work, this should normally
 | `bun trails warden` | TRL-786 repo | Pass | 0 errors, 62 warnings. New rule reports existing redundant re-wrap warnings; detector remains warning-only. |
 | `git diff --check` | TRL-786 repo | Pass | No whitespace errors. |
 | `bun run check` | TRL-786 repo | Pass | Captured with explicit `CHECK_EXIT:0`; Warden warning set printed during `trails:check`. |
+| PR #585 CI | TRL-786 remote | Pass | Build, Lint & Format, Dead Code, Typecheck, Test, Governance, Changeset, CI Gate all green. |
+| `bun trails warden` | TRL-795 repo | Pass | 0 errors, 25 warnings; redundant re-wrap warning family cleared from live repo. |
+| `bun --cwd apps/trails test` | TRL-795 app | Pass | 347 pass, 0 fail. |
+| `bun --cwd apps/trails-demo test` | TRL-795 demo | Pass | 74 pass, 2 skip, 0 fail. |
+| `bun run typecheck` | TRL-795 repo | Pass | 22 packages successful. |
+| `bun run lint` | TRL-795 repo | Pass | 23 tasks successful. |
+| `bun run format:check` | TRL-795 repo | Pass | 0 warnings/errors after converting `compile.ts` Result import to type-only. |
+| `git diff --check` | TRL-795 repo | Pass | No whitespace errors. |
+| `bun run check` | TRL-795 repo | Pass | Full repo gate passed; Warden warning count now 25. |
 
 ## Remote Review / CI Log
 
@@ -162,6 +212,10 @@ Use this as the durable execution ledger. For stacked work, this should normally
 | 2026-05-24 00:55 EDT | #583 | Running | Draft | Local reviews clean after fixes | 0 known | Watch CI. |
 | 2026-05-24 01:00 EDT | #583 | Green | Draft | GitHub checks green | 0 known | Keep draft; no merge/queue action. |
 | 2026-05-24 01:07 EDT | #584 | Running | Draft | Local reviews clean; CI started | 0 known | Watch CI. |
+| 2026-05-24 01:33 EDT | #585 | Running | Draft | Local P2 findings fixed; CI started | 0 known | Watch CI. |
+| 2026-05-24 01:34 EDT | #585 | Green | Draft | GitHub merge state `CLEAN` | 0 known | Keep draft; no merge/queue action. |
+| 2026-05-24 01:44 EDT | #586 | Running | Draft | Local verification green; CI started | 0 known | Watch CI. |
+| 2026-05-24 01:49 EDT | #586 | Green | Draft | GitHub merge state `CLEAN` | 0 known | Keep draft; no merge/queue action. |
 
 ## Review Feedback Resolutions
 
@@ -188,16 +242,16 @@ Use this as the durable execution ledger. For stacked work, this should normally
 ## Final State
 
 - Goal completion condition: pending.
-- Graphite / branch state: TRL-786 local verified on top of TRL-785; TRL-785 submitted v1 at `1e27b3ec8`; TRL-793 submitted v2 at `2f9f57e94`.
-- PR state: #582 draft CI green; #583 draft CI green; #584 draft CI green; TRL-786 pending submission.
+- Graphite / branch state: TRL-795 submitted latest to PR #586; TRL-786 submitted v1 at `b7f3f1bb0`; TRL-785 submitted v1 at `1e27b3ec8`; TRL-793 submitted v2 at `2f9f57e94`.
+- PR state: #582 draft CI green; #583 draft CI green; #584 draft CI green; #585 draft CI green; #586 draft CI green.
 - Source-control host lag: none known.
-- Tracker state: TRL-791 In Review; TRL-793 In Review; TRL-794 Todo; TRL-785 In Review; TRL-786 update pending.
-- Local review state: TRL-793 P2 findings fixed; TRL-785 clean; TRL-786 P2 findings fixed.
-- Remote review state: #583 CI green; #584 CI green; TRL-786 not submitted yet.
+- Tracker state: TRL-791 In Review; TRL-793 In Review; TRL-794 Todo; TRL-785 In Review; TRL-786 In Review; TRL-795 In Review.
+- Local review state: TRL-793 P2 findings fixed; TRL-785 clean; TRL-786 P2 findings fixed; TRL-795 local-only mechanical cleanup, no subagent review dispatched.
+- Remote review state: #583 CI green; #584 CI green; #585 CI green; #586 CI green.
 - Remote review scores: pending.
-- Verification: TRL-793, TRL-785, and TRL-786 local gates passed through `bun run check`; PR #583 and #584 CI green.
+- Verification: TRL-793, TRL-785, TRL-786, and TRL-795 local gates passed through `bun run check`; PR #583, #584, #585, and #586 CI green.
 - Skipped checks: none for TRL-793 local handoff.
-- Remaining P3s / risks: partial diagnostic second wave tracked separately in TRL-794; existing redundant re-wrap warning cleanup should stay separate from detector PR.
+- Remaining P3s / risks: partial diagnostic second wave tracked separately in TRL-794; TRL-790 remains optional/independent.
 - Follow-up issues created: TRL-794.
 - Forbidden actions confirmation: no merge, publish, registry mutation, merge queue label, or subagent source-control write.
 - Packet archive readiness: not ready.

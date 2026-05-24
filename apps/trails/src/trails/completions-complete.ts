@@ -121,7 +121,7 @@ export const completionsCompleteTrail = trail('completions.__complete', {
   blaze: async (input, ctx) => {
     const rootDirResult = resolveTrailRootDir(input.rootDir, ctx.cwd);
     if (rootDirResult.isErr()) {
-      return Result.err(rootDirResult.error);
+      return rootDirResult;
     }
     const rootDir = rootDirResult.value;
 

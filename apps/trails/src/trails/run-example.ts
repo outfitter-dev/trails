@@ -425,7 +425,7 @@ export const runExampleTrail = trail('run.example', {
   blaze: async (input, ctx) => {
     const rootDirResult = resolveTrailRootDir(input.rootDir, ctx.cwd);
     if (rootDirResult.isErr()) {
-      return Result.err(rootDirResult.error);
+      return rootDirResult;
     }
     const rootDir = rootDirResult.value;
     const moduleResolution = await resolveRunModulePath(
@@ -435,7 +435,7 @@ export const runExampleTrail = trail('run.example', {
       input.app
     );
     if (moduleResolution.isErr()) {
-      return Result.err(moduleResolution.error);
+      return moduleResolution;
     }
 
     const leaseResult = await tryLoadFreshAppLease(
@@ -443,7 +443,7 @@ export const runExampleTrail = trail('run.example', {
       rootDir
     );
     if (leaseResult.isErr()) {
-      return Result.err(leaseResult.error);
+      return leaseResult;
     }
     const lease = leaseResult.value;
 

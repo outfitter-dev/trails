@@ -20,7 +20,7 @@ export const topoUnpinTrail = trail('topo.unpin', {
 
     const rootDirResult = resolveTrailRootDir(input.rootDir, ctx.cwd);
     if (rootDirResult.isErr()) {
-      return Result.err(rootDirResult.error);
+      return rootDirResult;
     }
     const rootDir = rootDirResult.value;
     return Result.ok(

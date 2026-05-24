@@ -12,7 +12,7 @@ export const devStatsTrail = trail('dev.stats', {
   blaze: (input, ctx) => {
     const rootDirResult = resolveTrailRootDir(input.rootDir, ctx.cwd);
     if (rootDirResult.isErr()) {
-      return Result.err(rootDirResult.error);
+      return rootDirResult;
     }
     const rootDir = rootDirResult.value;
     return Result.ok(

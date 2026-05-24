@@ -31,7 +31,7 @@ export const onboard = trail('entity.onboard', {
       type: input.type,
     });
     if (added.isErr()) {
-      return Result.err(added.error);
+      return added;
     }
 
     const searched = await ctx.cross<{

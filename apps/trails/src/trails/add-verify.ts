@@ -79,7 +79,7 @@ export const addVerify = trail('add.verify', {
   blaze: async (input) => {
     const projectDirResult = resolveProjectDir(input.dir ?? '.', input.name);
     if (projectDirResult.isErr()) {
-      return Result.err(projectDirResult.error);
+      return projectDirResult;
     }
 
     const projectDir = projectDirResult.value;
@@ -102,17 +102,17 @@ export const addVerify = trail('add.verify', {
       generateTestFile()
     );
     if (testFile.isErr()) {
-      return Result.err(testFile.error);
+      return testFile;
     }
 
     const lefthookFile = await writeFile('lefthook.yml', generateLefthookYml());
     if (lefthookFile.isErr()) {
-      return Result.err(lefthookFile.error);
+      return lefthookFile;
     }
 
     const packageResult = await updatePackageJsonForVerify(projectDir);
     if (packageResult.isErr()) {
-      return Result.err(packageResult.error);
+      return packageResult;
     }
 
     return Result.ok({ created: files });
