@@ -55,7 +55,7 @@ handoff. Meaningful review-flow changes require a new retro entry.
 | --- | --- | --- | --- |
 | 2026-05-23 planning | TRL-780 | No mutation during packet creation. Executor should update status/comment when work begins or diverges. | This packet. |
 | 2026-05-23 execution | TRL-780 | Moved to In Progress when implementation began on the Graphite branch. | Linear update |
-| 2026-05-23 closeout | TRL-780 | Added draft PR comment with local verification summary. | Linear comment `61a0d969-a714-45fa-b7fc-5b78ed7a4568` |
+| 2026-05-23 closeout | TRL-780 | Added draft PR comment with local verification summary. | Linear comment `3a337c74-8e98-4f9a-beef-01e8b3b66230` |
 
 ## Execution Log
 
@@ -90,9 +90,9 @@ YYYY-MM-DD HH:MM TZ - <branch/issue/checkpoint>
 - Next: local review lanes, fix any P0/P1/P2, then commit/submit or hand off with branch state.
 - Blockers: none.
 
-2026-05-23 18:40 EDT - draft PR / tracker closeout
-- Changed: submitted draft PR #577, edited PR title/body, moved TRL-780 to In Progress, and added Linear comment with PR + verification summary.
-- Verified: gh pr view 577; gh pr checks 577; Linear TRL-780 fetch/update/comment.
+2026-05-23 20:51 EDT - draft PR / tracker closeout
+- Changed: submitted draft PR #577, confirmed PR title/body, confirmed TRL-780 is In Progress, and added Linear comment with PR + verification summary.
+- Verified: gh auth status; gt submit --draft --no-edit --no-interactive; gh pr view 577 --json comments,reviews,reviewDecision,mergeStateStatus,isDraft,statusCheckRollup,url,title; Linear TRL-780 fetch/comment.
 - Result: branch is pushed and attached to draft PR #577. CI passed: CI Gate, Lint & Format, Dead Code, Changeset, Build, Typecheck, Test, and Governance.
 - Next: wait for remote review, then mark ready only when P0/P1/P2 feedback is clean.
 - Blockers: none for local handoff; remote review pending.
@@ -133,7 +133,7 @@ if inline threads are resolved.
 
 | Time | PR | CI State | Review State | Scores / Signals | Unresolved P0/P1/P2 | Action |
 | --- | --- | --- | --- | --- | --- | --- |
-| 2026-05-23 18:40 EDT | [#577](https://github.com/outfitter-dev/trails/pull/577) | Pass | Draft, remote review pending | GitHub Actions: CI Gate, Lint & Format, Dead Code, Changeset, Build, Typecheck, Test, and Governance passed | 0 known | Leave draft until remote review settles. |
+| 2026-05-23 20:51 EDT | [#577](https://github.com/outfitter-dev/trails/pull/577) | Pass | Draft, remote review pending; no reviews yet; only Linear and Graphite comments present | GitHub Actions: CI Gate, Lint & Format, Dead Code, Changeset, Build, Typecheck, Test, and Governance passed; merge state CLEAN | 0 known | Leave draft until remote review settles. |
 
 ## Review Feedback Resolutions
 
@@ -166,11 +166,11 @@ Fill before claiming completion, handoff, merge readiness, or archive.
   with PR #577.
 - PR state: Draft PR #577,
   <https://github.com/outfitter-dev/trails/pull/577>.
-- Source-control host lag: none known; CI passed.
+- Source-control host lag: none known; CI passed and GitHub merge state is CLEAN.
 - Tracker state: TRL-780 In Progress with PR attachment and closeout comment.
 - Local review state: two Spark local review lanes; no P0/P1/P2; P3 smoke-ledger
   findings resolved.
-- Remote review state: pending.
+- Remote review state: pending; no reviews yet, only Linear linkback and Graphite stack comments present.
 - Remote review scores: pending.
 - Verification: targeted create test, `apps/trails` package tests,
   generated-project smoke, typecheck, lint, format, `git diff --check`, and
