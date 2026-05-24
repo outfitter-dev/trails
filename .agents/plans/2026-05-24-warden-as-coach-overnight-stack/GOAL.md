@@ -9,7 +9,7 @@ Read first: `AGENTS.md`, `.agents/plans/PLANNING.md`, the packet `PLAN.md` and `
 
 Objective: clear as much Warden-as-coach work as safely possible overnight, turning Radio/Fieldwork learnings into Warden diagnostics/rules that lead agents toward Trails happy paths.
 
-Current known order: `TRL-791` is already draft PR #582 and should only need monitoring; finish `TRL-793` first (names-only diagnostics, no firing logic changes), keep `TRL-794` as the partial-diagnostics follow-up, then `TRL-785` (alias-aware Result helper provenance), then `TRL-786` (redundant `Result.err(x.error)` re-wrap detection after provenance exists), with `TRL-790` opportunistic and isolated.
+Current known order: `TRL-791` is already draft PR #582 and should only need monitoring; `TRL-793` is draft PR #583; keep `TRL-794` as the partial-diagnostics follow-up; `TRL-785` is draft PR #584; next is `TRL-786` (redundant `Result.err(x.error)` re-wrap detection after provenance exists), with `TRL-790` opportunistic and isolated.
 
 Work loop: execute one issue per focused branch/PR unless inseparable. After each turn report checkpoint, changed files, exact checks/artifact proof, result summary, remaining work, blocker status, and next checkpoint. Use bounded subagents for review/research; main agent owns all `git` and `gt` writes.
 

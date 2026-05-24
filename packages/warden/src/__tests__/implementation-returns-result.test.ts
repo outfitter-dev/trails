@@ -188,6 +188,39 @@ trail("entity.report", {
       expect(diagnostics.length).toBe(0);
     });
 
+    test('allows imported helper with aliased Result return annotation assigned to a variable', () => {
+      writeFile(
+        'aliased-result-helper.ts',
+        `import type { Result as ResultType } from '@ontrails/core';
+
+export const parseAndValidateBody = (): ResultType<object, Error> =>
+  Result.ok({ ok: true });
+`
+      );
+      const caller = writeFile(
+        'caller-aliased-result.ts',
+        `import { parseAndValidateBody } from './aliased-result-helper.js';
+
+trail("message.transmit", {
+  blaze: async (input, ctx) => {
+    const validated = parseAndValidateBody();
+    if (validated.isErr()) {
+      return validated;
+    }
+
+    return Result.ok({ ok: true });
+  }
+})`
+      );
+
+      const diagnostics = implementationReturnsResult.check(
+        readFileSync(caller, 'utf8'),
+        caller
+      );
+
+      expect(diagnostics.length).toBe(0);
+    });
+
     test('flags imported helper without Result return annotation', () => {
       writeFile(
         'plain-helper.ts',
@@ -1138,6 +1171,29 @@ trail("survey", {
     }
 
     return buildDetail(input.trailId);
+  }
+})`;
+
+    const diagnostics = implementationReturnsResult.check(code, TEST_FILE);
+
+    expect(diagnostics.length).toBe(0);
+  });
+
+  test('allows variables produced by local helpers with aliased Result return annotations', () => {
+    const code = `
+import type { Result as ResultType } from '@ontrails/core';
+
+const validateReplyTo = (replyTo: string | undefined): ResultType<object, Error> =>
+  Result.ok({ replyTo });
+
+trail("message.transmit", {
+  blaze: async (input, ctx) => {
+    const replyToResult = validateReplyTo(input.replyTo);
+    if (replyToResult.isErr()) {
+      return replyToResult;
+    }
+
+    return Result.ok({ ok: true });
   }
 })`;
 

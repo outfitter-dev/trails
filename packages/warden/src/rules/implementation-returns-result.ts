@@ -167,12 +167,21 @@ const isAllowedReturnArgument = (
 // ---------------------------------------------------------------------------
 
 /** Track a VariableDeclarator, adding to resultVars if it produces a Result. */
-const trackResultVariable = (node: AstNode, resultVars: Set<string>): void => {
+const trackResultVariable = (
+  node: AstNode,
+  resultVars: Set<string>,
+  helperNames: ReadonlySet<string>,
+  namespaceHelpers: NamespaceHelperMap,
+  scopes: readonly ReadonlySet<string>[]
+): void => {
   const { init } = node as unknown as { init?: AstNode };
   const { id } = node as unknown as { id?: AstNode };
   if (init && id?.type === 'Identifier') {
     const { name } = id as unknown as { name: string };
-    if (isResultExpression(init)) {
+    if (
+      isResultExpression(init) ||
+      isHelperCall(init, helperNames, namespaceHelpers, scopes)
+    ) {
       resultVars.add(name);
     }
   }
@@ -200,7 +209,13 @@ const checkReturnStatements = (
     blockBody,
     (node, currentScopes) => {
       if (node.type === 'VariableDeclarator') {
-        trackResultVariable(node, resultVars);
+        trackResultVariable(
+          node,
+          resultVars,
+          helperNames,
+          namespaceHelpers,
+          currentScopes
+        );
       }
 
       if (node.type !== 'ReturnStatement') {
@@ -241,14 +256,75 @@ const checkReturnStatements = (
 // Result helper name collection
 // ---------------------------------------------------------------------------
 
-/** Check if a return type annotation mentions Result. */
-const hasResultReturnType = (node: AstNode, sourceCode: string): boolean => {
+const getImportSourceValue = (node: AstNode): string | null => {
+  const sourceNode = (node as unknown as { source?: AstNode }).source;
+  const sourceValue = sourceNode
+    ? (sourceNode as unknown as { value?: unknown }).value
+    : undefined;
+  return typeof sourceValue === 'string' ? sourceValue : null;
+};
+
+const extractIdentifierName = (node: AstNode | undefined): string | null =>
+  node?.type === 'Identifier'
+    ? ((node as unknown as { name: string }).name ?? null)
+    : null;
+
+const DEFAULT_RESULT_TYPE_NAMES = new Set(['Result']);
+
+const escapeRegExp = (value: string): string =>
+  value.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const hasGenericTypeReference = (
+  annotationText: string,
+  typeName: string
+): boolean =>
+  new RegExp(`(^|[^\\w$])${escapeRegExp(typeName)}\\s*<`).test(annotationText);
+
+const collectResultTypeNames = (ast: AstNode): ReadonlySet<string> => {
+  const names = new Set(DEFAULT_RESULT_TYPE_NAMES);
+  walk(ast, (node) => {
+    if (
+      node.type !== 'ImportDeclaration' ||
+      getImportSourceValue(node) !== '@ontrails/core'
+    ) {
+      return;
+    }
+    const specifiers =
+      (node['specifiers'] as readonly AstNode[] | undefined) ?? [];
+    for (const specifier of specifiers) {
+      if (specifier.type !== 'ImportSpecifier') {
+        continue;
+      }
+      const { imported, local } = specifier as unknown as {
+        imported?: AstNode;
+        local?: AstNode;
+      };
+      if (extractIdentifierName(imported) !== 'Result') {
+        continue;
+      }
+      names.add(extractIdentifierName(local) ?? 'Result');
+    }
+  });
+  return names;
+};
+
+/** Check if a return type annotation mentions Result or an imported Result alias. */
+const hasResultReturnType = (
+  node: AstNode,
+  sourceCode: string,
+  resultTypeNames: ReadonlySet<string> = DEFAULT_RESULT_TYPE_NAMES
+): boolean => {
   const { returnType } = node as unknown as { returnType?: AstNode };
   if (!returnType) {
     return false;
   }
   const annotationText = sourceCode.slice(returnType.start, returnType.end);
-  return /\bResult\s*</.test(annotationText);
+  for (const name of resultTypeNames) {
+    if (hasGenericTypeReference(annotationText, name)) {
+      return true;
+    }
+  }
+  return false;
 };
 
 const isFunctionLikeExpression = (node: AstNode): boolean =>
@@ -260,6 +336,7 @@ const collectResultHelperNames = (
   sourceCode: string
 ): ReadonlySet<string> => {
   const names = new Set<string>();
+  const resultTypeNames = collectResultTypeNames(ast);
 
   walk(ast, (node) => {
     if (node.type === 'VariableDeclarator') {
@@ -269,7 +346,7 @@ const collectResultHelperNames = (
         id?.type === 'Identifier' &&
         init &&
         isFunctionLikeExpression(init) &&
-        hasResultReturnType(init, sourceCode)
+        hasResultReturnType(init, sourceCode, resultTypeNames)
       ) {
         names.add((id as unknown as { name: string }).name);
       }
@@ -277,7 +354,10 @@ const collectResultHelperNames = (
 
     if (node.type === 'FunctionDeclaration') {
       const { id } = node as unknown as { id?: AstNode };
-      if (id?.type === 'Identifier' && hasResultReturnType(node, sourceCode)) {
+      if (
+        id?.type === 'Identifier' &&
+        hasResultReturnType(node, sourceCode, resultTypeNames)
+      ) {
         names.add((id as unknown as { name: string }).name);
       }
     }
@@ -324,19 +404,6 @@ interface ImportBinding {
   /** Raw import source specifier (e.g. './foo.js'). */
   readonly source: string;
 }
-
-const getImportSourceValue = (node: AstNode): string | null => {
-  const sourceNode = (node as unknown as { source?: AstNode }).source;
-  const sourceValue = sourceNode
-    ? (sourceNode as unknown as { value?: unknown }).value
-    : undefined;
-  return typeof sourceValue === 'string' ? sourceValue : null;
-};
-
-const extractIdentifierName = (node: AstNode | undefined): string | null =>
-  node?.type === 'Identifier'
-    ? ((node as unknown as { name: string }).name ?? null)
-    : null;
 
 const buildDefaultImportBinding = (
   specifier: AstNode,
@@ -468,7 +535,8 @@ const getExportedDeclaration = (node: AstNode): AstNode | null => {
 const addExportedVariableResultHelper = (
   decl: AstNode,
   source: string,
-  collected: Set<string>
+  collected: Set<string>,
+  resultTypeNames: ReadonlySet<string>
 ): void => {
   const declarations =
     (decl['declarations'] as readonly AstNode[] | undefined) ?? [];
@@ -482,7 +550,7 @@ const addExportedVariableResultHelper = (
       name &&
       init &&
       isFunctionLikeExpression(init) &&
-      hasResultReturnType(init, source)
+      hasResultReturnType(init, source, resultTypeNames)
     ) {
       collected.add(name);
     }
@@ -492,10 +560,11 @@ const addExportedVariableResultHelper = (
 const addExportedFunctionResultHelper = (
   decl: AstNode,
   source: string,
-  collected: Set<string>
+  collected: Set<string>,
+  resultTypeNames: ReadonlySet<string>
 ): void => {
   const name = extractIdentifierName((decl as unknown as { id?: AstNode }).id);
-  if (name && hasResultReturnType(decl, source)) {
+  if (name && hasResultReturnType(decl, source, resultTypeNames)) {
     collected.add(name);
   }
 };
@@ -642,16 +711,17 @@ const MAX_RERESOLVE_DEPTH = 1;
 /** Check whether a local declaration node has a `Result<...>` return annotation. */
 const isResultHelperDeclaration = (
   declarationNode: AstNode | undefined,
-  source: string
+  source: string,
+  resultTypeNames: ReadonlySet<string>
 ): boolean => {
   if (!declarationNode) {
     return false;
   }
   if (isFunctionLikeExpression(declarationNode)) {
-    return hasResultReturnType(declarationNode, source);
+    return hasResultReturnType(declarationNode, source, resultTypeNames);
   }
   if (declarationNode.type === 'FunctionDeclaration') {
-    return hasResultReturnType(declarationNode, source);
+    return hasResultReturnType(declarationNode, source, resultTypeNames);
   }
   return false;
 };
@@ -660,15 +730,16 @@ const isResultHelperDeclaration = (
 const checkDefaultDeclarationIsResultHelper = (
   defaultDecl: AstNode,
   targetSource: string,
-  targetLocalDeclarations: DeclarationIndex
+  targetLocalDeclarations: DeclarationIndex,
+  resultTypeNames: ReadonlySet<string>
 ): boolean => {
-  if (isResultHelperDeclaration(defaultDecl, targetSource)) {
+  if (isResultHelperDeclaration(defaultDecl, targetSource, resultTypeNames)) {
     return true;
   }
   if (defaultDecl.type === 'Identifier') {
     const name = extractIdentifierName(defaultDecl);
     const referenced = name ? targetLocalDeclarations.get(name) : undefined;
-    return isResultHelperDeclaration(referenced, targetSource);
+    return isResultHelperDeclaration(referenced, targetSource, resultTypeNames);
   }
   return false;
 };
@@ -677,6 +748,7 @@ interface LoadedTargetFile {
   readonly ast: AstNode;
   readonly source: string;
   readonly localDeclarations: DeclarationIndex;
+  readonly resultTypeNames: ReadonlySet<string>;
 }
 
 const loadTargetFile = (targetPath: string): LoadedTargetFile | null => {
@@ -689,6 +761,7 @@ const loadTargetFile = (targetPath: string): LoadedTargetFile | null => {
     return {
       ast,
       localDeclarations: indexLocalDeclarations(ast),
+      resultTypeNames: collectResultTypeNames(ast),
       source,
     };
   } catch {
@@ -717,7 +790,8 @@ const applyDefaultSpecifier = (
     checkDefaultDeclarationIsResultHelper(
       defaultDecl,
       loadedTarget.source,
-      loadedTarget.localDeclarations
+      loadedTarget.localDeclarations,
+      loadedTarget.resultTypeNames
     )
   ) {
     collected.add(info.exportedName);
@@ -826,7 +900,8 @@ const resolveReExportWithoutSource = (
   specifiers: readonly AstNode[],
   localDeclarations: DeclarationIndex,
   source: string,
-  collected: Set<string>
+  collected: Set<string>,
+  resultTypeNames: ReadonlySet<string>
 ): void => {
   for (const spec of specifiers) {
     const info = buildExportSpecifierInfo(spec);
@@ -834,7 +909,11 @@ const resolveReExportWithoutSource = (
       continue;
     }
     if (
-      isResultHelperDeclaration(localDeclarations.get(info.localName), source)
+      isResultHelperDeclaration(
+        localDeclarations.get(info.localName),
+        source,
+        resultTypeNames
+      )
     ) {
       collected.add(info.exportedName);
     }
@@ -844,14 +923,25 @@ const resolveReExportWithoutSource = (
 const processInlineExportedDeclaration = (
   exportedDecl: AstNode,
   source: string,
-  collected: Set<string>
+  collected: Set<string>,
+  resultTypeNames: ReadonlySet<string>
 ): boolean => {
   if (exportedDecl.type === 'VariableDeclaration') {
-    addExportedVariableResultHelper(exportedDecl, source, collected);
+    addExportedVariableResultHelper(
+      exportedDecl,
+      source,
+      collected,
+      resultTypeNames
+    );
     return true;
   }
   if (exportedDecl.type === 'FunctionDeclaration') {
-    addExportedFunctionResultHelper(exportedDecl, source, collected);
+    addExportedFunctionResultHelper(
+      exportedDecl,
+      source,
+      collected,
+      resultTypeNames
+    );
     return true;
   }
   return false;
@@ -864,12 +954,18 @@ const processExportNamedDeclaration = (
   visited: ReadonlySet<string>,
   depth: number,
   localDeclarations: DeclarationIndex,
-  collected: Set<string>
+  collected: Set<string>,
+  resultTypeNames: ReadonlySet<string>
 ): void => {
   const exportedDecl = getExportedDeclaration(node);
   if (
     exportedDecl &&
-    processInlineExportedDeclaration(exportedDecl, source, collected)
+    processInlineExportedDeclaration(
+      exportedDecl,
+      source,
+      collected,
+      resultTypeNames
+    )
   ) {
     return;
   }
@@ -893,7 +989,8 @@ const processExportNamedDeclaration = (
     specifiers,
     localDeclarations,
     source,
-    collected
+    collected,
+    resultTypeNames
   );
 };
 
@@ -901,7 +998,8 @@ const processExportDefaultDeclaration = (
   node: AstNode,
   source: string,
   localDeclarations: DeclarationIndex,
-  collected: Set<string>
+  collected: Set<string>,
+  resultTypeNames: ReadonlySet<string>
 ): void => {
   const defaultDecl = (node as unknown as { declaration?: AstNode })
     .declaration;
@@ -912,7 +1010,8 @@ const processExportDefaultDeclaration = (
     checkDefaultDeclarationIsResultHelper(
       defaultDecl,
       source,
-      localDeclarations
+      localDeclarations,
+      resultTypeNames
     )
   ) {
     collected.add('default');
@@ -925,13 +1024,16 @@ const collectExportedResultHelpersFromAst = (
   targetPath: string,
   visited: ReadonlySet<string>,
   depth: number,
-  preloadedLocalDeclarations: DeclarationIndex | null = null
+  preloadedLocalDeclarations: DeclarationIndex | null = null,
+  preloadedResultTypeNames: ReadonlySet<string> | null = null
 ): ReadonlySet<string> => {
   const collected = new Set<string>();
-  // Reuse the preloaded declaration index when available (e.g., threaded in
-  // from `loadTargetFile`) to avoid re-walking the same AST.
+  // Reuse preloaded indexes from `loadTargetFile` when available to avoid
+  // re-walking the same AST.
   const localDeclarations =
     preloadedLocalDeclarations ?? indexLocalDeclarations(ast);
+  const resultTypeNames =
+    preloadedResultTypeNames ?? collectResultTypeNames(ast);
   const program = ast as unknown as { body?: readonly AstNode[] };
   const bodyNodes = program.body ?? [];
 
@@ -944,14 +1046,16 @@ const collectExportedResultHelpersFromAst = (
         visited,
         depth,
         localDeclarations,
-        collected
+        collected,
+        resultTypeNames
       );
     } else if (node.type === 'ExportDefaultDeclaration') {
       processExportDefaultDeclaration(
         node,
         source,
         localDeclarations,
-        collected
+        collected,
+        resultTypeNames
       );
     } else if (node.type === 'ExportAllDeclaration') {
       // eslint-disable-next-line no-use-before-define
@@ -1021,7 +1125,8 @@ const parseTargetResultHelperNames = (
     targetPath,
     visited,
     depth,
-    loaded.localDeclarations
+    loaded.localDeclarations,
+    loaded.resultTypeNames
   );
 };
 

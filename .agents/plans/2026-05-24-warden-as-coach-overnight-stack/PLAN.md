@@ -111,7 +111,7 @@ Verification:
 
 ### TRL-785: Result helper provenance alias gap
 
-Status: next likely implementation slice after TRL-793.
+Status: draft PR submitted as #584; CI running.
 
 Intent:
 

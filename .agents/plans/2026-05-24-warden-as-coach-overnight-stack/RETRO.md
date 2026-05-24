@@ -12,10 +12,10 @@ Use this as the durable execution ledger. For stacked work, this should normally
 
 - Objective: clear Warden-as-coach slices that convert Radio/Fieldwork learnings into Trails guidance.
 - Final outcome: pending.
-- Final branch / stack tip: pending.
-- Final PR range: PR #582 for TRL-791; PR #583 for TRL-793.
-- Final tracker state: TRL-793 In Review; TRL-794 filed for partial diagnostics.
-- Final verification state: TRL-791 verified and CI green; TRL-793 locally verified through `bun run check`.
+- Final branch / stack tip: `trl-785-warden-extend-implementation-returns-result-to-track-helper`.
+- Final PR range: PR #582 for TRL-791; PR #583 for TRL-793; PR #584 for TRL-785.
+- Final tracker state: TRL-793 In Review; TRL-794 filed for partial diagnostics; TRL-785 In Progress.
+- Final verification state: TRL-791 verified and CI green; TRL-793 CI green; TRL-785 locally verified through `bun run check`.
 - Remaining risks / P3s: TRL-794 partial diagnostics remain follow-up.
 - Archive state: active packet, not archive-ready.
 
@@ -26,7 +26,7 @@ Use this as the durable execution ledger. For stacked work, this should normally
 | 1 | TRL-791 | `trl-791-warden-coach-against-destructured-ctxcross-new-reject-and` | #582 | Draft, CI green | New `no-destructured-cross` rule submitted. |
 | 2 | TRL-793 | `trl-793-warden-upgrade-names-only-diagnostics-to-teach-the-fix-8` | #583 | Draft, CI running | Names-only diagnostics upgraded. |
 | 3 | TRL-794 | pending | pending | Todo | Follow-up for 13 partial diagnostics. |
-| 4 | TRL-785 | pending | pending | Planned | Alias-aware Result helper provenance gap. |
+| 4 | TRL-785 | `trl-785-warden-extend-implementation-returns-result-to-track-helper` | #584 | Draft, CI running | Alias-aware Result helper provenance gap; local checks green. |
 | 5 | TRL-786 | pending | pending | Planned | Should follow TRL-785 provenance work. |
 | 6 | TRL-790 | pending | pending | Optional | Keep isolated. |
 
@@ -53,6 +53,9 @@ Use this as the durable execution ledger. For stacked work, this should normally
 | 2026-05-24 00:35 EDT | TRL-793 | Moved to In Progress and commented branch/start state. | Linear comment. |
 | 2026-05-24 00:54 EDT | TRL-794 | Created follow-up for 13 partial diagnostics. | Linear TRL-794. |
 | 2026-05-24 00:54 EDT | TRL-793 | Narrowed title to names-only, moved to In Review, attached/commented PR #583 and verification. | Linear comment `27bd08bb-8f72-40cb-a363-60577aa6c7d7`. |
+| 2026-05-24 01:00 EDT | TRL-793 | Added CI green comment for PR #583. | Linear comment `c2b165e8-b261-4354-b127-7f3053a84aef`. |
+| 2026-05-24 00:57 EDT | TRL-785 | Moved to In Progress and commented implementation start/scope. | Linear comment `4752fcc9-ecc6-4288-bfa9-0f684cc87282`. |
+| 2026-05-24 01:07 EDT | TRL-785 | Moved to In Review and commented PR/local verification/review state. | Linear comment `6d2ed339-0c67-485c-930f-ea82373d7dd0`. |
 
 ## Execution Log
 
@@ -84,6 +87,27 @@ Use this as the durable execution ledger. For stacked work, this should normally
 - Result: TRL-793 is In Review with PR #583.
 - Next: watch CI and remote review; then continue to TRL-785 unless Matt/Clark redirects.
 - Blockers: none.
+
+2026-05-24 01:00 EDT - TRL-793 remote CI green
+- Changed: updated Linear and shared note with PR #583 green CI state.
+- Verified: Build, Lint & Format, Dead Code, Typecheck, Test, Governance, Changeset, and CI Gate all green.
+- Result: PR #583 remains draft with green CI.
+- Next: continue TRL-785.
+- Blockers: none.
+
+2026-05-24 01:04 EDT - TRL-785 local implementation
+- Changed: made `implementation-returns-result` recognize `Result` aliases imported from `@ontrails/core`; helper calls now seed Result-variable provenance; added local/imported alias fixtures and changeset.
+- Verified: focused test, Warden package test, typecheck, lint, format, diff check, full repo check.
+- Result: local checks green; waiting for local review agents.
+- Next: fix any P0/P1/P2 review findings, then commit/submit draft PR.
+- Blockers: none.
+
+2026-05-24 01:07 EDT - TRL-785 draft PR submission
+- Changed: committed `1e27b3ec8`, submitted PR #584, wrote PR body, moved TRL-785 to In Review, added Linear verification/review comment.
+- Verified: PR opened as draft and CI started.
+- Result: TRL-785 is In Review with PR #584.
+- Next: watch CI; if green, decide whether to start TRL-786.
+- Blockers: none.
 ```
 
 ## Local Review Log
@@ -92,6 +116,7 @@ Use this as the durable execution ledger. For stacked work, this should normally
 | --- | --- | --- | --- | --- |
 | TRL-791 | Rule behavior, docs/guides, tests | subagent reports in transcript | P0/P1/P2 fixed | PR #582 submitted after fixes. |
 | TRL-793 | Diagnostic wording and audit coverage | subagent reports in transcript | P2 fixed | Fixed valid-detour recover signature, softened trail-object cross guidance, added contour/reference rule family. |
+| TRL-785 | Correctness/false-positive lane and Clark doctrine/scope lane | subagent reports in transcript | Clean | Both lanes reported no P0/P1/P2/P3 findings; Clark agreed helper-call variable provenance is in scope. |
 
 ## Verification Log
 
@@ -105,6 +130,14 @@ Use this as the durable execution ledger. For stacked work, this should normally
 | `git diff --check` | TRL-793 repo | Pass | No whitespace errors. |
 | `bun run check` | TRL-793 repo | Pass | Full repo gate passed; known Warden warnings printed by `trails warden`. |
 | PR #583 CI | TRL-793 remote | Running | Started after draft submission. |
+| PR #583 CI | TRL-793 remote | Pass | Build, Lint & Format, Dead Code, Typecheck, Test, Governance, Changeset, CI Gate all green. |
+| `bun test packages/warden/src/__tests__/implementation-returns-result.test.ts` | TRL-785 focused | Pass | 40 pass, 0 fail. |
+| `bun --cwd packages/warden test` | TRL-785 package | Pass | 917 pass, 0 fail. |
+| `bun run typecheck` | TRL-785 repo | Pass | 22 packages successful. |
+| `bun run lint` | TRL-785 repo | Pass | 23 tasks successful after `replace` -> `replaceAll` lint fix. |
+| `bun run format:check` | TRL-785 repo | Pass | Passed after `bun run format:fix`. |
+| `git diff --check` | TRL-785 repo | Pass | No whitespace errors. |
+| `bun run check` | TRL-785 repo | Pass | Full repo gate passed; known Warden warnings printed by `trails warden`. |
 
 ## Remote Review / CI Log
 
@@ -112,6 +145,8 @@ Use this as the durable execution ledger. For stacked work, this should normally
 | --- | --- | --- | --- | --- | --- | --- |
 | 2026-05-24 00:34 EDT | #582 | Green | Draft | Local reviews clean after fixes | 0 known | Monitor / ready when appropriate. |
 | 2026-05-24 00:55 EDT | #583 | Running | Draft | Local reviews clean after fixes | 0 known | Watch CI. |
+| 2026-05-24 01:00 EDT | #583 | Green | Draft | GitHub checks green | 0 known | Keep draft; no merge/queue action. |
+| 2026-05-24 01:07 EDT | #584 | Running | Draft | Local reviews clean; CI started | 0 known | Watch CI. |
 
 ## Review Feedback Resolutions
 
@@ -120,6 +155,8 @@ Use this as the durable execution ledger. For stacked work, this should normally
 | Clark local review | P2 | P2 | `valid-detour-contract` diagnostic taught wrong recover signature. | Use `(attempt, ctx)` and `attempt.error`. | Fixed in rule, tests, trail expectation. | TRL-793 local diff. |
 | Clark local review | P2 | P2 | `cross-declarations` softened trail-object guidance implied unsupported resolution. | Teach string id or same trail object form in both declaration and call. | Fixed in rule/tests. | TRL-793 local diff. |
 | Plato local review | P2 | P2 | Audit same-family contour reference rules were omitted. | Add teaching diagnostics for `contour-exists` and `reference-exists`. | Fixed in rules/tests. | TRL-793 local diff. |
+| James local review | Clean | None | No false-positive/cache/import-resolution findings. | None. | Accepted. | TRL-785 subagent report. |
+| Clark local review | Clean | None | Helper-call variable provenance is in scope and alias recognition is Trails-shaped. | None. | Accepted. | TRL-785 subagent report. |
 
 ## Forbidden Actions Audit
 
@@ -134,14 +171,14 @@ Use this as the durable execution ledger. For stacked work, this should normally
 ## Final State
 
 - Goal completion condition: pending.
-- Graphite / branch state: TRL-793 submitted v1 at `420a5fc9b`; packet update pending amend.
-- PR state: #582 draft CI green; #583 draft CI running.
+- Graphite / branch state: TRL-785 submitted v1 at `1e27b3ec8`; TRL-793 submitted v2 at `2f9f57e94`.
+- PR state: #582 draft CI green; #583 draft CI green; #584 draft CI running.
 - Source-control host lag: none known.
-- Tracker state: TRL-791 In Review; TRL-793 In Review; TRL-794 Todo; later issues pending.
-- Local review state: TRL-793 P2 findings fixed.
-- Remote review state: #583 CI running; review pending.
+- Tracker state: TRL-791 In Review; TRL-793 In Review; TRL-794 Todo; TRL-785 In Review; later issues pending.
+- Local review state: TRL-793 P2 findings fixed; TRL-785 review agents running.
+- Remote review state: #583 CI green; #584 CI running; review pending.
 - Remote review scores: pending.
-- Verification: TRL-793 local gates passed through `bun run check`.
+- Verification: TRL-793 and TRL-785 local gates passed through `bun run check`; PR #583 CI green.
 - Skipped checks: none for TRL-793 local handoff.
 - Remaining P3s / risks: partial diagnostic second wave tracked separately in TRL-794.
 - Follow-up issues created: TRL-794.

@@ -27,7 +27,8 @@
 ## PRs / Branches
 
 - PR #582 / `trl-791-warden-coach-against-destructured-ctxcross-new-reject-and` - TRL-791 draft PR, CI green as of 2026-05-24 00:34 EDT.
-- PR #583 / `trl-793-warden-upgrade-names-only-diagnostics-to-teach-the-fix-8` - TRL-793 draft PR, CI running as of 2026-05-24 00:55 EDT.
+- PR #583 / `trl-793-warden-upgrade-names-only-diagnostics-to-teach-the-fix-8` - TRL-793 draft PR, CI green as of 2026-05-24 01:00 EDT.
+- PR #584 / `trl-785-warden-extend-implementation-returns-result-to-track-helper` - TRL-785 draft PR, CI running as of 2026-05-24 01:07 EDT.
 
 ## Validation Commands
 
