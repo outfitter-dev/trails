@@ -39,6 +39,22 @@ interface ScaffoldResult {
   readonly plannedOperations: PlannedProjectOperation[];
 }
 
+const frameworkCommandScripts = {
+  add: 'trails add',
+  compile: 'trails compile',
+  completions: 'trails completions',
+  deprecate: 'trails deprecate',
+  diff: 'trails diff',
+  doctor: 'trails doctor',
+  guide: 'trails guide',
+  revise: 'trails revise',
+  run: 'trails run',
+  survey: 'trails survey',
+  topo: 'trails topo',
+  validate: 'trails validate',
+  warden: 'trails warden',
+} as const satisfies Record<string, string>;
+
 // ---------------------------------------------------------------------------
 // Content generators
 // ---------------------------------------------------------------------------
@@ -55,6 +71,7 @@ const generatePackageJson = (name: string): string => {
     ),
     devDependencies: Object.fromEntries(
       Object.entries({
+        '@ontrails/trails': ontrailsPackageRange,
         '@types/bun': scaffoldDependencyVersions.bunTypes,
         oxfmt: scaffoldDependencyVersions.oxfmt,
         oxlint: scaffoldDependencyVersions.oxlint,
@@ -63,14 +80,17 @@ const generatePackageJson = (name: string): string => {
       }).toSorted(([a], [b]) => a.localeCompare(b))
     ),
     name,
-    scripts: {
-      build: 'tsc -b',
-      'format:check': 'bunx ultracite check .',
-      'format:fix': 'bunx ultracite fix .',
-      lint: 'oxlint ./src',
-      test: 'bun test',
-      typecheck: 'tsc --noEmit',
-    },
+    scripts: Object.fromEntries(
+      Object.entries({
+        build: 'tsc -b',
+        'format:check': 'bunx ultracite check .',
+        'format:fix': 'bunx ultracite fix .',
+        lint: 'oxlint ./src',
+        test: 'bun test',
+        typecheck: 'tsc --noEmit',
+        ...frameworkCommandScripts,
+      }).toSorted(([a], [b]) => a.localeCompare(b))
+    ),
     type: 'module',
     version: '0.1.0',
   };

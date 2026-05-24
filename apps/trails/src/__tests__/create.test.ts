@@ -176,11 +176,38 @@ const assertVerifyPackage = (dir: string): void => {
 const assertGeneratedToolingDeps = (dir: string): void => {
   const pkg = readJson(dir, 'package.json');
   const devDeps = pkg['devDependencies'] as Record<string, string>;
+  expect(devDeps['@ontrails/trails']).toBe(ontrailsPackageRange);
   expect(devDeps['@types/bun']).toBe(scaffoldDependencyVersions.bunTypes);
   expect(devDeps['oxfmt']).toBe(scaffoldDependencyVersions.oxfmt);
   expect(devDeps['oxlint']).toBe(scaffoldDependencyVersions.oxlint);
   expect(devDeps['typescript']).toBe(scaffoldDependencyVersions.typescript);
   expect(devDeps['ultracite']).toBe(scaffoldDependencyVersions.ultracite);
+};
+
+const assertFrameworkCliScripts = (dir: string): void => {
+  const pkg = readJson(dir, 'package.json');
+  const scripts = pkg['scripts'] as Record<string, string>;
+  expect(scripts).toMatchObject({
+    add: 'trails add',
+    build: 'tsc -b',
+    compile: 'trails compile',
+    completions: 'trails completions',
+    deprecate: 'trails deprecate',
+    diff: 'trails diff',
+    doctor: 'trails doctor',
+    'format:check': 'bunx ultracite check .',
+    'format:fix': 'bunx ultracite fix .',
+    guide: 'trails guide',
+    lint: 'oxlint ./src',
+    revise: 'trails revise',
+    run: 'trails run',
+    survey: 'trails survey',
+    test: 'bun test',
+    topo: 'trails topo',
+    typecheck: 'tsc --noEmit',
+    validate: 'trails validate',
+    warden: 'trails warden',
+  });
 };
 
 const assertHelloApp = (dir: string): void => {
@@ -298,6 +325,7 @@ describe('trails create', () => {
         assertCliPackage(dir);
         assertVerifyPackage(dir);
         assertGeneratedToolingDeps(dir);
+        assertFrameworkCliScripts(dir);
         assertHelloApp(dir);
       });
     });
@@ -382,6 +410,8 @@ describe('trails create', () => {
       await withTempProject(async (dir) => {
         expectOk(await runCreate(dir, { verify: false }));
         assertVerifySkipped(dir);
+        assertGeneratedToolingDeps(dir);
+        assertFrameworkCliScripts(dir);
       });
     });
 
