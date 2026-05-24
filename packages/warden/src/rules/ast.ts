@@ -1100,7 +1100,7 @@ export const walkWithScopes = (
   walkNode(root, true);
 };
 
-const isShadowed = (
+export const isShadowed = (
   receiverName: string,
   scopeStack: readonly ReadonlySet<string>[]
 ): boolean => {

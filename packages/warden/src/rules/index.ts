@@ -17,6 +17,7 @@ import { layerFieldNameDrift } from './layer-field-name-drift.js';
 import { missingVisibility } from './missing-visibility.js';
 import { missingReconcile } from './missing-reconcile.js';
 import { noDevPermitInSource } from './no-dev-permit-in-source.js';
+import { noDestructuredCross } from './no-destructured-cross.js';
 import { noLegacyLayerImports } from './no-legacy-layer-imports.js';
 import { noDirectImplementationCall } from './no-direct-implementation-call.js';
 import { noNativeErrorResult } from './no-native-error-result.js';
@@ -108,6 +109,7 @@ export { missingVisibility } from './missing-visibility.js';
 export { missingReconcile } from './missing-reconcile.js';
 export { onReferencesExist } from './on-references-exist.js';
 export { noDevPermitInSource } from './no-dev-permit-in-source.js';
+export { noDestructuredCross } from './no-destructured-cross.js';
 export { noLegacyLayerImports } from './no-legacy-layer-imports.js';
 export { noDirectImplementationCall } from './no-direct-implementation-call.js';
 export { noNativeErrorResult } from './no-native-error-result.js';
@@ -182,6 +184,7 @@ export const wardenRules: ReadonlyMap<string, WardenRule> = new Map<
   [staticResourceAccessorPreference.name, staticResourceAccessorPreference],
   [validDescribeRefs.name, validDescribeRefs],
   [noDevPermitInSource.name, noDevPermitInSource],
+  [noDestructuredCross.name, noDestructuredCross],
   [noDirectImplementationCall.name, noDirectImplementationCall],
   [noLegacyLayerImports.name, noLegacyLayerImports],
   [noNativeErrorResult.name, noNativeErrorResult],

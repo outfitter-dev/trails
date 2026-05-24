@@ -25,6 +25,7 @@ import { layerFieldNameDrift } from './layer-field-name-drift.js';
 import { missingReconcile } from './missing-reconcile.js';
 import { missingVisibility } from './missing-visibility.js';
 import { noDevPermitInSource } from './no-dev-permit-in-source.js';
+import { noDestructuredCross } from './no-destructured-cross.js';
 import { noLegacyLayerImports } from './no-legacy-layer-imports.js';
 import { noDirectImplementationCall } from './no-direct-implementation-call.js';
 import { noNativeErrorResult } from './no-native-error-result.js';
@@ -95,6 +96,7 @@ export const registeredRuleNames: readonly string[] = [
   missingReconcile.name,
   missingVisibility.name,
   noDevPermitInSource.name,
+  noDestructuredCross.name,
   noLegacyLayerImports.name,
   noDirectImplementationCall.name,
   noNativeErrorResult.name,

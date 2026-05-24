@@ -6,6 +6,7 @@
  */
 
 import { InternalError, Result, trail } from '@ontrails/core';
+import type { TrailContext } from '@ontrails/core';
 import { z } from 'zod';
 
 import {
@@ -51,6 +52,13 @@ interface SurfaceResult {
   readonly created: string;
   readonly dependency: string;
 }
+
+type TrailContextWithCross = TrailContext & {
+  readonly cross: NonNullable<TrailContext['cross']>;
+};
+
+const hasCross = (ctx: TrailContext): ctx is TrailContextWithCross =>
+  Boolean(ctx.cross);
 
 const buildScaffoldInput = (input: ScaffoldRequest) => ({
   ...(input.dir === undefined ? {} : { dir: input.dir }),
@@ -179,12 +187,11 @@ const writeReadme = async (
 
 export const createTrail = trail('create', {
   blaze: async (input: CreateInput, ctx) => {
-    if (!ctx.cross) {
+    if (!hasCross(ctx)) {
       return Result.err(new InternalError('create trail requires ctx.cross'));
     }
-    const { cross } = ctx;
 
-    const scaffolded = await cross<ScaffoldedProject>(
+    const scaffolded = await ctx.cross<ScaffoldedProject>(
       'create.scaffold',
       buildScaffoldInput(input)
     );
@@ -198,7 +205,7 @@ export const createTrail = trail('create', {
       const surfaceFiles = await collectSurfaceFiles(
         input.surfaces,
         (surface) =>
-          cross<SurfaceResult>(
+          ctx.cross<SurfaceResult>(
             'add.surface',
             buildSurfaceInput(scaffolded.value.dir, surface)
           )
@@ -208,7 +215,7 @@ export const createTrail = trail('create', {
       }
 
       const verifyFiles = await collectVerifyFiles(input.verify, () =>
-        cross<{ created: string[] }>('add.verify', buildVerifyInput(input))
+        ctx.cross<{ created: string[] }>('add.verify', buildVerifyInput(input))
       );
       if (verifyFiles.isErr()) {
         return Result.err(verifyFiles.error);

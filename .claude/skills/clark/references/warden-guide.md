@@ -5,7 +5,7 @@
 This file is generated from the live `@ontrails/warden` rule manifest. Repo-tracked skills, agents, and plugin prompts should reference this file instead of copying rule prose by hand.
 
 - Guide input command: `bun apps/trails/bin/trails.ts warden guide --agent-json`
-- Rule count: 56
+- Rule count: 57
 
 ## Agent Instructions
 
@@ -24,6 +24,7 @@ This file is generated from the live `@ontrails/warden` rule manifest. Repo-trac
 - `dead-internal-trail` (warn, project/project-static, external): Internal trails should be reachable through declared crosses.
 - `intent-propagation` (warn, project/project-static, external): Composite trail intent cannot be safer than crossed trails.
 - `missing-visibility` (warn, project/project-static, external): Composition-only trails declare internal visibility.
+- `no-destructured-cross` (warn, source/source-static, external): Trail blazes compose through ctx.cross() directly instead of destructuring cross from the context.
 - `no-direct-implementation-call` (warn, source/source-static, external): Application code composes trails through ctx.cross().
 - `resolved-import-boundary` (error, project/project-static, external): Cross-package imports resolve through public export maps.
 - `version-pinned-cross` (warn, source/source-static, external): Version-pinned ctx.cross() calls stay visible migration debt.

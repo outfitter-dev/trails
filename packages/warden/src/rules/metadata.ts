@@ -71,6 +71,7 @@ const concernByRuleName: Partial<Record<string, WardenRuleConcern>> = {
   'marker-schema-unsupported': 'lifecycle',
   'missing-reconcile': 'resources',
   'missing-visibility': 'composition',
+  'no-destructured-cross': 'composition',
   'no-dev-permit-in-source': 'permits',
   'no-direct-implementation-call': 'composition',
   'no-native-error-result': 'results',
@@ -240,6 +241,12 @@ const builtinWardenRuleMetadataInput = {
     ...durableExternal,
     invariant: 'Composition-only trails declare internal visibility.',
     tier: 'project-static',
+  },
+  'no-destructured-cross': {
+    ...durableExternal,
+    invariant:
+      'Trail blazes compose through ctx.cross() directly instead of destructuring cross from the context.',
+    tier: 'source-static',
   },
   'no-dev-permit-in-source': {
     ...durableExternal,

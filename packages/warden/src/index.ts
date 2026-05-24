@@ -164,6 +164,7 @@ export {
   missingVisibilityTrail,
   missingReconcileTrail,
   noDevPermitInSourceTrail,
+  noDestructuredCrossTrail,
   noDirectImplementationCallTrail,
   noLegacyLayerImportsTrail,
   noNativeErrorResultTrail,
