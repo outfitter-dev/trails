@@ -146,6 +146,7 @@ const assertDefaultProjectFiles = (dir: string): void => {
       'package.json',
       'AGENTS.md',
       'CLAUDE.md',
+      'README.md',
       'tsconfig.json',
       'tsconfig.tests.json',
       '.gitignore',
@@ -202,6 +203,61 @@ const assertAgentGuidance = (dir: string): void => {
     'Keep shared project guidance in `./AGENTS.md`.',
     '@AGENTS.md',
   ]);
+};
+
+const assertReadme = (
+  dir: string,
+  options?: Partial<{
+    starter: Starter;
+    surfaces: readonly Surface[];
+    verify: boolean;
+  }>
+): void => {
+  const starter = options?.starter ?? 'hello';
+  const surfaces = options?.surfaces ?? ['cli'];
+  const verify = options?.verify ?? true;
+  const content = readText(dir, 'README.md');
+
+  expectContainsAll(content, [
+    `# ${basename(dir)}`,
+    'A Trails project.',
+    'bun install',
+    'bun run warden',
+    'bun run survey',
+    'bun run guide',
+    '`src/app.ts` - the topo',
+    '`src/trails/` - trail definitions',
+    '`AGENTS.md` - project guidance',
+    'Add a trail with `bun run add`',
+  ]);
+  for (const surface of surfaces) {
+    const file = surface === 'cli' ? 'src/cli.ts' : `src/${surface}.ts`;
+    expect(content).toContain(`\`${file}\` -`);
+  }
+  if (!surfaces.includes('cli')) {
+    expect(content).not.toContain('`src/cli.ts` -');
+  }
+  if (!surfaces.includes('mcp')) {
+    expect(content).not.toContain('`src/mcp.ts` -');
+  }
+  if (!surfaces.includes('http')) {
+    expect(content).not.toContain('`src/http.ts` -');
+  }
+
+  if (verify) {
+    expect(content).toContain('bun test');
+    expect(content).toContain('`__tests__/examples.test.ts` -');
+  } else {
+    expect(content).not.toContain('bun test');
+    expect(content).toContain('Verification files were not generated');
+  }
+
+  const starterSnippets = {
+    empty: 'authoring from scratch',
+    entity: 'sample entity trails',
+    hello: '`hello` trail',
+  } satisfies Record<Starter, string>;
+  expect(content).toContain(starterSnippets[starter]);
 };
 
 const assertCliPackage = (dir: string): void => {
@@ -376,10 +432,12 @@ describe('trails create', () => {
         expectCreatedPaths(result.created, [
           'AGENTS.md',
           'CLAUDE.md',
+          'README.md',
           'tsconfig.tests.json',
         ]);
         assertDefaultProjectFiles(dir);
         assertAgentGuidance(dir);
+        assertReadme(dir);
         assertTsconfigTests(dir);
         assertCliPackage(dir);
         assertVerifyPackage(dir);
@@ -454,6 +512,7 @@ describe('trails create', () => {
       await withTempProject(async (dir) => {
         expectOk(await runCreate(dir, { starter: 'entity' }));
         assertEntityStarter(dir);
+        assertReadme(dir, { starter: 'entity' });
       });
     });
 
@@ -461,6 +520,7 @@ describe('trails create', () => {
       await withTempProject(async (dir) => {
         expectOk(await runCreate(dir, { surfaces: ['mcp'] }));
         assertMcpSurface(dir);
+        assertReadme(dir, { surfaces: ['mcp'] });
       });
     });
 
@@ -468,6 +528,26 @@ describe('trails create', () => {
       await withTempProject(async (dir) => {
         expectOk(await runCreate(dir, { surfaces: ['http'] }));
         assertHttpSurface(dir);
+        assertReadme(dir, { surfaces: ['http'] });
+      });
+    });
+
+    test('generates with CLI, MCP, and HTTP surfaces', async () => {
+      await withTempProject(async (dir) => {
+        expectOk(await runCreate(dir, { surfaces: ['cli', 'mcp', 'http'] }));
+        expectPaths(dir, ['src/cli.ts', 'src/mcp.ts', 'src/http.ts'], true);
+        assertCliPackage(dir);
+        assertHttpSurface(dir);
+        expectContainsAll(readText(dir, 'src/mcp.ts'), [
+          "import { surface } from '@ontrails/mcp'",
+          'await surface(app)',
+        ]);
+        const deps = readJson(dir, 'package.json')['dependencies'] as Record<
+          string,
+          string
+        >;
+        expect(deps['@ontrails/mcp']).toBe(ontrailsPackageRange);
+        assertReadme(dir, { surfaces: ['cli', 'mcp', 'http'] });
       });
     });
 
@@ -476,6 +556,7 @@ describe('trails create', () => {
         expectOk(await runCreate(dir, { verify: false }));
         assertVerifySkipped(dir);
         assertAgentGuidance(dir);
+        assertReadme(dir, { verify: false });
         assertTsconfigTests(dir);
         assertGeneratedToolingDeps(dir);
         assertFrameworkCliScripts(dir);
@@ -486,6 +567,7 @@ describe('trails create', () => {
       await withTempProject(async (dir) => {
         expectOk(await runCreate(dir, { starter: 'empty' }));
         assertEmptyStarter(dir);
+        assertReadme(dir, { starter: 'empty' });
       });
     });
 
@@ -515,6 +597,21 @@ describe('trails create', () => {
       expect(result.success).toBe(false);
       if (!result.success) {
         expect(result.error.issues[0]?.message).toBe(PROJECT_NAME_MESSAGE);
+      }
+    });
+
+    test('rejects empty surface lists at the create trail boundary', () => {
+      const result = createTrail.input.safeParse({
+        dir: tmpdir(),
+        name: 'empty-surfaces',
+        starter: 'hello',
+        surfaces: [],
+        verify: true,
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0]?.path).toEqual(['surfaces']);
       }
     });
   });

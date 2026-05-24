@@ -11,6 +11,7 @@ import { z } from 'zod';
 import {
   PROJECT_NAME_MESSAGE,
   PROJECT_NAME_PATTERN,
+  writeProjectFile,
 } from '../project-writes.js';
 
 // ---------------------------------------------------------------------------
@@ -101,8 +102,76 @@ const collectVerifyFiles = async (
 const collectCreatedFiles = (
   scaffolded: readonly string[],
   surfaces: readonly string[],
-  verify: readonly string[]
-): string[] => [...scaffolded, ...surfaces, ...verify];
+  verify: readonly string[],
+  readme: string
+): string[] => [...scaffolded, ...surfaces, ...verify, readme];
+
+const surfaceReadmeLines = {
+  cli: '- `src/cli.ts` - CLI surface entry point',
+  http: '- `src/http.ts` - HTTP surface entry point',
+  mcp: '- `src/mcp.ts` - MCP surface entry point',
+} satisfies Record<Surface, string>;
+
+const starterReadmeLines = {
+  empty:
+    'Starts with an empty `src/trails/` directory for authoring from scratch.',
+  entity:
+    'Includes sample entity trails, a signal, and an in-memory store for exploration.',
+  hello: 'Includes a `hello` trail with examples for the first happy path.',
+} satisfies Record<Starter, string>;
+
+const generateReadme = (input: CreateInput): string => {
+  const surfaceLines = input.surfaces
+    .map((surface) => surfaceReadmeLines[surface])
+    .join('\n');
+  const verificationCommand = input.verify ? 'bun test\n' : '';
+  const verificationStructure = input.verify
+    ? '- `__tests__/examples.test.ts` - examples-as-tests harness\n'
+    : '- Verification files were not generated for this project\n';
+
+  return `# ${input.name}
+
+A Trails project. Trails is an agent-native, contract-first TypeScript framework: author a trail once with typed input, Result output, examples, intent, and meta; surface it through CLI, MCP, HTTP, or future WebSocket.
+
+## Getting Started
+
+\`\`\`bash
+bun install
+${verificationCommand}bun run warden
+bun run survey
+bun run guide
+\`\`\`
+
+## Project Structure
+
+- \`src/app.ts\` - the topo that collects this project's trails
+- \`src/trails/\` - trail definitions
+${surfaceLines}
+${verificationStructure}- \`AGENTS.md\` - project guidance for agents working in this app
+
+## Starter
+
+${starterReadmeLines[input.starter]}
+
+## Next Steps
+
+- Add a trail with \`bun run add\`
+- Run \`bun run warden\` before review
+- Read \`AGENTS.md\` for Trails vocabulary and conventions
+`;
+};
+
+const writeReadme = async (
+  input: CreateInput,
+  dir: string
+): Promise<Result<string, Error>> => {
+  const written = await writeProjectFile(
+    dir,
+    'README.md',
+    generateReadme(input)
+  );
+  return written.isErr() ? Result.err(written.error) : Result.ok('README.md');
+};
 
 // ---------------------------------------------------------------------------
 // Trail definition
@@ -145,11 +214,17 @@ export const createTrail = trail('create', {
         return Result.err(verifyFiles.error);
       }
 
+      const readmeFile = await writeReadme(input, scaffolded.value.dir);
+      if (readmeFile.isErr()) {
+        return Result.err(readmeFile.error);
+      }
+
       return Result.ok({
         created: collectCreatedFiles(
           scaffolded.value.created,
           surfaceFiles.value,
-          verifyFiles.value
+          verifyFiles.value,
+          readmeFile.value
         ),
         dir: scaffolded.value.dir,
         name: input.name,
@@ -204,6 +279,7 @@ export const createTrail = trail('create', {
       .describe('Starter trail'),
     surfaces: z
       .array(z.enum(['cli', 'http', 'mcp']))
+      .min(1)
       .default(['cli'])
       .describe('Surfaces'),
     verify: z.boolean().default(true).describe('Include testing + warden'),
