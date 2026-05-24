@@ -55,3 +55,26 @@
 - Ship TRL-268 alone, no consumer — rejected because a primitive without a real consumer is exactly what the original bar was designed to prevent. TRL-269 is the test of the interface shape.
 - Design TRL-268 against TRL-269 + TRL-271 + detour coverage simultaneously — rejected because TRL-271's consumer shape is downstream of its own simplification, and detour coverage has no concrete issue. Designing against speculative consumers is the failure mode the April 12 ruling was trying to avoid.
 **Follow-up:** TRL-268 lands `TopoAwareWardenRule` interface; TRL-269 converts the runtime defensive check at `derive-trail.ts:546-575` into a topo-aware warden rule and removes the runtime fallback if the rule makes it unreachable. TRL-271's future simplification to use `pattern` field becomes the second consumer once its primary work lands.
+
+### 2026-05-23 OD-4 — reject-and-coach destructured ctx.cross
+
+**Question:** Should Warden accept destructured `ctx.cross` (`const { cross } = ctx; cross(...)`), or reject it with a canonical-pattern coaching diagnostic that steers authors to direct `ctx.cross(...)`?
+
+**Decision:** Reject-and-coach. `ctx.cross(...)` is the single canonical authoring shape for runtime composition. A new Warden rule flags `const { cross } = ctx` (and equivalent destructuring of `cross` off the context binding) in blaze bodies with a teaching diagnostic pointing at direct `ctx.cross(...)`. Do NOT bridge the destructured form into `implementation-returns-result`'s recognition path.
+
+**Basis:** Hierarchy levels 2 + 4 (tenets + lexicon), plus a verified empirical signal.
+
+- Level 2 (tenets): `cross()` / `crosses` is a named core primitive and the first-class compositional mechanism. "One write, many reads" requires every consumer (Warden provenance, LSP narrowing of the typed cross overload, future Ranger orientation, error-message copy) to read one authored shape. Two shapes for the same verb is a drift surface the tenets exist to close.
+- Level 4 (lexicon/AGENTS.md): `ctx.cross()` is already the prescribed verb ("compose through `ctx.cross()`, never by calling another trail's .blaze() directly"). Steering to it is enforcement of an existing convention, not a new one.
+- Empirical (verified this session): `implementation-returns-result` recognizes composition only through the member expression `ctx.cross` (rule source `packages/warden/src/rules/implementation-returns-result.ts:40-42`, `isResultMemberCall` hard-matches objName==="ctx" && propName==="cross"). A destructured `cross(...)` is a bare Identifier callee, misses `isResultMemberCall`, misses `isHelperCall` (cross is not an annotated Result helper), and produces a false-positive re-wrap diagnostic. Radio fieldwork F02 (2026-05-23) cut re-wrap errors 7->2 by converting 3 composing trails to direct `ctx.cross(...)`. The reduction is mechanically explained by the member-expression match.
+
+**Why reject over bridge:** Bridging the destructured form into the AST rule would teach Warden to tolerate a shape that the *other* guidance channels cannot follow. LSP cannot narrow the typed cross overload through a destructured binding; error-message and orientation copy would have to enumerate two shapes forever. Bridging accommodates a shadow pattern; rejecting eliminates it at lint time, which is exactly where the drift guard wants this (step 4: warden catches it). The shadow pattern is the thing to kill, not the thing to support.
+
+**Confidence:** High. Aligned position of both co-architects (Clark + Lewis); load-bearing empirical claim independently verified against live rule source this session. Matt retains veto under the current operating model.
+
+**Alternatives considered:**
+
+- Accept both shapes (bridge destructuring into the rule) — rejected: fragments guidance across two shapes that LSP/orientation/error copy cannot all follow; accommodates the shadow pattern instead of removing it.
+- Accept silently, no coaching — rejected: leaves the false-positive re-wrap diagnostic in place for destructured authors and gives no path to the canonical shape.
+
+**Follow-up:** File the Warden TRL framed as this decision (new coaching rule for destructured `cross` in blaze bodies). Sits under the Fieldwork Loop umbrella, Workstream 2 (Warden as Coach) + Shadow Pattern Catalog. The teaching diagnostic should name both costs concretely: breaks LSP narrowing of the typed cross overload, and breaks Warden provenance tracking. Existing memory `reference_warden_result_recognition.md` (TRL-785/786/787) already documents the recognition gap; cross-link the new rule TRL there.
