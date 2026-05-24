@@ -200,6 +200,15 @@ import ultracite from 'ultracite/oxlint/core';
 
 export default defineConfig({
   extends: [ultracite],
+  rules: {
+    'no-warning-comments': [
+      'error',
+      {
+        location: 'start',
+        terms: ['todo:', 'fixme', 'xxx'],
+      },
+    ],
+  },
 });
 `;
 

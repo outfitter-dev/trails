@@ -12,11 +12,11 @@ Use this as the durable execution ledger. For stacked work, this should normally
 
 - Objective: clear Warden-as-coach slices that convert Radio/Fieldwork learnings into Trails guidance.
 - Final outcome: pending.
-- Final branch / stack tip: `trl-795-warden-cleanup-return-result-values-directly-at-existing`.
-- Final PR range: PR #582 for TRL-791; PR #583 for TRL-793; PR #584 for TRL-785; PR #585 for TRL-786; PR #586 for TRL-795.
-- Final tracker state: TRL-793 In Review; TRL-794 filed for partial diagnostics; TRL-785 In Review; TRL-786 In Review; TRL-795 In Review.
-- Final verification state: TRL-791 verified and CI green; TRL-793 CI green; TRL-785 CI green; TRL-786 CI green; TRL-795 local gates pass through `bun run check`.
-- Remaining risks / P3s: TRL-794 partial diagnostics remain follow-up; TRL-790 remains optional/independent.
+- Final branch / stack tip: `trl-790-configure-lint-to-whitelist-todotrails-notetrails-fieldwork`.
+- Final PR range: PR #582 for TRL-791; PR #583 for TRL-793; PR #584 for TRL-785; PR #585 for TRL-786; PR #586 for TRL-795; PR #587 for TRL-790.
+- Final tracker state: TRL-793 In Review; TRL-794 filed for partial diagnostics; TRL-785 In Review; TRL-786 In Review; TRL-795 In Review; TRL-790 In Review.
+- Final verification state: TRL-791 verified and CI green; TRL-793 CI green; TRL-785 CI green; TRL-786 CI green; TRL-795 CI green; TRL-790 CI green.
+- Remaining risks / P3s: TRL-794 partial diagnostics remain follow-up.
 - Archive state: active packet, not archive-ready.
 
 ## Branch / PR / Issue Ledger
@@ -29,7 +29,7 @@ Use this as the durable execution ledger. For stacked work, this should normally
 | 4 | TRL-785 | `trl-785-warden-extend-implementation-returns-result-to-track-helper` | #584 | Draft, CI running | Alias-aware Result helper provenance gap; local checks green. |
 | 5 | TRL-786 | `trl-786-warden-detect-redundant-resulterrxerror-re-wraps-inverse-of` | #585 | Draft, CI green | New redundant `Result.err(x.error)` re-wrap detector. |
 | 6 | TRL-795 | `trl-795-warden-cleanup-return-result-values-directly-at-existing` | #586 | Draft, CI green | Dogfood cleanup for all 37 live redundant re-wrap warnings. |
-| 7 | TRL-790 | pending | pending | Optional | Keep isolated. |
+| 7 | TRL-790 | `trl-790-configure-lint-to-whitelist-todotrails-notetrails-fieldwork` | #587 | Draft, CI green | Fieldwork marker lint carve-out via `TODO :::`-friendly `no-warning-comments` term narrowing. |
 
 ## Planning Discoveries
 
@@ -38,13 +38,15 @@ Use this as the durable execution ledger. For stacked work, this should normally
 | `TRL-785` overlaps prior `TRL-333` work. | Clark shared note and Linear comments. | Treat as a coverage-gap follow-up, not fresh capability. | Avoid re-implementing TRL-333. |
 | Radio helper provenance failure is alias-blindness, not `.js` to `.ts` import resolution. | Clark cause confirmation in shared note. | Fix `hasResultReturnType` alias recognition when working TRL-785. | Makes 785 the right predecessor for 786. |
 | `TRL-793` should stay separate from `TRL-791`. | Clark shared note 00:14 EDT. | Keep diagnostic-string work separate from new behavioral rule. | Clearer review surfaces. |
+| Oxlint `no-warning-comments` does not honor a true allow/ignore option. | Local config probes; `allow` was ignored. | Implement TRL-790 as term narrowing: `todo:`, `fixme`, `xxx` at comment start. | Allows `TODO :::` fieldwork markers while keeping standard `TODO:` / `FIXME` / `XXX` debt forms blocked. |
 
 ## Deferred / Follow-Up Discoveries
 
 | Issue | Discovery | Why Out Of Goal | Link |
 | --- | --- | --- | --- |
 | TRL-794 | Partial diagnostics second wave. | First PR is names-only plus same-family omissions; partials are broader wording work. | Linear TRL-794 |
-| pending | Fieldguide should teach `import { Result }` rather than unnecessary `Result as ResultType` aliasing. | Docs/fieldguide work, not Warden rule change unless naturally surfaced in TRL-785. | pending |
+| TRL-801 | Scaffold package range policy during beta releases. | Discovered during scaffold stack review; not required for the Warden-as-Coach stack. | Linear TRL-801 |
+| TRL-802 | Fieldguides should teach `import { Result }` rather than unnecessary `Result as ResultType` aliasing. | Docs/fieldguide work, not Warden rule change unless naturally surfaced in TRL-785. | Linear TRL-802 |
 
 ## Tracker Mutations
 
@@ -62,6 +64,9 @@ Use this as the durable execution ledger. For stacked work, this should normally
 | 2026-05-24 01:42 EDT | TRL-795 | Created cleanup issue/branch and locally verified the dogfood change. | Linear update pending PR submission. |
 | 2026-05-24 01:44 EDT | TRL-795 | Moved to In Review, attached PR #586, and commented local verification state. | Linear comment `af4508e7-6ba0-497e-a257-ce729d86b917`. |
 | 2026-05-24 01:49 EDT | TRL-795 | Added CI green comment for PR #586. | Linear comment `e6cb7e96-22a2-44a0-98a6-16e19333af14`. |
+| 2026-05-24 01:48 EDT | TRL-790 | Moved to In Progress and commented branch/start state plus Oxlint allow-option finding. | Linear comment `978049bd-426b-406f-b095-4889d7481ae8`. |
+| 2026-05-24 01:56 EDT | TRL-790 | Moved to In Review, attached PR #587, and commented local verification state. | Linear comment `672f5551-f89d-4c26-a518-b76019fcfb8d`. |
+| 2026-05-24 02:00 EDT | TRL-790 | Added CI green comment for PR #587. | Linear comment `ce115235-9910-4084-9cc7-1b2543108bd5`. |
 
 ## Execution Log
 
@@ -157,6 +162,38 @@ Use this as the durable execution ledger. For stacked work, this should normally
 - Result: PR #586 remains draft with green CI.
 - Next: continue TRL-790 as isolated config slice.
 - Blockers: none.
+
+2026-05-24 01:54 EDT - TRL-790 local verification
+- Changed: configured root and scaffolded `oxlint.config.ts` to keep `no-warning-comments` enabled while narrowing warning terms to `todo:`, `fixme`, and `xxx` at comment start; added create-scaffold coverage and a patch changeset for `@ontrails/trails`.
+- Verified: local Oxlint probe allows standalone fieldwork markers while still flagging generic `TODO:` / `FIXME`; `bun test apps/trails/src/__tests__/create.test.ts`; `bun run typecheck`; `bun run lint`; `bun run format:check`; `git diff --check`; `bun run check`.
+- Result: local branch verified and ready to commit/submit as draft PR.
+- Next: commit with Graphite, submit draft PR, update Linear/shared note, then watch CI.
+- Blockers: none.
+
+2026-05-24 01:56 EDT - TRL-790 draft PR submission
+- Changed: committed the current branch tip, submitted PR #587, wrote PR body, moved TRL-790 to In Review, added Linear verification comment.
+- Verified: PR opened as draft and CI started.
+- Result: TRL-790 is In Review with PR #587.
+- Next: watch CI.
+- Blockers: none.
+
+2026-05-24 02:00 EDT - TRL-790 remote CI green
+- Changed: updated shared note and Linear with PR #587 CI green state.
+- Verified: Build, Lint & Format, Dead Code, Typecheck, Test, Governance, Changeset, and CI Gate all green; GitHub merge state `CLEAN`.
+- Result: PR #587 remains draft with green CI.
+- Next: leave stack in draft; no merge/queue/publish action.
+- Blockers: none.
+
+2026-05-24 08:26 EDT - TRL-790 marker grammar correction
+- Changed: revised TRL-790 from bracketed `[trails-*]` marker accommodation to the simpler `TODO ::: ...` fieldwork marker shape; root and scaffolded lint configs now block `todo:`, `fixme`, and `xxx`.
+- Verified: local Oxlint behavior probe allows `TODO :::` and blocks `TODO:` / `FIXME`; `bun test apps/trails/src/__tests__/create.test.ts`; `bun run typecheck`; `bun run lint`; `bun run format:check`; `git diff --check`; `bun run check`.
+- Reviewed: dedicated internal review of the amended config/scaffold/test/changeset/retro diff found no P0/P1/P2 findings.
+- Tracker: updated TRL-790 title/description/comment to the `TODO :::` direction.
+- Tracker: created TRL-801 for the caret-beta scaffold range follow-up.
+- Tracker: created TRL-802 for the plain Result import fieldguide follow-up.
+- Result: local branch verified, amended, and submitted to PR #587 after 1Password unlock restored SSH signing.
+- Next: watch CI for the amended PR.
+- Blockers: GitHub CLI HTTPS auth remains invalid in this shell; Graphite submit worked by using the SSH remote with the global HTTPS rewrite disabled.
 ```
 
 ## Local Review Log
@@ -167,6 +204,8 @@ Use this as the durable execution ledger. For stacked work, this should normally
 | TRL-793 | Diagnostic wording and audit coverage | subagent reports in transcript | P2 fixed | Fixed valid-detour recover signature, softened trail-object cross guidance, added contour/reference rule family. |
 | TRL-785 | Correctness/false-positive lane and Clark doctrine/scope lane | subagent reports in transcript | Clean | Both lanes reported no P0/P1/P2/P3 findings; Clark agreed helper-call variable provenance is in scope. |
 | TRL-786 | Firing logic, scoped provenance, wiring/tests | subagent report in transcript | P2 fixed | Fixed provenance leakage across scopes and direct helper shadow handling; added regression tests. |
+| TRL-790 | Config-only fieldwork marker carve-out | none | Not dispatched | Narrow config/test change; local behavior probe covered the risk. |
+| TRL-790 amendment | `TODO :::` marker grammar, root/scaffold parity, test, changeset, retro tradeoff | subagent report in transcript | Clean | No P0/P1/P2; confirmed the custom-rule tradeoff is documented honestly. |
 
 ## Verification Log
 
@@ -203,6 +242,20 @@ Use this as the durable execution ledger. For stacked work, this should normally
 | `bun run format:check` | TRL-795 repo | Pass | 0 warnings/errors after converting `compile.ts` Result import to type-only. |
 | `git diff --check` | TRL-795 repo | Pass | No whitespace errors. |
 | `bun run check` | TRL-795 repo | Pass | Full repo gate passed; Warden warning count now 25. |
+| Local Oxlint probe | TRL-790 config | Pass | `TODO :::` fieldwork markers were not reported by `no-warning-comments`; generic `TODO:` and `FIXME` were reported. |
+| `bun test apps/trails/src/__tests__/create.test.ts` | TRL-790 focused | Pass | 15 pass, 0 fail. |
+| `bun run typecheck` | TRL-790 repo | Pass | 22 packages successful. |
+| `bun run lint` | TRL-790 repo | Pass | 23 tasks successful after reverting `location` to `start`. |
+| `bun run format:check` | TRL-790 repo | Pass | 0 warnings/errors. |
+| `git diff --check` | TRL-790 repo | Pass | No whitespace errors. |
+| `bun run check` | TRL-790 repo | Pass | Full repo gate passed; Warden warning count remains 25. |
+| Local Oxlint probe | TRL-790 amendment | Pass | `TODO :::` was not reported by `no-warning-comments`; generic `TODO:` and `FIXME` were reported. |
+| `bun test apps/trails/src/__tests__/create.test.ts` | TRL-790 amendment | Pass | 15 pass, 0 fail. |
+| `bun run typecheck` | TRL-790 amendment | Pass | 22 packages successful. |
+| `bun run lint` | TRL-790 amendment | Pass | 23 tasks successful. |
+| `bun run format:check` | TRL-790 amendment | Pass | 0 warnings/errors. |
+| `git diff --check` | TRL-790 amendment | Pass | No whitespace errors. |
+| `bun run check` | TRL-790 amendment | Pass | Full repo gate passed; Warden warning count remains 25. |
 
 ## Remote Review / CI Log
 
@@ -216,6 +269,8 @@ Use this as the durable execution ledger. For stacked work, this should normally
 | 2026-05-24 01:34 EDT | #585 | Green | Draft | GitHub merge state `CLEAN` | 0 known | Keep draft; no merge/queue action. |
 | 2026-05-24 01:44 EDT | #586 | Running | Draft | Local verification green; CI started | 0 known | Watch CI. |
 | 2026-05-24 01:49 EDT | #586 | Green | Draft | GitHub merge state `CLEAN` | 0 known | Keep draft; no merge/queue action. |
+| 2026-05-24 01:56 EDT | #587 | Running | Draft | Local verification green; CI started | 0 known | Watch CI. |
+| 2026-05-24 02:00 EDT | #587 | Green | Draft | GitHub merge state `CLEAN` | 0 known | Keep draft; no merge/queue action. |
 
 ## Review Feedback Resolutions
 
@@ -242,17 +297,17 @@ Use this as the durable execution ledger. For stacked work, this should normally
 ## Final State
 
 - Goal completion condition: pending.
-- Graphite / branch state: TRL-795 submitted latest to PR #586; TRL-786 submitted v1 at `b7f3f1bb0`; TRL-785 submitted v1 at `1e27b3ec8`; TRL-793 submitted v2 at `2f9f57e94`.
-- PR state: #582 draft CI green; #583 draft CI green; #584 draft CI green; #585 draft CI green; #586 draft CI green.
+- Graphite / branch state: TRL-790 submitted latest to PR #587; TRL-795 submitted latest to PR #586; TRL-786 submitted v1 at `b7f3f1bb0`; TRL-785 submitted v1 at `1e27b3ec8`; TRL-793 submitted v2 at `2f9f57e94`.
+- PR state: #582 draft CI green; #583 draft CI green; #584 draft CI green; #585 draft CI green; #586 draft CI green; #587 draft CI green.
 - Source-control host lag: none known.
-- Tracker state: TRL-791 In Review; TRL-793 In Review; TRL-794 Todo; TRL-785 In Review; TRL-786 In Review; TRL-795 In Review.
-- Local review state: TRL-793 P2 findings fixed; TRL-785 clean; TRL-786 P2 findings fixed; TRL-795 local-only mechanical cleanup, no subagent review dispatched.
-- Remote review state: #583 CI green; #584 CI green; #585 CI green; #586 CI green.
+- Tracker state: TRL-791 In Review; TRL-793 In Review; TRL-794 Todo; TRL-785 In Review; TRL-786 In Review; TRL-795 In Review; TRL-790 In Review.
+- Local review state: TRL-793 P2 findings fixed; TRL-785 clean; TRL-786 P2 findings fixed; TRL-795 local-only mechanical cleanup, no subagent review dispatched; TRL-790 original config-only pass had local probe plus Clark review, and the later `TODO :::` amendment has a dedicated internal review with no P0/P1/P2.
+- Remote review state: #583 CI green; #584 CI green; #585 CI green; #586 CI green; #587 resubmitted after the `TODO :::` amendment.
 - Remote review scores: pending.
-- Verification: TRL-793, TRL-785, TRL-786, and TRL-795 local gates passed through `bun run check`; PR #583, #584, #585, and #586 CI green.
+- Verification: TRL-793, TRL-785, TRL-786, TRL-795, and TRL-790 local gates passed through `bun run check`; the TRL-790 `TODO :::` amendment also passed `bun run check`; PR #583, #584, #585, #586, and #587 CI green before the amendment.
 - Skipped checks: none for TRL-793 local handoff.
-- Remaining P3s / risks: partial diagnostic second wave tracked separately in TRL-794; TRL-790 remains optional/independent.
-- Follow-up issues created: TRL-794.
+- Remaining P3s / risks: partial diagnostic second wave tracked separately in TRL-794; TRL-790 treats `TODO:` as the standard blocked debt marker and allows nonstandard `TODO <words>` so `TODO :::` can be used without a custom lint rule.
+- Follow-up issues created: TRL-794, TRL-801, TRL-802.
 - Forbidden actions confirmation: no merge, publish, registry mutation, merge queue label, or subagent source-control write.
 - Packet archive readiness: not ready.
 - Final transcript proof: pending.

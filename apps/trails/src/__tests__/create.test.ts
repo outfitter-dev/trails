@@ -292,6 +292,13 @@ const assertGeneratedToolingDeps = (dir: string): void => {
   expect(devDeps['ultracite']).toBe(scaffoldDependencyVersions.ultracite);
 };
 
+const assertFieldworkLintMarkers = (dir: string): void => {
+  expectContainsAll(readText(dir, 'oxlint.config.ts'), [
+    "location: 'start'",
+    "terms: ['todo:', 'fixme', 'xxx']",
+  ]);
+};
+
 const assertFrameworkCliScripts = (dir: string): void => {
   const pkg = readJson(dir, 'package.json');
   const scripts = pkg['scripts'] as Record<string, string>;
@@ -442,6 +449,7 @@ describe('trails create', () => {
         assertCliPackage(dir);
         assertVerifyPackage(dir);
         assertGeneratedToolingDeps(dir);
+        assertFieldworkLintMarkers(dir);
         assertFrameworkCliScripts(dir);
         assertHelloApp(dir);
       });
@@ -559,6 +567,7 @@ describe('trails create', () => {
         assertReadme(dir, { verify: false });
         assertTsconfigTests(dir);
         assertGeneratedToolingDeps(dir);
+        assertFieldworkLintMarkers(dir);
         assertFrameworkCliScripts(dir);
       });
     });

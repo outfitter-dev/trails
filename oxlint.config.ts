@@ -22,6 +22,13 @@ export default defineConfig({
         definedTags: ['remarks'],
       },
     ],
+    'no-warning-comments': [
+      'error',
+      {
+        location: 'start',
+        terms: ['todo:', 'fixme', 'xxx'],
+      },
+    ],
     'require-await': 'off',
     'trails-local/no-console-in-packages': [
       'error',
