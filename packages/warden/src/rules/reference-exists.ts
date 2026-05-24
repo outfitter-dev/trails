@@ -22,7 +22,7 @@ const buildMissingReferenceDiagnostic = (
 ): WardenDiagnostic => ({
   filePath,
   line,
-  message: `Contour "${sourceContour}" field "${field}" references contour "${targetContour}" which is not defined in the project.`,
+  message: `Contour "${sourceContour}" field "${field}" references contour "${targetContour}" which is not defined in the project. Define it with contour('${targetContour}', ...) and include it in the topo, or fix the field reference if this is a typo.`,
   rule: 'reference-exists',
   severity: 'error',
 });

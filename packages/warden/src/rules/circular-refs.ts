@@ -82,7 +82,7 @@ const buildCircularReferenceDiagnostic = (
 ): WardenDiagnostic => ({
   filePath,
   line,
-  message: `Contour "${contourName}" participates in circular contour references: ${cyclePath.join(' -> ')}.`,
+  message: `Contour "${contourName}" participates in circular contour references: ${cyclePath.join(' -> ')}. Break the cycle by removing one contour reference, or extract the shared shape into a new contour neither side depends on.`,
   rule: 'circular-refs',
   severity: 'warn',
 });

@@ -78,7 +78,7 @@ const buildMissingResourceDiagnostic = (
 ): WardenDiagnostic => ({
   filePath,
   line,
-  message: `Trail "${trailId}" declares resource "${resourceId}" which is not defined in the project.`,
+  message: `Trail "${trailId}" declares resource "${resourceId}" which is not defined in the project. Define it with resource('${resourceId}', ...) and ensure that definition is included in the topo.`,
   rule: 'resource-exists',
   severity: 'error',
 });

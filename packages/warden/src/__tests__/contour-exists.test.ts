@@ -68,6 +68,8 @@ trail('user.create', {
       expect(diagnostics).toHaveLength(1);
       expect(diagnostics[0]?.rule).toBe('contour-exists');
       expect(diagnostics[0]?.message).toContain('user');
+      expect(diagnostics[0]?.message).toContain("contour('user'");
+      expect(diagnostics[0]?.message).toContain('include it in the topo');
     });
 
     test('resolves aliased imports to the original contour name', () => {

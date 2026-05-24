@@ -426,7 +426,7 @@ const buildUndeclaredFromDiagnostic = (
 ): WardenDiagnostic => ({
   filePath,
   line,
-  message: `Trail "${trailId}": ${resourceName}.from(ctx) called but '${resourceName}' is not declared in resources`,
+  message: `Trail "${trailId}": ${resourceName}.from(ctx) called but '${resourceName}' is not declared in resources. Add it to the trail resources array: resources: [${resourceName}].`,
   rule: 'resource-declarations',
   severity: 'error',
 });
@@ -439,7 +439,7 @@ const buildUndeclaredLookupDiagnostic = (
 ): WardenDiagnostic => ({
   filePath,
   line,
-  message: `Trail "${trailId}": ctx.resource('${resourceId}') called but '${resourceId}' is not declared in resources`,
+  message: `Trail "${trailId}": ctx.resource('${resourceId}') called but '${resourceId}' is not declared in resources. Add it to the trail resources array: resources: ['${resourceId}'], or prefer the resource definition's .from(ctx) helper when it is statically in scope.`,
   rule: 'resource-declarations',
   severity: 'error',
 });
@@ -452,7 +452,7 @@ const buildUndeclaredLookupNameDiagnostic = (
 ): WardenDiagnostic => ({
   filePath,
   line,
-  message: `Trail "${trailId}": ctx.resource(${resourceName}) called but '${resourceName}' is not declared in resources`,
+  message: `Trail "${trailId}": ctx.resource(${resourceName}) called but '${resourceName}' is not declared in resources. Add it to the trail resources array: resources: [${resourceName}].`,
   rule: 'resource-declarations',
   severity: 'error',
 });
@@ -465,7 +465,7 @@ const buildUnusedDiagnostic = (
 ): WardenDiagnostic => ({
   filePath,
   line,
-  message: `Trail "${trailId}": '${renderDeclaredResource(declaredResource)}' declared in resources but never used`,
+  message: `Trail "${trailId}": '${renderDeclaredResource(declaredResource)}' declared in resources but never used. Remove it from resources, or access it through the resource's static .from(ctx) helper if the trail really depends on it.`,
   rule: 'resource-declarations',
   severity: 'warn',
 });

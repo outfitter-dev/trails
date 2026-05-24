@@ -41,6 +41,8 @@ trail('notify', {
     expect(diagnostics[0]?.rule).toBe('on-references-exist');
     expect(diagnostics[0]?.severity).toBe('error');
     expect(diagnostics[0]?.message).toContain('entity.created');
+    expect(diagnostics[0]?.message).toContain("signal('entity.created'");
+    expect(diagnostics[0]?.message).toContain('include it in the topo');
   });
 
   test('passes when project context includes the referenced signal', () => {

@@ -23,6 +23,9 @@ import {
 import { isTestFile } from './scan.js';
 import type { WardenDiagnostic, WardenRule } from './types.js';
 
+const buildUnrecognizedResultMessage = (label: string, id: string): string =>
+  `${label} "${id}": return value is not a recognized Result expression. Return Result.ok(...), Result.err(...), or a Result-producing expression such as await ctx.cross(...). If you are returning a crossed/helper Result, keep the provenance visible or add a Result return annotation Warden can trace.`;
+
 // ---------------------------------------------------------------------------
 // Member expression helpers
 // ---------------------------------------------------------------------------
@@ -225,7 +228,7 @@ const checkReturnStatements = (
       diagnostics.push({
         filePath,
         line: offsetToLine(sourceCode, node.start),
-        message: `${trailInfo.label} "${trailInfo.id}" implementation must return Result.ok(...) or Result.err(...), not a raw value.`,
+        message: buildUnrecognizedResultMessage(trailInfo.label, trailInfo.id),
         rule: 'implementation-returns-result',
         severity: 'error',
       });
@@ -1259,7 +1262,7 @@ const checkImplementation = (
     diagnostics.push({
       filePath,
       line: offsetToLine(sourceCode, implValue.start),
-      message: `${info.label} "${info.id}" implementation must return Result.ok(...) or Result.err(...), not a raw value.`,
+      message: buildUnrecognizedResultMessage(info.label, info.id),
       rule: 'implementation-returns-result',
       severity: 'error',
     });

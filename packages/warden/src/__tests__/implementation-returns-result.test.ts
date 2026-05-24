@@ -54,6 +54,11 @@ trail("entity.show", {
     expect(diagnostics.length).toBe(1);
     expect(diagnostics[0]?.rule).toBe('implementation-returns-result');
     expect(diagnostics[0]?.severity).toBe('error');
+    expect(diagnostics[0]?.message).toContain(
+      'not a recognized Result expression'
+    );
+    expect(diagnostics[0]?.message).toContain('await ctx.cross(...)');
+    expect(diagnostics[0]?.message).toContain('add a Result return annotation');
   });
 
   test('allows Result.ok() and returning ctx.cross() results', () => {

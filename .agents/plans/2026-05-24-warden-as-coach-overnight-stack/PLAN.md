@@ -1,122 +1,241 @@
-# Warden-as-Coach Overnight Stack
+# Goal Plan: Warden As Coach Overnight Stack
 
 Date: 2026-05-24
-Owner: Lewis
-Branch root: `trl-791-warden-coach-against-destructured-ctxcross-new-reject-and`
-Tracker: Linear `TRL`, project `Fieldwork Loop`, milestone `Warden as Coach`
+Status: In progress
 
 ## Objective
 
-Turn the Radio/Fieldwork learning into Warden guidance that keeps future Trails authors and agents on the happy path.
+Clear as much of the Warden-as-coach stack as safely possible overnight, turning Radio/Fieldwork learnings into concrete Trails guidance that leads agents toward the happy path.
 
-The stack should favor small, reviewable slices:
+## Completion Condition
 
-1. `TRL-791` - add a source-static Warden rule that coaches against destructuring `cross` off `ctx` inside blaze bodies.
-2. `TRL-793` - if time remains and the diff stays diagnostic-only, upgrade the 8 names-only Warden diagnostics to teach the fix.
-3. `TRL-785` - close the `implementation-returns-result` alias/provenance coverage gap from `TRL-333`.
-4. `TRL-786` - only after `TRL-785`, add redundant `Result.err(x.error)` re-wrap detection for provably safe cases.
+The goal is complete only when:
 
-Do not take `TRL-790` in this first branch. The clean fix likely touches root lint/plugin config and scaffold-generated lint config, which overlaps the open scaffold stack. Revisit after the scaffold PRs land or intentionally stack it there.
+- Each completed slice has a focused branch, draft PR, current Linear state, and updated `RETRO.md`.
+- P0/P1/P2 local review findings are fixed or explicitly blocked before submission.
+- Required checks pass for each submitted PR and CI state is recorded.
+- No merge, package publish, registry mutation, merge queue label, or subagent source-control write occurs without explicit Matt approval.
+- `RETRO.md` is updated as the durable execution record and final state ledger.
 
-## Doctrine
+## Non-Goals
 
-- Core premise: author what's new, derive what's known, override what's wrong.
-- Drift guard rung: Warden is the right layer for coaching canonical authored shapes that TypeScript cannot forbid cleanly.
-- Compound test: `ctx.cross(...)` is the runtime composition primitive; preserving the direct member-expression shape helps Warden recognize composed `Result` values and keeps composition visible to readers, docs, and future Ranger/fieldguide guidance.
-- Evaluation hierarchy: strengthen an existing primitive (`ctx.cross`) before broadening behavior or introducing aliases.
-- Vocabulary: say `trail`, `blaze`, `topo`, `cross`, `surface`, `resource`, `layer`. Do not call this a handler or middleware rule.
+- Do not merge PRs.
+- Do not publish packages or mutate registry state.
+- Do not broaden Warden doctrine, public API, or rule semantics beyond the active issue without a new issue/comment.
+- Do not fold unrelated scaffold or fieldguide work into the Warden stack.
 
-## Current Tracker Truth
+## Source Of Truth
 
-`TRL-791` is Backlog at planning time. It already contains the OD-4 ruling: reject and coach, do not bridge destructured `cross` in `implementation-returns-result`.
+Read first:
 
-`TRL-793` is Backlog. Clark filed it from the Warden diagnostic-language audit. It is low risk only if limited to diagnostic strings and tests for names-only offenders.
+1. `AGENTS.md`
+2. `.agents/plans/PLANNING.md`
+3. `docs/tenets.md`
+4. `docs/lexicon.md`
+5. `packages/warden/src/rules/*`
+6. `packages/warden/src/__tests__/*`
+7. `plans/fieldwork-loop/warden-diagnostic-audit-20260523.md` if present in `trailblazing`
+8. Linear `TRL-791`, `TRL-793`, `TRL-785`, `TRL-786`, `TRL-790`
 
-`TRL-785` is Backlog. Clark/Hume found it overlaps done issue `TRL-333`; current scope is a coverage-gap follow-up, not a fresh imported-helper implementation.
+## Stack Order
 
-`TRL-786` is Backlog. Do not implement before `TRL-785` creates enough provenance to avoid noisy syntactic false positives.
+### TRL-791: Reject destructured `ctx.cross`
 
-## TRL-791 Acceptance Criteria
+Status: draft PR submitted as #582.
 
-- New rule id: `no-destructured-cross`.
-- Severity: `warn`.
-- Metadata: concern `composition`, tier `source-static`, scope `external`, lifecycle durable.
-- Flags both canonical shadow patterns inside trail blaze bodies:
-  - parameter destructuring: `blaze: async (input, { cross }) => ...`
-  - body destructuring from the context parameter: `const { cross } = ctx;`
-- Flags aliases too: `const { cross: compose } = ctx` and `({ cross: compose })`.
-- Stays quiet for direct `ctx.cross(...)`.
-- Stays quiet for non-blaze code and nested callbacks/functions unrelated to the blaze's context parameter.
-- Registers in `wardenRules`, `registry-names`, metadata, and Warden trail wrappers.
-- Regenerates Warden guide blocks with repo scripts.
-- Includes a patch changeset for `@ontrails/warden`.
+Intent:
 
-## Likely TRL-791 Edit Set
+- Keep crossing provenance visible as `ctx.cross(...)` so Warden and future agents can see composition edges.
 
-- `packages/warden/src/rules/no-destructured-cross.ts`
-- `packages/warden/src/__tests__/no-destructured-cross.test.ts`
-- `packages/warden/src/rules/index.ts`
-- `packages/warden/src/rules/registry-names.ts`
-- `packages/warden/src/rules/metadata.ts`
-- `packages/warden/src/trails/no-destructured-cross.trail.ts`
-- `packages/warden/src/trails/index.ts`
-- `AGENTS.md`
-- `.claude/skills/clark/references/warden-guide.md`
-- `plugin/skills/trails/references/warden-guide.md`
-- `.changeset/<slug>.md`
-- This packet's `RETRO.md`
+Actions:
+
+- Add `no-destructured-cross`.
+- Wire rule metadata, registry, trail wrapper, generated guide surfaces, tests, and changeset.
+- Clean up any live examples that destructure `cross`.
+
+Verification:
+
+- Focused Warden tests.
+- `bun --cwd packages/warden test`
+- `bun run typecheck`
+- `bun run lint`
+- `bun run format:check`
+- `git diff --check`
+- `bun run check`
+- CI green.
+
+### TRL-793: Upgrade names-only diagnostics
+
+Status: draft PR submitted as #583.
+
+Intent:
+
+- Make existing Warden diagnostics teach the fix instead of only naming the violation.
+
+Actions:
+
+- Update names-only diagnostics for `implementation-returns-result`, `resource-declarations`, `resource-exists`, `cross-declarations`, `valid-detour-contract`, `circular-refs`, `on-references-exist`, plus same-family `contour-exists` and `reference-exists`.
+- Keep rule firing logic unchanged.
+- Update exact-message tests and generated rule-trail expectations as needed.
+- Record scope divergence honestly: partial diagnostics moved to `TRL-794`.
+
+Verification:
+
+- Focused touched-rule suite.
+- `bun --cwd packages/warden test`
+- `bun run typecheck`
+- `bun run lint`
+- `bun run format:check`
+- `git diff --check`
+- `bun run check`
+- CI after draft PR.
+
+### TRL-794: Upgrade partial diagnostics
+
+Status: follow-up filed.
+
+Intent:
+
+- Sharpen the 13 partial Warden diagnostics from the audit without bloating the names-only PR.
+
+Actions:
+
+- Keep as diagnostic language + tests unless a rule cannot be made honest without detection changes.
+- Sequence after the higher-priority provenance work unless Matt/Clark chooses wording cleanup first.
+
+Verification:
+
+- Focused touched-rule tests.
+- Warden package tests.
+- Repo gates.
+
+### TRL-785: Result helper provenance alias gap
+
+Status: next likely implementation slice after TRL-793.
+
+Intent:
+
+- Close the TRL-333 coverage hole where helper return annotations using `Result as ResultType` are invisible to `implementation-returns-result`.
+
+Actions:
+
+- Add failing fixtures for same-file and imported helpers using aliased `Result`.
+- Make `hasResultReturnType` alias-aware without re-implementing TRL-333.
+- Preserve `.js` to `.ts` import resolution; Clark's cause check ruled it out as the Radio failure.
+- Teach or document the single-import pattern if the code surface naturally exposes it.
+
+Verification:
+
+- `bun test packages/warden/src/__tests__/implementation-returns-result.test.ts`
+- `bun --cwd packages/warden test`
+- `bun run typecheck`
+- `bun run lint`
+- `bun run check`
+
+### TRL-786: Redundant `Result.err(x.error)` re-wrap detection
+
+Status: after TRL-785 unless new evidence says otherwise.
+
+Intent:
+
+- Coach agents away from re-wrapping Result errors when propagation is the right path.
+
+Actions:
+
+- Use provenance from TRL-785; avoid syntactic-only detection.
+- Add conservative fixtures for true redundant re-wraps and legitimate transformations.
+- Keep diagnostic language specific: preserve the original Result or intentionally transform the error with a new TrailsError.
+
+Verification:
+
+- Focused new rule tests.
+- Warden package tests.
+- Repo gates.
+
+### TRL-790: `TODO[trails-*]` lint marker carve-out
+
+Status: opportunistic low-risk slice.
+
+Intent:
+
+- Allow explicit Trails-tracked TODO markers without fighting repo lint.
+
+Actions:
+
+- Keep isolated because it may touch lint/generated config surfaces.
+- Verify it does not normalize generic TODO debt.
+
+Verification:
+
+- Focused lint/config check.
+- `bun run lint`
+- `bun run check`
+
+## Tracker Plan
+
+- In-goal issues: `TRL-791`, `TRL-793`, `TRL-794`, `TRL-785`, `TRL-786`, `TRL-790`.
+- Dependencies/blockers: `TRL-786` should follow `TRL-785`; `TRL-794` owns the partial diagnostics left out of TRL-793.
+- Keep Linear comments current after local verification, PR submission, and CI.
+- Do not mark issues Done before merge.
+
+## Source-Control Plan
+
+- Branching model: Graphite.
+- One issue per PR unless a tiny follow-up is explicitly inseparable.
+- Use Linear-recommended branch names.
+- Keep PRs draft until local checks and CI are green.
+- Main agent performs all `git`/`gt` write operations; subagents do not.
+- No merge without Matt approval.
+
+## Retro Discipline
+
+`RETRO.md` is part of the completion contract, not optional notes.
+
+- Update `RETRO.md` after meaningful implementation, tracker, verification, local review, remote review, CI, PR-body, or source-control changes.
+- Touch `RETRO.md` last before local completion, draft submission, ready-for-review, remote review closeout, merge readiness, or final handoff.
+- Every meaningful review-flow change must have a corresponding retro entry before claiming the review loop is complete.
 
 ## Validation Ladder
 
-Focused:
+Run checks from narrow to broad:
 
-```bash
-bun test packages/warden/src/__tests__/no-destructured-cross.test.ts
-bun test packages/warden/src/__tests__/warden-rule-metadata.test.ts packages/warden/src/__tests__/guide.test.ts packages/warden/src/__tests__/warden-export-symmetry.test.ts
-bun run warden:agents:check
-bun run warden:skills:check
-```
+- Targeted: `bun test <touched warden test files>`
+- Package: `bun --cwd packages/warden test`
+- Repo: `bun run typecheck`, `bun run lint`, `bun run format:check`, `git diff --check`
+- Full gate: `bun run check`
+- CI: GitHub checks on draft PR
 
-Branch:
+## Local Review
 
-```bash
-bun --cwd packages/warden test
-bun run typecheck
-bun run lint
-bun run format:check
-git diff --check
-```
+Use subagents for bounded review lanes when a slice changes behavior or enough diagnostics to invite wording drift.
 
-Before PR handoff:
+- Lane 1: false positives / firing logic
+- Lane 2: diagnostic language and doctrine accuracy
+- Lane 3: tests, examples, generated artifacts, and changeset coverage
 
-```bash
-bun run check
-```
+Fix all P0/P1/P2 findings before remote submission or final handoff. Record each round and fix outcome in `RETRO.md`.
 
-## Review Protocol
+## Stop / Pause Rules
 
-Use at least two local review lanes before submit:
+Stop and ask if:
 
-- Warden implementation/test lane: AST scope, false positives, registration, guide sync.
-- Doctrine/vocabulary lane: diagnostic teaches the fix and preserves `ctx.cross(...)` as canonical.
+- Linear, PR, or repo state diverges from this packet.
+- A public API or doctrine change is needed beyond the active issue.
+- Verification fails for unrelated reasons after focused retry.
+- Secrets, credentials, production systems, merge, publish, or merge queue actions are needed.
+- `TRL-785` or `TRL-786` requires broad provenance work beyond the current Warden rule boundary.
 
-If the first review pass finds P0/P1/P2, fix before submit. P3 can remain only if logged in `RETRO.md`.
+## Handoff Audit
 
-## Source Control
-
-- Use Graphite.
-- No merge.
-- No merge queue label.
-- No publish or registry mutation.
-- Subagents may inspect, test, and edit bounded files if delegated, but must not run git/gt write commands.
-- Keep PR draft until local review and CI are green.
-
-## Stop Rules
-
-Stop and ask Matt if:
-
-- The fix requires changing public `ctx.cross` typing or `implementation-returns-result` recognition semantics beyond adding the coaching rule.
-- `TRL-793` stops being diagnostic-only.
-- `TRL-785` requires a broad imported-module resolver rewrite.
-- `TRL-786` cannot prove re-wrap redundancy without noisy false positives.
-- Remote review finds a doctrine conflict rather than an implementation bug.
+- [x] Objective is singular and end-to-end.
+- [x] Completion condition is objectively checkable.
+- [x] Tracker state requirements are represented.
+- [x] Branch names/order are exact where known.
+- [x] Dependencies/blockers are represented.
+- [x] Ignored/untracked source docs are summarized instead of required.
+- [x] Validation commands match repo conventions.
+- [x] `GOAL.md` requires transcript-visible proof.
+- [x] `GOAL.md` requires `RETRO.md` finalization before completion.
+- [x] Stop rules are concrete.
+- [x] `RETRO.md` has concrete sections for execution, tracker, review, verification, remote state, forbidden actions, final state, and archive readiness.
+- [x] Packet can be executed without chat history.

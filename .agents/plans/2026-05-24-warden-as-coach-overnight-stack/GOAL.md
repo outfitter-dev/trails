@@ -1,25 +1,25 @@
-# Goal Prompt
+# Goal Prompt: Warden As Coach Overnight Stack
 
-````text
-/goal
-cwd: /Users/mg/Developer/outfitter/trails
-packet: .agents/plans/2026-05-24-warden-as-coach-overnight-stack
+Paste this into the goal runtime:
 
-Objective: build as much of the Warden-as-Coach stack as can be safely cleared overnight, starting with TRL-791. Preserve Trails doctrine and vocabulary. Turn fieldwork learning into Warden guidance that steers agents/authors toward the happy path.
+````markdown
+/goal From `/Users/mg/Developer/outfitter/trails`, execute `.agents/plans/2026-05-24-warden-as-coach-overnight-stack/PLAN.md` end to end; use `.agents/plans/2026-05-24-warden-as-coach-overnight-stack/RETRO.md` as the durable ledger.
 
-Primary slice: TRL-791 on branch trl-791-warden-coach-against-destructured-ctxcross-new-reject-and. Add source-static warn rule no-destructured-cross. It must flag destructuring cross off the blaze context, including param destructuring ({ cross }, { cross: compose }) and body destructuring from the context identifier (const { cross } = ctx; const { cross: compose } = ctx). It must not flag direct ctx.cross(...), non-blaze code, or nested unrelated functions. Register the rule in Warden registries, metadata, trail wrapper exports, generated guide blocks, and add a patch changeset for @ontrails/warden.
+Read first: `AGENTS.md`, `.agents/plans/PLANNING.md`, the packet `PLAN.md` and `REFS.md`, `docs/tenets.md`, `docs/lexicon.md`, touched Warden rule/test files, and Linear issues `TRL-791`, `TRL-793`, `TRL-794`, `TRL-785`, `TRL-786`, `TRL-790`.
 
-Stack order after TRL-791: TRL-793 only if diagnostic-only; TRL-785 before TRL-786; defer TRL-790 unless scaffold stack is landed or the edit set is isolated. Do not take TRL-784. Do not change public ctx.cross API or bridge destructured cross in implementation-returns-result.
+Objective: clear as much Warden-as-coach work as safely possible overnight, turning Radio/Fieldwork learnings into Warden diagnostics/rules that lead agents toward Trails happy paths.
 
-Loop: keep RETRO.md updated before each handoff; update Linear status/comments as branches/PRs move; use subagents for bounded review/research/coding tasks with exact file ownership; subagents must not run git/gt writes. Use Graphite for branch/commit/submit. Keep PRs draft until CI and local review are green.
+Current known order: `TRL-791` is already draft PR #582 and should only need monitoring; finish `TRL-793` first (names-only diagnostics, no firing logic changes), keep `TRL-794` as the partial-diagnostics follow-up, then `TRL-785` (alias-aware Result helper provenance), then `TRL-786` (redundant `Result.err(x.error)` re-wrap detection after provenance exists), with `TRL-790` opportunistic and isolated.
 
-Validation: focused Warden tests first; run guide sync/check after metadata changes; run bun --cwd packages/warden test, bun run typecheck, bun run lint, bun run format:check, git diff --check, and bun run check before final handoff unless a blocker is logged. Run at least two local review lanes and fix all P0/P1/P2 before submit.
+Work loop: execute one issue per focused branch/PR unless inseparable. After each turn report checkpoint, changed files, exact checks/artifact proof, result summary, remaining work, blocker status, and next checkpoint. Use bounded subagents for review/research; main agent owns all `git` and `gt` writes.
 
-Forbidden: no merge, no merge queue label, no publish/registry mutation, no destructive git commands, no unrelated scaffold edits, no undocumented divergence from Linear. Final proof must include branch/PR/status, changed artifacts, verification commands/results, local/remote review state, Linear updates, remaining risks, and forbidden-action audit.
+Validation ladder: run focused touched tests after each slice; before draft PR run package/repo gates from `PLAN.md`, including `bun --cwd packages/warden test`, `bun run typecheck`, `bun run lint`, `bun run format:check`, `git diff --check`, and `bun run check` unless explicitly justified. After PR submission, watch CI and record state.
+
+Review loop: run local review lanes for any behavior change or broad diagnostic change. Fix P0/P1/P2 before remote handoff. Record local review, CI, remote review, and PR-body changes in `RETRO.md`.
+
+Hard rules: no merge, package publish, registry mutation, merge queue label, or subagent source-control write without Matt approval. Keep terminology sharp: `trail`, `blaze`, `topo`, `cross`, `surface`, `resource`, `layer`; prefer `ctx.cross(...)` provenance. Do not broaden public API or doctrine without stopping.
+
+Done only when completed slices have draft PRs, current Linear comments/status, green required checks/CI state recorded, forbidden actions respected, and `RETRO.md` has final tracker, PR, review, verification, forbidden-action, risk, and archive-readiness state. Final transcript must name proof.
+
+Stop/ask if plan/repo/tracker truth diverges, public API/scope changes are needed, required secrets/external systems are missing, unrelated verification fails after focused retry, or `TRL-785`/`TRL-786` needs broad provenance work beyond the Warden rule boundary.
 ````
-
-## Completion Condition
-
-At minimum, `TRL-791` has a draft PR with CI green, Linear updated, local review clean or P3-only, generated Warden guides synced, and `RETRO.md` finalized for handoff.
-
-If additional slices are completed, each has its own branch/PR/Linear/retro evidence, and the stack order remains truthful.

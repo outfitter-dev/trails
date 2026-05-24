@@ -1,98 +1,150 @@
-# Warden-as-Coach Overnight Stack Retro
+# Execution Retro: Warden As Coach Overnight Stack
 
-Date: 2026-05-24
-Owner: Lewis
+Date started: 2026-05-24
+Date finalized: pending
+Status: In progress
+Plan: `.agents/plans/2026-05-24-warden-as-coach-overnight-stack/PLAN.md`
+Goal: `.agents/plans/2026-05-24-warden-as-coach-overnight-stack/GOAL.md`
 
-## Current State
+Use this as the durable execution ledger. For stacked work, this should normally be the last meaningful file touched before local completion, draft submission, ready-for-review, remote review closeout, merge readiness, archive, or final handoff.
 
-| Item | State | Notes |
-|---|---|---|
-| `TRL-791` | Draft PR, CI green | PR #582; branch root: `trl-791-warden-coach-against-destructured-ctxcross-new-reject-and`. |
-| `TRL-793` | Candidate next | Only take if diagnostic-only. |
-| `TRL-785` | Candidate later | Must precede `TRL-786`; overlaps `TRL-333`. |
-| `TRL-786` | Deferred until provenance | Do not implement syntactically. |
-| `TRL-790` | Deferred | Likely scaffold/lint config overlap. |
+## Execution Summary
 
-## Discoveries
+- Objective: clear Warden-as-coach slices that convert Radio/Fieldwork learnings into Trails guidance.
+- Final outcome: pending.
+- Final branch / stack tip: pending.
+- Final PR range: PR #582 for TRL-791; PR #583 for TRL-793.
+- Final tracker state: TRL-793 In Review; TRL-794 filed for partial diagnostics.
+- Final verification state: TRL-791 verified and CI green; TRL-793 locally verified through `bun run check`.
+- Remaining risks / P3s: TRL-794 partial diagnostics remain follow-up.
+- Archive state: active packet, not archive-ready.
 
-- 2026-05-24 00:13 EDT - Clark and subagent findings converge on Warden-as-Coach order: `TRL-791` first; `TRL-793` if diagnostic-only; `TRL-785` before `TRL-786`; defer `TRL-790`.
-- 2026-05-24 00:13 EDT - `TRL-785` is a coverage-gap follow-up to done `TRL-333`, not a fresh imported-helper implementation.
-- 2026-05-24 00:13 EDT - Native Oxlint config cannot cleanly whitelist `TODO[trails-*]`; `TRL-790` likely needs plugin/custom-rule work and may overlap scaffold output.
+## Branch / PR / Issue Ledger
+
+| Order | Issue | Branch | PR | Status | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 1 | TRL-791 | `trl-791-warden-coach-against-destructured-ctxcross-new-reject-and` | #582 | Draft, CI green | New `no-destructured-cross` rule submitted. |
+| 2 | TRL-793 | `trl-793-warden-upgrade-names-only-diagnostics-to-teach-the-fix-8` | #583 | Draft, CI running | Names-only diagnostics upgraded. |
+| 3 | TRL-794 | pending | pending | Todo | Follow-up for 13 partial diagnostics. |
+| 4 | TRL-785 | pending | pending | Planned | Alias-aware Result helper provenance gap. |
+| 5 | TRL-786 | pending | pending | Planned | Should follow TRL-785 provenance work. |
+| 6 | TRL-790 | pending | pending | Optional | Keep isolated. |
+
+## Planning Discoveries
+
+| Discovery | Evidence | Decision | Impact |
+| --- | --- | --- | --- |
+| `TRL-785` overlaps prior `TRL-333` work. | Clark shared note and Linear comments. | Treat as a coverage-gap follow-up, not fresh capability. | Avoid re-implementing TRL-333. |
+| Radio helper provenance failure is alias-blindness, not `.js` to `.ts` import resolution. | Clark cause confirmation in shared note. | Fix `hasResultReturnType` alias recognition when working TRL-785. | Makes 785 the right predecessor for 786. |
+| `TRL-793` should stay separate from `TRL-791`. | Clark shared note 00:14 EDT. | Keep diagnostic-string work separate from new behavioral rule. | Clearer review surfaces. |
+
+## Deferred / Follow-Up Discoveries
+
+| Issue | Discovery | Why Out Of Goal | Link |
+| --- | --- | --- | --- |
+| TRL-794 | Partial diagnostics second wave. | First PR is names-only plus same-family omissions; partials are broader wording work. | Linear TRL-794 |
+| pending | Fieldguide should teach `import { Result }` rather than unnecessary `Result as ResultType` aliasing. | Docs/fieldguide work, not Warden rule change unless naturally surfaced in TRL-785. | pending |
 
 ## Tracker Mutations
 
-| Time | Issue | Change |
-|---|---|---|
-| 2026-05-24 00:15 EDT | `TRL-791` | Moved to In Progress. |
-| 2026-05-24 00:15 EDT | `TRL-791` | Commented with branch, packet path, and scope note. |
-| 2026-05-24 00:30 EDT | `TRL-791` | Moved to In Review and attached draft PR #582. |
-| 2026-05-24 00:30 EDT | `TRL-791` | Commented with verification plus diagnostic-divergence note. |
+| Time | Tracker Item | Mutation | Evidence |
+| --- | --- | --- | --- |
+| 2026-05-24 00:34 EDT | TRL-791 | Updated with final local verification and CI green PR state. | Linear comment; PR #582. |
+| 2026-05-24 00:35 EDT | TRL-793 | Moved to In Progress and commented branch/start state. | Linear comment. |
+| 2026-05-24 00:54 EDT | TRL-794 | Created follow-up for 13 partial diagnostics. | Linear TRL-794. |
+| 2026-05-24 00:54 EDT | TRL-793 | Narrowed title to names-only, moved to In Review, attached/commented PR #583 and verification. | Linear comment `27bd08bb-8f72-40cb-a363-60577aa6c7d7`. |
 
 ## Execution Log
 
-| Time | Event |
-|---|---|
-| 2026-05-24 00:13 EDT | Created active goal packet under `.agents/plans/2026-05-24-warden-as-coach-overnight-stack/`. |
-| 2026-05-24 00:13 EDT | Checked out `main` and created Graphite branch `trl-791-warden-coach-against-destructured-ctxcross-new-reject-and`. |
-| 2026-05-24 00:18 EDT | Implemented `no-destructured-cross`, registered metadata/exports/trail wrapper, added tests and a changeset. |
-| 2026-05-24 00:18 EDT | Updated the framework `create` trail to use `ctx.cross(...)` directly instead of destructuring `cross`. |
-| 2026-05-24 00:18 EDT | Regenerated Warden guide blocks in `AGENTS.md`, Clark's Warden guide reference, and the Trails plugin guide reference. |
-| 2026-05-24 00:32 EDT | Softened `no-destructured-cross` diagnostic after doctrine review: removed the absolute LSP/type-overload claim and kept the grounded Warden/result-recognition cost. |
-| 2026-05-24 00:34 EDT | Added assignment destructuring detection for `({ cross } = ctx)` after implementation review found it as a bypass. |
-| 2026-05-24 00:31 EDT | Submitted draft PR #582. |
-| 2026-05-24 00:32 EDT | Fixed Changeset CI failure by adding `@ontrails/trails` to the changeset; the framework `create` trail cleanup touches a publishable package too. |
+```text
+2026-05-24 00:13 EDT - planning / stack selection
+- Changed: selected Warden-as-coach order: 791, 793, 785, 786, 790 optional.
+- Verified: Clark/Hume dependency reasoning for 785 before 786.
+- Result: proceeded with TRL-791 first.
+- Next: implement TRL-791.
+- Blockers: none.
 
-## Verification Log
+2026-05-24 00:34 EDT - TRL-791 draft PR handoff
+- Changed: added no-destructured-cross rule, tests, metadata, trail wrapper, generated guide updates, changeset, and cleaned direct ctx.cross usage in scaffold code.
+- Verified: focused tests, Warden package tests, typecheck, lint, format, diff check, full check, and PR CI.
+- Result: PR #582 draft, CI green, Linear In Review.
+- Next: start TRL-793 separately.
+- Blockers: none.
 
-| Command | Result | Notes |
-|---|---|---|
-| `bun test packages/warden/src/__tests__/no-destructured-cross.test.ts` | pass | Initial focused rule run: 9 tests. |
-| `bun test packages/warden/src/__tests__/warden-rule-metadata.test.ts packages/warden/src/__tests__/guide.test.ts packages/warden/src/__tests__/warden-export-symmetry.test.ts` | pass | 28 tests. |
-| `bun run warden:agents:sync` | pass | Regenerated `AGENTS.md`. |
-| `bun run warden:skills:sync` | pass | Regenerated Clark + plugin Warden guide references. |
-| `bun run warden:agents:check` | pass | Generated block in sync. |
-| `bun run warden:skills:check` | pass | Generated skill guides in sync. |
-| `bun --cwd packages/warden test` | failed, fixed | First run failed only because `trails.test.ts` still expected 56 rule trails; updated to 57. |
-| `bun run typecheck` | failed, fixed | First run caught a narrow `property.key` AST type mismatch in the new rule; fixed with an explicit cast. |
-| `bun run format:check` | failed, fixed | First run found formatting drift in `create.ts` and the new rule test. |
-| `bun run format:fix` | pass | Applied formatter and cleared Ultracite's `prefer-destructuring` complaint. |
-| `bun --cwd packages/warden test` | pass | 926 tests, 0 fail after updating rule trail count. |
-| `bun run typecheck` | failed, fixed | Second run exposed optional `ctx.cross` narrowing in `apps/trails/src/trails/create.ts`; added `hasCross` type guard so direct `ctx.cross(...)` remains type-safe. |
-| `bun test apps/trails/src/__tests__/create.test.ts` | pass | 15 tests, 0 fail after `ctx.cross` cleanup. |
-| `bun run typecheck` | pass | 22 packages. |
-| `bun run format:check` | pass | All matched files formatted; Ultracite 0 warnings/errors. |
-| `bun run lint` | pass | 23 tasks, 0 warnings/errors. |
-| `git diff --check` | pass | No whitespace errors. |
-| `bun test packages/warden/src/__tests__/no-destructured-cross.test.ts` | pass | Final focused rule run after review fixes: 12 tests, 0 fail. |
-| `bun --cwd packages/warden test` | pass | Final package run: 929 tests, 0 fail. |
-| `bun run format:check` | pass | Final format/Ultracite run: 0 warnings/errors. |
-| `bun run lint` | pass | Final repo lint: 23 tasks, 0 warnings/errors. |
-| `git diff --check` | pass | Final whitespace check. |
-| `bun run check` | pass | Full repo gate passed; Warden emitted only the known pre-existing warning set. |
-| `gh api --paginate repos/outfitter-dev/trails/pulls/582/files --jq '.[].filename' \| bun run changeset:check -- --changed-files /dev/stdin` | pass | Reproduced the Changeset gate locally after adding `@ontrails/trails`. |
+2026-05-24 00:50 EDT - TRL-793 local verification
+- Changed: upgraded names-only diagnostics for implementation-returns-result, resource-declarations, resource-exists, cross-declarations, valid-detour-contract, circular-refs, on-references-exist, contour-exists, and reference-exists; updated tests and valid-detour-contract trail expectation.
+- Verified: focused touched-rule suite 278 pass; `bun --cwd packages/warden test` 915 pass; `bun run typecheck`; `bun run lint`; `bun run format:check`; `git diff --check`; `bun run check`.
+- Result: local branch verified; draft PR not submitted yet.
+- Next: commit with Graphite, submit draft PR, update Linear, watch CI.
+- Blockers: none.
+
+2026-05-24 00:55 EDT - TRL-793 draft PR submission
+- Changed: committed `420a5fc9b`, submitted PR #583, wrote PR body, split partial diagnostics into TRL-794, updated TRL-793 title/status/comment.
+- Verified: PR opened as draft and CI started.
+- Result: TRL-793 is In Review with PR #583.
+- Next: watch CI and remote review; then continue to TRL-785 unless Matt/Clark redirects.
+- Blockers: none.
+```
 
 ## Local Review Log
 
-| Pass | Result | Findings | Action |
-|---|---|---|---|
-| 2026-05-24 00:26 EDT | Implementation/registration review dispatched to Nash | pending | Review only; no git/gt writes. |
-| 2026-05-24 00:26 EDT | Doctrine/diagnostic review dispatched to McClintock | 4/5 | One P2: diagnostic overclaimed that destructuring breaks LSP typed-overload narrowing. Fixed by softening to visible composition + Warden Result recognition. |
-| 2026-05-24 00:34 EDT | Implementation/registration review returned from Nash | 4/5 | One P2: assignment destructuring bypass. Fixed by adding `AssignmentExpression` detection and tests. |
+| Round | Scope / Lanes | Report Paths | P0/P1/P2 Result | Fix Commits / Notes |
+| --- | --- | --- | --- | --- |
+| TRL-791 | Rule behavior, docs/guides, tests | subagent reports in transcript | P0/P1/P2 fixed | PR #582 submitted after fixes. |
+| TRL-793 | Diagnostic wording and audit coverage | subagent reports in transcript | P2 fixed | Fixed valid-detour recover signature, softened trail-object cross guidance, added contour/reference rule family. |
+
+## Verification Log
+
+| Check | Scope | Result | Evidence / Notes |
+| --- | --- | --- | --- |
+| `bun test packages/warden/src/__tests__/implementation-returns-result.test.ts packages/warden/src/__tests__/resource-declarations.test.ts packages/warden/src/__tests__/resource-exists.test.ts packages/warden/src/__tests__/cross-declarations.test.ts packages/warden/src/__tests__/valid-detour-contract.test.ts packages/warden/src/__tests__/circular-refs.test.ts packages/warden/src/__tests__/on-references-exist.test.ts packages/warden/src/__tests__/contour-exists.test.ts packages/warden/src/__tests__/reference-exists.test.ts packages/warden/src/__tests__/trails.test.ts` | TRL-793 focused | Pass | 278 pass, 0 fail. |
+| `bun --cwd packages/warden test` | TRL-793 package | Pass | 915 pass, 0 fail. |
+| `bun run typecheck` | TRL-793 repo | Pass | 22 packages successful. |
+| `bun run lint` | TRL-793 repo | Pass | 23 tasks successful. |
+| `bun run format:check` | TRL-793 repo | Pass | 0 warnings/errors. |
+| `git diff --check` | TRL-793 repo | Pass | No whitespace errors. |
+| `bun run check` | TRL-793 repo | Pass | Full repo gate passed; known Warden warnings printed by `trails warden`. |
+| PR #583 CI | TRL-793 remote | Running | Started after draft submission. |
 
 ## Remote Review / CI Log
 
-| PR | State | CI | Review |
-|---|---|---|---|
-| #582 | Draft, open | Green on amended run: Build, Lint & Format, Dead Code, Typecheck, Test, Governance, Changeset, CI Gate. | No reviews posted yet. |
+| Time | PR | CI State | Review State | Scores / Signals | Unresolved P0/P1/P2 | Action |
+| --- | --- | --- | --- | --- | --- | --- |
+| 2026-05-24 00:34 EDT | #582 | Green | Draft | Local reviews clean after fixes | 0 known | Monitor / ready when appropriate. |
+| 2026-05-24 00:55 EDT | #583 | Running | Draft | Local reviews clean after fixes | 0 known | Watch CI. |
 
-## Forbidden-Action Audit
+## Review Feedback Resolutions
 
-- Merge: not performed.
-- Merge queue label: not applied.
-- Publish/registry mutation: not performed.
-- Destructive git commands: not performed.
-- Subagent git/gt writes: not performed.
+| Source | Score / Signal | Severity | Finding | Prompt To Fix | Resolution | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| Clark local review | P2 | P2 | `valid-detour-contract` diagnostic taught wrong recover signature. | Use `(attempt, ctx)` and `attempt.error`. | Fixed in rule, tests, trail expectation. | TRL-793 local diff. |
+| Clark local review | P2 | P2 | `cross-declarations` softened trail-object guidance implied unsupported resolution. | Teach string id or same trail object form in both declaration and call. | Fixed in rule/tests. | TRL-793 local diff. |
+| Plato local review | P2 | P2 | Audit same-family contour reference rules were omitted. | Add teaching diagnostics for `contour-exists` and `reference-exists`. | Fixed in rules/tests. | TRL-793 local diff. |
+
+## Forbidden Actions Audit
+
+| Action / Constraint | Status | Evidence |
+| --- | --- | --- |
+| No merge without explicit user approval | Respected | PR #582 is draft; TRL-793 local only so far. |
+| No package publish / registry mutation unless authorized | Respected | No publish commands run. |
+| No merge queue label unless authorized | Respected | No merge queue label applied. |
+| No source-control writes by subagents | Respected | Subagents only reviewed/researched. |
+| No unrelated destructive changes | Respected | Diffs scoped to active Warden slices and this packet. |
 
 ## Final State
 
-Draft PR #582 is open and CI green. No merge, merge queue, or publish action performed.
+- Goal completion condition: pending.
+- Graphite / branch state: TRL-793 submitted v1 at `420a5fc9b`; packet update pending amend.
+- PR state: #582 draft CI green; #583 draft CI running.
+- Source-control host lag: none known.
+- Tracker state: TRL-791 In Review; TRL-793 In Review; TRL-794 Todo; later issues pending.
+- Local review state: TRL-793 P2 findings fixed.
+- Remote review state: #583 CI running; review pending.
+- Remote review scores: pending.
+- Verification: TRL-793 local gates passed through `bun run check`.
+- Skipped checks: none for TRL-793 local handoff.
+- Remaining P3s / risks: partial diagnostic second wave tracked separately in TRL-794.
+- Follow-up issues created: TRL-794.
+- Forbidden actions confirmation: no merge, publish, registry mutation, merge queue label, or subagent source-control write.
+- Packet archive readiness: not ready.
+- Final transcript proof: pending.

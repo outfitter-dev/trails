@@ -53,7 +53,7 @@ export const validDetourContractTrail = wrapTopoRule({
             filePath: '<topo>',
             line: 1,
             message:
-              'Trail "entity.save" detour[0] must declare a callable recover function.',
+              'Trail "entity.save" detour[0] must declare a callable recover function. Expected recover: (attempt, ctx) => Promise<Result<...>>; inspect attempt.error for the matched error and return Result.err(...) for unrecoverable cases.',
             rule: 'valid-detour-contract',
             severity: 'error',
           },

@@ -133,7 +133,7 @@ const buildMissingContourDiagnostic = (
 ): WardenDiagnostic => ({
   filePath,
   line,
-  message: `Trail "${trailId}" declares contour "${contourName}" which is not defined in the project.`,
+  message: `Trail "${trailId}" declares contour "${contourName}" which is not defined in the project. Define it with contour('${contourName}', ...) and include it in the topo, or fix the contours entry if this is a typo.`,
   rule: 'contour-exists',
   severity: 'error',
 });

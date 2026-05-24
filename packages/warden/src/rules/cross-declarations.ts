@@ -455,8 +455,8 @@ const buildUndeclaredDiagnostic = (
   filePath,
   line,
   message: softened
-    ? `Trail "${trailId}": ctx.cross('${crossedId}') called but '${crossedId}' is not declared in crosses (may be declared via trail object references)`
-    : `Trail "${trailId}": ctx.cross('${crossedId}') called but '${crossedId}' is not declared in crosses`,
+    ? `Trail "${trailId}": ctx.cross('${crossedId}') called but '${crossedId}' is not declared in crosses (may be declared via trail object references). Add the string id to crosses, or use the same trail object form in both crosses and ctx.cross(...).`
+    : `Trail "${trailId}": ctx.cross('${crossedId}') called but '${crossedId}' is not declared in crosses. Add it to the trail crosses array: crosses: ['${crossedId}', ...].`,
   rule: 'cross-declarations',
   severity: softened ? 'warn' : 'error',
 });

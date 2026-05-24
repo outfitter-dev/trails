@@ -64,6 +64,9 @@ describe('valid-detour-contract', () => {
     expect(diagnostics).toHaveLength(1);
     expect(diagnostics[0]?.rule).toBe('valid-detour-contract');
     expect(diagnostics[0]?.message).toContain('callable recover');
+    expect(diagnostics[0]?.message).toContain('recover: (attempt, ctx)');
+    expect(diagnostics[0]?.message).toContain('attempt.error');
+    expect(diagnostics[0]?.message).toContain('Result.err(...)');
   });
 
   test('reports both issues when on and recover are malformed', () => {

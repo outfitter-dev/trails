@@ -44,6 +44,8 @@ const gist = contour('gist', {
     expect(diagnostics).toHaveLength(2);
     expect(diagnostics[0]?.rule).toBe('circular-refs');
     expect(diagnostics[0]?.message).toContain('user -> gist -> user');
+    expect(diagnostics[0]?.message).toContain('Break the cycle');
+    expect(diagnostics[0]?.message).toContain('shared shape');
   });
 
   test('warns on transitive cycles discovered through project context', () => {

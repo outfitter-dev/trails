@@ -80,6 +80,7 @@ trail('onboard', {
       expect(diagnostics[0]?.rule).toBe('cross-declarations');
       expect(diagnostics[0]?.message).toContain("ctx.cross('entity.add')");
       expect(diagnostics[0]?.message).toContain('not declared in crosses');
+      expect(diagnostics[0]?.message).toContain("crosses: ['entity.add', ...]");
     });
 
     test('undeclared batch crossings still report an error', () => {
@@ -380,6 +381,10 @@ trail('gist.fork', {
       expect(diagnostics.length).toBe(1);
       expect(diagnostics[0]?.severity).toBe('warn');
       expect(diagnostics[0]?.message).toContain('trail object references');
+      expect(diagnostics[0]?.message).toContain('Add the string id');
+      expect(diagnostics[0]?.message).toContain(
+        'same trail object form in both crosses and ctx.cross'
+      );
     });
 
     test('mixed string and trail object references: resolved string still validated', () => {

@@ -42,6 +42,8 @@ trail('entity.show', {
     expect(diagnostics).toHaveLength(1);
     expect(diagnostics[0]?.rule).toBe('resource-exists');
     expect(diagnostics[0]?.message).toContain('db.main');
+    expect(diagnostics[0]?.message).toContain("resource('db.main'");
+    expect(diagnostics[0]?.message).toContain('included in the topo');
   });
 
   test('flags a declared resource missing from project context', () => {

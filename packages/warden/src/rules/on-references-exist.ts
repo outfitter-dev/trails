@@ -99,7 +99,7 @@ const buildMissingSignalDiagnostic = (
 ): WardenDiagnostic => ({
   filePath,
   line,
-  message: `Trail "${trailId}" declares on: "${signalId}" which is not a known signal in the project.`,
+  message: `Trail "${trailId}" declares on: "${signalId}" which is not a known signal in the project. Define it with signal('${signalId}', ...), include it in the topo, or fix the on: id if this is a typo.`,
   rule: 'on-references-exist',
   severity: 'error',
 });

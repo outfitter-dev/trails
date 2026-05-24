@@ -183,13 +183,14 @@ trail('entity.show', {
       expect(diagnostics[0]?.rule).toBe('resource-declarations');
       expect(diagnostics[0]?.message).toContain('db.from(ctx)');
       expect(diagnostics[0]?.message).toContain('not declared in resources');
+      expect(diagnostics[0]?.message).toContain('resources: [db]');
     });
 
     test('ctx.resource() without a declaration produces an error', () => {
       const code = `
 trail('entity.show', {
   blaze: async (_input, ctx) => {
-    return Result.ok(ctx.resource('db.main'));
+    return Result.ok(ctx.resource('billing.primary'));
   },
 });
 `;
@@ -198,7 +199,15 @@ trail('entity.show', {
 
       expect(diagnostics.length).toBe(1);
       expect(diagnostics[0]?.severity).toBe('error');
-      expect(diagnostics[0]?.message).toContain("ctx.resource('db.main')");
+      expect(diagnostics[0]?.message).toContain(
+        "ctx.resource('billing.primary')"
+      );
+      expect(diagnostics[0]?.message).toContain(
+        "resources: ['billing.primary']"
+      );
+      expect(diagnostics[0]?.message).toContain('.from(ctx)');
+      expect(diagnostics[0]?.message).not.toContain('resources: [db]');
+      expect(diagnostics[0]?.message).not.toContain('db.from(ctx)');
     });
 
     test('unresolved imported resource declarations do not suppress lookup diagnostics', () => {
@@ -245,6 +254,7 @@ trail('entity.show', {
       expect(diagnostics.length).toBe(1);
       expect(diagnostics[0]?.severity).toBe('error');
       expect(diagnostics[0]?.message).toContain('ctx.resource(db)');
+      expect(diagnostics[0]?.message).toContain('resources: [db]');
     });
   });
 
@@ -272,6 +282,7 @@ trail('entity.show', {
       expect(diagnostics[0]?.rule).toBe('resource-declarations');
       expect(diagnostics[0]?.message).toContain("'db' declared in resources");
       expect(diagnostics[0]?.message).toContain('never used');
+      expect(diagnostics[0]?.message).toContain('Remove it from resources');
     });
   });
 

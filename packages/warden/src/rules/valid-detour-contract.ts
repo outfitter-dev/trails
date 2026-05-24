@@ -56,7 +56,7 @@ const collectTrailDiagnostics = (topo: Topo): readonly WardenDiagnostic[] => {
       if (typeof candidate.recover !== 'function') {
         diagnostics.push(
           buildDiagnostic(
-            `Trail "${trail.id}" detour[${index}] must declare a callable recover function.`,
+            `Trail "${trail.id}" detour[${index}] must declare a callable recover function. Expected recover: (attempt, ctx) => Promise<Result<...>>; inspect attempt.error for the matched error and return Result.err(...) for unrecoverable cases.`,
             'valid-detour-contract'
           )
         );
