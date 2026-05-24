@@ -168,6 +168,7 @@ export {
   noDirectImplementationCallTrail,
   noLegacyLayerImportsTrail,
   noNativeErrorResultTrail,
+  noRedundantResultErrorWrapTrail,
   noSyncResultAssumptionTrail,
   noThrowInDetourRecoverTrail,
   noThrowInImplementationTrail,

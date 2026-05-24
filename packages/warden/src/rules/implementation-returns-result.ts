@@ -51,7 +51,7 @@ const isResultMemberCall = (callee: AstNode): boolean => {
 // ---------------------------------------------------------------------------
 
 /** Check if an expression node is an allowed Result-returning expression. */
-const isResultExpression = (node: AstNode): boolean => {
+export const isResultExpression = (node: AstNode): boolean => {
   if (node.type === 'CallExpression') {
     const callee = node['callee'] as AstNode | undefined;
     if (!callee) {
@@ -69,7 +69,27 @@ const isResultExpression = (node: AstNode): boolean => {
 };
 
 /** Map of namespace-import local name to the set of Result-helper names exported by the target module. */
-type NamespaceHelperMap = ReadonlyMap<string, ReadonlySet<string>>;
+export type NamespaceHelperMap = ReadonlyMap<string, ReadonlySet<string>>;
+
+/** Map of lexical scope frames to local helper bindings with explicit Result return types. */
+export type ScopedHelperMap = ReadonlyMap<
+  ReadonlySet<string>,
+  ReadonlySet<string>
+>;
+
+export type MutableScopedHelperMap = Map<ReadonlySet<string>, Set<string>>;
+
+export const findNearestBindingScope = (
+  name: string,
+  scopes: readonly ReadonlySet<string>[]
+): ReadonlySet<string> | null =>
+  scopes.find((scope) => scope.has(name)) ?? null;
+
+const isScopedHelperBinding = (
+  name: string,
+  scope: ReadonlySet<string>,
+  scopedHelpers: ScopedHelperMap
+): boolean => scopedHelpers.get(scope)?.has(name) ?? false;
 
 /**
  * Check whether a namespace-member call like `ns.helper(...)` resolves to a
@@ -103,11 +123,12 @@ const isNamespaceHelperMemberCall = (
 };
 
 /** Check if a node is a call to a known Result-returning helper. */
-const isHelperCall = (
+export const isHelperCall = (
   node: AstNode,
   helperNames: ReadonlySet<string>,
   namespaceHelpers: NamespaceHelperMap = new Map(),
-  scopes: readonly ReadonlySet<string>[] = []
+  scopes: readonly ReadonlySet<string>[] = [],
+  scopedHelpers: ScopedHelperMap = new Map()
 ): boolean => {
   const target =
     node.type === 'AwaitExpression'
@@ -121,6 +142,13 @@ const isHelperCall = (
   const callee = target['callee'] as AstNode | undefined;
   if (callee?.type === 'Identifier') {
     const { name } = callee as unknown as { name: string };
+    const bindingScope = findNearestBindingScope(name, scopes);
+    if (
+      bindingScope &&
+      !isScopedHelperBinding(name, bindingScope, scopedHelpers)
+    ) {
+      return false;
+    }
     return helperNames.has(name);
   }
 
@@ -149,107 +177,20 @@ const isAllowedReturnArgument = (
   helperNames: ReadonlySet<string>,
   resultVars: ReadonlySet<string>,
   namespaceHelpers: NamespaceHelperMap,
-  scopes: readonly ReadonlySet<string>[] = []
+  scopes: readonly ReadonlySet<string>[] = [],
+  scopedHelpers: ScopedHelperMap = new Map()
 ): boolean => {
   if (isResultExpression(argument)) {
     return true;
   }
-  if (isHelperCall(argument, helperNames, namespaceHelpers, scopes)) {
+  if (
+    isHelperCall(argument, helperNames, namespaceHelpers, scopes, scopedHelpers)
+  ) {
     return true;
   }
 
   const varName = resolveIdentifierName(argument);
   return varName !== null && resultVars.has(varName);
-};
-
-// ---------------------------------------------------------------------------
-// Variable tracking
-// ---------------------------------------------------------------------------
-
-/** Track a VariableDeclarator, adding to resultVars if it produces a Result. */
-const trackResultVariable = (
-  node: AstNode,
-  resultVars: Set<string>,
-  helperNames: ReadonlySet<string>,
-  namespaceHelpers: NamespaceHelperMap,
-  scopes: readonly ReadonlySet<string>[]
-): void => {
-  const { init } = node as unknown as { init?: AstNode };
-  const { id } = node as unknown as { id?: AstNode };
-  if (init && id?.type === 'Identifier') {
-    const { name } = id as unknown as { name: string };
-    if (
-      isResultExpression(init) ||
-      isHelperCall(init, helperNames, namespaceHelpers, scopes)
-    ) {
-      resultVars.add(name);
-    }
-  }
-};
-
-// ---------------------------------------------------------------------------
-// Return statement checking
-// ---------------------------------------------------------------------------
-
-/** Check return statements in a block body for non-Result returns. */
-const checkReturnStatements = (
-  blockBody: AstNode,
-  trailInfo: { id: string; label: string },
-  filePath: string,
-  sourceCode: string,
-  helperNames: ReadonlySet<string>,
-  namespaceHelpers: NamespaceHelperMap,
-  diagnostics: WardenDiagnostic[],
-  implScope: ReadonlySet<string> = new Set<string>()
-): void => {
-  const resultVars = new Set<string>();
-  const initialScopes = implScope.size > 0 ? [implScope] : [];
-
-  walkWithScopes(
-    blockBody,
-    (node, currentScopes) => {
-      if (node.type === 'VariableDeclarator') {
-        trackResultVariable(
-          node,
-          resultVars,
-          helperNames,
-          namespaceHelpers,
-          currentScopes
-        );
-      }
-
-      if (node.type !== 'ReturnStatement') {
-        return;
-      }
-
-      const { argument } = node as unknown as { argument?: AstNode };
-      // Bare return — not a value return
-      if (!argument) {
-        return;
-      }
-
-      if (
-        isAllowedReturnArgument(
-          argument,
-          helperNames,
-          resultVars,
-          namespaceHelpers,
-          currentScopes
-        )
-      ) {
-        return;
-      }
-
-      diagnostics.push({
-        filePath,
-        line: offsetToLine(sourceCode, node.start),
-        message: buildUnrecognizedResultMessage(trailInfo.label, trailInfo.id),
-        rule: 'implementation-returns-result',
-        severity: 'error',
-      });
-    },
-    { initialScopes, stopAtNestedFunctions: true }
-  );
 };
 
 // ---------------------------------------------------------------------------
@@ -280,7 +221,7 @@ const hasGenericTypeReference = (
 ): boolean =>
   new RegExp(`(^|[^\\w$])${escapeRegExp(typeName)}\\s*<`).test(annotationText);
 
-const collectResultTypeNames = (ast: AstNode): ReadonlySet<string> => {
+export const collectResultTypeNames = (ast: AstNode): ReadonlySet<string> => {
   const names = new Set(DEFAULT_RESULT_TYPE_NAMES);
   walk(ast, (node) => {
     if (
@@ -329,6 +270,146 @@ const hasResultReturnType = (
 
 const isFunctionLikeExpression = (node: AstNode): boolean =>
   node.type === 'ArrowFunctionExpression' || node.type === 'FunctionExpression';
+
+const addScopedHelper = (
+  scopedHelpers: MutableScopedHelperMap,
+  scope: ReadonlySet<string>,
+  name: string
+): void => {
+  const existing = scopedHelpers.get(scope);
+  if (existing) {
+    existing.add(name);
+    return;
+  }
+  scopedHelpers.set(scope, new Set([name]));
+};
+
+/** Record `const helper = (): Result<...> => ...` declarations for the current lexical scope. */
+export const trackScopedResultHelperDeclaration = (
+  node: AstNode,
+  scopes: readonly ReadonlySet<string>[],
+  sourceCode: string,
+  resultTypeNames: ReadonlySet<string>,
+  scopedHelpers: MutableScopedHelperMap
+): void => {
+  if (node.type !== 'VariableDeclarator') {
+    return;
+  }
+  const { id, init } = node as unknown as { id?: AstNode; init?: AstNode };
+  const name = extractIdentifierName(id);
+  if (!(name && init && isFunctionLikeExpression(init))) {
+    return;
+  }
+  if (!hasResultReturnType(init, sourceCode, resultTypeNames)) {
+    return;
+  }
+  const bindingScope = findNearestBindingScope(name, scopes);
+  if (bindingScope) {
+    addScopedHelper(scopedHelpers, bindingScope, name);
+  }
+};
+
+// ---------------------------------------------------------------------------
+// Variable tracking
+// ---------------------------------------------------------------------------
+
+/** Track a VariableDeclarator, adding to resultVars if it produces a Result. */
+const trackResultVariable = (
+  node: AstNode,
+  resultVars: Set<string>,
+  helperNames: ReadonlySet<string>,
+  namespaceHelpers: NamespaceHelperMap,
+  scopes: readonly ReadonlySet<string>[],
+  scopedHelpers: ScopedHelperMap
+): void => {
+  const { init } = node as unknown as { init?: AstNode };
+  const { id } = node as unknown as { id?: AstNode };
+  if (init && id?.type === 'Identifier') {
+    const { name } = id as unknown as { name: string };
+    if (
+      isResultExpression(init) ||
+      isHelperCall(init, helperNames, namespaceHelpers, scopes, scopedHelpers)
+    ) {
+      resultVars.add(name);
+    }
+  }
+};
+
+// ---------------------------------------------------------------------------
+// Return statement checking
+// ---------------------------------------------------------------------------
+
+/** Check return statements in a block body for non-Result returns. */
+const checkReturnStatements = (
+  blockBody: AstNode,
+  trailInfo: { id: string; label: string },
+  filePath: string,
+  sourceCode: string,
+  helperNames: ReadonlySet<string>,
+  namespaceHelpers: NamespaceHelperMap,
+  resultTypeNames: ReadonlySet<string>,
+  diagnostics: WardenDiagnostic[],
+  implScope: ReadonlySet<string> = new Set<string>()
+): void => {
+  const resultVars = new Set<string>();
+  const scopedHelpers: MutableScopedHelperMap = new Map();
+  const initialScopes = implScope.size > 0 ? [implScope] : [];
+
+  walkWithScopes(
+    blockBody,
+    (node, currentScopes) => {
+      if (node.type === 'VariableDeclarator') {
+        trackScopedResultHelperDeclaration(
+          node,
+          currentScopes,
+          sourceCode,
+          resultTypeNames,
+          scopedHelpers
+        );
+        trackResultVariable(
+          node,
+          resultVars,
+          helperNames,
+          namespaceHelpers,
+          currentScopes,
+          scopedHelpers
+        );
+      }
+
+      if (node.type !== 'ReturnStatement') {
+        return;
+      }
+
+      const { argument } = node as unknown as { argument?: AstNode };
+      // Bare return is not a value return.
+      if (!argument) {
+        return;
+      }
+
+      if (
+        isAllowedReturnArgument(
+          argument,
+          helperNames,
+          resultVars,
+          namespaceHelpers,
+          currentScopes,
+          scopedHelpers
+        )
+      ) {
+        return;
+      }
+
+      diagnostics.push({
+        filePath,
+        line: offsetToLine(sourceCode, node.start),
+        message: buildUnrecognizedResultMessage(trailInfo.label, trailInfo.id),
+        rule: 'implementation-returns-result',
+        severity: 'error',
+      });
+    },
+    { initialScopes, stopAtNestedFunctions: true }
+  );
+};
 
 /** Collect names of top-level functions/consts with explicit Result return types. */
 const collectResultHelperNames = (
@@ -1283,7 +1364,7 @@ const namespaceEntriesFromImport = (
  * resolved target module. Returns an empty map if no namespace imports are
  * found or none resolve to local files.
  */
-const collectNamespaceHelperImports = (
+export const collectNamespaceHelperImports = (
   ast: AstNode,
   filePath: string
 ): NamespaceHelperMap => {
@@ -1305,7 +1386,7 @@ const collectNamespaceHelperImports = (
 /**
  * Combine same-file helper names with helpers imported from relative modules.
  */
-const collectAllResultHelperNames = (
+export const collectAllResultHelperNames = (
   ast: AstNode,
   sourceCode: string,
   filePath: string
@@ -1333,6 +1414,7 @@ const checkImplementation = (
   sourceCode: string,
   helperNames: ReadonlySet<string>,
   namespaceHelpers: NamespaceHelperMap,
+  resultTypeNames: ReadonlySet<string>,
   diagnostics: WardenDiagnostic[]
 ): void => {
   const fnBody = (implValue as unknown as { body?: AstNode }).body;
@@ -1352,6 +1434,7 @@ const checkImplementation = (
       sourceCode,
       helperNames,
       namespaceHelpers,
+      resultTypeNames,
       diagnostics,
       implScope
     );
@@ -1386,6 +1469,7 @@ const checkAllDefinitions = (
   const diagnostics: WardenDiagnostic[] = [];
   const helperNames = collectAllResultHelperNames(ast, sourceCode, filePath);
   const namespaceHelpers = collectNamespaceHelperImports(ast, filePath);
+  const resultTypeNames = collectResultTypeNames(ast);
 
   for (const def of findTrailDefinitions(ast)) {
     const info = { id: def.id, label: 'Trail' };
@@ -1397,6 +1481,7 @@ const checkAllDefinitions = (
         sourceCode,
         helperNames,
         namespaceHelpers,
+        resultTypeNames,
         diagnostics
       );
     }

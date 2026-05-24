@@ -75,6 +75,7 @@ const concernByRuleName: Partial<Record<string, WardenRuleConcern>> = {
   'no-dev-permit-in-source': 'permits',
   'no-direct-implementation-call': 'composition',
   'no-native-error-result': 'results',
+  'no-redundant-result-error-wrap': 'results',
   'no-sync-result-assumption': 'results',
   'no-throw-in-detour-recover': 'results',
   'no-throw-in-implementation': 'results',
@@ -273,6 +274,12 @@ const builtinWardenRuleMetadataInput = {
   'no-native-error-result': {
     ...durableExternal,
     invariant: 'Result error boundaries carry specific TrailsError subclasses.',
+    tier: 'source-static',
+  },
+  'no-redundant-result-error-wrap': {
+    ...durableExternal,
+    invariant:
+      'Result error pass-throughs preserve the original Result boundary.',
     tier: 'source-static',
   },
   'no-sync-result-assumption': {

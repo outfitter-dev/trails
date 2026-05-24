@@ -1201,4 +1201,42 @@ trail("message.transmit", {
 
     expect(diagnostics.length).toBe(0);
   });
+
+  test('flags helper calls when a local binding shadows a Result helper name', () => {
+    const code = `
+const parseInput = (): Result<object, Error> =>
+  Result.ok({ ok: true });
+
+trail("message.transmit", {
+  blaze: async (input, ctx) => {
+    const parseInput = () => ({ ok: true });
+    return parseInput();
+  }
+})`;
+
+    const diagnostics = implementationReturnsResult.check(code, TEST_FILE);
+
+    expect(diagnostics.length).toBe(1);
+    expect(diagnostics[0]?.message).toContain(
+      'not a recognized Result expression'
+    );
+  });
+
+  test('allows helper calls when the local binding has a Result return annotation', () => {
+    const code = `
+import { Result, trail } from '@ontrails/core';
+
+trail("message.transmit", {
+  blaze: async () => {
+    const finishCreate = async (): Promise<Result<object, Error>> =>
+      Result.ok({ ok: true });
+
+    return finishCreate();
+  }
+})`;
+
+    const diagnostics = implementationReturnsResult.check(code, TEST_FILE);
+
+    expect(diagnostics.length).toBe(0);
+  });
 });
