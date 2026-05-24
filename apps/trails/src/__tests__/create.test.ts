@@ -59,6 +59,13 @@ const expectContainsAll = (
   }
 };
 
+const expectCreatedPaths = (
+  created: readonly string[],
+  relativePaths: readonly string[]
+): void => {
+  expect(created).toEqual(expect.arrayContaining(relativePaths));
+};
+
 const expectOk = <T>(result: Result<T, Error>): T => {
   if (result.isErr()) {
     throw result.error;
@@ -138,6 +145,7 @@ const assertDefaultProjectFiles = (dir: string): void => {
     [
       'package.json',
       'tsconfig.json',
+      'tsconfig.tests.json',
       '.gitignore',
       'oxlint.config.ts',
       '.oxfmtrc.jsonc',
@@ -150,6 +158,21 @@ const assertDefaultProjectFiles = (dir: string): void => {
     ],
     true
   );
+};
+
+const assertTsconfigTests = (dir: string): void => {
+  const tsconfig = readJson(dir, 'tsconfig.tests.json');
+  expect(tsconfig['extends']).toBe('./tsconfig.json');
+  expect(tsconfig['include']).toEqual(['src', '__tests__']);
+  expect(tsconfig['exclude']).toEqual([]);
+
+  const compilerOptions = tsconfig['compilerOptions'] as Record<
+    string,
+    unknown
+  >;
+  expect(compilerOptions['noEmit']).toBe(true);
+  expect(compilerOptions['rootDir']).toBe('.');
+  expect(compilerOptions['types']).toEqual(['bun']);
 };
 
 const assertCliPackage = (dir: string): void => {
@@ -320,8 +343,10 @@ describe('trails create', () => {
   describe('create mode', () => {
     test('generates project structure with defaults', async () => {
       await withTempProject(async (dir) => {
-        expectOk(await runCreate(dir));
+        const result = expectOk(await runCreate(dir));
+        expectCreatedPaths(result.created, ['tsconfig.tests.json']);
         assertDefaultProjectFiles(dir);
+        assertTsconfigTests(dir);
         assertCliPackage(dir);
         assertVerifyPackage(dir);
         assertGeneratedToolingDeps(dir);
@@ -351,6 +376,7 @@ describe('trails create', () => {
             { kind: 'write', path: 'package.json' },
             { kind: 'write', path: 'src/app.ts' },
             { kind: 'write', path: '.trails/.gitignore' },
+            { kind: 'write', path: 'tsconfig.tests.json' },
           ])
         );
         expect(existsSync(dir)).toBe(false);
@@ -373,6 +399,7 @@ describe('trails create', () => {
           [
             'package.json',
             'tsconfig.json',
+            'tsconfig.tests.json',
             '.gitignore',
             'oxlint.config.ts',
             '.oxfmtrc.jsonc',
@@ -410,6 +437,7 @@ describe('trails create', () => {
       await withTempProject(async (dir) => {
         expectOk(await runCreate(dir, { verify: false }));
         assertVerifySkipped(dir);
+        assertTsconfigTests(dir);
         assertGeneratedToolingDeps(dir);
         assertFrameworkCliScripts(dir);
       });

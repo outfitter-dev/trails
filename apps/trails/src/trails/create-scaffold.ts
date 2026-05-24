@@ -118,6 +118,21 @@ const TSCONFIG_CONTENT = JSON.stringify(
   2
 );
 
+const TSCONFIG_TESTS_CONTENT = JSON.stringify(
+  {
+    compilerOptions: {
+      noEmit: true,
+      rootDir: '.',
+      types: ['bun'],
+    },
+    exclude: [],
+    extends: './tsconfig.json',
+    include: ['src', '__tests__'],
+  },
+  null,
+  2
+);
+
 const GITIGNORE_CONTENT = `node_modules/
 dist/
 *.tsbuildinfo
@@ -349,6 +364,7 @@ const collectScaffoldFiles = (
   new Map([
     ['package.json', generatePackageJson(name)],
     ['tsconfig.json', TSCONFIG_CONTENT],
+    ['tsconfig.tests.json', TSCONFIG_TESTS_CONTENT],
     ['.gitignore', GITIGNORE_CONTENT],
     ['oxlint.config.ts', OXLINT_CONFIG_CONTENT],
     ['.oxfmtrc.jsonc', OXFMTRC_CONTENT],
