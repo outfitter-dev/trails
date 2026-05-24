@@ -133,6 +133,59 @@ const TSCONFIG_TESTS_CONTENT = JSON.stringify(
   2
 );
 
+const AGENTS_CONTENT = `# AGENTS.md
+
+This is a Trails project. Trails is an agent-native, contract-first TypeScript framework: author a trail once with typed input, Result output, examples, intent, and meta; surface it through CLI, MCP, HTTP, or future WebSocket without rewriting the contract.
+
+## Commands
+
+Use the project scripts first:
+
+\`\`\`bash
+bun install
+bun run build
+bun test
+bun run typecheck
+bun run lint
+bun run format:check
+bun run warden
+bun run survey
+bun run guide
+\`\`\`
+
+## Lexicon
+
+- \`trail\`, not action or handler
+- \`blaze\`, not handler or impl
+- \`topo\`, not registry or collection
+- \`cross\`, not follow
+- \`surface\`, not transport
+- \`resource\`, not service or dependency
+- \`layer\`, for cross-cutting trail wrapping
+
+## Trail Rules
+
+- Blazes return \`Result\`; never throw from trail logic.
+- Use \`Result.ok()\` and \`Result.err()\`; branch with \`isOk()\`, \`isErr()\`, or \`match()\`.
+- Keep trail logic surface-agnostic. Do not import CLI, MCP, HTTP, request, or response types into blazes.
+- Public MCP or HTTP trails declare an \`output\` schema.
+- Trails that compose other trails declare \`crosses: [...]\` and invoke them with \`ctx.cross(...)\`.
+- Trails that use infrastructure declare \`resources: [...]\` and access them through the resource helpers.
+- Use \`detours\` for recovery strategies instead of inline retry logic.
+- Prefer examples for happy-path coverage, and add focused tests for edge cases.
+`;
+
+const CLAUDE_CONTENT = `# CLAUDE.md
+
+## Compatibility Shim
+
+Keep shared project guidance in \`./AGENTS.md\`. Only Claude-specific bootstrap notes belong here.
+
+## Agent Instructions
+
+@AGENTS.md
+`;
+
 const GITIGNORE_CONTENT = `node_modules/
 dist/
 *.tsbuildinfo
@@ -363,6 +416,8 @@ const collectScaffoldFiles = (
 ): Map<string, string> =>
   new Map([
     ['package.json', generatePackageJson(name)],
+    ['AGENTS.md', AGENTS_CONTENT],
+    ['CLAUDE.md', CLAUDE_CONTENT],
     ['tsconfig.json', TSCONFIG_CONTENT],
     ['tsconfig.tests.json', TSCONFIG_TESTS_CONTENT],
     ['.gitignore', GITIGNORE_CONTENT],

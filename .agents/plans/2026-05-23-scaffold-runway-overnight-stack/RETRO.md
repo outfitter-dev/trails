@@ -25,7 +25,7 @@ Use this as the durable execution ledger. For stacked work, this should normally
 | --- | --- | --- | --- | --- | --- |
 | 0 | TRL-780 | `trl-780-scaffolded-projects-cant-run-most-framework-cli-subcommands` | #577 | Done / merged | Prerequisite merged at `52e4e8f7d`; packet archived during this planning pass. |
 | 1 | TRL-788 | `trl-788-trails-create-scaffold-tsconfigtestsjson-sibling-for-lsp` | pending | implemented locally | Local commit `fix: scaffold test tsconfig`; generated test TypeScript config. |
-| 2 | TRL-777 | `trl-777-trails-create-scaffolds-agentsmd-claudemd-minimal-trails` | pending | planned | Generated agent guidance. |
+| 2 | TRL-777 | `trl-777-trails-create-scaffolds-agentsmd-claudemd-minimal-trails` | pending | implemented locally | Generated `AGENTS.md` and `CLAUDE.md` shim guidance. |
 | 3 | TRL-779 | `trl-779-trails-create-scaffolds-readmemd-create-react-app-style` | pending | planned | Generated README. |
 | sidecar | TRL-792 | `trl-792-document-bun-runtime-requirement-for-consumers-beta-channel` | pending | planned | Docs-only runtime requirement; branch from `main`, not stacked on scaffold code. |
 
@@ -77,6 +77,13 @@ Use this as the durable execution ledger. For stacked work, this should normally
 - Result: TRL-788 is ready to support the next stacked branch locally.
 - Next: create TRL-777 branch.
 - Blockers: none.
+
+2026-05-23 23:48 EDT - TRL-777 implementation
+- Changed: generated project-level `AGENTS.md` and `CLAUDE.md`; used a thin `CLAUDE.md` compatibility shim instead of symlink support; added scaffold assertions and patch changeset.
+- Verified: `bun test apps/trails/src/__tests__/create.test.ts`; `bun --cwd apps/trails test`; `bun run format:check`; `git diff --check`; `bun run typecheck`.
+- Result: all checks passed.
+- Next: commit TRL-777 branch, then stack TRL-779 above it.
+- Blockers: none.
 ```
 
 ## Local Review Log
@@ -96,6 +103,11 @@ Use this as the durable execution ledger. For stacked work, this should normally
 | `bun run format:check` | TRL-788 repo format/lint wrapper | pass | 0 warnings, 0 errors. |
 | `git diff --check` | TRL-788 patch hygiene | pass | no output. |
 | `bun run typecheck` | TRL-788 repo typecheck | pass | 22 successful, 22 total. |
+| `bun test apps/trails/src/__tests__/create.test.ts` | TRL-777 targeted | pass | 15 pass, 0 fail. |
+| `bun --cwd apps/trails test` | TRL-777 package | pass | 347 pass, 0 fail. |
+| `bun run format:check` | TRL-777 repo format/lint wrapper | pass | 0 warnings, 0 errors. |
+| `git diff --check` | TRL-777 patch hygiene | pass | no output. |
+| `bun run typecheck` | TRL-777 repo typecheck | pass | 22 successful, 22 total. |
 
 ## Remote Review / CI Log
 

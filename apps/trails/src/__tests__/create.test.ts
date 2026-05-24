@@ -144,6 +144,8 @@ const assertDefaultProjectFiles = (dir: string): void => {
     dir,
     [
       'package.json',
+      'AGENTS.md',
+      'CLAUDE.md',
       'tsconfig.json',
       'tsconfig.tests.json',
       '.gitignore',
@@ -173,6 +175,33 @@ const assertTsconfigTests = (dir: string): void => {
   expect(compilerOptions['noEmit']).toBe(true);
   expect(compilerOptions['rootDir']).toBe('.');
   expect(compilerOptions['types']).toEqual(['bun']);
+};
+
+const assertAgentGuidance = (dir: string): void => {
+  expectContainsAll(readText(dir, 'AGENTS.md'), [
+    'This is a Trails project.',
+    'agent-native, contract-first TypeScript framework',
+    '`trail`, not action or handler',
+    '`blaze`, not handler or impl',
+    '`topo`, not registry or collection',
+    '`cross`, not follow',
+    '`surface`, not transport',
+    '`resource`, not service or dependency',
+    '`layer`, for cross-cutting trail wrapping',
+    'Blazes return `Result`; never throw',
+    '`Result.ok()` and `Result.err()`',
+    '`ctx.cross(...)`',
+    '`resources: [...]`',
+    'bun run warden',
+    'bun run survey',
+    'bun run guide',
+  ]);
+  expectContainsAll(readText(dir, 'CLAUDE.md'), [
+    '# CLAUDE.md',
+    'Compatibility Shim',
+    'Keep shared project guidance in `./AGENTS.md`.',
+    '@AGENTS.md',
+  ]);
 };
 
 const assertCliPackage = (dir: string): void => {
@@ -344,8 +373,13 @@ describe('trails create', () => {
     test('generates project structure with defaults', async () => {
       await withTempProject(async (dir) => {
         const result = expectOk(await runCreate(dir));
-        expectCreatedPaths(result.created, ['tsconfig.tests.json']);
+        expectCreatedPaths(result.created, [
+          'AGENTS.md',
+          'CLAUDE.md',
+          'tsconfig.tests.json',
+        ]);
         assertDefaultProjectFiles(dir);
+        assertAgentGuidance(dir);
         assertTsconfigTests(dir);
         assertCliPackage(dir);
         assertVerifyPackage(dir);
@@ -374,6 +408,8 @@ describe('trails create', () => {
         expect(dryRun.plannedOperations).toEqual(
           expect.arrayContaining([
             { kind: 'write', path: 'package.json' },
+            { kind: 'write', path: 'AGENTS.md' },
+            { kind: 'write', path: 'CLAUDE.md' },
             { kind: 'write', path: 'src/app.ts' },
             { kind: 'write', path: '.trails/.gitignore' },
             { kind: 'write', path: 'tsconfig.tests.json' },
@@ -398,6 +434,8 @@ describe('trails create', () => {
           dir,
           [
             'package.json',
+            'AGENTS.md',
+            'CLAUDE.md',
             'tsconfig.json',
             'tsconfig.tests.json',
             '.gitignore',
@@ -437,6 +475,7 @@ describe('trails create', () => {
       await withTempProject(async (dir) => {
         expectOk(await runCreate(dir, { verify: false }));
         assertVerifySkipped(dir);
+        assertAgentGuidance(dir);
         assertTsconfigTests(dir);
         assertGeneratedToolingDeps(dir);
         assertFrameworkCliScripts(dir);
