@@ -134,6 +134,9 @@ if inline threads are resolved.
 | Time | PR | CI State | Review State | Scores / Signals | Unresolved P0/P1/P2 | Action |
 | --- | --- | --- | --- | --- | --- | --- |
 | 2026-05-23 20:51 EDT | [#577](https://github.com/outfitter-dev/trails/pull/577) | Pass | Draft, remote review pending; no reviews yet; only Linear and Graphite comments present | GitHub Actions: CI Gate, Lint & Format, Dead Code, Changeset, Build, Typecheck, Test, and Governance passed; merge state CLEAN | 0 known | Leave draft until remote review settles. |
+| 2026-05-23 21:35 EDT | [#577](https://github.com/outfitter-dev/trails/pull/577) | Pass | Marked ready for review | GitHub Actions and Graphite mergeability passed | 0 known | Wait for review bots/agents. |
+| 2026-05-23 21:38 EDT | [#577](https://github.com/outfitter-dev/trails/pull/577) | Pass | Greptile review landed; one unresolved thread | Greptile 5/5, "Safe to merge"; one inline P2 type-tightening suggestion | 1 P2 | Fix P2 and resubmit. |
+| 2026-05-23 21:40 EDT | [#577](https://github.com/outfitter-dev/trails/pull/577) | Local post-fix checks passed; remote resubmit pending | P2 fixed locally | `bun test apps/trails/src/__tests__/create.test.ts`, `bun run typecheck`, `bun run format:check`, and `git diff --check` passed | 0 local | Commit and resubmit; then re-check remote review/CI. |
 
 ## Review Feedback Resolutions
 
@@ -141,6 +144,7 @@ if inline threads are resolved.
 | --- | --- | --- | --- | --- | --- | --- |
 | Spark lane 1 | 5/5 | P3 | Runtime smoke proof was pending in the retro when reviewed. | Run the temp-project smoke path end-to-end and record pass/fail in `RETRO.md`, or record a justified blocker. | Resolved by recording generated-project smoke pass for `/tmp/trails-trl-780-smoke.tNP3u2/smoke-app`. | Verification Log generated-project smoke row. |
 | Spark lane 2 | 4/5 | P3 | Runtime smoke proof was pending in the retro when reviewed; unit tests cover shape, not actual installed command execution. | Add a narrow runtime smoke check in tests/CI-facing verification or explicit scripted doc; update `RETRO.md` with command result or constrained skip reason. | Resolved for this goal through explicit smoke verification and retro evidence. No automated smoke test added because the goal required a runtime smoke as execution proof, and adding networked install to unit/CI tests would expand scope. | Verification Log generated-project smoke row. |
+| Greptile | 5/5, safe to merge | P2 | `frameworkCommandScripts` used explicit `Record<string, string>` annotation, leaving the constant mutable. | Use `as const satisfies Record<string, string>` for the static command-script map. | Fixed in `apps/trails/src/trails/create-scaffold.ts`; narrow checks passed. | `bun test apps/trails/src/__tests__/create.test.ts`; `bun run typecheck`; `bun run format:check`; `git diff --check`. |
 
 ## Forbidden Actions Audit
 

@@ -39,7 +39,7 @@ interface ScaffoldResult {
   readonly plannedOperations: PlannedProjectOperation[];
 }
 
-const frameworkCommandScripts: Record<string, string> = {
+const frameworkCommandScripts = {
   add: 'trails add',
   compile: 'trails compile',
   completions: 'trails completions',
@@ -53,7 +53,7 @@ const frameworkCommandScripts: Record<string, string> = {
   topo: 'trails topo',
   validate: 'trails validate',
   warden: 'trails warden',
-};
+} as const satisfies Record<string, string>;
 
 // ---------------------------------------------------------------------------
 // Content generators
