@@ -3,6 +3,21 @@
 This policy applies while Trails remains in the `1.0.0-beta.N` prerelease
 line.
 
+## Runtime Requirement
+
+Trails requires Bun. The published `trails` CLI bin uses
+`#!/usr/bin/env bun`; Node-only invocation through `npx` or `node` is not
+supported.
+
+For direct package invocation before a project has been scaffolded, use Bun:
+
+```bash
+bunx --bun --package @ontrails/trails@beta trails <subcommand>
+```
+
+Scaffolded projects should prefer their generated package scripts, such as
+`bun run warden`, `bun run survey`, and `bun run topo`.
+
 ## Consumer Installs
 
 Use the beta channel deliberately:
