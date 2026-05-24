@@ -2,7 +2,7 @@
 
 Date started: 2026-05-23
 Date finalized: 2026-05-23
-Status: Ready for handoff
+Status: Ready for merge by user
 Plan: `.agents/plans/2026-05-23-trl-780-scaffold-cli-scripts/PLAN.md`
 Goal: `.agents/plans/2026-05-23-trl-780-scaffold-cli-scripts/GOAL.md`
 
@@ -16,14 +16,14 @@ handoff. Meaningful review-flow changes require a new retro entry.
 - Objective: Make fresh `trails create` apps consume the existing
   `@ontrails/trails` bin and expose core framework commands via package
   scripts.
-- Final outcome: Draft PR opened for TRL-780 scripts-first scaffold CLI
-  reachability.
+- Final outcome: PR #577 is ready for review/merge by user with remote review
+  clean.
 - Final branch / stack tip: `trl-780-scaffolded-projects-cant-run-most-framework-cli-subcommands`
 - Final PR range: PR #577
 - Final tracker state: TRL-780 In Progress
 - Final verification state: local targeted/package/smoke/repo checks passed; CI
-  passed.
-- Remaining risks / P3s: remote review still needs to settle before ready.
+  passed; Greptile review passed after P2 fix.
+- Remaining risks / P3s: none known.
 - Archive state: active packet
 
 ## Branch / PR / Issue Ledger
@@ -137,6 +137,7 @@ if inline threads are resolved.
 | 2026-05-23 21:35 EDT | [#577](https://github.com/outfitter-dev/trails/pull/577) | Pass | Marked ready for review | GitHub Actions and Graphite mergeability passed | 0 known | Wait for review bots/agents. |
 | 2026-05-23 21:38 EDT | [#577](https://github.com/outfitter-dev/trails/pull/577) | Pass | Greptile review landed; one unresolved thread | Greptile 5/5, "Safe to merge"; one inline P2 type-tightening suggestion | 1 P2 | Fix P2 and resubmit. |
 | 2026-05-23 21:40 EDT | [#577](https://github.com/outfitter-dev/trails/pull/577) | Local post-fix checks passed; remote resubmit pending | P2 fixed locally | `bun test apps/trails/src/__tests__/create.test.ts`, `bun run typecheck`, `bun run format:check`, and `git diff --check` passed | 0 local | Commit and resubmit; then re-check remote review/CI. |
+| 2026-05-23 21:44 EDT | [#577](https://github.com/outfitter-dev/trails/pull/577) | Pass | Ready for review; Greptile re-review clean; no active unresolved threads | Greptile 5/5, "Safe to merge"; GitHub Actions, Graphite mergeability, and Greptile Review passed | 0 | Record final remote-review state and resubmit this ledger-only retro update. |
 
 ## Review Feedback Resolutions
 
@@ -152,7 +153,7 @@ Record constraints that stayed true. Add or remove rows to match the goal.
 
 | Action / Constraint | Status | Evidence |
 | --- | --- | --- |
-| No merge without explicit user approval | respected | PR #577 remains draft/open; no merge command run. |
+| No merge without explicit user approval | respected | PR #577 remains open; no merge command run. |
 | No package publish / registry mutation unless authorized | respected | No `bun run publish:packages`, npm publish, or registry mutation run. |
 | No merge queue label unless authorized | respected | No merge queue label applied. |
 | No source-control writes by subagents | respected | Spark subagents only reviewed; main goal executor performed commits/submission. |
@@ -164,23 +165,25 @@ Fill before claiming completion, handoff, merge readiness, or archive.
 
 - Goal completion condition: Locally satisfied for draft handoff: generated
   scaffolds include `@ontrails/trails` dev dependency and framework scripts,
-  tests/checks/smoke passed, changeset exists, branch pushed, PR opened.
+  tests/checks/smoke passed, changeset exists, branch pushed, PR opened, PR
+  marked ready for review, P2 remote feedback fixed, and re-review passed.
 - Graphite / branch state:
   `trl-780-scaffolded-projects-cant-run-most-framework-cli-subcommands` pushed
   with PR #577.
-- PR state: Draft PR #577,
+- PR state: Ready PR #577,
   <https://github.com/outfitter-dev/trails/pull/577>.
 - Source-control host lag: none known; CI passed and GitHub merge state is CLEAN.
 - Tracker state: TRL-780 In Progress with PR attachment and closeout comment.
 - Local review state: two Spark local review lanes; no P0/P1/P2; P3 smoke-ledger
   findings resolved.
-- Remote review state: pending; no reviews yet, only Linear linkback and Graphite stack comments present.
-- Remote review scores: pending.
+- Remote review state: Greptile review passed after P2 fix; zero active
+  unresolved review threads.
+- Remote review scores: Greptile 5/5.
 - Verification: targeted create test, `apps/trails` package tests,
   generated-project smoke, typecheck, lint, format, `git diff --check`, and
   `bun run check` passed.
 - Skipped checks: none recorded.
-- Remaining P3s / risks: remote review pending; PR must stay draft until clean.
+- Remaining P3s / risks: none known.
 - Follow-up issues created: none.
 - Forbidden actions confirmation: no merge, no publish/registry mutation, no
   merge queue label, no source-control writes by subagents, no unrelated
@@ -188,7 +191,7 @@ Fill before claiming completion, handoff, merge readiness, or archive.
 - Packet archive readiness: not ready to archive until PR #577 is merged or
   explicitly closed out.
 - Final transcript proof: final handoff should name PR #577, branch, checks, CI
-  pass state, remote-review pending state, and forbidden-action confirmation.
+  pass state, remote-review clean state, and forbidden-action confirmation.
 
 Do not mark complete until the goal completion condition has been proven, this
 section is filled or explicitly marked blocked, and the final transcript names
