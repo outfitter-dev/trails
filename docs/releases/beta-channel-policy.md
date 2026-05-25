@@ -99,8 +99,10 @@ After substantial stacks merge to `main`:
    `release:none` decision.
 2. Run `bunx changeset status --verbose` from clean, synced `main` to inspect
    the next beta plan.
-3. When the next beta is warranted, create a dedicated version branch and run
-   `bunx changeset version`.
+3. When the next beta is warranted, create a dedicated version branch, run
+   `bunx changeset version`, then run `bun run scaffold-versions:sync` so
+   generated third-party scaffold dependency versions and exact `@ontrails/*`
+   pins are checked together.
 4. Review package versions, changelogs, generated lockfile changes, and
    generated-app dependency ranges.
 5. Run the version-branch gates, including `bun run publish:check` and

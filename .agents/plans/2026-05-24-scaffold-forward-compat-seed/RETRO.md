@@ -33,7 +33,7 @@ handoff. Meaningful review-flow changes require a new retro entry.
 | --- | --- | --- | --- | --- | --- |
 | 1 | TRL-796 | `trl-796-scaffold-emits-caret-range-that-floats-past-the-beta-channel` | pending | implemented locally | Exact generated `@ontrails/*` beta pin; stable-cutover prerequisite docs; patch changeset. |
 | 2 | TRL-798 | `trl-798-stamp-scaffold-provenance-into-generated-projects-minimal` | pending | implemented locally | Minimal `.trails/scaffold.json` breadcrumb stacked above TRL-796; patch changeset. |
-| 3 | TRL-797 | `trl-797-internal-helper-for-clean-ontrails-version-bumps-in-scaffold` | pending | planned | Internal helper/check path so exact scaffold pins stay easy to bump. |
+| 3 | TRL-797 | `trl-797-internal-helper-for-clean-ontrails-version-bumps-in-scaffold` | pending | implemented locally | Internal helper/check path so exact scaffold pins stay easy to bump. |
 | 4 | TRL-799 | `trl-799-draft-adr-scaffold-forward-compatibility-upgrade-path-system` | pending | planned | Draft ADR grounded in the implemented breadcrumb/helper shape. |
 
 ## Planning Discoveries
@@ -110,6 +110,14 @@ handoff. Meaningful review-flow changes require a new retro entry.
 - Result: TRL-798 code/docs/test slice is ready to commit above TRL-796.
 - Next: commit TRL-798, restack descendants, then implement TRL-797 helper/check.
 - Blockers: none.
+
+2026-05-24 15:35 EDT - TRL-797 implementation
+- Changed: extended `scripts/sync-scaffold-versions.ts` so both sync and check modes validate that generated `@ontrails/*` pins match `@ontrails/trails` exactly; release docs now call `bun run scaffold-versions:sync` after Changesets versioning; added focused script tests for exact, caret, and missing-export cases.
+- Verified: `bun test scripts/__tests__/sync-scaffold-versions.test.ts` passed 3 tests / 3 assertions; `bun run scaffold-versions:check` passed.
+- Result: TRL-797 internal helper/check slice is ready to commit above TRL-798.
+- Next: commit TRL-797, restack, then draft TRL-799 ADR.
+- Blockers: none.
+- Changeset: not added; this branch changes internal repo scripts/tests and release docs, not publishable package contents.
 ```
 
 ## Local Review Log
@@ -132,6 +140,8 @@ handoff. Meaningful review-flow changes require a new retro entry.
 | `bun run scaffold-versions:check` | TRL-796 | pass | existing scaffold version drift check still passes after exact pin change. |
 | `bun test apps/trails/src/__tests__/create.test.ts` | TRL-798 | pass | 17 tests / 368 assertions. |
 | `bun --cwd apps/trails test` | TRL-798 | pass | 349 tests / 1402 assertions. |
+| `bun test scripts/__tests__/sync-scaffold-versions.test.ts` | TRL-797 | pass | 4 tests / 4 assertions. |
+| `bun run scaffold-versions:check` | TRL-797 | pass | validates generated third-party scaffold versions plus exact `@ontrails/*` pins. |
 
 ## Remote Review / CI Log
 

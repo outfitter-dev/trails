@@ -1,7 +1,9 @@
 #!/usr/bin/env bun
 /**
  * Generates or validates `apps/trails/src/scaffold-versions.generated.ts`
- * from the root `package.json` catalog and devDependencies.
+ * from the root `package.json` catalog and devDependencies, and validates that
+ * generated `@ontrails/*` package pins track the `@ontrails/trails` version
+ * exactly.
  *
  * Usage:
  *   bun scripts/sync-scaffold-versions.ts            # write generated file
@@ -9,7 +11,7 @@
  */
 
 import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(scriptDir, '..');
@@ -18,11 +20,45 @@ const generatedFilePath = resolve(
   repoRoot,
   'apps/trails/src/scaffold-versions.generated.ts'
 );
+const scaffoldVersionsModulePath = resolve(
+  repoRoot,
+  'apps/trails/src/versions.ts'
+);
 
 interface RootPackageJson {
   readonly catalog?: Record<string, string>;
   readonly devDependencies?: Record<string, string>;
 }
+
+export interface OntrailsPackagePinState {
+  readonly ontrailsPackageRange?: string;
+  readonly trailsPackageVersion?: string;
+}
+
+type ScaffoldVersionsModule = OntrailsPackagePinState;
+
+export const diagnoseOntrailsPackagePin = ({
+  ontrailsPackageRange,
+  trailsPackageVersion,
+}: OntrailsPackagePinState): string | undefined => {
+  if (
+    typeof ontrailsPackageRange !== 'string' ||
+    typeof trailsPackageVersion !== 'string'
+  ) {
+    return (
+      'sync-scaffold-versions: apps/trails/src/versions.ts must export ' +
+      '`ontrailsPackageRange` and `trailsPackageVersion`.'
+    );
+  }
+  if (ontrailsPackageRange !== trailsPackageVersion) {
+    return (
+      'sync-scaffold-versions: scaffolded @ontrails/* packages must be exact ' +
+      `pins for @ontrails/trails (${trailsPackageVersion}); got ` +
+      `${ontrailsPackageRange}.`
+    );
+  }
+  return undefined;
+};
 
 const requireValue = (
   value: string | undefined,
@@ -97,15 +133,32 @@ const check = async (expected: string): Promise<void> => {
   process.exit(1);
 };
 
+const checkOntrailsPackagePin = async (): Promise<void> => {
+  const versionsModule = (await import(
+    pathToFileURL(scaffoldVersionsModulePath).href
+  )) as ScaffoldVersionsModule;
+  // Normally quiet because versions.ts derives both exports from one source;
+  // this trips only if future/manual drift breaks that invariant.
+  const diagnostic = diagnoseOntrailsPackagePin(versionsModule);
+  if (diagnostic !== undefined) {
+    console.error(diagnostic);
+    process.exit(1);
+  }
+};
+
 const run = async (): Promise<void> => {
   const versions = await loadScaffoldVersions();
   const expected = renderGeneratedFile(versions);
   if (process.argv.includes('--check')) {
     await check(expected);
+    await checkOntrailsPackagePin();
     return;
   }
   await Bun.write(generatedFilePath, expected);
+  await checkOntrailsPackagePin();
   console.log(`Wrote ${generatedFilePath}`);
 };
 
-await run();
+if (import.meta.main) {
+  await run();
+}

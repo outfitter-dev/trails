@@ -140,6 +140,7 @@ Exit prerelease mode and compute the stable versions:
 ```bash
 bunx changeset pre exit
 bunx changeset version
+bun run scaffold-versions:sync
 ```
 
 Review the generated diff before committing:
@@ -154,6 +155,8 @@ Expected outcomes:
   Changesets according to its stable-exit behavior.
 - All public non-private `@ontrails/*` packages land on the same stable
   version.
+- The scaffold-version helper has rewritten generated dependency versions and
+  verified generated `@ontrails/*` pins match that stable version exactly.
 - Internal package ranges pack without unresolved `workspace:` or `catalog:`
   ranges.
 - Changelogs and release notes stop describing the release as beta.
