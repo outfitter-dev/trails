@@ -29,6 +29,13 @@ During the active beta line, use `@beta` for the newest published beta or pin
 exact `1.0.0-beta.N` versions for reproducible handoffs. Do not rely on
 unqualified `latest` unless release notes explicitly say it has been advanced.
 
+Generated projects include `.trails/scaffold.json`, a minimal provenance
+breadcrumb with the scaffold schema version, the `@ontrails/trails` version that
+created the project, the selected starter template, and the generation
+timestamp. It is informational in the current beta line; future upgrade tooling
+can use it as a starting point without guessing which scaffold produced the
+project.
+
 ## Your First Trail
 
 A trail is the atomic unit of work in Trails. It has a Zod input schema, a `blaze` that establishes how the trail runs and returns `Result`, and optional examples that double as tests and agent documentation.

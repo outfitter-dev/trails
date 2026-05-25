@@ -23,6 +23,7 @@ import type {
 import {
   ontrailsPackageRange,
   scaffoldDependencyVersions,
+  trailsPackageVersion,
 } from '../versions.js';
 
 // ---------------------------------------------------------------------------
@@ -97,6 +98,18 @@ const generatePackageJson = (name: string): string => {
 
   return JSON.stringify(pkg, null, 2);
 };
+
+const generateScaffoldProvenance = (starter: Starter): string =>
+  JSON.stringify(
+    {
+      generatedAt: new Date().toISOString(),
+      scaffoldVersion: trailsPackageVersion,
+      schemaVersion: 1,
+      template: starter,
+    },
+    null,
+    2
+  );
 
 const TSCONFIG_CONTENT = JSON.stringify(
   {
@@ -433,6 +446,7 @@ const collectScaffoldFiles = (
     ['oxlint.config.ts', OXLINT_CONFIG_CONTENT],
     ['.oxfmtrc.jsonc', OXFMTRC_CONTENT],
     ['.trails/.gitignore', WORKSPACE_GITIGNORE_CONTENT],
+    ['.trails/scaffold.json', generateScaffoldProvenance(starter)],
     ['src/app.ts', generateAppTs(name, starter)],
     ...starterFileGenerators[starter](),
   ]);

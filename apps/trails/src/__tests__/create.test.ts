@@ -20,6 +20,7 @@ import { PROJECT_NAME_MESSAGE } from '../project-writes.js';
 import {
   ontrailsPackageRange,
   scaffoldDependencyVersions,
+  trailsPackageVersion,
 } from '../versions.js';
 
 type Starter = 'empty' | 'entity' | 'hello';
@@ -159,6 +160,7 @@ const assertDefaultProjectFiles = (dir: string): void => {
       '.oxfmtrc.jsonc',
       'src/app.ts',
       '.trails',
+      '.trails/scaffold.json',
       'src/cli.ts',
       'src/trails/hello.ts',
       '__tests__/examples.test.ts',
@@ -181,6 +183,21 @@ const assertTsconfigTests = (dir: string): void => {
   expect(compilerOptions['noEmit']).toBe(true);
   expect(compilerOptions['rootDir']).toBe('.');
   expect(compilerOptions['types']).toEqual(['bun']);
+};
+
+const assertScaffoldProvenance = (
+  dir: string,
+  starter: Starter = 'hello'
+): void => {
+  const provenance = readJson(dir, '.trails/scaffold.json');
+  expect(provenance['schemaVersion']).toBe(1);
+  expect(provenance['scaffoldVersion']).toBe(trailsPackageVersion);
+  expect(provenance['template']).toBe(starter);
+
+  const { generatedAt } = provenance;
+  expect(typeof generatedAt).toBe('string');
+  expect(Number.isNaN(Date.parse(generatedAt as string))).toBe(false);
+  expect(new Date(generatedAt as string).toISOString()).toBe(generatedAt);
 };
 
 const assertAgentGuidance = (dir: string): void => {
@@ -445,11 +462,13 @@ describe('trails create', () => {
           'AGENTS.md',
           'CLAUDE.md',
           'README.md',
+          '.trails/scaffold.json',
           'tsconfig.tests.json',
         ]);
         assertDefaultProjectFiles(dir);
         assertAgentGuidance(dir);
         assertReadme(dir);
+        assertScaffoldProvenance(dir);
         assertTsconfigTests(dir);
         assertCliPackage(dir);
         assertVerifyPackage(dir);
@@ -483,6 +502,7 @@ describe('trails create', () => {
             { kind: 'write', path: 'CLAUDE.md' },
             { kind: 'write', path: 'src/app.ts' },
             { kind: 'write', path: '.trails/.gitignore' },
+            { kind: 'write', path: '.trails/scaffold.json' },
             { kind: 'write', path: 'tsconfig.tests.json' },
           ])
         );
@@ -514,6 +534,7 @@ describe('trails create', () => {
             '.oxfmtrc.jsonc',
             'src/app.ts',
             '.trails',
+            '.trails/scaffold.json',
             'src/trails/hello.ts',
           ],
           true
@@ -524,6 +545,7 @@ describe('trails create', () => {
     test('generates with entity starter', async () => {
       await withTempProject(async (dir) => {
         expectOk(await runCreate(dir, { starter: 'entity' }));
+        assertScaffoldProvenance(dir, 'entity');
         assertEntityStarter(dir);
         assertReadme(dir, { starter: 'entity' });
       });
@@ -571,6 +593,7 @@ describe('trails create', () => {
         assertAgentGuidance(dir);
         assertReadme(dir, { verify: false });
         assertTsconfigTests(dir);
+        assertScaffoldProvenance(dir);
         assertGeneratedToolingDeps(dir);
         assertFieldworkLintMarkers(dir);
         assertFrameworkCliScripts(dir);
@@ -580,6 +603,7 @@ describe('trails create', () => {
     test('generates with empty starter', async () => {
       await withTempProject(async (dir) => {
         expectOk(await runCreate(dir, { starter: 'empty' }));
+        assertScaffoldProvenance(dir, 'empty');
         assertEmptyStarter(dir);
         assertReadme(dir, { starter: 'empty' });
       });

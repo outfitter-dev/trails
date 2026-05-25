@@ -32,7 +32,7 @@ handoff. Meaningful review-flow changes require a new retro entry.
 | Order | Issue | Branch | PR | Status | Notes |
 | --- | --- | --- | --- | --- | --- |
 | 1 | TRL-796 | `trl-796-scaffold-emits-caret-range-that-floats-past-the-beta-channel` | pending | implemented locally | Exact generated `@ontrails/*` beta pin; stable-cutover prerequisite docs; patch changeset. |
-| 2 | TRL-798 | `trl-798-stamp-scaffold-provenance-into-generated-projects-minimal` | pending | planned | Minimal `.trails/scaffold.json` breadcrumb stacked above TRL-796. |
+| 2 | TRL-798 | `trl-798-stamp-scaffold-provenance-into-generated-projects-minimal` | pending | implemented locally | Minimal `.trails/scaffold.json` breadcrumb stacked above TRL-796; patch changeset. |
 | 3 | TRL-797 | `trl-797-internal-helper-for-clean-ontrails-version-bumps-in-scaffold` | pending | planned | Internal helper/check path so exact scaffold pins stay easy to bump. |
 | 4 | TRL-799 | `trl-799-draft-adr-scaffold-forward-compatibility-upgrade-path-system` | pending | planned | Draft ADR grounded in the implemented breadcrumb/helper shape. |
 
@@ -103,6 +103,13 @@ handoff. Meaningful review-flow changes require a new retro entry.
 - Result: TRL-796 code/docs/test slice is ready to commit on the bottom branch.
 - Next: commit TRL-796, restack descendants, then implement TRL-798 provenance.
 - Blockers: none.
+
+2026-05-24 15:34 EDT - TRL-798 implementation
+- Changed: generated scaffolds now include `.trails/scaffold.json` with `schemaVersion`, `scaffoldVersion`, `template`, and `generatedAt`; create tests assert the breadcrumb for default, `verify: false`, entity, and empty scaffolds plus dry-run planned operations; getting-started documents the breadcrumb as informational current-beta provenance; added a patch changeset for `@ontrails/trails`.
+- Verified: `bun test apps/trails/src/__tests__/create.test.ts` passed 17 tests / 368 assertions; `bun --cwd apps/trails test` passed 349 tests / 1402 assertions.
+- Result: TRL-798 code/docs/test slice is ready to commit above TRL-796.
+- Next: commit TRL-798, restack descendants, then implement TRL-797 helper/check.
+- Blockers: none.
 ```
 
 ## Local Review Log
@@ -123,6 +130,8 @@ handoff. Meaningful review-flow changes require a new retro entry.
 | `gt log --stack --reverse` | execution branch attach | pass | branch stacked directly on `main` at `2df73cc30`. |
 | `bun test apps/trails/src/__tests__/create.test.ts` | TRL-796 | pass | 17 tests / 342 assertions. |
 | `bun run scaffold-versions:check` | TRL-796 | pass | existing scaffold version drift check still passes after exact pin change. |
+| `bun test apps/trails/src/__tests__/create.test.ts` | TRL-798 | pass | 17 tests / 368 assertions. |
+| `bun --cwd apps/trails test` | TRL-798 | pass | 349 tests / 1402 assertions. |
 
 ## Remote Review / CI Log
 
