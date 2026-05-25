@@ -55,3 +55,4 @@ ADRs document the significant design decisions behind Trails — the choices tha
 | [0046](0046-lock-v3-artifact-family.md) | Lock v3 Artifact Family | Accepted |
 | [0047](0047-stable-release-line-discipline.md) | Stable Release Line Discipline | Accepted |
 | [0048](0048-trail-versioning-v3.md) | Trail Versioning v3 | Accepted |
+| [0049](0049-composition-is-compose-not-cross.md) | Composition is `compose`, not `cross` | Accepted |

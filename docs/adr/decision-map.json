@@ -244,6 +244,11 @@
           "fromPath": "docs/adr/0035-surface-apis-render-the-graph.md"
         },
         {
+          "context": "- [ADR-0001: Naming Conventions](../0001-naming-conventions.md#a-note-on-the-adr-record) — the brand-vs-plain heuristic and the in-place cutover precedent; gains a Cutover 4 log entry pointing here.",
+          "from": "0049",
+          "fromPath": "docs/adr/0049-composition-is-compose-not-cross.md"
+        },
+        {
           "context": "- [ADR-0001: Naming Conventions](../0001-naming-conventions.md): `create*` factory convention, `derive*` prefix for framework derivations, `build*`/`to*` trailhead wiring pattern",
           "from": "20260401",
           "fromPath": "docs/adr/drafts/20260401-compiled-pack-trailhead.md"
@@ -1716,6 +1721,11 @@
           "fromPath": "docs/adr/0048-trail-versioning-v3.md"
         },
         {
+          "context": "- [ADR-0024: Typed Trail Composition](../0024-typed-trail-composition.md) — the composition contract this renames in place (`crossInput` → `composeInput`).",
+          "from": "0049",
+          "fromPath": "docs/adr/0049-composition-is-compose-not-cross.md"
+        },
+        {
           "context": "caller can pass both. See [ADR-0024](adr/0024-typed-trail-composition.md).",
           "from": "lexicon",
           "fromPath": "docs/lexicon.md"
@@ -1851,6 +1861,11 @@
       "created": "2026-03-31",
       "depends_on": ["3"],
       "inbound": [
+        {
+          "context": "- [ADR-0028: Concurrent Crossing](../0028-concurrent-crossing.md) — the concurrent `ctx.cross([...])` overload, renamed in place to `ctx.compose([...])`.",
+          "from": "0049",
+          "fromPath": "docs/adr/0049-composition-is-compose-not-cross.md"
+        },
         {
           "context": "- [ADR-0028: Concurrent Trail Crossing](../0028-concurrent-crossing.md) -- `--trace` renders concurrent crossings as parallel branches in the execution tree",
           "from": "20260331",
@@ -2626,6 +2641,19 @@
       "superseded_by": null,
       "title": "Trail Versioning v3",
       "updated": "2026-05-19"
+    },
+    {
+      "created": "2026-05-25",
+      "depends_on": ["1", "24", "28"],
+      "inbound": [],
+      "number": "0049",
+      "owners": ["[galligan](https://github.com/galligan)"],
+      "path": "docs/adr/0049-composition-is-compose-not-cross.md",
+      "slug": "composition-is-compose-not-cross",
+      "status": "accepted",
+      "superseded_by": null,
+      "title": "Composition is `compose`, not `cross`",
+      "updated": "2026-05-25"
     }
   ],
   "version": 1
