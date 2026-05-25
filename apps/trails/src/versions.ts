@@ -23,6 +23,9 @@ export const trailsPackageVersion = requireVersion(
   '@ontrails/trails'
 );
 
-export const ontrailsPackageRange = `^${trailsPackageVersion}`;
+export const ontrailsPackageRange = requireVersion(
+  trailsPackageVersion,
+  '@ontrails/* scaffold package range'
+);
 
 export { scaffoldDependencyVersions };

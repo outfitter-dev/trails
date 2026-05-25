@@ -57,14 +57,25 @@ Before creating the version PR:
    bunx changeset status --verbose
    ```
 
-8. No generated local SQLite artifacts are staged:
+8. Scaffolded project dependency pins are ready for the target package line:
+
+   ```bash
+   bun run scaffold-versions:check
+   ```
+
+   Generated apps must emit exact `@ontrails/*` pins for the current
+   `@ontrails/trails` package version, not caret prerelease ranges. The stable
+   version PR should update that package version through Changesets before the
+   post-version scaffold inspection below.
+
+9. No generated local SQLite artifacts are staged:
 
    ```bash
    git status --short -- .trails .trails-tmp
    git status --short -- .trails/trails.db .trails/trails.db-shm .trails/trails.db-wal
    ```
 
-9. The ADR and docs checks pass:
+10. The ADR and docs checks pass:
 
    ```bash
    bun scripts/adr.ts map
@@ -146,7 +157,8 @@ Expected outcomes:
 - Internal package ranges pack without unresolved `workspace:` or `catalog:`
   ranges.
 - Changelogs and release notes stop describing the release as beta.
-- Generated app dependency ranges point at the intended stable package versions.
+- Generated app dependency ranges point at exact intended stable package
+  versions.
   The post-publish smoke below proves those stable ranges are installable from
   the registry after publication.
 

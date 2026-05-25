@@ -66,6 +66,11 @@ const expectCreatedPaths = (
   expect(created).toEqual(expect.arrayContaining(relativePaths));
 };
 
+const expectExactOntrailsPin = (value: string | undefined): void => {
+  expect(value).toBe(ontrailsPackageRange);
+  expect(value?.startsWith('^')).toBe(false);
+};
+
 const expectOk = <T>(result: Result<T, Error>): T => {
   if (result.isErr()) {
     throw result.error;
@@ -265,17 +270,17 @@ const assertCliPackage = (dir: string): void => {
   expect(pkg['name']).toBe(basename(dir));
 
   const deps = pkg['dependencies'] as Record<string, string>;
-  expect(deps['@ontrails/core']).toBe(ontrailsPackageRange);
-  expect(deps['@ontrails/cli']).toBe(ontrailsPackageRange);
-  expect(deps['@ontrails/commander']).toBe(ontrailsPackageRange);
+  expectExactOntrailsPin(deps['@ontrails/core']);
+  expectExactOntrailsPin(deps['@ontrails/cli']);
+  expectExactOntrailsPin(deps['@ontrails/commander']);
   expect(deps['commander']).toBeUndefined();
 };
 
 const assertVerifyPackage = (dir: string): void => {
   const pkg = readJson(dir, 'package.json');
   const devDeps = pkg['devDependencies'] as Record<string, string>;
-  expect(devDeps['@ontrails/testing']).toBe(ontrailsPackageRange);
-  expect(devDeps['@ontrails/warden']).toBe(ontrailsPackageRange);
+  expectExactOntrailsPin(devDeps['@ontrails/testing']);
+  expectExactOntrailsPin(devDeps['@ontrails/warden']);
   expect(devDeps['lefthook']).toBe(scaffoldDependencyVersions.lefthook);
   expect(readText(dir, 'lefthook.yml')).toContain('bunx trails warden');
   expect(readText(dir, 'lefthook.yml')).not.toContain('--exit-code');
@@ -284,7 +289,7 @@ const assertVerifyPackage = (dir: string): void => {
 const assertGeneratedToolingDeps = (dir: string): void => {
   const pkg = readJson(dir, 'package.json');
   const devDeps = pkg['devDependencies'] as Record<string, string>;
-  expect(devDeps['@ontrails/trails']).toBe(ontrailsPackageRange);
+  expectExactOntrailsPin(devDeps['@ontrails/trails']);
   expect(devDeps['@types/bun']).toBe(scaffoldDependencyVersions.bunTypes);
   expect(devDeps['oxfmt']).toBe(scaffoldDependencyVersions.oxfmt);
   expect(devDeps['oxlint']).toBe(scaffoldDependencyVersions.oxlint);
@@ -383,7 +388,7 @@ const assertMcpSurface = (dir: string): void => {
     string,
     string
   >;
-  expect(deps['@ontrails/mcp']).toBe(ontrailsPackageRange);
+  expectExactOntrailsPin(deps['@ontrails/mcp']);
   expect(deps['@ontrails/cli']).toBeUndefined();
 };
 
@@ -398,8 +403,8 @@ const assertHttpSurface = (dir: string): void => {
     string,
     string
   >;
-  expect(deps['@ontrails/hono']).toBe(ontrailsPackageRange);
-  expect(deps['@ontrails/http']).toBe(ontrailsPackageRange);
+  expectExactOntrailsPin(deps['@ontrails/hono']);
+  expectExactOntrailsPin(deps['@ontrails/http']);
 };
 
 const assertVerifySkipped = (dir: string): void => {
@@ -554,7 +559,7 @@ describe('trails create', () => {
           string,
           string
         >;
-        expect(deps['@ontrails/mcp']).toBe(ontrailsPackageRange);
+        expectExactOntrailsPin(deps['@ontrails/mcp']);
         assertReadme(dir, { surfaces: ['cli', 'mcp', 'http'] });
       });
     });
@@ -643,7 +648,7 @@ describe('trails create', () => {
           string,
           string
         >;
-        expect(deps['@ontrails/mcp']).toBe(ontrailsPackageRange);
+        expectExactOntrailsPin(deps['@ontrails/mcp']);
       });
     });
 
