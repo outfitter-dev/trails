@@ -935,6 +935,11 @@
           "fromPath": "docs/adr/0046-lock-v3-artifact-family.md"
         },
         {
+          "context": "- [ADR-0010: Trails-Native Infrastructure](../0010-native-infrastructure.md)",
+          "from": "20260524",
+          "fromPath": "docs/adr/drafts/20260524-scaffold-forward-compatibility.md"
+        },
+        {
           "context": "- **[ADR-0010: Trails-Native Infrastructure](./adr/0010-native-infrastructure.md)** — Workspace layout, `.trails/` directory, shared database",
           "from": "index",
           "fromPath": "docs/index.md"
@@ -2562,6 +2567,11 @@
           "fromPath": "docs/adr/0048-trail-versioning-v3.md"
         },
         {
+          "context": "- [ADR-0047: Stable Release Line Discipline](../0047-stable-release-line-discipline.md)",
+          "from": "20260524",
+          "fromPath": "docs/adr/drafts/20260524-scaffold-forward-compatibility.md"
+        },
+        {
           "context": "It is governed by [ADR-0047: Stable Release Line Discipline](../adr/0047-stable-release-line-discipline.md).",
           "from": "stable-cutover",
           "fromPath": "docs/releases/stable-cutover.md"
@@ -2601,6 +2611,11 @@
           "context": "> [ADR-0048: Trail Versioning v3](0048-trail-versioning-v3.md).",
           "from": "0044",
           "fromPath": "docs/adr/0044-trail-versioning.md"
+        },
+        {
+          "context": "- [ADR-0048: Trail Versioning v3](../0048-trail-versioning-v3.md)",
+          "from": "20260524",
+          "fromPath": "docs/adr/drafts/20260524-scaffold-forward-compatibility.md"
         }
       ],
       "number": "0048",

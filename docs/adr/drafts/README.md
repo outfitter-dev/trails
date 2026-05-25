@@ -33,3 +33,5 @@ Proposed decisions under discussion. Promoted to `docs/adr/` when accepted.
 
 - [Wayfinding](20260503-wayfinding.md)
   - depends on [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md), [ADR-0027: Trail Visibility and Surface Filtering](../0027-visibility-and-filtering.md), [ADR-0042: Core/Topographer Boundary Doctrine](../0042-core-topographer-boundary-doctrine.md)
+- [Scaffold Forward Compatibility](20260524-scaffold-forward-compatibility.md)
+  - depends on [ADR-0010: Trails-Native Infrastructure Pattern](../0010-native-infrastructure.md), [ADR-0047: Stable Release Line Discipline](../0047-stable-release-line-discipline.md), [ADR-0048: Trail Versioning v3](../0048-trail-versioning-v3.md)

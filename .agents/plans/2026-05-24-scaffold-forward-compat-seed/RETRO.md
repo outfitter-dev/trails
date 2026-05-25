@@ -1,8 +1,8 @@
 # Execution Retro: scaffold forward-compat seed
 
 Date started: 2026-05-24
-Date finalized: pending
-Status: In progress
+Date finalized: 2026-05-24
+Status: Draft PRs submitted; CI green; Linear in review
 Plan: `.agents/plans/2026-05-24-scaffold-forward-compat-seed/PLAN.md`
 Goal: `.agents/plans/2026-05-24-scaffold-forward-compat-seed/GOAL.md`
 
@@ -16,14 +16,18 @@ handoff. Meaningful review-flow changes require a new retro entry.
 - Objective: four-PR scaffold-forward stack for TRL-796 exact beta pins,
   TRL-798 scaffold provenance breadcrumb, TRL-797 internal bump/check helper,
   and TRL-799 draft scaffold forward-compatibility ADR.
-- Final outcome: pending.
+- Final outcome: four draft PRs submitted with green CI, clean merge state,
+  high-quality PR bodies, local review clean, and Linear updated.
 - Final branch / stack tip:
-  `trl-796-scaffold-emits-caret-range-that-floats-past-the-beta-channel`
-  attached as bottom branch; upper stack pending.
-- Final PR range: pending.
-- Final tracker state: pending.
-- Final verification state: pending.
-- Remaining risks / P3s: pending.
+  `trl-799-draft-adr-scaffold-forward-compatibility-upgrade-path-system`.
+- Final PR range: #589-#592, all draft/open, merge state clean, CI Gate green.
+- Final tracker state: TRL-796, TRL-798, TRL-797, and TRL-799 moved to
+  `In Review` with PR/check/local-review comments.
+- Final verification state: local checks passed, full `bun run check` passed,
+  and GitHub CI is green across all four PRs.
+- Remaining risks / P3s: optional temp-project `bun test` remains blocked by
+  current published beta skew for `@ontrails/testing/established`; local source
+  exposes the subpath and the generated app install/typecheck smoke passed.
 - Archive state: active packet; not ready to archive until the stack merges or
   Matt asks.
 
@@ -31,10 +35,10 @@ handoff. Meaningful review-flow changes require a new retro entry.
 
 | Order | Issue | Branch | PR | Status | Notes |
 | --- | --- | --- | --- | --- | --- |
-| 1 | TRL-796 | `trl-796-scaffold-emits-caret-range-that-floats-past-the-beta-channel` | pending | implemented locally | Exact generated `@ontrails/*` beta pin; stable-cutover prerequisite docs; patch changeset. |
-| 2 | TRL-798 | `trl-798-stamp-scaffold-provenance-into-generated-projects-minimal` | pending | implemented locally | Minimal `.trails/scaffold.json` breadcrumb stacked above TRL-796; patch changeset. |
-| 3 | TRL-797 | `trl-797-internal-helper-for-clean-ontrails-version-bumps-in-scaffold` | pending | implemented locally | Internal helper/check path so exact scaffold pins stay easy to bump. |
-| 4 | TRL-799 | `trl-799-draft-adr-scaffold-forward-compatibility-upgrade-path-system` | pending | planned | Draft ADR grounded in the implemented breadcrumb/helper shape. |
+| 1 | TRL-796 | `trl-796-scaffold-emits-caret-range-that-floats-past-the-beta-channel` | #589 | draft/open; CI green; merge state clean | Exact generated `@ontrails/*` beta pin; stable-cutover prerequisite docs; patch changeset. |
+| 2 | TRL-798 | `trl-798-stamp-scaffold-provenance-into-generated-projects-minimal` | #590 | draft/open; CI green; merge state clean | Minimal `.trails/scaffold.json` breadcrumb stacked above TRL-796; patch changeset. |
+| 3 | TRL-797 | `trl-797-internal-helper-for-clean-ontrails-version-bumps-in-scaffold` | #591 | draft/open; CI green; merge state clean | Internal helper/check path so exact scaffold pins stay easy to bump. |
+| 4 | TRL-799 | `trl-799-draft-adr-scaffold-forward-compatibility-upgrade-path-system` | #592 | draft/open; CI green; merge state clean | Draft ADR grounded in the implemented breadcrumb/helper shape. |
 
 ## Planning Discoveries
 
@@ -65,6 +69,10 @@ handoff. Meaningful review-flow changes require a new retro entry.
 | --- | --- | --- | --- |
 | 2026-05-24 14:35 EDT | Linear TRL-796/797/798/799/801/803 | Read issue state during planning; no status changes made. | Linear fetch/search in planning session. |
 | 2026-05-24 14:39 EDT | Linear TRL-801 | Added planning comment recommending TRL-801 be treated as superseded/covered by TRL-796. | Linear comment `18461dd2-1947-4bd7-9017-3ae65358f1da`. |
+| 2026-05-24 16:01 EDT | Linear TRL-796 | Moved to `In Review` and added PR/check/local-review comment. | PR #589; Linear comment `cf557a9d-34a1-45ca-b8de-39e5a53d51ba`. |
+| 2026-05-24 16:01 EDT | Linear TRL-798 | Moved to `In Review` and added PR/check/local-review comment. | PR #590; Linear comment `984f5ddf-a8dd-489f-b44f-d49dbde850d6`. |
+| 2026-05-24 16:01 EDT | Linear TRL-797 | Moved to `In Review` and added PR/check/local-review comment. | PR #591; Linear comment `7049d1e3-5a9e-4195-90ee-0ec7c920673a`. |
+| 2026-05-24 16:02 EDT | Linear TRL-799 | Moved to `In Review` and added PR/check/local-review comment. | PR #592; Linear comment `66f9d88c-f47e-400b-856f-bbb72b2f1074`. |
 
 ## Execution Log
 
@@ -118,13 +126,46 @@ handoff. Meaningful review-flow changes require a new retro entry.
 - Next: commit TRL-797, restack, then draft TRL-799 ADR.
 - Blockers: none.
 - Changeset: not added; this branch changes internal repo scripts/tests and release docs, not publishable package contents.
+
+2026-05-24 15:36 EDT - TRL-799 implementation
+- Changed: added draft ADR `docs/adr/drafts/20260524-scaffold-forward-compatibility.md`; regenerated draft ADR README and decision map. The draft locks in exact generated `@ontrails/*` pins, minimal `.trails/scaffold.json` provenance, and the internal scaffold-version helper, while deferring readers, diffs, migrations, template hashes, and public `trails upgrade`.
+- Verified: `bun scripts/adr.ts map && bun scripts/adr.ts check` passed with 0 errors / 0 warnings.
+- Result: TRL-799 draft ADR slice is ready to commit at the stack tip.
+- Next: commit TRL-799, then run stack validation and local review lanes.
+- Blockers: none.
+- Changeset: not added; draft ADR and generated ADR indexes only.
+
+2026-05-24 15:40 EDT - validation gate cleanup
+- Changed: fixed two pre-existing generated/docs-gate blockers found by `bun run check`: converted stale Wayfinding draft links to an ignored scratch proto into plain path text, and regenerated AGENTS / skill Warden guide rule counts from 57 to 58.
+- Verified: `bun scripts/check-markdown-links.ts` passed after the Wayfinding link cleanup; `bun run warden:agents:check && bun run warden:skills:check` passed after Warden guide sync.
+- Result: docs-link and Warden generated-guide blockers are cleared at the stack tip.
+- Next: fix the remaining `bun run check` failure from Knip duplicate exports on the owning branches.
+- Blockers: `bun run check` still fails at `dead-code` because exact pins made `trailsPackageVersion` and `ontrailsPackageRange` duplicate exports in `apps/trails/src/versions.ts`.
+
+2026-05-24 15:53 EDT - validation closeout and local review
+- Changed: fixed the Knip duplicate-export failure bottom-up by keeping `trailsPackageVersion` for CLI `--version` while deriving `ontrailsPackageRange` directly from package metadata instead of aliasing it. Restacked TRL-798/797/799 and added three local review lane reports.
+- Verified: `bun test apps/trails/src/__tests__/create.test.ts` passed 17 tests / 349 assertions; `bun run dead-code` passed; `bun run scaffold-versions:check` passed; `bun run check` passed on the stack tip.
+- Smoke: temp scaffold at `/tmp/trails-scaffold-forward-smoke.s7qKGw/docs-smoke` emitted exact `1.0.0-beta.18` pins and `.trails/scaffold.json`; `bun install` and `bun run typecheck` passed. `bun test` in that temp app failed because published `@ontrails/testing@1.0.0-beta.18` does not expose `@ontrails/testing/established`; local source does expose the subpath, so this is recorded as registry-state skew pending the next beta publication, not a scaffold implementation failure.
+- Review: local lanes scored 5/5, 5/5, and 5/5 with no P0/P1/P2 findings.
+- Result: local implementation and review are clean for draft submission.
+- Next: submit draft PR stack and update Linear with PR/check state.
+- Blockers: no local blockers.
+
+2026-05-24 16:02 EDT - draft submission and tracker closeout
+- Changed: submitted the four-PR draft Graphite stack, edited all PR titles/bodies with scope, validation, risk, and closure lines, and updated Linear status/comments for TRL-796/798/797/799.
+- Verified: `gh pr view` reports #589-#592 draft/open, merge state clean, and no non-green checks; Linear comments created as cf557a9d-34a1-45ca-b8de-39e5a53d51ba, 984f5ddf-a8dd-489f-b44f-d49dbde850d6, 7049d1e3-5a9e-4195-90ee-0ec7c920673a, and 66f9d88c-f47e-400b-856f-bbb72b2f1074.
+- Result: goal stack is submitted as draft, CI-green, locally reviewed, and tracker-current.
+- Next: run final small checks after this RETRO update, commit/submit the RETRO closeout, then hand off without merge/publish/queue changes.
+- Blockers: none.
 ```
 
 ## Local Review Log
 
 | Round | Scope / Lanes | Report Paths | P0/P1/P2 Result | Fix Commits / Notes |
 | --- | --- | --- | --- | --- |
-| pending | scaffold package/provenance shape; bump-helper/tooling and generated-output coverage; release/docs/ADR doctrine fit | pending | pending | Required before draft submission. |
+| 2026-05-24 15:53 EDT | scaffold package/provenance shape | `.agents/plans/2026-05-24-scaffold-forward-compat-seed/local-review-lane-1-scaffold-shape.md` | clean; no P0/P1/P2 | Score 5/5. P3 registry-smoke caveat recorded for current published beta. |
+| 2026-05-24 15:53 EDT | bump-helper/tooling and generated-output coverage | `.agents/plans/2026-05-24-scaffold-forward-compat-seed/local-review-lane-2-helper-tooling.md` | clean; no P0/P1/P2 | Score 5/5. |
+| 2026-05-24 15:53 EDT | release/docs/ADR doctrine fit | `.agents/plans/2026-05-24-scaffold-forward-compat-seed/local-review-lane-3-docs-adr.md` | clean; no P0/P1/P2 | Score 5/5. |
 
 ## Verification Log
 
@@ -142,48 +183,87 @@ handoff. Meaningful review-flow changes require a new retro entry.
 | `bun --cwd apps/trails test` | TRL-798 | pass | 349 tests / 1402 assertions. |
 | `bun test scripts/__tests__/sync-scaffold-versions.test.ts` | TRL-797 | pass | 4 tests / 4 assertions. |
 | `bun run scaffold-versions:check` | TRL-797 | pass | validates generated third-party scaffold versions plus exact `@ontrails/*` pins. |
+| `bun scripts/adr.ts map && bun scripts/adr.ts check` | TRL-799 | pass | draft ADR indexes regenerated; checker reports 0 errors / 0 warnings. |
+| `bun run format:check` | stack tip | fail then pass | failed on committed formatting in `apps/trails/src/__tests__/create.test.ts`; fixed on TRL-798 and reran successfully. |
+| `bun run typecheck` | stack tip | pass | 22 packages successful. |
+| `bun scripts/check-markdown-links.ts` | stack tip | pass | cleared stale ignored-scratch Wayfinding draft links. |
+| `bun run warden:agents:check && bun run warden:skills:check` | stack tip | pass | regenerated AGENTS and skill Warden guide counts to 58. |
+| `bun run check` | stack tip | fail | after docs/Warden cleanup, remaining failure is Knip duplicate exports for `trailsPackageVersion` and `ontrailsPackageRange` in `apps/trails/src/versions.ts`. |
+| `bun test apps/trails/src/__tests__/create.test.ts` | stack tip after duplicate-export fix | pass | 17 tests / 349 assertions. |
+| `bun run dead-code` | stack tip after duplicate-export fix | pass | Knip duplicate-export failure resolved. |
+| `bun run scaffold-versions:check` | stack tip after duplicate-export fix | pass | exact `@ontrails/*` pin check still passes. |
+| `bun run check` | stack tip after duplicate-export fix | pass | full repo check passed; Warden reports 0 errors / 26 warnings. |
+| temp scaffold smoke | stack tip | partial | exact pins and `.trails/scaffold.json` verified; install and typecheck passed; temp app test blocked by current published beta missing `@ontrails/testing/established`. |
+| `gh pr view` status checks | draft PRs #589-#592 | pass | all four PRs draft/open, merge state clean, and no non-green checks. |
 
 ## Remote Review / CI Log
 
 | Time | PR | CI State | Review State | Scores / Signals | Unresolved P0/P1/P2 | Action |
 | --- | --- | --- | --- | --- | --- | --- |
-| pending | pending | pending | pending | pending | pending | Submit draft PRs only after local review and checks. |
+| 2026-05-24 16:02 EDT | #589 | green; merge state clean | draft, no remote review requested yet | CI Gate plus Build/Lint/Dead Code/Typecheck/Test/Governance/Changeset all green | none | keep draft with local review clean. |
+| 2026-05-24 16:02 EDT | #590 | green; merge state clean | draft, no remote review requested yet | CI Gate plus Build/Lint/Dead Code/Typecheck/Test/Governance/Changeset all green | none | keep draft with local review clean. |
+| 2026-05-24 16:02 EDT | #591 | green; merge state clean | draft, no remote review requested yet | CI Gate plus Build/Lint/Dead Code/Typecheck/Test/Governance/Changeset all green | none | keep draft with local review clean. |
+| 2026-05-24 16:02 EDT | #592 | green; merge state clean | draft, no remote review requested yet | CI Gate plus Build/Lint/Dead Code/Typecheck/Test/Governance/Changeset all green | none | keep draft with local review clean. |
 
 ## Review Feedback Resolutions
 
 | Source | Score / Signal | Severity | Finding | Prompt To Fix | Resolution | Evidence |
 | --- | --- | --- | --- | --- | --- | --- |
-| pending | pending | pending | pending | pending | pending | pending |
+| Local review lane 1 | 5/5 | P3 | Published beta smoke `bun test` fails because current registry package lacks `@ontrails/testing/established`. | Record as registry-state caveat, do not change scaffold implementation. | Deferred to next beta publish / registry freshness; not a P0/P1/P2. | Report file and temp smoke output recorded above. |
+| Local review lane 2 | 5/5 | none | No P0/P1/P2 findings. | n/a | No changes needed. | `local-review-lane-2-helper-tooling.md`. |
+| Local review lane 3 | 5/5 | none | No P0/P1/P2 findings. | n/a | No changes needed. | `local-review-lane-3-docs-adr.md`. |
 
 ## Forbidden Actions Audit
 
 | Action / Constraint | Status | Evidence |
 | --- | --- | --- |
-| No merge without explicit user approval | respected so far | Planning only; no merge commands run. |
-| No package publish / registry mutation unless authorized | respected so far | Planning only; no publish/registry commands run. |
-| No merge queue label unless authorized | respected so far | Planning only; no queue mutation. |
-| No source-control writes by subagents | respected so far | No subagents used in planning. |
-| No unrelated destructive changes | respected so far | Packet creation/update and shared-note update only. |
+| No merge without explicit user approval | respected | PRs remain draft/open; no merge commands run. |
+| No package publish / registry mutation unless authorized | respected | Only read-only smoke/install/check commands; no publish or registry mutation. |
+| No merge queue label unless authorized | respected | No queue label mutation. |
+| No source-control writes by subagents | respected | No subagents performed git/gt writes. |
+| No unrelated destructive changes | respected | Changes stayed in scaffold/version helper/docs/ADR packet lanes; docs-gate cleanup was required by `bun run check`. |
 
 ## Final State
 
-Fill before claiming completion, handoff, merge readiness, or archive.
-
-- Goal completion condition:
-- Graphite / branch state:
-- PR state:
-- Source-control host lag:
-- Tracker state:
-- Local review state:
-- Remote review state:
-- Remote review scores:
-- Verification:
-- Skipped checks:
-- Remaining P3s / risks:
-- Follow-up issues created:
-- Forbidden actions confirmation:
-- Packet archive readiness:
-- Final transcript proof:
+- Goal completion condition: met for draft-stack handoff; all four draft PRs
+  exist, CI is green, Linear is current, local review is clean, checks pass, and
+  scope constraints held.
+- Graphite / branch state: current stack tip is
+  `trl-799-draft-adr-scaffold-forward-compatibility-upgrade-path-system`;
+  bottom-to-top PRs are #589, #590, #591, #592.
+- PR state: #589-#592 are draft/open with clean GitHub merge state and green
+  status checks.
+- Source-control host lag: none observed for GitHub checks; Graphite stack is
+  submitted as draft.
+- Tracker state: TRL-796, TRL-798, TRL-797, and TRL-799 are `In Review` with
+  PR/check/local-review comments; TRL-801 remains superseded by TRL-796 comment.
+- Local review state: three local lanes scored 5/5 with no P0/P1/P2 findings.
+- Remote review state: not requested yet because PRs remain draft by goal
+  instruction; CI is green and ready for the next ready-for-review loop.
+- Remote review scores: none yet.
+- Verification: `bun test apps/trails/src/__tests__/create.test.ts`,
+  `bun --cwd apps/trails test`,
+  `bun test scripts/__tests__/sync-scaffold-versions.test.ts`,
+  `bun run scaffold-versions:check`,
+  `bun scripts/adr.ts map && bun scripts/adr.ts check`,
+  `bun scripts/check-markdown-links.ts`,
+  `bun run warden:agents:check && bun run warden:skills:check`,
+  `bun run format:check`, `git diff --check`, and `bun run check` passed before
+  this final RETRO touch; final small checks will be rerun after commit.
+- Skipped checks: no required local checks skipped. Optional temp scaffold
+  `bun test` did not pass because of current published-beta subpath skew; install
+  and typecheck passed.
+- Remaining P3s / risks: published `@ontrails/testing@1.0.0-beta.18` is stale
+  relative to local source for `@ontrails/testing/established`; next beta publish
+  should clear the optional smoke caveat.
+- Follow-up issues created: none; existing TRL-801/803/794/782/783 remain
+  tracked outside this goal.
+- Forbidden actions confirmation: no merge, no publish/registry mutation, no
+  merge queue label, no out-of-scope upgrade/diff/migration/public CLI work.
+- Packet archive readiness: not ready to archive until the stack merges or Matt
+  asks; packet remains active on the stack.
+- Final transcript proof: final response should name PRs #589-#592, green CI,
+  Linear in-review comments, final checks, and remaining P3 registry caveat.
 
 Do not mark complete until the goal completion condition has been proven, this
 section is filled or explicitly marked blocked, and the final transcript names

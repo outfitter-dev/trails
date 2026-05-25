@@ -13,7 +13,7 @@ depends_on: [17, 27, 42]
 > Companion: a separate signposts ADR is tracked but deliberately deferred.
 > Wayfinding does not depend on signposts; signposts will land later as a
 > narrower decision once the wayfinder shell exists to host name redirects.
-> Origin proto: [`.scratch/adr/wayfinding-and-signposts.md`](../../../.scratch/adr/wayfinding-and-signposts.md).
+> Origin proto: `.scratch/adr/wayfinding-and-signposts.md`.
 
 ## Context
 
@@ -273,7 +273,7 @@ parameter names where useful (e.g. `wayfind.neighborhood({ direction: 'in' })`).
 - [ADR-0013: Tracing](../0013-tracing.md) and
   [ADR-0041: Unified Observability](../0041-unified-observability.md) — the
   tracing primitive that captures wayfinding usage for free
-- Origin proto: [`.scratch/adr/wayfinding-and-signposts.md`](../../../.scratch/adr/wayfinding-and-signposts.md)
+- Origin proto: `.scratch/adr/wayfinding-and-signposts.md`
 
 [ADR-0013]: ../0013-tracing.md
 [ADR-0017]: ../0017-serialized-topo-graph.md

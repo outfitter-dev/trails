@@ -191,6 +191,19 @@
       "superseded_by": null,
       "title": "Wayfinding",
       "updated": "2026-05-03"
+    },
+    {
+      "created": "2026-05-24",
+      "depends_on": ["10", "47", "48"],
+      "inbound": [],
+      "number": null,
+      "owners": ["[galligan](https://github.com/galligan)"],
+      "path": "docs/adr/drafts/20260524-scaffold-forward-compatibility.md",
+      "slug": "scaffold-forward-compatibility",
+      "status": "draft",
+      "superseded_by": null,
+      "title": "Scaffold Forward Compatibility",
+      "updated": "2026-05-24"
     }
   ],
   "version": 1
