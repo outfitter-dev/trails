@@ -1,0 +1,49 @@
+[skillset]
+version = 1
+
+[paths]
+source = ".claude/skills"
+target = ".agents/skills"
+
+[frontmatter]
+remove = ["agent", "context", "disable-model-invocation", "model", "effort"]
+preserve_removed_under = "metadata.skillset.source-frontmatter"
+
+[frontmatter.metadata.skillset]
+generator = "scripts/codex/skillset.ts"
+target = "codex"
+version = 1
+
+[replacements]
+'${CLAUDE_PROJECT_DIR}' = '${PWD}'
+'$CLAUDE_PROJECT_DIR' = '$PWD'
+'${CLAUDE_PLUGIN_ROOT}' = '${PWD}/plugin'
+'$CLAUDE_PLUGIN_ROOT' = '$PWD/plugin'
+'${CLAUDECODE}' = '${CODEX_SHELL}'
+'$CLAUDECODE' = '$CODEX_SHELL'
+'read the matching `.agents/skills/<skill-name>/SKILL.md` symlink' = 'read the matching generated `.agents/skills/<skill-name>/SKILL.md`'
+
+[agents.clark]
+source_skill = "clark"
+target = ".codex/agents/clark.toml"
+name = "clark"
+description = "Co-architect and CTO of the Trails framework. Use for architectural decisions, vocabulary enforcement, sprint reviews, tenet alignment, and long-term framework coherence."
+model = "gpt-5.5"
+model_reasoning_effort = "xhigh"
+sandbox_mode = "workspace-write"
+nickname_candidates = ["Clark"]
+prepend = """
+This Codex custom-agent wrapper is generated from `.agents/skills/clark/SKILL.md`, which is generated from `.claude/skills/clark/SKILL.md`. Clark is skill-first: the skill is the canonical identity and judgment framework; this TOML exists only so Codex can delegate to Clark as a separate custom agent.
+
+If this wrapper and the skill ever disagree, the skill wins. Regenerate generated skill and agent output with `bun run skillset:sync`.
+
+When the copied skill text names a Clark skill-local reference such as `./references/assess.md` or `references/assess.md`, resolve it relative to `.agents/skills/clark/`. When it says to load another Clark skill, read the matching `.agents/skills/<skill-name>/SKILL.md` generated skill.
+"""
+append = """
+## Codex Operational Constraints
+
+- Do not run git or Graphite write operations. Do not run `git add`, `git commit`, `git push`, `gt create`, `gt modify`, `gt submit`, `gt merge`, or other source-control mutations.
+- Make source-control recommendations to the parent agent instead.
+- You may read files, inspect docs, run non-mutating searches, and append to `.agents/memory/decisions.md` when logging an authoritative decision.
+- Do not implement feature code unless the parent explicitly asks you to edit a decision artifact or review note.
+"""

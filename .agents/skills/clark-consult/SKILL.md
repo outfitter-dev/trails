@@ -14,8 +14,8 @@ Clark is skill-first.
 - If the user asks the current agent to "be Clark", "personify Clark", "answer as Clark", or otherwise embody Clark inline, load the `clark` skill directly and answer in that posture.
 - If the user asks to "ask Clark", "consult Clark", "have Clark review", "let Clark decide", or otherwise wants a separate judgment from Clark, use this `clark-consult` skill and dispatch the custom agent.
 - If the user asks for Clark pathfinding, do not use the custom-agent dispatch path. Load the `clark` skill inline, then use the `clark-pathfinding` playbook in the same session.
-- The canonical Clark identity lives in `.agents/skills/clark/SKILL.md`, which is symlinked to the Claude Clark skill. `.codex/agents/clark.toml` is a generated custom-agent wrapper, not a second source of truth.
-- After changing the Clark skill, regenerate the custom-agent wrapper with `.agents/skills/clark-consult/scripts/render-clark-agent`.
+- The canonical Clark identity for Codex lives in `.agents/skills/clark/SKILL.md`, which is generated from `.claude/skills/clark/SKILL.md` by `scripts/codex/skillset.ts`. `.codex/agents/clark.toml` is a generated custom-agent wrapper, not a second source of truth.
+- After changing the Claude Clark skill, regenerate Codex skill and agent output with `bun run skillset:sync`.
 
 ## Workflow
 
@@ -56,7 +56,7 @@ Do not run git or Graphite write operations. Do not invent citations; mark unkno
 
 - Custom agent: `.codex/agents/clark.toml`
 - Optional direct-session helper: `.agents/skills/clark-consult/scripts/ask-clark`
-- Canonical Clark skill: `.agents/skills/clark/SKILL.md` (symlinked to `.claude/skills/clark/SKILL.md`)
+- Canonical Clark skill: `.agents/skills/clark/SKILL.md` (generated from `.claude/skills/clark/SKILL.md`)
 - Claude agent profile: `.claude/agents/clark.md`
 - Clark skills: `.agents/skills/clark`, `.agents/skills/clark-decision`, `.agents/skills/clark-pathfinding`, `.agents/skills/clark-survey`
 - Tenets skill: `.agents/skills/tenets`

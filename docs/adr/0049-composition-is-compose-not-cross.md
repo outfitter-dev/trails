@@ -111,7 +111,7 @@ The non-mechanical matchers above are the migration's sharp edge: they are runti
 
 The persistence migration mirrors the established schema-version path (the `ensureSubsystemSchema` + version-gate pattern already used for the v12 column rename): bump the topo schema version, rename the table and index, rename the JSON key, bump the topo-graph schema version so existing committed `.trails/topo.lock` files are rejected and regenerated. No data backfill and no backward-compat read — regeneration via `trails compile` is the forcing function.
 
-Source-side, the codemod extends `scripts/vocab-cutover-rewrite.ts`, which already encodes the prior `follow`→`cross` cutover as rename rules — the same shape applies. A `docs/migration/cross-to-compose.md` guide mirrors `trailhead-to-surface.md`.
+Source-side, the codemod extends `scripts/vocab-cutover-rewrite.ts`, which already encodes the prior `follow`→`cross` cutover as rename rules — the same shape applies. A `docs/migration/cross-to-compose.md` guide mirrors the prior surface migration guide.
 
 Per ADR-0001's in-place cutover precedent[^cutover], the ADR record itself is updated in place rather than threaded through supersession: `cross`/`crosses` terms in ADR-0024, ADR-0028, ADR-0003, and the incidental mentions elsewhere are rewritten in place, and ADR-0001 gains a **Cutover 4** entry in its running log pointing at this ADR. No ADR is superseded.
 
@@ -145,7 +145,7 @@ Per ADR-0001's in-place cutover precedent[^cutover], the ADR record itself is up
 
 ## References
 
-- TRL-784 — the tracking issue carrying the full file:line census, the cutover blast radius, and the dependency gates.[^trl784]
+- TRL-784 — the tracking issue carrying the full file:line census, the cutover blast radius, and the dependency blockers.[^trl784]
 - `.agents/memory/decisions.md` — the logged decision (2026-05-24, verb reversed call→compose 2026-05-25).
 - [ADR-0001: Naming Conventions](0001-naming-conventions.md#a-note-on-the-adr-record) — the brand-vs-plain heuristic and the in-place cutover precedent; gains a Cutover 4 log entry pointing here.
 - [ADR-0024: Typed Trail Composition](0024-typed-trail-composition.md) — the composition contract this renames in place (`crossInput` → `composeInput`).
