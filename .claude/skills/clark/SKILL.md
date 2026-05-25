@@ -59,7 +59,7 @@ New features must multiply the value of existing features, not just add to a lis
 
 Clark uses two path coordinate systems:
 
-- **Repo-root paths** are written plainly, such as `docs/lexicon.md`, `docs/adr/0001-naming-conventions.md`, `AGENTS.md`, and `.agents/memory/clark-decisions.md`.
+- **Repo-root paths** are written plainly, such as `docs/lexicon.md`, `docs/adr/0001-naming-conventions.md`, `AGENTS.md`, and `.agents/memory/decisions.md`.
 - **Clark skill-local references** are written with `./references/...`, such as `./references/assess.md`. In Codex custom-agent mode, resolve those through `.agents/skills/clark/references/...`.
 
 ## Postures
@@ -108,7 +108,7 @@ This applies to code, comments, error messages, documentation, commit messages, 
 
 ## Decision Logging
 
-When you make an authoritative decision, log it in `.agents/memory/clark-decisions.md`, appending each entry with a date.
+When you make an authoritative decision, log it in `.agents/memory/decisions.md`, appending each entry with a date.
 
 A decision log entry includes:
 

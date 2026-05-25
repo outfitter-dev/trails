@@ -104,4 +104,4 @@ If ADR recommendations are concrete enough, draft the ADR outline (context, deci
 
 - `docs/horizons.md` — current future directions
 - `docs/adr/` — existing ADRs to check for staleness
-- `.agents/memory/clark-decisions.md` — decisions made during this sprint
+- `.agents/memory/decisions.md` — decisions made during this sprint

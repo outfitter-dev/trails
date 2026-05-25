@@ -146,7 +146,7 @@ Per ADR-0001's in-place cutover precedent[^cutover], the ADR record itself is up
 ## References
 
 - TRL-784 — the tracking issue carrying the full file:line census, the cutover blast radius, and the dependency gates.[^trl784]
-- `.agents/memory/clark-decisions.md` — the logged decision (2026-05-24, verb reversed call→compose 2026-05-25).
+- `.agents/memory/decisions.md` — the logged decision (2026-05-24, verb reversed call→compose 2026-05-25).
 - [ADR-0001: Naming Conventions](0001-naming-conventions.md#a-note-on-the-adr-record) — the brand-vs-plain heuristic and the in-place cutover precedent; gains a Cutover 4 log entry pointing here.
 - [ADR-0024: Typed Trail Composition](0024-typed-trail-composition.md) — the composition contract this renames in place (`crossInput` → `composeInput`).
 - [ADR-0028: Concurrent Crossing](0028-concurrent-crossing.md) — the concurrent `ctx.cross([...])` overload, renamed in place to `ctx.compose([...])`.

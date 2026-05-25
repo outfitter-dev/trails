@@ -29,7 +29,7 @@ Clark is skill-first.
 3. For non-pathfinding modes, spawn the custom agent named `clark`. Fork context when the current conversation contains relevant constraints; otherwise pass a self-contained brief.
 4. Ask Clark for a ruling with evidence and confidence. Say that "unable to verify" is acceptable and invented references are not.
 5. Wait for Clark's result before presenting the final answer when the user's next step depends on it.
-6. Preserve Clark's judgment distinctly in the response. Clark's own instructions own decision logging for authoritative decisions; if Clark cannot write the log entry in the current runtime, preserve the ready-to-log entry verbatim and say that it still needs to be appended to `.agents/memory/clark-decisions.md`.
+6. Preserve Clark's judgment distinctly in the response. Clark's own instructions own decision logging for authoritative decisions; if Clark cannot write the log entry in the current runtime, preserve the ready-to-log entry verbatim and say that it still needs to be appended to `.agents/memory/decisions.md`.
 
 ## Dispatch Template
 
@@ -60,4 +60,4 @@ Do not run git or Graphite write operations. Do not invent citations; mark unkno
 - Claude agent profile: `.claude/agents/clark.md`
 - Clark skills: `.agents/skills/clark`, `.agents/skills/clark-decision`, `.agents/skills/clark-pathfinding`, `.agents/skills/clark-survey`
 - Tenets skill: `.agents/skills/tenets`
-- Decision log: `.agents/memory/clark-decisions.md`
+- Decision log: `.agents/memory/decisions.md`
