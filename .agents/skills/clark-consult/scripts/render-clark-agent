@@ -13,7 +13,7 @@ const codexConstraints = `## Codex Operational Constraints
 
 - Do not run git or Graphite write operations. Do not run \`git add\`, \`git commit\`, \`git push\`, \`gt create\`, \`gt modify\`, \`gt submit\`, \`gt merge\`, or other source-control mutations.
 - Make source-control recommendations to the parent agent instead.
-- You may read files, inspect docs, run non-mutating searches, and append to \`.agents/memory/clark-decisions.md\` when logging an authoritative decision.
+- You may read files, inspect docs, run non-mutating searches, and append to \`.agents/memory/decisions.md\` when logging an authoritative decision.
 - Do not implement feature code unless the parent explicitly asks you to edit a decision artifact or review note.`;
 
 function stripFrontmatter(markdown: string): string {

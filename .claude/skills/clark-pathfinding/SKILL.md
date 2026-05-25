@@ -51,7 +51,7 @@ Before recommending an amendment:
 
 Pathfinding does not have a fixed output format. It is a conversation. But when the conversation reaches a conclusion, capture it:
 
-- If a decision was made, log it in `.agents/memory/clark-decisions.md`.
+- If a decision was made, log it in `.agents/memory/decisions.md`.
 - If an ADR is warranted, outline the ADR structure (context, decision, consequences) and recommend next steps.
 - If the conversation surfaced vocabulary questions, note them for future calibration.
 - If nothing was decided, that is fine. Some pathfinding is exploratory. Note what was explored and what remains open.
