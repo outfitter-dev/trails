@@ -121,7 +121,7 @@ describe('deriveTrailExamples', () => {
     expect(deriveTrailExamples(trailDef)).toEqual([]);
   });
 
-  test('matches cross-contour references and exposes contour-prefixed aliases', () => {
+  test('matches compose-contour references and exposes contour-prefixed aliases', () => {
     const trailDef = trail('gist.star', {
       blaze: (input: { gistId: string; userId: string }) => Result.ok(input),
       contours: [userContour, gistContour],

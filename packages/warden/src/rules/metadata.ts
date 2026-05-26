@@ -57,8 +57,8 @@ const depthByTier = {
 
 const concernByRuleName: Partial<Record<string, WardenRuleConcern>> = {
   'activation-orphan': 'signals',
+  'composes-declarations': 'composition',
   'context-no-surface-types': 'composition',
-  'cross-declarations': 'composition',
   'dead-internal-trail': 'composition',
   'deprecation-without-guidance': 'lifecycle',
   'draft-file-marking': 'lifecycle',
@@ -71,7 +71,7 @@ const concernByRuleName: Partial<Record<string, WardenRuleConcern>> = {
   'marker-schema-unsupported': 'lifecycle',
   'missing-reconcile': 'resources',
   'missing-visibility': 'composition',
-  'no-destructured-cross': 'composition',
+  'no-destructured-compose': 'composition',
   'no-dev-permit-in-source': 'permits',
   'no-direct-implementation-call': 'composition',
   'no-native-error-result': 'results',
@@ -95,7 +95,7 @@ const concernByRuleName: Partial<Record<string, WardenRuleConcern>> = {
   'unmaterialized-activation-source': 'lifecycle',
   'valid-detour-contract': 'results',
   'version-gap': 'lifecycle',
-  'version-pinned-cross': 'composition',
+  'version-pinned-compose': 'composition',
   'version-without-examples': 'lifecycle',
   'webhook-route-collision': 'composition',
 };
@@ -137,6 +137,11 @@ const builtinWardenRuleMetadataInput = {
     invariant: 'Contour reference graphs must be acyclic.',
     tier: 'project-static',
   },
+  'composes-declarations': {
+    ...durableExternal,
+    invariant: 'Declared composes stay aligned with ctx.compose() usage.',
+    tier: 'source-static',
+  },
   'context-no-surface-types': {
     ...durableExternal,
     invariant: 'Trail logic stays surface-agnostic.',
@@ -147,14 +152,9 @@ const builtinWardenRuleMetadataInput = {
     invariant: 'Declared contour references resolve to known contours.',
     tier: 'project-static',
   },
-  'cross-declarations': {
-    ...durableExternal,
-    invariant: 'Declared crosses stay aligned with ctx.cross() usage.',
-    tier: 'source-static',
-  },
   'dead-internal-trail': {
     ...durableExternal,
-    invariant: 'Internal trails should be reachable through declared crosses.',
+    invariant: 'Internal trails should be reachable through declared composes.',
     tier: 'project-static',
   },
   'deprecation-without-guidance': {
@@ -218,7 +218,7 @@ const builtinWardenRuleMetadataInput = {
   },
   'intent-propagation': {
     ...durableExternal,
-    invariant: 'Composite trail intent cannot be safer than crossed trails.',
+    invariant: 'Composite trail intent cannot be safer than composed trails.',
     tier: 'project-static',
   },
   'layer-field-name-drift': {
@@ -243,10 +243,10 @@ const builtinWardenRuleMetadataInput = {
     invariant: 'Composition-only trails declare internal visibility.',
     tier: 'project-static',
   },
-  'no-destructured-cross': {
+  'no-destructured-compose': {
     ...durableExternal,
     invariant:
-      'Trail blazes compose through ctx.cross() directly instead of destructuring cross from the context.',
+      'Trail blazes compose through ctx.compose() directly instead of destructuring compose from the context.',
     tier: 'source-static',
   },
   'no-dev-permit-in-source': {
@@ -257,7 +257,7 @@ const builtinWardenRuleMetadataInput = {
   },
   'no-direct-implementation-call': {
     ...durableExternal,
-    invariant: 'Application code composes trails through ctx.cross().',
+    invariant: 'Application code composes trails through ctx.compose().',
     tier: 'source-static',
   },
   'no-legacy-layer-imports': {
@@ -498,9 +498,10 @@ const builtinWardenRuleMetadataInput = {
       'Trail version coverage remains contiguous through the current version.',
     tier: 'topo-aware',
   },
-  'version-pinned-cross': {
+  'version-pinned-compose': {
     ...durableExternal,
-    invariant: 'Version-pinned ctx.cross() calls stay visible migration debt.',
+    invariant:
+      'Version-pinned ctx.compose() calls stay visible migration debt.',
     tier: 'source-static',
   },
   'version-without-examples': {

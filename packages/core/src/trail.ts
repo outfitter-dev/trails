@@ -23,6 +23,7 @@ import {
 } from './signal-ref.js';
 import type { TrailsError } from './errors.js';
 import type {
+  ComposeTrailContext,
   Detour,
   Implementation,
   PermitRequirement,
@@ -70,18 +71,20 @@ export interface TrailExample<I, O> {
 }
 
 // ---------------------------------------------------------------------------
-// Blaze input — merges crossInput when declared
+// Blaze input — merges composeInput when declared
 // ---------------------------------------------------------------------------
 
 /**
  * The input type received by a trail's blaze function.
  *
- * When a trail declares `crossInput`, the runtime merges those fields into
+ * When a trail declares `composeInput`, the runtime merges those fields into
  * the input object before calling blaze. This type makes the compiler aware
- * of the merged shape so developers can access crossInput fields without a
+ * of the merged shape so developers can access composeInput fields without a
  * cast. Falls back to plain `I` when `CI` is `never` (the default).
  */
 export type BlazeInput<I, CI> = [CI] extends [never] ? I : I & CI;
+
+type TrailRef = string | { readonly id: string };
 
 // ---------------------------------------------------------------------------
 // Trail versioning
@@ -151,8 +154,8 @@ export interface TrailVersionRevisionEntry<
   CurrentOutput = unknown,
 > extends VersionEntry<VersionContract<VersionInput, VersionOutput>> {
   readonly blaze?: never;
-  readonly crossInput?: never;
-  readonly crosses?: never;
+  readonly composeInput?: never;
+  readonly composes?: never;
   readonly detours?: never;
   readonly kind?: never;
   readonly resources?: never;
@@ -169,14 +172,14 @@ export interface TrailVersionRevisionEntry<
 export interface TrailVersionForkEntry<
   VersionInput = unknown,
   VersionOutput = unknown,
-  CrossInput = never,
+  ComposeInput = never,
 > extends VersionEntry<VersionContract<VersionInput, VersionOutput>> {
   readonly blaze: Implementation<
-    BlazeInput<VersionInput, CrossInput>,
+    BlazeInput<VersionInput, ComposeInput>,
     VersionOutput
   >;
-  readonly crosses?: readonly (string | AnyTrail)[] | undefined;
-  readonly crossInput?: z.ZodType<CrossInput> | undefined;
+  readonly composes?: readonly (string | AnyTrail)[] | undefined;
+  readonly composeInput?: z.ZodType<ComposeInput> | undefined;
   readonly detours?:
     | readonly Detour<VersionInput, VersionOutput, TrailsError>[]
     | undefined;
@@ -190,7 +193,7 @@ export type TrailVersionEntry<
   VersionOutput = unknown,
   CurrentInput = unknown,
   CurrentOutput = unknown,
-  CrossInput = never,
+  ComposeInput = never,
 > =
   | TrailVersionRevisionEntry<
       VersionInput,
@@ -198,7 +201,7 @@ export type TrailVersionEntry<
       CurrentInput,
       CurrentOutput
     >
-  | TrailVersionForkEntry<VersionInput, VersionOutput, CrossInput>;
+  | TrailVersionForkEntry<VersionInput, VersionOutput, ComposeInput>;
 
 export type TrailVersionEntryKind = 'revision' | 'fork';
 
@@ -260,13 +263,21 @@ export const deriveSupportedTrailVersions = (
 // ---------------------------------------------------------------------------
 
 /** Everything needed to define a trail (minus the id) */
-export interface TrailSpec<I, O, CI = never> {
+type ComposeContextFor<C extends readonly TrailRef[] | undefined> =
+  C extends undefined ? TrailContext : ComposeTrailContext;
+
+export interface TrailSpec<
+  I,
+  O,
+  CI = never,
+  C extends readonly TrailRef[] | undefined = undefined,
+> {
   /** Zod schema for validating input */
   readonly input: z.ZodType<I>;
   /** Zod schema for validating output (optional — some trails are fire-and-forget) */
   readonly output?: z.ZodType<O> | undefined;
   /** The pure function that does the work (sync or async authoring) */
-  readonly blaze: Implementation<BlazeInput<I, CI>, O>;
+  readonly blaze: Implementation<BlazeInput<I, CI>, O, ComposeContextFor<C>>;
   /** Human-readable description */
   readonly description?: string | undefined;
   /** Declared operational shape for governance, derivation, and agent guidance. */
@@ -308,17 +319,17 @@ export interface TrailSpec<I, O, CI = never> {
   readonly fields?: Readonly<Record<string, FieldOverride>> | undefined;
   /** Contours this trail operates on. */
   readonly contours?: readonly AnyContour[] | undefined;
-  /** IDs or trail objects of downstream trails this trail may invoke via ctx.cross() */
-  readonly crosses?: readonly (string | AnyTrail)[] | undefined;
+  /** IDs or trail objects of downstream trails this trail may invoke via ctx.compose() */
+  readonly composes?: C;
   /**
-   * Composition-only input schema — merged with `input` for `ctx.cross()` calls,
+   * Composition-only input schema — merged with `input` for `ctx.compose()` calls,
    * invisible to public surfaces (CLI, MCP, HTTP).
    *
    * Fields here are available in the blaze but are not derived into CLI flags,
    * MCP tool parameters, or HTTP request bodies. Use for data that only makes
-   * sense when one trail crosses another (e.g. `forkedFrom`).
+   * sense when one trail composes another (e.g. `forkedFrom`).
    */
-  readonly crossInput?: z.ZodType<CI> | undefined;
+  readonly composeInput?: z.ZodType<CI> | undefined;
   /** Resources this trail may access via resource.from(ctx) */
   readonly resources?: readonly AnyResource[] | undefined;
   /**
@@ -328,7 +339,7 @@ export interface TrailSpec<I, O, CI = never> {
    * normalized to the signal's id at trail definition time, so
    * `trail.fires` is always `readonly string[]`.
    *
-   * Note: `crosses` also accepts trail objects (normalized to IDs),
+   * Note: `composes` also accepts trail objects (normalized to IDs),
    * following the same pattern as signal references here.
    */
   readonly fires?: readonly (string | AnySignal)[] | undefined;
@@ -371,12 +382,12 @@ export type TrailVisibility = 'public' | 'internal';
 
 /** A fully-defined trail — the unit of work in the Trails system */
 export interface Trail<I, O, CI = never> extends Omit<
-  TrailSpec<I, O, CI>,
+  TrailSpec<I, O, CI, readonly TrailRef[] | undefined>,
   | 'args'
   | 'blaze'
   | 'contours'
-  | 'crosses'
-  | 'crossInput'
+  | 'composes'
+  | 'composeInput'
   | 'detours'
   | 'fires'
   | 'intent'
@@ -389,10 +400,10 @@ export interface Trail<I, O, CI = never> extends Omit<
   readonly blaze: Implementation<BlazeInput<I, CI>, O>;
   /** Contours this trail operates on (always present, default []). */
   readonly contours: readonly AnyContour[];
-  /** IDs of downstream trails this trail may invoke via ctx.cross() (always present, default []) */
-  readonly crosses: readonly string[];
-  /** Composition-only input schema, merged with `input` for ctx.cross() calls (optional) */
-  readonly crossInput?: z.ZodType<CI> | undefined;
+  /** IDs of downstream trails this trail may invoke via ctx.compose() (always present, default []) */
+  readonly composes: readonly string[];
+  /** Composition-only input schema, merged with `input` for ctx.compose() calls (optional) */
+  readonly composeInput?: z.ZodType<CI> | undefined;
   /** Recovery paths activated when blaze fails with a matching error (always present, default []). */
   readonly detours: readonly Detour<I, O, TrailsError>[];
   /**
@@ -538,8 +549,8 @@ const extractSignalActivationIds = (
       .map((entry) => entry.source.id)
   );
 
-/** Normalize a crosses entry — trail objects are reduced to their id. */
-const normalizeCrossRef = (entry: string | AnyTrail): string =>
+/** Normalize a composes entry — trail objects are reduced to their id. */
+const normalizeComposeRef = (entry: TrailRef): string =>
   typeof entry === 'string' ? entry : entry.id;
 
 const assertVersionNumber = (
@@ -764,7 +775,7 @@ const assertRevisionOwnsNoRuntimeFields = (
   version: number,
   entry: Record<string, unknown>
 ): void => {
-  const forbidden = ['crossInput', 'crosses', 'resources', 'detours'];
+  const forbidden = ['composeInput', 'composes', 'resources', 'detours'];
   const declared = forbidden.filter((field) => hasOwn(entry, field));
   if (declared.length > 0) {
     throw new ValidationError(
@@ -827,13 +838,13 @@ const normalizeVersionEntry = <CurrentInput, CurrentOutput>(
       ...base,
       blaze: async (input: unknown, ctx: TrailContext) =>
         await (raw['blaze'] as Implementation<unknown, unknown>)(input, ctx),
-      ...(raw['crossInput'] === undefined
+      ...(raw['composeInput'] === undefined
         ? {}
-        : { crossInput: raw['crossInput'] }),
-      crosses: Object.freeze(
+        : { composeInput: raw['composeInput'] }),
+      composes: Object.freeze(
         (
-          (raw['crosses'] as readonly (string | AnyTrail)[] | undefined) ?? []
-        ).map(normalizeCrossRef)
+          (raw['composes'] as readonly (string | AnyTrail)[] | undefined) ?? []
+        ).map(normalizeComposeRef)
       ),
       detours: Object.freeze([
         ...(((raw['detours'] as readonly Detour<
@@ -952,8 +963,13 @@ const normalizeTrailVersions = <CurrentInput, CurrentOutput>(
 };
 
 /** Freeze and normalize all collection fields from a trail spec. */
-const normalizeCollections = <I, O, CI>(
-  spec: TrailSpec<I, O, CI>
+const normalizeCollections = <
+  I,
+  O,
+  CI,
+  C extends readonly TrailRef[] | undefined,
+>(
+  spec: TrailSpec<I, O, CI, C>
 ): {
   readonly args: readonly string[] | false | undefined;
   readonly activationSources: readonly ActivationEntry[];
@@ -999,16 +1015,26 @@ const normalizeCollections = <I, O, CI>(
  * });
  * ```
  */
-export function trail<I, O, CI = never>(
-  id: string,
-  spec: TrailSpec<I, O, CI>
-): Trail<I, O, CI>;
-export function trail<I, O, CI = never>(
-  spec: TrailSpec<I, O, CI> & { readonly id: string }
-): Trail<I, O, CI>;
-export function trail<I, O, CI = never>(
-  idOrSpec: string | (TrailSpec<I, O, CI> & { readonly id: string }),
-  maybeSpec?: TrailSpec<I, O, CI>
+export function trail<
+  I,
+  O,
+  CI = never,
+  const C extends readonly TrailRef[] | undefined = undefined,
+>(id: string, spec: TrailSpec<I, O, CI, C>): Trail<I, O, CI>;
+export function trail<
+  I,
+  O,
+  CI = never,
+  const C extends readonly TrailRef[] | undefined = undefined,
+>(spec: TrailSpec<I, O, CI, C> & { readonly id: string }): Trail<I, O, CI>;
+export function trail<
+  I,
+  O,
+  CI = never,
+  const C extends readonly TrailRef[] | undefined = undefined,
+>(
+  idOrSpec: string | (TrailSpec<I, O, CI, C> & { readonly id: string }),
+  maybeSpec?: TrailSpec<I, O, CI, C>
 ): Trail<I, O, CI> {
   const resolved =
     typeof idOrSpec === 'string'
@@ -1026,8 +1052,8 @@ export function trail<I, O, CI = never>(
 
   const {
     blaze,
-    crossInput,
-    crosses: rawCrosses,
+    composeInput,
+    composes: rawComposes,
     intent: rawIntent,
     visibility: rawVisibility,
     // Destructure away fields handled by normalizeCollections
@@ -1055,9 +1081,9 @@ export function trail<I, O, CI = never>(
     ...spec,
     ...collections,
     blaze: async (input: BlazeInput<I, CI>, ctx: TrailContext) =>
-      await blaze(input, ctx),
-    crossInput,
-    crosses: Object.freeze((rawCrosses ?? []).map(normalizeCrossRef)),
+      await blaze(input, ctx as ComposeContextFor<C>),
+    composeInput,
+    composes: Object.freeze((rawComposes ?? []).map(normalizeComposeRef)),
     id: resolved.id,
     intent: rawIntent ?? 'write',
     kind: 'trail' as const,
@@ -1071,8 +1097,12 @@ export function trail<I, O, CI = never>(
 // The Omit+override avoids a TypeScript limitation where BlazeInput's conditional type
 // makes Trail<any, any, any> structurally incompatible with Trail<I, O, never>.
 /* oxlint-disable no-explicit-any -- existential type for heterogeneous collections */
-export type AnyTrail = Omit<Trail<any, any, any>, 'blaze'> & {
+export type AnyTrail = Omit<
+  Trail<any, any, never>,
+  'blaze' | 'composeInput'
+> & {
   readonly blaze: Implementation<any, any>;
+  readonly composeInput?: z.ZodType<any> | undefined;
 };
 /* oxlint-enable no-explicit-any */
 

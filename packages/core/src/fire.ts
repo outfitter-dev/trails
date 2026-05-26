@@ -23,7 +23,7 @@
  * `ctx.fire()` resolves after dispatch is initiated and without a value.
  * Unknown signals, invalid payloads, guard suppression, and consumer errors
  * are logged/diagnosed but do NOT propagate back to the producer. Consumers
- * that need transactional coupling should use `crosses:`.
+ * that need transactional coupling should use `composes:`.
  */
 
 import type { z } from 'zod';
@@ -617,7 +617,7 @@ const shouldInvokeConsumer = async (
  *
  * @remarks
  * Signal delivery is fire-and-forget notification, not ordered orchestration;
- * if one consumer depends on another, the dependency belongs in `crosses:`
+ * if one consumer depends on another, the dependency belongs in `composes:`
  * instead of sibling signal sequencing.
  *
  * `Promise.allSettled` preserves failure isolation for the background

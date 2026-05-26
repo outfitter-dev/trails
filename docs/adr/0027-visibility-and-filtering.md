@@ -19,15 +19,15 @@ A simple Trails app has 5-10 trails. Every trail is a public verb. `surface(grap
 
 ### The problem at pack scale
 
-A pack-scale app has 40-80 trails across multiple capability boundaries. Some trails exist only to support composition via `crosses`. Others are debug or operator tools that shouldn't appear in a public API. Others make sense on CLI but not MCP. The current mechanism for managing this is `include`/`exclude` on surface options, which works but has two problems:
+A pack-scale app has 40-80 trails across multiple capability boundaries. Some trails exist only to support composition via `composes`. Others are debug or operator tools that shouldn't appear in a public API. Others make sense on CLI but not MCP. The current mechanism for managing this is `include`/`exclude` on surface options, which works but has two problems:
 
 1. **It's surface-side knowledge about trail-side intent.** The trail author knows "this trail is not a public verb, it exists to be crossed into." That information lives in the author's head, not in the trail definition. Every surface must independently be told to exclude it.
 
-2. **It doesn't scale.** Flat string lists of trail IDs become unwieldy. Adding a new crossing target requires updating exclude lists on every surface. Forgetting one surface silently exposes an internal trail.
+2. **It doesn't scale.** Flat string lists of trail IDs become unwieldy. Adding a new composing target requires updating exclude lists on every surface. Forgetting one surface silently exposes an internal trail.
 
 ### What the trail author actually knows
 
-The author knows one thing that the framework currently can't express: **whether a trail is a public verb or an internal crossing target.** This is about the trail's role in the system, not about any particular surface. An internal trail isn't "hidden on CLI but shown on HTTP." It's "not a verb at all."
+The author knows one thing that the framework currently can't express: **whether a trail is a public verb or an internal composing target.** This is about the trail's role in the system, not about any particular surface. An internal trail isn't "hidden on CLI but shown on HTTP." It's "not a verb at all."
 
 Everything else people want from "visibility" is either already derivable from information on the trail (intent, permit scopes, namespace hierarchy) or is a surface-level configuration concern (which surfaces show which trails). The trail shouldn't know about surfaces. That's the hexagonal model.
 
@@ -62,11 +62,11 @@ const normalizePayload = trail('github.normalize-payload', {
 `visibility` accepts two values:
 
 - `'public'` (default, omitted in most definitions) -- the trail is a verb. Surfaces derive public commands, tools, and routes from it.
-- `'internal'` -- the trail is a composition target. Surfaces skip it by default. `ctx.cross()` and `run()` still work. Survey reports it with its visibility.
+- `'internal'` -- the trail is a composition target. Surfaces skip it by default. `ctx.compose()` and `run()` still work. Survey reports it with its visibility.
 
 The default is `'public'` for backward compatibility. Existing trails don't change. Progressive adoption: add `visibility: 'internal'` to composition-only trails when it matters.
 
-On the frozen Trail object, `visibility` is always present (defaulted to `'public'`). No runtime type narrowing needed. Same pattern as `crosses` defaulting to `[]`.
+On the frozen Trail object, `visibility` is always present (defaulted to `'public'`). No runtime type narrowing needed. Same pattern as `composes` defaulting to `[]`.
 
 ### Part 2: Glob patterns in surface include/exclude
 
@@ -216,10 +216,10 @@ The **lockfile** captures the resolved visibility state after the full pipeline 
 
 Four new governance rules follow from this ADR:
 
-- **Dead internal trail.** An `internal` trail with no crossings anywhere in the topo is unreachable. Warning.
-- **Profile dependency violation.** A profile excludes trail B, but trail A (included in that profile) crosses B. Error.
-- **Intent propagation.** A trail with `intent: 'read'` crosses a trail with `intent: 'write'` or `'destroy'`. The composite operation has side effects, but the entry point claims to be read-only. Warning.
-- **Missing visibility.** A trail that is only referenced in crossing declarations and never exposed on a surface could benefit from `visibility: 'internal'`. Coaching suggestion.
+- **Dead internal trail.** An `internal` trail with no compositions anywhere in the topo is unreachable. Warning.
+- **Profile dependency violation.** A profile excludes trail B, but trail A (included in that profile) composes B. Error.
+- **Intent propagation.** A trail with `intent: 'read'` composes a trail with `intent: 'write'` or `'destroy'`. The composite operation has side effects, but the entry point claims to be read-only. Warning.
+- **Missing visibility.** A trail that is only referenced in composing declarations and never exposed on a surface could benefit from `visibility: 'internal'`. Coaching suggestion.
 
 ## Consequences
 
@@ -242,7 +242,7 @@ Four new governance rules follow from this ADR:
 
 - Whether `visibility` will gain values beyond `'public'` and `'internal'`. Two values is enough. If a third is needed, a separate ADR will evaluate it.
 - Whether surfaces can override intent-derived behavior. Currently, intent filtering is additive (you can only narrow, not widen). Whether a surface should be able to promote a `destroy` trail to appear in a read-only context is left open.
-- How progressive disclosure (primary/secondary tool tiers) works on MCP. The MCP protocol supports deferred tool loading. Whether and how to leverage this is an MCP surface implementation concern, not an architectural decision. Pack membership and crossing-graph analysis provide signals the surface can use.
+- How progressive disclosure (primary/secondary tool tiers) works on MCP. The MCP protocol supports deferred tool loading. Whether and how to leverage this is an MCP surface implementation concern, not an architectural decision. Pack membership and composing-graph analysis provide signals the surface can use.
 - Whether visibility interacts with `run()`. Currently, `run()` can invoke any trail regardless of visibility. This is intentional: programmatic execution is not surface-mediated.
 
 ## References
@@ -253,7 +253,7 @@ Four new governance rules follow from this ADR:
 - [ADR-0008: Deterministic Surface Derivation](0008-deterministic-trailhead-derivation.md) -- the derivation rules that visibility and intent filtering extend
 - [ADR-0013: Tracing](0013-tracing.md) -- the observability system; visibility filtering events are observable through tracing
 - [ADR-0017: The Serialized Topo Graph](0017-serialized-topo-graph.md) -- the lockfile captures resolved visibility state after all overrides are applied
-- [ADR-0024: Typed Trail Composition](0024-typed-trail-composition.md) -- `crossInput` relates to internal visibility; a trail with required `crossInput` fields should declare `visibility: 'internal'`
+- [ADR-0024: Typed Trail Composition](0024-typed-trail-composition.md) -- `composeInput` relates to internal visibility; a trail with required `composeInput` fields should declare `visibility: 'internal'`
 - ADR: Packs as Namespace Boundaries (draft) -- packs set default visibility for their trails; depends on this ADR
 
 ### Amendment log

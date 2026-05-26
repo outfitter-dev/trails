@@ -31,14 +31,14 @@ Shortest:
 | `surface()` | Opens the graph to an outside interface such as CLI, MCP, HTTP, or WebSocket. |
 | `topo()` | Assembles trails, signals, resources, contours, and related definitions into a queryable graph. |
 | `detour` | Declares recovery paths when a trail cannot proceed normally. |
-| `cross` / `crosses` | Declares and performs trail-to-trail composition. |
+| `compose` / `composes` | Declares and performs trail-to-trail composition. |
 
 ## `blaze`
 
 A `blaze` is the authored implementation that makes a trail runnable.
 
 A trail can be specified before it is blazed. Its schemas, examples, intent,
-resources, crossings, signals, detours, and metadata can all exist as contract.
+resources, compositions, signals, detours, and metadata can all exist as contract.
 The `blaze` establishes the path through that contract, from validated input to `Result` output.
 
 The Trails runtime runs trails, not blazes. Once a trail is blazed, it can be exposed through any surface because its implementation is surface-agnostic:
@@ -128,7 +128,7 @@ Suggested prose:
 `blaze` fits the Trails development loop:
 
 - **Specify.** Define the trail contract: schemas, examples, intent, resources,
-  crossings, signals, and metadata.
+  compositions, signals, and metadata.
 - **Satisfy.** Blaze the trail: write the implementation that makes the contract
   real and examples pass.
 - **Tighten.** Add output schemas, safety declarations, error examples, detours,
@@ -251,7 +251,7 @@ The same discipline applies to every Trails term:
   user-facing outside boundary.
 - Use `topo` for the primitive and `graph` for the local value returned by
   `topo()`.
-- Use `cross` for trail-to-trail composition. Avoid call, invoke, pipeline,
+- Use `compose` for trail-to-trail composition. Avoid cross, call, invoke, pipeline,
   route, or workflow when naming the framework concept.
 - Use `resource` for declared infrastructure dependencies. Avoid service or
   provider for that concept.

@@ -43,7 +43,7 @@ Look for code smells that indicate architectural drift:
 - **Surface types in blazes:** imports of `Request`, `Response`, `McpSession` in trail files
 - **Direct throws:** `throw` statements in blaze code (should be `Result.err()`)
 - **Console usage:** `console.log`, `console.error` in non-surface code
-- **Direct `.run()` calls:** should be `ctx.cross()`
+- **Direct `.run()` calls:** should be `ctx.compose()`
 
 ```bash
 rg "throw " --type ts -g '*/trails/*' -g '!*.test.*'

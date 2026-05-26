@@ -2,7 +2,7 @@
  * `create` trail -- Create a new Trails project.
  *
  * Composes create.scaffold, add.surface, and add.verify sub-trails
- * via ctx.cross.
+ * via ctx.compose.
  */
 
 import { InternalError, Result, trail } from '@ontrails/core';
@@ -53,12 +53,12 @@ interface SurfaceResult {
   readonly dependency: string;
 }
 
-type TrailContextWithCross = TrailContext & {
-  readonly cross: NonNullable<TrailContext['cross']>;
+type TrailContextWithCompose = TrailContext & {
+  readonly compose: NonNullable<TrailContext['compose']>;
 };
 
-const hasCross = (ctx: TrailContext): ctx is TrailContextWithCross =>
-  Boolean(ctx.cross);
+const hasCompose = (ctx: TrailContext): ctx is TrailContextWithCompose =>
+  Boolean(ctx.compose);
 
 const buildScaffoldInput = (input: ScaffoldRequest) => ({
   ...(input.dir === undefined ? {} : { dir: input.dir }),
@@ -187,11 +187,11 @@ const writeReadme = async (
 
 export const createTrail = trail('create', {
   blaze: async (input: CreateInput, ctx) => {
-    if (!hasCross(ctx)) {
-      return Result.err(new InternalError('create trail requires ctx.cross'));
+    if (!hasCompose(ctx)) {
+      return Result.err(new InternalError('create trail requires ctx.compose'));
     }
 
-    const scaffolded = await ctx.cross<ScaffoldedProject>(
+    const scaffolded = await ctx.compose<ScaffoldedProject>(
       'create.scaffold',
       buildScaffoldInput(input)
     );
@@ -205,7 +205,7 @@ export const createTrail = trail('create', {
       const surfaceFiles = await collectSurfaceFiles(
         input.surfaces,
         (surface) =>
-          ctx.cross<SurfaceResult>(
+          ctx.compose<SurfaceResult>(
             'add.surface',
             buildSurfaceInput(scaffolded.value.dir, surface)
           )
@@ -215,7 +215,10 @@ export const createTrail = trail('create', {
       }
 
       const verifyFiles = await collectVerifyFiles(input.verify, () =>
-        ctx.cross<{ created: string[] }>('add.verify', buildVerifyInput(input))
+        ctx.compose<{ created: string[] }>(
+          'add.verify',
+          buildVerifyInput(input)
+        )
       );
       if (verifyFiles.isErr()) {
         return Result.err(verifyFiles.error);
@@ -240,7 +243,7 @@ export const createTrail = trail('create', {
 
     return finishCreate();
   },
-  crosses: ['create.scaffold', 'add.surface', 'add.verify'],
+  composes: ['create.scaffold', 'add.surface', 'add.verify'],
   description: 'Create a new Trails project',
   fields: {
     starter: {

@@ -35,7 +35,7 @@ export const resolvedImportBoundaryTrail = wrapRule({
         knownTrailIds: [],
         sourceCode: "import { secret } from '@fixture/core/internal/secret';\n",
       },
-      name: 'Cross-package imports must use exported package subpaths',
+      name: 'Compose-package imports must use exported package subpaths',
     },
     {
       expected: {
@@ -44,7 +44,7 @@ export const resolvedImportBoundaryTrail = wrapRule({
             filePath: 'packages/app/src/index.ts',
             line: 1,
             message:
-              'Local import "../../core/src/public" crosses into @fixture/core. Import the target package public surface instead.',
+              'Local import "../../core/src/public" composes into @fixture/core. Import the target package public surface instead.',
             rule: 'resolved-import-boundary',
             severity: 'error',
           },
@@ -68,7 +68,7 @@ export const resolvedImportBoundaryTrail = wrapRule({
         knownTrailIds: [],
         sourceCode: "import { pub } from '../../core/src/public';\n",
       },
-      name: 'Relative imports must not cross package boundaries',
+      name: 'Relative imports must not compose package boundaries',
     },
     {
       expected: {
@@ -102,7 +102,7 @@ export const resolvedImportBoundaryTrail = wrapRule({
         sourceCode:
           "import { secret } from '../../core/src/internal/secret';\n",
       },
-      name: 'Cross-package imports must not target internals',
+      name: 'Compose-package imports must not target internals',
     },
   ],
   rule: resolvedImportBoundary,

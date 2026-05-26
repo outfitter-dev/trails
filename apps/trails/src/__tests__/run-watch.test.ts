@@ -76,7 +76,7 @@ const passThroughLayer = (name: string, input?: Layer['input']): Layer => ({
 });
 
 interface WatchedAppOptions {
-  readonly crosses?: boolean | undefined;
+  readonly composes?: boolean | undefined;
   readonly examples?:
     | readonly [
         {
@@ -109,7 +109,7 @@ const buildWatchedApp = (options: WatchedAppOptions = {}): Topo => {
   });
   const watched = trail('entity.watch', {
     blaze: noopBlaze,
-    ...(options.crosses === true ? { crosses: ['entity.helper'] } : {}),
+    ...(options.composes === true ? { composes: ['entity.helper'] } : {}),
     ...(options.examples === undefined ? {} : { examples: options.examples }),
     ...(options.fires === true ? { fires: ['entity.changed'] } : {}),
     input: options.input ?? z.object({ id: z.string() }),
@@ -265,8 +265,8 @@ describe('createTrailWatcher', () => {
         name: 'signals',
       },
       {
-        app: buildWatchedApp({ crosses: true }),
-        name: 'crosses',
+        app: buildWatchedApp({ composes: true }),
+        name: 'composes',
       },
       {
         app: buildWatchedApp({
@@ -282,10 +282,10 @@ describe('createTrailWatcher', () => {
   });
 
   test('derived watched entry hash ignores sibling trail contract changes', () => {
-    const baseline = watchedEntryHash(buildWatchedApp({ crosses: true }));
+    const baseline = watchedEntryHash(buildWatchedApp({ composes: true }));
     const changedSibling = watchedEntryHash(
       buildWatchedApp({
-        crosses: true,
+        composes: true,
         helperInput: z.object({ changed: z.boolean() }),
       })
     );

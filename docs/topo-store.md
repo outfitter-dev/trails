@@ -38,7 +38,7 @@ A **pin** is a durable, human-friendly name you assign to a save you care about.
 
 ### Metadata
 
-For each save, the database stores trail IDs, intents, descriptions, examples, crossings, signals, resources, and their relationships. The schema cache avoids recomputing `zodToJsonSchema()` when schemas haven't changed.
+For each save, the database stores trail IDs, intents, descriptions, examples, compositions, signals, resources, and their relationships. The schema cache avoids recomputing `zodToJsonSchema()` when schemas haven't changed.
 
 ### Error scope
 

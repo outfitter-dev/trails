@@ -358,8 +358,8 @@ const addTrailRelations = (
       })
     );
   }
-  if (t.crosses.length > 0) {
-    entry['crosses'] = t.crosses.toSorted();
+  if (t.composes.length > 0) {
+    entry['composes'] = t.composes.toSorted();
   }
   if (t.fires.length > 0) {
     entry['fires'] = t.fires.toSorted();

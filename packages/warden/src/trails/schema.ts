@@ -71,18 +71,18 @@ export const publicWorkspaceSchema = z.object({
 /**
  * Extended input for project-aware warden rule trails.
  *
- * Adds `knownTrailIds` so the caller can supply cross-file context and avoid
- * false positives for `@see` references or cross-file contour relationships.
+ * Adds `knownTrailIds` so the caller can supply compose-file context and avoid
+ * false positives for `@see` references or compose-file contour relationships.
  */
 export const projectAwareRuleInput = ruleInput.extend({
+  composeTargetTrailIds: z
+    .array(z.string())
+    .optional()
+    .describe('Trail IDs referenced by composes arrays across the project'),
   contourReferencesByName: z
     .record(z.string(), z.array(z.string()))
     .optional()
     .describe('Declared contour references keyed by source contour name'),
-  crossTargetTrailIds: z
-    .array(z.string())
-    .optional()
-    .describe('Trail IDs referenced by crosses arrays across the project'),
   crudCoverageByEntity: z
     .record(z.string(), z.array(z.string()))
     .optional()

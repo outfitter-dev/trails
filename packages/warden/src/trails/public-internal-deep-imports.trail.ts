@@ -87,7 +87,7 @@ export const publicInternalDeepImportsTrail = wrapRule({
         },
         sourceCode: `import { hidden } from '@ontrails/core/src/internal/hidden';\n`,
       },
-      name: 'Flags cross-package imports into owner internals',
+      name: 'Flags compose-package imports into owner internals',
     },
   ],
   rule: publicInternalDeepImports,

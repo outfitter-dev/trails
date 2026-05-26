@@ -11,7 +11,7 @@ export const noRedundantResultErrorWrapTrail = wrapRule({
 
 trail("entity.load", {
   blaze: async (input, ctx) => {
-    const loaded = await ctx.cross("entity.fetch", input);
+    const loaded = await ctx.compose("entity.fetch", input);
     if (loaded.isErr()) {
       return loaded;
     }
@@ -40,7 +40,7 @@ trail("entity.load", {
 
 trail("entity.load", {
   blaze: async (input, ctx) => {
-    const loaded = await ctx.cross("entity.fetch", input);
+    const loaded = await ctx.compose("entity.fetch", input);
     if (loaded.isErr()) {
       return Result.err(loaded.error);
     }

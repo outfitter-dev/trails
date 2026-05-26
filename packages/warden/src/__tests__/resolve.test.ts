@@ -209,7 +209,7 @@ describe('Warden resolver substrate', () => {
     }
   });
 
-  test('marks relative imports that cross package boundaries and target internals', () => {
+  test('marks relative imports that compose package boundaries and target internals', () => {
     const fixture = createWorkspaceFixture();
     try {
       const resolver = createWardenResolver({ rootDir: fixture.rootDir });

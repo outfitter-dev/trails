@@ -27,9 +27,9 @@ import {
 } from './fire.js';
 import type { BasePermit } from './permits.js';
 import type {
-  CrossBatchOptions,
-  CrossOptions,
-  CrossFn,
+  ComposeBatchOptions,
+  ComposeOptions,
+  ComposeFn,
   Detour,
   Implementation,
   TraceFn,
@@ -38,7 +38,7 @@ import type {
 } from './types.js';
 
 import { createTrailContext, passthroughTrace } from './context.js';
-import { buildCrossValidationSchema } from './cross-schema.js';
+import { buildComposeValidationSchema } from './compose-schema.js';
 import {
   CancelledError,
   InternalError,
@@ -49,10 +49,10 @@ import {
   ValidationError,
 } from './errors.js';
 import {
-  claimNextCrossBatchIndex,
-  createCrossBatchValidationResults,
-  normalizeCrossBatchConcurrency,
-} from './cross-batch.js';
+  claimNextComposeBatchIndex,
+  createComposeBatchValidationResults,
+  normalizeComposeBatchConcurrency,
+} from './compose-batch.js';
 import { forkCtx } from './internal/fork-ctx.js';
 import {
   TRACE_CONTEXT_KEY,
@@ -85,9 +85,9 @@ type MutableTrailContext = {
   -readonly [K in keyof TrailContext]: TrailContext[K];
 };
 
-type CrossForwardOptions = Omit<
+type ComposeForwardOptions = Omit<
   ExecuteTrailInternalOptions,
-  'createContext' | 'crossValidation' | 'validationSchema' | 'version'
+  'createContext' | 'composeValidation' | 'validationSchema' | 'version'
 >;
 
 // ---------------------------------------------------------------------------
@@ -177,30 +177,30 @@ export interface ExecuteTrailOptions {
 }
 
 /**
- * Internal executor options used by framework-managed cross and fork dispatch.
+ * Internal executor options used by framework-managed compose and fork dispatch.
  *
  * These fields intentionally stay out of the exported public
  * {@link ExecuteTrailOptions} surface.
  */
 interface ExecuteTrailInternalOptions extends ExecuteTrailOptions {
   /**
-   * Marks this invocation as a `ctx.cross()` dispatch so versioned fork
-   * entries validate against their own `crossInput`.
+   * Marks this invocation as a `ctx.compose()` dispatch so versioned fork
+   * entries validate against their own `composeInput`.
    *
-   * Used by the cross execution path; not part of the public API.
+   * Used by the compose execution path; not part of the public API.
    *
    * @internal
    */
-  readonly crossValidation?: boolean | undefined;
+  readonly composeValidation?: boolean | undefined;
   /**
    * Override the validation schema used for input validation.
    *
-   * When a trail is invoked via `ctx.cross()` and the target declares
-   * `crossInput`, the cross function merges `trail.input` with
-   * `trail.crossInput` and passes the merged schema here so validation
+   * When a trail is invoked via `ctx.compose()` and the target declares
+   * `composeInput`, the compose function merges `trail.input` with
+   * `trail.composeInput` and passes the merged schema here so validation
    * accepts both public and composition-only fields.
    *
-   * Used by the cross execution path; not part of the public API.
+   * Used by the compose execution path; not part of the public API.
    *
    * @internal
    */
@@ -241,7 +241,7 @@ const applyContextOverrides = (
     return withPermit;
   }
   // Merge per-layer inputs onto any inherited LAYER_INPUTS_KEY slot so
-  // crossed/forked contexts can preserve outer-surface metadata.
+  // composed/forked contexts can preserve outer-surface metadata.
   const inheritedExtensions = withPermit.extensions ?? {};
   const inheritedLayerInputs = (inheritedExtensions[LAYER_INPUTS_KEY] ?? {}) as
     | Readonly<Record<string, unknown>>
@@ -474,8 +474,8 @@ const extractPermit = (
  * The returned function reads the *current* trace context from its captured
  * parent. That means direct nesting (`ctx.trace('a', () => ctx.trace('b',
  * ...))`) produces siblings under `a`'s parent, not children of `a`. For
- * true child nesting, callers should cross into another trail (which gets
- * its own root record parented by this one) — full cross-trail parenting
+ * true child nesting, callers should compose into another trail (which gets
+ * its own root record parented by this one) — full compose-trail parenting
  * is implemented in a later phase. For Phase 1, sibling spans under the
  * trail's root are the supported shape.
  */
@@ -503,7 +503,7 @@ const buildTracedContext = (
   sink: ReturnType<typeof getTraceSink>
 ): { readonly record: TraceRecord; readonly tracedCtx: TrailContext } => {
   // If a parent trace context is present (set by an outer executeTrail when
-  // the current trail was invoked via ctx.cross or ctx.fire), inherit its
+  // the current trail was invoked via ctx.compose or ctx.fire), inherit its
   // traceId/rootId so the trace tree spans trail boundaries. Otherwise this
   // execution becomes a fresh root.
   const parent = ctx.extensions?.[TRACE_CONTEXT_KEY] as
@@ -592,15 +592,15 @@ const runImplWithRootRecord = async (
   }
 };
 
-interface ResolvedCrossTarget {
+interface ResolvedComposeTarget {
   readonly trail: AnyTrail;
   readonly version?: TrailVersionReference | undefined;
 }
 
-const resolveCrossTarget = (
+const resolveComposeTarget = (
   trailOrId: AnyTrail | string,
   topo: Topo | undefined
-): Result<ResolvedCrossTarget, Error> => {
+): Result<ResolvedComposeTarget, Error> => {
   if (typeof trailOrId !== 'string') {
     return Result.ok({ trail: trailOrId });
   }
@@ -613,7 +613,7 @@ const resolveCrossTarget = (
   if (topo === undefined) {
     return Result.err(
       new NotFoundError(
-        `Trail "${trailOrId}" cannot be crossed without topo access`
+        `Trail "${trailOrId}" cannot be composed without topo access`
       )
     );
   }
@@ -662,7 +662,7 @@ const deriveConcurrentBranchObserveMetadata = (
   return {
     ...readObserveLoggerMetadata(ctx),
     branchIndex,
-    crossedTrailId: target.id,
+    composedTrailId: target.id,
   };
 };
 
@@ -694,19 +694,19 @@ const deriveConcurrentBranchLogger = (
 ) =>
   ctx.logger?.child?.({
     branchIndex,
-    crossedTrailId: target.id,
+    composedTrailId: target.id,
   }) ?? ctx.logger;
 
 /**
- * Build a child context for one concurrent crossing branch.
+ * Build a child context for one concurrent composing branch.
  *
- * Concurrent crossings should not inherit already-resolved resource instances
+ * Concurrent compositions should not inherit already-resolved resource instances
  * from the parent execution scope. Stripping resource IDs from extensions
  * forces each branch to resolve its own scope while still carrying forward
  * request-scoped values like tracing, surface identity, permits, and the
  * shared AbortSignal.
  *
- * `cross`, `fire`, and `resource` are cleared so the child execution can
+ * `compose`, `fire`, and `resource` are cleared so the child execution can
  * rebind them to the branch-local context instead of reusing closures that
  * capture the parent scope.
  */
@@ -721,73 +721,73 @@ const buildConcurrentBranchContext = (
     logger: deriveConcurrentBranchLogger(ctx, target, branchIndex),
   });
 
-const executeResolvedCrossTarget = async (
+const executeResolvedComposeTarget = async (
   target: AnyTrail,
   input: unknown,
   ctx: TrailContext,
   topo: Topo | undefined,
-  forwarded: CrossForwardOptions,
+  forwarded: ComposeForwardOptions,
   version?: TrailVersionReference | undefined
 ): Promise<Result<unknown, Error>> =>
   await // eslint-disable-next-line no-use-before-define -- executor closure runs only after executeTrail is defined
   executeTrailInternal(target, input, {
     ...forwarded,
-    crossValidation: true,
+    composeValidation: true,
     ctx,
     topo,
     ...(version === undefined ? {} : { version }),
-    validationSchema: buildCrossValidationSchema(target),
+    validationSchema: buildComposeValidationSchema(target),
   });
 
-const executeCrossTarget = async (
+const executeComposeTarget = async (
   trailOrId: AnyTrail | string,
   input: unknown,
   ctx: TrailContext,
   topo: Topo | undefined,
-  forwarded: CrossForwardOptions,
-  crossOptions?: CrossOptions | undefined
+  forwarded: ComposeForwardOptions,
+  composeOptions?: ComposeOptions | undefined
 ): Promise<Result<unknown, Error>> => {
-  const target = resolveCrossTarget(trailOrId, topo);
+  const target = resolveComposeTarget(trailOrId, topo);
   if (target.isErr()) {
     return target;
   }
   if (
     target.value.version !== undefined &&
-    crossOptions?.version !== undefined
+    composeOptions?.version !== undefined
   ) {
     return Result.err(
       new ValidationError(
-        `Trail "${target.value.trail.id}" version was provided both in the id reference and ctx.cross() options`
+        `Trail "${target.value.trail.id}" version was provided both in the id reference and ctx.compose() options`
       )
     );
   }
 
-  return await executeResolvedCrossTarget(
+  return await executeResolvedComposeTarget(
     target.value.trail,
     input,
     ctx,
     topo,
     forwarded,
-    crossOptions?.version ?? target.value.version
+    composeOptions?.version ?? target.value.version
   );
 };
 
-type CrossBatchCall = readonly [AnyTrail | string, unknown];
+type ComposeBatchCall = readonly [AnyTrail | string, unknown];
 
-const executeConcurrentCrossBatchCall = async (
-  call: CrossBatchCall,
+const executeConcurrentComposeBatchCall = async (
+  call: ComposeBatchCall,
   branchIndex: number,
   ctx: TrailContext,
   topo: Topo | undefined,
-  forwarded: CrossForwardOptions
+  forwarded: ComposeForwardOptions
 ): Promise<Result<unknown, Error>> => {
   const [trailOrId, batchInput] = call;
-  const target = resolveCrossTarget(trailOrId, topo);
+  const target = resolveComposeTarget(trailOrId, topo);
   if (target.isErr()) {
     return target;
   }
 
-  return await executeResolvedCrossTarget(
+  return await executeResolvedComposeTarget(
     target.value.trail,
     batchInput,
     buildConcurrentBranchContext(ctx, target.value.trail, topo, branchIndex),
@@ -797,55 +797,55 @@ const executeConcurrentCrossBatchCall = async (
   );
 };
 
-const executeUnlimitedCrossBatch = async (
-  calls: readonly CrossBatchCall[],
+const executeUnlimitedComposeBatch = async (
+  calls: readonly ComposeBatchCall[],
   ctx: TrailContext,
   topo: Topo | undefined,
-  forwarded: CrossForwardOptions
+  forwarded: ComposeForwardOptions
 ): Promise<Result<unknown, Error>[]> =>
   await Promise.all(
     calls.map((call, branchIndex) =>
-      executeConcurrentCrossBatchCall(call, branchIndex, ctx, topo, forwarded)
+      executeConcurrentComposeBatchCall(call, branchIndex, ctx, topo, forwarded)
     )
   );
 
-const createCrossBatchResults = (
-  calls: readonly CrossBatchCall[]
+const createComposeBatchResults = (
+  calls: readonly ComposeBatchCall[]
 ): Result<unknown, Error>[] =>
   Array.from<Result<unknown, Error>>({ length: calls.length });
 
-const executeLimitedCrossBatch = async (
-  calls: readonly CrossBatchCall[],
+const executeLimitedComposeBatch = async (
+  calls: readonly ComposeBatchCall[],
   ctx: TrailContext,
   topo: Topo | undefined,
-  forwarded: CrossForwardOptions,
+  forwarded: ComposeForwardOptions,
   limit: number
 ): Promise<Result<unknown, Error>[]> => {
-  const results = createCrossBatchResults(calls);
+  const results = createComposeBatchResults(calls);
   const nextIndex = { value: 0 };
 
   const runWorker = async () => {
     while (true) {
-      const branchIndex = claimNextCrossBatchIndex(nextIndex, calls);
+      const branchIndex = claimNextComposeBatchIndex(nextIndex, calls);
       if (branchIndex === undefined) {
         return;
       }
 
       const call = calls[branchIndex];
       if (call === undefined) {
-        // Defensive: `claimNextCrossBatchIndex` only returns indices within
+        // Defensive: `claimNextComposeBatchIndex` only returns indices within
         // bounds, so this slot should always be populated. If it ever isn't,
         // surface a clear InternalError in place of the missing slot and keep
         // the worker loop running so sibling branches still get processed.
         results[branchIndex] = Result.err(
           new InternalError(
-            `unreachable: concurrent cross batch call missing at index ${branchIndex}`
+            `unreachable: concurrent compose batch call missing at index ${branchIndex}`
           )
         );
         continue;
       }
 
-      results[branchIndex] = await executeConcurrentCrossBatchCall(
+      results[branchIndex] = await executeConcurrentComposeBatchCall(
         call,
         branchIndex,
         ctx,
@@ -859,63 +859,63 @@ const executeLimitedCrossBatch = async (
   return results;
 };
 
-const executeCrossBatch = async (
-  calls: readonly CrossBatchCall[],
+const executeComposeBatch = async (
+  calls: readonly ComposeBatchCall[],
   ctx: TrailContext,
   topo: Topo | undefined,
-  forwarded: CrossForwardOptions,
-  batchOptions?: CrossBatchOptions
+  forwarded: ComposeForwardOptions,
+  batchOptions?: ComposeBatchOptions
 ): Promise<Result<unknown, Error>[]> => {
   if (calls.length === 0) {
     return [];
   }
 
-  const concurrency = normalizeCrossBatchConcurrency(batchOptions);
+  const concurrency = normalizeComposeBatchConcurrency(batchOptions);
   if (concurrency.isErr()) {
-    return createCrossBatchValidationResults(calls, concurrency.error);
+    return createComposeBatchValidationResults(calls, concurrency.error);
   }
 
   const limit = concurrency.value ?? calls.length;
   return limit >= calls.length
-    ? await executeUnlimitedCrossBatch(calls, ctx, topo, forwarded)
-    : await executeLimitedCrossBatch(calls, ctx, topo, forwarded, limit);
+    ? await executeUnlimitedComposeBatch(calls, ctx, topo, forwarded)
+    : await executeLimitedComposeBatch(calls, ctx, topo, forwarded, limit);
 };
 
-const bindCrossToCtx = (
+const bindComposeToCtx = (
   ctx: TrailContext,
   topo: Topo | undefined,
   options: ExecuteTrailInternalOptions | undefined
 ): TrailContext => {
-  if (ctx.cross !== undefined) {
+  if (ctx.compose !== undefined) {
     return ctx;
   }
 
   const {
     createContext: _omit,
-    crossValidation: _omitCrossValidation,
+    composeValidation: _omitComposeValidation,
     validationSchema: _omitSchema,
     version: _omitVersion,
     ...forwarded
   } = options ?? {};
-  const cross = (async (
+  const compose = (async (
     trailOrCalls:
       | AnyTrail
       | string
       | readonly (readonly [AnyTrail | string, unknown])[],
     inputOrOptions?: unknown,
-    singleOptions?: CrossOptions
+    singleOptions?: ComposeOptions
   ) => {
     if (Array.isArray(trailOrCalls)) {
-      return await executeCrossBatch(
+      return await executeComposeBatch(
         trailOrCalls,
         ctx,
         topo,
         forwarded,
-        inputOrOptions as CrossBatchOptions | undefined
+        inputOrOptions as ComposeBatchOptions | undefined
       );
     }
 
-    return await executeCrossTarget(
+    return await executeComposeTarget(
       trailOrCalls as AnyTrail | string,
       inputOrOptions,
       ctx,
@@ -923,11 +923,11 @@ const bindCrossToCtx = (
       forwarded,
       singleOptions
     );
-  }) as CrossFn;
+  }) as ComposeFn;
 
   return {
     ...ctx,
-    cross,
+    compose,
   };
 };
 
@@ -937,7 +937,7 @@ const bindFireToCtx = (
   options: ExecuteTrailInternalOptions | undefined,
   producerTrailId?: string | undefined
 ): TrailContext => {
-  // Symmetric with bindCrossToCtx: a caller-supplied ctx.fire (e.g. test
+  // Symmetric with bindComposeToCtx: a caller-supplied ctx.fire (e.g. test
   // helper, scenario harness, or runtime intercepting signal fan-out) is
   // preserved as-is. Without this guard, passing both `topo: app` and a
   // custom `ctx.fire` would silently clobber the injected mock with the
@@ -955,10 +955,10 @@ const bindFireToCtx = (
   // already-resolved ctx via `consumerCtx`, and re-running the factory would
   // clobber that.
   // Strip createContext (consumers inherit resolved ctx) and validationSchema
-  // (consumers validate against their own schema, not the producer's cross schema).
+  // (consumers validate against their own schema, not the producer's compose schema).
   const {
     createContext: _omit,
-    crossValidation: _omitCrossValidation,
+    composeValidation: _omitComposeValidation,
     validationSchema: _omitSchema,
     version: _omitVersion,
     ...forwarded
@@ -979,14 +979,14 @@ const bindFireToCtx = (
   return { ...trackedCtx, fire };
 };
 
-const bindCrossAtLayerBoundary =
+const bindComposeAtLayerBoundary =
   <I, O>(
     implementation: Implementation<I, O>,
     topo: Topo | undefined,
     options: ExecuteTrailInternalOptions | undefined
   ): Implementation<I, O> =>
   (input, ctx) =>
-    implementation(input, bindCrossToCtx(ctx, topo, options));
+    implementation(input, bindComposeToCtx(ctx, topo, options));
 
 const bindFireAtLayerBoundary = <I, O>(
   implementation: Implementation<I, O>,
@@ -1184,7 +1184,7 @@ const prepareRunImpl = (
   readonly impl: Implementation<unknown, unknown>;
 } => {
   const ctxWithIntrinsics = bindFireToCtx(
-    bindCrossToCtx(ctx, topo, options),
+    bindComposeToCtx(ctx, topo, options),
     topo,
     options,
     trail.id
@@ -1192,7 +1192,7 @@ const prepareRunImpl = (
   // Detour loop wraps the blaze (inside layer stack, closest to blaze)
   let impl = wrapWithDetours(
     bindFireAtLayerBoundary(
-      bindCrossAtLayerBoundary(
+      bindComposeAtLayerBoundary(
         trail.blaze as Implementation<unknown, unknown>,
         topo,
         options
@@ -1208,7 +1208,7 @@ const prepareRunImpl = (
     const layer = layers[i];
     if (layer) {
       impl = bindFireAtLayerBoundary(
-        bindCrossAtLayerBoundary(
+        bindComposeAtLayerBoundary(
           layer.wrap(trail, impl as never) as Implementation<unknown, unknown>,
           topo,
           options
@@ -1353,8 +1353,8 @@ const createForkTrailVersion = (
 ): AnyTrail => {
   const {
     blaze: _blaze,
-    crossInput: _crossInput,
-    crosses: _crosses,
+    composeInput: _composeInput,
+    composes: _composes,
     detours: _detours,
     input: _input,
     output: _output,
@@ -1367,9 +1367,11 @@ const createForkTrailVersion = (
   return Object.freeze({
     ...base,
     blaze: entry.blaze,
-    crosses: Object.freeze([...(entry.crosses ?? [])]),
+    composes: Object.freeze([...(entry.composes ?? [])]),
     detours: Object.freeze([...(entry.detours ?? [])]),
-    ...(entry.crossInput === undefined ? {} : { crossInput: entry.crossInput }),
+    ...(entry.composeInput === undefined
+      ? {}
+      : { composeInput: entry.composeInput }),
     input: entry.input,
     output: entry.output,
     resources: Object.freeze([...(entry.resources ?? [])]),
@@ -1383,8 +1385,8 @@ const executeRequestedForkTrailVersion = async (
   options: ExecuteTrailInternalOptions
 ): Promise<Result<unknown, Error>> => {
   const forkTrail = createForkTrailVersion(trail, entry);
-  const validationSchema = options.crossValidation
-    ? buildCrossValidationSchema(forkTrail)
+  const validationSchema = options.composeValidation
+    ? buildComposeValidationSchema(forkTrail)
     : options.validationSchema;
 
   // eslint-disable-next-line no-use-before-define -- recursive dispatch strips version before re-entering the fork pipeline

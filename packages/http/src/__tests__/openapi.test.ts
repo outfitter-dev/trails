@@ -689,7 +689,7 @@ const registerMetadataAndStructureTests = () => {
     test('rejects draft-contaminated topologies', () => {
       const exportTrail = trail('entity.export', {
         blaze: noop,
-        crosses: ['_draft.entity.prepare'],
+        composes: ['_draft.entity.prepare'],
         input: z.object({}),
       });
 
@@ -701,7 +701,7 @@ const registerMetadataAndStructureTests = () => {
     test('rejects structural validation issues', () => {
       const exportTrail = trail('entity.export', {
         blaze: noop,
-        crosses: ['entity.missing'],
+        composes: ['entity.missing'],
         input: z.object({}),
       });
 

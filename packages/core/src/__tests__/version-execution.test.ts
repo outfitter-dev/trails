@@ -30,7 +30,7 @@ const legacyInput = z.object({ fullName: z.string() });
 const legacyOutput = z.object({ text: z.string() });
 const archivedInput = z.object({ archivedName: z.string() });
 const forkInput = z.object({ id: z.string() });
-const forkCrossInput = z.object({ source: z.string() });
+const forkComposeInput = z.object({ source: z.string() });
 const forkOutput = z.object({ summary: z.string() });
 
 const suffixResource = resource('version.runtime.suffix', {
@@ -44,11 +44,11 @@ const versionHelper = trail('version.runtime.helper', {
   visibility: 'internal',
 });
 
-const requireCross = (
+const requireCompose = (
   ctx: TrailContext
-): NonNullable<TrailContext['cross']> => {
-  expect(ctx.cross).toBeDefined();
-  return ctx.cross as NonNullable<TrailContext['cross']>;
+): NonNullable<TrailContext['compose']> => {
+  expect(ctx.compose).toBeDefined();
+  return ctx.compose as NonNullable<TrailContext['compose']>;
 };
 
 const versionedTrail = trail('version.runtime.greet', {
@@ -88,7 +88,7 @@ const versionedTrail = trail('version.runtime.greet', {
         if (input.id === 'detour') {
           return Result.err(new ConflictError('fork conflict'));
         }
-        const helper = await requireCross(ctx)('version.runtime.helper', {
+        const helper = await requireCompose(ctx)('version.runtime.helper', {
           id: input.id,
         });
         if (helper.isErr()) {
@@ -98,8 +98,8 @@ const versionedTrail = trail('version.runtime.greet', {
           summary: `${input.source}:${helper.value.value}:${suffixResource.from(ctx).value}`,
         });
       },
-      crossInput: forkCrossInput,
-      crosses: [versionHelper],
+      composeInput: forkComposeInput,
+      composes: [versionHelper],
       detours: [
         {
           on: ConflictError,
@@ -188,7 +188,7 @@ describe('trail version execution', () => {
     });
   });
 
-  test('runs fork entries with their own blaze, resources, crosses, and detours', async () => {
+  test('runs fork entries with their own blaze, resources, composes, and detours', async () => {
     const result = await executeTrail(
       versionedTrail,
       { id: 'forked', source: 'direct' },
@@ -225,7 +225,7 @@ describe('trail version execution', () => {
   test('preserves caller validation schema for direct fork version execution', async () => {
     const result = await executeTrail(
       versionedTrail,
-      { id: 'forked', source: 'cross-only' },
+      { id: 'forked', source: 'compose-only' },
       {
         topo: versionedTopo,
         validationSchema: z.object({
@@ -240,10 +240,10 @@ describe('trail version execution', () => {
     expect(result.error).toBeInstanceOf(ValidationError);
   });
 
-  test('does not leak current crossInput validation into forks without crossInput', async () => {
-    const target = trail('version.runtime.fork.without-cross-input', {
+  test('does not leak current composeInput validation into forks without composeInput', async () => {
+    const target = trail('version.runtime.fork.without-compose-input', {
       blaze: (input) => Result.ok({ seen: `current:${input.id}` }),
-      crossInput: z.object({ source: z.literal('current') }),
+      composeInput: z.object({ source: z.literal('current') }),
       input: z.object({ id: z.string() }),
       output: z.object({ seen: z.string() }),
       version: 2,
@@ -258,26 +258,26 @@ describe('trail version execution', () => {
         },
       },
     });
-    const parent = trail('version.runtime.fork.cross-input.parent', {
+    const parent = trail('version.runtime.fork.compose-input.parent', {
       blaze: async (_input, ctx) => {
-        const crossed = await requireCross(ctx)(
-          'version.runtime.fork.without-cross-input',
+        const composed = await requireCompose(ctx)(
+          'version.runtime.fork.without-compose-input',
           {
             id: 'forked',
             source: 'fork',
           },
           { version: 1 }
         );
-        return crossed.match({
+        return composed.match({
           err: (error) => Result.err(error),
           ok: (value) => Result.ok(value),
         });
       },
-      crosses: [target],
+      composes: [target],
       input: z.object({}),
       output: z.object({ seen: z.string() }),
     });
-    const app = topo('version-runtime-fork-cross-input-topo', {
+    const app = topo('version-runtime-fork-compose-input-topo', {
       parent,
       target,
     });
@@ -349,17 +349,17 @@ describe('trail version execution', () => {
     });
   });
 
-  test('keeps ctx.cross() current by default and allows explicit version pins', async () => {
+  test('keeps ctx.compose() current by default and allows explicit version pins', async () => {
     const parent = trail('version.runtime.parent', {
       blaze: async (_input, ctx) => {
-        const cross = requireCross(ctx);
-        const current = await cross('version.runtime.greet', { name: 'Ada' });
-        const legacy = await cross(
+        const compose = requireCompose(ctx);
+        const current = await compose('version.runtime.greet', { name: 'Ada' });
+        const legacy = await compose(
           'version.runtime.greet',
           { fullName: 'Ada' },
           { version: 1 }
         );
-        const fork = await cross(
+        const fork = await compose(
           'version.runtime.greet',
           { id: 'forked', source: 'parent' },
           { version: 5 }
@@ -379,7 +379,7 @@ describe('trail version execution', () => {
           legacy: (legacy.value as { text: string }).text,
         });
       },
-      crosses: [versionedTrail],
+      composes: [versionedTrail],
       input: z.object({}),
       output: z.object({
         current: z.string(),
@@ -387,7 +387,7 @@ describe('trail version execution', () => {
         legacy: z.string(),
       }),
     });
-    const app = topo('version-runtime-cross-topo', {
+    const app = topo('version-runtime-compose-topo', {
       parent,
       versionHelper,
       versionedTrail,

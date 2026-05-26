@@ -629,7 +629,7 @@ const collectAllDeclaredScopes = (graph: Topo): readonly string[] => {
  *
  * @remarks Scope coverage is bounded by `topo.list()`. Trails on a child or
  * mounted topo (Phase 7) won't contribute scopes here; that case will need
- * to walk the mounted hierarchy when cross-app composition lands. Trails
+ * to walk the mounted hierarchy when compose-app composition lands. Trails
  * filtered out of `topo.list()` (e.g. by a future tier filter) are likewise
  * not represented in the synthesized permit.
  */

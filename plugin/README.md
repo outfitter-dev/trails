@@ -92,7 +92,7 @@ passes or an operator explicitly chooses to keep it decoupled.
 
 ### Rules
 
-- **lexicon** — Enforces Trails-branded terms (trail, surface, topo, blaze, cross, resource, signal, layer, tracing)
+- **lexicon** — Enforces Trails-branded terms (trail, surface, topo, blaze, compose, resource, signal, layer, tracing)
 - **patterns** — Core coding patterns (Result over throw, surface-agnostic blazes)
 
 ## License

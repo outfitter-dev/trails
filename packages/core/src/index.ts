@@ -75,9 +75,9 @@ export type {
   Implementation,
   TrailContext,
   TrailContextInit,
-  CrossBatchOptions,
-  CrossOptions,
-  CrossFn,
+  ComposeBatchOptions,
+  ComposeOptions,
+  ComposeFn,
   FireFn,
   LogLevel,
   LogFormatter,
@@ -258,7 +258,7 @@ export type {
 
 // Type utilities
 export type {
-  CrossInput,
+  ComposeInput,
   TrailInput,
   TrailOutput,
   TrailResult,
@@ -444,13 +444,13 @@ export type {
 export { deriveCliPath, deriveFields } from './derive.js';
 export type { Field, FieldOverride } from './derive.js';
 
-// Cross schema
-export { buildCrossValidationSchema } from './cross-schema.js';
+// Compose schema
+export { buildComposeValidationSchema } from './compose-schema.js';
 export {
-  claimNextCrossBatchIndex,
-  createCrossBatchValidationResults,
-  normalizeCrossBatchConcurrency,
-} from './cross-batch.js';
+  claimNextComposeBatchIndex,
+  createComposeBatchValidationResults,
+  normalizeComposeBatchConcurrency,
+} from './compose-batch.js';
 
 // Execute
 export { DETOUR_MAX_ATTEMPTS_CAP } from './detours.js';

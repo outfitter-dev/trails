@@ -38,7 +38,7 @@ If the feature is complex, sketch the contract and get user alignment before imp
 - Return `Result`, never throw
 - Keep blazes surface-agnostic
 - Declare resources on the trail spec with `resources: [db]` and access via `db.from(ctx)` -- never construct dependencies inline
-- Use `ctx.cross()` for composition, never `.blaze()` or `.run()` directly
+- Use `ctx.compose()` for composition, never `.blaze()` or `.run()` directly
 - Use `ctx.logger?.debug/info/warn/error` instead of `console.log`
 
 ### 4. Wire Into Topo
@@ -85,7 +85,7 @@ trails warden
 
 Fix any violations before considering the work done. For the current generated rule index, prefer the `trails` skill's `references/warden-guide.md` over copied rule memory. Common issues:
 
-- `cross-declarations` — update `crosses` to match `ctx.cross()` calls
+- `composes-declarations` — update `composes` to match `ctx.compose()` calls
 - `public-output-schema` — add `output` to public MCP/HTTP trails
 - `no-throw-in-implementation` — replace thrown failures with `Result.err()`
 - `example-valid` — update examples when input or output schemas change
@@ -109,7 +109,7 @@ When tests fail or behavior is unexpected:
 1. **Read the error** — Trails errors are typed. The class name tells you the category.
 2. **Check the taxonomy** — Refer to `error-taxonomy.md` from the trails skill.
 3. **Run warden** — Convention violations cause subtle bugs. `trails warden` catches them.
-4. **Check common pitfalls** — Throwing instead of returning Result, calling `.blaze()` directly, missing public MCP/HTTP output schemas, mismatched crossings.
+4. **Check common pitfalls** — Throwing instead of returning Result, calling `.blaze()` directly, missing public MCP/HTTP output schemas, mismatched compositions.
 5. **Inspect the topo** — `trails survey` shows the full trail graph.
 
 ## What Not to Do
@@ -117,5 +117,5 @@ When tests fail or behavior is unexpected:
 - Don't skip the contract. Design the trail before implementing it.
 - Don't throw in blazes. Return `Result.err()`.
 - Don't import surface types into trail logic. No `Request`, `Response`, `McpSession`.
-- Don't call `.blaze()` directly. Use `ctx.cross()`.
+- Don't call `.blaze()` directly. Use `ctx.compose()`.
 - Don't skip warden. Run it before marking work complete.

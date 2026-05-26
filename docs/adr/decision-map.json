@@ -80,7 +80,7 @@
           "fromPath": "docs/adr/0018-signal-driven-governance.md"
         },
         {
-          "context": "- [ADR-0000: Core Premise — The information architecture](0000-core-premise.md) — the authored/projected/enforced categories that `crossInput` extends with composition scope",
+          "context": "- [ADR-0000: Core Premise — The information architecture](0000-core-premise.md) — the authored/projected/enforced categories that `composeInput` extends with composition scope",
           "from": "0024",
           "fromPath": "docs/adr/0024-typed-trail-composition.md"
         },
@@ -244,7 +244,7 @@
           "fromPath": "docs/adr/0035-surface-apis-render-the-graph.md"
         },
         {
-          "context": "- [ADR-0001: Naming Conventions](../0001-naming-conventions.md#a-note-on-the-adr-record) — the brand-vs-plain heuristic and the in-place cutover precedent; gains a Cutover 4 log entry pointing here.",
+          "context": "- [ADR-0001: Naming Conventions](0001-naming-conventions.md#a-note-on-the-adr-record) — the brand-vs-plain heuristic and the in-place cutover precedent; gains a Cutover 4 log entry pointing here.",
           "from": "0049",
           "fromPath": "docs/adr/0049-composition-is-compose-not-cross.md"
         },
@@ -281,7 +281,7 @@
       "status": "accepted",
       "superseded_by": null,
       "title": "Naming Conventions — Guessable API Through Structural Rules",
-      "updated": "2026-05-19"
+      "updated": "2026-05-26"
     },
     {
       "created": "2026-03-29",
@@ -303,7 +303,7 @@
           "fromPath": "docs/adr/0026-error-taxonomy-as-transport-independent-behavior-contract.md"
         },
         {
-          "context": "- [ADR-0002: Built-In Result Type](0002-built-in-result-type.md) -- the Result model that handles partial failure in concurrent crossings",
+          "context": "- [ADR-0002: Built-In Result Type](0002-built-in-result-type.md) -- the Result model that handles partial failure in concurrent compositions",
           "from": "0028",
           "fromPath": "docs/adr/0028-concurrent-crossing.md"
         },
@@ -352,12 +352,12 @@
           "fromPath": "docs/adr/0009-first-class-resources.md"
         },
         {
-          "context": "- [ADR-0003: Unified Trail Primitive](0003-unified-trail-primitive.md) — the unified trail/hike primitive with `crosses` and `ctx.cross()`",
+          "context": "- [ADR-0003: Unified Trail Primitive](0003-unified-trail-primitive.md) — the unified trail/hike primitive with `composes` and `ctx.compose()`",
           "from": "0024",
           "fromPath": "docs/adr/0024-typed-trail-composition.md"
         },
         {
-          "context": "- [ADR-0003: Unified Trail Primitive](0003-unified-trail-primitive.md) — the `crosses` / `ctx.cross()` composition mechanism that composite testing targets",
+          "context": "- [ADR-0003: Unified Trail Primitive](0003-unified-trail-primitive.md) — the `composes` / `ctx.compose()` composition mechanism that composite testing targets",
           "from": "0025",
           "fromPath": "docs/adr/0025-composition-testing.md"
         },
@@ -367,7 +367,7 @@
           "fromPath": "docs/adr/0027-visibility-and-filtering.md"
         },
         {
-          "context": "- [ADR-0003: Unified Trail Primitive](0003-unified-trail-primitive.md) -- \"composition is a property, not a type\"; parallel vs sequential is a runtime choice, not a contract distinction. The crossing ",
+          "context": "- [ADR-0003: Unified Trail Primitive](0003-unified-trail-primitive.md) -- \"composition is a property, not a type\"; parallel vs sequential is a runtime choice, not a contract distinction. The compositi",
           "from": "0028",
           "fromPath": "docs/adr/0028-concurrent-crossing.md"
         },
@@ -429,7 +429,7 @@
       "status": "accepted",
       "superseded_by": null,
       "title": "Unified Trail Primitive",
-      "updated": "2026-04-01"
+      "updated": "2026-05-26"
     },
     {
       "created": "2026-03-29",
@@ -673,7 +673,7 @@
           "fromPath": "docs/adr/0017-serialized-topo-graph.md"
         },
         {
-          "context": "- [ADR-0007: Governance as Trails](0007-governance-as-trails.md) — the warden's `cross-declarations` rule that this extends",
+          "context": "- [ADR-0007: Governance as Trails](0007-governance-as-trails.md) — the warden's `composes-declarations` rule that this extends",
           "from": "0024",
           "fromPath": "docs/adr/0024-typed-trail-composition.md"
         },
@@ -1077,7 +1077,7 @@
           "fromPath": "docs/adr/0039-reactive-trail-activation.md"
         },
         {
-          "context": "- [ADR-0013: Tracing](0013-tracing.md) — the runtime recording primitive this decision updates. The architectural choices (flat records, callback-only manual API, root-level sampling, crossing propaga",
+          "context": "- [ADR-0013: Tracing](0013-tracing.md) — the runtime recording primitive this decision updates. The architectural choices (flat records, callback-only manual API, root-level sampling, composing propag",
           "from": "0041",
           "fromPath": "docs/adr/0041-unified-observability.md"
         },
@@ -1353,7 +1353,7 @@
           "fromPath": "docs/adr/0027-visibility-and-filtering.md"
         },
         {
-          "context": "- [ADR-0017: The Serialized Topo Graph](0017-serialized-topo-graph.md) -- the lockfile captures composition shapes including parallel crossing patterns",
+          "context": "- [ADR-0017: The Serialized Topo Graph](0017-serialized-topo-graph.md) -- the lockfile captures composition shapes including parallel composition patterns",
           "from": "0028",
           "fromPath": "docs/adr/0028-concurrent-crossing.md"
         },
@@ -1681,17 +1681,17 @@
       "depends_on": ["3", "7"],
       "inbound": [
         {
-          "context": "- [ADR-0024: Typed Trail Composition](0024-typed-trail-composition.md) — typed `ctx.cross()` and `crossInput` that scenarios exercise",
+          "context": "- [ADR-0024: Typed Trail Composition](0024-typed-trail-composition.md) — typed `ctx.compose()` and `composeInput` that scenarios exercise",
           "from": "0025",
           "fromPath": "docs/adr/0025-composition-testing.md"
         },
         {
-          "context": "- [ADR-0024: Typed Trail Composition](0024-typed-trail-composition.md) -- `crossInput` relates to internal visibility; a trail with required `crossInput` fields should declare `visibility: 'internal'`",
+          "context": "- [ADR-0024: Typed Trail Composition](0024-typed-trail-composition.md) -- `composeInput` relates to internal visibility; a trail with required `composeInput` fields should declare `visibility: 'intern",
           "from": "0027",
           "fromPath": "docs/adr/0027-visibility-and-filtering.md"
         },
         {
-          "context": "- [ADR-0024: Typed Trail Composition](0024-typed-trail-composition.md) -- typed `ctx.cross()` that the array overload extends; parallel crossing with typed results is a non-decision there, deferred he",
+          "context": "- [ADR-0024: Typed Trail Composition](0024-typed-trail-composition.md) -- typed `ctx.compose()` that the array overload extends; parallel composition with typed results is a non-decision there, deferr",
           "from": "0028",
           "fromPath": "docs/adr/0028-concurrent-crossing.md"
         },
@@ -1706,7 +1706,7 @@
           "fromPath": "docs/adr/0039-reactive-trail-activation.md"
         },
         {
-          "context": "- [ADR-0024: Typed Trail Composition](0024-typed-trail-composition.md) — `crossInput` follows the same \"compose schemas, project the union\" pattern as layer input schemas",
+          "context": "- [ADR-0024: Typed Trail Composition](0024-typed-trail-composition.md) — `composeInput` follows the same \"compose schemas, project the union\" pattern as layer input schemas",
           "from": "0043",
           "fromPath": "docs/adr/0043-layer-evolution.md"
         },
@@ -1721,7 +1721,7 @@
           "fromPath": "docs/adr/0048-trail-versioning-v3.md"
         },
         {
-          "context": "- [ADR-0024: Typed Trail Composition](../0024-typed-trail-composition.md) — the composition contract this renames in place (`crossInput` → `composeInput`).",
+          "context": "- [ADR-0024: Typed Trail Composition](0024-typed-trail-composition.md) — the composition contract this renames in place (`crossInput` → `composeInput`).",
           "from": "0049",
           "fromPath": "docs/adr/0049-composition-is-compose-not-cross.md"
         },
@@ -1738,7 +1738,7 @@
       "status": "accepted",
       "superseded_by": null,
       "title": "Typed Trail Composition",
-      "updated": "2026-05-19"
+      "updated": "2026-05-26"
     },
     {
       "created": "2026-04-09",
@@ -1818,7 +1818,7 @@
           "fromPath": "docs/adr/0024-typed-trail-composition.md"
         },
         {
-          "context": "- [ADR-0027: Trail Visibility and Surface Filtering](0027-visibility-and-filtering.md) -- concurrent crossings respect visibility; internal trails are crossable regardless of concurrency mode",
+          "context": "- [ADR-0027: Trail Visibility and Surface Filtering](0027-visibility-and-filtering.md) -- concurrent compositions respect visibility; internal trails are composable regardless of concurrency mode",
           "from": "0028",
           "fromPath": "docs/adr/0028-concurrent-crossing.md"
         },
@@ -1862,7 +1862,7 @@
       "depends_on": ["3"],
       "inbound": [
         {
-          "context": "- [ADR-0028: Concurrent Crossing](../0028-concurrent-crossing.md) — the concurrent `ctx.cross([...])` overload, renamed in place to `ctx.compose([...])`.",
+          "context": "- [ADR-0028: Concurrent Trail Composition](0028-concurrent-crossing.md) — the concurrent `ctx.compose([...])` overload after this in-place rename.",
           "from": "0049",
           "fromPath": "docs/adr/0049-composition-is-compose-not-cross.md"
         },
@@ -1878,8 +1878,8 @@
       "slug": "concurrent-crossing",
       "status": "accepted",
       "superseded_by": null,
-      "title": "Concurrent Trail Crossing",
-      "updated": "2026-05-19"
+      "title": "Concurrent Trail Composition",
+      "updated": "2026-05-26"
     },
     {
       "created": "2026-04-09",
@@ -1965,7 +1965,7 @@
           "fromPath": "docs/adr/0020-flags-for-fields-structured-input-on-the-cli.md"
         },
         {
-          "context": "- [ADR-0030: Contours as First-Class Domain Objects](0030-contours-as-first-class-domain-objects.md) — contour-aware `deriveTrail()` that may auto-generate `crossInput`",
+          "context": "- [ADR-0030: Contours as First-Class Domain Objects](0030-contours-as-first-class-domain-objects.md) — contour-aware `deriveTrail()` that may auto-generate `composeInput`",
           "from": "0024",
           "fromPath": "docs/adr/0024-typed-trail-composition.md"
         },
@@ -2645,7 +2645,13 @@
     {
       "created": "2026-05-25",
       "depends_on": ["1", "24", "28"],
-      "inbound": [],
+      "inbound": [
+        {
+          "context": "- **Cutover 4** ([ADR-0049](0049-composition-is-compose-not-cross.md)): Composition vocabulary cleanup. Retired `cross` / `crosses` in favor of `compose` / `composes`, including `ctx.compose()`, `comp",
+          "from": "0001",
+          "fromPath": "docs/adr/0001-naming-conventions.md"
+        }
+      ],
       "number": "0049",
       "owners": ["[galligan](https://github.com/galligan)"],
       "path": "docs/adr/0049-composition-is-compose-not-cross.md",
@@ -2653,7 +2659,7 @@
       "status": "accepted",
       "superseded_by": null,
       "title": "Composition is `compose`, not `cross`",
-      "updated": "2026-05-25"
+      "updated": "2026-05-26"
     }
   ],
   "version": 1

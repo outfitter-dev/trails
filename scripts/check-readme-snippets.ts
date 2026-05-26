@@ -147,7 +147,7 @@ export const createApp: any;
 export const createBoundedMemorySink: any;
 export const createCliHarness: any;
 export const createConsoleSink: any;
-export const createCrossContext: any;
+export const createComposeContext: any;
 export const createDevStore: any;
 export const createFileSink: any;
 export const createHttpHarness: any;

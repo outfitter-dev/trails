@@ -1,7 +1,7 @@
 // Contract-driven testing
 export { testAll } from './all.js';
 export { testExamples } from './examples.js';
-export { testCrosses } from './crosses.js';
+export { testComposes } from './composes.js';
 export { testTrail } from './trail.js';
 export { testContracts } from './contracts.js';
 export { testDetours } from './detours.js';
@@ -23,23 +23,23 @@ export { executeScenarioSteps, ref, scenario } from './scenario.js';
 
 // Mock factories
 export {
-  createCrossContext,
+  createComposeContext,
   createTestContext,
   defaultCreatePermit,
 } from './context.js';
 export { createTestLogger } from './logger.js';
 
 // Types
-export type { CreateCrossContextOptions } from './context.js';
+export type { CreateComposeContextOptions } from './context.js';
 export type {
   PermittedTrail,
   MinimalPermit,
   TestExecutionOptions,
 } from './context.js';
-export type { TestCrossOptions } from './crosses.js';
+export type { TestComposeOptions } from './composes.js';
 
 export type {
-  CrossScenario,
+  ComposeScenario,
   RefToken,
   ScenarioStep,
   TestScenario,

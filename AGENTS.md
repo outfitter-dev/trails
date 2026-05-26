@@ -53,7 +53,7 @@ Use the project language consistently:
 - `trail`, not action or handler
 - `blaze`, not handler or impl (the authored implementation that establishes how a trail runs)
 - `topo`, not registry or collection
-- `cross`, not follow (for composition declaration and runtime invocation)
+- `compose`, not cross or follow (for composition declaration and runtime invocation)
 - `surface`, not transport terminology (the API function and user-facing noun)
 - `resource`, not service or dependency
 - `layer`, not middleware
@@ -66,8 +66,8 @@ Use the project language consistently:
 - Use `Result.ok()` and `Result.err()` to construct outcomes.
 - Branch on results with `isOk()`, `isErr()`, or `match()`.
 - Keep `TrailContext` and blazes surface-agnostic. Do not import `Request`, `Response`, `McpSession`, or similar surface types into trail logic.
-- Trails with `crosses` compose through `ctx.cross()`, never by calling another trail's `.blaze()` directly.
-- Keep `crosses` declarations aligned with actual `ctx.cross()` usage.
+- Trails with `composes` compose through `ctx.compose()`, never by calling another trail's `.blaze()` directly.
+- Keep `composes` declarations aligned with actual `ctx.compose()` usage.
 - Every trail exposed on MCP or HTTP surfaces must define an `output` schema.
 - Use `meta` for annotations and ownership data.
 - Use `detours` for recovery strategies instead of inline retry logic.
@@ -76,7 +76,7 @@ Use the project language consistently:
 - Keep error taxonomy behavior aligned across surfaces so CLI, HTTP, and JSON-RPC mappings stay coherent.
 - Trails that use external dependencies declare them with `resources: [...]`.
 - Access resources through `db.from(ctx)` whenever the resource definition is statically in scope. `ctx.resource(id|definition)` is the underlying primitive — reach for it only when the definition isn't in scope (dynamic IDs from config, generic harness/framework code over `AnyResource`, or `TrailContextInit.resource` injection seams). Never construct dependencies inline.
-- Keep `crosses` declarations for composition and `resources` declarations for infrastructure — they serve different purposes.
+- Keep `composes` declarations for composition and `resources` declarations for infrastructure — they serve different purposes.
 - Every resource should define a `mock` factory so `testAll(app)` works without configuration.
 
 ## Warden Rule Guide
@@ -93,15 +93,15 @@ This section is generated from the live `@ontrails/warden` rule manifest. Keep t
 
 #### Composition
 
+- `composes-declarations` (error, source/source-static, external): Declared composes stay aligned with ctx.compose() usage.
 - `context-no-surface-types` (error, source/source-static, external): Trail logic stays surface-agnostic.
-- `cross-declarations` (error, source/source-static, external): Declared crosses stay aligned with ctx.cross() usage.
-- `dead-internal-trail` (warn, project/project-static, external): Internal trails should be reachable through declared crosses.
-- `intent-propagation` (warn, project/project-static, external): Composite trail intent cannot be safer than crossed trails.
+- `dead-internal-trail` (warn, project/project-static, external): Internal trails should be reachable through declared composes.
+- `intent-propagation` (warn, project/project-static, external): Composite trail intent cannot be safer than composed trails.
 - `missing-visibility` (warn, project/project-static, external): Composition-only trails declare internal visibility.
-- `no-destructured-cross` (warn, source/source-static, external): Trail blazes compose through ctx.cross() directly instead of destructuring cross from the context.
-- `no-direct-implementation-call` (warn, source/source-static, external): Application code composes trails through ctx.cross().
+- `no-destructured-compose` (warn, source/source-static, external): Trail blazes compose through ctx.compose() directly instead of destructuring compose from the context.
+- `no-direct-implementation-call` (warn, source/source-static, external): Application code composes trails through ctx.compose().
 - `resolved-import-boundary` (error, project/project-static, external): Cross-package imports resolve through public export maps.
-- `version-pinned-cross` (warn, source/source-static, external): Version-pinned ctx.cross() calls stay visible migration debt.
+- `version-pinned-compose` (warn, source/source-static, external): Version-pinned ctx.compose() calls stay visible migration debt.
 - `webhook-route-collision` (error, topo/topo-aware, external): Webhook routes do not collide with each other or direct HTTP trail routes.
 
 #### General

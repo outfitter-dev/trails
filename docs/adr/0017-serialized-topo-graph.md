@@ -26,7 +26,7 @@ Earlier implementations produced `trailhead.lock` through the legacy survey gene
 
 As the framework grows, more resolved state needs the same treatment: surfaces, signals, activation sources, resources, config, the reactive graph. Each is "resolved state of the system that should be diffable and governable." Splitting them into separate lockfiles creates multiple files to commit, multiple CI checks to configure, and multiple commands to remember.
 
-But the deeper issue is that these aren't independent concerns. A trail's surface derivation, its activation sources, its signal fires, its resource dependencies, and its `crosses` declarations are all facets of the same graph. Surfaces reference trails. `fires` references signals. Signals reference producers and consumers. Resources reference config. The resolved state of the system is a single connected graph, not a collection of independent sections.
+But the deeper issue is that these aren't independent concerns. A trail's surface derivation, its activation sources, its signal fires, its resource dependencies, and its `composes` declarations are all facets of the same graph. Surfaces reference trails. `fires` references signals. Signals reference producers and consumers. Resources reference config. The resolved state of the system is a single connected graph, not a collection of independent sections.
 
 ### The lockfile as the story
 
@@ -48,7 +48,7 @@ The old `trailhead.lock` had no external consumers. It was generated, committed,
 
 ### One lockfile: `.trails/trails.lock`
 
-All resolved framework state lives in `.trails/trails.lock`. The file is structured as a serialized topo graph. Every trail, resource, signal, and surface is a node. Relationships — fires, crosses, signals, consumes — are edges. The file is the compiled, resolved, deduplicated story of the workspace.
+All resolved framework state lives in `.trails/trails.lock`. The file is structured as a serialized topo graph. Every trail, resource, signal, and surface is a node. Relationships — fires, composes, signals, consumes — are edges. The file is the compiled, resolved, deduplicated story of the workspace.
 
 ```json
 {
@@ -63,7 +63,7 @@ All resolved framework state lives in `.trails/trails.lock`. The file is structu
           "output": { /* resolved JSON Schema */ },
           "permit": { "scopes": ["booking:write"] },
           "fires": ["booking.confirmed"],
-          "crosses": ["availability.reserve", "billing.charge"],
+          "composes": ["availability.reserve", "billing.charge"],
           "on": [{ "kind": "webhook", "provider": "stripe", "event": "payment_intent.succeeded" }],
           "resources": ["bookingStore", "billingService"],
           "visibility": "public",
@@ -93,7 +93,7 @@ All resolved framework state lives in `.trails/trails.lock`. The file is structu
 }
 ```
 
-A single trail entry carries everything: input/output schemas, intent, permit requirements, signal `fires`, `crosses` declarations, activation `on` sources, resource dependencies, visibility, example count, and per-surface derivations. No duplication — the trail is the node, everything else is an edge or a property.
+A single trail entry carries everything: input/output schemas, intent, permit requirements, signal `fires`, `composes` declarations, activation `on` sources, resource dependencies, visibility, example count, and per-surface derivations. No duplication — the trail is the node, everything else is an edge or a property.
 
 ### The graph, not sections
 

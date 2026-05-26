@@ -41,12 +41,12 @@ CREATE TABLE topo_trails (
 );
 ```
 
-### `topo_crossings`
+### `topo_composings`
 
 Trail composition graph.
 
 ```sql
-CREATE TABLE topo_crossings (
+CREATE TABLE topo_composings (
   source_id TEXT NOT NULL,
   target_id TEXT NOT NULL,
   snapshot_id TEXT NOT NULL,
@@ -247,7 +247,7 @@ WHERE t.snapshot_id = ? AND tp.resource_id = ?
 ### Find incoming callers
 
 ```sql
-SELECT source_id FROM topo_crossings
+SELECT source_id FROM topo_composings
 WHERE snapshot_id = ? AND target_id = ?
 ```
 
@@ -266,13 +266,13 @@ EXCEPT
 SELECT id FROM topo_trails WHERE snapshot_id = ?
 ```
 
-### Crossing closure (recursive)
+### Composition closure (recursive)
 
 ```sql
 WITH RECURSIVE closure(id) AS (
   VALUES(?)
   UNION
-  SELECT c.target_id FROM topo_crossings c
+  SELECT c.target_id FROM topo_composings c
   JOIN closure cl ON c.source_id = cl.id
   WHERE c.snapshot_id = ?
 )
@@ -365,7 +365,7 @@ interface TopoStoreRef {
 
 ### `TopoStoreTrailDetailRecord`
 
-Extends trail record with `crosses`, `detours`, `resources`, and `examples`
+Extends trail record with `composes`, `detours`, `resources`, and `examples`
 arrays. It also carries resolved `TopoGraph` contract facts for blind agents:
 `input`, `output`, `cli`, `surfaces`, `surfaceProjections`, `contours`,
 `contourDetails`, `activationContext`, `activationEdges`, `activationSources`,

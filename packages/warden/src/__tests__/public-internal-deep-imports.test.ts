@@ -254,7 +254,7 @@ describe('public-internal-deep-imports', () => {
     }
   });
 
-  test('flags cross-package code subpaths blocked by the export map', () => {
+  test('flags compose-package code subpaths blocked by the export map', () => {
     const fixture = createFixture();
     try {
       const sourceCode =

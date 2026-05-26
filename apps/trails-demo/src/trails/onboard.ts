@@ -1,7 +1,7 @@
 /**
  * entity.onboard trail -- creates an entity and verifies it is searchable.
  *
- * Demonstrates: trail(), crossing declaration, ctx.cross() composition,
+ * Demonstrates: trail(), composing declaration, ctx.compose() composition,
  * error propagation from downstream trails.
  */
 
@@ -14,11 +14,11 @@ import { z } from 'zod';
 
 export const onboard = trail('entity.onboard', {
   blaze: async (input, ctx) => {
-    if (!ctx.cross) {
-      return Result.err(new InternalError('Trail requires a cross function'));
+    if (!ctx.compose) {
+      return Result.err(new InternalError('Trail requires a compose function'));
     }
 
-    const added = await ctx.cross<{
+    const added = await ctx.compose<{
       id: string;
       name: string;
       type: string;
@@ -34,7 +34,7 @@ export const onboard = trail('entity.onboard', {
       return added;
     }
 
-    const searched = await ctx.cross<{
+    const searched = await ctx.compose<{
       results: {
         id: string;
         name: string;
@@ -55,7 +55,7 @@ export const onboard = trail('entity.onboard', {
       searchable,
     });
   },
-  crosses: ['entity.add', 'search'],
+  composes: ['entity.add', 'search'],
   description: 'Create an entity and verify it appears in search',
   examples: [
     {

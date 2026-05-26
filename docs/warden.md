@@ -13,7 +13,7 @@ durable rules.
 Use Warden for durable Trails correctness:
 
 - trail, blaze, `Result`, detour, resource, topo, or surface doctrine
-- checks that compare declarations to actual usage, such as `crosses` or `resources`
+- checks that compare declarations to actual usage, such as `composes` or `resources`
 - checks that need project-wide context or the resolved topo
 - checks that should be available through the public Trails CLI or programmatic Warden API
 - checks whose rule shape should itself remain a Trails trail
@@ -23,7 +23,7 @@ Use the private `@ontrails/oxlint-plugin` package for repo-local hygiene:
 - temporary cleanup checks used during hardening
 - house-style preferences for this repository, not Trails consumers
 - file-local checks that are useful through Ultracite/Oxlint editor feedback
-- checks that do not need topology, derivation, runtime invocation, or cross-trail comparison
+- checks that do not need topology, derivation, runtime invocation, or multi-trail comparison
 
 The private plugin is a convenience for this repo. It is not a consumer-facing dependency, and it should not become the place where framework doctrine quietly accumulates.
 

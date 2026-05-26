@@ -53,7 +53,7 @@ export const myTrail = trail('namespace.verb', {
   //     on: NotFoundError,
   //     maxAttempts: 1,
   //     recover: async ({ input }, ctx) => {
-  //       const fallback = await ctx.cross('search', { query: input.name });
+  //       const fallback = await ctx.compose('search', { query: input.name });
   //       if (fallback.isErr()) return fallback;
   //       return Result.ok(fallback.value);
   //     },
@@ -101,7 +101,7 @@ export const myTrail = trail('namespace.verb', {
 
   blaze: async (input, ctx) => {
     // Establish the path through this trail. Input types are guaranteed by the schema.
-    // Use ctx for resources, logging, tracing, signals, and crossing other trails.
+    // Use ctx for resources, logging, tracing, signals, and composing other trails.
 
     // Access a declared resource — typed from the resource's create() return:
     // const conn = db.from(ctx);

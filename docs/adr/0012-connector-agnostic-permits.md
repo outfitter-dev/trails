@@ -118,11 +118,11 @@ user lookup. Adapters can provide those as additional resources outside the core
 interface. The framework needs exactly one capability: given credentials,
 produce a permit or an error.
 
-### Auth layer re-checks on every invocation including crosses
+### Auth layer re-checks on every invocation including composes
 
-`ctx.cross()` doesn't bypass auth. If a parent trail crosses a child that declares its own `permit`, the auth layer re-checks. Defense in depth — composition doesn't create privilege escalation paths.
+`ctx.compose()` doesn't bypass auth. If a parent trail composes a child that declares its own `permit`, the auth layer re-checks. Defense in depth — composition doesn't create privilege escalation paths.
 
-The warden statically validates that parent trail scopes are a superset of children's scopes. If `user.delete` requires `user:write` and crosses `audit.log` which requires `audit:write`, the parent must hold both. This is a compile-time guarantee, not a runtime hope.
+The warden statically validates that parent trail scopes are a superset of children's scopes. If `user.delete` requires `user:write` and composes `audit.log` which requires `audit:write`, the parent must hold both. This is a compile-time guarantee, not a runtime hope.
 
 ### Warden governance
 

@@ -10,7 +10,7 @@ import { activationOrphan } from './activation-orphan.js';
 import { circularRefs } from './circular-refs.js';
 import { contourExists } from './contour-exists.js';
 import { contextNoSurfaceTypes } from './context-no-surface-types.js';
-import { crossDeclarations } from './cross-declarations.js';
+import { composesDeclarations } from './composes-declarations.js';
 import { deadInternalTrail } from './dead-internal-trail.js';
 import { draftFileMarking } from './draft-file-marking.js';
 import { draftVisibleDebt } from './draft-visible-debt.js';
@@ -25,7 +25,7 @@ import { layerFieldNameDrift } from './layer-field-name-drift.js';
 import { missingReconcile } from './missing-reconcile.js';
 import { missingVisibility } from './missing-visibility.js';
 import { noDevPermitInSource } from './no-dev-permit-in-source.js';
-import { noDestructuredCross } from './no-destructured-cross.js';
+import { noDestructuredCompose } from './no-destructured-compose.js';
 import { noLegacyLayerImports } from './no-legacy-layer-imports.js';
 import { noDirectImplementationCall } from './no-direct-implementation-call.js';
 import { noNativeErrorResult } from './no-native-error-result.js';
@@ -53,7 +53,7 @@ import { staticResourceAccessorPreference } from './static-resource-accessor-pre
 import {
   forkWithoutPreservedBlaze,
   markerSchemaUnsupported,
-  versionPinnedCross,
+  versionPinnedCompose,
 } from './trail-versioning-source.js';
 import {
   deprecationWithoutGuidance,
@@ -79,7 +79,7 @@ export const registeredRuleNames: readonly string[] = [
   circularRefs.name,
   contextNoSurfaceTypes.name,
   contourExists.name,
-  crossDeclarations.name,
+  composesDeclarations.name,
   deadInternalTrail.name,
   deprecationWithoutGuidance.name,
   draftFileMarking.name,
@@ -97,7 +97,7 @@ export const registeredRuleNames: readonly string[] = [
   missingReconcile.name,
   missingVisibility.name,
   noDevPermitInSource.name,
-  noDestructuredCross.name,
+  noDestructuredCompose.name,
   noLegacyLayerImports.name,
   noDirectImplementationCall.name,
   noNativeErrorResult.name,
@@ -128,7 +128,7 @@ export const registeredRuleNames: readonly string[] = [
   validDetourContract.name,
   validDescribeRefs.name,
   versionGap.name,
-  versionPinnedCross.name,
+  versionPinnedCompose.name,
   versionWithoutExamples.name,
   wardenRulesUseAst.name,
   webhookRouteCollision.name,

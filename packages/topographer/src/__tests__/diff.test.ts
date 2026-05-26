@@ -388,17 +388,17 @@ describe('deriveTopoGraphDiff', () => {
       ).toBe(true);
     });
 
-    test('crosses changed produces warning', () => {
+    test('composes changed produces warning', () => {
       const prev = topoGraph([
         entry({
-          crosses: ['user.get', 'user.lookup'],
+          composes: ['user.get', 'user.lookup'],
           id: 'user.update',
           kind: 'trail',
         }),
       ]);
       const curr = topoGraph([
         entry({
-          crosses: ['user.get', 'user.search'],
+          composes: ['user.get', 'user.search'],
           id: 'user.update',
           kind: 'trail',
         }),
@@ -406,12 +406,12 @@ describe('deriveTopoGraphDiff', () => {
       const result = deriveTopoGraphDiff(prev, curr);
 
       expect(result.warnings).toHaveLength(1);
-      const crossesDetail = result.warnings[0]?.details.find((d) =>
-        d.includes('Crosses changed')
+      const composesDetail = result.warnings[0]?.details.find((d) =>
+        d.includes('Composes changed')
       );
-      expect(crossesDetail).toBeDefined();
-      expect(crossesDetail).toContain('search');
-      expect(crossesDetail).toContain('lookup');
+      expect(composesDetail).toBeDefined();
+      expect(composesDetail).toContain('search');
+      expect(composesDetail).toContain('lookup');
     });
 
     test('declared resources changed produces warning', () => {

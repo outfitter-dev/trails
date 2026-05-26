@@ -41,7 +41,7 @@ and the serialized graph.
 
 ### Loose coupling still needs graph shape
 
-`ctx.cross()` is the direct composition mechanism. It is the right tool when one
+`ctx.compose()` is the direct composition mechanism. It is the right tool when one
 trail intentionally calls another and needs its Result.
 
 Signals serve a different relationship. A producer announces that something
@@ -146,8 +146,8 @@ const sendReceipt = trail('booking.send-receipt', {
 ```
 
 `fires` and `on` are graph declarations. They serve the same inspectability role
-for signals that `crosses` serves for typed trail composition: authored edges
-become queryable edges. They are separate from `crosses` because notification
+for signals that `composes` serves for typed trail composition: authored edges
+become queryable edges. They are separate from `composes` because notification
 and direct composition have different coupling.
 
 ### Invalid payloads become diagnostics
@@ -212,7 +212,7 @@ the example assertions. Assertions may match exact payloads or payload subsets,
 and may declare `times` when cardinality matters.
 
 The assertion model does not imply total ordering across independent consumers.
-If a workflow needs ordering, it should use sequential `ctx.cross()` composition.
+If a workflow needs ordering, it should use sequential `ctx.compose()` composition.
 
 ### Signals project into topo, lockfile, and survey
 
@@ -322,7 +322,7 @@ Typed signal v1 does not introduce:
 - [ADR-0017: The Serialized Topo Graph](0017-serialized-topo-graph.md) -
   signals are serialized graph nodes.
 - [ADR-0024: Typed Trail Composition](0024-typed-trail-composition.md) -
-  `ctx.cross()` remains the direct composition mechanism.
+  `ctx.compose()` remains the direct composition mechanism.
 - [ADR-0026: Error Taxonomy as Transport-Independent Behavior Contract](0026-error-taxonomy-as-transport-independent-behavior-contract.md) -
   future delivery decisions may use error categories without changing this
   producer API.

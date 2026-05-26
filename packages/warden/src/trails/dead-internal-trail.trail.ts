@@ -6,12 +6,12 @@ export const deadInternalTrailTrail = wrapRule({
     {
       expected: { diagnostics: [] },
       input: {
-        crossTargetTrailIds: ['entity.sync'],
+        composeTargetTrailIds: ['entity.sync'],
         filePath: 'clean.ts',
         knownTrailIds: ['entity.public', 'entity.sync'],
         sourceCode: `trail('entity.public', {
-  crosses: ['entity.sync'],
-  blaze: async (_input, ctx) => ctx.cross('entity.sync', {}),
+  composes: ['entity.sync'],
+  blaze: async (_input, ctx) => ctx.compose('entity.sync', {}),
 });
 
 trail('entity.sync', {
@@ -19,7 +19,7 @@ trail('entity.sync', {
   blaze: async () => Result.ok({}),
 });`,
       },
-      name: 'Internal trails stay clean when another trail crosses them',
+      name: 'Internal trails stay clean when another trail composes them',
     },
   ],
   rule: deadInternalTrail,

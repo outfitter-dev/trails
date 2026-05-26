@@ -44,10 +44,10 @@ facts.
 | General JS/TS lint | Upstream `oxlint` rules | Standard language hygiene, not Trails doctrine. |
 | Repo-local JS/TS hygiene | Private `@ontrails/oxlint-plugin` | Console/process leakage, deep imports, barrels, Bun-native preference, retired source vocabulary, snapshot location, test naming, and temporary cleanup. |
 | Syntax tripwires and codemods | `ast-grep` | Useful for audits and high-confidence syntax shapes. New durable Trails rules should graduate into Warden instead of living here. |
-| Trails semantic correctness | Warden | The durable public correctness surface for trail/resource/signal/cross/permit/topo invariants. |
+| Trails semantic correctness | Warden | The durable public correctness surface for trail/resource/signal/composition/permit/topo invariants. |
 | Topology and resolved-graph drift | Warden + Topographer | Lock manifest drift, TopoGraph drift, and topo-aware checks. |
 | Contract/runtime behavior | `testAll` and focused tests | Examples, output contracts, detours, and surface projection validation. |
-| Impossible-by-type constraints | TypeScript | Output schemas, typed `ctx.cross()`, `resource.from(ctx)`, and other compile-time contracts. |
+| Impossible-by-type constraints | TypeScript | Output schemas, typed `ctx.compose()`, `resource.from(ctx)`, and other compile-time contracts. |
 | Human and agent orientation | `AGENTS.md` | A map over the executable system, not the only enforcement point. |
 
 When auditing `AGENTS.md`, map each rule to the strongest current authority
@@ -109,7 +109,7 @@ framework promise?
   mechanism.
 - Better: the rule detects the role, owner data, or structural obligation.
 - Acceptable: exact symbol matching when the symbol itself is stable public
-  contract, such as `Result.ok`, `Result.err`, or `ctx.cross()`.
+  contract, such as `Result.ok`, `Result.err`, or `ctx.compose()`.
 
 ### Family Test
 
@@ -179,12 +179,12 @@ Use recurring shapes to avoid writing the third sibling rule.
 
 | Shape | Form | Examples |
 | --- | --- | --- |
-| Declarations-match-usage | Static declaration matches runtime call | `crosses` and `ctx.cross`; `fires` and `ctx.fire`; `resources` and `db.from(ctx)` |
+| Declarations-match-usage | Static declaration matches runtime call | `composes` and `ctx.compose`; `fires` and `ctx.fire`; `resources` and `db.from(ctx)` |
 | Owner-projection-parity | Derived data keeps reading its owner | Error-code maps, CRUD operations, intent literals |
 | Orphan-X | Primitive declared but never referenced | Orphan resource, signal, layer, contour |
-| Cycle-in-X-graph | Directed graph must not cycle | Cross graph, activation graph, layer dependency graph |
+| Cycle-in-X-graph | Directed graph must not cycle | Composition graph, activation graph, layer dependency graph |
 | Collision-detection | Two declarations claim the same slot | HTTP route, webhook path, MCP tool name |
-| Schema-compatibility | Source schema satisfies consumer schema | Cross input, signal payload |
+| Schema-compatibility | Source schema satisfies consumer schema | Compose input, signal payload |
 | Vocabulary-banned-term | Source identifier uses retired vocabulary | Reserved terms in TS/JS source |
 | Declaration-requires-companion | Declaration needs infrastructure to run | Source kind and materializer, resource and adapter |
 

@@ -521,7 +521,7 @@ const collectBlockStatementBindings = (scope: AstNode): Set<string> => {
   collectBlockScopedStatementListBindings(body, bindings);
   // Static initializer blocks own their own VariableEnvironment (per ES spec),
   // so `var` declarations inside them do not escape into the enclosing class
-  // or function scope. `collectHoistedVarBindings` correctly refuses to cross
+  // or function scope. `collectHoistedVarBindings` correctly refuses to compose
   // a `StaticBlock` boundary from the outside, which means nothing else will
   // register these bindings. Hoist them here so `var result = trail.blaze(...)`
   // inside a `static { ... }` block is tracked against the block itself.
@@ -594,7 +594,7 @@ const scopeKindForNode = (node: AstNode): ScopeKind => {
 
 /**
  * True when a nested node owns its own VariableEnvironment and therefore stops
- * `var` hoisting from crossing into the enclosing function/program scope.
+ * `var` hoisting from composing into the enclosing function/program scope.
  * Covers function-like nodes and `StaticBlock` (ECMAScript: static blocks
  * introduce their own LexicalEnvironment and VariableEnvironment).
  */

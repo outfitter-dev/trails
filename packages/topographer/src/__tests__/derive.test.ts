@@ -248,7 +248,7 @@ describe('deriveTopoGraph', () => {
         versions: {
           1: {
             blaze: noop,
-            crosses: [audit],
+            composes: [audit],
             detours: [
               {
                 maxAttempts: 100,
@@ -293,7 +293,7 @@ describe('deriveTopoGraph', () => {
         version: 3,
       });
       expect(entry?.versions?.['1']).toMatchObject({
-        crosses: ['audit.log'],
+        composes: ['audit.log'],
         detours: [
           { maxAttempts: DETOUR_MAX_ATTEMPTS_CAP, on: 'ConflictError' },
         ],
@@ -518,14 +518,14 @@ describe('deriveTopoGraph', () => {
       );
     });
 
-    test('trail entries include crosses array when non-empty', () => {
+    test('trail entries include composes array when non-empty', () => {
       const base = trail('user.get', {
         blaze: noop,
         input: z.object({ id: z.string() }),
       });
       const r = trail('user.update', {
         blaze: noop,
-        crosses: ['user.get'],
+        composes: ['user.get'],
         input: z.object({ id: z.string(), name: z.string() }),
       });
       const tp = topoFrom({ base, r });
@@ -535,7 +535,7 @@ describe('deriveTopoGraph', () => {
 
       expect(crossesEntry?.kind).toBe('trail');
       expect(crossesEntry?.cli?.path).toEqual(['user', 'update']);
-      expect(crossesEntry?.crosses).toEqual(['user.get']);
+      expect(crossesEntry?.composes).toEqual(['user.get']);
     });
 
     test("signal entries are included with kind 'signal'", () => {
@@ -1039,7 +1039,7 @@ describe('deriveTopoGraph', () => {
     test('rejects draft-contaminated topologies', () => {
       const exportTrail = trail('entity.export', {
         blaze: noop,
-        crosses: ['_draft.entity.prepare'],
+        composes: ['_draft.entity.prepare'],
         input: z.object({}),
       });
 

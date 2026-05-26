@@ -19,10 +19,10 @@ Scan all changed or new files for vocabulary violations. Highest-priority check.
 | Violation | Correct Term |
 |-----------|-------------|
 | handler, action, endpoint | trail |
-| route (for composition) | cross |
+| route (for composition) | compose |
 | registry, collection, manifest | topo |
 | serve, start, wire up | surface |
-| call, invoke, dispatch (for cross) | cross |
+| call, invoke, dispatch (for composition) | compose |
 | transport, interface | surface |
 | impl, fn, handler (for trail blaze) | blaze |
 | annotations, tags | meta |
@@ -96,7 +96,7 @@ For any new error usage:
 
 ### Vocabulary
 - [file:line] `handler` should be `blaze`
-- [file:line] Comment says "invoke" should say "cross"
+- [file:line] Comment says "invoke" should say "compose"
 
 ### Naming Conventions
 - [export name] violates Convention N: [explanation and correction]

@@ -13,7 +13,7 @@ depends_on: [14]
 
 ## Context
 
-The resolved topology — all trails, their schemas, crossings, resources,
+The resolved topology — all trails, their schemas, compositions, resources,
 signals, surface mappings, and metadata — exists in two forms today. In memory,
 it's a `ReadonlyMap<string, AnyTrail>` with parallel maps for signals and
 resources. On disk, it's a committed TopoGraph artifact at
@@ -22,7 +22,7 @@ structure.
 
 When something wants to query the topo, it traverses these structures imperatively. The warden iterates all trails to check governance rules. The `survey` command iterates all trails to produce a human-readable summary. The `guide` command searches trails by ID or metadata. An agent connecting to an MCP surface gets a flat list of tools. These are all graph queries wearing imperative clothing.
 
-"Which trails cross this trail?" is a join. "What resources does the crossing closure of `onboard.user` need?" is a recursive CTE. "Show me all write-intent trails exposed on HTTP" is a filtered join. Today, each consumer re-implements its own traversal logic.
+"Which trails compose this trail?" is a join. "What resources does the composition closure of `onboard.user` need?" is a recursive CTE. "Show me all write-intent trails exposed on HTTP" is a filtered join. Today, each consumer re-implements its own traversal logic.
 
 The core premise says "the contract is queryable." Today it's queryable in the sense that you can write TypeScript traversal code. With the topo projected into SQLite, it's queryable in the sense that you can ask questions in a language designed for asking questions.
 
@@ -30,7 +30,7 @@ The core premise says "the contract is queryable." Today it's queryable in the s
 
 **Warden rule authors:** A governance rule becomes a typed accessor call or a SQL query with expected results, instead of a TypeScript function that traverses Maps. "Every write-intent trail must declare an output schema" is `conn.trails.list({ intent: 'write' })` filtered by output presence. No traversal logic.
 
-**Agents:** An MCP-connected agent can query the topo store to understand crossing graphs, find trails by intent, check which resources a trail needs — all through structured queries rather than parsing TypeScript source.
+**Agents:** An MCP-connected agent can query the topo store to understand composition graphs, find trails by intent, check which resources a trail needs — all through structured queries rather than parsing TypeScript source.
 
 **CI pipelines:** The lockfile becomes an export of the topo store rather than a parallel serialization. Semantic diffing becomes a database operation: compare snapshots or diff current topo against a pin.
 
@@ -73,8 +73,8 @@ CREATE TABLE topo_trails (
   FOREIGN KEY (snapshot_id) REFERENCES topo_snapshots(id)
 );
 
--- Trail crossings (composition graph)
-CREATE TABLE topo_crossings (
+-- Trail compositions (composition graph)
+CREATE TABLE topo_composings (
   source_id TEXT NOT NULL,
   target_id TEXT NOT NULL,
   snapshot_id TEXT NOT NULL,
@@ -238,12 +238,12 @@ The resource connection type does not expose write methods. This is enforced at 
 ```typescript
 const conn = topoStore.from(ctx);
 
-// Crossing closure via recursive CTE
+// Composition closure via recursive CTE
 const closure = await conn.query(sql`
   WITH RECURSIVE closure(id) AS (
     VALUES(${trailId})
     UNION
-    SELECT c.target_id FROM topo_crossings c
+    SELECT c.target_id FROM topo_composings c
     JOIN closure cl ON c.source_id = cl.id
     WHERE c.snapshot_id = ${currentSnapshotId}
   )
@@ -272,14 +272,14 @@ JOIN topo_trails p ON c.id = p.id
 WHERE c.snapshot_id = :current AND p.snapshot_id = :previous
   AND c.intent IS NOT p.intent;
 
--- Crossing graph diff between two snapshot states
+-- Composition graph diff between two snapshot states
 SELECT source_id, target_id, 'added' as change
-FROM topo_crossings WHERE snapshot_id = :current
-EXCEPT SELECT source_id, target_id, 'added' FROM topo_crossings WHERE snapshot_id = :previous
+FROM topo_composings WHERE snapshot_id = :current
+EXCEPT SELECT source_id, target_id, 'added' FROM topo_composings WHERE snapshot_id = :previous
 UNION ALL
 SELECT source_id, target_id, 'removed' as change
-FROM topo_crossings WHERE snapshot_id = :previous
-EXCEPT SELECT source_id, target_id, 'removed' FROM topo_crossings WHERE snapshot_id = :current;
+FROM topo_composings WHERE snapshot_id = :previous
+EXCEPT SELECT source_id, target_id, 'removed' FROM topo_composings WHERE snapshot_id = :current;
 ```
 
 This is the `trails survey diff` concept made continuous. The lockfile captures the latest state as a text file for git. The topo store captures snapshot history and pins for queryable analysis.
@@ -310,11 +310,11 @@ JOIN track_records tr ON t.id = tr.trail_id
 WHERE t.snapshot_id = :current AND tr.ended_at IS NOT NULL
 GROUP BY t.intent;
 
--- Error rates for trails that cross user.get
+-- Error rates for trails that compose user.get
 SELECT tr.trail_id, COUNT(*) as errors
 FROM track_records tr
 WHERE tr.status = 'err' AND tr.trail_id IN (
-  SELECT source_id FROM topo_crossings
+  SELECT source_id FROM topo_composings
   WHERE target_id = 'user.get' AND snapshot_id = :current
 )
 GROUP BY tr.trail_id ORDER BY errors DESC;
@@ -331,7 +331,7 @@ The structural graph (what's declared) and the execution record (what happened) 
 - **Evolution is trackable.** Save-tagged rows create a time series of structural changes. Pins are developer-controlled durable references into that history.
 - **The warden becomes simpler.** Governance rules become typed accessor calls or SQL queries with expected results, not Map traversal functions.
 - **Dev intelligence gets structure.** Joining topo data with tracing data answers questions neither could answer alone.
-- **Agents get deep introspection.** An agent can query the crossing graph, resource dependencies, and intent classifications without parsing TypeScript.
+- **Agents get deep introspection.** An agent can query the composition graph, resource dependencies, and intent classifications without parsing TypeScript.
 
 ### Tradeoffs
 

@@ -19,15 +19,15 @@ This file is generated from the live `@ontrails/warden` rule manifest. Repo-trac
 
 ### Composition
 
+- `composes-declarations` (error, source/source-static, external): Declared composes stay aligned with ctx.compose() usage.
 - `context-no-surface-types` (error, source/source-static, external): Trail logic stays surface-agnostic.
-- `cross-declarations` (error, source/source-static, external): Declared crosses stay aligned with ctx.cross() usage.
-- `dead-internal-trail` (warn, project/project-static, external): Internal trails should be reachable through declared crosses.
-- `intent-propagation` (warn, project/project-static, external): Composite trail intent cannot be safer than crossed trails.
+- `dead-internal-trail` (warn, project/project-static, external): Internal trails should be reachable through declared composes.
+- `intent-propagation` (warn, project/project-static, external): Composite trail intent cannot be safer than composed trails.
 - `missing-visibility` (warn, project/project-static, external): Composition-only trails declare internal visibility.
-- `no-destructured-cross` (warn, source/source-static, external): Trail blazes compose through ctx.cross() directly instead of destructuring cross from the context.
-- `no-direct-implementation-call` (warn, source/source-static, external): Application code composes trails through ctx.cross().
+- `no-destructured-compose` (warn, source/source-static, external): Trail blazes compose through ctx.compose() directly instead of destructuring compose from the context.
+- `no-direct-implementation-call` (warn, source/source-static, external): Application code composes trails through ctx.compose().
 - `resolved-import-boundary` (error, project/project-static, external): Cross-package imports resolve through public export maps.
-- `version-pinned-cross` (warn, source/source-static, external): Version-pinned ctx.cross() calls stay visible migration debt.
+- `version-pinned-compose` (warn, source/source-static, external): Version-pinned ctx.compose() calls stay visible migration debt.
 - `webhook-route-collision` (error, topo/topo-aware, external): Webhook routes do not collide with each other or direct HTTP trail routes.
 
 ### General

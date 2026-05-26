@@ -1,9 +1,9 @@
 /**
- * Validates that `ctx.cross()` calls match the declared `crosses` array.
+ * Validates that `ctx.compose()` calls match the declared `composes` array.
  *
- * Statically analyzes trail `blaze` functions to find `ctx.cross('trailId', ...)`
- * calls and compares them against the `crosses: [...]` declaration in the trail
- * config. Reports errors for undeclared crossings and warnings for unused ones.
+ * Statically analyzes trail `blaze` functions to find `ctx.compose('trailId', ...)`
+ * calls and compares them against the `composes: [...]` declaration in the trail
+ * config. Reports errors for undeclared compositions and warnings for unused ones.
  */
 
 import {
@@ -85,7 +85,7 @@ const resolveIdentifierElement = (
 };
 
 /** Resolve an array element to a static trail ID when possible. */
-const deriveCrossElementId = (
+const deriveComposeElementId = (
   element: AstNode,
   sourceCode: string
 ): string | null => {
@@ -101,17 +101,17 @@ const deriveCrossElementId = (
 };
 
 // ---------------------------------------------------------------------------
-// Declared crossing extraction
+// Declared composing extraction
 // ---------------------------------------------------------------------------
 
-/** Extract the ArrayExpression elements from a config's `crosses` property. */
-const getCrossElements = (config: AstNode): readonly AstNode[] | null => {
-  const crossesProp = findConfigProperty(config, 'crosses');
-  if (!crossesProp) {
+/** Extract the ArrayExpression elements from a config's `composes` property. */
+const getComposeElements = (config: AstNode): readonly AstNode[] | null => {
+  const composesProp = findConfigProperty(config, 'composes');
+  if (!composesProp) {
     return null;
   }
 
-  const arrayNode = crossesProp.value;
+  const arrayNode = composesProp.value;
   if (!arrayNode || (arrayNode as AstNode).type !== 'ArrayExpression') {
     return null;
   }
@@ -122,12 +122,12 @@ const getCrossElements = (config: AstNode): readonly AstNode[] | null => {
   return elements ?? null;
 };
 
-interface DeclaredCrosses {
+interface DeclaredComposes {
   /** Statically resolved trail IDs from string literals / const identifiers. */
   readonly ids: ReadonlySet<string>;
   /**
    * True if any element could not be statically resolved (e.g. trail object
-   * reference like `crosses: [showGist]`). When true, "undeclared" diagnostics
+   * reference like `composes: [showGist]`). When true, "undeclared" diagnostics
    * are softened from error to warn since the declared set is incomplete.
    */
   readonly hasUnresolved: boolean;
@@ -136,17 +136,17 @@ interface DeclaredCrosses {
 /**
  * Collect string IDs from array elements, resolving identifiers when possible.
  *
- * Trail-object references (`crosses: [showGist]`) cannot be resolved at lint
+ * Trail-object references (`composes: [showGist]`) cannot be resolved at lint
  * time; they're normalized at runtime by `trail()`. When any entry is
  * unresolved, `hasUnresolved` is set so callers can soften diagnostics.
  */
 /** Classify a single element and accumulate into the id set. */
-const classifyCrossElement = (
+const classifyComposeElement = (
   element: AstNode,
   sourceCode: string,
   ids: Set<string>
 ): boolean => {
-  const resolved = deriveCrossElementId(element, sourceCode);
+  const resolved = deriveComposeElementId(element, sourceCode);
   if (!resolved) {
     // Element could not be statically resolved
     return true;
@@ -155,33 +155,33 @@ const classifyCrossElement = (
   return false;
 };
 
-const resolveDeclaredCrossElements = (
+const resolveDeclaredComposeElements = (
   elements: readonly AstNode[],
   sourceCode: string
-): DeclaredCrosses => {
+): DeclaredComposes => {
   const ids = new Set<string>();
   let hasUnresolved = false;
   for (const element of elements) {
-    if (classifyCrossElement(element, sourceCode, ids)) {
+    if (classifyComposeElement(element, sourceCode, ids)) {
       hasUnresolved = true;
     }
   }
   return { hasUnresolved, ids };
 };
 
-/** Extract declared crosses from a `crosses: [...]` array. */
-const extractDeclaredCrosses = (
+/** Extract declared composes from a `composes: [...]` array. */
+const extractDeclaredComposes = (
   config: AstNode,
   sourceCode: string
-): DeclaredCrosses => {
-  const elements = getCrossElements(config);
+): DeclaredComposes => {
+  const elements = getComposeElements(config);
   return elements
-    ? resolveDeclaredCrossElements(elements, sourceCode)
+    ? resolveDeclaredComposeElements(elements, sourceCode)
     : { hasUnresolved: false, ids: new Set() };
 };
 
 // ---------------------------------------------------------------------------
-// Called crossing extraction — member expression helpers
+// Called composing extraction — member expression helpers
 // ---------------------------------------------------------------------------
 
 const MEMBER_TYPES = new Set(['StaticMemberExpression', 'MemberExpression']);
@@ -225,26 +225,58 @@ const extractContextParamName = (blazeBody: AstNode): string | null => {
   return identifierName(param);
 };
 
-/** Check if a callee is a member-style cross call: <ctxName>.cross(...). */
-const isMemberCrossCall = (
+/** Extract the local name bound to `compose` inside an ObjectPattern Property. */
+const extractComposeLocalName = (prop: AstNode): string | null => {
+  if (prop.type !== 'Property') {
+    return null;
+  }
+  const { key, value } = prop as unknown as {
+    readonly key?: AstNode;
+    readonly value?: AstNode;
+  };
+  const keyName = identifierName(key);
+  if (keyName !== 'compose') {
+    return null;
+  }
+  return identifierName(value) ?? keyName;
+};
+
+/** Collect `compose` local names from an ObjectPattern's properties. */
+const collectComposeNamesFromPattern = (
+  pattern: AstNode,
+  names: Set<string>
+): void => {
+  const { properties } = pattern as unknown as {
+    readonly properties?: readonly AstNode[];
+  };
+  for (const prop of properties ?? []) {
+    const localName = extractComposeLocalName(prop);
+    if (localName) {
+      names.add(localName);
+    }
+  }
+};
+
+/** Check if a callee is a member-style compose call: <ctxName>.compose(...). */
+const isMemberComposeCall = (
   callee: AstNode,
   ctxNames: ReadonlySet<string>
 ): boolean => {
   const pair = extractMemberPair(callee);
-  return !!pair && ctxNames.has(pair.objName) && pair.propName === 'cross';
+  return !!pair && ctxNames.has(pair.objName) && pair.propName === 'compose';
 };
 
-interface ExtractedCrossCall {
+interface ExtractedComposeCall {
   readonly ids: readonly string[];
   readonly hasUnresolved: boolean;
 }
 
-const unresolvedCross = (): ExtractedCrossCall => ({
+const unresolvedCompose = (): ExtractedComposeCall => ({
   hasUnresolved: true,
   ids: [],
 });
 
-const resolveBatchCrossTupleTarget = (
+const resolveBatchComposeTupleTarget = (
   element: AstNode,
   sourceCode: string
 ): string | null => {
@@ -254,15 +286,15 @@ const resolveBatchCrossTupleTarget = (
 
   const tupleElements = element['elements'] as readonly AstNode[] | undefined;
   const [target] = tupleElements ?? [];
-  return target ? deriveCrossElementId(target, sourceCode) : null;
+  return target ? deriveComposeElementId(target, sourceCode) : null;
 };
 
-const collectBatchCrossId = (
+const collectBatchComposeId = (
   element: AstNode,
   sourceCode: string,
   ids: string[]
 ): boolean => {
-  const resolved = resolveBatchCrossTupleTarget(element, sourceCode);
+  const resolved = resolveBatchComposeTupleTarget(element, sourceCode);
   if (!resolved) {
     return true;
   }
@@ -270,11 +302,11 @@ const collectBatchCrossId = (
   return false;
 };
 
-/** Extract statically-resolved trail IDs from `ctx.cross([[trail, input], ...])`. */
-const extractBatchCrossIds = (
+/** Extract statically-resolved trail IDs from `ctx.compose([[trail, input], ...])`. */
+const extractBatchComposeIds = (
   firstArg: AstNode | undefined,
   sourceCode: string
-): ExtractedCrossCall | null => {
+): ExtractedComposeCall | null => {
   if (firstArg?.type !== 'ArrayExpression') {
     return null;
   }
@@ -284,7 +316,7 @@ const extractBatchCrossIds = (
   let hasUnresolved = false;
 
   for (const element of elements ?? []) {
-    if (collectBatchCrossId(element, sourceCode, ids)) {
+    if (collectBatchComposeId(element, sourceCode, ids)) {
       hasUnresolved = true;
     }
   }
@@ -292,77 +324,88 @@ const extractBatchCrossIds = (
   return { hasUnresolved, ids };
 };
 
-const extractDirectCrossIds = (
+const extractDirectComposeIds = (
   firstArg: AstNode | undefined
-): ExtractedCrossCall | null => {
+): ExtractedComposeCall | null => {
   if (!firstArg || !isStringLiteral(firstArg)) {
     return null;
   }
 
   const value = getStringValue(firstArg);
-  return value ? { hasUnresolved: false, ids: [value] } : unresolvedCross();
+  return value ? { hasUnresolved: false, ids: [value] } : unresolvedCompose();
 };
 
-const isCrossCallExpression = (
+const isComposeCallExpression = (
   callee: AstNode,
-  ctxNames: ReadonlySet<string>
+  ctxNames: ReadonlySet<string>,
+  composeLocalNames: ReadonlySet<string>
 ): boolean =>
-  isMemberCrossCall(callee, ctxNames) || identifierName(callee) === 'cross';
+  isMemberComposeCall(callee, ctxNames) ||
+  composeLocalNames.has(identifierName(callee) ?? '');
 
-const extractCrossFirstArg = (node: AstNode): AstNode | undefined => {
+const extractComposeFirstArg = (node: AstNode): AstNode | undefined => {
   const args = node['arguments'] as readonly AstNode[] | undefined;
   return args?.[0];
 };
 
-const resolveCrossCallNode = (
+const resolveComposeCallNode = (
   node: AstNode,
-  ctxNames: ReadonlySet<string>
+  ctxNames: ReadonlySet<string>,
+  composeLocalNames: ReadonlySet<string>
 ): AstNode | null => {
   if (node.type !== 'CallExpression') {
     return null;
   }
 
   const callee = node['callee'] as AstNode | undefined;
-  if (!callee || !isCrossCallExpression(callee, ctxNames)) {
+  if (
+    !callee ||
+    !isComposeCallExpression(callee, ctxNames, composeLocalNames)
+  ) {
     return null;
   }
 
   return node;
 };
 
-const resolveCrossCallTargets = (
+const resolveComposeCallTargets = (
   firstArg: AstNode | undefined,
   sourceCode: string
-): ExtractedCrossCall => {
-  const direct = extractDirectCrossIds(firstArg);
+): ExtractedComposeCall => {
+  const direct = extractDirectComposeIds(firstArg);
   if (direct) {
     return direct;
   }
 
-  const batch = extractBatchCrossIds(firstArg, sourceCode);
-  return batch ?? unresolvedCross();
+  const batch = extractBatchComposeIds(firstArg, sourceCode);
+  return batch ?? unresolvedCompose();
 };
 
 /**
- * Check if a node is a `<ctxName>.cross(...)` call and return any statically
+ * Check if a node is a `<ctxName>.compose(...)` call and return any statically
  * resolvable target IDs.
  *
- * Also matches bare `cross(...)` calls from destructuring. When the first
- * argument is a non-string expression (e.g. a trail object identifier like
- * `ctx.cross(showGist, input)`), marks the call as unresolved so callers can
- * track that a cross call exists but its target cannot be statically resolved.
+ * Also matches bare `compose(...)` calls only when `compose` was verifiably
+ * destructured from the trail context. When the first argument is a non-string
+ * expression (e.g. a trail object identifier like `ctx.compose(showGist,
+ * input)`), marks the call as unresolved so callers can track that a compose
+ * call exists but its target cannot be statically resolved.
  */
-const extractCrossCall = (
+const extractComposeCall = (
   node: AstNode,
   ctxNames: ReadonlySet<string>,
+  composeLocalNames: ReadonlySet<string>,
   sourceCode: string
-): ExtractedCrossCall | null => {
-  const crossCall = resolveCrossCallNode(node, ctxNames);
-  if (!crossCall) {
+): ExtractedComposeCall | null => {
+  const composeCall = resolveComposeCallNode(node, ctxNames, composeLocalNames);
+  if (!composeCall) {
     return null;
   }
 
-  return resolveCrossCallTargets(extractCrossFirstArg(crossCall), sourceCode);
+  return resolveComposeCallTargets(
+    extractComposeFirstArg(composeCall),
+    sourceCode
+  );
 };
 
 /**
@@ -370,7 +413,7 @@ const extractCrossCall = (
  *
  * Returns ONLY the actual second-parameter name from the blaze signature.
  * No seeded defaults: if the blaze has no second parameter, the returned set
- * is empty and no `ctx.cross(...)` / `context.cross(...)` calls are tracked
+ * is empty and no `ctx.compose(...)` / `context.compose(...)` calls are tracked
  * for that blaze. An unrelated closure-scoped `ctx` identifier is not the
  * trail context and must not be treated as one.
  *
@@ -386,28 +429,94 @@ const buildCtxNames = (body: AstNode): ReadonlySet<string> => {
   return ctxNames;
 };
 
-interface CalledCrosses {
+const getCtxDestructurePattern = (
+  node: AstNode,
+  ctxNames: ReadonlySet<string>
+): AstNode | null => {
+  if (node.type !== 'VariableDeclarator') {
+    return null;
+  }
+  const { id, init } = node as unknown as {
+    readonly id?: AstNode;
+    readonly init?: AstNode;
+  };
+  if (!id || id.type !== 'ObjectPattern' || !init) {
+    return null;
+  }
+  const initName = identifierName(init);
+  return initName && ctxNames.has(initName) ? id : null;
+};
+
+const getTopLevelStatements = (body: AstNode): readonly AstNode[] => {
+  const blockBody = (body as unknown as { body?: AstNode }).body;
+  if (!blockBody || blockBody.type !== 'BlockStatement') {
+    return [];
+  }
+  return (blockBody as unknown as { body?: readonly AstNode[] }).body ?? [];
+};
+
+const collectComposeNamesFromDeclaration = (
+  stmt: AstNode,
+  ctxNames: ReadonlySet<string>,
+  names: Set<string>
+): void => {
+  if (stmt.type !== 'VariableDeclaration') {
+    return;
+  }
+  const { kind } = stmt as unknown as { readonly kind?: string };
+  if (kind !== 'const') {
+    return;
+  }
+  const declarations =
+    (stmt as unknown as { readonly declarations?: readonly AstNode[] })
+      .declarations ?? [];
+  for (const decl of declarations) {
+    const pattern = getCtxDestructurePattern(decl, ctxNames);
+    if (pattern) {
+      collectComposeNamesFromPattern(pattern, names);
+    }
+  }
+};
+
+const collectDestructuredComposeNames = (
+  body: AstNode,
+  ctxNames: ReadonlySet<string>
+): ReadonlySet<string> => {
+  const names = new Set<string>();
+  for (const stmt of getTopLevelStatements(body)) {
+    collectComposeNamesFromDeclaration(stmt, ctxNames, names);
+  }
+  return names;
+};
+
+interface CalledComposes {
   /** Statically resolved trail IDs from string literal arguments. */
   readonly ids: ReadonlySet<string>;
   /**
-   * True if any `ctx.cross()` call used a non-string first argument (e.g.
-   * `ctx.cross(showGist, input)`). When true, "unused declaration"
+   * True if any `ctx.compose()` call used a non-string first argument (e.g.
+   * `ctx.compose(showGist, input)`). When true, "unused declaration"
    * diagnostics are softened since the call may target a declared entry.
    */
   readonly hasUnresolved: boolean;
 }
 
-/** Collect cross call results from a single blaze body. */
-const collectCrossCallsFromBody = (
+/** Collect compose call results from a single blaze body. */
+const collectComposeCallsFromBody = (
   body: AstNode,
   ids: Set<string>,
   sourceCode: string
 ): boolean => {
   const ctxNames = buildCtxNames(body);
+  const composeLocalNames = collectDestructuredComposeNames(body, ctxNames);
   let foundUnresolved = false;
 
   walk(body, (node) => {
-    const extracted = extractCrossCall(node, ctxNames, sourceCode);
+    const extracted = extractComposeCall(
+      node,
+      ctxNames,
+      composeLocalNames,
+      sourceCode
+    );
     if (!extracted) {
       return;
     }
@@ -424,16 +533,16 @@ const collectCrossCallsFromBody = (
   return foundUnresolved;
 };
 
-/** Walk blaze bodies and collect all statically resolvable ctx.cross() trail IDs. */
-const extractCalledCrosses = (
+/** Walk blaze bodies and collect all statically resolvable ctx.compose() trail IDs. */
+const extractCalledComposes = (
   config: AstNode,
   sourceCode: string
-): CalledCrosses => {
+): CalledComposes => {
   const ids = new Set<string>();
   let hasUnresolved = false;
 
   for (const body of findBlazeBodies(config)) {
-    if (collectCrossCallsFromBody(body, ids, sourceCode)) {
+    if (collectComposeCallsFromBody(body, ids, sourceCode)) {
       hasUnresolved = true;
     }
   }
@@ -447,7 +556,7 @@ const extractCalledCrosses = (
 
 const buildUndeclaredDiagnostic = (
   trailId: string,
-  crossedId: string,
+  composedId: string,
   filePath: string,
   line: number,
   softened = false
@@ -455,22 +564,22 @@ const buildUndeclaredDiagnostic = (
   filePath,
   line,
   message: softened
-    ? `Trail "${trailId}": ctx.cross('${crossedId}') called but '${crossedId}' is not declared in crosses (may be declared via trail object references). Add the string id to crosses, or use the same trail object form in both crosses and ctx.cross(...).`
-    : `Trail "${trailId}": ctx.cross('${crossedId}') called but '${crossedId}' is not declared in crosses. Add it to the trail crosses array: crosses: ['${crossedId}', ...].`,
-  rule: 'cross-declarations',
+    ? `Trail "${trailId}": ctx.compose('${composedId}') called but '${composedId}' is not declared in composes (may be declared via trail object references). Add the string id to composes, or use the same trail object form in both composes and ctx.compose(...).`
+    : `Trail "${trailId}": ctx.compose('${composedId}') called but '${composedId}' is not declared in composes. Add it to the trail composes array: composes: ['${composedId}', ...].`,
+  rule: 'composes-declarations',
   severity: softened ? 'warn' : 'error',
 });
 
 const buildUnusedDiagnostic = (
   trailId: string,
-  crossedId: string,
+  composedId: string,
   filePath: string,
   line: number
 ): WardenDiagnostic => ({
   filePath,
   line,
-  message: `Trail "${trailId}": '${crossedId}' declared in crosses but ctx.cross('${crossedId}') never called`,
-  rule: 'cross-declarations',
+  message: `Trail "${trailId}": '${composedId}' declared in composes but ctx.compose('${composedId}') never called`,
+  rule: 'composes-declarations',
   severity: 'warn',
 });
 
@@ -527,8 +636,8 @@ const checkTrailDefinition = (
   sourceCode: string,
   diagnostics: WardenDiagnostic[]
 ): void => {
-  const declared = extractDeclaredCrosses(def.config, sourceCode);
-  const called = extractCalledCrosses(def.config, sourceCode);
+  const declared = extractDeclaredComposes(def.config, sourceCode);
+  const called = extractCalledComposes(def.config, sourceCode);
 
   if (
     declared.ids.size === 0 &&
@@ -553,10 +662,10 @@ const checkTrailDefinition = (
     diagnostics
   );
 
-  // When all ctx.cross() calls are statically resolved, report unused
+  // When all ctx.compose() calls are statically resolved, report unused
   // declarations. When some calls use trail object references (unresolved),
   // skip — a declared string like 'gist.show' might be the target of an
-  // unresolved `ctx.cross(showGist)` call, producing false positives.
+  // unresolved `ctx.compose(showGist)` call, producing false positives.
   if (!called.hasUnresolved) {
     reportUnused(declared.ids, called.ids, ctx, diagnostics);
   }
@@ -567,9 +676,9 @@ const checkTrailDefinition = (
 // ---------------------------------------------------------------------------
 
 /**
- * Validates that `ctx.cross()` calls align with declared `crosses` arrays.
+ * Validates that `ctx.compose()` calls align with declared `composes` arrays.
  */
-export const crossDeclarations: WardenRule = {
+export const composesDeclarations: WardenRule = {
   check(sourceCode: string, filePath: string): readonly WardenDiagnostic[] {
     if (isTestFile(filePath)) {
       return [];
@@ -589,7 +698,7 @@ export const crossDeclarations: WardenRule = {
     return diagnostics;
   },
   description:
-    'Ensure ctx.cross() calls match the declared crosses array in trail definitions.',
-  name: 'cross-declarations',
+    'Ensure ctx.compose() calls match the declared composes array in trail definitions.',
+  name: 'composes-declarations',
   severity: 'error',
 };

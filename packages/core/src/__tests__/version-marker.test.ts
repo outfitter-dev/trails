@@ -33,7 +33,7 @@ describe('trail version markers', () => {
     class MarkerConflictError extends Error {}
 
     const base = {
-      crosses: [],
+      composes: [],
       detours: [],
       input: z.object({ id: z.string() }),
       output: z.object({ ok: z.boolean() }),
@@ -41,7 +41,7 @@ describe('trail version markers', () => {
     };
     const current = {
       ...base,
-      crosses: ['audit.log'],
+      composes: ['audit.log'],
       detours: [{ maxAttempts: 3, on: MarkerConflictError, recover: () => {} }],
       resources: [{ id: 'db.main' }],
     };
@@ -49,7 +49,7 @@ describe('trail version markers', () => {
     const content = deriveCurrentTrailVersionMarkerContent(current as never);
 
     expect(content).toMatchObject({
-      crosses: ['audit.log'],
+      composes: ['audit.log'],
       detours: [{ maxAttempts: 3, on: 'MarkerConflictError' }],
       resources: ['db.main'],
     });

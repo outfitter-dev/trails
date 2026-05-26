@@ -283,14 +283,14 @@ A thin passthrough trail in the domain pack:
 ```typescript
 const listPRs = trail('github.pr.list', {
   intent: 'read',
-  crosses: ['github.core.raw-list-prs'],
+  composes: ['github.core.raw-list-prs'],
   input: z.object({
     repo: z.string().describe('owner/repo format'),
     state: z.enum(['open', 'closed', 'all']).default('open'),
   }),
   blaze: async (input, ctx) => {
     const [owner, repo] = input.repo.split('/');
-    return ctx.cross('github.core.raw-list-prs', { owner, repo, state: input.state });
+    return ctx.compose('github.core.raw-list-prs', { owner, repo, state: input.state });
   },
 });
 ```

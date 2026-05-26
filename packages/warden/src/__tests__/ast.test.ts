@@ -395,7 +395,7 @@ describe('findTrailDefinitions scope-aware shadowing', () => {
 
 describe('getTrailCalleeName permissive fallback', () => {
   test('resolves namespaced core.trail(...) when no context is provided', () => {
-    // Inline resolution paths (`crosses: [core.trail(...)]`,
+    // Inline resolution paths (`composes: [core.trail(...)]`,
     // `on: [core.signal(...)]`) do not have access to the surrounding file
     // AST and so cannot build a FrameworkNamespaceContext. They must still
     // be able to recognize the trail/signal primitive by name.

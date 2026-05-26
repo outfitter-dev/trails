@@ -27,7 +27,7 @@ For each trail candidate:
 
 For each handler:
 
-- [ ] Create `trail()` definition (use `crosses:` for composition)
+- [ ] Create `trail()` definition (use `composes:` for composition)
 - [ ] Choose appropriate ID with dotted namespacing
 - [ ] Set flags: `intent`, `idempotent`
 - [ ] Blaze the trail by moving behavior into `blaze`
@@ -42,7 +42,7 @@ For each handler:
   - `console.log(output)` → `Result.ok(output)`
   - `process.exit(1)` → `Result.err(new InternalError(...))`
 - [ ] Remove surface imports from trail files
-- [ ] Convert handler-to-handler calls to `ctx.cross()` in composite trails
+- [ ] Convert handler-to-handler calls to `ctx.compose()` in composite trails
 
 ## Phase 4: Composition
 
@@ -69,7 +69,7 @@ For each handler:
 
 ## Common Gotchas
 
-- **Async handlers**: Trails normalizes sync and async — both work. But `ctx.cross()` is always async.
+- **Async handlers**: Trails normalizes sync and async — both work. But `ctx.compose()` is always async.
 - **Layers**: Convert to Layers, not trails. Layers wrap trail execution.
 - **Error handling layers**: Remove them. Trails maps errors to exit codes/HTTP status automatically.
 - **Response formatting**: Remove it. Use `outputModePreset()` for CLI, MCP handles it automatically.

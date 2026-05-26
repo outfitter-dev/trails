@@ -138,7 +138,7 @@ export const shippedSurfaceInventoryOutput = z.object({
 });
 
 const trailVersionEntryOutput = z.object({
-  crosses: z.array(z.string()).readonly().optional(),
+  composes: z.array(z.string()).readonly().optional(),
   detours: z
     .array(
       z.object({
@@ -189,9 +189,9 @@ export const trailDetailOutput = z.object({
     topo: z.array(z.string()).readonly(),
     trail: z.array(z.string()).readonly(),
   }),
+  composes: z.array(z.string()).readonly(),
   contourDetails: z.array(contourDetailOutput).readonly(),
   contours: z.array(z.string()).readonly(),
-  crosses: z.array(z.string()).readonly(),
   description: z.string().nullable(),
   detours: z
     .array(

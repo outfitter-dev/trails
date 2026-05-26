@@ -1,7 +1,7 @@
-import { versionPinnedCross } from '../rules/trail-versioning-source.js';
+import { versionPinnedCompose } from '../rules/trail-versioning-source.js';
 import { wrapRule } from './wrap-rule.js';
 
-export const versionPinnedCrossTrail = wrapRule({
+export const versionPinnedComposeTrail = wrapRule({
   examples: [
     {
       expected: { diagnostics: [] },
@@ -10,7 +10,7 @@ export const versionPinnedCrossTrail = wrapRule({
         sourceCode: `
 trail('current.parent', {
   blaze: async (_input, ctx) => {
-    await ctx.cross('current.child', {});
+    await ctx.compose('current.child', {});
     return Result.ok({});
   },
 });
@@ -19,5 +19,5 @@ trail('current.parent', {
       name: 'Current composition has no version-pin warning',
     },
   ],
-  rule: versionPinnedCross,
+  rule: versionPinnedCompose,
 });

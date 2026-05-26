@@ -109,7 +109,7 @@ describe('contour()', () => {
       // admin still has its own id() accessor
       expect(admin.id()).toBeDefined();
 
-      // Neither contour should emit its own identity as a cross-contour reference
+      // Neither contour should emit its own identity as a compose-contour reference
       expect(getContourReferences(baseUser)).toEqual([]);
       expect(getContourReferences(admin)).toEqual([]);
     });
@@ -184,7 +184,7 @@ describe('contour()', () => {
       ).toBe(true);
     });
 
-    test('supports cross-contour references via .id()', () => {
+    test('supports compose-contour references via .id()', () => {
       expect(
         gist.safeParse({
           id: '0f31f6ba-6ff0-41ce-9f6b-8d132b6c4b81',

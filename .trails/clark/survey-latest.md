@@ -37,13 +37,13 @@ Baseline scan: typecheck clean, tests clean (29 tasks, 58 tests in apps/trails a
 - **Typecheck is fully cached and clean** (`FULL TURBO`). No `any`, no `as` casts leaking in.
 - **Trail/blaze/topo/trailhead vocabulary is consistent** across the current source. The `service/provision/gate/tracker` retirement has mostly landed — the remaining residue is the tail of what ADR-0023 explicitly flagged as rename-churn.
 - **Draft state discipline holds.** No `_draft.` IDs in committed topo exports; the warden catches leakage; no `.draft.ts` files are committed beyond the definitional sources.
-- **No direct `.run()` calls in trail implementations.** Composition is going through `ctx.cross()` consistently.
+- **No direct `.run()` calls in trail implementations.** Composition is going through `ctx.compose()` consistently.
 
 ### Trends
 
 - **The ADR-0023 vocabulary cutover is ~95% done but the last 5% is concentrated in high-leverage places.** The remaining cases (public `event` alias, `svc` parameter name, ADR-0001 rewrite-in-place, `packages/tracker/dist/` orphan) each have outsized impact because they are on the authoritative surfaces an agent or new contributor reads first: the accepted ADRs, the `resource` public API, the package directory, the public export list. This is a case where "finish the job" yields more value than any new feature would.
 
-- **The warden is maturing but not yet canonical.** Rule coverage is strong (resource-declarations, cross-declarations, fires-declarations, draft-file-marking, detour-refs) but rule *precision* has gaps — the false positives on trails/topo-export and topo-verify are the visible tip. Over time, these false positives either erode trust in the warden or push developers to disable rules. Tightening rule precision is a good week-2 investment.
+- **The warden is maturing but not yet canonical.** Rule coverage is strong (resource-declarations, composes-declarations, fires-declarations, draft-file-marking, detour-refs) but rule *precision* has gaps — the false positives on trails/topo-export and topo-verify are the visible tip. Over time, these false positives either erode trust in the warden or push developers to disable rules. Tightening rule precision is a good week-2 investment.
 
 - **Documentation fidelity lags source.** Architecture tables, lexicon snippets, and TSDoc examples are correct in general posture but carry residual legacy names. This drift is the normal tail of a large rename; the fix is a systematic pass, not a per-file cleanup.
 

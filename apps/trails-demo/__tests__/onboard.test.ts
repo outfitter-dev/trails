@@ -23,13 +23,13 @@ import { onboard } from '../src/trails/onboard.js';
 import { search } from '../src/trails/search.js';
 
 // ---------------------------------------------------------------------------
-// Helper: create a cross function that dispatches to real trail impls
+// Helper: create a compose function that dispatches to real trail impls
 // ---------------------------------------------------------------------------
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyTrail = Trail<any, any>;
 
-const createCrossFn = (ctx: TrailContext) => {
+const createComposeFn = (ctx: TrailContext) => {
   const trailMap = new Map<string, AnyTrail>([
     ['entity.add', add],
     ['search', search],
@@ -52,7 +52,7 @@ const makeCtx = (store: EntityStore): TrailContext => {
   const base = createTrailContext({
     extensions: { [entityStoreResource.id]: store },
   });
-  const ctx: TrailContext = { ...base, cross: createCrossFn(base) };
+  const ctx: TrailContext = { ...base, compose: createComposeFn(base) };
   return ctx;
 };
 

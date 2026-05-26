@@ -1808,7 +1808,7 @@ describe('deriveHttpRoutes', () => {
     test('returns err when draft contamination remains', () => {
       const draftTrail = trail('entity.export', {
         blaze: () => Result.ok({ ok: true }),
-        crosses: ['_draft.entity.prepare'],
+        composes: ['_draft.entity.prepare'],
         input: z.object({}),
       });
 

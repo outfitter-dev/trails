@@ -9,7 +9,7 @@ import type {
 } from '@ontrails/core';
 import { z } from 'zod';
 
-export const TOPO_GRAPH_SCHEMA_VERSION = 1;
+export const TOPO_GRAPH_SCHEMA_VERSION = 2;
 
 export type TopoGraphExample = StructuredSignalExample | StructuredTrailExample;
 
@@ -108,7 +108,7 @@ export interface TopoGraphVersionEntry {
   readonly marker: string;
   readonly output: JsonSchema;
   readonly status?: TrailVersionStatus | undefined;
-  readonly crosses?: readonly string[] | undefined;
+  readonly composes?: readonly string[] | undefined;
   readonly detours?: readonly TopoGraphVersionDetour[] | undefined;
   readonly resources?: readonly string[] | undefined;
 }
@@ -155,7 +155,7 @@ export interface TopoGraphEntry {
   readonly deprecated?: boolean | undefined;
   readonly replacedBy?: string | undefined;
   readonly activationSources?: readonly TopoGraphActivationEntry[] | undefined;
-  readonly crosses?: readonly string[] | undefined;
+  readonly composes?: readonly string[] | undefined;
   readonly contours?: readonly string[] | undefined;
   readonly schema?: JsonSchema | undefined;
   readonly identity?: string | undefined;

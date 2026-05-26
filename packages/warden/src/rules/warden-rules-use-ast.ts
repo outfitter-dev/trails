@@ -719,14 +719,14 @@ const isVarVariableDeclaration = (stmt: AstNode): boolean =>
 
 /**
  * True when `node` owns its own VariableEnvironment and therefore stops `var`
- * hoisting from crossing into the enclosing function/program scope.
+ * hoisting from composing into the enclosing function/program scope.
  */
 const ownsVariableEnvironmentForHoisting = (node: AstNode): boolean =>
   FUNCTION_NODE_TYPES.has(node.type) || node.type === 'StaticBlock';
 
 /**
  * Collect `var` declarations that hoist to the nearest function (or program)
- * scope from anywhere inside `root`, without crossing a nested function or
+ * scope from anywhere inside `root`, without composing a nested function or
  * static-block boundary. Mirrors the hoisting semantics used by
  * {@link ./no-sync-result-assumption.ts} so `if (cond) { var sourceCode = ... }`
  * inside a `check()` body correctly shadows the method's first parameter.

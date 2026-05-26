@@ -17,69 +17,98 @@ import type { ContourOptions } from './contour.js';
 import type { ScheduleSpec } from './schedule.js';
 import type { WebhookSpec } from './webhook.js';
 import type { BasePermit } from './permits.js';
-import type { FireFn } from './types.js';
-import type { CrossInput, TrailInput } from './type-utils.js';
+import type { Result } from './result.js';
+import type { ComposeFn, FireFn } from './types.js';
+import type { ComposeInput, TrailInput, TrailOutput } from './type-utils.js';
 import type { z } from 'zod';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** A trail with crossInput declared. */
-type CrossTrail = Trail<
+/** A trail with composeInput declared. */
+type ComposeTrail = Trail<
   { name: string },
   { id: string },
   { forkedFrom: string }
 >;
 
-/** A trail without crossInput. */
+/** A trail without composeInput. */
 type PlainTrail = Trail<{ name: string }, { id: string }>;
 
 // ---------------------------------------------------------------------------
-// CrossInput<T> must include crossInput fields
+// ComposeInput<T> must include composeInput fields
 // ---------------------------------------------------------------------------
 
-type WithCrossInput = CrossInput<CrossTrail>;
+type WithComposeInput = ComposeInput<ComposeTrail>;
 
 // Must require both `name` AND `forkedFrom`.
 // Before the fix, `forkedFrom` was erased.
-type AssertMerged = WithCrossInput extends { name: string; forkedFrom: string }
-  ? true
-  : false;
-export type Merged = [AssertMerged] extends [true] ? 'pass' : never;
-
-// ---------------------------------------------------------------------------
-// CrossInput<T> falls back to TrailInput<T> when no crossInput
-// ---------------------------------------------------------------------------
-
-type WithoutCrossInput = CrossInput<PlainTrail>;
-type BaseInput = TrailInput<PlainTrail>;
-
-// These should be mutually assignable (identical).
-type AssertFallback1 = WithoutCrossInput extends BaseInput ? true : false;
-type AssertFallback2 = BaseInput extends WithoutCrossInput ? true : false;
-export type Fallback = [AssertFallback1, AssertFallback2] extends [true, true]
-  ? 'pass'
-  : never;
-
-// ---------------------------------------------------------------------------
-// BlazeInput: blaze receives crossInput fields when declared
-// ---------------------------------------------------------------------------
-
-/**
- * When a trail has crossInput, the blaze's first parameter must include
- * both the public input fields AND the crossInput fields. Before the fix,
- * blaze was typed as Implementation<I, O>, losing the CI fields.
- */
-type CrossBlazeParam = Parameters<CrossTrail['blaze']>[0];
-
-type AssertBlazeHasCrossFields = CrossBlazeParam extends {
+type AssertMerged = WithComposeInput extends {
   name: string;
   forkedFrom: string;
 }
   ? true
   : false;
-export type BlazeWithCross = [AssertBlazeHasCrossFields] extends [true]
+export type Merged = [AssertMerged] extends [true] ? 'pass' : never;
+
+// ---------------------------------------------------------------------------
+// ComposeInput<T> falls back to TrailInput<T> when no composeInput
+// ---------------------------------------------------------------------------
+
+type WithoutComposeInput = ComposeInput<PlainTrail>;
+type BaseInput = TrailInput<PlainTrail>;
+
+// These should be mutually assignable (identical).
+type AssertFallback1 = WithoutComposeInput extends BaseInput ? true : false;
+type AssertFallback2 = BaseInput extends WithoutComposeInput ? true : false;
+export type Fallback = [AssertFallback1, AssertFallback2] extends [true, true]
+  ? 'pass'
+  : never;
+
+// ---------------------------------------------------------------------------
+// ComposeFn preserves typed trail-object output inference
+// ---------------------------------------------------------------------------
+
+declare const plainTrail: PlainTrail;
+
+type TypedComposeResult = ComposeFn extends {
+  (trail: typeof plainTrail, input: ComposeInput<typeof plainTrail>): infer R;
+}
+  ? Awaited<R>
+  : never;
+
+type AssertTypedComposeOutput =
+  TypedComposeResult extends Result<TrailOutput<typeof plainTrail>, Error>
+    ? true
+    : false;
+type AssertTypedComposeNotNever =
+  TrailOutput<typeof plainTrail> extends never ? false : true;
+export type TypedTrailObjectComposeOutput = [
+  AssertTypedComposeOutput,
+  AssertTypedComposeNotNever,
+] extends [true, true]
+  ? 'pass'
+  : never;
+
+// ---------------------------------------------------------------------------
+// BlazeInput: blaze receives composeInput fields when declared
+// ---------------------------------------------------------------------------
+
+/**
+ * When a trail has composeInput, the blaze's first parameter must include
+ * both the public input fields AND the composeInput fields. Before the fix,
+ * blaze was typed as Implementation<I, O>, losing the CI fields.
+ */
+type ComposeBlazeParam = Parameters<ComposeTrail['blaze']>[0];
+
+type AssertBlazeHasComposeFields = ComposeBlazeParam extends {
+  name: string;
+  forkedFrom: string;
+}
+  ? true
+  : false;
+export type BlazeWithCompose = [AssertBlazeHasComposeFields] extends [true]
   ? 'pass'
   : never;
 
@@ -92,7 +121,7 @@ type AssertPlainBlazeIsInput = PlainBlazeParam extends { name: string }
 type AssertPlainBlazeNoExtra = { name: string } extends PlainBlazeParam
   ? true
   : false;
-export type BlazeWithoutCross = [
+export type BlazeWithoutCompose = [
   AssertPlainBlazeIsInput,
   AssertPlainBlazeNoExtra,
 ] extends [true, true]
@@ -198,12 +227,12 @@ type AssertRevisionOutputTranspose =
   }) => RevisionOutput | Promise<RevisionOutput>
     ? true
     : false;
-type AssertRevisionNoCrossInput = TrailVersionRevisionEntry<
+type AssertRevisionNoComposeInput = TrailVersionRevisionEntry<
   RevisionInput,
   RevisionOutput,
   CurrentInput,
   CurrentOutput
->['crossInput'] extends never | undefined
+>['composeInput'] extends never | undefined
   ? true
   : false;
 export type RevisionTransposeContract = [
@@ -213,21 +242,21 @@ export type RevisionTransposeContract = [
   ? 'pass'
   : never;
 export type RevisionRuntimeFieldContract = [
-  AssertRevisionNoCrossInput,
+  AssertRevisionNoComposeInput,
 ] extends [true]
   ? 'pass'
   : never;
 
 // ---------------------------------------------------------------------------
-// ExecuteTrailOptions keeps cross-validation internals out of the public API
+// ExecuteTrailOptions keeps compose-validation internals out of the public API
 // ---------------------------------------------------------------------------
 
-type AssertExecuteOptionsHideCrossValidation =
-  'crossValidation' extends keyof ExecuteTrailOptions ? false : true;
+type AssertExecuteOptionsHideComposeValidation =
+  'composeValidation' extends keyof ExecuteTrailOptions ? false : true;
 type AssertExecuteOptionsHideValidationSchema =
   'validationSchema' extends keyof ExecuteTrailOptions ? false : true;
 export type ExecuteOptionsPublicBoundary = [
-  AssertExecuteOptionsHideCrossValidation,
+  AssertExecuteOptionsHideComposeValidation,
   AssertExecuteOptionsHideValidationSchema,
 ] extends [true, true]
   ? 'pass'

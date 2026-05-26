@@ -2,7 +2,7 @@
  * Internal helper for "forking" a trail context.
  *
  * Several execution sites need to derive a child context from a parent
- * context while **resetting** a well-known set of bound closures (`cross`,
+ * context while **resetting** a well-known set of bound closures (`compose`,
  * `fire`, `resource`). Those closures capture the parent scope, so reusing
  * them on the child would re-enter execution with the wrong attribution,
  * the wrong resource scope, or the wrong fan-out identity. The reset list
@@ -24,7 +24,7 @@
 import type { TrailContext, TrailContextInit } from '../types.js';
 
 /** Keys cleared by default when forking a context. */
-export type ForkCtxResetKey = 'cross' | 'fire' | 'resource';
+export type ForkCtxResetKey = 'compose' | 'fire' | 'resource';
 
 /** Override fields callers are allowed to apply when forking a context. */
 export type ForkCtxOverrides = Readonly<
@@ -32,7 +32,7 @@ export type ForkCtxOverrides = Readonly<
 >;
 
 const DEFAULT_RESET_KEYS: readonly ForkCtxResetKey[] = [
-  'cross',
+  'compose',
   'fire',
   'resource',
 ];
@@ -53,7 +53,7 @@ export const forkCtx = <
   TCtx extends Partial<
     Pick<
       TrailContextInit,
-      'cross' | 'env' | 'extensions' | 'fire' | 'logger' | 'resource'
+      'compose' | 'env' | 'extensions' | 'fire' | 'logger' | 'resource'
     >
   >,
 >(

@@ -156,7 +156,7 @@ export interface WardenRule {
 }
 
 /**
- * Options for cross-file rules that need knowledge of all trail IDs in a project.
+ * Options for compose-file rules that need knowledge of all trail IDs in a project.
  */
 export interface ProjectContext {
   /** All known contour names in the project. */
@@ -171,8 +171,8 @@ export interface ProjectContext {
   readonly knownResourceIds?: ReadonlySet<string>;
   /** All known signal IDs in the project */
   readonly knownSignalIds?: ReadonlySet<string>;
-  /** All trail IDs referenced by declared crosses arrays across the project. */
-  readonly crossTargetTrailIds?: ReadonlySet<string>;
+  /** All trail IDs referenced by declared composes arrays across the project. */
+  readonly composeTargetTrailIds?: ReadonlySet<string>;
   /** Signal IDs referenced by trail `on` arrays across the project. */
   readonly onTargetSignalIds?: ReadonlySet<string>;
   /** Store table IDs used with reconcile trails across the project. */
@@ -199,7 +199,7 @@ export interface ProjectContext {
    * produced by `deriveStoreTableId`). Values are the set of CRUD operations
    * (`create`, `read`, `update`, `delete`, `list`) observed for that entity.
    *
-   * Enables cross-file completeness evaluation so one-file-per-operation
+   * Enables compose-file completeness evaluation so one-file-per-operation
    * layouts (e.g. separate `create.ts`, `read.ts`) do not trip file-scoped
    * coverage warnings.
    */

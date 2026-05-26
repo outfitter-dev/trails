@@ -57,7 +57,7 @@ describe('renderTraceTree', () => {
   });
 
   describe('basic tree shapes', () => {
-    test('renders a trail with a single child crossing', () => {
+    test('renders a trail with a single child composing', () => {
       const records = [
         makeRecord({
           endedAt: 100,

@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { Result } from '../result';
 import { trail } from '../trail';
 import type {
-  CrossInput,
+  ComposeInput,
   TrailInput,
   TrailOutput,
   TrailResult,
@@ -73,22 +73,22 @@ describe('type-utils', () => {
     });
   });
 
-  describe('CrossInput', () => {
-    test('returns base input when no crossInput defined', () => {
-      type Input = CrossInput<typeof greetTrail>;
+  describe('ComposeInput', () => {
+    test('returns base input when no composeInput defined', () => {
+      type Input = ComposeInput<typeof greetTrail>;
       const _input: Input = { name: 'test' };
       expect(_input.name).toBe('test');
     });
 
-    test('merges crossInput with base input when crossInput defined', () => {
-      const crossTrail = trail('cross.test', {
+    test('merges composeInput with base input when composeInput defined', () => {
+      const composeTrail = trail('compose.test', {
         blaze: (input) => Result.ok({ name: input.name }),
-        crossInput: z.object({ forkedFrom: z.string() }),
+        composeInput: z.object({ forkedFrom: z.string() }),
         input: z.object({ name: z.string() }),
         output: z.object({ name: z.string() }),
       });
 
-      type Input = CrossInput<typeof crossTrail>;
+      type Input = ComposeInput<typeof composeTrail>;
       // If this compiles, the type correctly merges both schemas
       const _input: Input = { forkedFrom: 'origin', name: 'test' };
       expect(_input.name).toBe('test');

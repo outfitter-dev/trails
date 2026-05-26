@@ -78,7 +78,7 @@ Six terms that appear as field names inside `trail()`. The constrained context �
 | `blaze` | The authored implementation that establishes how a trail runs. | "Blaze a trail" is real English, not manufactured. Only appears inside `trail()`. Short alongside `input:`, `intent:`, `output:`. Alternatives are worse (`impl` abbreviates, `implementation` is a brick). The term preserves `run` for execution: the runtime runs trails, not blazes. |
 | `fires` | Producer-side signal declaration. This trail fires these signals. | "Fire off" is standard English for dispatching. Pairs with `blaze` for vocabulary coherence. Combined with `signal`, the resonance is mnemonic: signal fire. |
 | `detour` | Recovery paths when the trail is blocked or fails. | Coherent pair with `blaze`. A blazed trail has a normal path; if blocked, it detours. `fallback` is generic and says nothing about the relationship to the trail. |
-| `cross` / `crosses` | Trail-to-trail composition. Declaration and runtime call. | More precise than "compose." `ctx.cross()` says you're invoking another trail. Compact, visual, avoids FP connotations. |
+| `compose` / `composes` | Trail-to-trail composition. Declaration and runtime call. | Uses the ordinary word for combining trails while leaving room for Trails-specific structure through the `composes` declaration and `ctx.compose()` invocation. |
 | `signal` | Typed notification primitive with schema, sources, and routing. | Developers would reach for "event." But Trails signals go beyond events: cron triggers, webhook sources, file watchers, bare triggers with no domain payload. "Event" would mislead. |
 | `pin` | Named topo snapshot for diffing and verification. | Carries intent that "snapshot" doesn't — "this state is my reference point." Verb-friendly (`trails topo pin`). Precedent in package managers. |
 
@@ -140,8 +140,8 @@ Built from the vocabulary above:
 Rename `docs/vocabulary.md` to `docs/lexicon.md`. Update every reference across docs, ADRs, `AGENTS.md`, `CLAUDE.md`, and agent skills. The word "vocabulary" in prose becomes "lexicon" when referring to the curated, governed term set. The grammar rules from ADR-0001 carry over unchanged — this is the lexicon's grammar:
 
 - **Singular nouns define:** `trail()`, `signal()`, `resource()`
-- **Plural fields declare:** `signals:`, `resources:`, `crosses:`, `layers:`, `fires:`, `on:`
-- **Runtime verbs are plain actions:** `run()`, `cross()`, `ctx.fire()`
+- **Plural fields declare:** `signals:`, `resources:`, `composes:`, `layers:`, `fires:`, `on:`
+- **Runtime verbs are plain actions:** `run()`, `ctx.compose()`, `ctx.fire()`
 - **`create*` for runtime instances:** `createLogger()`, `createConsoleLogger()`
 - **`derive*` for derivations:** `deriveFields()`, `deriveFlags()`
 - **`validate*` for verification:** `validateInput()`, `validateTopo()`
@@ -160,7 +160,7 @@ Rename `docs/vocabulary.md` to `docs/lexicon.md`. Update every reference across 
 - **Lower onboarding cost.** Four terms that required explanation (`gate`, `provision`, `loadout`, `tracker`) become standard industry words. The lexicon shrinks by the four terms a new developer has to learn cold.
 - **Better agent ergonomics.** Agents inspecting a Trails topo encounter `resource`, `layer`, `profile`, `tracing` — words their training data already handles. Fewer synonyms to resolve.
 - **OTel alignment.** `tracing` + `TraceRecord` + `ctx.trace()` maps directly to OpenTelemetry terminology. `@ontrails/observe` can adopt OTel semantics without a naming translation layer.
-- **Stronger branded terms earn more.** The terms that remain branded — `trail`, `surface`, `topo`, `warden`, `permit`, `blaze`, `fires`, `detour`, `cross`, `signal`, `pin` — are now the full set. Each one names something the standard word would shrink. The signal-to-noise of the branded vocabulary goes up.
+- **Stronger branded terms earn more.** The terms that remain branded — `trail`, `surface`, `topo`, `warden`, `permit`, `blaze`, `fires`, `detour`, `compose`, `signal`, `pin` — are now the full set. Each one names something the standard word would shrink. The signal-to-noise of the branded vocabulary goes up.
 - **"Lexicon" reframes the discipline.** Calling the document what it is — a governed naming system with grammar — reinforces that this is a contract, not a glossary.
 
 ### Tradeoffs

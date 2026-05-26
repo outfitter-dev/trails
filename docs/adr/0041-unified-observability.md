@@ -52,7 +52,7 @@ But "different authoring model" does not require "different package." The develo
 The `Logger` interface is already in core. The following join it:
 
 - **Default console logger.** Structured logging to stdout with no configuration. Available on `ctx.logger` automatically.
-- **Built-in tracing.** Automatic execution recording for every trail invocation, intrinsic to the `executeTrail` pipeline. Records which trail ran, how long, what result, what errors, which crossings happened, trace ID propagation. Not an optional layer the developer attaches — it just happens.
+- **Built-in tracing.** Automatic execution recording for every trail invocation, intrinsic to the `executeTrail` pipeline. Records which trail ran, how long, what result, what errors, which compositions happened, trace ID propagation. Not an optional layer the developer attaches — it just happens.
 - **Trace record data model.** The `TraceRecord` interface describing one recorded execution footprint. The developer-facing word is "trace" (as verb and noun). The internal type is `TraceRecord` to avoid overloading "trace" (which can mean one record or an entire execution tree in industry usage). Records can describe trail execution, manual spans, signal lifecycle points, or activation boundaries.
 - **Trace sink contract and registry.** Core owns the `TraceSink` contract, the process-level trace sink registry, and the `NOOP_SINK` disabled baseline. Core does not own durable or developer-configurable trace storage.
 - **`ctx.trace()` method.** Manual sub-step recording within a blaze, replacing `tracker.from(ctx).track()`.
@@ -92,7 +92,7 @@ The API is callback-based to guarantee closure. No raw `start` / `end` pair. Str
 `executeTrail`[^1] is the shared chokepoint every surface uses for every trail invocation. Tracing wraps it intrinsically:
 
 1. **Before execution enters the blaze** — create a root `TraceRecord` with trail ID, intent, surface, and `traceId`. Write `traceId` and root record ID into execution scope.
-2. **During execution** — `ctx.trace()` calls create child records parented to the current scope. When a trail crosses another trail, the child inherits the same trace and parent linkage through the shared execution scope.
+2. **During execution** — `ctx.trace()` calls create child records parented to the current scope. When a trail composes another trail, the child inherits the same trace and parent linkage through the shared execution scope.
 3. **After the blazed trail completes** — close the root record with duration, status (`ok` | `err` | `cancelled`), and error category if applicable.
 
 This is not an attached layer or gate. It is intrinsic to `executeTrail`. The developer does not install it, configure it, or opt into it. Every trail execution is recorded.
@@ -250,7 +250,7 @@ Everything else — developer-configurable memory sinks, OTel, file sinks, SQLit
 ## Non-goals
 
 - **Metrics.** Core does not ship a metrics primitive. If metrics are needed, `@ontrails/observe` can add a metrics adapter. Trace data (duration, error rates) can be derived into metrics at the OTel layer.
-- **Distributed tracing.** Trace context propagation across trail crossings within a single process is in scope. Propagation across network boundaries (cross-app) is a future concern for the mount/pack system.
+- **Distributed tracing.** Trace context propagation across trail compositions within a single process is in scope. Propagation across network boundaries (cross-app) is a future concern for the mount/pack system.
 - **Replacing OpenTelemetry.** The framework maintains a Trails-native model internally. OTel is the export format, not the internal representation. An OTel adapter translates outward from `TraceRecord` to OTel spans.
 
 ## Consequences
@@ -285,7 +285,7 @@ Everything else — developer-configurable memory sinks, OTel, file sinks, SQLit
 ## References
 
 - [ADR-0006: Shared Execution Pipeline](0006-shared-execution-pipeline.md) — `executeTrail` is the chokepoint where tracing wraps. Moving tracing into core puts it next to the pipeline it instruments.
-- [ADR-0013: Tracing](0013-tracing.md) — the runtime recording primitive this decision updates. The architectural choices (flat records, callback-only manual API, root-level sampling, crossing propagation through execution scope) remain valid. The change is packaging and vocabulary, not mechanism.
+- [ADR-0013: Tracing](0013-tracing.md) — the runtime recording primitive this decision updates. The architectural choices (flat records, callback-only manual API, root-level sampling, composing propagation through execution scope) remain valid. The change is packaging and vocabulary, not mechanism.
 - [ADR-0039: Reactive Trail Activation](0039-reactive-trail-activation.md) — activation source boundaries define the runtime events this ADR makes observable through `activation.*` trace records.
 - [ADR-0043: Layer Evolution](0043-layer-evolution.md) — identifies `tracingLayer` as framework behavior dressed as user configuration; this ADR resolves it by making tracing core.
 - [Tenets: One write, many reads](../tenets.md) — the governing principle. Trace data authored once feeds `--trace` rendering, OTel export, SQLite dev store, and future replay.

@@ -118,7 +118,7 @@ detours: [
     on: NotFoundError,
     maxAttempts: 1,
     recover: async ({ input }, ctx) => {
-      const search = await ctx.cross('search', { query: input.name });
+      const search = await ctx.compose('search', { query: input.name });
       if (search.isErr()) return search;
       return Result.ok(search.value);
     },
@@ -141,21 +141,21 @@ fields: {
 
 ## Composition Patterns
 
-Trails that compose others use `crosses` and `ctx.cross()`.
+Trails that compose others use `composes` and `ctx.compose()`.
 
-**`crosses`** — declare which trails this trail composes. Prefer trail objects when the target is statically in scope: `crosses: [entityAdd, search]`. Use string IDs only for dynamic or cross-package escape hatches: `crosses: ['entity.add', 'search']`.
+**`composes`** — declare which trails this trail composes. Prefer trail objects when the target is statically in scope: `composes: [entityAdd, search]`. Use string IDs only for dynamic or cross-package escape hatches: `composes: ['entity.add', 'search']`.
 
-**`ctx.cross()`** — compose at runtime. Prefer typed trail-object calls (`ctx.cross(entityAdd, input)`) so TypeScript infers input/output. String IDs remain available when the object is not statically in scope. Always `await`, always check `isErr()` before accessing `.value`, never call `.run()` directly.
+**`ctx.compose()`** — compose at runtime. Prefer typed trail-object calls (`ctx.compose(entityAdd, input)`) so TypeScript infers input/output. String IDs remain available when the object is not statically in scope. Always `await`, always check `isErr()` before accessing `.value`, never call `.run()` directly.
 
 ```typescript
-const result = await ctx.cross(entityAdd, { name: 'Beta', type: 'tool' });
+const result = await ctx.compose(entityAdd, { name: 'Beta', type: 'tool' });
 if (result.isErr()) return result;
 ```
 
-For independent concurrent crossings, use the batch form:
+For independent concurrent composition, use the batch form:
 
 ```typescript
-const [profile, audit] = await ctx.cross([
+const [profile, audit] = await ctx.compose([
   [profileLoad, { id: input.id }],
   [auditRead, { id: input.id }],
 ]);
@@ -163,7 +163,7 @@ const [profile, audit] = await ctx.cross([
 
 ## Resource Declarations
 
-Trails declare infrastructure dependencies with `resources: [...]`, parallel to `crosses` for composition.
+Trails declare infrastructure dependencies with `resources: [...]`, parallel to `composes` for composition.
 
 ```typescript
 import { trail, Result } from '@ontrails/core';

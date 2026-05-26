@@ -32,13 +32,13 @@ const mockContour = (name: string) =>
 
 const mockTrail = (
   id: string,
-  crosses?: readonly string[],
+  composes?: readonly string[],
   contours?: readonly ReturnType<typeof mockContour>[]
 ) =>
   trail(id, {
     blaze: () => Result.ok({ y: 0 }),
+    composes,
     contours,
-    crosses,
     input: z.object({ x: z.number() }),
     output: z.object({ y: z.number() }),
   });
@@ -357,7 +357,7 @@ describe('topo', () => {
       });
     });
 
-    test('rebinds observe loggers for crossed trails', async () => {
+    test('rebinds observe loggers for composed trails', async () => {
       const records: LogRecord[] = [];
       const log: LogSink = {
         name: 'capture',
@@ -374,16 +374,16 @@ describe('topo', () => {
       const parent = trail('observe.parent', {
         blaze: async (_input, ctx) => {
           ctx.logger?.info('parent trail');
-          const crossed = await ctx.cross?.('observe.child', {});
-          if (!crossed) {
-            return Result.err(new Error('missing ctx.cross'));
+          const composed = await ctx.compose?.('observe.child', {});
+          if (!composed) {
+            return Result.err(new Error('missing ctx.compose'));
           }
-          if (crossed.isErr()) {
-            return Result.err(crossed.error);
+          if (composed.isErr()) {
+            return Result.err(composed.error);
           }
           return Result.ok({ ok: true });
         },
-        crosses: [child],
+        composes: [child],
         input: z.object({}),
         output: z.object({ ok: z.boolean() }),
       });
@@ -451,7 +451,7 @@ describe('topo', () => {
       });
     });
 
-    test('preserves cross-branch metadata when rebinding observe logger for concurrent crosses', async () => {
+    test('preserves compose-branch metadata when rebinding observe logger for concurrent composes', async () => {
       const records: LogRecord[] = [];
       const log: LogSink = {
         name: 'capture',
@@ -475,20 +475,20 @@ describe('topo', () => {
       });
       const parent = trail('observe.branch.parent', {
         blaze: async (_input, ctx) => {
-          const { cross } = ctx;
-          if (cross === undefined) {
-            return Result.err(new Error('missing ctx.cross'));
+          const { compose } = ctx;
+          if (compose === undefined) {
+            return Result.err(new Error('missing ctx.compose'));
           }
-          const crossed = await cross([
+          const composed = await compose([
             [left, {}],
             [right, {}],
           ] as const);
-          if (crossed.some((result) => result.isErr())) {
+          if (composed.some((result) => result.isErr())) {
             return Result.err(new Error('branch failure'));
           }
           return Result.ok({ ok: true });
         },
-        crosses: [left, right],
+        composes: [left, right],
         input: z.object({}),
         output: z.object({ ok: z.boolean() }),
       });
@@ -507,13 +507,13 @@ describe('topo', () => {
       expect(rightRecord).toBeDefined();
       expect(leftRecord?.metadata).toMatchObject({
         branchIndex: 0,
-        crossedTrailId: 'observe.branch.left',
+        composedTrailId: 'observe.branch.left',
         topo: 'app',
         trailId: 'observe.branch.left',
       });
       expect(rightRecord?.metadata).toMatchObject({
         branchIndex: 1,
-        crossedTrailId: 'observe.branch.right',
+        composedTrailId: 'observe.branch.right',
         topo: 'app',
         trailId: 'observe.branch.right',
       });
@@ -826,13 +826,13 @@ describe('topo', () => {
       expect(t.resources.size).toBe(0);
     });
 
-    test('trail with crossings registers correctly', () => {
+    test('trail with compositions registers correctly', () => {
       const mod = { t: mockTrail('trail-1', ['trail-2']) };
       const t = topo('app', mod);
 
       expect(t.trails.size).toBe(1);
       const registered = t.trails.get('trail-1');
-      expect(registered?.crosses).toEqual(['trail-2']);
+      expect(registered?.composes).toEqual(['trail-2']);
     });
   });
 
@@ -1202,7 +1202,7 @@ describe('Topo', () => {
       expect(app.get('trail-1')).toBe(mod.t1);
     });
 
-    test('retrieves trail with crossings by ID', () => {
+    test('retrieves trail with compositions by ID', () => {
       expect(app.get('trail-3')).toBe(mod.t3);
     });
 
@@ -1223,7 +1223,7 @@ describe('Topo', () => {
       expect(app.has('trail-1')).toBe(true);
     });
 
-    test('returns true for trail with crossings', () => {
+    test('returns true for trail with compositions', () => {
       expect(app.has('trail-3')).toBe(true);
     });
 
@@ -1263,7 +1263,7 @@ describe('Topo', () => {
   });
 
   describe('listing', () => {
-    test('list() returns all trails (with and without crossings)', () => {
+    test('list() returns all trails (with and without compositions)', () => {
       const items = app.list();
       expect(items).toHaveLength(3);
       expect(items).toContain(mod.t1);

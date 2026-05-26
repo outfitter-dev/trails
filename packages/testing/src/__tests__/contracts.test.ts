@@ -67,18 +67,18 @@ const compositionChildTrail = trail('composition.child', {
 /** Composition trail whose implementation matches the output schema. */
 const compositionTrail = trail('composition.valid', {
   blaze: async (input: { a: number; b: number }, ctx) => {
-    const crossed = await ctx.cross?.(compositionChildTrail, {
+    const composed = await ctx.compose?.(compositionChildTrail, {
       value: input.a + input.b,
     });
-    if (crossed === undefined) {
-      return Result.err(new Error('missing cross context'));
+    if (composed === undefined) {
+      return Result.err(new Error('missing compose context'));
     }
-    if (crossed.isErr()) {
-      return Result.err(crossed.error);
+    if (composed.isErr()) {
+      return Result.err(composed.error);
     }
-    return Result.ok({ total: crossed.value.total });
+    return Result.ok({ total: composed.value.total });
   },
-  crosses: [compositionChildTrail],
+  composes: [compositionChildTrail],
   examples: [
     {
       expected: { total: 3 },
@@ -96,7 +96,7 @@ const compositionContractSignal = signal('composition.contract.fired', {
 
 const compositionWithFireTrail = trail('composition.withFire', {
   blaze: async (_input: Record<string, never>, ctx) => {
-    const crossed = await ctx.cross?.(compositionChildTrail, { value: 3 });
+    const composed = await ctx.compose?.(compositionChildTrail, { value: 3 });
     let fired = false;
     await ctx.fire?.(compositionContractSignal, {
       id: 'contract',
@@ -104,21 +104,21 @@ const compositionWithFireTrail = trail('composition.withFire', {
     fired = true;
 
     return Result.ok({
-      crossed: crossed?.isOk() === true,
+      composed: composed?.isOk() === true,
       fired,
     });
   },
-  crosses: [compositionChildTrail],
+  composes: [compositionChildTrail],
   examples: [
     {
-      expected: { crossed: true, fired: true },
+      expected: { composed: true, fired: true },
       input: {},
-      name: 'Custom cross still keeps fire binding',
+      name: 'Custom compose still keeps fire binding',
     },
   ],
   fires: [compositionContractSignal],
   input: z.object({}),
-  output: z.object({ crossed: z.literal(true), fired: z.literal(true) }),
+  output: z.object({ composed: z.literal(true), fired: z.literal(true) }),
 });
 
 const transformedInputTrail = trail('contract.transformed', {
@@ -303,7 +303,7 @@ describe('testContracts: skips trails without examples', () => {
   });
 });
 
-describe('testContracts: validates output schemas for trails with crossings', () => {
+describe('testContracts: validates output schemas for trails with compositions', () => {
   // eslint-disable-next-line jest/require-hook
   testContracts(
     topo('test-app', {
@@ -317,44 +317,44 @@ describe('testContracts: validates output schemas for trails with crossings', ()
   });
 });
 
-describe('testContracts: preserves provided cross context', () => {
-  const providedCross = mock(async () => Result.ok({ total: 3 }));
+describe('testContracts: preserves provided compose context', () => {
+  const providedCompose = mock(async () => Result.ok({ total: 3 }));
 
   // eslint-disable-next-line jest/require-hook
   testContracts(
-    topo('custom-cross-contract-app', {
+    topo('custom-compose-contract-app', {
       compositionTrail,
     } as Record<string, unknown>),
     {
       ctx: {
-        cross: providedCross as TrailContext['cross'],
+        compose: providedCompose as TrailContext['compose'],
       },
     }
   );
 
   afterAll(() => {
-    expect(providedCross).toHaveBeenCalledTimes(1);
+    expect(providedCompose).toHaveBeenCalledTimes(1);
   });
 });
 
-describe('testContracts: preserves custom cross without suppressing fire', () => {
-  const providedCross = mock(async () => Result.ok({ total: 3 }));
+describe('testContracts: preserves custom compose without suppressing fire', () => {
+  const providedCompose = mock(async () => Result.ok({ total: 3 }));
 
   // eslint-disable-next-line jest/require-hook
   testContracts(
-    topo('custom-cross-fire-contract-app', {
+    topo('custom-compose-fire-contract-app', {
       compositionContractSignal,
       compositionWithFireTrail,
     } as Record<string, unknown>),
     {
       ctx: {
-        cross: providedCross as TrailContext['cross'],
+        compose: providedCompose as TrailContext['compose'],
       },
     }
   );
 
   afterAll(() => {
-    expect(providedCross).toHaveBeenCalledTimes(1);
+    expect(providedCompose).toHaveBeenCalledTimes(1);
   });
 });
 

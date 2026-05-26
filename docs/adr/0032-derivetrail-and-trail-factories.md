@@ -218,7 +218,7 @@ Four imports. Four statements. A full CRUD app with typed schemas, a real databa
 
 ### Governance integration
 
-- **Trail factories produce trails.** Not a separate system. The output is `kind: 'trail'` with pattern metadata set. Testable with `testAll()`. Governable by the warden. Composable via `crosses`.
+- **Trail factories produce trails.** Not a separate system. The output is `kind: 'trail'` with pattern metadata set. Testable with `testAll()`. Governable by the warden. Composable via `composes`.
 - **The warden is pattern-aware.** It validates pattern completeness and suggests missing companions: *"You have CRUD trails for notes and `versioned: true`, but no reconcile trail. What happens on conflict?"*
 - **Survey shows the shape.** An agent sees: *"12 CRUD trails, 3 sync trails, 1 gate trail, 2 custom trails."* The `pattern` field tells the story — not how the trails were created.
 

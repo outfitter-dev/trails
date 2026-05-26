@@ -38,7 +38,7 @@ trail("entity.show", {
     expect(diagnostics).toHaveLength(0);
   });
 
-  test('uses project context for cross-file @see references', () => {
+  test('uses project context for compose-file @see references', () => {
     const code = `
 trail("entity.show", {
   input: z.object({

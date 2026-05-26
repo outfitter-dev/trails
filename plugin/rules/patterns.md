@@ -9,8 +9,8 @@
 
 ## Composition
 
-- Trails with `crosses` compose through `ctx.cross()`, never by calling `.blaze()` directly.
-- Declare `crosses` on trails that compose others. The warden verifies these match actual `ctx.cross()` calls.
+- Trails with `composes` compose through `ctx.compose()`, never by calling `.blaze()` directly.
+- Declare `composes` on trails that compose others. The warden verifies these match actual `ctx.compose()` calls.
 - Propagate errors: `if (result.isErr()) return result;`
 
 ## Schemas

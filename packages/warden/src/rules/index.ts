@@ -2,7 +2,7 @@ import { activationOrphan } from './activation-orphan.js';
 import { circularRefs } from './circular-refs.js';
 import { contourExists } from './contour-exists.js';
 import { contextNoSurfaceTypes } from './context-no-surface-types.js';
-import { crossDeclarations } from './cross-declarations.js';
+import { composesDeclarations } from './composes-declarations.js';
 import { deadInternalTrail } from './dead-internal-trail.js';
 import { draftFileMarking } from './draft-file-marking.js';
 import { draftVisibleDebt } from './draft-visible-debt.js';
@@ -17,7 +17,7 @@ import { layerFieldNameDrift } from './layer-field-name-drift.js';
 import { missingVisibility } from './missing-visibility.js';
 import { missingReconcile } from './missing-reconcile.js';
 import { noDevPermitInSource } from './no-dev-permit-in-source.js';
-import { noDestructuredCross } from './no-destructured-cross.js';
+import { noDestructuredCompose } from './no-destructured-compose.js';
 import { noLegacyLayerImports } from './no-legacy-layer-imports.js';
 import { noDirectImplementationCall } from './no-direct-implementation-call.js';
 import { noNativeErrorResult } from './no-native-error-result.js';
@@ -45,7 +45,7 @@ import { staticResourceAccessorPreference } from './static-resource-accessor-pre
 import {
   forkWithoutPreservedBlaze,
   markerSchemaUnsupported,
-  versionPinnedCross,
+  versionPinnedCompose,
 } from './trail-versioning-source.js';
 import {
   deprecationWithoutGuidance,
@@ -95,7 +95,7 @@ export { noThrowInImplementation } from './no-throw-in-implementation.js';
 export { circularRefs } from './circular-refs.js';
 export { contourExists } from './contour-exists.js';
 export { contextNoSurfaceTypes } from './context-no-surface-types.js';
-export { crossDeclarations } from './cross-declarations.js';
+export { composesDeclarations } from './composes-declarations.js';
 export { deadInternalTrail } from './dead-internal-trail.js';
 export { draftFileMarking } from './draft-file-marking.js';
 export { draftVisibleDebt } from './draft-visible-debt.js';
@@ -110,7 +110,7 @@ export { missingVisibility } from './missing-visibility.js';
 export { missingReconcile } from './missing-reconcile.js';
 export { onReferencesExist } from './on-references-exist.js';
 export { noDevPermitInSource } from './no-dev-permit-in-source.js';
-export { noDestructuredCross } from './no-destructured-cross.js';
+export { noDestructuredCompose } from './no-destructured-compose.js';
 export { noLegacyLayerImports } from './no-legacy-layer-imports.js';
 export { noDirectImplementationCall } from './no-direct-implementation-call.js';
 export { noNativeErrorResult } from './no-native-error-result.js';
@@ -137,7 +137,7 @@ export { staticResourceAccessorPreference } from './static-resource-accessor-pre
 export {
   forkWithoutPreservedBlaze,
   markerSchemaUnsupported,
-  versionPinnedCross,
+  versionPinnedCompose,
 } from './trail-versioning-source.js';
 export {
   deprecationWithoutGuidance,
@@ -160,7 +160,7 @@ export const wardenRules: ReadonlyMap<string, WardenRule> = new Map<
   [circularRefs.name, circularRefs],
   [contourExists.name, contourExists],
   [contextNoSurfaceTypes.name, contextNoSurfaceTypes],
-  [crossDeclarations.name, crossDeclarations],
+  [composesDeclarations.name, composesDeclarations],
   [deadInternalTrail.name, deadInternalTrail],
   [draftFileMarking.name, draftFileMarking],
   [draftVisibleDebt.name, draftVisibleDebt],
@@ -186,7 +186,7 @@ export const wardenRules: ReadonlyMap<string, WardenRule> = new Map<
   [staticResourceAccessorPreference.name, staticResourceAccessorPreference],
   [validDescribeRefs.name, validDescribeRefs],
   [noDevPermitInSource.name, noDevPermitInSource],
-  [noDestructuredCross.name, noDestructuredCross],
+  [noDestructuredCompose.name, noDestructuredCompose],
   [noDirectImplementationCall.name, noDirectImplementationCall],
   [noLegacyLayerImports.name, noLegacyLayerImports],
   [noNativeErrorResult.name, noNativeErrorResult],
@@ -199,7 +199,7 @@ export const wardenRules: ReadonlyMap<string, WardenRule> = new Map<
   [wardenRulesUseAst.name, wardenRulesUseAst],
   [forkWithoutPreservedBlaze.name, forkWithoutPreservedBlaze],
   [markerSchemaUnsupported.name, markerSchemaUnsupported],
-  [versionPinnedCross.name, versionPinnedCross],
+  [versionPinnedCompose.name, versionPinnedCompose],
 ]);
 
 /**

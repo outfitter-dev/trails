@@ -121,7 +121,7 @@ export const inject = () => Result.err(new Error('AlreadyExistsError'));
 
     const diagnostics = noNativeErrorResult.check(
       code,
-      '/workspace/packages/testing/src/crosses.ts'
+      '/workspace/packages/testing/src/composes.ts'
     );
 
     expect(diagnostics).toEqual([]);

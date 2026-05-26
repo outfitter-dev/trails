@@ -7,7 +7,7 @@ Use Trails-branded terms consistently. These are non-negotiable in code, docs, a
 | Use this | Not this |
 |----------|----------|
 | `trail` | handler, action, endpoint, route |
-| `cross` | call, invoke, workflow, pipeline, chain, route (for composition) |
+| `compose` | cross, call, invoke, workflow, pipeline, chain, route (for composition) |
 | `topo` | registry, collection, manifest |
 | `blaze` | handler, impl, action body; do not rename the authored `blaze` field to run/execute |
 | `surface` | serve, mount, start, wire up |

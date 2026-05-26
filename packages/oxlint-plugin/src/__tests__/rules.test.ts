@@ -172,7 +172,7 @@ describe('repo-local rules', () => {
 | Term | Concept |
 | --- | --- |
 | \`trailhead\` | Historical boundary term retired from active user-facing vocabulary. Use \`surface\` in docs, examples, and public APIs. |
-| \`dispatch\` | Retired runtime wording; use \`cross\` in active APIs. |
+| \`dispatch\` | Retired runtime wording; use \`compose\` in active APIs. |
 | \`connector\` | Historical package-boundary term retired from active user-facing taxonomy. Use \`adapter\` in docs, examples, and public APIs. |
 | \`pack\` | Distributable capability bundle |
 
@@ -187,8 +187,8 @@ describe('repo-local rules', () => {
         term: 'trailhead',
       },
       {
-        concept: 'Retired runtime wording; use `cross` in active APIs.',
-        replacement: 'cross',
+        concept: 'Retired runtime wording; use `compose` in active APIs.',
+        replacement: 'compose',
         term: 'dispatch',
       },
       {

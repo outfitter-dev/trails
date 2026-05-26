@@ -66,28 +66,28 @@ testTrail(show, [
 | `expectErr: NotFoundError` | Asserts `result.isErr()` and error is instanceof |
 | `expectErrMessage: "not found"` | Asserts error message contains substring |
 
-## `testCrosses` for Composition -- Cross Chain Testing
+## `testComposes` for Composition Chain Testing
 
-Use `testCrosses` for trails with `crosses`, tracking cross chains and supporting failure injection.
+Use `testComposes` for trails with `composes`, tracking composition chains and supporting failure injection.
 
 ```typescript
 import { AlreadyExistsError } from '@ontrails/core';
-import { testCrosses } from '@ontrails/testing';
+import { testComposes } from '@ontrails/testing';
 import { onboardTrail } from '../src/trails/onboard.js';
 import { graph } from '../src/app.js';
 
-testCrosses(onboardTrail, [
+testComposes(onboardTrail, [
   {
-    description: 'crosses add then relate',
+    description: 'composes add then relate',
     input: { name: 'Alpha' },
     expectOk: true,
-    expectCrossed: ['entity.add', 'entity.relate'],
+    expectComposed: ['entity.add', 'entity.relate'],
   },
   {
-    description: 'counts cross calls',
+    description: 'counts compose calls',
     input: { name: 'Beta' },
     expectOk: true,
-    expectCrossedCount: { 'entity.add': 1, 'entity.relate': 2 },
+    expectComposedCount: { 'entity.add': 1, 'entity.relate': 2 },
   },
   {
     description: 'handles downstream failure',
@@ -98,7 +98,7 @@ testCrosses(onboardTrail, [
 ], { trails: graph.trails });
 ```
 
-Composition-specific fields: `expectCrossed` (ordered trail IDs), `expectCrossedCount` (counts per ID), `injectFromExample` (inject error from a crossed trail's error example by name). Pass `options.trails` map to enable injection lookups.
+Composition-specific fields: `expectComposed` (ordered trail IDs), `expectComposedCount` (counts per ID), `injectFromExample` (inject error from a composed trail's error example by name). Pass `options.trails` map to enable injection lookups.
 
 ## `testContracts(graph)` / `testDetours(graph)`
 
@@ -159,15 +159,15 @@ Applied automatically per example based on which fields are present:
 
 Error class names: `ValidationError`, `AmbiguousError`, `NotFoundError`, `VersionNotSupportedError`, `AlreadyExistsError`, `ConflictError`, `AuthError`, `PermissionError`, `PermitError`, `TimeoutError`, `NetworkError`, `RateLimitError`, `InternalError`, `DerivationError`, `RecoverableCompletionError`, `AssertionError`, `CancelledError`, `RetryExhaustedError`.
 
-## `createCrossContext()` -- Mock Cross for Composite Trails
+## `createComposeContext()` -- Mock Compose for Composite Trails
 
-When unit-testing a composite trail in isolation (without a full topo), use `createCrossContext()` to provide preconfigured `Result` responses for each `ctx.cross()` call:
+When unit-testing a composite trail in isolation (without a full topo), use `createComposeContext()` to provide preconfigured `Result` responses for each `ctx.compose()` call:
 
 ```typescript
 import { Result } from '@ontrails/core';
-import { createCrossContext, testTrail } from '@ontrails/testing';
+import { createComposeContext, testTrail } from '@ontrails/testing';
 
-const cross = createCrossContext({
+const compose = createComposeContext({
   responses: {
     'entity.add': Result.ok({ id: '1', name: 'Alpha' }),
     'entity.relate': Result.ok({ linked: true }),
@@ -176,11 +176,11 @@ const cross = createCrossContext({
 
 testTrail(onboardTrail, [
   {
-    description: 'uses mocked crosses',
+    description: 'uses mocked composes',
     input: { name: 'Alpha' },
     expectOk: true,
   },
-], { cross });
+], { compose });
 ```
 
 Calls to IDs not registered in `responses` return `Result.err` with a descriptive message, making missing mocks visible immediately.
@@ -286,7 +286,7 @@ projection validation in one call.
 src/__tests__/
   contract.test.ts      # testAll(graph) -- the one-liner
   entity.test.ts        # testTrail edge cases per domain
-  onboard.test.ts       # testCrosses composition scenarios
+  onboard.test.ts       # testComposes composition scenarios
   cli.test.ts           # CLI harness integration
   mcp.test.ts           # MCP harness integration
   http.test.ts          # HTTP harness integration

@@ -34,7 +34,7 @@ ADRs document the significant design decisions behind Trails — the choices tha
 | [0025](0025-composition-testing.md) | Composition Testing | Accepted |
 | [0026](0026-error-taxonomy-as-transport-independent-behavior-contract.md) | Error Taxonomy as Transport-Independent Behavior Contract | Accepted |
 | [0027](0027-visibility-and-filtering.md) | Trail Visibility and Surface Filtering | Accepted |
-| [0028](0028-concurrent-crossing.md) | Concurrent Trail Crossing | Accepted |
+| [0028](0028-concurrent-crossing.md) | Concurrent Trail Composition | Accepted |
 | [0029](0029-connector-extraction-and-the-with-packaging-model.md) | Adapter Extraction and Composition Around Core Contracts | Accepted |
 | [0030](0030-contours-as-first-class-domain-objects.md) | Contours as First-Class Domain Objects | Accepted |
 | [0031](0031-backend-agnostic-store-schemas.md) | Backend-Agnostic Store Schemas | Accepted |

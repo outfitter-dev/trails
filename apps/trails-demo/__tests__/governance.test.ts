@@ -95,16 +95,16 @@ describe('TopoGraph generation', () => {
     expect(deleteEntry?.intent).toBe('destroy');
   });
 
-  test('trail entries include crosses', () => {
+  test('trail entries include composes', () => {
     const onboardEntry = topoGraph.entries.find(
       (e) => e.id === 'entity.onboard'
     );
     expect(onboardEntry).toBeDefined();
     if (onboardEntry) {
       expect(onboardEntry.kind).toBe('trail');
-      expect(onboardEntry.crosses).toBeDefined();
-      expect(onboardEntry.crosses).toContain('entity.add');
-      expect(onboardEntry.crosses).toContain('search');
+      expect(onboardEntry.composes).toBeDefined();
+      expect(onboardEntry.composes).toContain('entity.add');
+      expect(onboardEntry.composes).toContain('search');
     }
   });
 

@@ -303,7 +303,7 @@ const [createArchive, readArchive] = crud(archive.tables.notes, archiveResource)
     expect(diagnostics[0]?.message).toContain('read');
   });
 
-  describe('project-aware (cross-file) coverage', () => {
+  describe('project-aware (compose-file) coverage', () => {
     const CREATE_FILE = 'notes/create.ts';
     const READ_FILE = 'notes/read.ts';
 
@@ -488,7 +488,7 @@ export const listNote = deriveTrail(note, 'list', { blaze: async () => Result.ok
         buildContext({})
       );
 
-      // The local file has only `create`, so without cross-file context
+      // The local file has only `create`, so without compose-file context
       // the rule behaves exactly like the file-scoped check.
       expect(diagnostics).toHaveLength(1);
       expect(diagnostics[0]?.filePath).toBe(CREATE_FILE);

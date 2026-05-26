@@ -817,13 +817,13 @@ describe('buildCommands filtering', () => {
     });
     const entry = trail('entity.rotate', {
       blaze: async (input: { id: string }, ctx) => {
-        const result = await ctx.cross('entity.secret.rotate', input);
+        const result = await ctx.compose('entity.secret.rotate', input);
         return result.match({
           err: (error) => Result.err(error),
           ok: (value) => Result.ok(value),
         });
       },
-      crosses: ['entity.secret.rotate'],
+      composes: ['entity.secret.rotate'],
       input: z.object({ id: z.string() }),
       intent: 'read',
       output: z.object({ rotated: z.string() }),
@@ -980,7 +980,7 @@ describe('buildCommands established graph enforcement', () => {
   test('throws when draft contamination remains', () => {
     const draftTrail = trail('entity.export', {
       blaze: () => Result.ok({ ok: true }),
-      crosses: ['_draft.entity.prepare'],
+      composes: ['_draft.entity.prepare'],
       input: z.object({}),
     });
 

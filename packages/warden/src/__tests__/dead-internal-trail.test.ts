@@ -5,7 +5,7 @@ import { deadInternalTrail } from '../rules/dead-internal-trail.js';
 const TEST_FILE = 'entity.ts';
 
 describe('dead-internal-trail', () => {
-  test('warns when an internal trail is never crossed and has no on: activation', () => {
+  test('warns when an internal trail is never composed and has no on: activation', () => {
     const code = `
 trail('entity.sync', {
   visibility: 'internal',
@@ -21,11 +21,11 @@ trail('entity.sync', {
     expect(diagnostics[0]?.message).toContain('entity.sync');
   });
 
-  test('stays quiet when another trail crosses the internal trail in the same file', () => {
+  test('stays quiet when another trail composes the internal trail in the same file', () => {
     const code = `
 trail('entity.public', {
-  crosses: ['entity.sync'],
-  blaze: async (_input, ctx) => ctx.cross('entity.sync', {}),
+  composes: ['entity.sync'],
+  blaze: async (_input, ctx) => ctx.compose('entity.sync', {}),
 });
 
 trail('entity.sync', {
@@ -37,7 +37,7 @@ trail('entity.sync', {
     expect(deadInternalTrail.check(code, TEST_FILE)).toEqual([]);
   });
 
-  test('stays quiet when project context marks the trail as crossed elsewhere', () => {
+  test('stays quiet when project context marks the trail as composed elsewhere', () => {
     const code = `
 trail('entity.sync', {
   visibility: 'internal',
@@ -46,7 +46,7 @@ trail('entity.sync', {
 `;
 
     const diagnostics = deadInternalTrail.checkWithContext(code, TEST_FILE, {
-      crossTargetTrailIds: new Set(['entity.sync']),
+      composeTargetTrailIds: new Set(['entity.sync']),
       knownTrailIds: new Set(['entity.public', 'entity.sync']),
     });
 

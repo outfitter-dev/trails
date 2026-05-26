@@ -34,17 +34,17 @@ const failTrail = trail('item.fail', {
   output: z.object({}),
 });
 
-/** A trail that uses ctx.cross() to delegate to item.create. */
+/** A trail that uses ctx.compose() to delegate to item.create. */
 const createViaProxy = trail('item.create-via-proxy', {
   blaze: (input: { name: string }, ctx: TrailContext) => {
-    const crossFn = ctx.cross;
-    if (!crossFn) {
-      return Promise.resolve(Result.err(new Error('ctx.cross is undefined')));
+    const composeFn = ctx.compose;
+    if (!composeFn) {
+      return Promise.resolve(Result.err(new Error('ctx.compose is undefined')));
     }
-    return crossFn(createTrail, input);
+    return composeFn(createTrail, input);
   },
-  crosses: [createTrail],
-  description: 'Delegates to item.create via ctx.cross()',
+  composes: [createTrail],
+  description: 'Delegates to item.create via ctx.compose()',
   input: z.object({ name: z.string() }),
   output: z.object({ id: z.string(), name: z.string() }),
 });
@@ -83,11 +83,11 @@ const concurrentBatchOutput = z.object({ results: z.array(z.unknown()) });
 
 const createReadyController = () => Promise.withResolvers<ReadySignal>();
 
-const requireCrossFn = (
+const requireComposeFn = (
   ctx: TrailContext
-): NonNullable<TrailContext['cross']> => {
-  expect(ctx.cross).toBeDefined();
-  return ctx.cross as NonNullable<TrailContext['cross']>;
+): NonNullable<TrailContext['compose']> => {
+  expect(ctx.compose).toBeDefined();
+  return ctx.compose as NonNullable<TrailContext['compose']>;
 };
 
 const waitForReadyPair = async (
@@ -114,11 +114,11 @@ describe('scenario()', () => {
   scenario('basic two-step flow', app, [
     {
       as: 'created',
-      cross: createTrail,
+      compose: createTrail,
       input: { name: 'Hello' },
     },
     {
-      cross: showTrail,
+      compose: showTrail,
       expectedMatch: { found: true, id: 'g1' },
       input: { id: ref('created.id') },
     },
@@ -128,12 +128,12 @@ describe('scenario()', () => {
   scenario('ref resolves dot-path from prior step', app, [
     {
       as: 'original',
-      cross: createTrail,
+      compose: createTrail,
       expected: { id: 'g1', name: 'Test' },
       input: { name: 'Test' },
     },
     {
-      cross: showTrail,
+      compose: showTrail,
       input: { id: ref('original.id') },
     },
   ]);
@@ -141,27 +141,31 @@ describe('scenario()', () => {
   // oxlint-disable-next-line jest/require-hook -- scenario() registers describe/test blocks, not setup code
   scenario('expectedMatch on a step works', app, [
     {
-      cross: createTrail,
+      compose: createTrail,
       expectedMatch: { name: 'Partial' },
       input: { name: 'Partial' },
     },
   ]);
 
   // oxlint-disable-next-line jest/require-hook -- scenario() registers describe/test blocks, not setup code
-  scenario('step that uses ctx.cross() receives a bound cross function', app, [
-    {
-      as: 'proxied',
-      cross: createViaProxy,
-      expectedMatch: { id: 'g1', name: 'CrossTest' },
-      input: { name: 'CrossTest' },
-    },
-  ]);
+  scenario(
+    'step that uses ctx.compose() receives a bound compose function',
+    app,
+    [
+      {
+        as: 'proxied',
+        compose: createViaProxy,
+        expectedMatch: { id: 'g1', name: 'ComposeTest' },
+        input: { name: 'ComposeTest' },
+      },
+    ]
+  );
 
   // Resource mock forwarding
   // oxlint-disable-next-line jest/require-hook -- scenario() registers describe/test blocks, not setup code
   scenario('step with resource receives mock from topo', app, [
     {
-      cross: queryTrail,
+      compose: queryTrail,
       expected: { result: 'mock:SELECT 1' },
       input: { sql: 'SELECT 1' },
     },
@@ -186,8 +190,8 @@ describe('scenario()', () => {
   describe('duplicate alias guard', () => {
     test('throws on duplicate step alias', async () => {
       const steps: ScenarioStep[] = [
-        { as: 'dup', cross: createTrail, input: { name: 'A' } },
-        { as: 'dup', cross: createTrail, input: { name: 'B' } },
+        { as: 'dup', compose: createTrail, input: { name: 'A' } },
+        { as: 'dup', compose: createTrail, input: { name: 'B' } },
       ];
 
       await expect(executeScenarioSteps(app, steps)).rejects.toThrow(
@@ -197,7 +201,7 @@ describe('scenario()', () => {
   });
 });
 
-describe('executeScenarioSteps concurrent crossing support', () => {
+describe('executeScenarioSteps concurrent composing support', () => {
   test('matches concurrent fan-out arrays with ok result helpers', async () => {
     const alphaTrail = trail('scenario.batch.alpha', {
       blaze: () => Result.ok({ label: 'alpha' }),
@@ -213,13 +217,13 @@ describe('executeScenarioSteps concurrent crossing support', () => {
     });
     const fanoutTrail = trail('scenario.batch.fanout', {
       blaze: async (_input, ctx) => {
-        const results = await requireCrossFn(ctx)([
+        const results = await requireComposeFn(ctx)([
           [alphaTrail, {}],
           [betaTrail, {}],
         ] as const);
         return Result.ok({ results });
       },
-      crosses: [alphaTrail, betaTrail],
+      composes: [alphaTrail, betaTrail],
       input: z.object({}),
       output: concurrentBatchOutput,
     });
@@ -231,7 +235,7 @@ describe('executeScenarioSteps concurrent crossing support', () => {
 
     await executeScenarioSteps(fanoutApp, [
       {
-        cross: fanoutTrail,
+        compose: fanoutTrail,
         expectedMatch: {
           results: [
             okResultMatch({ label: 'alpha' }),
@@ -258,13 +262,13 @@ describe('executeScenarioSteps concurrent crossing support', () => {
     });
     const partialTrail = trail('scenario.batch.partial.root', {
       blaze: async (_input, ctx) => {
-        const results = await requireCrossFn(ctx)([
+        const results = await requireComposeFn(ctx)([
           [successTrail, {}],
           [failureTrail, {}],
         ] as const);
         return Result.ok({ results });
       },
-      crosses: [successTrail, failureTrail],
+      composes: [successTrail, failureTrail],
       input: z.object({}),
       output: concurrentBatchOutput,
     });
@@ -276,7 +280,7 @@ describe('executeScenarioSteps concurrent crossing support', () => {
 
     await executeScenarioSteps(partialApp, [
       {
-        cross: partialTrail,
+        compose: partialTrail,
         expectedMatch: {
           results: [
             okResultMatch({ label: 'success' }),
@@ -288,7 +292,7 @@ describe('executeScenarioSteps concurrent crossing support', () => {
     ]);
   });
 
-  test('respects concurrency limits for scenario ctx.cross batch flows', async () => {
+  test('respects concurrency limits for scenario ctx.compose batch flows', async () => {
     const slowStarted = createReadyController();
     const fastStarted = createReadyController();
     const releaseFirstBatch = createReadyController();
@@ -328,7 +332,7 @@ describe('executeScenarioSteps concurrent crossing support', () => {
     });
     const limitedTrail = trail('scenario.batch.limited.root', {
       blaze: async (_input, ctx) => {
-        const run = requireCrossFn(ctx)(
+        const run = requireComposeFn(ctx)(
           [
             [slowTrail, {}],
             [fastTrail, {}],
@@ -351,7 +355,7 @@ describe('executeScenarioSteps concurrent crossing support', () => {
           ),
         });
       },
-      crosses: [slowTrail, fastTrail, queuedTrail],
+      composes: [slowTrail, fastTrail, queuedTrail],
       input: z.object({}),
       output: z.object({
         startedBeforeRelease: z.array(z.string()),
@@ -368,7 +372,7 @@ describe('executeScenarioSteps concurrent crossing support', () => {
 
     await executeScenarioSteps(limitedApp, [
       {
-        cross: limitedTrail,
+        compose: limitedTrail,
         expected: {
           startedBeforeRelease: ['slow', 'fast'],
           startedOverall: ['slow', 'fast', 'queued'],

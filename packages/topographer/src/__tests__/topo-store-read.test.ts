@@ -26,6 +26,7 @@ import {
   createTopoStore,
   topoStore,
 } from '../index.js';
+import { TOPO_GRAPH_SCHEMA_VERSION } from '../types.js';
 import type {
   TopoStoreContourRecord,
   TopoStoreResourceRecord,
@@ -139,7 +140,7 @@ const exampleApp = () => {
 
   const entityList = trail('entity.list', {
     blaze: noop,
-    crosses: ['entity.add'],
+    composes: ['entity.add'],
     description: 'List entities',
     /* oxlint-disable-next-line require-await -- test stub */
     detours: [
@@ -509,7 +510,7 @@ describe('read-only topo store', () => {
     });
     expect(detail).toEqual(
       expect.objectContaining({
-        crosses: ['entity.add'],
+        composes: ['entity.add'],
         detours: [
           { maxAttempts: DETOUR_MAX_ATTEMPTS_CAP, on: 'ConflictError' },
         ],
@@ -578,7 +579,9 @@ describe('read-only topo store', () => {
     expect(exported?.lockManifest.artifacts[0]?.sha256).toBe(
       exported?.topoGraphHash
     );
-    expect(exported?.topoGraph.topoGraphSchemaVersion).toBe(1);
+    expect(exported?.topoGraph.topoGraphSchemaVersion).toBe(
+      TOPO_GRAPH_SCHEMA_VERSION
+    );
 
     const topoGraph = store.topoGraph.get({ snapshotId: snapshot.id });
     expect(topoGraph?.snapshot.id).toBe(snapshot.id);

@@ -1,5 +1,5 @@
 import {
-  collectCrossTargetTrailIds,
+  collectComposeTargetTrailIds,
   findConfigProperty,
   findTrailDefinitions,
   getStringValue,
@@ -70,7 +70,7 @@ const buildDeadInternalTrailDiagnostic = (
 ): WardenDiagnostic => ({
   filePath,
   line,
-  message: `Trail "${trailId}" is marked visibility: 'internal' but nothing crosses it and it has no on: activation. Internal trails should stay reachable through ctx.cross() or reactive activation.`,
+  message: `Trail "${trailId}" is marked visibility: 'internal' but nothing composes it and it has no on: activation. Internal trails should stay reachable through ctx.compose() or reactive activation.`,
   rule: 'dead-internal-trail',
   severity: 'warn',
 });
@@ -79,7 +79,7 @@ const checkDeadInternalTrails = (
   ast: AstNode | null,
   sourceCode: string,
   filePath: string,
-  crossedTrailIds: ReadonlySet<string>
+  composedTrailIds: ReadonlySet<string>
 ): readonly WardenDiagnostic[] => {
   if (isTestFile(filePath) || !ast) {
     return [];
@@ -92,7 +92,7 @@ const checkDeadInternalTrails = (
       continue;
     }
 
-    if (hasOnActivation(def.config) || crossedTrailIds.has(def.id)) {
+    if (hasOnActivation(def.config) || composedTrailIds.has(def.id)) {
       continue;
     }
 
@@ -115,7 +115,7 @@ export const deadInternalTrail: ProjectAwareWardenRule = {
       ast,
       sourceCode,
       filePath,
-      ast ? collectCrossTargetTrailIds(ast, sourceCode) : new Set<string>()
+      ast ? collectComposeTargetTrailIds(ast, sourceCode) : new Set<string>()
     );
   },
   checkWithContext(
@@ -124,18 +124,18 @@ export const deadInternalTrail: ProjectAwareWardenRule = {
     context: ProjectContext
   ): readonly WardenDiagnostic[] {
     const ast = parse(filePath, sourceCode);
-    const localCrossTargetTrailIds = ast
-      ? collectCrossTargetTrailIds(ast, sourceCode)
+    const localComposeTargetTrailIds = ast
+      ? collectComposeTargetTrailIds(ast, sourceCode)
       : new Set<string>();
     return checkDeadInternalTrails(
       ast,
       sourceCode,
       filePath,
-      context.crossTargetTrailIds ?? localCrossTargetTrailIds
+      context.composeTargetTrailIds ?? localComposeTargetTrailIds
     );
   },
   description:
-    'Warn when an internal trail has no crossings anywhere in the project and no on: activation.',
+    'Warn when an internal trail has no compositions anywhere in the project and no on: activation.',
   name: 'dead-internal-trail',
   severity: 'warn',
 };

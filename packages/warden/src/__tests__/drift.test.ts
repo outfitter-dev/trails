@@ -213,7 +213,7 @@ describe('checkDrift', () => {
     try {
       const draftTrail = trail('test.hello', {
         blaze: () => Result.ok({ greeting: 'hi' }),
-        crosses: ['_draft.test.prepare'],
+        composes: ['_draft.test.prepare'],
         input: z.object({ name: z.string() }),
         output: z.object({ greeting: z.string() }),
       });

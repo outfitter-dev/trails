@@ -1,4 +1,4 @@
-Convert direct function calls into trail composition with crosses declarations.
+Convert direct function calls into trail composition with `composes` declarations.
 
 ## Before
 
@@ -74,7 +74,7 @@ export const check = trail('inventory.check', {
 });
 
 // trails/order.ts — the composition trail
-import { InternalError, ValidationError } from '@ontrails/core';
+  import { ValidationError } from '@ontrails/core';
 import { get as customerGet } from './customer.js';
 import { check as inventoryCheck } from './inventory.js';
 import { db } from '../resources/db.js';
@@ -86,20 +86,16 @@ export const create = trail('order.create', {
   }),
   output: z.object({ orderId: z.string(), total: z.number() }),
   intent: 'write',
-  crosses: [customerGet, inventoryCheck],
+  composes: [customerGet, inventoryCheck],
   resources: [db],
   examples: [
     { name: 'happy path', input: { customerId: 'cust_123', items: [{ sku: 'TRAIL-001', qty: 1 }] } },
   ],
   blaze: async (input, ctx) => {
-    if (!ctx.cross) {
-      return Result.err(new InternalError('order.create requires ctx.cross'));
-    }
-
-    const customer = await ctx.cross(customerGet, { id: input.customerId });
+    const customer = await ctx.compose(customerGet, { id: input.customerId });
     if (customer.isErr()) return customer;
 
-    const stock = await ctx.cross(inventoryCheck, { items: input.items });
+    const stock = await ctx.compose(inventoryCheck, { items: input.items });
     if (stock.isErr()) return stock;
     if (!stock.value.available) return Result.err(new ValidationError('Items out of stock'));
 
@@ -110,7 +106,7 @@ export const create = trail('order.create', {
 });
 ```
 
-`testAll` checks that every declared cross was actually called:
+`testAll` checks that every declared compose target was actually called:
 
 ```typescript
 // __tests__/contract.test.ts
@@ -123,6 +119,6 @@ import * as resources from '../resources/db.js';
 
 const graph = topo('shop', customer, inventory, order, resources);
 testAll(graph);
-// Validates topo structure, runs all examples, checks cross coverage,
+// Validates topo structure, runs all examples, checks compose coverage,
 // and uses db.mock() automatically for resource resolution
 ```

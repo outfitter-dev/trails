@@ -22,6 +22,7 @@ import type { Layer } from '@ontrails/core';
 import { __topoStoreMigrationStats, createTopoStore } from '../topo-store.js';
 import { TOPO_GRAPH_SCHEMA_VERSION } from '../types.js';
 import {
+  TOPO_SCHEMA_VERSION,
   ensureTopoSnapshotSchema,
   pinTopoSnapshot,
   pruneUnpinnedSnapshots,
@@ -75,6 +76,18 @@ const tableExists = (
     )
     .get(tableName);
   return row?.name === tableName;
+};
+
+const indexExists = (
+  db: ReturnType<typeof openWriteTrailsDb>,
+  indexName: string
+): boolean => {
+  const row = db
+    .query<{ name: string }, [string]>(
+      "SELECT name FROM sqlite_master WHERE type = 'index' AND name = ?"
+    )
+    .get(indexName);
+  return row?.name === indexName;
 };
 
 const tableColumns = (
@@ -147,8 +160,8 @@ const exampleApp = () => {
 
   const entityList = trail('entity.list', {
     blaze: () => Result.ok({ items: ['ada'] }),
+    composes: ['entity.add'],
     contours: [entityContour],
-    crosses: ['entity.add'],
     description: 'List entities',
     dryRun: true,
     idempotent: true,
@@ -329,7 +342,7 @@ const expectProjectionCounts = (
   snapshotId: string
 ): void => {
   expect(countRows(db, 'topo_trails', snapshotId)).toBe(2);
-  expect(countRows(db, 'topo_crossings', snapshotId)).toBe(1);
+  expect(countRows(db, 'topo_composings', snapshotId)).toBe(1);
   expect(countRows(db, 'topo_trail_resources', snapshotId)).toBe(3);
   expect(countRows(db, 'topo_resources', snapshotId)).toBe(2);
   expect(countRows(db, 'topo_signals', snapshotId)).toBe(1);
@@ -437,7 +450,7 @@ const expectDisposableSaveCascaded = (
   disposableId: string
 ): void => {
   expect(countRows(db, 'topo_trails', disposableId)).toBe(0);
-  expect(countRows(db, 'topo_crossings', disposableId)).toBe(0);
+  expect(countRows(db, 'topo_composings', disposableId)).toBe(0);
   expect(countRows(db, 'topo_examples', disposableId)).toBe(0);
   expect(countRows(db, 'topo_schemas', disposableId)).toBe(0);
   expect(countRows(db, 'topo_trail_fires', disposableId)).toBe(0);
@@ -1256,7 +1269,7 @@ describe('topo store projection', () => {
               "SELECT version FROM meta_schema_versions WHERE subsystem = 'topo'"
             )
             .get()?.version
-        ).toBe(12);
+        ).toBe(TOPO_SCHEMA_VERSION);
         expect(countRows(db, 'topo_snapshots')).toBe(0);
       });
     });
@@ -1307,7 +1320,7 @@ describe('topo store projection', () => {
               "SELECT version FROM meta_schema_versions WHERE subsystem = 'topo'"
             )
             .get()?.version
-        ).toBe(12);
+        ).toBe(TOPO_SCHEMA_VERSION);
       });
     });
 
@@ -1347,7 +1360,45 @@ describe('topo store projection', () => {
               "SELECT version FROM meta_schema_versions WHERE subsystem = 'topo'"
             )
             .get()?.version
-        ).toBe(12);
+        ).toBe(TOPO_SCHEMA_VERSION);
+      });
+    });
+
+    test('ensureTopoSnapshotSchema migrates v12 compositions table to composings', () => {
+      withProjectionDb((db) => {
+        db.run(
+          `INSERT INTO meta_schema_versions (subsystem, version, updated_at)
+           VALUES ('topo', 12, ?)`,
+          ['2026-05-25T11:00:00.000Z']
+        );
+        db.run(`CREATE TABLE topo_crossings (
+          source_id TEXT NOT NULL,
+          target_id TEXT NOT NULL,
+          snapshot_id TEXT NOT NULL,
+          PRIMARY KEY (source_id, target_id, snapshot_id)
+        )`);
+        db.run(
+          'CREATE INDEX idx_topo_crossings_snapshot_id ON topo_crossings(snapshot_id)'
+        );
+        db.run(
+          'INSERT INTO topo_crossings (source_id, target_id, snapshot_id) VALUES (?, ?, ?)',
+          ['entity.root', 'entity.child', 'snapshot-1']
+        );
+
+        ensureTopoSnapshotSchema(db);
+
+        expect(tableExists(db, 'topo_crossings')).toBe(false);
+        expect(tableExists(db, 'topo_composings')).toBe(true);
+        expect(indexExists(db, 'idx_topo_crossings_snapshot_id')).toBe(false);
+        expect(indexExists(db, 'idx_topo_composings_snapshot_id')).toBe(true);
+        expect(countRows(db, 'topo_composings', 'snapshot-1')).toBe(1);
+        expect(
+          db
+            .query<{ version: number }, []>(
+              "SELECT version FROM meta_schema_versions WHERE subsystem = 'topo'"
+            )
+            .get()?.version
+        ).toBe(TOPO_SCHEMA_VERSION);
       });
     });
 
@@ -1388,13 +1439,13 @@ describe('topo store projection', () => {
             "SELECT version FROM meta_schema_versions WHERE subsystem = 'topo'"
           )
           .get()?.version
-      ).toBe(12);
+      ).toBe(TOPO_SCHEMA_VERSION);
       for (const table of [
         'topo_activation_edges',
         'topo_activation_sources',
         'topo_snapshots',
         'topo_trails',
-        'topo_crossings',
+        'topo_composings',
         'topo_examples',
         'topo_exports',
         'topo_schemas',

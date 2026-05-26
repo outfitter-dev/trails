@@ -4,7 +4,7 @@ Draft state is Trails' controlled sketching mode. Model future trails, signals, 
 
 ## Concept
 
-Top-down authoring is how Trails reads best and how agents naturally work. But eager validation fights that flow: a trail wants to declare `crosses: ['_draft.gist.fork']` before `gist.fork` exists. Draft state lets you reference IDs that don't yet exist, depend on incomplete trails, and iterate freely — within the authored graph only.
+Top-down authoring is how Trails reads best and how agents naturally work. But eager validation fights that flow: a trail wants to declare `composes: ['_draft.gist.fork']` before `gist.fork` exists. Draft state lets you reference IDs that don't yet exist, depend on incomplete trails, and iterate freely — within the authored graph only.
 
 The framework exposes two views:
 
@@ -21,7 +21,7 @@ Any authored ID may be marked as draft by prefixing it with `_draft.`:
 '_draft.cache.redis'     // draft resource
 ```
 
-The marker applies everywhere an authored ID appears: trail declarations, resource declarations, `crosses` references, and signal `from` entries.
+The marker applies everywhere an authored ID appears: trail declarations, resource declarations, `composes` references, and signal `from` entries.
 
 ## File marking
 
@@ -50,7 +50,7 @@ Draft state has one fundamental rule: **draft contaminates downstream dependenci
 ```text
 gist.show              → established
 _draft.gist.fork       → draft
-gist.export crosses _draft.gist.fork → draft-contaminated
+gist.export composes _draft.gist.fork -> draft-contaminated
 ```
 
 The rules:
@@ -101,7 +101,7 @@ export const prepare = trail('_draft.entity.prepare', { ... });
 
 // src/export.ts
 export const exportTrail = trail('entity.export', {
-  crosses: ['_draft.entity.prepare'],
+  composes: ['_draft.entity.prepare'],
   ...
 });
 ```
@@ -114,7 +114,7 @@ export const prepare = trail('entity.prepare', { ... });
 
 // src/export.ts (references updated)
 export const exportTrail = trail('entity.export', {
-  crosses: ['entity.prepare'],
+  composes: ['entity.prepare'],
   ...
 });
 ```
@@ -156,7 +156,7 @@ If a draft trail is no longer needed:
 
 1. Remove the declaration from your topo
 2. Delete the draft-marked file
-3. Remove references (crosses, from, detours) to the draft ID
+3. Remove references (`composes`, `from`, detours) to the draft ID
 4. Run warden to ensure no orphaned references remain
 
 ## Reference

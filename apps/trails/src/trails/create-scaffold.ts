@@ -171,10 +171,10 @@ bun run guide
 - \`trail\`, not action or handler
 - \`blaze\`, not handler or impl
 - \`topo\`, not registry or collection
-- \`cross\`, not follow
+- \`compose\`, not follow
 - \`surface\`, not transport
 - \`resource\`, not service or dependency
-- \`layer\`, for cross-cutting trail wrapping
+- \`layer\`, for compose-cutting trail wrapping
 
 ## Trail Rules
 
@@ -182,7 +182,7 @@ bun run guide
 - Use \`Result.ok()\` and \`Result.err()\`; branch with \`isOk()\`, \`isErr()\`, or \`match()\`.
 - Keep trail logic surface-agnostic. Do not import CLI, MCP, HTTP, request, or response types into blazes.
 - Public MCP or HTTP trails declare an \`output\` schema.
-- Trails that compose other trails declare \`crosses: [...]\` and invoke them with \`ctx.cross(...)\`.
+- Trails that compose other trails declare \`composes: [...]\` and invoke them with \`ctx.compose(...)\`.
 - Trails that use infrastructure declare \`resources: [...]\` and access them through the resource helpers.
 - Use \`detours\` for recovery strategies instead of inline retry logic.
 - Prefer examples for happy-path coverage, and add focused tests for edge cases.
@@ -335,9 +335,9 @@ import { z } from 'zod';
 
 export const onboard = trail('entity.onboard', {
   description: 'Onboard a new entity end-to-end',
-  crosses: ['entity.add'],
+  composes: ['entity.add'],
   blaze: async (input, ctx) => {
-    const result = await ctx.cross('entity.add', { name: input.name });
+    const result = await ctx.compose('entity.add', { name: input.name });
     if (result.isErr()) {
       return result;
     }

@@ -12,7 +12,7 @@ Did what was built match what was planned? Compare the implemented trails, schem
 - Do the schemas match the agreed shapes?
 - Are the error types from the taxonomy?
 - Do examples cover the agreed happy paths and failure modes?
-- Are `crosses` declarations accurate to actual composition?
+- Are `composes` declarations accurate to actual composition?
 
 Run `trails warden` and `trails survey --brief` to get the current state. Do not rely on memory of what the codebase looked like before.
 
@@ -48,7 +48,7 @@ Scope creep during agent-driven sprints is common because agents optimize for co
 - Does `testAll(app)` pass?
 - Do examples cover the new trails?
 - Are edge cases covered with `testTrail` scenarios?
-- If composition was added, are cross chains tested?
+- If composition was added, are composition chains tested?
 - Does the warden report any new violations?
 
 ## Output

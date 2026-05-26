@@ -262,7 +262,7 @@ Synthesized from ADR-000 (Core Premise) and ADR-001 (Naming Conventions).
 
 ### Vocabulary
 
-Use the accepted project vocabulary consistently: trail (not action/handler), topo (not registry), cross (not follow), blaze (not handler/impl), surface (not transport), and tracing (not crumbs or tracker). For `blaze`, follow `docs/contributing/language-styleguide.md`: the runtime runs trails, not blazes.
+Use the accepted project vocabulary consistently: trail (not action/handler), topo (not registry), compose (not follow or cross), blaze (not handler/impl), surface (not transport), and tracing (not crumbs or tracker). For `blaze`, follow `docs/contributing/language-styleguide.md`: the runtime runs trails, not blazes.
 
 Read `docs/tenets.md` before writing. Every ADR must be consistent with the tenets.
 

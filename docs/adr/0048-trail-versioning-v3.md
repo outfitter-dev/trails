@@ -124,11 +124,11 @@ versions: {
 A revision is a schema-only translation path between a historical contract and
 current.
 The current blazed trail still runs. Transpose functions are pure data
-transforms: no `ctx`, no resources, no crosses, no signal firing, no permit
+transforms: no `ctx`, no resources, no composes, no signal firing, no permit
 state, and no surface state.
 
 Fork entries use `blaze:`. A fork preserves a complete historical runtime
-contract and may own `crosses`, `resources`, and `detours` because its own
+contract and may own `composes`, `resources`, and `detours` because its own
 blazed trail runs for that version.
 
 Entries with both `transpose:` and `blaze:` are invalid. Entries with neither
@@ -169,7 +169,7 @@ Marker inputs are contract content, not implementation source:
 - Revisions hash explicit historical `input`, `output`, frozen metadata, and
   the canonicalized `transpose` shape.
 - Forks hash explicit historical `input`, `output`, frozen metadata,
-  `crosses`, `resources`, and `detours`; the `blaze` function body is not part
+  `composes`, `resources`, and `detours`; the `blaze` function body is not part
   of the marker.
 - `status` and `examples` are mutable and do not participate in the frozen
   marker hash.
@@ -239,7 +239,7 @@ Execution resolves `(trail, version)` through one model:
   requested and supported versions.
 - Graph-only force entries never resolve at runtime.
 
-`ctx.cross()` runs current by default. Explicit `{ version }` pinning is allowed
+`ctx.compose()` runs current by default. Explicit `{ version }` pinning is allowed
 as migration debt and should be visible to Warden.
 
 ### Examples and testing
@@ -306,7 +306,7 @@ identities and `trails revise` / `trails deprecate` operator verbs.
 - Revision transforms are one-hop to current. Multi-hop transpose chains are
   deferred until there is implementation evidence that they are worth their
   complexity.
-- Version-pinned crosses are allowed for migrations but become visible debt.
+- Version-pinned composes are allowed for migrations but become visible debt.
 
 ### Risks
 

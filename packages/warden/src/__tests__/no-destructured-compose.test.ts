@@ -1,45 +1,45 @@
 import { describe, expect, test } from 'bun:test';
 
-import { noDestructuredCross } from '../rules/no-destructured-cross.js';
+import { noDestructuredCompose } from '../rules/no-destructured-compose.js';
 
-describe('no-destructured-cross', () => {
+describe('no-destructured-compose', () => {
   test('flags body destructuring from the blaze context', () => {
     const code = `
 import { trail, Result } from '@ontrails/core';
 
 export const onboard = trail('entity.onboard', {
-  crosses: ['entity.create'],
+  composes: ['entity.create'],
   blaze: async (input, ctx) => {
-    const { cross } = ctx;
-    return cross('entity.create', input);
+    const { compose } = ctx;
+    return compose('entity.create', input);
   },
 });
 `;
 
-    const diagnostics = noDestructuredCross.check(
+    const diagnostics = noDestructuredCompose.check(
       code,
       'src/trails/onboard.ts'
     );
 
     expect(diagnostics).toHaveLength(1);
-    expect(diagnostics[0]?.rule).toBe('no-destructured-cross');
+    expect(diagnostics[0]?.rule).toBe('no-destructured-compose');
     expect(diagnostics[0]?.severity).toBe('warn');
-    expect(diagnostics[0]?.message).toContain('Use ctx.cross(...) directly');
+    expect(diagnostics[0]?.message).toContain('Use ctx.compose(...) directly');
     expect(diagnostics[0]?.message).toContain('Warden can recognize');
   });
 
   test('flags aliased body destructuring from the blaze context', () => {
     const code = `
 trail('entity.onboard', {
-  crosses: ['entity.create'],
+  composes: ['entity.create'],
   blaze: async (input, ctx) => {
-    const { cross: compose } = ctx;
+    const { compose: compose } = ctx;
     return compose('entity.create', input);
   },
 });
 `;
 
-    const diagnostics = noDestructuredCross.check(
+    const diagnostics = noDestructuredCompose.check(
       code,
       'src/trails/onboard.ts'
     );
@@ -51,37 +51,37 @@ trail('entity.onboard', {
   test('flags assignment destructuring from the blaze context', () => {
     const code = `
 trail('entity.onboard', {
-  crosses: ['entity.create'],
-  blaze: async (input, ctx) => {
-    let cross;
-    ({ cross } = ctx);
-    return cross('entity.create', input);
-  },
-});
-`;
-
-    const diagnostics = noDestructuredCross.check(
-      code,
-      'src/trails/onboard.ts'
-    );
-
-    expect(diagnostics).toHaveLength(1);
-    expect(diagnostics[0]?.message).toContain('ctx.cross');
-  });
-
-  test('flags aliased assignment destructuring from the blaze context', () => {
-    const code = `
-trail('entity.onboard', {
-  crosses: ['entity.create'],
+  composes: ['entity.create'],
   blaze: async (input, ctx) => {
     let compose;
-    ({ cross: compose } = ctx);
+    ({ compose } = ctx);
     return compose('entity.create', input);
   },
 });
 `;
 
-    const diagnostics = noDestructuredCross.check(
+    const diagnostics = noDestructuredCompose.check(
+      code,
+      'src/trails/onboard.ts'
+    );
+
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0]?.message).toContain('ctx.compose');
+  });
+
+  test('flags aliased assignment destructuring from the blaze context', () => {
+    const code = `
+trail('entity.onboard', {
+  composes: ['entity.create'],
+  blaze: async (input, ctx) => {
+    let compose;
+    ({ compose: compose } = ctx);
+    return compose('entity.create', input);
+  },
+});
+`;
+
+    const diagnostics = noDestructuredCompose.check(
       code,
       'src/trails/onboard.ts'
     );
@@ -92,12 +92,12 @@ trail('entity.onboard', {
   test('flags parameter destructuring from the blaze context', () => {
     const code = `
 trail('entity.onboard', {
-  crosses: ['entity.create'],
-  blaze: async (input, { cross }) => cross('entity.create', input),
+  composes: ['entity.create'],
+  blaze: async (input, { compose }) => compose('entity.create', input),
 });
 `;
 
-    const diagnostics = noDestructuredCross.check(
+    const diagnostics = noDestructuredCompose.check(
       code,
       'src/trails/onboard.ts'
     );
@@ -109,13 +109,13 @@ trail('entity.onboard', {
   test('flags aliased parameter destructuring from the blaze context', () => {
     const code = `
 trail('entity.onboard', {
-  crosses: ['entity.create'],
-  blaze: async (input, { cross: compose }) =>
+  composes: ['entity.create'],
+  blaze: async (input, { compose: compose }) =>
     compose('entity.create', input),
 });
 `;
 
-    const diagnostics = noDestructuredCross.check(
+    const diagnostics = noDestructuredCompose.check(
       code,
       'src/trails/onboard.ts'
     );
@@ -123,17 +123,17 @@ trail('entity.onboard', {
     expect(diagnostics).toHaveLength(1);
   });
 
-  test('allows direct ctx.cross calls', () => {
+  test('allows direct ctx.compose calls', () => {
     const code = `
 trail('entity.onboard', {
-  crosses: ['entity.create'],
+  composes: ['entity.create'],
   blaze: async (input, ctx) => {
-    return ctx.cross('entity.create', input);
+    return ctx.compose('entity.create', input);
   },
 });
 `;
 
-    const diagnostics = noDestructuredCross.check(
+    const diagnostics = noDestructuredCompose.check(
       code,
       'src/trails/onboard.ts'
     );
@@ -144,12 +144,12 @@ trail('entity.onboard', {
   test('ignores destructuring outside trail blazes', () => {
     const code = `
 function run(ctx) {
-  const { cross } = ctx;
-  return cross('entity.create', {});
+  const { compose } = ctx;
+  return compose('entity.create', {});
 }
 `;
 
-    const diagnostics = noDestructuredCross.check(
+    const diagnostics = noDestructuredCompose.check(
       code,
       'src/routes/onboard.ts'
     );
@@ -160,18 +160,18 @@ function run(ctx) {
   test('ignores nested functions that destructure unrelated values', () => {
     const code = `
 trail('entity.onboard', {
-  crosses: ['entity.create'],
+  composes: ['entity.create'],
   blaze: async (input, ctx) => {
     const helper = (other) => {
-      const { cross } = other;
-      return cross;
+      const { compose } = other;
+      return compose;
     };
-    return ctx.cross('entity.create', input);
+    return ctx.compose('entity.create', input);
   },
 });
 `;
 
-    const diagnostics = noDestructuredCross.check(
+    const diagnostics = noDestructuredCompose.check(
       code,
       'src/trails/onboard.ts'
     );
@@ -182,19 +182,19 @@ trail('entity.onboard', {
   test('ignores destructuring from a shadowed context name', () => {
     const code = `
 trail('entity.onboard', {
-  crosses: ['entity.create'],
+  composes: ['entity.create'],
   blaze: async (input, ctx) => {
     {
-      const ctx = { cross: () => null };
-      const { cross } = ctx;
-      cross();
+      const ctx = { compose: () => null };
+      const { compose } = ctx;
+      compose();
     }
-    return ctx.cross('entity.create', input);
+    return ctx.compose('entity.create', input);
   },
 });
 `;
 
-    const diagnostics = noDestructuredCross.check(
+    const diagnostics = noDestructuredCompose.check(
       code,
       'src/trails/onboard.ts'
     );
@@ -205,20 +205,20 @@ trail('entity.onboard', {
   test('ignores assignment destructuring from a shadowed context name', () => {
     const code = `
 trail('entity.onboard', {
-  crosses: ['entity.create'],
+  composes: ['entity.create'],
   blaze: async (input, ctx) => {
     {
-      const ctx = { cross: () => null };
-      let cross;
-      ({ cross } = ctx);
-      cross();
+      const ctx = { compose: () => null };
+      let compose;
+      ({ compose } = ctx);
+      compose();
     }
-    return ctx.cross('entity.create', input);
+    return ctx.compose('entity.create', input);
   },
 });
 `;
 
-    const diagnostics = noDestructuredCross.check(
+    const diagnostics = noDestructuredCompose.check(
       code,
       'src/trails/onboard.ts'
     );
@@ -230,13 +230,13 @@ trail('entity.onboard', {
     const code = `
 trail('entity.onboard', {
   blaze: async (input, ctx) => {
-    const { cross } = ctx;
-    return cross('entity.create', input);
+    const { compose } = ctx;
+    return compose('entity.create', input);
   },
 });
 `;
 
-    const diagnostics = noDestructuredCross.check(
+    const diagnostics = noDestructuredCompose.check(
       code,
       'src/__tests__/onboard.test.ts'
     );

@@ -117,7 +117,7 @@ The diff classifies every change by severity:
 | CLI path changed | breaking |
 | Safety property changed | warning |
 | Trail deprecated | warning |
-| Crosses changed | warning |
+| Compositions changed | warning |
 | Declared resources changed | warning |
 | Resource removed | breaking |
 | Trail added | info |

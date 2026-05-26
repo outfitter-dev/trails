@@ -206,7 +206,7 @@ export class CancelledError extends TrailsError {
  *
  * Inherits the wrapped error's category for surface mapping (e.g. a
  * `RetryExhaustedError<ConflictError>` maps to HTTP 409), but always
- * sets `retryable = false` to prevent amplification across `ctx.cross()`
+ * sets `retryable = false` to prevent amplification across `ctx.compose()`
  * boundaries or stacked layers.
  */
 export class RetryExhaustedError<

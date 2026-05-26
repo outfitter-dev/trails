@@ -81,7 +81,7 @@ describe('surface', () => {
   test('surface throws on invalid topo', async () => {
     const t = trail('broken', {
       blaze: () => Result.ok({}),
-      crosses: ['nonexistent.trail'],
+      composes: ['nonexistent.trail'],
       input: z.object({}),
       output: z.object({}),
     });
@@ -92,7 +92,7 @@ describe('surface', () => {
   test('SurfaceCliOptions accepts validate: false without type errors', () => {
     const t = trail('broken', {
       blaze: () => Result.ok({}),
-      crosses: ['nonexistent.trail'],
+      composes: ['nonexistent.trail'],
       input: z.object({}),
       output: z.object({}),
     });
@@ -122,7 +122,7 @@ describe('surface', () => {
   test('deriveCliCommands returns Err on invalid topo', () => {
     const t = trail('broken', {
       blaze: () => Result.ok({}),
-      crosses: ['nonexistent.trail'],
+      composes: ['nonexistent.trail'],
       input: z.object({}),
       output: z.object({}),
     });

@@ -107,7 +107,7 @@ Each declaration you add to a trail unlocks derived behavior across every surfac
 | `intent: 'read'` | MCP `readOnlyHint`, CLI skips confirmation, HTTP GET |
 | `intent: 'destroy'` | MCP `destructiveHint`, CLI auto-adds `--dry-run`, HTTP DELETE |
 | `examples` | Tests (happy + error path), agent guidance, documentation |
-| `crosses` | Composition graph, cycle detection, cross coverage in tests |
+| `composes` | Composition graph, cycle detection, compose coverage in tests |
 | `resources: [db]` | Singleton lifecycle, test mock auto-resolution, warden governance |
 | `detours` | Recovery paths, detour contract validation, shadowing checks |
 
@@ -159,7 +159,7 @@ $ myapp greet --name World
 | [`@ontrails/permits`](./packages/permits) | Auth layer, permit model, JWT adapter, scope enforcement |
 | [`@ontrails/store`](./packages/store) | Backend-agnostic store definitions, typed accessors, adapter-support helpers |
 | [`@ontrails/drizzle`](./adapters/drizzle) | Drizzle SQLite adapter, typed store bindings, read-only bindings |
-| [`@ontrails/testing`](./packages/testing) | `testAll()`, `testTrail()`, `testCrosses()`, contract testing, surface harnesses |
+| [`@ontrails/testing`](./packages/testing) | `testAll()`, `testTrail()`, `testComposes()`, contract testing, surface harnesses |
 | [`@ontrails/topographer`](./packages/topographer) | TopoGraphs, semantic diffing, durable artifact helpers, lock manifests, topo-store persistence |
 | [`@ontrails/observe`](./packages/observe) | Log and trace sink contracts, sink composition, built-in sinks, trace rendering |
 | [`@ontrails/tracing`](./packages/tracing) | Tracing compatibility, query/status trails, `trails.db` dev-state storage, sampling helpers, OTel adapter |

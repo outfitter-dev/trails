@@ -45,10 +45,10 @@ activation all use the same trail field and the same normalized graph shape.
 ### Activation is not orchestration
 
 Activation sources activate trails. They do not compose trails, branch workflow,
-own retries, or replace `ctx.cross()`.
+own retries, or replace `ctx.compose()`.
 
 If a source should start "A then B then C", it activates one trail. That trail
-uses normal imperative composition with `ctx.cross()` to do the ordered work.
+uses normal imperative composition with `ctx.compose()` to do the ordered work.
 The source is the trigger. The trail is still the unit of behavior.
 
 ## Decision
@@ -74,7 +74,7 @@ const recordPayment = trail('payment.record', {
 ```
 
 `on:` is optional. Trails without `on:` remain explicit trails invoked through
-surfaces, `run()`, or `ctx.cross()`.
+surfaces, `run()`, or `ctx.compose()`.
 
 A trail with `on:` is still a normal trail. It has one input schema, one output
 schema, one Result-returning blaze, examples, intent, resources, detours, and
@@ -329,7 +329,7 @@ Reactive activation v1 does not define:
   a trail before invoking anything.
 - **One field covers local, clock, and HTTP inbound activation.** `on:` is the
   graph edge regardless of source kind.
-- **The trail remains the unit of behavior.** Activation starts work; `ctx.cross`
+- **The trail remains the unit of behavior.** Activation starts work; `ctx.compose`
   composes work.
 - **Source declarations multiply.** The same authored source feeds runtime
   materialization, validation, Warden, survey, serialized graph state, and
@@ -379,7 +379,7 @@ Reactive activation v1 does not define:
 - [ADR-0017: The Serialized Topo Graph](0017-serialized-topo-graph.md) -
   activation sources and edges belong in the resolved graph.
 - [ADR-0024: Typed Trail Composition](0024-typed-trail-composition.md) -
-  `ctx.cross()` remains the composition mechanism after activation.
+  `ctx.compose()` remains the composition mechanism after activation.
 - [ADR-0026: Error Taxonomy as Transport-Independent Behavior Contract](0026-error-taxonomy-as-transport-independent-behavior-contract.md) -
   activated executions use the same error categories and surface mappings.
 - [ADR-0027: Trail Visibility and Surface Filtering](0027-visibility-and-filtering.md) -

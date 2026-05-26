@@ -71,7 +71,7 @@ export const dependencies = [draftPrepare];
 
 export const exportTrail = trail('entity.export', {
   blaze: async () => Result.ok({ exported: true }),
-  crosses: ['_draft.entity.prepare'],
+  composes: ['_draft.entity.prepare'],
   input: z.object({}),
   output: z.object({ exported: z.boolean() }),
 });
@@ -86,7 +86,7 @@ const expectDraftPromoteResults = (dir: string): void => {
     "trail('entity.prepare'"
   );
   expect(readFileSync(join(dir, 'src', 'export.ts'), 'utf8')).toContain(
-    "crosses: ['entity.prepare']"
+    "composes: ['entity.prepare']"
   );
   expect(readFileSync(join(dir, 'src', 'export.ts'), 'utf8')).toContain(
     "from './prepare.js'"

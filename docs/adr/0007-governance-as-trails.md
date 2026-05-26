@@ -57,7 +57,7 @@ One critical addition: `walkScope()`. Standard `walk()` descends into everything
 
 This ADR decides the execution model, not a fixed count of built-in rules. The concrete registry has grown since adoption and continues to evolve. The stable split is:
 
-- **File-scoped AST rules** like `no-throw-in-implementation`, `implementation-returns-result`, `cross-declarations`, and `resource-declarations`
+- **File-scoped AST rules** like `no-throw-in-implementation`, `implementation-returns-result`, `composes-declarations`, and `resource-declarations`
 - **Project-aware source rules** that still run per file but consume derived project context, such as `valid-describe-refs`, `reference-exists`, and `incomplete-crud`
 - **Topo-aware rules** that inspect the resolved graph once per topo, such as `incomplete-accessor-for-standard-op`, `permit-governance`, and `valid-detour-contract`
 

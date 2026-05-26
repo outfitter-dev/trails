@@ -1,7 +1,7 @@
 /**
  * Structural validation for a Topo graph.
  *
- * Checks trail crossing references, example input validity, signal origin
+ * Checks trail composing references, example input validity, signal origin
  * references, activation source kinds, and output schema completeness. Returns
  * a Result with all issues collected into a single ValidationError.
  */
@@ -54,8 +54,8 @@ const WHITE = 0;
 const GRAY = 1;
 const BLACK = 2;
 
-/** Build an adjacency list and initial color map from trails with crossings. */
-const buildCrossGraph = (
+/** Build an adjacency list and initial color map from trails with compositions. */
+const buildComposeGraph = (
   trails: ReadonlyMap<string, AnyTrail>
 ): {
   graph: Map<string, readonly string[]>;
@@ -63,7 +63,7 @@ const buildCrossGraph = (
 } => {
   const graph = new Map<string, readonly string[]>();
   for (const [id, trail] of trails) {
-    const crossedIds = new Set<string>(trail.crosses);
+    const composedIds = new Set<string>(trail.composes);
     for (const entry of Object.values(trail.versions ?? {})) {
       if (
         isArchivedTrailVersionEntry(entry) ||
@@ -73,13 +73,13 @@ const buildCrossGraph = (
       }
 
       const fork = entry as TrailVersionForkEntry;
-      for (const crossed of fork.crosses ?? []) {
-        crossedIds.add(typeof crossed === 'string' ? crossed : crossed.id);
+      for (const composed of fork.composes ?? []) {
+        composedIds.add(typeof composed === 'string' ? composed : composed.id);
       }
     }
 
-    if (crossedIds.size > 0) {
-      graph.set(id, [...crossedIds]);
+    if (composedIds.size > 0) {
+      graph.set(id, [...composedIds]);
     }
   }
   const color = new Map<string, number>();
@@ -89,12 +89,12 @@ const buildCrossGraph = (
   return { color, graph };
 };
 
-/** Detect multi-node cycles in the trail crossing graph via DFS. */
-const detectCrossCycles = (
+/** Detect multi-node cycles in the trail composing graph via DFS. */
+const detectComposeCycles = (
   trails: ReadonlyMap<string, AnyTrail>
 ): TopoIssue[] => {
   const issues: TopoIssue[] = [];
-  const { color, graph } = buildCrossGraph(trails);
+  const { color, graph } = buildComposeGraph(trails);
 
   const dfs = (node: string, path: string[]): void => {
     color.set(node, GRAY);
@@ -107,7 +107,7 @@ const detectCrossCycles = (
         const cycle = [...path.slice(path.indexOf(next)), next];
         issues.push({
           message: `Cycle detected: ${cycle.join(' → ')}`,
-          rule: 'cross-cycle',
+          rule: 'compose-cycle',
           trailId: next,
         });
       } else if (c === WHITE) {
@@ -125,23 +125,23 @@ const detectCrossCycles = (
   return issues;
 };
 
-const checkCrosses = (
+const checkComposes = (
   trails: ReadonlyMap<string, AnyTrail>,
   topo: Topo
 ): TopoIssue[] => {
   const issues: TopoIssue[] = [];
   for (const [id, trail] of trails) {
-    for (const crossedId of trail.crosses) {
-      if (crossedId === id) {
+    for (const composedId of trail.composes) {
+      if (composedId === id) {
         issues.push({
-          message: `Trail crosses itself`,
-          rule: 'no-self-cross',
+          message: `Trail composes itself`,
+          rule: 'no-self-compose',
           trailId: id,
         });
-      } else if (!topo.has(crossedId) && !isDraftId(crossedId)) {
+      } else if (!topo.has(composedId) && !isDraftId(composedId)) {
         issues.push({
-          message: `Crosses "${crossedId}" which is not in the topo`,
-          rule: 'cross-exists',
+          message: `Composes "${composedId}" which is not in the topo`,
+          rule: 'compose-exists',
           trailId: id,
         });
       }
@@ -156,25 +156,26 @@ const checkCrosses = (
 
       const version = Number(rawVersion);
       const fork = entry as TrailVersionForkEntry;
-      for (const crossed of fork.crosses ?? []) {
-        const crossedId = typeof crossed === 'string' ? crossed : crossed.id;
-        if (crossedId === id) {
+      for (const composed of fork.composes ?? []) {
+        const composedId =
+          typeof composed === 'string' ? composed : composed.id;
+        if (composedId === id) {
           issues.push({
-            message: `Trail version ${version} crosses itself`,
-            rule: 'no-self-cross',
+            message: `Trail version ${version} composes itself`,
+            rule: 'no-self-compose',
             trailId: id,
           });
-        } else if (!topo.has(crossedId) && !isDraftId(crossedId)) {
+        } else if (!topo.has(composedId) && !isDraftId(composedId)) {
           issues.push({
-            message: `Version ${version} crosses "${crossedId}" which is not in the topo`,
-            rule: 'cross-exists',
+            message: `Version ${version} composes "${composedId}" which is not in the topo`,
+            rule: 'compose-exists',
             trailId: id,
           });
         }
       }
     }
   }
-  issues.push(...detectCrossCycles(trails));
+  issues.push(...detectComposeCycles(trails));
   return issues;
 };
 
@@ -525,14 +526,14 @@ const checkContourReferences = (
 /**
  * Validate the structural integrity of a Topo graph.
  *
- * Checks crossing references, example inputs, signal origins, activation
+ * Checks composing references, example inputs, signal origins, activation
  * source kinds, and output schema presence. Returns `Result.ok()` when no
  * issues are found, or
  * `Result.err(ValidationError)` with all issues in the error context.
  */
 export const validateTopo = (topo: Topo): Result<void, ValidationError> => {
   const issues = [
-    ...checkCrosses(topo.trails, topo),
+    ...checkComposes(topo.trails, topo),
     ...checkResources(topo.trails, topo),
     ...checkContourReferences(topo.contours, topo),
     ...checkExamples(topo.trails),

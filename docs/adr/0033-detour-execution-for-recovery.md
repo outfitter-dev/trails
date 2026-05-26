@@ -41,7 +41,7 @@ Three workstreams converge on this need:
 
 ## Decision
 
-**Detours are authored, never invoked.** When a trail declares a detour, the framework runs the detour recovery loop without the caller needing to know it exists. Callers of a trail — CLI, HTTP, MCP, another trail via `ctx.cross()` — get the declared recovery semantics automatically. There is no `.withDetours()`, no opt-in, no callsite-aware dispatch. Detours are part of what the trail *is*.
+**Detours are authored, never invoked.** When a trail declares a detour, the framework runs the detour recovery loop without the caller needing to know it exists. Callers of a trail — CLI, HTTP, MCP, another trail via `ctx.compose()` — get the declared recovery semantics automatically. There is no `.withDetours()`, no opt-in, no callsite-aware dispatch. Detours are part of what the trail *is*.
 
 ### `TrailSpec.detours` is the runtime primitive
 
@@ -155,7 +155,7 @@ abstract class TrailsError extends Error {
 
 For normal errors, `retryable` is undefined and any retry-aware machinery falls back to `this.category`'s retryable flag — **no behavior change for existing code**. For `RetryExhaustedError` instances, `retryable` is `false` via inheritance from `InternalError`, regardless of the wrapped error's category.
 
-**Why this matters:** a future framework retry layer (see Out of Scope) honors `retryable: true` categories automatically. Without the instance-level override, `RetryExhaustedError<NetworkError>` would carry `category: 'network'`, which is retryable, and the retry layer would re-retry an already-exhausted recovery across `ctx.cross()` boundaries or stacked layers. Runaway amplification.
+**Why this matters:** a future framework retry layer (see Out of Scope) honors `retryable: true` categories automatically. Without the instance-level override, `RetryExhaustedError<NetworkError>` would carry `category: 'network'`, which is retryable, and the retry layer would re-retry an already-exhausted recovery across `ctx.compose()` boundaries or stacked layers. Runaway amplification.
 
 The instance-level override encodes the semantic principle in the error itself: *if a detour was declared, the author decided intelligent recovery was the right strategy. If the detour exhausts, falling back to a dumb category-level retry is a regression.* Any future retry machinery respects this automatically, without needing to know about `RetryExhaustedError` specifically.
 
@@ -198,10 +198,10 @@ Runtime treats both uniformly. The detour loop doesn't know or care whether a de
 
 ### Positive
 
-- **Declarative recovery is load-bearing at runtime.** The `detours:` field is no longer a comment; it's a projection input. The [queryable-contract tenet](0000-core-premise.md#the-contract-is-queryable) now covers recovery paths alongside schemas, examples, and crosses.
+- **Declarative recovery is load-bearing at runtime.** The `detours:` field is no longer a comment; it's a projection input. The [queryable-contract tenet](0000-core-premise.md#the-contract-is-queryable) now covers recovery paths alongside schemas, examples, and composes.
 - **The reconcile factory's inline try/catch retires.** The `AGENTS.md` carve-out permitting inline recovery for factory-provided trails deletes. Replaced by a declarative `detours: [{ on: ConflictError, maxAttempts: 1, recover: ... }]` on the reconcile trail's spec.
 - **`ReconcileRetryExhaustedError` retires** in favor of the framework-level generic `RetryExhaustedError<TErr>`. Consumers of reconcile see a standard framework error with the wrapped `ConflictError`'s category preserved.
-- **Detours compose with `ctx.cross()` transparently.** When trail A crosses trail B, and B fails with an error that matches A's detour, B's full pipeline runs first (including B's detours). Whatever error escapes B is seen by A's blaze as an `Err` and enters A's detour loop. Recursive composition works without any special casing.
+- **Detours compose with `ctx.compose()` transparently.** When trail A composes trail B, and B fails with an error that matches A's detour, B's full pipeline runs first (including B's detours). Whatever error escapes B is seen by A's blaze as an `Err` and enters A's detour loop. Recursive composition works without any special casing.
 - **Future-compatible with scenario-based testing.** Because detours are declarative, a future scenario DSL can inject failures and verify recovery mechanically. Warden can check that every declared detour has at least one example that triggers it. Not in this ADR, but the architecture leaves the door open.
 - **Future-compatible with `deriveTrail` synthesis.** The "cross-trail reuse" benefit — declare a recovery pattern once, get it applied to every trail that matches — arrives via derivation rather than via a new runtime primitive. See Out of Scope.
 
@@ -214,7 +214,7 @@ Runtime treats both uniformly. The detour loop doesn't know or care whether a de
 
 ### What this does NOT decide
 
-- **Framework retry layer for `retryable: true` errors.** The taxonomy already carries a `retryable` flag per category (`timeout`, `network`, `rate_limit` are retryable; `conflict`, `permission`, `validation` are not). A framework-provided layer — default-on in every topo, positioned just outside the detour loop — is expected to honor this flag with configurable backoff. **This ADR does not define that layer.** Detours handle typed recovery keyed by specific error classes; the retry layer handles category-level retry for errors with no domain-specific recovery. The two compose by construction — detours match on class, the retry layer matches on category, and `RetryExhaustedError` always sets `retryable: false` at the instance level to prevent amplification across `ctx.cross()` boundaries or stacked layers.
+- **Framework retry layer for `retryable: true` errors.** The taxonomy already carries a `retryable` flag per category (`timeout`, `network`, `rate_limit` are retryable; `conflict`, `permission`, `validation` are not). A framework-provided layer — default-on in every topo, positioned just outside the detour loop — is expected to honor this flag with configurable backoff. **This ADR does not define that layer.** Detours handle typed recovery keyed by specific error classes; the retry layer handles category-level retry for errors with no domain-specific recovery. The two compose by construction — detours match on class, the retry layer matches on category, and `RetryExhaustedError` always sets `retryable: false` at the instance level to prevent amplification across `ctx.compose()` boundaries or stacked layers.
 
 - **Resource-level recovery declarations.** A mechanism for resources to declare their own recovery policies that would apply uniformly to every trail using them is deliberately out of scope. The current set of concrete failure modes in the Trails ecosystem is adequately served by (a) the framework retry layer for retryable errors, (b) authored trail-level detours for domain-specific recovery, and (c) `deriveTrail` synthesis for store-implied recovery. When resource-specific recovery semantics emerge as a concrete need — particularly for third-party connectors with protocol-specific retry, OAuth token refresh on 401, or other credential-aware recovery actions — a future ADR should address it directly, building on the trail-level runtime defined here. The `detours` vocabulary is pinned to trails by [ADR-0023](0023-simplifying-the-trails-lexicon.md) ("a blazed trail proceeds through the normal path; if blocked, it detours"); if resource-level recovery lands, it needs its own word. A prerequisite is that framework errors remain backend-agnostic — no `SqliteBusyError`, no `DbBusyError`, backend-specific conditions must normalize at the connector boundary.
 

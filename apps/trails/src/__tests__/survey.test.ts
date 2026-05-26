@@ -504,7 +504,7 @@ describe('trails survey brief', () => {
 });
 
 describe('trails survey detail', () => {
-  test('trail detail includes declared resources, crossings, and intent', () => {
+  test('trail detail includes declared resources, compositions, and intent', () => {
     const detail = deriveTrailDetail(helloTrail);
     const parsed = structuredClone(detail) as TrailDetailReport;
 
@@ -513,7 +513,7 @@ describe('trails survey detail', () => {
     expect(parsed.activationChains).toEqual([]);
     expect(parsed.activationEdges).toEqual([]);
     expect(parsed.activationSources).toEqual([]);
-    expect(parsed.crosses).toEqual([]);
+    expect(parsed.composes).toEqual([]);
     expect(parsed.fires).toEqual([]);
     expect(parsed.intent).toBe('read');
     expect(parsed.on).toEqual([]);

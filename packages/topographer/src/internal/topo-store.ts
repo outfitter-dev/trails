@@ -73,7 +73,7 @@ interface TopoTrailRow {
   readonly snapshotId: string;
 }
 
-interface TopoCrossingRow {
+interface TopoComposingRow {
   readonly snapshotId: string;
   readonly sourceId: string;
   readonly targetId: string;
@@ -253,7 +253,7 @@ const SIGNAL_GOVERNANCE_HOOKS = {
 interface NormalizedTopoProjection {
   readonly activationEdges: readonly TopoActivationEdgeRow[];
   readonly activationSources: readonly TopoActivationSourceRow[];
-  readonly crossings: readonly TopoCrossingRow[];
+  readonly composings: readonly TopoComposingRow[];
   readonly examples: readonly TopoExampleRow[];
   readonly fires: readonly TopoFiresRow[];
   readonly on: readonly TopoOnRow[];
@@ -398,12 +398,12 @@ const normalizeTrailRows = (
     snapshotId,
   }));
 
-const normalizeCrossingRows = (
+const normalizeComposingRows = (
   trails: readonly AnyTrail[],
   snapshotId: string
-): readonly TopoCrossingRow[] =>
+): readonly TopoComposingRow[] =>
   trails.flatMap((trail) =>
-    [...new Set(trail.crosses)].toSorted().map((targetId) => ({
+    [...new Set(trail.composes)].toSorted().map((targetId) => ({
       snapshotId,
       sourceId: trail.id,
       targetId,
@@ -656,7 +656,7 @@ const normalizeTopoProjection = (
   return {
     activationEdges: normalizeActivationEdgeRows(trails, snapshotId),
     activationSources: normalizeActivationSourceRows(trails, snapshotId),
-    crossings: normalizeCrossingRows(trails, snapshotId),
+    composings: normalizeComposingRows(trails, snapshotId),
     examples: normalizeExampleRows(trails, snapshotId),
     fires: normalizeFiresRows(trails, snapshotId),
     on: normalizeOnRows(trails, snapshotId),
@@ -673,7 +673,7 @@ const normalizeTopoProjection = (
  * Look up a cached JSON schema by content hash.
  *
  * The query matches on `zod_hash` without filtering by `snapshot_id` because the
- * cache is intentionally cross-snapshot: if the Zod schema definition has not
+ * cache is intentionally compose-snapshot: if the Zod schema definition has not
  * changed (same hash), the serialized JSON Schema is reused regardless of
  * which snapshot produced it. This is safe as long as `zodToJsonSchema` is
  * deterministic for a given `_def` hash — the `schemaDefinitionHash` pipeline
@@ -934,8 +934,8 @@ const addTrailRelations = (
     );
   }
 
-  if (trail.crosses.length > 0) {
-    entry['crosses'] = trail.crosses.toSorted();
+  if (trail.composes.length > 0) {
+    entry['composes'] = trail.composes.toSorted();
   }
 
   if (trail.fires.length > 0) {
@@ -1428,8 +1428,8 @@ const insertProjectedRows = (
   );
   insertRows(
     db,
-    projection.crossings,
-    'INSERT INTO topo_crossings (source_id, target_id, snapshot_id) VALUES (?, ?, ?)',
+    projection.composings,
+    'INSERT INTO topo_composings (source_id, target_id, snapshot_id) VALUES (?, ?, ?)',
     (row) => [row.sourceId, row.targetId, row.snapshotId]
   );
   insertRows(
