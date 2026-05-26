@@ -36,6 +36,10 @@ export type ProjectWriteOperation =
       readonly path: string;
     };
 
+interface ProjectOperationOptions {
+  readonly existing?: 'overwrite' | 'preserve';
+}
+
 export const validateProjectName = (
   name: string
 ): TrailsResult<string, ValidationError> =>
@@ -222,12 +226,59 @@ export const planProjectOperation = (
   }
 };
 
+const shouldApplyProjectOperation = (
+  projectDir: string,
+  operation: ProjectWriteOperation,
+  options: ProjectOperationOptions
+): TrailsResult<boolean, Error> => {
+  if (options.existing !== 'preserve' || operation.kind === 'rename') {
+    return Result.ok(true);
+  }
+
+  const { path } = operation;
+  const target = resolveProjectPath(projectDir, path);
+  if (target.isErr()) {
+    return Result.err(target.error);
+  }
+
+  return Result.ok(!existsSync(target.value));
+};
+
+const selectProjectOperations = (
+  projectDir: string,
+  operations: readonly ProjectWriteOperation[],
+  options: ProjectOperationOptions
+): TrailsResult<ProjectWriteOperation[], Error> => {
+  const selected: ProjectWriteOperation[] = [];
+  for (const operation of operations) {
+    const shouldApply = shouldApplyProjectOperation(
+      projectDir,
+      operation,
+      options
+    );
+    if (shouldApply.isErr()) {
+      return Result.err(shouldApply.error);
+    }
+    if (shouldApply.value) {
+      selected.push(operation);
+    }
+  }
+
+  return Result.ok(selected);
+};
+
 export const planProjectOperations = (
   projectDir: string,
-  operations: readonly ProjectWriteOperation[]
+  operations: readonly ProjectWriteOperation[],
+  options: ProjectOperationOptions = {}
 ): TrailsResult<PlannedProjectOperation[], Error> => {
+  const selected = selectProjectOperations(projectDir, operations, options);
+  if (selected.isErr()) {
+    return Result.err(selected.error);
+  }
+
   const planned: PlannedProjectOperation[] = [];
-  for (const operation of operations) {
+  for (const operation of selected.value) {
     const result = planProjectOperation(projectDir, operation);
     if (result.isErr()) {
       return Result.err(result.error);
@@ -302,14 +353,20 @@ const applyProjectOperation = async (
 
 export const applyProjectOperations = async (
   projectDir: string,
-  operations: readonly ProjectWriteOperation[]
+  operations: readonly ProjectWriteOperation[],
+  options: ProjectOperationOptions = {}
 ): Promise<TrailsResult<PlannedProjectOperation[], Error>> => {
-  const planned = planProjectOperations(projectDir, operations);
+  const selected = selectProjectOperations(projectDir, operations, options);
+  if (selected.isErr()) {
+    return Result.err(selected.error);
+  }
+
+  const planned = planProjectOperations(projectDir, selected.value);
   if (planned.isErr()) {
     return Result.err(planned.error);
   }
 
-  for (const operation of operations) {
+  for (const operation of selected.value) {
     const applied = await applyProjectOperation(projectDir, operation);
     if (applied.isErr()) {
       return Result.err(applied.error);

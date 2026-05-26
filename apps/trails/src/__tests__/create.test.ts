@@ -609,6 +609,61 @@ describe('trails create', () => {
       });
     });
 
+    test('reruns reconcile missing scaffold pieces without overwriting existing files', async () => {
+      await withTempProject(async (dir) => {
+        mkdirSync(join(dir, 'src'), { recursive: true });
+        mkdirSync(join(dir, '.trails'), { recursive: true });
+        writeFileSync(
+          join(dir, 'package.json'),
+          JSON.stringify(
+            {
+              dependencies: { '@ontrails/core': ontrailsPackageRange },
+              name: basename(dir),
+              scripts: { keep: 'echo keep' },
+              workspaceNote: 'preserve me',
+            },
+            null,
+            2
+          )
+        );
+        writeFileSync(join(dir, 'tsconfig.json'), '{"custom":true}\n');
+        writeFileSync(join(dir, 'README.md'), '# Existing README\n');
+        writeFileSync(
+          join(dir, 'src', 'app.ts'),
+          "import { topo } from '@ontrails/core';\nexport const app = topo('existing');\n"
+        );
+        writeFileSync(join(dir, 'src', 'cli.ts'), 'existing cli\n');
+
+        const result = expectOk(
+          await runCreate(dir, { surfaces: ['cli', 'mcp'] })
+        );
+
+        expectCreatedPaths(result.created, [
+          'src/mcp.ts',
+          'src/trails/hello.ts',
+          '__tests__/examples.test.ts',
+          'lefthook.yml',
+        ]);
+        expect(result.created).not.toContain('src/cli.ts');
+        expect(readText(dir, 'src/cli.ts')).toBe('existing cli\n');
+        expect(readText(dir, 'src/app.ts')).toContain("topo('existing')");
+        expect(readText(dir, 'tsconfig.json')).toBe('{"custom":true}\n');
+        expect(readText(dir, 'README.md')).toBe('# Existing README\n');
+        expectPaths(dir, ['src/mcp.ts', 'src/trails/hello.ts'], true);
+
+        const pkg = readJson(dir, 'package.json');
+        expect(pkg['workspaceNote']).toBe('preserve me');
+        expect(pkg['scripts']).toEqual({ keep: 'echo keep' });
+        const deps = pkg['dependencies'] as Record<string, string>;
+        expectExactOntrailsPin(deps['@ontrails/cli']);
+        expectExactOntrailsPin(deps['@ontrails/commander']);
+        expectExactOntrailsPin(deps['@ontrails/mcp']);
+        const devDeps = pkg['devDependencies'] as Record<string, string>;
+        expectExactOntrailsPin(devDeps['@ontrails/testing']);
+        expectExactOntrailsPin(devDeps['@ontrails/warden']);
+      });
+    });
+
     test('rejects path-shaped project names before writing', async () => {
       await withTempProject(async (dir) => {
         const error = expectErr(
@@ -689,18 +744,26 @@ describe('trails create', () => {
       });
     });
 
-    test('detects existing surface entrypoint', async () => {
+    test('reconciles existing surface entrypoint', async () => {
       await withTempProject(async (dir) => {
         mkdirSync(join(dir, 'src'), { recursive: true });
         mkdirSync(join(dir, '.trails'), { recursive: true });
+        writeFileSync(
+          join(dir, 'package.json'),
+          JSON.stringify({ name: basename(dir) }, null, 2)
+        );
         writeFileSync(join(dir, 'src', 'mcp.ts'), 'existing content');
 
-        const error = expectErr(
+        const result = expectOk(
           await addSurface.blaze({ dir, surface: 'mcp' }, {} as never)
         );
-        expect(error.message).toBe(
-          'MCP surface already exists. Nothing to do.'
-        );
+        expect(result.created).toBeNull();
+        expect(readText(dir, 'src/mcp.ts')).toBe('existing content');
+        const deps = readJson(dir, 'package.json')['dependencies'] as Record<
+          string,
+          string
+        >;
+        expectExactOntrailsPin(deps['@ontrails/mcp']);
       });
     });
   });

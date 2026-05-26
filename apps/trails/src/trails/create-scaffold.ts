@@ -477,13 +477,19 @@ export const createScaffold = trail('create.scaffold', {
     const fileMap = collectScaffoldFiles(input.name, starter);
     const operations = collectScaffoldOperations(fileMap);
     const plannedOperations = dryRun
-      ? planProjectOperations(projectDir, operations)
-      : await applyProjectOperations(projectDir, operations);
+      ? planProjectOperations(projectDir, operations, { existing: 'preserve' })
+      : await applyProjectOperations(projectDir, operations, {
+          existing: 'preserve',
+        });
     if (plannedOperations.isErr()) {
       return Result.err(plannedOperations.error);
     }
 
-    const created = dryRun ? [] : [...fileMap.keys()];
+    const created = dryRun
+      ? []
+      : plannedOperations.value
+          .filter((operation) => operation.kind === 'write')
+          .map((operation) => operation.path);
 
     return Result.ok({
       created,

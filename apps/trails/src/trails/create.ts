@@ -12,6 +12,7 @@ import { z } from 'zod';
 import {
   PROJECT_NAME_MESSAGE,
   PROJECT_NAME_PATTERN,
+  projectPathExists,
   writeProjectFile,
 } from '../project-writes.js';
 
@@ -49,7 +50,7 @@ interface ScaffoldedProject {
 }
 
 interface SurfaceResult {
-  readonly created: string;
+  readonly created: string | null;
   readonly dependency: string;
 }
 
@@ -87,7 +88,9 @@ const collectSurfaceFiles = async (
     if (result.isErr()) {
       return Result.err(result.error);
     }
-    created.push(result.value.created);
+    if (result.value.created !== null) {
+      created.push(result.value.created);
+    }
   }
 
   return Result.ok(created);
@@ -111,8 +114,11 @@ const collectCreatedFiles = (
   scaffolded: readonly string[],
   surfaces: readonly string[],
   verify: readonly string[],
-  readme: string
-): string[] => [...scaffolded, ...surfaces, ...verify, readme];
+  readme: string | null
+): string[] =>
+  readme === null
+    ? [...scaffolded, ...surfaces, ...verify]
+    : [...scaffolded, ...surfaces, ...verify, readme];
 
 const surfaceReadmeLines = {
   cli: '- `src/cli.ts` - CLI surface entry point',
@@ -172,7 +178,15 @@ ${starterReadmeLines[input.starter]}
 const writeReadme = async (
   input: CreateInput,
   dir: string
-): Promise<Result<string, Error>> => {
+): Promise<Result<string | null, Error>> => {
+  const exists = projectPathExists(dir, 'README.md');
+  if (exists.isErr()) {
+    return Result.err(exists.error);
+  }
+  if (exists.value) {
+    return Result.ok(null);
+  }
+
   const written = await writeProjectFile(
     dir,
     'README.md',

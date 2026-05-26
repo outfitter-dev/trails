@@ -7,7 +7,7 @@
 import { existsSync } from 'node:fs';
 import { basename, resolve } from 'node:path';
 
-import { AlreadyExistsError, Result, trail } from '@ontrails/core';
+import { Result, trail } from '@ontrails/core';
 import { z } from 'zod';
 
 import {
@@ -137,17 +137,13 @@ export const addSurface = trail('add.surface', {
       return entryExists;
     }
 
-    if (entryExists.value) {
-      return Result.err(
-        new AlreadyExistsError(
-          `${surface.toUpperCase()} surface already exists. Nothing to do.`
-        )
-      );
-    }
-
-    const created = await writeSurfaceEntry(cwd, surface);
-    if (created.isErr()) {
-      return created;
+    let created: string | null = null;
+    if (!entryExists.value) {
+      const written = await writeSurfaceEntry(cwd, surface);
+      if (written.isErr()) {
+        return written;
+      }
+      created = entryFile;
     }
 
     const dependency = await updatePkgJsonForSurface(cwd, surface);
@@ -156,7 +152,7 @@ export const addSurface = trail('add.surface', {
     }
 
     return Result.ok({
-      created: created.value,
+      created,
       dependency: dependency.value,
     });
   },
@@ -166,7 +162,7 @@ export const addSurface = trail('add.surface', {
     surface: z.enum(['cli', 'http', 'mcp']).describe('Surface to add'),
   }),
   output: z.object({
-    created: z.string(),
+    created: z.string().nullable(),
     dependency: z.string(),
   }),
 });

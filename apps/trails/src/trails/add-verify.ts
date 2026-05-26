@@ -10,6 +10,7 @@ import { z } from 'zod';
 import {
   PROJECT_NAME_MESSAGE,
   PROJECT_NAME_PATTERN,
+  projectPathExists,
   resolveProjectDir,
   resolveProjectPath,
   writeProjectFile,
@@ -89,6 +90,14 @@ export const addVerify = trail('add.verify', {
       relativePath: string,
       content: string
     ): Promise<Result<void, Error>> => {
+      const exists = projectPathExists(projectDir, relativePath);
+      if (exists.isErr()) {
+        return Result.err(exists.error);
+      }
+      if (exists.value) {
+        return Result.ok();
+      }
+
       const written = await writeProjectFile(projectDir, relativePath, content);
       if (written.isErr()) {
         return Result.err(written.error);
