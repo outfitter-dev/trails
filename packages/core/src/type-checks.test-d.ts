@@ -2,8 +2,9 @@
  * Compile-time type assertions for type-utils.
  *
  * This file lives in src/ (not __tests__/) so it is included in the
- * typecheck pass. It contains no runtime code — only type-level
- * assertions that fail the build when type inference regresses.
+ * typecheck pass. It contains type-level assertions that fail the build
+ * when type inference regresses, plus a small number of inert const
+ * declarations that verify contextual inference at call sites.
  *
  * Assertion types are exported to satisfy `noUnusedLocals` but are not
  * re-exported from the package index.
@@ -12,7 +13,8 @@
 import type { Signal, SignalSpec } from './signal.js';
 import type { Trail, TrailSpec, TrailVersionRevisionEntry } from './trail.js';
 import type { ExecuteTrailOptions } from './execute.js';
-import type { ResourceSpec } from './resource.js';
+import { resource } from './resource.js';
+import type { Resource, ResourceSpec } from './resource.js';
 import type { ContourOptions } from './contour.js';
 import type { ScheduleSpec } from './schedule.js';
 import type { WebhookSpec } from './webhook.js';
@@ -178,6 +180,102 @@ export type NonTrailVersionReservations = [
 ] extends [true, true, true, true, true]
   ? 'pass'
   : never;
+
+// ---------------------------------------------------------------------------
+// resource() carries config schema inference into create(ctx).config
+// ---------------------------------------------------------------------------
+
+type ResourceConfigSchema = z.ZodObject<{
+  readonly key: z.ZodString;
+  readonly poolSize: z.ZodNumber;
+}>;
+type ConfiguredResource = ReturnType<
+  typeof resource<{ readonly connected: true }, ResourceConfigSchema>
+>;
+type ConfiguredResourceConfig = Parameters<
+  ConfiguredResource['create']
+>[0]['config'];
+interface ExpectedResourceConfig {
+  readonly key: string;
+  readonly poolSize: number;
+}
+type AssertResourceConfigForward =
+  ConfiguredResourceConfig extends ExpectedResourceConfig ? true : false;
+type AssertResourceConfigReverse =
+  ExpectedResourceConfig extends ConfiguredResourceConfig ? true : false;
+type AssertResourceCarriesConfig =
+  ConfiguredResource extends Resource<
+    { readonly connected: true },
+    ExpectedResourceConfig
+  >
+    ? true
+    : false;
+export type ResourceConfigInference = [
+  AssertResourceConfigForward,
+  AssertResourceConfigReverse,
+  AssertResourceCarriesConfig,
+] extends [true, true, true]
+  ? 'pass'
+  : never;
+
+export const inferredConfiguredResource = resource('typecheck.configured', {
+  config: {} as ResourceConfigSchema,
+  create: (ctx) => {
+    const { key, poolSize }: ExpectedResourceConfig = ctx.config;
+    return { key, poolSize } as unknown as Result<
+      { readonly key: string; readonly poolSize: number },
+      Error
+    >;
+  },
+});
+export type InferredConfiguredResourceConfig = Parameters<
+  typeof inferredConfiguredResource.create
+>[0]['config'];
+type AssertInferredConfiguredResource =
+  InferredConfiguredResourceConfig extends ExpectedResourceConfig
+    ? true
+    : false;
+export type InferredResourceConfigInference = [
+  AssertInferredConfiguredResource,
+] extends [true]
+  ? 'pass'
+  : never;
+
+export const inferredDefaultedResource = resource(
+  'typecheck.defaulted-config',
+  {
+    config: {} as z.ZodDefault<
+      z.ZodObject<{
+        readonly mode: z.ZodLiteral<'noop'>;
+      }>
+    >,
+    create: (ctx) => {
+      const { mode }: { readonly mode: 'noop' } = ctx.config;
+      return { mode } as unknown as Result<{ readonly mode: 'noop' }, Error>;
+    },
+  }
+);
+
+type PlainResource = ReturnType<typeof resource<number>>;
+type PlainResourceConfig = Parameters<PlainResource['create']>[0]['config'];
+type AssertPlainResourceConfigUnknown = unknown extends PlainResourceConfig
+  ? PlainResourceConfig extends unknown
+    ? true
+    : false
+  : false;
+export type ResourceWithoutConfigDefault = [
+  AssertPlainResourceConfigUnknown,
+] extends [true]
+  ? 'pass'
+  : never;
+
+export const inferredPlainResource = resource('typecheck.plain', {
+  create: (ctx) => {
+    // @ts-expect-error config remains unknown when no config schema is authored.
+    const { key } = ctx.config;
+    return key as unknown as Result<number, Error>;
+  },
+});
 
 interface RevisionInput {
   readonly legacyName: string;

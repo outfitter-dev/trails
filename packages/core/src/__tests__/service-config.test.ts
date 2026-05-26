@@ -7,7 +7,6 @@ import { executeTrail } from '../execute.js';
 import { Result } from '../result.js';
 import { resource } from '../resource.js';
 import { trail } from '../trail.js';
-import type { ResourceContext } from '../resource.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -20,7 +19,7 @@ const createSingletonConfigTrail = (id: string) => {
   const captures = { createCalls: 0 };
   const svc = resource(id, {
     config: z.object({ key: z.string() }),
-    create: (ctx: ResourceContext<{ key: string }>) => {
+    create: (ctx) => {
       captures.createCalls += 1;
       return Result.ok({
         createCall: captures.createCalls,
@@ -55,7 +54,7 @@ describe('ResourceContext.config', () => {
 
     const db = resource(id, {
       config: z.object({ poolSize: z.number(), url: z.string().url() }),
-      create: (svc: ResourceContext<{ url: string; poolSize: number }>) => {
+      create: (svc) => {
         capturedConfig = svc.config;
         return Result.ok({ connected: true });
       },
@@ -159,7 +158,7 @@ describe('ResourceContext.config', () => {
 
     const svc = resource(id, {
       config: z.object({ mode: z.literal('noop') }).default({ mode: 'noop' }),
-      create: (ctx: ResourceContext<{ mode: 'noop' }>) => {
+      create: (ctx) => {
         capturedConfig = ctx.config;
         return Result.ok({ mode: ctx.config.mode });
       },
@@ -206,7 +205,7 @@ describe('ResourceContext.config', () => {
 
     const svc = resource(id, {
       config: z.object({ key: z.string() }),
-      create: (ctx: ResourceContext<{ key: string }>) => {
+      create: (ctx) => {
         captures.push(ctx.config);
         return Result.ok({ key: ctx.config.key });
       },

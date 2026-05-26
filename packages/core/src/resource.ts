@@ -58,8 +58,15 @@ export interface ResourceSpec<T, C = unknown> {
   readonly version?: never;
 }
 
+type ResourceSpecWithConfig<T, S extends z.ZodTypeAny> = Omit<
+  ResourceSpec<T, z.infer<S>>,
+  'config'
+> & {
+  readonly config: S;
+};
+
 /** A typed resource definition. */
-export interface Resource<T> extends ResourceSpec<T> {
+export interface Resource<T, C = unknown> extends ResourceSpec<T, C> {
   readonly kind: 'resource';
   readonly id: string;
   /** Read the resolved resource instance from a trail context. */
@@ -74,7 +81,7 @@ export interface Resource<T> extends ResourceSpec<T> {
  * existential here.
  */
 // oxlint-disable-next-line no-explicit-any -- existential type for heterogeneous resource collections
-export type AnyResource = Resource<any>;
+export type AnyResource = Resource<any, any>;
 
 /** Explicit runtime overrides keyed by resource ID. */
 export type ResourceOverrideMap = Readonly<Record<string, unknown>>;
@@ -116,37 +123,47 @@ export const createResourceLookup = (
  * The resource object is inert until a later execution branch resolves concrete
  * instances into TrailContext extensions.
  */
-export const resource = <T>(id: string, spec: ResourceSpec<T>): Resource<T> =>
-  (() => {
-    if (id.includes(':')) {
-      throw new InternalError(
-        `Resource "${id}" is invalid because resource ids may not contain ":"`
-      );
-    }
-    if (spec.mock !== undefined && spec.unmockable !== undefined) {
-      throw new InternalError(
-        `Resource "${id}" cannot define both mock and unmockable`
-      );
-    }
-    if (
-      spec.unmockable !== undefined &&
-      spec.unmockable.reason.trim().length === 0
-    ) {
-      throw new InternalError(
-        `Resource "${id}" is invalid because unmockable.reason must not be empty`
-      );
-    }
+export function resource<T, S extends z.ZodTypeAny>(
+  id: string,
+  spec: ResourceSpecWithConfig<T, S>
+): Resource<T, z.infer<S>>;
+export function resource<T, C = unknown>(
+  id: string,
+  spec: ResourceSpec<T, C>
+): Resource<T, C>;
+export function resource<T, C = unknown>(
+  id: string,
+  spec: ResourceSpec<T, C>
+): Resource<T, C> {
+  if (id.includes(':')) {
+    throw new InternalError(
+      `Resource "${id}" is invalid because resource ids may not contain ":"`
+    );
+  }
+  if (spec.mock !== undefined && spec.unmockable !== undefined) {
+    throw new InternalError(
+      `Resource "${id}" cannot define both mock and unmockable`
+    );
+  }
+  if (
+    spec.unmockable !== undefined &&
+    spec.unmockable.reason.trim().length === 0
+  ) {
+    throw new InternalError(
+      `Resource "${id}" is invalid because unmockable.reason must not be empty`
+    );
+  }
 
-    return Object.freeze({
-      ...spec,
-      from(ctx: TrailContext): T {
-        const lookup = ctx.resource ?? createResourceLookup(() => ctx);
-        return lookup(this);
-      },
-      id,
-      kind: 'resource' as const,
-    });
-  })();
+  return Object.freeze({
+    ...spec,
+    from(ctx: TrailContext): T {
+      const lookup = ctx.resource ?? createResourceLookup(() => ctx);
+      return lookup(this);
+    },
+    id,
+    kind: 'resource' as const,
+  });
+}
 
 /** Narrow unknown values to resource definitions during topo discovery. */
 export const isResource = (value: unknown): value is AnyResource => {
