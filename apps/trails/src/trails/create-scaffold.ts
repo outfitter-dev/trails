@@ -263,8 +263,12 @@ export const hello = trail('hello', {
 `;
 
 const generateEntityTrails = (): string =>
-  `import { Result, trail } from '@ontrails/core';
+  `import { randomUUID } from 'node:crypto';
+
+import { NotFoundError, Result, trail } from '@ontrails/core';
 import { z } from 'zod';
+
+import { entityStore } from '../store.js';
 
 const entitySchema = z.object({
   id: z.string(),
@@ -280,28 +284,83 @@ export const show = trail('entity.show', {
       name: 'Show entity',
     },
   ],
-  blaze: (input) => {
-    return Result.ok({ id: input.id, name: 'Example' });
+  blaze: (input, ctx) => {
+    const store = entityStore.from(ctx);
+    const entity = store.get(input.id);
+    if (!entity) {
+      return Result.err(new NotFoundError(\`Entity "\${input.id}" not found\`));
+    }
+    return Result.ok(entity);
   },
   input: z.object({ id: z.string() }),
   output: entitySchema,
   intent: 'read',
+  resources: [entityStore],
 });
 
 export const add = trail('entity.add', {
   description: 'Add a new entity',
   examples: [
     {
-      expected: { id: '1', name: 'New' },
+      expectedMatch: { name: 'New' },
       input: { name: 'New' },
       name: 'Add entity',
     },
   ],
-  blaze: (input) => {
-    return Result.ok({ id: '1', name: input.name });
+  blaze: (input, ctx) => {
+    const store = entityStore.from(ctx);
+    const entity = { id: randomUUID(), name: input.name };
+    store.add(entity);
+    return Result.ok(entity);
   },
   input: z.object({ name: z.string() }),
   output: entitySchema,
+  resources: [entityStore],
+});
+
+export const list = trail('entity.list', {
+  description: 'List entities',
+  examples: [
+    {
+      expected: { entities: [{ id: '1', name: 'Example' }] },
+      input: {},
+      name: 'List entities',
+    },
+  ],
+  blaze: (_input, ctx) => {
+    const store = entityStore.from(ctx);
+    return Result.ok({ entities: store.list() });
+  },
+  input: z.object({}),
+  output: z.object({
+    entities: z.array(entitySchema),
+  }),
+  intent: 'read',
+  resources: [entityStore],
+});
+
+export const remove = trail('entity.delete', {
+  description: 'Delete an entity by ID',
+  examples: [
+    {
+      expected: { deleted: true, id: '1' },
+      input: { id: '1' },
+      name: 'Delete entity',
+    },
+  ],
+  blaze: (input, ctx) => {
+    const store = entityStore.from(ctx);
+    const deleted = store.delete(input.id);
+    return Result.ok({ deleted, id: input.id });
+  },
+  input: z.object({ id: z.string() }),
+  output: z.object({
+    deleted: z.boolean(),
+    id: z.string(),
+  }),
+  intent: 'destroy',
+  permit: { scopes: ['entity:delete'] },
+  resources: [entityStore],
 });
 `;
 
@@ -362,21 +421,49 @@ export const entityUpdated = signal('entity.updated', {
 `;
 
 const generateStore = (): string =>
-  `/** In-memory store for entities. */
+  `import { Result, resource } from '@ontrails/core';
 
-interface Entity {
+/** In-memory store for entities. */
+
+export interface Entity {
   readonly id: string;
   readonly name: string;
 }
 
-const store = new Map<string, Entity>();
+export interface EntityStore {
+  add(entity: Entity): void;
+  delete(id: string): boolean;
+  get(id: string): Entity | undefined;
+  list(): Entity[];
+}
 
-export const getEntity = (id: string): Entity | undefined => store.get(id);
-export const addEntity = (entity: Entity): void => {
-  store.set(entity.id, entity);
+const defaultEntities: readonly Entity[] = [{ id: '1', name: 'Example' }];
+
+export const createEntityStore = (
+  seed: readonly Entity[] = defaultEntities
+): EntityStore => {
+  const store = new Map(seed.map((entity) => [entity.id, entity] as const));
+  return {
+    add(entity) {
+      store.set(entity.id, entity);
+    },
+    delete(id) {
+      return store.delete(id);
+    },
+    get(id) {
+      return store.get(id);
+    },
+    list() {
+      return Array.from(store.values());
+    },
+  };
 };
-export const deleteEntity = (id: string): boolean => store.delete(id);
-export const listEntities = (): Entity[] => Array.from(store.values());
+
+export const entityStore = resource('entity.store', {
+  description: 'In-memory entity store for the entity starter.',
+  create: () => Result.ok(createEntityStore()),
+  mock: createEntityStore,
+});
 `;
 
 const starterImports: Record<
@@ -390,8 +477,9 @@ const starterImports: Record<
       "import * as search from './trails/search.js';",
       "import * as onboard from './trails/onboard.js';",
       "import * as entitySignals from './signals/entity-signals.js';",
+      "import * as store from './store.js';",
     ],
-    modules: ['entity', 'search', 'onboard', 'entitySignals'],
+    modules: ['entity', 'search', 'onboard', 'entitySignals', 'store'],
   },
   hello: {
     imports: ["import * as hello from './trails/hello.js';"],

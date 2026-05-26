@@ -26,7 +26,7 @@ Use this as the durable execution ledger. Update it before any final handoff, dr
 | 1 | TRL-782 | `trl-782-resourcet-doesnt-flow-config-schemas-inferred-type-into` | | Committed locally | Resource config type inference. |
 | 2 | TRL-804 | `trl-804-warden-warn-topo-export-entry-should-not-open-a-surface-at` | | Committed locally | Warden top-level surface warning. |
 | 3 | TRL-781 | `trl-781-trails-create-errors-hard-on-re-run-instead-of-reconciling` | | Committed locally | Scaffold rerun reconciliation. |
-| 4 | TRL-789 | `trl-789-trails-create-starter-entity-complete-the-crud-entitylist` | | Planned | Entity starter CRUD completion. |
+| 4 | TRL-789 | `trl-789-trails-create-starter-entity-complete-the-crud-entitylist` | | Committed locally | Entity starter CRUD completion. |
 | 5 | TRL-816 | `trl-816-post-compose-cutover-cleanup-fix-current-facing-stragglers` | | Planned | Current-facing compose straggler cleanup. |
 | 6 | TRL-814 | `trl-814-crosscompose-cutover-s6-radio-migration-follow-up` | | Planned proof lane | Radio migration; separate source-control lane unless approved. |
 
@@ -96,6 +96,16 @@ Use this as the durable execution ledger. Update it before any final handoff, dr
 - Changed: `create` preserves an existing README rather than overwriting it during rerun reconciliation.
 - Changed: added a regression test for a Radio-like partial project with an existing CLI entry, custom package fields, existing README/app/tsconfig, and a requested MCP surface.
 - Changed: added `.changeset/create-rerun-reconciliation.md` for `@ontrails/trails` patch.
+
+2026-05-26 15:55 EDT - TRL-789 implementation
+- Branch: `trl-789-trails-create-starter-entity-complete-the-crud-entitylist`.
+- Tracker: moved TRL-789 to In Progress.
+- Changed: entity starter now generates `entity.list` and `entity.delete` alongside existing `entity.show` and `entity.add`.
+- Changed: generated `entity.list` returns the in-memory starter store contents with an explicit output schema and read intent.
+- Changed: generated `entity.delete` declares destroy intent plus `permit: { scopes: ['entity:delete'] }` so the starter models permit governance instead of generating a Warden error.
+- Changed: entity starter tests now assert generated CRUD trail IDs, store helper imports, list output, and delete permit declaration.
+- Changed: added `.changeset/entity-starter-crud.md` for `@ontrails/trails` patch.
+- Local review: subagent Laplace confirmed the current starter only had `show`/`add`, identified `entity.list`/`entity.delete` as the issue-scoped gap, and flagged permit governance for destructive trails.
 ```
 
 ## Verification Log
@@ -124,6 +134,12 @@ Use this as the durable execution ledger. Update it before any final handoff, dr
 | 2026-05-26 15:52 EDT | TRL-781 | `bun run lint:ast-grep` | Pass | Repo ast-grep scan passed. |
 | 2026-05-26 15:52 EDT | TRL-781 | `git diff --check` | Pass | No whitespace errors. |
 | 2026-05-26 15:52 EDT | TRL-781 | `bun run format:check` | Pass after formatting | Initial run flagged `apps/trails/src/trails/create-scaffold.ts`; formatted with `bunx ultracite fix ...`, then reran clean. |
+| 2026-05-26 15:55 EDT | TRL-789 | `bun test apps/trails/src/__tests__/create.test.ts` | Pass | 18 tests passed, including entity starter assertions. |
+| 2026-05-26 15:55 EDT | TRL-789 | `bun run --cwd apps/trails typecheck` | Pass | Trails app typecheck passed. |
+| 2026-05-26 15:55 EDT | TRL-789 | `bun run --cwd apps/trails lint` | Pass | Trails app lint passed. |
+| 2026-05-26 15:55 EDT | TRL-789 | `bun run format:check` | Pass | Repo format check passed. |
+| 2026-05-26 15:55 EDT | TRL-789 | `bun run lint:ast-grep` | Pass | Repo ast-grep scan passed. |
+| 2026-05-26 15:55 EDT | TRL-789 | `git diff --check` | Pass | No whitespace errors. |
 
 ## Local Review Log
 
@@ -131,6 +147,7 @@ Use this as the durable execution ledger. Update it before any final handoff, dr
 | --- | --- | --- | --- | --- | --- | --- |
 | 2026-05-26 15:25 EDT | TRL-782 | Type inference seam scout | Bacon (subagent) | Clean plan | Found the generic erasure in `Resource<T>` / `resource()` and recommended compile-time tests plus no runtime change. | Implemented matching fix. |
 | 2026-05-26 15:42 EDT | TRL-804 | Warden surface coaching scout | Rawls (subagent) | Scoped warning | Found the introspection import hazard and recommended imported-binding detection with guarded/dedicated-surface allowances. | Implemented narrow source-static rule and tests. |
+| 2026-05-26 15:55 EDT | TRL-789 | Entity starter CRUD scout | Laplace (subagent) | Scoped gap | Confirmed generated starter has `show`/`add` plus non-CRUD `search`; issue-scoped missing trails are `entity.list` and `entity.delete`, with permit governance needed for destroy intent. | Implemented list/delete and tests. |
 
 ## Remote Review / CI Log
 

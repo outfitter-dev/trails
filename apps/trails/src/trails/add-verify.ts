@@ -28,7 +28,21 @@ const generateTestFile = (): string =>
   `import { testAllEstablished } from '@ontrails/testing/established';
 import { app } from '../src/app.js';
 
-testAllEstablished(app);
+const permitScopes = [
+  ...new Set(
+    app
+      .list()
+      .flatMap((trail) =>
+        trail.permit && trail.permit !== 'public' ? trail.permit.scopes : []
+      )
+  ),
+];
+
+testAllEstablished(app, {
+  ctx: {
+    permit: { id: 'test-permit', scopes: permitScopes },
+  },
+});
 `;
 
 const generateLefthookYml = (): string =>
