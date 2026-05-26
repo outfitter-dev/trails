@@ -292,7 +292,7 @@ Warden rules coach the pieces static validation cannot fully express:
 
 - signal consumers with no producer declaration;
 - declared or produced signals with no useful graph edge;
-- internal trails that are neither crossed nor activated;
+- internal trails that are neither composed nor activated;
 - scheduled destroy trails that deserve explicit scrutiny;
 - activation source kinds that are known but not materialized by the current
   stack;

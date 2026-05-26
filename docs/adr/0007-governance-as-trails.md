@@ -12,7 +12,7 @@ owners: ['[galligan](https://github.com/galligan)']
 
 ## Context
 
-The warden is Trails' governance system. It checks that code follows framework conventions: no throws in blazes, Result returns, cross declarations matching usage, no surface types in domain logic, and so on. It exists because the type system alone can't catch everything — `throw` is legal TypeScript, and nothing in the compiler prevents importing `Request` into a blaze.
+The warden is Trails' governance system. It checks that code follows framework conventions: no throws in blazes, Result returns, compose declarations matching usage, no surface types in domain logic, and so on. It exists because the type system alone can't catch everything — `throw` is legal TypeScript, and nothing in the compiler prevents importing `Request` into a blaze.
 
 Early warden rules used regex pattern matching on source code. This worked for the simplest cases but broke down fast. A `throw` inside a JSDoc comment triggered false positives. A string literal containing `new Request` looked like a surface type import. Nested scopes were invisible — regex can't tell the difference between a `throw` inside a `.map()` callback and a `throw` inside the blaze body itself.
 

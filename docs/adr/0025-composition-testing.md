@@ -99,12 +99,12 @@ import { scenario } from '@ontrails/testing';
 
 scenario('Fork flow', app, [
   {
-    cross: createGist,
+    compose: createGist,
     input: { description: 'Original', content: '# Hello' },
     as: 'original',
   },
   {
-    cross: forkGist,
+    compose: forkGist,
     input: { id: ref('original.id') },
     as: 'forked',
     expectedMatch: {
@@ -117,8 +117,8 @@ scenario('Fork flow', app, [
 
 **Key design choices:**
 
-- **`ref()` for cross-step references.** `ref('original.id')` reads the `id` field from the step aliased as `original`. This keeps scenarios as structured data — no callbacks, no lambdas, no imperative control flow. The reference is resolved at runtime when the step executes.
-- **Each step is a cross.** The scenario runner invokes each trail through the normal execution pipeline — validation, layers, blaze, Result. It's not a shortcut. Layers run. Resources resolve. Tracing records.
+- **`ref()` for compose-step references.** `ref('original.id')` reads the `id` field from the step aliased as `original`. This keeps scenarios as structured data — no callbacks, no lambdas, no imperative control flow. The reference is resolved at runtime when the step executes.
+- **Each step is a composition.** The scenario runner invokes each trail through the normal execution pipeline — validation, layers, blaze, Result. It's not a shortcut. Layers run. Resources resolve. Tracing records.
 - **`as` names the step's output.** Subsequent steps can reference it via `ref()`. If a step fails, the scenario stops and reports which step failed with the full Result.
 - **`expectedMatch` on steps.** Each step can assert partial output, same semantics as on trail examples.
 - **Scenarios are structured data.** They're arrays of objects with known shapes. The framework can read them the same way it reads examples — for agent guidance, documentation generation, warden analysis, and coverage reporting.
@@ -130,7 +130,7 @@ Trail examples live ON the trail — they're part of the contract, visible to ag
 The distinction matters:
 
 - **Examples** answer: "What does THIS trail do?" One trail, one input, one output.
-- **Scenarios** answer: "How do these trails work TOGETHER?" Multiple trails, sequential steps, cross-step references.
+- **Scenarios** answer: "How do these trails work TOGETHER?" Multiple trails, sequential steps, compose-step references.
 
 Putting scenarios on a trail definition would mean one trail "owns" a multi-trail flow. That's backwards — the flow is a property of the composition, not of any single trail.
 
@@ -144,9 +144,9 @@ testAll(graph);
 
 // Scenarios test composition flows
 scenario('Create and star', graph, [
-  { cross: createGist, input: { description: 'Test', content: '# Hi' }, as: 'gist' },
-  { cross: starGist, input: { gistId: ref('gist.id'), userId: 'u1' } },
-  { cross: showGist, input: { id: ref('gist.id') }, expectedMatch: { starred: true } },
+  { compose: createGist, input: { description: 'Test', content: '# Hi' }, as: 'gist' },
+  { compose: starGist, input: { gistId: ref('gist.id'), userId: 'u1' } },
+  { compose: showGist, input: { id: ref('gist.id') }, expectedMatch: { starred: true } },
 ]);
 ```
 
@@ -180,12 +180,12 @@ These are coaching rules — suggestions, not errors. They guide the developer t
 ### Tradeoffs
 
 - **Two new concepts.** `expectedMatch` is a small addition to the example spec. `scenario()` is a new testing function. Both need documentation and examples of their own.
-- **`ref()` is a mini-DSL.** Cross-step references introduce a resolution mechanism that doesn't exist elsewhere in examples. The tradeoff is accepted because the alternative — callbacks or lambdas — would break examples-as-data.
+- **`ref()` is a mini-DSL.** Compose-step references introduce a resolution mechanism that doesn't exist elsewhere in examples. The tradeoff is accepted because the alternative — callbacks or lambdas — would break examples-as-data.
 - **Scenario coverage is hard to measure.** The warden can detect that composing graphs lack scenarios, but it can't assess whether existing scenarios cover the interesting paths. Coverage suggestions will be noisy initially.
 
 ## Non-decisions
 
-- **`scenario()` step types beyond `cross`.** Steps that emit signals, wait for fires, or assert intermediate state. These expand the scenario vocabulary and should be designed when signal testing matures.
+- **`scenario()` step types beyond `compose`.** Steps that emit signals, wait for fires, or assert intermediate state. These expand the scenario vocabulary and should be designed when signal testing matures.
 - **Scenario fixtures.** How scenarios declare and manage test data (seed records, deterministic IDs). This interacts with the broader fixtures design from the stash retro.
 - **Snapshot-based `expectedMatch`.** Auto-generating `expectedMatch` from a passing run and storing it as a snapshot. Convenient but introduces snapshot maintenance burden. Deferred.
 

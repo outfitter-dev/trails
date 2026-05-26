@@ -48,7 +48,7 @@ const onboard = trail('entity.onboard', {
 | `blobRefSchema` / `createBlobRef(...)` | Declare and create binary output references with a shared descriptor contract |
 | `topo(name, ...modules, options?)` | Collect trail modules into a queryable topology with optional `observe:` sinks |
 | `deriveTrail(contour, operation, spec)` | Derive CRUD-shaped trail contracts from a contour on the `@ontrails/core/trails` subpath |
-| `validateTopo(topo)` | Structural validation: cross targets exist, no cycles, examples parse, output schemas present |
+| `validateTopo(topo)` | Structural validation: compose targets exist, no cycles, examples parse, output schemas present |
 
 ### Execution
 
@@ -173,7 +173,7 @@ packages build on:
   `ensureSubsystemSchema`, `openReadTrailsDb`, and `openWriteTrailsDb` are the
   generic database primitive used by framework subsystems.
 - **Surface projection helpers** -- safe error projection, layer field
-  projection, cross-batch validation, late-bound signal references, and Zod
+  projection, compose-batch validation, late-bound signal references, and Zod
   default-wrapper stripping are stable root exports for first-party surfaces,
   store helpers, and tests.
 

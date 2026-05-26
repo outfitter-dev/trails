@@ -72,7 +72,7 @@ When you need to isolate a composite trail and stub out its dependencies, use `c
 import { createComposeContext, testTrail } from '@ontrails/testing';
 import { Result } from '@ontrails/core';
 
-const cross = createComposeContext({
+const compose = createComposeContext({
   responses: {
     'entity.add': Result.ok({ id: '1', name: 'Delta', type: 'tool' }),
     'search': Result.ok({ results: [] }),
@@ -84,7 +84,7 @@ testTrail(onboardTrail, [
     input: { name: 'Delta', type: 'tool' },
     expectOk: true,
   },
-], { cross });
+], { compose });
 ```
 
 Calls to unregistered trail IDs return `Result.err` with a descriptive message, so missing stubs fail loudly.

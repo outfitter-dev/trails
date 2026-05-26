@@ -1,8 +1,8 @@
 # Execution Retro: Fieldwork Compounding Stack
 
 Date started: 2026-05-26
-Date finalized:
-Status: In progress
+Date finalized: 2026-05-26 16:55 EDT
+Status: Submitted draft stack; ready-for-review prep
 Plan: `.agents/plans/2026-05-26-fieldwork-compounding-stack/PLAN.md`
 Goal: `.agents/plans/2026-05-26-fieldwork-compounding-stack/GOAL.md`
 
@@ -10,25 +10,25 @@ Use this as the durable execution ledger. Update it before any final handoff, dr
 
 ## Execution Summary
 
-- Objective:
-- Final outcome:
-- Final branch / stack tip:
-- Final PR range:
-- Final tracker state:
-- Final verification state:
-- Remaining risks / P3s:
-- Archive state:
+- Objective: Build the Fieldwork compounding stack before Radio migration: TRL-782, TRL-804, TRL-781, TRL-789, TRL-816, then stop at TRL-814 as the Radio proof lane.
+- Final outcome: Trails-side stack submitted as draft PRs. PRs remain draft because Greptile has not produced a 5/5 summary yet.
+- Final branch / stack tip: `trl-816-post-compose-cutover-cleanup-fix-current-facing-stragglers`
+- Final PR range: #597 -> #601
+- Final tracker state: TRL-782, TRL-804, TRL-781, TRL-789, and TRL-816 are In Review with PR links. TRL-814 remains Backlog with a prerequisite-state comment and no Radio source-control mutation.
+- Final verification state: Local focused checks passed per branch; stack-tip `bun run typecheck`, `bun run test`, `bun run lint`, `bun run lint:ast-grep`, `bun run format:check`, `git diff --check`, and `bun run check` passed. GitHub CI passed for #597-#601, including the final #601 run after the RETRO ledger update.
+- Remaining risks / P3s: Review bots have not reviewed the draft PRs yet. Greptile 5/5 / no prompt-to-fix is not verified, so ready-for-review is intentionally blocked. Generated `dist/crosses.*` residue was classified as generated/uncertain and left untouched.
+- Archive state: Not archive-ready until review-bot state is known and any required review findings are resolved.
 
 ## Branch / PR / Issue Ledger
 
 | Order | Issue | Branch | PR | Status | Notes |
 | --- | --- | --- | --- | --- | --- |
-| 1 | TRL-782 | `trl-782-resourcet-doesnt-flow-config-schemas-inferred-type-into` | | Committed locally | Resource config type inference. |
-| 2 | TRL-804 | `trl-804-warden-warn-topo-export-entry-should-not-open-a-surface-at` | | Committed locally | Warden top-level surface warning. |
-| 3 | TRL-781 | `trl-781-trails-create-errors-hard-on-re-run-instead-of-reconciling` | | Committed locally | Scaffold rerun reconciliation. |
-| 4 | TRL-789 | `trl-789-trails-create-starter-entity-complete-the-crud-entitylist` | | Committed locally | Entity starter CRUD completion. |
-| 5 | TRL-816 | `trl-816-post-compose-cutover-cleanup-fix-current-facing-stragglers` | | Planned | Current-facing compose straggler cleanup. |
-| 6 | TRL-814 | `trl-814-crosscompose-cutover-s6-radio-migration-follow-up` | | Planned proof lane | Radio migration; separate source-control lane unless approved. |
+| 1 | TRL-782 | `trl-782-resourcet-doesnt-flow-config-schemas-inferred-type-into` | [#597](https://github.com/outfitter-dev/trails/pull/597) | Draft submitted; CI passed | Resource config type inference. |
+| 2 | TRL-804 | `trl-804-warden-warn-topo-export-entry-should-not-open-a-surface-at` | [#598](https://github.com/outfitter-dev/trails/pull/598) | Draft submitted; CI passed | Warden top-level surface warning. |
+| 3 | TRL-781 | `trl-781-trails-create-errors-hard-on-re-run-instead-of-reconciling` | [#599](https://github.com/outfitter-dev/trails/pull/599) | Draft submitted; CI passed | Scaffold rerun reconciliation. |
+| 4 | TRL-789 | `trl-789-trails-create-starter-entity-complete-the-crud-entitylist` | [#600](https://github.com/outfitter-dev/trails/pull/600) | Draft submitted; CI passed | Entity starter CRUD completion. |
+| 5 | TRL-816 | `trl-816-post-compose-cutover-cleanup-fix-current-facing-stragglers` | [#601](https://github.com/outfitter-dev/trails/pull/601) | Draft submitted; CI passed after final ledger update | Current-facing compose straggler cleanup. |
+| 6 | TRL-814 | `trl-814-crosscompose-cutover-s6-radio-migration-follow-up` | | Proof lane stopped | Radio migration; no branch, no Radio source-control mutation. |
 
 ## Planning Discoveries
 
@@ -106,6 +106,22 @@ Use this as the durable execution ledger. Update it before any final handoff, dr
 - Changed: entity starter tests now assert generated CRUD trail IDs, store helper imports, list output, and delete permit declaration.
 - Changed: added `.changeset/entity-starter-crud.md` for `@ontrails/trails` patch.
 - Local review: subagent Laplace confirmed the current starter only had `show`/`add`, identified `entity.list`/`entity.delete` as the issue-scoped gap, and flagged permit governance for destructive trails.
+
+2026-05-26 16:15 EDT - TRL-816 implementation
+- Branch: `trl-816-post-compose-cutover-cleanup-fix-current-facing-stragglers`.
+- Tracker: moved TRL-816 to In Progress.
+- Changed: refreshed current-facing compose vocabulary in accepted ADR prose/examples and package READMEs for core, testing, tracing, and Warden.
+- Changed: renamed a stale `crossesEntry` test variable in `packages/topographer/src/__tests__/derive.test.ts` while preserving the existing `.composes` assertion.
+- Changed: added `.changeset/compose-straggler-cleanup.md` for publishable package README updates.
+- Local review: subagent Hume confirmed the same current-facing anchors and classified ADR-0049, the migration guide, and generated `dist/crosses.*` residue as leave/uncertain rather than branch edits.
+- Explicit leave: `docs/adr/0049-composition-is-compose-not-cross.md`, `docs/migration/cross-to-compose.md`, release notes, lexicon negative examples, and generated `dist` files were not edited.
+
+2026-05-26 16:10 EDT - draft stack submission
+- Submitted draft PRs #597, #598, #599, #600, and #601 with `gt submit --draft`.
+- Populated PR bodies after submit because Graphite created empty descriptions.
+- Moved TRL-782, TRL-804, TRL-781, TRL-789, and TRL-816 to In Review and attached their draft PR links.
+- Added a TRL-814 comment recording the Trails prerequisite state, local proof, CI/review state, and that Radio was not mutated.
+- Remote review state: no review-bot reviews or comments were present yet; Greptile 5/5 is not verified, so PRs remain draft.
 ```
 
 ## Verification Log
@@ -140,6 +156,25 @@ Use this as the durable execution ledger. Update it before any final handoff, dr
 | 2026-05-26 15:55 EDT | TRL-789 | `bun run format:check` | Pass | Repo format check passed. |
 | 2026-05-26 15:55 EDT | TRL-789 | `bun run lint:ast-grep` | Pass | Repo ast-grep scan passed. |
 | 2026-05-26 15:55 EDT | TRL-789 | `git diff --check` | Pass | No whitespace errors. |
+| 2026-05-26 16:15 EDT | TRL-816 | `bun test packages/topographer/src/__tests__/derive.test.ts` | Pass | 36 tests passed; focused coverage for renamed local variable context. |
+| 2026-05-26 16:15 EDT | TRL-816 | `bun scripts/adr.ts check` | Pass | Numbered ADRs, drafts, index, and decision map all clean. |
+| 2026-05-26 16:15 EDT | TRL-816 | `bun run vocab:audit` | Pass | Repo cutover audit found no legacy patterns in the target set. |
+| 2026-05-26 16:15 EDT | TRL-816 | `bun run lint:ast-grep` | Pass | Repo ast-grep scan passed. |
+| 2026-05-26 16:15 EDT | TRL-816 | `bun run format:check` | Pass | Repo format check passed. |
+| 2026-05-26 16:15 EDT | TRL-816 | `git diff --check` | Pass | No whitespace errors. |
+| 2026-05-26 16:25 EDT | stack tip | `bun run typecheck` | Pass | 22 Turbo typecheck tasks passed. |
+| 2026-05-26 16:26 EDT | stack tip | `bun run test` | Pass | 37 Turbo test/build tasks passed. |
+| 2026-05-26 16:27 EDT | stack tip | `bun run lint` | Pass | 23 Turbo lint/build tasks passed. |
+| 2026-05-26 16:27 EDT | stack tip | `bun run lint:ast-grep` | Pass | Repo ast-grep scan passed. |
+| 2026-05-26 16:27 EDT | stack tip | `bun run format:check` | Pass | Repo format check passed. |
+| 2026-05-26 16:27 EDT | stack tip | `git diff --check` | Pass | No whitespace errors. |
+| 2026-05-26 16:28 EDT | stack tip | `bun run check` | Failed then fixed | Initial run failed at `skillset:check` because `.agents/skills/clark/references/warden-guide.md` was stale. Ran `bun run skillset:sync`, amended the generated guide into TRL-804, returned to the stack tip, and reran. |
+| 2026-05-26 16:30 EDT | stack tip | `bun run check` | Pass | Aggregate gate passed: lint, ast-grep, vocab audit, format, typecheck, docs links/snippets/API examples, taxonomy/scaffold checks, Warden guide checks, skillset check, `trails warden`, and dead-code. `trails warden` reported the repo's existing 26 warnings and 0 errors. |
+| 2026-05-26 16:11 EDT | PR #597 | `gh pr checks 597 --watch=false` | Pass | Build, CI Gate, Changeset, Dead Code, Governance, Lint & Format, Test, and Typecheck all passed. |
+| 2026-05-26 16:11 EDT | PR #598 | `gh pr checks 598 --watch=false` | Pass | Build, CI Gate, Changeset, Dead Code, Governance, Lint & Format, Test, and Typecheck all passed. |
+| 2026-05-26 16:11 EDT | PR #599 | `gh pr checks 599 --watch=false` | Pass | Build, CI Gate, Changeset, Dead Code, Governance, Lint & Format, Test, and Typecheck all passed. |
+| 2026-05-26 16:11 EDT | PR #600 | `gh pr checks 600 --watch=false` | Pass | Build, CI Gate, Changeset, Dead Code, Governance, Lint & Format, Test, and Typecheck all passed. |
+| 2026-05-26 16:11 EDT | PR #601 | `gh pr checks 601 --watch=false` | Pass | Build, CI Gate, Changeset, Dead Code, Governance, Lint & Format, Test, and Typecheck all passed before final RETRO ledger update. |
 
 ## Local Review Log
 
@@ -148,20 +183,26 @@ Use this as the durable execution ledger. Update it before any final handoff, dr
 | 2026-05-26 15:25 EDT | TRL-782 | Type inference seam scout | Bacon (subagent) | Clean plan | Found the generic erasure in `Resource<T>` / `resource()` and recommended compile-time tests plus no runtime change. | Implemented matching fix. |
 | 2026-05-26 15:42 EDT | TRL-804 | Warden surface coaching scout | Rawls (subagent) | Scoped warning | Found the introspection import hazard and recommended imported-binding detection with guarded/dedicated-surface allowances. | Implemented narrow source-static rule and tests. |
 | 2026-05-26 15:55 EDT | TRL-789 | Entity starter CRUD scout | Laplace (subagent) | Scoped gap | Confirmed generated starter has `show`/`add` plus non-CRUD `search`; issue-scoped missing trails are `entity.list` and `entity.delete`, with permit governance needed for destroy intent. | Implemented list/delete and tests. |
+| 2026-05-26 16:15 EDT | TRL-816 | Compose straggler scout | Hume (subagent) | Scoped cleanup | Identified current-facing `cross` residue in ADR-0025, package READMEs, ADR-0000, and ADR-0007; classified migration/history/generated outputs separately. | Implemented current-facing cleanup only. |
 
 ## Remote Review / CI Log
 
 | Time | PR | Source | State | Details | Outcome |
 | --- | --- | --- | --- | --- | --- |
-| | | | | | |
+| 2026-05-26 16:10 EDT | #597 | GitHub CI | Pass | All required checks passed. | Kept draft; no review-bot state yet. |
+| 2026-05-26 16:10 EDT | #598 | GitHub CI | Pass | All required checks passed. | Kept draft; no review-bot state yet. |
+| 2026-05-26 16:10 EDT | #599 | GitHub CI | Pass | All required checks passed. | Kept draft; no review-bot state yet. |
+| 2026-05-26 16:10 EDT | #600 | GitHub CI | Pass | All required checks passed. | Kept draft; no review-bot state yet. |
+| 2026-05-26 16:15 EDT | #601 | GitHub CI | Pass after final ledger update | All required checks passed after the final RETRO-only commit. | Kept draft; no review-bot state yet. |
+| 2026-05-26 16:12 EDT | #597-#601 | Review bots | Pending | `gh pr view ... --json reviews,comments` found Linear linkbacks and Graphite stack comments only; no Greptile, Codex, Claude, or Copilot reviews/comments yet. | Ready-for-review blocked until Greptile 5/5 / no prompt-to-fix can be verified. |
 
 ## Forbidden Actions Audit
 
-- Merge:
-- Package publish / registry mutation:
-- Merge queue label:
-- Subagent source-control write:
-- Radio source-control mutation:
+- Merge: none.
+- Package publish / registry mutation: none.
+- Merge queue label: none.
+- Subagent source-control write: none; all git/gt writes were main-agent owned.
+- Radio source-control mutation: none.
 
 ## Deferred / Follow-Up Discoveries
 
@@ -171,4 +212,4 @@ Use this as the durable execution ledger. Update it before any final handoff, dr
 
 ## Final State
 
-Not finalized.
+Submitted draft Trails stack and stopped at TRL-814 proof lane. Not ready-for-review because Greptile has not reviewed the draft PRs yet.

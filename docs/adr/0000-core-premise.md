@@ -124,7 +124,7 @@ Because they're structured, they serve multiple purposes simultaneously:
 - **Documentation:** Agents and developers read examples to understand behavior
 - **Validation:** The warden checks that examples parse against schemas
 - **Mock data:** Testing infrastructure derives mocks from example data
-- **Composition testing:** Failure injection references examples from crossed trails
+- **Composition testing:** Failure injection references examples from composed trails
 - **Contract coverage:** The warden reports which behaviors have examples and which don't
 
 One write, many reads. The developer authors an example. The framework reads it six different ways.
@@ -133,7 +133,7 @@ One write, many reads. The developer authors an example. The framework reads it 
 
 The topo isn't just a collection. It's a queryable graph:
 
-- `survey` introspects the full topology — trails, schemas, examples, cross graph, intent and meta (`meta`)
+- `survey` introspects the full topology — trails, schemas, examples, composition graph, intent and meta (`meta`)
 - `warden` governs the topology — lint rules, drift detection, coaching suggestions
 - `guide` generates guidance from the topology — documentation, agent instructions, API references
 - TopoGraph generation captures the full contract as a diffable, hashable artifact

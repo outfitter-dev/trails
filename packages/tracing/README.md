@@ -208,7 +208,7 @@ summaries remain available through the redacted `trails.signal.payload.*`
 digest/shape/size attributes.
 
 Lineage follows the Trails-native `TraceRecord` fields. Root records without a
-parent map to OTel `SERVER`; child spans, crossed trails, signal lifecycle
+parent map to OTel `SERVER`; child spans, composed trails, signal lifecycle
 records, and activated trails with `parentId` map to `INTERNAL` and keep the
 same `traceId`. Status maps `ok` to `OK`, `err` to `ERROR`, and `cancelled` to
 `UNSET`; the Trails error category remains on `trails.error.category`.

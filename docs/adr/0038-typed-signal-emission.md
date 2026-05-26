@@ -21,7 +21,7 @@ lockfile could serialize it. But a trail could not yet say "this happened" in a
 typed, runtime-observable way.
 
 That gap weakened the primitive. A signal without a fire path is metadata, not a
-live graph edge. A trail that completed meaningful work had to either cross
+live graph edge. A trail that completed meaningful work had to either compose
 another trail directly or leave follow-up work to application glue.
 
 ### The schema must be the first thing preserved

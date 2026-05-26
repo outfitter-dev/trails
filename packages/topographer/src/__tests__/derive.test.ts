@@ -530,12 +530,12 @@ describe('deriveTopoGraph', () => {
       });
       const tp = topoFrom({ base, r });
       const map = deriveTopoGraph(tp);
-      const crossesEntry = map.entries.find((e) => e.id === 'user.update');
-      expect(crossesEntry).toBeDefined();
+      const composesEntry = map.entries.find((e) => e.id === 'user.update');
+      expect(composesEntry).toBeDefined();
 
-      expect(crossesEntry?.kind).toBe('trail');
-      expect(crossesEntry?.cli?.path).toEqual(['user', 'update']);
-      expect(crossesEntry?.composes).toEqual(['user.get']);
+      expect(composesEntry?.kind).toBe('trail');
+      expect(composesEntry?.cli?.path).toEqual(['user', 'update']);
+      expect(composesEntry?.composes).toEqual(['user.get']);
     });
 
     test("signal entries are included with kind 'signal'", () => {

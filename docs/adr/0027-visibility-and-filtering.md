@@ -21,7 +21,7 @@ A simple Trails app has 5-10 trails. Every trail is a public verb. `surface(grap
 
 A pack-scale app has 40-80 trails across multiple capability boundaries. Some trails exist only to support composition via `composes`. Others are debug or operator tools that shouldn't appear in a public API. Others make sense on CLI but not MCP. The current mechanism for managing this is `include`/`exclude` on surface options, which works but has two problems:
 
-1. **It's surface-side knowledge about trail-side intent.** The trail author knows "this trail is not a public verb, it exists to be crossed into." That information lives in the author's head, not in the trail definition. Every surface must independently be told to exclude it.
+1. **It's surface-side knowledge about trail-side intent.** The trail author knows "this trail is not a public verb, it exists to be composed into." That information lives in the author's head, not in the trail definition. Every surface must independently be told to exclude it.
 
 2. **It doesn't scale.** Flat string lists of trail IDs become unwieldy. Adding a new composing target requires updating exclude lists on every surface. Forgetting one surface silently exposes an internal trail.
 
@@ -169,9 +169,9 @@ export default defineConfig({
 });
 ```
 
-Profile exclusions apply before surface-level options. A trail excluded by the profile is not in the topo for that environment. It can't be crossed, run, or exposed on a surface.
+Profile exclusions apply before surface-level options. A trail excluded by the profile is not in the topo for that environment. It can't be composed, run, or exposed on a surface.
 
-The warden validates profile integrity: a profile that excludes a trail crossed by an included trail is a dependency violation.
+The warden validates profile integrity: a profile that excludes a trail composed by an included trail is a dependency violation.
 
 ### Part 6: CLI help hierarchy from namespaces
 

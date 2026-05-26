@@ -38,7 +38,7 @@ static table into docs.
 Rules cover several families:
 
 - blaze and `Result` contract checks
-- cross, fire, resource, and detour declaration drift
+- compose, fire, resource, and detour declaration drift
 - draft-state containment
 - source-static guardrails such as surface-type leakage
 - topo-aware checks that need the resolved graph or resource mock shape
