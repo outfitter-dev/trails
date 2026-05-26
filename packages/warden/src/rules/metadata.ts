@@ -308,6 +308,21 @@ const builtinWardenRuleMetadataInput = {
     invariant: 'Blazes return Result.err() instead of throwing.',
     tier: 'source-static',
   },
+  'no-top-level-surface': {
+    ...durableExternal,
+    guidance: {
+      docs: [{ label: 'Architecture', path: 'docs/architecture.md' }],
+      relatedRules: ['context-no-surface-types'],
+      steps: [
+        'Keep the topo-export module focused on exporting `topo(...)` as `default`, `graph`, or `app`.',
+        'Move `surface(...)`, `connectStdio(...)`, server start, or `.listen(...)` calls into a separate entry or bin module.',
+      ],
+      summary:
+        'Keep topo entry modules side-effect-free for survey, guide, compile, and lock generation.',
+    },
+    invariant: 'Topo export modules do not open surfaces at module top level.',
+    tier: 'source-static',
+  },
   'on-references-exist': {
     ...durableExternal,
     invariant: 'Trail on: declarations resolve to known signals.',

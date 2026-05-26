@@ -29,6 +29,7 @@ export { noRedundantResultErrorWrapTrail } from './no-redundant-result-error-wra
 export { noSyncResultAssumptionTrail } from './no-sync-result-assumption.trail.js';
 export { noThrowInDetourRecoverTrail } from './no-throw-in-detour-recover.trail.js';
 export { noThrowInImplementationTrail } from './no-throw-in-implementation.trail.js';
+export { noTopLevelSurfaceTrail } from './no-top-level-surface.trail.js';
 export { orphanedSignalTrail } from './orphaned-signal.trail.js';
 export { ownerProjectionParityTrail } from './owner-projection-parity.trail.js';
 export { pendingForceTrail } from './pending-force.trail.js';

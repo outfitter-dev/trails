@@ -25,6 +25,7 @@ import { noRedundantResultErrorWrap } from './no-redundant-result-error-wrap.js'
 import { noSyncResultAssumption } from './no-sync-result-assumption.js';
 import { noThrowInDetourRecover } from './no-throw-in-detour-recover.js';
 import { noThrowInImplementation } from './no-throw-in-implementation.js';
+import { noTopLevelSurface } from './no-top-level-surface.js';
 import { onReferencesExist } from './on-references-exist.js';
 import { orphanedSignal } from './orphaned-signal.js';
 import { ownerProjectionParity } from './owner-projection-parity.js';
@@ -118,6 +119,7 @@ export { noRedundantResultErrorWrap } from './no-redundant-result-error-wrap.js'
 export { noSyncResultAssumption } from './no-sync-result-assumption.js';
 export { implementationReturnsResult } from './implementation-returns-result.js';
 export { noThrowInDetourRecover } from './no-throw-in-detour-recover.js';
+export { noTopLevelSurface } from './no-top-level-surface.js';
 export { orphanedSignal } from './orphaned-signal.js';
 export { ownerProjectionParity } from './owner-projection-parity.js';
 export { permitGovernance } from './permit-governance.js';
@@ -194,6 +196,7 @@ export const wardenRules: ReadonlyMap<string, WardenRule> = new Map<
   [noSyncResultAssumption.name, noSyncResultAssumption],
   [implementationReturnsResult.name, implementationReturnsResult],
   [noThrowInDetourRecover.name, noThrowInDetourRecover],
+  [noTopLevelSurface.name, noTopLevelSurface],
   [unreachableDetourShadowing.name, unreachableDetourShadowing],
   [wardenExportSymmetry.name, wardenExportSymmetry],
   [wardenRulesUseAst.name, wardenRulesUseAst],

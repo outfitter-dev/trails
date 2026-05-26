@@ -23,8 +23,8 @@ Use this as the durable execution ledger. Update it before any final handoff, dr
 
 | Order | Issue | Branch | PR | Status | Notes |
 | --- | --- | --- | --- | --- | --- |
-| 1 | TRL-782 | `trl-782-resourcet-doesnt-flow-config-schemas-inferred-type-into` | | In progress | Resource config type inference. |
-| 2 | TRL-804 | `trl-804-warden-warn-topo-export-entry-should-not-open-a-surface-at` | | Planned | Warden top-level surface warning. |
+| 1 | TRL-782 | `trl-782-resourcet-doesnt-flow-config-schemas-inferred-type-into` | | Committed locally | Resource config type inference. |
+| 2 | TRL-804 | `trl-804-warden-warn-topo-export-entry-should-not-open-a-surface-at` | | Committed locally | Warden top-level surface warning. |
 | 3 | TRL-781 | `trl-781-trails-create-errors-hard-on-re-run-instead-of-reconciling` | | Planned | Scaffold rerun reconciliation. |
 | 4 | TRL-789 | `trl-789-trails-create-starter-entity-complete-the-crud-entitylist` | | Planned | Entity starter CRUD completion. |
 | 5 | TRL-816 | `trl-816-post-compose-cutover-cleanup-fix-current-facing-stragglers` | | Planned | Current-facing compose straggler cleanup. |
@@ -75,6 +75,17 @@ Use this as the durable execution ledger. Update it before any final handoff, dr
 - Changed: `packages/core/src/type-checks.test-d.ts` added compile-time assertions for inferred config, defaulted config, returned `Resource<T, C>`, and no-config `unknown`.
 - Changed: added `.changeset/resource-config-inference.md` for `@ontrails/core` patch.
 - Local review: subagent Bacon confirmed the live seam and recommended the same type-only fix plus no new runtime behavior.
+
+2026-05-26 15:42 EDT - TRL-804 implementation
+- Branch: `trl-804-warden-warn-topo-export-entry-should-not-open-a-surface-at`.
+- Tracker: moved TRL-804 to In Progress.
+- Changed: added Warden rule `no-top-level-surface` to warn when a topo-export module opens a surface at module top level.
+- Changed: rule detection is intentionally narrow: it requires an exported `topo(...)` entry (`default`, `graph`, or `app`) and imported surface-opening APIs or a top-level `.listen(...)`; guarded/nested startup remains allowed.
+- Changed: added focused rule tests for direct, aliased, namespace, and `.listen(...)` diagnostics plus dedicated-surface and guarded-startup allowances.
+- Changed: wired the rule through Warden exports, metadata, registry names, trail wrappers, and contract count tests.
+- Changed: regenerated Warden guide blocks in `AGENTS.md`, `.claude/skills/clark/references/warden-guide.md`, and `plugin/skills/trails/references/warden-guide.md`.
+- Changed: added `.changeset/warden-top-level-surface.md` for `@ontrails/warden` patch.
+- Local review: subagent Rawls recommended binding-aware detection and warned against broad false positives; implemented the narrow imported-binding rule shape.
 ```
 
 ## Verification Log
@@ -87,12 +98,23 @@ Use this as the durable execution ledger. Update it before any final handoff, dr
 | 2026-05-26 15:26 EDT | TRL-782 | `git diff --check` | Pass | No whitespace errors. |
 | 2026-05-26 15:28 EDT | TRL-782 | `bun run lint` | Pass after focused fix | Initial run failed on new type-check style (`prefer-destructuring`, `no-unused-expressions`, `consistent-type-definitions`); fixed and reran clean. |
 | 2026-05-26 15:29 EDT | TRL-782 | `bun run format:check` | Pass after formatting | Initial run flagged `packages/core/src/type-checks.test-d.ts`; formatted with `bunx ultracite fix packages/core/src/type-checks.test-d.ts`, then reran clean. |
+| 2026-05-26 15:42 EDT | TRL-804 | `bun test packages/warden/src/__tests__/no-top-level-surface.test.ts packages/warden/src/__tests__/trails.test.ts` | Pass after focused fixes | Initial iterations exposed AST unwrap and export-specifier bugs; final run passed 168 tests. |
+| 2026-05-26 15:42 EDT | TRL-804 | `bun run --cwd packages/warden typecheck` | Pass | Warden package typecheck passed. |
+| 2026-05-26 15:42 EDT | TRL-804 | `bun run warden:agents:sync` | Pass | Regenerated root Warden guide; rule count now 59. |
+| 2026-05-26 15:42 EDT | TRL-804 | `bun run warden:skills:sync` | Pass | Regenerated Clark and plugin Trails skill Warden guide references. |
+| 2026-05-26 15:42 EDT | TRL-804 | `bun run warden:agents:check` | Pass | Generated `AGENTS.md` Warden guide is current. |
+| 2026-05-26 15:42 EDT | TRL-804 | `bun run warden:skills:check` | Pass | Generated skill Warden guides are current. |
+| 2026-05-26 15:42 EDT | TRL-804 | `bun run --cwd packages/warden lint` | Pass after focused fix | Initial run failed on AST destructuring and metadata key order; fixed and reran clean. |
+| 2026-05-26 15:42 EDT | TRL-804 | `bun run format:check` | Pass after formatting | Initial run flagged new Warden rule and metadata formatting; formatted with `bunx ultracite fix ...`, then reran clean. |
+| 2026-05-26 15:42 EDT | TRL-804 | `git diff --check` | Pass | No whitespace errors. |
+| 2026-05-26 15:42 EDT | TRL-804 | `bun run lint:ast-grep` | Pass | Repo ast-grep scan passed. |
 
 ## Local Review Log
 
 | Time | Branch | Lane | Reviewer | Score | Findings | Outcome |
 | --- | --- | --- | --- | --- | --- | --- |
 | 2026-05-26 15:25 EDT | TRL-782 | Type inference seam scout | Bacon (subagent) | Clean plan | Found the generic erasure in `Resource<T>` / `resource()` and recommended compile-time tests plus no runtime change. | Implemented matching fix. |
+| 2026-05-26 15:42 EDT | TRL-804 | Warden surface coaching scout | Rawls (subagent) | Scoped warning | Found the introspection import hazard and recommended imported-binding detection with guarded/dedicated-surface allowances. | Implemented narrow source-static rule and tests. |
 
 ## Remote Review / CI Log
 

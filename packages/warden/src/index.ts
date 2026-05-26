@@ -172,6 +172,7 @@ export {
   noSyncResultAssumptionTrail,
   noThrowInDetourRecoverTrail,
   noThrowInImplementationTrail,
+  noTopLevelSurfaceTrail,
   onReferencesExistTrail,
   orphanedSignalTrail,
   ownerProjectionParityTrail,

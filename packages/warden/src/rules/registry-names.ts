@@ -33,6 +33,7 @@ import { noRedundantResultErrorWrap } from './no-redundant-result-error-wrap.js'
 import { noSyncResultAssumption } from './no-sync-result-assumption.js';
 import { noThrowInDetourRecover } from './no-throw-in-detour-recover.js';
 import { noThrowInImplementation } from './no-throw-in-implementation.js';
+import { noTopLevelSurface } from './no-top-level-surface.js';
 import { onReferencesExist } from './on-references-exist.js';
 import { orphanedSignal } from './orphaned-signal.js';
 import { ownerProjectionParity } from './owner-projection-parity.js';
@@ -105,6 +106,7 @@ export const registeredRuleNames: readonly string[] = [
   noSyncResultAssumption.name,
   noThrowInDetourRecover.name,
   noThrowInImplementation.name,
+  noTopLevelSurface.name,
   onReferencesExist.name,
   orphanedSignal.name,
   ownerProjectionParity.name,

@@ -87,7 +87,7 @@ Use the project language consistently:
 This section is generated from the live `@ontrails/warden` rule manifest. Keep the human-authored guidance above as orientation; use this block as the enforceable-rule index.
 
 - Guide input command: `bun apps/trails/bin/trails.ts warden guide --manifest`
-- Rule count: 58
+- Rule count: 59
 
 ### Rule Index
 
@@ -113,6 +113,7 @@ This section is generated from the live `@ontrails/warden` rule manifest. Keep t
 - `incomplete-crud` (warn, project/project-static, external): Versioned CRUD entities expose complete operation coverage.
 - `layer-field-name-drift` (error, source/source-static, external): Layer input field reserved names are shared across surface projections.
 - `no-legacy-layer-imports` (error, source/source-static, external): Legacy layer exports removed across TRL-475/TRL-476 (authLayer, autoIterateLayer, dateShortcutsLayer) do not reappear in committed source.
+- `no-top-level-surface` (warn, source/source-static, external): Topo export modules do not open surfaces at module top level.
 - `owner-projection-parity` (error, source/source-static, internal): Framework projections stay aligned with owner exports.
 - `prefer-schema-inference` (warn, all/source-static, advisory): Trail schemas should be inferred unless overrides add meaning.
 - `public-internal-deep-imports` (error, project/project-static, internal): Cross-package imports stay on package-owned public exports.
@@ -174,6 +175,7 @@ This section is generated from the live `@ontrails/warden` rule manifest. Keep t
 
 - `example-valid`: Keep trail examples synchronized with their authored schemas.
 - `no-throw-in-implementation`: Convert thrown failures in blazes into explicit Result.err() outcomes.
+- `no-top-level-surface`: Keep topo entry modules side-effect-free for survey, guide, compile, and lock generation.
 - `permit-governance`: Make destructive trail authorization visible on the trail contract.
 - `prefer-schema-inference`: Let schemas remain the owner for field metadata unless an override adds new information.
 - `public-output-schema`: Make public surface result contracts explicit before MCP/HTTP projection.
