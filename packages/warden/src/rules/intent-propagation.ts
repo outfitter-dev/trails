@@ -2,7 +2,7 @@ import type { Intent } from '@ontrails/core';
 import {
   collectNamedTrailIds,
   collectTrailIntentsById,
-  extractDefinitionCrossTargetIds,
+  extractDefinitionComposeTargetIds,
   findTrailDefinitions,
   offsetToLine,
   parse,
@@ -24,12 +24,12 @@ const buildIntentPropagationDiagnostic = (
 ): WardenDiagnostic => ({
   filePath,
   line,
-  message: `Trail "${trailId}" declares intent: 'read' but crosses "${targetTrailId}" with intent: '${targetIntent}'. Read trails must not compose write or destroy side effects.`,
+  message: `Trail "${trailId}" declares intent: 'read' but composes "${targetTrailId}" with intent: '${targetIntent}'. Read trails must not compose write or destroy side effects.`,
   rule: 'intent-propagation',
   severity: 'warn',
 });
 
-const buildDiagnosticsForCrossTargets = (
+const buildDiagnosticsForComposeTargets = (
   trailId: string,
   targetTrailIds: readonly string[],
   filePath: string,
@@ -64,9 +64,9 @@ const buildDiagnosticsForTrail = (
     return [];
   }
 
-  return buildDiagnosticsForCrossTargets(
+  return buildDiagnosticsForComposeTargets(
     def.id,
-    extractDefinitionCrossTargetIds(def.config, sourceCode, namedTrailIds),
+    extractDefinitionComposeTargetIds(def.config, sourceCode, namedTrailIds),
     filePath,
     offsetToLine(sourceCode, def.start),
     trailIntentsById
@@ -121,7 +121,7 @@ export const intentPropagation: ProjectAwareWardenRule = {
     return checkIntentPropagation(ast, sourceCode, filePath, trailIntentsById);
   },
   description:
-    "Warn when a trail declaring intent: 'read' crosses a trail whose normalized intent is write or destroy.",
+    "Warn when a trail declaring intent: 'read' composes a trail whose normalized intent is write or destroy.",
   name: 'intent-propagation',
   severity: 'warn',
 };

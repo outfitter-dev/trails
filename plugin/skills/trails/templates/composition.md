@@ -1,6 +1,6 @@
 # Composite Trail Template
 
-Annotated skeleton for composing trails via `cross`. Copy, rename, fill in.
+Annotated skeleton for composing trails via `ctx.compose`. Copy, rename, fill in.
 
 ```typescript
 import { trail, Result } from '@ontrails/core';
@@ -16,13 +16,13 @@ export const myComposite = trail('namespace.compound-verb', {
   description: 'Create an entity and verify it appears in search',
 
   // --- Declare downstream trails ---
-  // List every trail this trail calls via ctx.cross().
-  // The warden verifies these match actual ctx.cross() calls.
-  crosses: [namespaceFirst, namespaceSecond],
+  // List every trail this trail calls via ctx.compose().
+  // The warden verifies these match actual ctx.compose() calls.
+  composes: [namespaceFirst, namespaceSecond],
 
   // --- Resources (optional) ---
   // Declare resources the composite trail needs directly.
-  // Crossed trails declare their own resources independently.
+  // Composed trails declare their own resources independently.
   // resources: [db],
 
   // --- Input schema ---
@@ -56,12 +56,12 @@ export const myComposite = trail('namespace.compound-verb', {
   ],
 
   // --- Run ---
-  // Compose trails through ctx.cross() — never call .run() directly.
+  // Compose trails through ctx.compose() — never call .run() directly.
   // Always await, always check isErr() before accessing .value.
   blaze: async (input, ctx) => {
-    // Step 1: Cross the first trail
+    // Step 1: Compose the first trail
     // Type the generic when you need the return shape.
-    const first = await ctx.cross(namespaceFirst, {
+    const first = await ctx.compose(namespaceFirst, {
       name: input.name,
       type: input.type,
       tags: input.tags,
@@ -70,8 +70,8 @@ export const myComposite = trail('namespace.compound-verb', {
     // Propagate errors — don't swallow them.
     if (first.isErr()) return first;
 
-    // Step 2: Cross the second trail, using results from the first
-    const second = await ctx.cross(namespaceSecond, {
+    // Step 2: Compose the second trail, using results from the first
+    const second = await ctx.compose(namespaceSecond, {
       query: first.value.name,
     });
 
@@ -101,9 +101,9 @@ export const myComposite = trail('namespace.compound-verb', {
 ```typescript
 import { stepOne, stepTwo } from './steps.js';
 
-const a = await ctx.cross(stepOne, input);
+const a = await ctx.compose(stepOne, input);
 if (a.isErr()) return a;
-const b = await ctx.cross(stepTwo, { id: a.value.id });
+const b = await ctx.compose(stepTwo, { id: a.value.id });
 ```
 
 Use string IDs when the target trail object is not statically in scope; prefer trail objects when it is.
@@ -113,7 +113,7 @@ Use string IDs when the target trail object is not statically in scope; prefer t
 ```typescript
 import { stepOne, stepTwo } from './steps.js';
 
-const [a, b] = await ctx.cross([
+const [a, b] = await ctx.compose([
   [stepOne, { name }],
   [stepTwo, { name }],
 ]);
@@ -124,6 +124,6 @@ const [a, b] = await ctx.cross([
 ```typescript
 import { enrichProfile } from './steps.js';
 
-const optional = await ctx.cross(enrichProfile, data);
+const optional = await ctx.compose(enrichProfile, data);
 const enriched = optional.isOk() ? optional.value : null;
 ```

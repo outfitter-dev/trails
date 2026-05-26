@@ -26,16 +26,16 @@ export interface TestScenario {
 }
 
 // ---------------------------------------------------------------------------
-// Cross Scenario (for testCrosses)
+// Compose Scenario (for testComposes)
 // ---------------------------------------------------------------------------
 
-/** A test scenario for a trail's crossing graph. */
-export interface CrossScenario extends TestScenario {
-  /** Assert these trail IDs were crossed, in order. */
-  readonly expectCrossed?: readonly string[] | undefined;
-  /** Assert crossing counts per trail ID. */
-  readonly expectCrossedCount?: Readonly<Record<string, number>> | undefined;
-  /** Inject failure from a crossed trail's example by description. */
+/** A test scenario for a trail's composing graph. */
+export interface ComposeScenario extends TestScenario {
+  /** Assert these trail IDs were composed, in order. */
+  readonly expectComposed?: readonly string[] | undefined;
+  /** Assert composing counts per trail ID. */
+  readonly expectComposedCount?: Readonly<Record<string, number>> | undefined;
+  /** Inject failure from a composed trail's example by description. */
   readonly injectFromExample?: Readonly<Record<string, string>> | undefined;
 }
 
@@ -73,7 +73,7 @@ export interface TestTrailContextOptions {
 // Scenario (for composition testing)
 // ---------------------------------------------------------------------------
 
-/** Marker for cross-step references in scenario inputs. */
+/** Marker for compose-step references in scenario inputs. */
 export interface RefToken {
   readonly __ref: true;
   readonly path: string;
@@ -81,7 +81,7 @@ export interface RefToken {
 
 /** A single step in a scenario. */
 export interface ScenarioStep {
-  readonly cross: AnyTrail;
+  readonly compose: AnyTrail;
   readonly input: Record<string, unknown>;
   readonly as?: string | undefined;
   readonly expected?: unknown | undefined;

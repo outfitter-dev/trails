@@ -29,7 +29,7 @@ const TOPO_TABLE_STATEMENTS = [
     PRIMARY KEY (id, snapshot_id),
     FOREIGN KEY (snapshot_id) REFERENCES topo_snapshots(id) ON DELETE CASCADE
   )`,
-  `CREATE TABLE IF NOT EXISTS topo_crossings (
+  `CREATE TABLE IF NOT EXISTS topo_composings (
     source_id TEXT NOT NULL,
     target_id TEXT NOT NULL,
     snapshot_id TEXT NOT NULL,
@@ -145,7 +145,7 @@ const TOPO_INDEX_STATEMENTS = [
   `CREATE UNIQUE INDEX IF NOT EXISTS idx_topo_snapshots_pinned_as
    ON topo_snapshots(pinned_as) WHERE pinned_as IS NOT NULL`,
   'CREATE INDEX IF NOT EXISTS idx_topo_trails_snapshot_id ON topo_trails(snapshot_id)',
-  'CREATE INDEX IF NOT EXISTS idx_topo_crossings_snapshot_id ON topo_crossings(snapshot_id)',
+  'CREATE INDEX IF NOT EXISTS idx_topo_composings_snapshot_id ON topo_composings(snapshot_id)',
   'CREATE INDEX IF NOT EXISTS idx_topo_trail_resources_snapshot_id ON topo_trail_resources(snapshot_id)',
   'CREATE INDEX IF NOT EXISTS idx_topo_resources_snapshot_id ON topo_resources(snapshot_id)',
   'CREATE INDEX IF NOT EXISTS idx_topo_signals_snapshot_id ON topo_signals(snapshot_id)',
@@ -266,6 +266,16 @@ const renameColumnIfNeeded = (
   }
 };
 
+const renameTableIfNeeded = (db: Database, from: string, to: string): void => {
+  if (tableExists(db, from) && !tableExists(db, to)) {
+    db.run(`ALTER TABLE ${from} RENAME TO ${to}`);
+  }
+};
+
+const dropIndexIfExists = (db: Database, indexName: string): void => {
+  db.run(`DROP INDEX IF EXISTS ${indexName}`);
+};
+
 const runStatements = (db: Database, statements: readonly string[]): void => {
   for (const statement of statements) {
     db.run(statement);
@@ -279,6 +289,8 @@ const createAllTopoTables = (db: Database): void => {
 
 /**
  * Current topo subsystem schema version.
+ *
+ * Version 13 renames `topo_crossings` to `topo_composings`.
  *
  * Version 12 renames the serialized export columns from surface-era names to
  * topo-graph artifact-family names: `topo_graph`, `topo_graph_hash`, and
@@ -300,11 +312,15 @@ const createAllTopoTables = (db: Database): void => {
  * tables and advance the subsystem version without translating or deleting
  * legacy rows.
  */
-export const TOPO_SCHEMA_VERSION = 12;
+export const TOPO_SCHEMA_VERSION = 13;
 
 export const ensureTopoSnapshotSchema = (db: Database): void => {
   ensureSubsystemSchema(db, {
     migrate: (currentVersion) => {
+      if (currentVersion >= 7 && currentVersion < 13) {
+        renameTableIfNeeded(db, 'topo_crossings', 'topo_composings');
+        dropIndexIfExists(db, 'idx_topo_crossings_snapshot_id');
+      }
       createAllTopoTables(db);
       if (currentVersion === 7) {
         addColumnIfMissing(db, 'topo_trails', 'pattern', 'pattern TEXT');

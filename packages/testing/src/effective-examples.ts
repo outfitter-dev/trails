@@ -9,7 +9,7 @@ import { z } from 'zod';
 type ExampleRecord = Readonly<Record<string, unknown>>;
 
 export interface TrailExampleTarget {
-  readonly crosses: readonly string[];
+  readonly composes: readonly string[];
   readonly current: boolean;
   readonly examples: readonly TrailExample<unknown, unknown>[];
   readonly id: string;
@@ -19,7 +19,7 @@ export interface TrailExampleTarget {
   readonly version?: number | undefined;
 }
 
-const normalizeCrossRef = (value: string | { readonly id: string }): string =>
+const normalizeComposeRef = (value: string | { readonly id: string }): string =>
   typeof value === 'string' ? value : value.id;
 
 /**
@@ -28,7 +28,7 @@ const normalizeCrossRef = (value: string | { readonly id: string }): string =>
  * appear here, so consumers can distinguish the two by identity.
  *
  * Exposed via `isDerivedExample` so downstream testing helpers (e.g.
- * `testExamples` crossing coverage) can relax invariants that only make
+ * `testExamples` composing coverage) can relax invariants that only make
  * sense for authored inputs.
  */
 const derivedExamples = new WeakSet<TrailExample<unknown, unknown>>();
@@ -306,7 +306,7 @@ const formatFixtureName = (
  * Examples returned by this helper come from one of two provenances:
  * - **Authored.** When `trail.examples` is non-empty, its entries are
  *   returned verbatim. These are the developer's stated intent and carry
- *   full invariants — including crossing-coverage assertions in
+ *   full invariants — including composing-coverage assertions in
  *   `testExamples`.
  * - **Derived.** When there are no authored examples but the trail has
  *   contours with examples, candidate inputs are synthesized from contour
@@ -374,7 +374,7 @@ export const deriveTrailExampleTargets = (
   const currentExamples = deriveTrailExamples(trail);
   if (currentExamples.length > 0) {
     targets.push({
-      crosses: trail.crosses,
+      composes: trail.composes,
       current: true,
       examples: currentExamples,
       id: trail.id,
@@ -396,10 +396,10 @@ export const deriveTrailExampleTargets = (
     }
     const kind = getTrailVersionEntryKind(entry);
     targets.push({
-      crosses:
+      composes:
         kind === 'fork'
-          ? (entry.crosses ?? []).map(normalizeCrossRef)
-          : trail.crosses,
+          ? (entry.composes ?? []).map(normalizeComposeRef)
+          : trail.composes,
       current: false,
       examples,
       id: `${trail.id}@${rawVersion}`,

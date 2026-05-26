@@ -1,6 +1,6 @@
 # trails-demo
 
-A complete working application built with the Trails framework. It demonstrates every core concept: trails, composition via `crosses`, a first-class resource, a schema-derived store, a signal, examples, meta, detours, idempotent upsert, and surface entrypoints on CLI, MCP, and HTTP.
+A complete working application built with the Trails framework. It demonstrates every core concept: trails, composition via `composes`, a first-class resource, a schema-derived store, a signal, examples, meta, detours, idempotent upsert, and surface entrypoints on CLI, MCP, and HTTP.
 
 ## What this app does
 
@@ -13,7 +13,7 @@ Entity management -- a small CRUD + search system with enough depth to exercise 
 | `entity.delete` | Delete an entity by name | `intent: 'destroy'` |
 | `entity.list` | List entities with optional type filter | `intent: 'read'` |
 | `search` | Full-text search across entities | `intent: 'read'` |
-| `entity.onboard` | Composition: create + verify searchable | `crosses: ['entity.add', 'search']` |
+| `entity.onboard` | Composition: create + verify searchable | `composes: ['entity.add', 'search']` |
 | `demo.upsert` | Idempotent key-value store example | `idempotent: true` |
 
 Plus one domain signal: `entity.updated` (fired by `entity.add` and `entity.delete`). The store resource also registers scoped change signals such as `demo.entity-store:entities.created`.
@@ -41,7 +41,7 @@ bun run bin/demo.ts entity list --type concept
 # Search
 bun run bin/demo.ts search --query Alpha
 
-# Onboard (crosses: add + verify searchable)
+# Onboard (composes: add + verify searchable)
 bun run bin/demo.ts entity onboard --name Epsilon --type pattern
 ```
 
@@ -90,7 +90,7 @@ export const show = trail('entity.show', {
   detours: [
     {
       on: NotFoundError,
-      recover: async ({ input }, ctx) => ctx.cross('search', input),
+      recover: async ({ input }, ctx) => ctx.compose('search', input),
     },
   ],
   resources: [entityStoreResource],
@@ -119,27 +119,27 @@ Key concepts:
 
 - **`input` / `output`**: Zod schemas define the contract. Validated at the boundary, trusted internally.
 - **`intent`**: Safety property. On CLI, `'read'` prevents destructive flags. On MCP, `'read'` sets `readOnlyHint`, `'destroy'` sets `destructiveHint`.
-- **`detours`**: When `entity.show` returns `NotFoundError`, the detour can recover by crossing into `search`.
+- **`detours`**: When `entity.show` returns `NotFoundError`, the detour can recover by composing into `search`.
 - **`examples`**: Agent-facing documentation that doubles as tests. Full-match examples assert exact output. Error examples assert the error class name. Schema-only examples (no `expected` or `error`) just validate the output matches the schema.
 
 ### Composition: `entity.onboard`
 
 ```typescript
 export const onboard = trail('entity.onboard', {
-  crosses: ['entity.add', 'search'],
+  composes: ['entity.add', 'search'],
   blaze: async (input, ctx) => {
-    const added = await ctx.cross('entity.add', {
+    const added = await ctx.compose('entity.add', {
       /* ... */
     });
     if (added.isErr()) return added;
-    const searched = await ctx.cross('search', { query: input.name });
+    const searched = await ctx.compose('search', { query: input.name });
     // ...
   },
 });
 ```
 
-- **`crosses`** declares which trails this trail composes.
-- **`ctx.cross()`** invokes another trail by ID, maintaining the execution context.
+- **`composes`** declares which trails this trail composes.
+- **`ctx.compose()`** invokes another trail by ID, maintaining the execution context.
 
 ## Testing
 
@@ -159,7 +159,7 @@ testAll(graph, () => ({
 
 `testAll` runs the full contract suite in one call:
 
-1. **`validateTopo`** -- structural validation (cross targets exist, declarations are consistent).
+1. **`validateTopo`** -- structural validation (composed targets exist, declarations are consistent).
 2. **`testExamples`** -- progressive assertion over every trail example.
 3. **`testContracts`** -- output schema verification for every success example.
 4. **`testDetours`** -- detours expose real `on` / `recover` contracts and non-shadowed ordering.
@@ -231,7 +231,7 @@ To add `entity.update`:
 trails warden
 ```
 
-Checks governance rules: every trail has examples, destructive trails declare `intent: 'destroy'`, cross targets reference existing trails, etc.
+Checks governance rules: every trail has examples, destructive trails declare `intent: 'destroy'`, composed targets reference existing trails, etc.
 
 ## Inspecting the app
 

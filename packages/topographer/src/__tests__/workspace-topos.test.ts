@@ -103,7 +103,7 @@ const buildTopo = (name: string, ids: readonly string[]): Topo => {
       blaze: async () => {
         throw new Error(`fixture trail ${id} should never run`);
       },
-      crosses: [],
+      composes: [],
       examples: [],
       id,
       input: undefined,

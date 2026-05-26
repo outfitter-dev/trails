@@ -87,7 +87,7 @@ Pass a factory when your explicit overrides contain mutable state, so each test 
 
 Generates a `contract` describe block containing:
 
-- **Topo validation** via `validateTopo` (crosses exist, no recursive crossing, signal origins, example schema validation, output schema presence)
+- **Topo validation** via `validateTopo` (composed trails exist, no recursive composition, signal origins, example schema validation, output schema presence)
 - **Example execution** via `testExamples`
 - **Contract checks** via `testContracts`
 - **Detour contract validation** via `testDetours`
@@ -215,7 +215,7 @@ testTrail(showTrail, [
 ]);
 ```
 
-For trails with `crosses`, use `testTrail` the same way -- it exercises the crossing graph and verifies that upstream failures propagate correctly:
+For trails with `composes`, use `testTrail` the same way -- it exercises the composition graph and verifies that upstream failures propagate correctly:
 
 ```typescript
 import { testTrail } from '@ontrails/testing';
@@ -267,12 +267,12 @@ import { ref, scenario } from '@ontrails/testing';
 
 scenario('Fork flow', graph, [
   {
-    cross: createGist,
+    compose: createGist,
     input: { description: 'Original', content: '# Hello' },
     as: 'original',
   },
   {
-    cross: forkGist,
+    compose: forkGist,
     input: { id: ref('original.id') },
     as: 'forked',
     expectedMatch: {
@@ -283,7 +283,7 @@ scenario('Fork flow', graph, [
 ]);
 ```
 
-Each step executes through the normal pipeline (validation, layers, resources, tracing). `ref()` resolves cross-step references from prior step outputs. If a step fails, the scenario reports which step and why.
+Each step executes through the normal pipeline (validation, layers, resources, tracing). `ref()` resolves compose-step references from prior step outputs. If a step fails, the scenario reports which step and why.
 
 `expectedMatch` on steps uses the same subset matching as trail examples. `expected` is also supported for exact matching.
 
@@ -306,15 +306,15 @@ Defaults: deterministic request ID, test logger (captures entries), a non-aborte
 
 If you need a resource override at the context level, pass it through `resources` to `testAll()` / `testExamples()` / `testContracts()`, or attach it to `extensions` under the resource ID when calling a single trail helper like `testTrail()`. `testTrail()` accepts a raw context object, so resource injection there bypasses the normal pipeline resolution step and goes directly through `extensions`.
 
-### `createCrossContext(options?)`
+### `createComposeContext(options?)`
 
-Creates a mock `CrossFn` for testing composite trails that call `ctx.cross()`. Pre-configure responses per trail ID:
+Creates a mock `ComposeFn` for testing composite trails that call `ctx.compose()`. Pre-configure responses per trail ID:
 
 ```typescript
-import { createCrossContext, testTrail } from '@ontrails/testing';
+import { createComposeContext, testTrail } from '@ontrails/testing';
 import { Result } from '@ontrails/core';
 
-const cross = createCrossContext({
+const compose = createComposeContext({
   responses: {
     'user.get': Result.ok({ name: 'Alice' }),
     'user.validate': Result.ok({ valid: true }),
@@ -323,11 +323,11 @@ const cross = createCrossContext({
 
 testTrail(onboardTrail, [
   {
-    description: 'uses mocked crosses',
+    description: 'uses mocked composes',
     input: { name: 'Delta' },
     expectOk: true,
   },
-], { cross });
+], { compose });
 ```
 
 Calls to unregistered trail IDs return an error Result. If you need real execution instead of mocked responses, use `run()` from `@ontrails/core`.

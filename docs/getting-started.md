@@ -154,7 +154,7 @@ Same blazed trail. Different surface. The MCP server exposes a `myapp_greet` too
 - `readOnlyHint: true` annotation from `intent: 'read'`
 - Examples available for agent planning
 
-Pure blazes can return `Result` directly. Trails with `crosses` and I/O-heavy blazes can stay `async`; Trails normalizes both forms before surfaces run the trail.
+Pure blazes can return `Result` directly. Trails with `composes` and I/O-heavy blazes can stay `async`; Trails normalizes both forms before surfaces run the trail.
 
 ## Open an HTTP Surface
 
@@ -202,7 +202,7 @@ $ bun test
 
 That single `testAll(graph)` call runs the full contract suite:
 
-1. **Topo validation** via `validateTopo` -- crosses exist, no recursive crossing, signal origins, example schema validation, output schema presence
+1. **Topo validation** via `validateTopo` -- composed trails exist, no recursive composition, signal origins, example schema validation, output schema presence
 2. **Example execution** -- for each trail, validates input, runs the blazed trail, asserts the result matches `expected` (or validates against the output schema when no `expected` is declared)
 3. **Contract checks** -- verifies successful trail results against declared output schemas
 4. **Detour contract validation** -- confirms detours declare valid `on` / `recover` semantics and sane ordering
@@ -261,25 +261,25 @@ The dotted trail ID `math.add` becomes a subcommand on CLI (`myapp math add --a 
 
 ## Composing Trails
 
-A trail can compose other trails via `crosses` to accomplish a higher-level task:
+A trail can compose other trails via `composes` to accomplish a higher-level task:
 
 ```typescript
 import { trail, Result } from '@ontrails/core';
 import { z } from 'zod';
 
 export const addAndDouble = trail('math.add-and-double', {
-  crosses: ['math.add'],
+  composes: ['math.add'],
   input: z.object({ a: z.number(), b: z.number() }),
   output: z.object({ result: z.number() }),
   blaze: async (input, ctx) => {
-    const sum = await ctx.cross('math.add', input);
+    const sum = await ctx.compose('math.add', input);
     if (sum.isErr()) return sum;
     return Result.ok({ result: sum.value.result * 2 });
   },
 });
 ```
 
-Trails declare their composition dependencies with `crosses` and invoke them with `ctx.cross()`. The warden linter verifies these match.
+Trails declare their composition dependencies with `composes` and invoke them with `ctx.compose()`. The warden linter verifies these match.
 
 ## Using Resources
 

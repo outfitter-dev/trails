@@ -86,7 +86,7 @@ const expectErr = <T>(result: Result<T, Error>): Error => {
   return result.error;
 };
 
-const runCross = async (
+const runCompose = async (
   id: string,
   input: unknown
 ): Promise<Result<unknown, Error>> => {
@@ -101,7 +101,7 @@ const runCross = async (
       return await addVerify.blaze(input as never, {} as never);
     }
     default: {
-      return Result.err(new Error(`Unknown cross target: ${id}`));
+      return Result.err(new Error(`Unknown compose target: ${id}`));
     }
   }
 };
@@ -122,7 +122,7 @@ const runCreate = (
       surfaces: [...(overrides?.surfaces ?? ['cli'])],
       verify: overrides?.verify ?? true,
     },
-    { cross: runCross } as never
+    { compose: runCompose } as never
   );
 
 const setupMinimalProject = (dir: string): void => {
@@ -207,13 +207,13 @@ const assertAgentGuidance = (dir: string): void => {
     '`trail`, not action or handler',
     '`blaze`, not handler or impl',
     '`topo`, not registry or collection',
-    '`cross`, not follow',
+    '`compose`, not follow',
     '`surface`, not transport',
     '`resource`, not service or dependency',
-    '`layer`, for cross-cutting trail wrapping',
+    '`layer`, for compose-cutting trail wrapping',
     'Blazes return `Result`; never throw',
     '`Result.ok()` and `Result.err()`',
-    '`ctx.cross(...)`',
+    '`ctx.compose(...)`',
     '`resources: [...]`',
     'bun run warden',
     'bun run survey',

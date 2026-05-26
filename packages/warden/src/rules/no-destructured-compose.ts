@@ -13,10 +13,10 @@ import { isFrameworkInternalFile, isTestFile } from './scan.js';
 import type { AstNode } from './ast.js';
 import type { WardenDiagnostic, WardenRule } from './types.js';
 
-const RULE_NAME = 'no-destructured-cross';
+const RULE_NAME = 'no-destructured-compose';
 
 const diagnosticMessage = (trailId: string): string =>
-  `Trail "${trailId}" destructures cross from the blaze context. Use ctx.cross(...) directly so composition stays visible and Warden can recognize composed Result values.`;
+  `Trail "${trailId}" destructures compose from the blaze context. Use ctx.compose(...) directly so composition stays visible and Warden can recognize composed Result values.`;
 
 const propertyKeyName = (property: AstNode): string | null => {
   if ((property as unknown as { computed?: boolean }).computed === true) {
@@ -33,7 +33,7 @@ const propertyKeyName = (property: AstNode): string | null => {
   );
 };
 
-const findCrossBinding = (pattern: AstNode | undefined): AstNode | null => {
+const findComposeBinding = (pattern: AstNode | undefined): AstNode | null => {
   if (pattern?.type !== 'ObjectPattern') {
     return null;
   }
@@ -43,7 +43,10 @@ const findCrossBinding = (pattern: AstNode | undefined): AstNode | null => {
     [];
 
   for (const property of properties) {
-    if (property.type === 'Property' && propertyKeyName(property) === 'cross') {
+    if (
+      property.type === 'Property' &&
+      propertyKeyName(property) === 'compose'
+    ) {
       return property;
     }
   }
@@ -54,7 +57,7 @@ const findCrossBinding = (pattern: AstNode | undefined): AstNode | null => {
 const blazeParams = (blaze: AstNode): readonly AstNode[] =>
   (blaze as unknown as { params?: readonly AstNode[] }).params ?? [];
 
-const destructuredCrossFromVariableDeclarator = (
+const destructuredComposeFromVariableDeclarator = (
   node: AstNode,
   contextName: string
 ): AstNode | null => {
@@ -71,10 +74,10 @@ const destructuredCrossFromVariableDeclarator = (
     return null;
   }
 
-  return findCrossBinding(id);
+  return findComposeBinding(id);
 };
 
-const destructuredCrossFromAssignment = (
+const destructuredComposeFromAssignment = (
   node: AstNode,
   contextName: string
 ): AstNode | null => {
@@ -92,7 +95,7 @@ const destructuredCrossFromAssignment = (
     return null;
   }
 
-  return findCrossBinding(left);
+  return findComposeBinding(left);
 };
 
 const checkBodyDestructuring = (
@@ -111,16 +114,16 @@ const checkBodyDestructuring = (
         return;
       }
 
-      const crossBinding =
-        destructuredCrossFromVariableDeclarator(node, contextName) ??
-        destructuredCrossFromAssignment(node, contextName);
-      if (!crossBinding) {
+      const composeBinding =
+        destructuredComposeFromVariableDeclarator(node, contextName) ??
+        destructuredComposeFromAssignment(node, contextName);
+      if (!composeBinding) {
         return;
       }
 
       diagnostics.push({
         filePath,
-        line: offsetToLine(sourceCode, crossBinding.start),
+        line: offsetToLine(sourceCode, composeBinding.start),
         message: diagnosticMessage(trailId),
         rule: RULE_NAME,
         severity: 'warn',
@@ -132,7 +135,7 @@ const checkBodyDestructuring = (
   return diagnostics;
 };
 
-export const noDestructuredCross: WardenRule = {
+export const noDestructuredCompose: WardenRule = {
   check(sourceCode: string, filePath: string): readonly WardenDiagnostic[] {
     if (isTestFile(filePath) || isFrameworkInternalFile(filePath)) {
       return [];
@@ -153,12 +156,12 @@ export const noDestructuredCross: WardenRule = {
       for (const blaze of findBlazeBodies(definition.config)) {
         const params = blazeParams(blaze);
         const [, contextParam] = params;
-        const paramCrossBinding = findCrossBinding(contextParam);
+        const paramComposeBinding = findComposeBinding(contextParam);
 
-        if (paramCrossBinding) {
+        if (paramComposeBinding) {
           diagnostics.push({
             filePath,
-            line: offsetToLine(sourceCode, paramCrossBinding.start),
+            line: offsetToLine(sourceCode, paramComposeBinding.start),
             message: diagnosticMessage(definition.id),
             rule: RULE_NAME,
             severity: 'warn',
@@ -183,7 +186,7 @@ export const noDestructuredCross: WardenRule = {
     return diagnostics;
   },
   description:
-    'Coach trail blazes to compose with ctx.cross(...) directly instead of destructuring cross from the context.',
+    'Coach trail blazes to compose with ctx.compose(...) directly instead of destructuring compose from the context.',
   name: RULE_NAME,
   severity: 'warn',
 };

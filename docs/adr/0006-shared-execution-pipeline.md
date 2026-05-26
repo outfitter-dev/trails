@@ -33,7 +33,7 @@ executeTrail(trail, rawInput, options?)
 The pipeline, in order:
 
 1. **Validate input** — parse `rawInput` against the trail's input schema via Zod. On failure, return `Result.err(new ValidationError(...))`.
-2. **Resolve context** — build `TrailContext` with logger, cross capability, and any surface-provided extensions.
+2. **Resolve context** — build `TrailContext` with logger, compose capability, and any surface-provided extensions.
 3. **Resolve resources** — create or retrieve declared resources and attach lookup support to the context.
 4. **Compose layers** — wrap the blaze with the trail's declared layers, in order.
 5. **Run** — run the blazed trail with validated input and resolved context.

@@ -7,7 +7,7 @@
  * fire calls that no longer match the public runtime API, and warnings for
  * unused declarations.
  *
- * Mirrors `cross-declarations` structurally — same extraction, same reporting
+ * Mirrors `composes-declarations` structurally — same extraction, same reporting
  * shape, same const-identifier resolution, same context-parameter handling.
  */
 
@@ -393,7 +393,7 @@ const getCtxDestructurePattern = (
  * allow reassignment (`let { fire } = ctx; fire = other; fire('x')`) which
  * this flow-insensitive walker cannot follow. Skipping them trades a small
  * amount of precision — `let { fire } = ctx` is rare — for eliminating a
- * class of false positives. The runtime + signal-id cross-check still
+ * class of false positives. The runtime + signal-id compose-check still
  * validate real undeclared fires.
  */
 /** Get the top-level statements of a blaze function's BlockStatement body. */
@@ -484,7 +484,7 @@ const buildCtxNames = (body: AstNode): ReadonlySet<string> => {
  * Tradeoff: legitimate helper-scoped fire calls are not statically analyzed
  * today. This includes both direct `ctx.fire(...)` inside a nested helper and
  * helper-local destructures like `const { fire } = ctx` inside that helper.
- * The runtime + signal-id cross-check still validate them; the warden just
+ * The runtime + signal-id compose-check still validate them; the warden just
  * can't prove them at lint time. A fuller helper-aware scope walker remains
  * follow-up work if this precision loss becomes meaningful in practice.
  */

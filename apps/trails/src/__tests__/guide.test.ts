@@ -175,9 +175,9 @@ describe('trails guide', () => {
             topo: [],
             trail: [],
           },
+          composes: [],
           contourDetails: [],
           contours: [],
-          crosses: [],
           description: 'Say hello',
           detours: [
             {

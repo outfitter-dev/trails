@@ -3,7 +3,9 @@
  */
 
 import type { Result } from './result.js';
-import type { AnyTrail, Trail } from './trail.js';
+import type { AnyTrail } from './trail.js';
+import type { Implementation } from './types.js';
+import type { z } from 'zod';
 
 // ---------------------------------------------------------------------------
 // Utility types
@@ -12,27 +14,31 @@ import type { AnyTrail, Trail } from './trail.js';
 /* oxlint-disable no-explicit-any -- `any` required for conditional type inference; `unknown` breaks inference */
 
 /** Extract the input type from a Trail. */
-export type TrailInput<T extends AnyTrail> =
-  T extends Trail<infer I, any, any> ? I : never;
+export type TrailInput<T extends AnyTrail> = T extends {
+  readonly input: z.ZodType<infer I>;
+}
+  ? I
+  : never;
 
 /** Extract the output type from a Trail. */
-export type TrailOutput<T extends AnyTrail> =
-  T extends Trail<any, infer O, any> ? O : never;
+export type TrailOutput<T extends AnyTrail> = T extends {
+  readonly blaze: Implementation<any, infer O>;
+}
+  ? O
+  : never;
 
 /**
- * Extract the cross-callable input type from a trail.
+ * Extract the compose-callable input type from a trail.
  *
- * When a trail declares `crossInput`, callers via `ctx.cross()` must pass
+ * When a trail declares `composeInput`, callers via `ctx.compose()` must pass
  * both the public input fields and the composition-only fields. This type
  * merges both schemas so the compiler enforces the full shape at the call
- * site. Falls back to plain `TrailInput<T>` when no `crossInput` exists.
+ * site. Falls back to plain `TrailInput<T>` when no `composeInput` exists.
  */
-export type CrossInput<T extends AnyTrail> =
-  T extends Trail<infer I, any, infer CI>
-    ? [CI] extends [never]
-      ? I
-      : I & CI
-    : never;
+export type ComposeInput<T extends AnyTrail> =
+  NonNullable<T['composeInput']> extends z.ZodType<infer CI>
+    ? TrailInput<T> & CI
+    : TrailInput<T>;
 
 /**
  * Extracts the full `Result<Output, Error>` type from a trail definition.

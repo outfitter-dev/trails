@@ -174,27 +174,27 @@ const topographArtifactFamilyRetiredMatches = [
   { line: 270, path: 'apps/trails/src/trails/dev-support.ts' },
   // The topo-store migration and fixture must name pre-v12 columns exactly.
   {
-    line: 325,
+    line: 341,
     path: 'packages/topographer/src/internal/topo-snapshots.ts',
   },
   {
-    line: 335,
+    line: 351,
     path: 'packages/topographer/src/internal/topo-snapshots.ts',
   },
   {
-    line: 1323,
+    line: 1336,
     path: 'packages/topographer/src/__tests__/topo-store.test.ts',
   },
   {
-    line: 1325,
+    line: 1338,
     path: 'packages/topographer/src/__tests__/topo-store.test.ts',
   },
   {
-    line: 1339,
+    line: 1352,
     path: 'packages/topographer/src/__tests__/topo-store.test.ts',
   },
   {
-    line: 1341,
+    line: 1354,
     path: 'packages/topographer/src/__tests__/topo-store.test.ts',
   },
 ] as const;
@@ -226,13 +226,13 @@ export const auditRules: readonly VocabAuditRule[] = [
   {
     description: 'Old composition declaration still uses follow: [...]',
     excludePaths: historicalMentionPaths,
-    id: 'crosses-field',
+    id: 'composes-field',
     pattern: String.raw`\bfollow\s*:`,
   },
   {
     description: 'Old composition runtime still uses ctx.follow(...)',
     excludePaths: historicalMentionPaths,
-    id: 'cross-call',
+    id: 'compose-call',
     pattern: String.raw`\bctx\.follow\(`,
   },
   {

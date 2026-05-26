@@ -44,7 +44,7 @@ Use these terms — they are non-negotiable in Trails codebases.
 | Term | Meaning | Not this |
 |------|---------|----------|
 | `trail` | Unit of work (atomic or composite) | handler, action |
-| `cross` | Composition declaration and runtime verb | workflow, route |
+| `compose` | Composition declaration and runtime verb | workflow, route |
 | `topo` | Queryable graph of trails, signals, resources, and relationships | registry, collection |
 | `blaze` | Authored implementation that establishes how a trail runs from validated input to Result | handler, impl |
 | `surface` | The boundary-owned one-liner that opens a graph | serve, mount |
@@ -69,7 +69,7 @@ Current public packages are lockstep at the same Trails framework version.
 ### Atomic vs Composite Trails
 
 - **Atomic trail**: does one thing. `(input, ctx) => Result`. Default choice.
-- **Composite trail**: composes other trails. Declares `crosses: [...]`, uses `ctx.cross()`.
+- **Composite trail**: composes other trails. Declares `composes: [...]`, uses `ctx.compose()`.
 - **Blazed trail**: a runnable contract. The runtime runs trails, not blazes.
 
 ### Trail ID Conventions
@@ -188,14 +188,14 @@ See [contract-patterns.md](references/contract-patterns.md) for declaration patt
 
 `testAll(graph)` runs the full contract suite in one line:
 
-1. Topo validation (crosses, schemas, signals, resources)
+1. Topo validation (composes, schemas, signals, resources)
 2. Example execution (every example as an assertion)
 3. Contract checks (output matches schema)
 4. Detour verification (targets exist)
 
 **TDD workflow**: Define trail with examples → run tests (red) → implement (green) → refactor.
 
-Edge cases go in `testTrail(trail, scenarios)`. Use `createCrossContext()` to mock `ctx.cross` for composite trail unit tests. Surface integration uses `@ontrails/testing/cli`, `@ontrails/testing/mcp`, `@ontrails/testing/http`, and `@ontrails/testing/surface-parity`.
+Edge cases go in `testTrail(trail, scenarios)`. Use `createComposeContext()` to mock `ctx.compose` for composite trail unit tests. Surface integration uses `@ontrails/testing/cli`, `@ontrails/testing/mcp`, `@ontrails/testing/http`, and `@ontrails/testing/surface-parity`.
 
 See [testing-patterns.md](references/testing-patterns.md) for the full testing API.
 
@@ -270,4 +270,4 @@ For the current generated rule index, read [warden-guide.md](references/warden-g
 | [express-handler.md](examples/express-handler.md) | Before/after: Express routes → trails |
 | [cli-command.md](examples/cli-command.md) | Before/after: Commander commands → trails |
 | [mcp-tool.md](examples/mcp-tool.md) | Before/after: MCP tool handlers → trails |
-| [composition.md](examples/composition.md) | Before/after: direct calls → ctx.cross |
+| [composition.md](examples/composition.md) | Before/after: direct calls -> ctx.compose |

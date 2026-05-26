@@ -96,7 +96,7 @@ describe('@ontrails/testing public subpaths', () => {
       'root-import-boundary',
       `
         import {
-          createCrossContext,
+          createComposeContext,
           createTestContext,
           ref,
           scenario,
@@ -107,7 +107,7 @@ describe('@ontrails/testing public subpaths', () => {
           testTrail,
         } from '@ontrails/testing';
         import type {
-          CrossScenario,
+          ComposeScenario,
           RefToken,
           ScenarioStep,
           TestLogger,
@@ -116,7 +116,7 @@ describe('@ontrails/testing public subpaths', () => {
         } from '@ontrails/testing';
 
         export type RootTypes = [
-          CrossScenario,
+          ComposeScenario,
           RefToken,
           ScenarioStep,
           TestLogger,
@@ -125,7 +125,7 @@ describe('@ontrails/testing public subpaths', () => {
         ];
 
         void [
-          createCrossContext,
+          createComposeContext,
           createTestContext,
           ref,
           scenario,

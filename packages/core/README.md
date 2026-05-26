@@ -21,14 +21,14 @@ const greet = trail('greet', {
 const graph = topo('myapp', { greet });
 ```
 
-Trails compose other trails through `crosses` and `ctx.cross()`:
+Trails compose other trails through `composes` and `ctx.compose()`:
 
 ```typescript
 const onboard = trail('entity.onboard', {
-  crosses: ['entity.add', 'entity.relate'],
+  composes: ['entity.add', 'entity.relate'],
   input: z.object({ name: z.string(), type: z.string() }),
   blaze: async (input, ctx) => {
-    const added = await ctx.cross('entity.add', input);
+    const added = await ctx.compose('entity.add', input);
     if (added.isErr()) return added;
     return Result.ok({ entity: added.value });
   },
@@ -41,7 +41,7 @@ const onboard = trail('entity.onboard', {
 
 | Export | What it does |
 | --- | --- |
-| `trail(id, spec)` | Define a unit of work with typed input and `Result` output; use `crosses` for composition |
+| `trail(id, spec)` | Define a unit of work with typed input and `Result` output; use `composes` for composition |
 | `signal(id, spec)` | Define a server-originated notification with a typed data schema |
 | `resource(id, spec)` | Define an infrastructure dependency with `create`, `dispose`, and optional `mock` |
 | `drainResources(resources, ctx, configValues?)` | Evict and dispose cached resource singletons for surface/test shutdown |

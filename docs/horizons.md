@@ -20,7 +20,7 @@
 
 **WebSocket surface.** A peer surface to CLI, MCP, and HTTP for long-lived request/response sessions plus subscription-style updates where the contract supports them. The design goal is the same as every other surface: derive names, validation, and error mapping from the topo instead of hand-authoring a separate runtime model.
 
-**Derived dependency graphs.** Instead of hand-maintaining `crosses` declarations, the framework infers them from `ctx.cross()` calls in the blaze via static analysis. The same idea could eventually extend beyond today's declared `resources: [...]` model to richer resource capability inference. The TopoGraph captures the graph. Changes show up in diffs.
+**Derived dependency graphs.** Instead of hand-maintaining `composes` declarations, the framework infers them from `ctx.compose()` calls in the blaze via static analysis. The same idea could eventually extend beyond today's declared `resources: [...]` model to richer resource capability inference. The TopoGraph captures the graph. Changes show up in diffs.
 
 **Blaze synthesis from examples.** For trails with comprehensive examples that fully specify behavior (pure transformations, mapping logic, validation rules), an agent could synthesize the blaze from the examples alone. The examples become the source of truth; the code becomes the derived artifact.
 
@@ -38,7 +38,7 @@
 
 **SDK generation via guide.** Typed TypeScript clients generated from the topo. Each trail becomes a method with typed input/output. Working over HTTP or WebSocket.
 
-**Derived documentation sites.** A live site that reads the topo and renders it. Examples become interactive widgets. Error taxonomy becomes a searchable reference. The `cross` graph becomes a visual diagram. Always accurate because it reads the same data the framework uses at runtime.
+**Derived documentation sites.** A live site that reads the topo and renders it. Examples become interactive widgets. Error taxonomy becomes a searchable reference. The `compose` graph becomes a visual diagram. Always accurate because it reads the same data the framework uses at runtime.
 
 **Cross-app contract negotiation (junction).** Two Trails apps negotiate compatibility at connection time. "I need `entity.show` with at least `{ name: string }` input." The mounted app confirms or rejects.
 

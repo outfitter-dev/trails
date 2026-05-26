@@ -3,14 +3,14 @@
  */
 
 import type {
-  CrossFn,
+  ComposeFn,
   ResourceOverrideMap,
   Topo,
   TrailContext,
 } from '@ontrails/core';
 import {
   Result,
-  buildCrossValidationSchema,
+  buildComposeValidationSchema,
   createResourceLookup,
   passthroughTrace,
 } from '@ontrails/core';
@@ -53,10 +53,10 @@ export const createTestContext = (
 };
 
 // ---------------------------------------------------------------------------
-// createCrossContext
+// createComposeContext
 // ---------------------------------------------------------------------------
 
-export interface CreateCrossContextOptions {
+export interface CreateComposeContextOptions {
   readonly responses?: Record<string, Result<unknown, Error>> | undefined;
 }
 
@@ -94,39 +94,38 @@ export interface TestExecutionOptions {
 }
 
 /**
- * Create a mock `CrossFn` for testing composite trails.
+ * Create a mock `ComposeFn` for testing composite trails.
  *
  * Returns preconfigured `Result` values keyed by trail ID. Calls to
  * unregistered IDs return `Result.err` with a descriptive message.
  *
  * @example
  * ```ts
- * const cross = createCrossContext({
+ * const compose = createComposeContext({
  *   responses: { 'entity.add': Result.ok({ id: '1', name: 'Alpha' }) },
  * });
- * const ctx = { ...createTestContext(), cross };
+ * const ctx = { ...createTestContext(), compose };
  * ```
  */
-export const createCrossContext = (
-  options?: CreateCrossContextOptions
-): CrossFn => {
+export const createComposeContext = (
+  options?: CreateComposeContextOptions
+): ComposeFn => {
   const responses = options?.responses ?? {};
-  const respondToCross = <O>(
+  const respondToCompose = <O>(
     idOrTrail: string | { readonly id: string }
   ): Promise<Result<O, Error>> => {
     const id = typeof idOrTrail === 'string' ? idOrTrail : idOrTrail.id;
     const response = responses[id];
     if (response === undefined) {
       return Promise.resolve(
-        Result.err(new Error(`No mock response for cross("${id}")`)) as Result<
-          O,
-          Error
-        >
+        Result.err(
+          new Error(`No mock response for compose("${id}")`)
+        ) as Result<O, Error>
       );
     }
     return Promise.resolve(response as Result<O, Error>);
   };
-  const cross = (async (
+  const compose = (async (
     idOrTrail:
       | string
       | { readonly id: string }
@@ -135,13 +134,15 @@ export const createCrossContext = (
   ) => {
     if (Array.isArray(idOrTrail)) {
       return await Promise.all(
-        idOrTrail.map(([target]) => respondToCross(target))
+        idOrTrail.map(([target]) => respondToCompose(target))
       );
     }
 
-    return await respondToCross(idOrTrail as string | { readonly id: string });
-  }) as CrossFn;
-  return cross;
+    return await respondToCompose(
+      idOrTrail as string | { readonly id: string }
+    );
+  }) as ComposeFn;
+  return compose;
 };
 
 /**
@@ -200,7 +201,7 @@ export const createMockResources = async (
 ): Promise<ResourceOverrideMap> => await buildMockResources(app);
 
 // Re-export from core so existing consumers of this module continue to work.
-export { buildCrossValidationSchema };
+export { buildComposeValidationSchema };
 
 /**
  * Merge a Partial<TrailContext> into a test context.

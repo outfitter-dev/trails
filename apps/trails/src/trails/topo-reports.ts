@@ -198,7 +198,7 @@ export interface TrailDetailReport {
     | null;
   readonly examples: readonly unknown[];
   readonly fieldOverrides: readonly TopoGraphFieldOverride[];
-  readonly crosses: readonly string[];
+  readonly composes: readonly string[];
   readonly fires: readonly string[];
   readonly governance: Readonly<Record<string, unknown>> | null;
   readonly id: string;
@@ -779,9 +779,9 @@ export const deriveTrailDetail = (
       topo: topoLayerNames,
       trail: trailLayerNames,
     },
+    composes: item.composes.toSorted(),
     contourDetails: graphDetail.contourDetails,
     contours: graphDetail.contours,
-    crosses: item.crosses.toSorted(),
     description: item.description ?? null,
     detours: formatTrailDetours(item),
     examples: item.examples ?? [],

@@ -3,15 +3,15 @@
  *
  * Iterates every trail in the app's topo. For each trail with examples,
  * generates describe/test blocks using bun:test. Progressive assertion
- * determines which check to run per example. For trails with `crosses`
- * declarations, checks that every declared crossing was called at least once.
+ * determines which check to run per example. For trails with `composes`
+ * declarations, checks that every declared composing was called at least once.
  */
 
 import { describe, expect, test } from 'bun:test';
 
 import type {
-  CrossFn,
-  CrossOptions,
+  ComposeFn,
+  ComposeOptions,
   ExecuteTrailOptions,
   ResourceOverrideMap,
   Topo,
@@ -25,7 +25,7 @@ import {
   AmbiguousError,
   AssertionError,
   AuthError,
-  buildCrossValidationSchema,
+  buildComposeValidationSchema,
   CancelledError,
   ConflictError,
   DerivationError,
@@ -68,7 +68,7 @@ import type { TrailExampleTarget } from './effective-examples.js';
 import { withSignalAssertions } from './signals.js';
 
 type TestingExecuteTrailOptions = ExecuteTrailOptions & {
-  readonly validationSchema?: ReturnType<typeof buildCrossValidationSchema>;
+  readonly validationSchema?: ReturnType<typeof buildComposeValidationSchema>;
 };
 
 // ---------------------------------------------------------------------------
@@ -212,7 +212,7 @@ export const runExample = async (
 ): Promise<void> => {
   await runTargetExample(
     {
-      crosses: t.crosses,
+      composes: t.composes,
       current: true,
       examples: [example],
       id: t.id,
@@ -228,28 +228,28 @@ export const runExample = async (
 };
 
 // ---------------------------------------------------------------------------
-// Crossing coverage for trails with crossings
+// Composing coverage for trails with compositions
 // ---------------------------------------------------------------------------
 
 /**
- * Build a recording cross function that tracks which trail IDs are called.
+ * Build a recording compose function that tracks which trail IDs are called.
  *
- * Delegates to `baseCross` when available, otherwise looks up the trail
+ * Delegates to `baseCompose` when available, otherwise looks up the trail
  * in the topo and executes it with validated input. Falls back to
  * `Result.ok()` when neither is available.
  */
-const createCoverageCross = (
+const createCoverageCompose = (
   called: Set<string>,
-  baseCross: CrossFn | undefined,
+  baseCompose: ComposeFn | undefined,
   topo: Topo,
   ctx: TrailContext,
   resources?: ResourceOverrideMap
-): CrossFn => {
-  const invokeCross = async (
+): ComposeFn => {
+  const invokeCompose = async (
     idOrTrail: string | { readonly id: string },
     input: unknown,
-    self: CrossFn,
-    crossOptions?: CrossOptions | undefined
+    self: ComposeFn,
+    composeOptions?: ComposeOptions | undefined
   ) => {
     const parsed =
       typeof idOrTrail === 'string'
@@ -260,33 +260,33 @@ const createCoverageCross = (
     }
     const parsedVersion =
       'version' in parsed.value ? parsed.value.version : undefined;
-    if (parsedVersion !== undefined && crossOptions?.version !== undefined) {
+    if (parsedVersion !== undefined && composeOptions?.version !== undefined) {
       return Result.err(
         new ValidationError(
-          `Trail "${parsed.value.id}" version was provided both in the id reference and ctx.cross() options`
+          `Trail "${parsed.value.id}" version was provided both in the id reference and ctx.compose() options`
         )
       );
     }
 
     const { id } = parsed.value;
     called.add(id);
-    const version = crossOptions?.version ?? parsedVersion;
+    const version = composeOptions?.version ?? parsedVersion;
 
-    if (baseCross !== undefined) {
+    if (baseCompose !== undefined) {
       const forwardedOptions =
         parsedVersion === undefined
-          ? crossOptions
-          : { ...crossOptions, version: parsedVersion };
-      return await baseCross(id, input, forwardedOptions);
+          ? composeOptions
+          : { ...composeOptions, version: parsedVersion };
+      return await baseCompose(id, input, forwardedOptions);
     }
 
     const trailDef = topo.get(id);
     if (trailDef !== undefined) {
       const options: TestingExecuteTrailOptions = {
-        ctx: { ...ctx, cross: self },
+        ctx: { ...ctx, compose: self },
         resources,
         ...(version === undefined ? {} : { version }),
-        validationSchema: buildCrossValidationSchema(trailDef),
+        validationSchema: buildComposeValidationSchema(trailDef),
       };
       return await executeTrail(trailDef, input, options);
     }
@@ -294,37 +294,37 @@ const createCoverageCross = (
     return Result.ok();
   };
 
-  // Accepts either a trail object (typed cross), a string id (untyped),
+  // Accepts either a trail object (typed compose), a string id (untyped),
   // or a batch of `[target, input]` tuples.
-  const cross = async function cross(
+  const compose = async function compose(
     idOrTrail:
       | string
       | { readonly id: string }
       | readonly (readonly [string | { readonly id: string }, unknown])[],
     inputOrOptions?: unknown,
-    singleOptions?: CrossOptions
+    singleOptions?: ComposeOptions
   ) {
     if (Array.isArray(idOrTrail)) {
       return await Promise.all(
         idOrTrail.map(([target, batchInput]) =>
-          invokeCross(target, batchInput, cross as CrossFn)
+          invokeCompose(target, batchInput, compose as ComposeFn)
         )
       );
     }
 
-    return await invokeCross(
+    return await invokeCompose(
       idOrTrail as string | { readonly id: string },
       inputOrOptions,
-      cross as CrossFn,
+      compose as ComposeFn,
       singleOptions
     );
-  } as CrossFn;
+  } as ComposeFn;
 
-  return cross;
+  return compose;
 };
 
 /**
- * Run a single example against a trail with crossings, recording cross calls.
+ * Run a single example against a trail with compositions, recording compose calls.
  */
 const runCompositionExample = async (
   target: TrailExampleTarget,
@@ -347,17 +347,17 @@ const runCompositionExample = async (
     return;
   }
 
-  const cross = createCoverageCross(
+  const compose = createCoverageCompose(
     called,
-    signals.ctx.cross,
+    signals.ctx.compose,
     topo,
     signals.ctx,
     resources
   );
-  const testCtx: TrailContext = { ...signals.ctx, cross };
+  const testCtx: TrailContext = { ...signals.ctx, compose };
 
-  // Top-level trail validates against trail.input (not merged crossInput).
-  // Merged validation only applies to cross targets in executeFromMap/createCoverageCross.
+  // Top-level trail validates against trail.input (not merged composeInput).
+  // Merged validation only applies to compose targets in executeFromMap/createCoverageCompose.
   const result = await executeTrail(trailDef, example.input, {
     ctx: testCtx,
     resources: resources ?? opts?.resources,
@@ -374,8 +374,8 @@ const runCompositionExample = async (
 /**
  * Generate describe/test blocks for every trail example in the app.
  *
- * For trails with `crosses` declarations and examples, also verifies that
- * every declared crossed ID was called at least once across all examples.
+ * For trails with `composes` declarations and examples, also verifies that
+ * every declared composed ID was called at least once across all examples.
  *
  * One line in your test file:
  * ```ts
@@ -394,8 +394,8 @@ export const testExamples = (
   const withExamples = (app.list() as Trail<unknown, unknown, unknown>[])
     .flatMap(deriveTrailExampleTargets)
     .filter((target) => target.examples.length > 0);
-  const simpleTrails = withExamples.filter((t) => t.crosses.length === 0);
-  const compositionTrails = withExamples.filter((t) => t.crosses.length > 0);
+  const simpleTrails = withExamples.filter((t) => t.composes.length === 0);
+  const compositionTrails = withExamples.filter((t) => t.composes.length > 0);
 
   // Simple trails: run examples directly
   if (simpleTrails.length > 0) {
@@ -421,15 +421,15 @@ export const testExamples = (
     });
   }
 
-  // Composition trails: use recording cross and check coverage.
+  // Composition trails: use recording compose and check coverage.
   //
-  // Crossing coverage only runs against AUTHORED examples. Contour-derived
+  // Composing coverage only runs against AUTHORED examples. Contour-derived
   // fixtures are opportunistic coverage that may not exercise every
-  // `ctx.cross()` branch in the trail, so asserting coverage against them
+  // `ctx.compose()` branch in the trail, so asserting coverage against them
   // would produce false failures for trails whose authored intent was a
   // single path. When a trail has zero authored examples the coverage
   // assertion is skipped entirely — the derived-example runs still
-  // execute, but they are not required to cover declared crossings.
+  // execute, but they are not required to cover declared compositions.
   if (compositionTrails.length > 0) {
     describe.each(compositionTrails)('$id', (t) => {
       const { examples } = t;
@@ -437,12 +437,12 @@ export const testExamples = (
         return;
       }
 
-      const calledFromAuthored = new Set<string>();
+      const composedFromAuthored = new Set<string>();
       const hasAuthoredExamples = examples.some(
         (example) => !isDerivedExample(example)
       );
 
-      // Only record cross calls from authored examples. Derived fixtures
+      // Only record compose calls from authored examples. Derived fixtures
       // execute normally but do not contribute to coverage — the sink map
       // puts each example in the right bucket without an inline
       // conditional inside the test body.
@@ -450,7 +450,7 @@ export const testExamples = (
       const pickCoverageSink = (
         example: TrailExample<unknown, unknown>
       ): Set<string> =>
-        isDerivedExample(example) ? discardSink : calledFromAuthored;
+        isDerivedExample(example) ? discardSink : composedFromAuthored;
 
       test.each([...examples])(
         'example: $name',
@@ -475,9 +475,9 @@ export const testExamples = (
       );
 
       if (hasAuthoredExamples) {
-        test('crossing coverage', () => {
-          const uncovered = t.crosses.filter(
-            (id) => !calledFromAuthored.has(id)
+        test('composing coverage', () => {
+          const uncovered = t.composes.filter(
+            (id) => !composedFromAuthored.has(id)
           );
           expect(uncovered).toEqual([]);
         });

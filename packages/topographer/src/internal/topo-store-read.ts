@@ -91,7 +91,7 @@ export interface TopoStoreTrailDetailRecord extends TopoStoreTrailRecord {
   readonly cli: TopoGraphEntry['cli'] | null;
   readonly contourDetails: readonly TopoStoreContourRecord[];
   readonly contours: readonly string[];
-  readonly crosses: readonly string[];
+  readonly composes: readonly string[];
   readonly detours:
     | readonly { readonly on: string; readonly maxAttempts: number }[]
     | null;
@@ -155,7 +155,7 @@ interface TopoTrailRow {
   readonly snapshot_id: string;
 }
 
-interface TopoCrossingRow {
+interface TopoComposingRow {
   readonly target_id: string;
 }
 
@@ -323,15 +323,15 @@ const mapTrailRow = (row: TopoTrailRow): TopoStoreTrailRecord => {
   };
 };
 
-const readTrailCrossings = (
+const readTrailComposings = (
   db: Database,
   snapshotId: string,
   trailId: string
 ): readonly string[] =>
   db
-    .query<TopoCrossingRow, [string, string]>(
+    .query<TopoComposingRow, [string, string]>(
       `SELECT target_id
-       FROM topo_crossings
+       FROM topo_composings
        WHERE snapshot_id = ? AND source_id = ?
        ORDER BY target_id ASC`
     )
@@ -824,9 +824,9 @@ export const getTopoStoreTrail = (
     activationEdges: graphDetail.activationEdges,
     activationSources: graphDetail.activationSources,
     cli: graphDetail.cli,
+    composes: readTrailComposings(db, snapshot.id, trailId),
     contourDetails: graphDetail.contourDetails,
     contours: graphDetail.contours,
-    crosses: readTrailCrossings(db, snapshot.id, trailId),
     detours: graphDetail.detours,
     examples: readTrailExamples(db, snapshot.id, trailId),
     fieldOverrides: graphDetail.fieldOverrides,

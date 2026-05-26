@@ -122,11 +122,11 @@ const unwrapExecution = async (
   return result.unwrap();
 };
 
-const requireCross = (
+const requireCompose = (
   ctx: TrailContext
-): NonNullable<TrailContext['cross']> => {
-  expect(ctx.cross).toBeDefined();
-  return ctx.cross as NonNullable<TrailContext['cross']>;
+): NonNullable<TrailContext['compose']> => {
+  expect(ctx.compose).toBeDefined();
+  return ctx.compose as NonNullable<TrailContext['compose']>;
 };
 
 const waitForAbort = async (signal: AbortSignal): Promise<void> => {
@@ -161,12 +161,12 @@ const createConcurrentBranchResourceScopeScenario = () => {
   const right = createReader('entity.branch.right');
   const entry = trail('entity.branch.resource-scope', {
     blaze: async (_input, ctx) => {
-      const crossed = await requireCross(ctx)([
+      const composed = await requireCompose(ctx)([
         [left, {}],
         [right, {}],
       ] as const);
       return Result.ok({
-        sources: crossed.map((result) =>
+        sources: composed.map((result) =>
           result.match({
             err: () => 'err',
             ok: (value) => value.source,
@@ -174,13 +174,13 @@ const createConcurrentBranchResourceScopeScenario = () => {
         ),
       });
     },
-    crosses: [left, right],
+    composes: [left, right],
     input: z.object({}),
     output: z.object({ sources: z.array(z.string()) }),
   });
 
   return {
-    app: topo('cross-branch-resource-scope-topo', {
+    app: topo('compose-branch-resource-scope-topo', {
       entry,
       left,
       right,
@@ -210,12 +210,12 @@ const createAbortSignalScenario = (seenSignals: AbortSignal[]) => {
   const right = createCancellable('entity.cancel.right');
   const entry = trail('entity.branch.abort-signal', {
     blaze: async (_input, ctx) => {
-      const crossed = await requireCross(ctx)([
+      const composed = await requireCompose(ctx)([
         [left, {}],
         [right, {}],
       ] as const);
       return Result.ok({
-        statuses: crossed.map((result) =>
+        statuses: composed.map((result) =>
           result.match({
             err: (error) =>
               error instanceof CancelledError ? error.category : 'err',
@@ -224,13 +224,13 @@ const createAbortSignalScenario = (seenSignals: AbortSignal[]) => {
         ),
       });
     },
-    crosses: [left, right],
+    composes: [left, right],
     input: z.object({}),
     output: z.object({ statuses: z.array(z.string()) }),
   });
 
   return {
-    app: topo('cross-branch-abort-signal-topo', {
+    app: topo('compose-branch-abort-signal-topo', {
       entry,
       left,
       right,
@@ -270,12 +270,12 @@ const createPermitScenario = (
   const right = createChild('entity.permit.right');
   const entry = trail('entity.branch.permit', {
     blaze: async (_input, ctx) => {
-      const crossed = await requireCross(ctx)([
+      const composed = await requireCompose(ctx)([
         [left, {}],
         [right, {}],
       ] as const);
       return Result.ok({
-        permits: crossed.map((result) =>
+        permits: composed.map((result) =>
           result.match({
             err: () => ({ permitId: 'err', sameReference: false }),
             ok: (value) => value,
@@ -283,7 +283,7 @@ const createPermitScenario = (
         ),
       });
     },
-    crosses: [left, right],
+    composes: [left, right],
     input: z.object({}),
     output: z.object({
       permits: z.array(
@@ -296,7 +296,7 @@ const createPermitScenario = (
   });
 
   return {
-    app: topo('cross-branch-permit-topo', {
+    app: topo('compose-branch-permit-topo', {
       entry,
       left,
       right,
@@ -332,7 +332,7 @@ const createSiblingFailureScopeScenario = () => {
   });
   const entry = trail('entity.branch.failure-scope', {
     blaze: async (_input, ctx) => {
-      const [failed, succeeded] = await requireCross(ctx)([
+      const [failed, succeeded] = await requireCompose(ctx)([
         [failing, {}],
         [succeeding, {}],
       ] as const);
@@ -347,7 +347,7 @@ const createSiblingFailureScopeScenario = () => {
         }),
       });
     },
-    crosses: [failing, succeeding],
+    composes: [failing, succeeding],
     input: z.object({}),
     output: z.object({
       failed: z.string(),
@@ -356,7 +356,7 @@ const createSiblingFailureScopeScenario = () => {
   });
 
   return {
-    app: topo('cross-branch-failure-scope-topo', {
+    app: topo('compose-branch-failure-scope-topo', {
       entry,
       failing,
       failingResource,
@@ -1092,8 +1092,8 @@ describe('executeTrail', () => {
       });
     });
 
-    describe('crossing execution', () => {
-      test('binds ctx.cross when topo access is available', async () => {
+    describe('composing execution', () => {
+      test('binds ctx.compose when topo access is available', async () => {
         const helper = trail('entity.secret.rotate', {
           blaze: (input: { id: string }) => Result.ok({ rotated: input.id }),
           input: z.object({ id: z.string() }),
@@ -1102,20 +1102,20 @@ describe('executeTrail', () => {
         });
         const entry = trail('entity.rotate', {
           blaze: async (input: { id: string }, ctx) => {
-            const crossed = await requireCross(ctx)(
+            const composed = await requireCompose(ctx)(
               'entity.secret.rotate',
               input
             );
-            return crossed.match({
+            return composed.match({
               err: (error) => Result.err(error),
               ok: (value) => Result.ok(value),
             });
           },
-          crosses: ['entity.secret.rotate'],
+          composes: ['entity.secret.rotate'],
           input: z.object({ id: z.string() }),
           output: z.object({ rotated: z.string() }),
         });
-        const app = topo('cross-topo', { entry, helper });
+        const app = topo('compose-topo', { entry, helper });
 
         const result = await executeTrail(
           entry,
@@ -1127,31 +1127,31 @@ describe('executeTrail', () => {
         expect(result.unwrap()).toEqual({ rotated: 'abc123' });
       });
 
-      test('validates merged crossInput fields when invoking through ctx.cross', async () => {
+      test('validates merged composeInput fields when invoking through ctx.compose', async () => {
         const helper = trail('entity.prepare', {
           blaze: (input: { forkedFrom: string; id: string }) =>
             Result.ok({ summary: `${input.id}:${input.forkedFrom}` }),
-          crossInput: z.object({ forkedFrom: z.string() }),
+          composeInput: z.object({ forkedFrom: z.string() }),
           input: z.object({ id: z.string() }),
           output: z.object({ summary: z.string() }),
           visibility: 'internal',
         });
         const entry = trail('entity.run', {
           blaze: async (input: { id: string }, ctx) => {
-            const crossed = await requireCross(ctx)(helper, {
+            const composed = await requireCompose(ctx)(helper, {
               forkedFrom: 'entity.run',
               id: input.id,
             });
-            return crossed.match({
+            return composed.match({
               err: (error) => Result.err(error),
               ok: (value) => Result.ok(value),
             });
           },
-          crosses: [helper],
+          composes: [helper],
           input: z.object({ id: z.string() }),
           output: z.object({ summary: z.string() }),
         });
-        const app = topo('cross-input-topo', { entry, helper });
+        const app = topo('compose-input-topo', { entry, helper });
 
         const result = await executeTrail(
           entry,
@@ -1163,7 +1163,7 @@ describe('executeTrail', () => {
         expect(result.unwrap()).toEqual({ summary: 'abc123:entity.run' });
       });
 
-      test('executes batch ctx.cross() calls concurrently and preserves tuple order', async () => {
+      test('executes batch ctx.compose() calls concurrently and preserves tuple order', async () => {
         const completionOrder: string[] = [];
         const slow = trail('entity.slow', {
           blaze: async () => {
@@ -1187,13 +1187,13 @@ describe('executeTrail', () => {
         });
         const entry = trail('entity.batch', {
           blaze: async (_input, ctx) => {
-            const crossed = await requireCross(ctx)([
+            const composed = await requireCompose(ctx)([
               ['entity.slow', {}],
               ['entity.fast', {}],
             ]);
             return Result.ok({
               completionOrder,
-              resultOrder: crossed.map((result) =>
+              resultOrder: composed.map((result) =>
                 result.match({
                   err: () => 'err',
                   ok: (value) => (value as { id: string }).id,
@@ -1201,14 +1201,14 @@ describe('executeTrail', () => {
               ),
             });
           },
-          crosses: ['entity.fast', 'entity.slow'],
+          composes: ['entity.fast', 'entity.slow'],
           input: z.object({}),
           output: z.object({
             completionOrder: z.array(z.string()),
             resultOrder: z.array(z.string()),
           }),
         });
-        const app = topo('cross-batch-topo', { entry, fast, slow });
+        const app = topo('compose-batch-topo', { entry, fast, slow });
 
         const result = await executeTrail(entry, {}, { topo: app });
 
@@ -1219,7 +1219,7 @@ describe('executeTrail', () => {
         });
       });
 
-      test('returns every batch cross result without short-circuiting on errors', async () => {
+      test('returns every batch compose result without short-circuiting on errors', async () => {
         const completions: string[] = [];
         const failing = trail('entity.fail', {
           blaze: async () => {
@@ -1243,13 +1243,13 @@ describe('executeTrail', () => {
         });
         const entry = trail('entity.batch.errors', {
           blaze: async (_input, ctx) => {
-            const crossed = await requireCross(ctx)([
+            const composed = await requireCompose(ctx)([
               [failing, {}],
               [succeeding, {}],
             ] as const);
             return Result.ok({
               completions,
-              statuses: crossed.map((result) =>
+              statuses: composed.map((result) =>
                 result.match({
                   err: () => 'err',
                   ok: () => 'ok',
@@ -1257,14 +1257,14 @@ describe('executeTrail', () => {
               ),
             });
           },
-          crosses: [failing, succeeding],
+          composes: [failing, succeeding],
           input: z.object({}),
           output: z.object({
             completions: z.array(z.string()),
             statuses: z.array(z.string()),
           }),
         });
-        const app = topo('cross-batch-errors-topo', {
+        const app = topo('compose-batch-errors-topo', {
           entry,
           failing,
           succeeding,
@@ -1279,16 +1279,16 @@ describe('executeTrail', () => {
         });
       });
 
-      test('returns an empty array for empty batch ctx.cross() calls', async () => {
+      test('returns an empty array for empty batch ctx.compose() calls', async () => {
         const entry = trail('entity.batch.empty', {
           blaze: async (_input, ctx) => {
-            const crossed = await requireCross(ctx)([]);
-            return Result.ok({ count: crossed.length });
+            const composed = await requireCompose(ctx)([]);
+            return Result.ok({ count: composed.length });
           },
           input: z.object({}),
           output: z.object({ count: z.number() }),
         });
-        const app = topo('cross-batch-empty-topo', { entry });
+        const app = topo('compose-batch-empty-topo', { entry });
 
         const result = await executeTrail(entry, {}, { topo: app });
 
@@ -1296,11 +1296,11 @@ describe('executeTrail', () => {
         expect(result.unwrap()).toEqual({ count: 0 });
       });
 
-      test('limits batch ctx.cross() execution to sequential flow when concurrency is 1', async () => {
+      test('limits batch ctx.compose() execution to sequential flow when concurrency is 1', async () => {
         const { captures, worker } = createConcurrencyWorkerScenario();
         const entry = trail('entity.batch.sequential-limit', {
           blaze: async (_input, ctx) => {
-            const crossed = await requireCross(ctx)(
+            const composed = await requireCompose(ctx)(
               [
                 [worker, { delayMs: 5, label: 'first' }],
                 [worker, { delayMs: 0, label: 'second' }],
@@ -1311,7 +1311,7 @@ describe('executeTrail', () => {
             return Result.ok({
               completionOrder: captures.completionOrder,
               maxActive: captures.maxActive,
-              resultOrder: crossed.map((result) =>
+              resultOrder: composed.map((result) =>
                 result.match({
                   err: () => 'err',
                   ok: (value) => value.label,
@@ -1319,7 +1319,7 @@ describe('executeTrail', () => {
               ),
             });
           },
-          crosses: [worker],
+          composes: [worker],
           input: z.object({}),
           output: z.object({
             completionOrder: z.array(z.string()),
@@ -1327,7 +1327,7 @@ describe('executeTrail', () => {
             resultOrder: z.array(z.string()),
           }),
         });
-        const app = topo('cross-batch-sequential-limit-topo', {
+        const app = topo('compose-batch-sequential-limit-topo', {
           entry,
           worker,
         });
@@ -1342,7 +1342,7 @@ describe('executeTrail', () => {
         });
       });
 
-      test('caps concurrent batch ctx.cross() execution and preserves input order', async () => {
+      test('caps concurrent batch ctx.compose() execution and preserves input order', async () => {
         const { captures, worker } = createConcurrencyWorkerScenario();
         const labels = Array.from(
           { length: 10 },
@@ -1350,14 +1350,14 @@ describe('executeTrail', () => {
         );
         const entry = trail('entity.batch.concurrent-limit', {
           blaze: async (_input, ctx) => {
-            const crossed = await requireCross(ctx)(
+            const composed = await requireCompose(ctx)(
               labels.map((label) => [worker, { delayMs: 5, label }] as const),
               { concurrency: 3 }
             );
             return Result.ok({
               completionCount: captures.completionOrder.length,
               maxActive: captures.maxActive,
-              resultOrder: crossed.map((result) =>
+              resultOrder: composed.map((result) =>
                 result.match({
                   err: () => 'err',
                   ok: (value) => value.label,
@@ -1365,7 +1365,7 @@ describe('executeTrail', () => {
               ),
             });
           },
-          crosses: [worker],
+          composes: [worker],
           input: z.object({}),
           output: z.object({
             completionCount: z.number(),
@@ -1373,7 +1373,7 @@ describe('executeTrail', () => {
             resultOrder: z.array(z.string()),
           }),
         });
-        const app = topo('cross-batch-concurrent-limit-topo', {
+        const app = topo('compose-batch-concurrent-limit-topo', {
           entry,
           worker,
         });
@@ -1394,7 +1394,7 @@ describe('executeTrail', () => {
         { label: '1.5', value: 1.5 },
         { label: 'NaN', value: Number.NaN },
       ])(
-        'rejects batch ctx.cross() calls with invalid concurrency $label',
+        'rejects batch ctx.compose() calls with invalid concurrency $label',
         ({ value }) => {
           test('produces a ValidationError for every branch without running any', async () => {
             const branchRuns: string[] = [];
@@ -1409,7 +1409,7 @@ describe('executeTrail', () => {
             });
             const entry = trail('entity.batch.invalid-concurrency.entry', {
               blaze: async (_input, ctx) => {
-                const crossed = await requireCross(ctx)(
+                const composed = await requireCompose(ctx)(
                   [
                     [child, {}],
                     [child, {}],
@@ -1417,7 +1417,7 @@ describe('executeTrail', () => {
                   { concurrency: value }
                 );
                 return Result.ok({
-                  statuses: crossed.map((result) =>
+                  statuses: composed.map((result) =>
                     result.match({
                       err: (error) => ({
                         isValidation: error instanceof ValidationError,
@@ -1428,7 +1428,7 @@ describe('executeTrail', () => {
                   ),
                 });
               },
-              crosses: [child],
+              composes: [child],
               input: z.object({}),
               output: z.object({
                 statuses: z.array(
@@ -1440,7 +1440,7 @@ describe('executeTrail', () => {
               }),
             });
             const app = topo(
-              `cross-batch-invalid-concurrency-${String(value)}-topo`,
+              `compose-batch-invalid-concurrency-${String(value)}-topo`,
               { child, entry }
             );
 
@@ -1452,12 +1452,12 @@ describe('executeTrail', () => {
                 {
                   isValidation: true,
                   message:
-                    'ctx.cross() batch concurrency must be a positive integer',
+                    'ctx.compose() batch concurrency must be a positive integer',
                 },
                 {
                   isValidation: true,
                   message:
-                    'ctx.cross() batch concurrency must be a positive integer',
+                    'ctx.compose() batch concurrency must be a positive integer',
                 },
               ],
             });
@@ -1468,7 +1468,7 @@ describe('executeTrail', () => {
     });
   });
 
-  describe('concurrent crossings', () => {
+  describe('concurrent compositions', () => {
     test('resolves concurrent branch resources from branch scope instead of inheriting parent resources', async () => {
       const { app, captures, entry, id } =
         createConcurrentBranchResourceScopeScenario();
@@ -2086,8 +2086,8 @@ describe('executeTrail', () => {
       expect(result.error).toBeInstanceOf(ConflictError);
     });
 
-    test('cross-detour termination — different error type stops recovery', async () => {
-      const detourTrail = trail('detour.cross-terminate', {
+    test('compose-detour termination — different error type stops recovery', async () => {
+      const detourTrail = trail('detour.compose-terminate', {
         blaze: () => Result.err(new ConflictError('conflict')),
         detours: [
           {

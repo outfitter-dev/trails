@@ -57,16 +57,16 @@ trail("entity.show", {
     expect(diagnostics[0]?.message).toContain(
       'not a recognized Result expression'
     );
-    expect(diagnostics[0]?.message).toContain('await ctx.cross(...)');
+    expect(diagnostics[0]?.message).toContain('await ctx.compose(...)');
     expect(diagnostics[0]?.message).toContain('add a Result return annotation');
   });
 
-  test('allows Result.ok() and returning ctx.cross() results', () => {
+  test('allows Result.ok() and returning ctx.compose() results', () => {
     const code = `
 trail("entity.onboard", {
-  crosses: ["entity.create"],
+  composes: ["entity.create"],
   blaze: async (input, ctx) => {
-    const result = await ctx.cross("entity.create", input);
+    const result = await ctx.compose("entity.create", input);
     return result;
   }
 })

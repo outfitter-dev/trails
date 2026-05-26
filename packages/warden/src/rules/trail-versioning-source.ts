@@ -11,7 +11,7 @@ import {
 import type { AstNode } from './ast.js';
 import type { WardenDiagnostic, WardenRule } from './types.js';
 
-const VERSION_PINNED_CROSS = 'version-pinned-cross';
+const VERSION_PINNED_COMPOSE = 'version-pinned-compose';
 const FORK_WITHOUT_PRESERVED_BLAZE = 'fork-without-preserved-blaze';
 const MARKER_SCHEMA_UNSUPPORTED = 'marker-schema-unsupported';
 
@@ -113,7 +113,7 @@ const isMemberCallNamed = (
 const hasVersionOption = (node: AstNode | undefined): boolean =>
   node?.type === 'ObjectExpression' && hasProperty(node, 'version');
 
-const crossCallHasVersionPin = (node: AstNode): boolean => {
+const composeCallHasVersionPin = (node: AstNode): boolean => {
   if (node.type !== 'CallExpression') {
     return false;
   }
@@ -125,19 +125,19 @@ const crossCallHasVersionPin = (node: AstNode): boolean => {
     return false;
   }
 
-  const isCrossIdentifier =
+  const isComposeIdentifier =
     callee.type === 'Identifier' &&
-    (callee as unknown as { name?: string }).name === 'cross';
+    (callee as unknown as { name?: string }).name === 'compose';
   const { property } = callee as unknown as { property?: AstNode };
-  const isCrossMember =
+  const isComposeMember =
     isMemberAccessNonComputed(callee) &&
     property?.type === 'Identifier' &&
-    (property as unknown as { name?: string }).name === 'cross';
+    (property as unknown as { name?: string }).name === 'compose';
 
-  return (isCrossIdentifier || isCrossMember) && hasVersionOption(args[2]);
+  return (isComposeIdentifier || isComposeMember) && hasVersionOption(args[2]);
 };
 
-export const versionPinnedCross: WardenRule = {
+export const versionPinnedCompose: WardenRule = {
   check(sourceCode, filePath) {
     const ast = parse(filePath, sourceCode);
     if (!ast) {
@@ -147,17 +147,17 @@ export const versionPinnedCross: WardenRule = {
     const diagnostics: WardenDiagnostic[] = [];
     for (const blaze of findBlazeBodies(ast)) {
       walk(blaze, (node) => {
-        if (!crossCallHasVersionPin(node)) {
+        if (!composeCallHasVersionPin(node)) {
           return;
         }
         diagnostics.push(
           diagnostic(
-            VERSION_PINNED_CROSS,
+            VERSION_PINNED_COMPOSE,
             'warn',
             filePath,
             sourceCode,
             node,
-            'ctx.cross() version pins are temporary migration debt. Prefer keeping composition current, or document why this pin can be removed later.'
+            'ctx.compose() version pins are temporary migration debt. Prefer keeping composition current, or document why this pin can be removed later.'
           )
         );
       });
@@ -165,8 +165,8 @@ export const versionPinnedCross: WardenRule = {
     return diagnostics;
   },
   description:
-    'Warn when ctx.cross() calls pin a specific trail version instead of composing with the current trail.',
-  name: VERSION_PINNED_CROSS,
+    'Warn when ctx.compose() calls pin a specific trail version instead of composing with the current trail.',
+  name: VERSION_PINNED_COMPOSE,
   severity: 'warn',
 };
 

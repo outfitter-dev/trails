@@ -16,7 +16,7 @@ import {
 } from '@ontrails/core';
 import type {
   AnyTrail,
-  CrossBatchOptions,
+  ComposeBatchOptions,
   Layer,
   TraceContext,
   TraceRecord,
@@ -144,11 +144,11 @@ const trailRecord = (
   return found as TraceRecord;
 };
 
-const requireCross = (
+const requireCompose = (
   ctx: TrailContext
-): NonNullable<TrailContext['cross']> => {
-  expect(ctx.cross).toBeDefined();
-  return ctx.cross as NonNullable<TrailContext['cross']>;
+): NonNullable<TrailContext['compose']> => {
+  expect(ctx.compose).toBeDefined();
+  return ctx.compose as NonNullable<TrailContext['compose']>;
 };
 
 const recordsOverlap = (left: TraceRecord, right: TraceRecord): boolean => {
@@ -177,23 +177,23 @@ const createReleasedSignal = (): Promise<Signal> => {
   return controller.promise;
 };
 
-const createBatchCrossParent = (
+const createBatchComposeParent = (
   id: string,
   children: readonly [AnyTrail, ...AnyTrail[]],
-  options?: CrossBatchOptions
+  options?: ComposeBatchOptions
 ) =>
   trail(id, {
     blaze: async (_input, ctx) => {
       const calls = children.map((child) => [child, {}] as const);
-      await requireCross(ctx)(calls, options);
+      await requireCompose(ctx)(calls, options);
       return Result.ok({ completed: true });
     },
-    crosses: [...children],
+    composes: [...children],
     input: emptyIO,
     output: completedOutput,
   });
 
-const createGatedCrossChild = (
+const createGatedComposeChild = (
   id: string,
   started: SignalController,
   gate: Promise<unknown>
@@ -209,7 +209,7 @@ const createGatedCrossChild = (
     visibility: 'internal',
   });
 
-const createTimedCrossChild = (
+const createTimedComposeChild = (
   id: string,
   startedIds: string[],
   started: SignalController,
@@ -229,25 +229,25 @@ const createTimedCrossChild = (
     visibility: 'internal',
   });
 
-const createConcurrentCrossBatchScenario = () => {
+const createConcurrentComposeBatchScenario = () => {
   const leftStarted = createSignalController();
   const rightStarted = createSignalController();
   const release = createSignalController();
-  const left = createGatedCrossChild(
-    'trace.cross.concurrent.left',
+  const left = createGatedComposeChild(
+    'trace.compose.concurrent.left',
     leftStarted,
     waitForSignalPair(rightStarted.promise, release.promise)
   );
-  const right = createGatedCrossChild(
-    'trace.cross.concurrent.right',
+  const right = createGatedComposeChild(
+    'trace.compose.concurrent.right',
     rightStarted,
     waitForSignalPair(leftStarted.promise, release.promise)
   );
-  const parent = createBatchCrossParent('trace.cross.concurrent.parent', [
+  const parent = createBatchComposeParent('trace.compose.concurrent.parent', [
     left,
     right,
   ]);
-  const app = topo('trace-cross-concurrent-topo', { left, parent, right });
+  const app = topo('trace-compose-concurrent-topo', { left, parent, right });
 
   return {
     app,
@@ -259,29 +259,29 @@ const createConcurrentCrossBatchScenario = () => {
   };
 };
 
-const createLimitedCrossBatchChildren = (
+const createLimitedComposeBatchChildren = (
   startedIds: string[],
   releaseFirstBatch: Promise<unknown>
 ) => {
   const slowStarted = createSignalController();
   const fastStarted = createSignalController();
   const queuedStarted = createSignalController();
-  const slow = createTimedCrossChild(
-    'trace.cross.limited.slow',
+  const slow = createTimedComposeChild(
+    'trace.compose.limited.slow',
     startedIds,
     slowStarted,
     releaseFirstBatch,
     20
   );
-  const fast = createTimedCrossChild(
-    'trace.cross.limited.fast',
+  const fast = createTimedComposeChild(
+    'trace.compose.limited.fast',
     startedIds,
     fastStarted,
     releaseFirstBatch,
     1
   );
-  const queued = createTimedCrossChild(
-    'trace.cross.limited.queued',
+  const queued = createTimedComposeChild(
+    'trace.compose.limited.queued',
     startedIds,
     queuedStarted,
     createReleasedSignal(),
@@ -298,17 +298,17 @@ const createLimitedCrossBatchChildren = (
   };
 };
 
-const createLimitedCrossBatchScenario = () => {
+const createLimitedComposeBatchScenario = () => {
   const releaseFirstBatch = createSignalController();
   const startedIds: string[] = [];
   const { fast, fastStarted, queued, queuedStarted, slow, slowStarted } =
-    createLimitedCrossBatchChildren(startedIds, releaseFirstBatch.promise);
-  const parent = createBatchCrossParent(
-    'trace.cross.limited.parent',
+    createLimitedComposeBatchChildren(startedIds, releaseFirstBatch.promise);
+  const parent = createBatchComposeParent(
+    'trace.compose.limited.parent',
     [slow, fast, queued],
     { concurrency: 2 }
   );
-  const app = topo('trace-cross-limited-topo', {
+  const app = topo('trace-compose-limited-topo', {
     fast,
     parent,
     queued,
@@ -380,7 +380,7 @@ const createParallelSignalFanoutScenario = () => {
   };
 };
 
-const expectSiblingCrossTrailOverlap = (
+const expectSiblingComposeTrailOverlap = (
   records: readonly TraceRecord[],
   parentTrailId: string,
   leftTrailId: string,
@@ -394,7 +394,7 @@ const expectSiblingCrossTrailOverlap = (
   expect(recordsOverlap(leftRecord, rightRecord)).toBe(true);
 };
 
-const expectLimitedCrossTrailWaveShape = (
+const expectLimitedComposeTrailWaveShape = (
   records: readonly TraceRecord[],
   parentTrailId: string,
   slowTrailId: string,
@@ -579,39 +579,39 @@ describe('intrinsic tracing via executeTrail + ctx.trace', () => {
     });
   });
 
-  describe('cross-trail tracing', () => {
-    test('single ctx.cross() produces a child trail record under the parent trail', async () => {
-      const crossed = trail('trace.cross.single.child', {
+  describe('compose-trail tracing', () => {
+    test('single ctx.compose() produces a child trail record under the parent trail', async () => {
+      const composed = trail('trace.compose.single.child', {
         blaze: () => Result.ok({ ok: true }),
         input: emptyIO,
         output: z.object({ ok: z.boolean() }),
         visibility: 'internal',
       });
-      const parent = trail('trace.cross.single.parent', {
+      const parent = trail('trace.compose.single.parent', {
         blaze: async (_input, ctx) => {
-          const result = await requireCross(ctx)(crossed, {});
+          const result = await requireCompose(ctx)(composed, {});
           return result.match({
             err: (error) => Result.err(error),
             ok: (value) => Result.ok(value),
           });
         },
-        crosses: [crossed],
+        composes: [composed],
         input: emptyIO,
         output: z.object({ ok: z.boolean() }),
       });
-      const app = topo('trace-cross-single-topo', { crossed, parent });
+      const app = topo('trace-compose-single-topo', { composed, parent });
 
       await executeTrail(parent, {}, { topo: app });
 
       const parentRecord = trailRecord(sink.records, parent.id);
-      const childRecord = trailRecord(sink.records, crossed.id);
+      const childRecord = trailRecord(sink.records, composed.id);
       expect(childRecord.parentId).toBe(parentRecord.id);
       expect(childRecord.rootId).toBe(parentRecord.id);
       expect(childRecord.traceId).toBe(parentRecord.traceId);
     });
 
-    test('batch ctx.cross([...]) produces sibling child trail records with overlapping timings', async () => {
-      const scenario = createConcurrentCrossBatchScenario();
+    test('batch ctx.compose([...]) produces sibling child trail records with overlapping timings', async () => {
+      const scenario = createConcurrentComposeBatchScenario();
       const execution = executeTrail(
         scenario.parent,
         {},
@@ -620,7 +620,7 @@ describe('intrinsic tracing via executeTrail + ctx.trace', () => {
       await scenario.started;
       scenario.release.resolve(SIGNAL);
       await execution;
-      expectSiblingCrossTrailOverlap(
+      expectSiblingComposeTrailOverlap(
         sink.records,
         scenario.parent.id,
         scenario.left.id,
@@ -628,8 +628,8 @@ describe('intrinsic tracing via executeTrail + ctx.trace', () => {
       );
     });
 
-    test('concurrency-limited batch crossings emit a second wave only after a slot frees up', async () => {
-      const scenario = createLimitedCrossBatchScenario();
+    test('concurrency-limited batch compositions emit a second wave only after a slot frees up', async () => {
+      const scenario = createLimitedComposeBatchScenario();
       const execution = executeTrail(
         scenario.parent,
         {},
@@ -641,7 +641,7 @@ describe('intrinsic tracing via executeTrail + ctx.trace', () => {
       await scenario.queuedStarted;
       await execution;
 
-      expectLimitedCrossTrailWaveShape(
+      expectLimitedComposeTrailWaveShape(
         sink.records,
         scenario.parent.id,
         scenario.slow.id,

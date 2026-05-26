@@ -1,21 +1,21 @@
 /**
- * testCrosses — crossing-aware scenario testing for trails with crossings.
+ * testComposes — composing-aware scenario testing for trails with compositions.
  *
- * Tests the crossing graph: which trails were crossed, in what order,
- * and supports failure injection from crossed trail examples.
+ * Tests the composing graph: which trails were composed, in what order,
+ * and supports failure injection from composed trail examples.
  */
 
 import { describe, expect, test } from 'bun:test';
 
 import type {
   AnyTrail,
-  CrossFn,
+  ComposeFn,
   ExecuteTrailOptions,
   ResourceOverrideMap,
   TrailContext,
 } from '@ontrails/core';
 import {
-  buildCrossValidationSchema,
+  buildComposeValidationSchema,
   executeTrail,
   InternalError,
   Result,
@@ -29,17 +29,17 @@ import {
   assertSchemaMatch,
 } from './assertions.js';
 import { mergeResourceOverrides, mergeTestContext } from './context.js';
-import type { CrossScenario } from './types.js';
+import type { ComposeScenario } from './types.js';
 
 type TestingExecuteTrailOptions = ExecuteTrailOptions & {
-  readonly validationSchema?: ReturnType<typeof buildCrossValidationSchema>;
+  readonly validationSchema?: ReturnType<typeof buildComposeValidationSchema>;
 };
 
 // ---------------------------------------------------------------------------
-// Cross trace
+// Compose trace
 // ---------------------------------------------------------------------------
 
-interface CrossRecord {
+interface ComposeRecord {
   readonly id: string;
   readonly input: unknown;
 }
@@ -68,10 +68,10 @@ const collectDeclaredResources = (
     }
     seenTrailIds.add(candidate.id);
     collect(candidate);
-    for (const crossedId of candidate.crosses) {
-      const crossedTrail = trailsMap?.get(crossedId);
-      if (crossedTrail) {
-        visit(crossedTrail);
+    for (const composedId of candidate.composes) {
+      const composedTrail = trailsMap?.get(composedId);
+      if (composedTrail) {
+        visit(composedTrail);
       }
     }
   };
@@ -80,7 +80,7 @@ const collectDeclaredResources = (
   return resources;
 };
 
-const resolveCrossMockResources = async (
+const resolveComposeMockResources = async (
   trailDef: AnyTrail,
   trailsMap: ReadonlyMap<string, AnyTrail> | undefined
 ): Promise<ResourceOverrideMap> => {
@@ -119,12 +119,12 @@ const findErrorExample = (
 };
 
 /**
- * Try to inject an error from a crossed trail's example.
+ * Try to inject an error from a composed trail's example.
  * Returns undefined when no injection is configured for this trail ID.
  */
 const tryInjectError = (
   id: string,
-  scenario: CrossScenario,
+  scenario: ComposeScenario,
   trailsMap: ReadonlyMap<string, AnyTrail> | undefined
 ): Result<unknown, Error> | undefined => {
   const injection = scenario.injectFromExample?.[id];
@@ -155,66 +155,67 @@ const executeFromMap = (
   trailsMap: ReadonlyMap<string, AnyTrail> | undefined,
   ctx: TrailContext,
   resources: ResourceOverrideMap | undefined,
-  cross?: CrossFn
+  compose?: ComposeFn
 ): Result<unknown, Error> | Promise<Result<unknown, Error>> | undefined => {
   const trailDef = trailsMap?.get(id);
   if (trailDef === undefined) {
     return undefined;
   }
 
-  const nestedCtx = cross ? { ...ctx, cross } : ctx;
+  const nestedCtx = compose ? { ...ctx, compose } : ctx;
   const options: TestingExecuteTrailOptions = {
     ctx: nestedCtx,
     resources,
-    validationSchema: buildCrossValidationSchema(trailDef),
+    validationSchema: buildComposeValidationSchema(trailDef),
   };
   return executeTrail(trailDef, input, options);
 };
 
 /** Extract trail ID from either a trail object or a string. */
-const resolveCrossId = (idOrTrail: string | { readonly id: string }): string =>
-  typeof idOrTrail === 'string' ? idOrTrail : idOrTrail.id;
+const resolveComposeId = (
+  idOrTrail: string | { readonly id: string }
+): string => (typeof idOrTrail === 'string' ? idOrTrail : idOrTrail.id);
 
 // ---------------------------------------------------------------------------
-// Cross factory
+// Compose factory
 // ---------------------------------------------------------------------------
 
-/** Delegate to baseCross, executeFromMap, or fall back to Result.ok(). */
-const delegateCross = (
+/** Delegate to baseCompose, executeFromMap, or fall back to Result.ok(). */
+const delegateCompose = (
   id: string,
   input: unknown,
-  baseCross: CrossFn | undefined,
+  baseCompose: ComposeFn | undefined,
   trailsMap: ReadonlyMap<string, AnyTrail> | undefined,
   ctx: TrailContext,
   resources: ResourceOverrideMap | undefined,
-  self: CrossFn
+  self: ComposeFn
 ): Promise<Result<unknown, Error>> => {
-  if (baseCross !== undefined) {
-    return baseCross(id, input);
+  if (baseCompose !== undefined) {
+    return baseCompose(id, input);
   }
   const executed = executeFromMap(id, input, trailsMap, ctx, resources, self);
   return Promise.resolve(executed ?? Result.ok());
 };
 
 /**
- * Build a recording cross function that optionally injects errors.
+ * Build a recording compose function that optionally injects errors.
  */
-const createRecordingCross = (
-  trace: CrossRecord[],
-  scenario: CrossScenario,
+const createRecordingCompose = (
+  trace: ComposeRecord[],
+  scenario: ComposeScenario,
   trailsMap: ReadonlyMap<string, AnyTrail> | undefined,
-  baseCross: CrossFn | undefined,
+  baseCompose: ComposeFn | undefined,
   ctx: TrailContext,
   resources: ResourceOverrideMap | undefined
-): CrossFn => {
-  // The generic O on CrossFn is erased at runtime; the cast is safe
+): ComposeFn => {
+  // The generic O on ComposeFn is erased at runtime; the cast is safe
   // because callers narrow via isOk/isErr before accessing the value.
-  const invokeCross = async (
+  const invokeCompose = async (
     idOrTrail: string | { readonly id: string },
     input: unknown,
-    self: CrossFn
+    self: ComposeFn
   ) => {
-    const id = resolveCrossId(idOrTrail);
+    const id = resolveComposeId(idOrTrail);
     trace.push({ id, input });
 
     const injected = tryInjectError(id, scenario, trailsMap);
@@ -222,10 +223,10 @@ const createRecordingCross = (
       return injected;
     }
 
-    return await delegateCross(
+    return await delegateCompose(
       id,
       input,
-      baseCross,
+      baseCompose,
       trailsMap,
       ctx,
       resources,
@@ -233,9 +234,9 @@ const createRecordingCross = (
     );
   };
 
-  // Accepts either a trail object (typed cross), a string id (untyped),
+  // Accepts either a trail object (typed compose), a string id (untyped),
   // or a batch of `[target, input]` tuples.
-  const cross = async function cross(
+  const compose = async function compose(
     idOrTrail:
       | string
       | { readonly id: string }
@@ -245,19 +246,19 @@ const createRecordingCross = (
     if (Array.isArray(idOrTrail)) {
       return await Promise.all(
         idOrTrail.map(([target, batchInput]) =>
-          invokeCross(target, batchInput, cross as CrossFn)
+          invokeCompose(target, batchInput, compose as ComposeFn)
         )
       );
     }
 
-    return await invokeCross(
+    return await invokeCompose(
       idOrTrail as string | { readonly id: string },
       input,
-      cross as CrossFn
+      compose as ComposeFn
     );
-  } as CrossFn;
+  } as ComposeFn;
 
-  return cross;
+  return compose;
 };
 
 // ---------------------------------------------------------------------------
@@ -266,7 +267,7 @@ const createRecordingCross = (
 
 const assertScenarioResult = (
   result: Result<unknown, Error>,
-  scenario: CrossScenario,
+  scenario: ComposeScenario,
   trailDef: AnyTrail
 ): void => {
   if (scenario.expectValue !== undefined) {
@@ -284,26 +285,26 @@ const assertScenarioResult = (
   }
 };
 
-const assertCrossTrace = (
-  trace: readonly CrossRecord[],
-  scenario: CrossScenario
+const assertComposeTrace = (
+  trace: readonly ComposeRecord[],
+  scenario: ComposeScenario
 ): void => {
-  if (scenario.expectCrossed !== undefined) {
-    const crossedIds = trace.map((r) => r.id);
-    expect(crossedIds).toEqual([...scenario.expectCrossed]);
+  if (scenario.expectComposed !== undefined) {
+    const composedIds = trace.map((r) => r.id);
+    expect(composedIds).toEqual([...scenario.expectComposed]);
   }
-  if (scenario.expectCrossedCount !== undefined) {
+  if (scenario.expectComposedCount !== undefined) {
     const counts: Record<string, number> = {};
     for (const record of trace) {
       counts[record.id] = (counts[record.id] ?? 0) + 1;
     }
-    expect(counts).toEqual({ ...scenario.expectCrossedCount });
+    expect(counts).toEqual({ ...scenario.expectComposedCount });
   }
 };
 
 const handleValidationError = (
   validated: Result<unknown, Error>,
-  scenario: CrossScenario
+  scenario: ComposeScenario
 ): boolean => {
   if (!validated.isErr()) {
     return false;
@@ -325,27 +326,27 @@ const handleValidationError = (
 // ---------------------------------------------------------------------------
 
 const buildTestContext = (
-  scenario: CrossScenario,
+  scenario: ComposeScenario,
   ctx: Partial<TrailContext> | undefined,
   trailsMap: ReadonlyMap<string, AnyTrail> | undefined,
   resources: ResourceOverrideMap | undefined
-): { trace: CrossRecord[]; testCtx: TrailContext } => {
-  const trace: CrossRecord[] = [];
+): { trace: ComposeRecord[]; testCtx: TrailContext } => {
+  const trace: ComposeRecord[] = [];
   const baseCtx = mergeTestContext(ctx);
-  const cross = createRecordingCross(
+  const compose = createRecordingCompose(
     trace,
     scenario,
     trailsMap,
-    baseCtx.cross,
+    baseCtx.compose,
     baseCtx,
     resources
   );
-  return { testCtx: { ...baseCtx, cross }, trace };
+  return { testCtx: { ...baseCtx, compose }, trace };
 };
 
 const runScenario = async (
   trailDef: AnyTrail,
-  scenario: CrossScenario,
+  scenario: ComposeScenario,
   ctx: Partial<TrailContext> | undefined,
   trailsMap: ReadonlyMap<string, AnyTrail> | undefined,
   resources: ResourceOverrideMap | undefined
@@ -365,16 +366,16 @@ const runScenario = async (
     ctx: testCtx,
     resources,
   });
-  assertCrossTrace(trace, scenario);
+  assertComposeTrace(trace, scenario);
   assertScenarioResult(result, scenario, trailDef);
 };
 
 // ---------------------------------------------------------------------------
-// testCrosses
+// testComposes
 // ---------------------------------------------------------------------------
 
-/** Options for testCrosses that provide trail definitions for injection. */
-export interface TestCrossOptions {
+/** Options for testComposes that provide trail definitions for injection. */
+export interface TestComposeOptions {
   /** Partial context overrides. */
   readonly ctx?: Partial<TrailContext> | undefined;
   /**
@@ -388,33 +389,33 @@ export interface TestCrossOptions {
 }
 
 /**
- * Generate a describe block for a trail with crossings with one test per scenario.
+ * Generate a describe block for a trail with compositions with one test per scenario.
  *
  * @example
  * ```ts
- * testCrosses(onboardTrail, [
+ * testComposes(onboardTrail, [
  *   {
- *     description: "crosses add then relate",
+ *     description: "composes add then relate",
  *     input: { name: "Alpha" },
  *     expectOk: true,
- *     expectCrossed: ["entity.add", "entity.relate"],
+ *     expectComposed: ["entity.add", "entity.relate"],
  *   },
  * ]);
  * ```
  */
-export const testCrosses = (
+export const testComposes = (
   trailDef: AnyTrail,
-  scenarios: readonly CrossScenario[],
-  options?: TestCrossOptions
+  scenarios: readonly ComposeScenario[],
+  options?: TestComposeOptions
 ): void => {
   const explicitResources = options?.resources;
 
   describe(trailDef.id, () => {
     test.each([...scenarios])(
       '$description',
-      async (scenario: CrossScenario) => {
+      async (scenario: ComposeScenario) => {
         const resources = mergeResourceOverrides(
-          await resolveCrossMockResources(trailDef, options?.trails),
+          await resolveComposeMockResources(trailDef, options?.trails),
           options?.ctx,
           explicitResources
         );

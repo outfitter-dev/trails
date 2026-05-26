@@ -87,7 +87,7 @@ identity matters.
 
 ### Inferred scope
 
-v1 does not infer emitted error contracts from blaze source, `ctx.cross()`
+v1 does not infer emitted error contracts from blaze source, `ctx.compose()`
 propagation, resource factories, layers, or detour recovery functions. Whole
 program error inference is out of scope because it would require static
 analysis that Trails has not made a contract yet.
@@ -125,7 +125,7 @@ graph state.
 - Add an authored per-trail error contract if Trails decides developers should
   explicitly declare possible failures beyond examples and detours.
 - Add static inference only after the framework can explain and test propagation
-  through `Result.err`, `ctx.cross()`, resources, layers, and detour recovery.
+  through `Result.err`, `ctx.compose()`, resources, layers, and detour recovery.
 - Add typed topo-store accessors for error examples and detour projections if
   agents need ergonomic error-specific queries instead of reading trail detail
   records or `TopoGraph` JSON.

@@ -147,7 +147,7 @@ describe('executeTrail permit enforcement', () => {
     expect(result.error.message).toContain('admin');
   });
 
-  test('rechecks permit requirements across ctx.cross boundaries', async () => {
+  test('rechecks permit requirements across ctx.compose boundaries', async () => {
     const child = trail('permit.child', {
       blaze: () => Result.ok({ ok: true }),
       input: z.object({}),
@@ -157,18 +157,18 @@ describe('executeTrail permit enforcement', () => {
     });
     const parent = trail('permit.parent', {
       blaze: async (_input, ctx) => {
-        const crossed = await ctx.cross?.(child, {});
+        const composed = await ctx.compose?.(child, {});
         return Result.ok({
           childError:
-            crossed?.isErr() === true ? crossed.error.message : undefined,
+            composed?.isErr() === true ? composed.error.message : undefined,
         });
       },
-      crosses: [child],
+      composes: [child],
       input: z.object({}),
       output: z.object({ childError: z.string().optional() }),
       permit: { scopes: ['parent:write'] },
     });
-    const app = topo('permit-cross-topo', { child, parent });
+    const app = topo('permit-compose-topo', { child, parent });
 
     const result = await executeTrail(
       parent,

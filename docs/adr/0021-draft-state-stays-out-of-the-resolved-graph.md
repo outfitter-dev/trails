@@ -54,7 +54,7 @@ Examples:
 - a draft trail ID
 - a draft signal ID
 - a draft resource ID
-- a `crosses` entry that points at a draft trail
+- a `composes` entry that points at a draft trail
 - a signal `from` entry that points at a draft trail
 
 The marker is not "just part of the string." Tooling must recognize it as draft state immediately.
@@ -91,7 +91,7 @@ From the point of insertion, upstream remains established. Downstream inherits t
 ```text
 gist.show              -> established
 _draft.gist.fork       -> draft
-gist.export crosses _draft.gist.fork -> gist.export becomes draft-contaminated
+gist.export composes _draft.gist.fork -> gist.export becomes draft-contaminated
 ```
 
 ### The authored graph may contain drafts; the resolved graph may not

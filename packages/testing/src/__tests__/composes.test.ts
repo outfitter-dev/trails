@@ -4,10 +4,10 @@ import type { AnyTrail, TrailContext } from '@ontrails/core';
 import { InternalError, Result, resource, trail } from '@ontrails/core';
 import { z } from 'zod';
 
-import { testCrosses } from '../crosses.js';
+import { testComposes } from '../composes.js';
 
 // ---------------------------------------------------------------------------
-// Test trails (trails with crossings)
+// Test trails (trails with compositions)
 // ---------------------------------------------------------------------------
 
 const addTrail = trail('entity.add', {
@@ -43,10 +43,10 @@ const onboardTrail = trail('entity.onboard', {
     input: { name: string; relatedTo: string },
     ctx: TrailContext
   ) => {
-    if (!ctx.cross) {
-      return Result.err(new Error('cross not available'));
+    if (!ctx.compose) {
+      return Result.err(new Error('compose not available'));
     }
-    const addResult = await ctx.cross<{ id: string; name: string }>(
+    const addResult = await ctx.compose<{ id: string; name: string }>(
       'entity.add',
       { name: input.name }
     );
@@ -54,7 +54,7 @@ const onboardTrail = trail('entity.onboard', {
       return Result.err(addResult.error);
     }
 
-    const relateResult = await ctx.cross<{ from: string; to: string }>(
+    const relateResult = await ctx.compose<{ from: string; to: string }>(
       'entity.relate',
       { from: addResult.value.name, to: input.relatedTo }
     );
@@ -67,7 +67,7 @@ const onboardTrail = trail('entity.onboard', {
       relatedTo: relateResult.value.to,
     });
   },
-  crosses: ['entity.add', 'entity.relate'],
+  composes: ['entity.add', 'entity.relate'],
   input: z.object({ name: z.string(), relatedTo: z.string() }),
   output: z.object({ name: z.string(), relatedTo: z.string() }),
 });
@@ -83,9 +83,9 @@ const trailsMap = new Map<string, AnyTrail>([
 
 const opts = { trails: trailsMap };
 
-describe('testCrosses: expectOk', () => {
+describe('testComposes: expectOk', () => {
   // eslint-disable-next-line jest/require-hook
-  testCrosses(
+  testComposes(
     onboardTrail,
     [
       {
@@ -98,14 +98,14 @@ describe('testCrosses: expectOk', () => {
   );
 });
 
-describe('testCrosses: expectCrossed', () => {
+describe('testComposes: expectComposed', () => {
   // eslint-disable-next-line jest/require-hook
-  testCrosses(
+  testComposes(
     onboardTrail,
     [
       {
-        description: 'crosses add then relate in order',
-        expectCrossed: ['entity.add', 'entity.relate'],
+        description: 'composes add then relate in order',
+        expectComposed: ['entity.add', 'entity.relate'],
         expectOk: true,
         input: { name: 'Alpha', relatedTo: 'Beta' },
       },
@@ -114,14 +114,14 @@ describe('testCrosses: expectCrossed', () => {
   );
 });
 
-describe('testCrosses: expectCrossedCount', () => {
+describe('testComposes: expectComposedCount', () => {
   // eslint-disable-next-line jest/require-hook
-  testCrosses(
+  testComposes(
     onboardTrail,
     [
       {
-        description: 'each trail crossed exactly once',
-        expectCrossedCount: { 'entity.add': 1, 'entity.relate': 1 },
+        description: 'each trail composed exactly once',
+        expectComposedCount: { 'entity.add': 1, 'entity.relate': 1 },
         expectOk: true,
         input: { name: 'Alpha', relatedTo: 'Beta' },
       },
@@ -130,9 +130,9 @@ describe('testCrosses: expectCrossedCount', () => {
   );
 });
 
-describe('testCrosses: injectFromExample', () => {
+describe('testComposes: injectFromExample', () => {
   // eslint-disable-next-line jest/require-hook
-  testCrosses(
+  testComposes(
     onboardTrail,
     [
       {
@@ -147,9 +147,9 @@ describe('testCrosses: injectFromExample', () => {
   );
 });
 
-describe('testCrosses: expectValue', () => {
+describe('testComposes: expectValue', () => {
   // eslint-disable-next-line jest/require-hook
-  testCrosses(
+  testComposes(
     onboardTrail,
     [
       {
@@ -163,7 +163,7 @@ describe('testCrosses: expectValue', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Nested cross chain: A → B → C
+// Nested compose chain: A → B → C
 // ---------------------------------------------------------------------------
 
 const leafTrail = trail('step.leaf', {
@@ -175,34 +175,37 @@ const leafTrail = trail('step.leaf', {
 
 const middleTrail = trail('step.middle', {
   blaze: async (input: { value: string }, ctx: TrailContext) => {
-    if (!ctx.cross) {
-      return Result.err(new Error('cross not available'));
+    if (!ctx.compose) {
+      return Result.err(new Error('compose not available'));
     }
-    const leafResult = await ctx.cross<{ leaf: string }>('step.leaf', input);
+    const leafResult = await ctx.compose<{ leaf: string }>('step.leaf', input);
     if (leafResult.isErr()) {
       return leafResult;
     }
     return Result.ok({ middle: leafResult.value.leaf });
   },
-  crosses: ['step.leaf'],
-  description: 'Middle trail that crosses the leaf',
+  composes: ['step.leaf'],
+  description: 'Middle trail that composes the leaf',
   input: z.object({ value: z.string() }),
   output: z.object({ middle: z.string() }),
 });
 
 const nestedRootTrail = trail('step.root', {
   blaze: async (input: { value: string }, ctx: TrailContext) => {
-    if (!ctx.cross) {
-      return Result.err(new Error('cross not available'));
+    if (!ctx.compose) {
+      return Result.err(new Error('compose not available'));
     }
-    const midResult = await ctx.cross<{ middle: string }>('step.middle', input);
+    const midResult = await ctx.compose<{ middle: string }>(
+      'step.middle',
+      input
+    );
     if (midResult.isErr()) {
       return midResult;
     }
     return Result.ok({ root: midResult.value.middle });
   },
-  crosses: ['step.middle'],
-  description: 'Root trail that crosses the middle trail',
+  composes: ['step.middle'],
+  description: 'Root trail that composes the middle trail',
   input: z.object({ value: z.string() }),
   output: z.object({ root: z.string() }),
 });
@@ -212,13 +215,13 @@ const nestedTrailsMap = new Map<string, AnyTrail>([
   ['step.middle', middleTrail],
 ]);
 
-describe('testCrosses: nested cross chain (A → B → C)', () => {
+describe('testComposes: nested compose chain (A → B → C)', () => {
   // eslint-disable-next-line jest/require-hook
-  testCrosses(
+  testComposes(
     nestedRootTrail,
     [
       {
-        description: 'nested ctx.cross works through A → B → C',
+        description: 'nested ctx.compose works through A → B → C',
         expectOk: true,
         expectValue: { root: 'hello' },
         input: { value: 'hello' },
@@ -228,7 +231,7 @@ describe('testCrosses: nested cross chain (A → B → C)', () => {
   );
 });
 
-const mockDbResource = resource('db.mock.crosses', {
+const mockDbResource = resource('db.mock.composes', {
   create: () => Result.ok({ source: 'factory' }),
   mock: () => ({ source: 'mock' }),
 });
@@ -244,10 +247,10 @@ const provisionLeafTrail = trail('resource.leaf', {
 
 const provisionRootTrail = trail('resource.root', {
   blaze: async (_input, ctx: TrailContext) => {
-    if (!ctx.cross) {
-      return Result.err(new Error('cross not available'));
+    if (!ctx.compose) {
+      return Result.err(new Error('compose not available'));
     }
-    const childResult = await ctx.cross<{ childSource: string }>(
+    const childResult = await ctx.compose<{ childSource: string }>(
       'resource.leaf',
       {}
     );
@@ -260,9 +263,9 @@ const provisionRootTrail = trail('resource.root', {
       rootSource: mockDbResource.from(ctx).source,
     });
   },
-  crosses: ['resource.leaf'],
+  composes: ['resource.leaf'],
   description:
-    'Root trail that reads from a resource and crosses a child trail',
+    'Root trail that reads from a resource and composes a child trail',
   input: z.object({}),
   output: z.object({ childSource: z.string(), rootSource: z.string() }),
   resources: [mockDbResource],
@@ -272,7 +275,7 @@ const provisionTrailsMap = new Map<string, AnyTrail>([
   ['resource.leaf', provisionLeafTrail],
 ]);
 
-const statefulMockDbResource = resource('db.mock.crosses.stateful', {
+const statefulMockDbResource = resource('db.mock.composes.stateful', {
   create: () => Result.ok({ count: 0 }),
   mock: () => ({ count: 0 }),
 });
@@ -288,14 +291,14 @@ const statefulResourceLeafTrail = trail('resource.stateful.leaf', {
 
 const statefulResourceRootTrail = trail('resource.stateful.root', {
   blaze: async (_input, ctx: TrailContext) => {
-    if (!ctx.cross) {
-      return Result.err(new Error('cross not available'));
+    if (!ctx.compose) {
+      return Result.err(new Error('compose not available'));
     }
 
     const statefulResource = statefulMockDbResource.from(ctx);
     statefulResource.count += 1;
 
-    const childResult = await ctx.cross<{ childCount: number }>(
+    const childResult = await ctx.compose<{ childCount: number }>(
       'resource.stateful.leaf',
       {}
     );
@@ -308,9 +311,9 @@ const statefulResourceRootTrail = trail('resource.stateful.root', {
       rootCount: statefulResource.count,
     });
   },
-  crosses: ['resource.stateful.leaf'],
+  composes: ['resource.stateful.leaf'],
   description:
-    'Root trail that mutates a mocked resource and crosses a child trail',
+    'Root trail that mutates a mocked resource and composes a child trail',
   input: z.object({}),
   output: z.object({ childCount: z.number(), rootCount: z.number() }),
   resources: [statefulMockDbResource],
@@ -336,14 +339,14 @@ const scenarioLeafTrail = trail('resource.scenario.leaf', {
 
 const scenarioRootTrail = trail('resource.scenario.root', {
   blaze: async (_input, ctx: TrailContext) => {
-    if (!ctx.cross) {
-      return Result.err(new Error('cross not available'));
+    if (!ctx.compose) {
+      return Result.err(new Error('compose not available'));
     }
 
     const state = scenarioStateResource.from(ctx);
     state.count += 1;
 
-    const leafResult = await ctx.cross<{ count: number }>(
+    const leafResult = await ctx.compose<{ count: number }>(
       'resource.scenario.leaf',
       {}
     );
@@ -353,8 +356,8 @@ const scenarioRootTrail = trail('resource.scenario.root', {
 
     return Result.ok({ count: leafResult.value.count });
   },
-  crosses: ['resource.scenario.leaf'],
-  description: 'Root trail that mutates scenario state and crosses a leaf',
+  composes: ['resource.scenario.leaf'],
+  description: 'Root trail that mutates scenario state and composes a leaf',
   input: z.object({}),
   output: z.object({ count: z.number() }),
   resources: [scenarioStateResource],
@@ -364,21 +367,21 @@ const scenarioResourceTrailsMap = new Map<string, AnyTrail>([
   ['resource.scenario.leaf', scenarioLeafTrail],
 ]);
 
-const transformedCrossLeafTrail = trail('cross.transformed.leaf', {
+const transformedComposeLeafTrail = trail('compose.transformed.leaf', {
   blaze: (input: { value: number }) => Result.ok({ value: input.value }),
-  description: 'Leaf trail in a transformed cross chain',
+  description: 'Leaf trail in a transformed compose chain',
   input: z.object({ value: z.number() }),
   output: z.object({ value: z.number() }),
 });
 
-const transformedCrossRootTrail = trail('cross.transformed.root', {
+const transformedComposeRootTrail = trail('compose.transformed.root', {
   blaze: async (input: { value: number }, ctx: TrailContext) => {
-    if (!ctx.cross) {
-      return Result.err(new Error('cross not available'));
+    if (!ctx.compose) {
+      return Result.err(new Error('compose not available'));
     }
 
-    const leafResult = await ctx.cross<{ value: number }>(
-      'cross.transformed.leaf',
+    const leafResult = await ctx.compose<{ value: number }>(
+      'compose.transformed.leaf',
       { value: input.value }
     );
     if (leafResult.isErr()) {
@@ -387,39 +390,39 @@ const transformedCrossRootTrail = trail('cross.transformed.root', {
 
     return Result.ok({ root: leafResult.value.value });
   },
-  crosses: ['cross.transformed.leaf'],
-  description: 'Root trail that transforms input once before crossing',
+  composes: ['compose.transformed.leaf'],
+  description: 'Root trail that transforms input once before composing',
   input: z
     .object({ value: z.string() })
     .transform(({ value }) => ({ value: Number(value) + 1 })),
   output: z.object({ root: z.number() }),
 });
 
-const transformedCrossTrailsMap = new Map<string, AnyTrail>([
-  ['cross.transformed.leaf', transformedCrossLeafTrail],
+const transformedComposeTrailsMap = new Map<string, AnyTrail>([
+  ['compose.transformed.leaf', transformedComposeLeafTrail],
 ]);
 
-const undeclaredCrossResource = resource('db.undeclared.crosses', {
+const undeclaredComposeResource = resource('db.undeclared.composes', {
   create: () => Result.ok({ source: 'factory' }),
   mock: () => ({ source: 'mock' }),
 });
 
 const undeclaredResourceLeafTrail = trail('resource.undeclared.leaf', {
   blaze: (_input, ctx) =>
-    Result.ok({ childSource: undeclaredCrossResource.from(ctx).source }),
+    Result.ok({ childSource: undeclaredComposeResource.from(ctx).source }),
   description: 'Leaf trail that declares the shared resource',
   input: z.object({}),
   output: z.object({ childSource: z.string() }),
-  resources: [undeclaredCrossResource],
+  resources: [undeclaredComposeResource],
 });
 
 const undeclaredResourceRootTrail = trail('resource.undeclared.root', {
   blaze: async (_input, ctx: TrailContext) => {
-    if (!ctx.cross) {
-      return Result.err(new Error('cross not available'));
+    if (!ctx.compose) {
+      return Result.err(new Error('compose not available'));
     }
 
-    const childResult = await ctx.cross<{ childSource: string }>(
+    const childResult = await ctx.compose<{ childSource: string }>(
       'resource.undeclared.leaf',
       {}
     );
@@ -429,10 +432,10 @@ const undeclaredResourceRootTrail = trail('resource.undeclared.root', {
 
     return Result.ok({
       childSource: childResult.value.childSource,
-      rootSource: undeclaredCrossResource.from(ctx).source,
+      rootSource: undeclaredComposeResource.from(ctx).source,
     });
   },
-  crosses: ['resource.undeclared.leaf'],
+  composes: ['resource.undeclared.leaf'],
   description: 'Root trail that uses a resource without declaring it',
   input: z.object({}),
   output: z.object({ childSource: z.string(), rootSource: z.string() }),
@@ -442,7 +445,7 @@ const undeclaredResourceTrailsMap = new Map<string, AnyTrail>([
   ['resource.undeclared.leaf', undeclaredResourceLeafTrail],
 ]);
 
-const unrelatedCrossResource = resource('db.unrelated.crosses', {
+const unrelatedComposeResource = resource('db.unrelated.composes', {
   create: () => Result.ok({ source: 'factory' }),
   mock: () => {
     throw new Error('unrelated mock should not be resolved');
@@ -451,24 +454,24 @@ const unrelatedCrossResource = resource('db.unrelated.crosses', {
 
 const unrelatedResourceTrail = trail('resource.unrelated', {
   blaze: (_input, ctx) =>
-    Result.ok({ source: unrelatedCrossResource.from(ctx).source }),
+    Result.ok({ source: unrelatedComposeResource.from(ctx).source }),
   description: 'Trail that should not be traversed or mocked',
   input: z.object({}),
   output: z.object({ source: z.string() }),
-  resources: [unrelatedCrossResource],
+  resources: [unrelatedComposeResource],
 });
 
 const unrelatedResourceTrailsMap = new Map<string, AnyTrail>([
   ['resource.unrelated', unrelatedResourceTrail],
 ]);
 
-describe('testCrosses resource mocks', () => {
+describe('testComposes resource mocks', () => {
   // eslint-disable-next-line jest/require-hook
-  testCrosses(
+  testComposes(
     provisionRootTrail,
     [
       {
-        description: 'propagates auto-resolved resource mocks through cross',
+        description: 'propagates auto-resolved resource mocks through compose',
         expectValue: { childSource: 'mock', rootSource: 'mock' },
         input: {},
       },
@@ -477,9 +480,9 @@ describe('testCrosses resource mocks', () => {
   );
 });
 
-describe('testCrosses resource mocks are fresh per scenario', () => {
+describe('testComposes resource mocks are fresh per scenario', () => {
   // eslint-disable-next-line jest/require-hook
-  testCrosses(
+  testComposes(
     scenarioRootTrail,
     [
       {
@@ -497,28 +500,28 @@ describe('testCrosses resource mocks are fresh per scenario', () => {
   );
 });
 
-describe('testCrosses explicit resource overrides', () => {
+describe('testComposes explicit resource overrides', () => {
   // eslint-disable-next-line jest/require-hook
-  testCrosses(
+  testComposes(
     provisionRootTrail,
     [
       {
-        description: 'propagates explicit resource overrides through cross',
+        description: 'propagates explicit resource overrides through compose',
         expectValue: { childSource: 'override', rootSource: 'override' },
         input: {},
       },
     ],
     {
-      resources: { 'db.mock.crosses': { source: 'override' } },
+      resources: { 'db.mock.composes': { source: 'override' } },
       trails: provisionTrailsMap,
     }
   );
 });
 
-describe('testCrosses raw transformed input', () => {
+describe('testComposes raw transformed input', () => {
   // eslint-disable-next-line jest/require-hook
-  testCrosses(
-    transformedCrossRootTrail,
+  testComposes(
+    transformedComposeRootTrail,
     [
       {
         description: 'raw scenario input is only transformed once',
@@ -526,19 +529,19 @@ describe('testCrosses raw transformed input', () => {
         input: { value: '1' },
       },
     ],
-    { trails: transformedCrossTrailsMap }
+    { trails: transformedComposeTrailsMap }
   );
 });
 
-describe('testCrosses resource declarations', () => {
+describe('testComposes resource declarations', () => {
   // eslint-disable-next-line jest/require-hook
-  testCrosses(
+  testComposes(
     undeclaredResourceRootTrail,
     [
       {
         description: 'fails when the root trail omits a required resource',
         expectErr: InternalError,
-        expectErrMessage: undeclaredCrossResource.id,
+        expectErrMessage: undeclaredComposeResource.id,
         input: {},
       },
     ],
@@ -546,9 +549,9 @@ describe('testCrosses resource declarations', () => {
   );
 });
 
-describe('testCrosses only resolves mocks for trails under test', () => {
+describe('testComposes only resolves mocks for trails under test', () => {
   // eslint-disable-next-line jest/require-hook
-  testCrosses(
+  testComposes(
     provisionRootTrail,
     [
       {
@@ -566,9 +569,9 @@ describe('testCrosses only resolves mocks for trails under test', () => {
   );
 });
 
-describe('testCrosses fresh resource mocks per scenario', () => {
+describe('testComposes fresh resource mocks per scenario', () => {
   // eslint-disable-next-line jest/require-hook
-  testCrosses(
+  testComposes(
     statefulResourceRootTrail,
     [
       {

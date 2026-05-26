@@ -97,8 +97,8 @@ These are boundaries the compiler enforces on the blaze at development time.
 | `output: z.object({...})` | Blaze return type must match the schema shape |
 | `Result<T, Error>` | Blaze cannot throw — must return `Result.ok()` or `Result.err()` |
 | `TrailContext` interface | Blaze receives only the fields the framework provides |
-| `crosses: [...]` on trails | Declares the composition graph; trail objects give typed `ctx.cross()` — warden verifies calls match |
-| `crossInput: z.object({...})` | Composition-only input merged for `ctx.cross()`, invisible to public surfaces |
+| `composes: [...]` on trails | Declares the composition graph; trail objects give typed `ctx.compose()` — warden verifies calls match |
+| `composeInput: z.object({...})` | Composition-only input merged for `ctx.compose()`, invisible to public surfaces |
 | `resources: [...]` on trails | Declares infrastructure dependencies; warden verifies `resource.from(ctx)` / `ctx.resource()` usage match |
 
 ### Inferred — detected by static analysis, best-effort
@@ -107,7 +107,7 @@ These are derived from blaze code itself. Useful for governance and documentatio
 
 | Inferred                     | From                                       |
 | ---------------------------- | ------------------------------------------ |
-| Which trails a trail crosses | `ctx.cross()` calls in the blaze |
+| Which trails a trail composes | `ctx.compose()` calls in the blaze |
 | Error types returned | `Result.err(new XError(...))` patterns |
 | TopoGraph entries and lock metadata | All of the above, canonicalized |
 
@@ -126,7 +126,7 @@ Any derived value can be overridden when the default is wrong for your case:
 | CLI command name | Default derivation from trail ID doesn't read well |
 | MCP tool name | Need to match an external convention |
 | Flag name or description | Zod field name doesn't make a good flag |
-| `crosses` list | Lock the composition boundary tighter than the code implies |
+| `composes` list | Lock the composition boundary tighter than the code implies |
 
 Overrides are escape hatches. They're visible in the TopoGraph as explicit deviations from derivation. They should be rare — if you're overriding everything, the derivation rules are wrong.
 
@@ -225,7 +225,7 @@ activation-cycle checks. Today the runtime looks only at signal IDs in the
 current fire stack. That prevents re-entrant loops like A→B→A, but it can
 over-suppress legitimate diamond re-fires that happen to reuse the same signal
 ID on a different branch. Per-path provenance is deferred post-v1; if ordering
-or transactional dependency matters now, model it with `ctx.cross()` instead
+or transactional dependency matters now, model it with `ctx.compose()` instead
 of sibling signal sequencing.
 
 ### Request Path (CLI)

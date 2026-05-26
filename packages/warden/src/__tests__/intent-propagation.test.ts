@@ -5,12 +5,12 @@ import { intentPropagation } from '../rules/intent-propagation.js';
 const TEST_FILE = 'entity.ts';
 
 describe('intent-propagation', () => {
-  test('warns when a read trail crosses a write trail', () => {
+  test('warns when a read trail composes a write trail', () => {
     const code = `
 trail('entity.read', {
   intent: 'read',
-  crosses: ['entity.refresh'],
-  blaze: async (_input, ctx) => ctx.cross('entity.refresh', {}),
+  composes: ['entity.refresh'],
+  blaze: async (_input, ctx) => ctx.compose('entity.refresh', {}),
 });
 
 trail('entity.refresh', {
@@ -28,12 +28,12 @@ trail('entity.refresh', {
     expect(diagnostics[0]?.message).toContain("intent: 'write'");
   });
 
-  test('warns when project context resolves a crossed trail to destroy intent', () => {
+  test('warns when project context resolves a composed trail to destroy intent', () => {
     const code = `
 trail('entity.read', {
   intent: 'read',
-  crosses: ['entity.delete'],
-  blaze: async (_input, ctx) => ctx.cross('entity.delete', {}),
+  composes: ['entity.delete'],
+  blaze: async (_input, ctx) => ctx.compose('entity.delete', {}),
 });
 `;
 
@@ -49,12 +49,12 @@ trail('entity.read', {
     expect(diagnostics[0]?.message).toContain("intent: 'destroy'");
   });
 
-  test('stays quiet when a read trail crosses another read trail', () => {
+  test('stays quiet when a read trail composes another read trail', () => {
     const code = `
 trail('entity.read', {
   intent: 'read',
-  crosses: ['entity.lookup'],
-  blaze: async (_input, ctx) => ctx.cross('entity.lookup', {}),
+  composes: ['entity.lookup'],
+  blaze: async (_input, ctx) => ctx.compose('entity.lookup', {}),
 });
 
 trail('entity.lookup', {
@@ -66,7 +66,7 @@ trail('entity.lookup', {
     expect(intentPropagation.check(code, TEST_FILE)).toEqual([]);
   });
 
-  test('warns when namespaced core.trail(...) read crosses a write trail', () => {
+  test('warns when namespaced core.trail(...) read composes a write trail', () => {
     // Regression guard for TRL-343: the shared findTrailDefinitions helper
     // must recognize `core.trail("id", { ... })` as a trail definition, not
     // just bare `trail("id", { ... })`. Before the fix these definitions were
@@ -80,8 +80,8 @@ import * as core from '@ontrails/core';
 
 core.trail('entity.read', {
   intent: 'read',
-  crosses: ['entity.refresh'],
-  blaze: async (_input, ctx) => ctx.cross('entity.refresh', {}),
+  composes: ['entity.refresh'],
+  blaze: async (_input, ctx) => ctx.compose('entity.refresh', {}),
 });
 
 core.trail('entity.refresh', {
@@ -101,8 +101,8 @@ core.trail('entity.refresh', {
     const code = `
 trail('entity.update', {
   intent: 'write',
-  crosses: ['entity.delete'],
-  blaze: async (_input, ctx) => ctx.cross('entity.delete', {}),
+  composes: ['entity.delete'],
+  blaze: async (_input, ctx) => ctx.compose('entity.delete', {}),
 });
 
 trail('entity.delete', {

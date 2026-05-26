@@ -333,7 +333,7 @@ One warden rule guards the migration ([TRL-476], [TRL-477]):
 - [ADR-0013: Tracing — Runtime Recording Primitive](0013-tracing.md) — recording that became a pipeline stage
 - [ADR-0041: Unified Observability](0041-unified-observability.md) — resolves the obsolete `tracingLayer` concept by moving tracing into core rather than preserving it as a layer
 - [ADR-0004: Intent as a First-Class Property](0004-intent-as-first-class-property.md) — intent compounds with layers for surface derivation and governance
-- [ADR-0024: Typed Trail Composition](0024-typed-trail-composition.md) — `crossInput` follows the same "compose schemas, project the union" pattern as layer input schemas
+- [ADR-0024: Typed Trail Composition](0024-typed-trail-composition.md) — `composeInput` follows the same "compose schemas, project the union" pattern as layer input schemas
 - [Layer Evolution Migration Guide](../migration/layer-evolution.md) — step-by-step migration for the removed exports and typed layer model
 - [Tenets: One write, many reads](../tenets.md) — layer input schemas exemplify one authoring point feeding CLI flags, MCP parameters, HTTP query params, and lockfile diffing simultaneously
 

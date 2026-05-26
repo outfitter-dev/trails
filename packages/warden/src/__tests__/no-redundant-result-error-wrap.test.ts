@@ -5,14 +5,14 @@ import { noRedundantResultErrorWrap } from '../rules/no-redundant-result-error-w
 const TEST_FILE = 'src/trails/entity.ts';
 
 describe('no-redundant-result-error-wrap', () => {
-  test('flags Result.err(result.error) for ctx.cross results', () => {
+  test('flags Result.err(result.error) for ctx.compose results', () => {
     const code = `
 import { Result, trail } from '@ontrails/core';
 
 trail('entity.load', {
-  crosses: ['entity.fetch'],
+  composes: ['entity.fetch'],
   blaze: async (input, ctx) => {
-    const fetched = await ctx.cross('entity.fetch', input);
+    const fetched = await ctx.compose('entity.fetch', input);
     if (fetched.isErr()) {
       return Result.err(fetched.error);
     }
@@ -60,9 +60,9 @@ trail('entity.load', {
 import { Result, trail } from '@ontrails/core';
 
 trail('entity.load', {
-  crosses: ['entity.fetch'],
+  composes: ['entity.fetch'],
   blaze: async (input, ctx) => {
-    const fetched = await ctx.cross('entity.fetch', input);
+    const fetched = await ctx.compose('entity.fetch', input);
     if (fetched.isErr()) {
       return fetched;
     }
@@ -79,9 +79,9 @@ trail('entity.load', {
 import { InternalError, Result, trail } from '@ontrails/core';
 
 trail('entity.load', {
-  crosses: ['entity.fetch'],
+  composes: ['entity.fetch'],
   blaze: async (input, ctx) => {
-    const fetched = await ctx.cross('entity.fetch', input);
+    const fetched = await ctx.compose('entity.fetch', input);
     if (fetched.isErr()) {
       return Result.err(new InternalError(fetched.error.message));
     }
@@ -116,9 +116,9 @@ trail('entity.load', {
 import { Result, trail } from '@ontrails/core';
 
 trail('entity.load', {
-  crosses: ['entity.fetch'],
+  composes: ['entity.fetch'],
   blaze: async (input, ctx) => {
-    let fetched = await ctx.cross('entity.fetch', input);
+    let fetched = await ctx.compose('entity.fetch', input);
     fetched = { error: new Error('different') };
     return Result.err(fetched.error);
   },
@@ -133,11 +133,11 @@ trail('entity.load', {
 import { Result, trail } from '@ontrails/core';
 
 trail('entity.load', {
-  crosses: ['entity.fetch'],
+  composes: ['entity.fetch'],
   blaze: async (input, ctx) => {
     const fetched = { error: new Error('plain') };
     if (input.fetch) {
-      const fetched = await ctx.cross('entity.fetch', input);
+      const fetched = await ctx.compose('entity.fetch', input);
       if (fetched.isErr()) {
         return fetched;
       }
@@ -155,9 +155,9 @@ trail('entity.load', {
 import { Result, trail } from '@ontrails/core';
 
 trail('entity.load', {
-  crosses: ['entity.fetch'],
+  composes: ['entity.fetch'],
   blaze: async (input, ctx) => {
-    const fetched = await ctx.cross('entity.fetch', input);
+    const fetched = await ctx.compose('entity.fetch', input);
     if (input.local) {
       const fetched = { error: new Error('plain') };
       void fetched;
@@ -222,9 +222,9 @@ trail('entity.load', {
 import { Result, trail } from '@ontrails/core';
 
 trail('entity.load', {
-  crosses: ['entity.fetch'],
+  composes: ['entity.fetch'],
   blaze: async (input, ctx) => {
-    const fetched = await ctx.cross('entity.fetch', input);
+    const fetched = await ctx.compose('entity.fetch', input);
     input.items.map(() => {
       return Result.err(fetched.error);
     });

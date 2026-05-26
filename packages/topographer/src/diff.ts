@@ -371,8 +371,8 @@ const diffCliPath = (
   );
 };
 
-/** Build a crossing-changed description from added/removed arrays. */
-const buildCrossesMessage = (added: string[], removed: string[]): string => {
+/** Build a composing-changed description from added/removed arrays. */
+const buildComposesMessage = (added: string[], removed: string[]): string => {
   const parts: string[] = [];
   if (added.length > 0) {
     parts.push(`added "${added.join('", "')}"`);
@@ -380,7 +380,7 @@ const buildCrossesMessage = (added: string[], removed: string[]): string => {
   if (removed.length > 0) {
     parts.push(`removed "${removed.join('", "')}"`);
   }
-  return `Crosses changed: ${parts.join(', ')}`;
+  return `Composes changed: ${parts.join(', ')}`;
 };
 
 const buildResourcesMessage = (added: string[], removed: string[]): string => {
@@ -405,22 +405,22 @@ const buildContoursMessage = (added: string[], removed: string[]): string => {
   return `Contours changed: ${parts.join(', ')}`;
 };
 
-/** Diff crosses arrays. */
-const diffCrosses = (
+/** Diff composes arrays. */
+const diffComposes = (
   acc: DetailAccumulator,
   prev: TopoGraphEntry,
   curr: TopoGraphEntry
 ): void => {
-  const prevCrosses = new Set(prev.crosses);
-  const currCrosses = new Set(curr.crosses);
-  const added = [...currCrosses]
-    .filter((crossedId) => !prevCrosses.has(crossedId))
+  const prevComposes = new Set(prev.composes);
+  const currComposes = new Set(curr.composes);
+  const added = [...currComposes]
+    .filter((composedId) => !prevComposes.has(composedId))
     .toSorted();
-  const removed = [...prevCrosses]
-    .filter((crossedId) => !currCrosses.has(crossedId))
+  const removed = [...prevComposes]
+    .filter((composedId) => !currComposes.has(composedId))
     .toSorted();
   if (added.length > 0 || removed.length > 0) {
-    addDetail(acc, 'warning', buildCrossesMessage(added, removed));
+    addDetail(acc, 'warning', buildComposesMessage(added, removed));
   }
 };
 
@@ -805,7 +805,7 @@ const diffTrailEntryDetails = (
   diffSchemaFields(acc, 'input', prev.input, curr.input);
   diffSchemaFields(acc, 'output', prev.output, curr.output);
   diffCliPath(acc, prev, curr);
-  diffCrosses(acc, prev, curr);
+  diffComposes(acc, prev, curr);
   diffContours(acc, prev, curr);
   diffResources(acc, prev, curr);
   diffVersionEntries(acc, prev, curr);
@@ -860,7 +860,7 @@ const diffEntry = (
  *
  * Classifies each change with a severity:
  * - `info`: new trail, optional field added, output field added, description change
- * - `warning`: safety marker change, deprecation, crossing change
+ * - `warning`: safety marker change, deprecation, composing change
  * - `breaking`: trail removed, required input added, field removed, type change, surface removed
  */
 /** Find entries added in curr that don't exist in prev. */

@@ -23,7 +23,7 @@ const noop = async () => Result.ok();
 const mockTrail = (
   id: string,
   overrides?: {
-    crosses?: readonly string[];
+    composes?: readonly string[];
     contours?: readonly ReturnType<typeof contour>[];
     examples?: readonly {
       name: string;
@@ -38,8 +38,8 @@ const mockTrail = (
   }
 ) => ({
   blaze: noop,
+  composes: Object.freeze([...(overrides?.composes ?? [])]),
   contours: Object.freeze([...(overrides?.contours ?? [])]),
-  crosses: Object.freeze([...(overrides?.crosses ?? [])]),
   fires: Object.freeze([...(overrides?.fires ?? [])]),
   id,
   input: z.object({ name: z.string() }),
@@ -79,7 +79,7 @@ describe('validateTopo', () => {
     const app = topo('app', {
       add: mockTrail('entity.add'),
       onboard: mockTrail('entity.onboard', {
-        crosses: ['entity.add'],
+        composes: ['entity.add'],
       }),
       updated: mockSignal('entity.updated', ['entity.add']),
     });
@@ -88,11 +88,11 @@ describe('validateTopo', () => {
     expect(result.isOk()).toBe(true);
   });
 
-  describe('trail crossing', () => {
-    test('draft crossings are allowed in the authored graph', () => {
+  describe('trail composing', () => {
+    test('draft compositions are allowed in the authored graph', () => {
       const app = topo('app', {
         exportTrail: mockTrail('entity.export', {
-          crosses: ['_draft.entity.prepare'],
+          composes: ['_draft.entity.prepare'],
         }),
       });
 
@@ -100,10 +100,10 @@ describe('validateTopo', () => {
       expect(result.isOk()).toBe(true);
     });
 
-    test('trail crossing a non-existent trail fails', () => {
+    test('trail composing a non-existent trail fails', () => {
       const app = topo('app', {
         onboard: mockTrail('entity.onboard', {
-          crosses: ['entity.missing'],
+          composes: ['entity.missing'],
         }),
       });
 
@@ -112,11 +112,11 @@ describe('validateTopo', () => {
 
       const issues = extractIssues(result);
       expect(issues).toHaveLength(1);
-      expect(issues[0]?.rule).toBe('cross-exists');
+      expect(issues[0]?.rule).toBe('compose-exists');
       expect(issues[0]?.message).toContain('entity.missing');
     });
 
-    test('live fork version crossing a non-existent trail fails', () => {
+    test('live fork version composing a non-existent trail fails', () => {
       const ok = async () => Result.ok({ ok: true });
       const app = topo('app', {
         versioned: trail('entity.versioned', {
@@ -127,7 +127,7 @@ describe('validateTopo', () => {
           versions: {
             1: {
               blaze: ok,
-              crosses: ['entity.missing'],
+              composes: ['entity.missing'],
               input: z.object({ name: z.string() }),
               output: z.object({ ok: z.boolean() }),
             },
@@ -140,13 +140,13 @@ describe('validateTopo', () => {
 
       const issues = extractIssues(result);
       expect(issues).toHaveLength(1);
-      expect(issues[0]?.rule).toBe('cross-exists');
+      expect(issues[0]?.rule).toBe('compose-exists');
       expect(issues[0]?.trailId).toBe('entity.versioned');
       expect(issues[0]?.message).toContain('Version 1');
       expect(issues[0]?.message).toContain('entity.missing');
     });
 
-    test('archived fork version crossing a missing trail is not live-validated', () => {
+    test('archived fork version composing a missing trail is not live-validated', () => {
       const ok = async () => Result.ok({ ok: true });
       const app = topo('app', {
         versioned: trail('entity.versioned', {
@@ -157,7 +157,7 @@ describe('validateTopo', () => {
           versions: {
             1: {
               blaze: ok,
-              crosses: ['entity.missing'],
+              composes: ['entity.missing'],
               input: z.object({ name: z.string() }),
               output: z.object({ ok: z.boolean() }),
               status: { state: 'archived' },
@@ -170,12 +170,12 @@ describe('validateTopo', () => {
       expect(result.isOk()).toBe(true);
     });
 
-    test('live fork version crossings participate in cycle detection', () => {
+    test('live fork version compositions participate in cycle detection', () => {
       const ok = async () => Result.ok({ ok: true });
       const app = topo('app', {
         a: trail('a', {
           blaze: ok,
-          crosses: ['b'],
+          composes: ['b'],
           input: z.object({ name: z.string() }),
           output: z.object({ ok: z.boolean() }),
         }),
@@ -187,7 +187,7 @@ describe('validateTopo', () => {
           versions: {
             1: {
               blaze: ok,
-              crosses: ['a'],
+              composes: ['a'],
               input: z.object({ name: z.string() }),
               output: z.object({ ok: z.boolean() }),
             },
@@ -199,15 +199,15 @@ describe('validateTopo', () => {
       expect(result.isErr()).toBe(true);
 
       const issues = extractIssues(result);
-      expect(issues.some((issue) => issue.rule === 'cross-cycle')).toBe(true);
+      expect(issues.some((issue) => issue.rule === 'compose-cycle')).toBe(true);
     });
 
-    test('archived fork version crossings do not participate in cycle detection', () => {
+    test('archived fork version compositions do not participate in cycle detection', () => {
       const ok = async () => Result.ok({ ok: true });
       const app = topo('app', {
         a: trail('a', {
           blaze: ok,
-          crosses: ['b'],
+          composes: ['b'],
           input: z.object({ name: z.string() }),
           output: z.object({ ok: z.boolean() }),
         }),
@@ -219,7 +219,7 @@ describe('validateTopo', () => {
           versions: {
             1: {
               blaze: ok,
-              crosses: ['a'],
+              composes: ['a'],
               input: z.object({ name: z.string() }),
               output: z.object({ ok: z.boolean() }),
               status: { state: 'archived' },
@@ -232,53 +232,53 @@ describe('validateTopo', () => {
       expect(result.isOk()).toBe(true);
     });
 
-    test('trail crossing itself fails', () => {
+    test('trail composing itself fails', () => {
       const app = topo('app', {
-        loop: mockTrail('entity.loop', { crosses: ['entity.loop'] }),
+        loop: mockTrail('entity.loop', { composes: ['entity.loop'] }),
       });
 
       const result = validateTopo(app);
       expect(result.isErr()).toBe(true);
 
       const issues = extractIssues(result);
-      expect(issues.some((i) => i.rule === 'no-self-cross')).toBe(true);
+      expect(issues.some((i) => i.rule === 'no-self-compose')).toBe(true);
     });
 
     test('two-node cycle (a→b→a) is detected', () => {
       const app = topo('app', {
-        a: mockTrail('a', { crosses: ['b'] }),
-        b: mockTrail('b', { crosses: ['a'] }),
+        a: mockTrail('a', { composes: ['b'] }),
+        b: mockTrail('b', { composes: ['a'] }),
       });
 
       const result = validateTopo(app);
       expect(result.isErr()).toBe(true);
 
       const issues = extractIssues(result);
-      const cycleIssues = issues.filter((i) => i.rule === 'cross-cycle');
+      const cycleIssues = issues.filter((i) => i.rule === 'compose-cycle');
       expect(cycleIssues.length).toBeGreaterThanOrEqual(1);
       expect(cycleIssues[0]?.message).toContain('Cycle detected');
     });
 
     test('three-node cycle (a→b→c→a) is detected', () => {
       const app = topo('app', {
-        a: mockTrail('a', { crosses: ['b'] }),
-        b: mockTrail('b', { crosses: ['c'] }),
-        c: mockTrail('c', { crosses: ['a'] }),
+        a: mockTrail('a', { composes: ['b'] }),
+        b: mockTrail('b', { composes: ['c'] }),
+        c: mockTrail('c', { composes: ['a'] }),
       });
 
       const result = validateTopo(app);
       expect(result.isErr()).toBe(true);
 
       const issues = extractIssues(result);
-      const cycleIssues = issues.filter((i) => i.rule === 'cross-cycle');
+      const cycleIssues = issues.filter((i) => i.rule === 'compose-cycle');
       expect(cycleIssues.length).toBeGreaterThanOrEqual(1);
       expect(cycleIssues[0]?.message).toContain('Cycle detected');
     });
 
     test('valid DAG with shared targets is not flagged', () => {
       const app = topo('app', {
-        a: mockTrail('a', { crosses: ['c'] }),
-        b: mockTrail('b', { crosses: ['c'] }),
+        a: mockTrail('a', { composes: ['c'] }),
+        b: mockTrail('b', { composes: ['c'] }),
         c: mockTrail('c'),
       });
 
@@ -1233,7 +1233,7 @@ describe('validateTopo', () => {
   test('collects multiple issues', () => {
     const db = mockResource('db.main');
     const app = topo('app', {
-      broken: mockTrail('entity.broken', { crosses: ['entity.missing'] }),
+      broken: mockTrail('entity.broken', { composes: ['entity.missing'] }),
       missingResource: mockTrail('entity.missing-resource', {
         resources: [db],
       }),
@@ -1280,10 +1280,10 @@ describe('draft state analysis', () => {
   test('propagates contamination through dependencies', () => {
     const app = topo('app', {
       exportTrail: mockTrail('entity.export', {
-        crosses: ['entity.prepare'],
+        composes: ['entity.prepare'],
       }),
       prepareTrail: mockTrail('entity.prepare', {
-        crosses: ['_draft.entity.store'],
+        composes: ['_draft.entity.store'],
       }),
     });
 
@@ -1408,7 +1408,7 @@ describe('validateEstablishedTopo', () => {
   test('fails when established trails depend on draft state', () => {
     const app = topo('app', {
       exportTrail: mockTrail('entity.export', {
-        crosses: ['_draft.entity.prepare'],
+        composes: ['_draft.entity.prepare'],
       }),
     });
 
@@ -1424,7 +1424,7 @@ describe('validateEstablishedTopo', () => {
   test('fails when authored structural validation still fails', () => {
     const app = topo('app', {
       exportTrail: mockTrail('entity.export', {
-        crosses: ['entity.missing'],
+        composes: ['entity.missing'],
       }),
     });
 
@@ -1433,7 +1433,7 @@ describe('validateEstablishedTopo', () => {
 
     const issues = extractIssues(result);
     expect(issues).toHaveLength(1);
-    expect(issues[0]?.rule).toBe('cross-exists');
+    expect(issues[0]?.rule).toBe('compose-exists');
   });
 
   test('fails when resource declarations are not established in the topo', () => {

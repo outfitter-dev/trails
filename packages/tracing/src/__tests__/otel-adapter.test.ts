@@ -423,7 +423,7 @@ describe('otelAdapter', () => {
   });
 
   describe('lineage semantics', () => {
-    test('preserves root trail, crossed trail, and child span lineage', async () => {
+    test('preserves root trail, composed trail, and child span lineage', async () => {
       const { adapter, spans } = createSpanCollector();
 
       await adapter.write(
@@ -438,7 +438,7 @@ describe('otelAdapter', () => {
       );
       await adapter.write(
         makeRecord({
-          id: 'span-crossed',
+          id: 'span-composed',
           name: 'inventory.reserve',
           parentId: 'span-root',
           rootId: 'span-root',
@@ -451,7 +451,7 @@ describe('otelAdapter', () => {
           id: 'span-child',
           kind: 'span',
           name: 'inventory.reserve.validate',
-          parentId: 'span-crossed',
+          parentId: 'span-composed',
           rootId: 'span-root',
           traceId: 'trace-lineage',
           trailId: undefined,
@@ -460,7 +460,7 @@ describe('otelAdapter', () => {
       await adapter.flush();
 
       const root = spanById(spans, 'span-root');
-      const crossed = spanById(spans, 'span-crossed');
+      const composed = spanById(spans, 'span-composed');
       const child = spanById(spans, 'span-child');
 
       expect(root.kind).toBe('SERVER');
@@ -468,15 +468,15 @@ describe('otelAdapter', () => {
       expect(root.attributes['trails.span.root_id']).toBe('span-root');
       expect(root.attributes['trails.trail.id']).toBe('orders.checkout');
 
-      expect(crossed.kind).toBe('INTERNAL');
-      expect(crossed.parentSpanId).toBe('span-root');
-      expect(crossed.traceId).toBe(root.traceId);
-      expect(crossed.attributes['trails.span.parent_id']).toBe('span-root');
-      expect(crossed.attributes['trails.span.root_id']).toBe('span-root');
-      expect(crossed.attributes['trails.trail.id']).toBe('inventory.reserve');
+      expect(composed.kind).toBe('INTERNAL');
+      expect(composed.parentSpanId).toBe('span-root');
+      expect(composed.traceId).toBe(root.traceId);
+      expect(composed.attributes['trails.span.parent_id']).toBe('span-root');
+      expect(composed.attributes['trails.span.root_id']).toBe('span-root');
+      expect(composed.attributes['trails.trail.id']).toBe('inventory.reserve');
 
       expect(child.kind).toBe('INTERNAL');
-      expect(child.parentSpanId).toBe('span-crossed');
+      expect(child.parentSpanId).toBe('span-composed');
       expect(child.traceId).toBe(root.traceId);
       expect(child.attributes['trails.record.kind']).toBe('span');
       expect(child.attributes['trails.record.name']).toBe(

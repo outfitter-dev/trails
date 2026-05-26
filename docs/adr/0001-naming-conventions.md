@@ -4,7 +4,7 @@ slug: naming-conventions
 title: Naming Conventions — Guessable API Through Structural Rules
 status: accepted
 created: 2026-03-27
-updated: 2026-05-19
+updated: 2026-05-26
 owners: ['[galligan](https://github.com/galligan)']
 ---
 
@@ -14,7 +14,7 @@ owners: ['[galligan](https://github.com/galligan)']
 
 Trails is a contract-first framework. The public API is the language people use to think with, not just a set of import paths. Because the project is still pre-release, we can still choose coherence over compatibility and rewrite history for clarity where needed.
 
-The earlier naming pass deliberately preserved some generic technical words such as `trailhead`, `connector`, `gate`, `signal`, and `provision`. That kept the API closer to established framework vocabulary, but it also split the mental model in two. Core trail concepts used the branded language (`trail`, `topo`, `cross`, `blaze`, `warden`) while adjacent concepts kept unrelated infrastructure jargon. The result was a translation tax:
+The earlier naming pass deliberately preserved some generic technical words such as `trailhead`, `connector`, `gate`, `signal`, and `provision`. That kept the API closer to established framework vocabulary, but it also split the mental model in two. Core trail concepts used the branded language (`trail`, `topo`, `compose`, `blaze`, `warden`) while adjacent concepts kept unrelated infrastructure jargon. The result was a translation tax:
 
 - docs had to explain which nouns were special and which were just borrowed
 - scaffolding and examples mixed two vocabularies in the same story
@@ -56,7 +56,7 @@ Trail-native terms are not reserved only for the most romantic concepts. They sh
 
 **Branded (top-level):** `trail`, `surface`, `topo`, `warden`, `permit`
 
-**Branded (inside `trail()`):** `blaze`, `fires`, `on`, `detour`, `cross`, `crosses`, `signal`, `pin`
+**Branded (inside `trail()`):** `blaze`, `fires`, `on`, `detour`, `compose`, `composes`, `signal`, `pin`
 
 **Branded (compound/derived):** `mount`, `pack`, `depot`, `survey`, `guide`
 
@@ -213,7 +213,7 @@ Zod remains the schema authoring language. Trails owns the surrounding language 
 ### Positive
 
 - **Guessable API.** A contributor who knows the conventions can predict function names before looking them up.
-- **One vocabulary family.** Trail, blaze, topo, surface, cross, resource,
+- **One vocabulary family.** Trail, blaze, topo, surface, compose, resource,
   signal, layer, tracing, and warden belong to the same story.
 - **Docs and scaffolding get simpler.** We stop teaching a mix of branded and generic conceptual nouns.
 - **Drift resistance.** Naming now follows the same author/derive/declare discipline as the rest of the framework.
@@ -233,11 +233,12 @@ Zod remains the schema authoring language. Trails owns the surrounding language 
 
 ### A note on the ADR record
 
-The Trails lexicon has been cut over twice in the pre-1.0 window. Both cutovers were applied in place across the ADR record rather than threaded through supersession, because the project is still pre-release and the old terms would only create confusion for people reading through the ADR history or for agents consuming the docs. Each cutover has its own ADR documenting the decision; this section is a running log of where the in-place rewrites happened.
+The Trails lexicon has been cut over several times in the pre-1.0 window. Cutovers were applied in place across the ADR record rather than threaded through supersession, because the project is still pre-release and the old terms would only create confusion for people reading through the ADR history or for agents consuming the docs. Each cutover has its own ADR documenting the decision; this section is a running log of where the in-place rewrites happened.
 
 - **Cutover 1** (`13b3d9c`): Initial vocabulary lockdown. Established `trail`, `blaze`, `topo`, `trailhead`, `provision`, `gate`, `tracker`, `loadout`, and the rest of the original Trails-native term set. Applied retroactively across all accepted and draft ADRs in a single pass.
 - **Cutover 2** ([ADR-0023](0023-simplifying-the-trails-lexicon.md)): Pre-1.0 simplification. Renamed `gate` → `layer`, `provision` → `resource`, `loadout` → `profile`, `tracker`/`Track` → `tracing`/`TraceRecord`. Split `fires` into producer (`fires:`) and consumer (`on:`). Renamed `docs/vocabulary.md` → `docs/lexicon.md` and reframed the document as the lexicon (not just a word list). Adopted the brand-vs-plain heuristic as the governing rule for new terms. Applied in place across the ADR record using the same precedent as Cutover 1.
 - **Cutover 3** ([ADR-0035](0035-surface-apis-render-the-graph.md)): Surface API cleanup. Retired `trailhead()` as the canonical one-liner in favor of `surface()`. Reframed `build*` helpers as `derive*` projections, standardized `create*` for runtime materialization, and made `graph` the canonical local name for topo instances in active docs and examples. Applied in place across the active ADR record using the same pre-1.0 precedent.
+- **Cutover 4** ([ADR-0049](0049-composition-is-compose-not-cross.md)): Composition vocabulary cleanup. Retired `cross` / `crosses` in favor of `compose` / `composes`, including `ctx.compose()`, `composeInput`, compose-family type names, Warden rule names, and topo persistence names. Applied in place across the active ADR record using the same pre-1.0 precedent.
 
 Moving forward, any lexicon changes will have a corresponding ADR documenting the decision and a new entry in this log.
 

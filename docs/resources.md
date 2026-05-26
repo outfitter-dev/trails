@@ -71,7 +71,7 @@ const search = trail('search', {
 });
 ```
 
-The `resources` array is a flat set of resource objects, parallel to `crosses` for trail composition. Resource objects carry their type from the factory return, so `db.from(ctx)` infers the correct type at the call site.
+The `resources` array is a flat set of resource objects, parallel to `composes` for trail composition. Resource objects carry their type from the factory return, so `db.from(ctx)` infers the correct type at the call site.
 
 ## Accessing Resources
 
@@ -182,10 +182,10 @@ The warden provides two resource-related rules:
 
 **`resource-exists`** -- validates that every resource referenced in trail declarations exists in the topo. Same pattern as other cross-file declaration rules like `valid-describe-refs`.
 
-Both use the established AST analysis pattern used by `cross-declarations`.
+Both use the established AST analysis pattern used by `composes-declarations`.
 
 ## Design Rationale
 
-Resources complete the trail contract. A trail now declares what it takes (input), what it produces (output), what it crosses (crosses), and what it needs (resources). The full dependency graph -- trails, resources, signals -- is queryable through the current topo, survey, and the committed lock artifacts.
+Resources complete the trail contract. A trail now declares what it takes (input), what it produces (output), what it composes (`composes`), and what it needs (resources). The full dependency graph -- trails, resources, signals -- is queryable through the current topo, survey, and the committed lock artifacts.
 
 For the complete design decision, tradeoffs, and future directions (request-scoped resources, composable config, intent-based type narrowing), see [ADR-0009: First-Class Resources](./adr/0009-first-class-resources.md).

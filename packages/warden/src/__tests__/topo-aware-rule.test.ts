@@ -49,13 +49,13 @@ const buildFixtureTopo = () => {
 const buildBrokenFixtureTopo = () => {
   const alpha = trail('fixture.alpha', {
     blaze: () => Result.ok({ value: 'a' }),
-    crosses: ['fixture.beta'],
+    composes: ['fixture.beta'],
     input: z.object({}),
     output: z.object({ value: z.string() }),
   });
   const beta = trail('fixture.beta', {
     blaze: () => Result.ok({ value: 'b' }),
-    crosses: ['fixture.alpha'],
+    composes: ['fixture.alpha'],
     input: z.object({}),
     output: z.object({ value: z.string() }),
   });

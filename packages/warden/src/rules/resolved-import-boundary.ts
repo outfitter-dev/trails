@@ -41,7 +41,7 @@ const localPathBoundaryMessage = (resolution: {
   readonly importSource: string;
   readonly packageName?: string | undefined;
 }): string =>
-  `Local import "${resolution.importSource}" crosses into ${resolutionLabel(
+  `Local import "${resolution.importSource}" composes into ${resolutionLabel(
     resolution
   )}. Import the target package public surface instead.`;
 
@@ -140,7 +140,7 @@ export const resolvedImportBoundary: ProjectAwareWardenRule = {
     return diagnostics;
   },
   description:
-    'Ensure cross-package imports resolve through package-owned public exports.',
+    'Ensure compose-package imports resolve through package-owned public exports.',
   name: RULE_NAME,
   severity: 'error',
 };

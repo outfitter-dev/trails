@@ -84,7 +84,7 @@ Input in, `Result` out. No `process.exit()`. No `console.log()`. No `Request` or
 
 This is what makes surface-agnosticism possible. If a blaze touches `stdout`, it can't run on MCP. If it reads from `Request`, it can't run on CLI. Purity is the boundary that enables universality.
 
-Side effects happen through structured channels: `ctx.cross()` for composition, `ctx.logger` for logging, `ctx.progress` for progress reporting. All surface-agnostic.
+Side effects happen through structured channels: `ctx.compose()` for composition, `ctx.logger` for logging, `ctx.progress` for progress reporting. All surface-agnostic.
 
 ### Validate at the boundary, trust internally
 
@@ -148,7 +148,7 @@ Every feature in the framework passes through three questions:
 - **Derive:** Can the framework extract maximum value from what was authored?
 - **Declare:** When the contract is tightened, can the declaration drift from reality?
 
-The third question is the hardest. Output schemas, error declarations, crossing graphs, intent, meta, examples — each is a place where the stated contract can diverge from behavior. The framework makes divergence structurally difficult (compiler catches it), immediately visible (tests catch it), or governable (warden catches it).
+The third question is the hardest. Output schemas, error declarations, composition graphs, intent, meta, examples — each is a place where the stated contract can diverge from behavior. The framework makes divergence structurally difficult (compiler catches it), immediately visible (tests catch it), or governable (warden catches it).
 
 If none of these catch it, the feature needs redesign.
 
@@ -159,7 +159,7 @@ There's a real difference between "the framework computed this deterministically
 - **Authored.** New information only the developer knows. Zod schemas, intent, meta (`meta`), examples, blazes, trail IDs. Creative contributions that can't be derived because they don't exist until someone writes them.
 - **Projected.** Mechanically derived, guaranteed correct. MCP tool name from app name + trail ID. CLI flags from Zod fields. Exit codes from error classes. If the authored input exists, the projection is unambiguous.
 - **Enforced.** Constrained by the type system at compile time. Output schemas bind the return type. `Result<T, Error>` eliminates throw/catch. `TrailContext` scopes what the blaze can access. The compiler rejects non-compliance.
-- **Inferred.** Detected by static analysis, best-effort. Which trails a trail follows (from `ctx.cross()` calls). Which error types are returned (from `Result.err()` patterns). The warden uses inference to verify declarations match actual code. Useful for governance, but not compiler-guaranteed.
+- **Inferred.** Detected by static analysis, best-effort. Which trails a trail follows (from `ctx.compose()` calls). Which error types are returned (from `Result.err()` patterns). The warden uses inference to verify declarations match actual code. Useful for governance, but not compiler-guaranteed.
 - **Observed.** Learned from runtime. The tracing system captures what actually happens: execution duration, error distributions, latency profiles, usage patterns. Observations close the loop between declared intent and actual behavior.
 - **Overridden.** When derivation doesn't fit. Any derived value can be explicitly set. Override the CLI command name when the default doesn't read well. Overrides are escape hatches — if you're overriding everything, the derivation rules are wrong.
 

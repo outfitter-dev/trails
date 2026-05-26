@@ -199,7 +199,7 @@ No additional configuration needed.
 
 ## Composing Trails
 
-A trail can cross other trails to accomplish a higher-level task:
+A trail can compose other trails to accomplish a higher-level task:
 
 ```typescript
 import { trail, Result } from '@ontrails/core';
@@ -207,11 +207,11 @@ import { z } from 'zod';
 import { add } from './math.js';
 
 export const addAndDouble = trail('math.add-and-double', {
-  crosses: [add],
+  composes: [add],
   input: z.object({ a: z.number(), b: z.number() }),
   output: z.object({ result: z.number() }),
   blaze: async (input, ctx) => {
-    const sum = await ctx.cross(add, input);
+    const sum = await ctx.compose(add, input);
     if (sum.isErr()) return sum;
     return Result.ok({ result: sum.value.result * 2 });
   },
@@ -220,10 +220,10 @@ export const addAndDouble = trail('math.add-and-double', {
 
 Rules for composition:
 
-- Declare dependencies with `crosses`
-- Call them with `ctx.cross()` — prefer trail objects where in scope, use string IDs as an escape hatch, and never call `.run()` directly
+- Declare dependencies with `composes`
+- Call them with `ctx.compose()` — prefer trail objects where in scope, use string IDs as an escape hatch, and never call `.run()` directly
 - Propagate errors: `if (result.isErr()) return result;`
-- The warden verifies `crosses` matches actual `ctx.cross()` calls
+- The warden verifies `composes` matches actual `ctx.compose()` calls
 
 ## Using Resources
 

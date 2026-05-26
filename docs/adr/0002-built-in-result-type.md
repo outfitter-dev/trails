@@ -30,7 +30,7 @@ The common issue: none of these libraries know about `TrailsError`. None of them
 
 ### Serialization matters
 
-Trails cross process boundaries constantly. A CLI invokes an MCP server. An HTTP response encodes a trail result. A `ctx.cross()` call might cross a network hop in the future. The Result type needs to serialize cleanly — including handling circular references, wrapping parse failures as `ValidationError`, and mapping HTTP status codes back to the right `TrailsError` subclass on the way in.
+Trails cross process boundaries constantly. A CLI invokes an MCP server. An HTTP response encodes a trail result. A `ctx.compose()` call might cross a network hop in the future. The Result type needs to serialize cleanly — including handling circular references, wrapping parse failures as `ValidationError`, and mapping HTTP status codes back to the right `TrailsError` subclass on the way in.
 
 This isn't something you bolt on after the fact. It's a design constraint that shapes the API.
 
@@ -140,7 +140,7 @@ The `isRetryable(error)` helper checks the category map. Detours (trail-level re
 
 - Whether Result will gain additional combinators (e.g., `Result.wrap()` for try/catch conversion, `Result.all()` for parallel results). If the framework needs them, they'll be added. The bar is: the framework uses it internally, not "it might be nice."
 - Whether the error taxonomy will grow beyond the current small set of classes. New categories require new entries in all mapping tables, which is deliberate friction that prevents casual additions.
-- How Result serialization evolves for cross-network `ctx.cross()` calls in the future `trailblaze` runtime.
+- How Result serialization evolves for cross-network `ctx.compose()` calls in the future `trailblaze` runtime.
 
 ## References
 

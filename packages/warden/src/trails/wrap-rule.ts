@@ -94,8 +94,8 @@ const buildProjectContext = (input: ProjectAwareRuleInput): ProjectContext => ({
   knownTrailIds: input.knownTrailIds
     ? new Set(input.knownTrailIds)
     : new Set<string>(),
-  ...(input.crossTargetTrailIds
-    ? { crossTargetTrailIds: new Set(input.crossTargetTrailIds) }
+  ...(input.composeTargetTrailIds
+    ? { composeTargetTrailIds: new Set(input.composeTargetTrailIds) }
     : {}),
   ...(input.knownResourceIds
     ? { knownResourceIds: new Set(input.knownResourceIds) }

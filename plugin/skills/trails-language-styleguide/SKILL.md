@@ -82,7 +82,7 @@ When reviewing a changed file, check:
 - Use `surface`, not transport or endpoint for the outside boundary.
 - Use `topo` for the primitive and `graph` for the local value returned by
   `topo()`.
-- Use `cross` for trail-to-trail composition.
+- Use `compose` for trail-to-trail composition.
 - Use `resource` for declared infrastructure dependencies.
 - Use `layer` for typed execution wrappers.
 - Use `meta`, not metadata, when naming the trail field.

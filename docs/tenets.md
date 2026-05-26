@@ -76,7 +76,7 @@ Six categories describe how information flows through the system. Understanding 
 
 **Enforced.** Constrained by the type system at compile time. Output schemas bind the return type. The Result type eliminates throw/catch. Context types scope what the blaze can access. The compiler rejects non-compliance.
 
-**Inferred.** Detected by static analysis, best-effort. Which trails a trail crosses, which error types are returned. Useful for governance, but not compiler-guaranteed.
+**Inferred.** Detected by static analysis, best-effort. Which trails a trail composes, which error types are returned. Useful for governance, but not compiler-guaranteed.
 
 **Observed.** Learned from runtime. The tracing system captures what actually happens: execution duration, error distributions, latency profiles, usage patterns. Observations close the loop between declared intent and actual behavior.
 
@@ -155,7 +155,7 @@ The framework has a small set of core primitives. Everything else is either a sp
 - **`signal()`** is the unit of notification. A schema-typed push with provenance.
 - **`topo()`** assembles primitives into a queryable graph.
 - **`Result`** is the universal return type. Ok or Err, never throw.
-- **`cross()` / `crosses`** is the first-class compositional mechanism. `crosses` declares which trails a trail may compose, and `ctx.cross()` performs that composition at runtime. The warden verifies that declarations match actual usage.
+- **`ctx.compose()` / `composes`** is the first-class compositional mechanism. `composes` declares which trails a trail may compose, and `ctx.compose()` performs that composition at runtime. The warden verifies that declarations match actual usage.
 
 Typed layers exist in v1 as execution wrappers rather than standalone graph
 nodes. They can attach at trail, surface, topo, or execution-call scope. When a
@@ -193,13 +193,13 @@ One write, six reads. The developer authors an example. The framework reads it s
 
 ### Progressive disclosure of complexity
 
-Every concept starts simple and gains precision as the developer invests. A trail starts with an input schema and a blaze function. The framework derives what it can from there. Over time, the developer tightens: an explicitly authored output schema, intent, error declarations, crossing declarations, examples, meta. Each tightening step is optional. Each compounds with everything else.
+Every concept starts simple and gains precision as the developer invests. A trail starts with an input schema and a blaze function. The framework derives what it can from there. Over time, the developer tightens: an explicitly authored output schema, intent, error declarations, composition declarations, examples, meta. Each tightening step is optional. Each compounds with everything else.
 
 The framework should not impose ceremony before it becomes necessary. The warden suggests the next step without blocking the current one.
 
 ### Authored defaults, overridable in context
 
-A trail declares its defaults: intent, error behavior, crossing declarations,
+A trail declares its defaults: intent, error behavior, composition declarations,
 layers, and meta. These are the author's stated design. The consuming context
 (the app, surface config, or execution-call options) can override them.
 
@@ -207,7 +207,7 @@ The authored default documents intent. The override enables reuse. The resolved 
 
 ### One Graph, Many Views
 
-The system is a single graph: trails, resources, signals, crossings, and
+The system is a single graph: trails, resources, signals, compositions, and
 metadata. Different tools provide different views of the same underlying data.
 Typed layers can wrap that graph at declared attachment points, and their
 declared inputs can be projected, but layers are not persisted as standalone

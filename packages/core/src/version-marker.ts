@@ -163,7 +163,7 @@ const projectVersionDetours = (
 
 const projectVersionRuntimeRefs = (
   entry: unknown,
-  field: 'crosses' | 'resources'
+  field: 'composes' | 'resources'
 ): readonly string[] | undefined => {
   const raw = entry as unknown as Record<string, unknown>;
   const values = raw[field];
@@ -192,7 +192,7 @@ const projectVersionRuntimeRefs = (
 export const deriveCurrentTrailVersionMarkerContent = (
   trail: Pick<
     AnyTrail,
-    'crosses' | 'detours' | 'input' | 'output' | 'resources'
+    'composes' | 'detours' | 'input' | 'output' | 'resources'
   >
 ): Readonly<Record<string, unknown>> => {
   const content: Record<string, unknown> = {
@@ -203,11 +203,11 @@ export const deriveCurrentTrailVersionMarkerContent = (
       : { output: projectSchema(trail.output) }),
   };
 
-  const crosses = projectVersionRuntimeRefs(trail, 'crosses');
+  const composes = projectVersionRuntimeRefs(trail, 'composes');
   const resources = projectVersionRuntimeRefs(trail, 'resources');
   const detours = projectVersionDetours(trail);
-  if (crosses !== undefined) {
-    content['crosses'] = crosses;
+  if (composes !== undefined) {
+    content['composes'] = composes;
   }
   if (resources !== undefined) {
     content['resources'] = resources;
@@ -234,11 +234,11 @@ export const deriveTrailVersionEntryMarkerContent = (
   }
 
   if (kind === 'fork') {
-    const crosses = projectVersionRuntimeRefs(entry, 'crosses');
+    const composes = projectVersionRuntimeRefs(entry, 'composes');
     const resources = projectVersionRuntimeRefs(entry, 'resources');
     const detours = projectVersionDetours(entry);
-    if (crosses !== undefined) {
-      content['crosses'] = crosses;
+    if (composes !== undefined) {
+      content['composes'] = composes;
     }
     if (resources !== undefined) {
       content['resources'] = resources;
@@ -254,7 +254,7 @@ export const deriveTrailVersionEntryMarkerContent = (
 export const deriveCurrentTrailVersionMarker = (
   trail: Pick<
     AnyTrail,
-    'crosses' | 'detours' | 'input' | 'output' | 'resources'
+    'composes' | 'detours' | 'input' | 'output' | 'resources'
   >
 ): string =>
   deriveTrailVersionMarker(deriveCurrentTrailVersionMarkerContent(trail));
@@ -310,7 +310,7 @@ export const assertUniqueTrailVersionMarkers = (
 export const deriveTrailVersionMarkers = (
   trail: Pick<
     AnyTrail,
-    | 'crosses'
+    | 'composes'
     | 'detours'
     | 'id'
     | 'input'

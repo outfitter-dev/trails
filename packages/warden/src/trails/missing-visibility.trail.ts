@@ -6,12 +6,12 @@ export const missingVisibilityTrail = wrapRule({
     {
       expected: { diagnostics: [] },
       input: {
-        crossTargetTrailIds: ['entity.resolve'],
+        composeTargetTrailIds: ['entity.resolve'],
         filePath: 'clean.ts',
         knownTrailIds: ['entity.resolve'],
         sourceCode: `trail('entity.resolve', {
   visibility: 'internal',
-  crossInput: z.object({ forkedFrom: z.string() }),
+  composeInput: z.object({ forkedFrom: z.string() }),
   blaze: async () => Result.ok({}),
 });`,
       },

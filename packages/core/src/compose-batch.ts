@@ -1,5 +1,5 @@
 /**
- * Shared helpers for `ctx.cross([...])` batch execution.
+ * Shared helpers for `ctx.compose([...])` batch execution.
  *
  * These helpers normalize batch options, produce validation results, and
  * implement the unlimited/limited worker-pool execution strategies used by
@@ -11,18 +11,18 @@
 
 import { ValidationError } from './errors.js';
 import { Result } from './result.js';
-import type { CrossBatchOptions } from './types.js';
+import type { ComposeBatchOptions } from './types.js';
 
 /**
- * Validate the `concurrency` option on a batch `ctx.cross()` call.
+ * Validate the `concurrency` option on a batch `ctx.compose()` call.
  *
  * Returns `Ok(undefined)` when no limit is requested, `Ok(n)` when a
  * positive integer is supplied, and `Err(ValidationError)` for any other
  * value. The error message is load-bearing: callers and tests depend on
  * the exact string.
  */
-export const normalizeCrossBatchConcurrency = (
-  options: CrossBatchOptions | undefined
+export const normalizeComposeBatchConcurrency = (
+  options: ComposeBatchOptions | undefined
 ): Result<number | undefined, Error> => {
   const concurrency = options?.concurrency;
   if (concurrency === undefined) {
@@ -32,7 +32,7 @@ export const normalizeCrossBatchConcurrency = (
   if (!Number.isInteger(concurrency) || concurrency < 1) {
     return Result.err(
       new ValidationError(
-        'ctx.cross() batch concurrency must be a positive integer'
+        'ctx.compose() batch concurrency must be a positive integer'
       )
     );
   }
@@ -42,10 +42,10 @@ export const normalizeCrossBatchConcurrency = (
 
 /**
  * Produce one validation-error result per call, preserving the original
- * call order. Used when `normalizeCrossBatchConcurrency` fails so the caller
+ * call order. Used when `normalizeComposeBatchConcurrency` fails so the caller
  * can surface a uniform batch shape to the blaze.
  */
-export const createCrossBatchValidationResults = <TCall>(
+export const createComposeBatchValidationResults = <TCall>(
   calls: readonly TCall[],
   error: Error
 ): Result<unknown, Error>[] => calls.map(() => Result.err(error));
@@ -55,7 +55,7 @@ export const createCrossBatchValidationResults = <TCall>(
  * multiple worker coroutines because JavaScript is single-threaded between
  * awaits — the read/increment pair runs without interleaving.
  */
-export const claimNextCrossBatchIndex = <TCall>(
+export const claimNextComposeBatchIndex = <TCall>(
   nextIndex: { value: number },
   calls: readonly TCall[]
 ): number | undefined => {

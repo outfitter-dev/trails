@@ -1,4 +1,4 @@
-import { collectCrossTargetTrailIds, parse } from './ast.js';
+import { collectComposeTargetTrailIds, parse } from './ast.js';
 import { isTestFile } from './scan.js';
 import {
   findTrailLikeSpecs,
@@ -28,13 +28,13 @@ const trailVisibility = (spec: TrailLikeSpec): 'internal' | 'public' => {
   return hasLegacyMetaInternal(spec) ? 'internal' : 'public';
 };
 
-const hasRequiredCrossInput = (spec: TrailLikeSpec): boolean => {
-  const crossInput = spec.properties.get('crossInput');
-  if (!crossInput) {
+const hasRequiredComposeInput = (spec: TrailLikeSpec): boolean => {
+  const composeInput = spec.properties.get('composeInput');
+  if (!composeInput) {
     return false;
   }
 
-  const fields = parseZodObjectShape(crossInput.value);
+  const fields = parseZodObjectShape(composeInput.value);
   return [...fields.values()].some((field) => field.required);
 };
 
@@ -45,7 +45,7 @@ const buildMissingVisibilityDiagnostic = (
 ): WardenDiagnostic => ({
   filePath,
   line,
-  message: `Trail "${trailId}" is crossed elsewhere and declares required crossInput fields, but it is still public. Consider visibility: 'internal' so surfaces do not expose a trail that only works through ctx.cross().`,
+  message: `Trail "${trailId}" is composed elsewhere and declares required composeInput fields, but it is still public. Consider visibility: 'internal' so surfaces do not expose a trail that only works through ctx.compose().`,
   rule: 'missing-visibility',
   severity: 'warn',
 });
@@ -53,7 +53,7 @@ const buildMissingVisibilityDiagnostic = (
 const checkMissingVisibility = (
   sourceCode: string,
   filePath: string,
-  crossedTrailIds: ReadonlySet<string>
+  composedTrailIds: ReadonlySet<string>
 ): readonly WardenDiagnostic[] => {
   if (isTestFile(filePath)) {
     return [];
@@ -65,8 +65,8 @@ const checkMissingVisibility = (
     if (
       spec.kind !== 'trail' ||
       trailVisibility(spec) === 'internal' ||
-      !crossedTrailIds.has(spec.id) ||
-      !hasRequiredCrossInput(spec)
+      !composedTrailIds.has(spec.id) ||
+      !hasRequiredComposeInput(spec)
     ) {
       continue;
     }
@@ -85,7 +85,7 @@ export const missingVisibility: ProjectAwareWardenRule = {
     return checkMissingVisibility(
       sourceCode,
       filePath,
-      ast ? collectCrossTargetTrailIds(ast, sourceCode) : new Set<string>()
+      ast ? collectComposeTargetTrailIds(ast, sourceCode) : new Set<string>()
     );
   },
   checkWithContext(
@@ -94,17 +94,17 @@ export const missingVisibility: ProjectAwareWardenRule = {
     context: ProjectContext
   ): readonly WardenDiagnostic[] {
     const ast = parse(filePath, sourceCode);
-    const localCrossTargetTrailIds = ast
-      ? collectCrossTargetTrailIds(ast, sourceCode)
+    const localComposeTargetTrailIds = ast
+      ? collectComposeTargetTrailIds(ast, sourceCode)
       : new Set<string>();
     return checkMissingVisibility(
       sourceCode,
       filePath,
-      context.crossTargetTrailIds ?? localCrossTargetTrailIds
+      context.composeTargetTrailIds ?? localComposeTargetTrailIds
     );
   },
   description:
-    'Coach when a crossed trail still looks composition-only because it declares required crossInput but remains public.',
+    'Coach when a composed trail still looks composition-only because it declares required composeInput but remains public.',
   name: 'missing-visibility',
   severity: 'warn',
 };

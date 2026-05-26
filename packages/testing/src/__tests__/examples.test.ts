@@ -194,27 +194,27 @@ const undeclaredResourceTrail = trail('resource.undeclared.examples', {
   input: z.object({}),
   output: z.object({ source: z.string() }),
 });
-const crossDbResource = resource('db.mock.examples.crosses', {
+const composeDbResource = resource('db.mock.examples.composes', {
   create: () => Result.ok({ source: 'factory' }),
   mock: () => ({ source: 'mock' }),
 });
 
-const crossLeafTrail = trail('resource.crosses.leaf', {
+const composeLeafTrail = trail('resource.composes.leaf', {
   blaze: (_input, ctx) =>
-    Result.ok({ childSource: crossDbResource.from(ctx).source }),
-  description: 'Leaf trail that resolves a resource inside a cross chain',
+    Result.ok({ childSource: composeDbResource.from(ctx).source }),
+  description: 'Leaf trail that resolves a resource inside a compose chain',
   input: z.object({}),
   output: z.object({ childSource: z.string() }),
-  resources: [crossDbResource],
+  resources: [composeDbResource],
 });
 
-const crossRootTrail = trail('resource.crosses.root', {
+const composeRootTrail = trail('resource.composes.root', {
   blaze: async (_input, ctx) => {
-    if (!ctx.cross) {
-      return Result.err(new Error('cross not available'));
+    if (!ctx.compose) {
+      return Result.err(new Error('compose not available'));
     }
-    const childResult = await ctx.cross<{ childSource: string }>(
-      'resource.crosses.leaf',
+    const childResult = await ctx.compose<{ childSource: string }>(
+      'resource.composes.leaf',
       {}
     );
     if (childResult.isErr()) {
@@ -222,25 +222,25 @@ const crossRootTrail = trail('resource.crosses.root', {
     }
     return Result.ok({
       childSource: childResult.value.childSource,
-      rootSource: crossDbResource.from(ctx).source,
+      rootSource: composeDbResource.from(ctx).source,
     });
   },
-  crosses: ['resource.crosses.leaf'],
-  description: 'Root trail that crosses a child trail using resources',
+  composes: ['resource.composes.leaf'],
+  description: 'Root trail that composes a child trail using resources',
   examples: [
     {
       expected: { childSource: 'mock', rootSource: 'mock' },
       input: {},
-      name: 'Propagates resource mocks through cross execution',
+      name: 'Propagates resource mocks through compose execution',
     },
   ],
   input: z.object({}),
   output: z.object({ childSource: z.string(), rootSource: z.string() }),
-  resources: [crossDbResource],
+  resources: [composeDbResource],
 });
 
 // ---------------------------------------------------------------------------
-// Composition trails (for cross coverage)
+// Composition trails (for compose coverage)
 // ---------------------------------------------------------------------------
 
 const addTrail = trail('entity.add', {
@@ -260,14 +260,14 @@ const relateTrail = trail('entity.relate', {
 
 const onboardTrail = trail('entity.onboard', {
   blaze: async (input: { name: string }, ctx) => {
-    if (!ctx.cross) {
-      return Result.err(new Error('cross not available'));
+    if (!ctx.compose) {
+      return Result.err(new Error('compose not available'));
     }
-    const addResult = await ctx.cross('entity.add', input);
+    const addResult = await ctx.compose('entity.add', input);
     if (addResult.isErr()) {
       return addResult;
     }
-    const relateResult = await ctx.cross('entity.relate', {
+    const relateResult = await ctx.compose('entity.relate', {
       from: 'root',
       to: (addResult.value as { id: string }).id,
     });
@@ -276,7 +276,7 @@ const onboardTrail = trail('entity.onboard', {
     }
     return Result.ok({ id: '1', name: input.name });
   },
-  crosses: ['entity.add', 'entity.relate'],
+  composes: ['entity.add', 'entity.relate'],
   description: 'Onboard a new entity',
   examples: [
     {
@@ -428,7 +428,7 @@ describe('testExamples resource declarations', () => {
   );
 });
 
-describe('testExamples crossing coverage for trails with crossings', () => {
+describe('testExamples composing coverage for trails with compositions', () => {
   // eslint-disable-next-line jest/require-hook
   testExamples(
     topo('composition-app', {
@@ -479,13 +479,13 @@ describe('testExamples signal assertions', () => {
   });
 });
 
-describe('testExamples resource mocks through cross', () => {
+describe('testExamples resource mocks through compose', () => {
   // eslint-disable-next-line jest/require-hook
   testExamples(
-    topo('resource-cross-app', {
-      crossDbResource,
-      crossLeafTrail,
-      crossRootTrail,
+    topo('resource-compose-app', {
+      composeDbResource,
+      composeLeafTrail,
+      composeRootTrail,
     } as Record<string, unknown>)
   );
 });
@@ -589,36 +589,36 @@ const batchVersionChildTrail = trail('version.examples.batch.child', {
 });
 const batchVersionParentTrail = trail('version.examples.batch.parent', {
   blaze: async (_input, ctx) => {
-    if (!ctx.cross) {
-      return Result.err(new Error('cross not available'));
+    if (!ctx.compose) {
+      return Result.err(new Error('compose not available'));
     }
-    const [child] = await ctx.cross([
+    const [child] = await ctx.compose([
       ['version.examples.batch.child@1', { legacyName: 'Ada' }],
     ]);
     if (child === undefined) {
-      return Result.err(new Error('batch cross returned no result'));
+      return Result.err(new Error('batch compose returned no result'));
     }
     if (child.isErr()) {
       return child;
     }
     return Result.ok(child.value as { message: string });
   },
-  crosses: [batchVersionChildTrail],
+  composes: [batchVersionChildTrail],
   examples: [
     {
       expected: { message: 'batch:Ada' },
       input: {},
-      name: 'Batch cross resolves inline version reference',
+      name: 'Batch compose resolves inline version reference',
     },
   ],
   input: z.object({}),
   output: z.object({ message: z.string() }),
 });
 
-describe('testExamples resolves inline version references through batch cross', () => {
+describe('testExamples resolves inline version references through batch compose', () => {
   // eslint-disable-next-line jest/require-hook
   testExamples(
-    topo('version-examples-batch-cross-app', {
+    topo('version-examples-batch-compose-app', {
       batchVersionChildTrail,
       batchVersionParentTrail,
     })
@@ -630,7 +630,7 @@ describe('testExamples resolves inline version references through batch cross', 
 });
 
 // ---------------------------------------------------------------------------
-// Nested cross chain: A → B → C
+// Nested compose chain: A → B → C
 // ---------------------------------------------------------------------------
 
 const leafTrail = trail('step.leaf', {
@@ -642,46 +642,49 @@ const leafTrail = trail('step.leaf', {
 
 const middleTrail = trail('step.middle', {
   blaze: async (input: { value: string }, ctx) => {
-    if (!ctx.cross) {
-      return Result.err(new Error('cross not available'));
+    if (!ctx.compose) {
+      return Result.err(new Error('compose not available'));
     }
-    const leafResult = await ctx.cross<{ leaf: string }>('step.leaf', input);
+    const leafResult = await ctx.compose<{ leaf: string }>('step.leaf', input);
     if (leafResult.isErr()) {
       return leafResult;
     }
     return Result.ok({ middle: leafResult.value.leaf });
   },
-  crosses: ['step.leaf'],
-  description: 'Middle trail that crosses the leaf',
+  composes: ['step.leaf'],
+  description: 'Middle trail that composes the leaf',
   input: z.object({ value: z.string() }),
   output: z.object({ middle: z.string() }),
 });
 
 const rootTrail = trail('step.root', {
   blaze: async (input: { value: string }, ctx) => {
-    if (!ctx.cross) {
-      return Result.err(new Error('cross not available'));
+    if (!ctx.compose) {
+      return Result.err(new Error('compose not available'));
     }
-    const midResult = await ctx.cross<{ middle: string }>('step.middle', input);
+    const midResult = await ctx.compose<{ middle: string }>(
+      'step.middle',
+      input
+    );
     if (midResult.isErr()) {
       return midResult;
     }
     return Result.ok({ root: midResult.value.middle });
   },
-  crosses: ['step.middle'],
-  description: 'Root trail that crosses the middle trail',
+  composes: ['step.middle'],
+  description: 'Root trail that composes the middle trail',
   examples: [
     {
       expected: { root: 'hello' },
       input: { value: 'hello' },
-      name: 'Nested cross chain A→B→C',
+      name: 'Nested compose chain A→B→C',
     },
   ],
   input: z.object({ value: z.string() }),
   output: z.object({ root: z.string() }),
 });
 
-describe('testExamples nested cross chain (A → B → C)', () => {
+describe('testExamples nested compose chain (A → B → C)', () => {
   // eslint-disable-next-line jest/require-hook
   testExamples(
     topo('nested-chain-app', {
@@ -788,12 +791,12 @@ describe('testExamples auto-minting permits', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Derived-fixture crossing coverage regression
+// Derived-fixture composing coverage regression
 // ---------------------------------------------------------------------------
 //
 // A composition trail whose only examples come from contour-derived
-// fixtures must not fail crossing-coverage — derived inputs are not
-// guaranteed to exercise every declared cross.
+// fixtures must not fail composing-coverage — derived inputs are not
+// guaranteed to exercise every declared compose.
 
 const itemContour = contour(
   'item',
@@ -809,22 +812,22 @@ const itemContour = contour(
 
 const helperTrail = trail('derived.helper', {
   blaze: (input: { id: string }) => Result.ok({ id: input.id, ok: true }),
-  description: 'Helper referenced by a conditional cross',
+  description: 'Helper referenced by a conditional compose',
   input: z.object({ id: z.string() }),
   output: z.object({ id: z.string(), ok: z.boolean() }),
 });
 
-const conditionalCrossTrail = trail('derived.conditional', {
+const conditionalComposeTrail = trail('derived.conditional', {
   blaze: async (input: { id: string; name: string }, ctx) => {
-    // The conditional cross is never taken for derived fixtures because
-    // `shouldCross` is always false in the synthesized input. This is
+    // The conditional compose is never taken for derived fixtures because
+    // `shouldCompose` is always false in the synthesized input. This is
     // exactly the case the provenance gate exists to protect: if we
-    // asserted crossing coverage against derived examples, this trail
+    // asserted composing coverage against derived examples, this trail
     // would fail even though its declaration is accurate for authored
     // use.
-    const { shouldCross } = input as { shouldCross?: boolean };
-    if (shouldCross && ctx.cross) {
-      const result = await ctx.cross<{ id: string; ok: boolean }>(
+    const { shouldCompose } = input as { shouldCompose?: boolean };
+    if (shouldCompose && ctx.compose) {
+      const result = await ctx.compose<{ id: string; ok: boolean }>(
         'derived.helper',
         { id: input.id }
       );
@@ -834,18 +837,18 @@ const conditionalCrossTrail = trail('derived.conditional', {
     }
     return Result.ok({ id: input.id, name: input.name });
   },
+  composes: ['derived.helper'],
   contours: [itemContour],
-  crosses: ['derived.helper'],
-  description: 'Composition trail with a cross that derived fixtures skip',
+  description: 'Composition trail with a compose that derived fixtures skip',
   input: z.object({ id: z.string(), name: z.string() }),
   output: z.object({ id: z.string(), name: z.string() }),
 });
 
-describe('testExamples derived-fixture crossing coverage is gated', () => {
+describe('testExamples derived-fixture composing coverage is gated', () => {
   // eslint-disable-next-line jest/require-hook
   testExamples(
     topo('derived-coverage-app', {
-      conditionalCrossTrail,
+      conditionalComposeTrail,
       helperTrail,
     } as Record<string, unknown>)
   );

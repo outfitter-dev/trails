@@ -3,7 +3,7 @@ import type { BasePermit } from './permits.js';
 import type { Result } from './result.js';
 import type { Signal } from './signal.js';
 import type { AnyTrail } from './trail.js';
-import type { CrossInput, TrailOutput } from './type-utils.js';
+import type { ComposeInput, TrailOutput } from './type-utils.js';
 import type { ActivationProvenance } from './activation-provenance.js';
 import type { TrailVersionReference } from './version-resolution.js';
 
@@ -32,29 +32,29 @@ export interface DetourAttempt<Input, TErr extends TrailsError = TrailsError> {
   readonly input: Input;
 }
 
-type CrossBatchCall<TTarget extends AnyTrail | string = AnyTrail | string> =
+type ComposeBatchCall<TTarget extends AnyTrail | string = AnyTrail | string> =
   TTarget extends AnyTrail
-    ? readonly [trail: TTarget, input: CrossInput<TTarget>]
+    ? readonly [trail: TTarget, input: ComposeInput<TTarget>]
     : readonly [id: string, input: unknown];
 
-type CrossBatchResult<TTarget extends AnyTrail | string> =
+type ComposeBatchResult<TTarget extends AnyTrail | string> =
   TTarget extends AnyTrail
     ? Result<TrailOutput<TTarget>, Error>
     : Result<unknown, Error>;
 
-type CrossBatchResults<TCalls extends readonly CrossBatchCall[]> = {
+type ComposeBatchResults<TCalls extends readonly ComposeBatchCall[]> = {
   readonly [K in keyof TCalls]: TCalls[K] extends readonly [
     infer TTarget,
     unknown,
   ]
     ? TTarget extends AnyTrail | string
-      ? CrossBatchResult<TTarget>
+      ? ComposeBatchResult<TTarget>
       : never
     : never;
 };
 
-/** Runtime options for batch `ctx.cross([...])` calls. */
-export interface CrossBatchOptions {
+/** Runtime options for batch `ctx.compose([...])` calls. */
+export interface ComposeBatchOptions {
   /**
    * Maximum number of branches to execute concurrently.
    *
@@ -63,10 +63,10 @@ export interface CrossBatchOptions {
   readonly concurrency?: number | undefined;
 }
 
-/** Runtime options for a single `ctx.cross(trail, input, options)` call. */
-export interface CrossOptions {
+/** Runtime options for a single `ctx.compose(trail, input, options)` call. */
+export interface ComposeOptions {
   /**
-   * Execute a specific live version of the crossed trail.
+   * Execute a specific live version of the composed trail.
    *
    * Omit to keep composition current by default. Historical revision entries
    * transpose through the current trail; fork entries run their own blaze.
@@ -80,9 +80,9 @@ export interface CrossOptions {
  * Authors can return `Result` directly or wrap it in a `Promise`. The framework
  * normalizes with `await` at every call site, so both forms work transparently.
  */
-export type Implementation<I, O> = (
+export type Implementation<I, O, Ctx extends TrailContext = TrailContext> = (
   input: I,
-  ctx: TrailContext
+  ctx: Ctx
 ) => Result<O, Error> | Promise<Result<O, Error>>;
 
 /**
@@ -90,30 +90,30 @@ export type Implementation<I, O> = (
  *
  * Two call shapes:
  *
- * - **By trail object** (typed): `ctx.cross(showGist, { id })` — the compiler
+ * - **By trail object** (typed): `ctx.compose(showGist, { id })` — the compiler
  *   infers `I` and `O` from the trail's schemas, so the result is fully typed.
- * - **By string id** (untyped escape hatch): `ctx.cross('gist.show', { id })`
+ * - **By string id** (untyped escape hatch): `ctx.compose('gist.show', { id })`
  *   — returns `Result<O, Error>` where `O` defaults to `unknown`.
- * - **By batch**: `ctx.cross([[showGist, { id }], ['audit.log', payload]])`
- *   — executes every crossing concurrently and resolves once all results are
+ * - **By batch**: `ctx.compose([[showGist, { id }], ['audit.log', payload]])`
+ *   — executes every composing concurrently and resolves once all results are
  *   available. Result ordering always matches the input tuple ordering. Pass
  *   `{ concurrency: N }` as the second argument to limit how many branches
  *   run at once.
  */
-export interface CrossFn {
-  <const TCalls extends readonly CrossBatchCall[]>(
+export interface ComposeFn {
+  <const TCalls extends readonly ComposeBatchCall[]>(
     calls: TCalls,
-    options?: CrossBatchOptions
-  ): Promise<CrossBatchResults<TCalls>>;
+    options?: ComposeBatchOptions
+  ): Promise<ComposeBatchResults<TCalls>>;
   <T extends AnyTrail>(
     trail: T,
-    input: CrossInput<T>,
-    options?: CrossOptions
+    input: ComposeInput<T>,
+    options?: ComposeOptions
   ): Promise<Result<TrailOutput<T>, Error>>;
   <O = unknown>(
     id: string,
     input: unknown,
-    options?: CrossOptions
+    options?: ComposeOptions
   ): Promise<Result<O, Error>>;
 }
 
@@ -230,7 +230,7 @@ export interface TrailContext {
   readonly activation?: ActivationProvenance | undefined;
   readonly requestId: string;
   readonly abortSignal: AbortSignal;
-  readonly cross?: CrossFn | undefined;
+  readonly compose?: ComposeFn | undefined;
   /**
    * Emit a typed signal. Fans out to every trail with the signal in its
    * `on:` declaration. Bound by the runner that holds the topo (typically
@@ -275,6 +275,11 @@ export interface TrailContext {
    * sites tolerate `undefined` by falling back to a no-op passthrough.
    */
   readonly trace?: TraceFn | undefined;
+}
+
+/** Trail context for blazes that declare trail composition. */
+export interface ComposeTrailContext extends TrailContext {
+  readonly compose: ComposeFn;
 }
 
 /**

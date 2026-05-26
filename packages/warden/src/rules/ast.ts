@@ -919,7 +919,7 @@ const visitForHoisted = (
 
 /**
  * Collect `var` declarations and `function` declarations hoisted to the
- * nearest function scope from anywhere inside `root`, without crossing a
+ * nearest function scope from anywhere inside `root`, without composing a
  * nested function or static-block boundary.
  */
 const collectHoistedVarAndFunctionBindings = (
@@ -1296,7 +1296,7 @@ const isNamespacedCallAllowed = (
  *
  * When `context` is `undefined`, this falls back to permissive matching
  * (any `ns.trail(...)` shape resolves). Inline resolution paths that do
- * not have the surrounding AST available (e.g. `crosses: [core.trail(...)]`
+ * not have the surrounding AST available (e.g. `composes: [core.trail(...)]`
  * or `on: [core.signal(...)]`) rely on this fallback. Scope-aware call
  * sites always pass a context, so this only affects inline contexts where
  * a best-effort name match is the intended behavior.
@@ -1790,7 +1790,7 @@ const extractImportSpecifierAlias = (
   }
 
   // Default imports bind the default export of the source module to the local
-  // name. We cannot statically recover the exported name without cross-file
+  // name. We cannot statically recover the exported name without compose-file
   // analysis, so the local name is the best identifier we have for resolving
   // against `knownContourIds`. Treat the alias as an identity mapping; the
   // downstream resolver will fall through to `knownContourIds` on the binding
@@ -2655,14 +2655,14 @@ export const collectNamedTrailIds = (
   return ids;
 };
 
-/** Extract the raw `crosses: [...]` array elements from a trail config. */
-export const getCrossElements = (config: AstNode): readonly AstNode[] => {
-  const crossesProp = findConfigProperty(config, 'crosses');
-  if (!crossesProp) {
+/** Extract the raw `composes: [...]` array elements from a trail config. */
+export const getComposeElements = (config: AstNode): readonly AstNode[] => {
+  const composesProp = findConfigProperty(config, 'composes');
+  if (!composesProp) {
     return [];
   }
 
-  const arrayNode = crossesProp.value;
+  const arrayNode = composesProp.value;
   if (!arrayNode || (arrayNode as AstNode).type !== 'ArrayExpression') {
     return [];
   }
@@ -2674,12 +2674,12 @@ export const getCrossElements = (config: AstNode): readonly AstNode[] => {
 };
 
 /**
- * Resolve a single `crosses: [...]` element to its target trail ID.
+ * Resolve a single `composes: [...]` element to its target trail ID.
  *
  * Handles string literals, identifier references (via `namedTrailIds` map or
  * `const NAME = '...'` resolution), and inline `trail(...)` call expressions.
  */
-export const deriveCrossElementId = (
+export const deriveComposeElementId = (
   element: AstNode,
   sourceCode: string,
   namedTrailIds: ReadonlyMap<string, string>
@@ -2701,23 +2701,23 @@ export const deriveCrossElementId = (
 
 /**
  * Collect all trail IDs referenced by a single trail definition's
- * `crosses: [...]` array, deduplicated.
+ * `composes: [...]` array, deduplicated.
  */
-export const extractDefinitionCrossTargetIds = (
+export const extractDefinitionComposeTargetIds = (
   config: AstNode,
   sourceCode: string,
   namedTrailIds: ReadonlyMap<string, string>
 ): readonly string[] => [
   ...new Set(
-    getCrossElements(config).flatMap((element) => {
-      const id = deriveCrossElementId(element, sourceCode, namedTrailIds);
+    getComposeElements(config).flatMap((element) => {
+      const id = deriveComposeElementId(element, sourceCode, namedTrailIds);
       return id ? [id] : [];
     })
   ),
 ];
 
-/** Collect all trail IDs referenced by declared `crosses: [...]` arrays. */
-export const collectCrossTargetTrailIds = (
+/** Collect all trail IDs referenced by declared `composes: [...]` arrays. */
+export const collectComposeTargetTrailIds = (
   ast: AstNode,
   sourceCode: string
 ): ReadonlySet<string> => {
@@ -2729,7 +2729,7 @@ export const collectCrossTargetTrailIds = (
       continue;
     }
 
-    for (const id of extractDefinitionCrossTargetIds(
+    for (const id of extractDefinitionComposeTargetIds(
       def.config,
       sourceCode,
       namedTrailIds
@@ -2788,7 +2788,7 @@ export interface StoreTableDefinition {
   /**
    * Stable composite key for this table in the form `${storeBinding}:${name}`,
    * falling back to the bare `name` when the store is anonymous. Use this for
-   * cross-rule / cross-file keying so two stores with the same table name
+   * compose-rule / compose-file keying so two stores with the same table name
    * never collide.
    */
   readonly key: string;
@@ -2804,7 +2804,7 @@ export interface StoreTableDefinition {
  * binding. Centralized so rule keying stays stable.
  *
  * @remarks
- * The key is intentionally file-local (no module path prefix). Cross-file
+ * The key is intentionally file-local (no module path prefix). Compose-file
  * aggregation in `ProjectContext` merges keys from all files, so two files
  * with `const db = store({ notes: ... })` both produce `db:notes` — this is
  * the desired behavior because the warden checks for *pattern completeness*

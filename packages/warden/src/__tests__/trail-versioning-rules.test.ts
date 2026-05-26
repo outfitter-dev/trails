@@ -8,7 +8,7 @@ import { z } from 'zod';
 import {
   forkWithoutPreservedBlaze,
   markerSchemaUnsupported,
-  versionPinnedCross,
+  versionPinnedCompose,
 } from '../rules/trail-versioning-source.js';
 import {
   deprecationWithoutGuidance,
@@ -45,12 +45,12 @@ const versionedTrail = trail('versioned.clean', {
 });
 
 describe('trail versioning source Warden rules', () => {
-  test('version-pinned-cross warns on ctx.cross version options', () => {
-    const diagnostics = versionPinnedCross.check(
+  test('version-pinned-compose warns on ctx.compose version options', () => {
+    const diagnostics = versionPinnedCompose.check(
       `
 trail('parent', {
   blaze: async (_input, ctx) => {
-    await ctx.cross('child', {}, { version: 1 });
+    await ctx.compose('child', {}, { version: 1 });
     return Result.ok({});
   },
 });
@@ -60,18 +60,18 @@ trail('parent', {
 
     expect(diagnostics).toEqual([
       expect.objectContaining({
-        rule: 'version-pinned-cross',
+        rule: 'version-pinned-compose',
         severity: 'warn',
       }),
     ]);
   });
 
-  test('version-pinned-cross ignores input payload version fields', () => {
-    const diagnostics = versionPinnedCross.check(
+  test('version-pinned-compose ignores input payload version fields', () => {
+    const diagnostics = versionPinnedCompose.check(
       `
 trail('parent', {
   blaze: async (_input, ctx) => {
-    await ctx.cross('child', { version: 1 });
+    await ctx.compose('child', { version: 1 });
     return Result.ok({});
   },
 });

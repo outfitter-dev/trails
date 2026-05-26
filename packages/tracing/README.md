@@ -105,7 +105,7 @@ Query execution history from the dev store. Accepts:
 - `traceId` — retrieve a full trace tree
 - `limit` — cap the number of results
 
-Invoke programmatically via `run()` or `ctx.cross('tracing.query', { trailId: 'user.create' })`.
+Invoke programmatically via `run()` or `ctx.compose('tracing.query', { trailId: 'user.create' })`.
 
 ## Sinks
 

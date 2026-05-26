@@ -60,7 +60,7 @@ interface ParsedVersionReference {
 
 type MarkerResolvableTrail = Pick<
   AnyTrail,
-  | 'crosses'
+  | 'composes'
   | 'detours'
   | 'id'
   | 'input'

@@ -4,7 +4,7 @@ slug: composition-is-compose-not-cross
 title: Composition is `compose`, not `cross`
 status: accepted
 created: 2026-05-25
-updated: 2026-05-25
+updated: 2026-05-26
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [1, 24, 28]
 ---
@@ -149,8 +149,8 @@ Per ADR-0001's in-place cutover precedent[^cutover], the ADR record itself is up
 - `.agents/memory/decisions.md` — the logged decision (2026-05-24, verb reversed call→compose 2026-05-25).
 - [ADR-0001: Naming Conventions](0001-naming-conventions.md#a-note-on-the-adr-record) — the brand-vs-plain heuristic and the in-place cutover precedent; gains a Cutover 4 log entry pointing here.
 - [ADR-0024: Typed Trail Composition](0024-typed-trail-composition.md) — the composition contract this renames in place (`crossInput` → `composeInput`).
-- [ADR-0028: Concurrent Crossing](0028-concurrent-crossing.md) — the concurrent `ctx.cross([...])` overload, renamed in place to `ctx.compose([...])`.
+- [ADR-0028: Concurrent Trail Composition](0028-concurrent-crossing.md) — the concurrent `ctx.compose([...])` overload after this in-place rename.
 - The prior `follow`→`cross` cutover, encoded in `scripts/vocab-cutover-rewrite.ts` — the codemod precedent this extends.
 
 [^trl784]: <https://linear.app/outfitter/issue/TRL-784>
-[^cutover]: [ADR-0001 — A note on the ADR record](0001-naming-conventions.md#a-note-on-the-adr-record): the lexicon has been cut over in place three times pre-1.0 (Cutover 1, Cutover 2 = ADR-0023, Cutover 3 = ADR-0035), each with its own ADR plus a log entry.
+[^cutover]: [ADR-0001 — A note on the ADR record](0001-naming-conventions.md#a-note-on-the-adr-record): the lexicon is cut over in place during pre-1.0 when old names would create more confusion than history value, with each cutover recorded by its own ADR plus a log entry.

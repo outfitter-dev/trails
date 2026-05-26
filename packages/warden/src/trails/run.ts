@@ -37,7 +37,7 @@ interface ProjectRuleOptions {
   readonly contourReferencesByName?: Readonly<
     Record<string, readonly string[]>
   >;
-  readonly crossTargetTrailIds?: readonly string[];
+  readonly composeTargetTrailIds?: readonly string[];
   readonly crudTableIds?: readonly string[];
   readonly crudCoverageByEntity?: Readonly<Record<string, readonly string[]>>;
   readonly knownContourIds?: readonly string[];
@@ -58,7 +58,7 @@ interface ProjectRuleOptions {
 
 const PROJECT_OPTION_KEYS = [
   'contourReferencesByName',
-  'crossTargetTrailIds',
+  'composeTargetTrailIds',
   'crudTableIds',
   'crudCoverageByEntity',
   'knownContourIds',

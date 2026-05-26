@@ -36,11 +36,11 @@ This pattern appears in every trail that touches infrastructure. It has three pr
 
 2. **The framework can't manage lifecycle.** Every trail opens and closes its own connection. No pooling, no shared clients, no coordinated shutdown. The framework has zero visibility into what the trail needs.
 
-3. **No governance.** The warden validates that `crosses` declarations match `ctx.cross()` calls. It can't validate resource usage because resources aren't declared. Dependencies are invisible to the contract.
+3. **No governance.** The warden validates that `composes` declarations match `ctx.compose()` calls. It can't validate resource usage because resources aren't declared. Dependencies are invisible to the contract.
 
 ### What's missing from the contract
 
-A trail's contract today answers: what does it take (input schema), what does it produce (output schema), what does it cross (crosses), and how does it behave (intent). It doesn't answer: **what does it need?**
+A trail's contract today answers: what does it take (input schema), what does it produce (output schema), what does it compose (`composes`), and how does it behave (intent). It doesn't answer: **what does it need?**
 
 That's the gap. The trail contract has no way to express dependencies on external capabilities. Resources fill it.
 
@@ -126,7 +126,7 @@ const search = trail('search', {
 });
 ```
 
-The array form is consistent with `crosses: [...]` — both are flat sets of dependency declarations. But where `crosses` uses string IDs, `resources` takes objects. The difference is deliberate: resource objects carry their type from the factory return, enabling `db.from(ctx)` inference at the call site. String IDs would require a manual generic on every access. The tradeoff is that trail files import resource definitions, but this is natural — the resource is already in scope for `db.from(ctx)`, and packs export resources alongside trails.
+The array form is consistent with `composes: [...]` — both are flat sets of dependency declarations. But where `composes` uses string IDs, `resources` takes objects. The difference is deliberate: resource objects carry their type from the factory return, enabling `db.from(ctx)` inference at the call site. String IDs would require a manual generic on every access. The tradeoff is that trail files import resource definitions, but this is natural — the resource is already in scope for `db.from(ctx)`, and packs export resources alongside trails.
 
 ### Typed access via `db.from(ctx)`
 
@@ -155,7 +155,7 @@ executeTrail pipeline:
 1. Validate input
 2. Resolve context (createContext + overrides)
 3. Resolve resources (create singletons or retrieve cached) ← new
-4. Create cross via createCross(topo, scope)                 ← centralized
+4. Create compose via createCompose(topo, scope)             ← centralized
 5. Compose layers (layers can now access resources via ctx)
 6. Enter the blaze
 ```
@@ -168,9 +168,9 @@ Eager resolution means:
 
 Resource `create` factories return `Result`. Thrown exceptions are wrapped as `InternalError` with the resource ID in context. A failed resource resolution short-circuits execution with a clear error.
 
-### Centralized cross creation
+### Centralized compose creation
 
-Today, each surface creates its own `ctx.cross` function ad-hoc. With resources, cross needs to propagate the resolved resource scope through nested trail invocations. A core `createCross(topo, scope)` function — named per Convention 5 — centralizes this. All surfaces and `run()` use the same function.
+Today, each surface creates its own `ctx.compose` function ad-hoc. With resources, composition needs to propagate the resolved resource scope through nested trail invocations. A core `createCompose(topo, scope)` function — named per Convention 5 — centralizes this. All surfaces and `run()` use the same function.
 
 The execution scope is a lightweight object that `executeTrail` creates per root invocation. For v1, it holds the singleton resource cache. The scope is extensible — tracing will add `TrackScope` for trace propagation, and request-scoped resources (when they ship) will add per-request state. Designing the seam now avoids retrofitting it later.
 
@@ -196,10 +196,10 @@ testExamples(app, { resources: { 'db.main': customMock } });
 
 When a resource definition includes a `mock` factory, `testExamples` uses it automatically. No configuration needed. The resource contract includes how to mock itself. This restores the `testExamples(app)` promise — one line tests the entire app, even for trails with external dependencies.
 
-The same mechanism works with `testCrosses`, `run`, and surface-level overrides:
+The same mechanism works with `testComposes`, `run`, and surface-level overrides:
 
 ```typescript
-testCrosses(onboardTrail, scenarios, {
+testComposes(onboardTrail, scenarios, {
   resources: { 'db.main': mockDb },
 });
 
@@ -212,7 +212,7 @@ surface(graph, {
 });
 ```
 
-### Warden governance mirrors cross-declarations
+### Warden governance mirrors composes-declarations
 
 Two new rules, both following the established AST analysis pattern:
 
@@ -235,7 +235,7 @@ Intent doesn't narrow resource types in v1 — that requires conditional type ma
 With resources, the topo graph becomes fully connected:
 
 ```text
-Trails ──crosses────→ Trails
+Trails ──composes────→ Trails
 Trails ──resources─→ Resources
 Events ──origin───→ Trails
 ```
@@ -287,9 +287,9 @@ The layer receives the resource definition as a parameter. It reads from context
 
 ### Positive
 
-- **The trail contract is complete.** Input, output, intent, crossings, resources — every dimension of what a trail is and needs is declared, verifiable, and introspectable.
+- **The trail contract is complete.** Input, output, intent, compositions, resources — every dimension of what a trail is and needs is declared, verifiable, and introspectable.
 - **`testExamples(app)` works for real apps.** The `mock` factory on resource definitions means examples run in isolation by default. The headline testing feature delivers on its promise.
-- **Governance extends naturally.** `resource-declarations` mirrors `cross-declarations`. Same AST pattern, same diagnostic shape. The warden's coverage grows without new concepts.
+- **Governance extends naturally.** `resource-declarations` mirrors `composes-declarations`. Same AST pattern, same diagnostic shape. The warden's coverage grows without new concepts.
 - **The dependency graph is queryable.** Survey reports which resources exist, which trails use them, and how intent relates to resource access. Agents and tooling see the complete picture.
 - **Layers and resources compose.** Transaction layers, capability-shaping layers, and other cross-cutting concerns that need infrastructure access just work — resources are resolved before layers run.
 - **Packs are self-contained.** A pack carries its trails, its resources, and its test mocks. Install one thing, get the full capability.
@@ -302,7 +302,7 @@ The layer receives the resource definition as a parameter. It reads from context
 
 ### What this does NOT decide
 
-- **Request-scoped resources.** Deferred until a concrete use case demands it. The singleton model is sufficient for v1. The execution scope introduced here is extensible for request-scoped state when needed — the `createCross` mechanism already propagates scope through cross chains.
+- **Request-scoped resources.** Deferred until a concrete use case demands it. The singleton model is sufficient for v1. The execution scope introduced here is extensible for request-scoped state when needed — the `createCompose` mechanism already propagates scope through composition chains.
 - **Intent-based type narrowing.** `intent: 'read'` returning a read-only projection of a resource is powerful but complex. Deferred.
 - **Resource-to-resource dependencies.** Whether one resource's factory can depend on another resource. The expected pattern when this is needed: resource factories receive a resource resolver alongside `ctx`, and resolution order is topologically sorted from the dependency graph. The graph is already queryable — this follows naturally. Config resolution will be the first instance of this.
 - **Composable config resolution.** The reserved `config` field on `ResourceSpec` enables resources to declare their own config schemas. When `@ontrails/config` ships, resource config schemas compose into the app-level config automatically. The field is reserved now to prevent breaking changes.

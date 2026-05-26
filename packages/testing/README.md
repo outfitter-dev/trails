@@ -29,10 +29,10 @@ testDetours(graph);    // Validate detour constructor, recover, and ordering sem
 | --- | --- |
 | `testAll(topo, ctx?)` | Single-line contract suite: validation + examples + contracts + detours |
 | `testExamples(topo, ctx?)` | Run trail examples as `describe`/`test` blocks |
-| `testTrail(trail, scenarios)` | Custom scenarios for edge cases, error paths, and cross chains |
+| `testTrail(trail, scenarios)` | Custom scenarios for edge cases, error paths, and composition chains |
 | `testContracts(topo, ctx?)` | Validate output against declared schemas |
 | `testDetours(topo)` | Validate detour constructor, recover, and shadowing semantics |
-| `createCrossContext(options?)` | Mock `CrossFn` for testing composite trails; returns preconfigured `Result` values keyed by trail ID |
+| `createComposeContext(options?)` | Mock `ComposeFn` for testing composite trails; returns preconfigured `Result` values keyed by trail ID |
 | `createTestContext(options?)` | `TrailContext` with sensible test defaults |
 | `createTestLogger()` | Logger that captures entries in memory for assertions |
 
@@ -53,9 +53,9 @@ testTrail(showTrail, [
 ]);
 ```
 
-## Testing composition (trails with crosses)
+## Testing composition (trails with composes)
 
-`testTrail` works the same for trails with `crosses` -- it exercises the crossing graph:
+`testTrail` works the same for trails with `composes` -- it exercises the composition graph:
 
 ```typescript
 import { testTrail } from '@ontrails/testing';
@@ -66,13 +66,13 @@ testTrail(onboardTrail, [
 ]);
 ```
 
-When you need to isolate a composite trail and stub out its dependencies, use `createCrossContext`:
+When you need to isolate a composite trail and stub out its dependencies, use `createComposeContext`:
 
 ```typescript
-import { createCrossContext, testTrail } from '@ontrails/testing';
+import { createComposeContext, testTrail } from '@ontrails/testing';
 import { Result } from '@ontrails/core';
 
-const cross = createCrossContext({
+const cross = createComposeContext({
   responses: {
     'entity.add': Result.ok({ id: '1', name: 'Delta', type: 'tool' }),
     'search': Result.ok({ results: [] }),
@@ -80,7 +80,7 @@ const cross = createCrossContext({
 });
 testTrail(onboardTrail, [
   {
-    description: 'uses mocked crosses',
+    description: 'uses mocked composes',
     input: { name: 'Delta', type: 'tool' },
     expectOk: true,
   },

@@ -59,7 +59,7 @@ const projectVersionDetours = (
 
 const projectVersionRuntimeRefs = (
   entry: TrailVersionEntry,
-  field: 'crosses' | 'resources'
+  field: 'composes' | 'resources'
 ): readonly string[] | undefined => {
   const raw = entry as unknown as Record<string, unknown>;
   const values = raw[field];
@@ -110,11 +110,11 @@ export const projectTrailVersionEntry = (
   }
 
   if (kind === 'fork') {
-    const crosses = projectVersionRuntimeRefs(entry, 'crosses');
+    const composes = projectVersionRuntimeRefs(entry, 'composes');
     const resources = projectVersionRuntimeRefs(entry, 'resources');
     const detours = projectVersionDetours(entry);
-    if (crosses !== undefined) {
-      projected['crosses'] = crosses;
+    if (composes !== undefined) {
+      projected['composes'] = composes;
     }
     if (resources !== undefined) {
       projected['resources'] = resources;

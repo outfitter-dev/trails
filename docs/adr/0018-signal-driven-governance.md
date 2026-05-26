@@ -21,7 +21,7 @@ The framework's operational lifecycle is a collection of separate subsystems wit
 - **The tracing** records execution data through a layer. Nothing reads it back in a useful way.
 - **Schema cache** (proposed in ADR: Topo Store) checks a hash, computes if stale, stores.
 
-Each subsystem has its own activation mechanism, its own execution model, its own error handling, and its own testing story. None of them are trails. None of them benefit from the framework's own primitives: typed schemas, examples, `testAll`, governance, crossings, resources.
+Each subsystem has its own activation mechanism, its own execution model, its own error handling, and its own testing story. None of them are trails. None of them benefit from the framework's own primitives: typed schemas, examples, `testAll`, governance, compositions, resources.
 
 This is the cobbler's children problem. The framework that exists to eliminate redundant authoring has redundant, hand-written operational subsystems.
 
@@ -87,8 +87,8 @@ trail('framework.lock.export', {
     const conn = topoStore.from(ctx);
     const snapshot = await conn.snapshots.get({ snapshotId: input.snapshotId });
     const trails = await conn.trails.list({}, { orderBy: 'id' });
-    const crossings = await conn.crossings.list({});
-    const lockContent = renderLock(snapshot, trails, crossings);
+    const composings = await conn.composings.list({});
+    const lockContent = renderLock(snapshot, trails, composings);
     await writeFile('.trails/trails.lock', lockContent);
     return Result.ok({ path: '.trails/trails.lock', trailCount: trails.length });
   },
@@ -236,7 +236,7 @@ The trails are environment-agnostic. The topo composition determines what's acti
 - **Everything is testable.** Warden rules have examples. The lockfile generator has examples. Dev intelligence queries have examples. `testAll(frameworkTopo)` verifies all of it.
 - **Everything is governable.** The warden governs itself. Meta-governance — do all warden rules have examples? do all framework trails declare intent? — falls out naturally.
 - **Signals decouple producers from consumers.** The build system fires `topo.saved`. `trails topo pin` fires `topo.pinned`. Neither knows or cares what activates on them. New governance rules, reports, and integrations are trails with `on` declarations for existing signals.
-- **Dev intelligence joins structure and behavior.** The topo store (structure) and tracing (behavior) are both resources. Trails that cross-query them produce insights neither could generate alone.
+- **Dev intelligence joins structure and behavior.** The topo store (structure) and tracing (behavior) are both resources. Trails that query both produce insights neither could generate alone.
 
 ### Tradeoffs
 

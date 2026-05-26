@@ -34,7 +34,7 @@ import {
   collectContourDefinitionIds,
   collectContourReferenceTargetsByName,
   collectCrudTableIds as collectCrudTableIdsFromAst,
-  collectCrossTargetTrailIds,
+  collectComposeTargetTrailIds,
   collectOnTargetSignalIds as collectOnTargetSignalIdsFromAst,
   collectReconcileTableIds as collectReconcileTableIdsFromAst,
   collectResourceDefinitionIds,
@@ -295,7 +295,7 @@ interface SourceFile {
 interface MutableProjectContext {
   contourReferencesByName: Map<string, Set<string>>;
   crudTableIds: Set<string>;
-  crossTargetTrailIds: Set<string>;
+  composeTargetTrailIds: Set<string>;
   crudCoverageByEntity: Map<string, Set<string>>;
   knownContourIds: Set<string>;
   knownResourceIds: Set<string>;
@@ -313,8 +313,8 @@ interface MutableProjectContext {
 }
 
 const createMutableProjectContext = (): MutableProjectContext => ({
+  composeTargetTrailIds: new Set<string>(),
   contourReferencesByName: new Map<string, Set<string>>(),
-  crossTargetTrailIds: new Set<string>(),
   crudCoverageByEntity: new Map<string, Set<string>>(),
   crudTableIds: new Set<string>(),
   documentedImportResolutionsByFile: new Map<
@@ -373,7 +373,7 @@ const toProjectContext = (context: MutableProjectContext): ProjectContext => ({
         ),
       }
     : {}),
-  crossTargetTrailIds: context.crossTargetTrailIds,
+  composeTargetTrailIds: context.composeTargetTrailIds,
   knownContourIds: context.knownContourIds,
   knownResourceIds: context.knownResourceIds,
   knownSignalIds: context.knownSignalIds,
@@ -427,17 +427,17 @@ const collectKnownTrailIds = (
   }
 };
 
-const collectCrossedTrailIds = (
+const collectComposedTrailIds = (
   sourceCode: string,
   filePath: string,
-  crossTargetTrailIds: Set<string>
+  composeTargetTrailIds: Set<string>
 ): void => {
   const ast = parse(filePath, sourceCode);
   if (!ast) {
     return;
   }
-  for (const id of collectCrossTargetTrailIds(ast, sourceCode)) {
-    crossTargetTrailIds.add(id);
+  for (const id of collectComposeTargetTrailIds(ast, sourceCode)) {
+    composeTargetTrailIds.add(id);
   }
 };
 
@@ -623,14 +623,14 @@ const collectTopoKnownIds = (
   }
 };
 
-const collectTopoCrossesAndIntents = (
+const collectTopoComposesAndIntents = (
   appTopo: Topo,
   context: MutableProjectContext
 ): void => {
   for (const trail of appTopo.trails.values()) {
     context.trailIntentsById.set(trail.id, trail.intent);
-    for (const crossedTrailId of trail.crosses) {
-      context.crossTargetTrailIds.add(crossedTrailId);
+    for (const composedTrailId of trail.composes) {
+      context.composeTargetTrailIds.add(composedTrailId);
     }
   }
 };
@@ -653,7 +653,7 @@ const collectTopoTrailContext = (
   context: MutableProjectContext
 ): void => {
   collectTopoKnownIds(appTopo, context);
-  collectTopoCrossesAndIntents(appTopo, context);
+  collectTopoComposesAndIntents(appTopo, context);
   collectTopoContourReferences(appTopo, context);
 };
 
@@ -687,10 +687,10 @@ const collectFileTrailRelationships = (
   sourceFile: SourceFile,
   context: MutableProjectContext
 ): void => {
-  collectCrossedTrailIds(
+  collectComposedTrailIds(
     sourceFile.sourceCode,
     sourceFile.filePath,
-    context.crossTargetTrailIds
+    context.composeTargetTrailIds
   );
   collectTrailIntents(
     sourceFile.sourceCode,

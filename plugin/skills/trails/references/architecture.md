@@ -66,14 +66,14 @@ Every piece of information has a clear ownership model.
 | `output: z.object({...})` | Blaze return type must match |
 | `Result<T, Error>` | Cannot throw — must return `Result.ok()` or `Result.err()` |
 | `TrailContext` interface | Blaze receives only framework-provided fields |
-| `crosses: [...]` on trail | Warden verifies `ctx.cross()` calls match |
+| `composes: [...]` on trail | Warden verifies `ctx.compose()` calls match |
 | `resources: [...]` on trail | Warden verifies `resource.from(ctx)` / `ctx.resource()` calls match |
 
 ### Inferred — detected by static analysis, best-effort
 
 | Inferred | From |
 |----------|------|
-| Which trails a trail crosses | `ctx.cross()` calls in the blaze function |
+| Which trails a trail composes | `ctx.compose()` calls in the blaze function |
 | Error types returned | `Result.err(new XError(...))` patterns |
 | TopoGraph entries and lock hash | All established trails, resources, signals, contours, examples, and derived fields, canonicalized |
 

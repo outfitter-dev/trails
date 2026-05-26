@@ -21,13 +21,13 @@ async function run() {
     expect(diagnostics).toHaveLength(1);
     expect(diagnostics[0]?.rule).toBe('no-direct-implementation-call');
     expect(diagnostics[0]?.severity).toBe('warn');
-    expect(diagnostics[0]?.message).toContain('ctx.cross');
+    expect(diagnostics[0]?.message).toContain('ctx.compose');
   });
 
-  test('flags direct implementation access inside trails with crossings', () => {
+  test('flags direct implementation access inside trails with compositions', () => {
     const code = `
 trail("entity.onboard", {
-  crosses: ["entity.create"],
+  composes: ["entity.create"],
   blaze: async (input, ctx) => {
     const result = await entityCreate.blaze(data);
     return Result.ok(result);
@@ -39,15 +39,15 @@ trail("entity.onboard", {
     expect(diagnostics).toHaveLength(1);
     expect(diagnostics[0]?.rule).toBe('no-direct-implementation-call');
     expect(diagnostics[0]?.severity).toBe('warn');
-    expect(diagnostics[0]?.message).toContain('ctx.cross');
+    expect(diagnostics[0]?.message).toContain('ctx.compose');
   });
 
-  test('allows ctx.cross() calls', () => {
+  test('allows ctx.compose() calls', () => {
     const code = `
 trail("entity.onboard", {
-  crosses: ["entity.create"],
+  composes: ["entity.create"],
   blaze: async (input, ctx) => {
-    const result = await ctx.cross("entity.create", input);
+    const result = await ctx.compose("entity.create", input);
     return Result.ok(result);
   },
 });

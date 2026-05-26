@@ -1,5 +1,5 @@
 /**
- * Workspace-wide trail-id index for cross-app resolution.
+ * Workspace-wide trail-id index for compose-app resolution.
  *
  * Builds a `{ trailId → appName }` index that lets `trails run <id>` resolve
  * a trail to its owning app without scanning every app's source. The index is
@@ -9,7 +9,7 @@
  *
  * @remarks
  * **Boundary.** This module lives in `@ontrails/topographer` because it
- * persists artifacts derived from the resolved graph (per ADR-0042). Cross-app
+ * persists artifacts derived from the resolved graph (per ADR-0042). Compose-app
  * resolution is CLI tooling that reads Topographer artifacts before runtime
  * begins — `@ontrails/core` resolves a single in-memory graph and stays
  * unaware of workspace topology.

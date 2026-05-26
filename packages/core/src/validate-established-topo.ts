@@ -6,9 +6,9 @@ import type { TopoIssue } from './validate-topo.js';
 import { validateTopo } from './validate-topo.js';
 
 const PROJECTION_BLOCKING_RULES = new Set([
-  'cross-cycle',
-  'cross-exists',
-  'no-self-cross',
+  'compose-cycle',
+  'compose-exists',
+  'no-self-compose',
   'activation-source-definition-unique',
   'activation-source-edge-unique',
   'activation-source-kind-known',

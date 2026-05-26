@@ -652,45 +652,45 @@ const expectSiblingTraceShape = (
   expectSiblingOverlap(left, right);
 };
 
-const createConsumerCrossScenario = () => {
-  const crossTarget = trail('notify.audit', {
+const createConsumerComposeScenario = () => {
+  const composeTarget = trail('notify.audit', {
     blaze: () => Result.ok({ audited: true }),
     input: z.object({ orderId: z.string() }),
     output: z.object({ audited: z.boolean() }),
   });
   const consumer = trail('notify.email', {
     blaze: async (input, ctx) => {
-      const crossFn = ctx.cross as NonNullable<typeof ctx.cross>;
-      return (await crossFn(crossTarget, {
+      const composeFn = ctx.compose as NonNullable<typeof ctx.compose>;
+      return (await composeFn(composeTarget, {
         orderId: input.orderId,
       })) as Result<unknown, Error>;
     },
-    crosses: [crossTarget],
+    composes: [composeTarget],
     input: z.object({ orderId: z.string(), total: z.number() }),
     on: ['order.placed'],
   });
   const fireBox: { fired?: boolean } = {};
-  return topo('fire-consumer-cross-attribution', {
+  return topo('fire-consumer-compose-attribution', {
+    composeTarget,
     consumer,
-    crossTarget,
     orderPlaced,
     producer: makeProducer(fireBox),
   });
 };
 
-const expectConsumerCrossAttribution = (
+const expectConsumerComposeAttribution = (
   records: readonly TraceRecord[]
 ): void => {
   const producerRecord = findTrailRecord(records, 'order.create');
   const consumerRecord = findTrailRecord(records, 'notify.email');
-  const crossRecord = findTrailRecord(records, 'notify.audit');
-  // The consumer span parents the crossed call — NOT the producer.
+  const composeRecord = findTrailRecord(records, 'notify.audit');
+  // The consumer span parents the composed call — NOT the producer.
   // Before the forkCtx fix, the consumer inherited the producer's
-  // `cross` closure, which attributed the crossed span to the
+  // `compose` closure, which attributed the composed span to the
   // producer's scope.
-  expect(crossRecord.parentId).toBe(consumerRecord.id);
-  expect(crossRecord.parentId).not.toBe(producerRecord.id);
-  expect(crossRecord.traceId).toBe(producerRecord.traceId);
+  expect(composeRecord.parentId).toBe(consumerRecord.id);
+  expect(composeRecord.parentId).not.toBe(producerRecord.id);
+  expect(composeRecord.traceId).toBe(producerRecord.traceId);
 };
 
 const signalTraceRecords = (records: readonly TraceRecord[]): TraceRecord[] =>
@@ -1803,7 +1803,7 @@ describe('fire', () => {
     });
 
     test('caller-supplied ctx.fire is preserved even when topo is provided', async () => {
-      // Symmetry with bindCrossToCtx: a test harness or runtime that injects
+      // Symmetry with bindComposeToCtx: a test harness or runtime that injects
       // a custom ctx.fire mock should observe its calls, not have them
       // silently rebound to the topo-backed dispatcher.
       const { executeTrail } = await import('../execute');
@@ -2250,19 +2250,19 @@ describe('fire', () => {
     });
   });
 
-  describe('per-consumer cross binding', () => {
-    test('cross calls from a consumer are attributed to the consumer span', async () => {
+  describe('per-consumer compose binding', () => {
+    test('compose calls from a consumer are attributed to the consumer span', async () => {
       const records: TraceRecord[] = [];
       registerTraceSink(createCapturingSink(records));
 
       try {
-        const app = createConsumerCrossScenario();
+        const app = createConsumerComposeScenario();
         const result = await run(app, 'order.create', {
-          orderId: 'o-cross-attr',
+          orderId: 'o-compose-attr',
           total: 4,
         });
         expect(result.isOk()).toBe(true);
-        expectConsumerCrossAttribution(records);
+        expectConsumerComposeAttribution(records);
       } finally {
         clearTraceSink();
       }

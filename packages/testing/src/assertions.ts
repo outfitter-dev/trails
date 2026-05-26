@@ -67,7 +67,7 @@ type ResultMatchToken = OkResultMatch | ErrResultMatch;
 
 /**
  * Create a partial-match token for `Result.ok(...)` values nested inside
- * arrays or objects, such as the `Result[]` returned by batch `ctx.cross()`.
+ * arrays or objects, such as the `Result[]` returned by batch `ctx.compose()`.
  */
 export const okResultMatch = (value?: unknown): OkResultMatch => ({
   __resultMatch: 'ok',
@@ -76,7 +76,7 @@ export const okResultMatch = (value?: unknown): OkResultMatch => ({
 
 /**
  * Create a partial-match token for `Result.err(...)` values nested inside
- * arrays or objects, such as mixed-success batch `ctx.cross()`.
+ * arrays or objects, such as mixed-success batch `ctx.compose()`.
  */
 export const errResultMatch = (error?: unknown): ErrResultMatch => ({
   __resultMatch: 'err',

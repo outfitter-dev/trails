@@ -2,7 +2,7 @@
  * Finds implementations that return raw values instead of `Result`.
  *
  * Uses AST parsing to find `blaze:` bodies and check that
- * every return statement returns Result.ok(), Result.err(), ctx.cross(),
+ * every return statement returns Result.ok(), Result.err(), ctx.compose(),
  * or a tracked Result-typed variable.
  */
 
@@ -24,7 +24,7 @@ import { isTestFile } from './scan.js';
 import type { WardenDiagnostic, WardenRule } from './types.js';
 
 const buildUnrecognizedResultMessage = (label: string, id: string): string =>
-  `${label} "${id}": return value is not a recognized Result expression. Return Result.ok(...), Result.err(...), or a Result-producing expression such as await ctx.cross(...). If you are returning a crossed/helper Result, keep the provenance visible or add a Result return annotation Warden can trace.`;
+  `${label} "${id}": return value is not a recognized Result expression. Return Result.ok(...), Result.err(...), or a Result-producing expression such as await ctx.compose(...). If you are returning a composed/helper Result, keep the provenance visible or add a Result return annotation Warden can trace.`;
 
 // ---------------------------------------------------------------------------
 // Member expression helpers
@@ -40,7 +40,7 @@ const isResultMemberCall = (callee: AstNode): boolean => {
   if (objName === 'Result' && (propName === 'ok' || propName === 'err')) {
     return true;
   }
-  if (objName === 'ctx' && propName === 'cross') {
+  if (objName === 'ctx' && propName === 'compose') {
     return true;
   }
   return propName === 'blaze';

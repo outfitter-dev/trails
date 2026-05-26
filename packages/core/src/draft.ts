@@ -10,7 +10,7 @@ import type { AnyTrail } from './trail.js';
 export const DRAFT_ID_PREFIX = '_draft.';
 
 export type DraftDependencyKind =
-  | 'cross'
+  | 'compose'
   | 'contour'
   | 'resource'
   | 'replaced-by'
@@ -88,7 +88,7 @@ const trailDependencies = (trail: AnyTrail): DraftDependency[] => [
     (trail.contours ?? []).map((contour) => contour.name),
     'contour'
   ),
-  ...dependenciesFromIds(trail.id, trail.crosses, 'cross'),
+  ...dependenciesFromIds(trail.id, trail.composes, 'compose'),
   ...dependenciesFromIds(
     trail.id,
     trail.resources.map(({ id }) => id),

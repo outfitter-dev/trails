@@ -5,16 +5,16 @@ import { missingVisibility } from '../rules/missing-visibility.js';
 const TEST_FILE = 'entity.ts';
 
 describe('missing-visibility', () => {
-  test('warns when a crossed trail has required crossInput but remains public', () => {
+  test('warns when a composed trail has required composeInput but remains public', () => {
     const code = `
 trail('entity.resolve', {
-  crossInput: z.object({ forkedFrom: z.string() }),
+  composeInput: z.object({ forkedFrom: z.string() }),
   blaze: async () => Result.ok({}),
 });
 `;
 
     const diagnostics = missingVisibility.checkWithContext(code, TEST_FILE, {
-      crossTargetTrailIds: new Set(['entity.resolve']),
+      composeTargetTrailIds: new Set(['entity.resolve']),
       knownTrailIds: new Set(['entity.resolve']),
     });
 
@@ -30,14 +30,14 @@ trail('entity.resolve', {
       const code = `
 trail('entity.resolve', {
   meta: { internal: true },
-  crossInput: z.object({ forkedFrom: z.string() }),
+  composeInput: z.object({ forkedFrom: z.string() }),
   blaze: async () => Result.ok({}),
 });
 `;
 
       expect(
         missingVisibility.checkWithContext(code, TEST_FILE, {
-          crossTargetTrailIds: new Set(['entity.resolve']),
+          composeTargetTrailIds: new Set(['entity.resolve']),
           knownTrailIds: new Set(['entity.resolve']),
         })
       ).toEqual([]);
@@ -47,13 +47,13 @@ trail('entity.resolve', {
       const code = `
 trail('entity.resolve', {
   meta: { description: "this has internal: true in it" },
-  crossInput: z.object({ forkedFrom: z.string() }),
+  composeInput: z.object({ forkedFrom: z.string() }),
   blaze: async () => Result.ok({}),
 });
 `;
 
       const diagnostics = missingVisibility.checkWithContext(code, TEST_FILE, {
-        crossTargetTrailIds: new Set(['entity.resolve']),
+        composeTargetTrailIds: new Set(['entity.resolve']),
         knownTrailIds: new Set(['entity.resolve']),
       });
 
@@ -62,43 +62,43 @@ trail('entity.resolve', {
     });
   });
 
-  test('stays quiet when the crossed trail is already internal', () => {
+  test('stays quiet when the composed trail is already internal', () => {
     const code = `
 trail('entity.resolve', {
   visibility: 'internal',
-  crossInput: z.object({ forkedFrom: z.string() }),
+  composeInput: z.object({ forkedFrom: z.string() }),
   blaze: async () => Result.ok({}),
 });
 `;
 
     expect(
       missingVisibility.checkWithContext(code, TEST_FILE, {
-        crossTargetTrailIds: new Set(['entity.resolve']),
+        composeTargetTrailIds: new Set(['entity.resolve']),
         knownTrailIds: new Set(['entity.resolve']),
       })
     ).toEqual([]);
   });
 
-  test('stays quiet when crossInput fields are optional', () => {
+  test('stays quiet when composeInput fields are optional', () => {
     const code = `
 trail('entity.resolve', {
-  crossInput: z.object({ forkedFrom: z.string().optional() }),
+  composeInput: z.object({ forkedFrom: z.string().optional() }),
   blaze: async () => Result.ok({}),
 });
 `;
 
     expect(
       missingVisibility.checkWithContext(code, TEST_FILE, {
-        crossTargetTrailIds: new Set(['entity.resolve']),
+        composeTargetTrailIds: new Set(['entity.resolve']),
         knownTrailIds: new Set(['entity.resolve']),
       })
     ).toEqual([]);
   });
 
-  test('stays quiet when the trail is not crossed', () => {
+  test('stays quiet when the trail is not composed', () => {
     const code = `
 trail('entity.resolve', {
-  crossInput: z.object({ forkedFrom: z.string() }),
+  composeInput: z.object({ forkedFrom: z.string() }),
   blaze: async () => Result.ok({}),
 });
 `;

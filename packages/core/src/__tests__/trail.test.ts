@@ -253,7 +253,7 @@ describe('trail()', () => {
         versions: {
           1: {
             blaze: () => Result.ok({ ok: true }),
-            crosses: [target],
+            composes: [target],
             detours: [
               {
                 on: ConflictError,
@@ -268,13 +268,13 @@ describe('trail()', () => {
       });
 
       const entry = versioned.versions?.[1] as
-        | (Record<string, unknown> & { crosses: readonly string[] })
+        | (Record<string, unknown> & { composes: readonly string[] })
         | undefined;
       expect(entry && getTrailVersionEntryKind(entry)).toBe('fork');
-      expect(entry?.crosses).toEqual(['target.read']);
+      expect(entry?.composes).toEqual(['target.read']);
       expect(entry?.resources).toEqual([dbResource]);
       expect(entry?.detours).toHaveLength(1);
-      expect(Object.isFrozen(entry?.crosses)).toBe(true);
+      expect(Object.isFrozen(entry?.composes)).toBe(true);
     });
 
     test('allows version gaps and excludes archived entries from support', () => {
@@ -372,11 +372,11 @@ describe('trail()', () => {
       ).toThrow(ValidationError);
 
       expect(() =>
-        trail('bad.revision-cross-input', {
+        trail('bad.revision-compose-input', {
           ...base,
           versions: {
             1: {
-              crossInput: z.object({ caller: z.string() }),
+              composeInput: z.object({ caller: z.string() }),
               input: z.object({}),
               output: z.object({ ok: z.boolean() }),
             } as never,
@@ -665,76 +665,81 @@ describe('trail()', () => {
     });
   });
 
-  describe('crosses', () => {
+  describe('composes', () => {
     test('defaults to empty frozen array when omitted', () => {
       const minimal = trail('bare', {
         blaze: () => Result.ok(),
         input: z.object({}),
       });
-      expect(minimal.crosses).toEqual([]);
-      expect(Object.isFrozen(minimal.crosses)).toBe(true);
+      expect(minimal.composes).toEqual([]);
+      expect(Object.isFrozen(minimal.composes)).toBe(true);
     });
 
-    test('preserves crosses array', () => {
-      const withCrosses = trail('composed', {
+    test('preserves composes array', () => {
+      const withComposes = trail('composed', {
         blaze: () => Result.ok(),
-        crosses: ['authenticate', 'validate-session'],
+        composes: ['authenticate', 'validate-session'],
         input: z.object({}),
       });
-      expect(withCrosses.crosses).toEqual(['authenticate', 'validate-session']);
+      expect(withComposes.composes).toEqual([
+        'authenticate',
+        'validate-session',
+      ]);
     });
 
-    test('crosses array is frozen', () => {
-      const withCrosses = trail('composed', {
+    test('composes array is frozen', () => {
+      const withComposes = trail('composed', {
         blaze: () => Result.ok(),
-        crosses: ['authenticate'],
+        composes: ['authenticate'],
         input: z.object({}),
       });
-      expect(Object.isFrozen(withCrosses.crosses)).toBe(true);
+      expect(Object.isFrozen(withComposes.composes)).toBe(true);
     });
 
-    test('trail object in crosses is normalized to its id', () => {
+    test('trail object in composes is normalized to its id', () => {
       const target = trail('target.trail', {
         blaze: () => Result.ok(),
         input: z.object({}),
       });
       const composed = trail('composed', {
         blaze: () => Result.ok(),
-        crosses: [target],
+        composes: [target],
         input: z.object({}),
       });
-      expect(composed.crosses).toEqual(['target.trail']);
+      expect(composed.composes).toEqual(['target.trail']);
     });
 
-    test('mixed string and trail object in crosses normalizes correctly', () => {
+    test('mixed string and trail object in composes normalizes correctly', () => {
       const target = trail('target.trail', {
         blaze: () => Result.ok(),
         input: z.object({}),
       });
       const composed = trail('composed', {
         blaze: () => Result.ok(),
-        crosses: ['string-id', target],
+        composes: ['string-id', target],
         input: z.object({}),
       });
-      expect(composed.crosses).toEqual(['string-id', 'target.trail']);
+      expect(composed.composes).toEqual(['string-id', 'target.trail']);
     });
 
-    test('crossInput is stored on the trail', () => {
-      const crossInputSchema = z.object({ forkedFrom: z.string().optional() });
+    test('composeInput is stored on the trail', () => {
+      const composeInputSchema = z.object({
+        forkedFrom: z.string().optional(),
+      });
       const t = trail('gist.create', {
         blaze: () => Result.ok(),
-        crossInput: crossInputSchema,
+        composeInput: composeInputSchema,
         input: z.object({ content: z.string() }),
       });
-      expect(t.crossInput).toBe(crossInputSchema);
+      expect(t.composeInput).toBe(composeInputSchema);
     });
 
-    test('crossInput is undefined when omitted', () => {
+    test('composeInput is undefined when omitted', () => {
       const t = trail('bare', {
         blaze: () => Result.ok(),
         input: z.object({}),
       });
-      expect(t.crossInput).toBeUndefined();
+      expect(t.composeInput).toBeUndefined();
     });
   });
 

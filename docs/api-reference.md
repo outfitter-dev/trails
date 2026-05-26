@@ -8,7 +8,7 @@ Canonical public surface-facing reference. For naming conventions and decision h
 
 ```typescript
 // Definitions
-trail(id, spec)                    // define a unit of work (with optional crosses for composition)
+trail(id, spec)                    // define a unit of work (with optional composes for composition)
 signal(id, spec)                    // define a payload schema with provenance
 schedule(id, spec)                  // define an inert cron activation source
 webhook(id, spec)                   // define an inert HTTP webhook activation source
@@ -67,9 +67,9 @@ projectErrorClassSurface(surface, errorName)
 Implementation<I, O>              // (input, ctx) => Result | Promise<Result>
 TrailContext, createTrailContext(overrides?)
 SURFACE_KEY                        // invoking surface extension key
-CrossFn, ResourceLookup, ProgressCallback, ProgressEvent, Logger
-normalizeCrossBatchConcurrency(options?), createCrossBatchValidationResults(calls, error)
-claimNextCrossBatchIndex(counter, calls)
+ComposeFn, ResourceLookup, ProgressCallback, ProgressEvent, Logger
+normalizeComposeBatchConcurrency(options?), createComposeBatchValidationResults(calls, error)
+claimNextComposeBatchIndex(counter, calls)
 
 // Execution pipeline
 DETOUR_MAX_ATTEMPTS_CAP
@@ -333,7 +333,7 @@ DrizzleQueryContext, DrizzleStoreSchema
 // Test runners
 testAll(topo, ctxOrFactory?)
 testExamples(topo, ctxOrFactory?), testTrail(trail, scenarios, ctx?)
-testCrosses(trail, scenarios, options?)
+testComposes(trail, scenarios, options?)
 testContracts(topo, ctxOrFactory?), testDetours(topo)
 
 // Assertion helpers
@@ -343,10 +343,10 @@ assertErrorMatch(result, errorClass)
 
 // Factories
 createTestContext(options?), createTestLogger()
-createCrossContext(options?)       // minimal context for testing trail composition via ctx.cross()
+createComposeContext(options?)       // minimal context for testing trail composition via ctx.compose()
 
-TestExecutionOptions, TestCrossOptions
-TestScenario, CrossScenario, TestLogger, TestTrailContextOptions
+TestExecutionOptions, TestComposeOptions
+TestScenario, ComposeScenario, TestLogger, TestTrailContextOptions
 ```
 
 Surface harnesses and all-surface validation live on explicit subpaths so the
@@ -620,6 +620,6 @@ The adapter emits stable `trails.*` attributes for trace identity, lineage, trai
 | `trailblaze(topo, options?)` | Future hosted runtime; not shipped |
 | `trailhead` | Historical boundary term retired from active user-facing vocabulary |
 | `scout` | Agent-side runtime discovery |
-| `validateExample`, `validateCross` | Contract verification family |
+| `validateExample`, `validateCompose` | Contract verification family |
 | `generateDocs`, `generateOpenApi`, `generateLlmsTxt` | Build-time doc generation |
 | `deriveMocks`, `deriveExamples` | Schema-derived test data |

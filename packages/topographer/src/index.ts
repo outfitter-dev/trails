@@ -46,7 +46,7 @@ export {
   workspaceTrailIndexSchema,
 } from './types.js';
 
-// Workspace-wide trail-id index (cross-app resolution for `trails run <id>`).
+// Workspace-wide trail-id index (compose-app resolution for `trails run <id>`).
 export {
   buildWorkspaceTrailIndex,
   defaultLoadTopo,

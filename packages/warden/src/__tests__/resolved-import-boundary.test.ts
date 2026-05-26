@@ -154,7 +154,7 @@ describe('resolved-import-boundary', () => {
     });
   });
 
-  test('flags unrecognized failed cross-boundary bare specifiers', () => {
+  test('flags unrecognized failed compose-boundary bare specifiers', () => {
     const filePath = 'packages/app/src/app.ts';
     const diagnostics = resolvedImportBoundary.checkWithContext(
       "import { value } from '@fixture/core/unknown';\n",
@@ -189,18 +189,18 @@ describe('resolved-import-boundary', () => {
     ]);
   });
 
-  test('flags relative imports crossing into another package', () => {
+  test('flags relative imports composing into another package', () => {
     const diagnostics = checkFixture(`
       import { pub } from '../../core/src/public';
     `);
 
     expect(diagnostics).toHaveLength(1);
     expect(diagnostics[0]?.message).toBe(
-      'Local import "../../core/src/public" crosses into @fixture/core. Import the target package public surface instead.'
+      'Local import "../../core/src/public" composes into @fixture/core. Import the target package public surface instead.'
     );
   });
 
-  test('labels absolute cross-package paths as local imports', () => {
+  test('labels absolute compose-package paths as local imports', () => {
     const fixture = createBoundaryFixture('');
     const absolutePublicPath = join(fixture.coreRoot, 'src', 'public.ts');
     const sourceCode = `import { pub } from '${absolutePublicPath}';\n`;
@@ -216,14 +216,14 @@ describe('resolved-import-boundary', () => {
 
       expect(diagnostics).toHaveLength(1);
       expect(diagnostics[0]?.message).toBe(
-        `Local import "${absolutePublicPath}" crosses into @fixture/core. Import the target package public surface instead.`
+        `Local import "${absolutePublicPath}" composes into @fixture/core. Import the target package public surface instead.`
       );
     } finally {
       rmSync(fixture.rootDir, { force: true, recursive: true });
     }
   });
 
-  test('flags cross-package imports into internal or private targets', () => {
+  test('flags compose-package imports into internal or private targets', () => {
     const diagnostics = checkFixture(`
       import { secret } from '../../core/src/internal/secret';
     `);

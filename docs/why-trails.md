@@ -75,7 +75,7 @@ The same topo can also open on HTTP today via `@ontrails/hono`. WebSocket follow
 
 One blazed trail. Every surface. The rest is derived.
 
-Pure blazes can return `Result` directly. Trails with `crosses` and I/O-bound blazes can stay `async`. Core normalizes both forms to one awaitable runtime shape before surfaces and layers run the blazed trail.
+Pure blazes can return `Result` directly. Trails with `composes` and I/O-bound blazes can stay `async`. Core normalizes both forms to one awaitable runtime shape before surfaces and layers run the blazed trail.
 
 ---
 
@@ -96,7 +96,7 @@ Every piece of information in a Trails app has a clear ownership model. Six cate
 - **Authored:** New information only you know — Zod schemas, intent and metadata, examples, the blaze, trail IDs. Everything else flows from these.
 - **Projected:** Mechanically derived, guaranteed correct — CLI flags from Zod fields, MCP tool names from trail IDs, exit codes from error classes. Projections can't be wrong because they're computed from the source.
 - **Enforced:** Constrained by the type system — output schemas bound the return type, `Result<T, Error>` eliminates throw/catch, `TrailContext` scopes what the blaze can access. The compiler makes non-compliance an error.
-- **Inferred:** Detected by static analysis, best-effort — which trails a trail crosses (from `ctx.cross()` calls), error types returned (from `Result.err()` patterns). Warden verifies these. Useful for governance, not guaranteed.
+- **Inferred:** Detected by static analysis, best-effort — which trails a trail composes (from `ctx.compose()` calls), error types returned (from `Result.err()` patterns). Warden verifies these. Useful for governance, not guaranteed.
 - **Observed:** Learned from runtime (future) — error distributions, latency profiles, resource usage patterns from the tracing system. Observations close the loop between declared intent and actual behavior.
 - **Overridden:** When derivation doesn't fit — any derived value can be explicitly set when the default is wrong. Overrides are escape hatches, visible in the TopoGraph. If you're overriding everything, the derivation rules are wrong.
 

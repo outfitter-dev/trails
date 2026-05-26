@@ -10,8 +10,8 @@ export const intentPropagationTrail = wrapRule({
         knownTrailIds: ['entity.read', 'entity.lookup'],
         sourceCode: `trail('entity.read', {
   intent: 'read',
-  crosses: ['entity.lookup'],
-  blaze: async (_input, ctx) => ctx.cross('entity.lookup', {}),
+  composes: ['entity.lookup'],
+  blaze: async (_input, ctx) => ctx.compose('entity.lookup', {}),
 });
 
 trail('entity.lookup', {
@@ -23,7 +23,7 @@ trail('entity.lookup', {
           'entity.read': 'read',
         },
       },
-      name: 'Read trails may cross other read trails',
+      name: 'Read trails may compose other read trails',
     },
   ],
   rule: intentPropagation,

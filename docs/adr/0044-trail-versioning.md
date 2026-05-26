@@ -303,22 +303,22 @@ Surface configuration may also choose fallback behavior:
 The strict `error` mode is for stable external contracts. The `latest` fallback
 is for gradual migrations where some trails have not evolved.
 
-### Cross chains run current by default
+### Composition chains run current by default
 
-When trail A crosses trail B, B runs at its current version. Version negotiation
+When trail A composes trail B, B runs at its current version. Version negotiation
 is a surface boundary concern. Once execution is inside the graph, internal
 composition uses current contracts.
 
 The migration escape hatch is explicit pinning:
 
 ```typescript
-const result = await ctx.cross('other.trail', input, { version: 1 });
+const result = await ctx.compose('other.trail', input, { version: 1 });
 ```
 
-The warden reports version-pinned crosses as maintenance debt. They are allowed
+The warden reports version-pinned composes as maintenance debt. They are allowed
 for migrations, but they should not become permanent architecture.
 
-Version context does not cascade through cross chains. If a consumer requests
+Version context does not cascade through composition chains. If a consumer requests
 v1 of trail A, the consumer requested A's v1 contract. A owns that
 compatibility. Downstream trails remain A's internal blaze detail.
 
@@ -447,7 +447,7 @@ added, deprecated, sunset, or accidentally orphaned.
 | `max-active-versions` | error | More than `maxActiveVersions` active versions exist |
 | `deprecated-without-sunset` | warning | Version is deprecated without a sunset date |
 | `past-sunset` | warning | Sunset date has passed but the version is still present |
-| `version-pinned-cross` | warning | `ctx.cross(..., { version })` should be temporary |
+| `version-pinned-compose` | warning | `ctx.compose(..., { version })` should be temporary |
 | `untested-version` | warning | Supported version has no examples |
 | `orphan-version-file` | warning | `.v*.ts` file exists but main trail has no version declaration |
 | `high-traffic-deprecated` | warning | Tracing shows deprecated version traffic above the configured threshold near sunset |
@@ -494,7 +494,7 @@ resource it needs. Versioning complexity stays on trails.
 
 - Adapter chains can become difficult to debug if teams defer deprecation too
   long. The active-version limit is the guardrail.
-- Version-pinned crosses can create hidden compatibility constraints if treated
+- Version-pinned composes can create hidden compatibility constraints if treated
   as permanent. The warden warning keeps them visible.
 - Surface fallback to `latest` can hide missing version support if used where
   strict compatibility is expected. External APIs should prefer strict `error`
@@ -506,7 +506,7 @@ resource it needs. Versioning complexity stays on trails.
   own protocol questions.
 - Changelog generation from version diffs.
 - Config auto-migration with `config.fix()`.
-- How future `crossInput` changes interact with version compatibility.
+- How future `composeInput` changes interact with version compatibility.
 
 ## References
 

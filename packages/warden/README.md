@@ -4,8 +4,8 @@ AST-based code convention rules for Trails. Built-in lint rules catch contract
 violations at development time, alongside lock drift detection and CI
 formatters.
 
-Structural checks (cross target existence, declared resource existence,
-recursive crossing, example schema validation) live in `validateTopo()` from
+Structural checks (compose target existence, declared resource existence,
+recursive composition, example schema validation) live in `validateTopo()` from
 `@ontrails/core`. Warden handles the code-level rules that need AST analysis.
 
 For rule-home boundaries and authoring doctrine, see the

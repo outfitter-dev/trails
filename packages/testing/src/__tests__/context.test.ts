@@ -3,7 +3,7 @@ import { describe, expect, test } from 'bun:test';
 import { Result, resource, topo } from '@ontrails/core';
 
 import {
-  createCrossContext,
+  createComposeContext,
   createTestContext,
   mergeTestContext,
   createMockResources,
@@ -88,35 +88,35 @@ describe('createTestContext', () => {
   });
 });
 
-describe('createCrossContext', () => {
+describe('createComposeContext', () => {
   test('returns configured ok response for registered id', async () => {
-    const cross = createCrossContext({
+    const compose = createComposeContext({
       responses: { 'entity.add': Result.ok({ id: '1', name: 'Alpha' }) },
     });
-    const result = await cross('entity.add', { name: 'Alpha' });
+    const result = await compose('entity.add', { name: 'Alpha' });
     expect(result.unwrap()).toEqual({ id: '1', name: 'Alpha' });
   });
 
   test('returns configured err response for registered id', async () => {
     const err = new Error('conflict');
-    const cross = createCrossContext({
+    const compose = createComposeContext({
       responses: { 'entity.add': Result.err(err) },
     });
-    const result = await cross('entity.add', {});
+    const result = await compose('entity.add', {});
     expect(result.isErr()).toBe(true);
     expect(result.error?.message).toBe('conflict');
   });
 
   test('returns err with descriptive message for unregistered id', async () => {
-    const cross = createCrossContext();
-    const result = await cross('unknown.trail', {});
+    const compose = createComposeContext();
+    const result = await compose('unknown.trail', {});
     expect(result.isErr()).toBe(true);
     expect(result.error?.message).toContain('unknown.trail');
   });
 
   test('no options defaults to empty responses', async () => {
-    const cross = createCrossContext();
-    const result = await cross('any.id', {});
+    const compose = createComposeContext();
+    const result = await compose('any.id', {});
     expect(result.isErr()).toBe(true);
   });
 });

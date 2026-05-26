@@ -48,6 +48,23 @@ const scopeOptions = getScopeOptions();
 
 const codeFilePattern = /\.[cm]?[jt]sx?$/;
 
+const composeApiIdentifierReplacements = [
+  ['CrossFn', 'ComposeFn'],
+  ['CrossOptions', 'ComposeOptions'],
+  ['CrossBatchCall', 'ComposeBatchCall'],
+  ['CrossBatchOptions', 'ComposeBatchOptions'],
+  ['CrossBatchResult', 'ComposeBatchResult'],
+  ['CrossBatchResults', 'ComposeBatchResults'],
+  ['CrossInput', 'ComposeInput'],
+  ['CrossScenario', 'ComposeScenario'],
+  ['TestCrossOptions', 'TestComposeOptions'],
+  ['CreateCrossContextOptions', 'CreateComposeContextOptions'],
+  ['testCrosses', 'testComposes'],
+  ['createCrossContext', 'createComposeContext'],
+  ['expectCrossed', 'expectComposed'],
+  ['expectCrossedCount', 'expectComposedCount'],
+] as const;
+
 const toLineNumber = (source: string, offset: number): number =>
   source.slice(0, offset).split(/\r?\n/).length;
 
@@ -233,6 +250,12 @@ const isGeneralIdentifier = (node: ts.Identifier): boolean => {
 const isGeneralOrCallIdentifier = (node: ts.Identifier): boolean =>
   isGeneralIdentifier(node) || isDirectCallCallee(node);
 
+const isContextMethodProperty = (node: ts.Identifier): boolean =>
+  ts.isPropertyAccessExpression(node.parent) && node.parent.name === node;
+
+const isGeneralContextOrCallIdentifier = (node: ts.Identifier): boolean =>
+  isGeneralOrCallIdentifier(node) || isContextMethodProperty(node);
+
 const objectHasNamedProperty = (
   node: ts.ObjectLiteralExpression,
   propertyName: string
@@ -340,25 +363,174 @@ const safeRules: readonly VocabRewriteRule[] = [
     apply: (context) =>
       collectRegexEdits(
         context.source,
-        'crosses-field',
+        'composes-field',
         /\bfollow(?=\s*:)/g,
-        'crosses'
+        'composes'
       ),
     description:
-      'Replace composition declaration keys from `follow:` to `crosses:`.',
-    id: 'crosses-field',
+      'Replace composition declaration keys from `follow:` to `composes:`.',
+    id: 'composes-field',
   },
   {
     apply: (context) =>
       collectRegexEdits(
         context.source,
-        'cross-call',
+        'compose-call',
         /\bctx\.follow\(/g,
-        'ctx.cross('
+        'ctx.compose('
       ),
     description:
-      'Replace composition runtime calls from `ctx.follow(...)` to `ctx.cross(...)`.',
-    id: 'cross-call',
+      'Replace composition runtime calls from `ctx.follow(...)` to `ctx.compose(...)`.',
+    id: 'compose-call',
+  },
+  {
+    apply: (context) => [
+      ...collectTsPropertyKeyEdits(
+        context,
+        'compose-api',
+        'crosses',
+        'composes'
+      ),
+      ...collectTsPropertyKeyEdits(
+        context,
+        'compose-api',
+        'crossInput',
+        'composeInput'
+      ),
+      ...composeApiIdentifierReplacements.flatMap(([oldName, nextName]) =>
+        collectTsIdentifierEdits(
+          context,
+          'compose-api',
+          oldName,
+          nextName,
+          isGeneralOrCallIdentifier
+        )
+      ),
+      ...collectTsIdentifierEdits(
+        context,
+        'compose-api',
+        'cross',
+        'compose',
+        isGeneralContextOrCallIdentifier
+      ),
+      ...collectRegexEdits(
+        context.source,
+        'compose-api',
+        /\bcrosses(?=\s*:)/g,
+        'composes'
+      ),
+      ...collectRegexEdits(
+        context.source,
+        'compose-api',
+        /\bcrossInput(?=\s*:)/g,
+        'composeInput'
+      ),
+      ...collectRegexEdits(
+        context.source,
+        'compose-api',
+        /\bctx\.cross\(/g,
+        'ctx.compose('
+      ),
+      ...collectRegexEdits(
+        context.source,
+        'compose-api',
+        /\btestCrosses\b/g,
+        'testComposes'
+      ),
+      ...collectRegexEdits(
+        context.source,
+        'compose-api',
+        /\bcreateCrossContext\b/g,
+        'createComposeContext'
+      ),
+      ...collectRegexEdits(
+        context.source,
+        'compose-api',
+        /\bCrossFn\b/g,
+        'ComposeFn'
+      ),
+      ...collectRegexEdits(
+        context.source,
+        'compose-api',
+        /\bCrossOptions\b/g,
+        'ComposeOptions'
+      ),
+      ...collectRegexEdits(
+        context.source,
+        'compose-api',
+        /\bCrossBatch(Call|Options|Result|Results)\b/g,
+        (match) => `ComposeBatch${match[1]}`
+      ),
+      ...collectRegexEdits(
+        context.source,
+        'compose-api',
+        /\bCrossInput\b/g,
+        'ComposeInput'
+      ),
+      ...collectRegexEdits(
+        context.source,
+        'compose-api',
+        /\bCrossScenario\b/g,
+        'ComposeScenario'
+      ),
+      ...collectRegexEdits(
+        context.source,
+        'compose-api',
+        /\bTestCrossOptions\b/g,
+        'TestComposeOptions'
+      ),
+      ...collectRegexEdits(
+        context.source,
+        'compose-api',
+        /\bCreateCrossContextOptions\b/g,
+        'CreateComposeContextOptions'
+      ),
+      ...collectRegexEdits(
+        context.source,
+        'compose-api',
+        /\bexpectCrossedCount\b/g,
+        'expectComposedCount'
+      ),
+      ...collectRegexEdits(
+        context.source,
+        'compose-api',
+        /\bexpectCrossed\b/g,
+        'expectComposed'
+      ),
+      ...collectRegexEdits(
+        context.source,
+        'compose-api',
+        /\bcross-declarations\b/g,
+        'composes-declarations'
+      ),
+      ...collectRegexEdits(
+        context.source,
+        'compose-api',
+        /\bno-destructured-cross\b/g,
+        'no-destructured-compose'
+      ),
+      ...collectRegexEdits(
+        context.source,
+        'compose-api',
+        /\bversion-pinned-cross\b/g,
+        'version-pinned-compose'
+      ),
+      ...collectRegexEdits(
+        context.source,
+        'compose-api',
+        /\btopo_crossings\b/g,
+        'topo_composings'
+      ),
+      ...collectRegexEdits(
+        context.source,
+        'compose-api',
+        /\bidx_topo_crossings\b/g,
+        'idx_topo_composings'
+      ),
+    ],
+    description:
+      'Replace the Trails composition API family from cross/crosses to compose/composes.',
+    id: 'compose-api',
   },
   {
     apply: (context) => [

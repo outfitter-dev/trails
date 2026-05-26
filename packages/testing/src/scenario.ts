@@ -2,7 +2,7 @@
  * Multi-step scenario runner for composition testing.
  *
  * Scenarios express multi-trail flows as structured data — arrays of steps
- * with cross-step references via `ref()`. Each step invokes a trail through
+ * with compose-step references via `ref()`. Each step invokes a trail through
  * the normal execution pipeline (validation, layers, blaze, Result).
  */
 
@@ -10,20 +10,20 @@ import { describe, test } from 'bun:test';
 
 import type {
   AnyTrail,
-  CrossBatchOptions,
-  CrossFn,
+  ComposeBatchOptions,
+  ComposeFn,
   ExecuteTrailOptions,
   ResourceOverrideMap,
   Result,
   Topo,
 } from '@ontrails/core';
 import {
-  buildCrossValidationSchema,
-  claimNextCrossBatchIndex,
-  createCrossBatchValidationResults,
+  buildComposeValidationSchema,
+  claimNextComposeBatchIndex,
+  createComposeBatchValidationResults,
   executeTrail,
   InternalError,
-  normalizeCrossBatchConcurrency,
+  normalizeComposeBatchConcurrency,
   Result as R,
 } from '@ontrails/core';
 
@@ -31,18 +31,18 @@ import { assertPartialMatch, expectOk } from './assertions.js';
 import { createTestContext, createMockResources } from './context.js';
 import type { RefToken, ScenarioStep } from './types.js';
 
-type ScenarioCrossTarget = string | { readonly id: string };
-type ScenarioCrossCall = readonly [ScenarioCrossTarget, unknown];
+type ScenarioComposeTarget = string | { readonly id: string };
+type ScenarioComposeCall = readonly [ScenarioComposeTarget, unknown];
 type TestingExecuteTrailOptions = ExecuteTrailOptions & {
-  readonly validationSchema?: ReturnType<typeof buildCrossValidationSchema>;
+  readonly validationSchema?: ReturnType<typeof buildComposeValidationSchema>;
 };
 
 // ---------------------------------------------------------------------------
-// ref() — cross-step reference marker
+// ref() — compose-step reference marker
 // ---------------------------------------------------------------------------
 
 /**
- * Create a reference marker for cross-step data in scenario inputs.
+ * Create a reference marker for compose-step data in scenario inputs.
  *
  * `ref('create.id')` resolves to the `id` field of the step aliased as
  * `create`. Dot-paths are supported for nested access.
@@ -50,8 +50,8 @@ type TestingExecuteTrailOptions = ExecuteTrailOptions & {
  * @example
  * ```typescript
  * scenario('Fork flow', app, [
- *   { cross: createGist, input: { name: 'Hello' }, as: 'original' },
- *   { cross: forkGist, input: { id: ref('original.id') } },
+ *   { compose: createGist, input: { name: 'Hello' }, as: 'original' },
+ *   { compose: forkGist, input: { id: ref('original.id') } },
  * ]);
  * ```
  */
@@ -156,8 +156,8 @@ export const deriveRefs = (
  * @example
  * ```typescript
  * scenario('Create and show', app, [
- *   { cross: createItem, input: { name: 'Test' }, as: 'created' },
- *   { cross: showItem, input: { id: ref('created.id') },
+ *   { compose: createItem, input: { name: 'Test' }, as: 'created' },
+ *   { compose: showItem, input: { id: ref('created.id') },
  *     expectedMatch: { found: true } },
  * ]);
  * ```
@@ -180,10 +180,10 @@ const assertStepExpectations = async (
   }
 };
 
-const executeUnlimitedCrossBatch = async (
-  calls: readonly ScenarioCrossCall[],
+const executeUnlimitedComposeBatch = async (
+  calls: readonly ScenarioComposeCall[],
   runCall: (
-    call: ScenarioCrossCall,
+    call: ScenarioComposeCall,
     branchIndex: number
   ) => Promise<Result<unknown, Error>>
 ): Promise<Result<unknown, Error>[]> =>
@@ -191,10 +191,10 @@ const executeUnlimitedCrossBatch = async (
     calls.map((call, branchIndex) => runCall(call, branchIndex))
   );
 
-const executeLimitedCrossBatch = async (
-  calls: readonly ScenarioCrossCall[],
+const executeLimitedComposeBatch = async (
+  calls: readonly ScenarioComposeCall[],
   runCall: (
-    call: ScenarioCrossCall,
+    call: ScenarioComposeCall,
     branchIndex: number
   ) => Promise<Result<unknown, Error>>,
   limit: number
@@ -204,20 +204,20 @@ const executeLimitedCrossBatch = async (
 
   const runWorker = async () => {
     while (true) {
-      const branchIndex = claimNextCrossBatchIndex(nextIndex, calls);
+      const branchIndex = claimNextComposeBatchIndex(nextIndex, calls);
       if (branchIndex === undefined) {
         return;
       }
 
       const call = calls[branchIndex];
       if (call === undefined) {
-        // Defensive: `claimNextCrossBatchIndex` only returns indices within
+        // Defensive: `claimNextComposeBatchIndex` only returns indices within
         // bounds, so this slot should always be populated. If it ever isn't,
         // surface a clear InternalError in place of the missing slot and keep
         // the worker loop running so sibling branches still get processed.
         results[branchIndex] = R.err(
           new InternalError(
-            `unreachable: concurrent cross batch call missing at index ${branchIndex}`
+            `unreachable: concurrent compose batch call missing at index ${branchIndex}`
           )
         );
         continue;
@@ -232,79 +232,81 @@ const executeLimitedCrossBatch = async (
 };
 
 /**
- * Build a cross function that resolves trails from the topo and executes
- * them through the standard pipeline. Mirrors the pattern in crosses.ts
+ * Build a compose function that resolves trails from the topo and executes
+ * them through the standard pipeline. Mirrors the pattern in composes.ts
  * `executeFromMap` but without recording or injection.
  */
-const createScenarioCross = (
+const createScenarioCompose = (
   app: Topo,
   resources?: ResourceOverrideMap
-): CrossFn => {
-  const invokeCross = async (
-    idOrTrail: ScenarioCrossTarget,
+): ComposeFn => {
+  const invokeCompose = async (
+    idOrTrail: ScenarioComposeTarget,
     input: unknown,
-    self: CrossFn
+    self: ComposeFn
   ) => {
     const id = typeof idOrTrail === 'string' ? idOrTrail : idOrTrail.id;
     const trailDef: AnyTrail | undefined = app.get(id);
     if (trailDef === undefined) {
-      return R.err(new InternalError(`cross: trail "${id}" not found in topo`));
+      return R.err(
+        new InternalError(`compose: trail "${id}" not found in topo`)
+      );
     }
     const baseCtx = createTestContext();
     const options: TestingExecuteTrailOptions = {
-      ctx: { ...baseCtx, cross: self },
+      ctx: { ...baseCtx, compose: self },
       resources,
       topo: app,
-      validationSchema: buildCrossValidationSchema(trailDef),
+      validationSchema: buildComposeValidationSchema(trailDef),
     };
     return await executeTrail(trailDef, input, options);
   };
 
-  const executeCrossBatch = async (
-    calls: readonly ScenarioCrossCall[],
-    self: CrossFn,
-    options?: CrossBatchOptions
+  const executeComposeBatch = async (
+    calls: readonly ScenarioComposeCall[],
+    self: ComposeFn,
+    options?: ComposeBatchOptions
   ): Promise<Result<unknown, Error>[]> => {
     if (calls.length === 0) {
       return [];
     }
 
-    const concurrency = normalizeCrossBatchConcurrency(options);
+    const concurrency = normalizeComposeBatchConcurrency(options);
     if (concurrency.isErr()) {
-      return createCrossBatchValidationResults(calls, concurrency.error);
+      return createComposeBatchValidationResults(calls, concurrency.error);
     }
 
     const runCall = async (
-      [target, batchInput]: ScenarioCrossCall,
+      [target, batchInput]: ScenarioComposeCall,
       _branchIndex: number
-    ) => await invokeCross(target, batchInput, self);
+    ) => await invokeCompose(target, batchInput, self);
 
     const limit = concurrency.value ?? calls.length;
     return limit >= calls.length
-      ? await executeUnlimitedCrossBatch(calls, runCall)
-      : await executeLimitedCrossBatch(calls, runCall, limit);
+      ? await executeUnlimitedComposeBatch(calls, runCall)
+      : await executeLimitedComposeBatch(calls, runCall, limit);
   };
 
-  const cross = async function cross(
-    idOrTrail: ScenarioCrossTarget | readonly ScenarioCrossCall[],
+  const compose = async function compose(
+    idOrTrail: ScenarioComposeTarget | readonly ScenarioComposeCall[],
     inputOrOptions?: unknown
   ) {
     if (Array.isArray(idOrTrail)) {
-      return await executeCrossBatch(
+      return await executeComposeBatch(
         idOrTrail,
-        cross as CrossFn,
-        inputOrOptions as CrossBatchOptions | undefined
+        compose as ComposeFn,
+        inputOrOptions as ComposeBatchOptions | undefined
       );
     }
 
-    return await invokeCross(
-      idOrTrail as ScenarioCrossTarget,
+    return await invokeCompose(
+      idOrTrail as ScenarioComposeTarget,
       inputOrOptions,
-      cross as CrossFn
+      compose as ComposeFn
     );
-  } as CrossFn;
+  } as ComposeFn;
 
-  return cross;
+  return compose;
 };
 
 /**
@@ -324,18 +326,18 @@ const executeStep = async (
     );
   }
 
-  const scenarioCross = createScenarioCross(app, resources);
+  const scenarioCompose = createScenarioCompose(app, resources);
   const baseCtx = createTestContext();
   const resolvedInput = deriveRefs(step.input, outputs);
-  const result = await executeTrail(step.cross, resolvedInput, {
-    ctx: { ...baseCtx, cross: scenarioCross },
+  const result = await executeTrail(step.compose, resolvedInput, {
+    ctx: { ...baseCtx, compose: scenarioCompose },
     resources,
     topo: app,
   });
 
   if (result.isErr()) {
     throw new Error(
-      `Step ${String(index + 1)} ("${step.as ?? step.cross.id}") failed: ${result.error.message}`
+      `Step ${String(index + 1)} ("${step.as ?? step.compose.id}") failed: ${result.error.message}`
     );
   }
 

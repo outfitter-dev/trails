@@ -93,7 +93,7 @@ import { z } from 'zod';
 
 const hello = trail('hello', {
   blaze: async (input) => Result.ok({ message: \`Hello, \${input.name ?? 'world'}!\` }),
-  crosses: ['goodbye'],
+  composes: ['goodbye'],
   examples: [{ input: {}, name: 'Default greeting' }],
   input: z.object({ name: z.string().optional() }),
   intent: 'read',

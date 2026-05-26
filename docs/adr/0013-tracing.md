@@ -20,7 +20,7 @@ The framework can already declare what a trail is, what it needs, and how it beh
 - which trail ran
 - how long it took
 - what permit or profile was involved
-- which crossings happened
+- which compositions happened
 - where an error occurred
 - how a nested execution chain fit together
 
@@ -37,7 +37,7 @@ This framing makes the system easier to extend. Signal delivery, surface catch-u
 
 ### Trails-native model, translated outward
 
-The core recording model remains Trails-shaped. A `TraceRecord` knows about trail IDs, intents, permits, surfaces, and crossings. Export formats translate outward from that model rather than defining it.
+The core recording model remains Trails-shaped. A `TraceRecord` knows about trail IDs, intents, permits, surfaces, and compositions. Export formats translate outward from that model rather than defining it.
 
 ### Intrinsic pipeline plus trace helper
 
@@ -80,11 +80,11 @@ interface TraceRecord {
 
 Tree rendering happens at query time. Storage, retention, and export stay simple.
 
-### Crossing propagation through execution scope
+### Composing propagation through execution scope
 
 The shared execution scope already exists for nested calls. Intrinsic tracing piggybacks on it.
 
-When `executeTrail` starts a root invocation, it writes `traceId` and the root trace record ID into scope. When that trail crosses another trail, the child inherits the same trace and parent linkage. No extra plumbing leaks into application code.
+When `executeTrail` starts a root invocation, it writes `traceId` and the root trace record ID into scope. When that trail composes another trail, the child inherits the same trace and parent linkage. No extra plumbing leaks into application code.
 
 ### Root-level sampling
 

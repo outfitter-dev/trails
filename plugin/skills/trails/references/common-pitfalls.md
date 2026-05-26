@@ -33,7 +33,7 @@ blaze: async (input) => {
 
 **Why it's wrong:** Direct calls bypass the framework pipeline. Input isn't validated, layers don't run, and traces aren't recorded.
 
-**Fix:** In composite trails, use `ctx.cross(targetTrail, input)` for typed calls or `ctx.cross('trail.id', input)` for string-id calls. In tests, use `testAll()`, `testTrail()`, or `testCrosses()` from `@ontrails/testing`.
+**Fix:** In composite trails, use `ctx.compose(targetTrail, input)` for typed calls or `ctx.compose('trail.id', input)` for string-id calls. In tests, use `testAll()`, `testTrail()`, or `testComposes()` from `@ontrails/testing`.
 
 ## 4. Missing output schema
 
@@ -65,13 +65,13 @@ input: z.object({
 })
 ```
 
-## 6. Mismatched cross
+## 6. Mismatched compose
 
-**Symptom:** Warden reports "declared cross not called" or "undeclared cross detected".
+**Symptom:** Warden reports "declared compose not called" or "undeclared compose detected".
 
-**Why it's wrong:** A trail's `crosses` array must match the actual `ctx.cross()` calls. The warden enforces this to prevent undeclared dependencies and dead declarations.
+**Why it's wrong:** A trail's `composes` array must match the actual `ctx.compose()` calls. The warden enforces this to prevent undeclared dependencies and dead declarations.
 
-**Fix:** Keep `crosses` in sync with the blaze. If you add or remove a `ctx.cross()` call, update `crosses`:
+**Fix:** Keep `composes` in sync with the blaze. If you add or remove a `ctx.compose()` call, update `composes`:
 
 ```typescript
 import { trail } from '@ontrails/core';
@@ -79,11 +79,11 @@ import { userCreate } from './user-create.js';
 import { userWelcome } from './user-welcome.js';
 
 trail('onboard', {
-  crosses: [userCreate, userWelcome], // must match ctx.cross() calls
+  composes: [userCreate, userWelcome], // must match ctx.compose() calls
   blaze: async (input, ctx) => {
-    const user = await ctx.cross(userCreate, input);
+    const user = await ctx.compose(userCreate, input);
     if (user.isErr()) return user;
-    return ctx.cross(userWelcome, { userId: user.value.id });
+    return ctx.compose(userWelcome, { userId: user.value.id });
   },
 });
 ```
@@ -105,9 +105,9 @@ blaze: async (input, ctx) => {
 
 ## 8. Not propagating errors in composite trails
 
-**Symptom:** Composite trail continues after a failed cross, producing confusing downstream errors.
+**Symptom:** Composite trail continues after a failed compose, producing confusing downstream errors.
 
-**Why it's wrong:** Each `ctx.cross()` returns a `Result`. Ignoring the error means operating on undefined data.
+**Why it's wrong:** Each `ctx.compose()` returns a `Result`. Ignoring the error means operating on undefined data.
 
 **Fix:** Always check and propagate: `if (result.isErr()) return result;`
 
