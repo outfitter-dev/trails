@@ -285,6 +285,12 @@ const assertReadme = (
 const assertCliPackage = (dir: string): void => {
   const pkg = readJson(dir, 'package.json');
   expect(pkg['name']).toBe(basename(dir));
+  expectContainsAll(readText(dir, 'src/cli.ts'), [
+    "import { devPermitPreset, permitPreset } from '@ontrails/cli'",
+    "import { surface } from '@ontrails/commander'",
+    'presets: [permitPreset(), devPermitPreset()]',
+    'await surface(app, {',
+  ]);
 
   const deps = pkg['dependencies'] as Record<string, string>;
   expectExactOntrailsPin(deps['@ontrails/core']);
@@ -399,7 +405,7 @@ const assertEntityStarter = (dir: string): void => {
     'return Result.ok({ entities: store.list() })',
     'const deleted = store.delete(input.id)',
     'return Result.ok({ deleted, id: input.id })',
-    "permit: { scopes: ['entity:delete'] }",
+    "permit: { scopes: ['entity:write'] }",
   ]);
   expectContainsAll(readText(dir, 'src/store.ts'), [
     "import { Result, resource } from '@ontrails/core'",

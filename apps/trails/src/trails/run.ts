@@ -345,7 +345,9 @@ export const runTrail = trail('run', {
     const lease = leaseResult.value;
 
     try {
-      const result = await run(lease.app, input.id, input.input);
+      const result = await run(lease.app, input.id, input.input, {
+        ctx: ctx.permit === undefined ? {} : { permit: ctx.permit },
+      });
       if (result.isErr()) {
         return Result.err(result.error);
       }
@@ -400,4 +402,5 @@ export const runTrail = trail('run', {
   }),
   intent: 'write',
   output: innerTrailResultSchema,
+  permit: { scopes: ['trails:run'] },
 });

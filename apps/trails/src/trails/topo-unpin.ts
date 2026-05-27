@@ -57,5 +57,5 @@ export const topoUnpinTrail = trail('topo.unpin', {
     removed: z.boolean(),
     snapshot: topoSnapshotOutput.optional(),
   }),
-  permit: { scopes: ['topo:delete'] },
+  permit: { scopes: ['topo:write'] },
 });

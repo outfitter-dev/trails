@@ -48,4 +48,5 @@ export const topoPinTrail = trail('topo.pin', {
   output: z.object({
     snapshot: topoSnapshotOutput,
   }),
+  permit: { scopes: ['topo:write'] },
 });

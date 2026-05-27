@@ -49,4 +49,5 @@ export const reviseTrail = trail('revise', {
     updated: z.boolean(),
     warnings: z.array(z.string()).optional(),
   }),
+  permit: { scopes: ['version:write'] },
 });

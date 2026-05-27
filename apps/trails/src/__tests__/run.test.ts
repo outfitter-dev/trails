@@ -1,7 +1,6 @@
 /* oxlint-disable-next-line eslint-plugin-jest/no-conditional-expect -- result-shape assertions branch on isOk/isErr */
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { AmbiguousError, NotFoundError, executeTrail } from '@ontrails/core';
@@ -67,6 +66,59 @@ const writeWorkspace = (
   }
 };
 
+const writeExecutableWorkspace = (workspaceRoot: string): void => {
+  writeFixture(
+    join(workspaceRoot, 'package.json'),
+    `${JSON.stringify(
+      {
+        dependencies: {
+          '@ontrails/core': 'workspace:^',
+          zod: 'catalog:',
+        },
+        name: 'run-trail-executable-fixture',
+        private: true,
+        type: 'module',
+        workspaces: ['apps/*'],
+      },
+      null,
+      2
+    )}\n`
+  );
+
+  const appDir = join(workspaceRoot, 'apps', 'app-a');
+  writeFixture(
+    join(appDir, 'package.json'),
+    `${JSON.stringify(
+      {
+        name: 'app-a',
+        private: true,
+        trails: { module: 'src/app.ts' },
+        type: 'module',
+      },
+      null,
+      2
+    )}\n`
+  );
+  writeFixture(
+    join(appDir, 'src/app.ts'),
+    [
+      `import { Result, topo, trail } from '@ontrails/core';`,
+      `import { z } from 'zod';`,
+      ``,
+      `const add = trail('entity.add', {`,
+      `  blaze: (input) => Result.ok({ name: input.name }),`,
+      `  input: z.object({ name: z.string() }),`,
+      `  intent: 'write',`,
+      `  output: z.object({ name: z.string() }),`,
+      `  permit: { scopes: ['entity:write'] },`,
+      `});`,
+      ``,
+      `export const app = topo('app-a', [add]);`,
+      ``,
+    ].join('\n')
+  );
+};
+
 const expectErr = <T, E extends Error>(result: Result<T, E>): E => {
   if (result.isOk()) {
     throw new Error('Expected Result.err but got Result.ok');
@@ -74,11 +126,27 @@ const expectErr = <T, E extends Error>(result: Result<T, E>): E => {
   return result.error;
 };
 
+const trailsRunPermit = {
+  id: 'test-permit',
+  scopes: ['trails:run'],
+} as const;
+
+const executeRunTrail = async (
+  input: unknown,
+  scopes: readonly string[] = trailsRunPermit.scopes
+): Promise<Result<unknown, Error>> =>
+  await executeTrail(runTrail, input, {
+    ctx: { permit: { id: trailsRunPermit.id, scopes } },
+  });
+
+const workspaceTmpRoot = join(import.meta.dir, '../..', '.tmp-tests');
+
 let workspaceRoot: string;
 
 beforeEach(() => {
+  mkdirSync(workspaceTmpRoot, { recursive: true });
   workspaceRoot = join(
-    tmpdir(),
+    workspaceTmpRoot,
     `run-trail-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
   );
   mkdirSync(workspaceRoot, { recursive: true });
@@ -95,7 +163,7 @@ describe('runTrail collision resolution', () => {
       { name: 'app-b', trailIds: ['shared.id', 'b.only'] },
     ]);
 
-    const result = await executeTrail(runTrail, {
+    const result = await executeRunTrail({
       id: 'shared.id',
       rootDir: workspaceRoot,
     });
@@ -119,7 +187,7 @@ describe('runTrail collision resolution', () => {
       { name: 'app-b', trailIds: ['b.only'] },
     ]);
 
-    const result = await executeTrail(runTrail, {
+    const result = await executeRunTrail({
       id: 'never.here',
       rootDir: workspaceRoot,
     });
@@ -135,7 +203,7 @@ describe('runTrail collision resolution', () => {
       { name: 'app-b', trailIds: ['b.only'] },
     ]);
 
-    const result = await executeTrail(runTrail, {
+    const result = await executeRunTrail({
       app: 'app-a',
       id: 'never.here',
       rootDir: workspaceRoot,
@@ -161,7 +229,7 @@ describe('runTrail collision resolution', () => {
       { name: 'app-c', trailIds: ['c.only'] },
     ]);
 
-    const result = await executeTrail(runTrail, {
+    const result = await executeRunTrail({
       app: 'app-c',
       id: 'shared.id',
       rootDir: workspaceRoot,
@@ -183,7 +251,7 @@ describe('runTrail collision resolution', () => {
       { name: 'app-b', trailIds: ['b.only'] },
     ]);
 
-    const result = await executeTrail(runTrail, {
+    const result = await executeRunTrail({
       app: 'app-b',
       id: 'unique.id',
       rootDir: workspaceRoot,
@@ -219,6 +287,29 @@ describe('runTrail collision resolution', () => {
     expect(result.isOk()).toBe(true);
     if (result.isOk()) {
       expect(result.value).toBe('apps/app-b/src/app.ts');
+    }
+  });
+
+  test('forwards the wrapper permit when executing the target trail', async () => {
+    writeExecutableWorkspace(workspaceRoot);
+
+    const result = await executeRunTrail(
+      {
+        id: 'entity.add',
+        input: { name: 'Alpha' },
+        module: 'apps/app-a/src/app.ts',
+        rootDir: workspaceRoot,
+      },
+      ['trails:run', 'entity:write']
+    );
+
+    expect(result.isOk()).toBe(true);
+    if (result.isOk()) {
+      expect(result.value).toEqual({
+        kind: 'inner-trail-result',
+        trailId: 'entity.add',
+        value: { name: 'Alpha' },
+      });
     }
   });
 });

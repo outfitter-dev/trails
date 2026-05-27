@@ -78,4 +78,5 @@ export const onboard = trail('entity.onboard', {
     }),
     searchable: z.boolean(),
   }),
+  permit: { scopes: ['entity:write'] },
 });

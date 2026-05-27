@@ -55,4 +55,5 @@ export const deprecateTrail = trail('deprecate', {
     trailId: z.string(),
     updated: z.boolean(),
   }),
+  permit: { scopes: ['version:write'] },
 });

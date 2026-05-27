@@ -30,4 +30,5 @@ export const upsert = trail('demo.upsert', {
     value: z.string().describe('Item value'),
   }),
   output: z.object({ key: z.string(), value: z.string() }),
+  permit: { scopes: ['entity:write'] },
 });

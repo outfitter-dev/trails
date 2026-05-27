@@ -313,4 +313,5 @@ export const createTrail = trail('create', {
     dir: z.string(),
     name: z.string(),
   }),
+  permit: { scopes: ['project:write'] },
 });

@@ -66,6 +66,7 @@ export interface ActionResultContext {
   readonly args: Record<string, unknown>;
   readonly flags: Record<string, unknown>;
   readonly input: unknown;
+  readonly permit?: BasePermit | undefined;
   readonly result: Result<unknown, Error>;
   readonly topoName: string;
   readonly trail: AnyTrail;
@@ -1034,6 +1035,7 @@ const createExecute =
       args: parsedArgs,
       flags: parsedFlags,
       input: reportInput,
+      permit,
       result: finalResult,
       streamed,
       topoName: graph.name,

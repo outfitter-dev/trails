@@ -151,5 +151,6 @@ export const addVerify = trail('add.verify', {
   output: z.object({
     created: z.array(z.string()),
   }),
+  permit: { scopes: ['project:write'] },
   visibility: 'internal',
 });

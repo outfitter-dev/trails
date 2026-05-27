@@ -65,5 +65,6 @@ export const notifyEntityUpdated = trail('entity.notify-updated', {
   intent: 'write',
   on: ['entity.updated'],
   output: z.object({ notified: z.boolean() }),
+  permit: { scopes: ['entity:write'] },
   resources: [notificationStoreResource],
 });

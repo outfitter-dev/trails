@@ -10,7 +10,7 @@ import {
   run,
   trail,
 } from '@ontrails/core';
-import type { StructuredTrailExample, Topo } from '@ontrails/core';
+import type { BasePermit, StructuredTrailExample, Topo } from '@ontrails/core';
 import { z } from 'zod';
 
 import { tryLoadFreshAppLease } from './load-app.js';
@@ -350,7 +350,8 @@ const determineMode = (
 const buildComparisonEnvelope = async (
   app: Topo,
   trailId: string,
-  exampleName: string
+  exampleName: string,
+  permit: BasePermit | undefined
 ): Promise<Result<RunExampleComparison, Error>> => {
   const exampleResult = findExample(app, trailId, exampleName);
   if (exampleResult.isErr()) {
@@ -358,7 +359,9 @@ const buildComparisonEnvelope = async (
   }
   const example = exampleResult.value;
   const mode = determineMode(example);
-  const executed = await run(app, trailId, example.input);
+  const executed = await run(app, trailId, example.input, {
+    ctx: permit === undefined ? {} : { permit },
+  });
   const actual = projectActual(executed);
 
   if (mode === 'error') {
@@ -451,7 +454,8 @@ export const runExampleTrail = trail('run.example', {
       return await buildComparisonEnvelope(
         lease.app,
         input.id,
-        input.exampleName
+        input.exampleName,
+        ctx.permit
       );
     } finally {
       lease.release();
@@ -479,4 +483,5 @@ export const runExampleTrail = trail('run.example', {
   }),
   intent: 'write',
   output: runExampleComparisonSchema,
+  permit: { scopes: ['trails:run'] },
 });

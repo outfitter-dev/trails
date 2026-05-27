@@ -59,4 +59,5 @@ export const compileTrail = trail('compile', {
     snapshot: topoSnapshotOutput,
     topoPath: z.string(),
   }),
+  permit: { scopes: ['topo:write'] },
 });

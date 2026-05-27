@@ -40,9 +40,9 @@ import { createStore } from '../src/store.js';
 const moduleDir = dirname(fileURLToPath(import.meta.url));
 const entitySourcePath = resolve(moduleDir, '../src/trails/entity.ts');
 const notifySourcePath = resolve(moduleDir, '../src/trails/notify.ts');
-const entityDeletePermit = {
+const entityWritePermit = {
   id: 'test-permit',
-  scopes: ['entity:delete'],
+  scopes: ['entity:write'],
 } as const;
 
 const buildCtxExtensions = (
@@ -66,7 +66,10 @@ describe('entity.updated signal flow', () => {
       'entity.add',
       { name: 'Epsilon', tags: ['reactive'], type: 'concept' },
       {
-        ctx: { extensions: buildCtxExtensions(entityStore, notificationStore) },
+        ctx: {
+          extensions: buildCtxExtensions(entityStore, notificationStore),
+          permit: entityWritePermit,
+        },
       }
     );
     expect(result.isOk()).toBe(true);
@@ -90,7 +93,7 @@ describe('entity.updated signal flow', () => {
       {
         ctx: {
           extensions: buildCtxExtensions(entityStore, notificationStore),
-          permit: entityDeletePermit,
+          permit: entityWritePermit,
         },
       }
     );

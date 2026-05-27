@@ -315,6 +315,8 @@ export const add = trail('entity.add', {
   },
   input: z.object({ name: z.string() }),
   output: entitySchema,
+  intent: 'write',
+  permit: { scopes: ['entity:write'] },
   resources: [entityStore],
 });
 
@@ -359,7 +361,7 @@ export const remove = trail('entity.delete', {
     id: z.string(),
   }),
   intent: 'destroy',
-  permit: { scopes: ['entity:delete'] },
+  permit: { scopes: ['entity:write'] },
   resources: [entityStore],
 });
 `;
@@ -404,6 +406,8 @@ export const onboard = trail('entity.onboard', {
   },
   input: z.object({ name: z.string() }),
   output: z.object({ onboarded: z.boolean() }),
+  intent: 'write',
+  permit: { scopes: ['entity:write'] },
 });
 `;
 
@@ -603,6 +607,7 @@ export const createScaffold = trail('create.scaffold', {
       .default('hello')
       .describe('Starter trail'),
   }),
+  intent: 'write',
   output: z.object({
     created: z
       .array(z.string())
@@ -622,5 +627,6 @@ export const createScaffold = trail('create.scaffold', {
       ])
     ),
   }),
+  permit: { scopes: ['project:write'] },
   visibility: 'internal',
 });

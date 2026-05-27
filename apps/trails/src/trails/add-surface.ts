@@ -21,11 +21,14 @@ import { findTopoPath } from './project.js';
 type Surface = 'cli' | 'http' | 'mcp';
 
 const generateCliEntry = (appImportPath: string): string =>
-  `import { surface } from '@ontrails/commander';
+  `import { devPermitPreset, permitPreset } from '@ontrails/cli';
+import { surface } from '@ontrails/commander';
 
 import { app } from '${appImportPath}';
 
-await surface(app);
+await surface(app, {
+  presets: [permitPreset(), devPermitPreset()],
+});
 `;
 
 const generateMcpEntry = (appImportPath: string): string =>
@@ -165,4 +168,5 @@ export const addSurface = trail('add.surface', {
     created: z.string().nullable(),
     dependency: z.string(),
   }),
+  permit: { scopes: ['project:write'] },
 });

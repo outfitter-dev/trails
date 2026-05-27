@@ -46,5 +46,5 @@ export const devResetTrail = trail('dev.reset', {
     removedCount: z.number(),
     removedFiles: z.array(z.string()),
   }),
-  permit: { scopes: ['dev:reset'] },
+  permit: { scopes: ['dev:write'] },
 });

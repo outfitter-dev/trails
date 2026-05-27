@@ -69,10 +69,22 @@ const writeWorkspace = (root: string, apps: readonly AppSpec[]): void => {
   }
 };
 
+const trailsRunPermit = {
+  id: 'test-permit',
+  scopes: ['trails:run'],
+} as const;
+
+const executeRunTrail = async (
+  input: unknown
+): Promise<Result<unknown, Error>> =>
+  await executeTrail(runTrail, input, {
+    ctx: { permit: trailsRunPermit },
+  });
+
 const buildAmbiguousContext = async (
   workspaceRoot: string
 ): Promise<ActionResultContext> => {
-  const result = await executeTrail(runTrail, {
+  const result = await executeRunTrail({
     id: 'shared.id',
     rootDir: workspaceRoot,
   });
@@ -80,6 +92,7 @@ const buildAmbiguousContext = async (
     args: { id: 'shared.id' },
     flags: {},
     input: { id: 'shared.id', rootDir: workspaceRoot },
+    permit: trailsRunPermit,
     result,
     topoName: 'trails',
     trail: runTrail as unknown as ActionResultContext['trail'],
@@ -182,7 +195,7 @@ describe('tryRecoverFromRunCollision', () => {
       id: 'shared.id',
       rootDir: workspaceRoot,
     };
-    const result = await executeTrail(runTrail, input);
+    const result = await executeRunTrail(input);
     let prompted = false;
 
     const recovered = await tryRecoverFromRunCollision(
@@ -190,6 +203,7 @@ describe('tryRecoverFromRunCollision', () => {
         args: { id: 'shared.id' },
         flags: { app: 'app-c' },
         input,
+        permit: trailsRunPermit,
         result,
         topoName: 'trails',
         trail: runTrail as unknown as ActionResultContext['trail'],

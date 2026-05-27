@@ -137,4 +137,5 @@ export const addTrail = trail('add.trail', {
   output: z.object({
     created: z.array(z.string()),
   }),
+  permit: { scopes: ['project:write'] },
 });

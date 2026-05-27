@@ -945,4 +945,5 @@ export const draftPromoteTrail = trail('draft.promote', {
     ),
     updatedFiles: z.array(z.string()),
   }),
+  permit: { scopes: ['version:write'] },
 });

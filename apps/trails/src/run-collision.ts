@@ -120,6 +120,7 @@ export const tryRecoverFromRunCollision = async (
   }
 
   return await executeTrail(ctx.trail, mergeAppOverride(ctx.input, chosen), {
+    ctx: ctx.permit === undefined ? {} : { permit: ctx.permit },
     topo: deps.graph,
   });
 };

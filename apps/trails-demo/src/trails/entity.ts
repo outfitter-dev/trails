@@ -132,6 +132,7 @@ export const add = trail('entity.add', {
   }),
   intent: 'write',
   output: entitySchema,
+  permit: { scopes: ['entity:write'] },
   resources: [entityStoreResource],
 });
 
@@ -183,7 +184,7 @@ export const remove = trail('entity.delete', {
     deleted: z.boolean(),
     name: z.string(),
   }),
-  permit: { scopes: ['entity:delete'] },
+  permit: { scopes: ['entity:write'] },
   resources: [entityStoreResource],
 });
 

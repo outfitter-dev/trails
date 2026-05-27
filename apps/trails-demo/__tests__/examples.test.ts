@@ -10,5 +10,5 @@ import { graph } from '../src/app.js';
 
 // oxlint-disable-next-line require-hook -- testAllEstablished registers tests at module level by design
 testAllEstablished(graph, {
-  ctx: { permit: { id: 'test-permit', scopes: ['entity:delete'] } },
+  ctx: { permit: { id: 'test-permit', scopes: ['entity:write'] } },
 });

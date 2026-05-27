@@ -78,5 +78,5 @@ export const devCleanTrail = trail('dev.clean', {
       traces: z.number(),
     }),
   }),
-  permit: { scopes: ['dev:clean'] },
+  permit: { scopes: ['dev:write'] },
 });

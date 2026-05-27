@@ -98,6 +98,19 @@ const buildEnvelope = (
   ...overrides,
 });
 
+const trailsRunPermit = {
+  id: 'test-permit',
+  scopes: ['trails:run'],
+} as const;
+
+const executeRunExampleTrail = async (
+  input: unknown,
+  scopes: readonly string[] = trailsRunPermit.scopes
+): Promise<Result<unknown, Error>> =>
+  await executeTrail(runExampleTrail, input, {
+    ctx: { permit: { id: trailsRunPermit.id, scopes } },
+  });
+
 // ---------------------------------------------------------------------------
 // tryExampleRunOutput unit tests
 // ---------------------------------------------------------------------------
@@ -257,6 +270,10 @@ interface ExampleSpec {
   readonly returnError?: { class: string; message: string };
 }
 
+interface WorkspaceFixtureOptions {
+  readonly permitScopes?: readonly string[] | undefined;
+}
+
 const writeFixture = (filePath: string, contents: string): void => {
   mkdirSync(join(filePath, '..'), { recursive: true });
   writeFileSync(filePath, contents);
@@ -274,7 +291,8 @@ const writeWorkspace = (
   workspaceRoot: string,
   trailId: string,
   examples: readonly ExampleSpec[],
-  appName = 'app-a'
+  appName = 'app-a',
+  options: WorkspaceFixtureOptions = {}
 ): void => {
   writeFixture(
     join(workspaceRoot, 'package.json'),
@@ -346,6 +364,28 @@ const writeWorkspace = (
       return `  [${JSON.stringify(ex.name)}, { kind: 'ok', value: ${JSON.stringify(ex.returnValue)} }]`;
     })
     .join(',\n');
+  const permitLine =
+    options.permitScopes === undefined
+      ? null
+      : `  permit: { scopes: ${JSON.stringify(options.permitScopes)} },`;
+  const trailFragments = [
+    `  description: 'fixture trail for run-example tests',`,
+    `  input: z.object({ __exampleName: z.string(), trailId: z.string() }),`,
+    `  output: z.unknown(),`,
+    permitLine,
+    `  examples: ${examplesArrayLiteral},`,
+    `  blaze: (input) => {`,
+    `    const config = dispatch.get(input.__exampleName);`,
+    `    if (!config) {`,
+    `      return Result.ok(undefined);`,
+    `    }`,
+    `    if (config.kind === 'err') {`,
+    `      const Ctor = errorClasses[config.className] ?? NotFoundError;`,
+    `      return Result.err(new Ctor(config.message));`,
+    `    }`,
+    `    return Result.ok(config.value);`,
+    `  },`,
+  ].filter((line): line is string => line !== null);
 
   // The fixture imports `@ontrails/core` at the workspace level so the trail
   // is a real `trail()` definition with all required fields (detours,
@@ -375,21 +415,7 @@ const writeWorkspace = (
       `]);`,
       '',
       `const targetTrail = trail(${JSON.stringify(trailId)}, {`,
-      `  description: 'fixture trail for run-example tests',`,
-      `  input: z.object({ __exampleName: z.string(), trailId: z.string() }),`,
-      `  output: z.unknown(),`,
-      `  examples: ${examplesArrayLiteral},`,
-      `  blaze: (input) => {`,
-      `    const config = dispatch.get(input.__exampleName);`,
-      `    if (!config) {`,
-      `      return Result.ok(undefined);`,
-      `    }`,
-      `    if (config.kind === 'err') {`,
-      `      const Ctor = errorClasses[config.className] ?? NotFoundError;`,
-      `      return Result.err(new Ctor(config.message));`,
-      `    }`,
-      `    return Result.ok(config.value);`,
-      `  },`,
+      ...trailFragments,
       `});`,
       '',
       `export const app = topo(${JSON.stringify(appName)}, [targetTrail]);`,
@@ -442,7 +468,7 @@ describe('run.example trail', () => {
       },
     ]);
 
-    const result = await executeTrail(runExampleTrail, {
+    const result = await executeRunExampleTrail({
       exampleName: 'happy',
       id: 'demo.alpha',
       module: 'apps/app-a/src/app.ts',
@@ -467,7 +493,7 @@ describe('run.example trail', () => {
       },
     ]);
 
-    const result = await executeTrail(runExampleTrail, {
+    const result = await executeRunExampleTrail({
       exampleName: 'wrong',
       id: 'demo.alpha',
       module: 'apps/app-a/src/app.ts',
@@ -491,7 +517,7 @@ describe('run.example trail', () => {
       },
     ]);
 
-    const result = await executeTrail(runExampleTrail, {
+    const result = await executeRunExampleTrail({
       exampleName: 'smoke',
       id: 'demo.alpha',
       module: 'apps/app-a/src/app.ts',
@@ -508,6 +534,39 @@ describe('run.example trail', () => {
     });
   });
 
+  test('forwards the wrapper permit when running a protected input-only example', async () => {
+    writeWorkspace(
+      workspaceRoot,
+      'demo.alpha',
+      [
+        {
+          name: 'protected-smoke',
+          returnValue: { name: 'Alpha' },
+        },
+      ],
+      'app-a',
+      { permitScopes: ['entity:write'] }
+    );
+
+    const result = await executeRunExampleTrail(
+      {
+        exampleName: 'protected-smoke',
+        id: 'demo.alpha',
+        module: 'apps/app-a/src/app.ts',
+        rootDir: workspaceRoot,
+      },
+      ['trails:run', 'entity:write']
+    );
+
+    const envelope = expectOk(result) as RunExampleComparison;
+    expect(envelope.mode).toBe('none');
+    expect(envelope.match).toBe(true);
+    expect(envelope.actual).toEqual({
+      outcome: 'ok',
+      value: { name: 'Alpha' },
+    });
+  });
+
   test('expectedMatch-mode partial match passes when extras are present', async () => {
     writeWorkspace(workspaceRoot, 'demo.alpha', [
       {
@@ -517,7 +576,7 @@ describe('run.example trail', () => {
       },
     ]);
 
-    const result = await executeTrail(runExampleTrail, {
+    const result = await executeRunExampleTrail({
       exampleName: 'partial',
       id: 'demo.alpha',
       module: 'apps/app-a/src/app.ts',
@@ -538,7 +597,7 @@ describe('run.example trail', () => {
       },
     ]);
 
-    const result = await executeTrail(runExampleTrail, {
+    const result = await executeRunExampleTrail({
       exampleName: 'partial-mismatch',
       id: 'demo.alpha',
       module: 'apps/app-a/src/app.ts',
@@ -561,7 +620,7 @@ describe('run.example trail', () => {
       },
     ]);
 
-    const result = await executeTrail(runExampleTrail, {
+    const result = await executeRunExampleTrail({
       exampleName: 'array-subset',
       id: 'demo.alpha',
       module: 'apps/app-a/src/app.ts',
@@ -582,7 +641,7 @@ describe('run.example trail', () => {
       },
     ]);
 
-    const result = await executeTrail(runExampleTrail, {
+    const result = await executeRunExampleTrail({
       exampleName: 'duplicates',
       id: 'demo.alpha',
       module: 'apps/app-a/src/app.ts',
@@ -603,7 +662,7 @@ describe('run.example trail', () => {
       },
     ]);
 
-    const result = await executeTrail(runExampleTrail, {
+    const result = await executeRunExampleTrail({
       exampleName: 'not-found-error',
       id: 'demo.alpha',
       module: 'apps/app-a/src/app.ts',
@@ -629,7 +688,7 @@ describe('run.example trail', () => {
       },
     ]);
 
-    const result = await executeTrail(runExampleTrail, {
+    const result = await executeRunExampleTrail({
       exampleName: 'rejects-unknown',
       id: 'demo.alpha',
       module: 'apps/app-a/src/app.ts',
@@ -650,7 +709,7 @@ describe('run.example trail', () => {
       },
     ]);
 
-    const result = await executeTrail(runExampleTrail, {
+    const result = await executeRunExampleTrail({
       exampleName: 'rejects-with-wrong-class',
       id: 'demo.alpha',
       module: 'apps/app-a/src/app.ts',
@@ -671,7 +730,7 @@ describe('run.example trail', () => {
       },
     ]);
 
-    const result = await executeTrail(runExampleTrail, {
+    const result = await executeRunExampleTrail({
       exampleName: 'expects-error-but-ok',
       id: 'demo.alpha',
       module: 'apps/app-a/src/app.ts',
@@ -696,7 +755,7 @@ describe('run.example trail', () => {
       },
     ]);
 
-    const result = await executeTrail(runExampleTrail, {
+    const result = await executeRunExampleTrail({
       exampleName: 'does-not-exist',
       id: 'demo.alpha',
       module: 'apps/app-a/src/app.ts',
@@ -715,7 +774,7 @@ describe('run.example trail', () => {
       { expected: 1, name: 'happy', returnValue: 1 },
     ]);
 
-    const result = await executeTrail(runExampleTrail, {
+    const result = await executeRunExampleTrail({
       exampleName: 'happy',
       id: 'never.here',
       module: 'apps/app-a/src/app.ts',
@@ -735,7 +794,7 @@ describe('run.example trail', () => {
       },
     ]);
 
-    const result = await executeTrail(runExampleTrail, {
+    const result = await executeRunExampleTrail({
       app: 'app-a',
       exampleName: 'happy',
       id: 'demo.alpha',
@@ -774,7 +833,7 @@ describe('run.example trail', () => {
       'app-b'
     );
 
-    const result = await executeTrail(runExampleTrail, {
+    const result = await executeRunExampleTrail({
       app: 'app-b',
       exampleName: 'happy',
       id: 'shared.demo',
