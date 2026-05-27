@@ -13,7 +13,10 @@ const producedSignal = signal('invoice.created', {
 });
 
 const producerTrail = trail('invoice.create', {
-  blaze: () => Result.ok({ invoiceId: 'inv_1' }),
+  blaze: async (_input, ctx) => {
+    await ctx.fire?.(producedSignal, { invoiceId: 'inv_1' });
+    return Result.ok({ invoiceId: 'inv_1' });
+  },
   fires: [producedSignal],
   input: z.object({}),
   output: z.object({ invoiceId: z.string() }),
