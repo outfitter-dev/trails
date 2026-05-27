@@ -210,7 +210,7 @@ export const createTrail = trail('create', {
       buildScaffoldInput(input)
     );
     if (scaffolded.isErr()) {
-      return Result.err(scaffolded.error);
+      return scaffolded;
     }
 
     const finishCreate = async (): Promise<
