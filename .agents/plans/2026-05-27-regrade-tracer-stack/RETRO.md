@@ -64,6 +64,7 @@ issues created or updated during planning/execution.
 | 2026-05-27 13:34 EDT | TRL-827 | Created downstream roots/rule selection/coverage issue from canceled TRL-818. | <https://linear.app/outfitter/issue/TRL-827/support-downstream-roots-rule-selection-and-coverage-reporting> |
 | 2026-05-27 13:35 EDT | TRL-830..TRL-835 | Created Warden/release-integrity adjacent issues outside Regrade. | See `REFS.md`. |
 | 2026-05-27 13:52 EDT | TRL-823 | Moved to In Progress when the lowest branch began. | Linear update returned status `In Progress`; branch `trl-823-fail-publish-checks-when-packed-manifests-rewrite-first`. |
+| 2026-05-27 13:56 EDT | TRL-819 | Moved to In Progress when its stack branch began. | Linear update returned status `In Progress`; branch `trl-819-fix-ctxcomposetrail-input-inference-for-trails-without`. |
 
 ## Execution Log
 
@@ -93,6 +94,15 @@ Append meaningful state changes, especially before handoff points.
 - Proof: `bun run publish:check -- --only @ontrails/trails` first failed with stale `^1.0.0-beta.17` packed deps, then passed after the lockfile refresh.
 - Next: commit TRL-823 branch, then stack TRL-819 above it.
 - Blockers: none.
+
+2026-05-27 14:09 EDT - TRL-819 implementation proof
+- Branch: `trl-819-fix-ctxcomposetrail-input-inference-for-trails-without`, stacked on TRL-823.
+- Scout finding: `ComposeInput<T>` mirrored `composeInput` with `NonNullable<T['composeInput']>`, so plain `Trail<I, O>` still exposed `z.ZodType<never> | undefined` and collapsed object-compose input to `never`.
+- Changed: `packages/core/src/type-utils.ts` now uses a tuple-guard fallback so inferred `CI = never` returns `TrailInput<T>` while authored compose input still merges as `TrailInput<T> & CI`.
+- Changed: `packages/core/src/type-checks.test-d.ts` now includes constrained assertions and concrete `ComposeFn` call-site assignments for plain trail-object compose, compose-input trail-object compose, batch compose, and string-id compose.
+- Verification: `bun run --cwd packages/core typecheck`, `bun run typecheck`, `bun run lint`, and `git diff --check` passed.
+- Next: commit TRL-819 branch, then stack TRL-825 above it.
+- Blockers: none.
 ```
 
 ## Local Review Log
@@ -118,6 +128,10 @@ Record exact commands and artifact checks. Include skipped checks with reasons.
 | `bun run lint` | TRL-823 | pass | 23 lint/build tasks successful, cached. |
 | `bun run format:check` | TRL-823 | pass | Ultracite found 0 warnings / 0 errors. |
 | `git diff --check` | TRL-823 | pass | No whitespace/conflict-marker findings. |
+| `bun run --cwd packages/core typecheck` | TRL-819 | pass | Proves plain trail-object compose input no longer collapses to `never` and composeInput trails still require extra fields. |
+| `bun run typecheck` | TRL-819 | pass | 22 package typecheck tasks successful. |
+| `bun run lint` | TRL-819 | pass | 23 lint/build tasks successful. |
+| `git diff --check` | TRL-819 | pass | No whitespace/conflict-marker findings. |
 
 ## Remote Review / CI Log
 

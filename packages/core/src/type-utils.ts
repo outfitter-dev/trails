@@ -37,7 +37,9 @@ export type TrailOutput<T extends AnyTrail> = T extends {
  */
 export type ComposeInput<T extends AnyTrail> =
   NonNullable<T['composeInput']> extends z.ZodType<infer CI>
-    ? TrailInput<T> & CI
+    ? [CI] extends [never]
+      ? TrailInput<T>
+      : TrailInput<T> & CI
     : TrailInput<T>;
 
 /**

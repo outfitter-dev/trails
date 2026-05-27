@@ -28,6 +28,14 @@ import type { z } from 'zod';
 // Helpers
 // ---------------------------------------------------------------------------
 
+type Assert<T extends true> = T;
+type IsExact<A, B> =
+  (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2
+    ? (<T>() => T extends B ? 1 : 2) extends <T>() => T extends A ? 1 : 2
+      ? true
+      : false
+    : false;
+
 /** A trail with composeInput declared. */
 type ComposeTrail = Trail<
   { name: string },
@@ -53,6 +61,9 @@ type AssertMerged = WithComposeInput extends {
   ? true
   : false;
 export type Merged = [AssertMerged] extends [true] ? 'pass' : never;
+export type MergedAssert = Assert<
+  IsExact<WithComposeInput, { name: string } & { forkedFrom: string }>
+>;
 
 // ---------------------------------------------------------------------------
 // ComposeInput<T> falls back to TrailInput<T> when no composeInput
@@ -67,6 +78,9 @@ type AssertFallback2 = BaseInput extends WithoutComposeInput ? true : false;
 export type Fallback = [AssertFallback1, AssertFallback2] extends [true, true]
   ? 'pass'
   : never;
+export type FallbackAssert = Assert<
+  IsExact<WithoutComposeInput, TrailInput<PlainTrail>>
+>;
 
 // ---------------------------------------------------------------------------
 // ComposeFn preserves typed trail-object output inference
@@ -92,6 +106,37 @@ export type TypedTrailObjectComposeOutput = [
 ] extends [true, true]
   ? 'pass'
   : never;
+export type TypedTrailObjectComposeNotNeverAssert =
+  Assert<AssertTypedComposeNotNever>;
+
+declare const compose: ComposeFn;
+declare const composeTrail: ComposeTrail;
+
+export const plainTrailObjectComposeOk: Promise<Result<{ id: string }, Error>> =
+  compose(plainTrail, { name: 'Ada' });
+export const composeInputTrailObjectComposeOk: Promise<
+  Result<{ id: string }, Error>
+> = compose(composeTrail, { forkedFrom: 'root', name: 'Ada' });
+// @ts-expect-error composeInput fields remain required when authored.
+compose(composeTrail, { name: 'Ada' });
+export const batchTrailObjectComposeOk: Promise<
+  readonly [
+    Result<{ id: string }, Error>,
+    Result<{ id: string }, Error>,
+    Result<unknown, Error>,
+  ]
+> = compose([
+  [plainTrail, { name: 'Ada' }],
+  [composeTrail, { forkedFrom: 'root', name: 'Ada' }],
+  ['audit.log', { event: 'typed' }],
+] as const);
+
+type StringIdComposeCallable = ComposeFn extends {
+  (id: string, input: unknown): Promise<Result<unknown, Error>>;
+}
+  ? true
+  : false;
+export type StringIdComposeStillCallable = Assert<StringIdComposeCallable>;
 
 // ---------------------------------------------------------------------------
 // BlazeInput: blaze receives composeInput fields when declared
