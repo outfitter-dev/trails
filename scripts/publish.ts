@@ -48,6 +48,12 @@ interface PackageJson {
   optionalDependencies?: Record<string, string>;
 }
 
+type DependencyField =
+  | 'dependencies'
+  | 'devDependencies'
+  | 'peerDependencies'
+  | 'optionalDependencies';
+
 /** A discovered, publishable workspace. */
 interface Workspace {
   readonly name: string;
@@ -56,6 +62,13 @@ interface Workspace {
   readonly isPrivate: boolean;
   readonly workspaceDeps: readonly string[];
 }
+
+const DEPENDENCY_FIELDS: readonly DependencyField[] = [
+  'dependencies',
+  'devDependencies',
+  'peerDependencies',
+  'optionalDependencies',
+];
 
 const USAGE = `Usage: bun scripts/publish.ts [options]
 
@@ -214,13 +227,7 @@ const discoverWorkspaceDirs = async (
 /** Collect all `workspace:`-referenced dep names from a package.json. */
 const collectWorkspaceDeps = (pkg: PackageJson): string[] => {
   const deps = new Set<string>();
-  const fields: readonly (keyof PackageJson)[] = [
-    'dependencies',
-    'devDependencies',
-    'peerDependencies',
-    'optionalDependencies',
-  ];
-  for (const field of fields) {
+  for (const field of DEPENDENCY_FIELDS) {
     const map = pkg[field];
     if (!map || typeof map !== 'object') {
       continue;
@@ -232,6 +239,78 @@ const collectWorkspaceDeps = (pkg: PackageJson): string[] => {
     }
   }
   return [...deps];
+};
+
+const expectedPackedWorkspaceRange = (
+  sourceRange: string,
+  dep: Workspace
+): string | undefined => {
+  if (!sourceRange.startsWith('workspace:')) {
+    return undefined;
+  }
+  const protocolRange = sourceRange.slice('workspace:'.length);
+  if (protocolRange === '^') {
+    return `^${dep.version}`;
+  }
+  if (protocolRange === '~') {
+    return `~${dep.version}`;
+  }
+  if (protocolRange === '*' || protocolRange === '') {
+    return dep.version;
+  }
+  return protocolRange;
+};
+
+export const findPackedFirstPartyDependencyMismatches = ({
+  packageName,
+  packagePath,
+  packedPackage,
+  sourcePackage,
+  workspacesByName,
+}: {
+  readonly packageName: string;
+  readonly packagePath: string;
+  readonly packedPackage: PackageJson;
+  readonly sourcePackage: PackageJson;
+  readonly workspacesByName: ReadonlyMap<string, Workspace>;
+}): string[] => {
+  const mismatches: string[] = [];
+  for (const field of DEPENDENCY_FIELDS) {
+    const sourceDeps = sourcePackage[field];
+    if (!sourceDeps || typeof sourceDeps !== 'object') {
+      continue;
+    }
+    const packedDeps = packedPackage[field] ?? {};
+    for (const [depName, sourceRange] of Object.entries(sourceDeps)) {
+      const dep = workspacesByName.get(depName);
+      if (
+        !dep ||
+        !dep.name.startsWith('@ontrails/') ||
+        typeof sourceRange !== 'string'
+      ) {
+        continue;
+      }
+      const expected = expectedPackedWorkspaceRange(sourceRange, dep);
+      if (!expected) {
+        continue;
+      }
+      const actual = packedDeps[depName] ?? '(missing)';
+      if (actual !== expected) {
+        const depPath = relative(REPO_ROOT, dep.path);
+        mismatches.push(
+          `${packageName} packed ${field} ${depName} resolved to ${actual}, expected ${expected} from ${depPath}/package.json`
+        );
+      }
+    }
+  }
+  if (mismatches.length === 0) {
+    return [];
+  }
+  const relPath = relative(REPO_ROOT, packagePath);
+  return [
+    `Packed manifest for ${packageName} (${relPath}) contains stale first-party workspace dependency ranges:`,
+    ...mismatches.map((mismatch) => `  ${mismatch}`),
+  ];
 };
 
 /** Discover all workspace packages and enrich with dep edges. */
@@ -357,7 +436,10 @@ const spawnCapture = async (
  *
  * @throws When packing fails or forbidden ranges are found.
  */
-const assertManifestClean = async (ws: Workspace): Promise<void> => {
+const assertManifestClean = async (
+  ws: Workspace,
+  workspacesByName: ReadonlyMap<string, Workspace>
+): Promise<void> => {
   const tmp = await mkdtemp(join(tmpdir(), 'trails-publish-'));
   try {
     // Use `bun pm pack` so the packed manifest reflects what `bun publish`
@@ -397,6 +479,16 @@ const assertManifestClean = async (ws: Workspace): Promise<void> => {
       );
     }
 
+    let packedPackage: PackageJson;
+    try {
+      packedPackage = JSON.parse(manifestText) as PackageJson;
+    } catch (error) {
+      throw new Error(
+        `Invalid packed package.json for ${ws.name}: ${(error as Error).message}`,
+        { cause: error }
+      );
+    }
+
     const offenders: string[] = [];
     for (const [lineNo, line] of manifestText.split('\n').entries()) {
       if (line.includes('"workspace:') || line.includes('"catalog:')) {
@@ -411,13 +503,30 @@ const assertManifestClean = async (ws: Workspace): Promise<void> => {
         `Packed manifest for ${ws.name} (${relPath}) contains forbidden ranges:\n${offenders.join('\n')}\n${hint}`
       );
     }
+    const sourcePackage = await readJson<PackageJson>(
+      join(ws.path, 'package.json')
+    );
+    const mismatches = findPackedFirstPartyDependencyMismatches({
+      packageName: ws.name,
+      packagePath: ws.path,
+      packedPackage,
+      sourcePackage,
+      workspacesByName,
+    });
+    if (mismatches.length > 0) {
+      throw new Error(mismatches.join('\n'));
+    }
   } finally {
     await rm(tmp, { force: true, recursive: true });
   }
 };
 
 /** Run `--check` flow: pack dry-run plus manifest-range assertion per package. */
-const runCheck = async (workspaces: readonly Workspace[]): Promise<number> => {
+const runCheck = async (
+  workspaces: readonly Workspace[],
+  allWorkspaces: readonly Workspace[]
+): Promise<number> => {
+  const workspacesByName = new Map(allWorkspaces.map((ws) => [ws.name, ws]));
   for (const ws of workspaces) {
     if (ws.isPrivate) {
       info(`Skipping ${ws.name} (private)`);
@@ -433,7 +542,7 @@ const runCheck = async (workspaces: readonly Workspace[]): Promise<number> => {
       return 1;
     }
     try {
-      await assertManifestClean(ws);
+      await assertManifestClean(ws, workspacesByName);
     } catch (error) {
       fail((error as Error).message);
       return 1;
@@ -512,7 +621,7 @@ const main = async (): Promise<number> => {
   }
 
   if (opts.mode === 'check') {
-    return await runCheck(selected);
+    return await runCheck(selected, all);
   }
 
   const tag = opts.tag ?? (await resolveDefaultTag());
@@ -523,14 +632,16 @@ const main = async (): Promise<number> => {
   return await runPublish(selected, tag, opts.otp);
 };
 
-try {
-  const code = await main();
-  process.exit(code);
-} catch (error) {
-  const msg = error instanceof Error ? error.message : String(error);
-  fail(msg);
-  if (process.env.DEBUG === '1' && error instanceof Error && error.stack) {
-    console.error(error.stack);
+if (import.meta.main) {
+  try {
+    const code = await main();
+    process.exit(code);
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    fail(msg);
+    if (process.env.DEBUG === '1' && error instanceof Error && error.stack) {
+      console.error(error.stack);
+    }
+    process.exit(1);
   }
-  process.exit(1);
 }
