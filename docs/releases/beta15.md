@@ -27,8 +27,7 @@ The CLI surface uses the dedicated Commander adapter package:
 import { surface } from '@ontrails/commander';
 ```
 
-Older generated projects that still import the retired `@ontrails/cli/commander`
-subpath should migrate to `@ontrails/commander`.
+Older generated projects that still import the retired `@ontrails/cli/commander` subpath should migrate to `@ontrails/commander`.
 
 ### Generated project toolchain
 
@@ -105,10 +104,7 @@ Upgrade `@ontrails/*` packages together. Trails packages are versioned in lockst
 }
 ```
 
-Move CLI imports to `@ontrails/commander`; the old `@ontrails/cli/commander`
-subpath is not exported by the beta.15 CLI package. `@ontrails/commander` owns
-the Commander runtime dependency, so apps only need a direct `commander`
-dependency when they import Commander APIs themselves.
+Move CLI imports to `@ontrails/commander`; the old `@ontrails/cli/commander` subpath is not exported by the beta.15 CLI package. `@ontrails/commander` owns the Commander runtime dependency, so apps only need a direct `commander` dependency when they import Commander APIs themselves.
 
 ### Existing generated projects
 

@@ -1,7 +1,6 @@
 # Contributing to Trails
 
-These guides are for people and agents working on the Trails repository itself.
-They describe how to preserve the framework's doctrine, code shape, and maintenance discipline while changing the project.
+These guides are for people and agents working on the Trails repository itself. They describe how to preserve the framework's doctrine, code shape, and maintenance discipline while changing the project.
 
 If you are building an app with Trails, start with the user-facing docs in [`docs/`](../index.md). If you are changing Trails, use these house guides:
 

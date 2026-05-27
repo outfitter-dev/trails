@@ -122,22 +122,11 @@ Result.err(new NotFoundError('Entity not found'));
 // }
 ```
 
-Trail failures are MCP tool-result errors, not JSON-RPC protocol errors. The
-model-visible payload stays text-only on error, while `_meta["ontrails/error"]`
-contains the same JSON-RPC-family code projection used by
-`mapSurfaceError('mcp', error)`. Both fields use the shared public error
-projection: `TrailsError` messages are redacted, and unknown native errors return
-the generic `Internal server error` text without framework error metadata.
-Internal-category `TrailsError` instances also use the generic public message
-while keeping their taxonomy metadata.
-Protocol errors remain reserved for invalid MCP requests such as malformed
-methods or unknown tools.
+Trail failures are MCP tool-result errors, not JSON-RPC protocol errors. The model-visible payload stays text-only on error, while `_meta["ontrails/error"]` contains the same JSON-RPC-family code projection used by `mapSurfaceError('mcp', error)`. Both fields use the shared public error projection: `TrailsError` messages are redacted, and unknown native errors return the generic `Internal server error` text without framework error metadata. Internal-category `TrailsError` instances also use the generic public message while keeping their taxonomy metadata. Protocol errors remain reserved for invalid MCP requests such as malformed methods or unknown tools.
 
 **Binary data:**
 
-If the result contains a `BlobRef` declared with `blobRefSchema`, MCP projects
-the core descriptor into `structuredContent` and materializes bytes through MCP
-content entries. Image MIME types become image content:
+If the result contains a `BlobRef` declared with `blobRefSchema`, MCP projects the core descriptor into `structuredContent` and materializes bytes through MCP content entries. Image MIME types become image content:
 
 ```typescript
 // -> { content: [{ type: "image", data: "<base64>", mimeType: "image/png" }] }
@@ -179,9 +168,7 @@ await surface(graph, {
 });
 ```
 
-`*` matches one dotted namespace segment and `**` matches any depth. Excludes
-apply before include narrowing, and trails marked `visibility: 'internal'` stay
-hidden unless you include their exact trail ID.
+`*` matches one dotted namespace segment and `**` matches any depth. Excludes apply before include narrowing, and trails marked `visibility: 'internal'` stay hidden unless you include their exact trail ID.
 
 ## Server Configuration
 
@@ -195,9 +182,7 @@ await surface(graph, {
 });
 ```
 
-`surface(graph)` already derives the MCP server name and version from the
-topo identity. Pass `name` or `version` only when a specific surface instance
-needs to override them.
+`surface(graph)` already derives the MCP server name and version from the topo identity. Pass `name` or `version` only when a specific surface instance needs to override them.
 
 ## AbortSignal Propagation
 
@@ -219,12 +204,9 @@ const longTask = trail('long.task', {
 
 ## Layers
 
-The MCP surface accepts execution layers in its options and uses
-`composeLayers()` from `@ontrails/core` to wrap execution before the blaze.
+The MCP surface accepts execution layers in its options and uses `composeLayers()` from `@ontrails/core` to wrap execution before the blaze.
 
-No MCP-specific layers ship in v1. The infrastructure is wired for
-surface-scoped behavior such as rate limiting, caching, or auth layers, but
-these layers are not topo primitives or graph nodes.
+No MCP-specific layers ship in v1. The infrastructure is wired for surface-scoped behavior such as rate limiting, caching, or auth layers, but these layers are not topo primitives or graph nodes.
 
 ## Building Tools Without `surface()`
 
@@ -252,9 +234,4 @@ for (const tool of result.value) {
 
 Each `McpToolDefinition` includes a `trailId` field containing the original trail ID (e.g. `'entity.show'`). This is useful for logging, filtering, or routing when managing tool definitions outside of `surface()`.
 
-For versioned trails, the tool input schema includes a surface-owned
-`trailVersion` parameter. MCP handlers strip it before trail input validation
-and forward the selected live version or marker prefix to the shared execution
-pipeline. The `versions` field on each tool lists the live projected versions;
-archived historical entries remain inspectable through topo artifacts but are
-not runtime tool targets.
+For versioned trails, the tool input schema includes a surface-owned `trailVersion` parameter. MCP handlers strip it before trail input validation and forward the selected live version or marker prefix to the shared execution pipeline. The `versions` field on each tool lists the live projected versions; archived historical entries remain inspectable through topo artifacts but are not runtime tool targets.

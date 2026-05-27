@@ -276,7 +276,7 @@ const firewatchInbox = pack('firewatch.inbox', {
 });
 ```
 
-SDK wrapper trails are internal: crossing targets only. Domain pack trails are public: the domain's API. Product pack trails are the product's verbs. Each layer adds its opinion without reaching into the previous layer's internals.
+SDK wrapper trails are internal: composition targets only. Domain pack trails are public: the domain's API. Product pack trails are the product's verbs. Each layer adds its opinion without reaching into the previous layer's internals.
 
 A thin passthrough trail in the domain pack:
 
@@ -325,9 +325,9 @@ Packs:
 
 The warden enforces pack boundaries:
 
-- **Cross-pack internal access.** A trail outside `github.core` crosses an internal `github.core` trail. Error. Internal trails are internal to their pack.
+- **Cross-pack internal access.** A trail outside `github.core` composes an internal `github.core` trail. Error. Internal trails are internal to their pack.
 - **Unmet requires.** A pack in the topo has a `requires` that isn't satisfied by another pack in the topo. Error at topo construction.
-- **Unused requires.** A pack declares `requires: [githubCore]` but no trail in the pack crosses any trail in `githubCore` or uses any resource from `githubCore`. Warning.
+- **Unused requires.** A pack declares `requires: [githubCore]` but no trail in the pack composes any trail in `githubCore` or uses any resource from `githubCore`. Warning.
 - **Namespace mismatch.** A trail in the `github.core` pack has an ID like `linear.something`. Warning: trail ID doesn't match pack namespace.
 
 ## Consequences
@@ -339,7 +339,7 @@ The warden enforces pack boundaries:
 - **Visibility defaults compound.** An SDK wrapper pack with `visibility: 'internal'` eliminates per-trail annotation for the common case. The visibility ADR and the pack ADR multiply each other's value.
 - **Config composition is formalized.** The pack-level config scoping from the config ADR gains a proper container. Config schemas, env prefixes, and generated artifacts all key off the pack boundary.
 - **Reuse is realistic.** A pack carries everything needed for independent use: trails, resources, config, signals, requires. Publishing a pack (as an npm package or a scaffoldable template) is publishing capability, not just code.
-- **Signals decouple packs.** Packs that need to communicate don't need direct crossing dependencies. A billing pack fires `billing.payment-completed`. A notification pack activates on it. Neither imports the other. They're connected by the signal contract in the topo. The signal system provides the emission and routing. Packs provide the boundaries.
+- **Signals decouple packs.** Packs that need to communicate don't need direct composition dependencies. A billing pack fires `billing.payment-completed`. A notification pack activates on it. Neither imports the other. They're connected by the signal contract in the topo. The signal system provides the emission and routing. Packs provide the boundaries.
 - **The SDK wrapping pattern is clean.** Internal SDK trails, public domain trails, and product-level composition all have natural homes. Each layer adds opinion without ceremony.
 
 ### Tradeoffs

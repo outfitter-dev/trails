@@ -101,16 +101,14 @@ Frozen definitions use bare nouns. Stateful runtime instances use `create*`.
 
 ### Use `graph` for topo instances
 
-`topo()` stays the primitive name. The value it returns should be called
-`graph` in active examples and docs:
+`topo()` stays the primitive name. The value it returns should be called `graph` in active examples and docs:
 
 ```typescript
 const graph = topo('myapp', entityModule);
 await surface(graph);
 ```
 
-The primitive name tells you how the value was produced. The local variable name
-tells you what it is.
+The primitive name tells you how the value was produced. The local variable name tells you what it is.
 
 ### The vocabulary progression
 
@@ -127,11 +125,9 @@ surface()       -> open the graph to the outside world
 run()           -> execute a specific trail directly
 ```
 
-The sentence that explains the framework is now:
-**"Define the contract. Blaze the trail. Run it anywhere."**
+The sentence that explains the framework is now: **"Define the contract. Blaze the trail. Run it anywhere."**
 
-`run` remains execution language. The runtime runs trails, not blazes; the
-`blaze` establishes the path that makes the trail runnable.
+`run` remains execution language. The runtime runs trails, not blazes; the `blaze` establishes the path that makes the trail runnable.
 
 ### Suffix instances when the type isn't obvious from context
 
@@ -149,8 +145,7 @@ Core primitives do not get redundant suffixes. Supporting instances do.
 
 ### Surface wiring — `derive*` then `create*` then `surface()`
 
-Every surface keeps a predictable escape hatch ladder behind the `surface()`
-one-liner:
+Every surface keeps a predictable escape hatch ladder behind the `surface()` one-liner:
 
 1. `derive*` — project a surface-specific definition from a graph
 2. `create*` — materialize a runtime object without opening the boundary
@@ -169,8 +164,7 @@ MCP:  deriveMcpTools(graph)    -> createServer(graph)  -> surface(graph)
 HTTP: deriveHttpRoutes(graph)  -> createApp(graph)     -> surface(graph)
 ```
 
-`to*` remains valid for narrow translation helpers such as `toCommander()`, but
-it is no longer the main public story.
+`to*` remains valid for narrow translation helpers such as `toCommander()`, but it is no longer the main public story.
 
 ### Don't namespace what package scope provides
 
@@ -188,9 +182,7 @@ deriveAnnotations(trail);
 deriveHttpRoutes(graph);
 ```
 
-Derivations stay pure. When a derivation can fail because the authored graph is
-invalid or collides with itself, it reports that failure as `Result.err(...)`
-rather than throwing.
+Derivations stay pure. When a derivation can fail because the authored graph is invalid or collides with itself, it reports that failure as `Result.err(...)` rather than throwing.
 
 ### `validate*` for contract verification
 

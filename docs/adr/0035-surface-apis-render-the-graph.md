@@ -21,39 +21,25 @@ Before the surface cutover, `trailhead` simultaneously meant:
 - the one-liner helper that started that boundary
 - the derived artifact underneath that helper
 
-The helper verbs made that blur worse. `buildCliCommands()` and
-`buildHttpRoutes()` did not "build" mutable runtime objects. They projected a
-deterministic surface definition from a graph. Then separate helpers such as
-`toCommander()` or `connectStdio()` handled the last mile into a host runtime.
-The naming made the API look more stateful and connector-specific than it
-really was.
+The helper verbs made that blur worse. `buildCliCommands()` and `buildHttpRoutes()` did not "build" mutable runtime objects. They projected a deterministic surface definition from a graph. Then separate helpers such as `toCommander()` or `connectStdio()` handled the last mile into a host runtime. The naming made the API look more stateful and connector-specific than it really was.
 
-That mismatch became harder to ignore once the package graph sharpened.
-`@ontrails/http` exists to derive framework-agnostic route definitions.
-`@ontrails/hono` exists to materialize and serve a Hono app.
-`@ontrails/vite` composes on top of an already-created app rather than
-deriving a second HTTP model. The architecture has layers. The names should
-reveal them.
+That mismatch became harder to ignore once the package graph sharpened. `@ontrails/http` exists to derive framework-agnostic route definitions. `@ontrails/hono` exists to materialize and serve a Hono app. `@ontrails/vite` composes on top of an already-created app rather than deriving a second HTTP model. The architecture has layers. The names should reveal them.
 
 ### We need the same question sequence on every boundary
 
-For every boundary-facing package, developers and agents now ask the same three
-questions:
+For every boundary-facing package, developers and agents now ask the same three questions:
 
 1. Can I inspect the projected shape without starting anything?
 2. Can I materialize a host object and keep lifecycle ownership?
 3. Can I let Trails own the whole boundary for me?
 
-The API should answer those questions with the same verbs across CLI, MCP,
-HTTP, and future surfaces.
+The API should answer those questions with the same verbs across CLI, MCP, HTTP, and future surfaces.
 
 ## Decision
 
 ### `surface()` is the boundary-owned one-liner
 
-A **surface** is the package-owned rendering of a graph for an external
-boundary. `surface(graph)` is the high-level helper that takes lifecycle
-ownership of that boundary.
+A **surface** is the package-owned rendering of a graph for an external boundary. `surface(graph)` is the high-level helper that takes lifecycle ownership of that boundary.
 
 This means:
 
@@ -61,13 +47,11 @@ This means:
 - MCP `surface(graph)` creates the server and connects stdio
 - Hono `surface(graph)` creates the app and starts serving it
 
-`surface()` is intentionally effectful. It exists for the "just open this
-graph" path.
+`surface()` is intentionally effectful. It exists for the "just open this graph" path.
 
 ### `derive*` names deterministic projections
 
-When a helper returns a framework-agnostic projected shape from a graph, it
-uses `derive*` and returns `Result`.
+When a helper returns a framework-agnostic projected shape from a graph, it uses `derive*` and returns `Result`.
 
 ```text
 deriveCliCommands(graph)
@@ -75,18 +59,13 @@ deriveMcpTools(graph)
 deriveHttpRoutes(graph)
 ```
 
-These functions do not start transports or mutate runtime state. They project
-contract data into surface-specific definitions. If projection fails because of
-validation or collisions, the failure is reported as `Result.err(...)` at the
-derivation boundary.
+These functions do not start transports or mutate runtime state. They project contract data into surface-specific definitions. If projection fails because of validation or collisions, the failure is reported as `Result.err(...)` at the derivation boundary.
 
-The test: if the function is answering "what would this graph look like on this
-surface?", it is a derivation.
+The test: if the function is answering "what would this graph look like on this surface?", it is a derivation.
 
 ### `create*` names runtime materialization without opening the boundary
 
-When a helper creates a host-library runtime object but stops short of opening
-it to the outside world, it uses `create*`.
+When a helper creates a host-library runtime object but stops short of opening it to the outside world, it uses `create*`.
 
 ```text
 createProgram(graph)   -> Commander program
@@ -94,12 +73,7 @@ createServer(graph)    -> MCP Server instance
 createApp(graph)       -> Hono app
 ```
 
-`create*` materializes a runtime instance. It may fail fast by throwing if the
-graph cannot produce a valid projection. That does not weaken the
-"blazes return Result" rule from
-[ADR-0000](0000-core-premise.md). The purity rule governs trail execution.
-`create*` lives at startup and runtime ownership boundaries, not inside trail
-logic.
+`create*` materializes a runtime instance. It may fail fast by throwing if the graph cannot produce a valid projection. That does not weaken the "blazes return Result" rule from [ADR-0000](0000-core-premise.md). The purity rule governs trail execution. `create*` lives at startup and runtime ownership boundaries, not inside trail logic.
 
 ### The public story is `derive` -> `create` -> `surface`
 
@@ -119,39 +93,28 @@ MCP:  deriveMcpTools(graph)    -> createServer(graph)  -> surface(graph)
 HTTP: deriveHttpRoutes(graph)  -> createApp(graph)     -> surface(graph)
 ```
 
-Not every surface must expose every rung as a separate package. The rule is
-semantic, not structural. `@ontrails/http` and `@ontrails/hono` split
-projection from runtime materialization because the split is useful.
-`@ontrails/mcp` keeps both in one package because there is no smaller reusable
-layer below the server itself.
+Not every surface must expose every rung as a separate package. The rule is semantic, not structural. `@ontrails/http` and `@ontrails/hono` split projection from runtime materialization because the split is useful. `@ontrails/mcp` keeps both in one package because there is no smaller reusable layer below the server itself.
 
 ### `to*` remains a thin translation verb, not the main storyline
 
-Helpers such as `toCommander(commands)` remain valid when a package needs a
-narrow translation from a projected definition into a library-specific object.
-They are escape hatches, not the primary conceptual path.
+Helpers such as `toCommander(commands)` remain valid when a package needs a narrow translation from a projected definition into a library-specific object. They are escape hatches, not the primary conceptual path.
 
-The docs, scaffolding, and examples should tell the story as `derive*`,
-`create*`, and `surface()`. `to*` is for specific composition points, not for
-explaining the framework.
+The docs, scaffolding, and examples should tell the story as `derive*`, `create*`, and `surface()`. `to*` is for specific composition points, not for explaining the framework.
 
 ### `graph` is the canonical local name for a topo instance
 
-The primitive stays `topo()`. The local value it returns should be named
-`graph` in active docs and examples:
+The primitive stays `topo()`. The local value it returns should be named `graph` in active docs and examples:
 
 ```typescript
 const graph = topo('myapp', entityModule);
 await surface(graph);
 ```
 
-`topo()` names the primitive. `graph` names the thing returned by it. That
-matches the tenet that the resolved topo artifact family is the story.
+`topo()` names the primitive. `graph` names the thing returned by it. That matches the tenet that the resolved topo artifact family is the story.
 
 ### Runtime adapters compose on created surfaces, not by inventing new projections
 
-A runtime adapter that layers on top of an existing surface runtime should
-compose above `create*` rather than deriving a parallel contract model.
+A runtime adapter that layers on top of an existing surface runtime should compose above `create*` rather than deriving a parallel contract model.
 
 ```typescript
 import { createApp } from '@ontrails/hono';
@@ -160,9 +123,7 @@ import { vite } from '@ontrails/vite';
 server.middlewares.use('/api', vite(createApp(graph)));
 ```
 
-The Vite adapter does not derive a second HTTP projection. It adapts an
-already-created Hono surface into another host environment. That keeps the
-concept count flat.
+The Vite adapter does not derive a second HTTP projection. It adapts an already-created Hono surface into another host environment. That keeps the concept count flat.
 
 ## Consequences
 

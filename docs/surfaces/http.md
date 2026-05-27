@@ -32,9 +32,7 @@ import { graph } from './app';
 await surface(graph, { port: 3000 });
 ```
 
-`@ontrails/hono` is the portable Hono integration. `@ontrails/http/bun` uses
-Bun's native `routes` fast path, keeps a Fetch fallback for unmatched requests,
-and adds no third-party HTTP framework dependency.
+`@ontrails/hono` is the portable Hono integration. `@ontrails/http/bun` uses Bun's native `routes` fast path, keeps a Fetch fallback for unmatched requests, and adds no third-party HTTP framework dependency.
 
 ## Projection and runtime materialization
 
@@ -48,15 +46,9 @@ HTTP follows the surface naming split:
 - `surface()` opens the boundary: `@ontrails/hono` starts Hono;
   `@ontrails/http/bun` starts `Bun.serve()`.
 
-The shared Fetch kernel owns query/body parsing, content-length validation,
-public error projection, diagnostics, request ID/header forwarding, abort
-propagation, and webhook verification/parsing. Hono and Bun consume the same
-kernel so those behaviors stay in parity.
+The shared Fetch kernel owns query/body parsing, content-length validation, public error projection, diagnostics, request ID/header forwarding, abort propagation, and webhook verification/parsing. Hono and Bun consume the same kernel so those behaviors stay in parity.
 
-Versioned trails expose a surface-owned `trailVersion` request field and also
-accept `X-Trails-Version` / `X-Trail-Version` headers. The selected version is
-stripped before trail input validation and forwarded to the shared execution
-pipeline.
+Versioned trails expose a surface-owned `trailVersion` request field and also accept `X-Trails-Version` / `X-Trail-Version` headers. The selected version is stripped before trail input validation and forwarded to the shared execution pipeline.
 
 ## How Trail IDs Map to Routes
 
@@ -208,11 +200,7 @@ HTTP 200 for all successful responses.
 }
 ```
 
-The `code` is the error class name. The `category` matches the error taxonomy.
-HTTP bodies use the shared public error projection: `TrailsError` messages are
-redacted before they are returned, internal-category errors are made opaque, and
-unknown native errors are reported as `InternalError` with `Internal server
-error`.
+The `code` is the error class name. The `category` matches the error taxonomy. HTTP bodies use the shared public error projection: `TrailsError` messages are redacted before they are returned, internal-category errors are made opaque, and unknown native errors are reported as `InternalError` with `Internal server error`.
 
 ## Status Code Mapping
 
@@ -243,9 +231,7 @@ Unrecognized errors (non-`TrailsError` exceptions) return 500 with `category: 'i
 
 ## Execution Layers
 
-HTTP accepts execution layers in the surface options. They wrap trail execution
-for requests on that surface before execution enters the blaze; they are not declared on the topo
-or surfaced as contract graph nodes in v1.
+HTTP accepts execution layers in the surface options. They wrap trail execution for requests on that surface before execution enters the blaze; they are not declared on the topo or surfaced as contract graph nodes in v1.
 
 ```typescript
 import { surface } from '@ontrails/hono';
@@ -261,8 +247,7 @@ Layers run in order, wrapping trail execution. They have access to the trail and
 
 ## CreateAppOptions
 
-`surface(graph, options)` and `createApp(graph, options)` share the same
-options bag. The most useful fields are:
+`surface(graph, options)` and `createApp(graph, options)` share the same options bag. The most useful fields are:
 
 | Option | Type | Default | Description |
 | --- | --- | --- | --- |
@@ -285,8 +270,7 @@ The handler reads `X-Request-ID` from inbound requests and passes it through to 
 
 ## Escape Hatch
 
-For custom setups, use `@ontrails/http/fetch` when you want Trails to keep
-owning the request/response semantics and your runtime to own the server:
+For custom setups, use `@ontrails/http/fetch` when you want Trails to keep owning the request/response semantics and your runtime to own the server:
 
 ```typescript
 import { createFetchHandler } from '@ontrails/http/fetch';
@@ -298,8 +282,7 @@ export default {
 };
 ```
 
-If your framework needs route-by-route registration, combine
-`deriveHttpRoutes()` with `createRouteHandler()`:
+If your framework needs route-by-route registration, combine `deriveHttpRoutes()` with `createRouteHandler()`:
 
 ```typescript
 import { deriveHttpRoutes } from '@ontrails/http';

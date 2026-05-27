@@ -349,9 +349,7 @@ logger.clear(); // reset
 
 ## Surface Harnesses
 
-Surface harnesses are opt-in subpaths. Root `@ontrails/testing` stays focused
-on contract helpers; import surface-specific helpers from the subpath matching
-the peer package you use.
+Surface harnesses are opt-in subpaths. Root `@ontrails/testing` stays focused on contract helpers; import surface-specific helpers from the subpath matching the peer package you use.
 
 ### CLI Harness
 

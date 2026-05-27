@@ -17,9 +17,7 @@ bun add @ontrails/http@beta
 bun add -d @ontrails/testing@beta # Testing (dev)
 ```
 
-During the active beta line, use `@beta` for the newest published beta or exact
-`1.0.0-beta.N` pins for reproducible handoffs. Do not rely on unqualified
-`latest` unless release notes explicitly say it has been advanced.
+During the active beta line, use `@beta` for the newest published beta or exact `1.0.0-beta.N` pins for reproducible handoffs. Do not rely on unqualified `latest` unless release notes explicitly say it has been advanced.
 
 ## Define Your First Trail
 

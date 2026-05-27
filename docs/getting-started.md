@@ -25,16 +25,9 @@ bun add @ontrails/http@beta @ontrails/hono@beta
 bun add -d @ontrails/testing@beta
 ```
 
-During the active beta line, use `@beta` for the newest published beta or pin
-exact `1.0.0-beta.N` versions for reproducible handoffs. Do not rely on
-unqualified `latest` unless release notes explicitly say it has been advanced.
+During the active beta line, use `@beta` for the newest published beta or pin exact `1.0.0-beta.N` versions for reproducible handoffs. Do not rely on unqualified `latest` unless release notes explicitly say it has been advanced.
 
-Generated projects include `.trails/scaffold.json`, a minimal provenance
-breadcrumb with the scaffold schema version, the `@ontrails/trails` version that
-created the project, the selected starter template, and the generation
-timestamp. It is informational in the current beta line; future upgrade tooling
-can use it as a starting point without guessing which scaffold produced the
-project.
+Generated projects include `.trails/scaffold.json`, a minimal provenance breadcrumb with the scaffold schema version, the `@ontrails/trails` version that created the project, the selected starter template, and the generation timestamp. It is informational in the current beta line; future upgrade tooling can use it as a starting point without guessing which scaffold produced the project.
 
 ## Your First Trail
 
@@ -133,9 +126,7 @@ Options:
   -h, --help      display help for command
 ```
 
-When a trail has exactly one required string field with no default, the CLI automatically promotes it to a positional argument. You can still pass it as a
-flag (`--name World`), but the positional form is shorter. To suppress auto-promotion, set `args: false` on the trail definition (see the
-[CLI surface guide](./surfaces/cli.md#positional-args)).
+When a trail has exactly one required string field with no default, the CLI automatically promotes it to a positional argument. You can still pass it as a flag (`--name World`), but the positional form is shorter. To suppress auto-promotion, set `args: false` on the trail definition (see the [CLI surface guide](./surfaces/cli.md#positional-args)).
 
 ## Open an MCP Surface
 
@@ -209,8 +200,7 @@ That single `testAll(graph)` call runs the full contract suite:
 
 No separate test files for the happy path. The examples ARE the tests.
 
-If your app declares resources with `mock` factories, `testAll(graph)` and `testExamples(graph)` pick them up automatically. Use explicit `resources`
-overrides only when you need a specific fake or fresh mutable state.
+If your app declares resources with `mock` factories, `testAll(graph)` and `testExamples(graph)` pick them up automatically. Use explicit `resources` overrides only when you need a specific fake or fresh mutable state.
 
 For finer control, use `testExamples(graph)` to run only example assertions without structural checks:
 

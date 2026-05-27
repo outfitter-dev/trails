@@ -110,8 +110,7 @@ await surface(graph, { include: ['entity.**', 'search'] });
 await surface(graph, { exclude: ['internal.debug'] });
 ```
 
-`*` matches one dotted segment and `**` matches any depth. Trails declared with
-`visibility: 'internal'` stay hidden unless you include their exact trail ID.
+`*` matches one dotted segment and `**` matches any depth. Trails declared with `visibility: 'internal'` stay hidden unless you include their exact trail ID.
 
 ## Installation
 

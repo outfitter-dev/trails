@@ -204,9 +204,7 @@ The blazed trail is identical across all paths. Only the edges change.
 
 ## Error Taxonomy
 
-17 fixed-category error classes across 10 categories, plus the dynamic
-`RetryExhaustedError` wrapper. All extend `TrailsError`. Pattern match with
-`instanceof` or `error.category`.
+17 fixed-category error classes across 10 categories, plus the dynamic `RetryExhaustedError` wrapper. All extend `TrailsError`. Pattern match with `instanceof` or `error.category`.
 
 | Category | Exit | HTTP | Retryable | Classes |
 |----------|------|------|-----------|---------|

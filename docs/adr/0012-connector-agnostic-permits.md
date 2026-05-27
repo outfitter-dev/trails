@@ -10,9 +10,7 @@ owners: ['[galligan](https://github.com/galligan)']
 
 # ADR-0012: Adapter-Agnostic Permits
 
-The historical slug is preserved for reference stability. The 2026-05-08
-amendment renames the current auth boundary from connector vocabulary to
-adapter vocabulary.
+The historical slug is preserved for reference stability. The 2026-05-08 amendment renames the current auth boundary from connector vocabulary to adapter vocabulary.
 
 ## Context
 
@@ -66,11 +64,7 @@ interface Permit {
 }
 ```
 
-Core enforcement keys off `scopes` only. Roles are adapter output — the auth
-adapter resolves them, and blazes can read them, but the framework's
-own enforcement doesn't branch on roles. `metadata` stays
-`Record<string, unknown>` for v1. No generic `Permit<T>` — the complexity isn't
-justified until concrete use cases demand it.
+Core enforcement keys off `scopes` only. Roles are adapter output — the auth adapter resolves them, and blazes can read them, but the framework's own enforcement doesn't branch on roles. `metadata` stays `Record<string, unknown>` for v1. No generic `Permit<T>` — the complexity isn't justified until concrete use cases demand it.
 
 ### `ctx.permit` is `Permit | undefined`
 
@@ -98,10 +92,7 @@ interface PermitExtractionInput {
 }
 ```
 
-Surfaces do raw extraction — pulling tokens from headers, sessions, or
-environment. The auth adapter receives this normalized input and returns a
-`Permit` or an error. Core auth never imports `Request`, `McpSession`, or any
-surface-specific type.
+Surfaces do raw extraction — pulling tokens from headers, sessions, or environment. The auth adapter receives this normalized input and returns a `Permit` or an error. Core auth never imports `Request`, `McpSession`, or any surface-specific type.
 
 ### Auth adapter interface
 
@@ -113,10 +104,7 @@ interface AuthAdapter {
 }
 ```
 
-The port is deliberately narrow. No session management, no token refresh, no
-user lookup. Adapters can provide those as additional resources outside the core
-interface. The framework needs exactly one capability: given credentials,
-produce a permit or an error.
+The port is deliberately narrow. No session management, no token refresh, no user lookup. Adapters can provide those as additional resources outside the core interface. The framework needs exactly one capability: given credentials, produce a permit or an error.
 
 ### Auth layer re-checks on every invocation including composes
 
@@ -147,15 +135,11 @@ Strict mode disables auto-minting entirely. Tests must provide explicit permits,
 
 Built-in: JWT/JWKS verification, provider-agnostic. Validates tokens, extracts claims, maps to `Permit`. No provider lock-in.
 
-First external adapter target: BetterAuth or Clerk, depending on which ships a
-cleaner token contract. OpenAuth later, once the adapter pattern is proven.
+First external adapter target: BetterAuth or Clerk, depending on which ships a cleaner token contract. OpenAuth later, once the adapter pattern is proven.
 
 ### Bearer-only for v1
 
-No cookies. No session-based auth at the framework level. Session management
-via cookies is an adapter concern — a future adapter can extract session tokens
-from cookies and feed them into the same `PermitExtractionInput`. The core
-model doesn't change; only the extraction surface does.
+No cookies. No session-based auth at the framework level. Session management via cookies is an adapter concern — a future adapter can extract session tokens from cookies and feed them into the same `PermitExtractionInput`. The core model doesn't change; only the extraction surface does.
 
 ## Consequences
 

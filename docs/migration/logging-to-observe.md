@@ -1,7 +1,6 @@
 # Logging To Observe Migration Guide
 
-How to migrate consumers from the retired `@ontrails/logging` package to the
-v1 observability package graph.
+How to migrate consumers from the retired `@ontrails/logging` package to the v1 observability package graph.
 
 ## Current Package Roles
 
@@ -16,8 +15,7 @@ v1 observability package graph.
 | Tracing query/status trails, SQLite dev store, sampling helpers | `@ontrails/tracing` |
 | OpenTelemetry export | `@ontrails/tracing/otel` |
 
-`@ontrails/logging` is no longer part of the workspace or prerelease package
-set. Do not add it to new apps.
+`@ontrails/logging` is no longer part of the workspace or prerelease package set. Do not add it to new apps.
 
 ## Import Changes
 
@@ -62,10 +60,7 @@ registerTraceSink(sink);
 await sink.flush();
 ```
 
-There is no standalone `@ontrails/otel` package in v1. The adapter keeps the
-Trails-native `TraceRecord` model internal, emits stable `trails.*` attributes,
-and forwards OTel-shaped span batches through the exporter callback without
-forcing an OpenTelemetry SDK runtime dependency.
+There is no standalone `@ontrails/otel` package in v1. The adapter keeps the Trails-native `TraceRecord` model internal, emits stable `trails.*` attributes, and forwards OTel-shaped span batches through the exporter callback without forcing an OpenTelemetry SDK runtime dependency.
 
 Use `@ontrails/pino` when an app already owns a Pino logger:
 
@@ -85,8 +80,7 @@ const graph = topo('app', trails, {
 
 ## Package Manifests
 
-Remove the old dependency and add the replacement packages you actually need.
-For apps that only use console, file, or memory sinks:
+Remove the old dependency and add the replacement packages you actually need. For apps that only use console, file, or memory sinks:
 
 ```diff
 {
@@ -98,8 +92,7 @@ For apps that only use console, file, or memory sinks:
 }
 ```
 
-For apps that also forward to a LogTape-shaped logger, add `@ontrails/logtape`
-alongside `@ontrails/observe`:
+For apps that also forward to a LogTape-shaped logger, add `@ontrails/logtape` alongside `@ontrails/observe`:
 
 ```diff
 {
@@ -112,8 +105,7 @@ alongside `@ontrails/observe`:
 }
 ```
 
-For apps that forward to a Pino-shaped logger, add `@ontrails/pino` alongside
-`@ontrails/observe`. Keep `pino` itself as an application dependency:
+For apps that forward to a Pino-shaped logger, add `@ontrails/pino` alongside `@ontrails/observe`. Keep `pino` itself as an application dependency:
 
 ```diff
 {
@@ -129,8 +121,7 @@ For apps that forward to a Pino-shaped logger, add `@ontrails/pino` alongside
 
 ## Testing
 
-For trace assertions, install the memory sink from `@ontrails/observe` and the
-registry helpers from `@ontrails/tracing`:
+For trace assertions, install the memory sink from `@ontrails/observe` and the registry helpers from `@ontrails/tracing`:
 
 ```typescript
 import { createMemorySink } from '@ontrails/observe';
@@ -148,7 +139,4 @@ try {
 
 ## What Stays Historical
 
-Changelogs, release notes, and migration guides may still mention
-`@ontrails/logging`, `@ontrails/tracker`, `trailhead`, or `connector` when they
-are explicitly describing older beta history. Current-facing docs and examples
-should use `@ontrails/observe`, `@ontrails/tracing`, `surface`, and `adapter`.
+Changelogs, release notes, and migration guides may still mention `@ontrails/logging`, `@ontrails/tracker`, `trailhead`, or `connector` when they are explicitly describing older beta history. Current-facing docs and examples should use `@ontrails/observe`, `@ontrails/tracing`, `surface`, and `adapter`.

@@ -15,49 +15,29 @@ depends_on: [3, 4, 5, 13, 17, 24, 26, 27, 38]
 
 ### Trails were callable before they were activatable
 
-Every trail in a topo is callable. A surface or `run()` can invoke it with
-typed input and receive a Result. That tells Trails how work runs, but not when
-work should run.
+Every trail in a topo is callable. A surface or `run()` can invoke it with typed input and receive a Result. That tells Trails how work runs, but not when work should run.
 
-Without an activation contract, real applications put the "when" in external
-glue: webhook handlers call `run()`, schedulers call `run()`, application event
-buses call `run()`, and background workers keep their own routing tables. The
-work executes, but Trails cannot see the reactive graph. Survey cannot explain
-what wakes a trail. Warden cannot govern source drift. Tracing cannot attribute
-an execution to the source that caused it.
+Without an activation contract, real applications put the "when" in external glue: webhook handlers call `run()`, schedulers call `run()`, application event buses call `run()`, and background workers keep their own routing tables. The work executes, but Trails cannot see the reactive graph. Survey cannot explain what wakes a trail. Warden cannot govern source drift. Tracing cannot attribute an execution to the source that caused it.
 
-Activation is new authored information. The framework cannot derive "run this
-trail when Stripe calls this path" from a trail ID or schema. The developer has
-to declare it once, and the framework should project that declaration into
-runtime routing, validation, survey, serialized graph state, Warden checks, and
-tracing attributes.
+Activation is new authored information. The framework cannot derive "run this trail when Stripe calls this path" from a trail ID or schema. The developer has to declare it once, and the framework should project that declaration into runtime routing, validation, survey, serialized graph state, Warden checks, and tracing attributes.
 
 ### Typed signal emission supplies the local reactive edge
 
-[ADR-0038](0038-typed-signal-emission.md) made `signal()` live: producers
-declare `fires: [signal]`, call `ctx.fire(signal, payload)`, and consumers
-declare `on: [signal]`. That established the local in-process activation edge.
+[ADR-0038](0038-typed-signal-emission.md) made `signal()` live: producers declare `fires: [signal]`, call `ctx.fire(signal, payload)`, and consumers declare `on: [signal]`. That established the local in-process activation edge.
 
-This decision broadens `on:` from signal-only shorthand into a universal
-activation declaration. Signal activation, schedule activation, and webhook
-activation all use the same trail field and the same normalized graph shape.
+This decision broadens `on:` from signal-only shorthand into a universal activation declaration. Signal activation, schedule activation, and webhook activation all use the same trail field and the same normalized graph shape.
 
 ### Activation is not orchestration
 
-Activation sources activate trails. They do not compose trails, branch workflow,
-own retries, or replace `ctx.compose()`.
+Activation sources activate trails. They do not compose trails, branch workflow, own retries, or replace `ctx.compose()`.
 
-If a source should start "A then B then C", it activates one trail. That trail
-uses normal imperative composition with `ctx.compose()` to do the ordered work.
-The source is the trigger. The trail is still the unit of behavior.
+If a source should start "A then B then C", it activates one trail. That trail uses normal imperative composition with `ctx.compose()` to do the ordered work. The source is the trigger. The trail is still the unit of behavior.
 
 ## Decision
 
 ### `on:` declares activation sources
 
-A trail declares inbound activation with `on:`. Entries can be bare signal
-references or source objects produced by `signal()`, `schedule()`, or
-`webhook()`.
+A trail declares inbound activation with `on:`. Entries can be bare signal references or source objects produced by `signal()`, `schedule()`, or `webhook()`.
 
 ```typescript
 const paymentReceived = webhook('webhook.payment.received', {
@@ -73,20 +53,13 @@ const recordPayment = trail('payment.record', {
 });
 ```
 
-`on:` is optional. Trails without `on:` remain explicit trails invoked through
-surfaces, `run()`, or `ctx.compose()`.
+`on:` is optional. Trails without `on:` remain explicit trails invoked through surfaces, `run()`, or `ctx.compose()`.
 
-A trail with `on:` is still a normal trail. It has one input schema, one output
-schema, one Result-returning blaze, examples, intent, resources, detours, and
-visibility. Activation is an additional invocation path, not a new kind of
-trail.
+A trail with `on:` is still a normal trail. It has one input schema, one output schema, one Result-returning blaze, examples, intent, resources, detours, and visibility. Activation is an additional invocation path, not a new kind of trail.
 
 ### Activation sources are source shapes, not new primitives
 
-The core primitive set does not grow. `schedule()` and `webhook()` define
-activation source objects that are consumed by a trail's `on:` declaration.
-They sit next to `signal()` because they need stable IDs, schemas, metadata,
-and graph projection, but they do not become standalone topo primitives.
+The core primitive set does not grow. `schedule()` and `webhook()` define activation source objects that are consumed by a trail's `on:` declaration. They sit next to `signal()` because they need stable IDs, schemas, metadata, and graph projection, but they do not become standalone topo primitives.
 
 This preserves the primitive hierarchy:
 
@@ -100,13 +73,11 @@ This preserves the primitive hierarchy:
 The normalized runtime trail exposes:
 
 - `trail.on`: signal source IDs for compatibility and signal routing;
-- `trail.activationSources`: all source entries, including signal, schedule,
-  webhook, source metadata, and optional guards.
+- `trail.activationSources`: all source entries, including signal, schedule, webhook, source metadata, and optional guards.
 
 ### Signal sources materialize through `ctx.fire()`
 
-Signal activation uses the signal runtime accepted in ADR-0038. A producer
-declares and fires a signal. Consumers declare that same signal in `on:`.
+Signal activation uses the signal runtime accepted in ADR-0038. A producer declares and fires a signal. Consumers declare that same signal in `on:`.
 
 ```typescript
 const bookingConfirmed = signal('booking.confirmed', {
@@ -131,14 +102,11 @@ const sendReceipt = trail('booking.send-receipt', {
 });
 ```
 
-Signal dispatch is in-process. `ctx.fire()` validates the payload, records
-signal lifecycle diagnostics and trace records, initiates local fan-out, and
-keeps producer business results decoupled from consumer results.
+Signal dispatch is in-process. `ctx.fire()` validates the payload, records signal lifecycle diagnostics and trace records, initiates local fan-out, and keeps producer business results decoupled from consumer results.
 
 ### Schedule sources materialize through the schedule runtime
 
-Schedule activation declares a clock source with a cron expression and optional
-static input.
+Schedule activation declares a clock source with a cron expression and optional static input.
 
 ```typescript
 const nightlyArchive = schedule('schedule.data.archive-old', {
@@ -154,16 +122,11 @@ const archiveOldData = trail('data.archive-old', {
 });
 ```
 
-`createScheduleRuntime(topo, options)` registers schedule sources from the topo,
-uses the source input for each tick, evaluates optional guards, and runs the
-target trail through the normal execution pipeline. Tests can supply a fake cron
-factory, so schedule activation remains deterministic.
+`createScheduleRuntime(topo, options)` registers schedule sources from the topo, uses the source input for each tick, evaluates optional guards, and runs the target trail through the normal execution pipeline. Tests can supply a fake cron factory, so schedule activation remains deterministic.
 
 ### Webhook sources materialize through the HTTP surface
 
-Webhook activation declares an HTTP method/path, a parse schema, and an
-optional verification hook. The source is provider-agnostic; provider helpers
-wrap `webhook()` rather than inventing provider-specific source kinds.
+Webhook activation declares an HTTP method/path, a parse schema, and an optional verification hook. The source is provider-agnostic; provider helpers wrap `webhook()` rather than inventing provider-specific source kinds.
 
 ```typescript
 import { createHmac, timingSafeEqual } from 'node:crypto';
@@ -218,19 +181,13 @@ const receiveIssue = trail('github.issue.receive', {
 });
 ```
 
-The HTTP route builder materializes public webhook sources as HTTP routes. The
-Hono connector reads the raw body, runs `verify` before JSON parsing, parses the
-JSON body, validates it with the source `parse` schema, and then executes the
-trail through the same Result/error-taxonomy pipeline used by direct HTTP
-routes.
+The HTTP route builder materializes public webhook sources as HTTP routes. The Hono connector reads the raw body, runs `verify` before JSON parsing, parses the JSON body, validates it with the source `parse` schema, and then executes the trail through the same Result/error-taxonomy pipeline used by direct HTTP routes.
 
-Webhook-activated trails are not also exposed as direct HTTP trail routes by
-default. The source path is the public route.
+Webhook-activated trails are not also exposed as direct HTTP trail routes by default. The source path is the public route.
 
 ### Guards filter activation without changing trail input
 
-Activation entries can use object form when a source needs metadata or a
-predicate guard.
+Activation entries can use object form when a source needs metadata or a predicate guard.
 
 ```typescript
 const highValueApproval = trail('approval.high-value', {
@@ -246,13 +203,11 @@ const highValueApproval = trail('approval.high-value', {
 });
 ```
 
-`where` filters activation. It does not transform input. The same source
-payload still has to satisfy the receiving trail's input schema.
+`where` filters activation. It does not transform input. The same source payload still has to satisfy the receiving trail's input schema.
 
 ### Activation provenance travels through context and tracing
 
-Materialized activation runs through the normal execution pipeline with
-activation provenance attached to `TrailContext`.
+Materialized activation runs through the normal execution pipeline with activation provenance attached to `TrailContext`.
 
 ```typescript
 const audit = trail('activation.audit', {
@@ -264,16 +219,11 @@ const audit = trail('activation.audit', {
 });
 ```
 
-The provenance includes fire IDs, root/parent fire IDs when applicable, source
-ID, source kind, and source-specific attributes such as cron/timezone. Core
-tracing projects that data into `trails.activation.*` attributes. The later
-observe ADR decides the public observe record contract and sink package shape;
-this ADR decides that activation provenance is intrinsic runtime data.
+The provenance includes fire IDs, root/parent fire IDs when applicable, source ID, source kind, and source-specific attributes such as cron/timezone. Core tracing projects that data into `trails.activation.*` attributes. The later observe ADR decides the public observe record contract and sink package shape; this ADR decides that activation provenance is intrinsic runtime data.
 
 ### The resolved graph includes activation sources and edges
 
-Topo validation and graph projection treat activation as first-class resolved
-state:
+Topo validation and graph projection treat activation as first-class resolved state:
 
 - source kinds must be known;
 - source-to-trail edges must be unique;
@@ -282,9 +232,7 @@ state:
 - webhook sources validate method/path/parse/verify shape;
 - source payloads must be compatible with receiving trail input schemas.
 
-Schema projection and the topo store catalog activation sources and activation
-edges so survey, locks, and CI can inspect the static reactive graph without
-running the app.
+Schema projection and the topo store catalog activation sources and activation edges so survey, locks, and CI can inspect the static reactive graph without running the app.
 
 ### Warden governs source graph drift
 
@@ -294,13 +242,10 @@ Warden rules coach the pieces static validation cannot fully express:
 - declared or produced signals with no useful graph edge;
 - internal trails that are neither composed nor activated;
 - scheduled destroy trails that deserve explicit scrutiny;
-- activation source kinds that are known but not materialized by the current
-  stack;
+- activation source kinds that are known but not materialized by the current stack;
 - webhook method/path collisions between webhook sources and direct HTTP routes.
 
-These rules stay evidence-based. Warden should not claim durable delivery,
-framework lifecycle signal families, app-level activation overrides, or queue
-semantics until those capabilities exist.
+These rules stay evidence-based. Warden should not claim durable delivery, framework lifecycle signal families, app-level activation overrides, or queue semantics until those capabilities exist.
 
 ## Non-goals
 
@@ -325,35 +270,20 @@ Reactive activation v1 does not define:
 
 ### Positive
 
-- **Activation becomes queryable contract data.** Agents can inspect what wakes
-  a trail before invoking anything.
-- **One field covers local, clock, and HTTP inbound activation.** `on:` is the
-  graph edge regardless of source kind.
-- **The trail remains the unit of behavior.** Activation starts work; `ctx.compose`
-  composes work.
-- **Source declarations multiply.** The same authored source feeds runtime
-  materialization, validation, Warden, survey, serialized graph state, and
-  tracing provenance.
-- **Activation runtime records are shared observability data.** The
-  [Unified Observability](0041-unified-observability.md) ADR
-  defines the public `activation.*` trace record names for schedule, webhook,
-  and safety boundaries.
-- **External inbound activation is surface-derived.** Webhook paths are rendered
-  by the HTTP surface from the topo instead of maintained in application glue.
+- **Activation becomes queryable contract data.** Agents can inspect what wakes a trail before invoking anything.
+- **One field covers local, clock, and HTTP inbound activation.** `on:` is the graph edge regardless of source kind.
+- **The trail remains the unit of behavior.** Activation starts work; `ctx.compose` composes work.
+- **Source declarations multiply.** The same authored source feeds runtime materialization, validation, Warden, survey, serialized graph state, and tracing provenance.
+- **Activation runtime records are shared observability data.** The [Unified Observability](0041-unified-observability.md) ADR defines the public `activation.*` trace record names for schedule, webhook, and safety boundaries.
+- **External inbound activation is surface-derived.** Webhook paths are rendered by the HTTP surface from the topo instead of maintained in application glue.
 
 ### Tradeoffs
 
-- **The trail spec grows.** `on:` and source factories add API surface. The
-  justification is that activation is real authored information.
-- **Materializers are source-specific.** Signal, schedule, and webhook sources
-  share graph shape, but each still needs a runtime that knows how to receive
-  that kind of source.
-- **In-process dispatch is intentionally modest.** It is observable and
-  governed, but not durable.
-- **Guards are runtime predicates.** They keep source declarations expressive,
-  but they are not fully statically inspectable.
-- **Webhook routes add collision space.** HTTP materialization must reject
-  collisions with direct trail routes and other webhook sources.
+- **The trail spec grows.** `on:` and source factories add API surface. The justification is that activation is real authored information.
+- **Materializers are source-specific.** Signal, schedule, and webhook sources share graph shape, but each still needs a runtime that knows how to receive that kind of source.
+- **In-process dispatch is intentionally modest.** It is observable and governed, but not durable.
+- **Guards are runtime predicates.** They keep source declarations expressive, but they are not fully statically inspectable.
+- **Webhook routes add collision space.** HTTP materialization must reject collisions with direct trail routes and other webhook sources.
 
 ### Deferred Work
 

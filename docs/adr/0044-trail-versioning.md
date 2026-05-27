@@ -24,46 +24,27 @@ depends_on: [3, 6, 8, 13, 17, 24, 26, 35]
 
 ### Software evolves per trail, not per app
 
-The trail is the unit of contract.[^adr-3] It follows that the trail is the
-unit of versioning. A topo is a collection of trails at different contract
-versions, not a single app-wide `/v1` or `/v2` object. Some trails may have
-evolved to v3 while others remain at their implicit v1.
+The trail is the unit of contract.[^adr-3] It follows that the trail is the unit of versioning. A topo is a collection of trails at different contract versions, not a single app-wide `/v1` or `/v2` object. Some trails may have evolved to v3 while others remain at their implicit v1.
 
-Per-trail versioning matches how capabilities actually change. It is closer to
-GraphQL's field-level evolution model than REST's big-bang version folders. It
-also keeps the framework's promise intact: define one trail contract, derive
-the surfaces, and avoid duplicate hand-authored compatibility logic.
+Per-trail versioning matches how capabilities actually change. It is closer to GraphQL's field-level evolution model than REST's big-bang version folders. It also keeps the framework's promise intact: define one trail contract, derive the surfaces, and avoid duplicate hand-authored compatibility logic.
 
 ### Version changes have two shapes
 
-Most version changes are schema changes. A field is renamed, a required field
-is added, an output shape expands, or a field becomes structured. The current
-blaze can still handle the work once old input is adapted into the
-current shape and current output is adapted back into the old shape.
+Most version changes are schema changes. A field is renamed, a required field is added, an output shape expands, or a field becomes structured. The current blaze can still handle the work once old input is adapted into the current shape and current output is adapted back into the old shape.
 
-Less often, a version change is behavioral. The algorithm changes, the data
-source changes, side effects change, or a resource interaction cannot be
-adapted as pure data. Those versions need their own blaze.
+Less often, a version change is behavioral. The algorithm changes, the data source changes, side effects change, or a resource interaction cannot be adapted as pure data. Those versions need their own blaze.
 
-The model needs to make the common schema-only case compact without hiding the
-rare behavioral case behind fragile branches in one `blaze` function.
+The model needs to make the common schema-only case compact without hiding the rare behavioral case behind fragile branches in one `blaze` function.
 
 ### Surfaces negotiate version at the boundary
 
-ADR-0008 establishes deterministic surface derivation.[^adr-8] Versioning adds
-one more derived dimension. HTTP, MCP, CLI, and future WebSocket surfaces each
-negotiate requested versions through their native protocol conventions, then
-pass the resolved version into the shared execution pipeline.[^adr-6]
+ADR-0008 establishes deterministic surface derivation.[^adr-8] Versioning adds one more derived dimension. HTTP, MCP, CLI, and future WebSocket surfaces each negotiate requested versions through their native protocol conventions, then pass the resolved version into the shared execution pipeline.[^adr-6]
 
-The blaze does not inspect the requested version. Version is a
-surface and execution concern, not business logic.
+The blaze does not inspect the requested version. Version is a surface and execution concern, not business logic.
 
 ### Durable graph artifacts must record version state
 
-ADR-0017 defines the serialized topo graph as the resolved record of a Trails
-app.[^adr-17] Version information belongs there too: supported versions,
-current version, deprecation metadata, sunset state, examples, and derived
-surface projections for each supported version.
+ADR-0017 defines the serialized topo graph as the resolved record of a Trails app.[^adr-17] Version information belongs there too: supported versions, current version, deprecation metadata, sunset state, examples, and derived surface projections for each supported version.
 
 ## Decision
 
@@ -71,33 +52,24 @@ surface projections for each supported version.
 
 The framework versions individual trails, not apps, topos, packs, or surfaces.
 
-A trail with no `version` field is v1. When a developer adds versioning to an
-existing trail, the current behavior becomes v1 and the edited unsuffixed file
-becomes the new current version. Existing consumers keep working when the
-previous version is preserved.
+A trail with no `version` field is v1. When a developer adds versioning to an existing trail, the current behavior becomes v1 and the edited unsuffixed file becomes the new current version. Existing consumers keep working when the previous version is preserved.
 
 ### Version numbers are integers
 
 Trail versions are positive integers starting at `1`. They always increase.
 
-Semver is not the internal model. There is no useful "patch" version for a
-single trail contract, date versions are not reliably ordered, and named
-versions cannot drive adapter ordering or deprecation checks. If a surface wants
-to render version `3` as `v2.1`, that is a surface presentation decision. The
-framework model stays integer-based.
+Semver is not the internal model. There is no useful "patch" version for a single trail contract, date versions are not reliably ordered, and named versions cannot drive adapter ordering or deprecation checks. If a surface wants to render version `3` as `v2.1`, that is a surface presentation decision. The framework model stays integer-based.
 
 ### At most two active versions are allowed by default
 
-A trail may have at most two active, non-deprecated versions at one time.
-Deprecated versions do not count against the active limit.
+A trail may have at most two active, non-deprecated versions at one time. Deprecated versions do not count against the active limit.
 
 The default states are:
 
 - One active version: stable, no migration in progress.
 - Two active versions: current plus previous, with an active migration.
 
-Three active versions means a second migration began before the first finished.
-The warden reports this as an error unless the app explicitly raises the limit:
+Three active versions means a second migration began before the first finished. The warden reports this as an error unless the app explicitly raises the limit:
 
 ```typescript
 governance: {
@@ -105,9 +77,7 @@ governance: {
 }
 ```
 
-The escape hatch exists for unusual ecosystems with many long-lived consumers,
-but the framework's default posture is to finish one migration before starting
-another.
+The escape hatch exists for unusual ecosystems with many long-lived consumers, but the framework's default posture is to finish one migration before starting another.
 
 ### The `version` field owns version metadata
 
@@ -136,9 +106,7 @@ const createUser = trail('user.create', {
 });
 ```
 
-`version: 2` declares the current version. The framework discovers adjacent
-`.v*.ts` files for previous versions. If `user-create.v1.ts` exists, v1 is
-supported.
+`version: 2` declares the current version. The framework discovers adjacent `.v*.ts` files for previous versions. If `user-create.v1.ts` exists, v1 is supported.
 
 Version object with adapters or metadata:
 
@@ -177,22 +145,17 @@ const createUser = trail('user.create', {
 });
 ```
 
-When `version` is an object, `current` is the active current version and
-numbered keys describe previous supported versions. A numbered entry can be:
+When `version` is an object, `current` is the active current version and numbered keys describe previous supported versions. A numbered entry can be:
 
 - A schema adapter: `{ input, output, adapt }`.
 - A separate inline blaze: `{ input, output, blaze }`.
 - Metadata for a file-based version: `{ deprecated }`.
 
-If both a numbered inline entry and a `.v*.ts` file exist for the same version,
-the inline entry takes precedence. If neither exists, that version is not
-supported.
+If both a numbered inline entry and a `.v*.ts` file exist for the same version, the inline entry takes precedence. If neither exists, that version is not supported.
 
 ### Schema changes use adapters
 
-Schema-only changes use adapters. The framework validates old input against
-the old schema, adapts it to the current schema, runs the current blazed trail,
-then adapts current output back to the old output schema.
+Schema-only changes use adapters. The framework validates old input against the old schema, adapts it to the current schema, runs the current blazed trail, then adapts current output back to the old output schema.
 
 ```typescript
 const createUser = trail('user.create', {
@@ -218,9 +181,7 @@ const createUser = trail('user.create', {
 });
 ```
 
-The developer rule is simple: if the compatibility step is a pure data
-transformation, use an adapter. If compatibility requires business logic,
-alternate resource usage, or different side effects, use a version file.
+The developer rule is simple: if the compatibility step is a pure data transformation, use an adapter. If compatibility requires business logic, alternate resource usage, or different side effects, use a version file.
 
 ### Behavioral changes use `.v*.ts` files
 
@@ -232,18 +193,13 @@ src/trails/
   entity-search.v1.ts    # v1 previous behavior
 ```
 
-The unsuffixed file is always current. `.v1.ts`, `.v2.ts`, and later suffixed
-files are previous versions. A suffixed version file is a standard trail file
-with its own schemas, examples, metadata, and `blaze`.
+The unsuffixed file is always current. `.v1.ts`, `.v2.ts`, and later suffixed files are previous versions. A suffixed version file is a standard trail file with its own schemas, examples, metadata, and `blaze`.
 
-The framework discovers `.v*.ts` files only when the main trail declares a
-version greater than v1. If a `.v*.ts` file exists without a version declaration
-on the main trail, the warden reports it as an orphan.
+The framework discovers `.v*.ts` files only when the main trail declares a version greater than v1. If a `.v*.ts` file exists without a version declaration on the main trail, the warden reports it as an orphan.
 
 ### The copy-and-evolve workflow is canonical
 
-The CLI workflow preserves the old contract before the developer edits the
-current file:
+The CLI workflow preserves the old contract before the developer edits the current file:
 
 1. `user-create.ts` exists at implicit v1.
 2. The developer runs `trails version user.create`.
@@ -251,13 +207,11 @@ current file:
 4. The CLI adds `version: 2` to `user-create.ts`.
 5. The developer edits `user-create.ts` for the new current contract.
 
-The `.v1.ts` file keeps its original variable names. Version identity is in the
-file convention and the trail metadata, not in manually renamed local symbols.
+The `.v1.ts` file keeps its original variable names. Version identity is in the file convention and the trail metadata, not in manually renamed local symbols.
 
 ### Version resolution is part of execution
 
-Surface connectors extract or default the requested version and pass it into
-execution:
+Surface connectors extract or default the requested version and pass it into execution:
 
 ```text
 surface extracts requested version
@@ -273,8 +227,7 @@ surface extracts requested version
         return Result.err(VersionNotSupportedError)
 ```
 
-The blaze receives exactly the input shape declared by the version being run.
-The current blaze never branches on requested version.
+The blaze receives exactly the input shape declared by the version being run. The current blaze never branches on requested version.
 
 ### Each surface negotiates version in its own idiom
 
@@ -290,9 +243,7 @@ Surface connectors expose versioning options using protocol-native strategies:
 | CLI | Global flag | `--api-version 1` | `latest` |
 | WebSocket | Message envelope | `{ "version": 1 }` | `latest` |
 
-When a surface derives versioned routes or tools, it does so from the trail's
-supported version set through that surface's graph rendering layer.[^adr-35] The
-developer does not manually register one endpoint per version.
+When a surface derives versioned routes or tools, it does so from the trail's supported version set through that surface's graph rendering layer.[^adr-35] The developer does not manually register one endpoint per version.
 
 Surface configuration may also choose fallback behavior:
 
@@ -300,14 +251,11 @@ Surface configuration may also choose fallback behavior:
 - `error`: if the requested version is not supported, return
   `VersionNotSupportedError`.
 
-The strict `error` mode is for stable external contracts. The `latest` fallback
-is for gradual migrations where some trails have not evolved.
+The strict `error` mode is for stable external contracts. The `latest` fallback is for gradual migrations where some trails have not evolved.
 
 ### Composition chains run current by default
 
-When trail A composes trail B, B runs at its current version. Version negotiation
-is a surface boundary concern. Once execution is inside the graph, internal
-composition uses current contracts.
+When trail A composes trail B, B runs at its current version. Version negotiation is a surface boundary concern. Once execution is inside the graph, internal composition uses current contracts.
 
 The migration escape hatch is explicit pinning:
 
@@ -315,17 +263,13 @@ The migration escape hatch is explicit pinning:
 const result = await ctx.compose('other.trail', input, { version: 1 });
 ```
 
-The warden reports version-pinned composes as maintenance debt. They are allowed
-for migrations, but they should not become permanent architecture.
+The warden reports version-pinned composes as maintenance debt. They are allowed for migrations, but they should not become permanent architecture.
 
-Version context does not cascade through composition chains. If a consumer requests
-v1 of trail A, the consumer requested A's v1 contract. A owns that
-compatibility. Downstream trails remain A's internal blaze detail.
+Version context does not cascade through composition chains. If a consumer requests v1 of trail A, the consumer requested A's v1 contract. A owns that compatibility. Downstream trails remain A's internal blaze detail.
 
 ### Deprecation is a lifecycle
 
-Deprecation metadata lives on the previous version, either in the version file
-or in the inline version entry:
+Deprecation metadata lives on the previous version, either in the version file or in the inline version entry:
 
 ```typescript
 // user-create.v1.ts
@@ -357,13 +301,11 @@ The lifecycle:
 6. Operators monitor migration with `trails doctor`.
 7. `trails sunset user.create@1` removes the previous version.
 
-After sunset, the app can keep serving the version with stronger warnings or
-return the surface-appropriate `VersionNotSupportedError`.
+After sunset, the app can keep serving the version with stronger warnings or return the surface-appropriate `VersionNotSupportedError`.
 
 ### Surfaces derive deprecation behavior
 
-The trail contract carries deprecation metadata once. Each surface renders it
-without per-surface per-trail configuration:
+The trail contract carries deprecation metadata once. Each surface renders it without per-surface per-trail configuration:
 
 | Surface | Deprecation behavior |
 | --- | --- |
@@ -372,14 +314,11 @@ without per-surface per-trail configuration:
 | CLI | Warning to stderr and migration notes in help |
 | WebSocket | Deprecation metadata in the response envelope |
 
-Deprecation is not passive. Tracing records requested versions, and the warden
-can flag deprecated versions that still carry high traffic near sunset.[^adr-13]
+Deprecation is not passive. Tracing records requested versions, and the warden can flag deprecated versions that still carry high traffic near sunset.[^adr-13]
 
 ### `VersionNotSupportedError` joins the taxonomy
 
-The error taxonomy gains `VersionNotSupportedError`.[^adr-26] It is returned
-when a requested version does not exist, is not supported for a specific trail,
-or has been removed after sunset.
+The error taxonomy gains `VersionNotSupportedError`.[^adr-26] It is returned when a requested version does not exist, is not supported for a specific trail, or has been removed after sunset.
 
 The error carries:
 
@@ -392,12 +331,9 @@ Surface connectors map the error through their usual error projection rules.
 
 ### Examples are per version
 
-Examples validate every supported version. `testAll` runs current examples and
-previous-version examples, whether the previous version is implemented by a
-`.v*.ts` file or by an inline adapter.[^adr-24]
+Examples validate every supported version. `testAll` runs current examples and previous-version examples, whether the previous version is implemented by a `.v*.ts` file or by an inline adapter.[^adr-24]
 
-For file-based versions, examples live in the `.v*.ts` file. For inline adapter
-versions, examples live on the numbered version entry:
+For file-based versions, examples live in the `.v*.ts` file. For inline adapter versions, examples live on the numbered version entry:
 
 ```typescript
 version: {
@@ -410,13 +346,11 @@ version: {
 },
 ```
 
-A supported version without examples is a warden warning. Untested versions are
-unverified versions.
+A supported version without examples is a warden warning. Untested versions are unverified versions.
 
 ### The lockfile records supported versions
 
-A versioned trail remains one graph node with multiple supported contract
-entry points. Versions do not create separate topos.
+A versioned trail remains one graph node with multiple supported contract entry points. Versions do not create separate topos.
 
 ```json
 {
@@ -435,8 +369,7 @@ entry points. Versions do not create separate topos.
 }
 ```
 
-The lockfile makes version changes diffable. CI can see when a version was
-added, deprecated, sunset, or accidentally orphaned.
+The lockfile makes version changes diffable. CI can see when a version was added, deprecated, sunset, or accidentally orphaned.
 
 ### Warden rules
 
@@ -454,10 +387,7 @@ added, deprecated, sunset, or accidentally orphaned.
 
 ### Resources do not version independently
 
-Resources are internal contracts between blazes and infrastructure.
-They do not gain independent versioning. If a previous trail version needs an
-old resource shape, that previous version file imports or references the
-resource it needs. Versioning complexity stays on trails.
+Resources are internal contracts between blazes and infrastructure. They do not gain independent versioning. If a previous trail version needs an old resource shape, that previous version file imports or references the resource it needs. Versioning complexity stays on trails.
 
 ## Non-goals
 

@@ -1,16 +1,10 @@
 # @ontrails/warden
 
-AST-based code convention rules for Trails. Built-in lint rules catch contract
-violations at development time, alongside lock drift detection and CI
-formatters.
+AST-based code convention rules for Trails. Built-in lint rules catch contract violations at development time, alongside lock drift detection and CI formatters.
 
-Structural checks (compose target existence, declared resource existence,
-recursive composition, example schema validation) live in `validateTopo()` from
-`@ontrails/core`. Warden handles the code-level rules that need AST analysis.
+Structural checks (compose target existence, declared resource existence, recursive composition, example schema validation) live in `validateTopo()` from `@ontrails/core`. Warden handles the code-level rules that need AST analysis.
 
-For rule-home boundaries and authoring doctrine, see the
-[Warden guide](../../docs/warden.md) and
-[Warden Rules](../../docs/contributing/warden-rules.md).
+For rule-home boundaries and authoring doctrine, see the [Warden guide](../../docs/warden.md) and [Warden Rules](../../docs/contributing/warden-rules.md).
 
 ## Usage
 
@@ -31,9 +25,7 @@ console.log(formatWardenReport(report));
 
 ## Rules
 
-Built-in rules are registered in `wardenRules` and `wardenTopoRules`; use those
-registries or `wardenTopo.ids()` for the current rule list instead of copying a
-static table into docs.
+Built-in rules are registered in `wardenRules` and `wardenTopoRules`; use those registries or `wardenTopo.ids()` for the current rule list instead of copying a static table into docs.
 
 Rules cover several families:
 
@@ -43,10 +35,7 @@ Rules cover several families:
 - source-static guardrails such as surface-type leakage
 - topo-aware checks that need the resolved graph or resource mock shape
 
-When adding or auditing rules, follow [Warden Rules](../../docs/contributing/warden-rules.md):
-name the invariant, import owner-held framework data, choose the narrowest
-Warden tier, and collapse families only when the data model, traversal, and
-diagnostic shape are shared.
+When adding or auditing rules, follow [Warden Rules](../../docs/contributing/warden-rules.md): name the invariant, import owner-held framework data, choose the narrowest Warden tier, and collapse families only when the data model, traversal, and diagnostic shape are shared.
 
 ## Drift detection
 
@@ -83,8 +72,7 @@ import {
 } from '@ontrails/warden';
 ```
 
-Parser helpers for rule authoring and repo-local tooling live on the dedicated
-AST entrypoint:
+Parser helpers for rule authoring and repo-local tooling live on the dedicated AST entrypoint:
 
 ```typescript
 import { findStringLiterals, parse, walk } from '@ontrails/warden/ast';
@@ -92,8 +80,7 @@ import { findStringLiterals, parse, walk } from '@ontrails/warden/ast';
 
 ## Trail-based API
 
-Every built-in warden rule is also available as a composable trail. This makes
-rules queryable, testable, and invocable through any Trails surface.
+Every built-in warden rule is also available as a composable trail. This makes rules queryable, testable, and invocable through any Trails surface.
 
 ```typescript
 import {
@@ -115,8 +102,7 @@ const diagnostics = await runWardenTrails(filePath, sourceCode, {
 const topoDiagnostics = await runTopoAwareWardenTrails(myApp);
 ```
 
-To wrap a custom rule as a trail, import `wrapRule` from the root package
-entrypoint:
+To wrap a custom rule as a trail, import `wrapRule` from the root package entrypoint:
 
 ```typescript
 import { wrapRule } from '@ontrails/warden';
@@ -143,13 +129,9 @@ This is the same factory used internally to build all built-in rule trails.
 | `formatSummary(report)` | Compact summary line |
 | `wrapRule(rule)` | Wrap a custom rule as a trail (same factory used for all built-in rule trails) |
 
-AST parser helpers are exported from `@ontrails/warden/ast`, not the root
-runtime barrel. The stable authoring surface includes `parse`, `walk`,
-`walkScope`, `offsetToLine`, `findTrailDefinitions`, `findBlazeBodies`,
-`findContourDefinitions`, `isBlazeCall`, and string-literal helpers.
+AST parser helpers are exported from `@ontrails/warden/ast`, not the root runtime barrel. The stable authoring surface includes `parse`, `walk`, `walkScope`, `offsetToLine`, `findTrailDefinitions`, `findBlazeBodies`, `findContourDefinitions`, `isBlazeCall`, and string-literal helpers.
 
-`runWarden({ tier })` can narrow a run to `source-static`, `project-static`,
-`topo-aware`, `drift`, or `advisory`. Omit `tier` for the default full run.
+`runWarden({ tier })` can narrow a run to `source-static`, `project-static`, `topo-aware`, `drift`, or `advisory`. Omit `tier` for the default full run.
 
 See the [API Reference](../../docs/api-reference.md) for the full list.
 

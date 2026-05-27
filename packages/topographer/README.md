@@ -2,12 +2,7 @@
 
 Durable graph substrate for Trails: deterministic TopoGraphs, lockfile helpers, and semantic diffing.
 
-Most applications reach this package through top-level `trails compile`,
-`trails validate`, and `trails diff`. Those CLI trails layer workspace and
-topo-store behavior on top of the building blocks in
-`@ontrails/topographer`. The package itself ships library entry points, not a
-separate CLI binary, and retired `trails topo compile`,
-`trails topo verify`, and `trails topo check` forms are not aliases.
+Most applications reach this package through top-level `trails compile`, `trails validate`, and `trails diff`. Those CLI trails layer workspace and topo-store behavior on top of the building blocks in `@ontrails/topographer`. The package itself ships library entry points, not a separate CLI binary, and retired `trails topo compile`, `trails topo verify`, and `trails topo check` forms are not aliases.
 
 ## What it owns
 
@@ -63,8 +58,7 @@ The typical exported artifact pair is:
 - `.trails/topo.lock` — serialized TopoGraph, useful for inspection and diffing
 - `.trails/trails.lock` — compact v3 manifest that verifies the TopoGraph by hash
 
-`trails compile` writes both from the current topo. `trails validate` and
-`@ontrails/warden` use the lockfile helpers here to detect drift.
+`trails compile` writes both from the current topo. `trails validate` and `@ontrails/warden` use the lockfile helpers here to detect drift.
 
 ## API
 
@@ -86,9 +80,7 @@ The typical exported artifact pair is:
 
 ### Backend Support Subpath
 
-Direct shared database helper APIs are public, but they are backend-support APIs
-rather than root graph contracts. Import them from
-`@ontrails/topographer/backend-support`:
+Direct shared database helper APIs are public, but they are backend-support APIs rather than root graph contracts. Import them from `@ontrails/topographer/backend-support`:
 
 ```typescript
 import {
@@ -101,8 +93,7 @@ import {
 } from '@ontrails/topographer/backend-support';
 ```
 
-This subpath owns lower-level snapshot counters, pruning helpers, and direct
-DB-handle variants for callers that already hold an open `trails.db` handle.
+This subpath owns lower-level snapshot counters, pruning helpers, and direct DB-handle variants for callers that already hold an open `trails.db` handle.
 
 ## Breaking change detection
 

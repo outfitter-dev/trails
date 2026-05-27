@@ -2,8 +2,7 @@
 
 ## Error Classes
 
-The taxonomy has 17 fixed-category classes across 10 categories, plus the
-dynamic `RetryExhaustedError` wrapper.
+The taxonomy has 17 fixed-category classes across 10 categories, plus the dynamic `RetryExhaustedError` wrapper.
 
 ### validation (exit 1, HTTP 400)
 

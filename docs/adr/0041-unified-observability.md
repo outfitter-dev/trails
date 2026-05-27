@@ -15,8 +15,7 @@ depends_on: [6, 13, 39]
 
 ### Two packages, one concern
 
-Before the v1 observability cleanup, Trails shipped two packages for
-understanding what an app does at runtime:
+Before the v1 observability cleanup, Trails shipped two packages for understanding what an app does at runtime:
 
 - **`@ontrails/logging`** — structured logging with sinks and formatters. The developer writes `ctx.logger.info('creating gist')`.
 - **`@ontrails/tracing`** — execution recording with trace propagation. The framework writes a `TraceRecord` for every trail invocation via the execution pipeline.
@@ -157,12 +156,7 @@ A developer never needs `@ontrails/observe` to define or run trails. They need i
 
 Observability follows the Trails posture: zero config by default, one declaration to customize.
 
-The process-level sink registry still keeps `NOOP_SINK` as the disabled
-baseline. Core owns that registry and the trace record contract, but not a
-storage sink. Bounded memory tracing is a package-level sink exposed by
-`@ontrails/observe` for app code and local tooling, and by `@ontrails/tracing`
-as compatibility while the earlier tracing package migrates. Core does not
-allocate trace records until a real sink is installed.
+The process-level sink registry still keeps `NOOP_SINK` as the disabled baseline. Core owns that registry and the trace record contract, but not a storage sink. Bounded memory tracing is a package-level sink exposed by `@ontrails/observe` for app code and local tooling, and by `@ontrails/tracing` as compatibility while the earlier tracing package migrates. Core does not allocate trace records until a real sink is installed.
 
 Without `@ontrails/observe`, the default execution path stays inert:
 

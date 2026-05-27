@@ -88,8 +88,7 @@ defaults (schema) → base → profile → local → env
 
 Each layer overrides the previous. Environment variables always win.
 
-`appConfig()` discovers `*.config.toml`, `*.config.json`, `*.config.jsonc`, and
-`*.config.yaml` by default, plus dotfile equivalents when `dotfile: true`.
+`appConfig()` discovers `*.config.toml`, `*.config.json`, `*.config.jsonc`, and `*.config.yaml` by default, plus dotfile equivalents when `dotfile: true`.
 
 ## Extensions
 

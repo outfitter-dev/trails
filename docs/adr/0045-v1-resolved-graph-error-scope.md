@@ -14,22 +14,16 @@ depends_on: [2, 15, 17, 26, 33, 42]
 
 ## Context
 
-Trails' target architecture says the resolved topo should let blind agents
-inspect the system without guessing from source. ADR-0017 established that
-promise. ADR-0046 refines the v1 container: `.trails/trails.lock` is the compact
-manifest, and `.trails/topo.lock` is the serialized `TopoGraph` content
-artifact.
+Trails' target architecture says the resolved topo should let blind agents inspect the system without guessing from source. ADR-0017 established that promise. ADR-0046 refines the v1 container: `.trails/trails.lock` is the compact manifest, and `.trails/topo.lock` is the serialized `TopoGraph` content artifact.
 
-The v1 implementation is narrower than future whole-program inference, but the
-inspectable graph target is now the TopoGraph artifact family:
+The v1 implementation is narrower than future whole-program inference, but the inspectable graph target is now the TopoGraph artifact family:
 
 - `deriveTopoGraph()`
 - `.trails/topo.lock`
 - `topo_exports.topo_graph`
 - `topo_exports.lock_manifest`, when stored manifest content is still needed
 
-The error contract closed in the TRL-649/TRL-651/TRL-652 stack establishes a
-clearer boundary:
+The error contract closed in the TRL-649/TRL-651/TRL-652 stack establishes a clearer boundary:
 
 - [TRL-649] preserves specialized `TrailsError` identity through serialization,
   including `RecoverableCompletionError` and dynamic `RetryExhaustedError`
@@ -39,8 +33,7 @@ clearer boundary:
 - [TRL-652] makes taxonomy docs and tests derive from the core `errorClasses`
   registry, with dynamic `RetryExhaustedError` behavior handled explicitly.
 
-Those decisions make the taxonomy and projection behavior inspectable and
-checked. They do not make every trail's possible failures statically known.
+Those decisions make the taxonomy and projection behavior inspectable and checked. They do not make every trail's possible failures statically known.
 
 ## Decision
 
@@ -56,53 +49,33 @@ For v1, resolved graph error scope is:
 | Exhaustive per-trail emitted errors | Deferred | Future authored or inferred error contract work |
 | Observed runtime failures | Deferred | Future trace or telemetry graph merge work |
 
-The v1 graph may expose error class names that the developer authored in
-examples and detours. These names are references into the taxonomy registry.
-They are not a copied taxonomy table, not a redaction policy snapshot, and not
-a proof that the listed classes are exhaustive for the trail.
+The v1 graph may expose error class names that the developer authored in examples and detours. These names are references into the taxonomy registry. They are not a copied taxonomy table, not a redaction policy snapshot, and not a proof that the listed classes are exhaustive for the trail.
 
 ### Authored scope
 
-The graph records authored error-related facts that are already part of trail
-contracts:
+The graph records authored error-related facts that are already part of trail contracts:
 
 - Error examples keep their `error` class name in structured examples.
 - Detours keep the declared `on` error class name and effective capped
   `maxAttempts`.
 
-These fields answer "what did the developer explicitly declare for examples
-or recovery?" They do not answer "what errors can this trail ever return?"
+These fields answer "what did the developer explicitly declare for examples or recovery?" They do not answer "what errors can this trail ever return?"
 
 ### Derived scope
 
-The graph does not embed a taxonomy matrix on every trail. Agents derive class
-category, retryability, HTTP status, CLI exit code, and JSON-RPC code from the
-registry-backed taxonomy docs and core projection helpers.
+The graph does not embed a taxonomy matrix on every trail. Agents derive class category, retryability, HTTP status, CLI exit code, and JSON-RPC code from the registry-backed taxonomy docs and core projection helpers.
 
-Dynamic classes stay dynamic. `RetryExhaustedError` inherits category and
-surface codes from the wrapped `TrailsError`, so a graph entry that only names
-`RetryExhaustedError` is insufficient to determine a fixed category. Agents
-must inspect serialized runtime errors or the wrapped cause when dynamic
-identity matters.
+Dynamic classes stay dynamic. `RetryExhaustedError` inherits category and surface codes from the wrapped `TrailsError`, so a graph entry that only names `RetryExhaustedError` is insufficient to determine a fixed category. Agents must inspect serialized runtime errors or the wrapped cause when dynamic identity matters.
 
 ### Inferred scope
 
-v1 does not infer emitted error contracts from blaze source, `ctx.compose()`
-propagation, resource factories, layers, or detour recovery functions. Whole
-program error inference is out of scope because it would require static
-analysis that Trails has not made a contract yet.
+v1 does not infer emitted error contracts from blaze source, `ctx.compose()` propagation, resource factories, layers, or detour recovery functions. Whole program error inference is out of scope because it would require static analysis that Trails has not made a contract yet.
 
-Warden still validates local rules that are checkable today: blazes
-return `Result`, native throws are rejected, detour contracts are shaped
-correctly, and surface mappers cover taxonomy categories. Those checks support
-the error contract, but they do not create an inferred per-trail error graph.
+Warden still validates local rules that are checkable today: blazes return `Result`, native throws are rejected, detour contracts are shaped correctly, and surface mappers cover taxonomy categories. Those checks support the error contract, but they do not create an inferred per-trail error graph.
 
 ### Observed scope
 
-v1 does not merge runtime observations into the resolved graph. Traces, logs,
-serialized error payloads, and adapter responses may contain actual error
-identity after execution. They are evidence about a run, not stable resolved
-graph state.
+v1 does not merge runtime observations into the resolved graph. Traces, logs, serialized error payloads, and adapter responses may contain actual error identity after execution. They are evidence about a run, not stable resolved graph state.
 
 ## Consequences
 

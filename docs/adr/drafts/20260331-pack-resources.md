@@ -204,7 +204,7 @@ When a pack is scaffolded, the resources system captures a contract snapshot: th
                 "inputSchema": { "...JSON Schema..." },
                 "outputSchema": { "...JSON Schema..." },
                 "examples": 3,
-                "crosses": []
+                "composes": []
               }
             },
             "resources": [],
@@ -217,7 +217,7 @@ When a pack is scaffolded, the resources system captures a contract snapshot: th
 }
 ```
 
-The snapshot captures trail shapes (schemas as JSON Schema), example counts, `crosses` declarations, resource declarations, and signal declarations. Not source code. The contract.
+The snapshot captures trail shapes (schemas as JSON Schema), example counts, `composes` declarations, resource declarations, and signal declarations. Not source code. The contract.
 
 ### Why three-way diff is tractable here
 
@@ -227,7 +227,7 @@ Trails contracts are not unstructured text. They're structured data with known s
 
 - **Schema fields** have names. Upstream adds `currency`; you added `notes`. Non-conflicting — they're different keys. Upstream changes `amount` from `z.number()` to `z.number().positive()` while you didn't touch it — clean merge by field identity.
 - **Examples** have names. Upstream adds "Refund"; you added "Bulk". Non-conflicting set addition.
-- **Crosses, signals, resources** are sets of identifiers. Both sides adding to the set is unambiguous.
+- **Composes, signals, resources** are sets of identifiers. Both sides adding to the set is unambiguous.
 - **Intent, visibility, permit** are atomic values. One side changed it — clean. Both changed it — flag the conflict.
 
 The only truly unstructured part is the `run` function body. But that's the part the developer explicitly chose to own when they scaffolded. The contract is the framework's domain. The implementation is the developer's domain.

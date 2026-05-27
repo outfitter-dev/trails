@@ -15,47 +15,30 @@ depends_on: [2, 3, 6, 7, 13, 17, 24, 26]
 
 ### Signals had a contract but not a runtime path
 
-The `signal()` primitive already gave Trails a named, schema-typed notification
-contract. A topo could know that a signal existed. Survey could list it. The
-lockfile could serialize it. But a trail could not yet say "this happened" in a
-typed, runtime-observable way.
+The `signal()` primitive already gave Trails a named, schema-typed notification contract. A topo could know that a signal existed. Survey could list it. The lockfile could serialize it. But a trail could not yet say "this happened" in a typed, runtime-observable way.
 
-That gap weakened the primitive. A signal without a fire path is metadata, not a
-live graph edge. A trail that completed meaningful work had to either compose
-another trail directly or leave follow-up work to application glue.
+That gap weakened the primitive. A signal without a fire path is metadata, not a live graph edge. A trail that completed meaningful work had to either compose another trail directly or leave follow-up work to application glue.
 
 ### The schema must be the first thing preserved
 
-The reason signals belong in Trails is not pub/sub convenience. The reason is
-the contract. A signal payload has a schema, inferred TypeScript payload type,
-examples, stable ID, and topo identity.
+The reason signals belong in Trails is not pub/sub convenience. The reason is the contract. A signal payload has a schema, inferred TypeScript payload type, examples, stable ID, and topo identity.
 
-If the runtime accepts untyped strings and arbitrary payloads, the signal
-primitive stops compounding with the rest of the framework. The producer can
-drift from the contract. Consumers have to guess. Agents lose the ability to
-inspect the graph before invoking anything.
+If the runtime accepts untyped strings and arbitrary payloads, the signal primitive stops compounding with the rest of the framework. The producer can drift from the contract. Consumers have to guess. Agents lose the ability to inspect the graph before invoking anything.
 
-The typed signal runtime keeps the schema on the signal contract and threads that
-same contract through authoring, runtime validation, testing, tracing, survey,
-and the serialized graph.
+The typed signal runtime keeps the schema on the signal contract and threads that same contract through authoring, runtime validation, testing, tracing, survey, and the serialized graph.
 
 ### Loose coupling still needs graph shape
 
-`ctx.compose()` is the direct composition mechanism. It is the right tool when one
-trail intentionally calls another and needs its Result.
+`ctx.compose()` is the direct composition mechanism. It is the right tool when one trail intentionally calls another and needs its Result.
 
-Signals serve a different relationship. A producer announces that something
-happened. Consumers may react, but the producer should not depend on their
-number, ordering, output, or success. That decoupling is useful only if the
-graph remains inspectable:
+Signals serve a different relationship. A producer announces that something happened. Consumers may react, but the producer should not depend on their number, ordering, output, or success. That decoupling is useful only if the graph remains inspectable:
 
 - producers declare `fires: [signal]`,
 - consumers declare `on: [signal]`,
 - survey and the lockfile show both sides,
 - tracing records what actually happened at runtime.
 
-The resolved graph is still the story. Signals add edges to that story; they do
-not create a second runtime vocabulary outside it.
+The resolved graph is still the story. Signals add edges to that story; they do not create a second runtime vocabulary outside it.
 
 ## Decision
 
@@ -81,13 +64,9 @@ const bookingConfirmed = signal('booking.confirmed', {
 });
 ```
 
-The signal contract is the schema owner. It gives `ctx.fire()` its payload type,
-gives the runtime its validation boundary, and gives topo/survey/lockfile output
-one stable ID to project.
+The signal contract is the schema owner. It gives `ctx.fire()` its payload type, gives the runtime its validation boundary, and gives topo/survey/lockfile output one stable ID to project.
 
-String IDs still appear where they are the right representation: serialized
-artifacts, fixture files, and compatibility seams that normalize authored
-references to IDs. The runtime fire API is signal-object first.
+String IDs still appear where they are the right representation: serialized artifacts, fixture files, and compatibility seams that normalize authored references to IDs. The runtime fire API is signal-object first.
 
 ### Producers fire through `ctx.fire(signal, payload)`
 
@@ -118,15 +97,9 @@ const confirmBooking = trail('booking.confirm', {
 });
 ```
 
-`ctx.fire()` returns `Promise<void>`. It is best-effort from the producer's
-perspective. The producer waits for the framework to validate, record, and
-initiate local in-process fan-out, but `ctx.fire()` is not a completion barrier
-for every consuming trail. The producer does not receive a delivery `Result`
-and it does not branch on consumer success.
+`ctx.fire()` returns `Promise<void>`. It is best-effort from the producer's perspective. The producer waits for the framework to validate, record, and initiate local in-process fan-out, but `ctx.fire()` is not a completion barrier for every consuming trail. The producer does not receive a delivery `Result` and it does not branch on consumer success.
 
-This is deliberate. A producer should not become coupled to consumers through a
-return value. Problems in the fire path become diagnostics and trace records,
-not producer-facing business results.
+This is deliberate. A producer should not become coupled to consumers through a return value. Problems in the fire path become diagnostics and trace records, not producer-facing business results.
 
 ### Consumers declare activation with `on: [signal]`
 
@@ -145,17 +118,11 @@ const sendReceipt = trail('booking.send-receipt', {
 });
 ```
 
-`fires` and `on` are graph declarations. They serve the same inspectability role
-for signals that `composes` serves for typed trail composition: authored edges
-become queryable edges. They are separate from `composes` because notification
-and direct composition have different coupling.
+`fires` and `on` are graph declarations. They serve the same inspectability role for signals that `composes` serves for typed trail composition: authored edges become queryable edges. They are separate from `composes` because notification and direct composition have different coupling.
 
 ### Invalid payloads become diagnostics
 
-The fire boundary validates payloads against the signal schema. Invalid payloads
-record `signal.invalid` diagnostics with schema issues, trace/run/provenance
-metadata when available, and redacted payload summaries. They do not throw into
-the producer and they do not return `Result.err()` to the producer.
+The fire boundary validates payloads against the signal schema. Invalid payloads record `signal.invalid` diagnostics with schema issues, trace/run/provenance metadata when available, and redacted payload summaries. They do not throw into the producer and they do not return `Result.err()` to the producer.
 
 The diagnostic vocabulary is intentionally explicit:
 
@@ -165,13 +132,11 @@ The diagnostic vocabulary is intentionally explicit:
 - `signal.handler.rejected`,
 - `signal.fire.suppressed`.
 
-Strict mode can promote selected diagnostics for environments that want signal
-runtime problems to fail louder. The public producer API remains `Promise<void>`.
+Strict mode can promote selected diagnostics for environments that want signal runtime problems to fail louder. The public producer API remains `Promise<void>`.
 
 ### Signal tracing is lexicon-aligned
 
-Runtime signal records use `kind: 'signal'` and names that describe the signal
-lifecycle:
+Runtime signal records use `kind: 'signal'` and names that describe the signal lifecycle:
 
 - `signal.fired`,
 - `signal.invalid`,
@@ -179,13 +144,9 @@ lifecycle:
 - `signal.handler.completed`,
 - `signal.handler.failed`.
 
-Signal trace attributes carry stable IDs, producer trail IDs, consumer trail IDs
-when present, trace/run IDs, and redacted payload summaries. Raw payloads are not
-recorded by default.
+Signal trace attributes carry stable IDs, producer trail IDs, consumer trail IDs when present, trace/run IDs, and redacted payload summaries. Raw payloads are not recorded by default.
 
-These records make signal behavior observable without turning signals into a
-durable delivery system. Tracing answers what happened in this runtime. It does
-not promise replay, retry, or external delivery.
+These records make signal behavior observable without turning signals into a durable delivery system. Tracing answers what happened in this runtime. It does not promise replay, retry, or external delivery.
 
 ### Examples can assert fired signals
 
@@ -207,39 +168,28 @@ examples: [
 ],
 ```
 
-`testExamples` captures `ctx.fire()` calls while exercising the trail and checks
-the example assertions. Assertions may match exact payloads or payload subsets,
-and may declare `times` when cardinality matters.
+`testExamples` captures `ctx.fire()` calls while exercising the trail and checks the example assertions. Assertions may match exact payloads or payload subsets, and may declare `times` when cardinality matters.
 
-The assertion model does not imply total ordering across independent consumers.
-If a workflow needs ordering, it should use sequential `ctx.compose()` composition.
+The assertion model does not imply total ordering across independent consumers. If a workflow needs ordering, it should use sequential `ctx.compose()` composition.
 
 ### Signals project into topo, lockfile, and survey
 
-Signals are first-class graph nodes. The signal namespace includes payload
-schema, examples, producers, consumers, diagnostics/governance metadata, and
-user meta where available.
+Signals are first-class graph nodes. The signal namespace includes payload schema, examples, producers, consumers, diagnostics/governance metadata, and user meta where available.
 
 Survey keeps the split shape:
 
 - `survey.signal` answers signal-specific questions,
 - `survey.trail` answers trail-specific questions,
 - list/overview output exposes activation counts and IDs,
-- trail detail shows `fires`, `on`, `activates`, `activatedBy`, and static
-  activation chains.
+- trail detail shows `fires`, `on`, `activates`, `activatedBy`, and static activation chains.
 
-This preserves one graph with many views. There is no separate signal registry
-or side-channel discovery model.
+This preserves one graph with many views. There is no separate signal registry or side-channel discovery model.
 
 ### Warden can govern only implemented evidence
 
-The typed signal runtime gives Warden concrete facts to inspect: authored
-`fires`/`on` declarations, static `ctx.fire()` usage hooks, example signal
-assertions, and the serialized graph shape.
+The typed signal runtime gives Warden concrete facts to inspect: authored `fires`/`on` declarations, static `ctx.fire()` usage hooks, example signal assertions, and the serialized graph shape.
 
-Rules should stay tied to those facts. Warden should not claim enforcement for
-future lifecycle signals, durable delivery, schedule/webhook source
-materializers, or dead-letter behavior until those capabilities exist.
+Rules should stay tied to those facts. Warden should not claim enforcement for future lifecycle signals, durable delivery, schedule/webhook source materializers, or dead-letter behavior until those capabilities exist.
 
 ## Non-goals
 
@@ -269,31 +219,18 @@ Typed signal v1 does not introduce:
 
 ### Positive
 
-- **The signal primitive becomes live.** A signal is now both a contract and a
-  runtime notification path.
-- **The schema stays central.** The same signal payload schema drives TypeScript
-  inference, runtime validation, examples, survey, lockfile output, diagnostics,
-  and trace records.
-- **Producers remain decoupled.** A trail can announce what happened without
-  depending on consumer outputs or failure modes.
-- **Agents can inspect activation shape.** Topo, lockfile, and survey reveal
-  producers, consumers, signal payloads, and static chains before execution.
-- **Runtime problems are observable.** Invalid payloads, unknown signals,
-  suppressed fires, and consumer failures become diagnostics and trace records.
+- **The signal primitive becomes live.** A signal is now both a contract and a runtime notification path.
+- **The schema stays central.** The same signal payload schema drives TypeScript inference, runtime validation, examples, survey, lockfile output, diagnostics, and trace records.
+- **Producers remain decoupled.** A trail can announce what happened without depending on consumer outputs or failure modes.
+- **Agents can inspect activation shape.** Topo, lockfile, and survey reveal producers, consumers, signal payloads, and static chains before execution.
+- **Runtime problems are observable.** Invalid payloads, unknown signals, suppressed fires, and consumer failures become diagnostics and trace records.
 
 ### Tradeoffs
 
-- **`fires` and `on` add authoring surface.** The edge is real information, so
-  the trail spec grows. The payoff is queryable graph shape.
-- **Best-effort fire hides consumer results from producers.** That keeps loose
-  coupling honest, but it means teams must use diagnostics/tracing/tests to see
-  signal runtime problems.
-- **The runtime is intentionally not durable.** V1 gives typed local
-  notification. Systems that need replay, retry, or distributed fan-out need a
-  later delivery decision.
-- **Signal-cycle suppression is currently signal-ID based.** That prevents
-  obvious re-entrant loops but may over-suppress some diamond-shaped fan-out
-  patterns until per-path provenance is justified.
+- **`fires` and `on` add authoring surface.** The edge is real information, so the trail spec grows. The payoff is queryable graph shape.
+- **Best-effort fire hides consumer results from producers.** That keeps loose coupling honest, but it means teams must use diagnostics/tracing/tests to see signal runtime problems.
+- **The runtime is intentionally not durable.** V1 gives typed local notification. Systems that need replay, retry, or distributed fan-out need a later delivery decision.
+- **Signal-cycle suppression is currently signal-ID based.** That prevents obvious re-entrant loops but may over-suppress some diamond-shaped fan-out patterns until per-path provenance is justified.
 
 ### Deferred work
 

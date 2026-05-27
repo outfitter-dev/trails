@@ -80,10 +80,7 @@ const result = await Result.fromFetch('https://api.example.com/data');
 
 ### Error taxonomy integration
 
-The Result type exists in tight partnership with the error taxonomy. The table
-below is a current implementation snapshot generated from the `errorClasses`
-owner registry in `@ontrails/core`; ADR-0026 is the current taxonomy behavior
-contract.
+The Result type exists in tight partnership with the error taxonomy. The table below is a current implementation snapshot generated from the `errorClasses` owner registry in `@ontrails/core`; ADR-0026 is the current taxonomy behavior contract.
 
 <!-- error-taxonomy:start -->
 <!-- GENERATED: run `bun run error-taxonomy:sync`; check with `bun run error-taxonomy:check`. Variant: class. -->

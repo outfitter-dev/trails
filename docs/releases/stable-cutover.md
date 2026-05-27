@@ -1,16 +1,10 @@
 # Stable Cutover Runbook
 
-This runbook is the operator checklist for leaving the beta prerelease line and
-publishing the first stable 1.x Trails release.
+This runbook is the operator checklist for leaving the beta prerelease line and publishing the first stable 1.x Trails release.
 
-It is governed by [ADR-0047: Stable Release Line Discipline](../adr/0047-stable-release-line-discipline.md).
-The short version: public `@ontrails/*` packages stay lockstep for 1.x,
-Changesets computes versions and changelogs, Bun publishes packages, generated
-apps must install from the public registry, and partial publishes are handled
-as release incidents.
+It is governed by [ADR-0047: Stable Release Line Discipline](../adr/0047-stable-release-line-discipline.md). The short version: public `@ontrails/*` packages stay lockstep for 1.x, Changesets computes versions and changelogs, Bun publishes packages, generated apps must install from the public registry, and partial publishes are handled as release incidents.
 
-Do not run this from an in-progress feature stack. The versioning PR and the
-publish step are separate operations.
+Do not run this from an in-progress feature stack. The versioning PR and the publish step are separate operations.
 
 ## Release Boundaries
 
@@ -21,8 +15,7 @@ There are two distinct phases:
 | Version PR | Exit prerelease mode, compute stable versions/changelogs, review the diff, and merge. | A normal Graphite branch and PR |
 | Publish | Publish already-merged package contents and verify registry/dist-tag state. | Clean `main` after the version PR merges |
 
-Never publish from an unmerged version PR. Never use `changeset publish`,
-`npm publish`, or ad hoc package publication for the normal stable cutover.
+Never publish from an unmerged version PR. Never use `changeset publish`, `npm publish`, or ad hoc package publication for the normal stable cutover.
 
 ## Preconditions
 
@@ -83,8 +76,7 @@ Before creating the version PR:
    bun run format:check
    ```
 
-If any precondition fails, stop and fix that issue in its own branch before
-starting the stable version PR.
+If any precondition fails, stop and fix that issue in its own branch before starting the stable version PR.
 
 ## Version PR
 
@@ -114,8 +106,7 @@ bun run publish:registry-check
 bunx changeset status --verbose
 ```
 
-Run a registry-backed generated-app smoke before exiting prerelease mode. This
-proves the current published prerelease package set and the generator still agree:
+Run a registry-backed generated-app smoke before exiting prerelease mode. This proves the current published prerelease package set and the generator still agree:
 
 ```bash
 tmp=$(mktemp -d /tmp/trails-preversion-smoke.XXXXXX)
@@ -195,13 +186,9 @@ bun apps/trails/bin/trails.ts create docs-smoke \
   --output json
 ```
 
-Do not run the install-backed registry smoke on the version PR branch after
-`bunx changeset version`. At that point generated apps request the intended
-stable range, but the stable packages are not on the public registry until the
-version PR merges and the publish step completes.
+Do not run the install-backed registry smoke on the version PR branch after `bunx changeset version`. At that point generated apps request the intended stable range, but the stable packages are not on the public registry until the version PR merges and the publish step completes.
 
-Capture the generated `package.json` dependency ranges in the PR body. Remove
-the temp project after recording the evidence.
+Capture the generated `package.json` dependency ranges in the PR body. Remove the temp project after recording the evidence.
 
 Commit and submit:
 
@@ -211,8 +198,7 @@ gt modify -a -c -m "chore: version packages for 1.0.0" --no-interactive
 gt submit --draft --stack --no-edit --no-interactive
 ```
 
-Keep the PR draft until CI is green and review is complete. The PR body should
-include:
+Keep the PR draft until CI is green and review is complete. The PR body should include:
 
 - link to ADR-0047;
 - the intended stable version;
@@ -250,9 +236,7 @@ Publish with the repo script:
 bun run publish:packages
 ```
 
-The publish script discovers non-private workspaces, topo-sorts by workspace
-dependency edges, runs `bun publish --access public --tag <tag>`, and uses
-`latest` outside Changesets prerelease mode.
+The publish script discovers non-private workspaces, topo-sorts by workspace dependency edges, runs `bun publish --access public --tag <tag>`, and uses `latest` outside Changesets prerelease mode.
 
 Do not replace this with `npm publish`. Do not run `changeset publish`.
 
@@ -273,8 +257,7 @@ npm view @ontrails/commander version --json
 npm view @ontrails/commander dist-tags --json
 ```
 
-Then rerun the fresh generated-app smoke from a clean cache so the proof comes
-from the registry, not local workspace links:
+Then rerun the fresh generated-app smoke from a clean cache so the proof comes from the registry, not local workspace links:
 
 ```bash
 tmp=$(mktemp -d /tmp/trails-stable-smoke.XXXXXX)
@@ -304,8 +287,7 @@ Record:
 
 ## Partial-Publish Recovery
 
-If `bun run publish:packages` fails after publishing one or more packages,
-stop immediately.
+If `bun run publish:packages` fails after publishing one or more packages, stop immediately.
 
 Create a release incident note with:
 
@@ -323,12 +305,9 @@ Verify already-published packages before retrying:
 bun run publish:registry-check:published
 ```
 
-If that check fails because the release is incomplete, use targeted read-only
-registry probes for the packages already reported as published. Do not mutate
-dist-tags to hide an incomplete release.
+If that check fails because the release is incomplete, use targeted read-only registry probes for the packages already reported as published. Do not mutate dist-tags to hide an incomplete release.
 
-Resume only with an explicit package set after confirming which packages are
-already present:
+Resume only with an explicit package set after confirming which packages are already present:
 
 ```bash
 bun run publish:packages -- --only @ontrails/package-a,@ontrails/package-b

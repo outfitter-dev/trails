@@ -4,9 +4,7 @@ Warden is Trails' correctness surface. It catches code-level framework drift, re
 
 Structural graph checks that can be answered from the resolved topo belong in `validateTopo()` from `@ontrails/core`. Warden owns checks that need source inspection, project context, topo-aware analysis, or drift reporting.
 
-Use [Warden Rules](./contributing/warden-rules.md) when authoring or auditing rules. It defines
-the survival tests, owner-data expectations, and family-collapse criteria for
-durable rules.
+Use [Warden Rules](./contributing/warden-rules.md) when authoring or auditing rules. It defines the survival tests, owner-data expectations, and family-collapse criteria for durable rules.
 
 ## Rule Homes
 
@@ -37,12 +35,7 @@ Warden rules can operate at several levels:
 - **Drift** checks compare generated artifacts with current source truth.
 - **Advisory** checks point at incomplete or risky framework usage without necessarily failing the build.
 
-The tier affects execution shape, not ownership. A source-static check can still be Warden-owned when it enforces public Trails semantics.
-Built-in rule classifications are exposed as metadata from `@ontrails/warden`;
-use that metadata when tooling needs to group rules by tier, scope, or
-lifecycle.
-`runWarden({ tier })` can execute one tier at a time; omitting `tier` preserves
-the full lint-plus-drift run.
+The tier affects execution shape, not ownership. A source-static check can still be Warden-owned when it enforces public Trails semantics. Built-in rule classifications are exposed as metadata from `@ontrails/warden`; use that metadata when tooling needs to group rules by tier, scope, or lifecycle. `runWarden({ tier })` can execute one tier at a time; omitting `tier` preserves the full lint-plus-drift run.
 
 ## Running Warden
 
@@ -59,12 +52,9 @@ CI can use the direct Warden bin:
 bunx @ontrails/warden --ci --apps trails,trails-demo
 ```
 
-`--ci` is a preset on the Warden bin. It runs all depths, emits GitHub
-annotations by default, fails on errors, and suppresses lockfile mutation.
-Use `--fail-on warning` or `--strict` when warnings should block the run.
+`--ci` is a preset on the Warden bin. It runs all depths, emits GitHub annotations by default, fails on errors, and suppresses lockfile mutation. Use `--fail-on warning` or `--strict` when warnings should block the run.
 
-GitHub adopters can use the reusable action after checkout, Bun setup, and
-dependency installation:
+GitHub adopters can use the reusable action after checkout, Bun setup, and dependency installation:
 
 ```yaml
 jobs:
@@ -81,16 +71,9 @@ jobs:
           fail-on: error
 ```
 
-The action wraps `bunx @ontrails/warden --ci`. When the action is used from a
-version tag such as `@v1.0.0`, it runs `@ontrails/warden@1.0.0` by default; use
-the `warden-version` input only when the action tag and npm package version must
-intentionally diverge. Workflows that pin the action by SHA or by a non-version
-branch must set `warden-version` explicitly because those refs do not identify an
-npm package version. Framework PR CI should keep using the local workspace bin so
-PRs test branch code rather than the latest published package.
+The action wraps `bunx @ontrails/warden --ci`. When the action is used from a version tag such as `@v1.0.0`, it runs `@ontrails/warden@1.0.0` by default; use the `warden-version` input only when the action tag and npm package version must intentionally diverge. Workflows that pin the action by SHA or by a non-version branch must set `warden-version` explicitly because those refs do not identify an npm package version. Framework PR CI should keep using the local workspace bin so PRs test branch code rather than the latest published package.
 
-For non-GitHub CI, call the bin directly after installing Bun and project
-dependencies:
+For non-GitHub CI, call the bin directly after installing Bun and project dependencies:
 
 ```bash
 bunx @ontrails/warden@1.0.0 --ci --apps trails,trails-demo --fail-on error

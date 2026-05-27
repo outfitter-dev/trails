@@ -14,21 +14,11 @@ depends_on: [10, 11, 15, 17, 42, 45]
 
 ## Context
 
-ADR-0017 set the long-term goal correctly: the resolved topo should be a
-machine-readable story that agents, CI, and tools can inspect without guessing
-from source. Its chosen container was too broad. It put every graph fact into
-`.trails/trails.lock` and made that one file responsible for both drift
-verification and full graph inspection.
+ADR-0017 set the long-term goal correctly: the resolved topo should be a machine-readable story that agents, CI, and tools can inspect without guessing from source. Its chosen container was too broad. It put every graph fact into `.trails/trails.lock` and made that one file responsible for both drift verification and full graph inspection.
 
-The current v1 implementation proved that those are related but separate jobs.
-Topographer already derives a rich graph artifact with trails, signals,
-resources, contours, schemas, examples, activation sources, governance metadata,
-and surface projections. The existing `SurfaceMap` name understates what that
-artifact contains, while the current `trails.lock` is only a hash envelope and
-optional workspace index.
+The current v1 implementation proved that those are related but separate jobs. Topographer already derives a rich graph artifact with trails, signals, resources, contours, schemas, examples, activation sources, governance metadata, and surface projections. The existing `SurfaceMap` name understates what that artifact contains, while the current `trails.lock` is only a hash envelope and optional workspace index.
 
-For v1, Trails needs the resolved topo to stay inspectable without turning the
-most frequently reviewed drift gate into a large graph payload.
+For v1, Trails needs the resolved topo to stay inspectable without turning the most frequently reviewed drift gate into a large graph payload.
 
 ## Decision
 
@@ -37,13 +27,11 @@ Lock v3 is a committed artifact family:
 - `.trails/trails.lock` is the compact manifest.
 - `.trails/topo.lock` is the serialized `TopoGraph` content artifact.
 
-Both files are generated, committed, framework-owned `.lock` artifacts. They
-have different responsibilities.
+Both files are generated, committed, framework-owned `.lock` artifacts. They have different responsibilities.
 
 ### `trails.lock` is the manifest
 
-The manifest answers: "Is this resolved topo artifact family in a verified,
-known state?"
+The manifest answers: "Is this resolved topo artifact family in a verified, known state?"
 
 It contains:
 
@@ -78,16 +66,11 @@ It does not contain graph entries and intentionally omits `generatedAt`.
 
 The content artifact answers: "What is the resolved topo?"
 
-It contains the serialized `TopoGraph`: every trail, signal, resource, and
-contour with their schemas, examples, relationships, activation data, governance
-metadata, and surface projections.
+It contains the serialized `TopoGraph`: every trail, signal, resource, and contour with their schemas, examples, relationships, activation data, governance metadata, and surface projections.
 
-`topo.lock` owns content metadata. It keeps `generatedAt` and a content schema
-version field named `topoGraphSchemaVersion`. The manifest's `version: 3` is the
-manifest schema version and is separate from `topoGraphSchemaVersion`.
+`topo.lock` owns content metadata. It keeps `generatedAt` and a content schema version field named `topoGraphSchemaVersion`. The manifest's `version: 3` is the manifest schema version and is separate from `topoGraphSchemaVersion`.
 
-The TopoGraph hash canonicalizes around `generatedAt`, so regeneration time does
-not create false drift.
+The TopoGraph hash canonicalizes around `generatedAt`, so regeneration time does not create false drift.
 
 ### Naming
 
@@ -104,10 +87,7 @@ Storage keeps the word boundary visible:
 - JavaScript field names use `topoGraph`;
 - do not use `topograph` as a field or column name.
 
-The topo-store export named `serialized_lock` is not a second graph copy. It is
-either replaced with `lock_manifest` when the export pipeline needs stored
-manifest content, or removed when the manifest can be derived from `topo_graph`
-during compile.
+The topo-store export named `serialized_lock` is not a second graph copy. It is either replaced with `lock_manifest` when the export pipeline needs stored manifest content, or removed when the manifest can be derived from `topo_graph` during compile.
 
 ### Workspace layout
 
@@ -120,27 +100,19 @@ during compile.
 - ignored local override config: `.trails/config.local.ts` or
   `.trails/config.local.js`.
 
-The default local SQLite path is `.trails/state/trails.db`. This is a pre-v1
-hard cut from `.trails/trails.db`; runtime and tooling should not silently read
-fallback data from the legacy root database path.
+The default local SQLite path is `.trails/state/trails.db`. This is a pre-v1 hard cut from `.trails/trails.db`; runtime and tooling should not silently read fallback data from the legacy root database path.
 
 Shared authored project config stays at root `trails.config.ts`.
 
 ### Workspace trail index
 
-Workspace ownership data does not belong in the manifest body. When the artifact
-family describes a workspace, `topo.lock` may carry an optional top-level
-`workspace` section. Typed helpers expose that data for `trails run <id>` and
-completion consumers.
+Workspace ownership data does not belong in the manifest body. When the artifact family describes a workspace, `topo.lock` may carry an optional top-level `workspace` section. Typed helpers expose that data for `trails run <id>` and completion consumers.
 
-Workspace ownership is a projection over the graph, not an ordinary
-`entries[]` node.
+Workspace ownership is a projection over the graph, not an ordinary `entries[]` node.
 
 ### Legacy lock behavior
 
-Lock v3 is the v1 target. Legacy v2 hash envelopes and hash-only files are not
-silently upgraded or interpreted as valid v3 manifests. Readers should fail
-loudly with an instruction to regenerate with `trails compile`.
+Lock v3 is the v1 target. Legacy v2 hash envelopes and hash-only files are not silently upgraded or interpreted as valid v3 manifests. Readers should fail loudly with an instruction to regenerate with `trails compile`.
 
 ## Consequences
 

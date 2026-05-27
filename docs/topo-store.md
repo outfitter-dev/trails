@@ -2,9 +2,7 @@
 
 The topo store is Trails' queryable database of your application's topology — every trail, signal, resource, and their relationships. It lives in `.trails/state/trails.db` and is created automatically when you run topo commands.
 
-For the full SQLite schema and programmatic query API, see the [Topo Store Reference](./topo-store-reference.md).
-If you are migrating from the old surface-map or root database layout, see the
-[TopoGraph Artifact Family Migration](./migration/topograph-artifact-family.md).
+For the full SQLite schema and programmatic query API, see the [Topo Store Reference](./topo-store-reference.md). If you are migrating from the old surface-map or root database layout, see the [TopoGraph Artifact Family Migration](./migration/topograph-artifact-family.md).
 
 ## The `.trails/` directory
 
@@ -51,19 +49,15 @@ These fields are not exhaustive per-trail error contracts. Error categories, ret
 
 ## Commands
 
-Artifact lifecycle commands are top-level `trails` commands:
-`trails compile`, `trails validate`, and `trails diff`. The `trails topo`
-namespace is reserved for topo-store history and pin management.
+Artifact lifecycle commands are top-level `trails` commands: `trails compile`, `trails validate`, and `trails diff`. The `trails topo` namespace is reserved for topo-store history and pin management.
 
-Retired shapes such as `trails topo compile`, `trails topo verify`, and
-`trails topo check` are not aliases. Use the top-level commands instead:
+Retired shapes such as `trails topo compile`, `trails topo verify`, and `trails topo check` are not aliases. Use the top-level commands instead:
 
 - `trails compile` writes `.trails/topo.lock` and `.trails/trails.lock`.
 - `trails validate` checks committed artifacts against the current topo.
 - `trails diff` compares the current topo against a saved TopoGraph target.
 
-Programmatic consumers use `@ontrails/topographer` APIs directly; the package
-does not ship a separate CLI binary.
+Programmatic consumers use `@ontrails/topographer` APIs directly; the package does not ship a separate CLI binary.
 
 ### `trails topo pin`
 
@@ -95,12 +89,7 @@ trails survey resource db.main
 trails survey signal user.created
 ```
 
-Use `trails survey surfaces` when a blind agent or parity check needs the
-complete shipped-surface projection inventory. The report lists every public
-trail eligible for CLI, MCP, and HTTP, including CLI command paths, MCP tool
-names, HTTP method/path pairs, and whether each projection came from explicit
-authored surface metadata or default derivation. WebSocket is still planned and
-is intentionally reported as excluded until a public package/API exists.
+Use `trails survey surfaces` when a blind agent or parity check needs the complete shipped-surface projection inventory. The report lists every public trail eligible for CLI, MCP, and HTTP, including CLI command paths, MCP tool names, HTTP method/path pairs, and whether each projection came from explicit authored surface metadata or default derivation. WebSocket is still planned and is intentionally reported as excluded until a public package/API exists.
 
 ### `trails topo history`
 
@@ -120,9 +109,7 @@ trails compile
 
 ### `trails diff`
 
-Compare the current topo against a saved TopoGraph target. The default target is
-the committed `.trails/topo.lock`; explicit targets may be workspace-relative
-`topo.lock` files, JSON TopoGraphs, TopoGraph directories, pins, or snapshots.
+Compare the current topo against a saved TopoGraph target. The default target is the committed `.trails/topo.lock`; explicit targets may be workspace-relative `topo.lock` files, JSON TopoGraphs, TopoGraph directories, pins, or snapshots.
 
 ```bash
 trails diff
@@ -133,9 +120,7 @@ trails diff --forces
 
 ### `trails revise`
 
-Scaffold trail version lifecycle entries from source. The default shape creates a
-revision entry for the current version and bumps the trail to the next version.
-Use `--as fork` when the historical version needs its own preserved blaze.
+Scaffold trail version lifecycle entries from source. The default shape creates a revision entry for the current version and bumps the trail to the next version. Use `--as fork` when the historical version needs its own preserved blaze.
 
 ```bash
 trails revise billing.quote
@@ -145,8 +130,7 @@ trails revise billing.quote@1 --as fork
 
 ### `trails deprecate`
 
-Mark a historical version entry deprecated, or archived when the historical
-version should remain inspectable but leave default runtime negotiation.
+Mark a historical version entry deprecated, or archived when the historical version should remain inspectable but leave default runtime negotiation.
 
 ```bash
 trails deprecate billing.quote@1 --successor 2 --note "Use v2."
@@ -155,8 +139,7 @@ trails deprecate billing.quote@1 --archive --reason "Superseded before GA."
 
 ### `trails doctor`
 
-Summarize version lifecycle state for the loaded app, including deprecated and
-archived historical entries plus forced topo break audit events.
+Summarize version lifecycle state for the loaded app, including deprecated and archived historical entries plus forced topo break audit events.
 
 ```bash
 trails doctor
@@ -164,8 +147,7 @@ trails doctor
 
 ### `trails validate`
 
-Check that the `.trails/trails.lock` / `.trails/topo.lock` artifact family
-matches your current topo. Fails if either committed artifact has drifted.
+Check that the `.trails/trails.lock` / `.trails/topo.lock` artifact family matches your current topo. Fails if either committed artifact has drifted.
 
 ```bash
 # In CI

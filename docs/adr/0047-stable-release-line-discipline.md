@@ -15,29 +15,15 @@ depends_on: [29, 35, 37, 44, 46]
 
 ### Stable changes the meaning of a release
 
-During the beta line, Trails could use each release to finish the shape of the
-framework. Package boundaries moved, `connector` became `adapter`, surface APIs
-settled into the `derive` -> `create` -> `surface` ladder, and generated apps
-tracked those moves.
+During the beta line, Trails could use each release to finish the shape of the framework. Package boundaries moved, `connector` became `adapter`, surface APIs settled into the `derive` -> `create` -> `surface` ladder, and generated apps tracked those moves.
 
-The 1.x line has a different promise. A stable release is not just "the next
-publish." It is the public distribution contract for the framework family.
-Developers should be able to create a fresh app, install the generated
-dependencies from the registry, and trust that the packages they received
-belong to the same release story.
+The 1.x line has a different promise. A stable release is not just "the next publish." It is the public distribution contract for the framework family. Developers should be able to create a fresh app, install the generated dependencies from the registry, and trust that the packages they received belong to the same release story.
 
 ### The package graph is one framework family
 
-Trails now ships pure contract packages, extracted adapters, tooling packages,
-and the `trails` CLI. ADR-0029 keeps adapter package boundaries sharp, and
-ADR-0035 keeps surface projection, materialization, and ownership layers
-distinct.
+Trails now ships pure contract packages, extracted adapters, tooling packages, and the `trails` CLI. ADR-0029 keeps adapter package boundaries sharp, and ADR-0035 keeps surface projection, materialization, and ownership layers distinct.
 
-Those boundaries are architectural. They do not require independent public
-version numbers in the first stable line. In fact, the beta.16 unblock showed
-the opposite risk: if a generated app can see one package version while another
-public package is missing or stale, the user experiences the framework as
-broken even though each local package may pack cleanly.
+Those boundaries are architectural. They do not require independent public version numbers in the first stable line. In fact, the beta.16 unblock showed the opposite risk: if a generated app can see one package version while another public package is missing or stale, the user experiences the framework as broken even though each local package may pack cleanly.
 
 ### Release mechanics exist, but doctrine was implicit
 
@@ -53,17 +39,13 @@ The repo already has a workable release mechanism:
   `bun run publish:registry-check:published` verify registry availability and
   dist-tag posture without mutating the registry.
 
-What was missing was the stable-line decision those tools enforce. Without an
-ADR, release docs can drift back toward operator memory: "run the right thing,
-publish the right packages, recover carefully." Stable needs that memory turned
-into a contract.
+What was missing was the stable-line decision those tools enforce. Without an ADR, release docs can drift back toward operator memory: "run the right thing, publish the right packages, recover carefully." Stable needs that memory turned into a contract.
 
 ## Decision
 
 ### The 1.x package line stays lockstep
 
-All non-private public `@ontrails/*` packages remain fixed together for the
-1.x line.
+All non-private public `@ontrails/*` packages remain fixed together for the 1.x line.
 
 This means:
 
@@ -74,28 +56,19 @@ This means:
   boundaries, but not independent 1.x version numbers;
 - moving an adapter to an independent cadence requires a future ADR amendment.
 
-The test: if a public `@ontrails/*` package ships as part of the stable
-framework family, a release PR should make it available at the same version as
-the rest of that family or explicitly document why it is not part of the
-published set.
+The test: if a public `@ontrails/*` package ships as part of the stable framework family, a release PR should make it available at the same version as the rest of that family or explicitly document why it is not part of the published set.
 
 ### Package semver and trail versioning answer different questions
 
-Package semver describes distribution compatibility for npm consumers.
-ADR-0044 trail versioning describes capability compatibility inside a topo.
+Package semver describes distribution compatibility for npm consumers. ADR-0044 trail versioning describes capability compatibility inside a topo.
 
-Do not use package versions as a substitute for trail versions. A package
-minor may add new framework APIs. A trail version may preserve an old contract
-inside the same package version. The release line carries the framework bits;
-the trail contract carries the app capability.
+Do not use package versions as a substitute for trail versions. A package minor may add new framework APIs. A trail version may preserve an old contract inside the same package version. The release line carries the framework bits; the trail contract carries the app capability.
 
 ### Stable uses `latest`; prereleases use explicit channels
 
 The stable 1.x channel publishes to `latest`.
 
-Prereleases after 1.0 use explicit prerelease dist-tags such as `beta`,
-`next`, or `canary`. A prerelease must not fall through to `latest` because a
-tag was omitted.
+Prereleases after 1.0 use explicit prerelease dist-tags such as `beta`, `next`, or `canary`. A prerelease must not fall through to `latest` because a tag was omitted.
 
 The publish script is the authority for this default:
 
@@ -104,8 +77,7 @@ The publish script is the authority for this default:
 - after prerelease mode exits, default to `latest`;
 - if prerelease mode is active but no usable tag exists, fail loudly.
 
-Release PRs and runbooks should verify the intended dist-tag before publish
-and verify the actual dist-tag after publish.
+Release PRs and runbooks should verify the intended dist-tag before publish and verify the actual dist-tag after publish.
 
 ### Breaking changes after 1.0 are major-line decisions
 
@@ -114,17 +86,13 @@ After 1.0, a breaking public API change requires one of these:
 - a new major release line;
 - an accepted ADR that defines a narrower exception and its migration path.
 
-Public API includes package exports, generated app dependencies and imports,
-surface helper contracts, stable CLI command grammar, documented runtime
-behavior, and generated artifact contracts promised by accepted ADRs.
+Public API includes package exports, generated app dependencies and imports, surface helper contracts, stable CLI command grammar, documented runtime behavior, and generated artifact contracts promised by accepted ADRs.
 
-Pre-1.0 cleanup can still land before the stable cut. Once 1.0 is published,
-the stable line stops using "we are still in beta" as the migration plan.
+Pre-1.0 cleanup can still land before the stable cut. Once 1.0 is published, the stable line stops using "we are still in beta" as the migration plan.
 
 ### Package retirement is visible and migratable
 
-A public package rename, retirement, or extraction must include a migration
-posture before the stable line can depend on it.
+A public package rename, retirement, or extraction must include a migration posture before the stable line can depend on it.
 
 This means:
 
@@ -136,17 +104,13 @@ This means:
 - the release preflight distinguishes "intentionally retired" from "missing or
   inaccessible."
 
-Retiring a package silently is a release failure. It makes drift visible only
-to the next person who tries a fresh install.
+Retiring a package silently is a release failure. It makes drift visible only to the next person who tries a fresh install.
 
 ### Fresh generated apps are a release gate
 
-The current stable scaffold must install from the public registry with a clean
-package-manager cache.
+The current stable scaffold must install from the public registry with a clean package-manager cache.
 
-For a release that changes generated app dependencies or public surface
-packages, the release evidence must include a fresh-start smoke outside the
-monorepo:
+For a release that changes generated app dependencies or public surface packages, the release evidence must include a fresh-start smoke outside the monorepo:
 
 ```bash
 tmp=$(mktemp -d /tmp/trails-docs-smoke.XXXXXX)
@@ -163,9 +127,7 @@ bun run typecheck
 bun test
 ```
 
-The point is not just that the scaffold command runs. The generated
-`package.json`, selected lockfile versions, typecheck, and tests together
-prove that a new user can consume the published framework family.
+The point is not just that the scaffold command runs. The generated `package.json`, selected lockfile versions, typecheck, and tests together prove that a new user can consume the published framework family.
 
 ### Changesets computes; Bun publishes
 
@@ -179,20 +141,13 @@ The stable flow keeps these responsibilities separate:
 - use `bun run publish:check` to prove the package tarballs are clean;
 - use `bun run publish:packages` to publish.
 
-Do not use `changeset publish`, `npm publish`, or ad hoc package publication
-for the normal release path. If an emergency requires a different operation,
-that operation is an incident with written evidence, not a new default.
+Do not use `changeset publish`, `npm publish`, or ad hoc package publication for the normal release path. If an emergency requires a different operation, that operation is an incident with written evidence, not a new default.
 
 ### Changelogs and release notes are part of the contract
 
-Every package-facing change needs a truthful changeset unless the PR is
-explicitly `release:none` and the issue or PR explains why no user-visible
-package content changed.
+Every package-facing change needs a truthful changeset unless the PR is explicitly `release:none` and the issue or PR explains why no user-visible package content changed.
 
-Package changelogs should name user-visible API, package, surface, and
-generated-app changes in the package that ships them. Release notes should
-explain the framework-family story: new packages, retired names, scaffold
-changes, known migrations, and release preflight results.
+Package changelogs should name user-visible API, package, surface, and generated-app changes in the package that ships them. Release notes should explain the framework-family story: new packages, retired names, scaffold changes, known migrations, and release preflight results.
 
 ### Partial publish recovery is explicit
 
@@ -206,14 +161,11 @@ Recovery requires:
 - registry verification for those packages;
 - an explicit resume set for any retry.
 
-Do not rerun the whole publish matrix blindly. Do not mutate dist-tags to hide
-an incomplete release. A partial publish is a release incident until the public
-package set and dist-tags are coherent again.
+Do not rerun the whole publish matrix blindly. Do not mutate dist-tags to hide an incomplete release. A partial publish is a release incident until the public package set and dist-tags are coherent again.
 
 ### Release PRs carry preflight evidence
 
-A release PR that changes package versions or prepares a stable cutover should
-cite this ADR and include the relevant evidence:
+A release PR that changes package versions or prepares a stable cutover should cite this ADR and include the relevant evidence:
 
 - `bunx changeset status --verbose`;
 - `bun run publish:check`;
@@ -222,8 +174,7 @@ cite this ADR and include the relevant evidence:
   in scope;
 - ADR and runbook checks when release doctrine or procedure changes.
 
-The review question is not "does this diff look plausible?" It is "does the
-evidence prove the public release line will be coherent?"
+The review question is not "does this diff look plausible?" It is "does the evidence prove the public release line will be coherent?"
 
 ## Consequences
 

@@ -1,7 +1,6 @@
 # TopoGraph Artifact Family Migration
 
-The v1 topo artifact family uses a compact manifest plus an inspectable graph
-content artifact:
+The v1 topo artifact family uses a compact manifest plus an inspectable graph content artifact:
 
 - `.trails/trails.lock` is the committed lock v3 manifest.
 - `.trails/topo.lock` is the committed serialized `TopoGraph` content artifact.
@@ -40,21 +39,17 @@ trails validate
 
 ## Local Cleanup
 
-Current builds create the shared database under `.trails/state/`. If an old
-workspace still has untracked root SQLite sidecars, remove only the legacy root
-files:
+Current builds create the shared database under `.trails/state/`. If an old workspace still has untracked root SQLite sidecars, remove only the legacy root files:
 
 ```bash
 rm -f .trails/trails.db .trails/trails.db-shm .trails/trails.db-wal
 ```
 
-Do not commit any `.trails/state/trails.db*` files. They are local runtime
-state and are ignored by the workspace `.trails/.gitignore`.
+Do not commit any `.trails/state/trails.db*` files. They are local runtime state and are ignored by the workspace `.trails/.gitignore`.
 
 ## Consumer Updates
 
-Consumers that previously parsed `_surface.json` should read `.trails/topo.lock`
-through `readTopoGraph()` or use the typed topo-store views:
+Consumers that previously parsed `_surface.json` should read `.trails/topo.lock` through `readTopoGraph()` or use the typed topo-store views:
 
 ```typescript
 import { createTopoStore, readTopoGraph } from '@ontrails/topographer';
@@ -64,6 +59,4 @@ const store = createTopoStore();
 const detail = store.trails.get('auth.login');
 ```
 
-Use `store.topoGraph`, `store.entries`, `store.trails`, `store.resources`,
-`store.signals`, and `store.contours` for queryable access instead of parsing
-serialized JSON in application code.
+Use `store.topoGraph`, `store.entries`, `store.trails`, `store.resources`, `store.signals`, and `store.contours` for queryable access instead of parsing serialized JSON in application code.

@@ -136,9 +136,7 @@ class RetryExhaustedError<TErr extends TrailsError> extends InternalError {
 
 The category inheritance is the important part. A `RetryExhaustedError<ConflictError>` reports `category: 'conflict'`, so surfaces map it to HTTP 409 and exit code 3 — the same way a bare `ConflictError` would. Callers see the semantic underlying problem, not a synthetic wrapper with its own mapping.
 
-`InternalError.category` therefore needs to be typed broadly enough for this
-subclass override, even though plain `InternalError` instances still report the
-runtime value `'internal'`.
+`InternalError.category` therefore needs to be typed broadly enough for this subclass override, even though plain `InternalError` instances still report the runtime value `'internal'`.
 
 The instance-level `retryable: false` override is load-bearing for a different reason, covered next.
 

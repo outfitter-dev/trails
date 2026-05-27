@@ -1,23 +1,14 @@
 # Connector to Adapter Migration Guide
 
-How to migrate consumers from the retired `connector` vocabulary to the
-canonical `adapter` vocabulary. This is a clean cut: Trails does not ship
-compatibility aliases for connector-era public names, source paths, or package
-subpaths.
+How to migrate consumers from the retired `connector` vocabulary to the canonical `adapter` vocabulary. This is a clean cut: Trails does not ship compatibility aliases for connector-era public names, source paths, or package subpaths.
 
-This guide is temporary. Deprecate it after first-party Trails projects and
-downstream consumers have migrated. Until then, treat it as the rename checklist
-for current-facing docs, APIs, package README files, and workspace paths.
+This guide is temporary. Deprecate it after first-party Trails projects and downstream consumers have migrated. Until then, treat it as the rename checklist for current-facing docs, APIs, package README files, and workspace paths.
 
 ## Overview
 
-`adapter` is now the public package and subpath category for code that bridges
-Trails to a named external library, framework, tool, platform, format, or
-ecosystem. Historical prose may still mention `connector`, but current APIs,
-generated examples, package docs, and workspace paths use `adapter`.
+`adapter` is now the public package and subpath category for code that bridges Trails to a named external library, framework, tool, platform, format, or ecosystem. Historical prose may still mention `connector`, but current APIs, generated examples, package docs, and workspace paths use `adapter`.
 
-`integration` remains ordinary English, not a taxonomy bucket. `facet` remains
-reserved for projection slices of authored contracts or surfaces.
+`integration` remains ordinary English, not a taxonomy bucket. `facet` remains reserved for projection slices of authored contracts or surfaces.
 
 ## Rename Map
 
@@ -35,8 +26,7 @@ reserved for projection slices of authored contracts or surfaces.
 | `@ontrails/cli/commander` | `@ontrails/commander` | Move active Commander consumers to the dedicated adapter package. |
 | public taxonomy term `connector` | `adapter` | Rewrite current-facing package, subpath, and API prose. Keep historical, migration, and changelog mentions when clearly marked. |
 
-Built-in adapter subpaths remain intentionally scoped to their owning package
-when they are dependency-light:
+Built-in adapter subpaths remain intentionally scoped to their owning package when they are dependency-light:
 
 - `@ontrails/permits/jwt` remains the JWT auth adapter subpath.
 - `@ontrails/tracing/otel` remains the OpenTelemetry trace adapter subpath.
@@ -56,9 +46,7 @@ import { createOtelAdapter } from '@ontrails/tracing/otel';
 import type { OtelAdapterOptions } from '@ontrails/tracing/otel';
 ```
 
-Remove imports of `AuthConnector`, `authConnectorSchema`,
-`JwtConnectorOptions`, `createJwtConnector`, `OtelConnectorOptions`, and
-`createOtelConnector`.
+Remove imports of `AuthConnector`, `authConnectorSchema`, `JwtConnectorOptions`, `createJwtConnector`, `OtelConnectorOptions`, and `createOtelConnector`.
 
 ## Auth Resource Config
 
@@ -81,30 +69,24 @@ The same rename applies to the no-auth shape:
 
 ## Workspace Paths
 
-The workspace-root package directory moves from `connectors/` to `adapters/`.
-After moving the directories and updating the root workspace glob, regenerate
-the lockfile:
+The workspace-root package directory moves from `connectors/` to `adapters/`. After moving the directories and updating the root workspace glob, regenerate the lockfile:
 
 ```bash
 bun install
 ```
 
-Do not hand-edit `bun.lock`; the lockfile should record path-only workspace
-changes without version drift.
+Do not hand-edit `bun.lock`; the lockfile should record path-only workspace changes without version drift.
 
 ## Commander Adapter
 
-The CLI contract model stays in `@ontrails/cli`. Commander-specific runtime
-materialization moves to the dedicated `@ontrails/commander` adapter package by
-direct cutover:
+The CLI contract model stays in `@ontrails/cli`. Commander-specific runtime materialization moves to the dedicated `@ontrails/commander` adapter package by direct cutover:
 
 ```diff
 -import { surface } from '@ontrails/cli/commander';
 +import { surface } from '@ontrails/commander';
 ```
 
-There is no long-lived `@ontrails/cli/commander` compatibility subpath after
-the cutover.
+There is no long-lived `@ontrails/cli/commander` compatibility subpath after the cutover.
 
 ## Documentation And History
 
@@ -116,13 +98,11 @@ Treat remaining `connector` mentions by role:
 - **Accepted-history:** ADR slugs, changelogs, and release notes that record the
   old term as it existed when written.
 
-Do not run a broad automatic prose rewrite. Some sentences need `adapter`, some
-need `backend`, some need `surface`, and some should remain historical.
+Do not run a broad automatic prose rewrite. Some sentences need `adapter`, some need `backend`, some need `surface`, and some should remain historical.
 
 ## Changesets And Publishing
 
-Changesets in this cutover are version and changelog metadata only. Package
-publication later uses the repo's Bun publish flow:
+Changesets in this cutover are version and changelog metadata only. Package publication later uses the repo's Bun publish flow:
 
 ```bash
 bun run publish:check

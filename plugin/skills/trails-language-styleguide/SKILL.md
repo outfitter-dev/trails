@@ -5,9 +5,7 @@ description: Use when writing or reviewing Trails docs, ADRs, agent prompts, exa
 
 # Trails Language Styleguide
 
-Use this skill to tighten Trails language across prose and code-adjacent text.
-It is for docs, ADRs, README files, plugin prompts, agent instructions, comments,
-examples, issue language, and PR descriptions.
+Use this skill to tighten Trails language across prose and code-adjacent text. It is for docs, ADRs, README files, plugin prompts, agent instructions, comments, examples, issue language, and PR descriptions.
 
 Canonical sources:
 
@@ -26,9 +24,7 @@ Short form:
 
 > A blazed trail is a runnable contract.
 
-The `blaze` is the authored implementation that makes a trail runnable. It
-establishes the path from validated input to `Result` output. Use
-`implementation` as a clarifying word, not as the whole definition.
+The `blaze` is the authored implementation that makes a trail runnable. It establishes the path from validated input to `Result` output. Use `implementation` as a clarifying word, not as the whole definition.
 
 ## Preferred Grammar
 
@@ -57,8 +53,7 @@ When reviewing a changed file, check:
 
 - Does the first definition of `blaze` include making a trail runnable?
 - Does any sentence imply a surface owns or directly implements behavior?
-- Does any sentence call `blaze` a handler, callback, action, endpoint, route,
-  runner, or executor?
+- Does any sentence call `blaze` a handler, callback, action, endpoint, route, runner, or executor?
 - Does any sentence imply that the runtime runs a blaze rather than a trail?
 - Does the paragraph distinguish contract, blaze, runtime, and surface?
 - Does the wording preserve `run` for execution?
@@ -80,12 +75,10 @@ When reviewing a changed file, check:
 
 - Use `trail`, not action, handler, endpoint, or route for the unit of work.
 - Use `surface`, not transport or endpoint for the outside boundary.
-- Use `topo` for the primitive and `graph` for the local value returned by
-  `topo()`.
+- Use `topo` for the primitive and `graph` for the local value returned by `topo()`.
 - Use `compose` for trail-to-trail composition.
 - Use `resource` for declared infrastructure dependencies.
 - Use `layer` for typed execution wrappers.
 - Use `meta`, not metadata, when naming the trail field.
 
-If the standard word would shrink the concept, use the Trails term. If the
-standard word already carries the right meaning, keep it plain.
+If the standard word would shrink the concept, use the Trails term. If the standard word already carries the right meaning, keep it plain.

@@ -11,32 +11,23 @@ depends_on: [5, 9, 16, 22, 23]
 
 # ADR-0029: Adapter Extraction and Composition Around Core Contracts
 
-The historical slug is preserved for reference stability. The 2026-05-08
-amendment retires `connector` as the public package taxonomy term while
-preserving this ADR's extraction model.
+The historical slug is preserved for reference stability. The 2026-05-08 amendment retires `connector` as the public package taxonomy term while preserving this ADR's extraction model.
 
 ## Context
 
 ### Extraction solved the coupling problem
 
-The original problem still stands: when adapter code lives as a subpath inside
-an owning package, dependency and release boundaries blur. `@ontrails/store`
-should not need to ship Drizzle. `@ontrails/http` should not need to own every
-host framework. Extracting adapters into dedicated workspace packages fixed
-that part of the story, and the one-way dependency arrow remains correct.
+The original problem still stands: when adapter code lives as a subpath inside an owning package, dependency and release boundaries blur. `@ontrails/store` should not need to ship Drizzle. `@ontrails/http` should not need to own every host framework. Extracting adapters into dedicated workspace packages fixed that part of the story, and the one-way dependency arrow remains correct.
 
 ### The `with-*` prefix did not survive the packaging sweep
 
-What did not survive was the idea that every extracted adapter should use a
-`with-*` prefix. Once the repo gained sharper composition layers, the prefix
-stopped helping:
+What did not survive was the idea that every extracted adapter should use a `with-*` prefix. Once the repo gained sharper composition layers, the prefix stopped helping:
 
 - `@ontrails/drizzle` is clearer than `@ontrails/with-drizzle`
 - `@ontrails/hono` is clearer than `@ontrails/with-hono`
 - `@ontrails/vite` is clearer than `@ontrails/with-vite`
 
-The important architectural fact is that the adapter is extracted and composes
-around a core contract, not that its name can be read as a sentence.
+The important architectural fact is that the adapter is extracted and composes around a core contract, not that its name can be read as a sentence.
 
 ### Adapter is the public category
 
@@ -47,28 +38,19 @@ Trails now has multiple composition layers around a graph:
 - composed adapters such as `@ontrails/vite`, which layer on top of an
   already-created surface runtime
 
-The packaging model needs to describe those layers without inventing a new rule
-for every case.
+The packaging model needs to describe those layers without inventing a new rule for every case.
 
 ### What "adapter" means
 
-An adapter bridges Trails contracts to a named external system, library,
-framework, tool, platform, format, or ecosystem. The distinction between
-materializing a surface and translating a record is descriptive, not
-categorical: Hono, Commander, Drizzle, LogTape, JWT, and OTel all sit at
-boundary points and follow the same packaging discipline.
+An adapter bridges Trails contracts to a named external system, library, framework, tool, platform, format, or ecosystem. The distinction between materializing a surface and translating a record is descriptive, not categorical: Hono, Commander, Drizzle, LogTape, JWT, and OTel all sit at boundary points and follow the same packaging discipline.
 
-`integration` remains available as colloquial English. It is not a second
-public taxonomy category. `facet` remains reserved for projection slices of an
-authored contract or surface, not for package or subpath boundaries.
+`integration` remains available as colloquial English. It is not a second public taxonomy category. `facet` remains reserved for projection slices of an authored contract or surface, not for package or subpath boundaries.
 
 ## Decision
 
 ### Adapters stay extracted into `adapters/`
 
-Extracted adapters that deserve their own dependency and release boundaries
-live as workspace packages under `adapters/`. The 2026-05 connector-to-adapter
-cutover migrates the historical `connectors/` workspace root to this shape:
+Extracted adapters that deserve their own dependency and release boundaries live as workspace packages under `adapters/`. The 2026-05 connector-to-adapter cutover migrates the historical `connectors/` workspace root to this shape:
 
 ```text
 packages/       framework contracts and pure projections
@@ -87,8 +69,7 @@ This provides:
 
 ### Names follow the owned adapter, not a prefix
 
-Extracted adapter packages are named for the thing they bind to, not for a
-`with-*` sentence pattern:
+Extracted adapter packages are named for the thing they bind to, not for a `with-*` sentence pattern:
 
 ```text
 @ontrails/drizzle    Drizzle store adapter
@@ -96,14 +77,11 @@ Extracted adapter packages are named for the thing they bind to, not for a
 @ontrails/vite       Vite runtime adapter
 ```
 
-The repo location already tells us these are extracted adapters. The package
-name should answer "what does this adapt?" rather than "can I put the word
-'with' in front of it?"
+The repo location already tells us these are extracted adapters. The package name should answer "what does this adapt?" rather than "can I put the word 'with' in front of it?"
 
 ### Composition follows responsibility, not symmetry
 
-Package shape is driven by what a package owns, not by a mandatory two-package
-template.
+Package shape is driven by what a package owns, not by a mandatory two-package template.
 
 | Role | Package | Responsibility |
 | --- | --- | --- |
@@ -114,16 +92,11 @@ template.
 | Runtime adapter | `@ontrails/vite` | Adapt an already-created Hono app to Vite middleware |
 | Adapter subpath, pre-split | `@ontrails/cli/commander` | Commander-specific CLI runtime; beta.16 moves this to `@ontrails/commander` |
 
-Some adapters are worth a standalone package. Some stay as subpaths because
-splitting them further would add ceremony without buying a new dependency or
-governance boundary. The rule is architectural clarity, not symmetry.
+Some adapters are worth a standalone package. Some stay as subpaths because splitting them further would add ceremony without buying a new dependency or governance boundary. The rule is architectural clarity, not symmetry.
 
 ### First-party built-in store backends stay under `@ontrails/store/*`
 
-Some backends are part of the store story itself: local, first-party, opt-in
-backends that ship with no third-party adapter boundary and primarily exist to
-make the contract useful quickly. Those stay as subpath exports on the
-owning package:
+Some backends are part of the store story itself: local, first-party, opt-in backends that ship with no third-party adapter boundary and primarily exist to make the contract useful quickly. Those stay as subpath exports on the owning package:
 
 ```text
 @ontrails/store/jsonfile      first-party file-backed store
@@ -138,9 +111,7 @@ This is an explicit carve-out, not a loophole. The rule becomes:
 - `adapters/` packages are reserved for extracted adapters that bind core
   contracts to external libraries, frameworks, tools, or runtimes.
 
-That preserves the one-way dependency arrow at the root package while still
-letting Trails ship "quick win" backends as part of the first-party store
-experience.
+That preserves the one-way dependency arrow at the root package while still letting Trails ship "quick win" backends as part of the first-party store experience.
 
 ### Built-in runtime materializers may stay under the owning surface package
 
@@ -151,10 +122,7 @@ The same dependency test applies to runtime surface materializers:
 - A runtime materializer that binds Trails to a third-party framework, library,
   or ecosystem gets an extracted adapter package.
 
-That distinction keeps `derive*` projection APIs pure without forcing every
-`create*` helper into a top-level package. A projection answers, "what does this
-graph look like on this surface?" A materializer answers, "how do I run that
-projection on this host runtime?"
+That distinction keeps `derive*` projection APIs pure without forcing every `create*` helper into a top-level package. A projection answers, "what does this graph look like on this surface?" A materializer answers, "how do I run that projection on this host runtime?"
 
 For HTTP:
 
@@ -165,32 +133,19 @@ For HTTP:
 @ontrails/hono        createApp(graph), surface(graph)
 ```
 
-`@ontrails/http/fetch` uses Web Standard `Request` and `Response`, which are
-runtime boundary types rather than a third-party framework. It can therefore
-live under `@ontrails/http` without weakening the HTTP route model:
+`@ontrails/http/fetch` uses Web Standard `Request` and `Response`, which are runtime boundary types rather than a third-party framework. It can therefore live under `@ontrails/http` without weakening the HTTP route model:
 
 - [ADR-0005: Framework-Agnostic HTTP Route Model](0005-framework-agnostic-http-route-model.md) — `deriveHttpRoutes` continues to expose a framework-agnostic route projection, while the `./fetch` subpath exposes a reusable Web Fetch materializer for adapters and runtimes.
 
-`@ontrails/http/bun` uses Bun's built-in `Bun.serve` routes table. It adds a
-Bun runtime requirement but no package dependency on a third-party framework, so
-it stays as a subpath on `@ontrails/http`. A standalone `@ontrails/bun` package
-would add package ceremony without buying a new dependency or governance
-boundary.
+`@ontrails/http/bun` uses Bun's built-in `Bun.serve` routes table. It adds a Bun runtime requirement but no package dependency on a third-party framework, so it stays as a subpath on `@ontrails/http`. A standalone `@ontrails/bun` package would add package ceremony without buying a new dependency or governance boundary.
 
-`@ontrails/hono` remains extracted because Hono is a third-party framework and a
-real dependency boundary. It composes over `@ontrails/http/fetch` rather than
-duplicating Web request parsing, error projection, webhook handling, or
-diagnostics.
+`@ontrails/hono` remains extracted because Hono is a third-party framework and a real dependency boundary. It composes over `@ontrails/http/fetch` rather than duplicating Web request parsing, error projection, webhook handling, or diagnostics.
 
-This rule does not imply a standalone package for every vendor-named adapter.
-For example, v1 OTel support remains at `@ontrails/tracing/otel` unless the
-implementation needs a hard OpenTelemetry SDK dependency or a separate release
-boundary.
+This rule does not imply a standalone package for every vendor-named adapter. For example, v1 OTel support remains at `@ontrails/tracing/otel` unless the implementation needs a hard OpenTelemetry SDK dependency or a separate release boundary.
 
 ### Adapters can stack
 
-An extracted package can bind a core contract directly, or it can layer on top
-of another extracted surface:
+An extracted package can bind a core contract directly, or it can layer on top of another extracted surface:
 
 ```typescript
 import { createApp } from '@ontrails/hono';
@@ -199,9 +154,7 @@ import { vite } from '@ontrails/vite';
 server.middlewares.use('/api', vite(createApp(graph)));
 ```
 
-The Vite package does not invent a second HTTP contract. It adapts the Hono
-surface that already exists. This stacking model is part of the adapter
-composition story.
+The Vite package does not invent a second HTTP contract. It adapts the Hono surface that already exists. This stacking model is part of the adapter composition story.
 
 ### Migration from subpaths to extracted packages
 
@@ -211,16 +164,11 @@ composition story.
 | `@ontrails/http/hono` | `@ontrails/hono` |
 | `@ontrails/with-jsonfile` | `@ontrails/store/jsonfile` |
 
-This is a breaking change in import paths for extracted adapters. First
-party built-in store backends remain available as opt-in `@ontrails/store/*`
-subpaths.
+This is a breaking change in import paths for extracted adapters. First party built-in store backends remain available as opt-in `@ontrails/store/*` subpaths.
 
 ### The resource and surface boundaries are unchanged
 
-The `resource()` primitive[^1] is still the stable seam for infrastructure.
-Extracted packages produce resources or materialize surfaces. Trails consume
-resources. Graphs still derive projections and open boundaries the same way.
-Nothing about trail contracts changes because adapter code moved.
+The `resource()` primitive[^1] is still the stable seam for infrastructure. Extracted packages produce resources or materialize surfaces. Trails consume resources. Graphs still derive projections and open boundaries the same way. Nothing about trail contracts changes because adapter code moved.
 
 ```typescript
 // Before: adapter lives in store package

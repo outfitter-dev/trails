@@ -78,9 +78,7 @@ await surface(graph, {
 });
 ```
 
-`surface(graph, options)` and `createServer(graph, options)` accept the same
-options bag: `name`, `version`, `description`, `include`, `exclude`, `intent`,
-`layers`, `createContext`, `configValues`, `resources`, and `validate`.
+`surface(graph, options)` and `createServer(graph, options)` accept the same options bag: `name`, `version`, `description`, `include`, `exclude`, `intent`, `layers`, `createContext`, `configValues`, `resources`, and `validate`.
 
 ## Escape Hatch
 

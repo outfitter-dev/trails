@@ -15,14 +15,7 @@ depends_on: [14, 15, 17, 35]
 
 ### `@ontrails/schema` is misnamed for what it actually owns
 
-Before the package rename, `@ontrails/schema` exported almost nothing about
-authoring schemas. Its `src/index.ts` listed derivation, hash, diff, and
-file-I/O helpers for a *resolved* graph rather than primitive schema authoring
-APIs.[^schema-index] The current Topographer API keeps that lifecycle role
-explicit through `deriveTopoGraph()`, `deriveTopoGraphHash()`,
-`deriveTopoGraphDiff()`, `writeTopoGraph()`, `readTopoGraph()`,
-`writeLockManifest()`, and `readLockManifest()`. None of these are used while a
-trail executes.
+Before the package rename, `@ontrails/schema` exported almost nothing about authoring schemas. Its `src/index.ts` listed derivation, hash, diff, and file-I/O helpers for a *resolved* graph rather than primitive schema authoring APIs.[^schema-index] The current Topographer API keeps that lifecycle role explicit through `deriveTopoGraph()`, `deriveTopoGraphHash()`, `deriveTopoGraphDiff()`, `writeTopoGraph()`, `readTopoGraph()`, `writeLockManifest()`, and `readLockManifest()`. None of these are used while a trail executes.
 
 The naming wasn't always wrong. OpenAPI generation lived in `@ontrails/schema` until the precedent was set that "schema is for primitive schema declarations, not surface-specific projections," and OpenAPI was relocated to `@ontrails/http`.[^trl-586] What's left after that move isn't primitive schema declarations — it's durable artifacts derived from the graph. The package's content is one shape; its name describes another.
 
@@ -34,13 +27,7 @@ The mirror problem lives inside `@ontrails/core`. `packages/core/src/index.ts` l
 import { topoStore } from '@ontrails/core';
 ```
 
-But the topo store is the read-only *projection of a persisted snapshot*
-established by [ADR-0015: Topo Store](0015-topo-store.md). It writes rows to
-`.trails/state/trails.db`. It tracks history across builds. It produces
-TopoGraph and lock-manifest exports. None of that runs to dispatch a trail; the
-in-memory `ReadonlyMap` is the dispatch engine.[^adr-15-execution] What ships
-from core today as if it were a graph primitive is, in lifecycle terms, a
-tooling artifact.
+But the topo store is the read-only *projection of a persisted snapshot* established by [ADR-0015: Topo Store](0015-topo-store.md). It writes rows to `.trails/state/trails.db`. It tracks history across builds. It produces TopoGraph and lock-manifest exports. None of that runs to dispatch a trail; the in-memory `ReadonlyMap` is the dispatch engine.[^adr-15-execution] What ships from core today as if it were a graph primitive is, in lifecycle terms, a tooling artifact.
 
 ### Two misfiles, one boundary
 
@@ -48,13 +35,7 @@ Both misfiles point at the same missing piece: there is no single, declared rule
 
 ### The forcing artifact is on the backlog
 
-[TRL-403] proposes extending the committed topo artifacts to catalog trail IDs
-across apps so `trails run <id>` can resolve a trail ID workspace-wide. That
-requires `topo.lock` workspace metadata and snapshot identity updates (adding
-`appName` / `appId` to `TopoSnapshot`). Settling the package boundary inside
-that feature PR is exactly the wrong order. Settling it now lets TRL-403, the
-wayfinder draft work, and any future workspace-catalog feature land into a
-defined home instead of an unlabeled basement.
+[TRL-403] proposes extending the committed topo artifacts to catalog trail IDs across apps so `trails run <id>` can resolve a trail ID workspace-wide. That requires `topo.lock` workspace metadata and snapshot identity updates (adding `appName` / `appId` to `TopoSnapshot`). Settling the package boundary inside that feature PR is exactly the wrong order. Settling it now lets TRL-403, the wayfinder draft work, and any future workspace-catalog feature land into a defined home instead of an unlabeled basement.
 
 ### The frame that does the work
 
@@ -181,9 +162,7 @@ Migration from teaching docs and consumer code is one-line per import:
 
 `docs/topo-store.md` and `docs/topo-store-reference.md` update accordingly. The changeset entry flags this as a breaking beta change with explicit migration notes. Core gains no dependency on Topographer. Downstream apps and packages that need the topo store import Topographer directly.
 
-Lower-level direct DB-handle helpers are intentionally public through
-`@ontrails/topographer/backend-support`; the root package remains focused on
-durable graph contracts and read-oriented topo-store conveniences.
+Lower-level direct DB-handle helpers are intentionally public through `@ontrails/topographer/backend-support`; the root package remains focused on durable graph contracts and read-oriented topo-store conveniences.
 
 The `trails-db` helpers listed earlier ([above](#the-shared-database-primitive-is-not-the-topo-subsystem)) are explicitly out of scope for this relocation.
 
@@ -247,11 +226,7 @@ This ADR does not:
 
 ### Risks
 
-- **Drift between in-memory read APIs and persisted artifacts.** If core grows a
-  richer `Topo` read API while Topographer's `TopoGraph` shape doesn't keep
-  pace, the two views of "what's in the graph" can disagree. Mitigation: the
-  TopoGraph derivation reads from the same `Topo` value at build time, so
-  disagreement surfaces as a derivation difference, not as silent drift.
+- **Drift between in-memory read APIs and persisted artifacts.** If core grows a richer `Topo` read API while Topographer's `TopoGraph` shape doesn't keep pace, the two views of "what's in the graph" can disagree. Mitigation: the TopoGraph derivation reads from the same `Topo` value at build time, so disagreement surfaces as a derivation difference, not as silent drift.
 - **Pressure to reintroduce a Topographer dependency in core.** A future feature might want core to import Topographer for "just one thing." The boundary holds only if that pressure is rejected. Mitigation: this ADR is the explicit answer when that pressure arrives — core does not depend on Topographer.
 - **Lockfile creep onto the runtime path.** A future optimization (signed lockfiles, frozen production graphs) could argue for runtime lockfile reads. That is a real future decision, [explicitly flagged below](#non-decisions). Until that ADR is written and accepted, the runtime never reads the lockfile.
 

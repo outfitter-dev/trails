@@ -27,11 +27,7 @@ This is the cobbler's children problem. The framework that exists to eliminate r
 
 ### The insight
 
-Warden rules are already trails (`wardenTopo` exists in the current codebase).
-But they run in their own isolated topo with their own execution path. The lock
-manifest generator is a pure function from topo artifact state to text output.
-The TopoGraph generator is a pure function from topo state to JSON. The tracing
-aggregation queries are pure functions from execution records to summaries.
+Warden rules are already trails (`wardenTopo` exists in the current codebase). But they run in their own isolated topo with their own execution path. The lock manifest generator is a pure function from topo artifact state to text output. The TopoGraph generator is a pure function from topo state to JSON. The tracing aggregation queries are pure functions from execution records to summaries.
 
 These are all trails. They take input (topo state, execution records, source files), produce output (diagnostics, lockfiles, reports), and have testable examples. The only reason they're not expressed as trails is that the framework's operational lifecycle predates the primitives that could express it.
 

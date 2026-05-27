@@ -146,16 +146,13 @@ created.id;
 
 ## Adapter Support Subpath
 
-Adapter authors who bind a `store(...)` definition to a concrete backend should
-import signal-binding helpers from `@ontrails/store/adapter-support`:
+Adapter authors who bind a `store(...)` definition to a concrete backend should import signal-binding helpers from `@ontrails/store/adapter-support`:
 
 ```typescript
 import { bindStoreDefinition } from '@ontrails/store/adapter-support';
 ```
 
-The subpath owns `bindStoreDefinition`, `createStoreTableSignals`,
-`composeStoreSignalId`, `isValidResourceId`, and `StoreSignalChange`. The root
-package stays focused on backend-agnostic store contracts.
+The subpath owns `bindStoreDefinition`, `createStoreTableSignals`, `composeStoreSignalId`, `isValidResourceId`, and `StoreSignalChange`. The root package stays focused on backend-agnostic store contracts.
 
 Writable bindings fire those canonical scoped signals automatically when you access the resource through `db.from(ctx)` inside a trail context.
 
@@ -227,8 +224,7 @@ This keeps the default happy path derived and typed, while still giving you full
 
 ## Adapter binding
 
-`@ontrails/drizzle` keeps the durable `store(...)` declaration in
-`@ontrails/store` and binds it to a concrete runtime:
+`@ontrails/drizzle` keeps the durable `store(...)` declaration in `@ontrails/store` and binds it to a concrete runtime:
 
 ```typescript
 import { connectDrizzle, connectReadOnlyDrizzle } from '@ontrails/drizzle';
@@ -249,13 +245,11 @@ export const readonly = connectReadOnlyDrizzle(definition, {
 });
 ```
 
-The root package still owns the authored persistence model; adapter packages
-project that model into runnable resources.
+The root package still owns the authored persistence model; adapter packages project that model into runnable resources.
 
 ## Schema export for external tooling
 
-If you need the raw derived Drizzle tables for tooling such as `drizzle-kit`,
-read them from the bound resource's `tables` field:
+If you need the raw derived Drizzle tables for tooling such as `drizzle-kit`, read them from the bound resource's `tables` field:
 
 ```typescript
 import { connectDrizzle } from '@ontrails/drizzle';

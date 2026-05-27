@@ -19,17 +19,9 @@ depends_on: [17, 27, 42]
 
 ### Agents work on files; Trails has a richer substrate
 
-Agents in any framework — Trails included — currently work on files. They read,
-grep, infer. Trails has a richer substrate than files (the contract, the topo,
-the resolved graph), but that substrate is exposed today for tooling and humans,
-not for the agents who do most of the work. Without a queryable, agent-shaped
-view, agents must hold the codebase in their context window. That model is
-fragile, drifts as the conversation moves, resets on compaction, and gets
-re-derived expensively from `grep` plus reads.
+Agents in any framework — Trails included — currently work on files. They read, grep, infer. Trails has a richer substrate than files (the contract, the topo, the resolved graph), but that substrate is exposed today for tooling and humans, not for the agents who do most of the work. Without a queryable, agent-shaped view, agents must hold the codebase in their context window. That model is fragile, drifts as the conversation moves, resets on compaction, and gets re-derived expensively from `grep` plus reads.
 
-This is the LSP analogy at its sharpest: human developers in modern IDEs do not
-memorize codebases — they use go-to-definition. Agents have been forced to
-memorize because go-to-definition did not exist for them.
+This is the LSP analogy at its sharpest: human developers in modern IDEs do not memorize codebases — they use go-to-definition. Agents have been forced to memorize because go-to-definition did not exist for them.
 
 ### The tenets already demand this primitive
 
@@ -44,33 +36,17 @@ memorize because go-to-definition did not exist for them.
 
 ### Substrate honesty
 
-The serialized graph today is the TopoGraph plus the topo store, not yet every
-possible runtime observation described in [ADR-0017]. [ADR-0042] settled the
-substrate boundary: durable graph artifacts live in `@ontrails/topographer`,
-core stays runtime-only. Wayfinding v0 sits on top of those artifacts, and must
-be honest about what they contain — every query must be answerable from the
-shipped `TopoGraph` and topo-store record shapes, or be marked deferred.
+The serialized graph today is the TopoGraph plus the topo store, not yet every possible runtime observation described in [ADR-0017]. [ADR-0042] settled the substrate boundary: durable graph artifacts live in `@ontrails/topographer`, core stays runtime-only. Wayfinding v0 sits on top of those artifacts, and must be honest about what they contain — every query must be answerable from the shipped `TopoGraph` and topo-store record shapes, or be marked deferred.
 
 ### The recursive property
 
-A query against the topo has typed input, typed output, and a pure
-implementation. That makes it a trail by definition. Each query has examples,
-projects to CLI, MCP, and HTTP via the existing surface mechanism, and is
-itself navigable through wayfinding queries. There is no special navigation
-runtime, no new surface type — the wayfinder is a topo of trails over the
-serialized graph, exporting itself like any other package. The graph contains
-the tools that traverse the graph.
+A query against the topo has typed input, typed output, and a pure implementation. That makes it a trail by definition. Each query has examples, projects to CLI, MCP, and HTTP via the existing surface mechanism, and is itself navigable through wayfinding queries. There is no special navigation runtime, no new surface type — the wayfinder is a topo of trails over the serialized graph, exporting itself like any other package. The graph contains the tools that traverse the graph.
 
 ## Decision
 
 ### Wayfinding is trails over `@ontrails/topographer` artifacts
 
-Wayfinding does not introduce a new primitive. The wayfinder is a package of
-trails whose blazes read the durable graph artifacts owned by
-`@ontrails/topographer`: `TopoGraph`, lock manifest helpers, `DiffResult`, and the
-read-only topo store records (`TopoStoreTrailRecord`,
-`TopoStoreTrailDetailRecord`, `TopoStoreResourceRecord`,
-`TopoStoreSignalRecord`).
+Wayfinding does not introduce a new primitive. The wayfinder is a package of trails whose blazes read the durable graph artifacts owned by `@ontrails/topographer`: `TopoGraph`, lock manifest helpers, `DiffResult`, and the read-only topo store records (`TopoStoreTrailRecord`, `TopoStoreTrailDetailRecord`, `TopoStoreResourceRecord`, `TopoStoreSignalRecord`).
 
 This means:
 
@@ -87,10 +63,7 @@ This means:
 
 ### v0 query catalog
 
-The v0 catalog is deliberately narrow. The test for inclusion: every query
-must answer from the data already present in `TopoGraph` and the topo-store
-read API today. Queries that need substrate the graph does not yet expose are
-deferred, not ambitiously promised.
+The v0 catalog is deliberately narrow. The test for inclusion: every query must answer from the data already present in `TopoGraph` and the topo-store read API today. Queries that need substrate the graph does not yet expose are deferred, not ambitiously promised.
 
 | Trail ID | Purpose | Substrate today | Status |
 |---|---|---|---|
@@ -98,24 +71,18 @@ deferred, not ambitiously promised.
 | `wayfind.search` | Find trails, contours, resources, or signals by ID, namespace pattern, or intent filter | `TopoGraph.entries[].id`, `kind`, `intent` | v0 |
 | `wayfind.describe` | Return the full record for one entity by ID | `TopoGraphEntry` plus `TopoStoreTrailDetailRecord` for the requested entity | v0 |
 | `wayfind.signature` | Tight input / output / intent / idempotent view for a trail | `TopoGraphEntry.input`, `output`, `intent`, `idempotent` | v0 |
-| `wayfind.neighborhood` | Nearby graph: `crosses`, `crossed-by`, `contours`, `resources`, `signals` (one query, `direction` parameter) | `TopoGraphEntry.crosses`, `producers`, `consumers`, `resources`, `contours` | v0 |
+| `wayfind.neighborhood` | Nearby graph: `composes`, `composed-by`, `contours`, `resources`, `signals` (one query, `direction` parameter) | `TopoGraphEntry.composes`, `producers`, `consumers`, `resources`, `contours` | v0 |
 | `wayfind.projections` | Show CLI, MCP, and HTTP projections for a trail | `TopoGraphEntry.cli`, `TopoGraphEntry.surfaces`, plus surface-derived projections | v0 |
 | `wayfind.examples` | Return examples for a trail or contour | `TopoGraphEntry.examples`, `TopoStoreExampleRecord` | v0 |
 | `wayfind.diff` | Compare two graph snapshots (e.g. `main` vs branch) | `DiffResult` from `deriveTopoGraphDiff` | v0 |
 
-The proto's `wayfind.errors` is **deferred**. Today's `TopoGraphEntry` and
-`TopoStoreTrailRecord` do not catalog declared error classes per trail; the
-error taxonomy ships per surface mapping but is not yet a node-level edge set.
-Reintroduce when the graph carries the data.
+The proto's `wayfind.errors` is **deferred**. Today's `TopoGraphEntry` and `TopoStoreTrailRecord` do not catalog declared error classes per trail; the error taxonomy ships per surface mapping but is not yet a node-level edge set. Reintroduce when the graph carries the data.
 
-The proto's semantic search layer is also deferred. The
-`@ontrails/wayfinder/semantic` slot is reserved (see "Non-decisions"), but the
-deterministic structural skeleton ships first on its own merits.
+The proto's semantic search layer is also deferred. The `@ontrails/wayfinder/semantic` slot is reserved (see "Non-decisions"), but the deterministic structural skeleton ships first on its own merits.
 
 ### Visibility and permit posture
 
-Wayfinder trails are operator and developer tools, not app-public verbs. The
-defaults follow from [ADR-0027]:
+Wayfinder trails are operator and developer tools, not app-public verbs. The defaults follow from [ADR-0027]:
 
 - Every wayfinder trail declares `visibility: 'internal'`. Surfaces filter
   internal trails by default.
@@ -128,31 +95,17 @@ defaults follow from [ADR-0027]:
   CLI surface treats local invocation as implicitly authorized, consistent
   with [ADR-0027] Part 4.
 
-This means an app that mounts `@ontrails/wayfinder` does not accidentally hand
-its agents a self-documenting treasure chest. The graph stays locked unless
-the operator opts in. ADR-0027 already provides the levers; wayfinding leans
-on them.
+This means an app that mounts `@ontrails/wayfinder` does not accidentally hand its agents a self-documenting treasure chest. The graph stays locked unless the operator opts in. ADR-0027 already provides the levers; wayfinding leans on them.
 
 ### Stale-graph policy
 
-When the lockfile or surface map is detectably stale relative to source —
-hash mismatch, missing snapshot id, schema version drift — wayfinding queries
-return successfully with a `freshness` field on the result envelope rather
-than refusing or silently serving stale data. The warden flags freshness
-separately. Wayfinding propagates the signal so callers can react.
+When the lockfile or surface map is detectably stale relative to source — hash mismatch, missing snapshot id, schema version drift — wayfinding queries return successfully with a `freshness` field on the result envelope rather than refusing or silently serving stale data. The warden flags freshness separately. Wayfinding propagates the signal so callers can react.
 
-The exact freshness envelope is part of the implementation work, not the
-decision; what the decision settles is the policy: warn-and-proceed, never
-silently stale, never refuse.
+The exact freshness envelope is part of the implementation work, not the decision; what the decision settles is the policy: warn-and-proceed, never silently stale, never refuse.
 
 ### Tracing falls out for free
 
-Every wayfinding query is a trail invocation, so the tracing primitive
-([ADR-0013] / [ADR-0041]) captures usage history without new machinery. Hot
-paths, empty returns, and recurring composition patterns become queryable
-signal — and because tracing data is itself queryable through the graph, a
-later iteration could surface "what queries do agents run most?" through
-wayfinding itself.
+Every wayfinding query is a trail invocation, so the tracing primitive ([ADR-0013] / [ADR-0041]) captures usage history without new machinery. Hot paths, empty returns, and recurring composition patterns become queryable signal — and because tracing data is itself queryable through the graph, a later iteration could surface "what queries do agents run most?" through wayfinding itself.
 
 ### Package placement
 
@@ -162,15 +115,9 @@ wayfinding itself.
 @ontrails/wayfinder/semantic # optional embedding-backed search (post-v0)
 ```
 
-`@ontrails/topographer` owns the durable substrate. `@ontrails/wayfinder` is
-trails over those artifacts. The split keeps `@ontrails/core` runtime-only
-(per [ADR-0042]) and makes the wayfinder a normal published package whose
-trails join consuming apps through `mount`. The `@ontrails/wayfinder/semantic`
-slot is reserved as a sub-package for the post-v0 embedding layer; v0 ships
-without it.
+`@ontrails/topographer` owns the durable substrate. `@ontrails/wayfinder` is trails over those artifacts. The split keeps `@ontrails/core` runtime-only (per [ADR-0042]) and makes the wayfinder a normal published package whose trails join consuming apps through `mount`. The `@ontrails/wayfinder/semantic` slot is reserved as a sub-package for the post-v0 embedding layer; v0 ships without it.
 
-`TRL-613` (separate, not in this ADR's scope) scaffolds the `@ontrails/wayfinder`
-package shell. This ADR settles the contract; the implementation lives there.
+`TRL-613` (separate, not in this ADR's scope) scaffolds the `@ontrails/wayfinder` package shell. This ADR settles the contract; the implementation lives there.
 
 ### Lexicon impact
 
@@ -181,9 +128,7 @@ Two new vocabulary items, kept conservative:
 - Trail IDs use the `wayfind.` namespace (`wayfind.overview`,
   `wayfind.search`). Reserved for query trails and prose.
 
-Avoid introducing a top-level `wayfind()` function — "wayfind" is unusual as a
-code verb. `direct` and `direction` are not reserved; they remain general
-parameter names where useful (e.g. `wayfind.neighborhood({ direction: 'in' })`).
+Avoid introducing a top-level `wayfind()` function — "wayfind" is unusual as a code verb. `direct` and `direction` are not reserved; they remain general parameter names where useful (e.g. `wayfind.neighborhood({ direction: 'in' })`).
 
 ## Consequences
 

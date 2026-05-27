@@ -216,9 +216,7 @@ logger.clear(); // reset captured entries
 
 ## Surface Harnesses
 
-Surface harnesses are opt-in subpaths. Keep root `@ontrails/testing` for
-contract helpers; import surface helpers from the subpath for the peer package
-you are exercising.
+Surface harnesses are opt-in subpaths. Keep root `@ontrails/testing` for contract helpers; import surface helpers from the subpath for the peer package you are exercising.
 
 ### CLI Harness
 
@@ -276,9 +274,7 @@ testSurfaceParity(graph, {
 });
 ```
 
-Use `@ontrails/testing/established` for `testAllEstablished()` when an
-established app should run root contract checks plus CLI, MCP, and HTTP
-projection validation in one call.
+Use `@ontrails/testing/established` for `testAllEstablished()` when an established app should run root contract checks plus CLI, MCP, and HTTP projection validation in one call.
 
 ## Recommended Test Structure
 

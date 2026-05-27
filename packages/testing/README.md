@@ -91,9 +91,7 @@ Calls to unregistered trail IDs return `Result.err` with a descriptive message, 
 
 ## Surface Harnesses
 
-Surface harnesses live on explicit subpaths so projects that only import
-contract helpers from `@ontrails/testing` do not need CLI, MCP, or HTTP peers.
-Install the peer package for the subpath you use:
+Surface harnesses live on explicit subpaths so projects that only import contract helpers from `@ontrails/testing` do not need CLI, MCP, or HTTP peers. Install the peer package for the subpath you use:
 
 - `@ontrails/testing/cli` requires `@ontrails/cli`
 - `@ontrails/testing/mcp` requires `@ontrails/mcp`
@@ -122,14 +120,11 @@ const response = await http.get('/entity/show', { name: 'Alpha' });
 expect(response.status).toBe(200);
 ```
 
-Use `testAllEstablished()` from `@ontrails/testing/established` when an
-established app should run the root contract suite and validate CLI, MCP, and
-HTTP projections in one call.
+Use `testAllEstablished()` from `@ontrails/testing/established` when an established app should run the root contract suite and validate CLI, MCP, and HTTP projections in one call.
 
 ## Surface Parity
 
-`testSurfaceParity()` is a focused gate for established apps that want to prove
-their examples behave the same through every shipped surface.
+`testSurfaceParity()` is a focused gate for established apps that want to prove their examples behave the same through every shipped surface.
 
 ```typescript
 import { testSurfaceParity } from '@ontrails/testing/surface-parity';
@@ -151,13 +146,7 @@ testSurfaceParity(graph, {
 });
 ```
 
-The helper compares normalized success payloads and normalized TrailsError
-category/code pairs. CLI command names, MCP tool names, HTTP method/path values,
-transport envelopes, activation consumers, internal trails, and planned
-WebSocket work stay outside the equality check. Use `createResources` when
-examples need deterministic fixtures for each surface invocation, and use
-exclusions for intentional semantic differences that should not be silently
-skipped.
+The helper compares normalized success payloads and normalized TrailsError category/code pairs. CLI command names, MCP tool names, HTTP method/path values, transport envelopes, activation consumers, internal trails, and planned WebSocket work stay outside the equality check. Use `createResources` when examples need deterministic fixtures for each surface invocation, and use exclusions for intentional semantic differences that should not be silently skipped.
 
 ## Installation
 

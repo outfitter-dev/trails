@@ -252,10 +252,7 @@ trails survey brief --module ./src/app.ts
 trails survey diff --module ./src/app.ts
 ```
 
-Use `trails topo *` for topo history and pin management. Use `trails compile`
-to write committed lock artifacts and `trails validate` in CI to check them.
-`survey` remains the broader introspection surface for list, detail, and diff
-output.
+Use `trails topo *` for topo history and pin management. Use `trails compile` to write committed lock artifacts and `trails validate` in CI to check them. `survey` remains the broader introspection surface for list, detail, and diff output.
 
 ## Signals
 

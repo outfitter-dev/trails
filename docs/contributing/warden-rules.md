@@ -1,13 +1,8 @@
 # Warden Rules
 
-This guide explains how to author and audit Trails correctness rules so they
-survive framework evolution instead of encoding one audit incident. It applies to
-Warden rules, repo-local lint delivery, advisory guidance, and temporary
-hardening scanners.
+This guide explains how to author and audit Trails correctness rules so they survive framework evolution instead of encoding one audit incident. It applies to Warden rules, repo-local lint delivery, advisory guidance, and temporary hardening scanners.
 
-Use it with [Warden](../warden.md),
-[ADR-0036](../adr/0036-warden-rules-ship-only-as-trails.md), and
-[ADR-0037](../adr/0037-owner-first-authority.md).
+Use it with [Warden](../warden.md), [ADR-0036](../adr/0036-warden-rules-ship-only-as-trails.md), and [ADR-0037](../adr/0037-owner-first-authority.md).
 
 ## Rule Home Doctrine
 
@@ -24,19 +19,11 @@ Use it with [Warden](../warden.md),
   topo-resident canonical tables, generic registries, loader APIs, or
   `derivedFrom` metadata as the default answer to duplicated framework facts.
 
-The tier names here are authoring classifications. Built-in Warden rule
-metadata exposes them from `@ontrails/warden`; runtime tier filtering and
-advisory report shape build on that metadata rather than inventing another rule
-registry.
+The tier names here are authoring classifications. Built-in Warden rule metadata exposes them from `@ontrails/warden`; runtime tier filtering and advisory report shape build on that metadata rather than inventing another rule registry.
 
 ## Authority Model
 
-Use the narrowest effective authority layer. Trails should make mistakes
-impossible by type when it can, catch them with tests when runtime behavior is
-the contract, and put durable semantic checks in Warden when the invariant needs
-source, project, topo, or drift context. Prose or repo-local lint can orient,
-coach, and clean up, but they should not become parallel authority for framework
-facts.
+Use the narrowest effective authority layer. Trails should make mistakes impossible by type when it can, catch them with tests when runtime behavior is the contract, and put durable semantic checks in Warden when the invariant needs source, project, topo, or drift context. Prose or repo-local lint can orient, coach, and clean up, but they should not become parallel authority for framework facts.
 
 | Need | Authority | Notes |
 | --- | --- | --- |
@@ -50,28 +37,15 @@ facts.
 | Impossible-by-type constraints | TypeScript | Output schemas, typed `ctx.compose()`, `resource.from(ctx)`, and other compile-time contracts. |
 | Human and agent orientation | `AGENTS.md` | A map over the executable system, not the only enforcement point. |
 
-When auditing `AGENTS.md`, map each rule to the strongest current authority
-layer and file focused follow-ups for any enforceable rule that remains
-prose-only. The audit is not itself the durable authority; it is a queueing step
-that either points at existing enforcement, explains why prose is intentional, or
-turns the gap into Warden, TypeScript, `testAll`, Oxlint, or ast-grep work.
+When auditing `AGENTS.md`, map each rule to the strongest current authority layer and file focused follow-ups for any enforceable rule that remains prose-only. The audit is not itself the durable authority; it is a queueing step that either points at existing enforcement, explains why prose is intentional, or turns the gap into Warden, TypeScript, `testAll`, Oxlint, or ast-grep work.
 
-Owner-first data beats duplicated rule lists. If Warden needs framework facts
-such as reserved lexicon terms, intent values, error categories, permit rules,
-or Result accessors, it should read them from the module that owns the fact. If
-the owner does not expose a clean typed value, strengthen that owner before
-hardcoding a second list in the rule.
+Owner-first data beats duplicated rule lists. If Warden needs framework facts such as reserved lexicon terms, intent values, error categories, permit rules, or Result accessors, it should read them from the module that owns the fact. If the owner does not expose a clean typed value, strengthen that owner before hardcoding a second list in the rule.
 
-Temporary repo-local rules are allowed when they have a clear lifecycle. TRL-575
-is the precedent: a temporary audit scanner needs an owner, reason, baseline
-count, deletion or promotion trigger, and issue reference. Temporary rules are
-visible debt; durable framework semantics belong in Warden once the invariant is
-understood.
+Temporary repo-local rules are allowed when they have a clear lifecycle. TRL-575 is the precedent: a temporary audit scanner needs an owner, reason, baseline count, deletion or promotion trigger, and issue reference. Temporary rules are visible debt; durable framework semantics belong in Warden once the invariant is understood.
 
 ## Core Principle
 
-Express rules as invariants the framework holds, not as instances of bugs found
-during an audit.
+Express rules as invariants the framework holds, not as instances of bugs found during an audit.
 
 Instance form:
 
@@ -93,8 +67,7 @@ Invariant form:
 }
 ```
 
-The invariant form survives new surfaces, renamed helpers, and future
-extensions. Prefer it whenever deterministic detection is feasible.
+The invariant form survives new surfaces, renamed helpers, and future extensions. Prefer it whenever deterministic detection is feasible.
 
 ## Survival Tests
 
@@ -102,8 +75,7 @@ Run these tests before landing a new rule or refactoring an old one.
 
 ### Mechanism-Renamed Test
 
-If a helper gets renamed tomorrow, does the rule still enforce the same
-framework promise?
+If a helper gets renamed tomorrow, does the rule still enforce the same framework promise?
 
 - Bad: the rule requires a specific helper call when the helper is only
   mechanism.
@@ -115,34 +87,25 @@ framework promise?
 
 Can you name three instances of the same shape today?
 
-If yes, write the family-level rule. If no, either refuse the rule or give it a
-binding `retireWhen` clause with mechanical enforcement. A soft note is not an
-expiry plan.
+If yes, write the family-level rule. If no, either refuse the rule or give it a binding `retireWhen` clause with mechanical enforcement. A soft note is not an expiry plan.
 
 ### Data-Source Test
 
 Does the rule duplicate framework data that an owner module already declares?
 
-Read owner exports for error classes, surface code mappings, intent values, CRUD
-doctrine, detour caps, Result accessor names, adapter descriptors, and reserved
-lexicon terms. If the owner does not expose the data cleanly, strengthen the
-owner first.
+Read owner exports for error classes, surface code mappings, intent values, CRUD doctrine, detour caps, Result accessor names, adapter descriptors, and reserved lexicon terms. If the owner does not expose the data cleanly, strengthen the owner first.
 
 ### Surface-Extension Test
 
-When a new surface, primitive, or extension lands, does the rule extend through
-owner data or do we need a sibling rule?
+When a new surface, primitive, or extension lands, does the rule extend through owner data or do we need a sibling rule?
 
-Sibling rules per surface or primitive usually mean the invariant is too low
-level.
+Sibling rules per surface or primitive usually mean the invariant is too low level.
 
 ### Context Test
 
-Is the rule universal, extension-only, internal-only, repo-local, temporary, or
-advisory?
+Is the rule universal, extension-only, internal-only, repo-local, temporary, or advisory?
 
-The limitation must be principled. "We only wrote the detector for one context"
-is not a principle.
+The limitation must be principled. "We only wrote the detector for one context" is not a principle.
 
 ## Owner-First Authority
 
@@ -166,12 +129,9 @@ When a rule needs one of these values:
 3. Use rule-owned configuration only when the list itself is policy, not a
    projection of framework data.
 
-Curated rule data is valid when it is policy. For example,
-`context-no-surface-types` can own its denylist until another independent
-consumer appears or drift proves the list belongs elsewhere.
+Curated rule data is valid when it is policy. For example, `context-no-surface-types` can own its denylist until another independent consumer appears or drift proves the list belongs elsewhere.
 
-Consumer apps do not author framework authority. Their topo is their local
-source of truth; framework rules read framework owners.
+Consumer apps do not author framework authority. Their topo is their local source of truth; framework rules read framework owners.
 
 ## Rule Shapes
 
@@ -188,48 +148,26 @@ Use recurring shapes to avoid writing the third sibling rule.
 | Vocabulary-banned-term | Source identifier uses retired vocabulary | Reserved terms in TS/JS source |
 | Declaration-requires-companion | Declaration needs infrastructure to run | Source kind and materializer, resource and adapter |
 
-Collapse only when data model, traversal, and diagnostic shape are genuinely
-shared. Similar English is not enough.
+Collapse only when data model, traversal, and diagnostic shape are genuinely shared. Similar English is not enough.
 
 ## Source-File Vocabulary Rules
 
-Retired vocabulary checks apply to source files. Documentation vocabulary is an
-editorial review or docs-cutover concern.
+Retired vocabulary checks apply to source files. Documentation vocabulary is an editorial review or docs-cutover concern.
 
-When a rule fires on a word, import path, or literal symbol, scope it to the role
-the rule owns.
+When a rule fires on a word, import path, or literal symbol, scope it to the role the rule owns.
 
 - Prefer AST positions over free-text matches.
 - Exclude unrelated third-party or domain uses.
 - List rule-owned roles explicitly when a word has legitimate meanings outside
   the Trails concept being retired.
 
-The repo-local `no-retired-lexicon-terms` Oxlint rule is the source-file guard
-for retired lexicon terms. It reads retired terms from the `docs/lexicon.md`
-Reserved Terms table and checks source-owned symbol roles such as identifiers,
-local or `@ontrails/*` import paths, object keys, and literal member properties.
-It intentionally does not lint Markdown prose; docs and historical mention-class
-coverage stays in the vocabulary audit path so migration docs, changelogs, ADRs,
-and contrastive explanations can be classified instead of blindly rewritten.
-`bun run check` runs `bun run vocab:audit` so active docs, scripts, and package
-sources also fail when retired cutover vocabulary reappears outside explicit
-history, migration, or legacy-cleanup seams. The TopoGraph artifact-family guard
-uses this path for the retired artifact-family names listed in the lexicon's
-retired-vocabulary table, including legacy root DB paths and pre-M4b workspace
-directories.
+The repo-local `no-retired-lexicon-terms` Oxlint rule is the source-file guard for retired lexicon terms. It reads retired terms from the `docs/lexicon.md` Reserved Terms table and checks source-owned symbol roles such as identifiers, local or `@ontrails/*` import paths, object keys, and literal member properties. It intentionally does not lint Markdown prose; docs and historical mention-class coverage stays in the vocabulary audit path so migration docs, changelogs, ADRs, and contrastive explanations can be classified instead of blindly rewritten. `bun run check` runs `bun run vocab:audit` so active docs, scripts, and package sources also fail when retired cutover vocabulary reappears outside explicit history, migration, or legacy-cleanup seams. The TopoGraph artifact-family guard uses this path for the retired artifact-family names listed in the lexicon's retired-vocabulary table, including legacy root DB paths and pre-M4b workspace directories.
 
 ## Ast-Grep Structural Rules
 
-The `.ast-grep/` ruleset is repo-local structural lint, paired with Warden rather
-than replacing it. Use it for high-confidence syntax shapes where the invariant
-is already owned and named by Warden, such as direct `.blaze()` calls or
-`Result.err(new Error(...))`. Keep topo-aware, project-static, owner-projection,
-and scope-sensitive checks in Warden.
+The `.ast-grep/` ruleset is repo-local structural lint, paired with Warden rather than replacing it. Use it for high-confidence syntax shapes where the invariant is already owned and named by Warden, such as direct `.blaze()` calls or `Result.err(new Error(...))`. Keep topo-aware, project-static, owner-projection, and scope-sensitive checks in Warden.
 
-Experimental ast-grep queries may live outside `.ast-grep/rules/` so they are
-available for audits without blocking CI. Promote one into the blocking rule
-directory only after it is clean on the current tree and its false-positive
-profile is understood.
+Experimental ast-grep queries may live outside `.ast-grep/rules/` so they are available for audits without blocking CI. Promote one into the blocking rule directory only after it is clean on the current tree and its false-positive profile is understood.
 
 ## Existing Rule Audit Checklist
 
@@ -286,5 +224,4 @@ When an audit produces a prevention candidate:
 6. Add tests that prove both accepted code and the diagnostic shape.
 7. Record any temporary rule's deletion trigger.
 
-Forward-looking skills, docs, and advisory reports can consume owner data and
-Warden findings. They do not become parallel authority.
+Forward-looking skills, docs, and advisory reports can consume owner data and Warden findings. They do not become parallel authority.

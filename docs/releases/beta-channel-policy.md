@@ -1,13 +1,10 @@
 # Beta Channel Policy
 
-This policy applies while Trails remains in the `1.0.0-beta.N` prerelease
-line.
+This policy applies while Trails remains in the `1.0.0-beta.N` prerelease line.
 
 ## Runtime Requirement
 
-Trails requires Bun. The published `trails` CLI bin uses
-`#!/usr/bin/env bun`; Node-only invocation through `npx` or `node` is not
-supported.
+Trails requires Bun. The published `trails` CLI bin uses `#!/usr/bin/env bun`; Node-only invocation through `npx` or `node` is not supported.
 
 For direct package invocation before a project has been scaffolded, use Bun:
 
@@ -15,8 +12,7 @@ For direct package invocation before a project has been scaffolded, use Bun:
 bunx --bun --package @ontrails/trails@beta trails <subcommand>
 ```
 
-Scaffolded projects should prefer their generated package scripts, such as
-`bun run warden`, `bun run survey`, and `bun run topo`.
+Scaffolded projects should prefer their generated package scripts, such as `bun run warden`, `bun run survey`, and `bun run topo`.
 
 ## Consumer Installs
 
@@ -39,13 +35,11 @@ bun add @ontrails/http@beta @ontrails/hono@beta
 bun add -d @ontrails/testing@beta
 ```
 
-For fully reproducible docs, replace `@beta` with the exact beta version named
-by the release packet.
+For fully reproducible docs, replace `@beta` with the exact beta version named by the release packet.
 
 ## Dist-Tag Posture
 
-`.changeset/pre.json` is the channel source while it has `mode: "pre"`. The
-current prerelease tag is `beta`.
+`.changeset/pre.json` is the channel source while it has `mode: "pre"`. The current prerelease tag is `beta`.
 
 The release scripts follow that source:
 
@@ -57,14 +51,9 @@ The release scripts follow that source:
 - `bun run publish:registry-check:published` verifies the expected dist-tag
   after publication.
 
-During the beta line, `latest` may intentionally lag behind `beta`. Operators
-should not advance `latest` after every beta publication. Move `latest` only
-when leaving prerelease mode for the stable 1.x line, or after a separate
-explicit release decision that says a beta should become the unqualified
-default.
+During the beta line, `latest` may intentionally lag behind `beta`. Operators should not advance `latest` after every beta publication. Move `latest` only when leaving prerelease mode for the stable 1.x line, or after a separate explicit release decision that says a beta should become the unqualified default.
 
-Do not use `npm publish`, `changeset publish`, or ad hoc dist-tag mutation for
-normal Trails package releases.
+Do not use `npm publish`, `changeset publish`, or ad hoc dist-tag mutation for normal Trails package releases.
 
 ## Read-Only Registry Checks
 
@@ -74,8 +63,7 @@ The standard beta posture check is:
 bun run publish:registry-check
 ```
 
-Its output validates the expected tag and prints both `latest` and `beta` for
-each published public workspace package, making tag lag visible.
+Its output validates the expected tag and prints both `latest` and `beta` for each published public workspace package, making tag lag visible.
 
 For a small representative spot check:
 
@@ -85,13 +73,11 @@ for pkg in @ontrails/core @ontrails/commander @ontrails/testing @ontrails/topogr
 done
 ```
 
-That command is read-only. It should show whether `latest` and `beta` point at
-different versions.
+That command is read-only. It should show whether `latest` and `beta` point at different versions.
 
 ## Version-Bump Cadence
 
-Every PR that changes publishable `@ontrails/*` package contents needs a
-branch-local changeset unless the PR is explicitly labeled `release:none`.
+Every PR that changes publishable `@ontrails/*` package contents needs a branch-local changeset unless the PR is explicitly labeled `release:none`.
 
 After substantial stacks merge to `main`:
 
@@ -113,11 +99,8 @@ After substantial stacks merge to `main`:
    `bun run publish:packages`, then
    `bun run publish:registry-check:published`.
 
-Feature branches and release-readiness stacks may run read-only checks, but they
-must not publish.
+Feature branches and release-readiness stacks may run read-only checks, but they must not publish.
 
 ## Future Channels
 
-`next` and `canary` are out of scope for the pre-1.0 beta line. Introducing
-another prerelease channel needs a focused policy issue or ADR amendment before
-any script, docs, or release operator starts using it.
+`next` and `canary` are out of scope for the pre-1.0 beta line. Introducing another prerelease channel needs a focused policy issue or ADR amendment before any script, docs, or release operator starts using it.

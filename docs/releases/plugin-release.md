@@ -1,15 +1,8 @@
 # Plugin Release Runbook
 
-This runbook covers the Trails Claude plugin and bundled skills under
-`plugin/` plus the marketplace manifest at `.claude-plugin/marketplace.json`.
-It is separate from the framework package publish path in
-[Stable Cutover Runbook](./stable-cutover.md).
+This runbook covers the Trails Claude plugin and bundled skills under `plugin/` plus the marketplace manifest at `.claude-plugin/marketplace.json`. It is separate from the framework package publish path in [Stable Cutover Runbook](./stable-cutover.md).
 
-The current plugin manifest version is `0.3.0`. The bundled `trails` skill
-targets Trails framework `1.0.0-beta.18` through
-`metadata.trails.version`. Those versions are intentionally independent:
-plugin version names the Claude plugin bundle, while the skill target names the
-framework package line the guidance was refreshed against.
+The current plugin manifest version is `0.3.0`. The bundled `trails` skill targets Trails framework `1.0.0-beta.18` through `metadata.trails.version`. Those versions are intentionally independent: plugin version names the Claude plugin bundle, while the skill target names the framework package line the guidance was refreshed against.
 
 ## Stop Rules
 
@@ -21,8 +14,7 @@ Do not run any of these without explicit operator approval:
 - mutate `$HOME/.agents/skills/trails`, `$HOME/.config/claude/skills/trails`,
   or `$HOME/.config/codex/skills/trails`.
 
-If an installer or marketplace probe cannot be pointed at a disposable target,
-mark it externally/manual blocked instead of testing against a real profile.
+If an installer or marketplace probe cannot be pointed at a disposable target, mark it externally/manual blocked instead of testing against a real profile.
 
 ## Preflight
 
@@ -41,52 +33,32 @@ bun run format:check
 git diff --check
 ```
 
-Run the installed-skill drift check, but interpret it as a release-readiness
-signal rather than an automatic sync command:
+Run the installed-skill drift check, but interpret it as a release-readiness signal rather than an automatic sync command:
 
 ```bash
 bun run plugin:installed-skill:check
 ```
 
-Passing means local installed copies match the repo-bundled plugin skill.
-Failing means the plugin can still be released, but local/global skill copies
-must be treated as intentionally decoupled until an operator explicitly
-refreshes them.
+Passing means local installed copies match the repo-bundled plugin skill. Failing means the plugin can still be released, but local/global skill copies must be treated as intentionally decoupled until an operator explicitly refreshes them.
 
 ## Dogfood Gate
 
-Use the latest dogfood report from the active release packet before release.
-For this refresh stack, that report is:
+Use the latest dogfood report from the active release packet before release. For this refresh stack, that report is:
 
 - `.agents/plans/2026-05-21-plugin-skills-refresh-stack/reports/trl-752-dogfood.md`
 
-Every future release packet should replace or supersede that pointer with fresh
-dogfood evidence. The report must cover:
+Every future release packet should replace or supersede that pointer with fresh dogfood evidence. The report must cover:
 
 - registry `bun install` succeeds for scaffolded package ranges;
-- a repaired disposable app passes typecheck, tests, build, lint, format,
-  CLI smoke, Warden, `testAllEstablished` from
-  `@ontrails/testing/established`, `testSurfaceParity` from
-  `@ontrails/testing/surface-parity`, and the CLI, MCP, and HTTP harness
-  helpers from their matching testing subpaths;
-- raw scaffold output findings are recorded, including any lint, format,
-  typecheck, or Warden coaching needed before the disposable app is clean;
-- published CLI command coverage is compared against current repo CLI command
-  coverage.
+- a repaired disposable app passes typecheck, tests, build, lint, format, CLI smoke, Warden, `testAllEstablished` from `@ontrails/testing/established`, `testSurfaceParity` from `@ontrails/testing/surface-parity`, and the CLI, MCP, and HTTP harness helpers from their matching testing subpaths;
+- raw scaffold output findings are recorded, including any lint, format, typecheck, or Warden coaching needed before the disposable app is clean;
+- published CLI command coverage is compared against current repo CLI command coverage.
 
-Current refresh evidence records two release-readiness risks that must be
-refreshed before future publication: raw scaffold output was not clean without
-edits, and published `@ontrails/trails@1.0.0-beta.18` exposed `warden` but not
-`compile`/`validate`. These do not require publishing the plugin to stop, but
-release notes and install docs must not imply a published CLI already has
-commands that only exist in the repo.
+Current refresh evidence records two release-readiness risks that must be refreshed before future publication: raw scaffold output was not clean without edits, and published `@ontrails/trails@1.0.0-beta.18` exposed `warden` but not `compile`/`validate`. These do not require publishing the plugin to stop, but release notes and install docs must not imply a published CLI already has commands that only exist in the repo.
 
 ## Changes Since Plugin 0.3.0 Manifest
 
-The refresh stack keeps the manifest at `0.3.0` unless the operator chooses to
-bump it before publication. Before publishing, decide whether the marketplace
-requires a version bump for the refreshed bundle. If it does, update
-`plugin/.claude-plugin/plugin.json`, then run:
+The refresh stack keeps the manifest at `0.3.0` unless the operator chooses to bump it before publication. Before publishing, decide whether the marketplace requires a version bump for the refreshed bundle. If it does, update `plugin/.claude-plugin/plugin.json`, then run:
 
 ```bash
 bun run plugin:metadata:sync
@@ -108,17 +80,14 @@ Branch-local changes since the current `0.3.0` manifest include:
 
 ## Manual / External Checks
 
-These checks were not run in the refresh stack because they would mutate
-external state or require an approved runtime profile:
+These checks were not run in the refresh stack because they would mutate external state or require an approved runtime profile:
 
 - Claude marketplace publish or republish.
-- Claude runtime precedence when the repo plugin and a global installed skill
-  both provide `trails`.
+- Claude runtime precedence when the repo plugin and a global installed skill both provide `trails`.
 - `npx skills outfitter-dev/trails` installer behavior against a real profile.
 - Global installed skill refresh.
 
-Run them only in an approved disposable target or operator-owned profile, then
-record the result in the release issue before marking release complete.
+Run them only in an approved disposable target or operator-owned profile, then record the result in the release issue before marking release complete.
 
 ## Publication Handoff
 
@@ -134,6 +103,4 @@ Before any external publication:
    metadata checks.
 6. Run the manual/external checks above only with explicit approval.
 
-If any external step fails, stop and record the exact command, target profile,
-and failure in the release issue. Do not retry against a real global profile
-while guessing.
+If any external step fails, stop and record the exact command, target profile, and failure in the release issue. Do not retry against a real global profile while guessing.

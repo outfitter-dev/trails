@@ -422,15 +422,15 @@ Rig dependencies:
   kubectl 1.29.0     4 trails (k8s.pods.list, k8s.deploy.status, ...)
   mcp:github-server   3 trails (github.repos.search, ...)
 
-Trails with rig dependencies: 18 direct, 7 via cross chains
+Trails with rig dependencies: 18 direct, 7 via compose chains
 ```
 
-Trails that cross into rigged trails inherit rig awareness in survey output:
+Trails that compose rigged trails inherit rig awareness in survey output:
 
 ```json
 {
   "id": "repo.recent-activity",
-  "crosses": ["git.log", "git.diff"],
+  "composes": ["git.log", "git.diff"],
   "rigDependencies": [
     { "binary": "git", "version": "2.45.0", "trails": ["git.log", "git.diff"] }
   ]
@@ -618,7 +618,7 @@ The warden gains rig-aware governance:
 - **Missing mock.** A rigged trail without a mock function cannot run in `testExamples` without the external binary. Warning.
 - **Stale rig lock.** The rig lock's binary version doesn't match the installed binary version. Warning.
 - **Captured example staleness.** Integration examples were captured against version X but the rig lock now records version Y. Warning: re-capture recommended.
-- **Rig chain depth.** A trail crosses a rigged trail that crosses another rigged trail. Each hop adds latency and failure surface. Informational.
+- **Rig chain depth.** A trail composes a rigged trail that composes another rigged trail. Each hop adds latency and failure surface. Informational.
 - **Rig without integration examples.** A rigged trail has mock examples but no captured integration examples. Coaching suggestion: captured examples validate the parse function against real output.
 - **Impure intent.** A rigged CLI trail with `intent: 'read'` shells out to a command that may have side effects (the warden can't verify purity of external binaries). Informational: rig trails inherently can't guarantee purity.
 
@@ -754,7 +754,7 @@ Rig lock state rolls up into the `rigs` section of `trails.lock`:
 
 ### Positive
 
-- **Existing trailheads become composable.** CLI tools, MCP servers, and HTTP APIs participate in `cross` chains, `testExamples`, survey, and warden governance. The entire Trails ecosystem opens to external capability.
+- **Existing trailheads become composable.** CLI tools, MCP servers, and HTTP APIs participate in `compose` chains, `testExamples`, survey, and warden governance. The entire Trails ecosystem opens to external capability.
 - **No new primitive type.** `rig()` returns a Trail. The topo, trailheads, testing, and governance don't need to learn a new concept. A rigged trail is a trail.
 - **Version drift is tracked.** Rig locks record the external trailhead's shape at a point in time. Probes detect drift. Integration examples verify behavior. CI catches staleness. External dependencies become governed artifacts.
 - **The contract is the firewall.** When the external trailhead changes, the rig's parse function and examples absorb the change. Consumers of the rigged trail see a stable contract. The rig isolates the instability.
@@ -768,7 +768,7 @@ Rig lock state rolls up into the `rigs` section of `trails.lock`:
 - **CLI probing is heuristic.** `--help` parsing works for well-behaved CLIs (GNU-style flags, consistent formatting). Unusual help formats produce incomplete or incorrect discoveries. `Bun.Terminal` provides a PTY fallback for tools that render differently in non-TTY mode, but the probe remains best-effort. The scaffold is a starting point, not a guarantee.
 - **External binary availability.** Integration tests require the actual binary, MCP server, or API. CI environments need the tools installed. Mock examples provide a fallback but don't validate parse functions.
 - **Parse functions are manual for non-standard formats.** The built-in parsers (json, jsonl, lines, table, csv, regex, markdown) cover the majority of CLI output patterns. For tools with unusual output formats, the developer authors a custom parse function. Community rig packs amortize this effort for popular tools.
-- **Rig meta adds weight.** Every rigged trail carries rig meta. Cross chains accumulate rig dependency information. Survey output grows. This is informational overhead in exchange for dependency visibility.
+- **Rig meta adds weight.** Every rigged trail carries rig meta. Compose chains accumulate rig dependency information. Survey output grows. This is informational overhead in exchange for dependency visibility.
 
 ### What this does NOT decide
 

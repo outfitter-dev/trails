@@ -28,7 +28,7 @@ The core principle says: if the information exists in the system, don't ask the 
 
 A trail is too granular for a library boundary. A single `validate` function doesn't form a useful package. The pack is the natural module: it owns the resource graph, the signal topology, the namespace, and the configuration trailhead. It's the unit of coherence.
 
-Compiling at the pack level means resources resolve once at construction (not per-call), internal composition via crosses stays hidden behind the public API, and the pack's namespace maps directly to the library's API trailhead. This matches how every real library works: you instantiate a client, then call methods.
+Compiling at the pack level means resources resolve once at construction (not per-call), internal composition via composes stays hidden behind the public API, and the pack's namespace maps directly to the library's API trailhead. This matches how every real library works: you instantiate a client, then call methods.
 
 A topo without pack structure can still compile, but the pack is where this design wants to go. If a pack doesn't make sense as a library, that's useful feedback on the pack design.
 
@@ -111,7 +111,7 @@ When the compiled pack owns disposable resources, the generated instance exposes
 | --- | --- |
 | TypeScript types (input, output) | Result type (unwrapped to return/throw) |
 | Error classes (as standard Error subclasses) | TrailContext (dissolved into constructor params) |
-| JSDoc (from meta, descriptions, examples) | Cross declarations (internal wiring) |
+| JSDoc (from meta, descriptions, examples) | Composes declarations (internal wiring) |
 | `dispose()` when pack owns disposable resources | Warden rules (compile-time only) |
 | | Layers (internal pipeline concern) |
 
@@ -281,7 +281,7 @@ All derived. The developer authored trails. The framework emitted a package.
 
 **A CLI they didn't have to build.** If the library ships a CLI companion, the consumer can use it from scripts, CI, or the terminal. No installation required. Same contract, different trailhead.
 
-**They don't need to know about Trails.** The consumer never sees `Result`, `TrailContext`, `crosses` declarations, or warden rules. The framework is invisible.
+**They don't need to know about Trails.** The consumer never sees `Result`, `TrailContext`, `composes` declarations, or warden rules. The framework is invisible.
 
 ### What this sharpens about packs
 
@@ -325,7 +325,7 @@ If a pack doesn't make sense as a library, that's feedback on the pack design, n
 - [ADR-0006: Shared Execution Pipeline](../0006-shared-execution-pipeline.md): `executeTrail` as the single implementation of validate-context-layers-run; the library trailhead delegates to the same pipeline
 - [ADR-0008: Deterministic Trailhead Derivation](../0008-deterministic-trailhead-derivation.md): the derivation properties (pure, deterministic, explicit lookup tables, overridable) that the library trailhead must also follow
 - [ADR-0009: First-Class Resources](../0009-first-class-resources.md): resource lifecycle, factory/dispose/health/mock, and the execution model the library trailhead must project into consumer-facing runtime inputs
-- [ADR-0023: Simplifying the Trails Lexicon](../0023-simplifying-the-trails-lexicon.md): the lexicon renames that apply here (`services` → `resources`, `follow` → `cross`, `events` → `signals`)
+- [ADR-0023: Simplifying the Trails Lexicon](../0023-simplifying-the-trails-lexicon.md): the lexicon renames that apply here (`services` → `resources`, `follow` → `cross` → `compose`, `events` → `signals`)
 - ADR: Typed Signal Emission (draft) -- signal payload schemas and provenance model; the library trailhead's signal projection depends on where that ADR lands
 - [ADR-0029: Adapter Extraction and Composition Around Core Contracts](../0029-connector-extraction-and-the-with-packaging-model.md) -- connectors as `@ontrails/with-*` packages; compiled packs may depend on connectors
 - [ADR: Resource Bundles](20260409-resource-bundles.md) (draft) -- the bundling mechanism for resources; compiled packs project bundles into constructor parameters

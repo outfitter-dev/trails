@@ -11,8 +11,7 @@ import { graph } from './app';
 await surface(graph, { port: 3000 });
 ```
 
-JSON request bodies are capped at 1 MiB by default. Override the cap with
-`maxJsonBodyBytes` when a surface intentionally accepts larger JSON payloads:
+JSON request bodies are capped at 1 MiB by default. Override the cap with `maxJsonBodyBytes` when a surface intentionally accepts larger JSON payloads:
 
 ```typescript
 await surface(graph, {
@@ -21,16 +20,9 @@ await surface(graph, {
 });
 ```
 
-Pass `resolvePermit` to resolve HTTP `Authorization: Bearer ...` credentials
-into `ctx.permit` before protected trails execute. The adapter forwards request
-headers to the framework-agnostic HTTP route executor, so malformed
-Authorization headers return `401` and resolved permits with insufficient scopes
-return `403`.
+Pass `resolvePermit` to resolve HTTP `Authorization: Bearer ...` credentials into `ctx.permit` before protected trails execute. The adapter forwards request headers to the framework-agnostic HTTP route executor, so malformed Authorization headers return `401` and resolved permits with insufficient scopes return `403`.
 
-Generic non-TrailsError failures return a redacted 500 response while a
-redacted diagnostic projection is written to server diagnostics. `TrailsError`
-responses keep their taxonomy category and class name but redact sensitive
-message fragments before writing the public body.
+Generic non-TrailsError failures return a redacted 500 response while a redacted diagnostic projection is written to server diagnostics. `TrailsError` responses keep their taxonomy category and class name but redact sensitive message fragments before writing the public body.
 
 For custom HTTP integrations or route inspection, keep using `deriveHttpRoutes()` from `@ontrails/http`. For a framework-neutral runtime handler, use `createRouteHandler()` or `createFetchHandler()` from `@ontrails/http/fetch`. For Bun-native serving without Hono, use `@ontrails/http/bun`.
 

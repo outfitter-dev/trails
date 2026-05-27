@@ -1,9 +1,6 @@
 # Store Signal Identity Migration
 
-Store-derived change signals now get their canonical identity from the resource
-that binds the store. Authored store definitions still expose typed pre-bind
-handles, but those handles are references. They are not the final external
-signal ids.
+Store-derived change signals now get their canonical identity from the resource that binds the store. Authored store definitions still expose typed pre-bind handles, but those handles are references. They are not the final external signal ids.
 
 ## What Changed
 
@@ -16,8 +13,7 @@ created.id;
 // "users.created"
 ```
 
-After an adapter binds the store to a resource, the canonical id includes the
-resource scope:
+After an adapter binds the store to a resource, the canonical id includes the resource scope:
 
 ```typescript
 const identity = connectDrizzle(definition, {
@@ -29,13 +25,11 @@ identity.store.tables.users.signals.created.id;
 // "identity:users.created"
 ```
 
-The scoped form is the only stable external identity for topo output, signal
-lookups, persisted graph rows, and string-based `on:` declarations.
+The scoped form is the only stable external identity for topo output, signal lookups, persisted graph rows, and string-based `on:` declarations.
 
 ## How To Migrate
 
-If a trail uses the typed pre-bind handle and the store is bound once in the
-same topo, no code change is needed:
+If a trail uses the typed pre-bind handle and the store is bound once in the same topo, no code change is needed:
 
 ```typescript
 trail('users.notify', {
@@ -46,8 +40,7 @@ trail('users.notify', {
 
 Topo assembly resolves that handle to the bound signal id.
 
-If the same store definition is bound more than once, update the trail to use
-the scoped id that names the intended resource:
+If the same store definition is bound more than once, update the trail to use the scoped id that names the intended resource:
 
 ```typescript
 trail('users.notify-identity', {
@@ -56,8 +49,7 @@ trail('users.notify-identity', {
 });
 ```
 
-If an app wraps an adapter resource in a custom resource, carry the adapter
-signals onto the wrapper so the topo can see the scoped store signals:
+If an app wraps an adapter resource in a custom resource, carry the adapter signals onto the wrapper so the topo can see the scoped store signals:
 
 ```typescript
 const bound = connectDrizzle(definition, {
@@ -72,15 +64,11 @@ export const entityStoreResource = resource('demo.entity-store', {
 });
 ```
 
-Update tests, fixtures, and documentation that assert signal ids from bare
-`table.change` strings to scoped `<resource>:<table>.<change>` strings once the
-store is bound.
+Update tests, fixtures, and documentation that assert signal ids from bare `table.change` strings to scoped `<resource>:<table>.<change>` strings once the store is bound.
 
 ## Validation Notes
 
-Resource ids used as store signal scopes cannot contain `:` or whitespace. A
-store definition bound twice cannot resolve a pre-bind handle implicitly; Trails
-rejects the ambiguity and asks for an explicit scoped id.
+Resource ids used as store signal scopes cannot contain `:` or whitespace. A store definition bound twice cannot resolve a pre-bind handle implicitly; Trails rejects the ambiguity and asks for an explicit scoped id.
 
 ## References
 

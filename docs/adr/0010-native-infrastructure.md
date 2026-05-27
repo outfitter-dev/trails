@@ -18,11 +18,7 @@ The hexagonal architecture has a clear story on the left. Surfaces — CLI, MCP,
 
 The right side — logging, storage, telemetry, auth — had no primitive until ADR-0009 introduced resources. Before that, every trail that talked to infrastructure created its own connections inline. No lifecycle, no governance, no testability.
 
-The legacy logging package established the adapter pattern before resources
-existed: abstract API (`Logger`) -> extension point (`LogSink`) -> built-in
-implementations -> provider adapters. It worked, but it was hand-wired. There
-was no standard way to manage its lifecycle, compose it with execution, or mock
-it in tests. Resources generalize what that early pattern pioneered.
+The legacy logging package established the adapter pattern before resources existed: abstract API (`Logger`) -> extension point (`LogSink`) -> built-in implementations -> provider adapters. It worked, but it was hand-wired. There was no standard way to manage its lifecycle, compose it with execution, or mock it in tests. Resources generalize what that early pattern pioneered.
 
 ### The production readiness layer
 
@@ -112,20 +108,15 @@ The workspace gives infrastructure a known home. Config reads overrides from `.t
 
 ### Adapters are the integration point
 
-Each infrastructure package ships a zero-dependency built-in and optional
-adapters as subpath exports:
+Each infrastructure package ships a zero-dependency built-in and optional adapters as subpath exports:
 
 - **Config:** TypeScript config + env resolution built-in. No adapters needed in v1 — the built-in covers the common case.
 - **Permits:** JWT/JWKS verification built-in. Adapters: `/openauth`, `/better-auth`, `/clerk` for provider-specific integration.
 - **Tracing:** `bun:sqlite` dev store built-in — records spans locally for development inspection. Adapter: `/otel` for OpenTelemetry export.
 
-Adapters carry optional peer dependencies. Installing `@ontrails/permits`
-doesn't pull in Clerk's SDK. Installing `@ontrails/permits/clerk` does.
+Adapters carry optional peer dependencies. Installing `@ontrails/permits` doesn't pull in Clerk's SDK. Installing `@ontrails/permits/clerk` does.
 
-The built-in for each package is functional enough for development and simple
-production cases. Adapters are for teams that need specific providers. The v1
-observability package graph follows this posture through `@ontrails/observe`
-for sink contracts and `@ontrails/logtape` for LogTape forwarding.
+The built-in for each package is functional enough for development and simple production cases. Adapters are for teams that need specific providers. The v1 observability package graph follows this posture through `@ontrails/observe` for sink contracts and `@ontrails/logtape` for LogTape forwarding.
 
 ### `testAll(graph)` just works
 

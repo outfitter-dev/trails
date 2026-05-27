@@ -13,12 +13,7 @@ depends_on: [14]
 
 ## Context
 
-The resolved topology — all trails, their schemas, compositions, resources,
-signals, surface mappings, and metadata — exists in two forms today. In memory,
-it's a `ReadonlyMap<string, AnyTrail>` with parallel maps for signals and
-resources. On disk, it's a committed TopoGraph artifact at
-`.trails/topo.lock`.[^topo-graph] Both are serializations of the same graph
-structure.
+The resolved topology — all trails, their schemas, compositions, resources, signals, surface mappings, and metadata — exists in two forms today. In memory, it's a `ReadonlyMap<string, AnyTrail>` with parallel maps for signals and resources. On disk, it's a committed TopoGraph artifact at `.trails/topo.lock`.[^topo-graph] Both are serializations of the same graph structure.
 
 When something wants to query the topo, it traverses these structures imperatively. The warden iterates all trails to check governance rules. The `survey` command iterates all trails to produce a human-readable summary. The `guide` command searches trails by ID or metadata. An agent connecting to an MCP surface gets a flat list of tools. These are all graph queries wearing imperative clothing.
 
@@ -40,11 +35,7 @@ The core premise says "the contract is queryable." Today it's queryable in the s
 
 ### Table schema
 
-The topo store projects the resolved topology into relational tables within `trails.db`:
-The foundational `topo_snapshots` table intentionally restates ADR-0014's
-core database primitive so this ADR can present the full topo store schema as a
-self-contained unit. Snapshots unify the previously separate `topo_saves` and
-`topo_pins` tables — a snapshot with a non-null `pinned_as` is a pin.
+The topo store projects the resolved topology into relational tables within `trails.db`: The foundational `topo_snapshots` table intentionally restates ADR-0014's core database primitive so this ADR can present the full topo store schema as a self-contained unit. Snapshots unify the previously separate `topo_saves` and `topo_pins` tables — a snapshot with a non-null `pinned_as` is a pin.
 
 ```sql
 CREATE TABLE topo_snapshots (

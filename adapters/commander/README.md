@@ -20,8 +20,7 @@ import { graph } from './app';
 const program = createProgram(graph, { name: 'myapp' });
 ```
 
-For lower-level adapter wiring, derive the command model with `@ontrails/cli`
-and materialize it with `toCommander()`:
+For lower-level adapter wiring, derive the command model with `@ontrails/cli` and materialize it with `toCommander()`:
 
 ```typescript
 import { deriveCliCommands } from '@ontrails/cli';

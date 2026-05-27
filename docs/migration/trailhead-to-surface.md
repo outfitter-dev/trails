@@ -128,8 +128,7 @@ The runtime key value is now `__trails_surface`. Any persisted state keyed by `_
 
 ## TopoGraph Entries
 
-The current TopoGraph artifact stores `surfaces` on each entry. Historical
-surface-map artifacts used the same field after the trailhead cutover:
+The current TopoGraph artifact stores `surfaces` on each entry. Historical surface-map artifacts used the same field after the trailhead cutover:
 
 ```diff
  {
@@ -149,8 +148,7 @@ Update any direct JSON consumers, fixtures, or snapshot assertions that read `en
 
 ## Compile
 
-The legacy `topo.export` trail has been removed. Use `compile` for current topo
-artifacts:
+The legacy `topo.export` trail has been removed. Use `compile` for current topo artifacts:
 
 ```diff
 -trails topo export

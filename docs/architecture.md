@@ -213,20 +213,9 @@ Clean DAG. Core at the center. No cycles. Surface adapters depend only on core. 
 
 ### Signal Fan-Out
 
-`ctx.fire()` fans out to every registered consumer in parallel, each with its
-own derived context, and awaits them all via `Promise.allSettled`. The producer
-resumes only after every consumer has settled — whether resolved or rejected —
-so signal delivery is synchronous with respect to the producer. Consumer
-errors are collected and logged but never propagate back to the producer, so
-a failing consumer cannot fail the producer's own Result.
+`ctx.fire()` fans out to every registered consumer in parallel, each with its own derived context, and awaits them all via `Promise.allSettled`. The producer resumes only after every consumer has settled — whether resolved or rejected — so signal delivery is synchronous with respect to the producer. Consumer errors are collected and logged but never propagate back to the producer, so a failing consumer cannot fail the producer's own Result.
 
-Runtime cycle suppression is intentionally narrower than Warden's static
-activation-cycle checks. Today the runtime looks only at signal IDs in the
-current fire stack. That prevents re-entrant loops like A→B→A, but it can
-over-suppress legitimate diamond re-fires that happen to reuse the same signal
-ID on a different branch. Per-path provenance is deferred post-v1; if ordering
-or transactional dependency matters now, model it with `ctx.compose()` instead
-of sibling signal sequencing.
+Runtime cycle suppression is intentionally narrower than Warden's static activation-cycle checks. Today the runtime looks only at signal IDs in the current fire stack. That prevents re-entrant loops like A→B→A, but it can over-suppress legitimate diamond re-fires that happen to reuse the same signal ID on a different branch. Per-path provenance is deferred post-v1; if ordering or transactional dependency matters now, model it with `ctx.compose()` instead of sibling signal sequencing.
 
 ### Request Path (CLI)
 
@@ -304,8 +293,7 @@ This guarantees consistent validation, layer ordering, and error handling regard
 
 ## Error Taxonomy
 
-The current taxonomy is generated from the `errorClasses` owner registry and
-category code maps in `@ontrails/core`.
+The current taxonomy is generated from the `errorClasses` owner registry and category code maps in `@ontrails/core`.
 
 <!-- error-taxonomy:start -->
 <!-- GENERATED: run `bun run error-taxonomy:sync`; check with `bun run error-taxonomy:check`. Variant: category. -->

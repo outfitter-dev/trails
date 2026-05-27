@@ -130,8 +130,7 @@ const hsm = resource('hsm.signer', {
 });
 ```
 
-Testing helpers skip `unmockable` resources during auto-mock resolution. Trails that need them still require explicit resource overrides when their examples or
-contracts execute.
+Testing helpers skip `unmockable` resources during auto-mock resolution. Trails that need them still require explicit resource overrides when their examples or contracts execute.
 
 Override explicitly when you need specific behavior:
 

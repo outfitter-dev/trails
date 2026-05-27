@@ -23,10 +23,7 @@ claude plugin install trails@trails
 npx skills outfitter-dev/trails
 ```
 
-That command mutates the selected local skill install. Use a disposable or
-profile-specific target when testing installer behavior, and prefer the repo's
-[plugin release runbook](./docs/releases/plugin-release.md) for operator
-preflight checks.
+That command mutates the selected local skill install. Use a disposable or profile-specific target when testing installer behavior, and prefer the repo's [plugin release runbook](./docs/releases/plugin-release.md) for operator preflight checks.
 
 The skill gives your agent the full Trails reference: lexicon, patterns, error taxonomy, surface wiring, testing, and before/after migration examples.
 
@@ -45,9 +42,7 @@ bun add @ontrails/core@beta @ontrails/cli@beta @ontrails/commander@beta zod
 bun add -d @ontrails/testing@beta
 ```
 
-During the active beta line, use `@beta` for the newest published beta or exact
-`1.0.0-beta.N` pins for reproducible handoffs. Do not rely on unqualified
-`latest` unless release notes explicitly say it has been advanced.
+During the active beta line, use `@beta` for the newest published beta or exact `1.0.0-beta.N` pins for reproducible handoffs. Do not rely on unqualified `latest` unless release notes explicitly say it has been advanced.
 
 ## Before and after
 

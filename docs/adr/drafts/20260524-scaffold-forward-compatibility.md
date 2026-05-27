@@ -12,9 +12,7 @@ depends_on: [10, 47, 48]
 
 ## Context
 
-`trails create` gives a new app its first authored project shape. That shape is
-not just example code: it chooses package ranges, scripts, local `.trails/`
-policy, test wiring, and the first agent guidance a developer sees.
+`trails create` gives a new app its first authored project shape. That shape is not just example code: it chooses package ranges, scripts, local `.trails/` policy, test wiring, and the first agent guidance a developer sees.
 
 During the beta line, this creates two related problems:
 
@@ -23,26 +21,17 @@ During the beta line, this creates two related problems:
 - Once scaffolded code is owned by the app, future tooling needs a small clue
   about where that owned source began.
 
-ADR-0047 already says fresh generated apps are a release gate. ADR-0048 says
-trail versioning is trail-only: it preserves capability contracts inside a topo,
-not project templates or package distribution. Scaffold forward compatibility
-therefore needs its own lightweight project-level posture.
+ADR-0047 already says fresh generated apps are a release gate. ADR-0048 says trail versioning is trail-only: it preserves capability contracts inside a topo, not project templates or package distribution. Scaffold forward compatibility therefore needs its own lightweight project-level posture.
 
 ## Decision
 
 ### Generated `@ontrails/*` dependencies are exact pins
 
-Generated apps pin public `@ontrails/*` dependencies and devDependencies to the
-exact `@ontrails/trails` package version that produced the scaffold.
+Generated apps pin public `@ontrails/*` dependencies and devDependencies to the exact `@ontrails/trails` package version that produced the scaffold.
 
-During the beta line, exact pins are safer than caret prerelease ranges because
-they make generated output reproducible. During stable cutover, exact pins make
-the release PR's generated-app inspection concrete: the scaffold names the
-intended stable package family exactly, and the post-publish smoke proves those
-packages exist.
+During the beta line, exact pins are safer than caret prerelease ranges because they make generated output reproducible. During stable cutover, exact pins make the release PR's generated-app inspection concrete: the scaffold names the intended stable package family exactly, and the post-publish smoke proves those packages exist.
 
-This rule covers Trails-owned packages only. Third-party packages continue to
-use the curated ranges captured by the internal scaffold-version helper.
+This rule covers Trails-owned packages only. Third-party packages continue to use the curated ranges captured by the internal scaffold-version helper.
 
 ### Scaffolds stamp a minimal provenance breadcrumb
 
@@ -57,9 +46,7 @@ Every generated app includes `.trails/scaffold.json`:
 }
 ```
 
-The breadcrumb is informational in the current beta line. It records only the
-minimum facts future tooling needs before it can decide whether a project came
-from a known scaffold shape:
+The breadcrumb is informational in the current beta line. It records only the minimum facts future tooling needs before it can decide whether a project came from a known scaffold shape:
 
 - `schemaVersion` names the breadcrumb schema.
 - `scaffoldVersion` names the `@ontrails/trails` package that created the
@@ -67,23 +54,17 @@ from a known scaffold shape:
 - `template` names the starter selected by `trails create`.
 - `generatedAt` records when the project was generated.
 
-The file lives under `.trails/` because it is framework-owned project metadata,
-but it is not part of `.trails/trails.lock`, `.trails/topo.lock`, or the topo
-store. It does not describe the app's current resolved graph.
+The file lives under `.trails/` because it is framework-owned project metadata, but it is not part of `.trails/trails.lock`, `.trails/topo.lock`, or the topo store. It does not describe the app's current resolved graph.
 
 ### Version-bump tooling keeps the scaffold synchronized
 
-The internal `scaffold-versions` helper remains the operator path for keeping
-generated scaffold dependency versions current. Its check mode validates two
-things together:
+The internal `scaffold-versions` helper remains the operator path for keeping generated scaffold dependency versions current. Its check mode validates two things together:
 
 - generated third-party scaffold versions match the root catalog/devDependency
   source of truth;
 - generated `@ontrails/*` pins match `@ontrails/trails` exactly.
 
-After `bunx changeset version`, release operators run
-`bun run scaffold-versions:sync` so the generated scaffold package story moves
-with the package version calculation instead of becoming hand-edit debt.
+After `bunx changeset version`, release operators run `bun run scaffold-versions:sync` so the generated scaffold package story moves with the package version calculation instead of becoming hand-edit debt.
 
 ### Upgrade tooling is deferred
 
@@ -98,8 +79,7 @@ Deferred work includes:
 - a public `trails upgrade` command;
 - package or registry mutation.
 
-Those features may follow once there are real scaffold-to-scaffold migrations
-to design around. The breadcrumb is the seed, not the upgrade system.
+Those features may follow once there are real scaffold-to-scaffold migrations to design around. The breadcrumb is the seed, not the upgrade system.
 
 ## Consequences
 

@@ -48,11 +48,7 @@ That's the gap. The trail contract has no way to express dependencies on externa
 
 The Trails architecture is hexagonal. The left side (inbound) has its primitive: surfaces via `surface()`. The right side (outbound) — logging, storage, telemetry, search — doesn't have one yet. The architecture doc says: *"The framework defines ports. Everything concrete is an adapter."* But there's no mechanism to register, resolve, or govern those adapters.
 
-The legacy logging package established the adapter pattern before resources
-existed: abstract API (`Logger`) -> extension point (`LogSink`) -> built-in
-implementations -> provider adapters. Resources generalize this pattern. They're
-the primitive that fills the right side of the hexagon: how you register
-concrete implementations of adapter ports and make them available to trails.
+The legacy logging package established the adapter pattern before resources existed: abstract API (`Logger`) -> extension point (`LogSink`) -> built-in implementations -> provider adapters. Resources generalize this pattern. They're the primitive that fills the right side of the hexagon: how you register concrete implementations of adapter ports and make them available to trails.
 
 ### The principle
 

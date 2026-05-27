@@ -1,8 +1,6 @@
 # @ontrails/cli
 
-Framework-agnostic CLI command model for Trails. Import command derivation from
-`@ontrails/cli`; import the Commander runtime adapter from
-`@ontrails/commander`.
+Framework-agnostic CLI command model for Trails. Import command derivation from `@ontrails/cli`; import the Commander runtime adapter from `@ontrails/commander`.
 
 ## Usage
 
@@ -45,11 +43,7 @@ const program = toCommander(commands.value, { name: 'myapp' });
 program.parse();
 ```
 
-`deriveCliCommands` returns `Result<CliCommand[], Error>`. Use `toCommander`
-with `commands.value` on success, or write your own adapter.
-Invalid command models are rejected before adapter wiring, including duplicate
-CLI paths and executable parents that also declare positional args beneath child
-commands.
+`deriveCliCommands` returns `Result<CliCommand[], Error>`. Use `toCommander` with `commands.value` on success, or write your own adapter. Invalid command models are rejected before adapter wiring, including duplicate CLI paths and executable parents that also declare positional args beneath child commands.
 
 ## API
 
@@ -73,8 +67,7 @@ See the [API Reference](../../docs/api-reference.md) for the full list.
 
 ## Flag derivation
 
-Flags come from the Zod schema automatically when the field shape can be
-represented truthfully on the command line. No manual flag definitions.
+Flags come from the Zod schema automatically when the field shape can be represented truthfully on the command line. No manual flag definitions.
 
 | Zod type | CLI flag | Notes |
 | --- | --- | --- |
@@ -86,12 +79,9 @@ represented truthfully on the command line. No manual flag definitions.
 
 `camelCase` fields become `--kebab-case` flags. `.describe()` becomes help text.
 
-Nested objects and arrays of objects are intentionally omitted from automatic
-flag derivation. The CLI prefers fewer flags over dishonest flags.
+Nested objects and arrays of objects are intentionally omitted from automatic flag derivation. The CLI prefers fewer flags over dishonest flags.
 
-Enum flags can expose standalone boolean aliases when a surface wants
-pipe-friendly shortcuts without inventing parallel flags. The alias still
-normalizes to the canonical enum field before the trail input is validated:
+Enum flags can expose standalone boolean aliases when a surface wants pipe-friendly shortcuts without inventing parallel flags. The alias still normalizes to the canonical enum field before the trail input is validated:
 
 ```typescript
 deriveFlags(z.object({ format: z.enum(['summary', 'json']) }), {
@@ -99,13 +89,11 @@ deriveFlags(z.object({ format: z.enum(['summary', 'json']) }), {
 });
 ```
 
-An adapter such as `@ontrails/commander` will parse `--json` as if the caller
-had passed `--format json`.
+An adapter such as `@ontrails/commander` will parse `--json` as if the caller had passed `--format json`.
 
 ## Positional arguments
 
-When a trail's input schema has exactly one required `string` field with no
-default, the CLI auto-promotes it to a positional argument instead of a flag:
+When a trail's input schema has exactly one required `string` field with no default, the CLI auto-promotes it to a positional argument instead of a flag:
 
 ```typescript
 const greet = trail('greet', {
@@ -119,8 +107,7 @@ myapp greet World          # positional
 myapp greet --name World   # flag alias is kept for backward compatibility
 ```
 
-The heuristic is intentionally conservative: multiple required strings stay as
-flags. To override, declare `args` on the trail:
+The heuristic is intentionally conservative: multiple required strings stay as flags. To override, declare `args` on the trail:
 
 ```typescript
 const copy = trail('file.copy', {
@@ -130,8 +117,7 @@ const copy = trail('file.copy', {
 });
 ```
 
-`args` accepts `string[]` for explicit positional order, `false` to suppress
-auto-promotion entirely, or `undefined` (omit) for the heuristic.
+`args` accepts `string[]` for explicit positional order, `false` to suppress auto-promotion entirely, or `undefined` (omit) for the heuristic.
 
 ```bash
 myapp file copy ./readme.md --dest /tmp/readme.md
@@ -139,14 +125,12 @@ myapp file copy ./readme.md --dest /tmp/readme.md
 
 ## App auto-discovery
 
-When running from the workspace root without an explicit `--module` flag, the CLI
-automatically discovers your app entry point:
+When running from the workspace root without an explicit `--module` flag, the CLI automatically discovers your app entry point:
 
 1. `src/app.ts` (single-app layout)
 2. `apps/*/src/app.ts` (monorepo convention)
 
-If exactly one candidate is found, it is used automatically. If multiple
-candidates are found, the CLI lists them and asks you to choose with `--module`.
+If exactly one candidate is found, it is used automatically. If multiple candidates are found, the CLI lists them and asks you to choose with `--module`.
 
 ```bash
 # Auto-discovers src/app.ts — no --module needed
@@ -156,8 +140,7 @@ myapp topo
 myapp topo --module ./apps/api/src/app.ts
 ```
 
-Use `findAppModuleCandidates(cwd)` and `findAppModule(cwd, explicit?)` directly
-for programmatic access.
+Use `findAppModuleCandidates(cwd)` and `findAppModule(cwd, explicit?)` directly for programmatic access.
 
 ## Structured input
 
@@ -166,9 +149,7 @@ For every non-empty object input schema, the CLI also exposes:
 - `--input-json <json>`
 - `--input <path|->`
 
-These channels supply the full input object before positional args and explicit
-flags are merged on top. Explicit CLI inputs always win on conflict, and the
-final merged object is still validated once by the trail schema.
+These channels supply the full input object before positional args and explicit flags are merged on top. Explicit CLI inputs always win on conflict, and the final merged object is still validated once by the trail schema.
 
 ```bash
 myapp gist create \
@@ -183,12 +164,9 @@ Dotted trail IDs derive to full ordered command paths:
 - `topo.pin` -> `myapp topo pin`
 - `topo.pin.remove` -> `myapp topo pin remove`
 
-Command-path nodes may be both executable and parents, so `myapp topo` and
-`myapp topo pin` can coexist naturally.
+Command-path nodes may be both executable and parents, so `myapp topo` and `myapp topo pin` can coexist naturally.
 
-`CliCommand[]` validation rejects ambiguous parent/child shapes, so an
-executable parent cannot also declare positional args if child commands exist
-beneath that path.
+`CliCommand[]` validation rejects ambiguous parent/child shapes, so an executable parent cannot also declare positional args if child commands exist beneath that path.
 
 ## Resource Resolution
 
@@ -201,14 +179,11 @@ await surface(graph, { include: ['entity.**'] });
 await surface(graph, { exclude: ['dev.**'] });
 ```
 
-`*` matches one dotted segment and `**` matches any depth. Trails declared
-with `visibility: 'internal'` stay hidden unless you include their exact trail
-ID intentionally.
+`*` matches one dotted segment and `**` matches any depth. Trails declared with `visibility: 'internal'` stay hidden unless you include their exact trail ID intentionally.
 
 ## Derived behavior
 
-The CLI surface derives previously layer-shaped behavior directly from trail
-schemas:
+The CLI surface derives previously layer-shaped behavior directly from trail schemas:
 
 - Trails whose output matches the pagination pattern (`items`, `hasMore`,
   `nextCursor`) automatically get an `--all` flag that walks every page.
@@ -216,9 +191,7 @@ schemas:
   (`"today"`, `"yesterday"`, `"7d"`, `"30d"`, `"this-week"`, `"this-month"`)
   into ISO 8601 strings before validation.
 
-The legacy `autoIterateLayer` and `dateShortcutsLayer` exports were removed in
-TRL-475; these behaviors are now intrinsic to the CLI surface and require no
-wiring.
+The legacy `autoIterateLayer` and `dateShortcutsLayer` exports were removed in TRL-475; these behaviors are now intrinsic to the CLI surface and require no wiring.
 
 ## Installation
 
@@ -226,5 +199,4 @@ wiring.
 bun add @ontrails/cli@beta @ontrails/commander@beta
 ```
 
-`@ontrails/cli` owns command derivation. `@ontrails/commander` owns Commander
-program materialization and parsing.
+`@ontrails/cli` owns command derivation. `@ontrails/commander` owns Commander program materialization and parsing.

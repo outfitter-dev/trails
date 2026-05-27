@@ -115,8 +115,7 @@ result.unwrapOr(fallback);   // Value or fallback
 
 ### Error taxonomy
 
-The current taxonomy is generated from the `errorClasses` owner registry and
-category code maps in `@ontrails/core`.
+The current taxonomy is generated from the `errorClasses` owner registry and category code maps in `@ontrails/core`.
 
 <!-- error-taxonomy:start -->
 <!-- GENERATED: run `bun run error-taxonomy:sync`; check with `bun run error-taxonomy:check`. Variant: category. -->
@@ -139,11 +138,7 @@ Dynamic classes:
 - `RetryExhaustedError` inherits category and surface codes from its wrapped `TrailsError`; retryable is always No.
 <!-- error-taxonomy:end -->
 
-Public surface projections redact sensitive substrings before exposing a
-non-internal `TrailsError` message. Internal-category `TrailsError` instances and
-unknown native errors project with the generic message `Internal server error`;
-diagnostics and serialized payloads keep their useful structure while redacting
-messages, context, and stack strings.
+Public surface projections redact sensitive substrings before exposing a non-internal `TrailsError` message. Internal-category `TrailsError` instances and unknown native errors project with the generic message `Internal server error`; diagnostics and serialized payloads keep their useful structure while redacting messages, context, and stack strings.
 
 The developer returns `Result.err(new NotFoundError(...))`. The framework maps it to the right code on every surface.
 
@@ -163,19 +158,11 @@ The developer returns `Result.err(new NotFoundError(...))`. The framework maps i
 
 ### Public helper boundaries
 
-The root package also exposes a few low-level contracts that other framework
-packages build on:
+The root package also exposes a few low-level contracts that other framework packages build on:
 
-- **Intrinsic tracing** -- `TraceRecord`, `TraceSink`, `TraceContext`, and the
-  sink registry helpers are the core-owned execution record shape shared by
-  `@ontrails/observe`, `@ontrails/tracing`, and adapters.
-- **Trails DB** -- `deriveTrailsDbPath`, `deriveTrailsDir`,
-  `ensureSubsystemSchema`, `openReadTrailsDb`, and `openWriteTrailsDb` are the
-  generic database primitive used by framework subsystems.
-- **Surface projection helpers** -- safe error projection, layer field
-  projection, compose-batch validation, late-bound signal references, and Zod
-  default-wrapper stripping are stable root exports for first-party surfaces,
-  store helpers, and tests.
+- **Intrinsic tracing** -- `TraceRecord`, `TraceSink`, `TraceContext`, and the sink registry helpers are the core-owned execution record shape shared by `@ontrails/observe`, `@ontrails/tracing`, and adapters.
+- **Trails DB** -- `deriveTrailsDbPath`, `deriveTrailsDir`, `ensureSubsystemSchema`, `openReadTrailsDb`, and `openWriteTrailsDb` are the generic database primitive used by framework subsystems.
+- **Surface projection helpers** -- safe error projection, layer field projection, compose-batch validation, late-bound signal references, and Zod default-wrapper stripping are stable root exports for first-party surfaces, store helpers, and tests.
 
 See the [API Reference](../../docs/api-reference.md) for the full list.
 

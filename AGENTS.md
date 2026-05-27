@@ -27,8 +27,7 @@ bun run typecheck
 bun run clean
 ```
 
-For direct local lint and format validation, prefer the repo scripts (`bun run lint`, `bun run format:check`, `bun run format:fix`) so the private Oxlint plugin is built before Oxlint or Ultracite loads it. If invoking `bunx ultracite check`, `bunx ultracite fix`, or package-local `oxlint ./src` directly on a fresh checkout, run `bun run oxlint-plugin:build` first.
-For pinned formatter runs, prefer `bun run format:check`, `bun run format:fix`, or `bunx ultracite ...` over invoking the binary by a direct `node_modules/.bin` path. Bun sets up `node_modules/.bin` on `PATH`, which lets `ultracite` resolve sibling tools like `oxfmt` and `oxlint`.
+For direct local lint and format validation, prefer the repo scripts (`bun run lint`, `bun run format:check`, `bun run format:fix`) so the private Oxlint plugin is built before Oxlint or Ultracite loads it. If invoking `bunx ultracite check`, `bunx ultracite fix`, or package-local `oxlint ./src` directly on a fresh checkout, run `bun run oxlint-plugin:build` first. For pinned formatter runs, prefer `bun run format:check`, `bun run format:fix`, or `bunx ultracite ...` over invoking the binary by a direct `node_modules/.bin` path. Bun sets up `node_modules/.bin` on `PATH`, which lets `ultracite` resolve sibling tools like `oxfmt` and `oxlint`.
 
 ## Project Overview
 
@@ -294,12 +293,9 @@ bun run publish:check
 bun run publish:packages
 ```
 
-Every PR that changes publishable `@ontrails/*` package contents must include a branch-local `.changeset/*.md` entry for the affected package unless the PR is
-explicitly labeled `release:none`. The CI changeset gate reads the GitHub PR file list, so stacked PRs are checked against their immediate PR diff rather than the
-whole local stack. Use `release:none` only for package-touching changes that truly do not ship user-visible package content.
+Every PR that changes publishable `@ontrails/*` package contents must include a branch-local `.changeset/*.md` entry for the affected package unless the PR is explicitly labeled `release:none`. The CI changeset gate reads the GitHub PR file list, so stacked PRs are checked against their immediate PR diff rather than the whole local stack. Use `release:none` only for package-touching changes that truly do not ship user-visible package content.
 
-To exit pre-release mode for a stable release: `bunx changeset pre exit`, then version as usual.
-Stable 1.x release doctrine is captured in [ADR-0047](docs/adr/0047-stable-release-line-discipline.md), and the copy-pasteable beta-to-1.0 operator sequence lives in [Stable Cutover Runbook](docs/releases/stable-cutover.md).
+To exit pre-release mode for a stable release: `bunx changeset pre exit`, then version as usual. Stable 1.x release doctrine is captured in [ADR-0047](docs/adr/0047-stable-release-line-discipline.md), and the copy-pasteable beta-to-1.0 operator sequence lives in [Stable Cutover Runbook](docs/releases/stable-cutover.md).
 
 `bun run publish:check` auto-discovers every non-private workspace, topo-sorts by `workspace:` dep edges, runs `bun pm pack --dry-run` per package (required because `npm pack` does not resolve `catalog:`), and asserts the packed `package.json` contains no unresolved `workspace:` or `catalog:` ranges. `bun run publish:registry-check` performs read-only registry/dist-tag probes before publication; missing packages are reported as first-time package candidates. After publishing, use `bun run publish:registry-check:published` to require every package and expected dist-tag to be present. `bun run publish:packages` uses the same discovery and applies the explicit dist-tag from `.changeset/pre.json` (falling back to `latest` outside prerelease mode). Packages intentionally ship source `.ts` files while their `exports` map points at `src`; test files, `dist`, `.turbo`, and `*.tsbuildinfo` should stay out of the published tarballs.
 

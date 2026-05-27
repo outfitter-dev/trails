@@ -30,27 +30,17 @@ import { surface } from '@ontrails/http/bun';
 await surface(graph, { port: 3000 });
 ```
 
-`@ontrails/http/bun` uses Bun's native `Bun.serve({ routes })` fast path and
-keeps the shared Web Fetch handler as the fallback. It requires Bun `>=1.2.3`
-and does not add a third-party runtime dependency.
+`@ontrails/http/bun` uses Bun's native `Bun.serve({ routes })` fast path and keeps the shared Web Fetch handler as the fallback. It requires Bun `>=1.2.3` and does not add a third-party runtime dependency.
 
 ## Projection and materialization
 
 The HTTP package follows the surface API naming split:
 
-- `derive*` exports are pure projections from the topo. Use
-  `deriveHttpRoutes()` for route definitions and `deriveOpenApiSpec()` for the
-  OpenAPI contract.
-- `create*` exports materialize runtime objects without opening a network
-  boundary. `@ontrails/http/fetch` exports `createRouteHandler()` for one
-  route and `createFetchHandler()` for a full topo dispatcher.
-- `surface()` opens the runtime boundary. `@ontrails/hono` opens a Hono server;
-  `@ontrails/http/bun` opens Bun's native HTTP server.
+- `derive*` exports are pure projections from the topo. Use `deriveHttpRoutes()` for route definitions and `deriveOpenApiSpec()` for the OpenAPI contract.
+- `create*` exports materialize runtime objects without opening a network boundary. `@ontrails/http/fetch` exports `createRouteHandler()` for one route and `createFetchHandler()` for a full topo dispatcher.
+- `surface()` opens the runtime boundary. `@ontrails/hono` opens a Hono server; `@ontrails/http/bun` opens Bun's native HTTP server.
 
-The shared `@ontrails/http/fetch` kernel owns query/body parsing,
-content-length validation, public error projection, diagnostics, request IDs,
-headers, abort propagation, and webhook verification/parsing behavior. Hono and
-Bun both consume that kernel so route semantics stay aligned.
+The shared `@ontrails/http/fetch` kernel owns query/body parsing, content-length validation, public error projection, diagnostics, request IDs, headers, abort propagation, and webhook verification/parsing behavior. Hono and Bun both consume that kernel so route semantics stay aligned.
 
 For more control, build the routes yourself:
 
@@ -74,8 +64,7 @@ import { deriveOpenApiSpec } from '@ontrails/http';
 const spec = deriveOpenApiSpec(graph, { basePath: '/api' });
 ```
 
-`deriveOpenApiSpec()` emits an OpenAPI 3.1 document from the same trail
-contracts used by `deriveHttpRoutes()`.
+`deriveOpenApiSpec()` emits an OpenAPI 3.1 document from the same trail contracts used by `deriveHttpRoutes()`.
 
 ## API
 
@@ -116,9 +105,7 @@ const result = deriveHttpRoutes(graph, {
 });
 ```
 
-`*` matches one dotted segment and `**` matches any depth. Trails declared
-with `visibility: 'internal'` stay hidden unless you include their exact trail
-ID intentionally.
+`*` matches one dotted segment and `**` matches any depth. Trails declared with `visibility: 'internal'` stay hidden unless you include their exact trail ID intentionally.
 
 ## Request context and abort propagation
 
@@ -137,10 +124,7 @@ Each route definition produced by `deriveHttpRoutes` includes:
 | `trail` | `Trail` | The original trail definition |
 | `execute` | `(input, requestId?, abortSignal?, context?) => Promise<Result>` | Validates, layers, resolves request auth when configured, and runs the blazed trail |
 
-For GET routes on the Hono surface, repeated query keys are passed through as
-arrays (`?tag=one&tag=two` -> `{ tag: ['one', 'two'] }`) while a single
-occurrence stays a scalar string. The adapter does not coerce singleton query
-values into arrays.
+For GET routes on the Hono surface, repeated query keys are passed through as arrays (`?tag=one&tag=two` -> `{ tag: ['one', 'two'] }`) while a single occurrence stays a scalar string. The adapter does not coerce singleton query values into arrays.
 
 ## Installation
 

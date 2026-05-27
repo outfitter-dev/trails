@@ -20,10 +20,7 @@ WebSocket breaks this model because it's two things over one persistent connecti
 
 ### Why WebSocket matters now
 
-With ADR-0038 shipping `ctx.fire(signal, payload)`, trails can announce what
-happened through typed signal contracts. External subscription delivery remains
-deferred, so this draft explores what a future WebSocket surface would need in
-order to expose those signals to clients.
+With ADR-0038 shipping `ctx.fire(signal, payload)`, trails can announce what happened through typed signal contracts. External subscription delivery remains deferred, so this draft explores what a future WebSocket surface would need in order to expose those signals to clients.
 
 WebSocket is the natural first trailhead for signal subscriptions. A browser dashboard subscribing to `booking.confirmed` signals. An agent maintaining a live view of system health. A mobile client receiving push notifications. All of these need a persistent connection where the server pushes typed signal delivery records to subscribers.
 
@@ -115,9 +112,7 @@ Or partial subscription if some signals are unauthorized:
 }
 ```
 
-When a subscribed signal is fired (via `ctx.fire()` or a future framework
-lifecycle signal decision), the trailhead pushes it to all subscribed
-connections:
+When a subscribed signal is fired (via `ctx.fire()` or a future framework lifecycle signal decision), the trailhead pushes it to all subscribed connections:
 
 ```json
 { "type": "signal", "signal": "booking.confirmed", "payload": { "bookingId": "bk_123", "userId": "user_1" }, "seq": 42 }
@@ -301,10 +296,7 @@ The package depends on `@ontrails/core` and would need a future durable signal d
 
 ### How WebSocket compounds with existing features
 
-**With typed signals.** WebSocket is a candidate external delivery
-surface for signals. `ctx.fire(signal, payload)` records typed signal fires.
-This draft would define the delivery surface that exposes them to subscribed
-clients.
+**With typed signals.** WebSocket is a candidate external delivery surface for signals. `ctx.fire(signal, payload)` records typed signal fires. This draft would define the delivery surface that exposes them to subscribed clients.
 
 **With future activation sources.** A webhook source could activate a trail. The trail could fire a typed signal. A WebSocket client subscribed to that signal could receive it through the future delivery layer. The full chain would be: external webhook to trail execution to signal fire to WebSocket delivery. Each piece is a different ADR. Together they would form a reactive pipeline from external input to external output.
 
