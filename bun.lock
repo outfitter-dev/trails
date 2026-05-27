@@ -199,6 +199,18 @@
         "@ontrails/observe": "workspace:^",
       },
     },
+    "packages/regrade": {
+      "name": "@ontrails/regrade",
+      "version": "1.0.0-beta.18",
+      "dependencies": {
+        "@ontrails/core": "workspace:^",
+        "@ontrails/topographer": "workspace:^",
+        "zod": "catalog:",
+      },
+      "devDependencies": {
+        "@ontrails/testing": "workspace:^",
+      },
+    },
     "packages/store": {
       "name": "@ontrails/store",
       "version": "1.0.0-beta.18",
@@ -398,6 +410,8 @@
     "@ontrails/permits": ["@ontrails/permits@workspace:packages/permits"],
 
     "@ontrails/pino": ["@ontrails/pino@workspace:packages/pino"],
+
+    "@ontrails/regrade": ["@ontrails/regrade@workspace:packages/regrade"],
 
     "@ontrails/store": ["@ontrails/store@workspace:packages/store"],
 
