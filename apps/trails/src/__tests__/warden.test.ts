@@ -334,6 +334,16 @@ describe('trails warden', () => {
     );
   });
 
+  test('standalone Warden bin shows help without running checks', () => {
+    const raw = runRawCli(wardenBinPath, ['--help'], repoRoot);
+
+    expect(raw.exitCode).toBe(0);
+    expect(raw.stderr).toBe('');
+    expect(raw.stdout).toContain('Usage: warden [options]');
+    expect(raw.stdout).toContain('--depth <value>');
+    expect(raw.stdout).not.toContain('Warden Report');
+  });
+
   test('onResult bridge writes formatted output and sets the exit code', () => {
     const originalWrite = process.stdout.write;
     const originalExitCode = process.exitCode;
