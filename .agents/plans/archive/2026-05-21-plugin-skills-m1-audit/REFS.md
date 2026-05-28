@@ -1,3 +1,45 @@
+---
+created: 2026-05-21T21:29:29Z
+updated: 2026-05-22T20:49:43Z
+description: Reference index for the M1 plugin/skills audit. Lists repo guidance files, Linear tracker URLs for the project parent and all M1/M2/M3/M4 issues, source artifacts to audit (plugin skill/agent/rules/hooks, package manifests, docs), key CLI commands, and known starting signals from pre-execution inspection.
+impl_status: implemented
+linear:
+  - TRL-741
+  - TRL-742
+  - TRL-743
+  - TRL-744
+  - TRL-745
+  - TRL-746
+  - TRL-747
+  - TRL-748
+  - TRL-749
+  - TRL-750
+  - TRL-751
+  - TRL-752
+  - TRL-753
+  - TRL-754
+references:
+  - AGENTS.md
+  - .agents/plans/PLANNING.md
+  - plugin/skills/trails/SKILL.md
+  - plugin/agents/trail-engineer.md
+  - plugin/rules/lexicon.md
+  - plugin/rules/patterns.md
+  - plugin/hooks/detect-trails.sh
+  - .claude/skills/
+  - .agents/skills/
+  - .claude-plugin/marketplace.json
+  - plugin/.claude-plugin/plugin.json
+  - README.md
+  - docs/lexicon.md
+  - docs/architecture.md
+  - docs/contributing/language-styleguide.md
+  - docs/contributing/code-standards.md
+  - docs/warden.md
+  - docs/adr/README.md
+  - apps/trails/bin/trails.ts
+---
+
 # References: plugin-skills-m1-audit
 
 > Note: absolute `/Users/mg/...` paths in this reference file are machine-local evidence from the M1 audit environment. They are not portable defaults for future implementation; use repo-relative paths or `$HOME`-relative skill roots when turning findings into scripts/docs.

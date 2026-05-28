@@ -1,8 +1,30 @@
+---
+created: "2026-05-01T14:16:20Z"
+updated: "2026-05-01T14:16:20Z"
+description: "Parent overview aligning existing backlog rule issues with Warden-first, owner-first, source-tier doctrine after the prevention audit. Summarizes alignment decisions for TRL-532, TRL-533, TRL-535, TRL-551, TRL-552, and TRL-550. Directs that stale issues referencing rejected framing should be updated or closed."
+references:
+  - _draft.TRL-532-duplicate-primitive-id-scope.md
+  - _draft.TRL-533-activation-cycle-vs-depth-cap-split.md
+  - _draft.TRL-535-source-vocabulary-scope.md
+  - _draft.TRL-551-nested-barrel-depth-audit.md
+  - _draft.TRL-552-prefer-bun-api-evaluation.md
+  - _draft.TRL-550-max-file-lines-evaluation.md
+linear:
+  - TRL-536
+  - TRL-532
+  - TRL-533
+  - TRL-535
+  - TRL-551
+  - TRL-552
+  - TRL-550
+impl_status: implemented
+---
+
 # TRL-536 Backlog Alignment Overview
 
-**Issue:** TRL-536
-**Branch:** `trl-536-align-existing-backlog-rule-issues-after-doctrine-docs-land`
-**Purpose:** Align existing backlog rule issues with current Warden-first, owner-first, source-tier doctrine.
+- **Issue:** TRL-536
+- **Branch:** `trl-536-align-existing-backlog-rule-issues-after-doctrine-docs-land`
+- **Purpose:** Align existing backlog rule issues with current Warden-first, owner-first, source-tier doctrine.
 
 ## Doctrine Baseline
 

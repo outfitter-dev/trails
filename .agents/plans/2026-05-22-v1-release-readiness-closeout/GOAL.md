@@ -1,3 +1,24 @@
+---
+created: "2026-05-23T21:40:48Z"
+updated: "2026-05-23T21:40:49Z"
+description: "Resume prompt for the v1-release-readiness-closeout goal packet, handed off from a Codex session. Contains a pasteable /goal command for a fresh executor covering TRL-759 commit, TRL-760 migration guide, final stack gate, local review, and remote review closeout. References RETRO.md, PLAN.md, and REFS.md as required reading before starting."
+impl_status: implemented
+linear:
+  - TRL-756
+  - TRL-757
+  - TRL-758
+  - TRL-759
+  - TRL-760
+  - TRL-766
+  - TRL-767
+references:
+  - .agents/plans/2026-05-22-v1-release-readiness-closeout/PLAN.md
+  - .agents/plans/2026-05-22-v1-release-readiness-closeout/RETRO.md
+  - .agents/plans/2026-05-22-v1-release-readiness-closeout/REFS.md
+  - AGENTS.md
+  - .agents/plans/PLANNING.md
+---
+
 # Goal Prompt: v1-release-readiness-closeout (resume from Codex handoff)
 
 Resume context: prior executor (Codex) stopped 2026-05-22 18:57 EDT with TRL-767/766/756/757/758 committed and TRL-759 implementation drafted in the working tree but uncommitted. The pasteable `/goal` below is the resume prompt for a fresh executor session. Full execution contract lives in `PLAN.md`; `RETRO.md` is the durable ledger to read first.

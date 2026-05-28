@@ -1,15 +1,35 @@
+---
+created: 2026-05-25T14:30:47Z
+updated: 2026-05-25T14:30:48Z
+description: Durable execution ledger for the scaffold forward-compat seed session. Records final outcome (four draft PRs #589-#592, CI green, Linear in review), branch/PR/issue ledger, planning discoveries, deferred follow-ups, tracker mutations, execution log, local review log (three lanes 5/5), verification log, remote CI log, and final state.
+impl_status: implemented
+linear:
+  - TRL-796
+  - TRL-797
+  - TRL-798
+  - TRL-799
+  - TRL-801
+  - TRL-803
+  - TRL-794
+  - TRL-782
+  - TRL-783
+references:
+  - .agents/plans/2026-05-24-scaffold-forward-compat-seed/PLAN.md
+  - .agents/plans/2026-05-24-scaffold-forward-compat-seed/GOAL.md
+  - .agents/plans/2026-05-24-scaffold-forward-compat-seed/local-review-lane-1-scaffold-shape.md
+  - .agents/plans/2026-05-24-scaffold-forward-compat-seed/local-review-lane-2-helper-tooling.md
+  - .agents/plans/2026-05-24-scaffold-forward-compat-seed/local-review-lane-3-docs-adr.md
+---
+
 # Execution Retro: scaffold forward-compat seed
 
-Date started: 2026-05-24
-Date finalized: 2026-05-24
-Status: Draft PRs submitted; CI green; Linear in review
-Plan: `.agents/plans/2026-05-24-scaffold-forward-compat-seed/PLAN.md`
-Goal: `.agents/plans/2026-05-24-scaffold-forward-compat-seed/GOAL.md`
+- **Date started:** 2026-05-24
+- **Date finalized:** 2026-05-24
+- **Status:** Draft PRs submitted; CI green; Linear in review
+- **Plan:** `.agents/plans/2026-05-24-scaffold-forward-compat-seed/PLAN.md`
+- **Goal:** `.agents/plans/2026-05-24-scaffold-forward-compat-seed/GOAL.md`
 
-Use this as the durable execution ledger. For stacked work, this should normally
-be the last meaningful file touched before local completion, draft submission,
-ready-for-review, remote review closeout, merge readiness, archive, or final
-handoff. Meaningful review-flow changes require a new retro entry.
+Use this as the durable execution ledger. For stacked work, this should normally be the last meaningful file touched before local completion, draft submission, ready-for-review, remote review closeout, merge readiness, archive, or final handoff. Meaningful review-flow changes require a new retro entry.
 
 ## Execution Summary
 
@@ -265,6 +285,4 @@ handoff. Meaningful review-flow changes require a new retro entry.
 - Final transcript proof: final response should name PRs #589-#592, green CI,
   Linear in-review comments, final checks, and remaining P3 registry caveat.
 
-Do not mark complete until the goal completion condition has been proven, this
-section is filled or explicitly marked blocked, and the final transcript names
-the updated retro state.
+Do not mark complete until the goal completion condition has been proven, this section is filled or explicitly marked blocked, and the final transcript names the updated retro state.

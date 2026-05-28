@@ -1,3 +1,16 @@
+---
+created: 2026-05-25T14:30:48Z
+updated: 2026-05-25T14:30:48Z
+description: Local review report for lane 1 (scaffold shape) of the scaffold forward-compat seed session. Scored 5/5. Covers TRL-796 exact generated @ontrails/* pins and TRL-798 .trails/scaffold.json provenance shape. No P0/P1/P2; P3 noting registry-backed smoke blocked until next beta publishes @ontrails/testing/established. Evidence: 17 tests/349 assertions.
+impl_status: implemented
+linear:
+  - TRL-796
+  - TRL-798
+references:
+  - apps/trails/src/trails/create-scaffold.ts
+  - apps/trails/src/__tests__/create.test.ts
+---
+
 # Local Review Lane 1: Scaffold Shape
 
 Score: 5/5

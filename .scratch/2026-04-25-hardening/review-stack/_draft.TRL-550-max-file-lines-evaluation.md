@@ -1,7 +1,17 @@
+---
+created: "2026-05-01T14:16:21Z"
+updated: "2026-05-01T14:16:21Z"
+description: "Evaluates whether to add a repo-local max-file-lines rule. Audits the 11 largest source files (ranging from 1059 to 3054 lines). Recommends against a blocking rule now; if added later, suggests starting as advisory/private hygiene above the current worst offender with test and script exclusions."
+references: []
+linear:
+  - TRL-550
+impl_status: implemented
+---
+
 # TRL-550 Max File Lines Evaluation
 
-**Issue:** TRL-550
-**Branch:** `trl-550-evaluate-progressive-max-file-lines-enforcement-for-trails`
+- **Issue:** TRL-550
+- **Branch:** `trl-550-evaluate-progressive-max-file-lines-enforcement-for-trails`
 
 ## Question
 

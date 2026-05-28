@@ -1,3 +1,30 @@
+---
+created: 2026-05-21T21:29:29Z
+updated: 2026-05-22T20:49:43Z
+description: Machine-local execution packet for the M1 plugin/skills audit goal. Contains the full /goal prompt to paste into the goal runtime, covering objective, branch order, required report outputs, scope per issue, evidence rules, local and remote review contracts, verification commands, and completion/stop conditions.
+impl_status: implemented
+linear:
+  - TRL-742
+  - TRL-743
+  - TRL-744
+  - TRL-745
+  - TRL-746
+  - TRL-747
+  - TRL-748
+  - TRL-749
+  - TRL-750
+  - TRL-751
+  - TRL-752
+  - TRL-753
+  - TRL-754
+references:
+  - .agents/plans/archive/2026-05-21-plugin-skills-m1-audit/PLAN.md
+  - .agents/plans/archive/2026-05-21-plugin-skills-m1-audit/REFS.md
+  - .agents/plans/archive/2026-05-21-plugin-skills-m1-audit/RETRO.md
+  - AGENTS.md
+  - .agents/plans/PLANNING.md
+---
+
 # Goal Prompt: plugin-skills-m1-audit
 
 > Note: this goal prompt is a machine-local execution packet for Matt's Trails checkout. Absolute `/Users/mg/...` paths are preserved as point-in-time audit coordinates, especially for TRL-743 installed-skill inspection; downstream implementation guidance should use repo-relative paths or `$HOME`-relative skill roots instead.

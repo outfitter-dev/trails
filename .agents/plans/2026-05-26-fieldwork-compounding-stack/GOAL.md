@@ -1,3 +1,28 @@
+---
+created: "2026-05-26T22:32:21Z"
+updated: "2026-05-26T22:32:21Z"
+description: Pasteable /goal prompt for the fieldwork compounding stack before Radio migration. Instructs execution of TRL-782 (resource config inference), TRL-804 (Warden top-level surface coaching), TRL-781 (trails create rerun reconciliation), TRL-789 (entity starter CRUD completeness), TRL-816 (post-compose cleanup), then stop at TRL-814 as the Radio proof lane.
+linear:
+  - TRL-782
+  - TRL-804
+  - TRL-781
+  - TRL-789
+  - TRL-816
+  - TRL-814
+impl_status: partial
+references:
+  - .agents/plans/2026-05-26-fieldwork-compounding-stack/PLAN.md
+  - .agents/plans/2026-05-26-fieldwork-compounding-stack/RETRO.md
+  - .agents/plans/2026-05-26-fieldwork-compounding-stack/REFS.md
+  - AGENTS.md
+  - .agents/plans/PLANNING.md
+  - docs/adr/0000-core-premise.md
+  - docs/tenets.md
+  - docs/adr/0001-naming-conventions.md
+  - docs/lexicon.md
+  - docs/architecture.md
+---
+
 # Goal Prompt: Fieldwork Compounding Stack
 
 Paste this into the goal runtime:

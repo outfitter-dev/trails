@@ -5,6 +5,14 @@ status: draft
 created: 2026-04-06
 updated: 2026-04-09
 owners: ['[galligan](https://github.com/galligan)']
+description: "Defines a `docs/` section taxonomy—basecamp, guides, workflow, reference, governance, adr—with deterministic placement rules, unique filenames, prev/next navigation frontmatter, and a separate `releases/` directory."
+references:
+  - docs/tenets.md
+  - docs/adr/0000-core-premise.md
+  - docs/adr/0001-naming-conventions.md
+  - docs/adr/0023-simplifying-the-trails-lexicon.md
+linear: []
+impl_status: partial
 ---
 
 # ADR: Documentation structure

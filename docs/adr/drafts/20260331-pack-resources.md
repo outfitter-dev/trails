@@ -6,6 +6,11 @@ created: 2026-03-31
 updated: 2026-04-02
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [packs-namespace-boundaries]
+description: "Defines distribution mechanics for packs: `resource.json` publisher manifests, `.trails/resources.json` consumer records, dependency vs. scaffold modes, contract-level three-way diff for scaffolded upgrade, and npm/GitHub as distribution sources."
+references:
+  - docs/adr/drafts/20260331-packs-namespace-boundaries.md
+linear: []
+impl_status: planned
 ---
 
 # ADR: Pack Resources

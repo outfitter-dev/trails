@@ -1,8 +1,55 @@
+---
+created: 2026-05-21T21:29:29Z
+updated: 2026-05-22T20:49:43Z
+description: Synthesis of the four M1 audit reports into an 8-branch M2/M3/M4 executable implementation stack (TRL-746 through TRL-753). Includes a finding-to-owner map, per-branch file targets and acceptance criteria, verification ladder, completed Linear refresh summary, follow-up issue TRL-755 for adjacent public docs drift, and deferred items (runtime precedence, npx skills, Codex hook parity).
+impl_status: implemented
+linear:
+  - TRL-742
+  - TRL-743
+  - TRL-744
+  - TRL-745
+  - TRL-746
+  - TRL-747
+  - TRL-748
+  - TRL-749
+  - TRL-750
+  - TRL-751
+  - TRL-752
+  - TRL-753
+  - TRL-754
+  - TRL-755
+references:
+  - .agents/plans/archive/2026-05-21-plugin-skills-m1-audit/reports/trl-745-package-coverage.md
+  - .agents/plans/archive/2026-05-21-plugin-skills-m1-audit/reports/trl-742-repo-plugin-doctrine.md
+  - .agents/plans/archive/2026-05-21-plugin-skills-m1-audit/reports/trl-743-distribution-surfaces.md
+  - .agents/plans/archive/2026-05-21-plugin-skills-m1-audit/reports/trl-744-hook-opportunities.md
+  - .agents/plans/archive/2026-05-21-plugin-skills-m1-audit/RETRO.md
+  - plugin/skills/trails/SKILL.md
+  - plugin/skills/trails/references/architecture.md
+  - plugin/skills/trails/references/getting-started.md
+  - plugin/skills/trails/references/contract-patterns.md
+  - plugin/skills/trails/references/testing-patterns.md
+  - plugin/skills/trails/references/error-taxonomy.md
+  - plugin/skills/trails/references/common-pitfalls.md
+  - plugin/skills/trails/references/migration-checklist.md
+  - plugin/agents/trail-engineer.md
+  - plugin/rules/lexicon.md
+  - plugin/rules/patterns.md
+  - plugin/hooks/detect-trails.sh
+  - plugin/hooks/hooks.json
+  - plugin/README.md
+  - .claude/skills/clark/references/calibrate.md
+  - .claude-plugin/marketplace.json
+  - plugin/.claude-plugin/plugin.json
+  - README.md
+  - docs/architecture.md
+---
+
 # TRL-754 Synthesis And Execution Stack
 
-Date: 2026-05-21
-Branch: `trl-754-synthesize-plugin-audits-into-an-executable-refresh-stack`
-Scope: synthesize `TRL-745`, `TRL-742`, `TRL-743`, and `TRL-744` into an exact M2/M3/M4 implementation stack and tracker refresh.
+- **Date:** 2026-05-21
+- **Branch:** `trl-754-synthesize-plugin-audits-into-an-executable-refresh-stack`
+- **Scope:** synthesize `TRL-745`, `TRL-742`, `TRL-743`, and `TRL-744` into an exact M2/M3/M4 implementation stack and tracker refresh.
 
 ## Executive Summary
 

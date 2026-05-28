@@ -1,8 +1,19 @@
+---
+created: "2026-05-01T14:16:21Z"
+updated: "2026-05-01T14:16:21Z"
+description: "Scoping decision for TRL-489 (source vocabulary enforcement). Source-code identifier enforcement can become Warden work only with precise terms, allowed replacements, tier, and false-positive exceptions. Markdown prose cleanup, ADR historical references, and broad word-sweep rules are excluded from durable Warden scope."
+references: []
+linear:
+  - TRL-535
+  - TRL-489
+impl_status: implemented
+---
+
 # TRL-535 Source Vocabulary Rule Scope
 
-**Issue:** TRL-535
-**Target:** TRL-489
-**Branch:** `trl-535-align-trl-489-source-vocabulary-rule-scope`
+- **Issue:** TRL-535
+- **Target:** TRL-489
+- **Branch:** `trl-535-align-trl-489-source-vocabulary-rule-scope`
 
 ## Scope Decision
 
