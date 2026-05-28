@@ -65,7 +65,7 @@ Before creating the version PR:
 
    ```bash
    git status --short -- .trails .trails-tmp
-   git status --short -- .trails/trails.db .trails/trails.db-shm .trails/trails.db-wal
+   git status --short -- .trails/state/trails.db .trails/state/trails.db-shm .trails/state/trails.db-wal
    ```
 
 10. The ADR and docs checks pass:
