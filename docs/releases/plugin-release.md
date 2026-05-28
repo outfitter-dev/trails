@@ -2,7 +2,7 @@
 
 This runbook covers the Trails Claude plugin and bundled skills under `plugin/` plus the marketplace manifest at `.claude-plugin/marketplace.json`. It is separate from the framework package publish path in [Stable Cutover Runbook](./stable-cutover.md).
 
-The current plugin manifest version is `0.3.0`. The bundled `trails` skill targets Trails framework `1.0.0-beta.18` through `metadata.trails.version`. Those versions are intentionally independent: plugin version names the Claude plugin bundle, while the skill target names the framework package line the guidance was refreshed against.
+The current plugin manifest version is `0.3.1`. The bundled `trails` skill targets Trails framework `1.0.0-beta.18` through `metadata.trails.version`. Those versions are intentionally independent: plugin version names the Claude plugin bundle, while the skill target names the framework package line the guidance was refreshed against.
 
 ## Stop Rules
 
@@ -56,16 +56,16 @@ Every future release packet should replace or supersede that pointer with fresh 
 
 Current refresh evidence records two release-readiness risks that must be refreshed before future publication: raw scaffold output was not clean without edits, and published `@ontrails/trails@1.0.0-beta.18` exposed `warden` but not `compile`/`validate`. These do not require publishing the plugin to stop, but release notes and install docs must not imply a published CLI already has commands that only exist in the repo.
 
-## Changes Since Plugin 0.3.0 Manifest
+## Plugin 0.3.1 Bundle
 
-The refresh stack keeps the manifest at `0.3.0` unless the operator chooses to bump it before publication. Before publishing, decide whether the marketplace requires a version bump for the refreshed bundle. If it does, update `plugin/.claude-plugin/plugin.json`, then run:
+The refreshed bundle is recorded as plugin manifest version `0.3.1`. If the marketplace requires another version bump before publication, update `plugin/.claude-plugin/plugin.json`, then run:
 
 ```bash
 bun run plugin:metadata:sync
 bun run plugin:metadata:check
 ```
 
-Branch-local changes since the current `0.3.0` manifest include:
+The `0.3.1` bundle includes:
 
 - public README/API docs drift fixes and M1 packet archive;
 - refreshed main `trails` skill for CLI, MCP, Hono HTTP, Bun-native HTTP,
@@ -99,7 +99,7 @@ Before any external publication:
 3. Confirm `TRL-755` public-docs cleanup and M1 archive are included.
 4. Confirm `TRL-757` through `TRL-760` are either accepted deferred follow-ups
    or explicitly promoted into the release gate.
-5. Confirm whether plugin version remains `0.3.0` or is bumped, then rerun
+5. Confirm whether plugin version remains `0.3.1` or is bumped again, then rerun
    metadata checks.
 6. Run the manual/external checks above only with explicit approval.
 
