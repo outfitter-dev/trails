@@ -52,3 +52,15 @@ pre-push:
       env:
         GIT_PAGER: cat
       run: bun run typecheck
+    lint:
+      env:
+        GIT_PAGER: cat
+      run: bun run lint
+    format:
+      env:
+        GIT_PAGER: cat
+      run: bun run format:check
+    dead-code:
+      env:
+        GIT_PAGER: cat
+      run: bun run dead-code
