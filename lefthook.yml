@@ -56,6 +56,10 @@ pre-push:
       env:
         GIT_PAGER: cat
       run: bun run lint
+    lint-ast-grep:
+      env:
+        GIT_PAGER: cat
+      run: bun run lint:ast-grep
     format:
       env:
         GIT_PAGER: cat
