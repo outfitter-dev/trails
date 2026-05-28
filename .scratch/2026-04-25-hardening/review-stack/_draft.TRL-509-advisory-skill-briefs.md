@@ -14,9 +14,9 @@ impl_status: implemented
 
 # TRL-509 Advisory Skill Briefs
 
-**Issue:** TRL-509
-**Branch:** `trl-509-draft-advisory-skill-briefs-after-prevention-audit`
-**Purpose:** Draft advisory-skill briefs after the prevention audit, grounded in post-Warden source-tier doctrine.
+- **Issue:** TRL-509
+- **Branch:** `trl-509-draft-advisory-skill-briefs-after-prevention-audit`
+- **Purpose:** Draft advisory-skill briefs after the prevention audit, grounded in post-Warden source-tier doctrine.
 
 ## Inputs
 

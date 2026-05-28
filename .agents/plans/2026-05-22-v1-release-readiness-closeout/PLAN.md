@@ -29,8 +29,8 @@ references:
 
 # Goal Plan: v1-release-readiness-closeout
 
-Date: 2026-05-22
-Status: Draft
+- **Date:** 2026-05-22
+- **Status:** Draft
 
 ## Objective
 

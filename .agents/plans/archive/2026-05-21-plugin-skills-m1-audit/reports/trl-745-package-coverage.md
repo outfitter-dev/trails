@@ -34,9 +34,9 @@ references:
 
 # TRL-745 Package Coverage Audit
 
-Date: 2026-05-21
-Branch: `trl-745-audit-plugin-coverage-for-current-packages-adapters-and`
-Scope: current `@ontrails/*` package, adapter, subpath, and key export truth that the Trails plugin/skills refresh must teach.
+- **Date:** 2026-05-21
+- **Branch:** `trl-745-audit-plugin-coverage-for-current-packages-adapters-and`
+- **Scope:** current `@ontrails/*` package, adapter, subpath, and key export truth that the Trails plugin/skills refresh must teach.
 
 ## Executive Summary
 

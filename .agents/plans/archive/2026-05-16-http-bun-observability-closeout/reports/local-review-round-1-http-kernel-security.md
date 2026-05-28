@@ -14,8 +14,8 @@ references:
 
 # Local Review Round 1: HTTP Kernel And Surface Security
 
-Date: 2026-05-16
-Stack tip reviewed: `trl-718-docs-close-http-and-observability-wording-before-versioning`
+- **Date:** 2026-05-16
+- **Stack tip reviewed:** `trl-718-docs-close-http-and-observability-wording-before-versioning`
 
 ## Scope
 

@@ -19,11 +19,11 @@ references:
 
 # Execution Retro: Compose Cutover Stack
 
-Date started: 2026-05-26 01:25 UTC
-Date finalized: 2026-05-26 02:29 UTC
-Status: Draft PR submitted; CI green; ready-for-review blocked on absent Greptile summary
-Plan: `.agents/plans/2026-05-26-compose-cutover-stack/PLAN.md`
-Goal: `.agents/plans/2026-05-26-compose-cutover-stack/GOAL.md`
+- **Date started:** 2026-05-26 01:25 UTC
+- **Date finalized:** 2026-05-26 02:29 UTC
+- **Status:** Draft PR submitted; CI green; ready-for-review blocked on absent Greptile summary
+- **Plan:** `.agents/plans/2026-05-26-compose-cutover-stack/PLAN.md`
+- **Goal:** `.agents/plans/2026-05-26-compose-cutover-stack/GOAL.md`
 
 Use this as the durable execution ledger. For stacked work, this should normally be the last meaningful file touched before local completion, draft submission, ready-for-review, remote review closeout, merge readiness, archive, or final handoff.
 

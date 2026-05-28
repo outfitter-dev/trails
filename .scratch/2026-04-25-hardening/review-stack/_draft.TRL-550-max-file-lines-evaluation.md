@@ -10,8 +10,8 @@ impl_status: implemented
 
 # TRL-550 Max File Lines Evaluation
 
-**Issue:** TRL-550
-**Branch:** `trl-550-evaluate-progressive-max-file-lines-enforcement-for-trails`
+- **Issue:** TRL-550
+- **Branch:** `trl-550-evaluate-progressive-max-file-lines-enforcement-for-trails`
 
 ## Question
 

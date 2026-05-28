@@ -17,11 +17,11 @@ references:
 
 # Execution Retro: Fieldwork Compounding Stack
 
-Date started: 2026-05-26
-Date finalized: 2026-05-26 16:55 EDT
-Status: Submitted draft stack; ready-for-review prep
-Plan: `.agents/plans/2026-05-26-fieldwork-compounding-stack/PLAN.md`
-Goal: `.agents/plans/2026-05-26-fieldwork-compounding-stack/GOAL.md`
+- **Date started:** 2026-05-26
+- **Date finalized:** 2026-05-26 16:55 EDT
+- **Status:** Submitted draft stack; ready-for-review prep
+- **Plan:** `.agents/plans/2026-05-26-fieldwork-compounding-stack/PLAN.md`
+- **Goal:** `.agents/plans/2026-05-26-fieldwork-compounding-stack/GOAL.md`
 
 Use this as the durable execution ledger. Update it before any final handoff, draft submission, ready-for-review transition, remote review closeout, merge readiness claim, archive, or explicit stop.
 

@@ -24,8 +24,8 @@ references:
 
 # Goal Plan: Scaffold Runway Overnight Stack
 
-Date: 2026-05-23
-Status: Draft
+- **Date:** 2026-05-23
+- **Status:** Draft
 
 ## Objective
 
@@ -259,8 +259,7 @@ Reviewer output contract:
 - Findings: P0/P1/P2/P3, with file/line evidence where applicable
 - Prompt to fix: concise prompt for each actionable finding
 
-Fix all P0/P1/P2 findings before remote submission or final handoff.
-Summarize each round and its fix outcome in `RETRO.md`.
+Fix all P0/P1/P2 findings before remote submission or final handoff. Summarize each round and its fix outcome in `RETRO.md`.
 
 ## Progress Reporting
 

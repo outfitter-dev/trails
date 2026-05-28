@@ -22,9 +22,9 @@ impl_status: implemented
 
 # TRL-536 Backlog Alignment Overview
 
-**Issue:** TRL-536
-**Branch:** `trl-536-align-existing-backlog-rule-issues-after-doctrine-docs-land`
-**Purpose:** Align existing backlog rule issues with current Warden-first, owner-first, source-tier doctrine.
+- **Issue:** TRL-536
+- **Branch:** `trl-536-align-existing-backlog-rule-issues-after-doctrine-docs-land`
+- **Purpose:** Align existing backlog rule issues with current Warden-first, owner-first, source-tier doctrine.
 
 ## Doctrine Baseline
 

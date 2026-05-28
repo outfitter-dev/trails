@@ -24,44 +24,24 @@ references:
 
 ## Tracked / Portable Sources
 
-- `AGENTS.md` - repo commands, Graphite workflow, subagent rules, changeset
-  requirement, and Trails vocabulary.
-- `.agents/plans/PLANNING.md` - goal packet conventions, review discipline,
-  validation ladder, and source-control expectations.
-- `apps/trails/package.json:1` - `@ontrails/trails` package manifest. Current
-  `main` already has `bin: { "trails": "./bin/trails.ts" }`, so this goal is
-  scaffold consumption rather than bin invention.
-- `apps/trails/src/trails/create-scaffold.ts:46` - `generatePackageJson()`
-  owns baseline scaffold dependencies, dev dependencies, and scripts.
-- `apps/trails/src/__tests__/create.test.ts:155` - scaffold package assertions
-  live here.
-- `apps/trails/src/__tests__/create.test.ts:166` - verify-mode assertions live
-  here; extend carefully so `verify: false` still has the framework CLI dev
-  dependency if the baseline scaffold owns it.
-- `apps/trails/src/trails/add-verify.ts:33` - generated lefthook already runs
-  `bunx trails warden`, proving the generated project needs a resolvable
-  `trails` command when verification is enabled.
-- `apps/trails/src/versions.ts:21` - `ontrailsPackageRange` derives
-  `^${trailsPackageVersion}` from the current `@ontrails/trails` package.
+- `AGENTS.md` - repo commands, Graphite workflow, subagent rules, changeset requirement, and Trails vocabulary.
+- `.agents/plans/PLANNING.md` - goal packet conventions, review discipline, validation ladder, and source-control expectations.
+- `apps/trails/package.json:1` - `@ontrails/trails` package manifest. Current `main` already has `bin: { "trails": "./bin/trails.ts" }`, so this goal is scaffold consumption rather than bin invention.
+- `apps/trails/src/trails/create-scaffold.ts:46` - `generatePackageJson()` owns baseline scaffold dependencies, dev dependencies, and scripts.
+- `apps/trails/src/__tests__/create.test.ts:155` - scaffold package assertions live here.
+- `apps/trails/src/__tests__/create.test.ts:166` - verify-mode assertions live here; extend carefully so `verify: false` still has the framework CLI dev dependency if the baseline scaffold owns it.
+- `apps/trails/src/trails/add-verify.ts:33` - generated lefthook already runs `bunx trails warden`, proving the generated project needs a resolvable `trails` command when verification is enabled.
+- `apps/trails/src/versions.ts:21` - `ontrailsPackageRange` derives `^${trailsPackageVersion}` from the current `@ontrails/trails` package.
 
 ## Untracked / Local-Only Sources
 
-- `/Users/mg/Developer/outfitter/trailblazing/inbox/2026-05-23-lewis-clark-turnaround.md`
-  - shared Lewis/Clark coordination note. The load-bearing detail is copied
-  here: Cluster D scripts-first is unblocked after the prior stack merged.
-- `/Users/mg/Developer/outfitter/trailblazing/plans/fieldwork-loop/coverage-audit-20260523.md`
-  - origin of the Fieldwork Loop routing. The load-bearing TRL-780 summary is
-  represented by the Linear issue and this packet.
+- `/Users/mg/Developer/outfitter/trailblazing/inbox/2026-05-23-lewis-clark-turnaround.md` - shared Lewis/Clark coordination note. The load-bearing detail is copied here: Cluster D scripts-first is unblocked after the prior stack merged.
+- `/Users/mg/Developer/outfitter/trailblazing/plans/fieldwork-loop/coverage-audit-20260523.md` - origin of the Fieldwork Loop routing. The load-bearing TRL-780 summary is represented by the Linear issue and this packet.
 
 ## Copied Or Summarized Sources
 
-- This packet copies the current architectural fact that
-  `@ontrails/trails` already ships a `trails` bin on `main`; the executor should
-  verify before editing but should not reopen that decision unless it has
-  changed.
-- This packet summarizes the shared Cluster D recommendation: scripts-first as
-  the immediate scaffold runway fix; published-bin work is already present;
-  plugin install detection remains TRL-778.
+- This packet copies the current architectural fact that `@ontrails/trails` already ships a `trails` bin on `main`; the executor should verify before editing but should not reopen that decision unless it has changed.
+- This packet summarizes the shared Cluster D recommendation: scripts-first as the immediate scaffold runway fix; published-bin work is already present; plugin install detection remains TRL-778.
 
 ## Tracker Records
 
@@ -82,8 +62,7 @@ references:
 
 ## Prior Plans
 
-- `.agents/plans/2026-05-22-v1-release-readiness-closeout/` - prior active
-  release-readiness closeout packet, not a prerequisite for this goal.
+- `.agents/plans/2026-05-22-v1-release-readiness-closeout/` - prior active release-readiness closeout packet, not a prerequisite for this goal.
 
 ## Validation Commands
 
@@ -95,5 +74,4 @@ references:
 - `bun run format:check` - formatting without direct binary path drift.
 - `bun run check` - full repo check when feasible.
 - `git diff --check` - whitespace/diff hygiene.
-- Generated-project smoke: create a temp app, install, then run
-  `bun run survey -- --help` and `bun run warden -- --help` where practical.
+- Generated-project smoke: create a temp app, install, then run `bun run survey -- --help` and `bun run warden -- --help` where practical.

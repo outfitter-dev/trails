@@ -16,8 +16,8 @@ references:
 
 # Local Review Round 3: Observability, Docs, And CI Hygiene
 
-Date: 2026-05-16
-Stack tip reviewed: `trl-718-docs-close-http-and-observability-wording-before-versioning`
+- **Date:** 2026-05-16
+- **Stack tip reviewed:** `trl-718-docs-close-http-and-observability-wording-before-versioning`
 
 ## Scope
 

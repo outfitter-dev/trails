@@ -18,9 +18,9 @@ impl_status: implemented
 
 # TRL-545 Advisory Skill Issue Map
 
-**Issue:** TRL-545
-**Branch:** `trl-545-create-advisory-skill-follow-up-issues-from-prevention-audit`
-**Purpose:** Translate accepted TRL-509 advisory briefs into actionable follow-up issues.
+- **Issue:** TRL-545
+- **Branch:** `trl-545-create-advisory-skill-follow-up-issues-from-prevention-audit`
+- **Purpose:** Translate accepted TRL-509 advisory briefs into actionable follow-up issues.
 
 ## Issue Map
 

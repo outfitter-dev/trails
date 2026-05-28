@@ -43,9 +43,9 @@ references:
 
 # TRL-742 Repo Plugin Doctrine Audit
 
-Date: 2026-05-21
-Branch: `trl-742-audit-repo-plugin-and-skills-against-current-trails-doctrine`
-Scope: repo-tracked plugin, skill, agent, rule, and hook surfaces against current Trails doctrine, CLI help, Warden manifest, package exports, and generated guidance.
+- **Date:** 2026-05-21
+- **Branch:** `trl-742-audit-repo-plugin-and-skills-against-current-trails-doctrine`
+- **Scope:** repo-tracked plugin, skill, agent, rule, and hook surfaces against current Trails doctrine, CLI help, Warden manifest, package exports, and generated guidance.
 
 ## Executive Summary
 

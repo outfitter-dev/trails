@@ -30,11 +30,11 @@ references:
 
 # Execution Retro: plugin-skills-m1-audit
 
-Date started: 2026-05-21
-Date finalized: 2026-05-21
-Status: Ready for review; CI and Greptile clean, Graphite mergeability pending on upper stacked PRs as external service lag
-Plan: `.agents/plans/2026-05-21-plugin-skills-m1-audit/PLAN.md`
-Goal: `.agents/plans/2026-05-21-plugin-skills-m1-audit/GOAL.md`
+- **Date started:** 2026-05-21
+- **Date finalized:** 2026-05-21
+- **Status:** Ready for review; CI and Greptile clean, Graphite mergeability pending on upper stacked PRs as external service lag
+- **Plan:** `.agents/plans/2026-05-21-plugin-skills-m1-audit/PLAN.md`
+- **Goal:** `.agents/plans/2026-05-21-plugin-skills-m1-audit/GOAL.md`
 
 Use this as the durable execution ledger. For stacked work, this should normally be the last meaningful file touched before local completion, draft submission, ready-for-review, remote review closeout, merge readiness, archive, or final handoff. Meaningful review-flow changes require a new retro entry.
 

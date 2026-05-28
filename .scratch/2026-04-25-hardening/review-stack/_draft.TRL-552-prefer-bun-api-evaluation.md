@@ -10,8 +10,8 @@ impl_status: implemented
 
 # TRL-552 Prefer Bun API Evaluation
 
-**Issue:** TRL-552
-**Branch:** `trl-552-evaluate-expanded-prefer-bun-api-mappings-for-repo-local`
+- **Issue:** TRL-552
+- **Branch:** `trl-552-evaluate-expanded-prefer-bun-api-mappings-for-repo-local`
 
 ## Rule Baseline
 

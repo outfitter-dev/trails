@@ -11,9 +11,9 @@ impl_status: implemented
 
 # TRL-533 Activation Cycle Vs Runtime Depth-Cap Split
 
-**Issue:** TRL-533
-**Target:** TRL-454
-**Branch:** `trl-533-split-trl-454-activation-cycle-rule-from-runtime-depth-cap`
+- **Issue:** TRL-533
+- **Target:** TRL-454
+- **Branch:** `trl-533-split-trl-454-activation-cycle-rule-from-runtime-depth-cap`
 
 ## Problem
 

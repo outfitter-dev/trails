@@ -30,28 +30,17 @@ references:
 
 # TRL-767 Audit: Pending Force Events As A V1 Stable Cutover Gate
 
-Date: 2026-05-22
-Branch: `trl-767-audit-pending-force-events-as-a-v1-stable-cutover-gate`
-Issue: `TRL-767`
+- **Date:** 2026-05-22
+- **Branch:** `trl-767-audit-pending-force-events-as-a-v1-stable-cutover-gate`
+- **Issue:** `TRL-767`
 
 ## Summary Verdict
 
 Verdict: `gate needs docs`
 
-The hard release rule is usable today: stable cutover can require zero pending
-force events before the version PR leaves draft. The implementation already
-blocks unforced breaking topo changes, records graph-only force events on
-`trails compile --force`, preserves forced graph hashes in `.trails/trails.lock`,
-keeps `trails validate` non-stale for force-only hash differences, exposes
-`trails diff --forces`, and reports graph-only force events through Warden's
-`pending-force` rule.
+The hard release rule is usable today: stable cutover can require zero pending force events before the version PR leaves draft. The implementation already blocks unforced breaking topo changes, records graph-only force events on `trails compile --force`, preserves forced graph hashes in `.trails/trails.lock`, keeps `trails validate` non-stale for force-only hash differences, exposes `trails diff --forces`, and reports graph-only force events through Warden's `pending-force` rule.
 
-The softer proposed exception rule is not fully tool-backed yet. `trails doctor`
-does not currently provide enough detail to be a standalone release gate and
-appears to count only entry-attached force events, not graph-level removed-entry
-force events. Warden also treats every attached force event as pending; there is
-no structured accepted-exception or resolved-historical state. The stable
-cutover runbook does not yet name the pending-force gate.
+The softer proposed exception rule is not fully tool-backed yet. `trails doctor` does not currently provide enough detail to be a standalone release gate and appears to count only entry-attached force events, not graph-level removed-entry force events. Warden also treats every attached force event as pending; there is no structured accepted-exception or resolved-historical state. The stable cutover runbook does not yet name the pending-force gate.
 
 Recommended v1 rule:
 
@@ -60,8 +49,7 @@ Recommended v1 rule:
 > wants accepted exceptions, those exceptions need a follow-up artifact and
 > Warden policy before they become more than PR prose.
 
-This does not block the current seven-issue closeout stack. It does block using
-a named-exception policy as an automated v1 gate until follow-ups land.
+This does not block the current seven-issue closeout stack. It does block using a named-exception policy as an automated v1 gate until follow-ups land.
 
 ## Evidence Map
 
@@ -173,11 +161,7 @@ Error: Found multiple Trails app entry points:
 Use --module to select one explicitly.
 ```
 
-The default command failure is expected in this monorepo because multiple app
-entry points exist. Follow-up command attempts with `--module apps/trails/src/app.ts`
-returned the generic `Error: Internal server error`; no `.trails` artifacts were
-created. The targeted tests above are the reliable workflow proof for this
-audit.
+The default command failure is expected in this monorepo because multiple app entry points exist. Follow-up command attempts with `--module apps/trails/src/app.ts` returned the generic `Error: Internal server error`; no `.trails` artifacts were created. The targeted tests above are the reliable workflow proof for this audit.
 
 ## Current Behavior Matrix
 
@@ -195,31 +179,19 @@ audit.
 
 ### Are forced break events persisted only in the derived graph, not source contracts?
 
-Yes. ADR-0048 and the lexicon both define force events as graph-only, and the
-implementation annotates `TopoGraph` entries or graph-level `forces` during
-artifact writing. The source search found force literals in docs, tests, and
-Topographer implementation, not authored trail source.
+Yes. ADR-0048 and the lexicon both define force events as graph-only, and the implementation annotates `TopoGraph` entries or graph-level `forces` during artifact writing. The source search found force literals in docs, tests, and Topographer implementation, not authored trail source.
 
 ### Can an agent tell which trail/version/marker changed and why it was forced?
 
-Partially. A force entry carries `id`, `kind`, `change`, `detail`,
-`acceptedAt`, optional `reason`, `severity`, and `source`. That is enough to see
-the affected entity and diff text. It does not carry structured `version`,
-`marker`, `owner`, `plannedResolution`, or `resolved` fields, so version/marker
-semantics depend on the free-form diff detail and surrounding TopoGraph context.
+Partially. A force entry carries `id`, `kind`, `change`, `detail`, `acceptedAt`, optional `reason`, `severity`, and `source`. That is enough to see the affected entity and diff text. It does not carry structured `version`, `marker`, `owner`, `plannedResolution`, or `resolved` fields, so version/marker semantics depend on the free-form diff detail and surrounding TopoGraph context.
 
 ### Does the audit event carry enough metadata for release review?
 
-Enough for a hard zero-pending rule, not enough for a named exception rule. A
-release reviewer can identify pending force debt through Warden and diff output,
-but cannot encode an accepted exception or resolution lifecycle in the artifact
-itself.
+Enough for a hard zero-pending rule, not enough for a named exception rule. A release reviewer can identify pending force debt through Warden and diff output, but cannot encode an accepted exception or resolution lifecycle in the artifact itself.
 
 ### Can `pending-force` distinguish new/active debt from accepted historical force events?
 
-No. Warden reports every attached force entry as pending, with deduplication for
-overlapping entry/graph records. There is no accepted or resolved state in
-`TopoGraphForceEntry`.
+No. Warden reports every attached force entry as pending, with deduplication for overlapping entry/graph records. There is no accepted or resolved state in `TopoGraphForceEntry`.
 
 ### Does the stable cutover runbook mention pending force events?
 
@@ -227,9 +199,7 @@ No. It should.
 
 ### Should v1 require zero pending force events unless the version PR documents an accepted exception?
 
-Use the stricter first half for v1: require zero pending force events. If an
-exception path is desired, land follow-up semantics first so the exception is
-structured and Warden-visible rather than only PR prose.
+Use the stricter first half for v1: require zero pending force events. If an exception path is desired, land follow-up semantics first so the exception is structured and Warden-visible rather than only PR prose.
 
 ## Follow-Up Issues
 
@@ -256,9 +226,6 @@ If `TRL-771` later defines structured exceptions, extend the checklist with:
 
 ## Blocker Assessment
 
-No large stable-cutover blocker was found for the hard zero-pending-force rule.
-The current system can enforce "no force events" through Warden and diff output.
+No large stable-cutover blocker was found for the hard zero-pending-force rule. The current system can enforce "no force events" through Warden and diff output.
 
-There is a blocker for the softer exception policy: accepted exceptions are not
-artifact-backed. That is filed as `TRL-771` and should be resolved before v1
-relies on exceptions as a routine release path.
+There is a blocker for the softer exception policy: accepted exceptions are not artifact-backed. That is filed as `TRL-771` and should be resolved before v1 relies on exceptions as a routine release path.

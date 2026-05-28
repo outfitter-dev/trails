@@ -41,9 +41,9 @@ impl_status: implemented
 
 # TRL-574 Prevention Rails Closeout
 
-**Issue:** TRL-574
-**Branch:** `trl-574-hardening-use-static-discovery-rails-to-find-repeated-audit`
-**Purpose:** Close the prevention-rails parent after advisory, rule, architecture, and backlog translation.
+- **Issue:** TRL-574
+- **Branch:** `trl-574-hardening-use-static-discovery-rails-to-find-repeated-audit`
+- **Purpose:** Close the prevention-rails parent after advisory, rule, architecture, and backlog translation.
 
 ## Stack Artifacts
 

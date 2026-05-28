@@ -34,8 +34,8 @@ references:
 
 # Goal Plan: plugin-skills-m1-audit
 
-Date: 2026-05-21
-Status: Ready for execution
+- **Date:** 2026-05-21
+- **Status:** Ready for execution
 
 > Note: this packet intentionally records Matt's local checkout and installed-skill roots as point-in-time M1 evidence. Treat `/Users/mg/...` paths as audit coordinates, not portable implementation defaults; downstream scripts and docs should use repo-relative paths or `$HOME`-relative skill roots.
 
@@ -427,8 +427,7 @@ Reviewer output contract:
 - Findings: P0/P1/P2/P3, with file/line evidence where applicable
 - Prompt to fix: concise prompt for each actionable finding
 
-Fix all P0/P1/P2 findings before remote submission or final handoff.
-Summarize each round and its fix outcome in `RETRO.md`.
+Fix all P0/P1/P2 findings before remote submission or final handoff. Summarize each round and its fix outcome in `RETRO.md`.
 
 For remote code-review bots/agents, also record summary scores, prose summaries, prompt-to-fix blocks, and whether any score below 5/5 reflects current unresolved debt, stale feedback, or an explicitly rejected recommendation.
 

@@ -22,9 +22,9 @@ impl_status: implemented
 
 # TRL-547 Architecture Follow-Up Decisions
 
-**Issue:** TRL-547
-**Branch:** `trl-547-create-architecture-follow-up-issues-from-prevention-audit`
-**Purpose:** Decide which prevention findings require architecture issues rather than rules or advisory skills.
+- **Issue:** TRL-547
+- **Branch:** `trl-547-create-architecture-follow-up-issues-from-prevention-audit`
+- **Purpose:** Decide which prevention findings require architecture issues rather than rules or advisory skills.
 
 ## Inputs
 

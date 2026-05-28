@@ -16,9 +16,9 @@ impl_status: implemented
 
 # TRL-546 Prevention Rule Follow-Ups
 
-**Issue:** TRL-546
-**Branch:** `trl-546-create-prevention-rule-follow-up-issues-from-prevention`
-**Purpose:** Translate surviving deterministic prevention-rule candidates into precise Linear follow-ups.
+- **Issue:** TRL-546
+- **Branch:** `trl-546-create-prevention-rule-follow-up-issues-from-prevention`
+- **Purpose:** Translate surviving deterministic prevention-rule candidates into precise Linear follow-ups.
 
 ## Inputs
 

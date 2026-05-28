@@ -18,9 +18,9 @@ references:
 
 # TRL-743 Distribution Surface Audit
 
-Date: 2026-05-21
-Branch: `trl-743-audit-installed-and-distributed-trails-skill-surfaces`
-Scope: repo plugin source, manifests, local installed Trails skill paths, Claude/Codex-visible skill roots, and version metadata. Global skill paths were inspected read-only only.
+- **Date:** 2026-05-21
+- **Branch:** `trl-743-audit-installed-and-distributed-trails-skill-surfaces`
+- **Scope:** repo plugin source, manifests, local installed Trails skill paths, Claude/Codex-visible skill roots, and version metadata. Global skill paths were inspected read-only only.
 
 > Note: filesystem paths in this report are specific to the auditing machine and are preserved as point-in-time evidence. The branch field names the Graphite feature branch where the audit belongs; stacked PR base branches may differ because the branch sits above `TRL-742`.
 

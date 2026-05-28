@@ -22,8 +22,8 @@ references:
 
 # Goal Plan: Warden As Coach Overnight Stack
 
-Date: 2026-05-24
-Status: In progress
+- **Date:** 2026-05-24
+- **Status:** In progress
 
 ## Objective
 

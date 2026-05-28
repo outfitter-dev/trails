@@ -21,9 +21,9 @@ references:
 
 # TRL-744 Hook Opportunities Audit
 
-Date: 2026-05-21
-Branch: `trl-744-audit-trails-plugin-hook-opportunities-and-integration`
-Scope: project detection, version drift warnings, Warden nudges, command suggestions, and Claude/Codex integration differences for the Trails plugin. No hook implementation changes were made.
+- **Date:** 2026-05-21
+- **Branch:** `trl-744-audit-trails-plugin-hook-opportunities-and-integration`
+- **Scope:** project detection, version drift warnings, Warden nudges, command suggestions, and Claude/Codex integration differences for the Trails plugin. No hook implementation changes were made.
 
 ## Executive Summary
 

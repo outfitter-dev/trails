@@ -19,11 +19,11 @@ references:
 
 # Execution Retro: Scaffold Runway Overnight Stack
 
-Date started: 2026-05-23
-Date finalized: 2026-05-24
-Status: Draft PRs open; CI green; remote review pending
-Plan: `.agents/plans/2026-05-23-scaffold-runway-overnight-stack/PLAN.md`
-Goal: `.agents/plans/2026-05-23-scaffold-runway-overnight-stack/GOAL.md`
+- **Date started:** 2026-05-23
+- **Date finalized:** 2026-05-24
+- **Status:** Draft PRs open; CI green; remote review pending
+- **Plan:** `.agents/plans/2026-05-23-scaffold-runway-overnight-stack/PLAN.md`
+- **Goal:** `.agents/plans/2026-05-23-scaffold-runway-overnight-stack/GOAL.md`
 
 Use this as the durable execution ledger. For stacked work, this should normally be the last meaningful file touched before local completion, draft submission, ready-for-review, remote review closeout, merge readiness, archive, or final handoff. Meaningful review-flow changes require a new retro entry.
 

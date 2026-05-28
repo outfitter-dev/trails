@@ -11,9 +11,9 @@ impl_status: implemented
 
 # TRL-532 Duplicate Primitive ID Scope
 
-**Issue:** TRL-532
-**Target:** TRL-446
-**Branch:** `trl-532-align-trl-446-duplicate-primitive-id-rule-scope`
+- **Issue:** TRL-532
+- **Target:** TRL-446
+- **Branch:** `trl-532-align-trl-446-duplicate-primitive-id-rule-scope`
 
 ## Current Reality
 

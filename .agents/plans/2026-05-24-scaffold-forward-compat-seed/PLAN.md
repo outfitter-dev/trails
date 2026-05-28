@@ -25,13 +25,12 @@ references:
 
 # Goal Plan: scaffold forward-compat seed
 
-Date: 2026-05-24
-Status: Seeded
+- **Date:** 2026-05-24
+- **Status:** Seeded
 
 ## Objective
 
-Build the smallest scaffold-forward-compat stack after the merged scaffold and
-Warden work:
+Build the smallest scaffold-forward-compat stack after the merged scaffold and Warden work:
 
 1. TRL-796: generated projects pin `@ontrails/*` packages to the exact current
    Trails beta version instead of a caret prerelease range.
@@ -42,8 +41,7 @@ Warden work:
 4. TRL-799: the post-1.0 scaffold forward-compatibility direction is captured
    in a draft ADR grounded in the implemented breadcrumb shape.
 
-This is the coherent scaffold-forward line. It is still not the full
-upgrade-path system.
+This is the coherent scaffold-forward line. It is still not the full upgrade-path system.
 
 ## Completion Condition
 
@@ -414,12 +412,9 @@ Reviewer output contract:
 - Findings: P0/P1/P2/P3, with file/line evidence where applicable
 - Prompt to fix: concise prompt for each actionable finding
 
-Fix all P0/P1/P2 findings before remote submission or final handoff. Record
-review summaries, findings, fixes, and residual P3s in `RETRO.md`.
+Fix all P0/P1/P2 findings before remote submission or final handoff. Record review summaries, findings, fixes, and residual P3s in `RETRO.md`.
 
-For remote code-review bots/agents, also record summary scores, prose summaries,
-prompt-to-fix blocks, and whether any score below 5/5 reflects current
-unresolved debt, stale feedback, or an explicitly rejected recommendation.
+For remote code-review bots/agents, also record summary scores, prose summaries, prompt-to-fix blocks, and whether any score below 5/5 reflects current unresolved debt, stale feedback, or an explicitly rejected recommendation.
 
 ## Progress Reporting
 

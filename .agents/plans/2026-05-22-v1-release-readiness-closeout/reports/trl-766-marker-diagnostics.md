@@ -23,25 +23,17 @@ references:
 
 # TRL-766 Audit: Version Marker Failure UX And Bounded Zod Diagnostics
 
-Date: 2026-05-22
-Branch: `trl-766-audit-version-marker-failure-ux-and-bounded-zod-diagnostics`
-Issue: `TRL-766`
+- **Date:** 2026-05-22
+- **Branch:** `trl-766-audit-version-marker-failure-ux-and-bounded-zod-diagnostics`
+- **Issue:** `TRL-766`
 
 ## Summary Verdict
 
 Verdict: `stable-cutover blocker`
 
-The marker projection is deterministic, pathful, and loud for several unsupported
-schema constructs, but it is not yet a safe v1 stable marker contract. The
-current implementation accepts common Zod validation constraints and refinements
-while projecting the same marker as the unconstrained schema. That means two
-validation contracts can be semantically different while sharing a version
-marker.
+The marker projection is deterministic, pathful, and loud for several unsupported schema constructs, but it is not yet a safe v1 stable marker contract. The current implementation accepts common Zod validation constraints and refinements while projecting the same marker as the unconstrained schema. That means two validation contracts can be semantically different while sharing a version marker.
 
-This is larger than a report-only polish fix. Before stable cutover, Trails
-should either serialize those validation semantics into the canonical marker
-projection or reject them as unsupported bounded-Zod constructs with a clear
-diagnostic.
+This is larger than a report-only polish fix. Before stable cutover, Trails should either serialize those validation semantics into the canonical marker projection or reject them as unsupported bounded-Zod constructs with a clear diagnostic.
 
 Good existing behavior:
 
@@ -146,13 +138,7 @@ Secondary diagnostic gap:
 
 ## Command Snippets
 
-The four `bun --eval` matrices below were run interactively against the
-in-repo APIs as one-off audit harnesses. The recorded **outputs** are the
-audit evidence. The script bodies are summarized inline as
-`<matrix omitted for length: …>` placeholders for readability; the next
-paragraph names exactly which existing regression tests do and do not cover
-the same matrix, so a future auditor knows whether they need to reproduce the
-matrix from scratch.
+The four `bun --eval` matrices below were run interactively against the in-repo APIs as one-off audit harnesses. The recorded **outputs** are the audit evidence. The script bodies are summarized inline as `<matrix omitted for length: …>` placeholders for readability; the next paragraph names exactly which existing regression tests do and do not cover the same matrix, so a future auditor knows whether they need to reproduce the matrix from scratch.
 
 Test coverage map for these matrices:
 
@@ -183,9 +169,7 @@ Test coverage map for these matrices:
   invocations and confirms no diagnostic is produced for any of them, which
   is the gap TRL-773 carries.
 
-If a future audit needs the exact harness scripts, treat the omitted blocks
-as TODOs to lift into focused regression tests on TRL-772 / TRL-773 rather
-than as duplicates of existing coverage.
+If a future audit needs the exact harness scripts, treat the omitted blocks as TODOs to lift into focused regression tests on TRL-772 / TRL-773 rather than as duplicates of existing coverage.
 
 ```text
 $ bun --eval '<matrix omitted for length: derive markers for supported and unsupported Zod constructs through deriveTopoGraph and run markerSchemaUnsupported on equivalent source snippets>'
@@ -253,27 +237,17 @@ $ bun --eval '<Warden unsupported-call check omitted for length>'
 
 ### Do version-marker failures include enough context for agents to fix schemas?
 
-Partially. Runtime projection failures include the marker content path, for
-example `input.properties.value`, and identify the unsupported empty schema
-projection. That is enough to find the field, but not enough to name the
-original Zod construct after projection has collapsed to `{}`.
+Partially. Runtime projection failures include the marker content path, for example `input.properties.value`, and identify the unsupported empty schema projection. That is enough to find the field, but not enough to name the original Zod construct after projection has collapsed to `{}`.
 
-Warden gives earlier, source-level feedback for `any`, `custom`, `preprocess`,
-`transform`, and `unknown`, but misses other runtime-failing constructs such as
-`lazy`, `intersection`, and `record`.
+Warden gives earlier, source-level feedback for `any`, `custom`, `preprocess`, `transform`, and `unknown`, but misses other runtime-failing constructs such as `lazy`, `intersection`, and `record`.
 
 ### Does the bounded Zod subset fail loudly for unsupported features?
 
-Not consistently. Runtime projection fails loudly for constructs that project
-to empty schema objects, but several runtime validation features are accepted
-and ignored. Those accepted-but-ignored features are the stable-cutover problem.
+Not consistently. Runtime projection fails loudly for constructs that project to empty schema objects, but several runtime validation features are accepted and ignored. Those accepted-but-ignored features are the stable-cutover problem.
 
 ### Can stable cutover rely on version markers as content-addressed contract identities?
 
-Not yet for contracts that use Zod validation checks or refinements. Literal
-and enum value changes correctly change markers, and structural field additions
-are covered by existing tests. However, validation constraints can change the
-accepted input contract without changing the marker.
+Not yet for contracts that use Zod validation checks or refinements. Literal and enum value changes correctly change markers, and structural field additions are covered by existing tests. However, validation constraints can change the accepted input contract without changing the marker.
 
 ### Is this small enough to fix inside the audit branch?
 
@@ -283,8 +257,7 @@ No. The correct fix needs a policy choice:
 - treat those constructs as unsupported for versioned marker contracts and
   reject them through runtime projection plus Warden.
 
-Either path needs tests, docs/ADR alignment, and likely Warden updates. That is
-larger than the committed audit-report scope.
+Either path needs tests, docs/ADR alignment, and likely Warden updates. That is larger than the committed audit-report scope.
 
 ## Follow-Up Issues
 
@@ -294,9 +267,7 @@ larger than the committed audit-report scope.
 
 ## Stable Cutover Recommendation
 
-Do not cut stable while version markers are advertised as content-addressed
-contract identifiers unless `TRL-772` is resolved or the stable runbook
-explicitly narrows the marker guarantee to the currently serialized subset.
+Do not cut stable while version markers are advertised as content-addressed contract identifiers unless `TRL-772` is resolved or the stable runbook explicitly narrows the marker guarantee to the currently serialized subset.
 
 Recommended release gate text after `TRL-772` lands:
 

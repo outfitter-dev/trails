@@ -11,9 +11,9 @@ impl_status: implemented
 
 # TRL-535 Source Vocabulary Rule Scope
 
-**Issue:** TRL-535
-**Target:** TRL-489
-**Branch:** `trl-535-align-trl-489-source-vocabulary-rule-scope`
+- **Issue:** TRL-535
+- **Target:** TRL-489
+- **Branch:** `trl-535-align-trl-489-source-vocabulary-rule-scope`
 
 ## Scope Decision
 

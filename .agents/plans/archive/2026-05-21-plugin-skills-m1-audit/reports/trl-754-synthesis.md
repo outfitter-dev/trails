@@ -47,9 +47,9 @@ references:
 
 # TRL-754 Synthesis And Execution Stack
 
-Date: 2026-05-21
-Branch: `trl-754-synthesize-plugin-audits-into-an-executable-refresh-stack`
-Scope: synthesize `TRL-745`, `TRL-742`, `TRL-743`, and `TRL-744` into an exact M2/M3/M4 implementation stack and tracker refresh.
+- **Date:** 2026-05-21
+- **Branch:** `trl-754-synthesize-plugin-audits-into-an-executable-refresh-stack`
+- **Scope:** synthesize `TRL-745`, `TRL-742`, `TRL-743`, and `TRL-744` into an exact M2/M3/M4 implementation stack and tracker refresh.
 
 ## Executive Summary
 

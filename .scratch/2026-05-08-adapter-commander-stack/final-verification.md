@@ -18,30 +18,25 @@ impl_status: implemented
 
 # Final Commander Migration Verification
 
-Date: 2026-05-08
-Issue: TRL-642
-Branch: `trl-642-final-verification-ontrailscommander-migration-complete`
+- **Date:** 2026-05-08
+- **Issue:** TRL-642
+- **Branch:** `trl-642-final-verification-ontrailscommander-migration-complete`
 
 ## Scope
 
-This closes the local Commander cutover stack after TRL-638, TRL-639, TRL-640,
-and TRL-641 are present underneath this branch.
+This closes the local Commander cutover stack after TRL-638, TRL-639, TRL-640, and TRL-641 are present underneath this branch.
 
 ## Active State
 
 - Active source imports use `@ontrails/commander`.
-- Active docs, scaffold output, app packages, and plugin references teach
-  `@ontrails/commander`.
+- Active docs, scaffold output, app packages, and plugin references teach `@ontrails/commander`.
 - `@ontrails/cli` no longer exports a `./commander` subpath.
-- `@ontrails/commander` owns the Commander runtime adapter package under
-  `adapters/commander`.
-- There is no `@ontrails/cli/commander` compatibility alias or package-export
-  bridge.
+- `@ontrails/commander` owns the Commander runtime adapter package under `adapters/commander`.
+- There is no `@ontrails/cli/commander` compatibility alias or package-export bridge.
 
 ## Accepted Residuals
 
-`rg -n "@ontrails/cli/commander" apps packages docs README.md .agents .claude --glob "*.ts" --glob "*.tsx" --glob "*.md" --glob "*.json"`
-returns only these accepted buckets:
+`rg -n "@ontrails/cli/commander" apps packages docs README.md .agents .claude --glob "*.ts" --glob "*.tsx" --glob "*.md" --glob "*.json"` returns only these accepted buckets:
 
 | Bucket | Paths | Reason |
 | --- | --- | --- |
@@ -51,8 +46,7 @@ returns only these accepted buckets:
 | Local planning history | `.agents/plans/v1/**` | Historical local plans, not current package guidance or scaffold output. |
 
 `rg -ni "commander.*connector|connector.*commander" apps packages docs README.md .agents .claude --glob "*.md" --glob "*.ts" --glob "*.tsx"`
-returns only ADR/changelog history, not current-facing Commander package
-guidance.
+returns only ADR/changelog history, not current-facing Commander package guidance.
 
 ## Publishing And Merge Safety
 
@@ -60,8 +54,7 @@ guidance.
 - `bun run publish:check` is the package verification command used here.
 - No real publish was run.
 - No PR or local command added a merge queue label.
-- The only `changeset publish` / `npm publish` wording in current docs is the
-  explicit prohibition in `docs/migration/connector-to-adapter.md`.
+- The only `changeset publish` / `npm publish` wording in current docs is the explicit prohibition in `docs/migration/connector-to-adapter.md`.
 
 ## Verification Commands
 

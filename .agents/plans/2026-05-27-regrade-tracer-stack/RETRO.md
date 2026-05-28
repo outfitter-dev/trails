@@ -18,31 +18,23 @@ references:
 
 # Execution Retro: Regrade Tracer Stack
 
-Date started: 2026-05-27
-Date finalized: 2026-05-27
-Status: Ready stack, CI green, remote review P3-only
-Plan: `.agents/plans/2026-05-27-regrade-tracer-stack/PLAN.md`
-Goal: `.agents/plans/2026-05-27-regrade-tracer-stack/GOAL.md`
+- **Date started:** 2026-05-27
+- **Date finalized:** 2026-05-27
+- **Status:** Ready stack, CI green, remote review P3-only
+- **Plan:** `.agents/plans/2026-05-27-regrade-tracer-stack/PLAN.md`
+- **Goal:** `.agents/plans/2026-05-27-regrade-tracer-stack/GOAL.md`
 
-Use this as the durable execution ledger. For stacked work, this should normally
-be the last meaningful file touched before local completion, draft submission,
-ready-for-review, remote review closeout, merge readiness, archive, or final
-handoff. Meaningful review-flow changes require a new retro entry.
+Use this as the durable execution ledger. For stacked work, this should normally be the last meaningful file touched before local completion, draft submission, ready-for-review, remote review closeout, merge readiness, archive, or final handoff. Meaningful review-flow changes require a new retro entry.
 
 ## Execution Summary
 
 - Objective: Land the first Regrade proof stack: TRL-823, TRL-819, TRL-825.
-- Final outcome: First Regrade proof stack landed as ready-for-review Graphite
-  PRs.
-- Final branch / stack tip:
-  `trl-825-scaffold-packagesregrade-and-prove-literal-transform-trails`.
+- Final outcome: First Regrade proof stack landed as ready-for-review Graphite PRs.
+- Final branch / stack tip: `trl-825-scaffold-packagesregrade-and-prove-literal-transform-trails`.
 - Final PR range: #608 -> #609 -> #610.
-- Final tracker state: TRL-823, TRL-819, and TRL-825 remain In Progress with
-  Linear comments linking ready PRs and verification state.
-- Final verification state: local focused checks, stack gates, PR CI, and
-  Greptile review are green.
-- Remaining risks / P3s: TRL-819 deliberate `z.never()` composeInput edge;
-  TRL-825 private barrel width and generated-fixture temp-dir cleanup hardening.
+- Final tracker state: TRL-823, TRL-819, and TRL-825 remain In Progress with Linear comments linking ready PRs and verification state.
+- Final verification state: local focused checks, stack gates, PR CI, and Greptile review are green.
+- Remaining risks / P3s: TRL-819 deliberate `z.never()` composeInput edge; TRL-825 private barrel width and generated-fixture temp-dir cleanup hardening.
 - Archive state: archive-ready; no merge/publish/merge-queue action taken.
 
 ## Branch / PR / Issue Ledger
@@ -64,8 +56,7 @@ handoff. Meaningful review-flow changes require a new retro entry.
 
 ## Deferred / Follow-Up Discoveries
 
-Out-of-goal discoveries belong here first. Create focused follow-up issues when
-they represent real future work.
+Out-of-goal discoveries belong here first. Create focused follow-up issues when they represent real future work.
 
 | Issue | Discovery | Why Out Of Goal | Link |
 | --- | --- | --- | --- |
@@ -76,8 +67,7 @@ they represent real future work.
 
 ## Tracker Mutations
 
-Record issues, milestones, labels, dependency links, comments, and follow-up
-issues created or updated during planning/execution.
+Record issues, milestones, labels, dependency links, comments, and follow-up issues created or updated during planning/execution.
 
 | Time | Tracker Item | Mutation | Evidence |
 | --- | --- | --- | --- |
@@ -162,8 +152,7 @@ Append meaningful state changes, especially before handoff points.
 
 ## Local Review Log
 
-Record local review rounds, reports, P0/P1/P2 findings, fixes, and remaining
-P3s. Do not mark local review complete while P0/P1/P2 findings remain.
+Record local review rounds, reports, P0/P1/P2 findings, fixes, and remaining P3s. Do not mark local review complete while P0/P1/P2 findings remain.
 
 | Round | Scope / Lanes | Report Paths | P0/P1/P2 Result | Fix Commits / Notes |
 | --- | --- | --- | --- | --- |
@@ -216,11 +205,7 @@ Record exact commands and artifact checks. Include skipped checks with reasons.
 
 ## Remote Review / CI Log
 
-Record remote review state after submission and after each meaningful fix round.
-Treat code-review bot/agent errors and unresolved P0/P1/P2 comments as
-incomplete. Also record summary scores and prompt-to-fix text from code-review
-bots/agents; a lower score with concrete fixable feedback is review debt even
-if inline threads are resolved.
+Record remote review state after submission and after each meaningful fix round. Treat code-review bot/agent errors and unresolved P0/P1/P2 comments as incomplete. Also record summary scores and prompt-to-fix text from code-review bots/agents; a lower score with concrete fixable feedback is review debt even if inline threads are resolved.
 
 | Time | PR | CI State | Review State | Scores / Signals | Unresolved P0/P1/P2 | Action |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -260,35 +245,20 @@ Record constraints that stayed true. Add or remove rows to match the goal.
 
 Fill before claiming completion, handoff, merge readiness, or archive.
 
-- Goal completion condition: satisfied; ready PRs exist for TRL-823, TRL-819,
-  and TRL-825 with CI green and remote review P2+ clear.
-- Graphite / branch state: stack tip is
-  `trl-825-scaffold-packagesregrade-and-prove-literal-transform-trails`; stack
-  order is TRL-823 -> TRL-819 -> TRL-825.
+- Goal completion condition: satisfied; ready PRs exist for TRL-823, TRL-819, and TRL-825 with CI green and remote review P2+ clear.
+- Graphite / branch state: stack tip is `trl-825-scaffold-packagesregrade-and-prove-literal-transform-trails`; stack order is TRL-823 -> TRL-819 -> TRL-825.
 - PR state: #608, #609, and #610 are open and ready for review.
-- Source-control host lag: Graphite mergeability checks for upper PRs can lag
-  while downstack PRs remain open; no merge queue action taken.
-- Tracker state: Linear comments added for TRL-823, TRL-819, and TRL-825 with
-  PR links and status.
-- Local review state: four GPT-5.4/high subagent review lanes returned 9/10 and
-  P2+ clean.
+- Source-control host lag: Graphite mergeability checks for upper PRs can lag while downstack PRs remain open; no merge queue action taken.
+- Tracker state: Linear comments added for TRL-823, TRL-819, and TRL-825 with PR links and status.
+- Local review state: four GPT-5.4/high subagent review lanes returned 9/10 and P2+ clean.
 - Remote review state: Greptile reruns completed successfully on all three PRs.
 - Remote review scores: #608 5/5, #609 5/5, #610 5/5.
-- Verification: local focused checks, stack gates, GitHub CI, and Greptile
-  review passed; see Verification Log.
-- Skipped checks: none from the requested validation list; full `bun run check`
-  passed before submission and CI passed after review-fix resubmits.
-- Remaining P3s / risks: TRL-819 explicit `z.never()` composeInput edge is not
-  a documented cannot-compose contract; TRL-825 private barrel exports harness
-  symbols and `.tmp-fixture-*` leftover ignore hardening should be revisited
-  before publication or repeated fixture expansion.
-- Follow-up issues created: none; existing TRL-826/827/830/836 cover known next
-  Regrade/release-integrity work.
-- Forbidden actions confirmation: no merge, publish, registry mutation,
-  merge-queue label, destructive unrelated change, or `gt absorb`.
+- Verification: local focused checks, stack gates, GitHub CI, and Greptile review passed; see Verification Log.
+- Skipped checks: none from the requested validation list; full `bun run check` passed before submission and CI passed after review-fix resubmits.
+- Remaining P3s / risks: TRL-819 explicit `z.never()` composeInput edge is not a documented cannot-compose contract; TRL-825 private barrel exports harness symbols and `.tmp-fixture-*` leftover ignore hardening should be revisited before publication or repeated fixture expansion.
+- Follow-up issues created: none; existing TRL-826/827/830/836 cover known next Regrade/release-integrity work.
+- Forbidden actions confirmation: no merge, publish, registry mutation, merge-queue label, destructive unrelated change, or `gt absorb`.
 - Packet archive readiness: ready to archive after Matt accepts the stack state.
 - Final transcript proof: `literal-transform-trail tracer proof`.
 
-Do not mark complete until the goal completion condition has been proven, this
-section is filled or explicitly marked blocked, and the final transcript names
-the updated retro state.
+Do not mark complete until the goal completion condition has been proven, this section is filled or explicitly marked blocked, and the final transcript names the updated retro state.

@@ -46,58 +46,35 @@ references:
 
 ## Tracked / Portable Sources
 
-- `AGENTS.md` - repo commands, vocabulary, Warden guide, Graphite workflow,
-  subagent source-control rules, release policy, and Linear team details.
-- `.agents/plans/PLANNING.md` - goal packet conventions, review protocol,
-  Graphite preferences, validation commands, and stop rules.
-- `docs/adr/0000-core-premise.md` - "author what's new, derive what's known,
-  override what's wrong."
-- `docs/tenets.md` - Trails doctrine for contract-first derivation and drift
-  reduction.
-- `docs/adr/0001-naming-conventions.md` - naming hierarchy and vocabulary
-  discipline.
-- `docs/lexicon.md` - canonical terms: trail, blaze, topo, compose, surface,
-  resource, layer.
+- `AGENTS.md` - repo commands, vocabulary, Warden guide, Graphite workflow, subagent source-control rules, release policy, and Linear team details.
+- `.agents/plans/PLANNING.md` - goal packet conventions, review protocol, Graphite preferences, validation commands, and stop rules.
+- `docs/adr/0000-core-premise.md` - "author what's new, derive what's known, override what's wrong."
+- `docs/tenets.md` - Trails doctrine for contract-first derivation and drift reduction.
+- `docs/adr/0001-naming-conventions.md` - naming hierarchy and vocabulary discipline.
+- `docs/lexicon.md` - canonical terms: trail, blaze, topo, compose, surface, resource, layer.
 - `docs/architecture.md` - current framework architecture.
-- `docs/adr/0047-stable-release-line-discipline.md` - release/package
-  coherence doctrine for TRL-823.
-- `docs/releases/stable-cutover.md` - publish-check and registry workflow
-  context.
-- `scripts/publish.ts` - TRL-823 implementation target; currently packs and
-  rejects unresolved `workspace:` / `catalog:` ranges.
+- `docs/adr/0047-stable-release-line-discipline.md` - release/package coherence doctrine for TRL-823.
+- `docs/releases/stable-cutover.md` - publish-check and registry workflow context.
+- `scripts/publish.ts` - TRL-823 implementation target; currently packs and rejects unresolved `workspace:` / `catalog:` ranges.
 - `packages/core/src/types.ts` - `ComposeFn` overloads and `TrailContext`.
-- `packages/core/src/type-utils.ts` - `TrailInput`, `TrailOutput`,
-  `ComposeInput`, and suspected TRL-819 seam.
-- `packages/core/src/trail.ts` - `Trail`, `TrailSpec`, trail visibility,
-  compose ref normalization, and `AnyTrail`.
-- `packages/core/src/type-checks.test-d.ts` - compile-time type assertions for
-  compose and resource inference.
-- `packages/testing/src/examples.ts` - example execution for trails with
-  `composes`; useful for TRL-825 code-string fixture examples.
-- `packages/testing/src/__tests__/contracts.test.ts` - composition contract
-  test precedent.
-- `packages/topographer/src/derive.ts` - topo projection source for tracer
-  pollution evidence.
-- `packages/wayfinder/package.json` and `packages/wayfinder/src/` - minimal
-  package-shell reference for a new experimental package.
-- `apps/trails/package.json` - local app dependency surface if the tracer needs
-  integrated CLI consumption.
+- `packages/core/src/type-utils.ts` - `TrailInput`, `TrailOutput`, `ComposeInput`, and suspected TRL-819 seam.
+- `packages/core/src/trail.ts` - `Trail`, `TrailSpec`, trail visibility, compose ref normalization, and `AnyTrail`.
+- `packages/core/src/type-checks.test-d.ts` - compile-time type assertions for compose and resource inference.
+- `packages/testing/src/examples.ts` - example execution for trails with `composes`; useful for TRL-825 code-string fixture examples.
+- `packages/testing/src/__tests__/contracts.test.ts` - composition contract test precedent.
+- `packages/topographer/src/derive.ts` - topo projection source for tracer pollution evidence.
+- `packages/wayfinder/package.json` and `packages/wayfinder/src/` - minimal package-shell reference for a new experimental package.
+- `apps/trails/package.json` - local app dependency surface if the tracer needs integrated CLI consumption.
 
 ## Untracked / Local-Only Sources
 
-- `/Users/mg/Developer/outfitter/trailblazing/plans/regrade/README.md` -
-  source planning spine for Regrade. Load-bearing decisions are summarized in
-  `PLAN.md`; execution should not depend on this file existing.
-- `/Users/mg/Developer/outfitter/trailblazing/inbox/2026-05-27-regrade-migration-as-composite-trails.md` -
-  pre-ADR narrative source. This packet carries the relevant execution
-  decisions.
-- `.agents/plans/2026-05-26-radio-compose-proof/README.md` - unrelated
-  untracked local state in the main checkout; do not touch.
+- `/Users/mg/Developer/outfitter/trailblazing/plans/regrade/README.md` - source planning spine for Regrade. Load-bearing decisions are summarized in `PLAN.md`; execution should not depend on this file existing.
+- `/Users/mg/Developer/outfitter/trailblazing/inbox/2026-05-27-regrade-migration-as-composite-trails.md` - pre-ADR narrative source. This packet carries the relevant execution decisions.
+- `.agents/plans/2026-05-26-radio-compose-proof/README.md` - unrelated untracked local state in the main checkout; do not touch.
 
 ## Copied Or Summarized Sources
 
-- `PLAN.md` summarizes the Regrade Linear setup, doctrine, and first-stack
-  scope from the trailblazing plan.
+- `PLAN.md` summarizes the Regrade Linear setup, doctrine, and first-stack scope from the trailblazing plan.
 - `RETRO.md` records the Linear project/issue IDs created before this packet.
 
 ## Tracker Records

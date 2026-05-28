@@ -31,11 +31,11 @@ references:
 
 # Execution Retro: v1-release-readiness-closeout
 
-Date started: 2026-05-22
-Date finalized: 2026-05-23
-Status: Complete / awaiting merge authorization
-Plan: `.agents/plans/2026-05-22-v1-release-readiness-closeout/PLAN.md`
-Goal: `.agents/plans/2026-05-22-v1-release-readiness-closeout/GOAL.md`
+- **Date started:** 2026-05-22
+- **Date finalized:** 2026-05-23
+- **Status:** Complete / awaiting merge authorization
+- **Plan:** `.agents/plans/2026-05-22-v1-release-readiness-closeout/PLAN.md`
+- **Goal:** `.agents/plans/2026-05-22-v1-release-readiness-closeout/GOAL.md`
 
 Use this as the durable execution ledger. For stacked work, this should normally be the last meaningful file touched before local completion, draft submission, ready-for-review, remote review closeout, merge readiness, archive, or final handoff. Meaningful review-flow changes require a new retro entry.
 

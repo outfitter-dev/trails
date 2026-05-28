@@ -10,8 +10,8 @@ impl_status: implemented
 
 # TRL-551 Nested Barrel Depth Audit
 
-**Issue:** TRL-551
-**Branch:** `trl-551-audit-nested-barrel-depth-before-tightening-repo-local-rule`
+- **Issue:** TRL-551
+- **Branch:** `trl-551-audit-nested-barrel-depth-before-tightening-repo-local-rule`
 
 ## Rule Baseline
 

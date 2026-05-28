@@ -12,7 +12,7 @@ references:
 
 # TRL-365 CI Baseline And Scoped Optimization
 
-Date: 2026-05-16
+- **Date:** 2026-05-16
 
 ## Measured Baseline
 
