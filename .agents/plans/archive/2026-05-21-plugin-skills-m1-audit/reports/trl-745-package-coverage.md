@@ -1,8 +1,42 @@
+---
+created: 2026-05-21T21:29:29Z
+updated: 2026-05-22T20:49:43Z
+description: Truth map of the 19 non-private @ontrails/* packages at 1.0.0-beta.18 and public subpaths, compared against plugin coverage. Key gaps: @ontrails/http/bun uncovered in main skill, @ontrails/pino and @ontrails/wayfinder missing from architecture reference, @ontrails/store and @ontrails/drizzle absent from package tables, HTTP harness omitted from testing reference. Routes to TRL-746 and TRL-747.
+impl_status: implemented
+linear:
+  - TRL-745
+  - TRL-746
+  - TRL-747
+  - TRL-748
+  - TRL-749
+  - TRL-751
+references:
+  - plugin/skills/trails/SKILL.md
+  - plugin/skills/trails/references/architecture.md
+  - plugin/skills/trails/references/testing-patterns.md
+  - plugin/skills/trails/references/getting-started.md
+  - plugin/agents/trail-engineer.md
+  - plugin/rules/
+  - plugin/README.md
+  - README.md
+  - docs/architecture.md
+  - docs/getting-started.md
+  - docs/testing.md
+  - packages/http/package.json
+  - packages/http/README.md
+  - packages/testing/src/index.ts
+  - packages/testing/README.md
+  - packages/wayfinder/package.json
+  - packages/wayfinder/README.md
+  - packages/pino/package.json
+  - packages/pino/README.md
+---
+
 # TRL-745 Package Coverage Audit
 
-Date: 2026-05-21
-Branch: `trl-745-audit-plugin-coverage-for-current-packages-adapters-and`
-Scope: current `@ontrails/*` package, adapter, subpath, and key export truth that the Trails plugin/skills refresh must teach.
+- **Date:** 2026-05-21
+- **Branch:** `trl-745-audit-plugin-coverage-for-current-packages-adapters-and`
+- **Scope:** current `@ontrails/*` package, adapter, subpath, and key export truth that the Trails plugin/skills refresh must teach.
 
 ## Executive Summary
 

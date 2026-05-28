@@ -1,10 +1,29 @@
+---
+created: "2026-05-26T12:59:04-04:00"
+updated: "2026-05-26T12:59:04-04:00"
+description: Durable execution ledger for the compose cutover stack. All six stages collapsed into PR #596; TRL-783 type fix included in S1; local checks and GitHub CI passed; ready-for-review held pending Greptile summary. Contains branch/PR/issue ledger, tracker mutations, execution log, verification log, local review log, remote CI log, forbidden-actions audit, and final state.
+linear:
+  - TRL-783
+  - TRL-784
+  - TRL-809
+  - TRL-810
+  - TRL-811
+  - TRL-812
+  - TRL-813
+  - TRL-814
+impl_status: partial
+references:
+  - .agents/plans/2026-05-26-compose-cutover-stack/PLAN.md
+  - .agents/plans/2026-05-26-compose-cutover-stack/GOAL.md
+---
+
 # Execution Retro: Compose Cutover Stack
 
-Date started: 2026-05-26 01:25 UTC
-Date finalized: 2026-05-26 02:29 UTC
-Status: Draft PR submitted; CI green; ready-for-review blocked on absent Greptile summary
-Plan: `.agents/plans/2026-05-26-compose-cutover-stack/PLAN.md`
-Goal: `.agents/plans/2026-05-26-compose-cutover-stack/GOAL.md`
+- **Date started:** 2026-05-26 01:25 UTC
+- **Date finalized:** 2026-05-26 02:29 UTC
+- **Status:** Draft PR submitted; CI green; ready-for-review blocked on absent Greptile summary
+- **Plan:** `.agents/plans/2026-05-26-compose-cutover-stack/PLAN.md`
+- **Goal:** `.agents/plans/2026-05-26-compose-cutover-stack/GOAL.md`
 
 Use this as the durable execution ledger. For stacked work, this should normally be the last meaningful file touched before local completion, draft submission, ready-for-review, remote review closeout, merge readiness, archive, or final handoff.
 

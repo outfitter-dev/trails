@@ -1,7 +1,17 @@
+---
+created: "2026-05-01T14:16:21Z"
+updated: "2026-05-01T14:16:21Z"
+description: "Evaluates whether to expand the repo-local prefer-bun-api rule beyond its four current mappings (better-sqlite3, glob, semver, uuid). An rg scan finds no live production imports for either the mapped packages or expansion candidates (node:crypto, fs-extra, rimraf). Recommends keeping mappings narrow until live import patterns appear."
+references: []
+linear:
+  - TRL-552
+impl_status: implemented
+---
+
 # TRL-552 Prefer Bun API Evaluation
 
-**Issue:** TRL-552
-**Branch:** `trl-552-evaluate-expanded-prefer-bun-api-mappings-for-repo-local`
+- **Issue:** TRL-552
+- **Branch:** `trl-552-evaluate-expanded-prefer-bun-api-mappings-for-repo-local`
 
 ## Rule Baseline
 

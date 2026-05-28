@@ -6,6 +6,18 @@ created: 2026-05-03
 updated: 2026-05-03
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [17, 27, 42]
+description: "Introduces `@ontrails/wayfinder`: a package of trails over `@ontrails/topographer` artifacts giving agents queryable access to the topo graph via typed query catalog trails (overview, search, describe, signature, neighborhood, projections, examples, diff)."
+references:
+  - docs/adr/0008-deterministic-trailhead-derivation.md
+  - docs/adr/0013-tracing.md
+  - docs/adr/0017-serialized-topo-graph.md
+  - docs/adr/0027-visibility-and-filtering.md
+  - docs/adr/0041-unified-observability.md
+  - docs/adr/0042-core-topographer-boundary-doctrine.md
+  - .scratch/adr/wayfinding-and-signposts.md
+linear:
+  - TRL-613
+impl_status: planned
 ---
 
 # ADR: Wayfinding

@@ -1,3 +1,12 @@
+---
+created: 2026-05-21T21:29:29Z
+updated: 2026-05-22T20:49:43Z
+description: Template guide for M1 audit reports. Specifies the required sections for each report (issue ID, branch, scope, commands, findings table, unknowns, downstream changes, verification summary), the findings table shape with severity/evidence/finding/owner columns, and severity definitions (P0–P3).
+impl_status: implemented
+linear: []
+references: []
+---
+
 # M1 Report Templates
 
 Use these reports as evidence artifacts. Keep them source-backed and concise enough that a future implementation agent can act without rediscovering M1.

@@ -1,30 +1,46 @@
+---
+created: 2026-05-17T15:32:43Z
+updated: 2026-05-20T03:58:14Z
+description: Running execution ledger for the HTTP Bun + Observability Closeout stack. Records planning log, tracker mutations before execution, preflight verification pass, and scaffold tables for execution log, discoveries/follow-ups, local review rounds, verification commands, remote review, and final state. Execution log entries begin from 2026-05-16 preflight.
+impl_status: implemented
+linear:
+  - TRL-715
+  - TRL-716
+  - TRL-717
+  - TRL-718
+  - TRL-719
+  - TRL-720
+  - TRL-721
+  - TRL-722
+  - TRL-723
+  - TRL-724
+  - TRL-725
+  - TRL-726
+  - TRL-727
+  - TRL-365
+references:
+  - .agents/plans/2026-05-16-http-bun-observability-closeout/PLAN.md
+  - .agents/plans/2026-05-16-http-bun-observability-closeout/reports/
+---
+
 # Retro: HTTP Bun + Observability Closeout Stack
 
-Date: 2026-05-16
-Status: Seeded for execution
+- **Date:** 2026-05-16
+- **Status:** Seeded for execution
 
-Use this file as the running execution log. Keep it current during the goal, but
-commit it at the last meaningful point before final handoff or merge readiness.
+Use this file as the running execution log. Keep it current during the goal, but commit it at the last meaningful point before final handoff or merge readiness.
 
 ## Planning Log
 
-- 2026-05-16: Archived the completed tracked packet
-  `.agents/plans/2026-05-13-v1-readiness-closure-stack/` into the ignored
-  archive directory. The tracked deletion is intentional and should be committed
-  with this new packet on the lowest execution branch.
-- 2026-05-16: Created this packet at
-  `.agents/plans/2026-05-16-http-bun-observability-closeout/`.
-- 2026-05-16: Ran `context-prime.sh`. It captured current `main`, Graphite, and
-  plan state, but ended with a local `jq: Unknown option --argfile` error while
-  trying to match open PR heads. The useful state was still gathered; future
-  goal-planning script maintenance can fix that helper separately.
+- 2026-05-16: Archived the completed tracked packet `.agents/plans/2026-05-13-v1-readiness-closure-stack/` into the ignored archive directory. The tracked deletion is intentional and should be committed with this new packet on the lowest execution branch.
+- 2026-05-16: Created this packet at `.agents/plans/2026-05-16-http-bun-observability-closeout/`.
+- 2026-05-16: Ran `context-prime.sh`. It captured current `main`, Graphite, and plan state, but ended with a local `jq: Unknown option --argfile` error while trying to match open PR heads. The useful state was still gathered; future goal-planning script maintenance can fix that helper separately.
 
 ## Tracker Mutations Already Done
 
 - Updated `TRL-715` to the settled `@ontrails/http/fetch` kernel scope.
 - Created `TRL-719` for the Hono kernel-consumption refactor.
-- Updated `TRL-716` to the `@ontrails/http/bun` subpath scope and PR #447 lift/do
-  not lift guidance.
+- Updated `TRL-716` to the `@ontrails/http/bun` subpath scope and PR #447 lift/do not lift guidance.
 - Updated `TRL-717` with Hono/Bun parity harness details.
 - Updated `TRL-424` as the `@ontrails/pino` umbrella.
 - Created Pino child issues `TRL-720`, `TRL-721`, and `TRL-722`.
@@ -53,30 +69,22 @@ YYYY-MM-DD HH:MM TZ - <branch/issue/checkpoint>
 
 - Changed:
   - Ran `gt sync` and checked out `main`.
-  - Re-asserted the packet dependency map in Linear using append-only relation
-    updates because the connector fetch payload does not expose relation
-    details.
+  - Re-asserted the packet dependency map in Linear using append-only relation updates because the connector fetch payload does not expose relation details.
 - Verified:
-  - `git status --short --branch` showed `main...origin/main` with only the new
-    tracked closeout packet and the tracked removal of the completed
-    `2026-05-13-v1-readiness-closure-stack` packet.
+  - `git status --short --branch` showed `main...origin/main` with only the new tracked closeout packet and the tracked removal of the completed `2026-05-13-v1-readiness-closure-stack` packet.
   - PR #447 is closed and unmerged.
-  - PR #479 is an unrelated open draft on
-    `chore/docs-freshness-taxonomy-vocab`.
-  - Linear issue bodies and branch names match the packet for all 14 execution
-    issues.
+  - PR #479 is an unrelated open draft on `chore/docs-freshness-taxonomy-vocab`.
+  - Linear issue bodies and branch names match the packet for all 14 execution issues.
 - Result:
   - Preflight is clear for creating the lowest execution branch.
 - Next:
-  - Create `trl-715-refactorhttp-extract-web-fetch-kernel-at-ontrailshttpfetch`
-    and commit the tracked plan packet/deletion bundle.
+  - Create `trl-715-refactorhttp-extract-web-fetch-kernel-at-ontrailshttpfetch` and commit the tracked plan packet/deletion bundle.
 - Blockers:
   - None.
 
 ## Discoveries And Follow-Ups
 
-Record out-of-goal discoveries here first. Create focused Linear follow-up
-issues for real work that should not be folded into this goal.
+Record out-of-goal discoveries here first. Create focused Linear follow-up issues for real work that should not be folded into this goal.
 
 | Discovery | Evidence | Decision | Follow-up |
 | --- | --- | --- | --- |

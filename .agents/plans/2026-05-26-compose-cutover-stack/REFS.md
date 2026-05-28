@@ -1,3 +1,34 @@
+---
+created: "2026-05-26T12:59:04-04:00"
+updated: "2026-05-26T12:59:04-04:00"
+description: Source map for the compose cutover stack. Lists Linear issue IDs and roles (TRL-783 through TRL-814), doctrine/decision files with relevant line ranges, current code evidence for the TRL-783 type seam, planning context, a prior-decision record of Matt approving the fold-in, validation commands, and an external-repo note about Radio.
+linear:
+  - TRL-783
+  - TRL-784
+  - TRL-785
+  - TRL-786
+  - TRL-791
+  - TRL-809
+  - TRL-810
+  - TRL-811
+  - TRL-812
+  - TRL-813
+  - TRL-814
+impl_status: partial
+references:
+  - docs/adr/0049-composition-is-compose-not-cross.md
+  - docs/adr/0000-core-premise.md
+  - docs/tenets.md
+  - docs/adr/0001-naming-conventions.md
+  - docs/lexicon.md
+  - docs/architecture.md
+  - packages/core/src/types.ts
+  - packages/core/src/trail.ts
+  - apps/trails/src/trails/create.ts
+  - .agents/plans/2026-05-26-compose-cutover-stack/
+  - .agents/plans/PLANNING.md
+---
+
 # References: Compose Cutover Stack
 
 ## Tracker

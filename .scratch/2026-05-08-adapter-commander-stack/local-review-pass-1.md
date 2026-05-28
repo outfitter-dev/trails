@@ -1,15 +1,34 @@
+---
+created: 2026-05-08T18:14:38Z
+updated: 2026-05-08T18:14:38Z
+description: Bottom-to-top local review of the Adapter Taxonomy + Commander Cutover stack (TRL-660 through TRL-642). Found and fixed two P1 changeset failures on TRL-663 and TRL-661. Records evidence commands, accepted residuals, and confirms no remaining P0/P1/P2 findings after fixes.
+references: []
+linear:
+  - TRL-638
+  - TRL-639
+  - TRL-640
+  - TRL-641
+  - TRL-642
+  - TRL-660
+  - TRL-661
+  - TRL-662
+  - TRL-663
+  - TRL-664
+  - TRL-665
+impl_status: implemented
+---
+
 # Local Review Pass 1
 
-Date: 2026-05-08
-Scope: Bottom-to-top review of the Adapter Taxonomy + Commander Cutover stack.
+- **Date:** 2026-05-08
+- **Scope:** Bottom-to-top review of the Adapter Taxonomy + Commander Cutover stack.
 
 ## Lanes Reviewed
 
 - Taxonomy/API: TRL-660, TRL-661, TRL-662, TRL-664.
 - Guardrail/audit: TRL-665, TRL-641, TRL-642.
 - Commander package: TRL-638, TRL-639, TRL-640.
-- Release/package metadata: branch-local changesets, package exports, package
-  manifests, and publish discipline.
+- Release/package metadata: branch-local changesets, package exports, package manifests, and publish discipline.
 
 ## Findings
 
@@ -22,9 +41,7 @@ Package-affecting changes need changeset entries for: @ontrails/drizzle, @ontrai
 Affected packages: @ontrails/drizzle, @ontrails/hono, @ontrails/vite
 ```
 
-Fix applied on TRL-663: added `.changeset/adapter-workspace-root.md` covering
-`@ontrails/drizzle`, `@ontrails/hono`, and `@ontrails/vite` as patch metadata
-for the workspace-root move.
+Fix applied on TRL-663: added `.changeset/adapter-workspace-root.md` covering `@ontrails/drizzle`, `@ontrails/hono`, and `@ontrails/vite` as patch metadata for the workspace-root move.
 
 Verification after fix:
 
@@ -35,8 +52,7 @@ Changed changesets: .changeset/adapter-workspace-root.md
 
 ### P1 - TRL-661 missing changeset coverage for `@ontrails/trails`
 
-The branch-local changeset gate failed for TRL-661 because the branch updates
-`@ontrails/trails` source while the changeset only named `@ontrails/permits`:
+The branch-local changeset gate failed for TRL-661 because the branch updates `@ontrails/trails` source while the changeset only named `@ontrails/permits`:
 
 ```text
 Package-affecting changes need changeset entries for: @ontrails/trails
@@ -44,9 +60,7 @@ Affected packages: @ontrails/permits, @ontrails/trails
 Changed changesets: .changeset/permits-connector-to-adapter.md
 ```
 
-Fix applied on TRL-661: updated `.changeset/permits-connector-to-adapter.md`
-to include `@ontrails/trails` patch metadata and explain the generated
-auth-resource config update to the new `adapter` discriminant.
+Fix applied on TRL-661: updated `.changeset/permits-connector-to-adapter.md` to include `@ontrails/trails` patch metadata and explain the generated auth-resource config update to the new `adapter` discriminant.
 
 Verification after fix:
 
@@ -72,9 +86,6 @@ rg -n "\./commander|@ontrails/cli/commander" packages/cli/package.json packages/
 Accepted residuals:
 
 - `AuthConnector` fixtures remain only in Oxlint guardrail tests.
-- `connectors/` residuals are migration docs, ADR history, or guardrail
-  predicates/fixtures.
-- `changeset publish` / `npm publish` appears only as explicit prohibition in
-  `docs/migration/connector-to-adapter.md`.
-- No active `@ontrails/cli/commander`, `@ontrails/http/hono`, or
-  `@ontrails/store/drizzle` imports remain in source.
+- `connectors/` residuals are migration docs, ADR history, or guardrail predicates/fixtures.
+- `changeset publish` / `npm publish` appears only as explicit prohibition in `docs/migration/connector-to-adapter.md`.
+- No active `@ontrails/cli/commander`, `@ontrails/http/hono`, or `@ontrails/store/drizzle` imports remain in source.

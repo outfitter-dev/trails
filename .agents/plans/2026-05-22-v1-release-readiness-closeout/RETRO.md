@@ -1,10 +1,41 @@
+---
+created: "2026-05-23T21:40:48Z"
+updated: "2026-05-23T21:40:49Z"
+description: "Complete durable execution ledger for the v1-release-readiness-closeout sprint. Records all 7 branches (TRL-767/766/756/757/758/759/760), PRs #570-#576, three local review rounds, two Greptile remote review rounds with P0/P1/P2 fixes, final stack gate results, tracker mutations, forbidden-actions audit, and final state."
+impl_status: implemented
+linear:
+  - TRL-756
+  - TRL-757
+  - TRL-758
+  - TRL-759
+  - TRL-760
+  - TRL-766
+  - TRL-767
+  - TRL-769
+  - TRL-770
+  - TRL-771
+  - TRL-772
+  - TRL-773
+  - TRL-774
+  - TRL-775
+references:
+  - .agents/plans/2026-05-22-v1-release-readiness-closeout/PLAN.md
+  - .agents/plans/2026-05-22-v1-release-readiness-closeout/GOAL.md
+  - .agents/plans/2026-05-22-v1-release-readiness-closeout/reports/trl-767-pending-force-gate.md
+  - .agents/plans/2026-05-22-v1-release-readiness-closeout/reports/trl-766-marker-diagnostics.md
+  - .agents/plans/2026-05-22-v1-release-readiness-closeout/reports/trl-756-doctrine-lexicon-drift.md
+  - docs/releases/stable-cutover.md
+  - docs/releases/beta-channel-policy.md
+  - docs/releases/beta15-to-beta18.md
+---
+
 # Execution Retro: v1-release-readiness-closeout
 
-Date started: 2026-05-22
-Date finalized: 2026-05-23
-Status: Complete / awaiting merge authorization
-Plan: `.agents/plans/2026-05-22-v1-release-readiness-closeout/PLAN.md`
-Goal: `.agents/plans/2026-05-22-v1-release-readiness-closeout/GOAL.md`
+- **Date started:** 2026-05-22
+- **Date finalized:** 2026-05-23
+- **Status:** Complete / awaiting merge authorization
+- **Plan:** `.agents/plans/2026-05-22-v1-release-readiness-closeout/PLAN.md`
+- **Goal:** `.agents/plans/2026-05-22-v1-release-readiness-closeout/GOAL.md`
 
 Use this as the durable execution ledger. For stacked work, this should normally be the last meaningful file touched before local completion, draft submission, ready-for-review, remote review closeout, merge readiness, archive, or final handoff. Meaningful review-flow changes require a new retro entry.
 

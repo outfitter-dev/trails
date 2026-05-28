@@ -1,3 +1,21 @@
+---
+created: 2026-05-25T14:30:47Z
+updated: 2026-05-25T14:30:47Z
+description: Executable goal prompt for the scaffold forward-compat seed session. Contains the verbatim /goal command to paste into the runtime, covering the four-PR Graphite stack (TRL-796 exact pins, TRL-798 provenance, TRL-797 bump helper, TRL-799 draft ADR), validation ladder, review requirements, hard rules, done criteria, and stop/ask conditions.
+impl_status: implemented
+linear:
+  - TRL-796
+  - TRL-797
+  - TRL-798
+  - TRL-799
+references:
+  - .agents/plans/2026-05-24-scaffold-forward-compat-seed/PLAN.md
+  - .agents/plans/2026-05-24-scaffold-forward-compat-seed/RETRO.md
+  - .agents/plans/2026-05-24-scaffold-forward-compat-seed/REFS.md
+  - AGENTS.md
+  - .agents/plans/PLANNING.md
+---
+
 # Goal Prompt: scaffold forward-compat seed
 
 Paste this into the goal runtime:

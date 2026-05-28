@@ -1,3 +1,30 @@
+---
+created: 2026-05-17T15:32:43Z
+updated: 2026-05-20T03:58:14Z
+description: Pasteable /goal prompt for executing the HTTP Bun + Observability Closeout 14-PR stack end to end. Covers preflight, exact branch names and Linear issue order, core scope per PR, changesets/publish rules, local review loop, owning-branch fix discipline, remote review flow, Linear tracker rules, stop rules, and completion condition.
+impl_status: implemented
+linear:
+  - TRL-715
+  - TRL-716
+  - TRL-717
+  - TRL-718
+  - TRL-719
+  - TRL-720
+  - TRL-721
+  - TRL-722
+  - TRL-723
+  - TRL-724
+  - TRL-725
+  - TRL-726
+  - TRL-727
+  - TRL-365
+references:
+  - AGENTS.md
+  - .agents/plans/PLANNING.md
+  - .agents/plans/2026-05-16-http-bun-observability-closeout/PLAN.md
+  - .agents/plans/2026-05-16-http-bun-observability-closeout/REFS.md
+---
+
 # Goal Prompt: HTTP Bun + Observability Closeout Stack
 
 Paste this into a fresh goal executor session:

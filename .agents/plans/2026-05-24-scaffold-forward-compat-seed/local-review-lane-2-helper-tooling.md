@@ -1,3 +1,15 @@
+---
+created: 2026-05-25T14:30:48Z
+updated: 2026-05-25T14:30:48Z
+description: Local review report for lane 2 (helper tooling) of the scaffold forward-compat seed session. Scored 5/5. Covers TRL-797 internal scaffold-version helper/check, generated-output coverage for exact @ontrails/* pins after version bumps, and release docs routing operators through the helper. No findings at any severity. Evidence: 3 tests/3 assertions passing and scaffold-versions:check passing.
+impl_status: implemented
+linear:
+  - TRL-797
+references:
+  - docs/releases/stable-cutover.md
+  - docs/releases/beta-channel-policy.md
+---
+
 # Local Review Lane 2: Helper Tooling
 
 Score: 5/5

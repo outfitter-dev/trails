@@ -1,28 +1,40 @@
+---
+created: 2026-05-23T23:25:16-04:00
+updated: 2026-05-24T16:45:06Z
+description: Completed execution retro for TRL-780 scaffold CLI scripts. PR #577 ready for merge with CI green and Greptile 5/5 clean. Records planning discoveries, deferred follow-ups (TRL-778/781/789/792), tracker mutations, execution log from branch setup through remote review, two local Spark review lanes (no P0/P1/P2), Greptile P2 fix (as const satisfies), forbidden-actions audit, and final state.
+impl_status: implemented
+linear:
+  - TRL-780
+  - TRL-778
+  - TRL-781
+  - TRL-789
+  - TRL-792
+references:
+  - .agents/plans/2026-05-23-trl-780-scaffold-cli-scripts/PLAN.md
+  - .agents/plans/2026-05-23-trl-780-scaffold-cli-scripts/GOAL.md
+  - apps/trails/src/trails/create-scaffold.ts
+  - apps/trails/src/__tests__/create.test.ts
+  - .changeset/trl-780-scaffold-cli-scripts.md
+---
+
 # Execution Retro: TRL-780 Scaffold CLI Scripts
 
-Date started: 2026-05-23
-Date finalized: 2026-05-23
-Status: Ready for merge by user
-Plan: `.agents/plans/2026-05-23-trl-780-scaffold-cli-scripts/PLAN.md`
-Goal: `.agents/plans/2026-05-23-trl-780-scaffold-cli-scripts/GOAL.md`
+- **Date started:** 2026-05-23
+- **Date finalized:** 2026-05-23
+- **Status:** Ready for merge by user
+- **Plan:** `.agents/plans/2026-05-23-trl-780-scaffold-cli-scripts/PLAN.md`
+- **Goal:** `.agents/plans/2026-05-23-trl-780-scaffold-cli-scripts/GOAL.md`
 
-Use this as the durable execution ledger. This should normally be the last
-meaningful file touched before local completion, draft submission,
-ready-for-review, remote review closeout, merge readiness, archive, or final
-handoff. Meaningful review-flow changes require a new retro entry.
+Use this as the durable execution ledger. This should normally be the last meaningful file touched before local completion, draft submission, ready-for-review, remote review closeout, merge readiness, archive, or final handoff. Meaningful review-flow changes require a new retro entry.
 
 ## Execution Summary
 
-- Objective: Make fresh `trails create` apps consume the existing
-  `@ontrails/trails` bin and expose core framework commands via package
-  scripts.
-- Final outcome: PR #577 is ready for review/merge by user with remote review
-  clean.
+- Objective: Make fresh `trails create` apps consume the existing `@ontrails/trails` bin and expose core framework commands via package scripts.
+- Final outcome: PR #577 is ready for review/merge by user with remote review clean.
 - Final branch / stack tip: `trl-780-scaffolded-projects-cant-run-most-framework-cli-subcommands`
 - Final PR range: PR #577
 - Final tracker state: TRL-780 In Progress
-- Final verification state: local targeted/package/smoke/repo checks passed; CI
-  passed; Greptile review passed after P2 fix.
+- Final verification state: local targeted/package/smoke/repo checks passed; CI passed; Greptile review passed after P2 fix.
 - Remaining risks / P3s: none known.
 - Archive state: active packet
 
@@ -100,8 +112,7 @@ YYYY-MM-DD HH:MM TZ - <branch/issue/checkpoint>
 
 ## Local Review Log
 
-Record local review rounds, reports, P0/P1/P2 findings, fixes, and remaining
-P3s. Do not mark local review complete while P0/P1/P2 findings remain.
+Record local review rounds, reports, P0/P1/P2 findings, fixes, and remaining P3s. Do not mark local review complete while P0/P1/P2 findings remain.
 
 | Round | Scope / Lanes | Report Paths | P0/P1/P2 Result | Fix Commits / Notes |
 | --- | --- | --- | --- | --- |
@@ -125,11 +136,7 @@ Record exact commands and artifact checks. Include skipped checks with reasons.
 
 ## Remote Review / CI Log
 
-Record remote review state after submission and after each meaningful fix round.
-Treat code-review bot/agent errors and unresolved P0/P1/P2 comments as
-incomplete. Also record summary scores and prompt-to-fix text from code-review
-bots/agents; a lower score with concrete fixable feedback is review debt even
-if inline threads are resolved.
+Record remote review state after submission and after each meaningful fix round. Treat code-review bot/agent errors and unresolved P0/P1/P2 comments as incomplete. Also record summary scores and prompt-to-fix text from code-review bots/agents; a lower score with concrete fixable feedback is review debt even if inline threads are resolved.
 
 | Time | PR | CI State | Review State | Scores / Signals | Unresolved P0/P1/P2 | Action |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -163,36 +170,20 @@ Record constraints that stayed true. Add or remove rows to match the goal.
 
 Fill before claiming completion, handoff, merge readiness, or archive.
 
-- Goal completion condition: Locally satisfied for draft handoff: generated
-  scaffolds include `@ontrails/trails` dev dependency and framework scripts,
-  tests/checks/smoke passed, changeset exists, branch pushed, PR opened, PR
-  marked ready for review, P2 remote feedback fixed, and re-review passed.
-- Graphite / branch state:
-  `trl-780-scaffolded-projects-cant-run-most-framework-cli-subcommands` pushed
-  with PR #577.
-- PR state: Ready PR #577,
-  <https://github.com/outfitter-dev/trails/pull/577>.
+- Goal completion condition: Locally satisfied for draft handoff: generated scaffolds include `@ontrails/trails` dev dependency and framework scripts, tests/checks/smoke passed, changeset exists, branch pushed, PR opened, PR marked ready for review, P2 remote feedback fixed, and re-review passed.
+- Graphite / branch state: `trl-780-scaffolded-projects-cant-run-most-framework-cli-subcommands` pushed with PR #577.
+- PR state: Ready PR #577, <https://github.com/outfitter-dev/trails/pull/577>.
 - Source-control host lag: none known; CI passed and GitHub merge state is CLEAN.
 - Tracker state: TRL-780 In Progress with PR attachment and closeout comment.
-- Local review state: two Spark local review lanes; no P0/P1/P2; P3 smoke-ledger
-  findings resolved.
-- Remote review state: Greptile review passed after P2 fix; zero active
-  unresolved review threads.
+- Local review state: two Spark local review lanes; no P0/P1/P2; P3 smoke-ledger findings resolved.
+- Remote review state: Greptile review passed after P2 fix; zero active unresolved review threads.
 - Remote review scores: Greptile 5/5.
-- Verification: targeted create test, `apps/trails` package tests,
-  generated-project smoke, typecheck, lint, format, `git diff --check`, and
-  `bun run check` passed.
+- Verification: targeted create test, `apps/trails` package tests, generated-project smoke, typecheck, lint, format, `git diff --check`, and `bun run check` passed.
 - Skipped checks: none recorded.
 - Remaining P3s / risks: none known.
 - Follow-up issues created: none.
-- Forbidden actions confirmation: no merge, no publish/registry mutation, no
-  merge queue label, no source-control writes by subagents, no unrelated
-  destructive changes.
-- Packet archive readiness: not ready to archive until PR #577 is merged or
-  explicitly closed out.
-- Final transcript proof: final handoff should name PR #577, branch, checks, CI
-  pass state, remote-review clean state, and forbidden-action confirmation.
+- Forbidden actions confirmation: no merge, no publish/registry mutation, no merge queue label, no source-control writes by subagents, no unrelated destructive changes.
+- Packet archive readiness: not ready to archive until PR #577 is merged or explicitly closed out.
+- Final transcript proof: final handoff should name PR #577, branch, checks, CI pass state, remote-review clean state, and forbidden-action confirmation.
 
-Do not mark complete until the goal completion condition has been proven, this
-section is filled or explicitly marked blocked, and the final transcript names
-the updated retro state.
+Do not mark complete until the goal completion condition has been proven, this section is filled or explicitly marked blocked, and the final transcript names the updated retro state.

@@ -6,6 +6,11 @@ created: 2026-03-31
 updated: 2026-04-09
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [38]
+description: "Defines the WebSocket trailhead for bidirectional trail invocation plus server-push signal subscriptions over a persistent connection, with JSON-RPC-style framing, connection lifecycle states, and backpressure handling."
+references:
+  - docs/adr/0038-typed-signal-emission.md
+linear: []
+impl_status: planned
 ---
 
 # ADR: WebSocket Trailhead

@@ -1,10 +1,28 @@
+---
+created: 2026-05-24T16:45:07Z
+updated: 2026-05-24T16:45:08Z
+description: Durable execution ledger for the Warden-as-coach overnight session. Records seven slices across PRs #582-#587 (TRL-791 no-destructured-cross, TRL-793 names-only diagnostics, TRL-785 Result alias provenance, TRL-786 redundant re-wrap detection, TRL-795 dogfood cleanup, TRL-790 TODO marker carve-out). Includes tracker mutations, execution log, verification log, and forbidden actions audit.
+impl_status: partial
+linear:
+  - TRL-785
+  - TRL-786
+  - TRL-790
+  - TRL-791
+  - TRL-793
+  - TRL-794
+  - TRL-795
+references:
+  - .agents/plans/2026-05-24-warden-as-coach-overnight-stack/PLAN.md
+  - .agents/plans/2026-05-24-warden-as-coach-overnight-stack/GOAL.md
+---
+
 # Execution Retro: Warden As Coach Overnight Stack
 
-Date started: 2026-05-24
-Date finalized: pending
-Status: In progress
-Plan: `.agents/plans/2026-05-24-warden-as-coach-overnight-stack/PLAN.md`
-Goal: `.agents/plans/2026-05-24-warden-as-coach-overnight-stack/GOAL.md`
+- **Date started:** 2026-05-24
+- **Date finalized:** pending
+- **Status:** In progress
+- **Plan:** `.agents/plans/2026-05-24-warden-as-coach-overnight-stack/PLAN.md`
+- **Goal:** `.agents/plans/2026-05-24-warden-as-coach-overnight-stack/GOAL.md`
 
 Use this as the durable execution ledger. For stacked work, this should normally be the last meaningful file touched before local completion, draft submission, ready-for-review, remote review closeout, merge readiness, archive, or final handoff.
 

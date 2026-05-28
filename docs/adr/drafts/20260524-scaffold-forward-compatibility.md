@@ -6,6 +6,16 @@ created: 2026-05-24
 updated: 2026-05-24
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [10, 47, 48]
+description: "Decides that generated apps pin `@ontrails/*` dependencies to the exact scaffolding tool version, and generated apps include `.trails/scaffold.json` as a minimal provenance breadcrumb for future upgrade tooling."
+references:
+  - docs/adr/0010-native-infrastructure.md
+  - docs/adr/0047-stable-release-line-discipline.md
+  - docs/adr/0048-trail-versioning-v3.md
+  - apps/trails/src/trails/create-scaffold.ts
+  - docs/releases/stable-cutover.md
+  - docs/releases/beta-channel-policy.md
+linear: []
+impl_status: partial
 ---
 
 # ADR: Scaffold Forward Compatibility

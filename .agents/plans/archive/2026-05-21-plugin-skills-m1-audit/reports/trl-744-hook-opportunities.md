@@ -1,8 +1,29 @@
+---
+created: 2026-05-21T21:29:29Z
+updated: 2026-05-22T20:49:43Z
+description: Audit of current and potential Trails plugin hook opportunities. Documents the Claude SessionStart hook (too narrow, misuses blaze vocabulary, no Codex story), proposes detection predicates, Warden nudges, version drift warnings, and installed-skill drift checks. Proposed hook stack splits ownership across TRL-748/749/750/751/753 with do-not-do constraints for M2/M3.
+impl_status: implemented
+linear:
+  - TRL-744
+  - TRL-748
+  - TRL-749
+  - TRL-750
+  - TRL-751
+  - TRL-753
+references:
+  - plugin/hooks/detect-trails.sh
+  - plugin/hooks/hooks.json
+  - apps/trails/src/trails/project.ts
+  - packages/topographer/src/workspace-topos.ts
+  - docs/contributing/language-styleguide.md
+  - trails.config.ts
+---
+
 # TRL-744 Hook Opportunities Audit
 
-Date: 2026-05-21
-Branch: `trl-744-audit-trails-plugin-hook-opportunities-and-integration`
-Scope: project detection, version drift warnings, Warden nudges, command suggestions, and Claude/Codex integration differences for the Trails plugin. No hook implementation changes were made.
+- **Date:** 2026-05-21
+- **Branch:** `trl-744-audit-trails-plugin-hook-opportunities-and-integration`
+- **Scope:** project detection, version drift warnings, Warden nudges, command suggestions, and Claude/Codex integration differences for the Trails plugin. No hook implementation changes were made.
 
 ## Executive Summary
 
