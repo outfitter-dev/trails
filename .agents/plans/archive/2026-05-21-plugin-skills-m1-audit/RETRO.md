@@ -1,10 +1,40 @@
+---
+created: 2026-05-21T21:29:29Z
+updated: 2026-05-22T20:49:43Z
+description: Durable execution ledger for the M1 plugin/skills audit. Records execution summary, branch/PR/issue ledger (PRs #554–#558, all Ready), planning discoveries, deferred findings (TRL-755), full tracker mutation log, report state, timestamped execution log, local and remote review rounds (all Greptile 5/5, 0 unresolved threads), verification log, forbidden-action audit, and final state.
+impl_status: implemented
+linear:
+  - TRL-742
+  - TRL-743
+  - TRL-744
+  - TRL-745
+  - TRL-746
+  - TRL-747
+  - TRL-748
+  - TRL-749
+  - TRL-750
+  - TRL-751
+  - TRL-752
+  - TRL-753
+  - TRL-754
+  - TRL-755
+references:
+  - .agents/plans/archive/2026-05-21-plugin-skills-m1-audit/PLAN.md
+  - .agents/plans/archive/2026-05-21-plugin-skills-m1-audit/GOAL.md
+  - .agents/plans/archive/2026-05-21-plugin-skills-m1-audit/reports/trl-745-package-coverage.md
+  - .agents/plans/archive/2026-05-21-plugin-skills-m1-audit/reports/trl-742-repo-plugin-doctrine.md
+  - .agents/plans/archive/2026-05-21-plugin-skills-m1-audit/reports/trl-743-distribution-surfaces.md
+  - .agents/plans/archive/2026-05-21-plugin-skills-m1-audit/reports/trl-744-hook-opportunities.md
+  - .agents/plans/archive/2026-05-21-plugin-skills-m1-audit/reports/trl-754-synthesis.md
+---
+
 # Execution Retro: plugin-skills-m1-audit
 
-Date started: 2026-05-21
-Date finalized: 2026-05-21
-Status: Ready for review; CI and Greptile clean, Graphite mergeability pending on upper stacked PRs as external service lag
-Plan: `.agents/plans/2026-05-21-plugin-skills-m1-audit/PLAN.md`
-Goal: `.agents/plans/2026-05-21-plugin-skills-m1-audit/GOAL.md`
+- **Date started:** 2026-05-21
+- **Date finalized:** 2026-05-21
+- **Status:** Ready for review; CI and Greptile clean, Graphite mergeability pending on upper stacked PRs as external service lag
+- **Plan:** `.agents/plans/2026-05-21-plugin-skills-m1-audit/PLAN.md`
+- **Goal:** `.agents/plans/2026-05-21-plugin-skills-m1-audit/GOAL.md`
 
 Use this as the durable execution ledger. For stacked work, this should normally be the last meaningful file touched before local completion, draft submission, ready-for-review, remote review closeout, merge readiness, archive, or final handoff. Meaningful review-flow changes require a new retro entry.
 

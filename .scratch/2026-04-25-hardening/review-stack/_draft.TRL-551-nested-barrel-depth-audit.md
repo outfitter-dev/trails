@@ -1,7 +1,17 @@
+---
+created: "2026-05-01T14:16:21Z"
+updated: "2026-05-01T14:16:21Z"
+description: "Audits nested barrel index.ts files in packages, apps, and connectors against the repo-local no-nested-barrel rule (maxDepth: 2). Lists all depth-2 subpath barrels found across core, config, store, and warden packages. Finds no barrels deeper than the current threshold. Recommends keeping maxDepth: 2."
+references: []
+linear:
+  - TRL-551
+impl_status: implemented
+---
+
 # TRL-551 Nested Barrel Depth Audit
 
-**Issue:** TRL-551
-**Branch:** `trl-551-audit-nested-barrel-depth-before-tightening-repo-local-rule`
+- **Issue:** TRL-551
+- **Branch:** `trl-551-audit-nested-barrel-depth-before-tightening-repo-local-rule`
 
 ## Rule Baseline
 

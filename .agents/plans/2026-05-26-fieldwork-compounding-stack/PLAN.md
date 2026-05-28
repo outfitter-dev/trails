@@ -1,7 +1,32 @@
+---
+created: "2026-05-26T22:32:21Z"
+updated: "2026-05-26T22:32:21Z"
+description: Detailed execution plan for five Trails framework fixes before Radio migration. Covers per-issue scope and acceptance for TRL-782, TRL-804, TRL-781, TRL-789, and TRL-816 (resource config inference, Warden top-level surface rule, scaffold rerun, entity starter CRUD, compose straggler cleanup), plus TRL-814 Radio proof lane criteria, source-control plan, subagent strategy, and validation ladder.
+linear:
+  - TRL-782
+  - TRL-784
+  - TRL-787
+  - TRL-802
+  - TRL-804
+  - TRL-781
+  - TRL-789
+  - TRL-816
+  - TRL-814
+impl_status: partial
+references:
+  - AGENTS.md
+  - .agents/plans/PLANNING.md
+  - docs/adr/0000-core-premise.md
+  - docs/tenets.md
+  - docs/adr/0001-naming-conventions.md
+  - docs/lexicon.md
+  - docs/architecture.md
+---
+
 # Goal Plan: Fieldwork Compounding Stack
 
-Date: 2026-05-26
-Status: Planned
+- **Date:** 2026-05-26
+- **Status:** Planned
 
 ## Objective
 

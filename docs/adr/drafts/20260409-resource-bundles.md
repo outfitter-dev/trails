@@ -6,6 +6,18 @@ created: 2026-04-09
 updated: 2026-04-09
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [9, 16, 22, connector-extraction-and-the-with-packaging-model, backend-agnostic-store-schemas]
+description: "Introduces `bundle()` as a factory that groups related resources under a shared namespace with collective defaults and per-resource overrides, serving both platform connectors and pack distribution."
+references:
+  - docs/adr/0009-first-class-resources.md
+  - docs/adr/0016-schema-derived-persistence.md
+  - docs/adr/0022-drizzle-store-connector.md
+  - docs/adr/0029-connector-extraction-and-the-with-packaging-model.md
+  - docs/adr/0030-contours-as-first-class-domain-objects.md
+  - docs/adr/0031-backend-agnostic-store-schemas.md
+  - docs/adr/0032-derivetrail-and-trail-factories.md
+  - docs/tenets.md
+linear: []
+impl_status: planned
 ---
 
 # ADR: Resource Bundles

@@ -1,3 +1,24 @@
+---
+created: 2026-05-24T16:45:07Z
+updated: 2026-05-24T16:45:08Z
+description: Executable goal prompt for the Warden-as-coach overnight session. Contains the verbatim /goal command covering TRL-791 (no-destructured-cross), TRL-793 (names-only diagnostics), TRL-794 (partial diagnostics follow-up), TRL-785 (Result alias provenance gap), TRL-786 (redundant re-wrap detection), and TRL-790 (TODO lint carve-out). Specifies validation ladder, review loop, and done/stop criteria.
+impl_status: partial
+linear:
+  - TRL-785
+  - TRL-786
+  - TRL-790
+  - TRL-791
+  - TRL-793
+  - TRL-794
+references:
+  - .agents/plans/2026-05-24-warden-as-coach-overnight-stack/PLAN.md
+  - .agents/plans/2026-05-24-warden-as-coach-overnight-stack/RETRO.md
+  - AGENTS.md
+  - .agents/plans/PLANNING.md
+  - docs/tenets.md
+  - docs/lexicon.md
+---
+
 # Goal Prompt: Warden As Coach Overnight Stack
 
 Paste this into the goal runtime:

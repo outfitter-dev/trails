@@ -1,17 +1,37 @@
+---
+created: "2026-05-23T21:40:49Z"
+updated: "2026-05-23T21:40:49Z"
+description: "Audit report for TRL-756. Verdict: minor drift. Enforced vocab gates (vocab:audit, lint:ast-grep, warden:skills:check) are clean. Two follow-ups filed: TRL-774 for resource factory svc/service/provision naming residue in public TSDoc and skills, and TRL-775 for the stale .trails/clark/survey-latest.md snapshot. Neither blocks stable cutover."
+impl_status: implemented
+linear:
+  - TRL-756
+  - TRL-774
+  - TRL-775
+references:
+  - docs/lexicon.md
+  - docs/adr/0001-naming-conventions.md
+  - docs/contributing/warden-rules.md
+  - docs/releases/stable-cutover.md
+  - scripts/vocab-cutover-audit.ts
+  - scripts/check-installed-trails-skill.ts
+  - packages/core/src/resource.ts
+  - packages/testing/src/__tests__/crosses.test.ts
+  - plugin/skills/trails/SKILL.md
+  - plugin/skills/trails/references/common-pitfalls.md
+  - .trails/clark/survey-latest.md
+---
+
 # TRL-756 Audit: Doctrine And Lexicon Drift After Versioning M3
 
-Date: 2026-05-22
-Branch: `trl-756-audit-v1-doctrine-and-lexicon-drift-after-versioning-m3`
-Issue: `TRL-756`
+- **Date:** 2026-05-22
+- **Branch:** `trl-756-audit-v1-doctrine-and-lexicon-drift-after-versioning-m3`
+- **Issue:** `TRL-756`
 
 ## Summary Verdict
 
 Verdict: `minor drift`
 
-The active repo doctrine is mostly aligned with the post-versioning-M3 lexicon.
-The enforced gates are clean: `bun run vocab:audit`, `bun run
-vocab:audit:json`, `bun run lint:ast-grep`, `bun run warden:skills:check`, and
-`bun run warden:agents:check` all pass for the checked-out repo source.
+The active repo doctrine is mostly aligned with the post-versioning-M3 lexicon. The enforced gates are clean: `bun run vocab:audit`, `bun run vocab:audit:json`, `bun run lint:ast-grep`, `bun run warden:skills:check`, and `bun run warden:agents:check` all pass for the checked-out repo source.
 
 The audit did find two real follow-ups:
 
@@ -20,16 +40,9 @@ The audit did find two real follow-ups:
 - `TRL-775`: the committed `.trails/clark/survey-latest.md` snapshot is stale
   while still being named "latest".
 
-Neither is a stable-cutover blocker under the current release gate because the
-source vocabulary checks are clean and the remaining drift is narrow,
-classifiable, and tracked. If v1 stable adopts a stricter "zero known active
-lexicon residue in public TSDoc and agent skills" rule, then `TRL-774` should
-land before stable.
+Neither is a stable-cutover blocker under the current release gate because the source vocabulary checks are clean and the remaining drift is narrow, classifiable, and tracked. If v1 stable adopts a stricter "zero known active lexicon residue in public TSDoc and agent skills" rule, then `TRL-774` should land before stable.
 
-The local installed Trails skill copy is also stale, but that is external
-operator state rather than branch source. The repo already has a read-only check
-for this path; refreshing local installed copies should remain an explicit
-operator action, not a hidden side effect of this audit branch.
+The local installed Trails skill copy is also stale, but that is external operator state rather than branch source. The repo already has a read-only check for this path; refreshing local installed copies should remain an explicit operator action, not a hidden side effect of this audit branch.
 
 ## Evidence Map
 
@@ -67,17 +80,14 @@ operator action, not a hidden side effect of this audit branch.
 
 ## Command Snippets
 
-The required search pattern was checked with `git grep -nE`. Because Git's ERE
-handling of `\b` did not produce useful word-boundary matches in this checkout,
-the audit re-ran the same term set with `-P` and classified the resulting hits.
+The required search pattern was checked with `git grep -nE`. Because Git's ERE handling of `\b` did not produce useful word-boundary matches in this checkout, the audit re-ran the same term set with `-P` and classified the resulting hits.
 
 ```text
 $ git grep -nP '\b(trailhead|trailheads|provision|provisions|gate|gates|loadout|tracker|tracks|vocabulary)\b' -- ':!bun.lock' | wc -l
 1063
 ```
 
-The active-target Markdown/package/skill subset, excluding changelogs, is much
-smaller and mostly historical or false-positive prose:
+The active-target Markdown/package/skill subset, excluding changelogs, is much smaller and mostly historical or false-positive prose:
 
 ```text
 $ rg -n 'trailhead|trailheads|provision|provisions|loadout|tracker|tracks|\bgate\b|\bgates\b|vocabulary' packages/*/README.md adapters/*/README.md apps/*/README.md README.md docs/*.md docs/releases/*.md plugin/skills .claude/skills .agents/skills --glob '!**/CHANGELOG.md' | wc -l
@@ -151,40 +161,21 @@ Read-only check: no installed skill files were changed.
 
 ### Do current docs teach the current lexicon?
 
-Yes for the primary docs inspected. `docs/lexicon.md`, `docs/architecture.md`,
-`docs/index.md`, `docs/why-trails.md`, `docs/getting-started.md`,
-`docs/horizons.md`, release docs, public package READMEs, ADR index material,
-and the repo plugin skill source mostly teach `trail`, `blaze`, `topo`,
-`surface`, `cross`, `resource`, `layer`, `signal`, `tracing`, and `meta`.
+Yes for the primary docs inspected. `docs/lexicon.md`, `docs/architecture.md`, `docs/index.md`, `docs/why-trails.md`, `docs/getting-started.md`, `docs/horizons.md`, release docs, public package READMEs, ADR index material, and the repo plugin skill source mostly teach `trail`, `blaze`, `topo`, `surface`, `cross`, `resource`, `layer`, `signal`, `tracing`, and `meta`.
 
-Remaining retired-term hits in those paths are either migration/history, ordinary
-English false positives, or the narrow `svc`/resource-factory residue filed as
-`TRL-774`.
+Remaining retired-term hits in those paths are either migration/history, ordinary English false positives, or the narrow `svc`/resource-factory residue filed as `TRL-774`.
 
 ### Is there active code/API compatibility drift?
 
-Only minor drift. `ResourceSpec.create` exposes a public callback parameter named
-`svc`, and public TSDoc says config is passed as `svc.config`. That does not
-change runtime behavior, but it is visible in IDE hovers and copied into agent
-skill examples. The fix is mechanical but cross-cutting enough to keep out of
-the report-only audit branch.
+Only minor drift. `ResourceSpec.create` exposes a public callback parameter named `svc`, and public TSDoc says config is passed as `svc.config`. That does not change runtime behavior, but it is visible in IDE hovers and copied into agent skill examples. The fix is mechanical but cross-cutting enough to keep out of the report-only audit branch.
 
 ### Are committed agent artifacts current?
 
-Not completely. The repo plugin skill source is current enough for the checked
-audit, but `.trails/clark/survey-latest.md` is stale and committed. It still
-claims ADR-0001 teaches `provision()` and `createTrackerGate()` even though the
-current ADR is updated, and it references `packages/tracker/` even though no
-tracked files remain there. Because the file is named `latest`, agents can treat
-outdated conclusions as live evidence. This is filed as `TRL-775`.
+Not completely. The repo plugin skill source is current enough for the checked audit, but `.trails/clark/survey-latest.md` is stale and committed. It still claims ADR-0001 teaches `provision()` and `createTrackerGate()` even though the current ADR is updated, and it references `packages/tracker/` even though no tracked files remain there. Because the file is named `latest`, agents can treat outdated conclusions as live evidence. This is filed as `TRL-775`.
 
 ### Did the installed global skill state match the repo source?
 
-No. `bun run plugin:installed-skill:check` reports content drift and stale
-vocabulary in `<user-home>/.agents/skills/trails` and the symlinked
-`<user-home>/.config/claude/skills/trails`. The command is read-only and made
-no changes. This should be refreshed through an explicit operator action, not
-by this branch.
+No. `bun run plugin:installed-skill:check` reports content drift and stale vocabulary in `<user-home>/.agents/skills/trails` and the symlinked `<user-home>/.config/claude/skills/trails`. The command is read-only and made no changes. This should be refreshed through an explicit operator action, not by this branch.
 
 ## Follow-Up Issues
 
@@ -205,5 +196,4 @@ For the v1 stable cutover lexicon gate:
       non-blocking release follow-ups.
 ```
 
-Current state: pass with minor drift, assuming `TRL-774` and `TRL-775` are
-accepted as post-audit follow-ups rather than release blockers.
+Current state: pass with minor drift, assuming `TRL-774` and `TRL-775` are accepted as post-audit follow-ups rather than release blockers.

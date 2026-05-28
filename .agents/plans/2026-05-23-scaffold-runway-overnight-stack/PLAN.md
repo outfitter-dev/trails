@@ -1,7 +1,31 @@
+---
+created: "2026-05-24T16:45:06Z"
+updated: "2026-05-24T16:45:06Z"
+description: "Full execution plan for the scaffold-runway overnight stack. Five phases: preflight/tracker truth, TRL-788 generated tsconfig.tests.json, TRL-777 generated AGENTS.md + CLAUDE.md shim, TRL-779 generated README, TRL-792 Bun runtime docs sidecar, and local review + draft submission. Covers stack order, non-goals, validation ladder, tracker plan, retro discipline, and stop/pause rules."
+impl_status: implemented
+linear:
+  - TRL-777
+  - TRL-779
+  - TRL-780
+  - TRL-788
+  - TRL-792
+references:
+  - AGENTS.md
+  - .agents/plans/PLANNING.md
+  - apps/trails/src/trails/create-scaffold.ts
+  - apps/trails/src/__tests__/create.test.ts
+  - apps/trails/src/project-writes.ts
+  - apps/trails/tsconfig.tests.json
+  - packages/core/tsconfig.tests.json
+  - docs/releases/beta-channel-policy.md
+  - README.md
+  - docs/getting-started.md
+---
+
 # Goal Plan: Scaffold Runway Overnight Stack
 
-Date: 2026-05-23
-Status: Draft
+- **Date:** 2026-05-23
+- **Status:** Draft
 
 ## Objective
 
@@ -235,8 +259,7 @@ Reviewer output contract:
 - Findings: P0/P1/P2/P3, with file/line evidence where applicable
 - Prompt to fix: concise prompt for each actionable finding
 
-Fix all P0/P1/P2 findings before remote submission or final handoff.
-Summarize each round and its fix outcome in `RETRO.md`.
+Fix all P0/P1/P2 findings before remote submission or final handoff. Summarize each round and its fix outcome in `RETRO.md`.
 
 ## Progress Reporting
 

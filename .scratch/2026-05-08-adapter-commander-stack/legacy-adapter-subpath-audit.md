@@ -1,13 +1,34 @@
+---
+created: 2026-05-08T18:14:38Z
+updated: 2026-05-08T18:14:38Z
+description: Audit for TRL-641 verifying that the three old extracted-adapter subpaths (@ontrails/http/hono, @ontrails/store/drizzle, @ontrails/cli/commander) no longer appear in active source, manifests, or scaffolds. Documents accepted residual buckets and adds a lightweight vocab-audit guardrail rule.
+references:
+  - docs/migration/connector-to-adapter.md
+  - adapters/commander/README.md
+  - adapters/drizzle/README.md
+  - adapters/hono/README.md
+  - packages/http/README.md
+  - packages/store/README.md
+  - docs/adr/0005-framework-agnostic-http-route-model.md
+  - docs/adr/0022-drizzle-store-connector.md
+  - docs/adr/0029-connector-extraction-and-the-with-packaging-model.md
+  - docs/adr/decision-map.json
+  - docs/releases/beta15.md
+  - packages/http/CHANGELOG.md
+  - packages/topographer/CHANGELOG.md
+linear:
+  - TRL-641
+impl_status: implemented
+---
+
 # Legacy Extracted-Adapter Subpath Audit
 
-Date: 2026-05-08
-Branch: `trl-641-audit-legacy-extracted-adapter-subpath-transitions-before-v1`
+- **Date:** 2026-05-08
+- **Branch:** `trl-641-audit-legacy-extracted-adapter-subpath-transitions-before-v1`
 
 ## Scope
 
-This audit checks that the old extracted-adapter subpaths are no longer active
-package, source, manifest, scaffold, or current-facing guidance paths before the
-Commander cutover stack reaches v1 readiness.
+This audit checks that the old extracted-adapter subpaths are no longer active package, source, manifest, scaffold, or current-facing guidance paths before the Commander cutover stack reaches v1 readiness.
 
 Checked transitions:
 
@@ -17,11 +38,7 @@ Checked transitions:
 | `@ontrails/store/drizzle` | `@ontrails/drizzle` |
 | `@ontrails/cli/commander` | `@ontrails/commander` |
 
-Intentional public subpaths such as `@ontrails/core/trails`,
-`@ontrails/core/patterns`, `@ontrails/store/jsonfile`,
-`@ontrails/store/testing`, `@ontrails/permits/testing`, `@ontrails/warden/ast`,
-`@ontrails/permits/jwt`, and `@ontrails/tracing/otel` are not legacy extracted
-adapter subpaths and stay out of scope.
+Intentional public subpaths such as `@ontrails/core/trails`, `@ontrails/core/patterns`, `@ontrails/store/jsonfile`, `@ontrails/store/testing`, `@ontrails/permits/testing`, `@ontrails/warden/ast`, `@ontrails/permits/jwt`, and `@ontrails/tracing/otel` are not legacy extracted adapter subpaths and stay out of scope.
 
 ## Commands
 
@@ -34,8 +51,7 @@ rg -n "@ontrails/(http/hono|store/drizzle|cli/commander)" adapters packages docs
 
 ## Result
 
-No active TypeScript imports, dynamic imports, package manifests, or package
-exports use the old extracted-adapter subpaths.
+No active TypeScript imports, dynamic imports, package manifests, or package exports use the old extracted-adapter subpaths.
 
 Remaining hits are accepted in these buckets:
 
@@ -48,16 +64,9 @@ Remaining hits are accepted in these buckets:
 
 ## Guardrail Decision
 
-This branch adds the lightweight `legacy-extracted-adapter-subpath` vocab audit
-rule because the predicate is narrow and reviewable: the three old extracted
-adapter subpaths may appear only in historical or migration-context files.
-The audit roots stay aligned with the existing vocab-audit target set. Adapter
-package README migration blocks were also reviewed with the explicit `rg`
-commands above and are listed in the accepted migration bucket.
+This branch adds the lightweight `legacy-extracted-adapter-subpath` vocab audit rule because the predicate is narrow and reviewable: the three old extracted adapter subpaths may appear only in historical or migration-context files. The audit roots stay aligned with the existing vocab-audit target set. Adapter package README migration blocks were also reviewed with the explicit `rg` commands above and are listed in the accepted migration bucket.
 
-The intentionally allowed paths are the same buckets listed above: ADR/release
-history, migration docs, package README migration blocks, and local `.agents`
-history. The live source/import predicate remains:
+The intentionally allowed paths are the same buckets listed above: ADR/release history, migration docs, package README migration blocks, and local `.agents` history. The live source/import predicate remains:
 
 ```bash
 rg -n "from ['\"]@ontrails/(http/hono|store/drizzle|cli/commander)['\"]|import\(['\"]@ontrails/(http/hono|store/drizzle|cli/commander)['\"]\)" apps packages adapters --glob "*.ts" --glob "*.tsx"

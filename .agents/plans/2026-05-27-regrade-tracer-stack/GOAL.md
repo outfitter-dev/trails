@@ -1,3 +1,25 @@
+---
+created: "2026-05-27T20:12:09Z"
+updated: "2026-05-27T20:12:09Z"
+description: Pasteable /goal prompt for the first Regrade proof stack: TRL-823 (packed-manifest first-party beta coherence), TRL-819 (ctx.compose trail-object inference without composeInput), then TRL-825 (experimental packages/regrade literal transform-trail tracer). Defines completion conditions, validation per branch, review protocol (up to 3 remote rounds), stop rules, and forbidden actions.
+linear:
+  - TRL-819
+  - TRL-823
+  - TRL-825
+impl_status: implemented
+references:
+  - .agents/plans/2026-05-27-regrade-tracer-stack/PLAN.md
+  - .agents/plans/2026-05-27-regrade-tracer-stack/RETRO.md
+  - .agents/plans/2026-05-27-regrade-tracer-stack/REFS.md
+  - AGENTS.md
+  - .agents/plans/PLANNING.md
+  - docs/adr/0000-core-premise.md
+  - docs/tenets.md
+  - docs/adr/0001-naming-conventions.md
+  - docs/lexicon.md
+  - docs/architecture.md
+---
+
 # Goal Prompt: Regrade Tracer Stack
 
 Paste this into the goal runtime:

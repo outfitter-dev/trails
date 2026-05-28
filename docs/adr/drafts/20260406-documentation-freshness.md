@@ -6,6 +6,12 @@ created: 2026-04-06
 updated: 2026-04-09
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: ['documentation-structure']
+description: "Defines a documentation freshness contract: `last_checked` and `triggers` frontmatter fields per document, SLA thresholds in `docs/.freshness.yml`, pre-commit advisory hooks, and PR-level CI enforcement."
+references:
+  - docs/adr/0000-core-premise.md
+  - docs/adr/drafts/20260406-documentation-structure.md
+linear: []
+impl_status: planned
 ---
 
 # ADR: Documentation freshness SLAs

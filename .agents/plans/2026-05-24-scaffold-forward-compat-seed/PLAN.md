@@ -1,12 +1,36 @@
+---
+created: 2026-05-25T14:30:47Z
+updated: 2026-05-25T14:30:47Z
+description: Detailed execution plan for the scaffold forward-compat seed session. Covers objective, completion conditions, non-goals, source-of-truth reading order, five work phases (preflight, TRL-796 exact pin, TRL-798 provenance breadcrumb, TRL-797 bump helper, TRL-799 draft ADR, review/submit), tracker plan, source-control plan, retro discipline, and validation ladder.
+impl_status: implemented
+linear:
+  - TRL-796
+  - TRL-797
+  - TRL-798
+  - TRL-799
+references:
+  - AGENTS.md
+  - .agents/plans/PLANNING.md
+  - apps/trails/src/versions.ts
+  - apps/trails/src/trails/create-scaffold.ts
+  - apps/trails/src/__tests__/create.test.ts
+  - scripts/sync-scaffold-versions.ts
+  - package.json
+  - docs/releases/beta-channel-policy.md
+  - docs/releases/stable-cutover.md
+  - docs/adr/drafts/README.md
+  - .agents/plans/2026-05-23-scaffold-runway-overnight-stack/RETRO.md
+  - .agents/plans/2026-05-24-scaffold-forward-compat-seed/RETRO.md
+---
+
 # Goal Plan: scaffold forward-compat seed
 
-Date: 2026-05-24
-Status: Seeded
+- **Date:** 2026-05-24
+- **Status:** Seeded
 
 ## Objective
 
-Build the smallest scaffold-forward-compat stack after the merged scaffold and
-Warden work:
+Build the smallest scaffold-forward-compat stack after the merged scaffold and Warden work:
 
 1. TRL-796: generated projects pin `@ontrails/*` packages to the exact current
    Trails beta version instead of a caret prerelease range.
@@ -17,8 +41,7 @@ Warden work:
 4. TRL-799: the post-1.0 scaffold forward-compatibility direction is captured
    in a draft ADR grounded in the implemented breadcrumb shape.
 
-This is the coherent scaffold-forward line. It is still not the full
-upgrade-path system.
+This is the coherent scaffold-forward line. It is still not the full upgrade-path system.
 
 ## Completion Condition
 
@@ -389,12 +412,9 @@ Reviewer output contract:
 - Findings: P0/P1/P2/P3, with file/line evidence where applicable
 - Prompt to fix: concise prompt for each actionable finding
 
-Fix all P0/P1/P2 findings before remote submission or final handoff. Record
-review summaries, findings, fixes, and residual P3s in `RETRO.md`.
+Fix all P0/P1/P2 findings before remote submission or final handoff. Record review summaries, findings, fixes, and residual P3s in `RETRO.md`.
 
-For remote code-review bots/agents, also record summary scores, prose summaries,
-prompt-to-fix blocks, and whether any score below 5/5 reflects current
-unresolved debt, stale feedback, or an explicitly rejected recommendation.
+For remote code-review bots/agents, also record summary scores, prose summaries, prompt-to-fix blocks, and whether any score below 5/5 reflects current unresolved debt, stale feedback, or an explicitly rejected recommendation.
 
 ## Progress Reporting
 

@@ -6,6 +6,13 @@ created: 2026-03-31
 updated: 2026-04-02
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [3, 9, 23]
+description: "Introduces `pack()` as a named compositional boundary between trail and topo, providing visibility defaults, config scoping, resource namespacing, requires-based dependency validation, and signal ownership."
+references:
+  - docs/adr/0003-unified-trail-primitive.md
+  - docs/adr/0009-first-class-resources.md
+  - docs/adr/0023-simplifying-the-trails-lexicon.md
+linear: []
+impl_status: planned
 ---
 
 # ADR: Packs as Namespace Boundaries

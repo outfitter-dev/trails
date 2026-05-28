@@ -1,7 +1,41 @@
+---
+created: 2026-05-21T21:29:29Z
+updated: 2026-05-22T20:49:43Z
+description: Detailed execution plan for M1 of the Trails Plugin & Skills One-Stop Shop project. Defines objective, completion conditions, non-goals, source-of-truth reading order, phased work plan (sync, stack creation, TRL-745 through TRL-754), tracker plan, source-control and retro discipline, validation ladder, local review contract, and stop/pause rules.
+impl_status: implemented
+linear:
+  - TRL-741
+  - TRL-742
+  - TRL-743
+  - TRL-744
+  - TRL-745
+  - TRL-746
+  - TRL-747
+  - TRL-748
+  - TRL-749
+  - TRL-750
+  - TRL-751
+  - TRL-752
+  - TRL-753
+  - TRL-754
+references:
+  - AGENTS.md
+  - .agents/plans/PLANNING.md
+  - .agents/plans/archive/2026-05-21-plugin-skills-m1-audit/REFS.md
+  - .agents/plans/archive/2026-05-21-plugin-skills-m1-audit/RETRO.md
+  - README.md
+  - docs/lexicon.md
+  - docs/architecture.md
+  - docs/contributing/language-styleguide.md
+  - docs/contributing/code-standards.md
+  - docs/warden.md
+  - docs/adr/README.md
+---
+
 # Goal Plan: plugin-skills-m1-audit
 
-Date: 2026-05-21
-Status: Ready for execution
+- **Date:** 2026-05-21
+- **Status:** Ready for execution
 
 > Note: this packet intentionally records Matt's local checkout and installed-skill roots as point-in-time M1 evidence. Treat `/Users/mg/...` paths as audit coordinates, not portable implementation defaults; downstream scripts and docs should use repo-relative paths or `$HOME`-relative skill roots.
 
@@ -393,8 +427,7 @@ Reviewer output contract:
 - Findings: P0/P1/P2/P3, with file/line evidence where applicable
 - Prompt to fix: concise prompt for each actionable finding
 
-Fix all P0/P1/P2 findings before remote submission or final handoff.
-Summarize each round and its fix outcome in `RETRO.md`.
+Fix all P0/P1/P2 findings before remote submission or final handoff. Summarize each round and its fix outcome in `RETRO.md`.
 
 For remote code-review bots/agents, also record summary scores, prose summaries, prompt-to-fix blocks, and whether any score below 5/5 reflects current unresolved debt, stale feedback, or an explicitly rejected recommendation.
 

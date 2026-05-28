@@ -1,8 +1,30 @@
+---
+created: "2026-05-01T14:16:20Z"
+updated: "2026-05-01T14:16:20Z"
+description: "Reviews five prevention-audit architecture candidates (construction/materializer throw boundaries, Warden advisory metadata, error projection/redaction ownership, resource lifecycle ownership, layer and primitive posture) and concludes no new architecture issue is needed. Each candidate is resolved by reference to existing issues (TRL-564, TRL-558, TRL-568, etc.)."
+references:
+  - .scratch/2026-04-25-hardening/tmp-audits/reconciliation.md
+  - .scratch/2026-04-25-hardening/tmp-audits/05-dogfooding-reconciliation.md
+  - .scratch/2026-04-25-hardening/tmp-audits/08-prevention-rails-reconciliation.md
+linear:
+  - TRL-547
+  - TRL-564
+  - TRL-558
+  - TRL-568
+  - TRL-593
+  - TRL-594
+  - TRL-595
+  - TRL-596
+  - TRL-597
+  - TRL-598
+impl_status: implemented
+---
+
 # TRL-547 Architecture Follow-Up Decisions
 
-**Issue:** TRL-547
-**Branch:** `trl-547-create-architecture-follow-up-issues-from-prevention-audit`
-**Purpose:** Decide which prevention findings require architecture issues rather than rules or advisory skills.
+- **Issue:** TRL-547
+- **Branch:** `trl-547-create-architecture-follow-up-issues-from-prevention-audit`
+- **Purpose:** Decide which prevention findings require architecture issues rather than rules or advisory skills.
 
 ## Inputs
 

@@ -1,7 +1,27 @@
+---
+created: 2026-05-08T18:14:38Z
+updated: 2026-05-08T18:14:38Z
+description: Independent follow-up review after pass-1 fixes and restack. Confirms no remaining P0/P1/P2 findings, lists all branch-local release gate results per issue, records full stack-tip verification commands (all passing), and documents accepted residual classification for legacy subpath and connector-term references.
+references:
+  - docs/migration/connector-to-adapter.md
+  - docs/adr/0029-connector-extraction-and-the-with-packaging-model.md
+  - docs/releases/beta15.md
+  - .agents/plans/v1
+linear:
+  - TRL-639
+  - TRL-640
+  - TRL-661
+  - TRL-662
+  - TRL-663
+  - TRL-664
+  - TRL-665
+impl_status: implemented
+---
+
 # Local Review Pass 2
 
-Date: 2026-05-08
-Scope: Independent follow-up review after pass-1 fixes and restack.
+- **Date:** 2026-05-08
+- **Scope:** Independent follow-up review after pass-1 fixes and restack.
 
 ## Result
 
@@ -49,20 +69,14 @@ git diff --check
 `@ontrails/cli/commander` remains only in accepted buckets:
 
 - `docs/migration/connector-to-adapter.md` migration guidance.
-- `docs/adr/0029-connector-extraction-and-the-with-packaging-model.md`
-  historical ADR context.
+- `docs/adr/0029-connector-extraction-and-the-with-packaging-model.md` historical ADR context.
 - `docs/releases/beta15.md` release history.
 - `.agents/plans/v1/**` local historical planning.
 
-`commander.*connector` / `connector.*commander` remains only in accepted ADR and
-changelog history. Current-facing Commander guidance teaches
-`@ontrails/commander`.
+`commander.*connector` / `connector.*commander` remains only in accepted ADR and changelog history. Current-facing Commander guidance teaches `@ontrails/commander`.
 
-`changeset publish` / `npm publish` appears only as the explicit prohibition in
-`docs/migration/connector-to-adapter.md`. No merge-queue wording appears in
-current docs, changesets, package manifests, or source.
+`changeset publish` / `npm publish` appears only as the explicit prohibition in `docs/migration/connector-to-adapter.md`. No merge-queue wording appears in current docs, changesets, package manifests, or source.
 
 ## Notes
 
-No real publish command was run. No Graphite submit has run yet. No merge queue
-label was added.
+No real publish command was run. No Graphite submit has run yet. No merge queue label was added.

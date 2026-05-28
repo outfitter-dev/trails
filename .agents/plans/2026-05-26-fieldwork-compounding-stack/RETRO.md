@@ -1,10 +1,27 @@
+---
+created: "2026-05-26T22:32:21Z"
+updated: "2026-05-26T22:32:22Z"
+description: Durable execution ledger for the fieldwork compounding stack. Five draft PRs #597–#601 submitted with CI passing. Each branch (TRL-782, TRL-804, TRL-781, TRL-789, TRL-816) has implementation details and local review findings. TRL-814 Radio lane stopped; PRs held pending Greptile. Contains tracker mutations, execution log, verification log, review log, remote CI log, and forbidden-actions audit.
+linear:
+  - TRL-782
+  - TRL-804
+  - TRL-781
+  - TRL-789
+  - TRL-816
+  - TRL-814
+impl_status: partial
+references:
+  - .agents/plans/2026-05-26-fieldwork-compounding-stack/PLAN.md
+  - .agents/plans/2026-05-26-fieldwork-compounding-stack/GOAL.md
+---
+
 # Execution Retro: Fieldwork Compounding Stack
 
-Date started: 2026-05-26
-Date finalized: 2026-05-26 16:55 EDT
-Status: Submitted draft stack; ready-for-review prep
-Plan: `.agents/plans/2026-05-26-fieldwork-compounding-stack/PLAN.md`
-Goal: `.agents/plans/2026-05-26-fieldwork-compounding-stack/GOAL.md`
+- **Date started:** 2026-05-26
+- **Date finalized:** 2026-05-26 16:55 EDT
+- **Status:** Submitted draft stack; ready-for-review prep
+- **Plan:** `.agents/plans/2026-05-26-fieldwork-compounding-stack/PLAN.md`
+- **Goal:** `.agents/plans/2026-05-26-fieldwork-compounding-stack/GOAL.md`
 
 Use this as the durable execution ledger. Update it before any final handoff, draft submission, ready-for-review transition, remote review closeout, merge readiness claim, archive, or explicit stop.
 

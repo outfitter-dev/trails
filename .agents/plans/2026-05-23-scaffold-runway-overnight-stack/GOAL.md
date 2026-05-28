@@ -1,3 +1,23 @@
+---
+created: "2026-05-24T16:45:06Z"
+updated: "2026-05-24T16:45:06Z"
+description: "Pasteable /goal prompt for the scaffold-runway overnight stack. Covers building TRL-788 (generated tsconfig.tests.json), TRL-777 (generated AGENTS.md + CLAUDE.md), TRL-779 (generated README) as a scaffold stack from post-PR-#577 main, plus TRL-792 (Bun runtime docs) as a separate sidecar PR. Specifies implementation constraints, validation ladder, review loop, and done/stop conditions."
+impl_status: implemented
+linear:
+  - TRL-777
+  - TRL-779
+  - TRL-788
+  - TRL-792
+references:
+  - .agents/plans/2026-05-23-scaffold-runway-overnight-stack/PLAN.md
+  - .agents/plans/2026-05-23-scaffold-runway-overnight-stack/RETRO.md
+  - AGENTS.md
+  - .agents/plans/PLANNING.md
+  - apps/trails/src/trails/create-scaffold.ts
+  - apps/trails/src/__tests__/create.test.ts
+  - docs/releases/beta-channel-policy.md
+---
+
 # Goal Prompt: Scaffold Runway Overnight Stack
 
 Paste this into the goal runtime:

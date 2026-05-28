@@ -1,3 +1,28 @@
+---
+created: "2026-05-24T16:45:06Z"
+updated: "2026-05-24T16:45:06Z"
+description: "Reference index for the scaffold-runway overnight stack packet. Lists tracked/portable sources (scaffold files, test config, project-writes, beta-channel policy, consumer docs), untracked local-only inputs, copied/summarized state (post-PR-#577 main), tracker records for TRL-788/777/779/792 and prerequisite TRL-780, PR/branch assignments, prior archived plan, and validation commands."
+impl_status: implemented
+linear:
+  - TRL-777
+  - TRL-779
+  - TRL-780
+  - TRL-788
+  - TRL-792
+references:
+  - AGENTS.md
+  - .agents/plans/PLANNING.md
+  - apps/trails/src/trails/create-scaffold.ts
+  - apps/trails/src/__tests__/create.test.ts
+  - apps/trails/src/project-writes.ts
+  - apps/trails/tsconfig.tests.json
+  - packages/core/tsconfig.tests.json
+  - docs/releases/beta-channel-policy.md
+  - README.md
+  - docs/getting-started.md
+  - .agents/plans/archive/2026-05-23-trl-780-scaffold-cli-scripts/
+---
+
 # References: Scaffold Runway Overnight Stack
 
 ## Tracked / Portable Sources
