@@ -1,11 +1,18 @@
 import { expect, test } from 'bun:test';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 
 test('package consumer can run literal Regrade examples from a generated fixture', () => {
   const packageRoot = fileURLToPath(new URL('../..', import.meta.url));
-  const dir = mkdtempSync(join(packageRoot, '.tmp-fixture-'));
+  // Keep the generated fixture under the package root so the consumer resolves
+  // `@ontrails/regrade` via self-reference and `@ontrails/testing` via the
+  // package's node_modules. Nest it under `.tmp-tests/` — already covered by the
+  // root `.gitignore` `.tmp-tests/` rule — so an interrupted run leaves no
+  // visible untracked debris under `packages/regrade`.
+  const tmpRoot = join(packageRoot, '.tmp-tests');
+  mkdirSync(tmpRoot, { recursive: true });
+  const dir = mkdtempSync(join(tmpRoot, 'fixture-'));
   const fixture = join(dir, 'literal-regrade-fixture.test.ts');
 
   try {
