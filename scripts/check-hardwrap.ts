@@ -90,7 +90,7 @@ const SENTINEL_START =
   /<!--\s*(?:[A-Za-z0-9_:-]+:start|BEGIN[: ]|GENERATED[: ])/;
 const SENTINEL_END = /<!--\s*(?:[A-Za-z0-9_:-]+:end|END[: ])/;
 const PRETTIER_IGNORE = /<!--\s*prettier-ignore\s*-->/;
-const CODE_FENCE = /^(```|~~~)/;
+const CODE_FENCE = /^(`{3,}|~{3,})/;
 const MDX_HTML_OPEN_TAG = /^<([A-Za-z][\w.:-]*)(?:\s+[^<>]*)?>\s*$/;
 const MDX_HTML_CLOSE_TAG = /<\/([A-Za-z][\w.:-]*)>/g;
 const MDX_HTML_SELF_CLOSING_TAG = /^<([A-Za-z][\w.:-]*)(?:\s+[^<>]*)?\/>\s*$/;
@@ -113,7 +113,7 @@ const HTML_VOID_TAGS = new Set([
 
 interface ScanState {
   inFrontmatter: boolean;
-  inCodeFence: boolean;
+  fence: { char: string; len: number } | null;
   inSentinelBlock: boolean;
   inPrettierIgnore: boolean;
   mdxHtmlBlockTags: string[];
@@ -122,7 +122,7 @@ interface ScanState {
 }
 
 const initialState = (): ScanState => ({
-  inCodeFence: false,
+  fence: null,
   inFrontmatter: false,
   inPrettierIgnore: false,
   inSentinelBlock: false,
@@ -178,11 +178,23 @@ const handleStructuralLine = (
     }
     return true;
   }
-  if (CODE_FENCE.test(trimmedStart)) {
-    state.inCodeFence = !state.inCodeFence;
+  const fence = CODE_FENCE.exec(trimmedStart);
+  if (state.fence) {
+    if (fence) {
+      const marker = fence[0] ?? '';
+      const closesFence =
+        marker.charAt(0) === state.fence.char &&
+        marker.length >= state.fence.len &&
+        trimmedStart.slice(marker.length).trim() === '';
+      if (closesFence) {
+        state.fence = null;
+      }
+    }
     return true;
   }
-  if (state.inCodeFence) {
+  if (fence) {
+    const marker = fence[0] ?? '';
+    state.fence = { char: marker.charAt(0), len: marker.length };
     return true;
   }
   if (!state.inSentinelBlock && SENTINEL_START.test(line)) {
