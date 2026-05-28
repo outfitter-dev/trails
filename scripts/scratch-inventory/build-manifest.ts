@@ -2,10 +2,10 @@
 /**
  * Scratch-doc inventory manifest generator.
  *
- * Walks the working-doc corpus, parses the frontmatter the inventory passes
- * authored (created / updated / description / references / impl_status / linear,
- * plus ADR-native title / status / depends_on), extracts the first H1 from the
- * body, and emits a single JSON manifest that is easier to scan than the tree.
+ * Walks the working-doc corpus, parses the inventory frontmatter (created /
+ * updated / description / references / impl_status / linear, plus ADR-native
+ * title / status / depends_on), extracts the first H1 from the body, and emits
+ * a single JSON manifest that is easier to scan than the tree.
  *
  * Dependency-free on purpose: a minimal frontmatter reader for our own
  * known-shape blocks, so this runs with bare `bun` in any checkout (no install).
@@ -21,23 +21,23 @@ const REPO_ROOT = join(import.meta.dir, '..', '..');
 const ROOTS = ['.scratch', '.agents/plans', '.agents/notes', 'docs/adr/drafts'];
 const OUT = join(import.meta.dir, 'manifest.json');
 
-type Entry = {
-  path: string;
-  h1: string | null;
-  title: string | null;
-  description: string | null;
-  created: string | null;
-  updated: string | null;
-  impl_status: string | null;
+interface Entry {
   adr_status: string | null;
-  references: string[];
-  linear: string[];
+  created: string | null;
   depends_on: string[];
-  supersedes: string[];
+  description: string | null;
+  h1: string | null;
+  impl_status: string | null;
+  linear: string[];
+  path: string;
+  references: string[];
   superseded_by: string | null;
-};
+  supersedes: string[];
+  title: string | null;
+  updated: string | null;
+}
 
-function walk(dir: string): string[] {
+const walk = (dir: string): string[] => {
   const out: string[] = [];
   let names: string[];
   try {
@@ -47,18 +47,16 @@ function walk(dir: string): string[] {
   }
   for (const name of names) {
     const full = join(dir, name);
-    const st = statSync(full);
-    if (st.isDirectory()) {
+    if (statSync(full).isDirectory()) {
       out.push(...walk(full));
     } else if (name.endsWith('.md')) {
       out.push(full);
     }
   }
   return out;
-}
+};
 
-/** Split a file into [frontmatterLines, bodyText]. */
-function splitFrontmatter(text: string): [string[], string] {
+const splitFrontmatter = (text: string): [string[], string] => {
   if (!text.startsWith('---')) {
     return [[], text];
   }
@@ -74,9 +72,9 @@ function splitFrontmatter(text: string): [string[], string] {
     return [[], text];
   }
   return [lines.slice(1, end), lines.slice(end + 1).join('\n')];
-}
+};
 
-function stripQuotes(value: string): string {
+const stripQuotes = (value: string): string => {
   const v = value.trim();
   if (
     (v.startsWith('"') && v.endsWith('"')) ||
@@ -85,28 +83,20 @@ function stripQuotes(value: string): string {
     return v.slice(1, -1);
   }
   return v;
-}
+};
 
-function parseInlineList(value: string): string[] {
+const parseInlineList = (value: string): string[] => {
   const inner = value.trim().replace(/^\[/, '').replace(/\]$/, '').trim();
   if (inner === '') {
     return [];
   }
   return inner
     .split(',')
-    .map((s) => stripQuotes(s))
+    .map((entry) => stripQuotes(entry))
     .filter(Boolean);
-}
+};
 
-/**
- * Minimal frontmatter parser for our flat schema:
- *   key: scalar
- *   key: [a, b]      (inline list)
- *   key:             (block list)
- *     - a
- * Comments (`# ...`) and `null` are normalized.
- */
-function parseFrontmatter(lines: string[]): Record<string, unknown> {
+const parseFrontmatter = (lines: string[]): Record<string, unknown> => {
   const out: Record<string, unknown> = {};
   for (let i = 0; i < lines.length; i += 1) {
     const line = lines[i];
@@ -114,7 +104,7 @@ function parseFrontmatter(lines: string[]): Record<string, unknown> {
       continue;
     }
     if (/^\s+-\s+/.test(line)) {
-      continue; // consumed by block-list lookahead
+      continue;
     }
     const colon = line.indexOf(':');
     if (colon === -1) {
@@ -144,9 +134,9 @@ function parseFrontmatter(lines: string[]): Record<string, unknown> {
     }
   }
   return out;
-}
+};
 
-function asList(v: unknown): string[] {
+const asList = (v: unknown): string[] => {
   if (Array.isArray(v)) {
     return v.map(String);
   }
@@ -154,13 +144,11 @@ function asList(v: unknown): string[] {
     return [v];
   }
   return [];
-}
+};
 
-function asStr(v: unknown): string | null {
-  return typeof v === 'string' ? v : null;
-}
+const asStr = (v: unknown): string | null => (typeof v === 'string' ? v : null);
 
-function firstH1(body: string): string | null {
+const firstH1 = (body: string): string | null => {
   for (const line of body.split('\n')) {
     const m = /^#\s+(.+)$/.exec(line);
     if (m) {
@@ -168,9 +156,9 @@ function firstH1(body: string): string | null {
     }
   }
   return null;
-}
+};
 
-const files = ROOTS.flatMap((r) => walk(join(REPO_ROOT, r))).sort();
+const files = ROOTS.flatMap((r) => walk(join(REPO_ROOT, r))).toSorted();
 const entries: Entry[] = [];
 
 for (const file of files) {
@@ -178,19 +166,19 @@ for (const file of files) {
   const [fmLines, body] = splitFrontmatter(text);
   const fm = parseFrontmatter(fmLines);
   entries.push({
-    path: relative(REPO_ROOT, file),
-    h1: firstH1(body),
-    title: asStr(fm.title),
-    description: asStr(fm.description),
-    created: asStr(fm.created),
-    updated: asStr(fm.updated),
-    impl_status: asStr(fm.impl_status),
     adr_status: asStr(fm.status),
-    references: asList(fm.references),
-    linear: asList(fm.linear),
+    created: asStr(fm.created),
     depends_on: asList(fm.depends_on),
-    supersedes: asList(fm.supersedes),
+    description: asStr(fm.description),
+    h1: firstH1(body),
+    impl_status: asStr(fm.impl_status),
+    linear: asList(fm.linear),
+    path: relative(REPO_ROOT, file),
+    references: asList(fm.references),
     superseded_by: asStr(fm.superseded_by),
+    supersedes: asList(fm.supersedes),
+    title: asStr(fm.title),
+    updated: asStr(fm.updated),
   });
 }
 
@@ -201,13 +189,13 @@ for (const e of entries) {
 }
 
 const manifest = {
-  generated: new Date().toISOString(),
-  root: relative(process.cwd(), REPO_ROOT) || '.',
-  count: entries.length,
   by_impl_status: byStatus,
+  count: entries.length,
+  entries,
+  generated: new Date().toISOString(),
   missing_created: entries.filter((e) => !e.created).length,
   missing_description: entries.filter((e) => !e.description).length,
-  entries,
+  root: relative(process.cwd(), REPO_ROOT) || '.',
 };
 
 writeFileSync(OUT, `${JSON.stringify(manifest, null, 2)}\n`);

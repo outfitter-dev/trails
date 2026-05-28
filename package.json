@@ -27,6 +27,7 @@
     "scaffold-versions:sync": "bun scripts/sync-scaffold-versions.ts",
     "scaffold-versions:check": "bun scripts/sync-scaffold-versions.ts --check",
     "scratch:import-to-notion": "bun scripts/import-scratch-to-notion.ts",
+    "scratch:manifest": "bun scripts/scratch-inventory/build-manifest.ts",
     "plugin:metadata:sync": "bun scripts/sync-plugin-metadata.ts",
     "plugin:metadata:check": "bun scripts/sync-plugin-metadata.ts --check",
     "plugin:installed-skill:check": "bun scripts/check-installed-trails-skill.ts",
