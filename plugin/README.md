@@ -43,7 +43,7 @@ Plugin release and republish steps are tracked in the repo runbook:
 
 - [Plugin Release Runbook](../docs/releases/plugin-release.md)
 
-The runbook keeps plugin version `0.3.0` separate from the bundled skill's Trails framework target version. It also names the stop rules for marketplace, registry, `npx skills`, and global installed-skill mutations. Do not treat a local/global `trails` skill as current until `bun run plugin:installed-skill:check` passes or an operator explicitly chooses to keep it decoupled.
+The runbook keeps plugin version `0.3.1` separate from the bundled skill's Trails framework target version. It also names the stop rules for marketplace, registry, `npx skills`, and global installed-skill mutations. Do not treat a local/global `trails` skill as current until `bun run plugin:installed-skill:check` passes or an operator explicitly chooses to keep it decoupled.
 
 ## What's Included
 
