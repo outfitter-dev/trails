@@ -1,3 +1,17 @@
+---
+created: "2026-05-01T14:16:20Z"
+updated: "2026-05-01T14:16:20Z"
+description: "Drafts six advisory-skill briefs (trails-warden-advisory, trails-dogfood-check, trails-primitive-parity, trails-derive-from-source, trails-error-format, trails-discriminate-union) after the prevention audit, grounded in post-Warden source-tier doctrine. Each brief specifies evidence requirements and scope guardrails. All six survive the audit as advisory skills."
+references:
+  - .scratch/2026-04-25-hardening/08-prevention-rails.md
+  - .scratch/2026-04-25-hardening/tmp-audits/08-prevention-rails-reconciliation.md
+  - .scratch/2026-04-25-hardening/tmp-audits/reconciliation.md
+  - docs/rule-design.md
+linear:
+  - TRL-509
+impl_status: implemented
+---
+
 # TRL-509 Advisory Skill Briefs
 
 **Issue:** TRL-509

@@ -1,3 +1,14 @@
+---
+created: "2026-05-01T14:16:20Z"
+updated: "2026-05-01T14:16:20Z"
+description: "Scoping note for TRL-446 (duplicate primitive ID detection). Establishes that topo construction already rejects duplicates at runtime; the remaining work is preflight Warden project-tier visibility. Rejects a public parser package or shadow registry approach. Defines acceptance criteria for TRL-446."
+references: []
+linear:
+  - TRL-532
+  - TRL-446
+impl_status: implemented
+---
+
 # TRL-532 Duplicate Primitive ID Scope
 
 **Issue:** TRL-532

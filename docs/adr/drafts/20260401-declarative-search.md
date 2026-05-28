@@ -6,6 +6,16 @@ created: 2026-04-01
 updated: 2026-04-09
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [16, 9]
+description: "Adds a `search` declaration to store entities enabling FTS, vector, and hybrid search with automatic index maintenance, a typed `conn.table.search()` accessor, and an optional derived search trail from `crud()`."
+references:
+  - docs/adr/0009-first-class-resources.md
+  - docs/adr/0016-schema-derived-persistence.md
+  - docs/adr/0030-contours-as-first-class-domain-objects.md
+  - docs/adr/0031-backend-agnostic-store-schemas.md
+  - docs/adr/0032-derivetrail-and-trail-factories.md
+  - docs/architecture.md
+linear: []
+impl_status: planned
 ---
 
 # ADR: Declarative Search

@@ -1,3 +1,41 @@
+---
+created: "2026-05-26T22:32:21Z"
+updated: "2026-05-26T22:32:21Z"
+description: Source map for the fieldwork compounding stack. Lists doctrine files, Linear issue IDs and roles, a live state snapshot capturing main head and dirty state at planning time, per-issue code anchors (resource.ts, Warden rules, create.ts, project-writes.ts), a TRL-816 audit seed list of files with cross residue, Radio lane context, and verification commands.
+linear:
+  - TRL-782
+  - TRL-784
+  - TRL-787
+  - TRL-802
+  - TRL-804
+  - TRL-781
+  - TRL-789
+  - TRL-816
+  - TRL-814
+impl_status: partial
+references:
+  - docs/adr/0000-core-premise.md
+  - docs/tenets.md
+  - docs/adr/0001-naming-conventions.md
+  - docs/lexicon.md
+  - docs/architecture.md
+  - AGENTS.md
+  - .agents/plans/PLANNING.md
+  - packages/core/src/resource.ts
+  - packages/core/src/__tests__/service-config.test.ts
+  - packages/core/src/type-checks.test-d.ts
+  - docs/resources.md
+  - apps/trails/src/trails/load-app.ts
+  - apps/trails/src/trails/create.ts
+  - apps/trails/src/trails/create-scaffold.ts
+  - apps/trails/src/project-writes.ts
+  - apps/trails/src/__tests__/create.test.ts
+  - packages/warden/src/rules/incomplete-crud.ts
+  - .claude/skills/trails-adrs/SKILL.md
+  - .agents/skills/trails-adrs/SKILL.md
+  - plugin/README.md
+---
+
 # References: Fieldwork Compounding Stack
 
 ## Doctrine

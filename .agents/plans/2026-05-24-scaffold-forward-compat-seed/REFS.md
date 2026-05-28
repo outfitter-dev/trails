@@ -1,3 +1,39 @@
+---
+created: 2026-05-25T14:30:47Z
+updated: 2026-05-25T14:30:47Z
+description: Reference index for the scaffold forward-compat seed session. Lists tracked portable sources (repo files), untracked local-only sources, copied/summarized sources, tracker records for TRL-796/797/798/799/801 and related issues, planned branch names, prior plan directories, and all validation commands used during execution.
+impl_status: implemented
+linear:
+  - TRL-796
+  - TRL-797
+  - TRL-798
+  - TRL-799
+  - TRL-801
+  - TRL-803
+  - TRL-794
+  - TRL-782
+  - TRL-783
+  - TRL-759
+references:
+  - AGENTS.md
+  - .agents/plans/PLANNING.md
+  - apps/trails/src/versions.ts
+  - apps/trails/src/scaffold-versions.generated.ts
+  - apps/trails/src/trails/create-scaffold.ts
+  - apps/trails/src/trails/create.ts
+  - apps/trails/src/__tests__/create.test.ts
+  - scripts/sync-scaffold-versions.ts
+  - package.json
+  - docs/releases/beta-channel-policy.md
+  - docs/releases/stable-cutover.md
+  - docs/adr/drafts/README.md
+  - docs/getting-started.md
+  - .agents/plans/2026-05-23-scaffold-runway-overnight-stack/RETRO.md
+  - .agents/plans/2026-05-24-scaffold-forward-compat-seed/PLAN.md
+  - .agents/plans/2026-05-24-scaffold-forward-compat-seed/RETRO.md
+  - .agents/plans/2026-05-24-warden-as-coach-overnight-stack/
+---
+
 # References: scaffold forward-compat seed
 
 ## Tracked / Portable Sources

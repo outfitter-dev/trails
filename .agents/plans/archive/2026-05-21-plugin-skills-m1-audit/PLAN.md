@@ -1,3 +1,37 @@
+---
+created: 2026-05-21T21:29:29Z
+updated: 2026-05-22T20:49:43Z
+description: Detailed execution plan for M1 of the Trails Plugin & Skills One-Stop Shop project. Defines objective, completion conditions, non-goals, source-of-truth reading order, phased work plan (sync, stack creation, TRL-745 through TRL-754), tracker plan, source-control and retro discipline, validation ladder, local review contract, and stop/pause rules.
+impl_status: implemented
+linear:
+  - TRL-741
+  - TRL-742
+  - TRL-743
+  - TRL-744
+  - TRL-745
+  - TRL-746
+  - TRL-747
+  - TRL-748
+  - TRL-749
+  - TRL-750
+  - TRL-751
+  - TRL-752
+  - TRL-753
+  - TRL-754
+references:
+  - AGENTS.md
+  - .agents/plans/PLANNING.md
+  - .agents/plans/archive/2026-05-21-plugin-skills-m1-audit/REFS.md
+  - .agents/plans/archive/2026-05-21-plugin-skills-m1-audit/RETRO.md
+  - README.md
+  - docs/lexicon.md
+  - docs/architecture.md
+  - docs/contributing/language-styleguide.md
+  - docs/contributing/code-standards.md
+  - docs/warden.md
+  - docs/adr/README.md
+---
+
 # Goal Plan: plugin-skills-m1-audit
 
 Date: 2026-05-21

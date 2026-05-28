@@ -1,3 +1,28 @@
+---
+created: 2026-05-25T14:30:47Z
+updated: 2026-05-25T14:30:47Z
+description: Detailed execution plan for the scaffold forward-compat seed session. Covers objective, completion conditions, non-goals, source-of-truth reading order, five work phases (preflight, TRL-796 exact pin, TRL-798 provenance breadcrumb, TRL-797 bump helper, TRL-799 draft ADR, review/submit), tracker plan, source-control plan, retro discipline, and validation ladder.
+impl_status: implemented
+linear:
+  - TRL-796
+  - TRL-797
+  - TRL-798
+  - TRL-799
+references:
+  - AGENTS.md
+  - .agents/plans/PLANNING.md
+  - apps/trails/src/versions.ts
+  - apps/trails/src/trails/create-scaffold.ts
+  - apps/trails/src/__tests__/create.test.ts
+  - scripts/sync-scaffold-versions.ts
+  - package.json
+  - docs/releases/beta-channel-policy.md
+  - docs/releases/stable-cutover.md
+  - docs/adr/drafts/README.md
+  - .agents/plans/2026-05-23-scaffold-runway-overnight-stack/RETRO.md
+  - .agents/plans/2026-05-24-scaffold-forward-compat-seed/RETRO.md
+---
+
 # Goal Plan: scaffold forward-compat seed
 
 Date: 2026-05-24

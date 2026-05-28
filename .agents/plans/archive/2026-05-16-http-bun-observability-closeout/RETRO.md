@@ -1,3 +1,28 @@
+---
+created: 2026-05-17T15:32:43Z
+updated: 2026-05-20T03:58:14Z
+description: Running execution ledger for the HTTP Bun + Observability Closeout stack. Records planning log, tracker mutations before execution, preflight verification pass, and scaffold tables for execution log, discoveries/follow-ups, local review rounds, verification commands, remote review, and final state. Execution log entries begin from 2026-05-16 preflight.
+impl_status: implemented
+linear:
+  - TRL-715
+  - TRL-716
+  - TRL-717
+  - TRL-718
+  - TRL-719
+  - TRL-720
+  - TRL-721
+  - TRL-722
+  - TRL-723
+  - TRL-724
+  - TRL-725
+  - TRL-726
+  - TRL-727
+  - TRL-365
+references:
+  - .agents/plans/2026-05-16-http-bun-observability-closeout/PLAN.md
+  - .agents/plans/2026-05-16-http-bun-observability-closeout/reports/
+---
+
 # Retro: HTTP Bun + Observability Closeout Stack
 
 Date: 2026-05-16

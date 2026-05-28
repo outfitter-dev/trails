@@ -1,3 +1,26 @@
+---
+created: "2026-05-23T21:40:48Z"
+updated: "2026-05-23T21:40:48Z"
+description: "Audit report for TRL-766. Verdict: stable-cutover blocker. Marker projection is deterministic for supported constructs, but Zod validation checks and refinements (.min, .email, .refine, .strict, .catchall) do not affect marker content and produce no diagnostic. Follow-ups TRL-772 (markers vs Zod validation) and TRL-773 (Warden parity for lazy/intersection/record) filed."
+impl_status: implemented
+linear:
+  - TRL-766
+  - TRL-772
+  - TRL-773
+references:
+  - docs/adr/0048-trail-versioning-v3.md
+  - docs/lexicon.md
+  - packages/core/src/trail.ts
+  - packages/core/src/version-marker.ts
+  - packages/core/src/validation.ts
+  - packages/topographer/src/derive.ts
+  - packages/topographer/src/versioning.ts
+  - packages/warden/src/rules/trail-versioning-source.ts
+  - packages/core/src/__tests__/version-marker.test.ts
+  - packages/topographer/src/__tests__/derive.test.ts
+  - packages/warden/src/__tests__/trail-versioning-rules.test.ts
+---
+
 # TRL-766 Audit: Version Marker Failure UX And Bounded Zod Diagnostics
 
 Date: 2026-05-22

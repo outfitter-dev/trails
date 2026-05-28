@@ -1,3 +1,22 @@
+---
+created: 2026-05-23T23:25:16-04:00
+updated: 2026-05-24T16:45:06Z
+description: Completed execution retro for TRL-780 scaffold CLI scripts. PR #577 ready for merge with CI green and Greptile 5/5 clean. Records planning discoveries, deferred follow-ups (TRL-778/781/789/792), tracker mutations, execution log from branch setup through remote review, two local Spark review lanes (no P0/P1/P2), Greptile P2 fix (as const satisfies), forbidden-actions audit, and final state.
+impl_status: implemented
+linear:
+  - TRL-780
+  - TRL-778
+  - TRL-781
+  - TRL-789
+  - TRL-792
+references:
+  - .agents/plans/2026-05-23-trl-780-scaffold-cli-scripts/PLAN.md
+  - .agents/plans/2026-05-23-trl-780-scaffold-cli-scripts/GOAL.md
+  - apps/trails/src/trails/create-scaffold.ts
+  - apps/trails/src/__tests__/create.test.ts
+  - .changeset/trl-780-scaffold-cli-scripts.md
+---
+
 # Execution Retro: TRL-780 Scaffold CLI Scripts
 
 Date started: 2026-05-23

@@ -1,3 +1,13 @@
+---
+created: "2026-05-12T23:55:16Z"
+updated: "2026-05-21T10:57:01Z"
+description: Tracked project guidance for preparing autonomous /goal packets in Trails. Defines the four-file packet structure (PLAN/GOAL/RETRO/REFS), planning directory layout, archive policy, Linear tracker hygiene, Graphite source-control conventions including the ban on gt absorb, subagent write-command restrictions, local/remote review protocol, progress reporting format, and validation command list.
+linear: []
+impl_status: unknown
+references:
+  - AGENTS.md
+---
+
 # Goal Planning Preferences
 
 This file is tracked project guidance for preparing autonomous `/goal` packets in Trails. It supplements `AGENTS.md`; when instructions conflict, follow

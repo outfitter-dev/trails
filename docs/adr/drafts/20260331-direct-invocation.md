@@ -6,6 +6,20 @@ created: 2026-03-31
 updated: 2026-04-09
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [17]
+description: "Introduces `trails run <trail-id>` as a direct CLI invocation path for any trail, with JSON output, input from args/stdin/examples, --trace for execution trees, --watch for TDD loops, and exit codes from the error taxonomy."
+references:
+  - docs/adr/0000-core-premise.md
+  - docs/adr/0003-unified-trail-primitive.md
+  - docs/adr/0006-shared-execution-pipeline.md
+  - docs/adr/0013-tracing.md
+  - docs/adr/0027-visibility-and-filtering.md
+  - docs/adr/0028-concurrent-crossing.md
+  - docs/adr/0041-unified-observability.md
+  - docs/adr/drafts/20260331-packs-namespace-boundaries.md
+linear:
+  - TRL-411
+  - TRL-412
+impl_status: partial
 ---
 
 # ADR: Direct Trail Invocation (`trails run`)

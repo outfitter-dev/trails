@@ -1,3 +1,47 @@
+---
+created: "2026-05-27T20:12:09Z"
+updated: "2026-05-27T20:12:09Z"
+description: Source map for the Regrade tracer stack. Lists tracked portable sources (doctrine, code anchors), untracked local-only sources with a self-sufficiency note, tracker records for the Regrade project and all related Linear issues (TRL-819, TRL-823, TRL-825–TRL-836) with URLs, existing PR context, planned branch names, prior plan references, and validation commands.
+linear:
+  - TRL-819
+  - TRL-823
+  - TRL-825
+  - TRL-826
+  - TRL-827
+  - TRL-828
+  - TRL-829
+  - TRL-830
+  - TRL-831
+  - TRL-832
+  - TRL-833
+  - TRL-834
+  - TRL-835
+  - TRL-836
+impl_status: implemented
+references:
+  - AGENTS.md
+  - .agents/plans/PLANNING.md
+  - docs/adr/0000-core-premise.md
+  - docs/tenets.md
+  - docs/adr/0001-naming-conventions.md
+  - docs/lexicon.md
+  - docs/architecture.md
+  - docs/adr/0047-stable-release-line-discipline.md
+  - docs/releases/stable-cutover.md
+  - scripts/publish.ts
+  - packages/core/src/types.ts
+  - packages/core/src/type-utils.ts
+  - packages/core/src/trail.ts
+  - packages/core/src/type-checks.test-d.ts
+  - packages/testing/src/examples.ts
+  - packages/testing/src/__tests__/contracts.test.ts
+  - packages/topographer/src/derive.ts
+  - packages/wayfinder/package.json
+  - apps/trails/package.json
+  - .agents/plans/2026-05-26-fieldwork-compounding-stack/
+  - .agents/plans/2026-05-26-compose-cutover-stack/
+---
+
 # References: Regrade Tracer Stack
 
 ## Tracked / Portable Sources

@@ -1,3 +1,33 @@
+---
+created: "2026-05-23T21:40:48Z"
+updated: "2026-05-23T21:40:48Z"
+description: "Audit report for TRL-767. Verdict: gate needs docs. Hard zero-pending-force rule is usable today via Warden pending-force, trails diff --forces, and lock artifact. trails doctor is aggregate-only and may miss graph-level removed-entry forces. Stable cutover runbook does not name the gate. Follow-ups TRL-769, TRL-770, and TRL-771 filed."
+impl_status: implemented
+linear:
+  - TRL-767
+  - TRL-769
+  - TRL-770
+  - TRL-771
+references:
+  - apps/trails/src/trails/topo-store-support.ts
+  - apps/trails/src/trails/compile.ts
+  - packages/topographer/src/types.ts
+  - packages/topographer/src/forces.ts
+  - apps/trails/src/trails/topo-read-support.ts
+  - packages/topographer/src/diff.ts
+  - apps/trails/src/trails/survey.ts
+  - packages/warden/src/rules/trail-versioning-topo.ts
+  - docs/adr/0048-trail-versioning-v3.md
+  - docs/lexicon.md
+  - docs/topo-store.md
+  - docs/releases/stable-cutover.md
+  - apps/trails/src/__tests__/survey.test.ts
+  - packages/topographer/src/__tests__/forces.test.ts
+  - packages/topographer/src/__tests__/diff.test.ts
+  - packages/warden/src/__tests__/trail-versioning-rules.test.ts
+  - apps/trails/src/__tests__/version-lifecycle.test.ts
+---
+
 # TRL-767 Audit: Pending Force Events As A V1 Stable Cutover Gate
 
 Date: 2026-05-22

@@ -1,3 +1,23 @@
+---
+created: 2026-05-08T18:14:38Z
+updated: 2026-05-08T18:14:38Z
+description: Bottom-to-top local review of the Adapter Taxonomy + Commander Cutover stack (TRL-660 through TRL-642). Found and fixed two P1 changeset failures on TRL-663 and TRL-661. Records evidence commands, accepted residuals, and confirms no remaining P0/P1/P2 findings after fixes.
+references: []
+linear:
+  - TRL-638
+  - TRL-639
+  - TRL-640
+  - TRL-641
+  - TRL-642
+  - TRL-660
+  - TRL-661
+  - TRL-662
+  - TRL-663
+  - TRL-664
+  - TRL-665
+impl_status: implemented
+---
+
 # Local Review Pass 1
 
 Date: 2026-05-08

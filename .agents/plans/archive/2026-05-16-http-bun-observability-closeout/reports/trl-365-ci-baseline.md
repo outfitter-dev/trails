@@ -1,3 +1,15 @@
+---
+created: 2026-05-17T15:32:45Z
+updated: 2026-05-20T03:58:14Z
+description: CI baseline measurement and scoped optimization report for TRL-365. Measured job runtimes from two recent CI runs (build ~68s, typecheck ~72s, test ~78s). Implemented change: actions/cache@v4 for Bun install cache keyed by OS/arch/bun-version/lockfile. Documents what was audited but not changed: Build job isolation, Lint & Format combined gates, reusable workflow/matrix assessment.
+impl_status: implemented
+linear:
+  - TRL-365
+references:
+  - .github/actions/setup/action.yml
+  - .github/workflows/ci.yml
+---
+
 # TRL-365 CI Baseline And Scoped Optimization
 
 Date: 2026-05-16

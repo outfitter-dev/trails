@@ -1,3 +1,26 @@
+---
+created: "2026-05-23T21:40:49Z"
+updated: "2026-05-23T21:40:49Z"
+description: "Audit report for TRL-756. Verdict: minor drift. Enforced vocab gates (vocab:audit, lint:ast-grep, warden:skills:check) are clean. Two follow-ups filed: TRL-774 for resource factory svc/service/provision naming residue in public TSDoc and skills, and TRL-775 for the stale .trails/clark/survey-latest.md snapshot. Neither blocks stable cutover."
+impl_status: implemented
+linear:
+  - TRL-756
+  - TRL-774
+  - TRL-775
+references:
+  - docs/lexicon.md
+  - docs/adr/0001-naming-conventions.md
+  - docs/contributing/warden-rules.md
+  - docs/releases/stable-cutover.md
+  - scripts/vocab-cutover-audit.ts
+  - scripts/check-installed-trails-skill.ts
+  - packages/core/src/resource.ts
+  - packages/testing/src/__tests__/crosses.test.ts
+  - plugin/skills/trails/SKILL.md
+  - plugin/skills/trails/references/common-pitfalls.md
+  - .trails/clark/survey-latest.md
+---
+
 # TRL-756 Audit: Doctrine And Lexicon Drift After Versioning M3
 
 Date: 2026-05-22

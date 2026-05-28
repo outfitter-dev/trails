@@ -1,3 +1,31 @@
+---
+created: "2026-05-26T12:59:04-04:00"
+updated: "2026-05-26T12:59:04-04:00"
+description: Detailed execution plan for the six-stage cross->compose cutover stack. Covers objective, completion conditions, non-goals, source-of-truth reading order, a ruling to fold TRL-783 into S1, per-stage scope/acceptance for TRL-809 through TRL-814, source-control plan, tracker plan, local/remote review plans, validation ladder, and stop/pause rules.
+linear:
+  - TRL-783
+  - TRL-784
+  - TRL-809
+  - TRL-810
+  - TRL-811
+  - TRL-812
+  - TRL-813
+  - TRL-814
+impl_status: partial
+references:
+  - AGENTS.md
+  - .agents/plans/PLANNING.md
+  - docs/adr/0049-composition-is-compose-not-cross.md
+  - docs/adr/0000-core-premise.md
+  - docs/tenets.md
+  - docs/adr/0001-naming-conventions.md
+  - docs/lexicon.md
+  - docs/architecture.md
+  - packages/core/src/types.ts
+  - packages/core/src/trail.ts
+  - packages/core/src/execute.ts
+---
+
 # Goal Plan: Compose Cutover Stack
 
 Date: 2026-05-26

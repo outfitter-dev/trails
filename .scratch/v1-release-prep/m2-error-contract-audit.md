@@ -1,3 +1,25 @@
+---
+created: 2026-05-06T15:25:18Z
+updated: 2026-05-06T15:25:18Z
+description: Pre-v1 audit (TRL-633) of the @ontrails/core error taxonomy, surface mappings, and serialization. Provides a full taxonomy matrix (17 classes), a surface behavior matrix (CLI/HTTP/Hono/MCP), and five findings covering serialization identity loss, missing Hono auth context, redaction gaps, stale ADR-0002, and hand-maintained test tables. Proposes TRL-649 through TRL-652.
+references:
+  - packages/core/src/errors.ts
+  - packages/core/src/transport-error-map.ts
+  - packages/core/src/serialization.ts
+  - packages/core/src/__tests__/serialization.test.ts
+  - packages/core/src/__tests__/transport-error-map.test.ts
+  - packages/http/src/build.ts
+  - connectors/hono/src/surface.ts
+  - docs/adr/0002-built-in-result-type.md
+linear:
+  - TRL-633
+  - TRL-649
+  - TRL-650
+  - TRL-651
+  - TRL-652
+impl_status: implemented
+---
+
 # M2 Error Contract Audit
 
 Date: 2026-05-06

@@ -1,3 +1,21 @@
+---
+created: 2026-05-21T21:29:29Z
+updated: 2026-05-22T20:49:43Z
+description: Read-only audit of all Trails skill/plugin distribution surfaces: repo plugin source, marketplace/plugin manifests (v0.3.0), local installed skill at ~/.agents/skills/trails (stale, trailhead-era), Claude global skill symlink to stale path, absent Codex home skill, and Claude settings pointing at repo path. Distribution matrix covers currentness, evidence, and owner routing to TRL-749/750/753.
+impl_status: implemented
+linear:
+  - TRL-743
+  - TRL-749
+  - TRL-750
+  - TRL-753
+references:
+  - plugin/skills/trails/SKILL.md
+  - plugin/.claude-plugin/plugin.json
+  - .claude-plugin/marketplace.json
+  - plugin/README.md
+  - README.md
+---
+
 # TRL-743 Distribution Surface Audit
 
 Date: 2026-05-21

@@ -1,3 +1,22 @@
+---
+created: "2026-05-24T16:45:06Z"
+updated: "2026-05-24T16:45:07Z"
+description: "Durable execution ledger for the scaffold-runway overnight stack. Covers TRL-788 generated tsconfig.tests.json, TRL-777 generated AGENTS.md + CLAUDE.md shim, TRL-779 generated contextual README, and TRL-792 Bun runtime docs sidecar. All four implemented, locally reviewed (no P0/P1/P2), submitted as draft PRs #578–#581, and CI green. Remote review not yet posted at closeout time."
+impl_status: implemented
+linear:
+  - TRL-777
+  - TRL-779
+  - TRL-780
+  - TRL-788
+  - TRL-792
+references:
+  - .agents/plans/2026-05-23-scaffold-runway-overnight-stack/PLAN.md
+  - .agents/plans/2026-05-23-scaffold-runway-overnight-stack/GOAL.md
+  - apps/trails/src/trails/create-scaffold.ts
+  - apps/trails/src/__tests__/create.test.ts
+  - docs/releases/beta-channel-policy.md
+---
+
 # Execution Retro: Scaffold Runway Overnight Stack
 
 Date started: 2026-05-23

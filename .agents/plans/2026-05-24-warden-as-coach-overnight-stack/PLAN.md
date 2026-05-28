@@ -1,3 +1,25 @@
+---
+created: 2026-05-24T16:45:07Z
+updated: 2026-05-24T16:45:08Z
+description: Detailed execution plan for the Warden-as-coach overnight session. Covers objective, completion conditions, non-goals, source-of-truth reading list, per-issue stack order with intent/actions/verification for TRL-791/793/794/785/786/790, tracker plan, source-control plan, retro discipline, validation ladder, local review lanes, and stop/pause rules.
+impl_status: partial
+linear:
+  - TRL-785
+  - TRL-786
+  - TRL-790
+  - TRL-791
+  - TRL-793
+  - TRL-794
+references:
+  - AGENTS.md
+  - .agents/plans/PLANNING.md
+  - docs/tenets.md
+  - docs/lexicon.md
+  - packages/warden/src/rules/
+  - packages/warden/src/__tests__/
+  - .agents/plans/2026-05-24-warden-as-coach-overnight-stack/RETRO.md
+---
+
 # Goal Plan: Warden As Coach Overnight Stack
 
 Date: 2026-05-24

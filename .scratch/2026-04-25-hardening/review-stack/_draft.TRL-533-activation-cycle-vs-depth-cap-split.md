@@ -1,3 +1,14 @@
+---
+created: "2026-05-01T14:16:21Z"
+updated: "2026-05-01T14:16:21Z"
+description: "Recommends splitting TRL-454 into two separate issues: static activation-cycle detection (Warden project-tier/topo-aware rule for graph correctness) and runtime depth-cap/suppression behavior (core runtime safety in packages/core/src/fire.ts). Defines the correct home and framing for each concern."
+references: []
+linear:
+  - TRL-533
+  - TRL-454
+impl_status: implemented
+---
+
 # TRL-533 Activation Cycle Vs Runtime Depth-Cap Split
 
 **Issue:** TRL-533

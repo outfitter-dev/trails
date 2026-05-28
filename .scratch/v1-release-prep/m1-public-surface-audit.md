@@ -1,3 +1,27 @@
+---
+created: 2026-05-06T15:25:17Z
+updated: 2026-05-06T15:25:17Z
+description: Pre-v1 audit (TRL-632) enumerating all publishable @ontrails/* package export maps and binary surfaces. Classifies entrypoints, identifies seven findings including internal leaks, subpath duplication, and docs/export drift, and proposes follow-up issues TRL-643 through TRL-648.
+references:
+  - packages/core/src/index.ts
+  - packages/store/src/index.ts
+  - packages/topographer/src/index.ts
+  - packages/tracing/src/index.ts
+  - packages/permits/package.json
+  - packages/warden/README.md
+  - docs/api-reference.md
+  - docs/adr/0041-unified-observability.md
+linear:
+  - TRL-632
+  - TRL-643
+  - TRL-644
+  - TRL-645
+  - TRL-646
+  - TRL-647
+  - TRL-648
+impl_status: implemented
+---
+
 # M1 Public Surface Audit
 
 Date: 2026-05-06

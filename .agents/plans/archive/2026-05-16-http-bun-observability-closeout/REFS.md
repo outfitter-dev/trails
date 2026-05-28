@@ -1,3 +1,48 @@
+---
+created: 2026-05-17T15:32:43Z
+updated: 2026-05-20T03:58:14Z
+description: Reference index for the HTTP Bun + Observability Closeout stack. Lists tracked portable sources (AGENTS.md, PLAN.md, key source files), untracked local-only scratch notes, tracker records for all 14 execution issues and 2 umbrella issues, PR/branch order, prior archived plan packets, and full validation command inventory including forbidden publish commands.
+impl_status: implemented
+linear:
+  - TRL-715
+  - TRL-716
+  - TRL-717
+  - TRL-718
+  - TRL-719
+  - TRL-720
+  - TRL-721
+  - TRL-722
+  - TRL-723
+  - TRL-724
+  - TRL-725
+  - TRL-726
+  - TRL-727
+  - TRL-365
+  - TRL-424
+  - TRL-426
+references:
+  - AGENTS.md
+  - .agents/plans/PLANNING.md
+  - .agents/plans/2026-05-16-http-bun-observability-closeout/PLAN.md
+  - .agents/plans/2026-05-16-http-bun-observability-closeout/GOAL.md
+  - .agents/plans/2026-05-16-http-bun-observability-closeout/RETRO.md
+  - adapters/hono/src/surface.ts
+  - adapters/hono/src/__tests__/surface.test.ts
+  - packages/http/src/build.ts
+  - packages/http/package.json
+  - packages/core/src/transport-error-map.ts
+  - packages/logtape/src/index.ts
+  - packages/logtape/package.json
+  - packages/observe/src/index.ts
+  - packages/tracing/src/adapters/otel.ts
+  - packages/tracing/package.json
+  - docs/adr/0005-framework-agnostic-http-route-model.md
+  - docs/adr/0029-connector-extraction-and-the-with-packaging-model.md
+  - docs/adr/0035-surface-apis-render-the-graph.md
+  - .agents/plans/archive/2026-05-13-v1-readiness-closure-stack/
+  - .agents/plans/archive/2026-05-12-topograph-query-docs-stack/
+---
+
 # References: HTTP Bun + Observability Closeout Stack
 
 ## Tracked / Portable Sources

@@ -1,3 +1,22 @@
+---
+created: 2026-05-06T15:25:18Z
+updated: 2026-05-06T15:25:18Z
+description: Pre-v1 audit (TRL-635) of resolved-graph completeness vs target architecture. Completeness matrix across nine dimensions; clarifies .trails/trails.lock is a hash guard not the full graph; defines v1 agent-inspectable scope; seeds a resolved-graph honesty ADR; proposes TRL-653 through TRL-659.
+references:
+  - docs/adr
+  - .trails/trails.lock
+linear:
+  - TRL-635
+  - TRL-653
+  - TRL-654
+  - TRL-655
+  - TRL-656
+  - TRL-657
+  - TRL-658
+  - TRL-659
+impl_status: implemented
+---
+
 # M4 Resolved Graph Audit
 
 Date: 2026-05-06

@@ -1,3 +1,21 @@
+---
+created: "2026-05-27T20:12:09Z"
+updated: "2026-05-27T21:29:51Z"
+description: Durable execution ledger for the Regrade tracer stack. PRs #608–#610 ready for review with CI green and Greptile 5/5. TRL-823 added packed first-party dep coherence; TRL-819 fixed ComposeInput fallback; TRL-825 created private @ontrails/regrade literal transform trail proof. Includes tracker mutations, execution log, Greptile resolution table, forbidden-actions audit, and final state.
+linear:
+  - TRL-819
+  - TRL-823
+  - TRL-825
+  - TRL-826
+  - TRL-827
+  - TRL-830
+  - TRL-836
+impl_status: implemented
+references:
+  - .agents/plans/2026-05-27-regrade-tracer-stack/PLAN.md
+  - .agents/plans/2026-05-27-regrade-tracer-stack/GOAL.md
+---
+
 # Execution Retro: Regrade Tracer Stack
 
 Date started: 2026-05-27

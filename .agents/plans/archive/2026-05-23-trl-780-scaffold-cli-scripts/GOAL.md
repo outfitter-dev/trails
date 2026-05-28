@@ -1,3 +1,26 @@
+---
+created: 2026-05-23T23:25:16-04:00
+updated: 2026-05-24T16:45:06Z
+description: Pasteable /goal prompt for TRL-780 scaffold CLI scripts. Directs executor to add @ontrails/trails devDependency and framework command scripts to generated package.json, extend scaffold tests, add a changeset, run a generated-project smoke check, and complete two local review lanes. Includes work loop, validation ladder, hard rules, done criteria, and stop/ask conditions.
+impl_status: implemented
+linear:
+  - TRL-780
+  - TRL-778
+  - TRL-781
+  - TRL-789
+  - TRL-792
+references:
+  - AGENTS.md
+  - .agents/plans/PLANNING.md
+  - .agents/plans/2026-05-23-trl-780-scaffold-cli-scripts/PLAN.md
+  - .agents/plans/2026-05-23-trl-780-scaffold-cli-scripts/REFS.md
+  - .agents/plans/2026-05-23-trl-780-scaffold-cli-scripts/RETRO.md
+  - apps/trails/package.json
+  - apps/trails/src/trails/create-scaffold.ts
+  - apps/trails/src/__tests__/create.test.ts
+  - apps/trails/src/trails/add-verify.ts
+---
+
 # Goal Prompt: TRL-780 Scaffold CLI Scripts
 
 Paste this into the goal runtime:

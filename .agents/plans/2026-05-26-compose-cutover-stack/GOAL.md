@@ -1,3 +1,28 @@
+---
+created: "2026-05-26T12:59:04-04:00"
+updated: "2026-05-26T12:59:04-04:00"
+description: Pasteable /goal prompt for the cross->compose cutover stack (TRL-809 through TRL-814). Instructs the executor to rename the composition API from ctx.cross/crosses to ctx.compose/composes across core, persistence, Warden, docs, scaffold, and codemod, folding TRL-783 into S1. Defines completion conditions, stop rules, and forbidden actions.
+linear:
+  - TRL-783
+  - TRL-784
+  - TRL-809
+  - TRL-810
+  - TRL-811
+  - TRL-812
+  - TRL-813
+  - TRL-814
+impl_status: partial
+references:
+  - .agents/plans/2026-05-26-compose-cutover-stack/PLAN.md
+  - .agents/plans/2026-05-26-compose-cutover-stack/RETRO.md
+  - .agents/plans/2026-05-26-compose-cutover-stack/REFS.md
+  - AGENTS.md
+  - .agents/plans/PLANNING.md
+  - docs/adr/0049-composition-is-compose-not-cross.md
+  - docs/tenets.md
+  - docs/lexicon.md
+---
+
 # Goal Prompt: Compose Cutover Stack
 
 Paste this into the goal runtime:

@@ -1,3 +1,17 @@
+---
+created: 2026-05-08T18:14:37Z
+updated: 2026-05-08T18:14:37Z
+description: Decision record for TRL-638 concluding that @ontrails/commander does not need custom descriptor discovery at split time. Defines the Commander adapter package split shape, expected public API, package metadata requirements, and a two-issue implementation order (TRL-639 + TRL-640).
+references:
+  - adapters/commander
+  - packages/cli
+linear:
+  - TRL-638
+  - TRL-639
+  - TRL-640
+impl_status: implemented
+---
+
 # Commander Descriptor Readiness
 
 Date: 2026-05-08

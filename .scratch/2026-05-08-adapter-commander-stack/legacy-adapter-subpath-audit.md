@@ -1,3 +1,26 @@
+---
+created: 2026-05-08T18:14:38Z
+updated: 2026-05-08T18:14:38Z
+description: Audit for TRL-641 verifying that the three old extracted-adapter subpaths (@ontrails/http/hono, @ontrails/store/drizzle, @ontrails/cli/commander) no longer appear in active source, manifests, or scaffolds. Documents accepted residual buckets and adds a lightweight vocab-audit guardrail rule.
+references:
+  - docs/migration/connector-to-adapter.md
+  - adapters/commander/README.md
+  - adapters/drizzle/README.md
+  - adapters/hono/README.md
+  - packages/http/README.md
+  - packages/store/README.md
+  - docs/adr/0005-framework-agnostic-http-route-model.md
+  - docs/adr/0022-drizzle-store-connector.md
+  - docs/adr/0029-connector-extraction-and-the-with-packaging-model.md
+  - docs/adr/decision-map.json
+  - docs/releases/beta15.md
+  - packages/http/CHANGELOG.md
+  - packages/topographer/CHANGELOG.md
+linear:
+  - TRL-641
+impl_status: implemented
+---
+
 # Legacy Extracted-Adapter Subpath Audit
 
 Date: 2026-05-08

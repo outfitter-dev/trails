@@ -1,3 +1,25 @@
+---
+created: 2026-05-23T23:25:16-04:00
+updated: 2026-05-24T16:45:06Z
+description: Reference index for the TRL-780 scaffold CLI scripts packet. Lists tracked portable sources with file:line anchors (create-scaffold.ts:46, create.test.ts:155/166, add-verify.ts:33, versions.ts:21), untracked coordination notes, tracker records (TRL-780 in-goal, TRL-778/781/789/792 out-of-goal), current base commit, execution branch, prior plan packet pointer, and full validation command list.
+impl_status: implemented
+linear:
+  - TRL-780
+  - TRL-778
+  - TRL-781
+  - TRL-789
+  - TRL-792
+references:
+  - AGENTS.md
+  - .agents/plans/PLANNING.md
+  - apps/trails/package.json
+  - apps/trails/src/trails/create-scaffold.ts
+  - apps/trails/src/__tests__/create.test.ts
+  - apps/trails/src/trails/add-verify.ts
+  - apps/trails/src/versions.ts
+  - .agents/plans/2026-05-22-v1-release-readiness-closeout/
+---
+
 # References: TRL-780 Scaffold CLI Scripts
 
 ## Tracked / Portable Sources

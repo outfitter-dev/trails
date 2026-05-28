@@ -6,6 +6,11 @@ created: 2026-03-31
 updated: 2026-04-09
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [packs-namespace-boundaries]
+description: "Introduces `rig()` to capture external CLI tools, MCP servers, and HTTP APIs as Trails-native trail contracts with typed input/output, Result semantics, built-in parsers, and automated probe-based discovery."
+references:
+  - docs/adr/drafts/20260331-packs-namespace-boundaries.md
+linear: []
+impl_status: planned
 ---
 
 # ADR: External Trailheads as Trails

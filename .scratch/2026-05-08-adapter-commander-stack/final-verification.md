@@ -1,3 +1,21 @@
+---
+created: 2026-05-08T18:14:38Z
+updated: 2026-05-08T18:14:38Z
+description: Final verification checklist for TRL-642, closing the Commander cutover stack after TRL-638–641. Records accepted residual buckets for @ontrails/cli/commander references, confirms no real publish or merge-queue label was applied, and lists all passing verification commands at stack tip.
+references:
+  - docs/migration/connector-to-adapter.md
+  - docs/adr/0029-connector-extraction-and-the-with-packaging-model.md
+  - docs/releases/beta15.md
+  - .agents/plans/v1
+linear:
+  - TRL-638
+  - TRL-639
+  - TRL-640
+  - TRL-641
+  - TRL-642
+impl_status: implemented
+---
+
 # Final Commander Migration Verification
 
 Date: 2026-05-08

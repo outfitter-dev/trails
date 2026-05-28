@@ -1,3 +1,24 @@
+---
+created: 2026-05-23T23:25:16-04:00
+updated: 2026-05-24T16:45:06Z
+description: Execution plan for TRL-780 scaffold CLI scripts (scripts-first Cluster D slice). Four phases: confirm current shape, implement scaffold package shape (add @ontrails/trails devDep and framework command scripts to generatePackageJson), extend tests and smoke check, then review/PR/tracker. Covers completion condition, non-goals, tracker plan, source-control plan, validation ladder, and stop rules.
+impl_status: implemented
+linear:
+  - TRL-780
+  - TRL-778
+  - TRL-781
+  - TRL-789
+  - TRL-792
+references:
+  - AGENTS.md
+  - .agents/plans/PLANNING.md
+  - apps/trails/package.json
+  - apps/trails/src/trails/create-scaffold.ts
+  - apps/trails/src/__tests__/create.test.ts
+  - apps/trails/src/trails/add-verify.ts
+  - apps/trails/src/versions.ts
+---
+
 # Goal Plan: TRL-780 Scaffold CLI Scripts
 
 Date: 2026-05-23

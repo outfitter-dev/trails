@@ -1,3 +1,19 @@
+---
+created: "2026-05-01T14:16:20Z"
+updated: "2026-05-01T14:16:20Z"
+description: "Translates surviving deterministic prevention-rule candidates into three Linear follow-up issues: TRL-599 (owner-projection parity), TRL-600 (public union output discriminants), TRL-601 (public/internal deep imports). Lists covered or retired candidates with references to existing issues. Defines required issue shape and test fixtures for each follow-up."
+references:
+  - .scratch/2026-04-25-hardening/08-prevention-rails.md
+  - .scratch/2026-04-25-hardening/tmp-audits/08-prevention-rails-reconciliation.md
+  - docs/rule-design.md
+linear:
+  - TRL-546
+  - TRL-599
+  - TRL-600
+  - TRL-601
+impl_status: implemented
+---
+
 # TRL-546 Prevention Rule Follow-Ups
 
 **Issue:** TRL-546

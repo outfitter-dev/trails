@@ -1,3 +1,16 @@
+---
+created: 2026-05-17T15:32:45Z
+updated: 2026-05-20T03:58:14Z
+description: Local review round 2 for package and publish readiness. Reviewed packages/pino, pino changesets, workspace tarball checks, and publish-command wording. Found and fixed one P2: createPinoSink metadata spread could overwrite stable category/timestamp fields; fix reordered the spread and added collision tests. Confirms no hard pino runtime dependency. No remaining P0/P1/P2.
+impl_status: implemented
+linear:
+  - TRL-721
+references:
+  - packages/pino/src/index.ts
+  - packages/pino/src/__tests__/pino.test.ts
+  - packages/pino/package.json
+---
+
 # Local Review Round 2: Package And Publish Readiness
 
 Date: 2026-05-16

@@ -1,3 +1,19 @@
+---
+created: 2026-05-17T15:32:45Z
+updated: 2026-05-20T03:58:14Z
+description: Local review round 3 covering observability, docs, ADR/package-boundary wording, and CI hygiene. No P0/P1/P2 findings. Confirms @ontrails/tracing/otel and @ontrails/http/bun remain subpath exports with no standalone forbidden packages, ADR-0029 codifies derive* vs create* distinction, CI optimization adds only a Bun install cache step without weakening gates.
+impl_status: implemented
+linear:
+  - TRL-365
+  - TRL-727
+references:
+  - packages/tracing/src/adapters/otel.ts
+  - packages/tracing/package.json
+  - docs/adr/0029-connector-extraction-and-the-with-packaging-model.md
+  - .github/workflows/ci.yml
+  - .github/actions/setup/action.yml
+---
+
 # Local Review Round 3: Observability, Docs, And CI Hygiene
 
 Date: 2026-05-16

@@ -1,3 +1,39 @@
+---
+created: 2026-05-17T15:32:43Z
+updated: 2026-05-20T03:58:14Z
+description: Primary execution contract for the 14-PR HTTP Bun + Observability Closeout stack. Covers objective, completion condition, non-goals, preflight steps, ordered stack table with branch names, detailed per-issue work plans (TRL-715 through TRL-718), tracker plan with dependency map, source-control rules, validation ladder, local/remote review discipline, and stop/pause rules.
+impl_status: implemented
+linear:
+  - TRL-715
+  - TRL-716
+  - TRL-717
+  - TRL-718
+  - TRL-719
+  - TRL-720
+  - TRL-721
+  - TRL-722
+  - TRL-723
+  - TRL-724
+  - TRL-725
+  - TRL-726
+  - TRL-727
+  - TRL-365
+  - TRL-424
+  - TRL-426
+references:
+  - AGENTS.md
+  - .agents/plans/PLANNING.md
+  - .agents/plans/2026-05-16-http-bun-observability-closeout/REFS.md
+  - adapters/hono/src/surface.ts
+  - packages/http/src/build.ts
+  - packages/http/package.json
+  - packages/logtape/src/index.ts
+  - packages/tracing/src/adapters/otel.ts
+  - docs/adr/0005-framework-agnostic-http-route-model.md
+  - docs/adr/0029-connector-extraction-and-the-with-packaging-model.md
+  - docs/adr/0035-surface-apis-render-the-graph.md
+---
+
 # HTTP Bun + Observability Closeout Stack
 
 Date: 2026-05-16

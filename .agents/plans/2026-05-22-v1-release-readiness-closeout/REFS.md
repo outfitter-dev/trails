@@ -1,3 +1,47 @@
+---
+created: "2026-05-23T21:40:48Z"
+updated: "2026-05-23T21:40:48Z"
+description: "Reference index for the v1-release-readiness-closeout packet. Lists all tracked/portable source files, untracked/local-only inputs, tracker records for TRL-756 through TRL-765, PR/branch state at planning time, prior plan packets, and the full validation command set."
+impl_status: implemented
+linear:
+  - TRL-756
+  - TRL-757
+  - TRL-758
+  - TRL-759
+  - TRL-760
+  - TRL-765
+  - TRL-766
+  - TRL-767
+references:
+  - AGENTS.md
+  - .agents/plans/PLANNING.md
+  - docs/adr/0048-trail-versioning-v3.md
+  - docs/releases/stable-cutover.md
+  - docs/releases/beta15.md
+  - docs/migration/trailhead-to-surface.md
+  - docs/migration/connector-to-adapter.md
+  - docs/migration/logging-to-observe.md
+  - docs/migration/layer-evolution.md
+  - docs/migration/topograph-artifact-family.md
+  - packages/testing/package.json
+  - packages/testing/src/index.ts
+  - packages/testing/src/types.ts
+  - packages/testing/src/all.ts
+  - packages/testing/src/harness-http.ts
+  - packages/testing/src/harness-cli.ts
+  - packages/testing/src/harness-mcp.ts
+  - packages/testing/src/surface-parity.ts
+  - plugin/skills/trails/references/testing-patterns.md
+  - plugin/skills/trails/references/architecture.md
+  - plugin/skills/trails/references/cli-surface.md
+  - README.md
+  - docs/index.md
+  - docs/api-reference.md
+  - docs/testing.md
+  - docs/topo-store.md
+  - .agents/plans/2026-05-21-plugin-skills-refresh-stack/
+---
+
 # References: v1-release-readiness-closeout
 
 ## Tracked / Portable Sources

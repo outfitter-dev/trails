@@ -1,3 +1,21 @@
+---
+created: "2026-05-01T14:16:20Z"
+updated: "2026-05-01T14:16:20Z"
+description: "Maps the six TRL-509 advisory-skill briefs to actionable follow-up issues (TRL-593 through TRL-598). Defines shared acceptance criteria for all advisory-skill issues: evidence sources, authoritative vs advisory evidence, must-not guardrails, and separation from durable Warden implementation."
+references:
+  - _draft.TRL-509-advisory-skill-briefs.md
+linear:
+  - TRL-545
+  - TRL-509
+  - TRL-593
+  - TRL-594
+  - TRL-595
+  - TRL-596
+  - TRL-597
+  - TRL-598
+impl_status: implemented
+---
+
 # TRL-545 Advisory Skill Issue Map
 
 **Issue:** TRL-545

@@ -1,3 +1,46 @@
+---
+created: 2026-05-21T21:29:29Z
+updated: 2026-05-22T20:49:43Z
+description: Audit of repo-tracked plugin and skill bundle against current Trails doctrine (lexicon, ADRs, Warden manifest). P1 gaps: missing VersionNotSupportedError, retired surface-map vocabulary, omitted ResourceContext.config/unmockable. Also covers stale Warden labels, testing harness gaps, composition template drift, HTTP subpath omissions, and hook copy issues. Routes to TRL-746 through TRL-751.
+impl_status: implemented
+linear:
+  - TRL-742
+  - TRL-746
+  - TRL-747
+  - TRL-748
+  - TRL-749
+  - TRL-750
+  - TRL-751
+  - TRL-755
+references:
+  - plugin/skills/trails/SKILL.md
+  - plugin/skills/trails/references/warden-guide.md
+  - plugin/skills/trails/references/architecture.md
+  - plugin/skills/trails/references/error-taxonomy.md
+  - plugin/skills/trails/references/testing-patterns.md
+  - plugin/skills/trails/references/contract-patterns.md
+  - plugin/skills/trails/references/getting-started.md
+  - plugin/skills/trails/templates/composition.md
+  - plugin/agents/trail-engineer.md
+  - plugin/rules/lexicon.md
+  - plugin/rules/patterns.md
+  - plugin/hooks/detect-trails.sh
+  - .claude/skills/clark/references/calibrate.md
+  - packages/core/src/errors.ts
+  - packages/core/src/resource.ts
+  - packages/testing/src/index.ts
+  - docs/lexicon.md
+  - docs/architecture.md
+  - docs/contributing/language-styleguide.md
+  - docs/resources.md
+  - docs/testing.md
+  - docs/surfaces/http.md
+  - docs/adr/0028-concurrent-crossing.md
+  - apps/trails/src/trails/project.ts
+  - packages/topographer/src/workspace-topos.ts
+  - trails.config.ts
+---
+
 # TRL-742 Repo Plugin Doctrine Audit
 
 Date: 2026-05-21
