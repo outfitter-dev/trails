@@ -42,7 +42,28 @@
     {
       "created": "2026-03-31",
       "depends_on": ["3", "9", "23"],
-      "inbound": [],
+      "inbound": [
+        {
+          "context": "- docs/adr/drafts/20260331-packs-namespace-boundaries.md",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
+        },
+        {
+          "context": "- docs/adr/drafts/20260331-packs-namespace-boundaries.md",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-external-trailheads-as-trails.md"
+        },
+        {
+          "context": "- docs/adr/drafts/20260331-packs-namespace-boundaries.md",
+          "from": "20260331",
+          "fromPath": "docs/adr/drafts/20260331-pack-resources.md"
+        },
+        {
+          "context": "- docs/adr/drafts/20260331-packs-namespace-boundaries.md",
+          "from": "20260401",
+          "fromPath": "docs/adr/drafts/20260401-compiled-pack-trailhead.md"
+        }
+      ],
       "number": null,
       "owners": ["[galligan](https://github.com/galligan)"],
       "path": "docs/adr/drafts/20260331-packs-namespace-boundaries.md",
@@ -115,7 +136,7 @@
       "depends_on": [],
       "inbound": [
         {
-          "context": "- [ADR: Documentation structure](20260406-documentation-structure.md) — the section taxonomy and directory structure that SLA rules reference",
+          "context": "- docs/adr/drafts/20260406-documentation-structure.md",
           "from": "20260406",
           "fromPath": "docs/adr/drafts/20260406-documentation-freshness.md"
         }
@@ -204,6 +225,19 @@
       "superseded_by": null,
       "title": "Scaffold Forward Compatibility",
       "updated": "2026-05-24"
+    },
+    {
+      "created": "2026-05-28",
+      "depends_on": ["29"],
+      "inbound": [],
+      "number": null,
+      "owners": ["[galligan](https://github.com/galligan)"],
+      "path": "docs/adr/drafts/20260528-adapter-authoring-as-a-paved-path.md",
+      "slug": "adapter-authoring-as-a-paved-path",
+      "status": "draft",
+      "superseded_by": null,
+      "title": "Adapter authoring as a paved path",
+      "updated": "2026-05-28"
     }
   ],
   "version": 1
