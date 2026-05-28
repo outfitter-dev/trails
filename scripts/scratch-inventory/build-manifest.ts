@@ -47,7 +47,13 @@ const walk = (dir: string): string[] => {
   }
   for (const name of names) {
     const full = join(dir, name);
-    if (statSync(full).isDirectory()) {
+    let isDirectory = false;
+    try {
+      isDirectory = statSync(full).isDirectory();
+    } catch {
+      continue;
+    }
+    if (isDirectory) {
       out.push(...walk(full));
     } else if (name.endsWith('.md')) {
       out.push(full);
@@ -112,9 +118,11 @@ const parseFrontmatter = (lines: string[]): Record<string, unknown> => {
     }
     const key = line.slice(0, colon).trim();
     let rest = line.slice(colon + 1).trim();
-    const hash = rest.indexOf(' #');
-    if (hash !== -1) {
-      rest = rest.slice(0, hash).trim();
+    if (!rest.startsWith('"') && !rest.startsWith("'")) {
+      const hash = rest.indexOf(' #');
+      if (hash !== -1) {
+        rest = rest.slice(0, hash).trim();
+      }
     }
     if (rest === '') {
       const items: string[] = [];
