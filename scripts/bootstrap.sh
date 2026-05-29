@@ -3,7 +3,7 @@
 # bootstrap.sh — cold-start trampoline for Trails repo lifecycle commands.
 #
 # Usage:
-#   ./scripts/bootstrap.sh [repo|agent|doctor|sweep] [--force] [--update]
+#   ./scripts/bootstrap.sh [repo|agent|codex|claude|doctor|teardown] [--force] [--update]
 #   ./scripts/bootstrap.sh --force   # legacy alias for repo --force
 #   ./scripts/bootstrap.sh --update  # legacy alias for repo --update
 
@@ -15,17 +15,20 @@ BUN_VERSION_FILE="$REPO_ROOT/.bun-version"
 
 usage() {
   cat <<'EOF'
-Usage: ./scripts/bootstrap.sh [repo|agent|doctor|sweep] [--force] [--update]
+Usage: ./scripts/bootstrap.sh [repo|agent|codex|claude|doctor|teardown] [--force] [--update]
 
 Commands:
   repo     Make this checkout runnable (default)
   agent    Repo bootstrap plus agent lifecycle diagnostics
+  codex    Codex agent bootstrap with provider-specific root detection
+  claude   Claude agent bootstrap with provider-specific root detection
   doctor   Diagnostics only; no install, cleanup, or mutation
-  sweep    Conservative cleanup of configured runtime artifacts only
+  teardown Conservative cleanup of configured runtime artifacts only
 
 Compatibility:
   ./scripts/bootstrap.sh --force
   ./scripts/bootstrap.sh --update
+  ./scripts/bootstrap.sh sweep
 EOF
 }
 
@@ -36,7 +39,7 @@ fi
 
 SUBCOMMAND="${1:-repo}"
 case "$SUBCOMMAND" in
-  repo|agent|doctor|sweep)
+  repo|agent|codex|claude|doctor|sweep|teardown)
     shift || true
     ;;
   --force|--update)

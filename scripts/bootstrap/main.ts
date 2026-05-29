@@ -4,19 +4,23 @@ import { loadBootstrapConfig } from './config.js';
 import { runAgentBootstrap } from './agent.js';
 import { runDoctor } from './doctor.js';
 import { runRepoBootstrap } from './repo.js';
-import { runSweep } from './sweep.js';
+import { runTeardown } from './sweep.js';
 
 export interface ParsedBootstrapArgs {
   readonly command: BootstrapCommand;
   readonly force: boolean;
+  readonly provider: 'claude' | 'codex' | undefined;
   readonly update: boolean;
 }
 
 const COMMANDS: ReadonlySet<string> = new Set([
   'agent',
+  'claude',
+  'codex',
   'doctor',
   'repo',
   'sweep',
+  'teardown',
 ]);
 
 export const parseBootstrapArgs = (
@@ -51,22 +55,26 @@ export const parseBootstrapArgs = (
   return {
     command: command as BootstrapCommand,
     force,
+    provider: command === 'claude' || command === 'codex' ? command : undefined,
     update,
   };
 };
 
 export const printUsage = (): void => {
-  console.error(`Usage: ./scripts/bootstrap.sh [repo|agent|doctor|sweep] [--force] [--update]
+  console.error(`Usage: ./scripts/bootstrap.sh [repo|agent|codex|claude|doctor|teardown] [--force] [--update]
 
 Commands:
   repo     Make this checkout runnable (default)
   agent    Repo bootstrap plus agent lifecycle diagnostics
+  codex    Codex agent bootstrap with provider-specific root detection
+  claude   Claude agent bootstrap with provider-specific root detection
   doctor   Diagnostics only; no install, cleanup, or mutation
-  sweep    Conservative cleanup of configured runtime artifacts only
+  teardown Conservative cleanup of configured runtime artifacts only
 
 Compatibility:
   ./scripts/bootstrap.sh --force
-  ./scripts/bootstrap.sh --update`);
+  ./scripts/bootstrap.sh --update
+  ./scripts/bootstrap.sh sweep`);
 };
 
 const runMain = async (): Promise<void> => {
@@ -77,8 +85,15 @@ const runMain = async (): Promise<void> => {
 
   const config = loadBootstrapConfig();
   const parsed = parseBootstrapArgs(process.argv.slice(2));
-  const host = detectHost(process.env, config);
-  const repoRoot = resolveRepoRoot(process.cwd(), process.env, config);
+  const env =
+    parsed.provider === undefined
+      ? process.env
+      : {
+          ...process.env,
+          TRAILS_AGENT_ENV_PROVIDER: parsed.provider,
+        };
+  const host = detectHost(env, config);
+  const repoRoot = resolveRepoRoot(process.cwd(), env, config, parsed.provider);
 
   switch (parsed.command) {
     case 'repo': {
@@ -101,12 +116,24 @@ const runMain = async (): Promise<void> => {
       });
       return;
     }
+    case 'codex':
+    case 'claude': {
+      await runAgentBootstrap({
+        config,
+        force: true,
+        host,
+        repoRoot,
+        update: parsed.update,
+      });
+      return;
+    }
     case 'doctor': {
       await runDoctor(repoRoot, config, host);
       return;
     }
-    case 'sweep': {
-      runSweep(repoRoot, config);
+    case 'sweep':
+    case 'teardown': {
+      runTeardown(repoRoot, config);
       return;
     }
     default: {

@@ -20,7 +20,10 @@ export const resolveCleanupTarget = (
   return target;
 };
 
-export const runSweep = (repoRoot: string, config: BootstrapConfig): void => {
+export const runTeardown = (
+  repoRoot: string,
+  config: BootstrapConfig
+): void => {
   const targets = [...config.cleanup.directories, ...config.cleanup.files].map(
     (target) => resolveCleanupTarget(repoRoot, target)
   );
@@ -35,5 +38,5 @@ export const runSweep = (repoRoot: string, config: BootstrapConfig): void => {
     removed += 1;
   }
 
-  success(`Sweep complete (${String(removed)} targets removed)`);
+  success(`Teardown complete (${String(removed)} targets removed)`);
 };
