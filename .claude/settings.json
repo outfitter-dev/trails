@@ -13,6 +13,30 @@
     ]
   },
   "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "./scripts/bootstrap.sh claude",
+            "timeout": 300,
+            "statusMessage": "Bootstrapping Claude environment…"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "./scripts/bootstrap.sh teardown",
+            "timeout": 120,
+            "statusMessage": "Tearing down Claude environment…"
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Write|Edit|MultiEdit",
