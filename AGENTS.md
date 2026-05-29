@@ -212,7 +212,8 @@ Use Graphite for source control operations.
 - We use Conventional Commits.
 - Keep PRs small, isolate mechanical changes when possible, and keep PRs in draft until CI is green.
 - Treat a Greptile error comment (`Greptile encountered an error while reviewing this PR`) as a blocker, not as a completed review.
-- When performing fixes across stacked branches, always do so from the top most branch and use `gt absorb -a`
+- When performing fixes across stacked branches, prefer the owning branch: check it out, make the focused fix there, `gt modify`, restack, and verify upward. Use `gt absorb -a` only when the stack owner explicitly chooses a top-branch absorption workflow.
+- For Codex/Crew worktree farming, the worker worktree must have a real branch checked out. `gt create` does not work from detached `HEAD`. A zero-diff Graphite-tracked base branch under `main` is acceptable as the worker lane base; workers may create child branches from that lane and hold before submit.
 
 ## Subagent Rules
 

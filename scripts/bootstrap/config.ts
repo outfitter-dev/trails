@@ -35,7 +35,14 @@ export interface BootstrapConfig {
   };
 }
 
-export type BootstrapCommand = 'agent' | 'doctor' | 'repo' | 'sweep';
+export type BootstrapCommand =
+  | 'agent'
+  | 'claude'
+  | 'codex'
+  | 'doctor'
+  | 'repo'
+  | 'sweep'
+  | 'teardown';
 export type BunPolicy = 'compatible' | 'strict';
 
 interface RawConfig {

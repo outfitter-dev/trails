@@ -45,7 +45,7 @@ graphite_stack_max_lines = 120
 [commands.doctor]
 mutates = false
 
-[commands.sweep]
+[commands.teardown]
 mutates = true
 git_mutation_allowed = false
 
@@ -68,6 +68,12 @@ forbidden_lifecycle_commands = [
 [cleanup]
 directories = [".turbo", ".trails-tmp", ".tmp-tests", ".try"]
 files = [
+  ".trails/state/trails.db",
+  ".trails/state/trails.db-shm",
+  ".trails/state/trails.db-wal",
+  ".trails/state/tracing.db",
+  ".trails/state/tracing.db-shm",
+  ".trails/state/tracing.db-wal",
   ".trails/trails.db",
   ".trails/trails.db-shm",
   ".trails/trails.db-wal",

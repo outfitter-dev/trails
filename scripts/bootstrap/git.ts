@@ -48,6 +48,11 @@ export const printAgentGitDiagnostics = (
   console.error(
     `  branch: ${info.branch && info.branch.length > 0 ? info.branch : 'detached HEAD'}`
   );
+  if (info.branch === undefined || info.branch.length === 0) {
+    console.error(
+      '  Graphite can inspect here, but gt create requires a real checked-out branch.'
+    );
+  }
   console.error(
     '  Graphite branches and metadata are shared with the main checkout.'
   );

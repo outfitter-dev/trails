@@ -43,6 +43,33 @@ const detectProvider = (env: NodeJS.ProcessEnv): HostProvider => {
   return 'generic';
 };
 
+const providerRootEnvVars = (
+  provider: HostProvider | undefined
+): readonly string[] => {
+  switch (provider) {
+    case 'codex': {
+      return ['CODEX_WORKTREE_PATH'];
+    }
+    case 'claude': {
+      return ['CLAUDE_PROJECT_DIR', 'CLAUDECODE'];
+    }
+    case 'factory': {
+      return ['FACTORY_PROJECT_DIR'];
+    }
+    case 'devin': {
+      return ['GITHUB_WORKSPACE'];
+    }
+    case 'generic':
+    case undefined: {
+      return [];
+    }
+    default: {
+      const exhaustive: never = provider;
+      return exhaustive;
+    }
+  }
+};
+
 export const detectHost = (
   env: NodeJS.ProcessEnv,
   config: BootstrapConfig
@@ -73,9 +100,16 @@ export const detectHost = (
 export const resolveRepoRoot = (
   cwd: string,
   env: NodeJS.ProcessEnv,
-  config: BootstrapConfig
+  config: BootstrapConfig,
+  provider?: HostProvider
 ): string => {
-  for (const name of config.root.envVars) {
+  const providerEnvVars = providerRootEnvVars(provider);
+  const orderedEnvVars = [
+    ...providerEnvVars,
+    ...config.root.envVars.filter((name) => !providerEnvVars.includes(name)),
+  ];
+
+  for (const name of orderedEnvVars) {
     const candidate = env[name];
     if (candidate !== undefined && isRepoRoot(candidate)) {
       return resolve(candidate);

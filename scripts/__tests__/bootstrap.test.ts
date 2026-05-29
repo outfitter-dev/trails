@@ -34,11 +34,13 @@ describe('bootstrap dispatcher', () => {
     expect(parseBootstrapArgs(['--force'])).toEqual({
       command: 'repo',
       force: true,
+      provider: undefined,
       update: false,
     });
     expect(parseBootstrapArgs(['--update'])).toEqual({
       command: 'repo',
       force: false,
+      provider: undefined,
       update: true,
     });
   });
@@ -47,11 +49,37 @@ describe('bootstrap dispatcher', () => {
     expect(parseBootstrapArgs(['agent', '--update'])).toEqual({
       command: 'agent',
       force: false,
+      provider: undefined,
       update: true,
+    });
+    expect(parseBootstrapArgs(['codex'])).toEqual({
+      command: 'codex',
+      force: false,
+      provider: 'codex',
+      update: false,
+    });
+    expect(parseBootstrapArgs(['claude'])).toEqual({
+      command: 'claude',
+      force: false,
+      provider: 'claude',
+      update: false,
     });
     expect(parseBootstrapArgs(['doctor'])).toEqual({
       command: 'doctor',
       force: false,
+      provider: undefined,
+      update: false,
+    });
+    expect(parseBootstrapArgs(['teardown'])).toEqual({
+      command: 'teardown',
+      force: false,
+      provider: undefined,
+      update: false,
+    });
+    expect(parseBootstrapArgs(['sweep'])).toEqual({
+      command: 'sweep',
+      force: false,
+      provider: undefined,
       update: false,
     });
   });
@@ -65,7 +93,9 @@ describe('bootstrap dispatcher', () => {
     });
 
     expect(proc.exitCode).toBe(0);
-    expect(proc.stdout.toString()).toContain('repo|agent|doctor|sweep');
+    expect(proc.stdout.toString()).toContain(
+      'repo|agent|codex|claude|doctor|teardown'
+    );
   });
 });
 
@@ -155,6 +185,28 @@ describe('bootstrap repo policy', () => {
     }
   });
 
+  test('provider-specific root resolution prefers the requested provider', () => {
+    const config = loadBootstrapConfig();
+    const codexRoot = makeRepoRoot();
+    const claudeRoot = makeRepoRoot();
+    try {
+      expect(
+        resolveRepoRoot(
+          tmpdir(),
+          {
+            CLAUDE_PROJECT_DIR: claudeRoot,
+            CODEX_WORKTREE_PATH: codexRoot,
+          } as NodeJS.ProcessEnv,
+          config,
+          'claude'
+        )
+      ).toBe(claudeRoot);
+    } finally {
+      rmSync(codexRoot, { force: true, recursive: true });
+      rmSync(claudeRoot, { force: true, recursive: true });
+    }
+  });
+
   test('root resolution accepts CLAUDECODE when it carries a repo path', () => {
     const config = loadBootstrapConfig();
     const claudeRoot = makeRepoRoot();
@@ -203,5 +255,11 @@ describe('bootstrap repo policy', () => {
     expect(() => resolveCleanupTarget(repoRoot, '../outside')).toThrow(
       'outside repo'
     );
+  });
+
+  test('teardown cleanup includes current trails state paths', () => {
+    const config = loadBootstrapConfig();
+    expect(config.cleanup.files).toContain('.trails/state/trails.db');
+    expect(config.cleanup.files).toContain('.trails/state/tracing.db');
   });
 });
