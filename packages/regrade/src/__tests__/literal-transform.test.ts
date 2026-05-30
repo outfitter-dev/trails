@@ -30,6 +30,9 @@ describe('literal Regrade transform tracer', () => {
       (entry) => entry.id
     );
     expect(surfaceIds).toContain(literalRegradeTrail.id);
+    expect(normalizeExportConstTrail.id).toBe(
+      'regrade.literal.normalize-export-const'
+    );
     expect(surfaceIds).not.toContain(normalizeExportConstTrail.id);
 
     const topoGraph = deriveTopoGraph(literalRegradeTopo);

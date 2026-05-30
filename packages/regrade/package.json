@@ -17,10 +17,10 @@
   },
   "dependencies": {
     "@ontrails/core": "workspace:^",
-    "@ontrails/topographer": "workspace:^",
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@ontrails/testing": "workspace:^"
+    "@ontrails/testing": "workspace:^",
+    "@ontrails/topographer": "workspace:^"
   }
 }

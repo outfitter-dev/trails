@@ -16,7 +16,7 @@ const childInput = z.object({
 });
 
 export const normalizeExportConstTrail = trail(
-  'regrade.literal.normalizeExportConst',
+  'regrade.literal.normalize-export-const',
   {
     blaze: (input) => {
       const nextSource = input.source.replaceAll('export const', 'export let');
