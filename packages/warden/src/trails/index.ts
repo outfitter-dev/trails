@@ -44,6 +44,7 @@ export { resolvedImportBoundaryTrail } from './resolved-import-boundary.trail.js
 export { resourceDeclarationsTrail } from './resource-declarations.trail.js';
 export { resourceIdGrammarTrail } from './resource-id-grammar.trail.js';
 export { resourceExistsTrail } from './resource-exists.trail.js';
+export { resourceMockCoverageTrail } from './resource-mock-coverage.trail.js';
 export { scheduledDestroyIntentTrail } from './scheduled-destroy-intent.trail.js';
 export { signalGraphCoachingTrail } from './signal-graph-coaching.trail.js';
 export { staticResourceAccessorPreferenceTrail } from './static-resource-accessor-preference.trail.js';

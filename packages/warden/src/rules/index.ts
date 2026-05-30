@@ -40,6 +40,7 @@ import { resolvedImportBoundary } from './resolved-import-boundary.js';
 import { resourceDeclarations } from './resource-declarations.js';
 import { resourceExists } from './resource-exists.js';
 import { resourceIdGrammar } from './resource-id-grammar.js';
+import { resourceMockCoverage } from './resource-mock-coverage.js';
 import { scheduledDestroyIntent } from './scheduled-destroy-intent.js';
 import { signalGraphCoaching } from './signal-graph-coaching.js';
 import { staticResourceAccessorPreference } from './static-resource-accessor-preference.js';
@@ -140,6 +141,7 @@ export { resolvedImportBoundary } from './resolved-import-boundary.js';
 export { resourceDeclarations } from './resource-declarations.js';
 export { resourceExists } from './resource-exists.js';
 export { resourceIdGrammar } from './resource-id-grammar.js';
+export { resourceMockCoverage } from './resource-mock-coverage.js';
 export { scheduledDestroyIntent } from './scheduled-destroy-intent.js';
 export { signalGraphCoaching } from './signal-graph-coaching.js';
 export { staticResourceAccessorPreference } from './static-resource-accessor-preference.js';
@@ -191,6 +193,7 @@ export const wardenRules: ReadonlyMap<string, WardenRule> = new Map<
   [resolvedImportBoundary.name, resolvedImportBoundary],
   [resourceIdGrammar.name, resourceIdGrammar],
   [resourceExists.name, resourceExists],
+  [resourceMockCoverage.name, resourceMockCoverage],
   [preferSchemaInference.name, preferSchemaInference],
   [staticResourceAccessorPreference.name, staticResourceAccessorPreference],
   [validDescribeRefs.name, validDescribeRefs],

@@ -100,6 +100,7 @@ const concernByRuleName: Partial<Record<string, WardenRuleConcern>> = {
   'resource-declarations': 'resources',
   'resource-exists': 'resources',
   'resource-id-grammar': 'resources',
+  'resource-mock-coverage': 'resources',
   'scheduled-destroy-intent': 'lifecycle',
   'signal-graph-coaching': 'signals',
   'static-resource-accessor-preference': 'resources',
@@ -464,6 +465,22 @@ const builtinWardenRuleMetadataInput = {
   'resource-id-grammar': {
     ...durableExternal,
     invariant: 'Resource identifiers stay out of the scope separator grammar.',
+    tier: 'source-static',
+  },
+  'resource-mock-coverage': {
+    ...durableExternal,
+    guidance: {
+      docs: [trailContractDocs],
+      relatedRules: ['resource-declarations', 'resource-exists'],
+      steps: [
+        'Add a mock() factory so testAll(app) can provision the resource without production configuration.',
+        'If the resource genuinely cannot be mocked, declare unmockable: { reason } to record that intent.',
+      ],
+      summary:
+        'Make each resource declare a test mock or an explicit unmockable reason.',
+    },
+    invariant:
+      'Resource definitions declare a mock factory or an explicit unmockable reason.',
     tier: 'source-static',
   },
   'scheduled-destroy-intent': {

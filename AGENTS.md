@@ -86,7 +86,7 @@ Use the project language consistently:
 This section is generated from the live `@ontrails/warden` rule manifest. Keep the human-authored guidance above as orientation; use this block as the enforceable-rule index.
 
 - Guide input command: `bun apps/trails/bin/trails.ts warden guide --manifest`
-- Rule count: 59
+- Rule count: 60
 
 ### Rule Index
 
@@ -147,6 +147,7 @@ This section is generated from the live `@ontrails/warden` rule manifest. Keep t
 - `resource-declarations` (error, source/source-static, external): Resource usage is declared on the trail contract.
 - `resource-exists` (error, project/project-static, external): Declared resources resolve to known resource definitions.
 - `resource-id-grammar` (error, source/source-static, external): Resource identifiers stay out of the scope separator grammar.
+- `resource-mock-coverage` (warn, source/source-static, external): Resource definitions declare a mock factory or an explicit unmockable reason.
 - `static-resource-accessor-preference` (warn, all/source-static, advisory): Trail logic should prefer static resource helpers over dynamic accessors.
 
 #### Results
@@ -180,6 +181,7 @@ This section is generated from the live `@ontrails/warden` rule manifest. Keep t
 - `public-output-schema`: Make public surface result contracts explicit before MCP/HTTP projection.
 - `resource-declarations`: Keep infrastructure dependencies declared on the trail contract.
 - `resource-exists`: Make declared resources resolve to authored resource definitions.
+- `resource-mock-coverage`: Make each resource declare a test mock or an explicit unmockable reason.
 - `static-resource-accessor-preference`: Use statically scoped resource helpers when the resource definition is already available.
 
 <!-- warden-guide:end -->
