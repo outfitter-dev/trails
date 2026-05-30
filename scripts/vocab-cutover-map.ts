@@ -116,11 +116,7 @@ const reviewedSurfaceMentionPaths = [
 
 const surfaceTermAllowedMatches = [
   {
-    line: 326,
-    path: 'docs/adr/0048-trail-versioning-v3.md',
-  },
-  {
-    line: 327,
+    line: 266,
     path: 'docs/adr/0048-trail-versioning-v3.md',
   },
 ] as const;
@@ -160,6 +156,12 @@ const legacyBootstrapCleanupMatches = [
   { line: 74, path: 'scripts/bootstrap/config.toml' },
   { line: 75, path: 'scripts/bootstrap/config.toml' },
   { line: 76, path: 'scripts/bootstrap/config.toml' },
+  { line: 77, path: 'scripts/bootstrap/config.toml' },
+  { line: 78, path: 'scripts/bootstrap/config.toml' },
+  { line: 79, path: 'scripts/bootstrap/config.toml' },
+  { line: 80, path: 'scripts/bootstrap/config.toml' },
+  { line: 81, path: 'scripts/bootstrap/config.toml' },
+  { line: 82, path: 'scripts/bootstrap/config.toml' },
 ] as const;
 
 const topographArtifactFamilyRetiredMatches = [
