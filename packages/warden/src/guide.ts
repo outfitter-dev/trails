@@ -1,4 +1,5 @@
 import type {
+  WardenFixCapability,
   WardenGuidance,
   WardenGuidanceLink,
   WardenRuleConcern,
@@ -27,6 +28,7 @@ export interface WardenRuleGuideEntry {
   readonly depth: WardenDepth;
   readonly description: string;
   readonly docs: readonly WardenGuidanceLink[];
+  readonly fix?: WardenFixCapability | undefined;
   readonly guidance?: WardenGuidance | undefined;
   readonly id: string;
   readonly invariant: string;
@@ -55,6 +57,7 @@ interface WardenAgentRuleGuide {
     readonly tier: WardenRuleTier;
   };
   readonly concern: WardenRuleConcern;
+  readonly fix?: WardenFixCapability | undefined;
   readonly guidance?: WardenGuidance | undefined;
   readonly id: string;
   readonly invariant: string;
@@ -87,6 +90,7 @@ export const buildWardenGuideManifest = (): WardenGuideManifest => {
         depth: metadata.depth,
         description: rule?.description ?? '',
         docs,
+        fix: metadata.fix,
         guidance: metadata.guidance,
         id,
         invariant: metadata.invariant,
@@ -153,6 +157,12 @@ const renderRuleMarkdown = (rule: WardenRuleGuideEntry): readonly string[] => {
     lines.push(`- Retire when: ${rule.lifecycle.retireWhen}`);
   }
 
+  if (rule.fix) {
+    lines.push(
+      `- Fix: \`${rule.fix.class}\` (${rule.fix.safety === 'safe' ? 'safe, applied by `warden --fix`' : 'review-required'})`
+    );
+  }
+
   if (rule.guidance) {
     lines.push('', `Guidance: ${rule.guidance.summary}`);
     renderOptionalList(lines, 'Steps', rule.guidance.steps);
@@ -210,6 +220,7 @@ export const buildWardenAgentGuide = (
       tier: rule.tier,
     },
     concern: rule.concern,
+    fix: rule.fix,
     guidance: rule.guidance,
     id: rule.id,
     invariant: rule.invariant,

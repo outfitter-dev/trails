@@ -20,7 +20,7 @@ describe('wardenTopo', () => {
 
   test('all rule trails expose Warden metadata', () => {
     for (const trail of wardenTopo.list()) {
-      const metadata = trail.meta?.warden as
+      const metadata = trail.meta?.['warden'] as
         | { lifecycle?: { state?: unknown }; tier?: unknown }
         | undefined;
 

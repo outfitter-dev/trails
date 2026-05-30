@@ -28,6 +28,22 @@ describe('no-legacy-layer-imports', () => {
     );
   });
 
+  test('carries review-required term-rewrite fix metadata (TRL-832)', () => {
+    const code = "import { authLayer } from '@ontrails/permits';";
+    const fix = noLegacyLayerImports.check(
+      code,
+      '/repo/apps/example/src/cli.ts'
+    )[0]?.fix;
+
+    expect(fix?.class).toBe('term-rewrite');
+    // These legacy layers were removed, not renamed: no mechanical replacement,
+    // so the fix is review-required and carries no edits. `warden --fix` must
+    // never auto-apply it; it stays reported for human migration.
+    expect(fix?.safety).toBe('review');
+    expect(fix?.edits).toBeUndefined();
+    expect(fix?.reason).toContain('authLayer');
+  });
+
   test('flags `autoIterateLayer` references in committed source', () => {
     const code = [
       "import { autoIterateLayer } from '@ontrails/cli';",

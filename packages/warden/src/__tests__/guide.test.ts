@@ -68,4 +68,31 @@ describe('warden guide manifest', () => {
     expect(parsed.rules.at(-1)).toHaveProperty('concern');
     expect(parsed.rules.at(-1)).not.toHaveProperty('category');
   });
+
+  test('projects rule fix capability faithfully (TRL-831/832)', () => {
+    // The fix field projects exactly the rules that declare a capability.
+    // no-legacy-layer-imports is the first fixable rule (TRL-832): a
+    // review-required term-rewrite. Rules without a capability omit the field.
+    const manifest = buildWardenGuideManifest();
+
+    const legacy = manifest.rules.find(
+      (rule) => rule.id === 'no-legacy-layer-imports'
+    );
+    expect(legacy?.fix).toEqual({ class: 'term-rewrite', safety: 'review' });
+    expect(
+      buildWardenAgentGuide(manifest).rules.find(
+        (rule) => rule.id === 'no-legacy-layer-imports'
+      )?.fix
+    ).toEqual({ class: 'term-rewrite', safety: 'review' });
+
+    const throwRule = manifest.rules.find(
+      (rule) => rule.id === 'no-throw-in-implementation'
+    );
+    expect(throwRule?.fix).toBeUndefined();
+
+    // A fixable rule advertises a Fix line in the rendered guide markdown.
+    expect(formatWardenGuideMarkdown(manifest)).toContain(
+      '- Fix: `term-rewrite`'
+    );
+  });
 });

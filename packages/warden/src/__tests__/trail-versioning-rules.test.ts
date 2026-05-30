@@ -33,11 +33,11 @@ const versionedTrail = trail('versioned.clean', {
   version: 2,
   versions: {
     1: {
-      examples: [{ input: {}, output: { ok: true } }],
+      examples: [{ expected: { ok: true }, input: {}, name: 'version 1' }],
       input: z.object({}),
       output: z.object({ ok: z.boolean() }),
       transpose: {
-        input: ({ input }) => input,
+        input: () => ({}),
         output: ({ output }) => output,
       },
     },

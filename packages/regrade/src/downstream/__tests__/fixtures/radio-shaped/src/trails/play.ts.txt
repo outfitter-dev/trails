@@ -1,0 +1,5 @@
+// Radio-shaped fixture: a trail module where the term appears only inside the
+// larger identifier `signalHandler`. The term-rewrite class must route this to
+// review rather than rewrite a partial match.
+export const signalHandler = (trackId: string): string =>
+  `playing ${trackId}`;

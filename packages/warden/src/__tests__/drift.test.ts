@@ -62,7 +62,7 @@ const writeManifest = (dir: string, hash: string): Promise<string> =>
     { dir: committedLockDir(dir) }
   );
 
-const seedSavedTopo = (dir: string): string | undefined => {
+const seedSavedTopo = (dir: string): string => {
   const db = openWriteTrailsDb({ rootDir: dir });
   try {
     const result = createStoredTopoSnapshot(db, makeTopo(), {
@@ -75,7 +75,11 @@ const seedSavedTopo = (dir: string): string | undefined => {
     db.close();
   }
 
-  return createTopoStore({ rootDir: dir }).exports.get()?.topoGraphHash;
+  const hash = createTopoStore({ rootDir: dir }).exports.get()?.topoGraphHash;
+  if (hash === undefined) {
+    throw new Error('seedSavedTopo expected a stored topo graph hash');
+  }
+  return hash;
 };
 
 describe('checkDrift', () => {

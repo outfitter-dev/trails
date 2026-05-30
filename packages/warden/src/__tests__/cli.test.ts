@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -17,8 +17,16 @@ import {
 } from '@ontrails/topographer';
 import { z } from 'zod';
 
-import { formatWardenReport, runWarden } from '../cli.js';
-import type { TopoAwareWardenRule, WardenDiagnostic } from '../rules/types.js';
+import {
+  applySafeFixesToFiles,
+  formatWardenReport,
+  runWarden,
+} from '../cli.js';
+import type {
+  TopoAwareWardenRule,
+  WardenDiagnostic,
+  WardenRule,
+} from '../rules/types.js';
 
 const DEV_PERMIT_FLAG = ['--dev', '-permit'].join('');
 
@@ -95,6 +103,61 @@ const throwDiagnosticFilePaths = (
     .filter((diagnostic) => diagnostic.rule === 'no-throw-in-implementation')
     .map((diagnostic) => diagnostic.filePath)
     .toSorted();
+
+const safeRenameDiagnostic = (filePath: string): WardenDiagnostic => ({
+  filePath,
+  fix: {
+    class: 'term-rewrite',
+    edits: [{ end: 12, replacement: 'ping', start: 6 }],
+    reason: 'safe rename',
+    safety: 'safe',
+  },
+  line: 1,
+  message: 'safe rename',
+  rule: 'synthetic-safe-fix',
+  severity: 'warn',
+});
+
+const buildSyntheticSafeSourceRule = (): WardenRule => ({
+  check: (sourceCode, filePath) => {
+    const start = sourceCode.indexOf('signal');
+    if (start === -1) {
+      return [];
+    }
+    return [
+      {
+        filePath,
+        fix: {
+          class: 'term-rewrite',
+          edits: [
+            {
+              end: start + 'signal'.length,
+              replacement: 'ping',
+              start,
+            },
+          ],
+          reason: 'safe rename',
+          safety: 'safe',
+        },
+        line: 1,
+        message: 'safe rename',
+        rule: 'synthetic-safe-fix',
+        severity: 'warn',
+      },
+    ];
+  },
+  description: 'synthetic safe source fix rule',
+  metadata: {
+    concern: 'general',
+    depth: 'source',
+    invariant: 'synthetic safe source fix test hook',
+    lifecycle: { retireWhen: 'test helper', state: 'temporary' },
+    scope: 'temporary',
+    tier: 'source-static',
+  },
+  name: 'synthetic-safe-fix',
+  severity: 'warn',
+});
 
 describe('runWarden basics', () => {
   test('produces a report with diagnostics for bad code', async () => {
@@ -749,7 +812,7 @@ trail("entity.save", {
       detours: [
         {
           on: ConflictError,
-          recover: () => Result.ok({ ok: true }),
+          recover: async () => Result.ok({ ok: true }),
         },
       ],
       input: z.object({}),
@@ -764,7 +827,7 @@ trail("entity.save", {
           recover: 'not callable',
         },
       ],
-    } as typeof validTrail;
+    } as unknown as typeof validTrail;
 
     const report = await runWarden({
       topo: topo('invalid-detour-contract', {
@@ -1087,6 +1150,245 @@ describe('runWarden draft markers', () => {
       );
 
       expect(hasDraftFileMarkingWarn).toBe(true);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+});
+
+describe('applySafeFixesToFiles', () => {
+  test('rewrites a file with a safe edit and reports applied counts', async () => {
+    const dir = makeTempDir();
+    try {
+      const filePath = join(dir, 'entity.ts');
+      writeFileSync(filePath, 'const signal = 1;');
+      const diagnostic: WardenDiagnostic = {
+        filePath,
+        fix: {
+          class: 'term-rewrite',
+          edits: [{ end: 12, replacement: 'ping', start: 6 }],
+          reason: 'rename signal to ping',
+          safety: 'safe',
+        },
+        line: 1,
+        message: 'rename signal',
+        rule: 'synthetic-safe-fix',
+        severity: 'warn',
+      };
+
+      const summary = await applySafeFixesToFiles([diagnostic], {
+        allowedFilePaths: [filePath],
+        rootDir: dir,
+      });
+
+      expect(summary).toMatchObject({
+        applied: 1,
+        filesChanged: 1,
+        skipped: 0,
+      });
+      expect(summary.appliedDiagnostics).toEqual([diagnostic]);
+      expect(readFileSync(filePath, 'utf8')).toBe('const ping = 1;');
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('leaves review-only and edit-less fixes unapplied and counted as skipped', async () => {
+    const dir = makeTempDir();
+    try {
+      const safePath = join(dir, 'safe.ts');
+      const reviewPath = join(dir, 'review.ts');
+      writeFileSync(safePath, 'const signal = 1;');
+      writeFileSync(reviewPath, 'const legacy = 1;');
+
+      const safe: WardenDiagnostic = {
+        filePath: safePath,
+        fix: {
+          class: 'term-rewrite',
+          edits: [{ end: 12, replacement: 'ping', start: 6 }],
+          reason: 'safe rename',
+          safety: 'safe',
+        },
+        line: 1,
+        message: 'safe rename',
+        rule: 'synthetic-safe-fix',
+        severity: 'warn',
+      };
+      const review: WardenDiagnostic = {
+        filePath: reviewPath,
+        fix: {
+          class: 'term-rewrite',
+          reason: 'needs human migration',
+          safety: 'review',
+        },
+        line: 1,
+        message: 'needs review',
+        rule: 'synthetic-review-fix',
+        severity: 'error',
+      };
+      const noFix: WardenDiagnostic = {
+        filePath: reviewPath,
+        line: 1,
+        message: 'no fix metadata',
+        rule: 'synthetic-no-fix',
+        severity: 'warn',
+      };
+
+      const summary = await applySafeFixesToFiles([safe, review, noFix], {
+        allowedFilePaths: [safePath, reviewPath],
+        rootDir: dir,
+      });
+
+      expect(summary).toMatchObject({
+        applied: 1,
+        filesChanged: 1,
+        skipped: 1,
+      });
+      expect(summary.appliedDiagnostics).toEqual([safe]);
+      // The review-targeted file is never read or written.
+      expect(readFileSync(reviewPath, 'utf8')).toBe('const legacy = 1;');
+      expect(readFileSync(safePath, 'utf8')).toBe('const ping = 1;');
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('skips safe diagnostics outside the root and scan set', async () => {
+    const dir = makeTempDir();
+    const outside = makeTempDir();
+    try {
+      const safePath = join(dir, 'safe.ts');
+      const unscannedPath = join(dir, 'unscanned.ts');
+      const outsidePath = join(outside, 'outside.ts');
+      writeFileSync(safePath, 'const signal = 1;');
+      writeFileSync(unscannedPath, 'const signal = 1;');
+      writeFileSync(outsidePath, 'const signal = 1;');
+
+      const summary = await applySafeFixesToFiles(
+        [
+          safeRenameDiagnostic(safePath),
+          safeRenameDiagnostic(unscannedPath),
+          safeRenameDiagnostic(outsidePath),
+        ],
+        {
+          allowedFilePaths: [safePath],
+          rootDir: dir,
+        }
+      );
+
+      expect(summary).toMatchObject({
+        applied: 1,
+        filesChanged: 1,
+        skipped: 2,
+      });
+      expect(summary.appliedDiagnostics).toEqual([
+        safeRenameDiagnostic(safePath),
+      ]);
+      expect(readFileSync(safePath, 'utf8')).toBe('const ping = 1;');
+      expect(readFileSync(unscannedPath, 'utf8')).toBe('const signal = 1;');
+      expect(readFileSync(outsidePath, 'utf8')).toBe('const signal = 1;');
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+      rmSync(outside, { force: true, recursive: true });
+    }
+  });
+});
+
+describe('runWarden --fix wiring', () => {
+  test('omits the fix summary when fix is not requested', async () => {
+    const dir = makeTempDir();
+    try {
+      writeFileSync(
+        join(dir, 'legacy.ts'),
+        '// references authLayer in a note'
+      );
+
+      const report = await runWarden({ rootDir: dir, tier: 'source-static' });
+
+      expect(report.fixes).toBeUndefined();
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('removes applied safe diagnostics from the final report', async () => {
+    const dir = makeTempDir();
+    try {
+      const filePath = join(dir, 'safe.ts');
+      writeFileSync(filePath, 'const signal = 1;');
+
+      const report = await runWarden({
+        extraSourceRules: [buildSyntheticSafeSourceRule()],
+        fix: true,
+        lock: 'skip',
+        rootDir: dir,
+      });
+
+      expect(readFileSync(filePath, 'utf8')).toBe('const ping = 1;');
+      expect(report.fixes).toEqual({
+        applied: 1,
+        filesChanged: 1,
+        skipped: 0,
+      });
+      expect(report.diagnostics.map((entry) => entry.rule)).not.toContain(
+        'synthetic-safe-fix'
+      );
+      expect(report.warnCount).toBe(0);
+      expect(report.errorCount).toBe(0);
+      expect(report.passed).toBe(true);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('blocks drift evidence after safe fixes change source', async () => {
+    const dir = makeTempDir();
+    try {
+      const filePath = join(dir, 'safe.ts');
+      writeFileSync(filePath, 'const signal = 1;');
+
+      const report = await runWarden({
+        extraSourceRules: [buildSyntheticSafeSourceRule()],
+        fix: true,
+        rootDir: dir,
+      });
+
+      expect(readFileSync(filePath, 'utf8')).toBe('const ping = 1;');
+      expect(report.diagnostics.map((entry) => entry.rule)).not.toContain(
+        'synthetic-safe-fix'
+      );
+      expect(report.drift?.blockedReason).toBe(
+        'Source fixes were applied; rerun Warden to refresh drift evidence.'
+      );
+      expect(report.passed).toBe(false);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('reports review-only legacy fixes as skipped without touching source', async () => {
+    const dir = makeTempDir();
+    try {
+      const filePath = join(dir, 'legacy.ts');
+      const source = '// references authLayer in a note';
+      writeFileSync(filePath, source);
+
+      const report = await runWarden({
+        fix: true,
+        rootDir: dir,
+        tier: 'source-static',
+      });
+
+      const legacyDiagnostics = report.diagnostics.filter(
+        (diagnostic) => diagnostic.rule === 'no-legacy-layer-imports'
+      );
+      expect(legacyDiagnostics.length).toBeGreaterThan(0);
+      expect(report.fixes).toBeDefined();
+      expect(report.fixes?.applied).toBe(0);
+      expect(report.fixes?.filesChanged).toBe(0);
+      expect(report.fixes?.skipped).toBeGreaterThanOrEqual(1);
+      // Review-only fixes never rewrite source.
+      expect(readFileSync(filePath, 'utf8')).toBe(source);
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }

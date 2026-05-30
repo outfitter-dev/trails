@@ -53,6 +53,37 @@ trail('entity.sync', {
     expect(diagnostics).toEqual([]);
   });
 
+  test('stays quiet when the internal trail is composed in-file but the project context omits it', () => {
+    // Mirrors the regrade tracer case (TRL-843): the project context only
+    // collects compose edges from registered app topos, so a package that is
+    // scanned but not part of any registered topo contributes a non-empty
+    // context set that nonetheless omits its own same-file compose edge. The
+    // rule must union the file-local compose evidence with the context set
+    // instead of preferring the incomplete context set.
+    const code = `
+const normalizeExportConstTrail = trail('regrade.literal.normalize-export-const', {
+  visibility: 'internal',
+  blaze: async () => Result.ok({}),
+});
+
+const literalRegradeTrail = trail('regrade.literal.run', {
+  composes: [normalizeExportConstTrail],
+  blaze: async (_input, ctx) => ctx.compose(normalizeExportConstTrail, {}),
+});
+`;
+
+    const diagnostics = deadInternalTrail.checkWithContext(code, TEST_FILE, {
+      // Non-empty, but omits the internal child id — exactly the topo-path gap.
+      composeTargetTrailIds: new Set(['some.other.trail']),
+      knownTrailIds: new Set([
+        'regrade.literal.run',
+        'regrade.literal.normalize-export-const',
+      ]),
+    });
+
+    expect(diagnostics).toEqual([]);
+  });
+
   test('stays quiet when the internal trail has on: activation', () => {
     const code = `
 trail('entity.audit', {

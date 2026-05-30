@@ -10,9 +10,9 @@ describe('wrapRule', () => {
   test('copies built-in rule metadata into trail meta', () => {
     const wrapped = wrapRule({ examples: [], rule: noThrowInImplementation });
 
-    expect(wrapped.meta?.category).toBe('governance');
-    expect(wrapped.meta?.severity).toBe('error');
-    expect(wrapped.meta?.warden).toMatchObject({
+    expect(wrapped.meta?.['category']).toBe('governance');
+    expect(wrapped.meta?.['severity']).toBe('error');
+    expect(wrapped.meta?.['warden']).toMatchObject({
       lifecycle: { state: 'durable' },
       tier: 'source-static',
     });

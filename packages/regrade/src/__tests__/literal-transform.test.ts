@@ -1,5 +1,9 @@
 import { describe, expect, test } from 'bun:test';
-import { executeTrail, filterSurfaceTrails } from '@ontrails/core';
+import {
+  executeTrail,
+  filterSurfaceTrails,
+  validateInput,
+} from '@ontrails/core';
 import { testExamples } from '@ontrails/testing';
 import { deriveTopoGraph } from '@ontrails/topographer';
 
@@ -18,11 +22,13 @@ describe('literal Regrade transform tracer', () => {
     );
 
     expect(result.isOk()).toBe(true);
-    expect(result.value).toEqual({
-      changed: true,
-      nextSource: 'export let answer = 41;',
-      notes: ['Rewrote export const declarations to export let.'],
-    });
+    if (result.isOk()) {
+      expect(result.value).toEqual({
+        changed: true,
+        nextSource: 'export let answer = 41;',
+        notes: ['Rewrote export const declarations to export let.'],
+      });
+    }
   });
 
   test('keeps internal transform trails off surfaces while retaining topo evidence', () => {
@@ -30,6 +36,9 @@ describe('literal Regrade transform tracer', () => {
       (entry) => entry.id
     );
     expect(surfaceIds).toContain(literalRegradeTrail.id);
+    expect(normalizeExportConstTrail.id).toBe(
+      'regrade.literal.normalize-export-const'
+    );
     expect(surfaceIds).not.toContain(normalizeExportConstTrail.id);
 
     const topoGraph = deriveTopoGraph(literalRegradeTopo);
@@ -45,6 +54,36 @@ describe('literal Regrade transform tracer', () => {
     expect(parent?.exampleCount).toBe(1);
     expect(child?.kind).toBe('trail');
     expect(child?.surfaces).toEqual([]);
+  });
+});
+
+describe('transformed input schema validation (TRL-842)', () => {
+  test('validates raw pre-transform input and projects it to blaze input', () => {
+    // The parent trail's input schema is a `.transform()` schema. Examples and
+    // testExamples() feed RAW pre-transform input ({ source }); validation must
+    // accept it and project it into the post-transform blaze input
+    // ({ child: { source } }). This pins the runtime contract that the
+    // type-level divergence documented in literal-transform.ts depends on.
+    const validated = validateInput(literalRegradeTrail.input, {
+      source: 'export const answer = 41;',
+    });
+
+    expect(validated.isOk()).toBe(true);
+    if (validated.isOk()) {
+      expect(validated.value).toEqual({
+        child: { source: 'export const answer = 41;' },
+      });
+    }
+  });
+
+  test('rejects input missing the raw pre-transform field', () => {
+    const validated = validateInput(literalRegradeTrail.input, {
+      // Post-transform shape is NOT valid raw input — the schema expects
+      // `source`, proving validation runs against the raw input contract.
+      child: { source: 'export const answer = 41;' },
+    });
+
+    expect(validated.isErr()).toBe(true);
   });
 });
 

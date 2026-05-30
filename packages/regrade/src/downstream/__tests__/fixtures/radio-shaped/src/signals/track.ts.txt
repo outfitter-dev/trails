@@ -1,0 +1,8 @@
+// Radio-shaped fixture: a notification-source module. The whole-word binding
+// below is the rewrite target; `defineSignal` is a partial match and must stay
+// untouched.
+import { defineSignal } from '@radio/runtime';
+
+export const signal = defineSignal('track.changed', {
+  trackId: 'string',
+});

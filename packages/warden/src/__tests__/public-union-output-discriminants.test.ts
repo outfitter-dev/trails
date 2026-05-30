@@ -5,6 +5,7 @@ import type { AnyTrail, TrailVisibility } from '@ontrails/core';
 import { z } from 'zod';
 
 import { publicUnionOutputDiscriminants } from '../rules/public-union-output-discriminants.js';
+import type { WardenDiagnostic } from '../rules/types.js';
 
 const emptyInput = z.object({});
 
@@ -31,8 +32,15 @@ const buildTopo = (...trails: readonly AnyTrail[]) =>
     )
   );
 
-const check = (...trails: readonly AnyTrail[]) =>
-  publicUnionOutputDiscriminants.checkTopo(buildTopo(...trails));
+const check = (...trails: readonly AnyTrail[]): readonly WardenDiagnostic[] => {
+  const diagnostics = publicUnionOutputDiscriminants.checkTopo(
+    buildTopo(...trails)
+  );
+  if (diagnostics instanceof Promise) {
+    throw new TypeError('public-union-output-discriminants runs synchronously');
+  }
+  return diagnostics;
+};
 
 describe('public-union-output-discriminants', () => {
   test('flags public object union outputs without a literal discriminator', () => {

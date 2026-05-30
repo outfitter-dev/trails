@@ -6,6 +6,7 @@ import { z } from 'zod';
 
 import { runWarden } from '../cli.js';
 import { publicOutputSchema } from '../rules/public-output-schema.js';
+import type { WardenDiagnostic } from '../rules/types.js';
 
 const emptyInput = z.object({});
 const outputSchema = z.object({ ok: z.boolean() });
@@ -36,8 +37,13 @@ const buildTopo = (...trails: readonly AnyTrail[]) =>
     )
   );
 
-const check = (...trails: readonly AnyTrail[]) =>
-  publicOutputSchema.checkTopo(buildTopo(...trails));
+const check = (...trails: readonly AnyTrail[]): readonly WardenDiagnostic[] => {
+  const diagnostics = publicOutputSchema.checkTopo(buildTopo(...trails));
+  if (diagnostics instanceof Promise) {
+    throw new TypeError('public-output-schema runs synchronously');
+  }
+  return diagnostics;
+};
 
 describe('public-output-schema', () => {
   test('flags public surface-eligible trails without output schemas', () => {

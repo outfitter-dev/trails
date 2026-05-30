@@ -13,6 +13,7 @@ Options:
   --apps, -a <names>           Comma-delimited Trails app names
   --config-path <path>         Path to trails.config.* file
   --root-dir <path>            Project root to inspect
+  --fix                        Apply safe source fixes
   --depth <value>              source, project, topo, or all
   --fail-on <value>            error or warning
   --format <value>             summary, github, or json

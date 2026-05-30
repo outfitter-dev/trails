@@ -1,0 +1,5 @@
+// Radio-shaped fixture: build output materialized under dist/. The collector
+// must skip the entire dist/ directory, so this `signal` occurrence is never
+// scanned. Committed under `dist-guard/` because `dist/` is gitignored
+// repo-wide; materializeFixture renames it back to `dist/` at runtime.
+export const signal = 'built-artifact';
