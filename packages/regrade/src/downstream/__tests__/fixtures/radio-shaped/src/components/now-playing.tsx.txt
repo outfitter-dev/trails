@@ -1,0 +1,3 @@
+// Radio-shaped fixture: a .tsx component with no matching term — a no-op for
+// the term-rewrite class, and proof that .tsx files are collected.
+export const NowPlaying = (): null => null;
