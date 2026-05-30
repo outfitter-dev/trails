@@ -127,11 +127,24 @@ export const deadInternalTrail: ProjectAwareWardenRule = {
     const localComposeTargetTrailIds = ast
       ? collectComposeTargetTrailIds(ast, sourceCode)
       : new Set<string>();
+    // Union project-wide compose evidence with the file-local evidence rather
+    // than preferring one over the other. The project context only collects
+    // compose edges from registered app topos, so a trail defined in a package
+    // that is scanned but not part of any registered topo (e.g. an internal
+    // child composed in its own module) would be absent from the context set
+    // yet present in the local set. Preferring the context set alone produced a
+    // false dead-internal-trail warning for those same-file compositions.
+    const composeTargetTrailIds = context.composeTargetTrailIds
+      ? new Set<string>([
+          ...context.composeTargetTrailIds,
+          ...localComposeTargetTrailIds,
+        ])
+      : localComposeTargetTrailIds;
     return checkDeadInternalTrails(
       ast,
       sourceCode,
       filePath,
-      context.composeTargetTrailIds ?? localComposeTargetTrailIds
+      composeTargetTrailIds
     );
   },
   description:
