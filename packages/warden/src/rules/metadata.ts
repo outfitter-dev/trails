@@ -272,6 +272,7 @@ const builtinWardenRuleMetadataInput = {
     tier: 'source-static',
   },
   'no-legacy-layer-imports': {
+    fix: { class: 'term-rewrite', safety: 'review' },
     invariant:
       'Legacy layer exports removed across TRL-475/TRL-476 (authLayer, autoIterateLayer, dateShortcutsLayer) do not reappear in committed source.',
     lifecycle: {

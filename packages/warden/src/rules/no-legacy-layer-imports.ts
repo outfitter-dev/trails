@@ -33,7 +33,7 @@
  */
 import { resolve, sep } from 'node:path';
 
-import type { WardenDiagnostic, WardenRule } from './types.js';
+import type { WardenDiagnostic, WardenFix, WardenRule } from './types.js';
 
 const RULE_NAME = 'no-legacy-layer-imports';
 
@@ -165,6 +165,23 @@ const buildMessage = (name: LegacyLayerName): string => {
 };
 
 /**
+ * Build the term-rewrite fix metadata for a legacy layer finding.
+ *
+ * These layers were removed, not renamed, so there is no mechanical
+ * replacement: the fix is review-required and carries no edits. It still
+ * advertises the transform class and migration reason so `warden --fix`
+ * reports (but never auto-applies) it and downstream regrades can route it.
+ */
+const buildFix = (name: LegacyLayerName): WardenFix => {
+  const migration = LEGACY_LAYER_MIGRATIONS[name];
+  return {
+    class: 'term-rewrite',
+    reason: `Legacy layer '${name}' was removed in ${migration.removedIn}; ${migration.guidance}. Removal has no mechanical replacement, so it needs human migration.`,
+    safety: 'review',
+  };
+};
+
+/**
  * Flags references to the removed legacy layer symbols in committed source.
  */
 export const noLegacyLayerImports: WardenRule = {
@@ -179,6 +196,7 @@ export const noLegacyLayerImports: WardenRule = {
     return [
       {
         filePath,
+        fix: buildFix(match.name),
         line: lineForOffset(sourceCode, match.index),
         message: buildMessage(match.name),
         rule: RULE_NAME,
