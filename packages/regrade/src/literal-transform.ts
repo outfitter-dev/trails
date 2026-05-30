@@ -15,6 +15,51 @@ const childInput = z.object({
   source: z.string(),
 });
 
+/**
+ * Parent input schema with its raw-to-blaze transform attached.
+ *
+ * Naming the transformed schema lets examples and tests reference both its raw
+ * pre-transform input (`z.input`) and its post-transform blaze input
+ * (`z.infer`) without restating either shape by hand.
+ */
+const regradeTransformInputToChild = regradeTransformInput.transform(
+  ({ source }) => ({
+    child: { source },
+  })
+);
+
+/**
+ * Raw, pre-transform input accepted by {@link regradeTransformInputToChild}.
+ *
+ * Trail examples and `testExamples()` feed this shape through validation; the
+ * Zod transform then projects it into the blaze input.
+ */
+type RegradeTransformRawInput = z.input<typeof regradeTransformInputToChild>;
+
+/**
+ * Post-transform blaze input shape — the trail's inferred input type `I`.
+ *
+ * TRL-842: With a `.transform()` input schema, the trail's inferred input type
+ * `I` is the transform OUTPUT (the blaze input), while examples and
+ * `testExamples()` validate the raw pre-transform INPUT. Those two shapes are
+ * disjoint, so an authored example must carry raw input typed as the
+ * post-transform shape. A framework-level fix would thread a separate
+ * `z.input<>` raw-input type parameter through `TrailSpec`, `Trail`, and every
+ * `trail()` overload — a core-wide generics change beyond this tracer. Until
+ * then the divergence is captured by the two named types here and exercised by
+ * the runtime validation test in `__tests__/literal-transform.test.ts`.
+ */
+type RegradeTransformBlazeInput = z.infer<typeof regradeTransformInputToChild>;
+
+/**
+ * Raw example input, statically checked as valid pre-transform input. If the
+ * input schema changes so this literal is no longer valid raw input, source
+ * typecheck fails here instead of silently relying on the cast below.
+ */
+const codeStringExampleInput: RegradeTransformRawInput = {
+  source: 'export const answer = 41;',
+};
+
 export const normalizeExportConstTrail = trail(
   'regrade.literal.normalize-export-const',
   {
@@ -54,17 +99,15 @@ export const literalRegradeTrail = trail('regrade.literal.run', {
         nextSource: 'export let answer = 41;',
         notes: ['Rewrote export const declarations to export let.'],
       },
-      // Trail examples execute raw input before Zod transforms; the authored type
-      // currently reflects the post-transform blaze input shape.
-      input: { source: 'export const answer = 41;' } as unknown as {
-        child: { source: string };
-      },
+      // TRL-842: author the raw pre-transform value (validated as
+      // RegradeTransformRawInput) and widen through `unknown` to the trail's
+      // inferred post-transform input type. The runtime still parses raw input;
+      // see RegradeTransformBlazeInput for why the two shapes diverge.
+      input: codeStringExampleInput as unknown as RegradeTransformBlazeInput,
       name: 'code-string fixture',
     },
   ],
-  input: regradeTransformInput.transform(({ source }) => ({
-    child: { source },
-  })),
+  input: regradeTransformInputToChild,
   output: regradeTransformOutput,
 });
 
