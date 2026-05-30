@@ -40,6 +40,7 @@ const wardenInputSchema = z.object({
     .default(false)
     .describe('Alias for --drafts exclude'),
   failOn: z.enum(wardenFailOnValues).optional().describe('Failure threshold'),
+  fix: z.boolean().default(false).describe('Apply safe source fixes'),
   format: z.enum(wardenFormatValues).optional().describe('Output format'),
   github: z.boolean().default(false).describe('Alias for --format github'),
   includeDrafts: z
@@ -129,6 +130,7 @@ export const buildWardenCommandArgs = (
     pushValue(args, '--drafts', input.drafts);
   }
   pushFlag(args, input.noLockMutation, '--no-lock-mutation');
+  pushFlag(args, input.fix, '--fix');
   pushValue(args, '--config-path', input.configPath);
   pushApps(args, input.apps);
 
@@ -153,6 +155,7 @@ export const wardenTrail = trail('warden', {
       diagnostics: [...report.diagnostics],
       drift: report.drift,
       errorCount: report.errorCount,
+      fixes: report.fixes,
       formatted: result.output,
       passed: report.passed,
       warnCount: report.warnCount,
@@ -174,7 +177,7 @@ export const wardenTrail = trail('warden', {
     },
   ],
   input: wardenInputSchema,
-  intent: 'read',
+  intent: 'write',
   output: z.object({
     diagnostics: z.array(
       diagnosticSchema.extend({ topoName: z.string().optional() })
@@ -188,8 +191,16 @@ export const wardenTrail = trail('warden', {
       })
       .nullable(),
     errorCount: z.number(),
+    fixes: z
+      .object({
+        applied: z.number(),
+        filesChanged: z.number(),
+        skipped: z.number(),
+      })
+      .optional(),
     formatted: z.string(),
     passed: z.boolean(),
     warnCount: z.number(),
   }),
+  permit: 'public',
 });

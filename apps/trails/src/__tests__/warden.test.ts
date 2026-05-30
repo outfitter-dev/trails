@@ -177,6 +177,14 @@ const writeAllDepthWarningFixture = (dir: string): void => {
 };
 
 describe('trails warden', () => {
+  test('declares write intent because --fix can mutate source files', () => {
+    expect(wardenTrail.intent).toBe('write');
+  });
+
+  test('declares public permit access for the local governance command', () => {
+    expect(wardenTrail.permit).toBe('public');
+  });
+
   test('projects final Warden flags into the shared command surface', () => {
     const args = buildWardenCommandArgs({
       apps: ['trails', 'demo'],
@@ -186,6 +194,7 @@ describe('trails warden', () => {
       drafts: 'include',
       excludeDrafts: true,
       failOn: 'error',
+      fix: true,
       format: 'summary',
       github: true,
       includeDrafts: false,
@@ -209,6 +218,7 @@ describe('trails warden', () => {
       '--cached',
       '--exclude-drafts',
       '--no-lock-mutation',
+      '--fix',
       '--apps',
       'trails,demo',
     ]);
@@ -307,6 +317,7 @@ describe('trails warden', () => {
       ],
       drift: null,
       errorCount: 1,
+      fixes: undefined,
       formatted: 'Result: FAIL',
       passed: false,
       warnCount: 0,
@@ -341,6 +352,7 @@ describe('trails warden', () => {
     expect(raw.stderr).toBe('');
     expect(raw.stdout).toContain('Usage: warden [options]');
     expect(raw.stdout).toContain('--depth <value>');
+    expect(raw.stdout).toContain('--fix');
     expect(raw.stdout).not.toContain('Warden Report');
   });
 

@@ -60,6 +60,7 @@ export const formatJson = (report: WardenReport): string => {
     {
       diagnostics: report.diagnostics,
       drift: report.drift,
+      fixes: report.fixes,
       passed: report.passed,
       summary,
     },
@@ -150,6 +151,16 @@ const driftSection = (drift: WardenReport['drift']): readonly string[] => {
   ];
 };
 
+/** Render safe-fix counts when a fix pass was requested. */
+const fixSummaryLine = (fixes: WardenReport['fixes']): readonly string[] => {
+  if (fixes === undefined) {
+    return [];
+  }
+  return [
+    `**Fixes:** ${String(fixes.applied)} applied, ${String(fixes.filesChanged)} files changed, ${String(fixes.skipped)} skipped`,
+  ];
+};
+
 /**
  * Produce a concise markdown summary suitable for a GitHub job summary or PR comment.
  *
@@ -164,6 +175,7 @@ export const formatSummary = (report: WardenReport): string => {
     '## Warden Report',
     '',
     `**Result: ${result}** | ${String(report.errorCount)} errors, ${String(report.warnCount)} warnings`,
+    ...fixSummaryLine(report.fixes),
     ...severitySection('Errors', errors),
     ...severitySection('Warnings', warnings),
     ...driftSection(report.drift),

@@ -1,4 +1,10 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
@@ -60,6 +66,15 @@ describe('parseWardenCommandArgs', () => {
       'Invalid --format value "xml". Expected one of: summary, github, json.'
     );
   });
+
+  test('parses --fix as a boolean flag', () => {
+    expect(parseWardenCommandArgs(['--fix']).fix).toBe(true);
+    expect(parseWardenCommandArgs(['--fix']).diagnostics).toEqual([]);
+  });
+
+  test('defaults --fix to false when absent', () => {
+    expect(parseWardenCommandArgs([]).fix).toBe(false);
+  });
 });
 
 describe('runWardenCommand', () => {
@@ -78,6 +93,89 @@ describe('runWardenCommand', () => {
           (diagnostic) => diagnostic.rule === 'topo-load'
         )
       ).toBe(false);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('--fix threads through to the runner and reports review-only fixes as skipped', async () => {
+    const dir = makeTempDir();
+    try {
+      const filePath = join(dir, 'legacy.ts');
+      const source = '// references authLayer in a note';
+      writeFileSync(filePath, source);
+
+      const result = await runWardenCommand({
+        args: ['--fix', '--depth', 'source', '--lock', 'skip'],
+        cwd: dir,
+        env: {},
+      });
+
+      expect(result.report.fixes).toBeDefined();
+      expect(result.report.fixes?.applied).toBe(0);
+      expect(result.report.fixes?.filesChanged).toBe(0);
+      expect(result.report.fixes?.skipped).toBeGreaterThanOrEqual(1);
+      expect(result.output).toContain('**Fixes:** 0 applied, 0 files changed,');
+      // Review-only legacy fixes never rewrite source.
+      expect(readFileSync(filePath, 'utf8')).toBe(source);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('omits the fix summary when --fix is not passed', async () => {
+    const dir = makeTempDir();
+    try {
+      writeFileSync(
+        join(dir, 'legacy.ts'),
+        '// references authLayer in a note'
+      );
+
+      const result = await runWardenCommand({
+        args: ['--depth', 'source', '--lock', 'skip'],
+        cwd: dir,
+        env: {},
+      });
+
+      expect(result.report.fixes).toBeUndefined();
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('--fix JSON output includes the fix summary', async () => {
+    const dir = makeTempDir();
+    try {
+      writeFileSync(
+        join(dir, 'legacy.ts'),
+        '// references authLayer in a note'
+      );
+
+      const result = await runWardenCommand({
+        args: [
+          '--fix',
+          '--format',
+          'json',
+          '--depth',
+          'source',
+          '--lock',
+          'skip',
+        ],
+        cwd: dir,
+        env: {},
+      });
+      const output = JSON.parse(result.output) as {
+        readonly fixes?: {
+          readonly applied: number;
+          readonly filesChanged: number;
+          readonly skipped: number;
+        };
+      };
+
+      expect(output.fixes).toEqual(result.report.fixes);
+      expect(output.fixes?.applied).toBe(0);
+      expect(output.fixes?.filesChanged).toBe(0);
+      expect(output.fixes?.skipped).toBeGreaterThanOrEqual(1);
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }

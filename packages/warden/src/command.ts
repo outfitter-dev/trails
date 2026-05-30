@@ -132,6 +132,7 @@ export interface ParsedWardenCommand {
   readonly cli: WardenConfigLayer;
   readonly configPath?: string | undefined;
   readonly diagnostics: readonly WardenDiagnostic[];
+  readonly fix: boolean;
   readonly prePush: boolean;
   readonly rootDir?: string | undefined;
 }
@@ -140,6 +141,7 @@ const createEmptyParsedCommand = (message: string): ParsedWardenCommand => ({
   ci: false,
   cli: {},
   diagnostics: [diagnostic({ message })],
+  fix: false,
   prePush: false,
 });
 
@@ -153,6 +155,7 @@ interface CommandParserState {
   readonly diagnostics: WardenDiagnostic[];
   readonly cli: MutableWardenConfigLayer;
   configPath?: string | undefined;
+  fix?: boolean | undefined;
   rootDir?: string | undefined;
 }
 
@@ -238,6 +241,7 @@ const parseTokens = (
         depth: { type: 'string' },
         drafts: { type: 'string' },
         'fail-on': { type: 'string' },
+        fix: { type: 'boolean' },
         format: { type: 'string' },
         lock: { type: 'string' },
         'no-lock-mutation': { type: 'boolean' },
@@ -388,6 +392,10 @@ const applyCommandOption = (
     state.configPath = value;
     return;
   }
+  if (token.name === 'fix') {
+    state.fix = true;
+    return;
+  }
   if (token.name === 'no-lock-mutation') {
     state.cli.noLockMutation = true;
     return;
@@ -443,6 +451,7 @@ export const parseWardenCommandArgs = (
     ) as WardenConfigLayer,
     configPath: state.configPath,
     diagnostics: state.diagnostics,
+    fix: state.fix ?? false,
     prePush,
     rootDir: state.rootDir,
   };
@@ -791,12 +800,14 @@ const buildRunOptions = ({
   cli,
   config,
   env,
+  fix,
   rootDir,
   topos,
 }: {
   readonly cli: WardenConfigLayer;
   readonly config?: WardenConfigInput | undefined;
   readonly env: EnvRecord;
+  readonly fix: boolean;
   readonly rootDir: string;
   readonly topos: readonly WardenTopoTarget[];
 }): WardenRunOptions => ({
@@ -806,6 +817,7 @@ const buildRunOptions = ({
     depth: cli.depth,
     drafts: cli.drafts,
     failOn: cli.failOn,
+    fix,
     format: cli.format,
     lock: cli.lock,
     noLockMutation: cli.noLockMutation,
@@ -907,6 +919,7 @@ export const runWardenCommand = async ({
       cli: parsed.cli,
       config: loadedConfig.config,
       env,
+      fix: parsed.fix,
       rootDir,
       topos: topoResolution.topos,
     })

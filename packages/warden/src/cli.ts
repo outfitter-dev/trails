@@ -5,7 +5,7 @@
  * and returns a structured report.
  */
 
-import { resolve } from 'node:path';
+import { isAbsolute, relative, resolve } from 'node:path';
 
 import type { Topo } from '@ontrails/core';
 import { deriveTopoGraph } from '@ontrails/topographer';
@@ -23,6 +23,7 @@ import type {
 } from './config.js';
 import { resolveWardenConfig } from './config.js';
 import { isDraftMarkedFile } from './draft.js';
+import { applySafeFixesToSource, hasSafeFixEdits } from './fix.js';
 import type { DriftResult } from './drift.js';
 import { checkDrift } from './drift.js';
 import {
@@ -85,6 +86,13 @@ export interface WardenRunOptions {
   readonly drafts?: EffectiveWardenConfig['drafts'] | undefined;
   /** Failure threshold used to compute `report.passed`. */
   readonly failOn?: WardenFailOn | undefined;
+  /**
+   * Apply safe source fixes among the run's diagnostics, writing changed files.
+   *
+   * Only `safety: 'safe'` fixes with concrete edits are applied; review-required,
+   * edit-less, and topo diagnostics stay reported but unapplied.
+   */
+  readonly fix?: boolean | undefined;
   /** Output format requested by the caller. */
   readonly format?: WardenFormat | undefined;
   /** Lockfile mode requested by the caller. */
@@ -129,10 +137,34 @@ export interface WardenRunOptions {
    * when `topo` is also supplied (see `topo` remarks).
    */
   readonly extraTopoRules?: readonly TopoAwareWardenRule[] | undefined;
+  /**
+   * Extra source rules to run in addition to the built-in registry.
+   *
+   * Primarily a test hook — production callers should register durable rules
+   * via `wardenRules` in `rules/index.ts`.
+   */
+  readonly extraSourceRules?: readonly WardenRule[] | undefined;
 }
 
 /** Backwards-compatible name for older consumers. */
 export type WardenOptions = WardenRunOptions;
+
+/**
+ * Aggregate outcome of a `--fix` pass over a run's diagnostics.
+ */
+export interface WardenFixSummary {
+  /** Diagnostics whose safe fix was applied to source. */
+  readonly applied: number;
+  /** Source files rewritten with patched content. */
+  readonly filesChanged: number;
+  /** Diagnostics carrying fix metadata left unapplied (review or edit-less). */
+  readonly skipped: number;
+}
+
+export interface WardenFixApplication extends WardenFixSummary {
+  /** Diagnostics removed from the final report because their safe fix applied. */
+  readonly appliedDiagnostics: readonly WardenDiagnostic[];
+}
 
 /**
  * Result of a warden run.
@@ -152,6 +184,8 @@ export interface WardenReport {
   readonly effectiveConfig?: EffectiveWardenConfig | undefined;
   /** Resolved topo/app labels governed by this run. */
   readonly topoNames?: readonly string[] | undefined;
+  /** Safe-fix application summary, present only when a `--fix` pass ran. */
+  readonly fixes?: WardenFixSummary | undefined;
 }
 
 /**
@@ -990,11 +1024,13 @@ const lintTopo = async (
 const lintSourceFiles = (
   sourceFiles: readonly SourceFile[],
   context: ProjectContext,
+  extraSourceRules: readonly WardenRule[],
   selector: WardenRuleSelector
 ): readonly WardenDiagnostic[] => {
   const diagnostics: WardenDiagnostic[] = [];
+  const rules = [...wardenRules.values(), ...extraSourceRules];
   for (const sourceFile of sourceFiles) {
-    for (const rule of wardenRules.values()) {
+    for (const rule of rules) {
       if (
         sourceFile.kind === 'text' &&
         rule.name !== 'no-dev-permit-in-source' &&
@@ -1077,17 +1113,26 @@ const selectorIncludesTopoRules = (selector: WardenRuleSelector): boolean => {
 /**
  * Lint all files against all warden rules.
  */
+interface WardenLintResult {
+  readonly diagnostics: readonly WardenDiagnostic[];
+  readonly sourceFiles: readonly SourceFile[];
+}
+
 const lintFiles = async (
   rootDir: string,
   drafts: EffectiveWardenConfig['drafts'],
   topoTargets: readonly WardenTopoTarget[],
   extraTopoRules: readonly TopoAwareWardenRule[],
+  extraSourceRules: readonly WardenRule[],
   selector: WardenRuleSelector
-): Promise<WardenDiagnostic[]> => {
+): Promise<WardenLintResult> => {
   if (selector.tier === 'topo-aware') {
-    return [
-      ...(await lintTopoTargets(topoTargets, extraTopoRules, selector, true)),
-    ];
+    return {
+      diagnostics: [
+        ...(await lintTopoTargets(topoTargets, extraTopoRules, selector, true)),
+      ],
+      sourceFiles: [],
+    };
   }
 
   const sourceFiles = filterSourceFilesByDraftMode(
@@ -1100,7 +1145,7 @@ const lintFiles = async (
     topoTargets.map((target) => target.topo)
   );
   const allDiagnostics: WardenDiagnostic[] = [
-    ...lintSourceFiles(sourceFiles, context, selector),
+    ...lintSourceFiles(sourceFiles, context, extraSourceRules, selector),
   ];
 
   if (
@@ -1118,7 +1163,7 @@ const lintFiles = async (
     );
   }
 
-  return allDiagnostics;
+  return { diagnostics: allDiagnostics, sourceFiles };
 };
 
 const topoTargetsFromOptions = (
@@ -1270,6 +1315,101 @@ const buildCliConfigLayer = (options: WardenRunOptions): WardenConfigLayer => ({
     : { noLockMutation: options.noLockMutation }),
 });
 
+const fixSummary = (application: WardenFixApplication): WardenFixSummary => ({
+  applied: application.applied,
+  filesChanged: application.filesChanged,
+  skipped: application.skipped,
+});
+
+const filterAppliedFixDiagnostics = (
+  diagnostics: readonly WardenDiagnostic[],
+  appliedDiagnostics: readonly WardenDiagnostic[]
+): readonly WardenDiagnostic[] => {
+  if (appliedDiagnostics.length === 0) {
+    return diagnostics;
+  }
+  const applied = new Set(appliedDiagnostics);
+  return diagnostics.filter((diagnostic) => !applied.has(diagnostic));
+};
+
+const blockedDriftAfterSourceFixes = (): DriftResult => ({
+  blockedReason:
+    'Source fixes were applied; rerun Warden to refresh drift evidence.',
+  committedHash: null,
+  currentHash: 'blocked',
+  stale: true,
+});
+
+/**
+ * Apply every safe source fix among a run's diagnostics, writing patched files.
+ *
+ * Diagnostics with a safe, edit-bearing fix are grouped by file; each file is
+ * re-read so the rule's recorded offsets stay valid, patched via
+ * {@link applySafeFixesToSource}, and written back only when its source
+ * actually changed. Diagnostics that carry fix metadata but are not safe with
+ * edits (review-required or edit-less) are counted as skipped and left reported
+ * for a human or downstream regrade to resolve. Diagnostics without fix
+ * metadata — including topo diagnostics, which carry no source span — are
+ * neither applied nor counted in `skipped`.
+ */
+export const applySafeFixesToFiles = async (
+  diagnostics: readonly WardenDiagnostic[],
+  options: {
+    readonly allowedFilePaths?: ReadonlySet<string> | readonly string[];
+    readonly rootDir: string;
+  }
+): Promise<WardenFixApplication> => {
+  const rootDir = resolve(options.rootDir);
+  const allowedFilePaths =
+    options.allowedFilePaths === undefined
+      ? undefined
+      : new Set(
+          [...options.allowedFilePaths].map((filePath) => resolve(filePath))
+        );
+  const fixableByFile = new Map<string, WardenDiagnostic[]>();
+  let skipped = 0;
+  for (const diagnostic of diagnostics) {
+    if (diagnostic.fix === undefined) {
+      continue;
+    }
+    if (hasSafeFixEdits(diagnostic)) {
+      const filePath = resolve(diagnostic.filePath);
+      const rootRelativePath = relative(rootDir, filePath);
+      const insideRoot =
+        rootRelativePath.length === 0 ||
+        (!rootRelativePath.startsWith('..') && !isAbsolute(rootRelativePath));
+      if (
+        !insideRoot ||
+        (allowedFilePaths !== undefined && !allowedFilePaths.has(filePath))
+      ) {
+        skipped += 1;
+        continue;
+      }
+      const bucket = fixableByFile.get(filePath) ?? [];
+      bucket.push(diagnostic);
+      fixableByFile.set(filePath, bucket);
+    } else {
+      skipped += 1;
+    }
+  }
+
+  let applied = 0;
+  const appliedDiagnostics: WardenDiagnostic[] = [];
+  let filesChanged = 0;
+  for (const [filePath, group] of fixableByFile) {
+    const source = await Bun.file(filePath).text();
+    const result = applySafeFixesToSource(source, group);
+    applied += result.applied.length;
+    appliedDiagnostics.push(...result.applied);
+    if (result.changed) {
+      await Bun.write(filePath, result.patched);
+      filesChanged += 1;
+    }
+  }
+
+  return { applied, appliedDiagnostics, filesChanged, skipped };
+};
+
 /**
  * Run all warden checks and return a structured report.
  */
@@ -1298,39 +1438,62 @@ export const runWarden = async (
   } satisfies WardenRuleSelector;
   const runLint = shouldRunLint(options);
   const runDrift = shouldRunDrift(options, effectiveConfig);
+  const lintResult = runLint
+    ? await lintFiles(
+        rootDir,
+        effectiveConfig.drafts,
+        topoTargets,
+        options.extraTopoRules ?? [],
+        options.extraSourceRules ?? [],
+        selector
+      )
+    : { diagnostics: [], sourceFiles: [] };
 
   const rawDiagnostics = [
     ...configDiagnostics,
     ...optionDiagnostics,
-    ...(runLint
-      ? await lintFiles(
-          rootDir,
-          effectiveConfig.drafts,
-          topoTargets,
-          options.extraTopoRules ?? [],
-          selector
-        )
-      : []),
+    ...lintResult.diagnostics,
   ];
   const allDiagnostics = rawDiagnostics.map(withDiagnosticGuidance);
-  const drift = runDrift
-    ? await checkDriftForTopoTargets(rootDir, topoTargets)
-    : null;
+  const fixApplication = options.fix
+    ? await applySafeFixesToFiles(allDiagnostics, {
+        allowedFilePaths: lintResult.sourceFiles.map(
+          (sourceFile) => sourceFile.filePath
+        ),
+        rootDir,
+      })
+    : undefined;
+  const reportDiagnostics = filterAppliedFixDiagnostics(
+    allDiagnostics,
+    fixApplication?.appliedDiagnostics ?? []
+  );
+  let drift: DriftResult | null = null;
+  if (runDrift) {
+    drift =
+      fixApplication !== undefined && fixApplication.filesChanged > 0
+        ? blockedDriftAfterSourceFixes()
+        : await checkDriftForTopoTargets(rootDir, topoTargets);
+  }
 
-  const errorCount = allDiagnostics.filter(
+  const errorCount = reportDiagnostics.filter(
     (d) => d.severity === 'error'
   ).length;
-  const warnCount = allDiagnostics.filter((d) => d.severity === 'warn').length;
+  const warnCount = reportDiagnostics.filter(
+    (d) => d.severity === 'warn'
+  ).length;
   const topoNames =
     topoTargets.length > 0
       ? topoTargets.map((target) => target.name ?? target.topo.name)
       : undefined;
 
   return {
-    diagnostics: allDiagnostics,
+    diagnostics: reportDiagnostics,
     drift,
     effectiveConfig,
     errorCount,
+    ...(fixApplication === undefined
+      ? {}
+      : { fixes: fixSummary(fixApplication) }),
     passed: reportPassed({
       drift,
       errorCount,
