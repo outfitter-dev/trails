@@ -4,6 +4,8 @@ import {
   buildWardenGuideManifest,
   formatWardenGuide,
   wardenDepthValues,
+  wardenFixClasses,
+  wardenFixSafeties,
   wardenGuideFormatValues,
   wardenRuleConcerns,
   wardenRuleLifecycleStates,
@@ -31,6 +33,12 @@ const wardenRuleGuideEntrySchema = z.object({
   depth: z.enum(wardenDepthValues),
   description: z.string(),
   docs: z.array(wardenGuidanceLinkSchema).readonly(),
+  fix: z
+    .object({
+      class: z.enum(wardenFixClasses),
+      safety: z.enum(wardenFixSafeties),
+    })
+    .optional(),
   guidance: wardenGuidanceSchema.optional(),
   id: z.string(),
   invariant: z.string(),

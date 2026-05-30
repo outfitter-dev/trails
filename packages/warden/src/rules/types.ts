@@ -93,6 +93,80 @@ export interface WardenGuidance {
 }
 
 /**
+ * Transform class a fix belongs to.
+ *
+ * Names the kind of mechanical change so agents, the guide, and downstream
+ * regrades can route by class. `term-rewrite` is the durable name for retired
+ * vocabulary renames (`vocab-cutover` is historical wording only).
+ */
+export type WardenFixClass = 'term-rewrite';
+
+/**
+ * How safe a fix is to apply without human review.
+ *
+ * - `safe`: a deterministic, scope-correct source edit `warden --fix` may apply
+ *   automatically.
+ * - `review`: the change is understood but needs human judgement (ambiguous
+ *   span, removal with no mechanical replacement, semantic follow-up). The
+ *   finding stays reported; `warden --fix` never applies it.
+ */
+export type WardenFixSafety = 'review' | 'safe';
+
+/**
+ * A concrete, half-open source edit `[start, end)` replaced by `replacement`.
+ *
+ * Offsets are JavaScript string indices into the exact analyzed source text,
+ * matching `String.prototype.slice()` and the `offsetToLine` helper the rules
+ * already use. Carrying an explicit span (not just a line) lets `warden --fix`
+ * apply edits deterministically and
+ * last-to-first without re-parsing.
+ */
+export interface WardenFixEdit {
+  /** Inclusive start offset into the source. */
+  readonly start: number;
+  /** Exclusive end offset into the source. */
+  readonly end: number;
+  /** Text that replaces the `[start, end)` span. */
+  readonly replacement: string;
+}
+
+/**
+ * Per-finding fix metadata attached to a diagnostic.
+ *
+ * Authored on the diagnostic at construction because only the rule that matched
+ * knows the concrete span. `warden --fix` applies `edits` only when
+ * `safety` is `safe`; `review` fixes stay reported with their guidance so a
+ * human (or a downstream regrade) can resolve them.
+ */
+export interface WardenFix {
+  /** Transform class this fix belongs to. */
+  readonly class: WardenFixClass;
+  /** Whether `warden --fix` may apply this automatically. */
+  readonly safety: WardenFixSafety;
+  /** Source edits to apply, when `safety` is `safe`. Empty for review-only. */
+  readonly edits?: readonly WardenFixEdit[] | undefined;
+  /** Why the fix is needed and what it changes, for humans and migration notes. */
+  readonly reason: string;
+  /** Optional pointer to a fixture or example demonstrating the fix. */
+  readonly fixture?: string | undefined;
+}
+
+/**
+ * Per-rule fix capability, projected into the guide/manifest.
+ *
+ * Declares that a rule can emit {@link WardenFix} metadata and the default
+ * safety for its fixes, so `warden --help`, the guide, and agent surfaces can
+ * advertise fix availability without a finding in hand. Concrete edits still
+ * live on each diagnostic's {@link WardenFix}.
+ */
+export interface WardenFixCapability {
+  /** Transform class the rule's fixes belong to. */
+  readonly class: WardenFixClass;
+  /** Default safety for fixes this rule emits. */
+  readonly safety: WardenFixSafety;
+}
+
+/**
  * Stable metadata used to classify Warden rules before dispatch filtering.
  */
 export interface WardenRuleMetadata {
@@ -110,6 +184,8 @@ export interface WardenRuleMetadata {
   readonly tier: WardenRuleTier;
   /** Structured remediation guidance for diagnostics emitted by this rule. */
   readonly guidance?: WardenGuidance | undefined;
+  /** Declares that this rule can emit fix metadata, for guide projection. */
+  readonly fix?: WardenFixCapability | undefined;
 }
 
 /**
@@ -130,6 +206,8 @@ export interface WardenDiagnostic {
   readonly topoName?: string | undefined;
   /** Optional finding-level guidance. Defaults from rule metadata when absent. */
   readonly guidance?: WardenGuidance | undefined;
+  /** Optional structured fix for this finding. `warden --fix` applies safe edits. */
+  readonly fix?: WardenFix | undefined;
 }
 
 /**

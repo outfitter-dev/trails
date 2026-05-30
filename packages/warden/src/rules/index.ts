@@ -64,6 +64,11 @@ import { wardenRulesUseAst } from './warden-rules-use-ast.js';
 import { webhookRouteCollision } from './webhook-route-collision.js';
 
 export type {
+  WardenFix,
+  WardenFixCapability,
+  WardenFixClass,
+  WardenFixEdit,
+  WardenFixSafety,
   WardenGuidance,
   WardenGuidanceLink,
   WardenRuleLifecycle,
@@ -84,6 +89,8 @@ export {
   builtinWardenRuleMetadata,
   getWardenRuleMetadata,
   listWardenRuleMetadata,
+  wardenFixClasses,
+  wardenFixSafeties,
   wardenRuleConcerns,
   wardenRuleLifecycleStates,
   wardenRuleScopes,
