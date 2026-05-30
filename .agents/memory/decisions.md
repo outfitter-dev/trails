@@ -78,3 +78,23 @@
 - Accept silently, no coaching — rejected: leaves the false-positive re-wrap diagnostic in place for destructured authors and gives no path to the canonical shape.
 
 **Follow-up:** File the Warden TRL framed as this decision (new coaching rule for destructured `compose` in blaze bodies). Sits under the Fieldwork Loop umbrella, Workstream 2 (Warden as Coach) + Shadow Pattern Catalog. The teaching diagnostic should name both costs concretely: breaks LSP narrowing of the typed compose overload, and breaks Warden provenance tracking. Existing memory `reference_warden_result_recognition.md` (TRL-785/786/787) already documents the recognition gap; link the new rule TRL there.
+
+### 2026-05-28 Adapter authoring paved path
+
+**Question:** Should adapter authoring remain a deferred/doc-first idea, or should Trails build the full paved path now, including subpath adapter scaffolding, generated conformance tests, cataloging, and checks?
+
+**Decision:** Build the paved path now. Adapter authoring is a first-class Trails capability, but not a new `adapter()` runtime primitive. Extracted adapters live under `adapters/`; subpath adapters are a first-class carve-out when ADR-0029's dependency-boundary test says a standalone package would add ceremony without buying a real boundary. Owner packages that invite adapters owe adapter authors an authoring bundle: support helpers when needed, conformance cases, fixtures/examples when useful, and the small target metadata derivation cannot know. Adapter tooling may live in a shared kit package, but it consumes owner facts and derived package facts; it does not own adapter truth. `trails adapter check` and Warden adapter checks must share one underlying check engine.
+
+**Basis:** ADR-0000 and tenets ("author what's new, derive what's known, override what's wrong"; one write, many reads; reduce ceremony, not clarity), ADR-0029 (extracted adapters under `adapters/`, subpath carve-outs for built-in/no-boundary materializers), ADR-0035 (surface ladder), ADR-0037 (owner-first authority and future adapter descriptors), and the lexicon definition of `adapter` as a package/subpath category rather than a primitive.
+
+**Confidence:** High on the architecture; medium on exact package name and metadata syntax.
+
+**Alternatives considered:**
+
+- Manual conformance wiring in each adapter - rejected because correctness would live in docs and memory instead of generated scaffolding.
+- Central adapter truth in an adapter kit - rejected because HTTP, store, permit, and observe semantics belong to their owner packages.
+- Extracted-only adapter model - rejected because ADR-0029 already preserves subpath adapters and built-in materializers.
+- Warden-only checks - rejected because Warden is governance, not the focused authoring surface.
+- CLI-only checks - rejected because adapter drift belongs in governance and CI.
+
+**Follow-up:** Use `.agents/notes/2026-05-28-adapter-authoring-paved-path.md` as the execution-shape note. Promote into an ADR before implementation. Sequence the stack as ADR -> internal adapter tooling substrate -> one-owner HTTP tracer combining owner conformance plus shared check engine -> Warden and `trails adapter check` surfaces -> `create.adapter` scaffolding -> dogfood existing adapters -> catalog/describe read views and docs. Keep the tooling package private/internal at first, enforce that runtime adapters do not import it, and make generated conformance tests thin calls into owner-owned dynamic factories.
