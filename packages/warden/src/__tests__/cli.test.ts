@@ -749,7 +749,7 @@ trail("entity.save", {
       detours: [
         {
           on: ConflictError,
-          recover: () => Result.ok({ ok: true }),
+          recover: async () => Result.ok({ ok: true }),
         },
       ],
       input: z.object({}),
@@ -764,7 +764,7 @@ trail("entity.save", {
           recover: 'not callable',
         },
       ],
-    } as typeof validTrail;
+    } as unknown as typeof validTrail;
 
     const report = await runWarden({
       topo: topo('invalid-detour-contract', {

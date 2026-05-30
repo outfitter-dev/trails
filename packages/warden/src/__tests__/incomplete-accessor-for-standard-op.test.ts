@@ -46,8 +46,13 @@ const crudOutputSchema = z.object({ ok: z.boolean() });
 type CrudInput = z.infer<typeof crudInputSchema>;
 type CrudOutput = z.infer<typeof crudOutputSchema>;
 
+// `AnyResource` (not `Resource<Connection>`): the introspection-safety tests
+// pass class-based accessors whose instance type is not assignable to
+// `Resource<Connection>` under `exactOptionalPropertyTypes`. The rule inspects
+// accessor shape at runtime, so the wider static param keeps those fixtures
+// expressible without weakening what is exercised.
 const baseCrudSpec = (
-  resourceValue: Resource<Connection>
+  resourceValue: AnyResource
 ): TrailSpec<CrudInput, CrudOutput> => ({
   blaze: () => Result.ok({ ok: true }),
   description: 'synthetic crud trail',
@@ -58,7 +63,7 @@ const baseCrudSpec = (
 
 const buildCrudTrail = (
   trailId: string,
-  resourceValue: Resource<Connection>
+  resourceValue: AnyResource
 ): AnyTrail =>
   trail<CrudInput, CrudOutput>(trailId, {
     ...baseCrudSpec(resourceValue),
@@ -67,7 +72,7 @@ const buildCrudTrail = (
 
 const buildTrailWithoutPattern = (
   trailId: string,
-  resourceValue: Resource<Connection>
+  resourceValue: AnyResource
 ): AnyTrail =>
   trail<CrudInput, CrudOutput>(trailId, baseCrudSpec(resourceValue));
 
