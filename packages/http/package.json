@@ -28,5 +28,15 @@
   },
   "peerDependencies": {
     "zod": "catalog:"
+  },
+  "trails": {
+    "adapterTargets": {
+      "http": {
+        "placements": [
+          "extracted",
+          "subpath"
+        ]
+      }
+    }
   }
 }

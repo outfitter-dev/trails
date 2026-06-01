@@ -1,0 +1,297 @@
+import { afterEach, describe, expect, test } from 'bun:test';
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
+
+import { deriveAdapterTargetCatalog } from '../catalog.js';
+
+const roots: string[] = [];
+
+const writeJson = (
+  root: string,
+  path: string,
+  value: Record<string, unknown>
+): void => {
+  const filePath = join(root, path);
+  mkdirSync(dirname(filePath), { recursive: true });
+  writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`);
+};
+
+const makeRoot = (): string => {
+  const root = mkdtempSync(join(tmpdir(), 'trails-adapter-catalog-'));
+  roots.push(root);
+  writeJson(root, 'package.json', {
+    name: 'fixture-root',
+    workspaces: ['packages/*', 'adapters/*'],
+  });
+  return root;
+};
+
+const writePackage = (
+  root: string,
+  workspacePath: string,
+  manifest: Record<string, unknown>
+): void => {
+  writeJson(root, join(workspacePath, 'package.json'), manifest);
+};
+
+afterEach(() => {
+  for (const root of roots.splice(0)) {
+    rmSync(root, { force: true, recursive: true });
+  }
+});
+
+describe('deriveAdapterTargetCatalog', () => {
+  test('derives adapter target metadata from owner package manifests', () => {
+    const root = makeRoot();
+    writePackage(root, 'packages/store', {
+      exports: {
+        '.': './src/index.ts',
+        './adapter-support': './src/adapter-support.ts',
+        './testing': './src/testing.ts',
+      },
+      name: '@ontrails/store',
+      trails: {
+        adapterTargets: {
+          store: {
+            placements: ['extracted', 'subpath'],
+            supportImport: '@ontrails/store/adapter-support',
+            testingImport: '@ontrails/store/testing',
+          },
+        },
+      },
+    });
+
+    const catalog = deriveAdapterTargetCatalog(root);
+
+    expect(catalog.diagnostics).toEqual([]);
+    expect(catalog.targets).toHaveLength(1);
+    expect(catalog.targets[0]).toMatchObject({
+      key: '@ontrails/store:store',
+      ownerPackage: '@ontrails/store',
+      placements: ['extracted', 'subpath'],
+      supportImport: '@ontrails/store/adapter-support',
+      target: 'store',
+      testingImport: '@ontrails/store/testing',
+    });
+    expect(catalog.targets[0]?.supportExportTarget).toEndWith(
+      'packages/store/src/adapter-support.ts'
+    );
+    expect(catalog.targets[0]?.testingExportTarget).toEndWith(
+      'packages/store/src/testing.ts'
+    );
+  });
+
+  test('ignores packages without adapter target metadata', () => {
+    const root = makeRoot();
+    writePackage(root, 'packages/core', {
+      exports: { '.': './src/index.ts' },
+      name: '@ontrails/core',
+    });
+
+    const catalog = deriveAdapterTargetCatalog(root);
+
+    expect(catalog).toEqual({
+      diagnostics: [],
+      targets: [],
+    });
+  });
+
+  test('reports invalid adapter target metadata without cataloging it', () => {
+    const root = makeRoot();
+    writePackage(root, 'packages/http', {
+      exports: { '.': './src/index.ts' },
+      name: '@ontrails/http',
+      trails: {
+        adapterTargets: {
+          'Bad Target': {
+            placements: ['extracted'],
+          },
+          http: {
+            placements: ['extracted', 'portal'],
+            supportImport: 42,
+          },
+          remote: {
+            placements: ['extracted'],
+            testingImport: '@other/http/testing',
+          },
+        },
+      },
+    });
+
+    const catalog = deriveAdapterTargetCatalog(root);
+
+    expect(catalog.targets).toEqual([]);
+    expect(catalog.diagnostics.map((entry) => entry.code).toSorted()).toEqual([
+      'invalid-adapter-target',
+      'invalid-import',
+      'invalid-import',
+      'invalid-placement',
+    ]);
+  });
+
+  test('reports support and testing imports outside the owner package', () => {
+    const root = makeRoot();
+    writePackage(root, 'packages/http', {
+      exports: { '.': './src/index.ts' },
+      name: '@ontrails/http',
+      trails: {
+        adapterTargets: {
+          http: {
+            placements: ['extracted'],
+            supportImport: '@ontrails/store/adapter-support',
+            testingImport: '@ontrails/testing',
+          },
+        },
+      },
+    });
+
+    const catalog = deriveAdapterTargetCatalog(root);
+
+    expect(catalog.targets).toEqual([]);
+    expect(catalog.diagnostics).toHaveLength(2);
+    expect(
+      catalog.diagnostics.every((entry) => entry.code === 'invalid-import')
+    ).toBe(true);
+    expect(catalog.diagnostics[0]?.message).toContain('inside @ontrails/http');
+  });
+
+  test('reports owner root support and testing imports', () => {
+    const root = makeRoot();
+    writePackage(root, 'packages/http', {
+      exports: { '.': './src/index.ts' },
+      name: '@ontrails/http',
+      trails: {
+        adapterTargets: {
+          http: {
+            placements: ['extracted'],
+            supportImport: '@ontrails/http',
+            testingImport: '@ontrails/http',
+          },
+        },
+      },
+    });
+
+    const catalog = deriveAdapterTargetCatalog(root);
+
+    expect(catalog.targets).toEqual([]);
+    expect(catalog.diagnostics).toHaveLength(2);
+    expect(
+      catalog.diagnostics.every((entry) => entry.code === 'invalid-import')
+    ).toBe(true);
+    expect(catalog.diagnostics[0]?.message).toContain('owner package subpath');
+  });
+
+  test('reports empty placements as invalid target metadata', () => {
+    const root = makeRoot();
+    writePackage(root, 'packages/http', {
+      exports: { '.': './src/index.ts' },
+      name: '@ontrails/http',
+      trails: {
+        adapterTargets: {
+          http: {
+            placements: [],
+          },
+        },
+      },
+    });
+
+    const catalog = deriveAdapterTargetCatalog(root);
+
+    expect(catalog.targets).toEqual([]);
+    expect(catalog.diagnostics).toHaveLength(1);
+    expect(catalog.diagnostics[0]?.code).toBe('invalid-placement');
+    expect(catalog.diagnostics[0]?.message).toContain('at least one placement');
+  });
+
+  test('reports support and testing imports missing from owner exports', () => {
+    const root = makeRoot();
+    writePackage(root, 'packages/http', {
+      exports: { '.': './src/index.ts' },
+      name: '@ontrails/http',
+      trails: {
+        adapterTargets: {
+          http: {
+            placements: ['extracted'],
+            supportImport: '@ontrails/http/adapter-support',
+            testingImport: '@ontrails/http/testing',
+          },
+        },
+      },
+    });
+
+    const catalog = deriveAdapterTargetCatalog(root);
+
+    expect(catalog.targets).toEqual([]);
+    expect(catalog.diagnostics).toHaveLength(2);
+    expect(
+      catalog.diagnostics.every((entry) => entry.code === 'invalid-import')
+    ).toBe(true);
+    expect(catalog.diagnostics[0]?.message).toContain('does not export');
+  });
+
+  test('keeps extracted and subpath placements distinct and deterministic', () => {
+    const root = makeRoot();
+    writePackage(root, 'packages/http', {
+      exports: { '.': './src/index.ts' },
+      name: '@ontrails/http',
+      trails: {
+        adapterTargets: {
+          http: {
+            placements: ['subpath', 'extracted', 'subpath'],
+          },
+        },
+      },
+    });
+
+    const catalog = deriveAdapterTargetCatalog(root);
+
+    expect(catalog.diagnostics).toEqual([]);
+    expect(catalog.targets[0]?.placements).toEqual(['extracted', 'subpath']);
+  });
+
+  test('rejects duplicate target ids across owner packages', () => {
+    const root = makeRoot();
+    writePackage(root, 'packages/http', {
+      exports: { '.': './src/index.ts' },
+      name: '@ontrails/http',
+      trails: {
+        adapterTargets: {
+          http: {
+            placements: ['extracted'],
+          },
+        },
+      },
+    });
+    writePackage(root, 'packages/alt-http', {
+      exports: { '.': './src/index.ts' },
+      name: '@ontrails/alt-http',
+      trails: {
+        adapterTargets: {
+          http: {
+            placements: ['extracted'],
+          },
+        },
+      },
+    });
+
+    const catalog = deriveAdapterTargetCatalog(root);
+
+    expect(catalog.targets).toEqual([]);
+    expect(catalog.diagnostics).toHaveLength(2);
+    expect(catalog.diagnostics).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'duplicate-adapter-target',
+          packageName: '@ontrails/http',
+          target: 'http',
+        }),
+        expect.objectContaining({
+          code: 'duplicate-adapter-target',
+          packageName: '@ontrails/alt-http',
+          target: 'http',
+        }),
+      ])
+    );
+  });
+});

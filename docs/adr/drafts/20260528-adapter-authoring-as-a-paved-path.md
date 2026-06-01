@@ -3,7 +3,7 @@ slug: adapter-authoring-as-a-paved-path
 title: Adapter authoring as a paved path
 status: draft
 created: 2026-05-28
-updated: 2026-05-28
+updated: 2026-05-30
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [29]
 ---
@@ -83,9 +83,11 @@ The discoverability substrate is the package manifest, which keeps discovery che
 }
 ```
 
-### Tooling consumes facts; it never owns adapter truth
+TRL-861 codifies this metadata shape: `placements` is required, while `supportImport` and `testingImport` are optional until the owner actually exports support or conformance surfaces. Optional means "not available yet," not "tooling should guess."
 
-The adapter tooling discovers owner targets, scaffolds extracted and subpath adapters, generates conformance tests, generates package/export skeletons, runs the shared check engine, and reports readiness. It does **not** define an `adapter()` primitive, own HTTP/store/permit/observe semantics, get imported by runtime adapters, or re-author package facts that `package.json` already states.
+### The adapter kit consumes facts; it never owns adapter truth
+
+The adapter kit starts as private `@ontrails/adapter-kit`: it discovers owner targets, scaffolds extracted and subpath adapters, generates conformance tests, generates package/export skeletons, runs the shared check engine, and reports readiness. It does **not** define an `adapter()` primitive, own HTTP/store/permit/observe semantics, get imported by runtime adapters, or re-author package facts that `package.json` already states.
 
 Two structural rules keep it tooling and not truth:
 
@@ -163,8 +165,7 @@ The user-facing commands are trails, so adapter authoring is queryable without a
 
 ## Non-decisions
 
-- The tooling package name (`@ontrails/adapter-kit` vs `@ontrails/adapter-tools`). Start private; settle the name in implementation. If "kit" keeps implying central authority, prefer the more explicitly tooling-shaped name.
-- The exact metadata syntax — the `package.json` `trails.adapterTargets` shape above is illustrative.
+- Whether the adapter kit ever becomes public; the current package stays private.
 - Exact command flags.
 - How Warden scopes to a single adapter — build the shared engine first, then expose a scope without a second rule path.
 

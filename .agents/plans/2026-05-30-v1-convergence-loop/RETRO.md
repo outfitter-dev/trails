@@ -1,6 +1,6 @@
 ---
 created: "2026-05-30T12:28:00Z"
-updated: "2026-05-30T12:28:00Z"
+updated: "2026-05-30T12:51:00Z"
 status: active
 ---
 
@@ -102,6 +102,42 @@ status: active
   `fix` survives structured JSON, and the `trails warden` output schema fixture
   now includes a structured fix object.
 
+### 2026-05-30 08:51 EDT - TRL-861 catalog substrate slice
+
+- Started `trl-861-define-adapter-target-metadata-and-catalog-derivation`
+  above the adapter conformance snippet branch.
+- Added private internal `@ontrails/adapter-kit` package for read-only
+  `trails.adapterTargets` catalog derivation.
+- Added first-party metadata to `@ontrails/http` and `@ontrails/store`; HTTP
+  advertises the target and placements only, while Store also advertises its
+  existing support and testing owner imports.
+- Kept support/testing imports optional so owners can advertise a target before
+  every authoring affordance exists. Missing means "not available yet"; the
+  tooling does not guess.
+- Added focused catalog tests for valid owner metadata, missing metadata,
+  invalid metadata, owner-local import boundaries, missing owner exports,
+  export-target derivation, and deterministic extracted/subpath placements.
+- Folded in Boole's review finding that declared support/testing imports should
+  fail when they cross owner package boundaries or are not exported by the
+  owner package.
+- Trimmed premature template/fixture/guidance fields out of the substrate; keep
+  this branch to facts derivation can prove.
+- Added a patch changeset for the public package metadata.
+
+### 2026-05-30 09:00 EDT - TRL-861 sidecar review fixes
+
+- Laplace reviewed the adapter catalog substrate and scored it 3/5 with one
+  P1 and three P2 findings.
+- Fixed the P1 by reporting `invalid-placement` for `placements: []` instead
+  of silently omitting a declared adapter target from an otherwise clean
+  catalog.
+- Tightened optional `supportImport` and `testingImport` validation so they
+  must point at owner package subpaths, not the owner package root.
+- Fixed `packages/adapter-kit/tsconfig.tests.json` so editor/test type
+  coverage includes `src/__tests__/catalog.test.ts`.
+- Updated the adapter ADR draft `updated` frontmatter date for the TRL-861
+  metadata changes.
+
 ## Verification Ledger
 
 | Command | Context | Result | Notes |
@@ -123,10 +159,31 @@ status: active
 | `bunx markdownlint-cli2 .changeset/trl-866-warden-trail-fix-metadata.md .agents/plans/2026-05-30-v1-convergence-loop/RETRO.md && git diff --check` | TRL-866 docs/hygiene | pass | Markdown and whitespace clean. |
 | `rg -n "runConformance" docs/adr/drafts/20260528-adapter-authoring-as-a-paved-path.md` | TRL-853 snippet truth | pass | Confirmed the conformance snippet now imports and calls `runConformance`. |
 | `bun scripts/adr.ts check` | TRL-853 adapter ADR snippet | pass | 0 errors, 0 warnings. |
+| `bun test packages/adapter-kit/src/__tests__/catalog.test.ts` | TRL-861 adapter catalog | pass | 6 tests passed. |
+| `bun run --cwd packages/adapter-kit typecheck` | TRL-861 adapter catalog | pass | `tsc --noEmit` clean. |
+| `bun run --cwd packages/adapter-kit lint` | TRL-861 adapter catalog | pass | Oxlint clean. |
+| `bun run --cwd packages/adapter-kit build` | TRL-861 adapter catalog | pass | `tsc -b` clean. |
+| `bun run typecheck` | TRL-861 workspace package integration | pass | 24 package typechecks passed. |
+| `bun run lint` | TRL-861 workspace package integration | pass | 25 lint tasks passed, including Oxlint plugin build. |
+| `bun install --frozen-lockfile` | TRL-861 workspace metadata | pass | Lockfile matched new workspace package shape. |
+| `bun scripts/adr.ts check` | TRL-861 adapter ADR metadata note | pass | 0 errors, 0 warnings. |
+| `bun run oxlint-plugin:build` | TRL-861 formatter setup | pass | Private Oxlint plugin built before Ultracite. |
+| `bunx ultracite check packages/adapter-kit/src/catalog.ts packages/adapter-kit/src/__tests__/catalog.test.ts packages/adapter-kit/src/index.ts packages/adapter-kit/package.json packages/adapter-kit/tsconfig.json packages/adapter-kit/tsconfig.tests.json packages/http/package.json packages/store/package.json docs/adr/drafts/20260528-adapter-authoring-as-a-paved-path.md .changeset/trl-861-adapter-target-catalog.md` | TRL-861 formatting | pass | Matched files clean. |
+| `bunx markdownlint-cli2 docs/adr/drafts/20260528-adapter-authoring-as-a-paved-path.md .changeset/trl-861-adapter-target-catalog.md .agents/plans/2026-05-30-v1-convergence-loop/RETRO.md` | TRL-861 docs/hygiene | pass | 0 markdown errors. |
+| `git diff --check` | TRL-861 whitespace | pass | No whitespace findings. |
+| `bun test packages/adapter-kit/src/__tests__/catalog.test.ts` | TRL-861 sidecar review fixes | pass | 8 tests passed, including empty placements and owner-root import regressions. |
+| `bunx tsc -p packages/adapter-kit/tsconfig.tests.json --showConfig \| rg -n "catalog\\.test\\.ts\|types\|exclude\|rootDir"` | TRL-861 sidecar review fixes | pass | Confirmed `catalog.test.ts` appears in the resolved config. |
+| `bunx tsc -p packages/adapter-kit/tsconfig.tests.json --noEmit` | TRL-861 sidecar review fixes | pass | Test tsconfig typecheck clean. |
+| `bun run --cwd packages/adapter-kit typecheck` | TRL-861 sidecar review fixes | pass | Package typecheck clean. |
+| `bun run --cwd packages/adapter-kit lint` | TRL-861 sidecar review fixes | pass | Oxlint clean. |
+| `bun scripts/adr.ts check` | TRL-861 sidecar review fixes | pass | 0 errors, 0 warnings. |
+| `bunx ultracite check packages/adapter-kit/src/catalog.ts packages/adapter-kit/src/__tests__/catalog.test.ts packages/adapter-kit/tsconfig.tests.json docs/adr/drafts/20260528-adapter-authoring-as-a-paved-path.md` | TRL-861 sidecar review fixes | pass | First run found formatting in the new test; `ultracite fix` applied it and rerun passed. |
 
 ## Review Findings
 
-No local review pass has run yet.
+Laplace reviewed TRL-861 and found one P1 and three P2 issues. All four were
+fixed on `trl-861-define-adapter-target-metadata-and-catalog-derivation` before
+continuing upward.
 
 ## Open Risks
 
@@ -134,6 +191,6 @@ No local review pass has run yet.
   decision map. Verify before cutting its branch.
 - TRL-826 and TRL-829 are conditional. Keep them only if this stack produces
   enough implementation evidence.
-- Adapter tooling package name is intentionally unsettled until implementation
-  proves whether `adapter-tools` or another name better communicates internal
-  tooling rather than central authority.
+- Adapter tooling package name was corrected from `@ontrails/adapter-tools` to
+  private `@ontrails/adapter-kit` before landing so the package reads as the
+  adapter-authoring paved path, not a grab bag of internals.

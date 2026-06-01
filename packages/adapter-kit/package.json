@@ -1,0 +1,18 @@
+{
+  "name": "@ontrails/adapter-kit",
+  "version": "1.0.0-beta.18",
+  "private": true,
+  "description": "Internal adapter authoring kit for Trails metadata, scaffolding, and checks.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint ./src",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  }
+}
