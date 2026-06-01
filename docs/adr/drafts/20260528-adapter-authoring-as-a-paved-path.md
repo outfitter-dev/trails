@@ -105,7 +105,7 @@ createPermitAdapterConformanceCases(...)
 The generated adapter test is a **thin call** into that factory — it re-derives the *current* cases at test time:
 
 ```typescript
-import { createHttpAdapterConformanceCases } from '@ontrails/http/testing';
+import { createHttpAdapterConformanceCases, runConformance } from '@ontrails/http/testing';
 import { bunHttpAdapter } from './index.js';
 
 test('http adapter conformance', () => {

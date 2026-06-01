@@ -85,6 +85,15 @@ status: active
   `diagnostic.fix.class === 'term-rewrite'` and `safety === 'review'`.
 - Added a Warden patch changeset for the public output-shape fix.
 
+### 2026-05-30 08:40 EDT - TRL-853 snippet truth slice
+
+- Started `trl-853-draft-adr-conformance-snippet-calls-runconformance-without`
+  above TRL-866.
+- Verified TRL-853 is still live in Linear and still valid against the current
+  adapter ADR draft.
+- Updated the adapter conformance snippet to import `runConformance` from the
+  same future owner testing subpath as `createHttpAdapterConformanceCases`.
+
 ### 2026-05-30 08:41 EDT - TRL-866 sidecar review tightened tests
 
 - Kant reviewed diagnostic projection paths and found no blocker after the
@@ -112,6 +121,8 @@ status: active
 | `bun run --cwd apps/trails typecheck` | TRL-866 Trails app wrapper | pass | `tsc --noEmit` clean. |
 | `bun run format:check && bun run --cwd packages/warden lint` | TRL-866 formatting and Warden lint | pass | First run caught sorted-key fixture ordering; fixed and reran clean. |
 | `bunx markdownlint-cli2 .changeset/trl-866-warden-trail-fix-metadata.md .agents/plans/2026-05-30-v1-convergence-loop/RETRO.md && git diff --check` | TRL-866 docs/hygiene | pass | Markdown and whitespace clean. |
+| `rg -n "runConformance" docs/adr/drafts/20260528-adapter-authoring-as-a-paved-path.md` | TRL-853 snippet truth | pass | Confirmed the conformance snippet now imports and calls `runConformance`. |
+| `bun scripts/adr.ts check` | TRL-853 adapter ADR snippet | pass | 0 errors, 0 warnings. |
 
 ## Review Findings
 
