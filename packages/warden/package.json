@@ -28,6 +28,7 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
+    "@ontrails/adapter-kit": "workspace:^",
     "@ontrails/cli": "workspace:^",
     "@ontrails/permits": "workspace:^",
     "@ontrails/store": "workspace:^",

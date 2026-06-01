@@ -74,6 +74,23 @@ const spec = deriveOpenApiSpec(graph, { basePath: '/api' });
 | `deriveOpenApiSpec(graph, options?)` | Generate an OpenAPI 3.1 document for the HTTP surface |
 | `@ontrails/http/fetch` | Shared Web Fetch `createRouteHandler()` and `createFetchHandler()` kernel |
 | `@ontrails/http/bun` | Bun-native `createApp()` and `surface()` materializer |
+| `@ontrails/http/testing` | Owner-owned adapter conformance factory for HTTP adapter authors |
+
+## Adapter authoring
+
+HTTP adapter authors should validate adapters through the owner-owned testing subpath instead of copying conformance behavior into each adapter:
+
+```typescript
+import {
+  createHttpAdapterConformanceCases,
+  runConformance,
+} from '@ontrails/http/testing';
+import { myHttpAdapter } from './adapter.js';
+
+runConformance(myHttpAdapter, createHttpAdapterConformanceCases());
+```
+
+The adapter under test provides a `name` and `createApp(graph, options)` method that returns an object with a Web Fetch-compatible `fetch(request)` handler. The conformance cases cover query and body input projection, validation envelopes, public error redaction, request context, abort propagation, and webhook verification/parsing behavior.
 
 ## Route derivation
 

@@ -58,6 +58,12 @@ export type {
 } from './cli.js';
 export { formatWardenReport, runWarden } from './cli.js';
 
+// Adapter authoring checks
+export {
+  adapterCheckRuleName,
+  runWardenAdapterChecks,
+} from './adapter-check.js';
+
 // CLI command surface
 export type {
   ParsedWardenCommand,

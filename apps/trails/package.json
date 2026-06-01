@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@clack/prompts": "^1.1.0",
+    "@ontrails/adapter-kit": "workspace:^",
     "@ontrails/cli": "workspace:^",
     "@ontrails/commander": "workspace:^",
     "@ontrails/core": "workspace:^",

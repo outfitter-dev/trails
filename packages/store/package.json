@@ -30,5 +30,17 @@
   },
   "peerDependencies": {
     "zod": "catalog:"
+  },
+  "trails": {
+    "adapterTargets": {
+      "store": {
+        "placements": [
+          "extracted",
+          "subpath"
+        ],
+        "supportImport": "@ontrails/store/adapter-support",
+        "testingImport": "@ontrails/store/testing"
+      }
+    }
   }
 }

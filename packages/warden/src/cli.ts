@@ -21,6 +21,7 @@ import type {
   WardenFormat,
   WardenLockMode,
 } from './config.js';
+import { runWardenAdapterChecks } from './adapter-check.js';
 import { resolveWardenConfig } from './config.js';
 import { isDraftMarkedFile } from './draft.js';
 import { applySafeFixesToSource, hasSafeFixEdits } from './fix.js';
@@ -80,6 +81,8 @@ export interface WardenRunOptions {
   readonly config?: WardenConfigInput | undefined;
   /** CLI/config-layer app names carried through shared resolution. */
   readonly apps?: readonly string[] | undefined;
+  /** Include shared adapter authoring checks as Warden diagnostics. */
+  readonly adapterCheck?: boolean | undefined;
   /** Cumulative analysis depth for the final M1 surfaces. */
   readonly depth?: WardenDepth | undefined;
   /** Draft-state handling mode for final M1 surfaces. */
@@ -1268,6 +1271,12 @@ const checkDriftForTopoTargets = async (
 const shouldRunLint = (options: WardenRunOptions): boolean =>
   options.tier ? options.tier !== 'drift' : !options.driftOnly;
 
+const adapterDiagnosticsForRun = (
+  rootDir: string,
+  options: WardenRunOptions
+): readonly WardenDiagnostic[] =>
+  options.adapterCheck ? runWardenAdapterChecks(rootDir) : [];
+
 const shouldRunDrift = (
   options: WardenRunOptions,
   effectiveConfig: EffectiveWardenConfig
@@ -1448,11 +1457,13 @@ export const runWarden = async (
         selector
       )
     : { diagnostics: [], sourceFiles: [] };
+  const adapterDiagnostics = adapterDiagnosticsForRun(rootDir, options);
 
   const rawDiagnostics = [
     ...configDiagnostics,
     ...optionDiagnostics,
     ...lintResult.diagnostics,
+    ...adapterDiagnostics,
   ];
   const allDiagnostics = rawDiagnostics.map(withDiagnosticGuidance);
   const fixApplication = options.fix

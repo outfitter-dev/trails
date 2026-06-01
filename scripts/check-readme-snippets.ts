@@ -151,6 +151,7 @@ export const createComposeContext: any;
 export const createDevStore: any;
 export const createFileSink: any;
 export const createHttpHarness: any;
+export const createHttpAdapterConformanceCases: any;
 export const createJwtAdapter: any;
 export const createLogtapeSink: any;
 export const createMcpHarness: any;
@@ -201,6 +202,7 @@ export const registerTraceSink: any;
 export const registerTraceStore: any;
 export const Result: any;
 export const run: any;
+export const runConformance: any;
 export const runTopoAwareWardenTrails: any;
 export const runWarden: any;
 export const runWardenTrails: any;
@@ -304,6 +306,9 @@ export const README_SNIPPET_CONFIGS: readonly ReadmeSnippetConfig[] = [
     readmePath: 'packages/testing/README.md',
   },
   {
+    localFiles: {
+      'adapter.d.ts': 'export const myHttpAdapter: any;\n',
+    },
     prelude: COMMON_README_PRELUDE,
     readmePath: 'packages/http/README.md',
   },
