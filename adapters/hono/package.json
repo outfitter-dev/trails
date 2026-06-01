@@ -28,5 +28,10 @@
   "peerDependencies": {
     "@ontrails/http": "workspace:^",
     "zod": "catalog:"
+  },
+  "trails": {
+    "adapter": {
+      "target": "http"
+    }
   }
 }

@@ -173,6 +173,38 @@ status: active
   `trails.adapter.target` metadata. TRL-864 must not blindly turn this on as a
   hard CI gate before TRL-865 dogfoods the shape.
 
+### 2026-05-30 09:34 EDT - TRL-864 adapter check projections
+
+- Added Warden's opt-in `--adapter-check` projection over the shared adapter
+  engine.
+- Added local `adapter.check`, projecting as `trails adapter check`, with a
+  focused human report and structured output.
+- Kept adapter diagnostics as Warden warnings by default, so the pre-dogfood
+  first-party adapter debt is visible without breaking normal Warden CI before
+  TRL-865 handles the first real adapter.
+- Made `@ontrails/adapter-kit` publishable but still internal. This diverged
+  from the earliest "private/unpublished" note because public `@ontrails/warden`
+  and `@ontrails/trails` cannot ship a dependency on an unpublished workspace
+  package. The doctrine now says "internal/not author-facing," not "private."
+- Found a lower-stack Warden defect in TRL-862: the HTTP conformance fixture
+  used `Result.err(new Error(...))`. Fixed it on TRL-862 with
+  `InternalError`, then restacked TRL-863 and TRL-864 upward.
+
+### 2026-05-30 09:40 EDT - TRL-865 Hono dogfood
+
+- Started
+  `trl-865-dogfood-adapter-authoring-path-on-a-first-party-http-adapter` above
+  TRL-864 and marked TRL-865 In Progress.
+- Chose `@ontrails/hono` as the dogfood target. This is stronger than Bun/Fetch
+  for the current branch because the shared checker currently validates
+  extracted workspace adapters; Hono is first-party, HTTP-owned, extracted, and
+  already validates through `@ontrails/http/testing`.
+- Added `trails.adapter.target: "http"` to `adapters/hono/package.json`.
+- Added a live repo dogfood regression proving `checkAdapters()` sees Hono as
+  an extracted HTTP adapter subject with the owner conformance test import.
+- `trails adapter check --root-dir .` now reports one adapter subject and the
+  expected remaining metadata debt for Commander, Drizzle, and Vite.
+
 ### 2026-05-30 13:45 EDT - TRL-876 review fix on TRL-863
 
 - Codex review and a focused subagent sniff found that the TRL-863 adapter
@@ -297,6 +329,47 @@ status: active
 | `bun test apps/trails/src/__tests__/adapter-check.test.ts` | TRL-864 env output follow-up | pass | 6 Trails adapter-check tests passed, including `TRAILS_JSON=1` and `TRAILS_JSONL=1` structured-output handling. |
 | `bun run --cwd apps/trails lint` | TRL-864 env output follow-up | pass | Oxlint clean after making env restore explicit. |
 | `bun run --cwd apps/trails typecheck` | TRL-864 env output follow-up | pass | `tsc --noEmit` clean. |
+| `bun test packages/warden/src/__tests__/adapter-check.test.ts packages/warden/src/__tests__/command.test.ts packages/warden/src/__tests__/public-api.test.ts` | TRL-864 Warden adapter projection | pass | 20 tests passed. |
+| `bun test apps/trails/src/__tests__/adapter-check.test.ts apps/trails/src/__tests__/warden.test.ts` | TRL-864 local adapter check projection | pass | 22 tests passed. |
+| `bun test packages/http/src/__tests__/testing.test.ts adapters/hono/src/__tests__/conformance.test.ts packages/adapter-kit/src/__tests__/check.test.ts packages/adapter-kit/src/__tests__/catalog.test.ts packages/warden/src/__tests__/adapter-check.test.ts apps/trails/src/__tests__/adapter-check.test.ts` | TRL-864 restacked focused regression set | pass | 43 tests passed after fixing the lower TRL-862 Warden error. |
+| `bun packages/warden/bin/warden.ts --adapter-check --depth source --lock skip --format json` | TRL-864 Warden live smoke | pass | Before Hono dogfood, reported 0 errors and 4 adapter-check warnings. |
+| `bun run typecheck` | TRL-864 workspace integration | pass | 24 package typechecks passed. |
+| `bun run lint` | TRL-864 workspace integration | pass | 25 lint tasks passed. |
+| `bun run format:check` | TRL-864 formatting | pass | Full Ultracite check clean. |
+| `bun run docs:wrap-check` | TRL-864 docs/hardwrap | pass | 159 scanned files clean. |
+| `bun run changeset:check` | TRL-864 release hygiene | pass | Changeset gate passed for adapter-kit, http, store, trails, and warden. |
+| `bun run publish:check` | TRL-864 publish hygiene | pass | All public package pack checks passed, including newly publishable `@ontrails/adapter-kit`. |
+| `bun test packages/adapter-kit/src/__tests__/dogfood.test.ts adapters/hono/src/__tests__/conformance.test.ts` | TRL-865 Hono dogfood | pass | 7 tests passed; dogfood regression proves Hono target metadata and owner conformance path. |
+| `bun run --cwd packages/adapter-kit typecheck && bun run --cwd adapters/hono typecheck` | TRL-865 package typecheck | pass | Adapter-kit and Hono typechecks clean. |
+| `bun run --cwd packages/adapter-kit lint && bun run --cwd adapters/hono lint` | TRL-865 package lint | pass | Oxlint clean for both packages. |
+| `bun apps/trails/bin/trails.ts adapter check --root-dir .` | TRL-865 local dogfood smoke | pass | Expected non-zero due remaining adapters; report now shows 1 adapter subject and 3 remaining metadata diagnostics. |
+| `bun packages/warden/bin/warden.ts --adapter-check --depth source --lock skip --format json` | TRL-865 Warden dogfood smoke | pass | 0 errors, 3 adapter-check warnings; Warden passes because adapter findings remain warnings by default. |
+| `bun run typecheck` | TRL-865 stack-tip final gate | pass | 24 package typechecks passed. |
+| `bun run lint` | TRL-865 stack-tip final gate | pass | 25 lint tasks passed. |
+| `bun run format:check` | TRL-865 stack-tip final gate | pass | Full Ultracite check clean. |
+| `bun run docs:wrap-check` | TRL-865 stack-tip final gate | pass | 159 scanned files clean. |
+| `bun run changeset:check` | TRL-865 stack-tip final gate | pass | Changeset gate passed for adapter-kit, Hono, HTTP, Store, Trails, and Warden. |
+| `bun run publish:check` | TRL-865 stack-tip final gate | pass | All public package pack checks passed. |
+
+## Remote PR Ledger
+
+| PR | Branch | State | CI | Notes |
+| --- | --- | --- | --- | --- |
+| [#634](https://github.com/outfitter-dev/trails/pull/634) | `trl-834-draft-warden-fix-metadata-adr` | ready | green | Bottom branch; draft Warden fix metadata ADR. |
+| [#635](https://github.com/outfitter-dev/trails/pull/635) | `trl-866-project-warden-diagnostic-fix-metadata-through-rule-trail` | ready | green | Preserves fix metadata through Warden rule trail outputs. |
+| [#636](https://github.com/outfitter-dev/trails/pull/636) | `trl-853-draft-adr-conformance-snippet-calls-runconformance-without` | ready | green | Fixes adapter ADR conformance snippet import. |
+| [#637](https://github.com/outfitter-dev/trails/pull/637) | `trl-861-define-adapter-target-metadata-and-catalog-derivation` | ready | green | Adds adapter target catalog derivation and HTTP/Store metadata. |
+| [#638](https://github.com/outfitter-dev/trails/pull/638) | `trl-862-add-http-adapter-authoring-support-and-conformance-factory` | ready | green | Adds HTTP owner conformance factory and testing subpath. |
+| [#639](https://github.com/outfitter-dev/trails/pull/639) | `trl-863-build-shared-adapter-check-engine` | ready | green | Adds shared adapter check engine. |
+| [#640](https://github.com/outfitter-dev/trails/pull/640) | `trl-864-expose-adapter-checks-through-warden-and-trails-adapter` | ready | green | Exposes adapter checks through Warden and `trails adapter check`. |
+| [#641](https://github.com/outfitter-dev/trails/pull/641) | `trl-865-dogfood-adapter-authoring-path-on-a-first-party-http-adapter` | ready | green | Dogfoods Hono as first extracted HTTP adapter subject. |
+
+Submitted with `gt submit --stack --draft --no-edit --no-interactive`, then
+marked ready after every PR reported green CI. Before submit, the bottom real
+branch had to be reparented from the zero-diff worker lane onto `main`.
+Graphite refused to submit dependents of the empty lane branch, which confirms
+the worktree-farm base branch is useful for local farming but should not sit
+under a submitted stack.
 
 ## Review Findings
 
@@ -354,6 +427,19 @@ structured flags but ignored the repo-wide topo env selectors. The adapter-check
 result bridge now delegates to `deriveOutputMode()`, so `TRAILS_JSON=1` and
 `TRAILS_JSONL=1` behave like the corresponding flags.
 
+Final stack-tip self-review checked the cumulative diff, stale private-package
+wording, `Result.err(new Error(...))` reintroductions, local adapter smoke
+behavior, Warden adapter-check behavior, changeset hygiene, publish packing, and
+full typecheck/lint/format gates. No new P0/P1/P2 findings were found. The
+remaining review risk is scope, not correctness: this stack stops after the
+first extracted HTTP adapter dogfood and intentionally leaves `create.adapter`
+scaffolding plus Commander/Drizzle/Vite metadata for the next stack.
+
+Remote review status after marking ready: GitHub CI passed on all eight PRs.
+Greptile posted only its account/billing message ("free trial has ended") on
+each PR rather than a code review. Treat that as an unavailable review signal,
+not as a clean Greptile review and not as a code finding.
+
 ## Open Risks
 
 - TRL-850 may already be partially stale if the adapter ADR merge refreshed the
@@ -361,5 +447,5 @@ result bridge now delegates to `deriveOutputMode()`, so `TRAILS_JSON=1` and
 - TRL-826 and TRL-829 are conditional. Keep them only if this stack produces
   enough implementation evidence.
 - Adapter tooling package name is now implemented as publishable-but-internal
-  `@ontrails/adapter-kit`; keep watching whether the name communicates tooling
-  rather than central authority as later branches consume it.
+  `@ontrails/adapter-kit`; keep watching whether the name communicates
+  tooling rather than central authority as later branches consume it.

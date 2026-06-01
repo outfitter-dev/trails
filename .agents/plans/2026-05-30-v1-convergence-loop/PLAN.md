@@ -75,8 +75,9 @@ otherwise update Linear and defer with a clear note.
 
 - Do not build Cloudflare, Vercel, webhook, scheduler, or provider adapters in
   this stack.
-- Do not make adapter tooling public before dogfood evidence supports the
-  shape.
+- Do not make adapter tooling author-facing before dogfood evidence supports
+  the shape. Tooling packages may still need to be publishable when public CLI
+  or Warden packages depend on them.
 - Do not duplicate Warden-owned migration facts inside Regrade.
 - Do not ship `create.adapter` before a real adapter dogfood pass proves the
   catalog, conformance, and check loop.
