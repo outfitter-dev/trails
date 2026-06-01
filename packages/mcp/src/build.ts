@@ -45,8 +45,28 @@ import { deriveAnnotations } from './annotations.js';
 import { createMcpProgressCallback } from './progress.js';
 import { deriveToolName } from './tool-name.js';
 
+/**
+ * Metadata key used for structured trail examples on derived MCP tools.
+ *
+ * @example
+ * ```ts
+ * import { MCP_TOOL_EXAMPLES_META_KEY } from '@ontrails/mcp';
+ *
+ * const examples = tool._meta?.[MCP_TOOL_EXAMPLES_META_KEY];
+ * ```
+ */
 export const MCP_TOOL_EXAMPLES_META_KEY = 'ontrails/examples';
 
+/**
+ * Metadata key used for public Trails error projections on MCP tool errors.
+ *
+ * @example
+ * ```ts
+ * import { MCP_TOOL_ERROR_META_KEY } from '@ontrails/mcp';
+ *
+ * const error = result._meta?.[MCP_TOOL_ERROR_META_KEY];
+ * ```
+ */
 export const MCP_TOOL_ERROR_META_KEY = 'ontrails/error';
 
 // ---------------------------------------------------------------------------
