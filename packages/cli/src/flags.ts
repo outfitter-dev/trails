@@ -83,6 +83,23 @@ const normalizeAliasSpec = (
   return { ...alias, value };
 };
 
+/**
+ * Resolve explicit value aliases for enum-style CLI flags.
+ *
+ * @example
+ * ```ts
+ * import { deriveCliFlagValueAliases } from '@ontrails/cli';
+ *
+ * const aliases = deriveCliFlagValueAliases({
+ *   aliases: {
+ *     json: { description: 'JSON output', name: 'json' },
+ *     jsonl: 'jsonl',
+ *   },
+ *   choices: ['text', 'json', 'jsonl'],
+ *   flagName: 'output',
+ * });
+ * ```
+ */
 export const deriveCliFlagValueAliases = ({
   aliases,
   choices,
@@ -168,6 +185,25 @@ export const deriveFlags = (
   overrides?: Readonly<Record<string, CliFieldOverride>> | undefined
 ): CliFlag[] => toFlags(deriveFields(schema, overrides), overrides);
 
+/**
+ * Normalize value aliases back onto canonical flag keys.
+ *
+ * @example
+ * ```ts
+ * import { applyCliFlagValueAliases, deriveFlags } from '@ontrails/cli';
+ * import { z } from 'zod';
+ *
+ * const flags = deriveFlags(z.object({ output: z.enum(['json', 'text']) }), {
+ *   output: { aliases: { json: 'json' } },
+ * });
+ *
+ * const normalized = applyCliFlagValueAliases(flags, {
+ *   output: 'text',
+ *   json: true,
+ * });
+ * // { output: 'json' }
+ * ```
+ */
 export const applyCliFlagValueAliases = (
   flags: readonly CliFlag[],
   parsedFlags: Readonly<Record<string, unknown>>,
@@ -224,7 +260,17 @@ export const applyCliFlagValueAliases = (
 // Presets
 // ---------------------------------------------------------------------------
 
-/** Flags for output mode selection: --output, --json, --jsonl, --quiet */
+/**
+ * Flags for output mode selection: --output, --json, --jsonl, --quiet
+ *
+ * @example
+ * ```ts
+ * import { outputModePreset } from '@ontrails/cli';
+ *
+ * const flagNames = outputModePreset().map((flag) => flag.name);
+ * // [ 'output', 'json', 'jsonl', 'quiet' ]
+ * ```
+ */
 export const outputModePreset = (): CliFlag[] => [
   {
     choices: ['text', 'json', 'jsonl'],
@@ -261,7 +307,17 @@ export const outputModePreset = (): CliFlag[] => [
   },
 ];
 
-/** Flag for working directory override: --cwd */
+/**
+ * Flag for working directory override: --cwd
+ *
+ * @example
+ * ```ts
+ * import { cwdPreset } from '@ontrails/cli';
+ *
+ * const [cwd] = cwdPreset();
+ * // cwd.name === 'cwd'
+ * ```
+ */
 export const cwdPreset = (): CliFlag[] => [
   {
     description: 'Working directory override',
@@ -272,7 +328,17 @@ export const cwdPreset = (): CliFlag[] => [
   },
 ];
 
-/** Flag for dry-run mode: --dry-run */
+/**
+ * Flag for dry-run mode: --dry-run
+ *
+ * @example
+ * ```ts
+ * import { dryRunPreset } from '@ontrails/cli';
+ *
+ * const [dryRun] = dryRunPreset();
+ * // dryRun.name === 'dry-run'
+ * ```
+ */
 export const dryRunPreset = (): CliFlag[] => [
   {
     description: 'Execute without side effects',
@@ -301,6 +367,14 @@ export const trailVersionPreset = (): CliFlag[] => [
  * the resulting trace tree to stderr after execution, and (under `--json`)
  * includes the structured `TraceRecord[]` on the stdout envelope. The flag
  * is treated as a meta flag — it never flows into trail input.
+ *
+ * @example
+ * ```ts
+ * import { tracePreset } from '@ontrails/cli';
+ *
+ * const [trace] = tracePreset();
+ * // trace.name === 'trace'
+ * ```
  */
 export const tracePreset = (): CliFlag[] => [
   {
@@ -324,6 +398,14 @@ export const tracePreset = (): CliFlag[] => [
  *
  * Mutually exclusive with `--token`; passing both surfaces a
  * `ValidationError`.
+ *
+ * @example
+ * ```ts
+ * import { permitPreset } from '@ontrails/cli';
+ *
+ * const [permit] = permitPreset();
+ * // permit.name === 'permit'
+ * ```
  */
 export const permitPreset = (): CliFlag[] => [
   {
@@ -346,6 +428,14 @@ export const permitPreset = (): CliFlag[] => [
  * Mutually exclusive with `--permit`; passing both surfaces a
  * `ValidationError`. The flag is treated as a meta flag — it never flows
  * into trail input.
+ *
+ * @example
+ * ```ts
+ * import { tokenPreset } from '@ontrails/cli';
+ *
+ * const [token] = tokenPreset();
+ * // token.name === 'token'
+ * ```
  */
 export const tokenPreset = (): CliFlag[] => [
   {
@@ -371,6 +461,14 @@ export const tokenPreset = (): CliFlag[] => [
  * `--watch` is local-development ergonomics only and is implemented in
  * the `apps/trails` binary's `run` entrypoint, not in surface-agnostic
  * trail code. Other surfaces (MCP, HTTP) ignore the flag.
+ *
+ * @example
+ * ```ts
+ * import { watchPreset } from '@ontrails/cli';
+ *
+ * const [watch] = watchPreset();
+ * // watch.name === 'watch'
+ * ```
  */
 export const watchPreset = (): CliFlag[] => [
   {
@@ -402,6 +500,14 @@ export const watchPreset = (): CliFlag[] => [
  * Mutually exclusive with `--permit` and `--token`; passing any pair
  * surfaces a `ValidationError`. The flag is treated as a meta flag — it
  * never flows into trail input.
+ *
+ * @example
+ * ```ts
+ * import { devPermitPreset } from '@ontrails/cli';
+ *
+ * const [devPermit] = devPermitPreset();
+ * // devPermit.name === 'dev-permit'
+ * ```
  */
 export const devPermitPreset = (): CliFlag[] => [
   {

@@ -29,11 +29,31 @@ export type InputResolver = (
   options?: ResolveInputOptions
 ) => Promise<Record<string, unknown>>;
 
-/** Default passthrough resolver for non-interactive execution. */
+/**
+ * Default passthrough resolver for non-interactive execution.
+ *
+ * @example
+ * ```ts
+ * import { passthroughResolver } from '@ontrails/cli';
+ *
+ * const resolved = await passthroughResolver([], { name: 'Ada' });
+ * // resolved.name === 'Ada'
+ * ```
+ */
 export const passthroughResolver: InputResolver = async (_fields, provided) =>
   await provided;
 
-/** Shared TTY check for resolver implementations. */
+/**
+ * Shared TTY check for resolver implementations.
+ *
+ * @example
+ * ```ts
+ * import { isInteractive } from '@ontrails/cli';
+ *
+ * const canPrompt = isInteractive({ isTTY: true });
+ * // canPrompt === true
+ * ```
+ */
 export const isInteractive = (options?: ResolveInputOptions): boolean =>
   options?.isTTY ?? process.stdin.isTTY ?? false;
 

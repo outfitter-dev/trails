@@ -18,6 +18,23 @@ import { output, deriveOutputMode } from './output.js';
  *
  * @remarks Trail logic should return `Result.err(...)` instead of throwing.
  * This host-boundary throw is intentionally outside trail execution.
+ *
+ * @example
+ * ```ts
+ * import { Result } from '@ontrails/core';
+ * import { defaultOnResult, type ActionResultContext } from '@ontrails/cli';
+ *
+ * const ctx = {
+ *   args: {},
+ *   flags: { json: true },
+ *   input: {},
+ *   result: Result.ok({ id: 'example' }),
+ *   topoName: 'demo',
+ *   trail: { id: 'demo.example', kind: 'trail' },
+ * } as ActionResultContext;
+ *
+ * await defaultOnResult(ctx);
+ * ```
  */
 export const defaultOnResult = async (
   ctx: ActionResultContext
