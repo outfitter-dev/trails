@@ -6,7 +6,13 @@
  * private package.
  */
 
-import { existsSync, readdirSync, readFileSync, realpathSync } from 'node:fs';
+import {
+  existsSync,
+  readdirSync,
+  readFileSync,
+  realpathSync,
+  statSync,
+} from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 
 export const adapterTargetPlacements = ['extracted', 'subpath'] as const;
@@ -86,6 +92,14 @@ const normalizeRealPath = (path: string): string => {
     return normalizePath(realpathSync(path));
   } catch {
     return normalizePath(resolve(path));
+  }
+};
+
+const pathIsFile = (path: string): boolean => {
+  try {
+    return statSync(path).isFile();
+  } catch {
+    return false;
   }
 };
 
@@ -365,6 +379,19 @@ const missingExportDiagnostic = (
     target
   );
 
+const missingExportTargetDiagnostic = (
+  context: AdapterTargetParseContext,
+  field: 'supportImport' | 'testingImport',
+  importSpecifier: string,
+  target: string
+): AdapterTargetCatalogDiagnostic =>
+  diagnostic(
+    context,
+    'invalid-import',
+    `Adapter target "${target}" declares ${field} "${importSpecifier}", but ${context.packageName} exports that subpath to a missing or non-file target.`,
+    target
+  );
+
 const adapterTargetsRecord = (
   manifest: AdapterTargetPackageManifest
 ): Record<string, unknown> | undefined | null => {
@@ -421,25 +448,47 @@ const parseCatalogTarget = (
     ? context.exportTargets[testingImportSpecifier]
     : undefined;
 
-  if (supportImportSpecifier && !supportExportTarget) {
-    importDiagnostics.push(
-      missingExportDiagnostic(
-        context,
-        'supportImport',
-        supportImportSpecifier,
-        target
-      )
-    );
+  if (supportImportSpecifier) {
+    if (!supportExportTarget) {
+      importDiagnostics.push(
+        missingExportDiagnostic(
+          context,
+          'supportImport',
+          supportImportSpecifier,
+          target
+        )
+      );
+    } else if (!pathIsFile(supportExportTarget)) {
+      importDiagnostics.push(
+        missingExportTargetDiagnostic(
+          context,
+          'supportImport',
+          supportImportSpecifier,
+          target
+        )
+      );
+    }
   }
-  if (testingImportSpecifier && !testingExportTarget) {
-    importDiagnostics.push(
-      missingExportDiagnostic(
-        context,
-        'testingImport',
-        testingImportSpecifier,
-        target
-      )
-    );
+  if (testingImportSpecifier) {
+    if (!testingExportTarget) {
+      importDiagnostics.push(
+        missingExportDiagnostic(
+          context,
+          'testingImport',
+          testingImportSpecifier,
+          target
+        )
+      );
+    } else if (!pathIsFile(testingExportTarget)) {
+      importDiagnostics.push(
+        missingExportTargetDiagnostic(
+          context,
+          'testingImport',
+          testingImportSpecifier,
+          target
+        )
+      );
+    }
   }
   if (importDiagnostics.length > 0 || placements.placements.length === 0) {
     return { diagnostics: importDiagnostics };

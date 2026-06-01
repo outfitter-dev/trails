@@ -1,3 +1,11 @@
+export { checkAdapters } from './check.js';
+export type {
+  AdapterCheckDiagnostic,
+  AdapterCheckDiagnosticCode,
+  AdapterCheckDiagnosticSeverity,
+  AdapterCheckReport,
+  AdapterCheckSubject,
+} from './check.js';
 export {
   adapterTargetPlacements,
   deriveAdapterTargetCatalog,

@@ -7,14 +7,18 @@ import { deriveAdapterTargetCatalog } from '../catalog.js';
 
 const roots: string[] = [];
 
+const writeFile = (root: string, path: string, value: string): void => {
+  const filePath = join(root, path);
+  mkdirSync(dirname(filePath), { recursive: true });
+  writeFileSync(filePath, value);
+};
+
 const writeJson = (
   root: string,
   path: string,
   value: Record<string, unknown>
 ): void => {
-  const filePath = join(root, path);
-  mkdirSync(dirname(filePath), { recursive: true });
-  writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`);
+  writeFile(root, path, `${JSON.stringify(value, null, 2)}\n`);
 };
 
 const makeRoot = (): string => {
@@ -61,6 +65,8 @@ describe('deriveAdapterTargetCatalog', () => {
         },
       },
     });
+    writeFile(root, 'packages/store/src/adapter-support.ts', 'export {};\n');
+    writeFile(root, 'packages/store/src/testing.ts', 'export {};\n');
 
     const catalog = deriveAdapterTargetCatalog(root);
 
@@ -228,6 +234,38 @@ describe('deriveAdapterTargetCatalog', () => {
       catalog.diagnostics.every((entry) => entry.code === 'invalid-import')
     ).toBe(true);
     expect(catalog.diagnostics[0]?.message).toContain('does not export');
+  });
+
+  test('reports owner imports whose export targets do not exist', () => {
+    const root = makeRoot();
+    writePackage(root, 'packages/http', {
+      exports: {
+        '.': './src/index.ts',
+        './adapter-support': './src/missing-adapter-support.ts',
+        './testing': './src/missing-testing.ts',
+      },
+      name: '@ontrails/http',
+      trails: {
+        adapterTargets: {
+          http: {
+            placements: ['extracted'],
+            supportImport: '@ontrails/http/adapter-support',
+            testingImport: '@ontrails/http/testing',
+          },
+        },
+      },
+    });
+
+    const catalog = deriveAdapterTargetCatalog(root);
+
+    expect(catalog.targets).toEqual([]);
+    expect(catalog.diagnostics).toHaveLength(2);
+    expect(
+      catalog.diagnostics.every((entry) => entry.code === 'invalid-import')
+    ).toBe(true);
+    expect(catalog.diagnostics[0]?.message).toContain(
+      'missing or non-file target'
+    );
   });
 
   test('keeps extracted and subpath placements distinct and deterministic', () => {

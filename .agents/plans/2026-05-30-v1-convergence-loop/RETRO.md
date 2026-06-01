@@ -1,6 +1,6 @@
 ---
 created: "2026-05-30T12:28:00Z"
-updated: "2026-05-30T12:51:00Z"
+updated: "2026-05-30T17:45:00Z"
 status: active
 ---
 
@@ -68,7 +68,7 @@ status: active
   coverage, and consume Warden metadata without recreating Warden's safe-edit
   applicator or a parallel term table.
 - Beauvoir confirmed Hono is the strongest HTTP dogfood candidate and warned
-  that conformance must stay owner-owned, not inside adapter tooling.
+  that conformance must stay owner-owned, not inside adapter kit.
 - Clark ruled the doctrine coherent but too broad as first sketched; accepted
   route change: dogfood the adapter path before shipping `create.adapter`, and
   make TRL-850 conditional unless live map drift/check evidence remains.
@@ -154,6 +154,37 @@ status: active
 - Updated the HTTP README and README snippet harness so the public testing
   subpath example typechecks.
 
+### 2026-05-30 09:20 EDT - TRL-863 shared adapter check engine
+
+- Started `trl-863-build-shared-adapter-check-engine` above TRL-862.
+- Added `checkAdapters()` to private `@ontrails/adapter-kit` as the shared
+  predicate engine for future Warden and local `adapter.check` projections.
+- Kept adapter metadata minimal: extracted adapter packages author only
+  `trails.adapter.target`; the engine derives placement from workspace path,
+  export-map facts from `package.json`, dependency direction from manifests,
+  and conformance coverage from owner `testingImport` imports in test files.
+- Added structured diagnostics for missing/invalid adapter metadata, unknown
+  targets, unsupported placements, bad package export maps, dependency-boundary
+  violations, missing owner conformance facts, missing adapter conformance
+  imports, and runtime imports/dependencies on `@ontrails/adapter-kit`.
+- Read-only live repo check currently reports the expected pre-dogfood debt:
+  `@ontrails/commander`, `@ontrails/drizzle`, `@ontrails/hono`, and
+  `@ontrails/vite` are extracted adapter packages without
+  `trails.adapter.target` metadata. TRL-864 must not blindly turn this on as a
+  hard CI gate before TRL-865 dogfoods the shape.
+
+### 2026-05-30 13:45 EDT - TRL-876 review fix on TRL-863
+
+- Codex review and a focused subagent sniff found that the TRL-863 adapter
+  check engine accepted raw source text matches for conformance imports, so a
+  comment or string literal could suppress `missing-conformance`.
+- Created TRL-876 under TRL-863 to track the review bug.
+- Fixed the owning branch by replacing the raw regex with a small import
+  scanner that ignores comments, strings, and type-only imports while preserving
+  real static and dynamic import coverage.
+- Added regressions for line-comment, block-comment, string-literal, and
+  type-only false positives, plus a dynamic import positive case.
+
 ## Verification Ledger
 
 | Command | Context | Result | Notes |
@@ -218,6 +249,34 @@ status: active
 | `bun run --cwd packages/http lint` | TRL-862 review-thread follow-up | pass | Oxlint clean. |
 | `bun run lint:ast-grep` | TRL-862 pre-push follow-up | pass | Native redaction error kept behind a helper so the repo-wide `Result.err(new Error(...))` structural rule stays clean. |
 | `bun run --cwd packages/http typecheck && bun run --cwd packages/http build` | TRL-862 pre-push follow-up | pass | HTTP typecheck and build clean after the helper extraction. |
+| `bunx ultracite check packages/http/src/__tests__/testing.test.ts` | TRL-862 hosted CI fix | pass | Formatting and lint clean for the touched test file. |
+| `bun test packages/adapter-kit/src/__tests__/check.test.ts packages/adapter-kit/src/__tests__/catalog.test.ts` | TRL-863 adapter check engine | pass | 17 tests passed. |
+| `bun run --cwd packages/adapter-kit typecheck` | TRL-863 adapter check engine | pass | `tsc --noEmit` clean. |
+| `bun run --cwd packages/adapter-kit lint` | TRL-863 adapter check engine | pass | Oxlint clean. |
+| `bunx tsc -p packages/adapter-kit/tsconfig.tests.json --noEmit` | TRL-863 adapter check engine | pass | Test tsconfig typecheck clean. |
+| `bun run --cwd packages/adapter-kit build` | TRL-863 adapter check engine | pass | `tsc -b` clean. |
+| `bunx ultracite check packages/adapter-kit/src/check.ts packages/adapter-kit/src/__tests__/check.test.ts packages/adapter-kit/src/index.ts` | TRL-863 formatting | pass | Formatter initially found two files; `ultracite fix` applied formatting and rerun passed. |
+| `bun -e "import { checkAdapters } from './packages/adapter-kit/src/check.ts'; ..."` | TRL-863 live repo smoke | pass | Reported 2 targets, 0 subjects, and 4 expected `missing-adapter-metadata` diagnostics for current extracted adapters. |
+| `bun run typecheck` | TRL-863 workspace integration | pass | 24 package typechecks passed. |
+| `bun run lint` | TRL-863 workspace integration | pass | 25 lint tasks passed. |
+| `bun test packages/adapter-kit/src/__tests__/check.test.ts` | TRL-876 review fix | pass | 14 focused adapter-check tests passed, including comment/string/type-only import regressions. |
+| `bun run --cwd packages/adapter-kit test` | TRL-876 review fix | pass | 22 adapter-kit tests passed. |
+| `bun run --cwd packages/adapter-kit lint` | TRL-876 review fix | pass | Oxlint clean. |
+| `bun run --cwd packages/adapter-kit typecheck` | TRL-876 review fix | pass | `tsc --noEmit` clean. |
+| `git diff --check` | TRL-876 review fix | pass | No whitespace findings. |
+| `bun test packages/adapter-kit/src/__tests__/check.test.ts` | TRL-876 inline type-import follow-up | pass | 16 focused adapter-check tests passed after adding the inline `import { type ... }` regression and mixed value/type positive case. |
+| `bun run --cwd packages/adapter-kit lint` | TRL-876 inline type-import follow-up | pass | First run caught helper ordering via `no-use-before-define`; helper moved and rerun passed. |
+| `bun run --cwd packages/adapter-kit typecheck` | TRL-876 inline type-import follow-up | pass | `tsc --noEmit` clean. |
+| `git diff --check` | TRL-876 inline type-import follow-up | pass | No whitespace findings. |
+| `bun test packages/adapter-kit/src/__tests__/check.test.ts` | TRL-876 review-thread follow-up | pass | 18 focused adapter-check tests passed, including missing export targets and TS type-query import regressions. |
+| `bun run --cwd packages/adapter-kit lint` | TRL-876 review-thread follow-up | pass | Oxlint clean. |
+| `bun run --cwd packages/adapter-kit typecheck` | TRL-876 review-thread follow-up | pass | `tsc --noEmit` clean. |
+| `bun run format:check` | TRL-876 review-thread follow-up | pass | Full Ultracite check clean after formatting the touched check engine. |
+| `git diff --check` | TRL-876 review-thread follow-up | pass | No whitespace findings. |
+| `bun test packages/adapter-kit/src/__tests__/check.test.ts` | TRL-876 nested type-query follow-up | pass | 18 focused adapter-check tests passed after adding a nested `Array<import(...)>` regression. |
+| `bun run --cwd packages/adapter-kit lint` | TRL-876 nested type-query follow-up | pass | Oxlint clean. |
+| `bun run --cwd packages/adapter-kit typecheck` | TRL-876 nested type-query follow-up | pass | `tsc --noEmit` clean. |
+| `bunx markdownlint-cli2 .changeset/trl-863-adapter-check-engine.md` | TRL-863 changeset follow-up | pass | Branch-local adapter-kit changeset markdown clean. |
 
 ## Review Findings
 
@@ -236,12 +295,35 @@ the repo-wide native-error structural rule. The fixture still returns a native
 `Result.err()`, preserving the redaction behavior without violating the
 syntax-level guardrail.
 
+Bacon reviewed the TRL-876 / #639 conformance import-detection bug and agreed
+the narrow fix should stay on import syntax only, leaving helper-call validation
+to the later conformance-metadata/scaffold branch. The line-comment,
+block-comment, string-literal, and type-only false positives were fixed on
+`trl-863-build-shared-adapter-check-engine`.
+
+Goodall reviewed the resubmitted #639/#643 fix and found one remaining P2:
+inline named type-only imports such as `import { type Foo } from ...` still
+counted as fallback conformance evidence. The scanner now rejects import
+clauses with only inline type bindings while preserving mixed value/type imports.
+
+Follow-up review threads on #639 found that package exports were accepted when
+their targets did not exist, TS type-query `import("...")` references counted as
+runtime conformance imports, and `skipLineComment()` stopped on the newline
+itself. The shared check engine now requires exported targets to exist, ignores
+type-query imports, and advances line-comment skips past the newline.
+
+Another #639 follow-up found nested TS type-query imports such as
+`Array<import("@ontrails/http/testing").Adapter>` still counted as conformance
+evidence, and that the exported adapter-kit check API needed a branch-local
+changeset. The scanner now treats annotated generic type positions as erased
+imports, and TRL-863 carries its own `@ontrails/adapter-kit` patch changeset.
+
 ## Open Risks
 
 - TRL-850 may already be partially stale if the adapter ADR merge refreshed the
   decision map. Verify before cutting its branch.
 - TRL-826 and TRL-829 are conditional. Keep them only if this stack produces
   enough implementation evidence.
-- Adapter tooling package name was corrected from `@ontrails/adapter-tools` to
-  private `@ontrails/adapter-kit` before landing so the package reads as the
-  adapter-authoring paved path, not a grab bag of internals.
+- Adapter tooling package name is now implemented as publishable-but-internal
+  `@ontrails/adapter-kit`; keep watching whether the name communicates tooling
+  rather than central authority as later branches consume it.
