@@ -42,6 +42,7 @@
     "dead-code": "knip --no-progress",
     "trails": "bun apps/trails/bin/trails.ts",
     "trails:check": "bun trails warden",
+    "dogfood:packed": "bun scripts/dogfood-packed-artifacts.ts",
     "format:check": "bun run oxlint-plugin:build && bunx ultracite check .",
     "format:fix": "bun run oxlint-plugin:build && bunx ultracite fix .",
     "format:file": "bun run oxlint-plugin:build && bun scripts/format-staged.ts",
