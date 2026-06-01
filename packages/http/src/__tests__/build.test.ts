@@ -1125,7 +1125,9 @@ describe('deriveHttpRoutes', () => {
             output: z.object({ message: z.string() }),
             status: { state: 'archived' },
             transpose: {
-              input: ({ input }) => ({ name: input.firstName }),
+              input: ({ input }: { input: { firstName: string } }) => ({
+                name: input.firstName,
+              }),
               output: ({ output }) => output,
             },
           },
@@ -1134,7 +1136,9 @@ describe('deriveHttpRoutes', () => {
             output: z.object({ message: z.string() }),
             status: { note: 'Use name.', state: 'deprecated' },
             transpose: {
-              input: ({ input }) => ({ name: input.firstName }),
+              input: ({ input }: { input: { firstName: string } }) => ({
+                name: input.firstName,
+              }),
               output: ({ output }) => output,
             },
           },

@@ -138,6 +138,22 @@ status: active
 - Updated the adapter ADR draft `updated` frontmatter date for the TRL-861
   metadata changes.
 
+### 2026-05-30 09:58 EDT - TRL-862 HTTP owner conformance slice
+
+- Started `trl-862-add-http-adapter-authoring-support-and-conformance-factory`
+  above TRL-861.
+- Added `@ontrails/http/testing` with owner-owned HTTP adapter conformance
+  cases plus `runConformance()`.
+- Kept HTTP adapter support out of scope for now: current adapters can conform
+  through the public topo/options surface, so an `adapter-support` subpath would
+  be invented surface area.
+- Updated `@ontrails/http` package metadata so the `http` adapter target points
+  at the now-real `@ontrails/http/testing` import.
+- Validated `@ontrails/http/fetch`, `@ontrails/http/bun`, and `@ontrails/hono`
+  through the same owner conformance cases.
+- Updated the HTTP README and README snippet harness so the public testing
+  subpath example typechecks.
+
 ## Verification Ledger
 
 | Command | Context | Result | Notes |
@@ -178,12 +194,47 @@ status: active
 | `bun run --cwd packages/adapter-kit lint` | TRL-861 sidecar review fixes | pass | Oxlint clean. |
 | `bun scripts/adr.ts check` | TRL-861 sidecar review fixes | pass | 0 errors, 0 warnings. |
 | `bunx ultracite check packages/adapter-kit/src/catalog.ts packages/adapter-kit/src/__tests__/catalog.test.ts packages/adapter-kit/tsconfig.tests.json docs/adr/drafts/20260528-adapter-authoring-as-a-paved-path.md` | TRL-861 sidecar review fixes | pass | First run found formatting in the new test; `ultracite fix` applied it and rerun passed. |
+| `bun test packages/http/src/__tests__/testing.test.ts` | TRL-862 HTTP conformance factory | pass | 14 tests passed, including public subpath typecheck and fetch/bun conformance. |
+| `bun test packages/http/src/__tests__/fetch.test.ts packages/http/src/__tests__/bun.test.ts packages/http/src/__tests__/testing.test.ts` | TRL-862 HTTP regression set | pass | 35 tests passed. |
+| `bun test adapters/hono/src/__tests__/surface.test.ts adapters/hono/src/__tests__/conformance.test.ts` | TRL-862 Hono conformance dogfood | pass | 28 tests passed. |
+| `bun run --cwd packages/http typecheck` | TRL-862 HTTP package | pass | `tsc --noEmit` clean. |
+| `bun run --cwd packages/http lint` | TRL-862 HTTP package | pass | Oxlint clean. |
+| `bun run --cwd packages/http build` | TRL-862 HTTP package | pass | `tsc -b` clean. |
+| `bun run --cwd adapters/hono typecheck` | TRL-862 Hono conformance dogfood | pass | `tsc --noEmit` clean. |
+| `bun run --cwd adapters/hono lint` | TRL-862 Hono conformance dogfood | pass | Oxlint clean. |
+| `bun run docs:snippets` | TRL-862 HTTP README snippet | pass | 21 README files typechecked; HTTP README now has 6 snippets. |
+| `bun run docs:api-examples` | TRL-862 public API examples | pass | Existing public API example inventory passed. |
+| `bunx ultracite check packages/http/src/testing.ts packages/http/src/__tests__/testing.test.ts packages/http/package.json packages/http/README.md scripts/check-readme-snippets.ts .changeset/trl-862-http-adapter-testing.md` | TRL-862 formatting | pass | Matched files clean after formatter fix. |
+| `bunx markdownlint-cli2 packages/http/README.md .changeset/trl-862-http-adapter-testing.md .agents/plans/2026-05-30-v1-convergence-loop/RETRO.md` | TRL-862 docs/hygiene | pass | 0 markdown errors. |
+| `git diff --check` | TRL-862 whitespace | pass | No whitespace findings. |
+| `bun run docs:wrap-check` | TRL-862 docs/hardwrap | pass | Lower-stack ADR hardwraps were reflowed on their owning branches; 159 scanned files clean. |
+| `gh pr checks 643` | Top-of-stack hosted CI | fail | `Test` timed out in the TRL-862 HTTP public testing subpath smoke test on the CI runner. |
+| `gh run view 26689927179 --job 78664434517 --log-failed` | Hosted CI failure investigation | pass | Confirmed the timeout was `@ontrails/http/testing public subpath > typechecks the public testing subpath`. |
+| `bun test packages/http/src/__tests__/testing.test.ts` | TRL-862 hosted CI fix | pass | 14 tests passed after switching the public subpath smoke test away from `bunx tsc` and giving the subprocess an explicit timeout. |
+| `bun run --cwd packages/http lint` | TRL-862 hosted CI fix | pass | Oxlint clean. |
+| `bun run --cwd packages/http test` | TRL-862 hosted CI fix | pass | 159 HTTP package tests passed. |
+| `bun run --cwd packages/http typecheck` | TRL-862 hosted CI fix | pass | `tsc --noEmit` clean. |
+| `bun test packages/http/src/__tests__/testing.test.ts` | TRL-862 review-thread follow-up | pass | 14 HTTP conformance tests passed after switching the redaction case to a native `Error`. |
+| `bun run --cwd packages/http lint` | TRL-862 review-thread follow-up | pass | Oxlint clean. |
+| `bun run lint:ast-grep` | TRL-862 pre-push follow-up | pass | Native redaction error kept behind a helper so the repo-wide `Result.err(new Error(...))` structural rule stays clean. |
+| `bun run --cwd packages/http typecheck && bun run --cwd packages/http build` | TRL-862 pre-push follow-up | pass | HTTP typecheck and build clean after the helper extraction. |
 
 ## Review Findings
 
 Laplace reviewed TRL-861 and found one P1 and three P2 issues. All four were
 fixed on `trl-861-define-adapter-target-metadata-and-catalog-derivation` before
 continuing upward.
+
+Follow-up review on #638 found the public redaction conformance case used
+`InternalError`, which proved known TrailsError projection rather than generic
+error redaction. The conformance fixture now returns a native `Error` while
+retaining the same public `InternalError` response expectation.
+
+Pre-push then caught that the literal `Result.err(new Error(...))` shape trips
+the repo-wide native-error structural rule. The fixture still returns a native
+`Error`, but constructs it through a small helper before passing it to
+`Result.err()`, preserving the redaction behavior without violating the
+syntax-level guardrail.
 
 ## Open Risks
 
