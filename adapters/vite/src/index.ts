@@ -3,12 +3,17 @@ import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import type { ReadableStream as NodeReadableStream } from 'node:stream/web';
 
+/**
+ * Fetch contract consumed by the Vite adapter when converting to middleware.
+ */
 export interface FetchSurface {
   fetch(request: Request): Response | Promise<Response>;
 }
 
+/** Callback invoked when Connect middleware should continue execution. */
 export type ViteMiddlewareNext = (error?: unknown) => void;
 
+/** Connect-style middleware wrapper around a Trails fetch surface. */
 export type ViteMiddleware = (
   req: IncomingMessage,
   res: ServerResponse,

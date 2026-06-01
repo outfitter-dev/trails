@@ -17,7 +17,7 @@ Manual instructions for ADR lifecycle operations when the `../scripts/adr.ts` sc
 4. Update the title: `# ADR: Title` → `# ADR-NNNN: Title`
 5. Add a row to the index table in `docs/adr/README.md`
 6. Update any other ADRs that reference this one as "(draft)" to use the numbered link
-7. Regenerate `docs/adr/decision-map.json` if it exists
+7. If the script is available, regenerate `docs/adr/decision-map.json`, `docs/adr/drafts/decision-map.json`, and `docs/adr/drafts/README.md`
 
 ## Demoting a numbered ADR
 
@@ -60,4 +60,4 @@ Rules:
 
 ## Decision map
 
-`docs/adr/decision-map.json` is a generated JSON file that catalogs all ADRs (numbered and drafts) with their metadata. Regenerate it after any structural changes. The script's `map` command handles this automatically.
+`docs/adr/decision-map.json` catalogs accepted ADR metadata, while `docs/adr/drafts/decision-map.json` catalogs draft ADR metadata. The script's `map` command regenerates both maps and the generated draft index.

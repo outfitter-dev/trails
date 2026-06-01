@@ -31,6 +31,9 @@ import { handleCaughtHonoError } from './caught-error.js';
 // Options
 // ---------------------------------------------------------------------------
 
+/**
+ * Options for building a Trails HTTP app on Hono.
+ */
 export interface CreateAppOptions extends BaseSurfaceOptions {
   readonly basePath?: string | undefined;
   readonly createContext?:
@@ -50,6 +53,9 @@ interface RuntimeOptions {
   readonly maxJsonBodyBytes?: number | undefined;
 }
 
+/**
+ * Runtime handle returned by the Hono surface.
+ */
 export interface SurfaceHttpResult {
   readonly close: () => Promise<void>;
   readonly url: string;

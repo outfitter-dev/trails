@@ -12,10 +12,13 @@ import {
 
 export const CLAUDE_SKILL_WARDEN_GUIDE_PATH =
   '.claude/skills/clark/references/warden-guide.md';
+export const AGENTS_SKILL_WARDEN_GUIDE_PATH =
+  '.agents/skills/clark/references/warden-guide.md';
 export const PLUGIN_SKILL_WARDEN_GUIDE_PATH =
   'plugin/skills/trails/references/warden-guide.md';
 export const SKILL_WARDEN_GUIDE_PATHS = [
   CLAUDE_SKILL_WARDEN_GUIDE_PATH,
+  AGENTS_SKILL_WARDEN_GUIDE_PATH,
   PLUGIN_SKILL_WARDEN_GUIDE_PATH,
 ] as const;
 

@@ -264,6 +264,8 @@ const buildDraftsIndex = (
     '# Draft ADRs',
     '',
     'Proposed decisions under discussion. Promoted to `docs/adr/` when accepted.',
+    '',
+    'Draft map: `docs/adr/drafts/decision-map.json`; numbered map: `docs/adr/decision-map.json`.',
   ];
 
   // Group by YYYY-MM from created date

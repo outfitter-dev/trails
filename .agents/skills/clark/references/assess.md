@@ -14,7 +14,7 @@ Did what was built match what was planned? Compare the implemented trails, schem
 - Do examples cover the agreed happy paths and failure modes?
 - Are `composes` declarations accurate to actual composition?
 
-Run `trails warden` and `trails survey --brief` to get the current state. Do not rely on memory of what the codebase looked like before.
+Run `trails warden` and `trails survey brief` to get the current state. Do not rely on memory of what the codebase looked like before.
 
 ### 2. Architectural Alignment
 

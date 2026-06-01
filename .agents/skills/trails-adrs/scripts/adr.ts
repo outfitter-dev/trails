@@ -10,7 +10,7 @@
  *   update   — change title, slug, status, or number of an ADR
  *   check    — validate ADR format and consistency
  *   fix      — auto-fix common issues (number padding, cross-refs)
- *   map      — regenerate decision-map.json
+ *   map      — regenerate decision maps and draft index
  *
  * Usage:
  *   bun .claude/skills/trails-adrs/scripts/adr.ts create --title "My Decision" --slug my-decision

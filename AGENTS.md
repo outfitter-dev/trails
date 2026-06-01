@@ -31,7 +31,7 @@ For direct local lint and format validation, prefer the repo scripts (`bun run l
 
 ## Project Overview
 
-Trails is an agent-native, contract-first TypeScript framework. Define a trail once with typed input, `Result` output, examples, and meta, then surface it on CLI, MCP, HTTP, or WebSocket.
+Trails is an agent-native, contract-first TypeScript framework. Define a trail once with typed input, `Result` output, examples, and meta, then surface it on CLI, MCP, or HTTP today. WebSocket is planned on the same contract-first model.
 
 The architecture is designed to make consistency easier than drift. Agents building with Trails should naturally produce aligned surfaces. Agents consuming Trails apps should be able to inspect contracts, examples, schemas, and errors at runtime without guessing.
 

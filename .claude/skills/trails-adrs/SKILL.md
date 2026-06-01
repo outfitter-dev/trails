@@ -63,11 +63,11 @@ bun scripts/adr.ts fix --yes
 # Validate format and consistency
 bun scripts/adr.ts check
 
-# Regenerate decision-map.json
+# Regenerate decision maps and draft index
 bun scripts/adr.ts map
 ```
 
-The script handles file creation, git moves, title/slug/number updates, index rebuilding, decision map generation, and cross-reference updates.
+The script handles file creation, git moves, title/slug/number updates, index rebuilding, decision map generation for numbered and draft ADRs, and cross-reference updates.
 
 For manual ADR management without the script, see [assets/adr-management.md](assets/adr-management.md).
 
@@ -95,7 +95,8 @@ Examples:
 - Accepted: `docs/adr/NNNN-slug.md`
 - Drafts: `docs/adr/drafts/YYYYMMDD-slug.md`
 - Index: `docs/adr/README.md`
-- Decision map: `docs/adr/decision-map.json`
+- Accepted decision map: `docs/adr/decision-map.json`
+- Draft decision map: `docs/adr/drafts/decision-map.json`
 - Tenets: `docs/tenets.md` — the governing design principles. ADRs must be consistent with the tenets.
 
 ## Statuses

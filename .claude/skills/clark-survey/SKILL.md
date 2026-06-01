@@ -71,7 +71,7 @@ Compare the docs against the code:
 bun run test
 bun run typecheck
 trails warden
-trails survey --brief
+trails survey brief
 ```
 
 ### 6. Growth Without Governance

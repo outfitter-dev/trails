@@ -11,6 +11,9 @@ import { Command, InvalidArgumentError, Option } from 'commander';
 // Options
 // ---------------------------------------------------------------------------
 
+/**
+ * Options used when constructing a Commander program from trail metadata.
+ */
 export interface ToCommanderOptions {
   description?: string | undefined;
   name?: string | undefined;

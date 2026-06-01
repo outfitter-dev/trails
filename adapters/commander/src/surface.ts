@@ -23,6 +23,9 @@ import { toCommander } from './to-commander.js';
 // Options
 // ---------------------------------------------------------------------------
 
+/**
+ * Options for creating Commander CLI surfaces from a Trails topo.
+ */
 export interface CreateProgramOptions extends BaseSurfaceOptions {
   readonly createContext?:
     | (() => TrailContextInit | Promise<TrailContextInit>)
@@ -38,6 +41,9 @@ export interface CreateProgramOptions extends BaseSurfaceOptions {
   readonly version?: string | undefined;
 }
 
+/**
+ * Result returned by running the Commander surface bootstrap.
+ */
 export interface SurfaceCliResult {
   readonly exitCode: number;
 }

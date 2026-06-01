@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 
 import {
   CLAUDE_SKILL_WARDEN_GUIDE_PATH,
+  AGENTS_SKILL_WARDEN_GUIDE_PATH,
   PLUGIN_SKILL_WARDEN_GUIDE_PATH,
   SKILL_WARDEN_GUIDE_PATHS,
   isSkillWardenGuideCurrent,
@@ -15,10 +16,13 @@ describe('sync-skill-warden-guide', () => {
     expect(CLAUDE_SKILL_WARDEN_GUIDE_PATH).toBe(
       '.claude/skills/clark/references/warden-guide.md'
     );
+    expect(AGENTS_SKILL_WARDEN_GUIDE_PATH).toBe(
+      '.agents/skills/clark/references/warden-guide.md'
+    );
     expect(PLUGIN_SKILL_WARDEN_GUIDE_PATH).toBe(
       'plugin/skills/trails/references/warden-guide.md'
     );
-    expect(SKILL_WARDEN_GUIDE_PATHS).toHaveLength(2);
+    expect(SKILL_WARDEN_GUIDE_PATHS).toHaveLength(3);
     expect(guide).toStartWith('# Warden Guidance For Trails Skills');
     expect(guide).toContain(
       '- Guide input command: `bun apps/trails/bin/trails.ts warden guide --agent-json`'

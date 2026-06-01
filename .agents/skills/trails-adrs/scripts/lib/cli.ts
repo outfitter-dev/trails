@@ -76,7 +76,7 @@ Commands:
   update    Change title, slug, status, or number of an ADR
   check     Validate ADR format and consistency
   fix       Auto-fix common issues (number padding, cross-refs)
-  map       Regenerate decision-map.json
+  map       Regenerate decision maps and draft index
 
 Options:
   --title <title>           ADR title (create, update)

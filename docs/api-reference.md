@@ -292,6 +292,20 @@ CrudOperation, CrudAccessorExpectation
 // writable store resources fire canonical scoped signals when accessed through `db.from(ctx)`.
 ```
 
+### `@ontrails/store/trails`
+
+```typescript
+crud(table, resource, options?)        // derive create/read/update/delete/list trails
+sync(options)                          // copy one source entity into a target store table
+reconcile(options)                     // upsert a versioned entity with conflict recovery
+
+CrudTrails<T>, CrudOptions<T>, CrudBlazeOverrides<T>
+SyncEndpoint<T, C>, SyncOptions<TSource, TTarget, TSourceConnection, TTargetConnection>
+SyncTransform<TSource, TTarget>
+ReconcileConflict<T>, ReconcileOptions<T, C>, ReconcileStrategy<T>
+CrudOperation, CrudAccessorExpectation
+```
+
 ### `@ontrails/store/adapter-support`
 
 ```typescript
@@ -538,7 +552,7 @@ LogtapeLoggerLike, LogtapeSinkOptions
 ```typescript
 createPinoSink(logger, options?)       // forward observe LogRecord values to a Pino-shaped logger
 
-PinoLoggerLike, PinoSinkOptions
+PinoLogMethod, PinoLoggerLike, PinoSinkOptions
 ```
 
 ## `@ontrails/tracing`

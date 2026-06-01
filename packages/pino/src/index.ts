@@ -5,6 +5,9 @@ import type { LogLevel, LogRecord, LogSink } from '@ontrails/observe';
  */
 export const pinoPackageName = '@ontrails/pino';
 
+/**
+ * Signature for a Pino-compatible logger method used when forwarding Trails records.
+ */
 export type PinoLogMethod = (
   payload: Record<string, unknown>,
   message?: string

@@ -6,8 +6,7 @@
  * the CLI's `--trace` flag) own the actual write to stderr. Live streaming is
  * deferred per ADR-0028; this renderer assumes the records are complete.
  *
- * The output mirrors the sample in the direct-invocation draft ADR
- * (`docs/adr/drafts/20260331-direct-invocation.md`):
+ * The output follows the trace tree shape documented in ADR-0041:
  *
  * ```
  * ● booking.confirm
@@ -26,7 +25,7 @@
  * Parallel siblings (overlapping `[startedAt, endedAt]` intervals) are
  * bracketed with `┌` / `├` / `└` and followed by a parallel summary line.
  *
- * @see {@link https://github.com/outfitter-dev/trails/blob/main/docs/adr/drafts/20260331-direct-invocation.md | Direct Invocation draft ADR}
+ * @see {@link https://github.com/outfitter-dev/trails/blob/main/docs/adr/0041-unified-observability.md | ADR-0041: Unified Observability}
  */
 
 import type { TraceRecord } from '@ontrails/core';

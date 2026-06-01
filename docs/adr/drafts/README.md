@@ -4,6 +4,8 @@
 
 Proposed decisions under discussion. Promoted to `docs/adr/` when accepted.
 
+Draft map: `docs/adr/drafts/decision-map.json`; numbered map: `docs/adr/decision-map.json`.
+
 ## 2026-03
 
 - [Direct Trail Invocation (`trails run`)](20260331-direct-invocation.md)

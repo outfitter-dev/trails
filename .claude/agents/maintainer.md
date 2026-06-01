@@ -35,7 +35,7 @@ You are a subagent. You may read and write files, but you must NOT perform any g
 
 ## Memory
 
-Use `.claude/agent-memory/maintainer/` to build persistent knowledge about the ADR landscape across sessions. Write each memory as a separate `.md` file with frontmatter, and index it in `MEMORY.md`.
+Use `.agents/memory/decisions.md` to build persistent knowledge about the ADR landscape across sessions. Append each memory as a dated markdown section with enough source anchors to stay auditable.
 
 ### What to remember
 
@@ -56,13 +56,10 @@ Use `.claude/agent-memory/maintainer/` to build persistent knowledge about the A
 ### Memory format
 
 ```markdown
----
-name: theme-name
-description: one-line hook for relevance matching
-type: decision-graph | style-feedback | theme | cross-cutting | draft-status | reference
----
+### YYYY-MM-DD Brief topic
+
+**Type:** decision-graph | style-feedback | theme | cross-cutting | draft-status | reference
+**Hook:** one-line relevance hook
 
 Content. For style feedback, include **Why:** and **How to apply:** lines.
 ```
-
-Index each file in `MEMORY.md` with a one-line entry: `- [Title](file.md) — hook`
