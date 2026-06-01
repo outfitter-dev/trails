@@ -106,7 +106,7 @@ status: active
 
 - Started `trl-861-define-adapter-target-metadata-and-catalog-derivation`
   above the adapter conformance snippet branch.
-- Added private internal `@ontrails/adapter-kit` package for read-only
+- Added internal `@ontrails/adapter-kit` package for read-only
   `trails.adapterTargets` catalog derivation.
 - Added first-party metadata to `@ontrails/http` and `@ontrails/store`; HTTP
   advertises the target and placements only, while Store also advertises its
@@ -157,7 +157,7 @@ status: active
 ### 2026-05-30 09:20 EDT - TRL-863 shared adapter check engine
 
 - Started `trl-863-build-shared-adapter-check-engine` above TRL-862.
-- Added `checkAdapters()` to private `@ontrails/adapter-kit` as the shared
+- Added `checkAdapters()` to internal `@ontrails/adapter-kit` as the shared
   predicate engine for future Warden and local `adapter.check` projections.
 - Kept adapter metadata minimal: extracted adapter packages author only
   `trails.adapter.target`; the engine derives placement from workspace path,
@@ -184,6 +184,17 @@ status: active
   real static and dynamic import coverage.
 - Added regressions for line-comment, block-comment, string-literal, and
   type-only false positives, plus a dynamic import positive case.
+
+### 2026-05-31 00:00 EDT - TRL-864 review fixes
+
+- Follow-up review threads found that Warden's `advisory` tier accidentally
+  enabled adapter checks without `--adapter-check`, and the Trails
+  `adapter.check` output bridge did not honor the global `--jsonl` shorthand.
+- Kept adapter checks opt-in for Warden by requiring `adapterCheck` explicitly.
+- Treated `jsonl` like `json` and `--output jsonl` so the generic structured
+  output path, not the human adapter report bridge, owns line-delimited output.
+- Updated Warden and Trails adapter-check fixtures to create the source file
+  their package export maps claim exists after the stricter export-target check.
 
 ## Verification Ledger
 
@@ -277,6 +288,15 @@ status: active
 | `bun run --cwd packages/adapter-kit lint` | TRL-876 nested type-query follow-up | pass | Oxlint clean. |
 | `bun run --cwd packages/adapter-kit typecheck` | TRL-876 nested type-query follow-up | pass | `tsc --noEmit` clean. |
 | `bunx markdownlint-cli2 .changeset/trl-863-adapter-check-engine.md` | TRL-863 changeset follow-up | pass | Branch-local adapter-kit changeset markdown clean. |
+| `bun test packages/warden/src/__tests__/adapter-check.test.ts packages/warden/src/__tests__/cli.test.ts apps/trails/src/__tests__/adapter-check.test.ts` | TRL-864 review-thread follow-up | pass | 54 tests passed, covering explicit adapter-check opt-in, `--jsonl`, and repaired export-map fixtures. |
+| `bun run --cwd packages/warden typecheck && bun run --cwd apps/trails typecheck` | TRL-864 review-thread follow-up | pass | Warden and Trails typechecks clean. |
+| `bun run --cwd packages/warden lint && bun run --cwd apps/trails lint` | TRL-864 review-thread follow-up | pass | Oxlint clean for both packages. |
+| `bun run format:check` | TRL-864 review-thread follow-up | pass | Full Ultracite check clean after formatting the touched adapter-check surface. |
+| `git diff --check` | TRL-864 review-thread follow-up | pass | No whitespace findings. |
+| `bun test packages/warden/src/__tests__/cli.test.ts` | TRL-864 pre-push fixture follow-up | pass | 47 Warden CLI tests passed after making the adapter-check opt-in fixture explicitly opt in. |
+| `bun test apps/trails/src/__tests__/adapter-check.test.ts` | TRL-864 env output follow-up | pass | 6 Trails adapter-check tests passed, including `TRAILS_JSON=1` and `TRAILS_JSONL=1` structured-output handling. |
+| `bun run --cwd apps/trails lint` | TRL-864 env output follow-up | pass | Oxlint clean after making env restore explicit. |
+| `bun run --cwd apps/trails typecheck` | TRL-864 env output follow-up | pass | `tsc --noEmit` clean. |
 
 ## Review Findings
 
@@ -317,6 +337,22 @@ Another #639 follow-up found nested TS type-query imports such as
 evidence, and that the exported adapter-kit check API needed a branch-local
 changeset. The scanner now treats annotated generic type positions as erased
 imports, and TRL-863 carries its own `@ontrails/adapter-kit` patch changeset.
+
+Follow-up review threads on #640 found that advisory Warden runs were no longer
+pure advisory-rule runs because adapter checks were implicitly attached, and that
+`trails adapter check --jsonl` still printed the human report. Warden now runs
+adapter checks only behind explicit adapter opt-in, while the Trails CLI bridge
+defers both `--jsonl` and `--output jsonl` to the structured output path.
+
+Pre-push later caught that the Warden opt-in regression fixture no longer
+produced adapter-check diagnostics after unannotated adapters became out of
+scope. The fixture now declares `trails.adapter` explicitly so the test proves
+opt-in execution instead of relying on old unannotated-adapter behavior.
+
+A later #640 review found that `trails adapter check` skipped human output for
+structured flags but ignored the repo-wide topo env selectors. The adapter-check
+result bridge now delegates to `deriveOutputMode()`, so `TRAILS_JSON=1` and
+`TRAILS_JSONL=1` behave like the corresponding flags.
 
 ## Open Risks
 

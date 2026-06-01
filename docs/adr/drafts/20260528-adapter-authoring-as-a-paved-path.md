@@ -87,11 +87,11 @@ TRL-861 codifies this metadata shape: `placements` is required, while `supportIm
 
 ### The adapter kit consumes facts; it never owns adapter truth
 
-The adapter kit starts as private `@ontrails/adapter-kit`: it discovers owner targets, scaffolds extracted and subpath adapters, generates conformance tests, generates package/export skeletons, runs the shared check engine, and reports readiness. It does **not** define an `adapter()` primitive, own HTTP/store/permit/observe semantics, get imported by runtime adapters, or re-author package facts that `package.json` already states.
+The adapter kit starts as internal `@ontrails/adapter-kit`: it discovers owner targets, scaffolds extracted and subpath adapters, generates conformance tests, generates package/export skeletons, runs the shared check engine, and reports readiness. It does **not** define an `adapter()` primitive, own HTTP/store/permit/observe semantics, get imported by runtime adapters, or re-author package facts that `package.json` already states.
 
 Two structural rules keep it tooling and not truth:
 
-- **It starts private/internal — unpublished.** The CLI and Warden consume it; adapters never import it at runtime. Keeping it off the public surface is what makes "tooling, not truth" structural rather than aspirational.
+- **It starts internal, not author-facing.** The CLI and Warden consume it, so it must be publishable with those packages; runtime adapters never import it. Keeping it out of the adapter authoring surface is what makes "tooling, not truth" structural rather than aspirational.
 - **The no-import boundary is enforced, not documented.** A Warden rule asserts that runtime adapters do not import the tooling package, and that conformance cases resolve only from owner `/testing` exports — never re-defined in the tooling. This is owner-first authority, made a rule rather than a paragraph.
 
 ### Conformance is a thin call into an owner-owned dynamic factory
@@ -159,13 +159,13 @@ The user-facing commands are trails, so adapter authoring is queryable without a
 
 ### Risks
 
-- **The tooling drifts into owning adapter truth** (a primitive by stealth). Mitigation: the package stays private/unpublished, the Warden no-import rule, and the consume-not-own boundary as enforced doctrine.
+- **The tooling drifts into owning adapter truth** (a primitive by stealth). Mitigation: the package stays internal/tooling-owned, the Warden no-import rule, and the consume-not-own boundary as enforced doctrine.
 - **Conformance drifts** from the owner contract. Mitigation: generated tests are thin calls into the owner factory — cases are re-derived, never copied.
 - **Over-scoping.** Mitigation: tracer-first sequencing — prove the whole loop on one owner before fanning out.
 
 ## Non-decisions
 
-- Whether the adapter kit ever becomes public; the current package stays private.
+- Whether the adapter kit ever becomes author-facing; the current package stays internal.
 - Exact command flags.
 - How Warden scopes to a single adapter — build the shared engine first, then expose a scope without a second rule path.
 

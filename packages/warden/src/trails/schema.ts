@@ -42,6 +42,7 @@ export const fixSchema = z.object({
 
 /** A single diagnostic emitted by a warden rule trail. */
 export const diagnosticSchema = z.object({
+  code: z.string().optional().describe('Optional rule-local diagnostic code'),
   filePath: z.string().describe('File path that was analyzed'),
   fix: fixSchema.optional().describe('Structured fix metadata'),
   guidance: guidanceSchema

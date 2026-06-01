@@ -128,6 +128,7 @@ const readEnumValue = <T extends string>({
 };
 
 export interface ParsedWardenCommand {
+  readonly adapterCheck: boolean;
   readonly ci: boolean;
   readonly cli: WardenConfigLayer;
   readonly configPath?: string | undefined;
@@ -138,6 +139,7 @@ export interface ParsedWardenCommand {
 }
 
 const createEmptyParsedCommand = (message: string): ParsedWardenCommand => ({
+  adapterCheck: false,
   ci: false,
   cli: {},
   diagnostics: [diagnostic({ message })],
@@ -151,6 +153,7 @@ const tokenValue = (token: {
   typeof token.value === 'string' ? token.value : undefined;
 
 interface CommandParserState {
+  adapterCheck?: boolean | undefined;
   readonly apps: string[];
   readonly diagnostics: WardenDiagnostic[];
   readonly cli: MutableWardenConfigLayer;
@@ -235,6 +238,7 @@ const parseTokens = (
       allowPositionals: false,
       args: [...args],
       options: {
+        'adapter-check': { type: 'boolean' },
         apps: { multiple: true, short: 'a', type: 'string' },
         ci: { type: 'boolean' },
         'config-path': { type: 'string' },
@@ -388,6 +392,10 @@ const applyCommandOption = (
     state.apps.push(...splitApps(value));
     return;
   }
+  if (token.name === 'adapter-check') {
+    state.adapterCheck = true;
+    return;
+  }
   if (token.name === 'config-path') {
     state.configPath = value;
     return;
@@ -445,6 +453,7 @@ export const parseWardenCommandArgs = (
   }
 
   return {
+    adapterCheck: state.adapterCheck ?? false,
     ci,
     cli: cleanUndefined(
       state.cli as Record<string, unknown>
@@ -797,6 +806,7 @@ const effectiveConfigNeedsTopo = (depth: WardenDepth): boolean =>
   depth === 'topo' || depth === 'all';
 
 const buildRunOptions = ({
+  adapterCheck,
   cli,
   config,
   env,
@@ -804,6 +814,7 @@ const buildRunOptions = ({
   rootDir,
   topos,
 }: {
+  readonly adapterCheck: boolean;
   readonly cli: WardenConfigLayer;
   readonly config?: WardenConfigInput | undefined;
   readonly env: EnvRecord;
@@ -812,6 +823,7 @@ const buildRunOptions = ({
   readonly topos: readonly WardenTopoTarget[];
 }): WardenRunOptions => ({
   ...cleanUndefined({
+    adapterCheck,
     apps: cli.apps,
     config,
     depth: cli.depth,
@@ -916,6 +928,7 @@ export const runWardenCommand = async ({
     : { diagnostics: [], topos: [] };
   const report = await runWarden(
     buildRunOptions({
+      adapterCheck: parsed.adapterCheck,
       cli: parsed.cli,
       config: loadedConfig.config,
       env,

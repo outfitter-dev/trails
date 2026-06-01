@@ -194,6 +194,8 @@ export interface WardenRuleMetadata {
 export interface WardenDiagnostic {
   /** Rule identifier, e.g. "no-throw-in-implementation" */
   readonly rule: string;
+  /** Optional rule-local diagnostic code for checks with multiple stable findings. */
+  readonly code?: string | undefined;
   /** Severity level */
   readonly severity: WardenSeverity;
   /** Human-readable message describing the violation */

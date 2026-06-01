@@ -23,6 +23,10 @@ import { resolveTrailRootDir } from './root-dir.js';
 // ---------------------------------------------------------------------------
 
 const wardenInputSchema = z.object({
+  adapterCheck: z
+    .boolean()
+    .default(false)
+    .describe('Run shared adapter authoring checks'),
   apps: z
     .array(z.string())
     .optional()
@@ -131,6 +135,7 @@ export const buildWardenCommandArgs = (
   }
   pushFlag(args, input.noLockMutation, '--no-lock-mutation');
   pushFlag(args, input.fix, '--fix');
+  pushFlag(args, input.adapterCheck, '--adapter-check');
   pushValue(args, '--config-path', input.configPath);
   pushApps(args, input.apps);
 

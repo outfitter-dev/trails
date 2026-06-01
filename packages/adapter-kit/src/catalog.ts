@@ -3,7 +3,7 @@
  *
  * Owner packages author the few adapter facts package metadata cannot derive.
  * Tooling consumes those facts; runtime adapters must never import this
- * private package.
+ * internal tooling package.
  */
 
 import {

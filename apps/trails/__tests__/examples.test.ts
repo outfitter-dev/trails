@@ -11,6 +11,7 @@ import { app } from '../src/app.js';
 const trailsWorkspaceDir = resolve(import.meta.dir, '..', '.trails');
 const trailsGitignorePath = join(trailsWorkspaceDir, '.gitignore');
 const trailsWorkspaceSubdirs = ['cache', 'state'] as const;
+const repoRoot = resolve(import.meta.dir, '..', '..', '..');
 
 const resetTrailsWorkspace = (): void => {
   rmSync(trailsWorkspaceDir, { force: true, recursive: true });
@@ -29,4 +30,4 @@ afterAll(() => {
   resetTrailsWorkspace();
 });
 
-testExamples(app);
+testExamples(app, { cwd: repoRoot });

@@ -14,6 +14,7 @@ Options:
   --config-path <path>         Path to trails.config.* file
   --root-dir <path>            Project root to inspect
   --fix                        Apply safe source fixes
+  --adapter-check              Include shared adapter authoring diagnostics
   --depth <value>              source, project, topo, or all
   --fail-on <value>            error or warning
   --format <value>             summary, github, or json

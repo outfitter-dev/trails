@@ -1,8 +1,13 @@
 {
   "name": "@ontrails/adapter-kit",
   "version": "1.0.0-beta.18",
-  "private": true,
   "description": "Internal adapter authoring kit for Trails metadata, scaffolding, and checks.",
+  "files": [
+    "src/**/*.ts",
+    "!src/**/__tests__/**",
+    "!src/**/*.test.ts",
+    "!src/**/*.test-d.ts"
+  ],
   "type": "module",
   "exports": {
     ".": "./src/index.ts",

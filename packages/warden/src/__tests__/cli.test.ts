@@ -57,6 +57,42 @@ const makeTempDir = (): string => {
   return dir;
 };
 
+const writeAdapterCheckFixture = (rootDir: string): void => {
+  writeFileSync(
+    join(rootDir, 'package.json'),
+    JSON.stringify(
+      {
+        name: 'fixture-root',
+        workspaces: ['adapters/*'],
+      },
+      null,
+      2
+    )
+  );
+  mkdirSync(join(rootDir, 'adapters/hono/src'), { recursive: true });
+  writeFileSync(
+    join(rootDir, 'adapters/hono/package.json'),
+    JSON.stringify(
+      {
+        exports: {
+          '.': './src/index.ts',
+          './package.json': './package.json',
+        },
+        name: '@ontrails/hono',
+        trails: {
+          adapter: true,
+        },
+      },
+      null,
+      2
+    )
+  );
+  writeFileSync(
+    join(rootDir, 'adapters/hono/src/index.ts'),
+    'export const honoAdapter = {};\n'
+  );
+};
+
 const writeManifest = (rootDir: string, hash: string): Promise<string> =>
   writeLockManifest(
     {
@@ -559,6 +595,32 @@ export const second = contour('second', {
       expect(rules.has('prefer-schema-inference')).toBe(true);
       expect(rules.has('no-throw-in-implementation')).toBe(false);
       expect(report.drift).toBeNull();
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('advisory tier runs adapter checks only when opted in', async () => {
+    const dir = makeTempDir();
+    try {
+      writeAdapterCheckFixture(dir);
+
+      const advisoryOnly = await runWarden({
+        rootDir: dir,
+        tier: 'advisory',
+      });
+      const optedIn = await runWarden({
+        adapterCheck: true,
+        rootDir: dir,
+        tier: 'advisory',
+      });
+
+      expect(advisoryOnly.diagnostics.map((entry) => entry.rule)).not.toContain(
+        'adapter-check'
+      );
+      expect(optedIn.diagnostics.map((entry) => entry.rule)).toContain(
+        'adapter-check'
+      );
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }

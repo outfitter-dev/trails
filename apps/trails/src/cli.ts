@@ -23,6 +23,10 @@ import { app } from './app.js';
 import { resolveInputWithClack } from './clack.js';
 import { getRetiredTopoCommandDiagnostic } from './retired-topo-command.js';
 import { attachCompletionsInstallCommand } from './run-completions-install.js';
+import {
+  applyAdapterCheckExitCode,
+  tryAdapterCheckOutput,
+} from './run-adapter-check.js';
 import { tryRecoverFromRunCollision } from './run-collision.js';
 import { tryExampleRunOutput } from './run-example.js';
 import { tryExamplesRunOutput } from './run-examples.js';
@@ -65,6 +69,7 @@ const buildOnResult =
     // envelope on stdout that includes the captured records under
     // `tracing`. Hand that case off before the regular chain so the
     // existing handlers do not also write to stdout.
+    applyAdapterCheckExitCode(resolvedCtx);
     if (session !== undefined && tryTraceJsonOutput(resolvedCtx, session)) {
       return;
     }
@@ -79,6 +84,9 @@ const buildOnResult =
       return;
     }
     if (tryWardenOutput(resolvedCtx)) {
+      return;
+    }
+    if (tryAdapterCheckOutput(resolvedCtx)) {
       return;
     }
     await defaultOnResult(resolvedCtx);

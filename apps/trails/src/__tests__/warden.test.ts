@@ -187,6 +187,7 @@ describe('trails warden', () => {
 
   test('projects final Warden flags into the shared command surface', () => {
     const args = buildWardenCommandArgs({
+      adapterCheck: true,
       apps: ['trails', 'demo'],
       cached: true,
       ci: true,
@@ -219,6 +220,7 @@ describe('trails warden', () => {
       '--exclude-drafts',
       '--no-lock-mutation',
       '--fix',
+      '--adapter-check',
       '--apps',
       'trails,demo',
     ]);
@@ -303,6 +305,7 @@ describe('trails warden', () => {
     const parsed = wardenTrail.output.safeParse({
       diagnostics: [
         {
+          code: 'no-throw-in-implementation',
           filePath: 'src/trails/entity.ts',
           fix: {
             class: 'term-rewrite',
@@ -358,6 +361,7 @@ describe('trails warden', () => {
     expect(raw.stdout).toContain('Usage: warden [options]');
     expect(raw.stdout).toContain('--depth <value>');
     expect(raw.stdout).toContain('--fix');
+    expect(raw.stdout).toContain('--adapter-check');
     expect(raw.stdout).not.toContain('Warden Report');
   });
 
