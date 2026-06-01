@@ -488,6 +488,21 @@ const handleWebhookRoute = async (
 
 /**
  * Build a Web Fetch handler for one framework-agnostic HTTP route.
+ *
+ * @example
+ * ```ts
+ * import { deriveHttpRoutes } from '@ontrails/http';
+ * import { createRouteHandler } from '@ontrails/http/fetch';
+ *
+ * const routes = deriveHttpRoutes(graph, { basePath: '/api' });
+ * if (routes.isErr()) throw routes.error;
+ *
+ * const route = routes.value[0];
+ * if (!route) throw new Error('No routes derived');
+ *
+ * const handle = createRouteHandler(route);
+ * const response = await handle(new Request('https://example.test/api/hello'));
+ * ```
  */
 export const createRouteHandler = (
   route: HttpRouteDefinition,
@@ -534,6 +549,16 @@ export const createRouteHandler = (
 
 /**
  * Build a Web Fetch dispatcher for all HTTP routes in a topo.
+ *
+ * @example
+ * ```ts
+ * import { createFetchHandler } from '@ontrails/http/fetch';
+ *
+ * const fetch = createFetchHandler(graph, { basePath: '/api' });
+ * const response = await fetch(
+ *   new Request('https://example.test/api/hello?name=Matt')
+ * );
+ * ```
  */
 export const createFetchHandler = (
   graph: Topo,

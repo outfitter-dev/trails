@@ -6,6 +6,17 @@ export type HttpOperationMethod = Lowercase<HttpMethod>;
 
 export type InputSource = 'query' | 'body' | 'webhook';
 
+/**
+ * Owner table for projecting trail intent onto HTTP methods.
+ *
+ * @example
+ * ```ts
+ * import { httpMethodByIntent } from '@ontrails/http';
+ *
+ * const readMethod = httpMethodByIntent.read;
+ * // readMethod === 'GET'
+ * ```
+ */
 export const httpMethodByIntent = {
   destroy: 'DELETE',
   read: 'GET',
