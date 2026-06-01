@@ -19,6 +19,11 @@ const reportWithDiagnostics: WardenReport = {
   diagnostics: [
     {
       filePath: 'packages/core/src/result.ts',
+      fix: {
+        class: 'term-rewrite',
+        reason: 'Retired term needs a reviewed migration.',
+        safety: 'review',
+      },
       guidance: {
         commands: ['bun test packages/core'],
         docs: [{ label: 'Trail Rules', path: 'AGENTS.md#trail-rules' }],
@@ -121,6 +126,16 @@ describe('formatJson', () => {
       summary: 'Convert thrown failures in blazes into Result.err().',
     });
     expect(parsed.diagnostics[1].guidance).toBeUndefined();
+  });
+
+  test('exposes diagnostic fix metadata as structured JSON', () => {
+    const parsed = JSON.parse(formatJson(reportWithDiagnostics));
+    expect(parsed.diagnostics[0].fix).toMatchObject({
+      class: 'term-rewrite',
+      reason: 'Retired term needs a reviewed migration.',
+      safety: 'review',
+    });
+    expect(parsed.diagnostics[1].fix).toBeUndefined();
   });
 
   test('includes null drift when absent', () => {

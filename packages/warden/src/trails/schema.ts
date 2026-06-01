@@ -10,6 +10,7 @@ import type { Topo } from '@ontrails/core';
 import type { TopoGraph } from '@ontrails/topographer';
 import { z } from 'zod';
 import { wardenImportResolutionErrorKinds } from '../resolve.js';
+import { wardenFixClasses, wardenFixSafeties } from '../rules/metadata.js';
 
 export const guidanceLinkSchema = z.object({
   label: z.string(),
@@ -25,9 +26,24 @@ export const guidanceSchema = z.object({
   summary: z.string(),
 });
 
+export const fixEditSchema = z.object({
+  end: z.number(),
+  replacement: z.string(),
+  start: z.number(),
+});
+
+export const fixSchema = z.object({
+  class: z.enum(wardenFixClasses),
+  edits: z.array(fixEditSchema).readonly().optional(),
+  fixture: z.string().optional(),
+  reason: z.string(),
+  safety: z.enum(wardenFixSafeties),
+});
+
 /** A single diagnostic emitted by a warden rule trail. */
 export const diagnosticSchema = z.object({
   filePath: z.string().describe('File path that was analyzed'),
+  fix: fixSchema.optional().describe('Structured fix metadata'),
   guidance: guidanceSchema
     .optional()
     .describe('Structured remediation guidance'),

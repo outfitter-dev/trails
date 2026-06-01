@@ -73,6 +73,26 @@ status: active
   route change: dogfood the adapter path before shipping `create.adapter`, and
   make TRL-850 conditional unless live map drift/check evidence remains.
 
+### 2026-05-30 08:38 EDT - TRL-866 implementation slice
+
+- Started `trl-866-project-warden-diagnostic-fix-metadata-through-rule-trail`
+  above the TRL-834 ADR base.
+- Extended the Warden trail diagnostic schema with the existing structured
+  `WardenFix` shape.
+- Updated the `no-legacy-layer-imports` trail example so contract tests assert
+  the review-required `term-rewrite` fix metadata survives trail projection.
+- Added a regression proving `runWardenTrails()` preserves
+  `diagnostic.fix.class === 'term-rewrite'` and `safety === 'review'`.
+- Added a Warden patch changeset for the public output-shape fix.
+
+### 2026-05-30 08:41 EDT - TRL-866 sidecar review tightened tests
+
+- Kant reviewed diagnostic projection paths and found no blocker after the
+  schema change.
+- Folded in Kant's cheap guardrails: `formatJson()` now proves diagnostic
+  `fix` survives structured JSON, and the `trails warden` output schema fixture
+  now includes a structured fix object.
+
 ## Verification Ledger
 
 | Command | Context | Result | Notes |
@@ -86,6 +106,12 @@ status: active
 | `bun scripts/adr.ts check` | TRL-834 ADR draft | pass | 0 errors, 0 warnings. |
 | `bunx markdownlint-cli2 docs/adr/drafts/20260530-fixes-are-warden-diagnostic-metadata.md .agents/plans/2026-05-30-v1-convergence-loop/*.md` | TRL-834 ADR + packet | pass | Initial bare-URL findings in `REFS.md` fixed; rerun clean. |
 | `git diff --check` | TRL-834 ADR + packet | pass | No whitespace findings. |
+| `bun test packages/warden/src/__tests__/trails.test.ts packages/warden/src/__tests__/no-legacy-layer-imports.test.ts` | TRL-866 Warden trail projection | pass | 175 tests passed. |
+| `bun test packages/warden/src/__tests__/trails.test.ts packages/warden/src/__tests__/no-legacy-layer-imports.test.ts packages/warden/src/__tests__/formatters.test.ts apps/trails/src/__tests__/warden.test.ts` | TRL-866 sidecar review guardrails | pass | 216 tests passed. |
+| `bun run --cwd packages/warden typecheck` | TRL-866 Warden package | pass | `tsc --noEmit` clean. |
+| `bun run --cwd apps/trails typecheck` | TRL-866 Trails app wrapper | pass | `tsc --noEmit` clean. |
+| `bun run format:check && bun run --cwd packages/warden lint` | TRL-866 formatting and Warden lint | pass | First run caught sorted-key fixture ordering; fixed and reran clean. |
+| `bunx markdownlint-cli2 .changeset/trl-866-warden-trail-fix-metadata.md .agents/plans/2026-05-30-v1-convergence-loop/RETRO.md && git diff --check` | TRL-866 docs/hygiene | pass | Markdown and whitespace clean. |
 
 ## Review Findings
 

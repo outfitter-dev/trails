@@ -304,6 +304,11 @@ describe('trails warden', () => {
       diagnostics: [
         {
           filePath: 'src/trails/entity.ts',
+          fix: {
+            class: 'term-rewrite',
+            reason: 'Retired term needs a reviewed migration.',
+            safety: 'review',
+          },
           guidance: {
             docs: [{ label: 'Trail Rules', path: 'AGENTS.md#trail-rules' }],
             summary: 'Convert thrown failures in blazes into Result.err().',

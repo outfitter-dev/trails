@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { testAll } from '@ontrails/testing';
 
+import { runWardenTrails } from '../trails/run.js';
 import { diagnosticSchema } from '../trails/schema.js';
 import { wardenTopo } from '../trails/topo.js';
 
@@ -46,6 +47,23 @@ describe('wardenTopo', () => {
     ).toBe(true);
   });
 
+  test('diagnostic schema accepts structured fix metadata', () => {
+    expect(
+      diagnosticSchema.safeParse({
+        filePath: 'src/trail.ts',
+        fix: {
+          class: 'term-rewrite',
+          reason: 'Retired term needs a reviewed migration.',
+          safety: 'review',
+        },
+        line: 1,
+        message: 'Retired term used.',
+        rule: 'no-legacy-layer-imports',
+        severity: 'error',
+      }).success
+    ).toBe(true);
+  });
+
   test('diagnostic schema accepts label-only guidance links', () => {
     expect(
       diagnosticSchema.safeParse({
@@ -60,5 +78,23 @@ describe('wardenTopo', () => {
         severity: 'error',
       }).success
     ).toBe(true);
+  });
+
+  test('rule trail execution preserves diagnostic fix metadata', async () => {
+    const diagnostics = await runWardenTrails(
+      '/repo/apps/example/src/cli.ts',
+      "import { authLayer } from '@ontrails/permits';\n"
+    );
+
+    const diagnostic = diagnostics.find(
+      (entry) => entry.rule === 'no-legacy-layer-imports'
+    );
+
+    expect(diagnostic?.fix).toMatchObject({
+      class: 'term-rewrite',
+      safety: 'review',
+    });
+    expect(diagnostic?.fix?.reason).toContain('authLayer');
+    expect(diagnostic?.fix?.edits).toBeUndefined();
   });
 });
