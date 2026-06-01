@@ -1,5 +1,11 @@
 import { afterAll, describe, expect, mock, test } from 'bun:test';
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { join, resolve } from 'node:path';
 
 import { contour, Result, trail, topo } from '@ontrails/core';
@@ -276,6 +282,7 @@ const runGeneratedEstablishedSuite = (): {
   readonly output: string;
 } => {
   const dir = repoTempDir();
+  const reportFile = join(dir, 'testAllEstablished-surfaces.junit.xml');
   const testFile = join(dir, 'testAllEstablished-surfaces.test.ts');
 
   mkdirSync(dir, { recursive: true });
@@ -305,15 +312,24 @@ testAllEstablished(topo('established-topo', { show }));
 
   try {
     const proc = Bun.spawnSync({
-      cmd: ['bun', 'test', testFile],
+      cmd: [
+        'bun',
+        'test',
+        testFile,
+        '--reporter=junit',
+        `--reporter-outfile=${reportFile}`,
+      ],
       cwd: resolve(import.meta.dir, '..', '..', '..'),
       stderr: 'pipe',
       stdout: 'pipe',
     });
+    const report = existsSync(reportFile)
+      ? readFileSync(reportFile, 'utf8')
+      : '';
 
     return {
       exitCode: proc.exitCode,
-      output: `${proc.stdout.toString()}\n${proc.stderr.toString()}`,
+      output: `${proc.stdout.toString()}\n${proc.stderr.toString()}\n${report}`,
     };
   } finally {
     rmSync(dir, { force: true, recursive: true });

@@ -1,7 +1,13 @@
 import { describe } from 'bun:test';
 
 import type { AnyTrail, TrailContext } from '@ontrails/core';
-import { InternalError, Result, resource, trail } from '@ontrails/core';
+import {
+  AlreadyExistsError,
+  InternalError,
+  Result,
+  resource,
+  trail,
+} from '@ontrails/core';
 import { z } from 'zod';
 
 import { testComposes } from '../composes.js';
@@ -137,7 +143,7 @@ describe('testComposes: injectFromExample', () => {
     [
       {
         description: 'inject duplicate error from add trail example',
-        expectErr: Error,
+        expectErr: AlreadyExistsError,
         expectErrMessage: 'AlreadyExistsError',
         injectFromExample: { 'entity.add': 'duplicate' },
         input: { name: 'Alpha', relatedTo: 'Beta' },

@@ -29,6 +29,7 @@ import {
   assertSchemaMatch,
 } from './assertions.js';
 import { mergeResourceOverrides, mergeTestContext } from './context.js';
+import { createErrorFromName } from './errors.js';
 import type { ComposeScenario } from './types.js';
 
 type TestingExecuteTrailOptions = ExecuteTrailOptions & {
@@ -146,7 +147,7 @@ const tryInjectError = (
       )
     );
   }
-  return Result.err(new Error(errorName));
+  return Result.err(createErrorFromName(errorName));
 };
 
 const executeFromMap = (

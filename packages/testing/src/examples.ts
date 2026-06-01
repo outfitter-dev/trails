@@ -21,26 +21,10 @@ import type {
 } from '@ontrails/core';
 
 import {
-  AlreadyExistsError,
-  AmbiguousError,
-  AssertionError,
-  AuthError,
   buildComposeValidationSchema,
-  CancelledError,
-  ConflictError,
-  DerivationError,
-  InternalError,
-  NetworkError,
-  NotFoundError,
-  PermissionError,
-  PermitError,
-  RateLimitError,
-  RetryExhaustedError,
   executeTrail,
   parseTrailIdVersionReference,
   Result,
-  TimeoutError,
-  TrailsError,
   ValidationError,
   validateInput,
 } from '@ontrails/core';
@@ -65,44 +49,12 @@ import {
   isDerivedExample,
 } from './effective-examples.js';
 import type { TrailExampleTarget } from './effective-examples.js';
+import { resolveErrorClass } from './errors.js';
 import { withSignalAssertions } from './signals.js';
 
 type TestingExecuteTrailOptions = ExecuteTrailOptions & {
   readonly validationSchema?: ReturnType<typeof buildComposeValidationSchema>;
 };
-
-// ---------------------------------------------------------------------------
-// Error class name -> constructor map
-// ---------------------------------------------------------------------------
-
-const ERROR_MAP: Record<string, new (...args: never[]) => Error> = {
-  AlreadyExistsError: AlreadyExistsError as new (...args: never[]) => Error,
-  AmbiguousError: AmbiguousError as new (...args: never[]) => Error,
-  AssertionError: AssertionError as new (...args: never[]) => Error,
-  AuthError: AuthError as new (...args: never[]) => Error,
-  CancelledError: CancelledError as new (...args: never[]) => Error,
-  ConflictError: ConflictError as new (...args: never[]) => Error,
-  DerivationError: DerivationError as new (...args: never[]) => Error,
-  InternalError: InternalError as new (...args: never[]) => Error,
-  NetworkError: NetworkError as new (...args: never[]) => Error,
-  NotFoundError: NotFoundError as new (...args: never[]) => Error,
-  PermissionError: PermissionError as new (...args: never[]) => Error,
-  PermitError: PermitError as new (...args: never[]) => Error,
-  RateLimitError: RateLimitError as new (...args: never[]) => Error,
-  RetryExhaustedError: RetryExhaustedError as unknown as new (
-    ...args: never[]
-  ) => Error,
-  TimeoutError: TimeoutError as new (...args: never[]) => Error,
-  TrailsError: TrailsError as unknown as new (...args: never[]) => Error,
-  ValidationError: ValidationError as new (...args: never[]) => Error,
-};
-
-/**
- * Resolve an error class name string to the actual constructor.
- * Falls back to generic Error if the name is not in the core taxonomy.
- */
-const resolveErrorClass = (name: string): new (...args: never[]) => Error =>
-  ERROR_MAP[name] ?? (Error as new (...args: never[]) => Error);
 
 // ---------------------------------------------------------------------------
 // Helpers
