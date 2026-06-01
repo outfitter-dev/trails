@@ -1,6 +1,6 @@
 ---
 created: "2026-05-30T12:28:00Z"
-updated: "2026-05-31T15:44:00Z"
+updated: "2026-06-01T00:00:00Z"
 status: active
 ---
 
@@ -285,6 +285,36 @@ status: active
   and #643 rejected `runConformance(adapter)` even when the owner runner
   defaulted to the declared cases factory. Fixed both and walked upward again.
 
+### 2026-05-31 17:42 EDT - TRL-836 Regrade/Warden metadata slice
+
+- Created
+  `trl-836-integrate-warden-backed-term-rewrite-regrades` above the ready
+  TRL-805 stack tip. This is a new top branch, so no lower branch was edited.
+- Regrade now derives built-in classes from Warden rules that advertise
+  `fix.class === "term-rewrite"` instead of maintaining a parallel term table.
+- The first projected class is
+  `term-rewrite:no-legacy-layer-imports`; Regrade runs the Warden rule itself,
+  routes review-required fixes to `needs-review`, and preserves the Warden fix
+  reason in the Regrade note.
+- Warden-owned safe edits can be applied generically after Regrade validates
+  spans, ordering, and overlap. Invalid or missing fix edits stay review-only.
+- `@ontrails/adapter-kit` is the actual implemented package name. The older
+  `adapter-tools` wording only remains as historical ADR discussion, not as an
+  active package or import path.
+- Tried to launch a sidecar sniff for the new Regrade slice, but the agent pool
+  was full. Covered the slice inline with focused tests, package gates, and the
+  full top-of-stack gate.
+- `bun run check` initially caught a duplicate export alias
+  (`wardenTermRewriteClasses` and `builtinRegradeClasses`). Removed the alias,
+  amended the branch, reran focused gates, then reran the full top gate clean.
+- Post-submit Codex review found one real P2 on #644: Regrade's new
+  `@ontrails/warden` dependency was missing from `bun.lock`. Ran `bun install`
+  on the owning top branch so frozen installs see the dependency.
+- A later Codex review pass found another real P2 on #644: mixed safe Warden
+  diagnostics could partly rewrite when one diagnostic lacked concrete edits.
+  Regrade now routes the whole file to review when any safe diagnostic is
+  missing edits, preserving the unfixable finding instead of hiding it.
+
 ## Verification Ledger
 
 | Command | Context | Result | Notes |
@@ -529,6 +559,15 @@ status: active
 | `bun run --cwd packages/adapter-kit lint && bun run --cwd apps/trails lint && bun run --cwd packages/warden lint` | TRL-805 final-review follow-up | pass | Adapter-kit, Trails app, and Warden lints clean. |
 | `bun run --cwd packages/adapter-kit typecheck && bun run --cwd apps/trails typecheck && bun run --cwd packages/warden typecheck` | TRL-805 final-review follow-up | pass | Adapter-kit, Trails app, and Warden typechecks clean. |
 | `bun run --cwd packages/adapter-kit build && bun run --cwd apps/trails build && bun run --cwd packages/warden build && bun run lint:ast-grep && git diff --check` | TRL-805 final-review follow-up | pass | Package builds, repo ast-grep, and whitespace checks clean. |
+| `bun test packages/regrade/src/downstream/__tests__/report.test.ts` | TRL-836 Regrade/Warden metadata slice | pass | 16 focused Regrade report tests passed, including Warden-backed review routing. |
+| `bun run --cwd packages/regrade lint && bun run --cwd packages/regrade typecheck && bun run --cwd packages/regrade build && bun run --cwd packages/regrade test` | TRL-836 Regrade package | pass | Regrade lint, typecheck, build, and 35 package tests passed. |
+| `bun test packages/warden/src/__tests__/no-legacy-layer-imports.test.ts packages/warden/src/__tests__/warden-rule-metadata.test.ts packages/warden/src/__tests__/guide.test.ts` | TRL-836 Warden metadata dependency | pass | 25 Warden tests passed for the consumed rule metadata surface. |
+| `bun run changeset:check && bun run lint:ast-grep && git diff --check` | TRL-836 release and structural hygiene | pass | Changeset gate passed; Regrade is private, and repo ast-grep plus whitespace checks stayed clean. |
+| `bun run build && bun run test && bun run check && bun run publish:check && git status --short --branch && git diff --check` | TRL-836 top pre-submit gate | pass | Full workspace build, tests, check, public package pack checks, clean status, and whitespace check passed after removing the duplicate export alias. |
+| `bun install --frozen-lockfile` | TRL-836 lockfile review follow-up | pass | Frozen install accepted the updated Regrade dependency entry in `bun.lock`. |
+| `bun run build && bun run test && bun run check && bun run publish:check && git status --short --branch && git diff --check` | TRL-836 lockfile review follow-up | pass | Full workspace build, tests, check, public package pack checks, status, and whitespace checks passed after the lockfile fix. |
+| `bun test packages/regrade/src/downstream/__tests__/report.test.ts && bun run --cwd packages/regrade lint && bun run --cwd packages/regrade typecheck && git diff --check` | TRL-836 missing-edit review follow-up | pass | Regrade now routes mixed safe Warden diagnostics with missing edits to review; 17 focused tests passed. |
+| `bun run build && bun run test && bun run check && bun run publish:check && git diff --check` | TRL-836 missing-edit review follow-up | pass | Full workspace build, tests, check, public package pack checks, and whitespace check passed after the missing-edit review fix. |
 
 ## Remote PR Ledger
 
@@ -542,7 +581,8 @@ status: active
 | [#639](https://github.com/outfitter-dev/trails/pull/639) | `trl-863-build-shared-adapter-check-engine` | ready | green | Adds shared adapter check engine. |
 | [#640](https://github.com/outfitter-dev/trails/pull/640) | `trl-864-expose-adapter-checks-through-warden-and-trails-adapter` | ready | green | Exposes adapter checks through Warden and `trails adapter check`. |
 | [#641](https://github.com/outfitter-dev/trails/pull/641) | `trl-865-dogfood-adapter-authoring-path-on-a-first-party-http-adapter` | ready | green | Dogfoods Hono as first extracted HTTP adapter subject. |
-| [#643](https://github.com/outfitter-dev/trails/pull/643) | `trl-805-trails-create-adapter-scaffold-adapter-packages-against-the` | ready | local review fixes verified; remote CI must rerun after submit | Adds extracted `create.adapter`; subpath check discovery and remaining adapter migration split to TRL-870/TRL-872. |
+| [#643](https://github.com/outfitter-dev/trails/pull/643) | `trl-805-trails-create-adapter-scaffold-adapter-packages-against-the` | ready | green | Adds extracted `create.adapter`; subpath check discovery and remaining adapter migration split to TRL-870/TRL-872. |
+| [#644](https://github.com/outfitter-dev/trails/pull/644) | `trl-836-integrate-warden-backed-term-rewrite-regrades` | ready | green | Regrade consumes Warden-backed term-rewrite metadata; post-submit lockfile review fix was folded into this top branch. |
 
 Submitted with `gt submit --stack --draft --no-edit --no-interactive`, then
 marked ready after every PR reported green CI. Before submit, the bottom real
@@ -550,6 +590,13 @@ branch had to be reparented from the zero-diff worker lane onto `main`.
 Graphite refused to submit dependents of the empty lane branch, which confirms
 the worktree-farm base branch is useful for local farming but should not sit
 under a submitted stack.
+
+After the #644 lockfile fix, the whole stack was re-audited: all PRs were
+non-draft, no non-outdated review threads remained unresolved, top-branch
+hosted CI was green, and `gt merge --dry-run --no-interactive` reported the
+stack ready to merge. GitHub still showed upper PR merge states as `UNSTABLE`
+while Graphite mergeability caught up; treat that as queue state, not a code
+failure, unless a live check later shows a real failed status.
 
 ## Review Findings
 
@@ -670,7 +717,7 @@ remaining review risk is scope, not correctness: this stack intentionally ships
 discovery and scaffolding to TRL-870, and leaves Commander/Drizzle/Vite metadata
 migration to TRL-872.
 
-Remote review status after marking ready: GitHub CI passed on all eight PRs.
+Remote review status after marking ready: GitHub CI passed on all ten PRs.
 Greptile posted only its account/billing message ("free trial has ended") on
 each PR rather than a code review. Treat that as an unavailable review signal,
 not as a clean Greptile review and not as a code finding.
@@ -716,6 +763,21 @@ functions that default cases, and accepts typed runner variables such as
 `export const runConformance: Runner = (...)` when proving owner default-case
 coverage. The fixes were made on the owning branches, walked upward through
 PR #641, and verified again at the top before any submit.
+
+## Follow-Up Index
+
+These are the known follow-ups from this loop. They are not hidden stack
+blockers; they are the next slices or tracker cleanup needed after the stack
+lands.
+
+| Issue | Status | Follow-up |
+| --- | --- | --- |
+| TRL-870 | Deferred by design | Add adapter check coverage for subpath adapter subject discovery and subpath scaffolding before expanding `create.adapter` beyond extracted adapters. |
+| TRL-872 | Deferred by design | Migrate the remaining first-party adapter packages, especially Commander, Drizzle, and Vite, into the `trails.adapter` metadata model. |
+| TRL-875 | Fixed in stack; tracker cleanup needed | The HTTP public testing subpath CI timeout was fixed on TRL-862 by invoking local TypeScript through `process.execPath` plus `node_modules/typescript/bin/tsc` with an explicit timeout. Local HTTP gates and hosted CI are green. Connected Linear search on 2026-06-01 still showed TRL-875 In Progress, so add the fix/verification comment and move it forward after the stack lands. |
+| TRL-850 | Verify before cutting | May be stale if the adapter ADR merge refreshed the decision map; check live ADR decision-map drift before opening work. |
+| TRL-826 / TRL-829 | Conditional | Keep only if the landed adapter-authoring stack produces enough implementation evidence to justify these slices. |
+| `@ontrails/adapter-kit` naming | Watch | Implemented as publishable-but-internal adapter tooling. Keep checking whether the name communicates "adapter authoring/checking kit" rather than framework authority as more packages consume it. |
 
 ## Open Risks
 

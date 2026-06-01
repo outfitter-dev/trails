@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { executeTrail } from '@ontrails/core';
+import type { WardenRule } from '@ontrails/warden';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -7,9 +8,11 @@ import { join } from 'node:path';
 import {
   buildRegradeReport,
   createTermRewriteClass,
+  createWardenTermRewriteClass,
   regradeReportTrail,
   runRegrade,
   selectRegradeClasses,
+  wardenTermRewriteClasses,
 } from '../report.js';
 
 const signalToPing = createTermRewriteClass({ from: 'signal', to: 'ping' });
@@ -46,6 +49,97 @@ describe('createTermRewriteClass', () => {
     const result = signalToPing.apply('// rename the signal here\n');
     expect(result.kind).toBe('rewrite');
     expect(result.nextSource).toBe('// rename the ping here\n');
+  });
+});
+
+describe('wardenTermRewriteClasses', () => {
+  test('projects Warden term-rewrite metadata into Regrade classes', () => {
+    expect(wardenTermRewriteClasses.map((cls) => cls.id)).toContain(
+      'term-rewrite:no-legacy-layer-imports'
+    );
+  });
+
+  test('routes review-required Warden term rewrites to review', () => {
+    const legacyLayerClass = wardenTermRewriteClasses.find(
+      (cls) => cls.id === 'term-rewrite:no-legacy-layer-imports'
+    );
+    expect(legacyLayerClass).toBeDefined();
+
+    const result = legacyLayerClass?.apply(
+      "import { authLayer } from '@ontrails/permits';\n",
+      { absolutePath: '/repo/src/auth.ts', path: 'src/auth.ts' }
+    );
+
+    expect(result?.kind).toBe('needs-review');
+    expect(result?.reason).toBe('warden-review-required');
+    expect(result?.nextSource).toBeUndefined();
+    expect(result?.notes.join('\n')).toContain(
+      'Removal has no mechanical replacement'
+    );
+  });
+
+  test('reports no-op when Warden finds no term-rewrite diagnostics', () => {
+    const report = buildRegradeReport({
+      classes: wardenTermRewriteClasses,
+      files: [{ path: 'src/a.ts', source: 'export const ok = true;' }],
+      root: '/repo',
+      skipped: [],
+    });
+
+    expect(report.selectedClassIds).toEqual([
+      'term-rewrite:no-legacy-layer-imports',
+    ]);
+    expect(report.matched).toBe(0);
+    expect(report.entries[0]?.outcome).toBe('no-op');
+  });
+
+  test('routes mixed safe diagnostics with missing edits to review', () => {
+    const rule = {
+      check: () => [
+        {
+          filePath: '/repo/src/auth.ts',
+          fix: {
+            class: 'term-rewrite',
+            edits: [{ end: 9, replacement: 'permit', start: 0 }],
+            reason: 'Rename one safe term.',
+            safety: 'safe',
+          },
+          line: 1,
+          message: 'Rename one safe term.',
+          rule: 'no-legacy-layer-imports',
+          severity: 'error',
+        },
+        {
+          filePath: '/repo/src/auth.ts',
+          fix: {
+            class: 'term-rewrite',
+            reason: 'Safe fix metadata was missing concrete edits.',
+            safety: 'safe',
+          },
+          line: 2,
+          message: 'Safe fix metadata was missing concrete edits.',
+          rule: 'no-legacy-layer-imports',
+          severity: 'error',
+        },
+      ],
+      description: 'Test Warden-backed term rewrites.',
+      name: 'no-legacy-layer-imports',
+      severity: 'error',
+    } satisfies WardenRule;
+    const cls = createWardenTermRewriteClass(rule);
+
+    const result = cls?.apply('authLayer();\nauthLayer();\n', {
+      absolutePath: '/repo/src/auth.ts',
+      path: 'src/auth.ts',
+    });
+
+    expect(result?.kind).toBe('needs-review');
+    expect(result?.reason).toBe('warden-fix-missing-edits');
+    expect(result?.nextSource).toBeUndefined();
+    expect(result?.notes.join('\n')).toContain('Rename one safe term.');
+    expect(result?.notes.join('\n')).toContain(
+      'Safe fix metadata was missing concrete edits.'
+    );
   });
 });
 
@@ -128,7 +222,10 @@ const writeReportFixture = (): string => {
   const root = mkdtempSync(join(tmpdir(), 'regrade-report-'));
   mkdirSync(join(root, 'src'), { recursive: true });
   mkdirSync(join(root, 'dist'), { recursive: true });
-  writeFileSync(join(root, 'src', 'a.ts'), 'export const signal = 1;\n');
+  writeFileSync(
+    join(root, 'src', 'a.ts'),
+    "import { authLayer } from '@ontrails/permits';\nexport const signal = 1;\n"
+  );
   writeFileSync(join(root, 'src', 'b.ts'), 'export const signalHandler = 2;\n');
   writeFileSync(join(root, 'dist', 'out.ts'), 'export const signal = 9;\n');
   return root;
@@ -172,13 +269,15 @@ describe('runRegrade + regradeReportTrail', () => {
         // the trail's output shape for property access.
         const value = result.value as {
           scanned: number;
+          review: number;
           selectedClassIds: string[];
           rewritten: number;
         };
         expect(value.scanned).toBe(2);
-        expect(value.rewritten).toBe(1);
+        expect(value.review).toBe(1);
+        expect(value.rewritten).toBe(0);
         expect(value.selectedClassIds).toEqual([
-          'preview.term-rewrite:signal->ping',
+          'term-rewrite:no-legacy-layer-imports',
         ]);
       }
     } finally {

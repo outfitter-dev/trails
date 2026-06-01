@@ -209,6 +209,7 @@
       "version": "1.0.0-beta.18",
       "dependencies": {
         "@ontrails/core": "workspace:^",
+        "@ontrails/warden": "workspace:^",
         "zod": "catalog:",
       },
       "devDependencies": {

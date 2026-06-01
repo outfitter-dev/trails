@@ -1,5 +1,11 @@
 import type { ValidationError } from '@ontrails/core';
 import { NotFoundError, Result, trail, validateOutput } from '@ontrails/core';
+import type {
+  WardenDiagnostic,
+  WardenFixEdit,
+  WardenRule,
+} from '@ontrails/warden';
+import { getWardenRuleMetadata, wardenRules } from '@ontrails/warden';
 import { readFileSync } from 'node:fs';
 import { z } from 'zod';
 
@@ -31,6 +37,16 @@ export interface RegradeClassResult {
   readonly nextSource?: string;
   /** Human-readable notes explaining the outcome. */
   readonly notes: readonly string[];
+  /** Machine-readable reason for review outcomes. */
+  readonly reason?: string;
+}
+
+/** Source-file context passed to Regrade classes. */
+export interface RegradeClassContext {
+  /** Root-relative POSIX path. */
+  readonly path: string;
+  /** Absolute path on disk, when the caller has one. */
+  readonly absolutePath?: string;
 }
 
 /** One named, contract-aware transform. */
@@ -40,7 +56,10 @@ export interface RegradeClass {
   /** What the class does, for report and guide surfaces. */
   readonly describe: string;
   /** Apply the class to a source string. Must be pure and never throw. */
-  readonly apply: (source: string) => RegradeClassResult;
+  readonly apply: (
+    source: string,
+    context?: RegradeClassContext
+  ) => RegradeClassResult;
 }
 
 /** Which regrade classes a run should execute. */
@@ -87,6 +106,7 @@ export const createTermRewriteClass = (options: {
           notes: [
             `Found "${from}" inside larger identifiers; routed to review.`,
           ],
+          reason: 'ambiguous-match',
         };
       }
       if (matches && matches.length > 0) {
@@ -100,6 +120,126 @@ export const createTermRewriteClass = (options: {
     },
     describe: options.describe ?? `Rewrite "${from}" to "${to}".`,
     id: options.id ?? `term-rewrite:${from}->${to}`,
+  };
+};
+
+const TERM_REWRITE_FIX_CLASS = 'term-rewrite';
+
+type WardenEditApplication =
+  | { readonly ok: true; readonly nextSource: string }
+  | { readonly ok: false; readonly reason: string };
+
+const diagnosticNote = (diagnostic: WardenDiagnostic): string => {
+  const reason = diagnostic.fix?.reason ?? diagnostic.message;
+  return `${diagnostic.rule}:${diagnostic.line}: ${reason}`;
+};
+
+const wardenFilePath = (context: RegradeClassContext | undefined): string =>
+  context?.absolutePath ?? context?.path ?? '<regrade-source>';
+
+const applyWardenEdits = (
+  source: string,
+  edits: readonly WardenFixEdit[]
+): WardenEditApplication => {
+  const ordered = [...edits].toSorted((a, b) => a.start - b.start);
+  let previousEnd = 0;
+  for (const edit of ordered) {
+    if (
+      !Number.isInteger(edit.start) ||
+      !Number.isInteger(edit.end) ||
+      edit.start < 0 ||
+      edit.end < edit.start ||
+      edit.end > source.length
+    ) {
+      return { ok: false, reason: 'invalid-edit-span' };
+    }
+    if (edit.start < previousEnd) {
+      return { ok: false, reason: 'overlapping-edit-spans' };
+    }
+    previousEnd = edit.end;
+  }
+
+  let nextSource = source;
+  for (const edit of ordered.toReversed()) {
+    nextSource =
+      nextSource.slice(0, edit.start) +
+      edit.replacement +
+      nextSource.slice(edit.end);
+  }
+  return { nextSource, ok: true };
+};
+
+export const createWardenTermRewriteClass = (
+  rule: WardenRule
+): RegradeClass | null => {
+  const metadata = getWardenRuleMetadata(rule.name);
+  if (metadata?.fix?.class !== TERM_REWRITE_FIX_CLASS) {
+    return null;
+  }
+
+  return {
+    apply: (
+      source: string,
+      context?: RegradeClassContext
+    ): RegradeClassResult => {
+      const diagnostics = rule
+        .check(source, wardenFilePath(context))
+        .filter(
+          (diagnostic) => diagnostic.fix?.class === TERM_REWRITE_FIX_CLASS
+        );
+
+      if (diagnostics.length === 0) {
+        return {
+          kind: 'no-op',
+          notes: [`No Warden ${TERM_REWRITE_FIX_CLASS} diagnostics found.`],
+        };
+      }
+
+      const reviewDiagnostics = diagnostics.filter(
+        (diagnostic) => diagnostic.fix?.safety !== 'safe'
+      );
+      if (reviewDiagnostics.length > 0) {
+        return {
+          kind: 'needs-review',
+          notes: reviewDiagnostics.map(diagnosticNote),
+          reason: 'warden-review-required',
+        };
+      }
+
+      const diagnosticsMissingEdits = diagnostics.filter(
+        (diagnostic) => (diagnostic.fix?.edits?.length ?? 0) === 0
+      );
+      if (diagnosticsMissingEdits.length > 0) {
+        return {
+          kind: 'needs-review',
+          notes: diagnostics.map(diagnosticNote),
+          reason: 'warden-fix-missing-edits',
+        };
+      }
+
+      const edits = diagnostics.flatMap(
+        (diagnostic) => diagnostic.fix?.edits ?? []
+      );
+      const application = applyWardenEdits(source, edits);
+      if (!application.ok) {
+        return {
+          kind: 'needs-review',
+          notes: [
+            ...diagnostics.map(diagnosticNote),
+            `Warden fix edits could not be applied: ${application.reason}.`,
+          ],
+          reason: 'warden-fix-invalid',
+        };
+      }
+
+      return {
+        kind: 'rewrite',
+        nextSource: application.nextSource,
+        notes: diagnostics.map(diagnosticNote),
+      };
+    },
+    describe: `${rule.description} (${metadata.fix.safety} ${metadata.fix.class})`,
+    id: `${metadata.fix.class}:${rule.name}`,
   };
 };
 
@@ -170,12 +310,13 @@ export interface RegradeReport {
 const classifyFile = (
   path: string,
   source: string,
+  context: RegradeClassContext,
   selected: readonly RegradeClass[]
 ): RegradeReportEntry => {
   // First selected class that matches (rewrite or review) wins, mirroring the
   // "run one class" emphasis. No-ops fall through to a no-op entry.
   for (const cls of selected) {
-    const result = cls.apply(source);
+    const result = cls.apply(source, context);
     if (result.kind === 'rewrite') {
       return { classId: cls.id, notes: result.notes, outcome: 'rewrite', path };
     }
@@ -185,7 +326,7 @@ const classifyFile = (
         notes: result.notes,
         outcome: 'needs-review',
         path,
-        reason: 'ambiguous-match',
+        reason: result.reason ?? 'needs-review',
       };
     }
   }
@@ -198,7 +339,11 @@ const classifyFile = (
  */
 export const buildRegradeReport = (params: {
   readonly root: string;
-  readonly files: readonly { readonly path: string; readonly source: string }[];
+  readonly files: readonly {
+    readonly path: string;
+    readonly source: string;
+    readonly absolutePath?: string;
+  }[];
   readonly skipped: readonly SkippedSource[];
   readonly classes: readonly RegradeClass[];
   readonly selection?: RegradeSelection;
@@ -209,7 +354,17 @@ export const buildRegradeReport = (params: {
   );
 
   const fileEntries = params.files.map((file) =>
-    classifyFile(file.path, file.source, selected)
+    classifyFile(
+      file.path,
+      file.source,
+      {
+        ...(file.absolutePath === undefined
+          ? {}
+          : { absolutePath: file.absolutePath }),
+        path: file.path,
+      },
+      selected
+    )
   );
   const skipEntries: RegradeReportEntry[] = params.skipped.map((entry) => ({
     outcome: 'skip',
@@ -258,11 +413,12 @@ export const runRegrade = (params: {
     return null;
   }
 
-  const files: { path: string; source: string }[] = [];
+  const files: { absolutePath: string; path: string; source: string }[] = [];
   const skipped: SkippedSource[] = [...collected.skipped];
   for (const file of collected.files) {
     try {
       files.push({
+        absolutePath: file.absolutePath,
         path: file.path,
         source: readFileSync(file.absolutePath, 'utf8'),
       });
@@ -322,21 +478,18 @@ const validateRegradeReportOutput = (
   validateOutput(regradeReportOutput, report);
 
 /**
- * Preview regrade classes available to the report trail.
+ * Built-in regrade classes available to the report trail.
  *
- * This synthetic class keeps the report trail executable while the downstream
- * engine shape is still settling. It is not Warden-owned detection policy;
- * TRL-836 wires Warden-owned `term-rewrite` metadata into this set instead of
- * hand-authored preview mappings.
+ * Warden owns term detection and fix metadata. Regrade projects Warden rules
+ * that advertise `term-rewrite` capability into reportable classes and then
+ * owns application/reporting of the resulting rewrite or review outcomes.
  */
-export const previewRegradeClasses: readonly RegradeClass[] = Object.freeze([
-  createTermRewriteClass({
-    describe: 'Synthetic preview rewrite: signal -> ping',
-    from: 'signal',
-    id: 'preview.term-rewrite:signal->ping',
-    to: 'ping',
-  }),
-]);
+export const wardenTermRewriteClasses: readonly RegradeClass[] = Object.freeze(
+  [...wardenRules.values()].flatMap((rule) => {
+    const cls = createWardenTermRewriteClass(rule);
+    return cls === null ? [] : [cls];
+  })
+);
 
 /**
  * Engine trail that produces a {@link RegradeReport} for an explicit root.
@@ -348,7 +501,7 @@ export const previewRegradeClasses: readonly RegradeClass[] = Object.freeze([
 export const regradeReportTrail = trail('regrade.downstream.report', {
   blaze: (input) => {
     const report = runRegrade({
-      classes: previewRegradeClasses,
+      classes: wardenTermRewriteClasses,
       root: input.root,
       ...(input.classIds === undefined
         ? {}

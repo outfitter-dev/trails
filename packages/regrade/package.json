@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@ontrails/core": "workspace:^",
+    "@ontrails/warden": "workspace:^",
     "zod": "catalog:"
   },
   "devDependencies": {
