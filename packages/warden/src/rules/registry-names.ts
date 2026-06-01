@@ -48,6 +48,7 @@ import { resolvedImportBoundary } from './resolved-import-boundary.js';
 import { resourceDeclarations } from './resource-declarations.js';
 import { resourceExists } from './resource-exists.js';
 import { resourceIdGrammar } from './resource-id-grammar.js';
+import { resourceMockCoverage } from './resource-mock-coverage.js';
 import { scheduledDestroyIntent } from './scheduled-destroy-intent.js';
 import { signalGraphCoaching } from './signal-graph-coaching.js';
 import { staticResourceAccessorPreference } from './static-resource-accessor-preference.js';
@@ -122,6 +123,7 @@ export const registeredRuleNames: readonly string[] = [
   resourceDeclarations.name,
   resourceExists.name,
   resourceIdGrammar.name,
+  resourceMockCoverage.name,
   scheduledDestroyIntent.name,
   signalGraphCoaching.name,
   staticResourceAccessorPreference.name,

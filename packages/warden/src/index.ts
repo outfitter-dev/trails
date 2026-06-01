@@ -204,6 +204,7 @@ export {
   resourceDeclarationsTrail,
   resourceIdGrammarTrail,
   resourceExistsTrail,
+  resourceMockCoverageTrail,
   scheduledDestroyIntentTrail,
   signalGraphCoachingTrail,
   staticResourceAccessorPreferenceTrail,
