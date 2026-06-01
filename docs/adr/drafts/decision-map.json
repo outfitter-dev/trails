@@ -238,6 +238,19 @@
       "superseded_by": null,
       "title": "Adapter authoring as a paved path",
       "updated": "2026-05-28"
+    },
+    {
+      "created": "2026-05-30",
+      "depends_on": ["0", "7", "36", "37", "43"],
+      "inbound": [],
+      "number": null,
+      "owners": ["[galligan](https://github.com/galligan)"],
+      "path": "docs/adr/drafts/20260530-fixes-are-warden-diagnostic-metadata.md",
+      "slug": "fixes-are-warden-diagnostic-metadata",
+      "status": "draft",
+      "superseded_by": null,
+      "title": "Fixes are Warden diagnostic metadata",
+      "updated": "2026-05-30"
     }
   ],
   "version": 1

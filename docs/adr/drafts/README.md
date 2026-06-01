@@ -37,3 +37,5 @@ Proposed decisions under discussion. Promoted to `docs/adr/` when accepted.
   - depends on [ADR-0010: Trails-Native Infrastructure Pattern](../0010-native-infrastructure.md), [ADR-0047: Stable Release Line Discipline](../0047-stable-release-line-discipline.md), [ADR-0048: Trail Versioning v3](../0048-trail-versioning-v3.md)
 - [Adapter authoring as a paved path](20260528-adapter-authoring-as-a-paved-path.md)
   - depends on [ADR-0029: Adapter Extraction and Composition Around Core Contracts](../0029-connector-extraction-and-the-with-packaging-model.md)
+- [Fixes are Warden diagnostic metadata](20260530-fixes-are-warden-diagnostic-metadata.md)
+  - depends on [ADR-0000: Core Premise — Contract-First, Surface-Agnostic Design](../0000-core-premise.md), [ADR-0007: Governance as Trails with AST-Based Analysis](../0007-governance-as-trails.md), [ADR-0036: Warden rules ship only as trails](../0036-warden-rules-ship-only-as-trails.md), [ADR-0037: Owner-First Authority](../0037-owner-first-authority.md), [ADR-0043: Layer Evolution](../0043-layer-evolution.md)

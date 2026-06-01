@@ -175,6 +175,11 @@
           "fromPath": "docs/adr/drafts/20260406-documentation-structure.md"
         },
         {
+          "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) - Warden is the governance",
+          "from": "20260530",
+          "fromPath": "docs/adr/drafts/20260530-fixes-are-warden-diagnostic-metadata.md"
+        },
+        {
           "context": "- **[ADR-0000: Core Premise](./adr/0000-core-premise.md)** — Why contracts, why Result, why derive",
           "from": "index",
           "fromPath": "docs/index.md"
@@ -701,6 +706,11 @@
           "context": "- [ADR-0007: Governance as Trails](0007-governance-as-trails.md) - Warden",
           "from": "0038",
           "fromPath": "docs/adr/0038-typed-signal-emission.md"
+        },
+        {
+          "context": "before runtime, and [ADR-0007](../0007-governance-as-trails.md) made that",
+          "from": "20260530",
+          "fromPath": "docs/adr/drafts/20260530-fixes-are-warden-diagnostic-metadata.md"
         },
         {
           "context": "- **[ADR-0007: Governance as Trails](./adr/0007-governance-as-trails.md)** — Warden rules are trails, AST-based analysis",
@@ -2218,6 +2228,11 @@
           "fromPath": "docs/adr/0037-owner-first-authority.md"
         },
         {
+          "context": "[ADR-0036](../0036-warden-rules-ship-only-as-trails.md) tightened the public",
+          "from": "20260530",
+          "fromPath": "docs/adr/drafts/20260530-fixes-are-warden-diagnostic-metadata.md"
+        },
+        {
           "context": "Use it with [Warden](../warden.md), [ADR-0036](../adr/0036-warden-rules-ship-only-as-trails.md), and [ADR-0037](../adr/0037-owner-first-authority.md).",
           "from": "warden-rules",
           "fromPath": "docs/contributing/warden-rules.md"
@@ -2245,6 +2260,11 @@
           "context": "- [ADR-0037: Owner-First Authority](0037-owner-first-authority.md) — release",
           "from": "0047",
           "fromPath": "docs/adr/0047-stable-release-line-discipline.md"
+        },
+        {
+          "context": "- [ADR-0037: Owner-First Authority](../0037-owner-first-authority.md) - Warden",
+          "from": "20260530",
+          "fromPath": "docs/adr/drafts/20260530-fixes-are-warden-diagnostic-metadata.md"
         },
         {
           "context": "Use it with [Warden](../warden.md), [ADR-0036](../adr/0036-warden-rules-ship-only-as-trails.md), and [ADR-0037](../adr/0037-owner-first-authority.md).",
@@ -2454,6 +2474,11 @@
           "context": "- [ADR-0043: Layer Evolution](../0043-layer-evolution.md) -- layers gain input schemas; the compiled library trailhead must project layer inputs alongside trail inputs",
           "from": "20260401",
           "fromPath": "docs/adr/drafts/20260401-compiled-pack-trailhead.md"
+        },
+        {
+          "context": "the layer exports retired by [ADR-0043](../0043-layer-evolution.md).",
+          "from": "20260530",
+          "fromPath": "docs/adr/drafts/20260530-fixes-are-warden-diagnostic-metadata.md"
         },
         {
           "context": "Source code, including TSDoc, inline comments, runtime strings, error messages, and log payloads, should reference accepted ADRs by stable number, such as `docs/adr/0043-layer-evolution.md`. It should",
