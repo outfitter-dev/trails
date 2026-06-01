@@ -5,7 +5,8 @@
  * walker and helpers for finding blaze bodies.
  */
 
-import { resolve } from 'node:path';
+import { existsSync, readFileSync } from 'node:fs';
+import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { DRAFT_ID_PREFIX, intentValues } from '@ontrails/core';
@@ -260,6 +261,60 @@ export const FRAMEWORK_DRAFT_PREFIX_CONSTANT_NAMES: ReadonlySet<string> =
  */
 const FRAMEWORK_DRAFT_PREFIX_LITERAL = DRAFT_ID_PREFIX;
 
+interface PackageJsonWithName {
+  readonly name: string;
+}
+
+const FRAMEWORK_DRAFT_PREFIX_PACKAGES: ReadonlySet<string> = new Set([
+  '@ontrails/core',
+  '@ontrails/warden',
+]);
+
+const isPackageJsonWithName = (value: unknown): value is PackageJsonWithName =>
+  typeof value === 'object' &&
+  value !== null &&
+  typeof (value as { name?: unknown }).name === 'string';
+
+const readPackageJsonName = (packageJsonPath: string): string | null => {
+  try {
+    const parsed = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
+    return isPackageJsonWithName(parsed) ? parsed.name : null;
+  } catch {
+    return null;
+  }
+};
+
+const frameworkDraftPackageRoot = (filePath: string): string | null => {
+  const resolvedPath = resolve(filePath);
+  if (basename(resolvedPath) !== 'draft.ts') {
+    return null;
+  }
+
+  const sourceDir = dirname(resolvedPath);
+  if (basename(sourceDir) !== 'src') {
+    return null;
+  }
+
+  const packageRoot = dirname(sourceDir);
+  if (!existsSync(join(packageRoot, 'package.json'))) {
+    return null;
+  }
+
+  return packageRoot;
+};
+
+/** Fallback exemption when framework files are consumed from a different install path. */
+const isFrameworkDraftPrefixSourceFile = (filePath: string): boolean => {
+  const root = frameworkDraftPackageRoot(filePath);
+  if (!root) {
+    return false;
+  }
+  const packageName = readPackageJsonName(join(root, 'package.json'));
+  return (
+    packageName !== null && FRAMEWORK_DRAFT_PREFIX_PACKAGES.has(packageName)
+  );
+};
+
 /**
  * Absolute paths of the two framework files allowed to declare the
  * draft-prefix constants. Anchored against the rule module's own URL so the
@@ -285,8 +340,8 @@ const FRAMEWORK_DRAFT_CONSTANT_FILES: ReadonlySet<string> = new Set([
  * constants.
  *
  * Exemption is gated on all three of:
- *   1. The file's absolute path matches one of the two framework files that
- *      actually define these constants.
+ *   1. The file is one of the two known framework draft files, or its package
+ *      root `package.json` name is `@ontrails/core` or `@ontrails/warden`.
  *   2. The declaration name is `DRAFT_ID_PREFIX` or `DRAFT_FILE_PREFIX`.
  *   3. The string literal value is exactly `'_draft.'`.
  *
@@ -299,7 +354,11 @@ export const collectFrameworkDraftPrefixConstantOffsets = (
 ): ReadonlySet<number> => {
   const offsets = new Set<number>();
 
-  if (!FRAMEWORK_DRAFT_CONSTANT_FILES.has(resolve(filePath))) {
+  const resolvedPath = resolve(filePath);
+  if (
+    !FRAMEWORK_DRAFT_CONSTANT_FILES.has(resolvedPath) &&
+    !isFrameworkDraftPrefixSourceFile(resolvedPath)
+  ) {
     return offsets;
   }
 

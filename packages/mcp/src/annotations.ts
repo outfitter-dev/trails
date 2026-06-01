@@ -25,6 +25,26 @@ export interface McpAnnotations {
  *
  * Only sets hints that are explicitly declared on the trail.
  * Omitted hints let the MCP SDK use its defaults.
+ *
+ * @example
+ * ```ts
+ * import { deriveAnnotations } from '@ontrails/mcp';
+ *
+ * const annotations = deriveAnnotations({
+ *   intent: 'read',
+ *   idempotent: true,
+ *   description: 'Show account',
+ * });
+ *
+ * // read intent -> readOnlyHint, idempotent -> idempotentHint, description -> title.
+ * annotations.readOnlyHint === true;
+ * annotations.idempotentHint === true;
+ * annotations.title === 'Show account';
+ *
+ * // destroy intent -> destructiveHint.
+ * const destroyAnnotations = deriveAnnotations({ intent: 'destroy' });
+ * destroyAnnotations.destructiveHint === true;
+ * ```
  */
 export const deriveAnnotations = (
   trail: Pick<

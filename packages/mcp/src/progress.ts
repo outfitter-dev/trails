@@ -54,6 +54,28 @@ const progressHandlers: Record<
  *
  * Returns `undefined` if the MCP client did not provide a progressToken
  * (meaning no progress reporting was requested).
+ *
+ * @example
+ * ```ts
+ * import { createMcpProgressCallback, type McpExtra } from '@ontrails/mcp';
+ *
+ * const extra: McpExtra = {
+ *   progressToken: 'token-123',
+ *   sendProgress: async (current, total) => {
+ *     console.log(`progress ${current}/${total}`);
+ *   },
+ * };
+ *
+ * const progress = createMcpProgressCallback(extra);
+ * if (progress !== undefined) {
+ *   progress({
+ *     current: 0,
+ *     ts: new Date().toISOString(),
+ *     total: 1,
+ *     type: 'start',
+ *   });
+ * }
+ * ```
  */
 export const createMcpProgressCallback = (
   extra: McpExtra

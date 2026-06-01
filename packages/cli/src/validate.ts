@@ -133,6 +133,26 @@ const validateCommandFlags = (command: CliCommand): void => {
   }
 };
 
+/**
+ * Validate command paths and flag collisions before wiring a CLI adapter.
+ *
+ * @example
+ * ```ts
+ * import { validateCliCommands, type CliCommand } from '@ontrails/cli';
+ *
+ * const commands = [
+ *   {
+ *     args: [],
+ *     flags: [],
+ *     intent: 'read',
+ *     path: ['greet'],
+ *     trail: { id: 'demo.greet', kind: 'trail' } as CliCommand['trail'],
+ *   },
+ * ] satisfies CliCommand[];
+ *
+ * validateCliCommands(commands);
+ * ```
+ */
 export const validateCliCommands = (commands: readonly CliCommand[]): void => {
   for (const command of commands) {
     validateCommandPath(command);
