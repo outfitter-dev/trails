@@ -1,5 +1,7 @@
 import { describe, expect, test } from 'bun:test';
-import { resolve } from 'node:path';
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { draftFileMarking } from '../rules/draft-file-marking.js';
@@ -20,6 +22,40 @@ const WARDEN_DRAFT_PATH = resolve(
 /** Any file outside the two framework files — exemption must NOT apply here. */
 const NORMAL_FILE = 'packages/example/src/ordinary.ts';
 
+const createFrameworkPackageFixture = (
+  packageName: string
+): {
+  readonly draftPath: string;
+  readonly rootDir: string;
+} => {
+  const sanitizedName = packageName.replaceAll(/[^a-z0-9-]/g, '-');
+  const rootDir = mkdtempSync(
+    join(tmpdir(), `warden-draft-framework-test-${sanitizedName}-`)
+  );
+  const draftPath = join(rootDir, 'src', 'draft.ts');
+
+  mkdirSync(join(rootDir, 'src'), { recursive: true });
+  writeFileSync(
+    join(rootDir, 'package.json'),
+    JSON.stringify({ name: packageName })
+  );
+  writeFileSync(draftPath, '');
+
+  return { draftPath, rootDir };
+};
+
+const withTempPackageFixture = <T>(
+  packageName: string,
+  fn: (path: string) => T
+): T => {
+  const { draftPath, rootDir } = createFrameworkPackageFixture(packageName);
+  try {
+    return fn(draftPath);
+  } finally {
+    rmSync(rootDir, { force: true, recursive: true });
+  }
+};
+
 describe('draft-file-marking context-awareness', () => {
   test('ignores framework DRAFT_ID_PREFIX in packages/core/src/draft.ts', () => {
     const code = `export const DRAFT_ID_PREFIX = '_draft.';\n`;
@@ -29,6 +65,29 @@ describe('draft-file-marking context-awareness', () => {
   test('ignores framework DRAFT_FILE_PREFIX in packages/warden/src/draft.ts', () => {
     const code = `export const DRAFT_FILE_PREFIX = '_draft.';\n`;
     expect(draftFileMarking.check(code, WARDEN_DRAFT_PATH)).toEqual([]);
+  });
+
+  test('ignores framework DRAFT_ID_PREFIX in a @ontrails/core package root from a different install path', () => {
+    withTempPackageFixture('@ontrails/core', (path) => {
+      const code = `export const DRAFT_ID_PREFIX = '_draft.';\n`;
+      expect(draftFileMarking.check(code, path)).toEqual([]);
+    });
+  });
+
+  test('ignores framework DRAFT_FILE_PREFIX in a @ontrails/warden package root from a different install path', () => {
+    withTempPackageFixture('@ontrails/warden', (path) => {
+      const code = `export const DRAFT_FILE_PREFIX = '_draft.';\n`;
+      expect(draftFileMarking.check(code, path)).toEqual([]);
+    });
+  });
+
+  test('still reports draft IDs in src/draft.ts for non-framework package roots', () => {
+    withTempPackageFixture('@not-ontrails/package', (path) => {
+      const code = `export const DRAFT_ID_PREFIX = '_draft.leak';\n`;
+      const diagnostics = draftFileMarking.check(code, path);
+      expect(diagnostics.length).toBe(1);
+      expect(diagnostics[0]?.severity).toBe('error');
+    });
   });
 
   test('fires when DRAFT_ID_PREFIX is reused in a non-framework file (false-negative closed)', () => {
@@ -102,6 +161,29 @@ describe('draft-visible-debt context-awareness', () => {
   test('ignores framework DRAFT_FILE_PREFIX in packages/warden/src/draft.ts', () => {
     const code = `export const DRAFT_FILE_PREFIX = '_draft.';\n`;
     expect(draftVisibleDebt.check(code, WARDEN_DRAFT_PATH)).toEqual([]);
+  });
+
+  test('ignores framework DRAFT_ID_PREFIX in a @ontrails/core package root from a different install path', () => {
+    withTempPackageFixture('@ontrails/core', (path) => {
+      const code = `export const DRAFT_ID_PREFIX = '_draft.';\n`;
+      expect(draftVisibleDebt.check(code, path)).toEqual([]);
+    });
+  });
+
+  test('ignores framework DRAFT_FILE_PREFIX in a @ontrails/warden package root from a different install path', () => {
+    withTempPackageFixture('@ontrails/warden', (path) => {
+      const code = `export const DRAFT_FILE_PREFIX = '_draft.';\n`;
+      expect(draftVisibleDebt.check(code, path)).toEqual([]);
+    });
+  });
+
+  test('still reports draft IDs in src/draft.ts for non-framework package roots', () => {
+    withTempPackageFixture('@not-ontrails/package', (path) => {
+      const code = `export const DRAFT_ID_PREFIX = '_draft.leak';\n`;
+      const diagnostics = draftVisibleDebt.check(code, path);
+      expect(diagnostics.length).toBe(1);
+      expect(diagnostics[0]?.severity).toBe('warn');
+    });
   });
 
   test('fires when DRAFT_ID_PREFIX is reused in a non-framework file (false-negative closed)', () => {
