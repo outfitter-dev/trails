@@ -29,6 +29,16 @@ Stack:
 12. TRL-826 - Package-source modes only if this stack proves the need.
 13. TRL-829 - Regrade ADR after evidence, not before.
 
+Follow-ups created from TRL-805 review, not active branches before TRL-836:
+
+- TRL-870 - Discover subpath adapter subjects before subpath scaffolds.
+- TRL-872 - Migrate Commander/Drizzle/Vite into the adapter.check model.
+
+Review issues fixed inside TRL-805:
+
+- TRL-873 - Harden conformance checks against non-executed helper mentions.
+- TRL-874 - Validate conformance metadata against exported helper names.
+
 Rules:
 
 - Use Graphite for source-control writes. No vanilla Git commits/pushes.

@@ -8,6 +8,7 @@ import * as compile from './trails/compile.js';
 import * as completions from './trails/completions.js';
 import * as completionsComplete from './trails/completions-complete.js';
 import * as create from './trails/create.js';
+import * as createAdapter from './trails/create-adapter.js';
 import * as createScaffold from './trails/create-scaffold.js';
 import * as deprecate from './trails/deprecate.js';
 import * as devClean from './trails/dev-clean.js';
@@ -53,6 +54,7 @@ export const app = topo(
   warden,
   wardenGuide,
   create,
+  createAdapter,
   createScaffold,
   addSurface,
   addVerify,

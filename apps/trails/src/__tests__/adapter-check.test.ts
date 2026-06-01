@@ -144,7 +144,9 @@ const writeHonoAdapter = (
       '@ontrails/http': 'workspace:^',
     },
     trails: {
-      adapter: true,
+      adapter: {
+        target: 'http',
+      },
     },
     ...manifestOverrides,
   });
@@ -191,7 +193,7 @@ describe('trails adapter check', () => {
     const wardenCodes = runWardenAdapterChecks(root).map((entry) => entry.code);
 
     expect(result.value.passed).toBe(false);
-    expect(localCodes).toEqual(['invalid-adapter-metadata']);
+    expect(localCodes).toEqual(['missing-conformance']);
     expect(wardenCodes).toEqual(localCodes);
   });
 
@@ -205,7 +207,7 @@ describe('trails adapter check', () => {
     expect(result.exitCode).toBe(1);
     expect(result.stderr).toBe('');
     expect(result.stdout).toContain('## Adapter Check Report');
-    expect(result.stdout).toContain('invalid-adapter-metadata');
+    expect(result.stdout).toContain('missing-conformance');
   });
 
   test('exits non-zero for adapter readiness failures under trace JSON', () => {

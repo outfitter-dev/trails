@@ -23,6 +23,8 @@
 | TRL-864 | [Linear](https://linear.app/outfitter/issue/TRL-864/expose-adapter-checks-through-warden-and-trails-adapter-check) | Created for this goal; Warden/local projections. |
 | TRL-865 | [Linear](https://linear.app/outfitter/issue/TRL-865/dogfood-adapter-authoring-path-on-a-first-party-http-adapter) | Created for this goal; first-party dogfood. |
 | TRL-805 | [Linear](https://linear.app/outfitter/issue/TRL-805/trails-create-adapter-scaffold-adapter-packages-against-the-adapter) | Retargeted from `add.adapter` to `create.adapter`. |
+| TRL-870 | [Linear](https://linear.app/outfitter/issue/TRL-870/discover-subpath-adapter-subjects-in-shared-adapter-checks) | Created from TRL-805 review; unlocks subpath adapter scaffolds later. |
+| TRL-872 | [Linear](https://linear.app/outfitter/issue/TRL-872/migrate-remaining-first-party-adapters-into-adaptercheck-model) | Created from TRL-805 review; migrates Commander/Drizzle/Vite into adapter metadata. |
 | TRL-836 | [Linear](https://linear.app/outfitter/issue/TRL-836/integrate-warden-backed-term-rewrite-regrades) | Regrade consumes Warden metadata. |
 | TRL-850 | [Linear](https://linear.app/outfitter/issue/TRL-850/regenerate-stale-adr-decision-map-and-enforce-consistency-in-pre-push) | Conditional ADR map drift/check work. |
 | TRL-826 | [Linear](https://linear.app/outfitter/issue/TRL-826/prove-regrade-package-source-modes) | Conditional package-source mode proof. |

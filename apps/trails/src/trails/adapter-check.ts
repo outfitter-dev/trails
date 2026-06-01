@@ -41,6 +41,13 @@ const adapterCheckSubjectSchema = z.object({
 });
 
 const adapterTargetSchema = z.object({
+  conformance: z
+    .object({
+      adapterType: z.string(),
+      casesFactory: z.string(),
+      runner: z.string(),
+    })
+    .optional(),
   key: z.string(),
   ownerPackage: z.string(),
   packageJsonPath: z.string(),

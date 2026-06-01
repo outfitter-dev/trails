@@ -51,12 +51,11 @@ The choice between an extracted package and a subpath is **`placement`** — not
 - **Extracted** adapters live under `adapters/` when they earn a dependency or release boundary — `@ontrails/hono`, `@ontrails/drizzle`, `@ontrails/commander`, `@ontrails/vite`.
 - **Subpath** adapters live inside the owner package when [ADR-0029](../0029-connector-extraction-and-the-with-packaging-model.md)'s dependency-boundary test says a standalone package would add ceremony without buying a real boundary — `@ontrails/http/bun`, `@ontrails/store/jsonfile`, platform-native and built-in materializers.
 
-The placement choice *is* the dependency-boundary test from ADR-0029. Subpath adapters are a first-class carve-out — they get the same scaffold, conformance, and drift checks as extracted ones, not hand-authored exception status.
+The placement choice *is* the dependency-boundary test from ADR-0029. Subpath adapters are a first-class carve-out — they should get the same scaffold and conformance path as extracted ones, not hand-authored exception status. The first implementation scaffolds extracted HTTP adapters and owner-package HTTP subpath adapters from the same catalog facts. The shared check engine still discovers extracted workspace adapter subjects first; subpath subject discovery remains follow-up drift-check coverage, not a reason to block scaffold generation.
 
 ```bash
 trails create adapter hono --target http  --placement extracted
-trails create adapter bun  --target http  --placement subpath
-trails create adapter jsonfile --target store --placement subpath
+trails create adapter edge --target http  --placement subpath
 ```
 
 ### Metadata is derived; authors write only what derivation can't know
@@ -76,18 +75,23 @@ The discoverability substrate is the package manifest, which keeps discovery che
       "http": {
         "placements": ["extracted", "subpath"],
         "supportImport": "@ontrails/http/adapter-support",
-        "testingImport": "@ontrails/http/testing"
+        "testingImport": "@ontrails/http/testing",
+        "conformance": {
+          "adapterType": "HttpAdapterConformanceAdapter",
+          "casesFactory": "createHttpAdapterConformanceCases",
+          "runner": "runConformance"
+        }
       }
     }
   }
 }
 ```
 
-TRL-861 codifies this metadata shape: `placements` is required, while `supportImport` and `testingImport` are optional until the owner actually exports support or conformance surfaces. Optional means "not available yet," not "tooling should guess."
+TRL-861 codifies the base metadata shape: `placements` is required, while `supportImport` and `testingImport` are optional until the owner actually exports support or conformance surfaces. TRL-805 adds the `conformance` helper metadata needed by `create.adapter`; optional still means "not available yet," not "tooling should guess."
 
 ### The adapter kit consumes facts; it never owns adapter truth
 
-The adapter kit starts as internal `@ontrails/adapter-kit`: it discovers owner targets, scaffolds extracted and subpath adapters, generates conformance tests, generates package/export skeletons, runs the shared check engine, and reports readiness. It does **not** define an `adapter()` primitive, own HTTP/store/permit/observe semantics, get imported by runtime adapters, or re-author package facts that `package.json` already states.
+The adapter kit starts as internal `@ontrails/adapter-kit`: it discovers owner targets, scaffolds extracted and owner-package subpath adapters, generates conformance tests, generates package/export skeletons, runs the shared check engine, and reports readiness. It does **not** define an `adapter()` primitive, own HTTP/store/permit/observe semantics, get imported by runtime adapters, or re-author package facts that `package.json` already states.
 
 Two structural rules keep it tooling and not truth:
 
@@ -129,6 +133,8 @@ shared adapter check engine
 
 Warden owns governance — CI findings, repo drift, severity, scoped checks. `trails adapter check` owns the author workflow — focused readiness, friendly reports, repair hints, fast local iteration. The export-map, dependency-direction, placement, conformance, and metadata checks live **once**. `trails adapter check` is not a second Warden; it's the local surface over the same facts.
 
+The first implementation launches this check loop as **opt-in** for existing adapter packages: malformed `trails.adapter` metadata fails, but packages that have not yet declared adapter metadata are ignored until their migration issue lands. That keeps local and CI checks truthful while TRL-872 migrates the remaining first-party adapters into the metadata model. The steady-state doctrine remains governed adapter drift from one engine.
+
 ### Commands are trail-shaped
 
 The user-facing commands are trails, so adapter authoring is queryable without a new runtime primitive: `create.adapter` projects to `trails create adapter`; `adapter.catalog` / `adapter.describe` / `adapter.check` project to `trails adapter catalog | describe | check`.
@@ -148,7 +154,9 @@ The user-facing commands are trails, so adapter authoring is queryable without a
 - Adapter authors get correctness from the first command — scaffold, generated conformance, and checks — instead of a checklist.
 - Owners gain a clear, explicit obligation (the authoring bundle) in place of an implicit one.
 - Subpath and extracted adapters are both paved — no second-class hand-authored materializers.
-- Adapter drift becomes a governed CI finding *and* a local author signal, from one engine.
+- Adapter drift becomes a governed CI finding *and* a local author signal, from
+  one engine once packages opt into, or migrate onto, the adapter metadata
+  model.
 - Adapter authoring is queryable (`catalog` / `describe` / `check`) without adding a runtime primitive.
 
 ### Tradeoffs
@@ -177,9 +185,12 @@ Tracer-first, so the hardest, most-coupled pieces (the owner conformance factory
 2. **Internal substrate** — the adapter-target metadata shape and read-only catalog derivation.
 3. **HTTP tracer** — `@ontrails/http` conformance factory + the shared check engine + one hand-authored http adapter, proving the whole loop on a single owner.
 4. **`adapter.check` + Warden adapter checks** over the proven engine.
-5. **`create.adapter`** (extracted and subpath) generating against the proven loop.
-6. **Dogfood** — bring existing first-party adapters (`hono`, `commander`, `vite`, `drizzle`, `http/fetch`, `http/bun`, `store/jsonfile`, `permits/jwt`) into the model.
-7. **`catalog` / `describe` + docs/fieldguide.**
+5. **`create.adapter`** extracted-package and owner-subpath scaffolding against
+   the proven loop.
+6. **Subpath subject discovery** so local checks can discover generated
+   owner-package subpath adapters after the scaffold path exists.
+7. **Dogfood** — bring existing first-party adapters (`hono`, `commander`, `vite`, `drizzle`, `http/fetch`, `http/bun`, `store/jsonfile`, `permits/jwt`) into the model.
+8. **`catalog` / `describe` + docs/fieldguide.**
 
 ## References
 

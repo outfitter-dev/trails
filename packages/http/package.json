@@ -33,6 +33,11 @@
   "trails": {
     "adapterTargets": {
       "http": {
+        "conformance": {
+          "adapterType": "HttpAdapterConformanceAdapter",
+          "casesFactory": "createHttpAdapterConformanceCases",
+          "runner": "runConformance"
+        },
         "placements": [
           "extracted",
           "subpath"

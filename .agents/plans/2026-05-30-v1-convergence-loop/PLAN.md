@@ -1,6 +1,6 @@
 ---
 created: "2026-05-30T12:28:00Z"
-updated: "2026-05-30T12:28:00Z"
+updated: "2026-05-30T16:55:00Z"
 status: active
 owner: Lewis
 linear:
@@ -17,6 +17,12 @@ linear:
   - TRL-850
   - TRL-826
   - TRL-829
+follow_up:
+  - TRL-870
+  - TRL-872
+review_fix:
+  - TRL-873
+  - TRL-874
 ---
 
 # V1 Convergence Loop
@@ -67,9 +73,29 @@ Do not submit the zero-diff lane branch unless we intentionally add work to it.
 | 12 | TRL-826 | `trl-826-prove-regrade-package-source-modes` | Conditional: package-source modes only if this stack proves the need. |
 | 13 | TRL-829 | `trl-829-draft-regrade-adr-from-tracer-evidence` | Conditional: Regrade ADR after evidence, not before. |
 
-The bottom ten are expected. TRL-850, TRL-826, and TRL-829 are conditional:
-keep them in scope only if live verification says they are still justified;
-otherwise update Linear and defer with a clear note.
+The bottom nine through TRL-836 are expected. TRL-850, TRL-826, and TRL-829
+are conditional: keep them in scope only if live verification says they are
+still justified; otherwise update Linear and defer with a clear note.
+
+## Follow-Up Issues Created From TRL-805 Review
+
+These are part of the larger v1 convergence goal, but they are not active
+branches in this stack before TRL-836:
+
+- TRL-870 discovers subpath adapter subjects in shared checks before any
+  `create.adapter` subpath scaffold ships.
+- TRL-872 migrates Commander, Drizzle, and Vite into the opt-in
+  `adapter.check` metadata model.
+
+## Review Issues Fixed Inside TRL-805
+
+These issues were discovered during the PR #643 local review loop and fixed on
+the owning TRL-805 branch:
+
+- TRL-873 hardens adapter conformance checks against commented-out, string, or
+  non-thin helper call mentions.
+- TRL-874 validates conformance metadata against exported helper names instead
+  of local alias names.
 
 ## Non-Goals
 

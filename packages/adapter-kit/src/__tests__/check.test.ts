@@ -54,6 +54,11 @@ const writeHttpOwner = (
     trails: {
       adapterTargets: {
         http: {
+          conformance: {
+            adapterType: 'HttpAdapterConformanceAdapter',
+            casesFactory: 'createHttpAdapterConformanceCases',
+            runner: 'runConformance',
+          },
           placements: ['extracted'],
           testingImport: '@ontrails/http/testing',
           ...targetOverrides,
@@ -61,7 +66,16 @@ const writeHttpOwner = (
       },
     },
   });
-  writeFile(root, 'packages/http/src/testing.ts', 'export {};\n');
+  writeFile(
+    root,
+    'packages/http/src/testing.ts',
+    [
+      'export interface HttpAdapterConformanceAdapter {}',
+      'export const createHttpAdapterConformanceCases = () => [];',
+      'export const runConformance = () => undefined;',
+      '',
+    ].join('\n')
+  );
 };
 
 const writeHonoAdapter = (
@@ -102,7 +116,7 @@ const writeHttpConformanceTest = (
   writeFile(
     root,
     path,
-    "import { createHttpAdapterConformanceCases } from '@ontrails/http/testing';\n\nvoid createHttpAdapterConformanceCases;\n"
+    "import { createHttpAdapterConformanceCases, runConformance } from '@ontrails/http/testing';\n\nrunConformance({ name: '@ontrails/hono' }, createHttpAdapterConformanceCases());\n"
   );
 };
 
@@ -178,6 +192,22 @@ describe('checkAdapters', () => {
 
     expect(report.subjects).toEqual([]);
     expect(report.diagnostics).toEqual([]);
+  });
+
+  test('reports invalid adapter metadata once a package opts in', () => {
+    const root = makeRoot();
+    writeHttpOwner(root);
+    writeHonoAdapter(root, { trails: { adapter: true } });
+
+    const report = checkAdapters(root);
+
+    expect(report.subjects).toEqual([]);
+    expect(report.diagnostics).toHaveLength(1);
+    expect(report.diagnostics[0]).toMatchObject({
+      code: 'invalid-adapter-metadata',
+      packageName: '@ontrails/hono',
+      placement: 'extracted',
+    });
   });
 
   test('reports bad adapter package export maps', () => {
@@ -341,6 +371,510 @@ describe('checkAdapters', () => {
       packageName: '@ontrails/hono',
       target: 'http',
     });
+  });
+
+  test('requires declared conformance helper calls from owner testing imports', () => {
+    const root = makeRoot();
+    writeHttpOwner(root);
+    writeHonoAdapter(root);
+    writeFile(
+      root,
+      'adapters/hono/src/__tests__/conformance.test.ts',
+      "import { createHttpAdapterConformanceCases } from '@ontrails/http/testing';\n\nvoid createHttpAdapterConformanceCases;\n"
+    );
+
+    const report = checkAdapters(root);
+
+    expect(report.subjects[0]?.conformanceTestPaths).toEqual([]);
+    expect(report.diagnostics).toHaveLength(1);
+    expect(report.diagnostics[0]).toMatchObject({
+      code: 'missing-conformance',
+      packageName: '@ontrails/hono',
+      target: 'http',
+    });
+    expect(report.diagnostics[0]?.message).toContain(
+      'runConformance(adapter, createHttpAdapterConformanceCases(...))'
+    );
+  });
+
+  test('requires conformance helper calls to use owner testing bindings', () => {
+    const root = makeRoot();
+    writeHttpOwner(root);
+    writeHonoAdapter(root);
+    writeFile(
+      root,
+      'adapters/hono/src/__tests__/conformance.test.ts',
+      [
+        "import '@ontrails/http/testing';",
+        "import { createHttpAdapterConformanceCases, runConformance } from '../fake-testing.js';",
+        '',
+        "runConformance({ name: '@ontrails/hono' }, createHttpAdapterConformanceCases());",
+        '',
+      ].join('\n')
+    );
+
+    const report = checkAdapters(root);
+
+    expect(report.subjects[0]?.conformanceTestPaths).toEqual([]);
+    expect(report.diagnostics).toHaveLength(1);
+    expect(report.diagnostics[0]).toMatchObject({
+      code: 'missing-conformance',
+      packageName: '@ontrails/hono',
+      target: 'http',
+    });
+  });
+
+  test('accepts aliased conformance helper calls from owner testing imports', () => {
+    const root = makeRoot();
+    writeHttpOwner(root);
+    writeHonoAdapter(root);
+    writeFile(
+      root,
+      'adapters/hono/src/__tests__/conformance.test.ts',
+      [
+        "import { describe } from 'bun:test';",
+        "import { createHttpAdapterConformanceCases as cases, runConformance as run } from '@ontrails/http/testing';",
+        '',
+        'void describe;',
+        "run({ name: '@ontrails/hono' }, cases());",
+        '',
+      ].join('\n')
+    );
+
+    const report = checkAdapters(root);
+
+    expect(report.diagnostics).toEqual([]);
+    expect(report.subjects[0]?.conformanceTestPaths).toHaveLength(1);
+  });
+
+  test('accepts namespace conformance helper calls from owner testing imports', () => {
+    const root = makeRoot();
+    writeHttpOwner(root);
+    writeHonoAdapter(root);
+    writeFile(
+      root,
+      'adapters/hono/src/__tests__/conformance.test.ts',
+      [
+        "import * as httpTesting from '@ontrails/http/testing';",
+        '',
+        'httpTesting.runConformance(',
+        "  { name: '@ontrails/hono' },",
+        '  httpTesting.createHttpAdapterConformanceCases()',
+        ');',
+        '',
+      ].join('\n')
+    );
+
+    const report = checkAdapters(root);
+
+    expect(report.diagnostics).toEqual([]);
+    expect(report.subjects[0]?.conformanceTestPaths).toHaveLength(1);
+  });
+
+  test('accepts named conformance helper calls after namespace imports', () => {
+    const root = makeRoot();
+    writeHttpOwner(root);
+    writeHonoAdapter(root);
+    writeFile(
+      root,
+      'adapters/hono/src/__tests__/conformance.test.ts',
+      [
+        "import * as httpTesting from '@ontrails/http/testing';",
+        "import { createHttpAdapterConformanceCases, runConformance } from '@ontrails/http/testing';",
+        '',
+        'void httpTesting;',
+        "runConformance({ name: '@ontrails/hono' }, createHttpAdapterConformanceCases());",
+        '',
+      ].join('\n')
+    );
+
+    const report = checkAdapters(root);
+
+    expect(report.diagnostics).toEqual([]);
+    expect(report.subjects[0]?.conformanceTestPaths).toHaveLength(1);
+  });
+
+  test('accepts runner calls when the owner runner defaults conformance cases', () => {
+    const root = makeRoot();
+    writeHttpOwner(root);
+    writeHonoAdapter(root);
+    writeFile(
+      root,
+      'packages/http/src/testing.ts',
+      [
+        'export interface HttpAdapterConformanceAdapter {}',
+        'export const createHttpAdapterConformanceCases = () => [];',
+        'export const runConformance = (',
+        '  adapter: HttpAdapterConformanceAdapter,',
+        '  cases = createHttpAdapterConformanceCases()',
+        ') => {',
+        '  void [adapter, cases];',
+        '};',
+        '',
+      ].join('\n')
+    );
+    writeFile(
+      root,
+      'adapters/hono/src/__tests__/conformance.test.ts',
+      [
+        "import { runConformance } from '@ontrails/http/testing';",
+        '',
+        "runConformance({ name: '@ontrails/hono' });",
+        '',
+      ].join('\n')
+    );
+
+    const report = checkAdapters(root);
+
+    expect(report.diagnostics).toEqual([]);
+    expect(report.subjects[0]?.conformanceTestPaths).toHaveLength(1);
+  });
+
+  test('requires adapter arguments when the owner runner defaults conformance cases', () => {
+    const root = makeRoot();
+    writeHttpOwner(root);
+    writeHonoAdapter(root);
+    writeFile(
+      root,
+      'packages/http/src/testing.ts',
+      [
+        'export interface HttpAdapterConformanceAdapter {}',
+        'export const createHttpAdapterConformanceCases = () => [];',
+        'export const runConformance = (',
+        '  adapter: HttpAdapterConformanceAdapter,',
+        '  cases = createHttpAdapterConformanceCases()',
+        ') => {',
+        '  void [adapter, cases];',
+        '};',
+        '',
+      ].join('\n')
+    );
+    writeFile(
+      root,
+      'adapters/hono/src/__tests__/conformance.test.ts',
+      [
+        "import { runConformance } from '@ontrails/http/testing';",
+        '',
+        'runConformance();',
+        '',
+      ].join('\n')
+    );
+
+    const report = checkAdapters(root);
+
+    expect(report.subjects[0]?.conformanceTestPaths).toEqual([]);
+    expect(report.diagnostics[0]).toMatchObject({
+      code: 'missing-conformance',
+      packageName: '@ontrails/hono',
+      target: 'http',
+    });
+  });
+
+  test('rejects sentinel adapter arguments when the owner runner defaults conformance cases', () => {
+    const root = makeRoot();
+    writeHttpOwner(root);
+    writeHonoAdapter(root);
+    writeFile(
+      root,
+      'packages/http/src/testing.ts',
+      [
+        'export interface HttpAdapterConformanceAdapter {}',
+        'export const createHttpAdapterConformanceCases = () => [];',
+        'export const runConformance = (',
+        '  adapter: HttpAdapterConformanceAdapter,',
+        '  cases = createHttpAdapterConformanceCases()',
+        ') => {',
+        '  void [adapter, cases];',
+        '};',
+        '',
+      ].join('\n')
+    );
+    writeFile(
+      root,
+      'adapters/hono/src/__tests__/conformance.test.ts',
+      [
+        "import { runConformance } from '@ontrails/http/testing';",
+        '',
+        'runConformance(undefined);',
+        'runConformance(null);',
+        'runConformance(void 0);',
+        '',
+      ].join('\n')
+    );
+
+    const report = checkAdapters(root);
+
+    expect(report.subjects[0]?.conformanceTestPaths).toEqual([]);
+    expect(report.diagnostics[0]).toMatchObject({
+      code: 'missing-conformance',
+      packageName: '@ontrails/hono',
+      target: 'http',
+    });
+  });
+
+  test('accepts default conformance cases through owner testing re-exports', () => {
+    const root = makeRoot();
+    writeHttpOwner(root);
+    writeHonoAdapter(root);
+    writeFile(
+      root,
+      'packages/http/src/testing.ts',
+      "export * from './conformance.js';\n"
+    );
+    writeFile(
+      root,
+      'packages/http/src/conformance.ts',
+      [
+        'export interface HttpAdapterConformanceAdapter {}',
+        'export const createHttpAdapterConformanceCases = () => [];',
+        'export function runConformance(',
+        '  adapter: HttpAdapterConformanceAdapter,',
+        '  cases = createHttpAdapterConformanceCases()',
+        ') {',
+        '  void [adapter, cases];',
+        '}',
+        '',
+      ].join('\n')
+    );
+    writeFile(
+      root,
+      'adapters/hono/src/__tests__/conformance.test.ts',
+      [
+        "import { runConformance } from '@ontrails/http/testing';",
+        '',
+        "runConformance({ name: '@ontrails/hono' });",
+        '',
+      ].join('\n')
+    );
+
+    const report = checkAdapters(root);
+
+    expect(report.diagnostics).toEqual([]);
+    expect(report.subjects[0]?.conformanceTestPaths).toHaveLength(1);
+  });
+
+  test('accepts default conformance cases through owner testing import-export barrels', () => {
+    const root = makeRoot();
+    writeHttpOwner(root);
+    writeHonoAdapter(root);
+    writeFile(
+      root,
+      'packages/http/src/testing.ts',
+      [
+        "import { runConformance as importedRunner } from './conformance.js';",
+        'export interface HttpAdapterConformanceAdapter {}',
+        'export const createHttpAdapterConformanceCases = () => [];',
+        'export { importedRunner as runConformance };',
+        '',
+      ].join('\n')
+    );
+    writeFile(
+      root,
+      'packages/http/src/conformance.ts',
+      [
+        'export function runConformance(',
+        '  adapter: unknown,',
+        '  cases = createHttpAdapterConformanceCases()',
+        ') {',
+        '  void [adapter, cases];',
+        '}',
+        '',
+      ].join('\n')
+    );
+    writeFile(
+      root,
+      'adapters/hono/src/__tests__/conformance.test.ts',
+      [
+        "import { runConformance } from '@ontrails/http/testing';",
+        '',
+        "runConformance({ name: '@ontrails/hono' });",
+        '',
+      ].join('\n')
+    );
+
+    const report = checkAdapters(root);
+
+    expect(report.diagnostics).toEqual([]);
+    expect(report.subjects[0]?.conformanceTestPaths).toHaveLength(1);
+  });
+
+  test('ignores string-literal owner re-exports when checking defaulted runner cases', () => {
+    const root = makeRoot();
+    writeHttpOwner(root);
+    writeHonoAdapter(root);
+    writeFile(
+      root,
+      'packages/http/src/testing.ts',
+      [
+        'export interface HttpAdapterConformanceAdapter {}',
+        'export const createHttpAdapterConformanceCases = () => [];',
+        'const namedDocs = "export { runConformance } from \'./conformance.js\'";',
+        'const starDocs = "export * from \'./conformance.js\'";',
+        "export { runConformance } from './plain.js';",
+        'void namedDocs;',
+        'void starDocs;',
+        '',
+      ].join('\n')
+    );
+    writeFile(
+      root,
+      'packages/http/src/plain.ts',
+      [
+        'export const runConformance = (adapter: unknown, cases: unknown) => {',
+        '  void [adapter, cases];',
+        '};',
+        '',
+      ].join('\n')
+    );
+    writeFile(
+      root,
+      'packages/http/src/conformance.ts',
+      [
+        'export const runConformance = (',
+        '  adapter: unknown,',
+        '  cases = createHttpAdapterConformanceCases()',
+        ') => {',
+        '  void [adapter, cases];',
+        '};',
+        '',
+      ].join('\n')
+    );
+    writeFile(
+      root,
+      'adapters/hono/src/__tests__/conformance.test.ts',
+      [
+        "import { runConformance } from '@ontrails/http/testing';",
+        '',
+        "runConformance({ name: '@ontrails/hono' });",
+        '',
+      ].join('\n')
+    );
+
+    const report = checkAdapters(root);
+
+    expect(report.subjects[0]?.conformanceTestPaths).toEqual([]);
+    expect(report.diagnostics[0]).toMatchObject({
+      code: 'missing-conformance',
+      packageName: '@ontrails/hono',
+      target: 'http',
+    });
+  });
+
+  test('accepts same-file aliased runners that default conformance cases', () => {
+    const root = makeRoot();
+    writeHttpOwner(root);
+    writeHonoAdapter(root);
+    writeFile(
+      root,
+      'packages/http/src/testing.ts',
+      [
+        'export interface HttpAdapterConformanceAdapter {}',
+        'const makeCases = () => [];',
+        'const actualRunner = (',
+        '  adapter: HttpAdapterConformanceAdapter,',
+        '  cases = makeCases()',
+        ') => {',
+        '  void [adapter, cases];',
+        '};',
+        'export {',
+        '  actualRunner as runConformance,',
+        '  makeCases as createHttpAdapterConformanceCases,',
+        '  type HttpAdapterConformanceAdapter,',
+        '};',
+        '',
+      ].join('\n')
+    );
+    writeFile(
+      root,
+      'adapters/hono/src/__tests__/conformance.test.ts',
+      [
+        "import { runConformance } from '@ontrails/http/testing';",
+        '',
+        "runConformance({ name: '@ontrails/hono' });",
+        '',
+      ].join('\n')
+    );
+
+    const report = checkAdapters(root);
+
+    expect(report.diagnostics).toEqual([]);
+    expect(report.subjects[0]?.conformanceTestPaths).toHaveLength(1);
+  });
+
+  test('accepts async runners that default conformance cases', () => {
+    const root = makeRoot();
+    writeHttpOwner(root);
+    writeHonoAdapter(root);
+    writeFile(
+      root,
+      'packages/http/src/testing.ts',
+      [
+        'export interface HttpAdapterConformanceAdapter {}',
+        'export const createHttpAdapterConformanceCases = () => [];',
+        'export async function runConformance(',
+        '  adapter: HttpAdapterConformanceAdapter,',
+        '  cases = createHttpAdapterConformanceCases()',
+        ') {',
+        '  void [adapter, cases];',
+        '}',
+        '',
+      ].join('\n')
+    );
+    writeFile(
+      root,
+      'adapters/hono/src/__tests__/conformance.test.ts',
+      [
+        "import { runConformance } from '@ontrails/http/testing';",
+        '',
+        "runConformance({ name: '@ontrails/hono' });",
+        '',
+      ].join('\n')
+    );
+
+    const report = checkAdapters(root);
+
+    expect(report.diagnostics).toEqual([]);
+    expect(report.subjects[0]?.conformanceTestPaths).toHaveLength(1);
+  });
+
+  test('accepts typed runner variables that default conformance cases', () => {
+    const root = makeRoot();
+    writeHttpOwner(root);
+    writeHonoAdapter(root);
+    writeFile(
+      root,
+      'packages/http/src/testing.ts',
+      [
+        'export interface HttpAdapterConformanceAdapter {}',
+        'type Runner = (',
+        '  adapter: HttpAdapterConformanceAdapter,',
+        '  cases?: readonly unknown[]',
+        ') => void;',
+        'export const createHttpAdapterConformanceCases = () => [];',
+        'export const runConformance: Runner = (',
+        '  adapter,',
+        '  cases = createHttpAdapterConformanceCases()',
+        ') => {',
+        '  void [adapter, cases];',
+        '};',
+        '',
+      ].join('\n')
+    );
+    writeFile(
+      root,
+      'adapters/hono/src/__tests__/conformance.test.ts',
+      [
+        "import { runConformance } from '@ontrails/http/testing';",
+        '',
+        "runConformance({ name: '@ontrails/hono' });",
+        '',
+      ].join('\n')
+    );
+
+    const report = checkAdapters(root);
+
+    expect(report.diagnostics).toEqual([]);
+    expect(report.subjects[0]?.conformanceTestPaths).toHaveLength(1);
   });
 
   test('ignores commented-out adapter conformance imports', () => {
@@ -566,7 +1100,7 @@ describe('checkAdapters', () => {
 
   test('accepts mixed value and type adapter conformance imports', () => {
     const root = makeRoot();
-    writeHttpOwner(root);
+    writeHttpOwner(root, { conformance: undefined });
     writeHonoAdapter(root);
     writeFile(
       root,
@@ -584,9 +1118,9 @@ describe('checkAdapters', () => {
     expect(report.subjects[0]?.conformanceTestPaths).toHaveLength(1);
   });
 
-  test('accepts dynamic adapter conformance imports', () => {
+  test('accepts dynamic adapter conformance imports until owners declare helper metadata', () => {
     const root = makeRoot();
-    writeHttpOwner(root);
+    writeHttpOwner(root, { conformance: undefined });
     writeHonoAdapter(root);
     writeFile(
       root,
@@ -627,7 +1161,7 @@ describe('checkAdapters', () => {
 
   test('accepts dynamic adapter conformance imports after function return types', () => {
     const root = makeRoot();
-    writeHttpOwner(root);
+    writeHttpOwner(root, { conformance: undefined });
     writeHonoAdapter(root);
     writeFile(
       root,
@@ -648,9 +1182,29 @@ describe('checkAdapters', () => {
     expect(report.subjects[0]?.conformanceTestPaths).toHaveLength(1);
   });
 
-  test('accepts dynamic adapter conformance imports in object literal values', () => {
+  test('accepts destructured dynamic conformance helper imports', () => {
     const root = makeRoot();
     writeHttpOwner(root);
+    writeHonoAdapter(root);
+    writeFile(
+      root,
+      'adapters/hono/src/__tests__/conformance.test.ts',
+      [
+        "const { runConformance, createHttpAdapterConformanceCases } = await import('@ontrails/http/testing');",
+        "runConformance({ name: '@ontrails/hono' }, createHttpAdapterConformanceCases());",
+        '',
+      ].join('\n')
+    );
+
+    const report = checkAdapters(root);
+
+    expect(report.diagnostics).toEqual([]);
+    expect(report.subjects[0]?.conformanceTestPaths).toHaveLength(1);
+  });
+
+  test('accepts dynamic adapter conformance imports in object literal values', () => {
+    const root = makeRoot();
+    writeHttpOwner(root, { conformance: undefined });
     writeHonoAdapter(root);
     writeFile(
       root,
@@ -670,9 +1224,9 @@ describe('checkAdapters', () => {
     expect(report.subjects[0]?.conformanceTestPaths).toHaveLength(1);
   });
 
-  test('accepts dynamic adapter conformance imports in conditional expressions', () => {
+  test('accepts dynamic conditional imports until owners declare helper metadata', () => {
     const root = makeRoot();
-    writeHttpOwner(root);
+    writeHttpOwner(root, { conformance: undefined });
     writeHonoAdapter(root);
     writeFile(
       root,
@@ -834,9 +1388,241 @@ describe('checkAdapters', () => {
     });
   });
 
+  test('ignores commented-out conformance helper calls', () => {
+    const root = makeRoot();
+    writeHttpOwner(root);
+    writeHonoAdapter(root);
+    writeFile(
+      root,
+      'adapters/hono/src/__tests__/conformance.test.ts',
+      [
+        "import { createHttpAdapterConformanceCases, runConformance } from '@ontrails/http/testing';",
+        '',
+        "// runConformance({ name: '@ontrails/hono' }, createHttpAdapterConformanceCases());",
+        '',
+      ].join('\n')
+    );
+
+    const report = checkAdapters(root);
+
+    expect(report.subjects[0]?.conformanceTestPaths).toEqual([]);
+    expect(report.diagnostics[0]).toMatchObject({
+      code: 'missing-conformance',
+      packageName: '@ontrails/hono',
+      target: 'http',
+    });
+  });
+
+  test('ignores string-literal conformance helper calls', () => {
+    const root = makeRoot();
+    writeHttpOwner(root);
+    writeHonoAdapter(root);
+    writeFile(
+      root,
+      'adapters/hono/src/__tests__/conformance.test.ts',
+      [
+        "import { createHttpAdapterConformanceCases, runConformance } from '@ontrails/http/testing';",
+        '',
+        '"runConformance({ name: \'@ontrails/hono\' }, createHttpAdapterConformanceCases());";',
+        '',
+      ].join('\n')
+    );
+
+    const report = checkAdapters(root);
+
+    expect(report.subjects[0]?.conformanceTestPaths).toEqual([]);
+    expect(report.diagnostics[0]).toMatchObject({
+      code: 'missing-conformance',
+      packageName: '@ontrails/hono',
+      target: 'http',
+    });
+  });
+
+  test('ignores string-literal conformance helper imports', () => {
+    const root = makeRoot();
+    writeHttpOwner(root);
+    writeHonoAdapter(root);
+    writeFile(
+      root,
+      'adapters/hono/src/__tests__/conformance.test.ts',
+      [
+        "import '@ontrails/http/testing';",
+        '',
+        'const docs = `',
+        "import { createHttpAdapterConformanceCases, runConformance } from '@ontrails/http/testing';",
+        "const { createHttpAdapterConformanceCases, runConformance } = await import('@ontrails/http/testing');",
+        "const testing = await import('@ontrails/http/testing');",
+        '`;',
+        'const createHttpAdapterConformanceCases = () => [];',
+        'const runConformance = () => undefined;',
+        'const testing = { createHttpAdapterConformanceCases, runConformance };',
+        "runConformance({ name: '@ontrails/hono' }, createHttpAdapterConformanceCases());",
+        "testing.runConformance({ name: '@ontrails/hono' }, testing.createHttpAdapterConformanceCases());",
+        '',
+      ].join('\n')
+    );
+
+    const report = checkAdapters(root);
+
+    expect(report.subjects[0]?.conformanceTestPaths).toEqual([]);
+    expect(report.diagnostics[0]).toMatchObject({
+      code: 'missing-conformance',
+      packageName: '@ontrails/hono',
+      target: 'http',
+    });
+  });
+
+  test('requires the cases factory call inside the runner call', () => {
+    const root = makeRoot();
+    writeHttpOwner(root);
+    writeHonoAdapter(root);
+    writeFile(
+      root,
+      'adapters/hono/src/__tests__/conformance.test.ts',
+      [
+        "import { createHttpAdapterConformanceCases, runConformance } from '@ontrails/http/testing';",
+        '',
+        'const cases = createHttpAdapterConformanceCases();',
+        "runConformance({ name: '@ontrails/hono' }, cases);",
+        '',
+      ].join('\n')
+    );
+
+    const report = checkAdapters(root);
+
+    expect(report.subjects[0]?.conformanceTestPaths).toEqual([]);
+    expect(report.diagnostics[0]).toMatchObject({
+      code: 'missing-conformance',
+      packageName: '@ontrails/hono',
+      target: 'http',
+    });
+  });
+
+  test('requires runner calls to pass the adapter before conformance cases', () => {
+    const root = makeRoot();
+    writeHttpOwner(root);
+    writeHonoAdapter(root);
+    writeFile(
+      root,
+      'adapters/hono/src/__tests__/conformance.test.ts',
+      [
+        "import { createHttpAdapterConformanceCases, runConformance } from '@ontrails/http/testing';",
+        '',
+        'runConformance(createHttpAdapterConformanceCases());',
+        '',
+      ].join('\n')
+    );
+
+    const report = checkAdapters(root);
+
+    expect(report.subjects[0]?.conformanceTestPaths).toEqual([]);
+    expect(report.diagnostics[0]).toMatchObject({
+      code: 'missing-conformance',
+      packageName: '@ontrails/hono',
+      target: 'http',
+    });
+  });
+
+  test('rejects sentinel adapter arguments before explicit conformance cases', () => {
+    for (const sentinel of ['undefined', 'null'] as const) {
+      const root = makeRoot();
+      writeHttpOwner(root);
+      writeHonoAdapter(root);
+      writeFile(
+        root,
+        'adapters/hono/src/__tests__/conformance.test.ts',
+        [
+          "import { createHttpAdapterConformanceCases, runConformance } from '@ontrails/http/testing';",
+          '',
+          `runConformance(${sentinel}, createHttpAdapterConformanceCases());`,
+          '',
+        ].join('\n')
+      );
+
+      const report = checkAdapters(root);
+
+      expect(report.subjects[0]?.conformanceTestPaths).toEqual([]);
+      expect(report.diagnostics[0]).toMatchObject({
+        code: 'missing-conformance',
+        packageName: '@ontrails/hono',
+        target: 'http',
+      });
+    }
+  });
+
+  test('ignores member calls that reuse the imported runner name', () => {
+    const root = makeRoot();
+    writeHttpOwner(root);
+    writeHonoAdapter(root);
+    writeFile(
+      root,
+      'adapters/hono/src/__tests__/conformance.test.ts',
+      [
+        "import { createHttpAdapterConformanceCases, runConformance } from '@ontrails/http/testing';",
+        '',
+        'const fake = { runConformance: () => undefined };',
+        "fake.runConformance({ name: '@ontrails/hono' }, createHttpAdapterConformanceCases());",
+        'void runConformance;',
+        '',
+      ].join('\n')
+    );
+
+    const report = checkAdapters(root);
+
+    expect(report.subjects[0]?.conformanceTestPaths).toEqual([]);
+    expect(report.diagnostics[0]).toMatchObject({
+      code: 'missing-conformance',
+      packageName: '@ontrails/hono',
+      target: 'http',
+    });
+  });
+
+  test('ignores member calls that reuse the imported cases factory name', () => {
+    const root = makeRoot();
+    writeHttpOwner(root);
+    writeHonoAdapter(root);
+    writeFile(
+      root,
+      'adapters/hono/src/__tests__/conformance.test.ts',
+      [
+        "import { createHttpAdapterConformanceCases, runConformance } from '@ontrails/http/testing';",
+        '',
+        'const fake = { createHttpAdapterConformanceCases: () => [] };',
+        "runConformance({ name: '@ontrails/hono' }, fake.createHttpAdapterConformanceCases());",
+        'void createHttpAdapterConformanceCases;',
+        '',
+      ].join('\n')
+    );
+
+    const report = checkAdapters(root);
+
+    expect(report.subjects[0]?.conformanceTestPaths).toEqual([]);
+    expect(report.diagnostics[0]).toMatchObject({
+      code: 'missing-conformance',
+      packageName: '@ontrails/hono',
+      target: 'http',
+    });
+  });
+
+  test('accepts import-only conformance coverage until owners declare helper metadata', () => {
+    const root = makeRoot();
+    writeHttpOwner(root, { conformance: undefined });
+    writeHonoAdapter(root);
+    writeFile(
+      root,
+      'adapters/hono/src/__tests__/conformance.test.ts',
+      "import { createHttpAdapterConformanceCases } from '@ontrails/http/testing';\n\nvoid createHttpAdapterConformanceCases;\n"
+    );
+
+    const report = checkAdapters(root);
+
+    expect(report.diagnostics).toEqual([]);
+    expect(report.subjects[0]?.conformanceTestPaths).toHaveLength(1);
+  });
+
   test('reports missing owner conformance facts', () => {
     const root = makeRoot();
-    writeHttpOwner(root, { testingImport: undefined });
+    writeHttpOwner(root, { conformance: undefined, testingImport: undefined });
     writeHonoAdapter(root);
 
     const report = checkAdapters(root);

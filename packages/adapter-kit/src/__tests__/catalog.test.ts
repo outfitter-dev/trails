@@ -88,6 +88,987 @@ describe('deriveAdapterTargetCatalog', () => {
     );
   });
 
+  test('derives optional owner conformance helper metadata', () => {
+    const root = makeRoot();
+    writePackage(root, 'packages/http', {
+      exports: {
+        '.': './src/index.ts',
+        './testing': './src/testing.ts',
+      },
+      name: '@ontrails/http',
+      trails: {
+        adapterTargets: {
+          http: {
+            conformance: {
+              adapterType: 'HttpAdapterConformanceAdapter',
+              casesFactory: 'createHttpAdapterConformanceCases',
+              runner: 'runConformance',
+            },
+            placements: ['extracted'],
+            testingImport: '@ontrails/http/testing',
+          },
+        },
+      },
+    });
+    writeFile(
+      root,
+      'packages/http/src/testing.ts',
+      [
+        'export interface HttpAdapterConformanceAdapter {}',
+        'export const createHttpAdapterConformanceCases = () => [];',
+        'export const runConformance = () => {};',
+        '',
+      ].join('\n')
+    );
+
+    const catalog = deriveAdapterTargetCatalog(root);
+
+    expect(catalog.diagnostics).toEqual([]);
+    expect(catalog.targets[0]).toMatchObject({
+      conformance: {
+        adapterType: 'HttpAdapterConformanceAdapter',
+        casesFactory: 'createHttpAdapterConformanceCases',
+        runner: 'runConformance',
+      },
+      testingImport: '@ontrails/http/testing',
+    });
+  });
+
+  test('rejects conformance adapter types backed only by runtime values', () => {
+    const root = makeRoot();
+    writePackage(root, 'packages/http', {
+      exports: {
+        '.': './src/index.ts',
+        './testing': './src/testing.ts',
+      },
+      name: '@ontrails/http',
+      trails: {
+        adapterTargets: {
+          http: {
+            conformance: {
+              adapterType: 'HttpAdapterConformanceAdapter',
+              casesFactory: 'createHttpAdapterConformanceCases',
+              runner: 'runConformance',
+            },
+            placements: ['extracted'],
+            testingImport: '@ontrails/http/testing',
+          },
+        },
+      },
+    });
+    writeFile(
+      root,
+      'packages/http/src/testing.ts',
+      [
+        'export const HttpAdapterConformanceAdapter = {};',
+        'export const createHttpAdapterConformanceCases = () => [];',
+        'export const runConformance = () => {};',
+        '',
+      ].join('\n')
+    );
+
+    const catalog = deriveAdapterTargetCatalog(root);
+
+    expect(catalog.targets).toEqual([]);
+    expect(catalog.diagnostics).toHaveLength(1);
+    expect(catalog.diagnostics[0]).toMatchObject({
+      code: 'invalid-conformance',
+      message: expect.stringContaining('conformance.adapterType'),
+      target: 'http',
+    });
+  });
+
+  test('accepts conformance adapter types backed by class exports', () => {
+    const root = makeRoot();
+    writePackage(root, 'packages/http', {
+      exports: {
+        '.': './src/index.ts',
+        './testing': './src/testing.ts',
+      },
+      name: '@ontrails/http',
+      trails: {
+        adapterTargets: {
+          http: {
+            conformance: {
+              adapterType: 'HttpAdapterConformanceAdapter',
+              casesFactory: 'createHttpAdapterConformanceCases',
+              runner: 'runConformance',
+            },
+            placements: ['extracted'],
+            testingImport: '@ontrails/http/testing',
+          },
+        },
+      },
+    });
+    writeFile(
+      root,
+      'packages/http/src/testing.ts',
+      [
+        'export abstract class HttpAdapterConformanceAdapter {}',
+        'export const createHttpAdapterConformanceCases = () => [];',
+        'export const runConformance = () => {};',
+        '',
+      ].join('\n')
+    );
+
+    const catalog = deriveAdapterTargetCatalog(root);
+
+    expect(catalog.diagnostics).toEqual([]);
+    expect(catalog.targets[0]?.conformance).toEqual({
+      adapterType: 'HttpAdapterConformanceAdapter',
+      casesFactory: 'createHttpAdapterConformanceCases',
+      runner: 'runConformance',
+    });
+  });
+
+  test('accepts async conformance helper value exports', () => {
+    const root = makeRoot();
+    writePackage(root, 'packages/http', {
+      exports: {
+        '.': './src/index.ts',
+        './testing': './src/testing.ts',
+      },
+      name: '@ontrails/http',
+      trails: {
+        adapterTargets: {
+          http: {
+            conformance: {
+              adapterType: 'HttpAdapterConformanceAdapter',
+              casesFactory: 'createHttpAdapterConformanceCases',
+              runner: 'runConformance',
+            },
+            placements: ['extracted'],
+            testingImport: '@ontrails/http/testing',
+          },
+        },
+      },
+    });
+    writeFile(
+      root,
+      'packages/http/src/testing.ts',
+      [
+        'export interface HttpAdapterConformanceAdapter {}',
+        'export async function createHttpAdapterConformanceCases() { return []; }',
+        'export async function runConformance() {}',
+        '',
+      ].join('\n')
+    );
+
+    const catalog = deriveAdapterTargetCatalog(root);
+
+    expect(catalog.diagnostics).toEqual([]);
+    expect(catalog.targets[0]?.conformance).toEqual({
+      adapterType: 'HttpAdapterConformanceAdapter',
+      casesFactory: 'createHttpAdapterConformanceCases',
+      runner: 'runConformance',
+    });
+  });
+
+  test('accepts conformance helpers exported through local star re-exports', () => {
+    const root = makeRoot();
+    writePackage(root, 'packages/http', {
+      exports: {
+        '.': './src/index.ts',
+        './testing': './src/testing.ts',
+      },
+      name: '@ontrails/http',
+      trails: {
+        adapterTargets: {
+          http: {
+            conformance: {
+              adapterType: 'HttpAdapterConformanceAdapter',
+              casesFactory: 'createHttpAdapterConformanceCases',
+              runner: 'runConformance',
+            },
+            placements: ['extracted'],
+            testingImport: '@ontrails/http/testing',
+          },
+        },
+      },
+    });
+    writeFile(
+      root,
+      'packages/http/src/testing.ts',
+      "export * from './testing-helpers.js';\n"
+    );
+    writeFile(
+      root,
+      'packages/http/src/testing-helpers.ts',
+      [
+        'export interface HttpAdapterConformanceAdapter {}',
+        'export const createHttpAdapterConformanceCases = () => [];',
+        'export const runConformance = () => {};',
+        '',
+      ].join('\n')
+    );
+
+    const catalog = deriveAdapterTargetCatalog(root);
+
+    expect(catalog.diagnostics).toEqual([]);
+    expect(catalog.targets[0]?.conformance).toEqual({
+      adapterType: 'HttpAdapterConformanceAdapter',
+      casesFactory: 'createHttpAdapterConformanceCases',
+      runner: 'runConformance',
+    });
+  });
+
+  test('rejects named re-exports that point at erased conformance helpers', () => {
+    const root = makeRoot();
+    writePackage(root, 'packages/http', {
+      exports: {
+        '.': './src/index.ts',
+        './testing': './src/testing.ts',
+      },
+      name: '@ontrails/http',
+      trails: {
+        adapterTargets: {
+          http: {
+            conformance: {
+              adapterType: 'HttpAdapterConformanceAdapter',
+              casesFactory: 'createHttpAdapterConformanceCases',
+              runner: 'runConformance',
+            },
+            placements: ['extracted'],
+            testingImport: '@ontrails/http/testing',
+          },
+        },
+      },
+    });
+    writeFile(
+      root,
+      'packages/http/src/testing.ts',
+      [
+        'export interface HttpAdapterConformanceAdapter {}',
+        "export { createHttpAdapterConformanceCases, runConformance } from './types.js';",
+        '',
+      ].join('\n')
+    );
+    writeFile(
+      root,
+      'packages/http/src/types.ts',
+      [
+        'export declare function createHttpAdapterConformanceCases(): unknown[];',
+        'export declare function runConformance(): void;',
+        '',
+      ].join('\n')
+    );
+
+    const catalog = deriveAdapterTargetCatalog(root);
+
+    expect(catalog.targets).toEqual([]);
+    expect(catalog.diagnostics).toHaveLength(2);
+    expect(catalog.diagnostics).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'invalid-conformance',
+          message: expect.stringContaining('conformance.casesFactory'),
+          target: 'http',
+        }),
+        expect.objectContaining({
+          code: 'invalid-conformance',
+          message: expect.stringContaining('conformance.runner'),
+          target: 'http',
+        }),
+      ])
+    );
+  });
+
+  test('keeps looking for value exports after type-only star re-exports', () => {
+    const root = makeRoot();
+    writePackage(root, 'packages/http', {
+      exports: {
+        '.': './src/index.ts',
+        './testing': './src/testing.ts',
+      },
+      name: '@ontrails/http',
+      trails: {
+        adapterTargets: {
+          http: {
+            conformance: {
+              adapterType: 'HttpAdapterConformanceAdapter',
+              casesFactory: 'createHttpAdapterConformanceCases',
+              runner: 'runConformance',
+            },
+            placements: ['extracted'],
+            testingImport: '@ontrails/http/testing',
+          },
+        },
+      },
+    });
+    writeFile(
+      root,
+      'packages/http/src/testing.ts',
+      [
+        "export type * from './types.js';",
+        "export * from './conformance.js';",
+        '',
+      ].join('\n')
+    );
+    writeFile(
+      root,
+      'packages/http/src/types.ts',
+      [
+        'export interface HttpAdapterConformanceAdapter {}',
+        'export type createHttpAdapterConformanceCases = () => unknown[];',
+        'export interface runConformance {}',
+        '',
+      ].join('\n')
+    );
+    writeFile(
+      root,
+      'packages/http/src/conformance.ts',
+      [
+        'export const createHttpAdapterConformanceCases = () => [];',
+        'export const runConformance = () => {};',
+        '',
+      ].join('\n')
+    );
+
+    const catalog = deriveAdapterTargetCatalog(root);
+
+    expect(catalog.diagnostics).toEqual([]);
+    expect(catalog.targets[0]?.conformance).toEqual({
+      adapterType: 'HttpAdapterConformanceAdapter',
+      casesFactory: 'createHttpAdapterConformanceCases',
+      runner: 'runConformance',
+    });
+  });
+
+  test('reports conformance helpers missing from owner testing exports', () => {
+    const root = makeRoot();
+    writePackage(root, 'packages/http', {
+      exports: {
+        '.': './src/index.ts',
+        './testing': './src/testing.ts',
+      },
+      name: '@ontrails/http',
+      trails: {
+        adapterTargets: {
+          http: {
+            conformance: {
+              adapterType: 'HttpAdapterConformanceAdapter',
+              casesFactory: 'createHttpAdapterConformanceCases',
+              runner: 'runConformanc',
+            },
+            placements: ['extracted'],
+            testingImport: '@ontrails/http/testing',
+          },
+        },
+      },
+    });
+    writeFile(
+      root,
+      'packages/http/src/testing.ts',
+      [
+        'export interface HttpAdapterConformanceAdapter {}',
+        'export const createHttpAdapterConformanceCases = () => [];',
+        'export const runConformance = () => {};',
+        '',
+      ].join('\n')
+    );
+
+    const catalog = deriveAdapterTargetCatalog(root);
+
+    expect(catalog.targets).toEqual([]);
+    expect(catalog.diagnostics).toHaveLength(1);
+    expect(catalog.diagnostics[0]).toMatchObject({
+      code: 'invalid-conformance',
+      target: 'http',
+    });
+    expect(catalog.diagnostics[0]?.message).toContain('runConformanc');
+  });
+
+  test('ignores commented and string-literal conformance exports', () => {
+    const root = makeRoot();
+    writePackage(root, 'packages/http', {
+      exports: {
+        '.': './src/index.ts',
+        './testing': './src/testing.ts',
+      },
+      name: '@ontrails/http',
+      trails: {
+        adapterTargets: {
+          http: {
+            conformance: {
+              adapterType: 'HttpAdapterConformanceAdapter',
+              casesFactory: 'createHttpAdapterConformanceCases',
+              runner: 'runConformance',
+            },
+            placements: ['extracted'],
+            testingImport: '@ontrails/http/testing',
+          },
+        },
+      },
+    });
+    writeFile(
+      root,
+      'packages/http/src/testing.ts',
+      [
+        'export interface HttpAdapterConformanceAdapter {}',
+        "// export * from './testing-helpers.js';",
+        'const docs = "export const runConformance = () => undefined";',
+        'const starDocs = "export * from \'./testing-helpers.js\'";',
+        '',
+      ].join('\n')
+    );
+    writeFile(
+      root,
+      'packages/http/src/testing-helpers.ts',
+      [
+        'export const createHttpAdapterConformanceCases = () => [];',
+        'export const runConformance = () => undefined;',
+        '',
+      ].join('\n')
+    );
+
+    const catalog = deriveAdapterTargetCatalog(root);
+
+    expect(catalog.targets).toEqual([]);
+    expect(catalog.diagnostics).toHaveLength(2);
+    expect(catalog.diagnostics).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'invalid-conformance',
+          message: expect.stringContaining('conformance.casesFactory'),
+          target: 'http',
+        }),
+        expect.objectContaining({
+          code: 'invalid-conformance',
+          message: expect.stringContaining('conformance.runner'),
+          target: 'http',
+        }),
+      ])
+    );
+  });
+
+  test('requires callable conformance helpers to be value exports', () => {
+    const root = makeRoot();
+    writePackage(root, 'packages/http', {
+      exports: {
+        '.': './src/index.ts',
+        './testing': './src/testing.ts',
+      },
+      name: '@ontrails/http',
+      trails: {
+        adapterTargets: {
+          http: {
+            conformance: {
+              adapterType: 'HttpAdapterConformanceAdapter',
+              casesFactory: 'createHttpAdapterConformanceCases',
+              runner: 'runConformance',
+            },
+            placements: ['extracted'],
+            testingImport: '@ontrails/http/testing',
+          },
+        },
+      },
+    });
+    writeFile(
+      root,
+      'packages/http/src/testing.ts',
+      [
+        'export interface HttpAdapterConformanceAdapter {}',
+        'export type createHttpAdapterConformanceCases = () => unknown[];',
+        'export interface runConformance {}',
+        '',
+      ].join('\n')
+    );
+
+    const catalog = deriveAdapterTargetCatalog(root);
+
+    expect(catalog.targets).toEqual([]);
+    expect(catalog.diagnostics).toHaveLength(2);
+    expect(catalog.diagnostics).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'invalid-conformance',
+          message: expect.stringContaining('conformance.casesFactory'),
+          target: 'http',
+        }),
+        expect.objectContaining({
+          code: 'invalid-conformance',
+          message: expect.stringContaining('conformance.runner'),
+          target: 'http',
+        }),
+      ])
+    );
+    expect(catalog.diagnostics[0]?.message).toContain('value export');
+  });
+
+  test('rejects ambient conformance helper value declarations', () => {
+    const root = makeRoot();
+    writePackage(root, 'packages/http', {
+      exports: {
+        '.': './src/index.ts',
+        './testing': './src/testing.ts',
+      },
+      name: '@ontrails/http',
+      trails: {
+        adapterTargets: {
+          http: {
+            conformance: {
+              adapterType: 'HttpAdapterConformanceAdapter',
+              casesFactory: 'createHttpAdapterConformanceCases',
+              runner: 'runConformance',
+            },
+            placements: ['extracted'],
+            testingImport: '@ontrails/http/testing',
+          },
+        },
+      },
+    });
+    writeFile(
+      root,
+      'packages/http/src/testing.ts',
+      [
+        'export interface HttpAdapterConformanceAdapter {}',
+        'export declare const createHttpAdapterConformanceCases: () => unknown[];',
+        'export declare function runConformance(): void;',
+        '',
+      ].join('\n')
+    );
+
+    const catalog = deriveAdapterTargetCatalog(root);
+
+    expect(catalog.targets).toEqual([]);
+    expect(catalog.diagnostics).toHaveLength(2);
+    expect(catalog.diagnostics).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'invalid-conformance',
+          message: expect.stringContaining('conformance.casesFactory'),
+          target: 'http',
+        }),
+        expect.objectContaining({
+          code: 'invalid-conformance',
+          message: expect.stringContaining('conformance.runner'),
+          target: 'http',
+        }),
+      ])
+    );
+  });
+
+  test('validates conformance helpers against exported alias names', () => {
+    const root = makeRoot();
+    writePackage(root, 'packages/http', {
+      exports: {
+        '.': './src/index.ts',
+        './testing': './src/testing.ts',
+      },
+      name: '@ontrails/http',
+      trails: {
+        adapterTargets: {
+          http: {
+            conformance: {
+              adapterType: 'HttpAdapterConformanceAdapter',
+              casesFactory: 'createHttpAdapterConformanceCases',
+              runner: 'actualRunner',
+            },
+            placements: ['extracted'],
+            testingImport: '@ontrails/http/testing',
+          },
+        },
+      },
+    });
+    writeFile(
+      root,
+      'packages/http/src/testing.ts',
+      [
+        'export interface HttpAdapterConformanceAdapter {}',
+        'export const createHttpAdapterConformanceCases = () => [];',
+        'const actualRunner = () => {};',
+        'export { actualRunner as runConformance };',
+        '',
+      ].join('\n')
+    );
+
+    const catalog = deriveAdapterTargetCatalog(root);
+
+    expect(catalog.targets).toEqual([]);
+    expect(catalog.diagnostics[0]).toMatchObject({
+      code: 'invalid-conformance',
+      target: 'http',
+    });
+    expect(catalog.diagnostics[0]?.message).toContain('actualRunner');
+  });
+
+  test('accepts conformance helpers exported through alias names', () => {
+    const root = makeRoot();
+    writePackage(root, 'packages/http', {
+      exports: {
+        '.': './src/index.ts',
+        './testing': './src/testing.ts',
+      },
+      name: '@ontrails/http',
+      trails: {
+        adapterTargets: {
+          http: {
+            conformance: {
+              adapterType: 'HttpAdapterConformanceAdapter',
+              casesFactory: 'createHttpAdapterConformanceCases',
+              runner: 'runConformance',
+            },
+            placements: ['extracted'],
+            testingImport: '@ontrails/http/testing',
+          },
+        },
+      },
+    });
+    writeFile(
+      root,
+      'packages/http/src/testing.ts',
+      [
+        'interface HttpAdapterConformanceAdapter {}',
+        'const actualRunner = () => {};',
+        'const actualCasesFactory = () => [];',
+        'export {',
+        '  actualCasesFactory as createHttpAdapterConformanceCases,',
+        '  actualRunner as runConformance,',
+        '  type HttpAdapterConformanceAdapter,',
+        '};',
+        '',
+      ].join('\n')
+    );
+
+    const catalog = deriveAdapterTargetCatalog(root);
+
+    expect(catalog.diagnostics).toEqual([]);
+    expect(catalog.targets[0]?.conformance).toEqual({
+      adapterType: 'HttpAdapterConformanceAdapter',
+      casesFactory: 'createHttpAdapterConformanceCases',
+      runner: 'runConformance',
+    });
+  });
+
+  test('accepts conformance helper aliases backed by local value imports', () => {
+    const root = makeRoot();
+    writePackage(root, 'packages/http', {
+      exports: {
+        '.': './src/index.ts',
+        './testing': './src/testing.ts',
+      },
+      name: '@ontrails/http',
+      trails: {
+        adapterTargets: {
+          http: {
+            conformance: {
+              adapterType: 'HttpAdapterConformanceAdapter',
+              casesFactory: 'createHttpAdapterConformanceCases',
+              runner: 'runConformance',
+            },
+            placements: ['extracted'],
+            testingImport: '@ontrails/http/testing',
+          },
+        },
+      },
+    });
+    writeFile(
+      root,
+      'packages/http/src/testing.ts',
+      [
+        "import { runConformance as importedRunner } from './conformance.js';",
+        'export interface HttpAdapterConformanceAdapter {}',
+        'export const createHttpAdapterConformanceCases = () => [];',
+        'export { importedRunner as runConformance };',
+        '',
+      ].join('\n')
+    );
+    writeFile(
+      root,
+      'packages/http/src/conformance.ts',
+      'export function runConformance() {}\n'
+    );
+
+    const catalog = deriveAdapterTargetCatalog(root);
+
+    expect(catalog.diagnostics).toEqual([]);
+    expect(catalog.targets[0]?.conformance).toEqual({
+      adapterType: 'HttpAdapterConformanceAdapter',
+      casesFactory: 'createHttpAdapterConformanceCases',
+      runner: 'runConformance',
+    });
+  });
+
+  test('accepts conformance helper aliases backed by local default imports', () => {
+    const root = makeRoot();
+    writePackage(root, 'packages/http', {
+      exports: {
+        '.': './src/index.ts',
+        './testing': './src/testing.ts',
+      },
+      name: '@ontrails/http',
+      trails: {
+        adapterTargets: {
+          http: {
+            conformance: {
+              adapterType: 'HttpAdapterConformanceAdapter',
+              casesFactory: 'createHttpAdapterConformanceCases',
+              runner: 'runConformance',
+            },
+            placements: ['extracted'],
+            testingImport: '@ontrails/http/testing',
+          },
+        },
+      },
+    });
+    writeFile(
+      root,
+      'packages/http/src/testing.ts',
+      [
+        "import importedCasesFactory from './cases.js';",
+        "import importedRunner from './conformance.js';",
+        'export interface HttpAdapterConformanceAdapter {}',
+        'export {',
+        '  importedCasesFactory as createHttpAdapterConformanceCases,',
+        '  importedRunner as runConformance,',
+        '};',
+        '',
+      ].join('\n')
+    );
+    writeFile(
+      root,
+      'packages/http/src/cases.ts',
+      'export default function createHttpAdapterConformanceCases() { return []; }\n'
+    );
+    writeFile(
+      root,
+      'packages/http/src/conformance.ts',
+      'export default function runConformance() {}\n'
+    );
+
+    const catalog = deriveAdapterTargetCatalog(root);
+
+    expect(catalog.diagnostics).toEqual([]);
+    expect(catalog.targets[0]?.conformance).toEqual({
+      adapterType: 'HttpAdapterConformanceAdapter',
+      casesFactory: 'createHttpAdapterConformanceCases',
+      runner: 'runConformance',
+    });
+  });
+
+  test('accepts conformance helpers exported through default aliases', () => {
+    const root = makeRoot();
+    writePackage(root, 'packages/http', {
+      exports: {
+        '.': './src/index.ts',
+        './testing': './src/testing.ts',
+      },
+      name: '@ontrails/http',
+      trails: {
+        adapterTargets: {
+          http: {
+            conformance: {
+              adapterType: 'HttpAdapterConformanceAdapter',
+              casesFactory: 'createHttpAdapterConformanceCases',
+              runner: 'runConformance',
+            },
+            placements: ['extracted'],
+            testingImport: '@ontrails/http/testing',
+          },
+        },
+      },
+    });
+    writeFile(
+      root,
+      'packages/http/src/testing.ts',
+      [
+        'export interface HttpAdapterConformanceAdapter {}',
+        "export { default as createHttpAdapterConformanceCases } from './cases.js';",
+        "export { default as runConformance } from './conformance.js';",
+        '',
+      ].join('\n')
+    );
+    writeFile(
+      root,
+      'packages/http/src/cases.ts',
+      'export default function createHttpAdapterConformanceCases() { return []; }\n'
+    );
+    writeFile(
+      root,
+      'packages/http/src/conformance.ts',
+      'export default function runConformance() {}\n'
+    );
+
+    const catalog = deriveAdapterTargetCatalog(root);
+
+    expect(catalog.diagnostics).toEqual([]);
+    expect(catalog.targets[0]?.conformance).toEqual({
+      adapterType: 'HttpAdapterConformanceAdapter',
+      casesFactory: 'createHttpAdapterConformanceCases',
+      runner: 'runConformance',
+    });
+  });
+
+  test('rejects conformance helper aliases backed only by string-literal imports', () => {
+    const root = makeRoot();
+    writePackage(root, 'packages/http', {
+      exports: {
+        '.': './src/index.ts',
+        './testing': './src/testing.ts',
+      },
+      name: '@ontrails/http',
+      trails: {
+        adapterTargets: {
+          http: {
+            conformance: {
+              adapterType: 'HttpAdapterConformanceAdapter',
+              casesFactory: 'createHttpAdapterConformanceCases',
+              runner: 'runConformance',
+            },
+            placements: ['extracted'],
+            testingImport: '@ontrails/http/testing',
+          },
+        },
+      },
+    });
+    writeFile(
+      root,
+      'packages/http/src/testing.ts',
+      [
+        'export interface HttpAdapterConformanceAdapter {}',
+        'const docs = "import { createHttpAdapterConformanceCases, runConformance } from \'./conformance.js\'";',
+        'export { createHttpAdapterConformanceCases, runConformance };',
+        '',
+      ].join('\n')
+    );
+    writeFile(
+      root,
+      'packages/http/src/conformance.ts',
+      [
+        'export const createHttpAdapterConformanceCases = () => [];',
+        'export const runConformance = () => {};',
+        '',
+      ].join('\n')
+    );
+
+    const catalog = deriveAdapterTargetCatalog(root);
+
+    expect(catalog.targets).toEqual([]);
+    expect(catalog.diagnostics).toHaveLength(2);
+    expect(catalog.diagnostics).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'invalid-conformance',
+          message: expect.stringContaining('conformance.casesFactory'),
+          target: 'http',
+        }),
+        expect.objectContaining({
+          code: 'invalid-conformance',
+          message: expect.stringContaining('conformance.runner'),
+          target: 'http',
+        }),
+      ])
+    );
+  });
+
+  test('rejects conformance helper aliases backed by erased local imports', () => {
+    const root = makeRoot();
+    writePackage(root, 'packages/http', {
+      exports: {
+        '.': './src/index.ts',
+        './testing': './src/testing.ts',
+      },
+      name: '@ontrails/http',
+      trails: {
+        adapterTargets: {
+          http: {
+            conformance: {
+              adapterType: 'HttpAdapterConformanceAdapter',
+              casesFactory: 'createHttpAdapterConformanceCases',
+              runner: 'runConformance',
+            },
+            placements: ['extracted'],
+            testingImport: '@ontrails/http/testing',
+          },
+        },
+      },
+    });
+    writeFile(
+      root,
+      'packages/http/src/testing.ts',
+      [
+        "import { runConformance as importedRunner } from './conformance.js';",
+        'export interface HttpAdapterConformanceAdapter {}',
+        'export const createHttpAdapterConformanceCases = () => [];',
+        'export { importedRunner as runConformance };',
+        '',
+      ].join('\n')
+    );
+    writeFile(
+      root,
+      'packages/http/src/conformance.ts',
+      'export declare function runConformance(): void;\n'
+    );
+
+    const catalog = deriveAdapterTargetCatalog(root);
+
+    expect(catalog.targets).toEqual([]);
+    expect(catalog.diagnostics).toHaveLength(1);
+    expect(catalog.diagnostics[0]).toMatchObject({
+      code: 'invalid-conformance',
+      message: expect.stringContaining('conformance.runner'),
+      target: 'http',
+    });
+  });
+
+  test('rejects same-file conformance export aliases backed by type-only locals', () => {
+    const root = makeRoot();
+    writePackage(root, 'packages/http', {
+      exports: {
+        '.': './src/index.ts',
+        './testing': './src/testing.ts',
+      },
+      name: '@ontrails/http',
+      trails: {
+        adapterTargets: {
+          http: {
+            conformance: {
+              adapterType: 'HttpAdapterConformanceAdapter',
+              casesFactory: 'createHttpAdapterConformanceCases',
+              runner: 'runConformance',
+            },
+            placements: ['extracted'],
+            testingImport: '@ontrails/http/testing',
+          },
+        },
+      },
+    });
+    writeFile(
+      root,
+      'packages/http/src/testing.ts',
+      [
+        'interface HttpAdapterConformanceAdapter {}',
+        'type actualCasesFactory = () => unknown[];',
+        'interface actualRunner {}',
+        'export {',
+        '  actualCasesFactory as createHttpAdapterConformanceCases,',
+        '  actualRunner as runConformance,',
+        '  type HttpAdapterConformanceAdapter,',
+        '};',
+        '',
+      ].join('\n')
+    );
+
+    const catalog = deriveAdapterTargetCatalog(root);
+
+    expect(catalog.targets).toEqual([]);
+    expect(catalog.diagnostics).toHaveLength(2);
+    expect(catalog.diagnostics).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'invalid-conformance',
+          message: expect.stringContaining('conformance.casesFactory'),
+          target: 'http',
+        }),
+        expect.objectContaining({
+          code: 'invalid-conformance',
+          message: expect.stringContaining('conformance.runner'),
+          target: 'http',
+        }),
+      ])
+    );
+  });
+
   test('ignores packages without adapter target metadata', () => {
     const root = makeRoot();
     writePackage(root, 'packages/core', {
@@ -121,15 +1102,35 @@ describe('deriveAdapterTargetCatalog', () => {
             placements: ['extracted'],
             testingImport: '@other/http/testing',
           },
+          syntax: {
+            conformance: {
+              adapterType: 'not-valid()',
+              casesFactory: 'createCases',
+              runner: 'runConformance',
+            },
+            placements: ['extracted'],
+          },
         },
       },
     });
+    writeFile(
+      root,
+      'packages/http/src/testing.ts',
+      [
+        'export interface HttpAdapterConformanceAdapter {}',
+        'export const createHttpAdapterConformanceCases = () => [];',
+        'export const runConformance = () => undefined;',
+        '',
+      ].join('\n')
+    );
 
     const catalog = deriveAdapterTargetCatalog(root);
 
     expect(catalog.targets).toEqual([]);
     expect(catalog.diagnostics.map((entry) => entry.code).toSorted()).toEqual([
       'invalid-adapter-target',
+      'invalid-conformance',
+      'invalid-conformance',
       'invalid-import',
       'invalid-import',
       'invalid-placement',

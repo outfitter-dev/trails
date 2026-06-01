@@ -346,6 +346,9 @@ const collectSourceFiles = (dir: string): readonly string[] => {
   return files.toSorted();
 };
 
+const escapeRegExp = (value: string): string =>
+  value.replaceAll(/[.*+?^${}()|[\]\\]/gu, '\\$&');
+
 const isIdentifierChar = (char: string | undefined): boolean =>
   char !== undefined && /[$\w]/u.test(char);
 
@@ -484,7 +487,7 @@ const skipTrivia = (source: string, start: number): number => {
   return index;
 };
 
-const skipQuoted = (source: string, start: number): number => {
+const skipQuotedLiteral = (source: string, start: number): number => {
   const quote = source[start];
   let index = start + 1;
   while (index < source.length) {
@@ -513,7 +516,7 @@ const skipImportScanIgnoredToken = (
 
   const char = source[start];
   if (char === '"' || char === "'" || char === '`') {
-    return skipQuoted(source, start);
+    return skipQuotedLiteral(source, start);
   }
   if (char === '/' && startsRegexLiteral(source, start)) {
     return skipRegexLiteral(source, start);
@@ -682,7 +685,7 @@ const importDeclarationSpecifier = (
     }
     const char = source[index];
     if (char === '"' || char === "'" || char === '`') {
-      index = skipQuoted(source, index);
+      index = skipQuotedLiteral(source, index);
       continue;
     }
     if (
@@ -743,7 +746,7 @@ const boundImportDeclarationSpecifier = (
     }
     const char = source[index];
     if (char === '"' || char === "'" || char === '`') {
-      index = skipQuoted(source, index);
+      index = skipQuotedLiteral(source, index);
       continue;
     }
     if (
@@ -794,7 +797,7 @@ const reExportDeclarationSpecifier = (
     }
     const char = source[index];
     if (char === '"' || char === "'" || char === '`') {
-      index = skipQuoted(source, index);
+      index = skipQuotedLiteral(source, index);
       continue;
     }
     if (char === '}') {
@@ -826,6 +829,77 @@ const reExportDeclarationSpecifier = (
   }
 
   return undefined;
+};
+
+const maskSource = (source: string, options: { strings: boolean }): string => {
+  const output = [...source];
+  let index = 0;
+
+  const maskRange = (start: number, end: number): void => {
+    for (let cursor = start; cursor < end; cursor += 1) {
+      if (output[cursor] !== '\n') {
+        output[cursor] = ' ';
+      }
+    }
+  };
+
+  const skipQuoted = (quote: '"' | "'" | '`'): void => {
+    const start = index;
+    index += 1;
+    while (index < source.length) {
+      if (source[index] === '\\') {
+        index += 2;
+        continue;
+      }
+      if (source[index] === quote) {
+        index += 1;
+        break;
+      }
+      index += 1;
+    }
+    if (options.strings) {
+      maskRange(start, index);
+    }
+  };
+
+  while (index < source.length) {
+    if (source.startsWith('//', index)) {
+      const end = source.indexOf('\n', index + 2);
+      const stop = end === -1 ? source.length : end;
+      maskRange(index, stop);
+      index = stop;
+      continue;
+    }
+    if (source.startsWith('/*', index)) {
+      const end = source.indexOf('*/', index + 2);
+      const stop = end === -1 ? source.length : end + 2;
+      maskRange(index, stop);
+      index = stop;
+      continue;
+    }
+    const char = source[index];
+    if (char === '"' || char === "'" || char === '`') {
+      skipQuoted(char);
+      continue;
+    }
+    index += 1;
+  }
+
+  return output.join('');
+};
+
+const matchStartsWithAnyKeyword = (
+  maskedSource: string,
+  match: RegExpMatchArray,
+  keywords: readonly string[]
+): boolean => {
+  const index = match.index ?? 0;
+  return keywords.some(
+    (keyword) =>
+      maskedSource.startsWith(keyword, index) &&
+      !isIdentifierChar(maskedSource[index - 1]) &&
+      !isIdentifierChar(maskedSource[index + keyword.length])
+  );
 };
 
 const importsSpecifier = (
@@ -882,6 +956,846 @@ const pathsImporting = (
 ): readonly string[] =>
   sourceFiles.filter((filePath) =>
     importsSpecifier(readFileSync(filePath, 'utf8'), specifier, options)
+  );
+
+const staticImportClauseForSpecifier = (
+  source: string,
+  start: number,
+  specifier: string
+): string | undefined => {
+  let index = skipTrivia(source, start + 'import'.length);
+  if (
+    source.startsWith('type', index) &&
+    !isIdentifierChar(source[index + 'type'.length])
+  ) {
+    return undefined;
+  }
+  if (readQuotedString(source, index) || source[index] === '(') {
+    return undefined;
+  }
+
+  const clauseStart = index;
+  while (index < source.length) {
+    if (source.startsWith('//', index)) {
+      index = skipLineComment(source, index);
+      continue;
+    }
+    if (source.startsWith('/*', index)) {
+      index = skipBlockComment(source, index);
+      continue;
+    }
+    const char = source[index];
+    if (char === '"' || char === "'" || char === '`') {
+      index = skipQuotedLiteral(source, index);
+      continue;
+    }
+    if (
+      source.startsWith('from', index) &&
+      !isIdentifierChar(source[index - 1]) &&
+      !isIdentifierChar(source[index + 'from'.length])
+    ) {
+      const clause = source.slice(clauseStart, index);
+      if (!importClauseHasRuntimeBinding(clause)) {
+        return undefined;
+      }
+      index = skipTrivia(source, index + 'from'.length);
+      return readQuotedString(source, index)?.value === specifier
+        ? clause
+        : undefined;
+    }
+    if (char === ';') {
+      return undefined;
+    }
+    index += 1;
+  }
+
+  return undefined;
+};
+
+const staticImportClausesForSpecifier = (
+  source: string,
+  specifier: string
+): readonly string[] => {
+  const clauses: string[] = [];
+  let index = 0;
+  while (index < source.length) {
+    if (source.startsWith('//', index)) {
+      index = skipLineComment(source, index);
+      continue;
+    }
+    if (source.startsWith('/*', index)) {
+      index = skipBlockComment(source, index);
+      continue;
+    }
+    const char = source[index];
+    if (char === '"' || char === "'" || char === '`') {
+      index = skipQuotedLiteral(source, index);
+      continue;
+    }
+    if (
+      source.startsWith('import', index) &&
+      !isIdentifierChar(source[index - 1]) &&
+      !isIdentifierChar(source[index + 'import'.length])
+    ) {
+      const clause = staticImportClauseForSpecifier(source, index, specifier);
+      if (clause) {
+        clauses.push(clause);
+      }
+      index += 'import'.length;
+      continue;
+    }
+    index += 1;
+  }
+
+  return clauses;
+};
+
+const namedImportBindings = (
+  source: string,
+  specifier: string,
+  exportedName: string
+): readonly string[] => {
+  const namedBindings: string[] = [];
+  const namespaceBindings: string[] = [];
+  for (const clause of staticImportClausesForSpecifier(source, specifier)) {
+    const code = maskSource(clause, { strings: false });
+    const namespaceImport =
+      /(?:^|,)\s*\*\s+as\s+(?<local>[A-Za-z_$][\w$]*)(?:\s*$|,)/u.exec(
+        code
+      )?.groups;
+    if (namespaceImport?.['local']) {
+      namespaceBindings.push(`${namespaceImport['local']}.${exportedName}`);
+    }
+
+    const namedImports = /\{(?<imports>[\s\S]*?)\}/u.exec(code)?.groups?.[
+      'imports'
+    ];
+    if (!namedImports) {
+      continue;
+    }
+
+    for (const item of namedImports.split(',')) {
+      const specifierText = item.trim();
+      if (specifierText.length === 0 || specifierText.startsWith('type ')) {
+        continue;
+      }
+
+      const imported =
+        /^(?<imported>[A-Za-z_$][\w$]*)(?:\s+as\s+(?<local>[A-Za-z_$][\w$]*))?$/u.exec(
+          specifierText
+        )?.groups;
+      if (imported?.['imported'] === exportedName) {
+        namedBindings.push(imported['local'] ?? imported['imported']);
+      }
+    }
+  }
+
+  return [...new Set([...namedBindings, ...namespaceBindings])];
+};
+
+const dynamicImportNamespaceBindings = (
+  source: string,
+  specifier: string
+): readonly string[] => {
+  const code = maskSource(source, { strings: false });
+  const stringsMaskedCode = maskSource(source, { strings: true });
+  const escapedSpecifier = escapeRegExp(specifier);
+  const pattern = new RegExp(
+    `\\b(?:const|let|var)\\s+(?<local>[A-Za-z_$][\\w$]*)\\s*=\\s*(?:await\\s+)?import\\s*\\(\\s*['"]${escapedSpecifier}['"]\\s*\\)`,
+    'gu'
+  );
+
+  return [...code.matchAll(pattern)]
+    .filter((match) =>
+      matchStartsWithAnyKeyword(stringsMaskedCode, match, [
+        'const',
+        'let',
+        'var',
+      ])
+    )
+    .map((match) => match.groups?.['local'])
+    .filter((local): local is string => local !== undefined);
+};
+
+const dynamicImportNamedBinding = (
+  source: string,
+  specifier: string,
+  exportedName: string
+): string | undefined => {
+  const code = maskSource(source, { strings: false });
+  const stringsMaskedCode = maskSource(source, { strings: true });
+  const escapedSpecifier = escapeRegExp(specifier);
+  const pattern = new RegExp(
+    `\\b(?:const|let|var)\\s*\\{(?<imports>[\\s\\S]*?)\\}\\s*=\\s*(?:await\\s+)?import\\s*\\(\\s*['"]${escapedSpecifier}['"]\\s*\\)`,
+    'gu'
+  );
+
+  for (const match of code.matchAll(pattern)) {
+    if (
+      !matchStartsWithAnyKeyword(stringsMaskedCode, match, [
+        'const',
+        'let',
+        'var',
+      ])
+    ) {
+      continue;
+    }
+
+    const namedImports = match.groups?.['imports'] ?? '';
+    for (const item of namedImports.split(',')) {
+      const specifierText = item.trim();
+      if (specifierText.length === 0 || specifierText.startsWith('...')) {
+        continue;
+      }
+
+      const imported =
+        /^(?<imported>[A-Za-z_$][\w$]*)(?:\s*:\s*(?<local>[A-Za-z_$][\w$]*))?(?:\s*=.*)?$/u.exec(
+          specifierText
+        )?.groups;
+      if (imported?.['imported'] === exportedName) {
+        return imported['local'] ?? imported['imported'];
+      }
+    }
+  }
+
+  return undefined;
+};
+
+interface LocalValueExport {
+  readonly identifier: string;
+  readonly sourcePath: string;
+}
+
+interface LocalReexport {
+  readonly identifier: string;
+  readonly specifier: string;
+  readonly typeOnly: boolean;
+}
+
+interface LocalImport {
+  readonly identifier: string;
+  readonly specifier: string;
+  readonly typeOnly: boolean;
+}
+
+interface NamedExportItem {
+  readonly local: string;
+  readonly name: string;
+  readonly typeOnly: boolean;
+}
+
+const parseNamedExportItem = (
+  item: string,
+  declarationTypeOnly: boolean
+): NamedExportItem | undefined => {
+  const trimmedItem = item.trim();
+  if (!trimmedItem) {
+    return undefined;
+  }
+
+  const itemTypeOnly = declarationTypeOnly || trimmedItem.startsWith('type ');
+  const specifierText = trimmedItem.replace(/^type\s+/u, '');
+  const exported =
+    /^(?<local>[A-Za-z_$][\w$]*)(?:\s+as\s+(?<name>[A-Za-z_$][\w$]*))?$/u.exec(
+      specifierText
+    )?.groups;
+  if (!exported?.['local']) {
+    return undefined;
+  }
+
+  return {
+    local: exported['local'],
+    name: exported['name'] ?? exported['local'],
+    typeOnly: itemTypeOnly,
+  };
+};
+
+const declaresValueBinding = (source: string, identifier: string): boolean => {
+  const code = maskSource(source, { strings: true });
+  const escapedIdentifier = escapeRegExp(identifier);
+  return new RegExp(
+    `\\b(?:export\\s+)?(?:(?:async\\s+)?function|const|let|var|class|enum)\\s+${escapedIdentifier}\\b`,
+    'u'
+  ).test(code);
+};
+
+const declaresValueExport = (source: string, identifier: string): boolean => {
+  const code = maskSource(source, { strings: true });
+  const escapedIdentifier = escapeRegExp(identifier);
+  return new RegExp(
+    `\\bexport\\s+(?:(?:async\\s+)?function|const|let|var|class|enum)\\s+${escapedIdentifier}\\b`,
+    'u'
+  ).test(code);
+};
+
+const sameFileValueExportLocal = (
+  source: string,
+  identifier: string
+): string | undefined => {
+  const code = maskSource(source, { strings: true });
+  const pattern =
+    /\bexport\s+(?<typeOnly>type\s+)?\{(?<exports>[\s\S]*?)\}(?!\s+from\b)/gu;
+
+  for (const match of code.matchAll(pattern)) {
+    const declarationTypeOnly = Boolean(match.groups?.['typeOnly']);
+    const namedExports = match.groups?.['exports'] ?? '';
+    for (const item of namedExports.split(',')) {
+      const exported = parseNamedExportItem(item, declarationTypeOnly);
+      if (!exported || exported.typeOnly || exported.name !== identifier) {
+        continue;
+      }
+
+      return exported.local;
+    }
+  }
+
+  return undefined;
+};
+
+const namedLocalImports = (
+  source: string,
+  identifier: string
+): readonly LocalImport[] => {
+  const code = maskSource(source, { strings: false });
+  const stringsMaskedCode = maskSource(source, { strings: true });
+  const imports: LocalImport[] = [];
+  const pattern =
+    /\bimport\s+(?<typeOnly>type\s+)?\{(?<imports>[\s\S]*?)\}\s+from\s+['"](?<specifier>[^'"]+)['"]/gu;
+
+  for (const match of code.matchAll(pattern)) {
+    if (!stringsMaskedCode.startsWith('import', match.index ?? 0)) {
+      continue;
+    }
+
+    const specifier = match.groups?.['specifier'];
+    if (!specifier?.startsWith('.')) {
+      continue;
+    }
+
+    const namedImports = match.groups?.['imports'] ?? '';
+    for (const item of namedImports.split(',')) {
+      const trimmedItem = item.trim();
+      if (!trimmedItem) {
+        continue;
+      }
+
+      const itemTypeOnly =
+        Boolean(match.groups?.['typeOnly']) || trimmedItem.startsWith('type ');
+      const specifierText = trimmedItem.replace(/^type\s+/u, '');
+      const imported =
+        /^(?<imported>[A-Za-z_$][\w$]*)(?:\s+as\s+(?<local>[A-Za-z_$][\w$]*))?$/u.exec(
+          specifierText
+        )?.groups;
+      if (
+        !imported?.['imported'] ||
+        (imported['local'] ?? imported['imported']) !== identifier
+      ) {
+        continue;
+      }
+
+      imports.push({
+        identifier: imported['imported'],
+        specifier,
+        typeOnly: itemTypeOnly,
+      });
+    }
+  }
+
+  return imports;
+};
+
+const namedLocalReexports = (
+  source: string,
+  identifier: string
+): readonly LocalReexport[] => {
+  const code = maskSource(source, { strings: false });
+  const stringsMaskedCode = maskSource(source, { strings: true });
+  const exports: LocalReexport[] = [];
+  const pattern =
+    /\bexport\s+(?<typeOnly>type\s+)?\{(?<exports>[\s\S]*?)\}\s+from\s+['"](?<specifier>[^'"]+)['"]/gu;
+
+  for (const match of code.matchAll(pattern)) {
+    if (!matchStartsWithAnyKeyword(stringsMaskedCode, match, ['export'])) {
+      continue;
+    }
+
+    const specifier = match.groups?.['specifier'];
+    if (!specifier?.startsWith('.')) {
+      continue;
+    }
+
+    const namedExports = match.groups?.['exports'] ?? '';
+    for (const item of namedExports.split(',')) {
+      const exported = parseNamedExportItem(
+        item,
+        Boolean(match.groups?.['typeOnly'])
+      );
+      if (!exported || exported.name !== identifier) {
+        continue;
+      }
+
+      exports.push({
+        identifier: exported.local,
+        specifier,
+        typeOnly: exported.typeOnly,
+      });
+    }
+  }
+
+  return exports;
+};
+
+const starLocalReexports = (source: string): readonly LocalReexport[] => {
+  const code = maskSource(source, { strings: false });
+  const stringsMaskedCode = maskSource(source, { strings: true });
+  return [
+    ...code.matchAll(
+      /\bexport\s+(?<typeOnly>type\s+)?\*\s+from\s+['"](?<specifier>[^'"]+)['"]/gu
+    ),
+  ]
+    .filter((match) =>
+      matchStartsWithAnyKeyword(stringsMaskedCode, match, ['export'])
+    )
+    .map((match) => ({
+      identifier: '',
+      specifier: match.groups?.['specifier'] ?? '',
+      typeOnly: Boolean(match.groups?.['typeOnly']),
+    }))
+    .filter((entry) => entry.specifier.startsWith('.'));
+};
+
+const resolveLocalModuleSpecifier = (
+  sourcePath: string,
+  specifier: string
+): string | undefined => {
+  const basePath = resolve(dirname(sourcePath), specifier);
+  const candidates = [
+    basePath,
+    basePath.endsWith('.js') ? `${basePath.slice(0, -3)}.ts` : undefined,
+    basePath.endsWith('.js') ? `${basePath.slice(0, -3)}.tsx` : undefined,
+    basePath.endsWith('.mjs') ? `${basePath.slice(0, -4)}.mts` : undefined,
+    `${basePath}.ts`,
+    `${basePath}.tsx`,
+    join(basePath, 'index.ts'),
+    join(basePath, 'index.tsx'),
+  ].filter((candidate): candidate is string => candidate !== undefined);
+
+  return candidates.find((candidate) => existsSync(candidate));
+};
+
+const resolveLocalValueExport = (
+  sourcePath: string,
+  identifier: string,
+  visited = new Set<string>()
+): LocalValueExport | undefined => {
+  const normalizedSourcePath = normalizeRealPath(sourcePath);
+  const visitKey = `${normalizedSourcePath}:${identifier}`;
+  if (visited.has(visitKey)) {
+    return undefined;
+  }
+  visited.add(visitKey);
+
+  let source: string;
+  try {
+    source = readFileSync(normalizedSourcePath, 'utf8');
+  } catch {
+    return undefined;
+  }
+
+  if (declaresValueExport(source, identifier)) {
+    return { identifier, sourcePath: normalizedSourcePath };
+  }
+
+  const sameFileLocal = sameFileValueExportLocal(source, identifier);
+  if (sameFileLocal && declaresValueBinding(source, sameFileLocal)) {
+    return { identifier: sameFileLocal, sourcePath: normalizedSourcePath };
+  }
+  if (sameFileLocal) {
+    for (const localImport of namedLocalImports(source, sameFileLocal)) {
+      if (localImport.typeOnly) {
+        continue;
+      }
+      const targetPath = resolveLocalModuleSpecifier(
+        normalizedSourcePath,
+        localImport.specifier
+      );
+      const resolved =
+        targetPath &&
+        resolveLocalValueExport(targetPath, localImport.identifier, visited);
+      if (resolved) {
+        return resolved;
+      }
+    }
+  }
+
+  for (const reexport of namedLocalReexports(source, identifier)) {
+    if (reexport.typeOnly) {
+      continue;
+    }
+    const targetPath = resolveLocalModuleSpecifier(
+      normalizedSourcePath,
+      reexport.specifier
+    );
+    const resolved =
+      targetPath &&
+      resolveLocalValueExport(targetPath, reexport.identifier, visited);
+    if (resolved) {
+      return resolved;
+    }
+  }
+
+  for (const reexport of starLocalReexports(source)) {
+    if (reexport.typeOnly) {
+      continue;
+    }
+    const targetPath = resolveLocalModuleSpecifier(
+      normalizedSourcePath,
+      reexport.specifier
+    );
+    const resolved =
+      targetPath && resolveLocalValueExport(targetPath, identifier, visited);
+    if (resolved) {
+      return resolved;
+    }
+  }
+
+  return undefined;
+};
+
+const findClosingParen = (source: string, openIndex: number): number => {
+  let depth = 0;
+  for (let index = openIndex; index < source.length; index += 1) {
+    if (source[index] === '(') {
+      depth += 1;
+      continue;
+    }
+    if (source[index] !== ')') {
+      continue;
+    }
+    depth -= 1;
+    if (depth === 0) {
+      return index;
+    }
+  }
+
+  return -1;
+};
+
+const previousNonWhitespace = (source: string, index: number): string => {
+  let previousIndex = index - 1;
+  while (previousIndex >= 0 && /\s/u.test(source[previousIndex] ?? '')) {
+    previousIndex -= 1;
+  }
+  return source[previousIndex] ?? '';
+};
+
+const containsCall = (source: string, identifier: string): boolean => {
+  const escapedIdentifier = escapeRegExp(identifier);
+  const callPattern = new RegExp(`\\b${escapedIdentifier}\\s*\\(`, 'gu');
+  for (const match of source.matchAll(callPattern)) {
+    if (previousNonWhitespace(source, match.index ?? 0) !== '.') {
+      return true;
+    }
+  }
+  return false;
+};
+
+const splitTopLevelArguments = (source: string): readonly string[] => {
+  const args: string[] = [];
+  let start = 0;
+  let parenDepth = 0;
+  let braceDepth = 0;
+  let bracketDepth = 0;
+
+  for (let index = 0; index < source.length; index += 1) {
+    const char = source[index];
+    if (char === '(') {
+      parenDepth += 1;
+      continue;
+    }
+    if (char === ')') {
+      parenDepth = Math.max(0, parenDepth - 1);
+      continue;
+    }
+    if (char === '{') {
+      braceDepth += 1;
+      continue;
+    }
+    if (char === '}') {
+      braceDepth = Math.max(0, braceDepth - 1);
+      continue;
+    }
+    if (char === '[') {
+      bracketDepth += 1;
+      continue;
+    }
+    if (char === ']') {
+      bracketDepth = Math.max(0, bracketDepth - 1);
+      continue;
+    }
+    if (
+      char === ',' &&
+      parenDepth === 0 &&
+      braceDepth === 0 &&
+      bracketDepth === 0
+    ) {
+      args.push(source.slice(start, index).trim());
+      start = index + 1;
+    }
+  }
+
+  const trailing = source.slice(start).trim();
+  if (trailing || args.length > 0) {
+    args.push(trailing);
+  }
+  return args;
+};
+
+const runnerCallArguments = (
+  source: string,
+  runner: string
+): readonly (readonly string[])[] => {
+  const code = maskSource(source, { strings: true });
+  const escapedRunner = escapeRegExp(runner);
+  const runnerPattern = new RegExp(`\\b${escapedRunner}\\s*\\(`, 'gu');
+  const calls: (readonly string[])[] = [];
+
+  for (const match of code.matchAll(runnerPattern)) {
+    const matchIndex = match.index ?? 0;
+    if (previousNonWhitespace(code, matchIndex) === '.') {
+      continue;
+    }
+
+    const openIndex = code.indexOf('(', matchIndex);
+    const closeIndex = findClosingParen(code, openIndex);
+    if (closeIndex === -1) {
+      continue;
+    }
+    calls.push(splitTopLevelArguments(code.slice(openIndex + 1, closeIndex)));
+  }
+
+  return calls;
+};
+
+const isSentinelAdapterArgument = (argument: string): boolean =>
+  /^(?:undefined|null|void\s*(?:0|\(0\)))$/u.test(argument.trim());
+
+const runnerInvokesCasesFactory = (
+  source: string,
+  runner: string,
+  casesFactory: string
+): boolean =>
+  runnerCallArguments(source, runner).some((args) => {
+    const adapterArgument = args[0]?.trim();
+    return (
+      adapterArgument !== undefined &&
+      adapterArgument.length > 0 &&
+      !isSentinelAdapterArgument(adapterArgument) &&
+      !containsCall(adapterArgument, casesFactory) &&
+      args.slice(1).some((argument) => containsCall(argument, casesFactory))
+    );
+  });
+
+const runnerInvokedWithAdapterArgument = (
+  source: string,
+  runner: string,
+  casesFactories: readonly string[] = []
+): boolean =>
+  runnerCallArguments(source, runner).some((args) => {
+    const adapterArgument = args[0]?.trim();
+    return (
+      adapterArgument !== undefined &&
+      adapterArgument.length > 0 &&
+      !isSentinelAdapterArgument(adapterArgument) &&
+      casesFactories.every(
+        (casesFactory) => !containsCall(adapterArgument, casesFactory)
+      )
+    );
+  });
+
+const ownerRunnerDefaultsCasesFactory = (
+  targetEntry: AdapterTargetCatalogEntry
+): boolean => {
+  const { conformance, testingExportTarget } = targetEntry;
+  if (!conformance || !testingExportTarget) {
+    return false;
+  }
+
+  const runnerExport = resolveLocalValueExport(
+    testingExportTarget,
+    conformance.runner
+  );
+  if (!runnerExport) {
+    return false;
+  }
+  const casesFactoryExport = resolveLocalValueExport(
+    testingExportTarget,
+    conformance.casesFactory
+  );
+  const casesFactoryIdentifiers = [
+    conformance.casesFactory,
+    casesFactoryExport?.identifier,
+  ].filter((identifier): identifier is string => identifier !== undefined);
+
+  let source: string;
+  try {
+    source = readFileSync(runnerExport.sourcePath, 'utf8');
+  } catch {
+    return false;
+  }
+
+  const code = maskSource(source, { strings: true });
+  const escapedRunner = escapeRegExp(runnerExport.identifier);
+  const declarationPatterns = [
+    new RegExp(
+      `\\b(?:export\\s+)?(?:async\\s+)?function\\s+${escapedRunner}\\b`,
+      'gu'
+    ),
+    new RegExp(
+      `\\b(?:export\\s+)?(?:const|let|var)\\s+${escapedRunner}\\b\\s*(?::[^=;]*)?=`,
+      'gu'
+    ),
+  ];
+
+  for (const pattern of declarationPatterns) {
+    for (const match of code.matchAll(pattern)) {
+      const openIndex = code.indexOf('(', (match.index ?? 0) + match[0].length);
+      if (openIndex === -1) {
+        continue;
+      }
+      const closeIndex = findClosingParen(code, openIndex);
+      if (closeIndex === -1) {
+        continue;
+      }
+
+      const params = code.slice(openIndex + 1, closeIndex);
+      if (
+        params.includes('=') &&
+        casesFactoryIdentifiers.some((identifier) =>
+          containsCall(params, identifier)
+        )
+      ) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+};
+
+const runnerBindingProvesConformance = (
+  source: string,
+  targetEntry: AdapterTargetCatalogEntry,
+  runnerBinding: string,
+  casesFactoryBindings: readonly string[]
+): boolean => {
+  for (const casesFactoryBinding of casesFactoryBindings) {
+    if (runnerInvokesCasesFactory(source, runnerBinding, casesFactoryBinding)) {
+      return true;
+    }
+  }
+
+  return (
+    ownerRunnerDefaultsCasesFactory(targetEntry) &&
+    runnerInvokedWithAdapterArgument(
+      source,
+      runnerBinding,
+      casesFactoryBindings
+    )
+  );
+};
+
+const provesConformance = (
+  source: string,
+  targetEntry: AdapterTargetCatalogEntry
+): boolean => {
+  const { conformance, testingImport } = targetEntry;
+  if (
+    !testingImport ||
+    !importsSpecifier(source, testingImport, {
+      includeReExports: false,
+      requireImportBinding: true,
+    })
+  ) {
+    return false;
+  }
+
+  if (!conformance) {
+    return true;
+  }
+
+  const runnerBindings = namedImportBindings(
+    source,
+    testingImport,
+    conformance.runner
+  );
+  const casesFactoryBindings = namedImportBindings(
+    source,
+    testingImport,
+    conformance.casesFactory
+  );
+  if (runnerBindings.length === 0) {
+    const dynamicRunnerBinding = dynamicImportNamedBinding(
+      source,
+      testingImport,
+      conformance.runner
+    );
+    const dynamicCasesFactoryBinding = dynamicImportNamedBinding(
+      source,
+      testingImport,
+      conformance.casesFactory
+    );
+    const dynamicCasesFactoryBindings = dynamicCasesFactoryBinding
+      ? [dynamicCasesFactoryBinding]
+      : [];
+    if (
+      dynamicRunnerBinding &&
+      runnerBindingProvesConformance(
+        source,
+        targetEntry,
+        dynamicRunnerBinding,
+        dynamicCasesFactoryBindings
+      )
+    ) {
+      return true;
+    }
+
+    for (const namespaceBinding of dynamicImportNamespaceBindings(
+      source,
+      testingImport
+    )) {
+      const namespaceRunnerBinding = `${namespaceBinding}.${conformance.runner}`;
+      const namespaceCasesFactoryBinding = `${namespaceBinding}.${conformance.casesFactory}`;
+      if (
+        runnerBindingProvesConformance(
+          source,
+          targetEntry,
+          namespaceRunnerBinding,
+          [namespaceCasesFactoryBinding]
+        )
+      ) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+  return runnerBindings.some((runnerBinding) =>
+    runnerBindingProvesConformance(
+      source,
+      targetEntry,
+      runnerBinding,
+      casesFactoryBindings
+    )
+  );
+};
+
+const pathsProvingConformance = (
+  sourceFiles: readonly string[],
+  targetEntry: AdapterTargetCatalogEntry
+): readonly string[] =>
+  sourceFiles.filter((filePath) =>
+    provesConformance(readFileSync(filePath, 'utf8'), targetEntry)
   );
 
 const isTestFile = (filePath: string): boolean => {
@@ -1075,12 +1989,9 @@ const checkAdapterPackage = (
     assertDependencyDirection(workspace, targetEntry, diagnostics);
   }
 
-  const { testingImport } = targetEntry;
+  const { conformance, testingImport } = targetEntry;
   const conformanceTestPaths = testingImport
-    ? pathsImporting(sourceFiles.filter(isTestFile), testingImport, {
-        includeReExports: false,
-        requireImportBinding: true,
-      })
+    ? pathsProvingConformance(sourceFiles.filter(isTestFile), targetEntry)
     : [];
 
   if (!testingImport) {
@@ -1095,12 +2006,15 @@ const checkAdapterPackage = (
       )
     );
   } else if (conformanceTestPaths.length === 0) {
+    const conformanceHint = conformance
+      ? ` and call ${conformance.runner}(adapter, ${conformance.casesFactory}(...))`
+      : '';
     diagnostics.push(
       diagnostic(
         workspace.packageJsonPath,
         packageName,
         'missing-conformance',
-        `${packageName} must import ${testingImport} from a conformance test.`,
+        `${packageName} must import ${testingImport} from a conformance test${conformanceHint}.`,
         targetEntry.target,
         placement
       )

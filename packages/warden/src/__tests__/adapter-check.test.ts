@@ -71,7 +71,9 @@ const writeHonoAdapter = (root: string): void => {
       '@ontrails/http': 'workspace:^',
     },
     trails: {
-      adapter: true,
+      adapter: {
+        target: 'http',
+      },
     },
   });
   writeFile(
@@ -97,11 +99,11 @@ describe('Warden adapter checks', () => {
 
     expect(diagnostics).toHaveLength(1);
     expect(diagnostics[0]).toMatchObject({
-      code: 'invalid-adapter-metadata',
+      code: 'missing-conformance',
       rule: 'adapter-check',
       severity: 'warn',
     });
-    expect(diagnostics[0]?.message).toContain('trails.adapter as an object');
+    expect(diagnostics[0]?.message).toContain('@ontrails/http/testing');
   });
 
   test('rejects missing roots before reporting a clean adapter scan', () => {
@@ -156,7 +158,7 @@ describe('Warden adapter checks', () => {
     expect(result.exitCode).toBe(0);
     expect(output.summary).toMatchObject({ errors: 0, warnings: 1 });
     expect(output.diagnostics[0]).toMatchObject({
-      code: 'invalid-adapter-metadata',
+      code: 'missing-conformance',
       rule: 'adapter-check',
       severity: 'warn',
     });
@@ -224,7 +226,7 @@ describe('Warden adapter checks', () => {
 
     expect(result.exitCode).toBe(1);
     expect(result.report.diagnostics[0]).toMatchObject({
-      code: 'invalid-adapter-metadata',
+      code: 'missing-conformance',
       rule: 'adapter-check',
       severity: 'warn',
     });

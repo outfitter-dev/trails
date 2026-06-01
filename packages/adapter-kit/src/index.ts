@@ -16,6 +16,7 @@ export type {
   AdapterTargetCatalogDiagnostic,
   AdapterTargetCatalogDiagnosticCode,
   AdapterTargetCatalogEntry,
+  AdapterTargetConformanceManifest,
   AdapterTargetManifestEntry,
   AdapterTargetPackageManifest,
   AdapterTargetParseContext,
