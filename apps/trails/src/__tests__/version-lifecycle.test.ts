@@ -9,6 +9,10 @@ import {
 import { join, resolve } from 'node:path';
 
 import { deriveCliCommands } from '@ontrails/cli';
+import { Result, topo, trail } from '@ontrails/core';
+import { TOPO_GRAPH_SCHEMA_VERSION } from '@ontrails/topographer';
+import type { TopoGraph } from '@ontrails/topographer';
+import { z } from 'zod';
 
 import { app } from '../app.js';
 import {
@@ -18,9 +22,54 @@ import {
 import { deprecateTrail } from '../trails/deprecate.js';
 import { doctorTrail } from '../trails/doctor.js';
 import { reviseTrail } from '../trails/revise.js';
+import { deriveDoctorSummary } from '../trails/version-lifecycle-support.js';
 
 const repoTempDir = (): string =>
   mkdtempSync(join(resolve('.'), '.trails-life-'));
+
+const createDoctorForceGraph = (): TopoGraph => ({
+  activationGraph: {
+    edgeCount: 0,
+    edges: [],
+    sourceCount: 0,
+    sourceKeys: [],
+    trailIds: [],
+  },
+  activationSources: {},
+  entries: [
+    {
+      exampleCount: 0,
+      forces: [
+        {
+          acceptedAt: '2026-06-01T00:00:00.000Z',
+          change: 'modified',
+          detail: 'Required input field "name" added',
+          id: 'force.current',
+          kind: 'trail',
+          severity: 'breaking',
+          source: 'trails compile --force',
+        },
+      ],
+      id: 'force.current',
+      kind: 'trail',
+      surfaces: [],
+    },
+  ],
+  forces: [
+    {
+      acceptedAt: '2026-06-01T00:00:00.000Z',
+      change: 'removed',
+      detail: 'Trail was removed',
+      id: 'force.removed',
+      kind: 'trail',
+      reason: 'No callers remain.',
+      severity: 'breaking',
+      source: 'trails compile --force',
+    },
+  ],
+  generatedAt: '2026-06-01T00:00:00.000Z',
+  topoGraphSchemaVersion: TOPO_GRAPH_SCHEMA_VERSION,
+});
 
 const writeLifecycleFixture = (
   dir: string,
@@ -536,5 +585,177 @@ import { topo, trail } from '@ontrails/core';`,
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }
+  });
+
+  test('doctor reports lifecycle counts when topo lock is unreadable', async () => {
+    const dir = repoTempDir();
+    try {
+      writeLifecycleFixture(dir);
+      await reviseTrail.blaze({ module: './src/app.ts', target: 'hello' }, {
+        cwd: dir,
+      } as never);
+      await deprecateTrail.blaze(
+        { archive: true, module: './src/app.ts', target: 'hello@1' },
+        { cwd: dir } as never
+      );
+      mkdirSync(join(dir, '.trails'), { recursive: true });
+      writeFileSync(join(dir, '.trails', 'topo.lock'), '{');
+
+      const doctor = await doctorTrail.blaze({ module: './src/app.ts' }, {
+        cwd: dir,
+      } as never);
+
+      if (doctor.isErr()) {
+        throw doctor.error;
+      }
+      expect(doctor.value).toMatchObject({
+        archived: 1,
+        forceDetails: [],
+        forceEvents: 0,
+        mode: 'doctor',
+        trails: 1,
+        versioned: 1,
+      });
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('doctor reads committed force audit details', async () => {
+    const dir = repoTempDir();
+    try {
+      writeLifecycleFixture(dir);
+      mkdirSync(join(dir, '.trails'), { recursive: true });
+      writeFileSync(
+        join(dir, '.trails', 'topo.lock'),
+        JSON.stringify(createDoctorForceGraph())
+      );
+
+      const doctor = await doctorTrail.blaze({ module: './src/app.ts' }, {
+        cwd: dir,
+      } as never);
+
+      if (doctor.isErr()) {
+        throw doctor.error;
+      }
+      expect(doctor.value.forceEvents).toBe(2);
+      expect(
+        doctor.value.forceDetails.map(({ id, scope }) => ({ id, scope }))
+      ).toEqual([
+        { id: 'force.current', scope: 'entry' },
+        { id: 'force.removed', scope: 'graph' },
+      ]);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('doctor summary reports entry and graph force details', () => {
+    const current = trail('force.current', {
+      blaze: () => Result.ok({ ok: true }),
+      input: z.object({}),
+      output: z.object({ ok: z.boolean() }),
+    });
+
+    const summary = deriveDoctorSummary(topo('doctor-force', { current }), {
+      forceGraph: createDoctorForceGraph(),
+    });
+
+    expect(summary.forceEvents).toBe(2);
+    expect(summary.forceDetails).toEqual([
+      {
+        acceptedAt: '2026-06-01T00:00:00.000Z',
+        change: 'modified',
+        detail: 'Required input field "name" added',
+        id: 'force.current',
+        kind: 'trail',
+        scope: 'entry',
+        severity: 'breaking',
+        source: 'trails compile --force',
+      },
+      {
+        acceptedAt: '2026-06-01T00:00:00.000Z',
+        change: 'removed',
+        detail: 'Trail was removed',
+        id: 'force.removed',
+        kind: 'trail',
+        reason: 'No callers remain.',
+        scope: 'graph',
+        severity: 'breaking',
+        source: 'trails compile --force',
+      },
+    ]);
+  });
+
+  test('doctor summary deduplicates overlapping entry and graph force details', () => {
+    const current = trail('force.current', {
+      blaze: () => Result.ok({ ok: true }),
+      input: z.object({}),
+      output: z.object({ ok: z.boolean() }),
+    });
+    const graph = createDoctorForceGraph();
+    const duplicate = graph.entries[0]?.forces?.[0];
+    if (duplicate === undefined) {
+      throw new Error('Expected force fixture to include an entry force');
+    }
+
+    const summary = deriveDoctorSummary(topo('doctor-force', { current }), {
+      forceGraph: {
+        ...graph,
+        forces: [duplicate, ...(graph.forces ?? [])],
+      },
+    });
+
+    expect(summary.forceEvents).toBe(2);
+    expect(
+      summary.forceDetails.map(({ id, scope }) => ({ id, scope }))
+    ).toEqual([
+      { id: 'force.current', scope: 'entry' },
+      { id: 'force.removed', scope: 'graph' },
+    ]);
+  });
+
+  test('doctor summary ignores malformed stale force payloads', () => {
+    const current = trail('force.current', {
+      blaze: () => Result.ok({ ok: true }),
+      input: z.object({}),
+      output: z.object({ ok: z.boolean() }),
+    });
+    const graph = createDoctorForceGraph();
+    const [entry] = graph.entries;
+    const validEntryForce = entry?.forces?.[0];
+    if (entry === undefined || validEntryForce === undefined) {
+      throw new Error('Expected force fixture to include an entry force');
+    }
+
+    const summary = deriveDoctorSummary(topo('doctor-force', { current }), {
+      forceGraph: {
+        ...graph,
+        entries: [
+          {
+            ...entry,
+            forces: { stale: true } as never,
+          },
+          {
+            ...entry,
+            forces: [null, { ...validEntryForce, extra: 'ignored' }] as never,
+          },
+        ],
+        forces: [
+          undefined,
+          { ...(graph.forces?.[0] ?? validEntryForce), reason: 123 },
+          ...(graph.forces ?? []),
+        ] as never,
+      },
+    });
+
+    expect(summary.forceEvents).toBe(2);
+    expect(summary.forceDetails[0]).not.toHaveProperty('extra');
+    expect(
+      summary.forceDetails.map(({ id, scope }) => ({ id, scope }))
+    ).toEqual([
+      { id: 'force.current', scope: 'entry' },
+      { id: 'force.removed', scope: 'graph' },
+    ]);
   });
 });

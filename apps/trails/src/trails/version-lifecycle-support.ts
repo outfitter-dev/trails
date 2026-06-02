@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { Result, ValidationError } from '@ontrails/core';
 import type { AnyTrail, Topo } from '@ontrails/core';
 import { deriveTopoGraph } from '@ontrails/topographer';
+import type { TopoGraph, TopoGraphForceEntry } from '@ontrails/topographer';
 import { findTrailDefinitions, parse } from '@ontrails/warden/ast';
 
 import { tryLoadFreshAppLease } from './load-app.js';
@@ -823,20 +824,99 @@ export const findLifecycleTrail = (
     : Result.ok(found as AnyTrail);
 };
 
-export const deriveDoctorSummary = (
-  app: Topo
-): {
+export interface DoctorForceDetail extends TopoGraphForceEntry {
+  readonly scope: 'entry' | 'graph';
+}
+
+export interface DoctorSummary {
   readonly archived: number;
   readonly deprecated: number;
+  readonly forceDetails: readonly DoctorForceDetail[];
   readonly forceEvents: number;
   readonly mode: 'doctor';
   readonly trails: number;
   readonly versioned: number;
-} => {
+}
+
+const doctorForceKey = (force: TopoGraphForceEntry): string =>
+  JSON.stringify([
+    force.kind,
+    force.id,
+    force.change,
+    force.detail,
+    force.reason,
+    force.severity,
+    force.source,
+  ]);
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const isDoctorForceEntry = (value: unknown): value is TopoGraphForceEntry =>
+  isRecord(value) &&
+  typeof value['acceptedAt'] === 'string' &&
+  (value['change'] === 'modified' || value['change'] === 'removed') &&
+  typeof value['detail'] === 'string' &&
+  typeof value['id'] === 'string' &&
+  (value['kind'] === 'contour' ||
+    value['kind'] === 'trail' ||
+    value['kind'] === 'signal' ||
+    value['kind'] === 'resource') &&
+  (value['reason'] === undefined || typeof value['reason'] === 'string') &&
+  value['severity'] === 'breaking' &&
+  value['source'] === 'trails compile --force';
+
+const doctorForceEntries = (value: unknown): readonly TopoGraphForceEntry[] =>
+  Array.isArray(value) ? value.filter(isDoctorForceEntry) : [];
+
+const pushDoctorForceDetail = (
+  details: DoctorForceDetail[],
+  seen: Set<string>,
+  force: TopoGraphForceEntry,
+  scope: DoctorForceDetail['scope']
+): void => {
+  const key = doctorForceKey(force);
+  if (seen.has(key)) {
+    return;
+  }
+  seen.add(key);
+  details.push({
+    acceptedAt: force.acceptedAt,
+    change: force.change,
+    detail: force.detail,
+    id: force.id,
+    kind: force.kind,
+    ...(force.reason === undefined ? {} : { reason: force.reason }),
+    scope,
+    severity: force.severity,
+    source: force.source,
+  });
+};
+
+const collectDoctorForceDetails = (
+  graph: TopoGraph
+): readonly DoctorForceDetail[] => {
+  const details: DoctorForceDetail[] = [];
+  const seen = new Set<string>();
+  for (const entry of graph.entries) {
+    for (const force of doctorForceEntries(entry.forces)) {
+      pushDoctorForceDetail(details, seen, force, 'entry');
+    }
+  }
+  for (const force of doctorForceEntries(graph.forces)) {
+    pushDoctorForceDetail(details, seen, force, 'graph');
+  }
+  return details;
+};
+
+export const deriveDoctorSummary = (
+  app: Topo,
+  options?: { readonly forceGraph?: TopoGraph | null | undefined }
+): DoctorSummary => {
   const graph = deriveTopoGraph(app);
+  const forceDetails = collectDoctorForceDetails(options?.forceGraph ?? graph);
   let archived = 0;
   let deprecated = 0;
-  let forceEvents = 0;
   let versioned = 0;
   for (const entry of graph.entries) {
     if (entry.kind !== 'trail') {
@@ -845,7 +925,6 @@ export const deriveDoctorSummary = (
     if (entry.version !== undefined) {
       versioned += 1;
     }
-    forceEvents += entry.forces?.length ?? 0;
     for (const version of Object.values(entry.versions ?? {})) {
       if (version.status?.state === 'archived') {
         archived += 1;
@@ -857,7 +936,8 @@ export const deriveDoctorSummary = (
   return {
     archived,
     deprecated,
-    forceEvents,
+    forceDetails,
+    forceEvents: forceDetails.length,
     mode: 'doctor',
     trails: app.list().length,
     versioned,

@@ -170,6 +170,33 @@ Executor should create or choose that issue before implementing the capstone.
   - `bun run format:check` passed after formatting the touched Warden test.
   - `git diff --check` passed.
 
+### 2026-06-01 18:10 EDT - TRL-770 doctor force evidence implemented
+
+- Created child branch
+  `trl-770-make-trails-doctor-pending-force-output-complete-and`.
+- Updated `trails doctor` to read committed `.trails/topo.lock` force audit
+  details when available and keep lifecycle counts derived from the current app.
+- Extended doctor output with `forceDetails`, including force `id`, `kind`,
+  `change`, `detail`, `severity`, `source`, optional `reason`, and scope
+  (`entry` or `graph`).
+- Updated `deriveDoctorSummary()` to count both entry-attached and graph-level
+  force events from the force evidence graph.
+- Added focused regressions in
+  `apps/trails/src/__tests__/version-lifecycle.test.ts` for summary-level force
+  details and the doctor trail reading committed force audit events.
+- Added `.changeset/trails-doctor-force-details.md` for `@ontrails/trails`.
+- Ran red check before implementation:
+  - `bun test apps/trails/src/__tests__/version-lifecycle.test.ts` failed on
+    the new force-detail summary assertion as expected.
+- Verification after implementation:
+  - `bun test apps/trails/src/__tests__/version-lifecycle.test.ts` passed.
+  - `bun test apps/trails/src/__tests__/survey.test.ts` passed.
+  - `bun run typecheck` from `apps/trails` passed.
+  - `bun run lint` from `apps/trails` passed after simplifying the doctor
+    error wrapper.
+  - `bun run format:check` passed after formatting the touched app files.
+  - `git diff --check` passed.
+
 ## Verification Log
 
 Planning verification only:
