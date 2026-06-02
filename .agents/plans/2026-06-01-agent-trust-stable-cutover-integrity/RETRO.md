@@ -142,6 +142,34 @@ Executor should create or choose that issue before implementing the capstone.
   - `bun run format:check` passed.
   - `git diff --check` passed.
 
+### 2026-06-01 18:02 EDT - TRL-773 Warden marker diagnostics aligned
+
+- Created child branch
+  `trl-773-align-marker-schema-unsupported-warden-coverage-with-runtime`.
+- Expanded `marker-schema-unsupported` in
+  `packages/warden/src/rules/trail-versioning-source.ts` to flag source-level
+  schema calls that the runtime marker subset rejects, including
+  `lazy`, `intersection`, `record`, validation-check methods, and object
+  catchall/unknown-key policy methods.
+- Added Warden source-rule regressions for:
+  - `lazy`, `intersection`, and `record`;
+  - string, number, and array validation checks;
+  - `refine` and `superRefine`;
+  - `strict`, `passthrough`, and `catchall`;
+  - unversioned trail scoping;
+  - callback-scope guard behavior.
+- Added `.changeset/warden-marker-schema-bounds.md` for `@ontrails/warden`.
+- Ran red check before implementation:
+  - `bun test packages/warden/src/__tests__/trail-versioning-rules.test.ts`
+    failed on the new Warden diagnostics as expected.
+- Verification after implementation:
+  - `bun test packages/warden/src/__tests__/trail-versioning-rules.test.ts`
+    passed.
+  - `bun run typecheck` from `packages/warden` passed.
+  - `bun run lint` from `packages/warden` passed.
+  - `bun run format:check` passed after formatting the touched Warden test.
+  - `git diff --check` passed.
+
 ## Verification Log
 
 Planning verification only:
