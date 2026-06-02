@@ -77,6 +77,7 @@ export interface AdapterTargetPackageManifest {
 }
 
 export interface AdapterTargetParseContext {
+  readonly blockedExportSpecifiers: readonly string[];
   readonly exportTargets: Readonly<Record<string, string>>;
   readonly packageJsonPath: string;
   readonly packageName: string;
@@ -451,19 +452,77 @@ const workspaceDirsForPattern = (
     .toSorted();
 };
 
+const exportConditions = new Set([
+  'bun',
+  'node',
+  'node-addons',
+  'module-sync',
+  'import',
+  'default',
+]);
+
+type ResolvedExportTarget =
+  | { readonly kind: 'target'; readonly target: string }
+  | { readonly kind: 'blocked' };
+
+const packageExportSegmentIsSafe = (segment: string): boolean => {
+  if (segment.length === 0) {
+    return false;
+  }
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(segment);
+  } catch {
+    return false;
+  }
+  return (
+    decoded !== '.' &&
+    decoded !== '..' &&
+    decoded.toLowerCase() !== 'node_modules' &&
+    !decoded.includes('/') &&
+    !decoded.includes('\\')
+  );
+};
+
+const exportTargetIsSafe = (target: string): boolean =>
+  target.startsWith('./') &&
+  !target.includes('\\') &&
+  target.slice(2).split('/').every(packageExportSegmentIsSafe);
+
 const resolveExportTarget = (
   target: unknown,
   depth = 0
-): string | undefined => {
+): ResolvedExportTarget | undefined => {
   if (typeof target === 'string') {
-    return target;
+    return { kind: 'target', target };
+  }
+  if (target === null) {
+    return { kind: 'blocked' };
+  }
+  if (Array.isArray(target)) {
+    if (depth > 8) {
+      return undefined;
+    }
+    for (const targetEntry of target) {
+      const resolvedTarget = resolveExportTarget(targetEntry, depth + 1);
+      if (
+        resolvedTarget?.kind === 'target' &&
+        exportTargetIsSafe(resolvedTarget.target)
+      ) {
+        return resolvedTarget;
+      }
+    }
+    return { kind: 'blocked' };
   }
   if (!isRecord(target) || depth > 8) {
     return undefined;
   }
 
-  for (const condition of ['bun', 'import', 'default', 'require'] as const) {
-    const resolvedTarget = resolveExportTarget(target[condition], depth + 1);
+  for (const [condition, conditionTarget] of Object.entries(target)) {
+    if (!exportConditions.has(condition)) {
+      continue;
+    }
+    const resolvedTarget = resolveExportTarget(conditionTarget, depth + 1);
     if (resolvedTarget) {
       return resolvedTarget;
     }
@@ -478,31 +537,152 @@ const exportSpecifierFromKey = (
   if (key === '.') {
     return packageName;
   }
-  if (!key.startsWith('./') || key.includes('*')) {
+  if (!key.startsWith('./')) {
     return undefined;
   }
   return `${packageName}/${key.slice(2)}`;
 };
 
+const wildcardCaptureIsSafe = (capture: string): boolean =>
+  !capture.includes('\\') &&
+  capture.split('/').every(packageExportSegmentIsSafe);
+
+const wildcardCapture = (
+  pattern: string,
+  value: string
+): string | undefined => {
+  const star = pattern.indexOf('*');
+  if (star === -1) {
+    return undefined;
+  }
+
+  const prefix = pattern.slice(0, star);
+  const suffix = pattern.slice(star + 1);
+  if (!value.startsWith(prefix) || !value.endsWith(suffix)) {
+    return undefined;
+  }
+
+  const capture = value.slice(prefix.length, value.length - suffix.length);
+  return capture.length > 0 && wildcardCaptureIsSafe(capture)
+    ? capture
+    : undefined;
+};
+
+const applyWildcardCapture = (targetPattern: string, capture: string): string =>
+  targetPattern.replaceAll('*', capture);
+
+type WildcardExportCandidate =
+  | {
+      readonly kind: 'target';
+      readonly pattern: string;
+      readonly target: string;
+    }
+  | { readonly kind: 'blocked'; readonly pattern: string };
+
+/**
+ * Order two wildcard export keys by Node's package-exports precedence: the
+ * longer prefix before the wildcard wins first, then the longer total key. This
+ * mirrors Node's `patternKeyCompare`, so equal-total-length patterns (for
+ * example a leading-wildcard key versus a trailing-wildcard key) resolve the
+ * way the runtime loader would.
+ */
+const patternKeyCompare = (left: string, right: string): number => {
+  const leftBase = left.indexOf('*') + 1;
+  const rightBase = right.indexOf('*') + 1;
+  if (leftBase !== rightBase) {
+    return rightBase - leftBase;
+  }
+  return right.length - left.length;
+};
+
+const resolveExportTargetForImport = (
+  context: AdapterTargetParseContext,
+  importSpecifier: string
+): string | undefined => {
+  // Exact `null` exclusions block the subpath before any wildcard fallback.
+  if (context.blockedExportSpecifiers.includes(importSpecifier)) {
+    return undefined;
+  }
+
+  const exactTarget = context.exportTargets[importSpecifier];
+  if (exactTarget) {
+    return exactTarget;
+  }
+
+  // Match the most specific wildcard key using Node's exports precedence
+  // (longer prefix before the wildcard first, then longer total key). A blocked
+  // pattern that is more specific than a broader target pattern must reject the
+  // import instead of resolving it.
+  const candidates: WildcardExportCandidate[] = [
+    ...Object.entries(context.exportTargets)
+      .filter(([specifier]) => specifier.includes('*'))
+      .map(
+        ([pattern, target]): WildcardExportCandidate => ({
+          kind: 'target',
+          pattern,
+          target,
+        })
+      ),
+    ...context.blockedExportSpecifiers
+      .filter((specifier) => specifier.includes('*'))
+      .map(
+        (pattern): WildcardExportCandidate => ({ kind: 'blocked', pattern })
+      ),
+  ].toSorted((left, right) => patternKeyCompare(left.pattern, right.pattern));
+
+  for (const candidate of candidates) {
+    const capture = wildcardCapture(candidate.pattern, importSpecifier);
+    if (capture === undefined) {
+      continue;
+    }
+    return candidate.kind === 'blocked'
+      ? undefined
+      : applyWildcardCapture(candidate.target, capture);
+  }
+
+  return undefined;
+};
+
+interface NormalizedExportTargets {
+  readonly blocked: readonly string[];
+  readonly targets: Readonly<Record<string, string>>;
+}
+
 const normalizeExportTargets = (
   packageRoot: string,
   packageName: string,
   exportsValue: unknown
-): Readonly<Record<string, string>> => {
+): NormalizedExportTargets => {
   if (!isRecord(exportsValue)) {
-    return {};
+    return { blocked: [], targets: {} };
   }
 
   const targets: Record<string, string> = {};
+  const blocked: string[] = [];
   for (const [key, value] of Object.entries(exportsValue)) {
     const specifier = exportSpecifierFromKey(packageName, key);
-    const target = resolveExportTarget(value);
-    if (!specifier || !target) {
+    if (!specifier) {
       continue;
     }
-    targets[specifier] = normalizeRealPath(join(packageRoot, target));
+    const resolvedTarget = resolveExportTarget(value);
+    if (resolvedTarget?.kind === 'target') {
+      if (!exportTargetIsSafe(resolvedTarget.target)) {
+        blocked.push(specifier);
+        continue;
+      }
+      targets[specifier] = normalizeRealPath(
+        join(packageRoot, resolvedTarget.target)
+      );
+      continue;
+    }
+    // A declared export key that does not resolve to a runtime target (an
+    // explicit `null` exclusion, or a conditions object with no runtime
+    // condition such as a `types`-only entry) blocks the subpath. Node selects
+    // the most specific matching key and reports the subpath as not exported, so
+    // it must not fall through to a broader wildcard.
+    blocked.push(specifier);
   }
-  return targets;
+  return { blocked, targets };
 };
 
 const diagnostic = (
@@ -1088,12 +1268,12 @@ const parseCatalogTarget = (
   ];
   const supportImportSpecifier = supportImport.importSpecifier;
   const supportExportTarget = supportImportSpecifier
-    ? context.exportTargets[supportImportSpecifier]
+    ? resolveExportTargetForImport(context, supportImportSpecifier)
     : undefined;
   const testingImportSpecifier = testingImport.importSpecifier;
   const conformanceManifest = conformance.conformance;
   const testingExportTarget = testingImportSpecifier
-    ? context.exportTargets[testingImportSpecifier]
+    ? resolveExportTargetForImport(context, testingImportSpecifier)
     : undefined;
 
   if (supportImportSpecifier) {
@@ -1240,12 +1420,14 @@ export const deriveAdapterTargetCatalog = (
       }
 
       const packageRoot = normalizeRealPath(dirname(packageJsonPath));
+      const normalizedExports = normalizeExportTargets(
+        packageRoot,
+        manifest.name,
+        manifest.exports
+      );
       const parsed = parseAdapterTargetsFromManifest(manifest, {
-        exportTargets: normalizeExportTargets(
-          packageRoot,
-          manifest.name,
-          manifest.exports
-        ),
+        blockedExportSpecifiers: normalizedExports.blocked,
+        exportTargets: normalizedExports.targets,
         packageJsonPath: normalizeRealPath(packageJsonPath),
         packageName: manifest.name,
         packageRoot,

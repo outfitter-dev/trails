@@ -244,6 +244,52 @@ Executor should create or choose that issue before implementing the capstone.
   - `bun run lint` from `packages/regrade` passed.
   - `bun run lint` from `packages/warden` passed.
 
+### 2026-06-01 18:18 EDT - TRL-877 wildcard export resolution implemented
+
+- Created child branch
+  `trl-877-resolve-wildcard-export-keys-in-catalog-derivation`.
+- Updated adapter target catalog export resolution so exact package export
+  keys still win, then declared owner imports can resolve through wildcard
+  package export keys such as `"./*": "./src/*.ts"`.
+- Added catalog regression coverage for support/testing owner imports resolved
+  through wildcard export keys while existing explicit export coverage remains
+  intact.
+- Added adapter-check regression coverage proving wildcard-exported owner
+  `testingImport` metadata unblocks extracted adapter conformance checking.
+- Added `.changeset/adapter-kit-wildcard-exports.md` for
+  `@ontrails/adapter-kit`.
+- Ran red checks before implementation:
+  - `bun test packages/adapter-kit/src/__tests__/catalog.test.ts` failed on
+    the new wildcard export assertion as expected.
+  - `bun test packages/adapter-kit/src/__tests__/check.test.ts` failed on
+    the new wildcard adapter-check assertion as expected.
+- Verification after implementation:
+  - `bun test packages/adapter-kit/src/__tests__/catalog.test.ts` passed.
+  - `bun test packages/adapter-kit/src/__tests__/check.test.ts` passed.
+  - `bun run typecheck` from `packages/adapter-kit` passed.
+  - `bun run lint` from `packages/adapter-kit` passed.
+  - `bun test apps/trails/src/__tests__/adapter-check.test.ts packages/warden/src/__tests__/adapter-check.test.ts`
+    passed.
+
+### 2026-06-01 18:20 EDT - TRL-872 skipped pending owner decisions
+
+- Evaluated conditional `TRL-872`; skipped it because the live Linear issue
+  still says Commander, Vite, and Drizzle need owner target/conformance
+  decisions before they participate in the hard adapter-check predicate.
+- Verified current repo adapter metadata:
+  - `packages/http/package.json` and `packages/store/package.json` declare
+    owner targets.
+  - `adapters/hono/package.json` declares an extracted `http` adapter.
+  - `adapters/commander/package.json`, `adapters/vite/package.json`, and
+    `adapters/drizzle/package.json` do not yet declare `trails.adapter`
+    metadata.
+- Ran `bun apps/trails/bin/trails.ts adapter check --root-dir . --json`; it
+  passed with two owner targets (`@ontrails/http:http`,
+  `@ontrails/store:store`) and one adapter subject (`@ontrails/hono`).
+- Checkpoint capstone remains blocked on a tracker decision: create/choose the
+  Linear issue for the read-only verdict branch, or confirm an explicit
+  non-issue branch with Matt.
+
 ## Verification Log
 
 Planning verification only:

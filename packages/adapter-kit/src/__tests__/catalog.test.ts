@@ -88,6 +88,533 @@ describe('deriveAdapterTargetCatalog', () => {
     );
   });
 
+  test('derives owner imports from wildcard package export keys', () => {
+    const root = makeRoot();
+    writePackage(root, 'packages/http', {
+      exports: {
+        '.': './src/index.ts',
+        './*': './src/*.ts',
+      },
+      name: '@ontrails/http',
+      trails: {
+        adapterTargets: {
+          http: {
+            placements: ['extracted'],
+            supportImport: '@ontrails/http/adapter-support',
+            testingImport: '@ontrails/http/testing',
+          },
+        },
+      },
+    });
+    writeFile(root, 'packages/http/src/adapter-support.ts', 'export {};\n');
+    writeFile(root, 'packages/http/src/testing.ts', 'export {};\n');
+
+    const catalog = deriveAdapterTargetCatalog(root);
+
+    expect(catalog.diagnostics).toEqual([]);
+    expect(catalog.targets).toHaveLength(1);
+    expect(catalog.targets[0]).toMatchObject({
+      supportImport: '@ontrails/http/adapter-support',
+      testingImport: '@ontrails/http/testing',
+    });
+    expect(catalog.targets[0]?.supportExportTarget).toEndWith(
+      'packages/http/src/adapter-support.ts'
+    );
+    expect(catalog.targets[0]?.testingExportTarget).toEndWith(
+      'packages/http/src/testing.ts'
+    );
+  });
+
+  test('rejects wildcard imports excluded by a more specific null export', () => {
+    const root = makeRoot();
+    writePackage(root, 'packages/http', {
+      exports: {
+        '.': './src/index.ts',
+        './*': './src/*.ts',
+        './private/*': null,
+      },
+      name: '@ontrails/http',
+      trails: {
+        adapterTargets: {
+          http: {
+            placements: ['extracted'],
+            testingImport: '@ontrails/http/private/testing',
+          },
+        },
+      },
+    });
+    // The file exists, but the package explicitly blocks ./private/* so the
+    // import must not fall through to the broader ./* wildcard.
+    writeFile(root, 'packages/http/src/private/testing.ts', 'export {};\n');
+
+    const catalog = deriveAdapterTargetCatalog(root);
+
+    expect(catalog.targets).toEqual([]);
+    expect(catalog.diagnostics).toHaveLength(1);
+    expect(catalog.diagnostics[0]).toMatchObject({
+      code: 'invalid-import',
+      message: expect.stringContaining('does not export that subpath'),
+      target: 'http',
+    });
+  });
+
+  test('resolves wildcard imports when default precedes conditional null export', () => {
+    const root = makeRoot();
+    writePackage(root, 'packages/http', {
+      exports: {
+        '.': './src/index.ts',
+        './*': './src/*.ts',
+        './private/*': {
+          default: './src/private/*.ts',
+          import: null,
+        },
+      },
+      name: '@ontrails/http',
+      trails: {
+        adapterTargets: {
+          http: {
+            placements: ['extracted'],
+            testingImport: '@ontrails/http/private/testing',
+          },
+        },
+      },
+    });
+    writeFile(root, 'packages/http/src/private/testing.ts', 'export {};\n');
+
+    const catalog = deriveAdapterTargetCatalog(root);
+
+    expect(catalog.diagnostics).toEqual([]);
+    expect(catalog.targets).toHaveLength(1);
+    expect(catalog.targets[0]?.testingExportTarget).toEndWith(
+      'packages/http/src/private/testing.ts'
+    );
+  });
+
+  test('resolves wildcard imports through Node import-compatible conditions', () => {
+    const root = makeRoot();
+    writePackage(root, 'packages/http', {
+      exports: {
+        '.': './src/index.ts',
+        './module-sync/*': {
+          'module-sync': './src/module-sync/*.ts',
+        },
+        './node-addons/*': {
+          'node-addons': './src/node-addons/*.ts',
+        },
+      },
+      name: '@ontrails/http',
+      trails: {
+        adapterTargets: {
+          http: {
+            placements: ['extracted'],
+            supportImport: '@ontrails/http/module-sync/support',
+            testingImport: '@ontrails/http/node-addons/testing',
+          },
+        },
+      },
+    });
+    writeFile(root, 'packages/http/src/module-sync/support.ts', 'export {};\n');
+    writeFile(root, 'packages/http/src/node-addons/testing.ts', 'export {};\n');
+
+    const catalog = deriveAdapterTargetCatalog(root);
+
+    expect(catalog.diagnostics).toEqual([]);
+    expect(catalog.targets).toHaveLength(1);
+    expect(catalog.targets[0]?.supportExportTarget).toEndWith(
+      'packages/http/src/module-sync/support.ts'
+    );
+    expect(catalog.targets[0]?.testingExportTarget).toEndWith(
+      'packages/http/src/node-addons/testing.ts'
+    );
+  });
+
+  test('rejects wildcard imports when conditional null precedes default export', () => {
+    const root = makeRoot();
+    writePackage(root, 'packages/http', {
+      exports: {
+        '.': './src/index.ts',
+        './*': './src/*.ts',
+        './private/*': Object.fromEntries([
+          ['import', null],
+          ['default', './src/private/*.ts'],
+        ]),
+      },
+      name: '@ontrails/http',
+      trails: {
+        adapterTargets: {
+          http: {
+            placements: ['extracted'],
+            testingImport: '@ontrails/http/private/testing',
+          },
+        },
+      },
+    });
+    writeFile(root, 'packages/http/src/private/testing.ts', 'export {};\n');
+
+    const catalog = deriveAdapterTargetCatalog(root);
+
+    expect(catalog.targets).toEqual([]);
+    expect(catalog.diagnostics).toHaveLength(1);
+    expect(catalog.diagnostics[0]).toMatchObject({
+      code: 'invalid-import',
+      message: expect.stringContaining('does not export that subpath'),
+      target: 'http',
+    });
+  });
+
+  test('rejects wildcard imports when conditional arrays exhaust before default export', () => {
+    const root = makeRoot();
+    writePackage(root, 'packages/http', {
+      exports: {
+        '.': './src/index.ts',
+        './*': './src/*.ts',
+        './private/*': Object.fromEntries([
+          ['import', [null]],
+          ['default', './src/private/*.ts'],
+        ]),
+      },
+      name: '@ontrails/http',
+      trails: {
+        adapterTargets: {
+          http: {
+            placements: ['extracted'],
+            testingImport: '@ontrails/http/private/testing',
+          },
+        },
+      },
+    });
+    writeFile(root, 'packages/http/src/private/testing.ts', 'export {};\n');
+
+    const catalog = deriveAdapterTargetCatalog(root);
+
+    expect(catalog.targets).toEqual([]);
+    expect(catalog.diagnostics).toHaveLength(1);
+    expect(catalog.diagnostics[0]).toMatchObject({
+      code: 'invalid-import',
+      message: expect.stringContaining('does not export that subpath'),
+      target: 'http',
+    });
+  });
+
+  test('rejects wildcard imports with only require conditions', () => {
+    const root = makeRoot();
+    writePackage(root, 'packages/http', {
+      exports: {
+        '.': './src/index.ts',
+        './private/*': {
+          require: './src/private/*.cjs',
+        },
+      },
+      name: '@ontrails/http',
+      trails: {
+        adapterTargets: {
+          http: {
+            placements: ['extracted'],
+            testingImport: '@ontrails/http/private/testing',
+          },
+        },
+      },
+    });
+    writeFile(
+      root,
+      'packages/http/src/private/testing.cjs',
+      'module.exports = {};\n'
+    );
+
+    const catalog = deriveAdapterTargetCatalog(root);
+
+    expect(catalog.targets).toEqual([]);
+    expect(catalog.diagnostics).toHaveLength(1);
+    expect(catalog.diagnostics[0]).toMatchObject({
+      code: 'invalid-import',
+      message: expect.stringContaining('does not export that subpath'),
+      target: 'http',
+    });
+  });
+
+  test('resolves wildcard imports exposed through node conditions', () => {
+    const root = makeRoot();
+    writePackage(root, 'packages/http', {
+      exports: {
+        '.': './src/index.ts',
+        './private/*': {
+          node: './src/private/*.ts',
+        },
+      },
+      name: '@ontrails/http',
+      trails: {
+        adapterTargets: {
+          http: {
+            placements: ['extracted'],
+            testingImport: '@ontrails/http/private/testing',
+          },
+        },
+      },
+    });
+    writeFile(root, 'packages/http/src/private/testing.ts', 'export {};\n');
+
+    const catalog = deriveAdapterTargetCatalog(root);
+
+    expect(catalog.diagnostics).toEqual([]);
+    expect(catalog.targets).toHaveLength(1);
+    expect(catalog.targets[0]?.testingExportTarget).toEndWith(
+      'packages/http/src/private/testing.ts'
+    );
+  });
+
+  test('resolves wildcard imports exposed through export target arrays', () => {
+    const root = makeRoot();
+    writePackage(root, 'packages/http', {
+      exports: {
+        '.': './src/index.ts',
+        './*': ['./src/*.ts'],
+      },
+      name: '@ontrails/http',
+      trails: {
+        adapterTargets: {
+          http: {
+            placements: ['extracted'],
+            testingImport: '@ontrails/http/testing',
+          },
+        },
+      },
+    });
+    writeFile(root, 'packages/http/src/testing.ts', 'export {};\n');
+
+    const catalog = deriveAdapterTargetCatalog(root);
+
+    expect(catalog.diagnostics).toEqual([]);
+    expect(catalog.targets).toHaveLength(1);
+    expect(catalog.targets[0]?.testingExportTarget).toEndWith(
+      'packages/http/src/testing.ts'
+    );
+  });
+
+  test('continues wildcard export arrays past invalid targets', () => {
+    const root = makeRoot();
+    writePackage(root, 'packages/http', {
+      exports: {
+        '.': './src/index.ts',
+        './*': ['../outside/*.ts', './src/*.ts'],
+      },
+      name: '@ontrails/http',
+      trails: {
+        adapterTargets: {
+          http: {
+            placements: ['extracted'],
+            testingImport: '@ontrails/http/testing',
+          },
+        },
+      },
+    });
+    writeFile(root, 'packages/http/src/testing.ts', 'export {};\n');
+
+    const catalog = deriveAdapterTargetCatalog(root);
+
+    expect(catalog.diagnostics).toEqual([]);
+    expect(catalog.targets).toHaveLength(1);
+    expect(catalog.targets[0]?.testingExportTarget).toEndWith(
+      'packages/http/src/testing.ts'
+    );
+  });
+
+  test('rejects wildcard imports with path-traversal captures', () => {
+    const root = makeRoot();
+    writePackage(root, 'packages/http', {
+      exports: {
+        '.': './src/index.ts',
+        './*': './src/*.ts',
+      },
+      name: '@ontrails/http',
+      trails: {
+        adapterTargets: {
+          http: {
+            placements: ['extracted'],
+            testingImport: '@ontrails/http/foo/../testing',
+          },
+        },
+      },
+    });
+    writeFile(root, 'packages/http/src/testing.ts', 'export {};\n');
+
+    const catalog = deriveAdapterTargetCatalog(root);
+
+    expect(catalog.targets).toEqual([]);
+    expect(catalog.diagnostics).toHaveLength(1);
+    expect(catalog.diagnostics[0]).toMatchObject({
+      code: 'invalid-import',
+      message: expect.stringContaining('does not export that subpath'),
+      target: 'http',
+    });
+  });
+
+  test('rejects wildcard imports with encoded invalid captures', () => {
+    const root = makeRoot();
+    writePackage(root, 'packages/http', {
+      exports: {
+        '.': './src/index.ts',
+        './*': './src/*.ts',
+      },
+      name: '@ontrails/http',
+      trails: {
+        adapterTargets: {
+          encoded: {
+            placements: ['extracted'],
+            testingImport: '@ontrails/http/%2e%2e/testing',
+          },
+          reserved: {
+            placements: ['extracted'],
+            testingImport: '@ontrails/http/node_modules/testing',
+          },
+        },
+      },
+    });
+    writeFile(root, 'packages/http/src/%2e%2e/testing.ts', 'export {};\n');
+    writeFile(
+      root,
+      'packages/http/src/node_modules/testing.ts',
+      'export {};\n'
+    );
+
+    const catalog = deriveAdapterTargetCatalog(root);
+
+    expect(catalog.targets).toEqual([]);
+    expect(catalog.diagnostics).toHaveLength(2);
+    expect(catalog.diagnostics.map((diagnostic) => diagnostic.target)).toEqual([
+      'encoded',
+      'reserved',
+    ]);
+    expect(
+      catalog.diagnostics.every(
+        (diagnostic) => diagnostic.code === 'invalid-import'
+      )
+    ).toBe(true);
+  });
+
+  test('rejects wildcard imports with invalid export targets', () => {
+    const root = makeRoot();
+    writePackage(root, 'packages/http', {
+      exports: {
+        '.': './src/index.ts',
+        './*': '../outside/*.ts',
+      },
+      name: '@ontrails/http',
+      trails: {
+        adapterTargets: {
+          http: {
+            placements: ['extracted'],
+            testingImport: '@ontrails/http/testing',
+          },
+        },
+      },
+    });
+    writeFile(root, 'packages/outside/testing.ts', 'export {};\n');
+
+    const catalog = deriveAdapterTargetCatalog(root);
+
+    expect(catalog.targets).toEqual([]);
+    expect(catalog.diagnostics).toHaveLength(1);
+    expect(catalog.diagnostics[0]).toMatchObject({
+      code: 'invalid-import',
+      message: expect.stringContaining('does not export that subpath'),
+      target: 'http',
+    });
+  });
+
+  test('rejects wildcard imports shadowed by a more specific types-only entry', () => {
+    const root = makeRoot();
+    writePackage(root, 'packages/http', {
+      exports: {
+        '.': './src/index.ts',
+        './*': './src/*.ts',
+        // A conditions object with no runtime target (types-only): Node treats
+        // the matched subpath as not exported, so it must block, not fall back.
+        './private/*': { types: './src/private/*.d.ts' },
+      },
+      name: '@ontrails/http',
+      trails: {
+        adapterTargets: {
+          http: {
+            placements: ['extracted'],
+            testingImport: '@ontrails/http/private/testing',
+          },
+        },
+      },
+    });
+    writeFile(root, 'packages/http/src/private/testing.ts', 'export {};\n');
+
+    const catalog = deriveAdapterTargetCatalog(root);
+
+    expect(catalog.targets).toEqual([]);
+    expect(catalog.diagnostics).toHaveLength(1);
+    expect(catalog.diagnostics[0]).toMatchObject({
+      code: 'invalid-import',
+      message: expect.stringContaining('does not export that subpath'),
+      target: 'http',
+    });
+  });
+
+  test('resolves sibling wildcard imports when a null exclusion targets another subpath', () => {
+    const root = makeRoot();
+    writePackage(root, 'packages/http', {
+      exports: {
+        '.': './src/index.ts',
+        './*': './src/*.ts',
+        './private/*': null,
+      },
+      name: '@ontrails/http',
+      trails: {
+        adapterTargets: {
+          http: {
+            placements: ['extracted'],
+            testingImport: '@ontrails/http/testing',
+          },
+        },
+      },
+    });
+    writeFile(root, 'packages/http/src/testing.ts', 'export {};\n');
+
+    const catalog = deriveAdapterTargetCatalog(root);
+
+    expect(catalog.diagnostics).toEqual([]);
+    expect(catalog.targets).toHaveLength(1);
+    expect(catalog.targets[0]?.testingExportTarget).toEndWith(
+      'packages/http/src/testing.ts'
+    );
+  });
+
+  test('resolves overlapping wildcards by Node prefix precedence, not key length', () => {
+    const root = makeRoot();
+    writePackage(root, 'packages/http', {
+      exports: {
+        '.': './src/index.ts',
+        // Equal total key length; Node prefers the longer prefix before the
+        // wildcard, so `@ontrails/http/bar/foo` must resolve through `./bar/*`.
+        './*/foo': './src/generic/*.ts',
+        './bar/*': './src/bar/*.ts',
+      },
+      name: '@ontrails/http',
+      trails: {
+        adapterTargets: {
+          http: {
+            placements: ['extracted'],
+            testingImport: '@ontrails/http/bar/foo',
+          },
+        },
+      },
+    });
+    // Only the Node-correct target exists; the leading-wildcard target does not.
+    writeFile(root, 'packages/http/src/bar/foo.ts', 'export {};\n');
+
+    const catalog = deriveAdapterTargetCatalog(root);
+
+    expect(catalog.diagnostics).toEqual([]);
+    expect(catalog.targets).toHaveLength(1);
+    expect(catalog.targets[0]?.testingExportTarget).toEndWith(
+      'packages/http/src/bar/foo.ts'
+    );
+  });
+
   test('derives optional owner conformance helper metadata', () => {
     const root = makeRoot();
     writePackage(root, 'packages/http', {

@@ -158,6 +158,53 @@ describe('checkAdapters', () => {
     });
   });
 
+  test('accepts owner testing imports exported through wildcard keys', () => {
+    const root = makeRoot();
+    writePackage(root, 'packages/http', {
+      exports: {
+        '.': './src/index.ts',
+        './*': './src/*.ts',
+        './package.json': './package.json',
+      },
+      name: '@ontrails/http',
+      trails: {
+        adapterTargets: {
+          http: {
+            conformance: {
+              adapterType: 'HttpAdapterConformanceAdapter',
+              casesFactory: 'createHttpAdapterConformanceCases',
+              runner: 'runConformance',
+            },
+            placements: ['extracted'],
+            testingImport: '@ontrails/http/testing',
+          },
+        },
+      },
+    });
+    writeFile(
+      root,
+      'packages/http/src/testing.ts',
+      [
+        'export interface HttpAdapterConformanceAdapter {}',
+        'export const createHttpAdapterConformanceCases = () => [];',
+        'export const runConformance = () => undefined;',
+        '',
+      ].join('\n')
+    );
+    writeHonoAdapter(root);
+    writeHttpConformanceTest(root);
+
+    const report = checkAdapters(root);
+
+    expect(report.diagnostics).toEqual([]);
+    expect(report.subjects).toHaveLength(1);
+    expect(report.subjects[0]).toMatchObject({
+      ownerPackage: '@ontrails/http',
+      target: 'http',
+      testingImport: '@ontrails/http/testing',
+    });
+  });
+
   test('ignores extracted adapter packages until they declare target metadata', () => {
     const root = makeRoot();
     writeHttpOwner(root);
