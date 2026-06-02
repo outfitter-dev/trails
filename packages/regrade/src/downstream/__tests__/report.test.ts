@@ -141,6 +141,60 @@ describe('wardenTermRewriteClasses', () => {
       'Safe fix metadata was missing concrete edits.'
     );
   });
+
+  test('preserves Warden scan-target filtering for Warden-backed classes', () => {
+    const checkedPaths: string[] = [];
+    const rule = {
+      check: (_source, filePath) => {
+        checkedPaths.push(filePath);
+        return [
+          {
+            filePath,
+            fix: {
+              class: 'term-rewrite',
+              reason: 'Test Warden term-rewrite diagnostic.',
+              safety: 'review',
+            },
+            line: 1,
+            message: 'Test Warden term-rewrite diagnostic.',
+            rule: 'no-legacy-layer-imports',
+            severity: 'error',
+          },
+        ];
+      },
+      description: 'Test Warden-backed term rewrites.',
+      name: 'no-legacy-layer-imports',
+      severity: 'error',
+    } satisfies WardenRule;
+    const cls = createWardenTermRewriteClass(rule);
+
+    for (const context of [
+      {
+        absolutePath: '/repo/src/types.d.ts',
+        path: 'src/types.d.ts',
+      },
+      {
+        absolutePath: '/repo/src/auth.test.ts',
+        path: 'src/auth.test.ts',
+      },
+      {
+        absolutePath: '/repo/src/__tests__/auth.ts',
+        path: 'src/__tests__/auth.ts',
+      },
+    ]) {
+      const result = cls?.apply('authLayer();\n', context);
+      // Scan-filtered files report `skipped`, not a scanned/clean `no-op`.
+      expect(result?.kind).toBe('skipped');
+    }
+    expect(checkedPaths).toEqual([]);
+
+    const result = cls?.apply('authLayer();\n', {
+      absolutePath: '/repo/src/auth.tsx',
+      path: 'src/auth.tsx',
+    });
+    expect(result?.kind).toBe('needs-review');
+    expect(checkedPaths).toEqual(['/repo/src/auth.tsx']);
+  });
 });
 
 describe('selectRegradeClasses', () => {
@@ -212,6 +266,35 @@ describe('buildRegradeReport', () => {
     expect(report.selectedClassIds).toEqual(['cls.foo']);
     expect(report.entries[0]?.classId).toBe('cls.foo');
     expect(report.entries[0]?.outcome).toBe('rewrite');
+  });
+
+  test('counts scan-filtered files as skipped, not scanned', () => {
+    const rule = {
+      check: () => [],
+      description: 'Test Warden-backed term rewrites.',
+      name: 'no-legacy-layer-imports',
+      severity: 'error',
+    } satisfies WardenRule;
+    const cls = createWardenTermRewriteClass(rule);
+    expect(cls).not.toBeNull();
+
+    const report = buildRegradeReport({
+      classes: cls ? [cls] : [],
+      files: [
+        // Scan-filtered (infrastructure) — must be skipped, not scanned/clean.
+        { path: 'src/types.d.ts', source: 'export {};\n' },
+        // Real source file with no diagnostics — a genuine no-op scan.
+        { path: 'src/auth.ts', source: 'export const x = 1;\n' },
+      ],
+      root: '/repo',
+      skipped: [],
+    });
+
+    expect(report.scanned).toBe(1);
+    expect(report.skipped).toBe(1);
+    const skipEntry = report.entries.find((e) => e.path === 'src/types.d.ts');
+    expect(skipEntry?.outcome).toBe('skip');
+    expect(skipEntry?.reason).toBe('warden-scan-target-filtered');
   });
 });
 

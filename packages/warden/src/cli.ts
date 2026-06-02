@@ -48,6 +48,10 @@ import {
 import { collectFileCrudCoverage } from './rules/incomplete-crud.js';
 import { wardenRules, wardenTopoRules } from './rules/index.js';
 import { getWardenRuleMetadata } from './rules/metadata.js';
+import {
+  isWardenDevPermitTestScanTarget,
+  isWardenSourceScanTarget,
+} from './rules/scan.js';
 import type {
   ProjectAwareWardenRule,
   ProjectContext,
@@ -195,24 +199,6 @@ export interface WardenReport {
  * Collect Warden scan targets under a directory, excluding generated and test
  * surfaces that should not contribute most committed-source diagnostics.
  */
-const isInfrastructureScanTarget = (match: string): boolean =>
-  match.endsWith('.d.ts') ||
-  match.startsWith('node_modules/') ||
-  match.startsWith('dist/') ||
-  match.startsWith('.git/');
-
-const isTestScanTarget = (match: string): boolean =>
-  match.includes('__tests__/') ||
-  match.includes('__test__/') ||
-  match.endsWith('.test.ts') ||
-  match.endsWith('.spec.ts');
-
-const isAllowedScanTarget = (match: string): boolean =>
-  !isInfrastructureScanTarget(match) && !isTestScanTarget(match);
-
-const isDevPermitTestScanTarget = (match: string): boolean =>
-  !isInfrastructureScanTarget(match) && isTestScanTarget(match);
-
 const collectFilesMatching = (
   dir: string,
   pattern: string,
@@ -228,7 +214,7 @@ const collectFilesMatching = (
 
   const files: string[] = [];
   for (const match of matches) {
-    if (isAllowedScanTarget(match)) {
+    if (isWardenSourceScanTarget(match)) {
       files.push(`${dir}/${match}`);
     }
   }
@@ -273,7 +259,7 @@ const collectDevPermitTestFiles = (dir: string): readonly string[] => {
 
   const files: string[] = [];
   for (const match of matches) {
-    if (isDevPermitTestScanTarget(match)) {
+    if (isWardenDevPermitTestScanTarget(match)) {
       files.push(`${dir}/${match}`);
     }
   }
@@ -316,7 +302,7 @@ const collectDocumentationFiles = (dir: string): readonly string[] => {
 
   const files: string[] = [];
   for (const match of matches) {
-    if (isAllowedScanTarget(match) && isDocumentationScanTarget(match)) {
+    if (isWardenSourceScanTarget(match) && isDocumentationScanTarget(match)) {
       files.push(`${dir}/${match}`);
     }
   }

@@ -216,6 +216,34 @@ Executor should create or choose that issue before implementing the capstone.
   - `bun run format:check` passed.
   - `git diff --check` passed.
 
+### 2026-06-01 18:14 EDT - TRL-771 skipped and TRL-878 scan filtering implemented
+
+- Evaluated conditional `TRL-771`; skipped it because `trails doctor` now
+  reports structured force evidence and the stable cutover gate only needs
+  PR-body exception evidence, not a broad accepted-exception governance model.
+- Created child branch
+  `trl-878-apply-warden-scan-target-filtering-to-regrade`.
+- Moved Warden's source scan-target predicate into
+  `packages/warden/src/rules/scan.ts`, kept the CLI on that helper, and
+  exported it through `@ontrails/warden`.
+- Updated Regrade's Warden-backed term-rewrite class to check the shared
+  Warden scan target helper before invoking `rule.check()`.
+- Added regression coverage proving `.d.ts`, `*.test.ts`, and `__tests__/`
+  files are skipped while normal `.tsx` source remains eligible for Warden
+  review routing.
+- Added `.changeset/warden-scan-target-helper.md` for `@ontrails/warden`.
+- Ran red check before implementation:
+  - `bun test packages/regrade/src/downstream/__tests__/report.test.ts`
+    failed on the new scan-target filtering assertion as expected.
+- Verification after implementation:
+  - `bun test packages/regrade/src/downstream/__tests__/report.test.ts`
+    passed.
+  - `bun test packages/warden/src/__tests__/cli.test.ts` passed.
+  - `bun run typecheck` from `packages/regrade` passed.
+  - `bun run typecheck` from `packages/warden` passed.
+  - `bun run lint` from `packages/regrade` passed.
+  - `bun run lint` from `packages/warden` passed.
+
 ## Verification Log
 
 Planning verification only:

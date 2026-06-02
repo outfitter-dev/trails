@@ -48,6 +48,12 @@ export {
 
 // Rule-scoped cache controls for long-lived consumers (watch mode, LSPs).
 export { clearImplementationReturnsResultCache } from './rules/implementation-returns-result.js';
+export {
+  isWardenDevPermitTestScanTarget,
+  isWardenInfrastructureScanTarget,
+  isWardenSourceScanTarget,
+  isWardenTestScanTarget,
+} from './rules/scan.js';
 
 // CLI runner
 export type {

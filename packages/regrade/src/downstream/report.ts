@@ -5,7 +5,11 @@ import type {
   WardenFixEdit,
   WardenRule,
 } from '@ontrails/warden';
-import { getWardenRuleMetadata, wardenRules } from '@ontrails/warden';
+import {
+  getWardenRuleMetadata,
+  isWardenSourceScanTarget,
+  wardenRules,
+} from '@ontrails/warden';
 import { readFileSync } from 'node:fs';
 import { z } from 'zod';
 
@@ -27,8 +31,16 @@ import type { DownstreamCollectionOptions, SkippedSource } from './collect.js';
  * collection substrate (TRL-844).
  */
 
-/** Outcome a regrade class produces for a single source file. */
-export type RegradeOutcomeKind = 'needs-review' | 'no-op' | 'rewrite';
+/**
+ * Outcome a regrade class produces for a single source file. `skipped` means
+ * the class declined to inspect the file (for example, a scan-target filter
+ * excluded it) and it must not count as a scanned/clean no-op.
+ */
+export type RegradeOutcomeKind =
+  | 'needs-review'
+  | 'no-op'
+  | 'rewrite'
+  | 'skipped';
 
 /** Result of applying one regrade class to one source string. */
 export interface RegradeClassResult {
@@ -137,6 +149,9 @@ const diagnosticNote = (diagnostic: WardenDiagnostic): string => {
 const wardenFilePath = (context: RegradeClassContext | undefined): string =>
   context?.absolutePath ?? context?.path ?? '<regrade-source>';
 
+const wardenScanPath = (context: RegradeClassContext | undefined): string =>
+  context?.path ?? context?.absolutePath ?? '<regrade-source>';
+
 const applyWardenEdits = (
   source: string,
   edits: readonly WardenFixEdit[]
@@ -182,6 +197,14 @@ export const createWardenTermRewriteClass = (
       source: string,
       context?: RegradeClassContext
     ): RegradeClassResult => {
+      if (!isWardenSourceScanTarget(wardenScanPath(context))) {
+        return {
+          kind: 'skipped',
+          notes: ['Skipped by Warden source scan-target filtering.'],
+          reason: 'warden-scan-target-filtered',
+        };
+      }
+
       const diagnostics = rule
         .check(source, wardenFilePath(context))
         .filter(
@@ -314,7 +337,11 @@ const classifyFile = (
   selected: readonly RegradeClass[]
 ): RegradeReportEntry => {
   // First selected class that matches (rewrite or review) wins, mirroring the
-  // "run one class" emphasis. No-ops fall through to a no-op entry.
+  // "run one class" emphasis. A scan-target skip is remembered so the file is
+  // accounted as skipped rather than a scanned/clean no-op. No-ops fall through.
+  let skipped:
+    | { readonly classId: string; readonly result: RegradeClassResult }
+    | undefined;
   for (const cls of selected) {
     const result = cls.apply(source, context);
     if (result.kind === 'rewrite') {
@@ -329,6 +356,18 @@ const classifyFile = (
         reason: result.reason ?? 'needs-review',
       };
     }
+    if (result.kind === 'skipped' && skipped === undefined) {
+      skipped = { classId: cls.id, result };
+    }
+  }
+  if (skipped !== undefined) {
+    return {
+      classId: skipped.classId,
+      notes: skipped.result.notes,
+      outcome: 'skip',
+      path,
+      reason: skipped.result.reason ?? 'skipped',
+    };
   }
   return { outcome: 'no-op', path };
 };
@@ -376,8 +415,16 @@ export const buildRegradeReport = (params: {
     a.path.localeCompare(b.path)
   );
 
-  const rewritten = fileEntries.filter((e) => e.outcome === 'rewrite').length;
-  const review = fileEntries.filter((e) => e.outcome === 'needs-review').length;
+  // Class-level skips (e.g. scan-target filtering) are accounted as skipped, not
+  // as scanned/clean files.
+  const scannedEntries = fileEntries.filter((e) => e.outcome !== 'skip');
+  const fileSkipCount = fileEntries.length - scannedEntries.length;
+  const rewritten = scannedEntries.filter(
+    (e) => e.outcome === 'rewrite'
+  ).length;
+  const review = scannedEntries.filter(
+    (e) => e.outcome === 'needs-review'
+  ).length;
 
   return {
     entries,
@@ -385,9 +432,9 @@ export const buildRegradeReport = (params: {
     review,
     rewritten,
     root: params.root,
-    scanned: fileEntries.length,
+    scanned: scannedEntries.length,
     selectedClassIds: selected.map((cls) => cls.id),
-    skipped: skipEntries.length,
+    skipped: skipEntries.length + fileSkipCount,
     unknownClassIds,
   };
 };
