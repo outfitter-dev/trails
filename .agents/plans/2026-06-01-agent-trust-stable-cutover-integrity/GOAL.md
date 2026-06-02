@@ -1,14 +1,19 @@
 ---
 created: "2026-06-01T17:30:00-04:00"
-updated: "2026-06-01T17:47:00-04:00"
-status: staged-outside-worktree
+updated: "2026-06-02T16:04:19-04:00"
+status: historical-execution-prompt
 eventual_repo_packet: ".agents/plans/2026-06-01-agent-trust-stable-cutover-integrity"
 ---
 
 # Goal Prompt
 
-Paste this into the executor once the packet has been copied into the dedicated
-execution worktree.
+Historical executor prompt. The packet has already been copied into the stack
+and PRs #652-#658 have been submitted through Graphite. Future operators should
+use `RETRO.md` for post-submit monitoring, review response, and merge evidence
+instead of pasting this prompt to start a new execution lane.
+
+This was pasted into the executor after the packet was copied into the
+dedicated execution worktree.
 
 ````text
 /goal
@@ -34,9 +39,11 @@ Validation: use narrow tests per branch, then broaden at the tip. Expected focus
 Stop and ask if main/Linear/PR state invalidates the order, TRL-772 requires broad Zod support rather than bounded rejection, checkpoint pressure wants mutation/autofix/shell-runner behavior, TRL-771 sprawls into broad exception governance, P0/P1/P2 review debt remains after four post-ready turns, or secrets/production/publish/merge actions are needed.
 ````
 
-## Copy-In Step
+## Historical Copy-In Step
 
-Before using the prompt, copy the staged packet into the execution worktree:
+The copy-in step below was completed during the initial delegated execution.
+Do not rerun it as a current action unless Matt explicitly reopens the packet
+setup flow.
 
 ```bash
 pwd -P
@@ -44,4 +51,4 @@ mkdir -p .agents/plans/2026-06-01-agent-trust-stable-cutover-integrity
 cp -R /Users/mg/.agents/plans/trails/2026-06-01-agent-trust-stable-cutover-integrity/. .agents/plans/2026-06-01-agent-trust-stable-cutover-integrity/
 ```
 
-After that copy, the in-worktree packet becomes the active source of truth.
+After that copy, the in-worktree packet became the active source of truth.

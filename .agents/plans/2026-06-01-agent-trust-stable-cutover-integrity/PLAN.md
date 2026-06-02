@@ -1,7 +1,7 @@
 ---
 created: "2026-06-01T17:30:00-04:00"
-updated: "2026-06-01T17:47:00-04:00"
-status: staged-outside-worktree
+updated: "2026-06-02T17:39:23-04:00"
+status: post-submit-monitoring
 owner: Lewis
 eventual_repo_packet: ".agents/plans/2026-06-01-agent-trust-stable-cutover-integrity"
 linear:
@@ -13,24 +13,27 @@ linear:
   - TRL-878
   - TRL-877
   - TRL-872
+  - TRL-879
 ---
 
 # Agent Trust / Stable Cutover Integrity
 
 ## Packet Status
 
-This packet is intentionally staged outside the Trails worktree at:
+This in-repo packet has been copied, committed, and submitted as part of the
+Graphite stack for PRs #652-#658. Current operators should use `RETRO.md` for
+post-submit review response, CI state, and merge evidence.
+
+The original home-level packet remains as provenance at:
 
 `/Users/mg/.agents/plans/trails/2026-06-01-agent-trust-stable-cutover-integrity`
 
-The eventual in-repo packet destination is:
+The active in-repo packet destination is:
 
 `.agents/plans/2026-06-01-agent-trust-stable-cutover-integrity/`
 
-Do not treat this home-level packet as source already committed to Trails. When
-execution starts in a dedicated worktree, copy the packet wholesale into the
-execution worktree, then commit it on the lowest branch in the implementation
-stack or on the first branch that makes the packet load-bearing.
+Do not recopy the home-level packet or recommit the initial packet setup unless
+Matt explicitly reopens the execution-bootstrap flow.
 
 ## Objective
 
@@ -78,7 +81,7 @@ Verified on 2026-06-01:
 | 6 | TRL-878 | `trl-878-apply-warden-scan-target-filtering-to-regrade` | Keep Regrade's Warden-backed route aligned with Warden's own scan-target exclusions. |
 | 7 | TRL-877 | `trl-877-resolve-wildcard-export-keys-in-catalog-derivation` | Fix adapter catalog export-pattern support before more adapter subjects opt in. |
 | 8 | TRL-872 | `trl-872-migrate-remaining-first-party-adapters-into-adaptercheck` | Conditional: migrate Commander/Vite/Drizzle only after catalog truth is solid and owner targets are explicit. |
-| 9 | New or explicit non-Linear branch | TBD | Read-only checkpoint verdict over existing Warden/doctor/Regrade/adapter evidence. Create a focused Linear issue first unless Matt chooses a non-issue branch. |
+| 9 | TRL-879 | `trl-879-checkpoint-agent-trust-stable-cutover-stack-verdict` | Read-only checkpoint verdict over existing Warden/doctor/Regrade/adapter evidence. Submitted as PR #658; verdict is `caution`, with submission status `draft-submit-ready`. |
 
 ## Recommended Direction
 
@@ -224,8 +227,10 @@ Completion contract:
 
 ### Capstone: Read-Only Checkpoint Verdict
 
-This slice needs a tracker decision before implementation. Either create a new
-Linear issue or use an explicit non-issue branch if Matt chooses that path.
+This slice was implemented as `TRL-879` on
+`trl-879-checkpoint-agent-trust-stable-cutover-stack-verdict` and submitted as
+PR #658. Current operators should treat this section as provenance for the
+checkpoint boundary, not as a prompt to create a new tracker issue or branch.
 
 Completion contract:
 
@@ -247,7 +252,11 @@ Planning phase:
 - Do not edit the primary worktree.
 - Do not commit this home-level packet.
 
-Execution phase:
+Historical execution phase:
+
+The bootstrap steps below were completed during the delegated stack execution.
+They remain as provenance for how the stack was created; they are not current
+instructions for post-submit operators.
 
 1. Run the Graphite first-pass state check before any source-control write:
 
@@ -363,7 +372,7 @@ Focused checks likely needed:
 - `bun test packages/warden/src/__tests__/adapter-check.test.ts`
 - `bun test apps/trails/src/__tests__/adapter-check.test.ts`
 
-Broader checks before submission:
+Broader checks for submit or review-response validation:
 
 - `bun run lint`
 - `bun run lint:ast-grep`
@@ -375,12 +384,14 @@ Broader checks before submission:
 - `bun run publish:check`
 - `git diff --check`
 
-Before submission:
+Historical submit gate:
 
-```bash
-gt submit --stack --draft --restack --no-edit --no-interactive --dry-run
-gt submit --stack --draft --restack --no-edit --no-interactive
-```
+The original execution used a Graphite stack dry-run followed by real stack
+submission from the stack tip. That step has already happened for PRs #652-#658
+and is retained here as provenance only. Post-submit operators should not rerun
+`gt submit` from this packet; current work is review-thread response, CI
+monitoring, ready/merge evidence, and source-control actions explicitly
+authorized in the coordinating turn.
 
 After submit, inspect each PR title/body and rewrite stale or placeholder
 bodies with `gh pr edit --body-file` using real temp files. Keep PRs draft until

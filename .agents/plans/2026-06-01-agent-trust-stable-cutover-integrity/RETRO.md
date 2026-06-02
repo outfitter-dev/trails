@@ -1,7 +1,7 @@
 ---
 created: "2026-06-01T17:30:00-04:00"
-updated: "2026-06-01T17:47:00-04:00"
-status: seeded
+updated: "2026-06-02T15:42:06-04:00"
+status: post-submit-monitoring
 packet_location: "/Users/mg/.agents/plans/trails/2026-06-01-agent-trust-stable-cutover-integrity"
 eventual_repo_packet: ".agents/plans/2026-06-01-agent-trust-stable-cutover-integrity"
 ---
@@ -10,18 +10,25 @@ eventual_repo_packet: ".agents/plans/2026-06-01-agent-trust-stable-cutover-integ
 
 ## Execution Summary
 
-Seeded outside the Trails worktree by Lewis on 2026-06-01.
+Seeded outside the Trails worktree by Lewis on 2026-06-01, then copied into
+the Trails stack as the checkpoint record.
 
-This packet has not been copied into the repo, committed, submitted, or tied to
-an execution worktree yet.
+PRs #652-#658 have been submitted through Graphite, including the TRL-879
+checkpoint branch. The stack is not merged; current work is post-submit CI,
+remote-review monitoring, and owning-branch review response.
 
 ## Branch / PR / Issue Ledger
 
 | Kind | Identifier | State | Notes |
 | --- | --- | --- | --- |
-| Branch | none | not started | No branch created during planning. |
-| PR | none | not started | No PR created during planning. |
-| Issues | TRL-772, TRL-773, TRL-770, TRL-769, TRL-771, TRL-878, TRL-877, TRL-872 | live | Existing Linear issues compose the planned stack. |
+| Branch | `trl-772-make-version-markers-account-for-or-reject-zod-validation` | submitted | PR #652; marker-schema runtime guard slice. |
+| Branch | `trl-773-align-marker-schema-unsupported-warden-coverage-with-runtime` | submitted | PR #653; Warden source-rule parity slice. |
+| Branch | `trl-770-make-trails-doctor-pending-force-output-complete-and` | submitted | PR #654; doctor pending-force output slice. |
+| Branch | `trl-769-document-pending-force-stable-cutover-gate` | submitted | PR #655; stable cutover gate docs slice. |
+| Branch | `trl-878-apply-warden-scan-target-filtering-to-regrade` | submitted | PR #656; Regrade scan-target filtering slice. |
+| Branch | `trl-877-resolve-wildcard-export-keys-in-catalog-derivation` | submitted | PR #657; adapter catalog export resolution slice. |
+| Branch | `trl-879-checkpoint-agent-trust-stable-cutover-stack-verdict` | submitted | PR #658; checkpoint evidence slice. |
+| Issues | TRL-772, TRL-773, TRL-770, TRL-769, TRL-771, TRL-878, TRL-877, TRL-872, TRL-879 | live | Existing Linear issues compose the submitted stack. |
 
 ## Planning Log
 
@@ -78,9 +85,11 @@ an execution worktree yet.
 
 ## Tracker Mutations
 
-None during planning. This is intentional: the existing issue shards are live,
-and the only missing tracker object is the capstone checkpoint verdict branch.
-Executor should create or choose that issue before implementing the capstone.
+None during planning. The existing issue shards remained live, and the
+checkpoint issue was chosen later as TRL-879 before the capstone branch was
+created. No additional tracker creation is needed for this submitted checkpoint;
+future operators should limit this packet to post-submit review, CI, and merge
+evidence unless Matt explicitly reopens tracker scope.
 
 ## Execution Log
 
@@ -286,9 +295,36 @@ Executor should create or choose that issue before implementing the capstone.
 - Ran `bun apps/trails/bin/trails.ts adapter check --root-dir . --json`; it
   passed with two owner targets (`@ontrails/http:http`,
   `@ontrails/store:store`) and one adapter subject (`@ontrails/hono`).
-- Checkpoint capstone remains blocked on a tracker decision: create/choose the
-  Linear issue for the read-only verdict branch, or confirm an explicit
-  non-issue branch with Matt.
+- Checkpoint capstone issue routing was resolved in the next step by using
+  TRL-879 for the read-only verdict branch; this line is historical context.
+
+### 2026-06-01 18:27 EDT - TRL-879 checkpoint verdict prepared
+
+- Coordinator provided checkpoint issue TRL-879 and branch
+  `trl-879-checkpoint-agent-trust-stable-cutover-stack-verdict`.
+- Created the checkpoint child from clean
+  `trl-877-resolve-wildcard-export-keys-in-catalog-derivation` tip.
+- Added
+  `.agents/plans/2026-06-01-agent-trust-stable-cutover-integrity/CHECKPOINT-TRL-879.md`
+  as the read-only checkpoint evidence surface.
+- Verdict: `caution`.
+- Submission status: `draft-submit-ready`.
+- The checkpoint slice made no source behavior edits, no generated or lockfile
+  edits, no Linear mutation, no registry or publish mutation, and no PR
+  readiness/merge/queue action.
+- Stack-tip validation before the checkpoint note:
+  - `bun scripts/adr.ts check` passed with 0 errors and 0 warnings.
+  - `bun run check` passed. `trails warden` reported PASS with 0 errors and
+    3 existing `signal-graph-coaching` warnings in the demo topo.
+  - `bun run test` passed with 40 successful Turbo tasks.
+  - `bun run build` passed with 24 successful Turbo tasks.
+  - `bun run publish:check` passed as dry pack validation only; no publish
+    command ran.
+- Post-submit status from the committed checkpoint tip: Graphite submission has
+  already happened (PRs #652-#658 exist and the checkpoint review-log update was
+  recorded after CI was green). This checkpoint is evidence-only, so only
+  post-submit monitoring remains — do not resubmit or otherwise mutate the
+  Graphite stack from it.
 
 ## Verification Log
 
@@ -304,12 +340,42 @@ Planning verification only:
 
 ## Local Review Log
 
-No local or remote code review has run. Executor must run local review from the
-stack tip before submission and record P0-P3 findings here.
+### 2026-06-01 22:54 EDT - Coordinator local review before ready
+
+Overall score: 4/5
+
+Summary:
+The stack passed local review well enough to mark ready after one P3
+documentation nit was corrected on the owning branch. No P0/P1/P2 findings
+remain.
+
+Findings:
+
+- P3 - `docs/releases/stable-cutover.md` - The inserted pending-force
+  precondition left the following "ADR and docs checks" item numbered as `1.`
+  instead of `11.`. Fixed on
+  `trl-769-document-pending-force-stable-cutover-gate` before ready.
+  Prompt To Fix With AI:
+  Update the stable cutover precondition list so numbering remains continuous
+  after the pending-force gate insertion.
+
+No-findings statement:
+Reviewed the stack-tip diff across marker semantics and ADR fit, Warden
+source-rule coverage and callback-scope false-positive risk, doctor force
+detail output and release-gate shape, Regrade/Warden scan-target parity,
+adapter wildcard export resolution, and the checkpoint first-slice boundary.
+Residual risk is limited to the intentionally bounded v1 marker-schema subset;
+unsupported Zod semantics now fail loudly rather than silently projecting
+unstable markers.
 
 ## Remote Review / CI Log
 
-Not started. No PRs exist for this packet yet.
+PRs #652-#658 have been submitted. Earlier coordinator inspection found no
+inline review threads and no actionable PR comments/reviews; only Linear
+linkbacks and Graphite stack comments were present. CI was green on all seven
+draft PRs before the P3 documentation numbering fix and checkpoint review-log
+update. New post-submit review or CI findings should be handled on the owning
+branch before any follow-up submit.
 
 ## Forbidden Actions Audit
 
@@ -325,12 +391,17 @@ Planning phase:
 
 ## Final State
 
-Not complete. This packet is ready to copy into a dedicated execution worktree
-when Matt chooses to start the goal.
+Submitted checkpoint state is recorded. TRL-879 provided the checkpoint issue
+and branch, PRs #652-#658 exist, and the checkpoint artifact records the
+pre-submit `draft-submit-ready` evidence-only verdict. No capstone tracker
+decision or initial-submit action remains in this packet. The stack is still
+open, so only post-submit monitoring and owning-branch review response work
+should mutate it until merge.
 
 ## Remaining Risks
 
-- The capstone checkpoint slice needs a tracker decision before implementation.
+- Remote review or CI can still produce follow-up work after submission; route
+  fixes to the owning branch and keep checkpoint-only evidence changes scoped.
 - `TRL-772` may force a doctrinal decision about whether to support or reject
   certain Zod validation checks in v1 marker content. The recommended default
   is reject unsupported constructs loudly unless canonical support is clearly

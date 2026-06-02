@@ -1,16 +1,16 @@
 ---
 created: "2026-06-01T17:30:00-04:00"
-updated: "2026-06-01T17:47:00-04:00"
-status: staged-outside-worktree
+updated: "2026-06-02T17:30:57-04:00"
+status: post-submit-monitoring
 ---
 
 # References
 
 ## Packet Locations
 
-- Staged packet:
+- Original staged packet:
   `/Users/mg/.agents/plans/trails/2026-06-01-agent-trust-stable-cutover-integrity`
-- Eventual in-repo destination:
+- Submitted in-repo packet:
   `.agents/plans/2026-06-01-agent-trust-stable-cutover-integrity/`
 
 ## Repo Guidance
@@ -34,6 +34,7 @@ status: staged-outside-worktree
 - `TRL-878`: Apply Warden scan-target filtering to Regrade.
 - `TRL-877`: Resolve wildcard export keys in catalog derivation.
 - `TRL-872`: Migrate remaining first-party adapters into adapter.check model.
+- `TRL-879`: Checkpoint Agent Trust stable cutover stack verdict.
 
 ## Marker and Versioning
 
