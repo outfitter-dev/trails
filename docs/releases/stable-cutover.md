@@ -25,8 +25,52 @@ Before creating the version PR:
    exceptions.
 2. `main` is current and green in CI.
 3. No old release-blocking stack is still open underneath the stable branch.
-4. The stable release doctrine ADR exists and is accepted.
-5. Registry posture is known for every non-private public `@ontrails/*`
+4. Pending force audit events are resolved before the version PR leaves draft:
+
+   ```bash
+   bun apps/trails/bin/trails.ts compile --root-dir apps/trails --module ./src/app.ts --permit '{"id":"stable-cutover","scopes":["topo:write"]}'
+   bun apps/trails/bin/trails.ts diff --forces --root-dir apps/trails --module ./src/app.ts
+   bun apps/trails/bin/trails.ts doctor --root-dir apps/trails --module ./src/app.ts
+   bun apps/trails/bin/trails.ts warden --pre-push --depth all --lock skip --root-dir apps/trails --apps ./src/app.ts
+   ```
+
+   The compile command writes topo artifacts, so it requires an inline permit
+   with the `topo:write` scope. Run the gate from the repo root, but point the
+   topo commands at the Trails app root with `--root-dir apps/trails --module
+   ./src/app.ts`; passing a repo-root module path such as
+   `apps/trails/src/app.ts` does not exercise the CLI's fresh app-loading path.
+   The repo ships more than one app module (`apps/trails` and
+   `apps/trails-demo`), so pass an explicit app selector: `--module` for the
+   compile, diff, and doctor commands, and `--apps` for Warden. Without an app
+   selector, discovery finds multiple candidates and aborts before any evidence
+   is produced. `trails diff --forces` compares against the saved
+   `apps/trails/.trails/topo.lock`, so run `trails compile` first; without a
+   saved TopoGraph the diff fails with `NotFoundError` before any force evidence
+   can be collected. The diff and doctor output are the saved force-audit
+   evidence for the release gate.
+   `pending-force` is a topo-aware rule, so the Warden run must reach `topo` or
+   `all` depth to surface live topo-derived force warnings. The bare `--pre-push`
+   preset resolves Warden at `project` depth and never runs topo resolution, so
+   `--depth all` is required here for the Warden cross-check. Use `--lock skip`
+   so Warden checks the live app topology without turning saved force annotations
+   into a drift blocker. A clean Warden run is not a substitute for the saved
+   `apps/trails/.trails/topo.lock` evidence above. The v1 stable cutover default
+   is zero pending force events. If a force event must remain for the stable
+   version PR, the PR body must name the exception owner, forced entity, reason,
+   and planned resolution before review starts. Warden `pending-force` output is
+   a release-review warning, not an automatic exception.
+
+   `trails compile` can write generated topo evidence files. Remove them before
+   continuing to the clean-main preconditions unless the release branch is
+   intentionally updating those artifacts:
+
+   ```bash
+   rm -f apps/trails/.trails/topo.lock apps/trails/.trails/trails.lock
+   git status --short -- apps/trails/.trails/topo.lock apps/trails/.trails/trails.lock
+   ```
+
+5. The stable release doctrine ADR exists and is accepted.
+6. Registry posture is known for every non-private public `@ontrails/*`
    workspace:
 
    ```bash
@@ -38,19 +82,19 @@ Before creating the version PR:
    publication; after publishing, use `bun run publish:registry-check:published`
    to require every package and dist-tag to exist.
 
-6. The local package tarballs are clean:
+7. The local package tarballs are clean:
 
    ```bash
    bun run publish:check
    ```
 
-7. The Changesets release plan computes:
+8. The Changesets release plan computes:
 
    ```bash
    bunx changeset status --verbose
    ```
 
-8. Scaffolded project dependency pins are ready for the target package line:
+9. Scaffolded project dependency pins are ready for the target package line:
 
    ```bash
    bun run scaffold-versions:check
@@ -61,20 +105,20 @@ Before creating the version PR:
    version PR should update that package version through Changesets before the
    post-version scaffold inspection below.
 
-9. No generated local SQLite artifacts are staged:
+10. No generated local SQLite artifacts are staged:
 
-   ```bash
-   git status --short -- .trails .trails-tmp
-   git status --short -- .trails/state/trails.db .trails/state/trails.db-shm .trails/state/trails.db-wal
-   ```
+    ```bash
+    git status --short -- .trails .trails-tmp
+    git status --short -- .trails/state/trails.db .trails/state/trails.db-shm .trails/state/trails.db-wal
+    ```
 
-10. The ADR and docs checks pass:
+11. The ADR and docs checks pass:
 
-   ```bash
-   bun scripts/adr.ts map
-   bun scripts/adr.ts check
-   bun run format:check
-   ```
+    ```bash
+    bun scripts/adr.ts map
+    bun scripts/adr.ts check
+    bun run format:check
+    ```
 
 If any precondition fails, stop and fix that issue in its own branch before starting the stable version PR.
 
@@ -99,11 +143,22 @@ Run the pre-version checks:
 ```bash
 bun scripts/adr.ts map
 bun scripts/adr.ts check
+bun apps/trails/bin/trails.ts compile --root-dir apps/trails --module ./src/app.ts --permit '{"id":"stable-cutover","scopes":["topo:write"]}'
+bun apps/trails/bin/trails.ts diff --forces --root-dir apps/trails --module ./src/app.ts
+bun apps/trails/bin/trails.ts doctor --root-dir apps/trails --module ./src/app.ts
+bun apps/trails/bin/trails.ts warden --pre-push --depth all --lock skip --root-dir apps/trails --apps ./src/app.ts
 bun run check
 bun run build
 bun run publish:check
 bun run publish:registry-check
 bunx changeset status --verbose
+```
+
+`trails compile` can write `apps/trails/.trails/topo.lock` and `apps/trails/.trails/trails.lock`. If the version PR is not intentionally updating those generated artifacts, remove the evidence files before continuing:
+
+```bash
+rm -f apps/trails/.trails/topo.lock apps/trails/.trails/trails.lock
+git status --short -- apps/trails/.trails/topo.lock apps/trails/.trails/trails.lock
 ```
 
 Run a registry-backed generated-app smoke before exiting prerelease mode. This proves the current published prerelease package set and the generator still agree:
@@ -205,6 +260,9 @@ Keep the PR draft until CI is green and review is complete. The PR body should i
 - `bunx changeset status --verbose` summary;
 - `bun run publish:check` result;
 - `bun run publish:registry-check` result;
+- pending-force gate evidence from `trails diff --forces`, `trails doctor`,
+  and Warden `pending-force` status, or a named exception with owner, forced
+  entity, reason, and planned resolution;
 - pre-version fresh-start generated-app smoke evidence;
 - generated stable dependency range evidence from the post-version scaffold;
 - a statement that no publish command was run from the PR branch.

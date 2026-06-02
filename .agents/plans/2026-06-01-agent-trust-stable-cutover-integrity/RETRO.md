@@ -197,6 +197,25 @@ Executor should create or choose that issue before implementing the capstone.
   - `bun run format:check` passed after formatting the touched app files.
   - `git diff --check` passed.
 
+### 2026-06-01 18:11 EDT - TRL-769 pending-force cutover gate documented
+
+- Created child branch
+  `trl-769-document-pending-force-stable-cutover-gate`.
+- Updated `docs/releases/stable-cutover.md` so the stable version PR cannot
+  leave draft until pending force audit evidence is recorded.
+- Added the explicit precondition commands:
+  - `bun apps/trails/bin/trails.ts diff --forces`
+  - `bun apps/trails/bin/trails.ts doctor`
+  - `bun apps/trails/bin/trails.ts warden --pre-push`
+- Documented the v1 default as zero pending force events, with any remaining
+  event requiring a named PR-body exception that identifies the owner, forced
+  entity, reason, and planned resolution before review starts.
+- Kept the guidance read-only and Bun-only; no publish, registry mutation,
+  `npm publish`, or `changeset publish` guidance was added.
+- Verification:
+  - `bun run format:check` passed.
+  - `git diff --check` passed.
+
 ## Verification Log
 
 Planning verification only:
