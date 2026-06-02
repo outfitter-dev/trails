@@ -460,6 +460,36 @@ trail('versioned.hidden-optional', {
     ).toBe(true);
   });
 
+  test('marker-schema-unsupported follows aliases for hidden optional wrappers', () => {
+    const diagnostics = markerSchemaUnsupported.check(
+      `
+const base = z.string().optional();
+const nested = base.nullable();
+
+trail('versioned.hidden-optional-alias', {
+  version: 2,
+  input: z.object({
+    visible: base,
+    directHidden: base.nullable(),
+    nestedHidden: nested,
+  }),
+  output: z.object({ ok: z.boolean() }),
+  blaze: async () => Result.ok({ ok: true }),
+});
+`,
+      sourceFile
+    );
+
+    expect(diagnostics).toHaveLength(2);
+    expect(
+      diagnostics.every(
+        (entry) =>
+          entry.rule === 'marker-schema-unsupported' &&
+          entry.severity === 'error'
+      )
+    ).toBe(true);
+  });
+
   test('marker-schema-unsupported rejects optional wrappers outside object properties', () => {
     const diagnostics = markerSchemaUnsupported.check(
       `

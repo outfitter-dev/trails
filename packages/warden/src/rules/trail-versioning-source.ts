@@ -520,25 +520,37 @@ const callChainHasOptionalWrapper = (
   node: AstNode | undefined,
   schemaBindings: SchemaBindings
 ): boolean => {
-  let current = node;
-  while (current !== undefined) {
-    if (current.type === 'CallExpression') {
-      const callee = callCallee(current);
+  const seen = new Set<number>();
+  const visit = (current: AstNode | undefined): boolean => {
+    const expression = unwrapExpression(current);
+    if (expression === undefined || seen.has(expression.start)) {
+      return false;
+    }
+    seen.add(expression.start);
+
+    const name = identifierName(expression);
+    if (name !== undefined) {
+      return visit(
+        schemaBindingInitializer(schemaBindings, name, expression.start)
+      );
+    }
+
+    if (expression.type === 'CallExpression') {
+      const callee = callCallee(expression);
       if (
         memberPropertyName(callee) === 'optional' &&
         isZodSchemaCallee(callee, schemaBindings)
       ) {
         return true;
       }
-      current = memberObject(callee);
-      continue;
+      return visit(memberObject(callee));
     }
-    if (!isMemberAccessNonComputed(current)) {
+    if (!isMemberAccessNonComputed(expression)) {
       return false;
     }
-    current = memberObject(current);
-  }
-  return false;
+    return visit(memberObject(expression));
+  };
+  return visit(node);
 };
 
 const isHiddenOptionalWrapperCall = (
