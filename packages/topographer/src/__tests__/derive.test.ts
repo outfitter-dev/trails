@@ -518,6 +518,29 @@ describe('deriveTopoGraph', () => {
       );
     });
 
+    test('rejects unsupported marker validation checks with schema paths', () => {
+      const versioned = trail('marker.validation-check', {
+        blaze: (input) => Result.ok({ value: input.value }),
+        input: z.object({ value: z.string().min(3) }),
+        output: z.object({ value: z.string() }),
+        version: 2,
+        versions: {
+          1: {
+            input: z.object({ value: z.string() }),
+            output: z.object({ value: z.string() }),
+            transpose: {
+              input: ({ input }) => input,
+              output: ({ output }) => output,
+            },
+          },
+        },
+      });
+
+      expect(() => deriveTopoGraph(topoFrom({ versioned }))).toThrow(
+        'input.value'
+      );
+    });
+
     test('trail entries include composes array when non-empty', () => {
       const base = trail('user.get', {
         blaze: noop,

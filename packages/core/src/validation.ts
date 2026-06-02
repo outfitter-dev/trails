@@ -83,6 +83,15 @@ const getSchemaJsonSchemaOverride = (
   return undefined;
 };
 
+/**
+ * Whether a schema has a deterministic JSON-schema override projection (for
+ * example `blobRefSchema`, a `z.custom(...)` carrying the descriptor metadata).
+ * Such schemas project to a canonical descriptor regardless of their underlying
+ * Zod internals, so marker derivation can treat them as supported.
+ */
+export const schemaHasJsonSchemaOverride = (schema: z.ZodType): boolean =>
+  getSchemaJsonSchemaOverride(schema) !== undefined;
+
 // ---------------------------------------------------------------------------
 // Issue formatting
 // ---------------------------------------------------------------------------
@@ -152,22 +161,74 @@ export const validateOutput = <T>(
 const DYNAMIC_DEFAULT = Symbol('DYNAMIC_DEFAULT');
 const defaultValueCache = new WeakMap<object, unknown>();
 
-/** Read a Zod v4 default getter twice and decide if it's stable.
- *  Uses Object.is for primitives and JSON.stringify for objects/arrays. */
+const defaultsMatch = (left: unknown, right: unknown): boolean => {
+  if (Object.is(left, right)) {
+    return true;
+  }
+  try {
+    return JSON.stringify(left) === JSON.stringify(right);
+  } catch {
+    return false;
+  }
+};
+
+const waitForClockAdvance = (): void => {
+  const wallStart = Date.now();
+  const monotonicStart = performance.now();
+  while (Date.now() === wallStart && performance.now() - monotonicStart < 4) {
+    // Zod hides default factories behind a getter. A bounded sync wait lets
+    // Date.now()-style factories reveal themselves without making the API async.
+  }
+};
+
+const readDefaultWithDateNowOffset = (
+  def: Record<string, unknown>
+): unknown => {
+  const originalDateNow = Date.now;
+  try {
+    Date.now = () => originalDateNow() + 86_400_000;
+    return def['defaultValue'];
+  } finally {
+    Date.now = originalDateNow;
+  }
+};
+
+/**
+ * Read a Zod v4 default getter and decide if it is stable.
+ *
+ * Uses Object.is for primitives and JSON.stringify for objects/arrays. A delayed
+ * third read catches default factories such as `() => Date.now()` that can return
+ * equal values for immediate back-to-back reads. A Date.now() probe catches
+ * coarser clock factories without requiring marker derivation to wait for the
+ * next second/day boundary.
+ */
 const resolveDefault = (def: Record<string, unknown>): unknown => {
   try {
     const a = def['defaultValue'];
     const b = def['defaultValue'];
-    if (Object.is(a, b)) {
-      return a;
+    if (!defaultsMatch(a, b)) {
+      return DYNAMIC_DEFAULT;
     }
-    // Object/array defaults produce new references each call but may
-    // still be structurally identical (e.g. `() => ({ key: 'val' })`).
-    return JSON.stringify(a) === JSON.stringify(b) ? a : DYNAMIC_DEFAULT;
+    waitForClockAdvance();
+    const c = def['defaultValue'];
+    if (!defaultsMatch(a, c)) {
+      return DYNAMIC_DEFAULT;
+    }
+    const d = readDefaultWithDateNowOffset(def);
+    return defaultsMatch(a, d) ? a : DYNAMIC_DEFAULT;
   } catch {
     // BigInt, circular refs, or other non-serializable defaults
     return DYNAMIC_DEFAULT;
   }
+};
+
+export const zodDefaultValueIsDynamic = (
+  def: Record<string, unknown>
+): boolean => {
+  if (!defaultValueCache.has(def)) {
+    defaultValueCache.set(def, resolveDefault(def));
+  }
+  return defaultValueCache.get(def) === DYNAMIC_DEFAULT;
 };
 
 /**
@@ -223,9 +284,7 @@ export const zodToJsonSchema: JsonSchemaConverter = (
     default: (value) => {
       const inner = value._zod.def['innerType'] as unknown as z.ZodType;
       const innerSchema = zodToJsonSchema(inner);
-      if (!defaultValueCache.has(value._zod.def)) {
-        defaultValueCache.set(value._zod.def, resolveDefault(value._zod.def));
-      }
+      zodDefaultValueIsDynamic(value._zod.def);
       const cached = defaultValueCache.get(value._zod.def);
       if (cached !== DYNAMIC_DEFAULT) {
         innerSchema['default'] = cached;

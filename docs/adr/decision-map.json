@@ -708,7 +708,7 @@
           "fromPath": "docs/adr/0038-typed-signal-emission.md"
         },
         {
-          "context": "before runtime, and [ADR-0007](../0007-governance-as-trails.md) made that",
+          "context": "Warden is the governance arm of Trails. It is where drift becomes visible before runtime, and [ADR-0007](../0007-governance-as-trails.md) made that governance trail-shaped instead of a parallel lint s",
           "from": "20260530",
           "fromPath": "docs/adr/drafts/20260530-fixes-are-warden-diagnostic-metadata.md"
         },
@@ -2228,7 +2228,7 @@
           "fromPath": "docs/adr/0037-owner-first-authority.md"
         },
         {
-          "context": "[ADR-0036](../0036-warden-rules-ship-only-as-trails.md) tightened the public",
+          "context": "Warden is the governance arm of Trails. It is where drift becomes visible before runtime, and [ADR-0007](../0007-governance-as-trails.md) made that governance trail-shaped instead of a parallel lint s",
           "from": "20260530",
           "fromPath": "docs/adr/drafts/20260530-fixes-are-warden-diagnostic-metadata.md"
         },

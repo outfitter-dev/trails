@@ -138,7 +138,7 @@ Marker inputs are contract content, not implementation source:
 - `status` and `examples` are mutable and do not participate in the frozen
   marker hash.
 
-Marker canonicalization in v1 is intentionally bounded to the supported Zod subset the implementation can serialize deterministically. Unsupported schema features must fail loudly with a clear diagnostic instead of producing unstable markers. If implementation evidence shows the needed Zod semantics cannot be bounded safely in M2, the stack must stop and defer that part to the later bounded-Zod rule work.
+Marker canonicalization in v1 is intentionally bounded to the supported Zod subset the implementation can serialize deterministically. Unsupported schema features must fail loudly with a clear diagnostic instead of producing unstable markers. The v1 marker subset excludes Zod validation checks (`min`, `email`, `int`, array length checks, `refine`, `superRefine`, and similar `checks`) plus object unknown-key and catchall policy changes (`strict`, `passthrough`, and `catchall`) until those semantics can be represented canonically. If implementation evidence shows additional Zod semantics cannot be bounded safely in M2, the stack must stop and defer that part to the later bounded-Zod rule work.
 
 `@N` references resolve by integer version. `@<marker-prefix>` references resolve by unambiguous marker prefix.
 
