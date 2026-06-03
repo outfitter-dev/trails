@@ -10,7 +10,7 @@ import {
   isWardenSourceScanTarget,
   wardenRules,
 } from '@ontrails/warden';
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { z } from 'zod';
 
 import { collectDownstreamSources } from './collect.js';
@@ -78,6 +78,20 @@ export interface RegradeClass {
 export interface RegradeSelection {
   /** Class ids to run. Omit to run every provided class. */
   readonly classIds?: readonly string[];
+}
+
+/** Optional write summary for an apply-mode regrade run. */
+export interface RegradeApplySummary {
+  /** Safe rewrite outcomes written to disk. */
+  readonly applied: number;
+  /** Distinct files changed on disk. */
+  readonly filesChanged: number;
+  /** Rewrite candidates intentionally not written. */
+  readonly skipped: number;
+  /** Files still requiring review. */
+  readonly review: number;
+  /** Unknown selected class ids; apply mode writes nothing when non-zero. */
+  readonly unknown: number;
 }
 
 const escapeRegExp = (value: string): string =>
@@ -328,6 +342,20 @@ export interface RegradeReport {
   readonly skipped: number;
   /** Per-entry detail, sorted by path. */
   readonly entries: readonly RegradeReportEntry[];
+  /** Apply-mode summary; absent for dry-run report-only calls. */
+  readonly apply?: RegradeApplySummary;
+}
+
+interface RegradeRewriteCandidate {
+  readonly absolutePath: string;
+  readonly classId: string;
+  readonly nextSource: string;
+  readonly path: string;
+}
+
+interface RegradeClassifiedFile {
+  readonly entry: RegradeReportEntry;
+  readonly rewrite?: RegradeRewriteCandidate;
 }
 
 const classifyFile = (
@@ -335,7 +363,7 @@ const classifyFile = (
   source: string,
   context: RegradeClassContext,
   selected: readonly RegradeClass[]
-): RegradeReportEntry => {
+): RegradeClassifiedFile => {
   // First selected class that matches (rewrite or review) wins, mirroring the
   // "run one class" emphasis. A scan-target skip is remembered so the file is
   // accounted as skipped rather than a scanned/clean no-op. No-ops fall through.
@@ -345,15 +373,46 @@ const classifyFile = (
   for (const cls of selected) {
     const result = cls.apply(source, context);
     if (result.kind === 'rewrite') {
-      return { classId: cls.id, notes: result.notes, outcome: 'rewrite', path };
+      if (typeof result.nextSource !== 'string') {
+        return {
+          entry: {
+            classId: cls.id,
+            notes: result.notes,
+            outcome: 'needs-review',
+            path,
+            reason: 'regrade-rewrite-missing-source',
+          },
+        };
+      }
+      const entry = {
+        classId: cls.id,
+        notes: result.notes,
+        outcome: 'rewrite',
+        path,
+      } satisfies RegradeReportEntry;
+      return {
+        entry,
+        ...(context.absolutePath === undefined
+          ? {}
+          : {
+              rewrite: {
+                absolutePath: context.absolutePath,
+                classId: cls.id,
+                nextSource: result.nextSource,
+                path,
+              },
+            }),
+      };
     }
     if (result.kind === 'needs-review') {
       return {
-        classId: cls.id,
-        notes: result.notes,
-        outcome: 'needs-review',
-        path,
-        reason: result.reason ?? 'needs-review',
+        entry: {
+          classId: cls.id,
+          notes: result.notes,
+          outcome: 'needs-review',
+          path,
+          reason: result.reason ?? 'needs-review',
+        },
       };
     }
     if (result.kind === 'skipped' && skipped === undefined) {
@@ -362,21 +421,28 @@ const classifyFile = (
   }
   if (skipped !== undefined) {
     return {
-      classId: skipped.classId,
-      notes: skipped.result.notes,
-      outcome: 'skip',
-      path,
-      reason: skipped.result.reason ?? 'skipped',
+      entry: {
+        classId: skipped.classId,
+        notes: skipped.result.notes,
+        outcome: 'skip',
+        path,
+        reason: skipped.result.reason ?? 'skipped',
+      },
     };
   }
-  return { outcome: 'no-op', path };
+  return { entry: { outcome: 'no-op', path } };
 };
+
+interface RegradeEvaluation {
+  readonly report: RegradeReport;
+  readonly rewrites: readonly RegradeRewriteCandidate[];
+}
 
 /**
  * Build a coverage report from already-read source files. Pure: no filesystem
  * access, so coverage semantics are testable directly.
  */
-export const buildRegradeReport = (params: {
+const buildRegradeEvaluation = (params: {
   readonly root: string;
   readonly files: readonly {
     readonly path: string;
@@ -386,13 +452,13 @@ export const buildRegradeReport = (params: {
   readonly skipped: readonly SkippedSource[];
   readonly classes: readonly RegradeClass[];
   readonly selection?: RegradeSelection;
-}): RegradeReport => {
+}): RegradeEvaluation => {
   const { selected, unknownClassIds } = selectRegradeClasses(
     params.classes,
     params.selection
   );
 
-  const fileEntries = params.files.map((file) =>
+  const classifiedFiles = params.files.map((file) =>
     classifyFile(
       file.path,
       file.source,
@@ -404,6 +470,10 @@ export const buildRegradeReport = (params: {
       },
       selected
     )
+  );
+  const fileEntries = classifiedFiles.map((file) => file.entry);
+  const rewrites = classifiedFiles.flatMap((file) =>
+    file.rewrite === undefined ? [] : [file.rewrite]
   );
   const skipEntries: RegradeReportEntry[] = params.skipped.map((entry) => ({
     outcome: 'skip',
@@ -427,31 +497,75 @@ export const buildRegradeReport = (params: {
   ).length;
 
   return {
-    entries,
-    matched: rewritten + review,
-    review,
-    rewritten,
-    root: params.root,
-    scanned: scannedEntries.length,
-    selectedClassIds: selected.map((cls) => cls.id),
-    skipped: skipEntries.length + fileSkipCount,
-    unknownClassIds,
+    report: {
+      entries,
+      matched: rewritten + review,
+      review,
+      rewritten,
+      root: params.root,
+      scanned: scannedEntries.length,
+      selectedClassIds: selected.map((cls) => cls.id),
+      skipped: skipEntries.length + fileSkipCount,
+      unknownClassIds,
+    },
+    rewrites,
   };
 };
 
-/**
- * Run a regrade over an explicit downstream root, producing a coverage report.
- *
- * Never throws: an unreadable root yields `null` (the trail maps it to a
- * `NotFoundError`); files that cannot be read are recorded as skips. This does
- * not write to disk — it reports the rewrites a run would make.
- */
-export const runRegrade = (params: {
+export const buildRegradeReport = (params: {
+  readonly root: string;
+  readonly files: readonly {
+    readonly path: string;
+    readonly source: string;
+    readonly absolutePath?: string;
+  }[];
+  readonly skipped: readonly SkippedSource[];
+  readonly classes: readonly RegradeClass[];
+  readonly selection?: RegradeSelection;
+}): RegradeReport => buildRegradeEvaluation(params).report;
+
+const applyRegradeEvaluation = (
+  evaluation: RegradeEvaluation
+): RegradeApplySummary => {
+  if (evaluation.report.unknownClassIds.length > 0) {
+    return {
+      applied: 0,
+      filesChanged: 0,
+      review: evaluation.report.review,
+      skipped: evaluation.report.skipped + evaluation.rewrites.length,
+      unknown: evaluation.report.unknownClassIds.length,
+    };
+  }
+
+  const changedFiles = new Set<string>();
+  for (const rewrite of evaluation.rewrites) {
+    writeFileSync(rewrite.absolutePath, rewrite.nextSource, 'utf8');
+    changedFiles.add(rewrite.path);
+  }
+
+  return {
+    applied: evaluation.rewrites.length,
+    filesChanged: changedFiles.size,
+    review: evaluation.report.review,
+    skipped: evaluation.report.skipped,
+    unknown: 0,
+  };
+};
+
+const withApplySummary = (
+  report: RegradeReport,
+  apply: RegradeApplySummary
+): RegradeReport => ({
+  ...report,
+  apply,
+});
+
+const runRegradeEvaluation = (params: {
   readonly root: string;
   readonly classes: readonly RegradeClass[];
   readonly selection?: RegradeSelection;
   readonly collection?: DownstreamCollectionOptions;
-}): RegradeReport | null => {
+}): RegradeEvaluation | null => {
   const collected = collectDownstreamSources(
     params.root,
     params.collection ?? {}
@@ -474,13 +588,42 @@ export const runRegrade = (params: {
     }
   }
 
-  return buildRegradeReport({
+  return buildRegradeEvaluation({
     classes: params.classes,
     files,
     root: params.root,
     skipped,
     ...(params.selection === undefined ? {} : { selection: params.selection }),
   });
+};
+
+/**
+ * Run a regrade over an explicit downstream root.
+ *
+ * Dry-run is the default and only reports candidate rewrites. Explicit apply
+ * mode writes safe rewrite outcomes with concrete `nextSource` payloads and
+ * summarizes what was written or intentionally skipped.
+ */
+export const runRegrade = (params: {
+  readonly root: string;
+  readonly classes: readonly RegradeClass[];
+  readonly selection?: RegradeSelection;
+  readonly collection?: DownstreamCollectionOptions;
+  readonly apply?: boolean;
+}): RegradeReport | null => {
+  const evaluation = runRegradeEvaluation(params);
+  if (evaluation === null) {
+    return null;
+  }
+
+  if (params.apply !== true) {
+    return evaluation.report;
+  }
+
+  return withApplySummary(
+    evaluation.report,
+    applyRegradeEvaluation(evaluation)
+  );
 };
 
 const regradeReportEntrySchema = z.object({
@@ -494,6 +637,10 @@ const regradeReportEntrySchema = z.object({
 });
 
 export const regradeReportInput = z.object({
+  apply: z
+    .boolean()
+    .default(false)
+    .describe('Write safe rewrites to disk; dry-run report only by default'),
   classIds: z
     .array(z.string())
     .optional()
@@ -503,7 +650,18 @@ export const regradeReportInput = z.object({
     .describe('Absolute path to the downstream repo root to scan'),
 });
 
+const regradeApplySummarySchema = z.object({
+  applied: z.number().describe('Safe rewrite outcomes written to disk'),
+  filesChanged: z.number().describe('Distinct files changed on disk'),
+  review: z.number().describe('Files still requiring review'),
+  skipped: z.number().describe('Rewrite candidates intentionally not written'),
+  unknown: z.number().describe('Unknown selected class ids'),
+});
+
 export const regradeReportOutput = z.object({
+  apply: regradeApplySummarySchema
+    .optional()
+    .describe('Apply-mode summary; absent for dry-run report-only calls'),
   entries: z
     .array(regradeReportEntrySchema)
     .describe('Per-entry detail, sorted by path'),
@@ -548,6 +706,7 @@ export const wardenTermRewriteClasses: readonly RegradeClass[] = Object.freeze(
 export const regradeReportTrail = trail('regrade.downstream.report', {
   blaze: (input) => {
     const report = runRegrade({
+      apply: input.apply,
       classes: wardenTermRewriteClasses,
       root: input.root,
       ...(input.classIds === undefined

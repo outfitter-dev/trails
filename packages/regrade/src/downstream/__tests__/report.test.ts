@@ -1,7 +1,13 @@
 import { describe, expect, test } from 'bun:test';
 import { executeTrail } from '@ontrails/core';
 import type { WardenRule } from '@ontrails/warden';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -14,6 +20,7 @@ import {
   selectRegradeClasses,
   wardenTermRewriteClasses,
 } from '../report.js';
+import type { RegradeClass } from '../report.js';
 
 const signalToPing = createTermRewriteClass({ from: 'signal', to: 'ping' });
 
@@ -320,6 +327,29 @@ describe('buildRegradeReport', () => {
     expect(skipEntry?.outcome).toBe('skip');
     expect(skipEntry?.reason).toBe('warden-scan-target-filtered');
   });
+
+  test('routes rewrite outcomes without concrete nextSource to review', () => {
+    const brokenRewrite = {
+      apply: () => ({
+        kind: 'rewrite',
+        notes: ['missing source'],
+      }),
+      describe: 'Broken rewrite for test coverage.',
+      id: 'broken-rewrite',
+    } satisfies RegradeClass;
+
+    const report = buildRegradeReport({
+      classes: [brokenRewrite],
+      files: [{ path: 'src/a.ts', source: 'const x = 1;' }],
+      root: '/repo',
+      skipped: [],
+    });
+
+    expect(report.rewritten).toBe(0);
+    expect(report.review).toBe(1);
+    expect(report.entries[0]?.outcome).toBe('needs-review');
+    expect(report.entries[0]?.reason).toBe('regrade-rewrite-missing-source');
+  });
 });
 
 const writeReportFixture = (): string => {
@@ -335,6 +365,17 @@ const writeReportFixture = (): string => {
   );
   writeFileSync(join(root, 'src', 'b.ts'), 'export const signalHandler = 2;\n');
   writeFileSync(join(root, 'dist', 'out.ts'), 'export const signal = 9;\n');
+  return root;
+};
+
+const writeApplyFixture = (): string => {
+  const root = mkdtempSync(join(tmpdir(), 'regrade-apply-'));
+  mkdirSync(join(root, 'src'), { recursive: true });
+  mkdirSync(join(root, 'dist'), { recursive: true });
+  writeFileSync(join(root, 'src', 'a.ts'), 'export const signal = 1;\n');
+  writeFileSync(join(root, 'src', 'b.ts'), 'export const signalHandler = 2;\n');
+  writeFileSync(join(root, 'src', 'c.ts'), 'export const x = 3;\n');
+  writeFileSync(join(root, 'dist', 'out.ts'), 'export const signal = 4;\n');
   return root;
 };
 
@@ -364,6 +405,83 @@ describe('runRegrade + regradeReportTrail', () => {
         root: join(import.meta.dir, 'does-not-exist-xyz'),
       })
     ).toBeNull();
+  });
+
+  test('dry-run is the default and does not write rewrite outcomes', () => {
+    const root = writeApplyFixture();
+    try {
+      const target = join(root, 'src', 'a.ts');
+      const report = runRegrade({ classes: [signalToPing], root });
+
+      expect(report?.rewritten).toBe(1);
+      expect(report?.apply).toBeUndefined();
+      expect(readFileSync(target, 'utf8')).toBe('export const signal = 1;\n');
+    } finally {
+      rmSync(root, { force: true, recursive: true });
+    }
+  });
+
+  test('apply mode writes only safe rewrite outcomes with nextSource', () => {
+    const root = writeApplyFixture();
+    try {
+      const report = runRegrade({
+        apply: true,
+        classes: [signalToPing],
+        root,
+      });
+
+      expect(report?.apply).toEqual({
+        applied: 1,
+        filesChanged: 1,
+        review: 1,
+        skipped: 1,
+        unknown: 0,
+      });
+      expect(readFileSync(join(root, 'src', 'a.ts'), 'utf8')).toBe(
+        'export const ping = 1;\n'
+      );
+      expect(readFileSync(join(root, 'src', 'b.ts'), 'utf8')).toBe(
+        'export const signalHandler = 2;\n'
+      );
+      expect(readFileSync(join(root, 'src', 'c.ts'), 'utf8')).toBe(
+        'export const x = 3;\n'
+      );
+      expect(readFileSync(join(root, 'dist', 'out.ts'), 'utf8')).toBe(
+        'export const signal = 4;\n'
+      );
+    } finally {
+      rmSync(root, { force: true, recursive: true });
+    }
+  });
+
+  test('apply mode writes nothing when selected classes include an unknown id', () => {
+    const root = mkdtempSync(join(tmpdir(), 'regrade-apply-unknown-'));
+    mkdirSync(join(root, 'src'), { recursive: true });
+    writeFileSync(join(root, 'src', 'a.ts'), 'export const signal = 1;\n');
+    try {
+      const report = runRegrade({
+        apply: true,
+        classes: [signalToPing],
+        root,
+        selection: {
+          classIds: ['term-rewrite:signal->ping', 'missing-class'],
+        },
+      });
+
+      expect(report?.unknownClassIds).toEqual(['missing-class']);
+      expect(report?.apply).toEqual({
+        applied: 0,
+        filesChanged: 0,
+        review: 0,
+        skipped: 1,
+        unknown: 1,
+      });
+      expect(readFileSync(join(root, 'src', 'a.ts'), 'utf8')).toBe(
+        'export const signal = 1;\n'
+      );
+    } finally {
+      rmSync(root, { force: true, recursive: true });
+    }
   });
 
   test('trail returns Ok with a report for a readable root', async () => {
@@ -400,6 +518,33 @@ describe('runRegrade + regradeReportTrail', () => {
     expect(result.isErr()).toBe(true);
     if (result.isErr()) {
       expect(result.error.constructor.name).toBe('NotFoundError');
+    }
+  });
+
+  test('trail apply input writes through explicit apply mode', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'regrade-trail-apply-'));
+    mkdirSync(join(root, 'src'), { recursive: true });
+    writeFileSync(
+      join(root, 'src', 'play.ts'),
+      'export const play = trail("play", { crosses: [] });\n'
+    );
+    try {
+      const result = await executeTrail(regradeReportTrail, {
+        apply: true,
+        classIds: ['term-rewrite:no-retired-cross-vocabulary'],
+        root,
+      });
+
+      expect(result.isOk()).toBe(true);
+      expect(readFileSync(join(root, 'src', 'play.ts'), 'utf8')).toBe(
+        'export const play = trail("play", { composes: [] });\n'
+      );
+      if (result.isOk()) {
+        const value = result.value as { apply?: { applied: number } };
+        expect(value.apply?.applied).toBe(1);
+      }
+    } finally {
+      rmSync(root, { force: true, recursive: true });
     }
   });
 });
