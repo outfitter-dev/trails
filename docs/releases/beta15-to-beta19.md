@@ -1,37 +1,42 @@
-# Beta 15 to Beta 18 Downstream Migration Guide
+# Beta 15 to Beta 19 Downstream Migration Guide
 
-This guide is for downstream Trails apps moving from the `1.0.0-beta.15` package line to `1.0.0-beta.18`. It is operator-facing: install, change, verify.
+This guide is for downstream Trails apps moving from the `1.0.0-beta.15` package line to `1.0.0-beta.19`. It is operator-facing: install, change, verify.
 
-Beta 15 to beta 18 is not one breaking rename. It is a modernization bundle that touches package shape, CLI/MCP/HTTP surfaces, observability, contract testing, drift detection, and a few layer and error-taxonomy decisions. The focused migration guides under [`docs/migration/`](../migration/) cover each concern in depth. This guide ties them together, lists install commands, and gives downstream apps a CI-grade checklist.
+Beta 15 to beta 19 is not one breaking rename. It is a modernization bundle that touches package shape, CLI/MCP/HTTP surfaces, observability, contract testing, drift detection, trail composition vocabulary, trail versioning, adapter authoring, and a few layer and error-taxonomy decisions. The focused migration guides under [`docs/migration/`](../migration/) cover each concern in depth. This guide ties them together, lists install commands, and gives downstream apps a CI-grade checklist.
+
+The two beta.19 changes a downstream app must act on are the `cross` → `compose` composition rename and, if it pinned them, the retired `trails topo compile` / `trails topo verify` / `trails topo check` command shapes. The rest of beta.19 (trail-versioning runtime, adapter authoring, scaffold provenance, Warden safe-fix) is additive — adopt it when the app needs it. The [Beta 18 → Beta 19](#beta-18-to-beta-19) section below covers the specifics.
 
 Read [Beta 15](./beta15.md) first if you are still on a pre-beta.15 line — that guide owns the `trailhead`/`provision`/`gate`/`loadout` and `tracker`/`logging` cutovers. This document picks up after beta.15 is in place.
 
 ## What Changed In One Paragraph
 
-Beta 16 split `@ontrails/commander` out of `@ontrails/cli/commander`, moved the topo-store API into `@ontrails/topographer`, added typed layers as a real primitive with attachment scopes, renamed surface-map artifacts to `TopoGraph` / `.trails/topo.lock`, added the `unmockable` resource marker, and absorbed pagination and date shortcuts into CLI surface derivation. Beta 17 added the example-driven surface-parity helper and the HTTP surface harness, and projected `inputSchema` v1 minimums for shipped surface entrypoints. Beta 18 added `@ontrails/http/fetch` and `@ontrails/http/bun` as a Web Fetch kernel plus a Bun-native materializer. Together those changes mean a downstream app upgrading from beta.15 should rethink CLI imports, MCP exposure, public output schemas, resource mocks, error taxonomy, observability, and Topographer adoption — not just bump versions.
+Beta 16 split `@ontrails/commander` out of `@ontrails/cli/commander`, moved the topo-store API into `@ontrails/topographer`, added typed layers as a real primitive with attachment scopes, renamed surface-map artifacts to `TopoGraph` / `.trails/topo.lock`, added the `unmockable` resource marker, and absorbed pagination and date shortcuts into CLI surface derivation. Beta 17 added the example-driven surface-parity helper and the HTTP surface harness, and projected `inputSchema` v1 minimums for shipped surface entrypoints. Beta 18 added `@ontrails/http/fetch` and `@ontrails/http/bun` as a Web Fetch kernel plus a Bun-native materializer. Beta 19 renamed the `cross` composition family to `compose`, promoted the topo artifact commands to top-level `trails compile` / `trails validate`, made trail versioning resolve at runtime across all surfaces, introduced the `@ontrails/adapter-kit` authoring toolchain, and added `warden --fix` for safe source fixes. Together those changes mean a downstream app upgrading from beta.15 should rethink CLI imports, MCP exposure, public output schemas, resource mocks, error taxonomy, observability, Topographer adoption, and trail-composition vocabulary — not just bump versions.
 
 ## Install
 
 `@ontrails/*` packages are versioned in lockstep. Pin every active package to the same beta number.
 
 ```bash
-bun add @ontrails/core@1.0.0-beta.18 \
-        @ontrails/cli@1.0.0-beta.18 \
-        @ontrails/commander@1.0.0-beta.18 \
-        @ontrails/mcp@1.0.0-beta.18 \
-        @ontrails/http@1.0.0-beta.18 \
-        @ontrails/hono@1.0.0-beta.18 \
+bun add @ontrails/core@1.0.0-beta.19 \
+        @ontrails/cli@1.0.0-beta.19 \
+        @ontrails/commander@1.0.0-beta.19 \
+        @ontrails/mcp@1.0.0-beta.19 \
+        @ontrails/http@1.0.0-beta.19 \
+        @ontrails/hono@1.0.0-beta.19 \
         zod@^4
-bun add -d @ontrails/testing@1.0.0-beta.18 \
-           @ontrails/topographer@1.0.0-beta.18 \
-           @ontrails/warden@1.0.0-beta.18
+bun add -d @ontrails/trails@1.0.0-beta.19 \
+           @ontrails/testing@1.0.0-beta.19 \
+           @ontrails/topographer@1.0.0-beta.19 \
+           @ontrails/warden@1.0.0-beta.19
 ```
 
-Pin `zod` to a `^4` major; Trails packages in the beta.18 line target Zod v4 and will fail to typecheck against Zod v3.
+`@ontrails/trails` provides the `trails` CLI bin that the framework command scripts (`compile`, `validate`, `diff`, `warden`, `survey`) invoke, so a consumer repo needs it installed for `bun run compile` / `bun run validate` (or `bunx trails …`) to resolve. Pin `zod` to a `^4` major; Trails packages in the beta.19 line target Zod v4 and will fail to typecheck against Zod v3.
+
+If the app authors its own HTTP adapter, add `@ontrails/adapter-kit@1.0.0-beta.19` (new in beta.19) as a dev dependency. See [Beta 18 → Beta 19](#beta-18-to-beta-19).
 
 If the app uses observability or LogTape/Pino forwarding, add `@ontrails/observe`, `@ontrails/tracing`, and one of `@ontrails/logtape` / `@ontrails/pino` from the same beta line. See [Logging to Observe](../migration/logging-to-observe.md).
 
-During the beta line, `latest` may intentionally lag behind `beta`. The [Beta Channel Policy](./beta-channel-policy.md) explains the dist-tag posture, install pins versus `@beta`, and read-only registry checks. Do not mix `beta.15`, `beta.18`, and `@beta` ranges in one app.
+During the beta line, `latest` may intentionally lag behind `beta`. The [Beta Channel Policy](./beta-channel-policy.md) explains the dist-tag posture, install pins versus `@beta`, and read-only registry checks. Do not mix `beta.15`, `beta.18`, `beta.19`, and `@beta` ranges in one app.
 
 For a read-only downstream spot check of the active beta channel, use `npm view` directly — `bun run publish:registry-check` is a Trails-monorepo script and is not available from a downstream consumer repo:
 
@@ -44,6 +49,42 @@ done
 The output makes `latest` lag visible alongside the current `beta` tag without touching the registry.
 
 Do not use `npm publish` or `changeset publish` for Trails packages. Trails uses Bun-based publish scripts because they correctly resolve `workspace:` and `catalog:` ranges.
+
+## Beta 18 to Beta 19
+
+If you are already on beta.18, these are the only beta.19 deltas that need action. The per-surface sections below still describe the correct end state.
+
+### `cross` → `compose` (breaking)
+
+Beta 19 renames the first-class trail composition family from `cross` to `compose` across core contracts, testing helpers, topo projections, Warden rules, and CLI scaffolds. `composes`, `ctx.compose`, `composeInput`, and `Compose*` type names are now the public authoring vocabulary. Topo persistence migrates legacy composition rows and graph keys forward on the next `trails compile`, so committed artifacts re-key themselves.
+
+```diff
+- export const report = trail('report', {
+-   crosses: ['fetch.data'],
+-   blaze: async (ctx) => ctx.cross('fetch.data', input),
++ export const report = trail('report', {
++   composes: ['fetch.data'],
++   blaze: async (ctx) => ctx.compose('fetch.data', input),
+  });
+```
+
+Rename every `crosses:` declaration to `composes:`, every `ctx.cross(...)` call to `ctx.compose(...)`, and any imported `Cross*` / `crossInput` symbols to their `Compose*` / `composeInput` equivalents. After renaming, run `bun run compile` to re-key the committed `.trails/topo.lock`, then `bun run validate` to confirm no drift remains. (Scaffolded projects expose the framework commands as package scripts — `bun run compile`, `bun run validate`, `bun run diff` — so prefer those over `bun trails …`, which only works where a `trails` script exists; otherwise use `bunx trails …`.)
+
+### Topo artifact commands are top-level
+
+`trails compile` and `trails validate` are the canonical top-level artifact commands. The retired `trails topo compile`, `trails topo verify`, and `trails topo check` shapes now exit non-zero with a diagnostic pointing at the top-level commands. If CI or scripts pinned the `trails topo …` forms, update them. See [Topographer Artifact Workflow](#topographer-artifact-workflow) for the full command set.
+
+### Trail versioning now resolves at runtime (additive)
+
+Trail versioning is no longer authoring-only. Beta 19 resolves trail versions during execution — live revisions, forks, marker references, and unsupported-version errors — and projects live version metadata on CLI, HTTP, and MCP surfaces with explicit surface version selection threaded through shared execution. A version lifecycle CLI — `trails revise`, `trails deprecate` (with `--archive` to archive instead of deprecate), and `trails doctor` for diagnostics — and a top-level `trails diff` that surfaces version, marker, lifecycle-status, and force-event detail ship alongside it. This is additive: apps with no `version: { … }` entries are unaffected. See [Trail Versioning](#trail-versioning) for when to adopt it.
+
+### Adapter authoring with `@ontrails/adapter-kit` (additive)
+
+`@ontrails/adapter-kit` is a new package for authoring and reviewing extracted surface adapters. `trails create adapter` scaffolds an extracted HTTP adapter against adapter target conformance metadata, `trails adapter check` runs the shared readiness engine locally, and Warden exposes the same engine through opt-in `--adapter-check` diagnostics. Only relevant if you maintain or extract a custom adapter; consuming `@ontrails/hono` or `@ontrails/http/bun` needs nothing here.
+
+### Warden safe-fix and scaffold provenance (additive)
+
+`warden --fix` (exposed as `bun run warden -- --fix` in scaffolded projects) applies only `safety: 'safe'` source edits, last-to-first, and reports applied, changed-file, and skipped counts; review-required and topo diagnostics stay reported but unapplied. Newly scaffolded projects also pin `@ontrails/*` to the exact scaffolded version (no caret prerelease ranges), record a `.trails/scaffold.json` provenance breadcrumb, and reconcile existing files on `trails create` reruns instead of overwriting and failing. Existing apps inherit safe-fix on upgrade; scaffold changes only affect projects generated after upgrading.
 
 ## CLI Surface
 
@@ -185,10 +226,10 @@ Wire Topographer into CI as a drift tripwire:
 ```yaml
 steps:
   - run: bun install
-  - run: bun trails validate
+  - run: bun run validate
 ```
 
-`bun trails validate` exits non-zero on drift. Pair with `bun trails diff` in a verbose mode locally if a downstream contributor wants to inspect what changed before regenerating the artifacts.
+`bun run validate` exits non-zero on drift. Pair with `bun run diff` in a verbose mode locally if a downstream contributor wants to inspect what changed before regenerating the artifacts.
 
 Consumers that previously parsed `_surface.json` should read `.trails/topo.lock` through `readTopoGraph()` or the typed `createTopoStore()` views — see the [TopoGraph migration](../migration/topograph-artifact-family.md) for examples.
 
@@ -206,24 +247,27 @@ Three legacy layer exports are removed:
 - `autoIterateLayer` from `@ontrails/cli` — see CLI surface above.
 - `dateShortcutsLayer` from `@ontrails/cli` — see CLI surface above.
 
-## When Not To Adopt Trail Versioning Yet
+## Trail Versioning
 
-Trails has authored versioning primitives (version entries, fork-without-preserved-blaze rules, pending-force gates, marker projection, draft state containment) and a Warden pressure layer. The full derivation pipeline — contract diff to version event to migration skeleton to surface-projected metadata to runtime cross-version safety — is still landing. Until your app has stable external consumers or a real breaking-contract negotiation, do not decorate trails with versioning metadata "because Trails has versioning."
+As of beta.19, trail versioning is a working runtime, not just authoring primitives. Trails resolves versions during execution (live revisions, forks, marker references, unsupported-version errors), CLI/HTTP/MCP surfaces project live version metadata and accept explicit surface version selection, and a lifecycle CLI (`trails revise`, `trails deprecate` with `--archive`, and `trails doctor`) plus `trails diff` cover revision, deprecation, archival, diagnostics, and version-aware drift. The Warden pressure layer (`version-gap`, `version-without-examples`, `marker-schema-unsupported`, `fork-without-preserved-blaze`, `pending-force`, and the marker-schema bounds checks) backs it.
 
-The PatchOS modernization used Topographer as the drift tripwire and deferred per-trail runtime versioning. That is the right default. Adopt trail versioning when:
+This does not mean every app should adopt it now. The runtime existing changes what is possible, not what is required. An app with no `version: { ... }` entries is unaffected: the versioning runtime has nothing to resolve and the Warden rules stay quiet because they have no input to chew on.
+
+The PatchOS modernization used Topographer as the drift tripwire and deferred per-trail runtime versioning. That remains the right default until you need it. Adopt trail versioning when:
 
 - An external consumer is pinned to a specific contract.
 - A breaking schema change needs an explicit successor entry.
 - You want pending-force gating to enforce explicit acceptance of removed entries.
+- You want surfaces to negotiate and report a specific contract version to callers.
 
-Until then, ship trails without `version: { ... }` entries and let the Warden rules `version-gap`, `version-without-examples`, `marker-schema-unsupported`, `fork-without-preserved-blaze`, and `pending-force` stay quiet because they have no input to chew on.
+Until one of those is true, ship trails without `version: { ... }` entries. When one becomes true, the beta.19 runtime, lifecycle CLI, and surface negotiation are in place to support it — you no longer have to wait for the pipeline to land.
 
 ## Validation Checklist
 
 Run these from a clean working tree on the upgraded branch. They are the same gates Trails uses internally:
 
 ```bash
-# Install lockfile aligned to beta.18
+# Install lockfile aligned to beta.19
 bun install
 
 # Read-only registry spot check (downstream-safe; `bun run publish:registry-check`
@@ -238,15 +282,15 @@ bun run test
 bun run build
 
 # Drift detection
-bun trails validate
+bun run validate
 
 # Whitespace/conflict guard
 git diff --check
 ```
 
-For a downstream app, the typical CI shape is `bun install` → `bun run test` → `bun trails validate`. Add `bun run typecheck` if the app's test runner does not already typecheck.
+For a downstream app, the typical CI shape is `bun install` → `bun run test` → `bun run validate`. Add `bun run typecheck` if the app's test runner does not already typecheck.
 
-If `bun trails validate` flags drift, regenerate locally with `bun trails compile`, review the diff with `bun trails diff`, and commit `.trails/trails.lock` plus `.trails/topo.lock`. Do not commit `.trails/state/` or `.trails/cache/` artifacts; the workspace `.trails/.gitignore` keeps them local.
+If `bun run validate` flags drift, regenerate locally with `bun run compile`, review the diff with `bun run diff`, and commit `.trails/trails.lock` plus `.trails/topo.lock`. Do not commit `.trails/state/` or `.trails/cache/` artifacts; the workspace `.trails/.gitignore` keeps them local.
 
 ## References
 

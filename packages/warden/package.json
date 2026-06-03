@@ -1,6 +1,6 @@
 {
   "name": "@ontrails/warden",
-  "version": "1.0.0-beta.18",
+  "version": "1.0.0-beta.19",
   "bin": {
     "warden": "./bin/warden.ts"
   },

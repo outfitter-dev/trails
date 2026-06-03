@@ -1,5 +1,11 @@
 # @ontrails/vite
 
+## 1.0.0-beta.19
+
+### Patch Changes
+
+- ed5926b: Add missing TSDoc for public adapter and sink boundary types.
+
 ## 1.0.0-beta.18
 
 ## 1.0.0-beta.17

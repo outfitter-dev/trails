@@ -1,6 +1,6 @@
 {
   "name": "@ontrails/wayfinder",
-  "version": "1.0.0-beta.18",
+  "version": "1.0.0-beta.19",
   "description": "Reserved shell for future agent wayfinding trails over @ontrails/topographer artifacts; no trails ship yet.",
   "files": [
     "src/**/*.ts",

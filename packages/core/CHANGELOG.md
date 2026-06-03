@@ -1,5 +1,31 @@
 # @ontrails/core
 
+## 1.0.0-beta.19
+
+### Major Changes
+
+- 1eb5bdc: Rename first-class trail composition from the `cross` API family to the `compose` family across core contracts, testing helpers, topo projections, Warden rules, CLI scaffolds, and docs. `composes`, `ctx.compose`, `composeInput`, and `Compose*` type names are now the public authoring vocabulary; topo persistence migrates legacy composition rows and graph keys forward.
+
+### Patch Changes
+
+- e41c382: Document beta-channel install guidance in package and adapter README install snippets so consumers use explicit `@beta` (or pinned `1.0.0-beta.N`) tags instead of accidental `latest` resolution during the prerelease line. Adds the policy doc at `docs/releases/beta-channel-policy.md`, prints both `latest` and `beta` dist-tags in `bun run publish:registry-check`, and aligns plugin/skill install snippets.
+- f8d80b9: Refresh current-facing compose vocabulary in package documentation after the composition cutover.
+- 846a597: Reject versioned trail marker schemas that use Zod validation checks or object
+  catchall policies outside the bounded marker subset.
+- 223aaad: Fix `ctx.compose(trail, input)` inference for trails that do not define a
+  `composeInput` schema while preserving authored compose-input requirements.
+- 3125f4d: Add pure revision transpose validation and execution helpers for trail versions.
+- 2494dc6: Infer `resource()` create-context config types from resource config schemas.
+- 2d53717: Add trail-only `version` / `versions` authoring types and TopoGraph projection.
+- 16cb740: Run examples and contract checks across live trail version entries, and project version-entry example coverage into topo and survey reports.
+- 8894ecb: Project content-addressed trail version markers and marker-prefix resolution.
+- fdf7ec9: Resolve trail versions during execution, including live revisions, forks, marker references, and unsupported-version errors.
+- d76be13: Require deprecated trail version entries to carry successor, migration, or note guidance and expose typed lifecycle helpers.
+- 84f56a5: Project live trail-version metadata on CLI, HTTP, and MCP surfaces and thread explicit surface version selection into shared trail execution.
+- 431b04c: Expose archived trail version lifecycle helpers and validate archived status reason metadata.
+- 5d88104: Polish Trails blaze terminology across package docs and Warden guidance.
+- f04a9ef: Tighten trail-versioning API polish by keeping executor cross-validation internals out of public options and improving absent marker diagnostics.
+
 ## 1.0.0-beta.18
 
 ## 1.0.0-beta.17

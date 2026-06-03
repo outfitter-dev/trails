@@ -1,5 +1,13 @@
 # @ontrails/pino
 
+## 1.0.0-beta.19
+
+### Patch Changes
+
+- ed5926b: Add missing TSDoc for public adapter and sink boundary types.
+- Updated dependencies [1eb5bdc]
+  - @ontrails/observe@1.0.0-beta.19
+
 ## 1.0.0-beta.18
 
 ### Minor Changes

@@ -1,5 +1,122 @@
 # trails
 
+## 1.0.0-beta.19
+
+### Major Changes
+
+- 1eb5bdc: Rename first-class trail composition from the `cross` API family to the `compose` family across core contracts, testing helpers, topo projections, Warden rules, CLI scaffolds, and docs. `composes`, `ctx.compose`, `composeInput`, and `Compose*` type names are now the public authoring vocabulary; topo persistence migrates legacy composition rows and graph keys forward.
+- 120caf5: Promote topo artifact commands to `trails compile` and `trails validate`.
+
+### Patch Changes
+
+- e41c382: Document beta-channel install guidance in package and adapter README install snippets so consumers use explicit `@beta` (or pinned `1.0.0-beta.N`) tags instead of accidental `latest` resolution during the prerelease line. Adds the policy doc at `docs/releases/beta-channel-policy.md`, prints both `latest` and `beta` dist-tags in `bun run publish:registry-check`, and aligns plugin/skill install snippets.
+- 14714b8: Add a beta.15 to beta.19 downstream migration guide (`docs/releases/beta15-to-beta19.md`) that ties together package install, CLI/MCP/HTTP surface decisions, public output schemas, contract testing, resource mocks / `unmockable`, error taxonomy, observability, Topographer artifact workflow, layer evolution, the `cross`→`compose` composition rename, trail-versioning runtime adoption, and adapter authoring. Linked from `docs/index.md` Release Notes and cross-references the focused migration guides under `docs/migration/`.
+- 91328d3: Make `trails create` reruns reconcile existing scaffold files instead of overwriting present files and then failing on existing surfaces.
+- 6471b73: Preserve the original `create.scaffold` Result boundary when `trails create` cannot scaffold a project.
+- 51aac45: Add `entity.list` and `entity.delete` trails to the generated entity starter so fresh scaffolds model complete CRUD coverage.
+- 5efa32c: Generate project-level `AGENTS.md` and `CLAUDE.md` guidance so new Trails apps
+  start with canonical agent instructions.
+- 88c0316: Generate a contextual `README.md` for new Trails projects with first-run
+  commands, selected surfaces, starter notes, and agent guidance pointers.
+- 99154d4: Generate `tsconfig.tests.json` in new Trails projects so root test files are
+  covered by editor TypeScript tooling without changing build output.
+- 492f71c: Move CLI, MCP, HTTP, established-surface, and surface-parity helpers behind explicit subpaths so root contract testing imports no longer require optional surface peers. The Trails CLI scaffolder now emits `import { testAllEstablished } from '@ontrails/testing/established'` for generated verification.
+- 4bc8a99: Clarify the Topographer artifact workflow around top-level `trails compile`, `trails validate`, and `trails diff` commands, including explicit diagnostics for retired `trails topo compile`, `trails topo verify`, and `trails topo check` attempts.
+- 16cb740: Run examples and contract checks across live trail version entries, and project version-entry example coverage into topo and survey reports.
+- 92e709b: Declare explicit permit scopes on mutating built-in CLI trails and scaffolded entity starter trails.
+
+  Preserve the resolved CLI permit on result callbacks so run-collision recovery can re-execute protected trails without losing authorization context.
+
+- 1f48342: Preserve original Result error boundaries in CLI trails by returning existing Result failures directly instead of re-wrapping their errors.
+- c14aa3a: Report structured entry and graph force audit details from `trails doctor`.
+- 2df73cc: Configure scaffolded Trails projects to allow `TODO :::` fieldwork markers while keeping standard `TODO:` warning comments blocked.
+- 7f50fe2: Add version lifecycle CLI trails for revising, deprecating, archiving, and diagnosing trail version entries.
+- 653d1fc: Add a top-level `trails diff` command and extend TopoGraph diffs with version, marker, lifecycle status, support set, and force-event audit details.
+- 2e76288: Add graph-only force event projection for forced compile break acceptance and block unforced breaking topo changes.
+- 52e4e8f: Add the `@ontrails/trails` CLI package and core framework command scripts to newly scaffolded projects.
+- 58be821: Generated projects now pin `@ontrails/*` packages to the exact scaffolded
+  package version instead of emitting caret prerelease ranges.
+- da7cbcb: Generated projects now include a minimal `.trails/scaffold.json` provenance
+  breadcrumb recording the scaffold schema version, package version, starter
+  template, and generation timestamp.
+- fc00aeb: Add adapter target conformance metadata and scaffold extracted HTTP adapters through `trails create adapter`.
+- 1c975c3: Define the Warden fix-metadata contract (`WardenFix`, `WardenFixCapability`, `WardenFixClass`, `WardenFixSafety`, `WardenFixEdit`) with optional `fix` metadata on diagnostics and rule metadata, projected through the guide, manifest, markdown, and agent guidance. Export `wardenFixClasses`/`wardenFixSafeties` value arrays and surface the rule `fix` capability in the `warden.guide` trail output schema. Dormant until a rule declares it.
+- d5d518e: Add `warden --fix` to apply safe source fixes. The executor applies only `safety: 'safe'` edits last-to-first, re-reading and rewriting affected files, while review-required, edit-less, and topo diagnostics stay reported but unapplied. The report surfaces applied, changed-file, and skipped counts.
+
+  Expose `fix` through the Trails app wrapper and mark the `warden` trail as write intent with explicit public access because `fix: true` mutates source files while the local governance command remains directly runnable.
+
+- 678cb1c: Expose the shared adapter readiness engine through Warden's opt-in
+  `--adapter-check` diagnostics and the local `trails adapter check` authoring
+  workflow.
+- 619cb15: Add a Warden rule (`no-destructured-compose`) that coaches trail blazes to call `ctx.compose(...)` directly instead of destructuring `compose` from the context.
+
+  Keep the generated `create` trail on the direct `ctx.compose(...)` shape so framework-authored trails follow the same composition guidance.
+
+- Updated dependencies [bb81ffe]
+- Updated dependencies [e41c382]
+- Updated dependencies [ed5926b]
+- Updated dependencies [a2f1825]
+- Updated dependencies [a2f1825]
+- Updated dependencies [1eb5bdc]
+- Updated dependencies [f8d80b9]
+- Updated dependencies [94a8380]
+- Updated dependencies [94a8380]
+- Updated dependencies [846a597]
+- Updated dependencies [8638dae]
+- Updated dependencies [8638dae]
+- Updated dependencies [8638dae]
+- Updated dependencies [f0f7e2f]
+- Updated dependencies [223aaad]
+- Updated dependencies [3125f4d]
+- Updated dependencies [2494dc6]
+- Updated dependencies [4bc8a99]
+- Updated dependencies [120caf5]
+- Updated dependencies [2d53717]
+- Updated dependencies [16cb740]
+- Updated dependencies [8894ecb]
+- Updated dependencies [fdf7ec9]
+- Updated dependencies [92e709b]
+- Updated dependencies [d76be13]
+- Updated dependencies [84f56a5]
+- Updated dependencies [64fb15a]
+- Updated dependencies [653d1fc]
+- Updated dependencies [431b04c]
+- Updated dependencies [2e76288]
+- Updated dependencies [5d88104]
+- Updated dependencies [f04a9ef]
+- Updated dependencies [fc00aeb]
+- Updated dependencies [1c975c3]
+- Updated dependencies [48d5ff4]
+- Updated dependencies [d5d518e]
+- Updated dependencies [216bf10]
+- Updated dependencies [ab1c77c]
+- Updated dependencies [8ca5b85]
+- Updated dependencies [4f43874]
+- Updated dependencies [678cb1c]
+- Updated dependencies [5874fd6]
+- Updated dependencies [619cb15]
+- Updated dependencies [4642268]
+- Updated dependencies [9bab0cf]
+- Updated dependencies [3ceeba8]
+- Updated dependencies [beafd03]
+- Updated dependencies [7b173e0]
+- Updated dependencies [6e50e7b]
+- Updated dependencies [48edf8d]
+- Updated dependencies [12ffa3b]
+- Updated dependencies [2f262f7]
+- Updated dependencies [58b01f2]
+  - @ontrails/adapter-kit@1.0.0-beta.19
+  - @ontrails/core@1.0.0-beta.19
+  - @ontrails/cli@1.0.0-beta.19
+  - @ontrails/commander@1.0.0-beta.19
+  - @ontrails/http@1.0.0-beta.19
+  - @ontrails/mcp@1.0.0-beta.19
+  - @ontrails/topographer@1.0.0-beta.19
+  - @ontrails/warden@1.0.0-beta.19
+  - @ontrails/observe@1.0.0-beta.19
+  - @ontrails/tracing@1.0.0-beta.19
+  - @ontrails/permits@1.0.0-beta.19
+
 ## 1.0.0-beta.18
 
 ### Patch Changes

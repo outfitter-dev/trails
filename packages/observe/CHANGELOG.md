@@ -1,5 +1,28 @@
 # @ontrails/observe
 
+## 1.0.0-beta.19
+
+### Patch Changes
+
+- 1eb5bdc: Rename first-class trail composition from the `cross` API family to the `compose` family across core contracts, testing helpers, topo projections, Warden rules, CLI scaffolds, and docs. `composes`, `ctx.compose`, `composeInput`, and `Compose*` type names are now the public authoring vocabulary; topo persistence migrates legacy composition rows and graph keys forward.
+- Updated dependencies [e41c382]
+- Updated dependencies [1eb5bdc]
+- Updated dependencies [f8d80b9]
+- Updated dependencies [846a597]
+- Updated dependencies [223aaad]
+- Updated dependencies [3125f4d]
+- Updated dependencies [2494dc6]
+- Updated dependencies [2d53717]
+- Updated dependencies [16cb740]
+- Updated dependencies [8894ecb]
+- Updated dependencies [fdf7ec9]
+- Updated dependencies [d76be13]
+- Updated dependencies [84f56a5]
+- Updated dependencies [431b04c]
+- Updated dependencies [5d88104]
+- Updated dependencies [f04a9ef]
+  - @ontrails/core@1.0.0-beta.19
+
 ## 1.0.0-beta.18
 
 ### Patch Changes

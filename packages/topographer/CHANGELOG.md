@@ -1,5 +1,41 @@
 # @ontrails/topographer
 
+## 1.0.0-beta.19
+
+### Major Changes
+
+- 1eb5bdc: Rename first-class trail composition from the `cross` API family to the `compose` family across core contracts, testing helpers, topo projections, Warden rules, CLI scaffolds, and docs. `composes`, `ctx.compose`, `composeInput`, and `Compose*` type names are now the public authoring vocabulary; topo persistence migrates legacy composition rows and graph keys forward.
+
+### Minor Changes
+
+- 120caf5: Promote topo artifact commands to `trails compile` and `trails validate`.
+
+### Patch Changes
+
+- 4bc8a99: Clarify the Topographer artifact workflow around top-level `trails compile`, `trails validate`, and `trails diff` commands, including explicit diagnostics for retired `trails topo compile`, `trails topo verify`, and `trails topo check` attempts.
+- 2d53717: Add trail-only `version` / `versions` authoring types and TopoGraph projection.
+- 16cb740: Run examples and contract checks across live trail version entries, and project version-entry example coverage into topo and survey reports.
+- 8894ecb: Project content-addressed trail version markers and marker-prefix resolution.
+- 653d1fc: Add a top-level `trails diff` command and extend TopoGraph diffs with version, marker, lifecycle status, support set, and force-event audit details.
+- 2e76288: Add graph-only force event projection for forced compile break acceptance and block unforced breaking topo changes.
+- Updated dependencies [e41c382]
+- Updated dependencies [1eb5bdc]
+- Updated dependencies [f8d80b9]
+- Updated dependencies [846a597]
+- Updated dependencies [223aaad]
+- Updated dependencies [3125f4d]
+- Updated dependencies [2494dc6]
+- Updated dependencies [2d53717]
+- Updated dependencies [16cb740]
+- Updated dependencies [8894ecb]
+- Updated dependencies [fdf7ec9]
+- Updated dependencies [d76be13]
+- Updated dependencies [84f56a5]
+- Updated dependencies [431b04c]
+- Updated dependencies [5d88104]
+- Updated dependencies [f04a9ef]
+  - @ontrails/core@1.0.0-beta.19
+
 ## 1.0.0-beta.18
 
 ### Patch Changes

@@ -1,5 +1,37 @@
 # @ontrails/hono
 
+## 1.0.0-beta.19
+
+### Patch Changes
+
+- e41c382: Document beta-channel install guidance in package and adapter README install snippets so consumers use explicit `@beta` (or pinned `1.0.0-beta.N`) tags instead of accidental `latest` resolution during the prerelease line. Adds the policy doc at `docs/releases/beta-channel-policy.md`, prints both `latest` and `beta` dist-tags in `bun run publish:registry-check`, and aligns plugin/skill install snippets.
+- ed5926b: Add missing TSDoc for public adapter and sink boundary types.
+- 8105f53: Declare the Hono package as an extracted HTTP adapter and dogfood the shared
+  adapter authoring check path against its owner conformance test.
+- Updated dependencies [e41c382]
+- Updated dependencies [1eb5bdc]
+- Updated dependencies [f8d80b9]
+- Updated dependencies [94a8380]
+- Updated dependencies [94a8380]
+- Updated dependencies [846a597]
+- Updated dependencies [223aaad]
+- Updated dependencies [3125f4d]
+- Updated dependencies [2494dc6]
+- Updated dependencies [2d53717]
+- Updated dependencies [16cb740]
+- Updated dependencies [8894ecb]
+- Updated dependencies [fdf7ec9]
+- Updated dependencies [d76be13]
+- Updated dependencies [84f56a5]
+- Updated dependencies [431b04c]
+- Updated dependencies [5d88104]
+- Updated dependencies [f04a9ef]
+- Updated dependencies [fc00aeb]
+- Updated dependencies [ab1c77c]
+- Updated dependencies [8ca5b85]
+  - @ontrails/core@1.0.0-beta.19
+  - @ontrails/http@1.0.0-beta.19
+
 ## 1.0.0-beta.18
 
 ### Patch Changes

@@ -1,0 +1,13 @@
+# @ontrails/adapter-kit
+
+## 1.0.0-beta.19
+
+### Patch Changes
+
+- bb81ffe: Resolve declared adapter owner imports through wildcard package export keys
+  before reporting missing owner subpath exports.
+- fc00aeb: Add adapter target conformance metadata and scaffold extracted HTTP adapters through `trails create adapter`.
+- 4f43874: Add the shared adapter readiness check engine for authoring and review workflows.
+- 678cb1c: Expose the shared adapter readiness engine through Warden's opt-in
+  `--adapter-check` diagnostics and the local `trails adapter check` authoring
+  workflow.

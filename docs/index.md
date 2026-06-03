@@ -12,7 +12,7 @@
 - **[Beta Channel Policy](./releases/beta-channel-policy.md)** — Beta install tags, `latest` posture, version cadence, and read-only registry checks
 - **[Plugin Release Runbook](./releases/plugin-release.md)** — Claude plugin/skills refresh, dogfood, and manual publication checks
 - **[Beta 15](./releases/beta15.md)** — Beta 15 release-prep notes and known CLI follow-up work
-- **[Beta 15 to Beta 18](./releases/beta15-to-beta18.md)** — Downstream operator guide: package install, surface decisions, Topographer adoption, validation checklist
+- **[Beta 15 to Beta 19](./releases/beta15-to-beta19.md)** — Downstream operator guide: package install, surface decisions, `cross`→`compose` rename, trail versioning, adapter authoring, Topographer adoption, validation checklist
 
 ## Building something?
 

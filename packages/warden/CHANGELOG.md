@@ -1,5 +1,84 @@
 # @ontrails/warden
 
+## 1.0.0-beta.19
+
+### Major Changes
+
+- 1eb5bdc: Rename first-class trail composition from the `cross` API family to the `compose` family across core contracts, testing helpers, topo projections, Warden rules, CLI scaffolds, and docs. `composes`, `ctx.compose`, `composeInput`, and `Compose*` type names are now the public authoring vocabulary; topo persistence migrates legacy composition rows and graph keys forward.
+
+### Minor Changes
+
+- 120caf5: Promote topo artifact commands to `trails compile` and `trails validate`.
+- 1c975c3: Define the Warden fix-metadata contract (`WardenFix`, `WardenFixCapability`, `WardenFixClass`, `WardenFixSafety`, `WardenFixEdit`) with optional `fix` metadata on diagnostics and rule metadata, projected through the guide, manifest, markdown, and agent guidance. Export `wardenFixClasses`/`wardenFixSafeties` value arrays and surface the rule `fix` capability in the `warden.guide` trail output schema. Dormant until a rule declares it.
+- d5d518e: Add `warden --fix` to apply safe source fixes. The executor applies only `safety: 'safe'` edits last-to-first, re-reading and rewriting affected files, while review-required, edit-less, and topo diagnostics stay reported but unapplied. The report surfaces applied, changed-file, and skipped counts.
+
+  Expose `fix` through the Trails app wrapper and mark the `warden` trail as write intent with explicit public access because `fix: true` mutates source files while the local governance command remains directly runnable.
+
+### Patch Changes
+
+- f8d80b9: Refresh current-facing compose vocabulary in package documentation after the composition cutover.
+- f0f7e2f: Avoid draft-marker false positives when a packed Warden install scans the Trails framework source tree from a different package location.
+- 64fb15a: Add Warden rules for trail version lifecycle guidance, version gaps, marker-safe schemas, pinned composes, examples, and pending force audit events.
+- 5d88104: Polish Trails blaze terminology across package docs and Warden guidance.
+- 48d5ff4: Attach term-rewrite fix metadata to the `no-legacy-layer-imports` rule, marking it review-required with no mechanical edits (the legacy layers were removed, not renamed) so `warden --fix` reports but never auto-applies the migration.
+- 216bf10: Fix a false `dead-internal-trail` warning by unioning file-local compose evidence with the project-context compose set, so same-file composition in scanned-but-unregistered packages is recognized.
+- 678cb1c: Expose the shared adapter readiness engine through Warden's opt-in
+  `--adapter-check` diagnostics and the local `trails adapter check` authoring
+  workflow.
+- 5874fd6: Preserve diagnostic fix metadata through Warden rule trail outputs.
+- 619cb15: Add a Warden rule (`no-destructured-compose`) that coaches trail blazes to call `ctx.compose(...)` directly instead of destructuring `compose` from the context.
+
+  Keep the generated `create` trail on the direct `ctx.compose(...)` shape so framework-authored trails follow the same composition guidance.
+
+- 4642268: Make the standalone `warden --help` entry point print CLI help instead of running Warden with an unknown-option diagnostic.
+- 9bab0cf: Follow schema aliases when detecting hidden optional wrappers in version marker
+  schemas.
+- 3ceeba8: Expand marker-schema-unsupported diagnostics to catch Zod schema constructs that
+  runtime marker derivation rejects.
+- beafd03: Add a warning for blazes that re-wrap an existing Result error with Result.err(result.error) instead of returning the original Result.
+- 7b173e0: Warn when a `resource('id', { ... })` definition declares neither a `mock` factory nor an explicit `unmockable` reason, so `testAll(app)` can provision it without production configuration (common pitfall #10).
+- 6e50e7b: Recognize Result-returning helper provenance when helpers use an imported Result type alias.
+- 48edf8d: Expose shared Warden source scan-target predicates so downstream consumers can
+  preserve the CLI runner's test and declaration-file filtering before invoking
+  Warden-owned rules directly.
+- 12ffa3b: Align Warden signal-rule trail examples so producer trails call `ctx.fire()` for their declared signals.
+- 2f262f7: Improve Warden diagnostics so names-only findings teach the canonical fix instead of only naming the violation.
+- 58b01f2: Warn when topo export modules open Trails surfaces at module top level.
+- Updated dependencies [bb81ffe]
+- Updated dependencies [e41c382]
+- Updated dependencies [a2f1825]
+- Updated dependencies [a2f1825]
+- Updated dependencies [1eb5bdc]
+- Updated dependencies [f8d80b9]
+- Updated dependencies [846a597]
+- Updated dependencies [223aaad]
+- Updated dependencies [3125f4d]
+- Updated dependencies [2494dc6]
+- Updated dependencies [4bc8a99]
+- Updated dependencies [120caf5]
+- Updated dependencies [2d53717]
+- Updated dependencies [16cb740]
+- Updated dependencies [8894ecb]
+- Updated dependencies [fdf7ec9]
+- Updated dependencies [92e709b]
+- Updated dependencies [d76be13]
+- Updated dependencies [84f56a5]
+- Updated dependencies [653d1fc]
+- Updated dependencies [431b04c]
+- Updated dependencies [2e76288]
+- Updated dependencies [5d88104]
+- Updated dependencies [f04a9ef]
+- Updated dependencies [fc00aeb]
+- Updated dependencies [ab1c77c]
+- Updated dependencies [4f43874]
+- Updated dependencies [678cb1c]
+  - @ontrails/adapter-kit@1.0.0-beta.19
+  - @ontrails/core@1.0.0-beta.19
+  - @ontrails/cli@1.0.0-beta.19
+  - @ontrails/store@1.0.0-beta.19
+  - @ontrails/topographer@1.0.0-beta.19
+  - @ontrails/permits@1.0.0-beta.19
+
 ## 1.0.0-beta.18
 
 ### Patch Changes
