@@ -15,7 +15,7 @@ const archivedWithoutExamples = trail('version.examples.archived', {
       output: z.object({ ok: z.boolean() }),
       status: { state: 'archived' },
       transpose: {
-        input: ({ input }) => input,
+        input: () => ({}),
         output: ({ output }) => output,
       },
     },

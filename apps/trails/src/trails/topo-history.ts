@@ -9,8 +9,18 @@ import {
 } from './topo-support.js';
 import { resolveTrailRootDir } from './root-dir.js';
 
+const topoHistoryTrailInputSchema = z.object({
+  limit: z
+    .number()
+    .default(DEFAULT_TOPO_HISTORY_LIMIT)
+    .describe('Maximum number of snapshots to return'),
+  rootDir: z.string().optional().describe('Workspace root directory'),
+});
+
+type TopoHistoryTrailInput = z.output<typeof topoHistoryTrailInputSchema>;
+
 export const topoHistoryTrail = trail('topo.history', {
-  blaze: (input, ctx) => {
+  blaze: (input: TopoHistoryTrailInput, ctx) => {
     const rootDirResult = resolveTrailRootDir(input.rootDir, ctx.cwd);
     if (rootDirResult.isErr()) {
       return rootDirResult;
@@ -25,13 +35,7 @@ export const topoHistoryTrail = trail('topo.history', {
       name: 'Show topo history',
     },
   ],
-  input: z.object({
-    limit: z
-      .number()
-      .default(DEFAULT_TOPO_HISTORY_LIMIT)
-      .describe('Maximum number of snapshots to return'),
-    rootDir: z.string().optional().describe('Workspace root directory'),
-  }),
+  input: topoHistoryTrailInputSchema,
   intent: 'read',
   output: z.object({
     dbPath: z.string(),

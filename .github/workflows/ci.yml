@@ -73,6 +73,9 @@ jobs:
       - name: Typecheck
         run: bun run typecheck
 
+      - name: Trail input type-cost guard
+        run: bun run type-cost:trail-input
+
   test:
     name: Test
     runs-on: ubuntu-latest

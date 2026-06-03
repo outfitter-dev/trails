@@ -28,12 +28,20 @@ interface GuideEntry {
   readonly kind: 'trail';
 }
 
+const guideTrailInputSchema = z.object({
+  module: z.string().optional().describe('Path to the app module'),
+  rootDir: z.string().optional().describe('Workspace root directory'),
+  trailId: z.string().optional().describe('Trail ID for detailed guidance'),
+});
+
+type GuideTrailInput = z.output<typeof guideTrailInputSchema>;
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 export const guideTrail = trail('guide', {
-  blaze: async (input, ctx) => {
+  blaze: async (input: GuideTrailInput, ctx) => {
     const rootDirResult = resolveTrailRootDir(input.rootDir, ctx.cwd);
     if (rootDirResult.isErr()) {
       return rootDirResult;
@@ -80,11 +88,7 @@ export const guideTrail = trail('guide', {
       name: 'List trail guidance',
     },
   ],
-  input: z.object({
-    module: z.string().optional().describe('Path to the app module'),
-    rootDir: z.string().optional().describe('Workspace root directory'),
-    trailId: z.string().optional().describe('Trail ID for detailed guidance'),
-  }),
+  input: guideTrailInputSchema,
   intent: 'read',
   output: z.discriminatedUnion('mode', [
     z.object({

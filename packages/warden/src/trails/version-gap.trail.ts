@@ -14,7 +14,7 @@ const versionedTrail = trail('version.gap.clean', {
       input: z.object({}),
       output: z.object({ ok: z.boolean() }),
       transpose: {
-        input: ({ input }) => input,
+        input: () => ({}),
         output: ({ output }) => output,
       },
     },

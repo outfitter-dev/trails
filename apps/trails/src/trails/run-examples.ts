@@ -84,9 +84,23 @@ const buildExamplesListing = (
   });
 };
 
+const runExamplesTrailInputSchema = z.object({
+  app: z
+    .string()
+    .optional()
+    .describe(
+      'Workspace app to resolve the trail ID against; required when the ID is exposed by more than one app'
+    ),
+  id: z.string().describe('Trail ID whose examples should be listed'),
+  module: z.string().optional().describe('Path to the app module'),
+  rootDir: z.string().optional().describe('Workspace root directory'),
+});
+
+type RunExamplesTrailInput = z.output<typeof runExamplesTrailInputSchema>;
+
 export const runExamplesTrail = trail('run.examples', {
   args: ['id'],
-  blaze: async (input, ctx) => {
+  blaze: async (input: RunExamplesTrailInput, ctx) => {
     const rootDirResult = resolveTrailRootDir(input.rootDir, ctx.cwd);
     if (rootDirResult.isErr()) {
       return rootDirResult;
@@ -125,17 +139,7 @@ export const runExamplesTrail = trail('run.examples', {
       name: 'List trail examples',
     },
   ],
-  input: z.object({
-    app: z
-      .string()
-      .optional()
-      .describe(
-        'Workspace app to resolve the trail ID against; required when the ID is exposed by more than one app'
-      ),
-    id: z.string().describe('Trail ID whose examples should be listed'),
-    module: z.string().optional().describe('Path to the app module'),
-    rootDir: z.string().optional().describe('Workspace root directory'),
-  }),
+  input: runExamplesTrailInputSchema,
   intent: 'read',
   output: runExamplesListingSchema,
 });

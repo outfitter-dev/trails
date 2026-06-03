@@ -178,7 +178,7 @@ export const sync = <
   const sourceContour = createTableContour(options.from.table);
   const targetContour = createTableContour(options.to.table);
 
-  return trail<IdentityInputOf<TSourceTable>, EntityOf<TTargetTable>>(id, {
+  return trail(id, {
     // oxlint-disable-next-line max-statements -- sync blaze reads more clearly as one try/catch with schema validation, transform, and accessor call inline
     blaze: async (input, ctx) => {
       try {

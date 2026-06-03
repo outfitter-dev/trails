@@ -11,6 +11,7 @@
  */
 
 import type { Signal, SignalSpec } from './signal.js';
+import { trail } from './trail.js';
 import type { Trail, TrailSpec, TrailVersionRevisionEntry } from './trail.js';
 import type { ExecuteTrailOptions } from './execute.js';
 import { resource } from './resource.js';
@@ -19,10 +20,10 @@ import type { ContourOptions } from './contour.js';
 import type { ScheduleSpec } from './schedule.js';
 import type { WebhookSpec } from './webhook.js';
 import type { BasePermit } from './permits.js';
-import type { Result } from './result.js';
+import { Result } from './result.js';
 import type { ComposeFn, FireFn } from './types.js';
 import type { ComposeInput, TrailInput, TrailOutput } from './type-utils.js';
-import type { z } from 'zod';
+import { z } from 'zod';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -35,6 +36,85 @@ type IsExact<A, B> =
       ? true
       : false
     : false;
+
+declare const compose: ComposeFn;
+
+const defaultedTrail = trail('typecheck.defaulted-input', {
+  blaze: (input) => {
+    const { limit }: { limit: number } = input;
+    return Result.ok({ limit });
+  },
+  examples: [
+    {
+      expected: { limit: 20 },
+      input: { name: 'Ada' },
+      name: 'Caller omits defaulted limit',
+    },
+  ],
+  input: z.object({
+    limit: z.number().int().positive().default(20),
+    name: z.string(),
+  }),
+  output: z.object({ limit: z.number() }),
+});
+
+type DefaultedCallerInput = TrailInput<typeof defaultedTrail>;
+type DefaultedComposeInput = ComposeInput<typeof defaultedTrail>;
+type DefaultedBlazeInput = Parameters<typeof defaultedTrail.blaze>[0];
+
+export type DefaultedCallerInputIsCallerSide = Assert<
+  IsExact<DefaultedCallerInput, { name: string; limit?: number | undefined }>
+>;
+export type DefaultedComposeInputIsCallerSide = Assert<
+  IsExact<DefaultedComposeInput, DefaultedCallerInput>
+>;
+export type DefaultedBlazeInputIsMaterialized = Assert<
+  IsExact<DefaultedBlazeInput, { name: string; limit: number }>
+>;
+
+trail('typecheck.output-schema-mismatch', {
+  // @ts-expect-error blaze output must match the authored output schema.
+  blaze: () => Result.ok({ id: 123 }),
+  input: z.object({}),
+  output: z.object({ id: z.string() }),
+});
+
+export const defaultedTrailObjectComposeOk: Promise<
+  Result<{ limit: number }, Error>
+> = compose(defaultedTrail, { name: 'Ada' });
+// @ts-expect-error caller-side input still requires non-defaulted fields.
+compose(defaultedTrail, { limit: 10 });
+
+const composeDefaultSchema = z.object({
+  forkedFrom: z.string().default('root'),
+});
+const composedDefaultedTrail = trail('typecheck.defaulted-compose-input', {
+  blaze: (input) => Result.ok({ forkedFrom: input.forkedFrom }),
+  composeInput: composeDefaultSchema,
+  input: z.object({ name: z.string() }),
+  output: z.object({ forkedFrom: z.string() }),
+});
+
+type DefaultedComposeOnlyInput = ComposeInput<typeof composedDefaultedTrail>;
+type DefaultedComposeOnlyBlazeInput = Parameters<
+  typeof composedDefaultedTrail.blaze
+>[0];
+
+export type DefaultedComposeOnlyInputIsCallerSide = Assert<
+  IsExact<
+    DefaultedComposeOnlyInput,
+    { name: string } & { forkedFrom?: string | undefined }
+  >
+>;
+export type DefaultedComposeOnlyBlazeInputIsMaterialized = Assert<
+  IsExact<
+    DefaultedComposeOnlyBlazeInput,
+    { name: string } & { forkedFrom: string }
+  >
+>;
+export const defaultedComposeInputTrailObjectComposeOk: Promise<
+  Result<{ forkedFrom: string }, Error>
+> = compose(composedDefaultedTrail, { name: 'Ada' });
 
 /** A trail with composeInput declared. */
 type ComposeTrail = Trail<
@@ -109,7 +189,6 @@ export type TypedTrailObjectComposeOutput = [
 export type TypedTrailObjectComposeNotNeverAssert =
   Assert<AssertTypedComposeNotNever>;
 
-declare const compose: ComposeFn;
 declare const composeTrail: ComposeTrail;
 
 export const plainTrailObjectComposeOk: Promise<Result<{ id: string }, Error>> =

@@ -3,7 +3,7 @@
  */
 
 import type { Result } from './result.js';
-import type { AnyTrail } from './trail.js';
+import type { AnyTrail, Trail } from './trail.js';
 import type { Implementation } from './types.js';
 import type { z } from 'zod';
 
@@ -13,11 +13,31 @@ import type { z } from 'zod';
 
 /* oxlint-disable no-explicit-any -- `any` required for conditional type inference; `unknown` breaks inference */
 
+type SchemaInputOrFallback<TSchema extends z.ZodType, TFallback> =
+  unknown extends z.input<TSchema> ? TFallback : z.input<TSchema>;
+
+type ComposeSchemaOf<T extends AnyTrail> = T extends {
+  readonly composeInput?: (infer TComposeSchema) | undefined;
+}
+  ? NonNullable<TComposeSchema>
+  : never;
+
+type ComposeInputPart<T extends AnyTrail> =
+  ComposeSchemaOf<T> extends z.ZodType
+    ? T extends Trail<any, any, infer CI>
+      ? SchemaInputOrFallback<ComposeSchemaOf<T>, CI>
+      : z.input<ComposeSchemaOf<T>>
+    : T extends Trail<any, any, infer CI>
+      ? CI
+      : never;
+
 /** Extract the input type from a Trail. */
 export type TrailInput<T extends AnyTrail> = T extends {
-  readonly input: z.ZodType<infer I>;
+  readonly input: infer TInputSchema extends z.ZodType;
 }
-  ? I
+  ? T extends Trail<infer I, any, any>
+    ? SchemaInputOrFallback<TInputSchema, I>
+    : z.input<TInputSchema>
   : never;
 
 /** Extract the output type from a Trail. */
@@ -35,12 +55,11 @@ export type TrailOutput<T extends AnyTrail> = T extends {
  * merges both schemas so the compiler enforces the full shape at the call
  * site. Falls back to plain `TrailInput<T>` when no `composeInput` exists.
  */
-export type ComposeInput<T extends AnyTrail> =
-  NonNullable<T['composeInput']> extends z.ZodType<infer CI>
-    ? [CI] extends [never]
-      ? TrailInput<T>
-      : TrailInput<T> & CI
-    : TrailInput<T>;
+export type ComposeInput<T extends AnyTrail> = [ComposeInputPart<T>] extends [
+  never,
+]
+  ? TrailInput<T>
+  : TrailInput<T> & ComposeInputPart<T>;
 
 /**
  * Extracts the full `Result<Output, Error>` type from a trail definition.

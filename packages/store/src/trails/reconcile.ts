@@ -263,7 +263,7 @@ export const reconcile = <
   const entityContour = createTableContour(options.table);
   const strategy = options.strategy ?? 'last-write-wins';
 
-  return trail<UpsertOf<TTable>, EntityOf<TTable>>(id, {
+  return trail(id, {
     blaze: createReconcileBlaze(options, id),
     contours: [entityContour],
     description:

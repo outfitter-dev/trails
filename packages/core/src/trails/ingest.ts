@@ -114,16 +114,17 @@ export const ingest = <
     id,
     transform
   );
-  const baseTrail = trail(id, {
+  const baseSpec = {
     ...trailSpec,
-    blaze: baseBlaze,
+    blaze: baseBlaze as TrailSpec<unknown, unknown>['blaze'],
     examples: deriveExamples(schema as ExampleBearingSchema<TSchema>, signalId),
     fires: [signal],
-    input: schema as z.ZodType<SchemaValue<TSchema>>,
+    input: schema as z.ZodType<unknown>,
     intent: 'write',
     output: z.void(),
     pattern: 'ingest',
-  }) as Trail<SchemaValue<TSchema>, void>;
+  } as TrailSpec<unknown, unknown>;
+  const baseTrail = trail(id, baseSpec) as Trail<SchemaValue<TSchema>, void>;
 
   if (verify === undefined) {
     return baseTrail;

@@ -313,13 +313,33 @@ const buildAmbiguousExampleInput = (): {
   return { id: 'shared.id', rootDir: root };
 };
 
+const runTrailInputSchema = z.object({
+  app: z
+    .string()
+    .optional()
+    .describe(
+      'Workspace app to resolve the trail ID against; required when the ID is exposed by more than one app'
+    ),
+  id: z.string().describe('Trail ID to invoke'),
+  input: z
+    .unknown()
+    .optional()
+    .describe(
+      'Parsed input for the resolved trail; the CLI surface JSON.parses the inline argument before passing it through'
+    ),
+  module: z.string().optional().describe('Path to the app module'),
+  rootDir: z.string().optional().describe('Workspace root directory'),
+});
+
+type RunTrailInput = z.output<typeof runTrailInputSchema>;
+
 // ---------------------------------------------------------------------------
 // Trail definition
 // ---------------------------------------------------------------------------
 
 export const runTrail = trail('run', {
   args: ['id'],
-  blaze: async (input, ctx) => {
+  blaze: async (input: RunTrailInput, ctx) => {
     const rootDirResult = resolveTrailRootDir(input.rootDir, ctx.cwd);
     if (rootDirResult.isErr()) {
       return rootDirResult;
@@ -383,23 +403,7 @@ export const runTrail = trail('run', {
       name: 'Reject ambiguous trail ID without --app',
     },
   ],
-  input: z.object({
-    app: z
-      .string()
-      .optional()
-      .describe(
-        'Workspace app to resolve the trail ID against; required when the ID is exposed by more than one app'
-      ),
-    id: z.string().describe('Trail ID to invoke'),
-    input: z
-      .unknown()
-      .optional()
-      .describe(
-        'Parsed input for the resolved trail; the CLI surface JSON.parses the inline argument before passing it through'
-      ),
-    module: z.string().optional().describe('Path to the app module'),
-    rootDir: z.string().optional().describe('Workspace root directory'),
-  }),
+  input: runTrailInputSchema,
   intent: 'write',
   output: innerTrailResultSchema,
   permit: { scopes: ['trails:run'] },

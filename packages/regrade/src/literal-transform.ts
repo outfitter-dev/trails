@@ -89,7 +89,8 @@ export const literalRegradeTrail = trail('regrade.literal.run', {
         )
       );
     }
-    return await ctx.compose(normalizeExportConstTrail, input.child);
+    const blazeInput = input as RegradeTransformBlazeInput;
+    return await ctx.compose(normalizeExportConstTrail, blazeInput.child);
   },
   composes: [normalizeExportConstTrail],
   examples: [

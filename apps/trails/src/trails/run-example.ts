@@ -423,9 +423,24 @@ const buildComparisonEnvelope = async (
   });
 };
 
+const runExampleTrailInputSchema = z.object({
+  app: z
+    .string()
+    .optional()
+    .describe(
+      'Workspace app to resolve the trail ID against; required when the ID is exposed by more than one app'
+    ),
+  exampleName: z.string().describe('Name of the example to run'),
+  id: z.string().describe('Trail ID whose example should run'),
+  module: z.string().optional().describe('Path to the app module'),
+  rootDir: z.string().optional().describe('Workspace root directory'),
+});
+
+type RunExampleTrailInput = z.output<typeof runExampleTrailInputSchema>;
+
 export const runExampleTrail = trail('run.example', {
   args: ['id', 'exampleName'],
-  blaze: async (input, ctx) => {
+  blaze: async (input: RunExampleTrailInput, ctx) => {
     const rootDirResult = resolveTrailRootDir(input.rootDir, ctx.cwd);
     if (rootDirResult.isErr()) {
       return rootDirResult;
@@ -469,18 +484,7 @@ export const runExampleTrail = trail('run.example', {
       name: 'Run named example',
     },
   ],
-  input: z.object({
-    app: z
-      .string()
-      .optional()
-      .describe(
-        'Workspace app to resolve the trail ID against; required when the ID is exposed by more than one app'
-      ),
-    exampleName: z.string().describe('Name of the example to run'),
-    id: z.string().describe('Trail ID whose example should run'),
-    module: z.string().optional().describe('Path to the app module'),
-    rootDir: z.string().optional().describe('Workspace root directory'),
-  }),
+  input: runExampleTrailInputSchema,
   intent: 'write',
   output: runExampleComparisonSchema,
   permit: { scopes: ['trails:run'] },

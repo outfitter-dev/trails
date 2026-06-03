@@ -16,8 +16,19 @@ export const compileCurrentTopo = async (
   options?: { readonly force?: boolean | undefined; readonly rootDir?: string }
 ): Promise<Result<TopoExportReport, Error>> => exportCurrentTopo(app, options);
 
+const compileTrailInputSchema = z.object({
+  force: z
+    .boolean()
+    .optional()
+    .describe('Record graph-only force events for breaking changes'),
+  module: z.string().optional().describe('Path to the app module'),
+  rootDir: z.string().optional().describe('Workspace root directory'),
+});
+
+type CompileTrailInput = z.output<typeof compileTrailInputSchema>;
+
 export const compileTrail = trail('compile', {
-  blaze: async (input, ctx) => {
+  blaze: async (input: CompileTrailInput, ctx) => {
     const rootDirResult = resolveTrailRootDir(input.rootDir, ctx.cwd);
     if (rootDirResult.isErr()) {
       return rootDirResult;
@@ -44,14 +55,7 @@ export const compileTrail = trail('compile', {
       name: 'Compile the current topo artifacts',
     },
   ],
-  input: z.object({
-    force: z
-      .boolean()
-      .optional()
-      .describe('Record graph-only force events for breaking changes'),
-    module: z.string().optional().describe('Path to the app module'),
-    rootDir: z.string().optional().describe('Workspace root directory'),
-  }),
+  input: compileTrailInputSchema,
   intent: 'write',
   output: z.object({
     hash: z.string(),

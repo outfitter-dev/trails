@@ -86,6 +86,102 @@ export type BlazeInput<I, CI> = [CI] extends [never] ? I : I & CI;
 
 type TrailRef = string | { readonly id: string };
 
+type ComposeSchemaOutput<TSchema extends z.ZodType | undefined> =
+  TSchema extends z.ZodType ? z.output<TSchema> : never;
+
+type SchemaOwnedTrailSpec<
+  TInputSchema extends z.ZodType,
+  O,
+  TComposeInputSchema extends z.ZodType | undefined = undefined,
+  C extends readonly TrailRef[] | undefined = undefined,
+> = Omit<
+  TrailSpec<
+    z.output<TInputSchema>,
+    O,
+    ComposeSchemaOutput<TComposeInputSchema>,
+    C
+  >,
+  'blaze' | 'composeInput' | 'detours' | 'examples' | 'input' | 'versions'
+> & {
+  /** Zod schema for validating caller input and materializing blaze input. */
+  readonly input: TInputSchema;
+  /** The pure function receives schema-materialized input after validation/defaults. */
+  readonly blaze: Implementation<
+    BlazeInput<
+      z.output<TInputSchema>,
+      ComposeSchemaOutput<TComposeInputSchema>
+    >,
+    O,
+    ComposeContextFor<C>
+  >;
+  /** Named examples use caller-side input; schema defaults may be omitted. */
+  readonly examples?:
+    | readonly TrailExample<z.input<TInputSchema>, O>[]
+    | undefined;
+  /** Recovery paths see the same materialized input as the blaze. */
+  readonly detours?:
+    | readonly Detour<z.output<TInputSchema>, O, TrailsError>[]
+    | undefined;
+  /** Composition-only schema, merged internally for ctx.compose() calls. */
+  readonly composeInput?: TComposeInputSchema | undefined;
+  /** Explicit historical trail versions. Current stays top-level. */
+  readonly versions?: TrailVersions<z.output<TInputSchema>, O> | undefined;
+};
+
+type SchemaOwnedOutputTrailSpec<
+  TInputSchema extends z.ZodType,
+  TOutputSchema extends z.ZodType,
+  TComposeInputSchema extends z.ZodType | undefined = undefined,
+  C extends readonly TrailRef[] | undefined = undefined,
+> = Omit<
+  SchemaOwnedTrailSpec<
+    TInputSchema,
+    z.output<TOutputSchema>,
+    TComposeInputSchema,
+    C
+  >,
+  'output'
+> & {
+  readonly output: TOutputSchema;
+};
+
+type SchemaOwnedTrail<
+  TInputSchema extends z.ZodType,
+  O,
+  TComposeInputSchema extends z.ZodType | undefined,
+> = Trail<
+  z.output<TInputSchema>,
+  O,
+  ComposeSchemaOutput<TComposeInputSchema>
+> & {
+  readonly input: TInputSchema;
+  readonly composeInput?: TComposeInputSchema | undefined;
+};
+
+type LegacyOutputTrailSpec<
+  I,
+  O,
+  CI,
+  C extends readonly TrailRef[] | undefined,
+> = Omit<TrailSpec<I, O, CI, C>, 'blaze' | 'output'> & {
+  readonly blaze: Implementation<
+    BlazeInput<I, CI>,
+    NoInfer<O>,
+    ComposeContextFor<C>
+  >;
+  readonly output: z.ZodType<O>;
+};
+
+type LegacyOutputlessTrailSpec<
+  I,
+  O,
+  CI,
+  C extends readonly TrailRef[] | undefined,
+> = Omit<TrailSpec<I, O, CI, C>, 'blaze' | 'output'> & {
+  readonly blaze: Implementation<BlazeInput<I, CI>, O, ComposeContextFor<C>>;
+  readonly output?: undefined;
+};
+
 // ---------------------------------------------------------------------------
 // Trail versioning
 // ---------------------------------------------------------------------------
@@ -1016,17 +1112,74 @@ const normalizeCollections = <
  * ```
  */
 export function trail<
-  I,
-  O,
-  CI = never,
+  const TInputSchema extends z.ZodType,
+  const TOutputSchema extends z.ZodType,
+  const TComposeInputSchema extends z.ZodType | undefined = undefined,
   const C extends readonly TrailRef[] | undefined = undefined,
->(id: string, spec: TrailSpec<I, O, CI, C>): Trail<I, O, CI>;
+>(
+  id: string,
+  spec: SchemaOwnedOutputTrailSpec<
+    TInputSchema,
+    TOutputSchema,
+    TComposeInputSchema,
+    C
+  >
+): SchemaOwnedTrail<TInputSchema, z.output<TOutputSchema>, TComposeInputSchema>;
+export function trail<
+  const TInputSchema extends z.ZodType,
+  const TOutputSchema extends z.ZodType,
+  const TComposeInputSchema extends z.ZodType | undefined = undefined,
+  const C extends readonly TrailRef[] | undefined = undefined,
+>(
+  spec: SchemaOwnedOutputTrailSpec<
+    TInputSchema,
+    TOutputSchema,
+    TComposeInputSchema,
+    C
+  > & {
+    readonly id: string;
+  }
+): SchemaOwnedTrail<TInputSchema, z.output<TOutputSchema>, TComposeInputSchema>;
+export function trail<
+  const TInputSchema extends z.ZodType,
+  O,
+  const TComposeInputSchema extends z.ZodType | undefined = undefined,
+  const C extends readonly TrailRef[] | undefined = undefined,
+>(
+  id: string,
+  spec: SchemaOwnedTrailSpec<TInputSchema, O, TComposeInputSchema, C>
+): SchemaOwnedTrail<TInputSchema, O, TComposeInputSchema>;
+export function trail<
+  const TInputSchema extends z.ZodType,
+  O,
+  const TComposeInputSchema extends z.ZodType | undefined = undefined,
+  const C extends readonly TrailRef[] | undefined = undefined,
+>(
+  spec: SchemaOwnedTrailSpec<TInputSchema, O, TComposeInputSchema, C> & {
+    readonly id: string;
+  }
+): SchemaOwnedTrail<TInputSchema, O, TComposeInputSchema>;
 export function trail<
   I,
   O,
   CI = never,
   const C extends readonly TrailRef[] | undefined = undefined,
->(spec: TrailSpec<I, O, CI, C> & { readonly id: string }): Trail<I, O, CI>;
+>(
+  id: string,
+  spec:
+    | LegacyOutputTrailSpec<I, O, CI, C>
+    | LegacyOutputlessTrailSpec<I, O, CI, C>
+): Trail<I, O, CI>;
+export function trail<
+  I,
+  O,
+  CI = never,
+  const C extends readonly TrailRef[] | undefined = undefined,
+>(
+  spec:
+    | (LegacyOutputTrailSpec<I, O, CI, C> & { readonly id: string })
+    | (LegacyOutputlessTrailSpec<I, O, CI, C> & { readonly id: string })
+): Trail<I, O, CI>;
 export function trail<
   I,
   O,
