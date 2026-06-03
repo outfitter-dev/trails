@@ -188,6 +188,7 @@ export {
   noLegacyLayerImportsTrail,
   noNativeErrorResultTrail,
   noRedundantResultErrorWrapTrail,
+  noRetiredCrossVocabularyTrail,
   noSyncResultAssumptionTrail,
   noThrowInDetourRecoverTrail,
   noThrowInImplementationTrail,

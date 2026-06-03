@@ -30,6 +30,7 @@ import { noLegacyLayerImports } from './no-legacy-layer-imports.js';
 import { noDirectImplementationCall } from './no-direct-implementation-call.js';
 import { noNativeErrorResult } from './no-native-error-result.js';
 import { noRedundantResultErrorWrap } from './no-redundant-result-error-wrap.js';
+import { noRetiredCrossVocabulary } from './no-retired-cross-vocabulary.js';
 import { noSyncResultAssumption } from './no-sync-result-assumption.js';
 import { noThrowInDetourRecover } from './no-throw-in-detour-recover.js';
 import { noThrowInImplementation } from './no-throw-in-implementation.js';
@@ -104,6 +105,7 @@ export const registeredRuleNames: readonly string[] = [
   noDirectImplementationCall.name,
   noNativeErrorResult.name,
   noRedundantResultErrorWrap.name,
+  noRetiredCrossVocabulary.name,
   noSyncResultAssumption.name,
   noThrowInDetourRecover.name,
   noThrowInImplementation.name,

@@ -26,6 +26,7 @@ export { noLegacyLayerImportsTrail } from './no-legacy-layer-imports.trail.js';
 export { noDirectImplementationCallTrail } from './no-direct-implementation-call.trail.js';
 export { noNativeErrorResultTrail } from './no-native-error-result.trail.js';
 export { noRedundantResultErrorWrapTrail } from './no-redundant-result-error-wrap.trail.js';
+export { noRetiredCrossVocabularyTrail } from './no-retired-cross-vocabulary.trail.js';
 export { noSyncResultAssumptionTrail } from './no-sync-result-assumption.trail.js';
 export { noThrowInDetourRecoverTrail } from './no-throw-in-detour-recover.trail.js';
 export { noThrowInImplementationTrail } from './no-throw-in-implementation.trail.js';

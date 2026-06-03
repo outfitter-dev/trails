@@ -57,6 +57,29 @@ describe('wardenTermRewriteClasses', () => {
     expect(wardenTermRewriteClasses.map((cls) => cls.id)).toContain(
       'term-rewrite:no-legacy-layer-imports'
     );
+    expect(wardenTermRewriteClasses.map((cls) => cls.id)).toContain(
+      'term-rewrite:no-retired-cross-vocabulary'
+    );
+  });
+
+  test('rewrites safe Warden term-rewrite diagnostics', () => {
+    const crossClass = wardenTermRewriteClasses.find(
+      (cls) => cls.id === 'term-rewrite:no-retired-cross-vocabulary'
+    );
+    expect(crossClass).toBeDefined();
+
+    const result = crossClass?.apply(
+      'export const play = trail("play", { crosses: [] });\n',
+      { absolutePath: '/repo/src/play.ts', path: 'src/play.ts' }
+    );
+
+    expect(result?.kind).toBe('rewrite');
+    expect(result?.nextSource).toBe(
+      'export const play = trail("play", { composes: [] });\n'
+    );
+    expect(result?.notes.join('\n')).toContain(
+      'Retired composition vocabulary'
+    );
   });
 
   test('routes review-required Warden term rewrites to review', () => {
@@ -88,6 +111,7 @@ describe('wardenTermRewriteClasses', () => {
 
     expect(report.selectedClassIds).toEqual([
       'term-rewrite:no-legacy-layer-imports',
+      'term-rewrite:no-retired-cross-vocabulary',
     ]);
     expect(report.matched).toBe(0);
     expect(report.entries[0]?.outcome).toBe('no-op');
@@ -361,6 +385,7 @@ describe('runRegrade + regradeReportTrail', () => {
         expect(value.rewritten).toBe(0);
         expect(value.selectedClassIds).toEqual([
           'term-rewrite:no-legacy-layer-imports',
+          'term-rewrite:no-retired-cross-vocabulary',
         ]);
       }
     } finally {

@@ -87,6 +87,7 @@ const concernByRuleName: Partial<Record<string, WardenRuleConcern>> = {
   'no-direct-implementation-call': 'composition',
   'no-native-error-result': 'results',
   'no-redundant-result-error-wrap': 'results',
+  'no-retired-cross-vocabulary': 'composition',
   'no-sync-result-assumption': 'results',
   'no-throw-in-detour-recover': 'results',
   'no-throw-in-implementation': 'results',
@@ -293,6 +294,18 @@ const builtinWardenRuleMetadataInput = {
     ...durableExternal,
     invariant:
       'Result error pass-throughs preserve the original Result boundary.',
+    tier: 'source-static',
+  },
+  'no-retired-cross-vocabulary': {
+    fix: { class: 'term-rewrite', safety: 'safe' },
+    invariant:
+      'Retired cross composition vocabulary does not remain in downstream source after the beta.19 compose cutover.',
+    lifecycle: {
+      retireWhen:
+        'Downstream beta.19 cross-to-compose migration window closes and supported apps have adopted compose vocabulary.',
+      state: 'temporary',
+    },
+    scope: 'external',
     tier: 'source-static',
   },
   'no-sync-result-assumption': {

@@ -22,6 +22,7 @@ import { noLegacyLayerImports } from './no-legacy-layer-imports.js';
 import { noDirectImplementationCall } from './no-direct-implementation-call.js';
 import { noNativeErrorResult } from './no-native-error-result.js';
 import { noRedundantResultErrorWrap } from './no-redundant-result-error-wrap.js';
+import { noRetiredCrossVocabulary } from './no-retired-cross-vocabulary.js';
 import { noSyncResultAssumption } from './no-sync-result-assumption.js';
 import { noThrowInDetourRecover } from './no-throw-in-detour-recover.js';
 import { noThrowInImplementation } from './no-throw-in-implementation.js';
@@ -124,6 +125,7 @@ export { noLegacyLayerImports } from './no-legacy-layer-imports.js';
 export { noDirectImplementationCall } from './no-direct-implementation-call.js';
 export { noNativeErrorResult } from './no-native-error-result.js';
 export { noRedundantResultErrorWrap } from './no-redundant-result-error-wrap.js';
+export { noRetiredCrossVocabulary } from './no-retired-cross-vocabulary.js';
 export { noSyncResultAssumption } from './no-sync-result-assumption.js';
 export { implementationReturnsResult } from './implementation-returns-result.js';
 export { noThrowInDetourRecover } from './no-throw-in-detour-recover.js';
@@ -203,6 +205,7 @@ export const wardenRules: ReadonlyMap<string, WardenRule> = new Map<
   [noLegacyLayerImports.name, noLegacyLayerImports],
   [noNativeErrorResult.name, noNativeErrorResult],
   [noRedundantResultErrorWrap.name, noRedundantResultErrorWrap],
+  [noRetiredCrossVocabulary.name, noRetiredCrossVocabulary],
   [noSyncResultAssumption.name, noSyncResultAssumption],
   [implementationReturnsResult.name, implementationReturnsResult],
   [noThrowInDetourRecover.name, noThrowInDetourRecover],

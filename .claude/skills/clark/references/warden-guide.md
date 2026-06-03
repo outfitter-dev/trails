@@ -5,7 +5,7 @@
 This file is generated from the live `@ontrails/warden` rule manifest. Repo-tracked skills, agents, and plugin prompts should reference this file instead of copying rule prose by hand.
 
 - Guide input command: `bun apps/trails/bin/trails.ts warden guide --agent-json`
-- Rule count: 60
+- Rule count: 61
 
 ## Agent Instructions
 
@@ -26,6 +26,7 @@ This file is generated from the live `@ontrails/warden` rule manifest. Repo-trac
 - `missing-visibility` (warn, project/project-static, external): Composition-only trails declare internal visibility.
 - `no-destructured-compose` (warn, source/source-static, external): Trail blazes compose through ctx.compose() directly instead of destructuring compose from the context.
 - `no-direct-implementation-call` (warn, source/source-static, external): Application code composes trails through ctx.compose().
+- `no-retired-cross-vocabulary` (error, source/source-static, external): Retired cross composition vocabulary does not remain in downstream source after the beta.19 compose cutover.
 - `resolved-import-boundary` (error, project/project-static, external): Cross-package imports resolve through public export maps.
 - `version-pinned-compose` (warn, source/source-static, external): Version-pinned ctx.compose() calls stay visible migration debt.
 - `webhook-route-collision` (error, topo/topo-aware, external): Webhook routes do not collide with each other or direct HTTP trail routes.

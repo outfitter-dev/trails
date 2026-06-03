@@ -9,8 +9,8 @@ import { wardenTopo } from '../trails/topo.js';
 testAll(wardenTopo);
 
 describe('wardenTopo', () => {
-  test('contains all 60 rule trails', () => {
-    expect(wardenTopo.count).toBe(60);
+  test('contains all 61 rule trails', () => {
+    expect(wardenTopo.count).toBe(61);
   });
 
   test('all trail IDs follow warden.rule.* naming', () => {
@@ -53,12 +53,13 @@ describe('wardenTopo', () => {
         filePath: 'src/trail.ts',
         fix: {
           class: 'term-rewrite',
+          edits: [{ end: 7, replacement: 'composes', start: 0 }],
           reason: 'Retired term needs a reviewed migration.',
-          safety: 'review',
+          safety: 'safe',
         },
         line: 1,
         message: 'Retired term used.',
-        rule: 'no-legacy-layer-imports',
+        rule: 'no-retired-cross-vocabulary',
         severity: 'error',
       }).success
     ).toBe(true);
@@ -83,18 +84,20 @@ describe('wardenTopo', () => {
   test('rule trail execution preserves diagnostic fix metadata', async () => {
     const diagnostics = await runWardenTrails(
       '/repo/apps/example/src/cli.ts',
-      "import { authLayer } from '@ontrails/permits';\n"
+      'export const play = trail("play", { crosses: [] });\n'
     );
 
     const diagnostic = diagnostics.find(
-      (entry) => entry.rule === 'no-legacy-layer-imports'
+      (entry) => entry.rule === 'no-retired-cross-vocabulary'
     );
 
     expect(diagnostic?.fix).toMatchObject({
       class: 'term-rewrite',
-      safety: 'review',
+      safety: 'safe',
     });
-    expect(diagnostic?.fix?.reason).toContain('authLayer');
-    expect(diagnostic?.fix?.edits).toBeUndefined();
+    expect(diagnostic?.fix?.reason).toContain('crosses');
+    expect(diagnostic?.fix?.edits).toEqual([
+      { end: 43, replacement: 'composes', start: 36 },
+    ]);
   });
 });

@@ -1,8 +1,13 @@
-// Radio-shaped fixture: a notification-source module. The whole-word binding
-// below is the rewrite target; `defineSignal` is a partial match and must stay
-// untouched.
-import { defineSignal } from '@radio/runtime';
+import { Result, trail } from '@ontrails/core';
+import { z } from 'zod';
 
-export const signal = defineSignal('track.changed', {
-  trackId: 'string',
+const loadTrack = trail('track.load', {
+  blaze: () => Result.ok({ title: 'Lost Coast' }),
+  output: z.object({ title: z.string() }),
+});
+
+export const playTrack = trail('play.track', {
+  crosses: [loadTrack],
+  input: crossInput,
+  blaze: (input, ctx) => ctx.cross(loadTrack, input),
 });

@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { collectDownstreamSources } from '../collect.js';
-import { createTermRewriteClass, runRegrade } from '../report.js';
+import { runRegrade, wardenTermRewriteClasses } from '../report.js';
 
 /**
  * Radio-shaped downstream regrade regression fixture (TRL-846).
@@ -59,6 +59,8 @@ const materializeFixture = (): string => {
 };
 
 describe('Radio-shaped downstream fixture (TRL-846)', () => {
+  const crossToComposeClassId = 'term-rewrite:no-retired-cross-vocabulary';
+
   test('collects only in-scope source files and records skips', () => {
     const root = materializeFixture();
     try {
@@ -90,14 +92,15 @@ describe('Radio-shaped downstream fixture (TRL-846)', () => {
     const root = materializeFixture();
     try {
       const report = runRegrade({
-        classes: [createTermRewriteClass({ from: 'signal', to: 'ping' })],
+        classes: wardenTermRewriteClasses,
         root,
+        selection: { classIds: [crossToComposeClassId] },
       });
       expect(report).not.toBeNull();
       const r = report as NonNullable<typeof report>;
 
-      // track.ts -> rewrite (whole-word signal), play.ts -> review
-      // (signalHandler partial), now-playing.tsx -> no-op.
+      expect(r.selectedClassIds).toEqual([crossToComposeClassId]);
+      expect(r.unknownClassIds).toEqual([]);
       expect(r.scanned).toBe(3);
       expect(r.rewritten).toBe(1);
       expect(r.review).toBe(1);
@@ -106,6 +109,9 @@ describe('Radio-shaped downstream fixture (TRL-846)', () => {
       const byPath = new Map(r.entries.map((entry) => [entry.path, entry]));
       expect(byPath.get('src/signals/track.ts')?.outcome).toBe('rewrite');
       expect(byPath.get('src/trails/play.ts')?.outcome).toBe('needs-review');
+      expect(byPath.get('src/trails/play.ts')?.reason).toBe(
+        'warden-review-required'
+      );
       expect(byPath.get('src/components/now-playing.tsx')?.outcome).toBe(
         'no-op'
       );
