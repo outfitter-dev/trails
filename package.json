@@ -22,6 +22,7 @@
     "docs:api-examples": "bun scripts/check-public-api-examples.ts",
     "docs:wrap-check": "bun scripts/check-hardwrap.ts",
     "docs:wrap-check:json": "bun scripts/check-hardwrap.ts --json",
+    "type-cost:trail-input": "bun scripts/check-trail-input-type-cost.ts",
     "error-taxonomy:sync": "bun scripts/sync-error-taxonomy-docs.ts",
     "error-taxonomy:check": "bun scripts/sync-error-taxonomy-docs.ts --check",
     "scaffold-versions:sync": "bun scripts/sync-scaffold-versions.ts",
