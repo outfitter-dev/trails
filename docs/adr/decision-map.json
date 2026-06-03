@@ -180,6 +180,11 @@
           "fromPath": "docs/adr/drafts/20260530-fixes-are-warden-diagnostic-metadata.md"
         },
         {
+          "context": "- docs/adr/0000-core-premise.md",
+          "from": "20260603",
+          "fromPath": "docs/adr/drafts/20260603-one-schema-trail-input.md"
+        },
+        {
           "context": "- **[ADR-0000: Core Premise](./adr/0000-core-premise.md)** — Why contracts, why Result, why derive",
           "from": "index",
           "fromPath": "docs/index.md"
@@ -642,6 +647,11 @@
           "context": "- docs/adr/0006-shared-execution-pipeline.md",
           "from": "20260401",
           "fromPath": "docs/adr/drafts/20260401-compiled-pack-trailhead.md"
+        },
+        {
+          "context": "- docs/adr/0006-shared-execution-pipeline.md",
+          "from": "20260603",
+          "fromPath": "docs/adr/drafts/20260603-one-schema-trail-input.md"
         },
         {
           "context": "- **[ADR-0006: Shared Execution Pipeline](./adr/0006-shared-execution-pipeline.md)** — One `executeTrail`, Result-returning builders",
@@ -1520,6 +1530,11 @@
           "fromPath": "docs/adr/0008-deterministic-trailhead-derivation.md"
         },
         {
+          "context": "- docs/adr/0020-flags-for-fields-structured-input-on-the-cli.md",
+          "from": "20260603",
+          "fromPath": "docs/adr/drafts/20260603-one-schema-trail-input.md"
+        },
+        {
           "context": "- **[ADR-0020: Structured CLI Input](./adr/0020-flags-for-fields-structured-input-on-the-cli.md)** — Flags for fields, JSON/file/stdin channels",
           "from": "index",
           "fromPath": "docs/index.md"
@@ -1744,6 +1759,11 @@
           "context": "- [ADR-0024: Typed Trail Composition](0024-typed-trail-composition.md) — the composition contract this renames in place (`crossInput` → `composeInput`).",
           "from": "0049",
           "fromPath": "docs/adr/0049-composition-is-compose-not-cross.md"
+        },
+        {
+          "context": "- docs/adr/0024-typed-trail-composition.md",
+          "from": "20260603",
+          "fromPath": "docs/adr/drafts/20260603-one-schema-trail-input.md"
         },
         {
           "context": "`composeInput` fields are merged with `input` for the blaze. When invoked via a surface, `composeInput` fields are absent. When invoked via `ctx.compose()`, the caller can pass both. See [ADR-0024](ad",
@@ -2671,6 +2691,11 @@
           "context": "- docs/adr/0048-trail-versioning-v3.md",
           "from": "20260524",
           "fromPath": "docs/adr/drafts/20260524-scaffold-forward-compatibility.md"
+        },
+        {
+          "context": "- docs/adr/0048-trail-versioning-v3.md",
+          "from": "20260603",
+          "fromPath": "docs/adr/drafts/20260603-one-schema-trail-input.md"
         }
       ],
       "number": "0048",

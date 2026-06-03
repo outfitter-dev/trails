@@ -41,3 +41,8 @@ Draft map: `docs/adr/drafts/decision-map.json`; numbered map: `docs/adr/decision
   - depends on [ADR-0029: Adapter Extraction and Composition Around Core Contracts](../0029-connector-extraction-and-the-with-packaging-model.md)
 - [Fixes are Warden diagnostic metadata](20260530-fixes-are-warden-diagnostic-metadata.md)
   - depends on [ADR-0000: Core Premise — Contract-First, Surface-Agnostic Design](../0000-core-premise.md), [ADR-0007: Governance as Trails with AST-Based Analysis](../0007-governance-as-trails.md), [ADR-0036: Warden rules ship only as trails](../0036-warden-rules-ship-only-as-trails.md), [ADR-0037: Owner-First Authority](../0037-owner-first-authority.md), [ADR-0043: Layer Evolution](../0043-layer-evolution.md)
+
+## 2026-06
+
+- [One-Schema Trail Input](20260603-one-schema-trail-input.md)
+  - depends on [ADR-0000: Core Premise — Contract-First, Surface-Agnostic Design](../0000-core-premise.md), [ADR-0006: Shared Execution Pipeline with Result-Returning Builders](../0006-shared-execution-pipeline.md), [ADR-0020: Flags for Fields, Structured Input on the CLI](../0020-flags-for-fields-structured-input-on-the-cli.md), [ADR-0024: Typed Trail Composition](../0024-typed-trail-composition.md), [ADR-0048: Trail Versioning v3](../0048-trail-versioning-v3.md)
