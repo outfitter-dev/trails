@@ -264,6 +264,19 @@
       "superseded_by": null,
       "title": "One-Schema Trail Input",
       "updated": "2026-06-03"
+    },
+    {
+      "created": "2026-06-03",
+      "depends_on": ["0", "17", "27", "35", "42", "46"],
+      "inbound": [],
+      "number": null,
+      "owners": ["[galligan](https://github.com/galligan)"],
+      "path": "docs/adr/drafts/20260603-surface-facets-shape-dense-topos.md",
+      "slug": "surface-facets-shape-dense-topos",
+      "status": "draft",
+      "superseded_by": null,
+      "title": "Surface Facets Shape Dense Topos",
+      "updated": "2026-06-03"
     }
   ],
   "version": 1

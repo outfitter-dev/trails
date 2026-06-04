@@ -185,6 +185,11 @@
           "fromPath": "docs/adr/drafts/20260603-one-schema-trail-input.md"
         },
         {
+          "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) - the trail remains the product and surfaces render the contract",
+          "from": "20260603",
+          "fromPath": "docs/adr/drafts/20260603-surface-facets-shape-dense-topos.md"
+        },
+        {
           "context": "- **[ADR-0000: Core Premise](./adr/0000-core-premise.md)** — Why contracts, why Result, why derive",
           "from": "index",
           "fromPath": "docs/index.md"
@@ -1433,6 +1438,11 @@
           "fromPath": "docs/adr/drafts/20260503-wayfinding.md"
         },
         {
+          "context": "- [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md) - resolved graph inspection and drift protection",
+          "from": "20260603",
+          "fromPath": "docs/adr/drafts/20260603-surface-facets-shape-dense-topos.md"
+        },
+        {
           "context": "- **[ADR-0017: The Serialized Topo Graph](./adr/0017-serialized-topo-graph.md)** — Lockfile as resolved graph",
           "from": "index",
           "fromPath": "docs/index.md"
@@ -1886,6 +1896,11 @@
           "context": "- docs/adr/0027-visibility-and-filtering.md",
           "from": "20260503",
           "fromPath": "docs/adr/drafts/20260503-wayfinding.md"
+        },
+        {
+          "context": "- [ADR-0027: Trail Visibility and Surface Filtering](../0027-visibility-and-filtering.md) - selector grammar and visibility semantics",
+          "from": "20260603",
+          "fromPath": "docs/adr/drafts/20260603-surface-facets-shape-dense-topos.md"
         }
       ],
       "number": "0027",
@@ -2224,6 +2239,11 @@
           "fromPath": "docs/adr/0048-trail-versioning-v3.md"
         },
         {
+          "context": "- [ADR-0035: Surface APIs Render the Graph](../0035-surface-apis-render-the-graph.md) - `derive*`, `create*`, and `surface()` projection ladder",
+          "from": "20260603",
+          "fromPath": "docs/adr/drafts/20260603-surface-facets-shape-dense-topos.md"
+        },
+        {
           "context": "The published `CHANGELOG.md` for `@ontrails/cli` and `@ontrails/mcp` attributes the lexicon work to ADR-0023, but the surface-API renames listed here are governed by [ADR-0035: Surface APIs Render the",
           "from": "beta15",
           "fromPath": "docs/releases/beta15.md"
@@ -2462,6 +2482,11 @@
           "fromPath": "docs/adr/drafts/20260503-wayfinding.md"
         },
         {
+          "context": "- [ADR-0042: Core/Topographer Boundary Doctrine](../0042-core-topographer-boundary-doctrine.md) - durable graph artifacts belong to topographer",
+          "from": "20260603",
+          "fromPath": "docs/adr/drafts/20260603-surface-facets-shape-dense-topos.md"
+        },
+        {
           "context": "A package needs Topographer only when it crosses a process boundary or compares state across time. The runtime never reads Topographer artifacts to execute trails — every `topo()` call resolves entire",
           "from": "lexicon",
           "fromPath": "docs/lexicon.md"
@@ -2606,6 +2631,11 @@
           "context": "- [ADR-0046: Lock v3 Artifact Family](0046-lock-v3-artifact-family.md)",
           "from": "0048",
           "fromPath": "docs/adr/0048-trail-versioning-v3.md"
+        },
+        {
+          "context": "- [ADR-0046: Lock v3 Artifact Family](../0046-lock-v3-artifact-family.md) - `.trails/topo.lock` as the inspectable topo content artifact",
+          "from": "20260603",
+          "fromPath": "docs/adr/drafts/20260603-surface-facets-shape-dense-topos.md"
         },
         {
           "context": "These names are the current durable artifact-family vocabulary established by [ADR-0046](adr/0046-lock-v3-artifact-family.md).",
