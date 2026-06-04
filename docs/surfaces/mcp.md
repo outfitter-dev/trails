@@ -68,6 +68,16 @@ When a trail declares `output`, the MCP tool definition includes an `outputSchem
 
 Trail examples are exposed as structured tool metadata under `_meta["ontrails/examples"]`. Each example keeps the authored input, expected output or error, a success/error kind, and provenance pointing back to `trail.examples`; clients do not need to scrape example JSON from prose descriptions.
 
+## Surface Facets
+
+Dense MCP surfaces can use surface facets to group related trails into fewer agent-facing tools while preserving the underlying trail contracts. The full guide is [Surface Facets](surface-facets.md). The short version:
+
+- author a facet map in MCP surface options;
+- each facet becomes one MCP tool;
+- call the facet with `{ trail, input }`;
+- successful responses return `{ trail, output }`;
+- inspect `trails://surface-map` for facet IDs, member trail IDs, examples, and deferred-loading hints.
+
 ## MCP Resources For Cold Context
 
 Cold context belongs in **MCP resources**, not in extra tools and not in Trails `resource()` declarations. The MCP surface exposes resources by default when using `surface(graph)` or `createServer(graph)`:

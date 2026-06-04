@@ -458,7 +458,10 @@ A mechanically derived output from authored information. The topo store is a rel
 | `Result` | Ok/Err return type |
 | `error` | Error types |
 | `adapter` | Canonical public category for a package or subpath that connects Trails to a named external library, framework, tool, platform, format, or ecosystem |
-| `facet` | Projection slice of authored contract or surface data, such as a surface facet or schema facet; not a package category |
+| `facet` | Qualified projection-slice vocabulary; use `surface facet` or `schema facet`, not bare `facet` as a primitive |
+| `surface facet` | Surface-side projection slice over existing trails; not a graph node, package category, or core `Facet` primitive |
+| `schema facet` | Descriptive phrase for a schema-owned slice or view when docs need it; not a decided public API |
+| `MCP resources` | MCP protocol resources used for cold context; not Trails `resource()` infrastructure declarations |
 | `integration (colloquial)` | Ordinary English for places Trails integrates with an external system; not a public taxonomy category |
 | `logger` / `logging` | Structured logging — framework provides the interface; developers bring their own |
 | `health` | Health checks |
