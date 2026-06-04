@@ -21,6 +21,8 @@ Use Trails-branded terms consistently. These are non-negotiable in code, docs, a
 | `survey` | introspect, inspect, describe |
 | `guide` | docs, help, manual |
 | `adapter` | connector, bridge, transport shim |
+| `surface facet` | facet primitive, facet API, facet package |
+| `MCP resources` | Trails resources, dependencies, services (when referring to MCP protocol resources) |
 
 ## When Writing
 
@@ -31,3 +33,5 @@ Use Trails-branded terms consistently. These are non-negotiable in code, docs, a
 - Standard terms stay standard: `config`, `Result`, and `Error`.
 - `connector` is retired public taxonomy. Use `adapter` for a thin runtime-specific layer.
 - `resource` is a branded term: `resource()` defines a typed infrastructure dependency. Use `resources: [...]` on trail specs to declare dependencies. Do not use "resource" for generic helpers or utility classes.
+- `facet` is qualified projection vocabulary. Use `surface facet` for surface-side grouped projection and `schema facet` only as descriptive schema-slice prose. Do not invent a core `Facet` primitive, `facet()`, or adapter-kit facet config.
+- `MCP resources` are MCP protocol resources for cold context. Keep the qualifier when writing about `trails://surface-map` or example resources so they do not collide with Trails `resource()` declarations.

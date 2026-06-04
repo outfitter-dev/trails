@@ -3,7 +3,7 @@ name: trails
 description: Build with the Trails framework — define trail contracts, open CLI/MCP surfaces, test with examples, debug errors, migrate codebases, run governance. Use when creating trails, adding surfaces, testing, debugging Trails errors, migrating to Trails, running warden, or any work involving @ontrails/* packages.
 metadata:
   trails:
-    version: 1.0.0-beta.18
+    version: 1.0.0-beta.19
 ---
 
 # Trails
@@ -126,6 +126,23 @@ await surface(graph);
 import { surface } from '@ontrails/mcp';
 await surface(graph);
 ```
+
+Dense MCP surfaces may use **surface facets** to group related trails into fewer agent-facing tools. A surface facet is surface-side projection configuration, not a core `Facet` primitive and not a new domain operation. Author it in MCP surface options, call it with `{ trail, input }`, and expect successful results as `{ trail, output }` so the underlying trail stays visible.
+
+```typescript
+await surface(graph, {
+  facets: {
+    governance: {
+      description: 'Run project diagnostics and Warden guidance.',
+      mcp: { loading: 'deferred' },
+      trails: ['doctor', 'warden', 'warden.guide'],
+    },
+  },
+  mcpResources: { examples: true, surfaceMap: true },
+});
+```
+
+Use `trails://surface-map` and per-trail MCP resources for cold context before guessing at grouped affordances. Adapter-kit may validate resolved projection evidence for future surface adapters, but it does not define or author facets. Do not invent `facet()`, `overlapsWith`, or adapter-kit facet config.
 
 **HTTP**: Routes from trail IDs (dots become path segments), verbs from intent, error responses from taxonomy. Use Hono for framework portability or Bun-native HTTP when you want Bun serving without a third-party runtime; both share the `@ontrails/http` route/fetch kernel.
 
