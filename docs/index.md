@@ -32,6 +32,7 @@
 - **[CLI Surface](./surfaces/cli.md)** — Shipped today. Flag derivation, output modes, exit codes, `--dry-run`
 - **[MCP Surface](./surfaces/mcp.md)** — Shipped today. Tool naming, annotations, progress bridge
 - **[HTTP Surface](./surfaces/http.md)** — Shipped today. Route derivation, Web Fetch kernel, Hono adapter, Bun-native serving, webhook activation
+- **[Surface Facet Parity](./surfaces/surface-facet-parity.md)** — Deferred CLI/HTTP parity decision after MCP proves grouped projection
 - **WebSocket Surface** — Planned, not yet implemented. See [Horizons](./horizons.md) for the current direction.
 
 ## Governing your codebase?
