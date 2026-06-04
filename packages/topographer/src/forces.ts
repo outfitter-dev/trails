@@ -10,8 +10,15 @@ export interface TopoGraphForceOptions {
   readonly reason?: string | undefined;
 }
 
+type ForceableDiffEntry = DiffEntry & {
+  readonly kind: TopoGraphForceEntry['kind'];
+};
+
+const isForceableDiffEntry = (diff: DiffEntry): diff is ForceableDiffEntry =>
+  diff.kind !== 'facet';
+
 const toForceEntry = (
-  diff: DiffEntry,
+  diff: ForceableDiffEntry,
   detail: string,
   acceptedAt: string,
   reason?: string | undefined
@@ -30,7 +37,7 @@ export const deriveTopoGraphForceEntries = (
   diff: DiffEntry,
   options?: TopoGraphForceOptions
 ): readonly TopoGraphForceEntry[] => {
-  if (diff.severity !== 'breaking') {
+  if (diff.severity !== 'breaking' || !isForceableDiffEntry(diff)) {
     return [];
   }
 

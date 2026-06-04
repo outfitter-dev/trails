@@ -40,6 +40,7 @@ export {
   lockManifestSchema,
   lockManifestSummarySchema,
   TOPO_GRAPH_SCHEMA_VERSION,
+  topoGraphFacetEntrySchema,
   workspaceTopoMetadataSchema,
   workspaceTrailCollisionSchema,
   workspaceTrailEntrySchema,
@@ -67,6 +68,9 @@ export type {
 export type {
   TopoGraph,
   TopoGraphEntry,
+  TopoGraphFacetDeclaration,
+  TopoGraphFacetEntry,
+  TopoGraphFacetTrailSelector,
   TopoGraphForceEntry,
   TopoGraphFieldOverride,
   TopoGraphFieldOverrideKey,

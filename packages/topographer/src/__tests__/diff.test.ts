@@ -637,6 +637,110 @@ describe('deriveTopoGraphDiff', () => {
     });
   });
 
+  describe('facets', () => {
+    test('reports added facets as informational', () => {
+      const prev = topoGraph([]);
+      const curr = {
+        ...topoGraph([]),
+        facets: [
+          {
+            description: 'Read topo.',
+            id: 'topo',
+            memberIds: ['topo.read'],
+            memberSetHash: 'a'.repeat(64),
+            surfaces: ['mcp'],
+          },
+        ],
+      };
+
+      const result = deriveTopoGraphDiff(prev, curr);
+
+      expect(result.info[0]).toMatchObject({
+        change: 'added',
+        id: 'topo',
+        kind: 'facet',
+      });
+      expect(result.info[0]?.details).toContain('Facet "topo" added');
+    });
+
+    test('reports facet membership changes as warnings', () => {
+      const prev = {
+        ...topoGraph([]),
+        facets: [
+          {
+            description: 'Read topo.',
+            id: 'topo',
+            memberIds: ['topo.read'],
+            memberSetHash: 'a'.repeat(64),
+            surfaces: ['mcp'],
+          },
+        ],
+      };
+      const curr = {
+        ...topoGraph([]),
+        facets: [
+          {
+            description: 'Read topo.',
+            id: 'topo',
+            memberIds: ['topo.read', 'topo.describe'],
+            memberSetHash: 'b'.repeat(64),
+            surfaces: ['mcp'],
+          },
+        ],
+      };
+
+      const result = deriveTopoGraphDiff(prev, curr);
+
+      expect(result.warnings[0]).toMatchObject({
+        change: 'modified',
+        id: 'topo',
+        kind: 'facet',
+      });
+      expect(result.warnings[0]?.details).toContain(
+        'Facet member added: "topo.describe"'
+      );
+      expect(result.warnings[0]?.details).toContain(
+        'Facet member-set hash changed'
+      );
+    });
+
+    test('reports facet description changes as informational', () => {
+      const prev = {
+        ...topoGraph([]),
+        facets: [
+          {
+            description: 'Old topo.',
+            id: 'topo',
+            memberIds: ['topo.read'],
+            memberSetHash: 'a'.repeat(64),
+            surfaces: ['mcp'],
+          },
+        ],
+      };
+      const curr = {
+        ...topoGraph([]),
+        facets: [
+          {
+            description: 'New topo.',
+            id: 'topo',
+            memberIds: ['topo.read'],
+            memberSetHash: 'a'.repeat(64),
+            surfaces: ['mcp'],
+          },
+        ],
+      };
+
+      const result = deriveTopoGraphDiff(prev, curr);
+
+      expect(result.info[0]).toMatchObject({
+        change: 'modified',
+        id: 'topo',
+        kind: 'facet',
+      });
+      expect(result.info[0]?.details).toContain('Description updated');
+    });
+  });
+
   describe('severity partitioning', () => {
     test('DiffResult partitions correctly into breaking, warnings, info', () => {
       const prev = topoGraph([

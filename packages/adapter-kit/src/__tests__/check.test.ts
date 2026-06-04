@@ -143,6 +143,7 @@ describe('checkAdapters', () => {
     expect(report.diagnostics).toEqual([]);
     expect(report.subjects).toHaveLength(1);
     expect(report.subjects[0]).toMatchObject({
+      adapterType: 'HttpAdapterConformanceAdapter',
       conformanceTestPaths: [
         expect.stringContaining(
           'adapters/hono/src/__tests__/conformance.test.ts'
@@ -199,10 +200,22 @@ describe('checkAdapters', () => {
     expect(report.diagnostics).toEqual([]);
     expect(report.subjects).toHaveLength(1);
     expect(report.subjects[0]).toMatchObject({
+      adapterType: 'HttpAdapterConformanceAdapter',
       ownerPackage: '@ontrails/http',
       target: 'http',
       testingImport: '@ontrails/http/testing',
     });
+  });
+
+  test('leaves adapterType absent when target conformance has no adapter type', () => {
+    const root = makeRoot();
+    writeHttpOwner(root, { conformance: undefined });
+    writeHonoAdapter(root);
+    writeHttpConformanceTest(root);
+
+    const report = checkAdapters(root);
+
+    expect(report.subjects[0]?.adapterType).toBeUndefined();
   });
 
   test('ignores extracted adapter packages until they declare target metadata', () => {

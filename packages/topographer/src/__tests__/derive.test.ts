@@ -1017,6 +1017,72 @@ describe('deriveTopoGraph', () => {
     });
   });
 
+  describe('facets', () => {
+    test('derives sorted resolved facet metadata from selectors', () => {
+      const describeTopo = trail('topo.describe', {
+        blaze: noop,
+        input: z.object({ root: z.string() }),
+      });
+      const listTopo = trail('topo.list', {
+        blaze: noop,
+        input: z.object({ root: z.string() }),
+      });
+      const resetDev = trail('dev.reset', {
+        blaze: noop,
+        input: z.object({}),
+      });
+
+      const map = deriveTopoGraph(
+        topoFrom({ describeTopo, listTopo, resetDev }),
+        {
+          facets: [
+            {
+              description: 'Read and inspect topo state.',
+              id: 'topo',
+              surfaces: ['mcp'],
+              trails: 'topo.*',
+            },
+          ],
+        }
+      );
+
+      expect(map.facets).toEqual([
+        expect.objectContaining({
+          description: 'Read and inspect topo state.',
+          id: 'topo',
+          memberIds: ['topo.describe', 'topo.list'],
+          memberSetHash: expect.stringMatching(/^[0-9a-f]{64}$/),
+          surfaces: ['mcp'],
+        }),
+      ]);
+    });
+
+    test('sorts facet members and surfaces for deterministic output', () => {
+      const read = trail('topo.read', {
+        blaze: noop,
+        input: z.object({}),
+      });
+      const write = trail('topo.write', {
+        blaze: noop,
+        input: z.object({}),
+      });
+
+      const map = deriveTopoGraph(topoFrom({ read, write }), {
+        facets: [
+          {
+            description: 'Topo operations.',
+            id: 'topo',
+            surfaces: ['mcp', 'cli'],
+            trails: ['topo.write', 'topo.read'],
+          },
+        ],
+      });
+
+      expect(map.facets?.[0]?.memberIds).toEqual(['topo.read', 'topo.write']);
+      expect(map.facets?.[0]?.surfaces).toEqual(['cli', 'mcp']);
+    });
+  });
+
   describe('stability', () => {
     test('determinism: same topo produces identical output', () => {
       const t = trail('stable', {

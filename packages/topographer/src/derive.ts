@@ -11,6 +11,7 @@ import {
   getContourReferences,
   projectActivationSourceDeclaration,
   validateEstablishedTopo,
+  matchesTrailPattern,
   signalDiagnosticDefinitions,
   zodToJsonSchema,
 } from '@ontrails/core';
@@ -27,15 +28,19 @@ import type {
 } from '@ontrails/core';
 
 import { addPermitRequirement } from './permit.js';
+import { deriveStableHash } from './hash.js';
 import { TOPO_GRAPH_SCHEMA_VERSION } from './types.js';
 import { projectTrailVersions } from './versioning.js';
 import type {
+  DeriveTopoGraphOptions,
   JsonSchema,
   TopoGraph,
   TopoGraphActivationEdge,
   TopoGraphActivationGraph,
   TopoGraphActivationSource,
   TopoGraphEntry,
+  TopoGraphFacetDeclaration,
+  TopoGraphFacetEntry,
   TopoGraphFieldOverride,
   TopoGraphFieldOverrideKey,
 } from './types.js';
@@ -629,6 +634,62 @@ const collectEntries = (topo: Topo): TopoGraphEntry[] => {
   ];
 };
 
+const selectorPatterns = (
+  selector: TopoGraphFacetDeclaration['trails']
+): readonly string[] => (typeof selector === 'string' ? [selector] : selector);
+
+const resolveFacetMemberIds = (
+  topo: Topo,
+  facet: TopoGraphFacetDeclaration
+): readonly string[] => {
+  const patterns = selectorPatterns(facet.trails);
+  return [...topo.trails.values()]
+    .filter((trail) =>
+      patterns.some((pattern) => matchesTrailPattern(trail.id, pattern))
+    )
+    .map((trail) => trail.id)
+    .toSorted();
+};
+
+const facetToEntry = (
+  topo: Topo,
+  facet: TopoGraphFacetDeclaration
+): TopoGraphFacetEntry => {
+  const memberIds = resolveFacetMemberIds(topo, facet);
+  const entry: Record<string, unknown> = {
+    description: facet.description,
+    id: facet.id,
+    memberIds,
+    memberSetHash: deriveStableHash(memberIds),
+    surfaces: (facet.surfaces ?? []).toSorted(),
+  };
+
+  if (facet.descriptionStableThrough !== undefined) {
+    entry['descriptionStableThrough'] = facet.descriptionStableThrough;
+  }
+  if (facet.visibility !== undefined) {
+    entry['visibility'] = facet.visibility;
+  }
+  if (facet.visibilityWideningAccepted === true) {
+    entry['visibilityWideningAccepted'] = true;
+  }
+
+  return sortKeys(entry) as unknown as TopoGraphFacetEntry;
+};
+
+const collectFacets = (
+  topo: Topo,
+  options: DeriveTopoGraphOptions | undefined
+): readonly TopoGraphFacetEntry[] | undefined => {
+  const facets = options?.facets;
+  if (facets === undefined || facets.length === 0) {
+    return undefined;
+  }
+  return facets
+    .map((facet) => facetToEntry(topo, facet))
+    .toSorted((a, b) => a.id.localeCompare(b.id));
+};
+
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
@@ -639,13 +700,17 @@ const collectEntries = (topo: Topo): TopoGraphEntry[] => {
  * Entries are sorted alphabetically by id. Object keys within each entry
  * are sorted lexicographically for stable serialization.
  */
-export const deriveTopoGraph = (topo: Topo): TopoGraph => {
+export const deriveTopoGraph = (
+  topo: Topo,
+  options?: DeriveTopoGraphOptions
+): TopoGraph => {
   assertEstablishedTopo(topo);
   const sorted = collectEntries(topo).toSorted((a, b) =>
     a.id.localeCompare(b.id)
   );
   const activationSources = collectActivationSourceCatalog(topo);
   const activationEdges = collectActivationGraphEdges(topo);
+  const facets = collectFacets(topo, options);
 
   return {
     activationGraph: buildActivationGraph(activationEdges, activationSources),
@@ -653,6 +718,7 @@ export const deriveTopoGraph = (topo: Topo): TopoGraph => {
       activationSources.map((source) => [source.key, source])
     ),
     entries: sorted,
+    ...(facets === undefined ? {} : { facets }),
     generatedAt: new Date().toISOString(),
     topoGraphSchemaVersion: TOPO_GRAPH_SCHEMA_VERSION,
   };

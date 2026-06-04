@@ -46,6 +46,7 @@ export interface AdapterCheckDiagnostic {
 }
 
 export interface AdapterCheckSubject {
+  readonly adapterType?: string | undefined;
   readonly conformanceTestPaths: readonly string[];
   readonly key: string;
   readonly ownerPackage: string;
@@ -2033,6 +2034,9 @@ const checkAdapterPackage = (
       placement,
       target: targetEntry.target,
       targetKey: targetEntry.key,
+      ...(conformance?.adapterType
+        ? { adapterType: conformance.adapterType }
+        : {}),
       ...(testingImport ? { testingImport } : {}),
     },
   };

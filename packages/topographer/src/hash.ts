@@ -38,14 +38,18 @@ const canonicalize = (value: unknown): unknown => {
  * The `generatedAt` field is excluded so that identical topos always
  * produce the same hash regardless of when they were generated.
  */
-export const deriveTopoGraphHash = (topoGraph: TopoGraph): string => {
-  // Strip generatedAt before hashing
-  const { generatedAt: _unused, ...rest } = topoGraph;
-
-  const canonical = canonicalize(rest);
+export const deriveStableHash = (value: unknown): string => {
+  const canonical = canonicalize(value);
   const json = JSON.stringify(canonical);
 
   const hasher = new Bun.CryptoHasher('sha256');
   hasher.update(json);
   return hasher.digest('hex');
+};
+
+export const deriveTopoGraphHash = (topoGraph: TopoGraph): string => {
+  // Strip generatedAt before hashing
+  const { generatedAt: _unused, ...rest } = topoGraph;
+
+  return deriveStableHash(rest);
 };

@@ -107,6 +107,26 @@ describe('writeTopoGraph / readTopoGraph', () => {
     expect(result).toEqual(map);
   });
 
+  test('round-trips topo facet metadata', async () => {
+    const map: TopoGraph = {
+      ...makeTopoGraph(),
+      facets: [
+        {
+          description: 'Read topo.',
+          id: 'topo',
+          memberIds: ['topo.read'],
+          memberSetHash: 'a'.repeat(64),
+          surfaces: ['mcp'],
+        },
+      ],
+    };
+
+    await writeTopoGraph(map, { dir: tempDir });
+    const result = await readTopoGraph({ dir: tempDir });
+
+    expect(result?.facets).toEqual(map.facets);
+  });
+
   test('returns null for missing file', async () => {
     const result = await readTopoGraph({
       dir: join(tempDir, 'nonexistent'),

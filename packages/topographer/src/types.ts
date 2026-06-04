@@ -124,6 +124,29 @@ export interface TopoGraphForceEntry {
   readonly source: 'trails compile --force';
 }
 
+export type TopoGraphFacetTrailSelector = string | readonly string[];
+
+export interface TopoGraphFacetDeclaration {
+  readonly id: string;
+  readonly trails: TopoGraphFacetTrailSelector;
+  readonly description: string;
+  readonly surfaces?: readonly string[] | undefined;
+  readonly visibility?: 'public' | 'internal' | undefined;
+  readonly descriptionStableThrough?: string | undefined;
+  readonly visibilityWideningAccepted?: true | undefined;
+}
+
+export interface TopoGraphFacetEntry {
+  readonly id: string;
+  readonly description: string;
+  readonly memberIds: readonly string[];
+  readonly memberSetHash: string;
+  readonly surfaces: readonly string[];
+  readonly visibility?: 'public' | 'internal' | undefined;
+  readonly descriptionStableThrough?: string | undefined;
+  readonly visibilityWideningAccepted?: true | undefined;
+}
+
 // ---------------------------------------------------------------------------
 // TopoGraph
 // ---------------------------------------------------------------------------
@@ -188,8 +211,13 @@ export interface TopoGraph {
   >;
   readonly generatedAt: string;
   readonly entries: readonly TopoGraphEntry[];
+  readonly facets?: readonly TopoGraphFacetEntry[] | undefined;
   readonly forces?: readonly TopoGraphForceEntry[] | undefined;
   readonly workspace?: WorkspaceTopoMetadata | undefined;
+}
+
+export interface DeriveTopoGraphOptions {
+  readonly facets?: readonly TopoGraphFacetDeclaration[] | undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -259,6 +287,19 @@ const topoGraphForceEntrySchema = z
   })
   .strict();
 
+export const topoGraphFacetEntrySchema = z
+  .object({
+    description: z.string(),
+    descriptionStableThrough: z.string().optional(),
+    id: z.string(),
+    memberIds: z.array(z.string()),
+    memberSetHash: z.string().regex(/^[0-9a-f]{64}$/),
+    surfaces: z.array(z.string()),
+    visibility: z.enum(['public', 'internal']).optional(),
+    visibilityWideningAccepted: z.literal(true).optional(),
+  })
+  .strict();
+
 export const topoGraphSchema = z
   .object({
     activationGraph: z
@@ -281,6 +322,7 @@ export const topoGraphSchema = z
         })
         .passthrough()
     ),
+    facets: z.array(topoGraphFacetEntrySchema).optional(),
     forces: z.array(topoGraphForceEntrySchema).optional(),
     generatedAt: z.string(),
     topoGraphSchemaVersion: z.literal(TOPO_GRAPH_SCHEMA_VERSION),
@@ -327,7 +369,7 @@ export type LockManifest = z.infer<typeof lockManifestSchema>;
 
 export interface DiffEntry {
   readonly id: string;
-  readonly kind: 'contour' | 'trail' | 'signal' | 'resource';
+  readonly kind: 'contour' | 'trail' | 'signal' | 'resource' | 'facet';
   readonly change: 'added' | 'removed' | 'modified';
   readonly severity: 'info' | 'warning' | 'breaking';
   readonly details: readonly string[];

@@ -121,4 +121,21 @@ describe('deriveTopoGraphHash', () => {
 
     expect(deriveTopoGraphHash(map1)).toBe(deriveTopoGraphHash(map2));
   });
+
+  test('facet metadata participates in the hash', () => {
+    const map1 = makeTopoGraph();
+    const map2 = makeTopoGraph({
+      facets: [
+        {
+          description: 'Read topo.',
+          id: 'topo',
+          memberIds: ['topo.read'],
+          memberSetHash: 'a'.repeat(64),
+          surfaces: ['mcp'],
+        },
+      ],
+    });
+
+    expect(deriveTopoGraphHash(map1)).not.toBe(deriveTopoGraphHash(map2));
+  });
 });

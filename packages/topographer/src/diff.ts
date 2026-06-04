@@ -8,6 +8,7 @@ import type {
   JsonSchema,
   TopoGraph,
   TopoGraphEntry,
+  TopoGraphFacetEntry,
   TopoGraphForceEntry,
   TopoGraphVersionEntry,
 } from './types.js';
@@ -46,7 +47,10 @@ const addDetail = (
 const capitalize = (s: string): string =>
   `${s.charAt(0).toUpperCase()}${s.slice(1)}`;
 
-const labelForKind = (kind: TopoGraphEntry['kind']): string => {
+const labelForKind = (kind: DiffEntry['kind']): string => {
+  if (kind === 'facet') {
+    return 'Facet';
+  }
   if (kind === 'contour') {
     return 'Contour';
   }
@@ -721,6 +725,141 @@ const diffGraphForces = (prev: TopoGraph, curr: TopoGraph): DiffEntry[] => {
   return entries;
 };
 
+const setDelta = (
+  prevValues: readonly string[] | undefined,
+  currValues: readonly string[] | undefined
+): {
+  readonly added: readonly string[];
+  readonly removed: readonly string[];
+} => {
+  const prevSet = new Set(prevValues);
+  const currSet = new Set(currValues);
+  return {
+    added: [...currSet].filter((value) => !prevSet.has(value)).toSorted(),
+    removed: [...prevSet].filter((value) => !currSet.has(value)).toSorted(),
+  };
+};
+
+const addSetChangeDetail = (
+  acc: DetailAccumulator,
+  label: string,
+  previous: readonly string[] | undefined,
+  current: readonly string[] | undefined,
+  removedSeverity: Severity
+): void => {
+  const { added, removed } = setDelta(previous, current);
+  if (added.length > 0) {
+    addDetail(acc, 'info', `${label} added: "${added.join('", "')}"`);
+  }
+  if (removed.length > 0) {
+    addDetail(
+      acc,
+      removedSeverity,
+      `${label} removed: "${removed.join('", "')}"`
+    );
+  }
+};
+
+const diffFacet = (
+  prev: TopoGraphFacetEntry,
+  curr: TopoGraphFacetEntry
+): DiffEntry | undefined => {
+  const acc: DetailAccumulator = { details: [], severity: 'info' };
+
+  addSetChangeDetail(
+    acc,
+    'Facet member',
+    prev.memberIds,
+    curr.memberIds,
+    'warning'
+  );
+  addSetChangeDetail(
+    acc,
+    'Facet surface',
+    prev.surfaces,
+    curr.surfaces,
+    'warning'
+  );
+
+  if (prev.memberSetHash !== curr.memberSetHash) {
+    addDetail(acc, 'warning', 'Facet member-set hash changed');
+  }
+  if (prev.description !== curr.description) {
+    addDetail(acc, 'info', 'Description updated');
+  }
+  if (prev.visibility !== curr.visibility) {
+    addDetail(
+      acc,
+      'warning',
+      `visibility changed: ${String(prev.visibility ?? 'public')} -> ${String(curr.visibility ?? 'public')}`
+    );
+  }
+  if (prev.descriptionStableThrough !== curr.descriptionStableThrough) {
+    addDetail(acc, 'info', 'descriptionStableThrough updated');
+  }
+  if (prev.visibilityWideningAccepted !== curr.visibilityWideningAccepted) {
+    addDetail(acc, 'info', 'visibilityWideningAccepted updated');
+  }
+
+  if (acc.details.length === 0) {
+    return undefined;
+  }
+
+  return {
+    change: 'modified',
+    details: acc.details,
+    id: curr.id,
+    kind: 'facet',
+    severity: acc.severity,
+  };
+};
+
+const diffFacets = (prev: TopoGraph, curr: TopoGraph): DiffEntry[] => {
+  const prevById = new Map(
+    (prev.facets ?? []).map((facet) => [facet.id, facet])
+  );
+  const currById = new Map(
+    (curr.facets ?? []).map((facet) => [facet.id, facet])
+  );
+  const entries: DiffEntry[] = [];
+
+  for (const [id, facet] of [...currById.entries()].toSorted(([a], [b]) =>
+    a.localeCompare(b)
+  )) {
+    const previous = prevById.get(id);
+    if (previous === undefined) {
+      entries.push({
+        change: 'added',
+        details: [`Facet "${id}" added`],
+        id,
+        kind: 'facet',
+        severity: 'info',
+      });
+      continue;
+    }
+    const diff = diffFacet(previous, facet);
+    if (diff !== undefined) {
+      entries.push(diff);
+    }
+  }
+
+  for (const [id] of [...prevById.entries()].toSorted(([a], [b]) =>
+    a.localeCompare(b)
+  )) {
+    if (!currById.has(id)) {
+      entries.push({
+        change: 'removed',
+        details: [`Facet "${id}" removed`],
+        id,
+        kind: 'facet',
+        severity: 'warning',
+      });
+    }
+  }
+
+  return entries;
+};
+
 /** Diff declared contour arrays on trail entries. */
 const diffContours = (
   acc: DetailAccumulator,
@@ -922,6 +1061,7 @@ const collectDiffEntries = (
   ...findRemoved(prevById, currById),
   ...findModified(prevById, currById),
   ...diffGraphForces(prev, curr),
+  ...diffFacets(prev, curr),
 ];
 
 export const deriveTopoGraphDiff = (
