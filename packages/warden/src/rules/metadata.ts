@@ -105,6 +105,7 @@ const concernByRuleName: Partial<Record<string, WardenRuleConcern>> = {
   'scheduled-destroy-intent': 'lifecycle',
   'signal-graph-coaching': 'signals',
   'static-resource-accessor-preference': 'resources',
+  'surface-facet-coherence': 'meta',
   'unmaterialized-activation-source': 'lifecycle',
   'valid-detour-contract': 'results',
   'version-gap': 'lifecycle',
@@ -524,6 +525,27 @@ const builtinWardenRuleMetadataInput = {
     invariant:
       'Trail logic should prefer static resource helpers over dynamic accessors.',
     scope: 'advisory',
+    tier: 'source-static',
+  },
+  'surface-facet-coherence': {
+    ...durableExternal,
+    guidance: {
+      docs: [
+        {
+          label: 'Surface Facets ADR',
+          path: 'docs/adr/drafts/20260603-surface-facets-shape-dense-topos.md',
+        },
+      ],
+      steps: [
+        'Keep facet selectors as explicit string literals or literal arrays when possible.',
+        'Ensure each public trail belongs to one facet owner.',
+        'Record explicit visibility-widening acceptance and stable-description metadata when a facet intentionally widens visibility.',
+      ],
+      summary:
+        'Keep surface facet maps reviewable before they reach MCP projection.',
+    },
+    invariant:
+      'Surface facet maps avoid selector overlap, hidden visibility widening, and drift-prone dynamic selectors.',
     tier: 'source-static',
   },
   'unmaterialized-activation-source': {

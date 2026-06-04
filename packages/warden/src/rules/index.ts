@@ -45,6 +45,7 @@ import { resourceMockCoverage } from './resource-mock-coverage.js';
 import { scheduledDestroyIntent } from './scheduled-destroy-intent.js';
 import { signalGraphCoaching } from './signal-graph-coaching.js';
 import { staticResourceAccessorPreference } from './static-resource-accessor-preference.js';
+import { surfaceFacetCoherence } from './surface-facet-coherence.js';
 import {
   forkWithoutPreservedBlaze,
   markerSchemaUnsupported,
@@ -147,6 +148,7 @@ export { resourceMockCoverage } from './resource-mock-coverage.js';
 export { scheduledDestroyIntent } from './scheduled-destroy-intent.js';
 export { signalGraphCoaching } from './signal-graph-coaching.js';
 export { staticResourceAccessorPreference } from './static-resource-accessor-preference.js';
+export { surfaceFacetCoherence } from './surface-facet-coherence.js';
 export {
   forkWithoutPreservedBlaze,
   markerSchemaUnsupported,
@@ -198,6 +200,7 @@ export const wardenRules: ReadonlyMap<string, WardenRule> = new Map<
   [resourceMockCoverage.name, resourceMockCoverage],
   [preferSchemaInference.name, preferSchemaInference],
   [staticResourceAccessorPreference.name, staticResourceAccessorPreference],
+  [surfaceFacetCoherence.name, surfaceFacetCoherence],
   [validDescribeRefs.name, validDescribeRefs],
   [noDevPermitInSource.name, noDevPermitInSource],
   [noDestructuredCompose.name, noDestructuredCompose],

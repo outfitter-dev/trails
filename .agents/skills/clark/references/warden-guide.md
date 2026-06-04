@@ -5,7 +5,7 @@
 This file is generated from the live `@ontrails/warden` rule manifest. Repo-tracked skills, agents, and plugin prompts should reference this file instead of copying rule prose by hand.
 
 - Guide input command: `bun apps/trails/bin/trails.ts warden guide --agent-json`
-- Rule count: 61
+- Rule count: 62
 
 ## Agent Instructions
 
@@ -63,6 +63,10 @@ This file is generated from the live `@ontrails/warden` rule manifest. Repo-trac
 - `unmaterialized-activation-source` (warn, topo/topo-aware, external): Activation sources have an available runtime materializer before runtime delivery is assumed.
 - `version-gap` (error, topo/topo-aware, external): Trail version coverage remains contiguous through the current version.
 - `version-without-examples` (warn, topo/topo-aware, external): Live historical version entries include examples.
+
+### Meta
+
+- `surface-facet-coherence` (warn, source/source-static, external): Surface facet maps avoid selector overlap, hidden visibility widening, and drift-prone dynamic selectors. Guidance: Keep surface facet maps reviewable before they reach MCP projection.
 
 ### Permits
 

@@ -86,7 +86,7 @@ Use the project language consistently:
 This section is generated from the live `@ontrails/warden` rule manifest. Keep the human-authored guidance above as orientation; use this block as the enforceable-rule index.
 
 - Guide input command: `bun apps/trails/bin/trails.ts warden guide --manifest`
-- Rule count: 61
+- Rule count: 62
 
 ### Rule Index
 
@@ -137,6 +137,10 @@ This section is generated from the live `@ontrails/warden` rule manifest. Keep t
 - `version-gap` (error, topo/topo-aware, external): Trail version coverage remains contiguous through the current version.
 - `version-without-examples` (warn, topo/topo-aware, external): Live historical version entries include examples.
 
+#### Meta
+
+- `surface-facet-coherence` (warn, source/source-static, external): Surface facet maps avoid selector overlap, hidden visibility widening, and drift-prone dynamic selectors.
+
 #### Permits
 
 - `no-dev-permit-in-source` (error, source/source-static, external): The `--dev-permit` CLI flag string never appears in committed source.
@@ -184,6 +188,7 @@ This section is generated from the live `@ontrails/warden` rule manifest. Keep t
 - `resource-exists`: Make declared resources resolve to authored resource definitions.
 - `resource-mock-coverage`: Make each resource declare a test mock or an explicit unmockable reason.
 - `static-resource-accessor-preference`: Use statically scoped resource helpers when the resource definition is already available.
+- `surface-facet-coherence`: Keep surface facet maps reviewable before they reach MCP projection.
 
 <!-- warden-guide:end -->
 

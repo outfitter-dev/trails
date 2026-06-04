@@ -215,6 +215,7 @@ export {
   scheduledDestroyIntentTrail,
   signalGraphCoachingTrail,
   staticResourceAccessorPreferenceTrail,
+  surfaceFacetCoherenceTrail,
   unmaterializedActivationSourceTrail,
   topoAwareRuleInput,
   unreachableDetourShadowingTrail,
