@@ -170,6 +170,10 @@ await surface(graph, {
 
 `*` matches one dotted namespace segment and `**` matches any depth. Excludes apply before include narrowing, and trails marked `visibility: 'internal'` stay hidden unless you include their exact trail ID.
 
+## Surface Facet Field Notes
+
+Dense MCP surfaces can use surface facets to group related trails into fewer agent-facing tools. The current evidence ledger lives in [Surface Facet Field Notes](surface-facet-field-notes.md). Read it before generalizing facet behavior to another app or surface. It records the first Trails operator MCP shaping pass, the shortened evidence window, what survived contact, and what remains deferred.
+
 ## Server Configuration
 
 ```typescript
