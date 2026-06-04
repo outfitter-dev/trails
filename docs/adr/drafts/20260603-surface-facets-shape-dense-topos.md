@@ -176,10 +176,15 @@ Runtime adapter packages may need to understand surface projection metadata late
 The dependency direction is:
 
 - adapter-kit emits raw adapter evidence, such as `adapterType`;
-- topographer, Warden, or surface packages interpret that evidence against facet declarations;
+- topographer, Warden, or surface packages interpret that evidence against resolved facet declarations;
 - adapter-kit does not import topographer and does not learn the facet ontology.
 
-This leaves room for TRL-895 to add an adapter metadata seam without reversing package boundaries.
+The seam is intentionally asymmetric:
+
+- **contract-content conformance** remains adapter-kit's job. It answers whether an adapter package is placed correctly, declares its owner target, exports the expected entrypoints, and carries target conformance tests.
+- **surface-projection conformance** belongs to the surface or governance layer that already has the resolved projection. It may ask whether a grouped affordance is backed by resolved data such as facet ID, member trail IDs, effective visibility, description, member-set hash, and `{ trail, output }` correlation.
+
+No adapter target is required to support grouping. A future adapter can claim grouped affordances explicitly, but the validator for that claim should consume resolved surface projection evidence instead of adding facet authoring configuration to adapter-kit. The current adapter-kit seam is the existing raw subject evidence (`adapterType`, owner package, placement, target, conformance paths); it is sufficient for this stack because MCP facet projection is owned by `@ontrails/mcp` and Topographer, not by adapter authoring.
 
 ### Non-decisions
 
