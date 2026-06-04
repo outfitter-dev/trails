@@ -199,6 +199,21 @@ This section is generated from the live `@ontrails/warden` rule manifest. Keep t
 
 Shared TSDoc and code-shape guidance for packages and apps lives in [Code Standards](docs/contributing/code-standards.md). `apps/AGENTS.md` and `packages/AGENTS.md` should remain thin pointers there plus any small local overrides. `.claude/rules/coding-conventions.md` is a compatibility pointer for Claude rule loaders and older prompts.
 
+## Distribution-Ready Done
+
+Feature work is not complete until the surrounding developer experience is complete or explicitly marked not applicable. Treat this as part of the implementation, not a separate cleanup wish.
+
+Before calling an issue done or moving a PR out of draft, check the affected distribution surfaces:
+
+- **Docs and examples:** update the nearest fieldguide, API docs, examples, ADRs, or runbooks that teach the behavior.
+- **Agent guidance:** update `AGENTS.md`, repo skills, plugin metadata, or tool-specific guidance when agents need new rules or vocabulary.
+- **Governance:** add or update Warden rules, generated Warden guide output, and drift checks when the behavior creates governable contract boundaries.
+- **Release path:** add a branch-local changeset for publishable package changes, or apply `release:none` only when the package-touching change is truly not user-visible.
+- **Migration path:** document commands, compatibility windows, bridge steps, or intentional non-support when existing apps may have committed artifacts or source that need to move.
+- **Publication readiness:** run `bun run publish:check` for package-impacting work and record any first-time package, dist-tag, registry, or auth considerations before release.
+
+Small internal refactors do not need ceremonial docs. They do need an explicit "not applicable" callout when a reviewer or future agent could reasonably expect docs, skills, changesets, or migration notes. Done means the framework change is usable, teachable, and releasable, not merely implemented.
+
 ## Workflow
 
 Use Graphite for source control operations.

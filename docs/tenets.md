@@ -66,6 +66,14 @@ Good additions reduce ceremony, lower drift potential, impose an acceptable foot
 
 This does not preclude experimentation. Trails itself was formed through iteration, refinement, and repeated shaping over time. The key is that experimentation should feed the core story, not bypass it. Broadening the built-in surface is worth doing when it is a net win across the system. It is not worth doing to chase a trend or accumulate surface area.
 
+### Ship the whole developer experience
+
+Framework work is not done when the code compiles. A shipped capability must be usable, teachable, governable, and releasable by the next developer or agent that meets it.
+
+That means feature work carries its surrounding distribution story with it: contract docs, examples, agent guidance, Warden guidance when behavior becomes governable, changesets or release notes when packages move, and migration guidance when existing apps have to adapt. Internal-only work can mark those surfaces not applicable, but the decision should be visible. Silent omission creates drift.
+
+This is not process for its own sake. Trails promises one authored contract can feed many readers. If we ship a new behavior without updating the readers that explain, inspect, review, package, or migrate it, we have not upheld the contract-first model. We have only moved the burden onto the developer.
+
 ### The information architecture
 
 Six categories describe how information flows through the system. Understanding these categories is essential for evaluating any proposed feature or API change.
