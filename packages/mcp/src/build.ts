@@ -18,6 +18,7 @@ import {
   isBlobRef,
   isTrailsError,
   LAYER_FIELD_RESERVED_NAMES,
+  matchesTrailPattern,
   projectLayerFieldName,
   projectPublicSurfaceError,
   toBlobRefDescriptor,
@@ -69,6 +70,31 @@ export const MCP_TOOL_EXAMPLES_META_KEY = 'ontrails/examples';
  */
 export const MCP_TOOL_ERROR_META_KEY = 'ontrails/error';
 
+/**
+ * Metadata key used to identify MCP tools derived from surface facets.
+ *
+ * @example
+ * ```ts
+ * import { MCP_TOOL_FACET_META_KEY } from '@ontrails/mcp';
+ *
+ * const facet = tool._meta?.[MCP_TOOL_FACET_META_KEY];
+ * ```
+ */
+export const MCP_TOOL_FACET_META_KEY = 'ontrails/facet';
+
+/**
+ * Metadata key used as a compatibility hint for clients that support
+ * deferred MCP tool loading.
+ *
+ * @example
+ * ```ts
+ * import { MCP_TOOL_DEFERRED_META_KEY } from '@ontrails/mcp';
+ *
+ * const isDeferred = tool._meta?.[MCP_TOOL_DEFERRED_META_KEY] === true;
+ * ```
+ */
+export const MCP_TOOL_DEFERRED_META_KEY = 'ontrails/deferred';
+
 // ---------------------------------------------------------------------------
 // Public types
 // ---------------------------------------------------------------------------
@@ -77,10 +103,30 @@ export interface DeriveMcpToolsOptions extends BaseSurfaceOptions {
   readonly createContext?:
     | (() => TrailContextInit | Promise<TrailContextInit>)
     | undefined;
+  readonly facets?: McpSurfaceFacetMap | undefined;
   readonly layers?: readonly Layer[] | undefined;
   readonly resources?: ResourceOverrideMap | undefined;
   readonly resolvePermit?: ResolveMcpPermit | undefined;
 }
+
+export type McpSurfaceFacetTrailSelector = string | readonly string[];
+
+export interface McpSurfaceFacetDefinition {
+  readonly trails: McpSurfaceFacetTrailSelector;
+  readonly description: string;
+  readonly visibility?: 'public' | 'internal' | undefined;
+  readonly descriptionStableThrough?: string | undefined;
+  readonly visibilityWideningAccepted?: true | undefined;
+  readonly mcp?:
+    | {
+        readonly loading?: 'deferred' | undefined;
+      }
+    | undefined;
+}
+
+export type McpSurfaceFacetMap = Readonly<
+  Record<string, McpSurfaceFacetDefinition>
+>;
 
 export interface ResolveMcpPermitInput {
   readonly authorization?: string | undefined;
@@ -98,15 +144,17 @@ export interface McpToolDefinition {
   readonly _meta?: Record<string, unknown> | undefined;
   readonly annotations: McpAnnotations | undefined;
   readonly description: string | undefined;
+  readonly facetId?: string | undefined;
   readonly handler: (
     args: Record<string, unknown>,
     extra: McpExtra
   ) => Promise<McpToolResult>;
   readonly inputSchema: Record<string, unknown>;
+  readonly memberTrailIds?: readonly string[] | undefined;
   readonly name: string;
   readonly outputSchema?: Record<string, unknown> | undefined;
   /** The trail ID this tool was derived from. */
-  readonly trailId: string;
+  readonly trailId?: string | undefined;
   readonly versions?: readonly SurfaceTrailVersionProjection[] | undefined;
 }
 
@@ -923,6 +971,16 @@ const buildMeta = (
   return { [MCP_TOOL_EXAMPLES_META_KEY]: examples };
 };
 
+const mergeMeta = (
+  ...entries: readonly (Record<string, unknown> | undefined)[]
+): Record<string, unknown> | undefined => {
+  const merged = Object.assign(
+    {},
+    ...(entries.filter(Boolean) as Record<string, unknown>[])
+  );
+  return Object.keys(merged).length > 0 ? merged : undefined;
+};
+
 /** Build a single MCP tool definition from a trail. */
 const buildToolDefinition = (
   graph: Topo,
@@ -962,25 +1020,217 @@ const buildToolDefinition = (
   };
 };
 
+const facetSelectors = (
+  selector: McpSurfaceFacetTrailSelector
+): readonly string[] => (typeof selector === 'string' ? [selector] : selector);
+
+const matchesFacetSelector = (
+  trailId: string,
+  selector: McpSurfaceFacetTrailSelector
+): boolean =>
+  facetSelectors(selector).some((pattern) =>
+    matchesTrailPattern(trailId, pattern)
+  );
+
+interface FacetMemberTool {
+  readonly tool: McpToolDefinition;
+  readonly trail: Trail<unknown, unknown, unknown>;
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  value !== null && typeof value === 'object' && !Array.isArray(value);
+
+const buildFacetInputSchema = (
+  members: readonly FacetMemberTool[]
+): Record<string, unknown> => ({
+  anyOf: members.map(({ tool, trail }) => ({
+    properties: {
+      input: tool.inputSchema,
+      trail: { const: trail.id },
+    },
+    required: ['trail', 'input'],
+    type: 'object',
+  })),
+  properties: {
+    input: { type: 'object' },
+    trail: {
+      enum: members.map(({ trail }) => trail.id),
+      type: 'string',
+    },
+  },
+  required: ['trail', 'input'],
+  type: 'object',
+});
+
+const buildFacetOutputSchema = (
+  members: readonly FacetMemberTool[]
+): Record<string, unknown> => {
+  const outputSchemas = members.map(({ tool }) => tool.outputSchema ?? {});
+  return {
+    properties: {
+      output:
+        outputSchemas.length === 1
+          ? (outputSchemas[0] ?? {})
+          : { anyOf: outputSchemas },
+      trail: {
+        enum: members.map(({ trail }) => trail.id),
+        type: 'string',
+      },
+    },
+    required: ['trail', 'output'],
+    type: 'object',
+  };
+};
+
+const parseJsonTextContent = (
+  content: readonly McpContent[]
+): unknown | undefined => {
+  const text = content.find((item) => item.type === 'text')?.text;
+  if (text === undefined) {
+    return undefined;
+  }
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    return undefined;
+  }
+};
+
+const wrapFacetResult = (
+  trailId: string,
+  result: McpToolResult
+): McpToolResult => {
+  if (result.isError === true) {
+    return result;
+  }
+  const output =
+    result.structuredContent ?? parseJsonTextContent(result.content) ?? null;
+  const envelope = { output, trail: trailId };
+  return {
+    ...(result._meta === undefined ? {} : { _meta: result._meta }),
+    content: [
+      { text: JSON.stringify(envelope), type: 'text' },
+      ...result.content.filter((item) => item.type !== 'text'),
+    ],
+    structuredContent: envelope,
+  };
+};
+
+const createFacetHandler = (
+  facetId: string,
+  members: readonly FacetMemberTool[]
+): McpToolDefinition['handler'] => {
+  const byTrailId = new Map(
+    members.map((member) => [member.trail.id, member.tool])
+  );
+
+  return async (args, extra): Promise<McpToolResult> => {
+    const trailId = typeof args['trail'] === 'string' ? args['trail'] : '';
+    const tool = byTrailId.get(trailId);
+    if (tool === undefined) {
+      return mcpError(
+        new ValidationError(
+          `MCP facet "${facetId}" received unknown trail selector "${trailId || '(missing)'}"`
+        )
+      );
+    }
+
+    const { input } = args;
+    if (!isRecord(input)) {
+      return mcpError(
+        new ValidationError(
+          `MCP facet "${facetId}" expects an object input for trail "${trailId}"`
+        )
+      );
+    }
+
+    return wrapFacetResult(trailId, await tool.handler(input, extra));
+  };
+};
+
+const deriveFacetIntent = (
+  members: readonly FacetMemberTool[]
+): Pick<Trail<unknown, unknown, unknown>, 'intent'>['intent'] => {
+  if (members.every(({ trail }) => trail.intent === 'read')) {
+    return 'read';
+  }
+  if (members.some(({ trail }) => trail.intent === 'destroy')) {
+    return 'destroy';
+  }
+  return 'write';
+};
+
+const deriveFacetAnnotations = (
+  definition: McpSurfaceFacetDefinition,
+  members: readonly FacetMemberTool[]
+): McpAnnotations | undefined => {
+  const annotations = deriveAnnotations({
+    description: definition.description,
+    idempotent: false,
+    intent: deriveFacetIntent(members),
+  } as Pick<
+    Trail<unknown, unknown, unknown>,
+    'description' | 'idempotent' | 'intent'
+  >);
+  return Object.keys(annotations).length > 0 ? annotations : undefined;
+};
+
+const buildFacetMeta = (
+  facetId: string,
+  definition: McpSurfaceFacetDefinition,
+  memberTrailIds: readonly string[]
+): Record<string, unknown> | undefined =>
+  mergeMeta(
+    {
+      [MCP_TOOL_FACET_META_KEY]: {
+        id: facetId,
+        memberTrailIds,
+      },
+    },
+    definition.mcp?.loading === 'deferred'
+      ? { [MCP_TOOL_DEFERRED_META_KEY]: true }
+      : undefined
+  );
+
+const buildFacetToolDefinition = (
+  graph: Topo,
+  facetId: string,
+  definition: McpSurfaceFacetDefinition,
+  members: readonly FacetMemberTool[]
+): McpToolDefinition => {
+  const memberTrailIds = members.map(({ trail }) => trail.id);
+  return {
+    _meta: buildFacetMeta(facetId, definition, memberTrailIds),
+    annotations: deriveFacetAnnotations(definition, members),
+    description: definition.description,
+    facetId,
+    handler: createFacetHandler(facetId, members),
+    inputSchema: buildFacetInputSchema(members),
+    memberTrailIds,
+    name: deriveToolName(graph.name, facetId),
+    outputSchema: buildFacetOutputSchema(members),
+  };
+};
+
 /** Register a trail as an MCP tool, checking for name collisions. */
 const registerTool = (
   graph: Topo,
   trailItem: Trail<unknown, unknown, unknown>,
   layers: readonly Layer[],
   options: DeriveMcpToolsOptions,
-  nameToTrailId: Map<string, string>,
+  nameToSourceId: Map<string, string>,
   tools: McpToolDefinition[]
 ): Result<void, Error> => {
   const toolName = deriveToolName(graph.name, trailItem.id);
-  const existingId = nameToTrailId.get(toolName);
+  const existingId = nameToSourceId.get(toolName);
   if (existingId !== undefined) {
     return Result.err(
       new ValidationError(
-        `MCP tool-name collision: trails "${existingId}" and "${trailItem.id}" both derive the tool name "${toolName}"`
+        `MCP tool-name collision: "${existingId}" and "trail:${trailItem.id}" both derive the tool name "${toolName}"`
       )
     );
   }
-  nameToTrailId.set(toolName, trailItem.id);
+  nameToSourceId.set(toolName, `trail:${trailItem.id}`);
   tools.push(buildToolDefinition(graph, trailItem, layers, options));
   return Result.ok();
 };
@@ -1001,21 +1251,137 @@ const validateToolBuild = (
   options: DeriveMcpToolsOptions
 ): Result<void, Error> => validateSurfaceTopo(graph, options);
 
+const collectFacetMembers = (
+  graph: Topo,
+  definition: McpSurfaceFacetDefinition,
+  availableTrails: readonly Trail<unknown, unknown, unknown>[],
+  layers: readonly Layer[],
+  options: DeriveMcpToolsOptions
+): readonly FacetMemberTool[] =>
+  availableTrails
+    .filter((trailItem) =>
+      matchesFacetSelector(trailItem.id, definition.trails)
+    )
+    .map((trailItem) => ({
+      tool: buildToolDefinition(graph, trailItem, layers, options),
+      trail: trailItem,
+    }));
+
+const registerFacet = (
+  graph: Topo,
+  facetId: string,
+  definition: McpSurfaceFacetDefinition,
+  members: readonly FacetMemberTool[],
+  nameToSourceId: Map<string, string>,
+  tools: McpToolDefinition[]
+): Result<void, Error> => {
+  if (members.length === 0) {
+    return Result.err(
+      new ValidationError(
+        `MCP facet "${facetId}" did not match any surface-eligible trails`
+      )
+    );
+  }
+
+  const toolName = deriveToolName(graph.name, facetId);
+  const existingId = nameToSourceId.get(toolName);
+  if (existingId !== undefined) {
+    return Result.err(
+      new ValidationError(
+        `MCP tool-name collision: "${existingId}" and "facet:${facetId}" both derive the tool name "${toolName}"`
+      )
+    );
+  }
+
+  nameToSourceId.set(toolName, `facet:${facetId}`);
+  tools.push(buildFacetToolDefinition(graph, facetId, definition, members));
+  return Result.ok();
+};
+
+const registerFacets = (
+  graph: Topo,
+  options: DeriveMcpToolsOptions,
+  layers: readonly Layer[],
+  availableTrails: readonly Trail<unknown, unknown, unknown>[],
+  nameToSourceId: Map<string, string>,
+  tools: McpToolDefinition[]
+): Result<ReadonlySet<string>, Error> => {
+  const { facets } = options;
+  const consumedTrailIds = new Set<string>();
+  const ownerByTrailId = new Map<string, string>();
+
+  if (facets === undefined || Object.keys(facets).length === 0) {
+    return Result.ok(consumedTrailIds);
+  }
+
+  for (const [facetId, definition] of Object.entries(facets).toSorted()) {
+    const members = collectFacetMembers(
+      graph,
+      definition,
+      availableTrails,
+      layers,
+      options
+    );
+    for (const { trail: memberTrail } of members) {
+      const previous = ownerByTrailId.get(memberTrail.id);
+      if (previous !== undefined) {
+        return Result.err(
+          new ValidationError(
+            `MCP facet overlap: trail "${memberTrail.id}" is selected by facets "${previous}" and "${facetId}"`
+          )
+        );
+      }
+      ownerByTrailId.set(memberTrail.id, facetId);
+      consumedTrailIds.add(memberTrail.id);
+    }
+
+    const registered = registerFacet(
+      graph,
+      facetId,
+      definition,
+      members,
+      nameToSourceId,
+      tools
+    );
+    if (registered.isErr()) {
+      return registered;
+    }
+  }
+
+  return Result.ok(consumedTrailIds);
+};
+
 const registerTools = (
   graph: Topo,
   options: DeriveMcpToolsOptions,
   layers: readonly Layer[]
 ): Result<McpToolDefinition[], Error> => {
   const tools: McpToolDefinition[] = [];
-  const nameToTrailId = new Map<string, string>();
+  const nameToSourceId = new Map<string, string>();
+  const availableTrails = eligibleTrails(graph, options);
+  const registeredFacets = registerFacets(
+    graph,
+    options,
+    layers,
+    availableTrails,
+    nameToSourceId,
+    tools
+  );
+  if (registeredFacets.isErr()) {
+    return registeredFacets;
+  }
+  const consumedTrailIds = registeredFacets.value;
 
-  for (const trailItem of eligibleTrails(graph, options)) {
+  for (const trailItem of availableTrails) {
+    if (consumedTrailIds.has(trailItem.id)) {
+      continue;
+    }
     const registered = registerTool(
       graph,
       trailItem,
       layers,
       options,
-      nameToTrailId,
+      nameToSourceId,
       tools
     );
     if (registered.isErr()) {

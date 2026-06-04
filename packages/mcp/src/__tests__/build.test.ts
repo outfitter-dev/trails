@@ -16,8 +16,10 @@ import type { Layer, TrailContext } from '@ontrails/core';
 import { z } from 'zod';
 
 import {
+  MCP_TOOL_DEFERRED_META_KEY,
   MCP_TOOL_ERROR_META_KEY,
   MCP_TOOL_EXAMPLES_META_KEY,
+  MCP_TOOL_FACET_META_KEY,
   deriveMcpTools,
 } from '../build.js';
 import type { McpExtra, McpToolDefinition } from '../build.js';
@@ -638,6 +640,132 @@ describe('deriveMcpTools', () => {
       });
 
       expect(tools.map((tool) => tool.trailId)).toEqual(['item.delete']);
+    });
+  });
+
+  describe('facets', () => {
+    const readTopoTrail = trail('topo.read', {
+      blaze: (input) => Result.ok({ id: input.id, title: 'Topo' }),
+      description: 'Read topo.',
+      input: z.object({ id: z.string() }),
+      intent: 'read',
+      output: z.object({ id: z.string(), title: z.string() }),
+    });
+    const describeTopoTrail = trail('topo.describe', {
+      blaze: () => Result.ok({ summary: 'Topo summary' }),
+      description: 'Describe topo.',
+      input: z.object({}),
+      intent: 'read',
+      output: z.object({ summary: z.string() }),
+    });
+
+    test('collapses selected member trails into one faceted tool', () => {
+      const app = topo('myapp', {
+        describeTopoTrail,
+        echoTrail,
+        readTopoTrail,
+      });
+      const tools = buildTools(app, {
+        facets: {
+          topo: {
+            description: 'Read topo state.',
+            mcp: { loading: 'deferred' },
+            trails: 'topo.*',
+          },
+        },
+      });
+
+      expect(tools.map((tool) => tool.name).toSorted()).toEqual([
+        'myapp_echo',
+        'myapp_topo',
+      ]);
+
+      const facetTool = requireTool(tools, 'myapp_topo');
+      expect(facetTool.trailId).toBeUndefined();
+      expect(facetTool.facetId).toBe('topo');
+      expect(facetTool.memberTrailIds).toEqual(['topo.describe', 'topo.read']);
+      expect(facetTool._meta?.[MCP_TOOL_DEFERRED_META_KEY]).toBe(true);
+      expect(facetTool._meta?.[MCP_TOOL_FACET_META_KEY]).toEqual({
+        id: 'topo',
+        memberTrailIds: ['topo.describe', 'topo.read'],
+      });
+      expect(facetTool.inputSchema).toMatchObject({
+        properties: {
+          trail: { enum: ['topo.describe', 'topo.read'], type: 'string' },
+        },
+        required: ['trail', 'input'],
+        type: 'object',
+      });
+    });
+
+    test('dispatches to the selected trail and correlates output', async () => {
+      const app = topo('myapp', { describeTopoTrail, readTopoTrail });
+      const tool = requireOnlyTool(
+        buildTools(app, {
+          facets: {
+            topo: {
+              description: 'Read topo state.',
+              trails: 'topo.*',
+            },
+          },
+        })
+      );
+
+      const result = await tool.handler(
+        { input: { id: 'topo-1' }, trail: 'topo.read' },
+        noExtra
+      );
+
+      expect(result.isError).toBeUndefined();
+      expect(result.structuredContent).toEqual({
+        output: { id: 'topo-1', title: 'Topo' },
+        trail: 'topo.read',
+      });
+      expect(parseJsonContent(result.content[0])).toEqual({
+        output: { id: 'topo-1', title: 'Topo' },
+        trail: 'topo.read',
+      });
+    });
+
+    test('returns a validation error for unknown facet trail selectors', async () => {
+      const app = topo('myapp', { readTopoTrail });
+      const tool = requireOnlyTool(
+        buildTools(app, {
+          facets: {
+            topo: {
+              description: 'Read topo state.',
+              trails: 'topo.*',
+            },
+          },
+        })
+      );
+
+      const result = await tool.handler(
+        { input: {}, trail: 'topo.missing' },
+        noExtra
+      );
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0]?.text).toContain('unknown trail selector');
+    });
+
+    test('rejects facet selectors that overlap without narrowing', () => {
+      const app = topo('myapp', { describeTopoTrail, readTopoTrail });
+      const result = deriveMcpTools(app, {
+        facets: {
+          one: {
+            description: 'One.',
+            trails: 'topo.*',
+          },
+          two: {
+            description: 'Two.',
+            trails: ['topo.read'],
+          },
+        },
+      });
+
+      expect(result.isErr()).toBe(true);
+      expect(result.error?.message).toMatch(/facet overlap/i);
     });
   });
 

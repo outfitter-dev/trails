@@ -5,7 +5,9 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import {
   CallToolRequestSchema,
+  ListResourcesRequestSchema,
   ListToolsRequestSchema,
+  ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import type {
   BaseSurfaceOptions,
@@ -15,8 +17,14 @@ import type {
   TrailContextInit,
 } from '@ontrails/core';
 
-import type { McpToolDefinition, ResolveMcpPermit } from './build.js';
+import type {
+  McpSurfaceFacetMap,
+  McpToolDefinition,
+  ResolveMcpPermit,
+} from './build.js';
 import { deriveMcpTools } from './build.js';
+import { buildMcpResources } from './resources.js';
+import type { BuiltMcpResources, McpResourcesConfig } from './resources.js';
 import { connectStdio } from './stdio.js';
 
 // ---------------------------------------------------------------------------
@@ -28,7 +36,9 @@ export interface CreateServerOptions extends BaseSurfaceOptions {
     | (() => TrailContextInit | Promise<TrailContextInit>)
     | undefined;
   readonly description?: string | undefined;
+  readonly facets?: McpSurfaceFacetMap | undefined;
   readonly layers?: readonly Layer[] | undefined;
+  readonly mcpResources?: McpResourcesConfig | false | undefined;
   readonly name?: string | undefined;
   readonly resources?: ResourceOverrideMap | undefined;
   readonly resolvePermit?: ResolveMcpPermit | undefined;
@@ -56,12 +66,16 @@ const createMcpServer = (
     readonly name: string;
     readonly version: string;
     readonly description?: string | undefined;
-  }
+  },
+  mcpResources?: BuiltMcpResources | undefined
 ): Server => {
   const server = new Server(
     { name: info.name, version: info.version },
     {
-      capabilities: { tools: {} },
+      capabilities: {
+        ...(mcpResources === undefined ? {} : { resources: {} }),
+        tools: {},
+      },
       ...(info.description === undefined
         ? {}
         : { instructions: info.description }),
@@ -149,6 +163,31 @@ const createMcpServer = (
     }
   );
 
+  if (mcpResources !== undefined) {
+    // oxlint-disable-next-line require-await -- MCP SDK requires async handler
+    server.setRequestHandler(ListResourcesRequestSchema, async () => ({
+      resources: mcpResources.list.map((resource) => ({
+        description: resource.description,
+        mimeType: resource.mimeType,
+        name: resource.name,
+        uri: resource.uri,
+      })),
+    }));
+
+    server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+      const content = mcpResources.read(request.params.uri);
+      return {
+        contents: [
+          content ?? {
+            mimeType: 'text/plain',
+            text: `Unknown MCP resource: ${request.params.uri}`,
+            uri: request.params.uri,
+          },
+        ],
+      };
+    });
+  }
+
   return server;
 };
 
@@ -179,6 +218,7 @@ export const createServer = (
     configValues: options.configValues,
     createContext: options.createContext,
     exclude: options.exclude,
+    facets: options.facets,
     include: options.include,
     intent: options.intent,
     layers: options.layers,
@@ -191,11 +231,20 @@ export const createServer = (
     throw toolsResult.error;
   }
 
-  return createMcpServer(toolsResult.value, {
-    description: options.description ?? graph.description,
-    name: options.name ?? graph.name,
-    version: options.version ?? graph.version ?? '0.1.0',
-  });
+  const mcpResources =
+    options.mcpResources === false
+      ? undefined
+      : buildMcpResources(graph, toolsResult.value, options.mcpResources);
+
+  return createMcpServer(
+    toolsResult.value,
+    {
+      description: options.description ?? graph.description,
+      name: options.name ?? graph.name,
+      version: options.version ?? graph.version ?? '0.1.0',
+    },
+    mcpResources
+  );
 };
 
 // ---------------------------------------------------------------------------
