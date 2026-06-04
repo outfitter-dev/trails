@@ -54,6 +54,7 @@ for (const tool of result.value) {
 | --- | --- |
 | `surface(graph, options?)` | Start an MCP server with all trails as tools |
 | `deriveMcpTools(graph, options?)` | Build tool definitions without starting a server |
+| `buildMcpResources(graph, tools, config?)` | Build MCP resource listings and read handlers for cold context |
 | `deriveToolName(appName, trailId)` | Compute the MCP tool name from app and trail IDs |
 | `deriveAnnotations(trail)` | Extract MCP annotations from trail intent, idempotency, and description |
 | `createMcpProgressCallback(server)` | Bridge `ctx.progress` to MCP `notifications/progress` |
@@ -78,6 +79,29 @@ No manual annotation definitions. The contract is the source of truth.
 MCP tool definitions include the trail's input schema, and trails with an `output` schema also project that schema into MCP `outputSchema`. Non-object trail outputs are wrapped in a `{ data: ... }` object because MCP structured tool results are object-shaped.
 
 Trail examples are projected as structured metadata under `_meta["ontrails/examples"]`. Each projected example preserves its input, expected output or error, a success/error kind, and provenance pointing back to the authored `trail.examples` field.
+
+## MCP resources and deferred loading
+
+Cold context is projected through MCP resources, not extra Trails resources. `surface(graph)` and `createServer(graph)` expose MCP resources by default:
+
+- `trails://surface-map` lists the resolved MCP tool projection, including ordinary tools, facet tools, schemas, versions, deferred hints, and member trail IDs.
+- `trails://examples/<trailId>` exposes structured examples for exposed trails that define examples.
+
+Disable resource projection only when the host needs a minimal MCP capability surface:
+
+```typescript
+await surface(graph, { mcpResources: false });
+```
+
+Or choose a narrower resource set:
+
+```typescript
+await surface(graph, {
+  mcpResources: { examples: false, surfaceMap: true },
+});
+```
+
+Facet definitions may set `mcp: { loading: 'deferred' }`. In this release, deferred loading is a compatibility hint under `_meta["ontrails/deferred"]`; the MCP tool schema remains present so clients that do not understand deferred loading continue to work.
 
 ## Tool naming
 

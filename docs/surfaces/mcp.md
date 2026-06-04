@@ -68,6 +68,49 @@ When a trail declares `output`, the MCP tool definition includes an `outputSchem
 
 Trail examples are exposed as structured tool metadata under `_meta["ontrails/examples"]`. Each example keeps the authored input, expected output or error, a success/error kind, and provenance pointing back to `trail.examples`; clients do not need to scrape example JSON from prose descriptions.
 
+## MCP Resources For Cold Context
+
+Cold context belongs in **MCP resources**, not in extra tools and not in Trails `resource()` declarations. The MCP surface exposes resources by default when using `surface(graph)` or `createServer(graph)`:
+
+| Resource URI | Contents |
+| --- | --- |
+| `trails://surface-map` | Resolved MCP surface projection: tool names, trail IDs, facet IDs, member trail IDs, input/output schemas, versions, annotations, and deferred hints |
+| `trails://examples/<trailId>` | Structured examples for an exposed trail, when the trail defines examples |
+
+Use `mcpResources: false` to disable MCP resource registration:
+
+```typescript
+await surface(graph, { mcpResources: false });
+```
+
+Use `mcpResources` to keep only a subset:
+
+```typescript
+await surface(graph, {
+  mcpResources: { examples: false, surfaceMap: true },
+});
+```
+
+The resource naming is intentionally qualified: `McpResource`, `McpResources`, and `mcpResources` refer to MCP protocol resources. Trails `resource()` remains the infrastructure dependency primitive.
+
+## Deferred Loading Hint
+
+Facet tools may opt into deferred loading:
+
+```typescript
+await surface(graph, {
+  facets: {
+    governance: {
+      description: 'Run project diagnostics and Warden guidance.',
+      mcp: { loading: 'deferred' },
+      trails: ['doctor', 'warden', 'warden.guide'],
+    },
+  },
+});
+```
+
+Deferred loading is a compatibility hint under `_meta["ontrails/deferred"]`. It does not omit required tool schemas from `tools/list` in this release, so older MCP clients still receive a complete tool definition. Clients that understand the hint can prefer the surface-map resource and defer expensive schema inspection until they need the facet.
+
 ## Annotations
 
 Trail intent maps directly to MCP tool annotations:
