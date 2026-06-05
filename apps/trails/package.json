@@ -34,6 +34,7 @@
     "@ontrails/topographer": "workspace:^",
     "@ontrails/tracing": "workspace:^",
     "@ontrails/warden": "workspace:^",
+    "@ontrails/wayfinder": "workspace:^",
     "commander": "catalog:",
     "zod": "catalog:"
   },
