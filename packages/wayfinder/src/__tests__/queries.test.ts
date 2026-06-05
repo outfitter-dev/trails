@@ -1,0 +1,572 @@
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
+import { mkdir, mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
+import { z } from 'zod';
+
+import {
+  Result,
+  createTrailContext,
+  resource,
+  signal,
+  topo,
+  trail,
+} from '@ontrails/core';
+import {
+  deriveTopoGraph,
+  deriveTopoGraphHash,
+  createTopoSnapshot,
+  writeLockManifest,
+  writeTopoGraph,
+} from '@ontrails/topographer';
+import type {
+  LockManifest,
+  TopoGraph,
+  TopoGraphEntry,
+} from '@ontrails/topographer';
+
+import {
+  wayfindContractTrail,
+  wayfindDescribeTrail,
+  wayfindExamplesTrail,
+  wayfindOverviewTrail,
+  wayfindSearchTrail,
+  wayfindSurfacesTrail,
+  wayfindTrailsTrail,
+  wayfindVersionsTrail,
+  wayfinderTopo,
+} from '../index.js';
+
+let tempDir: string;
+
+const db = resource('db.main', {
+  create: () => Result.ok({}),
+  mock: () => ({}),
+});
+
+const userCreated = signal('user.created', {
+  payload: z.object({ id: z.string() }),
+});
+
+const userShow = trail('user.show', {
+  blaze: () => Result.ok({ id: 'u1' }),
+  examples: [{ expected: { id: 'u1' }, input: {}, name: 'Basic' }],
+  input: z.object({}),
+  intent: 'read',
+  output: z.object({ id: z.string() }),
+  resources: [db],
+});
+
+const userCreate = trail('user.create', {
+  blaze: () => Result.ok({ id: 'u1' }),
+  fires: [userCreated],
+  input: z.object({ name: z.string() }),
+  intent: 'write',
+  output: z.object({ id: z.string() }),
+  resources: [db],
+});
+
+const auditRebuild = trail('audit.rebuild', {
+  blaze: () => Result.ok({ ok: true }),
+  input: z.object({}),
+  intent: 'destroy',
+  on: [userCreated],
+  output: z.object({ ok: z.boolean() }),
+});
+
+const inviteCreate = trail('invite.create', {
+  blaze: (input) => Result.ok({ greeting: `Hello, ${input.name}!` }),
+  input: z.object({ name: z.string() }),
+  output: z.object({ greeting: z.string() }),
+  version: 2,
+  versions: {
+    1: {
+      blaze: (input) => Result.ok({ greeting: `Hi, ${input.name}.` }),
+      examples: [
+        {
+          expected: { greeting: 'Hi, Ada.' },
+          input: { name: 'Ada' },
+          name: 'Legacy greeting',
+        },
+      ],
+      input: z.object({ name: z.string() }),
+      output: z.object({ greeting: z.string() }),
+      resources: [db],
+      status: { state: 'deprecated', successor: 2 },
+    },
+  },
+});
+
+const app = () =>
+  topo('demo', {
+    auditRebuild,
+    db,
+    inviteCreate,
+    userCreate,
+    userCreated,
+    userShow,
+  });
+
+const withSurfaces = (topoGraph: TopoGraph): TopoGraph => ({
+  ...topoGraph,
+  entries: topoGraph.entries.map((entry): TopoGraphEntry => {
+    if (entry.id === 'user.show') {
+      return { ...entry, surfaces: ['mcp'] };
+    }
+    if (entry.id === 'user.create') {
+      return { ...entry, surfaces: ['cli'] };
+    }
+    return entry;
+  }),
+  generatedAt: '2026-06-04T00:00:00.000Z',
+});
+
+const artifactsDir = () => join(tempDir, '.trails');
+
+const artifactsDirFor = (rootDir: string) => join(rootDir, '.trails');
+
+const countEntries = (
+  topoGraph: TopoGraph,
+  kind: TopoGraphEntry['kind']
+): number => topoGraph.entries.filter((entry) => entry.kind === kind).length;
+
+const lockManifestFor = (topoGraph: TopoGraph): LockManifest => ({
+  artifacts: [
+    {
+      path: 'topo.lock',
+      role: 'topo',
+      sha256: deriveTopoGraphHash(topoGraph),
+    },
+  ],
+  scope: { app: 'demo' },
+  summary: {
+    contours: countEntries(topoGraph, 'contour'),
+    resources: countEntries(topoGraph, 'resource'),
+    signals: countEntries(topoGraph, 'signal'),
+    trails: countEntries(topoGraph, 'trail'),
+  },
+  version: 3,
+});
+
+const writeArtifacts = async (
+  transform?: (topoGraph: TopoGraph) => TopoGraph
+): Promise<TopoGraph> => {
+  const baseTopoGraph = withSurfaces(
+    deriveTopoGraph(app(), {
+      facets: [
+        {
+          description: 'User operations.',
+          id: 'users',
+          surfaces: ['mcp'],
+          trails: 'user.*',
+        },
+      ],
+    })
+  );
+  const topoGraph = transform?.(baseTopoGraph) ?? baseTopoGraph;
+  await writeTopoGraph(topoGraph, { dir: artifactsDir() });
+  await writeLockManifest(lockManifestFor(topoGraph), { dir: artifactsDir() });
+  return topoGraph;
+};
+
+const writePlainArtifactsAt = async (rootDir: string) => {
+  const graph = app();
+  const topoGraph = deriveTopoGraph(graph);
+  await writeTopoGraph(topoGraph, { dir: artifactsDirFor(rootDir) });
+  await writeLockManifest(lockManifestFor(topoGraph), {
+    dir: artifactsDirFor(rootDir),
+  });
+  return graph;
+};
+
+const seedTopoStoreAt = (rootDir: string, graph = app()) => {
+  const snapshot = createTopoSnapshot(graph, {
+    createdAt: '2026-06-04T00:00:00.000Z',
+    gitSha: 'abc123',
+    rootDir,
+  });
+  if (snapshot.isErr()) {
+    throw snapshot.error;
+  }
+  return snapshot.value;
+};
+
+const ctx = () => createTrailContext({ cwd: tempDir, workspaceRoot: tempDir });
+
+const expectOk = async <TValue>(
+  result: Promise<Result<TValue, unknown>>
+): Promise<TValue> => {
+  const awaited = await result;
+  expect(awaited.isOk()).toBe(true);
+  if (awaited.isErr()) {
+    throw awaited.error;
+  }
+  return awaited.value;
+};
+
+beforeEach(async () => {
+  tempDir = await mkdtemp(join(tmpdir(), 'wayfinder-queries-test-'));
+  await writeArtifacts();
+});
+
+afterEach(async () => {
+  await rm(tempDir, { force: true, recursive: true });
+});
+
+describe('wayfinder graph-read query trails', () => {
+  test('exports the v0 query catalog as a topo', () => {
+    expect([...wayfinderTopo.ids()].toSorted()).toEqual([
+      'wayfind.contours',
+      'wayfind.contract',
+      'wayfind.describe',
+      'wayfind.examples',
+      'wayfind.facets',
+      'wayfind.overview',
+      'wayfind.resources',
+      'wayfind.search',
+      'wayfind.signals',
+      'wayfind.surfaces',
+      'wayfind.trails',
+      'wayfind.versions',
+    ]);
+  });
+
+  test('summarizes saved graph shape and provenance', async () => {
+    const overview = await expectOk(
+      wayfindOverviewTrail.blaze({ rootDir: tempDir }, ctx())
+    );
+
+    expect(overview.source.kind).toBe('topoGraph');
+    expect(overview.generatedAt).toBe('2026-06-04T00:00:00.000Z');
+    expect(overview.counts).toMatchObject({
+      examples: 2,
+      facets: 1,
+      resources: 1,
+      signals: 1,
+      surfaces: 2,
+      trails: 4,
+      versions: 2,
+    });
+  });
+
+  test('returns schema drift errors instead of missing-artifact errors', async () => {
+    await Bun.write(
+      join(artifactsDir(), 'topo.lock'),
+      `${JSON.stringify({
+        activationGraph: {
+          edgeCount: 0,
+          edges: [],
+          sourceCount: 0,
+          sourceKeys: [],
+          trailIds: [],
+        },
+        activationSources: {},
+        entries: [],
+        generatedAt: '2026-06-04T00:00:00.000Z',
+        topoGraphSchemaVersion: -1,
+      })}\n`
+    );
+
+    const result = await wayfindOverviewTrail.blaze(
+      { rootDir: tempDir },
+      ctx()
+    );
+
+    expect(result.isErr()).toBe(true);
+    expect(result.isErr() ? result.error.name : '').toBe('DerivationError');
+    expect(result.isErr() ? result.error.context : {}).toMatchObject({
+      artifact: 'topoGraph',
+      freshnessStatus: 'schema-version-drift',
+    });
+  });
+
+  test('returns derivation errors for invalid artifact paths', async () => {
+    const invalidDir = join(tempDir, 'not-a-directory');
+    await Bun.write(invalidDir, 'plain file');
+
+    const result = await wayfindOverviewTrail.blaze({ dir: invalidDir }, ctx());
+
+    expect(result.isErr()).toBe(true);
+    expect(result.isErr() ? result.error.name : '').toBe('DerivationError');
+    expect(result.isErr() ? result.error.context : {}).toMatchObject({
+      artifact: 'topoGraph',
+      path: join(invalidDir, 'topo.lock'),
+    });
+  });
+
+  test('keeps explicit artifact directories isolated from context cwd', async () => {
+    const artifactRoot = join(tempDir, 'artifact-root');
+    const cwdRoot = join(tempDir, 'cwd-root');
+    await mkdir(artifactRoot, { recursive: true });
+    await mkdir(cwdRoot, { recursive: true });
+    seedTopoStoreAt(artifactRoot, await writePlainArtifactsAt(artifactRoot));
+
+    const overview = await expectOk(
+      wayfindOverviewTrail.blaze(
+        { dir: artifactsDirFor(artifactRoot) },
+        createTrailContext({ cwd: cwdRoot, workspaceRoot: cwdRoot })
+      )
+    );
+
+    expect(overview.freshness).toEqual({ status: 'fresh' });
+  });
+
+  test('finds entities with typed filters', async () => {
+    const search = await expectOk(
+      wayfindSearchTrail.blaze(
+        {
+          filters: { kind: 'trail', surface: 'mcp' },
+          limit: 100,
+          rootDir: tempDir,
+        },
+        ctx()
+      )
+    );
+
+    expect(search.matches.map((match) => match.id)).toEqual([
+      'user.create',
+      'user.show',
+    ]);
+  });
+
+  test('finds current and historical versions with typed filters', async () => {
+    const search = await expectOk(
+      wayfindSearchTrail.blaze(
+        {
+          filters: { kind: 'version' },
+          limit: 100,
+          rootDir: tempDir,
+        },
+        ctx()
+      )
+    );
+
+    expect(search.matches.map((match) => match.id)).toEqual([
+      'invite.create@1',
+      'invite.create@2',
+    ]);
+  });
+
+  test('lists trail and surface summaries', async () => {
+    const trails = await expectOk(
+      wayfindTrailsTrail.blaze(
+        { filters: { usesResource: 'db.main' }, limit: 100, rootDir: tempDir },
+        ctx()
+      )
+    );
+    const surfaces = await expectOk(
+      wayfindSurfacesTrail.blaze(
+        { filters: {}, limit: 100, rootDir: tempDir },
+        ctx()
+      )
+    );
+
+    expect(trails.trails.map((entry) => entry.id)).toEqual([
+      'user.create',
+      'user.show',
+    ]);
+    expect(surfaces.surfaces).toEqual([
+      { facets: [], id: 'cli', trails: ['user.create'] },
+      { facets: ['users'], id: 'mcp', trails: ['user.create', 'user.show'] },
+    ]);
+  });
+
+  test('lists version and example records without executing trails', async () => {
+    const versions = await expectOk(
+      wayfindVersionsTrail.blaze(
+        { filters: {}, limit: 100, rootDir: tempDir },
+        ctx()
+      )
+    );
+    const examples = await expectOk(
+      wayfindExamplesTrail.blaze(
+        { filters: {}, limit: 100, rootDir: tempDir },
+        ctx()
+      )
+    );
+
+    expect(versions.versions.map((version) => version.id)).toEqual([
+      'invite.create@1',
+      'invite.create@2',
+    ]);
+    expect(examples.examples.map((example) => example.targetId)).toEqual([
+      'invite.create@1',
+      'user.show',
+    ]);
+  });
+
+  test('sorts version records by numeric version', async () => {
+    await writeArtifacts((topoGraph) => ({
+      ...topoGraph,
+      entries: topoGraph.entries.map((entry) =>
+        entry.id === 'invite.create'
+          ? {
+              ...entry,
+              versions: {
+                ...entry.versions,
+                10: {
+                  exampleCount: 0,
+                  input: entry.input,
+                  kind: 'revision',
+                  marker: entry.marker,
+                  output: entry.output,
+                  status: { state: 'deprecated', successor: 2 },
+                },
+              },
+            }
+          : entry
+      ),
+    }));
+
+    const versions = await expectOk(
+      wayfindVersionsTrail.blaze(
+        { filters: {}, limit: 100, rootDir: tempDir },
+        ctx()
+      )
+    );
+
+    expect(versions.versions.map((version) => version.id)).toEqual([
+      'invite.create@1',
+      'invite.create@2',
+      'invite.create@10',
+    ]);
+  });
+
+  test('describes entities and returns explicit not found results', async () => {
+    const described = await expectOk(
+      wayfindDescribeTrail.blaze(
+        { id: 'users', kind: 'facet', rootDir: tempDir },
+        ctx()
+      )
+    );
+    const missing = await wayfindDescribeTrail.blaze(
+      { id: 'missing.trail', kind: 'trail', rootDir: tempDir },
+      ctx()
+    );
+
+    expect(described.entity).toMatchObject({
+      id: 'users',
+      kind: 'facet',
+      memberIds: ['user.create', 'user.show'],
+    });
+    expect(missing.isErr()).toBe(true);
+    expect(missing.isErr() ? missing.error.name : '').toBe('NotFoundError');
+  });
+
+  test('describes non-entry entities by id when the kind is omitted', async () => {
+    const facet = await expectOk(
+      wayfindDescribeTrail.blaze({ id: 'users', rootDir: tempDir }, ctx())
+    );
+    const surface = await expectOk(
+      wayfindDescribeTrail.blaze({ id: 'cli', rootDir: tempDir }, ctx())
+    );
+    const version = await expectOk(
+      wayfindDescribeTrail.blaze(
+        { id: 'invite.create@1', rootDir: tempDir },
+        ctx()
+      )
+    );
+
+    expect(facet.entity).toMatchObject({ id: 'users', kind: 'facet' });
+    expect(surface.entity).toMatchObject({ id: 'cli', kind: 'surface' });
+    expect(version.entity).toMatchObject({
+      id: 'invite.create@1',
+      kind: 'version',
+    });
+  });
+
+  test('returns ambiguous errors when id-only lookup matches multiple kinds', async () => {
+    await writeArtifacts((topoGraph) => ({
+      ...topoGraph,
+      entries: topoGraph.entries.map((entry) =>
+        entry.id === 'user.show'
+          ? { ...entry, surfaces: [...entry.surfaces, 'user.show'] }
+          : entry
+      ),
+    }));
+
+    const described = await wayfindDescribeTrail.blaze(
+      { id: 'user.show', rootDir: tempDir },
+      ctx()
+    );
+    const contract = await wayfindContractTrail.blaze(
+      { id: 'user.show', rootDir: tempDir },
+      ctx()
+    );
+
+    expect(described.isErr()).toBe(true);
+    expect(described.isErr() ? described.error.name : '').toBe(
+      'AmbiguousError'
+    );
+    expect(contract.isErr()).toBe(true);
+    expect(contract.isErr() ? contract.error.name : '').toBe('AmbiguousError');
+  });
+
+  test('returns contract details for current and historical trail versions', async () => {
+    const current = await expectOk(
+      wayfindContractTrail.blaze({ id: 'user.show', rootDir: tempDir }, ctx())
+    );
+    const historical = await expectOk(
+      wayfindContractTrail.blaze(
+        { id: 'invite.create', kind: 'version', rootDir: tempDir, version: 1 },
+        ctx()
+      )
+    );
+
+    expect(current.contract).toMatchObject({
+      id: 'user.show',
+      kind: 'trail',
+      resources: ['db.main'],
+    });
+    expect(historical.contract).toMatchObject({
+      id: 'invite.create',
+      kind: 'version',
+      resources: ['db.main'],
+      version: 1,
+    });
+  });
+
+  test('returns contract details for non-entry entities by id when the kind is omitted', async () => {
+    const surface = await expectOk(
+      wayfindContractTrail.blaze({ id: 'cli', rootDir: tempDir }, ctx())
+    );
+    const version = await expectOk(
+      wayfindContractTrail.blaze(
+        { id: 'invite.create@1', rootDir: tempDir },
+        ctx()
+      )
+    );
+
+    expect(surface.contract).toMatchObject({ id: 'cli', kind: 'surface' });
+    expect(version.contract).toMatchObject({
+      id: 'invite.create',
+      kind: 'version',
+      version: 1,
+    });
+  });
+
+  test('contract lookup honors explicit surface kind when IDs collide', async () => {
+    await writeArtifacts((topoGraph) => ({
+      ...topoGraph,
+      entries: topoGraph.entries.map((entry) =>
+        entry.id === 'user.show'
+          ? { ...entry, surfaces: [...entry.surfaces, 'user.show'] }
+          : entry
+      ),
+    }));
+
+    const surface = await expectOk(
+      wayfindContractTrail.blaze(
+        { id: 'user.show', kind: 'surface', rootDir: tempDir },
+        ctx()
+      )
+    );
+
+    expect(surface.contract).toMatchObject({
+      id: 'user.show',
+      kind: 'surface',
+      trails: ['user.show'],
+    });
+  });
+});

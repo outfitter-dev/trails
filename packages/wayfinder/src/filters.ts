@@ -232,8 +232,20 @@ export const listWayfinderEntityRefs = (
     if (entry.kind !== 'trail') {
       continue;
     }
+    const versionRefs: WayfinderEntityRef[] =
+      entry.version === undefined
+        ? []
+        : [
+            {
+              entry,
+              id: `${entry.id}@${entry.version}`,
+              kind: 'version',
+              trailId: entry.id,
+              versionKey: String(entry.version),
+            },
+          ];
     for (const [versionKey, version] of Object.entries(entry.versions ?? {})) {
-      refs.push({
+      versionRefs.push({
         entry,
         id: `${entry.id}@${versionKey}`,
         kind: 'version',
@@ -242,6 +254,7 @@ export const listWayfinderEntityRefs = (
         versionKey,
       });
     }
+    refs.push(...versionRefs.toSorted((a, b) => a.id.localeCompare(b.id)));
   }
 
   return refs;

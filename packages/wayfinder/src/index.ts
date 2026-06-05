@@ -2,24 +2,13 @@
  * Agent-shaped wayfinding API for Trails.
  *
  * `@ontrails/wayfinder` is the public package home for trails that let agents
- * query a Trails app's resolved topo without re-deriving it from `grep` and
- * file reads. A future catalog may include trails such as `wayfind.overview`,
- * `wayfind.search`, `wayfind.contract`, `wayfind.nearby`, and
- * `wayfind.examples`; this package currently ships as a substrate only.
+ * query a Trails app's resolved topo without re-deriving it from `grep` plus
+ * file reads.
  *
- * No query trails are exported yet. The exported loader, provenance helpers,
- * and typed filter kit give the v0 trails a cold, deterministic, materialized
- * artifact substrate when they land.
+ * The v0 graph-read catalog is cold and deterministic: it reads existing
+ * Topographer artifacts and topo-store provenance, but it does not boot apps,
+ * resolve resources, reach the network, or mutate local state.
  */
-
-/**
- * Indicates the wayfinder shell is loaded but ships no trails yet.
- *
- * Consumers can branch on this to detect when the v0 catalog lands without
- * inspecting the package version directly. Will be removed once real trails
- * are exported.
- */
-export const WAYFINDER_SHELL = true as const;
 
 export {
   createWayfinderEntityPredicate,
@@ -49,6 +38,21 @@ export type {
   WayfinderArtifactLoaderOptions,
   WayfinderTopoStoreLoad,
 } from './loader.js';
+export {
+  wayfindContractTrail,
+  wayfindContoursTrail,
+  wayfindDescribeTrail,
+  wayfindExamplesTrail,
+  wayfindFacetsTrail,
+  wayfindOverviewTrail,
+  wayfindResourcesTrail,
+  wayfindSearchTrail,
+  wayfindSignalsTrail,
+  wayfindSurfacesTrail,
+  wayfindTrailsTrail,
+  wayfindVersionsTrail,
+  wayfinderTopo,
+} from './queries.js';
 export { wayfinderFact } from './provenance.js';
 export type {
   WayfinderArtifactKind,
