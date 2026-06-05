@@ -7,6 +7,7 @@ Wayfinder is now a real graph-read package, not just a reserved shell. The v0 ca
 - `@ontrails/wayfinder` exports `wayfinderTopo` and the v0 `wayfind.*` query trails for overview, typed search/listing, describe/contract inspection, examples, nearby relation reads, impact traversal, and explicit saved-baseline diffing.
 - Every query reads existing Topographer artifacts or topo-store records. V0 does not boot apps, resolve resources, reach the network, or mutate local state.
 - Query results include source and freshness metadata so agents can distinguish fresh artifacts from missing, stale, or schema-drifted artifacts.
+- Version and example listings preserve trail-version semantics: version records sort numerically, parent trail example filters include current and historical version examples, and `exampleCoverage: false` stays scoped to uncovered entities.
 - The Trails operator MCP surface exposes a selected read-only subset as direct tools and keeps broader saved-topo inspection behind the `inspect` facet.
 
 ## Migration Posture

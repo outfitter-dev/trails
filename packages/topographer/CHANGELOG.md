@@ -1,5 +1,17 @@
 # @ontrails/topographer
 
+## 1.0.0-beta.20
+
+### Minor Changes
+
+- eee1307: Serialize resolved surface facet metadata in TopoGraph artifacts and expose adapter type evidence for downstream projection checks.
+
+### Patch Changes
+
+- b248d4a: Add the read-only Wayfinder artifact loader and fact provenance envelope helpers, including cold topo-store schema preflight support.
+- Updated dependencies [851a2a3]
+  - @ontrails/core@1.0.0-beta.20
+
 ## 1.0.0-beta.19
 
 ### Major Changes

@@ -1,5 +1,18 @@
 # @ontrails/testing
 
+## 1.0.0-beta.20
+
+### Patch Changes
+
+- Updated dependencies [851a2a3]
+- Updated dependencies [9bec01c]
+- Updated dependencies [accb9ec]
+  - @ontrails/core@1.0.0-beta.20
+  - @ontrails/mcp@1.0.0-beta.20
+  - @ontrails/cli@1.0.0-beta.20
+  - @ontrails/http@1.0.0-beta.20
+  - @ontrails/observe@1.0.0-beta.20
+
 ## 1.0.0-beta.19
 
 ### Major Changes

@@ -1,5 +1,11 @@
 # @ontrails/core
 
+## 1.0.0-beta.20
+
+### Patch Changes
+
+- 851a2a3: Derive trail caller and blaze input types from the authored input schema while keeping one public input contract.
+
 ## 1.0.0-beta.19
 
 ### Major Changes

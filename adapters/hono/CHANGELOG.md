@@ -1,5 +1,13 @@
 # @ontrails/hono
 
+## 1.0.0-beta.20
+
+### Patch Changes
+
+- Updated dependencies [851a2a3]
+  - @ontrails/core@1.0.0-beta.20
+  - @ontrails/http@1.0.0-beta.20
+
 ## 1.0.0-beta.19
 
 ### Patch Changes

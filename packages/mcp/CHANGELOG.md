@@ -1,5 +1,17 @@
 # @ontrails/mcp
 
+## 1.0.0-beta.20
+
+### Minor Changes
+
+- accb9ec: Add MCP surface facets, MCP resource projection for cold context, and deferred-loading metadata hints.
+
+### Patch Changes
+
+- 9bec01c: Document MCP resource projection and deferred-loading options for cold surface context.
+- Updated dependencies [851a2a3]
+  - @ontrails/core@1.0.0-beta.20
+
 ## 1.0.0-beta.19
 
 ### Patch Changes

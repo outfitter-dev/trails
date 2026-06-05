@@ -1,5 +1,25 @@
 # @ontrails/warden
 
+## 1.0.0-beta.20
+
+### Minor Changes
+
+- 8bc0708: Add surface facet coherence diagnostics for selector overlap, visibility widening acknowledgements, dynamic selectors, and description hygiene.
+
+### Patch Changes
+
+- 851a2a3: Derive trail caller and blaze input types from the authored input schema while keeping one public input contract.
+- 6901776: Add a Warden rule and safe-fix metadata for rewriting retired cross vocabulary to compose vocabulary.
+- Updated dependencies [851a2a3]
+- Updated dependencies [eee1307]
+- Updated dependencies [b248d4a]
+  - @ontrails/core@1.0.0-beta.20
+  - @ontrails/store@1.0.0-beta.20
+  - @ontrails/topographer@1.0.0-beta.20
+  - @ontrails/adapter-kit@1.0.0-beta.20
+  - @ontrails/cli@1.0.0-beta.20
+  - @ontrails/permits@1.0.0-beta.20
+
 ## 1.0.0-beta.19
 
 ### Major Changes

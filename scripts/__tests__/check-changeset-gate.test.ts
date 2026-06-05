@@ -151,6 +151,41 @@ describe('checkChangesetGate', () => {
     }
   });
 
+  test('allows covered package cleanup alongside generated version release changes', () => {
+    const { repoRoot } = withTempRepo((root) => {
+      writeFileSync(
+        join(root, '.changeset', 'core-docs.md'),
+        "---\n'@ontrails/core': patch\n---\n\nRefresh package docs.\n"
+      );
+    });
+
+    try {
+      const result = checkChangesetGate({
+        changedFiles: [
+          '.changeset/core-docs.md',
+          '.changeset/pre.json',
+          'packages/core/CHANGELOG.md',
+          'packages/core/README.md',
+          'packages/core/package.json',
+          'packages/http/CHANGELOG.md',
+          'packages/http/package.json',
+        ],
+        repoRoot,
+        workspaces,
+      });
+
+      expect(result.passed).toBe(true);
+      expect(result.versionRelease).toBe(true);
+      expect(result.coveredPackages).toEqual(['@ontrails/core']);
+      expect(result.affectedPackages).toEqual([
+        '@ontrails/core',
+        '@ontrails/http',
+      ]);
+    } finally {
+      rmSync(repoRoot, { force: true, recursive: true });
+    }
+  });
+
   test('does not treat prerelease state plus source edits as a generated version release', () => {
     const { repoRoot } = withTempRepo(() => {});
 

@@ -1,5 +1,11 @@
 # @ontrails/adapter-kit
 
+## 1.0.0-beta.20
+
+### Patch Changes
+
+- eee1307: Serialize resolved surface facet metadata in TopoGraph artifacts and expose adapter type evidence for downstream projection checks.
+
 ## 1.0.0-beta.19
 
 ### Patch Changes
