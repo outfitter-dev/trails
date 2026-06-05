@@ -7,9 +7,9 @@
  * `wayfind.search`, `wayfind.contract`, `wayfind.nearby`, and
  * `wayfind.examples`; this package currently ships as a substrate only.
  *
- * No query trails are exported yet. The exported loader and provenance helpers
- * give the v0 trails a cold, deterministic, materialized artifact substrate
- * when they land.
+ * No query trails are exported yet. The exported loader, provenance helpers,
+ * and typed filter kit give the v0 trails a cold, deterministic, materialized
+ * artifact substrate when they land.
  */
 
 /**
@@ -21,6 +21,24 @@
  */
 export const WAYFINDER_SHELL = true as const;
 
+export {
+  createWayfinderEntityPredicate,
+  createWayfinderFilterContext,
+  createWayfinderGraphEntityPredicate,
+  filterWayfinderEntityRefs,
+  listWayfinderEntityRefs,
+  wayfinderEntityFilterSchema,
+  wayfinderEntityKindSchema,
+  wayfinderIntentSchema,
+} from './filters.js';
+export type {
+  WayfinderEntityFilterInput,
+  WayfinderEntityFilters,
+  WayfinderEntityKind,
+  WayfinderEntityRef,
+  WayfinderFilterContext,
+  WayfinderIntent,
+} from './filters.js';
 export {
   loadWayfinderArtifacts,
   wayfinderTopoGraphSource,
