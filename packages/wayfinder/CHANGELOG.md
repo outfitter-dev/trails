@@ -1,5 +1,25 @@
 # @ontrails/wayfinder
 
+## 1.0.0-beta.20
+
+### Patch Changes
+
+- f67cd2a: Document Wayfinder as a real graph-read query catalog instead of a shell-only
+  package, including MCP exposure guidance, agent skill guidance, and release
+  notes for the v0 catalog and its deferred non-goals.
+- c65c465: Add the reusable typed Wayfinder entity filter kit for graph-read query trails.
+- 38f62f8: Add graph-read `wayfind.nearby`, `wayfind.impact`, and `wayfind.diff` trails over saved Topographer artifacts.
+- b248d4a: Add the read-only Wayfinder artifact loader and fact provenance envelope helpers, including cold topo-store schema preflight support.
+- 5364df1: Add the v0 graph-read Wayfinder query catalog for overview, search, entity lists,
+  describe, and contract inspection over saved Topographer artifacts.
+- 2067441: Tighten Wayfinder example filtering so parent trail filters include version examples and exact current-version filters return the entry examples for that version.
+- 6c3296c: Refresh the reserved Wayfinder package guidance with the planned v0 query names.
+- Updated dependencies [851a2a3]
+- Updated dependencies [eee1307]
+- Updated dependencies [b248d4a]
+  - @ontrails/core@1.0.0-beta.20
+  - @ontrails/topographer@1.0.0-beta.20
+
 ## 1.0.0-beta.19
 
 ### Patch Changes
@@ -46,7 +66,7 @@
 
 ### Major Changes
 
-- e95c6e3: Scaffold the empty `@ontrails/wayfinder` package shell. Reserves the namespace and gives the v0 wayfinding trails a clean home; no trails ship yet. v0 catalog is specified in the wayfinding draft ADR (`docs/adr/drafts/20260503-wayfinding.md`).
+- e95c6e3: Scaffold the empty `@ontrails/wayfinder` package shell. Reserves the namespace and gives the v0 wayfinding trails a clean home. The v0 graph-read catalog later shipped in beta.20.
 
   The `major` bump keeps the package in lockstep with the rest of the `@ontrails/*` workspace: with `initialVersions: "0.1.0"` in `.changeset/pre.json`, a `major` bump computes `1.0.0` on `changeset pre exit`, matching the other framework packages that carry `major` bumps in earlier changesets (`api-simplification-beta4`, `topo-store-relocation`).
 
@@ -89,8 +109,3 @@
 - Updated dependencies [22c6c06]
   - @ontrails/core@1.0.0-beta.16
   - @ontrails/topographer@1.0.0-beta.16
-
-## Unreleased
-
-- Initial package shell scaffolded; no trails yet. See
-  [`docs/adr/drafts/20260503-wayfinding.md`](../../docs/adr/drafts/20260503-wayfinding.md).

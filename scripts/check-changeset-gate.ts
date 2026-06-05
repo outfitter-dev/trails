@@ -199,9 +199,11 @@ const findAffectedPackages = (
 
 const isVersionReleaseChangeSet = (
   changedFiles: readonly string[],
-  workspaces: readonly WorkspaceInfo[]
+  workspaces: readonly WorkspaceInfo[],
+  coveredPackages: readonly string[]
 ): boolean => {
   const normalizedFiles = changedFiles.map(normalizePath);
+  const coveredPackageSet = new Set(coveredPackages);
 
   if (!normalizedFiles.includes(CHANGESET_PRERELEASE_STATE_PATH)) {
     return false;
@@ -228,7 +230,11 @@ const isVersionReleaseChangeSet = (
       }
 
       if (!VERSION_RELEASE_WORKSPACE_FILES.has(workspaceRelativePath)) {
-        return false;
+        if (!coveredPackageSet.has(workspace.name)) {
+          return false;
+        }
+
+        continue;
       }
 
       hasWorkspaceVersionFile = true;
@@ -298,7 +304,8 @@ export const checkChangesetGate = (
   ].toSorted();
   const versionRelease = isVersionReleaseChangeSet(
     input.changedFiles,
-    input.workspaces
+    input.workspaces,
+    coveredPackages
   );
   const uncoveredPackages = affectedPackages.filter(
     (packageName) => !coveredPackages.includes(packageName)

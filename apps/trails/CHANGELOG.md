@@ -1,5 +1,44 @@
 # trails
 
+## 1.0.0-beta.20
+
+### Minor Changes
+
+- 396136a: Add the Trails operator MCP entrypoint with deferred surface facets and cold-context resources.
+
+### Patch Changes
+
+- 851a2a3: Derive trail caller and blaze input types from the authored input schema while keeping one public input contract.
+- d89a889: Project selected Wayfinder graph-read trails into the Trails operator MCP surface alongside clearer first-class operator tools.
+- f67cd2a: Document Wayfinder as a real graph-read query catalog instead of a shell-only
+  package, including MCP exposure guidance, agent skill guidance, and release
+  notes for the v0 catalog and its deferred non-goals.
+- Updated dependencies [851a2a3]
+- Updated dependencies [eee1307]
+- Updated dependencies [9bec01c]
+- Updated dependencies [accb9ec]
+- Updated dependencies [8bc0708]
+- Updated dependencies [6901776]
+- Updated dependencies [f67cd2a]
+- Updated dependencies [c65c465]
+- Updated dependencies [38f62f8]
+- Updated dependencies [b248d4a]
+- Updated dependencies [5364df1]
+- Updated dependencies [2067441]
+- Updated dependencies [6c3296c]
+  - @ontrails/core@1.0.0-beta.20
+  - @ontrails/warden@1.0.0-beta.20
+  - @ontrails/topographer@1.0.0-beta.20
+  - @ontrails/adapter-kit@1.0.0-beta.20
+  - @ontrails/mcp@1.0.0-beta.20
+  - @ontrails/wayfinder@1.0.0-beta.20
+  - @ontrails/commander@1.0.0-beta.20
+  - @ontrails/cli@1.0.0-beta.20
+  - @ontrails/http@1.0.0-beta.20
+  - @ontrails/observe@1.0.0-beta.20
+  - @ontrails/permits@1.0.0-beta.20
+  - @ontrails/tracing@1.0.0-beta.20
+
 ## 1.0.0-beta.19
 
 ### Major Changes

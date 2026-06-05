@@ -1,7 +1,6 @@
 // `@ontrails/topographer` owns durable graph artifacts derived from the
 // resolved graph (per ADR-0042). The companion `@ontrails/wayfinder`
-// package reserves the future trail catalog over these artifacts; no
-// wayfinding trails ship yet.
+// package reads those artifacts through graph-read trails.
 
 // Derivation
 export { deriveTopoGraph } from './derive.js';
