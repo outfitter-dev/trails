@@ -5,12 +5,11 @@
  * query a Trails app's resolved topo without re-deriving it from `grep` and
  * file reads. A future catalog may include trails such as `wayfind.overview`,
  * `wayfind.search`, `wayfind.contract`, `wayfind.nearby`, and
- * `wayfind.examples`; this package currently ships as a marker only.
+ * `wayfind.examples`; this package currently ships as a substrate only.
  *
- * No trails are exported yet. The shell exists to reserve the namespace and
- * give the v0 trails a clean home when they land. Peer dependencies on
- * `@ontrails/core` and `@ontrails/topographer` are declared optional in
- * `peerDependenciesMeta` until real trails consume them.
+ * No query trails are exported yet. The exported loader and provenance helpers
+ * give the v0 trails a cold, deterministic, materialized artifact substrate
+ * when they land.
  */
 
 /**
@@ -21,3 +20,28 @@
  * are exported.
  */
 export const WAYFINDER_SHELL = true as const;
+
+export {
+  loadWayfinderArtifacts,
+  wayfinderTopoGraphSource,
+  wayfinderTopoStoreSource,
+} from './loader.js';
+export type {
+  WayfinderArtifactLoad,
+  WayfinderArtifactLoaderOptions,
+  WayfinderTopoStoreLoad,
+} from './loader.js';
+export { wayfinderFact } from './provenance.js';
+export type {
+  WayfinderArtifactKind,
+  WayfinderArtifactSource,
+  WayfinderContractRef,
+  WayfinderFact,
+  WayfinderFactCategory,
+  WayfinderFreshness,
+  WayfinderFreshnessFresh,
+  WayfinderFreshnessMissing,
+  WayfinderFreshnessSchemaVersionDrift,
+  WayfinderFreshnessStale,
+  WayfinderStaleReason,
+} from './provenance.js';

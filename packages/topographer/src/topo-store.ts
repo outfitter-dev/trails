@@ -75,6 +75,8 @@ export const __topoStoreMigrationStats = {
   writeEscalations: 0,
 };
 
+export const TOPO_STORE_SCHEMA_VERSION = TOPO_SCHEMA_VERSION;
+
 const peekTopoSchemaVersion = (
   options: TrailsDbLocationOptions | undefined
 ): number | undefined => {

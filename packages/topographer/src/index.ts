@@ -105,6 +105,7 @@ export {
   listTopoSnapshots,
   pinTopoSnapshot,
   topoStore,
+  TOPO_STORE_SCHEMA_VERSION,
   unpinTopoSnapshot,
 } from './topo-store.js';
 export type {

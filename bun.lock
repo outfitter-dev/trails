@@ -295,10 +295,6 @@
         "@ontrails/core": "workspace:^",
         "@ontrails/topographer": "workspace:^",
       },
-      "optionalPeers": [
-        "@ontrails/core",
-        "@ontrails/topographer",
-      ],
     },
   },
   "trustedDependencies": [

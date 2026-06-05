@@ -1,9 +1,11 @@
 # @ontrails/wayfinder
 
-Agent-shaped wayfinding trails over `@ontrails/topographer` artifacts.
+Agent-shaped wayfinding helpers and trails over `@ontrails/topographer` artifacts.
 
 `@ontrails/wayfinder` is the public package home for trails that let agents query a Trails app's resolved topo — overviews, searches, trail details, examples — without re-deriving the graph from `grep` plus file reads.
 
-**Status: shell only.** No trails ship yet.
+**Status: substrate only.** No query trails ship yet.
 
-This package currently exists to reserve the `@ontrails/wayfinder` namespace and give the v0 implementation a clean home. When wayfinding lands, trails such as `wayfind.overview`, `wayfind.search`, `wayfind.contract`, `wayfind.nearby`, `wayfind.impact`, and `wayfind.examples` will be exported from here.
+The package currently exports the cold artifact loader and fact provenance helpers that v0 graph-read trails will share. Those helpers read existing Topographer artifacts (`topo.lock`, `trails.lock`, and materialized current `trails.db` topo-store records) without starting apps, booting resources, reaching the network, or mutating local state.
+
+When the query catalog lands, trails such as `wayfind.overview`, `wayfind.search`, `wayfind.contract`, `wayfind.nearby`, `wayfind.impact`, and `wayfind.examples` will be exported from here.
