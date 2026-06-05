@@ -22,6 +22,9 @@ The package exports `wayfinderTopo` plus individual graph-read trails:
 - `wayfind.examples`
 - `wayfind.describe`
 - `wayfind.contract`
+- `wayfind.nearby`
+- `wayfind.impact`
+- `wayfind.diff`
 
 Each trail is internal by default and returns provenance and freshness metadata
 with its result so callers can tell whether the answer came from fresh
@@ -124,6 +127,53 @@ facet-projected surfaces. `wayfind.facets` returns facet membership, visibility,
 and descriptions. `wayfind.versions` returns current and historical trail
 versions. `wayfind.examples` lists saved examples without executing any trail.
 
+## Nearby, Impact, And Diff
+
+`wayfind.nearby` returns the direct saved graph relationships around one entity.
+The relation graph is typed and deterministic: resources point to trails that
+use them, signals point to producing or consuming trails, surfaces and facets
+point to projected member trails, composed trails point to their composers, and
+trails point to saved version records.
+
+```ts
+import {
+  wayfindDiffTrail,
+  wayfindImpactTrail,
+  wayfindNearbyTrail,
+} from '@ontrails/wayfinder';
+
+await wayfindNearbyTrail.blaze(
+  { id: 'user.create', kind: 'trail', rootDir: process.cwd() },
+  createTrailContext()
+);
+
+await wayfindImpactTrail.blaze(
+  {
+    id: 'db.main',
+    kind: 'resource',
+    maxDepth: 2,
+    rootDir: process.cwd(),
+  },
+  createTrailContext()
+);
+
+await wayfindDiffTrail.blaze(
+  {
+    againstRootDir: '/path/to/baseline-workspace',
+    rootDir: process.cwd(),
+  },
+  createTrailContext()
+);
+```
+
+`wayfind.impact` walks those typed relation edges with `downstream`,
+`upstream`, or `both` direction. `downstream` follows the stored edge direction,
+which is oriented from contract substrate to affected graph members:
+resource-to-trail, signal-to-trail, surface-to-trail, facet-to-trail,
+composed-trail-to-composer, and trail-to-version. `wayfind.diff` compares two
+saved TopoGraph artifacts with `deriveTopoGraphDiff`; it requires an explicit
+`againstDir` or `againstRootDir` baseline instead of deriving either graph from
+live source.
+
 These queries are intentionally graph-read only. They do not provide
-`wayfind.query`, semantic search, signposts, implications, nearby traversal, or
-impact analysis yet.
+`wayfind.query`, semantic search, signposts, or implications yet.

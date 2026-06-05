@@ -115,10 +115,10 @@ The v0 catalog is deliberately narrow. The test for inclusion: every query must 
 | `wayfind.versions` | Show trail version entries and lifecycle state | versioned `TopoGraphEntry` fields and topo-store details | v0 |
 | `wayfind.describe` | Return the full record for one entity by ID | `TopoGraphEntry` plus `TopoStoreTrailDetailRecord` for the requested entity | v0 |
 | `wayfind.contract` | Tight input / output / intent / idempotency / examples / version summary for a trail | `TopoGraphEntry.input`, `output`, `intent`, `idempotent`, examples, version metadata | v0 |
-| `wayfind.nearby` | Nearby graph context: `composes`, `composed-by`, contours, resources, signals, surfaces, facets, versions | `TopoGraphEntry.composes`, reverse indexes, resources, contours, signals, surfaces, facets | v0 |
-| `wayfind.impact` | Directional and multi-hop reachability for "what is upstream/downstream from this thing?" | graph edges derived from composes, activation, resources, signals, surfaces, facets, versions | v0 |
+| `wayfind.nearby` | Direct typed relation context around one graph entity | edge indexes derived from composes, contours, resources, signals, surfaces, facets, and versions | v0 |
+| `wayfind.impact` | Directional and multi-hop reachability for "what is upstream/downstream from this thing?" | typed relation edges oriented from contract substrate to affected graph members | v0 |
 | `wayfind.examples` | Return examples for a trail or contour | `TopoGraphEntry.examples`, `TopoStoreExampleRecord` | v0 |
-| `wayfind.diff` | Compare two graph snapshots (e.g. `main` vs branch) | `DiffResult` from `deriveTopoGraphDiff` | v0 |
+| `wayfind.diff` | Compare two explicit saved graph snapshots | `DiffResult` from `deriveTopoGraphDiff` | v0 |
 
 The proto's `wayfind.errors` is **deferred**. Today's `TopoGraphEntry` and `TopoStoreTrailRecord` preserve error examples and detour declarations, and core owns the taxonomy registry, but that is not an exhaustive per-trail emitted-error graph. Reintroduce when a `TrailErrorFacts` substrate can report taxonomy, documented, handled, inferred, and observed facts with explicit completeness semantics.
 

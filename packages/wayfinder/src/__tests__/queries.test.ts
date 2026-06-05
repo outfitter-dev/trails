@@ -29,7 +29,10 @@ import type {
 import {
   wayfindContractTrail,
   wayfindDescribeTrail,
+  wayfindDiffTrail,
   wayfindExamplesTrail,
+  wayfindImpactTrail,
+  wayfindNearbyTrail,
   wayfindOverviewTrail,
   wayfindSearchTrail,
   wayfindSurfacesTrail,
@@ -149,7 +152,8 @@ const lockManifestFor = (topoGraph: TopoGraph): LockManifest => ({
   version: 3,
 });
 
-const writeArtifacts = async (
+const writeArtifactsAt = async (
+  rootDir: string,
   transform?: (topoGraph: TopoGraph) => TopoGraph
 ): Promise<TopoGraph> => {
   const baseTopoGraph = withSurfaces(
@@ -165,10 +169,16 @@ const writeArtifacts = async (
     })
   );
   const topoGraph = transform?.(baseTopoGraph) ?? baseTopoGraph;
-  await writeTopoGraph(topoGraph, { dir: artifactsDir() });
-  await writeLockManifest(lockManifestFor(topoGraph), { dir: artifactsDir() });
+  await writeTopoGraph(topoGraph, { dir: artifactsDirFor(rootDir) });
+  await writeLockManifest(lockManifestFor(topoGraph), {
+    dir: artifactsDirFor(rootDir),
+  });
   return topoGraph;
 };
+
+const writeArtifacts = async (
+  transform?: (topoGraph: TopoGraph) => TopoGraph
+): Promise<TopoGraph> => writeArtifactsAt(tempDir, transform);
 
 const writePlainArtifactsAt = async (rootDir: string) => {
   const graph = app();
@@ -220,8 +230,11 @@ describe('wayfinder graph-read query trails', () => {
       'wayfind.contours',
       'wayfind.contract',
       'wayfind.describe',
+      'wayfind.diff',
       'wayfind.examples',
       'wayfind.facets',
+      'wayfind.impact',
+      'wayfind.nearby',
       'wayfind.overview',
       'wayfind.resources',
       'wayfind.search',
@@ -568,5 +581,145 @@ describe('wayfinder graph-read query trails', () => {
       kind: 'surface',
       trails: ['user.show'],
     });
+  });
+
+  test('returns direct nearby graph relationships around an entity', async () => {
+    const nearby = await expectOk(
+      wayfindNearbyTrail.blaze(
+        { id: 'user.create', kind: 'trail', rootDir: tempDir },
+        ctx()
+      )
+    );
+
+    expect(nearby.target).toEqual({ id: 'user.create', kind: 'trail' });
+    expect(
+      nearby.relations.map((relation) => ({
+        direction: relation.direction,
+        ids: relation.refs.map((ref) => ref.id),
+        relation: relation.relation,
+      }))
+    ).toEqual([
+      {
+        direction: 'incoming',
+        ids: ['users'],
+        relation: 'facet-groups',
+      },
+      {
+        direction: 'incoming',
+        ids: ['user.created'],
+        relation: 'fired-by',
+      },
+      {
+        direction: 'incoming',
+        ids: ['cli', 'mcp'],
+        relation: 'surface-projects',
+      },
+      {
+        direction: 'incoming',
+        ids: ['db.main'],
+        relation: 'used-by',
+      },
+    ]);
+  });
+
+  test('includes facet-projected trails in surface graph relationships', async () => {
+    const nearby = await expectOk(
+      wayfindNearbyTrail.blaze(
+        { id: 'mcp', kind: 'surface', rootDir: tempDir },
+        ctx()
+      )
+    );
+
+    expect(
+      nearby.relations.map((relation) => ({
+        direction: relation.direction,
+        ids: relation.refs.map((ref) => ref.id),
+        relation: relation.relation,
+      }))
+    ).toEqual([
+      {
+        direction: 'outgoing',
+        ids: ['user.create', 'user.show'],
+        relation: 'surface-projects',
+      },
+    ]);
+  });
+
+  test('traverses directional impact from a graph entity', async () => {
+    const impact = await expectOk(
+      wayfindImpactTrail.blaze(
+        {
+          id: 'db.main',
+          kind: 'resource',
+          limit: 100,
+          maxDepth: 2,
+          rootDir: tempDir,
+        },
+        ctx()
+      )
+    );
+
+    expect(impact.direction).toBe('downstream');
+    expect(impact.nodes.map((node) => [node.id, node.depth, node.via])).toEqual(
+      [
+        ['user.create', 1, 'used-by'],
+        ['user.show', 1, 'used-by'],
+      ]
+    );
+  });
+
+  test('diffs the current graph against a baseline artifact snapshot', async () => {
+    const baselineRoot = join(tempDir, 'baseline');
+    await mkdir(baselineRoot, { recursive: true });
+    await writeArtifactsAt(baselineRoot, (topoGraph) => ({
+      ...topoGraph,
+      entries: topoGraph.entries.filter((entry) => entry.id !== 'user.create'),
+      facets: topoGraph.facets?.map((facet) =>
+        facet.id === 'users'
+          ? {
+              ...facet,
+              memberIds: facet.memberIds.filter((id) => id !== 'user.create'),
+            }
+          : facet
+      ),
+    }));
+
+    const diff = await expectOk(
+      wayfindDiffTrail.blaze(
+        { againstRootDir: baselineRoot, rootDir: tempDir },
+        ctx()
+      )
+    );
+
+    expect(diff.against.source.path).toBe(
+      join(baselineRoot, '.trails', 'topo.lock')
+    );
+    expect(diff.diff.entries.some((entry) => entry.id === 'user.create')).toBe(
+      true
+    );
+  });
+
+  test('diff rejects missing and conflicting baselines through direct blaze calls', async () => {
+    const missingBaseline = await wayfindDiffTrail.blaze(
+      { rootDir: tempDir },
+      ctx()
+    );
+    const conflictingBaseline = await wayfindDiffTrail.blaze(
+      {
+        againstDir: artifactsDir(),
+        againstRootDir: tempDir,
+        rootDir: tempDir,
+      },
+      ctx()
+    );
+
+    expect(missingBaseline.isErr()).toBe(true);
+    expect(missingBaseline.isErr() ? missingBaseline.error.name : '').toBe(
+      'ValidationError'
+    );
+    expect(conflictingBaseline.isErr()).toBe(true);
+    expect(
+      conflictingBaseline.isErr() ? conflictingBaseline.error.name : ''
+    ).toBe('ValidationError');
   });
 });

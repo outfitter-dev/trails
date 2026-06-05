@@ -5,10 +5,12 @@ import {
   DerivationError,
   NotFoundError,
   Result,
+  ValidationError,
   topo,
   trail,
 } from '@ontrails/core';
 import type { TrailsError } from '@ontrails/core';
+import { deriveTopoGraphDiff } from '@ontrails/topographer';
 import type { TopoGraph, TopoGraphEntry } from '@ontrails/topographer';
 import { z } from 'zod';
 
@@ -19,13 +21,24 @@ import {
 import type {
   WayfinderEntityFilterInput,
   WayfinderEntityKind,
-  WayfinderEntityRef,
 } from './filters.js';
 import { loadWayfinderArtifacts } from './loader.js';
 import type {
   WayfinderArtifactLoad,
   WayfinderArtifactLoaderOptions,
 } from './loader.js';
+import {
+  diffResult,
+  edgeTouches,
+  groupNearbyEdges,
+  impactFor,
+  impactNodeSchema,
+  refSummary,
+  relationEdgeSchema,
+  relationEdges,
+  relationGroupSchema,
+  resolveEntityRef,
+} from './relations.js';
 
 const artifactSourceSchema = z.object({
   kind: z.enum(['lockManifest', 'topoGraph', 'topoStore']),
@@ -91,6 +104,49 @@ const inspectInputSchema = sourceInputSchema.extend({
 const contractInputSchema = inspectInputSchema.extend({
   version: z.number().int().positive().optional(),
 });
+
+const impactDirectionSchema = z
+  .enum(['downstream', 'upstream', 'both'])
+  .default('downstream');
+
+const impactInputSchema = inspectInputSchema.extend({
+  direction: impactDirectionSchema,
+  limit: z.number().int().positive().max(500).default(100),
+  maxDepth: z.number().int().positive().max(10).default(2),
+});
+
+const diffInputSchema = sourceInputSchema
+  .extend({
+    againstDir: z
+      .string()
+      .optional()
+      .describe('Baseline artifact directory containing topo.lock'),
+    againstRootDir: z
+      .string()
+      .optional()
+      .describe('Baseline workspace root directory'),
+    againstTrailsDbPath: z
+      .string()
+      .optional()
+      .describe('Baseline trails.db path'),
+  })
+  .strict()
+  .refine(
+    (input) =>
+      input.againstDir !== undefined || input.againstRootDir !== undefined,
+    {
+      message: 'Provide againstDir or againstRootDir for the baseline graph.',
+      path: ['againstDir'],
+    }
+  )
+  .refine(
+    (input) =>
+      input.againstDir === undefined || input.againstRootDir === undefined,
+    {
+      message: 'Provide only one of againstDir or againstRootDir.',
+      path: ['againstDir'],
+    }
+  );
 
 const refOutputSchema = z.object({
   id: z.string(),
@@ -172,9 +228,45 @@ const contractOutputSchema = envelopeSchema.extend({
   contract: z.record(z.string(), z.unknown()),
 });
 
+const nearbyOutputSchema = envelopeSchema.extend({
+  edges: z.array(relationEdgeSchema).readonly(),
+  relations: z.array(relationGroupSchema).readonly(),
+  target: refOutputSchema,
+});
+
+const impactOutputSchema = envelopeSchema.extend({
+  direction: z.enum(['downstream', 'upstream', 'both']),
+  edges: z.array(relationEdgeSchema).readonly(),
+  maxDepth: z.number(),
+  nodes: z.array(impactNodeSchema).readonly(),
+  target: refOutputSchema,
+});
+
+const diffEntryOutputSchema = z.object({
+  change: z.enum(['added', 'removed', 'modified']),
+  details: z.array(z.string()).readonly(),
+  id: z.string(),
+  kind: z.enum(['contour', 'facet', 'resource', 'signal', 'trail']),
+  severity: z.enum(['info', 'warning', 'breaking']),
+});
+
+const diffResultOutputSchema = z.object({
+  breaking: z.array(diffEntryOutputSchema).readonly(),
+  entries: z.array(diffEntryOutputSchema).readonly(),
+  hasBreaking: z.boolean(),
+  info: z.array(diffEntryOutputSchema).readonly(),
+  warnings: z.array(diffEntryOutputSchema).readonly(),
+});
+
+const diffOutputSchema = envelopeSchema.extend({
+  against: envelopeSchema,
+  diff: diffResultOutputSchema,
+});
+
 type SourceInput = z.output<typeof sourceInputSchema>;
 type InspectInput = z.output<typeof inspectInputSchema>;
 type ContractInput = z.output<typeof contractInputSchema>;
+type DiffInput = z.output<typeof diffInputSchema>;
 
 interface LoadedWayfinderGraph {
   readonly graph: TopoGraph;
@@ -486,12 +578,29 @@ const filteredVersionSummaries = (
     .slice(0, limit);
 };
 
-const refSummary = (ref: WayfinderEntityRef) => ({
-  id: ref.id,
-  kind: ref.kind,
-  ...(ref.trailId === undefined ? {} : { trailId: ref.trailId }),
-  ...(ref.versionKey === undefined ? {} : { versionKey: ref.versionKey }),
+const againstInput = (input: DiffInput): SourceInput => ({
+  ...(input.againstDir === undefined ? {} : { dir: input.againstDir }),
+  ...(input.againstRootDir === undefined
+    ? {}
+    : { rootDir: input.againstRootDir }),
+  ...(input.againstTrailsDbPath === undefined
+    ? {}
+    : { trailsDbPath: input.againstTrailsDbPath }),
 });
+
+const diffBaselineError = (input: DiffInput): ValidationError | undefined => {
+  if (input.againstDir === undefined && input.againstRootDir === undefined) {
+    return new ValidationError(
+      'Provide againstDir or againstRootDir for the baseline graph.'
+    );
+  }
+  if (input.againstDir !== undefined && input.againstRootDir !== undefined) {
+    return new ValidationError(
+      'Provide only one of againstDir or againstRootDir.'
+    );
+  }
+  return undefined;
+};
 
 const describeSurface = (graph: TopoGraph, id: string) => {
   const surface = surfaceSummaries(graph).find(
@@ -1025,12 +1134,125 @@ export const wayfindContractTrail = trail('wayfind.contract', {
   visibility: 'internal',
 });
 
+export const wayfindNearbyTrail = trail('wayfind.nearby', {
+  args: ['id'],
+  blaze: async (input, ctx) => {
+    const loaded = await loadGraph(input, ctx.cwd);
+    if (loaded.isErr()) {
+      return loaded;
+    }
+    const target = resolveEntityRef(loaded.value.graph, input);
+    if (target.isErr()) {
+      return target;
+    }
+    if (target.value === undefined) {
+      return Result.err(notFound(input.kind ?? 'entity', input.id));
+    }
+    const summary = refSummary(target.value);
+    const edges = relationEdges(loaded.value.graph).filter((edge) =>
+      edgeTouches(edge, summary)
+    );
+    return Result.ok({
+      ...envelope(loaded.value),
+      edges,
+      relations: groupNearbyEdges(edges, summary),
+      target: summary,
+    });
+  },
+  description: 'Inspect direct graph relationships around one topo entity',
+  examples: [{ input: { id: 'user.create' }, name: 'Nearby graph context' }],
+  input: inspectInputSchema,
+  intent: 'read',
+  output: nearbyOutputSchema,
+  visibility: 'internal',
+});
+
+export const wayfindImpactTrail = trail('wayfind.impact', {
+  args: ['id'],
+  blaze: async (input, ctx) => {
+    const impactInput = {
+      ...input,
+      direction: input.direction ?? 'downstream',
+      limit: input.limit ?? 100,
+      maxDepth: input.maxDepth ?? 2,
+    };
+    const loaded = await loadGraph(input, ctx.cwd);
+    if (loaded.isErr()) {
+      return loaded;
+    }
+    const target = resolveEntityRef(loaded.value.graph, impactInput);
+    if (target.isErr()) {
+      return target;
+    }
+    if (target.value === undefined) {
+      return Result.err(notFound(input.kind ?? 'entity', input.id));
+    }
+    const summary = refSummary(target.value);
+    const impact = impactFor(loaded.value.graph, impactInput, summary);
+    return Result.ok({
+      ...envelope(loaded.value),
+      direction: impactInput.direction,
+      maxDepth: impactInput.maxDepth,
+      target: summary,
+      ...impact,
+    });
+  },
+  description: 'Traverse multi-hop graph impact from one topo entity',
+  examples: [
+    {
+      input: { direction: 'downstream', id: 'db.main', kind: 'resource' },
+      name: 'Resource impact',
+    },
+  ],
+  input: impactInputSchema,
+  intent: 'read',
+  output: impactOutputSchema,
+  visibility: 'internal',
+});
+
+export const wayfindDiffTrail = trail('wayfind.diff', {
+  blaze: async (input, ctx) => {
+    const baselineError = diffBaselineError(input);
+    if (baselineError !== undefined) {
+      return Result.err(baselineError);
+    }
+    const current = await loadGraph(input, ctx.cwd);
+    if (current.isErr()) {
+      return current;
+    }
+    const baseline = await loadGraph(againstInput(input), ctx.cwd);
+    if (baseline.isErr()) {
+      return baseline;
+    }
+    const diff = deriveTopoGraphDiff(baseline.value.graph, current.value.graph);
+    return Result.ok({
+      ...envelope(current.value),
+      against: envelope(baseline.value),
+      diff: diffResult(diff),
+    });
+  },
+  description: 'Diff two saved Wayfinder topo graph artifacts',
+  examples: [
+    {
+      input: { againstDir: '.trails-baseline' },
+      name: 'Diff against saved artifacts',
+    },
+  ],
+  input: diffInputSchema,
+  intent: 'read',
+  output: diffOutputSchema,
+  visibility: 'internal',
+});
+
 export const wayfinderTopo = topo('wayfinder', {
   wayfindContoursTrail,
   wayfindContractTrail,
   wayfindDescribeTrail,
+  wayfindDiffTrail,
   wayfindExamplesTrail,
   wayfindFacetsTrail,
+  wayfindImpactTrail,
+  wayfindNearbyTrail,
   wayfindOverviewTrail,
   wayfindResourcesTrail,
   wayfindSearchTrail,
