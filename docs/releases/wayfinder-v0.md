@@ -1,0 +1,20 @@
+# Wayfinder V0 Release Notes
+
+Wayfinder is now a real graph-read package, not just a reserved shell. The v0 catalog exports Trails over saved Topographer artifacts so agents can inspect a workspace topo without rebuilding facts from raw text search.
+
+## What Ships
+
+- `@ontrails/wayfinder` exports `wayfinderTopo` and the v0 `wayfind.*` query trails for overview, typed search/listing, describe/contract inspection, examples, nearby relation reads, impact traversal, and explicit saved-baseline diffing.
+- Every query reads existing Topographer artifacts or topo-store records. V0 does not boot apps, resolve resources, reach the network, or mutate local state.
+- Query results include source and freshness metadata so agents can distinguish fresh artifacts from missing, stale, or schema-drifted artifacts.
+- The Trails operator MCP surface exposes a selected read-only subset as direct tools and keeps broader saved-topo inspection behind the `inspect` facet.
+
+## Migration Posture
+
+Existing apps do not expose Wayfinder automatically. Wayfinder trails are internal by default, and MCP/HTTP hosts must opt in with exact trail IDs behind their own authorization boundary.
+
+Agents should try Wayfinder first when the question is about saved graph facts: which trails exist, what a contract looks like, which resources/signals/surfaces touch a trail, what is nearby, and what changed between two saved TopoGraphs. Raw file search remains the fallback when artifacts are missing, stale beyond the task's tolerance, or when the question is about source code that Topographer does not yet project.
+
+## Non-Goals
+
+V0 does not ship `wayfind.errors`, `wayfind.adapters`, generic `wayfind.query`, semantic search, signposts, or `wayfind.implications`. Those need additional accepted substrates or field evidence before they can answer honestly.

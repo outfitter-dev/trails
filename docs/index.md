@@ -12,6 +12,7 @@
 - **[Beta Channel Policy](./releases/beta-channel-policy.md)** — Beta install tags, `latest` posture, version cadence, and read-only registry checks
 - **[Plugin Release Runbook](./releases/plugin-release.md)** — Claude plugin/skills refresh, dogfood, and manual publication checks
 - **[Surface Facets Release Notes](./releases/surface-facets.md)** — Release prep, migration posture, and publish path for MCP surface facets
+- **[Wayfinder V0 Release Notes](./releases/wayfinder-v0.md)** — Release prep, MCP exposure posture, and non-goals for the first real Wayfinder catalog
 - **[Beta 15](./releases/beta15.md)** — Beta 15 release-prep notes and known CLI follow-up work
 - **[Beta 15 to Beta 19](./releases/beta15-to-beta19.md)** — Downstream operator guide: package install, surface decisions, `cross`→`compose` rename, trail versioning, adapter authoring, Topographer adoption, validation checklist
 
@@ -41,6 +42,7 @@
 
 - **[Warden](./warden.md)** — Trails correctness rules, rule-home boundaries, drift detection, CI integration
 - **[Topographer](../packages/topographer/README.md)** — TopoGraphs, durable artifact helpers, semantic diffing, lock manifests, topo-store persistence
+- **[Wayfinder](../packages/wayfinder/README.md)** — Graph-read query trails for agents inspecting saved Topographer artifacts
 
 ## Contributing to Trails?
 

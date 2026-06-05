@@ -61,8 +61,20 @@ Current public packages are lockstep at the same Trails framework version.
 - **Surfaces:** `@ontrails/commander`, `@ontrails/mcp`, `@ontrails/hono`, and `@ontrails/http/bun` open the same topo on CLI, MCP, Hono HTTP, or Bun-native HTTP. `@ontrails/http` owns shared route derivation, OpenAPI, and the Web Fetch kernel; `@ontrails/cli` owns the framework-agnostic CLI command model; `@ontrails/vite` adapts Trails surfaces for Vite projects.
 - **Infrastructure:** `@ontrails/config`, `@ontrails/permits`, `@ontrails/store`, and `@ontrails/drizzle` cover config, authorization, schema-derived stores, and Drizzle SQLite bindings.
 - **Observability:** `@ontrails/observe` defines sink contracts; `@ontrails/tracing`, `@ontrails/logtape`, and `@ontrails/pino` provide tracing/dev-state and sink adapters.
-- **Ecosystem:** `@ontrails/testing` provides contract tests and surface harnesses; `@ontrails/topographer` owns TopoGraphs, semantic diffing, lock manifests, and topo-store persistence; `@ontrails/warden` owns governance rules; `@ontrails/wayfinder` is shell-only for future agent wayfinding trails and ships no trails yet.
+- **Ecosystem:** `@ontrails/testing` provides contract tests and surface harnesses; `@ontrails/topographer` owns TopoGraphs, semantic diffing, lock manifests, and topo-store persistence; `@ontrails/warden` owns governance rules; `@ontrails/wayfinder` owns graph-read query trails over saved Topographer artifacts.
 - **Beta install policy:** While `.changeset/pre.json` is in prerelease mode, install published Trails packages with exact `1.0.0-beta.N` pins or `@beta`; do not rely on unqualified `latest` unless release notes explicitly advance it.
+
+## Agent Wayfinding
+
+When saved Topographer artifacts can answer a graph question, prefer Wayfinder before raw text search:
+
+- Start with `wayfind.overview` to learn artifact source, freshness, and graph counts.
+- Use `wayfind.search` or typed list trails (`wayfind.trails`, `wayfind.resources`, `wayfind.signals`, `wayfind.surfaces`, `wayfind.facets`, `wayfind.versions`, `wayfind.examples`) for filtered discovery.
+- Use `wayfind.describe` for a full saved entity record and `wayfind.contract` for a trail or version input/output/intent summary.
+- Use `wayfind.nearby`, `wayfind.impact`, and `wayfind.diff` for relation context, blast-radius reads, and explicit saved-baseline comparison.
+- Treat Wayfinder as graph-read only. Do not assume `wayfind.errors`, `wayfind.adapters`, generic `wayfind.query`, semantic search, signposts, or implications exist in v0.
+
+Wayfinder trails are internal by default. Host apps expose selected queries deliberately, usually as read-only operator tools or MCP resources protected by the host's authorization boundary.
 
 ## Creating Trails
 

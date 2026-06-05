@@ -247,6 +247,7 @@ writeLockManifest(manifest, options?), readLockManifest(options?), readWorkspace
 createTopoStore(options?), createMockTopoStore(seed?), topoStore
 createTopoSnapshot(topo, options?), listTopoSnapshots(options?)
 pinTopoSnapshot(id, name, options?), unpinTopoSnapshot(nameOrId, options?)
+TOPO_STORE_SCHEMA_VERSION
 
 TopoGraph, TopoGraphEntry, TopoGraphContourReference, LockManifest, DiffResult, DiffEntry, JsonSchema
 WriteOptions, ReadOptions
@@ -265,6 +266,37 @@ pruneUnpinnedSnapshots(db, options?)
 
 StoredTopoExport
 ```
+
+## `@ontrails/wayfinder`
+
+These are cold graph-read trails and helpers for querying saved Topographer artifacts. They read `topo.lock`, `trails.lock`, and topo-store records without booting apps, resolving resources, reaching the network, or mutating local state.
+
+```typescript
+// Graph-read topo and query trails
+wayfinderTopo
+wayfindOverviewTrail, wayfindSearchTrail
+wayfindTrailsTrail, wayfindContoursTrail, wayfindResourcesTrail, wayfindSignalsTrail
+wayfindSurfacesTrail, wayfindFacetsTrail, wayfindVersionsTrail, wayfindExamplesTrail
+wayfindDescribeTrail, wayfindContractTrail, wayfindNearbyTrail, wayfindImpactTrail
+wayfindDiffTrail
+
+// Artifact loading, provenance, and typed filters
+loadWayfinderArtifacts, wayfinderTopoGraphSource, wayfinderTopoStoreSource
+wayfinderFact
+createWayfinderFilterContext, createWayfinderEntityPredicate
+createWayfinderGraphEntityPredicate, filterWayfinderEntityRefs, listWayfinderEntityRefs
+wayfinderEntityFilterSchema, wayfinderEntityKindSchema, wayfinderIntentSchema
+
+WayfinderArtifactLoad, WayfinderArtifactLoaderOptions, WayfinderTopoStoreLoad
+WayfinderArtifactKind, WayfinderArtifactSource, WayfinderContractRef
+WayfinderFact, WayfinderFactCategory, WayfinderFreshness
+WayfinderFreshnessFresh, WayfinderFreshnessMissing
+WayfinderFreshnessSchemaVersionDrift, WayfinderFreshnessStale, WayfinderStaleReason
+WayfinderEntityFilters, WayfinderEntityFilterInput, WayfinderEntityKind
+WayfinderEntityRef, WayfinderFilterContext, WayfinderIntent
+```
+
+Wayfinder trails are internal by default. Surface hosts expose selected query trails deliberately, usually by exact trail ID for operator tooling.
 
 ## `@ontrails/store`
 

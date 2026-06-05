@@ -223,6 +223,14 @@ await surface(graph, {
 
 `*` matches one dotted namespace segment and `**` matches any depth. Excludes apply before include narrowing, and trails marked `visibility: 'internal'` stay hidden unless you include their exact trail ID.
 
+## Operator Wayfinder Exposure
+
+Wayfinder trails are internal graph-read tools over saved Topographer artifacts. Expose them on MCP only when the host operator wants agents to inspect graph facts directly, and include explicit trail IDs instead of widening the whole `wayfind.*` namespace.
+
+The Trails operator MCP surface starts with selected first-class Wayfinder tools: `wayfind.overview`, `wayfind.search`, `wayfind.trails`, `wayfind.contract`, `wayfind.examples`, `wayfind.nearby`, and `wayfind.impact`. They remain direct tools rather than one broad Wayfinder facet so agents can see read-only annotations, descriptions, and output schemas at the tool boundary. Adjacent saved-topo inspection stays grouped in the operator's existing `inspect` facet; unselected Wayfinder queries are not exposed by default.
+
+Do not document or expose deferred Wayfinder ideas as if they exist. V0 has no `wayfind.errors`, `wayfind.adapters`, generic `wayfind.query`, semantic search, signposts, or `wayfind.implications`.
+
 ## Surface Facet Field Notes
 
 Dense MCP surfaces can use surface facets to group related trails into fewer agent-facing tools. The current evidence ledger lives in [Surface Facet Field Notes](surface-facet-field-notes.md). Read it before generalizing facet behavior to another app or surface. It records the first Trails operator MCP shaping pass, the shortened evidence window, what survived contact, and what remains deferred.

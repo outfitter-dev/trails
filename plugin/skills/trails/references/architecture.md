@@ -116,7 +116,7 @@ Warden uses inference to verify declarations match actual code. Topographer capt
 | `@ontrails/testing` | `testAll()`, `testExamples()`, `testTrail()`, contract testing, opt-in surface harness subpaths |
 | `@ontrails/topographer` | TopoGraphs, semantic diffing, lock manifest and `topo.lock` helpers, topo-store persistence |
 | `@ontrails/warden` | Lint rules, drift detection, CI gating |
-| `@ontrails/wayfinder` | Shell-only package home for future agent wayfinding trails; no trails ship yet |
+| `@ontrails/wayfinder` | Graph-read query trails over saved Topographer artifacts for agent navigation |
 
 ### Dependency graph
 
@@ -133,7 +133,7 @@ Warden uses inference to verify declarations match actual code. Topographer capt
   <- @ontrails/drizzle (store, drizzle-orm)
   <- @ontrails/testing (core, observe; optional cli/mcp/http subpaths)
   <- @ontrails/topographer (core)
-  <- @ontrails/wayfinder (shell only)
+  <- @ontrails/wayfinder (core, topographer)
      <- @ontrails/commander (cli, commander)
      <- @ontrails/hono (http, hono)
      <- @ontrails/vite (node:stream only)

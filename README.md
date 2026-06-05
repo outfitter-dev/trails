@@ -161,7 +161,7 @@ $ myapp greet --name World
 | [`@ontrails/logtape`](./packages/logtape) | Adapter that forwards Trails log records to a LogTape-shaped logger |
 | [`@ontrails/pino`](./packages/pino) | Adapter that forwards Trails log records to a Pino-shaped logger |
 | [`@ontrails/warden`](./packages/warden) | AST-based convention rules, drift detection, CI formatters |
-| [`@ontrails/wayfinder`](./packages/wayfinder) | Shell package for future agent wayfinding trails; no trails ship yet |
+| [`@ontrails/wayfinder`](./packages/wayfinder) | Graph-read query trails over saved Topographer artifacts for agent navigation |
 
 ## Documentation
 

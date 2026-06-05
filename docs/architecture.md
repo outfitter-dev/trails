@@ -173,6 +173,7 @@ Overrides are escape hatches. They're visible in the TopoGraph as explicit devia
 | `@ontrails/testing` | `testAll()`, `testExamples()`, `testTrail()`, contract testing, surface harnesses |
 | `@ontrails/topographer` | TopoGraphs, semantic diffing, lock manifest and `topo.lock` helpers, topo-store persistence (relocated from `@ontrails/core` per ADR-0042) |
 | `@ontrails/warden` | Lint rules, drift detection, CI gating |
+| `@ontrails/wayfinder` | Graph-read query trails over saved Topographer artifacts for agent navigation |
 
 ### Apps
 
@@ -197,6 +198,7 @@ Overrides are escape hatches. They're visible in the TopoGraph as explicit devia
 @ontrails/tracing (core)
 @ontrails/testing (core, cli, mcp, observe)
 @ontrails/topographer (core)
+@ontrails/wayfinder (core, topographer)
      ^
 @ontrails/commander (cli, commander)
 @ontrails/hono (http, hono)
@@ -204,7 +206,7 @@ Overrides are escape hatches. They're visible in the TopoGraph as explicit devia
 @ontrails/logtape (observe)
 @ontrails/warden (core, topographer)
      ^
-apps/trails (cli/commander, http, topographer, tracing)
+apps/trails (cli/commander, http, topographer, tracing, wayfinder)
 ```
 
 Clean DAG. Core at the center. No cycles. Surface adapters depend only on core. Framework adapters depend on their parent package.
