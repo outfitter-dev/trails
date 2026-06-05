@@ -534,6 +534,32 @@ const kindFilter = (
   filters: WayfinderEntityFilterInput | undefined
 ): WayfinderEntityFilterInput => ({ ...filters, kind });
 
+const allowsTrailKind = (
+  filters: WayfinderEntityFilterInput | undefined
+): boolean => {
+  const kind = filters?.kind;
+  return (
+    kind === undefined ||
+    kind === 'trail' ||
+    (Array.isArray(kind) && kind.includes('trail'))
+  );
+};
+
+const allowsVersionKind = (
+  filters: WayfinderEntityFilterInput | undefined
+): boolean => {
+  const kind = filters?.kind;
+  return (
+    kind === undefined ||
+    kind === 'version' ||
+    (Array.isArray(kind) && kind.includes('version'))
+  );
+};
+
+const allowsExampleWidening = (
+  filters: WayfinderEntityFilterInput | undefined
+): boolean => filters?.exampleCoverage !== false;
+
 const filteredExampleSummaries = (
   graph: TopoGraph,
   filters: WayfinderEntityFilterInput | undefined,
@@ -545,8 +571,50 @@ const filteredExampleSummaries = (
   const ids = new Set(
     filterWayfinderEntityRefs(graph, filters).map((ref) => ref.id)
   );
+  const trailIds = new Set(
+    allowsTrailKind(filters)
+      ? filterWayfinderEntityRefs(graph, kindFilter('trail', filters)).map(
+          (ref) => ref.id
+        )
+      : []
+  );
+  const versionIds = new Set(
+    allowsVersionKind(filters)
+      ? filterWayfinderEntityRefs(graph, kindFilter('version', filters)).map(
+          (ref) => ref.id
+        )
+      : []
+  );
+  const currentVersionTrailIds = new Set(
+    graph.entries
+      .filter(
+        (entry) =>
+          entry.kind === 'trail' &&
+          entry.version !== undefined &&
+          versionIds.has(`${entry.id}@${entry.version}`)
+      )
+      .map((entry) => entry.id)
+  );
+  const historicalVersionTrailIds = new Map(
+    graph.entries.flatMap((entry) =>
+      entry.kind === 'trail'
+        ? Object.keys(entry.versions ?? {}).map((versionKey) => [
+            `${entry.id}@${versionKey}`,
+            entry.id,
+          ])
+        : []
+    )
+  );
   return exampleSummaries(graph)
-    .filter((example) => ids.has(example.targetId))
+    .filter(
+      (example) =>
+        ids.has(example.targetId) ||
+        (example.source === 'entry' &&
+          currentVersionTrailIds.has(example.targetId)) ||
+        (example.source === 'version' &&
+          allowsExampleWidening(filters) &&
+          trailIds.has(historicalVersionTrailIds.get(example.targetId) ?? ''))
+    )
     .slice(0, limit);
 };
 

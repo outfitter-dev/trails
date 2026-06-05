@@ -80,6 +80,13 @@ const auditRebuild = trail('audit.rebuild', {
 
 const inviteCreate = trail('invite.create', {
   blaze: (input) => Result.ok({ greeting: `Hello, ${input.name}!` }),
+  examples: [
+    {
+      expected: { greeting: 'Hello, Ada!' },
+      input: { name: 'Ada' },
+      name: 'Current greeting',
+    },
+  ],
   input: z.object({ name: z.string() }),
   output: z.object({ greeting: z.string() }),
   version: 2,
@@ -253,7 +260,7 @@ describe('wayfinder graph-read query trails', () => {
     expect(overview.source.kind).toBe('topoGraph');
     expect(overview.generatedAt).toBe('2026-06-04T00:00:00.000Z');
     expect(overview.counts).toMatchObject({
-      examples: 2,
+      examples: 3,
       facets: 1,
       resources: 1,
       signals: 1,
@@ -404,6 +411,7 @@ describe('wayfinder graph-read query trails', () => {
       'invite.create@2',
     ]);
     expect(examples.examples.map((example) => example.targetId)).toEqual([
+      'invite.create',
       'invite.create@1',
       'user.show',
     ]);
@@ -444,6 +452,155 @@ describe('wayfinder graph-read query trails', () => {
       'invite.create@2',
       'invite.create@10',
     ]);
+  });
+
+  test('filters examples through parent trails and exact versions', async () => {
+    const byTrail = await expectOk(
+      wayfindExamplesTrail.blaze(
+        {
+          filters: { id: 'invite.create', kind: 'trail' },
+          limit: 100,
+          rootDir: tempDir,
+        },
+        ctx()
+      )
+    );
+    const byVersion = await expectOk(
+      wayfindExamplesTrail.blaze(
+        {
+          filters: { id: 'invite.create@1', kind: 'version' },
+          limit: 100,
+          rootDir: tempDir,
+        },
+        ctx()
+      )
+    );
+    const byCurrentVersion = await expectOk(
+      wayfindExamplesTrail.blaze(
+        {
+          filters: { id: 'invite.create@2', kind: 'version' },
+          limit: 100,
+          rootDir: tempDir,
+        },
+        ctx()
+      )
+    );
+
+    expect(byTrail.examples.map((example) => example.targetId)).toEqual([
+      'invite.create',
+      'invite.create@1',
+    ]);
+    expect(byVersion.examples.map((example) => example.targetId)).toEqual([
+      'invite.create@1',
+    ]);
+    expect(
+      byCurrentVersion.examples.map((example) => example.targetId)
+    ).toEqual(['invite.create']);
+  });
+
+  test('does not widen examples through explicit non-trail kind filters', async () => {
+    await writeArtifacts((topoGraph) => ({
+      ...topoGraph,
+      entries: topoGraph.entries.map((entry) =>
+        entry.id === 'invite.create'
+          ? { ...entry, resources: ['db.main'] }
+          : entry
+      ),
+    }));
+
+    const byResource = await expectOk(
+      wayfindExamplesTrail.blaze(
+        {
+          filters: { kind: 'resource', usesResource: 'db.main' },
+          limit: 100,
+          rootDir: tempDir,
+        },
+        ctx()
+      )
+    );
+
+    expect(byResource.examples).toEqual([]);
+  });
+
+  test('does not widen historical examples through exampleCoverage false', async () => {
+    await writeArtifacts((topoGraph) => ({
+      ...topoGraph,
+      entries: topoGraph.entries.map((entry) =>
+        entry.id === 'invite.create'
+          ? {
+              ...entry,
+              exampleCount: 0,
+              examples: [],
+            }
+          : entry
+      ),
+    }));
+
+    const uncoveredTrail = await expectOk(
+      wayfindExamplesTrail.blaze(
+        {
+          filters: {
+            exampleCoverage: false,
+            id: 'invite.create',
+            kind: 'trail',
+          },
+          limit: 100,
+          rootDir: tempDir,
+        },
+        ctx()
+      )
+    );
+
+    expect(uncoveredTrail.examples).toEqual([]);
+  });
+
+  test('preserves trail ids containing @ when widening historical examples', async () => {
+    await writeArtifacts((topoGraph) => ({
+      ...topoGraph,
+      entries: topoGraph.entries.map((entry) =>
+        entry.id === 'invite.create'
+          ? { ...entry, id: 'version.runtime.literal@alpha' }
+          : entry
+      ),
+    }));
+
+    const byTrail = await expectOk(
+      wayfindExamplesTrail.blaze(
+        {
+          filters: { id: 'version.runtime.literal@alpha', kind: 'trail' },
+          limit: 100,
+          rootDir: tempDir,
+        },
+        ctx()
+      )
+    );
+
+    expect(byTrail.examples.map((example) => example.targetId)).toEqual([
+      'version.runtime.literal@alpha',
+      'version.runtime.literal@alpha@1',
+    ]);
+  });
+
+  test('does not widen current examples through non-version id collisions', async () => {
+    await writeArtifacts((topoGraph) => ({
+      ...topoGraph,
+      entries: topoGraph.entries.map((entry) =>
+        entry.id === 'db.main' ? { ...entry, id: 'invite.create@2' } : entry
+      ),
+    }));
+
+    const byResource = await expectOk(
+      wayfindExamplesTrail.blaze(
+        {
+          filters: { id: 'invite.create@2', kind: 'resource' },
+          limit: 100,
+          rootDir: tempDir,
+        },
+        ctx()
+      )
+    );
+
+    expect(byResource.examples).toEqual([]);
   });
 
   test('describes entities and returns explicit not found results', async () => {
@@ -665,6 +822,125 @@ describe('wayfinder graph-read query trails', () => {
         ['user.create', 1, 'used-by'],
         ['user.show', 1, 'used-by'],
       ]
+    );
+  });
+
+  test('traverses upstream and both-direction impact', async () => {
+    const upstream = await expectOk(
+      wayfindImpactTrail.blaze(
+        {
+          direction: 'upstream',
+          id: 'invite.create@1',
+          kind: 'version',
+          limit: 100,
+          maxDepth: 2,
+          rootDir: tempDir,
+        },
+        ctx()
+      )
+    );
+    const both = await expectOk(
+      wayfindImpactTrail.blaze(
+        {
+          direction: 'both',
+          id: 'user.create',
+          kind: 'trail',
+          limit: 100,
+          maxDepth: 1,
+          rootDir: tempDir,
+        },
+        ctx()
+      )
+    );
+
+    expect(
+      upstream.nodes.map((node) => [node.id, node.depth, node.via])
+    ).toEqual([['invite.create', 1, 'has-version']]);
+    expect(both.nodes.map((node) => [node.id, node.depth, node.via])).toEqual([
+      ['users', 1, 'facet-groups'],
+      ['db.main', 1, 'used-by'],
+      ['user.created', 1, 'fired-by'],
+      ['cli', 1, 'surface-projects'],
+      ['mcp', 1, 'surface-projects'],
+    ]);
+  });
+
+  test('applies impact depth and limit boundaries', async () => {
+    const limited = await expectOk(
+      wayfindImpactTrail.blaze(
+        {
+          id: 'invite.create',
+          kind: 'trail',
+          limit: 1,
+          maxDepth: 2,
+          rootDir: tempDir,
+        },
+        ctx()
+      )
+    );
+    const depthOne = await expectOk(
+      wayfindImpactTrail.blaze(
+        {
+          id: 'invite.create',
+          kind: 'trail',
+          limit: 100,
+          maxDepth: 1,
+          rootDir: tempDir,
+        },
+        ctx()
+      )
+    );
+
+    expect(limited.nodes.map((node) => node.id)).toEqual(['invite.create@1']);
+    expect(depthOne.nodes.map((node) => node.id)).toEqual([
+      'invite.create@1',
+      'invite.create@2',
+    ]);
+    expect(depthOne.nodes.every((node) => node.depth === 1)).toBe(true);
+  });
+
+  test('nearby and impact return explicit ambiguity and not-found errors', async () => {
+    await writeArtifacts((topoGraph) => ({
+      ...topoGraph,
+      entries: topoGraph.entries.map((entry) =>
+        entry.id === 'user.show'
+          ? { ...entry, surfaces: [...entry.surfaces, 'user.show'] }
+          : entry
+      ),
+    }));
+
+    const ambiguousNearby = await wayfindNearbyTrail.blaze(
+      { id: 'user.show', rootDir: tempDir },
+      ctx()
+    );
+    const missingNearby = await wayfindNearbyTrail.blaze(
+      { id: 'missing.trail', kind: 'trail', rootDir: tempDir },
+      ctx()
+    );
+    const ambiguousImpact = await wayfindImpactTrail.blaze(
+      { id: 'user.show', rootDir: tempDir },
+      ctx()
+    );
+    const missingImpact = await wayfindImpactTrail.blaze(
+      { id: 'missing.trail', kind: 'trail', rootDir: tempDir },
+      ctx()
+    );
+
+    expect(ambiguousNearby.isErr()).toBe(true);
+    expect(ambiguousNearby.isErr() ? ambiguousNearby.error.name : '').toBe(
+      'AmbiguousError'
+    );
+    expect(missingNearby.isErr()).toBe(true);
+    expect(missingNearby.isErr() ? missingNearby.error.name : '').toBe(
+      'NotFoundError'
+    );
+    expect(ambiguousImpact.isErr()).toBe(true);
+    expect(ambiguousImpact.isErr() ? ambiguousImpact.error.name : '').toBe(
+      'AmbiguousError'
+    );
+    expect(missingImpact.isErr()).toBe(true);
+    expect(missingImpact.isErr() ? missingImpact.error.name : '').toBe(
+      'NotFoundError'
     );
   });
 
