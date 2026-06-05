@@ -3,9 +3,11 @@ slug: surface-facets-shape-dense-topos
 title: Surface Facets Shape Dense Topos
 status: draft
 created: 2026-06-03
-updated: 2026-06-03
+updated: 2026-06-04
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [0, 17, 27, 35, 42, 46]
+linear:
+  - TRL-902
 ---
 
 # ADR: Surface Facets Shape Dense Topos
@@ -186,6 +188,12 @@ The seam is intentionally asymmetric:
 
 No adapter target is required to support grouping. A future adapter can claim grouped affordances explicitly, but the validator for that claim should consume resolved surface projection evidence instead of adding facet authoring configuration to adapter-kit. The current adapter-kit seam is the existing raw subject evidence (`adapterType`, owner package, placement, target, conformance paths); it is sufficient for this stack because MCP facet projection is owned by `@ontrails/mcp` and Topographer, not by adapter authoring.
 
+### Wayfinder reads facets directly, not through a projections bucket
+
+Wayfinder treats resolved surface facets as first-class graph-read facts. Agents should be able to ask `wayfind.surfaces` and `wayfind.facets` directly instead of routing through a generic `wayfind.projections` endpoint.
+
+The projection doctrine still matters: one authored trail contract mechanically renders into many surface affordances. Wayfinder carries that doctrine through per-fact provenance (`derivedFrom`) and through specific queries over resolved surface facts. A generic projections endpoint remains deferred until field evidence shows a reverse-index need that `describe`, `contract`, `surfaces`, `facets`, `nearby`, `impact`, and `derivedFrom` do not satisfy.
+
 ### Non-decisions
 
 This ADR does not decide:
@@ -194,6 +202,7 @@ This ADR does not decide:
 - CLI or HTTP facet APIs beyond preserving the conceptual room for them;
 - code-mode MCP execution such as `execute({ code })`;
 - an `mcp.search` trail, which remains wayfinder territory;
+- a generic `wayfind.projections` endpoint;
 - MCP prompts;
 - auto-generated facet descriptions.
 

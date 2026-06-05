@@ -6,4 +6,4 @@ Agent-shaped wayfinding trails over `@ontrails/topographer` artifacts.
 
 **Status: shell only.** No trails ship yet.
 
-This package currently exists to reserve the `@ontrails/wayfinder` namespace and give the v0 implementation a clean home. When wayfinding lands as an accepted ADR, trails such as `wayfind.overview`, `wayfind.search`, `wayfind.trail`, and `wayfind.examples` will be exported from here.
+This package currently exists to reserve the `@ontrails/wayfinder` namespace and give the v0 implementation a clean home. When wayfinding lands, trails such as `wayfind.overview`, `wayfind.search`, `wayfind.contract`, `wayfind.nearby`, `wayfind.impact`, and `wayfind.examples` will be exported from here.
