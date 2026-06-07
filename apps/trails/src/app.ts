@@ -1,4 +1,14 @@
 import { topo } from '@ontrails/core';
+import {
+  wayfindContractTrail,
+  wayfindDescribeTrail,
+  wayfindExamplesTrail,
+  wayfindImpactTrail,
+  wayfindNearbyTrail,
+  wayfindOverviewTrail,
+  wayfindSearchTrail,
+  wayfindTrailsTrail,
+} from '@ontrails/wayfinder';
 
 import * as addSurface from './trails/add-surface.js';
 import * as addTrail from './trails/add-trail.js';
@@ -30,7 +40,7 @@ import * as validate from './trails/validate.js';
 import * as warden from './trails/warden.js';
 import * as wardenGuide from './trails/warden-guide.js';
 
-export const app = topo(
+export const operatorApp = topo(
   'trails',
   run,
   runExamples,
@@ -62,3 +72,25 @@ export const app = topo(
   completions,
   completionsComplete
 );
+
+const operatorTrails = Object.fromEntries(
+  operatorApp.list().map((trailItem) => [trailItem.id, trailItem])
+);
+
+const cliWayfinderTrails = {
+  wayfindContractTrail,
+  wayfindDescribeTrail,
+  wayfindExamplesTrail,
+  wayfindImpactTrail,
+  wayfindNearbyTrail,
+  wayfindOverviewTrail,
+  wayfindSearchTrail,
+  wayfindTrailsTrail,
+};
+
+export const trailsCliIncludedTrails = [
+  ...operatorApp.list().map((trailItem) => trailItem.id),
+  ...Object.values(cliWayfinderTrails).map((trailItem) => trailItem.id),
+];
+
+export const app = topo('trails', operatorTrails, cliWayfinderTrails);

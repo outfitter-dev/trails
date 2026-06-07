@@ -6,7 +6,7 @@ import { join, resolve } from 'node:path';
 import { WORKSPACE_GITIGNORE_CONTENT } from '@ontrails/core';
 import { testExamples } from '@ontrails/testing';
 
-import { app } from '../src/app.js';
+import { operatorApp } from '../src/app.js';
 
 const trailsWorkspaceDir = resolve(import.meta.dir, '..', '.trails');
 const trailsGitignorePath = join(trailsWorkspaceDir, '.gitignore');
@@ -30,4 +30,6 @@ afterAll(() => {
   resetTrailsWorkspace();
 });
 
-testExamples(app, { cwd: repoRoot });
+// Wayfinder CLI dogfood trails depend on saved topo artifacts; the repo-level
+// dogfood smoke covers them against exported operator artifacts.
+testExamples(operatorApp, { cwd: repoRoot });

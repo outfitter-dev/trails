@@ -19,7 +19,7 @@ import { createProgram } from '@ontrails/commander';
 import { resolvePermitFromBearerToken } from '@ontrails/permits';
 import { deriveTopoGraph } from '@ontrails/topographer';
 
-import { app } from './app.js';
+import { app, trailsCliIncludedTrails } from './app.js';
 import { resolveInputWithClack } from './clack.js';
 import { getRetiredTopoCommandDiagnostic } from './retired-topo-command.js';
 import { attachCompletionsInstallCommand } from './run-completions-install.js';
@@ -287,6 +287,7 @@ const runSurfaceOnce = async (): Promise<void> => {
   try {
     const program = createProgram(app, {
       description: 'Agent-native, contract-first TypeScript framework',
+      include: trailsCliIncludedTrails,
       name: 'trails',
       onResult: buildOnResult(session),
       presets: [

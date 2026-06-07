@@ -3,7 +3,7 @@ slug: wayfinding
 title: Wayfinding
 status: draft
 created: 2026-05-03
-updated: 2026-06-04
+updated: 2026-06-07
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [17, 27, 37, 42]
 description: "Introduces `@ontrails/wayfinder`: a package of trails over `@ontrails/topographer` artifacts giving agents queryable access to the topo graph via typed query catalog trails (overview, search, typed list filters, describe, contract, nearby, impact, examples, surfaces, facets, versions, diff)."
@@ -143,6 +143,10 @@ Wayfinder trails are operator and developer tools, not app-public verbs. The def
 - CLI exposure on the developer's own machine is the expected default; the
   CLI surface treats local invocation as implicitly authorized, consistent
   with [ADR-0027] Part 4.
+- The Trails operator CLI dogfoods v0 by exposing a selected read-only subset
+  through exact IDs (`overview`, `search`, typed contract/describe,
+  examples, nearby, and impact). This is not wildcard namespace exposure and
+  does not promote deferred queries.
 
 This means an app that mounts `@ontrails/wayfinder` does not accidentally hand its agents a self-documenting treasure chest. The graph stays locked unless the operator opts in. ADR-0027 already provides the levers; wayfinding leans on them.
 

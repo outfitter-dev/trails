@@ -9,10 +9,10 @@ import {
   wayfindTrailsTrail,
 } from '@ontrails/wayfinder';
 
-import { app } from './app.js';
+import { operatorApp } from './app.js';
 
 const operatorTrails = Object.fromEntries(
-  app.list().map((trailItem) => [trailItem.id, trailItem])
+  operatorApp.list().map((trailItem) => [trailItem.id, trailItem])
 );
 
 export const trailsMcpApp = topo('trails', operatorTrails, {
