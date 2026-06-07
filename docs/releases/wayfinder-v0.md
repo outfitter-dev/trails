@@ -16,6 +16,10 @@ Existing apps do not expose Wayfinder automatically. Wayfinder trails are intern
 
 Agents should try Wayfinder first when the question is about saved graph facts: which trails exist, what a contract looks like, which resources/signals/surfaces touch a trail, what is nearby, and what changed between two saved TopoGraphs. Raw file search remains the fallback when artifacts are missing, stale beyond the task's tolerance, or when the question is about source code that Topographer does not yet project.
 
+## Dogfood Smoke
+
+Run `bun run wayfinder:dogfood` after changes to Wayfinder, the Trails operator MCP topo, Topographer artifact export, the Trails CLI Wayfinder commands, or the fresh app loader. The smoke exports the real Trails operator topo into an isolated temporary root, reads those saved artifacts through `trails wayfind ...`, asserts fresh source metadata, and removes the temporary artifacts before exiting.
+
 ## Non-Goals
 
 V0 does not ship `wayfind.errors`, `wayfind.adapters`, generic `wayfind.query`, semantic search, signposts, or `wayfind.implications`. Those need additional accepted substrates or field evidence before they can answer honestly.
