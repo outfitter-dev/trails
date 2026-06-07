@@ -248,5 +248,5 @@ This decision is not distribution-ready until the implementation stack updates:
 - [ADR-0035: Surface APIs Render the Graph](../0035-surface-apis-render-the-graph.md) - `derive*`, `create*`, and `surface()` projection ladder
 - [ADR-0042: Core/Topographer Boundary Doctrine](../0042-core-topographer-boundary-doctrine.md) - durable graph artifacts belong to topographer
 - [ADR-0046: Lock v3 Artifact Family](../0046-lock-v3-artifact-family.md) - `.trails/topo.lock` as the inspectable topo content artifact
-- [Surface Facets proto-ADR](../../../.scratch/adr/surface-facets.md) - planning capture this ADR formalizes
-- [MCP Shaping proto-ADR](../../../.scratch/adr/mcp-shaping.md) - MCP resources and deferred-loading context
+
+This draft formalizes the earlier scratch planning captures for surface facets and MCP shaping. Those scratch notes are local planning state, not committed reference material.

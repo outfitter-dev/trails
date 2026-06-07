@@ -214,6 +214,7 @@ Before calling an issue done or moving a PR out of draft, check the affected dis
 - **Agent guidance:** update `AGENTS.md`, repo skills, plugin metadata, or tool-specific guidance when agents need new rules or vocabulary.
 - **Governance:** add or update Warden rules, generated Warden guide output, and drift checks when the behavior creates governable contract boundaries.
 - **Release path:** add a branch-local changeset for publishable package changes, or apply `release:none` only when the package-touching change is truly not user-visible.
+- **Wayfinder dogfood:** run `bun run wayfinder:dogfood` when a branch changes framework surfaces, the Trails operator topo exposure, Topographer artifact export, Wayfinder queries, or fresh app loading. If it is not applicable, say why in the PR or handoff.
 - **Migration path:** document commands, compatibility windows, bridge steps, or intentional non-support when existing apps may have committed artifacts or source that need to move.
 - **Publication readiness:** run `bun run publish:check` for package-impacting work and record any first-time package, dist-tag, registry, or auth considerations before release.
 

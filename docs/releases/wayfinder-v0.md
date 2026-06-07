@@ -16,9 +16,11 @@ Existing apps do not expose Wayfinder automatically. Wayfinder trails are intern
 
 Agents should try Wayfinder first when the question is about saved graph facts: which trails exist, what a contract looks like, which resources/signals/surfaces touch a trail, what is nearby, and what changed between two saved TopoGraphs. Raw file search remains the fallback when artifacts are missing, stale beyond the task's tolerance, or when the question is about source code that Topographer does not yet project.
 
-## Dogfood Smoke
+## Dogfood Release Gate
 
 Run `bun run wayfinder:dogfood` after changes to Wayfinder, the Trails operator MCP topo, Topographer artifact export, the Trails CLI Wayfinder commands, or the fresh app loader. The smoke exports the real Trails operator topo into an isolated temporary root, reads those saved artifacts through `trails wayfind ...`, asserts fresh source metadata, and removes the temporary artifacts before exiting.
+
+Treat this as a release-time gate for new framework surfaces that should be visible to agents through saved graph facts. The gate should pass before a surface-shaping branch leaves draft; if a branch deliberately skips it, the PR or handoff must explain why Wayfinder cannot yet inspect the changed surface.
 
 ## Non-Goals
 

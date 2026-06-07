@@ -106,5 +106,6 @@ Before cutting the beta that includes surface facets, confirm:
 - docs include the user-facing facet guide, MCP resource/deferred guidance, and CLI/HTTP parity decision;
 - Trails skill/plugin guidance teaches facets as governed surface projection, not a new primitive;
 - Warden generated guidance is refreshed and checked;
+- `bun run wayfinder:dogfood` proves the Trails operator topo remains inspectable through saved Wayfinder graph facts;
 - all branch-local changesets are present;
 - `bun run check`, `bun run test`, `bun run build`, and `bun run publish:check` pass.
