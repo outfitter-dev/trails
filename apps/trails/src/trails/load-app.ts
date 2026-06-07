@@ -4,6 +4,7 @@ import {
   readFileSync,
   realpathSync,
   statSync,
+  symlinkSync,
 } from 'node:fs';
 import {
   dirname,
@@ -17,7 +18,6 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import {
   deriveSafePath,
-  InternalError,
   isTrailsError,
   PermissionError,
   Result,
@@ -28,6 +28,7 @@ import { findAppModule } from '@ontrails/cli';
 
 import {
   createLoadAppMirrorRootPath,
+  ensureLoadAppMirrorDirectory,
   LOAD_APP_MIRROR_ENTRY_PREFIX,
   LOAD_APP_MIRROR_PARENT_DIRNAME,
   removeLoadAppMirrorRootQuietly,
@@ -161,12 +162,19 @@ const trustBoundaryError = (reason: string): PermissionError =>
     `Refusing to load an app module outside the workspace trust boundary (${reason}). Use a workspace-relative module path, or pass trustedModulePath: true from trusted code.`
   );
 
-const toLoadAppError = (error: unknown): Error =>
-  isTrailsError(error)
-    ? error
-    : new InternalError('Failed to load app module', {
-        cause: error instanceof Error ? error : new Error(String(error)),
-      });
+const asError = (error: unknown): Error =>
+  error instanceof Error ? error : new Error(String(error));
+
+const toLoadAppError = (error: unknown): Error => {
+  if (isTrailsError(error)) {
+    return error;
+  }
+  const cause = asError(error);
+  return new ValidationError(`Failed to load app module: ${cause.message}`, {
+    cause,
+    context: { detail: cause.message },
+  });
+};
 
 const isPathInside = (root: string, target: string): boolean => {
   const candidate = relative(root, target);
@@ -260,17 +268,29 @@ const isLocalFilesystemImport = (importPath: string): boolean =>
   importPath.startsWith('/') ||
   importPath.startsWith('file:');
 
-const readPackageName = (packagePath: string): string | undefined => {
+interface PackageJson {
+  readonly exports?: unknown;
+  readonly imports?: unknown;
+  readonly main?: unknown;
+  readonly module?: unknown;
+  readonly name?: unknown;
+  readonly type?: unknown;
+  readonly workspaces?: unknown;
+}
+
+const readPackageJson = (packagePath: string): PackageJson | undefined => {
   try {
-    const parsed = JSON.parse(readFileSync(packagePath, 'utf8')) as
-      | { readonly name?: unknown }
-      | undefined;
-    return typeof parsed?.name === 'string' && parsed.name.length > 0
-      ? parsed.name
-      : undefined;
+    return JSON.parse(readFileSync(packagePath, 'utf8')) as PackageJson;
   } catch {
     return undefined;
   }
+};
+
+const readPackageName = (packagePath: string): string | undefined => {
+  const parsed = readPackageJson(packagePath);
+  return typeof parsed?.name === 'string' && parsed.name.length > 0
+    ? parsed.name
+    : undefined;
 };
 
 const findNearestPackageName = (directoryPath: string): string | undefined => {
@@ -304,13 +324,6 @@ const isPackageLocalImport = (
   );
 };
 
-const shouldMirrorImportSpecifier = (
-  importerPath: string,
-  importPath: string
-): boolean =>
-  isLocalFilesystemImport(importPath) ||
-  isPackageLocalImport(importerPath, importPath);
-
 const isScannableModule = (modulePath: string): boolean =>
   SCANNABLE_EXTENSIONS.has(extname(modulePath));
 
@@ -328,10 +341,313 @@ const resolveImportedModulePath = (
   );
 };
 
-const collectImportedModulePaths = (
+const readDirectoryEntries = (directoryPath: string): readonly string[] => {
+  try {
+    return readdirSync(directoryPath);
+  } catch {
+    return [];
+  }
+};
+
+const safeStat = (
+  entryPath: string
+): ReturnType<typeof statSync> | undefined => {
+  try {
+    return statSync(entryPath);
+  } catch {
+    return undefined;
+  }
+};
+
+const readWorkspacePatterns = (cwd: string): readonly string[] => {
+  const rootPackage = readPackageJson(join(cwd, 'package.json'));
+  const workspaces = rootPackage?.workspaces;
+  if (Array.isArray(workspaces)) {
+    return workspaces.filter(
+      (pattern): pattern is string => typeof pattern === 'string'
+    );
+  }
+  if (
+    typeof workspaces === 'object' &&
+    workspaces !== null &&
+    'packages' in workspaces &&
+    Array.isArray(workspaces.packages)
+  ) {
+    return workspaces.packages.filter(
+      (pattern): pattern is string => typeof pattern === 'string'
+    );
+  }
+  return [];
+};
+
+interface WorkspacePackage {
+  readonly name: string;
+  readonly packageJson: PackageJson;
+  readonly packageRoot: string;
+}
+
+const listWorkspacePackageRoots = (cwd: string): readonly string[] => {
+  const roots: string[] = [];
+  for (const pattern of readWorkspacePatterns(cwd)) {
+    if (pattern.endsWith('/*')) {
+      const baseDir = resolve(cwd, pattern.slice(0, -2));
+      for (const entry of readDirectoryEntries(baseDir)) {
+        const entryPath = join(baseDir, entry);
+        if (safeStat(entryPath)?.isDirectory()) {
+          roots.push(entryPath);
+        }
+      }
+      continue;
+    }
+
+    if (!pattern.includes('*')) {
+      roots.push(resolve(cwd, pattern));
+    }
+  }
+  return roots;
+};
+
+const readWorkspacePackages = (cwd: string): readonly WorkspacePackage[] => {
+  const packages: WorkspacePackage[] = [];
+  for (const packageRoot of listWorkspacePackageRoots(cwd)) {
+    const packageJson = readPackageJson(join(packageRoot, 'package.json'));
+    if (
+      packageJson !== undefined &&
+      typeof packageJson.name === 'string' &&
+      packageJson.name.length > 0
+    ) {
+      packages.push({
+        name: packageJson.name,
+        packageJson,
+        packageRoot,
+      });
+    }
+  }
+  return packages;
+};
+
+const parsePackageSpecifier = (
+  importPath: string
+): { packageName: string; subpath: string } | null => {
+  if (URL_SCHEME.test(importPath)) {
+    return null;
+  }
+  if (importPath.startsWith('.') || importPath.startsWith('#')) {
+    return null;
+  }
+  const segments = importPath.split('/');
+  const [firstSegment, secondSegment] = segments;
+  if (firstSegment?.startsWith('@')) {
+    const scope = firstSegment;
+    const name = secondSegment;
+    if (name === undefined) {
+      return null;
+    }
+    const packageName = `${scope}/${name}`;
+    const rest = segments.slice(2).join('/');
+    return { packageName, subpath: rest.length > 0 ? `./${rest}` : '.' };
+  }
+  const [name] = segments;
+  if (name === undefined || name.length === 0) {
+    return null;
+  }
+  const rest = segments.slice(1).join('/');
+  return { packageName: name, subpath: rest.length > 0 ? `./${rest}` : '.' };
+};
+
+const resolveConditionalExportTarget = (
+  target: unknown
+): string | undefined => {
+  if (typeof target === 'string') {
+    return target;
+  }
+  if (typeof target !== 'object' || target === null || Array.isArray(target)) {
+    return undefined;
+  }
+  const record = target as Record<string, unknown>;
+  return (
+    resolveConditionalExportTarget(record['import']) ??
+    resolveConditionalExportTarget(record['default']) ??
+    resolveConditionalExportTarget(record['bun']) ??
+    resolveConditionalExportTarget(record['node'])
+  );
+};
+
+const resolveExportTarget = (
+  packageJson: PackageJson,
+  subpath: string
+): string | undefined => {
+  const { exports } = packageJson;
+  if (exports === undefined) {
+    if (subpath === '.') {
+      if (typeof packageJson.module === 'string') {
+        return packageJson.module;
+      }
+      if (typeof packageJson.main === 'string') {
+        return packageJson.main;
+      }
+      return './src/index.ts';
+    }
+    return subpath;
+  }
+  if (typeof exports === 'string' || Array.isArray(exports)) {
+    return subpath === '.'
+      ? resolveConditionalExportTarget(exports)
+      : undefined;
+  }
+  if (typeof exports !== 'object' || exports === null) {
+    return undefined;
+  }
+  return resolveConditionalExportTarget(
+    (exports as Record<string, unknown>)[subpath]
+  );
+};
+
+interface WorkspacePackageResolution {
+  readonly modulePath: string;
+  readonly packageName: string;
+  readonly packageRoot: string;
+}
+
+const resolveWorkspacePackageImport = (
+  importPath: string,
+  cwd: string
+): WorkspacePackageResolution | null => {
+  const parsed = parsePackageSpecifier(importPath);
+  if (parsed === null) {
+    return null;
+  }
+  const workspacePackage = readWorkspacePackages(cwd).find(
+    (candidate) => candidate.name === parsed.packageName
+  );
+  if (workspacePackage === undefined) {
+    return null;
+  }
+  const target = resolveExportTarget(
+    workspacePackage.packageJson,
+    parsed.subpath
+  );
+  if (target === undefined || !target.startsWith('.')) {
+    return null;
+  }
+  const targetPath = deriveSafePath(workspacePackage.packageRoot, target);
+  if (targetPath.isErr()) {
+    return null;
+  }
+  return {
+    modulePath: resolveFilesystemModulePath(
+      ensureRealPathInsideCwd(targetPath.value, cwd),
+      workspacePackage.packageRoot
+    ),
+    packageName: workspacePackage.name,
+    packageRoot: workspacePackage.packageRoot,
+  };
+};
+
+const findPackageRootForName = (
+  directoryPath: string,
+  packageName: string
+): string | null => {
+  let current = directoryPath;
+  while (true) {
+    const packagePath = join(current, 'package.json');
+    if (readPackageName(packagePath) === packageName) {
+      return current;
+    }
+
+    const parent = dirname(current);
+    if (parent === current) {
+      return null;
+    }
+    current = parent;
+  }
+};
+
+interface ExternalPackageResolution {
+  readonly packageName: string;
+  readonly packageRoot: string;
+}
+
+const resolveExternalPackageImport = (
+  importerPath: string,
+  importPath: string
+): ExternalPackageResolution | null => {
+  const parsed = parsePackageSpecifier(importPath);
+  if (parsed === null) {
+    return null;
+  }
+  let resolved: string;
+  try {
+    resolved = import.meta.resolve(
+      importPath,
+      pathToFileURL(importerPath).href
+    );
+  } catch {
+    return null;
+  }
+  if (!resolved.startsWith('file:')) {
+    return null;
+  }
+  const packageRoot = findPackageRootForName(
+    dirname(fileURLToPath(resolved)),
+    parsed.packageName
+  );
+  return packageRoot === null
+    ? null
+    : { packageName: parsed.packageName, packageRoot };
+};
+
+type MirrorImportResolution =
+  | {
+      readonly kind: 'module';
+      readonly modulePath: string;
+    }
+  | {
+      readonly kind: 'external-package';
+      readonly packageName: string;
+      readonly packageRoot: string;
+    }
+  | {
+      readonly kind: 'workspace-package';
+      readonly modulePath: string;
+      readonly packageName: string;
+      readonly packageRoot: string;
+    };
+
+const resolveMirrorImport = (
+  importerPath: string,
+  importPath: string,
+  cwd: string
+): MirrorImportResolution | null => {
+  if (
+    isLocalFilesystemImport(importPath) ||
+    isPackageLocalImport(importerPath, importPath)
+  ) {
+    return {
+      kind: 'module',
+      modulePath: resolveImportedModulePath(importerPath, importPath),
+    };
+  }
+
+  const workspacePackage = resolveWorkspacePackageImport(importPath, cwd);
+  if (workspacePackage !== null) {
+    return { kind: 'workspace-package', ...workspacePackage };
+  }
+
+  const externalPackage = resolveExternalPackageImport(
+    importerPath,
+    importPath
+  );
+  return externalPackage === null
+    ? null
+    : { kind: 'external-package', ...externalPackage };
+};
+
+const collectImportedModuleResolutions = (
   modulePath: string,
-  source: string
-): readonly string[] => {
+  source: string,
+  cwd: string
+): readonly MirrorImportResolution[] => {
   const extension = extname(modulePath);
   const loader = LOADER_BY_EXTENSION[extension];
   if (loader === undefined) {
@@ -341,8 +657,10 @@ const collectImportedModulePaths = (
   return getImportScanner(loader)
     .scanImports(source)
     .map((entry) => entry.path)
-    .filter((importPath) => shouldMirrorImportSpecifier(modulePath, importPath))
-    .map((importPath) => resolveImportedModulePath(modulePath, importPath));
+    .map((importPath) => resolveMirrorImport(modulePath, importPath, cwd))
+    .filter(
+      (resolution): resolution is MirrorImportResolution => resolution !== null
+    );
 };
 
 const copyFileToMirror = async (
@@ -398,24 +716,6 @@ const MIRROR_SKIP_DIRECTORIES = new Set([
  * root at runtime without pulling in package installs or nested mirror
  * artifacts.
  */
-const readDirectoryEntries = (directoryPath: string): readonly string[] => {
-  try {
-    return readdirSync(directoryPath);
-  } catch {
-    return [];
-  }
-};
-
-const safeStat = (
-  entryPath: string
-): ReturnType<typeof statSync> | undefined => {
-  try {
-    return statSync(entryPath);
-  } catch {
-    return undefined;
-  }
-};
-
 /**
  * Age threshold (ms) above which a mirror entry in `.trails-tmp/` is
  * considered stale and safe to remove opportunistically.
@@ -480,9 +780,11 @@ const freshMirrorRootPath = (cwd: string): string => {
 };
 
 interface MirrorWalkContext {
+  readonly cwd: string;
   readonly mirrorRoot: string;
   readonly copied: Set<string>;
   readonly visitedDirectories: Set<string>;
+  readonly linkedPackageNames: Set<string>;
 }
 
 type DirectoryEntryKind = 'directory' | 'file' | 'skip';
@@ -542,6 +844,67 @@ const copyNearestPackageJsonToMirror = async (
   }
 };
 
+const packageLinkSegments = (packageName: string): readonly string[] =>
+  packageName.split('/').filter((segment) => segment.length > 0);
+
+const createPackageMirrorLink = (
+  packageName: string,
+  targetRoot: string,
+  context: MirrorWalkContext
+): void => {
+  if (context.linkedPackageNames.has(packageName)) {
+    return;
+  }
+  const mirrorWorkspaceRoot = resolveLoadAppMirrorFilePath(
+    context.cwd,
+    context.mirrorRoot
+  );
+  if (mirrorWorkspaceRoot.isErr()) {
+    throw mirrorWorkspaceRoot.error;
+  }
+  const linkPath = join(
+    mirrorWorkspaceRoot.value,
+    'node_modules',
+    ...packageLinkSegments(packageName)
+  );
+
+  const ensured = ensureLoadAppMirrorDirectory(
+    dirname(linkPath),
+    context.mirrorRoot
+  );
+  if (ensured.isErr()) {
+    throw ensured.error;
+  }
+
+  try {
+    symlinkSync(targetRoot, linkPath, 'dir');
+  } catch (error) {
+    if (
+      !(error instanceof Error) ||
+      !('code' in error) ||
+      error.code !== 'EEXIST'
+    ) {
+      throw error;
+    }
+  }
+  context.linkedPackageNames.add(packageName);
+};
+
+const createWorkspacePackageMirrorLink = (
+  packageName: string,
+  packageRoot: string,
+  context: MirrorWalkContext
+): void => {
+  const mirrorPackageRoot = resolveLoadAppMirrorFilePath(
+    packageRoot,
+    context.mirrorRoot
+  );
+  if (mirrorPackageRoot.isErr()) {
+    throw mirrorPackageRoot.error;
+  }
+  createPackageMirrorLink(packageName, mirrorPackageRoot.value, context);
+};
+
 const mirrorImportedModule = async (
   modulePath: string,
   context: MirrorWalkContext
@@ -557,24 +920,47 @@ const mirrorImportedModule = async (
 
 const scanAndVisitLocalImports = async (
   modulePath: string,
+  context: MirrorWalkContext,
   visit: (path: string) => Promise<void>
 ): Promise<void> => {
   if (!isScannableModule(modulePath)) {
     return;
   }
   const source = await Bun.file(modulePath).text();
-  for (const importedPath of collectImportedModulePaths(modulePath, source)) {
-    await visit(importedPath);
+  for (const imported of collectImportedModuleResolutions(
+    modulePath,
+    source,
+    context.cwd
+  )) {
+    if (imported.kind === 'external-package') {
+      createPackageMirrorLink(
+        imported.packageName,
+        imported.packageRoot,
+        context
+      );
+      continue;
+    }
+    if (imported.kind === 'workspace-package') {
+      createWorkspacePackageMirrorLink(
+        imported.packageName,
+        imported.packageRoot,
+        context
+      );
+    }
+    await visit(imported.modulePath);
   }
 };
 
 const mirrorFreshImportGraph = async (
   entryPath: string,
+  cwd: string,
   mirrorRoot: string
 ): Promise<string> => {
   const scanned = new Set<string>();
   const context: MirrorWalkContext = {
     copied: new Set<string>(),
+    cwd,
+    linkedPackageNames: new Set<string>(),
     mirrorRoot,
     visitedDirectories: new Set<string>(),
   };
@@ -584,7 +970,7 @@ const mirrorFreshImportGraph = async (
       return;
     }
     scanned.add(modulePath);
-    await scanAndVisitLocalImports(modulePath, visit);
+    await scanAndVisitLocalImports(modulePath, context, visit);
     await mirrorImportedModule(modulePath, context);
   };
 
@@ -620,9 +1006,14 @@ const prepareMirror = async (
   absolutePath: string,
   cwd: string
 ): Promise<{ mirrorRoot: string; freshPath: string }> => {
-  const mirrorRoot = freshMirrorRootPath(cwd);
+  const resolvedCwd = resolve(cwd);
+  const mirrorRoot = freshMirrorRootPath(resolvedCwd);
   try {
-    const freshPath = await mirrorFreshImportGraph(absolutePath, mirrorRoot);
+    const freshPath = await mirrorFreshImportGraph(
+      absolutePath,
+      resolvedCwd,
+      mirrorRoot
+    );
     return { freshPath, mirrorRoot };
   } catch (error) {
     removeLoadAppMirrorRootQuietly(mirrorRoot);

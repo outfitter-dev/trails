@@ -44,6 +44,13 @@ const validateMirrorRoot = (
       );
 };
 
+const isPathInside = (root: string, target: string): boolean => {
+  const candidate = relative(root, target);
+  return (
+    candidate === '' || (!candidate.startsWith('..') && !isAbsolute(candidate))
+  );
+};
+
 const resolveAbsoluteSourcePath = (
   sourcePath: string
 ): TrailsResult<string, ValidationError> =>
@@ -55,6 +62,41 @@ const resolveAbsoluteSourcePath = (
           { context: { sourcePath } }
         )
       );
+
+export const ensureLoadAppMirrorDirectory = (
+  directoryPath: string,
+  mirrorRoot: string
+): TrailsResult<void, Error> => {
+  const root = validateMirrorRoot(mirrorRoot);
+  if (root.isErr()) {
+    return root;
+  }
+
+  const target = resolve(directoryPath);
+  if (!isPathInside(root.value, target)) {
+    return Result.err(
+      new PermissionError(
+        `Refusing to create load-app mirror directory outside "${root.value}"`,
+        { context: { directoryPath: target, mirrorRoot: root.value } }
+      )
+    );
+  }
+
+  try {
+    mkdirSync(target, { recursive: true });
+    return Result.ok();
+  } catch (error) {
+    return Result.err(
+      new InternalError(
+        `Failed to create load-app mirror directory "${target}"`,
+        {
+          cause: asError(error),
+          context: { directoryPath: target, mirrorRoot: root.value },
+        }
+      )
+    );
+  }
+};
 
 /**
  * Convert an absolute source path to the deterministic location inside a

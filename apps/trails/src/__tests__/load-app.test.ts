@@ -13,9 +13,13 @@ import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-import { PermissionError } from '@ontrails/core';
+import { PermissionError, ValidationError } from '@ontrails/core';
 
-import { loadApp, loadFreshAppLease } from '../trails/load-app.js';
+import {
+  loadApp,
+  loadFreshAppLease,
+  tryLoadFreshAppLease,
+} from '../trails/load-app.js';
 
 const writeLoadAppFixture = (cwd: string, name: string): void => {
   writeFileSync(
@@ -130,6 +134,43 @@ const sample = trail('sample', {
 
 export const app = topo('fixture', { sample });
 `
+  );
+};
+
+const writeFirstPartyWorkspacePackageFixture = (cwd: string): void => {
+  writeFileSync(
+    resolve(cwd, 'package.json'),
+    JSON.stringify({
+      name: 'fresh-workspace-fixture',
+      type: 'module',
+      workspaces: ['packages/*'],
+    })
+  );
+  mkdirSync(resolve(cwd, 'packages/topographer/src'), { recursive: true });
+  writeFileSync(
+    resolve(cwd, 'packages/topographer/package.json'),
+    JSON.stringify({
+      exports: {
+        '.': './src/index.ts',
+      },
+      name: '@ontrails/topographer',
+      type: 'module',
+    })
+  );
+  writeFileSync(
+    resolve(cwd, 'packages/topographer/src/index.ts'),
+    "export const topographerName = 'workspace-topographer';"
+  );
+  writeFileSync(
+    resolve(cwd, 'src/app.ts'),
+    `import { topographerName } from '@ontrails/topographer';
+
+export const app = {
+  name: topographerName,
+  trails: new Map(),
+  signals: new Map(),
+  resources: new Map()
+};`
   );
 };
 
@@ -604,6 +645,41 @@ describe('loadApp fresh lifecycle', () => {
     }
   });
 
+  test('tryLoadFreshAppLease reports module resolution failures with load context', async () => {
+    const cwd = resolve(
+      tmpdir(),
+      `trails-load-app-missing-dependency-${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2)}`
+    );
+
+    try {
+      mkdirSync(resolve(cwd, 'src'), { recursive: true });
+      writeFileSync(
+        resolve(cwd, 'src/app.ts'),
+        `import 'missing-load-app-dependency';
+
+export const app = {
+  name: 'missing-dependency',
+  trails: new Map(),
+  signals: new Map(),
+  resources: new Map()
+};`
+      );
+
+      const result = await tryLoadFreshAppLease('./src/app.ts', cwd);
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error).toBeInstanceOf(ValidationError);
+        expect(result.error.message).toContain('Failed to load app module:');
+        expect(result.error.message).toContain('missing-load-app-dependency');
+      }
+    } finally {
+      rmSync(cwd, { force: true, recursive: true });
+    }
+  });
+
   test('fresh loading retains mirrors so deferred imports from earlier apps still resolve', async () => {
     const cwd = resolve(
       tmpdir(),
@@ -645,6 +721,26 @@ describe('loadApp fresh lifecycle', () => {
 
       expect(app.name).toBe('fixture');
       expect(app.get('sample')).toBeDefined();
+    } finally {
+      rmSync(cwd, { force: true, recursive: true });
+    }
+  });
+
+  test('fresh loading resolves first-party workspace packages without install links', async () => {
+    const cwd = resolve(
+      tmpdir(),
+      `trails-load-app-first-party-workspace-${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2)}`
+    );
+
+    try {
+      mkdirSync(resolve(cwd, 'src'), { recursive: true });
+      writeFirstPartyWorkspacePackageFixture(cwd);
+
+      const app = await loadApp('./src/app.ts', cwd, { fresh: true });
+
+      expect(app.name).toBe('workspace-topographer');
     } finally {
       rmSync(cwd, { force: true, recursive: true });
     }
