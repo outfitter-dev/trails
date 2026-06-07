@@ -45,6 +45,12 @@ The architecture is designed to make consistency easier than drift. Agents build
 3. Repo contribution guidance lives in [Contributing to Trails](docs/contributing/README.md), including [Language Styleguide](docs/contributing/language-styleguide.md), [Code Standards](docs/contributing/code-standards.md), [Codebase Navigation](docs/contributing/codebase-navigation.md), and [Warden Rules](docs/contributing/warden-rules.md).
 4. We keep a log of our working notes, session recaps, learnings, etc. in `.agents/notes/` (gitignored — local only) as a historical record of our journey.
 
+## Wayfinder First
+
+For Trails graph-navigation questions, use Wayfinder before reconstructing topo facts manually. Start with `trails wayfind overview --root-dir . --json` or the repo-local `bun apps/trails/bin/trails.ts wayfind overview --root-dir . --json` to check artifact source and freshness, then use `wayfind search`, `wayfind trails`, `wayfind contract`, `wayfind describe`, `wayfind nearby`, `wayfind impact`, or `wayfind examples` for saved graph facts.
+
+Fall back to `rg`, qmd, source reads, or a fresh compile when Wayfinder reports missing or stale artifacts, when the task needs source text that Topographer does not project, or when writing new artifacts would violate the current work authority. When you fall back, say why so the next agent does not silently repeat the same graph reconstruction.
+
 ## Lexicon
 
 Use the project language consistently:

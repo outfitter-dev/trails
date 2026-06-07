@@ -3,7 +3,7 @@ name: trails
 description: Build with the Trails framework — define trail contracts, open CLI/MCP surfaces, test with examples, debug errors, migrate codebases, run governance. Use when creating trails, adding surfaces, testing, debugging Trails errors, migrating to Trails, running warden, or any work involving @ontrails/* packages.
 metadata:
   trails:
-    version: 1.0.0-beta.19
+    version: 1.0.0-beta.20
 ---
 
 # Trails
@@ -66,7 +66,13 @@ Current public packages are lockstep at the same Trails framework version.
 
 ## Agent Wayfinding
 
-When saved Topographer artifacts can answer a graph question, prefer Wayfinder before raw text search:
+When saved Topographer artifacts can answer a graph question, use Wayfinder before raw text search:
+
+```bash
+trails wayfind overview --root-dir . --json
+trails wayfind search --root-dir . --input-json '{"filters":{"kind":"trail"}}' --json
+trails wayfind contract <trail-id> --root-dir . --json
+```
 
 - Start with `wayfind.overview` to learn artifact source, freshness, and graph counts.
 - Use `wayfind.search` or typed list trails (`wayfind.trails`, `wayfind.resources`, `wayfind.signals`, `wayfind.surfaces`, `wayfind.facets`, `wayfind.versions`, `wayfind.examples`) for filtered discovery.
@@ -74,7 +80,7 @@ When saved Topographer artifacts can answer a graph question, prefer Wayfinder b
 - Use `wayfind.nearby`, `wayfind.impact`, and `wayfind.diff` for relation context, blast-radius reads, and explicit saved-baseline comparison.
 - Treat Wayfinder as graph-read only. Do not assume `wayfind.errors`, `wayfind.adapters`, generic `wayfind.query`, semantic search, signposts, or implications exist in v0.
 
-Wayfinder trails are internal by default. Host apps expose selected queries deliberately, usually as read-only operator tools or MCP resources protected by the host's authorization boundary.
+Wayfinder trails are internal by default. Host apps expose selected queries deliberately, usually as read-only operator tools or MCP resources protected by the host's authorization boundary. Fall back to `rg`, qmd, source reads, or a fresh compile when Wayfinder reports missing or stale artifacts, when the task needs source code that Topographer does not project, or when writing artifacts is outside your current authority.
 
 ## Creating Trails
 

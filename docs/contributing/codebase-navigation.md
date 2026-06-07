@@ -2,7 +2,28 @@
 
 This guide orients people and agents inside the Trails repository. Keep durable repo-map material here: important source-of-truth locations, generated artifacts, package layout notes, and tool setup that helps contributors navigate the code without guessing.
 
-For now, the main committed setup is symbolic navigation.
+For now, the main committed setup is Wayfinder for graph reads plus symbolic navigation for source reads.
+
+## Default Graph Navigation: Wayfinder
+
+When the question is about saved topo facts, use Wayfinder before rebuilding the graph from source search. It reads committed Topographer artifacts and returns source plus freshness metadata, so agents can tell whether they are looking at current graph evidence.
+
+Start with:
+
+```bash
+bun apps/trails/bin/trails.ts wayfind overview --root-dir . --json
+```
+
+Then narrow the graph read with the selected local CLI surface:
+
+```bash
+bun apps/trails/bin/trails.ts wayfind search --root-dir . --input-json '{"filters":{"kind":"trail","idPrefix":"wayfind."}}' --json
+bun apps/trails/bin/trails.ts wayfind contract wayfind.search --root-dir . --json
+bun apps/trails/bin/trails.ts wayfind nearby wayfind.search --root-dir . --json
+bun apps/trails/bin/trails.ts wayfind impact wayfind.search --root-dir . --json
+```
+
+Use source search, qmd, or symbol tools when Wayfinder reports missing or stale artifacts, when the task needs implementation text that Topographer does not project, or when the current authority does not allow generating fresh artifacts. If you compile to refresh artifacts, treat the generated `.trails` files as evidence and clean them up unless the branch intentionally owns them.
 
 ## Symbol Navigation
 

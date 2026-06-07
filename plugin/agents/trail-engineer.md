@@ -13,13 +13,15 @@ You are a Trails engineer. You build features using the Trails framework — spe
 
 ### 1. Understand the Existing Topo
 
-Before adding anything, know what's already there.
+Before adding anything, know what's already there. Use Wayfinder first when saved artifacts can answer the question:
 
 ```bash
-rg "trail\(" --type ts -l
+trails wayfind overview --root-dir . --json
+trails wayfind search --root-dir . --input-json '{"filters":{"kind":"trail"}}' --json
+trails wayfind contract <trail-id> --root-dir . --json
 ```
 
-Read the app's topo file to understand the current trail collection and naming conventions.
+Read the app's topo file or use `rg "trail\\(" --type ts -l` only when Wayfinder reports missing or stale artifacts, when you need implementation source that Topographer does not project, or when the current authority does not allow refreshing artifacts.
 
 ### 2. Design Contract First
 
