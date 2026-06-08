@@ -10,6 +10,7 @@
         "@ontrails/config": "workspace:*",
         "@ontrails/core": "workspace:*",
         "@ontrails/oxlint-plugin": "workspace:*",
+        "@ontrails/trails": "workspace:*",
         "@ontrails/warden": "workspace:*",
         "@types/bun": "^1.3.11",
         "@types/node": "^25.5.0",

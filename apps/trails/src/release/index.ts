@@ -1,0 +1,18 @@
+export {
+  defaultReleaseConfig,
+  defaultReleaseRules,
+  releaseConfigSchema,
+  releaseFactTypeSchema,
+  releaseFactTypeValues,
+  releaseIntentSourceSchema,
+  releaseIntentSourceValues,
+  releaseRuleSchema,
+  releaseRuleSeveritySchema,
+  releaseRuleSeverityValues,
+  type ReleaseConfig,
+  type ReleaseConfigInput,
+  type ReleaseFactType,
+  type ReleaseIntentSource,
+  type ReleaseRule,
+  type ReleaseRuleInput,
+} from './config.js';
