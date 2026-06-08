@@ -74,6 +74,8 @@ In Graphite stacks, keep release dispositions branch-local. If the check reports
 
 Good changeset prose names the user-visible change: "Expose `wayfind.contract` through the Trails operator CLI so agents can inspect saved input/output contracts before source reads." Good `release:none` rationale names the non-user-visible scope: "Only updates non-shipping test fixtures under `packages/core/src/__tests__`; no public package files or public trail contracts changed." A bare "internal" is not enough when public contracts, generated artifacts, package docs, or migrations move.
 
+During local review, classify a missing branch-local disposition for a public trail contract fact as P2. Selected P3 release ideas, such as imported schema tracing or future release targets, should be logged for follow-up rather than folded into the current branch unless they expose a concrete user-visible release gap.
+
 ## Agent Wayfinding
 
 When saved Topographer artifacts can answer a graph question, use Wayfinder before raw text search:

@@ -83,6 +83,14 @@ Out of scope for this first check:
 
 For local reviews, a missing release disposition for a public trail contract fact is a P2. It can block downstream release quality even when code, tests, and package-file checks are green.
 
+Use this checklist when reviewing a stack:
+
+1. Identify the owning branch for each public contract fact. In Graphite, that is the lowest branch whose PR file list contains the source change.
+2. Check that the owning branch carries a matching changeset for the affected package, or an explicit `release:none` reason that explains why the fact is not user-visible.
+3. Treat `release:none` without a reason as incomplete. It is a disposition label without the authored disposition.
+4. Do not paper over a lower branch's missing reason in a top-stack cleanup branch. Fix the owning branch, restack, then re-run the check upward.
+5. If the review finds release ideas outside slice one, such as imported schema tracing, error-taxonomy facts, permit facts, or release targets, log them as follow-up P3s unless they create a concrete user-visible release gap in the current branch.
+
 ## Local Reproduction
 
 The Changeset job validates the branch-local PR file list. To reproduce a hosted failure locally, save the PR file list and pass the branch base explicitly:
