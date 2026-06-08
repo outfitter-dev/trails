@@ -219,7 +219,7 @@ Before calling an issue done or moving a PR out of draft, check the affected dis
 - **Docs and examples:** update the nearest fieldguide, API docs, examples, ADRs, or runbooks that teach the behavior.
 - **Agent guidance:** update `AGENTS.md`, repo skills, plugin metadata, or tool-specific guidance when agents need new rules or vocabulary.
 - **Governance:** add or update Warden rules, generated Warden guide output, and drift checks when the behavior creates governable contract boundaries.
-- **Release path:** add a branch-local changeset for publishable package changes, or apply `release:none` only when the package-touching change is truly not user-visible.
+- **Release path:** add a branch-local changeset for publishable package changes, including public trail additions/removals, visibility transitions, input/output changes, and surface exposure changes, or apply `release:none` only when the package-touching change is truly not user-visible and carries a reason.
 - **Wayfinder dogfood:** run `bun run wayfinder:dogfood` when a branch changes framework surfaces, the Trails operator topo exposure, Topographer artifact export, Wayfinder queries, or fresh app loading. If it is not applicable, say why in the PR or handoff.
 - **Migration path:** document commands, compatibility windows, bridge steps, or intentional non-support when existing apps may have committed artifacts or source that need to move.
 - **Publication readiness:** run `bun run publish:check` for package-impacting work and record any first-time package, dist-tag, registry, or auth considerations before release.
@@ -324,7 +324,7 @@ bun run publish:check
 bun run publish:packages
 ```
 
-Every PR that changes publishable `@ontrails/*` package contents must include a branch-local `.changeset/*.md` entry for the affected package unless the PR is explicitly labeled `release:none`. The CI changeset gate reads the GitHub PR file list, so stacked PRs are checked against their immediate PR diff rather than the whole local stack. Use `release:none` only for package-touching changes that truly do not ship user-visible package content.
+Every PR that changes publishable `@ontrails/*` package contents must include a branch-local `.changeset/*.md` entry for the affected package unless the PR is explicitly labeled `release:none`. The CI changeset check reads the GitHub PR file list, so stacked PRs are checked against their immediate PR diff rather than the whole local stack. Public trail additions/removals, visibility transitions, input schema changes, output schema changes, or surface exposure changes are release facts and need the same branch-local disposition. Use `release:none` only for package-touching changes that truly do not ship user-visible package content, and write the reason in the PR, issue, or handoff so reviewers can audit it. Fix missing release dispositions on the owning Graphite branch; do not paper over lower-branch release gaps with a top-stack cleanup changeset.
 
 To exit pre-release mode for a stable release: `bunx changeset pre exit`, then version as usual. Stable 1.x release doctrine is captured in [ADR-0047](docs/adr/0047-stable-release-line-discipline.md), and the copy-pasteable beta-to-1.0 operator sequence lives in [Stable Cutover Runbook](docs/releases/stable-cutover.md).
 

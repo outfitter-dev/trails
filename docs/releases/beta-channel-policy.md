@@ -79,6 +79,22 @@ That command is read-only. It should show whether `latest` and `beta` point at d
 
 Every PR that changes publishable `@ontrails/*` package contents needs a branch-local changeset unless the PR is explicitly labeled `release:none`.
 
+## Release Dispositions
+
+A branch-local changeset is the normal release disposition. It says the branch changes user-visible package content and should flow into Changesets, package changelogs, and the next version plan. Use it for public API changes, generated-app changes, public trail contract changes, docs or examples that ship in a public package, and migration guidance that users need after upgrading.
+
+`release:none` is the explicit no-release disposition. Use it only when the branch touches package files but does not change user-visible package content. A good `release:none` rationale names the affected files and explains why users do not need a package changelog entry. A bad rationale merely says "internal" or "test only" while the branch also changes public trail additions/removals, visibility, input, output, surface exposure, generated artifacts, or package docs.
+
+Trail versions and package semver are separate axes. A trail version entry preserves or exposes capability contracts inside a topo. A package version distributes framework bits through npm. Changing a public trail contract is a release fact even when the trail's own `version` field does not move, and a trail version migration still needs package release disposition when publishable package contents change.
+
+The current check enforces the first contract-aware slice: public trail additions/removals, visibility transitions, input schema changes, output schema changes, or surface exposure changes need a branch-local changeset or an explicit `release:none` disposition. The check is intentionally branch-local in Graphite stacks. Fix missing dispositions on the owning branch, then restack upward; do not add a top-stack cleanup changeset to hide a lower branch's missing release story.
+
+Examples:
+
+- Good changeset prose: "Expose `wayfind.contract` through the Trails operator CLI so agents can inspect saved input/output contracts before source reads."
+- Good `release:none` rationale: "Only updates non-shipping fixture source under `packages/core/src/__tests__`; no public package files or public trail contracts changed."
+- Bad `release:none` rationale: "No release needed" on a branch that changes `output: z.object(...)` for an exposed trail.
+
 After substantial stacks merge to `main`:
 
 1. Confirm all package-affecting PRs carried changesets or an explicit
