@@ -27,6 +27,7 @@ import * as devStats from './trails/dev-stats.js';
 import * as doctor from './trails/doctor.js';
 import * as draftPromote from './trails/draft-promote.js';
 import * as guide from './trails/guide.js';
+import * as releaseCheck from './trails/release-check.js';
 import * as revise from './trails/revise.js';
 import * as run from './trails/run.js';
 import * as runExample from './trails/run-example.js';
@@ -59,6 +60,7 @@ export const operatorApp = topo(
   devClean,
   devReset,
   guide,
+  releaseCheck,
   draftPromote,
   adapterCheck,
   warden,

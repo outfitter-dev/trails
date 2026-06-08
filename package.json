@@ -12,7 +12,7 @@
     "test": "turbo run test",
     "lint": "turbo run lint",
     "lint:ast-grep": "ast-grep scan --config .ast-grep/sgconfig.yml",
-    "changeset:check": "bun scripts/check-changeset-gate.ts",
+    "changeset:check": "bun apps/trails/bin/trails.ts release check",
     "vocab:audit": "bun scripts/vocab-cutover-audit.ts",
     "vocab:audit:json": "bun scripts/vocab-cutover-audit.ts --json",
     "vocab:rewrite": "bun scripts/vocab-cutover-rewrite.ts",

@@ -15,6 +15,7 @@ export const trailsMcpIncludedTrails = [
   'doctor',
   'draft.promote',
   'guide',
+  'release.check',
   'revise',
   'run',
   'run.example',

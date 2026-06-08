@@ -27,6 +27,10 @@ import {
   applyAdapterCheckExitCode,
   tryAdapterCheckOutput,
 } from './run-adapter-check.js';
+import {
+  applyReleaseCheckExitCode,
+  tryReleaseCheckOutput,
+} from './run-release-check.js';
 import { tryRecoverFromRunCollision } from './run-collision.js';
 import { tryExampleRunOutput } from './run-example.js';
 import { tryExamplesRunOutput } from './run-examples.js';
@@ -70,6 +74,7 @@ const buildOnResult =
     // `tracing`. Hand that case off before the regular chain so the
     // existing handlers do not also write to stdout.
     applyAdapterCheckExitCode(resolvedCtx);
+    applyReleaseCheckExitCode(resolvedCtx);
     if (session !== undefined && tryTraceJsonOutput(resolvedCtx, session)) {
       return;
     }
@@ -87,6 +92,9 @@ const buildOnResult =
       return;
     }
     if (tryAdapterCheckOutput(resolvedCtx)) {
+      return;
+    }
+    if (tryReleaseCheckOutput(resolvedCtx)) {
       return;
     }
     await defaultOnResult(resolvedCtx);

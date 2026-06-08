@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { readdir } from 'node:fs/promises';
 import { join, relative, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 import { defaultReleaseConfig, releaseConfigSchema } from './config.js';
 import type { ReleaseConfigInput, ReleaseFactType } from './config.js';
@@ -49,8 +50,28 @@ export interface ReleaseCheckResult {
 interface CliOptions {
   readonly baseRef?: string;
   readonly changedFilesPath?: string;
+  readonly configPath?: string;
   readonly releaseNone: boolean;
   readonly repoRoot: string;
+}
+
+export interface ReleaseConfigLoadResult {
+  readonly config?: ReleaseConfigInput | undefined;
+  readonly configPath?: string | undefined;
+}
+
+export interface RunReleaseCheckOptions {
+  readonly baseRef?: string;
+  readonly changedFilesPath?: string;
+  readonly configPath?: string;
+  readonly env?: Record<string, string | undefined>;
+  readonly releaseNone?: boolean;
+  readonly repoRoot: string;
+}
+
+export interface ReleaseCheckReport extends ReleaseCheckResult {
+  readonly configPath?: string;
+  readonly formatted: string;
 }
 
 const NON_SHIPPING_PACKAGE_PATTERNS = [
@@ -73,6 +94,12 @@ const VERSION_RELEASE_WORKSPACE_FILES = new Set([
   'CHANGELOG.md',
   'package.json',
 ]);
+const CONFIG_CANDIDATES = [
+  'trails.config.ts',
+  'trails.config.mts',
+  'trails.config.js',
+  'trails.config.mjs',
+] as const;
 
 const normalizePath = (path: string): string =>
   path.replaceAll('\\', '/').replace(/^\.\//u, '');
@@ -469,9 +496,117 @@ const readLocalChangedFiles = (
   return parseChangedFilesOutput(result.stdout.toString());
 };
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null;
+
+interface ResultLike {
+  readonly error?: unknown;
+  readonly value?: unknown;
+  isErr(): boolean;
+  isOk(): boolean;
+}
+
+const isResultLike = (value: unknown): value is ResultLike =>
+  isRecord(value) &&
+  typeof value['isOk'] === 'function' &&
+  typeof value['isErr'] === 'function';
+
+interface ResolvableConfig {
+  resolve(options: {
+    readonly cwd: string;
+    readonly env: Record<string, string | undefined>;
+  }): Promise<unknown>;
+}
+
+const isResolvableConfig = (value: unknown): value is ResolvableConfig =>
+  isRecord(value) && typeof value['resolve'] === 'function';
+
+const errorMessage = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error);
+
+const findConfigPath = (
+  repoRoot: string,
+  configPath: string | undefined
+): string | undefined => {
+  if (configPath !== undefined) {
+    const resolvedPath = resolve(repoRoot, configPath);
+    if (!existsSync(resolvedPath)) {
+      throw new Error(`Release config file not found: ${resolvedPath}`);
+    }
+    return resolvedPath;
+  }
+
+  return CONFIG_CANDIDATES.map((entry) => resolve(repoRoot, entry)).find(
+    (entry) => existsSync(entry)
+  );
+};
+
+const extractReleaseConfig = (value: unknown): ReleaseConfigInput | undefined =>
+  isRecord(value) && 'release' in value
+    ? (value['release'] as ReleaseConfigInput)
+    : undefined;
+
+const importConfigModule = async (
+  configPath: string
+): Promise<Record<string, unknown>> => {
+  const url = pathToFileURL(configPath);
+  url.searchParams.set('t', Date.now().toString());
+  return (await import(url.href)) as Record<string, unknown>;
+};
+
+export const loadReleaseConfig = async ({
+  configPath,
+  env = {},
+  repoRoot,
+}: {
+  readonly configPath?: string | undefined;
+  readonly env?: Record<string, string | undefined> | undefined;
+  readonly repoRoot: string;
+}): Promise<ReleaseConfigLoadResult> => {
+  const locatedConfigPath = findConfigPath(repoRoot, configPath);
+  if (locatedConfigPath === undefined) {
+    return {};
+  }
+
+  try {
+    const mod = await importConfigModule(locatedConfigPath);
+    const exported = mod['default'] ?? mod;
+
+    if (isResolvableConfig(exported)) {
+      const resolved = await exported.resolve({ cwd: repoRoot, env });
+      if (isResultLike(resolved)) {
+        if (resolved.isOk()) {
+          return {
+            config: extractReleaseConfig(resolved.value),
+            configPath: locatedConfigPath,
+          };
+        }
+        throw new Error(
+          `Failed to resolve release config: ${errorMessage(resolved.error)}`
+        );
+      }
+
+      return {
+        config: extractReleaseConfig(resolved),
+        configPath: locatedConfigPath,
+      };
+    }
+
+    return {
+      config: extractReleaseConfig(exported),
+      configPath: locatedConfigPath,
+    };
+  } catch (error) {
+    throw new Error(`Failed to load release config: ${errorMessage(error)}`, {
+      cause: error,
+    });
+  }
+};
+
 const parseArgs = (args: readonly string[]): CliOptions => {
   let baseRef: string | undefined;
   let changedFilesPath: string | undefined;
+  let configPath: string | undefined;
   let releaseNone = false;
   let repoRoot = process.cwd();
 
@@ -507,6 +642,18 @@ const parseArgs = (args: readonly string[]): CliOptions => {
       continue;
     }
 
+    if (arg === '--config-path') {
+      const value = args[index + 1];
+
+      if (!value) {
+        throw new Error('--config-path requires a config file path');
+      }
+
+      configPath = value;
+      index += 1;
+      continue;
+    }
+
     if (arg === '--repo-root') {
       const value = args[index + 1];
 
@@ -525,51 +672,56 @@ const parseArgs = (args: readonly string[]): CliOptions => {
   return {
     ...(baseRef === undefined ? {} : { baseRef }),
     ...(changedFilesPath === undefined ? {} : { changedFilesPath }),
+    ...(configPath === undefined ? {} : { configPath }),
     releaseNone,
     repoRoot,
   };
 };
 
-const renderResult = (result: ReleaseCheckResult): void => {
+export const formatReleaseCheckReport = (
+  result: ReleaseCheckResult
+): string => {
+  const lines: string[] = [];
+
   if (result.passed) {
     if (result.affectedPackages.length === 0) {
-      console.log(
+      lines.push(
         'Release check passed: no publishable package content files changed.'
       );
-      return;
+      return lines.join('\n');
     }
 
     if (result.noReleaseOverride) {
-      console.log(
+      lines.push(
         `Release check passed via release:none override for: ${result.affectedPackages.join(', ')}`
       );
-      return;
+      return lines.join('\n');
     }
 
     if (result.versionRelease) {
-      console.log(
+      lines.push(
         `Release check passed for generated version release: ${result.affectedPackages.join(', ')}`
       );
-      return;
+      return lines.join('\n');
     }
 
-    console.log(
+    lines.push(
       `Release check passed for: ${result.affectedPackages.join(', ')}`
     );
-    console.log(`Changed changesets: ${result.changedChangesets.join(', ')}`);
-    return;
+    lines.push(`Changed changesets: ${result.changedChangesets.join(', ')}`);
+    return lines.join('\n');
   }
 
   for (const error of result.errors) {
-    console.error(error);
+    lines.push(error);
   }
 
   if (result.affectedPackages.length > 0) {
-    console.error(`Affected packages: ${result.affectedPackages.join(', ')}`);
+    lines.push(`Affected packages: ${result.affectedPackages.join(', ')}`);
   }
 
   if (result.contractFacts.length > 0) {
-    console.error(
+    lines.push(
       `Public trail contract facts: ${result.contractFacts
         .map(formatContractFact)
         .join(', ')}`
@@ -577,15 +729,29 @@ const renderResult = (result: ReleaseCheckResult): void => {
   }
 
   if (result.changedChangesets.length > 0) {
-    console.error(`Changed changesets: ${result.changedChangesets.join(', ')}`);
+    lines.push(`Changed changesets: ${result.changedChangesets.join(', ')}`);
   }
+
+  return lines.join('\n');
 };
 
-export const runReleaseCheckCli = async (
-  args: readonly string[]
-): Promise<number> => {
-  const options = parseArgs(args);
+const renderResult = (result: ReleaseCheckResult): void => {
+  const formatted = formatReleaseCheckReport(result);
+  if (formatted.length === 0) {
+    return;
+  }
 
+  if (result.passed) {
+    console.log(formatted);
+    return;
+  }
+
+  console.error(formatted);
+};
+
+export const runReleaseCheck = async (
+  options: RunReleaseCheckOptions
+): Promise<ReleaseCheckReport> => {
   const workspaces = await discoverWorkspaces(options.repoRoot);
   const baseRef =
     options.baseRef ??
@@ -593,12 +759,48 @@ export const runReleaseCheckCli = async (
   const changedFiles = options.changedFilesPath
     ? readChangedFiles(options.changedFilesPath)
     : readLocalChangedFiles(options.repoRoot, baseRef ?? 'origin/main');
+  const loadedConfig = await loadReleaseConfig({
+    ...(options.configPath === undefined
+      ? {}
+      : { configPath: options.configPath }),
+    env: options.env,
+    repoRoot: options.repoRoot,
+  });
   const result = checkReleaseRules({
     ...(baseRef === undefined ? {} : { baseRef }),
     changedFiles,
-    releaseNone: options.releaseNone,
+    ...(loadedConfig.config === undefined
+      ? {}
+      : { releaseConfig: loadedConfig.config }),
+    releaseNone: options.releaseNone === true,
     repoRoot: options.repoRoot,
     workspaces,
+  });
+
+  return {
+    ...result,
+    ...(loadedConfig.configPath === undefined
+      ? {}
+      : { configPath: loadedConfig.configPath }),
+    formatted: formatReleaseCheckReport(result),
+  };
+};
+
+export const runReleaseCheckCli = async (
+  args: readonly string[]
+): Promise<number> => {
+  const options = parseArgs(args);
+  const result = await runReleaseCheck({
+    ...(options.baseRef === undefined ? {} : { baseRef: options.baseRef }),
+    ...(options.changedFilesPath === undefined
+      ? {}
+      : { changedFilesPath: options.changedFilesPath }),
+    ...(options.configPath === undefined
+      ? {}
+      : { configPath: options.configPath }),
+    env: process.env as Record<string, string | undefined>,
+    releaseNone: options.releaseNone,
+    repoRoot: options.repoRoot,
   });
 
   renderResult(result);

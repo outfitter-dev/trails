@@ -1,9 +1,15 @@
 export {
   checkReleaseRules,
   discoverWorkspaces,
+  formatReleaseCheckReport,
+  loadReleaseConfig,
+  runReleaseCheck,
   runReleaseCheckCli,
+  type ReleaseCheckReport,
   type ReleaseCheckInput,
   type ReleaseCheckResult,
+  type ReleaseConfigLoadResult,
+  type RunReleaseCheckOptions,
   type WorkspaceInfo,
 } from './check.js';
 export {
