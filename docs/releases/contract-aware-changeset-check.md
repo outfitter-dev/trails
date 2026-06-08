@@ -42,8 +42,10 @@ Future local helpers may add a `--base-ref` option for source snapshots. The fir
 
 The first implementation uses a source-static contract fact detector adjacent to the existing Changeset check.
 
-Slice-one public trail contract movement means a changed TypeScript source file contains a trail definition that is not explicitly `visibility: 'internal'`, and the branch changes at least one of these contract-bearing aspects:
+Slice-one public trail contract movement means a changed TypeScript source file contains a trail definition that is not explicitly `visibility: 'internal'` on both sides of the branch-local diff, and the branch changes at least one of these contract-bearing aspects:
 
+- public trail addition or removal;
+- `visibility` movement between internal and public;
 - `input` schema text;
 - `output` schema text;
 - `surfaces` declaration text.
