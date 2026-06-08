@@ -202,7 +202,7 @@
     },
     {
       "created": "2026-05-03",
-      "depends_on": ["17", "27", "42"],
+      "depends_on": ["17", "27", "37", "42"],
       "inbound": [],
       "number": null,
       "owners": ["[galligan](https://github.com/galligan)"],
@@ -211,7 +211,7 @@
       "status": "draft",
       "superseded_by": null,
       "title": "Wayfinding",
-      "updated": "2026-05-03"
+      "updated": "2026-06-07"
     },
     {
       "created": "2026-05-24",
@@ -276,7 +276,20 @@
       "status": "draft",
       "superseded_by": null,
       "title": "Surface Facets Shape Dense Topos",
-      "updated": "2026-06-03"
+      "updated": "2026-06-04"
+    },
+    {
+      "created": "2026-06-08",
+      "depends_on": ["47", "48"],
+      "inbound": [],
+      "number": null,
+      "owners": ["[galligan](https://github.com/galligan)"],
+      "path": "docs/adr/drafts/20260608-release-provenance-as-lifecycle-projection.md",
+      "slug": "release-provenance-as-lifecycle-projection",
+      "status": "draft",
+      "superseded_by": null,
+      "title": "Release Provenance as Lifecycle Projection",
+      "updated": "2026-06-08"
     }
   ],
   "version": 1
