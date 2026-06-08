@@ -1,4 +1,21 @@
 export {
+  checkReleaseRules,
+  discoverWorkspaces,
+  runReleaseCheckCli,
+  type ReleaseCheckInput,
+  type ReleaseCheckResult,
+  type WorkspaceInfo,
+} from './check.js';
+export {
+  createContractSourceSnapshots,
+  findPublicTrailContractChangeFacts,
+  findPublicTrailContractChangeFactsFromSnapshots,
+  type ContractReleaseFact,
+  type ContractReleaseFactAspect,
+  type ContractReleaseFactInput,
+  type ContractSourceSnapshot,
+} from './contract-facts.js';
+export {
   defaultReleaseConfig,
   defaultReleaseRules,
   releaseConfigSchema,

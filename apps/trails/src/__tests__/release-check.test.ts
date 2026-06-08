@@ -1,14 +1,16 @@
 import { describe, expect, test } from 'bun:test';
+import { execSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import {
-  checkChangesetGate,
+  checkReleaseRules,
   discoverWorkspaces,
-} from '../check-changeset-gate.ts';
-import type { WorkspaceInfo } from '../check-changeset-gate.ts';
-import type { ContractReleaseFact } from '../contract-release-facts.ts';
+  runReleaseCheckCli,
+} from '../release/check.js';
+import type { WorkspaceInfo } from '../release/check.js';
+import type { ContractReleaseFact } from '../release/contract-facts.js';
 
 const workspaces: readonly WorkspaceInfo[] = [
   {
@@ -49,7 +51,7 @@ const contractFact = (
 const withTempRepo = <T>(
   setup: (repoRoot: string) => T
 ): { readonly repoRoot: string; readonly value: T } => {
-  const repoRoot = mkdtempSync(join(tmpdir(), 'trails-changeset-gate-'));
+  const repoRoot = mkdtempSync(join(tmpdir(), 'trails-release-rules-'));
   mkdirSync(join(repoRoot, '.changeset'), { recursive: true });
 
   try {
@@ -63,12 +65,12 @@ const withTempRepo = <T>(
   }
 };
 
-describe('checkChangesetGate', () => {
+describe('checkReleaseRules', () => {
   test('fails package-affecting publishable workspace changes without a covering changeset', () => {
     const { repoRoot } = withTempRepo(() => {});
 
     try {
-      const result = checkChangesetGate({
+      const result = checkReleaseRules({
         changedFiles: ['packages/core/src/index.ts'],
         repoRoot,
         workspaces,
@@ -77,7 +79,7 @@ describe('checkChangesetGate', () => {
       expect(result.passed).toBe(false);
       expect(result.affectedPackages).toEqual(['@ontrails/core']);
       expect(result.errors).toEqual([
-        'Package-affecting changes need changeset entries for: @ontrails/core',
+        'Release rules require intent for package content changes: @ontrails/core',
       ]);
     } finally {
       rmSync(repoRoot, { force: true, recursive: true });
@@ -93,7 +95,7 @@ describe('checkChangesetGate', () => {
     });
 
     try {
-      const result = checkChangesetGate({
+      const result = checkReleaseRules({
         changedFiles: [
           'packages/core/src/index.ts',
           '.changeset/core-change.md',
@@ -119,7 +121,7 @@ describe('checkChangesetGate', () => {
     });
 
     try {
-      const result = checkChangesetGate({
+      const result = checkReleaseRules({
         changedFiles: [
           'packages/core/src/index.ts',
           'packages/http/src/build.ts',
@@ -131,7 +133,7 @@ describe('checkChangesetGate', () => {
 
       expect(result.passed).toBe(false);
       expect(result.errors).toEqual([
-        'Package-affecting changes need changeset entries for: @ontrails/http',
+        'Release rules require intent for package content changes: @ontrails/http',
       ]);
     } finally {
       rmSync(repoRoot, { force: true, recursive: true });
@@ -142,7 +144,7 @@ describe('checkChangesetGate', () => {
     const { repoRoot } = withTempRepo(() => {});
 
     try {
-      const result = checkChangesetGate({
+      const result = checkReleaseRules({
         changedFiles: [
           '.changeset/pre.json',
           'packages/core/CHANGELOG.md',
@@ -174,7 +176,7 @@ describe('checkChangesetGate', () => {
     });
 
     try {
-      const result = checkChangesetGate({
+      const result = checkReleaseRules({
         changedFiles: [
           '.changeset/core-docs.md',
           '.changeset/pre.json',
@@ -204,7 +206,7 @@ describe('checkChangesetGate', () => {
     const { repoRoot } = withTempRepo(() => {});
 
     try {
-      const result = checkChangesetGate({
+      const result = checkReleaseRules({
         changedFiles: [
           '.changeset/pre.json',
           'packages/core/CHANGELOG.md',
@@ -218,7 +220,7 @@ describe('checkChangesetGate', () => {
       expect(result.passed).toBe(false);
       expect(result.versionRelease).toBe(false);
       expect(result.errors).toEqual([
-        'Package-affecting changes need changeset entries for: @ontrails/core',
+        'Release rules require intent for package content changes: @ontrails/core',
       ]);
     } finally {
       rmSync(repoRoot, { force: true, recursive: true });
@@ -229,7 +231,7 @@ describe('checkChangesetGate', () => {
     const { repoRoot } = withTempRepo(() => {});
 
     try {
-      const result = checkChangesetGate({
+      const result = checkReleaseRules({
         changedFiles: [
           'packages/core/src/__tests__/result.test.ts',
           'packages/core/dist/index.js',
@@ -257,13 +259,13 @@ describe('checkChangesetGate', () => {
     });
 
     try {
-      const bypass = checkChangesetGate({
+      const bypass = checkReleaseRules({
         changedFiles: ['packages/core/src/index.ts'],
         releaseNone: true,
         repoRoot,
         workspaces,
       });
-      const contradiction = checkChangesetGate({
+      const contradiction = checkReleaseRules({
         changedFiles: [
           'packages/core/src/index.ts',
           '.changeset/core-change.md',
@@ -287,7 +289,7 @@ describe('checkChangesetGate', () => {
     const { repoRoot } = withTempRepo(() => {});
 
     try {
-      const result = checkChangesetGate({
+      const result = checkReleaseRules({
         changedFiles: ['packages/core/src/user.ts'],
         contractFacts: [contractFact('output')],
         repoRoot,
@@ -297,7 +299,7 @@ describe('checkChangesetGate', () => {
       expect(result.passed).toBe(false);
       expect(result.uncoveredContractFacts).toHaveLength(1);
       expect(result.errors).toContain(
-        'Public trail contract changes need release disposition: user.create output (@ontrails/core)'
+        'Release rules require intent for public trail contract changes: user.create output (@ontrails/core)'
       );
     } finally {
       rmSync(repoRoot, { force: true, recursive: true });
@@ -323,7 +325,7 @@ export const userCreate = trail('user.create', {
     });
 
     try {
-      const result = checkChangesetGate({
+      const result = checkReleaseRules({
         changedFiles: ['packages/core/src/user.ts'],
         repoRoot,
         workspaces,
@@ -339,7 +341,7 @@ export const userCreate = trail('user.create', {
         },
       ]);
       expect(result.errors).toContain(
-        'Public trail contract changes need release disposition: user.create trail (@ontrails/core)'
+        'Release rules require intent for public trail contract changes: user.create trail (@ontrails/core)'
       );
     } finally {
       rmSync(repoRoot, { force: true, recursive: true });
@@ -355,7 +357,7 @@ export const userCreate = trail('user.create', {
     });
 
     try {
-      const result = checkChangesetGate({
+      const result = checkReleaseRules({
         changedFiles: [
           'packages/core/src/user.ts',
           '.changeset/core-contract.md',
@@ -373,11 +375,11 @@ export const userCreate = trail('user.create', {
     }
   });
 
-  test('allows release:none as an explicit public contract disposition', () => {
+  test('allows release:none as an explicit public contract override', () => {
     const { repoRoot } = withTempRepo(() => {});
 
     try {
-      const result = checkChangesetGate({
+      const result = checkReleaseRules({
         changedFiles: ['packages/core/src/user.ts'],
         contractFacts: [contractFact('surfaces')],
         releaseNone: true,
@@ -404,13 +406,13 @@ export const userCreate = trail('user.create', {
     });
 
     try {
-      const malformed = checkChangesetGate({
+      const malformed = checkReleaseRules({
         changedFiles: ['.changeset/empty-change.md'],
         releaseNone: true,
         repoRoot,
         workspaces,
       });
-      const deleted = checkChangesetGate({
+      const deleted = checkReleaseRules({
         changedFiles: ['.changeset/deleted-change.md'],
         releaseNone: true,
         repoRoot,
@@ -425,6 +427,35 @@ export const userCreate = trail('user.create', {
       expect(deleted.changedChangesets).toEqual([
         '.changeset/deleted-change.md',
       ]);
+    } finally {
+      rmSync(repoRoot, { force: true, recursive: true });
+    }
+  });
+
+  test('uses the selected base ref when deriving local changed files', async () => {
+    const repoRoot = mkdtempSync(join(tmpdir(), 'trails-release-rules-git-'));
+
+    try {
+      mkdirSync(join(repoRoot, 'packages', 'core'), { recursive: true });
+      mkdirSync(join(repoRoot, '.changeset'), { recursive: true });
+      writeFileSync(
+        join(repoRoot, 'package.json'),
+        JSON.stringify({ workspaces: ['packages/*'] })
+      );
+      writeFileSync(
+        join(repoRoot, 'packages', 'core', 'package.json'),
+        JSON.stringify({ name: '@ontrails/core' })
+      );
+      execSync('git init', { cwd: repoRoot, stdio: 'ignore' });
+      execSync('git add .', { cwd: repoRoot, stdio: 'ignore' });
+      execSync(
+        'git -c user.email=test@example.com -c user.name=Test commit -m initial',
+        { cwd: repoRoot, stdio: 'ignore' }
+      );
+
+      await expect(
+        runReleaseCheckCli(['--repo-root', repoRoot, '--base-ref', 'HEAD'])
+      ).resolves.toBe(0);
     } finally {
       rmSync(repoRoot, { force: true, recursive: true });
     }

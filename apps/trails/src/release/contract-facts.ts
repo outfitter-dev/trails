@@ -4,7 +4,7 @@ import { join } from 'node:path';
 
 import ts from 'typescript';
 
-import type { WorkspaceInfo } from './check-changeset-gate.ts';
+import type { WorkspaceInfo } from './check.js';
 
 export type ContractReleaseFactAspect =
   | 'input'
@@ -251,7 +251,7 @@ const collectTrailDefinitions = (
   source: string
 ): readonly TrailDefinition[] => {
   const sourceFile = ts.createSourceFile(
-    'contract-release-facts.ts',
+    'release-contract-facts.ts',
     source,
     ts.ScriptTarget.Latest,
     true,

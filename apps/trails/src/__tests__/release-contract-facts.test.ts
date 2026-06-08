@@ -7,7 +7,7 @@ import { describe, expect, test } from 'bun:test';
 import {
   findPublicTrailContractChangeFacts,
   findPublicTrailContractChangeFactsFromSnapshots,
-} from '../contract-release-facts.ts';
+} from '../release/contract-facts.js';
 
 const snapshot = (
   baseSource: string,
@@ -208,7 +208,7 @@ export const userCreate = trail('user.create', {
 
 describe('findPublicTrailContractChangeFacts', () => {
   test('derives public contract facts from changed publishable workspace files', () => {
-    const repoRoot = mkdtempSync(join(tmpdir(), 'trails-contract-facts-'));
+    const repoRoot = mkdtempSync(join(tmpdir(), 'trails-release-facts-'));
 
     try {
       const workspaceRoot = join(repoRoot, 'packages/core');
