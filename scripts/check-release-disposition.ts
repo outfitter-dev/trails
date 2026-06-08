@@ -2,7 +2,12 @@ import { existsSync, readFileSync } from 'node:fs';
 import { readdir } from 'node:fs/promises';
 import { join, relative, resolve } from 'node:path';
 
+import {
+  changedFileFilenames,
+  changedFilePackagePaths,
+} from './changed-files.ts';
 import { findPublicTrailContractChangeFacts } from './contract-release-facts.ts';
+import type { ChangedFileInput } from './changed-files.ts';
 import type { ContractReleaseFact } from './contract-release-facts.ts';
 
 interface PackageJson {
@@ -17,16 +22,19 @@ export interface WorkspaceInfo {
   readonly relativePath: string;
 }
 
-export interface ChangesetGateInput {
+export interface ReleaseDispositionCheckInput {
   readonly baseRef?: string;
-  readonly changedFiles: readonly string[];
+  readonly changedFiles: readonly ChangedFileInput[];
   readonly contractFacts?: readonly ContractReleaseFact[];
   readonly releaseNone?: boolean;
+  readonly releaseNoneReason?: string;
   readonly repoRoot: string;
   readonly workspaces: readonly WorkspaceInfo[];
 }
 
-export interface ChangesetGateResult {
+export type ChangesetGateInput = ReleaseDispositionCheckInput;
+
+export interface ReleaseDispositionCheckResult {
   readonly affectedPackages: readonly string[];
   readonly changedChangesets: readonly string[];
   readonly contractFacts: readonly ContractReleaseFact[];
@@ -34,14 +42,18 @@ export interface ChangesetGateResult {
   readonly errors: readonly string[];
   readonly passed: boolean;
   readonly releaseNone: boolean;
+  readonly releaseNoneReason: string | null;
   readonly uncoveredContractFacts: readonly ContractReleaseFact[];
   readonly versionRelease: boolean;
 }
+
+export type ChangesetGateResult = ReleaseDispositionCheckResult;
 
 interface CliOptions {
   readonly baseRef?: string;
   readonly changedFilesPath?: string;
   readonly releaseNone: boolean;
+  readonly releaseNoneReason?: string;
   readonly repoRoot: string;
 }
 
@@ -117,7 +129,7 @@ const discoverWorkspaceDirs = async (
 
     if (hasWorkspaceGlobSyntax(pattern)) {
       throw new Error(
-        `Unsupported workspace pattern '${pattern}'. The changeset gate supports exact workspace paths and one-level '/*' globs.`
+        `Unsupported workspace pattern '${pattern}'. The release disposition check supports exact workspace paths and one-level '/*' globs.`
       );
     }
 
@@ -175,7 +187,7 @@ const isNonShippingPackagePath = (workspaceRelativePath: string): boolean =>
   );
 
 const findAffectedPackages = (
-  changedFiles: readonly string[],
+  changedFiles: readonly ChangedFileInput[],
   workspaces: readonly WorkspaceInfo[]
 ): readonly string[] => {
   const affected = new Set<string>();
@@ -183,7 +195,7 @@ const findAffectedPackages = (
     isPublishableOnTrailsWorkspace
   );
 
-  for (const file of changedFiles.map(normalizePath)) {
+  for (const file of changedFilePackagePaths(changedFiles)) {
     for (const workspace of publishableWorkspaces) {
       if (!isUnderWorkspace(file, workspace.relativePath)) {
         continue;
@@ -206,11 +218,11 @@ const findAffectedPackages = (
 };
 
 const isVersionReleaseChangeSet = (
-  changedFiles: readonly string[],
+  changedFiles: readonly ChangedFileInput[],
   workspaces: readonly WorkspaceInfo[],
   coveredPackages: readonly string[]
 ): boolean => {
-  const normalizedFiles = changedFiles.map(normalizePath);
+  const normalizedFiles = changedFileFilenames(changedFiles);
   const coveredPackageSet = new Set(coveredPackages);
 
   if (!normalizedFiles.includes(CHANGESET_PRERELEASE_STATE_PATH)) {
@@ -272,11 +284,11 @@ const parseChangesetPackages = (content: string): readonly string[] => {
 };
 
 const findChangedChangesetPaths = (
-  changedFiles: readonly string[]
+  changedFiles: readonly ChangedFileInput[]
 ): readonly string[] =>
-  changedFiles
-    .map(normalizePath)
-    .filter((path) => CHANGESET_PATH_PATTERN.test(path));
+  changedFileFilenames(changedFiles).filter((path) =>
+    CHANGESET_PATH_PATTERN.test(path)
+  );
 
 const findChangedChangesets = (
   changedChangesetPaths: readonly string[],
@@ -298,7 +310,7 @@ const findChangedChangesets = (
   });
 
 const findGateContractFacts = (
-  input: ChangesetGateInput
+  input: ReleaseDispositionCheckInput
 ): readonly ContractReleaseFact[] =>
   input.contractFacts ??
   findPublicTrailContractChangeFacts({
@@ -317,14 +329,26 @@ const isContractFactCovered = (
 const formatContractFact = (fact: ContractReleaseFact): string =>
   `${fact.trailId} ${fact.aspect} (${fact.packageName ?? fact.path})`;
 
-export const checkChangesetGate = (
-  input: ChangesetGateInput
-): ChangesetGateResult => {
+const hasReleaseNoneRationale = (value: string | undefined): boolean => {
+  const normalized = value?.trim() ?? '';
+
+  if (!normalized.toLowerCase().includes('release:none')) {
+    return false;
+  }
+
+  const rationale = normalized.replaceAll(/release:none/giu, '').trim();
+  return rationale.length >= 12;
+};
+
+export const checkReleaseDisposition = (
+  input: ReleaseDispositionCheckInput
+): ReleaseDispositionCheckResult => {
   const releaseNone = input.releaseNone === true;
   const affectedPackages = findAffectedPackages(
     input.changedFiles,
     input.workspaces
   );
+  const releaseNoneReason = input.releaseNoneReason?.trim() ?? '';
   const changedChangesets = findChangedChangesetPaths(input.changedFiles);
   const changesets = findChangedChangesets(changedChangesets, input.repoRoot);
   const coveredPackages = [
@@ -350,6 +374,12 @@ export const checkChangesetGate = (
     );
   }
 
+  if (releaseNone && !hasReleaseNoneRationale(releaseNoneReason)) {
+    errors.push(
+      '`release:none` needs a PR body rationale that mentions release:none and explains why no user-visible package content changed.'
+    );
+  }
+
   if (!releaseNone && !versionRelease && uncoveredPackages.length > 0) {
     errors.push(
       `Package-affecting changes need changeset entries for: ${uncoveredPackages.join(', ')}`
@@ -372,24 +402,68 @@ export const checkChangesetGate = (
     errors,
     passed: errors.length === 0,
     releaseNone,
+    releaseNoneReason: releaseNoneReason.length > 0 ? releaseNoneReason : null,
     uncoveredContractFacts,
     versionRelease,
   };
 };
 
-const readChangedFiles = (path: string): readonly string[] =>
+export const checkChangesetGate = checkReleaseDisposition;
+
+const parseChangedFileRecord = (line: string): ChangedFileInput => {
+  if (line.startsWith('{')) {
+    const record = JSON.parse(line) as {
+      readonly filename?: unknown;
+      readonly previous_filename?: unknown;
+      readonly previousFilename?: unknown;
+      readonly status?: unknown;
+    };
+
+    if (typeof record.filename !== 'string') {
+      throw new TypeError(
+        `Changed file JSON record is missing filename: ${line}`
+      );
+    }
+
+    let previousFilename: string | undefined;
+    if (typeof record.previousFilename === 'string') {
+      ({ previousFilename } = record);
+    } else if (typeof record.previous_filename === 'string') {
+      previousFilename = record.previous_filename;
+    }
+
+    return {
+      filename: record.filename,
+      ...(previousFilename ? { previousFilename } : {}),
+      ...(typeof record.status === 'string' ? { status: record.status } : {}),
+    };
+  }
+
+  const [filename, status, previousFilename] = line.split('\t');
+
+  return {
+    filename: filename ?? '',
+    ...(previousFilename ? { previousFilename } : {}),
+    ...(status ? { status } : {}),
+  };
+};
+
+const readChangedFiles = (path: string): readonly ChangedFileInput[] =>
   readFileSync(path, 'utf8')
     .split(/\r?\n/u)
     .map((line) => line.trim())
-    .filter((line) => line.length > 0);
+    .filter((line) => line.length > 0)
+    .map(parseChangedFileRecord);
 
-const parseChangedFilesOutput = (output: string): readonly string[] =>
+const parseChangedFilesOutput = (output: string): readonly ChangedFileInput[] =>
   output
     .split(/\r?\n/u)
     .map((line) => line.trim())
     .filter((line) => line.length > 0);
 
-const readLocalChangedFiles = (repoRoot: string): readonly string[] => {
+const readLocalChangedFiles = (
+  repoRoot: string
+): readonly ChangedFileInput[] => {
   const result = Bun.spawnSync({
     cmd: [
       'git',
@@ -418,6 +492,7 @@ const parseArgs = (args: readonly string[]): CliOptions => {
   let baseRef: string | undefined;
   let changedFilesPath: string | undefined;
   let releaseNone = false;
+  let releaseNoneReason: string | undefined;
   let repoRoot = resolve(import.meta.dir, '..');
 
   for (let index = 0; index < args.length; index += 1) {
@@ -425,6 +500,18 @@ const parseArgs = (args: readonly string[]): CliOptions => {
 
     if (arg === '--release-none') {
       releaseNone = true;
+      continue;
+    }
+
+    if (arg === '--release-none-reason') {
+      const value = args[index + 1];
+
+      if (!value) {
+        throw new Error('--release-none-reason requires text');
+      }
+
+      releaseNoneReason = value;
+      index += 1;
       continue;
     }
 
@@ -471,35 +558,36 @@ const parseArgs = (args: readonly string[]): CliOptions => {
     baseRef,
     changedFilesPath,
     releaseNone,
+    releaseNoneReason,
     repoRoot,
   };
 };
 
-const renderResult = (result: ChangesetGateResult): void => {
+const renderResult = (result: ReleaseDispositionCheckResult): void => {
   if (result.passed) {
     if (result.affectedPackages.length === 0) {
       console.log(
-        'Changeset gate passed: no publishable package-affecting files changed.'
+        'Release disposition check passed: no publishable package-affecting files changed.'
       );
       return;
     }
 
     if (result.releaseNone) {
       console.log(
-        `Changeset gate passed via release:none for: ${result.affectedPackages.join(', ')}`
+        `Release disposition check passed via release:none for: ${result.affectedPackages.join(', ')}`
       );
       return;
     }
 
     if (result.versionRelease) {
       console.log(
-        `Changeset gate passed for generated version release: ${result.affectedPackages.join(', ')}`
+        `Release disposition check passed for generated version release: ${result.affectedPackages.join(', ')}`
       );
       return;
     }
 
     console.log(
-      `Changeset gate passed for: ${result.affectedPackages.join(', ')}`
+      `Release disposition check passed for: ${result.affectedPackages.join(', ')}`
     );
     console.log(`Changed changesets: ${result.changedChangesets.join(', ')}`);
     return;
@@ -533,12 +621,13 @@ const main = async (): Promise<number> => {
   const changedFiles = options.changedFilesPath
     ? readChangedFiles(options.changedFilesPath)
     : readLocalChangedFiles(options.repoRoot);
-  const result = checkChangesetGate({
+  const result = checkReleaseDisposition({
     baseRef:
       options.baseRef ??
       (options.changedFilesPath === undefined ? 'origin/main' : undefined),
     changedFiles,
     releaseNone: options.releaseNone,
+    releaseNoneReason: options.releaseNoneReason,
     repoRoot: options.repoRoot,
     workspaces,
   });

@@ -120,26 +120,27 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: git fetch --no-tags --depth=1 origin "$BASE_SHA"
 
-      - name: Collect PR file list
+      - name: Collect PR file metadata
         env:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           REPOSITORY: ${{ github.repository }}
         run: |
           gh api --paginate "repos/$REPOSITORY/pulls/$PR_NUMBER/files" \
-            --jq '.[].filename' \
+            --jq '.[] | {filename, status, previousFilename: .previous_filename} | @json' \
             > "$RUNNER_TEMP/changed-files.txt"
 
-      - name: Check changeset
+      - name: Check release disposition
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_BODY: ${{ github.event.pull_request.body }}
           RELEASE_NONE: ${{ contains(github.event.pull_request.labels.*.name, 'release:none') }}
         run: |
           args=(--changed-files "$RUNNER_TEMP/changed-files.txt" --base-ref "$BASE_SHA")
           if [ "$RELEASE_NONE" = "true" ]; then
-            args+=(--release-none)
+            args+=(--release-none --release-none-reason "$PR_BODY")
           fi
-          bun run changeset:check -- "${args[@]}"
+          bun run release:disposition:check -- "${args[@]}"
 
   ci-gate:
     name: CI Gate

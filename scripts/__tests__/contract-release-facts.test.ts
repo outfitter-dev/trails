@@ -32,6 +32,19 @@ export const userCreate = trail('user.create', {
 });
 `;
 
+const runGit = (repoRoot: string, args: readonly string[]): void => {
+  const result = Bun.spawnSync({
+    cmd: ['git', ...args],
+    cwd: repoRoot,
+    stderr: 'pipe',
+    stdout: 'pipe',
+  });
+
+  if (result.exitCode !== 0) {
+    throw new Error(result.stderr.toString());
+  }
+};
+
 describe('findPublicTrailContractChangeFactsFromSnapshots', () => {
   test('detects public input schema changes', () => {
     const facts = findPublicTrailContractChangeFactsFromSnapshots([
@@ -243,6 +256,54 @@ describe('findPublicTrailContractChangeFacts', () => {
           workspacePath: 'packages/core',
         },
       ]);
+    } finally {
+      rmSync(repoRoot, { force: true, recursive: true });
+    }
+  });
+
+  test('uses previous filename metadata to ignore pure public trail source renames', () => {
+    const repoRoot = mkdtempSync(join(tmpdir(), 'trails-contract-rename-'));
+
+    try {
+      const workspaceRoot = join(repoRoot, 'packages/core');
+      const oldSourcePath = join(workspaceRoot, 'src/old-public-trail.ts');
+      const newSourcePath = join(workspaceRoot, 'src/new-public-trail.ts');
+      const source = publicTrail(`
+  input: z.object({ name: z.string() }),
+  output: z.object({ id: z.string() }),
+`);
+
+      mkdirSync(join(workspaceRoot, 'src'), { recursive: true });
+      writeFileSync(oldSourcePath, source);
+      runGit(repoRoot, ['init']);
+      runGit(repoRoot, ['config', 'user.email', 'trails@example.test']);
+      runGit(repoRoot, ['config', 'user.name', 'Trails Test']);
+      runGit(repoRoot, ['add', '.']);
+      runGit(repoRoot, ['commit', '-m', 'seed public trail source']);
+
+      writeFileSync(newSourcePath, source);
+      rmSync(oldSourcePath);
+
+      const facts = findPublicTrailContractChangeFacts({
+        baseRef: 'HEAD',
+        changedFiles: [
+          {
+            filename: 'packages/core/src/new-public-trail.ts',
+            previousFilename: 'packages/core/src/old-public-trail.ts',
+            status: 'renamed',
+          },
+        ],
+        repoRoot,
+        workspaces: [
+          {
+            isPrivate: false,
+            name: '@ontrails/core',
+            relativePath: 'packages/core',
+          },
+        ],
+      });
+
+      expect(facts).toEqual([]);
     } finally {
       rmSync(repoRoot, { force: true, recursive: true });
     }

@@ -12,7 +12,7 @@ depends_on: [47, 48]
 
 ## Context
 
-Trails already treats package releases as part of the framework contract. ADR-0047 decides that public `@ontrails/*` packages stay lockstep for the 1.x line, Changesets computes version and changelog output, Bun publishes, and a release PR carries evidence. The repo also has a branch-local Changeset check: if a PR changes publishable package contents, the PR must include a matching changeset unless it is explicitly labeled `release:none`.
+Trails already treats package releases as part of the framework contract. ADR-0047 decides that public `@ontrails/*` packages stay lockstep for the 1.x line, Changesets computes version and changelog output, Bun publishes, and a release PR carries evidence. The repo also has a branch-local release disposition check: if a PR changes publishable package contents, the PR must include a matching changeset unless it is explicitly labeled `release:none` with a rationale in the PR body.
 
 That check is useful, but it still sees package files more readily than Trails contracts. A branch can change the public input or output schema of an exposed trail, or expose a trail on a new surface, while leaving the release story to reviewer memory. That fights the premise. The trail is the product, so public trail contract movement must be visible in release disposition before a branch leaves draft.
 
@@ -62,7 +62,7 @@ The release projection must keep those axes visible:
 The first implementation wedge is branch-local:
 
 1. CI receives the PR file list for the current Graphite branch.
-2. The Changeset check keeps enforcing package-file coverage.
+2. The release disposition check keeps enforcing package-file coverage.
 3. The same check also derives slice-one public trail contract facts from changed source files.
 4. A public trail addition, removal, visibility transition, input schema change, output schema change, or surface exposure change fails loudly unless the branch has a covering changeset or an explicit `release:none` disposition.
 

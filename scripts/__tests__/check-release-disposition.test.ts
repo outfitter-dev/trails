@@ -4,10 +4,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import {
-  checkChangesetGate,
+  checkReleaseDisposition,
   discoverWorkspaces,
-} from '../check-changeset-gate.ts';
-import type { WorkspaceInfo } from '../check-changeset-gate.ts';
+} from '../check-release-disposition.ts';
+import type { WorkspaceInfo } from '../check-release-disposition.ts';
 import type { ContractReleaseFact } from '../contract-release-facts.ts';
 
 const workspaces: readonly WorkspaceInfo[] = [
@@ -63,12 +63,12 @@ const withTempRepo = <T>(
   }
 };
 
-describe('checkChangesetGate', () => {
+describe('checkReleaseDisposition', () => {
   test('fails package-affecting publishable workspace changes without a covering changeset', () => {
     const { repoRoot } = withTempRepo(() => {});
 
     try {
-      const result = checkChangesetGate({
+      const result = checkReleaseDisposition({
         changedFiles: ['packages/core/src/index.ts'],
         repoRoot,
         workspaces,
@@ -93,7 +93,7 @@ describe('checkChangesetGate', () => {
     });
 
     try {
-      const result = checkChangesetGate({
+      const result = checkReleaseDisposition({
         changedFiles: [
           'packages/core/src/index.ts',
           '.changeset/core-change.md',
@@ -119,7 +119,7 @@ describe('checkChangesetGate', () => {
     });
 
     try {
-      const result = checkChangesetGate({
+      const result = checkReleaseDisposition({
         changedFiles: [
           'packages/core/src/index.ts',
           'packages/http/src/build.ts',
@@ -142,7 +142,7 @@ describe('checkChangesetGate', () => {
     const { repoRoot } = withTempRepo(() => {});
 
     try {
-      const result = checkChangesetGate({
+      const result = checkReleaseDisposition({
         changedFiles: [
           '.changeset/pre.json',
           'packages/core/CHANGELOG.md',
@@ -174,7 +174,7 @@ describe('checkChangesetGate', () => {
     });
 
     try {
-      const result = checkChangesetGate({
+      const result = checkReleaseDisposition({
         changedFiles: [
           '.changeset/core-docs.md',
           '.changeset/pre.json',
@@ -204,7 +204,7 @@ describe('checkChangesetGate', () => {
     const { repoRoot } = withTempRepo(() => {});
 
     try {
-      const result = checkChangesetGate({
+      const result = checkReleaseDisposition({
         changedFiles: [
           '.changeset/pre.json',
           'packages/core/CHANGELOG.md',
@@ -229,7 +229,7 @@ describe('checkChangesetGate', () => {
     const { repoRoot } = withTempRepo(() => {});
 
     try {
-      const result = checkChangesetGate({
+      const result = checkReleaseDisposition({
         changedFiles: [
           'packages/core/src/__tests__/result.test.ts',
           'packages/core/dist/index.js',
@@ -248,6 +248,29 @@ describe('checkChangesetGate', () => {
     }
   });
 
+  test('uses previous filenames for package-affecting rename metadata', () => {
+    const { repoRoot } = withTempRepo(() => {});
+
+    try {
+      const result = checkReleaseDisposition({
+        changedFiles: [
+          {
+            filename: 'docs/moved-index.ts',
+            previousFilename: 'packages/core/src/index.ts',
+            status: 'renamed',
+          },
+        ],
+        repoRoot,
+        workspaces,
+      });
+
+      expect(result.passed).toBe(false);
+      expect(result.affectedPackages).toEqual(['@ontrails/core']);
+    } finally {
+      rmSync(repoRoot, { force: true, recursive: true });
+    }
+  });
+
   test('honors release:none and rejects contradictory changesets', () => {
     const { repoRoot } = withTempRepo((root) => {
       writeFileSync(
@@ -257,18 +280,22 @@ describe('checkChangesetGate', () => {
     });
 
     try {
-      const bypass = checkChangesetGate({
+      const bypass = checkReleaseDisposition({
         changedFiles: ['packages/core/src/index.ts'],
         releaseNone: true,
+        releaseNoneReason:
+          'release:none because this only moves non-shipping fixture code.',
         repoRoot,
         workspaces,
       });
-      const contradiction = checkChangesetGate({
+      const contradiction = checkReleaseDisposition({
         changedFiles: [
           'packages/core/src/index.ts',
           '.changeset/core-change.md',
         ],
         releaseNone: true,
+        releaseNoneReason:
+          'release:none because this only moves non-shipping fixture code.',
         repoRoot,
         workspaces,
       });
@@ -283,11 +310,40 @@ describe('checkChangesetGate', () => {
     }
   });
 
+  test('requires release:none to carry a rationale', () => {
+    const { repoRoot } = withTempRepo(() => {});
+
+    try {
+      const missing = checkReleaseDisposition({
+        changedFiles: ['packages/core/src/index.ts'],
+        releaseNone: true,
+        repoRoot,
+        workspaces,
+      });
+      const vague = checkReleaseDisposition({
+        changedFiles: ['packages/core/src/index.ts'],
+        releaseNone: true,
+        releaseNoneReason: 'No release needed.',
+        repoRoot,
+        workspaces,
+      });
+
+      expect(missing.passed).toBe(false);
+      expect(vague.passed).toBe(false);
+      expect(missing.errors).toContain(
+        '`release:none` needs a PR body rationale that mentions release:none and explains why no user-visible package content changed.'
+      );
+      expect(vague.errors).toEqual(missing.errors);
+    } finally {
+      rmSync(repoRoot, { force: true, recursive: true });
+    }
+  });
+
   test('reports uncovered public trail contract facts with trail evidence', () => {
     const { repoRoot } = withTempRepo(() => {});
 
     try {
-      const result = checkChangesetGate({
+      const result = checkReleaseDisposition({
         changedFiles: ['packages/core/src/user.ts'],
         contractFacts: [contractFact('output')],
         repoRoot,
@@ -323,7 +379,7 @@ export const userCreate = trail('user.create', {
     });
 
     try {
-      const result = checkChangesetGate({
+      const result = checkReleaseDisposition({
         changedFiles: ['packages/core/src/user.ts'],
         repoRoot,
         workspaces,
@@ -355,7 +411,7 @@ export const userCreate = trail('user.create', {
     });
 
     try {
-      const result = checkChangesetGate({
+      const result = checkReleaseDisposition({
         changedFiles: [
           'packages/core/src/user.ts',
           '.changeset/core-contract.md',
@@ -377,10 +433,12 @@ export const userCreate = trail('user.create', {
     const { repoRoot } = withTempRepo(() => {});
 
     try {
-      const result = checkChangesetGate({
+      const result = checkReleaseDisposition({
         changedFiles: ['packages/core/src/user.ts'],
         contractFacts: [contractFact('surfaces')],
         releaseNone: true,
+        releaseNoneReason:
+          'release:none because this only updates non-shipping local fixtures.',
         repoRoot,
         workspaces,
       });
@@ -404,15 +462,19 @@ export const userCreate = trail('user.create', {
     });
 
     try {
-      const malformed = checkChangesetGate({
+      const malformed = checkReleaseDisposition({
         changedFiles: ['.changeset/empty-change.md'],
         releaseNone: true,
+        releaseNoneReason:
+          'release:none because this only updates non-shipping local fixtures.',
         repoRoot,
         workspaces,
       });
-      const deleted = checkChangesetGate({
+      const deleted = checkReleaseDisposition({
         changedFiles: ['.changeset/deleted-change.md'],
         releaseNone: true,
+        releaseNoneReason:
+          'release:none because this only updates non-shipping local fixtures.',
         repoRoot,
         workspaces,
       });

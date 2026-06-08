@@ -66,11 +66,13 @@ Current public packages are lockstep at the same Trails framework version.
 
 ## Release Dispositions
 
-Feature work that changes publishable `@ontrails/*` package contents needs a branch-local release disposition before the PR leaves draft. The normal disposition is a `.changeset/*.md` entry for each affected public package. `release:none` is allowed only when the branch touches package files but truly has no user-visible package content change, and the PR, issue, or handoff explains why.
+Feature work that changes publishable `@ontrails/*` package contents needs a branch-local release disposition before the PR leaves draft. The normal disposition is a `.changeset/*.md` entry for each affected public package. `release:none` is allowed only when the branch touches package files but truly has no user-visible package content change, and the PR body includes a reason that mentions `release:none`. If the original reason lives in an issue or handoff, mirror the sentence into the PR body so CI and reviewers see the same evidence.
 
 Public trail contract changes are release facts. If a branch adds or removes a public trail, changes public visibility, changes an exposed trail's input schema or output schema, or changes surface exposure, add a changeset on the owning branch unless the branch has an explicit and reviewable `release:none` reason. Trail version entries and package semver are distinct: trail versions preserve capability contracts inside a topo, while package semver distributes framework bits through npm.
 
 In Graphite stacks, keep release dispositions branch-local. If the check reports a missing disposition for a lower branch, check out that owning branch, add the changeset or `release:none` rationale there, restack, and re-run the check upward. Do not hide lower-branch release gaps with a top-stack cleanup changeset.
+
+Run `bun run release:disposition:check` for the canonical local check. `bun run changeset:check` remains a compatibility alias. In CI, the check reads GitHub PR file metadata so pure source renames can use `previousFilename` instead of looking like public trail removal/addition.
 
 Good changeset prose names the user-visible change: "Expose `wayfind.contract` through the Trails operator CLI so agents can inspect saved input/output contracts before source reads." Good `release:none` rationale names the non-user-visible scope: "Only updates non-shipping test fixtures under `packages/core/src/__tests__`; no public package files or public trail contracts changed." A bare "internal" is not enough when public contracts, generated artifacts, package docs, or migrations move.
 

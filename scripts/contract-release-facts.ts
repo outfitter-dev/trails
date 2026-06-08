@@ -4,7 +4,9 @@ import { join } from 'node:path';
 
 import ts from 'typescript';
 
-import type { WorkspaceInfo } from './check-changeset-gate.ts';
+import { normalizeChangedFileInfo } from './changed-files.ts';
+import type { ChangedFileInput } from './changed-files.ts';
+import type { WorkspaceInfo } from './check-release-disposition.ts';
 
 export type ContractReleaseFactAspect =
   | 'input'
@@ -26,7 +28,7 @@ export interface ContractReleaseFact {
 
 export interface ContractReleaseFactInput {
   readonly baseRef?: string;
-  readonly changedFiles: readonly string[];
+  readonly changedFiles: readonly ChangedFileInput[];
   readonly repoRoot: string;
   readonly workspaces: readonly WorkspaceInfo[];
 }
@@ -58,9 +60,6 @@ const NON_SHIPPING_SOURCE_PATTERNS = [
 ] as const;
 
 const SOURCE_PATH_PATTERN = /\.[cm]?[jt]sx?$/u;
-
-const normalizePath = (path: string): string =>
-  path.replaceAll('\\', '/').replace(/^\.\//u, '');
 
 const isPublishableOnTrailsWorkspace = (workspace: WorkspaceInfo): boolean =>
   !workspace.isPrivate && workspace.name.startsWith('@ontrails/');
@@ -123,29 +122,37 @@ export const createContractSourceSnapshots = (
 ): readonly ContractSourceSnapshot[] => {
   const snapshots: ContractSourceSnapshot[] = [];
 
-  for (const changedFile of input.changedFiles.map(normalizePath)) {
-    if (!SOURCE_PATH_PATTERN.test(changedFile)) {
+  for (const changedFileInput of input.changedFiles) {
+    const changedFileInfo = normalizeChangedFileInfo(changedFileInput);
+    const changedFile = changedFileInfo.filename;
+    const baseFile = changedFileInfo.previousFilename ?? changedFile;
+
+    if (
+      !SOURCE_PATH_PATTERN.test(changedFile) &&
+      !SOURCE_PATH_PATTERN.test(baseFile)
+    ) {
       continue;
     }
 
-    const workspace = workspaceForFile(changedFile, input.workspaces);
+    const workspace =
+      workspaceForFile(changedFile, input.workspaces) ??
+      workspaceForFile(baseFile, input.workspaces);
     if (!workspace) {
       continue;
     }
 
+    const packagePath = isUnderWorkspace(changedFile, workspace.relativePath)
+      ? changedFile
+      : baseFile;
     const workspaceRelativePath = getWorkspaceRelativePath(
-      changedFile,
+      packagePath,
       workspace.relativePath
     );
     if (isNonShippingSourcePath(workspaceRelativePath)) {
       continue;
     }
 
-    const baseSource = readBaseSource(
-      input.repoRoot,
-      input.baseRef,
-      changedFile
-    );
+    const baseSource = readBaseSource(input.repoRoot, input.baseRef, baseFile);
     const currentSource = readCurrentSource(input.repoRoot, changedFile);
     if (baseSource === null && currentSource === null) {
       continue;
@@ -153,7 +160,8 @@ export const createContractSourceSnapshots = (
 
     snapshots.push({
       baseSource,
-      changedFiles: [changedFile],
+      changedFiles:
+        baseFile === changedFile ? [changedFile] : [baseFile, changedFile],
       currentSource,
       packageName: workspace.name,
       path: changedFile,
