@@ -13,8 +13,7 @@ If you are building an app with Trails, start with the user-facing docs in [`doc
 - [Warden Rules](./warden-rules.md) — how to author and audit durable Warden
   and repo-local correctness rules.
 - [Beta Channel Policy](../releases/beta-channel-policy.md) and
-  [Contract-Aware Changeset Check](../releases/contract-aware-changeset-check.md)
-  — release dispositions, branch-local changesets, and public trail contract
-  release facts.
+  [Release Rules Check](../releases/release-rules-check.md) — release rules,
+  branch-local release intent, and public trail contract release facts.
 
 The split is intentional: framework concepts stay in the public docs, while repo maintenance standards live here.

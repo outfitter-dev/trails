@@ -64,17 +64,17 @@ Current public packages are lockstep at the same Trails framework version.
 - **Ecosystem:** `@ontrails/testing` provides contract tests and surface harnesses; `@ontrails/topographer` owns TopoGraphs, semantic diffing, lock manifests, and topo-store persistence; `@ontrails/warden` owns governance rules; `@ontrails/wayfinder` owns graph-read query trails over saved Topographer artifacts.
 - **Beta install policy:** While `.changeset/pre.json` is in prerelease mode, install published Trails packages with exact `1.0.0-beta.N` pins or `@beta`; do not rely on unqualified `latest` unless release notes explicitly advance it.
 
-## Release Dispositions
+## Release Rules
 
-Feature work that changes publishable `@ontrails/*` package contents needs a branch-local release disposition before the PR leaves draft. The normal disposition is a `.changeset/*.md` entry for each affected public package. `release:none` is allowed only when the branch touches package files but truly has no user-visible package content change, and the PR, issue, or handoff explains why.
+Feature work that changes publishable `@ontrails/*` package contents needs branch-local release intent before the PR leaves draft. The normal intent is a `.changeset/*.md` entry for each affected public package. `release:none` is a compatibility no-release override allowed only when the branch touches package files but truly has no user-visible package content change, and the PR, issue, or handoff explains why.
 
 Public trail contract changes are release facts. If a branch adds or removes a public trail, changes public visibility, changes an exposed trail's input schema or output schema, or changes surface exposure, add a changeset on the owning branch unless the branch has an explicit and reviewable `release:none` reason. Trail version entries and package semver are distinct: trail versions preserve capability contracts inside a topo, while package semver distributes framework bits through npm.
 
-In Graphite stacks, keep release dispositions branch-local. If the check reports a missing disposition for a lower branch, check out that owning branch, add the changeset or `release:none` rationale there, restack, and re-run the check upward. Do not hide lower-branch release gaps with a top-stack cleanup changeset.
+In Graphite stacks, keep release intent branch-local. If the release check reports missing intent for a lower branch, check out that owning branch, add the changeset or no-release rationale there, restack, and re-run `bun run changeset:check` or `trails release check --json` upward. Do not hide lower-branch release gaps with a top-stack cleanup changeset.
 
 Good changeset prose names the user-visible change: "Expose `wayfind.contract` through the Trails operator CLI so agents can inspect saved input/output contracts before source reads." Good `release:none` rationale names the non-user-visible scope: "Only updates non-shipping test fixtures under `packages/core/src/__tests__`; no public package files or public trail contracts changed." A bare "internal" is not enough when public contracts, generated artifacts, package docs, or migrations move.
 
-During local review, classify a missing branch-local disposition for a public trail contract fact as P2. Selected P3 release ideas, such as imported schema tracing or future release targets, should be logged for follow-up rather than folded into the current branch unless they expose a concrete user-visible release gap.
+During local review, classify missing branch-local release intent for a public trail contract fact as P2. Selected P3 release ideas, such as imported schema tracing or future release targets, should be logged for follow-up rather than folded into the current branch unless they expose a concrete user-visible release gap.
 
 ## Agent Wayfinding
 

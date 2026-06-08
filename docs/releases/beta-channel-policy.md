@@ -77,17 +77,17 @@ That command is read-only. It should show whether `latest` and `beta` point at d
 
 ## Version-Bump Cadence
 
-Every PR that changes publishable `@ontrails/*` package contents needs a branch-local changeset unless the PR is explicitly labeled `release:none`.
+Every PR that changes publishable `@ontrails/*` package contents needs branch-local release intent unless the PR carries an explicit no-release reason.
 
-## Release Dispositions
+## Release Rules
 
-A branch-local changeset is the normal release disposition. It says the branch changes user-visible package content and should flow into Changesets, package changelogs, and the next version plan. Use it for public API changes, generated-app changes, public trail contract changes, docs or examples that ship in a public package, and migration guidance that users need after upgrading.
+A branch-local changeset is the normal release intent. It says the branch changes user-visible package content and should flow into Changesets, package changelogs, and the next version plan. Use it for public API changes, generated-app changes, public trail contract changes, docs or examples that ship in a public package, and migration guidance that users need after upgrading.
 
-`release:none` is the explicit no-release disposition. Use it only when the branch touches package files but does not change user-visible package content. A good `release:none` rationale names the affected files and explains why users do not need a package changelog entry. A bad rationale merely says "internal" or "test only" while the branch also changes public trail additions/removals, visibility, input, output, surface exposure, generated artifacts, or package docs.
+`release:none` is the compatibility no-release override. Use it only when the branch touches package files but does not change user-visible package content. A good `release:none` rationale names the affected files and explains why users do not need a package changelog entry. A bad rationale merely says "internal" or "test only" while the branch also changes public trail additions/removals, visibility, input, output, surface exposure, generated artifacts, or package docs.
 
-Trail versions and package semver are separate axes. A trail version entry preserves or exposes capability contracts inside a topo. A package version distributes framework bits through npm. Changing a public trail contract is a release fact even when the trail's own `version` field does not move, and a trail version migration still needs package release disposition when publishable package contents change.
+Trail versions and package semver are separate axes. A trail version entry preserves or exposes capability contracts inside a topo. A package version distributes framework bits through npm. Changing a public trail contract is a release fact even when the trail's own `version` field does not move, and a trail version migration still needs branch-local release intent when publishable package contents change.
 
-The current check enforces the first contract-aware slice: public trail additions/removals, visibility transitions, input schema changes, output schema changes, or surface exposure changes need a branch-local changeset or an explicit `release:none` disposition. The check is intentionally branch-local in Graphite stacks. Fix missing dispositions on the owning branch, then restack upward; do not add a top-stack cleanup changeset to hide a lower branch's missing release story.
+The current check enforces the first contract-aware slice: public trail additions/removals, visibility transitions, input schema changes, output schema changes, or surface exposure changes need a branch-local changeset or an explicit no-release reason. The check is intentionally branch-local in Graphite stacks. Fix missing intent on the owning branch, then restack upward; do not add a top-stack cleanup changeset to hide a lower branch's missing release story.
 
 Examples:
 
@@ -97,8 +97,7 @@ Examples:
 
 After substantial stacks merge to `main`:
 
-1. Confirm all package-affecting PRs carried changesets or an explicit
-   `release:none` decision.
+1. Confirm all package-affecting PRs carried branch-local release intent. `trails release check --json` and `bun run changeset:check` are the local proof surfaces.
 2. Run `bunx changeset status --verbose` from clean, synced `main` to inspect
    the next beta plan.
 3. When the next beta is warranted, create a dedicated version branch, run
