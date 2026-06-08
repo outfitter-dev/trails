@@ -2,6 +2,9 @@ import { existsSync, readFileSync } from 'node:fs';
 import { readdir } from 'node:fs/promises';
 import { join, relative, resolve } from 'node:path';
 
+import { findPublicTrailContractChangeFacts } from './contract-release-facts.ts';
+import type { ContractReleaseFact } from './contract-release-facts.ts';
+
 interface PackageJson {
   readonly name?: string;
   readonly private?: boolean;
@@ -15,7 +18,9 @@ export interface WorkspaceInfo {
 }
 
 export interface ChangesetGateInput {
+  readonly baseRef?: string;
   readonly changedFiles: readonly string[];
+  readonly contractFacts?: readonly ContractReleaseFact[];
   readonly releaseNone?: boolean;
   readonly repoRoot: string;
   readonly workspaces: readonly WorkspaceInfo[];
@@ -24,14 +29,17 @@ export interface ChangesetGateInput {
 export interface ChangesetGateResult {
   readonly affectedPackages: readonly string[];
   readonly changedChangesets: readonly string[];
+  readonly contractFacts: readonly ContractReleaseFact[];
   readonly coveredPackages: readonly string[];
   readonly errors: readonly string[];
   readonly passed: boolean;
   readonly releaseNone: boolean;
+  readonly uncoveredContractFacts: readonly ContractReleaseFact[];
   readonly versionRelease: boolean;
 }
 
 interface CliOptions {
+  readonly baseRef?: string;
   readonly changedFilesPath?: string;
   readonly releaseNone: boolean;
   readonly repoRoot: string;
@@ -289,6 +297,26 @@ const findChangedChangesets = (
     return packages.length === 0 ? [] : [{ packages, path }];
   });
 
+const findGateContractFacts = (
+  input: ChangesetGateInput
+): readonly ContractReleaseFact[] =>
+  input.contractFacts ??
+  findPublicTrailContractChangeFacts({
+    baseRef: input.baseRef,
+    changedFiles: input.changedFiles,
+    repoRoot: input.repoRoot,
+    workspaces: input.workspaces,
+  });
+
+const isContractFactCovered = (
+  fact: ContractReleaseFact,
+  coveredPackages: readonly string[]
+): boolean =>
+  fact.packageName !== undefined && coveredPackages.includes(fact.packageName);
+
+const formatContractFact = (fact: ContractReleaseFact): string =>
+  `${fact.trailId} ${fact.aspect} (${fact.packageName ?? fact.path})`;
+
 export const checkChangesetGate = (
   input: ChangesetGateInput
 ): ChangesetGateResult => {
@@ -302,6 +330,7 @@ export const checkChangesetGate = (
   const coveredPackages = [
     ...new Set(changesets.flatMap((changeset) => changeset.packages)),
   ].toSorted();
+  const contractFacts = findGateContractFacts(input);
   const versionRelease = isVersionReleaseChangeSet(
     input.changedFiles,
     input.workspaces,
@@ -309,6 +338,9 @@ export const checkChangesetGate = (
   );
   const uncoveredPackages = affectedPackages.filter(
     (packageName) => !coveredPackages.includes(packageName)
+  );
+  const uncoveredContractFacts = contractFacts.filter(
+    (fact) => !isContractFactCovered(fact, coveredPackages)
   );
   const errors: string[] = [];
 
@@ -324,13 +356,23 @@ export const checkChangesetGate = (
     );
   }
 
+  if (!releaseNone && !versionRelease && uncoveredContractFacts.length > 0) {
+    errors.push(
+      `Public trail contract changes need release disposition: ${uncoveredContractFacts
+        .map(formatContractFact)
+        .join(', ')}`
+    );
+  }
+
   return {
     affectedPackages,
     changedChangesets,
+    contractFacts,
     coveredPackages,
     errors,
     passed: errors.length === 0,
     releaseNone,
+    uncoveredContractFacts,
     versionRelease,
   };
 };
@@ -373,6 +415,7 @@ const readLocalChangedFiles = (repoRoot: string): readonly string[] => {
 };
 
 const parseArgs = (args: readonly string[]): CliOptions => {
+  let baseRef: string | undefined;
   let changedFilesPath: string | undefined;
   let releaseNone = false;
   let repoRoot = resolve(import.meta.dir, '..');
@@ -382,6 +425,18 @@ const parseArgs = (args: readonly string[]): CliOptions => {
 
     if (arg === '--release-none') {
       releaseNone = true;
+      continue;
+    }
+
+    if (arg === '--base-ref') {
+      const value = args[index + 1];
+
+      if (!value) {
+        throw new Error('--base-ref requires a git ref or commit');
+      }
+
+      baseRef = value;
+      index += 1;
       continue;
     }
 
@@ -413,6 +468,7 @@ const parseArgs = (args: readonly string[]): CliOptions => {
   }
 
   return {
+    baseRef,
     changedFilesPath,
     releaseNone,
     repoRoot,
@@ -457,6 +513,14 @@ const renderResult = (result: ChangesetGateResult): void => {
     console.error(`Affected packages: ${result.affectedPackages.join(', ')}`);
   }
 
+  if (result.contractFacts.length > 0) {
+    console.error(
+      `Public trail contract facts: ${result.contractFacts
+        .map(formatContractFact)
+        .join(', ')}`
+    );
+  }
+
   if (result.changedChangesets.length > 0) {
     console.error(`Changed changesets: ${result.changedChangesets.join(', ')}`);
   }
@@ -470,6 +534,9 @@ const main = async (): Promise<number> => {
     ? readChangedFiles(options.changedFilesPath)
     : readLocalChangedFiles(options.repoRoot);
   const result = checkChangesetGate({
+    baseRef:
+      options.baseRef ??
+      (options.changedFilesPath === undefined ? 'origin/main' : undefined),
     changedFiles,
     releaseNone: options.releaseNone,
     repoRoot: options.repoRoot,

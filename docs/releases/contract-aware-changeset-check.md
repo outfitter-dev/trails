@@ -30,13 +30,15 @@ The first check can point future agents toward Wayfinder without making CI depen
 
 ### Graphite base helpers and branch locality
 
-The existing check uses the GitHub PR file list in CI and `origin/main...HEAD` for local ad hoc runs without `--changed-files`. The CI path is the important one for branch locality. Local reproduction should keep accepting an explicit PR file list:
+The existing check uses the GitHub PR file list in CI and `origin/main...HEAD` for local ad hoc runs without `--changed-files`. The CI path is the important one for branch locality. Local reproduction should pass an explicit PR file list and the immediate PR base:
 
 ```bash
-bun run changeset:check -- --changed-files /tmp/pr-files.txt
+base=$(gh pr view <pr-number> --repo outfitter-dev/trails --json baseRefOid --jq .baseRefOid)
+git fetch --no-tags --depth=1 origin "$base"
+bun run changeset:check -- --changed-files /tmp/pr-files.txt --base-ref "$base"
 ```
 
-Future local helpers may add a `--base-ref` option for source snapshots. The first implementation can remain deterministic in tests by passing before/after source content directly into a helper, then use best-effort `git show` only for CLI evidence enrichment when a base ref is available.
+`--base-ref` lets the source-static detector read before/after trail source with `git show` while keeping the branch-local PR file list as the source of truth. Focused tests still pass before/after source snapshots directly into the detector so the contract fact behavior stays deterministic without a full repo app compile.
 
 ## Chosen First Slice
 

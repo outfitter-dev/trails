@@ -8,6 +8,7 @@ import {
   discoverWorkspaces,
 } from '../check-changeset-gate.ts';
 import type { WorkspaceInfo } from '../check-changeset-gate.ts';
+import type { ContractReleaseFact } from '../contract-release-facts.ts';
 
 const workspaces: readonly WorkspaceInfo[] = [
   {
@@ -31,6 +32,19 @@ const workspaces: readonly WorkspaceInfo[] = [
     relativePath: 'apps/demo',
   },
 ];
+
+const contractFact = (
+  aspect: ContractReleaseFact['aspect'] = 'input'
+): ContractReleaseFact => ({
+  aspect,
+  baseHash: 'base-hash',
+  changedFiles: ['packages/core/src/user.ts'],
+  currentHash: 'current-hash',
+  packageName: '@ontrails/core',
+  path: 'packages/core/src/user.ts',
+  trailId: 'user.create',
+  workspacePath: 'packages/core',
+});
 
 const withTempRepo = <T>(
   setup: (repoRoot: string) => T
@@ -263,6 +277,76 @@ describe('checkChangesetGate', () => {
       expect(contradiction.passed).toBe(false);
       expect(contradiction.errors).toEqual([
         '`release:none` conflicts with changed changeset files. Remove the label or the changeset.',
+      ]);
+    } finally {
+      rmSync(repoRoot, { force: true, recursive: true });
+    }
+  });
+
+  test('reports uncovered public trail contract facts with trail evidence', () => {
+    const { repoRoot } = withTempRepo(() => {});
+
+    try {
+      const result = checkChangesetGate({
+        changedFiles: ['packages/core/src/user.ts'],
+        contractFacts: [contractFact('output')],
+        repoRoot,
+        workspaces,
+      });
+
+      expect(result.passed).toBe(false);
+      expect(result.uncoveredContractFacts).toHaveLength(1);
+      expect(result.errors).toContain(
+        'Public trail contract changes need release disposition: user.create output (@ontrails/core)'
+      );
+    } finally {
+      rmSync(repoRoot, { force: true, recursive: true });
+    }
+  });
+
+  test('passes public trail contract facts with matching changeset coverage', () => {
+    const { repoRoot } = withTempRepo((root) => {
+      writeFileSync(
+        join(root, '.changeset', 'core-contract.md'),
+        "---\n'@ontrails/core': patch\n---\n\nUpdate user contract.\n"
+      );
+    });
+
+    try {
+      const result = checkChangesetGate({
+        changedFiles: [
+          'packages/core/src/user.ts',
+          '.changeset/core-contract.md',
+        ],
+        contractFacts: [contractFact('input')],
+        repoRoot,
+        workspaces,
+      });
+
+      expect(result.passed).toBe(true);
+      expect(result.contractFacts).toHaveLength(1);
+      expect(result.uncoveredContractFacts).toEqual([]);
+    } finally {
+      rmSync(repoRoot, { force: true, recursive: true });
+    }
+  });
+
+  test('allows release:none as an explicit public contract disposition', () => {
+    const { repoRoot } = withTempRepo(() => {});
+
+    try {
+      const result = checkChangesetGate({
+        changedFiles: ['packages/core/src/user.ts'],
+        contractFacts: [contractFact('surfaces')],
+        releaseNone: true,
+        repoRoot,
+        workspaces,
+      });
+
+      expect(result.passed).toBe(true);
+      expect(result.releaseNone).toBe(true);
+      expect(result.contractFacts.map((fact) => fact.aspect)).toEqual([
+        'surfaces',
       ]);
     } finally {
       rmSync(repoRoot, { force: true, recursive: true });

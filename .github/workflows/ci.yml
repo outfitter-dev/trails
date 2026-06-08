@@ -115,6 +115,11 @@ jobs:
       - uses: actions/checkout@v5
       - uses: ./.github/actions/setup
 
+      - name: Fetch PR base for contract release facts
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: git fetch --no-tags --depth=1 origin "$BASE_SHA"
+
       - name: Collect PR file list
         env:
           GH_TOKEN: ${{ github.token }}
@@ -127,9 +132,10 @@ jobs:
 
       - name: Check changeset
         env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
           RELEASE_NONE: ${{ contains(github.event.pull_request.labels.*.name, 'release:none') }}
         run: |
-          args=(--changed-files "$RUNNER_TEMP/changed-files.txt")
+          args=(--changed-files "$RUNNER_TEMP/changed-files.txt" --base-ref "$BASE_SHA")
           if [ "$RELEASE_NONE" = "true" ]; then
             args+=(--release-none)
           fi
