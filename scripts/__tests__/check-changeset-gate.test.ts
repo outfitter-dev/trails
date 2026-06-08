@@ -304,6 +304,48 @@ describe('checkChangesetGate', () => {
     }
   });
 
+  test('derives public contract facts from changed package source files', () => {
+    const { repoRoot } = withTempRepo((root) => {
+      mkdirSync(join(root, 'packages', 'core', 'src'), { recursive: true });
+      writeFileSync(
+        join(root, 'packages', 'core', 'src', 'user.ts'),
+        `
+import { Result, trail } from '@ontrails/core';
+import { z } from 'zod';
+
+export const userCreate = trail('user.create', {
+  blaze: () => Result.ok({ id: 'u1' }),
+  input: z.object({ name: z.string() }),
+  output: z.object({ id: z.string() }),
+});
+`
+      );
+    });
+
+    try {
+      const result = checkChangesetGate({
+        changedFiles: ['packages/core/src/user.ts'],
+        repoRoot,
+        workspaces,
+      });
+
+      expect(result.passed).toBe(false);
+      expect(result.contractFacts).toMatchObject([
+        {
+          aspect: 'trail',
+          packageName: '@ontrails/core',
+          path: 'packages/core/src/user.ts',
+          trailId: 'user.create',
+        },
+      ]);
+      expect(result.errors).toContain(
+        'Public trail contract changes need release disposition: user.create trail (@ontrails/core)'
+      );
+    } finally {
+      rmSync(repoRoot, { force: true, recursive: true });
+    }
+  });
+
   test('passes public trail contract facts with matching changeset coverage', () => {
     const { repoRoot } = withTempRepo((root) => {
       writeFileSync(

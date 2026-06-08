@@ -82,3 +82,31 @@ Out of scope for this first check:
 ## Review Rule
 
 For local reviews, a missing release disposition for a public trail contract fact is a P2. It can block downstream release quality even when code, tests, and package-file checks are green.
+
+## Local Reproduction
+
+The Changeset job validates the branch-local PR file list. To reproduce a hosted failure locally, save the PR file list and pass the branch base explicitly:
+
+```bash
+gh api --paginate repos/outfitter-dev/trails/pulls/<pr-number>/files --jq '.[].filename' > /tmp/trails-pr-files.txt
+base=$(gh pr view <pr-number> --repo outfitter-dev/trails --json baseRefOid --jq .baseRefOid)
+git fetch --no-tags --depth=1 origin "$base"
+bun run changeset:check -- --changed-files /tmp/trails-pr-files.txt --base-ref "$base"
+```
+
+For ad hoc local branch checks without a PR file list, the script keeps the existing fallback and compares `origin/main...HEAD`:
+
+```bash
+bun run changeset:check
+```
+
+That fallback is useful while developing, but the PR file-list path is the branch-local source of truth for stacked Graphite branches. If a missing disposition appears on a stacked PR, fix the changeset or `release:none` rationale on the owning branch, restack, and rerun the check upward.
+
+## Fixture Coverage
+
+The focused tests avoid compiling a full repo app:
+
+- `scripts/__tests__/contract-release-facts.test.ts` models public and internal trail source snapshots directly. It proves public input schema changes, public output schema changes, surface exposure changes, public trail addition/removal, visibility transitions, same-file schema constant changes, internal-only trail changes, and non-contract source edits.
+- `scripts/__tests__/check-changeset-gate.test.ts` keeps the existing package-file check coverage and adds contract-aware check coverage. It proves uncovered public contract facts fail with trail id and aspect evidence, matching changesets pass, `release:none` remains an explicit disposition path, and the check can derive public contract facts from a changed package source file.
+
+The fixtures intentionally do not cover imported schema tracing or full before/after topo graph materialization. Those are future Topographer or Wayfinder release facts, not requirements for the first branch-local CI check.
