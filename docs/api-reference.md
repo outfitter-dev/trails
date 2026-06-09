@@ -269,7 +269,7 @@ StoredTopoExport
 
 ## `@ontrails/wayfinder`
 
-These are cold graph-read trails and helpers for querying saved Topographer artifacts. They read `topo.lock`, `trails.lock`, and topo-store records without booting apps, resolving resources, reaching the network, or mutating local state.
+These are cold read trails and helpers for querying saved graph artifacts and package-level authoring evidence. Graph queries read `topo.lock`, `trails.lock`, and topo-store records; adapter queries read `@ontrails/adapter-kit` package and conformance evidence. They do not boot apps, resolve resources, reach the network, or mutate local state.
 
 ```typescript
 // Graph-read topo and query trails
@@ -277,6 +277,7 @@ wayfinderTopo
 wayfindOverviewTrail, wayfindSearchTrail
 wayfindTrailsTrail, wayfindContoursTrail, wayfindResourcesTrail, wayfindSignalsTrail
 wayfindSurfacesTrail, wayfindFacetsTrail, wayfindVersionsTrail, wayfindExamplesTrail
+wayfindErrorsTrail, wayfindAdaptersTrail
 wayfindDescribeTrail, wayfindContractTrail, wayfindNearbyTrail, wayfindImpactTrail
 wayfindDiffTrail
 

@@ -85,6 +85,55 @@ const assertSearchFindsWayfinder = (search: JsonObject): void => {
   }
 };
 
+const assertErrorsFindWayfinder = (errorsResult: JsonObject): void => {
+  const { errors } = errorsResult;
+  if (!Array.isArray(errors)) {
+    throw new TypeError('wayfind errors did not return errors');
+  }
+  const searchEntry = errors
+    .map((entry) => assertObject(entry, 'wayfind errors entry'))
+    .find((entry) => entry['trailId'] === 'wayfind.search');
+  if (searchEntry === undefined) {
+    throw new Error('wayfind errors did not include wayfind.search');
+  }
+  const completeness = assertObject(
+    searchEntry['completeness'],
+    'wayfind errors completeness'
+  );
+  const emitted = assertObject(
+    completeness['emitted'],
+    'wayfind errors emitted completeness'
+  );
+  if (emitted['status'] !== 'unknown') {
+    throw new Error('wayfind errors overclaimed emitted-error completeness');
+  }
+};
+
+const assertAdaptersFindHono = (adaptersResult: JsonObject): void => {
+  const counts = assertObject(
+    adaptersResult['counts'],
+    'wayfind adapters counts'
+  );
+  if (counts['configured'] !== 1 || counts['used'] !== 1) {
+    throw new Error(
+      'wayfind adapters did not report configured/used adapter facts'
+    );
+  }
+  if (counts['observed'] !== 0) {
+    throw new Error('wayfind adapters reported unsupported observed facts');
+  }
+  const { adapters } = adaptersResult;
+  if (!Array.isArray(adapters)) {
+    throw new TypeError('wayfind adapters did not return adapters');
+  }
+  const ids = adapters
+    .map((adapter) => assertObject(adapter, 'wayfind adapters fact')['key'])
+    .filter((key): key is string => typeof key === 'string');
+  if (!ids.includes('@ontrails/hono:http:used')) {
+    throw new Error('wayfind adapters did not find Hono conformance usage');
+  }
+};
+
 const assertContractForSearch = (contractResult: JsonObject): void => {
   const contract = assertObject(contractResult['contract'], 'contract');
   if (contract['id'] !== 'wayfind.search') {
@@ -124,6 +173,17 @@ const main = async (): Promise<void> => {
     ]);
     assertFreshSource(search, 'wayfind search');
     assertSearchFindsWayfinder(search);
+
+    const errors = runWayfind(tempRoot, [
+      'errors',
+      '--input-json',
+      '{"filters":{"kind":"trail","idPrefix":"wayfind."}}',
+    ]);
+    assertFreshSource(errors, 'wayfind errors');
+    assertErrorsFindWayfinder(errors);
+
+    const adapters = runWayfind(repoRoot, ['adapters']);
+    assertAdaptersFindHono(adapters);
 
     const contract = runWayfind(tempRoot, ['contract', 'wayfind.search']);
     assertFreshSource(contract, 'wayfind contract');

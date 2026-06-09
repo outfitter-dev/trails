@@ -65,7 +65,9 @@ describe('Trails MCP surface shaping', () => {
       'trails_validate',
       'trails_warden',
       'trails_warden_guide',
+      'trails_wayfind_adapters',
       'trails_wayfind_contract',
+      'trails_wayfind_errors',
       'trails_wayfind_examples',
       'trails_wayfind_impact',
       'trails_wayfind_nearby',
@@ -106,11 +108,29 @@ describe('Trails MCP surface shaping', () => {
 
   test('preserves MCP descriptions and permission annotations', () => {
     const tools = unwrapTools(trailsMcpApp, trailsMcpSurfaceOptions);
+    const wayfindAdapters = requireTool(tools, 'trails_wayfind_adapters');
+    const wayfindErrors = requireTool(tools, 'trails_wayfind_errors');
     const wayfindSearch = requireTool(tools, 'trails_wayfind_search');
     const warden = requireTool(tools, 'trails_warden');
     const devClean = requireTool(tools, 'trails_dev_clean');
     const topoUnpin = requireTool(tools, 'trails_topo_unpin');
     const inspect = requireTool(tools, 'trails_inspect');
+
+    expect(wayfindAdapters.description).toBe(
+      'List adapter facts with package and conformance provenance'
+    );
+    expect(wayfindAdapters.annotations).toMatchObject({
+      readOnlyHint: true,
+      title: 'List adapter facts with package and conformance provenance',
+    });
+
+    expect(wayfindErrors.description).toBe(
+      'List saved trail error facts with provenance'
+    );
+    expect(wayfindErrors.annotations).toMatchObject({
+      readOnlyHint: true,
+      title: 'List saved trail error facts with provenance',
+    });
 
     expect(wayfindSearch.description).toBe(
       'Find topo graph entities with typed filters'
@@ -156,8 +176,8 @@ describe('Trails MCP surface shaping', () => {
     expect(shapedTrailIds).not.toContain('create.scaffold');
     expect(shapedTrailIds).not.toContain('completions');
     expect(shapedTrailIds).not.toContain('completions.__complete');
-    expect(shapedTrailIds).not.toContain('wayfind.adapters');
-    expect(shapedTrailIds).not.toContain('wayfind.errors');
+    expect(shapedTrailIds).toContain('wayfind.adapters');
+    expect(shapedTrailIds).toContain('wayfind.errors');
     expect(shapedTrailIds).not.toContain('wayfind.query');
   });
 
@@ -167,6 +187,8 @@ describe('Trails MCP surface shaping', () => {
     expect(Object.keys(trailsMcpFacets)).toEqual(['inspect']);
     expect(trailsMcpIncludedTrails).toContain('release.check');
     expect(trailsMcpIncludedTrails).toContain('warden');
+    expect(trailsMcpIncludedTrails).toContain('wayfind.adapters');
+    expect(trailsMcpIncludedTrails).toContain('wayfind.errors');
     expect(trailsMcpIncludedTrails).toContain('wayfind.search');
   });
 
