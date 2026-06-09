@@ -3,7 +3,7 @@ slug: release-provenance-as-lifecycle-projection
 title: Release Provenance as Lifecycle Projection
 status: draft
 created: 2026-06-08
-updated: 2026-06-08
+updated: 2026-06-09
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [47, 48]
 ---
@@ -65,6 +65,16 @@ The first implementation wedge is branch-local:
 
 This is intentionally narrower than full changelog automation. It makes the missing-release-story failure impossible to miss without asking the framework to write prose or choose semver intent by itself.
 
+### Governance joins stay staged
+
+Release checks, Warden, and Wayfinder support the same story without owning the same facts.
+
+`release.check` owns branch-local release-rule evaluation. It reads the PR file list, compares a branch to its immediate Graphite base, loads release rules, and decides whether release intent is missing. Warden should not duplicate GitHub or Graphite adapter shape.
+
+Warden may later add advisory release hygiene when the fact is answerable from source, topo, or owner-held data without PR metadata. Good candidates include missing release config, docs that contradict release rules, or stale generated release guidance. A Warden error rule should wait for a durable invariant that Warden alone can evaluate.
+
+Wayfinder remains a graph-read first slice. It helps reviewers inspect impact, nearby trails, and contracts during release review, but `release.check` does not require Wayfinder artifacts today. Future `wayfind.implications` queries may join graph facts with named Warden diagnostics, release-check output, or Distribution-Ready Done checklist facts, but those joins must cite their sources.
+
 ### Graphite branch locality is part of the contract
 
 Stacked branches make release provenance easy to smear. A top cleanup branch can add one changeset that appears to cover lower package-affecting work, but that destroys the owning-branch story. The check therefore uses the PR file list and the branch's immediate base. Reviewers and agents should fix missing release intent on the owning branch, then restack upward.
@@ -96,6 +106,8 @@ Stacked branches make release provenance easy to smear. A top cleanup branch can
 - Implementing per-surface, per-facet, per-channel, or per-stack-segment release targets.
 - Computing stack-cumulative release plans.
 - Inferring error-taxonomy or permit changes as release facts in the first slice.
+- Implementing a Warden release-rule error rule before Warden has a durable non-PR-metadata invariant to own.
+- Requiring Wayfinder artifacts before release-rule usage proves a graph-read or rule-join need.
 - Promoting this draft ADR to accepted status in the same implementation stack.
 
 ## Non-decisions
