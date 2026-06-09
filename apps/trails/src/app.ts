@@ -22,6 +22,7 @@ import * as completionsComplete from './trails/completions-complete.js';
 import * as create from './trails/create.js';
 import * as createAdapter from './trails/create-adapter.js';
 import * as createScaffold from './trails/create-scaffold.js';
+import * as createVersions from './trails/create-versions.js';
 import * as deprecate from './trails/deprecate.js';
 import * as devClean from './trails/dev-clean.js';
 import * as devReset from './trails/dev-reset.js';
@@ -70,6 +71,7 @@ export const operatorApp = topo(
   create,
   createAdapter,
   createScaffold,
+  createVersions,
   addSurface,
   addVerify,
   addTrail,

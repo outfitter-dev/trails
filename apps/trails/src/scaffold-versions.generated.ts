@@ -1,4 +1,4 @@
-// GENERATED FILE — do not edit by hand. Run `bun scripts/sync-scaffold-versions.ts` to regenerate.
+// GENERATED FILE — do not edit by hand. Run `bun run scaffold-versions:sync` to regenerate.
 
 export const scaffoldDependencyVersions = {
   bunTypes: '^1.3.11',
