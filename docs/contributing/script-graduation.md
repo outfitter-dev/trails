@@ -62,6 +62,8 @@ Keep three axes distinct: native vs adapter is the *kind*; subpath/built-in vs e
 
 `release.check` is the derives-and-graduates example: release rules are durable Trails-contract facts, so the script-era checker graduated into the `trails release check` surface, and package scripts became thin callers. `vocab-cutover-rewrite` is the derives-but-stays-tooling example: real derivation over a transient truth.
 
+The native Bun release binding is the fills-a-declared-seam example: `@ontrails/trails/release` owns the binding descriptor plus Bun pack, publish, and registry preflight implementation. Root `publish:*` scripts are compatibility wrappers around that binding. They remain useful named exits, but they do not own the release behavior.
+
 ## After graduation
 
 Scripts may remain as compatibility wrappers or thin callers after their logic graduates — CI entry points and `bun run` ergonomics are reasons to keep a named exit. Not every script becomes a public CLI command: repo-local Warden rules, internal commands, native bindings, adapter bindings, and plain tooling are all valid homes. The test is who owns the derivation, not whether a file still exists under `scripts/`.

@@ -1,4 +1,14 @@
 export {
+  nativeBunReleaseBinding,
+  releaseBindingCapabilityValues,
+  releaseBindingKindValues,
+  releaseBindingPlacementValues,
+  type ReleaseBindingCapability,
+  type ReleaseBindingDescriptor,
+  type ReleaseBindingKind,
+  type ReleaseBindingPlacement,
+} from './bindings.js';
+export {
   checkReleaseRules,
   discoverWorkspaces,
   formatReleaseCheckReport,
@@ -39,3 +49,22 @@ export {
   type ReleaseRule,
   type ReleaseRuleInput,
 } from './config.js';
+export {
+  findPackedFirstPartyDependencyMismatches,
+  runNativeBunPublishCli,
+  type NativeBunPublishOptions,
+  type NativeBunPublishPackageJson,
+  type NativeBunPublishWorkspace,
+} from './native-bun-publish.js';
+export {
+  checkRegistryPosture,
+  discoverRegistryWorkspaces,
+  formatDistTagSummary,
+  registryPostureErrors,
+  runRegistryPreflight,
+  runRegistryPreflightCli,
+  type RegistryPreflightOptions,
+  type RegistryResult,
+  type RegistryView,
+  type RegistryWorkspace,
+} from './native-bun-registry.js';

@@ -41,7 +41,7 @@ For fully reproducible docs, replace `@beta` with the exact beta version named b
 
 `.changeset/pre.json` is the channel source while it has `mode: "pre"`. The current prerelease tag is `beta`.
 
-The release scripts follow that source:
+The native Bun release binding follows that source. The package scripts below are compatibility wrappers around the binding:
 
 - `bun run publish:check` is local and read-only.
 - `bun run publish:registry-check` defaults to `.changeset/pre.json`'s tag in
@@ -54,6 +54,10 @@ The release scripts follow that source:
 During the beta line, `latest` may intentionally lag behind `beta`. Operators should not advance `latest` after every beta publication. Move `latest` only when leaving prerelease mode for the stable 1.x line, or after a separate explicit release decision that says a beta should become the unqualified default.
 
 Do not use `npm publish`, `changeset publish`, or ad hoc dist-tag mutation for normal Trails package releases.
+
+## Native Bun Release Binding
+
+`@ontrails/trails/release` declares the built-in native Bun release binding. It owns package discovery, workspace dependency ordering, `bun pm pack` verification, `bun publish` invocation, and read-only npm registry preflight. The binding is native because it is Trails-owned, same-package, and uses the ambient Bun runtime. Future integrations that cross into a foreign release tool or registry contract belong in adapter bindings instead.
 
 ## Read-Only Registry Checks
 

@@ -40,6 +40,7 @@
     "@ontrails/warden": "workspace:^",
     "@ontrails/wayfinder": "workspace:^",
     "commander": "catalog:",
+    "typescript": "^5.9.3",
     "zod": "catalog:"
   },
   "devDependencies": {
