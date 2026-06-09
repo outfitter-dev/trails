@@ -200,6 +200,7 @@ export {
   permitGovernanceTrail,
   preferSchemaInferenceTrail,
   projectAwareRuleInput,
+  publicExportExampleCoverageTrail,
   publicInternalDeepImportsTrail,
   publicOutputSchemaTrail,
   publicUnionOutputDiscriminantsTrail,

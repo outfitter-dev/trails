@@ -36,6 +36,7 @@ export { ownerProjectionParityTrail } from './owner-projection-parity.trail.js';
 export { pendingForceTrail } from './pending-force.trail.js';
 export { permitGovernanceTrail } from './permit-governance.trail.js';
 export { preferSchemaInferenceTrail } from './prefer-schema-inference.trail.js';
+export { publicExportExampleCoverageTrail } from './public-export-example-coverage.trail.js';
 export { publicInternalDeepImportsTrail } from './public-internal-deep-imports.trail.js';
 export { publicOutputSchemaTrail } from './public-output-schema.trail.js';
 export { publicUnionOutputDiscriminantsTrail } from './public-union-output-discriminants.trail.js';

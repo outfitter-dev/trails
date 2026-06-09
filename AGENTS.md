@@ -92,7 +92,7 @@ Use the project language consistently:
 This section is generated from the live `@ontrails/warden` rule manifest. Keep the human-authored guidance above as orientation; use this block as the enforceable-rule index.
 
 - Guide input command: `bun apps/trails/bin/trails.ts warden guide --manifest`
-- Rule count: 62
+- Rule count: 63
 
 ### Rule Index
 
@@ -122,6 +122,7 @@ This section is generated from the live `@ontrails/warden` rule manifest. Keep t
 - `no-top-level-surface` (warn, source/source-static, external): Topo export modules do not open surfaces at module top level.
 - `owner-projection-parity` (error, source/source-static, internal): Framework projections stay aligned with owner exports.
 - `prefer-schema-inference` (warn, all/source-static, advisory): Trail schemas should be inferred unless overrides add meaning.
+- `public-export-example-coverage` (error, source/source-static, repo-local): Public API barrel exports carry leading @example TSDoc coverage.
 - `public-internal-deep-imports` (error, project/project-static, internal): Cross-package imports stay on package-owned public exports.
 - `public-union-output-discriminants` (error, topo/topo-aware, external): Public output object unions expose branch discriminants.
 - `reference-exists` (error, project/project-static, external): Reference declarations resolve to known contours.

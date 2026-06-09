@@ -32,6 +32,7 @@ import { orphanedSignal } from './orphaned-signal.js';
 import { ownerProjectionParity } from './owner-projection-parity.js';
 import { permitGovernance } from './permit-governance.js';
 import { preferSchemaInference } from './prefer-schema-inference.js';
+import { publicExportExampleCoverage } from './public-export-example-coverage.js';
 import { publicInternalDeepImports } from './public-internal-deep-imports.js';
 import { publicOutputSchema } from './public-output-schema.js';
 import { publicUnionOutputDiscriminants } from './public-union-output-discriminants.js';
@@ -190,6 +191,7 @@ export const wardenRules: ReadonlyMap<string, WardenRule> = new Map<
   [onReferencesExist.name, onReferencesExist],
   [orphanedSignal.name, orphanedSignal],
   [ownerProjectionParity.name, ownerProjectionParity],
+  [publicExportExampleCoverage.name, publicExportExampleCoverage],
   [publicInternalDeepImports.name, publicInternalDeepImports],
   [resourceDeclarations.name, resourceDeclarations],
   [readIntentFires.name, readIntentFires],

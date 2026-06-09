@@ -405,6 +405,12 @@ const builtinWardenRuleMetadataInput = {
     scope: 'advisory',
     tier: 'source-static',
   },
+  'public-export-example-coverage': {
+    ...durableRepoLocal,
+    invariant:
+      'Public API barrel exports carry leading @example TSDoc coverage.',
+    tier: 'source-static',
+  },
   'public-internal-deep-imports': {
     invariant: 'Cross-package imports stay on package-owned public exports.',
     lifecycle: { state: 'durable' },

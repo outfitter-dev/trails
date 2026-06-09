@@ -5,7 +5,7 @@
 This file is generated from the live `@ontrails/warden` rule manifest. Repo-tracked skills, agents, and plugin prompts should reference this file instead of copying rule prose by hand.
 
 - Guide input command: `bun apps/trails/bin/trails.ts warden guide --agent-json`
-- Rule count: 62
+- Rule count: 63
 
 ## Agent Instructions
 
@@ -43,6 +43,7 @@ This file is generated from the live `@ontrails/warden` rule manifest. Repo-trac
 - `no-top-level-surface` (warn, source/source-static, external): Topo export modules do not open surfaces at module top level. Guidance: Keep topo entry modules side-effect-free for survey, guide, compile, and lock generation.
 - `owner-projection-parity` (error, source/source-static, internal): Framework projections stay aligned with owner exports.
 - `prefer-schema-inference` (warn, all/source-static, advisory): Trail schemas should be inferred unless overrides add meaning. Guidance: Let schemas remain the owner for field metadata unless an override adds new information.
+- `public-export-example-coverage` (error, source/source-static, repo-local): Public API barrel exports carry leading @example TSDoc coverage.
 - `public-internal-deep-imports` (error, project/project-static, internal): Cross-package imports stay on package-owned public exports.
 - `public-union-output-discriminants` (error, topo/topo-aware, external): Public output object unions expose branch discriminants.
 - `reference-exists` (error, project/project-static, external): Reference declarations resolve to known contours.

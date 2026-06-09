@@ -40,6 +40,7 @@ import { orphanedSignal } from './orphaned-signal.js';
 import { ownerProjectionParity } from './owner-projection-parity.js';
 import { permitGovernance } from './permit-governance.js';
 import { preferSchemaInference } from './prefer-schema-inference.js';
+import { publicExportExampleCoverage } from './public-export-example-coverage.js';
 import { publicInternalDeepImports } from './public-internal-deep-imports.js';
 import { publicOutputSchema } from './public-output-schema.js';
 import { publicUnionOutputDiscriminants } from './public-union-output-discriminants.js';
@@ -117,6 +118,7 @@ export const registeredRuleNames: readonly string[] = [
   pendingForce.name,
   permitGovernance.name,
   preferSchemaInference.name,
+  publicExportExampleCoverage.name,
   publicInternalDeepImports.name,
   publicOutputSchema.name,
   publicUnionOutputDiscriminants.name,
