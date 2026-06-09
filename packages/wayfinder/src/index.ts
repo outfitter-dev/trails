@@ -10,6 +10,17 @@
  * resolve resources, reach the network, or mutate local state.
  */
 
+export { deriveTrailErrorFacts } from './error-facts.js';
+export type {
+  TrailErrorEvidenceInput,
+  TrailErrorFact,
+  TrailErrorFactKind,
+  TrailErrorFactProvenance,
+  TrailErrorFacts,
+  TrailErrorFactsCompleteness,
+  TrailErrorFactsOptions,
+  TrailErrorTaxonomyProjection,
+} from './error-facts.js';
 export {
   createWayfinderEntityPredicate,
   createWayfinderFilterContext,
