@@ -1,5 +1,7 @@
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 
+import { adapterTargetPlacements, checkAdapters } from '@ontrails/adapter-kit';
+import type { AdapterFact } from '@ontrails/adapter-kit';
 import {
   AmbiguousError,
   DerivationError,
@@ -88,6 +90,27 @@ const filteredInputSchema = sourceInputSchema.extend({
   filters: wayfinderEntityFilterSchema.optional(),
   limit: z.number().int().positive().max(500).default(100),
 });
+
+const adapterFactKindSchema = z.enum([
+  'available',
+  'configured',
+  'observed',
+  'used',
+]);
+
+const adapterFactsInputSchema = z
+  .object({
+    filters: z
+      .object({
+        kind: adapterFactKindSchema.optional(),
+        packageName: z.string().optional(),
+        target: z.string().optional(),
+      })
+      .optional(),
+    limit: z.number().int().positive().max(500).default(100),
+    rootDir: z.string().optional().describe('Workspace root directory'),
+  })
+  .strict();
 
 const inspectKindSchema = z.enum([
   'contour',
@@ -341,7 +364,59 @@ const errorsOutputSchema = envelopeSchema.extend({
   errors: z.array(trailErrorFactsSchema).readonly(),
 });
 
+const adapterPlacementSchema = z.enum(adapterTargetPlacements);
+
+const adapterFactProvenanceSchema = z.object({
+  packageJsonPath: z.string().optional(),
+  paths: z.array(z.string()).readonly().optional(),
+  source: z.enum([
+    'adapter-package-manifest',
+    'conformance-test',
+    'owner-package-manifest',
+    'runtime-observation',
+  ]),
+});
+
+const adapterFactSchema = z.object({
+  adapterType: z.string().optional(),
+  key: z.string(),
+  kind: adapterFactKindSchema,
+  ownerPackage: z.string().optional(),
+  packageName: z.string().optional(),
+  placement: adapterPlacementSchema.optional(),
+  placements: z.array(adapterPlacementSchema).readonly().optional(),
+  provenance: adapterFactProvenanceSchema,
+  target: z.string(),
+  targetKey: z.string().optional(),
+});
+
+const adapterFactCountsSchema = z.object({
+  available: z.number(),
+  configured: z.number(),
+  diagnostics: z.number(),
+  observed: z.number(),
+  used: z.number(),
+});
+
+const adapterDiagnosticSchema = z.object({
+  code: z.string(),
+  message: z.string(),
+  packageJsonPath: z.string(),
+  packageName: z.string().optional(),
+  placement: adapterPlacementSchema.optional(),
+  severity: z.enum(['error', 'warn']),
+  target: z.string().optional(),
+});
+
+const adaptersOutputSchema = z.object({
+  adapters: z.array(adapterFactSchema).readonly(),
+  counts: adapterFactCountsSchema,
+  diagnostics: z.array(adapterDiagnosticSchema).readonly(),
+  rootDir: z.string(),
+});
+
 type SourceInput = z.output<typeof sourceInputSchema>;
+type AdapterFactsInput = z.output<typeof adapterFactsInputSchema>;
 type InspectInput = z.output<typeof inspectInputSchema>;
 type ContractInput = z.output<typeof contractInputSchema>;
 type DiffInput = z.output<typeof diffInputSchema>;
@@ -428,6 +503,63 @@ const loadGraph = async (
       path: topoLockPath(input, cwd) ?? 'topo.lock',
       schemaVersion: load.topoGraph.topoGraphSchemaVersion,
     },
+  });
+};
+
+const adapterFactsRootDir = (
+  input: AdapterFactsInput,
+  cwd: string | undefined
+): Result<string, ValidationError> => {
+  const rootDir = input.rootDir ?? cwd;
+  return rootDir === undefined
+    ? Result.err(
+        new ValidationError(
+          'Provide rootDir or run wayfind.adapters from a workspace directory.'
+        )
+      )
+    : Result.ok(resolve(rootDir));
+};
+
+const filteredAdapterFacts = (
+  input: AdapterFactsInput,
+  cwd: string | undefined
+): Result<z.output<typeof adaptersOutputSchema>, ValidationError> => {
+  const rootDir = adapterFactsRootDir(input, cwd);
+  if (rootDir.isErr()) {
+    return rootDir;
+  }
+
+  const report = checkAdapters(rootDir.value);
+  const facts = report.facts
+    .filter(
+      (fact: AdapterFact) =>
+        (input.filters?.kind === undefined ||
+          fact.kind === input.filters.kind) &&
+        (input.filters?.target === undefined ||
+          fact.target === input.filters.target) &&
+        (input.filters?.packageName === undefined ||
+          fact.packageName === input.filters.packageName)
+    )
+    .slice(0, input.limit);
+
+  return Result.ok({
+    adapters: facts,
+    counts: {
+      available: report.facts.filter(
+        (fact: AdapterFact) => fact.kind === 'available'
+      ).length,
+      configured: report.facts.filter(
+        (fact: AdapterFact) => fact.kind === 'configured'
+      ).length,
+      diagnostics: report.diagnostics.length,
+      observed: report.facts.filter(
+        (fact: AdapterFact) => fact.kind === 'observed'
+      ).length,
+      used: report.facts.filter((fact: AdapterFact) => fact.kind === 'used')
+        .length,
+    },
+    diagnostics: [...report.diagnostics],
+    rootDir: rootDir.value,
   });
 };
 
@@ -1257,6 +1389,16 @@ export const wayfindErrorsTrail = trail('wayfind.errors', {
   visibility: 'internal',
 });
 
+export const wayfindAdaptersTrail = trail('wayfind.adapters', {
+  blaze: (input, ctx) => filteredAdapterFacts(input, ctx.cwd),
+  description: 'List adapter facts with package and conformance provenance',
+  examples: [{ input: {}, name: 'List adapter facts' }],
+  input: adapterFactsInputSchema,
+  intent: 'read',
+  output: adaptersOutputSchema,
+  visibility: 'internal',
+});
+
 export const wayfindDescribeTrail = trail('wayfind.describe', {
   args: ['id'],
   blaze: async (input, ctx) => {
@@ -1416,6 +1558,7 @@ export const wayfindDiffTrail = trail('wayfind.diff', {
 });
 
 export const wayfinderTopo = topo('wayfinder', {
+  wayfindAdaptersTrail,
   wayfindContoursTrail,
   wayfindContractTrail,
   wayfindDescribeTrail,

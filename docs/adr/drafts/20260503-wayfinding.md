@@ -118,11 +118,13 @@ The v0 catalog is deliberately narrow. The test for inclusion: every query must 
 | `wayfind.nearby` | Direct typed relation context around one graph entity | edge indexes derived from composes, contours, resources, signals, surfaces, facets, and versions | v0 |
 | `wayfind.impact` | Directional and multi-hop reachability for "what is upstream/downstream from this thing?" | typed relation edges oriented from contract substrate to affected graph members | v0 |
 | `wayfind.examples` | Return examples for a trail or contour | `TopoGraphEntry.examples`, `TopoStoreExampleRecord` | v0 |
+| `wayfind.errors` | Return saved trail error facts with provenance and completeness metadata | `TrailErrorFacts` derived from examples, detours, taxonomy, and supplied evidence | v0 |
+| `wayfind.adapters` | Return adapter target and adapter-package facts with provenance | `@ontrails/adapter-kit` readiness report facts | v0 |
 | `wayfind.diff` | Compare two explicit saved graph snapshots | `DiffResult` from `deriveTopoGraphDiff` | v0 |
 
-The proto's `wayfind.errors` is **deferred**. Today's `TopoGraphEntry` and `TopoStoreTrailRecord` preserve error examples and detour declarations, and core owns the taxonomy registry, but that is not an exhaustive per-trail emitted-error graph. Reintroduce when a `TrailErrorFacts` substrate can report taxonomy, documented, handled, inferred, and observed facts with explicit completeness semantics.
+`wayfind.errors` is intentionally not an exhaustive emitted-error graph. It reports documented, handled, inferred, and observed facts with explicit completeness semantics, and marks emitted-error completeness unknown unless a future substrate proves otherwise.
 
-The proto's `wayfind.adapters` is **deferred**. Adapter-kit already owns adapter catalog and readiness checks, but Wayfinder cannot pretend that "available adapter" means "configured" or "used." Reintroduce after adapter-kit exposes a stable report that distinguishes `available`, `configured`, `used`, and `observed` adapter facts.
+`wayfind.adapters` reads adapter-kit evidence and keeps available targets, configured adapter packages, conformance-backed usage, and future runtime observations distinct. It must not collapse "available" into "used."
 
 Complete CLI/MCP/HTTP projection inventory is **deferred** until Topographer owns it as durable graph artifact. v0 `wayfind.surfaces` may include operational projection rows only when it labels their source and partialness; it cannot treat today's topo-store projection rows as the canonical surface graph.
 
@@ -246,11 +248,6 @@ Avoid introducing a top-level `wayfind()` function — "wayfind" is unusual as a
   separate MCP tools or through a narrower façade is an MCP projection ergonomics
   decision, made in the wayfinder package — the catalog of trails is the
   same either way.
-- **`wayfind.errors`.** Returns when the substrate carries per-trail error
-  facts with provenance and completeness semantics; not v0.
-- **`wayfind.adapters`.** Returns when adapter-kit exposes a stable report that
-  distinguishes available, configured, used, and observed adapter facts; not
-  v0.
 - **`wayfind.query`.** A generic query endpoint waits until typed filter/list
   queries prove the shared predicate grammar.
 - **`wayfind.projections`.** v0 has no projections endpoint and no projections

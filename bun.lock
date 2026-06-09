@@ -293,6 +293,9 @@
     "packages/wayfinder": {
       "name": "@ontrails/wayfinder",
       "version": "1.0.0-beta.20",
+      "dependencies": {
+        "@ontrails/adapter-kit": "workspace:^",
+      },
       "peerDependencies": {
         "@ontrails/core": "workspace:^",
         "@ontrails/topographer": "workspace:^",

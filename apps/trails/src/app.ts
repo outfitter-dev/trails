@@ -1,5 +1,6 @@
 import { topo } from '@ontrails/core';
 import {
+  wayfindAdaptersTrail,
   wayfindContractTrail,
   wayfindDescribeTrail,
   wayfindErrorsTrail,
@@ -81,6 +82,7 @@ const operatorTrails = Object.fromEntries(
 );
 
 const cliWayfinderTrails = {
+  wayfindAdaptersTrail,
   wayfindContractTrail,
   wayfindDescribeTrail,
   wayfindErrorsTrail,

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { mkdir, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 
 import { z } from 'zod';
 
@@ -28,6 +28,7 @@ import type {
 } from '@ontrails/topographer';
 
 import {
+  wayfindAdaptersTrail,
   wayfindContractTrail,
   wayfindDescribeTrail,
   wayfindDiffTrail,
@@ -199,6 +200,95 @@ const writePlainArtifactsAt = async (rootDir: string) => {
   return graph;
 };
 
+const writeFile = async (
+  rootDir: string,
+  path: string,
+  value: string
+): Promise<void> => {
+  const filePath = join(rootDir, path);
+  await mkdir(dirname(filePath), { recursive: true });
+  await Bun.write(filePath, value);
+};
+
+const writeJson = async (
+  rootDir: string,
+  path: string,
+  value: Readonly<Record<string, unknown>>
+): Promise<void> =>
+  writeFile(rootDir, path, `${JSON.stringify(value, null, 2)}\n`);
+
+const writeAdapterWorkspace = async (rootDir: string): Promise<void> => {
+  await writeJson(rootDir, 'package.json', {
+    name: 'fixture-root',
+    workspaces: ['packages/*', 'adapters/*'],
+  });
+  await writeJson(rootDir, 'packages/http/package.json', {
+    exports: {
+      '.': './src/index.ts',
+      './package.json': './package.json',
+      './testing': './src/testing.ts',
+    },
+    name: '@demo/http',
+    trails: {
+      adapterTargets: {
+        http: {
+          conformance: {
+            adapterType: 'HttpAdapterConformanceAdapter',
+            casesFactory: 'createHttpAdapterConformanceCases',
+            runner: 'runConformance',
+          },
+          placements: ['extracted'],
+          testingImport: '@demo/http/testing',
+        },
+      },
+    },
+  });
+  await writeFile(
+    rootDir,
+    'packages/http/src/index.ts',
+    'export const http = {};\n'
+  );
+  await writeFile(
+    rootDir,
+    'packages/http/src/testing.ts',
+    [
+      'export interface HttpAdapterConformanceAdapter {}',
+      'export const createHttpAdapterConformanceCases = () => [];',
+      'export const runConformance = () => undefined;',
+      '',
+    ].join('\n')
+  );
+  await writeJson(rootDir, 'adapters/hono/package.json', {
+    dependencies: {
+      '@ontrails/core': 'workspace:^',
+      hono: '^4.7.0',
+    },
+    exports: {
+      '.': './src/index.ts',
+      './package.json': './package.json',
+    },
+    name: '@demo/hono',
+    peerDependencies: {
+      '@demo/http': 'workspace:^',
+    },
+    trails: {
+      adapter: {
+        target: 'http',
+      },
+    },
+  });
+  await writeFile(
+    rootDir,
+    'adapters/hono/src/index.ts',
+    'export const honoAdapter = {};\n'
+  );
+  await writeFile(
+    rootDir,
+    'adapters/hono/src/__tests__/conformance.test.ts',
+    "import { createHttpAdapterConformanceCases, runConformance } from '@demo/http/testing';\n\nrunConformance({ name: '@demo/hono' }, createHttpAdapterConformanceCases());\n"
+  );
+};
+
 const seedTopoStoreAt = (rootDir: string, graph = app()) => {
   const snapshot = createTopoSnapshot(graph, {
     createdAt: '2026-06-04T00:00:00.000Z',
@@ -236,6 +326,7 @@ afterEach(async () => {
 describe('wayfinder graph-read query trails', () => {
   test('exports the v0 query catalog as a topo', () => {
     expect([...wayfinderTopo.ids()].toSorted()).toEqual([
+      'wayfind.adapters',
       'wayfind.contours',
       'wayfind.contract',
       'wayfind.describe',
@@ -252,6 +343,67 @@ describe('wayfinder graph-read query trails', () => {
       'wayfind.surfaces',
       'wayfind.trails',
       'wayfind.versions',
+    ]);
+  });
+
+  test('lists adapter facts from workspace package evidence', async () => {
+    await writeAdapterWorkspace(tempDir);
+
+    const result = await expectOk(
+      wayfindAdaptersTrail.blaze({ rootDir: tempDir }, ctx())
+    );
+
+    expect(result.counts).toEqual({
+      available: 1,
+      configured: 1,
+      diagnostics: 0,
+      observed: 0,
+      used: 1,
+    });
+    expect(result.adapters).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          key: '@demo/http:http:available',
+          kind: 'available',
+          ownerPackage: '@demo/http',
+          target: 'http',
+          targetKey: '@demo/http:http',
+        }),
+        expect.objectContaining({
+          key: '@demo/hono:http:configured',
+          kind: 'configured',
+          packageName: '@demo/hono',
+          target: 'http',
+          targetKey: '@demo/http:http',
+        }),
+        expect.objectContaining({
+          key: '@demo/hono:http:used',
+          kind: 'used',
+          packageName: '@demo/hono',
+          provenance: expect.objectContaining({
+            paths: [
+              expect.stringContaining(
+                'adapters/hono/src/__tests__/conformance.test.ts'
+              ),
+            ],
+            source: 'conformance-test',
+          }),
+          target: 'http',
+          targetKey: '@demo/http:http',
+        }),
+      ])
+    );
+    expect(
+      result.adapters.filter((entry) => entry.kind === 'configured')
+    ).toHaveLength(1);
+    const configured = await expectOk(
+      wayfindAdaptersTrail.blaze(
+        { filters: { kind: 'configured' }, rootDir: tempDir },
+        ctx()
+      )
+    );
+    expect(configured.adapters.map((entry) => entry.kind)).toEqual([
+      'configured',
     ]);
   });
 

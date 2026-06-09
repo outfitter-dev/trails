@@ -4,8 +4,8 @@ Wayfinder is now a real graph-read package, not just a reserved shell. The v0 ca
 
 ## What Ships
 
-- `@ontrails/wayfinder` exports `wayfinderTopo` and the v0 `wayfind.*` query trails for overview, typed search/listing, describe/contract inspection, examples, nearby relation reads, impact traversal, and explicit saved-baseline diffing.
-- Every query reads existing Topographer artifacts or topo-store records. V0 does not boot apps, resolve resources, reach the network, or mutate local state.
+- `@ontrails/wayfinder` exports `wayfinderTopo` and the v0 `wayfind.*` query trails for overview, typed search/listing, describe/contract inspection, examples, error facts, adapter facts, nearby relation reads, impact traversal, and explicit saved-baseline diffing.
+- Graph queries read existing Topographer artifacts or topo-store records. Adapter facts read package and conformance evidence through `@ontrails/adapter-kit`. V0 does not boot apps, resolve resources, reach the network, or mutate local state.
 - Query results include source and freshness metadata so agents can distinguish fresh artifacts from missing, stale, or schema-drifted artifacts.
 - Version and example listings preserve trail-version semantics: version records sort numerically, parent trail example filters include current and historical version examples, and `exampleCoverage: false` stays scoped to uncovered entities.
 - The Trails operator MCP surface exposes a selected read-only subset as direct tools and keeps broader saved-topo inspection behind the `inspect` facet.
@@ -24,4 +24,4 @@ Treat this as a release-time gate for new framework surfaces that should be visi
 
 ## Non-Goals
 
-V0 does not ship `wayfind.errors`, `wayfind.adapters`, generic `wayfind.query`, semantic search, signposts, or `wayfind.implications`. Those need additional accepted substrates or field evidence before they can answer honestly.
+V0 does not ship generic `wayfind.query`, semantic search, signposts, or `wayfind.implications`. Those need additional accepted substrates or field evidence before they can answer honestly.

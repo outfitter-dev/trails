@@ -87,10 +87,10 @@ trails wayfind contract <trail-id> --root-dir . --json
 ```
 
 - Start with `wayfind.overview` to learn artifact source, freshness, and graph counts.
-- Use `wayfind.search` or typed list trails (`wayfind.trails`, `wayfind.resources`, `wayfind.signals`, `wayfind.surfaces`, `wayfind.facets`, `wayfind.versions`, `wayfind.examples`, `wayfind.errors`) for filtered discovery.
+- Use `wayfind.search` or typed list trails (`wayfind.trails`, `wayfind.resources`, `wayfind.signals`, `wayfind.surfaces`, `wayfind.facets`, `wayfind.versions`, `wayfind.examples`, `wayfind.errors`, `wayfind.adapters`) for filtered discovery.
 - Use `wayfind.describe` for a full saved entity record and `wayfind.contract` for a trail or version input/output/intent summary.
 - Use `wayfind.nearby`, `wayfind.impact`, and `wayfind.diff` for relation context, blast-radius reads, and explicit saved-baseline comparison.
-- Treat Wayfinder as graph-read only. Do not assume `wayfind.adapters`, generic `wayfind.query`, semantic search, signposts, or implications exist in v0.
+- Treat Wayfinder as graph-read only. Do not assume generic `wayfind.query`, semantic search, signposts, or implications exist in v0.
 
 Wayfinder trails are internal by default. Host apps expose selected queries deliberately, usually as read-only operator tools or MCP resources protected by the host's authorization boundary. Fall back to `rg`, qmd, source reads, or a fresh compile when Wayfinder reports missing or stale artifacts, when the task needs source code that Topographer does not project, or when writing artifacts is outside your current authority.
 

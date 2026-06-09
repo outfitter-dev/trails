@@ -20,6 +20,7 @@ Then narrow the graph read with the selected local CLI surface:
 bun apps/trails/bin/trails.ts wayfind search --root-dir . --input-json '{"filters":{"kind":"trail","idPrefix":"wayfind."}}' --json
 bun apps/trails/bin/trails.ts wayfind contract wayfind.search --root-dir . --json
 bun apps/trails/bin/trails.ts wayfind errors --root-dir . --input-json '{"filters":{"kind":"trail","idPrefix":"wayfind."}}' --json
+bun apps/trails/bin/trails.ts wayfind adapters --root-dir . --json
 bun apps/trails/bin/trails.ts wayfind nearby wayfind.search --root-dir . --json
 bun apps/trails/bin/trails.ts wayfind impact wayfind.search --root-dir . --json
 ```

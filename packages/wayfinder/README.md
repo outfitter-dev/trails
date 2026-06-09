@@ -1,8 +1,8 @@
 # @ontrails/wayfinder
 
-Agent-shaped wayfinding query trails over `@ontrails/topographer` artifacts.
+Agent-shaped wayfinding query trails over saved graph and package evidence.
 
-`@ontrails/wayfinder` lets agents query a Trails app's resolved topo without re-deriving the graph from `grep` plus file reads. The v0 catalog is cold and deterministic: it reads existing Topographer artifacts (`topo.lock`, `trails.lock`, and materialized current `trails.db` topo-store records) without starting apps, booting resources, reaching the network, or mutating local state.
+`@ontrails/wayfinder` lets agents query a Trails app's resolved topo and package-level authoring facts without re-deriving the graph from `grep` plus file reads. The v0 catalog is cold and deterministic: graph queries read existing Topographer artifacts (`topo.lock`, `trails.lock`, and materialized current `trails.db` topo-store records), while adapter queries read `@ontrails/adapter-kit` package and conformance evidence. Wayfinder does not start apps, boot resources, reach the network, or mutate local state.
 
 The package exports `wayfinderTopo` plus individual graph-read trails.
 
@@ -21,15 +21,16 @@ The package exports `wayfinderTopo` plus individual graph-read trails.
 | `wayfind.versions` | List current and historical trail version records. |
 | `wayfind.examples` | List saved examples without executing trails. |
 | `wayfind.errors` | List saved trail error facts with provenance and completeness. |
+| `wayfind.adapters` | List adapter target and conformance facts with provenance. |
 | `wayfind.describe` | Inspect the saved entity record for one ID. |
 | `wayfind.contract` | Inspect the input/output/intent contract for one trail or version. |
 | `wayfind.nearby` | Return direct typed relation edges around one entity. |
 | `wayfind.impact` | Walk upstream, downstream, or both relation directions. |
 | `wayfind.diff` | Compare two explicit saved TopoGraph baselines. |
 
-Each trail is internal by default and returns provenance and freshness metadata with its result so callers can tell whether the answer came from fresh artifacts, stale artifacts, missing artifacts, or schema-version drift. Public surface exposure must be a deliberate host decision.
+Each graph-read trail is internal by default and returns provenance and freshness metadata with its result so callers can tell whether the answer came from fresh artifacts, stale artifacts, missing artifacts, or schema-version drift. Adapter facts carry package and conformance provenance instead. Public surface exposure must be a deliberate host decision.
 
-The v0 catalog intentionally does not include `wayfind.adapters`, generic `wayfind.query`, semantic search, signposts, or `wayfind.implications`. Those require additional accepted substrates or field evidence before they can answer honestly.
+The v0 catalog intentionally does not include generic `wayfind.query`, semantic search, signposts, or `wayfind.implications`. Those require additional accepted substrates or field evidence before they can answer honestly.
 
 ```ts
 import { wayfinderTopo } from '@ontrails/wayfinder';
@@ -90,6 +91,12 @@ Example coverage filters are evaluated against the entity being returned. `wayfi
 Use `wayfind.errors` when you need to inspect saved error facts for one trail or a filtered set of trails. The query reports documented error examples, handled detours, and later supplied inferred or observed facts with provenance and completeness metadata.
 
 The error facts are deliberately not an exhaustive emitted-error contract. A trail with no error facts still reports unknown emitted-error completeness rather than implying the trail cannot fail, and dynamic-category errors such as `RetryExhaustedError` do not receive fixed surface codes without wrapped-cause evidence.
+
+## Adapter Facts
+
+Use `wayfind.adapters` when you need to inspect adapter targets and adapter-package evidence. The query reads the `@ontrails/adapter-kit` readiness report and distinguishes available owner targets, configured adapter packages, and conformance-backed usage facts.
+
+Runtime observations are not inferred from package metadata. `observed` remains part of the fact vocabulary, but the current query reports zero observed facts until a future runtime evidence source supplies them.
 
 ## Describe And Contract
 
