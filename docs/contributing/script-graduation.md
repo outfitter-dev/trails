@@ -53,6 +53,7 @@ Keep three axes distinct: native vs adapter is the *kind*; subpath/built-in vs e
 | scaffold version pins (TRL-942) | durable | derives, serves users | public `create` surface |
 | public-API example coverage (TRL-943) | durable | derives, serves building Trails | repo-local Warden rule |
 | release publish via Bun (TRL-938) | durable | fills seam, ambient runtime | native Bun release binding |
+| packed artifact and Wayfinder dogfood (TRL-939) | durable | consumes, proves release confidence | public `release.smoke` surface |
 | changesets-CLI or foreign registry (TRL-938) | durable | fills seam, foreign boundary | adapter binding, extracted |
 | `.changeset/*.md` as release intent | durable | consumes authored input | neither — an intent source |
 | warden-guide / error-taxonomy doc sync | durable, concept owns it | consumes, renders | thin caller |

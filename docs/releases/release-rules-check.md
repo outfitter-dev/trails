@@ -20,6 +20,16 @@ That package script remains named `changeset:check` for compatibility with the e
 
 The release check is also exposed as the `release.check` trail, so agent-facing surfaces such as MCP can inspect the same report without a parallel script.
 
+Release confidence smokes use the neighboring `release.smoke` trail:
+
+```bash
+trails release smoke --check packed-artifacts
+trails release smoke --check wayfinder-dogfood
+trails release smoke --check all
+```
+
+In this repo, `bun run dogfood:packed` and `bun run wayfinder:dogfood` remain package-script wrappers around those trail commands.
+
 ## Facts
 
 The current default rules inspect two fact families:
@@ -83,7 +93,7 @@ That fallback compares `origin/main...HEAD`. It is useful while developing, but 
 
 For local reviews, missing branch-local release intent for package content or a public trail contract fact is a P2 release-quality blocker. Identify the owning branch, add the changeset or explicit no-release reason there, restack, and rerun the check upward.
 
-Log broader release ideas, such as imported schema tracing, error-taxonomy facts, permit facts, or release targets, as follow-up P3s unless they expose a concrete user-visible release gap in the current branch.
+Log broader release ideas, such as imported schema tracing, error-taxonomy facts, permit facts, Warden joins, Wayfinder implications, or release targets, as follow-up P3s unless they expose a concrete user-visible release gap in the current branch.
 
 ## Fixture Coverage
 

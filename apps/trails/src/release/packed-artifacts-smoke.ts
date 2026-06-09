@@ -1,4 +1,3 @@
-#!/usr/bin/env bun
 /* oxlint-disable eslint-plugin-jest/require-hook, max-statements -- end-to-end package smoke with temp consumer setup */
 /**
  * Packs public first-party packages into tarballs, installs them into a
@@ -10,18 +9,25 @@ import { mkdir, mkdtemp, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { isAbsolute, join, resolve } from 'node:path';
 
-const REPO_ROOT = resolve(import.meta.dir, '..');
+const REPO_ROOT = resolve(process.cwd());
 
-interface PackageJson {
+interface PackedSmokePackageJson {
   readonly name?: string;
   readonly private?: boolean;
   readonly version?: string;
   readonly workspaces?: readonly string[];
 }
 
-interface Workspace {
+interface PackedSmokeWorkspace {
   readonly name: string;
   readonly path: string;
+}
+
+export interface PackedArtifactsSmokeResult {
+  readonly check: 'packed-artifacts';
+  readonly message: string;
+  readonly packageCount: number;
+  readonly passed: true;
 }
 
 const commandText = (cmd: readonly string[]): string => cmd.join(' ');
@@ -70,30 +76,8 @@ const runCapture = async (
   return stdout || stderr;
 };
 
-const runInherit = async (
-  cmd: readonly string[],
-  cwd: string,
-  stdout: 'inherit' | 'pipe' = 'inherit'
-): Promise<void> => {
-  const proc = Bun.spawn(cmd as string[], {
-    cwd,
-    stderr: 'inherit',
-    stdin: 'ignore',
-    stdout,
-  });
-  if (stdout === 'pipe') {
-    await new Response(proc.stdout).text();
-  }
-  const exitCode = await proc.exited;
-  if (exitCode !== 0) {
-    throw new Error(
-      `Command failed in ${cwd}: ${commandText(cmd)} (exit ${exitCode})`
-    );
-  }
-};
-
 const workspaceDirs = async (): Promise<readonly string[]> => {
-  const rootPackage = await readJson<PackageJson>(
+  const rootPackage = await readJson<PackedSmokePackageJson>(
     join(REPO_ROOT, 'package.json')
   );
   const dirs: string[] = [];
@@ -103,18 +87,26 @@ const workspaceDirs = async (): Promise<readonly string[]> => {
     }
     const base = join(REPO_ROOT, pattern.slice(0, -2));
     for (const entry of await readdir(base, { withFileTypes: true })) {
-      if (entry.isDirectory()) {
-        dirs.push(join(base, entry.name));
+      const dir = join(base, entry.name);
+      if (
+        entry.isDirectory() &&
+        (await Bun.file(join(dir, 'package.json')).exists())
+      ) {
+        dirs.push(dir);
       }
     }
   }
   return dirs.toSorted((a, b) => a.localeCompare(b));
 };
 
-const publicFirstPartyWorkspaces = async (): Promise<readonly Workspace[]> => {
-  const workspaces: Workspace[] = [];
+const publicFirstPartyWorkspaces = async (): Promise<
+  readonly PackedSmokeWorkspace[]
+> => {
+  const workspaces: PackedSmokeWorkspace[] = [];
   for (const path of await workspaceDirs()) {
-    const packageJson = await readJson<PackageJson>(join(path, 'package.json'));
+    const packageJson = await readJson<PackedSmokePackageJson>(
+      join(path, 'package.json')
+    );
     if (
       packageJson.private !== true &&
       packageJson.name?.startsWith('@ontrails/') &&
@@ -130,7 +122,7 @@ const publicFirstPartyWorkspaces = async (): Promise<readonly Workspace[]> => {
 };
 
 const packWorkspace = async (
-  workspace: Workspace,
+  workspace: PackedSmokeWorkspace,
   packRoot: string
 ): Promise<string> => {
   const output = await runCapture(
@@ -177,65 +169,68 @@ const writeConsumerManifest = async (
 const binPath = (consumerRoot: string, name: 'trails' | 'warden'): string =>
   join(consumerRoot, 'node_modules', '.bin', name);
 
-const main = async (): Promise<void> => {
-  const tempRoot = await mkdtemp(join(tmpdir(), 'trails-packed-dogfood-'));
-  const packRoot = join(tempRoot, 'pack');
-  const consumerRoot = join(tempRoot, 'consumer');
-  let succeeded = false;
+export const runPackedArtifactsSmoke =
+  async (): Promise<PackedArtifactsSmokeResult> => {
+    const tempRoot = await mkdtemp(join(tmpdir(), 'trails-packed-dogfood-'));
+    const packRoot = join(tempRoot, 'pack');
+    const consumerRoot = join(tempRoot, 'consumer');
+    let succeeded = false;
 
-  try {
-    await Promise.all([
-      mkdir(packRoot, { recursive: true }),
-      mkdir(consumerRoot, { recursive: true }),
-    ]);
+    try {
+      await Promise.all([
+        mkdir(packRoot, { recursive: true }),
+        mkdir(consumerRoot, { recursive: true }),
+      ]);
 
-    const workspaces = await publicFirstPartyWorkspaces();
-    const tarballsByName = new Map<string, string>();
-    for (const workspace of workspaces) {
-      tarballsByName.set(
-        workspace.name,
-        await packWorkspace(workspace, packRoot)
+      const workspaces = await publicFirstPartyWorkspaces();
+      const tarballsByName = new Map<string, string>();
+      for (const workspace of workspaces) {
+        tarballsByName.set(
+          workspace.name,
+          await packWorkspace(workspace, packRoot)
+        );
+      }
+
+      await writeConsumerManifest(consumerRoot, tarballsByName);
+      await runCapture(['bun', 'install', '--silent'], consumerRoot);
+
+      await runCapture(
+        [
+          binPath(consumerRoot, 'warden'),
+          '--root-dir',
+          REPO_ROOT,
+          '--lock',
+          'skip',
+          '--format',
+          'summary',
+        ],
+        REPO_ROOT
       );
-    }
-
-    await writeConsumerManifest(consumerRoot, tarballsByName);
-    await runInherit(['bun', 'install', '--silent'], consumerRoot);
-
-    await runInherit(
-      [
-        binPath(consumerRoot, 'warden'),
-        '--root-dir',
-        REPO_ROOT,
-        '--lock',
-        'skip',
-        '--format',
-        'summary',
-      ],
-      REPO_ROOT
-    );
-    await runInherit(
-      [binPath(consumerRoot, 'trails'), '--help'],
-      REPO_ROOT,
-      'pipe'
-    );
-    await runInherit(
-      [binPath(consumerRoot, 'trails'), 'warden', '--lock', 'skip'],
-      REPO_ROOT
-    );
-
-    console.log(
-      `Packed dogfood passed for ${workspaces.length} @ontrails/* packages`
-    );
-    succeeded = true;
-  } finally {
-    if (succeeded) {
-      await rm(tempRoot, { force: true, recursive: true });
-    } else {
-      console.error(
-        `Packed dogfood temp root kept for inspection: ${tempRoot}`
+      await runCapture([binPath(consumerRoot, 'trails'), '--help'], REPO_ROOT);
+      await runCapture(
+        [binPath(consumerRoot, 'trails'), 'warden', '--lock', 'skip'],
+        REPO_ROOT
       );
-    }
-  }
-};
 
-await main();
+      succeeded = true;
+      return {
+        check: 'packed-artifacts',
+        message: `Packed artifact smoke passed for ${workspaces.length} @ontrails/* packages.`,
+        packageCount: workspaces.length,
+        passed: true,
+      };
+    } finally {
+      if (succeeded) {
+        await rm(tempRoot, { force: true, recursive: true });
+      } else {
+        console.error(
+          `Packed dogfood temp root kept for inspection: ${tempRoot}`
+        );
+      }
+    }
+  };
+
+if (import.meta.main) {
+  const result = await runPackedArtifactsSmoke();
+  console.log(result.message);
+}

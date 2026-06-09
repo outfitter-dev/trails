@@ -1,0 +1,48 @@
+/**
+ * `release.smoke` trail -- Local release confidence checks.
+ */
+
+import { Result, trail, ValidationError } from '@ontrails/core';
+import { z } from 'zod';
+
+import { releaseSmokeCheckValues, runReleaseSmoke } from '../release/smoke.js';
+
+const releaseSmokeCheckSchema = z.enum(releaseSmokeCheckValues);
+
+const releaseSmokeInputSchema = z.object({
+  check: z.string().default('all').describe('Release smoke check to run'),
+});
+
+const releaseSmokeCheckResultSchema = z.object({
+  check: z.enum(['packed-artifacts', 'wayfinder-dogfood']),
+  message: z.string(),
+  packageCount: z.number().optional(),
+  passed: z.literal(true),
+  trailCount: z.number().optional(),
+});
+
+const releaseSmokeOutputSchema = z.object({
+  checks: z.array(releaseSmokeCheckResultSchema).readonly(),
+  message: z.string(),
+  passed: z.literal(true),
+});
+
+export const releaseSmokeTrail = trail('release.smoke', {
+  blaze: async (input) => {
+    try {
+      const check = releaseSmokeCheckSchema.parse(input.check);
+      return Result.ok(await runReleaseSmoke(check));
+    } catch (error) {
+      return Result.err(
+        new ValidationError(
+          error instanceof Error ? error.message : String(error)
+        )
+      );
+    }
+  },
+  description: 'Run local release confidence smoke checks',
+  input: releaseSmokeInputSchema,
+  intent: 'read',
+  output: releaseSmokeOutputSchema,
+  permit: 'public',
+});

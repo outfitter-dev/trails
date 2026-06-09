@@ -1,15 +1,18 @@
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
 
-import { trailsMcpApp } from '../src/mcp-app.js';
-import { exportCurrentTopo } from '../src/trails/topo-store-support.js';
-
-const repoRoot = resolve(fileURLToPath(new URL('../../..', import.meta.url)));
+const repoRoot = resolve(process.cwd());
 const trailsBin = join(repoRoot, 'apps/trails/bin/trails.ts');
 
 type JsonObject = Record<string, unknown>;
+
+export interface WayfinderDogfoodSmokeResult {
+  readonly check: 'wayfinder-dogfood';
+  readonly message: string;
+  readonly passed: true;
+  readonly trailCount: number;
+}
 
 const assertObject = (value: unknown, label: string): JsonObject => {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
@@ -148,61 +151,76 @@ const assertResolvedTarget = (value: JsonObject, label: string): void => {
   }
 };
 
-const main = async (): Promise<void> => {
-  const tempRoot = await mkdtemp(join(tmpdir(), 'trails-wayfinder-dogfood-'));
+export const runWayfinderDogfoodSmoke =
+  async (): Promise<WayfinderDogfoodSmokeResult> => {
+    const tempRoot = await mkdtemp(join(tmpdir(), 'trails-wayfinder-dogfood-'));
 
-  try {
-    const exported = await exportCurrentTopo(trailsMcpApp, {
-      rootDir: tempRoot,
-    });
-    if (exported.isErr()) {
-      throw exported.error;
+    try {
+      const [{ trailsMcpApp }, { exportCurrentTopo }] = await Promise.all([
+        import('../mcp-app.js'),
+        import('../trails/topo-store-support.js'),
+      ]);
+      const exported = await exportCurrentTopo(trailsMcpApp, {
+        rootDir: tempRoot,
+      });
+      if (exported.isErr()) {
+        throw exported.error;
+      }
+
+      const overview = runWayfind(tempRoot, ['overview']);
+      assertFreshSource(overview, 'wayfind overview');
+      const counts = assertObject(
+        overview['counts'],
+        'wayfind overview counts'
+      );
+      const trailCount = counts['trails'];
+      if (typeof trailCount !== 'number' || trailCount < 1) {
+        throw new Error('wayfind overview did not report trail counts');
+      }
+
+      const search = runWayfind(tempRoot, [
+        'search',
+        '--input-json',
+        '{"filters":{"kind":"trail","idPrefix":"wayfind."}}',
+      ]);
+      assertFreshSource(search, 'wayfind search');
+      assertSearchFindsWayfinder(search);
+
+      const errors = runWayfind(tempRoot, [
+        'errors',
+        '--input-json',
+        '{"filters":{"kind":"trail","idPrefix":"wayfind."}}',
+      ]);
+      assertFreshSource(errors, 'wayfind errors');
+      assertErrorsFindWayfinder(errors);
+
+      const adapters = runWayfind(repoRoot, ['adapters']);
+      assertAdaptersFindHono(adapters);
+
+      const contract = runWayfind(tempRoot, ['contract', 'wayfind.search']);
+      assertFreshSource(contract, 'wayfind contract');
+      assertContractForSearch(contract);
+
+      const nearby = runWayfind(tempRoot, ['nearby', 'wayfind.search']);
+      assertFreshSource(nearby, 'wayfind nearby');
+      assertResolvedTarget(nearby, 'wayfind nearby');
+
+      const impact = runWayfind(tempRoot, ['impact', 'wayfind.search']);
+      assertFreshSource(impact, 'wayfind impact');
+      assertResolvedTarget(impact, 'wayfind impact');
+
+      return {
+        check: 'wayfinder-dogfood',
+        message: `Wayfinder dogfood smoke passed: ${String(trailCount)} trails inspected from saved operator topo artifacts.`,
+        passed: true,
+        trailCount,
+      };
+    } finally {
+      await rm(tempRoot, { force: true, recursive: true });
     }
+  };
 
-    const overview = runWayfind(tempRoot, ['overview']);
-    assertFreshSource(overview, 'wayfind overview');
-    const counts = assertObject(overview['counts'], 'wayfind overview counts');
-    if (typeof counts['trails'] !== 'number' || counts['trails'] < 1) {
-      throw new Error('wayfind overview did not report trail counts');
-    }
-
-    const search = runWayfind(tempRoot, [
-      'search',
-      '--input-json',
-      '{"filters":{"kind":"trail","idPrefix":"wayfind."}}',
-    ]);
-    assertFreshSource(search, 'wayfind search');
-    assertSearchFindsWayfinder(search);
-
-    const errors = runWayfind(tempRoot, [
-      'errors',
-      '--input-json',
-      '{"filters":{"kind":"trail","idPrefix":"wayfind."}}',
-    ]);
-    assertFreshSource(errors, 'wayfind errors');
-    assertErrorsFindWayfinder(errors);
-
-    const adapters = runWayfind(repoRoot, ['adapters']);
-    assertAdaptersFindHono(adapters);
-
-    const contract = runWayfind(tempRoot, ['contract', 'wayfind.search']);
-    assertFreshSource(contract, 'wayfind contract');
-    assertContractForSearch(contract);
-
-    const nearby = runWayfind(tempRoot, ['nearby', 'wayfind.search']);
-    assertFreshSource(nearby, 'wayfind nearby');
-    assertResolvedTarget(nearby, 'wayfind nearby');
-
-    const impact = runWayfind(tempRoot, ['impact', 'wayfind.search']);
-    assertFreshSource(impact, 'wayfind impact');
-    assertResolvedTarget(impact, 'wayfind impact');
-
-    console.log(
-      `Wayfinder dogfood smoke passed: ${String(counts['trails'])} trails inspected from saved operator topo artifacts.`
-    );
-  } finally {
-    await rm(tempRoot, { force: true, recursive: true });
-  }
-};
-
-await main();
+if (import.meta.main) {
+  const result = await runWayfinderDogfoodSmoke();
+  console.log(result.message);
+}

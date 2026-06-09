@@ -56,6 +56,7 @@ describe('Trails MCP surface shaping', () => {
       'trails_draft_promote',
       'trails_inspect',
       'trails_release_check',
+      'trails_release_smoke',
       'trails_revise',
       'trails_run',
       'trails_run_example',
@@ -186,6 +187,7 @@ describe('Trails MCP surface shaping', () => {
     expect(trailsMcpFacets.inspect.trails).not.toContain('survey.*');
     expect(Object.keys(trailsMcpFacets)).toEqual(['inspect']);
     expect(trailsMcpIncludedTrails).toContain('release.check');
+    expect(trailsMcpIncludedTrails).toContain('release.smoke');
     expect(trailsMcpIncludedTrails).toContain('warden');
     expect(trailsMcpIncludedTrails).toContain('wayfind.adapters');
     expect(trailsMcpIncludedTrails).toContain('wayfind.errors');

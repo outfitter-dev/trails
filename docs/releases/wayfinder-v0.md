@@ -18,9 +18,9 @@ Agents should try Wayfinder first when the question is about saved graph facts: 
 
 ## Dogfood Release Gate
 
-Run `bun run wayfinder:dogfood` after changes to Wayfinder, the Trails operator MCP topo, Topographer artifact export, the Trails CLI Wayfinder commands, or the fresh app loader. The smoke exports the real Trails operator topo into an isolated temporary root, reads those saved artifacts through `trails wayfind ...`, asserts fresh source metadata, and removes the temporary artifacts before exiting.
+Run `trails release smoke --check wayfinder-dogfood` after changes to Wayfinder, the Trails operator MCP topo, Topographer artifact export, the Trails CLI Wayfinder commands, or the fresh app loader. In this repo, `bun run wayfinder:dogfood` calls the same trail command. The smoke exports the real Trails operator topo into an isolated temporary root, reads those saved artifacts through `trails wayfind ...`, asserts fresh source metadata, and removes the temporary artifacts before exiting.
 
-Treat this as a release-time gate for new framework surfaces that should be visible to agents through saved graph facts. The gate should pass before a surface-shaping branch leaves draft; if a branch deliberately skips it, the PR or handoff must explain why Wayfinder cannot yet inspect the changed surface.
+Treat this as a release-time check for new framework surfaces that should be visible to agents through saved graph facts. The check should pass before a surface-shaping branch leaves draft; if a branch deliberately skips it, the PR or handoff must explain why Wayfinder cannot yet inspect the changed surface.
 
 ## Non-Goals
 

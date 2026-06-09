@@ -68,3 +68,18 @@ export {
   type RegistryView,
   type RegistryWorkspace,
 } from './native-bun-registry.js';
+export {
+  releaseSmokeCheckValues,
+  runReleaseSmoke,
+  type ReleaseSmokeCheck,
+  type ReleaseSmokeCheckResult,
+  type ReleaseSmokeResult,
+} from './smoke.js';
+export {
+  runPackedArtifactsSmoke,
+  type PackedArtifactsSmokeResult,
+} from './packed-artifacts-smoke.js';
+export {
+  runWayfinderDogfoodSmoke,
+  type WayfinderDogfoodSmokeResult,
+} from './wayfinder-dogfood-smoke.js';

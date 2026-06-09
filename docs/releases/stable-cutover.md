@@ -147,7 +147,7 @@ bun apps/trails/bin/trails.ts compile --root-dir apps/trails --module ./src/app.
 bun apps/trails/bin/trails.ts diff --forces --root-dir apps/trails --module ./src/app.ts
 bun apps/trails/bin/trails.ts doctor --root-dir apps/trails --module ./src/app.ts
 bun apps/trails/bin/trails.ts warden --pre-push --depth all --lock skip --root-dir apps/trails --apps ./src/app.ts
-bun run wayfinder:dogfood
+bun apps/trails/bin/trails.ts release smoke --check wayfinder-dogfood
 bun run check
 bun run build
 bun run publish:check
