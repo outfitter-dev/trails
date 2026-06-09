@@ -22,6 +22,7 @@ describe('Trails Wayfinder CLI surface', () => {
     expect(commandPaths).toContain('wayfind trails');
     expect(commandPaths).toContain('wayfind contract');
     expect(commandPaths).toContain('wayfind describe');
+    expect(commandPaths).toContain('wayfind errors');
     expect(commandPaths).toContain('wayfind nearby');
     expect(commandPaths).toContain('wayfind impact');
     expect(commandPaths).toContain('wayfind examples');
@@ -31,6 +32,7 @@ describe('Trails Wayfinder CLI surface', () => {
     expect(trailIds).toContain('wayfind.trails');
     expect(trailIds).toContain('wayfind.contract');
     expect(trailIds).toContain('wayfind.describe');
+    expect(trailIds).toContain('wayfind.errors');
     expect(trailIds).toContain('wayfind.nearby');
     expect(trailIds).toContain('wayfind.impact');
     expect(trailIds).toContain('wayfind.examples');
@@ -41,7 +43,6 @@ describe('Trails Wayfinder CLI surface', () => {
     const trailIds = commands.map((command) => command.trail.id);
 
     expect(trailIds).not.toContain('wayfind.adapters');
-    expect(trailIds).not.toContain('wayfind.errors');
     expect(trailIds).not.toContain('wayfind.query');
     expect(trailIds).not.toContain('wayfind.implications');
     expect(trailIds).not.toContain('wayfind.diff');

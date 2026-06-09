@@ -54,6 +54,7 @@ export {
   wayfindContoursTrail,
   wayfindDescribeTrail,
   wayfindDiffTrail,
+  wayfindErrorsTrail,
   wayfindExamplesTrail,
   wayfindFacetsTrail,
   wayfindImpactTrail,

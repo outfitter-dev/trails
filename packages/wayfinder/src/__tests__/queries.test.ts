@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import { z } from 'zod';
 
 import {
+  ConflictError,
   Result,
   createTrailContext,
   resource,
@@ -30,6 +31,7 @@ import {
   wayfindContractTrail,
   wayfindDescribeTrail,
   wayfindDiffTrail,
+  wayfindErrorsTrail,
   wayfindExamplesTrail,
   wayfindImpactTrail,
   wayfindNearbyTrail,
@@ -238,6 +240,7 @@ describe('wayfinder graph-read query trails', () => {
       'wayfind.contract',
       'wayfind.describe',
       'wayfind.diff',
+      'wayfind.errors',
       'wayfind.examples',
       'wayfind.facets',
       'wayfind.impact',
@@ -414,6 +417,60 @@ describe('wayfinder graph-read query trails', () => {
       'invite.create',
       'invite.create@1',
       'user.show',
+    ]);
+  });
+
+  test('lists trail error facts without claiming exhaustive emitted errors', async () => {
+    await writeArtifacts((topoGraph) => ({
+      ...topoGraph,
+      entries: topoGraph.entries.map((entry) =>
+        entry.id === 'user.show'
+          ? {
+              ...entry,
+              detours: [{ maxAttempts: 1, on: ConflictError.name }],
+              examples: [
+                ...(entry.examples ?? []),
+                {
+                  error: 'NotFoundError',
+                  input: { id: 'missing' },
+                  kind: 'error' as const,
+                  name: 'Missing user',
+                  provenance: { source: 'trail.examples' as const },
+                },
+              ],
+            }
+          : entry
+      ),
+    }));
+
+    const errors = await expectOk(
+      wayfindErrorsTrail.blaze(
+        {
+          filters: { id: 'user.show', kind: 'trail' },
+          limit: 100,
+          rootDir: tempDir,
+        },
+        ctx()
+      )
+    );
+
+    expect(errors.errors).toHaveLength(1);
+    expect(errors.errors[0]).toMatchObject({
+      completeness: {
+        emitted: {
+          reason: 'no-exhaustive-emitted-error-contract',
+          status: 'unknown',
+        },
+      },
+      trailId: 'user.show',
+    });
+    expect(errors.errors[0]?.facts.map((fact) => fact.kind)).toEqual([
+      'documented',
+      'handled',
+    ]);
+    expect(errors.errors[0]?.facts.map((fact) => fact.taxonomy.name)).toEqual([
+      'NotFoundError',
+      'ConflictError',
     ]);
   });
 

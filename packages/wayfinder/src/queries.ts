@@ -6,6 +6,8 @@ import {
   NotFoundError,
   Result,
   ValidationError,
+  errorCategories,
+  surfaceNames,
   topo,
   trail,
 } from '@ontrails/core';
@@ -27,6 +29,7 @@ import type {
   WayfinderArtifactLoad,
   WayfinderArtifactLoaderOptions,
 } from './loader.js';
+import { deriveTrailErrorFacts } from './error-facts.js';
 import {
   diffResult,
   edgeTouches,
@@ -220,6 +223,77 @@ const exampleSummarySchema = z.object({
   targetId: z.string(),
 });
 
+const errorFactsCompletenessSchema = z.discriminatedUnion('status', [
+  z.object({
+    reason: z.literal('authored-facts-exhausted'),
+    status: z.literal('complete'),
+  }),
+  z.object({
+    reason: z.enum(['inferred-facts-supplied', 'observed-facts-supplied']),
+    status: z.literal('partial'),
+  }),
+  z.object({
+    reason: z.enum(['no-exhaustive-emitted-error-contract', 'not-evaluated']),
+    status: z.literal('unknown'),
+  }),
+]);
+
+const errorSurfaceProjectionSchema = z.object({
+  category: z.enum(errorCategories),
+  code: z.number(),
+  name: z.string(),
+  retryable: z.boolean(),
+  surface: z.enum(surfaceNames),
+});
+
+const errorTaxonomyProjectionSchema = z.object({
+  category: z.enum(errorCategories).optional(),
+  dynamicCategory: z
+    .object({
+      inheritsCategoryFrom: z.literal('wrapped-error'),
+    })
+    .optional(),
+  known: z.boolean(),
+  name: z.string(),
+  retryable: z.boolean().optional(),
+  surfaces: z.array(errorSurfaceProjectionSchema).readonly(),
+});
+
+const errorFactProvenanceSchema = z.object({
+  detail: z.string().optional(),
+  detourIndex: z.number().optional(),
+  exampleName: z.string().optional(),
+  source: z.enum([
+    'runtime-observation',
+    'static-inference',
+    'trail.detours',
+    'trail.examples',
+    'trail.versions.detours',
+    'trail.versions.examples',
+  ]),
+  trailId: z.string(),
+  version: z.number().optional(),
+});
+
+const errorFactSchema = z.object({
+  completeness: errorFactsCompletenessSchema,
+  kind: z.enum(['documented', 'handled', 'inferred', 'observed']),
+  provenance: errorFactProvenanceSchema,
+  taxonomy: errorTaxonomyProjectionSchema,
+});
+
+const trailErrorFactsSchema = z.object({
+  completeness: z.object({
+    documented: errorFactsCompletenessSchema,
+    emitted: errorFactsCompletenessSchema,
+    handled: errorFactsCompletenessSchema,
+    inferred: errorFactsCompletenessSchema,
+    observed: errorFactsCompletenessSchema,
+  }),
+  facts: z.array(errorFactSchema).readonly(),
+  trailId: z.string(),
+});
+
 const describeOutputSchema = envelopeSchema.extend({
   entity: z.record(z.string(), z.unknown()),
 });
@@ -261,6 +335,10 @@ const diffResultOutputSchema = z.object({
 const diffOutputSchema = envelopeSchema.extend({
   against: envelopeSchema,
   diff: diffResultOutputSchema,
+});
+
+const errorsOutputSchema = envelopeSchema.extend({
+  errors: z.array(trailErrorFactsSchema).readonly(),
 });
 
 type SourceInput = z.output<typeof sourceInputSchema>;
@@ -888,6 +966,17 @@ const filteredIds = (
       .map((ref) => ref.id)
   );
 
+const filteredErrorFacts = (
+  graph: TopoGraph,
+  filters: WayfinderEntityFilterInput | undefined,
+  limit: number
+) => {
+  const ids = filteredIds(graph, 'trail', filters, limit);
+  return deriveTrailErrorFacts(graph)
+    .filter((entry) => ids.has(entry.trailId))
+    .slice(0, limit);
+};
+
 export const wayfindOverviewTrail = trail('wayfind.overview', {
   blaze: async (input, ctx) =>
     withGraph(input, ctx.cwd, (loaded) => {
@@ -1154,6 +1243,20 @@ export const wayfindExamplesTrail = trail('wayfind.examples', {
   visibility: 'internal',
 });
 
+export const wayfindErrorsTrail = trail('wayfind.errors', {
+  blaze: async (input, ctx) =>
+    withGraph(input, ctx.cwd, (loaded) => ({
+      ...envelope(loaded),
+      errors: filteredErrorFacts(loaded.graph, input.filters, input.limit),
+    })),
+  description: 'List saved trail error facts with provenance',
+  examples: [{ input: {}, name: 'List trail error facts' }],
+  input: filteredInputSchema,
+  intent: 'read',
+  output: errorsOutputSchema,
+  visibility: 'internal',
+});
+
 export const wayfindDescribeTrail = trail('wayfind.describe', {
   args: ['id'],
   blaze: async (input, ctx) => {
@@ -1317,6 +1420,7 @@ export const wayfinderTopo = topo('wayfinder', {
   wayfindContractTrail,
   wayfindDescribeTrail,
   wayfindDiffTrail,
+  wayfindErrorsTrail,
   wayfindExamplesTrail,
   wayfindFacetsTrail,
   wayfindImpactTrail,

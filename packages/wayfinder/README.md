@@ -20,6 +20,7 @@ The package exports `wayfinderTopo` plus individual graph-read trails.
 | `wayfind.facets` | List resolved surface facet metadata and members. |
 | `wayfind.versions` | List current and historical trail version records. |
 | `wayfind.examples` | List saved examples without executing trails. |
+| `wayfind.errors` | List saved trail error facts with provenance and completeness. |
 | `wayfind.describe` | Inspect the saved entity record for one ID. |
 | `wayfind.contract` | Inspect the input/output/intent contract for one trail or version. |
 | `wayfind.nearby` | Return direct typed relation edges around one entity. |
@@ -28,7 +29,7 @@ The package exports `wayfinderTopo` plus individual graph-read trails.
 
 Each trail is internal by default and returns provenance and freshness metadata with its result so callers can tell whether the answer came from fresh artifacts, stale artifacts, missing artifacts, or schema-version drift. Public surface exposure must be a deliberate host decision.
 
-The v0 catalog intentionally does not include `wayfind.errors`, `wayfind.adapters`, generic `wayfind.query`, semantic search, signposts, or `wayfind.implications`. Those require additional accepted substrates or field evidence before they can answer honestly.
+The v0 catalog intentionally does not include `wayfind.adapters`, generic `wayfind.query`, semantic search, signposts, or `wayfind.implications`. Those require additional accepted substrates or field evidence before they can answer honestly.
 
 ```ts
 import { wayfinderTopo } from '@ontrails/wayfinder';
@@ -83,6 +84,12 @@ const result = await wayfindSearchTrail.blaze(
 Supported filters include entity kind, exact ID, ID prefix, namespace, intent, surface, facet, versioning, example coverage, resource usage, and signal usage. Use `createWayfinderGraphEntityPredicate` or `filterWayfinderEntityRefs` when matching relationship filters directly in code so facet membership and projected surfaces are evaluated with graph-derived context.
 
 Example coverage filters are evaluated against the entity being returned. `wayfind.examples` widens parent trail matches to include current examples plus historical version examples, exact historical-version matches return only that version's examples, and exact current-version matches return the current entry examples. `exampleCoverage: false` is intentionally not widened into covered historical version examples.
+
+## Error Facts
+
+Use `wayfind.errors` when you need to inspect saved error facts for one trail or a filtered set of trails. The query reports documented error examples, handled detours, and later supplied inferred or observed facts with provenance and completeness metadata.
+
+The error facts are deliberately not an exhaustive emitted-error contract. A trail with no error facts still reports unknown emitted-error completeness rather than implying the trail cannot fail, and dynamic-category errors such as `RetryExhaustedError` do not receive fixed surface codes without wrapped-cause evidence.
 
 ## Describe And Contract
 
