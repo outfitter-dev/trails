@@ -4,7 +4,7 @@ slug: connector-extraction-and-the-with-packaging-model
 title: Adapter Extraction and Composition Around Core Contracts
 status: accepted
 created: 2026-04-09
-updated: 2026-05-16
+updated: 2026-06-09
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [5, 9, 16, 22, 23]
 ---
@@ -246,6 +246,7 @@ The return type is identical. The topo registration is identical. The trail's `r
 - 2026-04-16: In-place vocabulary update per ADR-0035 Cutover 3 — title updated to drop `with-*` prefix convention, naming rules revised for extracted connectors, migration table and composition layer table aligned with surface API grammar.
 - 2026-05-08: Connector-to-adapter taxonomy cutover — `adapter` becomes the canonical public package category, `integration` is retained only as colloquial prose, `facet` is reserved for projection slices, and the historical `connectors/` workspace root is superseded by `adapters/`.
 - 2026-05-16: Web Fetch kernel amendment — runtime materializers with no third-party dependency may stay as subpaths on the owning projection package, covering `@ontrails/http/fetch` and `@ontrails/http/bun` while preserving `@ontrails/hono` as the extracted Hono adapter.
+- 2026-06-09: Binding vocabulary note — this ADR's built-in-materializer vs extracted-adapter distinction is the `native binding` vs `adapter binding` distinction now defined in [the lexicon](../lexicon.md#binding); the dependency-boundary test in this ADR sets the kind.
 
 [^1]: [ADR-0009: First-Class Resources](0009-first-class-resources.md)
 [^2]: See the evaluation hierarchy in [Tenets: Primitives](../tenets.md#the-bar-for-new-primitives)

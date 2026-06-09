@@ -42,7 +42,7 @@ The architecture is designed to make consistency easier than drift. Agents build
 1. Contracts are at the core of how Trails works, and the contract for how Trails is worked on is governed by our [Tenets](docs/tenets.md).
 2. Decisions that define what Trails is, and what it is not, are defined by our [ADRs](docs/adr/README.md).
    - Future directions for Trails are outlined in speculative or [draft ADRs](docs/adr/drafts/README.md).
-3. Repo contribution guidance lives in [Contributing to Trails](docs/contributing/README.md), including [Language Styleguide](docs/contributing/language-styleguide.md), [Code Standards](docs/contributing/code-standards.md), [Codebase Navigation](docs/contributing/codebase-navigation.md), and [Warden Rules](docs/contributing/warden-rules.md).
+3. Repo contribution guidance lives in [Contributing to Trails](docs/contributing/README.md), including [Language Styleguide](docs/contributing/language-styleguide.md), [Code Standards](docs/contributing/code-standards.md), [Codebase Navigation](docs/contributing/codebase-navigation.md), [Warden Rules](docs/contributing/warden-rules.md), and [Script Graduation](docs/contributing/script-graduation.md) — root scripts never own derivation of durable Trails-contract facts, and new or heavily edited root scripts get the script-graduation review check.
 4. We keep a log of our working notes, session recaps, learnings, etc. in `.agents/notes/` (gitignored — local only) as a historical record of our journey.
 
 ## Wayfinder First

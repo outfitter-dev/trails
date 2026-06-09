@@ -12,6 +12,9 @@ If you are building an app with Trails, start with the user-facing docs in [`doc
   source-of-truth locations, generated files, and symbol navigation.
 - [Warden Rules](./warden-rules.md) — how to author and audit durable Warden
   and repo-local correctness rules.
+- [Script Graduation](./script-graduation.md) — when root-script behavior must
+  graduate into a Trails concept, and the binding vocabulary (native binding,
+  adapter binding, adapter seam).
 - [Beta Channel Policy](../releases/beta-channel-policy.md) and
   [Release Rules Check](../releases/release-rules-check.md) — release rules,
   branch-local release intent, and public trail contract release facts.

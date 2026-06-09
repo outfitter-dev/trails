@@ -423,7 +423,7 @@ await surface(graph);
 
 ### `store`
 
-A persistence declaration. `store(definition)` declares what is persisted for a domain object — schema, identity, generated fields, relationships, and fixtures — without choosing how that persistence is realized. The store itself is backend-agnostic. An adapter binding interprets it for a specific backend and persistence shape.
+A persistence declaration. `store(definition)` declares what is persisted for a domain object — schema, identity, generated fields, relationships, and fixtures — without choosing how that persistence is realized. The store itself is backend-agnostic. A binding (native or adapter) interprets it for a specific backend and persistence shape.
 
 ```typescript
 const db = store({
@@ -438,11 +438,24 @@ const db = store({
 
 A store is infrastructure declared as data. A resource is how that infrastructure reaches blazes. A store becomes usable through a resource; they are complementary, not interchangeable.
 
+### `binding`
+
+A concrete realization of an authored Trails declaration or contract against a backend, runtime, tool, surface, or publisher. `binding` is the genus; the ADR-0029 dependency-boundary test sets the kind:
+
+- **`native binding`** — Trails-owned, built-in path (subpath or same package) that uses only the ambient runtime or a Trails-owned mechanism and crosses no foreign tool or framework boundary. `@ontrails/http/fetch` and `@ontrails/http/bun` are native HTTP bindings.
+- **`adapter binding`** — an extracted package or integration that crosses into a third-party or foreign framework, tool, or runtime contract. `@ontrails/hono` is an adapter binding.
+
+Merely reading authored input — for example, consuming `.changeset/*.md` as release intent — is neither kind. That is just consuming input.
+
+In prose, prefer qualified forms such as `native binding`, `adapter binding`, `surface binding`, `store binding`, and `release binding` so the bare word does not collide with local-variable or import "binding" noise in Warden and source-analysis contexts.
+
+Both kinds may share the **adapter seam**: the paved scaffold plus conformance extension point. The adapter seam is the shared extension and conformance path, not the public noun for every binding — a native binding is not called "an adapter" in prose. Use "materializer" only when quoting existing HTTP implementation or ADR wording. See [Script Graduation](contributing/script-graduation.md) for how bindings fit the graduation doctrine.
+
 ### `kind`
 
-The plain word for the persistence shape an adapter binds a store through. Current examples include `tabular`, `document`, `file`, `kv`, and `cache`.
+The plain word for the persistence shape a binding realizes a store through. Current examples include `tabular`, `document`, `file`, `kv`, and `cache`.
 
-The store declaration stays kind-agnostic. The adapter or binding chooses the kind and interprets the store schema accordingly.
+The store declaration stays kind-agnostic. The binding (native or adapter) chooses the kind and interprets the store schema accordingly.
 
 ### `projection`
 
