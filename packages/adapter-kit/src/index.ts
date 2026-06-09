@@ -3,6 +3,10 @@ export type {
   AdapterCheckDiagnostic,
   AdapterCheckDiagnosticCode,
   AdapterCheckDiagnosticSeverity,
+  AdapterFact,
+  AdapterFactKind,
+  AdapterFactProvenance,
+  AdapterFactProvenanceSource,
   AdapterCheckReport,
   AdapterCheckSubject,
 } from './check.js';

@@ -59,8 +59,36 @@ export interface AdapterCheckSubject {
   readonly testingImport?: string | undefined;
 }
 
+export type AdapterFactKind = 'available' | 'configured' | 'observed' | 'used';
+
+export type AdapterFactProvenanceSource =
+  | 'adapter-package-manifest'
+  | 'conformance-test'
+  | 'owner-package-manifest'
+  | 'runtime-observation';
+
+export interface AdapterFactProvenance {
+  readonly packageJsonPath?: string | undefined;
+  readonly paths?: readonly string[] | undefined;
+  readonly source: AdapterFactProvenanceSource;
+}
+
+export interface AdapterFact {
+  readonly adapterType?: string | undefined;
+  readonly key: string;
+  readonly kind: AdapterFactKind;
+  readonly ownerPackage?: string | undefined;
+  readonly packageName?: string | undefined;
+  readonly placement?: AdapterTargetPlacement | undefined;
+  readonly placements?: readonly AdapterTargetPlacement[] | undefined;
+  readonly provenance: AdapterFactProvenance;
+  readonly target: string;
+  readonly targetKey?: string | undefined;
+}
+
 export interface AdapterCheckReport {
   readonly diagnostics: readonly AdapterCheckDiagnostic[];
+  readonly facts: readonly AdapterFact[];
   readonly subjects: readonly AdapterCheckSubject[];
   readonly targets: readonly AdapterTargetCatalogEntry[];
 }
@@ -323,6 +351,64 @@ const targetEntriesByTarget = (
   targets: readonly AdapterTargetCatalogEntry[]
 ): ReadonlyMap<string, AdapterTargetCatalogEntry> =>
   new Map(targets.map((target) => [target.target, target]));
+
+const adapterFacts = (
+  targets: readonly AdapterTargetCatalogEntry[],
+  subjects: readonly AdapterCheckSubject[]
+): readonly AdapterFact[] => {
+  const facts: AdapterFact[] = [];
+
+  for (const target of targets) {
+    facts.push({
+      key: `${target.key}:available`,
+      kind: 'available',
+      ownerPackage: target.ownerPackage,
+      placements: target.placements,
+      provenance: {
+        packageJsonPath: target.packageJsonPath,
+        source: 'owner-package-manifest',
+      },
+      target: target.target,
+      targetKey: target.key,
+    });
+  }
+
+  for (const subject of subjects) {
+    facts.push({
+      key: `${subject.key}:${subject.target}:configured`,
+      kind: 'configured',
+      ownerPackage: subject.ownerPackage,
+      packageName: subject.packageName,
+      placement: subject.placement,
+      provenance: {
+        packageJsonPath: subject.packageJsonPath,
+        source: 'adapter-package-manifest',
+      },
+      target: subject.target,
+      targetKey: subject.targetKey,
+      ...(subject.adapterType ? { adapterType: subject.adapterType } : {}),
+    });
+
+    if (subject.conformanceTestPaths.length > 0) {
+      facts.push({
+        key: `${subject.key}:${subject.target}:used`,
+        kind: 'used',
+        ownerPackage: subject.ownerPackage,
+        packageName: subject.packageName,
+        placement: subject.placement,
+        provenance: {
+          paths: subject.conformanceTestPaths,
+          source: 'conformance-test',
+        },
+        target: subject.target,
+        targetKey: subject.targetKey,
+        ...(subject.adapterType ? { adapterType: subject.adapterType } : {}),
+      });
+    }
+  }
+
+  return facts;
+};
 
 const collectSourceFiles = (dir: string): readonly string[] => {
   if (!existsSync(dir)) {
@@ -2058,11 +2144,14 @@ export const checkAdapters = (rootDir: string): AdapterCheckReport => {
     }
   }
 
+  const sortedSubjects = subjects.toSorted((left, right) =>
+    left.key.localeCompare(right.key)
+  );
+
   return {
     diagnostics,
-    subjects: subjects.toSorted((left, right) =>
-      left.key.localeCompare(right.key)
-    ),
+    facts: adapterFacts(catalog.targets, sortedSubjects),
+    subjects: sortedSubjects,
     targets: catalog.targets,
   };
 };

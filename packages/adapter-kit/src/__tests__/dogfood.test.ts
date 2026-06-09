@@ -25,6 +25,42 @@ describe('first-party adapter dogfood', () => {
         'adapters/hono/src/__tests__/conformance.test.ts'
       ),
     ]);
+    expect(report.facts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          key: '@ontrails/http:http:available',
+          kind: 'available',
+          ownerPackage: '@ontrails/http',
+          target: 'http',
+          targetKey: '@ontrails/http:http',
+        }),
+        expect.objectContaining({
+          key: '@ontrails/hono:http:configured',
+          kind: 'configured',
+          packageName: '@ontrails/hono',
+          target: 'http',
+          targetKey: '@ontrails/http:http',
+        }),
+        expect.objectContaining({
+          key: '@ontrails/hono:http:used',
+          kind: 'used',
+          packageName: '@ontrails/hono',
+          provenance: expect.objectContaining({
+            paths: [
+              expect.stringContaining(
+                'adapters/hono/src/__tests__/conformance.test.ts'
+              ),
+            ],
+            source: 'conformance-test',
+          }),
+          target: 'http',
+          targetKey: '@ontrails/http:http',
+        }),
+      ])
+    );
+    expect(report.facts).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ kind: 'observed' })])
+    );
     expect(report.diagnostics).not.toEqual(
       expect.arrayContaining([
         expect.objectContaining({
