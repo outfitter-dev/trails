@@ -94,7 +94,6 @@ const config: KnipConfig = {
   workspaces: {
     '.': {
       entry: [
-        'scripts/adr.ts',
         'scripts/bootstrap/main.ts',
         'scripts/verify-oxc-resolver-published.ts',
         'scripts/__tests__/**/*.ts',

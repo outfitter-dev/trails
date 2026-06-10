@@ -82,7 +82,8 @@ const createAdapter = (config: AuthResourceConfig): AuthAdapter => {
  */
 export const authResource = resource<AuthAdapter>('auth', {
   config: authResourceConfigSchema,
-  create: (svc) => Result.ok(createAdapter(svc.config as AuthResourceConfig)),
+  create: (resourceCtx) =>
+    Result.ok(createAdapter(resourceCtx.config as AuthResourceConfig)),
   description: 'Authentication adapter',
   meta: { category: 'infrastructure' },
   mock: createNoopAdapter,

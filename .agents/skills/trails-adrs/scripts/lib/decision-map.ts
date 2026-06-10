@@ -369,34 +369,40 @@ const stringifyFormattedJson = (
   return JSON.stringify(value);
 };
 
-const writeJson = (path: string, data: unknown): void => {
-  writeFileSync(path, `${stringifyFormattedJson(data)}\n`, 'utf8');
-};
-
 /**
- * Write all generated ADR artifacts:
+ * Build all generated ADR artifacts:
  * - docs/adr/decision-map.json (accepted ADRs only — stable)
  * - docs/adr/drafts/decision-map.json (drafts only — changes with drafts)
  * - docs/adr/drafts/README.md (generated index)
  */
-export const writeDecisionMap = (): void => {
+export const buildDecisionMapContents = (): readonly {
+  readonly path: string;
+  readonly content: string;
+}[] => {
   const allFiles = [...listNumberedAdrs(), ...listDrafts()];
   const numberedEntries = buildNumberedEntries(allFiles);
   const draftEntries = buildDraftEntries(allFiles);
 
-  // Accepted ADR map (stable — only changes when ADRs are promoted/modified)
   const acceptedMap: DecisionMap = { entries: numberedEntries, version: 1 };
-  writeJson(MAP_PATH, acceptedMap);
-  console.log(`Updated ${MAP_PATH}`);
-
-  // Drafts map (changes with draft edits)
-  mkdirSync(DRAFTS_DIR, { recursive: true });
   const draftsMap: DecisionMap = { entries: draftEntries, version: 1 };
-  writeJson(DRAFTS_MAP_PATH, draftsMap);
-  console.log(`Updated ${DRAFTS_MAP_PATH}`);
-
-  // Drafts README
   const draftsIndex = buildDraftsIndex(draftEntries, numberedEntries);
-  writeFileSync(DRAFTS_INDEX_PATH, draftsIndex, 'utf8');
-  console.log(`Updated ${DRAFTS_INDEX_PATH}`);
+
+  return [
+    { content: `${stringifyFormattedJson(acceptedMap)}\n`, path: MAP_PATH },
+    {
+      content: `${stringifyFormattedJson(draftsMap)}\n`,
+      path: DRAFTS_MAP_PATH,
+    },
+    { content: draftsIndex, path: DRAFTS_INDEX_PATH },
+  ];
+};
+
+/** Write all generated ADR artifacts. */
+export const writeDecisionMap = (): void => {
+  mkdirSync(DRAFTS_DIR, { recursive: true });
+
+  for (const artifact of buildDecisionMapContents()) {
+    writeFileSync(artifact.path, artifact.content, 'utf8');
+    console.log(`Updated ${artifact.path}`);
+  }
 };

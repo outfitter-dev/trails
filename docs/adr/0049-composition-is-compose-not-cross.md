@@ -4,9 +4,9 @@ slug: composition-is-compose-not-cross
 title: Composition is `compose`, not `cross`
 status: accepted
 created: 2026-05-25
-updated: 2026-05-26
+updated: 2026-06-09
 owners: ['[galligan](https://github.com/galligan)']
-depends_on: [1, 24, 28]
+depends_on: [1, 3, 24, 28]
 ---
 
 # ADR-0049: Composition is `compose`, not `cross`
@@ -148,6 +148,7 @@ Per ADR-0001's in-place cutover precedent[^cutover], the ADR record itself is up
 - TRL-784 — the tracking issue carrying the full file:line census, the cutover blast radius, and the dependency blockers.[^trl784]
 - `.agents/memory/decisions.md` — the logged decision (2026-05-24, verb reversed call→compose 2026-05-25).
 - [ADR-0001: Naming Conventions](0001-naming-conventions.md#a-note-on-the-adr-record) — the brand-vs-plain heuristic and the in-place cutover precedent; gains a Cutover 4 log entry pointing here.
+- [ADR-0003: Unified Trail Primitive](0003-unified-trail-primitive.md) — the unified trail primitive whose composition field and runtime call were renamed in place.
 - [ADR-0024: Typed Trail Composition](0024-typed-trail-composition.md) — the composition contract this renames in place (`crossInput` → `composeInput`).
 - [ADR-0028: Concurrent Trail Composition](0028-concurrent-crossing.md) — the concurrent `ctx.compose([...])` overload after this in-place rename.
 - The prior `follow`→`cross` cutover, encoded in `scripts/vocab-cutover-rewrite.ts` — the codemod precedent this extends.

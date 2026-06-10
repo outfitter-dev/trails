@@ -44,6 +44,10 @@ pre-push:
       env:
         GIT_PAGER: cat
       run: bun trails warden --pre-push
+    adr:
+      env:
+        GIT_PAGER: cat
+      run: bun scripts/adr.ts check
     test:
       env:
         GIT_PAGER: cat

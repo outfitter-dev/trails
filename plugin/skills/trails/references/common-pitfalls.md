@@ -122,7 +122,7 @@ blaze: async (input, ctx) => {
 ```typescript
 // Define once
 const db = resource('db.main', {
-  create: (svc) => Result.ok(openDatabase(svc.env?.DATABASE_URL)),
+  create: (resourceCtx) => Result.ok(openDatabase(resourceCtx.env?.DATABASE_URL)),
   mock: () => createInMemoryDb(),
 });
 
@@ -146,7 +146,7 @@ const search = trail('search', {
 
 ```typescript
 const db = resource('db.main', {
-  create: (svc) => Result.ok(openDatabase(svc.env?.DATABASE_URL)),
+  create: (resourceCtx) => Result.ok(openDatabase(resourceCtx.env?.DATABASE_URL)),
   mock: () => createInMemoryDb(), // enables zero-config testAll(graph)
 });
 ```
@@ -157,15 +157,15 @@ const db = resource('db.main', {
 
 **Why it's wrong:** Resource factories receive `ResourceContext` — a narrow subset with stable process-scoped fields (`env`, `cwd`, `workspaceRoot`, and validated `config` when the resource declares a config schema). Resources are singletons resolved once per process, not per request. Surface-specific state would be stale after the first resolution.
 
-**Fix:** Keep resource factories surface-agnostic. Use `svc.config` for declared resource config or `svc.env` for one-off environment values:
+**Fix:** Keep resource factories surface-agnostic. Use `resourceCtx.config` for declared resource config or `resourceCtx.env` for one-off environment values:
 
 ```typescript
 import { z } from 'zod';
 
 const api = resource('api.client', {
   config: z.object({ baseUrl: z.string().url() }),
-  create: (svc) => Result.ok(new ApiClient(svc.config.baseUrl)),
-  // Not this: create: (svc) => new ApiClient(process.argv[2])
+  create: (resourceCtx) => Result.ok(new ApiClient(resourceCtx.config.baseUrl)),
+  // Not this: create: (resourceCtx) => new ApiClient(process.argv[2])
 });
 ```
 

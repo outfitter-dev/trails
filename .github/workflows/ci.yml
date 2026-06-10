@@ -103,6 +103,9 @@ jobs:
       - name: Warden
         run: bun packages/warden/bin/warden.ts --ci --apps trails,trails-demo
 
+      - name: ADR check
+        run: bun scripts/adr.ts check
+
   changeset:
     name: Changeset
     if: github.event_name == 'pull_request'

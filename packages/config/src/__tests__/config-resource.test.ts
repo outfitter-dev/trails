@@ -6,7 +6,7 @@ import type { ConfigState } from '../registry.js';
 import { clearConfigState, registerConfigState } from '../registry.js';
 
 /** Stub ResourceContext for create calls. */
-const stubSvcCtx = {
+const stubResourceCtx = {
   config: undefined,
   cwd: '/tmp',
   env: {},
@@ -51,7 +51,7 @@ describe('configResource', () => {
       const state: ConfigState = { resolved: { port: 3000 }, schema };
       registerConfigState(state);
 
-      const result = await configResource.create(stubSvcCtx);
+      const result = await configResource.create(stubResourceCtx);
 
       expect(result.isOk()).toBe(true);
       const value = result.unwrap() as ConfigState;
@@ -69,7 +69,7 @@ describe('configResource', () => {
       };
       registerConfigState(state);
 
-      const result = await configResource.create(stubSvcCtx);
+      const result = await configResource.create(stubResourceCtx);
 
       expect(result.isOk()).toBe(true);
       const value = result.unwrap() as ConfigState;
@@ -78,7 +78,7 @@ describe('configResource', () => {
     });
 
     test('returns Result.err when no state is registered', async () => {
-      const result = await configResource.create(stubSvcCtx);
+      const result = await configResource.create(stubResourceCtx);
 
       expect(result.isErr()).toBe(true);
       expect(result.error.message).toContain('Config state not registered');

@@ -422,6 +422,11 @@
           "fromPath": "docs/adr/0048-trail-versioning-v3.md"
         },
         {
+          "context": "- [ADR-0003: Unified Trail Primitive](0003-unified-trail-primitive.md) — the unified trail primitive whose composition field and runtime call were renamed in place.",
+          "from": "0049",
+          "fromPath": "docs/adr/0049-composition-is-compose-not-cross.md"
+        },
+        {
           "context": "- docs/adr/0003-unified-trail-primitive.md",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
@@ -2013,7 +2018,7 @@
       "status": "accepted",
       "superseded_by": null,
       "title": "Adapter Extraction and Composition Around Core Contracts",
-      "updated": "2026-05-16"
+      "updated": "2026-06-09"
     },
     {
       "created": "2026-04-09",
@@ -2754,7 +2759,7 @@
     },
     {
       "created": "2026-05-25",
-      "depends_on": ["1", "24", "28"],
+      "depends_on": ["1", "3", "24", "28"],
       "inbound": [
         {
           "context": "- **Cutover 4** ([ADR-0049](0049-composition-is-compose-not-cross.md)): Composition vocabulary cleanup. Retired `cross` / `crosses` in favor of `compose` / `composes`, including `ctx.compose()`, `comp",
@@ -2769,7 +2774,7 @@
       "status": "accepted",
       "superseded_by": null,
       "title": "Composition is `compose`, not `cross`",
-      "updated": "2026-05-26"
+      "updated": "2026-06-09"
     }
   ],
   "version": 1

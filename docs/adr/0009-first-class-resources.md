@@ -62,13 +62,15 @@ Resources are frozen definition objects with `kind: 'resource'`, parallel to `tr
 
 ```typescript
 const db = resource('db.main', {
-  create: (svc) => Result.ok(openDatabase(svc.env?.DATABASE_URL)),
+  create: (resourceCtx) =>
+    Result.ok(openDatabase(resourceCtx.env?.DATABASE_URL)),
   dispose: (conn) => conn.close(),
   health: (conn) => conn.ping(),
   mock: () => createInMemoryDb(),
   description: 'Primary database connection',
 });
-// svc is ResourceContext — env, cwd, workspaceRoot only. Not the full TrailContext.
+// resourceCtx is ResourceContext: env, cwd, workspaceRoot, and config.
+// It is not the full TrailContext.
 ```
 
 The type is inferred from the `create` factory's return value. `db` knows it produces a `Database` instance. No manual generic annotation needed.
@@ -267,11 +269,13 @@ A Trails-native package can ship both a resource and a layer that uses it:
 ```typescript
 // @ontrails/storage could provide:
 export const storageResource = resource('storage', { /* ... */ });
-export const transactionLayer = (svc: Resource<Storage>): Layer => ({
+export const transactionLayer = (
+  storageResource: Resource<Storage>
+): Layer => ({
   name: 'transaction',
   wrap: (trail, impl) => async (input, ctx) => {
     if (trail.intent === 'read') return impl(input, ctx);
-    const store = svc.from(ctx);
+    const store = storageResource.from(ctx);
     return store.withTransaction(() => impl(input, ctx));
   },
 });

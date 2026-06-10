@@ -196,7 +196,7 @@ Resources declare infrastructure dependencies — databases, API clients, caches
 
 ```typescript
 const db = resource('db.main', {
-  create: (svc) => Result.ok(openDatabase(svc.env?.DATABASE_URL)),
+  create: (resourceCtx) => Result.ok(openDatabase(resourceCtx.env?.DATABASE_URL)),
   dispose: (conn) => conn.close(),
   health: (conn) => conn.ping(),
   mock: () => createInMemoryDb(),

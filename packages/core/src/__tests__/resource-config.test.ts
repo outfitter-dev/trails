@@ -13,11 +13,11 @@ import { trail } from '../trail.js';
 // ---------------------------------------------------------------------------
 
 const nextId = (name: string): string =>
-  `test.svc-config.${name}.${Bun.randomUUIDv7()}`;
+  `test.resource-config.${name}.${Bun.randomUUIDv7()}`;
 
 const createSingletonConfigTrail = (id: string) => {
   const captures = { createCalls: 0 };
-  const svc = resource(id, {
+  const configuredResource = resource(id, {
     config: z.object({ key: z.string() }),
     create: (ctx) => {
       captures.createCalls += 1;
@@ -30,15 +30,15 @@ const createSingletonConfigTrail = (id: string) => {
 
   return {
     captures,
-    trail: trail('svc-config.singleton', {
+    trail: trail('resource-config.singleton', {
       blaze: (_input, ctx) =>
         Result.ok({
-          createCall: svc.from(ctx).createCall,
-          key: svc.from(ctx).key,
+          createCall: configuredResource.from(ctx).createCall,
+          key: configuredResource.from(ctx).key,
         }),
       input: z.object({}),
       output: z.object({ createCall: z.number(), key: z.string() }),
-      resources: [svc],
+      resources: [configuredResource],
     }),
   };
 };
@@ -48,19 +48,19 @@ const createSingletonConfigTrail = (id: string) => {
 // ---------------------------------------------------------------------------
 
 describe('ResourceContext.config', () => {
-  test('resource with config schema receives validated config in svc.config', async () => {
+  test('resource with config schema receives validated config in resourceCtx.config', async () => {
     const id = nextId('typed-config');
     let capturedConfig: unknown;
 
     const db = resource(id, {
       config: z.object({ poolSize: z.number(), url: z.string().url() }),
-      create: (svc) => {
-        capturedConfig = svc.config;
+      create: (resourceCtx) => {
+        capturedConfig = resourceCtx.config;
         return Result.ok({ connected: true });
       },
     });
 
-    const dbTrail = trail('svc-config.typed', {
+    const dbTrail = trail('resource-config.typed', {
       blaze: (_input, ctx) => Result.ok({ connected: db.from(ctx).connected }),
       input: z.object({}),
       output: z.object({ connected: z.boolean() }),
@@ -81,18 +81,18 @@ describe('ResourceContext.config', () => {
     expect(capturedConfig).toEqual({ poolSize: 5, url: 'https://example.com' });
   });
 
-  test('resource without config still works — svc.config is undefined', async () => {
+  test('resource without config still works — resourceCtx.config is undefined', async () => {
     const id = nextId('no-config');
     let capturedConfig: unknown = 'sentinel';
 
     const counter = resource(id, {
-      create: (svc) => {
-        capturedConfig = svc.config;
+      create: (resourceCtx) => {
+        capturedConfig = resourceCtx.config;
         return Result.ok(42);
       },
     });
 
-    const counterTrail = trail('svc-config.no-config', {
+    const counterTrail = trail('resource-config.no-config', {
       blaze: (_input, ctx) => Result.ok({ value: counter.from(ctx) }),
       input: z.object({}),
       resources: [counter],
@@ -112,7 +112,7 @@ describe('ResourceContext.config', () => {
       create: () => Result.ok({ connected: true }),
     });
 
-    const dbTrail = trail('svc-config.invalid', {
+    const dbTrail = trail('resource-config.invalid', {
       blaze: () => Result.ok(null),
       input: z.object({}),
       resources: [db],
@@ -140,7 +140,7 @@ describe('ResourceContext.config', () => {
       create: () => Result.ok({ connected: true }),
     });
 
-    const dbTrail = trail('svc-config.missing', {
+    const dbTrail = trail('resource-config.missing', {
       blaze: () => Result.ok(null),
       input: z.object({}),
       resources: [db],
@@ -156,7 +156,7 @@ describe('ResourceContext.config', () => {
     const id = nextId('defaulted-config');
     let capturedConfig: unknown;
 
-    const svc = resource(id, {
+    const configuredResource = resource(id, {
       config: z.object({ mode: z.literal('noop') }).default({ mode: 'noop' }),
       create: (ctx) => {
         capturedConfig = ctx.config;
@@ -164,14 +164,15 @@ describe('ResourceContext.config', () => {
       },
     });
 
-    const svcTrail = trail('svc-config.defaulted', {
-      blaze: (_input, ctx) => Result.ok({ mode: svc.from(ctx).mode }),
+    const configuredResourceTrail = trail('resource-config.defaulted', {
+      blaze: (_input, ctx) =>
+        Result.ok({ mode: configuredResource.from(ctx).mode }),
       input: z.object({}),
       output: z.object({ mode: z.literal('noop') }),
-      resources: [svc],
+      resources: [configuredResource],
     });
 
-    const result = await executeTrail(svcTrail, {});
+    const result = await executeTrail(configuredResourceTrail, {});
 
     expect(result.isOk()).toBe(true);
     expect(result.unwrap()).toEqual({ mode: 'noop' });
@@ -186,7 +187,7 @@ describe('ResourceContext.config', () => {
       create: () => Result.ok({ connected: true }),
     });
 
-    const dbTrail = trail('svc-config.override', {
+    const dbTrail = trail('resource-config.override', {
       blaze: (_input, ctx) => Result.ok({ value: db.from(ctx) as number }),
       input: z.object({}),
       output: z.object({ value: z.number() }),
@@ -203,7 +204,7 @@ describe('ResourceContext.config', () => {
     const id = nextId('options-config');
     const captures: unknown[] = [];
 
-    const svc = resource(id, {
+    const configuredResource = resource(id, {
       config: z.object({ key: z.string() }),
       create: (ctx) => {
         captures.push(ctx.config);
@@ -211,15 +212,16 @@ describe('ResourceContext.config', () => {
       },
     });
 
-    const svcTrail = trail('svc-config.options', {
-      blaze: (_input, ctx) => Result.ok({ key: svc.from(ctx).key }),
+    const configuredResourceTrail = trail('resource-config.options', {
+      blaze: (_input, ctx) =>
+        Result.ok({ key: configuredResource.from(ctx).key }),
       input: z.object({}),
       output: z.object({ key: z.string() }),
-      resources: [svc],
+      resources: [configuredResource],
     });
 
     const result = await executeTrail(
-      svcTrail,
+      configuredResourceTrail,
       {},
       {
         configValues: { [id]: { key: 'hello' } },

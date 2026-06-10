@@ -704,10 +704,11 @@ export const unpinTopoSnapshot = (
 };
 
 export const topoStore = resource('topo.store', {
-  create: (svc) =>
+  create: (resourceCtx) =>
     Result.ok(
       createTopoStore({
-        rootDir: svc.workspaceRoot ?? svc.cwd ?? resolveStoreRootDir(),
+        rootDir:
+          resourceCtx.workspaceRoot ?? resourceCtx.cwd ?? resolveStoreRootDir(),
       })
     ),
   description: 'Read-only query access to saved topo state in trails.db',

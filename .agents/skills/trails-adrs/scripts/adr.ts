@@ -25,7 +25,10 @@ import { dirname, join } from 'node:path';
 
 import { parseArgs, shouldApply, previewBanner, printHelp } from './lib/cli.ts';
 import type { Args } from './lib/cli.ts';
-import { writeDecisionMap } from './lib/decision-map.ts';
+import {
+  buildDecisionMapContents,
+  writeDecisionMap,
+} from './lib/decision-map.ts';
 import {
   listNumberedAdrs,
   listDrafts,
@@ -40,7 +43,7 @@ import { extractTitle, serializeFrontmatter } from './lib/frontmatter.ts';
 import type { Frontmatter } from './lib/frontmatter.ts';
 import { gitMove } from './lib/git.ts';
 import { rebuildIndex } from './lib/index.ts';
-import { ADR_DIR, DRAFTS_DIR, INDEX_PATH, MAP_PATH } from './lib/paths.ts';
+import { ADR_DIR, DRAFTS_DIR, INDEX_PATH } from './lib/paths.ts';
 import {
   fixCrossReferences,
   rewriteDraftLinks,
@@ -477,19 +480,27 @@ const cmdCheck = (args: Args): void => {
     report('error', 'README.md', 'index file does not exist');
   }
 
-  console.log('Checking decision map...');
-  if (!existsSync(MAP_PATH)) {
-    report(
-      'warn',
-      'decision-map.json',
-      'decision map does not exist — run "adr map" to generate'
-    );
-  }
-
   if (fix && fixes > 0) {
     console.log(`\nApplied ${fixes} fixes. Rebuilding index and map...`);
     rebuildIndex();
     writeDecisionMap();
+  }
+
+  console.log('Checking decision map...');
+  for (const artifact of buildDecisionMapContents()) {
+    const label = artifact.path.slice(process.cwd().length + 1);
+    if (!existsSync(artifact.path)) {
+      report('error', label, 'generated ADR artifact is missing');
+      continue;
+    }
+    const committed = readFileSync(artifact.path, 'utf8');
+    if (committed !== artifact.content) {
+      report(
+        'error',
+        label,
+        'generated ADR artifact is stale; run "bun scripts/adr.ts map"'
+      );
+    }
   }
 
   console.log(`\n${errors} errors, ${warnings} warnings`);

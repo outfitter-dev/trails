@@ -8,7 +8,7 @@ describe('resource-mock-coverage', () => {
   test('flags a resource definition with create but no mock or unmockable', () => {
     const code = `
 const db = resource('db.main', {
-  create: (svc) => Result.ok(openDatabase(svc.env?.DATABASE_URL)),
+  create: (resourceCtx) => Result.ok(openDatabase(resourceCtx.env?.DATABASE_URL)),
 });`;
     const diagnostics = resourceMockCoverage.check(code, TEST_FILE);
     expect(diagnostics.length).toBe(1);
@@ -21,7 +21,7 @@ const db = resource('db.main', {
   test('allows a resource definition with a mock factory', () => {
     const code = `
 const db = resource('db.main', {
-  create: (svc) => Result.ok(openDatabase(svc.env?.DATABASE_URL)),
+  create: (resourceCtx) => Result.ok(openDatabase(resourceCtx.env?.DATABASE_URL)),
   mock: () => createInMemoryDb(),
 });`;
     expect(resourceMockCoverage.check(code, TEST_FILE)).toHaveLength(0);

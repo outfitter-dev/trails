@@ -12,7 +12,7 @@ import { TEST_SECRET, signJwt } from './helpers/jwt.js';
 const testInput = (
   overrides?: Partial<PermitExtractionInput>
 ): PermitExtractionInput => ({
-  requestId: 'test-svc-req',
+  requestId: 'test-resource-req',
   surface: 'http',
   ...overrides,
 });
@@ -21,7 +21,7 @@ const testInput = (
 // Helpers
 // ---------------------------------------------------------------------------
 
-const testSvcCtx: ResourceContext<AuthResourceConfig> = {
+const testResourceCtx: ResourceContext<AuthResourceConfig> = {
   config: authResourceConfigSchema.parse(),
   cwd: '/tmp',
   env: {},
@@ -59,7 +59,7 @@ describe('authResource', () => {
   });
 
   test('create returns Result.ok with an AuthAdapter', async () => {
-    const result = await authResource.create(testSvcCtx);
+    const result = await authResource.create(testResourceCtx);
     expect(result.isOk()).toBe(true);
 
     const adapter = result.unwrap() as AuthAdapter;
@@ -76,7 +76,7 @@ describe('authResource', () => {
     );
 
     const result = await authResource.create({
-      ...testSvcCtx,
+      ...testResourceCtx,
       config: { adapter: 'jwt', secret: TEST_SECRET },
     });
 

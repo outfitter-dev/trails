@@ -242,7 +242,7 @@ const mockDbResource = resource('db.mock.composes', {
   mock: () => ({ source: 'mock' }),
 });
 
-const provisionLeafTrail = trail('resource.leaf', {
+const resourceMockLeafTrail = trail('resource.leaf', {
   blaze: (_input, ctx) =>
     Result.ok({ childSource: mockDbResource.from(ctx).source }),
   description: 'Leaf trail that reads from a resource',
@@ -251,7 +251,7 @@ const provisionLeafTrail = trail('resource.leaf', {
   resources: [mockDbResource],
 });
 
-const provisionRootTrail = trail('resource.root', {
+const resourceMockRootTrail = trail('resource.root', {
   blaze: async (_input, ctx: TrailContext) => {
     if (!ctx.compose) {
       return Result.err(new Error('compose not available'));
@@ -277,8 +277,8 @@ const provisionRootTrail = trail('resource.root', {
   resources: [mockDbResource],
 });
 
-const provisionTrailsMap = new Map<string, AnyTrail>([
-  ['resource.leaf', provisionLeafTrail],
+const resourceMockTrailsMap = new Map<string, AnyTrail>([
+  ['resource.leaf', resourceMockLeafTrail],
 ]);
 
 const statefulMockDbResource = resource('db.mock.composes.stateful', {
@@ -474,7 +474,7 @@ const unrelatedResourceTrailsMap = new Map<string, AnyTrail>([
 describe('testComposes resource mocks', () => {
   // eslint-disable-next-line jest/require-hook
   testComposes(
-    provisionRootTrail,
+    resourceMockRootTrail,
     [
       {
         description: 'propagates auto-resolved resource mocks through compose',
@@ -482,7 +482,7 @@ describe('testComposes resource mocks', () => {
         input: {},
       },
     ],
-    { trails: provisionTrailsMap }
+    { trails: resourceMockTrailsMap }
   );
 });
 
@@ -509,7 +509,7 @@ describe('testComposes resource mocks are fresh per scenario', () => {
 describe('testComposes explicit resource overrides', () => {
   // eslint-disable-next-line jest/require-hook
   testComposes(
-    provisionRootTrail,
+    resourceMockRootTrail,
     [
       {
         description: 'propagates explicit resource overrides through compose',
@@ -519,7 +519,7 @@ describe('testComposes explicit resource overrides', () => {
     ],
     {
       resources: { 'db.mock.composes': { source: 'override' } },
-      trails: provisionTrailsMap,
+      trails: resourceMockTrailsMap,
     }
   );
 });
@@ -558,7 +558,7 @@ describe('testComposes resource declarations', () => {
 describe('testComposes only resolves mocks for trails under test', () => {
   // eslint-disable-next-line jest/require-hook
   testComposes(
-    provisionRootTrail,
+    resourceMockRootTrail,
     [
       {
         description: 'unrelated resource mocks are not resolved',
@@ -568,7 +568,7 @@ describe('testComposes only resolves mocks for trails under test', () => {
     ],
     {
       trails: new Map<string, AnyTrail>([
-        ...provisionTrailsMap.entries(),
+        ...resourceMockTrailsMap.entries(),
         ...unrelatedResourceTrailsMap.entries(),
       ]),
     }

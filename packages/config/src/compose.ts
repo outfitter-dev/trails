@@ -39,8 +39,9 @@ export const collectResourceConfigs = (
   resources
     .filter(
       (
-        svc
-      ): svc is ResourceWithOptionalConfig & { readonly config: z.ZodType } =>
-        svc.config !== undefined
+        resource
+      ): resource is ResourceWithOptionalConfig & {
+        readonly config: z.ZodType;
+      } => resource.config !== undefined
     )
-    .map((svc) => ({ resourceId: svc.id, schema: svc.config }));
+    .map((resource) => ({ resourceId: resource.id, schema: resource.config }));

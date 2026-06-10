@@ -9,7 +9,7 @@ import type { z } from 'zod';
  *
  * Resources are app-level singletons, so they intentionally do not receive
  * the full per-request TrailContext. When a resource declares a `config` schema,
- * the validated config is passed as `svc.config`.
+ * the validated config is passed as `resourceCtx.config`.
  */
 export type ResourceContext<C = unknown> = Pick<
   TrailContext,
@@ -32,7 +32,7 @@ export interface ResourceUnmockable {
 export interface ResourceSpec<T, C = unknown> {
   /** Create the resource instance from stable process-scoped context. */
   readonly create: (
-    svc: ResourceContext<C>
+    resourceCtx: ResourceContext<C>
   ) => Result<T, Error> | Promise<Result<T, Error>>;
   /** Config schema — when present, config is validated and passed to `create`. */
   readonly config?: z.ZodType<C> | undefined;

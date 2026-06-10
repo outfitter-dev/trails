@@ -233,7 +233,7 @@ Define a resource in `src/resources/db.ts`:
 import { resource, Result } from '@ontrails/core';
 
 export const db = resource('db.main', {
-  create: (svc) => Result.ok(openDatabase(svc.env?.DATABASE_URL)),
+  create: (resourceCtx) => Result.ok(openDatabase(resourceCtx.env?.DATABASE_URL)),
   dispose: (conn) => conn.close(),
   mock: () => createInMemoryDb(),
 });
