@@ -172,7 +172,8 @@ bun apps/trails/bin/trails.ts create docs-smoke \
   --dir "$tmp" \
   --surfaces cli mcp http \
   --verify \
-  --output json
+  --output json \
+  --permit '{"id":"stable-cutover-smoke","scopes":["project:write","entity:write"]}'
 
 (
   cd "$tmp/docs-smoke"

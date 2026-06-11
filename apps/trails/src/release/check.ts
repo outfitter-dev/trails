@@ -170,7 +170,7 @@ export const discoverWorkspaces = async (
   const root = await readJson<PackageJson>(join(repoRoot, 'package.json'));
 
   if (!root.workspaces || root.workspaces.length === 0) {
-    throw new Error('Root package.json has no workspaces field');
+    return [];
   }
 
   const dirs = await discoverWorkspaceDirs(repoRoot, root.workspaces);
@@ -756,9 +756,19 @@ export const runReleaseCheck = async (
   const baseRef =
     options.baseRef ??
     (options.changedFilesPath === undefined ? 'origin/main' : undefined);
-  const changedFiles = options.changedFilesPath
-    ? readChangedFiles(options.changedFilesPath)
-    : readLocalChangedFiles(options.repoRoot, baseRef ?? 'origin/main');
+  let changedFiles: readonly string[];
+
+  if (options.changedFilesPath !== undefined) {
+    changedFiles = readChangedFiles(options.changedFilesPath);
+  } else if (workspaces.length > 0) {
+    changedFiles = readLocalChangedFiles(
+      options.repoRoot,
+      baseRef ?? 'origin/main'
+    );
+  } else {
+    changedFiles = [];
+  }
+
   const loadedConfig = await loadReleaseConfig({
     ...(options.configPath === undefined
       ? {}

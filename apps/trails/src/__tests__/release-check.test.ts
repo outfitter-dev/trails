@@ -460,9 +460,41 @@ export const userCreate = trail('user.create', {
       rmSync(repoRoot, { force: true, recursive: true });
     }
   });
+
+  test('passes as a no-op in non-workspace generated apps', async () => {
+    const repoRoot = mkdtempSync(join(tmpdir(), 'trails-release-rules-app-'));
+
+    try {
+      writeFileSync(
+        join(repoRoot, 'package.json'),
+        JSON.stringify({ name: 'fresh-app' })
+      );
+
+      await expect(runReleaseCheckCli(['--repo-root', repoRoot])).resolves.toBe(
+        0
+      );
+    } finally {
+      rmSync(repoRoot, { force: true, recursive: true });
+    }
+  });
 });
 
 describe('discoverWorkspaces', () => {
+  test('returns no workspaces for single-package apps', async () => {
+    const repoRoot = mkdtempSync(join(tmpdir(), 'trails-workspaces-'));
+
+    try {
+      writeFileSync(
+        join(repoRoot, 'package.json'),
+        JSON.stringify({ name: 'fresh-app' })
+      );
+
+      await expect(discoverWorkspaces(repoRoot)).resolves.toEqual([]);
+    } finally {
+      rmSync(repoRoot, { force: true, recursive: true });
+    }
+  });
+
   test('discovers publish metadata from root workspace globs', async () => {
     const repoRoot = mkdtempSync(join(tmpdir(), 'trails-workspaces-'));
 
