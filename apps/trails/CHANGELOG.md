@@ -1,5 +1,49 @@
 # trails
 
+## 1.0.0-beta.21
+
+### Minor Changes
+
+- bb5a219: Add the public `create.versions` trail (`trails create versions`). Scaffold dependency version derivation graduates from `scripts/sync-scaffold-versions.ts` into the `create` surface: check mode verifies `apps/trails/src/scaffold-versions.generated.ts` is current, write mode regenerates it, and the root script remains as a thin compatibility wrapper.
+
+### Patch Changes
+
+- 4c0041c: Expose `wayfind.errors` and `wayfind.adapters` as read-only direct tools on the Trails operator MCP surface.
+- 4cca012: Add the `wayfind.errors` graph-read trail and expose it through the Trails CLI for local error-fact inspection.
+- 708b861: Expose `wayfind.adapters` over adapter-kit fact reports and add it to the Trails operator CLI Wayfinder surface.
+- b6579b8: Expose selected Wayfinder graph-read queries through the local `trails wayfind` CLI command group for dogfooding saved topo artifacts.
+- 52e15bc: Repair fresh app loading so mirrored workspace modules can resolve first-party workspace packages and their installed package dependencies from the mirror.
+- d4ec336: Add a repo-level Wayfinder dogfood smoke command that exercises the local
+  Trails CLI against exported operator topo artifacts.
+- 0d1472a: Expose release rules config helpers from `@ontrails/trails/release` so
+  projects can compose release policy into `trails.config.ts`.
+- 8f681ae: Move release rule evaluation into the Trails app package and export the
+  release check and public trail contract fact helpers from
+  `@ontrails/trails/release`.
+- 9e77ae1: Expose release rule evaluation through the `trails release check` command and
+  the Trails MCP operator surface, with JSON output available through the shared
+  CLI output mode.
+- fd676c4: Expose the native Bun release binding from `@ontrails/trails/release` and keep publish and registry scripts as compatibility wrappers.
+- 0ccb3e5: Add `release.smoke` as the public Trails release confidence surface for packed artifact and Wayfinder dogfood checks.
+- Updated dependencies [99523f2]
+- Updated dependencies [5e301d2]
+- Updated dependencies [4cca012]
+- Updated dependencies [3caa263]
+- Updated dependencies [708b861]
+- Updated dependencies [5be032c]
+  - @ontrails/core@1.0.0-beta.21
+  - @ontrails/permits@1.0.0-beta.21
+  - @ontrails/topographer@1.0.0-beta.21
+  - @ontrails/wayfinder@1.0.0-beta.21
+  - @ontrails/adapter-kit@1.0.0-beta.21
+  - @ontrails/warden@1.0.0-beta.21
+  - @ontrails/commander@1.0.0-beta.21
+  - @ontrails/cli@1.0.0-beta.21
+  - @ontrails/http@1.0.0-beta.21
+  - @ontrails/mcp@1.0.0-beta.21
+  - @ontrails/observe@1.0.0-beta.21
+  - @ontrails/tracing@1.0.0-beta.21
+
 ## 1.0.0-beta.20
 
 ### Minor Changes

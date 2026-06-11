@@ -1,5 +1,18 @@
 # @ontrails/wayfinder
 
+## 1.0.0-beta.21
+
+### Patch Changes
+
+- 5e301d2: Add a TrailErrorFacts substrate that derives documented and handled trail error facts from saved topo artifacts while preserving explicit provenance and unknown emitted-error completeness.
+- 4cca012: Add the `wayfind.errors` graph-read trail and expose it through the Trails CLI for local error-fact inspection.
+- 708b861: Expose `wayfind.adapters` over adapter-kit fact reports and add it to the Trails operator CLI Wayfinder surface.
+- Updated dependencies [99523f2]
+- Updated dependencies [3caa263]
+  - @ontrails/core@1.0.0-beta.21
+  - @ontrails/topographer@1.0.0-beta.21
+  - @ontrails/adapter-kit@1.0.0-beta.21
+
 ## 1.0.0-beta.20
 
 ### Patch Changes

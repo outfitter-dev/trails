@@ -1,5 +1,7 @@
 # @ontrails/oxlint-plugin
 
+## 1.0.0-beta.21
+
 ## 1.0.0-beta.20
 
 ## 1.0.0-beta.19

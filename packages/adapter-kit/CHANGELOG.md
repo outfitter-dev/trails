@@ -1,5 +1,11 @@
 # @ontrails/adapter-kit
 
+## 1.0.0-beta.21
+
+### Patch Changes
+
+- 3caa263: Add adapter fact projections to the shared adapter readiness report so downstream tooling can distinguish available targets, configured adapter packages, and conformance-backed usage evidence.
+
 ## 1.0.0-beta.20
 
 ### Patch Changes

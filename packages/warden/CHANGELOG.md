@@ -1,5 +1,22 @@
 # @ontrails/warden
 
+## 1.0.0-beta.21
+
+### Minor Changes
+
+- 5be032c: Add the repo-local `public-export-example-coverage` Warden rule (and its `publicExportExampleCoverageTrail` wrapper), graduating `scripts/check-public-api-examples.ts` into governed rule coverage. The rule anchors to this repository's five public surface package barrels via the rule module's own on-disk location, so it stays silent in consumer repositories.
+
+### Patch Changes
+
+- Updated dependencies [99523f2]
+- Updated dependencies [3caa263]
+  - @ontrails/core@1.0.0-beta.21
+  - @ontrails/permits@1.0.0-beta.21
+  - @ontrails/topographer@1.0.0-beta.21
+  - @ontrails/adapter-kit@1.0.0-beta.21
+  - @ontrails/cli@1.0.0-beta.21
+  - @ontrails/store@1.0.0-beta.21
+
 ## 1.0.0-beta.20
 
 ### Minor Changes

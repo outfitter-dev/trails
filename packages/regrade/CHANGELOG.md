@@ -1,5 +1,14 @@
 # @ontrails/regrade
 
+## 1.0.0-beta.21
+
+### Patch Changes
+
+- Updated dependencies [99523f2]
+- Updated dependencies [5be032c]
+  - @ontrails/core@1.0.0-beta.21
+  - @ontrails/warden@1.0.0-beta.21
+
 ## 1.0.0-beta.20
 
 ### Patch Changes
