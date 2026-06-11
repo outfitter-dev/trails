@@ -1,5 +1,15 @@
 # @ontrails/testing
 
+## 1.0.0-beta.22
+
+### Patch Changes
+
+- @ontrails/cli@1.0.0-beta.22
+- @ontrails/core@1.0.0-beta.22
+- @ontrails/http@1.0.0-beta.22
+- @ontrails/mcp@1.0.0-beta.22
+- @ontrails/observe@1.0.0-beta.22
+
 ## 1.0.0-beta.21
 
 ### Patch Changes

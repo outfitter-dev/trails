@@ -1,5 +1,16 @@
 # @ontrails/warden
 
+## 1.0.0-beta.22
+
+### Patch Changes
+
+- @ontrails/adapter-kit@1.0.0-beta.22
+- @ontrails/cli@1.0.0-beta.22
+- @ontrails/core@1.0.0-beta.22
+- @ontrails/permits@1.0.0-beta.22
+- @ontrails/store@1.0.0-beta.22
+- @ontrails/topographer@1.0.0-beta.22
+
 ## 1.0.0-beta.21
 
 ### Minor Changes

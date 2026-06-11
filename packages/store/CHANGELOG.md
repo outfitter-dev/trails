@@ -1,5 +1,11 @@
 # @ontrails/store
 
+## 1.0.0-beta.22
+
+### Patch Changes
+
+- @ontrails/core@1.0.0-beta.22
+
 ## 1.0.0-beta.21
 
 ### Patch Changes

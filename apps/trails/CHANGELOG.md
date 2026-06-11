@@ -1,5 +1,24 @@
 # trails
 
+## 1.0.0-beta.22
+
+### Patch Changes
+
+- cdee4d0: Emit formatter-clean fresh scaffold files so generated apps pass their own
+  `format:check` script before any manual cleanup.
+  - @ontrails/commander@1.0.0-beta.22
+  - @ontrails/adapter-kit@1.0.0-beta.22
+  - @ontrails/cli@1.0.0-beta.22
+  - @ontrails/core@1.0.0-beta.22
+  - @ontrails/http@1.0.0-beta.22
+  - @ontrails/mcp@1.0.0-beta.22
+  - @ontrails/observe@1.0.0-beta.22
+  - @ontrails/permits@1.0.0-beta.22
+  - @ontrails/topographer@1.0.0-beta.22
+  - @ontrails/tracing@1.0.0-beta.22
+  - @ontrails/warden@1.0.0-beta.22
+  - @ontrails/wayfinder@1.0.0-beta.22
+
 ## 1.0.0-beta.21
 
 ### Minor Changes
