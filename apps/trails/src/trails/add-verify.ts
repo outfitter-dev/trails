@@ -19,6 +19,7 @@ import {
   ontrailsPackageRange,
   scaffoldDependencyVersions,
 } from '../versions.js';
+import { stringifyScaffoldPackageJson } from './scaffold-json.js';
 
 // ---------------------------------------------------------------------------
 // Content generators
@@ -81,7 +82,7 @@ const updatePackageJsonForVerify = async (
   const written = await writeProjectFile(
     projectDir,
     'package.json',
-    `${JSON.stringify(pkg, null, 2)}\n`
+    stringifyScaffoldPackageJson(pkg)
   );
   return written.isErr() ? Result.err(written.error) : Result.ok();
 };

@@ -8,6 +8,7 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { Result, ValidationError } from '@ontrails/core';
 
@@ -25,6 +26,9 @@ import {
 
 type Starter = 'empty' | 'entity' | 'hello';
 type Surface = 'cli' | 'http' | 'mcp';
+
+const repoRoot = fileURLToPath(new URL('../../../..', import.meta.url));
+const formatterTimeoutMs = 30_000;
 
 const makeTempProject = (): string =>
   join(
@@ -84,6 +88,39 @@ const expectErr = <T>(result: Result<T, Error>): Error => {
     throw new Error('Expected error result');
   }
   return result.error;
+};
+
+const expectGeneratedProjectFormatCheck = (dir: string): void => {
+  const command = ['bunx', 'oxfmt', '--check', dir];
+  const proc = Bun.spawnSync({
+    cmd: command,
+    cwd: repoRoot,
+    env: { ...process.env, NO_COLOR: '1' } as Record<string, string>,
+    stderr: 'pipe',
+    stdout: 'pipe',
+    timeout: formatterTimeoutMs,
+  });
+  const stdout = proc.stdout.toString();
+  const stderr = proc.stderr.toString();
+  const signalCode = proc.signalCode ?? undefined;
+  if (
+    proc.exitCode !== 0 ||
+    proc.exitedDueToTimeout ||
+    signalCode !== undefined
+  ) {
+    throw new Error(
+      [
+        'Generated Trails scaffold did not pass its Oxfmt contract.',
+        `command: ${command.join(' ')}`,
+        `cwd: ${repoRoot}`,
+        `target: ${dir}`,
+        `exitCode: ${proc.exitCode ?? 'null'}`,
+        `signal: ${signalCode ?? 'null'}`,
+        `stdout: ${stdout}`,
+        `stderr: ${stderr}`,
+      ].join('\n')
+    );
+  }
 };
 
 const runCompose = async (
@@ -356,7 +393,7 @@ const assertFrameworkCliScripts = (dir: string): void => {
 const assertHelloApp = (dir: string): void => {
   expectContainsAll(readText(dir, 'src/app.ts'), [
     'topo',
-    JSON.stringify(basename(dir)),
+    `'${basename(dir)}'`,
     'hello',
   ]);
   expectContainsAll(readText(dir, 'src/trails/hello.ts'), [
@@ -470,7 +507,7 @@ const assertEmptyStarter = (dir: string): void => {
   expectPaths(dir, ['src/trails/.gitkeep'], true);
   expectPaths(dir, ['src/trails/hello.ts'], false);
   const appContent = readText(dir, 'src/app.ts');
-  expect(appContent).toContain(`topo(${JSON.stringify(basename(dir))})`);
+  expect(appContent).toContain(`topo('${basename(dir)}')`);
   expect(appContent).not.toContain('import * as');
 };
 
@@ -615,6 +652,20 @@ describe('trails create', () => {
         >;
         expectExactOntrailsPin(deps['@ontrails/mcp']);
         assertReadme(dir, { surfaces: ['cli', 'mcp', 'http'] });
+      });
+    });
+
+    test('generates formatter-clean project files', async () => {
+      await withTempProject(async (dir) => {
+        expectOk(
+          await runCreate(dir, {
+            starter: 'entity',
+            surfaces: ['cli', 'mcp', 'http'],
+            verify: true,
+          })
+        );
+
+        expectGeneratedProjectFormatCheck(dir);
       });
     });
 

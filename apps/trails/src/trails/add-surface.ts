@@ -17,6 +17,7 @@ import {
 } from '../project-writes.js';
 import { ontrailsPackageRange } from '../versions.js';
 import { findTopoPath } from './project.js';
+import { stringifyScaffoldPackageJson } from './scaffold-json.js';
 
 type Surface = 'cli' | 'http' | 'mcp';
 
@@ -107,7 +108,7 @@ const updatePkgJsonForSurface = async (
   const written = await writeProjectFile(
     cwd,
     'package.json',
-    `${JSON.stringify(pkg, null, 2)}\n`
+    stringifyScaffoldPackageJson(pkg)
   );
   return written.isErr() ? Result.err(written.error) : Result.ok(depName);
 };

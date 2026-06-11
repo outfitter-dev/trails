@@ -25,6 +25,10 @@ import {
   scaffoldDependencyVersions,
   trailsPackageVersion,
 } from '../versions.js';
+import {
+  stringifyScaffoldJson,
+  stringifyScaffoldPackageJson,
+} from './scaffold-json.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -96,55 +100,45 @@ const generatePackageJson = (name: string): string => {
     version: '0.1.0',
   };
 
-  return JSON.stringify(pkg, null, 2);
+  return stringifyScaffoldPackageJson(pkg);
 };
 
 const generateScaffoldProvenance = (starter: Starter): string =>
-  JSON.stringify(
-    {
-      generatedAt: new Date().toISOString(),
-      scaffoldVersion: trailsPackageVersion,
-      schemaVersion: 1,
-      template: starter,
-    },
-    null,
-    2
-  );
+  stringifyScaffoldJson({
+    generatedAt: new Date().toISOString(),
+    scaffoldVersion: trailsPackageVersion,
+    schemaVersion: 1,
+    template: starter,
+  });
 
-const TSCONFIG_CONTENT = JSON.stringify(
-  {
-    compilerOptions: {
-      declaration: true,
-      module: 'ESNext',
-      moduleResolution: 'bundler',
-      noUncheckedIndexedAccess: true,
-      outDir: 'dist',
-      rootDir: 'src',
-      skipLibCheck: true,
-      strict: true,
-      target: 'ESNext',
-      verbatimModuleSyntax: true,
-    },
-    include: ['src'],
+const TSCONFIG_CONTENT = `{
+  "compilerOptions": {
+    "declaration": true,
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "noUncheckedIndexedAccess": true,
+    "outDir": "dist",
+    "rootDir": "src",
+    "skipLibCheck": true,
+    "strict": true,
+    "target": "ESNext",
+    "verbatimModuleSyntax": true
   },
-  null,
-  2
-);
+  "include": ["src"]
+}
+`;
 
-const TSCONFIG_TESTS_CONTENT = JSON.stringify(
-  {
-    compilerOptions: {
-      noEmit: true,
-      rootDir: '.',
-      types: ['bun'],
-    },
-    exclude: [],
-    extends: './tsconfig.json',
-    include: ['src', '__tests__'],
+const TSCONFIG_TESTS_CONTENT = `{
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": ".",
+    "types": ["bun"]
   },
-  null,
-  2
-);
+  "exclude": [],
+  "extends": "./tsconfig.json",
+  "include": ["src", "__tests__"]
+}
+`;
 
 const AGENTS_CONTENT = `# AGENTS.md
 
@@ -226,7 +220,16 @@ export default defineConfig({
 `;
 
 const OXFMTRC_CONTENT = `{
-  // ultracite defaults
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "tabWidth": 2,
+  "useTabs": false,
+  "semi": true,
+  "singleQuote": true,
+  "trailingComma": "es5",
+  "bracketSpacing": true,
+  "arrowParens": "always",
+  "proseWrap": "never",
+  "printWidth": 80,
 }
 `;
 
@@ -235,6 +238,10 @@ const generateHelloTrail = (): string =>
 import { z } from 'zod';
 
 export const hello = trail('hello', {
+  blaze: (input) => {
+    const name = input.name ?? 'world';
+    return Result.ok({ message: \`Hello, \${name}!\` });
+  },
   description: 'Say hello',
   examples: [
     {
@@ -248,17 +255,13 @@ export const hello = trail('hello', {
       name: 'Named greeting',
     },
   ],
-  blaze: (input) => {
-    const name = input.name ?? 'world';
-    return Result.ok({ message: \`Hello, \${name}!\` });
-  },
   input: z.object({
     name: z.string().optional(),
   }),
+  intent: 'read',
   output: z.object({
     message: z.string(),
   }),
-  intent: 'read',
 });
 `;
 
@@ -276,14 +279,6 @@ const entitySchema = z.object({
 });
 
 export const show = trail('entity.show', {
-  description: 'Show an entity by ID',
-  examples: [
-    {
-      expected: { id: '1', name: 'Example' },
-      input: { id: '1' },
-      name: 'Show entity',
-    },
-  ],
   blaze: (input, ctx) => {
     const store = entityStore.from(ctx);
     const entity = store.get(input.id);
@@ -292,13 +287,27 @@ export const show = trail('entity.show', {
     }
     return Result.ok(entity);
   },
+  description: 'Show an entity by ID',
+  examples: [
+    {
+      expected: { id: '1', name: 'Example' },
+      input: { id: '1' },
+      name: 'Show entity',
+    },
+  ],
   input: z.object({ id: z.string() }),
-  output: entitySchema,
   intent: 'read',
+  output: entitySchema,
   resources: [entityStore],
 });
 
 export const add = trail('entity.add', {
+  blaze: (input, ctx) => {
+    const store = entityStore.from(ctx);
+    const entity = { id: randomUUID(), name: input.name };
+    store.add(entity);
+    return Result.ok(entity);
+  },
   description: 'Add a new entity',
   examples: [
     {
@@ -307,20 +316,18 @@ export const add = trail('entity.add', {
       name: 'Add entity',
     },
   ],
-  blaze: (input, ctx) => {
-    const store = entityStore.from(ctx);
-    const entity = { id: randomUUID(), name: input.name };
-    store.add(entity);
-    return Result.ok(entity);
-  },
   input: z.object({ name: z.string() }),
-  output: entitySchema,
   intent: 'write',
+  output: entitySchema,
   permit: { scopes: ['entity:write'] },
   resources: [entityStore],
 });
 
 export const list = trail('entity.list', {
+  blaze: (_input, ctx) => {
+    const store = entityStore.from(ctx);
+    return Result.ok({ entities: store.list() });
+  },
   description: 'List entities',
   examples: [
     {
@@ -329,19 +336,20 @@ export const list = trail('entity.list', {
       name: 'List entities',
     },
   ],
-  blaze: (_input, ctx) => {
-    const store = entityStore.from(ctx);
-    return Result.ok({ entities: store.list() });
-  },
   input: z.object({}),
+  intent: 'read',
   output: z.object({
     entities: z.array(entitySchema),
   }),
-  intent: 'read',
   resources: [entityStore],
 });
 
 export const remove = trail('entity.delete', {
+  blaze: (input, ctx) => {
+    const store = entityStore.from(ctx);
+    const deleted = store.delete(input.id);
+    return Result.ok({ deleted, id: input.id });
+  },
   description: 'Delete an entity by ID',
   examples: [
     {
@@ -350,17 +358,12 @@ export const remove = trail('entity.delete', {
       name: 'Delete entity',
     },
   ],
-  blaze: (input, ctx) => {
-    const store = entityStore.from(ctx);
-    const deleted = store.delete(input.id);
-    return Result.ok({ deleted, id: input.id });
-  },
   input: z.object({ id: z.string() }),
+  intent: 'destroy',
   output: z.object({
     deleted: z.boolean(),
     id: z.string(),
   }),
-  intent: 'destroy',
   permit: { scopes: ['entity:write'] },
   resources: [entityStore],
 });
@@ -371,6 +374,9 @@ const generateSearchTrail = (): string =>
 import { z } from 'zod';
 
 export const search = trail('search', {
+  blaze: () => {
+    return Result.ok({ results: [] });
+  },
   description: 'Search entities by query',
   examples: [
     {
@@ -379,14 +385,11 @@ export const search = trail('search', {
       name: 'Search entities',
     },
   ],
-  blaze: () => {
-    return Result.ok({ results: [] });
-  },
   input: z.object({ query: z.string() }),
+  intent: 'read',
   output: z.object({
     results: z.array(z.object({ id: z.string(), name: z.string() })),
   }),
-  intent: 'read',
 });
 `;
 
@@ -395,8 +398,6 @@ const generateOnboardTrail = (): string =>
 import { z } from 'zod';
 
 export const onboard = trail('entity.onboard', {
-  description: 'Onboard a new entity end-to-end',
-  composes: ['entity.add'],
   blaze: async (input, ctx) => {
     const result = await ctx.compose('entity.add', { name: input.name });
     if (result.isErr()) {
@@ -404,9 +405,11 @@ export const onboard = trail('entity.onboard', {
     }
     return Result.ok({ onboarded: true });
   },
+  composes: ['entity.add'],
+  description: 'Onboard a new entity end-to-end',
   input: z.object({ name: z.string() }),
-  output: z.object({ onboarded: z.boolean() }),
   intent: 'write',
+  output: z.object({ onboarded: z.boolean() }),
   permit: { scopes: ['entity:write'] },
 });
 `;
@@ -458,14 +461,14 @@ export const createEntityStore = (
       return store.get(id);
     },
     list() {
-      return Array.from(store.values());
+      return [...store.values()];
     },
   };
 };
 
 export const entityStore = resource('entity.store', {
-  description: 'In-memory entity store for the entity starter.',
   create: () => Result.ok(createEntityStore()),
+  description: 'In-memory entity store for the entity starter.',
   mock: createEntityStore,
 });
 `;
@@ -491,19 +494,31 @@ const starterImports: Record<
   },
 };
 
+const renderTopoExpression = (
+  appNameLiteral: string,
+  modules: readonly string[]
+): string => {
+  if (modules.length === 0) {
+    return `topo(${appNameLiteral})`;
+  }
+
+  if (modules.length === 1) {
+    return `topo(${appNameLiteral}, ${modules[0]})`;
+  }
+
+  return `topo(\n  ${[appNameLiteral, ...modules].join(',\n  ')}\n)`;
+};
+
 const generateAppTs = (name: string, starter: Starter): string => {
   const { imports, modules } = starterImports[starter];
-  const appNameLiteral = JSON.stringify(name);
-  const topoArgs =
-    modules.length > 0
-      ? `${appNameLiteral}, ${modules.join(', ')}`
-      : appNameLiteral;
+  const appNameLiteral = `'${name}'`;
+  const topoExpression = renderTopoExpression(appNameLiteral, modules);
 
   return [
     "import { topo } from '@ontrails/core';",
     ...imports,
     '',
-    `export const app = topo(${topoArgs});`,
+    `export const app = ${topoExpression};`,
     '',
   ].join('\n');
 };
