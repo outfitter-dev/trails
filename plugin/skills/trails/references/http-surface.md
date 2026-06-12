@@ -1,6 +1,6 @@
 # HTTP Surface Reference
 
-Trails HTTP support has a shared core plus runtime materializers:
+Trails HTTP support has a shared core plus HTTP bindings:
 
 - `@ontrails/http` owns route derivation, OpenAPI projection, and the shared Web Fetch request kernel.
 - `@ontrails/hono` opens the derived routes through Hono.
@@ -33,7 +33,7 @@ import { graph } from './app.js';
 await surface(graph, { port: 3000 });
 ```
 
-The Bun-native materializer uses Bun's native serving fast path and falls back to the shared Web Fetch handler where needed. It does not add a third-party runtime dependency.
+The Bun-native binding uses Bun's native serving fast path and falls back to the shared Web Fetch handler where needed. It does not add a third-party runtime dependency.
 
 ## Route Derivation
 

@@ -9,7 +9,8 @@ Use this skill when framework-owned trails, CLI helpers, loaders, or generators 
 
 ## Workflow
 
-1. Locate the trail blaze, helper, loader, or materializer under review.
+1. Locate the trail blaze, helper, loader, surface binding, or runtime boundary
+   under review.
 2. Decide which boundary it lives on:
    - Trail runtime behavior should return `Result` and specific `TrailsError` values.
    - Host construction, parser setup, and programmer-error boundaries may throw when documented.

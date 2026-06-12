@@ -2,7 +2,7 @@
 
 This runbook covers the Trails Claude plugin and bundled skills under `plugin/` plus the marketplace manifest at `.claude-plugin/marketplace.json`. It is separate from the framework package publish path in [Stable Cutover Runbook](./stable-cutover.md).
 
-The current plugin manifest version is `0.3.1`. The bundled `trails` skill targets Trails framework `1.0.0-beta.18` through `metadata.trails.version`. Those versions are intentionally independent: plugin version names the Claude plugin bundle, while the skill target names the framework package line the guidance was refreshed against.
+The current plugin manifest version is `0.3.1`. The bundled `trails` skill targets the current Trails framework package version through `metadata.trails.version`. Those versions are intentionally independent: plugin version names the Claude plugin bundle, while the skill target names the framework package line the guidance was refreshed against.
 
 ## Stop Rules
 
@@ -43,18 +43,14 @@ Passing means local installed copies match the repo-bundled plugin skill. Failin
 
 ## Dogfood Gate
 
-Use the latest dogfood report from the active release packet before release. For this refresh stack, that report is:
-
-- `.agents/plans/2026-05-21-plugin-skills-refresh-stack/reports/trl-752-dogfood.md`
-
-Every future release packet should replace or supersede that pointer with fresh dogfood evidence. The report must cover:
+Use the latest dogfood report from the active release packet before release. Every release packet should name fresh dogfood evidence. The report must cover:
 
 - registry `bun install` succeeds for scaffolded package ranges;
 - a repaired disposable app passes typecheck, tests, build, lint, format, CLI smoke, Warden, `testAllEstablished` from `@ontrails/testing/established`, `testSurfaceParity` from `@ontrails/testing/surface-parity`, and the CLI, MCP, and HTTP harness helpers from their matching testing subpaths;
 - raw scaffold output findings are recorded, including any lint, format, typecheck, or Warden coaching needed before the disposable app is clean;
 - published CLI command coverage is compared against current repo CLI command coverage.
 
-Current refresh evidence records two release-readiness risks that must be refreshed before future publication: raw scaffold output was not clean without edits, and published `@ontrails/trails@1.0.0-beta.18` exposed `warden` but not `compile`/`validate`. These do not require publishing the plugin to stop, but release notes and install docs must not imply a published CLI already has commands that only exist in the repo.
+The stable-RC refresh has newer framework evidence than the older beta.18 plugin refresh: generated apps install from the public registry, `trails release check --json` works in generated apps without workspace files, and the published beta line exposes top-level `compile`, `validate`, `diff`, `warden`, and release-check surfaces. Do not carry old beta.18 risk language forward without re-running the current dogfood gate.
 
 ## Plugin 0.3.1 Bundle
 
@@ -76,6 +72,8 @@ The `0.3.1` bundle includes:
 - installed-skill drift checker;
 - tested Claude `SessionStart` project detection and non-mutating Warden
   guidance;
+- stable-RC refreshes for release rules, Wayfinder-first navigation, current
+  skill metadata, and binding vocabulary;
 - disposable dogfood report and release-risk findings.
 
 ## Manual / External Checks
