@@ -168,7 +168,7 @@ bun run guide
 - \`compose\`, not follow
 - \`surface\`, not transport
 - \`resource\`, not service or dependency
-- \`layer\`, for compose-cutting trail wrapping
+- \`layer\`, for cross-cutting trail wrapping
 
 ## Trail Rules
 

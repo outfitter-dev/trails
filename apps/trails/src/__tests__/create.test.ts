@@ -247,7 +247,7 @@ const assertAgentGuidance = (dir: string): void => {
     '`compose`, not follow',
     '`surface`, not transport',
     '`resource`, not service or dependency',
-    '`layer`, for compose-cutting trail wrapping',
+    '`layer`, for cross-cutting trail wrapping',
     'Blazes return `Result`; never throw',
     '`Result.ok()` and `Result.err()`',
     '`ctx.compose(...)`',
