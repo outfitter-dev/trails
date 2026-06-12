@@ -3,7 +3,12 @@ import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { AmbiguousError, NotFoundError, executeTrail } from '@ontrails/core';
+import {
+  AmbiguousError,
+  NotFoundError,
+  ValidationError,
+  executeTrail,
+} from '@ontrails/core';
 import type { Result } from '@ontrails/core';
 
 import { resolveRunModulePath, runTrail } from '../trails/run.js';
@@ -311,5 +316,49 @@ describe('runTrail collision resolution', () => {
         value: { name: 'Alpha' },
       });
     }
+  });
+
+  test('maps direct input fields to the target trail payload', async () => {
+    writeExecutableWorkspace(workspaceRoot);
+
+    const result = await executeRunTrail(
+      {
+        id: 'entity.add',
+        module: 'apps/app-a/src/app.ts',
+        name: 'Alpha',
+        rootDir: workspaceRoot,
+      },
+      ['trails:run', 'entity:write']
+    );
+
+    expect(result.isOk()).toBe(true);
+    if (result.isOk()) {
+      expect(result.value).toEqual({
+        kind: 'inner-trail-result',
+        trailId: 'entity.add',
+        value: { name: 'Alpha' },
+      });
+    }
+  });
+
+  test('rejects mixed direct input fields and explicit input wrapper', async () => {
+    writeExecutableWorkspace(workspaceRoot);
+
+    const result = await executeRunTrail(
+      {
+        id: 'entity.add',
+        input: { name: 'Alpha' },
+        module: 'apps/app-a/src/app.ts',
+        name: 'Bravo',
+        rootDir: workspaceRoot,
+      },
+      ['trails:run', 'entity:write']
+    );
+
+    const error = expectErr(result);
+    expect(error).toBeInstanceOf(ValidationError);
+    expect(error.message).toContain(
+      'both direct input fields and an explicit input wrapper'
+    );
   });
 });

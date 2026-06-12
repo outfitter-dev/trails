@@ -1,13 +1,14 @@
 /**
  * End-to-end coverage for `trails run` structured input.
  *
- * Structured input merges into the `run` trail's typed input object. The
- * inner trail payload therefore lives under the `input` field in the supplied
- * JSON object, without any per-trail CLI mapping table.
+ * Structured input maps to the inner trail payload. Direct JSON objects are
+ * treated as the resolved trail's input, while the explicit `input` wrapper
+ * remains available for callers that need to pass fields that collide with
+ * `run` control fields.
  *
  * The inner `run()` invocation then fails (the workspace fixture has no
  * matching trail), but that is by design — what matters here is that
- * structured-input payloads were assigned to `input.input` before execution.
+ * structured-input payloads reach the `run` trail before execution.
  */
 /* oxlint-disable-next-line eslint-plugin-jest/no-conditional-expect -- Result-shape assertions branch on isOk/isErr */
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
@@ -82,7 +83,7 @@ describe('trails run structured-input mapping', () => {
     await cmd.execute(
       { id: 'never.exists' },
       {
-        inputJson: '{"input":{"name":"Alpha"}}',
+        inputJson: '{"name":"Alpha"}',
         rootDir: workspaceRoot,
       }
     );
@@ -91,7 +92,28 @@ describe('trails run structured-input mapping', () => {
     expect(isInputRecord(captured.input)).toBe(true);
     if (isInputRecord(captured.input)) {
       expect(captured.input['id']).toBe('never.exists');
-      expect(captured.input['input']).toEqual({ name: 'Alpha' });
+      expect(captured.input['name']).toBe('Alpha');
+      expect(captured.input['input']).toBeUndefined();
+    }
+  });
+
+  test('preserves the explicit input wrapper for control-field collisions', async () => {
+    const captured: CapturedInvocation = {};
+    const cmd = buildRunCommand(captured);
+
+    await cmd.execute(
+      { id: 'never.exists' },
+      {
+        inputJson: '{"input":{"module":"inner-value"}}',
+        rootDir: workspaceRoot,
+      }
+    );
+
+    expect(captured.trailId).toBe('run');
+    expect(isInputRecord(captured.input)).toBe(true);
+    if (isInputRecord(captured.input)) {
+      expect(captured.input['id']).toBe('never.exists');
+      expect(captured.input['input']).toEqual({ module: 'inner-value' });
     }
   });
 
@@ -102,7 +124,7 @@ describe('trails run structured-input mapping', () => {
     await cmd.execute(
       {
         id: 'never.exists',
-        'inline-json': '{"input":{"name":"Echo"}}',
+        'inline-json': '{"name":"Echo"}',
       },
       {
         rootDir: workspaceRoot,
@@ -113,7 +135,8 @@ describe('trails run structured-input mapping', () => {
     expect(isInputRecord(captured.input)).toBe(true);
     if (isInputRecord(captured.input)) {
       expect(captured.input['id']).toBe('never.exists');
-      expect(captured.input['input']).toEqual({ name: 'Echo' });
+      expect(captured.input['name']).toBe('Echo');
+      expect(captured.input['input']).toBeUndefined();
     }
   });
 
@@ -144,7 +167,7 @@ describe('trails run structured-input mapping', () => {
     const cmd = buildRunCommand(captured);
 
     const inputPath = join(workspaceRoot, 'payload.json');
-    writeFileSync(inputPath, '{"input":{"name":"Bravo"}}');
+    writeFileSync(inputPath, '{"name":"Bravo"}');
 
     await cmd.execute(
       { id: 'never.exists' },
@@ -156,7 +179,8 @@ describe('trails run structured-input mapping', () => {
 
     expect(isInputRecord(captured.input)).toBe(true);
     if (isInputRecord(captured.input)) {
-      expect(captured.input['input']).toEqual({ name: 'Bravo' });
+      expect(captured.input['name']).toBe('Bravo');
+      expect(captured.input['input']).toBeUndefined();
     }
   });
 
@@ -201,7 +225,7 @@ describe('trails run structured-input mapping', () => {
             yielded = true;
             return Promise.resolve({
               done: false,
-              value: Buffer.from('{"input":{"name":"Delta"}}', 'utf8'),
+              value: Buffer.from('{"name":"Delta"}', 'utf8'),
             });
           },
           [Symbol.asyncIterator]() {
@@ -233,7 +257,8 @@ describe('trails run structured-input mapping', () => {
 
     expect(isInputRecord(captured.input)).toBe(true);
     if (isInputRecord(captured.input)) {
-      expect(captured.input['input']).toEqual({ name: 'Delta' });
+      expect(captured.input['name']).toBe('Delta');
+      expect(captured.input['input']).toBeUndefined();
     }
   });
 });

@@ -33,6 +33,7 @@ import {
   AmbiguousError,
   NotFoundError,
   Result,
+  ValidationError,
   run,
   trail,
 } from '@ontrails/core';
@@ -313,25 +314,57 @@ const buildAmbiguousExampleInput = (): {
   return { id: 'shared.id', rootDir: root };
 };
 
-const runTrailInputSchema = z.object({
-  app: z
-    .string()
-    .optional()
-    .describe(
-      'Workspace app to resolve the trail ID against; required when the ID is exposed by more than one app'
-    ),
-  id: z.string().describe('Trail ID to invoke'),
-  input: z
-    .unknown()
-    .optional()
-    .describe(
-      'Parsed input for the resolved trail; the CLI surface JSON.parses the inline argument before passing it through'
-    ),
-  module: z.string().optional().describe('Path to the app module'),
-  rootDir: z.string().optional().describe('Workspace root directory'),
-});
+const runTrailInputSchema = z
+  .object({
+    app: z
+      .string()
+      .optional()
+      .describe(
+        'Workspace app to resolve the trail ID against; required when the ID is exposed by more than one app'
+      ),
+    id: z.string().describe('Trail ID to invoke'),
+    input: z
+      .unknown()
+      .optional()
+      .describe(
+        'Parsed input for the resolved trail; the CLI surface JSON.parses the inline argument before passing it through'
+      ),
+    module: z.string().optional().describe('Path to the app module'),
+    rootDir: z.string().optional().describe('Workspace root directory'),
+  })
+  .catchall(z.unknown());
 
 type RunTrailInput = z.output<typeof runTrailInputSchema>;
+
+const RUN_TRAIL_CONTROL_KEYS = new Set([
+  'app',
+  'id',
+  'input',
+  'module',
+  'rootDir',
+]);
+
+const directInputEntries = (
+  input: RunTrailInput
+): readonly (readonly [string, unknown])[] =>
+  Object.entries(input).filter(([key]) => !RUN_TRAIL_CONTROL_KEYS.has(key));
+
+const resolveInnerTrailInput = (
+  input: RunTrailInput
+): Result<unknown, ValidationError> => {
+  const entries = directInputEntries(input);
+  if (entries.length === 0) {
+    return Result.ok(input.input);
+  }
+  if (Object.hasOwn(input, 'input')) {
+    return Result.err(
+      new ValidationError(
+        'trails run received both direct input fields and an explicit input wrapper. Use one shape: either {"name":"Alpha"} or {"input":{"name":"Alpha"}}.'
+      )
+    );
+  }
+  return Result.ok(Object.fromEntries(entries));
+};
 
 // ---------------------------------------------------------------------------
 // Trail definition
@@ -345,6 +378,10 @@ export const runTrail = trail('run', {
       return rootDirResult;
     }
     const rootDir = rootDirResult.value;
+    const innerInput = resolveInnerTrailInput(input);
+    if (innerInput.isErr()) {
+      return innerInput;
+    }
 
     // Single-app back-compat: if the caller provided `module`, trust it.
     const moduleResolution = await resolveRunModulePath(
@@ -365,7 +402,7 @@ export const runTrail = trail('run', {
     const lease = leaseResult.value;
 
     try {
-      const result = await run(lease.app, input.id, input.input, {
+      const result = await run(lease.app, input.id, innerInput.value, {
         ctx: ctx.permit === undefined ? {} : { permit: ctx.permit },
       });
       if (result.isErr()) {
