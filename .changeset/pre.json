@@ -228,6 +228,7 @@
     "trl-945-release-check-generated-app",
     "trl-946-rc-docs-binding",
     "trl-951-fresh-scaffold-format",
+    "trl-954-run-direct-input",
     "type-utils-and-follow-rule",
     "unified-observability-adr",
     "vocabulary-cutover",

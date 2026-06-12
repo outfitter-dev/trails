@@ -1,5 +1,11 @@
 # @ontrails/permits
 
+## 1.0.0-beta.24
+
+### Patch Changes
+
+- @ontrails/core@1.0.0-beta.24
+
 ## 1.0.0-beta.23
 
 ### Patch Changes

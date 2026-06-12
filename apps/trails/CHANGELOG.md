@@ -1,5 +1,25 @@
 # trails
 
+## 1.0.0-beta.24
+
+### Patch Changes
+
+- dac49c2: Restore caller-facing direct input for `trails run` so positional JSON,
+  `--input-json`, and `--input` payloads map to the target trail input unless
+  callers explicitly use the `input` wrapper for control-field collisions.
+  - @ontrails/commander@1.0.0-beta.24
+  - @ontrails/adapter-kit@1.0.0-beta.24
+  - @ontrails/cli@1.0.0-beta.24
+  - @ontrails/core@1.0.0-beta.24
+  - @ontrails/http@1.0.0-beta.24
+  - @ontrails/mcp@1.0.0-beta.24
+  - @ontrails/observe@1.0.0-beta.24
+  - @ontrails/permits@1.0.0-beta.24
+  - @ontrails/topographer@1.0.0-beta.24
+  - @ontrails/tracing@1.0.0-beta.24
+  - @ontrails/warden@1.0.0-beta.24
+  - @ontrails/wayfinder@1.0.0-beta.24
+
 ## 1.0.0-beta.23
 
 ### Patch Changes
