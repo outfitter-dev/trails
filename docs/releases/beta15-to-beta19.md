@@ -10,7 +10,7 @@ Read [Beta 15](./beta15.md) first if you are still on a pre-beta.15 line — tha
 
 ## What Changed In One Paragraph
 
-Beta 16 split `@ontrails/commander` out of `@ontrails/cli/commander`, moved the topo-store API into `@ontrails/topographer`, added typed layers as a real primitive with attachment scopes, renamed surface-map artifacts to `TopoGraph` / `.trails/topo.lock`, added the `unmockable` resource marker, and absorbed pagination and date shortcuts into CLI surface derivation. Beta 17 added the example-driven surface-parity helper and the HTTP surface harness, and projected `inputSchema` v1 minimums for shipped surface entrypoints. Beta 18 added `@ontrails/http/fetch` and `@ontrails/http/bun` as a Web Fetch kernel plus a Bun-native materializer. Beta 19 renamed the `cross` composition family to `compose`, promoted the topo artifact commands to top-level `trails compile` / `trails validate`, made trail versioning resolve at runtime across all surfaces, introduced the `@ontrails/adapter-kit` authoring toolchain, and added `warden --fix` for safe source fixes. Together those changes mean a downstream app upgrading from beta.15 should rethink CLI imports, MCP exposure, public output schemas, resource mocks, error taxonomy, observability, Topographer adoption, and trail-composition vocabulary — not just bump versions.
+Beta 16 split `@ontrails/commander` out of `@ontrails/cli/commander`, moved the topo-store API into `@ontrails/topographer`, added typed layers as a real primitive with attachment scopes, renamed surface-map artifacts to `TopoGraph` / `.trails/topo.lock`, added the `unmockable` resource marker, and absorbed pagination and date shortcuts into CLI surface derivation. Beta 17 added the example-driven surface-parity helper and the HTTP surface harness, and projected `inputSchema` v1 minimums for shipped surface entrypoints. Beta 18 added `@ontrails/http/fetch` and `@ontrails/http/bun` as a Web Fetch kernel plus a Bun-native HTTP binding. Beta 19 renamed the `cross` composition family to `compose`, promoted the topo artifact commands to top-level `trails compile` / `trails validate`, made trail versioning resolve at runtime across all surfaces, introduced the `@ontrails/adapter-kit` authoring toolchain, and added `warden --fix` for safe source fixes. Together those changes mean a downstream app upgrading from beta.15 should rethink CLI imports, MCP exposure, public output schemas, resource mocks, error taxonomy, observability, Topographer adoption, and trail-composition vocabulary, not just bump versions.
 
 ## Install
 
@@ -122,14 +122,14 @@ Public MCP and HTTP trails require an `output` schema. The Warden rule `public-o
 
 ## HTTP Surface
 
-Beta 18 split the HTTP surface around a shared Web Fetch kernel and a Bun-native materializer:
+Beta 18 split the HTTP surface around a shared Web Fetch kernel and a Bun-native HTTP binding:
 
 - `@ontrails/http` keeps the framework-agnostic route model and the derived OpenAPI helper (`deriveOpenApiSpec`, moved from `@ontrails/schema` in beta.16).
-- `@ontrails/http/fetch` is the shared request/response kernel that surface materializers use.
-- `@ontrails/http/bun` is the Bun-native HTTP surface materializer that uses the fetch kernel.
-- `@ontrails/hono` remains the Hono adapter.
+- `@ontrails/http/fetch` is the shared request/response kernel that HTTP bindings use.
+- `@ontrails/http/bun` is the native Bun HTTP binding that uses the fetch kernel.
+- `@ontrails/hono` remains the Hono adapter binding.
 
-Pick the materializer that matches the deployment target. Hono apps stay on `@ontrails/hono`; Bun-native apps can use `@ontrails/http/bun`. Layer `input` schemas project onto request query (reads) or body (writes), and topo-scope and surface-scope layers compose through HTTP handlers the same way they do on CLI and MCP.
+Pick the binding that matches the deployment target. Hono apps stay on `@ontrails/hono`; Bun-native apps can use `@ontrails/http/bun`. Layer `input` schemas project onto request query (reads) or body (writes), and topo-scope and surface-scope layers compose through HTTP handlers the same way they do on CLI and MCP.
 
 HTTP also gained webhook activation: declared webhook routes participate in topo and Warden coverage. The Warden rule `webhook-route-collision` keeps webhook routes from colliding with each other or with direct HTTP trail routes.
 

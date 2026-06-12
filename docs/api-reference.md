@@ -211,7 +211,7 @@ createFetchHandler(graph, options?)    // materialize a full topo Web Fetch disp
 CreateRouteHandlerOptions, CreateFetchHandlerOptions
 ```
 
-The fetch kernel owns query/body parsing, content-length checks, public HTTP error projection, diagnostics, request ID/header forwarding, abort propagation, and webhook verification/parsing semantics for HTTP materializers.
+The fetch kernel owns query/body parsing, content-length checks, public HTTP error projection, diagnostics, request ID/header forwarding, abort propagation, and webhook verification/parsing semantics for HTTP bindings.
 
 ## `@ontrails/http/bun`
 

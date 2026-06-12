@@ -22,7 +22,7 @@ await surface(graph, { port: 3000 });
 
 This starts a Hono-based HTTP server. The `greet` trail becomes `GET /greet?name=...` because its `intent` is `'read'`.
 
-For Bun-native HTTP without Hono, use the Bun runtime materializer subpath:
+For Bun-native HTTP without Hono, use the Bun-native HTTP binding subpath:
 
 ```typescript
 import { surface } from '@ontrails/http/bun';
@@ -32,13 +32,16 @@ await surface(graph, { port: 3000 });
 
 `@ontrails/http/bun` uses Bun's native `Bun.serve({ routes })` fast path and keeps the shared Web Fetch handler as the fallback. It requires Bun `>=1.2.3` and does not add a third-party runtime dependency.
 
-## Projection and materialization
+## Projection and runtime binding
 
 The HTTP package follows the surface API naming split:
 
 - `derive*` exports are pure projections from the topo. Use `deriveHttpRoutes()` for route definitions and `deriveOpenApiSpec()` for the OpenAPI contract.
-- `create*` exports materialize runtime objects without opening a network boundary. `@ontrails/http/fetch` exports `createRouteHandler()` for one route and `createFetchHandler()` for a full topo dispatcher.
-- `surface()` opens the runtime boundary. `@ontrails/hono` opens a Hono server; `@ontrails/http/bun` opens Bun's native HTTP server.
+- `create*` exports build runtime objects without opening a network boundary.
+  `@ontrails/http/fetch` exports `createRouteHandler()` for one route and
+  `createFetchHandler()` for a full topo dispatcher.
+- `surface()` opens the runtime boundary. `@ontrails/hono` opens an adapter
+  binding to Hono; `@ontrails/http/bun` opens the native Bun HTTP binding.
 
 The shared `@ontrails/http/fetch` kernel owns query/body parsing, content-length validation, public error projection, diagnostics, request IDs, headers, abort propagation, and webhook verification/parsing behavior. Hono and Bun both consume that kernel so route semantics stay aligned.
 
@@ -73,7 +76,7 @@ const spec = deriveOpenApiSpec(graph, { basePath: '/api' });
 | `deriveHttpRoutes(graph, options?)` | Build framework-agnostic route definitions from a topo |
 | `deriveOpenApiSpec(graph, options?)` | Generate an OpenAPI 3.1 document for the HTTP surface |
 | `@ontrails/http/fetch` | Shared Web Fetch `createRouteHandler()` and `createFetchHandler()` kernel |
-| `@ontrails/http/bun` | Bun-native `createApp()` and `surface()` materializer |
+| `@ontrails/http/bun` | Bun-native `createApp()` and `surface()` binding |
 | `@ontrails/http/testing` | Owner-owned adapter conformance factory for HTTP adapter authors |
 
 ## Adapter authoring

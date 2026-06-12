@@ -18,13 +18,16 @@ Scaffolded projects should prefer their generated package scripts, such as `bun 
 
 Use the beta channel deliberately:
 
-- Use explicit pins such as `@ontrails/core@1.0.0-beta.18` when a handoff,
-  fixture, generated app, or downstream migration must be reproducible.
+- Use explicit pins such as `@ontrails/core@1.0.0-beta.N` when a handoff,
+  fixture, generated app, or downstream migration must be reproducible. Use the
+  exact beta number from the release packet instead of copying an older guide's
+  example version.
 - Use `@beta` when you intentionally want the newest published beta.
 - Do not rely on unqualified `@ontrails/*` installs during the beta line unless
   release notes explicitly say `latest` has been advanced.
-- Keep public `@ontrails/*` packages on the same beta number. Do not mix
-  `beta.15`, `beta.18`, and `@beta` ranges in one app.
+- Keep public `@ontrails/*` packages on the same beta number. Do not mix exact
+  beta pins and `@beta` ranges in one app unless the migration guide for that
+  handoff explicitly says to.
 
 Example active-beta install:
 

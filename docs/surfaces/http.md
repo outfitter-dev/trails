@@ -34,17 +34,18 @@ await surface(graph, { port: 3000 });
 
 `@ontrails/hono` is the portable Hono integration. `@ontrails/http/bun` uses Bun's native `routes` fast path, keeps a Fetch fallback for unmatched requests, and adds no third-party HTTP framework dependency.
 
-## Projection and runtime materialization
+## Projection and runtime binding
 
 HTTP follows the surface naming split:
 
 - `deriveHttpRoutes()` and `deriveOpenApiSpec()` are `derive*` projections from
   the topo. They do not open a server.
 - `createRouteHandler()` and `createFetchHandler()` from
-  `@ontrails/http/fetch` are `create*` runtime materializers. They return Web
+  `@ontrails/http/fetch` are `create*` runtime helpers. They return Web
   Standard `Request` -> `Response` handlers without listening on a port.
-- `surface()` opens the boundary: `@ontrails/hono` starts Hono;
-  `@ontrails/http/bun` starts `Bun.serve()`.
+- `surface()` opens the boundary: `@ontrails/hono` starts the adapter binding
+  to Hono; `@ontrails/http/bun` starts the native Bun HTTP binding through
+  `Bun.serve()`.
 
 The shared Fetch kernel owns query/body parsing, content-length validation, public error projection, diagnostics, request ID/header forwarding, abort propagation, and webhook verification/parsing. Hono and Bun consume the same kernel so those behaviors stay in parity.
 
