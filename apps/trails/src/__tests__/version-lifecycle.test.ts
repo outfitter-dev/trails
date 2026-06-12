@@ -9,7 +9,7 @@ import {
 import { join, resolve } from 'node:path';
 
 import { deriveCliCommands } from '@ontrails/cli';
-import { Result, topo, trail } from '@ontrails/core';
+import { isTrailsError, Result, topo, trail } from '@ontrails/core';
 import { TOPO_GRAPH_SCHEMA_VERSION } from '@ontrails/topographer';
 import type { TopoGraph } from '@ontrails/topographer';
 import { z } from 'zod';
@@ -616,6 +616,86 @@ import { topo, trail } from '@ontrails/core';`,
         trails: 1,
         versioned: 1,
       });
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('doctor returns the validation error for an invalid topo', async () => {
+    const dir = repoTempDir();
+    try {
+      mkdirSync(join(dir, 'src'), { recursive: true });
+      writeFileSync(
+        join(dir, 'src', 'app.ts'),
+        `import { Result, resource, topo, trail } from '@ontrails/core';
+import { z } from 'zod';
+
+const store = resource<{ ping: () => string }>('orphan-store', {
+  create: () => Result.ok({ ping: () => 'pong' }),
+  mock: () => ({ ping: () => 'pong' }),
+});
+
+const ping = trail('ping', {
+  blaze: (_input, ctx) => Result.ok({ message: store.from(ctx).ping() }),
+  input: z.object({}),
+  intent: 'read',
+  output: z.object({ message: z.string() }),
+  resources: [store],
+});
+
+// The store module is deliberately omitted from topo() so validation fails.
+export const app = topo('doctor-invalid', { ping });
+`
+      );
+
+      const doctor = await doctorTrail.blaze({ module: './src/app.ts' }, {
+        cwd: dir,
+      } as never);
+
+      expect(doctor.isErr()).toBe(true);
+      if (doctor.isOk()) {
+        throw new Error('expected doctor to fail on an invalid topo');
+      }
+      expect(isTrailsError(doctor.error)).toBe(true);
+      expect(
+        isTrailsError(doctor.error) ? doctor.error.category : 'unknown'
+      ).toBe('validation');
+      expect(doctor.error.message).toContain('Topo validation failed');
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('doctor returns an internal error for unexpected summary failures', async () => {
+    const dir = repoTempDir();
+    try {
+      mkdirSync(join(dir, 'src'), { recursive: true });
+      writeFileSync(
+        join(dir, 'src', 'app.ts'),
+        `export const app = {
+  name: 'doctor-broken',
+  trails: { broken: true },
+  contours: new Map(),
+  signals: new Map(),
+  resources: new Map(),
+  layers: [],
+};
+`
+      );
+
+      const doctor = await doctorTrail.blaze({ module: './src/app.ts' }, {
+        cwd: dir,
+      } as never);
+
+      expect(doctor.isErr()).toBe(true);
+      if (doctor.isOk()) {
+        throw new Error('expected doctor to fail on a malformed topo');
+      }
+      expect(isTrailsError(doctor.error)).toBe(true);
+      expect(
+        isTrailsError(doctor.error) ? doctor.error.category : 'unknown'
+      ).toBe('internal');
+      expect(doctor.error.message).toContain('Unable to derive doctor summary');
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }

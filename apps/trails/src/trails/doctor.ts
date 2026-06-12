@@ -1,4 +1,10 @@
-import { deriveTrailsDir, Result, trail } from '@ontrails/core';
+import {
+  deriveTrailsDir,
+  InternalError,
+  isTrailsError,
+  Result,
+  trail,
+} from '@ontrails/core';
 import { readTopoGraph } from '@ontrails/topographer';
 import { z } from 'zod';
 
@@ -18,11 +24,26 @@ const readDoctorForceGraph = async (
   }
 };
 
+const toDoctorSummaryError = (error: unknown): InternalError =>
+  error instanceof Error
+    ? new InternalError('Unable to derive doctor summary', { cause: error })
+    : new InternalError(`Unable to derive doctor summary: ${String(error)}`);
+
 export const doctorTrail = trail('doctor', {
   blaze: async (input, ctx) =>
     withLifecycleApp(input, ctx.cwd, async (app, rootDir) => {
       const forceGraph = await readDoctorForceGraph(rootDir);
-      return Result.ok(deriveDoctorSummary(app, { forceGraph }));
+      try {
+        return Result.ok(deriveDoctorSummary(app, { forceGraph }));
+      } catch (error) {
+        // deriveTopoGraph throws ValidationError on invalid topos; doctor must
+        // report that diagnosis instead of letting the pipeline redact it to a
+        // generic internal error.
+        if (isTrailsError(error)) {
+          return Result.err(error);
+        }
+        return Result.err(toDoctorSummaryError(error));
+      }
     }),
   description: 'Diagnose trail versioning lifecycle state',
   input: z.object({
