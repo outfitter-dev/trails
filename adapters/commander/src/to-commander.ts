@@ -2,7 +2,11 @@
  * Adapt framework-agnostic CliCommand[] to a Commander program.
  */
 
-import { projectPublicSurfaceError } from '@ontrails/core';
+import {
+  isTrailsError,
+  projectPublicSurfaceError,
+  redactErrorString,
+} from '@ontrails/core';
 import type { CliCommand, CliFlag } from '@ontrails/cli';
 import { applyCliFlagValueAliases, validateCliCommands } from '@ontrails/cli';
 import { Command, InvalidArgumentError, Option } from 'commander';
@@ -220,11 +224,78 @@ const getFallbackUserSuppliedFlagKeys = (
   return userSupplied;
 };
 
+const collectValidationIssueLines = (
+  context: Readonly<Record<string, unknown>>
+): readonly string[] => {
+  const { issues } = context;
+  if (!Array.isArray(issues)) {
+    return [];
+  }
+  return issues.flatMap((issue) => {
+    if (typeof issue !== 'object' || issue === null) {
+      return [];
+    }
+    const { message, trailId } = issue as {
+      message?: unknown;
+      trailId?: unknown;
+    };
+    if (typeof message !== 'string') {
+      return [];
+    }
+    const suffix = typeof trailId === 'string' ? ` (${trailId})` : '';
+    return [`- ${redactErrorString(message)}${suffix}`];
+  });
+};
+
+const collectPermitScopeLines = (
+  context: Readonly<Record<string, unknown>>
+): readonly string[] => {
+  const candidate = [context['required'], context['missing']].find((value) =>
+    Array.isArray(value)
+  );
+  const scopes = (Array.isArray(candidate) ? candidate : [])
+    .filter((scope): scope is string => typeof scope === 'string')
+    .map((scope) => redactErrorString(scope));
+  if (scopes.length === 0) {
+    return [];
+  }
+  const scopeJson = scopes.map((scope) => JSON.stringify(scope)).join(',');
+  return [
+    `Required scopes: ${scopes.join(', ')}`,
+    `Grant with: --permit '{"id":"<caller-id>","scopes":[${scopeJson}]}'`,
+  ];
+};
+
+/**
+ * Collect operator-facing detail lines for an execution error.
+ *
+ * The public surface projection intentionally drops structured context, but
+ * the CLI is an operator surface: validation issues and permit scope
+ * requirements are what the operator needs to act, so they are re-rendered
+ * here (through the shared redactor) for non-internal Trails errors.
+ */
+const collectErrorDetailLines = (error: Error): readonly string[] => {
+  if (!isTrailsError(error) || error.category === 'internal') {
+    return [];
+  }
+  const context = error.context ?? {};
+  if (error.category === 'validation') {
+    return collectValidationIssueLines(context);
+  }
+  if (error.category === 'permission') {
+    return collectPermitScopeLines(context);
+  }
+  return [];
+};
+
 /** Handle execution errors with appropriate exit codes. */
 const handleError = (error: unknown): void => {
   const err = error instanceof Error ? error : new Error(String(error));
   const projection = projectPublicSurfaceError('cli', err);
   process.stderr.write(`Error: ${projection.message}\n`);
+  for (const line of collectErrorDetailLines(err)) {
+    process.stderr.write(`  ${line}\n`);
+  }
   process.exit(projection.code);
 };
 

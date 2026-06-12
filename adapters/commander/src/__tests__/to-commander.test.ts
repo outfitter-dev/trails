@@ -3,9 +3,11 @@ import { describe, expect, mock, test } from 'bun:test';
 import {
   createTrailContext,
   NotFoundError,
+  PermitError,
   Result,
   trail,
   topo,
+  ValidationError,
 } from '@ontrails/core';
 import type { AnyTrail, CliCommand } from '@ontrails/cli';
 import { deriveCliCommands } from '@ontrails/cli';
@@ -1227,6 +1229,160 @@ describe('toCommander option wiring', () => {
       ).rejects.toThrow('EXIT 8');
       expect(process.stderr.write).toHaveBeenCalledWith(
         'Error: Internal server error\n'
+      );
+    });
+  });
+
+  test('error handling lists validation issues from error context', async () => {
+    await withMockedProcess(async () => {
+      const failTrail = trail('fail', {
+        blaze: () => Result.ok('ok'),
+        input: z.object({}),
+      });
+      const program = toCommander([
+        {
+          args: [],
+          execute: () => {
+            throw new ValidationError(
+              'Topo validation failed with 2 issue(s)',
+              {
+                context: {
+                  issues: [
+                    {
+                      message: 'Resource "note-store" is not in the topo',
+                      rule: 'resource-exists',
+                      trailId: 'notes.add',
+                    },
+                    {
+                      message: 'Resource "note-store" is not in the topo',
+                      rule: 'resource-exists',
+                      trailId: 'notes.list',
+                    },
+                  ],
+                },
+              }
+            );
+          },
+          flags: [],
+          intent: 'read' as const,
+          path: ['fail'] as const,
+          trail: failTrail,
+        },
+      ]);
+
+      await expect(
+        program.parseAsync(['node', 'test', 'fail'], { from: 'node' })
+      ).rejects.toThrow(/EXIT/);
+      expect(process.stderr.write).toHaveBeenCalledWith(
+        'Error: Topo validation failed with 2 issue(s)\n'
+      );
+      expect(process.stderr.write).toHaveBeenCalledWith(
+        '  - Resource "note-store" is not in the topo (notes.add)\n'
+      );
+      expect(process.stderr.write).toHaveBeenCalledWith(
+        '  - Resource "note-store" is not in the topo (notes.list)\n'
+      );
+    });
+  });
+
+  test('error handling names required permit scopes and the --permit form', async () => {
+    await withMockedProcess(async () => {
+      const failTrail = trail('fail', {
+        blaze: () => Result.ok('ok'),
+        input: z.object({}),
+      });
+      const program = toCommander([
+        {
+          args: [],
+          execute: () => {
+            throw new PermitError('No permit provided', {
+              context: { required: ['project:write'], trailId: 'create' },
+            });
+          },
+          flags: [],
+          intent: 'read' as const,
+          path: ['fail'] as const,
+          trail: failTrail,
+        },
+      ]);
+
+      await expect(
+        program.parseAsync(['node', 'test', 'fail'], { from: 'node' })
+      ).rejects.toThrow(/EXIT/);
+      expect(process.stderr.write).toHaveBeenCalledWith(
+        'Error: No permit provided\n'
+      );
+      expect(process.stderr.write).toHaveBeenCalledWith(
+        '  Required scopes: project:write\n'
+      );
+      expect(process.stderr.write).toHaveBeenCalledWith(
+        `  Grant with: --permit '{"id":"<caller-id>","scopes":["project:write"]}'\n`
+      );
+    });
+  });
+
+  test('error handling JSON-escapes permit scopes in the grant form', async () => {
+    await withMockedProcess(async () => {
+      const failTrail = trail('fail', {
+        blaze: () => Result.ok('ok'),
+        input: z.object({}),
+      });
+      const program = toCommander([
+        {
+          args: [],
+          execute: () => {
+            throw new PermitError('No permit provided', {
+              context: { required: ['weird"scope'] },
+            });
+          },
+          flags: [],
+          intent: 'read' as const,
+          path: ['fail'] as const,
+          trail: failTrail,
+        },
+      ]);
+
+      await expect(
+        program.parseAsync(['node', 'test', 'fail'], { from: 'node' })
+      ).rejects.toThrow(/EXIT/);
+      expect(process.stderr.write).toHaveBeenCalledWith(
+        `  Grant with: --permit '{"id":"<caller-id>","scopes":["weird\\"scope"]}'\n`
+      );
+    });
+  });
+
+  test('error handling builds the permit grant from all required scopes', async () => {
+    await withMockedProcess(async () => {
+      const failTrail = trail('fail', {
+        blaze: () => Result.ok('ok'),
+        input: z.object({}),
+      });
+      const program = toCommander([
+        {
+          args: [],
+          execute: () => {
+            throw new PermitError('Missing scopes: project:write', {
+              context: {
+                missing: ['project:write'],
+                required: ['project:read', 'project:write'],
+              },
+            });
+          },
+          flags: [],
+          intent: 'read' as const,
+          path: ['fail'] as const,
+          trail: failTrail,
+        },
+      ]);
+
+      await expect(
+        program.parseAsync(['node', 'test', 'fail'], { from: 'node' })
+      ).rejects.toThrow(/EXIT/);
+      expect(process.stderr.write).toHaveBeenCalledWith(
+        '  Required scopes: project:read, project:write\n'
+      );
+      expect(process.stderr.write).toHaveBeenCalledWith(
+        `  Grant with: --permit '{"id":"<caller-id>","scopes":["project:read","project:write"]}'\n`
       );
     });
   });
