@@ -30,10 +30,10 @@ The skill gives your agent the full Trails reference: lexicon, patterns, error t
 ### With code
 
 ```bash
-bunx @ontrails/trails create
+bunx @ontrails/trails create --permit '{"id":"local-dev","scopes":["project:write"]}'
 ```
 
-Follow the prompts — pick a name, choose a starter, select your surfaces. The scaffolder generates a working project with trails, a topo, surface wiring, and tests.
+Follow the prompts — pick a name, choose a starter, select your surfaces. The scaffolder generates a working project with trails, a topo, surface wiring, and tests. The `--permit` flag is required: `create` writes a new project, and Trails write commands always name their authority explicitly instead of assuming it.
 
 Or install manually:
 

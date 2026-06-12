@@ -10,7 +10,8 @@ This guide demonstrates CLI and MCP first because they are the shortest path to 
 # Requires Bun (https://bun.sh)
 
 # Recommended: scaffold a new project
-bunx @ontrails/trails create
+# (create writes a project, so it needs an explicit project:write permit)
+bunx @ontrails/trails create --permit '{"id":"local-dev","scopes":["project:write"]}'
 
 # Or install manually
 bun add @ontrails/core@beta @ontrails/cli@beta @ontrails/commander@beta zod
