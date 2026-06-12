@@ -1,5 +1,13 @@
 # @ontrails/wayfinder
 
+## 1.0.0-beta.23
+
+### Patch Changes
+
+- @ontrails/adapter-kit@1.0.0-beta.23
+- @ontrails/core@1.0.0-beta.23
+- @ontrails/topographer@1.0.0-beta.23
+
 ## 1.0.0-beta.22
 
 ### Patch Changes

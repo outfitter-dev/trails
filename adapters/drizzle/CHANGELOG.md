@@ -1,5 +1,12 @@
 # @ontrails/drizzle
 
+## 1.0.0-beta.23
+
+### Patch Changes
+
+- @ontrails/core@1.0.0-beta.23
+- @ontrails/store@1.0.0-beta.23
+
 ## 1.0.0-beta.22
 
 ### Patch Changes

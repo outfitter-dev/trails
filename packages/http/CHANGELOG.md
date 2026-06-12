@@ -1,5 +1,13 @@
 # @ontrails/http
 
+## 1.0.0-beta.23
+
+### Patch Changes
+
+- 9c5ecdc: Refresh HTTP docs for the stable RC pass so public package guidance uses the
+  binding vocabulary and beta install guidance avoids stale copied pin examples.
+  - @ontrails/core@1.0.0-beta.23
+
 ## 1.0.0-beta.22
 
 ### Patch Changes

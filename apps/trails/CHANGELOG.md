@@ -1,5 +1,25 @@
 # trails
 
+## 1.0.0-beta.23
+
+### Patch Changes
+
+- 7c037a0: Allow `trails release check` to pass as a no-op in generated single-package apps
+  that do not declare package workspaces.
+- Updated dependencies [9c5ecdc]
+  - @ontrails/http@1.0.0-beta.23
+  - @ontrails/commander@1.0.0-beta.23
+  - @ontrails/adapter-kit@1.0.0-beta.23
+  - @ontrails/cli@1.0.0-beta.23
+  - @ontrails/core@1.0.0-beta.23
+  - @ontrails/mcp@1.0.0-beta.23
+  - @ontrails/observe@1.0.0-beta.23
+  - @ontrails/permits@1.0.0-beta.23
+  - @ontrails/topographer@1.0.0-beta.23
+  - @ontrails/tracing@1.0.0-beta.23
+  - @ontrails/warden@1.0.0-beta.23
+  - @ontrails/wayfinder@1.0.0-beta.23
+
 ## 1.0.0-beta.22
 
 ### Patch Changes

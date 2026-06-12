@@ -225,6 +225,8 @@
     "trl-936-release-check-cli",
     "trl-938-native-bun-release-binding",
     "trl-939-release-smoke-gates",
+    "trl-945-release-check-generated-app",
+    "trl-946-rc-docs-binding",
     "trl-951-fresh-scaffold-format",
     "type-utils-and-follow-rule",
     "unified-observability-adr",
