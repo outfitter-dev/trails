@@ -79,6 +79,13 @@ export type ScopedHelperMap = ReadonlyMap<
 
 export type MutableScopedHelperMap = Map<ReadonlySet<string>, Set<string>>;
 
+type ScopedResultVariableMap = ReadonlyMap<
+  ReadonlySet<string>,
+  ReadonlySet<string>
+>;
+
+type MutableScopedResultVariableMap = Map<ReadonlySet<string>, Set<string>>;
+
 export const findNearestBindingScope = (
   name: string,
   scopes: readonly ReadonlySet<string>[]
@@ -90,6 +97,15 @@ const isScopedHelperBinding = (
   scope: ReadonlySet<string>,
   scopedHelpers: ScopedHelperMap
 ): boolean => scopedHelpers.get(scope)?.has(name) ?? false;
+
+const isScopedResultVariableBinding = (
+  name: string,
+  scopes: readonly ReadonlySet<string>[],
+  resultVars: ScopedResultVariableMap
+): boolean => {
+  const bindingScope = findNearestBindingScope(name, scopes);
+  return Boolean(bindingScope && resultVars.get(bindingScope)?.has(name));
+};
 
 /**
  * Check whether a namespace-member call like `ns.helper(...)` resolves to a
@@ -171,26 +187,74 @@ const resolveIdentifierName = (node: AstNode): string | null => {
   return null;
 };
 
+const unwrapReturnExpression = (node: AstNode): AstNode => {
+  let current = node;
+  while (
+    current.type === 'AwaitExpression' ||
+    current.type === 'ParenthesizedExpression'
+  ) {
+    const next =
+      current.type === 'AwaitExpression'
+        ? (current as unknown as { argument?: AstNode }).argument
+        : (current as unknown as { expression?: AstNode }).expression;
+    if (!next) {
+      return current;
+    }
+    current = next;
+  }
+  return current;
+};
+
 /** Check if a return argument is an allowed Result value. */
 const isAllowedReturnArgument = (
   argument: AstNode,
   helperNames: ReadonlySet<string>,
-  resultVars: ReadonlySet<string>,
+  resultVars: ScopedResultVariableMap,
   namespaceHelpers: NamespaceHelperMap,
   scopes: readonly ReadonlySet<string>[] = [],
   scopedHelpers: ScopedHelperMap = new Map()
 ): boolean => {
-  if (isResultExpression(argument)) {
+  const target = unwrapReturnExpression(argument);
+  if (target.type === 'ConditionalExpression') {
+    const { alternate, consequent } = target as unknown as {
+      alternate?: AstNode;
+      consequent?: AstNode;
+    };
+    return (
+      consequent !== undefined &&
+      alternate !== undefined &&
+      isAllowedReturnArgument(
+        consequent,
+        helperNames,
+        resultVars,
+        namespaceHelpers,
+        scopes,
+        scopedHelpers
+      ) &&
+      isAllowedReturnArgument(
+        alternate,
+        helperNames,
+        resultVars,
+        namespaceHelpers,
+        scopes,
+        scopedHelpers
+      )
+    );
+  }
+  if (isResultExpression(target)) {
     return true;
   }
   if (
-    isHelperCall(argument, helperNames, namespaceHelpers, scopes, scopedHelpers)
+    isHelperCall(target, helperNames, namespaceHelpers, scopes, scopedHelpers)
   ) {
     return true;
   }
 
-  const varName = resolveIdentifierName(argument);
-  return varName !== null && resultVars.has(varName);
+  const varName = resolveIdentifierName(target);
+  return (
+    varName !== null &&
+    isScopedResultVariableBinding(varName, scopes, resultVars)
+  );
 };
 
 // ---------------------------------------------------------------------------
@@ -284,6 +348,19 @@ const addScopedHelper = (
   scopedHelpers.set(scope, new Set([name]));
 };
 
+const addScopedResultVariable = (
+  resultVars: MutableScopedResultVariableMap,
+  scope: ReadonlySet<string>,
+  name: string
+): void => {
+  const existing = resultVars.get(scope);
+  if (existing) {
+    existing.add(name);
+    return;
+  }
+  resultVars.set(scope, new Set([name]));
+};
+
 /** Record `const helper = (): Result<...> => ...` declarations for the current lexical scope. */
 export const trackScopedResultHelperDeclaration = (
   node: AstNode,
@@ -316,7 +393,7 @@ export const trackScopedResultHelperDeclaration = (
 /** Track a VariableDeclarator, adding to resultVars if it produces a Result. */
 const trackResultVariable = (
   node: AstNode,
-  resultVars: Set<string>,
+  resultVars: MutableScopedResultVariableMap,
   helperNames: ReadonlySet<string>,
   namespaceHelpers: NamespaceHelperMap,
   scopes: readonly ReadonlySet<string>[],
@@ -330,7 +407,10 @@ const trackResultVariable = (
       isResultExpression(init) ||
       isHelperCall(init, helperNames, namespaceHelpers, scopes, scopedHelpers)
     ) {
-      resultVars.add(name);
+      const bindingScope = findNearestBindingScope(name, scopes);
+      if (bindingScope) {
+        addScopedResultVariable(resultVars, bindingScope, name);
+      }
     }
   }
 };
@@ -351,7 +431,7 @@ const checkReturnStatements = (
   diagnostics: WardenDiagnostic[],
   implScope: ReadonlySet<string> = new Set<string>()
 ): void => {
-  const resultVars = new Set<string>();
+  const resultVars: MutableScopedResultVariableMap = new Map();
   const scopedHelpers: MutableScopedHelperMap = new Map();
   const initialScopes = implScope.size > 0 ? [implScope] : [];
 
@@ -1443,10 +1523,26 @@ const checkImplementation = (
 
   const conciseScopes: readonly ReadonlySet<string>[] =
     implScope.size > 0 ? [implScope] : [];
-  if (
-    !isResultExpression(fnBody) &&
-    !isHelperCall(fnBody, helperNames, namespaceHelpers, conciseScopes)
-  ) {
+  const isConciseResultBody = (node: AstNode): boolean => {
+    const target = unwrapReturnExpression(node);
+    if (target.type === 'ConditionalExpression') {
+      const { alternate, consequent } = target as unknown as {
+        alternate?: AstNode;
+        consequent?: AstNode;
+      };
+      return (
+        consequent !== undefined &&
+        alternate !== undefined &&
+        isConciseResultBody(consequent) &&
+        isConciseResultBody(alternate)
+      );
+    }
+    return (
+      isResultExpression(target) ||
+      isHelperCall(target, helperNames, namespaceHelpers, conciseScopes)
+    );
+  };
+  if (!isConciseResultBody(fnBody)) {
     diagnostics.push({
       filePath,
       line: offsetToLine(sourceCode, implValue.start),

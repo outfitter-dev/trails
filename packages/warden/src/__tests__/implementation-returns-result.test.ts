@@ -80,6 +80,108 @@ trail("entity.create", {
     expect(diagnostics.length).toBe(0);
   });
 
+  test('allows conditional returns whose branches are both Result expressions', () => {
+    const code = `
+trail("entity.show", {
+  blaze: (input, ctx) => {
+    const note = store.get(input.id);
+    return note === undefined
+      ? Result.err(new NotFoundError("missing"))
+      : Result.ok(note);
+  }
+})`;
+
+    const diagnostics = implementationReturnsResult.check(code, TEST_FILE);
+
+    expect(diagnostics.length).toBe(0);
+  });
+
+  test('allows conditional returns mixing Result literals and Result variables', () => {
+    const code = `
+trail("entity.pick", {
+  blaze: async (input, ctx) => {
+    const fallback = await ctx.compose("entity.default", {});
+    return input.id === undefined ? fallback : Result.ok({ id: input.id });
+  }
+})`;
+
+    const diagnostics = implementationReturnsResult.check(code, TEST_FILE);
+
+    expect(diagnostics.length).toBe(0);
+  });
+
+  test('allows awaited conditional returns whose branches produce Results', () => {
+    const code = `
+trail("entity.pick", {
+  blaze: async (input, ctx) => {
+    return await (input.id === undefined
+      ? ctx.compose("entity.default", {})
+      : Result.ok({ id: input.id }));
+  }
+})`;
+
+    const diagnostics = implementationReturnsResult.check(code, TEST_FILE);
+
+    expect(diagnostics.length).toBe(0);
+  });
+
+  test('flags conditional Result variables shadowed by non-Result bindings', () => {
+    const code = `
+trail("entity.pick", {
+  blaze: async (input, ctx) => {
+    const fallback = await ctx.compose("entity.default", {});
+    if (input.raw) {
+      const fallback = { id: "raw" };
+      return input.raw ? fallback : Result.ok({ id: input.id });
+    }
+    return fallback;
+  }
+})`;
+
+    const diagnostics = implementationReturnsResult.check(code, TEST_FILE);
+
+    expect(diagnostics.length).toBe(1);
+    expect(diagnostics[0]?.message).toContain('entity.pick');
+  });
+
+  test('allows concise ternary blaze bodies with Result branches', () => {
+    const code = `
+trail("entity.toggle", {
+  blaze: (input, ctx) => input.on ? Result.ok({ on: true }) : Result.err(new ValidationError("off"))
+})`;
+
+    const diagnostics = implementationReturnsResult.check(code, TEST_FILE);
+
+    expect(diagnostics.length).toBe(0);
+  });
+
+  test('allows awaited concise ternary blaze bodies with Result branches', () => {
+    const code = `
+trail("entity.toggle", {
+  blaze: async (input, ctx) => await (input.on
+    ? ctx.compose("entity.default", {})
+    : Result.ok({ on: false }))
+})`;
+
+    const diagnostics = implementationReturnsResult.check(code, TEST_FILE);
+
+    expect(diagnostics.length).toBe(0);
+  });
+
+  test('flags conditional returns when a branch is not a Result expression', () => {
+    const code = `
+trail("entity.show", {
+  blaze: (input, ctx) => {
+    return input.raw ? { id: "123" } : Result.ok({ id: "123" });
+  }
+})`;
+
+    const diagnostics = implementationReturnsResult.check(code, TEST_FILE);
+
+    expect(diagnostics.length).toBe(1);
+    expect(diagnostics[0]?.message).toContain('entity.show');
+  });
+
   test('flags concise raw blaze bodies', () => {
     const code = `
 trail("entity.create", {
