@@ -290,6 +290,19 @@
       "superseded_by": null,
       "title": "Release Provenance as Lifecycle Projection",
       "updated": "2026-06-09"
+    },
+    {
+      "created": "2026-06-12",
+      "depends_on": ["0", "26"],
+      "inbound": [],
+      "number": null,
+      "owners": ["[galligan](https://github.com/galligan)"],
+      "path": "docs/adr/drafts/20260612-verdicts-run-on-stable-ground.md",
+      "slug": "verdicts-run-on-stable-ground",
+      "status": "draft",
+      "superseded_by": null,
+      "title": "Verdicts Run on Stable Ground",
+      "updated": "2026-06-12"
     }
   ],
   "version": 1

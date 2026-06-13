@@ -190,6 +190,11 @@
           "fromPath": "docs/adr/drafts/20260603-surface-facets-shape-dense-topos.md"
         },
         {
+          "context": "[adr-0000-ia]: ../0000-core-premise.md#the-information-architecture",
+          "from": "20260612",
+          "fromPath": "docs/adr/drafts/20260612-verdicts-run-on-stable-ground.md"
+        },
+        {
           "context": "- **[ADR-0000: Core Premise](./adr/0000-core-premise.md)** — Why contracts, why Result, why derive",
           "from": "index",
           "fromPath": "docs/index.md"
@@ -277,6 +282,11 @@
           "context": "- [ADR-0001: Naming Conventions](../0001-naming-conventions.md) — the vocabulary discipline this follows.",
           "from": "20260528",
           "fromPath": "docs/adr/drafts/20260528-adapter-authoring-as-a-paved-path.md"
+        },
+        {
+          "context": "[adr-0001]: ../0001-naming-conventions.md",
+          "from": "20260612",
+          "fromPath": "docs/adr/drafts/20260612-verdicts-run-on-stable-ground.md"
         },
         {
           "context": "Canonical public surface-facing reference. For naming conventions and decision history, see [ADR-0001](./adr/0001-naming-conventions.md).",
@@ -1707,6 +1717,11 @@
           "fromPath": "docs/adr/drafts/20260528-adapter-authoring-as-a-paved-path.md"
         },
         {
+          "context": "[adr-0023]: ../0023-simplifying-the-trails-lexicon.md",
+          "from": "20260612",
+          "fromPath": "docs/adr/drafts/20260612-verdicts-run-on-stable-ground.md"
+        },
+        {
           "context": "- **[ADR-0023: Simplifying the Trails Lexicon](./adr/0023-simplifying-the-trails-lexicon.md)** — Brand-vs-plain heuristic, four pre-1.0 renames, vocabulary → lexicon",
           "from": "index",
           "fromPath": "docs/index.md"
@@ -1852,6 +1867,11 @@
           "context": "- [ADR-0026: Error Taxonomy as Transport-Independent Behavior Contract](../0026-error-taxonomy-as-transport-independent-behavior-contract.md) -- WebSocket close code mapping deferred there; the error ",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-websocket-trailhead.md"
+        },
+        {
+          "context": "[adr-0026]: ../0026-error-taxonomy-as-transport-independent-behavior-contract.md",
+          "from": "20260612",
+          "fromPath": "docs/adr/drafts/20260612-verdicts-run-on-stable-ground.md"
         }
       ],
       "number": "0026",
@@ -2646,6 +2666,11 @@
           "context": "- [ADR-0046: Lock v3 Artifact Family](../0046-lock-v3-artifact-family.md) - `.trails/topo.lock` as the inspectable topo content artifact",
           "from": "20260603",
           "fromPath": "docs/adr/drafts/20260603-surface-facets-shape-dense-topos.md"
+        },
+        {
+          "context": "[adr-0046]: ../0046-lock-v3-artifact-family.md",
+          "from": "20260612",
+          "fromPath": "docs/adr/drafts/20260612-verdicts-run-on-stable-ground.md"
         },
         {
           "context": "These names are the current durable artifact-family vocabulary established by [ADR-0046](adr/0046-lock-v3-artifact-family.md).",
