@@ -458,15 +458,16 @@ const ensureCommandNode = (
 
 const createBareChildFallback = (
   cmd: CliCommand,
+  path: readonly string[],
   parentState?: CommandNodeState | undefined
 ): BareChildFallback | undefined => {
-  if (!parentState?.cliCommand || cmd.path.length < 2) {
+  if (!parentState?.cliCommand || path.length < 2) {
     return undefined;
   }
 
   const [parentArg] = parentState.cliCommand.args;
   const [childArg] = cmd.args;
-  const childSegment = cmd.path.at(-1);
+  const childSegment = path.at(-1);
   if (
     parentArg === undefined ||
     childArg === undefined ||
@@ -490,10 +491,11 @@ const createBareChildFallback = (
 const applyCliCommand = (
   state: CommandNodeState,
   cmd: CliCommand,
+  path: readonly string[],
   fallback?: BareChildFallback | undefined
 ): void => {
   if (state.executable) {
-    throw new Error(`Duplicate CLI path: ${cmd.path.join(' ')}`);
+    throw new Error(`Duplicate CLI path: ${path.join(' ')}`);
   }
 
   if (cmd.description) {
@@ -511,6 +513,21 @@ const applyCliCommand = (
   state.cliCommand = cmd;
   state.executable = true;
 };
+
+const commandRoutes = (cmd: CliCommand) =>
+  cmd.routes ?? [
+    {
+      kind: 'canonical' as const,
+      path: cmd.path,
+      source: 'derived' as const,
+      target: cmd.trail.id,
+    },
+  ];
+
+const commandRouteEntries = (commands: readonly CliCommand[]) =>
+  commands.flatMap((cmd) =>
+    commandRoutes(cmd).map((route) => ({ cmd, path: route.path }))
+  );
 
 /**
  * Convert framework-agnostic CLI commands into a Commander program.
@@ -535,15 +552,15 @@ export const toCommander = (
   applyOptions(program, options);
   const nodes = new Map<string, CommandNodeState>();
 
-  for (const cmd of commands.toSorted((a, b) =>
+  for (const { cmd, path } of commandRouteEntries(commands).toSorted((a, b) =>
     a.path.length === b.path.length
       ? a.path.join('.').localeCompare(b.path.join('.'))
       : a.path.length - b.path.length
   )) {
-    const state = ensureCommandNode(cmd.path, program, nodes);
-    const parentKey = pathKey(cmd.path.slice(0, -1));
-    const fallback = createBareChildFallback(cmd, nodes.get(parentKey));
-    applyCliCommand(state, cmd, fallback);
+    const state = ensureCommandNode(path, program, nodes);
+    const parentKey = pathKey(path.slice(0, -1));
+    const fallback = createBareChildFallback(cmd, path, nodes.get(parentKey));
+    applyCliCommand(state, cmd, path, fallback);
   }
 
   return program;

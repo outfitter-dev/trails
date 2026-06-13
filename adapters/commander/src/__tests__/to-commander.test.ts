@@ -210,6 +210,57 @@ describe('toCommander command trees', () => {
     expect(removeCmd.name()).toBe('remove');
   });
 
+  test('materializes trail-owned aliases that execute the same command', async () => {
+    const calls: string[] = [];
+    const search = trail('wayfind.search', {
+      blaze: (input: { query: string }) => {
+        calls.push(input.query);
+        return Result.ok(input.query);
+      },
+      cli: {
+        aliases: ['find'],
+      },
+      input: z.object({ query: z.string() }),
+    });
+    const app = makeApp(search);
+    const commands = buildCommands(app, { onResult: noopResult });
+    const program = toCommander(commands, { name: 'test' });
+    program.exitOverride();
+
+    expect(requireNestedCommand(program, ['wayfind', 'search'])).toBeDefined();
+    expect(requireNestedCommand(program, ['wayfind', 'find'])).toBeDefined();
+
+    await program.parseAsync(['node', 'test', 'wayfind', 'find', 'trails']);
+
+    expect(calls).toEqual(['trails']);
+  });
+
+  test('materializes surface-owned aliases that execute the same command', async () => {
+    const calls: string[] = [];
+    const search = trail('wayfind.search', {
+      blaze: (input: { query: string }) => {
+        calls.push(input.query);
+        return Result.ok(input.query);
+      },
+      input: z.object({ query: z.string() }),
+    });
+    const app = makeApp(search);
+    const commands = buildCommands(app, {
+      aliases: {
+        'wayfind.search': [['wf', 'search']],
+      },
+      onResult: noopResult,
+    });
+    const program = toCommander(commands, { name: 'test' });
+    program.exitOverride();
+
+    expect(requireNestedCommand(program, ['wf', 'search'])).toBeDefined();
+
+    await program.parseAsync(['node', 'test', 'wf', 'search', 'trails']);
+
+    expect(calls).toEqual(['trails']);
+  });
+
   test('supports executable parents alongside child commands', async () => {
     const calls: string[] = [];
     const program = buildExecutableParentProgram(calls);

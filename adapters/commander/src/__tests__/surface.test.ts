@@ -78,6 +78,23 @@ describe('surface', () => {
     expect(program.commands[0]?.name()).toBe('greet');
   });
 
+  test('createProgram forwards surface-owned command aliases', () => {
+    const t = trail('wayfind.search', {
+      blaze: (input: { query: string }) => Result.ok(input.query),
+      input: z.object({ query: z.string() }),
+    });
+    const app = topo('surface-aliases', { [t.id]: t });
+    const program = createProgram(app, {
+      aliases: {
+        'wayfind.search': [['wf', 'search']],
+      },
+      description: 'Surface alias smoke',
+    });
+
+    const wf = program.commands.find((command) => command.name() === 'wf');
+    expect(wf?.commands[0]?.name()).toBe('search');
+  });
+
   test('surface throws on invalid topo', async () => {
     const t = trail('broken', {
       blaze: () => Result.ok({}),

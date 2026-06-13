@@ -4,6 +4,7 @@
 
 import type {
   BaseSurfaceOptions,
+  CliCommandAliasInput,
   Layer,
   ResourceOverrideMap,
   Topo,
@@ -27,6 +28,9 @@ import { toCommander } from './to-commander.js';
  * Options for creating Commander CLI surfaces from a Trails topo.
  */
 export interface CreateProgramOptions extends BaseSurfaceOptions {
+  readonly aliases?:
+    | Readonly<Record<string, readonly CliCommandAliasInput[]>>
+    | undefined;
   readonly createContext?:
     | (() => TrailContextInit | Promise<TrailContextInit>)
     | undefined;
@@ -88,6 +92,7 @@ export const createProgram = (
   options: CreateProgramOptions = {}
 ) => {
   const commandsResult = deriveCliCommands(graph, {
+    aliases: options.aliases,
     configValues: options.configValues,
     createContext: options.createContext,
     exclude: options.exclude,
