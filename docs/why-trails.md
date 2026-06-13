@@ -8,6 +8,10 @@ When you define a trail, you author the things only you know: the input schema, 
 
 This is DRY applied not just to code, but to information. Frameworks have always been good at eliminating duplicate code. Trails extends that principle to duplicate authorship — across the entire surface area of a project, from the blaze to the CLI to the MCP tools to the tests to the agent documentation.
 
+The conservation law at the center of Trails is simple: if the developer already authored the truth once, the framework should spend it everywhere it can. A schema should not stop at validation. An example should not stop at testing. Intent should not stop at documentation. Error taxonomy should not stop at one transport. Each authored fact should keep paying rent across surfaces, governance, tests, artifacts, docs, and agent ergonomics.
+
+That is why new design questions often feel less like new subsystems and more like consequences being uncovered. The core belief keeps reappearing: author the irreducible truth, derive every faithful projection, and make drift harder than alignment. When a proposal reduces duplicated authorship, creates inspectable ground truth, and leaves adopters with less to remember, it is probably aligned with Trails. When it asks users to restate something the framework already knows, it is probably design feedback.
+
 Trails is Bun-native — the framework uses Bun APIs throughout for I/O, hashing, discovery, and storage. But the shipped surfaces it produces are universally consumable: CLI binaries, MCP servers, and HTTP endpoints work with any runtime on the consuming side. WebSocket is part of the architecture, but still planned.
 
 ---
