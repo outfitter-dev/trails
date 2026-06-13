@@ -218,6 +218,14 @@ The testing and development workflow follows a progression:
 
 Repeat until the warden is quiet. One line tests every trail against every example.
 
+### Regressions harden the trail
+
+Escaped regressions are design feedback. A regression is not fully fixed until the system is harder to regress in the same way again.
+
+The first repair restores behavior. The second repair moves the guarantee closer to the contract: into types, examples, surface parity tests, Warden rules, release checks, resolved graph diffs, fresh-consumer smoke, or clearer agent guidance.
+
+Not every bug demands a new abstraction. But repeated or contract-shaped regressions are evidence that the framework is carrying too little structure. As Trails matures, important behavior should move left: from operator memory, to governance, to tests, to compile-time guarantees, and ultimately to derivation, where the information cannot drift at all.
+
 ## Posture
 
 Trails makes deliberate choices about where it is opinionated, where it defers to standards, and how it relates to the broader ecosystem.
