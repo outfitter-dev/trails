@@ -68,6 +68,7 @@ const depthByTier = {
 
 const concernByRuleName: Partial<Record<string, WardenRuleConcern>> = {
   'activation-orphan': 'signals',
+  'cli-command-route-coherence': 'meta',
   'composes-declarations': 'composition',
   'context-no-surface-types': 'composition',
   'dead-internal-trail': 'composition',
@@ -150,6 +151,23 @@ const builtinWardenRuleMetadataInput = {
     ...durableExternal,
     invariant: 'Contour reference graphs must be acyclic.',
     tier: 'project-static',
+  },
+  'cli-command-route-coherence': {
+    ...durableExternal,
+    guidance: {
+      docs: [
+        {
+          label: 'CLI command routes ADR',
+          path: 'docs/adr/drafts/20260613-cli-command-routes.md',
+        },
+      ],
+      relatedRules: ['webhook-route-collision'],
+      summary:
+        'Keep every CLI command route and alias normalized into one trail contract.',
+    },
+    invariant:
+      'CLI command routes and aliases resolve to one coherent trail contract.',
+    tier: 'topo-aware',
   },
   'composes-declarations': {
     ...durableExternal,

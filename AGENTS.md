@@ -92,7 +92,7 @@ Use the project language consistently:
 This section is generated from the live `@ontrails/warden` rule manifest. Keep the human-authored guidance above as orientation; use this block as the enforceable-rule index.
 
 - Guide input command: `bun apps/trails/bin/trails.ts warden guide --manifest`
-- Rule count: 63
+- Rule count: 64
 
 ### Rule Index
 
@@ -146,6 +146,7 @@ This section is generated from the live `@ontrails/warden` rule manifest. Keep t
 
 #### Meta
 
+- `cli-command-route-coherence` (error, topo/topo-aware, external): CLI command routes and aliases resolve to one coherent trail contract.
 - `surface-facet-coherence` (warn, source/source-static, external): Surface facet maps avoid selector overlap, hidden visibility widening, and drift-prone dynamic selectors.
 
 #### Permits
@@ -185,6 +186,7 @@ This section is generated from the live `@ontrails/warden` rule manifest. Keep t
 
 ### Structured Guidance Summaries
 
+- `cli-command-route-coherence`: Keep every CLI command route and alias normalized into one trail contract.
 - `example-valid`: Keep trail examples synchronized with their authored schemas.
 - `no-throw-in-implementation`: Convert thrown failures in blazes into explicit Result.err() outcomes.
 - `no-top-level-surface`: Keep topo entry modules side-effect-free for survey, guide, compile, and lock generation.
