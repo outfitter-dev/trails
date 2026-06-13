@@ -334,6 +334,79 @@ describe('loadApp', () => {
     }
   });
 
+  test('loads optional CLI alias exports from the app module', async () => {
+    const cwd = resolve(
+      tmpdir(),
+      `trails-load-app-cli-aliases-${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2)}`
+    );
+
+    try {
+      mkdirSync(resolve(cwd, 'src'), { recursive: true });
+      writeFileSync(
+        resolve(cwd, 'src/app.ts'),
+        `export const app = {
+  name: 'aliases',
+  trails: new Map(),
+  signals: new Map(),
+  resources: new Map()
+};
+
+export const trailsCliAliases = {
+  'wayfind.search': [['wf', 'search'], 'find']
+};`
+      );
+
+      const lease = await loadFreshAppLease('./src/app.ts', cwd);
+      try {
+        expect(lease.cliAliases).toEqual({
+          'wayfind.search': [['wf', 'search'], 'find'],
+        });
+      } finally {
+        lease.release();
+      }
+    } finally {
+      rmSync(cwd, { force: true, recursive: true });
+    }
+  });
+
+  test('rejects malformed CLI alias exports from the app module', async () => {
+    const cwd = resolve(
+      tmpdir(),
+      `trails-load-app-bad-cli-aliases-${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2)}`
+    );
+
+    try {
+      mkdirSync(resolve(cwd, 'src'), { recursive: true });
+      writeFileSync(
+        resolve(cwd, 'src/app.ts'),
+        `export const app = {
+  name: 'bad-aliases',
+  trails: new Map(),
+  signals: new Map(),
+  resources: new Map()
+};
+
+export const cliAliases = {
+  'wayfind.search': [42]
+};`
+      );
+
+      const result = await tryLoadFreshAppLease('./src/app.ts', cwd);
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error.message).toContain(
+          'must contain string aliases or string-array paths'
+        );
+      }
+    } finally {
+      rmSync(cwd, { force: true, recursive: true });
+    }
+  });
+
   test('rejects app module paths outside the default trust boundary', async () => {
     const root = resolve(
       tmpdir(),

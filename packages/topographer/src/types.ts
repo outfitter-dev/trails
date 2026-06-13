@@ -3,6 +3,7 @@
  */
 
 import type {
+  CliCommandAliasInput,
   CliCommandRoute,
   StructuredSignalExample,
   StructuredTrailExample,
@@ -219,6 +220,9 @@ export interface TopoGraph {
 }
 
 export interface DeriveTopoGraphOptions {
+  readonly cliAliases?:
+    | Readonly<Record<string, readonly CliCommandAliasInput[]>>
+    | undefined;
   readonly facets?: readonly TopoGraphFacetDeclaration[] | undefined;
 }
 

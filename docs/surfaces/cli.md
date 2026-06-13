@@ -35,6 +35,41 @@ Each dot becomes another command-path segment. A path node may be both executabl
 
 The CLI model is validated before adapter wiring. Duplicate command paths are rejected, and executable parents cannot also declare positional args if child commands exist beneath that path.
 
+## Command Routes and Aliases
+
+Most trails should keep the default dotted-ID command path. Use `cli` only when the CLI surface needs a compatibility path, a shorter operator command, or a route that better matches the surface language. A CLI route must normalize into the same trail contract. It cannot change input, output, intent, permits, resources, or behavior.
+
+Trail-owned routes live on the trail contract:
+
+```typescript
+const search = trail('wayfind.search', {
+  cli: {
+    aliases: ['find', ['wf', 'search']],
+  },
+  input: z.object({
+    query: z.string().describe('Search query'),
+  }),
+  output: z.array(z.string()),
+  // ...
+});
+```
+
+String aliases are sibling leaf aliases. For `wayfind.search`, `find` accepts `wayfind find`. Array aliases are absolute command paths, so `['wf', 'search']` accepts `wf search`.
+
+Use `cli: 'find'` or `cli: { path: ['wayfind', 'search'] }` only when the canonical command path itself should change. Prefer aliases for compatibility and migration paths.
+
+App-owned aliases live on the CLI surface, alongside the app that consumes them:
+
+```typescript
+export const cliAliases = {
+  'wayfind.search': [['wf', 'search']],
+} as const;
+
+await surface(app, { aliases: cliAliases });
+```
+
+If an app writes topo artifacts with `trails compile`, export the same alias map as `cliAliases` or `trailsCliAliases` from the app module. Compile, validate, survey, Wayfinder, and schema inspection then see the same accepted command routes as the runtime CLI.
+
 ## Flag Derivation
 
 Flags are derived from the trail's Zod input schema when the shape can be represented truthfully on the command line. No manual flag configuration needed.

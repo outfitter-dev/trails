@@ -1,6 +1,7 @@
 import type { Database, SQLQueryBindings } from 'bun:sqlite';
 
 import { ensureSubsystemSchema } from '@ontrails/core';
+import type { CliCommandAliasInput } from '@ontrails/core';
 
 const TOPO_SUBSYSTEM = 'topo';
 const TOPO_TABLE_STATEMENTS = [
@@ -194,6 +195,9 @@ export interface TopoSnapshot {
 
 export interface CreateTopoSnapshotInput {
   readonly appName?: string;
+  readonly cliAliases?:
+    | Readonly<Record<string, readonly CliCommandAliasInput[]>>
+    | undefined;
   readonly createdAt?: string;
   readonly gitDirty?: boolean;
   readonly gitSha?: string;

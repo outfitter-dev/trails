@@ -21,7 +21,7 @@ import type { CreateProgramOptions } from '@ontrails/commander';
 import { resolvePermitFromBearerToken } from '@ontrails/permits';
 import { deriveTopoGraph } from '@ontrails/topographer';
 
-import { app, trailsCliIncludedTrails } from './app.js';
+import { app, trailsCliAliases, trailsCliIncludedTrails } from './app.js';
 import { resolveInputWithClack } from './clack.js';
 import { getRetiredTopoCommandDiagnostic } from './retired-topo-command.js';
 import { attachCompletionsInstallCommand } from './run-completions-install.js';
@@ -297,6 +297,7 @@ const runSurfaceOnce = async (): Promise<void> => {
   const session = maybeInstallTraceSession();
   try {
     const surfaceOptions = {
+      aliases: trailsCliAliases,
       description: 'Agent-native, contract-first TypeScript framework',
       include: trailsCliIncludedTrails,
       name: 'trails',

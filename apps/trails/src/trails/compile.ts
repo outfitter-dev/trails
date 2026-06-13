@@ -1,5 +1,5 @@
 import { trail } from '@ontrails/core';
-import type { Result, Topo } from '@ontrails/core';
+import type { CliCommandAliasInput, Result, Topo } from '@ontrails/core';
 import { z } from 'zod';
 
 import { tryLoadFreshAppLease } from './load-app.js';
@@ -13,7 +13,13 @@ import {
 
 export const compileCurrentTopo = async (
   app: Topo,
-  options?: { readonly force?: boolean | undefined; readonly rootDir?: string }
+  options?: {
+    readonly cliAliases?:
+      | Readonly<Record<string, readonly CliCommandAliasInput[]>>
+      | undefined;
+    readonly force?: boolean | undefined;
+    readonly rootDir?: string;
+  }
 ): Promise<Result<TopoExportReport, Error>> => exportCurrentTopo(app, options);
 
 const compileTrailInputSchema = z.object({
@@ -41,6 +47,7 @@ export const compileTrail = trail('compile', {
     const lease = leaseResult.value;
     try {
       return await compileCurrentTopo(lease.app, {
+        cliAliases: lease.cliAliases,
         force: input.force,
         rootDir,
       });

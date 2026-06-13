@@ -181,7 +181,8 @@ The framework solves author awareness through inspection:
 
 - Wayfinder shows all command paths for a trail.
 - Schema output shows canonical path, aliases, source, and target.
-- Topographer serializes trail-owned CLI projection facts.
+- Topographer serializes trail-owned CLI projection facts, and may include
+surface-owned aliases when the deriving surface provides that context.
 - Warden validates alias target existence, collisions, and stale migration
 paths.
 

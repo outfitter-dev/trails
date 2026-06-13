@@ -3,6 +3,7 @@ import type { Database, SQLQueryBindings } from 'bun:sqlite';
 import {
   DETOUR_MAX_ATTEMPTS_CAP,
   Result,
+  ValidationError,
   activationSourceKey,
   deriveCliPath,
   deriveStructuredSignalExamples,
@@ -1049,14 +1050,18 @@ const buildTrailEntryBase = (
   trailSchema: Readonly<{
     readonly input: JsonRecord;
     readonly output?: JsonRecord;
-  }>
+  }>,
+  options?: Pick<CreateTopoSnapshotInput, 'cliAliases'> | undefined
 ): {
   readonly entry: Record<string, unknown>;
   readonly raw: Record<string, unknown>;
 } => {
   const raw = trail as unknown as Record<string, unknown>;
   const entry: Record<string, unknown> = {
-    cli: deriveTrailCliCommandProjection(trail),
+    cli: deriveTrailCliCommandProjection(trail, {
+      aliasSource: 'surface',
+      aliases: options?.cliAliases?.[trail.id],
+    }),
     exampleCount: trail.examples?.length ?? 0,
     id: trail.id,
     input: trailSchema.input,
@@ -1116,9 +1121,10 @@ const trailToEntryRecord = (
   trailSchema: Readonly<{
     readonly input: JsonRecord;
     readonly output?: JsonRecord;
-  }>
+  }>,
+  options?: Pick<CreateTopoSnapshotInput, 'cliAliases'> | undefined
 ): TopoGraphEntryRecord => {
-  const { entry, raw } = buildTrailEntryBase(trail, trailSchema);
+  const { entry, raw } = buildTrailEntryBase(trail, trailSchema, options);
   addSafetyMarkers(entry, trail);
   addPermitRequirement(entry, trail);
   addExtendedMetadata(entry, raw, trail);
@@ -1284,7 +1290,8 @@ const buildTopoGraph = (
       readonly output?: JsonRecord;
     }>
   >,
-  trails: readonly AnyTrail[]
+  trails: readonly AnyTrail[],
+  options?: Pick<CreateTopoSnapshotInput, 'cliAliases'> | undefined
 ): TopoGraphRecord => {
   const signalRelations = collectSignalGraphRelations(signals, trails);
   const activationSources = collectActivationSourceCatalog(trails);
@@ -1295,7 +1302,8 @@ const buildTopoGraph = (
       trailToEntryRecord(
         trail,
         topoLayers,
-        requireTrailSchema(trailSchemas, trail.id)
+        requireTrailSchema(trailSchemas, trail.id),
+        options
       )
     ),
     ...signals.map((signal) =>
@@ -1352,7 +1360,8 @@ const buildLockManifest = (
 const buildStoredTopoExport = (
   db: Database,
   snapshot: TopoSnapshot,
-  topo: Topo
+  topo: Topo,
+  options?: Pick<CreateTopoSnapshotInput, 'cliAliases'> | undefined
 ): MaterializedTopoArtifacts => {
   const contours = topo
     .listContours()
@@ -1373,7 +1382,8 @@ const buildStoredTopoExport = (
     signals,
     topo.layers,
     schemas.trailSchemas,
-    trails
+    trails,
+    options
   );
   const topoGraphHash = hashTopoGraphRecord(topoGraph);
   const lockManifest = `${JSON.stringify(
@@ -1600,6 +1610,22 @@ export const getStoredTopoExport = (
   };
 };
 
+const validateCliAliasTargets = (
+  topo: Topo,
+  input?: Pick<CreateTopoSnapshotInput, 'cliAliases'> | undefined
+): Result<void, Error> => {
+  for (const trailId of Object.keys(input?.cliAliases ?? {})) {
+    if (!topo.trails.has(trailId)) {
+      return Result.err(
+        new ValidationError(
+          `CLI command aliases target unknown trail "${trailId}". Surface-owned aliases must target existing trail IDs.`
+        )
+      );
+    }
+  }
+  return Result.ok();
+};
+
 export const createTopoSnapshot = (
   db: Database,
   topo: Topo,
@@ -1608,6 +1634,10 @@ export const createTopoSnapshot = (
   const validated = validateEstablishedTopo(topo);
   if (validated.isErr()) {
     return Result.err(validated.error);
+  }
+  const cliAliasTargets = validateCliAliasTargets(topo, input);
+  if (cliAliasTargets.isErr()) {
+    return cliAliasTargets;
   }
 
   ensureTopoSnapshotSchema(db);
@@ -1621,7 +1651,7 @@ export const createTopoSnapshot = (
 
   const snapshot = db.transaction(() => {
     const record = insertTopoSnapshotRecord(db, snapshotInput);
-    const artifacts = buildStoredTopoExport(db, record, topo);
+    const artifacts = buildStoredTopoExport(db, record, topo, snapshotInput);
     insertProjectedRows(db, normalizeTopoProjection(topo, record.id));
     insertSchemaRows(db, artifacts.schemaRows);
     insertStoredExport(db, artifacts.exportRow);

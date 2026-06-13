@@ -8,7 +8,7 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
-import type { Topo, TrailContext } from '@ontrails/core';
+import type { CliCommandAliasInput, Topo, TrailContext } from '@ontrails/core';
 import {
   ConflictError,
   deriveTrailsDbPath,
@@ -71,6 +71,9 @@ export interface CurrentTopoMatch {
 }
 
 export interface CurrentTopoReadOptions {
+  readonly cliAliases?:
+    | Readonly<Record<string, readonly CliCommandAliasInput[]>>
+    | undefined;
   readonly rootDir?: string | undefined;
   readonly surfaceLayerNames?: Partial<SurfaceLayerNames> | undefined;
 }
@@ -154,6 +157,7 @@ export const buildCurrentTrailDetail = (
     ? undefined
     : deriveTrailDetail(trail, app, undefined, {
         surfaceLayerNames: options?.surfaceLayerNames,
+        topoGraph: deriveTopoGraph(app, { cliAliases: options?.cliAliases }),
       });
 };
 
@@ -192,7 +196,7 @@ export const buildCurrentTopoMatches = (
     (activationGraph ??= deriveActivationGraph(app));
   let topoGraph: ReturnType<typeof deriveTopoGraph> | undefined;
   const getTopoGraph = (): ReturnType<typeof deriveTopoGraph> =>
-    (topoGraph ??= deriveTopoGraph(app));
+    (topoGraph ??= deriveTopoGraph(app, { cliAliases: options?.cliAliases }));
 
   const trail = app.get(id);
   if (trail !== undefined) {
@@ -220,7 +224,12 @@ export const buildCurrentTopoMatches = (
 
 export const validateCurrentTopo = async (
   app: Topo,
-  options?: { readonly rootDir?: string }
+  options?: {
+    readonly cliAliases?:
+      | Readonly<Record<string, readonly CliCommandAliasInput[]>>
+      | undefined;
+    readonly rootDir?: string;
+  }
 ): Promise<Result<TopoValidateReport, Error>> => {
   const rootDir = deriveRootDir(options?.rootDir);
   let lockManifest: Awaited<ReturnType<typeof readLockManifest>>;
@@ -248,7 +257,10 @@ export const validateCurrentTopo = async (
     );
   }
 
-  const currentExport = deriveCurrentTopoExport(app, { rootDir });
+  const currentExport = deriveCurrentTopoExport(app, {
+    cliAliases: options?.cliAliases,
+    rootDir,
+  });
   if (currentExport.isErr()) {
     return currentExport;
   }

@@ -1186,6 +1186,9 @@ export const wayfindSearchTrail = trail('wayfind.search', {
         .slice(0, input.limit)
         .map(refSummary),
     })),
+  cli: {
+    aliases: ['find'],
+  },
   description: 'Find topo graph entities with typed filters',
   examples: [{ input: { filters: { kind: 'trail' } }, name: 'Find trails' }],
   input: filteredInputSchema,

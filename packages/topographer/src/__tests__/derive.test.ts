@@ -201,6 +201,61 @@ describe('deriveTopoGraph', () => {
       });
     });
 
+    test('surface-owned CLI aliases are serialized when derivation receives surface context', () => {
+      const t = trail('wayfind.search', {
+        blaze: noop,
+        cli: {
+          aliases: ['find'],
+        },
+        input: z.object({ query: z.string() }),
+        output: z.array(z.string()),
+      });
+      const entry = getFirstEntry(
+        deriveTopoGraph(topoFrom({ t }), {
+          cliAliases: {
+            'wayfind.search': [['wf', 'search']],
+          },
+        })
+      );
+
+      expect(entry.cli?.routes).toEqual([
+        {
+          kind: 'canonical',
+          path: ['wayfind', 'search'],
+          source: 'derived',
+          target: 'wayfind.search',
+        },
+        {
+          kind: 'alias',
+          path: ['wayfind', 'find'],
+          source: 'trail',
+          target: 'wayfind.search',
+        },
+        {
+          kind: 'alias',
+          path: ['wf', 'search'],
+          source: 'surface',
+          target: 'wayfind.search',
+        },
+      ]);
+    });
+
+    test('rejects surface-owned CLI aliases for unknown trails', () => {
+      const t = trail('wayfind.search', {
+        blaze: noop,
+        input: z.object({ query: z.string() }),
+        output: z.array(z.string()),
+      });
+
+      expect(() =>
+        deriveTopoGraph(topoFrom({ t }), {
+          cliAliases: {
+            'wayfind.serch': [['wf', 'search']],
+          },
+        })
+      ).toThrow(ValidationError);
+    });
+
     test('trail entries include topo and trail layer attachments', () => {
       const topoLayer = passThroughLayer(
         'topo.auth',

@@ -1,10 +1,18 @@
 import { deriveCliCommands } from '@ontrails/cli';
 import { describe, expect, test } from 'bun:test';
 
-import { app, operatorApp, trailsCliIncludedTrails } from '../app.js';
+import {
+  app,
+  operatorApp,
+  trailsCliAliases,
+  trailsCliIncludedTrails,
+} from '../app.js';
 
 const unwrapCommands = () => {
-  const result = deriveCliCommands(app, { include: trailsCliIncludedTrails });
+  const result = deriveCliCommands(app, {
+    aliases: trailsCliAliases,
+    include: trailsCliIncludedTrails,
+  });
   if (result.isErr()) {
     throw result.error;
   }
@@ -38,6 +46,30 @@ describe('Trails Wayfinder CLI surface', () => {
     expect(trailIds).toContain('wayfind.nearby');
     expect(trailIds).toContain('wayfind.impact');
     expect(trailIds).toContain('wayfind.examples');
+
+    const search = commands.find(
+      (command) => command.trail.id === 'wayfind.search'
+    );
+    expect(search?.routes).toEqual([
+      {
+        kind: 'canonical',
+        path: ['wayfind', 'search'],
+        source: 'derived',
+        target: 'wayfind.search',
+      },
+      {
+        kind: 'alias',
+        path: ['wayfind', 'find'],
+        source: 'trail',
+        target: 'wayfind.search',
+      },
+      {
+        kind: 'alias',
+        path: ['wf', 'search'],
+        source: 'surface',
+        target: 'wayfind.search',
+      },
+    ]);
   });
 
   test('does not expose deferred Wayfinder queries on the CLI', () => {

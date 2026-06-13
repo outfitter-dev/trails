@@ -123,6 +123,10 @@ const surfaceTermAllowedMatches = [
     line: 278,
     path: 'docs/adr/drafts/20260613-cli-command-routes.md',
   },
+  {
+    line: 279,
+    path: 'docs/adr/drafts/20260613-cli-command-routes.md',
+  },
 ] as const;
 
 const reviewedRetiredTaxonomyMentionPaths = [
@@ -180,27 +184,27 @@ const topographArtifactFamilyRetiredMatches = [
   { line: 270, path: 'apps/trails/src/trails/dev-support.ts' },
   // The topo-store migration and fixture must name pre-v12 columns exactly.
   {
-    line: 341,
+    line: 345,
     path: 'packages/topographer/src/internal/topo-snapshots.ts',
   },
   {
-    line: 351,
+    line: 355,
     path: 'packages/topographer/src/internal/topo-snapshots.ts',
   },
   {
-    line: 1336,
+    line: 1423,
     path: 'packages/topographer/src/__tests__/topo-store.test.ts',
   },
   {
-    line: 1338,
+    line: 1425,
     path: 'packages/topographer/src/__tests__/topo-store.test.ts',
   },
   {
-    line: 1352,
+    line: 1439,
     path: 'packages/topographer/src/__tests__/topo-store.test.ts',
   },
   {
-    line: 1354,
+    line: 1441,
     path: 'packages/topographer/src/__tests__/topo-store.test.ts',
   },
 ] as const;

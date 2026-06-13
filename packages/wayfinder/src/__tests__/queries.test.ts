@@ -171,6 +171,9 @@ const writeArtifactsAt = async (
 ): Promise<TopoGraph> => {
   const baseTopoGraph = withSurfaces(
     deriveTopoGraph(app(), {
+      cliAliases: {
+        'user.create': [['u', 'create']],
+      },
       facets: [
         {
           description: 'User operations.',
@@ -559,6 +562,12 @@ describe('wayfinder graph-read query trails', () => {
           source: 'trail',
           target: 'user.create',
         },
+        {
+          kind: 'alias',
+          path: ['u', 'create'],
+          source: 'surface',
+          target: 'user.create',
+        },
       ],
     });
     expect(surfaces.surfaces).toEqual([
@@ -927,6 +936,12 @@ describe('wayfinder graph-read query trails', () => {
             kind: 'alias',
             path: ['user', 'add'],
             source: 'trail',
+            target: 'user.create',
+          },
+          {
+            kind: 'alias',
+            path: ['u', 'create'],
+            source: 'surface',
             target: 'user.create',
           },
         ],

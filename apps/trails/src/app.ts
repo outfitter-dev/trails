@@ -103,4 +103,8 @@ export const trailsCliIncludedTrails = [
   ...Object.values(cliWayfinderTrails).map((trailItem) => trailItem.id),
 ];
 
+export const trailsCliAliases = {
+  'wayfind.search': [['wf', 'search']],
+} as const;
+
 export const app = topo('trails', operatorTrails, cliWayfinderTrails);

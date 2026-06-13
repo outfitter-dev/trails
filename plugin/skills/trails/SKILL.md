@@ -83,11 +83,15 @@ When saved Topographer artifacts can answer a graph question, use Wayfinder befo
 ```bash
 trails wayfind overview --root-dir . --json
 trails wayfind search --root-dir . --input-json '{"filters":{"kind":"trail"}}' --json
+trails wayfind find --root-dir . --input-json '{"filters":{"kind":"trail"}}' --json
+trails wf search --root-dir . --input-json '{"filters":{"kind":"trail"}}' --json
+trails schema wf search
 trails wayfind contract <trail-id> --root-dir . --json
 ```
 
 - Start with `wayfind.overview` to learn artifact source, freshness, and graph counts.
 - Use `wayfind.search` or typed list trails (`wayfind.trails`, `wayfind.resources`, `wayfind.signals`, `wayfind.surfaces`, `wayfind.facets`, `wayfind.versions`, `wayfind.examples`, `wayfind.errors`, `wayfind.adapters`) for filtered discovery.
+- Use `trails schema <command...>` when you need accepted CLI routes, aliases, flags, and schemas before constructing shell calls.
 - Use `wayfind.describe` for a full saved entity record and `wayfind.contract` for a trail or version input/output/intent summary.
 - Use `wayfind.nearby`, `wayfind.impact`, and `wayfind.diff` for relation context, blast-radius reads, and explicit saved-baseline comparison.
 - Treat Wayfinder as graph-read only. Do not assume generic `wayfind.query`, semantic search, signposts, or implications exist in v0.
@@ -149,6 +153,8 @@ Adding a surface is a `surface()` call, not an architecture change. The framewor
 import { surface } from '@ontrails/commander';
 await surface(graph);
 ```
+
+Use `cli` on a trail only for canonical command overrides or trail-owned aliases that still normalize into the same trail contract. String aliases are sibling leaf aliases (`find` beside `search`); string-array aliases are absolute command paths (`['wf', 'search']`). App-owned compatibility aliases belong in CLI surface options and should also be exported from the app module as `cliAliases` or `trailsCliAliases` so compile, validate, Wayfinder, and `trails schema` inspect the same routes the runtime CLI accepts.
 
 **MCP**: Tool names from trail IDs, JSON Schema from Zod, annotations from intent, idempotency, and description.
 

@@ -23,7 +23,7 @@ import {
   Result,
   ValidationError,
 } from '@ontrails/core';
-import type { Topo } from '@ontrails/core';
+import type { CliCommandAliasInput, Topo } from '@ontrails/core';
 import { findAppModule } from '@ontrails/cli';
 
 import {
@@ -1054,8 +1054,52 @@ const resolveLoadedTopo = (
   return app;
 };
 
+type LoadedCliAliases = Readonly<
+  Record<string, readonly CliCommandAliasInput[]>
+>;
+
+const isStringArray = (value: unknown): value is readonly string[] =>
+  Array.isArray(value) && value.every((item) => typeof item === 'string');
+
+const isCliAliasInput = (value: unknown): value is CliCommandAliasInput =>
+  typeof value === 'string' || isStringArray(value);
+
+const resolveLoadedCliAliases = (
+  effectivePath: string,
+  mod: Record<string, unknown>
+): LoadedCliAliases | undefined => {
+  const value = mod['trailsCliAliases'] ?? mod['cliAliases'];
+  if (value === undefined) {
+    return undefined;
+  }
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    throw new ValidationError(
+      `CLI alias export in "${effectivePath}" must be a record from trail ID to alias list.`
+    );
+  }
+
+  const aliases = value as Record<string, unknown>;
+  for (const [trailId, trailAliases] of Object.entries(aliases)) {
+    if (!Array.isArray(trailAliases)) {
+      throw new ValidationError(
+        `CLI alias export for trail "${trailId}" in "${effectivePath}" must be an array.`
+      );
+    }
+    for (const alias of trailAliases) {
+      if (!isCliAliasInput(alias)) {
+        throw new ValidationError(
+          `CLI alias export for trail "${trailId}" in "${effectivePath}" must contain string aliases or string-array paths.`
+        );
+      }
+    }
+  }
+
+  return aliases as LoadedCliAliases;
+};
+
 export interface FreshAppLease {
   readonly app: Topo;
+  readonly cliAliases?: LoadedCliAliases | undefined;
   readonly mirrorRoot: string;
   readonly release: () => void;
 }
@@ -1071,14 +1115,18 @@ const noopRelease = (): void => undefined;
 const createUrlSchemeLease = async (
   absolutePath: string,
   effectivePath: string
-): Promise<FreshAppLease> => ({
-  app: resolveLoadedTopo(
-    effectivePath,
-    await importWithCacheBust(absolutePath)
-  ),
-  mirrorRoot: absolutePath,
-  release: noopRelease,
-});
+): Promise<FreshAppLease> => {
+  const mod = (await importWithCacheBust(absolutePath)) as Record<
+    string,
+    unknown
+  >;
+  return {
+    app: resolveLoadedTopo(effectivePath, mod),
+    cliAliases: resolveLoadedCliAliases(effectivePath, mod),
+    mirrorRoot: absolutePath,
+    release: noopRelease,
+  };
+};
 
 const createFilesystemLease = async (
   absolutePath: string,
@@ -1096,6 +1144,7 @@ const createFilesystemLease = async (
 
     return {
       app: resolveLoadedTopo(effectivePath, mod),
+      cliAliases: resolveLoadedCliAliases(effectivePath, mod),
       mirrorRoot,
       release,
     };

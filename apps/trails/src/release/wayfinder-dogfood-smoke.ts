@@ -1,6 +1,7 @@
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 const repoRoot = resolve(process.cwd());
 const trailsBin = join(repoRoot, 'apps/trails/bin/trails.ts');
@@ -40,18 +41,9 @@ const parseJson = (stdout: string, label: string): JsonObject => {
   }
 };
 
-const runWayfind = (tempRoot: string, args: readonly string[]): JsonObject => {
-  const command = [
-    process.execPath,
-    trailsBin,
-    'wayfind',
-    ...args,
-    '--root-dir',
-    tempRoot,
-    '--json',
-  ];
+const runCommand = (command: readonly string[], label: string): JsonObject => {
   const result = Bun.spawnSync({
-    cmd: command,
+    cmd: [...command],
     cwd: repoRoot,
     env: { ...process.env, NO_COLOR: '1' } as Record<
       string,
@@ -72,7 +64,35 @@ const runWayfind = (tempRoot: string, args: readonly string[]): JsonObject => {
       ].join('\n')
     );
   }
-  return parseJson(stdout, `trails ${args.join(' ')}`);
+  return parseJson(stdout, label);
+};
+
+const runTrails = (tempRoot: string, args: readonly string[]): JsonObject => {
+  const command = [
+    process.execPath,
+    trailsBin,
+    ...args,
+    '--root-dir',
+    tempRoot,
+    '--json',
+  ];
+  return runCommand(command, `trails ${args.join(' ')}`);
+};
+
+const runWayfind = (tempRoot: string, args: readonly string[]): JsonObject =>
+  runTrails(tempRoot, ['wayfind', ...args]);
+
+const runSchema = (args: readonly string[]): JsonObject =>
+  runCommand([process.execPath, trailsBin, 'schema', ...args], 'trails schema');
+
+const writeOperatorAppWrapper = async (tempRoot: string): Promise<void> => {
+  const srcDir = join(tempRoot, 'src');
+  await mkdir(srcDir, { recursive: true });
+  const appModuleUrl = pathToFileURL(join(repoRoot, 'apps/trails/src/app.ts'));
+  await writeFile(
+    join(srcDir, 'app.ts'),
+    `export { app, trailsCliAliases } from ${JSON.stringify(appModuleUrl.href)};\n`
+  );
 };
 
 const assertSearchFindsWayfinder = (search: JsonObject): void => {
@@ -86,6 +106,35 @@ const assertSearchFindsWayfinder = (search: JsonObject): void => {
   if (!ids.includes('wayfind.search')) {
     throw new Error('wayfind search did not find wayfind.search');
   }
+};
+
+const assertRoutePathsForSearch = (routes: unknown, label: string): void => {
+  if (!Array.isArray(routes)) {
+    throw new TypeError(`${label} did not return command routes`);
+  }
+  const routePaths = new Set(
+    routes
+      .map((route) => assertObject(route, `${label} route`)['path'])
+      .filter(
+        (path): path is string[] =>
+          Array.isArray(path) &&
+          path.every((segment) => typeof segment === 'string')
+      )
+      .map((path) => path.join(' '))
+  );
+  for (const expected of ['wayfind search', 'wayfind find', 'wf search']) {
+    if (!routePaths.has(expected)) {
+      throw new Error(`${label} did not include ${expected}`);
+    }
+  }
+};
+
+const assertSchemaForSearch = (schema: JsonObject): void => {
+  const command = assertObject(schema['command'], 'schema command');
+  if (command['trailId'] !== 'wayfind.search') {
+    throw new Error('schema did not inspect wayfind.search');
+  }
+  assertRoutePathsForSearch(command['routes'], 'schema');
 };
 
 const assertErrorsFindWayfinder = (errorsResult: JsonObject): void => {
@@ -142,6 +191,8 @@ const assertContractForSearch = (contractResult: JsonObject): void => {
   if (contract['id'] !== 'wayfind.search') {
     throw new Error('wayfind contract did not inspect wayfind.search');
   }
+  const cli = assertObject(contract['cli'], 'contract.cli');
+  assertRoutePathsForSearch(cli['routes'], 'contract');
 };
 
 const assertResolvedTarget = (value: JsonObject, label: string): void => {
@@ -156,16 +207,14 @@ export const runWayfinderDogfoodSmoke =
     const tempRoot = await mkdtemp(join(tmpdir(), 'trails-wayfinder-dogfood-'));
 
     try {
-      const [{ trailsMcpApp }, { exportCurrentTopo }] = await Promise.all([
-        import('../mcp-app.js'),
-        import('../trails/topo-store-support.js'),
+      await writeOperatorAppWrapper(tempRoot);
+      runTrails(tempRoot, [
+        'compile',
+        '--module',
+        './src/app.ts',
+        '--permit',
+        '{"id":"wayfinder-dogfood","scopes":["topo:write"]}',
       ]);
-      const exported = await exportCurrentTopo(trailsMcpApp, {
-        rootDir: tempRoot,
-      });
-      if (exported.isErr()) {
-        throw exported.error;
-      }
 
       const overview = runWayfind(tempRoot, ['overview']);
       assertFreshSource(overview, 'wayfind overview');
@@ -185,6 +234,25 @@ export const runWayfinderDogfoodSmoke =
       ]);
       assertFreshSource(search, 'wayfind search');
       assertSearchFindsWayfinder(search);
+
+      const findAlias = runWayfind(tempRoot, [
+        'find',
+        '--input-json',
+        '{"filters":{"kind":"trail","idPrefix":"wayfind."}}',
+      ]);
+      assertFreshSource(findAlias, 'wayfind find');
+      assertSearchFindsWayfinder(findAlias);
+
+      const shortAlias = runTrails(tempRoot, [
+        'wf',
+        'search',
+        '--input-json',
+        '{"filters":{"kind":"trail","idPrefix":"wayfind."}}',
+      ]);
+      assertFreshSource(shortAlias, 'wf search');
+      assertSearchFindsWayfinder(shortAlias);
+
+      assertSchemaForSearch(runSchema(['wf', 'search']));
 
       const errors = runWayfind(tempRoot, [
         'errors',

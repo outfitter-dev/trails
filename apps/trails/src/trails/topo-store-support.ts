@@ -7,7 +7,7 @@
 
 import { Database } from 'bun:sqlite';
 
-import type { Topo } from '@ontrails/core';
+import type { CliCommandAliasInput, Topo } from '@ontrails/core';
 import {
   ConflictError,
   deriveTrailsDir,
@@ -42,15 +42,21 @@ import {
   readGitState,
 } from './topo-support.js';
 
+type CliAliasesOption = Readonly<
+  Record<string, readonly CliCommandAliasInput[]>
+>;
+
 const persistAndReadStoredExport = (
   app: Topo,
   db: ReturnType<typeof openWriteTrailsDb>,
-  rootDir: string
+  rootDir: string,
+  options?: { readonly cliAliases?: CliAliasesOption | undefined } | undefined
 ): Result<
   { snapshot: TopoSnapshot; storedExport: StoredTopoExport },
   Error
 > => {
   const snapshotResult = createStoredTopoSnapshot(db, app, {
+    cliAliases: options?.cliAliases,
     ...readGitState(rootDir),
     ...deriveTopoCounts(app),
   });
@@ -77,13 +83,18 @@ const persistAndReadStoredExport = (
 
 export const deriveCurrentTopoExport = (
   app: Topo,
-  options?: { readonly rootDir?: string }
+  options?: {
+    readonly cliAliases?: CliAliasesOption | undefined;
+    readonly rootDir?: string;
+  }
 ): Result<StoredTopoExport, Error> => {
   const rootDir = deriveRootDir(options?.rootDir);
   const db = new Database(':memory:');
 
   try {
-    const projected = persistAndReadStoredExport(app, db, rootDir);
+    const projected = persistAndReadStoredExport(app, db, rootDir, {
+      cliAliases: options?.cliAliases,
+    });
     return projected.isErr()
       ? projected
       : Result.ok(projected.value.storedExport);
@@ -141,13 +152,19 @@ const writeStoredExportArtifacts = async (
 
 export const exportCurrentTopo = async (
   app: Topo,
-  options?: { readonly force?: boolean | undefined; readonly rootDir?: string }
+  options?: {
+    readonly cliAliases?: CliAliasesOption | undefined;
+    readonly force?: boolean | undefined;
+    readonly rootDir?: string;
+  }
 ): Promise<Result<TopoExportReport, Error>> => {
   const rootDir = deriveRootDir(options?.rootDir);
   const db = openWriteTrailsDb({ rootDir });
 
   try {
-    const persisted = persistAndReadStoredExport(app, db, rootDir);
+    const persisted = persistAndReadStoredExport(app, db, rootDir, {
+      cliAliases: options?.cliAliases,
+    });
     if (persisted.isErr()) {
       return persisted;
     }

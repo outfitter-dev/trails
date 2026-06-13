@@ -79,7 +79,7 @@ Every piece of information has a clear ownership model.
 
 Warden uses inference to verify declarations match actual code. Topographer captures the resolved `TopoGraph`, semantic diff, lock manifest, and `topo.lock` artifacts for CI governance. Consumer artifact workflow uses the top-level CLI commands `trails compile`, `trails validate`, and `trails diff`; `trails topo` is for topo-store history and pin management.
 
-Wayfinder is the first agent navigation move over those saved artifacts. For graph questions, start with `trails wayfind overview --root-dir . --json`, then use search, contract, describe, nearby, impact, examples, or diff queries before reconstructing topo facts with raw source search. Source reads remain the right fallback for stale or missing artifacts and implementation details Topographer does not project.
+Wayfinder is the first agent navigation move over those saved artifacts. For graph questions, start with `trails wayfind overview --root-dir . --json`, then use search, contract, describe, nearby, impact, examples, or diff queries before reconstructing topo facts with raw source search. Use `trails schema <command...>` when you need accepted CLI routes, aliases, flags, and schemas for an operator command. Source reads remain the right fallback for stale or missing artifacts and implementation details Topographer does not project.
 
 ## Package Layout
 

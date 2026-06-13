@@ -18,12 +18,17 @@ Then narrow the graph read with the selected local CLI surface:
 
 ```bash
 bun apps/trails/bin/trails.ts wayfind search --root-dir . --input-json '{"filters":{"kind":"trail","idPrefix":"wayfind."}}' --json
+bun apps/trails/bin/trails.ts wayfind find --root-dir . --input-json '{"filters":{"kind":"trail","idPrefix":"wayfind."}}' --json
+bun apps/trails/bin/trails.ts wf search --root-dir . --input-json '{"filters":{"kind":"trail","idPrefix":"wayfind."}}' --json
 bun apps/trails/bin/trails.ts wayfind contract wayfind.search --root-dir . --json
 bun apps/trails/bin/trails.ts wayfind errors --root-dir . --input-json '{"filters":{"kind":"trail","idPrefix":"wayfind."}}' --json
 bun apps/trails/bin/trails.ts wayfind adapters --root-dir . --json
 bun apps/trails/bin/trails.ts wayfind nearby wayfind.search --root-dir . --json
 bun apps/trails/bin/trails.ts wayfind impact wayfind.search --root-dir . --json
+bun apps/trails/bin/trails.ts schema wf search
 ```
+
+Use `trails schema <command...>` when you need the accepted CLI routes, aliases, flags, and schemas for an operator command before invoking it from a shell.
 
 Use source search, qmd, or symbol tools when Wayfinder reports missing or stale artifacts, when the task needs implementation text that Topographer does not project, or when the current authority does not allow generating fresh artifacts. If you compile to refresh artifacts, treat the generated `.trails` files as evidence and clean them up unless the branch intentionally owns them.
 

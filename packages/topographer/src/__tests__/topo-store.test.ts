@@ -9,6 +9,7 @@ import {
   NotFoundError,
   contour,
   Result,
+  ValidationError,
   resource,
   schedule,
   signal,
@@ -823,6 +824,92 @@ describe('topo store projection', () => {
         summary: { contours: 0, resources: 0, signals: 2, trails: 1 },
         version: 3,
       });
+    });
+  });
+
+  test('stored TopoGraph includes surface-owned CLI alias route facts', () => {
+    withProjectionDb((db) => {
+      const search = trail('wayfind.search', {
+        blaze: noop,
+        cli: {
+          aliases: ['find'],
+        },
+        input: z.object({ query: z.string() }),
+        output: z.object({ ok: z.boolean() }),
+      });
+
+      const snapshot = unwrap(
+        createTopoSnapshot(db, topo('contract-export-app', { search }), {
+          cliAliases: {
+            'wayfind.search': [['wf', 'search']],
+          },
+          createdAt: '2026-04-03T12:00:00.000Z',
+        })
+      );
+
+      const stored = requireStoredExport(db, snapshot.id);
+      const topoGraph = JSON.parse(stored.topoGraphJson) as {
+        entries: readonly unknown[];
+      };
+      const entry = topoGraph.entries.find(
+        (candidate) =>
+          typeof candidate === 'object' &&
+          candidate !== null &&
+          (candidate as { id?: unknown }).id === 'wayfind.search'
+      ) as
+        | {
+            cli?: {
+              readonly routes?: readonly {
+                readonly path?: readonly string[];
+                readonly source?: string;
+              }[];
+            };
+          }
+        | undefined;
+
+      expect(entry?.cli?.routes).toEqual([
+        expect.objectContaining({
+          path: ['wayfind', 'search'],
+          source: 'derived',
+        }),
+        expect.objectContaining({
+          path: ['wayfind', 'find'],
+          source: 'trail',
+        }),
+        expect.objectContaining({
+          path: ['wf', 'search'],
+          source: 'surface',
+        }),
+      ]);
+    });
+  });
+
+  test('stored TopoGraph rejects surface-owned CLI aliases for unknown trails', () => {
+    withProjectionDb((db) => {
+      const search = trail('wayfind.search', {
+        blaze: noop,
+        input: z.object({ query: z.string() }),
+        output: z.object({ ok: z.boolean() }),
+      });
+
+      const snapshot = createTopoSnapshot(
+        db,
+        topo('contract-export-app', { search }),
+        {
+          cliAliases: {
+            'wayfind.serch': [['wf', 'search']],
+          },
+          createdAt: '2026-04-03T12:00:00.000Z',
+        }
+      );
+
+      expect(snapshot.isErr()).toBe(true);
+      if (snapshot.isErr()) {
+        expect(snapshot.error).toBeInstanceOf(ValidationError);
+        expect(snapshot.error.message).toContain(
+          'CLI command aliases target unknown trail "wayfind.serch"'
+        );
+      }
     });
   });
 

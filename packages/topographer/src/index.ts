@@ -74,6 +74,7 @@ export type {
   TopoGraphFieldOverride,
   TopoGraphFieldOverrideKey,
   TopoGraphLayerReference,
+  DeriveTopoGraphOptions,
   TopoGraphVersionDetour,
   TopoGraphVersionEntry,
   LockManifest,

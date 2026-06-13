@@ -10,6 +10,7 @@ import {
   deriveTrailCliCommandProjection,
   getContourReferences,
   projectActivationSourceDeclaration,
+  ValidationError,
   validateEstablishedTopo,
   matchesTrailPattern,
   signalDiagnosticDefinitions,
@@ -494,12 +495,16 @@ const addVersioning = (
 
 const trailToEntry = (
   t: Trail<unknown, unknown, unknown>,
-  topoLayers: readonly Layer[]
+  topoLayers: readonly Layer[],
+  options?: Pick<DeriveTopoGraphOptions, 'cliAliases'> | undefined
 ): TopoGraphEntry => {
   const raw = t as unknown as Record<string, unknown>;
   const surfaces = extractSurfaces(raw);
   const entry: Record<string, unknown> = {
-    cli: deriveTrailCliCommandProjection(t),
+    cli: deriveTrailCliCommandProjection(t, {
+      aliasSource: 'surface',
+      aliases: options?.cliAliases?.[t.id],
+    }),
     exampleCount: Array.isArray(t.examples) ? t.examples.length : 0,
     id: t.id,
     kind: t.kind,
@@ -615,12 +620,32 @@ const assertEstablishedTopo = (topo: Topo): void => {
   }
 };
 
-const collectEntries = (topo: Topo): TopoGraphEntry[] => {
+const assertCliAliasTargetsExist = (
+  topo: Topo,
+  options?: Pick<DeriveTopoGraphOptions, 'cliAliases'> | undefined
+): void => {
+  for (const trailId of Object.keys(options?.cliAliases ?? {})) {
+    if (!topo.trails.has(trailId)) {
+      throw new ValidationError(
+        `CLI command aliases target unknown trail "${trailId}". Surface-owned aliases must target existing trail IDs.`
+      );
+    }
+  }
+};
+
+const collectEntries = (
+  topo: Topo,
+  options?: Pick<DeriveTopoGraphOptions, 'cliAliases'> | undefined
+): TopoGraphEntry[] => {
   const signalRelations = collectSignalGraphRelations(topo);
   return [
     ...[...topo.contours.values()].map((contour) => contourToEntry(contour)),
     ...[...topo.trails.values()].map((trail) =>
-      trailToEntry(trail as Trail<unknown, unknown, unknown>, topo.layers)
+      trailToEntry(
+        trail as Trail<unknown, unknown, unknown>,
+        topo.layers,
+        options
+      )
     ),
     ...[...topo.signals.values()].map((signal) =>
       signalToEntry(
@@ -705,7 +730,8 @@ export const deriveTopoGraph = (
   options?: DeriveTopoGraphOptions
 ): TopoGraph => {
   assertEstablishedTopo(topo);
-  const sorted = collectEntries(topo).toSorted((a, b) =>
+  assertCliAliasTargetsExist(topo, options);
+  const sorted = collectEntries(topo, options).toSorted((a, b) =>
     a.id.localeCompare(b.id)
   );
   const activationSources = collectActivationSourceCatalog(topo);

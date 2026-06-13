@@ -18,7 +18,10 @@ export const validateTrail = trail('validate', {
     }
     const lease = leaseResult.value;
     try {
-      return await validateCurrentTopo(lease.app, { rootDir });
+      return await validateCurrentTopo(lease.app, {
+        cliAliases: lease.cliAliases,
+        rootDir,
+      });
     } finally {
       lease.release();
     }
