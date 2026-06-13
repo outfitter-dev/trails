@@ -187,7 +187,22 @@ const entrySummarySchema = z.object({
   surfaces: z.array(z.string()).readonly(),
 });
 
+const cliRouteSchema = z.object({
+  kind: z.enum(['alias', 'canonical']),
+  path: z.array(z.string()).readonly(),
+  source: z.enum(['derived', 'surface', 'trail']),
+  target: z.string(),
+});
+
+const cliProjectionSchema = z
+  .object({
+    path: z.array(z.string()).readonly(),
+    routes: z.array(cliRouteSchema).readonly().optional(),
+  })
+  .nullable();
+
 const trailSummarySchema = entrySummarySchema.extend({
+  cli: cliProjectionSchema,
   composes: z.array(z.string()).readonly(),
   intent: z.enum(['destroy', 'read', 'write']),
   kind: z.literal('trail'),
@@ -607,6 +622,7 @@ const trailSummaries = (graph: TopoGraph) =>
   graph.entries
     .filter((entry) => entry.kind === 'trail')
     .map((entry) => ({
+      cli: entry.cli ?? null,
       composes: entry.composes ?? [],
       exampleCount: entry.exampleCount,
       id: entry.id,
@@ -1010,6 +1026,7 @@ const contractEntryKind = (
 const contractEntry = (
   entry: TopoGraphEntry
 ): Readonly<Record<string, unknown>> => ({
+  cli: entry.cli ?? null,
   id: entry.id,
   input: entry.input ?? null,
   kind: entry.kind,

@@ -276,18 +276,16 @@ await surface(graph);
 
 To use a different CLI framework (yargs, oclif, etc.), consume the successful `CliCommand[]` result directly and write your own adapter. The model carries everything needed: a full ordered command path, flags, args, and an `execute()` function.
 
-## Planned Schema Command
+## Schema Command
 
-Trails CLI apps should eventually expose command schemas for free. The planned shape is a default-on `schema` command derived from the same topo and framework-agnostic CLI command model as the derived commands.
+Trails CLI apps can expose command schemas from the same topo and framework-agnostic CLI command model as the derived commands. The Trails operator CLI dogfoods this as `trails schema`.
 
 ```bash
-myapp schema
-myapp schema entity.update
-myapp schema entity update --json
+trails schema
+trails schema wayfind search
+trails schema wf search
 ```
 
-The no-arg form should return a compact index of available command contracts. Targeted schema lookup should return the full Trails command-contract envelope: command path, trail id, args, flags, aliases, input schema, output schema, output formats, examples, and deprecation metadata when derivable.
+The no-arg form returns a command contract index. Targeted schema lookup accepts any canonical or alias command path and returns the full command-contract envelope: command path, trail id, args, flags, routes, aliases, input schema, output schema, examples, and version metadata when derivable.
 
-Schema visibility should describe the surface-bound CLI commands by default. Apps may configure broader schema visibility for dev or agent environments, but runtime flags should not reveal hidden/internal schemas that the app author did not choose to expose.
-
-This schema command is planned future work in `@ontrails/cli`; it is not part of beta 15.
+Schema visibility describes the surface-bound CLI commands. Apps may configure broader schema visibility for dev or agent environments, but runtime schema output must not reveal hidden/internal schemas that the app author did not choose to expose.

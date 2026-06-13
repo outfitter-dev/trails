@@ -16,6 +16,12 @@ export type {
   ResolveCliPermitFromTokenInput,
 } from './build.js';
 export { validateCliCommands } from './validate.js';
+export { deriveCliSchema, findCliSchemaCommand } from './schema.js';
+export type {
+  CliCommandSchemaEntry,
+  CliCommandSchemaRoute,
+  CliSchemaIndex,
+} from './schema.js';
 
 // Flags
 export {

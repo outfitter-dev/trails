@@ -66,6 +66,9 @@ const userShow = trail('user.show', {
 
 const userCreate = trail('user.create', {
   blaze: () => Result.ok({ id: 'u1' }),
+  cli: {
+    aliases: ['add'],
+  },
   fires: [userCreated],
   input: z.object({ name: z.string() }),
   intent: 'write',
@@ -541,6 +544,23 @@ describe('wayfinder graph-read query trails', () => {
       'user.create',
       'user.show',
     ]);
+    expect(trails.trails[0]?.cli).toMatchObject({
+      path: ['user', 'create'],
+      routes: [
+        {
+          kind: 'canonical',
+          path: ['user', 'create'],
+          source: 'derived',
+          target: 'user.create',
+        },
+        {
+          kind: 'alias',
+          path: ['user', 'add'],
+          source: 'trail',
+          target: 'user.create',
+        },
+      ],
+    });
     expect(surfaces.surfaces).toEqual([
       { facets: [], id: 'cli', trails: ['user.create'] },
       { facets: ['users'], id: 'mcp', trails: ['user.create', 'user.show'] },
@@ -884,7 +904,7 @@ describe('wayfinder graph-read query trails', () => {
 
   test('returns contract details for current and historical trail versions', async () => {
     const current = await expectOk(
-      wayfindContractTrail.blaze({ id: 'user.show', rootDir: tempDir }, ctx())
+      wayfindContractTrail.blaze({ id: 'user.create', rootDir: tempDir }, ctx())
     );
     const historical = await expectOk(
       wayfindContractTrail.blaze(
@@ -894,7 +914,24 @@ describe('wayfinder graph-read query trails', () => {
     );
 
     expect(current.contract).toMatchObject({
-      id: 'user.show',
+      cli: {
+        path: ['user', 'create'],
+        routes: [
+          {
+            kind: 'canonical',
+            path: ['user', 'create'],
+            source: 'derived',
+            target: 'user.create',
+          },
+          {
+            kind: 'alias',
+            path: ['user', 'add'],
+            source: 'trail',
+            target: 'user.create',
+          },
+        ],
+      },
+      id: 'user.create',
       kind: 'trail',
       resources: ['db.main'],
     });

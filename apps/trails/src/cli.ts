@@ -5,6 +5,7 @@ import { isAbsolute, join, resolve } from 'node:path';
 import {
   defaultOnResult,
   devPermitPreset,
+  deriveCliCommands,
   outputModePreset,
   permitPreset,
   tokenPreset,
@@ -16,6 +17,7 @@ import type {
   ResolveCliPermitFromToken,
 } from '@ontrails/cli';
 import { createProgram } from '@ontrails/commander';
+import type { CreateProgramOptions } from '@ontrails/commander';
 import { resolvePermitFromBearerToken } from '@ontrails/permits';
 import { deriveTopoGraph } from '@ontrails/topographer';
 
@@ -23,6 +25,7 @@ import { app, trailsCliIncludedTrails } from './app.js';
 import { resolveInputWithClack } from './clack.js';
 import { getRetiredTopoCommandDiagnostic } from './retired-topo-command.js';
 import { attachCompletionsInstallCommand } from './run-completions-install.js';
+import { attachSchemaCommand } from './run-schema.js';
 import {
   applyAdapterCheckExitCode,
   tryAdapterCheckOutput,
@@ -293,7 +296,7 @@ const runSurfaceOnce = async (): Promise<void> => {
 
   const session = maybeInstallTraceSession();
   try {
-    const program = createProgram(app, {
+    const surfaceOptions = {
       description: 'Agent-native, contract-first TypeScript framework',
       include: trailsCliIncludedTrails,
       name: 'trails',
@@ -309,7 +312,13 @@ const runSurfaceOnce = async (): Promise<void> => {
       resolveInput: resolveInputWithClack,
       resolvePermitFromToken: resolveCliPermitFromToken,
       version: trailsPackageVersion,
-    });
+    } satisfies CreateProgramOptions;
+    const program = createProgram(app, surfaceOptions);
+    const schemaCommands = deriveCliCommands(app, surfaceOptions);
+    if (schemaCommands.isErr()) {
+      throw schemaCommands.error;
+    }
+    attachSchemaCommand(program, schemaCommands.value);
     attachCompletionsInstallCommand(program);
     await program.parseAsync(normalizeWardenArgv(process.argv));
   } finally {
