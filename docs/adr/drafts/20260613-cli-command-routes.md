@@ -35,6 +35,8 @@ This ADR fills that gap.
 
 This ADR uses **CLI command route** to mean one concrete command path that a CLI surface accepts for a trail. It is a CLI projection term, not an HTTP route.
 
+In the cross-surface vocabulary, CLI command routes are surface accommodations. The surface entry is the command. The command path is the CLI-local realization of an approach. A CLI alias is an alternate approach to the same trail contract.
+
 CLI command routes are projection metadata, not behavior. The operational test is:
 
 > A CLI command route is valid only if it can be normalized into the same trail
@@ -187,6 +189,12 @@ surface-owned aliases when the deriving surface provides that context.
 paths.
 
 If graph visibility fails to solve a concrete drift problem, a later ADR may add an authored policy marker. It is not part of this decision.
+
+### Trail forks stay out of CLI route metadata
+
+An alternate command path becomes a trail fork when it would change intent, permit requirements, error meaning, output meaning, lifecycle, side effects, or which trail is actually running.
+
+Trail forks are not represented as CLI route metadata. They become distinct trails, composing trails, or surface facets that preserve member identity.
 
 ### Resolved CLI projections record the route story
 

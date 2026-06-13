@@ -471,9 +471,14 @@ A mechanically derived output from authored information. The topo store is a rel
 | `Result` | Ok/Err return type |
 | `error` | Error types |
 | `adapter` | Canonical public category for a package or subpath that connects Trails to a named external library, framework, tool, platform, format, or ecosystem |
+| `surface accommodation` | Projection-level fit adjustment that lets a surface feel native without changing the trail contract |
+| `surface entry` | Invocable affordance exposed by a surface: CLI command, MCP tool, HTTP route, or library export |
+| `approach` | Surface-specific way for a caller to reach a surface entry |
+| `input mapping` | Surface-shaped input normalization into the same authored trail input contract |
 | `facet` | Qualified projection-slice vocabulary; use `surface facet` or `schema facet`, not bare `facet` as a primitive |
-| `surface facet` | Surface-side projection slice over existing trails; not a graph node, package category, or core `Facet` primitive |
+| `surface facet` | Surface-side grouped entry over existing trails; not a graph node, package category, or core `Facet` primitive |
 | `schema facet` | Descriptive phrase for a schema-owned slice or view when docs need it; not a decided public API |
+| `trail fork` | Doctrine phrase for the point where a surface accommodation would change semantics or hide trail identity; author a distinct trail, composing trail, or honest facet instead |
 | `MCP resources` | MCP protocol resources used for cold context; not Trails `resource()` infrastructure declarations |
 | `integration (colloquial)` | Ordinary English for places Trails integrates with an external system; not a public taxonomy category |
 | `logger` / `logging` | Structured logging — framework provides the interface; developers bring their own |

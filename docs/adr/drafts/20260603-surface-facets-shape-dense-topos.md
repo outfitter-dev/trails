@@ -3,7 +3,7 @@ slug: surface-facets-shape-dense-topos
 title: Surface Facets Shape Dense Topos
 status: draft
 created: 2026-06-03
-updated: 2026-06-04
+updated: 2026-06-13
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [0, 17, 27, 35, 42, 46]
 linear:
@@ -57,6 +57,8 @@ The authored information is intentionally small: a facet ID, a selector, a descr
 
 The term `facet` remains descriptive vocabulary for a projection slice. `surface facet` is the concrete pattern in this ADR. `schema facet` remains available as a related documentation and governance phrase, but it is not decided here as an API.
 
+In the broader surface-accommodation vocabulary, a surface facet is a grouped surface entry. It lives on the entry axis: one surface entry gathers multiple trails while preserving member identity. It is not an alternate approach to one trail. Aliases and input mappings converge on one trail contract; facets group several contracts without merging them.
+
 ### Selectors reuse trail surface filtering semantics
 
 Facet membership reuses the trail ID selector grammar already established for surface filtering:
@@ -83,6 +85,8 @@ In `@ontrails/mcp`, a facet projects as one MCP tool. The input discriminator is
 
 The handler dispatches to the selected constituent trail through the same surface execution path that ordinary MCP tools use. The facet does not call a blaze directly and does not create a second implementation path.
 
+This is grouped selection, not a hidden action bag. The selected trail ID is the member identity, and the selected member's input schema remains the contract for the nested `input` payload.
+
 Outputs are correlated with the same trail ID:
 
 ```ts
@@ -95,6 +99,10 @@ Outputs are correlated with the same trail ID:
 ```
 
 This envelope is required. A heterogeneous facet output must remain understandable to agents and machine readers after the call returns. The output schema therefore stays object-rooted for MCP compatibility and carries `{ trail, output }` at the top level instead of relying on branch order, implicit action names, or uncorrelated unions.
+
+### Facets do not hide trail forks
+
+A facet should not be used to launder a new operation into one surface affordance. If grouping would change intent, permit requirements, error meaning, output meaning, lifecycle, side effects, or hide which trail actually runs, the shape has found a trail fork. Author distinct trails or a composing trail first, then use a facet only if the surface still needs a grouped entry that preserves the selected member trail.
 
 ### Visibility never widens through a facet
 

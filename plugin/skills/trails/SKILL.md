@@ -156,6 +156,8 @@ await surface(graph);
 
 Use `cli` on a trail only for canonical command overrides or trail-owned aliases that still normalize into the same trail contract. String aliases are sibling leaf aliases (`find` beside `search`); string-array aliases are absolute command paths (`['wf', 'search']`). App-owned compatibility aliases belong in CLI surface options and should also be exported from the app module as `cliAliases` or `trailsCliAliases` so compile, validate, Wayfinder, and `trails schema` inspect the same routes the runtime CLI accepts.
 
+Treat aliases, future input mappings, and surface facets as **surface accommodations**: projection-level fit adjustments, not alternate behavior. The trail stays the capability. A surface entry is the invocable affordance on a surface; an approach is the way a caller reaches it. Aliases add alternate approaches to the same trail, input mappings normalize surface-shaped input into the same trail input, and surface facets group several trails into one entry while preserving the selected trail ID. If the fit would change intent, permits, errors, outputs, lifecycle, side effects, or hide which trail is running, call it a trail fork and author a distinct or composing trail instead.
+
 **MCP**: Tool names from trail IDs, JSON Schema from Zod, annotations from intent, idempotency, and description.
 
 ```typescript

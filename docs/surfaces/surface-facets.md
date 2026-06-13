@@ -6,6 +6,8 @@ MCP hits this pressure first. MCP clients often load tool names, descriptions, i
 
 Surface facets are not a core `Facet` primitive. Do not look for `facet()`, do not create a shared `Facet` type, and do not add facet authoring configuration to adapter-kit.
 
+A facet is a surface accommodation on the entry axis: one grouped surface entry over several trails. It is not an alternate approach to one trail. Aliases and input mappings are N-to-1 accommodations that converge on one trail contract; facets are 1-to-N accommodations that gather several trails while preserving member identity. See [Surface Accommodations](surface-accommodations.md) for the full vocabulary.
+
 ## When To Use One
 
 Use a surface facet when:
@@ -21,6 +23,8 @@ Do not use a surface facet when:
 - grouping would hide important trail identity or output shape;
 - direct trail projection is already clear enough;
 - you need CLI or HTTP parity before MCP has proved the pattern for your app.
+
+The fork test still applies. If a grouped affordance would merge contracts, hide which trail is selected, or introduce an action vocabulary such as `{ action: "create" | "delete" }`, split the capability into distinct trails or a composing trail first. A facet may group and select; it must not merge and obscure.
 
 ## MCP Authoring Shape
 
