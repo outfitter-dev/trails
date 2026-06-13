@@ -38,37 +38,14 @@ pre-commit:
       run: bun run mdlint:fix {staged_files}
       stage_fixed: true
 
+# Pre-push runs inside one `tree-guard` bracket: every check reads the live
+# working tree, so a concurrent `git checkout` or edit (another agent, gt, an
+# editor) mid-run produces phantom failures from a mixed tree. The guard turns
+# that into an explicit "tree changed during checks" error and proves every
+# pre-push verdict came from the same tree.
 pre-push:
   commands:
-    warden:
+    stable_checks:
       env:
         GIT_PAGER: cat
-      run: bun trails warden --pre-push
-    adr:
-      env:
-        GIT_PAGER: cat
-      run: bun scripts/adr.ts check
-    test:
-      env:
-        GIT_PAGER: cat
-      run: bun run test
-    typecheck:
-      env:
-        GIT_PAGER: cat
-      run: bun run typecheck
-    lint:
-      env:
-        GIT_PAGER: cat
-      run: bun run lint
-    lint-ast-grep:
-      env:
-        GIT_PAGER: cat
-      run: bun run lint:ast-grep
-    format:
-      env:
-        GIT_PAGER: cat
-      run: bun run format:check
-    dead-code:
-      env:
-        GIT_PAGER: cat
-      run: bun run dead-code
+      run: bun scripts/tree-guard.ts run -- bun run pre-push:checks

@@ -41,6 +41,7 @@
     "clark:sync": "bun scripts/codex/skillset.ts --only agents",
     "clark:check": "bun scripts/codex/skillset.ts --only agents --check",
     "dead-code": "knip --no-progress",
+    "pre-push:checks": "bun scripts/pre-push-checks.ts",
     "trails": "bun apps/trails/bin/trails.ts",
     "trails:check": "bun trails warden",
     "dogfood:packed": "bun apps/trails/bin/trails.ts release smoke --check packed-artifacts",
