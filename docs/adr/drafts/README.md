@@ -52,3 +52,5 @@ Draft map: `docs/adr/drafts/decision-map.json`; numbered map: `docs/adr/decision
   - depends on [ADR-0047: Stable Release Line Discipline](../0047-stable-release-line-discipline.md), [ADR-0048: Trail Versioning v3](../0048-trail-versioning-v3.md)
 - [Verdicts Run on Stable Ground](20260612-verdicts-run-on-stable-ground.md)
   - depends on [ADR-0000: Core Premise — Contract-First, Surface-Agnostic Design](../0000-core-premise.md), [ADR-0026: Error Taxonomy as Transport-Independent Behavior Contract](../0026-error-taxonomy-as-transport-independent-behavior-contract.md)
+- [CLI Command Routes Normalize Into Trail Contracts](20260613-cli-command-routes.md)
+  - depends on [ADR-0008: Deterministic Surface Derivation](../0008-deterministic-trailhead-derivation.md), [ADR-0019: Hierarchical Command Trees from Trail IDs](../0019-hierarchical-command-trees-from-trail-ids.md), [ADR-0035: Surface APIs Render the Graph](../0035-surface-apis-render-the-graph.md), [ADR-0047: Stable Release Line Discipline](../0047-stable-release-line-discipline.md)

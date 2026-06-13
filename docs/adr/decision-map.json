@@ -847,6 +847,11 @@
           "fromPath": "docs/adr/drafts/20260503-wayfinding.md"
         },
         {
+          "context": "- [ADR-0008](../0008-deterministic-trailhead-derivation.md)",
+          "from": "20260613",
+          "fromPath": "docs/adr/drafts/20260613-cli-command-routes.md"
+        },
+        {
           "context": "- **[ADR-0008: Deterministic Surface Derivation](./adr/0008-deterministic-trailhead-derivation.md)** — Explicit lookup tables for every surface",
           "from": "index",
           "fromPath": "docs/index.md"
@@ -1524,6 +1529,11 @@
           "context": "- [ADR-0019: Hierarchical Command Trees from Trail IDs](0019-hierarchical-command-trees-from-trail-ids.md) — the companion decision for nested command paths",
           "from": "0020",
           "fromPath": "docs/adr/0020-flags-for-fields-structured-input-on-the-cli.md"
+        },
+        {
+          "context": "[ADR-0019](../0019-hierarchical-command-trees-from-trail-ids.md) already reserves this space. Trail IDs derive canonical CLI command paths by default, but a trail may override its CLI projection when ",
+          "from": "20260613",
+          "fromPath": "docs/adr/drafts/20260613-cli-command-routes.md"
         },
         {
           "context": "- **[ADR-0019: Hierarchical Command Trees](./adr/0019-hierarchical-command-trees-from-trail-ids.md)** — Full CLI path derivation from dotted trail IDs",
@@ -2269,6 +2279,11 @@
           "fromPath": "docs/adr/drafts/20260603-surface-facets-shape-dense-topos.md"
         },
         {
+          "context": "- [ADR-0035: Surface APIs Render The Graph](../0035-surface-apis-render-the-graph.md)",
+          "from": "20260613",
+          "fromPath": "docs/adr/drafts/20260613-cli-command-routes.md"
+        },
+        {
           "context": "The published `CHANGELOG.md` for `@ontrails/cli` and `@ontrails/mcp` attributes the lexicon work to ADR-0023, but the surface-API renames listed here are governed by [ADR-0035: Surface APIs Render the",
           "from": "beta15",
           "fromPath": "docs/releases/beta15.md"
@@ -2715,6 +2730,11 @@
           "context": "- [ADR-0047: Stable Release Line Discipline](../0047-stable-release-line-discipline.md)",
           "from": "20260608",
           "fromPath": "docs/adr/drafts/20260608-release-provenance-as-lifecycle-projection.md"
+        },
+        {
+          "context": "- [ADR-0047: Stable Release Line Discipline](../0047-stable-release-line-discipline.md)",
+          "from": "20260613",
+          "fromPath": "docs/adr/drafts/20260613-cli-command-routes.md"
         },
         {
           "context": "It is governed by [ADR-0047: Stable Release Line Discipline](../adr/0047-stable-release-line-discipline.md). The short version: public `@ontrails/*` packages stay lockstep for 1.x, Changesets computes",

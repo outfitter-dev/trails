@@ -268,7 +268,13 @@
     {
       "created": "2026-06-03",
       "depends_on": ["0", "17", "27", "35", "42", "46"],
-      "inbound": [],
+      "inbound": [
+        {
+          "context": "- [Surface Facets draft](20260603-surface-facets-shape-dense-topos.md)",
+          "from": "20260613",
+          "fromPath": "docs/adr/drafts/20260613-cli-command-routes.md"
+        }
+      ],
       "number": null,
       "owners": ["[galligan](https://github.com/galligan)"],
       "path": "docs/adr/drafts/20260603-surface-facets-shape-dense-topos.md",
@@ -303,6 +309,19 @@
       "superseded_by": null,
       "title": "Verdicts Run on Stable Ground",
       "updated": "2026-06-12"
+    },
+    {
+      "created": "2026-06-13",
+      "depends_on": ["8", "19", "35", "47"],
+      "inbound": [],
+      "number": null,
+      "owners": ["[galligan](https://github.com/galligan)"],
+      "path": "docs/adr/drafts/20260613-cli-command-routes.md",
+      "slug": "cli-command-routes",
+      "status": "draft",
+      "superseded_by": null,
+      "title": "CLI Command Routes Normalize Into Trail Contracts",
+      "updated": "2026-06-13"
     }
   ],
   "version": 1
