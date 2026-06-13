@@ -5,7 +5,7 @@
 This file is generated from the live `@ontrails/warden` rule manifest. Repo-tracked skills, agents, and plugin prompts should reference this file instead of copying rule prose by hand.
 
 - Guide input command: `bun apps/trails/bin/trails.ts warden guide --agent-json`
-- Rule count: 64
+- Rule count: 65
 
 ## Agent Instructions
 
@@ -69,6 +69,7 @@ This file is generated from the live `@ontrails/warden` rule manifest. Repo-trac
 
 - `cli-command-route-coherence` (error, topo/topo-aware, external): CLI command routes and aliases resolve to one coherent trail contract. Guidance: Keep every CLI command route and alias normalized into one trail contract.
 - `surface-facet-coherence` (warn, source/source-static, external): Surface facet maps avoid selector overlap, hidden visibility widening, and drift-prone dynamic selectors. Guidance: Keep surface facet maps reviewable before they reach MCP projection.
+- `trail-fork-coaching` (warn, all/source-static, advisory): Trails avoid hiding distinct capabilities behind branching action or operation inputs. Guidance: Keep surface accommodations from hiding several capabilities behind one branching trail input.
 
 ### Permits
 

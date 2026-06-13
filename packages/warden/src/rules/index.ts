@@ -48,6 +48,7 @@ import { scheduledDestroyIntent } from './scheduled-destroy-intent.js';
 import { signalGraphCoaching } from './signal-graph-coaching.js';
 import { staticResourceAccessorPreference } from './static-resource-accessor-preference.js';
 import { surfaceFacetCoherence } from './surface-facet-coherence.js';
+import { trailForkCoaching } from './trail-fork-coaching.js';
 import {
   forkWithoutPreservedBlaze,
   markerSchemaUnsupported,
@@ -152,6 +153,7 @@ export { scheduledDestroyIntent } from './scheduled-destroy-intent.js';
 export { signalGraphCoaching } from './signal-graph-coaching.js';
 export { staticResourceAccessorPreference } from './static-resource-accessor-preference.js';
 export { surfaceFacetCoherence } from './surface-facet-coherence.js';
+export { trailForkCoaching } from './trail-fork-coaching.js';
 export {
   forkWithoutPreservedBlaze,
   markerSchemaUnsupported,
@@ -205,6 +207,7 @@ export const wardenRules: ReadonlyMap<string, WardenRule> = new Map<
   [preferSchemaInference.name, preferSchemaInference],
   [staticResourceAccessorPreference.name, staticResourceAccessorPreference],
   [surfaceFacetCoherence.name, surfaceFacetCoherence],
+  [trailForkCoaching.name, trailForkCoaching],
   [validDescribeRefs.name, validDescribeRefs],
   [noDevPermitInSource.name, noDevPermitInSource],
   [noDestructuredCompose.name, noDestructuredCompose],

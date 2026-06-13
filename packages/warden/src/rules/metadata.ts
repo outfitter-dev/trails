@@ -107,6 +107,7 @@ const concernByRuleName: Partial<Record<string, WardenRuleConcern>> = {
   'signal-graph-coaching': 'signals',
   'static-resource-accessor-preference': 'resources',
   'surface-facet-coherence': 'meta',
+  'trail-fork-coaching': 'meta',
   'unmaterialized-activation-source': 'lifecycle',
   'valid-detour-contract': 'results',
   'version-gap': 'lifecycle',
@@ -570,6 +571,29 @@ const builtinWardenRuleMetadataInput = {
     },
     invariant:
       'Surface facet maps avoid selector overlap, hidden visibility widening, and drift-prone dynamic selectors.',
+    tier: 'source-static',
+  },
+  'trail-fork-coaching': {
+    ...durableExternal,
+    guidance: {
+      docs: [
+        {
+          label: 'Surface Accommodations',
+          path: 'docs/surfaces/surface-accommodations.md',
+        },
+      ],
+      relatedRules: ['surface-facet-coherence', 'cli-command-route-coherence'],
+      steps: [
+        'Check whether each branch still shares the same intent, permits, outputs, errors, lifecycle, side effects, and selected trail identity.',
+        'Split real capability forks into distinct trails or a composing trail.',
+        'Use a facet only when one surface entry needs to group multiple trails while preserving selected member identity.',
+      ],
+      summary:
+        'Keep surface accommodations from hiding several capabilities behind one branching trail input.',
+    },
+    invariant:
+      'Trails avoid hiding distinct capabilities behind branching action or operation inputs.',
+    scope: 'advisory',
     tier: 'source-static',
   },
   'unmaterialized-activation-source': {

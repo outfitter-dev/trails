@@ -226,7 +226,7 @@ The authored API stays terse. The resolved projection carries the full command r
 
 The resolved projection is the surface truth. Commander materializes it. The graph explains it.
 
-### Conditional route recipes are deferred
+### Conditional input mappings are deferred
 
 Some command shapes are not simple aliases.
 
@@ -239,7 +239,7 @@ Both may be able to normalize into the same trail input. That idea is valid, but
 
 This is deferred because conditions such as `when: { flag: 'analysis' }` can become a miniature CLI authoring language. The release-candidate scope supports canonical overrides and aliases only.
 
-When conditional recipes return, they must satisfy the same normalization test: can this route normalize into the same trail contract without lying?
+When input mappings return, they must satisfy the same normalization test: can this shape normalize into the same trail contract without lying?
 
 If not, the alternate command must be a separate trail, usually a small composing trail.
 
@@ -274,7 +274,7 @@ This is a direct extension of "one write, many reads": the trail owns the contra
 
 ## Non-Goals
 
-- This ADR does not add conditional route recipes.
+- This ADR does not add conditional input mappings.
 - This ADR does not create a generic command DSL.
 - This ADR does not make aliases change permit, intent, output, or error
 behavior.

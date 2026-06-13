@@ -52,6 +52,7 @@ export { scheduledDestroyIntentTrail } from './scheduled-destroy-intent.trail.js
 export { signalGraphCoachingTrail } from './signal-graph-coaching.trail.js';
 export { staticResourceAccessorPreferenceTrail } from './static-resource-accessor-preference.trail.js';
 export { surfaceFacetCoherenceTrail } from './surface-facet-coherence.trail.js';
+export { trailForkCoachingTrail } from './trail-fork-coaching.trail.js';
 export { unmaterializedActivationSourceTrail } from './unmaterialized-activation-source.trail.js';
 export { unreachableDetourShadowingTrail } from './unreachable-detour-shadowing.trail.js';
 export { validDetourContractTrail } from './valid-detour-contract.trail.js';

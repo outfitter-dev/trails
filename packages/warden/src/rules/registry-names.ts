@@ -56,6 +56,7 @@ import { scheduledDestroyIntent } from './scheduled-destroy-intent.js';
 import { signalGraphCoaching } from './signal-graph-coaching.js';
 import { staticResourceAccessorPreference } from './static-resource-accessor-preference.js';
 import { surfaceFacetCoherence } from './surface-facet-coherence.js';
+import { trailForkCoaching } from './trail-fork-coaching.js';
 import {
   forkWithoutPreservedBlaze,
   markerSchemaUnsupported,
@@ -135,6 +136,7 @@ export const registeredRuleNames: readonly string[] = [
   signalGraphCoaching.name,
   staticResourceAccessorPreference.name,
   surfaceFacetCoherence.name,
+  trailForkCoaching.name,
   unmaterializedActivationSource.name,
   unreachableDetourShadowing.name,
   validDetourContract.name,

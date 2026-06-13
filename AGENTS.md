@@ -92,7 +92,7 @@ Use the project language consistently:
 This section is generated from the live `@ontrails/warden` rule manifest. Keep the human-authored guidance above as orientation; use this block as the enforceable-rule index.
 
 - Guide input command: `bun apps/trails/bin/trails.ts warden guide --manifest`
-- Rule count: 64
+- Rule count: 65
 
 ### Rule Index
 
@@ -148,6 +148,7 @@ This section is generated from the live `@ontrails/warden` rule manifest. Keep t
 
 - `cli-command-route-coherence` (error, topo/topo-aware, external): CLI command routes and aliases resolve to one coherent trail contract.
 - `surface-facet-coherence` (warn, source/source-static, external): Surface facet maps avoid selector overlap, hidden visibility widening, and drift-prone dynamic selectors.
+- `trail-fork-coaching` (warn, all/source-static, advisory): Trails avoid hiding distinct capabilities behind branching action or operation inputs.
 
 #### Permits
 
@@ -198,6 +199,7 @@ This section is generated from the live `@ontrails/warden` rule manifest. Keep t
 - `resource-mock-coverage`: Make each resource declare a test mock or an explicit unmockable reason.
 - `static-resource-accessor-preference`: Use statically scoped resource helpers when the resource definition is already available.
 - `surface-facet-coherence`: Keep surface facet maps reviewable before they reach MCP projection.
+- `trail-fork-coaching`: Keep surface accommodations from hiding several capabilities behind one branching trail input.
 
 <!-- warden-guide:end -->
 

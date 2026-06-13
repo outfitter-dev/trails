@@ -127,6 +127,10 @@ const surfaceTermAllowedMatches = [
     line: 279,
     path: 'docs/adr/drafts/20260613-cli-command-routes.md',
   },
+  {
+    line: 287,
+    path: 'docs/adr/drafts/20260613-cli-command-routes.md',
+  },
 ] as const;
 
 const reviewedRetiredTaxonomyMentionPaths = [

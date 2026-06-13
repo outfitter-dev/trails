@@ -218,6 +218,7 @@ export {
   signalGraphCoachingTrail,
   staticResourceAccessorPreferenceTrail,
   surfaceFacetCoherenceTrail,
+  trailForkCoachingTrail,
   unmaterializedActivationSourceTrail,
   topoAwareRuleInput,
   unreachableDetourShadowingTrail,
