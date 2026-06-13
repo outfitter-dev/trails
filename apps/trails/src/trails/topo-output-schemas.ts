@@ -178,6 +178,17 @@ export const trailDetailOutput = z.object({
   cli: z
     .object({
       path: z.array(z.string()).readonly(),
+      routes: z
+        .array(
+          z.object({
+            kind: z.enum(['alias', 'canonical']),
+            path: z.array(z.string()).readonly(),
+            source: z.enum(['derived', 'surface', 'trail']),
+            target: z.string(),
+          })
+        )
+        .readonly()
+        .optional(),
     })
     .nullable(),
   composedLayers: z.object({

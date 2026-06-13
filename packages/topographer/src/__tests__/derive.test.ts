@@ -165,6 +165,42 @@ describe('deriveTopoGraph', () => {
       expect(entry.resources).toEqual(['db.main']);
     });
 
+    test('trail-owned CLI projection metadata is serialized with route facts', () => {
+      const t = trail('wayfind.search', {
+        blaze: noop,
+        cli: {
+          aliases: ['find', ['wf', 'search']],
+        },
+        input: z.object({ query: z.string() }),
+        output: z.array(z.string()),
+      });
+      const entry = getFirstEntry(deriveTopoGraph(topoFrom({ t })));
+
+      expect(entry.cli).toEqual({
+        path: ['wayfind', 'search'],
+        routes: [
+          {
+            kind: 'canonical',
+            path: ['wayfind', 'search'],
+            source: 'derived',
+            target: 'wayfind.search',
+          },
+          {
+            kind: 'alias',
+            path: ['wayfind', 'find'],
+            source: 'trail',
+            target: 'wayfind.search',
+          },
+          {
+            kind: 'alias',
+            path: ['wf', 'search'],
+            source: 'trail',
+            target: 'wayfind.search',
+          },
+        ],
+      });
+    });
+
     test('trail entries include topo and trail layer attachments', () => {
       const topoLayer = passThroughLayer(
         'topo.auth',

@@ -6,6 +6,16 @@ const renderPath = (path: readonly string[]): string => path.join(' ');
 
 const keyPath = (path: readonly string[]): string => path.join('\0');
 
+const commandRoutes = (command: CliCommand) =>
+  command.routes ?? [
+    {
+      kind: 'canonical' as const,
+      path: command.path,
+      source: 'derived' as const,
+      target: command.trail.id,
+    },
+  ];
+
 const toOptionKey = (name: string): string =>
   name.replaceAll(/-([a-zA-Z0-9])/g, (_, ch: string) => ch.toUpperCase());
 
@@ -15,15 +25,23 @@ interface SeenOptionNames {
 }
 
 const validateCommandPath = (command: CliCommand): void => {
-  if (command.path.length === 0) {
-    throw new ValidationError('CLI command path cannot be empty');
-  }
+  for (const route of commandRoutes(command)) {
+    if (route.path.length === 0) {
+      throw new ValidationError('CLI command path cannot be empty');
+    }
 
-  for (const segment of command.path) {
-    if (segment.trim().length === 0) {
+    if (route.target !== command.trail.id) {
       throw new ValidationError(
-        'CLI command path cannot contain empty segments'
+        `CLI command route ${renderPath(route.path)} targets "${route.target}" but command belongs to "${command.trail.id}"`
       );
+    }
+
+    for (const segment of route.path) {
+      if (segment.trim().length === 0) {
+        throw new ValidationError(
+          'CLI command path cannot contain empty segments'
+        );
+      }
     }
   }
 };
@@ -32,13 +50,15 @@ const validateUniquePaths = (commands: readonly CliCommand[]): void => {
   const seen = new Set<string>();
 
   for (const command of commands) {
-    const key = keyPath(command.path);
-    if (seen.has(key)) {
-      throw new ValidationError(
-        `Duplicate CLI path: ${renderPath(command.path)}`
-      );
+    for (const route of commandRoutes(command)) {
+      const key = keyPath(route.path);
+      if (seen.has(key)) {
+        throw new ValidationError(
+          `Duplicate CLI path: ${renderPath(route.path)}`
+        );
+      }
+      seen.add(key);
     }
-    seen.add(key);
   }
 };
 

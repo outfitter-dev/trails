@@ -7,6 +7,7 @@ import {
   deriveCliPath,
   deriveStructuredSignalExamples,
   deriveStructuredTrailExamples,
+  deriveTrailCliCommandProjection,
   getContourReferences,
   projectActivationSourceDeclaration,
   signalDiagnosticDefinitions,
@@ -1055,7 +1056,7 @@ const buildTrailEntryBase = (
 } => {
   const raw = trail as unknown as Record<string, unknown>;
   const entry: Record<string, unknown> = {
-    cli: { path: deriveCliPath(trail.id) },
+    cli: deriveTrailCliCommandProjection(trail),
     exampleCount: trail.examples?.length ?? 0,
     id: trail.id,
     input: trailSchema.input,

@@ -9,6 +9,7 @@
 import type {
   Layer,
   Result,
+  CliCommandRoute,
   SurfaceTrailVersionProjection,
   Trail,
   TrailContext,
@@ -69,6 +70,7 @@ export interface CliArg {
 /** A framework-agnostic representation of a CLI command. */
 export interface CliCommand {
   readonly path: readonly string[];
+  readonly routes?: readonly CliCommandRoute[] | undefined;
   readonly description?: string | undefined;
   readonly flags: CliFlag[];
   readonly args: CliArg[];

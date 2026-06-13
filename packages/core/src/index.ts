@@ -441,8 +441,24 @@ export type {
 } from './layer-projection.js';
 
 // Derive
-export { deriveCliPath, deriveFields } from './derive.js';
-export type { Field, FieldOverride } from './derive.js';
+export {
+  deriveCliPath,
+  deriveFields,
+  deriveTrailCliCommandProjection,
+  normalizeCliCommandPath,
+} from './derive.js';
+export type {
+  CliCommandAliasInput,
+  CliCommandPathInput,
+  CliCommandRoute,
+  CliCommandRouteKind,
+  CliCommandRouteSource,
+  DeriveTrailCliCommandProjectionOptions,
+  Field,
+  FieldOverride,
+  TrailCliCommandProjection,
+  TrailCliProjection,
+} from './derive.js';
 
 // Compose schema
 export { buildComposeValidationSchema } from './compose-schema.js';

@@ -51,6 +51,57 @@ export interface FieldOverride {
 }
 
 // ---------------------------------------------------------------------------
+// CLI command route projection
+// ---------------------------------------------------------------------------
+
+/** Authored CLI command path shape. Strings are split on whitespace. */
+export type CliCommandPathInput = string | readonly string[];
+
+/**
+ * Authored CLI command alias shape.
+ *
+ * String aliases are sibling leaf aliases. Array aliases are absolute command
+ * paths.
+ */
+export type CliCommandAliasInput = string | readonly string[];
+
+/** Source that produced a resolved CLI command route. */
+export type CliCommandRouteSource = 'derived' | 'trail' | 'surface';
+
+/** Whether a resolved CLI command route is canonical or an alias. */
+export type CliCommandRouteKind = 'alias' | 'canonical';
+
+/** Trail-authored CLI projection metadata. */
+export interface TrailCliProjection {
+  readonly aliases?: readonly CliCommandAliasInput[] | undefined;
+  readonly path?: CliCommandPathInput | undefined;
+}
+
+/** A resolved command path accepted by a CLI surface for one trail. */
+export interface CliCommandRoute {
+  readonly kind: CliCommandRouteKind;
+  readonly path: readonly string[];
+  readonly source: CliCommandRouteSource;
+  readonly target: string;
+}
+
+/** Resolved CLI projection for one trail. */
+export interface TrailCliCommandProjection {
+  readonly path: readonly string[];
+  readonly routes: readonly CliCommandRoute[];
+}
+
+interface TrailCliProjectionInput {
+  readonly cli?: CliCommandPathInput | TrailCliProjection | undefined;
+  readonly id: string;
+}
+
+export interface DeriveTrailCliCommandProjectionOptions {
+  readonly aliases?: readonly CliCommandAliasInput[] | undefined;
+  readonly aliasSource?: Extract<CliCommandRouteSource, 'surface' | 'trail'>;
+}
+
+// ---------------------------------------------------------------------------
 // Zod v4 internals accessor
 // ---------------------------------------------------------------------------
 
@@ -212,6 +263,149 @@ export const deriveCliPath = (trailId: string): string[] => {
     );
   }
   return segments;
+};
+
+const hasWhitespace = (value: string): boolean => /\s/.test(value);
+
+const validateCliSegment = (segment: string, context: string): string => {
+  const normalized = segment.trim();
+  if (normalized.length === 0) {
+    throw new ValidationError(`${context} cannot contain empty segments`);
+  }
+  if (hasWhitespace(normalized)) {
+    throw new ValidationError(
+      `${context} segment "${segment}" cannot contain whitespace`
+    );
+  }
+  return normalized;
+};
+
+const splitCliPathString = (value: string, context: string): string[] => {
+  const segments = value
+    .trim()
+    .split(/\s+/)
+    .filter((segment) => segment.length > 0);
+  if (segments.length === 0) {
+    throw new ValidationError(`${context} cannot be empty`);
+  }
+  return segments.map((segment) => validateCliSegment(segment, context));
+};
+
+/** Normalize an authored CLI command path. */
+export const normalizeCliCommandPath = (
+  value: CliCommandPathInput,
+  context = 'CLI command path'
+): readonly string[] =>
+  typeof value === 'string'
+    ? splitCliPathString(value, context)
+    : value.map((segment) => validateCliSegment(segment, context));
+
+const isTrailCliProjection = (
+  value: CliCommandPathInput | TrailCliProjection
+): value is TrailCliProjection =>
+  typeof value !== 'string' &&
+  !Array.isArray(value) &&
+  value !== null &&
+  typeof value === 'object';
+
+const trailCliProjectionFor = (
+  trail: TrailCliProjectionInput
+): TrailCliProjection | undefined => {
+  if (trail.cli === undefined) {
+    return undefined;
+  }
+  return isTrailCliProjection(trail.cli) ? trail.cli : { path: trail.cli };
+};
+
+const deriveCanonicalCliRoute = (
+  trail: TrailCliProjectionInput
+): CliCommandRoute => {
+  const projection = trailCliProjectionFor(trail);
+  const path =
+    projection?.path === undefined
+      ? deriveCliPath(trail.id)
+      : normalizeCliCommandPath(
+          projection.path,
+          `CLI command path for trail "${trail.id}"`
+        );
+  return {
+    kind: 'canonical',
+    path,
+    source: projection?.path === undefined ? 'derived' : 'trail',
+    target: trail.id,
+  };
+};
+
+const normalizeCliAlias = ({
+  alias,
+  canonicalPath,
+  source,
+  target,
+}: {
+  readonly alias: CliCommandAliasInput;
+  readonly canonicalPath: readonly string[];
+  readonly source: Extract<CliCommandRouteSource, 'surface' | 'trail'>;
+  readonly target: string;
+}): CliCommandRoute => {
+  const context = `CLI command alias for trail "${target}"`;
+  if (typeof alias === 'string') {
+    const segment = alias.trim();
+    if (segment.length === 0) {
+      throw new ValidationError(`${context} cannot be empty`);
+    }
+    if (hasWhitespace(segment)) {
+      throw new ValidationError(
+        `${context} must be a single command segment; use a string array for absolute paths`
+      );
+    }
+    return {
+      kind: 'alias',
+      path: [
+        ...canonicalPath.slice(0, -1),
+        validateCliSegment(segment, context),
+      ],
+      source,
+      target,
+    };
+  }
+  return {
+    kind: 'alias',
+    path: normalizeCliCommandPath(alias, context),
+    source,
+    target,
+  };
+};
+
+/** Derive resolved CLI command routes for one trail. */
+export const deriveTrailCliCommandProjection = (
+  trail: TrailCliProjectionInput,
+  options?: DeriveTrailCliCommandProjectionOptions
+): TrailCliCommandProjection => {
+  const canonical = deriveCanonicalCliRoute(trail);
+  const projection = trailCliProjectionFor(trail);
+  const trailAliases =
+    projection?.aliases?.map((alias) =>
+      normalizeCliAlias({
+        alias,
+        canonicalPath: canonical.path,
+        source: 'trail',
+        target: trail.id,
+      })
+    ) ?? [];
+  const surfaceAliases =
+    options?.aliases?.map((alias) =>
+      normalizeCliAlias({
+        alias,
+        canonicalPath: canonical.path,
+        source: options.aliasSource ?? 'surface',
+        target: trail.id,
+      })
+    ) ?? [];
+
+  return {
+    path: canonical.path,
+    routes: [canonical, ...trailAliases, ...surfaceAliases],
+  };
 };
 
 // ---------------------------------------------------------------------------

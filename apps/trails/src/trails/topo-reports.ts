@@ -1,6 +1,6 @@
 import {
   DETOUR_MAX_ATTEMPTS_CAP,
-  deriveCliPath,
+  deriveTrailCliCommandProjection,
   filterSurfaceTrails,
   isArchivedTrailVersionEntry,
   zodToJsonSchema,
@@ -176,6 +176,7 @@ export interface TrailDetailReport {
   readonly activationSources: readonly ActivationSourceReport[];
   readonly cli: {
     readonly path: readonly string[];
+    readonly routes?: NonNullable<TopoGraphEntry['cli']>['routes'];
   } | null;
   /**
    * Composed layer names visible at the survey boundary.
@@ -560,7 +561,8 @@ export const deriveShippedSurfaceProjectionsForTrail = (
     trail.id,
     'trail'
   );
-  const commandPath = deriveCliPath(trail.id);
+  const commandPath =
+    entry?.cli?.path ?? deriveTrailCliCommandProjection(trail).path;
   const httpMethod = deriveHttpMethod(trail.intent);
   const httpPath = deriveHttpPath(trail.id);
   const mcpToolName = deriveToolName(app.name, trail.id);

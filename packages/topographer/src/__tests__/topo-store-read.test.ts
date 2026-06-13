@@ -649,42 +649,53 @@ describe('read-only topo store', () => {
     const processDetail = store.trails.get('entity.process', {
       snapshot: { snapshotId: snapshot.id },
     });
-    expect(processDetail).toEqual(
-      expect.objectContaining({
-        activationContext: expect.objectContaining({
-          edgeCount: 1,
-          sourceCount: 1,
-          sourceKeys: ['schedule:schedule.entity.audit'],
-          trailIds: ['entity.process'],
-        }),
-        activationEdges: [
+    if (!processDetail) {
+      throw new Error('Expected entity.process detail to exist');
+    }
+    expect(processDetail).toMatchObject({
+      activationContext: {
+        edgeCount: 1,
+        sourceCount: 1,
+        sourceKeys: ['schedule:schedule.entity.audit'],
+        trailIds: ['entity.process'],
+      },
+      activationEdges: [
+        {
+          hasWhere: false,
+          sourceId: 'schedule.entity.audit',
+          sourceKey: 'schedule:schedule.entity.audit',
+          sourceKind: 'schedule',
+          trailId: 'entity.process',
+        },
+      ],
+      activationSources: processEntry?.activationSources,
+      cli: {
+        path: ['entity', 'process'],
+        routes: [
           {
-            hasWhere: false,
-            sourceId: 'schedule.entity.audit',
-            sourceKey: 'schedule:schedule.entity.audit',
-            sourceKind: 'schedule',
-            trailId: 'entity.process',
+            kind: 'canonical',
+            path: ['entity', 'process'],
+            source: 'derived',
+            target: 'entity.process',
           },
         ],
-        activationSources: processEntry?.activationSources,
-        cli: { path: ['entity', 'process'] },
-        contours: ['entity'],
-        fieldOverrides: processEntry?.fieldOverrides,
-        governance: null,
-        input: processEntry?.input,
-        layers: processEntry?.layers,
-        output: expect.objectContaining({ type: 'object' }),
-        surfaceProjections: [
-          {
-            derivedName: 'entity process',
-            method: null,
-            surface: 'cli',
-            trailId: 'entity.process',
-          },
-        ],
-        surfaces: [],
-      })
-    );
+      },
+      contours: ['entity'],
+      fieldOverrides: processEntry?.fieldOverrides,
+      governance: null,
+      input: processEntry?.input,
+      layers: processEntry?.layers,
+      output: { type: 'object' },
+      surfaceProjections: [
+        {
+          derivedName: 'entity process',
+          method: null,
+          surface: 'cli',
+          trailId: 'entity.process',
+        },
+      ],
+      surfaces: [],
+    });
     expect(processDetail?.contourDetails).toEqual([
       expect.objectContaining({
         id: 'entity',

@@ -5,9 +5,9 @@
 import {
   DETOUR_MAX_ATTEMPTS_CAP,
   activationSourceKey,
-  deriveCliPath,
   deriveStructuredSignalExamples,
   deriveStructuredTrailExamples,
+  deriveTrailCliCommandProjection,
   getContourReferences,
   projectActivationSourceDeclaration,
   validateEstablishedTopo,
@@ -499,7 +499,7 @@ const trailToEntry = (
   const raw = t as unknown as Record<string, unknown>;
   const surfaces = extractSurfaces(raw);
   const entry: Record<string, unknown> = {
-    cli: { path: deriveCliPath(t.id) },
+    cli: deriveTrailCliCommandProjection(t),
     exampleCount: Array.isArray(t.examples) ? t.examples.length : 0,
     id: t.id,
     kind: t.kind,

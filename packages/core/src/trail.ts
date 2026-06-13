@@ -12,7 +12,11 @@ import {
   isActivationSource,
 } from './activation-source.js';
 import type { AnyContour } from './contour.js';
-import type { FieldOverride } from './derive.js';
+import type {
+  FieldOverride,
+  CliCommandPathInput,
+  TrailCliProjection,
+} from './derive.js';
 import type { Layer } from './layer.js';
 import type { Result } from './result.js';
 import type { AnyResource } from './resource.js';
@@ -413,6 +417,8 @@ export interface TrailSpec<
   readonly layers?: readonly Layer[] | undefined;
   /** Per-field overrides for deriveFields() (labels, hints, options) */
   readonly fields?: Readonly<Record<string, FieldOverride>> | undefined;
+  /** CLI projection metadata for canonical command path overrides and aliases. */
+  readonly cli?: CliCommandPathInput | TrailCliProjection | undefined;
   /** Contours this trail operates on. */
   readonly contours?: readonly AnyContour[] | undefined;
   /** IDs or trail objects of downstream trails this trail may invoke via ctx.compose() */

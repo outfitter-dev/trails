@@ -5,6 +5,7 @@
 import type {
   BasePermit,
   BaseSurfaceOptions,
+  CliCommandAliasInput,
   Field,
   Layer,
   LayerInputSchema,
@@ -19,9 +20,9 @@ import {
   ValidationError,
   basePermitSchema,
   collectAttachedTypedLayers as collectTypedLayers,
-  deriveCliPath,
   deriveFields,
   deriveSurfaceTrailVersionProjections,
+  deriveTrailCliCommandProjection,
   executeTrail,
   filterSurfaceTrails,
   LAYER_FIELD_RESERVED_NAMES,
@@ -92,6 +93,9 @@ export type ResolveCliPermitFromToken = (
 
 /** Options for CLI command projection. */
 export interface DeriveCliCommandsOptions extends BaseSurfaceOptions {
+  aliases?:
+    | Readonly<Record<string, readonly CliCommandAliasInput[]>>
+    | undefined;
   createContext?:
     | (() => TrailContextInit | Promise<TrailContextInit>)
     | undefined;
@@ -134,7 +138,24 @@ const mergeStructuredInputFlags = (derived: CliFlag[]): CliFlag[] => {
 const validateCliCommandBuild = (
   graph: Topo,
   options?: DeriveCliCommandsOptions
-): Result<void, Error> => validateSurfaceTopo(graph, options);
+): Result<void, Error> => {
+  const surfaceValidation = validateSurfaceTopo(graph, options);
+  if (surfaceValidation.isErr()) {
+    return surfaceValidation;
+  }
+
+  for (const trailId of Object.keys(options?.aliases ?? {})) {
+    if (!graph.trails.has(trailId)) {
+      return Result.err(
+        new ValidationError(
+          `CLI command aliases target unknown trail "${trailId}". Surface-owned aliases must target existing trail IDs.`
+        )
+      );
+    }
+  }
+
+  return Result.ok();
+};
 
 // ---------------------------------------------------------------------------
 // deriveCliCommands
@@ -1190,6 +1211,10 @@ const toCliCommand = (
   const dateFields = detectDateFields(t.input);
   const dateFieldKinds = detectDateFieldKinds(t.input);
   const versions = deriveSurfaceTrailVersionProjections(t);
+  const cliProjection = deriveTrailCliCommandProjection(t, {
+    aliasSource: 'surface',
+    aliases: options?.aliases?.[t.id],
+  });
 
   return {
     args,
@@ -1209,7 +1234,8 @@ const toCliCommand = (
     idempotent: t.idempotent,
     intent: t.intent,
     layers: options?.layers,
-    path: deriveCliPath(t.id),
+    path: cliProjection.path,
+    routes: cliProjection.routes,
     trail: t,
     ...(versions === undefined ? {} : { versions }),
   };

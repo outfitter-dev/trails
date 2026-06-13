@@ -3,6 +3,7 @@
  */
 
 import type {
+  CliCommandRoute,
   StructuredSignalExample,
   StructuredTrailExample,
   TrailVersionStatus,
@@ -158,6 +159,7 @@ export interface TopoGraphEntry {
   readonly cli?:
     | {
         readonly path: readonly string[];
+        readonly routes?: readonly CliCommandRoute[] | undefined;
       }
     | undefined;
   readonly input?: JsonSchema | undefined;

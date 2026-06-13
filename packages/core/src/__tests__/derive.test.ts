@@ -2,7 +2,12 @@ import { describe, test, expect } from 'bun:test';
 
 import { z } from 'zod';
 
-import { deriveCliPath, deriveFields } from '../derive.js';
+import {
+  deriveCliPath,
+  deriveFields,
+  deriveTrailCliCommandProjection,
+  normalizeCliCommandPath,
+} from '../derive.js';
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -38,6 +43,81 @@ describe('derive', () => {
       expect(() => deriveCliPath('pin.')).toThrow(
         'Trail ID "pin." contains an empty segment'
       );
+    });
+  });
+
+  describe('CLI command route projection', () => {
+    test('normalizes authored canonical command paths', () => {
+      expect(normalizeCliCommandPath('wayfind search')).toEqual([
+        'wayfind',
+        'search',
+      ]);
+      expect(normalizeCliCommandPath(['wf', 'search'])).toEqual([
+        'wf',
+        'search',
+      ]);
+    });
+
+    test('derives canonical and alias routes from trail CLI metadata', () => {
+      const projection = deriveTrailCliCommandProjection({
+        cli: {
+          aliases: ['find', ['wf', 'search']],
+        },
+        id: 'wayfind.search',
+      });
+
+      expect(projection.path).toEqual(['wayfind', 'search']);
+      expect(projection.routes).toEqual([
+        {
+          kind: 'canonical',
+          path: ['wayfind', 'search'],
+          source: 'derived',
+          target: 'wayfind.search',
+        },
+        {
+          kind: 'alias',
+          path: ['wayfind', 'find'],
+          source: 'trail',
+          target: 'wayfind.search',
+        },
+        {
+          kind: 'alias',
+          path: ['wf', 'search'],
+          source: 'trail',
+          target: 'wayfind.search',
+        },
+      ]);
+    });
+
+    test('rejects multi-segment string aliases', () => {
+      expect(() =>
+        deriveTrailCliCommandProjection({
+          cli: {
+            aliases: ['wayfind find'],
+          },
+          id: 'wayfind.search',
+        })
+      ).toThrow(
+        'CLI command alias for trail "wayfind.search" must be a single command segment'
+      );
+    });
+
+    test('records surface-owned aliases separately from trail-owned aliases', () => {
+      const projection = deriveTrailCliCommandProjection(
+        {
+          cli: {
+            aliases: ['find'],
+          },
+          id: 'wayfind.search',
+        },
+        { aliases: [['wf', 'search']] }
+      );
+
+      expect(projection.routes.map((route) => route.source)).toEqual([
+        'derived',
+        'trail',
+        'surface',
+      ]);
     });
   });
 

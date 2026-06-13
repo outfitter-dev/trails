@@ -116,6 +116,84 @@ describe('buildCommands path derivation', () => {
     expect(commands[0]?.path).toEqual(['topo', 'pin', 'remove']);
   });
 
+  test('uses trail-owned CLI canonical path overrides', () => {
+    const search = trail('wayfind.search', {
+      blaze: () => Result.ok([]),
+      cli: 'find',
+      input: z.object({ query: z.string() }),
+    });
+    const app = makeApp(search);
+    const commands = buildCommands(app);
+
+    expect(commands[0]?.path).toEqual(['find']);
+    expect(commands[0]?.routes).toEqual([
+      {
+        kind: 'canonical',
+        path: ['find'],
+        source: 'trail',
+        target: 'wayfind.search',
+      },
+    ]);
+  });
+
+  test('projects trail-owned and surface-owned CLI aliases as routes', () => {
+    const search = trail('wayfind.search', {
+      blaze: () => Result.ok([]),
+      cli: {
+        aliases: ['find'],
+      },
+      input: z.object({ query: z.string() }),
+    });
+    const app = makeApp(search);
+    const commands = buildCommands(app, {
+      aliases: {
+        'wayfind.search': [['wf', 'search']],
+      },
+    });
+
+    expect(commands[0]?.path).toEqual(['wayfind', 'search']);
+    expect(commands[0]?.routes).toEqual([
+      {
+        kind: 'canonical',
+        path: ['wayfind', 'search'],
+        source: 'derived',
+        target: 'wayfind.search',
+      },
+      {
+        kind: 'alias',
+        path: ['wayfind', 'find'],
+        source: 'trail',
+        target: 'wayfind.search',
+      },
+      {
+        kind: 'alias',
+        path: ['wf', 'search'],
+        source: 'surface',
+        target: 'wayfind.search',
+      },
+    ]);
+  });
+
+  test('rejects surface-owned aliases for unknown trail ids', () => {
+    const search = trail('wayfind.search', {
+      blaze: () => Result.ok([]),
+      input: z.object({ query: z.string() }),
+    });
+    const result = deriveCliCommands(makeApp(search), {
+      aliases: {
+        'wayfind.serch': [['wf', 'search']],
+      },
+    });
+
+    expect(result.isErr()).toBe(true);
+    if (result.isErr()) {
+      expect(result.error).toBeInstanceOf(ValidationError);
+      expect(result.error.message).toContain(
+        'CLI command aliases target unknown trail "wayfind.serch"'
+      );
+    }
+  });
+
   test('derives flags from input schema', () => {
     const t = trail('search', {
       blaze: () => Result.ok([]),
