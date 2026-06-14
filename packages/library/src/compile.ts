@@ -245,7 +245,7 @@ const resultStatelessFunction = (entry: LibraryExport): string =>
     ]),
     `export const ${entry.exportName} = (`,
     '  input: unknown',
-    '): Promise<Result<unknown, Error>> =>',
+    '): Promise<Result<unknown, LibraryError>> =>',
     `  resultClient.result.${entry.exportName}(input);`,
   ].join('\n');
 
@@ -258,7 +258,7 @@ const resultFactoryMethod = (entry: LibraryExport): string =>
       ],
       '    '
     ),
-    `    ${entry.exportName}: (input: unknown): Promise<Result<unknown, Error>> =>`,
+    `    ${entry.exportName}: (input: unknown): Promise<Result<unknown, LibraryError>> =>`,
     `      client.result.${entry.exportName}(input),`,
   ].join('\n');
 
@@ -271,8 +271,8 @@ const generateResult = (
   const resourceful = resourceExports(projection);
   const parts = [
     '// No-throw API: returns the Result envelope instead of unwrapping.',
-    "import { kernelRun, surface } from '@ontrails/library';",
-    "import type { Result, SurfaceLibraryOptions } from '@ontrails/library';",
+    "import { runLibraryResult, surface } from '@ontrails/library';",
+    "import type { LibraryError, Result, SurfaceLibraryOptions } from '@ontrails/library';",
     '',
     `import { ${appExport} } from '${options.appImportPath}';`,
     '',
@@ -303,7 +303,7 @@ const generateResult = (
     '  id: string,',
     '  input: unknown,',
     '  options: SurfaceLibraryOptions = {}',
-    `) => kernelRun(${appExport}, id, input, options);`,
+    `) => runLibraryResult(${appExport}, id, input, options);`,
     ''
   );
 

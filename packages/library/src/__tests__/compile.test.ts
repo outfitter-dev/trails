@@ -89,19 +89,23 @@ describe('compile', () => {
   test('result subpath mirrors exports as no-throw methods', () => {
     const result = fileContent(compile(fixtureApp, options), 'src/result.ts');
     expect(result).toContain(
-      "import { kernelRun, surface } from '@ontrails/library';"
+      "import { runLibraryResult, surface } from '@ontrails/library';"
     );
-    expect(result).toContain('import type { Result, SurfaceLibraryOptions }');
+    expect(result).toContain(
+      'import type { LibraryError, Result, SurfaceLibraryOptions }'
+    );
     expect(result).toContain('const resultClient = await surface(fixtureApp);');
     expect(result).toContain('export const widgetPing = (');
     expect(result).toContain(
       'Returns the raw Result boundary for trail `widget.ping`.'
     );
-    expect(result).toContain('): Promise<Result<unknown, Error>> =>');
+    expect(result).toContain('): Promise<Result<unknown, LibraryError>> =>');
     expect(result).toContain('resultClient.result.widgetPing(input);');
     expect(result).toContain('export const createLibraryFixture = async (');
     expect(result).toContain('client.result.widgetGet(input)');
-    expect(result).toContain(') => kernelRun(fixtureApp, id, input, options);');
+    expect(result).toContain(
+      ') => runLibraryResult(fixtureApp, id, input, options);'
+    );
   });
 
   test('schemas subpath fails loudly if projection drifts', () => {

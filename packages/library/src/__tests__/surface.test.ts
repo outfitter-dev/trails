@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
+import { LibraryError, LibraryNotFoundError } from '../errors.js';
 import { surface } from '../surface.js';
 import type {
   LibraryClient,
@@ -70,6 +71,9 @@ describe('library surface', () => {
     await expect(
       requireMethod(lib, 'widgetGet')({ id: 'missing' })
     ).rejects.toThrow('not found');
+    await expect(
+      requireMethod(lib, 'widgetGet')({ id: 'missing' })
+    ).rejects.toBeInstanceOf(LibraryNotFoundError);
   });
 
   test('exposes a no-throw result lane', async () => {
@@ -81,7 +85,8 @@ describe('library surface', () => {
 
     const err = await requireResultMethod(lib, 'widgetGet')({ id: 'missing' });
     expect(err.isErr()).toBe(true);
-    expect(err.error.name).toBe('NotFoundError');
+    expect(err.error.name).toBe('LibraryNotFoundError');
+    expect(err.error.originalName).toBe('NotFoundError');
   });
 
   test('domain-negative output is a returned value, not a throw', async () => {
@@ -129,7 +134,8 @@ describe('library surface parity with authored examples', () => {
           } catch (error) {
             thrown = error;
           }
-          expect((thrown as Error | undefined)?.name).toBe(example.error);
+          expect(thrown).toBeInstanceOf(LibraryError);
+          expect((thrown as LibraryError).originalName).toBe(example.error);
           assertionsRun += 1;
           continue;
         }

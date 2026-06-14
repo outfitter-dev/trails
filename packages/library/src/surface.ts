@@ -9,11 +9,12 @@
  * stays a vendoring step. Root-call behavior: unwrap `Result.ok` to a return
  * value, throw on `Result.err`. The held client also exposes a no-throw
  * `result` lane with the same export names so downstream package emission can
- * later map that lane to the generated `/result` subpath. Package-facing
- * error-class mapping stays in the error lane — TRL-966.
+ * map that lane to the generated `/result` subpath.
  */
 import { deriveLibraryApi } from './derive.js';
 import type { DeriveLibraryApiOptions, LibraryProjection } from './derive.js';
+import { toLibraryError } from './errors.js';
+import type { LibraryError } from './errors.js';
 import { kernelRun } from './kernel.js';
 import type { KernelRunOptions, Result, Topo } from './kernel.js';
 
@@ -30,7 +31,7 @@ export type LibraryMethod = (input: unknown) => Promise<unknown>;
 /** A no-throw library method: validated input in, raw Result boundary out. */
 export type LibraryResultMethod = (
   input: unknown
-) => Promise<Result<unknown, Error>>;
+) => Promise<Result<unknown, LibraryError>>;
 
 /** The held in-memory client: one method per projected export, plus the projection. */
 export interface LibraryClient {
@@ -41,6 +42,16 @@ export interface LibraryClient {
   /** The resolved projection this client was built from (introspection). */
   readonly projection: LibraryProjection;
 }
+
+export const runLibraryResult = async (
+  graph: Topo,
+  id: string,
+  input: unknown,
+  options: KernelRunOptions = {}
+): Promise<Result<unknown, LibraryError>> => {
+  const outcome = await kernelRun(graph, id, input, options);
+  return outcome.mapErr(toLibraryError);
+};
 
 /**
  * Materialize a topo as an in-memory library client. Each projected export
@@ -68,7 +79,7 @@ export const surface = async (
 
   for (const entry of projection.exports) {
     const runExport: LibraryResultMethod = (input: unknown) =>
-      kernelRun(graph, entry.trailId, input, runOptions);
+      runLibraryResult(graph, entry.trailId, input, runOptions);
     result[entry.exportName] = runExport;
 
     call[entry.exportName] = async (input: unknown): Promise<unknown> => {

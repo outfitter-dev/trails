@@ -23,6 +23,22 @@ export type {
   LibraryExportSource,
   LibraryProjection,
 } from './derive.js';
+export {
+  LibraryAuthError,
+  LibraryCancelledError,
+  LibraryConflictError,
+  LibraryError,
+  LibraryInternalError,
+  LibraryNetworkError,
+  LibraryNotFoundError,
+  LibraryPermissionError,
+  LibraryRateLimitError,
+  LibraryShiftError,
+  LibraryTimeoutError,
+  LibraryValidationError,
+  toLibraryError,
+} from './errors.js';
+export type { LibraryErrorOptions } from './errors.js';
 export { kernelRun } from './kernel.js';
 export type {
   KernelRunOptions,
@@ -30,7 +46,7 @@ export type {
   Topo,
   TrailContextInit,
 } from './kernel.js';
-export { surface } from './surface.js';
+export { runLibraryResult, surface } from './surface.js';
 export type {
   LibraryClient,
   LibraryMethod,
