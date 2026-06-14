@@ -11,6 +11,8 @@
  * "Library surface & compiler"). This scaffold establishes the package and the
  * runtime-kernel seam; see `./kernel` and the Library Surface and Compiler ADR.
  */
+export { compile } from './compile.js';
+export type { CompiledFile, CompileOptions, CompileResult } from './compile.js';
 export { deriveLibraryApi } from './derive.js';
 export type {
   DeriveLibraryApiOptions,
