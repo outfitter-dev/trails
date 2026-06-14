@@ -27,6 +27,7 @@
     "scaffold-versions:sync": "bun scripts/sync-scaffold-versions.ts",
     "scaffold-versions:check": "bun scripts/sync-scaffold-versions.ts --check",
     "library:smoke": "bun test packages/library/src/__tests__/compile-smoke.test.ts",
+    "library:dogfood:warden": "bun test packages/library/src/__tests__/warden-dogfood.test.ts",
     "scratch:import-to-notion": "bun scripts/import-scratch-to-notion.ts",
     "scratch:manifest": "bun scripts/scratch-inventory/build-manifest.ts",
     "wayfinder:dogfood": "bun apps/trails/bin/trails.ts release smoke --check wayfinder-dogfood",
