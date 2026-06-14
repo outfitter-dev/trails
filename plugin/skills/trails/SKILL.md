@@ -156,7 +156,16 @@ await surface(graph);
 
 Use `cli` on a trail only for canonical command overrides or trail-owned aliases that still normalize into the same trail contract. String aliases are sibling leaf aliases (`find` beside `search`); string-array aliases are absolute command paths (`['wf', 'search']`). App-owned compatibility aliases belong in CLI surface options and should also be exported from the app module as `cliAliases` or `trailsCliAliases` so compile, validate, Wayfinder, and `trails schema` inspect the same routes the runtime CLI accepts.
 
-Treat aliases, future input mappings, and surface facets as **surface accommodations**: projection-level fit adjustments, not alternate behavior. The trail stays the capability. A surface entry is the invocable affordance on a surface; an approach is the way a caller reaches it. Aliases add alternate approaches to the same trail, input mappings normalize surface-shaped input into the same trail input, and surface facets group several trails into one entry while preserving the selected trail ID. If the fit would change intent, permits, errors, outputs, lifecycle, side effects, or hide which trail is running, call it a trail fork and author a distinct or composing trail instead.
+Treat aliases, future input mappings, and surface facets as **surface accommodations**: projection-level fit adjustments, not alternate behavior. The trail stays the capability. A surface entry is the invocable affordance on a surface; an approach is the way a caller reaches it. Aliases add alternate approaches to the same trail, input mappings normalize surface-shaped input into the same trail input, and surface facets group several trails into one entry while preserving the selected trail ID. Use the ADR-0050 test: if the fit would change intent, permits, errors, outputs, lifecycle, side effects, or hide which trail is running, call it a trail fork and author a distinct or composing trail instead.
+
+Classify surface-fit work before editing:
+
+| Shape | Classification |
+| --- | --- |
+| One trail, another path, no input reshape | Alias |
+| One trail, surface-shaped input that normalizes honestly | Input mapping |
+| Many trails, one grouped entry, member trail identity preserved | Surface facet |
+| Different intent, permits, errors, outputs, lifecycle, side effects, or hidden member identity | Distinct trail or composing trail |
 
 **MCP**: Tool names from trail IDs, JSON Schema from Zod, annotations from intent, idempotency, and description.
 
@@ -165,7 +174,7 @@ import { surface } from '@ontrails/mcp';
 await surface(graph);
 ```
 
-Dense MCP surfaces may use **surface facets** to group related trails into fewer agent-facing tools. A surface facet is surface-side projection configuration, not a core `Facet` primitive and not a new domain operation. Author it in MCP surface options, call it with `{ trail, input }`, and expect successful results as `{ trail, output }` so the underlying trail stays visible.
+Dense MCP surfaces may use **surface facets** to group related trails into fewer agent-facing tools. A surface facet is surface-side projection configuration, not a core `Facet` primitive and not a new domain operation. It groups and selects without merging. Author it in MCP surface options, call it with `{ trail, input }`, and expect successful results as `{ trail, output }` so the underlying trail stays visible.
 
 ```typescript
 await surface(graph, {

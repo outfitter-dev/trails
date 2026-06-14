@@ -12,7 +12,7 @@ The same facet declaration may remain the conceptual source for future parity, b
 - HTTP parity should be evaluated as route-group projection or explicitly rejected as a non-fit.
 - Per-surface overrides are allowed only when the surface economics differ in a way the shared declaration cannot express honestly.
 
-Use the surface-accommodation vocabulary when evaluating parity. Facets live on the entry axis: one grouped surface entry over multiple trails. CLI aliases and future input mappings live on the approach axis: multiple ways to reach one trail. Do not use facets to solve a problem that is really an alternate approach to one trail, and do not use aliases to hide a grouped affordance.
+Use the surface-accommodation vocabulary from [ADR-0050](../adr/0050-surface-accommodations-preserve-trail-identity.md) when evaluating parity. Facets live on the entry axis: one grouped surface entry over multiple trails. CLI aliases and future input mappings live on the approach axis: multiple ways to reach one trail. Do not use facets to solve a problem that is really an alternate approach to one trail, and do not use aliases to hide a grouped affordance.
 
 ## CLI Evaluation
 

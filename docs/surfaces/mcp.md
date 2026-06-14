@@ -70,13 +70,13 @@ Trail examples are exposed as structured tool metadata under `_meta["ontrails/ex
 
 ## Surface Facets
 
-Dense MCP surfaces can use surface facets to group related trails into fewer agent-facing tools while preserving the underlying trail contracts. The full guide is [Surface Facets](surface-facets.md). The short version:
+Dense MCP surfaces can use surface facets to group related trails into fewer agent-facing tools while preserving the underlying trail contracts. Facets are surface accommodations on the entry axis: they group and select without merging. The full guide is [Surface Facets](surface-facets.md), and the accepted cross-surface doctrine is [ADR-0050](../adr/0050-surface-accommodations-preserve-trail-identity.md). The short version:
 
 - author a facet map in MCP surface options;
 - each facet becomes one MCP tool;
 - call the facet with `{ trail, input }`;
 - successful responses return `{ trail, output }`;
-- inspect `trails://surface-map` for facet IDs, member trail IDs, examples, and deferred-loading hints.
+- inspect `trails://surface-map` for facet IDs, member trail IDs, schemas, and deferred-loading hints, and use `trails://examples/<trailId>` for member examples.
 
 ## MCP Resources For Cold Context
 

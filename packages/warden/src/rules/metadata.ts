@@ -601,13 +601,18 @@ const builtinWardenRuleMetadataInput = {
     guidance: {
       docs: [
         {
+          label: 'ADR-0050 Surface Accommodations',
+          path: 'docs/adr/0050-surface-accommodations-preserve-trail-identity.md',
+        },
+        {
           label: 'Surface Accommodations',
           path: 'docs/surfaces/surface-accommodations.md',
         },
       ],
       relatedRules: ['surface-facet-coherence', 'cli-command-route-coherence'],
       steps: [
-        'Check whether each branch still shares the same intent, permits, outputs, errors, lifecycle, side effects, and selected trail identity.',
+        'Check the semantic fork boundary: intent, permits, outputs, errors, lifecycle, and side effects.',
+        'Check the structural fork boundary: selected trail identity stays visible instead of hiding behind action vocabulary.',
         'Split real capability forks into distinct trails or a composing trail.',
         'Use a facet only when one surface entry needs to group multiple trails while preserving selected member identity.',
       ],

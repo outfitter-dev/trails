@@ -56,3 +56,4 @@ ADRs document the significant design decisions behind Trails — the choices tha
 | [0047](0047-stable-release-line-discipline.md) | Stable Release Line Discipline | Accepted |
 | [0048](0048-trail-versioning-v3.md) | Trail Versioning v3 | Accepted |
 | [0049](0049-composition-is-compose-not-cross.md) | Composition is `compose`, not `cross` | Accepted |
+| [0050](0050-surface-accommodations-preserve-trail-identity.md) | Surface Accommodations Preserve Trail Identity | Accepted |

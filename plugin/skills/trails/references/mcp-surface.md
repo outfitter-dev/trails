@@ -67,7 +67,7 @@ Trail `examples` are included in MCP tool metadata. Agents use these to understa
 
 ## Surface Facets
 
-Use surface facets only when a dense MCP surface needs grouped affordances. A surface facet is an MCP projection over existing trails, not a new trail, graph node, package category, or core `Facet` primitive.
+Use surface facets only when a dense MCP surface needs grouped affordances. A surface facet is an MCP projection over existing trails, not a new trail, graph node, package category, or core `Facet` primitive. It groups and selects without merging.
 
 ```typescript
 import type { McpSurfaceFacetMap } from '@ontrails/mcp';
@@ -112,6 +112,7 @@ Successful outputs stay correlated:
 Rules for agents:
 
 - Keep the underlying trail ID visible; do not flatten member trails into an action bag.
+- Check both trail fork boundaries: no changed intent, permits, errors, outputs, lifecycle, or side effects, and no hidden member trail identity.
 - Prefer explicit selector lists for editorial groups.
 - Treat selector overlap and description drift as governance findings, not routine silencing candidates.
 - Do not invent `facet()`, `overlapsWith`, or adapter-kit facet config.

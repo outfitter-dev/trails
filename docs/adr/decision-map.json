@@ -1521,6 +1521,11 @@
           "fromPath": "docs/adr/0020-flags-for-fields-structured-input-on-the-cli.md"
         },
         {
+          "context": "- [ADR-0019: Hierarchical Command Trees from Trail IDs](0019-hierarchical-command-trees-from-trail-ids.md)",
+          "from": "0050",
+          "fromPath": "docs/adr/0050-surface-accommodations-preserve-trail-identity.md"
+        },
+        {
           "context": "[ADR-0019](../0019-hierarchical-command-trees-from-trail-ids.md) already reserves this space. Trail IDs derive canonical CLI command paths by default, but a trail may override its CLI projection when ",
           "from": "20260613",
           "fromPath": "docs/adr/drafts/20260613-cli-command-routes.md"
@@ -2254,6 +2259,11 @@
           "fromPath": "docs/adr/0048-trail-versioning-v3.md"
         },
         {
+          "context": "- [ADR-0035: Surface APIs Render the Graph](0035-surface-apis-render-the-graph.md)",
+          "from": "0050",
+          "fromPath": "docs/adr/0050-surface-accommodations-preserve-trail-identity.md"
+        },
+        {
           "context": "- [ADR-0035: Surface APIs Render the Graph](../0035-surface-apis-render-the-graph.md) - `derive*`, `create*`, and `surface()` projection ladder",
           "from": "20260603",
           "fromPath": "docs/adr/drafts/20260603-surface-facets-shape-dense-topos.md"
@@ -2658,6 +2668,11 @@
           "fromPath": "docs/adr/0048-trail-versioning-v3.md"
         },
         {
+          "context": "- [ADR-0046: Lock v3 Artifact Family](0046-lock-v3-artifact-family.md)",
+          "from": "0050",
+          "fromPath": "docs/adr/0050-surface-accommodations-preserve-trail-identity.md"
+        },
+        {
           "context": "- [ADR-0046: Lock v3 Artifact Family](../0046-lock-v3-artifact-family.md) - `.trails/topo.lock` as the inspectable topo content artifact",
           "from": "20260603",
           "fromPath": "docs/adr/drafts/20260603-surface-facets-shape-dense-topos.md"
@@ -2805,6 +2820,60 @@
       "superseded_by": null,
       "title": "Composition is `compose`, not `cross`",
       "updated": "2026-06-09"
+    },
+    {
+      "created": "2026-06-14",
+      "depends_on": ["0", "1", "8", "19", "27", "35", "46"],
+      "inbound": [
+        {
+          "context": "See [ADR-0050](docs/adr/0050-surface-accommodations-preserve-trail-identity.md) and [Surface Accommodations](docs/surfaces/surface-accommodations.md).",
+          "from": "AGENTS",
+          "fromPath": "AGENTS.md"
+        },
+        {
+          "context": "- [ADR-0050: Surface Accommodations Preserve Trail Identity](../0050-surface-accommodations-preserve-trail-identity.md) - surface accommodation vocabulary and fork test",
+          "from": "20260603",
+          "fromPath": "docs/adr/drafts/20260603-surface-facets-shape-dense-topos.md"
+        },
+        {
+          "context": "- [ADR-0050: Surface Accommodations Preserve Trail Identity](../0050-surface-accommodations-preserve-trail-identity.md)",
+          "from": "20260613",
+          "fromPath": "docs/adr/drafts/20260613-cli-command-routes.md"
+        },
+        {
+          "context": "CLI routes are a surface accommodation. In CLI terms, the surface entry is the command, the command path is the path for an approach, and an alias is an alternate approach to the same command. See [AD",
+          "from": "cli",
+          "fromPath": "docs/surfaces/cli.md"
+        },
+        {
+          "context": "Dense MCP surfaces can use surface facets to group related trails into fewer agent-facing tools while preserving the underlying trail contracts. Facets are surface accommodations on the entry axis: th",
+          "from": "mcp",
+          "fromPath": "docs/surfaces/mcp.md"
+        },
+        {
+          "context": "The accepted doctrine lives in [ADR-0050: Surface Accommodations Preserve Trail Identity](../adr/0050-surface-accommodations-preserve-trail-identity.md). This page is the working field guide.",
+          "from": "surface-accommodations",
+          "fromPath": "docs/surfaces/surface-accommodations.md"
+        },
+        {
+          "context": "Use the surface-accommodation vocabulary from [ADR-0050](../adr/0050-surface-accommodations-preserve-trail-identity.md) when evaluating parity. Facets live on the entry axis: one grouped surface entry",
+          "from": "surface-facet-parity",
+          "fromPath": "docs/surfaces/surface-facet-parity.md"
+        },
+        {
+          "context": "A facet is a surface accommodation on the entry axis: one grouped surface entry over several trails. It is not an alternate approach to one trail. Aliases and input mappings are N-to-1 accommodations ",
+          "from": "surface-facets",
+          "fromPath": "docs/surfaces/surface-facets.md"
+        }
+      ],
+      "number": "0050",
+      "owners": ["[galligan](https://github.com/galligan)"],
+      "path": "docs/adr/0050-surface-accommodations-preserve-trail-identity.md",
+      "slug": "surface-accommodations-preserve-trail-identity",
+      "status": "accepted",
+      "superseded_by": null,
+      "title": "Surface Accommodations Preserve Trail Identity",
+      "updated": "2026-06-14"
     }
   ],
   "version": 1

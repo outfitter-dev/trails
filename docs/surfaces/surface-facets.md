@@ -1,12 +1,12 @@
 # Surface Facets
 
-Surface facets group related trails into a surface affordance without changing the trails themselves. They are useful when a dense topo is still semantically clear but a surface becomes hard to scan.
+Surface facets group and select without merging. They expose related trails through one surface affordance while preserving the trails themselves. They are useful when a dense topo is still semantically clear but a surface becomes hard to scan.
 
 MCP hits this pressure first. MCP clients often load tool names, descriptions, input schemas, output schemas, and examples into agent context. A flat one-trail-one-tool projection stays faithful, but it can make a dense operator surface expensive to inspect. A surface facet lets the surface say "these trails belong together here" while the trail contracts remain the source of truth.
 
 Surface facets are not a core `Facet` primitive. Do not look for `facet()`, do not create a shared `Facet` type, and do not add facet authoring configuration to adapter-kit.
 
-A facet is a surface accommodation on the entry axis: one grouped surface entry over several trails. It is not an alternate approach to one trail. Aliases and input mappings are N-to-1 accommodations that converge on one trail contract; facets are 1-to-N accommodations that gather several trails while preserving member identity. See [Surface Accommodations](surface-accommodations.md) for the full vocabulary.
+A facet is a surface accommodation on the entry axis: one grouped surface entry over several trails. It is not an alternate approach to one trail. Aliases and input mappings are N-to-1 accommodations that converge on one trail contract; facets are 1-to-N accommodations that gather several trails while preserving member identity. See [ADR-0050](../adr/0050-surface-accommodations-preserve-trail-identity.md) and [Surface Accommodations](surface-accommodations.md) for the full vocabulary.
 
 ## When To Use One
 
@@ -25,6 +25,11 @@ Do not use a surface facet when:
 - you need CLI or HTTP parity before MCP has proved the pattern for your app.
 
 The fork test still applies. If a grouped affordance would merge contracts, hide which trail is selected, or introduce an action vocabulary such as `{ action: "create" | "delete" }`, split the capability into distinct trails or a composing trail first. A facet may group and select; it must not merge and obscure.
+
+That boundary has two parts:
+
+- **Semantic:** the facet does not change member intent, permits, errors, outputs, lifecycle, or side effects.
+- **Structural:** the facet keeps member trail identity visible at invocation and response time.
 
 ## MCP Authoring Shape
 
@@ -73,7 +78,7 @@ The input schema requires a trail discriminator plus the selected trail input:
 }
 ```
 
-The handler runs the selected constituent trail through the same MCP execution path as an ordinary one-trail-one-tool projection. It does not call a blaze directly.
+The handler runs the selected constituent trail through the same MCP execution path as an ordinary one-trail-one-tool projection. It does not call a blaze directly, and it does not invent a second behavior path for the grouped entry.
 
 Successful outputs are correlated with the selected trail:
 
@@ -87,7 +92,7 @@ Successful outputs are correlated with the selected trail:
 }
 ```
 
-That envelope is intentional. A facet can contain trails with different output schemas, so the returned trail ID must stay visible for agents and downstream readers.
+That envelope is intentional. A facet can contain trails with different output schemas, so the returned trail ID must stay visible for agents and downstream readers. If a proposed grouped tool would remove that correlation, it has become a trail fork rather than a facet.
 
 ## Visibility And Overlap
 
@@ -132,7 +137,7 @@ Use MCP resources for cold context. The default MCP surface exposes:
 - `trails://surface-map` for the resolved MCP surface projection;
 - `trails://examples/<trailId>` for structured examples on exposed trails.
 
-The surface map includes ordinary tools and facet tools. Facet entries expose `facetId`, `memberTrailIds`, input/output schemas, annotations, versions, and deferred-loading hints.
+The surface map includes ordinary tools and facet tools. Facet entries expose `facetId`, `memberTrailIds`, input/output schemas, annotations, and deferred-loading hints.
 
 The phrase is **MCP resources**. Trails `resource()` still means an infrastructure dependency declared on a trail contract.
 

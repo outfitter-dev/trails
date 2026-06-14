@@ -244,7 +244,7 @@
     },
     {
       "created": "2026-06-03",
-      "depends_on": ["0", "17", "27", "35", "42", "46"],
+      "depends_on": ["0", "17", "27", "35", "42", "46", "50"],
       "inbound": [
         {
           "context": "- [Surface Facets draft](20260603-surface-facets-shape-dense-topos.md)",
@@ -302,7 +302,7 @@
     },
     {
       "created": "2026-06-13",
-      "depends_on": ["8", "19", "35", "47"],
+      "depends_on": ["8", "19", "35", "47", "50"],
       "inbound": [],
       "number": null,
       "owners": ["[galligan](https://github.com/galligan)"],

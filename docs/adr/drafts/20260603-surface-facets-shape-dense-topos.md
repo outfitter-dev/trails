@@ -5,7 +5,7 @@ status: draft
 created: 2026-06-03
 updated: 2026-06-13
 owners: ['[galligan](https://github.com/galligan)']
-depends_on: [0, 17, 27, 35, 42, 46]
+depends_on: [0, 17, 27, 35, 42, 46, 50]
 linear:
   - TRL-902
 ---
@@ -256,5 +256,6 @@ This decision is not distribution-ready until the implementation stack updates:
 - [ADR-0035: Surface APIs Render the Graph](../0035-surface-apis-render-the-graph.md) - `derive*`, `create*`, and `surface()` projection ladder
 - [ADR-0042: Core/Topographer Boundary Doctrine](../0042-core-topographer-boundary-doctrine.md) - durable graph artifacts belong to topographer
 - [ADR-0046: Lock v3 Artifact Family](../0046-lock-v3-artifact-family.md) - `.trails/topo.lock` as the inspectable topo content artifact
+- [ADR-0050: Surface Accommodations Preserve Trail Identity](../0050-surface-accommodations-preserve-trail-identity.md) - surface accommodation vocabulary and fork test
 
 This draft formalizes the earlier scratch planning captures for surface facets and MCP shaping. Those scratch notes are local planning state, not committed reference material.

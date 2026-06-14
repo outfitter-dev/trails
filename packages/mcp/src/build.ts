@@ -73,6 +73,10 @@ export const MCP_TOOL_ERROR_META_KEY = 'ontrails/error';
 /**
  * Metadata key used to identify MCP tools derived from surface facets.
  *
+ * Surface facets preserve member trail identity rather than merging member
+ * contracts. The metadata names the facet and its member trail IDs so clients
+ * can inspect the grouped entry before choosing a selected trail.
+ *
  * @example
  * ```ts
  * import { MCP_TOOL_FACET_META_KEY } from '@ontrails/mcp';
@@ -111,6 +115,7 @@ export interface DeriveMcpToolsOptions extends BaseSurfaceOptions {
 
 export type McpSurfaceFacetTrailSelector = string | readonly string[];
 
+/** Surface-side grouped entry over existing trails. */
 export interface McpSurfaceFacetDefinition {
   readonly trails: McpSurfaceFacetTrailSelector;
   readonly description: string;

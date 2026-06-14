@@ -39,7 +39,8 @@ export const usersManage = trail('users.manage', {
     expect(diagnostics[0]?.message).toContain('Trail "users.manage"');
     expect(diagnostics[0]?.message).toContain('input.action');
     expect(diagnostics[0]?.message).toContain('trail fork');
-    expect(diagnostics[0]?.message).toContain('honest facet');
+    expect(diagnostics[0]?.message).toContain('change semantics');
+    expect(diagnostics[0]?.message).toContain('surface facet');
   });
 
   test('warns when a trail branches on an extracted input schema', () => {

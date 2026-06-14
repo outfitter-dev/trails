@@ -8,6 +8,8 @@ The core rule is simple:
 
 A surface accommodation is valid only while the same authored trail contract remains true. If the surface shape would change intent, permits, errors, outputs, lifecycle, side effects, or which trail is actually running, the model has found a trail fork.
 
+The accepted doctrine lives in [ADR-0050: Surface Accommodations Preserve Trail Identity](../adr/0050-surface-accommodations-preserve-trail-identity.md). This page is the working field guide.
+
 ## Vocabulary
 
 Use these terms when deciding whether a surface concern belongs on a trail, in a surface projection, or as a new trail.
@@ -20,9 +22,11 @@ Use these terms when deciding whether a surface concern belongs on a trail, in a
 | `alias` | An alternate approach to the same surface entry and the same trail contract. |
 | `input mapping` | Surface-shaped input that normalizes into the same authored trail input contract. |
 | `surface facet` | One grouped surface entry over multiple trails, with member trail identity preserved at invocation and response time. |
-| `trail fork` | The point where a proposed accommodation is no longer honest. Author a distinct trail, a composed trail, or a facet that preserves member identity. |
+| `trail fork` | The point where a proposed accommodation is no longer honest. Author a distinct trail, a composing trail, or a facet that preserves member identity. |
 
 `trail fork` is doctrine language, not a new API primitive. Do not confuse it with lifecycle/version forks in trail versioning.
+
+The old boundary noun retired by ADR-0035 stays retired. It was considered as a surface-entry term and rejected because it would reopen the old surface-vs-boundary ambiguity.
 
 ## The Shape
 
@@ -33,7 +37,11 @@ The **approach axis** is N-to-1. Several approaches can reach the same trail:
 - an alias adds another path to the same surface entry;
 - an input mapping reshapes surface input before validating the same trail contract.
 
+The invariant is: converge without lying.
+
 The **entry axis** is 1-to-N when a surface facet is involved. One grouped surface entry can expose several trails, but it must keep the selected member trail visible.
+
+The invariant is: gather without merging.
 
 Those axes are related, but not interchangeable. An alias is not a facet. A facet is not a generic action bag. An input mapping is not alternate behavior.
 
@@ -43,6 +51,13 @@ Use the fork test before adding an accommodation:
 
 > If a surface adjustment changes intent, permit requirements, error meaning, output meaning, lifecycle, side effects, or hides which trail is actually running, it is no longer an accommodation. Treat it as a trail fork.
 
+There are two failure modes:
+
+- A **semantic fork** changes what the capability means: intent, permits, errors, outputs, lifecycle, or side effects.
+- A **structural fork** merges member contracts or hides member trail identity behind action vocabulary, such as `{ action: "create" | "delete" }`.
+
+A valid accommodation clears both tests.
+
 When the test fails, use one of these shapes instead:
 
 - a distinct trail for a distinct capability;
@@ -51,13 +66,22 @@ When the test fails, use one of these shapes instead:
 
 ## Examples
 
-A CLI compatibility command such as `wayfind find` for `wayfind.search` is an alias when it reaches the same input, output, intent, permit, errors, and blaze.
+A CLI compatibility command such as `wayfind find` for `wayfind.search` is an alias when it reaches the same trail contract: input, output, intent, permits, errors, and selected trail identity.
 
 A CLI spelling that accepts a different ergonomic shape but normalizes into the same authored input is an input mapping. It must remain inspectable and cannot invent hidden behavior.
 
 An MCP `inspect` tool over several read-only topo inspection trails is a surface facet when the call includes the selected `trail` and the result returns the same selected `trail` with its output.
 
 A command like `manage users --action delete` that hides create, update, and delete behind one action field is usually a trail fork. Prefer separate trails and, if the surface needs grouping, a facet that still exposes the selected member trail.
+
+## Classification
+
+| Proposed shape | Use |
+| --- | --- |
+| One trail, another path, no input reshape | Alias |
+| One trail, surface-shaped input that normalizes honestly | Input mapping |
+| Many trails, one grouped entry, member trail identity preserved | Surface facet |
+| Different intent, permits, errors, outputs, lifecycle, side effects, or hidden member identity | Distinct trail or composing trail |
 
 ## Surface-Local Words
 

@@ -558,7 +558,7 @@ const diagnosticForField = (
     .map((option) => `"${option}"`)
     .join(
       ', '
-    )}). This may be a trail fork hidden as a surface accommodation. If branches change intent, permits, errors, outputs, lifecycle, side effects, or selected trail identity, split them into distinct trails, a composing trail, or an honest facet.`,
+    )}). This may be a trail fork hidden as a surface accommodation. If branches change semantics (intent, permits, errors, outputs, lifecycle, or side effects) or structure (selected trail identity), split them into distinct trails, a composing trail, or a surface facet that preserves member identity.`,
   rule: RULE_NAME,
   severity: 'warn',
 });

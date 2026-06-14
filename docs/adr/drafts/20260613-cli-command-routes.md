@@ -5,7 +5,7 @@ status: draft
 created: 2026-06-13
 updated: 2026-06-13
 owners: ['[galligan](https://github.com/galligan)']
-depends_on: ['8', '19', '35', '47']
+depends_on: [8, 19, 35, 47, 50]
 linear:
   - TRL-957
   - TRL-958
@@ -288,6 +288,7 @@ affordance; aliases provide alternate command paths into one trail.
 - [ADR-0019: Hierarchical Command Trees From Trail IDs](../0019-hierarchical-command-trees-from-trail-ids.md)
 - [ADR-0035: Surface APIs Render The Graph](../0035-surface-apis-render-the-graph.md)
 - [ADR-0047: Stable Release Line Discipline](../0047-stable-release-line-discipline.md)
+- [ADR-0050: Surface Accommodations Preserve Trail Identity](../0050-surface-accommodations-preserve-trail-identity.md)
 - [Tenets](../../tenets.md)
 - [CLI Surface](../../surfaces/cli.md)
 - [Surface Facets draft](20260603-surface-facets-shape-dense-topos.md)

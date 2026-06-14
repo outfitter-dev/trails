@@ -37,9 +37,9 @@ The CLI model is validated before adapter wiring. Duplicate command paths are re
 
 ## Command Routes and Aliases
 
-Most trails should keep the default dotted-ID command path. Use `cli` only when the CLI surface needs a compatibility path, a shorter operator command, or a route that better matches the surface language. A CLI route must normalize into the same trail contract. It cannot change input, output, intent, permits, resources, or behavior.
+Most trails should keep the default dotted-ID command path. Use `cli` only when the CLI surface needs a compatibility path, a shorter operator command, or a route that better matches the surface language. A CLI route must normalize into the same trail contract without lying. It cannot change input, output, intent, permits, resources, or behavior.
 
-CLI routes are a surface accommodation. In CLI terms, the surface entry is the command, the command path is the path for an approach, and an alias is an alternate approach to the same command. See [Surface Accommodations](surface-accommodations.md) for the cross-surface vocabulary and fork test.
+CLI routes are a surface accommodation. In CLI terms, the surface entry is the command, the command path is the path for an approach, and an alias is an alternate approach to the same command. See [ADR-0050](../adr/0050-surface-accommodations-preserve-trail-identity.md) and [Surface Accommodations](surface-accommodations.md) for the cross-surface vocabulary and fork test.
 
 Trail-owned routes live on the trail contract:
 
@@ -72,7 +72,7 @@ await surface(app, { aliases: cliAliases });
 
 If an app writes topo artifacts with `trails compile`, export the same alias map as `cliAliases` or `trailsCliAliases` from the app module. Compile, validate, survey, Wayfinder, and schema inspection then see the same accepted command routes as the runtime CLI.
 
-If an alternate CLI shape needs to reshape input before it reaches the trail, that is richer than an alias. Treat it as an input mapping only if it normalizes honestly into the same authored trail input contract. If it changes behavior, permits, intent, errors, outputs, or side effects, it is a trail fork: author a new trail or a composing trail instead of hiding the split in CLI wiring.
+If an alternate CLI shape needs to reshape input before it reaches the trail, that is richer than an alias. Treat it as an input mapping only if it normalizes honestly into the same authored trail input contract. If it changes behavior, permits, intent, errors, outputs, lifecycle, side effects, or hides which trail is running, it is a trail fork: author a new trail or a composing trail instead of hiding the split in CLI wiring.
 
 ## Flag Derivation
 

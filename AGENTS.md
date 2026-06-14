@@ -84,6 +84,16 @@ Use the project language consistently:
 - Keep `composes` declarations for composition and `resources` declarations for infrastructure — they serve different purposes.
 - Every resource should define a `mock` factory so `testAll(app)` works without configuration.
 
+## Surface Accommodations
+
+Land the capability in the trail and accommodate the surface in projection. Surface accommodations include aliases, future input mappings, and surface facets. They are valid only while the same authored trail contract remains true.
+
+- Aliases and input mappings live on the approach axis: many approaches may converge on one trail, but they must normalize without lying.
+- Surface facets live on the entry axis: one grouped entry may gather several trails, but it must preserve selected member trail identity at invocation and response time.
+- Treat a shape as a trail fork when it changes intent, permits, errors, outputs, lifecycle, side effects, or hides which trail is running. Use a distinct trail, a composing trail, or a surface facet that preserves member identity instead.
+
+See [ADR-0050](docs/adr/0050-surface-accommodations-preserve-trail-identity.md) and [Surface Accommodations](docs/surfaces/surface-accommodations.md).
+
 ## Warden Rule Guide
 
 <!-- warden-guide:start -->
