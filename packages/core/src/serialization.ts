@@ -18,6 +18,7 @@ import {
   RateLimitError,
   RetryExhaustedError,
   TimeoutError,
+  WorkspaceShiftError,
   errorClasses,
   isTrailsError,
 } from './errors.js';
@@ -89,6 +90,7 @@ const errorFactories: Record<ErrorCategory, ErrorFactory> = {
     }
     return new RateLimitError(msg, rlOpts);
   },
+  shift: (msg, opts) => new WorkspaceShiftError(msg, opts),
   timeout: (msg, opts) => new TimeoutError(msg, opts),
   validation: (msg, opts) => new ValidationError(msg, opts),
 };

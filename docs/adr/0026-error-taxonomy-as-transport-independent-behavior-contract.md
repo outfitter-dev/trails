@@ -63,6 +63,7 @@ Transports map these properties to their native representations. The framework p
 | `TimeoutError` | `timeout` | Yes | 504 | 5 | -32603 | nack -> retry | retry |
 | `RateLimitError` | `rate_limit` | Yes | 429 | 6 | -32603 | nack -> retry (with backoff) | retry (with backoff) |
 | `NetworkError` | `network` | Yes | 502 | 7 | -32603 | nack -> retry | retry |
+| `WorkspaceShiftError` | `shift` | Yes | 503 | 10 | -32603 | nack -> retry | retry |
 | `InternalError` | `internal` | No | 500 | 8 | -32603 | nack -> dead-letter | drop + dead-event |
 | `DerivationError` | `internal` | No | 500 | 8 | -32603 | nack -> dead-letter | drop + dead-event |
 | `RecoverableCompletionError` | `internal` | No | 500 | 8 | -32603 | nack -> dead-letter | drop + dead-event |

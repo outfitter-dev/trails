@@ -129,6 +129,7 @@ The current taxonomy is generated from the `errorClasses` owner registry and cat
 | `timeout` | 5 | 504 | -32603 | Yes | `TimeoutError` |
 | `rate_limit` | 6 | 429 | -32603 | Yes | `RateLimitError` |
 | `network` | 7 | 502 | -32603 | Yes | `NetworkError` |
+| `shift` | 10 | 503 | -32603 | Yes | `WorkspaceShiftError` |
 | `internal` | 8 | 500 | -32603 | No | `AssertionError`, `InternalError`, `DerivationError`, `RecoverableCompletionError` |
 | `auth` | 9 | 401 | -32600 | No | `AuthError` |
 | `cancelled` | 130 | 499 | -32603 | No | `CancelledError` |

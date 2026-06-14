@@ -18,6 +18,7 @@ const cliMapper = createSurfaceErrorMapper({
   not_found: 2,
   permission: 4,
   rate_limit: 6,
+  shift: 10,
   timeout: 5,
   validation: 1,
 });

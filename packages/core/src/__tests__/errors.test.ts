@@ -8,6 +8,7 @@ import {
   TimeoutError,
   RateLimitError,
   NetworkError,
+  WorkspaceShiftError,
   InternalError,
   AuthError,
   CancelledError,
@@ -223,6 +224,11 @@ describe('codesByCategory', () => {
       http: 401,
       jsonRpc: -32_600,
     });
+    expect(codesByCategory.shift).toEqual({
+      exit: 10,
+      http: 503,
+      jsonRpc: -32_603,
+    });
     expect(codesByCategory.cancelled).toEqual({
       exit: 130,
       http: 499,
@@ -250,6 +256,7 @@ describe('exitCodeMap', () => {
     expect(exitCodeMap.network).toBe(7);
     expect(exitCodeMap.internal).toBe(8);
     expect(exitCodeMap.auth).toBe(9);
+    expect(exitCodeMap.shift).toBe(10);
     expect(exitCodeMap.cancelled).toBe(130);
   });
 });
@@ -263,6 +270,7 @@ describe('statusCodeMap', () => {
     expect(statusCodeMap.timeout).toBe(504);
     expect(statusCodeMap.rate_limit).toBe(429);
     expect(statusCodeMap.network).toBe(502);
+    expect(statusCodeMap.shift).toBe(503);
     expect(statusCodeMap.internal).toBe(500);
     expect(statusCodeMap.auth).toBe(401);
     expect(statusCodeMap.cancelled).toBe(499);
@@ -278,6 +286,7 @@ describe('jsonRpcCodeMap', () => {
     expect(jsonRpcCodeMap.timeout).toBe(-32_603);
     expect(jsonRpcCodeMap.rate_limit).toBe(-32_603);
     expect(jsonRpcCodeMap.network).toBe(-32_603);
+    expect(jsonRpcCodeMap.shift).toBe(-32_603);
     expect(jsonRpcCodeMap.internal).toBe(-32_603);
     expect(jsonRpcCodeMap.auth).toBe(-32_600);
     expect(jsonRpcCodeMap.cancelled).toBe(-32_603);
@@ -285,10 +294,11 @@ describe('jsonRpcCodeMap', () => {
 });
 
 describe('retryableMap', () => {
-  test('only timeout, rate_limit, and network are retryable', () => {
+  test('only timeout, rate_limit, network, and shift are retryable', () => {
     expect(retryableMap.timeout).toBe(true);
     expect(retryableMap.rate_limit).toBe(true);
     expect(retryableMap.network).toBe(true);
+    expect(retryableMap.shift).toBe(true);
 
     expect(retryableMap.validation).toBe(false);
     expect(retryableMap.not_found).toBe(false);
@@ -309,6 +319,7 @@ describe('isRetryable', () => {
     expect(isRetryable(new TimeoutError('timed out'))).toBe(true);
     expect(isRetryable(new RateLimitError('too fast'))).toBe(true);
     expect(isRetryable(new NetworkError('disconnected'))).toBe(true);
+    expect(isRetryable(new WorkspaceShiftError('moved'))).toBe(true);
   });
 
   test('returns false for non-retryable errors', () => {

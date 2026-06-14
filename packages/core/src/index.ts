@@ -17,6 +17,7 @@ export {
   TimeoutError,
   RateLimitError,
   NetworkError,
+  WorkspaceShiftError,
   InternalError,
   AuthError,
   CancelledError,

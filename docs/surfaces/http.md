@@ -219,6 +219,7 @@ Status codes come directly from the error taxonomy -- the same mapping used acro
 | `timeout` | 504 | Yes | `TimeoutError` |
 | `rate_limit` | 429 | Yes | `RateLimitError` |
 | `network` | 502 | Yes | `NetworkError` |
+| `shift` | 503 | Yes | `WorkspaceShiftError` |
 | `internal` | 500 | No | `AssertionError`, `InternalError`, `DerivationError`, `RecoverableCompletionError` |
 | `auth` | 401 | No | `AuthError` |
 | `cancelled` | 499 | No | `CancelledError` |

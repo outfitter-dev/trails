@@ -18,6 +18,7 @@ export const errorCategories = [
   'timeout',
   'rate_limit',
   'network',
+  'shift',
   'internal',
   'auth',
   'cancelled',
@@ -176,6 +177,22 @@ export class RateLimitError extends TrailsError {
 
 export class NetworkError extends TrailsError {
   readonly category = 'network' as const;
+  readonly retryable = true as const;
+}
+
+/**
+ * @example
+ * ```ts
+ * return Result.err(new WorkspaceShiftError('workspace changed during check'));
+ * ```
+ *
+ * Raised when the observed workspace substrate moves during one run.
+ *
+ * A shift voids the run's verdict, including passes. Callers can retry on
+ * stable ground without changing their request.
+ */
+export class WorkspaceShiftError extends TrailsError {
+  readonly category = 'shift' as const;
   readonly retryable = true as const;
 }
 
@@ -345,6 +362,12 @@ export const errorClasses = [
     retryable: true,
   },
   {
+    category: 'shift',
+    ctor: WorkspaceShiftError,
+    name: 'WorkspaceShiftError',
+    retryable: true,
+  },
+  {
     category: 'internal',
     ctor: InternalError,
     name: 'InternalError',
@@ -397,6 +420,7 @@ export const codesByCategory = {
   not_found: { exit: 2, http: 404, jsonRpc: -32_601 },
   permission: { exit: 4, http: 403, jsonRpc: -32_600 },
   rate_limit: { exit: 6, http: 429, jsonRpc: -32_603 },
+  shift: { exit: 10, http: 503, jsonRpc: -32_603 },
   timeout: { exit: 5, http: 504, jsonRpc: -32_603 },
   validation: { exit: 1, http: 400, jsonRpc: -32_602 },
 } as const satisfies Record<ErrorCategory, ErrorCategoryCodes>;
@@ -414,6 +438,7 @@ const deriveCodeMap = <TCode extends keyof ErrorCategoryCodes>(
   not_found: codesByCategory.not_found[code],
   permission: codesByCategory.permission[code],
   rate_limit: codesByCategory.rate_limit[code],
+  shift: codesByCategory.shift[code],
   timeout: codesByCategory.timeout[code],
   validation: codesByCategory.validation[code],
 });
@@ -436,6 +461,7 @@ export const retryableMap: Record<ErrorCategory, boolean> = {
   not_found: false,
   permission: false,
   rate_limit: true,
+  shift: true,
   timeout: true,
   validation: false,
 } as const;

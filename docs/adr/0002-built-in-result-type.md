@@ -99,6 +99,7 @@ The Result type exists in tight partnership with the error taxonomy. The table b
 | `TimeoutError` | `timeout` | 504 | 5 | -32603 | Yes |
 | `RateLimitError` | `rate_limit` | 429 | 6 | -32603 | Yes |
 | `NetworkError` | `network` | 502 | 7 | -32603 | Yes |
+| `WorkspaceShiftError` | `shift` | 503 | 10 | -32603 | Yes |
 | `InternalError` | `internal` | 500 | 8 | -32603 | No |
 | `DerivationError` | `internal` | 500 | 8 | -32603 | No |
 | `RecoverableCompletionError` | `internal` | 500 | 8 | -32603 | No |

@@ -164,6 +164,7 @@ describe('createSurfaceErrorMapper', () => {
       not_found: 'not_found',
       permission: 'permission',
       rate_limit: 'rate_limit',
+      shift: 'shift',
       timeout: 'timeout',
       validation: 'validation',
     });
