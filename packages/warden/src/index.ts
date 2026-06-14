@@ -180,6 +180,7 @@ export {
   incompleteCrudTrail,
   intentPropagationTrail,
   layerFieldNameDriftTrail,
+  libraryProjectionCoherenceTrail,
   markerSchemaUnsupportedTrail,
   missingVisibilityTrail,
   missingReconcileTrail,

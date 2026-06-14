@@ -1,5 +1,6 @@
 import { mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
-import { dirname, join, relative, sep } from 'node:path';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { describe, expect, test } from 'bun:test';
@@ -9,18 +10,6 @@ import type { CompileResult } from '../compile.js';
 import { fixtureApp } from './fixtures/app.js';
 
 const repoRoot = fileURLToPath(new URL('../../../../', import.meta.url));
-
-const toImportPath = (fromDir: string, toFile: string): string => {
-  const relativePath = relative(fromDir, toFile);
-  const raw = (
-    relativePath.endsWith('.ts')
-      ? relativePath.slice(0, -'.ts'.length)
-      : relativePath
-  )
-    .split(sep)
-    .join('/');
-  return raw.startsWith('.') ? raw : `./${raw}`;
-};
 
 const writePlan = async (
   packageRoot: string,
@@ -62,34 +51,53 @@ const run = async (
 describe('generated library package smoke', () => {
   test('emitted package typechecks and dry-run packs', async () => {
     const tempRoot = await mkdtemp(
-      join(repoRoot, '.trails-life-library-smoke-')
+      join(tmpdir(), 'trails-life-library-smoke-')
     );
     try {
       const packageRoot = join(tempRoot, 'generated-widget');
       await mkdir(packageRoot, { recursive: true });
+      const nodeModules = join(packageRoot, 'node_modules');
       const ontrailsModules = join(packageRoot, 'node_modules', '@ontrails');
       await mkdir(ontrailsModules, { recursive: true });
+      await symlink(
+        join(repoRoot, 'node_modules', '@types'),
+        join(nodeModules, '@types'),
+        'dir'
+      );
       await symlink(
         join(repoRoot, 'packages/library'),
         join(ontrailsModules, 'library'),
         'dir'
       );
-
-      const fixtureSource = join(
-        repoRoot,
-        'packages/library/src/__tests__/fixtures/app.ts'
+      await symlink(
+        join(repoRoot, 'packages/core'),
+        join(ontrailsModules, 'core'),
+        'dir'
       );
+      await symlink(
+        join(repoRoot, 'node_modules', 'zod'),
+        join(nodeModules, 'zod'),
+        'dir'
+      );
+
       const fixtureTrailSource = join(
         repoRoot,
         'packages/library/src/__tests__/fixtures/trails.ts'
       );
-      await writeFile(
-        join(packageRoot, 'fixture-app.ts'),
-        `export { fixtureApp } from '${toImportPath(packageRoot, fixtureSource)}';\n`
+      await symlink(
+        fixtureTrailSource,
+        join(packageRoot, 'fixture-trails.ts'),
+        'file'
       );
       await writeFile(
-        join(packageRoot, 'fixture-trails.ts'),
-        `export { get, ping } from '${toImportPath(packageRoot, fixtureTrailSource)}';\n`
+        join(packageRoot, 'fixture-app.ts'),
+        [
+          "import { topo } from '@ontrails/core';",
+          "import * as trails from './fixture-trails.js';",
+          '',
+          "export const fixtureApp = topo('library-fixture', trails);",
+          '',
+        ].join('\n')
       );
 
       const result = compile(fixtureApp, {

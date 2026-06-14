@@ -15,6 +15,7 @@ import { incompleteAccessorForStandardOp } from './incomplete-accessor-for-stand
 import { incompleteCrud } from './incomplete-crud.js';
 import { intentPropagation } from './intent-propagation.js';
 import { layerFieldNameDrift } from './layer-field-name-drift.js';
+import { libraryProjectionCoherence } from './library-projection-coherence.js';
 import { missingVisibility } from './missing-visibility.js';
 import { missingReconcile } from './missing-reconcile.js';
 import { noDevPermitInSource } from './no-dev-permit-in-source.js';
@@ -120,6 +121,7 @@ export { firesDeclarations } from './fires-declarations.js';
 export { incompleteAccessorForStandardOp } from './incomplete-accessor-for-standard-op.js';
 export { incompleteCrud } from './incomplete-crud.js';
 export { intentPropagation } from './intent-propagation.js';
+export { libraryProjectionCoherence } from './library-projection-coherence.js';
 export { layerFieldNameDrift } from './layer-field-name-drift.js';
 export { missingVisibility } from './missing-visibility.js';
 export { missingReconcile } from './missing-reconcile.js';
@@ -246,6 +248,7 @@ export const wardenTopoRules: ReadonlyMap<string, TopoAwareWardenRule> =
     [activationOrphan.name, activationOrphan],
     [cliCommandRouteCoherence.name, cliCommandRouteCoherence],
     [incompleteAccessorForStandardOp.name, incompleteAccessorForStandardOp],
+    [libraryProjectionCoherence.name, libraryProjectionCoherence],
     [permitGovernance.name, permitGovernance],
     [publicOutputSchema.name, publicOutputSchema],
     [publicUnionOutputDiscriminants.name, publicUnionOutputDiscriminants],

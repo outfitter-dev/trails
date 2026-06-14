@@ -17,6 +17,7 @@ export { incompleteAccessorForStandardOpTrail } from './incomplete-accessor-for-
 export { incompleteCrudTrail } from './incomplete-crud.trail.js';
 export { intentPropagationTrail } from './intent-propagation.trail.js';
 export { layerFieldNameDriftTrail } from './layer-field-name-drift.trail.js';
+export { libraryProjectionCoherenceTrail } from './library-projection-coherence.trail.js';
 export { markerSchemaUnsupportedTrail } from './marker-schema-unsupported.trail.js';
 export { missingVisibilityTrail } from './missing-visibility.trail.js';
 export { missingReconcileTrail } from './missing-reconcile.trail.js';

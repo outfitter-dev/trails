@@ -80,6 +80,7 @@ const concernByRuleName: Partial<Record<string, WardenRuleConcern>> = {
   'fork-without-preserved-blaze': 'lifecycle',
   'implementation-returns-result': 'results',
   'intent-propagation': 'composition',
+  'library-projection-coherence': 'meta',
   'marker-schema-unsupported': 'lifecycle',
   'missing-reconcile': 'resources',
   'missing-visibility': 'composition',
@@ -259,6 +260,28 @@ const builtinWardenRuleMetadataInput = {
     invariant:
       'Layer input field reserved names are shared across surface projections.',
     tier: 'source-static',
+  },
+  'library-projection-coherence': {
+    ...durableExternal,
+    guidance: {
+      docs: [
+        {
+          label: 'Library Surface ADR',
+          path: 'docs/adr/drafts/20260612-library-surface-and-compiler.md',
+        },
+      ],
+      relatedRules: ['cli-command-route-coherence', 'surface-facet-coherence'],
+      steps: [
+        'Rename one source trail or add an explicit library export override before generating a package.',
+        'Keep serialized library projection exports attached to existing trail IDs.',
+        'Run the generated-package smoke after repairing projection drift.',
+      ],
+      summary:
+        'Keep resolved library projection exports collision-free and attached to one trail contract.',
+    },
+    invariant:
+      'Resolved library projection exports are collision-free and target existing trails.',
+    tier: 'topo-aware',
   },
   'marker-schema-unsupported': {
     ...durableExternal,

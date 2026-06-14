@@ -23,6 +23,7 @@ import { incompleteAccessorForStandardOp } from './incomplete-accessor-for-stand
 import { incompleteCrud } from './incomplete-crud.js';
 import { intentPropagation } from './intent-propagation.js';
 import { layerFieldNameDrift } from './layer-field-name-drift.js';
+import { libraryProjectionCoherence } from './library-projection-coherence.js';
 import { missingReconcile } from './missing-reconcile.js';
 import { missingVisibility } from './missing-visibility.js';
 import { noDevPermitInSource } from './no-dev-permit-in-source.js';
@@ -101,6 +102,7 @@ export const registeredRuleNames: readonly string[] = [
   incompleteCrud.name,
   intentPropagation.name,
   layerFieldNameDrift.name,
+  libraryProjectionCoherence.name,
   markerSchemaUnsupported.name,
   missingReconcile.name,
   missingVisibility.name,

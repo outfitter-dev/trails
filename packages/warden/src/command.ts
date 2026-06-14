@@ -176,7 +176,7 @@ interface WardenValueAliasTarget {
   readonly configKey: AliasConfigKey;
 }
 
-const wardenAliasSpecs = [
+const wardenAliasSpecs: readonly WardenAliasSpec[] = [
   {
     aliases: true,
     choices: wardenFormatValues,
@@ -203,7 +203,7 @@ const wardenAliasSpecs = [
     configKey: 'drafts',
     flagName: 'drafts',
   },
-] satisfies readonly WardenAliasSpec[];
+];
 
 const wardenValueAliasTargets: readonly WardenValueAliasTarget[] =
   wardenAliasSpecs.flatMap((spec) =>

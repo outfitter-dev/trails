@@ -92,7 +92,7 @@ Use the project language consistently:
 This section is generated from the live `@ontrails/warden` rule manifest. Keep the human-authored guidance above as orientation; use this block as the enforceable-rule index.
 
 - Guide input command: `bun apps/trails/bin/trails.ts warden guide --manifest`
-- Rule count: 65
+- Rule count: 66
 
 ### Rule Index
 
@@ -147,6 +147,7 @@ This section is generated from the live `@ontrails/warden` rule manifest. Keep t
 #### Meta
 
 - `cli-command-route-coherence` (error, topo/topo-aware, external): CLI command routes and aliases resolve to one coherent trail contract.
+- `library-projection-coherence` (error, topo/topo-aware, external): Resolved library projection exports are collision-free and target existing trails.
 - `surface-facet-coherence` (warn, source/source-static, external): Surface facet maps avoid selector overlap, hidden visibility widening, and drift-prone dynamic selectors.
 - `trail-fork-coaching` (warn, all/source-static, advisory): Trails avoid hiding distinct capabilities behind branching action or operation inputs.
 
@@ -189,6 +190,7 @@ This section is generated from the live `@ontrails/warden` rule manifest. Keep t
 
 - `cli-command-route-coherence`: Keep every CLI command route and alias normalized into one trail contract.
 - `example-valid`: Keep trail examples synchronized with their authored schemas.
+- `library-projection-coherence`: Keep resolved library projection exports collision-free and attached to one trail contract.
 - `no-throw-in-implementation`: Convert thrown failures in blazes into explicit Result.err() outcomes.
 - `no-top-level-surface`: Keep topo entry modules side-effect-free for survey, guide, compile, and lock generation.
 - `permit-governance`: Make destructive trail authorization visible on the trail contract.
