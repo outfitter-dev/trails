@@ -1,7 +1,6 @@
 {
   "name": "@ontrails/library",
   "version": "1.0.0-beta.24",
-  "private": true,
   "files": [
     "src/**/*.ts",
     "!src/**/__tests__/**",

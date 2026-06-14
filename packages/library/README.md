@@ -4,7 +4,7 @@ Render a Trails topo as an idiomatic TypeScript library.
 
 `@ontrails/library` is a peer surface for plain TypeScript consumers. It reads the same contract that CLI, MCP, and HTTP read, then projects that graph into function calls, package-facing errors, schema exports, and generated package files.
 
-The package is still private while the external publishability gate is being finished. The public shape is already dogfooded inside the repo.
+The package is publishable as the runtime dependency for generated Trails libraries. Generated packages can depend on it while keeping their consumer-facing API idiomatic and package-local.
 
 ## API
 
