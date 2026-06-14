@@ -43,11 +43,11 @@ The left side is where the world calls in -- CLI commands, MCP tool calls, HTTP 
 
 ## Core Principles
 
-**The trail is the product, not the surface.** A trail is a typed contract with a Zod schema, `Result` output, error taxonomy, examples, metadata, and a `blaze` that establishes how it runs. CLI commands, MCP tools, and HTTP endpoints are projections of that trail onto surfaces.
+**The trail is the product, not the surface.** A trail is a typed contract with a Zod schema, `Result` output, error taxonomy, examples, metadata, and a `blaze` that establishes how it runs. CLI commands, MCP tools, HTTP endpoints, and plain TypeScript library functions are projections of that trail onto surfaces.
 
 **Drift is structurally harder than alignment.** One schema, one `Result` type, one error taxonomy. You cannot have different parameter names across surfaces because there is only one schema.
 
-**Surfaces are peers.** No surface is privileged. CLI, MCP, HTTP, and WebSocket are all equal adapters reading from the same topo. CLI, MCP, and HTTP ship today; WebSocket is still planned. Adding a surface is a `surface()` call, not an architecture change.
+**Surfaces are peers.** No surface is privileged. CLI, MCP, HTTP, library, and WebSocket are all equal adapters reading from the same topo. CLI, MCP, HTTP, and library ship today; WebSocket is still planned. Adding a surface is a `surface()` call, not an architecture change.
 
 **Blazes are pure functions.** Input in, `Result` out. No `process.exit()`, no `console.log()`, no `req.headers`. The blaze does not know which surface invoked it. Authoring can be sync or async; runtime execution is normalized to one awaitable shape before layers and surfaces run the blazed trail.
 
@@ -80,12 +80,12 @@ These are deterministic transformations from authored information. If the input 
 
 | Authored | Projected |
 | --- | --- |
-| Zod input schema | CLI flags (types, defaults, descriptions), MCP `inputSchema` (JSON Schema) |
-| Trail ID | Full CLI command path (`entity show`, `topo pin`, `topo pin remove`), MCP tool name (`myapp_entity_show`) |
+| Zod input schema | CLI flags (types, defaults, descriptions), MCP `inputSchema` (JSON Schema), library input schemas |
+| Trail ID | Full CLI command path (`entity show`, `topo pin`, `topo pin remove`), MCP tool name (`myapp_entity_show`), library export name (`entityShow`) |
 | `.describe()` on Zod fields | `--help` text, MCP tool descriptions |
 | `intent: 'read'` | MCP `readOnlyHint`, HTTP GET, skip CLI confirmation |
 | `intent: 'write'` / `intent: 'destroy'` | Auto-add `--dry-run` flag on CLI; map HTTP to POST / DELETE |
-| Error taxonomy class | Exit code, HTTP status, JSON-RPC code, retryability |
+| Error taxonomy class | Exit code, HTTP status, JSON-RPC code, library error class, retryability |
 | Examples | Test assertions via `testExamples()`, agent documentation |
 
 ### Enforced — constrained by the type system
@@ -151,6 +151,7 @@ Overrides are escape hatches. They're visible in the TopoGraph as explicit devia
 | `@ontrails/mcp` | MCP tools, annotations, progress bridge, `surface()` | `@modelcontextprotocol/sdk` |
 | `@ontrails/http` | HTTP routes, Web Fetch kernel, Bun-native subpath, and OpenAPI generation | None beyond core |
 | `@ontrails/hono` | Hono adapter, `surface()` | `hono` |
+| `@ontrails/library` | Plain TypeScript library projection, runtime-backed package emitter, `surface()` | None beyond core |
 | `@ontrails/vite` | Vite middleware adapter, `vite()` | None (node:stream only) |
 
 ### Infrastructure Adapters (right side)
@@ -190,6 +191,7 @@ Overrides are escape hatches. They're visible in the TopoGraph as explicit devia
 @ontrails/cli (core)
 @ontrails/mcp (core, @modelcontextprotocol/sdk)
 @ontrails/http (core)
+@ontrails/library (core)
 @ontrails/config (core)
 @ontrails/permits (core)
 @ontrails/store (core)

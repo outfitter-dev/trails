@@ -11,8 +11,8 @@ Core defines ports. Everything on the edges is an adapter.
             |  CLI (commander)   |          |  Resources (core)  |
             |  MCP (sdk)         |          |  Config (config)   |
             |  HTTP (hono/bun)   |          |  Permits (permits) |
-            |  WebSocket (plan.) |          |  Observe (observe) |
-            |                    |          |  Trace state       |
+            |  Library           |          |  Observe (observe) |
+            |  WebSocket (plan.) |          |  Trace state       |
             |                    |          |  (tracing)         |
             |                    |          |  Store (store)     |
             |                    |          |  Drizzle (drizzle) |
@@ -29,7 +29,7 @@ Core defines ports. Everything on the edges is an adapter.
 
 - The trail is the product, not the surface. Surfaces are projections.
 - Drift is structurally harder than alignment — one schema, one Result type, one error taxonomy.
-- Surfaces are peers. CLI, MCP, and HTTP are shipped adapters. Adding a surface is a `surface()` call.
+- Surfaces are peers. CLI, MCP, HTTP, and library are shipped adapters. Adding a surface is a `surface()` call.
 - Blazes are surface-agnostic authored implementations: input in, `Result` out.
 - The contract is machine-readable at runtime via topo, survey, and guide.
 
@@ -51,12 +51,12 @@ Every piece of information has a clear ownership model.
 
 | Authored | Projected to |
 |----------|-------------|
-| Zod input schema | CLI flags, MCP `inputSchema` (JSON Schema) |
-| Trail ID | CLI command path (`entity show`), MCP tool name (`app_entity_show`) |
+| Zod input schema | CLI flags, MCP `inputSchema` (JSON Schema), library input schemas |
+| Trail ID | CLI command path (`entity show`), MCP tool name (`app_entity_show`), library export name (`entityShow`) |
 | `.describe()` on Zod fields | `--help` text, MCP descriptions |
 | `intent: 'read'` | MCP `readOnlyHint`, HTTP GET |
 | `intent: 'destroy'` | Auto-add `--dry-run` flag on CLI, MCP `destructiveHint`, HTTP DELETE |
-| Error taxonomy class | Exit code, HTTP status, JSON-RPC code, retryability |
+| Error taxonomy class | Exit code, HTTP status, JSON-RPC code, library error class, retryability |
 | Examples | Test assertions via `testExamples()`, agent documentation |
 
 ### Enforced — constrained by the type system
@@ -96,6 +96,7 @@ Wayfinder is the first agent navigation move over those saved artifacts. For gra
 | `@ontrails/mcp` | MCP tools, annotations, progress bridge, `surface()` | `@modelcontextprotocol/sdk` |
 | `@ontrails/http` | HTTP routes, Web Fetch kernel, Bun-native subpath, OpenAPI generation | None beyond core |
 | `@ontrails/hono` | Hono adapter, `surface()` | `hono` |
+| `@ontrails/library` | Plain TypeScript library projection, runtime-backed package emitter, `surface()` | None beyond core |
 | `@ontrails/vite` | Vite dev server adapter | None (node:stream only) |
 
 ### Infrastructure Adapters (right side)
@@ -127,6 +128,7 @@ Wayfinder is the first agent navigation move over those saved artifacts. For gra
   <- @ontrails/cli (core)
   <- @ontrails/mcp (core, @modelcontextprotocol/sdk)
   <- @ontrails/http (core)
+  <- @ontrails/library (core)
   <- @ontrails/config (core)
   <- @ontrails/permits (core)
   <- @ontrails/tracing (core)

@@ -3,7 +3,7 @@ slug: library-surface-and-compiler
 title: Library Surface and Compiler
 status: draft
 created: 2026-06-13
-updated: 2026-06-13
+updated: 2026-06-14
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [0, 6, 8, 9, 26, 46]
 ---
@@ -44,15 +44,18 @@ const projection = deriveLibraryApi(graph, options); // LibraryProjection
 // In-memory materialization — a callable client, executed through the shared pipeline
 const client = await surface(graph, options);
 
-// Emitter — a package-shaped TypeScript source tree from the same projection
-await compile(graph, { outDir: '.generated/acme-core', packageName: '@acme/core' });
+// Emitter - a package-shaped TypeScript source tree from the same projection
+const result = compile(graph, {
+  appImportPath: '@acme/app',
+  packageName: '@acme/core',
+});
 ```
 
 Three responsibilities, one resolved projection feeding all of them:
 
 - **`deriveLibraryApi(graph, options)`** — pure projection (no fs/network/db reads), returns the `LibraryProjection` domain noun. The single semantic authority for trail selection, export naming, and collision resolution. The surface and the emitter both consume it; neither reinvents it.
 - **`surface(graph, options)`** — materializes the callable library in-process, executing through the shared pipeline (`executeTrail`, per ADR-0006). Peer grammar with `@ontrails/commander`/`mcp`/`hono`.
-- **`compile(graph, options)`** — writes a package-shaped TypeScript source tree from the resolved projection.
+- **`compile(graph, options)`** — returns a package-shaped TypeScript file plan from the resolved projection. Writing files is a thin apply step outside the compiler.
 
 Public `createLibrary` is **not** part of this ladder. The `createX()` factory (e.g. `createAcmeCore()`) survives only as a *generated consumer-library idiom* — a projected export name recorded in the projection and governed like every other export, never a Trails package helper.
 
@@ -149,7 +152,7 @@ schemas.checkThing.input.parse({ ... });
 // @acme/core/schema.json                            // opt-in: zero-runtime JSON Schema
 ```
 
-The schemas come from the authored trail contract, never regenerated approximations. JSON Schema is a *projection* from the authored Zod, designed up front even if implementation slips a slice — it serves editor tooling, CI, config validation, and non-TypeScript consumers, and Trails itself benefits from cheap publishable contract artifacts. JSON Schema is never a competing source of truth; the Zod schema (via `./schemas`) is authoritative. Packaging shape (single `schema.json` vs per-trail vs both) is a deferred detail; the cheap default path comes first.
+The schemas come from the authored trail contract, never regenerated approximations. The current emitter writes named Zod schema exports in `./schemas` and a `schemas` object keyed by generated export name. JSON Schema is a *projection* from the authored Zod, designed up front even if implementation slips a slice. It serves editor tooling, CI, config validation, and non-TypeScript consumers, and Trails itself benefits from cheap publishable contract artifacts. JSON Schema is never a competing source of truth; the Zod schema (via `./schemas`) is authoritative. Packaging shape (single `schema.json` vs per-trail vs both) is a deferred detail.
 
 ### v0 package shape: subpaths
 
@@ -175,6 +178,17 @@ The generated package is one package with subpath exports — no sibling package
 The resolved `LibraryProjection` — every export name, its source (derived / trail-owned hint / package config), its target trail ID, and every collision decision — is graph content, governed like the rest of the resolved topo artifact family (ADR-0046): manifest-verified, CI-diffable, queryable by Topographer, Wayfinder, and Warden. The emitter consumes it; it does not privately invent it.
 
 The projection embeds in `topo.lock` as part of `TopoGraph`. That follows the existing precedent for resolved surface projections rather than introducing a separate hashed artifact role for one surface. Topographer serializes the durable facts (exports, exclusions, collisions, schemas, resources, version, and source metadata); `@ontrails/library` keeps the richer runtime Zod references for in-memory calls and package emission.
+
+### Current governance and dogfood proof
+
+The first implementation slices intentionally prove the surface through both artifact governance and a real generated-package consumer:
+
+- Topographer embeds durable `TopoGraph.library` facts.
+- Warden's `library-projection-coherence` rule checks that serialized library exports still target known trails and that export-name collisions stay visible.
+- `bun run library:smoke` typechecks and dry-run packs a generated fixture package.
+- `bun run library:dogfood:warden` compiles the Warden topo into a generated package, typechecks it, runs root/result/schemas/trails subpath consumer assertions, and dry-run packs it.
+
+That dogfood intentionally exercises a repo-owned topo with many rule trails. It also exercises explicit source trail type bindings for generated public signatures, rather than pretending `topo.lock` preserves erased TypeScript generic information.
 
 ### The binary runtime, designed not built
 
