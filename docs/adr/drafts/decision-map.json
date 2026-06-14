@@ -57,11 +57,6 @@
           "context": "- docs/adr/drafts/20260331-packs-namespace-boundaries.md",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-pack-resources.md"
-        },
-        {
-          "context": "- docs/adr/drafts/20260331-packs-namespace-boundaries.md",
-          "from": "20260401",
-          "fromPath": "docs/adr/drafts/20260401-compiled-pack-trailhead.md"
         }
       ],
       "number": null,
@@ -91,19 +86,6 @@
       "superseded_by": null,
       "title": "WebSocket Trailhead",
       "updated": "2026-04-09"
-    },
-    {
-      "created": "2026-04-01",
-      "depends_on": ["6", "8", "9", "23"],
-      "inbound": [],
-      "number": null,
-      "owners": ["[galligan](https://github.com/galligan)"],
-      "path": "docs/adr/drafts/20260401-compiled-pack-trailhead.md",
-      "slug": "compiled-pack-trailhead",
-      "status": "draft",
-      "superseded_by": null,
-      "title": "Compiled Pack Trailhead",
-      "updated": "2026-04-02"
     },
     {
       "created": "2026-04-01",
@@ -184,11 +166,6 @@
           "context": "- [ADR: Resource Bundles](20260409-resource-bundles.md) (draft) -- the bundling mechanism for pack and connector resources; packs distribute bundles",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-packs-namespace-boundaries.md"
-        },
-        {
-          "context": "- [ADR: Resource Bundles](20260409-resource-bundles.md) (draft) -- the bundling mechanism for resources; compiled packs project bundles into constructor parameters",
-          "from": "20260401",
-          "fromPath": "docs/adr/drafts/20260401-compiled-pack-trailhead.md"
         }
       ],
       "number": null,
@@ -296,6 +273,19 @@
       "superseded_by": null,
       "title": "Release Provenance as Lifecycle Projection",
       "updated": "2026-06-09"
+    },
+    {
+      "created": "2026-06-13",
+      "depends_on": ["0", "6", "8", "9", "26", "46"],
+      "inbound": [],
+      "number": null,
+      "owners": ["[galligan](https://github.com/galligan)"],
+      "path": "docs/adr/drafts/20260612-library-surface-and-compiler.md",
+      "slug": "library-surface-and-compiler",
+      "status": "draft",
+      "superseded_by": null,
+      "title": "Library Surface and Compiler",
+      "updated": "2026-06-13"
     },
     {
       "created": "2026-06-12",

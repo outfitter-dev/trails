@@ -21,8 +21,6 @@ Draft map: `docs/adr/drafts/decision-map.json`; numbered map: `docs/adr/decision
 
 ## 2026-04
 
-- [Compiled Pack Trailhead](20260401-compiled-pack-trailhead.md)
-  - depends on [ADR-0006: Shared Execution Pipeline with Result-Returning Builders](../0006-shared-execution-pipeline.md), [ADR-0008: Deterministic Surface Derivation](../0008-deterministic-trailhead-derivation.md), [ADR-0009: First-Class Resources](../0009-first-class-resources.md), [ADR-0023: Simplifying the Trails Lexicon](../0023-simplifying-the-trails-lexicon.md)
 - [Declarative Search](20260401-declarative-search.md)
   - depends on [ADR-0009: First-Class Resources](../0009-first-class-resources.md), [ADR-0016: Schema-Derived Persistence](../0016-schema-derived-persistence.md)
 - [Documentation freshness SLAs](20260406-documentation-freshness.md)
@@ -50,6 +48,8 @@ Draft map: `docs/adr/drafts/decision-map.json`; numbered map: `docs/adr/decision
   - depends on [ADR-0000: Core Premise — Contract-First, Surface-Agnostic Design](../0000-core-premise.md), [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md), [ADR-0027: Trail Visibility and Surface Filtering](../0027-visibility-and-filtering.md), [ADR-0035: Surface APIs Render the Graph](../0035-surface-apis-render-the-graph.md), [ADR-0042: Core/Topographer Boundary Doctrine](../0042-core-topographer-boundary-doctrine.md), [ADR-0046: Lock v3 Artifact Family](../0046-lock-v3-artifact-family.md)
 - [Release Provenance as Lifecycle Projection](20260608-release-provenance-as-lifecycle-projection.md)
   - depends on [ADR-0047: Stable Release Line Discipline](../0047-stable-release-line-discipline.md), [ADR-0048: Trail Versioning v3](../0048-trail-versioning-v3.md)
+- [Library Surface and Compiler](20260612-library-surface-and-compiler.md)
+  - depends on [ADR-0000: Core Premise — Contract-First, Surface-Agnostic Design](../0000-core-premise.md), [ADR-0006: Shared Execution Pipeline with Result-Returning Builders](../0006-shared-execution-pipeline.md), [ADR-0008: Deterministic Surface Derivation](../0008-deterministic-trailhead-derivation.md), [ADR-0009: First-Class Resources](../0009-first-class-resources.md), [ADR-0026: Error Taxonomy as Transport-Independent Behavior Contract](../0026-error-taxonomy-as-transport-independent-behavior-contract.md), [ADR-0046: Lock v3 Artifact Family](../0046-lock-v3-artifact-family.md)
 - [Verdicts Run on Stable Ground](20260612-verdicts-run-on-stable-ground.md)
   - depends on [ADR-0000: Core Premise — Contract-First, Surface-Agnostic Design](../0000-core-premise.md), [ADR-0026: Error Taxonomy as Transport-Independent Behavior Contract](../0026-error-taxonomy-as-transport-independent-behavior-contract.md)
 - [CLI Command Routes Normalize Into Trail Contracts](20260613-cli-command-routes.md)
