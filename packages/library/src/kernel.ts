@@ -18,17 +18,30 @@
  * emitter lanes land. Keep it minimal and dependency-light on purpose.
  */
 import { run } from '@ontrails/core';
-import type { Result, Topo, TrailContextInit } from '@ontrails/core';
+import type {
+  Result,
+  RunOptions,
+  Topo,
+  TrailContextInit,
+} from '@ontrails/core';
 
 export type { Result, Topo, TrailContextInit };
 
-/** Runtime options the kernel forwards to execution (permit, abort, etc.). */
-export interface KernelRunOptions {
-  /** Partial context merged on top of the base context (e.g. `{ permit }`). */
-  readonly ctx?: Partial<TrailContextInit> | undefined;
-  /** Abort signal for the execution. */
-  readonly abortSignal?: AbortSignal | undefined;
-}
+/** Runtime options the kernel forwards to execution (permit, abort, layers, etc.). */
+export type KernelRunOptions = Pick<
+  RunOptions,
+  | 'abortSignal'
+  | 'configValues'
+  | 'createContext'
+  | 'ctx'
+  | 'dryRun'
+  | 'layerInputs'
+  | 'permit'
+  | 'resources'
+  | 'surfaceLayers'
+  | 'topoLayers'
+  | 'version'
+>;
 
 /**
  * Execute a trail by id through the shared Trails pipeline. Never throws —

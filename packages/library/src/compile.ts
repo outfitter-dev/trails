@@ -141,8 +141,15 @@ const resolveTypeBindings = (
   return bindings;
 };
 
-const inputTypeFor = (entry: LibraryExport, bindings: TypeBindings): string =>
-  bindings.get(entry.trailId)?.input ?? 'unknown';
+const inputTypeFor = (entry: LibraryExport, bindings: TypeBindings): string => {
+  const input = bindings.get(entry.trailId)?.input;
+  if (entry.layerInputs.length === 0) {
+    return input ?? 'unknown';
+  }
+  return input === undefined
+    ? 'Record<string, unknown>'
+    : `${input} & Record<string, unknown>`;
+};
 
 const outputTypeFor = (entry: LibraryExport, bindings: TypeBindings): string =>
   bindings.get(entry.trailId)?.output ?? 'unknown';
@@ -194,6 +201,7 @@ const statelessFunction = (
     `export const ${entry.exportName} = (`,
     `  input: ${inputTypeFor(entry, bindings)}`,
     `): Promise<${outputTypeFor(entry, bindings)}> =>`,
+    '  // The runtime validates declared output schemas before this unwrap returns.',
     `  rootClient.call.${entry.exportName}(input) as Promise<${outputTypeFor(entry, bindings)}>;`,
   ].join('\n');
 
@@ -209,27 +217,23 @@ const factoryMethod = (entry: LibraryExport, bindings: TypeBindings): string =>
     `    ${entry.exportName}: (`,
     `      input: ${inputTypeFor(entry, bindings)}`,
     `    ): Promise<${outputTypeFor(entry, bindings)}> =>`,
+    '      // The runtime validates declared output schemas before this unwrap returns.',
     `      client.call.${entry.exportName}(input) as Promise<${outputTypeFor(entry, bindings)}>,`,
   ].join('\n');
 
 const generateIndex = (
   projection: LibraryProjection,
-  options: CompileOptions,
   bindings: TypeBindings
 ): string => {
-  const appExport = options.appExportName ?? 'app';
   const stateless = statelessExports(projection);
   const resourceful = resourceExports(projection);
   const typedSchemas = schemaTypeImport(projection, bindings);
 
   const parts: string[] = [
-    "import { surface } from '@ontrails/library';",
     "import type { SurfaceLibraryOptions } from '@ontrails/library';",
     ...(typedSchemas ? [typedSchemas] : []),
     '',
-    `import { ${appExport} } from '${options.appImportPath}';`,
-    '',
-    `const rootClient = await surface(${appExport});`,
+    "import { createClient, rootClient } from './client.js';",
   ];
 
   for (const entry of stateless) {
@@ -242,7 +246,7 @@ const generateIndex = (
       `export const ${factoryName(projection)} = async (`,
       '  options: SurfaceLibraryOptions = {}',
       ') => {',
-      `  const client = await surface(${appExport}, options);`,
+      '  const client = await createClient(options);',
       '  return {',
       resourceful.map((entry) => factoryMethod(entry, bindings)).join('\n'),
       '  };',
@@ -252,6 +256,19 @@ const generateIndex = (
 
   return `${parts.join('\n')}\n`;
 };
+
+const generateClient = (): string =>
+  [
+    "import { surface } from '@ontrails/library';",
+    "import type { SurfaceLibraryOptions } from '@ontrails/library';",
+    '',
+    `import { app } from './trails.js';`,
+    '',
+    'export const rootClient = await surface(app);',
+    'export const createClient = (options: SurfaceLibraryOptions = {}) =>',
+    '  surface(app, options);',
+    '',
+  ].join('\n');
 
 const generateSchemas = (
   projection: LibraryProjection,
@@ -264,13 +281,15 @@ const generateSchemas = (
   );
   const sourceTypeExports = [
     ...new Set(
-      typedEntries.map(
-        (entry) => bindings.get(entry.trailId)?.sourceExport ?? ''
-      )
+      typedEntries.map((entry) => {
+        const binding = bindings.get(entry.trailId);
+        if (binding === undefined) {
+          throw new Error(`missing type binding for trail "${entry.trailId}"`);
+        }
+        return binding.sourceExport;
+      })
     ),
-  ]
-    .filter((name) => name.length > 0)
-    .toSorted((left, right) => left.localeCompare(right));
+  ].toSorted((left, right) => left.localeCompare(right));
   const lines = [
     `import { ${appExport} } from './trails.js';`,
     "import { deriveLibraryApi } from '@ontrails/library';",
@@ -353,6 +372,7 @@ const resultStatelessFunction = (
     `export const ${entry.exportName} = (`,
     `  input: ${inputTypeFor(entry, bindings)}`,
     `): Promise<Result<${outputTypeFor(entry, bindings)}, LibraryError>> =>`,
+    '  // The runtime validates declared output schemas before this Result resolves.',
     `  resultClient.result.${entry.exportName}(input) as Promise<Result<${outputTypeFor(entry, bindings)}, LibraryError>>;`,
   ].join('\n');
 
@@ -371,27 +391,27 @@ const resultFactoryMethod = (
     `    ${entry.exportName}: (`,
     `      input: ${inputTypeFor(entry, bindings)}`,
     `    ): Promise<Result<${outputTypeFor(entry, bindings)}, LibraryError>> =>`,
+    '      // The runtime validates declared output schemas before this Result resolves.',
     `      client.result.${entry.exportName}(input) as Promise<Result<${outputTypeFor(entry, bindings)}, LibraryError>>,`,
   ].join('\n');
 
 const generateResult = (
   projection: LibraryProjection,
-  options: CompileOptions,
   bindings: TypeBindings
 ): string => {
-  const appExport = options.appExportName ?? 'app';
   const stateless = statelessExports(projection);
   const resourceful = resourceExports(projection);
   const typedSchemas = schemaTypeImport(projection, bindings);
   const parts = [
     '// No-throw API: returns the Result envelope instead of unwrapping.',
-    "import { runLibraryResult, surface } from '@ontrails/library';",
+    "import { runLibraryResult } from '@ontrails/library';",
     "import type { LibraryError, Result, SurfaceLibraryOptions } from '@ontrails/library';",
     ...(typedSchemas ? [typedSchemas] : []),
     '',
-    `import { ${appExport} } from '${options.appImportPath}';`,
+    "import { createClient, rootClient } from './client.js';",
+    "import { app } from './trails.js';",
     '',
-    `const resultClient = await surface(${appExport});`,
+    'const resultClient = rootClient;',
   ];
 
   for (const entry of stateless) {
@@ -404,7 +424,7 @@ const generateResult = (
       `export const ${factoryName(projection)} = async (`,
       '  options: SurfaceLibraryOptions = {}',
       ') => {',
-      `  const client = await surface(${appExport}, options);`,
+      '  const client = await createClient(options);',
       '  return {',
       resourceful
         .map((entry) => resultFactoryMethod(entry, bindings))
@@ -420,7 +440,7 @@ const generateResult = (
     '  id: string,',
     '  input: unknown,',
     '  options: SurfaceLibraryOptions = {}',
-    `) => runLibraryResult(${appExport}, id, input, options);`,
+    ') => runLibraryResult(app, id, input, options);',
     ''
   );
 
@@ -435,7 +455,6 @@ const generateTsconfig = (): string =>
         moduleResolution: 'bundler',
         strict: true,
         target: 'esnext',
-        types: ['bun'],
       },
       include: ['src'],
     },
@@ -466,11 +485,15 @@ export const compile = (
     { content: generatePackageJson(options), path: 'package.json' },
     { content: generateTsconfig(), path: 'tsconfig.json' },
     {
-      content: generateIndex(projection, options, typeBindings),
+      content: generateClient(),
+      path: 'src/client.ts',
+    },
+    {
+      content: generateIndex(projection, typeBindings),
       path: 'src/index.ts',
     },
     {
-      content: generateResult(projection, options, typeBindings),
+      content: generateResult(projection, typeBindings),
       path: 'src/result.ts',
     },
     {

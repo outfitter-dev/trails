@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 
 import { LibraryError, LibraryNotFoundError } from '../errors.js';
-import { surface } from '../surface.js';
+import { runLibraryResult, surface } from '../surface.js';
 import type {
   LibraryClient,
   LibraryMethod,
@@ -39,6 +39,7 @@ describe('library surface', () => {
     const lib = await surface(fixtureApp, surfaceOptions);
     expect(Object.keys(lib.call).toSorted()).toEqual([
       'widgetAdd',
+      'widgetAudited',
       'widgetCheck',
       'widgetGet',
       'widgetGreet',
@@ -94,6 +95,51 @@ describe('library surface', () => {
     expect(await requireMethod(lib, 'widgetCheck')({ name: '' })).toEqual({
       issues: ['name is empty'],
       status: 'fail',
+    });
+  });
+
+  test('projects and routes typed layer inputs through the library call', async () => {
+    const lib = await surface(fixtureApp, surfaceOptions);
+
+    await expect(
+      requireMethod(
+        lib,
+        'widgetAudited'
+      )({
+        auditMessage: 42,
+        auditToken: 'secret',
+        message: 'hello',
+      })
+    ).rejects.toThrow('Invalid input');
+
+    await expect(
+      requireMethod(
+        lib,
+        'widgetAudited'
+      )({
+        auditMessage: 'logged',
+        auditToken: 'secret',
+        message: 'hello',
+      })
+    ).resolves.toEqual({
+      auditMessage: 'logged',
+      auditToken: 'secret',
+      message: 'hello',
+    });
+  });
+
+  test('direct Result helper applies the same layer input projection', async () => {
+    const result = await runLibraryResult(fixtureApp, 'widget.audited', {
+      auditMessage: 'logged',
+      auditToken: 'secret',
+      message: 'hello',
+    });
+
+    expect(result.isOk()).toBe(true);
+    expect(result.value).toEqual({
+      auditMessage: 'logged',
+      auditToken: 'secret',
+      message: 'hello',
     });
   });
 

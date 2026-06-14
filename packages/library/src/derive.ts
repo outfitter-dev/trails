@@ -8,8 +8,11 @@
  * selection. Pure — no fs/network/db reads (derive* purity contract).
  */
 import { filterSurfaceTrails, isDraftId } from '@ontrails/core';
-import type { Topo, Trail } from '@ontrails/core';
+import type { Layer, Topo, Trail } from '@ontrails/core';
 import type { ZodType } from 'zod';
+
+import { projectLibraryInput } from './layer-input.js';
+import type { LibraryLayerInputProjection } from './layer-input.js';
 
 type AnyTrail = Trail<unknown, unknown, unknown>;
 
@@ -39,6 +42,8 @@ export interface LibraryExport {
    * the projection is persisted to the artifact family.
    */
   readonly input: ZodType;
+  /** Layer input routing projected onto this export's public library input. */
+  readonly layerInputs: readonly LibraryLayerInputProjection[];
   /** Output schema reference, when the trail declares one. */
   readonly output: ZodType | undefined;
   /**
@@ -92,6 +97,8 @@ export interface DeriveLibraryApiOptions {
   readonly include?: readonly string[];
   /** Exclude patterns. */
   readonly exclude?: readonly string[];
+  /** Surface-scope layers to project alongside each trail's own input. */
+  readonly layers?: readonly Layer[] | undefined;
 }
 
 /**
@@ -176,11 +183,13 @@ export const deriveLibraryApi = (
       continue;
     }
     namesToTrailIds.set(exportName, [trail.id]);
+    const inputProjection = projectLibraryInput(graph, trail, options.layers);
     exports.push({
       description: trail.description,
       exportName,
-      input: trail.input,
+      input: inputProjection.input,
       intent: trail.intent,
+      layerInputs: inputProjection.layers,
       nameSource: 'derived',
       output: trail.output,
       resources: trail.resources.map((resource) => resource.id),

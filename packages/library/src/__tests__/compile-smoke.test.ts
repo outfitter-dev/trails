@@ -117,8 +117,15 @@ describe('generated library package smoke', () => {
         result.files.find((file) => file.path === 'package.json')?.content ??
           '{}'
       ) as { readonly dependencies?: Record<string, string> };
+      const tsconfig = JSON.parse(
+        result.files.find((file) => file.path === 'tsconfig.json')?.content ??
+          '{}'
+      ) as {
+        readonly compilerOptions?: { readonly types?: readonly string[] };
+      };
       expect(JSON.stringify(manifest)).not.toContain('workspace:');
       expect(JSON.stringify(manifest)).not.toContain('catalog:');
+      expect(tsconfig.compilerOptions?.types).toBeUndefined();
 
       await run(['tsc', '-p', 'tsconfig.json', '--noEmit'], packageRoot);
       const pack = await run(['bun', 'pm', 'pack', '--dry-run'], packageRoot);

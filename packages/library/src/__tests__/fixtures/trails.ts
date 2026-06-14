@@ -4,7 +4,15 @@
  * resource-free or happy-path-only assumptions. Each trail exercises one
  * projection path the foundation must prove.
  */
-import { NotFoundError, Result, resource, signal, trail } from '@ontrails/core';
+import {
+  LAYER_INPUTS_KEY,
+  NotFoundError,
+  Result,
+  resource,
+  signal,
+  trail,
+} from '@ontrails/core';
+import type { Layer } from '@ontrails/core';
 import { z } from 'zod';
 
 // --- resource with a mock factory (testAll works without configuration) ---
@@ -174,6 +182,52 @@ export const greet = trail('widget.greet', {
       status: { state: 'archived' },
     },
   },
+});
+
+export const auditLayer: Layer = {
+  input: z.object({
+    message: z.string().default('default audit'),
+    token: z.string().default('default token'),
+  }),
+  name: 'audit',
+  wrap: (_trail, implementation) => async (input, ctx) =>
+    await implementation(input, ctx),
+};
+
+// --- typed layer input: library projects and routes layer fields ---
+
+export const audited = trail('widget.audited', {
+  blaze: (input, ctx) => {
+    const layers = ctx.extensions?.[LAYER_INPUTS_KEY] as
+      | Record<string, { readonly message?: string; readonly token?: string }>
+      | undefined;
+    return Result.ok({
+      auditMessage: layers?.['audit']?.message,
+      auditToken: layers?.['audit']?.token,
+      message: input.message,
+    });
+  },
+  description:
+    'Audited widget call; proves library projection includes typed layer inputs.',
+  examples: [
+    {
+      expected: {
+        auditMessage: 'default audit',
+        auditToken: 'default token',
+        message: 'hello',
+      },
+      input: { message: 'hello' },
+      name: 'audited',
+    },
+  ],
+  input: z.object({ message: z.string() }),
+  intent: 'read',
+  layers: [auditLayer],
+  output: z.object({
+    auditMessage: z.string(),
+    auditToken: z.string(),
+    message: z.string(),
+  }),
 });
 
 // --- internal visibility: MUST be excluded from the projection ---

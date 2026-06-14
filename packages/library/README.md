@@ -37,6 +37,8 @@ Generated packages use one package with subpath exports:
 
 Stateless trails project to root named exports. Resource-bearing trails project behind a generated `createX(options)` factory so callers can provide resource configuration once and call several related methods from the same client.
 
+Generated root and `/result` subpaths share one internal client module, so importing both subpaths does not open separate root library surfaces.
+
 ## Typed signatures
 
 Topo artifacts carry durable contract facts, but they do not preserve erased source-level TypeScript generics. Generated packages therefore stay honest by defaulting method signatures to `unknown` unless the caller binds a projected trail id to the source trail export that owns its schema types:
@@ -54,6 +56,8 @@ const files = compile(app, {
 ```
 
 With that binding, `/schemas` emits aliases such as `WidgetPingInput = TrailInput<typeof pingTrail>` and the root and `/result` subpaths use those aliases in their public signatures.
+
+Typed layer inputs are projected into the same public method input object as trail fields. When a layer field collides with a trail field or reserved surface name, the generated library input uses the same deterministic `<layerName><Field>` rename rule as other object-shaped surfaces. Runtime calls validate the projected input, strip layer-owned fields before trail validation, and route them to the layer's own input slot. When a source trail type binding is provided, generated signatures widen layer-projected inputs with `Record<string, unknown>` until layer input type exports have a source-level owner.
 
 ## Errors
 

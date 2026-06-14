@@ -11,19 +11,28 @@
  * `result` lane with the same export names so downstream package emission can
  * map that lane to the generated `/result` subpath.
  */
+import { Result, ValidationError } from '@ontrails/core';
+
 import { deriveLibraryApi } from './derive.js';
-import type { DeriveLibraryApiOptions, LibraryProjection } from './derive.js';
+import type {
+  DeriveLibraryApiOptions,
+  LibraryExport,
+  LibraryProjection,
+} from './derive.js';
 import { toLibraryError } from './errors.js';
 import type { LibraryError } from './errors.js';
+import { partitionLibraryInput } from './layer-input.js';
 import { kernelRun } from './kernel.js';
-import type { KernelRunOptions, Result, Topo } from './kernel.js';
+import type { KernelRunOptions, Topo } from './kernel.js';
 
 /**
  * Options for the in-memory library surface: projection selectors plus the
  * runtime context the client owns (e.g. a permit for permitted trails).
  */
 export interface SurfaceLibraryOptions
-  extends DeriveLibraryApiOptions, KernelRunOptions {}
+  extends
+    DeriveLibraryApiOptions,
+    Omit<KernelRunOptions, 'layerInputs' | 'surfaceLayers' | 'topoLayers'> {}
 
 /** A callable library method: validated input in, output out, throws on failure. */
 export type LibraryMethod = (input: unknown) => Promise<unknown>;
@@ -43,13 +52,67 @@ export interface LibraryClient {
   readonly projection: LibraryProjection;
 }
 
+const prepareLibraryInput = (
+  entry: LibraryExport,
+  input: unknown
+):
+  | {
+      readonly layerInputs: Record<string, unknown>;
+      readonly trailInput: unknown;
+    }
+  | ValidationError => {
+  const parsed = entry.input.safeParse(input);
+  if (!parsed.success) {
+    return new ValidationError(
+      `Invalid input for library export '${entry.exportName}': ${parsed.error.message}`,
+      {
+        cause: parsed.error,
+        context: { issues: parsed.error.issues, trailId: entry.trailId },
+      }
+    );
+  }
+  return partitionLibraryInput(parsed.data, entry.layerInputs);
+};
+
+const runtimeOptionsFor = (
+  graph: Topo,
+  options: SurfaceLibraryOptions
+): KernelRunOptions => ({
+  abortSignal: options.abortSignal,
+  configValues: options.configValues,
+  createContext: options.createContext,
+  ctx: options.ctx,
+  dryRun: options.dryRun,
+  permit: options.permit,
+  resources: options.resources,
+  surfaceLayers: options.layers,
+  topoLayers: graph.layers,
+  version: options.version,
+});
+
 export const runLibraryResult = async (
   graph: Topo,
   id: string,
   input: unknown,
-  options: KernelRunOptions = {}
+  options: SurfaceLibraryOptions = {}
 ): Promise<Result<unknown, LibraryError>> => {
-  const outcome = await kernelRun(graph, id, input, options);
+  const projection = deriveLibraryApi(graph, options);
+  const runOptions = runtimeOptionsFor(graph, options);
+  const entry = projection.exports.find(
+    (candidate) => candidate.trailId === id
+  );
+  const prepared = entry
+    ? prepareLibraryInput(entry, input)
+    : { layerInputs: {}, trailInput: input };
+  if (prepared instanceof ValidationError) {
+    return Result.err(toLibraryError(prepared));
+  }
+  const outcome = await kernelRun(graph, id, prepared.trailInput, {
+    ...runOptions,
+    ...(Object.keys(prepared.layerInputs).length === 0
+      ? {}
+      : { layerInputs: prepared.layerInputs }),
+  });
   return outcome.mapErr(toLibraryError);
 };
 
@@ -70,16 +133,29 @@ export const surface = async (
   // oxlint-disable-next-line require-await -- async to match peer surfaces and allow future resource init
 ): Promise<LibraryClient> => {
   const projection = deriveLibraryApi(graph, options);
-  const runOptions: KernelRunOptions = {
-    abortSignal: options.abortSignal,
-    ctx: options.ctx,
-  };
+  const runOptions = runtimeOptionsFor(graph, options);
   const call: Record<string, LibraryMethod> = {};
   const result: Record<string, LibraryResultMethod> = {};
 
   for (const entry of projection.exports) {
-    const runExport: LibraryResultMethod = (input: unknown) =>
-      runLibraryResult(graph, entry.trailId, input, runOptions);
+    const runExport: LibraryResultMethod = async (input: unknown) => {
+      const prepared = prepareLibraryInput(entry, input);
+      if (prepared instanceof ValidationError) {
+        return Result.err(toLibraryError(prepared));
+      }
+      const outcome = await kernelRun(
+        graph,
+        entry.trailId,
+        prepared.trailInput,
+        {
+          ...runOptions,
+          ...(Object.keys(prepared.layerInputs).length === 0
+            ? {}
+            : { layerInputs: prepared.layerInputs }),
+        }
+      );
+      return outcome.mapErr(toLibraryError);
+    };
     result[entry.exportName] = runExport;
 
     call[entry.exportName] = async (input: unknown): Promise<unknown> => {

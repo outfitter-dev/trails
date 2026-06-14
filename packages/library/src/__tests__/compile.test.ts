@@ -23,6 +23,7 @@ describe('compile', () => {
     const result = compile(fixtureApp, options);
     expect(result.files.map((file) => file.path).toSorted()).toEqual([
       'package.json',
+      'src/client.ts',
       'src/index.ts',
       'src/result.ts',
       'src/schemas.ts',
@@ -71,30 +72,41 @@ describe('compile', () => {
     expect(index).toContain('export const widgetPing = (\n  input: unknown');
     expect(index).toContain('export const widgetCheck = (\n  input: unknown');
     expect(index).toContain('export const widgetGreet = (\n  input: unknown');
+    expect(index).toContain(
+      'export const widgetAudited = (\n  input: Record<string, unknown>'
+    );
+    expect(index).toContain(
+      'The runtime validates declared output schemas before this unwrap returns.'
+    );
     // Resource-bearing trails project behind a createX factory.
     expect(index).toContain('import type { SurfaceLibraryOptions }');
-    expect(index).toContain('const rootClient = await surface(fixtureApp);');
+    expect(index).toContain(
+      "import { createClient, rootClient } from './client.js';"
+    );
     expect(index).toContain('export const createLibraryFixture = async (');
     expect(index).toContain('options: SurfaceLibraryOptions = {}');
-    expect(index).toContain(
-      'const client = await surface(fixtureApp, options);'
-    );
+    expect(index).toContain('const client = await createClient(options);');
     expect(index).toContain('Get a widget by id.');
     expect(index).toContain('widgetGet: (\n      input: unknown');
     expect(index).toContain('widgetAdd: (\n      input: unknown');
-    // The generated code imports the source topo by the configured specifier.
-    expect(index).toContain("import { fixtureApp } from '@fixture/app';");
+    // The generated client shares one held surface through the local topo subpath.
+    expect(
+      fileContent(compile(fixtureApp, options), 'src/client.ts')
+    ).toContain("import { app } from './trails.js';");
   });
 
   test('result subpath mirrors exports as no-throw methods', () => {
     const result = fileContent(compile(fixtureApp, options), 'src/result.ts');
     expect(result).toContain(
-      "import { runLibraryResult, surface } from '@ontrails/library';"
+      "import { runLibraryResult } from '@ontrails/library';"
     );
     expect(result).toContain(
       'import type { LibraryError, Result, SurfaceLibraryOptions }'
     );
-    expect(result).toContain('const resultClient = await surface(fixtureApp);');
+    expect(result).toContain(
+      "import { createClient, rootClient } from './client.js';"
+    );
+    expect(result).toContain('const resultClient = rootClient;');
     expect(result).toContain('export const widgetPing = (');
     expect(result).toContain(
       'Returns the raw Result boundary for trail `widget.ping`.'
@@ -103,10 +115,19 @@ describe('compile', () => {
     expect(result).toContain(
       'resultClient.result.widgetPing(input) as Promise<Result<unknown, LibraryError>>;'
     );
+    expect(result).toContain('input: Record<string, unknown>');
     expect(result).toContain('export const createLibraryFixture = async (');
     expect(result).toContain('client.result.widgetGet(input)');
-    expect(result).toContain(
-      ') => runLibraryResult(fixtureApp, id, input, options);'
+    expect(result).toContain(') => runLibraryResult(app, id, input, options);');
+  });
+
+  test('client module owns the generated surface initialization', () => {
+    const client = fileContent(compile(fixtureApp, options), 'src/client.ts');
+    expect(client).toContain("import { surface } from '@ontrails/library';");
+    expect(client).toContain("import { app } from './trails.js';");
+    expect(client).toContain('export const rootClient = await surface(app);');
+    expect(client).toContain(
+      'export const createClient = (options: SurfaceLibraryOptions = {}) =>'
     );
   });
 
@@ -118,6 +139,9 @@ describe('compile', () => {
     );
     expect(schemas).toContain(
       'export const widgetPingInputSchema = requireExport'
+    );
+    expect(schemas).toContain(
+      'export const widgetAuditedInputSchema = requireExport'
     );
     expect(schemas).toContain(
       'export const widgetPingOutputSchema = requireExport'
@@ -170,6 +194,7 @@ describe('compile', () => {
     );
     expect(index).toContain('input: WidgetGetInput');
     expect(index).toContain('): Promise<WidgetGetOutput> =>');
+    expect(index).toContain('input: Record<string, unknown>');
 
     const result = fileContent(typed, 'src/result.ts');
     expect(result).toContain('input: WidgetPingInput');
@@ -208,7 +233,7 @@ describe('compile', () => {
 
   test('carries the resolved projection on the result', () => {
     const result = compile(fixtureApp, options);
-    expect(result.projection.exports).toHaveLength(5);
+    expect(result.projection.exports).toHaveLength(6);
     expect(result.projection.app).toBe('library-fixture');
   });
 });

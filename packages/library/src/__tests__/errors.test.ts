@@ -1,31 +1,72 @@
 import { describe, expect, test } from 'bun:test';
 
 import {
+  AuthError,
+  CancelledError,
+  ConflictError,
   InternalError,
   NetworkError,
   NotFoundError,
+  PermissionError,
+  RateLimitError,
+  TimeoutError,
   ValidationError,
+  WorkspaceShiftError,
 } from '@ontrails/core';
 
 import {
+  LibraryAuthError,
+  LibraryCancelledError,
+  LibraryConflictError,
   LibraryInternalError,
   LibraryNetworkError,
   LibraryNotFoundError,
+  LibraryPermissionError,
+  LibraryRateLimitError,
+  LibraryShiftError,
+  LibraryTimeoutError,
   LibraryValidationError,
   toLibraryError,
 } from '../errors.js';
 
 describe('library error mapping', () => {
   test('maps TrailsError categories to package-facing error classes', () => {
-    expect(toLibraryError(new ValidationError('bad'))).toBeInstanceOf(
-      LibraryValidationError
-    );
-    expect(toLibraryError(new NotFoundError('missing'))).toBeInstanceOf(
-      LibraryNotFoundError
-    );
-    expect(toLibraryError(new NetworkError('offline'))).toBeInstanceOf(
-      LibraryNetworkError
-    );
+    const cases = [
+      {
+        ErrorClass: LibraryValidationError,
+        error: new ValidationError('bad'),
+      },
+      {
+        ErrorClass: LibraryNotFoundError,
+        error: new NotFoundError('missing'),
+      },
+      { ErrorClass: LibraryConflictError, error: new ConflictError('dupe') },
+      {
+        ErrorClass: LibraryPermissionError,
+        error: new PermissionError('denied'),
+      },
+      { ErrorClass: LibraryTimeoutError, error: new TimeoutError('slow') },
+      {
+        ErrorClass: LibraryRateLimitError,
+        error: new RateLimitError('wait'),
+      },
+      { ErrorClass: LibraryNetworkError, error: new NetworkError('offline') },
+      {
+        ErrorClass: LibraryShiftError,
+        error: new WorkspaceShiftError('workspace moved'),
+      },
+      { ErrorClass: LibraryInternalError, error: new InternalError('boom') },
+      { ErrorClass: LibraryAuthError, error: new AuthError('login') },
+      { ErrorClass: LibraryCancelledError, error: new CancelledError('stop') },
+    ] as const;
+
+    for (const { ErrorClass, error } of cases) {
+      const mapped = toLibraryError(error);
+      expect(mapped).toBeInstanceOf(ErrorClass);
+      expect(mapped.category).toBe(error.category);
+      expect(mapped.retryable).toBe(error.retryable);
+      expect(mapped.originalName).toBe(error.name);
+    }
   });
 
   test('preserves category, retryability, and original Trails error name', () => {

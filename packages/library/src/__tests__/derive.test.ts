@@ -11,6 +11,7 @@ describe('deriveLibraryApi', () => {
     expect(projection.app).toBe('library-fixture');
     expect(projection.exports.map((entry) => entry.exportName)).toEqual([
       'widgetAdd',
+      'widgetAudited',
       'widgetCheck',
       'widgetGet',
       'widgetGreet',
@@ -50,6 +51,18 @@ describe('deriveLibraryApi', () => {
     expect(byName.get('widgetAdd')?.resources).toEqual(['widget.store']);
     expect(byName.get('widgetPing')?.resources).toEqual([]);
     expect(byName.get('widgetCheck')?.resources).toEqual([]);
+    expect(byName.get('widgetAudited')?.layerInputs).toHaveLength(1);
+    expect(
+      byName
+        .get('widgetAudited')
+        ?.layerInputs[0]?.fields.map((field) => [
+          field.claimedName,
+          field.routingTarget,
+        ])
+    ).toEqual([
+      ['auditMessage', 'message'],
+      ['auditToken', 'token'],
+    ]);
 
     // Intent is carried verbatim (no fallback); write/read preserved.
     expect(byName.get('widgetAdd')?.intent).toBe('write');
@@ -93,6 +106,7 @@ describe('deriveLibraryApi', () => {
       include: ['widget.*'],
     });
     expect(projection.exports.map((entry) => entry.exportName)).toEqual([
+      'widgetAudited',
       'widgetCheck',
       'widgetGet',
       'widgetGreet',
