@@ -11,5 +11,15 @@
  * "Library surface & compiler"). This scaffold establishes the package and the
  * runtime-kernel seam; see `./kernel` and the Library Surface and Compiler ADR.
  */
+export { deriveLibraryApi } from './derive.js';
+export type {
+  DeriveLibraryApiOptions,
+  LibraryCollision,
+  LibraryExclusion,
+  LibraryExclusionReason,
+  LibraryExport,
+  LibraryExportSource,
+  LibraryProjection,
+} from './derive.js';
 export { kernelRun } from './kernel.js';
 export type { Result, Topo } from './kernel.js';

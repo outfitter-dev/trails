@@ -137,6 +137,11 @@ export const add = trail('widget.add', {
       input: { id: '2', name: 'New' },
       name: 'add',
     },
+    {
+      expectedMatch: { name: 'Matched' },
+      input: { id: '3', name: 'Matched' },
+      name: 'add (partial match)',
+    },
   ],
   input: z.object({ id: z.string(), name: z.string() }),
   intent: 'write',
@@ -198,4 +203,27 @@ export const experiment = trail('_draft.widget.experiment', {
 export const widgetAdded = signal('widget.added', {
   description: 'Fired when a widget is added.',
   payload: z.object({ id: z.string() }),
+});
+
+// --- draft AND internal: excluded, exercises reason precedence (draft wins) ---
+
+export const secret = trail('_draft.widget.secret', {
+  blaze: () => Result.ok({ secret: true }),
+  description: 'Draft and internal; excluded with primary reason "draft".',
+  input: z.object({}),
+  intent: 'read',
+  output: z.object({ secret: z.boolean() }),
+  visibility: 'internal',
+});
+
+// --- activation-driven: reacts to a signal; MUST be excluded (activation) ---
+
+export const onCreated = trail('widget.onCreated', {
+  blaze: () => Result.ok({ handled: true }),
+  description:
+    'Reacts to widget.added; excluded from the projection (activation-driven).',
+  input: z.object({ id: z.string() }),
+  intent: 'read',
+  on: ['widget.added'],
+  output: z.object({ handled: z.boolean() }),
 });
