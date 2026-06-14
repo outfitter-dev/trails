@@ -27,8 +27,12 @@ export interface CompileOptions extends DeriveLibraryApiOptions {
   readonly appImportPath: string;
   /** The exported binding name of the topo at `appImportPath` (default `app`). */
   readonly appExportName?: string;
+  /** Runtime dependency range for `@ontrails/library` in emitted package.json. */
+  readonly libraryDependency?: string;
   /** Generated package version. Defaults to `0.0.0`. */
   readonly version?: string;
+  /** Peer dependency range for Zod in emitted package.json. */
+  readonly zodDependency?: string;
 }
 
 /** A single emitted file: project-relative path and full contents. */
@@ -68,11 +72,15 @@ const resourceExports = (
 const factoryName = (projection: LibraryProjection): string =>
   `create${pascalCase(projection.app)}`;
 
+const DEFAULT_LIBRARY_DEPENDENCY = '^1.0.0';
+const DEFAULT_ZOD_DEPENDENCY = '^4.3.5';
+
 const generatePackageJson = (options: CompileOptions): string => {
   const manifest = {
     dependencies: {
-      '@ontrails/library': 'workspace:^',
-      zod: 'catalog:',
+      '@ontrails/library':
+        options.libraryDependency ?? DEFAULT_LIBRARY_DEPENDENCY,
+      zod: options.zodDependency ?? DEFAULT_ZOD_DEPENDENCY,
     },
     exports: {
       '.': './src/index.ts',
@@ -258,7 +266,7 @@ const generateTsconfig = (): string =>
         moduleResolution: 'bundler',
         strict: true,
         target: 'esnext',
-        types: [],
+        types: ['bun'],
       },
       include: ['src'],
     },

@@ -34,13 +34,33 @@ describe('compile', () => {
   test('package.json declares the consumer-facing subpath exports', () => {
     const result = compile(fixtureApp, options);
     const pkg = JSON.parse(fileContent(result, 'package.json')) as {
-      name: string;
+      dependencies: Record<string, string>;
       exports: Record<string, string>;
+      name: string;
     };
     expect(pkg.name).toBe('@fixture/widget');
+    expect(pkg.dependencies).toEqual({
+      '@ontrails/library': '^1.0.0',
+      zod: '^4.3.5',
+    });
+    expect(JSON.stringify(pkg)).not.toContain('workspace:');
+    expect(JSON.stringify(pkg)).not.toContain('catalog:');
     expect(Object.keys(pkg.exports)).toEqual(
       expect.arrayContaining(['.', './result', './schemas', './trails'])
     );
+  });
+
+  test('package.json dependency ranges can be overridden for workspace emission', () => {
+    const result = compile(fixtureApp, {
+      ...options,
+      libraryDependency: 'workspace:^',
+      zodDependency: 'catalog:',
+    });
+    const pkg = JSON.parse(fileContent(result, 'package.json')) as {
+      dependencies: Record<string, string>;
+    };
+    expect(pkg.dependencies['@ontrails/library']).toBe('workspace:^');
+    expect(pkg.dependencies.zod).toBe('catalog:');
   });
 
   test('root index emits stateless functions and a resource factory', () => {

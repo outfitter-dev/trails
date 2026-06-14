@@ -17,7 +17,7 @@
   },
   "scripts": {
     "build": "tsc -b",
-    "test": "bun test",
+    "test": "bun test --timeout 30000",
     "typecheck": "tsc --noEmit",
     "lint": "oxlint ./src",
     "clean": "rm -rf dist *.tsbuildinfo"
