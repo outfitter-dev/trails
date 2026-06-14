@@ -79,15 +79,28 @@ describe('generated library package smoke', () => {
         repoRoot,
         'packages/library/src/__tests__/fixtures/app.ts'
       );
+      const fixtureTrailSource = join(
+        repoRoot,
+        'packages/library/src/__tests__/fixtures/trails.ts'
+      );
       await writeFile(
         join(packageRoot, 'fixture-app.ts'),
         `export { fixtureApp } from '${toImportPath(packageRoot, fixtureSource)}';\n`
+      );
+      await writeFile(
+        join(packageRoot, 'fixture-trails.ts'),
+        `export { get, ping } from '${toImportPath(packageRoot, fixtureTrailSource)}';\n`
       );
 
       const result = compile(fixtureApp, {
         appExportName: 'fixtureApp',
         appImportPath: '../fixture-app',
         packageName: '@fixture/generated-widget',
+        trailTypeExports: {
+          'widget.get': 'get',
+          'widget.ping': 'ping',
+        },
+        typeImportPath: '../fixture-trails',
         version: '0.0.0-smoke',
       });
       await writePlan(packageRoot, result);

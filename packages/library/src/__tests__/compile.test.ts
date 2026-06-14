@@ -68,9 +68,9 @@ describe('compile', () => {
     // Stateless trails project to top-level named functions.
     expect(index).toContain('Stateless echo; projects to a root named export.');
     expect(index).toContain('Projects trail `widget.ping`');
-    expect(index).toContain('export const widgetPing = (input: unknown)');
-    expect(index).toContain('export const widgetCheck = (input: unknown)');
-    expect(index).toContain('export const widgetGreet = (input: unknown)');
+    expect(index).toContain('export const widgetPing = (\n  input: unknown');
+    expect(index).toContain('export const widgetCheck = (\n  input: unknown');
+    expect(index).toContain('export const widgetGreet = (\n  input: unknown');
     // Resource-bearing trails project behind a createX factory.
     expect(index).toContain('import type { SurfaceLibraryOptions }');
     expect(index).toContain('const rootClient = await surface(fixtureApp);');
@@ -80,8 +80,8 @@ describe('compile', () => {
       'const client = await surface(fixtureApp, options);'
     );
     expect(index).toContain('Get a widget by id.');
-    expect(index).toContain('widgetGet: (input: unknown)');
-    expect(index).toContain('widgetAdd: (input: unknown)');
+    expect(index).toContain('widgetGet: (\n      input: unknown');
+    expect(index).toContain('widgetAdd: (\n      input: unknown');
     // The generated code imports the source topo by the configured specifier.
     expect(index).toContain("import { fixtureApp } from '@fixture/app';");
   });
@@ -100,7 +100,9 @@ describe('compile', () => {
       'Returns the raw Result boundary for trail `widget.ping`.'
     );
     expect(result).toContain('): Promise<Result<unknown, LibraryError>> =>');
-    expect(result).toContain('resultClient.result.widgetPing(input);');
+    expect(result).toContain(
+      'resultClient.result.widgetPing(input) as Promise<Result<unknown, LibraryError>>;'
+    );
     expect(result).toContain('export const createLibraryFixture = async (');
     expect(result).toContain('client.result.widgetGet(input)');
     expect(result).toContain(
@@ -125,6 +127,68 @@ describe('compile', () => {
     expect(schemas).toContain('Authored input schema for `widget.ping`');
     expect(schemas).not.toContain('?.input');
     expect(schemas).not.toContain('?.output');
+  });
+
+  test('typed bindings project schema-owned public signatures', () => {
+    const typed = compile(fixtureApp, {
+      ...options,
+      trailTypeExports: {
+        'widget.get': 'get',
+        'widget.ping': 'ping',
+      },
+      typeImportPath: '@fixture/trails',
+    });
+
+    const schemas = fileContent(typed, 'src/schemas.ts');
+    expect(schemas).toContain(
+      "import type { TrailInput, TrailOutput } from '@ontrails/library';"
+    );
+    expect(schemas).toContain(
+      "import type { get, ping } from '@fixture/trails';"
+    );
+    expect(schemas).toContain(
+      'export type WidgetPingInput = TrailInput<typeof ping>;'
+    );
+    expect(schemas).toContain(
+      'export type WidgetPingOutput = TrailOutput<typeof ping>;'
+    );
+    expect(schemas).toContain(
+      'export type WidgetGetInput = TrailInput<typeof get>;'
+    );
+    expect(schemas).toContain(
+      'export type WidgetGetOutput = TrailOutput<typeof get>;'
+    );
+
+    const index = fileContent(typed, 'src/index.ts');
+    expect(index).toContain(
+      "import type { WidgetGetInput, WidgetGetOutput, WidgetPingInput, WidgetPingOutput } from './schemas.js';"
+    );
+    expect(index).toContain('input: WidgetPingInput');
+    expect(index).toContain('): Promise<WidgetPingOutput> =>');
+    expect(index).toContain(
+      'rootClient.call.widgetPing(input) as Promise<WidgetPingOutput>;'
+    );
+    expect(index).toContain('input: WidgetGetInput');
+    expect(index).toContain('): Promise<WidgetGetOutput> =>');
+
+    const result = fileContent(typed, 'src/result.ts');
+    expect(result).toContain('input: WidgetPingInput');
+    expect(result).toContain(
+      '): Promise<Result<WidgetPingOutput, LibraryError>> =>'
+    );
+    expect(result).toContain('input: WidgetGetInput');
+    expect(result).toContain(
+      '): Promise<Result<WidgetGetOutput, LibraryError>> =>'
+    );
+  });
+
+  test('typed bindings reject invalid source export names', () => {
+    expect(() =>
+      compile(fixtureApp, {
+        ...options,
+        trailTypeExports: { 'widget.ping': 'not-valid' },
+      })
+    ).toThrow('trailTypeExports["widget.ping"] must be an exported identifier');
   });
 
   test('trails subpath re-exports the native topo', () => {

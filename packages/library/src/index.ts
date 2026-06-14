@@ -40,6 +40,7 @@ export {
 } from './errors.js';
 export type { LibraryErrorOptions } from './errors.js';
 export { kernelRun } from './kernel.js';
+export type { TrailInput, TrailOutput } from '@ontrails/core';
 export type {
   KernelRunOptions,
   Result,
