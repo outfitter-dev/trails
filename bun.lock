@@ -160,6 +160,19 @@
         "zod": "catalog:",
       },
     },
+    "packages/library": {
+      "name": "@ontrails/library",
+      "version": "1.0.0-beta.24",
+      "dependencies": {
+        "@ontrails/core": "workspace:^",
+      },
+      "devDependencies": {
+        "@ontrails/testing": "workspace:^",
+      },
+      "peerDependencies": {
+        "zod": "catalog:",
+      },
+    },
     "packages/logtape": {
       "name": "@ontrails/logtape",
       "version": "1.0.0-beta.24",
@@ -409,6 +422,8 @@
     "@ontrails/hono": ["@ontrails/hono@workspace:adapters/hono"],
 
     "@ontrails/http": ["@ontrails/http@workspace:packages/http"],
+
+    "@ontrails/library": ["@ontrails/library@workspace:packages/library"],
 
     "@ontrails/logtape": ["@ontrails/logtape@workspace:packages/logtape"],
 
