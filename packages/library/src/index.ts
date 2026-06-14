@@ -22,4 +22,16 @@ export type {
   LibraryProjection,
 } from './derive.js';
 export { kernelRun } from './kernel.js';
-export type { Result, Topo } from './kernel.js';
+export type {
+  KernelRunOptions,
+  Result,
+  Topo,
+  TrailContextInit,
+} from './kernel.js';
+export { surface } from './surface.js';
+export type {
+  LibraryClient,
+  LibraryMethod,
+  LibraryResultMethod,
+  SurfaceLibraryOptions,
+} from './surface.js';
