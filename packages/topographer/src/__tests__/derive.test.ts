@@ -256,6 +256,68 @@ describe('deriveTopoGraph', () => {
       ).toThrow(ValidationError);
     });
 
+    test('embeds serializable library projection facts in the topo graph', () => {
+      const created = signal('widget.created', {
+        payload: z.object({ id: z.string() }),
+      });
+      const read = trail('widget.read', {
+        blaze: noop,
+        description: 'Read a widget.',
+        input: z.object({ id: z.string() }),
+        intent: 'read',
+        output: z.object({ id: z.string(), name: z.string() }),
+        resources: [dbResource],
+        version: 2,
+      });
+      const internal = trail('widget.internal', {
+        blaze: noop,
+        input: z.object({}),
+        output: z.object({ ok: z.boolean() }),
+        visibility: 'internal',
+      });
+      const activated = trail('widget.onCreated', {
+        blaze: noop,
+        input: z.object({}),
+        on: [created],
+        output: z.object({ ok: z.boolean() }),
+      });
+
+      const map = deriveTopoGraph(
+        topoFrom({ activated, created, dbResource, internal, read })
+      );
+
+      const readExport = map.library?.exports.find(
+        (entry) => entry.trailId === 'widget.read'
+      );
+      expect(map.library?.app).toBe('test-app');
+      expect(map.library?.collisions).toEqual([]);
+      expect(readExport).toBeDefined();
+      expect(readExport).toMatchObject({
+        description: 'Read a widget.',
+        exportName: 'widgetRead',
+        intent: 'read',
+        nameSource: 'derived',
+        resources: ['db.main'],
+        trailId: 'widget.read',
+        version: 2,
+      });
+      expect(readExport?.input).toMatchObject({
+        properties: { id: { type: 'string' } },
+        type: 'object',
+      });
+      expect(readExport?.output).toMatchObject({
+        properties: {
+          id: { type: 'string' },
+          name: { type: 'string' },
+        },
+        type: 'object',
+      });
+      expect(map.library?.excluded).toEqual([
+        { reason: 'internal', trailId: 'widget.internal' },
+        { reason: 'activation', trailId: 'widget.onCreated' },
+      ]);
+    });
+
     test('trail entries include topo and trail layer attachments', () => {
       const topoLayer = passThroughLayer(
         'topo.auth',

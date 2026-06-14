@@ -174,7 +174,7 @@ The generated package is one package with subpath exports — no sibling package
 
 The resolved `LibraryProjection` — every export name, its source (derived / trail-owned hint / package config), its target trail ID, and every collision decision — is graph content, governed like the rest of the resolved topo artifact family (ADR-0046): manifest-verified, CI-diffable, queryable by Topographer, Wayfinder, and Warden. The emitter consumes it; it does not privately invent it.
 
-**Open implementation decision (not settled here):** whether the library projection *embeds* in `topo.lock` (following the precedent that surface projections are currently embedded in the TopoGraph, not separately hashed) or extends the manifest's `role` union with a new separately-hashed `library-projection` artifact. The projection lane decides this with evidence; this ADR records that the projection is family-governed either way.
+The projection embeds in `topo.lock` as part of `TopoGraph`. That follows the existing precedent for resolved surface projections rather than introducing a separate hashed artifact role for one surface. Topographer serializes the durable facts (exports, exclusions, collisions, schemas, resources, version, and source metadata); `@ontrails/library` keeps the richer runtime Zod references for in-memory calls and package emission.
 
 ### The binary runtime, designed not built
 
@@ -210,7 +210,7 @@ Generated libraries must never require a globally installed runner. Trails provi
 ### What this does not decide
 
 - The exact kernel module boundary and whether it ships as a published `@ontrails/runtime`-style package or stays internal until standalone work begins.
-- Library projection artifact home (embed vs separate hashed artifact) — see above.
+- Standalone kernel vendoring and binary-backed package execution.
 - Package-facing error class naming (package-prefixed vs plain).
 - Long-lived session protocol details.
 - Resource mock re-export across the library boundary for consumer testing.

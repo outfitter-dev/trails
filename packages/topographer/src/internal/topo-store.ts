@@ -28,12 +28,14 @@ import type {
 } from '@ontrails/core';
 
 import { addPermitRequirement } from '../permit.js';
+import { collectLibraryProjection } from '../library-projection.js';
 import { TOPO_GRAPH_SCHEMA_VERSION } from '../types.js';
 import { projectTrailVersions } from '../versioning.js';
 import type {
   LockManifest,
   TopoGraphFieldOverride,
   TopoGraphFieldOverrideKey,
+  TopoGraphLibraryProjection,
 } from '../types.js';
 import type {
   CreateTopoSnapshotInput,
@@ -56,6 +58,7 @@ type TopoGraphRecord = Readonly<{
   >;
   readonly entries: readonly TopoGraphEntryRecord[];
   readonly generatedAt: string;
+  readonly library: TopoGraphLibraryProjection;
   readonly topoGraphSchemaVersion: typeof TOPO_GRAPH_SCHEMA_VERSION;
 }>;
 
@@ -1282,6 +1285,7 @@ const buildTopoGraph = (
   resources: readonly AnyResource[],
   signalPayloads: ReadonlyMap<string, JsonRecord>,
   signals: readonly AnySignal[],
+  topo: Topo,
   topoLayers: readonly Layer[],
   trailSchemas: ReadonlyMap<
     string,
@@ -1326,6 +1330,7 @@ const buildTopoGraph = (
     ),
     entries,
     generatedAt,
+    library: collectLibraryProjection(topo),
     topoGraphSchemaVersion: TOPO_GRAPH_SCHEMA_VERSION,
   };
 };
@@ -1380,6 +1385,7 @@ const buildStoredTopoExport = (
     resources,
     schemas.signalPayloads,
     signals,
+    topo,
     topo.layers,
     schemas.trailSchemas,
     trails,

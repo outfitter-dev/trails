@@ -149,6 +149,45 @@ export interface TopoGraphFacetEntry {
   readonly visibilityWideningAccepted?: true | undefined;
 }
 
+export type TopoGraphLibraryExportSource =
+  | 'derived'
+  | 'trail-hint'
+  | 'package-config';
+
+export interface TopoGraphLibraryExport {
+  readonly description?: string | undefined;
+  readonly exportName: string;
+  readonly input?: JsonSchema | undefined;
+  readonly intent: 'read' | 'write' | 'destroy';
+  readonly nameSource: TopoGraphLibraryExportSource;
+  readonly output?: JsonSchema | undefined;
+  readonly resources: readonly string[];
+  readonly trailId: string;
+  readonly version?: number | undefined;
+}
+
+export type TopoGraphLibraryExclusionReason =
+  | 'activation'
+  | 'draft'
+  | 'internal';
+
+export interface TopoGraphLibraryExclusion {
+  readonly reason: TopoGraphLibraryExclusionReason;
+  readonly trailId: string;
+}
+
+export interface TopoGraphLibraryCollision {
+  readonly exportName: string;
+  readonly trailIds: readonly string[];
+}
+
+export interface TopoGraphLibraryProjection {
+  readonly app: string;
+  readonly collisions: readonly TopoGraphLibraryCollision[];
+  readonly excluded: readonly TopoGraphLibraryExclusion[];
+  readonly exports: readonly TopoGraphLibraryExport[];
+}
+
 // ---------------------------------------------------------------------------
 // TopoGraph
 // ---------------------------------------------------------------------------
@@ -216,6 +255,7 @@ export interface TopoGraph {
   readonly entries: readonly TopoGraphEntry[];
   readonly facets?: readonly TopoGraphFacetEntry[] | undefined;
   readonly forces?: readonly TopoGraphForceEntry[] | undefined;
+  readonly library?: TopoGraphLibraryProjection | undefined;
   readonly workspace?: WorkspaceTopoMetadata | undefined;
 }
 
@@ -306,6 +346,49 @@ export const topoGraphFacetEntrySchema = z
   })
   .strict();
 
+const topoGraphLibraryExportSourceSchema = z.enum([
+  'derived',
+  'package-config',
+  'trail-hint',
+]);
+
+const topoGraphLibraryExportSchema = z
+  .object({
+    description: z.string().optional(),
+    exportName: z.string(),
+    input: z.record(z.string(), z.unknown()).optional(),
+    intent: z.enum(['destroy', 'read', 'write']),
+    nameSource: topoGraphLibraryExportSourceSchema,
+    output: z.record(z.string(), z.unknown()).optional(),
+    resources: z.array(z.string()),
+    trailId: z.string(),
+    version: z.number().int().positive().optional(),
+  })
+  .strict();
+
+const topoGraphLibraryExclusionSchema = z
+  .object({
+    reason: z.enum(['activation', 'draft', 'internal']),
+    trailId: z.string(),
+  })
+  .strict();
+
+const topoGraphLibraryCollisionSchema = z
+  .object({
+    exportName: z.string(),
+    trailIds: z.array(z.string()),
+  })
+  .strict();
+
+export const topoGraphLibraryProjectionSchema = z
+  .object({
+    app: z.string(),
+    collisions: z.array(topoGraphLibraryCollisionSchema),
+    excluded: z.array(topoGraphLibraryExclusionSchema),
+    exports: z.array(topoGraphLibraryExportSchema),
+  })
+  .strict();
+
 export const topoGraphSchema = z
   .object({
     activationGraph: z
@@ -331,6 +414,7 @@ export const topoGraphSchema = z
     facets: z.array(topoGraphFacetEntrySchema).optional(),
     forces: z.array(topoGraphForceEntrySchema).optional(),
     generatedAt: z.string(),
+    library: topoGraphLibraryProjectionSchema.optional(),
     topoGraphSchemaVersion: z.literal(TOPO_GRAPH_SCHEMA_VERSION),
     workspace: workspaceTopoMetadataSchema.optional(),
   })

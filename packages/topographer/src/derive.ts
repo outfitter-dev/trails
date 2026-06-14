@@ -30,6 +30,7 @@ import type {
 
 import { addPermitRequirement } from './permit.js';
 import { deriveStableHash } from './hash.js';
+import { collectLibraryProjection } from './library-projection.js';
 import { TOPO_GRAPH_SCHEMA_VERSION } from './types.js';
 import { projectTrailVersions } from './versioning.js';
 import type {
@@ -715,10 +716,6 @@ const collectFacets = (
     .toSorted((a, b) => a.id.localeCompare(b.id));
 };
 
-// ---------------------------------------------------------------------------
-// Public API
-// ---------------------------------------------------------------------------
-
 /**
  * Derive a deterministic topo graph from a Topo.
  *
@@ -737,6 +734,7 @@ export const deriveTopoGraph = (
   const activationSources = collectActivationSourceCatalog(topo);
   const activationEdges = collectActivationGraphEdges(topo);
   const facets = collectFacets(topo, options);
+  const library = collectLibraryProjection(topo);
 
   return {
     activationGraph: buildActivationGraph(activationEdges, activationSources),
@@ -746,6 +744,7 @@ export const deriveTopoGraph = (
     entries: sorted,
     ...(facets === undefined ? {} : { facets }),
     generatedAt: new Date().toISOString(),
+    library,
     topoGraphSchemaVersion: TOPO_GRAPH_SCHEMA_VERSION,
   };
 };
