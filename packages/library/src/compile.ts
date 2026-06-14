@@ -75,6 +75,22 @@ const factoryName = (projection: LibraryProjection): string =>
 const DEFAULT_LIBRARY_DEPENDENCY = '^1.0.0';
 const DEFAULT_ZOD_DEPENDENCY = '^4.3.5';
 
+const sanitizeJsDocLine = (value: string): string =>
+  value.replaceAll('*/', '* /').trim();
+
+const jsDoc = (lines: readonly string[], indent = ''): string =>
+  [
+    `${indent}/**`,
+    ...lines
+      .map(sanitizeJsDocLine)
+      .filter((line) => line.length > 0)
+      .map((line) => `${indent} * ${line}`),
+    `${indent} */`,
+  ].join('\n');
+
+const exportDescription = (entry: LibraryExport): string =>
+  entry.description ?? `Call the \`${entry.trailId}\` trail.`;
+
 const generatePackageJson = (options: CompileOptions): string => {
   const manifest = {
     dependencies: {
@@ -104,12 +120,23 @@ const generatePackageJson = (options: CompileOptions): string => {
 
 const statelessFunction = (entry: LibraryExport): string =>
   [
+    jsDoc([
+      exportDescription(entry),
+      `Projects trail \`${entry.trailId}\` as a stateless library function.`,
+    ]),
     `export const ${entry.exportName} = (input: unknown): Promise<unknown> =>`,
     `  rootClient.call.${entry.exportName}(input);`,
   ].join('\n');
 
 const factoryMethod = (entry: LibraryExport): string =>
   [
+    jsDoc(
+      [
+        exportDescription(entry),
+        `Projects trail \`${entry.trailId}\` behind the resource client.`,
+      ],
+      '    '
+    ),
     `    ${entry.exportName}: (input: unknown): Promise<unknown> =>`,
     `      client.call.${entry.exportName}(input),`,
   ].join('\n');
@@ -172,13 +199,27 @@ const generateSchemas = (projection: LibraryProjection): string => {
     '  return entry;',
     '};',
     '',
-    'export const schemas = {',
   ];
   for (const entry of projection.exports) {
     lines.push(
+      '',
+      jsDoc([
+        `Authored input schema for \`${entry.trailId}\`, exported as \`${entry.exportName}\`.`,
+      ]),
+      `export const ${entry.exportName}InputSchema = requireExport('${entry.exportName}').input;`,
+      '',
+      jsDoc([
+        `Authored output schema for \`${entry.trailId}\`, if the trail declares one.`,
+      ]),
+      `export const ${entry.exportName}OutputSchema = requireExport('${entry.exportName}').output;`
+    );
+  }
+  lines.push('', 'export const schemas = {');
+  for (const entry of projection.exports) {
+    lines.push(
       `  ${entry.exportName}: {`,
-      `    input: requireExport('${entry.exportName}').input,`,
-      `    output: requireExport('${entry.exportName}').output,`,
+      `    input: ${entry.exportName}InputSchema,`,
+      `    output: ${entry.exportName}OutputSchema,`,
       '  },'
     );
   }
@@ -198,6 +239,10 @@ const generateTrails = (options: CompileOptions): string => {
 
 const resultStatelessFunction = (entry: LibraryExport): string =>
   [
+    jsDoc([
+      exportDescription(entry),
+      `Returns the raw Result boundary for trail \`${entry.trailId}\`.`,
+    ]),
     `export const ${entry.exportName} = (`,
     '  input: unknown',
     '): Promise<Result<unknown, Error>> =>',
@@ -206,6 +251,13 @@ const resultStatelessFunction = (entry: LibraryExport): string =>
 
 const resultFactoryMethod = (entry: LibraryExport): string =>
   [
+    jsDoc(
+      [
+        exportDescription(entry),
+        `Returns the raw Result boundary for trail \`${entry.trailId}\`.`,
+      ],
+      '    '
+    ),
     `    ${entry.exportName}: (input: unknown): Promise<Result<unknown, Error>> =>`,
     `      client.result.${entry.exportName}(input),`,
   ].join('\n');

@@ -66,6 +66,8 @@ describe('compile', () => {
   test('root index emits stateless functions and a resource factory', () => {
     const index = fileContent(compile(fixtureApp, options), 'src/index.ts');
     // Stateless trails project to top-level named functions.
+    expect(index).toContain('Stateless echo; projects to a root named export.');
+    expect(index).toContain('Projects trail `widget.ping`');
     expect(index).toContain('export const widgetPing = (input: unknown)');
     expect(index).toContain('export const widgetCheck = (input: unknown)');
     expect(index).toContain('export const widgetGreet = (input: unknown)');
@@ -77,6 +79,7 @@ describe('compile', () => {
     expect(index).toContain(
       'const client = await surface(fixtureApp, options);'
     );
+    expect(index).toContain('Get a widget by id.');
     expect(index).toContain('widgetGet: (input: unknown)');
     expect(index).toContain('widgetAdd: (input: unknown)');
     // The generated code imports the source topo by the configured specifier.
@@ -91,6 +94,9 @@ describe('compile', () => {
     expect(result).toContain('import type { Result, SurfaceLibraryOptions }');
     expect(result).toContain('const resultClient = await surface(fixtureApp);');
     expect(result).toContain('export const widgetPing = (');
+    expect(result).toContain(
+      'Returns the raw Result boundary for trail `widget.ping`.'
+    );
     expect(result).toContain('): Promise<Result<unknown, Error>> =>');
     expect(result).toContain('resultClient.result.widgetPing(input);');
     expect(result).toContain('export const createLibraryFixture = async (');
@@ -104,7 +110,15 @@ describe('compile', () => {
     expect(schemas).toContain(
       "throw new Error('missing projected library export: ' + name);"
     );
-    expect(schemas).toContain("input: requireExport('widgetPing').input");
+    expect(schemas).toContain(
+      'export const widgetPingInputSchema = requireExport'
+    );
+    expect(schemas).toContain(
+      'export const widgetPingOutputSchema = requireExport'
+    );
+    expect(schemas).toContain('input: widgetPingInputSchema');
+    expect(schemas).toContain('output: widgetPingOutputSchema');
+    expect(schemas).toContain('Authored input schema for `widget.ping`');
     expect(schemas).not.toContain('?.input');
     expect(schemas).not.toContain('?.output');
   });
