@@ -29,16 +29,24 @@ import { relative, resolve } from 'node:path';
 
 const repoRoot = resolve(import.meta.dir, '..');
 
-const scanRoots = ['docs', 'plugin', 'packages', 'apps', 'adapters'] as const;
+const scanRoots = [
+  'docs',
+  'plugin',
+  'packages',
+  'apps',
+  'adapters',
+  '.agents/skills',
+] as const;
 const rootFiles = ['README.md', 'AGENTS.md', 'CLAUDE.md'] as const;
 
 // Globs intentionally excluded from the check. These are managed by other
 // tools (changesets), internal planning state, or hidden agent dirs that
-// don't ship to Notion/Basecamp.
+// don't ship to Notion/Basecamp. Exception: `.agents/skills/**` is repo-local
+// skill content and IS wrap-checked, so the `.agents` exclude spares it.
 const excludePatterns: readonly RegExp[] = [
   /\/CHANGELOG\.md$/,
   /^\.changeset\//,
-  /^\.agents\//,
+  /^\.agents\/(?!skills\/)/,
   /^\.claude\//,
   /^node_modules\//,
 ];

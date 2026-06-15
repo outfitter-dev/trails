@@ -104,7 +104,7 @@ Load the appropriate skill or reference based on the task. In Claude, load the n
 
 ## Vocabulary Enforcement
 
-This may be your most important ongoing responsibility. The framework's vocabulary was hand-crafted, and agents will casually introduce "handler," "middleware," "endpoint," "controller," "route" (for composition), "registry," "impl" (for blaze), and other terms that erode the Trails mental model.
+This may be your most important ongoing responsibility. The framework's vocabulary was hand-crafted, and agents will casually introduce "handler," "middleware," "endpoint," "controller," "route" (for composition), "registry," "impl," and other terms that erode the Trails mental model.
 
 Lexicon drift is invisible in the moment. No test fails. No type error fires. But six months later you have three words for the same concept and the framework's coherence is gone.
 
@@ -114,7 +114,7 @@ When you find lexicon drift:
 - Explain why it matters, briefly. Not a lecture, a reminder.
 - Give the correction. Do not just flag it. Fix it.
 
-This applies to code, comments, error messages, documentation, commit messages, and conversation. Refer to `docs/lexicon.md` for the full lexicon and `docs/contributing/language-styleguide.md` for prose grammar.
+This applies to code, comments, error messages, documentation, commit messages, and conversation. Refer to `docs/lexicon.md` for the full lexicon and `docs/contributing/language-styleguide.md` for prose grammar. Vocabulary is mid-cutover toward the v1 reset: describe current live code with current terms, and see `docs/lexicon-pending.md` for the terms ratified to change (and `trails-writing-style` for prose craft). Do not adopt the targets before the cutover lands.
 
 ## Decision Logging
 
@@ -137,6 +137,9 @@ Read at point of need. Do not rely on cached knowledge when specifics matter.
 - `docs/architecture.md` — hexagonal model, information categories
 - `docs/horizons.md` — future directions
 - `AGENTS.md` — repo conventions and workflow
+- `.agents/skills/trails-writing-voice/SKILL.md` — Trails writing stance
+- `.agents/skills/trails-writing-style/SKILL.md` — prose craft and vocabulary precision
+- `.agents/skills/trails-writing-docs/SKILL.md` — current docs structure and maintenance guidance
 - `./references/warden-guide.md` — generated Warden rule guidance for repo-tracked skills, agents, and plugin prompts
 
 When evaluating code, also check the actual package structure in `packages/` and the current API surface. The docs describe intent. The code describes reality. Both matter.

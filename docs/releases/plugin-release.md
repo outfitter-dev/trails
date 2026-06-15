@@ -2,7 +2,7 @@
 
 This runbook covers the Trails Claude plugin and bundled skills under `plugin/` plus the marketplace manifest at `.claude-plugin/marketplace.json`. It is separate from the framework package publish path in [Stable Cutover Runbook](./stable-cutover.md).
 
-The current plugin manifest version is `0.3.1`. The bundled `trails` skill targets the current Trails framework package version through `metadata.trails.version`. Those versions are intentionally independent: plugin version names the Claude plugin bundle, while the skill target names the framework package line the guidance was refreshed against.
+The current plugin manifest version is `0.3.2`. The bundled `trails` skill targets the current Trails framework package version through `metadata.trails.version`. Those versions are intentionally independent: plugin version names the Claude plugin bundle, while the skill target names the framework package line the guidance was refreshed against.
 
 ## Stop Rules
 
@@ -52,16 +52,16 @@ Use the latest dogfood report from the active release packet before release. Eve
 
 The stable-RC refresh has newer framework evidence than the older beta.18 plugin refresh: generated apps install from the public registry, `trails release check --json` works in generated apps without workspace files, and the published beta line exposes top-level `compile`, `validate`, `diff`, `warden`, and release-check surfaces. Do not carry old beta.18 risk language forward without re-running the current dogfood gate.
 
-## Plugin 0.3.1 Bundle
+## Plugin 0.3.2 Bundle
 
-The refreshed bundle is recorded as plugin manifest version `0.3.1`. If the marketplace requires another version bump before publication, update `plugin/.claude-plugin/plugin.json`, then run:
+The refreshed bundle is recorded as plugin manifest version `0.3.2`. If the marketplace requires another version bump before publication, update `plugin/.claude-plugin/plugin.json`, then run:
 
 ```bash
 bun run plugin:metadata:sync
 bun run plugin:metadata:check
 ```
 
-The `0.3.1` bundle includes:
+The `0.3.2` bundle includes:
 
 - public README/API docs drift fixes and M1 packet archive;
 - refreshed main `trails` skill for CLI, MCP, Hono HTTP, Bun-native HTTP,
@@ -74,6 +74,8 @@ The `0.3.1` bundle includes:
   guidance;
 - stable-RC refreshes for release rules, Wayfinder-first navigation, current
   skill metadata, and binding vocabulary;
+- Trails writing/editorial skills and the compatibility pointer from the older
+  language styleguide skill;
 - disposable dogfood report and release-risk findings.
 
 ## Manual / External Checks
@@ -97,7 +99,7 @@ Before any external publication:
 3. Confirm `TRL-755` public-docs cleanup and M1 archive are included.
 4. Confirm `TRL-757` through `TRL-760` are either accepted deferred follow-ups
    or explicitly promoted into the release gate.
-5. Confirm whether plugin version remains `0.3.1` or is bumped again, then rerun
+5. Confirm whether plugin version remains `0.3.2` or is bumped again, then rerun
    metadata checks.
 6. Run the manual/external checks above only with explicit approval.
 

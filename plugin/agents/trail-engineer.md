@@ -104,6 +104,17 @@ trails validate
 
 Review the diff, update the lock if the change is intentional.
 
+### 7. Finish Distribution-Ready
+
+Do not stop at green tests when the change reaches users, operators, or agents. Update or explicitly mark not applicable:
+
+- docs and examples that teach the behavior;
+- agent guidance, skills, or plugin prompts that need the new rule;
+- Warden rules, generated guides, or drift checks for governable boundaries;
+- branch-local release intent for publishable package changes;
+- Wayfinder dogfood smoke for framework surface, operator topo, Topographer artifact, Wayfinder, or fresh-loader changes;
+- migration or bridge guidance for existing apps.
+
 ## Debugging
 
 When tests fail or behavior is unexpected:

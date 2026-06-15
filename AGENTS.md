@@ -65,6 +65,8 @@ Use the project language consistently:
 
 `mount` is reserved for cross-app composition. See `docs/lexicon.md` for the full lexicon.
 
+> **Vocabulary is mid-cutover toward the v1 reset.** Describe current code with current-live terms; see `docs/lexicon-pending.md` for terms ratified to change, and do not adopt the targets early.
+
 ## Trail Rules
 
 - Blazes return `Result`, never throw.

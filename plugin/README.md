@@ -43,7 +43,7 @@ Plugin release and republish steps are tracked in the repo runbook:
 
 - [Plugin Release Runbook](../docs/releases/plugin-release.md)
 
-The runbook keeps plugin version `0.3.1` separate from the bundled skill's Trails framework target version. It also names the stop rules for marketplace, registry, `npx skills`, and global installed-skill mutations. Do not treat a local/global `trails` skill as current until `bun run plugin:installed-skill:check` passes or an operator explicitly chooses to keep it decoupled.
+The runbook keeps plugin version `0.3.2` separate from the bundled skill's Trails framework target version. It also names the stop rules for marketplace, registry, `npx skills`, and global installed-skill mutations. Do not treat a local/global `trails` skill as current until `bun run plugin:installed-skill:check` passes or an operator explicitly chooses to keep it decoupled.
 
 ## What's Included
 
@@ -58,7 +58,11 @@ The runbook keeps plugin version `0.3.1` separate from the bundled skill's Trail
 | `trails-error-format` | Review error taxonomy, projection, redaction, retryability, and Result-vs-throw boundaries. |
 | `trails-discriminate-union` | Review public/queryable union-like outputs for stable branch discriminants. |
 | `trails-primitive-parity` | Compare primitive maturity without forcing trail-equivalent scope or speculative public API. |
-| `trails-language-styleguide` | Tighten Trails prose, docs, ADRs, prompts, and examples against the lexicon and `blaze` grammar. |
+| `trails-writing-voice` | Review Trails docs, ADRs, release notes, README content, and agent guidance for stance, audience, and tone. |
+| `trails-writing-style` | Review Trails prose for rhythm, clarity, examples, and vocabulary discipline. |
+| `trails-writing-docs` | Place and maintain Trails docs in the current repo structure while the docs organization ADR is pending. |
+| `trails-editorial` | Run a full Trails editorial review across voice, style, structure, correctness, and readiness. |
+| `trails-language-styleguide` | Compatibility pointer to the newer Trails writing skills for older prompts. |
 
 ### Agent
 

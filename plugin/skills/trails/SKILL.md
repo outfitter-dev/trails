@@ -76,6 +76,22 @@ Good changeset prose names the user-visible change: "Expose `wayfind.contract` t
 
 During local review, classify missing branch-local release intent for a public trail contract fact as P2. Selected P3 release ideas, such as imported schema tracing or future release targets, should be logged for follow-up rather than folded into the current branch unless they expose a concrete user-visible release gap.
 
+## Distribution-Ready Done
+
+Feature work is not complete until the surrounding developer experience is complete or explicitly marked not applicable. Treat docs, examples, guidance, governance, release intent, and migration notes as part of the implementation when the behavior reaches users or agents.
+
+Before moving work out of draft, check the affected surfaces:
+
+- **Docs and examples:** Update the nearest README, fieldguide, API doc, example, ADR, or runbook that teaches the behavior.
+- **Agent guidance:** Update skills, plugin guidance, AGENTS files, or tool-specific prompts when agents need a new rule, workflow, or vocabulary.
+- **Governance:** Add or update Warden rules, generated Warden guides, or drift checks when the behavior creates a governable boundary.
+- **Release path:** Add a branch-local changeset for publishable package changes, or carry an explicit no-release reason when the change is truly not user-visible.
+- **Wayfinder dogfood:** Run the Wayfinder dogfood smoke when changing framework surfaces, operator topo exposure, Topographer artifacts, Wayfinder queries, or fresh app loading.
+- **Migration path:** Document compatibility windows, bridge commands, or intentional non-support when existing apps may need to move.
+- **Publication readiness:** Run publish checks for package-impacting work and record first-time package, dist-tag, registry, or auth considerations.
+
+Small internal refactors do not need ceremonial docs. They do need an explicit "not applicable" callout when a reviewer or future agent could reasonably expect docs, skills, changesets, or migration notes.
+
 ## Agent Wayfinding
 
 When saved Topographer artifacts can answer a graph question, use Wayfinder before raw text search:
@@ -319,7 +335,11 @@ For the current generated rule index, read [warden-guide.md](references/warden-g
 | [getting-started.md](references/getting-started.md) | Full install-to-test walkthrough |
 | [architecture.md](references/architecture.md) | Hexagonal model, package boundaries, data flow |
 | [contract-patterns.md](references/contract-patterns.md) | ID naming, schema design, example authoring |
-| [trails-language-styleguide](../trails-language-styleguide/SKILL.md) | Prose grammar for lexicon-sensitive docs, ADRs, prompts, and examples |
+| [trails-writing-voice](../trails-writing-voice/SKILL.md) | Trails writing stance, audience, and tone |
+| [trails-writing-style](../trails-writing-style/SKILL.md) | Trails prose craft, examples, and vocabulary discipline |
+| [trails-writing-docs](../trails-writing-docs/SKILL.md) | Trails documentation placement and maintenance guidance |
+| [trails-editorial](../trails-editorial/SKILL.md) | Full editorial review workflow for docs-heavy changes |
+| [trails-language-styleguide](../trails-language-styleguide/SKILL.md) | Compatibility pointer for older prompts; prefer the newer writing skills |
 | CLI surface docs | Flag derivation, output modes, exit codes |
 | MCP surface docs | Tool naming, annotations, progress |
 | [http-surface.md](references/http-surface.md) | Route derivation, OpenAPI, Hono, Bun-native HTTP, fetch kernel |

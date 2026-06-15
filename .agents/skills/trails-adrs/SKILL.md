@@ -33,6 +33,12 @@ When an ADR proposes something new, test it against these. Does it reinforce the
 
 Read related ADRs before drafting. Use `docs/adr/decision-map.json` or browse `docs/adr/` and `docs/adr/drafts/` to find ADRs that touch similar concerns. Good ADRs build on the existing decision graph — they reference specific sections of prior ADRs, link to their headings, and explain how the new decision compounds with or extends what's already decided.
 
+For voice, style, and document maintenance, also load the repo-local writing skills:
+
+- `trails-writing-voice`
+- `trails-writing-style`
+- `trails-writing-docs`
+
 When your ADR relates to an existing one:
 
 - Link to it in References with a one-line description of the relationship
@@ -263,7 +269,7 @@ Synthesized from ADR-000 (Core Premise) and ADR-001 (Naming Conventions).
 
 ### Vocabulary
 
-Use the accepted project vocabulary consistently: trail (not action/handler), topo (not registry), compose (not follow or cross), blaze (not handler/impl), surface (not transport), and tracing (not crumbs or tracker). For `blaze`, follow `docs/contributing/language-styleguide.md`: the runtime runs trails, not blazes.
+Use the accepted project vocabulary consistently: trail (not action/handler), topo (not registry), compose (not follow or cross), blaze (not handler/impl), surface (not transport), and tracing (not crumbs or tracker). Vocabulary is mid-cutover toward the v1 reset — write current ADRs in current terms and see `docs/lexicon-pending.md` for what is changing (and `trails-writing-style` for prose craft).
 
 Read `docs/tenets.md` before writing. Every ADR must be consistent with the tenets.
 
