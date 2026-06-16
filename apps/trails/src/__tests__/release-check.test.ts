@@ -202,6 +202,56 @@ describe('checkReleaseRules', () => {
     }
   });
 
+  test('rejects active package changesets without a matching release fact', () => {
+    const { repoRoot } = withTempRepo((root) => {
+      writeFileSync(
+        join(root, '.changeset', 'repo-only.md'),
+        "---\n'@ontrails/core': patch\n---\n\nRepo-only note.\n"
+      );
+    });
+
+    try {
+      const result = checkReleaseRules({
+        changedFiles: [
+          'docs/releases/release-rules-check.md',
+          '.changeset/repo-only.md',
+        ],
+        repoRoot,
+        workspaces,
+      });
+
+      expect(result.passed).toBe(false);
+      expect(result.activePackageChangesetsWithoutReleaseFacts).toEqual([
+        '.changeset/repo-only.md',
+      ]);
+      expect(result.errors).toEqual([
+        'Active changesets require a matching package or release fact on this branch. Remove .changeset/repo-only.md or include the package-facing change here.',
+      ]);
+    } finally {
+      rmSync(repoRoot, { force: true, recursive: true });
+    }
+  });
+
+  test('ignores deleted changesets when checking active release intent', () => {
+    const { repoRoot } = withTempRepo(() => {});
+
+    try {
+      const result = checkReleaseRules({
+        changedFiles: [
+          'docs/releases/release-rules-check.md',
+          '.changeset/deleted.md',
+        ],
+        repoRoot,
+        workspaces,
+      });
+
+      expect(result.passed).toBe(true);
+      expect(result.activePackageChangesetsWithoutReleaseFacts).toEqual([]);
+    } finally {
+      rmSync(repoRoot, { force: true, recursive: true });
+    }
+  });
+
   test('does not treat prerelease state plus source edits as a generated version release', () => {
     const { repoRoot } = withTempRepo(() => {});
 

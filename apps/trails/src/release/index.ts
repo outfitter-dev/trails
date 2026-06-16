@@ -60,6 +60,7 @@ export {
   checkRegistryPosture,
   discoverRegistryWorkspaces,
   formatDistTagSummary,
+  npmRegistryView,
   registryPostureErrors,
   runRegistryPreflight,
   runRegistryPreflightCli,
@@ -68,6 +69,25 @@ export {
   type RegistryView,
   type RegistryWorkspace,
 } from './native-bun-registry.js';
+export {
+  channelIntentForDistTag,
+  evaluateReleasePolicy,
+  labelsForReleasePullRequest,
+  releaseIntentForVersionDelta,
+  runReleasePolicyCli,
+  type ChannelIntent,
+  type PublishIntent,
+  type ReleaseIntent,
+  type ReleasePolicyChangedFile,
+  type ReleasePolicyCommit,
+  type ReleasePolicyDecision,
+  type ReleasePolicyInput,
+  type ReleasePolicyPullRequest,
+  type ReleasePolicyRegistryPackage,
+  type ReleasePolicyReport,
+  type ReleasePolicySourcePullRequest,
+  type StackIntent,
+} from './policy.js';
 export {
   releaseSmokeCheckValues,
   runReleaseSmoke,

@@ -17,6 +17,8 @@ There are two distinct phases:
 
 Never publish from an unmerged version PR. Never use `changeset publish`, `npm publish`, or ad hoc package publication for the normal stable cutover.
 
+Generated release PRs are policy-gated by labels. Source PRs that introduced consumed changesets should carry `stack:boundary` before the stable version PR is expected to reach `publish:auto`. Missing source evidence or missing `stack:boundary` routes publication to the protected manual environment; unknown/conflicting managed labels, registry contradictions, or `publish:block` stop the workflow. `publish:none` is only for generated release PRs and requires an audit reason in the release PR body or comments.
+
 ## Preconditions
 
 Before creating the version PR:
@@ -259,6 +261,11 @@ Keep the PR draft until CI is green and review is complete. The PR body should i
 
 - link to ADR-0047;
 - the intended stable version;
+- intended generated release PR labels, including `channel:stable`, release
+  size, and whether publication should be `publish:auto` or `publish:manual`;
+- `stack:boundary` evidence for source PRs that introduced consumed changesets,
+  or an explicit reason the release should use the protected manual publish
+  path;
 - `bunx changeset status --verbose` summary;
 - `bun run publish:check` result;
 - `bun run publish:registry-check` result;

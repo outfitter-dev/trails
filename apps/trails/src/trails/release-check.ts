@@ -45,6 +45,7 @@ const contractReleaseFactSchema = z.object({
 });
 
 const releaseCheckOutputSchema = z.object({
+  activePackageChangesetsWithoutReleaseFacts: z.array(z.string()).readonly(),
   affectedPackages: z.array(z.string()).readonly(),
   changedChangesets: z.array(z.string()).readonly(),
   configPath: z.string().optional(),

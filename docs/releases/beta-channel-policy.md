@@ -105,18 +105,32 @@ Examples:
 After substantial stacks merge to `main`:
 
 1. Confirm all package-affecting PRs carried branch-local release intent. `trails release check --json` and `bun run changeset:check` are the local proof surfaces.
-2. Run `bunx changeset status --verbose` from clean, synced `main` to inspect
+2. Ensure source PRs that introduced consumed changesets carry
+   `stack:boundary` when the generated release should be eligible for
+   automatic publishing. Missing boundary evidence is safe, but it routes the
+   generated release PR to `publish:manual`.
+3. Run `bunx changeset status --verbose` from clean, synced `main` to inspect
    the next beta plan.
-3. When the next beta is warranted, create a dedicated version branch, run
+4. When the next beta is warranted, create a dedicated version branch, run
    `bunx changeset version`, then run `bun run scaffold-versions:sync` so
    generated third-party scaffold dependency versions and exact `@ontrails/*`
    pins are checked together.
-4. Review package versions, changelogs, generated lockfile changes, and
+5. Review package versions, changelogs, generated lockfile changes, and
    generated-app dependency ranges.
-5. Run the version-branch gates, including `bun run publish:check` and
+6. Run the version-branch gates, including `bun run publish:check` and
    `bun run publish:registry-check`.
-6. Submit and merge the version PR only after CI and review are clean.
-7. Publish only from clean, synced `main` after the version PR merges:
+7. Submit and merge the version PR only after CI and review are clean. The
+   GitHub release workflow creates or updates the generated
+   `changeset-release/main` PR, applies missing `publish:*`, `channel:*`, and
+   `release:*` labels without overriding human intent, and evaluates the
+   publish policy after the generated PR merges.
+8. Prefer the workflow publish path from clean `main`. `publish:auto` uses the
+   `npm-auto` environment only when generated release shape, exact-SHA CI,
+   registry posture, and `stack:boundary` source evidence are complete.
+   `publish:manual` uses the protected `npm` environment for incomplete or
+   ambiguous low-risk proof. `publish:block` and unknown/conflicting managed
+   labels stop the workflow.
+9. Use local publish commands only for diagnostics or explicit recovery:
    `bun run publish:check`, `bun run publish:registry-check`,
    `bun run publish:packages`, then
    `bun run publish:registry-check:published`.

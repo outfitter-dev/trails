@@ -1,0 +1,166 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+jobs:
+  version:
+    name: Version Packages
+    if: github.repository == 'outfitter-dev/trails' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    outputs:
+      has_changesets: ${{ steps.changesets.outputs.hasChangesets }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup
+      - name: Create or update version PR
+        id: changesets
+        uses: changesets/action@v1
+        with:
+          commit: 'chore(release): version packages'
+          title: 'chore(release): version packages'
+          version: bun run version:packages
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+      - name: Label version PR
+        if: steps.changesets.outputs.hasChangesets == 'true'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: bun run publish:label-release-pr
+
+  publish-policy:
+    name: Publish Policy
+    needs: version
+    if: github.repository == 'outfitter-dev/trails' && github.ref == 'refs/heads/main' && needs.version.outputs.has_changesets == 'false'
+    runs-on: ubuntu-latest
+    permissions:
+      checks: read
+      contents: read
+      pull-requests: read
+    outputs:
+      channel: ${{ steps.policy.outputs.channel }}
+      create_github_release: ${{ steps.policy.outputs.create_github_release }}
+      decision: ${{ steps.policy.outputs.decision }}
+      publish: ${{ steps.policy.outputs.publish }}
+      release: ${{ steps.policy.outputs.release }}
+      should_publish: ${{ steps.policy.outputs.should_publish }}
+      tag: ${{ steps.policy.outputs.tag }}
+      version: ${{ steps.policy.outputs.version }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup
+      - name: Resolve publish policy
+        id: policy
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          TRAILS_RELEASE_POLICY_CI_ATTEMPTS: '30'
+          TRAILS_RELEASE_POLICY_CI_WAIT_MS: '10000'
+        run: bun run publish:policy
+
+  publish-auto:
+    name: Publish to npm automatically
+    needs: publish-policy
+    if: github.repository == 'outfitter-dev/trails' && github.ref == 'refs/heads/main' && needs.publish-policy.outputs.decision == 'auto' && needs.publish-policy.outputs.should_publish == 'true'
+    runs-on: ubuntu-latest
+    environment: npm-auto
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup
+      - name: Validate package before publish
+        run: bun run publish:check
+      - name: Publish packages
+        run: bun run publish:packages
+      - name: Verify published packages
+        run: bun run publish:registry-check:published --tag "${{ needs.publish-policy.outputs.tag }}"
+
+  publish:
+    name: Publish to npm manually
+    needs: publish-policy
+    if: github.repository == 'outfitter-dev/trails' && github.ref == 'refs/heads/main' && needs.publish-policy.outputs.decision == 'manual' && needs.publish-policy.outputs.should_publish == 'true'
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup
+      - name: Validate package before publish
+        run: bun run publish:check
+      - name: Publish packages
+        run: bun run publish:packages
+      - name: Verify published packages
+        run: bun run publish:registry-check:published --tag "${{ needs.publish-policy.outputs.tag }}"
+
+  github-release:
+    name: Create GitHub Release
+    needs: [publish-policy, publish-auto, publish]
+    if: always() && github.repository == 'outfitter-dev/trails' && github.ref == 'refs/heads/main' && needs.publish-policy.result == 'success' && needs.publish-policy.outputs.create_github_release == 'true' && (needs.publish-policy.outputs.should_publish == 'false' || needs.publish-auto.result == 'success' || needs.publish.result == 'success')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Create GitHub release
+        env:
+          DIST_TAG: ${{ needs.publish-policy.outputs.tag }}
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.publish-policy.outputs.version }}
+        run: |
+          create_args=()
+          if [ "$DIST_TAG" != "latest" ]; then
+            create_args+=(--prerelease --latest=false)
+          else
+            create_args+=(--latest)
+          fi
+
+          tag="v$VERSION"
+          notes="Published @ontrails/* packages at $VERSION to npm with dist-tag \`$DIST_TAG\`."
+          version_target="$(git log -n 1 --format=%H -S "\"version\": \"$VERSION\"" -- apps/trails/package.json)"
+          if [ -z "$version_target" ]; then
+            echo "Could not resolve commit that introduced apps/trails/package.json version $VERSION" >&2
+            exit 1
+          fi
+
+          git fetch --force --tags origin
+          if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+            tag_target="$(git rev-list -n 1 "$tag")"
+            if [ "$tag_target" != "$version_target" ]; then
+              echo "$tag points to $tag_target, expected $version_target" >&2
+              exit 1
+            fi
+          else
+            git tag "$tag" "$version_target"
+            git push origin "refs/tags/$tag"
+          fi
+
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "GitHub release $tag already exists"
+          else
+            gh release create "$tag" \
+              --verify-tag \
+              --title "Trails v$VERSION" \
+              --notes "$notes" \
+              "${create_args[@]}"
+          fi

@@ -13,6 +13,7 @@
     "lint": "turbo run lint",
     "lint:ast-grep": "ast-grep scan --config .ast-grep/sgconfig.yml",
     "changeset:check": "bun apps/trails/bin/trails.ts release check",
+    "version:packages": "bunx changeset version",
     "vocab:audit": "bun scripts/vocab-cutover-audit.ts",
     "vocab:audit:json": "bun scripts/vocab-cutover-audit.ts --json",
     "vocab:rewrite": "bun scripts/vocab-cutover-rewrite.ts",
@@ -57,6 +58,8 @@
     "clean": "turbo run clean --no-cache && rm -rf node_modules",
     "oxlint-plugin:build": "bun run --cwd packages/oxlint-plugin build:oxlint",
     "publish:check": "bun scripts/publish.ts --check",
+    "publish:label-release-pr": "bun scripts/release-policy.ts label-release-pr",
+    "publish:policy": "bun scripts/release-policy.ts policy",
     "publish:registry-check": "bun scripts/check-registry-preflight.ts",
     "publish:registry-check:published": "bun scripts/check-registry-preflight.ts --require-published",
     "publish:packages": "bun scripts/publish.ts"

@@ -68,6 +68,8 @@ A branch-local `.changeset/*.md` entry is the normal intent source. It says the 
 
 `release:none` remains a compatibility no-release override. It is a claim, not the primitive. Use it only when the branch touches package files but does not ship user-visible package content, and record the reason in the PR, issue, or handoff. A branch with both `release:none` and changed changeset files fails.
 
+An active package changeset is also release intent. If a branch adds or modifies `.changeset/*.md` without any matching package-content, generated version release, or public trail contract fact, the check fails. Deleted changesets are ignored for this inverse guard so cleanup branches can remove mistaken release intent without adding package noise.
+
 ## Graphite Stacks
 
 The GitHub workflow validates the PR file list for the current branch. In a Graphite stack, that file list is branch-local because GitHub compares the branch against its immediate base PR or branch. Fix missing release intent on the owning branch, then restack upward. Do not hide lower-branch release gaps with a top-stack cleanup changeset.
@@ -94,6 +96,35 @@ That fallback compares `origin/main...HEAD`. It is useful while developing, but 
 For local reviews, missing branch-local release intent for package content or a public trail contract fact is a P2 release-quality blocker. Identify the owning branch, add the changeset or explicit no-release reason there, restack, and rerun the check upward.
 
 Log broader release ideas, such as imported schema tracing, error-taxonomy facts, permit facts, Warden joins, Wayfinder implications, or release targets, as follow-up P3s unless they expose a concrete user-visible release gap in the current branch.
+
+## Generated Release PR Policy
+
+The generated `changeset-release/main` PR uses a separate publish policy from branch-local `release.check`. Branch-local checks decide whether source PRs carry release facts. The generated release PR policy decides whether the already versioned package state can publish automatically, needs protected manual approval, intentionally publishes nothing, or must block.
+
+Managed release PR labels:
+
+| Family | Labels | Meaning |
+| --- | --- | --- |
+| Source evidence | `stack:boundary` | Applied to source PRs whose consumed changesets are complete enough for automatic publication. |
+| Publish intent | `publish:auto`, `publish:manual`, `publish:none`, `publish:block` | Select automatic publish, protected manual publish, intentional no-publish, or hard block. |
+| Channel intent | `channel:beta`, `channel:stable` | Declares the intended npm dist-tag family. `beta` maps to prerelease beta publication; `stable` maps to `latest`. |
+| Release size | `release:patch`, `release:minor`, `release:major` | Declares the semver movement expected on the generated release PR. |
+
+`publish:none` is only for generated release PRs. It is distinct from branch-local `release:none` and requires an audit reason in the release PR body or comments because it intentionally leaves generated package-version state unpublished.
+
+The release PR labeler fills missing publish/channel/release labels without overriding human-provided labels:
+
+```bash
+bun run publish:label-release-pr
+```
+
+The policy gate emits machine-readable GitHub Actions outputs and chooses `auto`, `manual`, `none`, or `block`:
+
+```bash
+bun run publish:policy
+```
+
+`publish:auto` is available only for the expected generated release PR shape: `changeset-release/main` into `main`, generated-only package version and changelog diffs, exact-SHA CI green, coherent registry/dist-tag state, no unknown or conflicting managed labels, and `stack:boundary` on every source PR that introduced a consumed changeset. Missing source PR evidence or missing `stack:boundary` routes to `publish:manual`; contradictory labels, unknown managed labels, registry contradictions, or `publish:block` block the workflow.
 
 ## Warden And Wayfinder
 

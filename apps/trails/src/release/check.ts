@@ -34,6 +34,7 @@ export interface ReleaseCheckInput {
 
 export interface ReleaseCheckResult {
   readonly affectedPackages: readonly string[];
+  readonly activePackageChangesetsWithoutReleaseFacts: readonly string[];
   readonly changedChangesets: readonly string[];
   readonly contractFacts: readonly ContractReleaseFact[];
   readonly coveredPackages: readonly string[];
@@ -315,6 +316,14 @@ const findChangedChangesetPaths = (
     .map(normalizePath)
     .filter((path) => CHANGESET_PATH_PATTERN.test(path));
 
+const findActiveChangedChangesetPaths = (
+  changedFiles: readonly string[],
+  repoRoot: string
+): readonly string[] =>
+  findChangedChangesetPaths(changedFiles).filter((path) =>
+    existsSync(join(repoRoot, path))
+  );
+
 const findChangedChangesets = (
   changedChangesetPaths: readonly string[],
   repoRoot: string
@@ -387,6 +396,10 @@ export const checkReleaseRules = (
     input.workspaces
   );
   const changedChangesets = findChangedChangesetPaths(input.changedFiles);
+  const activeChangedChangesets = findActiveChangedChangesetPaths(
+    input.changedFiles,
+    input.repoRoot
+  );
   const changesets = findChangedChangesets(changedChangesets, input.repoRoot);
   const coveredPackages = [
     ...new Set(changesets.flatMap((changeset) => changeset.packages)),
@@ -403,6 +416,12 @@ export const checkReleaseRules = (
   const uncoveredContractFacts = contractFacts.filter(
     (fact) => !isContractFactCovered(fact, coveredPackages)
   );
+  const hasReleaseFacts =
+    affectedPackages.length > 0 || contractFacts.length > 0 || versionRelease;
+  const activePackageChangesetsWithoutReleaseFacts =
+    activeChangedChangesets.length > 0 && !hasReleaseFacts
+      ? activeChangedChangesets
+      : [];
   const matchedRuleIds = findMatchedRuleIds(input);
   const requiresPackageIntent = ruleMatchesFactType(input, 'package-content');
   const requiresPublicContractIntent = ruleMatchesFactType(
@@ -414,6 +433,12 @@ export const checkReleaseRules = (
   if (noReleaseOverride && changedChangesets.length > 0) {
     errors.push(
       '`release:none` conflicts with changed changeset files. Remove the label or the changeset.'
+    );
+  }
+
+  if (activePackageChangesetsWithoutReleaseFacts.length > 0) {
+    errors.push(
+      `Active changesets require a matching package or release fact on this branch. Remove ${activePackageChangesetsWithoutReleaseFacts.join(', ')} or include the package-facing change here.`
     );
   }
 
@@ -442,6 +467,7 @@ export const checkReleaseRules = (
   }
 
   return {
+    activePackageChangesetsWithoutReleaseFacts,
     affectedPackages,
     changedChangesets,
     contractFacts,
