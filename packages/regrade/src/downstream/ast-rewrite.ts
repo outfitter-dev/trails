@@ -102,6 +102,20 @@ const invalidEditsResult = (error: unknown): RegradeClassResult => ({
   reason: 'ast-rewrite-invalid-edits',
 });
 
+const astRewriteFailureResult = (
+  context: RegradeClassContext,
+  reason: string,
+  error: unknown
+): RegradeClassResult => ({
+  kind: 'needs-review',
+  notes: [
+    error instanceof Error
+      ? `AST rewrite failed for ${context.path}: ${error.message}`
+      : `AST rewrite failed for ${context.path}.`,
+  ],
+  reason,
+});
+
 const reviewDetailsFor = (
   classId: string,
   matches: readonly AstRewriteMatch[]
@@ -122,12 +136,22 @@ export const createAstRewriteClass = (
     source: string,
     context: RegradeClassContext = defaultRegradeClassContext
   ): RegradeClassResult => {
-    if (options.shouldScan && !options.shouldScan(context)) {
-      return {
-        kind: 'skipped',
-        notes: ['Skipped by AST rewrite scan-target filtering.'],
-        reason: 'ast-rewrite-scan-target-filtered',
-      };
+    if (options.shouldScan) {
+      try {
+        if (!options.shouldScan(context)) {
+          return {
+            kind: 'skipped',
+            notes: ['Skipped by AST rewrite scan-target filtering.'],
+            reason: 'ast-rewrite-scan-target-filtered',
+          };
+        }
+      } catch (error: unknown) {
+        return astRewriteFailureResult(
+          context,
+          'ast-rewrite-scan-target-failed',
+          error
+        );
+      }
     }
 
     const parsed = parseWithDiagnostics(context.path, source);
@@ -146,17 +170,25 @@ export const createAstRewriteClass = (
     }
 
     const matches: AstRewriteMatch[] = [];
-    walkWithScopeContext(parsed.ast, (node, scopeContext) => {
-      matches.push(
-        ...toArray(
-          options.visit(node, {
-            ...scopeContext,
-            path: context.path,
-            source,
-          })
-        )
+    try {
+      walkWithScopeContext(parsed.ast, (node, scopeContext) => {
+        matches.push(
+          ...toArray(
+            options.visit(node, {
+              ...scopeContext,
+              path: context.path,
+              source,
+            })
+          )
+        );
+      });
+    } catch (error: unknown) {
+      return astRewriteFailureResult(
+        context,
+        'ast-rewrite-visitor-failed',
+        error
       );
-    });
+    }
 
     const reviewMatches = matches.filter((match) => match.kind === 'review');
     if (reviewMatches.length > 0) {

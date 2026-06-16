@@ -1,5 +1,11 @@
 import type { ValidationError } from '@ontrails/core';
-import { NotFoundError, Result, trail, validateOutput } from '@ontrails/core';
+import {
+  InternalError,
+  NotFoundError,
+  Result,
+  trail,
+  validateOutput,
+} from '@ontrails/core';
 import type {
   WardenDiagnostic,
   WardenFixEdit,
@@ -606,30 +612,49 @@ export const buildRegradeReport = (params: {
 
 const applyRegradeEvaluation = (
   evaluation: RegradeEvaluation
-): RegradeApplySummary => {
+): Result<RegradeApplySummary, InternalError> => {
   if (evaluation.report.unknownClassIds.length > 0) {
-    return {
+    return Result.ok({
       applied: 0,
       filesChanged: 0,
       review: evaluation.report.review,
       skipped: evaluation.report.skipped + evaluation.rewrites.length,
       unknown: evaluation.report.unknownClassIds.length,
-    };
+    });
   }
 
   const changedFiles = new Set<string>();
+  let applied = 0;
   for (const rewrite of evaluation.rewrites) {
-    writeFileSync(rewrite.absolutePath, rewrite.nextSource, 'utf8');
+    try {
+      writeFileSync(rewrite.absolutePath, rewrite.nextSource, 'utf8');
+    } catch (error: unknown) {
+      return Result.err(
+        new InternalError(
+          `Failed to apply regrade rewrite for "${rewrite.path}".`,
+          {
+            cause: error instanceof Error ? error : new Error(String(error)),
+            context: {
+              applied,
+              classId: rewrite.classId,
+              filesChanged: changedFiles.size,
+              path: rewrite.path,
+            },
+          }
+        )
+      );
+    }
+    applied += 1;
     changedFiles.add(rewrite.path);
   }
 
-  return {
+  return Result.ok({
     applied: evaluation.rewrites.length,
     filesChanged: changedFiles.size,
     review: evaluation.report.review,
     skipped: evaluation.report.skipped,
     unknown: 0,
-  };
+  });
 };
 
 const withApplySummary = (
@@ -718,20 +743,22 @@ export const runRegrade = (params: {
   readonly selection?: RegradeSelection;
   readonly collection?: DownstreamCollectionOptions;
   readonly apply?: boolean;
-}): RegradeReport | null => {
+}): Result<RegradeReport | null, InternalError> => {
   const evaluation = runRegradeEvaluation(params);
   if (evaluation === null) {
-    return null;
+    return Result.ok(null);
   }
 
   if (params.apply !== true) {
-    return evaluation.report;
+    return Result.ok(evaluation.report);
   }
 
-  return withApplySummary(
-    evaluation.report,
-    applyRegradeEvaluation(evaluation)
-  );
+  const applyResult = applyRegradeEvaluation(evaluation);
+  if (applyResult.isErr()) {
+    return Result.err(applyResult.error);
+  }
+
+  return Result.ok(withApplySummary(evaluation.report, applyResult.value));
 };
 
 const regradeReportEntrySchema = z.object({
@@ -851,7 +878,7 @@ export const wardenTermRewriteClasses: readonly RegradeClass[] = Object.freeze(
  */
 export const regradeReportTrail = trail('regrade.downstream.report', {
   blaze: (input) => {
-    const report = runRegrade({
+    const reportResult = runRegrade({
       apply: input.apply,
       classes: wardenTermRewriteClasses,
       root: input.root,
@@ -859,6 +886,11 @@ export const regradeReportTrail = trail('regrade.downstream.report', {
         ? {}
         : { selection: { classIds: input.classIds } }),
     });
+    if (reportResult.isErr()) {
+      return reportResult;
+    }
+
+    const report = reportResult.value;
     if (report === null) {
       return Result.err(
         new NotFoundError(
@@ -873,6 +905,6 @@ export const regradeReportTrail = trail('regrade.downstream.report', {
     return validateRegradeReportOutput(report);
   },
   input: regradeReportInput,
-  intent: 'read',
+  intent: 'write',
   output: regradeReportOutput,
 });

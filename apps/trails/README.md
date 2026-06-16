@@ -18,6 +18,7 @@ Common workflows:
 - `trails wayfind overview`, `trails wayfind find`, `trails wf search`, and adjacent `trails wayfind ...` commands read saved topo artifacts through Wayfinder for local graph navigation.
 - `trails schema <command...>` shows accepted CLI routes, aliases, flags, and schemas for an operator command.
 - `trails warden` runs Trails governance checks for contract and architecture drift.
+- `trails regrade --root-dir <path> --json` dry-runs downstream migration checks; add `--apply` only to write safe rewrites.
 - `trails guide` shows available trails and examples from a project.
 
 Trails is contract-first: define trails once with typed input, Result output, examples, and meta; the framework derives CLI, MCP, HTTP, and future surfaces from the same contracts.

@@ -35,6 +35,7 @@
     "@ontrails/mcp": "workspace:^",
     "@ontrails/observe": "workspace:^",
     "@ontrails/permits": "workspace:^",
+    "@ontrails/regrade": "workspace:^",
     "@ontrails/topographer": "workspace:^",
     "@ontrails/tracing": "workspace:^",
     "@ontrails/warden": "workspace:^",

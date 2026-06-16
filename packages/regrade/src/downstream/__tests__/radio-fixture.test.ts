@@ -91,11 +91,16 @@ describe('Radio-shaped downstream fixture (TRL-846)', () => {
   test('regrade coverage over the fixture is deterministic', () => {
     const root = materializeFixture();
     try {
-      const report = runRegrade({
+      const result = runRegrade({
         classes: wardenTermRewriteClasses,
         root,
         selection: { classIds: [crossToComposeClassId] },
       });
+      expect(result.isOk()).toBe(true);
+      if (result.isErr()) {
+        throw result.error;
+      }
+      const report = result.value;
       expect(report).not.toBeNull();
       const r = report as NonNullable<typeof report>;
 

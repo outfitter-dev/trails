@@ -81,6 +81,45 @@ describe('createAstRewriteClass', () => {
     expect(result.reason).toBe('ast-rewrite-invalid-edits');
     expect(result.nextSource).toBeUndefined();
   });
+
+  test('routes visitor failures to review', () => {
+    const cls = createAstRewriteClass({
+      describe: 'Throwing visitor fixture.',
+      id: 'ast-test:visitor-failure',
+      visit: () => {
+        throw new Error('visitor boom');
+      },
+    });
+
+    const result = cls.apply('export const value = 1;\n', {
+      path: 'src/value.ts',
+    });
+
+    expect(result.kind).toBe('needs-review');
+    expect(result.reason).toBe('ast-rewrite-visitor-failed');
+    expect(result.notes.join('\n')).toContain('visitor boom');
+    expect(result.nextSource).toBeUndefined();
+  });
+
+  test('routes scan predicate failures to review', () => {
+    const cls = createAstRewriteClass({
+      describe: 'Throwing scan predicate fixture.',
+      id: 'ast-test:scan-failure',
+      shouldScan: () => {
+        throw new Error('scan boom');
+      },
+      visit: () => null,
+    });
+
+    const result = cls.apply('export const value = 1;\n', {
+      path: 'src/value.ts',
+    });
+
+    expect(result.kind).toBe('needs-review');
+    expect(result.reason).toBe('ast-rewrite-scan-target-failed');
+    expect(result.notes.join('\n')).toContain('scan boom');
+    expect(result.nextSource).toBeUndefined();
+  });
 });
 
 describe('createAstIdentifierRenameClass', () => {

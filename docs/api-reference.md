@@ -462,14 +462,46 @@ RuleInput, ProjectAwareRuleInput, RuleOutput, TopoAwareRuleInput
 ## `@ontrails/warden/ast`
 
 ```typescript
-parse(filePath, sourceCode), walk(ast, visitor), offsetToLine(source, offset)
-walkScope(ast, visitor)
+parse(filePath, sourceCode), parseWithDiagnostics(filePath, sourceCode)
+walk(ast, visitor), walkScope(ast, visitor)
+walkWithParents(ast, visitor), walkWithScopeContext(ast, visitor)
+offsetToLine(source, offset), offsetToLineColumn(source, offset)
+createSourceEdit(start, end, replacement)
+validateSourceEdits(edits), applySourceEdits(source, edits)
 findTrailDefinitions(ast), findBlazeBodies(node)
 findContourDefinitions(ast, context?, options?), isBlazeCall(node)
 findStringLiterals(ast, predicate?), isStringLiteral(node), getStringValue(node)
 
 AstNode, TrailDefinition, ContourDefinition, FindContourDefinitionsOptions
 FrameworkNamespaceContext, StringLiteralMatch
+AstParentContext, AstScopeContext, AstScopeDeclaration
+AstParseResult, AstParseDiagnostic, SourceEdit, SourceLocation
+```
+
+## `@ontrails/regrade`
+
+```typescript
+// Downstream migration reporting and safe rewrites
+runRegrade({ root, classes, selection?, collection?, apply? }) // Result<RegradeReport | null, InternalError>
+buildRegradeReport({ root, files, skipped, classes, selection? })
+selectRegradeClasses(classes, selection?)
+
+// Built-in Warden-backed migration classes
+wardenTermRewriteClasses
+createWardenTermRewriteClass(rule)
+createTermRewriteClass({ from, to, id?, describe? })
+
+// AST-backed class builders
+createAstRewriteClass({ id, describe, shouldScan?, visit })
+createAstIdentifierRenameClass({ from, to, id?, describe?, reviewDeclarationTypes? })
+
+// Trails and schemas
+regradeReportTrail, regradeReportInput, regradeReportOutput
+literalRegradeTopo, literalRegradeTrail
+
+// Types
+RegradeClass, RegradeClassResult, RegradeReport, RegradeReportEntry
+RegradeReviewDetail, RegradeReviewSpan, RegradeScanTargets, RegradeSelection
 ```
 
 ## `@ontrails/config`

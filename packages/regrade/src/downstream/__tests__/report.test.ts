@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { executeTrail } from '@ontrails/core';
 import type { WardenRule } from '@ontrails/warden';
 import {
+  chmodSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -9,7 +10,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 
 import {
   buildRegradeReport,
@@ -20,9 +21,20 @@ import {
   selectRegradeClasses,
   wardenTermRewriteClasses,
 } from '../report.js';
-import type { RegradeClass } from '../report.js';
+import type { RegradeClass, RegradeReport } from '../report.js';
 
 const signalToPing = createTermRewriteClass({ from: 'signal', to: 'ping' });
+
+const expectRunRegradeOk = (
+  params: Parameters<typeof runRegrade>[0]
+): RegradeReport | null => {
+  const result = runRegrade(params);
+  expect(result.isOk()).toBe(true);
+  if (result.isErr()) {
+    throw result.error;
+  }
+  return result.value;
+};
 
 describe('createTermRewriteClass', () => {
   test('rewrites whole-word occurrences', () => {
@@ -423,10 +435,14 @@ const writeApplyFixture = (): string => {
 };
 
 describe('runRegrade + regradeReportTrail', () => {
+  test('trail intent reflects apply-mode write capability', () => {
+    expect(regradeReportTrail.intent).toBe('write');
+  });
+
   test('runRegrade reports coverage over a real root', () => {
     const root = writeReportFixture();
     try {
-      const report = runRegrade({ classes: [signalToPing], root });
+      const report = expectRunRegradeOk({ classes: [signalToPing], root });
       expect(report).not.toBeNull();
       const r = report as NonNullable<typeof report>;
       // dist/out.ts is skipped at the directory level, so only 2 files scanned.
@@ -451,7 +467,7 @@ describe('runRegrade + regradeReportTrail', () => {
         'export const sourceTerm = 1;\n'
       );
 
-      const report = runRegrade({
+      const report = expectRunRegradeOk({
         classes: [
           {
             apply: (source) =>
@@ -497,7 +513,7 @@ describe('runRegrade + regradeReportTrail', () => {
         'export const signal = 2;\n'
       );
 
-      const report = runRegrade({
+      const report = expectRunRegradeOk({
         classes: [signalToPing],
         root,
         selection: { classIds: ['missing-class'] },
@@ -515,7 +531,7 @@ describe('runRegrade + regradeReportTrail', () => {
 
   test('unknown-only selection still validates the root', () => {
     expect(
-      runRegrade({
+      expectRunRegradeOk({
         classes: [signalToPing],
         root: join(import.meta.dir, 'does-not-exist-xyz'),
         selection: { classIds: ['missing-class'] },
@@ -524,19 +540,23 @@ describe('runRegrade + regradeReportTrail', () => {
   });
 
   test('returns null for an unreadable root', () => {
-    expect(
-      runRegrade({
-        classes: [signalToPing],
-        root: join(import.meta.dir, 'does-not-exist-xyz'),
-      })
-    ).toBeNull();
+    const result = runRegrade({
+      classes: [signalToPing],
+      root: join(import.meta.dir, 'does-not-exist-xyz'),
+    });
+
+    expect(result.isOk()).toBe(true);
+    if (result.isErr()) {
+      throw result.error;
+    }
+    expect(result.value).toBeNull();
   });
 
   test('dry-run is the default and does not write rewrite outcomes', () => {
     const root = writeApplyFixture();
     try {
       const target = join(root, 'src', 'a.ts');
-      const report = runRegrade({ classes: [signalToPing], root });
+      const report = expectRunRegradeOk({ classes: [signalToPing], root });
 
       expect(report?.rewritten).toBe(1);
       expect(report?.apply).toBeUndefined();
@@ -549,7 +569,7 @@ describe('runRegrade + regradeReportTrail', () => {
   test('apply mode writes only safe rewrite outcomes with nextSource', () => {
     const root = writeApplyFixture();
     try {
-      const report = runRegrade({
+      const report = expectRunRegradeOk({
         apply: true,
         classes: [signalToPing],
         root,
@@ -584,7 +604,7 @@ describe('runRegrade + regradeReportTrail', () => {
     mkdirSync(join(root, 'src'), { recursive: true });
     writeFileSync(join(root, 'src', 'a.ts'), 'export const signal = 1;\n');
     try {
-      const report = runRegrade({
+      const report = expectRunRegradeOk({
         apply: true,
         classes: [signalToPing],
         root,
@@ -604,6 +624,50 @@ describe('runRegrade + regradeReportTrail', () => {
       expect(readFileSync(join(root, 'src', 'a.ts'), 'utf8')).toBe(
         'export const signal = 1;\n'
       );
+    } finally {
+      rmSync(root, { force: true, recursive: true });
+    }
+  });
+
+  test('apply mode returns InternalError when a rewrite cannot be written', () => {
+    const root = mkdtempSync(join(tmpdir(), 'regrade-apply-write-error-'));
+    mkdirSync(join(root, 'src'), { recursive: true });
+    writeFileSync(join(root, 'src', 'a.ts'), 'export const signal = 1;\n');
+    try {
+      const result = runRegrade({
+        apply: true,
+        classes: [
+          {
+            apply: (_source, context) => {
+              if (context?.absolutePath !== undefined) {
+                rmSync(dirname(context.absolutePath), {
+                  force: true,
+                  recursive: true,
+                });
+              }
+              return {
+                kind: 'rewrite',
+                nextSource: 'export const ping = 1;\n',
+                notes: ['Simulated a write race.'],
+              };
+            },
+            describe: 'Simulate a file disappearing before write.',
+            id: 'test-write-error',
+          },
+        ],
+        root,
+      });
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error.constructor.name).toBe('InternalError');
+        expect(result.error.context).toMatchObject({
+          applied: 0,
+          classId: 'test-write-error',
+          filesChanged: 0,
+          path: 'src/a.ts',
+        });
+      }
     } finally {
       rmSync(root, { force: true, recursive: true });
     }
@@ -669,6 +733,32 @@ describe('runRegrade + regradeReportTrail', () => {
         expect(value.apply?.applied).toBe(1);
       }
     } finally {
+      rmSync(root, { force: true, recursive: true });
+    }
+  });
+
+  test('trail apply input returns InternalError when writing fails', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'regrade-trail-apply-error-'));
+    mkdirSync(join(root, 'src'), { recursive: true });
+    const target = join(root, 'src', 'play.ts');
+    writeFileSync(
+      target,
+      'export const play = trail("play", { crosses: [] });\n'
+    );
+    chmodSync(target, 0o444);
+    try {
+      const result = await executeTrail(regradeReportTrail, {
+        apply: true,
+        classIds: ['term-rewrite:no-retired-cross-vocabulary'],
+        root,
+      });
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error.constructor.name).toBe('InternalError');
+      }
+    } finally {
+      chmodSync(target, 0o644);
       rmSync(root, { force: true, recursive: true });
     }
   });
