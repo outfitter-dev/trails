@@ -10,10 +10,14 @@ import {
   isWardenSourceScanTarget,
   wardenRules,
 } from '@ontrails/warden';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { z } from 'zod';
 
-import { collectDownstreamSources } from './collect.js';
+import {
+  collectDownstreamSources,
+  DEFAULT_IGNORED_DIRECTORIES,
+  DEFAULT_SOURCE_EXTENSIONS,
+} from './collect.js';
 import type { DownstreamCollectionOptions, SkippedSource } from './collect.js';
 
 /**
@@ -63,6 +67,14 @@ export interface RegradeClassContext {
   readonly absolutePath?: string;
 }
 
+/** Files a regrade class knows how to inspect. */
+export interface RegradeScanTargets {
+  /** Source extensions the class can inspect. */
+  readonly extensions?: readonly string[];
+  /** Directory names to skip during collection. */
+  readonly ignoredDirectories?: readonly string[];
+}
+
 /** One named, contract-aware transform. */
 export interface RegradeClass {
   /** Stable identifier, e.g. `term-rewrite:signal->ping`. */
@@ -74,6 +86,8 @@ export interface RegradeClass {
     source: string,
     context?: RegradeClassContext
   ) => RegradeClassResult;
+  /** Scan targets this class knows how to inspect. */
+  readonly scanTargets?: RegradeScanTargets;
 }
 
 /** Which regrade classes a run should execute. */
@@ -338,6 +352,35 @@ export const selectRegradeClasses = (
   return { selected, unknownClassIds };
 };
 
+const uniqueSorted = (values: readonly string[]): readonly string[] =>
+  [...new Set(values)].toSorted((a, b) => a.localeCompare(b));
+
+const deriveCollectionOptions = (
+  classes: readonly RegradeClass[],
+  collection: DownstreamCollectionOptions | undefined
+): DownstreamCollectionOptions => {
+  const targetExtensions = uniqueSorted(
+    classes.length === 0
+      ? DEFAULT_SOURCE_EXTENSIONS
+      : classes.flatMap(
+          (cls) => cls.scanTargets?.extensions ?? DEFAULT_SOURCE_EXTENSIONS
+        )
+  );
+  const ignoredDirectories = uniqueSorted(
+    classes.length === 0
+      ? DEFAULT_IGNORED_DIRECTORIES
+      : classes.flatMap(
+          (cls) =>
+            cls.scanTargets?.ignoredDirectories ?? DEFAULT_IGNORED_DIRECTORIES
+        )
+  );
+
+  return {
+    extensions: collection?.extensions ?? targetExtensions,
+    ignoredDirectories: collection?.ignoredDirectories ?? ignoredDirectories,
+  };
+};
+
 /** Per-entry detail describing what happened to one path. */
 export interface RegradeReportEntry {
   /** Root-relative POSIX path. */
@@ -597,15 +640,43 @@ const withApplySummary = (
   apply,
 });
 
+const canReadDownstreamRoot = (root: string): boolean => {
+  try {
+    readdirSync(root, { withFileTypes: true });
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 const runRegradeEvaluation = (params: {
   readonly root: string;
   readonly classes: readonly RegradeClass[];
   readonly selection?: RegradeSelection;
   readonly collection?: DownstreamCollectionOptions;
 }): RegradeEvaluation | null => {
+  const { selected, unknownClassIds } = selectRegradeClasses(
+    params.classes,
+    params.selection
+  );
+  if (selected.length === 0 && unknownClassIds.length > 0) {
+    if (!canReadDownstreamRoot(params.root)) {
+      return null;
+    }
+    return buildRegradeEvaluation({
+      classes: params.classes,
+      files: [],
+      root: params.root,
+      skipped: [],
+      ...(params.selection === undefined
+        ? {}
+        : { selection: params.selection }),
+    });
+  }
+
   const collected = collectDownstreamSources(
     params.root,
-    params.collection ?? {}
+    deriveCollectionOptions(selected, params.collection)
   );
   if (collected === null) {
     return null;

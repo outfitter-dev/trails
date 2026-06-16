@@ -441,6 +441,88 @@ describe('runRegrade + regradeReportTrail', () => {
     }
   });
 
+  test('runRegrade derives collection extensions from selected classes', () => {
+    const root = mkdtempSync(join(tmpdir(), 'regrade-run-'));
+    try {
+      mkdirSync(join(root, 'src'), { recursive: true });
+      writeFileSync(join(root, 'README.md'), 'sourceTerm\n');
+      writeFileSync(
+        join(root, 'src', 'sourceTerm.ts'),
+        'export const sourceTerm = 1;\n'
+      );
+
+      const report = runRegrade({
+        classes: [
+          {
+            apply: (source) =>
+              source.includes('sourceTerm')
+                ? {
+                    kind: 'rewrite',
+                    nextSource: source.replaceAll('sourceTerm', 'targetTerm'),
+                    notes: ['Rewrote docs term.'],
+                  }
+                : { kind: 'no-op', notes: [] },
+            describe: 'Rewrite docs vocabulary.',
+            id: 'docs-term',
+            scanTargets: { extensions: ['.md'] },
+          },
+        ],
+        root,
+        selection: { classIds: ['docs-term'] },
+      });
+
+      expect(report?.entries.map((entry) => entry.path)).toEqual([
+        'README.md',
+        'src/sourceTerm.ts',
+      ]);
+      expect(
+        report?.entries.find((entry) => entry.path === 'src/sourceTerm.ts')
+          ?.outcome
+      ).toBe('skip');
+      expect(report?.rewritten).toBe(1);
+      expect(report?.scanned).toBe(1);
+    } finally {
+      rmSync(root, { force: true, recursive: true });
+    }
+  });
+
+  test('unknown-only selection reports ids without collecting sources', () => {
+    const root = mkdtempSync(join(tmpdir(), 'regrade-run-unknown-only-'));
+    try {
+      mkdirSync(join(root, 'src'), { recursive: true });
+      mkdirSync(join(root, 'node_modules', 'pkg'), { recursive: true });
+      writeFileSync(join(root, 'src', 'a.ts'), 'export const signal = 1;\n');
+      writeFileSync(
+        join(root, 'node_modules', 'pkg', 'a.ts'),
+        'export const signal = 2;\n'
+      );
+
+      const report = runRegrade({
+        classes: [signalToPing],
+        root,
+        selection: { classIds: ['missing-class'] },
+      });
+
+      expect(report?.selectedClassIds).toEqual([]);
+      expect(report?.unknownClassIds).toEqual(['missing-class']);
+      expect(report?.scanned).toBe(0);
+      expect(report?.skipped).toBe(0);
+      expect(report?.entries).toEqual([]);
+    } finally {
+      rmSync(root, { force: true, recursive: true });
+    }
+  });
+
+  test('unknown-only selection still validates the root', () => {
+    expect(
+      runRegrade({
+        classes: [signalToPing],
+        root: join(import.meta.dir, 'does-not-exist-xyz'),
+        selection: { classIds: ['missing-class'] },
+      })
+    ).toBeNull();
+  });
+
   test('returns null for an unreadable root', () => {
     expect(
       runRegrade({
