@@ -133,5 +133,25 @@ describe('createAstIdentifierRenameClass', () => {
     expect(result.reason).toBe('ast-identifier-review-declaration');
     expect(result.nextSource).toBeUndefined();
     expect(result.notes.join('\n')).toContain('FunctionParam');
+    expect(result.reviewDetails).toEqual([
+      {
+        classId: 'ast-identifier-rename:sourceTerm->targetTerm',
+        expectedTarget: 'Rename identifier "sourceTerm" to "targetTerm".',
+        nodeKind: 'Identifier',
+        reason: 'ast-identifier-review-declaration',
+        span: { column: 16, end: 118, line: 3, start: 96 },
+        suggestedValidation: 'bun run typecheck',
+        symbol: 'sourceTerm',
+      },
+      {
+        classId: 'ast-identifier-rename:sourceTerm->targetTerm',
+        expectedTarget: 'Rename identifier "sourceTerm" to "targetTerm".',
+        nodeKind: 'Identifier',
+        reason: 'ast-identifier-review-declaration',
+        span: { column: 10, end: 141, line: 4, start: 131 },
+        suggestedValidation: 'bun run typecheck',
+        symbol: 'sourceTerm',
+      },
+    ]);
   });
 });

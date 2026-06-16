@@ -51,6 +51,8 @@ export interface RegradeClassResult {
   readonly notes: readonly string[];
   /** Machine-readable reason for review outcomes. */
   readonly reason?: string;
+  /** Structured details for review outcomes. */
+  readonly reviewDetails?: readonly RegradeReviewDetail[];
 }
 
 /** Source-file context passed to Regrade classes. */
@@ -92,6 +94,34 @@ export interface RegradeApplySummary {
   readonly review: number;
   /** Unknown selected class ids; apply mode writes nothing when non-zero. */
   readonly unknown: number;
+}
+
+/** Source location for a review-required match. */
+export interface RegradeReviewSpan {
+  readonly column: number;
+  readonly end: number;
+  readonly line: number;
+  readonly start: number;
+}
+
+/** Structured detail explaining why a source match needs review. */
+export interface RegradeReviewDetail {
+  /** Class that produced the review detail, injected by report building. */
+  readonly classId?: string;
+  /** Expected target shape when the class can describe one. */
+  readonly expectedTarget?: string;
+  /** Fixture or example reference that illustrates the expected migration. */
+  readonly fixture?: string;
+  /** AST node kind or source construct kind. */
+  readonly nodeKind?: string;
+  /** Machine-readable reason for review. */
+  readonly reason: string;
+  /** Source span and line/column for the review-required match. */
+  readonly span?: RegradeReviewSpan;
+  /** Suggested validation command after the review is resolved. */
+  readonly suggestedValidation?: string;
+  /** Symbol or term that triggered review. */
+  readonly symbol?: string;
 }
 
 const escapeRegExp = (value: string): string =>
@@ -320,6 +350,8 @@ export interface RegradeReportEntry {
   readonly reason?: string;
   /** Notes carried from the producing class. */
   readonly notes?: readonly string[];
+  /** Structured review details carried from the producing class. */
+  readonly reviewDetails?: readonly RegradeReviewDetail[];
 }
 
 /** Coverage report for a regrade run. */
@@ -405,6 +437,10 @@ const classifyFile = (
       };
     }
     if (result.kind === 'needs-review') {
+      const reviewDetails = result.reviewDetails?.map((detail) => ({
+        ...detail,
+        classId: detail.classId ?? cls.id,
+      }));
       return {
         entry: {
           classId: cls.id,
@@ -412,6 +448,7 @@ const classifyFile = (
           outcome: 'needs-review',
           path,
           reason: result.reason ?? 'needs-review',
+          ...(reviewDetails === undefined ? {} : { reviewDetails }),
         },
       };
     }
@@ -634,6 +671,44 @@ const regradeReportEntrySchema = z.object({
     .describe('What happened to the entry'),
   path: z.string().describe('Root-relative POSIX path'),
   reason: z.string().optional().describe('Reason for a skip or review outcome'),
+  reviewDetails: z
+    .array(
+      z.object({
+        classId: z
+          .string()
+          .optional()
+          .describe('Class that produced the review detail'),
+        expectedTarget: z
+          .string()
+          .optional()
+          .describe('Expected target shape for the migration'),
+        fixture: z
+          .string()
+          .optional()
+          .describe('Fixture or example reference for the migration'),
+        nodeKind: z
+          .string()
+          .optional()
+          .describe('AST node kind or source construct kind'),
+        reason: z.string().describe('Machine-readable review reason'),
+        span: z
+          .object({
+            column: z.number().describe('One-based source column'),
+            end: z.number().describe('Source end offset'),
+            line: z.number().describe('One-based source line'),
+            start: z.number().describe('Source start offset'),
+          })
+          .optional()
+          .describe('Source span that needs review'),
+        suggestedValidation: z
+          .string()
+          .optional()
+          .describe('Suggested validation command after resolving review'),
+        symbol: z.string().optional().describe('Symbol or term under review'),
+      })
+    )
+    .optional()
+    .describe('Structured review details from the producing class'),
 });
 
 export const regradeReportInput = z.object({

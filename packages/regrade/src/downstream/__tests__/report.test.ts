@@ -37,6 +37,49 @@ describe('createTermRewriteClass', () => {
     expect(result.kind).toBe('needs-review');
   });
 
+  test('carries structured review details into report entries', () => {
+    const report = buildRegradeReport({
+      classes: [
+        {
+          apply: () => ({
+            kind: 'needs-review',
+            notes: ['Manual review required.'],
+            reason: 'test-review',
+            reviewDetails: [
+              {
+                expectedTarget: 'Use targetTerm for grouped trail entries.',
+                nodeKind: 'Identifier',
+                reason: 'test-review',
+                span: { column: 14, end: 19, line: 1, start: 13 },
+                suggestedValidation: 'bun test packages/regrade',
+                symbol: 'sourceTerm',
+              },
+            ],
+          }),
+          describe: 'Review detail fixture.',
+          id: 'test-review-detail',
+        },
+      ],
+      files: [
+        { path: 'src/sourceTerm.ts', source: 'export const sourceTerm = 1;' },
+      ],
+      root: '/repo',
+      skipped: [],
+    });
+
+    expect(report.entries[0]?.reviewDetails).toEqual([
+      {
+        classId: 'test-review-detail',
+        expectedTarget: 'Use targetTerm for grouped trail entries.',
+        nodeKind: 'Identifier',
+        reason: 'test-review',
+        span: { column: 14, end: 19, line: 1, start: 13 },
+        suggestedValidation: 'bun test packages/regrade',
+        symbol: 'sourceTerm',
+      },
+    ]);
+  });
+
   test('routes mixed whole-word and partial matches to review', () => {
     const result = signalToPing.apply(
       'const signal = 1; const signalHandler = 2;'

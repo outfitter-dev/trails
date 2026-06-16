@@ -7,6 +7,7 @@ import {
   applySourceEdits,
   createSourceEdit,
   identifierName,
+  offsetToLineColumn,
   parseWithDiagnostics,
   validateSourceEdits,
   walkWithScopeContext,
@@ -16,6 +17,7 @@ import type {
   RegradeClass,
   RegradeClassContext,
   RegradeClassResult,
+  RegradeReviewDetail,
 } from './report.js';
 
 export interface AstRewriteContext extends AstScopeContext {
@@ -30,6 +32,7 @@ export type AstRewriteMatch =
       readonly note?: string;
     }
   | {
+      readonly detail?: RegradeReviewDetail;
       readonly kind: 'review';
       readonly note?: string;
       readonly reason: string;
@@ -99,6 +102,19 @@ const invalidEditsResult = (error: unknown): RegradeClassResult => ({
   reason: 'ast-rewrite-invalid-edits',
 });
 
+const reviewDetailsFor = (
+  classId: string,
+  matches: readonly AstRewriteMatch[]
+): readonly RegradeReviewDetail[] | undefined => {
+  const details = matches.flatMap((match) => {
+    if (match.kind !== 'review' || match.detail === undefined) {
+      return [];
+    }
+    return [{ ...match.detail, classId: match.detail.classId ?? classId }];
+  });
+  return details.length === 0 ? undefined : details;
+};
+
 export const createAstRewriteClass = (
   options: AstRewriteClassOptions
 ): RegradeClass => ({
@@ -144,10 +160,12 @@ export const createAstRewriteClass = (
 
     const reviewMatches = matches.filter((match) => match.kind === 'review');
     if (reviewMatches.length > 0) {
+      const reviewDetails = reviewDetailsFor(options.id, reviewMatches);
       return {
         kind: 'needs-review',
         notes: notesFor(reviewMatches),
         reason: reviewMatches[0]?.reason ?? 'ast-rewrite-review-required',
+        ...(reviewDetails === undefined ? {} : { reviewDetails }),
       };
     }
 
@@ -205,7 +223,21 @@ export const createAstIdentifierRenameClass = (
 
       const declaration = context.getDeclaration(options.from);
       if (declaration && reviewDeclarationTypes.has(declaration.type)) {
+        const location = offsetToLineColumn(context.source, node.start);
         return {
+          detail: {
+            expectedTarget: `Rename identifier "${options.from}" to "${options.to}".`,
+            nodeKind: node.type,
+            reason: 'ast-identifier-review-declaration',
+            span: {
+              column: location.column,
+              end: node.end,
+              line: location.line,
+              start: node.start,
+            },
+            suggestedValidation: 'bun run typecheck',
+            symbol: options.from,
+          },
           kind: 'review',
           note: `Identifier "${options.from}" resolves to ${declaration.type}; routed to review.`,
           reason: 'ast-identifier-review-declaration',
