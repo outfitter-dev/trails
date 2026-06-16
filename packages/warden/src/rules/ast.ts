@@ -12,6 +12,12 @@ import { fileURLToPath } from 'node:url';
 import { DRAFT_ID_PREFIX, intentValues } from '@ontrails/core';
 import type { Intent } from '@ontrails/core';
 import { parseSync } from 'oxc-parser';
+import { ScopeTracker, walk as walkWithOxc } from 'oxc-walker';
+import type {
+  ScopeTrackerNode,
+  WalkerCallbackContext,
+  WalkOptions,
+} from 'oxc-walker';
 
 // ---------------------------------------------------------------------------
 // Types (minimal, avoiding full @oxc-project/types dep)
@@ -25,6 +31,55 @@ export interface AstNode {
   readonly value?: unknown;
   readonly body?: AstNode | readonly AstNode[];
   readonly [key: string]: unknown;
+}
+
+export interface AstParentContext {
+  readonly index: number | null;
+  readonly key: string | number | symbol | null | undefined;
+  readonly parent: AstNode | null;
+}
+
+export interface AstScopeDeclaration {
+  readonly end: number;
+  readonly node: AstNode;
+  readonly start: number;
+  readonly type: string;
+}
+
+export interface AstScopeContext extends AstParentContext {
+  readonly currentScope: string;
+  readonly getDeclaration: (name: string) => AstScopeDeclaration | null;
+  readonly isDeclared: (name: string) => boolean;
+  readonly isCurrentScopeUnder: (scope: string) => boolean;
+}
+
+export interface SourceEdit {
+  readonly end: number;
+  readonly replacement: string;
+  readonly start: number;
+}
+
+export interface SourceLocation {
+  readonly column: number;
+  readonly line: number;
+}
+
+export interface AstParseDiagnosticLabel {
+  readonly end: number;
+  readonly message: string | null;
+  readonly start: number;
+}
+
+export interface AstParseDiagnostic {
+  readonly helpMessage: string | null;
+  readonly labels: readonly AstParseDiagnosticLabel[];
+  readonly message: string;
+  readonly severity: string;
+}
+
+export interface AstParseResult {
+  readonly ast: AstNode | null;
+  readonly diagnostics: readonly AstParseDiagnostic[];
 }
 
 interface StringLiteralNode extends AstNode {
@@ -46,6 +101,46 @@ export const parse = (filePath: string, sourceCode: string): AstNode | null => {
     return result.program as unknown as AstNode;
   } catch {
     return null;
+  }
+};
+
+/**
+ * Parse TypeScript source and surface parser diagnostics. OXC can recover a
+ * partial program for malformed input, so rewrite tooling should use this
+ * helper when applying edits would be unsafe after syntax errors.
+ */
+export const parseWithDiagnostics = (
+  filePath: string,
+  sourceCode: string
+): AstParseResult => {
+  try {
+    const result = parseSync(filePath, sourceCode, { sourceType: 'module' });
+    return {
+      ast: result.program as unknown as AstNode,
+      diagnostics: result.errors.map((error) => ({
+        helpMessage: error.helpMessage,
+        labels: error.labels.map((label) => ({
+          end: label.end,
+          message: label.message,
+          start: label.start,
+        })),
+        message: error.message,
+        severity: error.severity,
+      })),
+    };
+  } catch (error) {
+    return {
+      ast: null,
+      diagnostics: [
+        {
+          helpMessage: null,
+          labels: [],
+          message:
+            error instanceof Error ? error.message : 'Unable to parse source.',
+          severity: 'Error',
+        },
+      ],
+    };
   }
 };
 
@@ -81,6 +176,94 @@ export const walk: WalkFn = (node, visit) => {
     visit(n);
   }
   walkChildren(n, visit, walk);
+};
+
+const toAstParentContext = (
+  parent: unknown,
+  ctx: WalkerCallbackContext
+): AstParentContext => ({
+  index: ctx.index,
+  key: ctx.key,
+  parent: isAstNode(parent) ? parent : null,
+});
+
+const toScopeDeclaration = (
+  declaration: ScopeTrackerNode | null
+): AstScopeDeclaration | null => {
+  if (!declaration) {
+    return null;
+  }
+
+  return {
+    end: declaration.end,
+    node: declaration.node as unknown as AstNode,
+    start: declaration.start,
+    type: declaration.type,
+  };
+};
+
+const walkWithOxcFacade = (
+  node: unknown,
+  enter: (node: AstNode, context: AstParentContext) => void,
+  scopeTracker?: ScopeTracker
+): void => {
+  if (!isAstNode(node)) {
+    return;
+  }
+
+  const options: Partial<WalkOptions> = {
+    enter(candidate, parent, ctx) {
+      if (!isAstNode(candidate)) {
+        return;
+      }
+      enter(candidate, toAstParentContext(parent, ctx));
+    },
+  };
+
+  if (scopeTracker) {
+    options.scopeTracker = scopeTracker;
+  }
+
+  walkWithOxc(node as never, options);
+};
+
+/**
+ * Walk an AST node tree with parent, key, and index context for each visited
+ * node. This is the supported Warden facade over `oxc-walker` for rules and
+ * regrades that need structural context.
+ */
+export const walkWithParents = (
+  node: unknown,
+  visit: (node: AstNode, context: AstParentContext) => void
+): void => {
+  walkWithOxcFacade(node, visit);
+};
+
+/**
+ * Walk an AST node tree with parent context and a scope query facade. The
+ * concrete `oxc-walker` tracker stays behind this helper so rule authors can
+ * ask Warden-shaped questions without depending on walker internals.
+ */
+export const walkWithScopeContext = (
+  node: unknown,
+  visit: (node: AstNode, context: AstScopeContext) => void
+): void => {
+  const scopeTracker = new ScopeTracker();
+
+  walkWithOxcFacade(
+    node,
+    (candidate, context) => {
+      visit(candidate, {
+        ...context,
+        currentScope: scopeTracker.getCurrentScope(),
+        getDeclaration: (name) =>
+          toScopeDeclaration(scopeTracker.getDeclaration(name)),
+        isCurrentScopeUnder: (scope) => scopeTracker.isCurrentScopeUnder(scope),
+        isDeclared: (name) => scopeTracker.isDeclared(name),
+      });
+    },
+    scopeTracker
+  );
 };
 
 const NESTED_SCOPE_TYPES = new Set([
@@ -133,6 +316,81 @@ export const offsetToLine = (sourceCode: string, offset: number): number => {
     }
   }
   return line;
+};
+
+/** Find the byte offset's line and column (1-based) in source code. */
+export const offsetToLineColumn = (
+  sourceCode: string,
+  offset: number
+): SourceLocation => {
+  let line = 1;
+  let column = 1;
+  const limit = Math.min(Math.max(offset, 0), sourceCode.length);
+
+  for (let i = 0; i < limit; i += 1) {
+    if (sourceCode[i] === '\n') {
+      line += 1;
+      column = 1;
+    } else {
+      column += 1;
+    }
+  }
+
+  return { column, line };
+};
+
+export const createSourceEdit = (
+  start: number,
+  end: number,
+  replacement: string
+): SourceEdit => ({ end, replacement, start });
+
+export const validateSourceEdits = (
+  edits: readonly SourceEdit[],
+  sourceLength?: number
+): readonly SourceEdit[] => {
+  const ordered = [...edits].toSorted(
+    (left, right) => left.start - right.start
+  );
+  for (let i = 0; i < ordered.length; i += 1) {
+    const edit = ordered[i];
+    if (!edit) {
+      continue;
+    }
+    if (
+      !Number.isSafeInteger(edit.start) ||
+      !Number.isSafeInteger(edit.end) ||
+      edit.start < 0 ||
+      edit.end < edit.start ||
+      (sourceLength !== undefined && edit.end > sourceLength)
+    ) {
+      throw new Error(`Invalid source edit range ${edit.start}-${edit.end}.`);
+    }
+
+    const previous = ordered[i - 1];
+    if (previous && edit.start < previous.end) {
+      throw new Error(
+        `Overlapping source edits ${previous.start}-${previous.end} and ${edit.start}-${edit.end}.`
+      );
+    }
+  }
+
+  return ordered;
+};
+
+export const applySourceEdits = (
+  sourceCode: string,
+  edits: readonly SourceEdit[]
+): string => {
+  validateSourceEdits(edits, sourceCode.length);
+
+  return [...edits]
+    .toSorted((left, right) => right.start - left.start)
+    .reduce(
+      (output, edit) =>
+        output.slice(0, edit.start) + edit.replacement + output.slice(edit.end),
+      sourceCode
+    );
 };
 
 /** Get the name of an Identifier node, or null. */

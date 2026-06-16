@@ -2,12 +2,18 @@ import { describe, expect, test } from 'bun:test';
 
 import * as warden from '@ontrails/warden';
 import {
+  applySourceEdits,
+  createSourceEdit,
   findBlazeBodies,
   findContourDefinitions,
   findTrailDefinitions,
   isBlazeCall,
+  offsetToLineColumn,
   parse,
+  parseWithDiagnostics,
   walk,
+  walkWithParents,
+  walkWithScopeContext,
   walkScope,
 } from '@ontrails/warden/ast';
 import type { FrameworkNamespaceContext } from '@ontrails/warden/ast';
@@ -42,6 +48,9 @@ describe('@ontrails/warden public API', () => {
 
     const ast = parse('example.ts', 'export const value = 1;');
     expect(ast).not.toBeNull();
+    expect(
+      parseWithDiagnostics('broken.ts', 'export const = ;').diagnostics.length
+    ).toBeGreaterThan(0);
 
     let visited = 0;
     if (ast) {
@@ -119,5 +128,63 @@ export const showUser = trail('user.show', {
     expect(scopedNodeTypes.length).toBeGreaterThan(0);
     expect(scopedNodeTypes).toContain('ArrowFunctionExpression');
     expect(hasScopedBlazeCall).toBe(false);
+  });
+
+  test('exposes parent-aware, scope-aware, and edit helpers on the ast entrypoint', () => {
+    const source = `
+import { trail } from '@ontrails/core';
+
+export const showUser = trail('user.show', {});
+
+function wrapper(trail: (id: string) => void) {
+  trail('shadowed.show');
+}
+`;
+    const ast = parse('example.ts', source);
+    expect(ast).not.toBeNull();
+    if (!ast) {
+      return;
+    }
+
+    const parentContexts: string[] = [];
+    walkWithParents(ast, (node, context) => {
+      if (node.type === 'CallExpression') {
+        parentContexts.push(
+          `${context.parent?.type ?? 'root'}:${String(context.key)}`
+        );
+      }
+    });
+    expect(parentContexts).toContain('VariableDeclarator:init');
+
+    const declarationTypes: string[] = [];
+    walkWithScopeContext(ast, (node, context) => {
+      if (node.type !== 'CallExpression') {
+        return;
+      }
+      const { callee } = node as unknown as {
+        readonly callee?: { readonly name?: string };
+      };
+      if (callee?.name === 'trail') {
+        const declaration = context.getDeclaration('trail');
+        if (declaration) {
+          declarationTypes.push(declaration.type);
+        }
+      }
+    });
+    expect(declarationTypes).toEqual(['Import', 'FunctionParam']);
+
+    expect(offsetToLineColumn(source, source.indexOf('wrapper'))).toEqual({
+      column: 10,
+      line: 6,
+    });
+    expect(
+      applySourceEdits(source, [
+        createSourceEdit(
+          source.indexOf('showUser'),
+          source.indexOf('showUser') + 8,
+          'showAccount'
+        ),
+      ])
+    ).toContain('showAccount');
   });
 });

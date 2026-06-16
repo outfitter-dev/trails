@@ -106,6 +106,7 @@ const reviewedSurfaceMentionPaths = [
   'docs/api-reference.md',
   'docs/index.md',
   'docs/lexicon.md',
+  'docs/lexicon-pending.md',
   'packages/http/README.md',
   'packages/oxlint-plugin/src/__tests__/rules.test.ts',
   'packages/store/.agents',

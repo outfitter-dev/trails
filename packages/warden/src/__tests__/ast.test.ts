@@ -6,12 +6,19 @@ import {
   collectContourReferenceSites,
   collectNamedContourIds,
   __getTrailCalleeNameForTest,
+  applySourceEdits,
+  createSourceEdit,
   deriveContourIdentifierName,
   findContourDefinitions,
   findTrailDefinitions,
   hasIgnoreCommentOnLine,
+  offsetToLineColumn,
   parse,
+  parseWithDiagnostics,
   splitSourceLines,
+  validateSourceEdits,
+  walkWithParents,
+  walkWithScopeContext,
 } from '../rules/ast.js';
 
 describe('deriveContourIdentifierName', () => {
@@ -89,6 +96,110 @@ const parseOrThrow = (source: string) =>
   (() => {
     throw new Error('failed to parse');
   })();
+
+describe('OXC-backed AST facade helpers', () => {
+  test('parseWithDiagnostics surfaces recoverable parser errors', () => {
+    const result = parseWithDiagnostics('broken.ts', 'export const = ;');
+
+    expect(result.ast).not.toBeNull();
+    expect(result.diagnostics).toHaveLength(1);
+    expect(result.diagnostics[0]?.message).toContain('Unexpected token');
+    expect(result.diagnostics[0]?.labels[0]).toMatchObject({
+      end: 14,
+      start: 13,
+    });
+  });
+
+  test('walkWithParents exposes parent key and index context', () => {
+    const source = 'const value = trail("demo.show", {});\n';
+    const ast = parseOrThrow(source);
+
+    const contexts: string[] = [];
+    walkWithParents(ast, (node, context) => {
+      if (node.type === 'CallExpression') {
+        contexts.push(
+          `${context.parent?.type ?? 'root'}:${String(context.key)}:${context.index ?? 'none'}`
+        );
+      }
+    });
+
+    expect(contexts).toEqual(['VariableDeclarator:init:none']);
+  });
+
+  test('walkWithScopeContext distinguishes imports from shadowed parameters', () => {
+    const source = `
+      import { trail } from '@ontrails/core';
+
+      export const root = trail('root.show', {});
+
+      function wrapped(trail: (id: string) => void) {
+        trail('shadowed.show');
+      }
+    `;
+    const ast = parseOrThrow(source);
+    const trailCalls: {
+      readonly declarationType: string | null;
+      readonly line: number;
+    }[] = [];
+
+    walkWithScopeContext(ast, (node, context) => {
+      if (node.type !== 'CallExpression') {
+        return;
+      }
+      const { callee } = node as unknown as {
+        readonly callee?: { readonly name?: string };
+      };
+      if (callee?.name !== 'trail') {
+        return;
+      }
+
+      trailCalls.push({
+        declarationType: context.getDeclaration('trail')?.type ?? null,
+        line: offsetToLineColumn(source, node.start).line,
+      });
+    });
+
+    expect(trailCalls).toEqual([
+      { declarationType: 'Import', line: 4 },
+      { declarationType: 'FunctionParam', line: 7 },
+    ]);
+  });
+
+  test('source edit helpers apply validated non-overlapping edits', () => {
+    const source = 'const sourceTerm = "oldTerm";\n';
+    const edits = [
+      createSourceEdit(6, 16, 'targetTerm'),
+      createSourceEdit(20, 27, 'newTerm'),
+    ];
+
+    expect(validateSourceEdits(edits)).toEqual(edits);
+    expect(applySourceEdits(source, edits)).toBe(
+      'const targetTerm = "newTerm";\n'
+    );
+  });
+
+  test('source edit helpers reject overlapping edits', () => {
+    expect(() =>
+      validateSourceEdits([
+        createSourceEdit(0, 6, 'targetTerm'),
+        createSourceEdit(4, 11, 'newTerm'),
+      ])
+    ).toThrow('Overlapping source edits');
+  });
+
+  test('source edit helpers reject invalid offsets before applying', () => {
+    for (const edit of [
+      createSourceEdit(10, 10, 'targetTerm'),
+      createSourceEdit(0, 4, 'targetTerm'),
+      createSourceEdit(0.5, 1, 'targetTerm'),
+      createSourceEdit(Number.NaN, 1, 'targetTerm'),
+    ]) {
+      expect(() => applySourceEdits('abc', [edit])).toThrow(
+        'Invalid source edit range'
+      );
+    }
+  });
+});
 
 const parseCallee = (source: string) => {
   const ast = parseOrThrow(source);

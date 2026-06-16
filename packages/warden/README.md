@@ -129,7 +129,7 @@ This is the same factory used internally to build all built-in rule trails.
 | `formatSummary(report)` | Compact summary line |
 | `wrapRule(rule)` | Wrap a custom rule as a trail (same factory used for all built-in rule trails) |
 
-AST parser helpers are exported from `@ontrails/warden/ast`, not the root runtime barrel. The stable authoring surface includes `parse`, `walk`, `walkScope`, `offsetToLine`, `findTrailDefinitions`, `findBlazeBodies`, `findContourDefinitions`, `isBlazeCall`, and string-literal helpers.
+AST parser helpers are exported from `@ontrails/warden/ast`, not the root runtime barrel. The stable authoring surface includes `parse`, `walk`, `walkScope`, `walkWithParents`, `walkWithScopeContext`, `offsetToLine`, `offsetToLineColumn`, source-edit helpers, `findTrailDefinitions`, `findBlazeBodies`, `findContourDefinitions`, `isBlazeCall`, and string-literal helpers.
 
 `runWarden({ tier })` can narrow a run to `source-static`, `project-static`, `topo-aware`, `drift`, or `advisory`. Omit `tier` for the default full run.
 
