@@ -495,8 +495,8 @@ createTermRewriteClass({ from, to, id?, describe? })
 createAstRewriteClass({ id, describe, shouldScan?, visit })
 createAstIdentifierRenameClass({ from, to, id?, describe?, reviewDeclarationTypes? })
 
-// Trails and schemas
-regradeReportTrail, regradeReportInput, regradeReportOutput
+// Schemas
+regradeReportOutput
 literalRegradeTopo, literalRegradeTrail
 
 // Types

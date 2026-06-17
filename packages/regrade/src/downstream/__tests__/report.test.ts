@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test';
-import { executeTrail } from '@ontrails/core';
 import type { WardenRule } from '@ontrails/warden';
 import {
   chmodSync,
@@ -16,7 +15,6 @@ import {
   buildRegradeReport,
   createTermRewriteClass,
   createWardenTermRewriteClass,
-  regradeReportTrail,
   runRegrade,
   selectRegradeClasses,
   wardenTermRewriteClasses,
@@ -434,11 +432,7 @@ const writeApplyFixture = (): string => {
   return root;
 };
 
-describe('runRegrade + regradeReportTrail', () => {
-  test('trail intent reflects apply-mode write capability', () => {
-    expect(regradeReportTrail.intent).toBe('write');
-  });
-
+describe('runRegrade', () => {
   test('runRegrade reports coverage over a real root', () => {
     const root = writeReportFixture();
     try {
@@ -673,44 +667,7 @@ describe('runRegrade + regradeReportTrail', () => {
     }
   });
 
-  test('trail returns Ok with a report for a readable root', async () => {
-    const root = writeReportFixture();
-    try {
-      const result = await executeTrail(regradeReportTrail, { root });
-      expect(result.isOk()).toBe(true);
-      if (result.isOk()) {
-        // executeTrail returns Result<unknown, Error>; narrow the Ok value to
-        // the trail's output shape for property access.
-        const value = result.value as {
-          scanned: number;
-          review: number;
-          selectedClassIds: string[];
-          rewritten: number;
-        };
-        expect(value.scanned).toBe(2);
-        expect(value.review).toBe(1);
-        expect(value.rewritten).toBe(0);
-        expect(value.selectedClassIds).toEqual([
-          'term-rewrite:no-legacy-layer-imports',
-          'term-rewrite:no-retired-cross-vocabulary',
-        ]);
-      }
-    } finally {
-      rmSync(root, { force: true, recursive: true });
-    }
-  });
-
-  test('trail returns NotFoundError for an unreadable root', async () => {
-    const result = await executeTrail(regradeReportTrail, {
-      root: join(import.meta.dir, 'does-not-exist-xyz'),
-    });
-    expect(result.isErr()).toBe(true);
-    if (result.isErr()) {
-      expect(result.error.constructor.name).toBe('NotFoundError');
-    }
-  });
-
-  test('trail apply input writes through explicit apply mode', async () => {
+  test('apply input writes through explicit apply mode', () => {
     const root = mkdtempSync(join(tmpdir(), 'regrade-trail-apply-'));
     mkdirSync(join(root, 'src'), { recursive: true });
     writeFileSync(
@@ -718,10 +675,11 @@ describe('runRegrade + regradeReportTrail', () => {
       'export const play = trail("play", { crosses: [] });\n'
     );
     try {
-      const result = await executeTrail(regradeReportTrail, {
+      const result = runRegrade({
         apply: true,
-        classIds: ['term-rewrite:no-retired-cross-vocabulary'],
+        classes: wardenTermRewriteClasses,
         root,
+        selection: { classIds: ['term-rewrite:no-retired-cross-vocabulary'] },
       });
 
       expect(result.isOk()).toBe(true);
@@ -729,15 +687,14 @@ describe('runRegrade + regradeReportTrail', () => {
         'export const play = trail("play", { composes: [] });\n'
       );
       if (result.isOk()) {
-        const value = result.value as { apply?: { applied: number } };
-        expect(value.apply?.applied).toBe(1);
+        expect(result.value?.apply?.applied).toBe(1);
       }
     } finally {
       rmSync(root, { force: true, recursive: true });
     }
   });
 
-  test('trail apply input returns InternalError when writing fails', async () => {
+  test('apply input returns InternalError when writing fails', () => {
     const root = mkdtempSync(join(tmpdir(), 'regrade-trail-apply-error-'));
     mkdirSync(join(root, 'src'), { recursive: true });
     const target = join(root, 'src', 'play.ts');
@@ -747,10 +704,11 @@ describe('runRegrade + regradeReportTrail', () => {
     );
     chmodSync(target, 0o444);
     try {
-      const result = await executeTrail(regradeReportTrail, {
+      const result = runRegrade({
         apply: true,
-        classIds: ['term-rewrite:no-retired-cross-vocabulary'],
+        classes: wardenTermRewriteClasses,
         root,
+        selection: { classIds: ['term-rewrite:no-retired-cross-vocabulary'] },
       });
 
       expect(result.isErr()).toBe(true);

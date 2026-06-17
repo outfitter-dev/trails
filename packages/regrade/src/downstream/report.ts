@@ -1,11 +1,4 @@
-import type { ValidationError } from '@ontrails/core';
-import {
-  InternalError,
-  NotFoundError,
-  Result,
-  trail,
-  validateOutput,
-} from '@ontrails/core';
+import { InternalError, Result } from '@ontrails/core';
 import type {
   WardenDiagnostic,
   WardenFixEdit,
@@ -809,20 +802,6 @@ const regradeReportEntrySchema = z.object({
     .describe('Structured review details from the producing class'),
 });
 
-export const regradeReportInput = z.object({
-  apply: z
-    .boolean()
-    .default(false)
-    .describe('Write safe rewrites to disk; dry-run report only by default'),
-  classIds: z
-    .array(z.string())
-    .optional()
-    .describe('Regrade class ids to run (defaults to all built-in classes)'),
-  root: z
-    .string()
-    .describe('Absolute path to the downstream repo root to scan'),
-});
-
 const regradeApplySummarySchema = z.object({
   applied: z.number().describe('Safe rewrite outcomes written to disk'),
   filesChanged: z.number().describe('Distinct files changed on disk'),
@@ -850,11 +829,6 @@ export const regradeReportOutput = z.object({
     .describe('Selected ids that did not resolve to a class'),
 });
 
-const validateRegradeReportOutput = (
-  report: RegradeReport
-): Result<z.infer<typeof regradeReportOutput>, ValidationError> =>
-  validateOutput(regradeReportOutput, report);
-
 /**
  * Built-in regrade classes available to the report trail.
  *
@@ -868,43 +842,3 @@ export const wardenTermRewriteClasses: readonly RegradeClass[] = Object.freeze(
     return cls === null ? [] : [cls];
   })
 );
-
-/**
- * Engine trail that produces a {@link RegradeReport} for an explicit root.
- *
- * No authored examples: the input is an absolute filesystem path. Correctness
- * is proven by the pure report unit tests and temp-directory run tests; the
- * committed Radio-shaped fixture (TRL-846) exercises it end to end.
- */
-export const regradeReportTrail = trail('regrade.downstream.report', {
-  blaze: (input) => {
-    const reportResult = runRegrade({
-      apply: input.apply,
-      classes: wardenTermRewriteClasses,
-      root: input.root,
-      ...(input.classIds === undefined
-        ? {}
-        : { selection: { classIds: input.classIds } }),
-    });
-    if (reportResult.isErr()) {
-      return reportResult;
-    }
-
-    const report = reportResult.value;
-    if (report === null) {
-      return Result.err(
-        new NotFoundError(
-          `Downstream root "${input.root}" could not be read as a directory.`
-        )
-      );
-    }
-    // Validate through the output schema so the returned value matches the trail's
-    // mutable Zod-inferred output type. RegradeReport keeps idiomatic readonly
-    // arrays for its domain consumers; the schema bridge validates without
-    // throwing from the blaze.
-    return validateRegradeReportOutput(report);
-  },
-  input: regradeReportInput,
-  intent: 'write',
-  output: regradeReportOutput,
-});
