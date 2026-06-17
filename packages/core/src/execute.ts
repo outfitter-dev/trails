@@ -388,7 +388,7 @@ const prepareContext = async (
   );
   const permitted = enforcePermitRequirement(trail, baseCtx);
   if (permitted.isErr()) {
-    return Result.err(permitted.error);
+    return permitted;
   }
 
   const resources = await createResources(
@@ -1412,7 +1412,7 @@ const executeRequestedTrailVersion = async (
 
   const resolved = resolveTrailVersion(trail, reference);
   if (resolved.isErr()) {
-    return Result.err(resolved.error);
+    return resolved;
   }
 
   if (resolved.value.current) {
@@ -1496,14 +1496,14 @@ const validateContextLayerInputs = (
 ): Result<TrailContext, ValidationError> => {
   const layerInputs = readContextLayerInputs(ctx);
   if (layerInputs.isErr()) {
-    return Result.err(layerInputs.error);
+    return layerInputs;
   }
   if (layerInputs.value === undefined) {
     return Result.ok(ctx);
   }
   const validated = validateLayerInputs(layers, layerInputs.value);
   if (validated.isErr()) {
-    return Result.err(validated.error);
+    return validated;
   }
   return Result.ok({
     ...ctx,
@@ -1540,7 +1540,7 @@ const executeTrailInternal = async (
 
     const resolvedCtx = await prepareContext(trail, options);
     if (resolvedCtx.isErr()) {
-      return Result.err(resolvedCtx.error);
+      return resolvedCtx;
     }
 
     const layers = composeAttachedLayers(trail, options);
@@ -1550,7 +1550,7 @@ const executeTrailInternal = async (
         layers
       );
       if (layerCtx.isErr()) {
-        return Result.err(layerCtx.error);
+        return layerCtx;
       }
       return await runTrail(
         trail,

@@ -70,7 +70,7 @@ const updatePackageJsonForVerify = async (
 ): Promise<Result<void, Error>> => {
   const pkgPathResult = resolveProjectPath(projectDir, 'package.json');
   if (pkgPathResult.isErr()) {
-    return Result.err(pkgPathResult.error);
+    return pkgPathResult;
   }
 
   const pkgPath = pkgPathResult.value;
@@ -107,7 +107,7 @@ export const addVerify = trail('add.verify', {
     ): Promise<Result<void, Error>> => {
       const exists = projectPathExists(projectDir, relativePath);
       if (exists.isErr()) {
-        return Result.err(exists.error);
+        return exists;
       }
       if (exists.value) {
         return Result.ok();
@@ -115,7 +115,7 @@ export const addVerify = trail('add.verify', {
 
       const written = await writeProjectFile(projectDir, relativePath, content);
       if (written.isErr()) {
-        return Result.err(written.error);
+        return written;
       }
       files.push(written.value);
       return Result.ok();

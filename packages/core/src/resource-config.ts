@@ -401,7 +401,7 @@ const doCreateResourceInstance = async (
   try {
     const created = await declaredResource.create(resourceContext);
     if (created.isErr()) {
-      return Result.err(created.error);
+      return created;
     }
 
     const instance = created.unwrap();

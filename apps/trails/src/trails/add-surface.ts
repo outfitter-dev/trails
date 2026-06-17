@@ -96,7 +96,7 @@ const updatePkgJsonForSurface = async (
 ): Promise<Result<string, Error>> => {
   const pkgPathResult = resolveProjectPath(cwd, 'package.json');
   if (pkgPathResult.isErr()) {
-    return Result.err(pkgPathResult.error);
+    return pkgPathResult;
   }
 
   const pkgPath = pkgPathResult.value;

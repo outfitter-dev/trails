@@ -721,7 +721,7 @@ const createExecute =
       t.permit !== undefined
     );
     if (permitResolution.isErr()) {
-      return Result.err(permitResolution.error);
+      return permitResolution;
     }
     const permit = permitResolution.value;
     return await executeTrail(t, trailInput, {
@@ -811,7 +811,7 @@ const createWebhookConsumerExecute =
       t.permit !== undefined
     );
     if (permitResolution.isErr()) {
-      return Result.err(permitResolution.error);
+      return permitResolution;
     }
     const permit = permitResolution.value;
     return await executeTrail(t, trailInput, {
@@ -1382,7 +1382,7 @@ export const deriveHttpRoutes = (
 ): Result<HttpRouteDefinition[], Error> => {
   const validated = validateSurfaceTopo(graph, options);
   if (validated.isErr()) {
-    return Result.err(validated.error);
+    return validated;
   }
 
   const basePath = (options.basePath ?? '').replace(/\/+$/, '');

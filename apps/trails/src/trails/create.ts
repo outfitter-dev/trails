@@ -86,7 +86,7 @@ const collectSurfaceFiles = async (
   for (const surface of surfaces) {
     const result = await addSurface(surface);
     if (result.isErr()) {
-      return Result.err(result.error);
+      return result;
     }
     if (result.value.created !== null) {
       created.push(result.value.created);
@@ -181,7 +181,7 @@ const writeReadme = async (
 ): Promise<Result<string | null, Error>> => {
   const exists = projectPathExists(dir, 'README.md');
   if (exists.isErr()) {
-    return Result.err(exists.error);
+    return exists;
   }
   if (exists.value) {
     return Result.ok(null);
@@ -225,7 +225,7 @@ export const createTrail = trail('create', {
           )
       );
       if (surfaceFiles.isErr()) {
-        return Result.err(surfaceFiles.error);
+        return surfaceFiles;
       }
 
       const verifyFiles = await collectVerifyFiles(input.verify, () =>
@@ -235,12 +235,12 @@ export const createTrail = trail('create', {
         )
       );
       if (verifyFiles.isErr()) {
-        return Result.err(verifyFiles.error);
+        return verifyFiles;
       }
 
       const readmeFile = await writeReadme(input, scaffolded.value.dir);
       if (readmeFile.isErr()) {
-        return Result.err(readmeFile.error);
+        return readmeFile;
       }
 
       return Result.ok({

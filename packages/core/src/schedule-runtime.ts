@@ -591,7 +591,7 @@ export const createScheduleRuntime = (
 
     const validated = validateTopo(graph);
     if (validated.isErr()) {
-      return Result.err(validated.error);
+      return validated;
     }
 
     const registrations = collectScheduleActivations(graph);

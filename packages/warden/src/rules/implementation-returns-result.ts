@@ -390,6 +390,27 @@ export const trackScopedResultHelperDeclaration = (
 // Variable tracking
 // ---------------------------------------------------------------------------
 
+const hasResultVariableAnnotation = (
+  node: AstNode,
+  sourceCode: string,
+  resultTypeNames: ReadonlySet<string>
+): boolean => {
+  const { typeAnnotation } = node as unknown as { typeAnnotation?: AstNode };
+  if (!typeAnnotation) {
+    return false;
+  }
+  const annotationText = sourceCode.slice(
+    typeAnnotation.start,
+    typeAnnotation.end
+  );
+  for (const name of resultTypeNames) {
+    if (hasGenericTypeReference(annotationText, name)) {
+      return true;
+    }
+  }
+  return false;
+};
+
 /** Track a VariableDeclarator, adding to resultVars if it produces a Result. */
 const trackResultVariable = (
   node: AstNode,
@@ -397,13 +418,16 @@ const trackResultVariable = (
   helperNames: ReadonlySet<string>,
   namespaceHelpers: NamespaceHelperMap,
   scopes: readonly ReadonlySet<string>[],
-  scopedHelpers: ScopedHelperMap
+  scopedHelpers: ScopedHelperMap,
+  sourceCode: string,
+  resultTypeNames: ReadonlySet<string>
 ): void => {
   const { init } = node as unknown as { init?: AstNode };
   const { id } = node as unknown as { id?: AstNode };
   if (init && id?.type === 'Identifier') {
     const { name } = id as unknown as { name: string };
     if (
+      hasResultVariableAnnotation(id, sourceCode, resultTypeNames) ||
       isResultExpression(init) ||
       isHelperCall(init, helperNames, namespaceHelpers, scopes, scopedHelpers)
     ) {
@@ -452,7 +476,9 @@ const checkReturnStatements = (
           helperNames,
           namespaceHelpers,
           currentScopes,
-          scopedHelpers
+          scopedHelpers,
+          sourceCode,
+          resultTypeNames
         );
       }
 

@@ -7,6 +7,7 @@
 import { resolve } from 'node:path';
 
 import { Result, trail, WORKSPACE_GITIGNORE_CONTENT } from '@ontrails/core';
+import type { Result as TrailsResult } from '@ontrails/core';
 import { z } from 'zod';
 
 import {
@@ -583,13 +584,16 @@ export const createScaffold = trail('create.scaffold', {
     const dryRun = input.dryRun === true;
     const fileMap = collectScaffoldFiles(input.name, starter);
     const operations = collectScaffoldOperations(fileMap);
-    const plannedOperations = dryRun
-      ? planProjectOperations(projectDir, operations, { existing: 'preserve' })
-      : await applyProjectOperations(projectDir, operations, {
-          existing: 'preserve',
-        });
+    const plannedOperations: TrailsResult<PlannedProjectOperation[], Error> =
+      dryRun
+        ? planProjectOperations(projectDir, operations, {
+            existing: 'preserve',
+          })
+        : await applyProjectOperations(projectDir, operations, {
+            existing: 'preserve',
+          });
     if (plannedOperations.isErr()) {
-      return Result.err(plannedOperations.error);
+      return plannedOperations;
     }
 
     const created = dryRun

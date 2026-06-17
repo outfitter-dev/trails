@@ -1003,7 +1003,7 @@ export const createFireFn = (
       traceSink
     );
     if (dispatch.isErr()) {
-      return Result.err(dispatch.error);
+      return dispatch;
     }
     await recordSignalLifecycleTrace(
       trackedProducerCtx,

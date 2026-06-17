@@ -748,7 +748,7 @@ export const runRegrade = (params: {
 
   const applyResult = applyRegradeEvaluation(evaluation);
   if (applyResult.isErr()) {
-    return Result.err(applyResult.error);
+    return applyResult;
   }
 
   return Result.ok(withApplySummary(evaluation.report, applyResult.value));

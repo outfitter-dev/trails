@@ -1639,7 +1639,7 @@ export const createTopoSnapshot = (
 ): Result<TopoSnapshot, Error> => {
   const validated = validateEstablishedTopo(topo);
   if (validated.isErr()) {
-    return Result.err(validated.error);
+    return validated;
   }
   const cliAliasTargets = validateCliAliasTargets(topo, input);
   if (cliAliasTargets.isErr()) {

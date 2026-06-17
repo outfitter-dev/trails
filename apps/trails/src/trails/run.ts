@@ -395,7 +395,7 @@ export const runTrail = trail('run', {
           ctx: ctx.permit === undefined ? {} : { permit: ctx.permit },
         });
         if (result.isErr()) {
-          return Result.err(result.error);
+          return result;
         }
         return Result.ok({
           kind: INNER_TRAIL_RESULT_KIND,

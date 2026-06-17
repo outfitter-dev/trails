@@ -571,7 +571,7 @@ const planRelativeImports = (
       operations
     );
     if (changed.isErr()) {
-      return Result.err(changed.error);
+      return changed;
     }
     if (changed.value) {
       updatedSourceFiles.add(filePath);
@@ -593,7 +593,7 @@ const rewritePromotionState = async (
   const initialFiles = collectTsFiles(rootDir);
   const sourcesResult = await readSourceFiles(initialFiles);
   if (sourcesResult.isErr()) {
-    return Result.err(sourcesResult.error);
+    return sourcesResult;
   }
   const sources = sourcesResult.value;
   const operations: ProjectWriteOperation[] = [];
@@ -608,14 +608,14 @@ const rewritePromotionState = async (
     operations
   );
   if (rewritten.isErr()) {
-    return Result.err(rewritten.error);
+    return rewritten;
   }
 
   const renamesResult = input.renameFiles
     ? collectFileRenames(initialFiles, sources)
     : Result.ok([] as FileRename[]);
   if (renamesResult.isErr()) {
-    return Result.err(renamesResult.error);
+    return renamesResult;
   }
 
   const valid = validateRenameTargets(renamesResult.value);
@@ -637,14 +637,14 @@ const rewritePromotionState = async (
     operations
   );
   if (importUpdates.isErr()) {
-    return Result.err(importUpdates.error);
+    return importUpdates;
   }
 
   const plannedOperations = input.dryRun
     ? planProjectOperations(rootDir, operations)
     : await applyProjectOperations(rootDir, operations);
   if (plannedOperations.isErr()) {
-    return Result.err(plannedOperations.error);
+    return plannedOperations;
   }
   return Result.ok({
     plannedOperations: plannedOperations.value,
@@ -837,7 +837,7 @@ const promoteDraftState = async (
 
   const rewriteResult = await rewritePromotionState(rootDirResult.value, input);
   if (rewriteResult.isErr()) {
-    return Result.err(rewriteResult.error);
+    return rewriteResult;
   }
 
   const { renames, updatedSourceFiles } = rewriteResult.value;

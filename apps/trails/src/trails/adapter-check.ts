@@ -145,7 +145,7 @@ const validateAdapterCheckRoot = (
 
   const manifest = readWorkspaceManifest(packageJsonPath);
   if (manifest.isErr()) {
-    return Result.err(manifest.error);
+    return manifest;
   }
 
   if (workspacePatternsFromManifest(manifest.value).length === 0) {

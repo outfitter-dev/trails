@@ -7,6 +7,7 @@ import {
   isMemberAccessNonComputed,
   offsetToLine,
   parse,
+  walkWithParents,
   walkWithScopes,
 } from './ast.js';
 import {
@@ -19,7 +20,7 @@ import {
   trackScopedResultHelperDeclaration,
 } from './implementation-returns-result.js';
 import { isTestFile } from './scan.js';
-import type { AstNode } from './ast.js';
+import type { AstNode, AstParentContext } from './ast.js';
 import type {
   MutableScopedHelperMap,
   NamespaceHelperMap,
@@ -115,12 +116,12 @@ const createDiagnostic = (
   filePath: string,
   sourceCode: string,
   node: AstNode,
-  trailId: string,
+  ownerLabel: string,
   variableName: string
 ): WardenDiagnostic => ({
   filePath,
   line: offsetToLine(sourceCode, node.start),
-  message: `Trail "${trailId}": Result.err(${variableName}.error) re-wraps a Result that already carries that error. Return ${variableName} directly to preserve the original Result boundary.`,
+  message: `${ownerLabel}: Result.err(${variableName}.error) re-wraps a Result that already carries that error. Return ${variableName} directly to preserve the original Result boundary.`,
   rule: RULE_NAME,
   severity: 'warn',
 });
@@ -202,7 +203,7 @@ const checkReturnStatement = (
   scopes: readonly ReadonlySet<string>[],
   filePath: string,
   sourceCode: string,
-  trailId: string,
+  ownerLabel: string,
   diagnostics: WardenDiagnostic[]
 ): void => {
   const { argument } = node as unknown as { argument?: AstNode };
@@ -218,13 +219,21 @@ const checkReturnStatement = (
     return;
   }
   diagnostics.push(
-    createDiagnostic(filePath, sourceCode, argument, trailId, variableName)
+    createDiagnostic(filePath, sourceCode, argument, ownerLabel, variableName)
   );
 };
 
-const checkBlazeBody = (
-  blaze: AstNode,
-  trailId: string,
+const functionBody = (node: AstNode): AstNode | null => {
+  const { body } = node as unknown as { body?: AstNode };
+  return body &&
+    (body.type === 'BlockStatement' || body.type === 'FunctionBody')
+    ? body
+    : null;
+};
+
+const checkFunctionBody = (
+  owner: AstNode,
+  ownerLabel: string,
   filePath: string,
   sourceCode: string,
   helperNames: ReadonlySet<string>,
@@ -232,17 +241,14 @@ const checkBlazeBody = (
   resultTypeNames: ReadonlySet<string>,
   diagnostics: WardenDiagnostic[]
 ): void => {
-  const { body } = blaze as unknown as { body?: AstNode };
-  if (
-    !body ||
-    (body.type !== 'BlockStatement' && body.type !== 'FunctionBody')
-  ) {
+  const body = functionBody(owner);
+  if (!body) {
     return;
   }
 
   const provenance: ResultProvenance = new Map();
   const scopedHelpers: MutableScopedHelperMap = new Map();
-  const implScope = collectScopeFrameBindings(blaze);
+  const implScope = collectScopeFrameBindings(owner);
   const initialScopes = implScope.size > 0 ? [implScope] : [];
 
   walkWithScopes(
@@ -284,7 +290,7 @@ const checkBlazeBody = (
           scopes,
           filePath,
           sourceCode,
-          trailId,
+          ownerLabel,
           diagnostics
         );
       }
@@ -292,6 +298,30 @@ const checkBlazeBody = (
     { initialScopes, stopAtNestedFunctions: true }
   );
 };
+
+const isFunctionLike = (node: AstNode): boolean =>
+  node.type === 'FunctionDeclaration' ||
+  node.type === 'FunctionExpression' ||
+  node.type === 'ArrowFunctionExpression';
+
+const functionName = (node: AstNode, context: AstParentContext): string => {
+  const declaredName = identifierName((node as unknown as { id?: AstNode }).id);
+  if (declaredName) {
+    return declaredName;
+  }
+  if (context.parent?.type === 'VariableDeclarator') {
+    const assignedName = identifierName(
+      (context.parent as unknown as { id?: AstNode }).id
+    );
+    if (assignedName) {
+      return assignedName;
+    }
+  }
+  return 'anonymous function';
+};
+
+const functionOwnerLabel = (node: AstNode, context: AstParentContext): string =>
+  `Function "${functionName(node, context)}"`;
 
 export const noRedundantResultErrorWrap: WardenRule = {
   check(sourceCode: string, filePath: string): readonly WardenDiagnostic[] {
@@ -308,11 +338,13 @@ export const noRedundantResultErrorWrap: WardenRule = {
     const helperNames = collectAllResultHelperNames(ast, sourceCode, filePath);
     const namespaceHelpers = collectNamespaceHelperImports(ast, filePath);
     const resultTypeNames = collectResultTypeNames(ast);
+    const blazeStarts = new Set<number>();
     for (const def of findTrailDefinitions(ast)) {
       for (const blaze of findBlazeBodies(def.config)) {
-        checkBlazeBody(
+        blazeStarts.add(blaze.start);
+        checkFunctionBody(
           blaze,
-          def.id,
+          `Trail "${def.id}"`,
           filePath,
           sourceCode,
           helperNames,
@@ -322,10 +354,25 @@ export const noRedundantResultErrorWrap: WardenRule = {
         );
       }
     }
+    walkWithParents(ast, (node, context) => {
+      if (!isFunctionLike(node) || blazeStarts.has(node.start)) {
+        return;
+      }
+      checkFunctionBody(
+        node,
+        functionOwnerLabel(node, context),
+        filePath,
+        sourceCode,
+        helperNames,
+        namespaceHelpers,
+        resultTypeNames,
+        diagnostics
+      );
+    });
     return diagnostics;
   },
   description:
-    'Warn when blazes re-wrap an existing Result error with Result.err(x.error) instead of returning the Result directly.',
+    'Warn when code re-wraps an existing Result error with Result.err(x.error) instead of returning the Result directly.',
   name: RULE_NAME,
   severity: 'warn',
 };

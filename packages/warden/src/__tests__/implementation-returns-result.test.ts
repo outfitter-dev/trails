@@ -1304,6 +1304,73 @@ trail("message.transmit", {
     expect(diagnostics.length).toBe(0);
   });
 
+  test('flags guarded pass-through when a helper Result is not inspectable', () => {
+    const code = `
+const validateExternal = (value: string) => externalValidate(value);
+
+trail("message.transmit", {
+  blaze: async (input, ctx) => {
+    const validated = validateExternal(input.replyTo);
+    if (validated.isErr()) {
+      return validated;
+    }
+
+    return Result.ok({ ok: true });
+  }
+})`;
+
+    const diagnostics = implementationReturnsResult.check(code, TEST_FILE);
+
+    expect(diagnostics.length).toBe(1);
+    expect(diagnostics[0]?.message).toContain(
+      'not a recognized Result expression'
+    );
+  });
+
+  test('allows guarded pass-through of explicitly annotated helper Results', () => {
+    const code = `
+const validateExternal = (value: string) => externalValidate(value);
+
+trail("message.transmit", {
+  blaze: async (input, ctx) => {
+    const validated: Result<object, Error> = validateExternal(input.replyTo);
+    if (validated.isErr()) {
+      return validated;
+    }
+
+    return Result.ok({ ok: true });
+  }
+})`;
+
+    const diagnostics = implementationReturnsResult.check(code, TEST_FILE);
+
+    expect(diagnostics.length).toBe(0);
+  });
+
+  test('flags guarded pass-through of plain objects with isErr methods', () => {
+    const code = `
+trail("message.transmit", {
+  blaze: async () => {
+    const maybeResult = {
+      isErr: () => true,
+      value: { ok: true },
+    };
+    if (maybeResult.isErr()) {
+      return maybeResult;
+    }
+
+    return Result.ok({ ok: true });
+  }
+})`;
+
+    const diagnostics = implementationReturnsResult.check(code, TEST_FILE);
+
+    expect(diagnostics.length).toBe(1);
+    expect(diagnostics[0]?.message).toContain(
+      'not a recognized Result expression'
+    );
+  });
+
   test('flags helper calls when a local binding shadows a Result helper name', () => {
     const code = `
 const parseInput = (): Result<object, Error> =>

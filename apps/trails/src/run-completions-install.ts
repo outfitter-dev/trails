@@ -100,7 +100,7 @@ export const runCompletionsInstall = async (
 ): Promise<Result<CompletionsInstallResult, Error>> => {
   const shellResult = resolveTargetShell(options);
   if (shellResult.isErr()) {
-    return Result.err(shellResult.error);
+    return shellResult;
   }
 
   const shell = shellResult.value;
@@ -111,7 +111,7 @@ export const runCompletionsInstall = async (
     options.binName ?? COMPLETIONS_BIN_NAME
   );
   if (scriptResult.isErr()) {
-    return Result.err(scriptResult.error);
+    return scriptResult;
   }
 
   let existed: boolean;

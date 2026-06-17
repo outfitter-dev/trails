@@ -354,7 +354,7 @@ const buildComparisonEnvelope = async (
 ): Promise<Result<RunExampleComparison, Error>> => {
   const exampleResult = findExample(app, trailId, exampleName);
   if (exampleResult.isErr()) {
-    return Result.err(exampleResult.error);
+    return exampleResult;
   }
   const example = exampleResult.value;
   const mode = determineMode(example);

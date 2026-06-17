@@ -151,12 +151,12 @@ export const renameContainedProjectPath = (
 ): TrailsResult<void, Error> => {
   const from = resolveProjectPath(projectDir, fromPath);
   if (from.isErr()) {
-    return Result.err(from.error);
+    return from;
   }
 
   const to = resolveProjectPath(projectDir, toPath);
   if (to.isErr()) {
-    return Result.err(to.error);
+    return to;
   }
 
   try {
@@ -238,7 +238,7 @@ const shouldApplyProjectOperation = (
   const { path } = operation;
   const target = resolveProjectPath(projectDir, path);
   if (target.isErr()) {
-    return Result.err(target.error);
+    return target;
   }
 
   return Result.ok(!existsSync(target.value));
@@ -257,7 +257,7 @@ const selectProjectOperations = (
       options
     );
     if (shouldApply.isErr()) {
-      return Result.err(shouldApply.error);
+      return shouldApply;
     }
     if (shouldApply.value) {
       selected.push(operation);
@@ -274,14 +274,14 @@ export const planProjectOperations = (
 ): TrailsResult<PlannedProjectOperation[], Error> => {
   const selected = selectProjectOperations(projectDir, operations, options);
   if (selected.isErr()) {
-    return Result.err(selected.error);
+    return selected;
   }
 
   const planned: PlannedProjectOperation[] = [];
   for (const operation of selected.value) {
     const result = planProjectOperation(projectDir, operation);
     if (result.isErr()) {
-      return Result.err(result.error);
+      return result;
     }
     planned.push(result.value);
   }
@@ -296,7 +296,7 @@ const applyProjectOperation = async (
     case 'mkdir': {
       const target = resolveProjectPath(projectDir, operation.path);
       if (target.isErr()) {
-        return Result.err(target.error);
+        return target;
       }
       try {
         mkdirSync(target.value, { recursive: true });
@@ -323,7 +323,7 @@ const applyProjectOperation = async (
     case 'write': {
       const target = resolveProjectPath(projectDir, operation.path);
       if (target.isErr()) {
-        return Result.err(target.error);
+        return target;
       }
       try {
         mkdirSync(dirname(target.value), { recursive: true });
@@ -358,18 +358,18 @@ export const applyProjectOperations = async (
 ): Promise<TrailsResult<PlannedProjectOperation[], Error>> => {
   const selected = selectProjectOperations(projectDir, operations, options);
   if (selected.isErr()) {
-    return Result.err(selected.error);
+    return selected;
   }
 
   const planned = planProjectOperations(projectDir, selected.value);
   if (planned.isErr()) {
-    return Result.err(planned.error);
+    return planned;
   }
 
   for (const operation of selected.value) {
     const applied = await applyProjectOperation(projectDir, operation);
     if (applied.isErr()) {
-      return Result.err(applied.error);
+      return applied;
     }
   }
 

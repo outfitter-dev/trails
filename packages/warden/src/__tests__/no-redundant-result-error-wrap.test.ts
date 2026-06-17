@@ -235,4 +235,28 @@ trail('entity.load', {
 
     expect(noRedundantResultErrorWrap.check(code, TEST_FILE)).toEqual([]);
   });
+
+  test('flags Result.err(result.error) in non-blaze Result helpers', () => {
+    const code = `
+import { Result } from '@ontrails/core';
+import type { Result as ResultType } from '@ontrails/core';
+
+const readConfig = (): ResultType<{ readonly id: string }, Error> =>
+  Result.err(new Error('bad'));
+
+export const loadConfig = (): ResultType<{ readonly id: string }, Error> => {
+  const loaded = readConfig();
+  if (loaded.isErr()) {
+    return Result.err(loaded.error);
+  }
+  return Result.ok(loaded.value);
+};
+`;
+
+    const diagnostics = noRedundantResultErrorWrap.check(code, TEST_FILE);
+
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0]?.message).toContain('Function "loadConfig"');
+    expect(diagnostics[0]?.message).toContain('Return loaded directly');
+  });
 });

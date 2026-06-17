@@ -568,7 +568,7 @@ export const reviseTrailSource = (
   );
   const written = writeLifecycleSourceFile(match.value.filePath, nextSource);
   if (written.isErr()) {
-    return Result.err(written.error);
+    return written;
   }
 
   return Result.ok({
@@ -731,7 +731,7 @@ export const setVersionStatusSource = (
   }
   const written = writeLifecycleSourceFile(match.value.filePath, nextSource);
   if (written.isErr()) {
-    return Result.err(written.error);
+    return written;
   }
 
   return Result.ok({
@@ -775,7 +775,7 @@ export const forkVersionEntrySource = (
   }
   const written = writeLifecycleSourceFile(match.value.filePath, nextSource);
   if (written.isErr()) {
-    return Result.err(written.error);
+    return written;
   }
 
   return Result.ok({

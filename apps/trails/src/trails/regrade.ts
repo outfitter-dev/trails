@@ -3,11 +3,13 @@
  */
 
 import { NotFoundError, Result, trail, validateOutput } from '@ontrails/core';
+import type { Result as TrailsResult } from '@ontrails/core';
 import {
   regradeReportOutput,
   runRegrade,
   wardenTermRewriteClasses,
 } from '@ontrails/regrade';
+import type { RegradeReport } from '@ontrails/regrade';
 import { z } from 'zod';
 
 import { resolveTrailRootDir } from './root-dir.js';
@@ -31,7 +33,7 @@ export const regradeTrail = trail('regrade', {
       return rootDirResult;
     }
 
-    const reportResult = runRegrade({
+    const reportResult: TrailsResult<RegradeReport | null, Error> = runRegrade({
       apply: input.apply,
       classes: wardenTermRewriteClasses,
       root: rootDirResult.value,
@@ -40,7 +42,7 @@ export const regradeTrail = trail('regrade', {
         : { selection: { classIds: input.classIds } }),
     });
     if (reportResult.isErr()) {
-      return Result.err(reportResult.error);
+      return reportResult;
     }
 
     const report = reportResult.value;
@@ -52,9 +54,12 @@ export const regradeTrail = trail('regrade', {
       );
     }
 
-    const validated = validateOutput(regradeReportOutput, report);
+    const validated: TrailsResult<
+      z.output<typeof regradeReportOutput>,
+      Error
+    > = validateOutput(regradeReportOutput, report);
     if (validated.isErr()) {
-      return Result.err(validated.error);
+      return validated;
     }
 
     return Result.ok(validated.value);
