@@ -1,8 +1,7 @@
 import { Result, trail } from '@ontrails/core';
 import { z } from 'zod';
 
-import { tryLoadFreshAppLease } from './load-app.js';
-import { resolveTrailRootDir } from './root-dir.js';
+import { withFreshOperatorApp } from './operator-context.js';
 import { activationOverviewOutput } from './topo-output-schemas.js';
 import { buildTopoSummary } from './topo-read-support.js';
 import { createIsolatedExampleInput } from './topo-support.js';
@@ -73,23 +72,10 @@ const summaryOutput = z.object({
 });
 
 export const topoTrail = trail('topo', {
-  blaze: async (input, ctx) => {
-    const rootDirResult = resolveTrailRootDir(input.rootDir, ctx.cwd);
-    if (rootDirResult.isErr()) {
-      return rootDirResult;
-    }
-    const rootDir = rootDirResult.value;
-    const leaseResult = await tryLoadFreshAppLease(input.module, rootDir);
-    if (leaseResult.isErr()) {
-      return leaseResult;
-    }
-    const lease = leaseResult.value;
-    try {
-      return Result.ok(buildTopoSummary(lease.app, { rootDir }));
-    } finally {
-      lease.release();
-    }
-  },
+  blaze: async (input, ctx) =>
+    withFreshOperatorApp(input, ctx, ({ lease, rootDir }) =>
+      Result.ok(buildTopoSummary(lease.app, { rootDir }))
+    ),
   description: 'Show the current topo summary and entry list',
   examples: [
     {

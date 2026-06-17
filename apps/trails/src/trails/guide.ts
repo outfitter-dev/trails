@@ -7,7 +7,7 @@
 import { NotFoundError, Result, trail } from '@ontrails/core';
 import { z } from 'zod';
 
-import { tryLoadFreshAppLease } from './load-app.js';
+import { withFreshOperatorApp } from './operator-context.js';
 import { trailDetailOutput } from './topo-output-schemas.js';
 import {
   buildCurrentGuideEntries,
@@ -15,7 +15,6 @@ import {
   readSurfaceLayerNamesFromContext,
 } from './topo-read-support.js';
 import { createIsolatedExampleInput } from './topo-support.js';
-import { resolveTrailRootDir } from './root-dir.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -27,6 +26,16 @@ interface GuideEntry {
   readonly id: string;
   readonly kind: 'trail';
 }
+
+type GuideTrailOutput =
+  | {
+      readonly entries: GuideEntry[];
+      readonly mode: 'list';
+    }
+  | {
+      readonly detail: z.output<typeof trailDetailOutput>;
+      readonly mode: 'detail';
+    };
 
 const guideTrailInputSchema = z.object({
   module: z.string().optional().describe('Path to the app module'),
@@ -41,19 +50,8 @@ type GuideTrailInput = z.output<typeof guideTrailInputSchema>;
 // ---------------------------------------------------------------------------
 
 export const guideTrail = trail('guide', {
-  blaze: async (input: GuideTrailInput, ctx) => {
-    const rootDirResult = resolveTrailRootDir(input.rootDir, ctx.cwd);
-    if (rootDirResult.isErr()) {
-      return rootDirResult;
-    }
-    const rootDir = rootDirResult.value;
-    const leaseResult = await tryLoadFreshAppLease(input.module, rootDir);
-    if (leaseResult.isErr()) {
-      return leaseResult;
-    }
-    const lease = leaseResult.value;
-
-    try {
+  blaze: async (input: GuideTrailInput, ctx) =>
+    withFreshOperatorApp<GuideTrailOutput>(input, ctx, ({ lease, rootDir }) => {
       if (input.trailId) {
         const detail = buildCurrentTopoDetail(lease.app, input.trailId, {
           cliAliases: lease.cliAliases,
@@ -77,10 +75,7 @@ export const guideTrail = trail('guide', {
         }) as GuideEntry[],
         mode: 'list' as const,
       });
-    } finally {
-      lease.release();
-    }
-  },
+    }),
   description: 'Runtime guidance for trails',
   examples: [
     {

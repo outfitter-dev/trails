@@ -28,8 +28,7 @@ import { z } from 'zod';
 
 import { writeIsolatedExampleJsonFile } from '../local-state-io.js';
 
-import { tryLoadFreshAppLease } from './load-app.js';
-import { resolveTrailRootDir } from './root-dir.js';
+import { withFreshAppLease, withOperatorRootDir } from './operator-context.js';
 import {
   buildCurrentTopoBrief,
   buildCurrentTopoList,
@@ -647,18 +646,10 @@ const withFreshSurveyApp = async <T>(
       | Readonly<Record<string, readonly CliCommandAliasInput[]>>
       | undefined
   ) => Promise<Result<T, Error>> | Result<T, Error>
-): Promise<Result<T, Error>> => {
-  const leaseResult = await tryLoadFreshAppLease(input.module, rootDir);
-  if (leaseResult.isErr()) {
-    return Result.err(leaseResult.error);
-  }
-  const lease = leaseResult.value;
-  try {
-    return await consume(lease.app, lease.cliAliases);
-  } finally {
-    lease.release();
-  }
-};
+): Promise<Result<T, Error>> =>
+  withFreshAppLease(input.module, rootDir, (lease) =>
+    consume(lease.app, lease.cliAliases)
+  );
 
 const withResolvedSurveyApp = async <T>(
   input: {
@@ -673,16 +664,12 @@ const withResolvedSurveyApp = async <T>(
       | Readonly<Record<string, readonly CliCommandAliasInput[]>>
       | undefined
   ) => Promise<Result<T, Error>> | Result<T, Error>
-): Promise<Result<T, Error>> => {
-  const rootDirResult = resolveTrailRootDir(input.rootDir, cwd);
-  if (rootDirResult.isErr()) {
-    return Result.err(rootDirResult.error);
-  }
-  const rootDir = rootDirResult.value;
-  return withFreshSurveyApp(input, rootDir, (app, cliAliases) =>
-    consume(app, rootDir, cliAliases)
+): Promise<Result<T, Error>> =>
+  withOperatorRootDir(input, { cwd }, (rootDir) =>
+    withFreshSurveyApp(input, rootDir, (app, cliAliases) =>
+      consume(app, rootDir, cliAliases)
+    )
   );
-};
 
 const moduleInputSchema = z.object({
   module: z.string().optional().describe('Path to the app module'),

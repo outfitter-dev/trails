@@ -1,31 +1,17 @@
 import { trail } from '@ontrails/core';
 import { z } from 'zod';
 
-import { tryLoadFreshAppLease } from './load-app.js';
-import { resolveTrailRootDir } from './root-dir.js';
+import { withFreshOperatorApp } from './operator-context.js';
 import { validateCurrentTopo } from './topo-read-support.js';
 
 export const validateTrail = trail('validate', {
-  blaze: async (input, ctx) => {
-    const rootDirResult = resolveTrailRootDir(input.rootDir, ctx.cwd);
-    if (rootDirResult.isErr()) {
-      return rootDirResult;
-    }
-    const rootDir = rootDirResult.value;
-    const leaseResult = await tryLoadFreshAppLease(input.module, rootDir);
-    if (leaseResult.isErr()) {
-      return leaseResult;
-    }
-    const lease = leaseResult.value;
-    try {
-      return await validateCurrentTopo(lease.app, {
+  blaze: async (input, ctx) =>
+    withFreshOperatorApp(input, ctx, ({ lease, rootDir }) =>
+      validateCurrentTopo(lease.app, {
         cliAliases: lease.cliAliases,
         rootDir,
-      });
-    } finally {
-      lease.release();
-    }
-  },
+      })
+    ),
   description: 'Validate that committed topo artifacts match the current topo',
   input: z.object({
     module: z.string().optional().describe('Path to the app module'),

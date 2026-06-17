@@ -7,12 +7,11 @@ import { deriveTopoGraph } from '@ontrails/topographer';
 import type { TopoGraph, TopoGraphForceEntry } from '@ontrails/topographer';
 import { findTrailDefinitions, parse } from '@ontrails/warden/ast';
 
-import { tryLoadFreshAppLease } from './load-app.js';
 import {
   readLifecycleSourceFile,
   writeLifecycleSourceFile,
 } from '../lifecycle-source-io.js';
-import { resolveTrailRootDir } from './root-dir.js';
+import { withFreshAppLease, withOperatorRootDir } from './operator-context.js';
 
 export type LifecycleEntryKind = 'revision' | 'fork';
 export type LifecycleStatusKind = 'deprecated' | 'archived';
@@ -798,21 +797,12 @@ export const withLifecycleApp = async <T>(
     app: Topo,
     rootDir: string
   ) => Result<T, Error> | Promise<Result<T, Error>>
-): Promise<Result<T, Error>> => {
-  const root = resolveTrailRootDir(input.rootDir, cwd);
-  if (root.isErr()) {
-    return root;
-  }
-  const lease = await tryLoadFreshAppLease(input.module, root.value);
-  if (lease.isErr()) {
-    return Result.err(lease.error);
-  }
-  try {
-    return await consume(lease.value.app, root.value);
-  } finally {
-    lease.value.release();
-  }
-};
+): Promise<Result<T, Error>> =>
+  withOperatorRootDir(input, { cwd }, (rootDir) =>
+    withFreshAppLease(input.module, rootDir, (lease) =>
+      consume(lease.app, rootDir)
+    )
+  );
 
 export const findLifecycleTrail = (
   app: Topo,

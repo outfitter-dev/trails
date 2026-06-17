@@ -13,9 +13,8 @@ import {
 import type { BasePermit, StructuredTrailExample, Topo } from '@ontrails/core';
 import { z } from 'zod';
 
-import { tryLoadFreshAppLease } from './load-app.js';
+import { withFreshAppLease, withOperatorRootDir } from './operator-context.js';
 import { resolveRunModulePath } from './run.js';
-import { resolveTrailRootDir } from './root-dir.js';
 import { createIsolatedExampleInput } from './topo-support.js';
 
 export const RUN_EXAMPLE_COMPARISON_KIND = 'example-comparison' as const;
@@ -440,42 +439,27 @@ type RunExampleTrailInput = z.output<typeof runExampleTrailInputSchema>;
 
 export const runExampleTrail = trail('run.example', {
   args: ['id', 'exampleName'],
-  blaze: async (input: RunExampleTrailInput, ctx) => {
-    const rootDirResult = resolveTrailRootDir(input.rootDir, ctx.cwd);
-    if (rootDirResult.isErr()) {
-      return rootDirResult;
-    }
-    const rootDir = rootDirResult.value;
-    const moduleResolution = await resolveRunModulePath(
-      rootDir,
-      input.module,
-      input.id,
-      input.app
-    );
-    if (moduleResolution.isErr()) {
-      return moduleResolution;
-    }
-
-    const leaseResult = await tryLoadFreshAppLease(
-      moduleResolution.value,
-      rootDir
-    );
-    if (leaseResult.isErr()) {
-      return leaseResult;
-    }
-    const lease = leaseResult.value;
-
-    try {
-      return await buildComparisonEnvelope(
-        lease.app,
+  blaze: async (input: RunExampleTrailInput, ctx) =>
+    withOperatorRootDir(input, ctx, async (rootDir) => {
+      const moduleResolution = await resolveRunModulePath(
+        rootDir,
+        input.module,
         input.id,
-        input.exampleName,
-        ctx.permit
+        input.app
       );
-    } finally {
-      lease.release();
-    }
-  },
+      if (moduleResolution.isErr()) {
+        return moduleResolution;
+      }
+
+      return withFreshAppLease(moduleResolution.value, rootDir, (lease) =>
+        buildComparisonEnvelope(
+          lease.app,
+          input.id,
+          input.exampleName,
+          ctx.permit
+        )
+      );
+    }),
   description: 'Run a named example on a trail and compare actual vs expected',
   examples: [
     {

@@ -50,8 +50,7 @@ import {
   writeIsolatedExampleTextFile,
 } from '../local-state-io.js';
 
-import { tryLoadFreshAppLease } from './load-app.js';
-import { resolveTrailRootDir } from './root-dir.js';
+import { withFreshAppLease, withOperatorRootDir } from './operator-context.js';
 import { createIsolatedExampleInput } from './topo-support.js';
 
 export const INNER_TRAIL_RESULT_KIND = 'inner-trail-result' as const;
@@ -372,51 +371,39 @@ const resolveInnerTrailInput = (
 
 export const runTrail = trail('run', {
   args: ['id'],
-  blaze: async (input: RunTrailInput, ctx) => {
-    const rootDirResult = resolveTrailRootDir(input.rootDir, ctx.cwd);
-    if (rootDirResult.isErr()) {
-      return rootDirResult;
-    }
-    const rootDir = rootDirResult.value;
-    const innerInput = resolveInnerTrailInput(input);
-    if (innerInput.isErr()) {
-      return innerInput;
-    }
-
-    // Single-app back-compat: if the caller provided `module`, trust it.
-    const moduleResolution = await resolveRunModulePath(
-      rootDir,
-      input.module,
-      input.id,
-      input.app
-    );
-    if (moduleResolution.isErr()) {
-      return moduleResolution;
-    }
-    const modulePath = moduleResolution.value;
-
-    const leaseResult = await tryLoadFreshAppLease(modulePath, rootDir);
-    if (leaseResult.isErr()) {
-      return leaseResult;
-    }
-    const lease = leaseResult.value;
-
-    try {
-      const result = await run(lease.app, input.id, innerInput.value, {
-        ctx: ctx.permit === undefined ? {} : { permit: ctx.permit },
-      });
-      if (result.isErr()) {
-        return Result.err(result.error);
+  blaze: async (input: RunTrailInput, ctx) =>
+    withOperatorRootDir(input, ctx, async (rootDir) => {
+      const innerInput = resolveInnerTrailInput(input);
+      if (innerInput.isErr()) {
+        return innerInput;
       }
-      return Result.ok({
-        kind: INNER_TRAIL_RESULT_KIND,
-        trailId: input.id,
-        value: result.value,
+
+      // Single-app back-compat: if the caller provided `module`, trust it.
+      const moduleResolution = await resolveRunModulePath(
+        rootDir,
+        input.module,
+        input.id,
+        input.app
+      );
+      if (moduleResolution.isErr()) {
+        return moduleResolution;
+      }
+      const modulePath = moduleResolution.value;
+
+      return withFreshAppLease(modulePath, rootDir, async (lease) => {
+        const result = await run(lease.app, input.id, innerInput.value, {
+          ctx: ctx.permit === undefined ? {} : { permit: ctx.permit },
+        });
+        if (result.isErr()) {
+          return Result.err(result.error);
+        }
+        return Result.ok({
+          kind: INNER_TRAIL_RESULT_KIND,
+          trailId: input.id,
+          value: result.value,
+        });
       });
-    } finally {
-      lease.release();
-    }
-  },
+    }),
   description:
     'Resolve a trail by ID in the current app and execute it through the shared pipeline',
   examples: [

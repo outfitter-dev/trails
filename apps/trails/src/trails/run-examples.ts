@@ -11,9 +11,8 @@ import {
 import type { StructuredTrailExample, Topo } from '@ontrails/core';
 import { z } from 'zod';
 
-import { tryLoadFreshAppLease } from './load-app.js';
+import { withFreshAppLease, withOperatorRootDir } from './operator-context.js';
 import { resolveRunModulePath } from './run.js';
-import { resolveTrailRootDir } from './root-dir.js';
 import { createIsolatedExampleInput } from './topo-support.js';
 
 export const RUN_EXAMPLES_LISTING_KIND = 'examples-listing' as const;
@@ -100,37 +99,22 @@ type RunExamplesTrailInput = z.output<typeof runExamplesTrailInputSchema>;
 
 export const runExamplesTrail = trail('run.examples', {
   args: ['id'],
-  blaze: async (input: RunExamplesTrailInput, ctx) => {
-    const rootDirResult = resolveTrailRootDir(input.rootDir, ctx.cwd);
-    if (rootDirResult.isErr()) {
-      return rootDirResult;
-    }
-    const rootDir = rootDirResult.value;
-    const moduleResolution = await resolveRunModulePath(
-      rootDir,
-      input.module,
-      input.id,
-      input.app
-    );
-    if (moduleResolution.isErr()) {
-      return moduleResolution;
-    }
+  blaze: async (input: RunExamplesTrailInput, ctx) =>
+    withOperatorRootDir(input, ctx, async (rootDir) => {
+      const moduleResolution = await resolveRunModulePath(
+        rootDir,
+        input.module,
+        input.id,
+        input.app
+      );
+      if (moduleResolution.isErr()) {
+        return moduleResolution;
+      }
 
-    const leaseResult = await tryLoadFreshAppLease(
-      moduleResolution.value,
-      rootDir
-    );
-    if (leaseResult.isErr()) {
-      return leaseResult;
-    }
-    const lease = leaseResult.value;
-
-    try {
-      return buildExamplesListing(lease.app, input.id);
-    } finally {
-      lease.release();
-    }
-  },
+      return withFreshAppLease(moduleResolution.value, rootDir, (lease) =>
+        buildExamplesListing(lease.app, input.id)
+      );
+    }),
   description: "List a trail's examples without executing it",
   examples: [
     {

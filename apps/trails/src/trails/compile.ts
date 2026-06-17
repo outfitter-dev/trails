@@ -2,8 +2,7 @@ import { trail } from '@ontrails/core';
 import type { CliCommandAliasInput, Result, Topo } from '@ontrails/core';
 import { z } from 'zod';
 
-import { tryLoadFreshAppLease } from './load-app.js';
-import { resolveTrailRootDir } from './root-dir.js';
+import { withFreshOperatorApp } from './operator-context.js';
 import { exportCurrentTopo } from './topo-store-support.js';
 import type { TopoExportReport } from './topo-support.js';
 import {
@@ -34,27 +33,14 @@ const compileTrailInputSchema = z.object({
 type CompileTrailInput = z.output<typeof compileTrailInputSchema>;
 
 export const compileTrail = trail('compile', {
-  blaze: async (input: CompileTrailInput, ctx) => {
-    const rootDirResult = resolveTrailRootDir(input.rootDir, ctx.cwd);
-    if (rootDirResult.isErr()) {
-      return rootDirResult;
-    }
-    const rootDir = rootDirResult.value;
-    const leaseResult = await tryLoadFreshAppLease(input.module, rootDir);
-    if (leaseResult.isErr()) {
-      return leaseResult;
-    }
-    const lease = leaseResult.value;
-    try {
-      return await compileCurrentTopo(lease.app, {
+  blaze: async (input: CompileTrailInput, ctx) =>
+    withFreshOperatorApp(input, ctx, ({ lease, rootDir }) =>
+      compileCurrentTopo(lease.app, {
         cliAliases: lease.cliAliases,
         force: input.force,
         rootDir,
-      });
-    } finally {
-      lease.release();
-    }
-  },
+      })
+    ),
   description: 'Compile the current topo to .trails artifacts',
   examples: [
     {
