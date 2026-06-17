@@ -113,6 +113,20 @@ Regrade does not own rule detection, severity, migration facts, or old-to-new te
 
 This means Warden fix metadata blocks rename-class Regrade integration. It does not block the literal transform-trail tracer, downstream source collection, or other Regrade substrate that does not depend on Warden-authored migration facts.
 
+### Regrade is contract change, not a one-off codemod
+
+Regrade is not a migration utility bolted onto Trails. It is the contract-first model applied to contract change. If Trails makes drift structurally harder while a trail is being authored, the same posture should carry into the moments when a framework contract moves.
+
+The useful invariant is narrower than a generic codemod: Regrade should migrate authored boundaries, then let derivation fan the projections back out. A generic codemod rewrites every surface it can see because it is blind to authored versus derived state. A Trails-aware migration should usually touch less. If Regrade rewrites a projected output, that is a smell; the projection should have re-derived from the updated contract unless the projection itself is the authored artifact.
+
+For Warden-detected migrations, that keeps the ownership line sharp:
+
+- Warden detects the drift and owns the structured migration facts.
+- Regrade collects source, applies safe edits, validates the result, and routes review-required findings.
+- One-time scripts may exist as prototypes or emergency bridges, but they must not become the durable home for framework migration policy.
+
+The external adopter promise is deliberately staged. Internally, the v1 reset should prove the path first against Trails' own dogfood apps and downstream fixtures. A public promise that every breaking framework contract carries its migration path should wait until Regrade can keep that promise across package boundaries and downstream source, not only inside this monorepo.
+
 ### Manifests expose capability, not hidden behavior
 
 Agent-facing guide output and manifests must expose rule-level fix capability when it exists. That lets agents discover which rules can produce fix metadata without manufacturing diagnostics or scraping docs. Concrete edits still appear only in diagnostics from a real run.
@@ -127,6 +141,8 @@ This is the same "one write, many reads" doctrine applied to governance repair: 
 - Guaranteeing every Warden rule has a fix.
 - Claiming review-required fixes are safe to apply automatically.
 - Deciding Regrade package-source modes or the final Regrade ADR shape.
+- Promising external downstream migration support before Regrade has proven
+  package-source modes and adopter-source coverage.
 
 ## Consequences
 

@@ -21,7 +21,9 @@ For newcomers, the ordinary repo heuristic is the toolshed and the house: `scrip
 - **Durable Trails-contract fact** — a concept (trail, surface, error taxonomy, topo, scaffold output, Warden rule set) should own it going forward. Go to Q2.
 - **Transient repo fact** — this repo's state, history, build health, or a one-time migration. No concept should own it. **Transient → tooling**: a script, or a contributor package if shared or large. Stop here **even if it derives**.
 
-The transient branch is the case that makes the model click: "derives a fact" is not what forces graduation. `scripts/vocab-cutover-rewrite.ts` derives rename mappings with real AST analysis, but the truth it derives — a one-time vocabulary migration — is transient, so it stays tooling.
+The transient branch is the case that makes the model click: "derives a fact" is not what forces graduation. A one-off repository cleanup may start as a script even when it uses real AST analysis. The boundary changes when the cleanup becomes a framework contract migration that existing Trails apps should be able to trust. At that point the migration facts must graduate into the Warden/Regrade substrate: Warden detects the contract drift and owns the structured fix metadata; Regrade applies, validates, and routes the change.
+
+That distinction keeps temporary repo tooling from becoming doctrine while still honoring the stable-line promise. A vocabulary cutover script can be a prototype or emergency bridge. A repeatable framework migration path cannot stay there.
 
 ### Q2: What is the relationship to the fact, and who is the audience?
 
@@ -57,11 +59,12 @@ Keep three axes distinct: native vs adapter is the *kind*; subpath/built-in vs e
 | changesets-CLI or foreign registry (TRL-938) | durable | fills seam, foreign boundary | adapter binding, extracted |
 | `.changeset/*.md` as release intent | durable | consumes authored input | neither — an intent source |
 | warden-guide / error-taxonomy doc sync | durable, concept owns it | consumes, renders | thin caller |
-| `vocab-cutover-rewrite` | transient | not applicable | tooling, stays |
+| one-off vocab cleanup prototype | transient | not applicable | tooling, may stay as bridge |
+| framework contract migration | durable | derives/applies authored contract changes | Warden fix metadata + Regrade |
 | trail-input type-cost guard | transient build metric | not applicable | tooling, stays |
 | publish/registry npm mechanics | npm facts, not Trails facts | not applicable | inside the binding, never core |
 
-`release.check` is the derives-and-graduates example: release rules are durable Trails-contract facts, so the script-era checker graduated into the `trails release check` surface, and package scripts became thin callers. `vocab-cutover-rewrite` is the derives-but-stays-tooling example: real derivation over a transient truth.
+`release.check` is the derives-and-graduates example: release rules are durable Trails-contract facts, so the script-era checker graduated into the `trails release check` surface, and package scripts became thin callers. A one-off vocab cleanup prototype is the derives-but-may-stay-tooling example: real derivation over a transient truth. A stable framework contract migration is different; it must become Warden/Regrade work so detection, repair facts, validation, and review routing stay inside Trails.
 
 The native Bun release binding is the fills-a-declared-seam example: `@ontrails/trails/release` owns the binding descriptor plus Bun pack, publish, and registry preflight implementation. Root `publish:*` scripts are compatibility wrappers around that binding. They remain useful named exits, but they do not own the release behavior.
 
