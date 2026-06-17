@@ -869,39 +869,6 @@ export const surveySurfacesTrail = trail('survey.surfaces', {
 });
 
 export const surveyDiffTrail = trail('survey.diff', {
-  blaze: async (input, ctx) =>
-    withResolvedSurveyApp(input, ctx.cwd, (app, rootDir) =>
-      buildSurveyDiff(app, rootDir, input)
-    ),
-  description: 'Diff the current topo against a saved TopoGraph',
-  examples: [
-    {
-      description: 'Compare current topo to a saved TopoGraph directory',
-      input: createDiffExampleInput(),
-      name: 'Diff against baseline',
-    },
-    {
-      description: 'Reject an empty saved map target',
-      error: 'ValidationError',
-      input: { against: '' },
-      name: 'Reject empty diff target',
-    },
-    {
-      description: 'Reject an empty target before filtering breaking drift',
-      error: 'ValidationError',
-      input: {
-        against: '',
-        breakingOnly: true,
-      },
-      name: 'Reject empty breaking-only target',
-    },
-  ],
-  input: diffInputSchema,
-  intent: 'read',
-  output: diffOutput,
-});
-
-export const diffTrail = trail('diff', {
   args: ['target'],
   blaze: async (input, ctx) =>
     withResolvedSurveyApp(input, ctx.cwd, (app, rootDir) =>
@@ -923,6 +890,21 @@ export const diffTrail = trail('diff', {
       description: 'Show graph-only force audit events',
       input: { ...createDiffExampleInput(), forces: true },
       name: 'Force audit events',
+    },
+    {
+      description: 'Reject an empty saved map target',
+      error: 'ValidationError',
+      input: { against: '' },
+      name: 'Reject empty diff target',
+    },
+    {
+      description: 'Reject an empty target before filtering breaking drift',
+      error: 'ValidationError',
+      input: {
+        against: '',
+        breakingOnly: true,
+      },
+      name: 'Reject empty breaking-only target',
     },
   ],
   input: diffInputSchema,

@@ -11,7 +11,6 @@ export const trailsMcpIncludedTrails = [
   'dev.clean',
   'dev.reset',
   'dev.stats',
-  'diff',
   'doctor',
   'draft.promote',
   'guide',
@@ -53,7 +52,6 @@ export const trailsMcpFacets = {
     mcp: { loading: 'deferred' },
     trails: [
       'survey',
-      'diff',
       'topo',
       'guide',
       'survey.brief',

@@ -40,7 +40,6 @@ import {
   deriveSignalDetail,
   deriveSurveyList,
   deriveTrailDetail,
-  diffTrail,
   surveyBriefTrail,
   surveyDiffTrail,
   surveyResourceTrail,
@@ -1611,13 +1610,23 @@ describe('trails compile', () => {
 });
 
 describe('trails survey diff', () => {
-  test('top-level diff projects as a root CLI command with target arg', () => {
+  test('top-level diff projects as a root CLI alias with target arg', () => {
     const commands = expectOk(
-      deriveCliCommands(topo('diff-cli', { diffTrail, surveyDiffTrail }))
+      deriveCliCommands(topo('diff-cli', { surveyDiffTrail }), {
+        aliases: { 'survey.diff': [['diff']] },
+      })
     );
-    const command = commands.find((candidate) => candidate.trail.id === 'diff');
+    const command = commands.find(
+      (candidate) => candidate.trail.id === 'survey.diff'
+    );
 
-    expect(command?.path).toEqual(['diff']);
+    expect(command?.path).toEqual(['survey', 'diff']);
+    expect(command?.routes).toContainEqual({
+      kind: 'alias',
+      path: ['diff'],
+      source: 'surface',
+      target: 'survey.diff',
+    });
     expect(command?.args.map((arg) => arg.name)).toContain('target');
     expect(command?.flags.map((flag) => flag.name)).toContain('breaks');
     expect(command?.flags.map((flag) => flag.name)).toContain('forces');
@@ -1698,11 +1707,11 @@ describe('trails survey diff', () => {
 
       writeSurveyAppFixture(dir, { withBye: true });
 
-      const byeDiff = await diffTrail.blaze(
+      const byeDiff = await surveyDiffTrail.blaze(
         { module: './src/app.ts', target: 'bye' },
         { cwd: dir } as never
       );
-      const helloDiff = await diffTrail.blaze(
+      const helloDiff = await surveyDiffTrail.blaze(
         { module: './src/app.ts', target: 'hello' },
         { cwd: dir } as never
       );
@@ -1728,7 +1737,7 @@ describe('trails survey diff', () => {
         dir: join(dir, '.trails'),
       });
 
-      const result = await diffTrail.blaze(
+      const result = await surveyDiffTrail.blaze(
         { module: './src/app.ts', target: 'missing.plain' },
         { cwd: dir } as never
       );
@@ -1776,7 +1785,7 @@ describe('trails survey diff', () => {
         } satisfies TopoGraph)
       );
 
-      const result = await diffTrail.blaze(
+      const result = await surveyDiffTrail.blaze(
         {
           against: 'baseline.json',
           forces: true,
@@ -1838,7 +1847,7 @@ describe('trails survey diff', () => {
 
       writeVersionedDiffAppFixture(dir, { archiveV1: true });
 
-      const result = await diffTrail.blaze(
+      const result = await surveyDiffTrail.blaze(
         {
           against: 'baselines',
           module: './src/app.ts',
@@ -1874,7 +1883,7 @@ describe('trails survey diff', () => {
         deprecateV2: true,
       });
 
-      const result = await diffTrail.blaze(
+      const result = await surveyDiffTrail.blaze(
         {
           against: 'baselines',
           module: './src/app.ts',
@@ -1922,7 +1931,7 @@ describe('trails survey diff', () => {
 
       writeVersionedDiffAppFixture(dir, { omitV1: true });
 
-      const result = await diffTrail.blaze(
+      const result = await surveyDiffTrail.blaze(
         {
           against: 'baselines',
           module: './src/app.ts',
@@ -1956,7 +1965,7 @@ describe('trails survey diff', () => {
         dir: join(dir, 'baselines'),
       });
 
-      const result = await diffTrail.blaze(
+      const result = await surveyDiffTrail.blaze(
         {
           against: 'baselines',
           module: './src/app.ts',
@@ -2156,7 +2165,7 @@ describe('trails survey output schema', () => {
       }).success
     ).toBe(true);
     expect(
-      diffTrail.output.safeParse({
+      surveyDiffTrail.output.safeParse({
         against: 'saved',
         breaking: [],
         hasBreaking: false,

@@ -81,7 +81,6 @@ describe('Trails MCP surface shaping', () => {
     expect(inspectTool?.trailId).toBeUndefined();
     expect(inspectTool?.facetId).toBe('inspect');
     expect(inspectTool?.memberTrailIds?.toSorted()).toEqual([
-      'diff',
       'guide',
       'survey',
       'survey.brief',

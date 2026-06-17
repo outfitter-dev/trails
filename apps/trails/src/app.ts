@@ -106,6 +106,7 @@ export const trailsCliIncludedTrails = [
 ];
 
 export const trailsCliAliases = {
+  'survey.diff': [['diff']],
   'wayfind.search': [['wf', 'search']],
 } as const;
 

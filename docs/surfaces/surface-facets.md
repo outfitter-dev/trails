@@ -51,7 +51,7 @@ const facets = {
     description:
       'Inspect topo structure, contracts, resources, signals, surfaces, and diffs.',
     mcp: { loading: 'deferred' },
-    trails: ['survey', 'diff', 'topo', 'guide'],
+    trails: ['survey', 'survey.diff', 'topo', 'guide'],
   },
 } satisfies McpSurfaceFacetMap;
 
