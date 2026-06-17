@@ -112,6 +112,7 @@ const buildProjectContext = (input: ProjectAwareRuleInput): ProjectContext => ({
   ...(input.trailIntentsById
     ? { trailIntentsById: new Map(Object.entries(input.trailIntentsById)) }
     : {}),
+  ...(input.topoTrailIds ? { topoTrailIds: new Set(input.topoTrailIds) } : {}),
 });
 
 /**

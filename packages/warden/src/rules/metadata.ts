@@ -72,9 +72,11 @@ const concernByRuleName: Partial<Record<string, WardenRuleConcern>> = {
   'composes-declarations': 'composition',
   'context-no-surface-types': 'composition',
   'dead-internal-trail': 'composition',
+  'dead-public-trail': 'composition',
   'deprecation-without-guidance': 'lifecycle',
   'draft-file-marking': 'lifecycle',
   'draft-visible-debt': 'lifecycle',
+  'duplicate-public-contract': 'meta',
   'error-mapping-completeness': 'results',
   'fires-declarations': 'signals',
   'fork-without-preserved-blaze': 'lifecycle',
@@ -191,6 +193,17 @@ const builtinWardenRuleMetadataInput = {
     invariant: 'Internal trails should be reachable through declared composes.',
     tier: 'project-static',
   },
+  'dead-public-trail': {
+    ...durableExternal,
+    guidance: {
+      relatedRules: ['dead-internal-trail', 'duplicate-public-contract'],
+      summary:
+        'Anchor exported public trails in a topo, composition edge, or activation source.',
+    },
+    invariant:
+      'Exported public trails are anchored in configured app topos, composition, or activation.',
+    tier: 'project-static',
+  },
   'deprecation-without-guidance': {
     ...durableExternal,
     invariant:
@@ -206,6 +219,23 @@ const builtinWardenRuleMetadataInput = {
     ...durableExternal,
     invariant: 'Draft-authored IDs remain visible debt.',
     tier: 'source-static',
+  },
+  'duplicate-public-contract': {
+    ...durableExternal,
+    guidance: {
+      docs: [
+        {
+          label: 'Surface accommodations',
+          path: 'docs/surfaces/surface-accommodations.md',
+        },
+      ],
+      relatedRules: ['cli-command-route-coherence', 'trail-fork-coaching'],
+      summary:
+        'Keep duplicate public contract facts from drifting into separate capabilities.',
+    },
+    invariant:
+      'Public surface trails should not expose duplicate normalized contract facts.',
+    tier: 'topo-aware',
   },
   'error-mapping-completeness': {
     ...durableExtension,

@@ -245,6 +245,8 @@ export interface ProjectContext {
   readonly crudTableIds?: ReadonlySet<string>;
   /** All known trail IDs in the project */
   readonly knownTrailIds: ReadonlySet<string>;
+  /** Trail IDs registered in configured app topo targets. */
+  readonly topoTrailIds?: ReadonlySet<string>;
   /** Declared contour references keyed by source contour name. */
   readonly contourReferencesByName?: ReadonlyMap<string, readonly string[]>;
   /** All known resource IDs in the project */

@@ -146,6 +146,10 @@ export const projectAwareRuleInput = ruleInput.extend({
     .array(z.string())
     .optional()
     .describe('Store table IDs used with reconcile trails across the project'),
+  topoTrailIds: z
+    .array(z.string())
+    .optional()
+    .describe('Trail IDs registered in configured app topo targets'),
   trailIntentsById: z
     .record(z.string(), z.enum(intentValues))
     .optional()

@@ -13,8 +13,10 @@ import { contourExists } from './contour-exists.js';
 import { contextNoSurfaceTypes } from './context-no-surface-types.js';
 import { composesDeclarations } from './composes-declarations.js';
 import { deadInternalTrail } from './dead-internal-trail.js';
+import { deadPublicTrail } from './dead-public-trail.js';
 import { draftFileMarking } from './draft-file-marking.js';
 import { draftVisibleDebt } from './draft-visible-debt.js';
+import { duplicatePublicContract } from './duplicate-public-contract.js';
 import { errorMappingCompleteness } from './error-mapping-completeness.js';
 import { exampleValid } from './example-valid.js';
 import { firesDeclarations } from './fires-declarations.js';
@@ -90,7 +92,9 @@ export const registeredRuleNames: readonly string[] = [
   contourExists.name,
   composesDeclarations.name,
   deadInternalTrail.name,
+  deadPublicTrail.name,
   deprecationWithoutGuidance.name,
+  duplicatePublicContract.name,
   draftFileMarking.name,
   draftVisibleDebt.name,
   errorMappingCompleteness.name,

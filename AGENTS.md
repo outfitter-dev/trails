@@ -104,7 +104,7 @@ See [ADR-0050](docs/adr/0050-surface-accommodations-preserve-trail-identity.md) 
 This section is generated from the live `@ontrails/warden` rule manifest. Keep the human-authored guidance above as orientation; use this block as the enforceable-rule index.
 
 - Guide input command: `bun apps/trails/bin/trails.ts warden guide --manifest`
-- Rule count: 66
+- Rule count: 68
 
 ### Rule Index
 
@@ -113,6 +113,7 @@ This section is generated from the live `@ontrails/warden` rule manifest. Keep t
 - `composes-declarations` (error, source/source-static, external): Declared composes stay aligned with ctx.compose() usage.
 - `context-no-surface-types` (error, source/source-static, external): Trail logic stays surface-agnostic.
 - `dead-internal-trail` (warn, project/project-static, external): Internal trails should be reachable through declared composes.
+- `dead-public-trail` (warn, project/project-static, external): Exported public trails are anchored in configured app topos, composition, or activation.
 - `intent-propagation` (warn, project/project-static, external): Composite trail intent cannot be safer than composed trails.
 - `missing-visibility` (warn, project/project-static, external): Composition-only trails declare internal visibility.
 - `no-destructured-compose` (warn, source/source-static, external): Trail blazes compose through ctx.compose() directly instead of destructuring compose from the context.
@@ -159,6 +160,7 @@ This section is generated from the live `@ontrails/warden` rule manifest. Keep t
 #### Meta
 
 - `cli-command-route-coherence` (error, topo/topo-aware, external): CLI command routes and aliases resolve to one coherent trail contract.
+- `duplicate-public-contract` (warn, topo/topo-aware, external): Public surface trails should not expose duplicate normalized contract facts.
 - `library-projection-coherence` (error, topo/topo-aware, external): Resolved library projection exports are collision-free and target existing trails.
 - `surface-facet-coherence` (warn, source/source-static, external): Surface facet maps avoid selector overlap, hidden visibility widening, and drift-prone dynamic selectors.
 - `trail-fork-coaching` (warn, all/source-static, advisory): Trails avoid hiding distinct capabilities behind branching action or operation inputs.
@@ -201,6 +203,8 @@ This section is generated from the live `@ontrails/warden` rule manifest. Keep t
 ### Structured Guidance Summaries
 
 - `cli-command-route-coherence`: Keep every CLI command route and alias normalized into one trail contract.
+- `dead-public-trail`: Anchor exported public trails in a topo, composition edge, or activation source.
+- `duplicate-public-contract`: Keep duplicate public contract facts from drifting into separate capabilities.
 - `example-valid`: Keep trail examples synchronized with their authored schemas.
 - `library-projection-coherence`: Keep resolved library projection exports collision-free and attached to one trail contract.
 - `no-throw-in-implementation`: Convert thrown failures in blazes into explicit Result.err() outcomes.

@@ -5,8 +5,10 @@ import { contourExists } from './contour-exists.js';
 import { contextNoSurfaceTypes } from './context-no-surface-types.js';
 import { composesDeclarations } from './composes-declarations.js';
 import { deadInternalTrail } from './dead-internal-trail.js';
+import { deadPublicTrail } from './dead-public-trail.js';
 import { draftFileMarking } from './draft-file-marking.js';
 import { draftVisibleDebt } from './draft-visible-debt.js';
+import { duplicatePublicContract } from './duplicate-public-contract.js';
 import { errorMappingCompleteness } from './error-mapping-completeness.js';
 import { exampleValid } from './example-valid.js';
 import { firesDeclarations } from './fires-declarations.js';
@@ -113,8 +115,10 @@ export { contourExists } from './contour-exists.js';
 export { contextNoSurfaceTypes } from './context-no-surface-types.js';
 export { composesDeclarations } from './composes-declarations.js';
 export { deadInternalTrail } from './dead-internal-trail.js';
+export { deadPublicTrail } from './dead-public-trail.js';
 export { draftFileMarking } from './draft-file-marking.js';
 export { draftVisibleDebt } from './draft-visible-debt.js';
+export { duplicatePublicContract } from './duplicate-public-contract.js';
 export { errorMappingCompleteness } from './error-mapping-completeness.js';
 export { exampleValid } from './example-valid.js';
 export { firesDeclarations } from './fires-declarations.js';
@@ -184,6 +188,7 @@ export const wardenRules: ReadonlyMap<string, WardenRule> = new Map<
   [contextNoSurfaceTypes.name, contextNoSurfaceTypes],
   [composesDeclarations.name, composesDeclarations],
   [deadInternalTrail.name, deadInternalTrail],
+  [deadPublicTrail.name, deadPublicTrail],
   [draftFileMarking.name, draftFileMarking],
   [draftVisibleDebt.name, draftVisibleDebt],
   [errorMappingCompleteness.name, errorMappingCompleteness],
@@ -247,6 +252,7 @@ export const wardenTopoRules: ReadonlyMap<string, TopoAwareWardenRule> =
   new Map<string, TopoAwareWardenRule>([
     [activationOrphan.name, activationOrphan],
     [cliCommandRouteCoherence.name, cliCommandRouteCoherence],
+    [duplicatePublicContract.name, duplicatePublicContract],
     [incompleteAccessorForStandardOp.name, incompleteAccessorForStandardOp],
     [libraryProjectionCoherence.name, libraryProjectionCoherence],
     [permitGovernance.name, permitGovernance],

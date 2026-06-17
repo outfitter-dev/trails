@@ -324,6 +324,7 @@ interface MutableProjectContext {
   knownResourceIds: Set<string>;
   knownSignalIds: Set<string>;
   knownTrailIds: Set<string>;
+  topoTrailIds: Set<string>;
   importResolutionsByFile: Map<string, readonly WardenImportResolution[]>;
   documentedImportResolutionsByFile: Map<
     string,
@@ -352,6 +353,7 @@ const createMutableProjectContext = (): MutableProjectContext => ({
   onTargetSignalIds: new Set<string>(),
   publicWorkspaces: new Map(),
   reconcileTableIds: new Set<string>(),
+  topoTrailIds: new Set<string>(),
   trailIntentsById: new Map<string, 'destroy' | 'read' | 'write'>(),
 });
 
@@ -401,6 +403,9 @@ const toProjectContext = (context: MutableProjectContext): ProjectContext => ({
   knownResourceIds: context.knownResourceIds,
   knownSignalIds: context.knownSignalIds,
   knownTrailIds: context.knownTrailIds,
+  ...(context.topoTrailIds.size > 0
+    ? { topoTrailIds: context.topoTrailIds }
+    : {}),
   ...(context.importResolutionsByFile.size > 0
     ? { importResolutionsByFile: context.importResolutionsByFile }
     : {}),
@@ -635,6 +640,7 @@ const collectTopoKnownIds = (
 
   for (const id of appTopo.trails.keys()) {
     context.knownTrailIds.add(id);
+    context.topoTrailIds.add(id);
   }
 
   for (const id of appTopo.resources.keys()) {
