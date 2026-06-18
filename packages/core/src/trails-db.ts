@@ -9,6 +9,7 @@ const TRAILS_DB_FILE = 'trails.db';
 const TRAILS_CACHE_DIR = 'cache';
 const TRAILS_STATE_DIR = 'state';
 const SCHEMA_VERSION_TABLE = 'meta_schema_versions';
+const SQLITE_BUSY_TIMEOUT_MS = 5000;
 const WORKSPACE_SUBDIRS = [TRAILS_CACHE_DIR, TRAILS_STATE_DIR] as const;
 
 /**
@@ -119,8 +120,14 @@ export const ensureTrailsWorkspace = (rootDir: string): void => {
 };
 
 const initializeWritePragmas = (db: Database): void => {
+  db.run(`PRAGMA busy_timeout = ${SQLITE_BUSY_TIMEOUT_MS.toString()}`);
   db.run('PRAGMA journal_mode = WAL');
   db.run('PRAGMA synchronous = NORMAL');
+  db.run('PRAGMA foreign_keys = ON');
+};
+
+const initializeReadPragmas = (db: Database): void => {
+  db.run(`PRAGMA busy_timeout = ${SQLITE_BUSY_TIMEOUT_MS.toString()}`);
   db.run('PRAGMA foreign_keys = ON');
 };
 
@@ -186,7 +193,7 @@ export const openReadTrailsDb = (
     );
   }
   const db = new Database(dbPath, { readonly: true });
-  db.run('PRAGMA foreign_keys = ON');
+  initializeReadPragmas(db);
   return db;
 };
 

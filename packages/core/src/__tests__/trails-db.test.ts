@@ -60,9 +60,13 @@ describe('trails db foundation', () => {
       const synchronous = db
         .query<{ synchronous: number }, []>('PRAGMA synchronous')
         .get();
+      const busyTimeout = db
+        .query<{ timeout: number }, []>('PRAGMA busy_timeout')
+        .get();
 
       expect(journal?.journal_mode.toLowerCase()).toBe('wal');
       expect(synchronous?.synchronous).toBe(1);
+      expect(busyTimeout?.timeout).toBe(5000);
     } finally {
       db.close();
     }
@@ -76,6 +80,10 @@ describe('trails db foundation', () => {
     const reader = openReadTrailsDb({ rootDir });
 
     try {
+      const busyTimeout = reader
+        .query<{ timeout: number }, []>('PRAGMA busy_timeout')
+        .get();
+      expect(busyTimeout?.timeout).toBe(5000);
       expect(() => reader.run('CREATE TABLE readonly_probe (id TEXT)')).toThrow(
         /readonly|read-only/i
       );
