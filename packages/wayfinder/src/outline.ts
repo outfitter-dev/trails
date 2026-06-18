@@ -15,6 +15,21 @@ import {
   findTrailDefinitions,
   getStringValue,
   identifierName,
+  isCallExpression,
+  isClassMember,
+  isDeclarationWithId,
+  isExportAllDeclaration,
+  isExportDeclaration,
+  isExportDefaultDeclaration,
+  isExportNamedDeclaration,
+  isExportSpecifier,
+  isIdentifier,
+  isImportDeclaration,
+  isImportSpecifier,
+  isMemberExpression,
+  isProgram,
+  isVariableDeclaration,
+  isVariableDeclarator,
   offsetToLineColumn,
   parseWithDiagnostics,
   walkWithParents,
@@ -269,7 +284,7 @@ const propertyName = (node: AstNode | undefined): string | undefined => {
   if (!node) {
     return undefined;
   }
-  if (node.type === 'Identifier') {
+  if (isIdentifier(node)) {
     return identifierName(node) ?? undefined;
   }
   return stringLiteralValue(node);
@@ -279,25 +294,22 @@ const staticCalleeName = (node: AstNode | undefined): string | undefined => {
   if (!node) {
     return undefined;
   }
-  if (node.type === 'Identifier') {
+  if (isIdentifier(node)) {
     return identifierName(node) ?? undefined;
   }
-  if (
-    node.type === 'MemberExpression' ||
-    node.type === 'StaticMemberExpression'
-  ) {
-    const { object } = node as unknown as { object?: AstNode };
-    const { property } = node as unknown as { property?: AstNode };
-    const receiver = identifierName(object);
-    const member = propertyName(property);
+  if (isMemberExpression(node)) {
+    const receiver = identifierName(node.object);
+    const member = propertyName(node.property);
     return receiver && member ? `${receiver}.${member}` : member;
   }
   return undefined;
 };
 
 const localImportName = (specifier: AstNode): string | undefined => {
-  const { local } = specifier as unknown as { local?: AstNode };
-  const { imported } = specifier as unknown as { imported?: AstNode };
+  if (!isImportSpecifier(specifier)) {
+    return undefined;
+  }
+  const { imported, local } = specifier;
   if (specifier.type === 'ImportSpecifier') {
     return (
       identifierName(local) ??
@@ -311,21 +323,17 @@ const localImportName = (specifier: AstNode): string | undefined => {
 
 const collectImports = (ast: AstNode): readonly SourceImport[] => {
   const imports: SourceImport[] = [];
-  for (const node of (ast.body as readonly AstNode[] | undefined) ?? []) {
-    if (node.type !== 'ImportDeclaration') {
+  for (const node of isProgram(ast) ? (ast.body ?? []) : []) {
+    if (!isImportDeclaration(node)) {
       continue;
     }
-    const { source: sourceNode } = node as unknown as { source?: AstNode };
-    const source = stringLiteralValue(sourceNode);
+    const source = stringLiteralValue(node.source);
     if (source === undefined) {
       continue;
     }
-    const { specifiers = [] } = node as unknown as {
-      specifiers?: readonly AstNode[];
-    };
     imports.push({
       names: uniqueSorted(
-        specifiers.flatMap((specifier) => {
+        (node.specifiers ?? []).flatMap((specifier) => {
           const name = localImportName(specifier);
           return name === undefined ? [] : [name];
         })
@@ -337,29 +345,30 @@ const collectImports = (ast: AstNode): readonly SourceImport[] => {
 };
 
 const declarationName = (node: AstNode | undefined): string | undefined => {
-  if (!node) {
+  if (!isDeclarationWithId(node)) {
     return undefined;
   }
-  const { id } = node as unknown as { id?: AstNode };
-  return identifierName(id) ?? undefined;
+  return identifierName(node.id) ?? undefined;
 };
 
-const variableKind = (declaration: AstNode): SourceDeclaration['kind'] => {
-  const { kind } = declaration as unknown as { kind?: unknown };
-  return kind === 'const' ? 'const' : 'variable';
-};
+const variableKind = (declaration: AstNode): SourceDeclaration['kind'] =>
+  isVariableDeclaration(declaration) && declaration.kind === 'const'
+    ? 'const'
+    : 'variable';
 
 const collectVariableDeclarations = (
   node: AstNode,
   kind: SourceDeclaration['kind'],
   sourceCode: string
 ): SourceDeclaration[] => {
-  const declarations =
-    (node as unknown as { declarations?: readonly AstNode[] }).declarations ??
-    [];
-  return declarations.flatMap((declarator) => {
-    const { id } = declarator as unknown as { id?: AstNode };
-    const name = identifierName(id);
+  if (!isVariableDeclaration(node)) {
+    return [];
+  }
+  return (node.declarations ?? []).flatMap((declarator) => {
+    if (!isVariableDeclarator(declarator)) {
+      return [];
+    }
+    const name = identifierName(declarator.id);
     return name === null
       ? []
       : [{ kind, line: lineFor(sourceCode, declarator), name }];
@@ -367,18 +376,18 @@ const collectVariableDeclarations = (
 };
 
 const isTopLevelStatement = (context: AstParentContext): boolean => {
-  if (context.parent?.type === 'Program') {
+  if (isProgram(context.parent)) {
     return true;
   }
   if (
-    context.parent?.type !== 'ExportNamedDeclaration' &&
-    context.parent?.type !== 'ExportDefaultDeclaration'
+    !isExportNamedDeclaration(context.parent) &&
+    !isExportDefaultDeclaration(context.parent)
   ) {
     return false;
   }
-  const grandparent = (context.parent as unknown as { parent?: AstNode })
-    .parent;
-  return grandparent === undefined || grandparent.type === 'Program';
+  return (
+    context.parent.parent === undefined || isProgram(context.parent.parent)
+  );
 };
 
 const collectDeclarations = (
@@ -388,11 +397,8 @@ const collectDeclarations = (
   const declarations: SourceDeclaration[] = [];
 
   walkWithParents(ast, (node, context) => {
-    if (
-      node.type === 'MethodDefinition' ||
-      node.type === 'PropertyDefinition'
-    ) {
-      const name = propertyName((node as unknown as { key?: AstNode }).key);
+    if (isClassMember(node)) {
+      const name = propertyName(node.key);
       if (name !== undefined) {
         declarations.push({
           kind: 'class-member',
@@ -407,7 +413,7 @@ const collectDeclarations = (
       return;
     }
 
-    if (node.type === 'FunctionDeclaration') {
+    if (isDeclarationWithId(node) && node.type === 'FunctionDeclaration') {
       const name = declarationName(node);
       if (name !== undefined) {
         declarations.push({
@@ -419,7 +425,7 @@ const collectDeclarations = (
       return;
     }
 
-    if (node.type === 'ClassDeclaration') {
+    if (isDeclarationWithId(node) && node.type === 'ClassDeclaration') {
       const name = declarationName(node);
       if (name !== undefined) {
         declarations.push({
@@ -432,8 +438,9 @@ const collectDeclarations = (
     }
 
     if (
-      node.type === 'TSInterfaceDeclaration' ||
-      node.type === 'InterfaceDeclaration'
+      isDeclarationWithId(node) &&
+      (node.type === 'TSInterfaceDeclaration' ||
+        node.type === 'InterfaceDeclaration')
     ) {
       const name = declarationName(node);
       if (name !== undefined) {
@@ -446,7 +453,7 @@ const collectDeclarations = (
       return;
     }
 
-    if (node.type === 'TSTypeAliasDeclaration') {
+    if (isDeclarationWithId(node) && node.type === 'TSTypeAliasDeclaration') {
       const name = declarationName(node);
       if (name !== undefined) {
         declarations.push({
@@ -458,7 +465,7 @@ const collectDeclarations = (
       return;
     }
 
-    if (node.type === 'VariableDeclaration') {
+    if (isVariableDeclaration(node)) {
       declarations.push(
         ...collectVariableDeclarations(node, variableKind(node), sourceCode)
       );
@@ -473,7 +480,7 @@ const collectDeclarations = (
 const exportNamesFromDeclaration = (
   declaration: AstNode
 ): readonly string[] => {
-  if (declaration.type === 'VariableDeclaration') {
+  if (isVariableDeclaration(declaration)) {
     return collectVariableDeclarations(declaration, 'variable', '').map(
       (entry) => entry.name
     );
@@ -487,37 +494,26 @@ const collectExports = (
   sourceCode: string
 ): readonly SourceExport[] => {
   const exports: SourceExport[] = [];
-  for (const node of (ast.body as readonly AstNode[] | undefined) ?? []) {
-    if (
-      node.type !== 'ExportNamedDeclaration' &&
-      node.type !== 'ExportDefaultDeclaration' &&
-      node.type !== 'ExportAllDeclaration'
-    ) {
+  for (const node of isProgram(ast) ? (ast.body ?? []) : []) {
+    if (!isExportDeclaration(node)) {
       continue;
     }
-    const {
-      declaration,
-      source: sourceNode,
-      specifiers = [],
-    } = node as unknown as {
-      declaration?: AstNode;
-      source?: AstNode;
-      specifiers?: readonly AstNode[];
-    };
-    const exportSource = stringLiteralValue(sourceNode);
+    const exportSource = stringLiteralValue(node.source);
     const names = uniqueSorted([
-      ...(declaration === undefined
+      ...(node.declaration === undefined
         ? []
-        : exportNamesFromDeclaration(declaration)),
-      ...specifiers.flatMap((specifier) => {
-        const { exported } = specifier as unknown as { exported?: AstNode };
-        const { local } = specifier as unknown as { local?: AstNode };
+        : exportNamesFromDeclaration(node.declaration)),
+      ...(node.specifiers ?? []).flatMap((specifier) => {
+        if (!isExportSpecifier(specifier)) {
+          return [];
+        }
+        const { exported, local } = specifier;
         return [propertyName(exported) ?? propertyName(local)].filter(
           (name): name is string => name !== undefined
         );
       }),
-      ...(node.type === 'ExportDefaultDeclaration' ? ['default'] : []),
-      ...(node.type === 'ExportAllDeclaration' ? ['*'] : []),
+      ...(isExportDefaultDeclaration(node) ? ['default'] : []),
+      ...(isExportAllDeclaration(node) ? ['*'] : []),
     ]);
     exports.push({
       line: lineFor(sourceCode, node),
@@ -534,20 +530,14 @@ const collectApps = (
 ): readonly SourceApp[] => {
   const apps: SourceApp[] = [];
   walkWithParents(ast, (node, context) => {
-    if (node.type !== 'VariableDeclarator') {
+    if (!isVariableDeclarator(node) || !isCallExpression(node.init)) {
       return;
     }
-    const { init } = node as unknown as { init?: AstNode };
-    if (init?.type !== 'CallExpression') {
-      return;
-    }
-    const { callee: calleeNode } = init as unknown as { callee?: AstNode };
-    const callee = staticCalleeName(calleeNode);
+    const callee = staticCalleeName(node.init.callee);
     if (callee !== 'topo' && callee !== 'createTrailsApp') {
       return;
     }
-    const { id } = node as unknown as { id?: AstNode };
-    const name = identifierName(id);
+    const name = identifierName(node.id);
     if (name === null) {
       return;
     }
