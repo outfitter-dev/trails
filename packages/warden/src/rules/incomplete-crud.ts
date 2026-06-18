@@ -4,6 +4,14 @@ import {
   collectNamedContourIds,
   collectNamedStoreTableIds,
   deriveStoreTableId,
+  getNodeArguments,
+  getNodeElements,
+  getNodeId,
+  getNodeImported,
+  getNodeInit,
+  getNodeLocal,
+  getNodeSource,
+  getNodeSpecifiers,
   getStringValue,
   identifierName,
   isNamedCall,
@@ -39,7 +47,7 @@ interface ImportAliasResolution {
 }
 
 const getImportSource = (node: AstNode): string | null => {
-  const sourceNode = (node as unknown as { source?: AstNode }).source;
+  const sourceNode = getNodeSource(node);
   return sourceNode && isStringLiteral(sourceNode)
     ? getStringValue(sourceNode)
     : null;
@@ -56,8 +64,8 @@ const extractImportAliasResolution = (
     return null;
   }
 
-  const { imported } = specifier as unknown as { imported?: AstNode };
-  const { local } = specifier as unknown as { local?: AstNode };
+  const imported = getNodeImported(specifier);
+  const local = getNodeLocal(specifier);
   const localName = identifierName(local);
   if (!localName) {
     return null;
@@ -85,8 +93,7 @@ const collectImportDeclarationAliases = (
     return;
   }
 
-  const specifiers = ((node as unknown as { specifiers?: readonly AstNode[] })
-    .specifiers ?? []) as readonly AstNode[];
+  const specifiers = getNodeSpecifiers(node) as readonly AstNode[];
   for (const specifier of specifiers) {
     const alias = extractImportAliasResolution(specifier, source);
     if (!alias) {
@@ -101,8 +108,7 @@ const extractInlineContourId = (node: AstNode | undefined): string | null => {
     return null;
   }
 
-  const [nameArg] = ((node as unknown as { arguments?: readonly AstNode[] })
-    .arguments ?? []) as readonly AstNode[];
+  const [nameArg] = getNodeArguments(node) as readonly AstNode[];
   return nameArg && isStringLiteral(nameArg) ? getStringValue(nameArg) : null;
 };
 
@@ -278,11 +284,7 @@ const extractDerivedCrudEntry = (
     return null;
   }
 
-  const [contourArg, operationArg] = ((
-    node as unknown as {
-      arguments?: readonly AstNode[];
-    }
-  ).arguments ?? []) as readonly AstNode[];
+  const [contourArg, operationArg] = getNodeArguments(node);
   const operation = extractCrudOperation(operationArg);
   const entityId = resolveContourId(contourArg, namedContourIds, importAliases);
   return operation && entityId ? { entityId, operation } : null;
@@ -334,18 +336,17 @@ const extractCrudTuplePattern = (
     return null;
   }
 
-  const { id, init } = node as unknown as {
-    readonly id?: AstNode;
-    readonly init?: AstNode;
-  };
+  const id = getNodeId(node);
+  const init = getNodeInit(node);
   if (!id || id.type !== 'ArrayPattern' || !isNamedCall(init, 'crud')) {
     return null;
   }
 
-  const [tableArg] = ((init as unknown as { arguments?: readonly AstNode[] })
-    .arguments ?? []) as readonly AstNode[];
+  const [tableArg] = getNodeArguments(init) as readonly AstNode[];
   const entityId = deriveStoreTableId(tableArg, namedStoreTableIds);
-  const { elements } = id as unknown as { elements?: readonly AstNode[] };
+  const elements = getNodeElements(id).filter(
+    (element): element is AstNode => element !== null
+  );
   return entityId && elements ? { elements, entityId } : null;
 };
 

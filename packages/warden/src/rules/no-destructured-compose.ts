@@ -1,6 +1,14 @@
 import {
   findBlazeBodies,
   findTrailDefinitions,
+  getNodeComputed,
+  getNodeId,
+  getNodeInit,
+  getNodeLeft,
+  getNodeOperator,
+  getNodeParams,
+  getNodeProperties,
+  getNodeRight,
   getStringValue,
   identifierName,
   isShadowed,
@@ -19,7 +27,7 @@ const diagnosticMessage = (trailId: string): string =>
   `Trail "${trailId}" destructures compose from the blaze context. Use ctx.compose(...) directly so composition stays visible and Warden can recognize composed Result values.`;
 
 const propertyKeyName = (property: AstNode): string | null => {
-  if ((property as unknown as { computed?: boolean }).computed === true) {
+  if (getNodeComputed(property) === true) {
     return null;
   }
 
@@ -38,9 +46,7 @@ const findComposeBinding = (pattern: AstNode | undefined): AstNode | null => {
     return null;
   }
 
-  const properties =
-    (pattern as unknown as { properties?: readonly AstNode[] }).properties ??
-    [];
+  const properties = getNodeProperties(pattern) ?? [];
 
   for (const property of properties) {
     if (
@@ -55,7 +61,7 @@ const findComposeBinding = (pattern: AstNode | undefined): AstNode | null => {
 };
 
 const blazeParams = (blaze: AstNode): readonly AstNode[] =>
-  (blaze as unknown as { params?: readonly AstNode[] }).params ?? [];
+  getNodeParams(blaze) ?? [];
 
 const destructuredComposeFromVariableDeclarator = (
   node: AstNode,
@@ -65,10 +71,8 @@ const destructuredComposeFromVariableDeclarator = (
     return null;
   }
 
-  const { id, init } = node as unknown as {
-    readonly id?: AstNode;
-    readonly init?: AstNode;
-  };
+  const id = getNodeId(node);
+  const init = getNodeInit(node);
 
   if (identifierName(init) !== contextName) {
     return null;
@@ -85,11 +89,9 @@ const destructuredComposeFromAssignment = (
     return null;
   }
 
-  const { left, operator, right } = node as unknown as {
-    readonly left?: AstNode;
-    readonly operator?: string;
-    readonly right?: AstNode;
-  };
+  const left = getNodeLeft(node);
+  const operator = getNodeOperator(node);
+  const right = getNodeRight(node);
 
   if (operator !== '=' || identifierName(right) !== contextName) {
     return null;

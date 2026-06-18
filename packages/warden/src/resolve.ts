@@ -12,6 +12,10 @@ import { ResolverFactory } from 'oxc-resolver';
 import type { NapiResolveOptions, ResolveResult } from 'oxc-resolver';
 
 import {
+  getNodeArguments,
+  getNodeCallee,
+  getNodeName,
+  getNodeSource,
   getStringValue,
   isStringLiteral,
   offsetToLine,
@@ -404,7 +408,7 @@ const buildResolution = ({
 };
 
 const getModuleSourceNode = (node: AstNode): AstNode | undefined =>
-  (node as unknown as { source?: AstNode }).source;
+  getNodeSource(node);
 
 const isStaticImportNode = (node: AstNode): boolean =>
   node.type === 'ImportDeclaration' ||
@@ -421,15 +425,12 @@ const isRequireCallExpression = (node: AstNode): boolean => {
   if (node.type !== 'CallExpression') {
     return false;
   }
-  const { callee } = node as unknown as { callee?: AstNode };
-  return (
-    callee?.type === 'Identifier' &&
-    (callee as unknown as { name?: string }).name === 'require'
-  );
+  const callee = getNodeCallee(node);
+  return callee?.type === 'Identifier' && getNodeName(callee) === 'require';
 };
 
 const getRequireSourceNode = (node: AstNode): AstNode | undefined =>
-  (node as unknown as { arguments?: readonly AstNode[] }).arguments?.[0];
+  getNodeArguments(node)?.[0];
 
 export const collectImportSpecifiers = (
   filePath: string,

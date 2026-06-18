@@ -269,6 +269,46 @@ export interface AstParseResult {
   readonly diagnostics: readonly AstParseDiagnostic[];
 }
 
+export interface AstFieldProjection {
+  readonly alternate?: AstNode;
+  readonly argument?: AstNode;
+  readonly arguments?: readonly AstNode[];
+  readonly body?: AstNode | readonly AstNode[];
+  readonly callee?: AstNode;
+  readonly cases?: readonly AstNode[];
+  readonly computed?: boolean;
+  readonly consequent?: AstNode;
+  readonly declaration?: AstNode;
+  readonly declarations?: readonly AstNode[];
+  readonly discriminant?: AstNode;
+  readonly elements?: readonly (AstNode | null)[];
+  readonly exportKind?: string;
+  readonly exported?: AstNode;
+  readonly expression?: AstNode;
+  readonly id?: AstNode;
+  readonly imported?: AstNode;
+  readonly init?: AstNode;
+  readonly key?: AstNode;
+  readonly kind?: string;
+  readonly left?: AstNode;
+  readonly local?: AstNode;
+  readonly name?: string;
+  readonly object?: AstNode;
+  readonly operator?: string;
+  readonly param?: AstNode;
+  readonly params?: readonly AstNode[];
+  readonly properties?: readonly AstNode[];
+  readonly property?: AstNode;
+  readonly returnType?: AstNode;
+  readonly right?: AstNode;
+  readonly source?: AstNode;
+  readonly specifiers?: readonly AstNode[];
+  readonly superClass?: AstNode;
+  readonly test?: AstNode;
+  readonly typeAnnotation?: AstNode;
+  readonly value?: unknown;
+}
+
 export const isAstNode = (value: unknown): value is AstNode =>
   Boolean(value && typeof value === 'object' && (value as AstNode).type);
 
@@ -445,6 +485,181 @@ export const isReturnStatement = (
   node: AstNode | null | undefined
 ): node is ReturnStatementNode =>
   isNodeType<ReturnStatementNode>(node, ['ReturnStatement']);
+
+const projectAstFields = (
+  node: AstNode | null | undefined
+): AstFieldProjection | null => (node ? (node as AstFieldProjection) : null);
+
+export const getNodeAlternate = (
+  node: AstNode | null | undefined
+): AstNode | undefined => projectAstFields(node)?.alternate;
+
+export const getNodeArgument = (
+  node: AstNode | null | undefined
+): AstNode | undefined => projectAstFields(node)?.argument;
+
+export const getNodeArguments = (
+  node: AstNode | null | undefined
+): readonly AstNode[] => (isCallExpression(node) ? (node.arguments ?? []) : []);
+
+export const getNodeBody = (
+  node: AstNode | null | undefined
+): AstNode | readonly AstNode[] | undefined => projectAstFields(node)?.body;
+
+export const getNodeBodyNode = (
+  node: AstNode | null | undefined
+): AstNode | undefined => {
+  const body = getNodeBody(node);
+  return isAstNode(body) ? body : undefined;
+};
+
+export const getNodeBodyStatements = (
+  node: AstNode | null | undefined
+): readonly AstNode[] => {
+  const body = getNodeBody(node);
+  return Array.isArray(body) ? body : [];
+};
+
+export const getNodeCallee = (
+  node: AstNode | null | undefined
+): AstNode | undefined => (isCallExpression(node) ? node.callee : undefined);
+
+export const getNodeCases = (
+  node: AstNode | null | undefined
+): readonly AstNode[] => projectAstFields(node)?.cases ?? [];
+
+export const getNodeComputed = (
+  node: AstNode | null | undefined
+): boolean | undefined => projectAstFields(node)?.computed;
+
+export const getNodeConsequent = (
+  node: AstNode | null | undefined
+): AstNode | undefined => projectAstFields(node)?.consequent;
+
+export const getNodeDeclaration = (
+  node: AstNode | null | undefined
+): AstNode | undefined => projectAstFields(node)?.declaration;
+
+export const getNodeDeclarations = (
+  node: AstNode | null | undefined
+): readonly AstNode[] =>
+  isVariableDeclaration(node) ? (node.declarations ?? []) : [];
+
+export const getNodeDiscriminant = (
+  node: AstNode | null | undefined
+): AstNode | undefined => projectAstFields(node)?.discriminant;
+
+export const getNodeElements = (
+  node: AstNode | null | undefined
+): readonly (AstNode | null)[] => projectAstFields(node)?.elements ?? [];
+
+export const getNodeExported = (
+  node: AstNode | null | undefined
+): AstNode | undefined => projectAstFields(node)?.exported;
+
+export const getNodeExportKind = (
+  node: AstNode | null | undefined
+): string | undefined => projectAstFields(node)?.exportKind;
+
+export const getNodeExpression = (
+  node: AstNode | null | undefined
+): AstNode | undefined => projectAstFields(node)?.expression;
+
+export const getNodeId = (
+  node: AstNode | null | undefined
+): AstNode | undefined => projectAstFields(node)?.id;
+
+export const getNodeImported = (
+  node: AstNode | null | undefined
+): AstNode | undefined => projectAstFields(node)?.imported;
+
+export const getNodeInit = (
+  node: AstNode | null | undefined
+): AstNode | undefined => projectAstFields(node)?.init;
+
+export const getNodeKey = (
+  node: AstNode | null | undefined
+): AstNode | undefined => projectAstFields(node)?.key;
+
+export const getNodeKind = (
+  node: AstNode | null | undefined
+): string | undefined => projectAstFields(node)?.kind;
+
+export const getNodeLeft = (
+  node: AstNode | null | undefined
+): AstNode | undefined => projectAstFields(node)?.left;
+
+export const getNodeLocal = (
+  node: AstNode | null | undefined
+): AstNode | undefined => projectAstFields(node)?.local;
+
+export const getNodeName = (
+  node: AstNode | null | undefined
+): string | undefined => projectAstFields(node)?.name;
+
+export const getNodeObject = (
+  node: AstNode | null | undefined
+): AstNode | undefined => (isMemberExpression(node) ? node.object : undefined);
+
+export const getNodeOperator = (
+  node: AstNode | null | undefined
+): string | undefined => projectAstFields(node)?.operator;
+
+export const getNodeParam = (
+  node: AstNode | null | undefined
+): AstNode | undefined => projectAstFields(node)?.param;
+
+export const getNodeParams = (
+  node: AstNode | null | undefined
+): readonly AstNode[] => (isFunctionLike(node) ? (node.params ?? []) : []);
+
+export const getNodeProperties = (
+  node: AstNode | null | undefined
+): readonly AstNode[] =>
+  isObjectExpression(node) ? (node.properties ?? []) : [];
+
+export const getNodeProperty = (
+  node: AstNode | null | undefined
+): AstNode | undefined =>
+  isMemberExpression(node) ? node.property : undefined;
+
+export const getNodeReturnType = (
+  node: AstNode | null | undefined
+): AstNode | undefined => projectAstFields(node)?.returnType;
+
+export const getNodeRight = (
+  node: AstNode | null | undefined
+): AstNode | undefined => projectAstFields(node)?.right;
+
+export const getNodeSource = (
+  node: AstNode | null | undefined
+): AstNode | undefined => projectAstFields(node)?.source;
+
+export const getNodeSpecifiers = (
+  node: AstNode | null | undefined
+): readonly AstNode[] => projectAstFields(node)?.specifiers ?? [];
+
+export const getNodeSuperClass = (
+  node: AstNode | null | undefined
+): AstNode | undefined => projectAstFields(node)?.superClass;
+
+export const getNodeTest = (
+  node: AstNode | null | undefined
+): AstNode | undefined => projectAstFields(node)?.test;
+
+export const getNodeTypeAnnotation = (
+  node: AstNode | null | undefined
+): AstNode | undefined => projectAstFields(node)?.typeAnnotation;
+
+export const getNodeValue = (node: AstNode | null | undefined): unknown =>
+  projectAstFields(node)?.value;
+
+export const getNodeValueNode = (
+  node: AstNode | null | undefined
+): AstNode | undefined => {
+  const value = getNodeValue(node);
+  return isAstNode(value) ? value : undefined;
+};
 
 // ---------------------------------------------------------------------------
 // Parser
@@ -2479,7 +2694,9 @@ const extractImportSpecifierAlias = (
 };
 
 /**
- * Collect `import { foo as bar } from '...'` and `import bar from '...'`
+ * Collect `import {
+  foo as bar
+} from '...';` and `import bar from '...'`
  * specifier mappings keyed by local binding name. The value is the original
  * exported name for named imports. Default imports map to themselves because
  * the exported name cannot be recovered statically — callers should fall

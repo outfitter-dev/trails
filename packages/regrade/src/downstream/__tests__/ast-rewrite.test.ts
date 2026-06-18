@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { createSourceEdit } from '@ontrails/warden/ast';
+import { createSourceEdit, getNodeName } from '@ontrails/warden/ast';
 
 import {
   createAstIdentifierRenameClass,
@@ -15,7 +15,7 @@ describe('createAstRewriteClass', () => {
         if (node.type !== 'Identifier') {
           return null;
         }
-        const { name } = node as unknown as { readonly name?: string };
+        const name = getNodeName(node);
         return name === 'sourceTerm'
           ? {
               edit: createSourceEdit(node.start, node.end, 'targetTerm'),

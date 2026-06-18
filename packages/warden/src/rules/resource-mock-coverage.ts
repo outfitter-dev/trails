@@ -17,6 +17,7 @@
 import {
   extractFirstStringArg,
   findConfigProperty,
+  getNodeCallee,
   identifierName,
   offsetToLine,
   parse,
@@ -28,8 +29,7 @@ import type { WardenDiagnostic, WardenRule } from './types.js';
 
 const isResourceCall = (node: AstNode): boolean =>
   node.type === 'CallExpression' &&
-  identifierName((node as unknown as { callee?: AstNode }).callee) ===
-    'resource';
+  identifierName(getNodeCallee(node)) === 'resource';
 
 /**
  * `.test-d.ts` type-fixture files are not matched by `isTestFile` (its pattern

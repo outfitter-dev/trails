@@ -10,9 +10,17 @@
 import {
   collectNamedResourceIds,
   extractFirstStringArg,
-  findConfigProperty,
   findBlazeBodies,
+  findConfigProperty,
   findTrailDefinitions,
+  getNodeCallee,
+  getNodeId,
+  getNodeInit,
+  getNodeKey,
+  getNodeLeft,
+  getNodeObject,
+  getNodeProperty,
+  getNodeValueNode,
   getStringValue,
   identifierName,
   isStringLiteral,
@@ -49,12 +57,8 @@ const extractMemberPair = (
     return null;
   }
 
-  const objName = identifierName(
-    (callee as unknown as { object?: AstNode }).object
-  );
-  const propName = identifierName(
-    (callee as unknown as { property?: AstNode }).property
-  );
+  const objName = identifierName(getNodeObject(callee));
+  const propName = identifierName(getNodeProperty(callee));
 
   return objName && propName ? { objName, propName } : null;
 };
@@ -64,10 +68,7 @@ const isInlineResourceCall = (node: AstNode): boolean => {
   if (node.type !== 'CallExpression') {
     return false;
   }
-  return (
-    identifierName((node as unknown as { callee?: AstNode }).callee) ===
-    'resource'
-  );
+  return identifierName(getNodeCallee(node)) === 'resource';
 };
 
 /** Get `resources` array elements from a trail config. */
@@ -152,7 +153,7 @@ const extractContextParamName = (blazeBody: AstNode): string | null => {
     return null;
   }
   if (param.type === 'AssignmentPattern') {
-    const { left } = param as unknown as { left?: AstNode };
+    const left = getNodeLeft(param);
     return identifierName(left);
   }
   return identifierName(param);
@@ -163,16 +164,11 @@ const extractResourceAlias = (property: AstNode): string | null => {
   if (property.type !== 'Property') {
     return null;
   }
-  const keyName = identifierName(
-    (property as unknown as { key?: AstNode }).key
-  );
+  const keyName = identifierName(getNodeKey(property));
   if (keyName !== 'resource') {
     return null;
   }
-  return (
-    identifierName((property as unknown as { value?: AstNode }).value) ??
-    keyName
-  );
+  return identifierName(getNodeValueNode(property)) ?? keyName;
 };
 
 /**
@@ -224,8 +220,7 @@ const extractCallCallee = (node: AstNode): AstNode | null => {
   if (node.type !== 'CallExpression') {
     return null;
   }
-  return ((node as unknown as { callee?: AstNode }).callee ??
-    null) as AstNode | null;
+  return (getNodeCallee(node) ?? null) as AstNode | null;
 };
 
 /** Extract the first identifier argument from a CallExpression. */
@@ -338,16 +333,12 @@ const collectResourceAliases = (
         return [];
       }
 
-      const keyName = identifierName(
-        (property as unknown as { key?: AstNode }).key
-      );
+      const keyName = identifierName(getNodeKey(property));
       if (keyName !== 'resource') {
         return [];
       }
 
-      const alias =
-        identifierName((property as unknown as { value?: AstNode }).value) ??
-        keyName;
+      const alias = identifierName(getNodeValueNode(property)) ?? keyName;
       return [alias];
     });
   };
@@ -357,10 +348,8 @@ const collectResourceAliases = (
       return;
     }
 
-    const { id, init } = node as unknown as {
-      readonly id?: AstNode;
-      readonly init?: AstNode;
-    };
+    const id = getNodeId(node);
+    const init = getNodeInit(node);
     const initName = identifierName(init);
     if (!initName || !ctxNames.has(initName)) {
       return;

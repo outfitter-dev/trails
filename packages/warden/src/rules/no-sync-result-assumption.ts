@@ -1,6 +1,33 @@
 import { resultAccessorNames } from '@ontrails/core';
 
-import { identifierName, isBlazeCall, offsetToLine, parse } from './ast.js';
+import {
+  getNodeArgument,
+  getNodeAlternate,
+  getNodeBodyNode,
+  getNodeBodyStatements,
+  getNodeConsequent,
+  getNodeDeclarations,
+  getNodeElements,
+  getNodeExpression,
+  getNodeId,
+  getNodeInit,
+  getNodeKey,
+  getNodeKind,
+  getNodeLeft,
+  getNodeName,
+  getNodeObject,
+  getNodeOperator,
+  getNodeParam,
+  getNodeParams,
+  getNodeProperties,
+  getNodeProperty,
+  getNodeRight,
+  getNodeValueNode,
+  identifierName,
+  isBlazeCall,
+  offsetToLine,
+  parse,
+} from './ast.js';
 import type { AstNode } from './ast.js';
 import { isFrameworkInternalFile, isTestFile } from './scan.js';
 import type { WardenDiagnostic, WardenRule } from './types.js';
@@ -104,11 +131,9 @@ const isBranchOfConditional = (outer: AstNode, parent: AstNode): boolean => {
   if (parent.type !== 'ConditionalExpression') {
     return false;
   }
-  const cond = parent as unknown as {
-    consequent?: AstNode;
-    alternate?: AstNode;
-  };
-  return cond.consequent === outer || cond.alternate === outer;
+  return (
+    getNodeConsequent(parent) === outer || getNodeAlternate(parent) === outer
+  );
 };
 
 /**
@@ -121,8 +146,7 @@ const isOperandOfLogical = (outer: AstNode, parent: AstNode): boolean => {
   if (parent.type !== 'LogicalExpression') {
     return false;
   }
-  const logical = parent as unknown as { left?: AstNode; right?: AstNode };
-  return logical.left === outer || logical.right === outer;
+  return getNodeLeft(parent) === outer || getNodeRight(parent) === outer;
 };
 
 const skipParensAndBranchConditionals = (
@@ -165,11 +189,11 @@ const memberPropertyName = (node: AstNode): string | null => {
   ) {
     return null;
   }
-  const prop = (node as unknown as { property?: AstNode }).property;
+  const prop = getNodeProperty(node);
   if (prop?.type !== 'Identifier') {
     return null;
   }
-  return (prop as unknown as { name?: string }).name ?? null;
+  return getNodeName(prop) ?? null;
 };
 
 /**
@@ -208,7 +232,7 @@ const extractAssignedBinding = (
   if (!parent || parent.type !== 'VariableDeclarator') {
     return null;
   }
-  const { id } = parent as unknown as { id?: AstNode };
+  const id = getNodeId(parent);
   return identifierName(id);
 };
 
@@ -231,7 +255,7 @@ const isResultAccessorMember = (node: AstNode): boolean => {
 };
 
 const getIdentifierObjectName = (node: AstNode): string | null => {
-  const { object } = node as unknown as { object?: AstNode };
+  const object = getNodeObject(node);
   return object?.type === 'Identifier' ? identifierName(object) : null;
 };
 
@@ -250,7 +274,7 @@ const collectAssignmentPatternBindings = (
   pattern: AstNode,
   out: Set<string>
 ): void => {
-  const { left } = pattern as unknown as { left?: AstNode };
+  const left = getNodeLeft(pattern);
   // eslint-disable-next-line no-use-before-define
   collectPatternBindings(left, out);
 };
@@ -259,7 +283,7 @@ const collectRestElementBindings = (
   pattern: AstNode,
   out: Set<string>
 ): void => {
-  const { argument } = pattern as unknown as { argument?: AstNode };
+  const argument = getNodeArgument(pattern);
   // eslint-disable-next-line no-use-before-define
   collectPatternBindings(argument, out);
 };
@@ -303,9 +327,7 @@ const collectArrayPatternBindings = (
   pattern: AstNode,
   out: Set<string>
 ): void => {
-  const { elements } = pattern as unknown as {
-    elements?: readonly (AstNode | null)[];
-  };
+  const elements = getNodeElements(pattern);
   if (!elements) {
     return;
   }
@@ -321,9 +343,7 @@ const collectObjectPatternBindings = (
   pattern: AstNode,
   out: Set<string>
 ): void => {
-  const { properties } = pattern as unknown as {
-    properties?: readonly AstNode[];
-  };
+  const properties = getNodeProperties(pattern);
   if (!properties) {
     return;
   }
@@ -333,7 +353,7 @@ const collectObjectPatternBindings = (
       collectPatternBindings(prop, out);
     } else {
       // Property node: value holds the binding pattern.
-      const { value } = prop as unknown as { value?: AstNode };
+      const value = getNodeValueNode(prop);
       // eslint-disable-next-line no-use-before-define
       collectPatternBindings(value, out);
     }
@@ -380,16 +400,12 @@ const collectVariableDeclarationBindings = (
   if (!declNode || declNode.type !== 'VariableDeclaration') {
     return;
   }
-  const declarators = (
-    declNode as unknown as {
-      declarations?: readonly AstNode[];
-    }
-  ).declarations;
+  const declarators = getNodeDeclarations(declNode);
   if (!declarators) {
     return;
   }
   for (const d of declarators) {
-    const { id } = d as unknown as { id?: AstNode };
+    const id = getNodeId(d);
     collectPatternBindings(id, out);
   }
 };
@@ -400,7 +416,7 @@ const getVariableDeclarationKind = (
   if (!declNode || declNode.type !== 'VariableDeclaration') {
     return null;
   }
-  return (declNode as unknown as { kind?: string }).kind ?? null;
+  return getNodeKind(declNode) ?? null;
 };
 
 /** True if declaration is `var` (function/program-scoped, hoistable). */
@@ -426,7 +442,7 @@ interface FunctionScopeBindings {
 
 const collectParamBindings = (scope: AstNode): Set<string> => {
   const paramBindings = new Set<string>();
-  const { params } = scope as unknown as { params?: readonly AstNode[] };
+  const params = getNodeParams(scope);
   if (params) {
     for (const param of params) {
       collectPatternBindings(param, paramBindings);
@@ -436,7 +452,7 @@ const collectParamBindings = (scope: AstNode): Set<string> => {
 };
 
 const addHoistedVarsFromBody = (scope: AstNode, out: Set<string>): void => {
-  const { body } = scope as unknown as { body?: AstNode };
+  const body = getNodeBodyNode(scope);
   if (!(body && isAstLike(body))) {
     return;
   }
@@ -462,7 +478,7 @@ const collectFunctionScopeBindings = (scope: AstNode): Set<string> =>
 
 const collectCatchScopeBindings = (scope: AstNode): Set<string> => {
   const bindings = new Set<string>();
-  const { param } = scope as unknown as { param?: AstNode };
+  const param = getNodeParam(scope);
   collectPatternBindings(param, bindings);
   return bindings;
 };
@@ -470,10 +486,10 @@ const collectCatchScopeBindings = (scope: AstNode): Set<string> => {
 const collectForScopeBindings = (scope: AstNode): Set<string> => {
   const bindings = new Set<string>();
   if (scope.type === 'ForStatement') {
-    const { init } = scope as unknown as { init?: AstNode };
+    const init = getNodeInit(scope);
     collectBlockScopedDeclaratorBindings(init, bindings);
   } else {
-    const { left } = scope as unknown as { left?: AstNode };
+    const left = getNodeLeft(scope);
     collectBlockScopedDeclaratorBindings(left, bindings);
   }
   return bindings;
@@ -483,7 +499,7 @@ const addFunctionDeclarationName = (stmt: AstNode, out: Set<string>): void => {
   if (stmt.type !== 'FunctionDeclaration') {
     return;
   }
-  const { id } = stmt as unknown as { id?: AstNode };
+  const id = getNodeId(stmt);
   const fnName = identifierName(id);
   if (fnName) {
     out.add(fnName);
@@ -494,7 +510,7 @@ const addClassDeclarationName = (stmt: AstNode, out: Set<string>): void => {
   if (stmt.type !== 'ClassDeclaration') {
     return;
   }
-  const { id } = stmt as unknown as { id?: AstNode };
+  const id = getNodeId(stmt);
   const className = identifierName(id);
   if (className) {
     out.add(className);
@@ -517,7 +533,7 @@ const collectBlockScopedStatementListBindings = (
 
 const collectBlockStatementBindings = (scope: AstNode): Set<string> => {
   const bindings = new Set<string>();
-  const { body } = scope as unknown as { body?: readonly AstNode[] };
+  const body = getNodeBodyStatements(scope);
   collectBlockScopedStatementListBindings(body, bindings);
   // Static initializer blocks own their own VariableEnvironment (per ES spec),
   // so `var` declarations inside them do not escape into the enclosing class
@@ -707,10 +723,8 @@ const extractPlainIdentifierAssignmentName = (
   if (!parent || parent.type !== 'AssignmentExpression') {
     return null;
   }
-  const { operator, left } = parent as unknown as {
-    operator?: string;
-    left?: AstNode;
-  };
+  const operator = getNodeOperator(parent);
+  const left = getNodeLeft(parent);
   // Only plain `=` assignments to a bare identifier. Member-expression LHS
   // (`obj.result = blaze(...)`) is a property write, not a bare binding we
   // can track by name.
@@ -759,10 +773,8 @@ const isAssignmentToParamName = (node: AstNode): boolean => {
   if (node.type !== 'AssignmentExpression') {
     return false;
   }
-  const { operator, left } = node as unknown as {
-    operator?: string;
-    left?: AstNode;
-  };
+  const operator = getNodeOperator(node);
+  const left = getNodeLeft(node);
   return operator === '=' && left?.type === 'Identifier';
 };
 
@@ -834,24 +846,19 @@ type CarrierChildExtractor = (
 ) => readonly (AstNode | undefined)[];
 
 const CARRIER_CHILDREN: Record<string, CarrierChildExtractor> = {
-  ConditionalExpression: (expr) => {
-    const { consequent, alternate } = expr as unknown as {
-      consequent?: AstNode;
-      alternate?: AstNode;
-    };
-    return [consequent, alternate];
-  },
+  ConditionalExpression: (expr) => [
+    getNodeConsequent(expr),
+    getNodeAlternate(expr),
+  ],
   LogicalExpression: (expr) => {
-    const { left, right } = expr as unknown as {
-      left?: AstNode;
-      right?: AstNode;
-    };
+    const left = getNodeLeft(expr);
+    const right = getNodeRight(expr);
     return [left, right];
   },
 };
 
 const unwrapTransparentWrapper = (expr: AstNode): AstNode | undefined =>
-  (expr as unknown as { expression?: AstNode }).expression;
+  getNodeExpression(expr);
 
 // biome-ignore lint/style/useConst: hoisted for recursive call
 // eslint-disable-next-line func-style
@@ -893,11 +900,9 @@ const extractIdentifierAssignment = (
   if (node.type !== 'AssignmentExpression') {
     return null;
   }
-  const { operator, left, right } = node as unknown as {
-    operator?: string;
-    left?: AstNode;
-    right?: AstNode;
-  };
+  const operator = getNodeOperator(node);
+  const left = getNodeLeft(node);
+  const right = getNodeRight(node);
   if (!(operator && left) || left.type !== 'Identifier') {
     return null;
   }
@@ -1012,15 +1017,12 @@ const propertyDestructuresResultAccessor = (prop: AstNode): boolean => {
   if (prop.type === 'RestElement') {
     return false;
   }
-  const { key } = prop as unknown as { key?: AstNode };
-  const keyName = identifierName(key);
+  const keyName = identifierName(getNodeKey(prop));
   return keyName !== null && RESULT_ACCESSOR_PROPERTIES.has(keyName);
 };
 
 const objectPatternHasResultAccessorKey = (pattern: AstNode): boolean => {
-  const { properties } = pattern as unknown as {
-    properties?: readonly AstNode[];
-  };
+  const properties = getNodeProperties(pattern);
   return properties?.some(propertyDestructuresResultAccessor) ?? false;
 };
 
@@ -1037,7 +1039,7 @@ const getDestructuredResultAccessorDeclarator = (
   if (!parent || parent.type !== 'VariableDeclarator') {
     return null;
   }
-  const { id } = parent as unknown as { id?: AstNode };
+  const id = getNodeId(parent);
   if (!id || id.type !== 'ObjectPattern') {
     return null;
   }
@@ -1138,7 +1140,7 @@ function walkWithScopes(node: AstNode, state: AnalyzeState): void {
 
 const collectProgramBindings = (ast: AstNode): Set<string> => {
   const bindings = new Set<string>();
-  const programBody = (ast as unknown as { body?: readonly AstNode[] }).body;
+  const programBody = getNodeBodyStatements(ast);
   // Top-level `let`/`const`/function declarations.
   collectBlockScopedStatementListBindings(programBody, bindings);
   // Top-level `var`s are program-scoped; also hoist any `var`s nested

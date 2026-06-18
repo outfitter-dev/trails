@@ -16,7 +16,26 @@
  */
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { walk, offsetToLine, parse } from './ast.js';
+import {
+  getNodeArgument,
+  getNodeDeclaration,
+  getNodeDeclarations,
+  getNodeElements,
+  getNodeExportKind,
+  getNodeExported,
+  getNodeId,
+  getNodeKey,
+  getNodeLeft,
+  getNodeLocal,
+  getNodeName,
+  getNodeProperties,
+  getNodeSource,
+  getNodeValue,
+  getNodeValueNode,
+  offsetToLine,
+  parse,
+  walk,
+} from './ast.js';
 import type { AstNode } from './ast.js';
 import { registeredRuleNames } from './registry-names.js';
 import type { WardenDiagnostic, WardenRule } from './types.js';
@@ -61,10 +80,10 @@ const readIdentifierOrStringName = (
     return null;
   }
   if (node.type === 'Identifier') {
-    return (node as unknown as { name?: string }).name ?? null;
+    return getNodeName(node) ?? null;
   }
   if (node.type === 'Literal' || node.type === 'StringLiteral') {
-    const { value } = node as unknown as { value?: unknown };
+    const value = getNodeValue(node);
     return typeof value === 'string' ? value : null;
   }
   return null;
@@ -73,10 +92,8 @@ const readIdentifierOrStringName = (
 const extractSpecifierNames = (
   specifier: AstNode
 ): { readonly name: string; readonly localName: string } | null => {
-  const { exported, local } = specifier as unknown as {
-    exported?: AstNode;
-    local?: AstNode;
-  };
+  const exported = getNodeExported(specifier);
+  const local = getNodeLocal(specifier);
   const name = readIdentifierOrStringName(exported);
   if (!name) {
     return null;
@@ -86,7 +103,7 @@ const extractSpecifierNames = (
 };
 
 const isTypeExportSpecifier = (specifier: AstNode): boolean =>
-  (specifier as unknown as { exportKind?: string }).exportKind === 'type';
+  getNodeExportKind(specifier) === 'type';
 
 const specifierSite = (specifier: AstNode): ExportSite | null => {
   if (
@@ -129,7 +146,7 @@ const siteFromSimpleBinding = (
     return name ? { localName: name, name, start } : null;
   }
   if (node.type === 'AssignmentPattern') {
-    const { left } = node as unknown as { left?: AstNode };
+    const left = getNodeLeft(node);
     return left ? siteFromSimpleBinding(left, start) : null;
   }
   return null;
@@ -172,16 +189,14 @@ const sitesFromObjectProperty = (
   recurse: PatternSitesFn
 ): readonly ExportSite[] => {
   if (prop.type === 'RestElement') {
-    const { argument } = prop as unknown as { argument?: AstNode };
+    const argument = getNodeArgument(prop);
     return recurse(argument, start);
   }
   if (prop.type !== 'Property') {
     return [];
   }
-  const { key, value } = prop as unknown as {
-    key?: AstNode;
-    value?: AstNode;
-  };
+  const key = getNodeKey(prop);
+  const value = getNodeValueNode(prop);
   if (isNestedPatternValue(value)) {
     return recurse(value, start);
   }
@@ -198,7 +213,7 @@ const sitesFromArrayElement = (
     return [];
   }
   if (element.type === 'RestElement') {
-    const { argument } = element as unknown as { argument?: AstNode };
+    const argument = getNodeArgument(element);
     return recurse(argument, start);
   }
   return recurse(element, start);
@@ -209,9 +224,7 @@ const sitesFromObjectPattern = (
   start: number,
   recurse: PatternSitesFn
 ): readonly ExportSite[] => {
-  const properties =
-    (pattern as unknown as { properties?: readonly AstNode[] }).properties ??
-    [];
+  const properties = getNodeProperties(pattern) ?? [];
   return properties.flatMap((prop) =>
     sitesFromObjectProperty(prop, start, recurse)
   );
@@ -222,9 +235,7 @@ const sitesFromArrayPattern = (
   start: number,
   recurse: PatternSitesFn
 ): readonly ExportSite[] => {
-  const elements =
-    (pattern as unknown as { elements?: readonly (AstNode | null)[] })
-      .elements ?? [];
+  const elements = getNodeElements(pattern);
   return elements.flatMap((element) =>
     sitesFromArrayElement(element, start, recurse)
   );
@@ -262,16 +273,14 @@ const sitesForDeclaration = (declaration: AstNode): readonly ExportSite[] => {
     declaration.type === 'FunctionDeclaration' ||
     declaration.type === 'ClassDeclaration'
   ) {
-    const { id } = declaration as unknown as { id?: AstNode };
+    const id = getNodeId(declaration);
     const site = namedSiteFromDeclId(id, declaration.start);
     return site ? [site] : [];
   }
   if (declaration.type === 'VariableDeclaration') {
-    const declarations =
-      (declaration as unknown as { declarations?: readonly AstNode[] })
-        .declarations ?? [];
+    const declarations = getNodeDeclarations(declaration);
     return declarations.flatMap((declarator) => {
-      const { id } = declarator as unknown as { id?: AstNode };
+      const id = getNodeId(declarator);
       return sitesFromPattern(id, declarator.start);
     });
   }
@@ -282,10 +291,10 @@ const sitesForExportNode = (node: AstNode): readonly ExportSite[] => {
   if (node.type !== 'ExportNamedDeclaration') {
     return [];
   }
-  if ((node as unknown as { exportKind?: string }).exportKind === 'type') {
+  if (getNodeExportKind(node) === 'type') {
     return [];
   }
-  const { declaration } = node as unknown as { declaration?: AstNode };
+  const declaration = getNodeDeclaration(node);
   if (declaration) {
     return sitesForDeclaration(declaration);
   }
@@ -324,15 +333,13 @@ const collectNamespaceReexports = (
     // Mirror the `ExportNamedDeclaration` guard: `export type * from ...` and
     // `export type * as ns from ...` propagate types only, never runtime
     // identifiers, so they cannot leak raw rule objects and must be allowed.
-    if ((node as unknown as { exportKind?: string }).exportKind === 'type') {
+    if (getNodeExportKind(node) === 'type') {
       return;
     }
-    const { source, exported } = node as unknown as {
-      source?: { value?: unknown };
-      exported?: AstNode;
-    };
-    const target =
-      typeof source?.value === 'string' ? source.value : '<unknown>';
+    const source = getNodeSource(node);
+    const exported = getNodeExported(node);
+    const sourceValue = getNodeValue(source);
+    const target = typeof sourceValue === 'string' ? sourceValue : '<unknown>';
     // `export * as <alias> from '...'` exposes the alias as an
     // `IdentifierName` / string-literal node on `exported`. Bare `export *`
     // has `exported === null`.

@@ -24,7 +24,31 @@
 import { basename as pathBasename, dirname, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { offsetToLine, parse, walk } from './ast.js';
+import {
+  getNodeArgument,
+  getNodeArguments,
+  getNodeBodyNode,
+  getNodeBodyStatements,
+  getNodeCallee,
+  getNodeComputed,
+  getNodeDeclarations,
+  getNodeElements,
+  getNodeId,
+  getNodeKey,
+  getNodeKind,
+  getNodeLeft,
+  getNodeName,
+  getNodeObject,
+  getNodeParam,
+  getNodeParams,
+  getNodeProperties,
+  getNodeProperty,
+  getNodeValueNode,
+  getStringValue,
+  offsetToLine,
+  parse,
+  walk,
+} from './ast.js';
 import type { AstNode } from './ast.js';
 import type { WardenDiagnostic, WardenRule } from './types.js';
 
@@ -163,7 +187,7 @@ const getIdentifierName = (node: AstNode | undefined): string | null => {
   if (!node || node.type !== 'Identifier') {
     return null;
   }
-  const { name } = node as unknown as { name?: string };
+  const name = getNodeName(node);
   return typeof name === 'string' ? name : null;
 };
 
@@ -194,7 +218,7 @@ const memberCallParts = (node: AstNode): MemberCallParts | null => {
   if (node.type !== 'CallExpression') {
     return null;
   }
-  const { callee } = node as unknown as { callee?: AstNode };
+  const callee = getNodeCallee(node);
   if (
     !callee ||
     (callee.type !== 'MemberExpression' &&
@@ -202,11 +226,9 @@ const memberCallParts = (node: AstNode): MemberCallParts | null => {
   ) {
     return null;
   }
-  const { object, property, computed } = callee as unknown as {
-    object?: AstNode;
-    property?: AstNode;
-    computed?: boolean;
-  };
+  const object = getNodeObject(callee);
+  const property = getNodeProperty(callee);
+  const computed = getNodeComputed(callee);
   return computed ? null : { object, property };
 };
 
@@ -246,7 +268,7 @@ const isRegexProducer = (node: AstNode | undefined): boolean => {
     return true;
   }
   if (node.type === 'NewExpression' || node.type === 'CallExpression') {
-    const { callee } = node as unknown as { callee?: AstNode };
+    const callee = getNodeCallee(node);
     return getIdentifierName(callee) === 'RegExp';
   }
   return false;
@@ -261,8 +283,7 @@ const isRegexProducer = (node: AstNode | undefined): boolean => {
 const firstIdentifierArgument = (
   node: AstNode
 ): { identifier: AstNode; name: string } | null => {
-  const args = (node as unknown as { arguments?: readonly AstNode[] })
-    .arguments;
+  const args = getNodeArguments(node);
   if (!args) {
     return null;
   }
@@ -330,7 +351,7 @@ const regexConstructionSite = (node: AstNode): RegexConstructionSite | null => {
   if (node.type !== 'NewExpression' && node.type !== 'CallExpression') {
     return null;
   }
-  const { callee } = node as unknown as { callee?: AstNode };
+  const callee = getNodeCallee(node);
   if (getIdentifierName(callee) !== 'RegExp') {
     return null;
   }
@@ -481,20 +502,20 @@ const methodNameFromKey = (key: AstNode | undefined): string | null => {
     return null;
   }
   if (key.type === 'Identifier') {
-    return (key as unknown as { name?: string }).name ?? null;
+    return getNodeName(key) ?? null;
   }
   // String-literal keys like `'check': (sc) => { ... }`.
   if (
     (key.type === 'Literal' || key.type === 'StringLiteral') &&
-    typeof (key as unknown as { value?: unknown }).value === 'string'
+    getStringValue(key) !== null
   ) {
-    return (key as unknown as { value: string }).value;
+    return getStringValue(key);
   }
   return null;
 };
 
 const firstParamIdentifierName = (fn: AstNode): string | null => {
-  const { params } = fn as unknown as { params?: readonly AstNode[] };
+  const params = getNodeParams(fn);
   const [first] = params ?? [];
   if (!first) {
     return null;
@@ -503,7 +524,7 @@ const firstParamIdentifierName = (fn: AstNode): string | null => {
     return getIdentifierName(first);
   }
   if (first.type === 'AssignmentPattern') {
-    const { left } = first as unknown as { left?: AstNode };
+    const left = getNodeLeft(first);
     return left?.type === 'Identifier' ? getIdentifierName(left) : null;
   }
   return null;
@@ -518,10 +539,8 @@ const firstParamIdentifierName = (fn: AstNode): string | null => {
 const methodPropertyFunction = (
   node: AstNode
 ): { fn: AstNode; name: string } | null => {
-  const { key, value } = node as unknown as {
-    key?: AstNode;
-    value?: AstNode;
-  };
+  const key = getNodeKey(node);
+  const value = getNodeValueNode(node);
   const name = methodNameFromKey(key);
   if (!name || !value || !FUNCTION_NODE_TYPES.has(value.type)) {
     return null;
@@ -532,7 +551,7 @@ const methodPropertyFunction = (
 const namedFunctionDeclaration = (
   node: AstNode
 ): { fn: AstNode; name: string } | null => {
-  const name = getIdentifierName((node as unknown as { id?: AstNode }).id);
+  const name = getIdentifierName(getNodeId(node));
   if (!name || !SOURCE_PARAM_METHOD_NAMES.has(name)) {
     return null;
   }
@@ -574,11 +593,11 @@ const buildSourceParamIndex = (ast: AstNode): ReadonlyMap<number, string> => {
  */
 const expandObjectPatternProperty = (property: AstNode): readonly AstNode[] => {
   if (property.type === 'Property') {
-    const { value } = property as unknown as { value?: AstNode };
+    const value = getNodeValueNode(property);
     return value ? [value] : [];
   }
   if (property.type === 'RestElement') {
-    const { argument } = property as unknown as { argument?: AstNode };
+    const argument = getNodeArgument(property);
     return argument ? [argument] : [];
   }
   return [];
@@ -586,23 +605,19 @@ const expandObjectPatternProperty = (property: AstNode): readonly AstNode[] => {
 
 const PATTERN_EXPANDERS: Record<string, (p: AstNode) => readonly AstNode[]> = {
   ArrayPattern: (pattern) => {
-    const elements =
-      (pattern as unknown as { elements?: readonly (AstNode | null)[] })
-        .elements ?? [];
+    const elements = getNodeElements(pattern);
     return elements.filter((el): el is AstNode => el !== null);
   },
   AssignmentPattern: (pattern) => {
-    const { left } = pattern as unknown as { left?: AstNode };
+    const left = getNodeLeft(pattern);
     return left ? [left] : [];
   },
   ObjectPattern: (pattern) => {
-    const properties =
-      (pattern as unknown as { properties?: readonly AstNode[] }).properties ??
-      [];
+    const properties = getNodeProperties(pattern) ?? [];
     return properties.flatMap(expandObjectPatternProperty);
   },
   RestElement: (pattern) => {
-    const { argument } = pattern as unknown as { argument?: AstNode };
+    const argument = getNodeArgument(pattern);
     return argument ? [argument] : [];
   },
 };
@@ -660,8 +675,7 @@ interface FunctionScopeBindingsEx {
 
 const collectParamBindingsFromFunction = (fn: AstNode): Set<string> => {
   const paramNames = new Set<string>();
-  const params =
-    (fn as unknown as { params?: readonly AstNode[] }).params ?? [];
+  const params = getNodeParams(fn) ?? [];
   for (const param of params) {
     collectBindingIdsFromPattern(param, paramNames);
   }
@@ -670,7 +684,7 @@ const collectParamBindingsFromFunction = (fn: AstNode): Set<string> => {
 
 const collectHoistedVarsFromFunctionBody = (fn: AstNode): Set<string> => {
   const hoistedVarNames = new Set<string>();
-  const { body } = fn as unknown as { body?: AstNode };
+  const body = getNodeBodyNode(fn);
   if (body && typeof body === 'object' && (body as AstNode).type) {
     // eslint-disable-next-line no-use-before-define
     collectHoistedVarBindings(body, hoistedVarNames);
@@ -702,20 +716,14 @@ const addVariableDeclarationNames = (
   stmt: AstNode,
   names: Set<string>
 ): void => {
-  const declarations =
-    (stmt as unknown as { declarations?: readonly AstNode[] }).declarations ??
-    [];
+  const declarations = getNodeDeclarations(stmt) ?? [];
   for (const decl of declarations) {
-    collectBindingIdsFromPattern(
-      (decl as unknown as { id?: AstNode }).id,
-      names
-    );
+    collectBindingIdsFromPattern(getNodeId(decl), names);
   }
 };
 
 const isVarVariableDeclaration = (stmt: AstNode): boolean =>
-  stmt.type === 'VariableDeclaration' &&
-  (stmt as unknown as { kind?: string }).kind === 'var';
+  stmt.type === 'VariableDeclaration' && getNodeKind(stmt) === 'var';
 
 /**
  * True when `node` owns its own VariableEnvironment and therefore stops `var`
@@ -758,7 +766,7 @@ const addFunctionDeclarationName = (
   stmt: AstNode,
   names: Set<string>
 ): void => {
-  const name = getIdentifierName((stmt as unknown as { id?: AstNode }).id);
+  const name = getIdentifierName(getNodeId(stmt));
   if (name) {
     names.add(name);
   }
@@ -766,7 +774,7 @@ const addFunctionDeclarationName = (
 
 const collectBlockDeclarationNames = (block: AstNode): Set<string> => {
   const names = new Set<string>();
-  const body = (block as unknown as { body?: readonly AstNode[] }).body ?? [];
+  const body = getNodeBodyStatements(block);
   for (const stmt of body) {
     // `var` is function-scoped, not block-scoped — hoisted into the nearest
     // enclosing function (or program) scope by
@@ -793,7 +801,7 @@ const collectBlockDeclarationNames = (block: AstNode): Set<string> => {
  */
 const collectCatchClauseDeclarationNames = (node: AstNode): Set<string> => {
   const names = new Set<string>();
-  const { param } = node as unknown as { param?: AstNode };
+  const param = getNodeParam(node);
   collectBindingIdsFromPattern(param, names);
   return names;
 };

@@ -29,7 +29,9 @@ export default helper;
   );
   const caller = writeFile(
     'caller-readcount.ts',
-    `import { foo } from './barrel-readcount.js';
+    `import {
+  foo
+} from './barrel-readcount.js';
 
 trail("entity.report", {
   blaze: async (input, ctx) => {
@@ -273,7 +275,9 @@ trail("entity.list", {
       );
       const caller = writeFile(
         'caller.ts',
-        `import { buildReport } from './result-helper.js';
+        `import {
+  buildReport
+} from './result-helper.js';
 
 trail("entity.report", {
   blaze: async (input, ctx) => {
@@ -293,7 +297,9 @@ trail("entity.report", {
     test('allows imported helper with aliased Result return annotation assigned to a variable', () => {
       writeFile(
         'aliased-result-helper.ts',
-        `import type { Result as ResultType } from '@ontrails/core';
+        `import type {
+  Result as ResultType
+} from '@ontrails/core';
 
 export const parseAndValidateBody = (): ResultType<object, Error> =>
   Result.ok({ ok: true });
@@ -301,7 +307,9 @@ export const parseAndValidateBody = (): ResultType<object, Error> =>
       );
       const caller = writeFile(
         'caller-aliased-result.ts',
-        `import { parseAndValidateBody } from './aliased-result-helper.js';
+        `import {
+  parseAndValidateBody
+} from './aliased-result-helper.js';
 
 trail("message.transmit", {
   blaze: async (input, ctx) => {
@@ -331,7 +339,9 @@ trail("message.transmit", {
       );
       const caller = writeFile(
         'caller-plain.ts',
-        `import { buildReport } from './plain-helper.js';
+        `import {
+  buildReport
+} from './plain-helper.js';
 
 trail("entity.report", {
   blaze: async (input, ctx) => {
@@ -351,7 +361,9 @@ trail("entity.report", {
     test('flags helper imported from bare specifier (node_modules)', () => {
       const caller = writeFile(
         'caller-bare.ts',
-        `import { buildReport } from 'some-package';
+        `import {
+  buildReport
+} from 'some-package';
 
 trail("entity.report", {
   blaze: async (input, ctx) => {
@@ -371,7 +383,9 @@ trail("entity.report", {
     test('flags gracefully when target file is unreadable', () => {
       const caller = writeFile(
         'caller-missing.ts',
-        `import { buildReport } from './does-not-exist.js';
+        `import {
+  buildReport
+} from './does-not-exist.js';
 
 trail("entity.report", {
   blaze: async (input, ctx) => {
@@ -403,7 +417,9 @@ trail("entity.report", {
         );
         const caller = writeFile(
           'caller-specifier.ts',
-          `import { helper } from './barrel-specifier.js';
+          `import {
+  helper
+} from './barrel-specifier.js';
 
 trail("entity.report", {
   blaze: async (input, ctx) => {
@@ -434,7 +450,9 @@ trail("entity.report", {
         );
         const caller = writeFile(
           'caller-aliased.ts',
-          `import { aliased } from './barrel-aliased.js';
+          `import {
+  aliased
+} from './barrel-aliased.js';
 
 trail("entity.report", {
   blaze: async (input, ctx) => {
@@ -462,7 +480,9 @@ export { helper };
         );
         const caller = writeFile(
           'caller-samefile.ts',
-          `import { helper } from './barrel-samefile.js';
+          `import {
+  helper
+} from './barrel-samefile.js';
 
 trail("entity.report", {
   blaze: async (input, ctx) => {
@@ -495,7 +515,9 @@ export default helper;
         );
         const caller = writeFile(
           'caller-default.ts',
-          `import { foo } from './barrel-default.js';
+          `import {
+  foo
+} from './barrel-default.js';
 
 trail("entity.report", {
   blaze: async (input, ctx) => {
@@ -561,7 +583,9 @@ trail("entity.report", {
         );
         const caller = writeFile(
           'caller-depth.ts',
-          `import { deepHelper } from './depth-a.js';
+          `import {
+  deepHelper
+} from './depth-a.js';
 
 trail("entity.report", {
   blaze: async (input, ctx) => {
@@ -601,7 +625,9 @@ export { helper as aliasedFromA } from './ctx-a.js';
         );
         const callerA = writeFile(
           'caller-ctx-a.ts',
-          `import { helper } from './ctx-a.js';
+          `import {
+  helper
+} from './ctx-a.js';
 
 trail("entity.first", {
   blaze: async (input, ctx) => {
@@ -611,7 +637,9 @@ trail("entity.first", {
         );
         const callerB = writeFile(
           'caller-ctx-b.ts',
-          `import { helper } from './ctx-b.js';
+          `import {
+  helper
+} from './ctx-b.js';
 
 trail("entity.second", {
   blaze: async (input, ctx) => {
@@ -1176,7 +1204,9 @@ trail("entity.report", {
         );
         const caller = writeFile(
           'caller-star.ts',
-          `import { helper } from './barrel-star.js';
+          `import {
+  helper
+} from './barrel-star.js';
 
 trail("entity.report", {
   blaze: async (input, ctx) => {
@@ -1206,7 +1236,9 @@ trail("entity.report", {
         );
         const caller = writeFile(
           'caller-star-cycle.ts',
-          `import { helper } from './star-cycle-a.js';
+          `import {
+  helper
+} from './star-cycle-a.js';
 
 trail("entity.report", {
   blaze: async (input, ctx) => {
@@ -1237,7 +1269,9 @@ trail("entity.report", {
         );
         const caller = writeFile(
           'caller-cycle.ts',
-          `import { helper } from './cycle-a.js';
+          `import {
+  helper
+} from './cycle-a.js';
 
 trail("entity.report", {
   blaze: async (input, ctx) => {
@@ -1283,7 +1317,9 @@ trail("survey", {
 
   test('allows variables produced by local helpers with aliased Result return annotations', () => {
     const code = `
-import type { Result as ResultType } from '@ontrails/core';
+import type {
+  Result as ResultType
+} from '@ontrails/core';
 
 const validateReplyTo = (replyTo: string | undefined): ResultType<object, Error> =>
   Result.ok({ replyTo });
@@ -1393,7 +1429,10 @@ trail("message.transmit", {
 
   test('allows helper calls when the local binding has a Result return annotation', () => {
     const code = `
-import { Result, trail } from '@ontrails/core';
+import {
+  Result,
+  trail
+} from '@ontrails/core';
 
 trail("message.transmit", {
   blaze: async () => {

@@ -3,15 +3,18 @@ import {
   collectContourDefinitionIds,
   collectImportAliasMap,
   collectNamedContourIds,
+  deriveContourIdentifierName,
   extractFirstStringArg,
   findConfigProperty,
   findTrailDefinitions,
+  getNodeCallee,
+  getNodeObject,
+  getNodeProperty,
   identifierName,
   isMemberAccessNonComputed,
   isUserNamespaceReceiverAllowed,
   offsetToLine,
   parse,
-  deriveContourIdentifierName,
 } from './ast.js';
 import type { AstNode, TrailDefinition, UserNamespaceContext } from './ast.js';
 import { mergeKnownContourIds } from './contour-ids.js';
@@ -24,8 +27,7 @@ import type {
 
 const isContourCall = (node: AstNode): boolean =>
   node.type === 'CallExpression' &&
-  identifierName((node as unknown as { callee?: AstNode }).callee) ===
-    'contour';
+  identifierName(getNodeCallee(node)) === 'contour';
 
 const getContourElements = (config: AstNode): readonly AstNode[] => {
   const contoursProp = findConfigProperty(config, 'contours');
@@ -58,10 +60,8 @@ const resolveNamespaceMemberContourName = (
   if (!isMemberAccessNonComputed(element)) {
     return null;
   }
-  const { object, property } = element as unknown as {
-    readonly object?: AstNode;
-    readonly property?: AstNode;
-  };
+  const object = getNodeObject(element);
+  const property = getNodeProperty(element);
   const receiver = object ? identifierName(object) : null;
   if (
     !receiver ||

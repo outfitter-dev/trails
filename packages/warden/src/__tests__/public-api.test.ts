@@ -7,20 +7,27 @@ import {
   findBlazeBodies,
   findContourDefinitions,
   findTrailDefinitions,
+  getNodeAlternate,
+  getNodeArguments,
+  getNodeCallee,
+  getNodeDeclarations,
+  getNodeId,
+  getNodeInit,
+  identifierName,
+  isBlazeCall,
   isCallExpression,
   isIdentifier,
   isImportDeclaration,
   isProgram,
   isVariableDeclaration,
   isVariableDeclarator,
-  isBlazeCall,
   offsetToLineColumn,
   parse,
   parseWithDiagnostics,
   walk,
+  walkScope,
   walkWithParents,
   walkWithScopeContext,
-  walkScope,
 } from '@ontrails/warden/ast';
 import type { FrameworkNamespaceContext } from '@ontrails/warden/ast';
 import {
@@ -71,7 +78,9 @@ describe('@ontrails/warden public API', () => {
     const ast = parse(
       'example.ts',
       `
-        import { trail } from '@ontrails/core';
+        import {
+  trail
+} from '@ontrails/core';
         const showUser = trail('user.show', {});
       `
     );
@@ -89,7 +98,13 @@ describe('@ontrails/warden public API', () => {
     if (isVariableDeclarator(declarator)) {
       expect(isIdentifier(declarator.id)).toBe(true);
       expect(isCallExpression(declarator.init)).toBe(true);
+      expect(identifierName(getNodeId(declarator))).toBe('showUser');
+      expect(identifierName(getNodeCallee(getNodeInit(declarator)))).toBe(
+        'trail'
+      );
+      expect(getNodeArguments(getNodeInit(declarator))).toHaveLength(2);
     }
+    expect(getNodeDeclarations(declaration)).toHaveLength(1);
   });
 
   test('keeps resolver helpers on the resolve entrypoint', () => {
@@ -111,7 +126,10 @@ describe('@ontrails/warden public API', () => {
 
   test('exposes stable rule-authoring helpers on the ast entrypoint', () => {
     const source = `
-import { contour, trail } from '@ontrails/core';
+import {
+  contour,
+  trail
+} from '@ontrails/core';
 
 const user = contour('user', { id: z.string() });
 
@@ -120,6 +138,8 @@ export const showUser = trail('user.show', {
     return userShow.blaze(input, ctx);
   },
 });
+
+const selectedTrail = enabled ? loadPrimary() : loadFallback();
 `;
     const ast = parse('example.ts', source);
     expect(ast).not.toBeNull();
@@ -139,10 +159,17 @@ export const showUser = trail('user.show', {
     expect(blazeBody).toBeDefined();
 
     let sawBlazeCall = false;
+    let alternateNodeType: string | undefined;
     walk(blazeBody, (node) => {
       sawBlazeCall ||= isBlazeCall(node);
     });
+    walk(ast, (node) => {
+      if (node.type === 'ConditionalExpression') {
+        alternateNodeType = getNodeAlternate(node)?.type;
+      }
+    });
     expect(sawBlazeCall).toBe(true);
+    expect(alternateNodeType).toBe('CallExpression');
 
     const namespaceContext = {
       namespaces: new Set(['core']),
@@ -163,7 +190,9 @@ export const showUser = trail('user.show', {
 
   test('exposes parent-aware, scope-aware, and edit helpers on the ast entrypoint', () => {
     const source = `
-import { trail } from '@ontrails/core';
+import {
+  trail
+} from '@ontrails/core';
 
 export const showUser = trail('user.show', {});
 
@@ -192,9 +221,7 @@ function wrapper(trail: (id: string) => void) {
       if (node.type !== 'CallExpression') {
         return;
       }
-      const { callee } = node as unknown as {
-        readonly callee?: { readonly name?: string };
-      };
+      const callee = getNodeCallee(node);
       if (callee?.name === 'trail') {
         const declaration = context.getDeclaration('trail');
         if (declaration) {
@@ -206,7 +233,7 @@ function wrapper(trail: (id: string) => void) {
 
     expect(offsetToLineColumn(source, source.indexOf('wrapper'))).toEqual({
       column: 10,
-      line: 6,
+      line: 8,
     });
     expect(
       applySourceEdits(source, [

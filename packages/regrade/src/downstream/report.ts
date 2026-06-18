@@ -9,13 +9,13 @@ import {
   isWardenSourceScanTarget,
   wardenRules,
 } from '@ontrails/warden';
-import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { z } from 'zod';
 
 import {
-  collectDownstreamSources,
   DEFAULT_IGNORED_DIRECTORIES,
   DEFAULT_SOURCE_EXTENSIONS,
+  collectDownstreamSources,
 } from './collect.js';
 import type { DownstreamCollectionOptions, SkippedSource } from './collect.js';
 

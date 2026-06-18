@@ -3,6 +3,17 @@ import { matchesTrailPattern } from '@ontrails/core';
 import {
   extractStringOrTemplateLiteral,
   findConfigProperty,
+  getNodeArgument,
+  getNodeElements,
+  getNodeExpression,
+  getNodeId,
+  getNodeInit,
+  getNodeKey,
+  getNodeName,
+  getNodeProperties,
+  getNodeTypeAnnotation,
+  getNodeValue,
+  getNodeValueNode,
   getPropertyName,
   offsetToLine,
   parse,
@@ -25,29 +36,22 @@ const unwrapExpression = (node: AstNode | undefined): AstNode | undefined => {
     current?.type === 'TSAsExpression' ||
     current?.type === 'TSSatisfiesExpression'
   ) {
-    current =
-      (current as unknown as { expression?: AstNode }).expression ??
-      (current as unknown as { argument?: AstNode }).argument;
+    current = getNodeExpression(current) ?? getNodeArgument(current);
   }
   return current;
 };
 
 const objectProperties = (node: AstNode): readonly AstNode[] =>
-  node.type === 'ObjectExpression'
-    ? ((node as unknown as { properties?: readonly AstNode[] }).properties ??
-      [])
-    : [];
+  node.type === 'ObjectExpression' ? (getNodeProperties(node) ?? []) : [];
 
 const propertyValue = (property: AstNode): AstNode | undefined =>
-  property.type === 'Property'
-    ? (property as unknown as { value?: AstNode }).value
-    : undefined;
+  property.type === 'Property' ? getNodeValueNode(property) : undefined;
 
 const literalBooleanValue = (node: AstNode | undefined): boolean | null => {
   if (node?.type !== 'Literal') {
     return null;
   }
-  const { value } = node as unknown as { value?: unknown };
+  const value = getNodeValue(node);
   return typeof value === 'boolean' ? value : null;
 };
 
@@ -82,9 +86,7 @@ const hasFacetMapTypeAnnotation = (
   sourceCode: string,
   node: AstNode
 ): boolean => {
-  const { typeAnnotation } = node as unknown as {
-    readonly typeAnnotation?: AstNode;
-  };
+  const typeAnnotation = getNodeTypeAnnotation(node);
   return (
     typeAnnotation !== undefined &&
     /\b(?:McpSurfaceFacetMap|TopoGraphFacetDeclaration|FacetMap)\b/.test(
@@ -99,10 +101,7 @@ const selectorNodes = (trailsNode: AstNode): readonly AstNode[] | null => {
     return null;
   }
   if (value.type === 'ArrayExpression') {
-    return (
-      (value as unknown as { elements?: readonly (AstNode | null)[] })
-        .elements ?? []
-    ).filter((element) => element !== null);
+    return getNodeElements(value).filter((element) => element !== null);
   }
   return [value];
 };
@@ -259,9 +258,7 @@ const diagnoseFacetMap = (
   const selectors: FacetSelector[] = [];
 
   for (const property of objectProperties(facetMap)) {
-    const facetId = getPropertyName(
-      (property as unknown as { key?: AstNode }).key
-    );
+    const facetId = getPropertyName(getNodeKey(property));
     const value = unwrapExpression(propertyValue(property));
     if (!facetId || value === undefined || !isFacetDefinition(value)) {
       continue;
@@ -329,9 +326,7 @@ export const surfaceFacetCoherence: WardenRule = {
 
     walk(ast, (node) => {
       if (node.type === 'Property') {
-        const propertyName = getPropertyName(
-          (node as unknown as { key?: AstNode }).key
-        );
+        const propertyName = getPropertyName(getNodeKey(node));
         if (propertyName === 'facets') {
           diagnoseCandidate(propertyValue(node));
         }
@@ -339,15 +334,12 @@ export const surfaceFacetCoherence: WardenRule = {
       }
 
       if (node.type === 'VariableDeclarator') {
-        const bindingName =
-          (node as unknown as { id?: { name?: unknown } }).id?.name ?? null;
+        const bindingName = getNodeName(getNodeId(node));
         if (
           typeof bindingName === 'string' &&
           isFacetMapBindingName(bindingName)
         ) {
-          diagnoseCandidate(
-            (node as unknown as { init?: AstNode }).init ?? undefined
-          );
+          diagnoseCandidate(getNodeInit(node) ?? undefined);
         }
         return;
       }

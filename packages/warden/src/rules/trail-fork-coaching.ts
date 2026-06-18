@@ -3,6 +3,24 @@ import {
   findBlazeBodies,
   findConfigProperty,
   findTrailDefinitions,
+  getNodeArgument,
+  getNodeArguments,
+  getNodeCallee,
+  getNodeDiscriminant,
+  getNodeElements,
+  getNodeExpression,
+  getNodeId,
+  getNodeInit,
+  getNodeKey,
+  getNodeLeft,
+  getNodeObject,
+  getNodeOperator,
+  getNodeParams,
+  getNodeProperties,
+  getNodeProperty,
+  getNodeRight,
+  getNodeTest,
+  getNodeValueNode,
   getPropertyName,
   identifierName,
   offsetToLine,
@@ -58,36 +76,32 @@ const unwrapExpression = (node: AstNode | undefined): AstNode | undefined => {
     current?.type === 'TSAsExpression' ||
     current?.type === 'TSSatisfiesExpression'
   ) {
-    current =
-      (current as unknown as { expression?: AstNode }).expression ??
-      (current as unknown as { argument?: AstNode }).argument;
+    current = getNodeExpression(current) ?? getNodeArgument(current);
   }
   return current;
 };
 
 const callArguments = (node: AstNode): readonly AstNode[] =>
-  (node as unknown as { arguments?: readonly AstNode[] }).arguments ?? [];
+  getNodeArguments(node) ?? [];
 
 const callName = (node: AstNode | undefined): string | null => {
   const unwrapped = unwrapExpression(node);
   if (unwrapped?.type !== 'CallExpression') {
     return null;
   }
-  const { callee } = unwrapped as unknown as { callee?: AstNode };
+  const callee = getNodeCallee(unwrapped);
   if (callee?.type !== 'MemberExpression') {
     return identifierName(callee);
   }
-  return getPropertyName(
-    (callee as unknown as { property?: AstNode }).property
-  );
+  return getPropertyName(getNodeProperty(callee));
 };
 
 const callObject = (node: AstNode): AstNode | undefined => {
-  const { callee } = node as unknown as { callee?: AstNode };
+  const callee = getNodeCallee(node);
   if (callee?.type !== 'MemberExpression') {
     return undefined;
   }
-  return (callee as unknown as { object?: AstNode }).object;
+  return getNodeObject(callee);
 };
 
 const schemaBindingInitializer = (
@@ -163,24 +177,20 @@ const unwrapZodDecorators = (
 
 const objectProperties = (node: AstNode): readonly AstNode[] =>
   node.type === 'ObjectExpression' || node.type === 'ObjectPattern'
-    ? ((node as unknown as { properties?: readonly AstNode[] }).properties ??
-      [])
+    ? (getNodeProperties(node) ?? [])
     : [];
 
 const propertyValue = (property: AstNode): AstNode | undefined =>
-  property.type === 'Property'
-    ? (property as unknown as { value?: AstNode }).value
-    : undefined;
+  property.type === 'Property' ? getNodeValueNode(property) : undefined;
 
 const arrayElements = (node: AstNode | undefined): readonly AstNode[] => {
   const unwrapped = unwrapExpression(node);
   if (unwrapped?.type !== 'ArrayExpression') {
     return [];
   }
-  return (
-    (unwrapped as unknown as { elements?: readonly (AstNode | null)[] })
-      .elements ?? []
-  ).filter((element): element is AstNode => element !== null);
+  return getNodeElements(unwrapped).filter(
+    (element): element is AstNode => element !== null
+  );
 };
 
 const literalOptionsFromEnum = (node: AstNode): readonly string[] => {
@@ -254,7 +264,7 @@ const variableDeclaratorName = (node: AstNode): string | undefined => {
   if (node.type !== 'VariableDeclarator') {
     return undefined;
   }
-  const { id } = node as unknown as { id?: AstNode };
+  const id = getNodeId(node);
   return identifierName(id) ?? undefined;
 };
 
@@ -272,7 +282,7 @@ const collectSchemaBindings = (ast: AstNode): SchemaBindings => {
     if (name !== undefined) {
       const records = bindings.get(name) ?? [];
       records.push({
-        initializer: (node as unknown as { init?: AstNode }).init ?? undefined,
+        initializer: getNodeInit(node) ?? undefined,
         scopeEnd: nextScope.end,
         scopeStart: nextScope.start,
         start: node.start,
@@ -318,9 +328,7 @@ const findControlFields = (
 
   const fields: ControlField[] = [];
   for (const property of objectProperties(shape)) {
-    const name = getPropertyName(
-      (property as unknown as { key?: AstNode }).key
-    );
+    const name = getPropertyName(getNodeKey(property));
     if (!name || !CONTROL_FIELD_NAMES.has(name)) {
       continue;
     }
@@ -337,7 +345,7 @@ const findControlFields = (
 };
 
 const blazeParams = (blaze: AstNode): readonly AstNode[] =>
-  (blaze as unknown as { params?: readonly AstNode[] }).params ?? [];
+  getNodeParams(blaze) ?? [];
 
 const memberFieldName = (
   node: AstNode | undefined,
@@ -350,19 +358,17 @@ const memberFieldName = (
   if (unwrapped?.type !== 'MemberExpression') {
     return null;
   }
-  const { object } = unwrapped as unknown as { object?: AstNode };
+  const object = getNodeObject(unwrapped);
   if (identifierName(object) !== inputParamName) {
     return null;
   }
-  return getPropertyName(
-    (unwrapped as unknown as { property?: AstNode }).property
-  );
+  return getPropertyName(getNodeProperty(unwrapped));
 };
 
 const patternAliasName = (node: AstNode | undefined): string | null => {
   const unwrapped = unwrapExpression(node);
   if (unwrapped?.type === 'AssignmentPattern') {
-    return identifierName((unwrapped as unknown as { left?: AstNode }).left);
+    return identifierName(getNodeLeft(unwrapped));
   }
   return identifierName(unwrapped);
 };
@@ -380,9 +386,7 @@ const collectDestructuredFieldAliasesFromPattern = (
     if (property.type === 'RestElement') {
       continue;
     }
-    const fieldName = getPropertyName(
-      (property as unknown as { key?: AstNode }).key
-    );
+    const fieldName = getPropertyName(getNodeKey(property));
     if (!fieldName || !fields.has(fieldName)) {
       continue;
     }
@@ -403,10 +407,8 @@ const collectDestructuredFieldAliases = (
     if (node.type !== 'VariableDeclarator') {
       return;
     }
-    const { id, init } = node as unknown as {
-      readonly id?: AstNode;
-      readonly init?: AstNode;
-    };
+    const id = getNodeId(node);
+    const init = getNodeInit(node);
     if (
       identifierName(init) !== inputParamName ||
       id?.type !== 'ObjectPattern'
@@ -473,10 +475,8 @@ const comparisonBranchesOnField = (
   }
 
   if (unwrapped.type === 'LogicalExpression') {
-    const { left, right } = unwrapped as unknown as {
-      readonly left?: AstNode;
-      readonly right?: AstNode;
-    };
+    const left = getNodeLeft(unwrapped);
+    const right = getNodeRight(unwrapped);
     return (
       comparisonBranchesOnField(left, inputParamName, fieldName, aliases) ??
       comparisonBranchesOnField(right, inputParamName, fieldName, aliases)
@@ -484,9 +484,7 @@ const comparisonBranchesOnField = (
   }
 
   if (unwrapped.type === 'UnaryExpression') {
-    const { argument } = unwrapped as unknown as {
-      readonly argument?: AstNode;
-    };
+    const argument = getNodeArgument(unwrapped);
     return comparisonBranchesOnField(
       argument,
       inputParamName,
@@ -499,11 +497,9 @@ const comparisonBranchesOnField = (
     return null;
   }
 
-  const { left, operator, right } = unwrapped as unknown as {
-    readonly left?: AstNode;
-    readonly operator?: string;
-    readonly right?: AstNode;
-  };
+  const left = getNodeLeft(unwrapped);
+  const operator = getNodeOperator(unwrapped);
+  const right = getNodeRight(unwrapped);
   if (operator !== '===' && operator !== '!==') {
     return null;
   }
@@ -527,7 +523,7 @@ const branchesOnField = (
     }
 
     if (node.type === 'SwitchStatement') {
-      const { discriminant } = node as unknown as { discriminant?: AstNode };
+      const discriminant = getNodeDiscriminant(node);
       if (
         branchFieldName(discriminant, inputParamName, aliases) === fieldName
       ) {
@@ -539,7 +535,7 @@ const branchesOnField = (
     if (node.type !== 'IfStatement' && node.type !== 'ConditionalExpression') {
       return;
     }
-    const { test } = node as unknown as { readonly test?: AstNode };
+    const test = getNodeTest(node);
     found = comparisonBranchesOnField(test, inputParamName, fieldName, aliases);
   });
   return found;

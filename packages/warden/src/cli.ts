@@ -33,10 +33,10 @@ import {
   collectPublicWorkspaces,
 } from './project-context.js';
 import {
+  collectComposeTargetTrailIds,
   collectContourDefinitionIds,
   collectContourReferenceTargetsByName,
   collectCrudTableIds as collectCrudTableIdsFromAst,
-  collectComposeTargetTrailIds,
   collectOnTargetSignalIds as collectOnTargetSignalIdsFromAst,
   collectReconcileTableIds as collectReconcileTableIdsFromAst,
   collectResourceDefinitionIds,

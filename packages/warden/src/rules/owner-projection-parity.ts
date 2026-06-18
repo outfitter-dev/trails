@@ -4,6 +4,11 @@ import { fileURLToPath } from 'node:url';
 import { intentValues } from '@ontrails/core';
 
 import {
+  getNodeExpression,
+  getNodeId,
+  getNodeInit,
+  getNodeKey,
+  getNodeProperties,
   getPropertyName,
   identifierName,
   offsetToLine,
@@ -34,7 +39,7 @@ const unwrapExpression = (node: AstNode | undefined): AstNode | undefined => {
       'TSTypeAssertion',
     ].includes(current.type)
   ) {
-    current = (current as unknown as { expression?: AstNode }).expression;
+    current = getNodeExpression(current);
   }
   return current;
 };
@@ -52,10 +57,8 @@ const findHttpMethodByIntentMap = (ast: AstNode): ProjectionMap | null => {
       return;
     }
 
-    const { id, init } = node as unknown as {
-      id?: AstNode;
-      init?: AstNode;
-    };
+    const id = getNodeId(node);
+    const init = getNodeInit(node);
     if (identifierName(id) !== 'httpMethodByIntent') {
       return;
     }
@@ -67,17 +70,11 @@ const findHttpMethodByIntentMap = (ast: AstNode): ProjectionMap | null => {
     }
 
     const keys = new Set<string>();
-    for (const property of (
-      objectExpression as unknown as {
-        properties?: readonly AstNode[];
-      }
-    ).properties ?? []) {
+    for (const property of getNodeProperties(objectExpression) ?? []) {
       if (property.type !== 'Property') {
         continue;
       }
-      const key = getPropertyName(
-        (property as unknown as { key?: AstNode }).key
-      );
+      const key = getPropertyName(getNodeKey(property));
       if (key) {
         keys.add(key);
       }

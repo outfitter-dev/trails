@@ -393,7 +393,12 @@ describe('warden-rules-use-ast', () => {
     const targetFile = ruleFilePath('fake-rule.ts');
 
     test('does not flag AST helpers (findStringLiterals, walk)', () => {
-      const source = `import { findStringLiterals, parse, walk } from './ast.js';
+      const source = `import {
+  findStringLiterals,
+  findTrailDefinitions,
+  parse,
+  walk
+} from './ast.js';
 export const r = {
   check(sourceCode: string, filePath: string) {
     const ast = parse(filePath, sourceCode);
@@ -409,7 +414,12 @@ export const r = {
     });
 
     test('does not flag findTrailDefinitions walker usage', () => {
-      const source = `import { findTrailDefinitions } from './ast.js';
+      const source = `import {
+  findStringLiterals,
+  findTrailDefinitions,
+  parse,
+  walk
+} from './ast.js';
 export const r = { check(sourceCode: string, filePath: string) { const defs = findTrailDefinitions(sourceCode as unknown as never); return defs.length ? [] : []; } };
 `;
       const diagnostics = wardenRulesUseAst.check(source, targetFile);

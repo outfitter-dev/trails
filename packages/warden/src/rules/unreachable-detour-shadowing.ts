@@ -4,6 +4,13 @@ import {
   extractStringLiteral,
   findConfigProperty,
   findTrailDefinitions,
+  getNodeId,
+  getNodeImported,
+  getNodeInit,
+  getNodeLocal,
+  getNodeSource,
+  getNodeSpecifiers,
+  getNodeSuperClass,
   identifierName,
   offsetToLine,
   parse,
@@ -46,7 +53,7 @@ const resolveKnownErrorName = (
 ): string => aliases.get(name) ?? name;
 
 const coreImportSource = (node: AstNode): string | null =>
-  extractStringLiteral((node as unknown as { source?: AstNode }).source);
+  extractStringLiteral(getNodeSource(node));
 
 const collectImportSpecifierAliases = (
   specifiers: readonly AstNode[] | undefined,
@@ -57,13 +64,9 @@ const collectImportSpecifierAliases = (
       continue;
     }
 
-    const localName = identifierName(
-      (specifier as unknown as { local?: AstNode }).local
-    );
+    const localName = identifierName(getNodeLocal(specifier));
     const importedName =
-      identifierName(
-        (specifier as unknown as { imported?: AstNode }).imported
-      ) ?? localName;
+      identifierName(getNodeImported(specifier)) ?? localName;
 
     if (localName && importedName && knownErrorConstructors.has(importedName)) {
       aliases.set(localName, importedName);
@@ -85,9 +88,7 @@ const collectKnownErrorAliases = (
       return;
     }
 
-    const { specifiers } = node as unknown as {
-      specifiers?: readonly AstNode[];
-    };
+    const specifiers = getNodeSpecifiers(node);
     collectImportSpecifierAliases(specifiers, aliases);
   });
 
@@ -116,15 +117,13 @@ const collectClassExpressionParent = (
     return;
   }
 
-  const { init } = node as unknown as { init?: AstNode };
+  const init = getNodeInit(node);
   if (!init || init.type !== 'ClassExpression') {
     return;
   }
 
-  const className = identifierName((node as unknown as { id?: AstNode }).id);
-  const parentName = identifierName(
-    (init as unknown as { superClass?: AstNode }).superClass
-  );
+  const className = identifierName(getNodeId(node));
+  const parentName = identifierName(getNodeSuperClass(init));
   recordLocalErrorParent(parents, aliases, className, parentName);
 };
 
@@ -136,12 +135,8 @@ const collectLocalErrorParents = (
 
   walk(ast, (node) => {
     if (node.type === 'ClassDeclaration') {
-      const className = identifierName(
-        (node as unknown as { id?: AstNode }).id
-      );
-      const parentName = identifierName(
-        (node as unknown as { superClass?: AstNode }).superClass
-      );
+      const className = identifierName(getNodeId(node));
+      const parentName = identifierName(getNodeSuperClass(node));
       recordLocalErrorParent(parents, aliases, className, parentName);
       return;
     }

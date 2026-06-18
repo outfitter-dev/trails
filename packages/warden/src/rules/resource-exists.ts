@@ -6,6 +6,7 @@ import {
   extractFirstStringArg,
   findConfigProperty,
   findTrailDefinitions,
+  getNodeCallee,
   getStringValue,
   identifierName,
   isStringLiteral,
@@ -22,8 +23,7 @@ import type {
 
 const isResourceCall = (node: AstNode): boolean =>
   node.type === 'CallExpression' &&
-  identifierName((node as unknown as { callee?: AstNode }).callee) ===
-    'resource';
+  identifierName(getNodeCallee(node)) === 'resource';
 
 const getResourceElements = (config: AstNode): readonly AstNode[] => {
   const resourcesProp = findConfigProperty(config, 'resources');

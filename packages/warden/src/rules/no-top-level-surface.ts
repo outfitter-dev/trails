@@ -1,4 +1,21 @@
 import {
+  getNodeArgument,
+  getNodeBodyStatements,
+  getNodeCallee,
+  getNodeComputed,
+  getNodeDeclaration,
+  getNodeDeclarations,
+  getNodeExported,
+  getNodeExpression,
+  getNodeId,
+  getNodeImported,
+  getNodeInit,
+  getNodeLeft,
+  getNodeLocal,
+  getNodeObject,
+  getNodeProperty,
+  getNodeSource,
+  getNodeSpecifiers,
   getStringValue,
   identifierName,
   isStringLiteral,
@@ -31,7 +48,7 @@ const diagnosticMessage =
 const unwrapExportDeclaration = (node: AstNode): AstNode =>
   node.type === 'ExportNamedDeclaration' ||
   node.type === 'ExportDefaultDeclaration'
-    ? ((node as unknown as { declaration?: AstNode }).declaration ?? node)
+    ? (getNodeDeclaration(node) ?? node)
     : node;
 
 interface ImportedBindings {
@@ -40,7 +57,7 @@ interface ImportedBindings {
 }
 
 const importSource = (node: AstNode): string | null => {
-  const { source } = node as unknown as { readonly source?: AstNode };
+  const source = getNodeSource(node);
   return source && isStringLiteral(source) ? getStringValue(source) : null;
 };
 
@@ -55,7 +72,7 @@ const addFrameworkImportBindings = (
 ): ImportedBindings => {
   const named = new Map<string, string>();
   const namespaces = new Set<string>();
-  const body = (ast as unknown as { body?: readonly AstNode[] }).body ?? [];
+  const body = getNodeBodyStatements(ast);
 
   for (const statement of body) {
     if (
@@ -65,14 +82,10 @@ const addFrameworkImportBindings = (
       continue;
     }
 
-    const specifiers =
-      (statement as unknown as { specifiers?: readonly AstNode[] })
-        .specifiers ?? [];
+    const specifiers = getNodeSpecifiers(statement);
     for (const specifier of specifiers) {
       if (specifier.type === 'ImportNamespaceSpecifier') {
-        const localName = identifierName(
-          (specifier as unknown as { local?: AstNode }).local
-        );
+        const localName = identifierName(getNodeLocal(specifier));
         if (localName) {
           namespaces.add(localName);
         }
@@ -82,10 +95,8 @@ const addFrameworkImportBindings = (
         continue;
       }
 
-      const { imported, local } = specifier as unknown as {
-        readonly imported?: AstNode;
-        readonly local?: AstNode;
-      };
+      const imported = getNodeImported(specifier);
+      const local = getNodeLocal(specifier);
       const importedName = importedSpecifierName(imported);
       const localName = identifierName(local);
       if (importedName && allowedImports.has(importedName) && localName) {
@@ -105,11 +116,7 @@ const unwrapExpression = (node: AstNode | undefined): AstNode | undefined => {
     current?.type === 'TSAsExpression' ||
     current?.type === 'TSSatisfiesExpression'
   ) {
-    current =
-      (current as unknown as { argument?: AstNode; expression?: AstNode })
-        .expression ??
-      (current as unknown as { argument?: AstNode; expression?: AstNode })
-        .argument;
+    current = getNodeExpression(current) ?? getNodeArgument(current);
   }
   return current;
 };
@@ -120,15 +127,10 @@ const memberExpressionParts = (
   if (node?.type !== 'MemberExpression') {
     return { objectName: null, propertyName: null };
   }
-  const { computed, property } = node as unknown as {
-    readonly computed?: boolean;
-    readonly object?: AstNode;
-    readonly property?: AstNode;
-  };
+  const computed = getNodeComputed(node);
+  const property = getNodeProperty(node);
   return {
-    objectName: identifierName(
-      (node as unknown as { object?: AstNode }).object
-    ),
+    objectName: identifierName(getNodeObject(node)),
     propertyName: computed ? null : identifierName(property),
   };
 };
@@ -163,10 +165,7 @@ const isTopoCall = (
   node: AstNode | undefined,
   bindings: ImportedBindings
 ): boolean =>
-  calleeName(
-    (unwrapExpression(node) as unknown as { callee?: AstNode })?.callee,
-    bindings
-  ) === 'topo';
+  calleeName(getNodeCallee(unwrapExpression(node)), bindings) === 'topo';
 
 const isSurfaceOpenCall = (
   node: AstNode | undefined,
@@ -177,7 +176,7 @@ const isSurfaceOpenCall = (
     return false;
   }
 
-  const { callee } = expression as unknown as { readonly callee?: AstNode };
+  const callee = getNodeCallee(expression);
   const directName = calleeName(callee, bindings);
   if (directName && SURFACE_OPEN_CALLEE_NAMES.has(directName)) {
     return true;
@@ -195,27 +194,22 @@ const isSurfaceOpenCall = (
 };
 
 const declarationIdName = (node: AstNode | undefined): string | null =>
-  identifierName(node) ??
-  identifierName((node as unknown as { left?: AstNode } | undefined)?.left);
+  identifierName(node) ?? identifierName(node ? getNodeLeft(node) : undefined);
 
 const collectTopLevelTopoBindings = (
   ast: AstNode,
   topoBindings: ImportedBindings
 ): ReadonlySet<string> => {
   const bindings = new Set<string>();
-  const body = (ast as unknown as { body?: readonly AstNode[] }).body ?? [];
+  const body = getNodeBodyStatements(ast);
 
   for (const statement of body) {
     const declaration = unwrapExportDeclaration(statement);
     if (declaration.type === 'VariableDeclaration') {
-      const declarations =
-        (declaration as unknown as { declarations?: readonly AstNode[] })
-          .declarations ?? [];
+      const declarations = getNodeDeclarations(declaration);
       for (const item of declarations) {
-        const { id, init } = item as unknown as {
-          readonly id?: AstNode;
-          readonly init?: AstNode;
-        };
+        const id = getNodeId(item);
+        const init = getNodeInit(item);
         const name = declarationIdName(id);
         if (name && isTopoCall(init, topoBindings)) {
           bindings.add(name);
@@ -231,15 +225,11 @@ const namedExportCarriesTopo = (
   statement: AstNode,
   topLevelTopoBindings: ReadonlySet<string>
 ): boolean => {
-  const specifiers =
-    (statement as unknown as { specifiers?: readonly AstNode[] }).specifiers ??
-    [];
+  const specifiers = getNodeSpecifiers(statement) ?? [];
 
   for (const specifier of specifiers) {
-    const { exported, local } = specifier as unknown as {
-      readonly exported?: AstNode;
-      readonly local?: AstNode;
-    };
+    const exported = getNodeExported(specifier);
+    const local = getNodeLocal(specifier);
     const exportedName = identifierName(exported);
     const localName = identifierName(local);
     if (
@@ -260,7 +250,7 @@ const moduleExportsTopo = (
   topoBindings: ImportedBindings
 ): boolean => {
   const topLevelTopoBindings = collectTopLevelTopoBindings(ast, topoBindings);
-  const body = (ast as unknown as { body?: readonly AstNode[] }).body ?? [];
+  const body = getNodeBodyStatements(ast);
 
   for (const statement of body) {
     if (statement.type === 'ExportDefaultDeclaration') {
@@ -282,14 +272,10 @@ const moduleExportsTopo = (
       if (declaration.type !== 'VariableDeclaration') {
         continue;
       }
-      const declarations =
-        (declaration as unknown as { declarations?: readonly AstNode[] })
-          .declarations ?? [];
+      const declarations = getNodeDeclarations(declaration);
       for (const item of declarations) {
-        const { id, init } = item as unknown as {
-          readonly id?: AstNode;
-          readonly init?: AstNode;
-        };
+        const id = getNodeId(item);
+        const init = getNodeInit(item);
         const name = declarationIdName(id);
         if (
           name &&
@@ -311,9 +297,7 @@ const topLevelSurfaceOpen = (
 ): AstNode | null => {
   const declaration = unwrapExportDeclaration(statement);
   if (declaration.type === 'ExpressionStatement') {
-    const { expression } = declaration as unknown as {
-      readonly expression?: AstNode;
-    };
+    const expression = getNodeExpression(declaration);
     const unwrapped = unwrapExpression(expression);
     return isSurfaceOpenCall(unwrapped, surfaceBindings)
       ? (unwrapped ?? null)
@@ -329,11 +313,9 @@ const topLevelSurfaceOpen = (
     return null;
   }
 
-  const declarations =
-    (declaration as unknown as { declarations?: readonly AstNode[] })
-      .declarations ?? [];
+  const declarations = getNodeDeclarations(declaration);
   for (const item of declarations) {
-    const { init } = item as unknown as { readonly init?: AstNode };
+    const init = getNodeInit(item);
     const unwrapped = unwrapExpression(init);
     if (isSurfaceOpenCall(unwrapped, surfaceBindings)) {
       return unwrapped ?? null;
@@ -365,7 +347,7 @@ export const noTopLevelSurface: WardenRule = {
     );
 
     const diagnostics: WardenDiagnostic[] = [];
-    const body = (ast as unknown as { body?: readonly AstNode[] }).body ?? [];
+    const body = getNodeBodyStatements(ast);
     for (const statement of body) {
       const surfaceOpen = topLevelSurfaceOpen(statement, surfaceBindings);
       if (!surfaceOpen) {

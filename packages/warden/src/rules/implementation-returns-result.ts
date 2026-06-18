@@ -6,14 +6,31 @@
  * or a tracked Result-typed variable.
  */
 
-import { dirname, isAbsolute, resolve } from 'node:path';
 import { existsSync, readFileSync } from 'node:fs';
+import { dirname, isAbsolute, resolve } from 'node:path';
 import type { AstNode } from './ast.js';
 import {
   collectScopeFrameBindings,
   findBlazeBodies,
   findTrailDefinitions,
   getMemberExpression,
+  getNodeAlternate,
+  getNodeArgument,
+  getNodeBodyNode,
+  getNodeBodyStatements,
+  getNodeConsequent,
+  getNodeDeclaration,
+  getNodeExportKind,
+  getNodeExpression,
+  getNodeId,
+  getNodeImported,
+  getNodeInit,
+  getNodeLocal,
+  getNodeName,
+  getNodeReturnType,
+  getNodeSource,
+  getNodeTypeAnnotation,
+  getNodeValue,
   identifierName,
   offsetToLine,
   parse,
@@ -61,7 +78,7 @@ export const isResultExpression = (node: AstNode): boolean => {
   }
 
   if (node.type === 'AwaitExpression') {
-    const arg = (node as unknown as { argument?: AstNode }).argument;
+    const arg = getNodeArgument(node);
     return arg ? isResultExpression(arg) : false;
   }
 
@@ -147,9 +164,7 @@ export const isHelperCall = (
   scopedHelpers: ScopedHelperMap = new Map()
 ): boolean => {
   const target =
-    node.type === 'AwaitExpression'
-      ? ((node as unknown as { argument?: AstNode }).argument ?? null)
-      : node;
+    node.type === 'AwaitExpression' ? (getNodeArgument(node) ?? null) : node;
 
   if (!target || target.type !== 'CallExpression') {
     return false;
@@ -157,7 +172,10 @@ export const isHelperCall = (
 
   const callee = target['callee'] as AstNode | undefined;
   if (callee?.type === 'Identifier') {
-    const { name } = callee as unknown as { name: string };
+    const name = getNodeName(callee);
+    if (!name) {
+      return false;
+    }
     const bindingScope = findNearestBindingScope(name, scopes);
     if (
       bindingScope &&
@@ -176,12 +194,12 @@ export const isHelperCall = (
 /** Unwrap an optional AwaitExpression to get the inner identifier name. */
 const resolveIdentifierName = (node: AstNode): string | null => {
   if (node.type === 'Identifier') {
-    return (node as unknown as { name: string }).name;
+    return getNodeName(node) ?? null;
   }
   if (node.type === 'AwaitExpression') {
-    const inner = (node as unknown as { argument?: AstNode }).argument;
+    const inner = getNodeArgument(node);
     if (inner?.type === 'Identifier') {
-      return (inner as unknown as { name: string }).name;
+      return getNodeName(inner) ?? null;
     }
   }
   return null;
@@ -195,8 +213,8 @@ const unwrapReturnExpression = (node: AstNode): AstNode => {
   ) {
     const next =
       current.type === 'AwaitExpression'
-        ? (current as unknown as { argument?: AstNode }).argument
-        : (current as unknown as { expression?: AstNode }).expression;
+        ? getNodeArgument(current)
+        : getNodeExpression(current);
     if (!next) {
       return current;
     }
@@ -216,10 +234,8 @@ const isAllowedReturnArgument = (
 ): boolean => {
   const target = unwrapReturnExpression(argument);
   if (target.type === 'ConditionalExpression') {
-    const { alternate, consequent } = target as unknown as {
-      alternate?: AstNode;
-      consequent?: AstNode;
-    };
+    const alternate = getNodeAlternate(target);
+    const consequent = getNodeConsequent(target);
     return (
       consequent !== undefined &&
       alternate !== undefined &&
@@ -262,17 +278,13 @@ const isAllowedReturnArgument = (
 // ---------------------------------------------------------------------------
 
 const getImportSourceValue = (node: AstNode): string | null => {
-  const sourceNode = (node as unknown as { source?: AstNode }).source;
-  const sourceValue = sourceNode
-    ? (sourceNode as unknown as { value?: unknown }).value
-    : undefined;
+  const sourceNode = getNodeSource(node);
+  const sourceValue = sourceNode ? getNodeValue(sourceNode) : undefined;
   return typeof sourceValue === 'string' ? sourceValue : null;
 };
 
 const extractIdentifierName = (node: AstNode | undefined): string | null =>
-  node?.type === 'Identifier'
-    ? ((node as unknown as { name: string }).name ?? null)
-    : null;
+  node?.type === 'Identifier' ? (getNodeName(node) ?? null) : null;
 
 const DEFAULT_RESULT_TYPE_NAMES = new Set(['Result']);
 
@@ -300,10 +312,8 @@ export const collectResultTypeNames = (ast: AstNode): ReadonlySet<string> => {
       if (specifier.type !== 'ImportSpecifier') {
         continue;
       }
-      const { imported, local } = specifier as unknown as {
-        imported?: AstNode;
-        local?: AstNode;
-      };
+      const imported = getNodeImported(specifier);
+      const local = getNodeLocal(specifier);
       if (extractIdentifierName(imported) !== 'Result') {
         continue;
       }
@@ -319,7 +329,7 @@ const hasResultReturnType = (
   sourceCode: string,
   resultTypeNames: ReadonlySet<string> = DEFAULT_RESULT_TYPE_NAMES
 ): boolean => {
-  const { returnType } = node as unknown as { returnType?: AstNode };
+  const returnType = getNodeReturnType(node);
   if (!returnType) {
     return false;
   }
@@ -372,7 +382,8 @@ export const trackScopedResultHelperDeclaration = (
   if (node.type !== 'VariableDeclarator') {
     return;
   }
-  const { id, init } = node as unknown as { id?: AstNode; init?: AstNode };
+  const id = getNodeId(node);
+  const init = getNodeInit(node);
   const name = extractIdentifierName(id);
   if (!(name && init && isFunctionLikeExpression(init))) {
     return;
@@ -395,7 +406,7 @@ const hasResultVariableAnnotation = (
   sourceCode: string,
   resultTypeNames: ReadonlySet<string>
 ): boolean => {
-  const { typeAnnotation } = node as unknown as { typeAnnotation?: AstNode };
+  const typeAnnotation = getNodeTypeAnnotation(node);
   if (!typeAnnotation) {
     return false;
   }
@@ -422,10 +433,13 @@ const trackResultVariable = (
   sourceCode: string,
   resultTypeNames: ReadonlySet<string>
 ): void => {
-  const { init } = node as unknown as { init?: AstNode };
-  const { id } = node as unknown as { id?: AstNode };
+  const init = getNodeInit(node);
+  const id = getNodeId(node);
   if (init && id?.type === 'Identifier') {
-    const { name } = id as unknown as { name: string };
+    const name = getNodeName(id);
+    if (!name) {
+      return;
+    }
     if (
       hasResultVariableAnnotation(id, sourceCode, resultTypeNames) ||
       isResultExpression(init) ||
@@ -486,7 +500,7 @@ const checkReturnStatements = (
         return;
       }
 
-      const { argument } = node as unknown as { argument?: AstNode };
+      const argument = getNodeArgument(node);
       // Bare return is not a value return.
       if (!argument) {
         return;
@@ -527,25 +541,31 @@ const collectResultHelperNames = (
 
   walk(ast, (node) => {
     if (node.type === 'VariableDeclarator') {
-      const { id } = node as unknown as { id?: AstNode };
-      const { init } = node as unknown as { init?: AstNode };
+      const id = getNodeId(node);
+      const init = getNodeInit(node);
       if (
         id?.type === 'Identifier' &&
         init &&
         isFunctionLikeExpression(init) &&
         hasResultReturnType(init, sourceCode, resultTypeNames)
       ) {
-        names.add((id as unknown as { name: string }).name);
+        const name = getNodeName(id);
+        if (name) {
+          names.add(name);
+        }
       }
     }
 
     if (node.type === 'FunctionDeclaration') {
-      const { id } = node as unknown as { id?: AstNode };
+      const id = getNodeId(node);
       if (
         id?.type === 'Identifier' &&
         hasResultReturnType(node, sourceCode, resultTypeNames)
       ) {
-        names.add((id as unknown as { name: string }).name);
+        const name = getNodeName(id);
+        if (name) {
+          names.add(name);
+        }
       }
     }
   });
@@ -596,7 +616,7 @@ const buildDefaultImportBinding = (
   specifier: AstNode,
   source: string
 ): ImportBinding | null => {
-  const { local } = specifier as unknown as { local?: AstNode };
+  const local = getNodeLocal(specifier);
   const localName = extractIdentifierName(local);
   if (!localName) {
     return null;
@@ -608,10 +628,8 @@ const buildNamedImportBinding = (
   specifier: AstNode,
   source: string
 ): ImportBinding | null => {
-  const { local, imported } = specifier as unknown as {
-    local?: AstNode;
-    imported?: AstNode;
-  };
+  const local = getNodeLocal(specifier);
+  const imported = getNodeImported(specifier);
   const localName = extractIdentifierName(local);
   const importedName = extractIdentifierName(imported) ?? localName;
   if (!(localName && importedName)) {
@@ -657,7 +675,9 @@ const collectBindingsFromImportDeclaration = (
   });
 };
 
-/** Collect `import { foo as bar } from './...'` bindings keyed by local name. */
+/** Collect `import {
+  foo as bar
+} from './...';` bindings keyed by local name. */
 const collectResolvableImports = (ast: AstNode): readonly ImportBinding[] => {
   const imports: ImportBinding[] = [];
   walk(ast, (node) => {
@@ -715,7 +735,7 @@ const getExportedDeclaration = (node: AstNode): AstNode | null => {
   if (node.type !== 'ExportNamedDeclaration') {
     return null;
   }
-  const decl = (node as unknown as { declaration?: AstNode }).declaration;
+  const decl = getNodeDeclaration(node);
   return decl ?? null;
 };
 
@@ -728,10 +748,8 @@ const addExportedVariableResultHelper = (
   const declarations =
     (decl['declarations'] as readonly AstNode[] | undefined) ?? [];
   for (const declarator of declarations) {
-    const { id, init } = declarator as unknown as {
-      id?: AstNode;
-      init?: AstNode;
-    };
+    const id = getNodeId(declarator);
+    const init = getNodeInit(declarator);
     const name = extractIdentifierName(id);
     if (
       name &&
@@ -750,7 +768,7 @@ const addExportedFunctionResultHelper = (
   collected: Set<string>,
   resultTypeNames: ReadonlySet<string>
 ): void => {
-  const name = extractIdentifierName((decl as unknown as { id?: AstNode }).id);
+  const name = extractIdentifierName(getNodeId(decl));
   if (name && hasResultReturnType(decl, source, resultTypeNames)) {
     collected.add(name);
   }
@@ -777,10 +795,8 @@ const indexVariableDeclarationInto = (
   const declarators =
     (decl['declarations'] as readonly AstNode[] | undefined) ?? [];
   for (const declarator of declarators) {
-    const { id, init } = declarator as unknown as {
-      id?: AstNode;
-      init?: AstNode;
-    };
+    const id = getNodeId(declarator);
+    const init = getNodeInit(declarator);
     const name = extractIdentifierName(id);
     if (name && init && isFunctionLikeExpression(init)) {
       index.set(name, init);
@@ -792,7 +808,7 @@ const indexFunctionDeclarationInto = (
   decl: AstNode,
   index: Map<string, AstNode>
 ): void => {
-  const name = extractIdentifierName((decl as unknown as { id?: AstNode }).id);
+  const name = extractIdentifierName(getNodeId(decl));
   if (name) {
     index.set(name, decl);
   }
@@ -825,8 +841,7 @@ const indexBodyNodeInto = (
 
 const indexLocalDeclarations = (ast: AstNode): DeclarationIndex => {
   const index = new Map<string, AstNode>();
-  const program = ast as unknown as { body?: readonly AstNode[] };
-  const bodyNodes = program.body ?? [];
+  const bodyNodes = getNodeBodyStatements(ast);
   for (const node of bodyNodes) {
     indexBodyNodeInto(node, index);
   }
@@ -855,10 +870,10 @@ const getSpecifierNameNode = (
     return null;
   }
   if (node.type === 'Identifier') {
-    return (node as unknown as { name?: string }).name ?? null;
+    return getNodeName(node) ?? null;
   }
   // Support string-literal specifiers (`export { "default" as X }`, etc).
-  const { value } = node as unknown as { value?: unknown };
+  const value = getNodeValue(node);
   return typeof value === 'string' ? value : null;
 };
 
@@ -881,11 +896,10 @@ const buildExportSpecifierInfo = (
 };
 
 const getExportDefaultDeclaration = (ast: AstNode): AstNode | null => {
-  const program = ast as unknown as { body?: readonly AstNode[] };
-  const bodyNodes = program.body ?? [];
+  const bodyNodes = getNodeBodyStatements(ast);
   for (const node of bodyNodes) {
     if (node.type === 'ExportDefaultDeclaration') {
-      const decl = (node as unknown as { declaration?: AstNode }).declaration;
+      const decl = getNodeDeclaration(node);
       return decl ?? null;
     }
   }
@@ -1188,8 +1202,7 @@ const processExportDefaultDeclaration = (
   collected: Set<string>,
   resultTypeNames: ReadonlySet<string>
 ): void => {
-  const defaultDecl = (node as unknown as { declaration?: AstNode })
-    .declaration;
+  const defaultDecl = getNodeDeclaration(node);
   if (!defaultDecl) {
     return;
   }
@@ -1221,8 +1234,7 @@ const collectExportedResultHelpersFromAst = (
     preloadedLocalDeclarations ?? indexLocalDeclarations(ast);
   const resultTypeNames =
     preloadedResultTypeNames ?? collectResultTypeNames(ast);
-  const program = ast as unknown as { body?: readonly AstNode[] };
-  const bodyNodes = program.body ?? [];
+  const bodyNodes = getNodeBodyStatements(ast);
 
   for (const node of bodyNodes) {
     if (node.type === 'ExportNamedDeclaration') {
@@ -1267,7 +1279,7 @@ const processExportAllDeclaration = (
   depth: number,
   collected: Set<string>
 ): void => {
-  const { exportKind } = node as unknown as { exportKind?: string };
+  const exportKind = getNodeExportKind(node);
   if (exportKind === 'type') {
     return;
   }
@@ -1415,7 +1427,7 @@ const getNamespaceLocalName = (spec: AstNode): string | null => {
   if (spec.type !== 'ImportNamespaceSpecifier') {
     return null;
   }
-  const { local } = spec as unknown as { local?: AstNode };
+  const local = getNodeLocal(spec);
   return extractIdentifierName(local);
 };
 
@@ -1523,7 +1535,7 @@ const checkImplementation = (
   resultTypeNames: ReadonlySet<string>,
   diagnostics: WardenDiagnostic[]
 ): void => {
-  const fnBody = (implValue as unknown as { body?: AstNode }).body;
+  const fnBody = getNodeBodyNode(implValue);
   if (!fnBody) {
     return;
   }
@@ -1552,10 +1564,8 @@ const checkImplementation = (
   const isConciseResultBody = (node: AstNode): boolean => {
     const target = unwrapReturnExpression(node);
     if (target.type === 'ConditionalExpression') {
-      const { alternate, consequent } = target as unknown as {
-        alternate?: AstNode;
-        consequent?: AstNode;
-      };
+      const alternate = getNodeAlternate(target);
+      const consequent = getNodeConsequent(target);
       return (
         consequent !== undefined &&
         alternate !== undefined &&

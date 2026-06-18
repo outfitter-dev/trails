@@ -1,6 +1,14 @@
 import { sep } from 'node:path';
 
-import { identifierName, offsetToLine, parse, walk } from './ast.js';
+import {
+  getNodeCallee,
+  getNodeId,
+  getNodeInit,
+  identifierName,
+  offsetToLine,
+  parse,
+  walk,
+} from './ast.js';
 import type { AstNode } from './ast.js';
 import type { WardenDiagnostic, WardenRule } from './types.js';
 
@@ -37,7 +45,7 @@ const isSetConstruction = (node: AstNode | undefined): boolean => {
   if (node?.type !== 'NewExpression') {
     return false;
   }
-  const { callee } = node as unknown as { callee?: AstNode };
+  const callee = getNodeCallee(node);
   return identifierName(callee) === 'Set';
 };
 
@@ -73,10 +81,8 @@ export const layerFieldNameDrift: WardenRule = {
       if (node.type !== 'VariableDeclarator') {
         return;
       }
-      const { id, init } = node as unknown as {
-        id?: AstNode;
-        init?: AstNode;
-      };
+      const id = getNodeId(node);
+      const init = getNodeInit(node);
       const name = identifierName(id);
       if (
         name &&

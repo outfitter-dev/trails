@@ -2,6 +2,22 @@ import {
   findBlazeBodies,
   findConfigProperty,
   findTrailDefinitions,
+  getNodeArgument,
+  getNodeArguments,
+  getNodeCallee,
+  getNodeElements,
+  getNodeExpression,
+  getNodeId,
+  getNodeInit,
+  getNodeKey,
+  getNodeLeft,
+  getNodeName,
+  getNodeObject,
+  getNodeParams,
+  getNodeProperties,
+  getNodeProperty,
+  getNodeValue,
+  getNodeValueNode,
   isMemberAccessNonComputed,
   offsetToLine,
   parse,
@@ -148,14 +164,14 @@ const diagnostic = (
 
 const staticPropertyKeyName = (node: AstNode | undefined): string | null => {
   if (node?.type === 'Identifier') {
-    return (node as unknown as { name?: string }).name ?? null;
+    return getNodeName(node) ?? null;
   }
   if (
     node?.type === 'Literal' ||
     node?.type === 'StringLiteral' ||
     node?.type === 'NumericLiteral'
   ) {
-    const { value } = node as unknown as { value?: unknown };
+    const value = getNodeValue(node);
     return typeof value === 'string' || typeof value === 'number'
       ? String(value)
       : null;
@@ -164,22 +180,17 @@ const staticPropertyKeyName = (node: AstNode | undefined): string | null => {
 };
 
 const objectProperties = (node: AstNode | undefined): readonly AstNode[] =>
-  node?.type === 'ObjectExpression'
-    ? ((node as unknown as { properties?: readonly AstNode[] }).properties ??
-      [])
-    : [];
+  node?.type === 'ObjectExpression' ? (getNodeProperties(node) ?? []) : [];
 
 const propertyName = (node: AstNode): string | null =>
-  node.type === 'Property'
-    ? staticPropertyKeyName((node as unknown as { key?: AstNode }).key)
-    : null;
+  node.type === 'Property' ? staticPropertyKeyName(getNodeKey(node)) : null;
 
 const hasProperty = (node: AstNode, name: string): boolean =>
   objectProperties(node).some((property) => propertyName(property) === name);
 
 const propertyValue = (property: AstNode | null): AstNode | undefined =>
   property?.type === 'Property'
-    ? ((property as unknown as { value?: AstNode }).value ?? undefined)
+    ? (getNodeValueNode(property) ?? undefined)
     : undefined;
 
 const trailIsVersioned = (config: AstNode): boolean =>
@@ -194,9 +205,7 @@ const versionEntries = (config: AstNode): readonly AstNode[] => {
 };
 
 const identifierName = (node: AstNode | undefined): string | undefined =>
-  node?.type === 'Identifier'
-    ? (node as unknown as { name?: string }).name
-    : undefined;
+  node?.type === 'Identifier' ? getNodeName(node) : undefined;
 
 const schemaBindingInitializer = (
   schemaBindings: SchemaBindings,
@@ -221,18 +230,16 @@ const schemaBindingInitializer = (
 
 const memberObject = (node: AstNode | undefined): AstNode | undefined =>
   node !== undefined && isMemberAccessNonComputed(node)
-    ? (node as unknown as { object?: AstNode }).object
+    ? getNodeObject(node)
     : undefined;
 
 const memberPropertyName = (node: AstNode | undefined): string | undefined =>
   node !== undefined && isMemberAccessNonComputed(node)
-    ? identifierName((node as unknown as { property?: AstNode }).property)
+    ? identifierName(getNodeProperty(node))
     : undefined;
 
 const callCallee = (node: AstNode): AstNode | undefined =>
-  node.type === 'CallExpression'
-    ? (node as unknown as { callee?: AstNode }).callee
-    : undefined;
+  node.type === 'CallExpression' ? getNodeCallee(node) : undefined;
 
 const isZodSchemaReceiver = (
   node: AstNode | undefined,
@@ -272,9 +279,7 @@ const isZodSchemaCallee = (
   node !== undefined && isZodSchemaReceiver(memberObject(node), schemaBindings);
 
 const callArguments = (node: AstNode): readonly AstNode[] =>
-  node.type === 'CallExpression'
-    ? ((node as unknown as { arguments?: readonly AstNode[] }).arguments ?? [])
-    : [];
+  node.type === 'CallExpression' ? (getNodeArguments(node) ?? []) : [];
 
 const unwrapExpression = (node: AstNode | undefined): AstNode | undefined => {
   let current = node;
@@ -283,7 +288,7 @@ const unwrapExpression = (node: AstNode | undefined): AstNode | undefined => {
     current?.type === 'TSSatisfiesExpression' ||
     current?.type === 'TSNonNullExpression'
   ) {
-    current = (current as unknown as { expression?: AstNode }).expression;
+    current = getNodeExpression(current);
   }
   return current;
 };
@@ -291,10 +296,7 @@ const unwrapExpression = (node: AstNode | undefined): AstNode | undefined => {
 const arrayExpressionLength = (node: AstNode | undefined): number => {
   const expression = unwrapExpression(node);
   return expression?.type === 'ArrayExpression'
-    ? (
-        (expression as unknown as { elements?: readonly unknown[] }).elements ??
-        []
-      ).length
+    ? (getNodeElements(expression) ?? []).length
     : 0;
 };
 
@@ -320,18 +322,14 @@ const literalExpressionIsJsonLossy = (expression: AstNode): boolean => {
   ) {
     return true;
   }
-  const literal = expression as unknown as {
-    readonly bigint?: unknown;
-    readonly regex?: unknown;
-    readonly value?: unknown;
-  };
-  if (literal.bigint !== undefined || literal.regex !== undefined) {
+  if (expression['bigint'] !== undefined || expression['regex'] !== undefined) {
     return true;
   }
-  if (literal.value instanceof RegExp) {
+  const value = getNodeValue(expression);
+  if (value instanceof RegExp) {
     return true;
   }
-  return typeof literal.value === 'number' && !Number.isFinite(literal.value);
+  return typeof value === 'number' && !Number.isFinite(value);
 };
 
 const expressionIsJsonLossy = (node: AstNode | undefined): boolean => {
@@ -350,9 +348,7 @@ const expressionIsJsonLossy = (node: AstNode | undefined): boolean => {
   }
 
   if (expression.type === 'UnaryExpression') {
-    return expressionIsJsonLossy(
-      (expression as unknown as { argument?: AstNode }).argument
-    );
+    return expressionIsJsonLossy(getNodeArgument(expression));
   }
 
   if (expression.type === 'Literal' || expression.type === 'NumericLiteral') {
@@ -360,9 +356,7 @@ const expressionIsJsonLossy = (node: AstNode | undefined): boolean => {
   }
 
   if (expression.type === 'ArrayExpression') {
-    const elements =
-      (expression as unknown as { elements?: readonly (AstNode | null)[] })
-        .elements ?? [];
+    const elements = getNodeElements(expression);
     return elements.some((element) =>
       expressionIsJsonLossy(element ?? undefined)
     );
@@ -435,10 +429,9 @@ const isReferenceValuedLiteralCall = (
   if (value?.type !== 'ArrayExpression') {
     return false;
   }
-  return (
-    (value as unknown as { elements?: readonly (AstNode | null)[] }).elements ??
-    []
-  ).some((element) => expressionIsReferenceValued(element ?? undefined));
+  return (getNodeElements(value) ?? []).some((element) =>
+    expressionIsReferenceValued(element ?? undefined)
+  );
 };
 
 const isJsonLossyEnumCall = (
@@ -486,10 +479,9 @@ const isReferenceValuedEnumCall = (
   const [rawOptions] = callArguments(node);
   const options = unwrapExpression(rawOptions);
   if (options?.type === 'ArrayExpression') {
-    return (
-      (options as unknown as { elements?: readonly (AstNode | null)[] })
-        .elements ?? []
-    ).some((element) => expressionIsReferenceValued(element ?? undefined));
+    return getNodeElements(options).some((element) =>
+      expressionIsReferenceValued(element ?? undefined)
+    );
   }
   if (options?.type !== 'ObjectExpression') {
     return false;
@@ -583,10 +575,9 @@ const nestedSchemaArguments = (node: AstNode): readonly AstNode[] => {
   const [rawOptions] = callArguments(node);
   const options = unwrapExpression(rawOptions);
   return options?.type === 'ArrayExpression'
-    ? (
-        (options as unknown as { elements?: readonly (AstNode | null)[] })
-          .elements ?? []
-      ).filter((element): element is AstNode => element !== null)
+    ? getNodeElements(options).filter(
+        (element): element is AstNode => element !== null
+      )
     : [];
 };
 
@@ -689,7 +680,7 @@ const isMemberCallNamed = (
 
 const bindingName = (node: AstNode): string | undefined =>
   node.type === 'VariableDeclarator'
-    ? identifierName((node as unknown as { id?: AstNode }).id)
+    ? identifierName(getNodeId(node))
     : undefined;
 
 const lexicalScopeTypes = new Set([
@@ -716,20 +707,15 @@ const addPatternBindingNames = (
     return;
   }
   if (node.type === 'AssignmentPattern') {
-    addPatternBindingNames((node as unknown as { left?: AstNode }).left, into);
+    addPatternBindingNames(getNodeLeft(node), into);
     return;
   }
   if (node.type === 'RestElement') {
-    addPatternBindingNames(
-      (node as unknown as { argument?: AstNode }).argument,
-      into
-    );
+    addPatternBindingNames(getNodeArgument(node), into);
     return;
   }
   if (node.type === 'ArrayPattern') {
-    const elements =
-      (node as unknown as { elements?: readonly (AstNode | null)[] })
-        .elements ?? [];
+    const elements = getNodeElements(node);
     for (const element of elements) {
       addPatternBindingNames(element ?? undefined, into);
     }
@@ -738,17 +724,13 @@ const addPatternBindingNames = (
   if (node.type !== 'ObjectPattern') {
     return;
   }
-  const properties =
-    (node as unknown as { properties?: readonly AstNode[] }).properties ?? [];
+  const properties = getNodeProperties(node) ?? [];
   for (const property of properties) {
     if (property.type === 'RestElement') {
       addPatternBindingNames(property, into);
       continue;
     }
-    addPatternBindingNames(
-      (property as unknown as { value?: AstNode }).value,
-      into
-    );
+    addPatternBindingNames(getNodeValueNode(property), into);
   }
 };
 
@@ -757,8 +739,7 @@ const parameterBindingNames = (node: AstNode): readonly string[] => {
     return [];
   }
   const names = new Set<string>();
-  const params =
-    (node as unknown as { params?: readonly AstNode[] }).params ?? [];
+  const params = getNodeParams(node) ?? [];
   for (const param of params) {
     addPatternBindingNames(param, names);
   }
@@ -767,7 +748,7 @@ const parameterBindingNames = (node: AstNode): readonly string[] => {
 
 const variableInitializer = (node: AstNode): AstNode | undefined =>
   node.type === 'VariableDeclarator'
-    ? ((node as unknown as { init?: AstNode }).init ?? undefined)
+    ? (getNodeInit(node) ?? undefined)
     : undefined;
 
 const isZodSchemaExpression = (
@@ -887,22 +868,19 @@ const composeCallHasVersionPin = (node: AstNode): boolean => {
   if (node.type !== 'CallExpression') {
     return false;
   }
-  const { arguments: args, callee } = node as unknown as {
-    arguments?: readonly AstNode[];
-    callee?: AstNode;
-  };
+  const args = getNodeArguments(node);
+  const callee = getNodeCallee(node);
   if (!callee || !args) {
     return false;
   }
 
   const isComposeIdentifier =
-    callee.type === 'Identifier' &&
-    (callee as unknown as { name?: string }).name === 'compose';
-  const { property } = callee as unknown as { property?: AstNode };
+    callee.type === 'Identifier' && getNodeName(callee) === 'compose';
+  const property = getNodeProperty(callee);
   const isComposeMember =
     isMemberAccessNonComputed(callee) &&
     property?.type === 'Identifier' &&
-    (property as unknown as { name?: string }).name === 'compose';
+    getNodeName(property) === 'compose';
 
   return (isComposeIdentifier || isComposeMember) && hasVersionOption(args[2]);
 };

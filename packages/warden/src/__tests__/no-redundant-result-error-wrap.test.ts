@@ -7,7 +7,10 @@ const TEST_FILE = 'src/trails/entity.ts';
 describe('no-redundant-result-error-wrap', () => {
   test('flags Result.err(result.error) for ctx.compose results', () => {
     const code = `
-import { Result, trail } from '@ontrails/core';
+import {
+  Result,
+  trail
+} from '@ontrails/core';
 
 trail('entity.load', {
   composes: ['entity.fetch'],
@@ -32,8 +35,13 @@ trail('entity.load', {
 
   test('flags Result.err(result.error) for Result helper variables', () => {
     const code = `
-import { Result, trail } from '@ontrails/core';
-import type { Result as ResultType } from '@ontrails/core';
+import {
+  Result,
+  trail
+} from '@ontrails/core';
+import type {
+  Result as ResultType
+} from '@ontrails/core';
 
 const parseInput = (): ResultType<{ readonly id: string }, Error> =>
   Result.err(new Error('bad'));
@@ -57,7 +65,10 @@ trail('entity.load', {
 
   test('allows returning the Result directly', () => {
     const code = `
-import { Result, trail } from '@ontrails/core';
+import {
+  Result,
+  trail
+} from '@ontrails/core';
 
 trail('entity.load', {
   composes: ['entity.fetch'],
@@ -76,7 +87,11 @@ trail('entity.load', {
 
   test('does not flag transformed errors', () => {
     const code = `
-import { InternalError, Result, trail } from '@ontrails/core';
+import {
+  InternalError,
+  Result,
+  trail
+} from '@ontrails/core';
 
 trail('entity.load', {
   composes: ['entity.fetch'],
@@ -95,7 +110,10 @@ trail('entity.load', {
 
   test('does not flag variables without visible Result provenance', () => {
     const code = `
-import { Result, trail } from '@ontrails/core';
+import {
+  Result,
+  trail
+} from '@ontrails/core';
 
 trail('entity.load', {
   blaze: async (input, ctx) => {
@@ -113,7 +131,10 @@ trail('entity.load', {
 
   test('clears provenance after reassignment', () => {
     const code = `
-import { Result, trail } from '@ontrails/core';
+import {
+  Result,
+  trail
+} from '@ontrails/core';
 
 trail('entity.load', {
   composes: ['entity.fetch'],
@@ -130,7 +151,10 @@ trail('entity.load', {
 
   test('keeps block-scoped Result provenance from leaking to outer shadows', () => {
     const code = `
-import { Result, trail } from '@ontrails/core';
+import {
+  Result,
+  trail
+} from '@ontrails/core';
 
 trail('entity.load', {
   composes: ['entity.fetch'],
@@ -152,7 +176,10 @@ trail('entity.load', {
 
   test('block-scoped shadows do not erase outer Result provenance', () => {
     const code = `
-import { Result, trail } from '@ontrails/core';
+import {
+  Result,
+  trail
+} from '@ontrails/core';
 
 trail('entity.load', {
   composes: ['entity.fetch'],
@@ -178,8 +205,13 @@ trail('entity.load', {
 
   test('does not treat a shadowed helper name as Result provenance', () => {
     const code = `
-import { Result, trail } from '@ontrails/core';
-import type { Result as ResultType } from '@ontrails/core';
+import {
+  Result,
+  trail
+} from '@ontrails/core';
+import type {
+  Result as ResultType
+} from '@ontrails/core';
 
 const parseInput = (): ResultType<{ readonly id: string }, Error> =>
   Result.err(new Error('bad'));
@@ -198,8 +230,13 @@ trail('entity.load', {
 
   test('tracks scoped Result helper calls as Result provenance', () => {
     const code = `
-import { Result, trail } from '@ontrails/core';
-import type { Result as ResultType } from '@ontrails/core';
+import {
+  Result,
+  trail
+} from '@ontrails/core';
+import type {
+  Result as ResultType
+} from '@ontrails/core';
 
 trail('entity.load', {
   blaze: async (input, ctx) => {
@@ -219,7 +256,10 @@ trail('entity.load', {
 
   test('ignores return statements inside nested callbacks', () => {
     const code = `
-import { Result, trail } from '@ontrails/core';
+import {
+  Result,
+  trail
+} from '@ontrails/core';
 
 trail('entity.load', {
   composes: ['entity.fetch'],
@@ -238,8 +278,12 @@ trail('entity.load', {
 
   test('flags Result.err(result.error) in non-blaze Result helpers', () => {
     const code = `
-import { Result } from '@ontrails/core';
-import type { Result as ResultType } from '@ontrails/core';
+import {
+  Result
+} from '@ontrails/core';
+import type {
+  Result as ResultType
+} from '@ontrails/core';
 
 const readConfig = (): ResultType<{ readonly id: string }, Error> =>
   Result.err(new Error('bad'));

@@ -2,15 +2,32 @@ import { describe, expect, test } from 'bun:test';
 
 import {
   __collectFrameworkNamespaceBindingsForTest,
+  __getTrailCalleeNameForTest,
+  applySourceEdits,
   collectContourDefinitionIds,
   collectContourReferenceSites,
   collectNamedContourIds,
-  __getTrailCalleeNameForTest,
-  applySourceEdits,
   createSourceEdit,
   deriveContourIdentifierName,
+  extractStringLiteral,
   findContourDefinitions,
   findTrailDefinitions,
+  getNodeArguments,
+  getNodeBody,
+  getNodeBodyStatements,
+  getNodeCallee,
+  getNodeDeclaration,
+  getNodeDeclarations,
+  getNodeElements,
+  getNodeId,
+  getNodeInit,
+  getNodeKey,
+  getNodeLocal,
+  getNodeProperties,
+  getNodeSource,
+  getNodeSpecifiers,
+  getNodeValue,
+  getNodeValueNode,
   hasIgnoreCommentOnLine,
   identifierName,
   isCallExpression,
@@ -141,7 +158,9 @@ describe('OXC-backed AST facade helpers', () => {
 
   test('walkWithScopeContext distinguishes imports from shadowed parameters', () => {
     const source = `
-      import { trail } from '@ontrails/core';
+      import {
+  trail
+} from '@ontrails/core';
 
       export const root = trail('root.show', {});
 
@@ -159,9 +178,7 @@ describe('OXC-backed AST facade helpers', () => {
       if (node.type !== 'CallExpression') {
         return;
       }
-      const { callee } = node as unknown as {
-        readonly callee?: { readonly name?: string };
-      };
+      const callee = getNodeCallee(node);
       if (callee?.name !== 'trail') {
         return;
       }
@@ -173,14 +190,16 @@ describe('OXC-backed AST facade helpers', () => {
     });
 
     expect(trailCalls).toEqual([
-      { declarationType: 'Import', line: 4 },
-      { declarationType: 'FunctionParam', line: 7 },
+      { declarationType: 'Import', line: 6 },
+      { declarationType: 'FunctionParam', line: 9 },
     ]);
   });
 
   test('curated node guards narrow common source shapes', () => {
     const source = `
-      import { trail as makeTrail } from '@ontrails/core';
+      import {
+  trail as makeTrail
+} from '@ontrails/core';
 
       const usesMember = api.value;
       export const showUser = makeTrail('user.show', {});
@@ -250,6 +269,51 @@ describe('OXC-backed AST facade helpers', () => {
     expect(sawMemberExpression).toBe(true);
   });
 
+  test('node field accessors expose recurring OXC shapes without rule-local casts', () => {
+    const source = `
+      import {
+  trail as makeTrail
+} from '@ontrails/core';
+
+      export const showUser = makeTrail('user.show', {
+        meta: { owner: 'docs' },
+      });
+
+      const [firstUser] = users;
+    `;
+    const ast = parseOrThrow(source);
+
+    expect(getNodeBodyStatements(ast).length).toBeGreaterThan(0);
+    const importDecl = getNodeBodyStatements(ast).find(isImportDeclaration);
+    expect(extractStringLiteral(getNodeSource(importDecl))).toBe(
+      '@ontrails/core'
+    );
+    const [specifier] = getNodeSpecifiers(importDecl);
+    expect(identifierName(getNodeLocal(specifier))).toBe('makeTrail');
+
+    const exportDecl = getNodeBodyStatements(ast).find(isExportDeclaration);
+    const declaration = getNodeDeclaration(exportDecl);
+    const [declarator] = getNodeDeclarations(declaration);
+    expect(identifierName(getNodeId(declarator))).toBe('showUser');
+
+    const init = getNodeInit(declarator);
+    expect(identifierName(getNodeCallee(init))).toBe('makeTrail');
+    const [idArg, configArg] = getNodeArguments(init);
+    expect(extractStringLiteral(idArg)).toBe('user.show');
+
+    const [metaProp] = getNodeProperties(configArg);
+    expect(identifierName(getNodeKey(metaProp))).toBe('meta');
+    const [ownerProp] = getNodeProperties(getNodeValueNode(metaProp));
+    expect(identifierName(getNodeKey(ownerProp))).toBe('owner');
+    expect(getNodeValue(getNodeValueNode(ownerProp))).toBe('docs');
+
+    const destructuringDeclarator = getNodeBodyStatements(ast)
+      .flatMap((node) => getNodeDeclarations(node))
+      .find((node) => getNodeId(node)?.type === 'ArrayPattern');
+    const [firstPattern] = getNodeElements(getNodeId(destructuringDeclarator));
+    expect(identifierName(firstPattern ?? undefined)).toBe('firstUser');
+  });
+
   test('source edit helpers apply validated non-overlapping edits', () => {
     const source = 'const sourceTerm = "oldTerm";\n';
     const edits = [
@@ -289,7 +353,7 @@ describe('OXC-backed AST facade helpers', () => {
 const parseCallee = (source: string) => {
   const ast = parseOrThrow(source);
   // The first statement is an ExpressionStatement wrapping the CallExpression.
-  const [stmt] = (ast as unknown as { body: readonly unknown[] }).body;
+  const [stmt] = getNodeBody(ast);
   const { expression } = stmt as { expression: unknown };
   return expression as Parameters<typeof __getTrailCalleeNameForTest>[0];
 };
@@ -392,7 +456,9 @@ describe('collectFrameworkNamespaceBindings', () => {
 
   test('ignores named imports from @ontrails/* packages', () => {
     const ast = parseOrThrow(`
-      import { trail } from '@ontrails/core';
+      import {
+  trail
+} from '@ontrails/core';
     `);
     expect([...__collectFrameworkNamespaceBindingsForTest(ast)]).toEqual([]);
   });
@@ -643,7 +709,9 @@ describe('findContourDefinitions inline discovery', () => {
   // not silently regress.
   const inlineSource = `
       import * as core from '@ontrails/core';
-      import { z } from 'zod';
+      import {
+  z
+} from 'zod';
 
       export const outer = core.contour('outer', {
         id: z.string().uuid(),
@@ -701,7 +769,9 @@ describe('findContourDefinitions inline discovery', () => {
     // bound to a variable) are top-level and should still be returned.
     const statementFormSource = `
       import * as core from '@ontrails/core';
-      import { z } from 'zod';
+      import {
+  z
+} from 'zod';
 
       export const bound = core.contour('bound', {
         id: z.string().uuid(),
@@ -731,7 +801,9 @@ describe('findContourDefinitions inline discovery', () => {
     // topLevelOnly: true flag.
     const exportDefaultSource = `
       import * as core from '@ontrails/core';
-      import { z } from 'zod';
+      import {
+  z
+} from 'zod';
 
       export default core.contour('default-export', {
         id: z.string().uuid(),
@@ -753,7 +825,9 @@ describe('collectContourReferenceSites with namespaced inline contours', () => {
   test('resolves core.contour(...).id() when the file context is available', () => {
     const source = `
       import * as core from '@ontrails/core';
-      import { z } from 'zod';
+      import {
+  z
+} from 'zod';
 
       const gist = core.contour('gist', {
         id: z.string().uuid(),
@@ -772,7 +846,9 @@ describe('collectContourReferenceSites with namespaced inline contours', () => {
   test('ignores analytics.contour(...).id() when the receiver is not a framework namespace', () => {
     const source = `
       import * as analytics from 'analytics';
-      import { z } from 'zod';
+      import {
+  z
+} from 'zod';
 
       const gist = contour('gist', {
         id: z.string().uuid(),
@@ -786,8 +862,12 @@ describe('collectContourReferenceSites with namespaced inline contours', () => {
 
   test('unwraps wrapped contour id schemas before resolving the target', () => {
     const source = `
-      import { contour } from '@ontrails/core';
-      import { z } from 'zod';
+      import {
+  contour
+} from '@ontrails/core';
+      import {
+  z
+} from 'zod';
 
       const user = contour('user', {
         id: z.string().uuid(),

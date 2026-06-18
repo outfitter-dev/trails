@@ -1,4 +1,13 @@
-import { identifierName, offsetToLine, parse, walk } from './ast.js';
+import {
+  getNodeArguments,
+  getNodeCallee,
+  getNodeObject,
+  getNodeProperty,
+  identifierName,
+  offsetToLine,
+  parse,
+  walk,
+} from './ast.js';
 import { isFrameworkInternalFile } from './scan.js';
 import type { AstNode } from './ast.js';
 import type { WardenDiagnostic, WardenRule } from './types.js';
@@ -24,7 +33,7 @@ const getMemberPropertyName = (node: AstNode): string | null => {
     return null;
   }
 
-  return identifierName((node as unknown as { property?: AstNode }).property);
+  return identifierName(getNodeProperty(node));
 };
 
 const isResultObject = (node: AstNode | undefined): boolean => {
@@ -44,12 +53,12 @@ const isResultErrCall = (node: AstNode): boolean => {
     return false;
   }
 
-  const { callee } = node as unknown as { callee?: AstNode };
+  const callee = getNodeCallee(node);
   if (!callee || getMemberPropertyName(callee) !== 'err') {
     return false;
   }
 
-  return isResultObject((callee as unknown as { object?: AstNode }).object);
+  return isResultObject(getNodeObject(callee));
 };
 
 const isNativeErrorConstruction = (node: AstNode | undefined): boolean => {
@@ -57,16 +66,14 @@ const isNativeErrorConstruction = (node: AstNode | undefined): boolean => {
     return false;
   }
 
-  const constructorName = identifierName(
-    (node as unknown as { callee?: AstNode }).callee
-  );
+  const constructorName = identifierName(getNodeCallee(node));
   return constructorName
     ? NATIVE_ERROR_CONSTRUCTORS.has(constructorName)
     : false;
 };
 
 const getFirstArgument = (node: AstNode): AstNode | undefined =>
-  (node as unknown as { arguments?: readonly AstNode[] }).arguments?.[0];
+  getNodeArguments(node)?.[0];
 
 const createDiagnostic = (
   filePath: string,

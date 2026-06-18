@@ -1,5 +1,6 @@
 import {
   extractFirstStringArg,
+  getNodeCallee,
   identifierName,
   offsetToLine,
   parse,
@@ -11,8 +12,7 @@ import type { WardenDiagnostic, WardenRule } from './types.js';
 
 const isResourceCall = (node: AstNode): boolean =>
   node.type === 'CallExpression' &&
-  identifierName((node as unknown as { callee?: AstNode }).callee) ===
-    'resource';
+  identifierName(getNodeCallee(node)) === 'resource';
 
 const buildDiagnostic = (
   resourceId: string,

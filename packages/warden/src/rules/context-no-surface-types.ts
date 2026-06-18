@@ -5,7 +5,16 @@
  * imports in comments or strings.
  */
 
-import { offsetToLine, parse, walk } from './ast.js';
+import {
+  getNodeCallee,
+  getNodeComputed,
+  getNodeName,
+  getNodeProperty,
+  offsetToLine,
+  parse,
+  walk,
+} from './ast.js';
+import type { AstNode } from './ast.js';
 import type { WardenDiagnostic, WardenRule } from './types.js';
 
 const SURFACE_MODULES = new Set([
@@ -29,12 +38,6 @@ const SURFACE_TYPE_NAMES = new Set([
   'ServerResponse',
 ]);
 
-interface AstNode {
-  readonly type: string;
-  readonly start: number;
-  readonly [key: string]: unknown;
-}
-
 interface ImportSpecifier {
   readonly local?: { readonly name?: string };
   readonly imported?: { readonly name?: string };
@@ -44,7 +47,7 @@ const isBareTrailCallee = (callee: AstNode): boolean => {
   if (callee.type !== 'Identifier') {
     return false;
   }
-  return (callee as unknown as { name?: string }).name === 'trail';
+  return getNodeName(callee) === 'trail';
 };
 
 const isNamespacedTrailCallee = (callee: AstNode): boolean => {
@@ -57,14 +60,14 @@ const isNamespacedTrailCallee = (callee: AstNode): boolean => {
   // Skip computed access like `ns[trail]()` — the bracketed expression may
   // resolve to any runtime value, not the `trail` primitive, even when it
   // happens to be an identifier literally named `trail`.
-  if ((callee as unknown as { computed?: boolean }).computed === true) {
+  if (getNodeComputed(callee) === true) {
     return false;
   }
-  const prop = (callee as unknown as { property?: AstNode }).property;
+  const prop = getNodeProperty(callee);
   if (prop?.type !== 'Identifier') {
     return false;
   }
-  return (prop as unknown as { name?: string }).name === 'trail';
+  return getNodeName(prop) === 'trail';
 };
 
 /**
@@ -90,7 +93,7 @@ const hasTrailCall = (ast: AstNode): boolean => {
     if (found || node.type !== 'CallExpression') {
       return;
     }
-    const { callee } = node as unknown as { callee?: AstNode };
+    const callee = getNodeCallee(node);
     if (!callee) {
       return;
     }

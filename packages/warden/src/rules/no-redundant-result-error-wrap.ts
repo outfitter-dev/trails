@@ -3,6 +3,16 @@ import {
   findBlazeBodies,
   findTrailDefinitions,
   getMemberExpression,
+  getNodeArguments,
+  getNodeArgument,
+  getNodeBodyNode,
+  getNodeCallee,
+  getNodeId,
+  getNodeInit,
+  getNodeLeft,
+  getNodeOperator,
+  getNodeProperty,
+  getNodeRight,
   identifierName,
   isMemberAccessNonComputed,
   offsetToLine,
@@ -34,7 +44,7 @@ const getStaticMemberName = (node: AstNode | undefined): string | null => {
   if (!node || !isMemberAccessNonComputed(node)) {
     return null;
   }
-  return identifierName((node as unknown as { property?: AstNode }).property);
+  return identifierName(getNodeProperty(node));
 };
 
 const isResultObject = (node: AstNode | undefined): boolean => {
@@ -51,7 +61,7 @@ const isResultErrCall = (node: AstNode): boolean => {
   if (node.type !== 'CallExpression') {
     return false;
   }
-  const { callee } = node as unknown as { callee?: AstNode };
+  const callee = getNodeCallee(node);
   const member = getMemberExpression(callee);
   if (!member || getStaticMemberName(callee) !== 'err') {
     return false;
@@ -60,8 +70,7 @@ const isResultErrCall = (node: AstNode): boolean => {
 };
 
 const getSingleArgument = (node: AstNode): AstNode | null => {
-  const args = (node as unknown as { arguments?: readonly AstNode[] })
-    .arguments;
+  const args = getNodeArguments(node);
   return args?.length === 1 ? (args[0] ?? null) : null;
 };
 
@@ -134,7 +143,8 @@ const trackVariableDeclarator = (
   scopedHelpers: ScopedHelperMap,
   scopes: readonly ReadonlySet<string>[]
 ): void => {
-  const { id, init } = node as unknown as { id?: AstNode; init?: AstNode };
+  const id = getNodeId(node);
+  const init = getNodeInit(node);
   const name = identifierName(id);
   if (!name) {
     return;
@@ -167,11 +177,9 @@ const trackAssignmentExpression = (
   scopedHelpers: ScopedHelperMap,
   scopes: readonly ReadonlySet<string>[]
 ): void => {
-  const { left, operator, right } = node as unknown as {
-    left?: AstNode;
-    operator?: string;
-    right?: AstNode;
-  };
+  const left = getNodeLeft(node);
+  const operator = getNodeOperator(node);
+  const right = getNodeRight(node);
   const name = identifierName(left);
   if (!name) {
     return;
@@ -206,7 +214,7 @@ const checkReturnStatement = (
   ownerLabel: string,
   diagnostics: WardenDiagnostic[]
 ): void => {
-  const { argument } = node as unknown as { argument?: AstNode };
+  const argument = getNodeArgument(node);
   if (!argument || !isResultErrCall(argument)) {
     return;
   }
@@ -224,7 +232,7 @@ const checkReturnStatement = (
 };
 
 const functionBody = (node: AstNode): AstNode | null => {
-  const { body } = node as unknown as { body?: AstNode };
+  const body = getNodeBodyNode(node);
   return body &&
     (body.type === 'BlockStatement' || body.type === 'FunctionBody')
     ? body
@@ -305,14 +313,12 @@ const isFunctionLike = (node: AstNode): boolean =>
   node.type === 'ArrowFunctionExpression';
 
 const functionName = (node: AstNode, context: AstParentContext): string => {
-  const declaredName = identifierName((node as unknown as { id?: AstNode }).id);
+  const declaredName = identifierName(getNodeId(node));
   if (declaredName) {
     return declaredName;
   }
   if (context.parent?.type === 'VariableDeclarator') {
-    const assignedName = identifierName(
-      (context.parent as unknown as { id?: AstNode }).id
-    );
+    const assignedName = identifierName(getNodeId(context.parent));
     if (assignedName) {
       return assignedName;
     }

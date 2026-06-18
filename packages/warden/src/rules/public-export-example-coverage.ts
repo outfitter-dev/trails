@@ -30,7 +30,21 @@ import { readFileSync } from 'node:fs';
 import { dirname, join, normalize, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { offsetToLine, parse } from './ast.js';
+import {
+  getNodeBodyStatements,
+  getNodeDeclaration,
+  getNodeDeclarations,
+  getNodeExportKind,
+  getNodeExported,
+  getNodeId,
+  getNodeLocal,
+  getNodeName,
+  getNodeSource,
+  getNodeSpecifiers,
+  getNodeValue,
+  offsetToLine,
+  parse,
+} from './ast.js';
 import type { AstNode } from './ast.js';
 import type { WardenDiagnostic, WardenRule } from './types.js';
 
@@ -158,33 +172,33 @@ interface BarrelInventory {
 }
 
 const isTypeKind = (node: AstNode): boolean =>
-  (node as unknown as { exportKind?: string }).exportKind === 'type';
+  getNodeExportKind(node) === 'type';
 
 const readNameNode = (node: AstNode | undefined): string | null => {
   if (!node) {
     return null;
   }
   if (node.type === 'Identifier') {
-    return (node as unknown as { name?: string }).name ?? null;
+    return getNodeName(node) ?? null;
   }
   if (node.type === 'Literal' || node.type === 'StringLiteral') {
-    const { value } = node as unknown as { value?: unknown };
+    const value = getNodeValue(node);
     return typeof value === 'string' ? value : null;
   }
   return null;
 };
 
 const moduleSpecifierValue = (node: AstNode): string | null => {
-  const { source } = node as unknown as { source?: AstNode };
+  const source = getNodeSource(node);
   if (!source) {
     return null;
   }
-  const { value } = source as unknown as { value?: unknown };
+  const value = getNodeValue(source);
   return typeof value === 'string' ? value : null;
 };
 
 const programBody = (ast: AstNode): readonly AstNode[] =>
-  (ast as unknown as { body?: readonly AstNode[] }).body ?? [];
+  getNodeBodyStatements(ast);
 
 const diagnostic = (
   sourceCode: string,
@@ -204,16 +218,13 @@ const specifiersFromExportDeclaration = (
   node: AstNode,
   moduleSpecifier: string
 ): readonly PublicExportSpecifier[] => {
-  const specifiers =
-    (node as unknown as { specifiers?: readonly AstNode[] }).specifiers ?? [];
+  const specifiers = getNodeSpecifiers(node) ?? [];
   return specifiers.flatMap((specifier) => {
     if (specifier.type !== 'ExportSpecifier' || isTypeKind(specifier)) {
       return [];
     }
-    const { exported, local } = specifier as unknown as {
-      exported?: AstNode;
-      local?: AstNode;
-    };
+    const exported = getNodeExported(specifier);
+    const local = getNodeLocal(specifier);
     const exportName = readNameNode(exported);
     if (!exportName) {
       return [];
@@ -241,7 +252,7 @@ const inventoryNamedExport = (node: AstNode, ctx: InventoryContext): void => {
   if (isTypeKind(node)) {
     return;
   }
-  const { declaration } = node as unknown as { declaration?: AstNode };
+  const declaration = getNodeDeclaration(node);
   if (declaration) {
     // Declaration-form exports (`export const foo = ...`) are not module
     // re-exports; the script's inventory skipped them the same way.
@@ -344,15 +355,13 @@ const declarationNameMatches = (
     declaration.type === 'TSInterfaceDeclaration' ||
     declaration.type === 'TSTypeAliasDeclaration'
   ) {
-    const { id } = declaration as unknown as { id?: AstNode };
+    const id = getNodeId(declaration);
     return readNameNode(id) === exportName;
   }
   if (declaration.type === 'VariableDeclaration') {
-    const declarations =
-      (declaration as unknown as { declarations?: readonly AstNode[] })
-        .declarations ?? [];
+    const declarations = getNodeDeclarations(declaration);
     return declarations.some((declarator) => {
-      const { id } = declarator as unknown as { id?: AstNode };
+      const id = getNodeId(declarator);
       return readNameNode(id) === exportName;
     });
   }
@@ -404,7 +413,7 @@ const hasLeadingExampleForExport = (
     if (statement.type !== 'ExportNamedDeclaration') {
       continue;
     }
-    const { declaration } = statement as unknown as { declaration?: AstNode };
+    const declaration = getNodeDeclaration(statement);
     if (!declaration || !declarationNameMatches(declaration, importedName)) {
       continue;
     }

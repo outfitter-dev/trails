@@ -2,6 +2,7 @@ import {
   collectComposeTargetTrailIds,
   findConfigProperty,
   findTrailDefinitions,
+  getNodeValue,
   getStringValue,
   isStringLiteral,
   offsetToLine,
@@ -56,7 +57,7 @@ const hasLegacyMetaInternal = (config: AstNode): boolean => {
   const internalValue = internalProp?.value as AstNode | undefined;
   return (
     internalValue?.type === 'BooleanLiteral' &&
-    (internalValue as unknown as { value: boolean }).value === true
+    getNodeValue(internalValue) === true
   );
 };
 

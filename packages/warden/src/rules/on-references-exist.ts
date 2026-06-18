@@ -11,6 +11,7 @@ import { isDraftId } from '@ontrails/core';
 
 import {
   collectSignalDefinitionIds,
+  deriveConstString,
   findConfigProperty,
   findTrailDefinitions,
   getStringValue,
@@ -18,7 +19,6 @@ import {
   isStringLiteral,
   offsetToLine,
   parse,
-  deriveConstString,
 } from './ast.js';
 import type { AstNode } from './ast.js';
 import { isTestFile } from './scan.js';

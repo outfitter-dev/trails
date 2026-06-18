@@ -3,13 +3,13 @@ import { resolve, sep } from 'node:path';
 
 import {
   extractStringLiteral,
+  getNodeSource,
   hasIgnoreCommentOnLine,
   offsetToLine,
   parse,
   splitSourceLines,
   walk,
 } from './ast.js';
-import type { AstNode } from './ast.js';
 import type {
   ProjectAwareWardenRule,
   ProjectContext,
@@ -223,7 +223,7 @@ const collectReExportSites = (
       return;
     }
 
-    const { source } = node as unknown as { source?: AstNode };
+    const source = getNodeSource(node);
     const value = extractStringLiteral(source);
     if (typeof value !== 'string') {
       return;

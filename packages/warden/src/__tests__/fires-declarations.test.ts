@@ -8,7 +8,10 @@ describe('fires-declarations', () => {
   describe('clean cases', () => {
     test('declared and called match exactly', () => {
       const code = `
-import { trail, Result } from '@ontrails/core';
+import {
+  Result,
+  trail
+} from '@ontrails/core';
 const entityCreated = signal('entity.created', { payload: z.object({}) });
 const auditLogged = signal('audit.logged', { payload: z.object({}) });
 const t = trail('onboard', {
@@ -408,7 +411,10 @@ trail('mixed', {
   describe('bare fire() helpers', () => {
     test('unrelated local fire() helper is not flagged', () => {
       const code = `
-import { trail, Result } from '@ontrails/core';
+import {
+  Result,
+  trail
+} from '@ontrails/core';
 const fire = (x: number) => x * 2;
 const t = trail('calc', {
   input: z.object({ n: z.number() }),
@@ -571,7 +577,11 @@ trail('onboard', {
   describe('object-form fires declarations', () => {
     test('local Signal value reference resolves cleanly', () => {
       const code = `
-import { trail, signal, Result } from '@ontrails/core';
+import {
+  Result,
+  signal,
+  trail
+} from '@ontrails/core';
 const orderPlaced = signal('order.placed', { payload: z.object({}) });
 trail('checkout', {
   fires: [orderPlaced],
@@ -588,8 +598,14 @@ trail('checkout', {
 
     test('known Signal call alongside unresolved imported declaration is downgraded to warn', () => {
       const code = `
-import { trail, signal, Result } from '@ontrails/core';
-import { orderPlaced } from './signals';
+import {
+  Result,
+  signal,
+  trail
+} from '@ontrails/core';
+import {
+  orderPlaced
+} from './signals';
 const auditLogged = signal('audit.logged', { payload: z.object({}) });
 trail('checkout', {
   fires: [orderPlaced],
@@ -615,7 +631,11 @@ trail('checkout', {
 
     test('mixed string + local Signal value resolves cleanly', () => {
       const code = `
-import { trail, signal, Result } from '@ontrails/core';
+import {
+  Result,
+  signal,
+  trail
+} from '@ontrails/core';
 const orderPlaced = signal('order.placed', { payload: z.object({}) });
 const auditLogged = signal('audit.logged', { payload: z.object({}) });
 trail('checkout', {
@@ -634,7 +654,11 @@ trail('checkout', {
 
     test('fires array resolves module-scope signal when blaze shadows the name', () => {
       const code = `
-import { trail, signal, Result } from '@ontrails/core';
+import {
+  Result,
+  signal,
+  trail
+} from '@ontrails/core';
 const orderPlaced = signal('order.placed', { payload: z.object({}) });
 trail('checkout', {
   fires: [orderPlaced],
@@ -659,8 +683,14 @@ trail('checkout', {
 
     test('imported fires entry with local shadowed signal call is not clean', () => {
       const code = `
-import { trail, signal, Result } from '@ontrails/core';
-import { orderPlaced } from './signals';
+import {
+  Result,
+  signal,
+  trail
+} from '@ontrails/core';
+import {
+  orderPlaced
+} from './signals';
 trail('checkout', {
   fires: [orderPlaced],
   blaze: async (input, ctx) => {
@@ -684,7 +714,11 @@ trail('checkout', {
 
     test('non-signal inner shadow blocks outer signal resolution', () => {
       const code = `
-import { trail, signal, Result } from '@ontrails/core';
+import {
+  Result,
+  signal,
+  trail
+} from '@ontrails/core';
 const orderPlaced = signal('order.placed', { payload: z.object({}) });
 trail('checkout', {
   fires: [orderPlaced],

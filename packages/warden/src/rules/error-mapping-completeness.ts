@@ -10,6 +10,8 @@ import { codesByCategory, errorClasses } from '@ontrails/core';
 import type { ErrorCategory } from '@ontrails/core';
 
 import {
+  getNodeKey,
+  getNodeValueNode,
   getStringValue,
   identifierName,
   isStringLiteral,
@@ -82,9 +84,9 @@ const findObjectPropertyValue = (
       continue;
     }
 
-    const key = getPropertyName((property as unknown as { key?: AstNode }).key);
+    const key = getPropertyName(getNodeKey(property));
     if (key === propertyName) {
-      return (property as unknown as { value?: AstNode }).value ?? null;
+      return getNodeValueNode(property) ?? null;
     }
   }
 
@@ -157,7 +159,7 @@ const addMappedCategory = (
     return true;
   }
 
-  const key = getPropertyName((property as unknown as { key?: AstNode }).key);
+  const key = getPropertyName(getNodeKey(property));
   if (key) {
     categories.add(key);
   }

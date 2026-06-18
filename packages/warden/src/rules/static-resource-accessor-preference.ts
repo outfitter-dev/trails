@@ -12,6 +12,18 @@ import {
   findBlazeBodies,
   findConfigProperty,
   findTrailDefinitions,
+  getNodeCallee,
+  getNodeId,
+  getNodeImported,
+  getNodeInit,
+  getNodeKey,
+  getNodeLeft,
+  getNodeLocal,
+  getNodeObject,
+  getNodeProperty,
+  getNodeSource,
+  getNodeValue,
+  getNodeValueNode,
   getStringValue,
   identifierName,
   isStringLiteral,
@@ -78,12 +90,8 @@ const extractMemberPair = (
     return null;
   }
 
-  const objName = identifierName(
-    (callee as unknown as { object?: AstNode }).object
-  );
-  const propName = identifierName(
-    (callee as unknown as { property?: AstNode }).property
-  );
+  const objName = identifierName(getNodeObject(callee));
+  const propName = identifierName(getNodeProperty(callee));
 
   return objName && propName ? { objName, propName } : null;
 };
@@ -131,7 +139,7 @@ const extractContextParamName = (blazeBody: AstNode): string | null => {
     return null;
   }
   if (param.type === 'AssignmentPattern') {
-    return identifierName((param as unknown as { left?: AstNode }).left);
+    return identifierName(getNodeLeft(param));
   }
   return identifierName(param);
 };
@@ -141,17 +149,12 @@ const extractResourceAlias = (property: AstNode): string | null => {
     return null;
   }
 
-  const keyName = identifierName(
-    (property as unknown as { key?: AstNode }).key
-  );
+  const keyName = identifierName(getNodeKey(property));
   if (keyName !== 'resource') {
     return null;
   }
 
-  return (
-    identifierName((property as unknown as { value?: AstNode }).value) ??
-    keyName
-  );
+  return identifierName(getNodeValueNode(property)) ?? keyName;
 };
 
 const collectParamResourceAliases = (body: AstNode): ReadonlySet<string> => {
@@ -205,10 +208,8 @@ const collectResourceAliases = (
       return;
     }
 
-    const { id, init } = node as unknown as {
-      readonly id?: AstNode;
-      readonly init?: AstNode;
-    };
+    const id = getNodeId(node);
+    const init = getNodeInit(node);
     const initName = identifierName(init);
     if (!initName || !ctxNames.has(initName)) {
       return;
@@ -226,8 +227,7 @@ const extractCallCallee = (node: AstNode): AstNode | null => {
   if (node.type !== 'CallExpression') {
     return null;
   }
-  return ((node as unknown as { callee?: AstNode }).callee ??
-    null) as AstNode | null;
+  return (getNodeCallee(node) ?? null) as AstNode | null;
 };
 
 const extractFirstArg = (node: AstNode): AstNode | null => {
@@ -369,10 +369,8 @@ const collectResourceLookups = (
 };
 
 const getImportSourceValue = (node: AstNode): string | null => {
-  const sourceNode = (node as unknown as { source?: AstNode }).source;
-  const value = sourceNode
-    ? (sourceNode as unknown as { value?: unknown }).value
-    : null;
+  const sourceNode = getNodeSource(node);
+  const value = sourceNode ? getNodeValue(sourceNode) : null;
   return typeof value === 'string' ? value : null;
 };
 
@@ -385,10 +383,8 @@ const addNamedDependencyConstructors = (
     return;
   }
 
-  const { imported, local } = specifier as unknown as {
-    readonly imported?: AstNode;
-    readonly local?: AstNode;
-  };
+  const imported = getNodeImported(specifier);
+  const local = getNodeLocal(specifier);
   const importedName =
     identifierName(imported) ??
     (imported && isStringLiteral(imported) ? getStringValue(imported) : null);
@@ -420,9 +416,7 @@ const addDefaultDependencyConstructors = (
     return;
   }
 
-  const localName = identifierName(
-    (specifier as unknown as { local?: AstNode }).local
-  );
+  const localName = identifierName(getNodeLocal(specifier));
   if (localName) {
     constructors.add(localName);
   }
@@ -459,9 +453,7 @@ const extractInlineDependencyConstruction = (
     return null;
   }
 
-  const ctorName = identifierName(
-    (node as unknown as { callee?: AstNode }).callee
-  );
+  const ctorName = identifierName(getNodeCallee(node));
   return ctorName && dependencyConstructors.has(ctorName)
     ? { name: ctorName, rendered: `new ${ctorName}(...)`, start: node.start }
     : null;

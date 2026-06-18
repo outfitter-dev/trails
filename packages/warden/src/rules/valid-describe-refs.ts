@@ -1,5 +1,8 @@
 import {
   extractStringOrTemplateLiteral,
+  getNodeName,
+  getNodeProperty,
+  getNodeValue,
   offsetToLine,
   parse,
   walk,
@@ -35,11 +38,8 @@ const isDescribeMemberCallee = (callee: AstNode | undefined): boolean => {
   if (!callee || !MEMBER_CALLEE_TYPES.has(callee.type)) {
     return false;
   }
-  const prop = (callee as unknown as { property?: AstNode }).property;
-  return (
-    prop?.type === 'Identifier' &&
-    (prop as unknown as { name?: string }).name === 'describe'
-  );
+  const prop = getNodeProperty(callee);
+  return prop?.type === 'Identifier' && getNodeName(prop) === 'describe';
 };
 
 const hasStringLiteralFirstArg = (node: AstNode): boolean => {
@@ -87,14 +87,16 @@ const isDescribeCall = (node: AstNode): boolean => {
  * missing an `@see` token.
  */
 const extractQuasiText = (quasi: AstNode): string | null => {
-  const { value } = quasi as unknown as {
-    value?: { cooked?: unknown; raw?: unknown };
-  };
-  if (typeof value?.cooked === 'string') {
-    return value.cooked;
+  const value = getNodeValue(quasi);
+  if (!value || typeof value !== 'object') {
+    return null;
   }
-  if (typeof value?.raw === 'string') {
-    return value.raw;
+  const record = value as Record<string, unknown>;
+  if (typeof record['cooked'] === 'string') {
+    return record['cooked'];
+  }
+  if (typeof record['raw'] === 'string') {
+    return record['raw'];
   }
   return null;
 };

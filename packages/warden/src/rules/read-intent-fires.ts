@@ -4,6 +4,9 @@ import {
   extractStringLiteral,
   findConfigProperty,
   findTrailDefinitions,
+  getNodeElements,
+  getNodeId,
+  getNodeInit,
   getStringValue,
   identifierName,
   isStringLiteral,
@@ -34,10 +37,8 @@ const collectArrayBindings = (ast: AstNode): ReadonlyMap<string, AstNode> => {
       return;
     }
 
-    const { id, init } = node as unknown as {
-      readonly id?: AstNode;
-      readonly init?: AstNode;
-    };
+    const id = getNodeId(node);
+    const init = getNodeInit(node);
     const name = identifierName(id);
     if (name && init?.type === 'ArrayExpression') {
       bindings.set(name, init);
@@ -69,10 +70,9 @@ const getFiresElements = (
     return [];
   }
 
-  return (
-    (array as unknown as { readonly elements?: readonly (AstNode | null)[] })
-      .elements ?? []
-  ).filter((element): element is AstNode => element !== null);
+  return getNodeElements(array).filter(
+    (element): element is AstNode => element !== null
+  );
 };
 
 const resolveFireElementId = (

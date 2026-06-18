@@ -5,6 +5,9 @@ import {
   extractStringLiteral,
   findConfigProperty,
   findContourDefinitions,
+  getNodeExpression,
+  getNodeObject,
+  getNodeProperty,
   getStringValue,
   identifierName,
   offsetToLine,
@@ -115,11 +118,7 @@ const evaluateIdentifierExpression: ContourNodeEvaluator = (
 const evaluateWrappedExpression: ContourNodeEvaluator = (
   node: AstNode,
   env: ContourEvaluationEnvironment
-): unknown =>
-  evaluateNode(
-    requireNode((node as unknown as { expression?: AstNode }).expression),
-    env
-  );
+): unknown => evaluateNode(requireNode(getNodeExpression(node)), env);
 
 const evaluateNullExpression: ContourNodeEvaluator = (): null => null;
 
@@ -215,13 +214,8 @@ const evaluateMemberCall = (
   args: readonly unknown[],
   env: ContourEvaluationEnvironment
 ): unknown => {
-  const receiver = evaluateNode(
-    requireNode((callee as unknown as { object?: AstNode }).object),
-    env
-  );
-  const propertyName = getPropertyName(
-    (callee as unknown as { property?: AstNode }).property
-  );
+  const receiver = evaluateNode(requireNode(getNodeObject(callee)), env);
+  const propertyName = getPropertyName(getNodeProperty(callee));
   if (!propertyName) {
     throw new UnsupportedContourEvaluationError(
       'Unsupported member property in contour evaluation.'

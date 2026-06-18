@@ -13,14 +13,26 @@
 
 import {
   buildSignalIdentifierResolver,
+  deriveConstString,
   extractStringLiteral,
-  findConfigProperty,
   findBlazeBodies,
+  findConfigProperty,
   findTrailDefinitions,
+  getNodeBodyNode,
+  getNodeBodyStatements,
+  getNodeDeclarations,
+  getNodeId,
+  getNodeInit,
+  getNodeKey,
+  getNodeKind,
+  getNodeLeft,
+  getNodeObject,
+  getNodeProperties,
+  getNodeProperty,
+  getNodeValueNode,
   identifierName,
   offsetToLine,
   parse,
-  deriveConstString,
   walkScope,
 } from './ast.js';
 import type { AstNode, SignalIdentifierResolver } from './ast.js';
@@ -147,12 +159,8 @@ const extractMemberPair = (
     return null;
   }
 
-  const objName = identifierName(
-    (callee as unknown as { object?: AstNode }).object
-  );
-  const propName = identifierName(
-    (callee as unknown as { property?: AstNode }).property
-  );
+  const objName = identifierName(getNodeObject(callee));
+  const propName = identifierName(getNodeProperty(callee));
 
   return objName && propName ? { objName, propName } : null;
 };
@@ -177,8 +185,8 @@ const extractFireLocalName = (prop: AstNode): string | null => {
   if (prop.type !== 'Property') {
     return null;
   }
-  const { key } = prop as unknown as { key?: AstNode };
-  const { value } = prop as unknown as { value?: AstNode };
+  const key = getNodeKey(prop);
+  const value = getNodeValueNode(prop);
   const keyName = identifierName(key);
   if (keyName !== 'fire') {
     return null;
@@ -193,9 +201,7 @@ const collectFireNamesFromPattern = (
   pattern: AstNode,
   names: Set<string>
 ): void => {
-  const { properties } = pattern as unknown as {
-    properties?: readonly AstNode[];
-  };
+  const properties = getNodeProperties(pattern);
   if (!properties) {
     return;
   }
@@ -224,7 +230,7 @@ const extractContextParamName = (blazeBody: AstNode): string | null => {
     return null;
   }
   if (param.type === 'AssignmentPattern') {
-    const { left } = param as unknown as { left?: AstNode };
+    const left = getNodeLeft(param);
     return identifierName(left);
   }
   return identifierName(param);
@@ -364,10 +370,8 @@ const getCtxDestructurePattern = (
   if (node.type !== 'VariableDeclarator') {
     return null;
   }
-  const { id, init } = node as unknown as {
-    readonly id?: AstNode;
-    readonly init?: AstNode;
-  };
+  const id = getNodeId(node);
+  const init = getNodeInit(node);
   if (!id || id.type !== 'ObjectPattern' || !init) {
     return null;
   }
@@ -398,11 +402,11 @@ const getCtxDestructurePattern = (
  */
 /** Get the top-level statements of a blaze function's BlockStatement body. */
 const getTopLevelStatements = (body: AstNode): readonly AstNode[] => {
-  const blockBody = (body as unknown as { body?: AstNode }).body;
+  const blockBody = getNodeBodyNode(body);
   if (!blockBody || blockBody.type !== 'BlockStatement') {
     return [];
   }
-  return (blockBody as unknown as { body?: readonly AstNode[] }).body ?? [];
+  return getNodeBodyStatements(blockBody);
 };
 
 /** Collect fire-local names from a single top-level VariableDeclaration. */
@@ -419,13 +423,11 @@ const collectFireNamesFromDeclaration = (
   // fire('x')` would otherwise be a false positive. Skipping non-const is a
   // small precision loss (see TSDoc on `collectDestructuredFireNames`) in
   // exchange for eliminating that class of false positives.
-  const { kind } = stmt as unknown as { kind?: string };
+  const kind = getNodeKind(stmt);
   if (kind !== 'const') {
     return;
   }
-  const declarations =
-    (stmt as unknown as { declarations?: readonly AstNode[] }).declarations ??
-    [];
+  const declarations = getNodeDeclarations(stmt) ?? [];
   for (const decl of declarations) {
     const pattern = getCtxDestructurePattern(decl, ctxNames);
     if (pattern) {

@@ -2,6 +2,14 @@ import {
   collectComposeTargetTrailIds,
   findConfigProperty,
   findTrailDefinitions,
+  getNodeDeclaration,
+  getNodeDeclarations,
+  getNodeId,
+  getNodeInit,
+  getNodeLocal,
+  getNodeName,
+  getNodeSpecifiers,
+  getNodeValue,
   getStringValue,
   isStringLiteral,
   offsetToLine,
@@ -55,7 +63,7 @@ const hasLegacyMetaInternal = (config: AstNode): boolean => {
   const internalValue = internalProp?.value as AstNode | undefined;
   return (
     internalValue?.type === 'BooleanLiteral' &&
-    (internalValue as unknown as { value: boolean }).value === true
+    getNodeValue(internalValue) === true
   );
 };
 
@@ -67,9 +75,7 @@ const isExportDeclaration = (node: AstNode | null | undefined): boolean =>
   node?.type === 'ExportDefaultDeclaration';
 
 const identifierName = (node: AstNode | undefined): string | null =>
-  node?.type === 'Identifier'
-    ? ((node as unknown as { name?: string }).name ?? null)
-    : null;
+  node?.type === 'Identifier' ? (getNodeName(node) ?? null) : null;
 
 const trailBindingStarts = (ast: AstNode): ReadonlyMap<string, number> => {
   const trailStarts = new Set(
@@ -83,10 +89,8 @@ const trailBindingStarts = (ast: AstNode): ReadonlyMap<string, number> => {
     if (node.type !== 'VariableDeclarator') {
       return;
     }
-    const { id, init } = node as unknown as {
-      id?: AstNode;
-      init?: AstNode;
-    };
+    const id = getNodeId(node);
+    const init = getNodeInit(node);
     const name = identifierName(id);
     if (name && init && trailStarts.has(init.start)) {
       bindings.set(name, init.start);
@@ -101,10 +105,9 @@ const addExportedSpecifierStarts = (
   bindings: ReadonlyMap<string, number>,
   exported: Set<number>
 ): void => {
-  const specifiers =
-    (node as unknown as { specifiers?: readonly AstNode[] }).specifiers ?? [];
+  const specifiers = getNodeSpecifiers(node) ?? [];
   for (const specifier of specifiers) {
-    const { local } = specifier as unknown as { local?: AstNode };
+    const local = getNodeLocal(specifier);
     const name = identifierName(local);
     const start = name ? bindings.get(name) : undefined;
     if (start !== undefined) {
@@ -136,11 +139,9 @@ const exportedTrailStarts = (ast: AstNode): ReadonlySet<number> => {
     if (!isExportDeclaration(context.parent)) {
       return;
     }
-    const declarations =
-      (node as unknown as { declarations?: readonly AstNode[] }).declarations ??
-      [];
+    const declarations = getNodeDeclarations(node) ?? [];
     for (const declaration of declarations) {
-      const { init } = declaration as unknown as { init?: AstNode };
+      const init = getNodeInit(declaration);
       if (init?.type === 'CallExpression') {
         exported.add(init.start);
       }
@@ -156,7 +157,7 @@ const exportedTrailStarts = (ast: AstNode): ReadonlySet<number> => {
     if (node.type !== 'ExportDefaultDeclaration') {
       return;
     }
-    const { declaration } = node as unknown as { declaration?: AstNode };
+    const declaration = getNodeDeclaration(node);
     const name = identifierName(declaration);
     const start = name ? bindings.get(name) : undefined;
     if (start !== undefined) {

@@ -7,9 +7,23 @@
  */
 
 import {
-  findConfigProperty,
   findBlazeBodies,
+  findConfigProperty,
   findTrailDefinitions,
+  getNodeBodyNode,
+  getNodeBodyStatements,
+  getNodeDeclarations,
+  getNodeId,
+  getNodeInit,
+  getNodeKey,
+  getNodeKind,
+  getNodeLeft,
+  getNodeName,
+  getNodeObject,
+  getNodeProperties,
+  getNodeProperty,
+  getNodeValue,
+  getNodeValueNode,
   offsetToLine,
   parse,
   walk,
@@ -27,7 +41,7 @@ const identifierName = (node: AstNode | undefined): string | null => {
   if (node?.type !== 'Identifier') {
     return null;
   }
-  return (node as unknown as { name?: string }).name ?? null;
+  return getNodeName(node) ?? null;
 };
 
 // ---------------------------------------------------------------------------
@@ -40,14 +54,14 @@ const isStringLiteral = (node: AstNode): boolean => {
     return true;
   }
   if (node.type === 'Literal') {
-    return typeof (node as unknown as { value?: unknown }).value === 'string';
+    return typeof getNodeValue(node) === 'string';
   }
   return false;
 };
 
 /** Extract the string value from a string literal node. */
 const getStringValue = (node: AstNode): string | null => {
-  const val = (node as unknown as { value?: unknown }).value;
+  const val = getNodeValue(node);
   return typeof val === 'string' ? val : null;
 };
 
@@ -194,12 +208,8 @@ const extractMemberPair = (
     return null;
   }
 
-  const objName = identifierName(
-    (callee as unknown as { object?: AstNode }).object
-  );
-  const propName = identifierName(
-    (callee as unknown as { property?: AstNode }).property
-  );
+  const objName = identifierName(getNodeObject(callee));
+  const propName = identifierName(getNodeProperty(callee));
 
   return objName && propName ? { objName, propName } : null;
 };
@@ -219,7 +229,7 @@ const extractContextParamName = (blazeBody: AstNode): string | null => {
   }
   const [, param] = params;
   if (param?.type === 'AssignmentPattern') {
-    const { left } = param as unknown as { left?: AstNode };
+    const left = getNodeLeft(param);
     return identifierName(left);
   }
   return identifierName(param);
@@ -230,10 +240,8 @@ const extractComposeLocalName = (prop: AstNode): string | null => {
   if (prop.type !== 'Property') {
     return null;
   }
-  const { key, value } = prop as unknown as {
-    readonly key?: AstNode;
-    readonly value?: AstNode;
-  };
+  const key = getNodeKey(prop);
+  const value = getNodeValueNode(prop);
   const keyName = identifierName(key);
   if (keyName !== 'compose') {
     return null;
@@ -246,9 +254,7 @@ const collectComposeNamesFromPattern = (
   pattern: AstNode,
   names: Set<string>
 ): void => {
-  const { properties } = pattern as unknown as {
-    readonly properties?: readonly AstNode[];
-  };
+  const properties = getNodeProperties(pattern);
   for (const prop of properties ?? []) {
     const localName = extractComposeLocalName(prop);
     if (localName) {
@@ -436,10 +442,8 @@ const getCtxDestructurePattern = (
   if (node.type !== 'VariableDeclarator') {
     return null;
   }
-  const { id, init } = node as unknown as {
-    readonly id?: AstNode;
-    readonly init?: AstNode;
-  };
+  const id = getNodeId(node);
+  const init = getNodeInit(node);
   if (!id || id.type !== 'ObjectPattern' || !init) {
     return null;
   }
@@ -448,11 +452,11 @@ const getCtxDestructurePattern = (
 };
 
 const getTopLevelStatements = (body: AstNode): readonly AstNode[] => {
-  const blockBody = (body as unknown as { body?: AstNode }).body;
+  const blockBody = getNodeBodyNode(body);
   if (!blockBody || blockBody.type !== 'BlockStatement') {
     return [];
   }
-  return (blockBody as unknown as { body?: readonly AstNode[] }).body ?? [];
+  return getNodeBodyStatements(blockBody);
 };
 
 const collectComposeNamesFromDeclaration = (
@@ -463,13 +467,11 @@ const collectComposeNamesFromDeclaration = (
   if (stmt.type !== 'VariableDeclaration') {
     return;
   }
-  const { kind } = stmt as unknown as { readonly kind?: string };
+  const kind = getNodeKind(stmt);
   if (kind !== 'const') {
     return;
   }
-  const declarations =
-    (stmt as unknown as { readonly declarations?: readonly AstNode[] })
-      .declarations ?? [];
+  const declarations = getNodeDeclarations(stmt);
   for (const decl of declarations) {
     const pattern = getCtxDestructurePattern(decl, ctxNames);
     if (pattern) {
