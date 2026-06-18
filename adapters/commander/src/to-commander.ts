@@ -5,10 +5,16 @@
 import {
   isTrailsError,
   projectPublicSurfaceError,
+  redactErrorContext,
   redactErrorString,
 } from '@ontrails/core';
+import type { SurfaceErrorProjection } from '@ontrails/core';
 import type { CliCommand, CliFlag } from '@ontrails/cli';
-import { applyCliFlagValueAliases, validateCliCommands } from '@ontrails/cli';
+import {
+  applyCliFlagValueAliases,
+  deriveOutputMode,
+  validateCliCommands,
+} from '@ontrails/cli';
 import { Command, InvalidArgumentError, Option } from 'commander';
 
 // ---------------------------------------------------------------------------
@@ -21,6 +27,7 @@ import { Command, InvalidArgumentError, Option } from 'commander';
 export interface ToCommanderOptions {
   description?: string | undefined;
   name?: string | undefined;
+  topoName?: string | undefined;
   version?: string | undefined;
 }
 
@@ -165,19 +172,33 @@ const getActionTarget = (fallbackTarget: Command, actionArgs: unknown[]) => {
 const getParsedFlags = (command: Command): Record<string, unknown> =>
   command.optsWithGlobals() as Record<string, unknown>;
 
+const toOptionKey = (name: string): string =>
+  name.replaceAll(/-([a-zA-Z0-9])/g, (_, ch: string) => ch.toUpperCase());
+
 const getFlagOptionKeys = (flags: readonly CliCommand['flags'][number][]) =>
   new Set(
     flags.flatMap((flag) => [
-      flag.name.replaceAll(/-([a-zA-Z0-9])/g, (_, ch: string) =>
-        ch.toUpperCase()
-      ),
-      ...(flag.valueAliases ?? []).map((alias) =>
-        alias.name.replaceAll(/-([a-zA-Z0-9])/g, (_, ch: string) =>
-          ch.toUpperCase()
-        )
-      ),
+      toOptionKey(flag.name),
+      ...(flag.valueAliases ?? []).map((alias) => toOptionKey(alias.name)),
     ])
   );
+
+const getCanonicalUserSuppliedFlagKeys = (
+  flags: readonly CliCommand['flags'][number][],
+  userSuppliedFlagKeys: ReadonlySet<string>
+): ReadonlySet<string> => {
+  const canonicalKeys = new Set(userSuppliedFlagKeys);
+  for (const flag of flags) {
+    const flagKey = toOptionKey(flag.name);
+    const aliasSelected = (flag.valueAliases ?? []).some((alias) =>
+      userSuppliedFlagKeys.has(toOptionKey(alias.name))
+    );
+    if (aliasSelected) {
+      canonicalKeys.add(flagKey);
+    }
+  }
+  return canonicalKeys;
+};
 
 const getUserSuppliedFlagKeys = (
   command: Command,
@@ -288,13 +309,75 @@ const collectErrorDetailLines = (error: Error): readonly string[] => {
   return [];
 };
 
+const collectErrorContext = (
+  error: Error
+): Record<string, unknown> | undefined => {
+  if (!isTrailsError(error) || error.category === 'internal') {
+    return undefined;
+  }
+  return redactErrorContext(error.context);
+};
+
+interface CliErrorEnvelope {
+  readonly ok: false;
+  readonly context?: Record<string, unknown> | undefined;
+  readonly error: SurfaceErrorProjection;
+  readonly details?: readonly string[] | undefined;
+}
+
+type StructuredErrorMode = 'json' | 'jsonl';
+
+const structuredErrorMode = (
+  flags: Readonly<Record<string, unknown>>,
+  topoName: string,
+  userSuppliedFlagKeys: ReadonlySet<string>
+): StructuredErrorMode | undefined => {
+  const modeFlags = { ...flags };
+  if (!userSuppliedFlagKeys.has('output')) {
+    delete modeFlags['output'];
+  }
+  const { mode } = deriveOutputMode(modeFlags, topoName);
+  return mode === 'text' ? undefined : mode;
+};
+
+const writeStructuredError = (
+  envelope: CliErrorEnvelope,
+  mode: StructuredErrorMode
+): void => {
+  process.stderr.write(
+    mode === 'json'
+      ? `${JSON.stringify(envelope, null, 2)}\n`
+      : `${JSON.stringify(envelope)}\n`
+  );
+};
+
 /** Handle execution errors with appropriate exit codes. */
-const handleError = (error: unknown): void => {
+const handleError = (
+  error: unknown,
+  flags: Readonly<Record<string, unknown>>,
+  topoName: string,
+  userSuppliedFlagKeys: ReadonlySet<string>
+): void => {
   const err = error instanceof Error ? error : new Error(String(error));
   const projection = projectPublicSurfaceError('cli', err);
-  process.stderr.write(`Error: ${projection.message}\n`);
-  for (const line of collectErrorDetailLines(err)) {
-    process.stderr.write(`  ${line}\n`);
+  const context = collectErrorContext(err);
+  const details = collectErrorDetailLines(err);
+  const mode = structuredErrorMode(flags, topoName, userSuppliedFlagKeys);
+  if (mode === undefined) {
+    process.stderr.write(`Error: ${projection.message}\n`);
+    for (const line of details) {
+      process.stderr.write(`  ${line}\n`);
+    }
+  } else {
+    writeStructuredError(
+      {
+        ...(context === undefined ? {} : { context }),
+        error: projection,
+        ...(details.length === 0 ? {} : { details }),
+        ok: false,
+      },
+      mode
+    );
   }
   process.exit(projection.code);
 };
@@ -346,6 +429,7 @@ const maybeUseBareChildFallback = (
 const wireAction = (
   target: Command,
   cmd: CliCommand,
+  topoName: string,
   fallback?: BareChildFallback | undefined
 ): void => {
   target.action(async (...actionArgs: unknown[]) => {
@@ -362,17 +446,24 @@ const wireAction = (
             parentTarget: actionTarget.parent ?? fallback.parentTarget,
           }
     );
+    let { parsedFlags } = action;
     try {
-      await action.command.execute(
-        action.parsedArgs,
-        applyCliFlagValueAliases(
+      parsedFlags = applyCliFlagValueAliases(
+        action.command.flags,
+        action.parsedFlags,
+        action.userSuppliedFlagKeys
+      );
+      await action.command.execute(action.parsedArgs, parsedFlags);
+    } catch (error: unknown) {
+      handleError(
+        error,
+        parsedFlags,
+        topoName,
+        getCanonicalUserSuppliedFlagKeys(
           action.command.flags,
-          action.parsedFlags,
           action.userSuppliedFlagKeys
         )
       );
-    } catch (error: unknown) {
-      handleError(error);
     }
   });
 };
@@ -492,6 +583,7 @@ const applyCliCommand = (
   state: CommandNodeState,
   cmd: CliCommand,
   path: readonly string[],
+  topoName: string,
   fallback?: BareChildFallback | undefined
 ): void => {
   if (state.executable) {
@@ -509,7 +601,7 @@ const applyCliCommand = (
   addArgs(state.command, cmd, {
     forceOptionalFirstArg: fallback !== undefined,
   });
-  wireAction(state.command, cmd, fallback);
+  wireAction(state.command, cmd, topoName, fallback);
   state.cliCommand = cmd;
   state.executable = true;
 };
@@ -540,7 +632,10 @@ const commandRouteEntries = (commands: readonly CliCommand[]) =>
  * const commands = deriveCliCommands(graph);
  * if (commands.isErr()) throw commands.error;
  *
- * const program = toCommander(commands.value, { name: 'demo' });
+ * const program = toCommander(commands.value, {
+ *   name: 'demo',
+ *   topoName: 'demo',
+ * });
  * ```
  */
 export const toCommander = (
@@ -550,6 +645,7 @@ export const toCommander = (
   validateCliCommands(commands);
   const program = new Command();
   applyOptions(program, options);
+  const topoName = options?.topoName ?? options?.name ?? program.name();
   const nodes = new Map<string, CommandNodeState>();
 
   for (const { cmd, path } of commandRouteEntries(commands).toSorted((a, b) =>
@@ -560,7 +656,7 @@ export const toCommander = (
     const state = ensureCommandNode(path, program, nodes);
     const parentKey = pathKey(path.slice(0, -1));
     const fallback = createBareChildFallback(cmd, path, nodes.get(parentKey));
-    applyCliCommand(state, cmd, path, fallback);
+    applyCliCommand(state, cmd, path, topoName, fallback);
   }
 
   return program;

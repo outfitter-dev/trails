@@ -62,6 +62,7 @@ const deriveCommanderOptions = (
 ): ToCommanderOptions => {
   const commanderOpts: ToCommanderOptions = {
     name: options.name ?? graph.name,
+    topoName: graph.name,
   };
   if (options.version !== undefined || graph.version !== undefined) {
     commanderOpts.version = options.version ?? graph.version;

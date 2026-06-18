@@ -14,6 +14,7 @@ import {
   InternalError,
   openWriteTrailsDb,
   Result,
+  TimeoutError,
 } from '@ontrails/core';
 import type {
   LockManifest,
@@ -79,6 +80,44 @@ const persistAndReadStoredExport = (
     snapshot,
     storedExport,
   });
+};
+
+const asError = (error: unknown): Error =>
+  error instanceof Error ? error : new Error(String(error));
+
+const readErrorCode = (error: unknown): string | undefined => {
+  if (typeof error !== 'object' || error === null || !('code' in error)) {
+    return undefined;
+  }
+  const { code } = error as { readonly code?: unknown };
+  return typeof code === 'string' ? code : undefined;
+};
+
+const isSqliteLockError = (error: unknown): boolean => {
+  const code = readErrorCode(error);
+  if (code === 'SQLITE_BUSY' || code === 'SQLITE_LOCKED') {
+    return true;
+  }
+  return asError(error).message.match(/database is (locked|busy)/i) !== null;
+};
+
+export const mapTopoExportError = (error: unknown): Error => {
+  if (!isSqliteLockError(error)) {
+    return error instanceof Error
+      ? error
+      : new InternalError('Unable to write topo artifacts');
+  }
+  return new TimeoutError(
+    'Timed out waiting for the Trails topo store lock while compiling artifacts. Another topo write may be running; retry after it finishes.',
+    {
+      cause: asError(error),
+      context: {
+        operation: 'compile',
+        reason: 'sqlite-lock-contention',
+        resource: 'trails.db',
+      },
+    }
+  );
 };
 
 export const deriveCurrentTopoExport = (
@@ -159,9 +198,10 @@ export const exportCurrentTopo = async (
   }
 ): Promise<Result<TopoExportReport, Error>> => {
   const rootDir = deriveRootDir(options?.rootDir);
-  const db = openWriteTrailsDb({ rootDir });
+  let db: ReturnType<typeof openWriteTrailsDb> | undefined;
 
   try {
+    db = openWriteTrailsDb({ rootDir });
     const persisted = persistAndReadStoredExport(app, db, rootDir, {
       cliAliases: options?.cliAliases,
     });
@@ -178,14 +218,12 @@ export const exportCurrentTopo = async (
         { force: options?.force }
       );
     } catch (error: unknown) {
-      return Result.err(
-        error instanceof Error
-          ? error
-          : new InternalError('Unable to write topo artifacts')
-      );
+      return Result.err(mapTopoExportError(error));
     }
     return Result.ok({ ...artifacts, snapshot });
+  } catch (error: unknown) {
+    return Result.err(mapTopoExportError(error));
   } finally {
-    db.close();
+    db?.close();
   }
 };

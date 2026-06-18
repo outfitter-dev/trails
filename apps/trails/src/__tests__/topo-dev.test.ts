@@ -11,7 +11,7 @@ import {
 import { join, resolve } from 'node:path';
 
 import type { Result } from '@ontrails/core';
-import { openReadTrailsDb } from '@ontrails/core';
+import { openReadTrailsDb, TimeoutError } from '@ontrails/core';
 import { createDevStore } from '@ontrails/tracing';
 
 import { devCleanTrail } from '../trails/dev-clean.js';
@@ -29,6 +29,7 @@ import { topoPinTrail } from '../trails/topo-pin.js';
 import { topoTrail } from '../trails/topo.js';
 import { topoUnpinTrail } from '../trails/topo-unpin.js';
 import { validateTrail } from '../trails/validate.js';
+import { mapTopoExportError } from '../trails/topo-store-support.js';
 
 const repoTempDir = (): string =>
   join(
@@ -124,6 +125,24 @@ export const app = topo('fixture-app', { ${topoMembers} });
 };
 
 describe('topo and dev trails', () => {
+  test('maps sqlite lock failures to a retryable compile timeout', () => {
+    const sqliteError = Object.assign(new Error('database is locked'), {
+      code: 'SQLITE_BUSY',
+    });
+
+    const mapped = mapTopoExportError(sqliteError);
+
+    expect(mapped).toBeInstanceOf(TimeoutError);
+    expect(mapped.message).toContain('topo store lock');
+    expect((mapped as TimeoutError).category).toBe('timeout');
+    expect((mapped as TimeoutError).retryable).toBe(true);
+    expect((mapped as TimeoutError).context).toMatchObject({
+      operation: 'compile',
+      reason: 'sqlite-lock-contention',
+      resource: 'trails.db',
+    });
+  });
+
   test('topo surfaces current summary, detail, and compile/verify flow', async () => {
     const dir = repoTempDir();
 

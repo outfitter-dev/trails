@@ -32,7 +32,9 @@ bun apps/trails/bin/trails.ts schema wf search
 
 Use `trails schema <command...>` when you need the accepted CLI routes, aliases, flags, and schemas for an operator command before invoking it from a shell.
 
-Use `wayfind outline <file>` before reading a large source file when you need a compact source map. It parses the explicit file path, reports imports, exports, declarations, app declarations, and authored trail IDs, and links those trail IDs to saved graph facts when artifacts exist. Use source search, qmd, or symbol tools when Wayfinder reports missing or stale artifacts, when the task needs implementation text that Topographer does not project, or when the current authority does not allow generating fresh artifacts. If you compile to refresh artifacts, treat the generated `.trails` files as evidence and clean them up unless the branch intentionally owns them.
+Use `wayfind outline <file>` before reading a large source file when you need a compact source map. It parses the explicit file path, reports imports, exports, declarations, app declarations, and authored trail IDs, and links those trail IDs to saved graph facts when artifacts exist. In `--review` text mode, matched trails include compact graph facts such as intent, input/output schema presence, and example count when those facts are available.
+
+Missing graph artifacts are warnings, not hard failures. Follow the diagnostic's `trails compile --module <app-module> --root-dir <workspace-root> --permit '{"id":"operator","scopes":["topo:write"]}'` shape when you are allowed to refresh artifacts; do not silently fall back to stale graph assumptions. Use source search, qmd, or symbol tools when Wayfinder reports missing or stale artifacts, when the task needs implementation text that Topographer does not project, or when the current authority does not allow generating fresh artifacts. If you compile to refresh artifacts, treat the generated `.trails` files as evidence and clean them up unless the branch intentionally owns them.
 
 ## Symbol Navigation
 

@@ -5,12 +5,13 @@ import {
   NotFoundError,
   PermitError,
   Result,
+  TimeoutError,
   trail,
   topo,
   ValidationError,
 } from '@ontrails/core';
 import type { AnyTrail, CliCommand } from '@ontrails/cli';
-import { deriveCliCommands } from '@ontrails/cli';
+import { deriveCliCommands, outputModePreset } from '@ontrails/cli';
 import { z } from 'zod';
 
 import { toCommander } from '../to-commander.js';
@@ -1282,6 +1283,205 @@ describe('toCommander option wiring', () => {
         'Error: Internal server error\n'
       );
     });
+  });
+
+  test('error handling emits structured stderr under --json', async () => {
+    await withMockedProcess(async () => {
+      const failTrail = trail('fail', {
+        blaze: () => Result.ok('ok'),
+        input: z.object({}),
+      });
+      const program = toCommander([
+        {
+          args: [],
+          execute: () => {
+            throw new TimeoutError(
+              'Timed out waiting for the topo store lock',
+              {
+                context: {
+                  operation: 'write',
+                  reason: 'sqlite-lock-contention',
+                  resource: 'topo-store',
+                },
+              }
+            );
+          },
+          flags: [
+            {
+              name: 'json',
+              required: false,
+              type: 'boolean' as const,
+              variadic: false,
+            },
+          ],
+          intent: 'write' as const,
+          path: ['fail'] as const,
+          trail: failTrail,
+        },
+      ]);
+
+      await expect(
+        program.parseAsync(['node', 'test', 'fail', '--json'], {
+          from: 'node',
+        })
+      ).rejects.toThrow('EXIT 5');
+      expect(process.stderr.write).toHaveBeenCalledWith(
+        expect.stringContaining('"category": "timeout"')
+      );
+      expect(process.stderr.write).toHaveBeenCalledWith(
+        expect.stringContaining('"code": 5')
+      );
+      expect(process.stderr.write).toHaveBeenCalledWith(
+        expect.stringContaining('"ok": false')
+      );
+      expect(process.stderr.write).toHaveBeenCalledWith(
+        expect.stringContaining('"reason": "sqlite-lock-contention"')
+      );
+      expect(process.stderr.write).toHaveBeenCalledWith(
+        expect.stringContaining('"resource": "topo-store"')
+      );
+    });
+  });
+
+  test('error handling treats value alias output modes as explicit', async () => {
+    await withMockedProcess(async () => {
+      const failTrail = trail('fail', {
+        blaze: () => Result.ok('ok'),
+        input: z.object({}),
+      });
+      const program = toCommander([
+        {
+          args: [],
+          execute: () => {
+            throw new TimeoutError('Timed out waiting for output');
+          },
+          flags: [
+            {
+              choices: ['text', 'json'],
+              default: 'text',
+              name: 'output',
+              required: false,
+              type: 'string' as const,
+              valueAliases: [{ name: 'json', value: 'json' }],
+              variadic: false,
+            },
+          ],
+          intent: 'write' as const,
+          path: ['fail'] as const,
+          trail: failTrail,
+        },
+      ]);
+
+      await expect(
+        program.parseAsync(['node', 'test', 'fail', '--json'], {
+          from: 'node',
+        })
+      ).rejects.toThrow('EXIT 5');
+      expect(process.stderr.write).toHaveBeenCalledWith(
+        expect.stringContaining('"category": "timeout"')
+      );
+      expect(process.stderr.write).toHaveBeenCalledWith(
+        expect.stringContaining('"ok": false')
+      );
+    });
+  });
+
+  test('error handling honors topo-derived JSON env mode', async () => {
+    const previous = process.env['TEST_APP_JSON'];
+    process.env['TEST_APP_JSON'] = '1';
+
+    try {
+      await withMockedProcess(async () => {
+        const failTrail = trail('fail', {
+          blaze: () => Result.ok('ok'),
+          input: z.object({}),
+        });
+        const program = toCommander(
+          [
+            {
+              args: [],
+              execute: () => {
+                throw new TimeoutError(
+                  'Timed out waiting for the topo store lock'
+                );
+              },
+              flags: outputModePreset(),
+              intent: 'write' as const,
+              path: ['fail'] as const,
+              trail: failTrail,
+            },
+          ],
+          { name: 'demo', topoName: 'test-app' }
+        );
+
+        await expect(
+          program.parseAsync(['node', 'test', 'fail'], {
+            from: 'node',
+          })
+        ).rejects.toThrow('EXIT 5');
+        expect(process.stderr.write).toHaveBeenCalledWith(
+          expect.stringContaining('"category": "timeout"')
+        );
+        expect(process.stderr.write).toHaveBeenCalledWith(
+          expect.stringContaining('"ok": false')
+        );
+      });
+    } finally {
+      if (previous === undefined) {
+        delete process.env['TEST_APP_JSON'];
+      } else {
+        process.env['TEST_APP_JSON'] = previous;
+      }
+    }
+  });
+
+  test('error handling lets explicit text output override topo env mode', async () => {
+    const previous = process.env['TEST_APP_JSON'];
+    process.env['TEST_APP_JSON'] = '1';
+
+    try {
+      await withMockedProcess(async () => {
+        const failTrail = trail('fail', {
+          blaze: () => Result.ok('ok'),
+          input: z.object({}),
+        });
+        const program = toCommander(
+          [
+            {
+              args: [],
+              execute: () => {
+                throw new TimeoutError(
+                  'Timed out waiting for the topo store lock'
+                );
+              },
+              flags: outputModePreset(),
+              intent: 'write' as const,
+              path: ['fail'] as const,
+              trail: failTrail,
+            },
+          ],
+          { name: 'test-app' }
+        );
+
+        await expect(
+          program.parseAsync(['node', 'test', 'fail', '--output', 'text'], {
+            from: 'node',
+          })
+        ).rejects.toThrow('EXIT 5');
+        expect(process.stderr.write).toHaveBeenCalledWith(
+          'Error: Timed out waiting for the topo store lock\n'
+        );
+        expect(process.stderr.write).not.toHaveBeenCalledWith(
+          expect.stringContaining('"category": "timeout"')
+        );
+      });
+    } finally {
+      if (previous === undefined) {
+        delete process.env['TEST_APP_JSON'];
+      } else {
+        process.env['TEST_APP_JSON'] = previous;
+      }
+    }
   });
 
   test('error handling lists validation issues from error context', async () => {

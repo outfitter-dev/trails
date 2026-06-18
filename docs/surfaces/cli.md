@@ -251,6 +251,33 @@ When a trail returns `Result.err()`, the Commander adapter maps the error catego
 
 The error message is written to stderr. Non-`TrailsError` errors default to exit code 8 (internal).
 
+When the caller requested JSON or JSONL output with `--json`, `--jsonl`, `--output`, or the topo-derived environment variables, failures are also projected through the structured channel on stderr. Stdout stays reserved for successful command output, so agents can read stderr on non-zero exits without parsing text-mode messages.
+
+```json
+{
+  "ok": false,
+  "error": {
+    "category": "timeout",
+    "code": 5,
+    "message": "Timed out waiting for the Trails topo store lock while compiling artifacts. Another topo write may be running; retry after it finishes.",
+    "name": "TimeoutError",
+    "retryable": true,
+    "surface": "cli"
+  },
+  "context": {
+    "operation": "compile",
+    "reason": "sqlite-lock-contention",
+    "resource": "trails.db"
+  }
+}
+```
+
+Text mode remains human-first:
+
+```text
+Error: Timed out waiting for the Trails topo store lock while compiling artifacts. Another topo write may be running; retry after it finishes.
+```
+
 ## Custom Result Handling
 
 Override the default result handler for custom formatting, logging, or metrics:

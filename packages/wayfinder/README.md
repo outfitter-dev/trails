@@ -144,6 +144,25 @@ await wayfindOutlineTrail.blaze(
 
 CLI hosts can expose the same trail as `trails wayfind outline <file>`. Use `--review`, `--source`, `--contracts`, `--surfaces`, or `--all` for blessed views, or `--features source,trails,apps,diagnostics` for an exact feature set. JSON output includes structured counts plus the selected feature list and omitted feature list so agents can distinguish "not requested" from "absent." CLI text output is rendered by the CLI surface from the structured result; the Wayfinder contract does not carry presentation prose.
 
+In text mode, the `--review` view keeps the source map compact while showing graph-backed trail facts when they are available:
+
+```text
+apps/trails/src/trails/compile.ts
+  trails: 1
+  apps: 0
+  declarations: 4
+  graph matches: 1
+
+  13: const compileCurrentTopo
+  24: const compileTrailInputSchema
+  33: type CompileTrailInput
+  35: const compileTrail
+
+  35: trail compile (write, input+output, 1 example)
+```
+
+When saved graph artifacts are missing, `outline` still renders source facts and emits an actionable diagnostic with the compile command shape, including the app module, root directory, and required `topo:write` permit scope. That diagnostic is a prompt to refresh graph evidence; it is not required for source-only navigation.
+
 ## Surfaces, Facets, Versions, And Examples
 
 `wayfind.surfaces` includes both directly projected trail surfaces and facet-projected surfaces. `wayfind.facets` returns facet membership, visibility, and descriptions. `wayfind.versions` returns current and historical trail versions sorted by trail ID and numeric version. `wayfind.examples` lists saved examples without executing any trail.
