@@ -647,7 +647,7 @@ const loadGraphSoft = async (
           {
             code: 'graph.missing',
             message:
-              'No saved Wayfinder TopoGraph artifact found. Run `trails compile` for graph reconciliation.',
+              'No saved Wayfinder TopoGraph artifact found. Source outline is still available. To add graph reconciliation, run `trails compile --module <app-module> --root-dir <workspace-root> --permit \'{"id":"operator","scopes":["topo:write"]}\'` with a permit authorized for topo:write.',
             severity: 'warn',
           },
         ],

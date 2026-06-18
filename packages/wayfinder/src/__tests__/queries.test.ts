@@ -473,8 +473,20 @@ describe('wayfinder graph-read query trails', () => {
       );
       expect(result.trails).toBeUndefined();
       expect(result.diagnostics).toEqual([
-        expect.objectContaining({ code: 'graph.missing', severity: 'warn' }),
+        expect.objectContaining({
+          code: 'graph.missing',
+          message: expect.stringContaining('--module <app-module>'),
+          severity: 'warn',
+        }),
       ]);
+      expect(result.diagnostics?.[0]?.message).toContain(
+        '--root-dir <workspace-root>'
+      );
+      expect(result.diagnostics?.[0]?.message).toContain('--permit');
+      expect(result.diagnostics?.[0]?.message).toContain(
+        '"scopes":["topo:write"]'
+      );
+      expect(result.diagnostics?.[0]?.message).toContain('topo:write');
     } finally {
       await rm(sourceRoot, { force: true, recursive: true });
     }
