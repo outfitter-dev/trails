@@ -7,6 +7,12 @@ import {
   findBlazeBodies,
   findContourDefinitions,
   findTrailDefinitions,
+  isCallExpression,
+  isIdentifier,
+  isImportDeclaration,
+  isProgram,
+  isVariableDeclaration,
+  isVariableDeclarator,
   isBlazeCall,
   offsetToLineColumn,
   parse,
@@ -59,6 +65,31 @@ describe('@ontrails/warden public API', () => {
       });
     }
     expect(visited).toBeGreaterThan(0);
+  });
+
+  test('exports curated AST node guards on the ast entrypoint', () => {
+    const ast = parse(
+      'example.ts',
+      `
+        import { trail } from '@ontrails/core';
+        const showUser = trail('user.show', {});
+      `
+    );
+    expect(ast).not.toBeNull();
+    expect(isProgram(ast)).toBe(true);
+    if (!isProgram(ast)) {
+      return;
+    }
+
+    expect(ast.body?.some(isImportDeclaration)).toBe(true);
+    const declaration = ast.body?.find(isVariableDeclaration);
+    const [declarator] = declaration?.declarations ?? [];
+
+    expect(isVariableDeclarator(declarator)).toBe(true);
+    if (isVariableDeclarator(declarator)) {
+      expect(isIdentifier(declarator.id)).toBe(true);
+      expect(isCallExpression(declarator.init)).toBe(true);
+    }
   });
 
   test('keeps resolver helpers on the resolve entrypoint', () => {

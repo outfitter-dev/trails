@@ -12,6 +12,18 @@ import {
   findContourDefinitions,
   findTrailDefinitions,
   hasIgnoreCommentOnLine,
+  identifierName,
+  isCallExpression,
+  isDeclarationWithId,
+  isExportDeclaration,
+  isExportSpecifier,
+  isIdentifier,
+  isImportDeclaration,
+  isImportSpecifier,
+  isMemberExpression,
+  isProgram,
+  isVariableDeclaration,
+  isVariableDeclarator,
   offsetToLineColumn,
   parse,
   parseWithDiagnostics,
@@ -20,6 +32,7 @@ import {
   walkWithParents,
   walkWithScopeContext,
 } from '../rules/ast.js';
+import type { VariableDeclarationNode } from '../rules/ast.js';
 
 describe('deriveContourIdentifierName', () => {
   test('supports the common *Contour binding suffix when resolving known contours', () => {
@@ -163,6 +176,78 @@ describe('OXC-backed AST facade helpers', () => {
       { declarationType: 'Import', line: 4 },
       { declarationType: 'FunctionParam', line: 7 },
     ]);
+  });
+
+  test('curated node guards narrow common source shapes', () => {
+    const source = `
+      import { trail as makeTrail } from '@ontrails/core';
+
+      const usesMember = api.value;
+      export const showUser = makeTrail('user.show', {});
+      export { showUser as publicShowUser };
+      export default class UserController {
+        show() {
+          return this;
+        }
+      }
+    `;
+    const ast = parseOrThrow(source);
+
+    expect(isProgram(ast)).toBe(true);
+    const imports = ast.body?.filter(isImportDeclaration) ?? [];
+    expect(imports).toHaveLength(1);
+    const [specifier] = imports[0]?.specifiers ?? [];
+    expect(isImportSpecifier(specifier)).toBe(true);
+    expect(identifierName(specifier?.local)).toBe('makeTrail');
+    expect(specifier && isIdentifier(specifier.imported)).toBe(true);
+
+    let variableDeclaration: VariableDeclarationNode | undefined;
+    walkWithParents(ast, (node) => {
+      if (
+        !variableDeclaration &&
+        isVariableDeclaration(node) &&
+        node.declarations?.some(
+          (declarator) =>
+            isVariableDeclarator(declarator) &&
+            identifierName(declarator.id) === 'showUser'
+        )
+      ) {
+        variableDeclaration = node;
+      }
+    });
+    expect(variableDeclaration?.kind).toBe('const');
+    const declarator = variableDeclaration?.declarations?.find(
+      (candidate) =>
+        isVariableDeclarator(candidate) &&
+        identifierName(candidate.id) === 'showUser'
+    );
+    expect(isVariableDeclarator(declarator)).toBe(true);
+    expect(identifierName(declarator?.id)).toBe('showUser');
+    expect(isCallExpression(declarator?.init)).toBe(true);
+
+    const namedExport = ast.body?.find(
+      (node) => isExportDeclaration(node) && node.specifiers?.length
+    );
+    const [exportSpecifier] = namedExport?.specifiers ?? [];
+    expect(isExportSpecifier(exportSpecifier)).toBe(true);
+    expect(identifierName(exportSpecifier?.exported)).toBe('publicShowUser');
+
+    const defaultExport = ast.body?.find(
+      (node) =>
+        isExportDeclaration(node) && node.type === 'ExportDefaultDeclaration'
+    );
+    expect(isDeclarationWithId(defaultExport?.declaration)).toBe(true);
+    if (isDeclarationWithId(defaultExport?.declaration)) {
+      expect(identifierName(defaultExport.declaration.id)).toBe(
+        'UserController'
+      );
+    }
+
+    let sawMemberExpression = false;
+    walkWithParents(ast, (node) => {
+      sawMemberExpression ||= isMemberExpression(node);
+    });
+    expect(sawMemberExpression).toBe(true);
   });
 
   test('source edit helpers apply validated non-overlapping edits', () => {

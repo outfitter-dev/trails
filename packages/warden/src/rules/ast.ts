@@ -27,11 +27,198 @@ export interface AstNode {
   readonly type: string;
   readonly start: number;
   readonly end: number;
-  readonly key?: { readonly name?: string };
+  readonly parent?: AstNode | null;
+  readonly key?: unknown;
   readonly value?: unknown;
   readonly body?: AstNode | readonly AstNode[];
   readonly [key: string]: unknown;
 }
+
+export interface ProgramNode extends AstNode {
+  readonly type: 'Program';
+  readonly body?: readonly AstNode[];
+}
+
+export interface IdentifierNode extends AstNode {
+  readonly type: 'Identifier';
+  readonly name?: string;
+}
+
+export interface StringLiteralNode extends AstNode {
+  readonly type: 'Literal' | 'StringLiteral';
+  readonly value?: unknown;
+}
+
+export interface CallExpressionNode extends AstNode {
+  readonly type: 'CallExpression' | 'NewExpression';
+  readonly arguments?: readonly AstNode[];
+  readonly callee?: AstNode;
+}
+
+export interface MemberExpressionNode extends AstNode {
+  readonly type: 'MemberExpression' | 'StaticMemberExpression';
+  readonly computed?: boolean;
+  readonly object?: AstNode;
+  readonly property?: AstNode;
+}
+
+export interface ImportDeclarationNode extends AstNode {
+  readonly type: 'ImportDeclaration';
+  readonly source?: AstNode;
+  readonly specifiers?: readonly AstNode[];
+}
+
+export interface ImportSpecifierNode extends AstNode {
+  readonly type:
+    | 'ImportDefaultSpecifier'
+    | 'ImportNamespaceSpecifier'
+    | 'ImportSpecifier';
+  readonly imported?: AstNode;
+  readonly local?: AstNode;
+}
+
+export interface ExportDeclarationNode extends AstNode {
+  readonly type:
+    | 'ExportAllDeclaration'
+    | 'ExportDefaultDeclaration'
+    | 'ExportNamedDeclaration';
+  readonly declaration?: AstNode;
+  readonly source?: AstNode;
+  readonly specifiers?: readonly AstNode[];
+}
+
+export interface ExportSpecifierNode extends AstNode {
+  readonly type: 'ExportSpecifier';
+  readonly exportKind?: string;
+  readonly exported?: AstNode;
+  readonly local?: AstNode;
+}
+
+export interface VariableDeclarationNode extends AstNode {
+  readonly type: 'VariableDeclaration';
+  readonly declarations?: readonly AstNode[];
+  readonly kind?: string;
+}
+
+export interface VariableDeclaratorNode extends AstNode {
+  readonly type: 'VariableDeclarator';
+  readonly id?: AstNode;
+  readonly init?: AstNode;
+}
+
+export interface DeclarationWithIdNode extends AstNode {
+  readonly type:
+    | 'ClassDeclaration'
+    | 'FunctionDeclaration'
+    | 'InterfaceDeclaration'
+    | 'TSInterfaceDeclaration'
+    | 'TSTypeAliasDeclaration';
+  readonly id?: AstNode;
+}
+
+export interface ClassMemberNode extends AstNode {
+  readonly type: 'MethodDefinition' | 'PropertyDefinition';
+  readonly computed?: boolean;
+  readonly key?: AstNode;
+  readonly value?: AstNode;
+}
+
+export interface ArrayExpressionNode extends AstNode {
+  readonly type: 'ArrayExpression';
+  readonly elements?: readonly (AstNode | null)[];
+}
+
+export interface ObjectExpressionNode extends AstNode {
+  readonly type: 'ObjectExpression' | 'ObjectPattern';
+  readonly properties?: readonly AstNode[];
+}
+
+export interface PropertyNode extends AstNode {
+  readonly type: 'Property';
+  readonly computed?: boolean;
+  readonly key?: AstNode;
+  readonly value?: AstNode;
+}
+
+export interface RestElementNode extends AstNode {
+  readonly type: 'RestElement';
+  readonly argument?: AstNode;
+}
+
+export interface AssignmentPatternNode extends AstNode {
+  readonly type: 'AssignmentPattern';
+  readonly left?: AstNode;
+  readonly right?: AstNode;
+}
+
+export interface ExpressionStatementNode extends AstNode {
+  readonly type: 'ExpressionStatement';
+  readonly expression?: AstNode;
+}
+
+export interface UnaryExpressionNode extends AstNode {
+  readonly type: 'AwaitExpression' | 'ChainExpression' | 'UnaryExpression';
+  readonly argument?: AstNode;
+}
+
+export interface BinaryExpressionNode extends AstNode {
+  readonly type:
+    | 'AssignmentExpression'
+    | 'BinaryExpression'
+    | 'ConditionalExpression'
+    | 'LogicalExpression';
+  readonly alternate?: AstNode;
+  readonly consequent?: AstNode;
+  readonly left?: AstNode;
+  readonly operator?: string;
+  readonly right?: AstNode;
+  readonly test?: AstNode;
+}
+
+export interface FunctionLikeNode extends AstNode {
+  readonly type:
+    | 'ArrowFunctionExpression'
+    | 'FunctionDeclaration'
+    | 'FunctionExpression';
+  readonly body?: AstNode;
+  readonly params?: readonly AstNode[];
+}
+
+export interface BlockStatementNode extends AstNode {
+  readonly type: 'BlockStatement' | 'StaticBlock';
+  readonly body?: readonly AstNode[];
+}
+
+export interface ReturnStatementNode extends AstNode {
+  readonly type: 'ReturnStatement';
+  readonly argument?: AstNode;
+}
+
+export type CuratedAstNode =
+  | ArrayExpressionNode
+  | AssignmentPatternNode
+  | BinaryExpressionNode
+  | BlockStatementNode
+  | CallExpressionNode
+  | ClassMemberNode
+  | DeclarationWithIdNode
+  | ExportDeclarationNode
+  | ExportSpecifierNode
+  | ExpressionStatementNode
+  | FunctionLikeNode
+  | IdentifierNode
+  | ImportDeclarationNode
+  | ImportSpecifierNode
+  | MemberExpressionNode
+  | ObjectExpressionNode
+  | ProgramNode
+  | PropertyNode
+  | RestElementNode
+  | ReturnStatementNode
+  | StringLiteralNode
+  | UnaryExpressionNode
+  | VariableDeclarationNode
+  | VariableDeclaratorNode;
 
 export interface AstParentContext {
   readonly index: number | null;
@@ -82,13 +269,182 @@ export interface AstParseResult {
   readonly diagnostics: readonly AstParseDiagnostic[];
 }
 
-interface StringLiteralNode extends AstNode {
-  readonly type: 'Literal' | 'StringLiteral';
-  readonly value?: unknown;
-}
-
-const isAstNode = (value: unknown): value is AstNode =>
+export const isAstNode = (value: unknown): value is AstNode =>
   Boolean(value && typeof value === 'object' && (value as AstNode).type);
+
+const isNodeType = <TNode extends CuratedAstNode>(
+  node: AstNode | null | undefined,
+  types: readonly string[]
+): node is TNode =>
+  node !== null && node !== undefined && types.includes(node.type);
+
+export const isProgram = (
+  node: AstNode | null | undefined
+): node is ProgramNode => isNodeType<ProgramNode>(node, ['Program']);
+
+export const isIdentifier = (
+  node: AstNode | null | undefined
+): node is IdentifierNode => isNodeType<IdentifierNode>(node, ['Identifier']);
+
+export const isCallExpression = (
+  node: AstNode | null | undefined
+): node is CallExpressionNode =>
+  isNodeType<CallExpressionNode>(node, ['CallExpression', 'NewExpression']);
+
+export const isMemberExpression = (
+  node: AstNode | null | undefined
+): node is MemberExpressionNode =>
+  isNodeType<MemberExpressionNode>(node, [
+    'MemberExpression',
+    'StaticMemberExpression',
+  ]);
+
+export const isImportDeclaration = (
+  node: AstNode | null | undefined
+): node is ImportDeclarationNode =>
+  isNodeType<ImportDeclarationNode>(node, ['ImportDeclaration']);
+
+export const isImportSpecifier = (
+  node: AstNode | null | undefined
+): node is ImportSpecifierNode =>
+  isNodeType<ImportSpecifierNode>(node, [
+    'ImportDefaultSpecifier',
+    'ImportNamespaceSpecifier',
+    'ImportSpecifier',
+  ]);
+
+export const isExportDeclaration = (
+  node: AstNode | null | undefined
+): node is ExportDeclarationNode =>
+  isNodeType<ExportDeclarationNode>(node, [
+    'ExportAllDeclaration',
+    'ExportDefaultDeclaration',
+    'ExportNamedDeclaration',
+  ]);
+
+export const isExportNamedDeclaration = (
+  node: AstNode | null | undefined
+): node is ExportDeclarationNode & {
+  readonly type: 'ExportNamedDeclaration';
+} =>
+  isNodeType<
+    ExportDeclarationNode & { readonly type: 'ExportNamedDeclaration' }
+  >(node, ['ExportNamedDeclaration']);
+
+export const isExportDefaultDeclaration = (
+  node: AstNode | null | undefined
+): node is ExportDeclarationNode & {
+  readonly type: 'ExportDefaultDeclaration';
+} =>
+  isNodeType<
+    ExportDeclarationNode & { readonly type: 'ExportDefaultDeclaration' }
+  >(node, ['ExportDefaultDeclaration']);
+
+export const isExportAllDeclaration = (
+  node: AstNode | null | undefined
+): node is ExportDeclarationNode & { readonly type: 'ExportAllDeclaration' } =>
+  isNodeType<ExportDeclarationNode & { readonly type: 'ExportAllDeclaration' }>(
+    node,
+    ['ExportAllDeclaration']
+  );
+
+export const isExportSpecifier = (
+  node: AstNode | null | undefined
+): node is ExportSpecifierNode =>
+  isNodeType<ExportSpecifierNode>(node, ['ExportSpecifier']);
+
+export const isVariableDeclaration = (
+  node: AstNode | null | undefined
+): node is VariableDeclarationNode =>
+  isNodeType<VariableDeclarationNode>(node, ['VariableDeclaration']);
+
+export const isVariableDeclarator = (
+  node: AstNode | null | undefined
+): node is VariableDeclaratorNode =>
+  isNodeType<VariableDeclaratorNode>(node, ['VariableDeclarator']);
+
+export const isDeclarationWithId = (
+  node: AstNode | null | undefined
+): node is DeclarationWithIdNode =>
+  isNodeType<DeclarationWithIdNode>(node, [
+    'ClassDeclaration',
+    'FunctionDeclaration',
+    'InterfaceDeclaration',
+    'TSInterfaceDeclaration',
+    'TSTypeAliasDeclaration',
+  ]);
+
+export const isClassMember = (
+  node: AstNode | null | undefined
+): node is ClassMemberNode =>
+  isNodeType<ClassMemberNode>(node, ['MethodDefinition', 'PropertyDefinition']);
+
+export const isArrayExpression = (
+  node: AstNode | null | undefined
+): node is ArrayExpressionNode =>
+  isNodeType<ArrayExpressionNode>(node, ['ArrayExpression']);
+
+export const isObjectExpression = (
+  node: AstNode | null | undefined
+): node is ObjectExpressionNode =>
+  isNodeType<ObjectExpressionNode>(node, ['ObjectExpression', 'ObjectPattern']);
+
+export const isProperty = (
+  node: AstNode | null | undefined
+): node is PropertyNode => isNodeType<PropertyNode>(node, ['Property']);
+
+export const isRestElement = (
+  node: AstNode | null | undefined
+): node is RestElementNode =>
+  isNodeType<RestElementNode>(node, ['RestElement']);
+
+export const isAssignmentPattern = (
+  node: AstNode | null | undefined
+): node is AssignmentPatternNode =>
+  isNodeType<AssignmentPatternNode>(node, ['AssignmentPattern']);
+
+export const isExpressionStatement = (
+  node: AstNode | null | undefined
+): node is ExpressionStatementNode =>
+  isNodeType<ExpressionStatementNode>(node, ['ExpressionStatement']);
+
+export const isUnaryExpression = (
+  node: AstNode | null | undefined
+): node is UnaryExpressionNode =>
+  isNodeType<UnaryExpressionNode>(node, [
+    'AwaitExpression',
+    'ChainExpression',
+    'UnaryExpression',
+  ]);
+
+export const isBinaryExpression = (
+  node: AstNode | null | undefined
+): node is BinaryExpressionNode =>
+  isNodeType<BinaryExpressionNode>(node, [
+    'AssignmentExpression',
+    'BinaryExpression',
+    'ConditionalExpression',
+    'LogicalExpression',
+  ]);
+
+export const isFunctionLike = (
+  node: AstNode | null | undefined
+): node is FunctionLikeNode =>
+  isNodeType<FunctionLikeNode>(node, [
+    'ArrowFunctionExpression',
+    'FunctionDeclaration',
+    'FunctionExpression',
+  ]);
+
+export const isBlockStatement = (
+  node: AstNode | null | undefined
+): node is BlockStatementNode =>
+  isNodeType<BlockStatementNode>(node, ['BlockStatement', 'StaticBlock']);
+
+export const isReturnStatement = (
+  node: AstNode | null | undefined
+): node is ReturnStatementNode =>
+  isNodeType<ReturnStatementNode>(node, ['ReturnStatement']);
 
 // ---------------------------------------------------------------------------
 // Parser
@@ -2679,8 +3035,8 @@ const extractBlazeFromConfig = (config: AstNode): AstNode[] => {
   }
   for (const prop of properties) {
     if (
-      prop.type === 'Property' &&
-      prop.key?.name === 'blaze' &&
+      isProperty(prop) &&
+      identifierName(prop.key) === 'blaze' &&
       isAstNode(prop.value)
     ) {
       bodies.push(prop.value);
