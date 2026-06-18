@@ -25,12 +25,14 @@ bun apps/trails/bin/trails.ts wayfind errors --root-dir . --input-json '{"filter
 bun apps/trails/bin/trails.ts wayfind adapters --root-dir . --json
 bun apps/trails/bin/trails.ts wayfind nearby wayfind.search --root-dir . --json
 bun apps/trails/bin/trails.ts wayfind impact wayfind.search --root-dir . --json
+bun apps/trails/bin/trails.ts wayfind outline apps/trails/src/app.ts --root-dir . --review
+bun apps/trails/bin/trails.ts wayfind outline apps/trails/src/app.ts --root-dir . --features source,apps,diagnostics --json
 bun apps/trails/bin/trails.ts schema wf search
 ```
 
 Use `trails schema <command...>` when you need the accepted CLI routes, aliases, flags, and schemas for an operator command before invoking it from a shell.
 
-Use source search, qmd, or symbol tools when Wayfinder reports missing or stale artifacts, when the task needs implementation text that Topographer does not project, or when the current authority does not allow generating fresh artifacts. If you compile to refresh artifacts, treat the generated `.trails` files as evidence and clean them up unless the branch intentionally owns them.
+Use `wayfind outline <file>` before reading a large source file when you need a compact source map. It parses the explicit file path, reports imports, exports, declarations, app declarations, and authored trail IDs, and links those trail IDs to saved graph facts when artifacts exist. Use source search, qmd, or symbol tools when Wayfinder reports missing or stale artifacts, when the task needs implementation text that Topographer does not project, or when the current authority does not allow generating fresh artifacts. If you compile to refresh artifacts, treat the generated `.trails` files as evidence and clean them up unless the branch intentionally owns them.
 
 ## Symbol Navigation
 

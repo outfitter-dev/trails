@@ -41,6 +41,7 @@ export const trailsMcpIncludedTrails = [
   'wayfind.impact',
   'wayfind.nearby',
   'wayfind.overview',
+  'wayfind.outline',
   'wayfind.search',
   'wayfind.trails',
 ] as const;

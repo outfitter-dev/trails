@@ -233,6 +233,7 @@ export const wayfindDescribeTrail: any;
 export const wayfindDiffTrail: any;
 export const wayfindImpactTrail: any;
 export const wayfindNearbyTrail: any;
+export const wayfindOutlineTrail: any;
 export const wayfindOverviewTrail: any;
 export const wayfinderTopo: any;
 export const wayfindSearchTrail: any;

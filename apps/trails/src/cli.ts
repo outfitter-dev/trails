@@ -52,6 +52,7 @@ import {
   runWatchLoop,
 } from './run-watch.js';
 import { tryWardenOutput } from './run-warden.js';
+import { tryWayfindOutlineOutput } from './run-wayfind-outline.js';
 import { tryLoadFreshAppLease } from './trails/load-app.js';
 import { resolveRunModulePath } from './trails/run.js';
 import { resolveTrailRootDir } from './trails/root-dir.js';
@@ -98,6 +99,9 @@ const buildOnResult =
       return;
     }
     if (tryReleaseCheckOutput(resolvedCtx)) {
+      return;
+    }
+    if (tryWayfindOutlineOutput(resolvedCtx)) {
       return;
     }
     await defaultOnResult(resolvedCtx);

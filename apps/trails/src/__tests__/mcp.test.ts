@@ -72,6 +72,7 @@ describe('Trails MCP surface shaping', () => {
       'trails_wayfind_examples',
       'trails_wayfind_impact',
       'trails_wayfind_nearby',
+      'trails_wayfind_outline',
       'trails_wayfind_overview',
       'trails_wayfind_search',
       'trails_wayfind_trails',
@@ -110,6 +111,7 @@ describe('Trails MCP surface shaping', () => {
     const tools = unwrapTools(trailsMcpApp, trailsMcpSurfaceOptions);
     const wayfindAdapters = requireTool(tools, 'trails_wayfind_adapters');
     const wayfindErrors = requireTool(tools, 'trails_wayfind_errors');
+    const wayfindOutline = requireTool(tools, 'trails_wayfind_outline');
     const wayfindSearch = requireTool(tools, 'trails_wayfind_search');
     const warden = requireTool(tools, 'trails_warden');
     const devClean = requireTool(tools, 'trails_dev_clean');
@@ -130,6 +132,15 @@ describe('Trails MCP surface shaping', () => {
     expect(wayfindErrors.annotations).toMatchObject({
       readOnlyHint: true,
       title: 'List saved trail error facts with provenance',
+    });
+
+    expect(wayfindOutline.description).toBe(
+      'Outline one source file and connect source structure to saved Trails graph facts'
+    );
+    expect(wayfindOutline.annotations).toMatchObject({
+      readOnlyHint: true,
+      title:
+        'Outline one source file and connect source structure to saved Trails graph facts',
     });
 
     expect(wayfindSearch.description).toBe(
@@ -178,6 +189,7 @@ describe('Trails MCP surface shaping', () => {
     expect(shapedTrailIds).not.toContain('completions.__complete');
     expect(shapedTrailIds).toContain('wayfind.adapters');
     expect(shapedTrailIds).toContain('wayfind.errors');
+    expect(shapedTrailIds).toContain('wayfind.outline');
     expect(shapedTrailIds).not.toContain('wayfind.query');
   });
 
@@ -190,6 +202,7 @@ describe('Trails MCP surface shaping', () => {
     expect(trailsMcpIncludedTrails).toContain('warden');
     expect(trailsMcpIncludedTrails).toContain('wayfind.adapters');
     expect(trailsMcpIncludedTrails).toContain('wayfind.errors');
+    expect(trailsMcpIncludedTrails).toContain('wayfind.outline');
     expect(trailsMcpIncludedTrails).toContain('wayfind.search');
   });
 

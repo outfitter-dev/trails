@@ -32,6 +32,7 @@ import type {
   WayfinderArtifactLoaderOptions,
 } from './loader.js';
 import { deriveTrailErrorFacts } from './error-facts.js';
+import { wayfindOutlineTrail } from './outline.js';
 import {
   diffResult,
   edgeTouches,
@@ -44,6 +45,8 @@ import {
   relationGroupSchema,
   resolveEntityRef,
 } from './relations.js';
+
+export { wayfindOutlineTrail } from './outline.js';
 
 const artifactSourceSchema = z.object({
   kind: z.enum(['lockManifest', 'topoGraph', 'topoStore']),
@@ -1588,6 +1591,7 @@ export const wayfinderTopo = topo('wayfinder', {
   wayfindFacetsTrail,
   wayfindImpactTrail,
   wayfindNearbyTrail,
+  wayfindOutlineTrail,
   wayfindOverviewTrail,
   wayfindResourcesTrail,
   wayfindSearchTrail,

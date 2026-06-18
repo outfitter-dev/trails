@@ -311,6 +311,7 @@
       "version": "1.0.0-beta.24",
       "dependencies": {
         "@ontrails/adapter-kit": "workspace:^",
+        "@ontrails/warden": "workspace:^",
       },
       "peerDependencies": {
         "@ontrails/core": "workspace:^",

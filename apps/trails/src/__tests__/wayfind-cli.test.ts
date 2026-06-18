@@ -7,6 +7,7 @@ import {
   trailsCliAliases,
   trailsCliIncludedTrails,
 } from '../app.js';
+import { formatWayfindOutlineText } from '../run-wayfind-outline.js';
 
 const unwrapCommands = () => {
   const result = deriveCliCommands(app, {
@@ -35,6 +36,7 @@ describe('Trails Wayfinder CLI surface', () => {
     expect(commandPaths).toContain('wayfind nearby');
     expect(commandPaths).toContain('wayfind impact');
     expect(commandPaths).toContain('wayfind examples');
+    expect(commandPaths).toContain('wayfind outline');
 
     expect(trailIds).toContain('wayfind.overview');
     expect(trailIds).toContain('wayfind.adapters');
@@ -46,6 +48,12 @@ describe('Trails Wayfinder CLI surface', () => {
     expect(trailIds).toContain('wayfind.nearby');
     expect(trailIds).toContain('wayfind.impact');
     expect(trailIds).toContain('wayfind.examples');
+    expect(trailIds).toContain('wayfind.outline');
+
+    const outline = commands.find(
+      (command) => command.trail.id === 'wayfind.outline'
+    );
+    expect(outline?.args.map((arg) => arg.name)).toEqual(['file']);
 
     const search = commands.find(
       (command) => command.trail.id === 'wayfind.search'
@@ -84,5 +92,52 @@ describe('Trails Wayfinder CLI surface', () => {
   test('keeps the base operator topo separate from CLI Wayfinder exposure', () => {
     expect(operatorApp.get('wayfind.overview')).toBeUndefined();
     expect(app.get('wayfind.overview')).toBeDefined();
+  });
+
+  test('renders outline text from structured fields', () => {
+    const text = formatWayfindOutlineText({
+      apps: [{ callee: 'topo', line: 20, name: 'app' }],
+      counts: {
+        apps: 1,
+        declarations: 2,
+        diagnostics: 1,
+        graphMatches: 1,
+        trails: 1,
+      },
+      diagnostics: [
+        {
+          code: 'graph.missing',
+          message: 'No saved graph.',
+          severity: 'warn',
+        },
+      ],
+      features: {
+        included: ['source', 'trails', 'apps', 'graph', 'diagnostics'],
+        omitted: ['contracts', 'surfaces'],
+        view: 'review',
+      },
+      file: 'src/app.ts',
+      graph: {
+        matchedTrailIds: ['user.create'],
+        source: null,
+      },
+      rootDir: '/repo',
+      source: {
+        declarations: [
+          { kind: 'const', line: 10, name: 'userCreateTrail' },
+          { kind: 'const', line: 20, name: 'app' },
+        ],
+        exports: [],
+        imports: [],
+        lineCount: 20,
+      },
+      trails: [{ id: 'user.create', line: 10 }],
+    });
+
+    expect(text).toContain('src/app.ts');
+    expect(text).toContain('  graph matches: 1');
+    expect(text).toContain('  10: trail user.create');
+    expect(text).toContain('  20: app app (topo)');
+    expect(text).toContain('  warn: graph.missing: No saved graph.');
   });
 });

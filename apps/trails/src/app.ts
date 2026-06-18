@@ -8,6 +8,7 @@ import {
   wayfindImpactTrail,
   wayfindNearbyTrail,
   wayfindOverviewTrail,
+  wayfindOutlineTrail,
   wayfindSearchTrail,
   wayfindTrailsTrail,
 } from '@ontrails/wayfinder';
@@ -95,6 +96,7 @@ const cliWayfinderTrails = {
   wayfindExamplesTrail,
   wayfindImpactTrail,
   wayfindNearbyTrail,
+  wayfindOutlineTrail,
   wayfindOverviewTrail,
   wayfindSearchTrail,
   wayfindTrailsTrail,

@@ -7,6 +7,7 @@ import {
   wayfindImpactTrail,
   wayfindNearbyTrail,
   wayfindOverviewTrail,
+  wayfindOutlineTrail,
   wayfindSearchTrail,
   wayfindTrailsTrail,
 } from '@ontrails/wayfinder';
@@ -24,6 +25,7 @@ export const trailsMcpApp = topo('trails', operatorTrails, {
   wayfindExamplesTrail,
   wayfindImpactTrail,
   wayfindNearbyTrail,
+  wayfindOutlineTrail,
   wayfindOverviewTrail,
   wayfindSearchTrail,
   wayfindTrailsTrail,

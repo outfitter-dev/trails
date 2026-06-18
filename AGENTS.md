@@ -49,6 +49,8 @@ The architecture is designed to make consistency easier than drift. Agents build
 
 For Trails graph-navigation questions, use Wayfinder before reconstructing topo facts manually. Start with `trails wayfind overview --root-dir . --json` or the repo-local `bun apps/trails/bin/trails.ts wayfind overview --root-dir . --json` to check artifact source and freshness, then use `wayfind search`, `wayfind trails`, `wayfind contract`, `wayfind describe`, `wayfind nearby`, `wayfind impact`, or `wayfind examples` for saved graph facts.
 
+`wayfind outline <file>` is the source-navigation exception inside Wayfinder: it parses the explicit source file live, then cross-references saved graph artifacts when they are available.
+
 Fall back to `rg`, qmd, source reads, or a fresh compile when Wayfinder reports missing or stale artifacts, when the task needs source text that Topographer does not project, or when writing new artifacts would violate the current work authority. When you fall back, say why so the next agent does not silently repeat the same graph reconstruction.
 
 ## Lexicon

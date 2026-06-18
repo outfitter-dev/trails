@@ -2,7 +2,7 @@
 
 Agent-shaped wayfinding query trails over saved graph and package evidence.
 
-`@ontrails/wayfinder` lets agents query a Trails app's resolved topo and package-level authoring facts without re-deriving the graph from `grep` plus file reads. The v0 catalog is cold and deterministic: graph queries read existing Topographer artifacts (`topo.lock`, `trails.lock`, and materialized current `trails.db` topo-store records), while adapter queries read `@ontrails/adapter-kit` package and conformance evidence. Wayfinder does not start apps, boot resources, reach the network, or mutate local state.
+`@ontrails/wayfinder` lets agents query a Trails app's resolved topo, source outline, and package-level authoring facts without re-deriving the graph from `grep` plus file reads. The v0 catalog is cold and deterministic: graph queries read existing Topographer artifacts (`topo.lock`, `trails.lock`, and materialized current `trails.db` topo-store records), source outline queries parse explicit files with OXC, and adapter queries read `@ontrails/adapter-kit` package and conformance evidence. Wayfinder does not start apps, boot resources, reach the network, or mutate local state.
 
 The package exports `wayfinderTopo` plus individual graph-read trails.
 
@@ -26,6 +26,7 @@ The package exports `wayfinderTopo` plus individual graph-read trails.
 | `wayfind.contract` | Inspect the input/output/intent contract for one trail or version. |
 | `wayfind.nearby` | Return direct typed relation edges around one entity. |
 | `wayfind.impact` | Walk upstream, downstream, or both relation directions. |
+| `wayfind.outline` | Outline one source file and connect it to saved graph facts when available. |
 | `wayfind.diff` | Compare two explicit saved TopoGraph baselines. |
 
 Each graph-read trail is internal by default and returns provenance and freshness metadata with its result so callers can tell whether the answer came from fresh artifacts, stale artifacts, missing artifacts, or schema-version drift. Adapter facts carry package and conformance provenance instead. Public surface exposure must be a deliberate host decision.
@@ -126,6 +127,22 @@ await wayfindContractTrail.blaze(
 ```
 
 Missing IDs return `Result.err(new NotFoundError(...))`, preserving Trails' surface error mapping instead of returning ambiguous empty objects.
+
+## Outline
+
+Use `wayfind.outline` when an agent needs to inspect a file's shape before reading the whole source. The query parses the explicit file path, returns imports, exports, declarations, app/topo declarations, and authored trail IDs, then reconciles trail IDs with saved Topographer artifacts when they are available. Missing artifacts are diagnostics, not hard failures, so `outline` remains useful in a fresh checkout or during repair work.
+
+```ts
+import { createTrailContext } from '@ontrails/core';
+import { wayfindOutlineTrail } from '@ontrails/wayfinder';
+
+await wayfindOutlineTrail.blaze(
+  { file: 'apps/trails/src/app.ts', rootDir: process.cwd(), review: true },
+  createTrailContext()
+);
+```
+
+CLI hosts can expose the same trail as `trails wayfind outline <file>`. Use `--review`, `--source`, `--contracts`, `--surfaces`, or `--all` for blessed views, or `--features source,trails,apps,diagnostics` for an exact feature set. JSON output includes structured counts plus the selected feature list and omitted feature list so agents can distinguish "not requested" from "absent." CLI text output is rendered by the CLI surface from the structured result; the Wayfinder contract does not carry presentation prose.
 
 ## Surfaces, Facets, Versions, And Examples
 

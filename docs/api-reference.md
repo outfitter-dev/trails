@@ -279,7 +279,7 @@ wayfindTrailsTrail, wayfindContoursTrail, wayfindResourcesTrail, wayfindSignalsT
 wayfindSurfacesTrail, wayfindFacetsTrail, wayfindVersionsTrail, wayfindExamplesTrail
 wayfindErrorsTrail, wayfindAdaptersTrail
 wayfindDescribeTrail, wayfindContractTrail, wayfindNearbyTrail, wayfindImpactTrail
-wayfindDiffTrail
+wayfindOutlineTrail, wayfindDiffTrail
 
 // Artifact loading, provenance, and typed filters
 loadWayfinderArtifacts, wayfinderTopoGraphSource, wayfinderTopoStoreSource
@@ -295,6 +295,7 @@ WayfinderFreshnessFresh, WayfinderFreshnessMissing
 WayfinderFreshnessSchemaVersionDrift, WayfinderFreshnessStale, WayfinderStaleReason
 WayfinderEntityFilters, WayfinderEntityFilterInput, WayfinderEntityKind
 WayfinderEntityRef, WayfinderFilterContext, WayfinderIntent
+OutlineFeature, OutlineInput, OutlineOutput, OutlineView
 ```
 
 Wayfinder trails are internal by default. Surface hosts expose selected query trails deliberately, usually by exact trail ID for operator tooling.

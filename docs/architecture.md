@@ -174,7 +174,7 @@ Overrides are escape hatches. They're visible in the TopoGraph as explicit devia
 | `@ontrails/testing` | `testAll()`, `testExamples()`, `testTrail()`, contract testing, surface harnesses |
 | `@ontrails/topographer` | TopoGraphs, semantic diffing, lock manifest and `topo.lock` helpers, topo-store persistence (relocated from `@ontrails/core` per ADR-0042) |
 | `@ontrails/warden` | Lint rules, drift detection, CI gating |
-| `@ontrails/wayfinder` | Graph-read query trails over saved Topographer artifacts for agent navigation |
+| `@ontrails/wayfinder` | Graph-read query trails and source outlines over saved Topographer artifacts for agent navigation |
 
 ### Apps
 
@@ -200,14 +200,13 @@ Overrides are escape hatches. They're visible in the TopoGraph as explicit devia
 @ontrails/tracing (core)
 @ontrails/testing (core, cli, mcp, observe)
 @ontrails/topographer (core)
-@ontrails/wayfinder (core, topographer)
+@ontrails/warden (core, topographer)
+@ontrails/wayfinder (core, topographer, warden)
      ^
 @ontrails/commander (cli, commander)
 @ontrails/hono (http, hono)
 @ontrails/vite (node:stream only, no workspace deps)
 @ontrails/logtape (observe)
-@ontrails/warden (core, topographer)
-     ^
 apps/trails (cli/commander, http, topographer, tracing, wayfinder)
 ```
 

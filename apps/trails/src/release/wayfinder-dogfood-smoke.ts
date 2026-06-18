@@ -202,6 +202,33 @@ const assertResolvedTarget = (value: JsonObject, label: string): void => {
   }
 };
 
+const assertOutlineFindsOperatorApp = (outline: JsonObject): void => {
+  const features = assertObject(
+    outline['features'],
+    'wayfind outline features'
+  );
+  if (features['view'] !== 'custom') {
+    throw new Error('wayfind outline did not echo the custom feature view');
+  }
+  const { apps } = outline;
+  if (!Array.isArray(apps)) {
+    throw new TypeError('wayfind outline did not return app facts');
+  }
+  const appNames = apps
+    .map((entry) => assertObject(entry, 'wayfind outline app')['name'])
+    .filter((name): name is string => typeof name === 'string');
+  if (!appNames.includes('operatorApp')) {
+    throw new Error('wayfind outline did not find the operator app export');
+  }
+  if (outline['file'] !== 'apps/trails/src/app.ts') {
+    throw new Error('wayfind outline did not preserve the source file path');
+  }
+  const counts = assertObject(outline['counts'], 'wayfind outline counts');
+  if (counts['apps'] !== apps.length) {
+    throw new Error('wayfind outline counts diverged from app facts');
+  }
+};
+
 export const runWayfinderDogfoodSmoke =
   async (): Promise<WayfinderDogfoodSmokeResult> => {
     const tempRoot = await mkdtemp(join(tmpdir(), 'trails-wayfinder-dogfood-'));
@@ -276,6 +303,23 @@ export const runWayfinderDogfoodSmoke =
       const impact = runWayfind(tempRoot, ['impact', 'wayfind.search']);
       assertFreshSource(impact, 'wayfind impact');
       assertResolvedTarget(impact, 'wayfind impact');
+
+      const outline = runCommand(
+        [
+          process.execPath,
+          trailsBin,
+          'wayfind',
+          'outline',
+          'apps/trails/src/app.ts',
+          '--root-dir',
+          repoRoot,
+          '--features',
+          'source,apps,diagnostics',
+          '--json',
+        ],
+        'trails wayfind outline'
+      );
+      assertOutlineFindsOperatorApp(outline);
 
       return {
         check: 'wayfinder-dogfood',
