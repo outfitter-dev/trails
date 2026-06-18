@@ -40,6 +40,25 @@ export const wardenRulesUseAstTrail = wrapRule({
       },
       name: 'Flags sourceCode.split(...) in a rule file',
     },
+    {
+      expected: {
+        diagnostics: [
+          {
+            filePath: fakeRulePath,
+            line: 1,
+            message:
+              'warden-rules-use-ast: raw AST node-field cast should use typed helpers from ./ast.js (callee -> getNodeCallee). Raw node-field casts drift from the curated @ontrails/warden/ast guard surface.',
+            rule: 'warden-rules-use-ast',
+            severity: 'warn',
+          },
+        ],
+      },
+      input: {
+        filePath: fakeRulePath,
+        sourceCode: `export const r = { check() { const callee = (node as unknown as { callee?: AstNode }).callee; return callee ? [] : []; } };\n`,
+      },
+      name: 'Warns on hand-cast AST node fields',
+    },
   ],
   rule: wardenRulesUseAst,
 });

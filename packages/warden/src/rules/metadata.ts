@@ -701,7 +701,8 @@ const builtinWardenRuleMetadataInput = {
   },
   'warden-rules-use-ast': {
     ...durableRepoLocal,
-    invariant: 'Warden source rules use AST helpers instead of ad hoc parsing.',
+    invariant:
+      'Warden source rules use AST helpers instead of ad hoc parsing or raw node-field casts.',
     tier: 'source-static',
   },
   'webhook-route-collision': {

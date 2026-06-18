@@ -14,6 +14,9 @@
  *    source identifier, e.g. `new RegExp(sourceCode)`, `RegExp(rawText, 'g')`.
  *    Interpolating raw source into a regex constructor is the same class of
  *    bug as scanning with one — see TRL-345.
+ * 4. `rawNodeFieldCastSite` — asserting AST nodes through
+ *    `as unknown as { field?: ... }` where a typed accessor exists on
+ *    `./ast.ts`.
  *
  * This rule is path-anchored to this package's own `src/rules/` directory so
  * it never fires against a consumer repo that happens to share the same
@@ -33,6 +36,7 @@ import {
   getNodeComputed,
   getNodeDeclarations,
   getNodeElements,
+  getNodeExpression,
   getNodeId,
   getNodeKey,
   getNodeKind,
@@ -43,8 +47,10 @@ import {
   getNodeParams,
   getNodeProperties,
   getNodeProperty,
+  getNodeTypeAnnotation,
   getNodeValueNode,
   getStringValue,
+  isAstNode,
   offsetToLine,
   parse,
   walk,
@@ -375,6 +381,7 @@ const DIAGNOSTIC_ADVICE =
 interface DetectedSite {
   readonly identifier: AstNode;
   readonly message: string;
+  readonly severity: 'error' | 'warn';
   readonly start: number;
 }
 
@@ -386,6 +393,7 @@ const detectRawScan = (node: AstNode): DetectedSite | null => {
   return {
     identifier: scan.identifier,
     message: `${RULE_NAME}: ${scan.identifierName}.${scan.methodName}(...) treats source text as a string. ${DIAGNOSTIC_ADVICE}`,
+    severity: 'error',
     start: scan.start,
   };
 };
@@ -398,6 +406,7 @@ const detectRegexScan = (node: AstNode): DetectedSite | null => {
   return {
     identifier: regex.identifier,
     message: `${RULE_NAME}: regex.${regex.methodName}(${regex.identifierName}) scans raw source text. ${DIAGNOSTIC_ADVICE}`,
+    severity: 'error',
     start: regex.start,
   };
 };
@@ -411,7 +420,103 @@ const detectRegexConstruction = (node: AstNode): DetectedSite | null => {
   return {
     identifier: construction.identifier,
     message: `${RULE_NAME}: ${prefix}(${construction.identifierName}) constructs a regex from raw source text. ${DIAGNOSTIC_ADVICE}`,
+    severity: 'error',
     start: construction.start,
+  };
+};
+
+const AST_FIELD_ACCESSORS: ReadonlyMap<string, string> = new Map([
+  ['alternate', 'getNodeAlternate'],
+  ['argument', 'getNodeArgument'],
+  ['arguments', 'getNodeArguments'],
+  ['body', 'getNodeBodyNode or getNodeBodyStatements'],
+  ['callee', 'getNodeCallee'],
+  ['cases', 'getNodeCases'],
+  ['computed', 'getNodeComputed'],
+  ['consequent', 'getNodeConsequent'],
+  ['declaration', 'getNodeDeclaration'],
+  ['declarations', 'getNodeDeclarations'],
+  ['discriminant', 'getNodeDiscriminant'],
+  ['elements', 'getNodeElements'],
+  ['exportKind', 'getNodeExportKind'],
+  ['exported', 'getNodeExported'],
+  ['expression', 'getNodeExpression'],
+  ['id', 'getNodeId'],
+  ['imported', 'getNodeImported'],
+  ['init', 'getNodeInit'],
+  ['key', 'getNodeKey'],
+  ['kind', 'getNodeKind'],
+  ['left', 'getNodeLeft'],
+  ['local', 'getNodeLocal'],
+  ['name', 'getNodeName'],
+  ['object', 'getNodeObject'],
+  ['operator', 'getNodeOperator'],
+  ['param', 'getNodeParam'],
+  ['params', 'getNodeParams'],
+  ['properties', 'getNodeProperties'],
+  ['property', 'getNodeProperty'],
+  ['returnType', 'getNodeReturnType'],
+  ['right', 'getNodeRight'],
+  ['source', 'getNodeSource'],
+  ['specifiers', 'getNodeSpecifiers'],
+  ['superClass', 'getNodeSuperClass'],
+  ['test', 'getNodeTest'],
+  ['typeAnnotation', 'getNodeTypeAnnotation'],
+  ['value', 'getNodeValue or getNodeValueNode'],
+]);
+
+const typeLiteralMembers = (
+  annotation: AstNode | undefined
+): readonly AstNode[] => {
+  if (annotation?.type !== 'TSTypeLiteral') {
+    return [];
+  }
+  const { members } = annotation;
+  return Array.isArray(members) ? members.filter(isAstNode) : [];
+};
+
+const typePropertyName = (member: AstNode): string | null => {
+  if (member.type !== 'TSPropertySignature' || getNodeComputed(member)) {
+    return null;
+  }
+  const key = getNodeKey(member);
+  if (key?.type === 'Identifier') {
+    return getNodeName(key) ?? null;
+  }
+  return key ? getStringValue(key) : null;
+};
+
+const knownAccessorEntries = (
+  annotation: AstNode | undefined
+): readonly [string, string][] =>
+  typeLiteralMembers(annotation).flatMap((member) => {
+    const field = typePropertyName(member);
+    const accessor = field ? AST_FIELD_ACCESSORS.get(field) : undefined;
+    return field && accessor ? [[field, accessor] as const] : [];
+  });
+
+const isUnknownAssertion = (node: AstNode | undefined): node is AstNode =>
+  node?.type === 'TSAsExpression' &&
+  getNodeTypeAnnotation(node)?.type === 'TSUnknownKeyword';
+
+const detectRawNodeFieldCast = (node: AstNode): DetectedSite | null => {
+  if (node.type !== 'TSAsExpression') {
+    return null;
+  }
+  const expression = getNodeExpression(node);
+  if (!isUnknownAssertion(expression)) {
+    return null;
+  }
+  const entries = knownAccessorEntries(getNodeTypeAnnotation(node));
+  if (entries.length === 0) {
+    return null;
+  }
+  const fields = entries.map(([field, accessor]) => `${field} -> ${accessor}`);
+  return {
+    identifier: expression,
+    message: `${RULE_NAME}: raw AST node-field cast should use typed helpers from ./ast.js (${fields.join(', ')}). Raw node-field casts drift from the curated @ontrails/warden/ast guard surface.`,
+    severity: 'warn',
+    start: node.start,
   };
 };
 
@@ -425,6 +530,7 @@ const DETECTORS: readonly ((node: AstNode) => DetectedSite | null)[] = [
   detectRawScan,
   detectRegexScan,
   detectRegexConstruction,
+  detectRawNodeFieldCast,
 ];
 
 const detectSite = (node: AstNode): DetectedSite | null => {
@@ -819,7 +925,7 @@ const recordDiagnostic = (ctx: ScopeWalkContext, site: DetectedSite): void => {
     line: offsetToLine(ctx.sourceCode, site.start),
     message: site.message,
     rule: RULE_NAME,
-    severity: 'error' as const,
+    severity: site.severity,
   });
 };
 
@@ -834,6 +940,10 @@ const maybeRecordDetection = (
 ): void => {
   const site = detectSite(node);
   if (!site) {
+    return;
+  }
+  if (site.severity === 'warn') {
+    recordDiagnostic(ctx, site);
     return;
   }
   const name = getIdentifierName(site.identifier);
@@ -984,7 +1094,7 @@ const analyze = (
 
 /**
  * Warden rule enforcing that warden rules themselves walk the AST rather than
- * regex-scan raw source text.
+ * regex-scan raw source text or hand-cast recurring AST node fields.
  */
 export const wardenRulesUseAst: WardenRule = {
   check(sourceCode: string, filePath: string): readonly WardenDiagnostic[] {
@@ -998,7 +1108,7 @@ export const wardenRulesUseAst: WardenRule = {
     return analyze(sourceCode, filePath, ast);
   },
   description:
-    'Enforces that warden rules inspect the AST via packages/warden/src/rules/ast.ts helpers rather than regex-scanning raw source text.',
+    'Enforces that warden rules inspect the AST via packages/warden/src/rules/ast.ts helpers rather than regex-scanning raw source text or hand-casting node fields.',
   name: RULE_NAME,
   severity: 'error',
 };

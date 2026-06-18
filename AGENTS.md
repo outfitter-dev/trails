@@ -144,7 +144,7 @@ This section is generated from the live `@ontrails/warden` rule manifest. Keep t
 - `unreachable-detour-shadowing` (error, source/source-static, external): Specific detours are not shadowed by earlier broader detours.
 - `valid-describe-refs` (warn, all/project-static, advisory): Describe references point at known Trails concepts.
 - `warden-export-symmetry` (error, source/source-static, repo-local): The Warden package exports trail wrappers, not raw rules.
-- `warden-rules-use-ast` (error, source/source-static, repo-local): Warden source rules use AST helpers instead of ad hoc parsing.
+- `warden-rules-use-ast` (error, source/source-static, repo-local): Warden source rules use AST helpers instead of ad hoc parsing or raw node-field casts.
 
 #### Lifecycle
 

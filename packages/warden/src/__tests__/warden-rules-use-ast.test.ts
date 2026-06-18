@@ -289,6 +289,46 @@ describe('warden-rules-use-ast', () => {
     });
   });
 
+  describe('positive fixtures: raw AST node-field casts', () => {
+    const targetFile = ruleFilePath('fake-rule.ts');
+
+    test('warns when a rule hand-casts a known AST node field', () => {
+      const source = `export const r = { check() { const callee = (node as unknown as { callee?: AstNode }).callee; return callee ? [] : []; } };\n`;
+      const diagnostics = wardenRulesUseAst.check(source, targetFile);
+      expect(diagnostics.length).toBe(1);
+      expect(diagnostics[0]?.rule).toBe('warden-rules-use-ast');
+      expect(diagnostics[0]?.severity).toBe('warn');
+      expect(diagnostics[0]?.message).toContain('callee -> getNodeCallee');
+      expect(diagnostics[0]?.message).toContain('raw AST node-field cast');
+    });
+
+    test('warns once for destructured casts with multiple known fields', () => {
+      const source = `export const r = { check() { const { id, init } = node as unknown as { id?: AstNode; init?: AstNode }; return id && init ? [] : []; } };\n`;
+      const diagnostics = wardenRulesUseAst.check(source, targetFile);
+      expect(diagnostics.length).toBe(1);
+      expect(diagnostics[0]?.severity).toBe('warn');
+      expect(diagnostics[0]?.message).toContain('id -> getNodeId');
+      expect(diagnostics[0]?.message).toContain('init -> getNodeInit');
+    });
+
+    test('warns outside check methods because node-field casts are rule-local API drift', () => {
+      const source = `const callee = (node as unknown as { callee?: AstNode }).callee;\nexport const r = { check() { return callee ? [] : []; } };\n`;
+      const diagnostics = wardenRulesUseAst.check(source, targetFile);
+      expect(diagnostics.length).toBe(1);
+      expect(diagnostics[0]?.severity).toBe('warn');
+      expect(diagnostics[0]?.message).toContain('callee -> getNodeCallee');
+    });
+
+    test('suggests the discriminant accessor for switch-like node casts', () => {
+      const source = `export const r = { check() { const discriminant = (node as unknown as { discriminant?: AstNode }).discriminant; return discriminant ? [] : []; } };\n`;
+      const diagnostics = wardenRulesUseAst.check(source, targetFile);
+      expect(diagnostics.length).toBe(1);
+      expect(diagnostics[0]?.message).toContain(
+        'discriminant -> getNodeDiscriminant'
+      );
+    });
+  });
+
   describe('parameter-origin tracking (TRL-346 / Option A)', () => {
     // The pre-TRL-346 detectors gated on identifier spelling alone (a fixed
     // set of raw-source names). That over-fired on unrelated locals whose
@@ -441,6 +481,12 @@ export const r = { check(sourceCode: string, filePath: string) { const defs = fi
     test('does not flag computed member access', () => {
       // Defensive: computed member access is too ambiguous to flag reliably.
       const source = `export const r = { check(sourceCode: string) { const m = 'split'; return (sourceCode as unknown as { [k: string]: Function })[m]('\\n'); } };\n`;
+      const diagnostics = wardenRulesUseAst.check(source, targetFile);
+      expect(diagnostics).toEqual([]);
+    });
+
+    test('does not flag unrecognized type-literal casts', () => {
+      const source = `export const r = { check() { const state = node as unknown as { reason?: string }; return state.reason ? [] : []; } };\n`;
       const diagnostics = wardenRulesUseAst.check(source, targetFile);
       expect(diagnostics).toEqual([]);
     });
