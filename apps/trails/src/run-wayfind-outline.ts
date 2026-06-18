@@ -55,6 +55,41 @@ const appendSourceDeclarations = (
   }
 };
 
+type TrailOutline = NonNullable<OutlineOutput['trails']>[number];
+
+const contractFactLabel = (
+  contracts: TrailOutline['contracts']
+): string | undefined => {
+  if (contracts === undefined) {
+    return undefined;
+  }
+  if (contracts.input && contracts.output) {
+    return 'input+output';
+  }
+  if (contracts.input) {
+    return 'input';
+  }
+  if (contracts.output) {
+    return 'output';
+  }
+  return 'no schemas';
+};
+
+const exampleCountLabel = (count: number): string =>
+  `${count.toString()} ${count === 1 ? 'example' : 'examples'}`;
+
+const trailFactSuffix = (trail: TrailOutline): string => {
+  const facts = [
+    trail.graph?.intent,
+    contractFactLabel(trail.contracts),
+    trail.graph === undefined
+      ? undefined
+      : exampleCountLabel(trail.graph.exampleCount),
+  ].filter((fact): fact is string => fact !== undefined);
+
+  return facts.length === 0 ? '' : ` (${facts.join(', ')})`;
+};
+
 const appendTrails = (lines: string[], outline: OutlineOutput): void => {
   if (!includesFeature(outline, 'trails')) {
     return;
@@ -65,7 +100,9 @@ const appendTrails = (lines: string[], outline: OutlineOutput): void => {
   }
   lines.push('');
   for (const trail of trails) {
-    lines.push(formatLine(trail.line, 'trail', trail.id));
+    lines.push(
+      formatLine(trail.line, 'trail', trail.id, trailFactSuffix(trail))
+    );
   }
 };
 

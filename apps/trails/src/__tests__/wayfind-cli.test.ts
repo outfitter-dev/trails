@@ -112,8 +112,15 @@ describe('Trails Wayfinder CLI surface', () => {
         },
       ],
       features: {
-        included: ['source', 'trails', 'apps', 'graph', 'diagnostics'],
-        omitted: ['contracts', 'surfaces'],
+        included: [
+          'source',
+          'trails',
+          'apps',
+          'graph',
+          'contracts',
+          'diagnostics',
+        ],
+        omitted: ['surfaces'],
         view: 'review',
       },
       file: 'src/app.ts',
@@ -131,12 +138,21 @@ describe('Trails Wayfinder CLI surface', () => {
         imports: [],
         lineCount: 20,
       },
-      trails: [{ id: 'user.create', line: 10 }],
+      trails: [
+        {
+          contracts: { input: true, output: true },
+          graph: { exampleCount: 1, intent: 'write', surfaces: ['cli'] },
+          id: 'user.create',
+          line: 10,
+        },
+      ],
     });
 
     expect(text).toContain('src/app.ts');
     expect(text).toContain('  graph matches: 1');
-    expect(text).toContain('  10: trail user.create');
+    expect(text).toContain(
+      '  10: trail user.create (write, input+output, 1 example)'
+    );
     expect(text).toContain('  20: app app (topo)');
     expect(text).toContain('  warn: graph.missing: No saved graph.');
   });
