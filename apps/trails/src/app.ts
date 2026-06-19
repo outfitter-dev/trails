@@ -9,8 +9,11 @@ import {
   wayfindNearbyTrail,
   wayfindOverviewTrail,
   wayfindOutlineTrail,
+  wayfindResourcesTrail,
   wayfindSearchTrail,
+  wayfindSurfacesTrail,
   wayfindTrailsTrail,
+  wayfindVersionsTrail,
 } from '@ontrails/wayfinder';
 
 import * as addSurface from './trails/add-surface.js';
@@ -46,6 +49,7 @@ import * as topoUnpin from './trails/topo-unpin.js';
 import * as validate from './trails/validate.js';
 import * as warden from './trails/warden.js';
 import * as wardenGuide from './trails/warden-guide.js';
+import * as wayfind from './trails/wayfind.js';
 
 export const operatorApp = topo(
   'trails',
@@ -98,8 +102,12 @@ const cliWayfinderTrails = {
   wayfindNearbyTrail,
   wayfindOutlineTrail,
   wayfindOverviewTrail,
+  wayfindResourcesTrail,
   wayfindSearchTrail,
+  wayfindSurfacesTrail,
+  wayfindTrail: wayfind.wayfindTrail,
   wayfindTrailsTrail,
+  wayfindVersionsTrail,
 };
 
 export const trailsCliIncludedTrails = [
@@ -109,7 +117,6 @@ export const trailsCliIncludedTrails = [
 
 export const trailsCliAliases = {
   'survey.diff': [['diff']],
-  'wayfind.search': [['wf', 'search']],
 } as const;
 
 export const app = topo('trails', operatorTrails, cliWayfinderTrails);

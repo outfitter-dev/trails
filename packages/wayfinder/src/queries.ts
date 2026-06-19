@@ -1219,9 +1219,6 @@ export const wayfindSearchTrail = trail('wayfind.search', {
         ...(ref.versionKey === undefined ? {} : { versionKey: ref.versionKey }),
       })),
     })),
-  cli: {
-    aliases: ['find'],
-  },
   description: 'Find topo graph entities with typed filters',
   examples: [{ input: { filters: { kind: 'trail' } }, name: 'Find trails' }],
   input: filteredInputSchema,

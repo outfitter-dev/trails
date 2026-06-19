@@ -26,6 +26,7 @@ describe('Trails Wayfinder CLI surface', () => {
     const commandPaths = commands.map((command) => command.path.join(' '));
     const trailIds = commands.map((command) => command.trail.id);
 
+    expect(commandPaths).toContain('wayfind');
     expect(commandPaths).toContain('wayfind overview');
     expect(commandPaths).toContain('wayfind adapters');
     expect(commandPaths).toContain('wayfind search');
@@ -38,6 +39,7 @@ describe('Trails Wayfinder CLI surface', () => {
     expect(commandPaths).toContain('wayfind examples');
     expect(commandPaths).toContain('wayfind outline');
 
+    expect(trailIds).toContain('wayfind.navigate');
     expect(trailIds).toContain('wayfind.overview');
     expect(trailIds).toContain('wayfind.adapters');
     expect(trailIds).toContain('wayfind.search');
@@ -55,6 +57,19 @@ describe('Trails Wayfinder CLI surface', () => {
     );
     expect(outline?.args.map((arg) => arg.name)).toEqual(['file']);
 
+    const navigate = commands.find(
+      (command) => command.trail.id === 'wayfind.navigate'
+    );
+    expect(navigate?.args.map((arg) => arg.name)).toEqual(['target']);
+    expect(navigate?.routes).toEqual([
+      {
+        kind: 'canonical',
+        path: ['wayfind'],
+        source: 'trail',
+        target: 'wayfind.navigate',
+      },
+    ]);
+
     const search = commands.find(
       (command) => command.trail.id === 'wayfind.search'
     );
@@ -63,18 +78,6 @@ describe('Trails Wayfinder CLI surface', () => {
         kind: 'canonical',
         path: ['wayfind', 'search'],
         source: 'derived',
-        target: 'wayfind.search',
-      },
-      {
-        kind: 'alias',
-        path: ['wayfind', 'find'],
-        source: 'trail',
-        target: 'wayfind.search',
-      },
-      {
-        kind: 'alias',
-        path: ['wf', 'search'],
-        source: 'surface',
         target: 'wayfind.search',
       },
     ]);
@@ -91,7 +94,9 @@ describe('Trails Wayfinder CLI surface', () => {
 
   test('keeps the base operator topo separate from CLI Wayfinder exposure', () => {
     expect(operatorApp.get('wayfind.overview')).toBeUndefined();
+    expect(operatorApp.get('wayfind.navigate')).toBeUndefined();
     expect(app.get('wayfind.overview')).toBeDefined();
+    expect(app.get('wayfind.navigate')).toBeDefined();
   });
 
   test('renders outline text from structured fields', () => {
