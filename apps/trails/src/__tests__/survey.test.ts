@@ -14,6 +14,7 @@ import {
   Result,
   SURFACE_LAYER_NAMES_KEY,
   contour,
+  openReadTrailsDb,
   resource,
   schedule,
   signal,
@@ -32,6 +33,7 @@ import {
   writeTopoGraph,
 } from '@ontrails/topographer';
 import type { TopoGraph } from '@ontrails/topographer';
+import { loadWayfinderArtifacts } from '@ontrails/wayfinder';
 import { z } from 'zod';
 
 import {
@@ -153,6 +155,21 @@ const expectOk = <T>(result: Result<T, Error>): T => {
     throw result.error;
   }
   return result.value;
+};
+
+const countTopoSnapshots = (rootDir: string): number => {
+  const db = openReadTrailsDb({ rootDir });
+  try {
+    return (
+      db
+        .query<{ count: number }, []>(
+          'SELECT COUNT(*) as count FROM topo_snapshots'
+        )
+        .get()?.count ?? 0
+    );
+  } finally {
+    db.close();
+  }
 };
 
 const writeSurveyAppFixture = (
@@ -1516,6 +1533,8 @@ describe('trails compile', () => {
         } as never)
       );
       expect(validated.stale).toBe(false);
+      const forcedArtifacts = await loadWayfinderArtifacts({ rootDir: dir });
+      expect(forcedArtifacts.artifactStatus).toEqual({ status: 'fresh' });
       expect(validated.currentHash).toBe(
         deriveTopoGraphHash(stripTopoGraphForces(graph))
       );
@@ -1539,6 +1558,34 @@ describe('trails compile', () => {
         source: 'trails compile --force',
       });
       expect(recompiled.hash).toBe(forced.hash);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('blocked breaking compile keeps saved Wayfinder artifacts fresh', async () => {
+    const dir = repoTempDir();
+
+    try {
+      writeSurveyAppFixture(dir);
+      expectOk(
+        await compileTrail.blaze({ module: './src/app.ts' }, {
+          cwd: dir,
+        } as never)
+      );
+      const snapshotCountAfterExport = countTopoSnapshots(dir);
+
+      writeSurveyAppFixture(dir, { helloNameRequired: true });
+      const blocked = await compileTrail.blaze({ module: './src/app.ts' }, {
+        cwd: dir,
+      } as never);
+      expect(blocked.isErr()).toBe(true);
+      expect(blocked.error).toBeInstanceOf(ConflictError);
+      expect(blocked.error?.message).toContain('breaking change');
+      expect(countTopoSnapshots(dir)).toBe(snapshotCountAfterExport);
+
+      const loaded = await loadWayfinderArtifacts({ rootDir: dir });
+      expect(loaded.artifactStatus).toEqual({ status: 'fresh' });
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }

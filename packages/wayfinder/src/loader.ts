@@ -15,6 +15,7 @@ import {
   isTopoArtifactRegenerationError,
   readLockManifest,
   readTopoGraph,
+  stripTopoGraphForces,
 } from '@ontrails/topographer';
 import type {
   LockManifest,
@@ -262,6 +263,7 @@ const staleReasons = (
 ): readonly WayfinderStaleReason[] => {
   const reasons: WayfinderStaleReason[] = [];
   const actualHash = deriveTopoGraphHash(topoGraph);
+  const contractHash = deriveTopoGraphHash(stripTopoGraphForces(topoGraph));
   const topoArtifact = lockManifest.artifacts.find(
     (artifact) => artifact.role === 'topo' && artifact.path === 'topo.lock'
   );
@@ -279,10 +281,10 @@ const staleReasons = (
   const storeExport = topoStore.export;
   if (storeExport === null) {
     reasons.push({ reason: 'topo-store-export-missing' });
-  } else if (storeExport.topoGraphHash !== actualHash) {
+  } else if (storeExport.topoGraphHash !== contractHash) {
     reasons.push({
       actual: storeExport.topoGraphHash,
-      expected: actualHash,
+      expected: contractHash,
       reason: 'topo-store-hash-mismatch',
       snapshotId: storeExport.snapshot.id,
     });

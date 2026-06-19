@@ -142,11 +142,15 @@ export const deriveCurrentTopoExport = (
   }
 };
 
-const writeStoredExportArtifacts = async (
+const prepareStoredExportArtifacts = async (
   storedExport: StoredTopoExport,
   trailsDir: string,
   options?: { readonly force?: boolean | undefined }
-): Promise<Pick<TopoExportReport, 'hash' | 'lockPath' | 'topoPath'>> => {
+): Promise<{
+  readonly hash: string;
+  readonly lockManifest: LockManifest;
+  readonly topoGraph: TopoGraph;
+}> => {
   const previousTopo = await readTopoGraph({ dir: trailsDir });
   const nextTopo = JSON.parse(storedExport.topoGraphJson) as TopoGraph;
   const diff =
@@ -179,11 +183,31 @@ const writeStoredExportArtifacts = async (
     ],
   } satisfies LockManifest;
 
-  const topoPath = await writeTopoGraph(topoGraph, { dir: trailsDir });
-  const lockPath = await writeLockManifest(lockManifest, { dir: trailsDir });
-
   return {
     hash,
+    lockManifest,
+    topoGraph,
+  };
+};
+
+const writeStoredExportArtifacts = async (
+  storedExport: StoredTopoExport,
+  trailsDir: string,
+  options?: { readonly force?: boolean | undefined }
+): Promise<Pick<TopoExportReport, 'hash' | 'lockPath' | 'topoPath'>> => {
+  const prepared = await prepareStoredExportArtifacts(
+    storedExport,
+    trailsDir,
+    options
+  );
+
+  const topoPath = await writeTopoGraph(prepared.topoGraph, { dir: trailsDir });
+  const lockPath = await writeLockManifest(prepared.lockManifest, {
+    dir: trailsDir,
+  });
+
+  return {
+    hash: prepared.hash,
     lockPath,
     topoPath,
   };
@@ -198,9 +222,26 @@ export const exportCurrentTopo = async (
   }
 ): Promise<Result<TopoExportReport, Error>> => {
   const rootDir = deriveRootDir(options?.rootDir);
+  const trailsDir = deriveTrailsDir({ rootDir });
   let db: ReturnType<typeof openWriteTrailsDb> | undefined;
 
   try {
+    const candidate = deriveCurrentTopoExport(app, {
+      cliAliases: options?.cliAliases,
+      rootDir,
+    });
+    if (candidate.isErr()) {
+      return candidate;
+    }
+
+    try {
+      await prepareStoredExportArtifacts(candidate.value, trailsDir, {
+        force: options?.force,
+      });
+    } catch (error: unknown) {
+      return Result.err(mapTopoExportError(error));
+    }
+
     db = openWriteTrailsDb({ rootDir });
     const persisted = persistAndReadStoredExport(app, db, rootDir, {
       cliAliases: options?.cliAliases,
@@ -212,11 +253,9 @@ export const exportCurrentTopo = async (
     const { snapshot, storedExport } = persisted.value;
     let artifacts: Pick<TopoExportReport, 'hash' | 'lockPath' | 'topoPath'>;
     try {
-      artifacts = await writeStoredExportArtifacts(
-        storedExport,
-        deriveTrailsDir({ rootDir }),
-        { force: options?.force }
-      );
+      artifacts = await writeStoredExportArtifacts(storedExport, trailsDir, {
+        force: options?.force,
+      });
     } catch (error: unknown) {
       return Result.err(mapTopoExportError(error));
     }
