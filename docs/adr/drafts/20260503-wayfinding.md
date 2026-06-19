@@ -3,10 +3,10 @@ slug: wayfinding
 title: Wayfinding
 status: draft
 created: 2026-05-03
-updated: 2026-06-07
+updated: 2026-06-18
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [17, 27, 37, 42]
-description: "Introduces `@ontrails/wayfinder`: a package of trails over `@ontrails/topographer` artifacts giving agents queryable access to the topo graph via typed query catalog trails (overview, search, typed list filters, describe, contract, nearby, impact, examples, surfaces, facets, versions, diff)."
+description: "Defines Wayfinder as the navigation layer over `@ontrails/topographer` artifacts: a shared resolver/filter/view query model that renders to CLI, MCP, docs, and future maps without inventing surface-specific navigation semantics."
 references:
   - docs/adr/0008-deterministic-trailhead-derivation.md
   - docs/adr/0013-tracing.md
@@ -19,6 +19,14 @@ references:
 linear:
   - TRL-613
   - TRL-901
+  - TRL-1034
+  - TRL-1035
+  - TRL-1037
+  - TRL-1040
+  - TRL-1042
+  - TRL-1043
+  - TRL-1044
+  - TRL-1046
 impl_status: partial
 ---
 
@@ -44,7 +52,7 @@ This is the LSP analogy at its sharpest: human developers in modern IDEs do not 
 - **One write, many reads.** Wayfinding is purely another read of the same
   trail definitions. No new authoring is required from app developers.
 - **Surfaces are peers.** Wayfinding queries are trails, so CLI, MCP, and HTTP
-  project them naturally.
+  render them naturally.
 - **The resolved topo artifact family is the story.** Wayfinding makes the
   serialized graph content interactive.
 
@@ -54,7 +62,7 @@ The serialized graph today is the TopoGraph plus the topo store, not yet every p
 
 ### The recursive property
 
-A query against the topo has typed input, typed output, and a pure implementation. That makes it a trail by definition. Each query has examples, projects to CLI, MCP, and HTTP via the existing surface mechanism, and is itself navigable through wayfinding queries. There is no special navigation runtime, no new surface type — the wayfinder is a topo of trails over the serialized graph, exporting itself like any other package. The graph contains the tools that traverse the graph.
+A query against the topo has typed input, typed output, and a pure implementation. That makes it a trail by definition. Each query has examples, renders to CLI, MCP, and HTTP via the existing surface mechanism, and is itself navigable through wayfinding queries. There is no special navigation runtime, no new surface type — the wayfinder is a topo of trails over the serialized graph, exporting itself like any other package. The graph contains the tools that traverse the graph.
 
 ## Decision
 
@@ -66,7 +74,7 @@ This means:
 
 - Every wayfinding query is a trail with typed input, a `Result` output, and
   examples. Tracing captures every invocation for free.
-- Surfaces project the trails through the same mechanism every other trail
+- Surfaces render the trails through the same mechanism every other trail
   uses. No bespoke navigation runtime exists.
 - The wayfinder ships from a separate package, `@ontrails/wayfinder`, whose
   topo joins the consuming app's topo at mount time. Apps do not "integrate
@@ -84,7 +92,7 @@ Wayfinding v0 is a cold, deterministic graph-read layer. It ships graph-read que
 
 ### Fact provenance envelope
 
-Wayfinding output should make projection doctrine visible everywhere an agent reads it. Derived facts can carry a narrow Wayfinder-local envelope:
+Wayfinding output makes derive/render doctrine visible everywhere an agent reads it. Derived facts carry a narrow Wayfinder-local envelope:
 
 ```ts
 {
@@ -92,43 +100,120 @@ Wayfinding output should make projection doctrine visible everywhere an agent re
   category: 'authored' | 'projected' | 'inferred' | 'observed',
   derivedFrom: ContractRef | null,
   source: ArtifactRef,
-  freshness: Freshness,
+  drift: DriftState,
 }
 ```
 
-`derivedFrom` is the projection arrow made data. It does not create a generic source-of-truth registry and does not contradict ADR-0037's rejection of broad `derivedFrom` metadata as a default answer for duplicated framework facts. This envelope is narrower: it explains how a Wayfinder fact was read or projected.
+`derivedFrom` is the derive arrow made data. It does not create a generic source-of-truth registry and does not contradict ADR-0037's rejection of broad `derivedFrom` metadata as a default answer for duplicated framework facts. This envelope is narrower: it explains how a Wayfinder fact was read or derived.
 
-### v0 query catalog
+`drift` replaces the older "freshness" language. Freshness sounds like a cache age; the governance question is whether the fact is aligned with the requested source. The first states are:
+
+- `aligned` — the requested source exists and matches the graph state Wayfinder read.
+- `drifted` — the requested source exists but Wayfinder detected code/artifact divergence.
+- `absent` — the requested source is missing and the result is necessarily partial.
+
+### Navigation catalog
 
 The v0 catalog is deliberately narrow. The test for inclusion: every query must answer from the data already present in `TopoGraph` and the topo-store read API today. Queries that need substrate the graph does not yet expose are deferred, not ambitiously promised.
 
-| Trail ID | Purpose | Substrate today | Status |
-|---|---|---|---|
-| `wayfind.overview` | Summarize the topo: counts of trails, resources, signals, contours, surfaces, examples; intent distribution; activation source counts | `TopoGraph.entries`, `TopoGraph.activationGraph` | v0 |
-| `wayfind.search` | Find trails, contours, resources, or signals by ID, text, namespace pattern, or typed filter | `TopoGraph.entries[].id`, `kind`, descriptions, intent, facets, surfaces | v0 |
-| `wayfind.trails` | List trails with typed filters such as intent, surface, facet, example coverage, resource use, signal use, and versioning | `TopoGraph.entries` and trail records | v0 |
-| `wayfind.contours` | List contours with typed filters and membership context | `TopoGraph.entries` and contour records | v0 |
-| `wayfind.resources` | List resources and which trails declare them | `TopoGraph.entries[].resources` and resource records | v0 |
-| `wayfind.signals` | List signals, producers, consumers, and activation edges | `TopoGraph.activationGraph`, signal records | v0 |
-| `wayfind.surfaces` | Show durable surface membership facts for trails and facets | `TopoGraphEntry.surfaces`, `TopoGraph.facets`, and explicitly partial operational projection rows when present | v0 |
-| `wayfind.facets` | Show resolved surface facet metadata and member trail IDs | `TopoGraph.facets` | v0 |
-| `wayfind.versions` | Show trail version entries and lifecycle state | versioned `TopoGraphEntry` fields and topo-store details | v0 |
-| `wayfind.describe` | Return the full record for one entity by ID | `TopoGraphEntry` plus `TopoStoreTrailDetailRecord` for the requested entity | v0 |
-| `wayfind.contract` | Tight input / output / intent / idempotency / examples / version summary for a trail | `TopoGraphEntry.input`, `output`, `intent`, `idempotent`, examples, version metadata | v0 |
-| `wayfind.nearby` | Direct typed relation context around one graph entity | edge indexes derived from composes, contours, resources, signals, surfaces, facets, and versions | v0 |
-| `wayfind.impact` | Directional and multi-hop reachability for "what is upstream/downstream from this thing?" | typed relation edges oriented from contract substrate to affected graph members | v0 |
-| `wayfind.examples` | Return examples for a trail or contour | `TopoGraphEntry.examples`, `TopoStoreExampleRecord` | v0 |
-| `wayfind.errors` | Return saved trail error facts with provenance and completeness metadata | `TrailErrorFacts` derived from examples, detours, taxonomy, and supplied evidence | v0 |
-| `wayfind.adapters` | Return adapter target and adapter-package facts with provenance | `@ontrails/adapter-kit` readiness report facts | v0 |
-| `wayfind.diff` | Compare two explicit saved graph snapshots | `DiffResult` from `deriveTopoGraphDiff` | v0 |
+The catalog is no longer defined as a long list of unrelated command nouns. It is defined by one navigation algebra:
+
+- **Resolver** chooses the target population. It answers, "What am I looking at?"
+- **Filter** narrows a population by indexed facts. It answers, "Which of them?"
+- **View** renders facts about the resolved population. It answers, "What do I need to see?"
+
+A new command target earns its place only when it introduces a new way to resolve. A view does not become a subcommand just because one surface wants a friendlier shape. That keeps CLI, MCP, docs, and future UI renderings aligned on one query model.
+
+### Resolvers
+
+Resolvers are the entry points into the graph or source:
+
+| Resolver | Meaning | Notes |
+|---|---|---|
+| `id` | Resolve one saved graph entity by exact ID | Bare dotted tokens default here. Missing IDs fail loudly. |
+| `pattern` | Resolve by lexical namespace pattern or glob | Globs produce a list-shaped population. |
+| `query` | Resolve by fuzzy free-text over indexed graph text | This is search-like, but remains bounded to indexed facts. |
+| `where` | Resolve by structured predicates | Predicates are AND-ed in v1. OR, NOT, and comparisons are deferred. |
+| `file` | Resolve one explicit source file | The natural view is `outline`; graph context attaches when artifacts are available. |
+| `from` | Resolve outbound graph neighbors from an entity | "What this entity reaches." |
+| `to` | Resolve inbound graph neighbors to an entity | "What reaches this entity"; the blast-radius shape. |
+| `around` | Resolve the one-hop vicinity around an entity | Both directions, bounded by default. |
+
+Targets are deterministic by shape. A path-like token or token with a source extension resolves as a file. A dotted or bare graph ID resolves as a graph entity. The one ambiguous case — an extensionless token that is both a real file and a graph ID — fails loudly and asks the caller to disambiguate. Wayfinder must report the resolved target kind in metadata so agents know what happened.
+
+`from`, `to`, and `around` are resolvers, not views. They flip the operator to a connected population. In the current CLI, `trails wayfind --to compile` renders that relation map; rendering contract facts over the resolved relation population remains future view composition, not an impact section on `compile`.
+
+### Filters
+
+Filters are typed predicates over indexed facts. Population filters are plural because they select a population:
+
+- `--trails`
+- `--resources`
+- `--signals`
+- `--surfaces`
+
+Predicate filters are singular because they name a field, even when the field accepts multiple values:
+
+- `--intent read`
+- `--returns-error NotFoundError`
+- `--adapter commander hono`
+- `--surface mcp cli`
+
+Adapter remains a predicate and an included fact, not a top-level graph population. In the app graph, an adapter is how a surface is delivered. Package conformance evidence is useful, but it is a registry or doctor concern unless it is attached to a concrete surface delivery fact.
+
+### Views
+
+Views render facts about the resolved population:
+
+| View | Meaning |
+|---|---|
+| `overview` | Summarize the graph or current population. |
+| `list` | Return compact entity rows. |
+| `summary` | Return a compact one-entity orientation. |
+| `describe` | Return the full saved entity record. |
+| `contract` | Return the trail contract slice: input, output, intent, examples, versions, and error shape when available. |
+| `outline` | Return source structure for file targets and attach graph context when possible. |
+| `map` | Render graph shape around the resolved population. |
+
+`map` is a view, not a second graph artifact. The topo is the territory. A surface is where a capability can be invoked. A map is how the resolved graph shape is rendered for orientation.
+
+### Includes
+
+Includes attach compact fact families without changing the resolved population:
+
+```bash
+trails wayfind wayfind.search --view contract --include examples
+trails wayfind --trails --intent read --include surfaces
+trails wayfind "wayfind.*" --include examples
+```
+
+Includes are not a junk drawer for new views. They attach bounded facts to a result whose target population and view are already clear.
+
+The current CLI support accepts includes on explicit targets and filtered populations. Relational views such as `--from`, `--to`, and `--around` do not accept includes until Wayfinder can bound includes to the resolved relation population.
+
+### Distinct command
+
+`diff` remains distinct because it compares two explicit graph baselines. It has a second root, so it is not just a view over one resolved population.
+
+### Current catalog mapping
+
+The existing catalog maps onto the algebra this way:
+
+| Existing trail ID | Algebra role | Status |
+|---|---|---|
+| `wayfind.overview` | `overview` view over the saved graph | keep |
+| `wayfind.search` | `query` / `pattern` / `where` resolver over saved graph entities | reshape |
+| `wayfind.trails`, `wayfind.resources`, `wayfind.signals`, `wayfind.surfaces` | population filters plus `list` view | reshape |
+| `wayfind.facets` | current grouped surface entry facts; rename follows the vocabulary reset | reshape |
+| `wayfind.versions`, `wayfind.examples`, `wayfind.errors` | includes and focused list views | reshape |
+| `wayfind.adapters` | adapter predicate plus included surface delivery facts | reshape |
+| `wayfind.describe`, `wayfind.contract`, `wayfind.outline` | views | keep, rendered through the shared planner |
+| `wayfind.nearby`, `wayfind.impact` | relational resolution and map/list views | reshape into `from` / `to` / `around` plus depth modifiers |
+| `wayfind.diff` | two-root graph comparison | keep distinct |
 
 `wayfind.errors` is intentionally not an exhaustive emitted-error graph. It reports documented, handled, inferred, and observed facts with explicit completeness semantics, and marks emitted-error completeness unknown unless a future substrate proves otherwise.
 
-`wayfind.adapters` reads adapter-kit evidence and keeps available targets, configured adapter packages, conformance-backed usage, and future runtime observations distinct. It must not collapse "available" into "used."
-
-Complete CLI/MCP/HTTP projection inventory is **deferred** until Topographer owns it as durable graph artifact. v0 `wayfind.surfaces` may include operational projection rows only when it labels their source and partialness; it cannot treat today's topo-store projection rows as the canonical surface graph.
-
-Generic `wayfind.query`, semantic search, and signposts are also deferred. The deterministic structural skeleton ships first on its own merits.
+Generic semantic search and signposts are deferred. The deterministic structural skeleton ships first on its own merits.
 
 ### Visibility and permit posture
 
@@ -146,17 +231,42 @@ Wayfinder trails are operator and developer tools, not app-public verbs. The def
   CLI surface treats local invocation as implicitly authorized, consistent
   with [ADR-0027] Part 4.
 - The Trails operator CLI dogfoods v0 by exposing a selected read-only subset
-  through exact IDs (`overview`, `search`, typed contract/describe,
-  examples, nearby, and impact). This is not wildcard namespace exposure and
-  does not promote deferred queries.
+  through exact IDs while the unified command grammar lands. This is not
+  wildcard namespace exposure and does not promote deferred queries.
 
 This means an app that mounts `@ontrails/wayfinder` does not accidentally hand its agents a self-documenting treasure chest. The graph stays locked unless the operator opts in. ADR-0027 already provides the levers; wayfinding leans on them.
 
 ### Stale-graph policy
 
-When the lockfile or surface map is detectably stale relative to source — hash mismatch, missing snapshot id, schema version drift — wayfinding queries return successfully with a `freshness` field on the result envelope rather than refusing or silently serving stale data. The warden flags freshness separately. Wayfinding propagates the signal so callers can react.
+When the lockfile or surface map is detectably stale relative to source — hash mismatch, missing snapshot id, schema version drift — wayfinding queries return successfully with a `drift` field on the result envelope rather than refusing or silently serving stale data. The warden flags artifact drift separately. Wayfinding propagates the signal so callers can react.
 
-The exact freshness envelope is part of the implementation work, not the decision; what the decision settles is the policy: warn-and-proceed, never silently stale, never refuse.
+The exact drift envelope is part of the implementation work, not the decision; what the decision settles is the policy: warn-and-proceed, never silently stale, never refuse.
+
+### Source selection
+
+Wayfinder supports one source axis:
+
+```bash
+trails wayfind --source locked ...
+trails wayfind --source live ...
+```
+
+`locked` reads committed Topographer artifacts. It is the default because it is deterministic for docs, CI, release checks, and agent replay. `live` derives an in-memory graph from the current app without writing artifacts. It is the development and self-description path.
+
+The source selector is explicit and never auto-falls back. If a caller asks for `locked` and artifacts are absent, Wayfinder returns an absent/drift diagnostic. If a caller asks for `live` and the app cannot load, Wayfinder returns the load failure. This preserves determinism and makes the envelope trustworthy.
+
+This is also how `survey` begins to retire. Survey's useful live-introspection behavior moves under Wayfinder's source axis; the word `survey` can remain reserved for future map-making or measurement work, but it stops being a peer navigation command.
+
+### MCP graph resources
+
+Wayfinder renders to MCP in two shapes:
+
+- **Resources** expose addressable graph entities. A client can browse or inspect stable URIs such as `trails://trail/{id}`. Source-file resources such as `trails://source/{path}` are a future extension once the live/source axis has a stable resource contract.
+- **Tools** run dynamic queries such as `where`, `from`, `to`, `around`, `map`, and `diff`.
+
+Resources are the upgrade path over the older façade-tool idea. Some MCP clients only consume tools, so tools remain the floor. But graph browsing and one-entity inspection belong in resources because the graph already has stable identities.
+
+This decision does not require every Trails surface to expose the same ergonomic shape. It requires every surface to render from the same query model and preserve the same target, source, drift, and provenance facts.
 
 ### Tracing falls out for free
 
@@ -234,34 +344,36 @@ Avoid introducing a top-level `wayfind()` function — "wayfind" is unusual as a
   right now?"). That belongs to tracing/observability ([ADR-0041]), not
   wayfinding. Documentation and naming must keep the boundary clean so
   expectations do not drift.
-- **MCP tool surface.** The full v0 catalog projected naively to MCP may be too
-  many tools. MCP exposure should choose clear, permission-friendly top-level
-  tools instead of compressing unrelated behavior into junk drawers. The trail
-  catalog itself ships unchanged regardless.
+- **MCP surface shape.** The full catalog rendered naively to MCP may be too
+  many tools, while one catch-all tool becomes a junk drawer. MCP exposure
+  should render browse/inspect as resources and dynamic queries as explicit,
+  permission-friendly tools. The query model itself stays unchanged.
 
 ### Non-decisions (deferred)
 
 - **Signposts.** Typed name redirects for renamed trails are kin in spirit
   but live at name resolution, not execution. They get their own ADR. v0
   wayfinding does not depend on signposts and ships without them.
-- **MCP façade tool design.** Whether the wayfinder ships the full catalog as
-  separate MCP tools or through a narrower façade is an MCP projection ergonomics
-  decision, made in the wayfinder package — the catalog of trails is the
-  same either way.
-- **`wayfind.query`.** A generic query endpoint waits until typed filter/list
-  queries prove the shared predicate grammar.
-- **`wayfind.projections`.** v0 has no projections endpoint and no projections
-  section. Projection doctrine is represented through `derivedFrom` on derived
-  facts plus first-class `surfaces` and `facets` queries.
+- **MCP resource implementation details.** Resource URI grammar, template
+  shape, and whether MCP resources call trails or shared query helpers are
+  implementation details for the MCP surface work. The ADR settles the split:
+  resources for addressable graph facts, tools for dynamic queries.
+- **Open query DSL.** A generic query endpoint waits until typed filter/list
+  queries prove the shared predicate grammar. v1 supports AND-ed predicates
+  over indexed facts, not a general expression language.
+- **Projection endpoint.** v0 has no projection endpoint and no projection
+  section. Derive/render doctrine is represented through `derivedFrom` on
+  derived facts plus first-class surface facts.
 - **`wayfind.implications`.** A future rule-join query may explain likely next
   actions, but only by citing Warden rule IDs or named checklist items.
 - **Semantic search.** `@ontrails/wayfinder/semantic` slot is reserved.
   Embedding provider choice (local / BYO key / hosted), indexing strategy,
-  freshness, and ranking explainability are post-v0.
+  drift, and ranking explainability are post-v0.
 - **Markdown documentation generation.** Wayfinding is the substrate; doc
   generation is a downstream consumer.
-- **Live runtime view.** Belongs to tracing, not wayfinding. Wayfinding
-  stays cold.
+- **Live runtime observation.** Wayfinder may derive a current graph from
+  source with `--source live`, but "what is happening right now?" belongs to
+  tracing and observability, not the navigation query layer.
 - **Cross-project telemetry sharing.** Local-only by default; any sharing is
   opt-in and out of scope for this ADR.
 
@@ -275,7 +387,7 @@ Avoid introducing a top-level `wayfind()` function — "wayfind" is unusual as a
   — the package boundary that places wayfinding artifacts in `@ontrails/topographer`
   and gives `@ontrails/wayfinder` a defined neighbor
 - [ADR-0008: Deterministic Surface Derivation](../0008-deterministic-trailhead-derivation.md)
-  — the projection mechanism wayfinding queries reuse
+  — the surface rendering mechanism wayfinding queries reuse
 - [ADR-0013: Tracing](../0013-tracing.md) and
   [ADR-0041: Unified Observability](../0041-unified-observability.md) — the
   tracing primitive that captures wayfinding usage for free
