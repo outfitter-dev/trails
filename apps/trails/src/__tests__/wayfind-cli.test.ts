@@ -64,7 +64,17 @@ describe('Trails Wayfinder CLI surface', () => {
     );
     expect(navigate?.args.map((arg) => arg.name)).toEqual(['target']);
     expect(navigate?.flags.map((flag) => flag.name)).toEqual(
-      expect.arrayContaining(['around', 'depth', 'from', 'module', 'to'])
+      expect.arrayContaining([
+        'adapter',
+        'adapters',
+        'around',
+        'depth',
+        'errors',
+        'from',
+        'include',
+        'module',
+        'to',
+      ])
     );
     expect(navigate?.routes).toEqual([
       {

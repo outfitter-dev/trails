@@ -77,7 +77,10 @@ const wayfindInputSchema = z
   .refine(
     (input) =>
       input.target === undefined ||
-      (input.intent === undefined &&
+      (!input.adapters &&
+        input.adapter === undefined &&
+        !input.errors &&
+        input.intent === undefined &&
         !input.resources &&
         !input.surfaces &&
         !input.trails),
@@ -254,6 +257,9 @@ const viewLiveSource = async (
     };
   }
   if (
+    input.adapter !== undefined ||
+    input.adapters ||
+    input.errors ||
     input.intent !== undefined ||
     input.resources ||
     input.surfaces ||
@@ -455,6 +461,28 @@ const viewPopulation = async (
       view: 'list' as const,
     };
   }
+  if (input.adapters || input.adapter !== undefined) {
+    return {
+      result: ctx.compose('wayfind.adapters', {
+        ...(input.adapter === undefined
+          ? {}
+          : { filters: { packageName: input.adapter } }),
+        limit: input.limit,
+        ...sourceInput(input),
+      }),
+      view: 'list' as const,
+    };
+  }
+  if (input.errors) {
+    return {
+      result: ctx.compose('wayfind.errors', {
+        filters,
+        limit: input.limit,
+        ...sourceInput(input),
+      }),
+      view: 'list' as const,
+    };
+  }
   if (input.trails || input.intent !== undefined) {
     return {
       result: ctx.compose('wayfind.trails', {
@@ -506,8 +534,10 @@ export const wayfindTrail = trail('wayfind.navigate', {
   },
   composes: [
     'survey',
+    'wayfind.adapters',
     'wayfind.contract',
     'wayfind.describe',
+    'wayfind.errors',
     'wayfind.examples',
     'wayfind.impact',
     'wayfind.nearby',
