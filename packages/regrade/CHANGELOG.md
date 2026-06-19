@@ -1,5 +1,36 @@
 # @ontrails/regrade
 
+## 1.0.0-beta.25
+
+### Patch Changes
+
+- b991263: Retire the package-owned `regrade.downstream.report` trail wrapper so the Trails operator app owns the public Regrade surface while `@ontrails/regrade` exposes the reusable engine APIs and report schema.
+- c36aca9: Preserve existing Result error boundaries directly and widen Warden pass-through
+  coaching beyond trail blazes.
+- 6250729: Expands the public AST guard/accessor surface and migrates Warden/Regrade AST
+  consumers onto the typed helpers instead of rule-local node-field casts.
+- f757cd7: Publish Regrade's downstream report and AST rewrite APIs, and expose a dry-run
+  by default `trails regrade` operator command with explicit apply mode.
+- Updated dependencies [a9fdbc7]
+- Updated dependencies [f8fd6ca]
+- Updated dependencies [0fcc42b]
+- Updated dependencies [c36aca9]
+- Updated dependencies [f556559]
+- Updated dependencies [6250729]
+- Updated dependencies [d73c38e]
+- Updated dependencies [3befcf1]
+- Updated dependencies [a8e4dc3]
+- Updated dependencies [a4f9cf6]
+- Updated dependencies [9bcf34e]
+- Updated dependencies [00c0cf8]
+- Updated dependencies [b313c58]
+- Updated dependencies [f245fa0]
+- Updated dependencies [f1e6efa]
+- Updated dependencies [caff950]
+- Updated dependencies [df13faf]
+  - @ontrails/warden@1.0.0-beta.25
+  - @ontrails/core@1.0.0-beta.25
+
 ## 1.0.0-beta.24
 
 ### Patch Changes

@@ -1,5 +1,19 @@
 # @ontrails/core
 
+## 1.0.0-beta.25
+
+### Patch Changes
+
+- c36aca9: Preserve existing Result error boundaries directly and widen Warden pass-through
+  coaching beyond trail blazes.
+- 3befcf1: Configure Trails SQLite read and write connections with a busy timeout so concurrent artifact readers and writers wait through transient lock contention instead of failing immediately.
+- a4f9cf6: Reserve the `shift` error category and `WorkspaceShiftError` before the stable
+  cutover so surface mappings can distinguish moved-workspace retry verdicts.
+  Update Warden's error-mapping completeness examples to cover the reserved
+  category.
+- 9bcf34e: Add trail-owned CLI command projection metadata and serialize resolved command
+  route facts for downstream tools.
+
 ## 1.0.0-beta.24
 
 ## 1.0.0-beta.23

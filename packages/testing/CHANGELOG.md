@@ -1,5 +1,25 @@
 # @ontrails/testing
 
+## 1.0.0-beta.25
+
+### Patch Changes
+
+- Updated dependencies [a9fdbc7]
+- Updated dependencies [c36aca9]
+- Updated dependencies [3befcf1]
+- Updated dependencies [2c08afe]
+- Updated dependencies [f1e6efa]
+- Updated dependencies [f1e6efa]
+- Updated dependencies [a4f9cf6]
+- Updated dependencies [9bcf34e]
+- Updated dependencies [f7d97fc]
+- Updated dependencies [df13faf]
+  - @ontrails/mcp@1.0.0-beta.25
+  - @ontrails/core@1.0.0-beta.25
+  - @ontrails/http@1.0.0-beta.25
+  - @ontrails/cli@1.0.0-beta.25
+  - @ontrails/observe@1.0.0-beta.25
+
 ## 1.0.0-beta.24
 
 ### Patch Changes

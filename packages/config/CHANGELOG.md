@@ -1,5 +1,15 @@
 # @ontrails/config
 
+## 1.0.0-beta.25
+
+### Patch Changes
+
+- Updated dependencies [c36aca9]
+- Updated dependencies [3befcf1]
+- Updated dependencies [a4f9cf6]
+- Updated dependencies [9bcf34e]
+  - @ontrails/core@1.0.0-beta.25
+
 ## 1.0.0-beta.24
 
 ### Patch Changes
