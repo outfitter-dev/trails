@@ -114,17 +114,23 @@ type TrailContextWithCompose = TrailContext & {
   readonly compose: NonNullable<TrailContext['compose']>;
 };
 
-const sourceUnsupported = (input: WayfindInput) =>
-  input.source === 'live'
-    ? new ValidationError(
-        '`trails wayfind --source live` is reserved for the live graph cutover; use locked artifacts for this release candidate.'
-      )
-    : undefined;
-
 const sourceInput = (
   input: WayfindInput
 ): { readonly rootDir?: string | undefined } =>
   input.rootDir === undefined ? {} : { rootDir: input.rootDir };
+
+const liveSourceError = (message: string): ValidationError =>
+  new ValidationError(message);
+
+const liveModuleInput = (
+  input: WayfindInput
+): {
+  readonly module?: string | undefined;
+  readonly rootDir?: string | undefined;
+} => ({
+  ...(input.module === undefined ? {} : { module: input.module }),
+  ...sourceInput(input),
+});
 
 const populationFilters = (
   input: WayfindInput
@@ -227,6 +233,75 @@ const envelopeFor = async (
     ...(input.to === undefined ? {} : { target: input.to }),
     view,
   });
+};
+
+const viewLiveSource = async (
+  input: WayfindInput,
+  ctx: TrailContextWithCompose
+) => {
+  if (
+    input.around !== undefined ||
+    input.from !== undefined ||
+    input.to !== undefined
+  ) {
+    return {
+      result: Result.err(
+        liveSourceError(
+          '`trails wayfind --source live` supports overview and ID lookup; use locked artifacts for relational graph views.'
+        )
+      ),
+      view: input.view,
+    };
+  }
+  if (
+    input.intent !== undefined ||
+    input.resources ||
+    input.surfaces ||
+    input.trails
+  ) {
+    return {
+      result: Result.err(
+        liveSourceError(
+          '`trails wayfind --source live` supports overview and ID lookup; use locked artifacts for typed filters.'
+        )
+      ),
+      view: input.view,
+    };
+  }
+  if (input.target !== undefined && targetLooksLikeFile(input.target)) {
+    return {
+      result: Result.err(
+        liveSourceError(
+          '`trails wayfind --source live` does not support source file targets; use locked artifacts for file outlines.'
+        )
+      ),
+      view: input.view,
+    };
+  }
+  if (
+    input.view === 'contract' ||
+    input.view === 'map' ||
+    input.view === 'outline'
+  ) {
+    return {
+      result: Result.err(
+        liveSourceError(
+          '`trails wayfind --source live` supports overview and ID lookup; use locked artifacts for this view.'
+        )
+      ),
+      view: input.view,
+    };
+  }
+  return {
+    result: ctx.compose('survey', {
+      ...(input.target === undefined ? {} : { id: input.target }),
+      ...liveModuleInput(input),
+    }),
+    view:
+      input.target === undefined
+        ? ('overview' as const)
+        : ('describe' as const),
+  };
 };
 
 const viewRelation = (input: WayfindInput, ctx: TrailContextWithCompose) => {
@@ -403,9 +478,16 @@ const viewPopulation = async (
 export const wayfindTrail = trail('wayfind.navigate', {
   args: ['target'],
   blaze: async (input, ctx) => {
-    const unsupported = sourceUnsupported(input);
-    if (unsupported !== undefined) {
-      return Result.err(unsupported);
+    if (input.source === 'live') {
+      const dispatched = await viewLiveSource(input, ctx);
+      if (dispatched !== undefined) {
+        return envelopeFor(
+          await dispatched.result,
+          input,
+          ctx,
+          dispatched.view
+        );
+      }
     }
     const dispatched =
       (await viewRelation(input, ctx)) ??
@@ -423,6 +505,7 @@ export const wayfindTrail = trail('wayfind.navigate', {
     path: 'wayfind',
   },
   composes: [
+    'survey',
     'wayfind.contract',
     'wayfind.describe',
     'wayfind.examples',
@@ -477,6 +560,10 @@ export const wayfindTrail = trail('wayfind.navigate', {
     {
       input: { include: ['versions'], target: 'wayfind.search' },
       name: 'Attach version facts for a target',
+    },
+    {
+      input: { source: 'live', target: 'wayfind.search' },
+      name: 'Inspect a live app entity',
     },
     {
       input: { from: 'db.main', view: 'map' },

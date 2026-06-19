@@ -64,7 +64,7 @@ describe('Trails Wayfinder CLI surface', () => {
     );
     expect(navigate?.args.map((arg) => arg.name)).toEqual(['target']);
     expect(navigate?.flags.map((flag) => flag.name)).toEqual(
-      expect.arrayContaining(['around', 'depth', 'from', 'to'])
+      expect.arrayContaining(['around', 'depth', 'from', 'module', 'to'])
     );
     expect(navigate?.routes).toEqual([
       {
@@ -104,6 +104,22 @@ describe('Trails Wayfinder CLI surface', () => {
     expect(result?.error.message).toContain(
       'Provide only one of target, from, to, or around.'
     );
+  });
+
+  test('guards live source against unsupported relational views', async () => {
+    const navigate = unwrapCommands().find(
+      (command) => command.trail.id === 'wayfind.navigate'
+    );
+    expect(navigate).toBeDefined();
+
+    const result = await navigate?.execute(
+      {},
+      { from: 'db.main', source: 'live' },
+      { cwd: process.cwd() }
+    );
+
+    expect(result?.isErr()).toBe(true);
+    expect(result?.error.message).toContain('supports overview and ID lookup');
   });
 
   test('exposes graph diff as the distinct two-root Wayfinder command', () => {
