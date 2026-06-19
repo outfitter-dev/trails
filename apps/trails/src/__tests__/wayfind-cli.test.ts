@@ -61,6 +61,9 @@ describe('Trails Wayfinder CLI surface', () => {
       (command) => command.trail.id === 'wayfind.navigate'
     );
     expect(navigate?.args.map((arg) => arg.name)).toEqual(['target']);
+    expect(navigate?.flags.map((flag) => flag.name)).toEqual(
+      expect.arrayContaining(['around', 'depth', 'from', 'to'])
+    );
     expect(navigate?.routes).toEqual([
       {
         kind: 'canonical',
@@ -81,6 +84,24 @@ describe('Trails Wayfinder CLI surface', () => {
         target: 'wayfind.search',
       },
     ]);
+  });
+
+  test('guards against ambiguous relational wayfind targets', async () => {
+    const navigate = unwrapCommands().find(
+      (command) => command.trail.id === 'wayfind.navigate'
+    );
+    expect(navigate).toBeDefined();
+
+    const result = await navigate?.execute(
+      { target: 'wayfind.search' },
+      { from: 'db.main' },
+      { cwd: process.cwd() }
+    );
+
+    expect(result?.isErr()).toBe(true);
+    expect(result?.error.message).toContain(
+      'Provide only one of target, from, to, or around.'
+    );
   });
 
   test('does not expose deferred Wayfinder queries on the CLI', () => {

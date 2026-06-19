@@ -10,6 +10,21 @@ import { z } from 'zod';
 
 const wayfindInputSchema = z
   .object({
+    around: z
+      .string()
+      .optional()
+      .describe('Resolve direct graph relationships around an entity'),
+    depth: z
+      .number()
+      .int()
+      .positive()
+      .max(10)
+      .default(2)
+      .describe('Maximum graph traversal depth for relational views'),
+    from: z
+      .string()
+      .optional()
+      .describe('Resolve downstream graph impact from an entity'),
     include: z
       .array(wayfinderIncludeSchema)
       .default([])
@@ -29,12 +44,52 @@ const wayfindInputSchema = z
       .string()
       .optional()
       .describe('Graph entity ID or source file path to inspect'),
+    to: z
+      .string()
+      .optional()
+      .describe('Resolve upstream graph impact to an entity'),
     trails: z.boolean().default(false).describe('Resolve trail facts'),
     view: wayfinderViewSchema
       .default('list')
       .describe('View to render for the resolved target or population'),
   })
-  .strict();
+  .strict()
+  .refine(
+    (input) =>
+      [input.around, input.from, input.target, input.to].filter(
+        (value) => value !== undefined
+      ).length <= 1,
+    {
+      message: 'Provide only one of target, from, to, or around.',
+      path: ['target'],
+    }
+  )
+  .refine(
+    (input) =>
+      input.target === undefined ||
+      (input.intent === undefined &&
+        !input.resources &&
+        !input.surfaces &&
+        !input.trails),
+    {
+      message:
+        'Target lookup cannot be combined with population selector flags. Use --include for bounded fact attachments.',
+      path: ['target'],
+    }
+  )
+  .refine(
+    (input) =>
+      input.include.length === 0 ||
+      (input.source !== 'live' &&
+        input.around === undefined &&
+        input.from === undefined &&
+        input.to === undefined),
+    {
+      message:
+        '--include attaches facts to a target or filtered population from locked artifacts; relational and live-source includes are not supported yet.',
+      path: ['include'],
+    }
+  );
 
 const wayfindOutputSchema = z.object({
   includes: z.record(z.string(), z.unknown()).optional(),
@@ -156,9 +211,61 @@ const envelopeFor = async (
     ...(includes.value === undefined ? {} : { includes: includes.value }),
     result: result.value,
     source: input.source,
+    ...(input.around === undefined ? {} : { target: input.around }),
+    ...(input.from === undefined ? {} : { target: input.from }),
     ...(input.target === undefined ? {} : { target: input.target }),
+    ...(input.to === undefined ? {} : { target: input.to }),
     view,
   });
+};
+
+const viewRelation = (input: WayfindInput, ctx: TrailContextWithCompose) => {
+  if (input.from !== undefined) {
+    return {
+      result: ctx.compose('wayfind.impact', {
+        direction: 'downstream',
+        id: input.from,
+        limit: input.limit,
+        maxDepth: input.depth,
+        ...sourceInput(input),
+      }),
+      view: 'map' as const,
+    };
+  }
+  if (input.to !== undefined) {
+    return {
+      result: ctx.compose('wayfind.impact', {
+        direction: 'upstream',
+        id: input.to,
+        limit: input.limit,
+        maxDepth: input.depth,
+        ...sourceInput(input),
+      }),
+      view: 'map' as const,
+    };
+  }
+  if (input.around === undefined) {
+    return Promise.resolve();
+  }
+  if (input.view === 'map') {
+    return {
+      result: ctx.compose('wayfind.impact', {
+        direction: 'both',
+        id: input.around,
+        limit: input.limit,
+        maxDepth: input.depth,
+        ...sourceInput(input),
+      }),
+      view: 'map' as const,
+    };
+  }
+  return {
+    result: ctx.compose('wayfind.nearby', {
+      id: input.around,
+      ...sourceInput(input),
+    }),
+    view: 'summary' as const,
+  };
 };
 
 const viewTarget = async (
@@ -290,9 +397,11 @@ export const wayfindTrail = trail('wayfind.navigate', {
     if (unsupported !== undefined) {
       return Result.err(unsupported);
     }
-    const dispatched = await (input.target === undefined
-      ? viewPopulation(input, ctx)
-      : viewTarget(input, ctx));
+    const dispatched =
+      (await viewRelation(input, ctx)) ??
+      (await (input.target === undefined
+        ? viewPopulation(input, ctx)
+        : viewTarget(input, ctx)));
     if (dispatched === undefined) {
       return Result.err(
         new ValidationError('Provide a Wayfinder target or population filter.')
@@ -308,6 +417,7 @@ export const wayfindTrail = trail('wayfind.navigate', {
     'wayfind.describe',
     'wayfind.examples',
     'wayfind.impact',
+    'wayfind.nearby',
     'wayfind.outline',
     'wayfind.overview',
     'wayfind.resources',
@@ -357,6 +467,14 @@ export const wayfindTrail = trail('wayfind.navigate', {
     {
       input: { include: ['versions'], target: 'wayfind.search' },
       name: 'Attach version facts for a target',
+    },
+    {
+      input: { from: 'db.main', view: 'map' },
+      name: 'Trace downstream graph impact',
+    },
+    {
+      input: { around: 'wayfind.search' },
+      name: 'Inspect nearby graph context',
     },
     {
       input: { intent: 'read', trails: true },
