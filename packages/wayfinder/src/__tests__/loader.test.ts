@@ -313,7 +313,7 @@ describe('loadWayfinderArtifacts', () => {
 });
 
 describe('wayfinderFact', () => {
-  test('carries category, source, freshness, and derivedFrom provenance', () => {
+  test('carries category, source, drift, freshness, and derivedFrom provenance', () => {
     const freshness = { status: 'fresh' } as const;
     const fact = wayfinderFact({
       category: 'projected',
@@ -326,6 +326,7 @@ describe('wayfinderFact', () => {
     expect(fact).toEqual({
       category: 'projected',
       derivedFrom: { field: 'output', id: 'user.show', kind: 'trail' },
+      drift: { freshness, status: 'aligned' },
       freshness,
       source: {
         kind: 'topoStore',

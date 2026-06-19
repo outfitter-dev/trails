@@ -68,14 +68,63 @@ export type WayfinderFreshness =
   | WayfinderFreshnessStale
   | WayfinderFreshnessSchemaVersionDrift;
 
+export type WayfinderFactDriftStatus = 'absent' | 'aligned' | 'drifted';
+
+export interface WayfinderFactDrift {
+  readonly artifacts?: readonly WayfinderArtifactKind[] | undefined;
+  readonly freshness: WayfinderFreshness;
+  readonly reasons?: readonly WayfinderStaleReason[] | undefined;
+  readonly status: WayfinderFactDriftStatus;
+}
+
 export interface WayfinderFact<TValue> {
   readonly category: WayfinderFactCategory;
   readonly derivedFrom: WayfinderContractRef | null;
+  readonly drift: WayfinderFactDrift;
   readonly freshness: WayfinderFreshness;
   readonly source: WayfinderArtifactSource;
   readonly value: TValue;
 }
 
+export type WayfinderFactInput<TValue> = Omit<
+  WayfinderFact<TValue>,
+  'drift'
+> & {
+  readonly drift?: WayfinderFactDrift | undefined;
+};
+
+export const wayfinderDriftFromFreshness = (
+  freshness: WayfinderFreshness
+): WayfinderFactDrift => {
+  switch (freshness.status) {
+    case 'fresh': {
+      return { freshness, status: 'aligned' };
+    }
+    case 'missing': {
+      return {
+        artifacts: freshness.artifacts,
+        freshness,
+        status: 'absent',
+      };
+    }
+    case 'schema-version-drift':
+    case 'stale': {
+      return {
+        ...(freshness.status === 'stale' ? { reasons: freshness.reasons } : {}),
+        freshness,
+        status: 'drifted',
+      };
+    }
+    default: {
+      freshness satisfies never;
+      return { freshness, status: 'drifted' };
+    }
+  }
+};
+
 export const wayfinderFact = <TValue>(
-  fact: WayfinderFact<TValue>
-): WayfinderFact<TValue> => fact;
+  fact: WayfinderFactInput<TValue>
+): WayfinderFact<TValue> => ({
+  ...fact,
+  drift: fact.drift ?? wayfinderDriftFromFreshness(fact.freshness),
+});

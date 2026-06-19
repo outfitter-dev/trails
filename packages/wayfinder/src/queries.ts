@@ -38,6 +38,7 @@ import {
 } from './navigation.js';
 import type { WayfinderRelationResolver } from './navigation.js';
 import { wayfindOutlineTrail } from './outline.js';
+import { wayfinderDriftFromFreshness } from './provenance.js';
 import {
   diffResult,
   impactNodeSchema,
@@ -73,6 +74,15 @@ const freshnessSchema = z.discriminatedUnion('status', [
 ]);
 
 const envelopeSchema = z.object({
+  drift: z.object({
+    artifacts: z
+      .array(z.enum(['lockManifest', 'topoGraph', 'topoStore']))
+      .readonly()
+      .optional(),
+    freshness: freshnessSchema,
+    reasons: z.array(z.record(z.string(), z.unknown())).readonly().optional(),
+    status: z.enum(['absent', 'aligned', 'drifted']),
+  }),
   freshness: freshnessSchema,
   source: artifactSourceSchema,
 });
@@ -583,6 +593,7 @@ const filteredAdapterFacts = (
 const envelope = (
   loaded: LoadedWayfinderGraph
 ): z.output<typeof envelopeSchema> => ({
+  drift: wayfinderDriftFromFreshness(loaded.load.freshness),
   freshness: loaded.load.freshness,
   source: loaded.source,
 });

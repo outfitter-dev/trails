@@ -100,13 +100,16 @@ export type {
   OutlineView,
 } from './outline.js';
 export { outlineInputSchema, outlineOutputSchema } from './outline.js';
-export { wayfinderFact } from './provenance.js';
+export { wayfinderDriftFromFreshness, wayfinderFact } from './provenance.js';
 export type {
   WayfinderArtifactKind,
   WayfinderArtifactSource,
   WayfinderContractRef,
   WayfinderFact,
   WayfinderFactCategory,
+  WayfinderFactDrift,
+  WayfinderFactDriftStatus,
+  WayfinderFactInput,
   WayfinderFreshness,
   WayfinderFreshnessFresh,
   WayfinderFreshnessMissing,

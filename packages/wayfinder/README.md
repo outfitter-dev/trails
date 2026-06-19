@@ -10,7 +10,7 @@ The package exports `wayfinderTopo` plus individual graph-read trails.
 
 | Trail | Purpose |
 | --- | --- |
-| `wayfind.overview` | Summarize saved graph counts, artifact source, and freshness. |
+| `wayfind.overview` | Summarize saved graph counts, artifact source, freshness, and drift. |
 | `wayfind.search` | Find graph entities with typed filters. |
 | `wayfind.trails` | List trail summaries with the shared typed filter kit. |
 | `wayfind.contours` | List contour summaries with the shared typed filter kit. |
@@ -29,7 +29,7 @@ The package exports `wayfinderTopo` plus individual graph-read trails.
 | `wayfind.outline` | Outline one source file and connect it to saved graph facts when available. |
 | `wayfind.diff` | Compare two explicit saved TopoGraph baselines. |
 
-Each graph-read trail is internal by default and returns provenance and freshness metadata with its result so callers can tell whether the answer came from fresh artifacts, stale artifacts, missing artifacts, or schema-version drift. Adapter facts carry package and conformance provenance instead. Public surface exposure must be a deliberate host decision.
+Each graph-read trail is internal by default and returns provenance, freshness, and drift metadata with its result so callers can tell whether the answer came from aligned artifacts, drifted artifacts, absent artifacts, or schema-version drift. `freshness` remains for compatibility; `drift` is the navigation-facing governance signal. Adapter facts carry package and conformance provenance instead. Public surface exposure must be a deliberate host decision.
 
 The v0 catalog intentionally does not include generic `wayfind.query`, semantic search, signposts, or `wayfind.implications`. Those require additional accepted substrates or field evidence before they can answer honestly.
 

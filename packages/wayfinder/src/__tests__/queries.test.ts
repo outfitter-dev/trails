@@ -560,6 +560,11 @@ describe('wayfinder graph-read query trails', () => {
       wayfindOverviewTrail.blaze({ rootDir: tempDir }, ctx())
     );
 
+    expect(overview.drift).toEqual({
+      artifacts: ['topoStore'],
+      freshness: { artifacts: ['topoStore'], status: 'missing' },
+      status: 'absent',
+    });
     expect(overview.source.kind).toBe('topoGraph');
     expect(overview.generatedAt).toBe('2026-06-04T00:00:00.000Z');
     expect(overview.counts).toMatchObject({
