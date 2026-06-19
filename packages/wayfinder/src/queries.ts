@@ -32,18 +32,17 @@ import type {
   WayfinderArtifactLoaderOptions,
 } from './loader.js';
 import { deriveTrailErrorFacts } from './error-facts.js';
+import {
+  resolveWayfinderPopulation,
+  resolveWayfinderRelations,
+} from './navigation.js';
+import type { WayfinderRelationResolver } from './navigation.js';
 import { wayfindOutlineTrail } from './outline.js';
 import {
   diffResult,
-  edgeTouches,
-  groupNearbyEdges,
-  impactFor,
   impactNodeSchema,
-  refSummary,
   relationEdgeSchema,
-  relationEdges,
   relationGroupSchema,
-  resolveEntityRef,
 } from './relations.js';
 
 export { wayfindOutlineTrail } from './outline.js';
@@ -1106,6 +1105,18 @@ const withGraph = async <TValue>(
 const notFound = (kind: string, id: string): NotFoundError =>
   new NotFoundError(`No Wayfinder ${kind} found for "${id}".`);
 
+const impactDirectionResolver = (
+  direction: z.output<typeof impactDirectionSchema>
+): WayfinderRelationResolver => {
+  if (direction === 'both') {
+    return 'around';
+  }
+  if (direction === 'upstream') {
+    return 'to';
+  }
+  return 'from';
+};
+
 const filteredIds = (
   graph: TopoGraph,
   kind: WayfinderEntityKind,
@@ -1113,9 +1124,11 @@ const filteredIds = (
   limit: number
 ): ReadonlySet<string> =>
   new Set(
-    filterWayfinderEntityRefs(graph, kindFilter(kind, filters))
-      .slice(0, limit)
-      .map((ref) => ref.id)
+    resolveWayfinderPopulation(graph, {
+      filters,
+      kind,
+      limit,
+    }).map((ref) => ref.id)
   );
 
 const filteredErrorFacts = (
@@ -1185,9 +1198,15 @@ export const wayfindSearchTrail = trail('wayfind.search', {
   blaze: async (input, ctx) =>
     withGraph(input, ctx.cwd, (loaded) => ({
       ...envelope(loaded),
-      matches: filterWayfinderEntityRefs(loaded.graph, input.filters ?? {})
-        .slice(0, input.limit)
-        .map(refSummary),
+      matches: resolveWayfinderPopulation(loaded.graph, {
+        filters: input.filters,
+        limit: input.limit,
+      }).map((ref) => ({
+        id: ref.id,
+        kind: ref.kind,
+        ...(ref.trailId === undefined ? {} : { trailId: ref.trailId }),
+        ...(ref.versionKey === undefined ? {} : { versionKey: ref.versionKey }),
+      })),
     })),
   cli: {
     aliases: ['find'],
@@ -1477,22 +1496,25 @@ export const wayfindNearbyTrail = trail('wayfind.nearby', {
     if (loaded.isErr()) {
       return loaded;
     }
-    const target = resolveEntityRef(loaded.value.graph, input);
-    if (target.isErr()) {
-      return target;
+    const resolved = resolveWayfinderRelations(loaded.value.graph, {
+      id: input.id,
+      kind: input.kind,
+      limit: 100,
+      maxDepth: 1,
+      resolver: 'around',
+      view: 'groups',
+    });
+    if (resolved.isErr()) {
+      return resolved;
     }
-    if (target.value === undefined) {
+    if (resolved.value === undefined) {
       return Result.err(notFound(input.kind ?? 'entity', input.id));
     }
-    const summary = refSummary(target.value);
-    const edges = relationEdges(loaded.value.graph).filter((edge) =>
-      edgeTouches(edge, summary)
-    );
     return Result.ok({
       ...envelope(loaded.value),
-      edges,
-      relations: groupNearbyEdges(edges, summary),
-      target: summary,
+      edges: resolved.value.edges,
+      relations: resolved.value.groups,
+      target: resolved.value.target,
     });
   },
   description: 'Inspect direct graph relationships around one topo entity',
@@ -1516,21 +1538,26 @@ export const wayfindImpactTrail = trail('wayfind.impact', {
     if (loaded.isErr()) {
       return loaded;
     }
-    const target = resolveEntityRef(loaded.value.graph, impactInput);
-    if (target.isErr()) {
-      return target;
+    const resolved = resolveWayfinderRelations(loaded.value.graph, {
+      id: input.id,
+      kind: input.kind,
+      limit: impactInput.limit,
+      maxDepth: impactInput.maxDepth,
+      resolver: impactDirectionResolver(impactInput.direction),
+    });
+    if (resolved.isErr()) {
+      return resolved;
     }
-    if (target.value === undefined) {
+    if (resolved.value === undefined) {
       return Result.err(notFound(input.kind ?? 'entity', input.id));
     }
-    const summary = refSummary(target.value);
-    const impact = impactFor(loaded.value.graph, impactInput, summary);
     return Result.ok({
       ...envelope(loaded.value),
       direction: impactInput.direction,
+      edges: resolved.value.edges,
       maxDepth: impactInput.maxDepth,
-      target: summary,
-      ...impact,
+      nodes: resolved.value.nodes,
+      target: resolved.value.target,
     });
   },
   description: 'Traverse multi-hop graph impact from one topo entity',

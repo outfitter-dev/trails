@@ -51,6 +51,28 @@ export type {
   WayfinderTopoStoreLoad,
 } from './loader.js';
 export {
+  resolveWayfinderPopulation,
+  resolveWayfinderRelations,
+  wayfinderDriftStatusSchema,
+  wayfinderIncludeSchema,
+  wayfinderNavigationPlanSchema,
+  wayfinderResolverSchema,
+  wayfinderSourceModeSchema,
+  wayfinderViewSchema,
+} from './navigation.js';
+export type {
+  WayfinderDriftStatus,
+  WayfinderInclude,
+  WayfinderNavigationPlan,
+  WayfinderPopulationInput,
+  WayfinderRelationResolver,
+  WayfinderResolvedRelationInput,
+  WayfinderResolvedRelations,
+  WayfinderResolver,
+  WayfinderSourceMode,
+  WayfinderView,
+} from './navigation.js';
+export {
   wayfindAdaptersTrail,
   wayfindContractTrail,
   wayfindContoursTrail,

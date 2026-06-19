@@ -43,6 +43,8 @@ import {
   wayfindTrailsTrail,
   wayfindVersionsTrail,
   wayfinderTopo,
+  resolveWayfinderPopulation,
+  resolveWayfinderRelations,
 } from '../index.js';
 
 let tempDir: string;
@@ -651,6 +653,21 @@ describe('wayfinder graph-read query trails', () => {
     ]);
   });
 
+  test('resolves filtered populations through the navigation planner', async () => {
+    const topoGraph = await writeArtifacts();
+
+    const matches = resolveWayfinderPopulation(topoGraph, {
+      filters: { surface: 'mcp' },
+      kind: 'trail',
+      limit: 100,
+    });
+
+    expect(matches.map((match) => match.id)).toEqual([
+      'user.create',
+      'user.show',
+    ]);
+  });
+
   test('finds current and historical versions with typed filters', async () => {
     const search = await expectOk(
       wayfindSearchTrail.blaze(
@@ -1224,6 +1241,46 @@ describe('wayfinder graph-read query trails', () => {
         ['user.show', 1, 'used-by'],
       ]
     );
+  });
+
+  test('resolves relation populations through from to around planners', async () => {
+    const topoGraph = await writeArtifacts();
+
+    const inbound = resolveWayfinderRelations(topoGraph, {
+      id: 'user.create',
+      kind: 'trail',
+      limit: 100,
+      maxDepth: 1,
+      resolver: 'to',
+    });
+    const vicinity = resolveWayfinderRelations(topoGraph, {
+      id: 'user.create',
+      kind: 'trail',
+      limit: 100,
+      maxDepth: 1,
+      resolver: 'around',
+      view: 'groups',
+    });
+
+    expect(inbound.isOk()).toBe(true);
+    expect(
+      inbound.isOk() ? inbound.value.nodes.map((node) => node.id) : []
+    ).toEqual(['users', 'db.main', 'user.created', 'cli', 'mcp']);
+    expect(vicinity.isOk()).toBe(true);
+    expect(
+      vicinity.isOk()
+        ? vicinity.value.groups.map((group) => [
+            group.direction,
+            group.relation,
+            group.refs.map((ref) => ref.id),
+          ])
+        : []
+    ).toEqual([
+      ['incoming', 'facet-groups', ['users']],
+      ['incoming', 'fired-by', ['user.created']],
+      ['incoming', 'surface-projects', ['cli', 'mcp']],
+      ['incoming', 'used-by', ['db.main']],
+    ]);
   });
 
   test('traverses upstream and both-direction impact', async () => {
