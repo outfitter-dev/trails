@@ -69,6 +69,7 @@ describe('Trails MCP surface shaping', () => {
       'trails_warden_guide',
       'trails_wayfind_adapters',
       'trails_wayfind_contract',
+      'trails_wayfind_diff',
       'trails_wayfind_errors',
       'trails_wayfind_examples',
       'trails_wayfind_impact',
@@ -202,6 +203,7 @@ describe('Trails MCP surface shaping', () => {
     expect(trailsMcpIncludedTrails).toContain('release.smoke');
     expect(trailsMcpIncludedTrails).toContain('warden');
     expect(trailsMcpIncludedTrails).toContain('wayfind.adapters');
+    expect(trailsMcpIncludedTrails).toContain('wayfind.diff');
     expect(trailsMcpIncludedTrails).toContain('wayfind.errors');
     expect(trailsMcpIncludedTrails).toContain('wayfind.outline');
     expect(trailsMcpIncludedTrails).toContain('wayfind.search');

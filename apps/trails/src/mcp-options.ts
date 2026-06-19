@@ -36,6 +36,7 @@ export const trailsMcpIncludedTrails = [
   'warden.guide',
   'wayfind.adapters',
   'wayfind.contract',
+  'wayfind.diff',
   'wayfind.errors',
   'wayfind.examples',
   'wayfind.impact',

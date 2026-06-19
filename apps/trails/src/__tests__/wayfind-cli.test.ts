@@ -33,6 +33,7 @@ describe('Trails Wayfinder CLI surface', () => {
     expect(commandPaths).toContain('wayfind trails');
     expect(commandPaths).toContain('wayfind contract');
     expect(commandPaths).toContain('wayfind describe');
+    expect(commandPaths).toContain('wayfind diff');
     expect(commandPaths).toContain('wayfind errors');
     expect(commandPaths).toContain('wayfind nearby');
     expect(commandPaths).toContain('wayfind impact');
@@ -46,6 +47,7 @@ describe('Trails Wayfinder CLI surface', () => {
     expect(trailIds).toContain('wayfind.trails');
     expect(trailIds).toContain('wayfind.contract');
     expect(trailIds).toContain('wayfind.describe');
+    expect(trailIds).toContain('wayfind.diff');
     expect(trailIds).toContain('wayfind.errors');
     expect(trailIds).toContain('wayfind.nearby');
     expect(trailIds).toContain('wayfind.impact');
@@ -104,13 +106,24 @@ describe('Trails Wayfinder CLI surface', () => {
     );
   });
 
-  test('does not expose deferred Wayfinder queries on the CLI', () => {
+  test('exposes graph diff as the distinct two-root Wayfinder command', () => {
+    const commands = unwrapCommands();
+    const diff = commands.find(
+      (command) => command.trail.id === 'wayfind.diff'
+    );
+
+    expect(diff?.path).toEqual(['wayfind', 'diff']);
+    expect(diff?.flags.map((flag) => flag.name)).toEqual(
+      expect.arrayContaining(['against-dir', 'against-root-dir', 'root-dir'])
+    );
+  });
+
+  test('does not expose speculative Wayfinder queries on the CLI', () => {
     const commands = unwrapCommands();
     const trailIds = commands.map((command) => command.trail.id);
 
     expect(trailIds).not.toContain('wayfind.query');
     expect(trailIds).not.toContain('wayfind.implications');
-    expect(trailIds).not.toContain('wayfind.diff');
   });
 
   test('keeps the base operator topo separate from CLI Wayfinder exposure', () => {

@@ -10,6 +10,11 @@ import { z } from 'zod';
 
 const wayfindInputSchema = z
   .object({
+    adapter: z
+      .string()
+      .optional()
+      .describe('Filter adapter facts by package name'),
+    adapters: z.boolean().default(false).describe('Resolve adapter facts'),
     around: z
       .string()
       .optional()
@@ -21,6 +26,7 @@ const wayfindInputSchema = z
       .max(10)
       .default(2)
       .describe('Maximum graph traversal depth for relational views'),
+    errors: z.boolean().default(false).describe('Resolve trail error facts'),
     from: z
       .string()
       .optional()
@@ -34,6 +40,10 @@ const wayfindInputSchema = z
       .optional()
       .describe('Filter trails by intent'),
     limit: z.number().int().positive().max(500).default(100),
+    module: z
+      .string()
+      .optional()
+      .describe('Workspace-relative app module for live source reads'),
     resources: z.boolean().default(false).describe('Resolve resource facts'),
     rootDir: z.string().optional().describe('Workspace root directory'),
     source: wayfinderSourceModeSchema
