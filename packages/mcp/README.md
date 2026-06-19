@@ -86,6 +86,7 @@ Cold context is projected through MCP resources, not extra Trails resources. `su
 
 - `trails://surface-map` lists the resolved MCP tool projection, including ordinary tools, facet tools, schemas, versions, deferred hints, and member trail IDs.
 - `trails://examples/<trailId>` exposes structured examples for exposed trails that define examples.
+- `trails://trail/<trailId>` exposes MCP-visible graph facts for an exposed trail when graph resources are enabled.
 
 Disable resource projection only when the host needs a minimal MCP capability surface:
 
@@ -97,9 +98,11 @@ Or choose a narrower resource set:
 
 ```typescript
 await surface(graph, {
-  mcpResources: { examples: false, surfaceMap: true },
+  mcpResources: { examples: false, graph: true, surfaceMap: true },
 });
 ```
+
+Graph resources are opt-in for general MCP hosts because they widen cold context for every exposed trail. The Trails operator enables them so agents can inspect high-signal graph facts without invoking another tool.
 
 Facet definitions may set `mcp: { loading: 'deferred' }`. In this release, deferred loading is a compatibility hint under `_meta["ontrails/deferred"]`; the MCP tool schema remains present so clients that do not understand deferred loading continue to work.
 

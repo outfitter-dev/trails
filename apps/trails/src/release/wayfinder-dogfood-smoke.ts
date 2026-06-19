@@ -108,7 +108,24 @@ const assertSearchFindsWayfinder = (search: JsonObject): void => {
   }
 };
 
-const assertRoutePathsForSearch = (routes: unknown, label: string): void => {
+const assertTrailsFindsWayfinder = (trailsResult: JsonObject): void => {
+  const { trails } = trailsResult;
+  if (!Array.isArray(trails)) {
+    throw new TypeError('wayfind --trails did not return trails');
+  }
+  const ids = trails
+    .map((entry) => assertObject(entry, 'wayfind trail entry')['id'])
+    .filter((id): id is string => typeof id === 'string');
+  if (!ids.includes('wayfind.search')) {
+    throw new Error('wayfind --trails did not find wayfind.search');
+  }
+};
+
+const assertRoutePaths = (
+  routes: unknown,
+  label: string,
+  expected: readonly string[]
+): void => {
   if (!Array.isArray(routes)) {
     throw new TypeError(`${label} did not return command routes`);
   }
@@ -122,19 +139,19 @@ const assertRoutePathsForSearch = (routes: unknown, label: string): void => {
       )
       .map((path) => path.join(' '))
   );
-  for (const expected of ['wayfind search', 'wayfind find', 'wf search']) {
-    if (!routePaths.has(expected)) {
-      throw new Error(`${label} did not include ${expected}`);
+  for (const expectedPath of expected) {
+    if (!routePaths.has(expectedPath)) {
+      throw new Error(`${label} did not include ${expectedPath}`);
     }
   }
 };
 
-const assertSchemaForSearch = (schema: JsonObject): void => {
+const assertSchemaForWayfind = (schema: JsonObject): void => {
   const command = assertObject(schema['command'], 'schema command');
-  if (command['trailId'] !== 'wayfind.search') {
-    throw new Error('schema did not inspect wayfind.search');
+  if (command['trailId'] !== 'wayfind.navigate') {
+    throw new Error('schema did not inspect wayfind.navigate');
   }
-  assertRoutePathsForSearch(command['routes'], 'schema');
+  assertRoutePaths(command['routes'], 'schema', ['wayfind']);
 };
 
 const assertErrorsFindWayfinder = (errorsResult: JsonObject): void => {
@@ -192,8 +209,11 @@ const assertContractForSearch = (contractResult: JsonObject): void => {
     throw new Error('wayfind contract did not inspect wayfind.search');
   }
   const cli = assertObject(contract['cli'], 'contract.cli');
-  assertRoutePathsForSearch(cli['routes'], 'contract');
+  assertRoutePaths(cli['routes'], 'contract', ['wayfind search']);
 };
+
+const unwrapWayfindResult = (value: JsonObject, label: string): JsonObject =>
+  assertObject(value['result'], `${label}.result`);
 
 const assertResolvedTarget = (value: JsonObject, label: string): void => {
   const target = assertObject(value['target'], `${label}.target`);
@@ -207,8 +227,8 @@ const assertOutlineFindsOperatorApp = (outline: JsonObject): void => {
     outline['features'],
     'wayfind outline features'
   );
-  if (features['view'] !== 'custom') {
-    throw new Error('wayfind outline did not echo the custom feature view');
+  if (features['view'] !== 'all') {
+    throw new Error('wayfind outline did not echo the all feature view');
   }
   const { apps } = outline;
   if (!Array.isArray(apps)) {
@@ -243,7 +263,10 @@ export const runWayfinderDogfoodSmoke =
         '{"id":"wayfinder-dogfood","scopes":["topo:write"]}',
       ]);
 
-      const overview = runWayfind(tempRoot, ['overview']);
+      const overview = unwrapWayfindResult(
+        runWayfind(tempRoot, ['--view', 'overview']),
+        'wayfind overview'
+      );
       assertFreshSource(overview, 'wayfind overview');
       const counts = assertObject(
         overview['counts'],
@@ -254,6 +277,15 @@ export const runWayfinderDogfoodSmoke =
         throw new Error('wayfind overview did not report trail counts');
       }
 
+      const trails = unwrapWayfindResult(
+        runWayfind(tempRoot, ['--trails', '--intent', 'read']),
+        'wayfind --trails'
+      );
+      assertFreshSource(trails, 'wayfind --trails');
+      assertTrailsFindsWayfinder(trails);
+
+      assertSchemaForWayfind(runSchema(['wayfind']));
+
       const search = runWayfind(tempRoot, [
         'search',
         '--input-json',
@@ -262,45 +294,37 @@ export const runWayfinderDogfoodSmoke =
       assertFreshSource(search, 'wayfind search');
       assertSearchFindsWayfinder(search);
 
-      const findAlias = runWayfind(tempRoot, [
-        'find',
-        '--input-json',
-        '{"filters":{"kind":"trail","idPrefix":"wayfind."}}',
-      ]);
-      assertFreshSource(findAlias, 'wayfind find');
-      assertSearchFindsWayfinder(findAlias);
-
-      const shortAlias = runTrails(tempRoot, [
-        'wf',
-        'search',
-        '--input-json',
-        '{"filters":{"kind":"trail","idPrefix":"wayfind."}}',
-      ]);
-      assertFreshSource(shortAlias, 'wf search');
-      assertSearchFindsWayfinder(shortAlias);
-
-      assertSchemaForSearch(runSchema(['wf', 'search']));
-
-      const errors = runWayfind(tempRoot, [
-        'errors',
-        '--input-json',
-        '{"filters":{"kind":"trail","idPrefix":"wayfind."}}',
-      ]);
-      assertFreshSource(errors, 'wayfind errors');
+      const errors = unwrapWayfindResult(
+        runWayfind(tempRoot, ['--errors']),
+        'wayfind --errors'
+      );
+      assertFreshSource(errors, 'wayfind --errors');
       assertErrorsFindWayfinder(errors);
 
-      const adapters = runWayfind(repoRoot, ['adapters']);
+      const adapters = unwrapWayfindResult(
+        runWayfind(repoRoot, ['--adapters']),
+        'wayfind --adapters'
+      );
       assertAdaptersFindHono(adapters);
 
-      const contract = runWayfind(tempRoot, ['contract', 'wayfind.search']);
+      const contract = unwrapWayfindResult(
+        runWayfind(tempRoot, ['wayfind.search', '--view', 'contract']),
+        'wayfind contract'
+      );
       assertFreshSource(contract, 'wayfind contract');
       assertContractForSearch(contract);
 
-      const nearby = runWayfind(tempRoot, ['nearby', 'wayfind.search']);
+      const nearby = unwrapWayfindResult(
+        runWayfind(tempRoot, ['--around', 'wayfind.search']),
+        'wayfind nearby'
+      );
       assertFreshSource(nearby, 'wayfind nearby');
       assertResolvedTarget(nearby, 'wayfind nearby');
 
-      const impact = runWayfind(tempRoot, ['impact', 'wayfind.search']);
+      const impact = unwrapWayfindResult(
+        runWayfind(tempRoot, ['--from', 'wayfind.search', '--view', 'map']),
+        'wayfind impact'
+      );
       assertFreshSource(impact, 'wayfind impact');
       assertResolvedTarget(impact, 'wayfind impact');
 
@@ -313,8 +337,7 @@ export const runWayfinderDogfoodSmoke =
           'apps/trails/src/app.ts',
           '--root-dir',
           repoRoot,
-          '--features',
-          'source,apps,diagnostics',
+          '--all',
           '--json',
         ],
         'trails wayfind outline'

@@ -80,7 +80,8 @@ const checkDeadInternalTrails = (
   ast: AstNode | null,
   sourceCode: string,
   filePath: string,
-  composedTrailIds: ReadonlySet<string>
+  composedTrailIds: ReadonlySet<string>,
+  topoTrailIds?: ReadonlySet<string> | undefined
 ): readonly WardenDiagnostic[] => {
   if (isTestFile(filePath) || !ast) {
     return [];
@@ -93,7 +94,11 @@ const checkDeadInternalTrails = (
       continue;
     }
 
-    if (hasOnActivation(def.config) || composedTrailIds.has(def.id)) {
+    if (
+      hasOnActivation(def.config) ||
+      composedTrailIds.has(def.id) ||
+      topoTrailIds?.has(def.id)
+    ) {
       continue;
     }
 
@@ -145,7 +150,8 @@ export const deadInternalTrail: ProjectAwareWardenRule = {
       ast,
       sourceCode,
       filePath,
-      composeTargetTrailIds
+      composeTargetTrailIds,
+      context.topoTrailIds
     );
   },
   description:

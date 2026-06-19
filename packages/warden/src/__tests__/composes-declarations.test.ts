@@ -59,6 +59,79 @@ trail('simple', {
 
       expect(diagnostics.length).toBe(0);
     });
+
+    test('recognizes module-local helper calls that receive the trail context', () => {
+      const code = `
+import { trail, Result } from '@ontrails/core';
+
+const viewEntity = async (input, ctx) => ctx.compose('entity.add', input);
+
+trail('onboard', {
+  composes: ['entity.add'],
+  input: z.object({ name: z.string() }),
+  blaze: async (input, ctx) => {
+    const result = await viewEntity(input, ctx);
+    return result.isErr() ? result : Result.ok({});
+  },
+});
+`;
+
+      const diagnostics = composesDeclarations.check(code, TEST_FILE);
+
+      expect(diagnostics.length).toBe(0);
+    });
+
+    test('recognizes destructured compose calls inside module-local helpers', () => {
+      const code = `
+import { trail, Result } from '@ontrails/core';
+
+const viewEntity = async (input, ctx) => {
+  const { compose } = ctx;
+  return compose('entity.add', input);
+};
+
+trail('onboard', {
+  composes: ['entity.add'],
+  input: z.object({ name: z.string() }),
+  blaze: async (input, ctx) => {
+    const result = await viewEntity(input, ctx);
+    return result.isErr() ? result : Result.ok({});
+  },
+});
+`;
+
+      const diagnostics = composesDeclarations.check(code, TEST_FILE);
+
+      expect(diagnostics.length).toBe(0);
+    });
+
+    test('recognizes recursive module-local helper calls that pass context through', () => {
+      const code = `
+import { trail, Result } from '@ontrails/core';
+
+function composeSearch(input, ctx) {
+  return ctx.compose('search', input);
+}
+
+const composeAll = async (input, ctx) => {
+  await ctx.compose('entity.add', input);
+  return composeSearch(input, ctx);
+};
+
+trail('onboard', {
+  composes: ['entity.add', 'search'],
+  input: z.object({ name: z.string() }),
+  blaze: async (input, ctx) => {
+    const result = await composeAll(input, ctx);
+    return result.isErr() ? result : Result.ok({});
+  },
+});
+`;
+
+      const diagnostics = composesDeclarations.check(code, TEST_FILE);
+
+      expect(diagnostics.length).toBe(0);
+    });
   });
 
   describe('error cases', () => {
@@ -105,6 +178,74 @@ trail('onboard', {
       expect(diagnostics.length).toBe(1);
       expect(diagnostics[0]?.severity).toBe('error');
       expect(diagnostics[0]?.message).toContain("ctx.compose('search')");
+    });
+
+    test('reports undeclared destructured compose calls inside module-local helpers', () => {
+      const code = `
+import { trail, Result } from '@ontrails/core';
+
+const viewEntity = async (input, ctx) => {
+  const { compose } = ctx;
+  return compose('entity.add', input);
+};
+
+trail('onboard', {
+  input: z.object({ name: z.string() }),
+  blaze: async (input, ctx) => {
+    const result = await viewEntity(input, ctx);
+    return result.isErr() ? result : Result.ok({});
+  },
+});
+`;
+
+      const diagnostics = composesDeclarations.check(code, TEST_FILE);
+
+      expect(diagnostics.length).toBe(1);
+      expect(diagnostics[0]?.severity).toBe('error');
+      expect(diagnostics[0]?.message).toContain("ctx.compose('entity.add')");
+    });
+
+    test('does not follow a shadowed helper name inside the blaze body', () => {
+      const code = `
+import { trail, Result } from '@ontrails/core';
+
+const viewEntity = async (input, ctx) => ctx.compose('entity.add', input);
+
+trail('onboard', {
+  input: z.object({ name: z.string() }),
+  blaze: async () => {
+    const viewEntity = async () => Result.ok({});
+    return viewEntity();
+  },
+});
+`;
+
+      const diagnostics = composesDeclarations.check(code, TEST_FILE);
+
+      expect(diagnostics.length).toBe(0);
+    });
+
+    test('does not follow a helper name shadowed inside a nested block', () => {
+      const code = `
+import { trail, Result } from '@ontrails/core';
+
+const viewEntity = async (input, ctx) => ctx.compose('entity.add', input);
+
+trail('onboard', {
+  input: z.object({ name: z.string() }),
+  blaze: async (input, ctx) => {
+    if (input.name) {
+      const viewEntity = async () => Result.ok({});
+      return viewEntity(input, ctx);
+    }
+    return Result.ok({});
+  },
+});
+`;
+
+      const diagnostics = composesDeclarations.check(code, TEST_FILE);
+
+      expect(diagnostics.length).toBe(0);
     });
   });
 

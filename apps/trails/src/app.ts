@@ -113,8 +113,10 @@ const cliWayfinderTrails = {
 };
 
 export const trailsCliIncludedTrails = [
-  ...operatorApp.list().map((trailItem) => trailItem.id),
-  ...Object.values(cliWayfinderTrails).map((trailItem) => trailItem.id),
+  ...new Set([
+    ...operatorApp.list().map((trailItem) => trailItem.id),
+    ...Object.values(cliWayfinderTrails).map((trailItem) => trailItem.id),
+  ]),
 ];
 
 export const trailsCliAliases = {

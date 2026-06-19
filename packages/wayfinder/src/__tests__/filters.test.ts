@@ -119,6 +119,7 @@ describe('wayfinder typed filters', () => {
       wayfinderEntityFilterSchema.parse({
         exampleCoverage: true,
         facet: 'users',
+        idGlob: 'user.*',
         idPrefix: 'user.',
         intent: ['read', 'write'],
         kind: ['trail'],
@@ -131,6 +132,7 @@ describe('wayfinder typed filters', () => {
     ).toEqual({
       exampleCoverage: true,
       facet: 'users',
+      idGlob: 'user.*',
       idPrefix: 'user.',
       intent: ['read', 'write'],
       kind: ['trail'],
@@ -164,6 +166,13 @@ describe('wayfinder typed filters', () => {
     ]);
     expect(ids(graph, { id: 'user.show' })).toEqual(['user.show']);
     expect(ids(graph, { idPrefix: 'audit.' })).toEqual(['audit.rebuild']);
+    expect(ids(graph, { idGlob: 'user.*', kind: 'trail' })).toEqual([
+      'user.create',
+      'user.show',
+    ]);
+    expect(ids(graph, { idGlob: 'user.????', kind: 'trail' })).toEqual([
+      'user.show',
+    ]);
   });
 
   test('filters trails by intent, versioning, and example coverage', () => {

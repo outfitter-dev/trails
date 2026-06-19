@@ -64,8 +64,34 @@ const strictParseNumber = (value: string): number => {
   return n;
 };
 
+const validateChoiceValue = (flag: CliFlag, value: string): void => {
+  if (flag.choices && !flag.choices.includes(value)) {
+    throw new InvalidArgumentError(
+      `Allowed choices are ${flag.choices.join(', ')}.`
+    );
+  }
+};
+
+const isRepeatableArrayFlag = (flag: CliFlag): boolean =>
+  !flag.variadic && (flag.type === 'number[]' || flag.type === 'string[]');
+
+const buildRepeatableArrayParser =
+  (flag: CliFlag) =>
+  (value: string, previous: unknown): readonly (number | string)[] => {
+    const parsed = flag.type === 'number[]' ? strictParseNumber(value) : value;
+    validateChoiceValue(flag, String(parsed));
+    return [...(Array.isArray(previous) ? previous : []), parsed];
+  };
+
 /** Apply common modifiers (choices, default, arg parser) to a Commander Option. */
 const applyOptionModifiers = (opt: Option, flag: CliFlag): void => {
+  if (isRepeatableArrayFlag(flag)) {
+    opt.argParser(buildRepeatableArrayParser(flag));
+    if (flag.default !== undefined) {
+      opt.default(flag.default);
+    }
+    return;
+  }
   if (flag.choices) {
     opt.choices(flag.choices);
   }
@@ -146,6 +172,19 @@ const isUserSuppliedOption = (command: Command, name: string): boolean => {
 const getCommandOptionNames = (command: Command): Set<string> =>
   new Set(command.options.map((option) => option.attributeName()));
 
+const INHERITED_SURFACE_OPTION_KEYS = new Set([
+  'cwd',
+  'devPermit',
+  'json',
+  'jsonl',
+  'output',
+  'permit',
+  'quiet',
+  'token',
+  'trace',
+  'watch',
+]);
+
 const hasUserSuppliedOptionOutside = (
   sourceCommand: Command,
   allowedCommand: Command
@@ -169,8 +208,35 @@ const getActionTarget = (fallbackTarget: Command, actionArgs: unknown[]) => {
   return candidate instanceof Command ? candidate : fallbackTarget;
 };
 
-const getParsedFlags = (command: Command): Record<string, unknown> =>
-  command.optsWithGlobals() as Record<string, unknown>;
+const getParsedFlags = (command: Command): Record<string, unknown> => {
+  const flags = command.optsWithGlobals() as Record<string, unknown>;
+  const commandOptionNames = getCommandOptionNames(command);
+  let { parent } = command;
+  while (parent !== null) {
+    for (const option of parent.options) {
+      const name = option.attributeName();
+      if (commandOptionNames.has(name)) {
+        continue;
+      }
+      if (
+        INHERITED_SURFACE_OPTION_KEYS.has(name) &&
+        isUserSuppliedOption(parent, name)
+      ) {
+        flags[name] = parent.getOptionValue(name);
+      } else {
+        Reflect.deleteProperty(flags, name);
+      }
+    }
+    ({ parent } = parent);
+  }
+  for (const option of command.options) {
+    const name = option.attributeName();
+    if (command.getOptionValueSource(name) !== undefined) {
+      flags[name] = command.getOptionValue(name);
+    }
+  }
+  return flags;
+};
 
 const toOptionKey = (name: string): string =>
   name.replaceAll(/-([a-zA-Z0-9])/g, (_, ch: string) => ch.toUpperCase());
@@ -387,6 +453,7 @@ interface BareChildFallback {
   readonly argValue: string;
   readonly parentCommand: CliCommand;
   readonly parentTarget: Command;
+  readonly requiresParentSignal: boolean;
 }
 
 const maybeUseBareChildFallback = (
@@ -400,10 +467,14 @@ const maybeUseBareChildFallback = (
   readonly parsedFlags: Record<string, unknown>;
   readonly userSuppliedFlagKeys: ReadonlySet<string>;
 } => {
+  const hasParentOnlySignal = fallback
+    ? hasUserSuppliedOptionOutside(fallback.parentTarget, target)
+    : false;
   if (
     !fallback ||
     hasAnyPositionalValue(cmd, parsedArgs) ||
-    hasUserSuppliedOptionOutside(target, fallback.parentTarget)
+    hasUserSuppliedOptionOutside(target, fallback.parentTarget) ||
+    (fallback.requiresParentSignal && !hasParentOnlySignal)
   ) {
     return {
       command: cmd,
@@ -561,11 +632,10 @@ const createBareChildFallback = (
   const childSegment = path.at(-1);
   if (
     parentArg === undefined ||
-    childArg === undefined ||
     parentArg.required ||
     parentArg.variadic ||
-    childArg.variadic ||
-    childArg.name !== parentArg.name ||
+    (childArg !== undefined &&
+      (childArg.variadic || childArg.name !== parentArg.name)) ||
     childSegment === undefined
   ) {
     return undefined;
@@ -576,6 +646,7 @@ const createBareChildFallback = (
     argValue: childSegment,
     parentCommand: parentState.cliCommand,
     parentTarget: parentState.command,
+    requiresParentSignal: childArg === undefined,
   };
 };
 

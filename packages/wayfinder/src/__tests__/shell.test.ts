@@ -8,7 +8,7 @@ describe('@ontrails/wayfinder public catalog', () => {
     expect([...wayfinderTopo.ids()]).toContain('wayfind.overview');
   });
 
-  test('keeps graph-read trails internal by default', () => {
+  test('keeps graph-read trails internal unless surfaced as operator commands', () => {
     for (const id of wayfinderTopo.ids()) {
       expect(wayfinderTopo.get(id)?.visibility).toBe('internal');
     }

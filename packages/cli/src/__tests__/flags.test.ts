@@ -198,6 +198,18 @@ describe('deriveFlags', () => {
       expect(flag.variadic).toBe(true);
     });
 
+    test('z.array(z.enum()) derives a repeatable multiselect flag', () => {
+      const flags = deriveFlags(
+        z.object({ include: z.array(z.enum(['examples', 'errors'])) })
+      );
+      const flag = requireFlag(flags, 'include');
+
+      expect(flags).toHaveLength(1);
+      expect(flag.type).toBe('string[]');
+      expect(flag.choices).toEqual(['examples', 'errors']);
+      expect(flag.variadic).toBe(false);
+    });
+
     test('z.array(z.number()) derives a variadic number[] flag', () => {
       const flags = deriveFlags(z.object({ ids: z.array(z.number()) }));
       const flag = requireFlag(flags, 'ids');

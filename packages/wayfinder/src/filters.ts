@@ -40,6 +40,7 @@ export const wayfinderEntityFilterSchema = z
     exampleCoverage: z.boolean().optional(),
     facet: stringListSchema.optional(),
     id: stringListSchema.optional(),
+    idGlob: stringListSchema.optional(),
     idPrefix: stringListSchema.optional(),
     intent: intentListSchema.optional(),
     kind: entityKindListSchema.optional(),
@@ -96,6 +97,12 @@ const includesAny = (
 
 const namespaceMatches = (id: string, namespace: string): boolean =>
   id === namespace || id.startsWith(`${namespace}.`);
+
+const globToRegExp = (glob: string): RegExp => {
+  const escaped = glob.replaceAll(/[.+^${}()|[\]\\]/g, '\\$&');
+  const pattern = `^${escaped.replaceAll('*', '.*').replaceAll('?', '.')}$`;
+  return new RegExp(pattern);
+};
 
 const entryHasVersioning = (entry: TopoGraphEntry): boolean =>
   entry.version !== undefined ||
@@ -264,6 +271,7 @@ const matchesIdentityFilters = (
   ref: WayfinderEntityRef,
   filters: {
     readonly idPrefixes: readonly string[];
+    readonly idGlobs: readonly string[];
     readonly ids: readonly string[];
     readonly namespaces: readonly string[];
   }
@@ -274,6 +282,12 @@ const matchesIdentityFilters = (
   if (
     filters.idPrefixes.length > 0 &&
     !filters.idPrefixes.some((prefix) => ref.id.startsWith(prefix))
+  ) {
+    return false;
+  }
+  if (
+    filters.idGlobs.length > 0 &&
+    !filters.idGlobs.some((glob) => globToRegExp(glob).test(ref.id))
   ) {
     return false;
   }
@@ -332,6 +346,7 @@ export const createWayfinderEntityPredicate = (
   const parsed = wayfinderEntityFilterSchema.parse(filters);
   const kinds = toArray(parsed.kind);
   const ids = toArray(parsed.id);
+  const idGlobs = toArray(parsed.idGlob);
   const idPrefixes = toArray(parsed.idPrefix);
   const namespaces = toArray(parsed.namespace);
   const intents = toArray(parsed.intent);
@@ -343,7 +358,9 @@ export const createWayfinderEntityPredicate = (
     if (kinds.length > 0 && !kinds.includes(ref.kind)) {
       return false;
     }
-    if (!matchesIdentityFilters(ref, { idPrefixes, ids, namespaces })) {
+    if (
+      !matchesIdentityFilters(ref, { idGlobs, idPrefixes, ids, namespaces })
+    ) {
       return false;
     }
     if (

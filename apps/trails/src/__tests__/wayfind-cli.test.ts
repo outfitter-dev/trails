@@ -1,4 +1,5 @@
 import { deriveCliCommands } from '@ontrails/cli';
+import { Result } from '@ontrails/core';
 import { describe, expect, test } from 'bun:test';
 
 import {
@@ -8,6 +9,7 @@ import {
   trailsCliIncludedTrails,
 } from '../app.js';
 import { formatWayfindOutlineText } from '../run-wayfind-outline.js';
+import { wayfindTrail } from '../trails/wayfind.js';
 
 const unwrapCommands = () => {
   const result = deriveCliCommands(app, {
@@ -18,6 +20,23 @@ const unwrapCommands = () => {
     throw result.error;
   }
   return result.value;
+};
+
+const parseWayfindInput = (input: Record<string, unknown>) =>
+  wayfindTrail.input.parse(input);
+
+const fakeWayfindContext = () => {
+  const calls: { id: string; input: unknown }[] = [];
+  return {
+    calls,
+    ctx: {
+      compose: async (id: string, input: unknown) => {
+        calls.push({ id, input });
+        return Result.ok({ id, input });
+      },
+      cwd: process.cwd(),
+    },
+  };
 };
 
 describe('Trails Wayfinder CLI surface', () => {
@@ -132,6 +151,123 @@ describe('Trails Wayfinder CLI surface', () => {
     expect(result?.error.message).toContain('supports overview and ID lookup');
   });
 
+  test('guards includes against live source and relational views', async () => {
+    const navigate = unwrapCommands().find(
+      (command) => command.trail.id === 'wayfind.navigate'
+    );
+    expect(navigate).toBeDefined();
+
+    const live = await navigate?.execute(
+      {},
+      { include: ['examples'], source: 'live' },
+      { cwd: process.cwd() }
+    );
+    expect(live?.isErr()).toBe(true);
+    expect(live?.error.message).toContain(
+      '--include attaches facts to a target or filtered population'
+    );
+
+    const relation = await navigate?.execute(
+      {},
+      { from: 'wayfind.search', include: ['examples'] },
+      { cwd: process.cwd() }
+    );
+    expect(relation?.isErr()).toBe(true);
+    expect(relation?.error.message).toContain(
+      '--include attaches facts to a target or filtered population'
+    );
+  });
+
+  test('rejects target lookup mixed with population selector flags', async () => {
+    const navigate = unwrapCommands().find(
+      (command) => command.trail.id === 'wayfind.navigate'
+    );
+    expect(navigate).toBeDefined();
+
+    const result = await navigate?.execute(
+      { target: 'wayfind.search' },
+      { errors: true },
+      { cwd: process.cwd() }
+    );
+
+    expect(result?.isErr()).toBe(true);
+    expect(result?.error.message).toContain(
+      'Target lookup cannot be combined with population selector flags'
+    );
+  });
+
+  test('normalizes target views, glob targets, and include facts', async () => {
+    const target = fakeWayfindContext();
+    const targetResult = await wayfindTrail.blaze(
+      parseWayfindInput({ target: 'wayfind.search' }),
+      target.ctx
+    );
+    expect(targetResult.isOk()).toBe(true);
+    if (targetResult.isErr()) {
+      throw targetResult.error;
+    }
+    expect(target.calls.map((call) => call.id)).toEqual(['wayfind.describe']);
+    expect(targetResult.value).toMatchObject({
+      result: { id: 'wayfind.describe' },
+      target: 'wayfind.search',
+      view: 'describe',
+    });
+
+    const glob = fakeWayfindContext();
+    const globResult = await wayfindTrail.blaze(
+      parseWayfindInput({ target: 'wayfind.*' }),
+      glob.ctx
+    );
+    expect(globResult.isOk()).toBe(true);
+    expect(glob.calls).toEqual([
+      {
+        id: 'wayfind.search',
+        input: expect.objectContaining({ filters: { idGlob: 'wayfind.*' } }),
+      },
+    ]);
+
+    const outlineGlob = fakeWayfindContext();
+    const outlineGlobResult = await wayfindTrail.blaze(
+      parseWayfindInput({
+        target: 'packages/*/src/index.ts',
+        view: 'outline',
+      }),
+      outlineGlob.ctx
+    );
+    expect(outlineGlobResult.isOk()).toBe(true);
+    expect(outlineGlob.calls).toEqual([
+      {
+        id: 'wayfind.outline',
+        input: expect.objectContaining({ file: 'packages/*/src/index.ts' }),
+      },
+    ]);
+
+    const included = fakeWayfindContext();
+    const includeResult = await wayfindTrail.blaze(
+      parseWayfindInput({
+        include: ['examples'],
+        target: 'wayfind.search',
+      }),
+      included.ctx
+    );
+    expect(includeResult.isOk()).toBe(true);
+    if (includeResult.isErr()) {
+      throw includeResult.error;
+    }
+    expect(included.calls.map((call) => call.id)).toEqual([
+      'wayfind.describe',
+      'wayfind.examples',
+    ]);
+    expect(includeResult.value.includes).toEqual({
+      examples: {
+        id: 'wayfind.examples',
+        input: expect.objectContaining({
+          filters: { id: 'wayfind.search' },
+        }),
+      },
+    });
+  });
+
   test('exposes graph diff as the distinct two-root Wayfinder command', () => {
     const commands = unwrapCommands();
     const diff = commands.find(
@@ -153,6 +289,14 @@ describe('Trails Wayfinder CLI surface', () => {
   });
 
   test('keeps the base operator topo separate from CLI Wayfinder exposure', () => {
+    const defaultCommands = deriveCliCommands(operatorApp);
+    if (defaultCommands.isErr()) {
+      throw defaultCommands.error;
+    }
+
+    expect(
+      defaultCommands.value.map((command) => command.trail.id)
+    ).not.toContain('wayfind.overview');
     expect(operatorApp.get('wayfind.overview')).toBeUndefined();
     expect(operatorApp.get('wayfind.navigate')).toBeUndefined();
     expect(app.get('wayfind.overview')).toBeDefined();

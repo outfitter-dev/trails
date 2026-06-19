@@ -86,6 +86,7 @@ Cold context belongs in **MCP resources**, not in extra tools and not in Trails 
 | --- | --- |
 | `trails://surface-map` | Resolved MCP surface projection: tool names, trail IDs, facet IDs, member trail IDs, input/output schemas, versions, annotations, and deferred hints |
 | `trails://examples/<trailId>` | Structured examples for an exposed trail, when the trail defines examples |
+| `trails://trail/<trailId>` | MCP-visible graph facts for an exposed trail: identity, intent, visibility, composition, resource and signal references, and projected MCP tool metadata |
 
 Use `mcpResources: false` to disable MCP resource registration:
 
@@ -97,9 +98,11 @@ Use `mcpResources` to keep only a subset:
 
 ```typescript
 await surface(graph, {
-  mcpResources: { examples: false, surfaceMap: true },
+  mcpResources: { examples: false, graph: true, surfaceMap: true },
 });
 ```
+
+Graph resources are opt-in for general MCP hosts because they widen cold context for every exposed trail. The Trails operator enables them so agents can inspect high-signal graph facts without invoking another tool.
 
 The resource naming is intentionally qualified: `McpResource`, `McpResources`, and `mcpResources` refer to MCP protocol resources. Trails `resource()` remains the infrastructure dependency primitive.
 
@@ -227,7 +230,7 @@ await surface(graph, {
 
 Wayfinder trails are internal read tools over saved graph artifacts and package evidence. Expose them on MCP only when the host operator wants agents to inspect facts directly, and include explicit trail IDs instead of widening the whole `wayfind.*` namespace.
 
-The Trails operator MCP surface starts with selected first-class Wayfinder tools: `wayfind.overview`, `wayfind.search`, `wayfind.trails`, `wayfind.contract`, `wayfind.examples`, `wayfind.errors`, `wayfind.adapters`, `wayfind.nearby`, `wayfind.impact`, and `wayfind.outline`. They remain direct tools rather than one broad Wayfinder facet so agents can see read-only annotations, descriptions, and output schemas at the tool boundary. Adjacent saved-topo inspection stays grouped in the operator's existing `inspect` facet; unselected Wayfinder queries are not exposed by default.
+The Trails operator MCP surface starts with selected first-class Wayfinder tools: `wayfind.overview`, `wayfind.search`, `wayfind.trails`, `wayfind.contract`, `wayfind.examples`, `wayfind.errors`, `wayfind.adapters`, `wayfind.nearby`, `wayfind.impact`, `wayfind.diff`, and `wayfind.outline`. It also enables `trails://trail/<trailId>` graph resources for exposed trails. The tools remain direct rather than one broad Wayfinder facet so agents can see read-only annotations, descriptions, and output schemas at the tool boundary. Adjacent saved-topo inspection stays grouped in the operator's existing `inspect` facet; unselected Wayfinder queries are not exposed by default.
 
 Do not document or expose deferred Wayfinder ideas as if they exist. V0 has no generic `wayfind.query`, semantic search, signposts, or `wayfind.implications`.
 

@@ -3,7 +3,7 @@ import { afterAll, beforeAll } from 'bun:test';
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
-import { WORKSPACE_GITIGNORE_CONTENT } from '@ontrails/core';
+import { WORKSPACE_GITIGNORE_CONTENT, topo } from '@ontrails/core';
 import { testExamples } from '@ontrails/testing';
 
 import { operatorApp } from '../src/app.js';
@@ -30,6 +30,16 @@ afterAll(() => {
   resetTrailsWorkspace();
 });
 
+const operatorExamplesApp = topo(
+  'trails-examples',
+  Object.fromEntries(
+    operatorApp
+      .list()
+      .filter((trail) => !trail.id.startsWith('wayfind.'))
+      .map((trail) => [trail.id, trail])
+  )
+);
+
 // Wayfinder CLI dogfood trails depend on saved topo artifacts; the repo-level
 // dogfood smoke covers them against exported operator artifacts.
-testExamples(operatorApp, { cwd: repoRoot });
+testExamples(operatorExamplesApp, { cwd: repoRoot });

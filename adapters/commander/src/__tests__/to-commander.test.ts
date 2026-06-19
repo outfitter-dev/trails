@@ -274,6 +274,75 @@ describe('toCommander command trees', () => {
 
     expect(calls).toEqual(['topo', 'topo.pin']);
   });
+
+  test('does not leak executable parent defaults into child commands', async () => {
+    const calls: string[] = [];
+    const navigate = trail('wayfind.navigate', {
+      args: ['target'],
+      blaze: (input: { resources: boolean; target?: string }) => {
+        calls.push(
+          `navigate:${String(input.target)}:${String(input.resources)}`
+        );
+        return Result.ok(input);
+      },
+      cli: { path: 'wayfind' },
+      input: z
+        .object({
+          resources: z.boolean().default(false),
+          target: z.string().optional(),
+        })
+        .strict(),
+    });
+    const search = trail('wayfind.search', {
+      blaze: (input: { query: string }) => {
+        calls.push(`search:${input.query}`);
+        return Result.ok(input);
+      },
+      input: z.object({ query: z.string() }).strict(),
+    });
+    const app = makeApp(navigate, search);
+    const commands = buildCommands(app, { onResult: noopResult });
+    const program = toCommander(commands, { name: 'test' });
+    program.exitOverride();
+
+    await program.parseAsync(['node', 'test', 'wayfind', 'search', 'trails']);
+
+    expect(calls).toEqual(['search:trails']);
+  });
+
+  test('routes parent-only flags before a no-arg child token through parent fallback', async () => {
+    const calls: string[] = [];
+    const navigate = trail('wayfind.navigate', {
+      args: ['target'],
+      blaze: (input: { errors: boolean; target?: string }) => {
+        calls.push(`navigate:${String(input.target)}:${String(input.errors)}`);
+        return Result.ok(input);
+      },
+      cli: { path: 'wayfind' },
+      input: z
+        .object({
+          errors: z.boolean().default(false),
+          target: z.string().optional(),
+        })
+        .strict(),
+    });
+    const search = trail('wayfind.search', {
+      blaze: () => {
+        calls.push('search');
+        return Result.ok({});
+      },
+      input: z.object({}).strict(),
+    });
+    const app = makeApp(navigate, search);
+    const commands = buildCommands(app, { onResult: noopResult });
+    const program = toCommander(commands, { name: 'test' });
+    program.exitOverride();
+
+    await program.parseAsync(['node', 'test', 'wayfind', 'search']);
+    await program.parseAsync(['node', 'test', 'wayfind', '--errors', 'search']);
+
+    expect(calls).toEqual(['search', 'navigate:search:true']);
+  });
 });
 
 describe('toCommander validation', () => {
@@ -758,6 +827,73 @@ describe('toCommander validation', () => {
     ]);
 
     expect(calls).toEqual(['survey:trail:./src/app.ts']);
+  });
+
+  test('keeps repeatable choice arrays from consuming the bare child token', async () => {
+    let received:
+      | {
+          readonly args: Record<string, unknown>;
+          readonly opts: Record<string, unknown>;
+        }
+      | undefined;
+    const commands = [
+      {
+        args: [{ name: 'target', required: false, variadic: false }],
+        execute: async (
+          args: Record<string, unknown>,
+          opts: Record<string, unknown>
+        ) => {
+          received = { args, opts };
+          return await Result.ok('wayfind');
+        },
+        flags: [
+          {
+            choices: ['errors', 'examples'],
+            default: [],
+            name: 'include',
+            required: false,
+            type: 'string[]' as const,
+            variadic: false,
+          },
+        ],
+        intent: 'read' as const,
+        path: ['wayfind'] as const,
+        trail: trail('wayfind.navigate', {
+          blaze: () => Result.ok('wayfind'),
+          input: z.object({}),
+        }),
+      },
+      {
+        args: [],
+        execute: async () => await Result.ok('search'),
+        flags: [],
+        intent: 'read' as const,
+        path: ['wayfind', 'search'] as const,
+        trail: trail('wayfind.search', {
+          blaze: () => Result.ok('search'),
+          input: z.object({}),
+        }),
+      },
+    ];
+
+    const program = toCommander(commands, { name: 'test' });
+    program.exitOverride();
+
+    await program.parseAsync([
+      'node',
+      'test',
+      'wayfind',
+      '--include',
+      'examples',
+      '--include',
+      'errors',
+      'search',
+    ]);
+
+    expect(received).toEqual({
+      args: { target: 'search' },
+      opts: { include: ['examples', 'errors'] },
+    });
   });
 
   test('routes matching trailing parent flags through parent fallback', async () => {

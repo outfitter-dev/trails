@@ -41,7 +41,7 @@ interface CliFieldOverride extends FieldOverride {
 const fieldTypeToCliFlag: Record<Field['type'], CliFlagShape> = {
   boolean: { type: 'boolean', variadic: false },
   enum: { type: 'string', variadic: false },
-  multiselect: { type: 'string[]', variadic: true },
+  multiselect: { type: 'string[]', variadic: false },
   number: { type: 'number', variadic: false },
   'number[]': { type: 'number[]', variadic: true },
   string: { type: 'string', variadic: false },

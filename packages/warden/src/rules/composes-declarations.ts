@@ -10,8 +10,11 @@ import {
   findBlazeBodies,
   findConfigProperty,
   findTrailDefinitions,
+  getNodeArguments,
   getNodeBodyNode,
   getNodeBodyStatements,
+  getNodeCallee,
+  getNodeDeclaration,
   getNodeDeclarations,
   getNodeId,
   getNodeInit,
@@ -20,13 +23,15 @@ import {
   getNodeLeft,
   getNodeName,
   getNodeObject,
+  getNodeParams,
   getNodeProperties,
   getNodeProperty,
   getNodeValue,
   getNodeValueNode,
+  isShadowed,
   offsetToLine,
   parse,
-  walk,
+  walkWithScopes,
 } from './ast.js';
 import type { AstNode } from './ast.js';
 import { isTestFile } from './scan.js';
@@ -452,6 +457,9 @@ const getCtxDestructurePattern = (
 };
 
 const getTopLevelStatements = (body: AstNode): readonly AstNode[] => {
+  if (body.type === 'BlockStatement') {
+    return getNodeBodyStatements(body);
+  }
   const blockBody = getNodeBodyNode(body);
   if (!blockBody || blockBody.type !== 'BlockStatement') {
     return [];
@@ -491,6 +499,109 @@ const collectDestructuredComposeNames = (
   return names;
 };
 
+interface ComposeHelper {
+  readonly body: AstNode;
+  readonly params: readonly AstNode[];
+}
+
+const isFunctionLikeNode = (
+  node: AstNode | null | undefined
+): node is AstNode =>
+  node !== null &&
+  node !== undefined &&
+  (node.type === 'ArrowFunctionExpression' ||
+    node.type === 'FunctionDeclaration' ||
+    node.type === 'FunctionExpression');
+
+const helperFromFunctionNode = (
+  node: AstNode | null | undefined
+): ComposeHelper | null => {
+  if (!isFunctionLikeNode(node)) {
+    return null;
+  }
+  const body = getNodeBodyNode(node);
+  return body ? { body, params: getNodeParams(node) } : null;
+};
+
+const addFunctionHelper = (
+  node: AstNode,
+  helpers: Map<string, ComposeHelper>
+): void => {
+  if (node.type !== 'FunctionDeclaration') {
+    return;
+  }
+  const name = identifierName(getNodeId(node));
+  const helper = helperFromFunctionNode(node);
+  if (name && helper) {
+    helpers.set(name, helper);
+  }
+};
+
+const addVariableHelpers = (
+  node: AstNode,
+  helpers: Map<string, ComposeHelper>
+): void => {
+  if (node.type !== 'VariableDeclaration' || getNodeKind(node) !== 'const') {
+    return;
+  }
+  for (const declaration of getNodeDeclarations(node)) {
+    const name = identifierName(getNodeId(declaration));
+    const helper = helperFromFunctionNode(getNodeInit(declaration));
+    if (name && helper) {
+      helpers.set(name, helper);
+    }
+  }
+};
+
+const unwrapTopLevelDeclaration = (node: AstNode): AstNode =>
+  node.type === 'ExportNamedDeclaration'
+    ? (getNodeDeclaration(node) ?? node)
+    : node;
+
+const collectComposeHelpers = (
+  ast: AstNode
+): ReadonlyMap<string, ComposeHelper> => {
+  const helpers = new Map<string, ComposeHelper>();
+  for (const statement of getNodeBodyStatements(ast)) {
+    const declaration = unwrapTopLevelDeclaration(statement);
+    addFunctionHelper(declaration, helpers);
+    addVariableHelpers(declaration, helpers);
+  }
+  return helpers;
+};
+
+const collectHelperCtxNames = (
+  call: AstNode,
+  helper: ComposeHelper,
+  ctxNames: ReadonlySet<string>
+): ReadonlySet<string> => {
+  const names = new Set<string>();
+  const args = getNodeArguments(call);
+  for (const [index, param] of helper.params.entries()) {
+    const argName = identifierName(args[index]);
+    const paramName = identifierName(param);
+    if (argName && paramName && ctxNames.has(argName)) {
+      names.add(paramName);
+    }
+  }
+  return names;
+};
+
+const findHelperCall = (
+  node: AstNode | null | undefined,
+  helpers: ReadonlyMap<string, ComposeHelper>
+): { readonly helper: ComposeHelper; readonly name: string } | null => {
+  if (node?.type !== 'CallExpression') {
+    return null;
+  }
+  const calleeName = identifierName(getNodeCallee(node));
+  if (!calleeName) {
+    return null;
+  }
+  const helper = helpers.get(calleeName);
+  return helper ? { helper, name: calleeName } : null;
+};
+
 interface CalledComposes {
   /** Statically resolved trail IDs from string literal arguments. */
   readonly ids: ReadonlySet<string>;
@@ -506,31 +617,67 @@ interface CalledComposes {
 const collectComposeCallsFromBody = (
   body: AstNode,
   ids: Set<string>,
-  sourceCode: string
+  sourceCode: string,
+  helpers: ReadonlyMap<string, ComposeHelper>,
+  inheritedCtxNames?: ReadonlySet<string>,
+  visitedHelpers = new Set<string>()
 ): boolean => {
-  const ctxNames = buildCtxNames(body);
+  const ctxNames = inheritedCtxNames ?? buildCtxNames(body);
   const composeLocalNames = collectDestructuredComposeNames(body, ctxNames);
+  const helperNames = new Set(helpers.keys());
   let foundUnresolved = false;
 
-  walk(body, (node) => {
-    const extracted = extractComposeCall(
-      node,
-      ctxNames,
-      composeLocalNames,
-      sourceCode
-    );
-    if (!extracted) {
-      return;
-    }
+  walkWithScopes(
+    body,
+    (node, scopeStack) => {
+      const extracted = extractComposeCall(
+        node,
+        ctxNames,
+        composeLocalNames,
+        sourceCode
+      );
+      if (extracted) {
+        if (extracted.hasUnresolved) {
+          foundUnresolved = true;
+        }
 
-    if (extracted.hasUnresolved) {
-      foundUnresolved = true;
-    }
+        for (const id of extracted.ids) {
+          ids.add(id);
+        }
+      }
 
-    for (const id of extracted.ids) {
-      ids.add(id);
-    }
-  });
+      const helperCall = findHelperCall(node, helpers);
+      if (
+        !helperCall ||
+        visitedHelpers.has(helperCall.name) ||
+        isShadowed(helperCall.name, scopeStack)
+      ) {
+        return;
+      }
+      const helperCtxNames = collectHelperCtxNames(
+        node,
+        helperCall.helper,
+        ctxNames
+      );
+      if (helperCtxNames.size === 0) {
+        return;
+      }
+      visitedHelpers.add(helperCall.name);
+      if (
+        collectComposeCallsFromBody(
+          helperCall.helper.body,
+          ids,
+          sourceCode,
+          helpers,
+          helperCtxNames,
+          visitedHelpers
+        )
+      ) {
+        foundUnresolved = true;
+      }
+    },
+    { initialScopes: [helperNames] }
+  );
 
   return foundUnresolved;
 };
@@ -538,13 +685,15 @@ const collectComposeCallsFromBody = (
 /** Walk blaze bodies and collect all statically resolvable ctx.compose() trail IDs. */
 const extractCalledComposes = (
   config: AstNode,
+  ast: AstNode,
   sourceCode: string
 ): CalledComposes => {
   const ids = new Set<string>();
   let hasUnresolved = false;
+  const helpers = collectComposeHelpers(ast);
 
   for (const body of findBlazeBodies(config)) {
-    if (collectComposeCallsFromBody(body, ids, sourceCode)) {
+    if (collectComposeCallsFromBody(body, ids, sourceCode, helpers)) {
       hasUnresolved = true;
     }
   }
@@ -634,12 +783,13 @@ const reportUnused = (
 
 const checkTrailDefinition = (
   def: { id: string; config: AstNode; start: number },
+  ast: AstNode,
   filePath: string,
   sourceCode: string,
   diagnostics: WardenDiagnostic[]
 ): void => {
   const declared = extractDeclaredComposes(def.config, sourceCode);
-  const called = extractCalledComposes(def.config, sourceCode);
+  const called = extractCalledComposes(def.config, ast, sourceCode);
 
   if (
     declared.ids.size === 0 &&
@@ -694,7 +844,7 @@ export const composesDeclarations: WardenRule = {
     const diagnostics: WardenDiagnostic[] = [];
 
     for (const def of findTrailDefinitions(ast)) {
-      checkTrailDefinition(def, filePath, sourceCode, diagnostics);
+      checkTrailDefinition(def, ast, filePath, sourceCode, diagnostics);
     }
 
     return diagnostics;

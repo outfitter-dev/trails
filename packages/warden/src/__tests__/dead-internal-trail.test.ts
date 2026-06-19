@@ -53,6 +53,22 @@ trail('entity.sync', {
     expect(diagnostics).toEqual([]);
   });
 
+  test('stays quiet when project context anchors the internal trail in a topo', () => {
+    const code = `
+trail('entity.sync', {
+  visibility: 'internal',
+  blaze: async () => Result.ok({}),
+});
+`;
+
+    const diagnostics = deadInternalTrail.checkWithContext(code, TEST_FILE, {
+      knownTrailIds: new Set(['entity.sync']),
+      topoTrailIds: new Set(['entity.sync']),
+    });
+
+    expect(diagnostics).toEqual([]);
+  });
+
   test('stays quiet when the internal trail is composed in-file but the project context omits it', () => {
     // Mirrors the regrade tracer case (TRL-843): the project context only
     // collects compose edges from registered app topos, so a package that is
