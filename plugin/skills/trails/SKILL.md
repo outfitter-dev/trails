@@ -98,11 +98,11 @@ When saved Topographer artifacts can answer a graph question, use Wayfinder befo
 
 ```bash
 trails wayfind overview --root-dir . --json
-trails wayfind search --root-dir . --input-json '{"filters":{"kind":"trail"}}' --json
-trails wayfind find --root-dir . --input-json '{"filters":{"kind":"trail"}}' --json
-trails wf search --root-dir . --input-json '{"filters":{"kind":"trail"}}' --json
-trails schema wf search
-trails wayfind contract <trail-id> --root-dir . --json
+trails wayfind --trails --intent read --root-dir . --json
+trails wayfind <trail-id> --view contract --root-dir . --json
+trails wayfind --around <trail-id> --root-dir . --json
+trails wayfind --from <trail-id> --view map --root-dir . --json
+trails schema wayfind
 ```
 
 - Start with `wayfind.overview` to learn artifact source, freshness, and graph counts.

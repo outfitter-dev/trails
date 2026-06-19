@@ -53,7 +53,7 @@ The left side is where the world calls in -- CLI commands, MCP tool calls, HTTP 
 
 **The framework defines ports -- everything concrete is an adapter.** CLI framework (Commander, yargs), logging backend (LogTape, pino), storage engine, telemetry exporter -- all pluggable. The framework never imports a concrete implementation.
 
-**The contract is machine-readable at runtime.** The topo, survey, guide, and committed lock artifacts make the trail system queryable by agents, tooling, and CI.
+**The contract is machine-readable at runtime.** Topo artifacts, Wayfinder queries, compatibility survey/guide commands, and committed locks make the trail system queryable by agents, tooling, and CI.
 
 **Contours are graph nodes; trails are executable edges.** Contours declare the domain objects the graph is about. Trails declare the typed work that moves through that graph. The topo carries both so surfaces, testing, and governance can reason about nouns and verbs from the same authored source.
 

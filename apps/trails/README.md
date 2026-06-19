@@ -15,11 +15,11 @@ Common workflows:
 - `trails topo` inspects topo state and manages pins/history.
 - `trails compile` writes committed topo artifacts.
 - `trails validate` checks committed topo artifacts for drift.
-- `trails wayfind overview`, `trails wayfind find`, `trails wf search`, `trails wayfind outline <file>`, and adjacent `trails wayfind ...` commands read saved topo artifacts and source outlines through Wayfinder for local navigation.
+- `trails wayfind`, `trails wayfind --trails --intent read`, `trails wayfind <id> --view contract`, `trails wayfind outline <file>`, and `trails wayfind diff ...` read graph artifacts and source outlines through Wayfinder for local navigation.
 - `trails schema <command...>` shows accepted CLI routes, aliases, flags, and schemas for an operator command.
 - `trails warden` runs Trails governance checks for contract and architecture drift.
 - `trails regrade --root-dir <path> --json` dry-runs downstream migration checks; add `--apply` only to write safe rewrites.
-- `trails guide` shows available trails and examples from a project.
+- `trails guide` remains available for compatibility; prefer `trails wayfind --source live --module <app-module>` or saved-artifact Wayfinder reads for agent navigation.
 
 Trails is contract-first: define trails once with typed input, Result output, examples, and meta; the framework derives CLI, MCP, HTTP, and future surfaces from the same contracts.
 

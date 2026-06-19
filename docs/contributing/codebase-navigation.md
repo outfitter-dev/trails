@@ -17,17 +17,16 @@ bun apps/trails/bin/trails.ts wayfind overview --root-dir . --json
 Then narrow the graph read with the selected local CLI surface:
 
 ```bash
-bun apps/trails/bin/trails.ts wayfind search --root-dir . --input-json '{"filters":{"kind":"trail","idPrefix":"wayfind."}}' --json
-bun apps/trails/bin/trails.ts wayfind find --root-dir . --input-json '{"filters":{"kind":"trail","idPrefix":"wayfind."}}' --json
-bun apps/trails/bin/trails.ts wf search --root-dir . --input-json '{"filters":{"kind":"trail","idPrefix":"wayfind."}}' --json
-bun apps/trails/bin/trails.ts wayfind contract wayfind.search --root-dir . --json
+bun apps/trails/bin/trails.ts wayfind --trails --intent read --root-dir . --json
+bun apps/trails/bin/trails.ts wayfind wayfind.search --view contract --root-dir . --json
 bun apps/trails/bin/trails.ts wayfind errors --root-dir . --input-json '{"filters":{"kind":"trail","idPrefix":"wayfind."}}' --json
-bun apps/trails/bin/trails.ts wayfind adapters --root-dir . --json
-bun apps/trails/bin/trails.ts wayfind nearby wayfind.search --root-dir . --json
-bun apps/trails/bin/trails.ts wayfind impact wayfind.search --root-dir . --json
+bun apps/trails/bin/trails.ts wayfind --resources --root-dir . --json
+bun apps/trails/bin/trails.ts wayfind --around wayfind.search --root-dir . --json
+bun apps/trails/bin/trails.ts wayfind --from wayfind.search --view map --root-dir . --json
 bun apps/trails/bin/trails.ts wayfind outline apps/trails/src/app.ts --root-dir . --review
 bun apps/trails/bin/trails.ts wayfind outline apps/trails/src/app.ts --root-dir . --features source,apps,diagnostics --json
-bun apps/trails/bin/trails.ts schema wf search
+bun apps/trails/bin/trails.ts wayfind --source live --module apps/trails/src/app.ts --json
+bun apps/trails/bin/trails.ts schema wayfind
 ```
 
 Use `trails schema <command...>` when you need the accepted CLI routes, aliases, flags, and schemas for an operator command before invoking it from a shell.

@@ -31,7 +31,7 @@ Core defines ports. Everything on the edges is an adapter.
 - Drift is structurally harder than alignment — one schema, one Result type, one error taxonomy.
 - Surfaces are peers. CLI, MCP, HTTP, and library are shipped adapters. Adding a surface is a `surface()` call.
 - Blazes are surface-agnostic authored implementations: input in, `Result` out.
-- The contract is machine-readable at runtime via topo, survey, and guide.
+- The contract is machine-readable at runtime via topo artifacts, Wayfinder, and compatibility survey/guide commands.
 
 ## Information Architecture
 
