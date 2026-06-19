@@ -41,7 +41,13 @@ const parseJson = (stdout: string, label: string): JsonObject => {
   }
 };
 
-const runCommand = (command: readonly string[], label: string): JsonObject => {
+const runCommandProcess = (
+  command: readonly string[]
+): {
+  readonly exitCode: number;
+  readonly stderr: string;
+  readonly stdout: string;
+} => {
   const result = Bun.spawnSync({
     cmd: [...command],
     cwd: repoRoot,
@@ -52,19 +58,45 @@ const runCommand = (command: readonly string[], label: string): JsonObject => {
     stderr: 'pipe',
     stdout: 'pipe',
   });
-  const stdout = result.stdout.toString();
-  const stderr = result.stderr.toString();
+  return {
+    exitCode: result.exitCode,
+    stderr: result.stderr.toString(),
+    stdout: result.stdout.toString(),
+  };
+};
+
+const runCommand = (command: readonly string[], label: string): JsonObject => {
+  const result = runCommandProcess(command);
   if (result.exitCode !== 0) {
     throw new Error(
       [
         `Wayfinder dogfood command failed: ${command.join(' ')}`,
         `exitCode: ${result.exitCode}`,
-        `stdout: ${stdout}`,
-        `stderr: ${stderr}`,
+        `stdout: ${result.stdout}`,
+        `stderr: ${result.stderr}`,
       ].join('\n')
     );
   }
-  return parseJson(stdout, label);
+  return parseJson(result.stdout, label);
+};
+
+const runFailingCommand = (
+  command: readonly string[],
+  label: string
+): JsonObject => {
+  const result = runCommandProcess(command);
+  if (result.exitCode === 0) {
+    throw new Error(
+      [
+        `Wayfinder dogfood command unexpectedly succeeded: ${command.join(' ')}`,
+        `stdout: ${result.stdout}`,
+      ].join('\n')
+    );
+  }
+  return parseJson(
+    result.stdout.length > 0 ? result.stdout : result.stderr,
+    label
+  );
 };
 
 const runTrails = (tempRoot: string, args: readonly string[]): JsonObject => {
@@ -77,6 +109,21 @@ const runTrails = (tempRoot: string, args: readonly string[]): JsonObject => {
     '--json',
   ];
   return runCommand(command, `trails ${args.join(' ')}`);
+};
+
+const runFailingTrails = (
+  tempRoot: string,
+  args: readonly string[]
+): JsonObject => {
+  const command = [
+    process.execPath,
+    trailsBin,
+    ...args,
+    '--root-dir',
+    tempRoot,
+    '--json',
+  ];
+  return runFailingCommand(command, `trails ${args.join(' ')}`);
 };
 
 const runWayfind = (tempRoot: string, args: readonly string[]): JsonObject =>
@@ -92,6 +139,18 @@ const writeOperatorAppWrapper = async (tempRoot: string): Promise<void> => {
   await writeFile(
     join(srcDir, 'app.ts'),
     `export { app, trailsCliAliases } from ${JSON.stringify(appModuleUrl.href)};\n`
+  );
+};
+
+const writeDemoAppWrapper = async (tempRoot: string): Promise<void> => {
+  const srcDir = join(tempRoot, 'src');
+  await mkdir(srcDir, { recursive: true });
+  const appModuleUrl = pathToFileURL(
+    join(repoRoot, 'apps/trails-demo/src/app.ts')
+  );
+  await writeFile(
+    join(srcDir, 'demo-app.ts'),
+    `export { graph as app } from ${JSON.stringify(appModuleUrl.href)};\n`
   );
 };
 
@@ -272,6 +331,119 @@ const assertErrorsFindWayfinder = (errorsResult: JsonObject): void => {
   }
 };
 
+const assertDemoResources = (resourcesResult: JsonObject): void => {
+  const { resources } = resourcesResult;
+  if (!Array.isArray(resources)) {
+    throw new TypeError('demo wayfind --resources did not return resources');
+  }
+  const entityStore = resources
+    .map((entry) => assertObject(entry, 'demo resource entry'))
+    .find((entry) => entry['id'] === 'demo.entity-store');
+  if (entityStore === undefined) {
+    throw new Error('demo wayfind --resources did not find demo.entity-store');
+  }
+  const { usedBy } = entityStore;
+  if (!Array.isArray(usedBy) || !usedBy.includes('entity.add')) {
+    throw new Error('demo resource usage did not include entity.add');
+  }
+};
+
+const assertDemoSignals = (signalsResult: JsonObject): void => {
+  const { signals } = signalsResult;
+  if (!Array.isArray(signals)) {
+    throw new TypeError('demo wayfind --signals did not return signals');
+  }
+  const entityUpdated = signals
+    .map((entry) => assertObject(entry, 'demo signal entry'))
+    .find((entry) => entry['id'] === 'entity.updated');
+  if (entityUpdated === undefined) {
+    throw new Error('demo wayfind --signals did not find entity.updated');
+  }
+  const { consumers, producers } = entityUpdated;
+  if (!Array.isArray(producers) || !producers.includes('entity.add')) {
+    throw new Error('entity.updated producers did not include entity.add');
+  }
+  if (
+    !Array.isArray(consumers) ||
+    !consumers.includes('entity.notify-updated')
+  ) {
+    throw new Error(
+      'entity.updated consumers did not include entity.notify-updated'
+    );
+  }
+};
+
+const assertDemoErrors = (errorsResult: JsonObject): void => {
+  const { errors } = errorsResult;
+  if (!Array.isArray(errors)) {
+    throw new TypeError('demo wayfind --errors did not return errors');
+  }
+  const entityAdd = errors
+    .map((entry) => assertObject(entry, 'demo errors entry'))
+    .find((entry) => entry['trailId'] === 'entity.add');
+  if (entityAdd === undefined) {
+    throw new Error('demo wayfind --errors did not include entity.add');
+  }
+  const { facts } = entityAdd;
+  if (!Array.isArray(facts)) {
+    throw new TypeError('demo entity.add errors did not return facts');
+  }
+  const hasAlreadyExists = facts
+    .map((fact) => assertObject(fact, 'demo entity.add error fact'))
+    .some((fact) => {
+      const taxonomy = assertObject(
+        fact['taxonomy'],
+        'demo entity.add error taxonomy'
+      );
+      return taxonomy['name'] === 'AlreadyExistsError';
+    });
+  if (!hasAlreadyExists) {
+    throw new Error(
+      'demo entity.add errors did not include AlreadyExistsError'
+    );
+  }
+};
+
+const assertRelationIncludes = (
+  relationResult: JsonObject,
+  label: string,
+  expected: {
+    readonly from?: string;
+    readonly relation: string;
+    readonly to?: string;
+  }
+): void => {
+  const { edges } = relationResult;
+  if (!Array.isArray(edges)) {
+    throw new TypeError(`${label} did not return relation edges`);
+  }
+  const found = edges
+    .map((edge) => assertObject(edge, `${label} edge`))
+    .some((edge) => {
+      const from = assertObject(edge['from'], `${label} edge from`);
+      const to = assertObject(edge['to'], `${label} edge to`);
+      return (
+        edge['relation'] === expected.relation &&
+        (expected.from === undefined || from['id'] === expected.from) &&
+        (expected.to === undefined || to['id'] === expected.to)
+      );
+    });
+  if (!found) {
+    throw new Error(`${label} did not include expected relation edge`);
+  }
+};
+
+const assertValidationMessage = (
+  failure: JsonObject,
+  expected: string
+): void => {
+  const error = assertObject(failure['error'], 'expected validation error');
+  const { message } = error;
+  if (typeof message !== 'string' || !message.includes(expected)) {
+    throw new Error(`Validation error did not include: ${expected}`);
+  }
+};
+
 const assertAdapterPredicateWayfind = (wayfindResult: JsonObject): void => {
   const result = assertObject(wayfindResult['result'], 'wayfind --adapter');
   const { matches } = result;
@@ -366,11 +538,98 @@ export const runWayfinderDogfoodSmoke =
 
     try {
       await writeOperatorAppWrapper(tempRoot);
+      await writeDemoAppWrapper(tempRoot);
       await writeAdapterWorkspace(tempRoot);
       runTrails(tempRoot, [
         'compile',
         '--module',
+        './src/demo-app.ts',
+        '--permit',
+        '{"id":"wayfinder-dogfood","scopes":["topo:write"]}',
+      ]);
+
+      const demoResources = unwrapWayfindResult(
+        runWayfind(tempRoot, ['--resources']),
+        'demo wayfind --resources'
+      );
+      assertAlignedSource(demoResources, 'demo wayfind --resources');
+      assertDemoResources(demoResources);
+
+      const demoSignals = unwrapWayfindResult(
+        runWayfind(tempRoot, ['--signals']),
+        'demo wayfind --signals'
+      );
+      assertAlignedSource(demoSignals, 'demo wayfind --signals');
+      assertDemoSignals(demoSignals);
+
+      const demoErrors = unwrapWayfindResult(
+        runWayfind(tempRoot, ['--errors']),
+        'demo wayfind --errors'
+      );
+      assertAlignedSource(demoErrors, 'demo wayfind --errors');
+      assertDemoErrors(demoErrors);
+
+      const signalImpact = unwrapWayfindResult(
+        runWayfind(tempRoot, ['entity.updated', '--impact']),
+        'demo wayfind signal impact'
+      );
+      assertAlignedSource(signalImpact, 'demo wayfind signal impact');
+      assertRelationIncludes(signalImpact, 'demo signal impact', {
+        from: 'entity.updated',
+        relation: 'consumed-by',
+        to: 'entity.notify-updated',
+      });
+
+      const trailDeps = unwrapWayfindResult(
+        runWayfind(tempRoot, ['entity.add', '--deps']),
+        'demo wayfind trail deps'
+      );
+      assertAlignedSource(trailDeps, 'demo wayfind trail deps');
+      assertRelationIncludes(trailDeps, 'demo trail deps', {
+        from: 'demo.entity-store',
+        relation: 'used-by',
+        to: 'entity.add',
+      });
+
+      assertValidationMessage(
+        runFailingTrails(tempRoot, ['wayfind', '*.ts']),
+        'wayfind pattern <glob>'
+      );
+      assertValidationMessage(
+        runFailingTrails(tempRoot, [
+          'wayfind',
+          'entity.add',
+          '--impact',
+          '--deps',
+        ]),
+        'Provide only one relation flag'
+      );
+
+      assertValidationMessage(
+        runFailingTrails(tempRoot, [
+          'compile',
+          '--module',
+          './src/app.ts',
+          '--permit',
+          '{"id":"wayfinder-dogfood","scopes":["topo:write"]}',
+        ]),
+        'breaking change'
+      );
+      const resourcesAfterRejectedCompile = unwrapWayfindResult(
+        runWayfind(tempRoot, ['--resources']),
+        'demo wayfind after rejected compile'
+      );
+      assertAlignedSource(
+        resourcesAfterRejectedCompile,
+        'demo wayfind after rejected compile'
+      );
+      assertDemoResources(resourcesAfterRejectedCompile);
+
+      runTrails(tempRoot, [
+        'compile',
+        '--module',
         './src/app.ts',
+        '--force',
         '--permit',
         '{"id":"wayfinder-dogfood","scopes":["topo:write"]}',
       ]);

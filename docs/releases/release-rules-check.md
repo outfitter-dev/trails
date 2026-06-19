@@ -28,7 +28,7 @@ trails release smoke --check wayfinder-dogfood
 trails release smoke --check all
 ```
 
-In this repo, `bun run dogfood:packed` and `bun run wayfinder:dogfood` remain package-script wrappers around those trail commands.
+In this repo, `bun run dogfood:packed` and `bun run wayfinder:dogfood` remain package-script wrappers around those trail commands. The Wayfinder smoke is intentionally semantic: it exercises saved operator and demo topo artifacts, resources, signals, errors, relation views, invalid grammar, and artifact provenance around rejected compiles.
 
 ## Facts
 
