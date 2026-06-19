@@ -2,21 +2,22 @@
 
 This guide orients people and agents inside the Trails repository. Keep durable repo-map material here: important source-of-truth locations, generated artifacts, package layout notes, and tool setup that helps contributors navigate the code without guessing.
 
-For now, the main committed setup is Wayfinder for graph reads plus symbolic navigation for source reads.
+For now, the main setup is Wayfinder for graph reads plus symbolic navigation for source reads.
 
 ## Default Graph Navigation: Wayfinder
 
-When the question is about saved topo facts, use Wayfinder before rebuilding the graph from source search. It reads committed Topographer artifacts and returns source plus freshness metadata, so agents can tell whether they are looking at current graph evidence.
+When the question is about saved topo facts, use Wayfinder before rebuilding the graph from source search. It reads Topographer artifacts and returns source plus freshness metadata, so agents can tell whether they are looking at current graph evidence. Locked graph reads require artifacts to exist; source outline reads can still return useful source facts when graph artifacts are missing.
 
-Start with:
+Start by checking the local command shape:
+
+```bash
+bun apps/trails/bin/trails.ts schema wayfind
+```
+
+When artifacts exist, narrow the graph read with the selected local CLI surface:
 
 ```bash
 bun apps/trails/bin/trails.ts wayfind overview --root-dir . --json
-```
-
-Then narrow the graph read with the selected local CLI surface:
-
-```bash
 bun apps/trails/bin/trails.ts wayfind --trails --intent read --root-dir . --json
 bun apps/trails/bin/trails.ts wayfind wayfind.search --view contract --root-dir . --json
 bun apps/trails/bin/trails.ts wayfind errors --root-dir . --input-json '{"filters":{"kind":"trail","idPrefix":"wayfind."}}' --json
@@ -26,14 +27,13 @@ bun apps/trails/bin/trails.ts wayfind --from wayfind.search --view map --root-di
 bun apps/trails/bin/trails.ts wayfind outline apps/trails/src/app.ts --root-dir . --review
 bun apps/trails/bin/trails.ts wayfind outline apps/trails/src/app.ts --root-dir . --features source,apps,diagnostics --json
 bun apps/trails/bin/trails.ts wayfind --source live --module apps/trails/src/app.ts --json
-bun apps/trails/bin/trails.ts schema wayfind
 ```
 
 Use `trails schema <command...>` when you need the accepted CLI routes, aliases, flags, and schemas for an operator command before invoking it from a shell.
 
 Use `wayfind outline <file>` before reading a large source file when you need a compact source map. It parses the explicit file path, reports imports, exports, declarations, app declarations, and authored trail IDs, and links those trail IDs to saved graph facts when artifacts exist. In `--review` text mode, matched trails include compact graph facts such as intent, input/output schema presence, and example count when those facts are available.
 
-Missing graph artifacts are warnings, not hard failures. Follow the diagnostic's `trails compile --module <app-module> --root-dir <workspace-root> --permit '{"id":"operator","scopes":["topo:write"]}'` shape when you are allowed to refresh artifacts; do not silently fall back to stale graph assumptions. Use source search, qmd, or symbol tools when Wayfinder reports missing or stale artifacts, when the task needs implementation text that Topographer does not project, or when the current authority does not allow generating fresh artifacts. If you compile to refresh artifacts, treat the generated `.trails` files as evidence and clean them up unless the branch intentionally owns them.
+Missing graph artifacts are hard failures for locked graph reads and warnings for source outline context. Follow the diagnostic's `trails compile --module <app-module> --root-dir <workspace-root> --permit '{"id":"operator","scopes":["topo:write"]}'` shape when you are allowed to refresh artifacts; do not silently fall back to stale graph assumptions. Use source search, qmd, or symbol tools when Wayfinder reports missing or stale artifacts, when the task needs implementation text that Topographer does not project, or when the current authority does not allow generating fresh artifacts. If you compile to refresh artifacts, treat the generated `.trails` files as evidence and clean them up unless the branch intentionally owns them.
 
 ## Symbol Navigation
 

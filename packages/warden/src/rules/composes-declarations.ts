@@ -709,16 +709,13 @@ const buildUndeclaredDiagnostic = (
   trailId: string,
   composedId: string,
   filePath: string,
-  line: number,
-  softened = false
+  line: number
 ): WardenDiagnostic => ({
   filePath,
   line,
-  message: softened
-    ? `Trail "${trailId}": ctx.compose('${composedId}') called but '${composedId}' is not declared in composes (may be declared via trail object references). Add the string id to composes, or use the same trail object form in both composes and ctx.compose(...).`
-    : `Trail "${trailId}": ctx.compose('${composedId}') called but '${composedId}' is not declared in composes. Add it to the trail composes array: composes: ['${composedId}', ...].`,
+  message: `Trail "${trailId}": ctx.compose('${composedId}') called but '${composedId}' is not declared in composes. Add it to the trail composes array: composes: ['${composedId}', ...].`,
   rule: 'composes-declarations',
-  severity: softened ? 'warn' : 'error',
+  severity: 'error',
 });
 
 const buildUnusedDiagnostic = (
@@ -746,20 +743,13 @@ const reportUndeclared = (
     trailId: string;
     filePath: string;
     line: number;
-    softened?: boolean;
   },
   diagnostics: WardenDiagnostic[]
 ): void => {
   for (const id of called) {
     if (!declared.has(id)) {
       diagnostics.push(
-        buildUndeclaredDiagnostic(
-          ctx.trailId,
-          id,
-          ctx.filePath,
-          ctx.line,
-          ctx.softened
-        )
+        buildUndeclaredDiagnostic(ctx.trailId, id, ctx.filePath, ctx.line)
       );
     }
   }
@@ -803,16 +793,7 @@ const checkTrailDefinition = (
   const line = offsetToLine(sourceCode, def.start);
   const ctx = { filePath, line, trailId: def.id };
 
-  // When the declared array contains trail object references we can't resolve,
-  // downgrade "undeclared" diagnostics from error to warn. The developer still
-  // sees genuinely undeclared calls, but we can't statically prove the call
-  // isn't covered by a trail object entry the runtime will normalize.
-  reportUndeclared(
-    called.ids,
-    declared.ids,
-    { ...ctx, softened: declared.hasUnresolved },
-    diagnostics
-  );
+  reportUndeclared(called.ids, declared.ids, ctx, diagnostics);
 
   // When all ctx.compose() calls are statically resolved, report unused
   // declarations. When some calls use trail object references (unresolved),

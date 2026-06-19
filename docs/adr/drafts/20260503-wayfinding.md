@@ -221,10 +221,11 @@ Wayfinder trails are operator and developer tools, not app-public verbs. The def
 
 - Every wayfinder trail declares `visibility: 'internal'`. Surfaces filter
   internal trails by default.
-- MCP exposure is opt-in and permit-gated. Because wayfinder trails are
-  internal, the wayfinder package does not surface itself on MCP without exact
-  `include` IDs for the selected `wayfind.*` trails plus an authorized permit
-  scope.
+- MCP exposure is opt-in and host-gated. Because wayfinder trails are internal,
+  the wayfinder package does not surface itself on MCP without exact `include`
+  IDs for the selected `wayfind.*` trails. Exact include is not itself an
+  authorization boundary; hosts that expose Wayfinder over MCP must apply their
+  own auth, permit, or workspace-boundary policy for the selected tools.
 - HTTP exposure is opt-in. Operator surfaces (`trails admin`, dev CLIs) can
   promote the namespace explicitly.
 - CLI exposure on the developer's own machine is the expected default; the

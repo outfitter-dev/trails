@@ -5,8 +5,10 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import {
   CallToolRequestSchema,
+  ErrorCode,
   ListResourcesRequestSchema,
   ListToolsRequestSchema,
+  McpError,
   ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import type {
@@ -176,14 +178,14 @@ const createMcpServer = (
 
     server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
       const content = mcpResources.read(request.params.uri);
+      if (content === undefined) {
+        throw new McpError(
+          ErrorCode.InvalidParams,
+          `Resource ${request.params.uri} not found`
+        );
+      }
       return {
-        contents: [
-          content ?? {
-            mimeType: 'text/plain',
-            text: `Unknown MCP resource: ${request.params.uri}`,
-            uri: request.params.uri,
-          },
-        ],
+        contents: [content],
       };
     });
   }

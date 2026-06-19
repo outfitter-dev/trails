@@ -6,14 +6,14 @@
   },
   "metadata": {
     "description": "Build with the Trails framework — contract-first trails, surfaces, testing, and governance.",
-    "version": "0.3.2"
+    "version": "0.3.3"
   },
   "repository": "https://github.com/outfitter-dev/trails",
   "plugins": [
     {
       "name": "trails",
       "source": "./plugin",
-      "version": "0.3.2",
+      "version": "0.3.3",
       "description": "Skills for building Trails applications — trail creation, surfaces, testing, debugging, migration, and governance."
     }
   ]

@@ -1,17 +1,20 @@
 import { topo } from '@ontrails/core';
 import {
   wayfindAdaptersTrail,
+  wayfindContoursTrail,
   wayfindContractTrail,
   wayfindDescribeTrail,
   wayfindDiffTrail,
   wayfindErrorsTrail,
   wayfindExamplesTrail,
+  wayfindFacetsTrail,
   wayfindImpactTrail,
   wayfindNearbyTrail,
   wayfindOverviewTrail,
   wayfindOutlineTrail,
   wayfindResourcesTrail,
   wayfindSearchTrail,
+  wayfindSignalsTrail,
   wayfindSurfacesTrail,
   wayfindTrailsTrail,
   wayfindVersionsTrail,
@@ -93,7 +96,7 @@ const operatorTrails = Object.fromEntries(
   operatorApp.list().map((trailItem) => [trailItem.id, trailItem])
 );
 
-const cliWayfinderTrails = {
+const cliWayfinderCommandTrails = {
   wayfindAdaptersTrail,
   wayfindContractTrail,
   wayfindDescribeTrail,
@@ -112,10 +115,23 @@ const cliWayfinderTrails = {
   wayfindVersionsTrail,
 };
 
+const cliWayfinderSupportTrails = {
+  wayfindContoursTrail,
+  wayfindFacetsTrail,
+  wayfindSignalsTrail,
+};
+
+const cliWayfinderTrails = {
+  ...cliWayfinderCommandTrails,
+  ...cliWayfinderSupportTrails,
+};
+
 export const trailsCliIncludedTrails = [
   ...new Set([
     ...operatorApp.list().map((trailItem) => trailItem.id),
-    ...Object.values(cliWayfinderTrails).map((trailItem) => trailItem.id),
+    ...Object.values(cliWayfinderCommandTrails).map(
+      (trailItem) => trailItem.id
+    ),
   ]),
 ];
 

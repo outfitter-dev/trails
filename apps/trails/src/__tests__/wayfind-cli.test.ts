@@ -58,6 +58,9 @@ describe('Trails Wayfinder CLI surface', () => {
     expect(commandPaths).toContain('wayfind impact');
     expect(commandPaths).toContain('wayfind examples');
     expect(commandPaths).toContain('wayfind outline');
+    expect(commandPaths).not.toContain('wayfind contours');
+    expect(commandPaths).not.toContain('wayfind facets');
+    expect(commandPaths).not.toContain('wayfind signals');
 
     expect(trailIds).toContain('wayfind.navigate');
     expect(trailIds).toContain('wayfind.overview');
@@ -72,6 +75,9 @@ describe('Trails Wayfinder CLI surface', () => {
     expect(trailIds).toContain('wayfind.impact');
     expect(trailIds).toContain('wayfind.examples');
     expect(trailIds).toContain('wayfind.outline');
+    expect(trailIds).not.toContain('wayfind.contours');
+    expect(trailIds).not.toContain('wayfind.facets');
+    expect(trailIds).not.toContain('wayfind.signals');
 
     const outline = commands.find(
       (command) => command.trail.id === 'wayfind.outline'
@@ -87,11 +93,14 @@ describe('Trails Wayfinder CLI surface', () => {
         'adapter',
         'adapters',
         'around',
+        'contours',
         'depth',
         'errors',
+        'facets',
         'from',
         'include',
         'module',
+        'signals',
         'to',
       ])
     );
@@ -149,6 +158,26 @@ describe('Trails Wayfinder CLI surface', () => {
 
     expect(result?.isErr()).toBe(true);
     expect(result?.error.message).toContain('supports overview and ID lookup');
+  });
+
+  test('guards live source against typed population selectors', async () => {
+    const navigate = unwrapCommands().find(
+      (command) => command.trail.id === 'wayfind.navigate'
+    );
+    expect(navigate).toBeDefined();
+
+    for (const flag of ['contours', 'signals', 'facets'] as const) {
+      const result = await navigate?.execute(
+        {},
+        { [flag]: true, source: 'live' },
+        { cwd: process.cwd() }
+      );
+
+      expect(result?.isErr()).toBe(true);
+      expect(result?.error.message).toContain(
+        'use locked artifacts for typed filters'
+      );
+    }
   });
 
   test('guards includes against live source and relational views', async () => {
@@ -242,6 +271,23 @@ describe('Trails Wayfinder CLI surface', () => {
       },
     ]);
 
+    const outlineId = fakeWayfindContext();
+    const outlineIdResult = await wayfindTrail.blaze(
+      parseWayfindInput({
+        target: 'wayfind.search',
+        view: 'outline',
+      }),
+      outlineId.ctx
+    );
+    expect(outlineIdResult.isErr()).toBe(true);
+    if (outlineIdResult.isOk()) {
+      throw new Error('Expected outline view on a trail ID to fail');
+    }
+    expect(outlineIdResult.error.message).toContain(
+      'outline view requires a source file path target'
+    );
+    expect(outlineId.calls).toEqual([]);
+
     const included = fakeWayfindContext();
     const includeResult = await wayfindTrail.blaze(
       parseWayfindInput({
@@ -266,6 +312,55 @@ describe('Trails Wayfinder CLI surface', () => {
         }),
       },
     });
+
+    const adapterInclude = fakeWayfindContext();
+    const adapterIncludeResult = await wayfindTrail.blaze(
+      parseWayfindInput({
+        adapter: '@ontrails/hono',
+        include: ['adapters'],
+      }),
+      adapterInclude.ctx
+    );
+    expect(adapterIncludeResult.isOk()).toBe(true);
+    if (adapterIncludeResult.isErr()) {
+      throw adapterIncludeResult.error;
+    }
+    expect(adapterInclude.calls).toEqual([
+      {
+        id: 'wayfind.adapters',
+        input: expect.objectContaining({
+          filters: { packageName: '@ontrails/hono' },
+        }),
+      },
+      {
+        id: 'wayfind.adapters',
+        input: expect.objectContaining({
+          filters: { packageName: '@ontrails/hono' },
+        }),
+      },
+    ]);
+  });
+
+  test('routes secondary graph populations through the unified selector', async () => {
+    for (const [flag, trailId] of [
+      ['contours', 'wayfind.contours'],
+      ['signals', 'wayfind.signals'],
+      ['facets', 'wayfind.facets'],
+    ] as const) {
+      const context = fakeWayfindContext();
+      const result = await wayfindTrail.blaze(
+        parseWayfindInput({ [flag]: true }),
+        context.ctx
+      );
+
+      expect(result.isOk()).toBe(true);
+      expect(context.calls).toEqual([
+        {
+          id: trailId,
+          input: expect.objectContaining({ filters: {} }),
+        },
+      ]);
+    }
   });
 
   test('exposes graph diff as the distinct two-root Wayfinder command', () => {

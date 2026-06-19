@@ -106,7 +106,7 @@ trails schema wayfind
 ```
 
 - Start with `wayfind.overview` to learn artifact source, freshness, and graph counts.
-- Use `wayfind.search` or typed list trails (`wayfind.trails`, `wayfind.resources`, `wayfind.signals`, `wayfind.surfaces`, `wayfind.facets`, `wayfind.versions`, `wayfind.examples`, `wayfind.errors`, `wayfind.adapters`) for filtered discovery.
+- Use the selected operator CLI shape for filtered discovery: `trails wayfind --trails`, `--resources`, `--signals`, `--surfaces`, `--facets`, `--versions`, `--examples`, `--errors`, `--adapters`, or `--adapter <package>`. Package-level Wayfinder trails may exist beyond the operator CLI/MCP selection; check `trails schema wayfind` before constructing shell calls.
 - Use `trails schema <command...>` when you need accepted CLI routes, aliases, flags, and schemas before constructing shell calls.
 - Use `wayfind.describe` for a full saved entity record and `wayfind.contract` for a trail or version input/output/intent summary.
 - Use `wayfind.nearby`, `wayfind.impact`, and `wayfind.diff` for relation context, blast-radius reads, and explicit saved-baseline comparison.

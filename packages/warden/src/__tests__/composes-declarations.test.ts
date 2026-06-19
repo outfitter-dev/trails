@@ -544,7 +544,7 @@ trail('onboard', {
   });
 
   describe('trail object references in composes', () => {
-    test('unresolvable identifier in composes softens undeclared to warn', () => {
+    test('unresolvable identifier in composes keeps undeclared string calls as errors', () => {
       const code = `
 import { showGist } from '../gist/show';
 trail('gist.fork', {
@@ -559,14 +559,10 @@ trail('gist.fork', {
 
       const diagnostics = composesDeclarations.check(code, TEST_FILE);
 
-      // 'gist.create' called but can't prove showGist doesn't cover it
       expect(diagnostics.length).toBe(1);
-      expect(diagnostics[0]?.severity).toBe('warn');
-      expect(diagnostics[0]?.message).toContain('trail object references');
-      expect(diagnostics[0]?.message).toContain('Add the string id');
-      expect(diagnostics[0]?.message).toContain(
-        'same trail object form in both composes and ctx.compose'
-      );
+      expect(diagnostics[0]?.severity).toBe('error');
+      expect(diagnostics[0]?.message).toContain('gist.create');
+      expect(diagnostics[0]?.message).toContain('Add it to the trail composes');
     });
 
     test('mixed string and trail object references: resolved string still validated', () => {
@@ -646,7 +642,7 @@ trail('gist.fork', {
       expect(diagnostics.length).toBe(0);
     });
 
-    test('undeclared string compose alongside typed compose still reports error (softened)', () => {
+    test('undeclared string compose alongside typed compose still reports error', () => {
       const code = `
 import { showGist } from '../gist/show';
 trail('gist.fork', {
@@ -662,9 +658,8 @@ trail('gist.fork', {
 
       const diagnostics = composesDeclarations.check(code, TEST_FILE);
 
-      // 'undeclared.trail' not declared — softened because showGist is unresolvable
       expect(diagnostics.length).toBe(1);
-      expect(diagnostics[0]?.severity).toBe('warn');
+      expect(diagnostics[0]?.severity).toBe('error');
       expect(diagnostics[0]?.message).toContain('undeclared.trail');
     });
   });

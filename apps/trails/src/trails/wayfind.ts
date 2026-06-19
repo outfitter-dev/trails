@@ -19,6 +19,7 @@ const wayfindInputSchema = z
       .string()
       .optional()
       .describe('Resolve direct graph relationships around an entity'),
+    contours: z.boolean().default(false).describe('Resolve contour facts'),
     depth: z
       .number()
       .int()
@@ -27,6 +28,7 @@ const wayfindInputSchema = z
       .default(2)
       .describe('Maximum graph traversal depth for relational views'),
     errors: z.boolean().default(false).describe('Resolve trail error facts'),
+    facets: z.boolean().default(false).describe('Resolve surface facet facts'),
     from: z
       .string()
       .optional()
@@ -46,6 +48,7 @@ const wayfindInputSchema = z
       .describe('Workspace-relative app module for live source reads'),
     resources: z.boolean().default(false).describe('Resolve resource facts'),
     rootDir: z.string().optional().describe('Workspace root directory'),
+    signals: z.boolean().default(false).describe('Resolve signal facts'),
     source: wayfinderSourceModeSchema
       .default('locked')
       .describe('Graph source to read'),
@@ -79,9 +82,12 @@ const wayfindInputSchema = z
       input.target === undefined ||
       (!input.adapters &&
         input.adapter === undefined &&
+        !input.contours &&
         !input.errors &&
+        !input.facets &&
         input.intent === undefined &&
         !input.resources &&
+        !input.signals &&
         !input.surfaces &&
         !input.trails),
     {
@@ -135,6 +141,18 @@ const liveModuleInput = (
   ...sourceInput(input),
 });
 
+const hasLiveTypedFilter = (input: WayfindInput): boolean =>
+  input.adapter !== undefined ||
+  input.adapters ||
+  input.contours ||
+  input.errors ||
+  input.facets ||
+  input.intent !== undefined ||
+  input.resources ||
+  input.signals ||
+  input.surfaces ||
+  input.trails;
+
 const populationFilters = (
   input: WayfindInput
 ): { readonly intent?: WayfindInput['intent'] } =>
@@ -171,6 +189,9 @@ const composeInclude = (
   switch (include) {
     case 'adapters': {
       return ctx.compose('wayfind.adapters', {
+        ...(input.adapter === undefined
+          ? {}
+          : { filters: { packageName: input.adapter } }),
         limit: input.limit,
         ...sourceInput(input),
       });
@@ -256,15 +277,7 @@ const viewLiveSource = async (
       view: input.view,
     };
   }
-  if (
-    input.adapter !== undefined ||
-    input.adapters ||
-    input.errors ||
-    input.intent !== undefined ||
-    input.resources ||
-    input.surfaces ||
-    input.trails
-  ) {
+  if (hasLiveTypedFilter(input)) {
     return {
       result: Result.err(
         liveSourceError(
@@ -367,7 +380,17 @@ const viewTarget = async (
   if (target === undefined) {
     return;
   }
-  if (targetLooksLikeFile(target) || input.view === 'outline') {
+  if (!targetLooksLikeFile(target) && input.view === 'outline') {
+    return {
+      result: Result.err(
+        new ValidationError(
+          'The outline view requires a source file path target. Use `trails wayfind outline <file>` or pass a file-like target.'
+        )
+      ),
+      view: 'outline' as const,
+    };
+  }
+  if (targetLooksLikeFile(target)) {
     return {
       result: ctx.compose('wayfind.outline', {
         all: false,
@@ -451,9 +474,39 @@ const viewPopulation = async (
       view: 'list' as const,
     };
   }
+  if (input.contours) {
+    return {
+      result: ctx.compose('wayfind.contours', {
+        filters,
+        limit: input.limit,
+        ...sourceInput(input),
+      }),
+      view: 'list' as const,
+    };
+  }
+  if (input.signals) {
+    return {
+      result: ctx.compose('wayfind.signals', {
+        filters,
+        limit: input.limit,
+        ...sourceInput(input),
+      }),
+      view: 'list' as const,
+    };
+  }
   if (input.surfaces) {
     return {
       result: ctx.compose('wayfind.surfaces', {
+        filters,
+        limit: input.limit,
+        ...sourceInput(input),
+      }),
+      view: 'list' as const,
+    };
+  }
+  if (input.facets) {
+    return {
+      result: ctx.compose('wayfind.facets', {
         filters,
         limit: input.limit,
         ...sourceInput(input),
@@ -536,15 +589,18 @@ export const wayfindTrail = trail('wayfind.navigate', {
     'survey',
     'wayfind.adapters',
     'wayfind.contract',
+    'wayfind.contours',
     'wayfind.describe',
     'wayfind.errors',
     'wayfind.examples',
+    'wayfind.facets',
     'wayfind.impact',
     'wayfind.nearby',
     'wayfind.outline',
     'wayfind.overview',
     'wayfind.resources',
     'wayfind.search',
+    'wayfind.signals',
     'wayfind.surfaces',
     'wayfind.trails',
     'wayfind.versions',
@@ -576,8 +632,20 @@ export const wayfindTrail = trail('wayfind.navigate', {
       name: 'List resource facts',
     },
     {
+      input: { contours: true },
+      name: 'List contour facts',
+    },
+    {
+      input: { signals: true },
+      name: 'List signal facts',
+    },
+    {
       input: { surfaces: true },
       name: 'List surface facts',
+    },
+    {
+      input: { facets: true },
+      name: 'List facet facts',
     },
     {
       input: { view: 'overview' },

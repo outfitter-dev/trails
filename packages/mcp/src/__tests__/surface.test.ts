@@ -1,3 +1,5 @@
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { describe, expect, test } from 'bun:test';
 
 import { Result, trail, topo } from '@ontrails/core';
@@ -158,6 +160,31 @@ describe('surface', () => {
       version: '0.1.0',
     });
     expect(server).toBeDefined();
+  });
+
+  test('createServer rejects unknown MCP resources as protocol errors', async () => {
+    const { app } = createIntegrationFixtures();
+    const server = createServer(app, {
+      mcpResources: { surfaceMap: true },
+      name: 'testapp',
+      version: '0.1.0',
+    });
+    const client = new Client({ name: 'test-client', version: '0.1.0' });
+    const [clientTransport, serverTransport] =
+      InMemoryTransport.createLinkedPair();
+
+    try {
+      await Promise.all([
+        client.connect(clientTransport),
+        server.connect(serverTransport),
+      ]);
+
+      await expect(
+        client.readResource({ uri: 'trails://missing' })
+      ).rejects.toThrow('Resource trails://missing not found');
+    } finally {
+      await Promise.allSettled([client.close(), server.close()]);
+    }
   });
 
   test('deriveMcpTools returns tools and createServer materializes the server', () => {
