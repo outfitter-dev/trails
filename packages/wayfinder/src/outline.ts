@@ -174,7 +174,7 @@ const graphOutlineSchema = z.object({
   matchedTrailIds: z.array(z.string()).readonly(),
   source: z
     .object({
-      freshness: z.string(),
+      artifactStatus: z.string(),
       kind: z.string(),
       path: z.string().optional(),
     })
@@ -657,12 +657,12 @@ const loadGraphSoft = async (
     }
     return {
       diagnostics:
-        load.freshness.status === 'fresh'
+        load.artifactStatus.status === 'fresh'
           ? []
           : [
               {
-                code: 'graph.freshness',
-                message: `Saved Wayfinder artifacts are ${load.freshness.status}.`,
+                code: 'graph.artifact-status',
+                message: `Saved Wayfinder artifacts have ${load.artifactStatus.status} artifact status.`,
                 severity: 'warn',
               },
             ],
@@ -742,7 +742,7 @@ const graphOutline = (
     graph === null || load === null
       ? null
       : {
-          freshness: load.freshness.status,
+          artifactStatus: load.artifactStatus.status,
           kind: 'topoGraph',
           path: graphSourcePath(rootDir),
         },

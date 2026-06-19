@@ -2,10 +2,15 @@ import { Result, ValidationError, trail } from '@ontrails/core';
 import type { Result as TrailResult, TrailContext } from '@ontrails/core';
 import {
   wayfinderIncludeSchema,
+  wayfinderResolverSchema,
   wayfinderSourceModeSchema,
   wayfinderViewSchema,
 } from '@ontrails/wayfinder';
-import type { WayfinderInclude, WayfinderView } from '@ontrails/wayfinder';
+import type {
+  WayfinderInclude,
+  WayfinderResolver,
+  WayfinderView,
+} from '@ontrails/wayfinder';
 import { z } from 'zod';
 
 const wayfindInputSchema = z
@@ -13,13 +18,16 @@ const wayfindInputSchema = z
     adapter: z
       .string()
       .optional()
-      .describe('Filter adapter facts by package name'),
-    adapters: z.boolean().default(false).describe('Resolve adapter facts'),
-    around: z
-      .string()
-      .optional()
-      .describe('Resolve direct graph relationships around an entity'),
+      .describe('Filter graph facts delivered through an adapter package'),
     contours: z.boolean().default(false).describe('Resolve contour facts'),
+    contract: z
+      .boolean()
+      .default(false)
+      .describe('Render the contract view for the selected target'),
+    deps: z
+      .boolean()
+      .default(false)
+      .describe('Resolve upstream dependencies for the selected target'),
     depth: z
       .number()
       .int()
@@ -27,12 +35,16 @@ const wayfindInputSchema = z
       .max(10)
       .default(2)
       .describe('Maximum graph traversal depth for relational views'),
+    describe: z
+      .boolean()
+      .default(false)
+      .describe('Render the describe view for the selected target'),
     errors: z.boolean().default(false).describe('Resolve trail error facts'),
     facets: z.boolean().default(false).describe('Resolve surface facet facts'),
-    from: z
-      .string()
-      .optional()
-      .describe('Resolve downstream graph impact from an entity'),
+    impact: z
+      .boolean()
+      .default(false)
+      .describe('Resolve downstream impact for the selected target'),
     include: z
       .array(wayfinderIncludeSchema)
       .default([])
@@ -42,10 +54,22 @@ const wayfindInputSchema = z
       .optional()
       .describe('Filter trails by intent'),
     limit: z.number().int().positive().max(500).default(100),
+    map: z
+      .boolean()
+      .default(false)
+      .describe('Render the map view for the selected target'),
     module: z
       .string()
       .optional()
       .describe('Workspace-relative app module for live source reads'),
+    outline: z
+      .boolean()
+      .default(false)
+      .describe('Render the outline view for a source file target'),
+    overview: z
+      .boolean()
+      .default(false)
+      .describe('Render the graph overview view'),
     resources: z.boolean().default(false).describe('Resolve resource facts'),
     rootDir: z.string().optional().describe('Workspace root directory'),
     signals: z.boolean().default(false).describe('Resolve signal facts'),
@@ -57,31 +81,57 @@ const wayfindInputSchema = z
       .string()
       .optional()
       .describe('Graph entity ID or source file path to inspect'),
-    to: z
-      .string()
-      .optional()
-      .describe('Resolve upstream graph impact to an entity'),
     trails: z.boolean().default(false).describe('Resolve trail facts'),
     view: wayfinderViewSchema
       .default('list')
       .describe('View to render for the resolved target or population'),
   })
   .strict()
+  .refine((input) => !(input.deps && input.impact), {
+    message: 'Provide only one relation flag: --deps or --impact.',
+    path: ['deps'],
+  })
   .refine(
-    (input) =>
-      [input.around, input.from, input.target, input.to].filter(
-        (value) => value !== undefined
-      ).length <= 1,
+    (input) => !(input.deps || input.impact) || input.target !== undefined,
     {
-      message: 'Provide only one of target, from, to, or around.',
+      message: 'Relation flags require a Wayfinder target.',
       path: ['target'],
     }
   )
   .refine(
     (input) =>
+      [
+        input.contract,
+        input.describe,
+        input.map,
+        input.outline,
+        input.overview,
+      ].filter(Boolean).length <= 1,
+    {
+      message: 'Provide only one view shortcut flag.',
+      path: ['view'],
+    }
+  )
+  .refine(
+    (input) =>
+      ![
+        input.contract,
+        input.describe,
+        input.map,
+        input.outline,
+        input.overview,
+      ].some(Boolean) || input.view === 'list',
+    {
+      message: 'Use either --view or one view shortcut flag, not both.',
+      path: ['view'],
+    }
+  )
+  .refine(
+    (input) =>
       input.target === undefined ||
-      (!input.adapters &&
-        input.adapter === undefined &&
+      input.deps ||
+      input.impact ||
+      (input.adapter === undefined &&
         !input.contours &&
         !input.errors &&
         !input.facets &&
@@ -99,16 +149,19 @@ const wayfindInputSchema = z
   .refine(
     (input) =>
       input.include.length === 0 ||
-      (input.source !== 'live' &&
-        input.around === undefined &&
-        input.from === undefined &&
-        input.to === undefined),
+      (input.source !== 'live' && !input.deps && !input.impact),
     {
       message:
-        '--include attaches facts to a target or filtered population from locked artifacts; relational and live-source includes are not supported yet.',
+        '--include attaches facts to a target or filtered population from locked artifacts; impact/deps and live-source includes are not supported yet.',
       path: ['include'],
     }
   );
+
+const wayfindComposeInputSchema = z
+  .object({
+    resolver: wayfinderResolverSchema.optional(),
+  })
+  .strict();
 
 const wayfindOutputSchema = z.object({
   includes: z.record(z.string(), z.unknown()).optional(),
@@ -118,7 +171,9 @@ const wayfindOutputSchema = z.object({
   view: wayfinderViewSchema,
 });
 
-type WayfindInput = z.output<typeof wayfindInputSchema>;
+type WayfindInput = z.output<typeof wayfindInputSchema> & {
+  readonly resolver?: WayfinderResolver | undefined;
+};
 type TrailContextWithCompose = TrailContext & {
   readonly compose: NonNullable<TrailContext['compose']>;
 };
@@ -143,7 +198,6 @@ const liveModuleInput = (
 
 const hasLiveTypedFilter = (input: WayfindInput): boolean =>
   input.adapter !== undefined ||
-  input.adapters ||
   input.contours ||
   input.errors ||
   input.facets ||
@@ -155,8 +209,45 @@ const hasLiveTypedFilter = (input: WayfindInput): boolean =>
 
 const populationFilters = (
   input: WayfindInput
-): { readonly intent?: WayfindInput['intent'] } =>
-  input.intent === undefined ? {} : { intent: input.intent };
+): {
+  readonly intent?: WayfindInput['intent'];
+  readonly kind?:
+    | readonly (
+        | 'contour'
+        | 'facet'
+        | 'resource'
+        | 'signal'
+        | 'surface'
+        | 'trail'
+      )[]
+    | 'contour'
+    | 'facet'
+    | 'resource'
+    | 'signal'
+    | 'surface'
+    | 'trail'
+    | undefined;
+  readonly query?: string | undefined;
+  readonly surface?: readonly string[] | string | undefined;
+} => {
+  const kinds = [
+    ...(input.contours ? ['contour' as const] : []),
+    ...(input.facets ? ['facet' as const] : []),
+    ...(input.resources ? ['resource' as const] : []),
+    ...(input.signals ? ['signal' as const] : []),
+    ...(input.surfaces ? ['surface' as const] : []),
+    ...(input.trails ? ['trail' as const] : []),
+  ];
+  return {
+    ...(input.intent === undefined ? {} : { intent: input.intent }),
+    ...(kinds.length === 0
+      ? {}
+      : { kind: kinds.length === 1 ? kinds[0] : kinds }),
+    ...(input.resolver === 'query' && input.target !== undefined
+      ? { query: input.target }
+      : {}),
+  };
+};
 
 const targetLooksLikeFile = (target: string): boolean =>
   target.includes('/') || /\.[cm]?[jt]sx?$/.test(target);
@@ -168,9 +259,13 @@ const targetFilter = (input: WayfindInput) => {
   if (input.target === undefined) {
     return populationFilters(input);
   }
-  return targetLooksLikePattern(input.target)
-    ? { idGlob: input.target }
-    : { id: input.target };
+  if (input.resolver === 'pattern') {
+    return { idGlob: input.target };
+  }
+  if (input.resolver === 'query') {
+    return { query: input.target };
+  }
+  return { id: input.target };
 };
 
 const includeResultKey = (include: WayfinderInclude): string => include;
@@ -251,30 +346,43 @@ const envelopeFor = async (
     ...(includes.value === undefined ? {} : { includes: includes.value }),
     result: result.value,
     source: input.source,
-    ...(input.around === undefined ? {} : { target: input.around }),
-    ...(input.from === undefined ? {} : { target: input.from }),
     ...(input.target === undefined ? {} : { target: input.target }),
-    ...(input.to === undefined ? {} : { target: input.to }),
     view,
   });
+};
+
+const viewFor = (input: WayfindInput): WayfinderView => {
+  if (input.contract) {
+    return 'contract';
+  }
+  if (input.describe) {
+    return 'describe';
+  }
+  if (input.map) {
+    return 'map';
+  }
+  if (input.outline) {
+    return 'outline';
+  }
+  if (input.overview) {
+    return 'overview';
+  }
+  return input.view;
 };
 
 const viewLiveSource = async (
   input: WayfindInput,
   ctx: TrailContextWithCompose
 ) => {
-  if (
-    input.around !== undefined ||
-    input.from !== undefined ||
-    input.to !== undefined
-  ) {
+  const view = viewFor(input);
+  if (input.deps || input.impact) {
     return {
       result: Result.err(
         liveSourceError(
           '`trails wayfind --source live` supports overview and ID lookup; use locked artifacts for relational graph views.'
         )
       ),
-      view: input.view,
+      view,
     };
   }
   if (hasLiveTypedFilter(input)) {
@@ -284,7 +392,7 @@ const viewLiveSource = async (
           '`trails wayfind --source live` supports overview and ID lookup; use locked artifacts for typed filters.'
         )
       ),
-      view: input.view,
+      view,
     };
   }
   if (input.target !== undefined && targetLooksLikeFile(input.target)) {
@@ -294,21 +402,17 @@ const viewLiveSource = async (
           '`trails wayfind --source live` does not support source file targets; use locked artifacts for file outlines.'
         )
       ),
-      view: input.view,
+      view,
     };
   }
-  if (
-    input.view === 'contract' ||
-    input.view === 'map' ||
-    input.view === 'outline'
-  ) {
+  if (view === 'contract' || view === 'map' || view === 'outline') {
     return {
       result: Result.err(
         liveSourceError(
           '`trails wayfind --source live` supports overview and ID lookup; use locked artifacts for this view.'
         )
       ),
-      view: input.view,
+      view,
     };
   }
   return {
@@ -324,73 +428,90 @@ const viewLiveSource = async (
 };
 
 const viewRelation = (input: WayfindInput, ctx: TrailContextWithCompose) => {
-  if (input.from !== undefined) {
-    return {
-      result: ctx.compose('wayfind.impact', {
-        direction: 'downstream',
-        id: input.from,
-        limit: input.limit,
-        maxDepth: input.depth,
-        ...sourceInput(input),
-      }),
-      view: 'map' as const,
-    };
-  }
-  if (input.to !== undefined) {
-    return {
-      result: ctx.compose('wayfind.impact', {
-        direction: 'upstream',
-        id: input.to,
-        limit: input.limit,
-        maxDepth: input.depth,
-        ...sourceInput(input),
-      }),
-      view: 'map' as const,
-    };
-  }
-  if (input.around === undefined) {
+  if (input.target === undefined || !(input.deps || input.impact)) {
     return Promise.resolve();
   }
-  if (input.view === 'map') {
+  if (
+    targetLooksLikeFile(input.target) ||
+    targetLooksLikePattern(input.target)
+  ) {
     return {
-      result: ctx.compose('wayfind.impact', {
-        direction: 'both',
-        id: input.around,
-        limit: input.limit,
-        maxDepth: input.depth,
-        ...sourceInput(input),
-      }),
+      result: Result.err(
+        new ValidationError('Relation flags require a graph entity target.')
+      ),
       view: 'map' as const,
     };
   }
   return {
-    result: ctx.compose('wayfind.nearby', {
-      id: input.around,
+    result: ctx.compose('wayfind.impact', {
+      direction: input.deps ? 'upstream' : 'downstream',
+      filters: populationFilters(input),
+      id: input.target,
+      limit: input.limit,
+      maxDepth: input.depth,
       ...sourceInput(input),
     }),
-    view: 'summary' as const,
+    view: 'map' as const,
   };
 };
 
-const viewTarget = async (
+const explicitGlobError = (view: WayfinderView) => ({
+  result: Result.err(
+    new ValidationError(
+      'Glob patterns require `trails wayfind pattern <glob>` so the selector is explicit.'
+    )
+  ),
+  view,
+});
+
+const viewSelectorTarget = (
   input: WayfindInput,
-  ctx: TrailContextWithCompose
+  ctx: TrailContextWithCompose,
+  resolver: WayfinderResolver,
+  view: WayfinderView
 ) => {
   const { target } = input;
   if (target === undefined) {
-    return;
+    return null;
   }
-  if (!targetLooksLikeFile(target) && input.view === 'outline') {
+  if (
+    resolver !== 'file' &&
+    resolver !== 'pattern' &&
+    targetLooksLikePattern(target)
+  ) {
+    return explicitGlobError(view);
+  }
+  if (resolver === 'pattern') {
+    return {
+      result: ctx.compose('wayfind.search', {
+        filters: { idGlob: target, ...populationFilters(input) },
+        limit: input.limit,
+        ...sourceInput(input),
+      }),
+      view: 'list' as const,
+    };
+  }
+  if (resolver === 'query') {
+    return {
+      result: ctx.compose('wayfind.search', {
+        filters: { query: target, ...populationFilters(input) },
+        limit: input.limit,
+        ...sourceInput(input),
+      }),
+      view: 'list' as const,
+    };
+  }
+  if (resolver === 'file' && !targetLooksLikeFile(target)) {
     return {
       result: Result.err(
         new ValidationError(
-          'The outline view requires a source file path target. Use `trails wayfind outline <file>` or pass a file-like target.'
+          '`trails wayfind file` requires a source file path target.'
         )
       ),
       view: 'outline' as const,
     };
   }
-  if (targetLooksLikeFile(target)) {
+  if (resolver === 'file') {
     return {
       result: ctx.compose('wayfind.outline', {
         all: false,
@@ -404,17 +525,46 @@ const viewTarget = async (
       view: 'outline' as const,
     };
   }
-  if (targetLooksLikePattern(target)) {
+  return null;
+};
+
+const viewTarget = async (
+  input: WayfindInput,
+  ctx: TrailContextWithCompose
+) => {
+  const { target } = input;
+  if (target === undefined) {
+    return;
+  }
+  const view = viewFor(input);
+  if (input.resolver === undefined && targetLooksLikePattern(target)) {
+    return explicitGlobError(view);
+  }
+  const resolver =
+    input.resolver ?? (targetLooksLikeFile(target) ? 'file' : 'id');
+  const selectorView = viewSelectorTarget(input, ctx, resolver, view);
+  if (selectorView !== null) {
+    return selectorView;
+  }
+  if (resolver !== 'file' && view === 'outline') {
     return {
-      result: ctx.compose('wayfind.search', {
-        filters: { idGlob: target },
-        limit: input.limit,
-        ...sourceInput(input),
-      }),
-      view: 'list' as const,
+      result: Result.err(
+        new ValidationError(
+          'The outline view requires a source file path target. Use `trails wayfind file <file> --view outline` or pass a file-like target.'
+        )
+      ),
+      view: 'outline' as const,
     };
   }
-  if (input.view === 'contract') {
+  if (view === 'overview') {
+    return {
+      result: Result.err(
+        new ValidationError('The overview view does not accept a target.')
+      ),
+      view,
+    };
+  }
+  if (view === 'contract') {
     return {
       result: ctx.compose('wayfind.contract', {
         id: target,
@@ -423,19 +573,20 @@ const viewTarget = async (
       view: 'contract' as const,
     };
   }
-  if (input.view === 'describe' || input.view === 'summary') {
+  if (view === 'describe' || view === 'summary') {
     return {
       result: ctx.compose('wayfind.describe', {
         id: target,
         ...sourceInput(input),
       }),
-      view: input.view,
+      view,
     };
   }
-  if (input.view === 'map') {
+  if (view === 'map') {
     return {
       result: ctx.compose('wayfind.impact', {
         direction: 'both',
+        filters: populationFilters(input),
         id: target,
         limit: input.limit,
         maxDepth: 1,
@@ -445,20 +596,78 @@ const viewTarget = async (
     };
   }
   return {
-    result: ctx.compose('wayfind.describe', {
+    result: ctx.compose('wayfind.nearby', {
       id: target,
       ...sourceInput(input),
     }),
-    view: 'describe' as const,
+    view: 'summary' as const,
   };
+};
+
+const adapterSurfaceTargets = async (
+  input: WayfindInput,
+  ctx: TrailContextWithCompose
+): Promise<TrailResult<readonly string[], Error>> => {
+  if (input.adapter === undefined) {
+    return Result.ok([]);
+  }
+  const facts = await ctx.compose('wayfind.adapters', {
+    filters: { packageName: input.adapter },
+    limit: input.limit,
+    ...sourceInput(input),
+  });
+  if (facts.isErr()) {
+    return facts;
+  }
+  const { adapters } = facts.value as { adapters?: unknown };
+  if (!Array.isArray(adapters)) {
+    return Result.ok([]);
+  }
+  return Result.ok(
+    [
+      ...new Set(
+        adapters
+          .map((fact) =>
+            typeof fact === 'object' && fact !== null
+              ? (fact as { target?: unknown }).target
+              : undefined
+          )
+          .filter((target): target is string => typeof target === 'string')
+      ),
+    ].toSorted()
+  );
+};
+
+const populationFiltersWithAdapter = async (
+  input: WayfindInput,
+  ctx: TrailContextWithCompose
+): Promise<TrailResult<ReturnType<typeof populationFilters>, Error>> => {
+  const filters = populationFilters(input);
+  const adapterTargets = await adapterSurfaceTargets(input, ctx);
+  if (adapterTargets.isErr()) {
+    return adapterTargets;
+  }
+  if (adapterTargets.value.length === 0) {
+    return Result.ok(
+      input.adapter === undefined
+        ? filters
+        : { ...filters, surface: '__no_adapter_target__' }
+    );
+  }
+  return Result.ok({ ...filters, surface: adapterTargets.value });
 };
 
 const viewPopulation = async (
   input: WayfindInput,
   ctx: TrailContextWithCompose
 ) => {
-  const filters = populationFilters(input);
-  if (input.view === 'overview') {
+  const filtersResult = await populationFiltersWithAdapter(input, ctx);
+  if (filtersResult.isErr()) {
+    return { result: filtersResult, view: 'list' as const };
+  }
+  const filters = filtersResult.value;
+  const view = viewFor(input);
+  if (view === 'overview') {
     return {
       result: ctx.compose('wayfind.overview', sourceInput(input)),
       view: 'overview' as const,
@@ -508,18 +717,6 @@ const viewPopulation = async (
     return {
       result: ctx.compose('wayfind.facets', {
         filters,
-        limit: input.limit,
-        ...sourceInput(input),
-      }),
-      view: 'list' as const,
-    };
-  }
-  if (input.adapters || input.adapter !== undefined) {
-    return {
-      result: ctx.compose('wayfind.adapters', {
-        ...(input.adapter === undefined
-          ? {}
-          : { filters: { packageName: input.adapter } }),
         limit: input.limit,
         ...sourceInput(input),
       }),
@@ -585,6 +782,7 @@ export const wayfindTrail = trail('wayfind.navigate', {
   cli: {
     path: 'wayfind',
   },
+  composeInput: wayfindComposeInputSchema,
   composes: [
     'survey',
     'wayfind.adapters',
@@ -612,15 +810,15 @@ export const wayfindTrail = trail('wayfind.navigate', {
       name: 'List graph entries',
     },
     {
-      input: { target: 'wayfind.search', view: 'contract' },
+      input: { contract: true, target: 'wayfind.search' },
       name: 'Inspect a trail contract',
     },
     {
       input: { target: 'wayfind.search' },
-      name: 'Describe a trail',
+      name: 'Inspect nearby graph context',
     },
     {
-      input: { target: 'wayfind.search', view: 'map' },
+      input: { map: true, target: 'wayfind.search' },
       name: 'Map nearby graph context',
     },
     {
@@ -648,7 +846,7 @@ export const wayfindTrail = trail('wayfind.navigate', {
       name: 'List facet facts',
     },
     {
-      input: { view: 'overview' },
+      input: { overview: true },
       name: 'Show graph overview',
     },
     {
@@ -664,12 +862,12 @@ export const wayfindTrail = trail('wayfind.navigate', {
       name: 'Inspect a live app entity',
     },
     {
-      input: { from: 'db.main', view: 'map' },
+      input: { impact: true, target: 'db.main' },
       name: 'Trace downstream graph impact',
     },
     {
-      input: { around: 'wayfind.search' },
-      name: 'Inspect nearby graph context',
+      input: { deps: true, target: 'wayfind.search' },
+      name: 'Inspect upstream dependencies',
     },
     {
       input: { intent: 'read', trails: true },
@@ -680,4 +878,124 @@ export const wayfindTrail = trail('wayfind.navigate', {
   intent: 'read',
   output: wayfindOutputSchema,
   visibility: 'public',
+});
+
+const wayfindSelectorBaseInputSchema = (selectorDescription: string) =>
+  z
+    .object({
+      limit: z.number().int().positive().max(500).default(100),
+      rootDir: z.string().optional().describe('Workspace root directory'),
+      selector: z.string().min(1).describe(selectorDescription),
+    })
+    .strict();
+
+const wayfindPatternInputSchema = wayfindSelectorBaseInputSchema(
+  'Wayfinder ID glob pattern'
+);
+const wayfindQueryInputSchema = wayfindSelectorBaseInputSchema(
+  'Wayfinder indexed text query'
+);
+const wayfindFileInputSchema = wayfindSelectorBaseInputSchema(
+  'Wayfinder source file path'
+).extend({
+  outline: z
+    .boolean()
+    .default(false)
+    .describe('Render the outline view for a source file target'),
+});
+
+const selectorSourceInput = (
+  input: Readonly<{ rootDir?: string | undefined }>
+): { readonly rootDir?: string | undefined } =>
+  input.rootDir === undefined ? {} : { rootDir: input.rootDir };
+
+export const wayfindPatternTrail = trail('wayfind.pattern', {
+  args: ['selector'],
+  blaze: (input, ctx) =>
+    ctx.compose('wayfind.navigate', {
+      limit: input.limit,
+      resolver: 'pattern',
+      target: input.selector,
+      view: 'list',
+      ...selectorSourceInput(input),
+    }),
+  cli: {
+    path: 'wayfind pattern',
+  },
+  composes: ['wayfind.navigate'],
+  description: 'Find Wayfinder graph facts by explicit ID glob pattern',
+  examples: [
+    {
+      input: { selector: 'wayfind.*' },
+      name: 'Find Wayfinder trails',
+    },
+  ],
+  input: wayfindPatternInputSchema,
+  intent: 'read',
+  meta: {
+    internal: true,
+  },
+  output: wayfindOutputSchema,
+  visibility: 'internal',
+});
+
+export const wayfindQueryTrail = trail('wayfind.query', {
+  args: ['selector'],
+  blaze: (input, ctx) =>
+    ctx.compose('wayfind.navigate', {
+      limit: input.limit,
+      resolver: 'query',
+      target: input.selector,
+      view: 'list',
+      ...selectorSourceInput(input),
+    }),
+  cli: {
+    path: 'wayfind query',
+  },
+  composes: ['wayfind.navigate'],
+  description: 'Find Wayfinder graph facts by explicit text query',
+  examples: [
+    {
+      input: { selector: 'release drift' },
+      name: 'Find release drift facts',
+    },
+  ],
+  input: wayfindQueryInputSchema,
+  intent: 'read',
+  meta: {
+    internal: true,
+  },
+  output: wayfindOutputSchema,
+  visibility: 'internal',
+});
+
+export const wayfindFileTrail = trail('wayfind.file', {
+  args: ['selector'],
+  blaze: (input, ctx) =>
+    ctx.compose('wayfind.navigate', {
+      limit: input.limit,
+      outline: input.outline,
+      resolver: 'file',
+      target: input.selector,
+      view: 'outline',
+      ...selectorSourceInput(input),
+    }),
+  cli: {
+    path: 'wayfind file',
+  },
+  composes: ['wayfind.navigate'],
+  description: 'Outline one source file through Wayfinder',
+  examples: [
+    {
+      input: { selector: 'apps/trails/src/app.ts' },
+      name: 'Outline the Trails app module',
+    },
+  ],
+  input: wayfindFileInputSchema,
+  intent: 'read',
+  meta: {
+    internal: true,
+  },
+  output: wayfindOutputSchema,
+  visibility: 'internal',
 });

@@ -10,7 +10,7 @@ The package exports `wayfinderTopo` plus individual graph-read trails.
 
 | Trail | Purpose |
 | --- | --- |
-| `wayfind.overview` | Summarize saved graph counts, artifact source, freshness, and drift. |
+| `wayfind.overview` | Summarize saved graph counts, artifact source, and drift. |
 | `wayfind.search` | Find graph entities with typed filters. |
 | `wayfind.trails` | List trail summaries with the shared typed filter kit. |
 | `wayfind.contours` | List contour summaries with the shared typed filter kit. |
@@ -29,9 +29,9 @@ The package exports `wayfinderTopo` plus individual graph-read trails.
 | `wayfind.outline` | Outline one source file and connect it to saved graph facts when available. |
 | `wayfind.diff` | Compare two explicit saved TopoGraph baselines. |
 
-Each graph-read trail is internal by default and returns provenance, freshness, and drift metadata with its result so callers can tell whether the answer came from aligned artifacts, drifted artifacts, absent artifacts, or schema-version drift. `freshness` remains for compatibility; `drift` is the navigation-facing governance signal. Adapter facts carry package and conformance provenance instead. Public surface exposure must be a deliberate host decision.
+Each graph-read trail is internal by default and returns source provenance plus drift metadata with its result so callers can tell whether the answer came from aligned artifacts, drifted artifacts, absent artifacts, or schema-version drift. `drift` is the navigation-facing governance signal; `artifactStatus` is the implementation-facing read state on the artifact loader API. Adapter facts carry package and conformance provenance instead. Public surface exposure must be a deliberate host decision.
 
-The v0 catalog intentionally does not include generic `wayfind.query`, semantic search, signposts, or `wayfind.implications`. Those require additional accepted substrates or field evidence before they can answer honestly.
+The package catalog intentionally does not include semantic search, signposts, or `wayfind.implications`. The Trails operator CLI does expose a deterministic `wayfind query` selector over indexed graph text; richer rule-join or semantic query behavior remains deferred until those substrates can answer honestly.
 
 ```ts
 import { wayfinderTopo } from '@ontrails/wayfinder';
@@ -83,7 +83,7 @@ const result = await wayfindSearchTrail.blaze(
 );
 ```
 
-Supported filters include entity kind, exact ID, ID glob, ID prefix, namespace, intent, surface, facet, versioning, example coverage, resource usage, and signal usage. Use `createWayfinderGraphEntityPredicate` or `filterWayfinderEntityRefs` when matching relationship filters directly in code so facet membership and projected surfaces are evaluated with graph-derived context.
+Supported filters include entity kind, exact ID, ID glob, text query, ID prefix, namespace, intent, surface, facet, versioning, example coverage, resource usage, and signal usage. Use `createWayfinderGraphEntityPredicate` or `filterWayfinderEntityRefs` when matching relationship filters directly in code so facet membership and derived surfaces are evaluated with graph-derived context.
 
 Example coverage filters are evaluated against the entity being returned. `wayfind.examples` widens parent trail matches to include current examples plus historical version examples, exact historical-version matches return only that version's examples, and exact current-version matches return the current entry examples. `exampleCoverage: false` is intentionally not widened into covered historical version examples.
 
@@ -142,7 +142,7 @@ await wayfindOutlineTrail.blaze(
 );
 ```
 
-CLI hosts can expose the same trail as `trails wayfind outline <file>`. Use `--review`, `--source`, `--contracts`, `--surfaces`, or `--all` for blessed views, or `--features source,trails,apps,diagnostics` for an exact feature set. JSON output includes structured counts plus the selected feature list and omitted feature list so agents can distinguish "not requested" from "absent." CLI text output is rendered by the CLI surface from the structured result; the Wayfinder contract does not carry presentation prose.
+CLI hosts can expose the same trail through an explicit file selector such as `trails wayfind file <file> --outline`. The underlying outline trail supports `review`, `source`, `contracts`, `surfaces`, and `all` feature views; JSON output includes structured counts plus the selected feature list and omitted feature list so agents can distinguish "not requested" from "absent." CLI text output is rendered by the CLI surface from the structured result; the Wayfinder contract does not carry presentation prose.
 
 In text mode, the `--review` view keeps the source map compact while showing graph-backed trail facts when they are available:
 
@@ -165,11 +165,11 @@ When saved graph artifacts are missing, `outline` still renders source facts and
 
 ## Surfaces, Facets, Versions, And Examples
 
-`wayfind.surfaces` includes both directly projected trail surfaces and facet-projected surfaces. `wayfind.facets` returns facet membership, visibility, and descriptions. `wayfind.versions` returns current and historical trail versions sorted by trail ID and numeric version. `wayfind.examples` lists saved examples without executing any trail.
+`wayfind.surfaces` includes both directly rendered trail surfaces and facet-rendered surfaces. `wayfind.facets` returns facet membership, visibility, and descriptions. `wayfind.versions` returns current and historical trail versions sorted by trail ID and numeric version. `wayfind.examples` lists saved examples without executing any trail.
 
 ## Nearby, Impact, And Diff
 
-`wayfind.nearby` returns the direct saved graph relationships around one entity. The relation graph is typed and deterministic: resources point to trails that use them, signals point to producing or consuming trails, surfaces and facets point to projected member trails, composed trails point to their composers, and trails point to saved version records.
+`wayfind.nearby` returns the direct saved graph relationships around one entity. The relation graph is typed and deterministic: resources point to trails that use them, signals point to producing or consuming trails, surfaces and facets point to rendered member trails, composed trails point to their composers, and trails point to saved version records.
 
 ```ts
 import {
@@ -205,4 +205,4 @@ await wayfindDiffTrail.blaze(
 
 `wayfind.impact` walks those typed relation edges with `downstream`, `upstream`, or `both` direction. `downstream` follows the stored edge direction, which is oriented from contract substrate to affected graph members: resource-to-trail, signal-to-trail, surface-to-trail, facet-to-trail, composed-trail-to-composer, and trail-to-version. `wayfind.diff` compares two saved TopoGraph artifacts with `deriveTopoGraphDiff`; it requires an explicit `againstDir` or `againstRootDir` baseline instead of deriving either graph from live source.
 
-These queries are intentionally graph-read only. They do not provide `wayfind.query`, semantic search, signposts, or implications yet.
+These queries are intentionally graph-read only. They do not provide semantic search, signposts, or implications yet.

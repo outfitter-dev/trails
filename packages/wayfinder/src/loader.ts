@@ -32,8 +32,8 @@ import type {
 } from '@ontrails/topographer';
 
 import type {
+  WayfinderArtifactStatus,
   WayfinderArtifactKind,
-  WayfinderFreshness,
   WayfinderStaleReason,
 } from './provenance.js';
 
@@ -54,11 +54,20 @@ export interface WayfinderTopoStoreLoad {
 }
 
 export interface WayfinderArtifactLoad {
-  readonly freshness: WayfinderFreshness;
+  readonly artifactStatus: WayfinderArtifactStatus;
+  /** @deprecated Use artifactStatus. */
+  readonly freshness: WayfinderArtifactStatus;
   readonly lockManifest: LockManifest | null;
   readonly topoGraph: TopoGraph | null;
   readonly topoStore: WayfinderTopoStoreLoad | null;
 }
+
+const artifactLoad = (
+  load: Omit<WayfinderArtifactLoad, 'freshness'>
+): WayfinderArtifactLoad => ({
+  ...load,
+  freshness: load.artifactStatus,
+});
 
 type ArtifactRead<TValue> =
   | {
@@ -301,8 +310,8 @@ export const loadWayfinderArtifacts = async (
   ]);
 
   if (topoGraphRead.kind === 'schema-version-drift') {
-    return {
-      freshness: {
+    return artifactLoad({
+      artifactStatus: {
         artifact: topoGraphRead.artifact,
         message: topoGraphRead.message,
         status: 'schema-version-drift',
@@ -311,12 +320,12 @@ export const loadWayfinderArtifacts = async (
         lockManifestRead.kind === 'ok' ? lockManifestRead.value : null,
       topoGraph: null,
       topoStore: topoStoreRead.kind === 'ok' ? topoStoreRead.value : null,
-    };
+    });
   }
 
   if (lockManifestRead.kind === 'schema-version-drift') {
-    return {
-      freshness: {
+    return artifactLoad({
+      artifactStatus: {
         artifact: lockManifestRead.artifact,
         message: lockManifestRead.message,
         status: 'schema-version-drift',
@@ -324,12 +333,12 @@ export const loadWayfinderArtifacts = async (
       lockManifest: null,
       topoGraph: topoGraphRead.value,
       topoStore: topoStoreRead.kind === 'ok' ? topoStoreRead.value : null,
-    };
+    });
   }
 
   if (topoStoreRead.kind === 'schema-version-drift') {
-    return {
-      freshness: {
+    return artifactLoad({
+      artifactStatus: {
         artifact: topoStoreRead.artifact,
         message: topoStoreRead.message,
         status: 'schema-version-drift',
@@ -337,7 +346,7 @@ export const loadWayfinderArtifacts = async (
       lockManifest: lockManifestRead.value,
       topoGraph: topoGraphRead.value,
       topoStore: null,
-    };
+    });
   }
 
   const topoGraph = topoGraphRead.value;
@@ -354,22 +363,22 @@ export const loadWayfinderArtifacts = async (
     if (topoStore === null) {
       missing.push('topoStore');
     }
-    return {
-      freshness: { artifacts: missing, status: 'missing' },
+    return artifactLoad({
+      artifactStatus: { artifacts: missing, status: 'missing' },
       lockManifest,
       topoGraph,
       topoStore,
-    };
+    });
   }
 
   const reasons = staleReasons(topoGraph, lockManifest, topoStore);
-  return {
-    freshness:
+  return artifactLoad({
+    artifactStatus:
       reasons.length === 0 ? { status: 'fresh' } : { reasons, status: 'stale' },
     lockManifest,
     topoGraph,
     topoStore,
-  };
+  });
 };
 
 export const wayfinderTopoGraphSource = (

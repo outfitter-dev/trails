@@ -7,6 +7,7 @@ import {
   projectPublicSurfaceError,
   redactErrorContext,
   redactErrorString,
+  ValidationError,
 } from '@ontrails/core';
 import type { SurfaceErrorProjection } from '@ontrails/core';
 import type { CliCommand, CliFlag } from '@ontrails/cli';
@@ -171,6 +172,19 @@ const isUserSuppliedOption = (command: Command, name: string): boolean => {
 
 const getCommandOptionNames = (command: Command): Set<string> =>
   new Set(command.options.map((option) => option.attributeName()));
+
+const renderCommandPath = (command: Command): string => {
+  const segments: string[] = [];
+  let current: Command | null = command;
+  while (current !== null && current.parent !== null) {
+    segments.push(current.name());
+    current = current.parent;
+  }
+  return segments.toReversed().join(' ');
+};
+
+const renderOptionName = (option: Option): string =>
+  option.long ?? `--${option.attributeName()}`;
 
 const INHERITED_SURFACE_OPTION_KEYS = new Set([
   'cwd',
@@ -448,6 +462,35 @@ const handleError = (
   process.exit(projection.code);
 };
 
+const collectDisallowedAncestorOptions = (
+  target: Command,
+  allowedFlags: readonly CliCommand['flags'][number][]
+): readonly string[] => {
+  const allowedKeys = getFlagOptionKeys(allowedFlags);
+  const childPath = renderCommandPath(target);
+  const disallowed: string[] = [];
+  let { parent } = target;
+
+  while (parent !== null) {
+    const parentPath = renderCommandPath(parent);
+    for (const option of parent.options) {
+      const name = option.attributeName();
+      if (
+        isUserSuppliedOption(parent, name) &&
+        !allowedKeys.has(name) &&
+        !INHERITED_SURFACE_OPTION_KEYS.has(name)
+      ) {
+        disallowed.push(
+          `${renderOptionName(option)} belongs to "${parentPath}" and is not supported by "${childPath}".`
+        );
+      }
+    }
+    ({ parent } = parent);
+  }
+
+  return disallowed;
+};
+
 interface BareChildFallback {
   readonly argName: string;
   readonly argValue: string;
@@ -519,6 +562,20 @@ const wireAction = (
     );
     let { parsedFlags } = action;
     try {
+      const disallowedAncestorOptions = collectDisallowedAncestorOptions(
+        actionTarget,
+        action.command.flags
+      );
+      if (disallowedAncestorOptions.length > 0) {
+        throw new ValidationError('Unsupported option for this CLI command.', {
+          context: {
+            issues: disallowedAncestorOptions.map((message) => ({
+              message,
+              trailId: action.command.trail.id,
+            })),
+          },
+        });
+      }
       parsedFlags = applyCliFlagValueAliases(
         action.command.flags,
         action.parsedFlags,

@@ -1020,6 +1020,65 @@ describe('toCommander validation', () => {
 
     expect(received).toEqual({ json: true });
   });
+
+  test('rejects parent-owned non-global flags on child commands', async () => {
+    await withMockedProcess(async () => {
+      const commands = [
+        {
+          args: [{ name: 'target', required: false, variadic: false }],
+          execute: async () => await Result.ok('wayfind'),
+          flags: [
+            {
+              choices: ['summary', 'contract'],
+              name: 'view',
+              required: false,
+              type: 'string' as const,
+              variadic: false,
+            },
+          ],
+          intent: 'read' as const,
+          path: ['wayfind'] as const,
+          trail: trail('wayfind.navigate', {
+            blaze: () => Result.ok('wayfind'),
+            input: z.object({}),
+          }),
+        },
+        {
+          args: [{ name: 'selector', required: true, variadic: false }],
+          execute: async () => await Result.ok('wayfind.file'),
+          flags: [],
+          intent: 'read' as const,
+          path: ['wayfind', 'file'] as const,
+          trail: trail('wayfind.file', {
+            blaze: () => Result.ok('wayfind.file'),
+            input: z.object({}),
+          }),
+        },
+      ];
+
+      const program = toCommander(commands, { name: 'test' });
+      program.exitOverride();
+
+      await expect(
+        program.parseAsync([
+          'node',
+          'test',
+          'wayfind',
+          'file',
+          'apps/trails/src/app.ts',
+          '--view',
+          'contract',
+        ])
+      ).rejects.toThrow('EXIT 1');
+
+      expect(process.stderr.write).toHaveBeenCalledWith(
+        'Error: Unsupported option for this CLI command.\n'
+      );
+      expect(process.stderr.write).toHaveBeenCalledWith(
+        '  - --view belongs to "wayfind" and is not supported by "wayfind file". (wayfind.file)\n'
+      );
+    });
+  });
 });
 
 describe('toCommander option wiring', () => {

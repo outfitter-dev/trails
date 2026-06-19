@@ -132,7 +132,8 @@ describe('loadWayfinderArtifacts', () => {
 
     const loaded = await loadWayfinderArtifacts({ rootDir: tempDir });
 
-    expect(loaded.freshness).toEqual({ status: 'fresh' });
+    expect(loaded.artifactStatus).toEqual({ status: 'fresh' });
+    expect(loaded.freshness).toBe(loaded.artifactStatus);
     expect(loaded.topoGraph?.entries.map((entry) => entry.id)).toEqual([
       'user.show',
     ]);
@@ -174,10 +175,10 @@ describe('loadWayfinderArtifacts', () => {
 
     const loaded = await loadWayfinderArtifacts({ rootDir: tempDir });
 
-    expect(loaded.freshness.status).toBe('stale');
+    expect(loaded.artifactStatus.status).toBe('stale');
     expect(
-      loaded.freshness.status === 'stale'
-        ? loaded.freshness.reasons.map((reason) => reason.reason)
+      loaded.artifactStatus.status === 'stale'
+        ? loaded.artifactStatus.reasons.map((reason) => reason.reason)
         : []
     ).toContain('lock-manifest-hash-mismatch');
     expect(loaded.topoGraph).not.toBeNull();
@@ -190,10 +191,10 @@ describe('loadWayfinderArtifacts', () => {
 
     const loaded = await loadWayfinderArtifacts({ rootDir: tempDir });
 
-    expect(loaded.freshness.status).toBe('stale');
+    expect(loaded.artifactStatus.status).toBe('stale');
     expect(
-      loaded.freshness.status === 'stale'
-        ? loaded.freshness.reasons.map((reason) => reason.reason)
+      loaded.artifactStatus.status === 'stale'
+        ? loaded.artifactStatus.reasons.map((reason) => reason.reason)
         : []
     ).toContain('topo-store-hash-mismatch');
     expect(loaded.topoGraph?.entries.map((entry) => entry.id)).toEqual([
@@ -208,6 +209,10 @@ describe('loadWayfinderArtifacts', () => {
     const loaded = await loadWayfinderArtifacts({ rootDir: tempDir });
 
     expect(loaded).toEqual({
+      artifactStatus: {
+        artifacts: ['topoGraph', 'lockManifest', 'topoStore'],
+        status: 'missing',
+      },
       freshness: {
         artifacts: ['topoGraph', 'lockManifest', 'topoStore'],
         status: 'missing',
@@ -226,7 +231,7 @@ describe('loadWayfinderArtifacts', () => {
 
     const loaded = await loadWayfinderArtifacts({ rootDir: tempDir });
 
-    expect(loaded.freshness).toEqual({
+    expect(loaded.artifactStatus).toEqual({
       artifacts: ['topoStore'],
       status: 'missing',
     });
@@ -250,7 +255,7 @@ describe('loadWayfinderArtifacts', () => {
 
     const loaded = await loadWayfinderArtifacts({ rootDir: tempDir });
 
-    expect(loaded.freshness).toMatchObject({
+    expect(loaded.artifactStatus).toMatchObject({
       artifact: 'topoGraph',
       status: 'schema-version-drift',
     });
@@ -267,7 +272,7 @@ describe('loadWayfinderArtifacts', () => {
 
     const loaded = await loadWayfinderArtifacts({ rootDir: tempDir });
 
-    expect(loaded.freshness).toMatchObject({
+    expect(loaded.artifactStatus).toMatchObject({
       artifact: 'lockManifest',
       status: 'schema-version-drift',
     });
@@ -292,7 +297,7 @@ describe('loadWayfinderArtifacts', () => {
 
     const loaded = await loadWayfinderArtifacts({ rootDir: tempDir });
 
-    expect(loaded.freshness).toMatchObject({
+    expect(loaded.artifactStatus).toMatchObject({
       artifact: 'topoStore',
       status: 'schema-version-drift',
     });
@@ -313,21 +318,21 @@ describe('loadWayfinderArtifacts', () => {
 });
 
 describe('wayfinderFact', () => {
-  test('carries category, source, drift, freshness, and derivedFrom provenance', () => {
-    const freshness = { status: 'fresh' } as const;
+  test('carries category, source, drift, artifact status, and derivedFrom provenance', () => {
+    const artifactStatus = { status: 'fresh' } as const;
     const fact = wayfinderFact({
-      category: 'projected',
+      artifactStatus,
+      category: 'derived',
       derivedFrom: { field: 'output', id: 'user.show', kind: 'trail' },
-      freshness,
       source: wayfinderTopoStoreSource({ rootDir: tempDir }),
       value: { hasOutput: true },
     });
 
     expect(fact).toEqual({
-      category: 'projected',
+      artifactStatus,
+      category: 'derived',
       derivedFrom: { field: 'output', id: 'user.show', kind: 'trail' },
-      drift: { freshness, status: 'aligned' },
-      freshness,
+      drift: { status: 'aligned' },
       source: {
         kind: 'topoStore',
         path: `${tempDir}/.trails/state/trails.db`,

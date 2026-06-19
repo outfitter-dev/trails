@@ -200,11 +200,11 @@ A trail declares its defaults: intent, error behavior, composition declarations,
 
 The authored default documents intent. The override enables reuse. The resolved graph captures the final state. Governance can flag overrides that contradict intent.
 
-### One Graph, Many Views
+### Define Once, Render Everywhere
 
-The system is a single graph: trails, resources, signals, compositions, and metadata. Different tools provide different views of the same underlying data. Typed layers can wrap that graph at declared attachment points, and their declared inputs can be projected, but layers are not persisted as standalone nodes in the graph.
+The system is a single graph: trails, resources, signals, compositions, and metadata. Authors define the contract once. Trails derives known facts from that contract, then surfaces render those facts for the interface they own. Typed layers can wrap that graph at declared attachment points, and their declared inputs can be rendered through surfaces, but layers are not persisted as standalone nodes in the graph.
 
-Survey reveals what exists and how it connects. Guide explains how to use it. The warden reports what's missing and what's drifting. The lockfile captures the resolved state. The tracing system shows what's actually happening at runtime — live during execution, historical after the fact.
+Wayfinder reveals what exists and how it connects. Guide explains how to use it. The warden reports what's missing and what's drifting. The lockfile captures the resolved state. The tracing system shows what's actually happening at runtime — live during execution, historical after the fact.
 
 No separate data sources, no sync problems.
 

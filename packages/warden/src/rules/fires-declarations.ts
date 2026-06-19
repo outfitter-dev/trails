@@ -46,11 +46,9 @@ import type { WardenDiagnostic, WardenRule } from './types.js';
 /**
  * Resolve an array element to a static signal ID when possible.
  *
- * Returns null for entries the rule can't statically resolve — callers should
- * treat "unresolved" as "trust the runtime" rather than a missing declaration.
- * In particular, object-form references (e.g. `fires: [orderPlaced]` where
- * `orderPlaced` is a `Signal` imported from elsewhere) resolve via runtime
- * normalization in `trail()`, not at lint time.
+ * Returns null for entries the rule can't statically resolve. Unresolved entries
+ * are not proof of missingness, but they also do not suppress diagnostics for
+ * statically resolved `ctx.fire()` calls that target different signals.
  */
 const resolveFireElementId = (
   element: AstNode,
@@ -111,10 +109,10 @@ interface DeclaredFires {
 /**
  * Extract declared fires from a `fires: [...]` array.
  *
- * Object-form entries (`fires: [someSignal]`) cannot be resolved at lint time;
- * they're normalized at runtime by `trail()`. When any entry is unresolved,
- * the rule reports `hasUnresolved: true`, and callers should suppress the
- * "undeclared" diagnostic since the declared set is incomplete from our view.
+ * Object-form entries (`fires: [someSignal]`) can be unresolved at lint time
+ * when they come from imports the rule cannot prove. Those unresolved entries
+ * do not soften concrete undeclared `ctx.fire()` calls; this mirrors
+ * `composes-declarations` and keeps real drift hard-failing.
  */
 const resolveDeclaredFiresElements = (
   elements: readonly AstNode[],
@@ -578,16 +576,13 @@ const buildUndeclaredDiagnostic = (
   trailId: string,
   signalId: string,
   filePath: string,
-  line: number,
-  softened = false
+  line: number
 ): WardenDiagnostic => ({
   filePath,
   line,
-  message: softened
-    ? `Trail "${trailId}": ctx.fire('${signalId}') called but '${signalId}' is not declared in fires (may be declared via object-form fires entries)`
-    : `Trail "${trailId}": ctx.fire('${signalId}') called but '${signalId}' is not declared in fires`,
+  message: `Trail "${trailId}": ctx.fire('${signalId}') called but '${signalId}' is not declared in fires`,
   rule: 'fires-declarations',
-  severity: softened ? 'warn' : 'error',
+  severity: 'error',
 });
 
 const buildStringFireDiagnostic = (
@@ -628,20 +623,13 @@ const reportUndeclared = (
     trailId: string;
     filePath: string;
     line: number;
-    softened?: boolean;
   },
   diagnostics: WardenDiagnostic[]
 ): void => {
   for (const id of called) {
     if (!declared.has(id)) {
       diagnostics.push(
-        buildUndeclaredDiagnostic(
-          ctx.trailId,
-          id,
-          ctx.filePath,
-          ctx.line,
-          ctx.softened
-        )
+        buildUndeclaredDiagnostic(ctx.trailId, id, ctx.filePath, ctx.line)
       );
     }
   }
@@ -650,12 +638,9 @@ const reportUndeclared = (
 /**
  * Emit warning for each declared ID not present in called set.
  *
- * Note: unlike `reportUndeclared`, this function does NOT soften its
- * diagnostics when `hasUnresolved` is true. The asymmetry is intentional —
- * softening only applies to the undeclared direction because unresolved
- * Signal-value entries might cover an unknown set of called IDs. In the
- * unused direction, a declared string-literal that is never called is
- * genuinely unused regardless of whether other entries are unresolved.
+ * Unused string-literal declarations remain warnings: a declared string that is
+ * never called is visible cleanup debt even when other object-form declarations
+ * are unresolved.
  */
 const reportUnused = (
   declared: ReadonlySet<string>,
@@ -710,17 +695,7 @@ const checkTrailDefinition = (
   );
 
   reportStringFireCalls(called.stringIds, ctx, diagnostics);
-  // When the declared array contains object-form references we can't resolve,
-  // downgrade "undeclared" diagnostics from error to warn with a disclaimer
-  // instead of suppressing entirely. The developer still sees genuinely
-  // undeclared calls, but we can't statically prove the call isn't covered by
-  // a Signal-value entry the runtime will normalize.
-  reportUndeclared(
-    signalValueCalledIds,
-    declared.ids,
-    { ...ctx, softened: declared.hasUnresolved },
-    diagnostics
-  );
+  reportUndeclared(signalValueCalledIds, declared.ids, ctx, diagnostics);
   reportUnused(declared.ids, called.ids, ctx, diagnostics);
 };
 

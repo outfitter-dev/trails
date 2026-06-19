@@ -15,7 +15,7 @@ Common workflows:
 - `trails topo` inspects topo state and manages pins/history.
 - `trails compile` writes committed topo artifacts.
 - `trails validate` checks committed topo artifacts for drift.
-- `trails wayfind`, `trails wayfind --trails --intent read`, `trails wayfind <id> --view contract`, `trails wayfind outline <file>`, and `trails wayfind diff ...` read graph artifacts and source outlines through Wayfinder for local navigation.
+- `trails wayfind`, `trails wayfind --trails --intent read`, `trails wayfind <id> --contract`, `trails wayfind <id> --deps`, `trails wayfind <id> --impact`, `trails wayfind pattern "wayfind.*"`, `trails wayfind query "release drift"`, `trails wayfind file <file> --outline`, and `trails wayfind diff ...` read graph artifacts and source outlines through Wayfinder for local navigation.
 - `trails schema <command...>` shows accepted CLI routes, aliases, flags, and schemas for an operator command.
 - `trails warden` runs Trails governance checks for contract and architecture drift.
 - `trails regrade --root-dir <path> --json` dry-runs downstream migration checks; add `--apply` only to write safe rewrites.

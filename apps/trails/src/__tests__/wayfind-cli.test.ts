@@ -22,8 +22,13 @@ const unwrapCommands = () => {
   return result.value;
 };
 
-const parseWayfindInput = (input: Record<string, unknown>) =>
-  wayfindTrail.input.parse(input);
+const parseWayfindInput = (input: Record<string, unknown>) => {
+  const { resolver, ...publicInput } = input;
+  return {
+    ...wayfindTrail.input.parse(publicInput),
+    ...(typeof resolver === 'string' ? { resolver } : {}),
+  };
+};
 
 const fakeWayfindContext = () => {
   const calls: { id: string; input: unknown }[] = [];
@@ -46,43 +51,45 @@ describe('Trails Wayfinder CLI surface', () => {
     const trailIds = commands.map((command) => command.trail.id);
 
     expect(commandPaths).toContain('wayfind');
-    expect(commandPaths).toContain('wayfind overview');
-    expect(commandPaths).toContain('wayfind adapters');
-    expect(commandPaths).toContain('wayfind search');
-    expect(commandPaths).toContain('wayfind trails');
-    expect(commandPaths).toContain('wayfind contract');
-    expect(commandPaths).toContain('wayfind describe');
+    expect(commandPaths).toContain('wayfind pattern');
+    expect(commandPaths).toContain('wayfind query');
+    expect(commandPaths).toContain('wayfind file');
     expect(commandPaths).toContain('wayfind diff');
-    expect(commandPaths).toContain('wayfind errors');
-    expect(commandPaths).toContain('wayfind nearby');
-    expect(commandPaths).toContain('wayfind impact');
-    expect(commandPaths).toContain('wayfind examples');
-    expect(commandPaths).toContain('wayfind outline');
+    expect(commandPaths).not.toContain('wayfind adapters');
+    expect(commandPaths).not.toContain('wayfind search');
+    expect(commandPaths).not.toContain('wayfind contract');
+    expect(commandPaths).not.toContain('wayfind describe');
+    expect(commandPaths).not.toContain('wayfind nearby');
+    expect(commandPaths).not.toContain('wayfind impact');
+    expect(commandPaths).not.toContain('wayfind outline');
     expect(commandPaths).not.toContain('wayfind contours');
     expect(commandPaths).not.toContain('wayfind facets');
     expect(commandPaths).not.toContain('wayfind signals');
 
     expect(trailIds).toContain('wayfind.navigate');
-    expect(trailIds).toContain('wayfind.overview');
-    expect(trailIds).toContain('wayfind.adapters');
-    expect(trailIds).toContain('wayfind.search');
-    expect(trailIds).toContain('wayfind.trails');
-    expect(trailIds).toContain('wayfind.contract');
-    expect(trailIds).toContain('wayfind.describe');
+    expect(trailIds).toContain('wayfind.pattern');
+    expect(trailIds).toContain('wayfind.query');
+    expect(trailIds).toContain('wayfind.file');
     expect(trailIds).toContain('wayfind.diff');
-    expect(trailIds).toContain('wayfind.errors');
-    expect(trailIds).toContain('wayfind.nearby');
-    expect(trailIds).toContain('wayfind.impact');
-    expect(trailIds).toContain('wayfind.examples');
-    expect(trailIds).toContain('wayfind.outline');
+    expect(trailIds).not.toContain('wayfind.adapters');
+    expect(trailIds).not.toContain('wayfind.search');
+    expect(trailIds).not.toContain('wayfind.contract');
+    expect(trailIds).not.toContain('wayfind.describe');
+    expect(trailIds).not.toContain('wayfind.nearby');
+    expect(trailIds).not.toContain('wayfind.impact');
+    expect(trailIds).not.toContain('wayfind.outline');
     expect(trailIds).not.toContain('wayfind.contours');
     expect(trailIds).not.toContain('wayfind.facets');
     expect(trailIds).not.toContain('wayfind.signals');
 
-    const outline = commands.find(
-      (command) => command.trail.id === 'wayfind.outline'
+    const file = commands.find(
+      (command) => command.trail.id === 'wayfind.file'
     );
-    expect(outline?.args.map((arg) => arg.name)).toEqual(['file']);
+    expect(file?.args.map((arg) => arg.name)).toEqual(['selector']);
+    expect(file?.flags.map((flag) => flag.name)).toEqual(
+      expect.arrayContaining(['outline'])
+    );
+    expect(file?.flags.map((flag) => flag.name)).not.toContain('view');
 
     const navigate = commands.find(
       (command) => command.trail.id === 'wayfind.navigate'
@@ -91,19 +98,26 @@ describe('Trails Wayfinder CLI surface', () => {
     expect(navigate?.flags.map((flag) => flag.name)).toEqual(
       expect.arrayContaining([
         'adapter',
-        'adapters',
-        'around',
+        'contract',
         'contours',
         'depth',
+        'deps',
+        'describe',
         'errors',
         'facets',
-        'from',
+        'impact',
         'include',
+        'map',
         'module',
+        'outline',
+        'overview',
         'signals',
-        'to',
       ])
     );
+    expect(navigate?.flags.map((flag) => flag.name)).not.toContain('adapters');
+    expect(navigate?.flags.map((flag) => flag.name)).not.toContain('around');
+    expect(navigate?.flags.map((flag) => flag.name)).not.toContain('from');
+    expect(navigate?.flags.map((flag) => flag.name)).not.toContain('to');
     expect(navigate?.routes).toEqual([
       {
         kind: 'canonical',
@@ -113,20 +127,28 @@ describe('Trails Wayfinder CLI surface', () => {
       },
     ]);
 
-    const search = commands.find(
-      (command) => command.trail.id === 'wayfind.search'
+    const pattern = commands.find(
+      (command) => command.trail.id === 'wayfind.pattern'
     );
-    expect(search?.routes).toEqual([
+    expect(pattern?.flags.map((flag) => flag.name)).not.toContain('view');
+    expect(pattern?.flags.map((flag) => flag.name)).not.toContain('outline');
+    expect(pattern?.routes).toEqual([
       {
         kind: 'canonical',
-        path: ['wayfind', 'search'],
-        source: 'derived',
-        target: 'wayfind.search',
+        path: ['wayfind', 'pattern'],
+        source: 'trail',
+        target: 'wayfind.pattern',
       },
     ]);
+
+    const query = commands.find(
+      (command) => command.trail.id === 'wayfind.query'
+    );
+    expect(query?.flags.map((flag) => flag.name)).not.toContain('view');
+    expect(query?.flags.map((flag) => flag.name)).not.toContain('outline');
   });
 
-  test('guards against ambiguous relational wayfind targets', async () => {
+  test('guards against conflicting relational wayfind targets', async () => {
     const navigate = unwrapCommands().find(
       (command) => command.trail.id === 'wayfind.navigate'
     );
@@ -134,14 +156,12 @@ describe('Trails Wayfinder CLI surface', () => {
 
     const result = await navigate?.execute(
       { target: 'wayfind.search' },
-      { from: 'db.main' },
+      { deps: true, impact: true },
       { cwd: process.cwd() }
     );
 
     expect(result?.isErr()).toBe(true);
-    expect(result?.error.message).toContain(
-      'Provide only one of target, from, to, or around.'
-    );
+    expect(result?.error.message).toContain('Provide only one relation flag');
   });
 
   test('guards live source against unsupported relational views', async () => {
@@ -152,7 +172,7 @@ describe('Trails Wayfinder CLI surface', () => {
 
     const result = await navigate?.execute(
       {},
-      { from: 'db.main', source: 'live' },
+      { deps: true, source: 'live', target: 'db.main' },
       { cwd: process.cwd() }
     );
 
@@ -198,7 +218,7 @@ describe('Trails Wayfinder CLI surface', () => {
 
     const relation = await navigate?.execute(
       {},
-      { from: 'wayfind.search', include: ['examples'] },
+      { impact: true, include: ['examples'], target: 'wayfind.search' },
       { cwd: process.cwd() }
     );
     expect(relation?.isErr()).toBe(true);
@@ -225,7 +245,7 @@ describe('Trails Wayfinder CLI surface', () => {
     );
   });
 
-  test('normalizes target views, glob targets, and include facts', async () => {
+  test('normalizes target views, explicit patterns, and include facts', async () => {
     const target = fakeWayfindContext();
     const targetResult = await wayfindTrail.blaze(
       parseWayfindInput({ target: 'wayfind.search' }),
@@ -235,16 +255,16 @@ describe('Trails Wayfinder CLI surface', () => {
     if (targetResult.isErr()) {
       throw targetResult.error;
     }
-    expect(target.calls.map((call) => call.id)).toEqual(['wayfind.describe']);
+    expect(target.calls.map((call) => call.id)).toEqual(['wayfind.nearby']);
     expect(targetResult.value).toMatchObject({
-      result: { id: 'wayfind.describe' },
+      result: { id: 'wayfind.nearby' },
       target: 'wayfind.search',
-      view: 'describe',
+      view: 'summary',
     });
 
     const glob = fakeWayfindContext();
     const globResult = await wayfindTrail.blaze(
-      parseWayfindInput({ target: 'wayfind.*' }),
+      parseWayfindInput({ resolver: 'pattern', target: 'wayfind.*' }),
       glob.ctx
     );
     expect(globResult.isOk()).toBe(true);
@@ -255,19 +275,39 @@ describe('Trails Wayfinder CLI surface', () => {
       },
     ]);
 
-    const outlineGlob = fakeWayfindContext();
-    const outlineGlobResult = await wayfindTrail.blaze(
+    const bareGlob = fakeWayfindContext();
+    const bareGlobResult = await wayfindTrail.blaze(
+      parseWayfindInput({ target: 'wayfind.*' }),
+      bareGlob.ctx
+    );
+    expect(bareGlobResult.isErr()).toBe(true);
+    expect(bareGlob.calls).toEqual([]);
+
+    const barePathGlob = fakeWayfindContext();
+    const barePathGlobResult = await wayfindTrail.blaze(
       parseWayfindInput({
         target: 'packages/*/src/index.ts',
         view: 'outline',
       }),
-      outlineGlob.ctx
+      barePathGlob.ctx
     );
-    expect(outlineGlobResult.isOk()).toBe(true);
-    expect(outlineGlob.calls).toEqual([
+    expect(barePathGlobResult.isErr()).toBe(true);
+    expect(barePathGlob.calls).toEqual([]);
+
+    const explicitFile = fakeWayfindContext();
+    const explicitFileResult = await wayfindTrail.blaze(
+      parseWayfindInput({
+        resolver: 'file',
+        target: 'apps/trails/src/app.ts',
+        view: 'outline',
+      }),
+      explicitFile.ctx
+    );
+    expect(explicitFileResult.isOk()).toBe(true);
+    expect(explicitFile.calls).toEqual([
       {
         id: 'wayfind.outline',
-        input: expect.objectContaining({ file: 'packages/*/src/index.ts' }),
+        input: expect.objectContaining({ file: 'apps/trails/src/app.ts' }),
       },
     ]);
 
@@ -301,7 +341,7 @@ describe('Trails Wayfinder CLI surface', () => {
       throw includeResult.error;
     }
     expect(included.calls.map((call) => call.id)).toEqual([
-      'wayfind.describe',
+      'wayfind.nearby',
       'wayfind.examples',
     ]);
     expect(includeResult.value.includes).toEqual({
@@ -333,9 +373,38 @@ describe('Trails Wayfinder CLI surface', () => {
         }),
       },
       {
+        id: 'wayfind.search',
+        input: expect.objectContaining({
+          filters: { surface: '__no_adapter_target__' },
+        }),
+      },
+      {
         id: 'wayfind.adapters',
         input: expect.objectContaining({
           filters: { packageName: '@ontrails/hono' },
+        }),
+      },
+    ]);
+  });
+
+  test('normalizes relation flags through target-bound impact', async () => {
+    const deps = fakeWayfindContext();
+    const depsResult = await wayfindTrail.blaze(
+      parseWayfindInput({
+        deps: true,
+        resources: true,
+        target: 'wayfind.search',
+      }),
+      deps.ctx
+    );
+    expect(depsResult.isOk()).toBe(true);
+    expect(deps.calls).toEqual([
+      {
+        id: 'wayfind.impact',
+        input: expect.objectContaining({
+          direction: 'upstream',
+          filters: { kind: 'resource' },
+          id: 'wayfind.search',
         }),
       },
     ]);
@@ -357,7 +426,9 @@ describe('Trails Wayfinder CLI surface', () => {
       expect(context.calls).toEqual([
         {
           id: trailId,
-          input: expect.objectContaining({ filters: {} }),
+          input: expect.objectContaining({
+            filters: { kind: flag.slice(0, -1) },
+          }),
         },
       ]);
     }
@@ -379,7 +450,6 @@ describe('Trails Wayfinder CLI surface', () => {
     const commands = unwrapCommands();
     const trailIds = commands.map((command) => command.trail.id);
 
-    expect(trailIds).not.toContain('wayfind.query');
     expect(trailIds).not.toContain('wayfind.implications');
   });
 

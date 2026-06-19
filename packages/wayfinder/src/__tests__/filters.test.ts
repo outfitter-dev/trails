@@ -124,6 +124,7 @@ describe('wayfinder typed filters', () => {
         intent: ['read', 'write'],
         kind: ['trail'],
         namespace: 'user',
+        query: 'create',
         surface: 'mcp',
         usesResource: 'db.main',
         usesSignal: 'user.created',
@@ -137,14 +138,12 @@ describe('wayfinder typed filters', () => {
       intent: ['read', 'write'],
       kind: ['trail'],
       namespace: 'user',
+      query: 'create',
       surface: 'mcp',
       usesResource: 'db.main',
       usesSignal: 'user.created',
       versioned: false,
     });
-    expect(() =>
-      wayfinderEntityFilterSchema.parse({ query: 'kind:trail user.*' })
-    ).toThrow();
   });
 
   test('lists graph, facet, surface, and version entity refs', () => {
@@ -173,6 +172,7 @@ describe('wayfinder typed filters', () => {
     expect(ids(graph, { idGlob: 'user.????', kind: 'trail' })).toEqual([
       'user.show',
     ]);
+    expect(ids(graph, { kind: 'trail', query: 'show' })).toEqual(['user.show']);
   });
 
   test('filters trails by intent, versioning, and example coverage', () => {

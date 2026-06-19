@@ -348,8 +348,8 @@ Trails CLI apps can expose command schemas from the same topo and framework-agno
 
 ```bash
 trails schema
-trails schema wayfind search
-trails schema wf search
+trails schema wayfind
+trails schema wayfind pattern
 ```
 
 The no-arg form returns a command contract index. Targeted schema lookup accepts any canonical or alias command path and returns the full command-contract envelope: command path, trail id, args, flags, routes, aliases, input schema, output schema, examples, and version metadata when derivable.

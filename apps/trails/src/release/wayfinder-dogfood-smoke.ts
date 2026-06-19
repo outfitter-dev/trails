@@ -1,6 +1,6 @@
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 const repoRoot = resolve(process.cwd());
@@ -22,9 +22,9 @@ const assertObject = (value: unknown, label: string): JsonObject => {
   return value as JsonObject;
 };
 
-const assertFreshSource = (value: JsonObject, label: string): void => {
-  const freshness = assertObject(value['freshness'], `${label}.freshness`);
-  if (freshness['status'] !== 'fresh') {
+const assertAlignedSource = (value: JsonObject, label: string): void => {
+  const drift = assertObject(value['drift'], `${label}.drift`);
+  if (drift['status'] !== 'aligned') {
     throw new Error(`${label} did not read fresh artifacts`);
   }
   const source = assertObject(value['source'], `${label}.source`);
@@ -95,6 +95,91 @@ const writeOperatorAppWrapper = async (tempRoot: string): Promise<void> => {
   );
 };
 
+const writeJson = async (
+  path: string,
+  value: Readonly<Record<string, unknown>>
+): Promise<void> => {
+  await mkdir(dirname(path), { recursive: true });
+  await writeFile(path, `${JSON.stringify(value, null, 2)}\n`);
+};
+
+const writeAdapterWorkspace = async (tempRoot: string): Promise<void> => {
+  await writeJson(join(tempRoot, 'package.json'), {
+    name: 'wayfinder-dogfood-root',
+    workspaces: ['packages/*', 'adapters/*'],
+  });
+  await writeJson(join(tempRoot, 'packages/http/package.json'), {
+    exports: {
+      '.': './src/index.ts',
+      './package.json': './package.json',
+      './testing': './src/testing.ts',
+    },
+    name: '@ontrails/http',
+    trails: {
+      adapterTargets: {
+        http: {
+          conformance: {
+            adapterType: 'HttpAdapterConformanceAdapter',
+            casesFactory: 'createHttpAdapterConformanceCases',
+            runner: 'runConformance',
+          },
+          placements: ['extracted'],
+          testingImport: '@ontrails/http/testing',
+        },
+      },
+    },
+  });
+  await mkdir(join(tempRoot, 'packages/http/src'), { recursive: true });
+  await writeFile(
+    join(tempRoot, 'packages/http/src/index.ts'),
+    'export const http = {};\n'
+  );
+  await writeFile(
+    join(tempRoot, 'packages/http/src/testing.ts'),
+    [
+      'export interface HttpAdapterConformanceAdapter {}',
+      'export const createHttpAdapterConformanceCases = () => [];',
+      'export const runConformance = () => undefined;',
+      '',
+    ].join('\n')
+  );
+  await writeJson(join(tempRoot, 'adapters/hono/package.json'), {
+    dependencies: {
+      '@ontrails/core': 'workspace:^',
+      hono: '^4.7.0',
+    },
+    exports: {
+      '.': './src/index.ts',
+      './package.json': './package.json',
+    },
+    name: '@ontrails/hono',
+    peerDependencies: {
+      '@ontrails/http': 'workspace:^',
+    },
+    trails: {
+      adapter: {
+        target: 'http',
+      },
+    },
+  });
+  await mkdir(join(tempRoot, 'adapters/hono/src/__tests__'), {
+    recursive: true,
+  });
+  await writeFile(
+    join(tempRoot, 'adapters/hono/src/index.ts'),
+    'export const honoAdapter = {};\n'
+  );
+  await writeFile(
+    join(tempRoot, 'adapters/hono/src/__tests__/conformance.test.ts'),
+    [
+      "import { createHttpAdapterConformanceCases, runConformance } from '@ontrails/http/testing';",
+      '',
+      "runConformance({ name: '@ontrails/hono' }, createHttpAdapterConformanceCases());",
+      '',
+    ].join('\n')
+  );
+};
+
 const assertSearchFindsWayfinder = (search: JsonObject): void => {
   const { matches } = search;
   if (!Array.isArray(matches)) {
@@ -105,6 +190,15 @@ const assertSearchFindsWayfinder = (search: JsonObject): void => {
     .filter((id): id is string => typeof id === 'string');
   if (!ids.includes('wayfind.search')) {
     throw new Error('wayfind search did not find wayfind.search');
+  }
+};
+
+const assertDiffIsEmpty = (diffResult: JsonObject): void => {
+  const diff = assertObject(diffResult['diff'], 'wayfind diff');
+  if (diff['hasBreaking'] !== false) {
+    throw new Error(
+      'wayfind diff reported breaking changes for same-root diff'
+    );
   }
 };
 
@@ -178,28 +272,28 @@ const assertErrorsFindWayfinder = (errorsResult: JsonObject): void => {
   }
 };
 
-const assertAdaptersFindHono = (adaptersResult: JsonObject): void => {
-  const counts = assertObject(
-    adaptersResult['counts'],
-    'wayfind adapters counts'
-  );
-  if (counts['configured'] !== 1 || counts['used'] !== 1) {
-    throw new Error(
-      'wayfind adapters did not report configured/used adapter facts'
-    );
+const assertAdapterPredicateWayfind = (wayfindResult: JsonObject): void => {
+  const result = assertObject(wayfindResult['result'], 'wayfind --adapter');
+  const { matches } = result;
+  if (!Array.isArray(matches)) {
+    throw new TypeError('wayfind --adapter did not return matches');
   }
-  if (counts['observed'] !== 0) {
-    throw new Error('wayfind adapters reported unsupported observed facts');
-  }
+  const includes = assertObject(wayfindResult['includes'], 'adapter includes');
+  const adaptersResult = assertObject(includes['adapters'], 'include adapters');
   const { adapters } = adaptersResult;
   if (!Array.isArray(adapters)) {
-    throw new TypeError('wayfind adapters did not return adapters');
+    throw new TypeError('wayfind --include adapters did not return adapters');
   }
-  const ids = adapters
-    .map((adapter) => assertObject(adapter, 'wayfind adapters fact')['key'])
-    .filter((key): key is string => typeof key === 'string');
-  if (!ids.includes('@ontrails/hono:http:used')) {
-    throw new Error('wayfind adapters did not find Hono conformance usage');
+  const configuredHono = adapters
+    .map((adapter) => assertObject(adapter, 'wayfind adapter fact'))
+    .some(
+      (adapter) =>
+        adapter['kind'] === 'configured' &&
+        adapter['packageName'] === '@ontrails/hono' &&
+        adapter['target'] === 'http'
+    );
+  if (!configuredHono) {
+    throw new Error('wayfind --adapter did not include Hono adapter facts');
   }
 };
 
@@ -208,8 +302,6 @@ const assertContractForSearch = (contractResult: JsonObject): void => {
   if (contract['id'] !== 'wayfind.search') {
     throw new Error('wayfind contract did not inspect wayfind.search');
   }
-  const cli = assertObject(contract['cli'], 'contract.cli');
-  assertRoutePaths(cli['routes'], 'contract', ['wayfind search']);
 };
 
 const unwrapWayfindResult = (value: JsonObject, label: string): JsonObject =>
@@ -222,13 +314,32 @@ const assertResolvedTarget = (value: JsonObject, label: string): void => {
   }
 };
 
+const assertLiveSourceFindsWayfinder = (value: JsonObject): void => {
+  const { matches } = value;
+  if (!Array.isArray(matches)) {
+    throw new TypeError('wayfind --source live did not return matches');
+  }
+  const found = matches
+    .map((match) => assertObject(match, 'wayfind --source live match'))
+    .some((match) => {
+      const detail = assertObject(
+        match['detail'],
+        'wayfind --source live match detail'
+      );
+      return detail['id'] === 'wayfind.search';
+    });
+  if (!found) {
+    throw new Error('wayfind --source live did not resolve wayfind.search');
+  }
+};
+
 const assertOutlineFindsOperatorApp = (outline: JsonObject): void => {
   const features = assertObject(
     outline['features'],
     'wayfind outline features'
   );
-  if (features['view'] !== 'all') {
-    throw new Error('wayfind outline did not echo the all feature view');
+  if (features['view'] !== 'default') {
+    throw new Error('wayfind outline did not echo the default feature view');
   }
   const { apps } = outline;
   if (!Array.isArray(apps)) {
@@ -255,6 +366,7 @@ export const runWayfinderDogfoodSmoke =
 
     try {
       await writeOperatorAppWrapper(tempRoot);
+      await writeAdapterWorkspace(tempRoot);
       runTrails(tempRoot, [
         'compile',
         '--module',
@@ -264,10 +376,10 @@ export const runWayfinderDogfoodSmoke =
       ]);
 
       const overview = unwrapWayfindResult(
-        runWayfind(tempRoot, ['--view', 'overview']),
+        runWayfind(tempRoot, ['--overview']),
         'wayfind overview'
       );
-      assertFreshSource(overview, 'wayfind overview');
+      assertAlignedSource(overview, 'wayfind overview');
       const counts = assertObject(
         overview['counts'],
         'wayfind overview counts'
@@ -281,68 +393,96 @@ export const runWayfinderDogfoodSmoke =
         runWayfind(tempRoot, ['--trails', '--intent', 'read']),
         'wayfind --trails'
       );
-      assertFreshSource(trails, 'wayfind --trails');
+      assertAlignedSource(trails, 'wayfind --trails');
       assertTrailsFindsWayfinder(trails);
 
       assertSchemaForWayfind(runSchema(['wayfind']));
 
-      const search = runWayfind(tempRoot, [
-        'search',
-        '--input-json',
-        '{"filters":{"kind":"trail","idPrefix":"wayfind."}}',
-      ]);
-      assertFreshSource(search, 'wayfind search');
+      const search = unwrapWayfindResult(
+        runWayfind(tempRoot, ['pattern', 'wayfind.*']),
+        'wayfind pattern'
+      );
+      assertAlignedSource(search, 'wayfind pattern');
       assertSearchFindsWayfinder(search);
+
+      const live = unwrapWayfindResult(
+        runWayfind(tempRoot, ['wayfind.search', '--source', 'live']),
+        'wayfind --source live'
+      );
+      assertLiveSourceFindsWayfinder(live);
+
+      const resources = unwrapWayfindResult(
+        runWayfind(tempRoot, ['--resources']),
+        'wayfind --resources'
+      );
+      assertAlignedSource(resources, 'wayfind --resources');
 
       const errors = unwrapWayfindResult(
         runWayfind(tempRoot, ['--errors']),
         'wayfind --errors'
       );
-      assertFreshSource(errors, 'wayfind --errors');
+      assertAlignedSource(errors, 'wayfind --errors');
       assertErrorsFindWayfinder(errors);
 
-      const adapters = unwrapWayfindResult(
-        runWayfind(repoRoot, ['--adapters']),
-        'wayfind --adapters'
-      );
-      assertAdaptersFindHono(adapters);
+      const adapterFiltered = runWayfind(tempRoot, [
+        '--adapter',
+        '@ontrails/hono',
+        '--include',
+        'adapters',
+      ]);
+      assertAdapterPredicateWayfind(adapterFiltered);
 
       const contract = unwrapWayfindResult(
-        runWayfind(tempRoot, ['wayfind.search', '--view', 'contract']),
+        runWayfind(tempRoot, ['wayfind.search', '--contract']),
         'wayfind contract'
       );
-      assertFreshSource(contract, 'wayfind contract');
+      assertAlignedSource(contract, 'wayfind contract');
       assertContractForSearch(contract);
 
       const nearby = unwrapWayfindResult(
-        runWayfind(tempRoot, ['--around', 'wayfind.search']),
+        runWayfind(tempRoot, ['wayfind.search']),
         'wayfind nearby'
       );
-      assertFreshSource(nearby, 'wayfind nearby');
+      assertAlignedSource(nearby, 'wayfind nearby');
       assertResolvedTarget(nearby, 'wayfind nearby');
 
       const impact = unwrapWayfindResult(
-        runWayfind(tempRoot, ['--from', 'wayfind.search', '--view', 'map']),
+        runWayfind(tempRoot, ['wayfind.search', '--impact']),
         'wayfind impact'
       );
-      assertFreshSource(impact, 'wayfind impact');
+      assertAlignedSource(impact, 'wayfind impact');
       assertResolvedTarget(impact, 'wayfind impact');
+
+      const deps = unwrapWayfindResult(
+        runWayfind(tempRoot, ['wayfind.search', '--deps']),
+        'wayfind deps'
+      );
+      assertAlignedSource(deps, 'wayfind deps');
+      assertResolvedTarget(deps, 'wayfind deps');
+
+      const diff = runWayfind(tempRoot, [
+        'diff',
+        '--against-root-dir',
+        tempRoot,
+      ]);
+      assertAlignedSource(diff, 'wayfind diff');
+      assertDiffIsEmpty(diff);
 
       const outline = runCommand(
         [
           process.execPath,
           trailsBin,
           'wayfind',
-          'outline',
+          'file',
           'apps/trails/src/app.ts',
           '--root-dir',
           repoRoot,
-          '--all',
+          '--outline',
           '--json',
         ],
-        'trails wayfind outline'
+        'trails wayfind file'
       );
-      assertOutlineFindsOperatorApp(outline);
+      assertOutlineFindsOperatorApp(unwrapWayfindResult(outline, 'outline'));
 
       return {
         check: 'wayfinder-dogfood',

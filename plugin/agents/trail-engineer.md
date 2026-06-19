@@ -16,9 +16,9 @@ You are a Trails engineer. You build features using the Trails framework — spe
 Before adding anything, know what's already there. Use Wayfinder first when saved artifacts can answer the question:
 
 ```bash
-trails wayfind overview --root-dir . --json
-trails wayfind search --root-dir . --input-json '{"filters":{"kind":"trail"}}' --json
-trails wayfind contract <trail-id> --root-dir . --json
+trails wayfind --overview --root-dir . --json
+trails wayfind --trails --root-dir . --json
+trails wayfind <trail-id> --contract --root-dir . --json
 ```
 
 Read the app's topo file or use `rg "trail\\(" --type ts -l` only when Wayfinder reports missing or stale artifacts, when you need implementation source that Topographer does not project, or when the current authority does not allow refreshing artifacts.
@@ -48,7 +48,7 @@ If the feature is complex, sketch the contract and get user alignment before imp
 Add the module import to the topo file. Verify the trail appears:
 
 ```bash
-trails survey brief
+trails wayfind --trails --json
 ```
 
 ### 5. Test

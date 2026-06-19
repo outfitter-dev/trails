@@ -56,6 +56,7 @@ export {
   wayfinderDriftStatusSchema,
   wayfinderIncludeSchema,
   wayfinderNavigationPlanSchema,
+  wayfinderRelationModeSchema,
   wayfinderResolverSchema,
   wayfinderSourceModeSchema,
   wayfinderViewSchema,
@@ -65,6 +66,7 @@ export type {
   WayfinderInclude,
   WayfinderNavigationPlan,
   WayfinderPopulationInput,
+  WayfinderRelationMode,
   WayfinderRelationResolver,
   WayfinderResolvedRelationInput,
   WayfinderResolvedRelations,
@@ -100,8 +102,17 @@ export type {
   OutlineView,
 } from './outline.js';
 export { outlineInputSchema, outlineOutputSchema } from './outline.js';
-export { wayfinderDriftFromFreshness, wayfinderFact } from './provenance.js';
+export {
+  wayfinderDriftFromArtifactStatus,
+  wayfinderDriftFromFreshness,
+  wayfinderFact,
+} from './provenance.js';
 export type {
+  WayfinderArtifactStatus,
+  WayfinderArtifactStatusFresh,
+  WayfinderArtifactStatusMissing,
+  WayfinderArtifactStatusSchemaVersionDrift,
+  WayfinderArtifactStatusStale,
   WayfinderArtifactKind,
   WayfinderArtifactSource,
   WayfinderContractRef,

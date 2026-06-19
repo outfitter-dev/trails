@@ -45,6 +45,7 @@ export const wayfinderEntityFilterSchema = z
     intent: intentListSchema.optional(),
     kind: entityKindListSchema.optional(),
     namespace: stringListSchema.optional(),
+    query: z.string().optional(),
     surface: stringListSchema.optional(),
     usesResource: stringListSchema.optional(),
     usesSignal: stringListSchema.optional(),
@@ -339,6 +340,31 @@ const matchesRelationshipFilters = (
   includesAny(refResourceIds(ref), filters.resources) &&
   includesAny(refSignalIds(ref), filters.signals);
 
+const matchesQueryFilter = (
+  ref: WayfinderEntityRef,
+  context: WayfinderFilterContext,
+  query: string | undefined
+): boolean => {
+  const normalized = query?.trim().toLowerCase();
+  if (!normalized) {
+    return true;
+  }
+  const haystack = [
+    ref.id,
+    ref.kind,
+    ref.trailId,
+    ref.entry?.intent,
+    ...entrySurfaces(ref, context),
+    ...refFacetIds(ref, context),
+    ...refResourceIds(ref),
+    ...refSignalIds(ref),
+  ]
+    .filter((value): value is string => typeof value === 'string')
+    .join(' ')
+    .toLowerCase();
+  return haystack.includes(normalized);
+};
+
 export const createWayfinderEntityPredicate = (
   context: WayfinderFilterContext,
   filters: WayfinderEntityFilterInput = {}
@@ -380,6 +406,9 @@ export const createWayfinderEntityPredicate = (
         surfaces,
       })
     ) {
+      return false;
+    }
+    if (!matchesQueryFilter(ref, context, parsed.query)) {
       return false;
     }
     return true;

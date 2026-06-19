@@ -134,7 +134,7 @@ Current recommendation:
 
 - **No Warden error rule yet.** Release-rule gaps already fail in CI through `release.check`, and Warden does not have the branch-local PR metadata needed to evaluate the same fact without a parallel adapter.
 - **Advisory Warden is a later option.** A future advisory rule may report repo-local release hygiene that Warden can answer from source, topo, or owner data alone, such as a missing release config, stale generated release guide output, or package docs that contradict declared release rules. It should cite `release.check` as the rule owner instead of reimplementing the check.
-- **Wayfinder is useful evidence now, not a required substrate.** Use `wayfind impact`, `wayfind nearby`, and `wayfind contract` during review when a release fact needs graph context. Do not make the first release check depend on Wayfinder artifacts.
+- **Wayfinder is useful evidence now, not a required substrate.** Use `trails wayfind <id> --impact`, `trails wayfind <id>`, and `trails wayfind <id> --contract` during review when a release fact needs graph context. Do not make the first release check depend on Wayfinder artifacts.
 - **Rule joins are deferred.** Future `wayfind.implications` can join graph facts with named Warden diagnostics, release-check output, or Distribution-Ready Done checklist facts. That query must cite those sources rather than hand-roll release advice.
 
 ## Fixture Coverage

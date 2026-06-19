@@ -35,11 +35,7 @@ export const wayfinderResolverSchema = z.enum([
   'id',
   'pattern',
   'query',
-  'where',
   'file',
-  'from',
-  'to',
-  'around',
 ]);
 
 export type WayfinderResolver = z.output<typeof wayfinderResolverSchema>;
@@ -102,17 +98,26 @@ export const resolveWayfinderPopulation = (
     ...(input.kind === undefined ? {} : { kind: input.kind }),
   }).slice(0, input.limit);
 
-export type WayfinderRelationResolver = Extract<
-  WayfinderResolver,
-  'around' | 'from' | 'to'
+export const wayfinderRelationModeSchema = z.enum([
+  'related',
+  'deps',
+  'impact',
+]);
+
+export type WayfinderRelationMode = z.output<
+  typeof wayfinderRelationModeSchema
 >;
+
+/** @deprecated Use WayfinderRelationMode. */
+export type WayfinderRelationResolver = WayfinderRelationMode;
 
 export interface WayfinderResolvedRelationInput {
   readonly id: string;
+  readonly filters?: WayfinderEntityFilterInput | undefined;
   readonly kind?: WayfinderEntityKind | undefined;
   readonly limit: number;
   readonly maxDepth: number;
-  readonly resolver: WayfinderRelationResolver;
+  readonly mode: WayfinderRelationMode;
   readonly view?: 'groups' | 'impact' | undefined;
 }
 
@@ -126,21 +131,19 @@ export interface WayfinderResolvedRelations {
   readonly target: RelationRef;
 }
 
-const relationDirection = (
-  resolver: WayfinderRelationResolver
-): ImpactDirection => {
-  switch (resolver) {
-    case 'around': {
+const relationDirection = (mode: WayfinderRelationMode): ImpactDirection => {
+  switch (mode) {
+    case 'related': {
       return 'both';
     }
-    case 'from': {
-      return 'downstream';
-    }
-    case 'to': {
+    case 'deps': {
       return 'upstream';
     }
+    case 'impact': {
+      return 'downstream';
+    }
     default: {
-      resolver satisfies never;
+      mode satisfies never;
       return 'both';
     }
   }
@@ -149,10 +152,72 @@ const relationDirection = (
 const relationOptions = (
   input: WayfinderResolvedRelationInput
 ): ImpactOptions => ({
-  direction: relationDirection(input.resolver),
+  direction: relationDirection(input.mode),
   limit: input.limit,
   maxDepth: input.maxDepth,
 });
+
+const refKey = (ref: RelationRef): string => `${ref.kind}:${ref.id}`;
+
+const filterRelationRefs = (
+  graph: TopoGraph,
+  refs: readonly RelationRef[],
+  filters: WayfinderEntityFilterInput | undefined
+): readonly RelationRef[] => {
+  if (filters === undefined || Object.keys(filters).length === 0) {
+    return refs;
+  }
+  const allowed = new Set(
+    filterWayfinderEntityRefs(graph, filters).map(refKey)
+  );
+  return refs.filter((ref) => allowed.has(refKey(ref)));
+};
+
+const edgeOtherRef = (
+  edge: RelationEdge,
+  target: RelationRef
+): RelationRef | undefined => {
+  if (edge.from.id === target.id && edge.from.kind === target.kind) {
+    return edge.to;
+  }
+  if (edge.to.id === target.id && edge.to.kind === target.kind) {
+    return edge.from;
+  }
+  return undefined;
+};
+
+const filterRelationEdges = (
+  graph: TopoGraph,
+  edges: readonly RelationEdge[],
+  target: RelationRef,
+  filters: WayfinderEntityFilterInput | undefined
+): readonly RelationEdge[] => {
+  if (filters === undefined || Object.keys(filters).length === 0) {
+    return edges;
+  }
+  const allowed = new Set(
+    filterWayfinderEntityRefs(graph, filters).map(refKey)
+  );
+  return edges.filter((edge) => {
+    const other = edgeOtherRef(edge, target);
+    return other !== undefined && allowed.has(refKey(other));
+  });
+};
+
+const filterImpactEdges = (
+  edges: readonly RelationEdge[],
+  target: RelationRef,
+  nodes: readonly RelationRef[],
+  filters: WayfinderEntityFilterInput | undefined
+): readonly RelationEdge[] => {
+  if (filters === undefined || Object.keys(filters).length === 0) {
+    return edges;
+  }
+  const allowed = new Set([refKey(target), ...nodes.map(refKey)]);
+  return edges.filter(
+    (edge) => allowed.has(refKey(edge.from)) && allowed.has(refKey(edge.to))
+  );
+};
 
 export const resolveWayfinderRelations = (
   graph: TopoGraph,
@@ -166,9 +231,12 @@ export const resolveWayfinderRelations = (
     return Result.ok();
   }
   const summary = refSummary(target.value);
-  if (input.resolver === 'around' && input.view === 'groups') {
-    const edges = relationEdges(graph).filter((edge) =>
-      edgeTouches(edge, summary)
+  if (input.mode === 'related' && input.view === 'groups') {
+    const edges = filterRelationEdges(
+      graph,
+      relationEdges(graph).filter((edge) => edgeTouches(edge, summary)),
+      summary,
+      input.filters
     );
     const groups = groupNearbyEdges(edges, summary);
     return Result.ok({
@@ -180,11 +248,18 @@ export const resolveWayfinderRelations = (
     });
   }
   const resolved = impactFor(graph, relationOptions(input), summary);
+  const nodes = filterRelationRefs(graph, resolved.nodes, input.filters);
+  const edges = filterImpactEdges(
+    resolved.edges,
+    summary,
+    nodes,
+    input.filters
+  );
   return Result.ok({
-    direction: relationDirection(input.resolver),
-    edges: resolved.edges,
+    direction: relationDirection(input.mode),
+    edges,
     groups: [],
-    nodes: resolved.nodes,
+    nodes,
     target: summary,
   });
 };

@@ -36,9 +36,8 @@ import {
   resolveWayfinderPopulation,
   resolveWayfinderRelations,
 } from './navigation.js';
-import type { WayfinderRelationResolver } from './navigation.js';
 import { wayfindOutlineTrail } from './outline.js';
-import { wayfinderDriftFromFreshness } from './provenance.js';
+import { wayfinderDriftFromArtifactStatus } from './provenance.js';
 import {
   diffResult,
   impactNodeSchema,
@@ -54,36 +53,15 @@ const artifactSourceSchema = z.object({
   schemaVersion: z.number().optional(),
 });
 
-const freshnessSchema = z.discriminatedUnion('status', [
-  z.object({ status: z.literal('fresh') }),
-  z.object({
-    artifacts: z
-      .array(z.enum(['lockManifest', 'topoGraph', 'topoStore']))
-      .readonly(),
-    status: z.literal('missing'),
-  }),
-  z.object({
-    reasons: z.array(z.record(z.string(), z.unknown())).readonly(),
-    status: z.literal('stale'),
-  }),
-  z.object({
-    artifact: z.enum(['lockManifest', 'topoGraph', 'topoStore']),
-    message: z.string(),
-    status: z.literal('schema-version-drift'),
-  }),
-]);
-
 const envelopeSchema = z.object({
   drift: z.object({
     artifacts: z
       .array(z.enum(['lockManifest', 'topoGraph', 'topoStore']))
       .readonly()
       .optional(),
-    freshness: freshnessSchema,
     reasons: z.array(z.record(z.string(), z.unknown())).readonly().optional(),
     status: z.enum(['absent', 'aligned', 'drifted']),
   }),
-  freshness: freshnessSchema,
   source: artifactSourceSchema,
 });
 
@@ -143,15 +121,29 @@ const contractInputSchema = inspectInputSchema.extend({
   version: z.number().int().positive().optional(),
 });
 
+const relationInputSchema = inspectInputSchema.extend({
+  filters: wayfinderEntityFilterSchema.optional(),
+});
+
 const impactDirectionSchema = z
   .enum(['downstream', 'upstream', 'both'])
   .default('downstream');
 
 const impactInputSchema = inspectInputSchema.extend({
   direction: impactDirectionSchema,
+  filters: wayfinderEntityFilterSchema.optional(),
   limit: z.number().int().positive().max(500).default(100),
   maxDepth: z.number().int().positive().max(10).default(2),
 });
+
+type ImpactDirection = z.output<typeof impactDirectionSchema>;
+
+const relationModeFromImpactDirection = (direction: ImpactDirection) => {
+  if (direction === 'both') {
+    return 'related';
+  }
+  return direction === 'upstream' ? 'deps' : 'impact';
+};
 
 const diffInputSchema = sourceInputSchema
   .extend({
@@ -503,14 +495,14 @@ const loadGraph = async (
     );
   }
   if (
-    load.freshness.status === 'schema-version-drift' &&
-    load.freshness.artifact === 'topoGraph'
+    load.artifactStatus.status === 'schema-version-drift' &&
+    load.artifactStatus.artifact === 'topoGraph'
   ) {
     return Result.err(
-      new DerivationError(load.freshness.message, {
+      new DerivationError(load.artifactStatus.message, {
         context: {
-          artifact: load.freshness.artifact,
-          freshnessStatus: load.freshness.status,
+          artifact: load.artifactStatus.artifact,
+          artifactStatus: load.artifactStatus.status,
         },
       })
     );
@@ -593,8 +585,7 @@ const filteredAdapterFacts = (
 const envelope = (
   loaded: LoadedWayfinderGraph
 ): z.output<typeof envelopeSchema> => ({
-  drift: wayfinderDriftFromFreshness(loaded.load.freshness),
-  freshness: loaded.load.freshness,
+  drift: wayfinderDriftFromArtifactStatus(loaded.load.artifactStatus),
   source: loaded.source,
 });
 
@@ -1116,18 +1107,6 @@ const withGraph = async <TValue>(
 const notFound = (kind: string, id: string): NotFoundError =>
   new NotFoundError(`No Wayfinder ${kind} found for "${id}".`);
 
-const impactDirectionResolver = (
-  direction: z.output<typeof impactDirectionSchema>
-): WayfinderRelationResolver => {
-  if (direction === 'both') {
-    return 'around';
-  }
-  if (direction === 'upstream') {
-    return 'to';
-  }
-  return 'from';
-};
-
 const filteredIds = (
   graph: TopoGraph,
   kind: WayfinderEntityKind,
@@ -1349,7 +1328,7 @@ export const wayfindSurfacesTrail = trail('wayfind.surfaces', {
         ),
       };
     }),
-  description: 'List saved direct and facet-projected surfaces',
+  description: 'List saved direct and facet-rendered surfaces',
   examples: [{ input: {}, name: 'List surfaces' }],
   input: filteredInputSchema,
   intent: 'read',
@@ -1505,11 +1484,12 @@ export const wayfindNearbyTrail = trail('wayfind.nearby', {
       return loaded;
     }
     const resolved = resolveWayfinderRelations(loaded.value.graph, {
+      filters: input.filters,
       id: input.id,
       kind: input.kind,
       limit: 100,
       maxDepth: 1,
-      resolver: 'around',
+      mode: 'related',
       view: 'groups',
     });
     if (resolved.isErr()) {
@@ -1527,7 +1507,7 @@ export const wayfindNearbyTrail = trail('wayfind.nearby', {
   },
   description: 'Inspect direct graph relationships around one topo entity',
   examples: [{ input: { id: 'user.create' }, name: 'Nearby graph context' }],
-  input: inspectInputSchema,
+  input: relationInputSchema,
   intent: 'read',
   output: nearbyOutputSchema,
   visibility: 'internal',
@@ -1547,11 +1527,12 @@ export const wayfindImpactTrail = trail('wayfind.impact', {
       return loaded;
     }
     const resolved = resolveWayfinderRelations(loaded.value.graph, {
+      filters: input.filters,
       id: input.id,
       kind: input.kind,
       limit: impactInput.limit,
       maxDepth: impactInput.maxDepth,
-      resolver: impactDirectionResolver(impactInput.direction),
+      mode: relationModeFromImpactDirection(impactInput.direction),
     });
     if (resolved.isErr()) {
       return resolved;

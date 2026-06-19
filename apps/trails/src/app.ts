@@ -97,28 +97,31 @@ const operatorTrails = Object.fromEntries(
 );
 
 const cliWayfinderCommandTrails = {
+  wayfindDiffTrail,
+  wayfindFileTrail: wayfind.wayfindFileTrail,
+  wayfindPatternTrail: wayfind.wayfindPatternTrail,
+  wayfindQueryTrail: wayfind.wayfindQueryTrail,
+  wayfindTrail: wayfind.wayfindTrail,
+};
+
+const cliWayfinderSupportTrails = {
   wayfindAdaptersTrail,
+  wayfindContoursTrail,
   wayfindContractTrail,
   wayfindDescribeTrail,
-  wayfindDiffTrail,
   wayfindErrorsTrail,
   wayfindExamplesTrail,
+  wayfindFacetsTrail,
   wayfindImpactTrail,
   wayfindNearbyTrail,
   wayfindOutlineTrail,
   wayfindOverviewTrail,
   wayfindResourcesTrail,
   wayfindSearchTrail,
+  wayfindSignalsTrail,
   wayfindSurfacesTrail,
-  wayfindTrail: wayfind.wayfindTrail,
   wayfindTrailsTrail,
   wayfindVersionsTrail,
-};
-
-const cliWayfinderSupportTrails = {
-  wayfindContoursTrail,
-  wayfindFacetsTrail,
-  wayfindSignalsTrail,
 };
 
 const cliWayfinderTrails = {

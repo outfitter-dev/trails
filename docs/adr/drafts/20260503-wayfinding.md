@@ -87,7 +87,7 @@ This means:
 
 Wayfinding v0 is a cold, deterministic graph-read layer. It ships graph-read queries only, while naming the future rule-join tier so the boundary stays visible:
 
-- **Graph-read queries** read `TopoGraph`, topo-store records, lock manifests, and graph diffs directly. They do not join against Warden reports, traces, package catalogs, network state, or live app execution.
+- **Graph-read queries** read `TopoGraph`, topo-store records, lock manifests, graph diffs, and bounded adapter-kit package/conformance evidence directly. They do not join against Warden reports, traces, arbitrary package catalogs, network state, or live app execution.
 - **Rule-join queries** are allowed later, but only when they cite named rule/checklist sources. The first planned rule-join query is `wayfind.implications`, which reads graph facts plus structured Warden or distribution-ready checklist facts. It must not hand-roll advice.
 
 ### Fact provenance envelope
@@ -97,7 +97,7 @@ Wayfinding output makes derive/render doctrine visible everywhere an agent reads
 ```ts
 {
   value: unknown,
-  category: 'authored' | 'projected' | 'inferred' | 'observed',
+  category: 'authored' | 'derived' | 'inferred' | 'observed',
   derivedFrom: ContractRef | null,
   source: ArtifactRef,
   drift: DriftState,
@@ -132,16 +132,20 @@ Resolvers are the entry points into the graph or source:
 |---|---|---|
 | `id` | Resolve one saved graph entity by exact ID | Bare dotted tokens default here. Missing IDs fail loudly. |
 | `pattern` | Resolve by lexical namespace pattern or glob | Globs produce a list-shaped population. |
-| `query` | Resolve by fuzzy free-text over indexed graph text | This is search-like, but remains bounded to indexed facts. |
-| `where` | Resolve by structured predicates | Predicates are AND-ed in v1. OR, NOT, and comparisons are deferred. |
+| `query` | Resolve by deterministic free-text over indexed graph text | This is search-like, but remains bounded to indexed facts. Semantic ranking is deferred. |
 | `file` | Resolve one explicit source file | The natural view is `outline`; graph context attaches when artifacts are available. |
-| `from` | Resolve outbound graph neighbors from an entity | "What this entity reaches." |
-| `to` | Resolve inbound graph neighbors to an entity | "What reaches this entity"; the blast-radius shape. |
-| `around` | Resolve the one-hop vicinity around an entity | Both directions, bounded by default. |
 
 Targets are deterministic by shape. A path-like token or token with a source extension resolves as a file. A dotted or bare graph ID resolves as a graph entity. The one ambiguous case — an extensionless token that is both a real file and a graph ID — fails loudly and asks the caller to disambiguate. Wayfinder must report the resolved target kind in metadata so agents know what happened.
 
-`from`, `to`, and `around` are resolvers, not views. They flip the operator to a connected population. In the current CLI, `trails wayfind --to compile` renders that relation map; rendering contract facts over the resolved relation population remains future view composition, not an impact section on `compile`.
+Bare globs are not inferred. A glob is list-shaped by definition, so callers must use the explicit pattern resolver: `trails wayfind pattern "wayfind.*"`. A source file target uses the explicit file resolver when the CLI shape could otherwise be ambiguous: `trails wayfind file apps/trails/src/app.ts --outline`.
+
+Relations are not resolvers in the v0 CLI. They are target-bound modes over one resolved graph entity:
+
+- `related` is the default for a bare ID and returns bounded nearby context.
+- `deps` walks upstream dependencies.
+- `impact` walks downstream blast radius.
+
+In the current CLI, these render as `trails wayfind wayfind.search`, `trails wayfind wayfind.search --deps`, and `trails wayfind wayfind.search --impact`. Filters supplied with relation flags bind to the explored relation set.
 
 ### Filters
 
@@ -158,6 +162,7 @@ Predicate filters are singular because they name a field, even when the field ac
 - `--returns-error NotFoundError`
 - `--adapter commander hono`
 - `--surface mcp cli`
+- `--query "release drift"`
 
 Adapter remains a predicate and an included fact, not a top-level graph population. In the app graph, an adapter is how a surface is delivered. Package conformance evidence is useful, but it is a registry or doctor concern unless it is attached to a concrete surface delivery fact.
 
@@ -184,12 +189,12 @@ Includes attach compact fact families without changing the resolved population:
 ```bash
 trails wayfind wayfind.search --view contract --include examples
 trails wayfind --trails --intent read --include surfaces
-trails wayfind "wayfind.*" --include examples
+trails wayfind pattern "wayfind.*" --include examples
 ```
 
 Includes are not a junk drawer for new views. They attach bounded facts to a result whose target population and view are already clear.
 
-The current CLI support accepts includes on explicit targets and filtered populations. Relational views such as `--from`, `--to`, and `--around` do not accept includes until Wayfinder can bound includes to the resolved relation population.
+The current CLI support accepts includes on explicit targets and filtered populations. Relation flags such as `--deps` and `--impact` do not accept includes until Wayfinder can bound includes to the resolved relation population.
 
 ### Distinct command
 
@@ -202,13 +207,13 @@ The existing catalog maps onto the algebra this way:
 | Existing trail ID | Algebra role | Status |
 |---|---|---|
 | `wayfind.overview` | `overview` view over the saved graph | keep |
-| `wayfind.search` | `query` / `pattern` / `where` resolver over saved graph entities | reshape |
+| `wayfind.search` | `query` / `pattern` resolver over saved graph entities | reshape behind operator grammar |
 | `wayfind.trails`, `wayfind.resources`, `wayfind.signals`, `wayfind.surfaces` | population filters plus `list` view | reshape |
 | `wayfind.facets` | current grouped surface entry facts; rename follows the vocabulary reset | reshape |
 | `wayfind.versions`, `wayfind.examples`, `wayfind.errors` | includes and focused list views | reshape |
 | `wayfind.adapters` | adapter predicate plus included surface delivery facts | reshape |
-| `wayfind.describe`, `wayfind.contract`, `wayfind.outline` | views | keep, rendered through the shared planner |
-| `wayfind.nearby`, `wayfind.impact` | relational resolution and map/list views | reshape into `from` / `to` / `around` plus depth modifiers |
+| `wayfind.describe`, `wayfind.contract`, `wayfind.outline` | views | keep, rendered through the shared planner and file selector |
+| `wayfind.nearby`, `wayfind.impact` | relational modes and map/list views | keep behind bare ID, `--deps`, and `--impact` |
 | `wayfind.diff` | two-root graph comparison | keep distinct |
 
 `wayfind.errors` is intentionally not an exhaustive emitted-error graph. It reports documented, handled, inferred, and observed facts with explicit completeness semantics, and marks emitted-error completeness unknown unless a future substrate proves otherwise.
@@ -263,7 +268,7 @@ This is also how `survey` begins to retire. Survey's useful live-introspection b
 Wayfinder renders to MCP in two shapes:
 
 - **Resources** expose addressable graph entities. A client can browse or inspect stable URIs such as `trails://trail/{id}`. Source-file resources such as `trails://source/{path}` are a future extension once the live/source axis has a stable resource contract.
-- **Tools** run dynamic queries such as `where`, `from`, `to`, `around`, `map`, and `diff`.
+- **Tools** run dynamic queries such as pattern, query, relation, map, and diff.
 
 Resources are the upgrade path over the older façade-tool idea. Some MCP clients only consume tools, so tools remain the floor. But graph browsing and one-entity inspection belong in resources because the graph already has stable identities.
 
@@ -323,9 +328,9 @@ Avoid introducing a top-level `wayfind()` function — "wayfind" is unusual as a
 
 - **Substrate coupling is real.** Wayfinding's promises are bounded by what
   the topographer's artifacts contain today. Gaps (`wayfind.errors`,
-  `wayfind.adapters`, `wayfind.query`, semantic search, exhaustive per-trail
-  errors, and live runtime views) move with their substrates, not the
-  wayfinder. v0 ships honest about the gaps.
+  adapter evidence beyond the bounded adapter-kit package/conformance facts,
+  semantic search, exhaustive per-trail errors, and live runtime views) move
+  with their substrates, not the wayfinder. v0 ships honest about the gaps.
 - **Visibility defaults add a one-time mount step.** Apps that want
   wayfinding on MCP or HTTP must opt in. The default is correct (internal),
   but it is a step the user must take.
@@ -359,9 +364,11 @@ Avoid introducing a top-level `wayfind()` function — "wayfind" is unusual as a
   shape, and whether MCP resources call trails or shared query helpers are
   implementation details for the MCP surface work. The ADR settles the split:
   resources for addressable graph facts, tools for dynamic queries.
-- **Open query DSL.** A generic query endpoint waits until typed filter/list
-  queries prove the shared predicate grammar. v1 supports AND-ed predicates
-  over indexed facts, not a general expression language.
+- **Open query DSL.** The operator CLI's `wayfind query` selector is
+  deterministic text filtering over indexed graph facts. A generic expression
+  endpoint waits until typed filter/list queries prove the shared predicate
+  grammar. v1 supports AND-ed predicates over indexed facts, not a general
+  expression language.
 - **Projection endpoint.** v0 has no projection endpoint and no projection
   section. Derive/render doctrine is represented through `derivedFrom` on
   derived facts plus first-class surface facts.

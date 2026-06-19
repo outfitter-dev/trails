@@ -562,7 +562,6 @@ describe('wayfinder graph-read query trails', () => {
 
     expect(overview.drift).toEqual({
       artifacts: ['topoStore'],
-      freshness: { artifacts: ['topoStore'], status: 'missing' },
       status: 'absent',
     });
     expect(overview.source.kind).toBe('topoGraph');
@@ -605,7 +604,7 @@ describe('wayfinder graph-read query trails', () => {
     expect(result.isErr() ? result.error.name : '').toBe('DerivationError');
     expect(result.isErr() ? result.error.context : {}).toMatchObject({
       artifact: 'topoGraph',
-      freshnessStatus: 'schema-version-drift',
+      artifactStatus: 'schema-version-drift',
     });
   });
 
@@ -637,7 +636,7 @@ describe('wayfinder graph-read query trails', () => {
       )
     );
 
-    expect(overview.freshness).toEqual({ status: 'fresh' });
+    expect(overview.drift).toEqual({ status: 'aligned' });
   });
 
   test('finds entities with typed filters', async () => {
@@ -1202,7 +1201,7 @@ describe('wayfinder graph-read query trails', () => {
     ]);
   });
 
-  test('includes facet-projected trails in surface graph relationships', async () => {
+  test('includes facet-rendered trails in surface graph relationships', async () => {
     const nearby = await expectOk(
       wayfindNearbyTrail.blaze(
         { id: 'mcp', kind: 'surface', rootDir: tempDir },
@@ -1248,7 +1247,35 @@ describe('wayfinder graph-read query trails', () => {
     );
   });
 
-  test('resolves relation populations through from to around planners', async () => {
+  test('filters impact edges with the relation result set', async () => {
+    const impact = await expectOk(
+      wayfindImpactTrail.blaze(
+        {
+          direction: 'both',
+          filters: { kind: 'resource' },
+          id: 'user.create',
+          kind: 'trail',
+          limit: 100,
+          maxDepth: 1,
+          rootDir: tempDir,
+        },
+        ctx()
+      )
+    );
+
+    expect(impact.nodes.map((node) => node.id)).toEqual(['db.main']);
+    expect(
+      impact.edges.map((edge) => [
+        edge.from.kind,
+        edge.from.id,
+        edge.relation,
+        edge.to.kind,
+        edge.to.id,
+      ])
+    ).toEqual([['resource', 'db.main', 'used-by', 'trail', 'user.create']]);
+  });
+
+  test('resolves relation populations through deps and related planners', async () => {
     const topoGraph = await writeArtifacts();
 
     const inbound = resolveWayfinderRelations(topoGraph, {
@@ -1256,14 +1283,23 @@ describe('wayfinder graph-read query trails', () => {
       kind: 'trail',
       limit: 100,
       maxDepth: 1,
-      resolver: 'to',
+      mode: 'deps',
     });
     const vicinity = resolveWayfinderRelations(topoGraph, {
       id: 'user.create',
       kind: 'trail',
       limit: 100,
       maxDepth: 1,
-      resolver: 'around',
+      mode: 'related',
+      view: 'groups',
+    });
+    const filtered = resolveWayfinderRelations(topoGraph, {
+      filters: { kind: 'resource' },
+      id: 'user.create',
+      kind: 'trail',
+      limit: 100,
+      maxDepth: 1,
+      mode: 'related',
       view: 'groups',
     });
 
@@ -1286,6 +1322,15 @@ describe('wayfinder graph-read query trails', () => {
       ['incoming', 'surface-projects', ['cli', 'mcp']],
       ['incoming', 'used-by', ['db.main']],
     ]);
+    expect(filtered.isOk()).toBe(true);
+    expect(
+      filtered.isOk()
+        ? filtered.value.groups.map((group) => [
+            group.relation,
+            group.refs.map((ref) => ref.id),
+          ])
+        : []
+    ).toEqual([['used-by', ['db.main']]]);
   });
 
   test('traverses upstream and both-direction impact', async () => {

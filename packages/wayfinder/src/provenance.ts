@@ -1,6 +1,6 @@
 export type WayfinderFactCategory =
   | 'authored'
-  | 'projected'
+  | 'derived'
   | 'inferred'
   | 'observed';
 
@@ -18,11 +18,11 @@ export interface WayfinderContractRef {
   readonly field?: string | undefined;
 }
 
-export interface WayfinderFreshnessFresh {
+export interface WayfinderArtifactStatusFresh {
   readonly status: 'fresh';
 }
 
-export interface WayfinderFreshnessMissing {
+export interface WayfinderArtifactStatusMissing {
   readonly artifacts: readonly WayfinderArtifactKind[];
   readonly status: 'missing';
 }
@@ -51,37 +51,43 @@ export type WayfinderStaleReason =
       readonly reason: 'topo-store-export-missing';
     };
 
-export interface WayfinderFreshnessStale {
+export interface WayfinderArtifactStatusStale {
   readonly reasons: readonly WayfinderStaleReason[];
   readonly status: 'stale';
 }
 
-export interface WayfinderFreshnessSchemaVersionDrift {
+export interface WayfinderArtifactStatusSchemaVersionDrift {
   readonly artifact: WayfinderArtifactKind;
   readonly message: string;
   readonly status: 'schema-version-drift';
 }
 
-export type WayfinderFreshness =
-  | WayfinderFreshnessFresh
-  | WayfinderFreshnessMissing
-  | WayfinderFreshnessStale
-  | WayfinderFreshnessSchemaVersionDrift;
+export type WayfinderArtifactStatus =
+  | WayfinderArtifactStatusFresh
+  | WayfinderArtifactStatusMissing
+  | WayfinderArtifactStatusStale
+  | WayfinderArtifactStatusSchemaVersionDrift;
+
+export type WayfinderFreshnessFresh = WayfinderArtifactStatusFresh;
+export type WayfinderFreshnessMissing = WayfinderArtifactStatusMissing;
+export type WayfinderFreshnessStale = WayfinderArtifactStatusStale;
+export type WayfinderFreshnessSchemaVersionDrift =
+  WayfinderArtifactStatusSchemaVersionDrift;
+export type WayfinderFreshness = WayfinderArtifactStatus;
 
 export type WayfinderFactDriftStatus = 'absent' | 'aligned' | 'drifted';
 
 export interface WayfinderFactDrift {
   readonly artifacts?: readonly WayfinderArtifactKind[] | undefined;
-  readonly freshness: WayfinderFreshness;
   readonly reasons?: readonly WayfinderStaleReason[] | undefined;
   readonly status: WayfinderFactDriftStatus;
 }
 
 export interface WayfinderFact<TValue> {
+  readonly artifactStatus: WayfinderArtifactStatus;
   readonly category: WayfinderFactCategory;
   readonly derivedFrom: WayfinderContractRef | null;
   readonly drift: WayfinderFactDrift;
-  readonly freshness: WayfinderFreshness;
   readonly source: WayfinderArtifactSource;
   readonly value: TValue;
 }
@@ -93,38 +99,42 @@ export type WayfinderFactInput<TValue> = Omit<
   readonly drift?: WayfinderFactDrift | undefined;
 };
 
-export const wayfinderDriftFromFreshness = (
-  freshness: WayfinderFreshness
+export const wayfinderDriftFromArtifactStatus = (
+  artifactStatus: WayfinderArtifactStatus
 ): WayfinderFactDrift => {
-  switch (freshness.status) {
+  switch (artifactStatus.status) {
     case 'fresh': {
-      return { freshness, status: 'aligned' };
+      return { status: 'aligned' };
     }
     case 'missing': {
       return {
-        artifacts: freshness.artifacts,
-        freshness,
+        artifacts: artifactStatus.artifacts,
         status: 'absent',
       };
     }
     case 'schema-version-drift':
     case 'stale': {
       return {
-        ...(freshness.status === 'stale' ? { reasons: freshness.reasons } : {}),
-        freshness,
+        ...(artifactStatus.status === 'stale'
+          ? { reasons: artifactStatus.reasons }
+          : {}),
         status: 'drifted',
       };
     }
     default: {
-      freshness satisfies never;
-      return { freshness, status: 'drifted' };
+      artifactStatus satisfies never;
+      return { status: 'drifted' };
     }
   }
 };
+
+export const wayfinderDriftFromFreshness = (
+  artifactStatus: WayfinderArtifactStatus
+): WayfinderFactDrift => wayfinderDriftFromArtifactStatus(artifactStatus);
 
 export const wayfinderFact = <TValue>(
   fact: WayfinderFactInput<TValue>
 ): WayfinderFact<TValue> => ({
   ...fact,
-  drift: fact.drift ?? wayfinderDriftFromFreshness(fact.freshness),
+  drift: fact.drift ?? wayfinderDriftFromArtifactStatus(fact.artifactStatus),
 });

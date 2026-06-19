@@ -596,7 +596,7 @@ trail('checkout', {
       expect(diagnostics.length).toBe(0);
     });
 
-    test('known Signal call alongside unresolved imported declaration is downgraded to warn', () => {
+    test('known Signal call alongside unresolved imported declaration still errors', () => {
       const code = `
 import {
   Result,
@@ -617,16 +617,34 @@ trail('checkout', {
 `;
 
       const diagnostics = firesDeclarations.check(code, TEST_FILE);
-      // Cannot statically prove the imported Signal declaration does not cover
-      // this known local Signal call, but also cannot stay silent.
       const undeclared = diagnostics.filter((d) =>
         d.message.includes("'audit.logged'")
       );
       expect(undeclared.length).toBe(1);
-      expect(undeclared[0]?.severity).toBe('warn');
-      expect(undeclared[0]?.message).toContain(
-        'may be declared via object-form fires entries'
-      );
+      expect(undeclared[0]?.severity).toBe('error');
+      expect(undeclared[0]?.message).not.toContain('may be declared');
+    });
+
+    test('imported Signal declaration and matching imported Signal call are trusted', () => {
+      const code = `
+import {
+  Result,
+  trail
+} from '@ontrails/core';
+import {
+  orderPlaced
+} from './signals';
+trail('checkout', {
+  fires: [orderPlaced],
+  blaze: async (input, ctx) => {
+    await ctx.fire(orderPlaced, {});
+    return Result.ok({});
+  },
+});
+`;
+
+      const diagnostics = firesDeclarations.check(code, TEST_FILE);
+      expect(diagnostics.length).toBe(0);
     });
 
     test('mixed string + local Signal value resolves cleanly', () => {
@@ -703,13 +721,11 @@ trail('checkout', {
 
       const diagnostics = firesDeclarations.check(code, TEST_FILE);
       expect(diagnostics.length).toBe(1);
-      expect(diagnostics[0]?.severity).toBe('warn');
+      expect(diagnostics[0]?.severity).toBe('error');
       expect(diagnostics[0]?.message).toContain(
         "ctx.fire('audit.logged') called"
       );
-      expect(diagnostics[0]?.message).toContain(
-        'may be declared via object-form fires entries'
-      );
+      expect(diagnostics[0]?.message).not.toContain('may be declared');
     });
 
     test('non-signal inner shadow blocks outer signal resolution', () => {
