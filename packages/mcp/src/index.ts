@@ -22,6 +22,7 @@ export {
 export {
   MCP_EXAMPLES_RESOURCE_PREFIX,
   MCP_SURFACE_MAP_RESOURCE_URI,
+  MCP_TRAIL_RESOURCE_PREFIX,
   buildMcpResources,
   isMcpFacetTool,
   type BuiltMcpResources,

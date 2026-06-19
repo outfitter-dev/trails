@@ -35,6 +35,18 @@ export const MCP_SURFACE_MAP_RESOURCE_URI = 'trails://surface-map';
  */
 export const MCP_EXAMPLES_RESOURCE_PREFIX = 'trails://examples/';
 
+/**
+ * Prefix used for trail graph fact resources exposed through MCP.
+ *
+ * @example
+ * ```ts
+ * import { MCP_TRAIL_RESOURCE_PREFIX } from '@ontrails/mcp';
+ *
+ * const uri = `${MCP_TRAIL_RESOURCE_PREFIX}${encodeURIComponent('tasks.create')}`;
+ * ```
+ */
+export const MCP_TRAIL_RESOURCE_PREFIX = 'trails://trail/';
+
 export interface McpResourceDefinition {
   readonly uri: string;
   readonly mimeType: string;
@@ -51,6 +63,7 @@ export interface McpResourceContent {
 export interface McpResourcesConfig {
   readonly surfaceMap?: boolean | undefined;
   readonly examples?: boolean | undefined;
+  readonly graph?: boolean | undefined;
 }
 
 export interface BuiltMcpResources {
@@ -72,6 +85,21 @@ interface McpSurfaceMapTool {
 }
 
 interface McpSurfaceMap {
+  readonly surface: 'mcp';
+  readonly tools: readonly McpSurfaceMapTool[];
+}
+
+interface McpTrailResource {
+  readonly trailId: string;
+  readonly description?: string | undefined;
+  readonly intent: Trail<unknown, unknown, unknown>['intent'];
+  readonly visibility: Trail<unknown, unknown, unknown>['visibility'];
+  readonly composes: readonly string[];
+  readonly resources: readonly string[];
+  readonly signals: {
+    readonly fires: readonly string[];
+    readonly on: readonly string[];
+  };
   readonly surface: 'mcp';
   readonly tools: readonly McpSurfaceMapTool[];
 }
@@ -117,6 +145,9 @@ const exposedTrailIds = (
 
 const examplesUriForTrail = (trailId: string): string =>
   `${MCP_EXAMPLES_RESOURCE_PREFIX}${encodeURIComponent(trailId)}`;
+
+const trailUriForTrail = (trailId: string): string =>
+  `${MCP_TRAIL_RESOURCE_PREFIX}${encodeURIComponent(trailId)}`;
 
 const buildExampleResource = (
   trailItem: Trail<unknown, unknown, unknown>
@@ -167,6 +198,76 @@ const buildExampleResources = (
     .filter((resource) => resource !== undefined);
 };
 
+const resourceId = (
+  resource: Trail<unknown, unknown, unknown>['resources'][number]
+) => resource.id;
+
+const buildTrailGraphResource = (
+  trailItem: Trail<unknown, unknown, unknown>,
+  tools: readonly McpToolDefinition[]
+): {
+  readonly content: McpResourceContent;
+  readonly listing: McpResourceDefinition;
+} => {
+  const uri = trailUriForTrail(trailItem.id);
+  const surfaceTools = tools
+    .filter(
+      (tool) =>
+        tool.trailId === trailItem.id ||
+        tool.memberTrailIds?.includes(trailItem.id) === true
+    )
+    .map(projectSurfaceMapTool);
+  const payload: McpTrailResource = {
+    composes: trailItem.composes,
+    ...(trailItem.description === undefined
+      ? {}
+      : { description: trailItem.description }),
+    intent: trailItem.intent,
+    resources: trailItem.resources.map(resourceId),
+    signals: {
+      fires: trailItem.fires,
+      on: trailItem.on,
+    },
+    surface: 'mcp',
+    tools: surfaceTools,
+    trailId: trailItem.id,
+    visibility: trailItem.visibility,
+  };
+
+  return {
+    content: {
+      mimeType: 'application/json',
+      text: asJson(payload),
+      uri,
+    },
+    listing: {
+      description: `MCP-visible graph facts for trail "${trailItem.id}".`,
+      mimeType: 'application/json',
+      name: `Trail graph fact: ${trailItem.id}`,
+      uri,
+    },
+  };
+};
+
+const buildTrailGraphResources = (
+  graph: Topo,
+  tools: readonly McpToolDefinition[]
+): readonly {
+  readonly content: McpResourceContent;
+  readonly listing: McpResourceDefinition;
+}[] => {
+  const visibleTrailIds = exposedTrailIds(tools);
+  return graph
+    .list()
+    .filter((trailItem) => visibleTrailIds.has(trailItem.id))
+    .map((trailItem) =>
+      buildTrailGraphResource(
+        trailItem as Trail<unknown, unknown, unknown>,
+        tools
+      )
+    );
+};
+
 /**
  * Build the cold-context MCP resources for a Trails graph and tool set.
  *
@@ -203,6 +304,13 @@ export const buildMcpResources = (
 
   if (config.examples !== false) {
     for (const resource of buildExampleResources(graph, tools)) {
+      listings.push(resource.listing);
+      contents.set(resource.content.uri, resource.content);
+    }
+  }
+
+  if (config.graph === true) {
+    for (const resource of buildTrailGraphResources(graph, tools)) {
       listings.push(resource.listing);
       contents.set(resource.content.uri, resource.content);
     }

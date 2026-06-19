@@ -71,6 +71,6 @@ export const trailsMcpSurfaceOptions = {
     'Trails framework operator surface. Use MCP resources for cold context, direct tools for high-signal work, and the inspect facet for saved topo reads.',
   facets: trailsMcpFacets,
   include: trailsMcpIncludedTrails,
-  mcpResources: { examples: true, surfaceMap: true },
+  mcpResources: { examples: true, graph: true, surfaceMap: true },
   name: 'trails',
 } satisfies CreateServerOptions;

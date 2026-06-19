@@ -3,6 +3,7 @@ import { describe, expect, test } from 'bun:test';
 import {
   MCP_EXAMPLES_RESOURCE_PREFIX,
   MCP_SURFACE_MAP_RESOURCE_URI,
+  MCP_TRAIL_RESOURCE_PREFIX,
   MCP_TOOL_DEFERRED_META_KEY,
   buildMcpResources,
   deriveMcpTools,
@@ -215,6 +216,7 @@ describe('Trails MCP surface shaping', () => {
     );
     const surfaceMap = resources.read(MCP_SURFACE_MAP_RESOURCE_URI);
     const runExampleUri = `${MCP_EXAMPLES_RESOURCE_PREFIX}${encodeURIComponent('run.example')}`;
+    const wayfindSearchGraphUri = `${MCP_TRAIL_RESOURCE_PREFIX}${encodeURIComponent('wayfind.search')}`;
 
     expect(resources.list.map((resource) => resource.uri)).toContain(
       MCP_SURFACE_MAP_RESOURCE_URI
@@ -225,6 +227,33 @@ describe('Trails MCP surface shaping', () => {
     expect(resources.list.map((resource) => resource.uri)).toContain(
       `${MCP_EXAMPLES_RESOURCE_PREFIX}${encodeURIComponent('wayfind.search')}`
     );
+    expect(resources.list.map((resource) => resource.uri)).toContain(
+      wayfindSearchGraphUri
+    );
+    const wayfindSearchGraph = parseJson(
+      resources.read(wayfindSearchGraphUri)?.text
+    ) as {
+      readonly intent?: string | undefined;
+      readonly surface?: string | undefined;
+      readonly tools?: readonly {
+        readonly name?: string | undefined;
+        readonly trailId?: string | undefined;
+      }[];
+      readonly trailId?: string | undefined;
+      readonly visibility?: string | undefined;
+    };
+    expect(wayfindSearchGraph).toMatchObject({
+      intent: 'read',
+      surface: 'mcp',
+      trailId: 'wayfind.search',
+      visibility: 'internal',
+    });
+    expect(wayfindSearchGraph.tools).toEqual([
+      expect.objectContaining({
+        name: 'trails_wayfind_search',
+        trailId: 'wayfind.search',
+      }),
+    ]);
     const projectedMap = parseJson(surfaceMap?.text) as {
       readonly tools?: readonly {
         readonly deferred?: boolean | undefined;

@@ -2,13 +2,16 @@ import { topo } from '@ontrails/core';
 import {
   wayfindAdaptersTrail,
   wayfindContractTrail,
+  wayfindDescribeTrail,
   wayfindErrorsTrail,
   wayfindExamplesTrail,
   wayfindImpactTrail,
   wayfindNearbyTrail,
   wayfindOverviewTrail,
   wayfindOutlineTrail,
+  wayfindResourcesTrail,
   wayfindSearchTrail,
+  wayfindSurfacesTrail,
   wayfindTrailsTrail,
 } from '@ontrails/wayfinder';
 
@@ -21,12 +24,15 @@ const operatorTrails = Object.fromEntries(
 export const trailsMcpApp = topo('trails', operatorTrails, {
   wayfindAdaptersTrail,
   wayfindContractTrail,
+  wayfindDescribeTrail,
   wayfindErrorsTrail,
   wayfindExamplesTrail,
   wayfindImpactTrail,
   wayfindNearbyTrail,
   wayfindOutlineTrail,
   wayfindOverviewTrail,
+  wayfindResourcesTrail,
   wayfindSearchTrail,
+  wayfindSurfacesTrail,
   wayfindTrailsTrail,
 });
