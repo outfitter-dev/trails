@@ -1,5 +1,51 @@
 # @ontrails/wayfinder
 
+## 1.0.0-beta.25
+
+### Patch Changes
+
+- c1bc0d3: Add the `wayfind.outline` source-navigation trail and expose it through the Trails CLI and MCP surfaces.
+- 75417bb: Refactors `wayfind.outline` source parsing to consume the typed Warden AST guard
+  surface instead of local assertion casts.
+- dbf4ff4: Emit structured CLI error envelopes for JSON/JSONL command failures and map compile-time Trails DB lock contention to a retryable timeout instead of a generic internal error.
+- 14dc577: Make `wayfind outline` missing-graph diagnostics name the compile module, root, and `topo:write` permit requirement while preserving source-first output without graph artifacts.
+- 4f48166: Export the shared Wayfinder navigation planner substrate for resolving graph
+  populations and relation pivots before rendering surface-specific views.
+- 2d9e73a: Add drift metadata to Wayfinder graph-read responses while preserving the
+  existing freshness envelope for compatibility.
+- da39b89: Add the unified `trails wayfind` navigation command over targets, filters, and
+  views, and remove the old `wayfind find` search alias during the v1 Wayfinder
+  surface cutover.
+- f1e6efa: Document the Wayfinder MCP resource surface and polish Wayfinder filter dogfood coverage for unified navigation.
+- a8e4dc3: Clean up the Wayfinder navigation grammar before RC, including explicit pattern/query/file selectors, target-bound dependency and impact flags, drift-first provenance fields, stricter fires declaration diagnostics, and updated operator dogfood coverage.
+- a528239: Keep Wayfinder artifact drift aligned with rejected and force-annotated topo compiles.
+- f7d97fc: Expose resolved CLI command routes through schema helpers, the Trails operator
+  schema command, and Wayfinder trail contract output.
+- 59d10da: Dogfood CLI command route aliases through the Trails operator, saved Topographer artifacts, and Wayfinder contract inspection.
+- Updated dependencies [a9fdbc7]
+- Updated dependencies [f8fd6ca]
+- Updated dependencies [0fcc42b]
+- Updated dependencies [c36aca9]
+- Updated dependencies [f556559]
+- Updated dependencies [6250729]
+- Updated dependencies [d73c38e]
+- Updated dependencies [3befcf1]
+- Updated dependencies [a8e4dc3]
+- Updated dependencies [a4f9cf6]
+- Updated dependencies [9bcf34e]
+- Updated dependencies [00c0cf8]
+- Updated dependencies [59d10da]
+- Updated dependencies [b313c58]
+- Updated dependencies [f245fa0]
+- Updated dependencies [d9c6e50]
+- Updated dependencies [f1e6efa]
+- Updated dependencies [caff950]
+- Updated dependencies [df13faf]
+  - @ontrails/warden@1.0.0-beta.25
+  - @ontrails/core@1.0.0-beta.25
+  - @ontrails/topographer@1.0.0-beta.25
+  - @ontrails/adapter-kit@1.0.0-beta.25
+
 ## 1.0.0-beta.24
 
 ### Patch Changes

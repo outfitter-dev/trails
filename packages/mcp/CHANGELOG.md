@@ -1,5 +1,19 @@
 # @ontrails/mcp
 
+## 1.0.0-beta.25
+
+### Patch Changes
+
+- a9fdbc7: Clarify surface accommodation doctrine in MCP surface facet metadata and Warden trail-fork coaching guidance.
+- 2c08afe: Expose MCP trail graph fact resources and enable them for the Trails operator MCP surface.
+- f1e6efa: Document the Wayfinder MCP resource surface and polish Wayfinder filter dogfood coverage for unified navigation.
+- df13faf: Tighten Wayfinder navigation review findings: carry adapter filters into included adapter facts, keep live-source outline off the operator MCP surface until host-root binding exists, make unknown MCP resources protocol errors, route secondary Wayfinder graph populations through unified flags, and keep undeclared string `ctx.compose()` calls as Warden errors.
+- Updated dependencies [c36aca9]
+- Updated dependencies [3befcf1]
+- Updated dependencies [a4f9cf6]
+- Updated dependencies [9bcf34e]
+  - @ontrails/core@1.0.0-beta.25
+
 ## 1.0.0-beta.24
 
 ### Patch Changes

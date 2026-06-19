@@ -1,5 +1,24 @@
 # @ontrails/commander
 
+## 1.0.0-beta.25
+
+### Patch Changes
+
+- 60caabf: Render operator-actionable detail lines after CLI execution errors: validation failures list their topo issues (message plus trail id) and permission failures name the required permit scopes with a copyable `--permit` form. Non-internal Trails error context only, passed through the shared redactor; internal errors keep the redacted generic message.
+- dbf4ff4: Emit structured CLI error envelopes for JSON/JSONL command failures and map compile-time Trails DB lock contention to a retryable timeout instead of a generic internal error.
+- f1e6efa: Prevent executable parent command defaults from leaking into nested child commands.
+- a8e4dc3: Clean up the Wayfinder navigation grammar before RC, including explicit pattern/query/file selectors, target-bound dependency and impact flags, drift-first provenance fields, stricter fires declaration diagnostics, and updated operator dogfood coverage.
+- 1d3ae74: Materialize resolved CLI command aliases through the Commander surface while
+  preserving the same trail contract and execution path.
+- Updated dependencies [c36aca9]
+- Updated dependencies [3befcf1]
+- Updated dependencies [f1e6efa]
+- Updated dependencies [a4f9cf6]
+- Updated dependencies [9bcf34e]
+- Updated dependencies [f7d97fc]
+  - @ontrails/core@1.0.0-beta.25
+  - @ontrails/cli@1.0.0-beta.25
+
 ## 1.0.0-beta.24
 
 ### Patch Changes

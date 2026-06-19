@@ -1,5 +1,47 @@
 # @ontrails/warden
 
+## 1.0.0-beta.25
+
+### Patch Changes
+
+- a9fdbc7: Clarify surface accommodation doctrine in MCP surface facet metadata and Warden trail-fork coaching guidance.
+- f8fd6ca: Add OXC Walker-backed AST facade helpers for parent-aware traversal, scope-aware traversal, source locations, and safe source edits.
+- 0fcc42b: Add `dead-public-trail` and `duplicate-public-contract` Warden coaching rules so exported public trails stay anchored and duplicate surface contracts become visible drift.
+- c36aca9: Preserve existing Result error boundaries directly and widen Warden pass-through
+  coaching beyond trail blazes.
+- f556559: Adds curated typed AST node guards to the public `@ontrails/warden/ast` helper
+  surface so source consumers can narrow common OXC node shapes without assertion
+  casts.
+- 6250729: Expands the public AST guard/accessor surface and migrates Warden/Regrade AST
+  consumers onto the typed helpers instead of rule-local node-field casts.
+- d73c38e: Warn when Warden rules add raw AST node-field casts where a typed accessor exists.
+- a8e4dc3: Clean up the Wayfinder navigation grammar before RC, including explicit pattern/query/file selectors, target-bound dependency and impact flags, drift-first provenance fields, stricter fires declaration diagnostics, and updated operator dogfood coverage.
+- a4f9cf6: Reserve the `shift` error category and `WorkspaceShiftError` before the stable
+  cutover so surface mappings can distinguish moved-workspace retry verdicts.
+  Update Warden's error-mapping completeness examples to cover the reserved
+  category.
+- 00c0cf8: Add Warden governance for CLI command route and alias coherence.
+- b313c58: Add library projection coherence governance so Warden reports generated library export collisions and stale projection targets before packages materialize.
+- f245fa0: Add advisory trail-fork coaching so Warden can warn when a trail may be hiding
+  several capabilities behind one branching action or operation input.
+- f1e6efa: Recognize module-local helper functions that receive the trail context when checking declared compose usage.
+- caff950: `implementation-returns-result` now recognizes conditional returns whose branches are all recognized Result expressions — both `return cond ? Result.err(...) : Result.ok(...)` statements (including branches that are Result helpers or Result-bound variables) and concise ternary blaze bodies. Previously the idiomatic two-branch ternary was flagged as an error.
+- df13faf: Tighten Wayfinder navigation review findings: carry adapter filters into included adapter facts, keep live-source outline off the operator MCP surface until host-root binding exists, make unknown MCP resources protocol errors, route secondary Wayfinder graph populations through unified flags, and keep undeclared string `ctx.compose()` calls as Warden errors.
+- Updated dependencies [c36aca9]
+- Updated dependencies [3befcf1]
+- Updated dependencies [f1e6efa]
+- Updated dependencies [a4f9cf6]
+- Updated dependencies [9bcf34e]
+- Updated dependencies [f7d97fc]
+- Updated dependencies [59d10da]
+- Updated dependencies [d9c6e50]
+  - @ontrails/core@1.0.0-beta.25
+  - @ontrails/topographer@1.0.0-beta.25
+  - @ontrails/cli@1.0.0-beta.25
+  - @ontrails/adapter-kit@1.0.0-beta.25
+  - @ontrails/permits@1.0.0-beta.25
+  - @ontrails/store@1.0.0-beta.25
+
 ## 1.0.0-beta.24
 
 ### Patch Changes

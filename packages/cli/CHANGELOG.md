@@ -1,5 +1,20 @@
 # @ontrails/cli
 
+## 1.0.0-beta.25
+
+### Patch Changes
+
+- f1e6efa: Derive enum array inputs as repeatable flags so choice lists do not consume trailing command tokens.
+- 9bcf34e: Add trail-owned CLI command projection metadata and serialize resolved command
+  route facts for downstream tools.
+- f7d97fc: Expose resolved CLI command routes through schema helpers, the Trails operator
+  schema command, and Wayfinder trail contract output.
+- Updated dependencies [c36aca9]
+- Updated dependencies [3befcf1]
+- Updated dependencies [a4f9cf6]
+- Updated dependencies [9bcf34e]
+  - @ontrails/core@1.0.0-beta.25
+
 ## 1.0.0-beta.24
 
 ### Patch Changes

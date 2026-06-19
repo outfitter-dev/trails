@@ -1,5 +1,96 @@
 # trails
 
+## 1.0.0-beta.25
+
+### Minor Changes
+
+- b9a7d8a: Add generated release PR policy automation with managed publish/channel/release
+  labels, stack-boundary source evidence, and inverse active-changeset release
+  fact validation.
+
+### Patch Changes
+
+- 578731d: `trails doctor` now returns the underlying validation error when the app topo is invalid, instead of crashing with a redacted "Internal server error". The diagnostic command reports the diagnosis: validation failures surface with their category, message, and (with the commander detail rendering) the issue list.
+- c5258ea: Fix the scaffolded AGENTS.md layer guidance to say "cross-cutting trail wrapping" — the cross→compose vocabulary cutover had renamed the standard English collocation, so every generated app shipped the nonsense phrase "compose-cutting".
+- b991263: Retire the package-owned `regrade.downstream.report` trail wrapper so the Trails operator app owns the public Regrade surface while `@ontrails/regrade` exposes the reusable engine APIs and report schema.
+- c75c6cc: Collapse the duplicate `diff` trail into the canonical `survey.diff` contract while keeping `trails diff` available as a CLI route alias.
+- 7b7cd6a: Centralize the Trails operator root-directory and fresh-app lease preamble so topo-reading commands share the same load/release flow.
+- c36aca9: Preserve existing Result error boundaries directly and widen Warden pass-through
+  coaching beyond trail blazes.
+- c1bc0d3: Add the `wayfind.outline` source-navigation trail and expose it through the Trails CLI and MCP surfaces.
+- 0d213b1: Enrich compact `wayfind outline --review` text with existing trail intent, schema, and example-count facts when saved graph artifacts are available.
+- dbf4ff4: Emit structured CLI error envelopes for JSON/JSONL command failures and map compile-time Trails DB lock contention to a retryable timeout instead of a generic internal error.
+- 8e1c2ff: Wire adapter and error fact selection into the unified `trails wayfind` command.
+- da39b89: Add the unified `trails wayfind` navigation command over targets, filters, and
+  views, and remove the old `wayfind find` search alias during the v1 Wayfinder
+  surface cutover.
+- 2059666: Add relational `trails wayfind` flags for downstream, upstream, and nearby graph navigation.
+- 2c08afe: Expose MCP trail graph fact resources and enable them for the Trails operator MCP surface.
+- 4b538d1: Start the `trails wayfind --source live` cutover by routing live overview and ID lookup through the fresh app survey path.
+- dd98701: Update CLI and agent guidance to teach the unified Wayfinder navigation surface and live-source bridge.
+- f1e6efa: Expand the Wayfinder dogfood smoke to exercise the unified navigation command shape.
+- 60fa8f5: Expose the saved graph diff as a distinct `wayfind diff` CLI command and MCP tool.
+- a8e4dc3: Clean up the Wayfinder navigation grammar before RC, including explicit pattern/query/file selectors, target-bound dependency and impact flags, drift-first provenance fields, stricter fires declaration diagnostics, and updated operator dogfood coverage.
+- a528239: Keep Wayfinder artifact drift aligned with rejected and force-annotated topo compiles.
+- de79459: Expand Wayfinder dogfood smoke coverage across demo graph facts, relation views, and artifact provenance failures.
+- f757cd7: Publish Regrade's downstream report and AST rewrite APIs, and expose a dry-run
+  by default `trails regrade` operator command with explicit apply mode.
+- 9bcf34e: Add trail-owned CLI command projection metadata and serialize resolved command
+  route facts for downstream tools.
+- f7d97fc: Expose resolved CLI command routes through schema helpers, the Trails operator
+  schema command, and Wayfinder trail contract output.
+- 59d10da: Dogfood CLI command route aliases through the Trails operator, saved Topographer artifacts, and Wayfinder contract inspection.
+- df13faf: Tighten Wayfinder navigation review findings: carry adapter filters into included adapter facts, keep live-source outline off the operator MCP surface until host-root binding exists, make unknown MCP resources protocol errors, route secondary Wayfinder graph populations through unified flags, and keep undeclared string `ctx.compose()` calls as Warden errors.
+- Updated dependencies [60caabf]
+- Updated dependencies [a9fdbc7]
+- Updated dependencies [f8fd6ca]
+- Updated dependencies [b991263]
+- Updated dependencies [0fcc42b]
+- Updated dependencies [c36aca9]
+- Updated dependencies [c1bc0d3]
+- Updated dependencies [f556559]
+- Updated dependencies [75417bb]
+- Updated dependencies [6250729]
+- Updated dependencies [d73c38e]
+- Updated dependencies [3befcf1]
+- Updated dependencies [dbf4ff4]
+- Updated dependencies [14dc577]
+- Updated dependencies [4f48166]
+- Updated dependencies [2d9e73a]
+- Updated dependencies [da39b89]
+- Updated dependencies [2c08afe]
+- Updated dependencies [f1e6efa]
+- Updated dependencies [f1e6efa]
+- Updated dependencies [f1e6efa]
+- Updated dependencies [a8e4dc3]
+- Updated dependencies [a528239]
+- Updated dependencies [f757cd7]
+- Updated dependencies [a4f9cf6]
+- Updated dependencies [9bcf34e]
+- Updated dependencies [1d3ae74]
+- Updated dependencies [f7d97fc]
+- Updated dependencies [00c0cf8]
+- Updated dependencies [59d10da]
+- Updated dependencies [b313c58]
+- Updated dependencies [f245fa0]
+- Updated dependencies [d9c6e50]
+- Updated dependencies [f1e6efa]
+- Updated dependencies [caff950]
+- Updated dependencies [df13faf]
+  - @ontrails/commander@1.0.0-beta.25
+  - @ontrails/mcp@1.0.0-beta.25
+  - @ontrails/warden@1.0.0-beta.25
+  - @ontrails/regrade@1.0.0-beta.25
+  - @ontrails/core@1.0.0-beta.25
+  - @ontrails/http@1.0.0-beta.25
+  - @ontrails/topographer@1.0.0-beta.25
+  - @ontrails/wayfinder@1.0.0-beta.25
+  - @ontrails/cli@1.0.0-beta.25
+  - @ontrails/adapter-kit@1.0.0-beta.25
+  - @ontrails/observe@1.0.0-beta.25
+  - @ontrails/permits@1.0.0-beta.25
+  - @ontrails/tracing@1.0.0-beta.25
+
 ## 1.0.0-beta.24
 
 ### Patch Changes
