@@ -91,6 +91,20 @@ bun run changeset:check
 
 That fallback compares `origin/main...HEAD`. It is useful while developing, but the PR file-list path is the branch-local source of truth for stacked branches.
 
+## Release Pack Coherence
+
+`release.check` asks whether a branch has release intent. It does not prove the generated version plan can publish clean packages. The neighboring release-pack guard covers that packaging invariant:
+
+```bash
+bun run release-pack:check
+```
+
+The guard runs only when the branch is `changeset-release/main` or when changed files include package release metadata: `package.json`, workspace `package.json`, `CHANGELOG.md`, `.changeset/pre.json`, or `bun.lock`. Source-only branches skip the pack check.
+
+This catches the stale lockfile class where Changesets bumps workspace package versions but `bun.lock` still carries older workspace metadata. In that state, `bun pm pack` can resolve `workspace:^` to the previous beta range even though the source `package.json` files are already on the new version. The failure is a release-pack coherence bug, not a general lockfile freshness rule.
+
+CI exposes this as the **Release Pack** check on pull requests and runs the full `bun run publish:check` packaging validation. Local pre-push runs `bun run release-pack:check -- --lockfile-only` inside the tree-guard bracket, so human release branches catch stale `bun.lock` workspace metadata before push without running the pack dry-run while the hook is watching the working tree.
+
 ## Review Rule
 
 For local reviews, missing branch-local release intent for package content or a public trail contract fact is a P2 release-quality blocker. Identify the owning branch, add the changeset or explicit no-release reason there, restack, and rerun the check upward.
@@ -144,3 +158,4 @@ Focused tests avoid compiling a full repo app:
 - `apps/trails/src/__tests__/release-contract-facts.test.ts` models public and internal trail source snapshots directly.
 - `apps/trails/src/__tests__/release-check.test.ts` keeps package-file coverage and contract-aware rule coverage.
 - `apps/trails/src/__tests__/release-check-trail.test.ts` proves the `release.check` trail, `trails release check --json`, config loading, and non-zero failure exit behavior.
+- `apps/trails/src/__tests__/release-pack-coherence.test.ts` proves the changed-file predicate that decides when the local/CI release-pack guard runs, plus the local `bun.lock` workspace metadata comparison.

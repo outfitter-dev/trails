@@ -144,10 +144,50 @@ jobs:
           fi
           bun run changeset:check -- "${args[@]}"
 
+  release-pack:
+    name: Release Pack
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/setup
+
+      - name: Collect PR file list
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          gh api --paginate "repos/$REPOSITORY/pulls/$PR_NUMBER/files" \
+            --jq '.[].filename' \
+            > "$RUNNER_TEMP/changed-files.txt"
+
+      - name: Check release pack coherence
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          bun run release-pack:check -- \
+            --changed-files "$RUNNER_TEMP/changed-files.txt" \
+            --branch "$HEAD_REF"
+
   ci-gate:
     name: CI Gate
     if: always()
-    needs: [build, lint, dead-code, typecheck, test, governance, changeset]
+    needs:
+      [
+        build,
+        lint,
+        dead-code,
+        typecheck,
+        test,
+        governance,
+        changeset,
+        release-pack,
+      ]
     runs-on: ubuntu-latest
     steps:
       - name: Summary
@@ -163,6 +203,7 @@ jobs:
           echo "| Test | \`${{ needs.test.result }}\` |" >> "$GITHUB_STEP_SUMMARY"
           echo "| Governance | \`${{ needs.governance.result }}\` |" >> "$GITHUB_STEP_SUMMARY"
           echo "| Changeset | \`${{ needs.changeset.result }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Release Pack | \`${{ needs.release-pack.result }}\` |" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Require all jobs to pass
         if: contains(needs.*.result, 'failure') && !cancelled()

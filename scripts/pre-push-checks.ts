@@ -13,6 +13,10 @@ const checks: readonly CheckCommand[] = [
   { cmd: ['bun', 'run', 'lint'], name: 'lint' },
   { cmd: ['bun', 'run', 'lint:ast-grep'], name: 'lint-ast-grep' },
   { cmd: ['bun', 'run', 'format:check'], name: 'format' },
+  {
+    cmd: ['bun', 'run', 'release-pack:check', '--', '--lockfile-only'],
+    name: 'release-pack',
+  },
   { cmd: ['bun', 'run', 'dead-code'], name: 'dead-code' },
 ];
 

@@ -58,6 +58,7 @@
     "clean": "turbo run clean --no-cache && rm -rf node_modules",
     "oxlint-plugin:build": "bun run --cwd packages/oxlint-plugin build:oxlint",
     "publish:check": "bun scripts/publish.ts --check",
+    "release-pack:check": "bun scripts/release-pack-coherence-check.ts",
     "publish:label-release-pr": "bun scripts/release-policy.ts label-release-pr",
     "publish:policy": "bun scripts/release-policy.ts policy",
     "publish:registry-check": "bun scripts/check-registry-preflight.ts",

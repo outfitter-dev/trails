@@ -57,6 +57,18 @@ export {
   type NativeBunPublishWorkspace,
 } from './native-bun-publish.js';
 export {
+  findLockfileWorkspaceMetadataMismatches,
+  isReleasePackCoherenceFile,
+  parseReleasePackCoherenceArgs,
+  runReleasePackCoherenceCli,
+  shouldRunReleasePackCoherenceCheck,
+  type ReleasePackCoherenceLockfileInput,
+  type ReleasePackCoherenceLockfileWorkspace,
+  type ReleasePackCoherenceInput,
+  type ReleasePackCoherenceParsedArgs,
+  type ReleasePackCoherenceWorkspace,
+} from './pack-coherence.js';
+export {
   checkRegistryPosture,
   discoverRegistryWorkspaces,
   formatDistTagSummary,
