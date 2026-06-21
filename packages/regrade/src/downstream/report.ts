@@ -203,6 +203,113 @@ const diagnosticNote = (diagnostic: WardenDiagnostic): string => {
   return `${diagnostic.rule}:${diagnostic.line}: ${reason}`;
 };
 
+const firstQuotedValue = (value: string | undefined): string | undefined => {
+  if (value === undefined) {
+    return undefined;
+  }
+  const match = /['"]([^'"]+)['"]/.exec(value);
+  return match?.[1];
+};
+
+const reviewSpanForOffsets = (
+  source: string,
+  start: number,
+  end: number
+): RegradeReviewSpan => {
+  let line = 1;
+  let column = 1;
+  for (let index = 0; index < start; index += 1) {
+    if (source.codePointAt(index) === 10) {
+      line += 1;
+      column = 1;
+    } else {
+      column += 1;
+    }
+  }
+  return { column, end, line, start };
+};
+
+const spanForSymbolOnDiagnosticLine = (
+  source: string,
+  line: number,
+  symbol: string
+): RegradeReviewSpan | undefined => {
+  if (line < 1) {
+    return undefined;
+  }
+  let lineStart = 0;
+  for (let currentLine = 1; currentLine < line; currentLine += 1) {
+    const nextLineStart = source.indexOf('\n', lineStart);
+    if (nextLineStart === -1) {
+      return undefined;
+    }
+    lineStart = nextLineStart + 1;
+  }
+  const nextLineStart = source.indexOf('\n', lineStart);
+  const lineEnd = nextLineStart === -1 ? source.length : nextLineStart;
+  const symbolIndex = source.indexOf(symbol, lineStart);
+  if (symbolIndex === -1 || symbolIndex >= lineEnd) {
+    return undefined;
+  }
+  const nextSymbolIndex = source.indexOf(symbol, symbolIndex + symbol.length);
+  if (nextSymbolIndex !== -1 && nextSymbolIndex < lineEnd) {
+    return undefined;
+  }
+  return reviewSpanForOffsets(source, symbolIndex, symbolIndex + symbol.length);
+};
+
+const diagnosticSpan = (
+  source: string,
+  diagnostic: WardenDiagnostic,
+  symbol: string | undefined
+): RegradeReviewSpan | undefined => {
+  const [edit] = diagnostic.fix?.edits ?? [];
+  if (edit !== undefined) {
+    return reviewSpanForOffsets(source, edit.start, edit.end);
+  }
+  if (symbol === undefined) {
+    return undefined;
+  }
+  return spanForSymbolOnDiagnosticLine(source, diagnostic.line, symbol);
+};
+
+const expectedTarget = (diagnostic: WardenDiagnostic): string | undefined => {
+  const replacements = new Set(
+    (diagnostic.fix?.edits ?? []).map((edit) => edit.replacement)
+  );
+  if (replacements.size !== 1) {
+    return undefined;
+  }
+  const [replacement] = replacements;
+  return replacement === undefined
+    ? undefined
+    : `Replace with "${replacement}".`;
+};
+
+const reviewDetailsFromDiagnostics = (
+  source: string,
+  diagnostics: readonly WardenDiagnostic[],
+  reason: string
+): readonly RegradeReviewDetail[] | undefined => {
+  const details = diagnostics.map((diagnostic) => {
+    const symbol =
+      firstQuotedValue(diagnostic.fix?.reason) ??
+      firstQuotedValue(diagnostic.message);
+    const span = diagnosticSpan(source, diagnostic, symbol);
+    const target = expectedTarget(diagnostic);
+    return {
+      ...(target === undefined ? {} : { expectedTarget: target }),
+      ...(diagnostic.fix?.fixture === undefined
+        ? {}
+        : { fixture: diagnostic.fix.fixture }),
+      reason,
+      ...(span === undefined ? {} : { span }),
+      ...(symbol === undefined ? {} : { symbol }),
+    } satisfies RegradeReviewDetail;
+  });
+  return details.length === 0 ? undefined : details;
+};
+
 const wardenFilePath = (context: RegradeClassContext | undefined): string =>
   context?.absolutePath ?? context?.path ?? '<regrade-source>';
 
@@ -279,10 +386,16 @@ export const createWardenTermRewriteClass = (
         (diagnostic) => diagnostic.fix?.safety !== 'safe'
       );
       if (reviewDiagnostics.length > 0) {
+        const reviewDetails = reviewDetailsFromDiagnostics(
+          source,
+          reviewDiagnostics,
+          'warden-review-required'
+        );
         return {
           kind: 'needs-review',
           notes: reviewDiagnostics.map(diagnosticNote),
           reason: 'warden-review-required',
+          ...(reviewDetails === undefined ? {} : { reviewDetails }),
         };
       }
 
@@ -290,10 +403,16 @@ export const createWardenTermRewriteClass = (
         (diagnostic) => (diagnostic.fix?.edits?.length ?? 0) === 0
       );
       if (diagnosticsMissingEdits.length > 0) {
+        const reviewDetails = reviewDetailsFromDiagnostics(
+          source,
+          diagnosticsMissingEdits,
+          'warden-fix-missing-edits'
+        );
         return {
           kind: 'needs-review',
           notes: diagnostics.map(diagnosticNote),
           reason: 'warden-fix-missing-edits',
+          ...(reviewDetails === undefined ? {} : { reviewDetails }),
         };
       }
 
@@ -302,6 +421,11 @@ export const createWardenTermRewriteClass = (
       );
       const application = applyWardenEdits(source, edits);
       if (!application.ok) {
+        const reviewDetails = reviewDetailsFromDiagnostics(
+          source,
+          diagnostics,
+          'warden-fix-invalid'
+        );
         return {
           kind: 'needs-review',
           notes: [
@@ -309,6 +433,7 @@ export const createWardenTermRewriteClass = (
             `Warden fix edits could not be applied: ${application.reason}.`,
           ],
           reason: 'warden-fix-invalid',
+          ...(reviewDetails === undefined ? {} : { reviewDetails }),
         };
       }
 

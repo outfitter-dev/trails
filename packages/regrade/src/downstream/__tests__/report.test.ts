@@ -159,6 +159,91 @@ describe('wardenTermRewriteClasses', () => {
     expect(result?.notes.join('\n')).toContain(
       'Removal has no mechanical replacement'
     );
+    expect(result?.reviewDetails).toEqual([
+      {
+        reason: 'warden-review-required',
+        span: { column: 10, end: 18, line: 1, start: 9 },
+        symbol: 'authLayer',
+      },
+    ]);
+  });
+
+  test('anchors Warden review spans to the diagnostic line', () => {
+    const crossClass = wardenTermRewriteClasses.find(
+      (cls) => cls.id === 'term-rewrite:no-retired-cross-vocabulary'
+    );
+    expect(crossClass).toBeDefined();
+
+    const result = crossClass?.apply(
+      'const crossOne = 1;\nconst crossTwo = 2;\n',
+      { absolutePath: '/repo/src/cross.ts', path: 'src/cross.ts' }
+    );
+
+    expect(result?.kind).toBe('needs-review');
+    expect(result?.reviewDetails).toEqual([
+      {
+        reason: 'warden-review-required',
+        span: { column: 7, end: 11, line: 1, start: 6 },
+        symbol: 'cross',
+      },
+      {
+        reason: 'warden-review-required',
+        span: { column: 7, end: 31, line: 2, start: 26 },
+        symbol: 'cross',
+      },
+    ]);
+  });
+
+  test('omits ambiguous same-line Warden review spans', () => {
+    const crossClass = wardenTermRewriteClasses.find(
+      (cls) => cls.id === 'term-rewrite:no-retired-cross-vocabulary'
+    );
+    expect(crossClass).toBeDefined();
+
+    const result = crossClass?.apply('const crossOne = crossTwo;\n', {
+      absolutePath: '/repo/src/cross.ts',
+      path: 'src/cross.ts',
+    });
+
+    expect(result?.kind).toBe('needs-review');
+    expect(result?.reviewDetails).toEqual([
+      {
+        reason: 'warden-review-required',
+        symbol: 'cross',
+      },
+      {
+        reason: 'warden-review-required',
+        symbol: 'cross',
+      },
+    ]);
+  });
+
+  test('carries Warden review details into report entries', () => {
+    const legacyLayerClass = wardenTermRewriteClasses.find(
+      (cls) => cls.id === 'term-rewrite:no-legacy-layer-imports'
+    );
+    expect(legacyLayerClass).toBeDefined();
+
+    const report = buildRegradeReport({
+      classes: legacyLayerClass ? [legacyLayerClass] : [],
+      files: [
+        {
+          path: 'src/auth.ts',
+          source: "import { authLayer } from '@ontrails/permits';\n",
+        },
+      ],
+      root: '/repo',
+      skipped: [],
+    });
+
+    expect(report.entries[0]?.reviewDetails).toEqual([
+      {
+        classId: 'term-rewrite:no-legacy-layer-imports',
+        reason: 'warden-review-required',
+        span: { column: 10, end: 18, line: 1, start: 9 },
+        symbol: 'authLayer',
+      },
+    ]);
   });
 
   test('reports no-op when Warden finds no term-rewrite diagnostics', () => {
