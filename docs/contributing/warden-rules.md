@@ -43,6 +43,10 @@ Owner-first data beats duplicated rule lists. If Warden needs framework facts su
 
 Temporary repo-local rules are allowed when they have a clear lifecycle. TRL-575 is the precedent: a temporary audit scanner needs an owner, reason, baseline count, deletion or promotion trigger, and issue reference. Temporary rules are visible debt; durable framework semantics belong in Warden once the invariant is understood.
 
+Project-local Warden rules live in `trails/warden/rules/` at the project root. Warden loads that directory by default for command and API runs, so an adopting repo can enforce local migration or governance rules without shipping them from `@ontrails/warden`. The location is the ownership signal: a rule in that directory is project-local by placement, not by advisory metadata. Modules may export `rule`, `rules`, `sourceRule`, `sourceRules`, `topoRule`, or `topoRules`; rules without explicit metadata receive repo-local source-static or topo-aware execution metadata so short-lived migration rules do not need ceremony before they can run.
+
+Use `trails/warden/rules/` when the invariant is real for this project but not yet a framework promise. Promote the rule into `@ontrails/warden` only after the survival tests show it belongs to Trails users broadly. Delete it when the migration or temporary hardening window closes.
+
 ## Core Principle
 
 Express rules as invariants the framework holds, not as instances of bugs found during an audit.

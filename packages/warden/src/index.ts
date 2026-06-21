@@ -119,6 +119,10 @@ export {
 export type { DriftResult } from './drift.js';
 export { checkDrift } from './drift.js';
 
+// Project-local rule loading
+export type { ProjectWardenRules } from './project-rules.js';
+export { loadProjectWardenRules } from './project-rules.js';
+
 // Guide projection
 export type {
   WardenGuideFormat,

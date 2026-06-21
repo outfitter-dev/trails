@@ -27,6 +27,8 @@ import { isDraftMarkedFile } from './draft.js';
 import { applySafeFixesToSource, hasSafeFixEdits } from './fix.js';
 import type { DriftResult } from './drift.js';
 import { checkDrift } from './drift.js';
+import { loadProjectWardenRules } from './project-rules.js';
+import type { ProjectWardenRules } from './project-rules.js';
 import {
   collectProjectDocumentationImportResolutions,
   collectProjectImportResolutions,
@@ -119,6 +121,15 @@ export interface WardenRunOptions {
    * lint rule dispatch. `lintOnly` and `driftOnly` remain compatibility shims.
    */
   readonly tier?: WardenRuleTier | undefined;
+  /**
+   * Load project-local Warden rules from `trails/warden/rules/`.
+   *
+   * Enabled by default for normal runs so a Trails app can carry migration or
+   * repo-local governance with the project instead of shipping it from
+   * `@ontrails/warden`. Set to `false` for narrow tests or embedders that need
+   * only built-in and explicitly provided rules.
+   */
+  readonly projectRules?: boolean | undefined;
   /**
    * App topology for drift detection. When provided, enables real topology
    * drift comparison and unlocks the topo-aware rule dispatch path.
@@ -860,6 +871,23 @@ const createOptionsDiagnostic = (message: string): WardenDiagnostic => ({
   severity: 'error',
 });
 
+const emptyProjectWardenRules = (): ProjectWardenRules => ({
+  diagnostics: [],
+  sourceRules: [],
+  topoRules: [],
+});
+
+const loadProjectRulesForRun = async (
+  rootDir: string,
+  options: WardenRunOptions,
+  runLint: boolean
+): Promise<ProjectWardenRules> => {
+  if (!runLint || options.projectRules === false) {
+    return emptyProjectWardenRules();
+  }
+  return loadProjectWardenRules(rootDir);
+};
+
 interface WardenRuleSelector {
   readonly depth?: WardenDepth | undefined;
   readonly tier?: WardenRuleTier | undefined;
@@ -1439,13 +1467,14 @@ export const runWarden = async (
   } satisfies WardenRuleSelector;
   const runLint = shouldRunLint(options);
   const runDrift = shouldRunDrift(options, effectiveConfig);
+  const projectRules = await loadProjectRulesForRun(rootDir, options, runLint);
   const lintResult = runLint
     ? await lintFiles(
         rootDir,
         effectiveConfig.drafts,
         topoTargets,
-        options.extraTopoRules ?? [],
-        options.extraSourceRules ?? [],
+        [...projectRules.topoRules, ...(options.extraTopoRules ?? [])],
+        [...projectRules.sourceRules, ...(options.extraSourceRules ?? [])],
         selector
       )
     : { diagnostics: [], sourceFiles: [] };
@@ -1453,6 +1482,7 @@ export const runWarden = async (
 
   const rawDiagnostics = [
     ...configDiagnostics,
+    ...projectRules.diagnostics,
     ...optionDiagnostics,
     ...lintResult.diagnostics,
     ...adapterDiagnostics,

@@ -93,6 +93,74 @@ const writeAdapterCheckFixture = (rootDir: string): void => {
   );
 };
 
+const writeProjectSourceRule = (
+  rootDir: string,
+  options: {
+    readonly marker?: string;
+    readonly name?: string;
+    readonly severity?: 'error' | 'warn';
+  } = {}
+): string => {
+  const ruleDir = join(rootDir, 'trails/warden/rules');
+  mkdirSync(ruleDir, { recursive: true });
+  const rulePath = join(ruleDir, 'project-local-rule.ts');
+  const marker = options.marker ?? 'projectLocalProblem';
+  const ruleName = options.name ?? 'project-local-rule';
+  const severity = options.severity ?? 'error';
+  writeFileSync(
+    rulePath,
+    `export const rule = {
+  name: '${ruleName}',
+  severity: '${severity}',
+  description: 'Project-local fixture rule.',
+  check(sourceCode, filePath) {
+    const marker = ${JSON.stringify(marker.split(/(?=[A-Z])/))}.join('');
+    return sourceCode.includes(marker)
+      ? [{
+          filePath,
+          line: 1,
+          message: 'Project-local fixture marker found.',
+          rule: '${ruleName}',
+          severity: '${severity}',
+        }]
+      : [];
+  },
+};
+`
+  );
+  return rulePath;
+};
+
+const writeProjectAwareRule = (rootDir: string): string => {
+  const ruleDir = join(rootDir, 'trails/warden/rules');
+  mkdirSync(ruleDir, { recursive: true });
+  const rulePath = join(ruleDir, 'project-aware-rule.ts');
+  writeFileSync(
+    rulePath,
+    `export const rule = {
+  name: 'project-aware-rule',
+  severity: 'error',
+  description: 'Project-aware fixture rule.',
+  check() {
+    return [];
+  },
+  checkWithContext(sourceCode, filePath) {
+    return sourceCode.includes('projectAwareProblem')
+      ? [{
+          filePath,
+          line: 1,
+          message: 'Project-aware fixture marker found.',
+          rule: 'project-aware-rule',
+          severity: 'error',
+        }]
+      : [];
+  },
+};
+`
+  );
+  return rulePath;
+};
+
 const writeManifest = (rootDir: string, hash: string): Promise<string> =>
   writeLockManifest(
     {
@@ -1451,6 +1519,142 @@ describe('runWarden --fix wiring', () => {
       expect(report.fixes?.skipped).toBeGreaterThanOrEqual(1);
       // Review-only fixes never rewrite source.
       expect(readFileSync(filePath, 'utf8')).toBe(source);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+});
+
+describe('project-local Warden rules', () => {
+  test('loads source rules from trails/warden/rules by default', async () => {
+    const dir = makeTempDir();
+    try {
+      writeProjectSourceRule(dir);
+      writeFileSync(join(dir, 'fixture.ts'), 'const projectLocalProblem = 1;');
+
+      const report = await runWarden({
+        lock: 'skip',
+        rootDir: dir,
+        tier: 'source-static',
+      });
+
+      expect(report.diagnostics).toContainEqual(
+        expect.objectContaining({
+          filePath: join(dir, 'fixture.ts'),
+          message: 'Project-local fixture marker found.',
+          rule: 'project-local-rule',
+        })
+      );
+      expect(report.errorCount).toBe(1);
+      expect(report.passed).toBe(false);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('can disable project-local rule loading for narrow embedders', async () => {
+    const dir = makeTempDir();
+    try {
+      writeProjectSourceRule(dir);
+      writeFileSync(join(dir, 'fixture.ts'), 'const projectLocalProblem = 1;');
+
+      const report = await runWarden({
+        lock: 'skip',
+        projectRules: false,
+        rootDir: dir,
+        tier: 'source-static',
+      });
+
+      expect(report.diagnostics.map((entry) => entry.rule)).not.toContain(
+        'project-local-rule'
+      );
+      expect(report.passed).toBe(true);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('does not import project-local rules for drift-only runs', async () => {
+    const dir = makeTempDir();
+    try {
+      const ruleDir = join(dir, 'trails/warden/rules');
+      mkdirSync(ruleDir, { recursive: true });
+      writeFileSync(
+        join(ruleDir, 'bad.ts'),
+        "throw new Error('drift should not import me');\n"
+      );
+
+      const report = await runWarden({
+        lock: 'skip',
+        rootDir: dir,
+        tier: 'drift',
+      });
+
+      expect(report.diagnostics.map((entry) => entry.rule)).not.toContain(
+        'project-warden-rules'
+      );
+      expect(report.passed).toBe(true);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('defaults project-aware local rules to project-static metadata', async () => {
+    const dir = makeTempDir();
+    try {
+      writeProjectAwareRule(dir);
+      writeFileSync(join(dir, 'fixture.ts'), 'const projectAwareProblem = 1;');
+
+      const sourceReport = await runWarden({
+        lock: 'skip',
+        rootDir: dir,
+        tier: 'source-static',
+      });
+      expect(sourceReport.diagnostics.map((entry) => entry.rule)).not.toContain(
+        'project-aware-rule'
+      );
+
+      const projectReport = await runWarden({
+        lock: 'skip',
+        rootDir: dir,
+        tier: 'project-static',
+      });
+      expect(projectReport.diagnostics).toContainEqual(
+        expect.objectContaining({
+          filePath: join(dir, 'fixture.ts'),
+          message: 'Project-aware fixture marker found.',
+          rule: 'project-aware-rule',
+        })
+      );
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('reports invalid project-local rule modules as Warden diagnostics', async () => {
+    const dir = makeTempDir();
+    try {
+      const ruleDir = join(dir, 'trails/warden/rules');
+      mkdirSync(ruleDir, { recursive: true });
+      const rulePath = join(ruleDir, 'empty.ts');
+      writeFileSync(rulePath, 'export const nothing = true;\n');
+
+      const report = await runWarden({
+        lock: 'skip',
+        rootDir: dir,
+        tier: 'source-static',
+      });
+
+      expect(report.diagnostics).toContainEqual(
+        expect.objectContaining({
+          filePath: rulePath,
+          message:
+            'Project Warden rule module must export a WardenRule or TopoAwareWardenRule.',
+          rule: 'project-warden-rules',
+          severity: 'error',
+        })
+      );
+      expect(report.passed).toBe(false);
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }

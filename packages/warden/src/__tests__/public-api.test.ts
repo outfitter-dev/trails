@@ -44,6 +44,7 @@ describe('@ontrails/warden public API', () => {
     expect(warden.listWardenRuleMetadata().length).toBeGreaterThan(0);
     expect(warden.adapterCheckRuleName).toBe('adapter-check');
     expect(typeof warden.runWardenAdapterChecks).toBe('function');
+    expect(typeof warden.loadProjectWardenRules).toBe('function');
   });
 
   test('exports the composable Warden config schema from the root entrypoint', () => {

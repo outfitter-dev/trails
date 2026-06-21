@@ -37,6 +37,35 @@ Rules cover several families:
 
 When adding or auditing rules, follow [Warden Rules](../../docs/contributing/warden-rules.md): name the invariant, import owner-held framework data, choose the narrowest Warden tier, and collapse families only when the data model, traversal, and diagnostic shape are shared.
 
+## Project-local rules
+
+Projects can carry local Warden rules in `trails/warden/rules/`. `runWarden()` and `trails warden` load that directory by default for lint runs, then run those rules alongside the built-in registries. Drift-only runs do not import project-local rule modules. Embedders that need only built-in or explicitly provided rules can pass `projectRules: false`.
+
+This is the right home for repo-specific migration checks or governance that has not earned a place in `@ontrails/warden` itself.
+
+A rule module may export `rule`, `rules`, `sourceRule`, `sourceRules`, `topoRule`, or `topoRules`. Rules without explicit metadata receive default repo-local source-static or topo-aware metadata so short migration rules can run without extra ceremony. Project-aware source rules that provide `checkWithContext()` default to repo-local project-static metadata.
+
+```typescript
+export const rule = {
+  name: 'local-contract-check',
+  severity: 'error',
+  description: 'Local contract examples keep their migration marker.',
+  check(sourceCode, filePath) {
+    return sourceCode.includes('deprecatedMarker')
+      ? [
+          {
+            filePath,
+            line: 1,
+            message: 'Replace deprecatedMarker before release.',
+            rule: 'local-contract-check',
+            severity: 'error',
+          },
+        ]
+      : [];
+  },
+};
+```
+
 ## Drift detection
 
 Warden integrates with `@ontrails/topographer` to detect when the topo has changed without updating the lock file:
@@ -124,6 +153,7 @@ This is the same factory used internally to build all built-in rule trails.
 | `wardenTopo` | `Topo` of all built-in rule trails (one per rule) |
 | `runWardenTrails(filePath, sourceCode, options?)` | Dispatch file-scoped rule trails for a file, collect diagnostics |
 | `runTopoAwareWardenTrails(topo)` | Dispatch built-in topo-aware rule trails once for a resolved topo |
+| `loadProjectWardenRules(rootDir)` | Load rule modules from `trails/warden/rules/` |
 | `formatGitHubAnnotations(report)` | GitHub Actions annotation format |
 | `formatJson(report)` | Machine-readable JSON |
 | `formatSummary(report)` | Compact summary line |
