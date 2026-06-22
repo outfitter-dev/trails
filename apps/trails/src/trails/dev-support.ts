@@ -1,5 +1,5 @@
 import { existsSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { isAbsolute, join } from 'node:path';
 
 import {
   openReadTrailsDb,
@@ -21,7 +21,10 @@ import {
   previewTraceCleanup,
 } from '@ontrails/tracing';
 
-import { removeRootRelativeFileIfPresent } from '../local-state-io.js';
+import {
+  removeFileIfPresent,
+  removeRootRelativeFileIfPresent,
+} from '../local-state-io.js';
 
 import { requireTrailRootDir } from './root-dir.js';
 
@@ -31,9 +34,17 @@ const deriveRootDir = (cwd?: string): string => requireTrailRootDir(cwd);
 
 const removeResetFileIfPresent = (
   rootDir: string,
-  relativePath: string
+  resetPath: string
 ): boolean => {
-  const removed = removeRootRelativeFileIfPresent(rootDir, relativePath);
+  if (isAbsolute(resetPath)) {
+    const removed = removeFileIfPresent(resetPath);
+    if (removed.isErr()) {
+      throw removed.error;
+    }
+    return removed.value;
+  }
+
+  const removed = removeRootRelativeFileIfPresent(rootDir, resetPath);
   if (removed.isErr()) {
     throw removed.error;
   }
@@ -139,7 +150,7 @@ const buildDbStats = (
 ): DevStatsReport['db'] => ({
   exists,
   fileSizeBytes: exists ? statSync(dbPath).size : 0,
-  path: '.trails/state/trails.db',
+  path: dbPath,
 });
 
 const emptyDevStats = (
@@ -256,12 +267,12 @@ const buildCleanReport = (
   };
 };
 
-const RESET_FILES = [
+const legacyResetFiles = [
+  // Legacy paths (pre-state migration) — cleaned for one cycle so upgrading
+  // workspaces do not leave stale DB sidecars at old locations.
   '.trails/state/trails.db',
   '.trails/state/trails.db-shm',
   '.trails/state/trails.db-wal',
-  // Legacy paths (pre-state migration) — cleaned for one cycle so upgrading
-  // workspaces do not leave stale DB sidecars at old locations.
   '.trails/trails.db',
   '.trails/trails.db-shm',
   '.trails/trails.db-wal',
@@ -270,10 +281,18 @@ const RESET_FILES = [
   '.trails/dev/tracing.db-wal',
 ] as const;
 
-const presentResetFiles = (
-  rootDir: string
-): readonly (typeof RESET_FILES)[number][] =>
-  RESET_FILES.filter((relativePath) => existsSync(join(rootDir, relativePath)));
+const currentResetFiles = (rootDir: string): readonly string[] => {
+  const dbPath = deriveTrailsDbPath({ rootDir });
+  return [dbPath, `${dbPath}-shm`, `${dbPath}-wal`];
+};
+
+const resetFileExists = (rootDir: string, resetPath: string): boolean =>
+  existsSync(isAbsolute(resetPath) ? resetPath : join(rootDir, resetPath));
+
+const presentResetFiles = (rootDir: string): readonly string[] =>
+  [...currentResetFiles(rootDir), ...legacyResetFiles].filter((resetPath) =>
+    resetFileExists(rootDir, resetPath)
+  );
 
 export const buildDevStats = (
   options?: DevRetentionOptions

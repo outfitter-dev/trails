@@ -4,9 +4,9 @@ The v1 topo artifact family uses a compact manifest plus an inspectable graph co
 
 - `.trails/trails.lock` is the committed lock v3 manifest.
 - `.trails/topo.lock` is the committed serialized `TopoGraph` content artifact.
-- `.trails/state/trails.db` is ignored mutable SQLite state for snapshots,
-  pins, tracing, and other framework subsystems.
-- `.trails/cache/` is ignored rebuildable cache state.
+- `trails.db` lives in the per-user Trails state store for snapshots, pins,
+  tracing, and other framework subsystems.
+- Rebuildable cache state lives outside the repo in the Trails cache store.
 - `trails.config.local.*` files at the project root are ignored local override files.
 
 Regenerate the current artifact family with:
@@ -33,19 +33,19 @@ trails validate
 | `serialized_lock` | `lock_manifest` for stored manifest export content; `.trails/trails.lock` for the committed manifest file |
 | `.trails/config/local.*` | `trails.config.local.*` at the project root |
 | `.trails/config.local.*` | `trails.config.local.*` at the project root |
-| `.trails/trails.db` | `.trails/state/trails.db` |
-| `.trails/dev/` | `.trails/state/` |
-| `.trails/generated/` | `.trails/cache/` |
+| `.trails/trails.db` | Trails state store `trails.db` |
+| `.trails/dev/` | Trails state store |
+| `.trails/generated/` | Trails cache store |
 
 ## Local Cleanup
 
-Current builds create the shared database under `.trails/state/`. If an old workspace still has untracked root SQLite sidecars, remove only the legacy root files:
+Current builds create the shared database under the per-user Trails state store. If an old workspace still has untracked root SQLite sidecars, remove only the legacy root files:
 
 ```bash
 rm -f .trails/trails.db .trails/trails.db-shm .trails/trails.db-wal
 ```
 
-Do not commit any `.trails/state/trails.db*` files. They are local runtime state and are ignored by the workspace `.trails/.gitignore`.
+Do not commit any `.trails/state/trails.db*` files if they exist from older builds. They are legacy local runtime state; current builds use the per-user state store.
 
 ## Consumer Updates
 

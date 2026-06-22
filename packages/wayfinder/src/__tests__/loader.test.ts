@@ -7,6 +7,7 @@ import { z } from 'zod';
 
 import {
   Result,
+  deriveTrailsDbPath,
   openReadTrailsDb,
   openWriteTrailsDb,
   topo,
@@ -31,6 +32,15 @@ import {
 } from '../index.js';
 
 let tempDir: string;
+let originalTrailsStateHome: string | undefined;
+
+const restoreTrailsStateHome = (value: string | undefined): void => {
+  if (value === undefined) {
+    delete process.env.TRAILS_STATE_HOME;
+    return;
+  }
+  process.env.TRAILS_STATE_HOME = value;
+};
 
 const userShowTrail = trail('user.show', {
   blaze: () => Result.ok({ ok: true }),
@@ -119,9 +129,12 @@ const seedTopoStore = (graph = makeTopo()) => {
 
 beforeEach(async () => {
   tempDir = await mkdtemp(join(tmpdir(), 'wayfinder-loader-test-'));
+  originalTrailsStateHome = process.env.TRAILS_STATE_HOME;
+  process.env.TRAILS_STATE_HOME = join(tempDir, '.test-state');
 });
 
 afterEach(async () => {
+  restoreTrailsStateHome(originalTrailsStateHome);
   await rm(tempDir, { force: true, recursive: true });
 });
 
@@ -143,6 +156,32 @@ describe('loadWayfinderArtifacts', () => {
     expect(loaded.topoStore?.trails.map((entry) => entry.id)).toEqual([
       'user.show',
     ]);
+  });
+
+  test('does not infer topo-store state from an artifact directory alone', async () => {
+    await writeFreshArtifacts();
+    const legacyDbPath = join(artifactsDir(), 'state', 'trails.db');
+    const legacySnapshot = createTopoSnapshot(makeTopo({ accountListTrail }), {
+      createdAt: '2026-06-04T00:00:00.000Z',
+      gitSha: 'abc123',
+      path: legacyDbPath,
+      rootDir: tempDir,
+    });
+    if (legacySnapshot.isErr()) {
+      throw legacySnapshot.error;
+    }
+
+    const loaded = await loadWayfinderArtifacts({ dir: artifactsDir() });
+
+    expect(loaded.topoGraph?.entries.map((entry) => entry.id)).toEqual([
+      'user.show',
+    ]);
+    expect(loaded.lockManifest?.version).toBe(3);
+    expect(loaded.topoStore).toBeNull();
+    expect(loaded.artifactStatus).toEqual({
+      artifacts: ['topoStore'],
+      status: 'missing',
+    });
   });
 
   test('materializes topo-store records at load time', async () => {
@@ -335,7 +374,7 @@ describe('wayfinderFact', () => {
       drift: { status: 'aligned' },
       source: {
         kind: 'topoStore',
-        path: `${tempDir}/.trails/state/trails.db`,
+        path: deriveTrailsDbPath({ rootDir: tempDir }),
         schemaVersion: TOPO_STORE_SCHEMA_VERSION,
       },
       value: { hasOutput: true },

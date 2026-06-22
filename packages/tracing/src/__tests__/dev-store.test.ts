@@ -3,6 +3,8 @@ import { existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import { deriveTrailsDbPath } from '@ontrails/core';
+
 import type { TraceRecord } from '../trace-record.js';
 import type { DevStore } from '../stores/dev.js';
 import { createDevStore } from '../stores/dev.js';
@@ -73,13 +75,17 @@ describe('createDevStore', () => {
   });
 
   describe('lifecycle', () => {
-    test('defaults to the shared .trails/state/trails.db path under rootDir', () => {
+    test('defaults to the shared XDG state path under rootDir', () => {
       const dir = makeTmpDir();
+      const env = { XDG_STATE_HOME: join(dir, 'state-home') };
 
-      store = createDevStore({ rootDir: dir });
+      store = createDevStore({ env, rootDir: dir });
       store.write(makeRecord());
 
-      expect(existsSync(join(dir, '.trails', 'state', 'trails.db'))).toBe(true);
+      expect(existsSync(deriveTrailsDbPath({ env, rootDir: dir }))).toBe(true);
+      expect(existsSync(join(dir, '.trails', 'state', 'trails.db'))).toBe(
+        false
+      );
     });
 
     test('creates a database file at the specified path', () => {

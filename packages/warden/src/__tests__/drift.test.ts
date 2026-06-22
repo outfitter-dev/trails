@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -83,6 +83,28 @@ const seedSavedTopo = (dir: string): string => {
 };
 
 describe('checkDrift', () => {
+  let testStateHome: string | undefined;
+  let originalTrailsStateHome: string | undefined;
+
+  beforeEach(() => {
+    originalTrailsStateHome = process.env.TRAILS_STATE_HOME;
+    testStateHome = join(tmpdir(), `drift-state-${Date.now()}`);
+    mkdirSync(testStateHome, { recursive: true });
+    process.env.TRAILS_STATE_HOME = testStateHome;
+  });
+
+  afterEach(() => {
+    if (originalTrailsStateHome === undefined) {
+      delete process.env.TRAILS_STATE_HOME;
+    } else {
+      process.env.TRAILS_STATE_HOME = originalTrailsStateHome;
+    }
+    if (testStateHome) {
+      rmSync(testStateHome, { force: true, recursive: true });
+      testStateHome = undefined;
+    }
+  });
+
   test('returns stale: false when no topo is provided', async () => {
     const result = await checkDrift('/tmp');
     expect(result.stale).toBe(false);

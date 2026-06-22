@@ -181,12 +181,18 @@ const topographArtifactFamilyRetiredMatches = [
   ...legacyBootstrapCleanupMatches,
   // Legacy root DB and dev-state sidecars are still removed by dev.reset/dev.clean
   // so upgraded workspaces do not leave stale local files behind.
-  { line: 265, path: 'apps/trails/src/trails/dev-support.ts' },
-  { line: 266, path: 'apps/trails/src/trails/dev-support.ts' },
-  { line: 267, path: 'apps/trails/src/trails/dev-support.ts' },
-  { line: 268, path: 'apps/trails/src/trails/dev-support.ts' },
-  { line: 269, path: 'apps/trails/src/trails/dev-support.ts' },
-  { line: 270, path: 'apps/trails/src/trails/dev-support.ts' },
+  { line: 276, path: 'apps/trails/src/trails/dev-support.ts' },
+  { line: 277, path: 'apps/trails/src/trails/dev-support.ts' },
+  { line: 278, path: 'apps/trails/src/trails/dev-support.ts' },
+  { line: 279, path: 'apps/trails/src/trails/dev-support.ts' },
+  { line: 280, path: 'apps/trails/src/trails/dev-support.ts' },
+  { line: 281, path: 'apps/trails/src/trails/dev-support.ts' },
+  // Fresh scaffolds ignore legacy repo-local DB residue without creating it.
+  { line: 202, path: 'apps/trails/src/trails/create-scaffold.ts' },
+  { line: 215, path: 'apps/trails/src/__tests__/create.test.ts' },
+  { line: 226, path: 'apps/trails/src/__tests__/create.test.ts' },
+  { line: 227, path: 'apps/trails/src/__tests__/create.test.ts' },
+  { line: 228, path: 'apps/trails/src/__tests__/create.test.ts' },
   // The topo-store migration and fixture must name pre-v12 columns exactly.
   {
     line: 345,
@@ -210,6 +216,18 @@ const topographArtifactFamilyRetiredMatches = [
   },
   {
     line: 1441,
+    path: 'packages/topographer/src/__tests__/topo-store.test.ts',
+  },
+  {
+    line: 1443,
+    path: 'packages/topographer/src/__tests__/topo-store.test.ts',
+  },
+  {
+    line: 1457,
+    path: 'packages/topographer/src/__tests__/topo-store.test.ts',
+  },
+  {
+    line: 1459,
     path: 'packages/topographer/src/__tests__/topo-store.test.ts',
   },
 ] as const;

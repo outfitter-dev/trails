@@ -1,20 +1,17 @@
 import { afterEach, describe, expect, test } from 'bun:test';
-import {
-  existsSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from 'node:fs';
+import { existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import {
+  deriveTrailsProjectKey,
   ensureSubsystemSchema,
   ensureTrailsWorkspace,
   openReadTrailsDb,
   openWriteTrailsDb,
   deriveTrailsDbPath,
+  deriveTrailsStateDir,
+  deriveTrailsStateHome,
   WORKSPACE_GITIGNORE_CONTENT,
 } from '../trails-db.js';
 
@@ -33,26 +30,64 @@ describe('trails db foundation', () => {
     return tmpRoot;
   };
 
-  const expectWorkspaceLayout = (rootDir: string): void => {
-    expect(existsSync(join(rootDir, '.trails', '.gitignore'))).toBe(true);
-    expect(existsSync(join(rootDir, '.trails', 'cache'))).toBe(true);
-    expect(existsSync(join(rootDir, '.trails', 'state'))).toBe(true);
+  const expectNoDisposableWorkspaceLayout = (rootDir: string): void => {
+    expect(existsSync(join(rootDir, '.trails', '.gitignore'))).toBe(false);
+    expect(existsSync(join(rootDir, '.trails', 'cache'))).toBe(false);
+    expect(existsSync(join(rootDir, '.trails', 'state'))).toBe(false);
   };
 
-  test('deriveTrailsDbPath places the database in .trails/state/trails.db', () => {
+  test('deriveTrailsDbPath places the database in the XDG state store', () => {
     const rootDir = '/tmp/example-app';
-    expect(deriveTrailsDbPath({ rootDir })).toBe(
-      '/tmp/example-app/.trails/state/trails.db'
+    const env = { XDG_STATE_HOME: '/tmp/trails-state' };
+    const projectKey = deriveTrailsProjectKey({ rootDir });
+
+    expect(projectKey).toMatch(/^example-app-[a-f0-9]{16}$/);
+    expect(deriveTrailsStateHome({ env, rootDir })).toBe('/tmp/trails-state');
+    expect(deriveTrailsStateDir({ env, rootDir })).toBe(
+      `/tmp/trails-state/trails/projects/${projectKey}`
     );
+    expect(deriveTrailsDbPath({ env, rootDir })).toBe(
+      `/tmp/trails-state/trails/projects/${projectKey}/trails.db`
+    );
+  });
+
+  test('TRAILS_STATE_HOME overrides XDG_STATE_HOME', () => {
+    expect(
+      deriveTrailsStateHome({
+        env: {
+          TRAILS_STATE_HOME: '/tmp/trails-explicit-state',
+          XDG_STATE_HOME: '/tmp/xdg-state',
+        },
+        rootDir: '/tmp/example-app',
+      })
+    ).toBe('/tmp/trails-explicit-state');
+  });
+
+  test('deriveTrailsDbPath preserves explicit path overrides', () => {
+    expect(
+      deriveTrailsDbPath({
+        env: { XDG_STATE_HOME: '/tmp/ignored-state' },
+        path: '/tmp/custom/trails.db',
+        rootDir: '/tmp/example-app',
+      })
+    ).toBe('/tmp/custom/trails.db');
   });
 
   test('openWriteTrailsDb creates the database with WAL and NORMAL defaults', () => {
     const rootDir = makeRoot();
-    const db = openWriteTrailsDb({ rootDir });
+    const stateHome = join(rootDir, 'state-home');
+    const db = openWriteTrailsDb({
+      env: { XDG_STATE_HOME: stateHome },
+      rootDir,
+    });
 
     try {
-      expect(existsSync(deriveTrailsDbPath({ rootDir }))).toBe(true);
-      expectWorkspaceLayout(rootDir);
+      expect(
+        existsSync(
+          deriveTrailsDbPath({ env: { XDG_STATE_HOME: stateHome }, rootDir })
+        )
+      ).toBe(true);
+      expectNoDisposableWorkspaceLayout(rootDir);
 
       const journal = db
         .query<{ journal_mode: string }, []>('PRAGMA journal_mode')
@@ -74,10 +109,11 @@ describe('trails db foundation', () => {
 
   test('openReadTrailsDb blocks writes at the SQLite connection level', () => {
     const rootDir = makeRoot();
-    const writer = openWriteTrailsDb({ rootDir });
+    const env = { XDG_STATE_HOME: join(rootDir, 'state-home') };
+    const writer = openWriteTrailsDb({ env, rootDir });
     writer.close();
 
-    const reader = openReadTrailsDb({ rootDir });
+    const reader = openReadTrailsDb({ env, rootDir });
 
     try {
       const busyTimeout = reader
@@ -93,57 +129,32 @@ describe('trails db foundation', () => {
   });
 
   describe('ensureTrailsWorkspace', () => {
-    test('creates the canonical cache/state subdirectories', () => {
+    test('creates only the committed-control directory', () => {
       const rootDir = makeRoot();
       ensureTrailsWorkspace(rootDir);
-      expectWorkspaceLayout(rootDir);
+      expect(existsSync(join(rootDir, '.trails'))).toBe(true);
+      expectNoDisposableWorkspaceLayout(rootDir);
     });
 
-    test('writes the canonical gitignore content on first run', () => {
+    test('is idempotent without writing a workspace gitignore', () => {
       const rootDir = makeRoot();
       ensureTrailsWorkspace(rootDir);
-      const content = readFileSync(
-        join(rootDir, '.trails', '.gitignore'),
-        'utf8'
-      );
-      expect(content).toBe(WORKSPACE_GITIGNORE_CONTENT);
+      ensureTrailsWorkspace(rootDir);
+      expect(existsSync(join(rootDir, '.trails'))).toBe(true);
+      expectNoDisposableWorkspaceLayout(rootDir);
     });
 
-    test('appends missing canonical lines to an existing gitignore', () => {
-      const rootDir = makeRoot();
-      ensureTrailsWorkspace(rootDir);
-      const gitignorePath = join(rootDir, '.trails', '.gitignore');
-
-      // Simulate a user who removed two canonical lines and added their own.
-      writeFileSync(gitignorePath, '# custom rule\n*.local\n');
-      ensureTrailsWorkspace(rootDir);
-
-      const content = readFileSync(gitignorePath, 'utf8');
-      expect(content).toContain('# custom rule');
-      expect(content).toContain('*.local');
-      expect(content).toContain('cache/');
-      expect(content).toContain('state/');
-    });
-
-    test('leaves an up-to-date gitignore untouched on repeat runs', () => {
-      const rootDir = makeRoot();
-      ensureTrailsWorkspace(rootDir);
-      const first = readFileSync(
-        join(rootDir, '.trails', '.gitignore'),
-        'utf8'
-      );
-      ensureTrailsWorkspace(rootDir);
-      const second = readFileSync(
-        join(rootDir, '.trails', '.gitignore'),
-        'utf8'
-      );
-      expect(second).toBe(first);
+    test('keeps legacy gitignore compatibility content empty', () => {
+      expect(WORKSPACE_GITIGNORE_CONTENT).toBe('');
     });
   });
 
   test('ensureSubsystemSchema only migrates when the subsystem version changes', () => {
     const rootDir = makeRoot();
-    const db = openWriteTrailsDb({ rootDir });
+    const db = openWriteTrailsDb({
+      env: { XDG_STATE_HOME: join(rootDir, 'state-home') },
+      rootDir,
+    });
     let calls = 0;
 
     try {

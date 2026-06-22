@@ -151,3 +151,23 @@ export const removeRootRelativeFileIfPresent = (
     );
   }
 };
+
+export const removeFileIfPresent = (
+  path: string
+): TrailsResult<boolean, Error> => {
+  if (!existsSync(path)) {
+    return Result.ok(false);
+  }
+
+  try {
+    rmSync(path, { force: true });
+    return Result.ok(true);
+  } catch (error) {
+    return Result.err(
+      new InternalError(`Failed to remove local state file "${path}"`, {
+        cause: asError(error),
+        context: { path },
+      })
+    );
+  }
+};

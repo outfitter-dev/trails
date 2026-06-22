@@ -1,26 +1,22 @@
 # Topo Store
 
-The topo store is Trails' queryable database of your application's topology — every trail, signal, resource, and their relationships. It lives in `.trails/state/trails.db` and is created automatically when you run topo commands.
+The topo store is Trails' queryable database of your application's topology — every trail, signal, resource, and their relationships. Its default `trails.db` lives in the per-user Trails state store (`$TRAILS_STATE_HOME`, `$XDG_STATE_HOME`, then `~/.local/state`) and is created automatically when you run topo commands.
 
 For the full SQLite schema and programmatic query API, see the [Topo Store Reference](./topo-store-reference.md). If you are migrating from the old surface-map or root database layout, see the [TopoGraph Artifact Family Migration](./migration/topograph-artifact-family.md).
 
-## The `.trails/` directory
+## Project files and local state
 
-Trails creates a `.trails/` directory in your workspace root on first use:
+Current v1 builds still write the committed topo artifact family under `.trails/`:
 
 ```text
 .trails/
-├── .gitignore             # Auto-generated gitignore for this directory
-├── cache/                 # Rebuildable derived data (gitignored)
-├── state/                 # Mutable framework state (gitignored)
-│   └── trails.db          # SQLite database (topology store)
 ├── topo.lock              # Serialized TopoGraph (git-tracked)
 └── trails.lock            # Lock v3 manifest (text, git-tracked)
 ```
 
-- **`state/trails.db`** — SQLite database containing topo snapshots, pins, and schema cache. Not git-tracked.
 - **`topo.lock`** — Committed serialized TopoGraph with trail, signal, resource, relation, example, detour, and workspace metadata.
 - **`trails.lock`** — Committed compact v3 manifest that points at `topo.lock` and verifies its hash.
+- **`trails.db`** — SQLite database containing topo snapshots, pins, and schema cache. It is local state under the per-user Trails state store, not a repo file.
 
 Local per-developer overrides live at the project root as `trails.config.local.*`, not under `.trails/`.
 

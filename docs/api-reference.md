@@ -23,7 +23,8 @@ blobRefSchema, createBlobRef(...)  // declare and create binary output reference
 //               .getContour(name), .hasContour(name), .listContours(), .contourIds(), .contourCount
 //               .getResource(id), .hasResource(id), .listResources(), .resourceIds(), .resourceCount
 openReadTrailsDb(options?), openWriteTrailsDb(options?), ensureSubsystemSchema(db, options)
-deriveTrailsDir(options?), deriveTrailsDbPath(options?)
+deriveTrailsDir(options?), deriveTrailsDbPath(options?), deriveTrailsStateDir(options?)
+deriveTrailsStateHome(options?), deriveTrailsProjectKey(options?)
 // topo-store API (createTopoStore, createMockTopoStore, topoStore, snapshot helpers, etc.)
 // has moved to @ontrails/topographer per ADR-0042. See that section below.
 

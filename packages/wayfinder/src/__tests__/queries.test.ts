@@ -9,6 +9,7 @@ import {
   ConflictError,
   Result,
   createTrailContext,
+  deriveTrailsDbPath,
   resource,
   signal,
   topo,
@@ -622,7 +623,7 @@ describe('wayfinder graph-read query trails', () => {
     });
   });
 
-  test('keeps explicit artifact directories isolated from context cwd', async () => {
+  test('keeps explicit artifact directories isolated from mutable state', async () => {
     const artifactRoot = join(tempDir, 'artifact-root');
     const cwdRoot = join(tempDir, 'cwd-root');
     await mkdir(artifactRoot, { recursive: true });
@@ -636,7 +637,22 @@ describe('wayfinder graph-read query trails', () => {
       )
     );
 
-    expect(overview.drift).toEqual({ status: 'aligned' });
+    expect(overview.drift).toEqual({
+      artifacts: ['topoStore'],
+      status: 'absent',
+    });
+
+    const overviewWithStateStore = await expectOk(
+      wayfindOverviewTrail.blaze(
+        {
+          dir: artifactsDirFor(artifactRoot),
+          trailsDbPath: deriveTrailsDbPath({ rootDir: artifactRoot }),
+        },
+        createTrailContext({ cwd: cwdRoot, workspaceRoot: cwdRoot })
+      )
+    );
+
+    expect(overviewWithStateStore.drift).toEqual({ status: 'aligned' });
   });
 
   test('finds entities with typed filters', async () => {

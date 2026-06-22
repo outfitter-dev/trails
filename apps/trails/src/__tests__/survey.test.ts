@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import {
   existsSync,
   mkdirSync,
@@ -306,6 +306,27 @@ const repoTempDir = (): string =>
     '.tmp-tests',
     `trails-survey-${Date.now()}-${Math.random().toString(36).slice(2)}`
   );
+
+let testStateHome: string | undefined;
+let originalTrailsStateHome: string | undefined;
+
+beforeEach(() => {
+  originalTrailsStateHome = process.env.TRAILS_STATE_HOME;
+  testStateHome = repoTempDir();
+  process.env.TRAILS_STATE_HOME = testStateHome;
+});
+
+afterEach(() => {
+  if (originalTrailsStateHome === undefined) {
+    delete process.env.TRAILS_STATE_HOME;
+  } else {
+    process.env.TRAILS_STATE_HOME = originalTrailsStateHome;
+  }
+  if (testStateHome !== undefined) {
+    rmSync(testStateHome, { force: true, recursive: true });
+    testStateHome = undefined;
+  }
+});
 
 // ---------------------------------------------------------------------------
 // Tests

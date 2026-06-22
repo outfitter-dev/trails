@@ -1,41 +1,36 @@
 import { Database } from 'bun:sqlite';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { createHash } from 'node:crypto';
+import { existsSync, mkdirSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { basename, dirname, join, resolve } from 'node:path';
 
 import { NotFoundError } from './errors.js';
 
 const TRAILS_DIR = '.trails';
 const TRAILS_DB_FILE = 'trails.db';
-const TRAILS_CACHE_DIR = 'cache';
-const TRAILS_STATE_DIR = 'state';
+const TRAILS_STORE_DIR = 'trails';
+const TRAILS_PROJECTS_DIR = 'projects';
 const SCHEMA_VERSION_TABLE = 'meta_schema_versions';
 const SQLITE_BUSY_TIMEOUT_MS = 5000;
-const WORKSPACE_SUBDIRS = [TRAILS_CACHE_DIR, TRAILS_STATE_DIR] as const;
+const PROJECT_KEY_HASH_LENGTH = 16;
+const PROJECT_KEY_NAME_FALLBACK = 'project';
 
 /**
- * The canonical lines written to a freshly-bootstrapped
- * `.trails/.gitignore`. Kept as the source of truth for every consumer that
- * needs to either write the file (scaffold) or audit its content (tests).
+ * Legacy no-op compatibility export.
  *
- * @see {@link WORKSPACE_GITIGNORE_CONTENT} for the rendered string form.
+ * `.trails/` is committed project control, not disposable cache/state. New
+ * code should not write a `.trails/.gitignore`; keep this export available for
+ * older callers during the pre-1.0 cutover.
  */
-export const WORKSPACE_GITIGNORE_LINES = [
-  '# Rebuildable cache',
-  'cache/',
-  '',
-  '# Mutable runtime state',
-  'state/',
-  '',
-] as const;
+export const WORKSPACE_GITIGNORE_LINES = [] as const;
 
 /**
- * The canonical rendered `.trails/.gitignore` content. Use this when writing
- * the file eagerly (e.g. during `trails create` scaffolding) or when asserting
- * on the workspace bootstrap output.
+ * Legacy no-op compatibility export. See {@link WORKSPACE_GITIGNORE_LINES}.
  */
-export const WORKSPACE_GITIGNORE_CONTENT = `${WORKSPACE_GITIGNORE_LINES.join('\n').trimEnd()}\n`;
+export const WORKSPACE_GITIGNORE_CONTENT = '';
 
 export interface TrailsDbLocationOptions {
+  readonly env?: Record<string, string | undefined>;
   readonly path?: string;
   readonly rootDir?: string;
 }
@@ -53,66 +48,67 @@ interface SchemaVersionRow {
 const deriveRootDir = (rootDir?: string): string =>
   resolve(rootDir ?? process.cwd());
 
+const sanitizeProjectKeyName = (name: string): string => {
+  const normalized = name.replaceAll(/[^a-zA-Z0-9._-]+/g, '-');
+  return normalized.length > 0 ? normalized : PROJECT_KEY_NAME_FALLBACK;
+};
+
+const projectHash = (rootDir: string): string =>
+  createHash('sha256')
+    .update(rootDir)
+    .digest('hex')
+    .slice(0, PROJECT_KEY_HASH_LENGTH);
+
+export const deriveTrailsProjectKey = (
+  options?: TrailsDbLocationOptions
+): string => {
+  const rootDir = deriveRootDir(options?.rootDir);
+  return `${sanitizeProjectKeyName(basename(rootDir))}-${projectHash(rootDir)}`;
+};
+
+export const deriveTrailsStateHome = (
+  options?: TrailsDbLocationOptions
+): string => {
+  const env = options?.env ?? process.env;
+  return resolve(
+    env['TRAILS_STATE_HOME'] ??
+      env['XDG_STATE_HOME'] ??
+      join(homedir(), '.local', 'state')
+  );
+};
+
+export const deriveTrailsStateDir = (
+  options?: TrailsDbLocationOptions
+): string =>
+  join(
+    deriveTrailsStateHome(options),
+    TRAILS_STORE_DIR,
+    TRAILS_PROJECTS_DIR,
+    deriveTrailsProjectKey(options)
+  );
+
 export const deriveTrailsDir = (options?: TrailsDbLocationOptions): string =>
   join(deriveRootDir(options?.rootDir), TRAILS_DIR);
 
 export const deriveTrailsDbPath = (options?: TrailsDbLocationOptions): string =>
   options?.path
     ? resolve(options.path)
-    : join(deriveTrailsDir(options), TRAILS_STATE_DIR, TRAILS_DB_FILE);
+    : join(deriveTrailsStateDir(options), TRAILS_DB_FILE);
 
 const ensureDbParentDir = (dbPath: string): void => {
   mkdirSync(dirname(dbPath), { recursive: true });
 };
 
-const appendMissingGitignoreLines = (
-  gitignorePath: string,
-  content: string
-): void => {
-  const existingLines = new Set(content.split('\n').map((l) => l.trim()));
-  const missing = WORKSPACE_GITIGNORE_LINES.filter(
-    (line) => line !== '' && !existingLines.has(line)
-  );
-
-  if (missing.length === 0) {
-    return;
-  }
-
-  const next = `${content.trimEnd()}\n\n${missing.join('\n')}`;
-  writeFileSync(gitignorePath, `${next.trimEnd()}\n`);
-};
-
-const ensureWorkspaceGitignore = (trailsDir: string): void => {
-  const gitignorePath = join(trailsDir, '.gitignore');
-
-  if (!existsSync(gitignorePath)) {
-    writeFileSync(gitignorePath, WORKSPACE_GITIGNORE_CONTENT);
-    return;
-  }
-
-  appendMissingGitignoreLines(
-    gitignorePath,
-    readFileSync(gitignorePath, 'utf8')
-  );
-};
-
 /**
  * Bootstrap the `.trails/` workspace at `rootDir`.
  *
- * Creates the workspace directory plus the canonical `cache/` and `state/`
- * subdirectories, then either writes a fresh `.gitignore` matching
- * {@link WORKSPACE_GITIGNORE_CONTENT} or appends any missing canonical lines
- * to an existing one. Safe to call repeatedly. This is the single canonical
- * source of truth for workspace layout — scaffolding, configuration loading,
- * and runtime DB initialization all flow through here.
+ * Creates only the committed-control directory. Derived cache and observed
+ * state live in the per-user Trails store, so this helper intentionally does
+ * not create `.trails/cache`, `.trails/state`, or `.trails/.gitignore`.
  */
 export const ensureTrailsWorkspace = (rootDir: string): void => {
   const trailsDir = deriveTrailsDir({ rootDir });
   mkdirSync(trailsDir, { recursive: true });
-  for (const subdir of WORKSPACE_SUBDIRS) {
-    mkdirSync(join(trailsDir, subdir), { recursive: true });
-  }
-  ensureWorkspaceGitignore(trailsDir);
 };
 
 const initializeWritePragmas = (db: Database): void => {
@@ -163,15 +159,14 @@ export const openWriteTrailsDb = (
   options?: TrailsDbLocationOptions
 ): Database => {
   const rootDir = deriveRootDir(options?.rootDir);
-  const dbPath = deriveTrailsDbPath(
-    options?.path ? { path: options.path, rootDir } : { rootDir }
-  );
+  const locationOptions: TrailsDbLocationOptions = {
+    ...(options?.env === undefined ? {} : { env: options.env }),
+    ...(options?.path === undefined ? {} : { path: options.path }),
+    rootDir,
+  };
+  const dbPath = deriveTrailsDbPath(locationOptions);
 
-  if (options?.path === undefined) {
-    ensureTrailsWorkspace(rootDir);
-  } else {
-    ensureDbParentDir(dbPath);
-  }
+  ensureDbParentDir(dbPath);
 
   const db = new Database(dbPath, { create: true });
   initializeWritePragmas(db);

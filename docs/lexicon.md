@@ -102,13 +102,13 @@ The SQL/storage spelling for serialized TopoGraph content. In the topo store, `t
 
 The SQL/storage spelling for the stored lock manifest export. The manifest is the compact `.trails/trails.lock` artifact that points at `topo.lock` and verifies the TopoGraph hash; it is not a second copy of the graph.
 
-#### `.trails/state/`
+#### Trails state store
 
-Ignored mutable runtime state. The default local SQLite database lives at `.trails/state/trails.db`; its `-wal` and `-shm` sidecars are transient local state and must not be committed.
+Per-user mutable runtime state. The default local SQLite database lives under `$TRAILS_STATE_HOME/trails/projects/<project-key>/trails.db`, then `$XDG_STATE_HOME`, then `~/.local/state`. Its `-wal` and `-shm` sidecars are transient local state and must not be committed.
 
-#### `.trails/cache/`
+#### Trails cache store
 
-Ignored rebuildable cache state. Generated helper artifacts that can be rebuilt from source contracts belong here rather than beside committed lock artifacts.
+Per-user rebuildable cache state. Cache artifacts that can be rebuilt from source contracts belong in the global Trails cache tier, not beside committed lock artifacts or under `.trails/`.
 
 #### `trails.config.local.*`
 
@@ -129,10 +129,10 @@ These names are historical or migration vocabulary, not current target-state lan
 | `serialized_lock` | `lock_manifest` when referring to stored manifest export content; `.trails/trails.lock` when referring to the committed manifest file |
 | `.trails/config/local.*` | `trails.config.local.*` |
 | `.trails/config.local.*` | `trails.config.local.*` |
-| `.trails/trails.db` | `.trails/state/trails.db` |
-| `.trails/trails.db-shm` / `.trails/trails.db-wal` | `.trails/state/trails.db-shm` / `.trails/state/trails.db-wal` |
-| `.trails/dev/` | `.trails/state/` for mutable runtime state |
-| `.trails/generated/` | `.trails/cache/` for rebuildable generated state |
+| `.trails/trails.db` | Trails state store `trails.db` |
+| `.trails/trails.db-shm` / `.trails/trails.db-wal` | Trails state store SQLite sidecars |
+| `.trails/state/` / `.trails/dev/` | Trails state store for mutable runtime state |
+| `.trails/cache/` / `.trails/generated/` | Trails cache store for rebuildable generated state |
 
 Historical release notes, old migrations, accepted ADR history, and explicitly superseded planning archives may mention retired names when the surrounding text clearly marks them as legacy. Active guidance should teach the current names.
 
@@ -261,7 +261,7 @@ Trails signals are authored, typed notifications in the contract graph. Schedule
 
 ### `pin`
 
-A named snapshot of the graph state at a point in time. Pins are stored in the shared `trails.db` at `.trails/state/trails.db` and enable comparison between the current resolved graph and a previous known-good state.
+A named snapshot of the graph state at a point in time. Pins are stored in the shared local `trails.db` in the Trails state store and enable comparison between the current resolved graph and a previous known-good state.
 
 ```bash
 trails topo pin --name v1.0

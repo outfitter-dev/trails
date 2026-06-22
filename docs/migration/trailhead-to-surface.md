@@ -95,7 +95,7 @@ Reset local Trails state before upgrading:
 trails dev reset --yes
 ```
 
-If you manage the database manually on current builds, delete `.trails/state/trails.db` and its SQLite sidecar files (`.trails/state/trails.db-wal`, `.trails/state/trails.db-shm`) before recreating local state. Very old beta workspaces may also have legacy root files at `.trails/trails.db*`; remove those only as migration cleanup.
+If you manage the database manually on current builds, prefer `trails dev reset --yes` so the CLI removes the derived Trails state-store database and legacy repo-local SQLite sidecars together. Very old beta workspaces may also have legacy root files at `.trails/trails.db*`; remove those only as migration cleanup.
 
 ## Query Trail
 

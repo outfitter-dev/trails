@@ -1,12 +1,12 @@
 /**
  * `create.scaffold` trail -- Creates base project structure.
  *
- * Generates package.json, tsconfig, app.ts, starter trails, and .trails/ directory.
+ * Generates package.json, tsconfig, app.ts, starter trails, and scaffold provenance.
  */
 
 import { resolve } from 'node:path';
 
-import { Result, trail, WORKSPACE_GITIGNORE_CONTENT } from '@ontrails/core';
+import { Result, trail } from '@ontrails/core';
 import type { Result as TrailsResult } from '@ontrails/core';
 import { z } from 'zod';
 
@@ -197,12 +197,13 @@ Keep shared project guidance in \`./AGENTS.md\`. Only Claude-specific bootstrap 
 const GITIGNORE_CONTENT = `node_modules/
 dist/
 *.tsbuildinfo
+.trails/cache/
+.trails/state/
+.trails/trails.db*
 trails.config.local.js
 trails.config.local.mjs
 trails.config.local.mts
 trails.config.local.ts
-.trails/cache/
-.trails/state/
 `;
 
 const OXLINT_CONFIG_CONTENT = `import { defineConfig } from 'oxlint';
@@ -555,7 +556,6 @@ const collectScaffoldFiles = (
     ['.gitignore', GITIGNORE_CONTENT],
     ['oxlint.config.ts', OXLINT_CONFIG_CONTENT],
     ['.oxfmtrc.jsonc', OXFMTRC_CONTENT],
-    ['.trails/.gitignore', WORKSPACE_GITIGNORE_CONTENT],
     ['.trails/scaffold.json', generateScaffoldProvenance(starter)],
     ['src/app.ts', generateAppTs(name, starter)],
     ...starterFileGenerators[starter](),

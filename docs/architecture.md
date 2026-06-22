@@ -163,7 +163,7 @@ Overrides are escape hatches. They're visible in the TopoGraph as explicit devia
 | `@ontrails/store` | Backend-agnostic schema-derived store definitions | None beyond core |
 | `@ontrails/drizzle` | Drizzle SQLite adapter, typed store bindings, read-only bindings | `drizzle-orm` |
 | `@ontrails/observe` | Production log and trace sink contracts, composition, and built-in sinks | None beyond core |
-| `@ontrails/tracing` | Tracing compatibility, query/status trails, `.trails/state/trails.db` dev-state storage, sampling helpers, OTel adapter | None beyond core |
+| `@ontrails/tracing` | Tracing compatibility, query/status trails, Trails state-store dev storage, sampling helpers, OTel adapter | None beyond core |
 | `@ontrails/logtape` | LogTape sink adapter for `@ontrails/observe` | None (accepts any LogTape-shaped logger via a structural interface) |
 | `@ontrails/pino` | Pino sink adapter for `@ontrails/observe` | None (accepts any Pino-shaped logger via a structural interface) |
 

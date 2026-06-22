@@ -392,6 +392,9 @@ export type { Topo, TopoIdentity } from './topo.js';
 export {
   deriveTrailsDbPath,
   deriveTrailsDir,
+  deriveTrailsProjectKey,
+  deriveTrailsStateDir,
+  deriveTrailsStateHome,
   ensureSubsystemSchema,
   ensureTrailsWorkspace,
   openReadTrailsDb,

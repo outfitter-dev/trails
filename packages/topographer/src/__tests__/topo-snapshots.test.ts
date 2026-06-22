@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -15,11 +15,28 @@ import {
 
 describe('topo snapshot primitives', () => {
   let tmpRoot: string | undefined;
+  let testStateHome: string | undefined;
+  let originalTrailsStateHome: string | undefined;
+
+  beforeEach(() => {
+    originalTrailsStateHome = process.env.TRAILS_STATE_HOME;
+    testStateHome = mkdtempSync(join(tmpdir(), 'topo-snapshots-state-'));
+    process.env.TRAILS_STATE_HOME = testStateHome;
+  });
 
   afterEach(() => {
+    if (originalTrailsStateHome === undefined) {
+      delete process.env.TRAILS_STATE_HOME;
+    } else {
+      process.env.TRAILS_STATE_HOME = originalTrailsStateHome;
+    }
     if (tmpRoot) {
       rmSync(tmpRoot, { force: true, recursive: true });
       tmpRoot = undefined;
+    }
+    if (testStateHome) {
+      rmSync(testStateHome, { force: true, recursive: true });
+      testStateHome = undefined;
     }
   });
 

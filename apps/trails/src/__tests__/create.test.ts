@@ -207,6 +207,30 @@ const assertDefaultProjectFiles = (dir: string): void => {
   );
 };
 
+const assertGitignore = (dir: string): void => {
+  expectContainsAll(readText(dir, '.gitignore'), [
+    'node_modules/',
+    '.trails/cache/',
+    '.trails/state/',
+    '.trails/trails.db*',
+    'trails.config.local.ts',
+  ]);
+};
+
+const assertNoDisposableTrailsState = (dir: string): void => {
+  expectPaths(
+    dir,
+    [
+      '.trails/cache',
+      '.trails/state',
+      '.trails/trails.db',
+      '.trails/trails.db-shm',
+      '.trails/trails.db-wal',
+    ],
+    false
+  );
+};
+
 const assertTsconfigTests = (dir: string): void => {
   const tsconfig = readJson(dir, 'tsconfig.tests.json');
   expect(tsconfig['extends']).toBe('./tsconfig.json');
@@ -535,6 +559,8 @@ describe('trails create', () => {
           'tsconfig.tests.json',
         ]);
         assertDefaultProjectFiles(dir);
+        assertGitignore(dir);
+        assertNoDisposableTrailsState(dir);
         assertAgentGuidance(dir);
         assertReadme(dir);
         assertScaffoldProvenance(dir);
@@ -570,7 +596,6 @@ describe('trails create', () => {
             { kind: 'write', path: 'AGENTS.md' },
             { kind: 'write', path: 'CLAUDE.md' },
             { kind: 'write', path: 'src/app.ts' },
-            { kind: 'write', path: '.trails/.gitignore' },
             { kind: 'write', path: '.trails/scaffold.json' },
             { kind: 'write', path: 'tsconfig.tests.json' },
           ])
@@ -608,6 +633,7 @@ describe('trails create', () => {
           ],
           true
         );
+        assertNoDisposableTrailsState(dir);
       });
     });
 

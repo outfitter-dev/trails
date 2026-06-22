@@ -111,8 +111,13 @@ Before creating the version PR:
 
     ```bash
     git status --short -- .trails .trails-tmp
-    git status --short -- .trails/state/trails.db .trails/state/trails.db-shm .trails/state/trails.db-wal
+    git status --short -- .trails/state .trails/cache '.trails/trails.db*'
     ```
+
+    Current `trails.db` state lives in the per-user Trails state store and
+    cannot be staged from the repo. Treat `.trails/state`, `.trails/cache`, or
+    `.trails/trails.db*` as legacy repo-local residue; clean it with
+    `trails dev reset --yes` before release.
 
 11. The ADR and docs checks pass:
 

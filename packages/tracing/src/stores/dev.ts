@@ -15,9 +15,11 @@ import type { TraceRecord, TraceSink } from '@ontrails/core';
 
 /** Configuration for the SQLite dev store. */
 export interface DevStoreOptions {
-  /** Path to the SQLite database file. Defaults to `.trails/state/trails.db`. */
+  /** Environment used for state-store discovery. Defaults to `process.env`. */
+  readonly env?: Record<string, string | undefined>;
+  /** Path to the SQLite database file. Overrides state-store discovery. */
   readonly path?: string;
-  /** Root directory used when resolving the default `.trails/state/trails.db` path. */
+  /** Root directory used when deriving the default per-project state path. */
   readonly rootDir?: string;
   /** Maximum number of records to retain. Defaults to 10000. */
   readonly maxRecords?: number;
@@ -233,6 +235,7 @@ export const createDevStore = (options?: DevStoreOptions): DevStore => {
   const maxRecords = options?.maxRecords ?? DEFAULT_MAX_RECORDS;
   const maxAge = options?.maxAge ?? DEFAULT_MAX_AGE;
   const db = openWriteTrailsDb({
+    ...(options?.env === undefined ? {} : { env: options.env }),
     ...(options?.path === undefined ? {} : { path: options.path }),
     ...(options?.rootDir === undefined ? {} : { rootDir: options.rootDir }),
   });

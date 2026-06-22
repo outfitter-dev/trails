@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -16,6 +16,7 @@ import {
   topo,
   trail,
   webhook,
+  deriveTrailsDbPath,
   openWriteTrailsDb,
 } from '@ontrails/core';
 import type { Layer } from '@ontrails/core';
@@ -609,7 +610,7 @@ const replaceStoreWithHistoryOnlyStore = async (
 ): Promise<void> => {
   // Ensure mtime/size differs so the cached identity is invalidated even on
   // filesystems with coarse mtime granularity.
-  const dbPath = join(rootDir, '.trails', 'state', 'trails.db');
+  const dbPath = deriveTrailsDbPath({ rootDir });
   rmSync(dbPath, { force: true });
   rmSync(`${dbPath}-shm`, { force: true });
   rmSync(`${dbPath}-wal`, { force: true });
@@ -624,11 +625,28 @@ const replaceStoreWithHistoryOnlyStore = async (
 
 describe('topo store projection', () => {
   let tmpRoot: string | undefined;
+  let testStateHome: string | undefined;
+  let originalTrailsStateHome: string | undefined;
+
+  beforeEach(() => {
+    originalTrailsStateHome = process.env.TRAILS_STATE_HOME;
+    testStateHome = mkdtempSync(join(tmpdir(), 'topo-store-state-'));
+    process.env.TRAILS_STATE_HOME = testStateHome;
+  });
 
   afterEach(() => {
+    if (originalTrailsStateHome === undefined) {
+      delete process.env.TRAILS_STATE_HOME;
+    } else {
+      process.env.TRAILS_STATE_HOME = originalTrailsStateHome;
+    }
     if (tmpRoot) {
       rmSync(tmpRoot, { force: true, recursive: true });
       tmpRoot = undefined;
+    }
+    if (testStateHome) {
+      rmSync(testStateHome, { force: true, recursive: true });
+      testStateHome = undefined;
     }
   });
 

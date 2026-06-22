@@ -95,7 +95,7 @@ const resolveArtifactReadOptions = (
 
 const resolveTopoStoreLocation = (
   options?: WayfinderArtifactLoaderOptions
-): TrailsDbLocationOptions => {
+): TrailsDbLocationOptions | undefined => {
   if (options?.path !== undefined) {
     return options.rootDir === undefined
       ? { path: options.path }
@@ -105,7 +105,7 @@ const resolveTopoStoreLocation = (
     return { rootDir: options.rootDir };
   }
   if (options?.dir !== undefined) {
-    return { path: join(options.dir, 'state', 'trails.db') };
+    return undefined;
   }
   return {};
 };
@@ -154,6 +154,9 @@ const readTopoStoreArtifact = (
   options?: WayfinderArtifactLoaderOptions
 ): ArtifactRead<WayfinderTopoStoreLoad> => {
   const location = resolveTopoStoreLocation(options);
+  if (location === undefined) {
+    return { kind: 'ok', value: null };
+  }
   const path = deriveTrailsDbPath(location);
   if (!existsSync(path)) {
     return { kind: 'ok', value: null };
@@ -393,8 +396,11 @@ export const wayfinderTopoGraphSource = (
 
 export const wayfinderTopoStoreSource = (
   options?: WayfinderArtifactLoaderOptions
-) => ({
-  kind: 'topoStore' as const,
-  path: deriveTrailsDbPath(resolveTopoStoreLocation(options)),
-  schemaVersion: TOPO_STORE_SCHEMA_VERSION,
-});
+) => {
+  const location = resolveTopoStoreLocation(options);
+  return {
+    kind: 'topoStore' as const,
+    ...(location === undefined ? {} : { path: deriveTrailsDbPath(location) }),
+    schemaVersion: TOPO_STORE_SCHEMA_VERSION,
+  };
+};
