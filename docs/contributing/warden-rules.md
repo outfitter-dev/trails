@@ -45,6 +45,8 @@ Temporary repo-local rules are allowed when they have a clear lifecycle. TRL-575
 
 Project-local Warden rules live in `.trails/rules.ts` or `.trails/rules/` at the project root. Warden loads those files by default for command and API runs, so an adopting repo can enforce local migration or governance rules without shipping them from `@ontrails/warden`. The location is the ownership signal: a rule in that committed-control directory is project-local by placement, not by advisory metadata. Modules may export `rule`, `rules`, `sourceRule`, `sourceRules`, `topoRule`, or `topoRules`; rules without explicit metadata receive repo-local source-static or topo-aware execution metadata so short-lived migration rules do not need ceremony before they can run.
 
+Project-root discovery uses committed project markers such as `trails.config.*` or `trails.lock`, with source-shaped projects as fallback when no committed marker exists above them. A bare `.trails/` directory is not a root marker by itself. This lets Warden find root-local rules from nested cwd invocations without making every incidental `.trails/` folder look like a project boundary.
+
 Use `.trails/rules.ts` or `.trails/rules/` when the invariant is real for this project but not yet a framework promise. Promote the rule into `@ontrails/warden` only after the survival tests show it belongs to Trails users broadly. Delete it when the migration or temporary hardening window closes.
 
 ## Core Principle

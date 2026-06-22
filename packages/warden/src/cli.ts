@@ -7,6 +7,7 @@
 
 import { isAbsolute, relative, resolve } from 'node:path';
 
+import { resolveTrailsProjectRoot } from '@ontrails/config';
 import type { Topo } from '@ontrails/core';
 import { deriveTopoGraph } from '@ontrails/topographer';
 import type { TopoGraph } from '@ontrails/topographer';
@@ -1445,7 +1446,10 @@ export const applySafeFixesToFiles = async (
 export const runWarden = async (
   options: WardenRunOptions = {}
 ): Promise<WardenReport> => {
-  const rootDir = resolve(options.rootDir ?? process.cwd());
+  const { rootDir } = resolveTrailsProjectRoot({
+    explicitRootDir: options.rootDir,
+    startDir: process.cwd(),
+  });
   const { diagnostics: configDiagnostics, effectiveConfig } =
     resolveWardenConfig({
       cli: buildCliConfigLayer(options),

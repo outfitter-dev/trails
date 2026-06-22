@@ -41,6 +41,8 @@ When adding or auditing rules, follow [Warden Rules](../../docs/contributing/war
 
 Projects can carry local Warden rules in `.trails/rules.ts` or `.trails/rules/`. `runWarden()` and `trails warden` load those files by default for lint runs, then run those rules alongside the built-in registries. Drift-only runs do not import project-local rule modules. Embedders that need only built-in or explicitly provided rules can pass `projectRules: false`.
 
+Warden uses the shared Trails project-root resolver when a caller does not pass `rootDir` or `--root-dir`, so commands launched from nested directories still load the nearest root `trails.config.*` and its `.trails/rules*` files. An explicit root always wins over discovery.
+
 This is the right home for repo-specific migration checks or governance that has not earned a place in `@ontrails/warden` itself.
 
 A rule module may export `rule`, `rules`, `sourceRule`, `sourceRules`, `topoRule`, or `topoRules`. Rules without explicit metadata receive default repo-local source-static or topo-aware metadata so short migration rules can run without extra ceremony. Project-aware source rules that provide `checkWithContext()` default to repo-local project-static metadata.

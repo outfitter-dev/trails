@@ -14,7 +14,10 @@ import type {
 } from '@ontrails/cli';
 import type { Topo } from '@ontrails/core';
 import { AmbiguousError, NotFoundError } from '@ontrails/core';
-import { findTrailsConfigModulePath } from '@ontrails/config';
+import {
+  findTrailsConfigModulePath,
+  resolveTrailsProjectRoot,
+} from '@ontrails/config';
 
 import type {
   WardenConfigInput,
@@ -898,7 +901,10 @@ export const runWardenCommand = async ({
   env = {},
 }: RunWardenCommandOptions): Promise<WardenCommandResult> => {
   const parsed = parseWardenCommandArgs(args);
-  const rootDir = resolve(cwd, parsed.rootDir ?? '.');
+  const { rootDir } = resolveTrailsProjectRoot({
+    explicitRootDir: parsed.rootDir,
+    startDir: cwd,
+  });
   const loadedConfig = await loadWardenConfig({
     configPath: parsed.configPath,
     env,

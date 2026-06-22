@@ -514,6 +514,12 @@ RegradeReviewDetail, RegradeReviewSpan, RegradeScanTargets, RegradeSelection
 defineConfig(options)                // define a config schema with base, profiles, and extensions
 appConfig(name, options)             // lower-level config factory without Trails conventions
 
+// Trails conventions
+findTrailsConfigModulePath(options)  // locate root trails.config.*
+findTrailsLocalConfigModulePath(rootDir) // locate root trails.config.local.*
+findTrailsProjectRoot(options?)      // walk upward to a project root marker
+resolveTrailsProjectRoot(options?)   // explicit root or discovered/fallback root
+
 // Extensions
 env(schema, envVar)                  // bind a schema field to an environment variable
 secret(schema)                       // mark a field as sensitive (redacted in output)

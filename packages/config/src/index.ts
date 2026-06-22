@@ -12,8 +12,14 @@ export { defineConfig, type DefineConfigOptions } from './define-config.js';
 export {
   findTrailsConfigModulePath,
   findTrailsLocalConfigModulePath,
+  findTrailsProjectRoot,
+  resolveTrailsProjectRoot,
   trailsConfigModuleCandidates,
+  trailsLockFileName,
   trailsLocalConfigModuleCandidates,
+  trailsSourceRootCandidates,
+  type TrailsProjectRootMarker,
+  type TrailsProjectRootResolution,
 } from './trails-conventions.js';
 export { deriveConfigFields, type FieldDescription } from './derive-fields.js';
 export {

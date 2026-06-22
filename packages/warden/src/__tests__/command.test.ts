@@ -257,4 +257,80 @@ describe('runWardenCommand', () => {
       rmSync(dir, { force: true, recursive: true });
     }
   });
+
+  test('discovers root config and project-local rules from nested cwd', async () => {
+    const dir = makeTempDir();
+    try {
+      const nested = join(dir, 'packages', 'app', 'src');
+      mkdirSync(join(dir, '.trails'), { recursive: true });
+      mkdirSync(nested, { recursive: true });
+      writeFileSync(
+        join(dir, 'trails.config.ts'),
+        `export default { warden: { depth: 'source', lock: 'skip' } };\n`
+      );
+      writeFileSync(
+        join(dir, '.trails', 'rules.ts'),
+        `export const rule = {
+  name: 'nested-root-project-rule',
+  severity: 'error',
+  description: 'Nested cwd fixture rule.',
+  check(sourceCode, filePath) {
+    return sourceCode.includes('nestedRootProblem')
+      ? [{ filePath, line: 1, message: 'Nested root fixture marker found.', rule: 'nested-root-project-rule', severity: 'error' }]
+      : [];
+  },
+};\n`
+      );
+      const sourcePath = join(dir, 'fixture.ts');
+      writeFileSync(sourcePath, 'const nestedRootProblem = 1;\n');
+
+      const result = await runWardenCommand({ cwd: nested, env: {} });
+
+      expect(result.report.effectiveConfig).toMatchObject({
+        depth: 'source',
+        lock: 'skip',
+      });
+      expect(result.report.diagnostics).toContainEqual(
+        expect.objectContaining({
+          filePath: sourcePath,
+          message: 'Nested root fixture marker found.',
+          rule: 'nested-root-project-rule',
+        })
+      );
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('explicit --root-dir wins over nested cwd discovery', async () => {
+    const dir = makeTempDir();
+    try {
+      const explicitRoot = join(dir, 'explicit');
+      const discoveredRoot = join(dir, 'discovered');
+      const nested = join(discoveredRoot, 'packages', 'app', 'src');
+      mkdirSync(explicitRoot, { recursive: true });
+      mkdirSync(nested, { recursive: true });
+      writeFileSync(
+        join(explicitRoot, 'trails.config.ts'),
+        `export default { warden: { depth: 'source', lock: 'skip' } };\n`
+      );
+      writeFileSync(
+        join(discoveredRoot, 'trails.config.ts'),
+        `export default { warden: { depth: 'project', lock: 'skip' } };\n`
+      );
+
+      const result = await runWardenCommand({
+        args: ['--root-dir', explicitRoot],
+        cwd: nested,
+        env: {},
+      });
+
+      expect(result.report.effectiveConfig).toMatchObject({
+        depth: 'source',
+        lock: 'skip',
+      });
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
 });

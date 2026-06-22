@@ -90,6 +90,16 @@ Each layer overrides the previous. Environment variables always win.
 
 `appConfig()` discovers `*.config.toml`, `*.config.json`, `*.config.jsonc`, and `*.config.yaml` by default, plus dotfile equivalents when `dotfile: true`.
 
+## Trails project roots
+
+`@ontrails/config` owns the shared project-root convention helpers used by framework tools. `resolveTrailsProjectRoot()` honors an explicit root first, then walks upward from a start directory looking for committed project markers:
+
+- `trails.config.ts`, `.mts`, `.js`, or `.mjs`
+- `trails.lock`
+- source-shaped projects with `src/trails/` or `trails/` when no committed marker exists above them
+
+`trails.config.local.*` is a per-developer override and does not mark a project root by itself. A bare `.trails/` directory also does not mark a root; it is the committed-control home for project-local sections after a project root is known.
+
 ## Extensions
 
 ### `env()`
