@@ -197,10 +197,12 @@ Keep shared project guidance in \`./AGENTS.md\`. Only Claude-specific bootstrap 
 const GITIGNORE_CONTENT = `node_modules/
 dist/
 *.tsbuildinfo
+trails.config.local.js
+trails.config.local.mjs
+trails.config.local.mts
+trails.config.local.ts
 .trails/cache/
 .trails/state/
-.trails/config.local.js
-.trails/config.local.ts
 `;
 
 const OXLINT_CONFIG_CONTENT = `import { defineConfig } from 'oxlint';

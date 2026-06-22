@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 
 import {
   ConflictError,
@@ -96,14 +96,16 @@ const writeAdapterCheckFixture = (rootDir: string): void => {
 const writeProjectSourceRule = (
   rootDir: string,
   options: {
+    readonly directory?: boolean;
     readonly marker?: string;
     readonly name?: string;
     readonly severity?: 'error' | 'warn';
   } = {}
 ): string => {
-  const ruleDir = join(rootDir, 'trails/warden/rules');
-  mkdirSync(ruleDir, { recursive: true });
-  const rulePath = join(ruleDir, 'project-local-rule.ts');
+  const rulePath = options.directory
+    ? join(rootDir, '.trails', 'rules', 'project-local-rule.ts')
+    : join(rootDir, '.trails', 'rules.ts');
+  mkdirSync(dirname(rulePath), { recursive: true });
   const marker = options.marker ?? 'projectLocalProblem';
   const ruleName = options.name ?? 'project-local-rule';
   const severity = options.severity ?? 'error';
@@ -132,7 +134,7 @@ const writeProjectSourceRule = (
 };
 
 const writeProjectAwareRule = (rootDir: string): string => {
-  const ruleDir = join(rootDir, 'trails/warden/rules');
+  const ruleDir = join(rootDir, '.trails', 'rules');
   mkdirSync(ruleDir, { recursive: true });
   const rulePath = join(ruleDir, 'project-aware-rule.ts');
   writeFileSync(
@@ -1526,10 +1528,36 @@ describe('runWarden --fix wiring', () => {
 });
 
 describe('project-local Warden rules', () => {
-  test('loads source rules from trails/warden/rules by default', async () => {
+  test('loads a source rule from .trails/rules.ts by default', async () => {
     const dir = makeTempDir();
     try {
       writeProjectSourceRule(dir);
+      writeFileSync(join(dir, 'fixture.ts'), 'const projectLocalProblem = 1;');
+
+      const report = await runWarden({
+        lock: 'skip',
+        rootDir: dir,
+        tier: 'source-static',
+      });
+
+      expect(report.diagnostics).toContainEqual(
+        expect.objectContaining({
+          filePath: join(dir, 'fixture.ts'),
+          message: 'Project-local fixture marker found.',
+          rule: 'project-local-rule',
+        })
+      );
+      expect(report.errorCount).toBe(1);
+      expect(report.passed).toBe(false);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('loads source rules from .trails/rules by default', async () => {
+    const dir = makeTempDir();
+    try {
+      writeProjectSourceRule(dir, { directory: true });
       writeFileSync(join(dir, 'fixture.ts'), 'const projectLocalProblem = 1;');
 
       const report = await runWarden({
@@ -1577,7 +1605,7 @@ describe('project-local Warden rules', () => {
   test('does not import project-local rules for drift-only runs', async () => {
     const dir = makeTempDir();
     try {
-      const ruleDir = join(dir, 'trails/warden/rules');
+      const ruleDir = join(dir, '.trails', 'rules');
       mkdirSync(ruleDir, { recursive: true });
       writeFileSync(
         join(ruleDir, 'bad.ts'),
@@ -1634,7 +1662,7 @@ describe('project-local Warden rules', () => {
   test('reports invalid project-local rule modules as Warden diagnostics', async () => {
     const dir = makeTempDir();
     try {
-      const ruleDir = join(dir, 'trails/warden/rules');
+      const ruleDir = join(dir, '.trails', 'rules');
       mkdirSync(ruleDir, { recursive: true });
       const rulePath = join(ruleDir, 'empty.ts');
       writeFileSync(rulePath, 'export const nothing = true;\n');

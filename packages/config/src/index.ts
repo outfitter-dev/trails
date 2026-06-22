@@ -9,6 +9,12 @@ export {
 export { collectConfigMeta } from './collect.js';
 export { collectResourceConfigs, type ResourceConfigEntry } from './compose.js';
 export { defineConfig, type DefineConfigOptions } from './define-config.js';
+export {
+  findTrailsConfigModulePath,
+  findTrailsLocalConfigModulePath,
+  trailsConfigModuleCandidates,
+  trailsLocalConfigModuleCandidates,
+} from './trails-conventions.js';
 export { deriveConfigFields, type FieldDescription } from './derive-fields.js';
 export {
   checkConfig,

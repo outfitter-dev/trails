@@ -366,7 +366,7 @@ export const auditRules: readonly VocabAuditRule[] = [
       'Retired TopoGraph artifact-family vocabulary still appears outside history, migration notes, and legacy cleanup seams.',
     excludePaths: topographArtifactFamilyRetiredMentionPaths,
     id: 'topograph-artifact-family-retired-term',
-    pattern: String.raw`\bSurfaceMap(?:Entry)?\b|_surface\.json|\bsurface_map\b|\bserialized_lock\b|\.trails/config/local(?:\.[tj]s)?|\.trails/trails\.db(?:-(?:shm|wal))?|\.trails/dev/|\.trails/generated/`,
+    pattern: String.raw`\bSurfaceMap(?:Entry)?\b|_surface\.json|\bsurface_map\b|\bserialized_lock\b|\.trails/config/local(?:\.[cm]?[tj]s)?|\.trails/config\.local(?:\.[cm]?[tj]s)?|\.trails/trails\.db(?:-(?:shm|wal))?|\.trails/dev/|\.trails/generated/`,
   },
   {
     description:

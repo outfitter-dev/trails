@@ -121,7 +121,6 @@ describe('trails db foundation', () => {
       const content = readFileSync(gitignorePath, 'utf8');
       expect(content).toContain('# custom rule');
       expect(content).toContain('*.local');
-      expect(content).toContain('config.local.ts');
       expect(content).toContain('cache/');
       expect(content).toContain('state/');
     });

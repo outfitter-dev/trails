@@ -3,13 +3,11 @@
  * framework conventions for profile selection and local overrides.
  */
 
-import { existsSync } from 'node:fs';
-import { join } from 'node:path';
-
 import type { z } from 'zod';
 
 import { appConfig } from './app-config.js';
 import { deriveConfig } from './resolve.js';
+import { findTrailsLocalConfigModulePath } from './trails-conventions.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -36,13 +34,8 @@ interface DefineConfigResolveOptions {
 // Local overrides discovery
 // ---------------------------------------------------------------------------
 
-const LOCAL_OVERRIDE_CANDIDATES = [
-  'config.local.ts',
-  'config.local.js',
-] as const;
-
 /**
- * Discover and synchronously import a `.trails/config.local.{ts,js}` file.
+ * Discover and synchronously import a `trails.config.local.*` file.
  *
  * Skipped when `TRAILS_ENV=test` for hermetic test environments.
  */
@@ -54,12 +47,10 @@ const discoverLocalOverrides = async (
     return undefined;
   }
 
-  for (const filename of LOCAL_OVERRIDE_CANDIDATES) {
-    const candidate = join(cwd, '.trails', filename);
-    if (existsSync(candidate)) {
-      const mod: Record<string, unknown> = await import(candidate);
-      return (mod['default'] ?? mod) as Record<string, unknown>;
-    }
+  const candidate = findTrailsLocalConfigModulePath(cwd);
+  if (candidate !== undefined) {
+    const mod: Record<string, unknown> = await import(candidate);
+    return (mod['default'] ?? mod) as Record<string, unknown>;
   }
 
   return undefined;

@@ -3,6 +3,8 @@ import { readdir } from 'node:fs/promises';
 import { join, relative, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
+import { findTrailsConfigModulePath } from '@ontrails/config';
+
 import { defaultReleaseConfig, releaseConfigSchema } from './config.js';
 import type { ReleaseConfigInput, ReleaseFactType } from './config.js';
 import { findPublicTrailContractChangeFacts } from './contract-facts.js';
@@ -95,13 +97,6 @@ const VERSION_RELEASE_WORKSPACE_FILES = new Set([
   'CHANGELOG.md',
   'package.json',
 ]);
-const CONFIG_CANDIDATES = [
-  'trails.config.ts',
-  'trails.config.mts',
-  'trails.config.js',
-  'trails.config.mjs',
-] as const;
-
 const normalizePath = (path: string): string =>
   path.replaceAll('\\', '/').replace(/^\.\//u, '');
 
@@ -562,9 +557,7 @@ const findConfigPath = (
     return resolvedPath;
   }
 
-  return CONFIG_CANDIDATES.map((entry) => resolve(repoRoot, entry)).find(
-    (entry) => existsSync(entry)
-  );
+  return findTrailsConfigModulePath({ rootDir: repoRoot });
 };
 
 const extractReleaseConfig = (value: unknown): ReleaseConfigInput | undefined =>

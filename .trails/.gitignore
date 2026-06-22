@@ -1,7 +1,3 @@
-# Local config overrides
-config.local.js
-config.local.ts
-
 # Rebuildable cache
 cache/
 

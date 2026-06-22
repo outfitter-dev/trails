@@ -97,8 +97,7 @@ The topo-store export named `serialized_lock` is not a second graph copy. It is 
   `.trails/topo.lock`;
 - ignored rebuildable cache: `.trails/cache/`;
 - ignored mutable runtime state: `.trails/state/`;
-- ignored local override config: `.trails/config.local.ts` or
-  `.trails/config.local.js`.
+- ignored local override config: root `trails.config.local.*`.
 
 The default local SQLite path is `.trails/state/trails.db`. This is a pre-v1 hard cut from `.trails/trails.db`; runtime and tooling should not silently read fallback data from the legacy root database path.
 

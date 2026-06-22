@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
-import { mkdir, mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { z } from 'zod';
@@ -194,11 +194,9 @@ describe('defineConfig', () => {
       await rm(tempDir, { force: true, recursive: true });
     });
 
-    test('applies local overrides from .trails/config.local.ts', async () => {
-      const configDir = join(tempDir, '.trails');
-      await mkdir(configDir, { recursive: true });
+    test('applies local overrides from trails.config.local.ts', async () => {
       await Bun.write(
-        join(configDir, 'config.local.ts'),
+        join(tempDir, 'trails.config.local.ts'),
         'export default { port: 4444 };'
       );
 
@@ -217,10 +215,8 @@ describe('defineConfig', () => {
     });
 
     test('local overrides applied between profile and env', async () => {
-      const configDir = join(tempDir, '.trails');
-      await mkdir(configDir, { recursive: true });
       await Bun.write(
-        join(configDir, 'config.local.js'),
+        join(tempDir, 'trails.config.local.js'),
         'export default { port: 5555 };'
       );
 
@@ -244,10 +240,8 @@ describe('defineConfig', () => {
     });
 
     test('skips local overrides when TRAILS_ENV=test', async () => {
-      const configDir = join(tempDir, '.trails');
-      await mkdir(configDir, { recursive: true });
       await Bun.write(
-        join(configDir, 'config.local.ts'),
+        join(tempDir, 'trails.config.local.ts'),
         'export default { port: 4444 };'
       );
 

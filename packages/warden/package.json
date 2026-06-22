@@ -30,6 +30,7 @@
   "dependencies": {
     "@ontrails/adapter-kit": "workspace:^",
     "@ontrails/cli": "workspace:^",
+    "@ontrails/config": "workspace:^",
     "@ontrails/permits": "workspace:^",
     "@ontrails/store": "workspace:^",
     "oxc-parser": "^0.121.0",
@@ -38,7 +39,6 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@ontrails/config": "workspace:^",
     "@ontrails/testing": "workspace:^"
   },
   "peerDependencies": {

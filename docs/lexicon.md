@@ -110,9 +110,9 @@ Ignored mutable runtime state. The default local SQLite database lives at `.trai
 
 Ignored rebuildable cache state. Generated helper artifacts that can be rebuilt from source contracts belong here rather than beside committed lock artifacts.
 
-#### `.trails/config.local.{ts,js}`
+#### `trails.config.local.*`
 
-Ignored per-developer config overrides. Use `.trails/config.local.ts` or `.trails/config.local.js`; do not create nested `.trails/config/local.*` files.
+Ignored per-developer config overrides. Use `trails.config.local.ts`, `trails.config.local.mts`, `trails.config.local.js`, or `trails.config.local.mjs` at the project root; do not create `.trails/config.local.*` or nested `.trails/config/local.*` files.
 
 #### Retired Vocabulary
 
@@ -127,7 +127,8 @@ These names are historical or migration vocabulary, not current target-state lan
 | `cross` / `crosses` | `compose` / `composes` |
 | `crossInput` | `composeInput` |
 | `serialized_lock` | `lock_manifest` when referring to stored manifest export content; `.trails/trails.lock` when referring to the committed manifest file |
-| `.trails/config/local` | `.trails/config.local.{ts,js}` |
+| `.trails/config/local.*` | `trails.config.local.*` |
+| `.trails/config.local.*` | `trails.config.local.*` |
 | `.trails/trails.db` | `.trails/state/trails.db` |
 | `.trails/trails.db-shm` / `.trails/trails.db-wal` | `.trails/state/trails.db-shm` / `.trails/state/trails.db-wal` |
 | `.trails/dev/` | `.trails/state/` for mutable runtime state |

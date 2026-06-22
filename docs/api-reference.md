@@ -423,7 +423,7 @@ SurfaceParityOptions, SurfaceParityComparison
 runWarden(options?), formatWardenReport(report), checkDrift(rootDir, topo?)
 // WardenOptions includes optional tier: source-static | project-static | topo-aware | drift | advisory
 // WardenOptions includes projectRules: false for embedders that opt out of project-local rules
-loadProjectWardenRules(rootDir)    // load rule modules from trails/warden/rules/
+loadProjectWardenRules(rootDir)    // load rule modules from .trails/rules.ts or .trails/rules/
 
 // Built-in registries and wrapped topo
 wardenRules                        // ReadonlyMap<string, WardenRule> — built-in per-file rules (file-scoped and project-aware)

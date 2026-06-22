@@ -39,7 +39,7 @@ When adding or auditing rules, follow [Warden Rules](../../docs/contributing/war
 
 ## Project-local rules
 
-Projects can carry local Warden rules in `trails/warden/rules/`. `runWarden()` and `trails warden` load that directory by default for lint runs, then run those rules alongside the built-in registries. Drift-only runs do not import project-local rule modules. Embedders that need only built-in or explicitly provided rules can pass `projectRules: false`.
+Projects can carry local Warden rules in `.trails/rules.ts` or `.trails/rules/`. `runWarden()` and `trails warden` load those files by default for lint runs, then run those rules alongside the built-in registries. Drift-only runs do not import project-local rule modules. Embedders that need only built-in or explicitly provided rules can pass `projectRules: false`.
 
 This is the right home for repo-specific migration checks or governance that has not earned a place in `@ontrails/warden` itself.
 
@@ -153,7 +153,7 @@ This is the same factory used internally to build all built-in rule trails.
 | `wardenTopo` | `Topo` of all built-in rule trails (one per rule) |
 | `runWardenTrails(filePath, sourceCode, options?)` | Dispatch file-scoped rule trails for a file, collect diagnostics |
 | `runTopoAwareWardenTrails(topo)` | Dispatch built-in topo-aware rule trails once for a resolved topo |
-| `loadProjectWardenRules(rootDir)` | Load rule modules from `trails/warden/rules/` |
+| `loadProjectWardenRules(rootDir)` | Load rule modules from `.trails/rules.ts` or `.trails/rules/` |
 | `formatGitHubAnnotations(report)` | GitHub Actions annotation format |
 | `formatJson(report)` | Machine-readable JSON |
 | `formatSummary(report)` | Compact summary line |

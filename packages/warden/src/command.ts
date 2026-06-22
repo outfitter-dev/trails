@@ -14,6 +14,7 @@ import type {
 } from '@ontrails/cli';
 import type { Topo } from '@ontrails/core';
 import { AmbiguousError, NotFoundError } from '@ontrails/core';
+import { findTrailsConfigModulePath } from '@ontrails/config';
 
 import type {
   WardenConfigInput,
@@ -56,13 +57,6 @@ interface MutableWardenConfigLayer {
   lock?: WardenLockMode | undefined;
   noLockMutation?: boolean | undefined;
 }
-
-const CONFIG_CANDIDATES = [
-  'trails.config.ts',
-  'trails.config.mts',
-  'trails.config.js',
-  'trails.config.mjs',
-] as const;
 
 const diagnostic = ({
   filePath = '<warden-cli>',
@@ -491,9 +485,7 @@ const findConfigPath = (
         };
   }
 
-  const candidate = CONFIG_CANDIDATES.map((entry) =>
-    resolve(rootDir, entry)
-  ).find((entry) => existsSync(entry));
+  const candidate = findTrailsConfigModulePath({ rootDir });
   return candidate === undefined
     ? { diagnostics: [] }
     : { configPath: candidate, diagnostics: [] };

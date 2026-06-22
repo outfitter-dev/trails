@@ -7,8 +7,7 @@ The v1 topo artifact family uses a compact manifest plus an inspectable graph co
 - `.trails/state/trails.db` is ignored mutable SQLite state for snapshots,
   pins, tracing, and other framework subsystems.
 - `.trails/cache/` is ignored rebuildable cache state.
-- `.trails/config.local.ts` and `.trails/config.local.js` are ignored local
-  override files.
+- `trails.config.local.*` files at the project root are ignored local override files.
 
 Regenerate the current artifact family with:
 
@@ -32,7 +31,8 @@ trails validate
 | `_surface.json` | `.trails/topo.lock` |
 | `surface_map` | `topo_graph` |
 | `serialized_lock` | `lock_manifest` for stored manifest export content; `.trails/trails.lock` for the committed manifest file |
-| `.trails/config/local.*` | `.trails/config.local.ts` or `.trails/config.local.js` |
+| `.trails/config/local.*` | `trails.config.local.*` at the project root |
+| `.trails/config.local.*` | `trails.config.local.*` at the project root |
 | `.trails/trails.db` | `.trails/state/trails.db` |
 | `.trails/dev/` | `.trails/state/` |
 | `.trails/generated/` | `.trails/cache/` |

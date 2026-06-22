@@ -20,10 +20,6 @@ const WORKSPACE_SUBDIRS = [TRAILS_CACHE_DIR, TRAILS_STATE_DIR] as const;
  * @see {@link WORKSPACE_GITIGNORE_CONTENT} for the rendered string form.
  */
 export const WORKSPACE_GITIGNORE_LINES = [
-  '# Local config overrides',
-  'config.local.js',
-  'config.local.ts',
-  '',
   '# Rebuildable cache',
   'cache/',
   '',

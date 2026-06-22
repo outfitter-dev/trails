@@ -11,8 +11,6 @@ Trails creates a `.trails/` directory in your workspace root on first use:
 ```text
 .trails/
 ├── .gitignore             # Auto-generated gitignore for this directory
-├── config.local.ts        # Local TypeScript config overrides (gitignored)
-├── config.local.js        # Local JavaScript config overrides (gitignored)
 ├── cache/                 # Rebuildable derived data (gitignored)
 ├── state/                 # Mutable framework state (gitignored)
 │   └── trails.db          # SQLite database (topology store)
@@ -23,6 +21,8 @@ Trails creates a `.trails/` directory in your workspace root on first use:
 - **`state/trails.db`** — SQLite database containing topo snapshots, pins, and schema cache. Not git-tracked.
 - **`topo.lock`** — Committed serialized TopoGraph with trail, signal, resource, relation, example, detour, and workspace metadata.
 - **`trails.lock`** — Committed compact v3 manifest that points at `topo.lock` and verifies its hash.
+
+Local per-developer overrides live at the project root as `trails.config.local.*`, not under `.trails/`.
 
 ## What trails.db contains
 

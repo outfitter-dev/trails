@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs';
+import { statSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -10,7 +10,8 @@ import type {
   WardenRule,
 } from './rules/types.js';
 
-const PROJECT_WARDEN_RULES_DIR = 'trails/warden/rules';
+const PROJECT_WARDEN_RULES_FILE = '.trails/rules.ts';
+const PROJECT_WARDEN_RULES_DIR = '.trails/rules';
 
 export interface ProjectWardenRules {
   readonly diagnostics: readonly WardenDiagnostic[];
@@ -130,18 +131,45 @@ const topoRuleCandidatesFromModule = (
   ...asArray(module.topoRules),
 ];
 
-const collectProjectRuleFiles = (rulesDir: string): readonly string[] => {
-  if (!existsSync(rulesDir)) {
-    return [];
+const isFile = (path: string): boolean => {
+  try {
+    return statSync(path).isFile();
+  } catch {
+    return false;
+  }
+};
+
+const isDirectory = (path: string): boolean => {
+  try {
+    return statSync(path).isDirectory();
+  } catch {
+    return false;
+  }
+};
+
+const collectProjectRuleFiles = (rootDir: string): readonly string[] => {
+  const files: string[] = [];
+  const rulesFile = join(rootDir, PROJECT_WARDEN_RULES_FILE);
+  const rulesDir = join(rootDir, PROJECT_WARDEN_RULES_DIR);
+
+  if (isFile(rulesFile)) {
+    files.push(rulesFile);
+  }
+
+  if (!isDirectory(rulesDir)) {
+    return files;
   }
 
   const glob = new Bun.Glob('**/*.ts');
-  return [...glob.scanSync({ cwd: rulesDir, onlyFiles: true })]
-    .filter(
-      (entry) => !entry.endsWith('.test.ts') && !basename(entry).startsWith('_')
-    )
-    .map((entry) => join(rulesDir, entry))
-    .toSorted((left, right) => left.localeCompare(right));
+  files.push(
+    ...[...glob.scanSync({ cwd: rulesDir, onlyFiles: true })]
+      .filter(
+        (entry) =>
+          !entry.endsWith('.test.ts') && !basename(entry).startsWith('_')
+      )
+      .map((entry) => join(rulesDir, entry))
+  );
+  return files.toSorted((left, right) => left.localeCompare(right));
 };
 
 const loadRuleFile = async (filePath: string): Promise<ProjectWardenRules> => {
@@ -188,9 +216,7 @@ const loadRuleFile = async (filePath: string): Promise<ProjectWardenRules> => {
 export const loadProjectWardenRules = async (
   rootDir: string
 ): Promise<ProjectWardenRules> => {
-  const files = collectProjectRuleFiles(
-    join(rootDir, PROJECT_WARDEN_RULES_DIR)
-  );
+  const files = collectProjectRuleFiles(rootDir);
   const loaded = await Promise.all(files.map(loadRuleFile));
 
   return {

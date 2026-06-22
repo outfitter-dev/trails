@@ -122,7 +122,7 @@ export interface WardenRunOptions {
    */
   readonly tier?: WardenRuleTier | undefined;
   /**
-   * Load project-local Warden rules from `trails/warden/rules/`.
+   * Load project-local Warden rules from `.trails/rules.ts` or `.trails/rules/`.
    *
    * Enabled by default for normal runs so a Trails app can carry migration or
    * repo-local governance with the project instead of shipping it from

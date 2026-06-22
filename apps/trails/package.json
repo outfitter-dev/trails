@@ -30,6 +30,7 @@
     "@ontrails/adapter-kit": "workspace:^",
     "@ontrails/cli": "workspace:^",
     "@ontrails/commander": "workspace:^",
+    "@ontrails/config": "workspace:^",
     "@ontrails/core": "workspace:^",
     "@ontrails/http": "workspace:^",
     "@ontrails/mcp": "workspace:^",
