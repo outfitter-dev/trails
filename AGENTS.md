@@ -342,7 +342,7 @@ All `@ontrails/*` packages are versioned in lockstep using [Changesets](https://
 bunx changeset add
 
 # 2. Version
-bunx changeset version
+bun run version:packages
 
 # 3. Commit, push, publish
 git add -A && git commit -m "chore: version packages to 1.0.0-beta.N"

@@ -112,7 +112,7 @@ After substantial stacks merge to `main`:
 3. Run `bunx changeset status --verbose` from clean, synced `main` to inspect
    the next beta plan.
 4. When the next beta is warranted, create a dedicated version branch, run
-   `bunx changeset version`, then run `bun run scaffold-versions:sync` so
+   `bun run version:packages`, then run `bun run scaffold-versions:sync` so
    generated third-party scaffold dependency versions and exact `@ontrails/*`
    pins are checked together.
 5. Review package versions, changelogs, generated lockfile changes, and

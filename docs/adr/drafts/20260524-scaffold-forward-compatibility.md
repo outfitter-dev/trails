@@ -74,7 +74,7 @@ The internal `scaffold-versions` helper remains the operator path for keeping ge
   source of truth;
 - generated `@ontrails/*` pins match `@ontrails/trails` exactly.
 
-After `bunx changeset version`, release operators run `bun run scaffold-versions:sync` so the generated scaffold package story moves with the package version calculation instead of becoming hand-edit debt.
+After `bun run version:packages`, release operators run `bun run scaffold-versions:sync` so the generated scaffold package story moves with the package version calculation instead of becoming hand-edit debt.
 
 ### Upgrade tooling is deferred
 

@@ -1,4 +1,4 @@
-import { readFile, readdir } from 'node:fs/promises';
+import { readFile, readdir, writeFile } from 'node:fs/promises';
 import { join, relative } from 'node:path';
 
 export interface ReleasePackCoherenceInput {
@@ -22,6 +22,11 @@ export interface ReleasePackCoherenceLockfileInput {
     Record<string, ReleasePackCoherenceLockfileWorkspace | undefined>
   >;
   readonly sourceWorkspaces: readonly ReleasePackCoherenceWorkspace[];
+}
+
+export interface ReleasePackCoherenceLockfileSyncResult {
+  readonly text: string;
+  readonly updates: readonly string[];
 }
 
 interface RootPackageJson {
@@ -229,8 +234,125 @@ export const findLockfileWorkspaceMetadataMismatches = ({
   return mismatches;
 };
 
+const escapeRegExp = (text: string): string =>
+  text.replaceAll(/[.*+?^${}()|[\]\\]/gu, '\\$&');
+
+const findWorkspaceBlockRange = (
+  text: string,
+  workspacePath: string
+): { readonly start: number; readonly end: number } | undefined => {
+  const keyMatch = new RegExp(
+    `^    "${escapeRegExp(workspacePath)}": \\{`,
+    'mu'
+  ).exec(text);
+  if (!keyMatch) {
+    return undefined;
+  }
+
+  const openBrace = text.indexOf('{', keyMatch.index);
+  if (openBrace === -1) {
+    return undefined;
+  }
+
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (let index = openBrace; index < text.length; index += 1) {
+    const char = text[index];
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if (char === '\\') {
+      escaped = true;
+      continue;
+    }
+    if (char === '"') {
+      inString = !inString;
+      continue;
+    }
+    if (inString) {
+      continue;
+    }
+    if (char === '{') {
+      depth += 1;
+      continue;
+    }
+    if (char === '}') {
+      depth -= 1;
+      if (depth === 0) {
+        return { end: index + 1, start: openBrace };
+      }
+    }
+  }
+
+  return undefined;
+};
+
+export const syncLockfileWorkspaceMetadataText = (
+  text: string,
+  sourceWorkspaces: readonly ReleasePackCoherenceWorkspace[]
+): ReleasePackCoherenceLockfileSyncResult => {
+  let nextText = text;
+  const updates: string[] = [];
+
+  for (const workspace of sourceWorkspaces) {
+    if (typeof workspace.version !== 'string') {
+      continue;
+    }
+
+    const range = findWorkspaceBlockRange(nextText, workspace.path);
+    if (!range) {
+      continue;
+    }
+
+    const block = nextText.slice(range.start, range.end);
+    const versionMatch = /^(\s*"version":\s*")([^"]*)(",?)$/mu.exec(block);
+    if (!versionMatch || versionMatch[2] === workspace.version) {
+      continue;
+    }
+
+    const replacement = `${versionMatch[1]}${workspace.version}${versionMatch[3]}`;
+    const blockStart = range.start + versionMatch.index;
+    const valueEnd = blockStart + versionMatch[0].length;
+    nextText =
+      nextText.slice(0, blockStart) + replacement + nextText.slice(valueEnd);
+    updates.push(
+      `${workspace.path}/package.json: ${versionMatch[2]} -> ${workspace.version}`
+    );
+  }
+
+  return { text: nextText, updates };
+};
+
+const loadBunLockfile = async (): Promise<BunLockfile> =>
+  await readJsonc<BunLockfile>(join(REPO_ROOT, 'bun.lock'));
+
+const syncLockfileWorkspaceMetadata = async (): Promise<void> => {
+  const lockfilePath = join(REPO_ROOT, 'bun.lock');
+  const [lockfile, sourceWorkspaces] = await Promise.all([
+    readFile(lockfilePath, 'utf8'),
+    discoverSourceWorkspaces(),
+  ]);
+  const { text, updates } = syncLockfileWorkspaceMetadataText(
+    lockfile,
+    sourceWorkspaces
+  );
+
+  if (updates.length === 0) {
+    console.error('release-pack: bun.lock workspace metadata already synced');
+    return;
+  }
+
+  await writeFile(lockfilePath, text);
+  console.error('release-pack: synced bun.lock workspace metadata');
+  for (const update of updates) {
+    console.error(`  ${update}`);
+  }
+};
+
 const runLockfileWorkspaceMetadataCheck = async (): Promise<number> => {
-  const lockfile = await readJsonc<BunLockfile>(join(REPO_ROOT, 'bun.lock'));
+  const lockfile = await loadBunLockfile();
   if (!lockfile.workspaces) {
     throw new Error('bun.lock has no "workspaces" object');
   }
@@ -255,6 +377,7 @@ const runLockfileWorkspaceMetadataCheck = async (): Promise<number> => {
 export interface ReleasePackCoherenceParsedArgs {
   readonly branchName?: string | undefined;
   readonly changedFilesPath?: string | undefined;
+  readonly fixLockfile: boolean;
   readonly lockfileOnly: boolean;
 }
 
@@ -263,6 +386,7 @@ export const parseReleasePackCoherenceArgs = (
 ): ReleasePackCoherenceParsedArgs => {
   let branchName: string | undefined;
   let changedFilesPath: string | undefined;
+  let fixLockfile = false;
   let lockfileOnly = false;
   const readValue = (index: number, flag: string): string => {
     const value = args[index + 1];
@@ -283,11 +407,13 @@ export const parseReleasePackCoherenceArgs = (
       index += 1;
     } else if (arg === '--lockfile-only') {
       lockfileOnly = true;
+    } else if (arg === '--fix-lockfile') {
+      fixLockfile = true;
     } else {
       throw new Error(`Unknown release pack coherence argument: ${arg}`);
     }
   }
-  return { branchName, changedFilesPath, lockfileOnly };
+  return { branchName, changedFilesPath, fixLockfile, lockfileOnly };
 };
 
 export const runReleasePackCoherenceCli = async (
@@ -295,6 +421,12 @@ export const runReleasePackCoherenceCli = async (
 ): Promise<number> => {
   try {
     const parsed = parseReleasePackCoherenceArgs(args);
+    if (parsed.fixLockfile) {
+      await syncLockfileWorkspaceMetadata();
+      console.error('release-pack: checking bun.lock workspace metadata');
+      return await runLockfileWorkspaceMetadataCheck();
+    }
+
     const [branchName, changedFiles] = await Promise.all([
       parsed.branchName
         ? Promise.resolve(parsed.branchName)

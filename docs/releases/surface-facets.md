@@ -86,7 +86,7 @@ CLI and HTTP parity are intentionally deferred. Do not introduce MCP-style gener
 Use the normal lockstep beta release flow:
 
 ```bash
-bunx changeset version
+bun run version:packages
 bun run check
 bun run test
 bun run build

@@ -103,6 +103,8 @@ The guard runs only when the branch is `changeset-release/main` or when changed 
 
 This catches the stale lockfile class where Changesets bumps workspace package versions but `bun.lock` still carries older workspace metadata. In that state, `bun pm pack` can resolve `workspace:^` to the previous beta range even though the source `package.json` files are already on the new version. The failure is a release-pack coherence bug, not a general lockfile freshness rule.
 
+`bun run version:packages` runs Changesets and then executes `bun run release-pack:check -- --lockfile-only --fix-lockfile`. Generated release PRs and local release operators therefore use the same deterministic repair path before the PR is updated. The fix only rewrites existing `bun.lock.workspaces` version fields that already correspond to source workspace package paths; missing or contradictory lockfile entries still fail the check instead of being invented.
+
 CI exposes this as the **Release Pack** check on pull requests and runs the full `bun run publish:check` packaging validation. Local pre-push runs `bun run release-pack:check -- --lockfile-only` inside the tree-guard bracket, so human release branches catch stale `bun.lock` workspace metadata before push without running the pack dry-run while the hook is watching the working tree.
 
 ## Review Rule

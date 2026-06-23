@@ -137,7 +137,8 @@ The stable flow keeps these responsibilities separate:
 
 - use `bunx changeset add` or an equivalent changeset file for package-facing
   changes;
-- use `bunx changeset version` to update package versions and changelogs;
+- use `bun run version:packages` to update package versions, changelogs, and
+  lockfile workspace metadata;
 - use `bun run publish:check` to prove the package tarballs are clean;
 - use `bun run publish:packages` to publish.
 

@@ -5,6 +5,7 @@ import {
   isReleasePackCoherenceFile,
   parseReleasePackCoherenceArgs,
   shouldRunReleasePackCoherenceCheck,
+  syncLockfileWorkspaceMetadataText,
 } from '../release/index.js';
 
 describe('release pack coherence guard', () => {
@@ -119,5 +120,87 @@ describe('release pack coherence guard', () => {
         ],
       })
     ).toEqual([]);
+  });
+
+  test('syncs stale bun.lock workspace versions without full lockfile churn', () => {
+    const lockfile = `{
+  "lockfileVersion": 1,
+  "workspaces": {
+    "packages/core": {
+      "name": "@ontrails/core",
+      "version": "1.0.0-beta.25",
+      "dependencies": {
+        "zod": "catalog:",
+      },
+    },
+    "packages/warden": {
+      "name": "@ontrails/warden",
+      "version": "1.0.0-beta.24",
+    },
+  },
+}
+`;
+
+    expect(
+      syncLockfileWorkspaceMetadataText(lockfile, [
+        {
+          name: '@ontrails/core',
+          path: 'packages/core',
+          version: '1.0.0-beta.26',
+        },
+        {
+          name: '@ontrails/warden',
+          path: 'packages/warden',
+          version: '1.0.0-beta.26',
+        },
+      ])
+    ).toEqual({
+      text: `{
+  "lockfileVersion": 1,
+  "workspaces": {
+    "packages/core": {
+      "name": "@ontrails/core",
+      "version": "1.0.0-beta.26",
+      "dependencies": {
+        "zod": "catalog:",
+      },
+    },
+    "packages/warden": {
+      "name": "@ontrails/warden",
+      "version": "1.0.0-beta.26",
+    },
+  },
+}
+`,
+      updates: [
+        'packages/core/package.json: 1.0.0-beta.25 -> 1.0.0-beta.26',
+        'packages/warden/package.json: 1.0.0-beta.24 -> 1.0.0-beta.26',
+      ],
+    });
+  });
+
+  test('keeps coherent bun.lock workspace text unchanged', () => {
+    const lockfile = `{
+  "workspaces": {
+    "packages/core": {
+      "name": "@ontrails/core",
+      "version": "1.0.0-beta.26",
+    },
+  },
+}
+`;
+
+    expect(
+      syncLockfileWorkspaceMetadataText(lockfile, [
+        {
+          name: '@ontrails/core',
+          path: 'packages/core',
+          version: '1.0.0-beta.26',
+        },
+      ])
+    ).toEqual({
+      text: lockfile,
+      updates: [],
+    });
   });
 });

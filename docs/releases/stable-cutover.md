@@ -194,7 +194,7 @@ Exit prerelease mode and compute the stable versions:
 
 ```bash
 bunx changeset pre exit
-bunx changeset version
+bun run version:packages
 bun run scaffold-versions:sync
 ```
 
@@ -250,7 +250,7 @@ bun apps/trails/bin/trails.ts create docs-smoke \
   --output json
 ```
 
-Do not run the install-backed registry smoke on the version PR branch after `bunx changeset version`. At that point generated apps request the intended stable range, but the stable packages are not on the public registry until the version PR merges and the publish step completes.
+Do not run the install-backed registry smoke on the version PR branch after `bun run version:packages`. At that point generated apps request the intended stable range, but the stable packages are not on the public registry until the version PR merges and the publish step completes.
 
 Capture the generated `package.json` dependency ranges in the PR body. Remove the temp project after recording the evidence.
 
