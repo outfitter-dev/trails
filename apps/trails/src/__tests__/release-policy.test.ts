@@ -1,11 +1,17 @@
 import { describe, expect, test } from 'bun:test';
 
 import {
+  ciStateFromCheckRuns,
   evaluateReleasePolicy,
   labelsForReleasePullRequest,
   releaseIntentForVersionDelta,
+  releasePolicyRequiresCiProof,
+  selectReleasePolicyCiProofTarget,
 } from '../release/policy.js';
-import type { ReleasePolicyInput } from '../release/policy.js';
+import type {
+  ReleasePolicyCheckRun,
+  ReleasePolicyInput,
+} from '../release/policy.js';
 
 const botCommit = {
   authorEmail: '41898282+github-actions[bot]@users.noreply.github.com',
@@ -20,6 +26,7 @@ const releasePr = {
   body: '',
   comments: [],
   headRefName: 'changeset-release/main',
+  headSha: 'release-head-sha',
   labels: ['publish:auto', 'channel:beta', 'release:patch'],
   number: 123,
   title: 'chore(release): version packages',
@@ -66,6 +73,13 @@ const baseInput = (
   ...overrides,
 });
 
+const releasePolicySuccessRun = (name: string): ReleasePolicyCheckRun => ({
+  check_suite: { app: { slug: 'github-actions' } },
+  conclusion: 'success',
+  name,
+  status: 'completed',
+});
+
 describe('evaluateReleasePolicy', () => {
   test('allows publish:auto when generated release and stack evidence are complete', () => {
     const report = evaluateReleasePolicy(baseInput());
@@ -75,6 +89,41 @@ describe('evaluateReleasePolicy', () => {
     expect(report.shouldPublish).toBe(true);
     expect(report.blockers).toEqual([]);
     expect(report.diagnostics).toEqual([]);
+  });
+
+  test('routes publish:auto to manual when CI proof has not been evaluated', () => {
+    const report = evaluateReleasePolicy(
+      baseInput({ ciPassed: undefined, ciProof: undefined })
+    );
+
+    expect(report.decision).toBe('manual');
+    expect(report.diagnostics).toContain('CI proof has not been evaluated');
+  });
+
+  test('keeps manual publish paths independent from CI proof', () => {
+    const report = evaluateReleasePolicy(
+      baseInput({
+        ciPassed: undefined,
+        releasePullRequest: {
+          ...releasePr,
+          labels: ['publish:manual', 'channel:beta', 'release:patch'],
+        },
+      })
+    );
+
+    expect(report.decision).toBe('manual');
+    expect(report.diagnostics).toEqual([]);
+    expect(releasePolicyRequiresCiProof(baseInput())).toBe(true);
+    expect(
+      releasePolicyRequiresCiProof(
+        baseInput({
+          releasePullRequest: {
+            ...releasePr,
+            labels: ['publish:manual', 'channel:beta', 'release:patch'],
+          },
+        })
+      )
+    ).toBe(false);
   });
 
   test('blocks conflicting labels in managed families', () => {
@@ -164,6 +213,9 @@ describe('evaluateReleasePolicy', () => {
     expect(report.decision).toBe('auto');
     expect(report.shouldPublish).toBe(false);
     expect(report.createGitHubRelease).toBe(true);
+    expect(report.reasons).toContain(
+      'Registry package state already matches this release; npm publish will be skipped'
+    );
   });
 
   test('blocks registry drift before publication routing', () => {
@@ -302,6 +354,85 @@ describe('labelsForReleasePullRequest', () => {
         ],
       })
     ).toEqual(['publish:auto', 'channel:stable', 'release:patch']);
+  });
+});
+
+describe('ciStateFromCheckRuns', () => {
+  const requiredNames = [
+    'Build',
+    'Lint & Format',
+    'Dead Code',
+    'Typecheck',
+    'Test',
+    'Governance',
+  ];
+
+  test('passes when every required GitHub Actions check succeeded', () => {
+    expect(
+      ciStateFromCheckRuns(requiredNames.map(releasePolicySuccessRun))
+    ).toBe('passed');
+  });
+
+  test('reuses completed generated-release proof when duplicate checks are pending', () => {
+    const runs = [
+      ...requiredNames.map(
+        (name): ReleasePolicyCheckRun => ({
+          check_suite: { app: { slug: 'github-actions' } },
+          conclusion: null,
+          name,
+          status: 'queued',
+        })
+      ),
+      ...requiredNames.map(releasePolicySuccessRun),
+    ];
+
+    expect(ciStateFromCheckRuns(runs)).toBe('passed');
+  });
+
+  test('blocks when any required check has a completed failure', () => {
+    expect(
+      ciStateFromCheckRuns([
+        ...requiredNames.map(releasePolicySuccessRun),
+        {
+          check_suite: { app: { slug: 'github-actions' } },
+          conclusion: 'failure',
+          name: 'Build',
+          status: 'completed',
+        },
+      ])
+    ).toBe('failed');
+  });
+});
+
+describe('selectReleasePolicyCiProofTarget', () => {
+  test('reuses generated release PR head checks when commit trees match', () => {
+    expect(
+      selectReleasePolicyCiProofTarget({
+        releasePullRequest: releasePr,
+        releasePullRequestHeadTreeSha: 'tree-1',
+        sha: 'main-merge-sha',
+        shaTreeSha: 'tree-1',
+      })
+    ).toEqual({
+      sha: 'release-head-sha',
+      source: 'release-pr-head',
+      summary: 'Generated release PR head CI proof',
+    });
+  });
+
+  test('falls back to exact SHA when generated release PR proof cannot match the tree', () => {
+    expect(
+      selectReleasePolicyCiProofTarget({
+        releasePullRequest: releasePr,
+        releasePullRequestHeadTreeSha: 'tree-2',
+        sha: 'main-merge-sha',
+        shaTreeSha: 'tree-1',
+      })
+    ).toEqual({
+      sha: 'main-merge-sha',
+      source: 'exact-sha',
+      summary: 'Exact-SHA CI proof',
+    });
   });
 });
 

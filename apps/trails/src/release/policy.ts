@@ -33,6 +33,7 @@ export interface ReleasePolicyPullRequest {
   readonly body: string;
   readonly comments: readonly string[];
   readonly headRefName: string;
+  readonly headSha?: string | undefined;
   readonly labels: readonly string[];
   readonly number: number;
   readonly title: string;
@@ -55,9 +56,29 @@ export interface ReleasePolicyRegistryPackage {
   readonly versionPublished?: boolean | undefined;
 }
 
+export type ReleasePolicyCiProofSource =
+  | 'assumed'
+  | 'exact-sha'
+  | 'missing'
+  | 'release-pr-head';
+
+export interface ReleasePolicyCiProof {
+  readonly passed: boolean;
+  readonly source: ReleasePolicyCiProofSource;
+  readonly summary: string;
+}
+
+export interface ReleasePolicyCheckRun {
+  readonly check_suite?: { readonly app?: { readonly slug?: string } };
+  readonly conclusion?: string | null;
+  readonly name: string;
+  readonly status: string;
+}
+
 export interface ReleasePolicyInput {
   readonly changedFiles: readonly ReleasePolicyChangedFile[];
-  readonly ciPassed: boolean;
+  readonly ciPassed?: boolean | undefined;
+  readonly ciProof?: ReleasePolicyCiProof | undefined;
   readonly commit: ReleasePolicyCommit;
   readonly distTag: string;
   readonly previousVersion?: string | undefined;
@@ -74,6 +95,7 @@ export interface ReleasePolicyReport {
   readonly autoEligible: boolean;
   readonly blockers: readonly string[];
   readonly channel: ChannelIntent | undefined;
+  readonly ciProof?: ReleasePolicyCiProof | undefined;
   readonly createGitHubRelease: boolean;
   readonly decision: ReleasePolicyDecision;
   readonly diagnostics: readonly string[];
@@ -88,6 +110,12 @@ interface FamilyResult<T extends string> {
   readonly conflicts: readonly string[];
   readonly unknown: readonly string[];
   readonly value?: T;
+}
+
+interface ReleasePolicyCiProofTarget {
+  readonly sha: string;
+  readonly source: Exclude<ReleasePolicyCiProofSource, 'assumed' | 'missing'>;
+  readonly summary: string;
 }
 
 const repoRoot = resolve(process.cwd());
@@ -241,6 +269,10 @@ export const evaluateReleasePolicy = (
     });
   }
 
+  const proof = readCiProofFromInput(input);
+  if (proof) {
+    reasons.push(`${proof.summary} passed`);
+  }
   reasons.push(
     'publish:auto is set and low-risk release checks passed for the generated release'
   );
@@ -303,6 +335,52 @@ export const labelsForReleasePullRequest = ({
   return labelsToAdd;
 };
 
+export const releasePolicyRequiresCiProof = (
+  input: ReleasePolicyInput
+): boolean => {
+  const publish = readLabelFamily(
+    input.releasePullRequest?.labels ?? [],
+    'publish:',
+    publishIntents
+  );
+  return (
+    publish.value === 'publish:auto' &&
+    publish.conflicts.length === 0 &&
+    publish.unknown.length === 0
+  );
+};
+
+export const selectReleasePolicyCiProofTarget = ({
+  releasePullRequest,
+  releasePullRequestHeadTreeSha,
+  sha,
+  shaTreeSha,
+}: {
+  readonly releasePullRequest?: ReleasePolicyPullRequest | undefined;
+  readonly releasePullRequestHeadTreeSha?: string | undefined;
+  readonly sha: string;
+  readonly shaTreeSha?: string | undefined;
+}): ReleasePolicyCiProofTarget => {
+  if (
+    releasePullRequest?.headSha &&
+    shaTreeSha &&
+    releasePullRequestHeadTreeSha &&
+    shaTreeSha === releasePullRequestHeadTreeSha
+  ) {
+    return {
+      sha: releasePullRequest.headSha,
+      source: 'release-pr-head',
+      summary: 'Generated release PR head CI proof',
+    };
+  }
+
+  return {
+    sha,
+    source: 'exact-sha',
+    summary: 'Exact-SHA CI proof',
+  };
+};
+
 const makeReport = (
   input: ReleasePolicyInput,
   options: {
@@ -319,17 +397,27 @@ const makeReport = (
 ): ReleasePolicyReport => {
   const canPublish =
     options.decision === 'auto' || options.decision === 'manual';
+  const packagesPublished = registryComplete(input.registryPackages);
+  const reasons = [...options.reasons];
+  if (canPublish) {
+    reasons.push(
+      packagesPublished
+        ? 'Registry package state already matches this release; npm publish will be skipped'
+        : 'Registry package state is incomplete for this release; npm publish remains required'
+    );
+  }
   return {
     autoEligible: options.autoEligible ?? false,
     blockers: options.blockers,
     channel: options.channel,
+    ciProof: readCiProofFromInput(input),
     createGitHubRelease: canPublish,
     decision: options.decision,
     diagnostics: options.diagnostics,
     publish: options.publish,
-    reasons: options.reasons,
+    reasons,
     release: options.release,
-    shouldPublish: canPublish && !registryComplete(input.registryPackages),
+    shouldPublish: canPublish && !packagesPublished,
     stack: options.stack,
   };
 };
@@ -507,11 +595,39 @@ const evaluateAutoChecks = (
     );
   }
 
-  if (!input.ciPassed) {
-    diagnostics.push('Exact-SHA CI checks have not passed');
-  }
+  diagnostics.push(...evaluateCiProofEvidence(input));
 
   return { diagnostics, ok: diagnostics.length === 0 };
+};
+
+const evaluateCiProofEvidence = (
+  input: ReleasePolicyInput
+): readonly string[] => {
+  const proof = readCiProofFromInput(input);
+  if (proof?.passed) {
+    return [];
+  }
+  return [
+    proof
+      ? `${proof.summary} has not passed`
+      : 'CI proof has not been evaluated',
+  ];
+};
+
+const readCiProofFromInput = (
+  input: ReleasePolicyInput
+): ReleasePolicyCiProof | undefined => {
+  if (input.ciProof) {
+    return input.ciProof;
+  }
+  if (input.ciPassed === undefined) {
+    return undefined;
+  }
+  return {
+    passed: input.ciPassed,
+    source: 'exact-sha',
+    summary: 'Exact-SHA CI proof',
+  };
 };
 
 const readSourceStackLabels = (
@@ -1023,7 +1139,7 @@ const githubJson = async <T>(repository: string, path: string): Promise<T> => {
 interface GitHubPullRequest {
   readonly base: { readonly ref: string };
   readonly body?: string | null;
-  readonly head: { readonly ref: string };
+  readonly head: { readonly ref: string; readonly sha?: string };
   readonly labels: readonly { readonly name: string }[];
   readonly number: number;
   readonly title: string;
@@ -1038,13 +1154,12 @@ interface GitHubContentFile {
   readonly content: string;
 }
 
+interface GitHubCommitResponse {
+  readonly commit: { readonly tree?: { readonly sha?: string } };
+}
+
 interface GitHubCheckRunsResponse {
-  readonly check_runs: readonly {
-    readonly check_suite?: { readonly app?: { readonly slug?: string } };
-    readonly conclusion?: string | null;
-    readonly name: string;
-    readonly status: string;
-  }[];
+  readonly check_runs: readonly ReleasePolicyCheckRun[];
 }
 
 const managedGitHubLabels = [
@@ -1130,6 +1245,7 @@ const readReleasePullRequest = async (
     body: pull.body ?? '',
     comments: comments.map((comment) => comment.body ?? ''),
     headRefName: pull.head.ref,
+    ...(pull.head.sha === undefined ? {} : { headSha: pull.head.sha }),
     labels: pull.labels.map((label) => label.name),
     number: pull.number,
     title: pull.title,
@@ -1155,6 +1271,7 @@ const readOpenReleasePullRequest = async (
     body: pull.body ?? '',
     comments: [],
     headRefName: pull.head.ref,
+    ...(pull.head.sha === undefined ? {} : { headSha: pull.head.sha }),
     labels: pull.labels.map((label) => label.name),
     number: pull.number,
     title: pull.title,
@@ -1299,14 +1416,31 @@ const readSourcePullRequests = async (
   return [...byNumber.values()];
 };
 
-const readCiPassed = async (
+const readCiProof = async (
   repository: string,
-  sha: string
-): Promise<boolean> => {
+  sha: string,
+  releasePullRequest: ReleasePolicyPullRequest | undefined
+): Promise<ReleasePolicyCiProof> => {
   if (process.env['TRAILS_RELEASE_POLICY_ASSUME_CI_PASSED'] === '1') {
-    return true;
+    return {
+      passed: true,
+      source: 'assumed',
+      summary: 'Assumed CI proof',
+    };
   }
 
+  const [shaTreeSha, releasePullRequestHeadTreeSha] = await Promise.all([
+    readCommitTreeSha(repository, sha),
+    releasePullRequest?.headSha
+      ? readCommitTreeSha(repository, releasePullRequest.headSha)
+      : undefined,
+  ]);
+  const target = selectReleasePolicyCiProofTarget({
+    releasePullRequest,
+    releasePullRequestHeadTreeSha,
+    sha,
+    shaTreeSha,
+  });
   const attempts = Number.parseInt(
     process.env['TRAILS_RELEASE_POLICY_CI_ATTEMPTS'] ?? '1',
     10
@@ -1317,22 +1451,49 @@ const readCiPassed = async (
   );
 
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
-    const state = await readCiState(repository, sha);
+    const state = await readCiState(repository, target.sha);
     if (state === 'passed') {
-      return true;
+      return {
+        passed: true,
+        source: target.source,
+        summary: target.summary,
+      };
     }
     if (state === 'failed') {
-      return false;
+      return {
+        passed: false,
+        source: target.source,
+        summary: target.summary,
+      };
     }
     if (attempt < attempts && waitMs > 0) {
       console.error(
-        `trails: waiting for exact-SHA CI checks (${attempt}/${attempts})`
+        `trails: waiting for ${target.summary.toLowerCase()} (${attempt}/${attempts})`
       );
       await Bun.sleep(waitMs);
     }
   }
 
-  return false;
+  return {
+    passed: false,
+    source: target.source,
+    summary: target.summary,
+  };
+};
+
+const readCommitTreeSha = async (
+  repository: string,
+  sha: string
+): Promise<string | undefined> => {
+  try {
+    const response = await githubJson<GitHubCommitResponse>(
+      repository,
+      `/commits/${sha}`
+    );
+    return response.commit.tree?.sha;
+  } catch {
+    return undefined;
+  }
 };
 
 const readCiState = async (
@@ -1343,35 +1504,45 @@ const readCiState = async (
     repository,
     `/commits/${sha}/check-runs?per_page=100`
   );
-  const requiredRuns = new Map(
-    response.check_runs
-      .filter((run) => run.check_suite?.app?.slug === 'github-actions')
-      .filter((run) =>
-        [
-          'Build',
-          'Lint & Format',
-          'Dead Code',
-          'Typecheck',
-          'Test',
-          'Governance',
-        ].includes(run.name)
-      )
-      .map((run) => [run.name, run])
-  );
-  const relevantRuns = [
+  return ciStateFromCheckRuns(response.check_runs);
+};
+
+export const ciStateFromCheckRuns = (
+  runs: readonly ReleasePolicyCheckRun[]
+): 'failed' | 'passed' | 'pending' => {
+  const requiredNames = [
     'Build',
     'Lint & Format',
     'Dead Code',
     'Typecheck',
     'Test',
     'Governance',
-  ].map((name) => requiredRuns.get(name));
+  ] as const;
+  const relevantRuns = runs
+    .filter((run) => run.check_suite?.app?.slug === 'github-actions')
+    .filter((run) =>
+      requiredNames.includes(run.name as (typeof requiredNames)[number])
+    );
 
-  if (relevantRuns.some((run) => !run || run.status !== 'completed')) {
-    return 'pending';
-  }
-  if (relevantRuns.some((run) => run?.conclusion !== 'success')) {
-    return 'failed';
+  for (const name of requiredNames) {
+    const namedRuns = relevantRuns.filter((run) => run.name === name);
+    if (namedRuns.length === 0) {
+      return 'pending';
+    }
+    if (
+      namedRuns.some(
+        (run) => run.status === 'completed' && run.conclusion !== 'success'
+      )
+    ) {
+      return 'failed';
+    }
+    if (
+      !namedRuns.some(
+        (run) => run.status === 'completed' && run.conclusion === 'success'
+      )
+    ) {
+      return 'pending';
+    }
   }
   return 'passed';
 };
@@ -1397,20 +1568,17 @@ const readPolicyInput = async (): Promise<ReleasePolicyInput> => {
     process.env['GITHUB_SHA'] ?? (await runText(['git', 'rev-parse', 'HEAD']));
   const previousVersion = await readPreviousVersion();
   const registryPackages = await readRegistryPackages(distTag);
-  const [releasePullRequest, commit, changedFiles, ciPassed] =
-    await Promise.all([
-      readReleasePullRequest(repository, sha),
-      readCommitInfo(),
-      readChangedFiles(),
-      readCiPassed(repository, sha),
-    ]);
+  const [releasePullRequest, commit, changedFiles] = await Promise.all([
+    readReleasePullRequest(repository, sha),
+    readCommitInfo(),
+    readChangedFiles(),
+  ]);
   const sourcePullRequests = previousVersion
     ? await readSourcePullRequests(repository, previousVersion)
     : undefined;
 
   return {
     changedFiles,
-    ciPassed,
     commit,
     distTag,
     ...(previousVersion === undefined ? {} : { previousVersion }),
@@ -1425,8 +1593,30 @@ const readPolicyInput = async (): Promise<ReleasePolicyInput> => {
 };
 
 const commandPolicy = async (): Promise<void> => {
-  const input = await readPolicyInput();
-  const report = evaluateReleasePolicy(input);
+  let input = await readPolicyInput();
+  let report = releasePolicyRequiresCiProof(input)
+    ? evaluateReleasePolicy({
+        ...input,
+        ciProof: {
+          passed: true,
+          source: 'missing',
+          summary: 'Deferred CI proof',
+        },
+      })
+    : evaluateReleasePolicy(input);
+
+  if (report.decision === 'auto') {
+    input = {
+      ...input,
+      ciProof: await readCiProof(
+        input.repository,
+        input.sha,
+        input.releasePullRequest
+      ),
+    };
+    report = evaluateReleasePolicy(input);
+  }
+
   printReport(report);
   await writeGitHubOutput({
     channel: report.channel ?? '',

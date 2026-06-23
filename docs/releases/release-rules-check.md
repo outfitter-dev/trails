@@ -142,7 +142,15 @@ The policy gate emits machine-readable GitHub Actions outputs and chooses `auto`
 bun run publish:policy
 ```
 
-`publish:auto` is available only for the expected generated release PR shape: `changeset-release/main` into `main`, generated-only package version and changelog diffs, exact-SHA CI green, coherent registry/dist-tag state, no unknown or conflicting managed labels, and `stack:boundary` on every source PR that introduced a consumed changeset. Missing source PR evidence or missing `stack:boundary` routes to `publish:manual`; contradictory labels, unknown managed labels, registry contradictions, or `publish:block` block the workflow.
+`publish:auto` is available only for the expected generated release PR shape: `changeset-release/main` into `main`, generated-only package version and changelog diffs, CI proof green, coherent registry/dist-tag state, no unknown or conflicting managed labels, and `stack:boundary` on every source PR that introduced a consumed changeset. Missing source PR evidence or missing `stack:boundary` routes to `publish:manual`; contradictory labels, unknown managed labels, registry contradictions, or `publish:block` block the workflow.
+
+CI proof is gathered only when a generated release PR requests `publish:auto`. Manual, no-label, `publish:none`, and blocked paths do not wait on CI checks before routing to their decision. When auto proof is needed, the policy first reuses the generated release PR head checks if the current release commit and PR head commit resolve to the same Git tree. If that proof cannot be established, it falls back to exact-SHA checks on the current commit. Both paths read the required GitHub Actions checks (`Build`, `Lint & Format`, `Dead Code`, `Typecheck`, `Test`, and `Governance`). Duplicate pending checks do not mask an already-completed success for the same required check, but any completed failure still blocks automation.
+
+The policy log separates three facts:
+
+- **Publish authorization:** whether labels and generated-release evidence permit `auto`, require `manual`, select `none`, or `block`.
+- **Package readiness:** whether registry state already matches the generated package version and dist-tag.
+- **Publish necessity:** whether npm publication still needs to run after authorization.
 
 `publish:manual` never publishes from the push event that merges the generated release PR. After the generated PR is merged and the Release workflow policy resolves to `manual`, an operator must dispatch the Release workflow from `main` with `publish=true`. Protected npm environment approval may add another gate, but the workflow does not rely on environment protection as the only manual-publish guard.
 
