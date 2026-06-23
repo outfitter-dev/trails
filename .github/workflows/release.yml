@@ -37,6 +37,19 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: bun run publish:label-release-pr
+      - name: Validate version PR
+        if: steps.changesets.outputs.hasChangesets == 'true'
+        run: |
+          git fetch --no-tags --depth=1 origin changeset-release/main
+          git checkout --force FETCH_HEAD
+          bun run changeset:check
+          bun run release-pack:check -- --lockfile-only
+          bun run publish:check
+      - name: Dispatch version PR CI
+        if: steps.changesets.outputs.hasChangesets == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run CI --ref changeset-release/main
 
   publish-policy:
     name: Publish Policy
