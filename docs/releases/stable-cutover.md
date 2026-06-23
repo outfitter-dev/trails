@@ -36,7 +36,7 @@ Before creating the version PR:
    bun apps/trails/bin/trails.ts warden --pre-push --depth all --lock skip --root-dir apps/trails --apps ./src/app.ts
    ```
 
-   The compile command writes topo artifacts, so it requires an inline permit
+   The compile command writes root `trails.lock`, so it requires an inline permit
    with the `topo:write` scope. Run the gate from the repo root, but point the
    topo commands at the Trails app root with `--root-dir apps/trails --module
    ./src/app.ts`; passing a repo-root module path such as
@@ -46,7 +46,7 @@ Before creating the version PR:
    compile, diff, and doctor commands, and `--apps` for Warden. Without an app
    selector, discovery finds multiple candidates and aborts before any evidence
    is produced. `trails diff --forces` compares against the saved
-   `apps/trails/.trails/topo.lock`, so run `trails compile` first; without a
+   `apps/trails/trails.lock`, so run `trails compile` first; without a
    saved TopoGraph the diff fails with `NotFoundError` before any force evidence
    can be collected. The diff and doctor output are the saved force-audit
    evidence for the release gate.
@@ -56,19 +56,19 @@ Before creating the version PR:
    `--depth all` is required here for the Warden cross-check. Use `--lock skip`
    so Warden checks the live app topology without turning saved force annotations
    into a drift blocker. A clean Warden run is not a substitute for the saved
-   `apps/trails/.trails/topo.lock` evidence above. The v1 stable cutover default
+   `apps/trails/trails.lock` evidence above. The v1 stable cutover default
    is zero pending force events. If a force event must remain for the stable
    version PR, the PR body must name the exception owner, forced entity, reason,
    and planned resolution before review starts. Warden `pending-force` output is
    a release-review warning, not an automatic exception.
 
-   `trails compile` can write generated topo evidence files. Remove them before
-   continuing to the clean-main preconditions unless the release branch is
-   intentionally updating those artifacts:
+   `trails compile` writes root `trails.lock`. Remove it before continuing to
+   the clean-main preconditions unless the release branch is intentionally
+   updating that artifact:
 
    ```bash
-   rm -f apps/trails/.trails/topo.lock apps/trails/.trails/trails.lock
-   git status --short -- apps/trails/.trails/topo.lock apps/trails/.trails/trails.lock
+   rm -f apps/trails/trails.lock
+   git status --short -- apps/trails/trails.lock
    ```
 
 5. The stable release doctrine ADR exists and is accepted.
@@ -162,11 +162,11 @@ bun run publish:registry-check
 bunx changeset status --verbose
 ```
 
-`trails compile` can write `apps/trails/.trails/topo.lock` and `apps/trails/.trails/trails.lock`. If the version PR is not intentionally updating those generated artifacts, remove the evidence files before continuing:
+`trails compile` can write `apps/trails/trails.lock`. If the version PR is not intentionally updating that generated artifact, remove the evidence file before continuing:
 
 ```bash
-rm -f apps/trails/.trails/topo.lock apps/trails/.trails/trails.lock
-git status --short -- apps/trails/.trails/topo.lock apps/trails/.trails/trails.lock
+rm -f apps/trails/trails.lock
+git status --short -- apps/trails/trails.lock
 ```
 
 Run a registry-backed generated-app smoke before exiting prerelease mode. This proves the current published prerelease package set and the generator still agree:

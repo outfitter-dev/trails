@@ -63,8 +63,8 @@ For each handler:
 ## Phase 6: Governance
 
 - [ ] `trails warden` reports clean
-- [ ] Regenerate topo artifacts: `trails compile`
-- [ ] Verify topo artifacts: `trails validate`
+- [ ] Regenerate root `trails.lock`: `trails compile`
+- [ ] Verify root `trails.lock`: `trails validate`
 - [ ] Add lock check to CI
 
 ## Common Gotchas

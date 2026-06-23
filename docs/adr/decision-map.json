@@ -2703,11 +2703,6 @@
           "fromPath": "docs/adr/drafts/20260622-project-substrate-names-its-truth.md"
         },
         {
-          "context": "These names are the current durable artifact-family vocabulary established by [ADR-0046](adr/0046-lock-v3-artifact-family.md).",
-          "from": "lexicon",
-          "fromPath": "docs/lexicon.md"
-        },
-        {
           "context": "Typed view over the saved `TopoGraph` content artifact for a snapshot. This is the `topo_graph` member of the lock v3 artifact family defined in [ADR-0046](./adr/0046-lock-v3-artifact-family.md):",
           "from": "topo-store-reference",
           "fromPath": "docs/topo-store-reference.md"

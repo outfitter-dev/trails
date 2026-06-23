@@ -109,7 +109,7 @@ These are derived from blaze code itself. Useful for governance and documentatio
 | ---------------------------- | ------------------------------------------ |
 | Which trails a trail composes | `ctx.compose()` calls in the blaze |
 | Error types returned | `Result.err(new XError(...))` patterns |
-| TopoGraph entries and lock metadata | All of the above, canonicalized |
+| TopoGraph entries and lock metadata | All of the above, canonicalized into root `trails.lock` |
 
 Warden uses inference to verify that declarations match actual code. The TopoGraph captures inferred information for CI governance.
 
@@ -172,7 +172,7 @@ Overrides are escape hatches. They're visible in the TopoGraph as explicit devia
 | Package | What it does |
 | --- | --- |
 | `@ontrails/testing` | `testAll()`, `testExamples()`, `testTrail()`, contract testing, surface harnesses |
-| `@ontrails/topographer` | TopoGraphs, semantic diffing, lock manifest and `topo.lock` helpers, topo-store persistence (relocated from `@ontrails/core` per ADR-0042) |
+| `@ontrails/topographer` | TopoGraphs, semantic diffing, `trails.lock` helpers, topo-store persistence (relocated from `@ontrails/core` per ADR-0042) |
 | `@ontrails/warden` | Lint rules, drift detection, CI gating |
 | `@ontrails/wayfinder` | Graph-read query trails and source outlines over saved Topographer artifacts for agent navigation |
 

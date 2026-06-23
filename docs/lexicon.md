@@ -78,17 +78,17 @@ Governance and contract enforcement tooling. Active governance — completeness 
 
 ### `topographer`
 
-The durable graph substrate. `@ontrails/topographer` owns the artifacts derived from the resolved graph that survive across processes or compare state across time: TopoGraphs, hashes, semantic diffs, lock manifest and `topo.lock` I/O, snapshots, and pinned history. Core resolves the graph; Topographer persists and compares it.
+The durable graph substrate. `@ontrails/topographer` owns the artifacts derived from the resolved graph that survive across processes or compare state across time: TopoGraphs, hashes, semantic diffs, `trails.lock` I/O, snapshots, and pinned history. Core resolves the graph; Topographer persists and compares it.
 
 A package needs Topographer only when it crosses a process boundary or compares state across time. The runtime never reads Topographer artifacts to execute trails — every `topo()` call resolves entirely in core. See [ADR-0042](adr/0042-core-topographer-boundary-doctrine.md) for the boundary doctrine.
 
-### TopoGraph Artifact Family
+### TopoGraph Lock
 
-These names are the current durable artifact-family vocabulary established by [ADR-0046](adr/0046-lock-v3-artifact-family.md).
+These names are the current durable graph-artifact vocabulary.
 
 #### `TopoGraph`
 
-The exported TypeScript type family for the serialized, inspectable graph content. A TopoGraph contains trail, signal, resource, contour, activation, schema, layer, example, and surface-projection facts. It is the content artifact written to `.trails/topo.lock`.
+The exported TypeScript type family for the serialized, inspectable graph content. A TopoGraph contains trail, signal, resource, contour, activation, schema, layer, example, and surface-rendering facts. It is embedded in root `trails.lock`.
 
 #### `topoGraph`
 
@@ -96,11 +96,19 @@ The JavaScript field and variable spelling for a TopoGraph value, for example `s
 
 #### `topo_graph`
 
-The SQL/storage spelling for serialized TopoGraph content. In the topo store, `topo_exports.topo_graph` holds the graph content that corresponds to `.trails/topo.lock`.
+The SQL/storage spelling for serialized TopoGraph content. In the topo store, `topo_exports.topo_graph` holds the graph content that corresponds to the TopoGraph embedded in `trails.lock`.
 
 #### `lock_manifest`
 
-The SQL/storage spelling for the stored lock manifest export. The manifest is the compact `.trails/trails.lock` artifact that points at `topo.lock` and verifies the TopoGraph hash; it is not a second copy of the graph.
+The SQL/storage spelling for the stored manifest export. The manifest is historical compatibility data for the beta artifact family and internal topo-store snapshots; the committed v1 `trails.lock` file embeds the graph instead of pointing at a second committed file.
+
+#### `trails.lock`
+
+The committed resolved-truth file at a Trails project root. It embeds the serialized TopoGraph plus the graph hash, summary, scope, and lock schema version. It is derived, but committed because its diff is governance.
+
+#### `.trails/`
+
+Committed Trails control directory. Use it for project-local Warden rules and other framework-owned control sections that do not deserve root filenames. Do not put generated state, cache, SQLite databases, or lock fragments here.
 
 #### Trails state store
 
@@ -112,7 +120,7 @@ Per-user rebuildable cache state. Cache artifacts that can be rebuilt from sourc
 
 #### `trails.config.local.*`
 
-Ignored per-developer config overrides. Use `trails.config.local.ts`, `trails.config.local.mts`, `trails.config.local.js`, or `trails.config.local.mjs` at the project root; do not create `.trails/config.local.*` or nested `.trails/config/local.*` files.
+Ignored per-developer config overrides. Use `trails.config.local.ts`, `trails.config.local.mts`, `trails.config.local.js`, `trails.config.local.mjs`, `trails.config.local.json`, `trails.config.local.jsonc`, `trails.config.local.yaml`, or `trails.config.local.toml` at the project root; do not create `.trails/config.local.*` or nested `.trails/config/local.*` files.
 
 #### Retired Vocabulary
 
@@ -122,13 +130,14 @@ These names are historical or migration vocabulary, not current target-state lan
 | --- | --- |
 | `SurfaceMap` | `TopoGraph` |
 | `SurfaceMapEntry` | `TopoGraphEntry` |
-| `_surface.json` | `.trails/topo.lock` |
+| `_surface.json` | `trails.lock` |
 | `surface_map` | `topo_graph` |
 | `cross` / `crosses` | `compose` / `composes` |
 | `crossInput` | `composeInput` |
-| `serialized_lock` | `lock_manifest` when referring to stored manifest export content; `.trails/trails.lock` when referring to the committed manifest file |
+| `serialized_lock` | `lock_manifest` when referring to stored manifest export content; `trails.lock` when referring to the committed resolved-truth file |
 | `.trails/config/local.*` | `trails.config.local.*` |
 | `.trails/config.local.*` | `trails.config.local.*` |
+| `.trails/trails.lock` / `.trails/topo.lock` | `trails.lock` |
 | `.trails/trails.db` | Trails state store `trails.db` |
 | `.trails/trails.db-shm` / `.trails/trails.db-wal` | Trails state store SQLite sidecars |
 | `.trails/state/` / `.trails/dev/` | Trails state store for mutable runtime state |
@@ -415,7 +424,7 @@ Compiler-managed graph audit records for future `--force` compile behavior. `for
 
 ### `graph`
 
-The assembled, queryable value returned by `topo()`. The graph is the runtime shape that surfaces render, survey inspects, and the TopoGraph artifact family serializes for review.
+The assembled, queryable value returned by `topo()`. The graph is the runtime shape that surfaces render, survey inspects, and the root `trails.lock` serializes for review.
 
 ```typescript
 const graph = topo('myapp', entityModule, searchModule);

@@ -135,15 +135,16 @@ The framework validates input before the blaze receives it. If the blaze receive
 
 Validation is a framework guarantee enforced once at the boundary, not a developer responsibility scattered across every function.
 
-### The resolved topo artifact family is the story
+### The resolved topo lock is the story
 
-The resolved topo artifact family is the compiled, resolved, deduplicated story of a Trails application. Every trail, resource, signal, contour, and surface projection is inspectable as graph content. Relationships are explicit. An agent reading the committed artifact family can understand the system without guessing from source code.
+The resolved topo lock is the compiled, resolved, deduplicated story of a Trails application. Every trail, resource, signal, contour, and surface rendering is inspectable as graph content. Relationships are explicit. An agent reading the committed lock can understand the system without guessing from source code.
 
-The family is generated, checked in, and CI-diffable. `.trails/trails.lock` is the compact manifest that verifies adjacent content artifacts by hash. `.trails/topo.lock` is the serialized `TopoGraph` content artifact. Drift between code and the committed artifact family is a governance finding.
+`trails.lock` is generated, checked in, and CI-diffable. It embeds the serialized `TopoGraph`, the graph hash, scope, and summary in one root file. Drift between code and the committed lock is a governance finding.
 
-> ADR-0017 established the right promise but put too much responsibility on one
-> file. ADR-0046 keeps the promise and splits the jobs: the manifest verifies,
-> the TopoGraph content artifact explains.
+> ADR-0017 established the right promise. ADR-0046 split the beta artifact
+> family into a compact manifest plus graph content. The v1 substrate collapses
+> those jobs back into one root `trails.lock` envelope so the committed truth is
+> easier for humans and agents to locate.
 
 ## Primitives
 

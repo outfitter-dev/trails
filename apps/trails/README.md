@@ -13,8 +13,8 @@ Common workflows:
 - `trails create` starts a new Trails project with generated trail, topo, surface, and verification files.
 - `trails add surface` adds another surface entrypoint to an existing project.
 - `trails topo` inspects topo state and manages pins/history.
-- `trails compile` writes committed topo artifacts.
-- `trails validate` checks committed topo artifacts for drift.
+- `trails compile` writes root `trails.lock`.
+- `trails validate` checks root `trails.lock` for drift.
 - `trails wayfind`, `trails wayfind --trails --intent read`, `trails wayfind <id> --contract`, `trails wayfind <id> --deps`, `trails wayfind <id> --impact`, `trails wayfind pattern "wayfind.*"`, `trails wayfind query "release drift"`, `trails wayfind file <file> --outline`, and `trails wayfind diff ...` read graph artifacts and source outlines through Wayfinder for local navigation.
 - `trails schema <command...>` shows accepted CLI routes, aliases, flags, and schemas for an operator command.
 - `trails warden` runs Trails governance checks for contract and architecture drift.

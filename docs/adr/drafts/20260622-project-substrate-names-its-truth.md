@@ -124,4 +124,3 @@ Incremental compilation remains deferred. The cache key shape should not foreclo
 - [ADR-0042: Core/Topographer Boundary Doctrine](../0042-core-topographer-boundary-doctrine.md) — keeps durable graph derivation owned outside core runtime contracts.
 - [ADR-0046: Lock v3 Artifact Family](../0046-lock-v3-artifact-family.md) — the artifact family this ADR collapses into one root lock.
 - [ADR-0050: Surface Accommodations Preserve Trail Identity](../0050-surface-accommodations-preserve-trail-identity.md) — preserve authored contract identity.
-- [Trails Substrate converged note](../../../.agents/notes/2026-06-22-trails-substrate-converged.md) — local decision capture used to draft this ADR.

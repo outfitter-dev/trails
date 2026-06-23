@@ -12,7 +12,7 @@ export const validateTrail = trail('validate', {
         rootDir,
       })
     ),
-  description: 'Validate that committed topo artifacts match the current topo',
+  description: 'Validate that root trails.lock matches the current topo',
   input: z.object({
     module: z.string().optional().describe('Path to the app module'),
     rootDir: z.string().optional().describe('Workspace root directory'),

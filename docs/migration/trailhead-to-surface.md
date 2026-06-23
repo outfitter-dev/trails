@@ -18,7 +18,7 @@ The framework now consistently uses `surface` for CLI, MCP, HTTP, and WebSocket 
 | `tracing.query` record field `trailhead` | `surface` | Update CLI/MCP/HTTP/API consumers that inspect query results. |
 | Extension key value `__trails_trailhead` | `__trails_surface` | Update any direct `ctx.extensions` reads/writes to use `SURFACE_KEY`. |
 | `TRAILHEAD_KEY` | removed | Import `SURFACE_KEY` from `@ontrails/core`. |
-| Legacy `SurfaceMapEntry.trailheads` | `TopoGraphEntry.surfaces` | Update JSON consumers to the current TopoGraph artifact family and regenerate artifacts. |
+| Legacy `SurfaceMapEntry.trailheads` | `TopoGraphEntry.surfaces` | Update JSON consumers to read from root `trails.lock` and regenerate `trails.lock`. |
 | `extractTrailheads` | `extractSurfaces` | Update internal imports if you reached into non-public helpers. |
 | `Trailhead "<name>" added/removed` | `Surface "<name>" added/removed` | Update diff-output tests or parsers. |
 | `transportNames` / `TransportName` | `surfaceNames` / `SurfaceName` | Import the surface-named error projection API. |
@@ -138,7 +138,7 @@ The current TopoGraph artifact stores `surfaces` on each entry. Historical surfa
  }
 ```
 
-Regenerate TopoGraph artifacts after upgrading. For the Trails app, use:
+Regenerate root `trails.lock` after upgrading. For the Trails app, use:
 
 ```bash
 trails compile
@@ -148,7 +148,7 @@ Update any direct JSON consumers, fixtures, or snapshot assertions that read `en
 
 ## Compile
 
-The legacy `topo.export` trail has been removed. Use `compile` for current topo artifacts:
+The legacy `topo.export` trail has been removed. Use `compile` for current `trails.lock` output:
 
 ```diff
 -trails topo export

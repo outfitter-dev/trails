@@ -31,7 +31,7 @@ Core defines ports. Everything on the edges is an adapter.
 - Drift is structurally harder than alignment — one schema, one Result type, one error taxonomy.
 - Surfaces are peers. CLI, MCP, HTTP, and library are shipped adapters. Adding a surface is a `surface()` call.
 - Blazes are surface-agnostic authored implementations: input in, `Result` out.
-- The contract is machine-readable at runtime via topo artifacts, Wayfinder, and compatibility survey/guide commands.
+- The contract is machine-readable at runtime via root `trails.lock`, Wayfinder, and compatibility survey/guide commands.
 
 ## Information Architecture
 
@@ -75,9 +75,9 @@ Every piece of information has a clear ownership model.
 |----------|------|
 | Which trails a trail composes | `ctx.compose()` calls in the blaze function |
 | Error types returned | `Result.err(new XError(...))` patterns |
-| TopoGraph entries and lock hash | All established trails, resources, signals, contours, examples, and derived fields, canonicalized |
+| TopoGraph entries and lock hash | All established trails, resources, signals, contours, examples, and derived fields, canonicalized into root `trails.lock` |
 
-Warden uses inference to verify declarations match actual code. Topographer captures the resolved `TopoGraph`, semantic diff, lock manifest, and `topo.lock` artifacts for CI governance. Consumer artifact workflow uses the top-level CLI commands `trails compile`, `trails validate`, and `trails diff`; `trails topo` is for topo-store history and pin management.
+Warden uses inference to verify declarations match actual code. Topographer captures the resolved `TopoGraph`, semantic diff, and root `trails.lock` artifact for CI governance. Consumer artifact workflow uses the top-level CLI commands `trails compile`, `trails validate`, and `trails diff`; `trails topo` is for topo-store history and pin management.
 
 Wayfinder is the first agent navigation move over those saved artifacts. For graph questions, start with `trails wayfind overview --root-dir . --json`, then use search, contract, describe, nearby, impact, examples, or diff queries before reconstructing topo facts with raw source search. Use `trails schema <command...>` when you need accepted CLI routes, aliases, flags, and schemas for an operator command. Source reads remain the right fallback for stale or missing artifacts and implementation details Topographer does not project.
 
@@ -117,7 +117,7 @@ Wayfinder is the first agent navigation move over those saved artifacts. For gra
 | Package | Purpose |
 |---------|---------|
 | `@ontrails/testing` | `testAll()`, `testExamples()`, `testTrail()`, contract testing, opt-in surface harness subpaths |
-| `@ontrails/topographer` | TopoGraphs, semantic diffing, lock manifest and `topo.lock` helpers, topo-store persistence |
+| `@ontrails/topographer` | TopoGraphs, semantic diffing, `trails.lock` helpers, topo-store persistence |
 | `@ontrails/warden` | Lint rules, drift detection, CI gating |
 | `@ontrails/wayfinder` | Graph-read query trails over saved Topographer artifacts for agent navigation |
 

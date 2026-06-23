@@ -6,16 +6,15 @@ For the full SQLite schema and programmatic query API, see the [Topo Store Refer
 
 ## Project files and local state
 
-Current v1 builds still write the committed topo artifact family under `.trails/`:
+Current v1 builds write one committed resolved-truth file at the project root:
 
 ```text
-.trails/
-├── topo.lock              # Serialized TopoGraph (git-tracked)
-└── trails.lock            # Lock v3 manifest (text, git-tracked)
+trails.lock                # Trails lock v4 envelope (git-tracked)
+.trails/                   # committed Trails control directory
 ```
 
-- **`topo.lock`** — Committed serialized TopoGraph with trail, signal, resource, relation, example, detour, and workspace metadata.
-- **`trails.lock`** — Committed compact v3 manifest that points at `topo.lock` and verifies its hash.
+- **`trails.lock`** — Committed lock v4 envelope. It embeds the serialized TopoGraph plus the hash, summary, and scope facts needed for drift checks and graph reads.
+- **`.trails/`** — Committed Trails control directory. Project-local Warden rules and scaffold/control metadata live here; cache, generated lock fragments, and SQLite state do not.
 - **`trails.db`** — SQLite database containing topo snapshots, pins, and schema cache. It is local state under the per-user Trails state store, not a repo file.
 
 Local per-developer overrides live at the project root as `trails.config.local.*`, not under `.trails/`.
@@ -49,8 +48,8 @@ Artifact lifecycle commands are top-level `trails` commands: `trails compile`, `
 
 Retired shapes such as `trails topo compile`, `trails topo verify`, and `trails topo check` are not aliases. Use the top-level commands instead:
 
-- `trails compile` writes `.trails/topo.lock` and `.trails/trails.lock`.
-- `trails validate` checks committed artifacts against the current topo.
+- `trails compile` writes root `trails.lock`.
+- `trails validate` checks root `trails.lock` against the current topo.
 - `trails diff` compares the current topo against a saved TopoGraph target.
 
 Programmatic consumers use `@ontrails/topographer` APIs directly; the package does not ship a separate CLI binary.
@@ -97,7 +96,7 @@ trails topo history --limit 20
 
 ### `trails compile`
 
-Compile the current topo to `.trails/topo.lock` and `.trails/trails.lock`.
+Compile the current topo to root `trails.lock`.
 
 ```bash
 trails compile
@@ -105,7 +104,7 @@ trails compile
 
 ### `trails diff`
 
-Compare the current topo against a saved TopoGraph target. The default target is the committed `.trails/topo.lock`; explicit targets may be workspace-relative `topo.lock` files, JSON TopoGraphs, TopoGraph directories, pins, or snapshots.
+Compare the current topo against a saved TopoGraph target. The default target is the committed root `trails.lock`; explicit targets may be workspace-relative `trails.lock` or legacy `topo.lock` files, JSON TopoGraphs, TopoGraph directories, pins, or snapshots.
 
 ```bash
 trails diff
@@ -143,7 +142,7 @@ trails doctor
 
 ### `trails validate`
 
-Check that the `.trails/trails.lock` / `.trails/topo.lock` artifact family matches your current topo. Fails if either committed artifact has drifted.
+Check that root `trails.lock` matches your current topo. Fails if the committed resolved truth has drifted.
 
 ```bash
 # In CI
@@ -156,7 +155,7 @@ trails validate || exit 1
 
 1. Make topology changes
 2. Compile: `trails compile`
-3. Commit `.trails/trails.lock` and `.trails/topo.lock`
+3. Commit `trails.lock`
 4. In CI, validate: `trails validate`
 
 ### Pin before refactoring

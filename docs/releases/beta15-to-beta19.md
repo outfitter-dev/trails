@@ -2,6 +2,12 @@
 
 This guide is for downstream Trails apps moving from the `1.0.0-beta.15` package line to `1.0.0-beta.19`. It is operator-facing: install, change, verify.
 
+> This guide preserves the beta.19 migration path. Current v1 prerelease builds
+> write one root `trails.lock` instead of the beta.19 `.trails/trails.lock` plus
+> `.trails/topo.lock` artifact family. Use this page for beta.15-beta.19
+> archaeology, then use the current Topo Store and migration docs for the v1
+> target substrate.
+
 Beta 15 to beta 19 is not one breaking rename. It is a modernization bundle that touches package shape, CLI/MCP/HTTP surfaces, observability, contract testing, drift detection, trail composition vocabulary, trail versioning, adapter authoring, and a few layer and error-taxonomy decisions. The focused migration guides under [`docs/migration/`](../migration/) cover each concern in depth. This guide ties them together, lists install commands, and gives downstream apps a CI-grade checklist.
 
 The two beta.19 changes a downstream app must act on are the `cross` → `compose` composition rename and, if it pinned them, the retired `trails topo compile` / `trails topo verify` / `trails topo check` command shapes. The rest of beta.19 (trail-versioning runtime, adapter authoring, scaffold provenance, Warden safe-fix) is additive — adopt it when the app needs it. The [Beta 18 → Beta 19](#beta-18-to-beta-19) section below covers the specifics.

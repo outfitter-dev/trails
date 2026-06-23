@@ -97,6 +97,7 @@ describe('public-output-schema', () => {
   test('runWarden includes public output schema diagnostics when topo is supplied', async () => {
     const report = await runWarden({
       rootDir: process.cwd(),
+      tier: 'topo-aware',
       topo: buildTopo(buildTrail('report.read')),
     });
 

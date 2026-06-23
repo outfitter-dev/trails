@@ -241,8 +241,9 @@ These are programmatic Topographer APIs for deriving, hashing, diffing, reading,
 ```typescript
 // TopoGraph and lock artifact helpers
 deriveTopoGraph(graph), deriveTopoGraphHash(topoGraph), deriveTopoGraphDiff(before, after)
-writeTopoGraph(topoGraph, options?), readTopoGraph(options?)
-writeLockManifest(manifest, options?), readLockManifest(options?), readWorkspaceTrailIndex(options?)
+writeTrailsLock(lock, options?), readTrailsLock(options?)
+readTopoGraph(options?), readWorkspaceTrailIndex(options?)
+writeTopoGraph(topoGraph, options?), writeLockManifest(manifest, options?), readLockManifest(options?) // legacy beta artifact-family helpers
 
 // Topo store (durable graph substrate; relocated from @ontrails/core per ADR-0042)
 createTopoStore(options?), createMockTopoStore(seed?), topoStore
@@ -250,7 +251,7 @@ createTopoSnapshot(topo, options?), listTopoSnapshots(options?)
 pinTopoSnapshot(id, name, options?), unpinTopoSnapshot(nameOrId, options?)
 TOPO_STORE_SCHEMA_VERSION
 
-TopoGraph, TopoGraphEntry, TopoGraphContourReference, LockManifest, DiffResult, DiffEntry, JsonSchema
+TopoGraph, TopoGraphEntry, TopoGraphContourReference, TrailsLock, LockManifest, DiffResult, DiffEntry, JsonSchema
 WriteOptions, ReadOptions
 ReadOnlyTopoStore, MockTopoStoreSeed, TopoSnapshot, TopoStoreRef
 TopoStoreActivationContextRecord, TopoStoreExportRecord, TopoStoreResourceRecord
@@ -270,7 +271,7 @@ StoredTopoExport
 
 ## `@ontrails/wayfinder`
 
-These are cold read trails and helpers for querying saved graph artifacts and package-level authoring evidence. Graph queries read `topo.lock`, `trails.lock`, and topo-store records; adapter queries read `@ontrails/adapter-kit` package and conformance evidence. They do not boot apps, resolve resources, reach the network, or mutate local state.
+These are cold read trails and helpers for querying saved graph artifacts and package-level authoring evidence. Graph queries read root `trails.lock` and topo-store records; adapter queries read `@ontrails/adapter-kit` package and conformance evidence. They do not boot apps, resolve resources, reach the network, or mutate local state.
 
 ```typescript
 // Graph-read topo and query trails

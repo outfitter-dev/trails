@@ -210,11 +210,11 @@ const assertDefaultProjectFiles = (dir: string): void => {
 const assertGitignore = (dir: string): void => {
   expectContainsAll(readText(dir, '.gitignore'), [
     'node_modules/',
-    '.trails/cache/',
-    '.trails/state/',
-    '.trails/trails.db*',
-    'trails.config.local.ts',
+    'dist/',
+    '*.tsbuildinfo',
+    'trails.config.local.*',
   ]);
+  expect(readText(dir, '.gitignore')).not.toContain('.trails/');
 };
 
 const assertNoDisposableTrailsState = (dir: string): void => {

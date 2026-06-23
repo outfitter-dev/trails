@@ -41,9 +41,9 @@ bun run vocab:rewrite -- --rule compose-api --write --path packages/my-app
 
 The codemod handles source identifiers, trail spec keys, context calls, testing helper names, Warden rule names, and the topo persistence names. It does not replace unrelated English uses such as cross-app, cross-package, or cross-cutting.
 
-## Topo Artifacts
+## Trails Lock
 
-Committed topo artifacts that contain the old `crosses` JSON key should be regenerated. The topo-store schema migrates local SQLite state from `topo_crossings` to `topo_composings`, but committed lockfiles are meant to be rebuilt from source.
+Committed `trails.lock` files that contain the old `crosses` JSON key should be regenerated. The topo-store schema migrates local SQLite state from `topo_crossings` to `topo_composings`, but committed locks are meant to be rebuilt from source.
 
 ```bash
 trails compile

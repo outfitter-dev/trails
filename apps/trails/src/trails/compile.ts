@@ -45,7 +45,7 @@ export const compileTrail = trail('compile', {
   examples: [
     {
       input: createIsolatedExampleInput('compile'),
-      name: 'Compile the current topo artifacts',
+      name: 'Compile the current topo to trails.lock',
     },
   ],
   input: compileTrailInputSchema,

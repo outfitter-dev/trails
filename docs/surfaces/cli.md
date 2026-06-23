@@ -70,7 +70,7 @@ export const cliAliases = {
 await surface(app, { aliases: cliAliases });
 ```
 
-If an app writes topo artifacts with `trails compile`, export the same alias map as `cliAliases` or `trailsCliAliases` from the app module. Compile, validate, survey, Wayfinder, and schema inspection then see the same accepted command routes as the runtime CLI.
+If an app writes root `trails.lock` with `trails compile`, export the same alias map as `cliAliases` or `trailsCliAliases` from the app module. Compile, validate, survey, Wayfinder, and schema inspection then see the same accepted command routes as the runtime CLI.
 
 If an alternate CLI shape needs to reshape input before it reaches the trail, that is richer than an alias. Treat it as an input mapping only if it normalizes honestly into the same authored trail input contract. If it changes behavior, permits, intent, errors, outputs, lifecycle, side effects, or hides which trail is running, it is a trail fork: author a new trail or a composing trail instead of hiding the split in CLI wiring.
 
