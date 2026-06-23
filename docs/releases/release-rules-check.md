@@ -134,7 +134,7 @@ The release PR labeler fills missing publish/channel/release labels without over
 bun run publish:label-release-pr
 ```
 
-After the labeler updates `changeset-release/main`, the Release workflow checks out that generated branch and validates it with `trails release check`, `release-pack:check --lockfile-only`, and `publish:check`. The workflow also dispatches normal CI for the generated branch because pull request workflows created by `GITHUB_TOKEN` updates do not reliably run from the generated PR event.
+After the labeler updates `changeset-release/main`, the Release workflow checks out that generated branch and validates it with `trails release check`, `release-pack:check --lockfile-only`, and `publish:check`. The workflow also dispatches normal CI for the generated branch because pull request workflows created by `GITHUB_TOKEN` updates do not reliably run from the generated PR event; the version job therefore needs `actions: write` permission in addition to content and pull request permissions.
 
 The policy gate emits machine-readable GitHub Actions outputs and chooses `auto`, `manual`, `none`, or `block`:
 

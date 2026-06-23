@@ -13,6 +13,7 @@ jobs:
     if: github.repository == 'outfitter-dev/trails' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
+      actions: write
       contents: write
       issues: write
       pull-requests: write
