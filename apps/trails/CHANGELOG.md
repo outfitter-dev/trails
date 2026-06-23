@@ -1,5 +1,26 @@
 # trails
 
+## 1.0.0-beta.28
+
+### Patch Changes
+
+- 9d679cf: Make generated release publish policy gather CI proof only for `publish:auto`, reuse generated release PR head proof when it matches the released tree, tolerate duplicate pending checks after a required check has passed, and log registry readiness separately from publish authorization.
+- 32dc2f3: Let generated release PR labeling treat trusted Graphite merge-queue proof with green required CI as source stack evidence for `publish:auto`, alongside explicit `stack:boundary` labels.
+  - @ontrails/commander@1.0.0-beta.28
+  - @ontrails/adapter-kit@1.0.0-beta.28
+  - @ontrails/cli@1.0.0-beta.28
+  - @ontrails/config@1.0.0-beta.28
+  - @ontrails/core@1.0.0-beta.28
+  - @ontrails/http@1.0.0-beta.28
+  - @ontrails/mcp@1.0.0-beta.28
+  - @ontrails/observe@1.0.0-beta.28
+  - @ontrails/permits@1.0.0-beta.28
+  - @ontrails/regrade@1.0.0-beta.28
+  - @ontrails/topographer@1.0.0-beta.28
+  - @ontrails/tracing@1.0.0-beta.28
+  - @ontrails/warden@1.0.0-beta.28
+  - @ontrails/wayfinder@1.0.0-beta.28
+
 ## 1.0.0-beta.27
 
 ### Patch Changes

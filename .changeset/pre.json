@@ -95,6 +95,8 @@
     "pure-transpose-revisions",
     "regrade-warden-review-details",
     "release-pack-coherence-guard",
+    "release-policy-proof-reuse",
+    "release-policy-trusted-stack-proof",
     "remove-legacy-logging-package",
     "resource-config-inference",
     "resource-unmockable-marker",

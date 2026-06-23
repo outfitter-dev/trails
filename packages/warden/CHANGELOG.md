@@ -1,5 +1,17 @@
 # @ontrails/warden
 
+## 1.0.0-beta.28
+
+### Patch Changes
+
+- @ontrails/adapter-kit@1.0.0-beta.28
+- @ontrails/cli@1.0.0-beta.28
+- @ontrails/config@1.0.0-beta.28
+- @ontrails/core@1.0.0-beta.28
+- @ontrails/permits@1.0.0-beta.28
+- @ontrails/store@1.0.0-beta.28
+- @ontrails/topographer@1.0.0-beta.28
+
 ## 1.0.0-beta.27
 
 ### Patch Changes

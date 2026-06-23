@@ -1,5 +1,14 @@
 # @ontrails/wayfinder
 
+## 1.0.0-beta.28
+
+### Patch Changes
+
+- @ontrails/adapter-kit@1.0.0-beta.28
+- @ontrails/core@1.0.0-beta.28
+- @ontrails/topographer@1.0.0-beta.28
+- @ontrails/warden@1.0.0-beta.28
+
 ## 1.0.0-beta.27
 
 ### Patch Changes
