@@ -1,5 +1,12 @@
 # @ontrails/hono
 
+## 1.0.0-beta.27
+
+### Patch Changes
+
+- @ontrails/core@1.0.0-beta.27
+- @ontrails/http@1.0.0-beta.27
+
 ## 1.0.0-beta.26
 
 ### Patch Changes

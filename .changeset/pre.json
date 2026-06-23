@@ -111,6 +111,7 @@
     "survey-brief-trail",
     "survey-diff-trail",
     "survey-role-trails",
+    "sync-release-lock-metadata",
     "taxonomy-docs-pass",
     "testing-compose-error-injection",
     "testing-contract-suite-label",

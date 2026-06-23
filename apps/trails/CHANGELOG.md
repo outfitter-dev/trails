@@ -1,5 +1,25 @@
 # trails
 
+## 1.0.0-beta.27
+
+### Patch Changes
+
+- a4727ec: Sync Bun lockfile workspace metadata during package versioning so generated release PRs cannot carry stale first-party package versions.
+  - @ontrails/commander@1.0.0-beta.27
+  - @ontrails/adapter-kit@1.0.0-beta.27
+  - @ontrails/cli@1.0.0-beta.27
+  - @ontrails/config@1.0.0-beta.27
+  - @ontrails/core@1.0.0-beta.27
+  - @ontrails/http@1.0.0-beta.27
+  - @ontrails/mcp@1.0.0-beta.27
+  - @ontrails/observe@1.0.0-beta.27
+  - @ontrails/permits@1.0.0-beta.27
+  - @ontrails/regrade@1.0.0-beta.27
+  - @ontrails/topographer@1.0.0-beta.27
+  - @ontrails/tracing@1.0.0-beta.27
+  - @ontrails/warden@1.0.0-beta.27
+  - @ontrails/wayfinder@1.0.0-beta.27
+
 ## 1.0.0-beta.26
 
 ### Patch Changes
