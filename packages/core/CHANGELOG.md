@@ -1,5 +1,12 @@
 # @ontrails/core
 
+## 1.0.0-beta.26
+
+### Patch Changes
+
+- 1307568: Centralize Trails config module path conventions, move local config overrides to root `trails.config.local.*`, scaffold the matching gitignore entries, and load project-local Warden rules from `.trails/rules.ts` or `.trails/rules/`.
+- 371d19e: Move the default `trails.db` location to the per-user Trails state store, expose deterministic state-store path helpers, stop scaffolding disposable `.trails/cache` and `.trails/state` directories, and update topo-store documentation for the global-state substrate.
+
 ## 1.0.0-beta.25
 
 ### Patch Changes

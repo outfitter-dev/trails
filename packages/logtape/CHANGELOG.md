@@ -1,5 +1,11 @@
 # @ontrails/logtape
 
+## 1.0.0-beta.26
+
+### Patch Changes
+
+- @ontrails/observe@1.0.0-beta.26
+
 ## 1.0.0-beta.25
 
 ### Patch Changes

@@ -1,5 +1,14 @@
 # @ontrails/tracing
 
+## 1.0.0-beta.26
+
+### Patch Changes
+
+- 371d19e: Move the default `trails.db` location to the per-user Trails state store, expose deterministic state-store path helpers, stop scaffolding disposable `.trails/cache` and `.trails/state` directories, and update topo-store documentation for the global-state substrate.
+- Updated dependencies [1307568]
+- Updated dependencies [371d19e]
+  - @ontrails/core@1.0.0-beta.26
+
 ## 1.0.0-beta.25
 
 ### Patch Changes

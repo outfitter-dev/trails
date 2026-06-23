@@ -1,5 +1,37 @@
 # trails
 
+## 1.0.0-beta.26
+
+### Patch Changes
+
+- 40cd7b4: Add a release-pack coherence guard that runs packed package validation for generated release branches and package release metadata changes.
+- 1307568: Centralize Trails config module path conventions, move local config overrides to root `trails.config.local.*`, scaffold the matching gitignore entries, and load project-local Warden rules from `.trails/rules.ts` or `.trails/rules/`.
+- 0fe873a: Normalize generated project guidance and scaffold ignores around the root `trails.lock` and committed `.trails/` control model.
+- 38cd9d6: Add a shared Trails config file loader that treats `trails.config.ts` as the natural primary while supporting JSON, JSONC, YAML, and TOML peer formats. Release and Warden config loading now consume the same loader and local overrides can be authored as data files.
+- f8403c4: Collapse normal topo compilation onto one root `trails.lock` envelope that embeds the TopoGraph, hash, and summary while keeping legacy `.trails/trails.lock` plus `.trails/topo.lock` readers for migration compatibility.
+- 371d19e: Move the default `trails.db` location to the per-user Trails state store, expose deterministic state-store path helpers, stop scaffolding disposable `.trails/cache` and `.trails/state` directories, and update topo-store documentation for the global-state substrate.
+- Updated dependencies [4e75b85]
+- Updated dependencies [1307568]
+- Updated dependencies [ef09e46]
+- Updated dependencies [38cd9d6]
+- Updated dependencies [f8403c4]
+- Updated dependencies [371d19e]
+- Updated dependencies [ff48e41]
+  - @ontrails/regrade@1.0.0-beta.26
+  - @ontrails/config@1.0.0-beta.26
+  - @ontrails/core@1.0.0-beta.26
+  - @ontrails/warden@1.0.0-beta.26
+  - @ontrails/topographer@1.0.0-beta.26
+  - @ontrails/wayfinder@1.0.0-beta.26
+  - @ontrails/tracing@1.0.0-beta.26
+  - @ontrails/commander@1.0.0-beta.26
+  - @ontrails/adapter-kit@1.0.0-beta.26
+  - @ontrails/cli@1.0.0-beta.26
+  - @ontrails/http@1.0.0-beta.26
+  - @ontrails/mcp@1.0.0-beta.26
+  - @ontrails/observe@1.0.0-beta.26
+  - @ontrails/permits@1.0.0-beta.26
+
 ## 1.0.0-beta.25
 
 ### Minor Changes

@@ -1,5 +1,18 @@
 # @ontrails/config
 
+## 1.0.0-beta.26
+
+### Patch Changes
+
+- 1307568: Centralize Trails config module path conventions, move local config overrides to root `trails.config.local.*`, scaffold the matching gitignore entries, and load project-local Warden rules from `.trails/rules.ts` or `.trails/rules/`.
+- ef09e46: Add shared Trails project-root discovery helpers and use them in Warden so nested
+  cwd invocations still load root `trails.config.*` and project-local
+  `.trails/rules*` governance.
+- 38cd9d6: Add a shared Trails config file loader that treats `trails.config.ts` as the natural primary while supporting JSON, JSONC, YAML, and TOML peer formats. Release and Warden config loading now consume the same loader and local overrides can be authored as data files.
+- Updated dependencies [1307568]
+- Updated dependencies [371d19e]
+  - @ontrails/core@1.0.0-beta.26
+
 ## 1.0.0-beta.25
 
 ### Patch Changes
