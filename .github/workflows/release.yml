@@ -40,7 +40,7 @@ jobs:
       - name: Validate version PR
         if: steps.changesets.outputs.hasChangesets == 'true'
         run: |
-          git fetch --no-tags --depth=1 origin changeset-release/main
+          git fetch --no-tags origin changeset-release/main
           git checkout --force FETCH_HEAD
           bun run changeset:check
           bun run release-pack:check -- --lockfile-only
