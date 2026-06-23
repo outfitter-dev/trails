@@ -12,6 +12,7 @@ import type {
 
 const PROJECT_WARDEN_RULES_FILE = '.trails/rules.ts';
 const PROJECT_WARDEN_RULES_DIR = '.trails/rules';
+const LEGACY_PROJECT_WARDEN_RULES_DIR = 'trails/warden/rules';
 
 export interface ProjectWardenRules {
   readonly diagnostics: readonly WardenDiagnostic[];
@@ -27,6 +28,15 @@ interface RuleModule {
   readonly sourceRules?: unknown;
   readonly topoRule?: unknown;
   readonly topoRules?: unknown;
+}
+
+interface ProjectRuleModulePaths {
+  readonly diagnostics: readonly WardenDiagnostic[];
+  readonly files: readonly string[];
+}
+
+interface LoadedRuleFile extends ProjectWardenRules {
+  readonly filePath: string;
 }
 
 const diagnostic = (message: string, filePath: string): WardenDiagnostic => ({
@@ -160,7 +170,7 @@ const collectProjectRuleFiles = (rootDir: string): readonly string[] => {
     return files;
   }
 
-  const glob = new Bun.Glob('**/*.ts');
+  const glob = new Bun.Glob('*.ts');
   files.push(
     ...[...glob.scanSync({ cwd: rulesDir, onlyFiles: true })]
       .filter(
@@ -172,7 +182,28 @@ const collectProjectRuleFiles = (rootDir: string): readonly string[] => {
   return files.toSorted((left, right) => left.localeCompare(right));
 };
 
-const loadRuleFile = async (filePath: string): Promise<ProjectWardenRules> => {
+const collectProjectRuleModulePaths = (
+  rootDir: string
+): ProjectRuleModulePaths => {
+  const diagnostics: WardenDiagnostic[] = [];
+  const legacyRulesDir = join(rootDir, LEGACY_PROJECT_WARDEN_RULES_DIR);
+
+  if (isDirectory(legacyRulesDir)) {
+    diagnostics.push(
+      diagnostic(
+        'Project Warden rules moved from trails/warden/rules to .trails/rules.ts or direct .trails/rules/*.ts files.',
+        legacyRulesDir
+      )
+    );
+  }
+
+  return {
+    diagnostics,
+    files: collectProjectRuleFiles(rootDir),
+  };
+};
+
+const loadRuleFile = async (filePath: string): Promise<LoadedRuleFile> => {
   let module: RuleModule;
   try {
     module = (await import(pathToFileURL(filePath).href)) as RuleModule;
@@ -186,6 +217,7 @@ const loadRuleFile = async (filePath: string): Promise<ProjectWardenRules> => {
           filePath
         ),
       ],
+      filePath,
       sourceRules: [],
       topoRules: [],
     };
@@ -205,22 +237,53 @@ const loadRuleFile = async (filePath: string): Promise<ProjectWardenRules> => {
           filePath
         ),
       ],
+      filePath,
       sourceRules: [],
       topoRules: [],
     };
   }
 
-  return { diagnostics: [], sourceRules, topoRules };
+  return { diagnostics: [], filePath, sourceRules, topoRules };
+};
+
+const duplicateRuleDiagnostics = (
+  loaded: readonly LoadedRuleFile[]
+): readonly WardenDiagnostic[] => {
+  const seen = new Map<string, string>();
+  const diagnostics: WardenDiagnostic[] = [];
+
+  for (const result of loaded) {
+    for (const rule of [...result.sourceRules, ...result.topoRules]) {
+      const previousFilePath = seen.get(rule.name);
+      if (previousFilePath === undefined) {
+        seen.set(rule.name, result.filePath);
+        continue;
+      }
+      diagnostics.push(
+        diagnostic(
+          `Duplicate project Warden rule id "${rule.name}" also exported from "${previousFilePath}". Project-local rule ids must be unique.`,
+          result.filePath
+        )
+      );
+    }
+  }
+
+  return diagnostics;
 };
 
 export const loadProjectWardenRules = async (
   rootDir: string
 ): Promise<ProjectWardenRules> => {
-  const files = collectProjectRuleFiles(rootDir);
+  const collected = collectProjectRuleModulePaths(rootDir);
+  const { files } = collected;
   const loaded = await Promise.all(files.map(loadRuleFile));
 
   return {
-    diagnostics: loaded.flatMap((result) => result.diagnostics),
+    diagnostics: [
+      ...collected.diagnostics,
+      ...loaded.flatMap((result) => result.diagnostics),
+      ...duplicateRuleDiagnostics(loaded),
+    ],
     sourceRules: loaded.flatMap((result) => result.sourceRules),
     topoRules: loaded.flatMap((result) => result.topoRules),
   };

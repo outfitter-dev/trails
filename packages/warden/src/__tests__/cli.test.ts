@@ -962,6 +962,7 @@ trail("entity.save", {
     } as unknown as typeof validTrail;
 
     const report = await runWarden({
+      tier: 'topo-aware',
       topo: topo('invalid-detour-contract', {
         malformed,
       } as Record<string, unknown>),
@@ -1574,6 +1575,108 @@ describe('project-local Warden rules', () => {
         })
       );
       expect(report.errorCount).toBe(1);
+      expect(report.passed).toBe(false);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('only discovers direct .trails/rules TypeScript children', async () => {
+    const dir = makeTempDir();
+    try {
+      const nestedDir = join(dir, '.trails', 'rules', 'nested');
+      mkdirSync(nestedDir, { recursive: true });
+      writeFileSync(
+        join(nestedDir, 'nested-rule.ts'),
+        `export const rule = {
+  name: 'nested-project-rule',
+  severity: 'error',
+  description: 'Nested project-local fixture rule.',
+  check(sourceCode, filePath) {
+    return sourceCode.includes('nestedProjectProblem')
+      ? [{
+          filePath,
+          line: 1,
+          message: 'Nested project-local fixture marker found.',
+          rule: 'nested-project-rule',
+          severity: 'error',
+        }]
+      : [];
+  },
+};
+`
+      );
+      writeFileSync(join(dir, 'fixture.ts'), 'const nestedProjectProblem = 1;');
+
+      const report = await runWarden({
+        lock: 'skip',
+        rootDir: dir,
+        tier: 'source-static',
+      });
+
+      expect(report.diagnostics.map((entry) => entry.rule)).not.toContain(
+        'nested-project-rule'
+      );
+      expect(report.passed).toBe(true);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('reports duplicate project-local rule ids', async () => {
+    const dir = makeTempDir();
+    try {
+      writeProjectSourceRule(dir, {
+        marker: 'firstProjectProblem',
+        name: 'duplicate-project-rule',
+      });
+      writeProjectSourceRule(dir, {
+        directory: true,
+        marker: 'secondProjectProblem',
+        name: 'duplicate-project-rule',
+      });
+
+      const report = await runWarden({
+        lock: 'skip',
+        rootDir: dir,
+        tier: 'source-static',
+      });
+
+      expect(report.diagnostics).toContainEqual(
+        expect.objectContaining({
+          message: expect.stringContaining(
+            'Duplicate project Warden rule id "duplicate-project-rule"'
+          ),
+          rule: 'project-warden-rules',
+          severity: 'error',
+        })
+      );
+      expect(report.passed).toBe(false);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('reports the retired trails/warden/rules location', async () => {
+    const dir = makeTempDir();
+    try {
+      mkdirSync(join(dir, 'trails', 'warden', 'rules'), { recursive: true });
+
+      const report = await runWarden({
+        lock: 'skip',
+        rootDir: dir,
+        tier: 'source-static',
+      });
+
+      expect(report.diagnostics).toContainEqual(
+        expect.objectContaining({
+          filePath: join(dir, 'trails', 'warden', 'rules'),
+          message:
+            'Project Warden rules moved from trails/warden/rules to .trails/rules.ts or direct .trails/rules/*.ts files.',
+          rule: 'project-warden-rules',
+          severity: 'error',
+        })
+      );
       expect(report.passed).toBe(false);
     } finally {
       rmSync(dir, { force: true, recursive: true });

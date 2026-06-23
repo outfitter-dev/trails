@@ -85,6 +85,7 @@ describe('library-projection-coherence', () => {
 
   test('runWarden dispatches the rule from wardenTopoRules', async () => {
     const report = await runWarden({
+      tier: 'topo-aware',
       topo: topo('library-projection-run', {
         dotted: buildTrail('widget.ping'),
         kebab: buildTrail('widget-ping'),

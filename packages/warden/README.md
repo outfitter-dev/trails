@@ -39,7 +39,9 @@ When adding or auditing rules, follow [Warden Rules](../../docs/contributing/war
 
 ## Project-local rules
 
-Projects can carry local Warden rules in `.trails/rules.ts` or `.trails/rules/`. `runWarden()` and `trails warden` load those files by default for lint runs, then run those rules alongside the built-in registries. Drift-only runs do not import project-local rule modules. Embedders that need only built-in or explicitly provided rules can pass `projectRules: false`.
+Projects can carry local Warden rules in `.trails/rules.ts` or direct `.trails/rules/*.ts` files. `runWarden()` and `trails warden` load those files by default for lint runs, then run those rules alongside the built-in registries. Drift-only runs do not import project-local rule modules. Embedders that need only built-in or explicitly provided rules can pass `projectRules: false`.
+
+Warden does not recursively discover nested `.trails/rules` files. Use nested files as private helpers and re-export from a direct entrypoint when a local rule grows. Rule ids must be unique across every project-local module. The retired `trails/warden/rules` location reports a migration diagnostic instead of loading.
 
 Warden uses the shared Trails project-root resolver when a caller does not pass `rootDir` or `--root-dir`, so commands launched from nested directories still load the nearest root `trails.config.*` and its `.trails/rules*` files. An explicit root always wins over discovery.
 
@@ -155,7 +157,7 @@ This is the same factory used internally to build all built-in rule trails.
 | `wardenTopo` | `Topo` of all built-in rule trails (one per rule) |
 | `runWardenTrails(filePath, sourceCode, options?)` | Dispatch file-scoped rule trails for a file, collect diagnostics |
 | `runTopoAwareWardenTrails(topo)` | Dispatch built-in topo-aware rule trails once for a resolved topo |
-| `loadProjectWardenRules(rootDir)` | Load rule modules from `.trails/rules.ts` or `.trails/rules/` |
+| `loadProjectWardenRules(rootDir)` | Load rule modules from `.trails/rules.ts` or direct `.trails/rules/*.ts` children |
 | `formatGitHubAnnotations(report)` | GitHub Actions annotation format |
 | `formatJson(report)` | Machine-readable JSON |
 | `formatSummary(report)` | Compact summary line |

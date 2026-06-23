@@ -178,6 +178,7 @@ describe('cli-command-route-coherence', () => {
 
     const result = await runWarden({
       mode: 'check',
+      tier: 'topo-aware',
       topo: topo('cli-routes-run', { collidingTrail, searchTrail }),
     });
 
