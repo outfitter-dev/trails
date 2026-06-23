@@ -1,6 +1,6 @@
 {
   "name": "@ontrails/adapter-kit",
-  "version": "1.0.0-beta.25",
+  "version": "1.0.0-beta.26",
   "description": "Internal adapter authoring kit for Trails metadata, scaffolding, and checks.",
   "files": [
     "src/**/*.ts",

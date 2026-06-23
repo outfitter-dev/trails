@@ -1,5 +1,29 @@
 # @ontrails/warden
 
+## 1.0.0-beta.26
+
+### Patch Changes
+
+- 1307568: Centralize Trails config module path conventions, move local config overrides to root `trails.config.local.*`, scaffold the matching gitignore entries, and load project-local Warden rules from `.trails/rules.ts` or `.trails/rules/`.
+- ef09e46: Add shared Trails project-root discovery helpers and use them in Warden so nested
+  cwd invocations still load root `trails.config.*` and project-local
+  `.trails/rules*` governance.
+- 38cd9d6: Add a shared Trails config file loader that treats `trails.config.ts` as the natural primary while supporting JSON, JSONC, YAML, and TOML peer formats. Release and Warden config loading now consume the same loader and local overrides can be authored as data files.
+- f8403c4: Collapse normal topo compilation onto one root `trails.lock` envelope that embeds the TopoGraph, hash, and summary while keeping legacy `.trails/trails.lock` plus `.trails/topo.lock` readers for migration compatibility.
+- ff48e41: Harden project-local rule loading: Warden now discovers `.trails/rules.ts` and direct `.trails/rules/*.ts` files only, reports duplicate project-local rule ids, and emits a migration diagnostic for the retired `trails/warden/rules` location.
+- Updated dependencies [1307568]
+- Updated dependencies [ef09e46]
+- Updated dependencies [38cd9d6]
+- Updated dependencies [f8403c4]
+- Updated dependencies [371d19e]
+  - @ontrails/config@1.0.0-beta.26
+  - @ontrails/core@1.0.0-beta.26
+  - @ontrails/topographer@1.0.0-beta.26
+  - @ontrails/adapter-kit@1.0.0-beta.26
+  - @ontrails/cli@1.0.0-beta.26
+  - @ontrails/permits@1.0.0-beta.26
+  - @ontrails/store@1.0.0-beta.26
+
 ## 1.0.0-beta.25
 
 ### Patch Changes

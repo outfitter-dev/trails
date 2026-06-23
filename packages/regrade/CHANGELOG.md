@@ -1,5 +1,19 @@
 # @ontrails/regrade
 
+## 1.0.0-beta.26
+
+### Patch Changes
+
+- 4e75b85: Carry structured review details from Warden-backed term-rewrite diagnostics into Regrade review reports.
+- Updated dependencies [1307568]
+- Updated dependencies [ef09e46]
+- Updated dependencies [38cd9d6]
+- Updated dependencies [f8403c4]
+- Updated dependencies [371d19e]
+- Updated dependencies [ff48e41]
+  - @ontrails/core@1.0.0-beta.26
+  - @ontrails/warden@1.0.0-beta.26
+
 ## 1.0.0-beta.25
 
 ### Patch Changes
