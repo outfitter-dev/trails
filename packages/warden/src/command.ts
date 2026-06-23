@@ -15,7 +15,7 @@ import type {
 import type { Topo } from '@ontrails/core';
 import { AmbiguousError, NotFoundError } from '@ontrails/core';
 import {
-  findTrailsConfigModulePath,
+  loadTrailsConfigValue,
   resolveTrailsProjectRoot,
 } from '@ontrails/config';
 
@@ -488,10 +488,7 @@ const findConfigPath = (
         };
   }
 
-  const candidate = findTrailsConfigModulePath({ rootDir });
-  return candidate === undefined
-    ? { diagnostics: [] }
-    : { configPath: candidate, diagnostics: [] };
+  return { diagnostics: [] };
 };
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -524,14 +521,6 @@ const extractWardenConfig = (value: unknown): WardenConfigInput | undefined =>
     ? (value['warden'] as WardenConfigInput)
     : undefined;
 
-const importConfigModule = async (
-  configPath: string
-): Promise<Record<string, unknown>> => {
-  const url = pathToFileURL(configPath);
-  url.searchParams.set('t', Date.now().toString());
-  return (await import(url.href)) as Record<string, unknown>;
-};
-
 export const loadWardenConfig = async ({
   configPath,
   env = {},
@@ -542,29 +531,32 @@ export const loadWardenConfig = async ({
   readonly rootDir: string;
 }): Promise<WardenConfigLoadResult> => {
   const located = findConfigPath(rootDir, configPath);
-  if (located.configPath === undefined) {
+  if (configPath !== undefined && located.configPath === undefined) {
     return located;
   }
 
   try {
-    const mod = await importConfigModule(located.configPath);
-    const exported = mod['default'] ?? mod;
+    const loaded = await loadTrailsConfigValue({ configPath, rootDir });
+    const exported = loaded.value;
+    if (exported === undefined) {
+      return located;
+    }
     if (isResolvableConfig(exported)) {
       const resolved = await exported.resolve({ cwd: rootDir, env });
       if (isResultLike(resolved)) {
         if (resolved.isOk()) {
           return {
             config: extractWardenConfig(resolved.value),
-            configPath: located.configPath,
+            configPath: loaded.configPath,
             diagnostics: located.diagnostics,
           };
         }
         return {
-          configPath: located.configPath,
+          configPath: loaded.configPath,
           diagnostics: [
             ...located.diagnostics,
             diagnostic({
-              filePath: located.configPath,
+              filePath: loaded.configPath ?? rootDir,
               message: `Failed to resolve Warden config: ${errorMessage(resolved.error)}`,
               rule: 'warden-config',
             }),
@@ -573,22 +565,22 @@ export const loadWardenConfig = async ({
       }
       return {
         config: extractWardenConfig(resolved),
-        configPath: located.configPath,
+        configPath: loaded.configPath,
         diagnostics: located.diagnostics,
       };
     }
     return {
       config: extractWardenConfig(exported),
-      configPath: located.configPath,
+      configPath: loaded.configPath,
       diagnostics: located.diagnostics,
     };
   } catch (error) {
     return {
-      configPath: located.configPath,
+      configPath: located.configPath ?? configPath,
       diagnostics: [
         ...located.diagnostics,
         diagnostic({
-          filePath: located.configPath,
+          filePath: located.configPath ?? rootDir,
           message: `Failed to load Warden config: ${errorMessage(error)}`,
           rule: 'warden-config',
         }),

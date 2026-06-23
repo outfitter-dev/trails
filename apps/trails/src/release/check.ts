@@ -1,9 +1,8 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { readdir } from 'node:fs/promises';
 import { join, relative, resolve } from 'node:path';
-import { pathToFileURL } from 'node:url';
 
-import { findTrailsConfigModulePath } from '@ontrails/config';
+import { loadTrailsConfigValue } from '@ontrails/config';
 
 import { defaultReleaseConfig, releaseConfigSchema } from './config.js';
 import type { ReleaseConfigInput, ReleaseFactType } from './config.js';
@@ -557,21 +556,13 @@ const findConfigPath = (
     return resolvedPath;
   }
 
-  return findTrailsConfigModulePath({ rootDir: repoRoot });
+  return undefined;
 };
 
 const extractReleaseConfig = (value: unknown): ReleaseConfigInput | undefined =>
   isRecord(value) && 'release' in value
     ? (value['release'] as ReleaseConfigInput)
     : undefined;
-
-const importConfigModule = async (
-  configPath: string
-): Promise<Record<string, unknown>> => {
-  const url = pathToFileURL(configPath);
-  url.searchParams.set('t', Date.now().toString());
-  return (await import(url.href)) as Record<string, unknown>;
-};
 
 export const loadReleaseConfig = async ({
   configPath,
@@ -583,13 +574,19 @@ export const loadReleaseConfig = async ({
   readonly repoRoot: string;
 }): Promise<ReleaseConfigLoadResult> => {
   const locatedConfigPath = findConfigPath(repoRoot, configPath);
-  if (locatedConfigPath === undefined) {
+  if (configPath !== undefined && locatedConfigPath === undefined) {
     return {};
   }
 
   try {
-    const mod = await importConfigModule(locatedConfigPath);
-    const exported = mod['default'] ?? mod;
+    const loaded = await loadTrailsConfigValue({
+      configPath,
+      rootDir: repoRoot,
+    });
+    const exported = loaded.value;
+    if (exported === undefined) {
+      return {};
+    }
 
     if (isResolvableConfig(exported)) {
       const resolved = await exported.resolve({ cwd: repoRoot, env });
@@ -597,7 +594,7 @@ export const loadReleaseConfig = async ({
         if (resolved.isOk()) {
           return {
             config: extractReleaseConfig(resolved.value),
-            configPath: locatedConfigPath,
+            configPath: loaded.configPath,
           };
         }
         throw new Error(
@@ -607,13 +604,13 @@ export const loadReleaseConfig = async ({
 
       return {
         config: extractReleaseConfig(resolved),
-        configPath: locatedConfigPath,
+        configPath: loaded.configPath,
       };
     }
 
     return {
       config: extractReleaseConfig(exported),
-      configPath: locatedConfigPath,
+      configPath: loaded.configPath,
     };
   } catch (error) {
     throw new Error(`Failed to load release config: ${errorMessage(error)}`, {

@@ -8,11 +8,35 @@ export const trailsConfigModuleCandidates = [
   'trails.config.mjs',
 ] as const;
 
+export const trailsConfigDataCandidates = [
+  'trails.config.json',
+  'trails.config.jsonc',
+  'trails.config.yaml',
+  'trails.config.toml',
+] as const;
+
+export const trailsConfigFileCandidates = [
+  ...trailsConfigModuleCandidates,
+  ...trailsConfigDataCandidates,
+] as const;
+
 export const trailsLocalConfigModuleCandidates = [
   'trails.config.local.ts',
   'trails.config.local.mts',
   'trails.config.local.js',
   'trails.config.local.mjs',
+] as const;
+
+export const trailsLocalConfigDataCandidates = [
+  'trails.config.local.json',
+  'trails.config.local.jsonc',
+  'trails.config.local.yaml',
+  'trails.config.local.toml',
+] as const;
+
+export const trailsLocalConfigFileCandidates = [
+  ...trailsLocalConfigModuleCandidates,
+  ...trailsLocalConfigDataCandidates,
 ] as const;
 
 export const trailsLockFileName = 'trails.lock' as const;
@@ -62,6 +86,20 @@ const firstExistingCandidate = (
 ): string | undefined =>
   candidates.map((entry) => resolve(rootDir, entry)).find(isFile);
 
+const existingCandidates = (
+  rootDir: string,
+  candidates: readonly string[]
+): readonly string[] =>
+  candidates.map((entry) => resolve(rootDir, entry)).filter(isFile);
+
+export const findTrailsConfigPaths = (rootDir: string): readonly string[] =>
+  existingCandidates(rootDir, trailsConfigFileCandidates);
+
+export const findTrailsLocalConfigPaths = (
+  rootDir: string
+): readonly string[] =>
+  existingCandidates(rootDir, trailsLocalConfigFileCandidates);
+
 export const findTrailsConfigModulePath = ({
   configPath,
   rootDir,
@@ -72,13 +110,13 @@ export const findTrailsConfigModulePath = ({
   if (configPath !== undefined) {
     return resolve(rootDir, configPath);
   }
-  return firstExistingCandidate(rootDir, trailsConfigModuleCandidates);
+  return firstExistingCandidate(rootDir, trailsConfigFileCandidates);
 };
 
 export const findTrailsLocalConfigModulePath = (
   rootDir: string
 ): string | undefined =>
-  firstExistingCandidate(rootDir, trailsLocalConfigModuleCandidates);
+  firstExistingCandidate(rootDir, trailsLocalConfigFileCandidates);
 
 const firstExistingSourceRoot = (rootDir: string): string | undefined =>
   trailsSourceRootCandidates

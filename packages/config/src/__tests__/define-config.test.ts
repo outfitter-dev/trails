@@ -214,6 +214,26 @@ describe('defineConfig', () => {
       expect(result.unwrap().port).toBe(4444);
     });
 
+    test('applies local overrides from trails.config.local.json', async () => {
+      await Bun.write(
+        join(tempDir, 'trails.config.local.json'),
+        `${JSON.stringify({ port: 4444 })}\n`
+      );
+
+      const config = defineConfig({
+        base: { host: 'example.com' },
+        schema,
+      });
+
+      const result = await config.resolve({
+        cwd: tempDir,
+        env: {},
+      });
+
+      expect(result.isOk()).toBe(true);
+      expect(result.unwrap().port).toBe(4444);
+    });
+
     test('local overrides applied between profile and env', async () => {
       await Bun.write(
         join(tempDir, 'trails.config.local.js'),

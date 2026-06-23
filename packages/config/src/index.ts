@@ -10,17 +10,29 @@ export { collectConfigMeta } from './collect.js';
 export { collectResourceConfigs, type ResourceConfigEntry } from './compose.js';
 export { defineConfig, type DefineConfigOptions } from './define-config.js';
 export {
+  findTrailsConfigPaths,
+  findTrailsLocalConfigPaths,
+  trailsConfigDataCandidates,
+  trailsConfigFileCandidates,
   findTrailsConfigModulePath,
   findTrailsLocalConfigModulePath,
   findTrailsProjectRoot,
   resolveTrailsProjectRoot,
   trailsConfigModuleCandidates,
   trailsLockFileName,
+  trailsLocalConfigDataCandidates,
+  trailsLocalConfigFileCandidates,
   trailsLocalConfigModuleCandidates,
   trailsSourceRootCandidates,
   type TrailsProjectRootMarker,
   type TrailsProjectRootResolution,
 } from './trails-conventions.js';
+export {
+  loadTrailsConfigFileValue,
+  loadTrailsConfigValue,
+  loadTrailsLocalConfigValue,
+  type LoadedTrailsConfigValue,
+} from './trails-config-file.js';
 export { deriveConfigFields, type FieldDescription } from './derive-fields.js';
 export {
   checkConfig,

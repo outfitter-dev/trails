@@ -7,7 +7,7 @@ import type { z } from 'zod';
 
 import { appConfig } from './app-config.js';
 import { deriveConfig } from './resolve.js';
-import { findTrailsLocalConfigModulePath } from './trails-conventions.js';
+import { loadTrailsLocalConfigValue } from './trails-config-file.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -47,13 +47,10 @@ const discoverLocalOverrides = async (
     return undefined;
   }
 
-  const candidate = findTrailsLocalConfigModulePath(cwd);
-  if (candidate !== undefined) {
-    const mod: Record<string, unknown> = await import(candidate);
-    return (mod['default'] ?? mod) as Record<string, unknown>;
-  }
-
-  return undefined;
+  const loaded = await loadTrailsLocalConfigValue(cwd);
+  return loaded.value === undefined
+    ? undefined
+    : (loaded.value as Record<string, unknown>);
 };
 
 // ---------------------------------------------------------------------------

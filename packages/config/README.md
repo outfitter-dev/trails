@@ -94,7 +94,8 @@ Each layer overrides the previous. Environment variables always win.
 
 `@ontrails/config` owns the shared project-root convention helpers used by framework tools. `resolveTrailsProjectRoot()` honors an explicit root first, then walks upward from a start directory looking for committed project markers:
 
-- `trails.config.ts`, `.mts`, `.js`, or `.mjs`
+- `trails.config.ts`, `.mts`, `.js`, `.mjs`, `.json`, `.jsonc`,
+  `.yaml`, or `.toml`
 - `trails.lock`
 - source-shaped projects with `src/trails/` or `trails/` when no committed marker exists above them
 

@@ -258,6 +258,26 @@ describe('runWardenCommand', () => {
     }
   });
 
+  test('loads a root trails.config.json warden section when present', async () => {
+    const dir = makeTempDir();
+    try {
+      writeFileSync(
+        join(dir, 'trails.config.json'),
+        `${JSON.stringify({ warden: { depth: 'source', lock: 'skip' } })}\n`
+      );
+
+      const result = await runWardenCommand({ cwd: dir, env: {} });
+
+      expect(result.exitCode).toBe(0);
+      expect(result.report.effectiveConfig).toMatchObject({
+        depth: 'source',
+        lock: 'skip',
+      });
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
   test('discovers root config and project-local rules from nested cwd', async () => {
     const dir = makeTempDir();
     try {

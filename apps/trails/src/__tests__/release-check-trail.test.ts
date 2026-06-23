@@ -181,6 +181,36 @@ describe('trails release check', () => {
     expect(result.value.configPath).toBe(join(root, 'trails.config.ts'));
   });
 
+  test('loads release rules from trails.config.json', async () => {
+    const root = makeTempRoot();
+    const changedFilesPath = writeChangedFiles(root);
+    writeJson(root, 'trails.config.json', {
+      release: {
+        rules: [
+          {
+            enabled: false,
+            facts: ['package-content'],
+            id: 'package-content-requires-intent',
+            intent: ['changeset'],
+            severity: 'error',
+          },
+        ],
+      },
+    });
+
+    const result = await releaseCheckTrail.blaze(
+      { changedFiles: changedFilesPath, rootDir: root },
+      { cwd: root, env: { TRAILS_ENV: 'test' } } as never
+    );
+
+    expect(result.isOk()).toBe(true);
+    if (result.isErr()) {
+      throw result.error;
+    }
+    expect(result.value.passed).toBe(true);
+    expect(result.value.configPath).toBe(join(root, 'trails.config.json'));
+  });
+
   test('returns structured JSON and non-zero exit for missing release intent', () => {
     const root = makeTempRoot();
     const changedFilesPath = writeChangedFiles(root);

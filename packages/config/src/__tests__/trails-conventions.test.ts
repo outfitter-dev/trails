@@ -29,6 +29,23 @@ describe('Trails project root conventions', () => {
     }
   });
 
+  test('recognizes data-format root config markers', () => {
+    const root = makeTempDir();
+    try {
+      const nested = join(root, 'packages', 'app', 'src');
+      mkdirSync(nested, { recursive: true });
+      writeFileSync(join(root, 'trails.config.json'), '{}\n');
+
+      expect(findTrailsProjectRoot({ startDir: nested })).toMatchObject({
+        marker: 'config',
+        markerPath: join(root, 'trails.config.json'),
+        rootDir: root,
+      });
+    } finally {
+      rmSync(root, { force: true, recursive: true });
+    }
+  });
+
   test('prefers the nearest committed project marker in nested projects', () => {
     const workspace = makeTempDir();
     try {
