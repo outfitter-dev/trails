@@ -2,7 +2,7 @@
 
 Agent-shaped wayfinding query trails over saved graph and package evidence.
 
-`@ontrails/wayfinder` lets agents query a Trails app's resolved topo, source outline, and package-level authoring facts without re-deriving the graph from `grep` plus file reads. The v0 catalog is cold and deterministic: graph queries read existing Topographer artifacts (`topo.lock`, `trails.lock`, and materialized current `trails.db` topo-store records), source outline queries parse explicit files with OXC, and adapter queries read `@ontrails/adapter-kit` package and conformance evidence. Wayfinder does not start apps, boot resources, reach the network, or mutate local state.
+`@ontrails/wayfinder` lets agents query a Trails app's resolved topo, source outline, and package-level authoring facts without re-deriving the graph from `grep` plus file reads. The v0 catalog is cold and deterministic: graph queries read the committed root `trails.lock` plus materialized current `trails.db` topo-store records, source outline queries parse explicit files with OXC, and adapter queries read `@ontrails/adapter-kit` package and conformance evidence. Wayfinder does not start apps, boot resources, reach the network, or mutate local state.
 
 The package exports `wayfinderTopo` plus individual graph-read trails.
 

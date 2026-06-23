@@ -24,9 +24,10 @@ import {
   deriveTopoGraphHash,
   readLockManifest,
   readTopoGraph,
+  readTrailsLock,
   stripTopoGraphForces,
 } from '@ontrails/topographer';
-import type { TopoGraph } from '@ontrails/topographer';
+import type { LockManifest, TopoGraph } from '@ontrails/topographer';
 
 import type {
   BriefReport,
@@ -99,6 +100,46 @@ export const readSurfaceLayerNamesFromContext = (
 const hasCommittedLock = (trailsDir: string): boolean =>
   existsSync(join(trailsDir, 'trails.lock'));
 
+const readCommittedLock = async (
+  rootDir: string
+): Promise<{
+  readonly lockManifest: LockManifest;
+  readonly topoGraph: TopoGraph;
+} | null> => {
+  const trailsLock = await readTrailsLock({ dir: rootDir });
+  if (trailsLock !== null) {
+    return {
+      lockManifest: {
+        artifacts: [
+          {
+            path: 'topo.lock',
+            role: 'topo',
+            sha256: trailsLock.topoGraphHash,
+          },
+        ],
+        scope: trailsLock.scope,
+        summary: trailsLock.summary,
+        version: 3,
+      },
+      topoGraph: trailsLock.topoGraph as TopoGraph,
+    };
+  }
+
+  const legacyDir = deriveTrailsDir({ rootDir });
+  const legacyManifest = await readLockManifest({ dir: legacyDir });
+  if (legacyManifest === null) {
+    return null;
+  }
+  const legacyTopoGraph = await readTopoGraph({ dir: legacyDir });
+  if (legacyTopoGraph === null) {
+    return null;
+  }
+  return {
+    lockManifest: legacyManifest,
+    topoGraph: legacyTopoGraph,
+  };
+};
+
 // ---------------------------------------------------------------------------
 // Public read-only consumers
 // ---------------------------------------------------------------------------
@@ -108,12 +149,13 @@ export const buildTopoSummary = (
   options?: { readonly rootDir?: string }
 ): TopoSummaryReport => {
   const rootDir = deriveRootDir(options?.rootDir);
-  const trailsDir = deriveTrailsDir({ rootDir });
   return {
     app: deriveBriefReport(app),
     dbPath: deriveTrailsDbPath({ rootDir }),
     list: deriveSurveyList(app),
-    lockExists: hasCommittedLock(trailsDir),
+    lockExists:
+      hasCommittedLock(rootDir) ||
+      hasCommittedLock(deriveTrailsDir({ rootDir })),
     lockPath: LOCK_PATH,
   };
 };
@@ -232,11 +274,9 @@ export const validateCurrentTopo = async (
   }
 ): Promise<Result<TopoValidateReport, Error>> => {
   const rootDir = deriveRootDir(options?.rootDir);
-  let lockManifest: Awaited<ReturnType<typeof readLockManifest>>;
+  let committedLock: Awaited<ReturnType<typeof readCommittedLock>>;
   try {
-    lockManifest = await readLockManifest({
-      dir: deriveTrailsDir({ rootDir }),
-    });
+    committedLock = await readCommittedLock(rootDir);
   } catch (error) {
     const message =
       error instanceof Error
@@ -249,7 +289,7 @@ export const validateCurrentTopo = async (
     );
   }
 
-  if (lockManifest === null) {
+  if (committedLock === null) {
     return Result.err(
       new NotFoundError(
         'No committed trails.lock found. Run `trails compile` first.'
@@ -268,7 +308,7 @@ export const validateCurrentTopo = async (
     currentExport.value.topoGraphJson
   ) as TopoGraph;
   const currentHash = currentExport.value.topoGraphHash;
-  const topoArtifact = lockManifest.artifacts.find(
+  const topoArtifact = committedLock.lockManifest.artifacts.find(
     (artifact) => artifact.role === 'topo' && artifact.path === 'topo.lock'
   );
   if (topoArtifact === undefined) {
@@ -279,36 +319,34 @@ export const validateCurrentTopo = async (
     );
   }
 
+  const committedTopo = committedLock.topoGraph;
+  const committedHash = deriveTopoGraphHash(committedTopo);
+  if (committedHash !== topoArtifact.sha256) {
+    return Result.err(
+      new ValidationError(
+        'trails.lock graph hash does not match its embedded TopoGraph. Run `trails compile` to refresh it.'
+      )
+    );
+  }
+
   if (topoArtifact.sha256 !== currentHash) {
-    const committedTopo = await readTopoGraph({
-      dir: deriveTrailsDir({ rootDir }),
-    });
-    if (committedTopo !== null) {
-      const committedHash = deriveTopoGraphHash(committedTopo);
-      const forceStrippedHash = deriveTopoGraphHash(
-        stripTopoGraphForces(committedTopo)
-      );
-      if (
-        committedHash === topoArtifact.sha256 &&
-        forceStrippedHash === currentHash
-      ) {
-        return Result.ok({
-          committedHash: topoArtifact.sha256,
-          currentHash,
-          lockPath: LOCK_PATH,
-          stale: false,
-        });
-      }
+    const forceStrippedHash = deriveTopoGraphHash(
+      stripTopoGraphForces(committedTopo)
+    );
+    if (forceStrippedHash === currentHash) {
+      return Result.ok({
+        committedHash: topoArtifact.sha256,
+        currentHash,
+        lockPath: LOCK_PATH,
+        stale: false,
+      });
     }
-    const breakingSummary =
-      committedTopo === null
-        ? ''
-        : (() => {
-            const diff = deriveTopoGraphDiff(committedTopo, currentTopo);
-            return diff.breaking.length > 0
-              ? ` Breaking changes detected: ${diff.breaking.length}.`
-              : '';
-          })();
+    const breakingSummary = (() => {
+      const diff = deriveTopoGraphDiff(committedTopo, currentTopo);
+      return diff.breaking.length > 0
+        ? ` Breaking changes detected: ${diff.breaking.length}.`
+        : '';
+    })();
     return Result.err(
       new ConflictError(
         `trails.lock is stale. Run \`trails compile\` to refresh it.${breakingSummary}`

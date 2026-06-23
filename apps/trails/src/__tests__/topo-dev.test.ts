@@ -203,15 +203,13 @@ describe('topo and dev trails', () => {
       );
       const snapshotCountAfterExport = countTopoSnapshots(dir);
       expect(compileResult.hash).toHaveLength(64);
-      expect(existsSync(join(dir, '.trails', 'topo.lock'))).toBe(true);
-      expect(existsSync(join(dir, '.trails', 'trails.lock'))).toBe(true);
+      expect(existsSync(join(dir, 'trails.lock'))).toBe(true);
+      expect(existsSync(join(dir, '.trails', 'topo.lock'))).toBe(false);
       expect(
-        JSON.parse(readFileSync(join(dir, '.trails', 'trails.lock'), 'utf8'))
+        JSON.parse(readFileSync(join(dir, 'trails.lock'), 'utf8'))
       ).toMatchObject({
-        artifacts: [
-          { path: 'topo.lock', role: 'topo', sha256: compileResult.hash },
-        ],
-        version: 3,
+        topoGraphHash: compileResult.hash,
+        version: 4,
       });
 
       const summaryAfterExport = expectOk(
@@ -224,38 +222,6 @@ describe('topo and dev trails', () => {
       );
       expect(verifyResult.stale).toBe(false);
       expect(countTopoSnapshots(dir)).toBe(snapshotCountAfterExport);
-
-      const committedLock = JSON.parse(
-        readFileSync(join(dir, '.trails', 'trails.lock'), 'utf8')
-      ) as {
-        artifacts: { path: string; role: 'topo'; sha256: string }[];
-        scope: Record<string, string>;
-        summary: Record<string, number>;
-        version: 3;
-      };
-      writeFileSync(
-        join(dir, '.trails', 'trails.lock'),
-        `${JSON.stringify(
-          {
-            ...committedLock,
-            artifacts: committedLock.artifacts.map((artifact) => ({
-              ...artifact,
-              path: 'other.lock',
-            })),
-          },
-          null,
-          2
-        )}\n`
-      );
-      const wrongArtifactError = expectErr(
-        await validateTrail.blaze(moduleInput, { cwd: dir } as never)
-      );
-      expect(wrongArtifactError.message).toContain('topo.lock artifact');
-
-      writeFileSync(
-        join(dir, '.trails', 'trails.lock'),
-        `${JSON.stringify(committedLock, null, 2)}\n`
-      );
 
       writeAppFixture(dir, { includeAuthTrail: true });
       const currentSummary = expectOk(
@@ -273,7 +239,7 @@ describe('topo and dev trails', () => {
       expect(countTopoSnapshots(dir)).toBe(snapshotCountAfterExport);
 
       writeFileSync(
-        join(dir, '.trails', 'trails.lock'),
+        join(dir, 'trails.lock'),
         `${JSON.stringify({ hash: '1'.repeat(64), version: 2 }, null, 2)}\n`
       );
       const verifyError = expectErr(
@@ -404,12 +370,10 @@ describe('topo and dev trails', () => {
       );
       expect(firstCompile.hash).toBe(secondCompile.hash);
       expect(
-        JSON.parse(readFileSync(join(dir, '.trails', 'trails.lock'), 'utf8'))
+        JSON.parse(readFileSync(join(dir, 'trails.lock'), 'utf8'))
       ).toMatchObject({
-        artifacts: [
-          { path: 'topo.lock', role: 'topo', sha256: secondCompile.hash },
-        ],
-        version: 3,
+        topoGraphHash: secondCompile.hash,
+        version: 4,
       });
 
       const projectionDb = openReadTrailsDb({ rootDir: dir });
@@ -494,6 +458,8 @@ describe('topo and dev trails', () => {
       const stats = expectOk(
         await devStatsTrail.blaze({}, { cwd: dir } as never)
       );
+      expect(stats.lock.path).toBe(join(dir, 'trails.lock'));
+      expect(stats.lock.exists).toBe(true);
       expect(stats.topo.pinnedCount).toBe(1);
       expect(stats.tracing.recordCount).toBe(2);
 
@@ -549,7 +515,7 @@ describe('topo and dev trails', () => {
       expect(resetResult.removedFiles).toContain(dbPath);
       expect(existsSync(dbPath)).toBe(false);
       expect(
-        readFileSync(join(dir, '.trails', 'trails.lock'), 'utf8').length
+        readFileSync(join(dir, 'trails.lock'), 'utf8').length
       ).toBeGreaterThan(0);
     } finally {
       rmSync(dir, { force: true, recursive: true });

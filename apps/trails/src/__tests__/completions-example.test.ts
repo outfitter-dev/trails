@@ -4,6 +4,10 @@ import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
 import { executeTrail, RecoverableCompletionError } from '@ontrails/core';
+import {
+  TOPO_GRAPH_SCHEMA_VERSION,
+  TRAILS_LOCK_SCHEMA_VERSION,
+} from '@ontrails/topographer';
 
 import { renderTrailExampleCompletions } from '../completions.js';
 import { completionsCompleteTrail } from '../trails/completions-complete.js';
@@ -125,29 +129,35 @@ const writeBrokenWorkspace = (workspaceRoot: string): void => {
   );
 
   writeFixture(
-    join(workspaceRoot, '.trails', 'topo.lock'),
+    join(workspaceRoot, 'trails.lock'),
     `${JSON.stringify(
       {
-        activationGraph: {
-          edgeCount: 0,
-          edges: [],
-          sourceCount: 0,
-          sourceKeys: [],
-          trailIds: [],
-        },
-        activationSources: {},
-        entries: [],
-        generatedAt: '2026-05-11T12:00:00.000Z',
-        topoGraphSchemaVersion: 1,
-        workspace: {
-          trails: {
-            'demo.alpha': {
-              appName: 'broken-app',
-              modulePath: 'apps/broken-app/src/missing.ts',
-              trailId: 'demo.alpha',
+        scope: {},
+        summary: { contours: 0, resources: 0, signals: 0, trails: 0 },
+        topoGraph: {
+          activationGraph: {
+            edgeCount: 0,
+            edges: [],
+            sourceCount: 0,
+            sourceKeys: [],
+            trailIds: [],
+          },
+          activationSources: {},
+          entries: [],
+          generatedAt: '2026-05-11T12:00:00.000Z',
+          topoGraphSchemaVersion: TOPO_GRAPH_SCHEMA_VERSION,
+          workspace: {
+            trails: {
+              'demo.alpha': {
+                appName: 'broken-app',
+                modulePath: 'apps/broken-app/src/missing.ts',
+                trailId: 'demo.alpha',
+              },
             },
           },
         },
+        topoGraphHash: '1'.repeat(64),
+        version: TRAILS_LOCK_SCHEMA_VERSION,
       },
       null,
       2

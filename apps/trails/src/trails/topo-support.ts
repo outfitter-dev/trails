@@ -33,7 +33,7 @@ export const topoSnapshotOutput = z.object({
 });
 
 export const DEFAULT_TOPO_HISTORY_LIMIT = 10;
-export const LOCK_PATH = '.trails/trails.lock';
+export const LOCK_PATH = 'trails.lock';
 const EXAMPLE_APP_MODULE = fileURLToPath(new URL('../app.ts', import.meta.url));
 
 const uniqueExampleRootName = (name: string): string =>
@@ -59,7 +59,6 @@ export interface TopoExportReport {
   readonly hash: string;
   readonly lockPath: string;
   readonly snapshot: TopoSnapshot;
-  readonly topoPath: string;
 }
 
 export interface TopoValidateReport {

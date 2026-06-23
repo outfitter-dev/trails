@@ -434,7 +434,7 @@ const readPathTopoGraph = async (
 const describeAgainstPathTarget = (against: string): string =>
   basename(against) === 'topo.lock' || extname(against) === '.json'
     ? 'workspace-relative TopoGraph file'
-    : 'workspace-relative directory containing topo.lock';
+    : 'workspace-relative directory containing trails.lock or topo.lock';
 
 const topoGraphNotFound = (against: string): NotFoundError =>
   new NotFoundError(
@@ -448,7 +448,9 @@ const readAgainstTopoGraph = async (
   against?: string | undefined
 ): Promise<Result<{ against: string; map: TopoGraph }, Error>> => {
   if (against === undefined || against === 'saved') {
-    const map = await readTopoGraph({ dir: join(rootDir, '.trails') });
+    const map =
+      (await readTopoGraph({ dir: rootDir })) ??
+      (await readTopoGraph({ dir: join(rootDir, '.trails') }));
     return map === null
       ? Result.err(
           new NotFoundError(

@@ -41,7 +41,7 @@ export const compileTrail = trail('compile', {
         rootDir,
       })
     ),
-  description: 'Compile the current topo to .trails artifacts',
+  description: 'Compile the current topo to trails.lock',
   examples: [
     {
       input: createIsolatedExampleInput('compile'),
@@ -54,7 +54,6 @@ export const compileTrail = trail('compile', {
     hash: z.string(),
     lockPath: z.string(),
     snapshot: topoSnapshotOutput,
-    topoPath: z.string(),
   }),
   permit: { scopes: ['topo:write'] },
 });

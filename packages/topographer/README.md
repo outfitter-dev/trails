@@ -10,7 +10,7 @@ Most applications reach this package through top-level `trails compile`, `trails
 - structured example and field-override provenance projection for TopoGraph entries
 - stable hashing for CI drift detection
 - semantic diffing between two TopoGraphs
-- file I/O helpers for `.trails/topo.lock` and `.trails/trails.lock`
+- file I/O helpers for root `trails.lock` plus legacy artifact-family readers
 - the topo-store: queryable persistence of the resolved topo graph in the shared
   `trails.db` in the per-user Trails state store, including snapshots, pinning,
   history, and read-only query accessors (relocated from `@ontrails/core` per
@@ -25,19 +25,18 @@ import {
   deriveTopoGraph,
   deriveTopoGraphDiff,
   deriveTopoGraphHash,
-  writeLockManifest,
-  writeTopoGraph,
+  writeTrailsLock,
 } from '@ontrails/topographer';
 
 const topoGraph = deriveTopoGraph(graph);
 const hash = deriveTopoGraphHash(topoGraph);
 
-await writeTopoGraph(topoGraph);
-await writeLockManifest({
-  artifacts: [{ path: 'topo.lock', role: 'topo', sha256: hash }],
+await writeTrailsLock({
   scope: { app: 'demo' },
   summary: { contours: 0, resources: 0, signals: 0, trails: 1 },
-  version: 3,
+  topoGraph,
+  topoGraphHash: hash,
+  version: 4,
 });
 
 // Later, after changes:
@@ -53,12 +52,13 @@ if (diff.hasBreaking) {
 
 ## File outputs
 
-The typical exported artifact pair is:
+The normal exported artifact is:
 
-- `.trails/topo.lock` — serialized TopoGraph, useful for inspection and diffing
-- `.trails/trails.lock` — compact v3 manifest that verifies the TopoGraph by hash
+- `trails.lock` — root committed resolved truth. It embeds the serialized TopoGraph plus the hash and summary needed for drift detection.
 
-`trails compile` writes both from the current topo. `trails validate` and `@ontrails/warden` use the lockfile helpers here to detect drift.
+`trails compile` writes it from the current topo. `trails validate` and `@ontrails/warden` use the lockfile helpers here to detect drift.
+
+Compatibility helpers still read the previous `.trails/trails.lock` plus `.trails/topo.lock` artifact family during the migration window. New writes should use `writeTrailsLock()`.
 
 ## API
 
@@ -67,10 +67,12 @@ The typical exported artifact pair is:
 | `deriveTopoGraph(topo)` | Deterministic TopoGraph of every established trail, signal, resource, and contour |
 | `deriveTopoGraphHash(topoGraph)` | Stable SHA-256 hash of the TopoGraph |
 | `deriveTopoGraphDiff(prev, curr)` | Semantic diff with `breaking`, `warning`, and `info` classifications |
-| `writeTopoGraph(topoGraph, options?)` | Write `.trails/topo.lock` |
-| `readTopoGraph(options?)` | Read `.trails/topo.lock` |
-| `writeLockManifest(manifest, options?)` | Write `.trails/trails.lock` as a v3 manifest |
-| `readLockManifest(options?)` | Read the v3 manifest from `.trails/trails.lock` |
+| `writeTrailsLock(lock, options?)` | Write root `trails.lock` as a v4 lock envelope |
+| `readTrailsLock(options?)` | Read root `trails.lock` as a v4 lock envelope |
+| `readTopoGraph(options?)` | Read a TopoGraph from v4 `trails.lock` or legacy `topo.lock` |
+| `writeTopoGraph(topoGraph, options?)` | Write legacy `topo.lock` for explicit migration/testing paths |
+| `writeLockManifest(manifest, options?)` | Write legacy `trails.lock` as a v3 manifest |
+| `readLockManifest(options?)` | Read v3 manifests, projecting v4 locks back to v3 for compatibility |
 | `createTopoStore(options?)` | Read-only query interface over the persisted topo state in the Trails state-store `trails.db` |
 | `createMockTopoStore(seed?)` | Seeded in-memory mock for tests that need a `ReadOnlyTopoStore` |
 | `topoStore` | Read-only `resource()` wrapper around `createTopoStore`, suitable for `resources: [...]` |
@@ -121,13 +123,12 @@ Because CLI paths are now full hierarchical command paths, command-tree changes 
 ## Drift detection with warden
 
 ```typescript
-import { deriveTopoGraph, deriveTopoGraphHash, readLockManifest } from '@ontrails/topographer';
+import { deriveTopoGraph, deriveTopoGraphHash, readTrailsLock } from '@ontrails/topographer';
 
 const current = deriveTopoGraphHash(deriveTopoGraph(graph));
-const committed = await readLockManifest();
-const topoArtifact = committed?.artifacts.find((artifact) => artifact.role === 'topo');
+const committed = await readTrailsLock();
 
-if (topoArtifact?.sha256 !== current) {
+if (committed?.topoGraphHash !== current) {
   // lock file is stale -- topo has changed
 }
 ```

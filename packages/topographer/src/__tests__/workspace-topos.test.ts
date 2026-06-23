@@ -6,13 +6,18 @@ import { join } from 'node:path';
 import { topo } from '@ontrails/core';
 import type { Topo } from '@ontrails/core';
 
-import { writeTopoGraph } from '../io.js';
+import { writeTrailsLock } from '../io.js';
+import { deriveTopoGraphHash } from '../hash.js';
 import { TOPO_GRAPH_SCHEMA_VERSION } from '../types.js';
-import type { WorkspaceTrailCollision, WorkspaceTrailIndex } from '../types.js';
+import type {
+  TrailsLock,
+  WorkspaceTrailCollision,
+  WorkspaceTrailIndex,
+} from '../types.js';
 import { buildWorkspaceTrailIndex } from '../workspace-topos.js';
 import type { WorkspaceTopoLoader } from '../workspace-topos.js';
 
-const TOPO_LOCK_FALLBACK_WARNING = 'No workspace topo.lock found';
+const TRAILS_LOCK_FALLBACK_WARNING = 'No workspace trails.lock found';
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -43,24 +48,32 @@ const writeWorkspaceTopoGraph = (
   dir: string,
   workspaceIndex: WorkspaceTrailIndex,
   collisions?: readonly WorkspaceTrailCollision[]
-): Promise<string> =>
-  writeTopoGraph(
-    {
-      activationGraph: {
-        edgeCount: 0,
-        edges: [],
-        sourceCount: 0,
-        sourceKeys: [],
-        trailIds: [],
-      },
-      activationSources: {},
-      entries: [],
-      generatedAt: '2026-05-11T12:00:00.000Z',
-      topoGraphSchemaVersion: TOPO_GRAPH_SCHEMA_VERSION,
-      workspace: { collisions, trails: workspaceIndex },
+): Promise<string> => {
+  const topoGraph = {
+    activationGraph: {
+      edgeCount: 0,
+      edges: [],
+      sourceCount: 0,
+      sourceKeys: [],
+      trailIds: [],
     },
+    activationSources: {},
+    entries: [],
+    generatedAt: '2026-05-11T12:00:00.000Z',
+    topoGraphSchemaVersion: TOPO_GRAPH_SCHEMA_VERSION,
+    workspace: { collisions, trails: workspaceIndex },
+  };
+  return writeTrailsLock(
+    {
+      scope: { app: 'workspace' },
+      summary: { contours: 0, resources: 0, signals: 0, trails: 0 },
+      topoGraph,
+      topoGraphHash: deriveTopoGraphHash(topoGraph),
+      version: 4,
+    } as TrailsLock,
     { dir }
   );
+};
 
 const writeWorkspace = async (
   root: string,
@@ -186,7 +199,7 @@ describe('buildWorkspaceTrailIndex (discovery path)', () => {
     expect(result.apps).toEqual(expect.arrayContaining(['app-a', 'app-b']));
     expect(result.apps.length).toBe(2);
     expect(result.warnings).toEqual([
-      expect.stringContaining(TOPO_LOCK_FALLBACK_WARNING),
+      expect.stringContaining(TRAILS_LOCK_FALLBACK_WARNING),
     ]);
     expect(result.collisions).toEqual([]);
   });
@@ -211,7 +224,7 @@ describe('buildWorkspaceTrailIndex (discovery path)', () => {
     });
     expect(result.apps).toEqual(['only-app']);
     expect(result.warnings).toEqual([
-      expect.stringContaining(TOPO_LOCK_FALLBACK_WARNING),
+      expect.stringContaining(TRAILS_LOCK_FALLBACK_WARNING),
     ]);
   });
 
@@ -261,7 +274,7 @@ describe('buildWorkspaceTrailIndex (discovery path)', () => {
     expect(result.index).toEqual({});
     expect(result.apps).toEqual([]);
     expect(result.warnings).toEqual([
-      expect.stringContaining(TOPO_LOCK_FALLBACK_WARNING),
+      expect.stringContaining(TRAILS_LOCK_FALLBACK_WARNING),
     ]);
   });
 
@@ -281,7 +294,7 @@ describe('buildWorkspaceTrailIndex (discovery path)', () => {
     expect(result.index).toEqual({});
     expect(result.apps).toEqual([]);
     expect(result.warnings).toEqual([
-      expect.stringContaining(TOPO_LOCK_FALLBACK_WARNING),
+      expect.stringContaining(TRAILS_LOCK_FALLBACK_WARNING),
     ]);
     expect(result.collisions).toEqual([]);
   });
@@ -309,7 +322,7 @@ describe('buildWorkspaceTrailIndex (discovery path)', () => {
     });
     expect(result.apps).toEqual(['good-app']);
     expect(result.warnings).toHaveLength(2);
-    expect(result.warnings[0]).toContain(TOPO_LOCK_FALLBACK_WARNING);
+    expect(result.warnings[0]).toContain(TRAILS_LOCK_FALLBACK_WARNING);
     expect(result.warnings[1]).toContain('broken-app');
     expect(result.collisions).toEqual([]);
   });
@@ -361,7 +374,7 @@ describe('buildWorkspaceTrailIndex (discovery path)', () => {
     ]);
     // Collisions are reported via the structured field, not the warnings list.
     expect(result.warnings).toEqual([
-      expect.stringContaining(TOPO_LOCK_FALLBACK_WARNING),
+      expect.stringContaining(TRAILS_LOCK_FALLBACK_WARNING),
     ]);
   });
 
@@ -407,18 +420,18 @@ describe('buildWorkspaceTrailIndex (discovery path)', () => {
       },
     ]);
     expect(result.warnings).toEqual([
-      expect.stringContaining(TOPO_LOCK_FALLBACK_WARNING),
+      expect.stringContaining(TRAILS_LOCK_FALLBACK_WARNING),
     ]);
   });
 });
 
-describe('buildWorkspaceTrailIndex (topo.lock path)', () => {
-  test('reads the index from a fresh workspace topo.lock without loading apps', async () => {
+describe('buildWorkspaceTrailIndex (trails.lock path)', () => {
+  test('reads the index from a fresh workspace trails.lock without loading apps', async () => {
     const fixtures = [{ name: 'lock-app', trailIds: ['lock.read'] }];
     const registry = new Map(fixtures.map((f) => [f.name, f]));
     await writeWorkspace(workspaceRoot, fixtures);
 
-    await writeWorkspaceTopoGraph(join(workspaceRoot, '.trails'), {
+    await writeWorkspaceTopoGraph(workspaceRoot, {
       'lock.entry': {
         appName: 'lock-app',
         modulePath: 'apps/lock-app/src/app.ts',
@@ -440,7 +453,7 @@ describe('buildWorkspaceTrailIndex (topo.lock path)', () => {
       loadTopo: trackingLoader,
     });
 
-    expect(result.source).toBe('topo-lock');
+    expect(result.source).toBe('trails-lock');
     expect(result.index).toEqual({
       'lock.entry': {
         appName: 'lock-app',
@@ -452,11 +465,11 @@ describe('buildWorkspaceTrailIndex (topo.lock path)', () => {
     expect(result.warnings).toEqual([]);
     expect(Object.isFrozen(result.index)).toBe(true);
     expect(result.collisions).toEqual([]);
-    // apps reflect what the topo.lock workspace index asserts.
+    // apps reflect what the trails.lock workspace index asserts.
     expect(result.apps).toEqual(['lock-app']);
   });
 
-  test('reads collision ownership from a workspace topo.lock without loading apps', async () => {
+  test('reads collision ownership from a workspace trails.lock without loading apps', async () => {
     const fixtures = [
       { name: 'app-a', trailIds: ['shared.id'] },
       { name: 'app-b', trailIds: ['shared.id'] },
@@ -464,7 +477,7 @@ describe('buildWorkspaceTrailIndex (topo.lock path)', () => {
     const registry = new Map(fixtures.map((f) => [f.name, f]));
     await writeWorkspace(workspaceRoot, fixtures);
 
-    await writeWorkspaceTopoGraph(join(workspaceRoot, '.trails'), {}, [
+    await writeWorkspaceTopoGraph(workspaceRoot, {}, [
       {
         apps: ['app-a', 'app-b'],
         owners: [
@@ -497,7 +510,7 @@ describe('buildWorkspaceTrailIndex (topo.lock path)', () => {
       loadTopo: trackingLoader,
     });
 
-    expect(result.source).toBe('topo-lock');
+    expect(result.source).toBe('trails-lock');
     expect(result.index).toEqual({});
     expect(result.collisions).toEqual([
       {
@@ -551,7 +564,7 @@ describe('buildWorkspaceTrailIndex (topo.lock path)', () => {
       loadTopo: trackingLoader,
     });
 
-    expect(result.source).toBe('topo-lock');
+    expect(result.source).toBe('trails-lock');
     expect(result.index['relative.lock']).toEqual({
       appName: 'lock-app',
       modulePath: 'apps/lock-app/src/app.ts',
@@ -561,7 +574,7 @@ describe('buildWorkspaceTrailIndex (topo.lock path)', () => {
     expect(result.warnings).toEqual([]);
   });
 
-  test('falls back to discovery when no workspace topo.lock is present', async () => {
+  test('falls back to discovery when no workspace trails.lock is present', async () => {
     const fixtures = [{ name: 'app-only', trailIds: ['only.go'] }];
     const registry = new Map(fixtures.map((f) => [f.name, f]));
     await writeWorkspace(workspaceRoot, fixtures);
@@ -573,7 +586,7 @@ describe('buildWorkspaceTrailIndex (topo.lock path)', () => {
 
     expect(result.source).toBe('discovery');
     expect(result.warnings).toEqual([
-      expect.stringContaining(TOPO_LOCK_FALLBACK_WARNING),
+      expect.stringContaining(TRAILS_LOCK_FALLBACK_WARNING),
     ]);
     expect(result.index).toEqual({
       'only.go': {
@@ -584,7 +597,7 @@ describe('buildWorkspaceTrailIndex (topo.lock path)', () => {
     });
   });
 
-  test('preserves topo.lock fallback warning when discovery has no workspace globs', async () => {
+  test('preserves trails.lock fallback warning when discovery has no workspace globs', async () => {
     await writeJson(join(workspaceRoot, 'package.json'), {
       name: 'no-workspaces',
       private: true,
@@ -600,7 +613,7 @@ describe('buildWorkspaceTrailIndex (topo.lock path)', () => {
     expect(result.apps).toEqual([]);
     expect(result.index).toEqual({});
     expect(result.warnings).toEqual([
-      expect.stringContaining(TOPO_LOCK_FALLBACK_WARNING),
+      expect.stringContaining(TRAILS_LOCK_FALLBACK_WARNING),
     ]);
   });
 });

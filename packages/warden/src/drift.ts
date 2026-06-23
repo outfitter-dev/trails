@@ -1,9 +1,9 @@
 /**
- * Topo lock drift detection.
+ * Trails lock drift detection.
  *
- * Compares the `topo.lock` artifact hash listed in `trails.lock` against a
- * freshly generated TopoGraph hash to detect when the trail topology has
- * changed without updating the artifact family.
+ * Compares the committed `trails.lock` TopoGraph hash against a freshly
+ * generated TopoGraph hash to detect when the trail topology changed without
+ * updating the committed resolved truth.
  */
 
 import { existsSync, statSync } from 'node:fs';
@@ -20,6 +20,7 @@ import {
   deriveTopoGraphHash,
   isTopoArtifactRegenerationError,
   readLockManifest,
+  readTrailsLock,
 } from '@ontrails/topographer';
 import type { LockManifest } from '@ontrails/topographer';
 
@@ -57,11 +58,26 @@ const blockedLockRead = (reason: string): BlockedLockRead => ({
 const readCommittedLockManifest = async (
   rootDir: string
 ): Promise<BlockedLockRead | LockManifest | null> => {
-  const trailsDir = deriveTrailsDir({ rootDir });
   try {
-    return existsSync(rootDir) && statSync(rootDir).isDirectory()
-      ? await readLockManifest({ dir: trailsDir })
-      : null;
+    if (!(existsSync(rootDir) && statSync(rootDir).isDirectory())) {
+      return null;
+    }
+    const rootLock = await readTrailsLock({ dir: rootDir });
+    if (rootLock !== null) {
+      return {
+        artifacts: [
+          {
+            path: 'topo.lock',
+            role: 'topo',
+            sha256: rootLock.topoGraphHash,
+          },
+        ],
+        scope: rootLock.scope,
+        summary: rootLock.summary,
+        version: 3,
+      };
+    }
+    return await readLockManifest({ dir: deriveTrailsDir({ rootDir }) });
   } catch (error) {
     if (isTopoArtifactRegenerationError(error)) {
       return blockedLockRead(error.message);

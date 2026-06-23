@@ -1,6 +1,4 @@
 import { existsSync } from 'node:fs';
-import { join } from 'node:path';
-
 import {
   NotFoundError,
   deriveTrailsDbPath,
@@ -88,7 +86,7 @@ const resolveArtifactReadOptions = (
     return { dir: options.dir };
   }
   if (options?.rootDir !== undefined) {
-    return { dir: join(options.rootDir, '.trails') };
+    return { dir: options.rootDir };
   }
   return undefined;
 };
@@ -390,7 +388,7 @@ export const wayfinderTopoGraphSource = (
   options?: WayfinderArtifactLoaderOptions
 ) => ({
   kind: 'topoGraph' as const,
-  path: `${resolveArtifactReadOptions(options)?.dir ?? '.trails'}/topo.lock`,
+  path: `${resolveArtifactReadOptions(options)?.dir ?? '.'}/trails.lock`,
   schemaVersion: TOPO_GRAPH_SCHEMA_VERSION,
 });
 

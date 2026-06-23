@@ -724,7 +724,7 @@ const contractFacts = (
 };
 
 const graphSourcePath = (rootDir: string): string =>
-  resolve(rootDir, '.trails', 'topo.lock');
+  resolve(rootDir, 'trails.lock');
 
 const graphOutline = (
   rootDir: string,

@@ -12,6 +12,7 @@ import type {
 import { z } from 'zod';
 
 export const TOPO_GRAPH_SCHEMA_VERSION = 2;
+export const TRAILS_LOCK_SCHEMA_VERSION = 4;
 
 export type TopoGraphExample = StructuredSignalExample | StructuredTrailExample;
 
@@ -452,6 +453,18 @@ export const lockManifestSchema = z
 export type LockManifestArtifact = z.infer<typeof lockManifestArtifactSchema>;
 export type LockManifestSummary = z.infer<typeof lockManifestSummarySchema>;
 export type LockManifest = z.infer<typeof lockManifestSchema>;
+
+export const trailsLockSchema = z
+  .object({
+    scope: z.record(z.string(), z.string()),
+    summary: lockManifestSummarySchema,
+    topoGraph: topoGraphSchema,
+    topoGraphHash: z.string().regex(/^[0-9a-f]{64}$/),
+    version: z.literal(TRAILS_LOCK_SCHEMA_VERSION),
+  })
+  .strict();
+
+export type TrailsLock = z.infer<typeof trailsLockSchema>;
 
 // ---------------------------------------------------------------------------
 // Diff

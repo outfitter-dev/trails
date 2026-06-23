@@ -21,9 +21,11 @@ import {
   createTopoSnapshot,
   writeLockManifest,
   writeTopoGraph,
+  writeTrailsLock,
 } from '@ontrails/topographer';
 import type {
   LockManifest,
+  TrailsLock,
   TopoGraph,
   TopoGraphEntry,
 } from '@ontrails/topographer';
@@ -189,10 +191,16 @@ const writeArtifactsAt = async (
     })
   );
   const topoGraph = transform?.(baseTopoGraph) ?? baseTopoGraph;
-  await writeTopoGraph(topoGraph, { dir: artifactsDirFor(rootDir) });
-  await writeLockManifest(lockManifestFor(topoGraph), {
-    dir: artifactsDirFor(rootDir),
-  });
+  await writeTrailsLock(
+    {
+      scope: { app: 'demo' },
+      summary: lockManifestFor(topoGraph).summary,
+      topoGraph,
+      topoGraphHash: deriveTopoGraphHash(topoGraph),
+      version: 4,
+    } as TrailsLock,
+    { dir: rootDir }
+  );
   return topoGraph;
 };
 
@@ -200,7 +208,7 @@ const writeArtifacts = async (
   transform?: (topoGraph: TopoGraph) => TopoGraph
 ): Promise<TopoGraph> => writeArtifactsAt(tempDir, transform);
 
-const writePlainArtifactsAt = async (rootDir: string) => {
+const writeLegacyPlainArtifactsAt = async (rootDir: string) => {
   const graph = app();
   const topoGraph = deriveTopoGraph(graph);
   await writeTopoGraph(topoGraph, { dir: artifactsDirFor(rootDir) });
@@ -579,20 +587,27 @@ describe('wayfinder graph-read query trails', () => {
   });
 
   test('returns schema drift errors instead of missing-artifact errors', async () => {
+    const topoGraph = {
+      activationGraph: {
+        edgeCount: 0,
+        edges: [],
+        sourceCount: 0,
+        sourceKeys: [],
+        trailIds: [],
+      },
+      activationSources: {},
+      entries: [],
+      generatedAt: '2026-06-04T00:00:00.000Z',
+      topoGraphSchemaVersion: -1,
+    };
     await Bun.write(
-      join(artifactsDir(), 'topo.lock'),
+      join(tempDir, 'trails.lock'),
       `${JSON.stringify({
-        activationGraph: {
-          edgeCount: 0,
-          edges: [],
-          sourceCount: 0,
-          sourceKeys: [],
-          trailIds: [],
-        },
-        activationSources: {},
-        entries: [],
-        generatedAt: '2026-06-04T00:00:00.000Z',
-        topoGraphSchemaVersion: -1,
+        scope: { app: 'demo' },
+        summary: { contours: 0, resources: 0, signals: 0, trails: 0 },
+        topoGraph,
+        topoGraphHash: '0'.repeat(64),
+        version: 4,
       })}\n`
     );
 
@@ -619,7 +634,7 @@ describe('wayfinder graph-read query trails', () => {
     expect(result.isErr() ? result.error.name : '').toBe('DerivationError');
     expect(result.isErr() ? result.error.context : {}).toMatchObject({
       artifact: 'topoGraph',
-      path: join(invalidDir, 'topo.lock'),
+      path: join(invalidDir, 'trails.lock'),
     });
   });
 
@@ -628,7 +643,10 @@ describe('wayfinder graph-read query trails', () => {
     const cwdRoot = join(tempDir, 'cwd-root');
     await mkdir(artifactRoot, { recursive: true });
     await mkdir(cwdRoot, { recursive: true });
-    seedTopoStoreAt(artifactRoot, await writePlainArtifactsAt(artifactRoot));
+    seedTopoStoreAt(
+      artifactRoot,
+      await writeLegacyPlainArtifactsAt(artifactRoot)
+    );
 
     const overview = await expectOk(
       wayfindOverviewTrail.blaze(
@@ -1491,9 +1509,7 @@ describe('wayfinder graph-read query trails', () => {
       )
     );
 
-    expect(diff.against.source.path).toBe(
-      join(baselineRoot, '.trails', 'topo.lock')
-    );
+    expect(diff.against.source.path).toBe(join(baselineRoot, 'trails.lock'));
     expect(diff.diff.entries.some((entry) => entry.id === 'user.create')).toBe(
       true
     );

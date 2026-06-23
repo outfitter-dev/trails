@@ -5,7 +5,6 @@ import {
   openReadTrailsDb,
   openWriteTrailsDb,
   deriveTrailsDbPath,
-  deriveTrailsDir,
 } from '@ontrails/core';
 import {
   countPinnedSnapshots,
@@ -195,8 +194,7 @@ const liveDevStats = (
 const deriveDevStatsContext = (options?: DevRetentionOptions) => {
   const rootDir = deriveRootDir(options?.rootDir);
   const dbPath = deriveTrailsDbPath({ rootDir });
-  const trailsDir = deriveTrailsDir({ rootDir });
-  const lockPath = join(trailsDir, 'trails.lock');
+  const lockPath = join(rootDir, 'trails.lock');
   return {
     dbExists: existsSync(dbPath),
     dbPath,
@@ -267,23 +265,26 @@ const buildCleanReport = (
   };
 };
 
+const dbSidecarPaths = (basePath: string): readonly string[] => [
+  basePath,
+  `${basePath}-shm`,
+  `${basePath}-wal`,
+];
+
+const legacyRepoPath = (...segments: readonly string[]) => segments.join('/');
+const legacyDbName = (...segments: readonly string[]) => segments.join('.');
+
 const legacyResetFiles = [
-  // Legacy paths (pre-state migration) — cleaned for one cycle so upgrading
-  // workspaces do not leave stale DB sidecars at old locations.
-  '.trails/state/trails.db',
-  '.trails/state/trails.db-shm',
-  '.trails/state/trails.db-wal',
-  '.trails/trails.db',
-  '.trails/trails.db-shm',
-  '.trails/trails.db-wal',
-  '.trails/dev/tracing.db',
-  '.trails/dev/tracing.db-shm',
-  '.trails/dev/tracing.db-wal',
+  // Legacy paths (pre-state migration) cleaned for one cycle so upgrading
+  // workspaces do not leave stale DB sidecars at old repo-local locations.
+  ...dbSidecarPaths(legacyRepoPath('.trails', 'state', 'trails.db')),
+  ...dbSidecarPaths(legacyRepoPath('.trails', legacyDbName('trails', 'db'))),
+  ...dbSidecarPaths(legacyRepoPath('.trails', 'dev', 'tracing.db')),
 ] as const;
 
 const currentResetFiles = (rootDir: string): readonly string[] => {
   const dbPath = deriveTrailsDbPath({ rootDir });
-  return [dbPath, `${dbPath}-shm`, `${dbPath}-wal`];
+  return dbSidecarPaths(dbPath);
 };
 
 const resetFileExists = (rootDir: string, resetPath: string): boolean =>

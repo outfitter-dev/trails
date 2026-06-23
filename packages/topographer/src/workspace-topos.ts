@@ -3,8 +3,8 @@
  *
  * Builds a `{ trailId → appName }` index that lets `trails run <id>` resolve
  * a trail to its owning app without scanning every app's source. The index is
- * either read from a committed `topo.lock` workspace index (the cached, fast path) or
- * discovered by walking the workspace's `workspaces` glob, loading each app's
+ * either read from a committed `trails.lock` workspace index (the cached, fast
+ * path) or discovered by walking the workspace's `workspaces` glob, loading each app's
  * topo, and reading its trail ids.
  *
  * @remarks
@@ -59,8 +59,8 @@ export interface BuildWorkspaceTrailIndexOptions {
    */
   readonly loadTopo?: WorkspaceTopoLoader;
   /**
-   * Topo artifact directory consulted before discovery runs. Defaults to `.trails`
-   * relative to `cwd` — matches {@link readWorkspaceTopoMetadata}'s default.
+   * Topo artifact directory consulted before discovery runs. Defaults to `cwd`,
+   * where the root `trails.lock` lives.
    */
   readonly artifactDir?: string | undefined;
   /** @deprecated Use `artifactDir`. */
@@ -85,7 +85,7 @@ export interface BuildWorkspaceTrailIndexOptions {
  */
 export interface WorkspaceTrailIndexResult {
   readonly index: WorkspaceTrailIndex;
-  readonly source: 'topo-lock' | 'discovery';
+  readonly source: 'trails-lock' | 'discovery';
   readonly apps: readonly string[];
   readonly warnings: readonly string[];
   readonly collisions: readonly WorkspaceTrailCollision[];
@@ -364,7 +364,7 @@ const buildFromTopoLock = (
     apps: [...apps].toSorted(),
     collisions,
     index: Object.freeze({ ...workspaceIndex }),
-    source: 'topo-lock',
+    source: 'trails-lock',
     warnings: [],
   };
 };
@@ -439,14 +439,14 @@ const buildFromDiscovery = async (
 /**
  * Build a workspace-wide trail-id-to-app-name index.
  *
- * Prefers a committed topo artifact (`.trails/topo.lock` carrying a workspace
+ * Prefers a committed topo artifact (`trails.lock` carrying a workspace
  * trail index) when present; otherwise walks the workspace's
  * `workspaces` globs, loads each app's topo, and reads its trail ids.
  *
  * @example
  * ```ts
  * const result = await buildWorkspaceTrailIndex({ cwd: process.cwd() });
- * if (result.source === 'topo-lock') {
+ * if (result.source === 'trails-lock') {
  *   // Cached path — no app loading happened.
  * }
  * const owningApp = result.index['my-app.do-thing'];
@@ -463,7 +463,7 @@ export const buildWorkspaceTrailIndex = async (
 
   let resolvedArtifactDir: string;
   if (artifactDir === undefined) {
-    resolvedArtifactDir = join(cwd, '.trails');
+    resolvedArtifactDir = cwd;
   } else if (isAbsolute(artifactDir)) {
     resolvedArtifactDir = artifactDir;
   } else {
@@ -476,8 +476,8 @@ export const buildWorkspaceTrailIndex = async (
     return buildFromTopoLock(workspace);
   }
 
-  const fallbackWarning = existsSync(join(resolvedArtifactDir, 'topo.lock'))
-    ? `Workspace topo.lock in "${resolvedArtifactDir}" does not include workspace metadata; falling back to discovery.`
-    : `No workspace topo.lock found in "${resolvedArtifactDir}"; falling back to discovery.`;
+  const fallbackWarning = existsSync(join(resolvedArtifactDir, 'trails.lock'))
+    ? `Workspace trails.lock in "${resolvedArtifactDir}" does not include workspace metadata; falling back to discovery.`
+    : `No workspace trails.lock found in "${resolvedArtifactDir}"; falling back to discovery.`;
   return await buildFromDiscovery(cwd, loadTopo, [fallbackWarning]);
 };

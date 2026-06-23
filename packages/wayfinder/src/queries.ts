@@ -67,10 +67,7 @@ const envelopeSchema = z.object({
 
 const sourceInputSchema = z
   .object({
-    dir: z
-      .string()
-      .optional()
-      .describe('Directory containing topo.lock and trails.lock'),
+    dir: z.string().optional().describe('Directory containing trails.lock'),
     rootDir: z.string().optional().describe('Workspace root directory'),
     trailsDbPath: z.string().optional().describe('Path to trails.db'),
   })
@@ -150,7 +147,7 @@ const diffInputSchema = sourceInputSchema
     againstDir: z
       .string()
       .optional()
-      .describe('Baseline artifact directory containing topo.lock'),
+      .describe('Baseline artifact directory containing trails.lock'),
     againstRootDir: z
       .string()
       .optional()
@@ -462,17 +459,15 @@ const toLoaderOptions = (
   };
 };
 
-const topoLockPath = (
+const topoGraphSourcePath = (
   input: SourceInput,
   cwd: string | undefined
 ): string | undefined => {
   if (input.dir !== undefined) {
-    return join(input.dir, 'topo.lock');
+    return join(input.dir, 'trails.lock');
   }
   const rootDir = input.rootDir ?? cwd;
-  return rootDir === undefined
-    ? undefined
-    : join(rootDir, '.trails', 'topo.lock');
+  return rootDir === undefined ? undefined : join(rootDir, 'trails.lock');
 };
 
 const loadGraph = async (
@@ -489,7 +484,7 @@ const loadGraph = async (
         cause,
         context: {
           artifact: 'topoGraph',
-          path: topoLockPath(input, cwd) ?? 'topo.lock',
+          path: topoGraphSourcePath(input, cwd) ?? 'trails.lock',
         },
       })
     );
@@ -519,7 +514,7 @@ const loadGraph = async (
     load,
     source: {
       kind: 'topoGraph',
-      path: topoLockPath(input, cwd) ?? 'topo.lock',
+      path: topoGraphSourcePath(input, cwd) ?? 'trails.lock',
       schemaVersion: load.topoGraph.topoGraphSchemaVersion,
     },
   });

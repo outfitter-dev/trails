@@ -9,11 +9,16 @@ import type {
   LockManifest,
   ReadOptions,
   TopoGraph,
+  TrailsLock,
   WorkspaceTopoMetadata,
   WorkspaceTrailIndex,
   WriteOptions,
 } from './types.js';
-import { lockManifestSchema, topoGraphSchema } from './types.js';
+import {
+  lockManifestSchema,
+  trailsLockSchema,
+  topoGraphSchema,
+} from './types.js';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -86,6 +91,19 @@ const parseLockManifest = (content: string): LockManifest => {
   throw new Error(REGENERATE_LOCK_MESSAGE);
 };
 
+const parseTrailsLock = (content: string): TrailsLock => {
+  const parsed = parseJson(
+    content,
+    LOCK_MANIFEST_FILE,
+    REGENERATE_LOCK_MESSAGE
+  );
+  const result = trailsLockSchema.safeParse(parsed);
+  if (result.success) {
+    return result.data as TrailsLock;
+  }
+  throw new Error(REGENERATE_LOCK_MESSAGE);
+};
+
 const parseTopoGraph = (content: string): TopoGraph => {
   const parsed = parseJson(
     content,
@@ -98,6 +116,19 @@ const parseTopoGraph = (content: string): TopoGraph => {
   }
   throw new Error(REGENERATE_TOPO_GRAPH_MESSAGE);
 };
+
+const lockManifestFromTrailsLock = (lock: TrailsLock): LockManifest => ({
+  artifacts: [
+    {
+      path: TOPO_GRAPH_FILE,
+      role: 'topo',
+      sha256: lock.topoGraphHash,
+    },
+  ],
+  scope: lock.scope,
+  summary: lock.summary,
+  version: 3,
+});
 
 // ---------------------------------------------------------------------------
 // TopoGraph
@@ -121,12 +152,32 @@ export const writeTopoGraph = async (
 };
 
 /**
- * Read a topo graph from `<dir>/topo.lock`.
+ * Read a topo graph from `<dir>/trails.lock` or legacy `<dir>/topo.lock`.
  */
 export const readTopoGraph = async (
   options?: ReadOptions
 ): Promise<TopoGraph | null> => {
   const dir = resolveDir(options);
+  const lockContent = await readTextIfExists(join(dir, LOCK_MANIFEST_FILE));
+  if (lockContent !== null) {
+    try {
+      return parseTrailsLock(lockContent).topoGraph as TopoGraph;
+    } catch (error) {
+      try {
+        parseLockManifest(lockContent);
+      } catch {
+        throw error;
+      }
+      const legacyTopoContent = await readTextIfExists(
+        join(dir, TOPO_GRAPH_FILE)
+      );
+      if (legacyTopoContent === null) {
+        throw error;
+      }
+      return parseTopoGraph(legacyTopoContent);
+    }
+  }
+
   const content = await readTextIfExists(join(dir, TOPO_GRAPH_FILE));
   return content ? parseTopoGraph(content) : null;
 };
@@ -153,14 +204,50 @@ export const writeLockManifest = async (
 };
 
 /**
+ * Write a v4 Trails lock envelope to `<dir>/trails.lock`.
+ */
+export const writeTrailsLock = async (
+  trailsLock: TrailsLock,
+  options?: WriteOptions
+): Promise<string> => {
+  const dir = resolveDir(options);
+  await ensureDir(dir);
+  const filePath = join(dir, LOCK_MANIFEST_FILE);
+  const parsed = trailsLockSchema.parse(trailsLock);
+  await Bun.write(filePath, `${JSON.stringify(parsed, null, 2)}\n`);
+  return filePath;
+};
+
+/**
  * Read a lock v3 manifest from `<dir>/trails.lock`.
+ *
+ * v4 root locks are projected back to the v3 manifest shape for compatibility.
  */
 export const readLockManifest = async (
   options?: ReadOptions
 ): Promise<LockManifest | null> => {
   const dir = resolveDir(options);
   const content = await readTextIfExists(join(dir, LOCK_MANIFEST_FILE));
-  return content ? parseLockManifest(content) : null;
+  if (content === null) {
+    return null;
+  }
+
+  try {
+    return lockManifestFromTrailsLock(parseTrailsLock(content));
+  } catch {
+    return parseLockManifest(content);
+  }
+};
+
+/**
+ * Read a v4 Trails lock envelope from `<dir>/trails.lock`.
+ */
+export const readTrailsLock = async (
+  options?: ReadOptions
+): Promise<TrailsLock | null> => {
+  const dir = resolveDir(options);
+  const content = await readTextIfExists(join(dir, LOCK_MANIFEST_FILE));
+  return content ? parseTrailsLock(content) : null;
 };
 
 /**

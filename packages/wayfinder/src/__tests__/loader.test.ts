@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
-import { mkdir, mkdtemp, readdir, rm } from 'node:fs/promises';
+import { mkdtemp, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -21,8 +21,13 @@ import {
   deriveTopoGraphHash,
   writeLockManifest,
   writeTopoGraph,
+  writeTrailsLock,
 } from '@ontrails/topographer';
-import type { LockManifest, TopoGraph } from '@ontrails/topographer';
+import type {
+  LockManifest,
+  TopoGraph,
+  TrailsLock,
+} from '@ontrails/topographer';
 
 import {
   loadWayfinderArtifacts,
@@ -110,6 +115,24 @@ const writeFreshArtifacts = async (
   graph = makeTopo()
 ): Promise<TopoGraph> => {
   const topoGraph = makeTopoGraph(overrides, graph);
+  await writeTrailsLock(
+    {
+      scope: { app: 'demo' },
+      summary: makeLockManifest(topoGraph).summary,
+      topoGraph,
+      topoGraphHash: deriveTopoGraphHash(topoGraph),
+      version: 4,
+    } as TrailsLock,
+    { dir: tempDir }
+  );
+  return topoGraph;
+};
+
+const writeLegacyFreshArtifacts = async (
+  overrides?: Partial<TopoGraph>,
+  graph = makeTopo()
+): Promise<TopoGraph> => {
+  const topoGraph = makeTopoGraph(overrides, graph);
   await writeTopoGraph(topoGraph, { dir: artifactsDir() });
   await writeLockManifest(makeLockManifest(topoGraph), { dir: artifactsDir() });
   return topoGraph;
@@ -159,7 +182,7 @@ describe('loadWayfinderArtifacts', () => {
   });
 
   test('does not infer topo-store state from an artifact directory alone', async () => {
-    await writeFreshArtifacts();
+    await writeLegacyFreshArtifacts();
     const legacyDbPath = join(artifactsDir(), 'state', 'trails.db');
     const legacySnapshot = createTopoSnapshot(makeTopo({ accountListTrail }), {
       createdAt: '2026-06-04T00:00:00.000Z',
@@ -196,19 +219,17 @@ describe('loadWayfinderArtifacts', () => {
     ]);
   });
 
-  test('marks artifacts stale when the manifest hash no longer matches topo.lock', async () => {
-    const topoGraph = await writeFreshArtifacts();
-    await writeLockManifest(
-      makeLockManifest(topoGraph, {
-        artifacts: [
-          {
-            path: 'topo.lock',
-            role: 'topo',
-            sha256: '0'.repeat(64),
-          },
-        ],
-      }),
-      { dir: artifactsDir() }
+  test('marks artifacts stale when trails.lock hash no longer matches embedded graph', async () => {
+    const topoGraph = makeTopoGraph();
+    await writeTrailsLock(
+      {
+        scope: { app: 'demo' },
+        summary: makeLockManifest(topoGraph).summary,
+        topoGraph,
+        topoGraphHash: '0'.repeat(64),
+        version: 4,
+      } as TrailsLock,
+      { dir: tempDir }
     );
     seedTopoStore();
 
@@ -224,7 +245,7 @@ describe('loadWayfinderArtifacts', () => {
     expect(loaded.topoStore).not.toBeNull();
   });
 
-  test('marks artifacts stale when trails.db no longer matches topo.lock', async () => {
+  test('marks artifacts stale when trails.db no longer matches trails.lock', async () => {
     await writeFreshArtifacts();
     seedTopoStore(makeTopo({ accountListTrail }));
 
@@ -279,18 +300,20 @@ describe('loadWayfinderArtifacts', () => {
     expect(loaded.topoStore).toBeNull();
   });
 
-  test('marks schema-version drift when topo.lock uses an unsupported schema version', async () => {
-    await mkdir(artifactsDir(), { recursive: true });
+  test('marks schema-version drift when trails.lock embeds an unsupported topo graph version', async () => {
     await Bun.write(
-      join(artifactsDir(), 'topo.lock'),
+      join(tempDir, 'trails.lock'),
       `${JSON.stringify({
-        ...makeTopoGraph(),
-        topoGraphSchemaVersion: TOPO_GRAPH_SCHEMA_VERSION - 1,
+        scope: { app: 'demo' },
+        summary: makeLockManifest(makeTopoGraph()).summary,
+        topoGraph: {
+          ...makeTopoGraph(),
+          topoGraphSchemaVersion: TOPO_GRAPH_SCHEMA_VERSION - 1,
+        },
+        topoGraphHash: deriveTopoGraphHash(makeTopoGraph()),
+        version: 4,
       })}\n`
     );
-    await writeLockManifest(makeLockManifest(makeTopoGraph()), {
-      dir: artifactsDir(),
-    });
 
     const loaded = await loadWayfinderArtifacts({ rootDir: tempDir });
 
@@ -299,23 +322,29 @@ describe('loadWayfinderArtifacts', () => {
       status: 'schema-version-drift',
     });
     expect(loaded.topoGraph).toBeNull();
-    expect(loaded.lockManifest?.version).toBe(3);
+    expect(loaded.lockManifest).toBeNull();
   });
 
   test('marks schema-version drift when trails.lock uses an unsupported schema version', async () => {
-    const topoGraph = await writeFreshArtifacts();
+    const topoGraph = makeTopoGraph();
     await Bun.write(
-      join(artifactsDir(), 'trails.lock'),
-      `${JSON.stringify({ ...makeLockManifest(topoGraph), version: 2 })}\n`
+      join(tempDir, 'trails.lock'),
+      `${JSON.stringify({
+        scope: { app: 'demo' },
+        summary: makeLockManifest(topoGraph).summary,
+        topoGraph,
+        topoGraphHash: deriveTopoGraphHash(topoGraph),
+        version: 2,
+      })}\n`
     );
 
     const loaded = await loadWayfinderArtifacts({ rootDir: tempDir });
 
     expect(loaded.artifactStatus).toMatchObject({
-      artifact: 'lockManifest',
+      artifact: 'topoGraph',
       status: 'schema-version-drift',
     });
-    expect(loaded.topoGraph).not.toBeNull();
+    expect(loaded.topoGraph).toBeNull();
     expect(loaded.lockManifest).toBeNull();
   });
 
@@ -381,10 +410,10 @@ describe('wayfinderFact', () => {
     });
   });
 
-  test('can point facts at topo.lock file provenance', () => {
+  test('can point facts at trails.lock file provenance', () => {
     expect(wayfinderTopoGraphSource({ rootDir: tempDir })).toEqual({
       kind: 'topoGraph',
-      path: `${tempDir}/.trails/topo.lock`,
+      path: `${tempDir}/trails.lock`,
       schemaVersion: TOPO_GRAPH_SCHEMA_VERSION,
     });
   });

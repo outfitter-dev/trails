@@ -13,6 +13,7 @@ import {
   DETOUR_MAX_ATTEMPTS_CAP,
   Result,
   SURFACE_LAYER_NAMES_KEY,
+  ValidationError,
   contour,
   openReadTrailsDb,
   resource,
@@ -29,8 +30,10 @@ import {
   deriveTopoGraphHash,
   deriveTopoGraphDiff,
   stripTopoGraphForces,
+  TRAILS_LOCK_SCHEMA_VERSION,
   TOPO_GRAPH_SCHEMA_VERSION,
   writeTopoGraph,
+  writeTrailsLock,
 } from '@ontrails/topographer';
 import type { TopoGraph } from '@ontrails/topographer';
 import { loadWayfinderArtifacts } from '@ontrails/wayfinder';
@@ -1487,19 +1490,29 @@ describe('trails compile', () => {
         readonly hash: string;
         readonly lockPath: string;
         readonly snapshot: unknown;
-        readonly topoPath: string;
       };
 
       expect(compiled.hash).toHaveLength(64);
-      expect(compiled.topoPath).toBe(join(dir, '.trails', 'topo.lock'));
-      expect(existsSync(join(dir, '.trails', 'topo.lock'))).toBe(true);
-      expect(existsSync(join(dir, '.trails', 'trails.lock'))).toBe(true);
+      expect(compiled.lockPath).toBe(join(dir, 'trails.lock'));
+      expect(existsSync(join(dir, 'trails.lock'))).toBe(true);
+      expect(existsSync(join(dir, '.trails', 'topo.lock'))).toBe(false);
+      expect(existsSync(join(dir, '.trails', 'trails.lock'))).toBe(false);
       expect(
-        JSON.parse(readFileSync(join(dir, '.trails', 'trails.lock'), 'utf8'))
+        JSON.parse(readFileSync(join(dir, 'trails.lock'), 'utf8'))
       ).toMatchObject({
-        artifacts: [{ path: 'topo.lock', role: 'topo', sha256: compiled.hash }],
-        version: 3,
+        topoGraphHash: compiled.hash,
+        version: 4,
       });
+      mkdirSync(join(dir, '.trails'), { recursive: true });
+      writeFileSync(join(dir, '.trails', 'topo.lock'), '{}\n');
+      writeFileSync(join(dir, '.trails', 'trails.lock'), '{}\n');
+      expectOk(
+        await compileTrail.blaze({ module: './src/app.ts' }, {
+          cwd: dir,
+        } as never)
+      );
+      expect(existsSync(join(dir, '.trails', 'topo.lock'))).toBe(false);
+      expect(existsSync(join(dir, '.trails', 'trails.lock'))).toBe(false);
       expect(compileTrail.output.safeParse(compiled).success).toBe(true);
     } finally {
       rmSync(dir, { force: true, recursive: true });
@@ -1532,11 +1545,9 @@ describe('trails compile', () => {
       ) as {
         readonly hash: string;
         readonly lockPath: string;
-        readonly topoPath: string;
       };
-      const graph = JSON.parse(
-        readFileSync(join(dir, '.trails', 'topo.lock'), 'utf8')
-      ) as TopoGraph;
+      const graph = JSON.parse(readFileSync(join(dir, 'trails.lock'), 'utf8'))
+        .topoGraph as TopoGraph;
       const hello = graph.entries.find((entry) => entry.id === 'hello');
 
       expect(hello?.forces?.[0]).toMatchObject({
@@ -1544,9 +1555,9 @@ describe('trails compile', () => {
         source: 'trails compile --force',
       });
       expect(
-        JSON.parse(readFileSync(join(dir, '.trails', 'trails.lock'), 'utf8'))
+        JSON.parse(readFileSync(join(dir, 'trails.lock'), 'utf8'))
       ).toMatchObject({
-        artifacts: [{ path: 'topo.lock', role: 'topo', sha256: forced.hash }],
+        topoGraphHash: forced.hash,
       });
       const validated = expectOk(
         await validateTrail.blaze({ module: './src/app.ts' }, {
@@ -1568,8 +1579,8 @@ describe('trails compile', () => {
         readonly hash: string;
       };
       const recompiledGraph = JSON.parse(
-        readFileSync(join(dir, '.trails', 'topo.lock'), 'utf8')
-      ) as TopoGraph;
+        readFileSync(join(dir, 'trails.lock'), 'utf8')
+      ).topoGraph as TopoGraph;
       const recompiledHello = recompiledGraph.entries.find(
         (entry) => entry.id === 'hello'
       );
@@ -1612,6 +1623,56 @@ describe('trails compile', () => {
     }
   });
 
+  test('validate rejects a root lock whose embedded TopoGraph hash drifts', async () => {
+    const dir = repoTempDir();
+
+    try {
+      writeSurveyAppFixture(dir);
+      expectOk(
+        await compileTrail.blaze({ module: './src/app.ts' }, {
+          cwd: dir,
+        } as never)
+      );
+      const lockPath = join(dir, 'trails.lock');
+      const originalLock = JSON.parse(readFileSync(lockPath, 'utf8')) as {
+        readonly summary: {
+          readonly contours: number;
+          readonly resources: number;
+          readonly signals: number;
+          readonly trails: number;
+        };
+        readonly topoGraphHash: string;
+      };
+
+      writeSurveyAppFixture(dir, { withBye: true });
+      const mismatchedTopoGraph = deriveTopoGraph(
+        await loadApp('./src/app.ts', dir)
+      );
+      await writeTrailsLock(
+        {
+          scope: { app: 'survey-fixture' },
+          summary: originalLock.summary,
+          topoGraph: mismatchedTopoGraph,
+          topoGraphHash: originalLock.topoGraphHash,
+          version: TRAILS_LOCK_SCHEMA_VERSION,
+        },
+        { dir }
+      );
+
+      const validated = await validateTrail.blaze({ module: './src/app.ts' }, {
+        cwd: dir,
+      } as never);
+
+      expect(validated.isErr()).toBe(true);
+      expect(validated.error).toBeInstanceOf(ValidationError);
+      expect(validated.error.message).toContain(
+        'graph hash does not match its embedded TopoGraph'
+      );
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
   test('forced removed trails are recorded as graph force events', async () => {
     const dir = repoTempDir();
 
@@ -1631,9 +1692,8 @@ describe('trails compile', () => {
       ) as {
         readonly hash: string;
       };
-      const graph = JSON.parse(
-        readFileSync(join(dir, '.trails', 'topo.lock'), 'utf8')
-      ) as TopoGraph;
+      const graph = JSON.parse(readFileSync(join(dir, 'trails.lock'), 'utf8'))
+        .topoGraph as TopoGraph;
 
       expect(graph.entries.some((entry) => entry.id === 'bye')).toBe(false);
       expect(graph.forces?.[0]).toMatchObject({
@@ -1643,9 +1703,9 @@ describe('trails compile', () => {
         source: 'trails compile --force',
       });
       expect(
-        JSON.parse(readFileSync(join(dir, '.trails', 'trails.lock'), 'utf8'))
+        JSON.parse(readFileSync(join(dir, 'trails.lock'), 'utf8'))
       ).toMatchObject({
-        artifacts: [{ path: 'topo.lock', role: 'topo', sha256: forced.hash }],
+        topoGraphHash: forced.hash,
       });
       const validated = expectOk(
         await validateTrail.blaze({ module: './src/app.ts' }, {
@@ -1661,8 +1721,8 @@ describe('trails compile', () => {
         readonly hash: string;
       };
       const recompiledGraph = JSON.parse(
-        readFileSync(join(dir, '.trails', 'topo.lock'), 'utf8')
-      ) as TopoGraph;
+        readFileSync(join(dir, 'trails.lock'), 'utf8')
+      ).topoGraph as TopoGraph;
 
       expect(recompiledGraph.forces?.[0]).toMatchObject({
         change: 'removed',
@@ -2136,7 +2196,7 @@ describe('trails survey diff', () => {
         'No TopoGraph found for: baselins'
       );
       expect(result.error.message).toContain(
-        'workspace-relative directory containing topo.lock'
+        'workspace-relative directory containing trails.lock or topo.lock'
       );
       expect(result.error.message).toContain(
         'topo-store pin and snapshot references'
@@ -2245,7 +2305,7 @@ describe('trails survey output schema', () => {
     expect(
       compileTrail.output.safeParse({
         hash: 'a'.repeat(64),
-        lockPath: '.trails/trails.lock',
+        lockPath: 'trails.lock',
         snapshot: {
           createdAt: new Date(0).toISOString(),
           gitDirty: false,
@@ -2254,7 +2314,6 @@ describe('trails survey output schema', () => {
           signalCount: 0,
           trailCount: 2,
         },
-        topoPath: '.trails/topo.lock',
       }).success
     ).toBe(true);
     expect(

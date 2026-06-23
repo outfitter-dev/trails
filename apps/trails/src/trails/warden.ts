@@ -16,6 +16,11 @@ import {
 } from '@ontrails/warden';
 import { z } from 'zod';
 
+import {
+  createIsolatedExampleRoot,
+  writeIsolatedExampleTextFile,
+} from '../local-state-io.js';
+
 import { resolveTrailRootDir } from './root-dir.js';
 
 // ---------------------------------------------------------------------------
@@ -67,6 +72,14 @@ const wardenInputSchema = z.object({
 });
 
 type WardenTrailInput = z.infer<typeof wardenInputSchema>;
+
+const createIsolatedWardenExampleRoot = (name: string): string => {
+  const rootDir = createIsolatedExampleRoot(
+    `warden-${name}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
+  );
+  writeIsolatedExampleTextFile(rootDir, 'src/clean.ts', 'export {};\n');
+  return rootDir;
+};
 
 const pushFlag = (args: string[], condition: boolean, flag: string): void => {
   if (condition) {
@@ -170,13 +183,18 @@ export const wardenTrail = trail('warden', {
   examples: [
     {
       input: {
+        depth: 'source',
         lock: 'skip',
+        rootDir: createIsolatedWardenExampleRoot('default'),
       },
       name: 'Default warden run',
     },
     {
       input: {
+        depth: 'source',
         format: 'github',
+        lock: 'skip',
+        rootDir: createIsolatedWardenExampleRoot('github'),
       },
       name: 'GitHub Actions annotations',
     },

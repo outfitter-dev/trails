@@ -9,10 +9,13 @@ import {
   isTopoArtifactRegenerationError,
   writeLockManifest,
   readLockManifest,
+  writeTrailsLock,
+  readTrailsLock,
   readWorkspaceTrailIndex,
 } from '../io.js';
+import { deriveTopoGraphHash } from '../hash.js';
 import { TOPO_GRAPH_SCHEMA_VERSION } from '../types.js';
-import type { LockManifest, TopoGraph } from '../types.js';
+import type { LockManifest, TopoGraph, TrailsLock } from '../types.js';
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -51,6 +54,19 @@ const makeLockManifest = (
   version: 3,
   ...overrides,
 });
+
+const makeTrailsLock = (
+  topoGraph: TopoGraph,
+  overrides?: Partial<TrailsLock>
+): TrailsLock =>
+  ({
+    scope: { app: 'demo' },
+    summary: { contours: 0, resources: 0, signals: 0, trails: 1 },
+    topoGraph,
+    topoGraphHash: deriveTopoGraphHash(topoGraph),
+    version: 4,
+    ...overrides,
+  }) as TrailsLock;
 
 const readParsedLock = async (
   filePath: string
@@ -283,6 +299,78 @@ describe('writeLockManifest / readLockManifest', () => {
   });
 });
 
+describe('writeTrailsLock / readTrailsLock', () => {
+  test('writes and reads v4 root lock JSON', async () => {
+    const topoGraph = makeTopoGraph();
+    const trailsLock = makeTrailsLock(topoGraph);
+    const filePath = await writeTrailsLock(trailsLock, { dir: tempDir });
+
+    expect(filePath).toBe(join(tempDir, 'trails.lock'));
+
+    const parsed = await readParsedLock(filePath);
+    expect(parsed.version).toBe(4);
+    expect(parsed.topoGraphHash).toBe(trailsLock.topoGraphHash);
+    expect(parsed.topoGraph).toMatchObject({
+      topoGraphSchemaVersion: TOPO_GRAPH_SCHEMA_VERSION,
+    });
+
+    await expect(readTrailsLock({ dir: tempDir })).resolves.toEqual(trailsLock);
+    await expect(readTopoGraph({ dir: tempDir })).resolves.toEqual(topoGraph);
+  });
+
+  test('projects v4 root locks back to v3 manifests for compatibility', async () => {
+    const topoGraph = makeTopoGraph();
+    const trailsLock = makeTrailsLock(topoGraph);
+    await writeTrailsLock(trailsLock, { dir: tempDir });
+
+    await expect(readLockManifest({ dir: tempDir })).resolves.toEqual({
+      artifacts: [
+        {
+          path: 'topo.lock',
+          role: 'topo',
+          sha256: trailsLock.topoGraphHash,
+        },
+      ],
+      scope: trailsLock.scope,
+      summary: trailsLock.summary,
+      version: 3,
+    });
+  });
+
+  test('reads legacy v3 manifests with topo.lock graphs', async () => {
+    const topoGraph = makeTopoGraph();
+    await writeTopoGraph(topoGraph, { dir: tempDir });
+    await writeLockManifest(makeLockManifest(deriveTopoGraphHash(topoGraph)), {
+      dir: tempDir,
+    });
+
+    await expect(readTopoGraph({ dir: tempDir })).resolves.toEqual(topoGraph);
+  });
+
+  test('rejects malformed v4 root locks', async () => {
+    await Bun.write(
+      join(tempDir, 'trails.lock'),
+      `${JSON.stringify({ ...makeTrailsLock(makeTopoGraph()), version: 5 })}\n`
+    );
+
+    await expect(readTrailsLock({ dir: tempDir })).rejects.toThrow(
+      'regenerate with `trails compile`'
+    );
+  });
+
+  test('does not fall back to legacy topo.lock when root trails.lock is malformed', async () => {
+    await writeTopoGraph(makeTopoGraph(), { dir: tempDir });
+    await Bun.write(
+      join(tempDir, 'trails.lock'),
+      `${JSON.stringify({ ...makeTrailsLock(makeTopoGraph()), version: 5 })}\n`
+    );
+
+    await expect(readTopoGraph({ dir: tempDir })).rejects.toThrow(
+      'regenerate with `trails compile`'
+    );
+  });
+});
+
 // ---------------------------------------------------------------------------
 // Default directory
 // ---------------------------------------------------------------------------
@@ -352,12 +440,13 @@ describe('readWorkspaceTrailIndex', () => {
     expect(result).toEqual(workspaceIndex);
   });
 
-  test('ignores the legacy trails.lock path when no topo graph exists', async () => {
+  test('rejects malformed root trails.lock files when no topo graph exists', async () => {
     const hash = 'aaaaaaaa'.repeat(8);
     await Bun.write(join(tempDir, 'trails.lock'), `${hash}\n`);
 
-    const result = await readWorkspaceTrailIndex({ dir: tempDir });
-    expect(result).toBeNull();
+    await expect(readWorkspaceTrailIndex({ dir: tempDir })).rejects.toThrow(
+      'regenerate with `trails compile`'
+    );
   });
 
   test('returns null when the topo graph file is missing', async () => {

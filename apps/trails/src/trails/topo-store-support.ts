@@ -20,6 +20,7 @@ import type {
   LockManifest,
   TopoGraph,
   TopoSnapshot,
+  TrailsLock,
 } from '@ontrails/topographer';
 import type { StoredTopoExport } from '@ontrails/topographer/backend-support';
 import {
@@ -28,13 +29,14 @@ import {
   deriveTopoGraphDiff,
   deriveTopoGraphHash,
   readTopoGraph,
-  writeLockManifest,
-  writeTopoGraph,
+  writeTrailsLock,
 } from '@ontrails/topographer';
 import {
   createStoredTopoSnapshot,
   getStoredTopoExport,
 } from '@ontrails/topographer/backend-support';
+
+import { removeRootRelativeFileIfPresent } from '../local-state-io.js';
 
 import type { TopoExportReport } from './topo-support.js';
 import {
@@ -142,16 +144,22 @@ export const deriveCurrentTopoExport = (
   }
 };
 
+const readPreviousCommittedTopo = async (
+  rootDir: string
+): Promise<TopoGraph | null> => {
+  const rootTopo = await readTopoGraph({ dir: rootDir });
+  return rootTopo ?? readTopoGraph({ dir: deriveTrailsDir({ rootDir }) });
+};
+
 const prepareStoredExportArtifacts = async (
   storedExport: StoredTopoExport,
-  trailsDir: string,
+  rootDir: string,
   options?: { readonly force?: boolean | undefined }
 ): Promise<{
   readonly hash: string;
-  readonly lockManifest: LockManifest;
   readonly topoGraph: TopoGraph;
 }> => {
-  const previousTopo = await readTopoGraph({ dir: trailsDir });
+  const previousTopo = await readPreviousCommittedTopo(rootDir);
   const nextTopo = JSON.parse(storedExport.topoGraphJson) as TopoGraph;
   const diff =
     previousTopo === null
@@ -172,44 +180,76 @@ const prepareStoredExportArtifacts = async (
       ? topoGraphBase
       : annotateTopoGraphForces(topoGraphBase, diff.breaking);
   const hash = deriveTopoGraphHash(topoGraph);
-  const lockManifest = {
-    ...(JSON.parse(storedExport.lockManifestJson) as LockManifest),
-    artifacts: [
-      {
-        path: 'topo.lock',
-        role: 'topo',
-        sha256: hash,
-      },
-    ],
-  } satisfies LockManifest;
 
   return {
     hash,
-    lockManifest,
     topoGraph,
   };
 };
 
+const LEGACY_COMMITTED_ARTIFACTS = [
+  '.trails/topo.lock',
+  '.trails/trails.lock',
+] as const;
+
+const removeLegacyCommittedArtifacts = (
+  rootDir: string
+): Result<void, Error> => {
+  for (const relativePath of LEGACY_COMMITTED_ARTIFACTS) {
+    const removed = removeRootRelativeFileIfPresent(rootDir, relativePath);
+    if (removed.isErr()) {
+      return removed;
+    }
+  }
+
+  return Result.ok();
+};
+
 const writeStoredExportArtifacts = async (
   storedExport: StoredTopoExport,
-  trailsDir: string,
+  rootDir: string,
   options?: { readonly force?: boolean | undefined }
-): Promise<Pick<TopoExportReport, 'hash' | 'lockPath' | 'topoPath'>> => {
+): Promise<Pick<TopoExportReport, 'hash' | 'lockPath'>> => {
   const prepared = await prepareStoredExportArtifacts(
     storedExport,
-    trailsDir,
+    rootDir,
     options
   );
 
-  const topoPath = await writeTopoGraph(prepared.topoGraph, { dir: trailsDir });
-  const lockPath = await writeLockManifest(prepared.lockManifest, {
-    dir: trailsDir,
-  });
+  const lockManifest = JSON.parse(
+    storedExport.lockManifestJson
+  ) as LockManifest;
+  const lockPath = await writeTrailsLock(
+    {
+      scope: lockManifest.scope,
+      summary: {
+        contours: prepared.topoGraph.entries.filter(
+          (entry) => entry.kind === 'contour'
+        ).length,
+        resources: prepared.topoGraph.entries.filter(
+          (entry) => entry.kind === 'resource'
+        ).length,
+        signals: prepared.topoGraph.entries.filter(
+          (entry) => entry.kind === 'signal'
+        ).length,
+        trails: prepared.topoGraph.entries.filter(
+          (entry) => entry.kind === 'trail'
+        ).length,
+      },
+      topoGraph: prepared.topoGraph,
+      topoGraphHash: prepared.hash,
+      version: 4,
+    } as TrailsLock,
+    { dir: rootDir }
+  );
+  const removedLegacyArtifacts = removeLegacyCommittedArtifacts(rootDir);
+  if (removedLegacyArtifacts.isErr()) {
+    throw removedLegacyArtifacts.error;
+  }
 
   return {
     hash: prepared.hash,
     lockPath,
-    topoPath,
   };
 };
 
@@ -222,7 +262,6 @@ export const exportCurrentTopo = async (
   }
 ): Promise<Result<TopoExportReport, Error>> => {
   const rootDir = deriveRootDir(options?.rootDir);
-  const trailsDir = deriveTrailsDir({ rootDir });
   let db: ReturnType<typeof openWriteTrailsDb> | undefined;
 
   try {
@@ -235,7 +274,7 @@ export const exportCurrentTopo = async (
     }
 
     try {
-      await prepareStoredExportArtifacts(candidate.value, trailsDir, {
+      await prepareStoredExportArtifacts(candidate.value, rootDir, {
         force: options?.force,
       });
     } catch (error: unknown) {
@@ -251,9 +290,9 @@ export const exportCurrentTopo = async (
     }
 
     const { snapshot, storedExport } = persisted.value;
-    let artifacts: Pick<TopoExportReport, 'hash' | 'lockPath' | 'topoPath'>;
+    let artifacts: Pick<TopoExportReport, 'hash' | 'lockPath'>;
     try {
-      artifacts = await writeStoredExportArtifacts(storedExport, trailsDir, {
+      artifacts = await writeStoredExportArtifacts(storedExport, rootDir, {
         force: options?.force,
       });
     } catch (error: unknown) {
