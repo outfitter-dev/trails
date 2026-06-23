@@ -1453,6 +1453,11 @@
           "fromPath": "docs/adr/drafts/20260603-surface-facets-shape-dense-topos.md"
         },
         {
+          "context": "- [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md) — established the resolved graph as a serialized artifact.",
+          "from": "20260622",
+          "fromPath": "docs/adr/drafts/20260622-project-substrate-names-its-truth.md"
+        },
+        {
           "context": "- **[ADR-0017: The Serialized Topo Graph](./adr/0017-serialized-topo-graph.md)** — Lockfile as resolved graph",
           "from": "index",
           "fromPath": "docs/index.md"
@@ -2522,6 +2527,11 @@
           "fromPath": "docs/adr/drafts/20260603-surface-facets-shape-dense-topos.md"
         },
         {
+          "context": "- [ADR-0042: Core/Topographer Boundary Doctrine](../0042-core-topographer-boundary-doctrine.md) — keeps durable graph derivation owned outside core runtime contracts.",
+          "from": "20260622",
+          "fromPath": "docs/adr/drafts/20260622-project-substrate-names-its-truth.md"
+        },
+        {
           "context": "A package needs Topographer only when it crosses a process boundary or compares state across time. The runtime never reads Topographer artifacts to execute trails — every `topo()` call resolves entire",
           "from": "lexicon",
           "fromPath": "docs/lexicon.md"
@@ -2688,6 +2698,11 @@
           "fromPath": "docs/adr/drafts/20260612-verdicts-run-on-stable-ground.md"
         },
         {
+          "context": "- [ADR-0046: Lock v3 Artifact Family](../0046-lock-v3-artifact-family.md) — the artifact family this ADR collapses into one root lock.",
+          "from": "20260622",
+          "fromPath": "docs/adr/drafts/20260622-project-substrate-names-its-truth.md"
+        },
+        {
           "context": "These names are the current durable artifact-family vocabulary established by [ADR-0046](adr/0046-lock-v3-artifact-family.md).",
           "from": "lexicon",
           "fromPath": "docs/lexicon.md"
@@ -2839,6 +2854,11 @@
           "context": "- [ADR-0050: Surface Accommodations Preserve Trail Identity](../0050-surface-accommodations-preserve-trail-identity.md)",
           "from": "20260613",
           "fromPath": "docs/adr/drafts/20260613-cli-command-routes.md"
+        },
+        {
+          "context": "- [ADR-0050: Surface Accommodations Preserve Trail Identity](../0050-surface-accommodations-preserve-trail-identity.md) — preserve authored contract identity.",
+          "from": "20260622",
+          "fromPath": "docs/adr/drafts/20260622-project-substrate-names-its-truth.md"
         },
         {
           "context": "CLI routes are a surface accommodation. In CLI terms, the surface entry is the command, the command path is the path for an approach, and an alias is an alternate approach to the same command. See [AD",

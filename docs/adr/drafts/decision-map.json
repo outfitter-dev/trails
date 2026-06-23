@@ -312,6 +312,19 @@
       "superseded_by": null,
       "title": "CLI Command Routes Normalize Into Trail Contracts",
       "updated": "2026-06-13"
+    },
+    {
+      "created": "2026-06-22",
+      "depends_on": ["17", "42", "46", "50"],
+      "inbound": [],
+      "number": null,
+      "owners": ["[galligan](https://github.com/galligan)"],
+      "path": "docs/adr/drafts/20260622-project-substrate-names-its-truth.md",
+      "slug": "project-substrate-names-its-truth",
+      "status": "draft",
+      "superseded_by": null,
+      "title": "Project Substrate Names Its Truth",
+      "updated": "2026-06-22"
     }
   ],
   "version": 1
