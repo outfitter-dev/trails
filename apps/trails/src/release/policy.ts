@@ -44,8 +44,11 @@ export interface ReleasePolicySourcePullRequest {
   readonly commitShas: readonly string[];
   readonly hasChangeset: boolean;
   readonly labels: readonly string[];
+  readonly mergeCommitSha?: string | undefined;
+  readonly mergedAt?: string | null | undefined;
   readonly number: number;
   readonly title: string;
+  readonly trustedStackEvidence?: string | undefined;
 }
 
 export interface ReleasePolicyRegistryPackage {
@@ -676,12 +679,16 @@ const evaluateSourceStackEvidence = (
     ];
   }
 
-  const missingBoundary = changesetPulls.filter(
-    (pull) => !pull.labels.includes('stack:boundary')
+  const missingEvidence = changesetPulls.filter(
+    (pull) => !hasSourceStackEvidence(pull)
   );
-  if (stack !== 'stack:boundary' || missingBoundary.length > 0) {
+  if (
+    (stack !== 'stack:boundary' &&
+      !changesetPulls.every((pull) => pull.trustedStackEvidence)) ||
+    missingEvidence.length > 0
+  ) {
     return [
-      `publish:auto requires stack:boundary on every changeset source PR in the release range; missing: ${missingBoundary
+      `publish:auto requires stack:boundary or trusted Graphite merge evidence on every changeset source PR in the release range; missing: ${missingEvidence
         .map((pull) => `#${pull.number}`)
         .join(', ')}`,
     ];
@@ -689,6 +696,12 @@ const evaluateSourceStackEvidence = (
 
   return [];
 };
+
+const hasSourceStackEvidence = (
+  pull: ReleasePolicySourcePullRequest
+): boolean =>
+  pull.labels.includes('stack:boundary') ||
+  pull.trustedStackEvidence !== undefined;
 
 const evaluateGeneratedReleaseDiff = (
   changedFiles: readonly ReleasePolicyChangedFile[]
@@ -1141,13 +1154,17 @@ interface GitHubPullRequest {
   readonly body?: string | null;
   readonly head: { readonly ref: string; readonly sha?: string };
   readonly labels: readonly { readonly name: string }[];
+  readonly merge_commit_sha?: string | null;
+  readonly merged_at?: string | null;
   readonly number: number;
   readonly title: string;
   readonly user: { readonly login: string };
 }
 
-interface GitHubComment {
+export interface ReleasePolicyGitHubComment {
+  readonly author?: { readonly login?: string | null } | null;
   readonly body?: string | null;
+  readonly user?: { readonly login?: string | null } | null;
 }
 
 interface GitHubContentFile {
@@ -1236,7 +1253,7 @@ const readReleasePullRequest = async (
   if (!pull) {
     return undefined;
   }
-  const comments = await githubJson<GitHubComment[]>(
+  const comments = await githubJson<ReleasePolicyGitHubComment[]>(
     repository,
     `/issues/${pull.number}/comments`
   );
@@ -1408,12 +1425,73 @@ const readSourcePullRequests = async (
       commitShas: [commitSha],
       hasChangeset,
       labels: pull.labels.map((label) => label.name),
+      ...(pull.merge_commit_sha === undefined || pull.merge_commit_sha === null
+        ? {}
+        : { mergeCommitSha: pull.merge_commit_sha }),
+      ...(pull.merged_at === undefined ? {} : { mergedAt: pull.merged_at }),
       number: pull.number,
       title: pull.title,
     });
   }
 
-  return [...byNumber.values()];
+  return Promise.all(
+    [...byNumber.values()].map((pull) =>
+      enrichSourcePullRequestStackEvidence(repository, pull)
+    )
+  );
+};
+
+const enrichSourcePullRequestStackEvidence = async (
+  repository: string,
+  pull: ReleasePolicySourcePullRequest
+): Promise<ReleasePolicySourcePullRequest> => {
+  if (!pull.hasChangeset || pull.number <= 0 || hasSourceStackEvidence(pull)) {
+    return pull;
+  }
+
+  if (!pull.mergedAt) {
+    return pull;
+  }
+
+  try {
+    const comments = await githubJson<ReleasePolicyGitHubComment[]>(
+      repository,
+      `/issues/${pull.number}/comments`
+    );
+    if (!comments.some(isGraphiteMergeQueueComment)) {
+      return pull;
+    }
+
+    const proofSha = pull.mergeCommitSha ?? pull.commitShas.at(-1);
+    if (!proofSha) {
+      return pull;
+    }
+
+    const ciState = await readCiState(repository, proofSha);
+    if (ciState !== 'passed') {
+      return pull;
+    }
+
+    return {
+      ...pull,
+      trustedStackEvidence: `Graphite merge queue and required CI passed on ${proofSha.slice(0, 7)}`,
+    };
+  } catch {
+    // Optional trust enrichment must fail closed into publish:manual, not abort release labeling.
+    return pull;
+  }
+};
+
+export const isGraphiteMergeQueueComment = (
+  comment: ReleasePolicyGitHubComment
+): boolean => {
+  const login = comment.user?.login ?? comment.author?.login;
+  if (login !== 'graphite-app[bot]' && login !== 'graphite-app') {
+    return false;
+  }
+  return /\bMerged by the\s+\[?Graphite merge queue\b/u.test(
+    comment.body ?? ''
+  );
 };
 
 const readCiProof = async (

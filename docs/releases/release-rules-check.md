@@ -121,7 +121,7 @@ Managed release PR labels:
 
 | Family | Labels | Meaning |
 | --- | --- | --- |
-| Source evidence | `stack:boundary` | Applied to source PRs whose consumed changesets are complete enough for automatic publication. |
+| Source evidence | `stack:boundary` | Applied to source PRs whose consumed changesets are complete enough for automatic publication. Trusted Graphite merge-queue proof may satisfy the same source-evidence requirement without the label. |
 | Publish intent | `publish:auto`, `publish:manual`, `publish:none`, `publish:block` | Select automatic publish, protected manual publish, intentional no-publish, or hard block. |
 | Channel intent | `channel:beta`, `channel:stable` | Declares the intended npm dist-tag family. `beta` maps to prerelease beta publication; `stable` maps to `latest`. |
 | Release size | `release:patch`, `release:minor`, `release:major` | Declares the semver movement expected on the generated release PR. |
@@ -142,7 +142,7 @@ The policy gate emits machine-readable GitHub Actions outputs and chooses `auto`
 bun run publish:policy
 ```
 
-`publish:auto` is available only for the expected generated release PR shape: `changeset-release/main` into `main`, generated-only package version and changelog diffs, CI proof green, coherent registry/dist-tag state, no unknown or conflicting managed labels, and `stack:boundary` on every source PR that introduced a consumed changeset. Missing source PR evidence or missing `stack:boundary` routes to `publish:manual`; contradictory labels, unknown managed labels, registry contradictions, or `publish:block` block the workflow.
+`publish:auto` is available only for the expected generated release PR shape: `changeset-release/main` into `main`, generated-only package version and changelog diffs, CI proof green, coherent registry/dist-tag state, no unknown or conflicting managed labels, and source evidence on every source PR that introduced a consumed changeset. Source evidence can come from an explicit `stack:boundary` label, or from trusted Graphite merge-queue evidence: the source PR was merged by the Graphite merge queue and the required GitHub Actions checks passed on the source PR merge/head SHA. Missing source PR evidence routes to `publish:manual`; contradictory labels, unknown managed labels, registry contradictions, or `publish:block` block the workflow.
 
 CI proof is gathered only when a generated release PR requests `publish:auto`. Manual, no-label, `publish:none`, and blocked paths do not wait on CI checks before routing to their decision. When auto proof is needed, the policy first reuses the generated release PR head checks if the current release commit and PR head commit resolve to the same Git tree. If that proof cannot be established, it falls back to exact-SHA checks on the current commit. Both paths read the required GitHub Actions checks (`Build`, `Lint & Format`, `Dead Code`, `Typecheck`, `Test`, and `Governance`). Duplicate pending checks do not mask an already-completed success for the same required check, but any completed failure still blocks automation.
 

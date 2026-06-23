@@ -3,6 +3,7 @@ import { describe, expect, test } from 'bun:test';
 import {
   ciStateFromCheckRuns,
   evaluateReleasePolicy,
+  isGraphiteMergeQueueComment,
   labelsForReleasePullRequest,
   releaseIntentForVersionDelta,
   releasePolicyRequiresCiProof,
@@ -175,8 +176,29 @@ describe('evaluateReleasePolicy', () => {
 
     expect(report.decision).toBe('manual');
     expect(report.diagnostics).toContain(
-      'publish:auto requires stack:boundary on every changeset source PR in the release range; missing: #99'
+      'publish:auto requires stack:boundary or trusted Graphite merge evidence on every changeset source PR in the release range; missing: #99'
     );
+  });
+
+  test('allows trusted Graphite source evidence without stack boundary labels', () => {
+    const report = evaluateReleasePolicy(
+      baseInput({
+        sourcePullRequests: [
+          {
+            commitShas: ['abc123'],
+            hasChangeset: true,
+            labels: [],
+            number: 99,
+            title: 'feat: add release fact',
+            trustedStackEvidence:
+              'Graphite merge queue and required CI passed on abc123',
+          },
+        ],
+      })
+    );
+
+    expect(report.decision).toBe('auto');
+    expect(report.diagnostics).toEqual([]);
   });
 
   test('routes unexpected generated release diff entries to manual', () => {
@@ -354,6 +376,54 @@ describe('labelsForReleasePullRequest', () => {
         ],
       })
     ).toEqual(['publish:auto', 'channel:stable', 'release:patch']);
+  });
+
+  test('uses trusted Graphite source evidence to select publish:auto', () => {
+    expect(
+      labelsForReleasePullRequest({
+        currentVersion: '1.0.0-beta.18',
+        existingLabels: [],
+        nextDistTag: 'beta',
+        nextVersion: '1.0.0-beta.19',
+        sourcePullRequests: [
+          {
+            commitShas: ['abc123'],
+            hasChangeset: true,
+            labels: [],
+            number: 99,
+            title: 'feat: release fact',
+            trustedStackEvidence:
+              'Graphite merge queue and required CI passed on abc123',
+          },
+        ],
+      })
+    ).toEqual(['publish:auto', 'channel:beta', 'release:patch']);
+  });
+});
+
+describe('isGraphiteMergeQueueComment', () => {
+  test('recognizes the current Graphite merge queue comment shape', () => {
+    expect(
+      isGraphiteMergeQueueComment({
+        body: 'Merged by the [Graphite merge queue](https://app.graphite.com/queue).',
+        user: { login: 'graphite-app[bot]' },
+      })
+    ).toBe(true);
+  });
+
+  test('rejects non-Graphite comments and unrelated Graphite comments', () => {
+    expect(
+      isGraphiteMergeQueueComment({
+        body: 'Merged by the [Graphite merge queue](https://app.graphite.com/queue).',
+        user: { login: 'github-actions[bot]' },
+      })
+    ).toBe(false);
+    expect(
+      isGraphiteMergeQueueComment({
+        body: 'Graphite stack updated.',
+        user: { login: 'graphite-app[bot]' },
+      })
+    ).toBe(false);
   });
 });
 
