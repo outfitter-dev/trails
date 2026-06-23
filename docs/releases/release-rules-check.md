@@ -144,6 +144,8 @@ bun run publish:policy
 
 `publish:auto` is available only for the expected generated release PR shape: `changeset-release/main` into `main`, generated-only package version and changelog diffs, exact-SHA CI green, coherent registry/dist-tag state, no unknown or conflicting managed labels, and `stack:boundary` on every source PR that introduced a consumed changeset. Missing source PR evidence or missing `stack:boundary` routes to `publish:manual`; contradictory labels, unknown managed labels, registry contradictions, or `publish:block` block the workflow.
 
+`publish:manual` never publishes from the push event that merges the generated release PR. After the generated PR is merged and the Release workflow policy resolves to `manual`, an operator must dispatch the Release workflow from `main` with `publish=true`. Protected npm environment approval may add another gate, but the workflow does not rely on environment protection as the only manual-publish guard.
+
 ## Warden And Wayfinder
 
 `trails release check` owns branch-local release-rule evaluation. It reads the GitHub or local changed-file list, release config, Changesets intent, and first source-static public trail contract facts. Warden should not duplicate PR file-list logic or own Graphite and GitHub comparison state.

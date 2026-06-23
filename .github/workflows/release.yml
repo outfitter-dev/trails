@@ -4,6 +4,12 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Publish packages when release policy allows manual publication'
+        required: false
+        default: false
+        type: boolean
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
@@ -107,7 +113,7 @@ jobs:
   publish:
     name: Publish to npm manually
     needs: publish-policy
-    if: github.repository == 'outfitter-dev/trails' && github.ref == 'refs/heads/main' && needs.publish-policy.outputs.decision == 'manual' && needs.publish-policy.outputs.should_publish == 'true'
+    if: github.repository == 'outfitter-dev/trails' && github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.publish == true && needs.publish-policy.outputs.decision == 'manual' && needs.publish-policy.outputs.should_publish == 'true'
     runs-on: ubuntu-latest
     environment: npm
     permissions:
