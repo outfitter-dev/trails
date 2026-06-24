@@ -1,5 +1,12 @@
 # @ontrails/regrade
 
+## 1.0.0-beta.28
+
+### Patch Changes
+
+- @ontrails/core@1.0.0-beta.28
+- @ontrails/warden@1.0.0-beta.28
+
 ## 1.0.0-beta.27
 
 ### Patch Changes
