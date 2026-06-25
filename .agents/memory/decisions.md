@@ -176,3 +176,25 @@ Merit aside: a *gate* is a point (binary allow/deny on a path); the job is a *br
 **Follow-up:** If the primitive proceeds, open pathfinding to land the name against the three-neighbor test (must not read as Warden gating, permit/auth gate, release gate, or feature flag) and the bracket/verdict framing. Add a `gate` tombstone to the lexicon Reserved Terms table ("retired Cutover 2 → layer; do not reuse") if the word keeps resurfacing.
 
 **Resolution (same session):** Matt chose the warden family with a literal subcommand: **`trails warden guard`** (`warden guard -- <cmd>`, `warden guard start`, `warden guard verify`). Warden generalizes to "the authority on whether a verdict can be trusted" — drift rules catch contract-trust failures between runs; the guard catches run-trust failures (shifts) during one. Passes the three-neighbor test trivially. CLI/concept family only — no packaging mandate to move the bracket into `@ontrails/warden`. ADR retitled "Verdicts Run on Stable Ground."
+
+### 2026-06-24 `packageRegistry`, not bare `registry`, for the package-registry resource
+
+**Question:** When modeling the npm-protocol package registry as a `resource()` (release reconciliation work), what is the capability's name?
+
+**Decision:** `packageRegistry` (camelCase resource id; `package-registry` in kebab/doc prose). Never bare `registry` as the capability name. Sibling capability stays `release-publication`. GitHub is **not** a resource; its capabilities split into package-registry targets (npmjs and GitHub Packages = instances of one `packageRegistry` resource), a `release-publication` target (GitHub Releases), and the control plane (workflow dispatch / PR-label / check reads) — never one "GitHub adapter" junk drawer.
+
+**Basis:** Hierarchy level 4 (active lexicon) + ADR-0009 (First-Class Resources) + ADR-0029 (adapter packaging). The lexicon already reserves against bare `registry` ("`topo`, not registry or collection"); a `registry` resource would re-muddy that boundary. `packageRegistry` is an unambiguous industry compound that cannot read as a topo, and stays vendor-neutral where `npmRegistry` would re-vendor the abstraction. Asymmetry with `release-publication` is principled: a registry is a *place*, a release is a *record*.
+
+**Confidence:** High on the reject of bare `registry`. Credit Lewis for the catch.
+
+**Related:** decision below on deferring `reconcile` doctrine. Notes: `.agents/notes/2026-06-24-publication-targets-as-resources.md`, `.agents/notes/2026-06-24-release-registry-reconciliation.md`.
+
+### 2026-06-24 Use `reconcile` now; defer cross-substrate doctrine until a second tenant ships
+
+**Question:** Ratify `reconcile` as a broad cross-substrate convergence verb in the lexicon now (store tables + registry + releases = "one verb, three tenants")?
+
+**Decision:** Not yet. `reconcile` is already a recognized operational shape, so *use* it in the release subsystem immediately (no lexicon expansion needed). Defer the doctrine note ("reconcile is *the* cross-substrate convergence operation") until store + release reconcile have both shipped. Use now; ratify doctrine once the second tenant exists.
+
+**Basis:** Gate-on-demonstrated-need applied to vocabulary; tenets "add with intent" + the evaluation hierarchy (codify after the pattern recurs in shipped code). Lewis's discipline.
+
+**Confidence:** High. Low cost to defer; reversible.

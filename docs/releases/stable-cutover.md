@@ -79,10 +79,12 @@ Before creating the version PR:
    bun run publish:registry-check
    ```
 
-   First-time public packages can be reported as first-time package
-   candidates during this read-only probe. That is expected before their first
-   publication; after publishing, use `bun run publish:registry-check:published`
-   to require every package and dist-tag to exist.
+   This is the pre-publish readiness probe. It proves the registry is reachable
+   and the expected dist-tag is not ahead of the repo target. It can pass while
+   the tag still points at the previous published version, and first-time public
+   packages can be reported as first-time package candidates. After publishing,
+   use `bun run publish:registry-check:published` to require every package and
+   dist-tag to match the repo target.
 
 7. The local package tarballs are clean:
 
@@ -301,6 +303,8 @@ Run final local pre-publish checks:
 bun run publish:check
 bun run publish:registry-check
 ```
+
+`publish:registry-check` is the readiness check before mutation. It should make registry drift visible, but it does not require the target version to be published yet. The strict equality check is the post-publish gate below.
 
 Publish with the repo script:
 

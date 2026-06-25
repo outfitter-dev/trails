@@ -301,6 +301,31 @@ describe('evaluateReleasePolicy', () => {
     expect(report.blockers).toEqual([]);
   });
 
+  test('does not block when the target version is unpublished and the tag is behind', () => {
+    // The live beta.28 incident: repo target is ahead of the published beta
+    // dist-tag, but the target tarball does not exist yet. This must stay a
+    // publish-pending state, never a registry blocker.
+    const report = evaluateReleasePolicy(
+      baseInput({
+        previousVersion: '1.0.0-beta.24',
+        registryPackages: [
+          {
+            expectedTagVersion: '1.0.0-beta.24',
+            name: '@ontrails/core',
+            status: 'published',
+            version: '1.0.0-beta.28',
+            versionPublished: false,
+          },
+        ],
+        version: '1.0.0-beta.28',
+      })
+    );
+
+    expect(report.blockers).toEqual([]);
+    expect(report.shouldPublish).toBe(true);
+    expect(report.decision).not.toBe('block');
+  });
+
   test('requires publish:none audit reason', () => {
     const blocked = evaluateReleasePolicy(
       baseInput({

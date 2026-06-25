@@ -2,8 +2,15 @@
 import { readdir } from 'node:fs/promises';
 import { join, relative, resolve } from 'node:path';
 
+import { compareSemver } from './semver.js';
+
 const REPO_ROOT = resolve(process.cwd());
 const SUMMARY_DIST_TAGS = ['latest', 'beta'] as const;
+/** Bound concurrent npm probes so release checks stay responsive on large workspaces. */
+const PROBE_CONCURRENCY = 8;
+
+/** Phase of a registry check: pre-publish readiness vs post-publish verification. */
+export type RegistryCheckPhase = 'published' | 'ready';
 
 export interface RegistryPreflightOptions {
   readonly requirePublished: boolean;
@@ -35,6 +42,7 @@ export type RegistryResult =
       readonly name: string;
       readonly status: 'published';
       readonly version: string;
+      readonly versionPublished: boolean | undefined;
       readonly workspaceVersion: string;
     }
   | {
@@ -48,6 +56,106 @@ export type RegistryResult =
       readonly status: 'inaccessible';
       readonly workspaceVersion: string;
     };
+
+/**
+ * The single source of truth for what a package's registry state means for a
+ * release. Both the release policy engine and the registry preflight derive
+ * verdicts from this, so they cannot drift.
+ */
+export type PackageRegistryState =
+  | { readonly kind: 'complete' }
+  | { readonly kind: 'needs-publish' }
+  | { readonly kind: 'first-time-package' }
+  | {
+      readonly kind: 'needs-tag-repair';
+      readonly currentTagVersion: string | undefined;
+    }
+  | { readonly kind: 'tag-points-ahead'; readonly currentTagVersion: string }
+  | { readonly kind: 'registry-inaccessible'; readonly error: string };
+
+/** Minimal facts the classifier needs, mappable from any registry probe shape. */
+export interface PackageRegistryFacts {
+  readonly status: 'inaccessible' | 'missing' | 'published';
+  readonly targetVersion: string;
+  readonly expectedTagVersion: string | undefined;
+  readonly versionPublished: boolean | undefined;
+  readonly error?: string | undefined;
+}
+
+/**
+ * Classify a package's registry state from two orthogonal facts — whether the
+ * target version is published, and where the dist-tag points relative to it —
+ * plus reachability. Members are mutually exclusive by construction.
+ *
+ * `versionPublished` is read strictly only in the behind-tag case: a behind tag
+ * becomes a `needs-tag-repair` only when the target is known published (`true`);
+ * `undefined` or `false` route to `needs-publish`, preserving the conservative
+ * release-policy behavior. When the tag already points at the target, an
+ * unprobed (`undefined`) state counts as published and yields `complete`, which
+ * matches the policy `versionPublished ?? true` default. `undefined` means the
+ * exact-version probe was not run, including policy inputs and compatibility
+ * callers that supply an injected registry view without a version probe.
+ */
+export const classifyPackageRegistryState = (
+  facts: PackageRegistryFacts
+): PackageRegistryState => {
+  if (facts.status === 'inaccessible') {
+    return {
+      error: facts.error ?? 'registry probe failed',
+      kind: 'registry-inaccessible',
+    };
+  }
+  if (facts.status === 'missing') {
+    return { kind: 'first-time-package' };
+  }
+
+  const { expectedTagVersion, targetVersion, versionPublished } = facts;
+  const tagAtTarget = expectedTagVersion === targetVersion;
+  const tagAhead =
+    expectedTagVersion !== undefined &&
+    !tagAtTarget &&
+    compareSemver(expectedTagVersion, targetVersion) > 0;
+
+  if (tagAhead) {
+    return { currentTagVersion: expectedTagVersion, kind: 'tag-points-ahead' };
+  }
+  if (tagAtTarget) {
+    return versionPublished === false
+      ? { kind: 'needs-publish' }
+      : { kind: 'complete' };
+  }
+  if (versionPublished === true) {
+    return { currentTagVersion: expectedTagVersion, kind: 'needs-tag-repair' };
+  }
+  return { kind: 'needs-publish' };
+};
+
+/** Map a registry probe result into the classifier's fact shape. */
+const factsFromResult = (result: RegistryResult): PackageRegistryFacts => {
+  if (result.status === 'published') {
+    return {
+      expectedTagVersion: result.expectedTagVersion,
+      status: 'published',
+      targetVersion: result.workspaceVersion,
+      versionPublished: result.versionPublished,
+    };
+  }
+  if (result.status === 'inaccessible') {
+    return {
+      error: result.error,
+      expectedTagVersion: undefined,
+      status: 'inaccessible',
+      targetVersion: result.workspaceVersion,
+      versionPublished: false,
+    };
+  }
+  return {
+    expectedTagVersion: undefined,
+    status: 'missing',
+    targetVersion: result.workspaceVersion,
+    versionPublished: false,
+  };
+};
 
 const USAGE = `Usage: bun scripts/check-registry-preflight.ts [options]
 
@@ -217,9 +325,66 @@ export const npmRegistryView: RegistryView = async (name) => {
   throw new Error(stderr.trim() || `npm view failed for ${name}`);
 };
 
+/** Probe whether an exact `name@version` is published. The missing fact that
+ * a tag/version summary alone cannot answer. */
+export type RegistryVersionView = (
+  name: string,
+  version: string
+) => Promise<boolean | undefined>;
+
+const UNKNOWN_REGISTRY_VERSION_STATE: { readonly published?: boolean } = {};
+const unknownRegistryVersionView: RegistryVersionView = async () =>
+  UNKNOWN_REGISTRY_VERSION_STATE.published;
+
+export const npmRegistryVersionView: RegistryVersionView = async (
+  name,
+  version
+) => {
+  const proc = Bun.spawn(
+    ['npm', 'view', `${name}@${version}`, 'version', '--json'],
+    { stderr: 'pipe', stdin: 'ignore', stdout: 'pipe' }
+  );
+  const [stdout, stderr, exitCode] = await Promise.all([
+    new Response(proc.stdout).text(),
+    new Response(proc.stderr).text(),
+    proc.exited,
+  ]);
+
+  if (exitCode === 0) {
+    return JSON.parse(stdout.trim()) === version;
+  }
+  const combined = `${stdout}\n${stderr}`;
+  if (combined.includes('E404') || combined.includes('404 Not Found')) {
+    return false;
+  }
+  throw new Error(stderr.trim() || `npm view failed for ${name}@${version}`);
+};
+
+/** Run async tasks with a bounded number in flight, preserving input order. */
+const mapBounded = async <T, R>(
+  items: readonly T[],
+  limit: number,
+  task: (item: T) => Promise<R>
+): Promise<R[]> => {
+  const results: R[] = [];
+  let cursor = 0;
+  const worker = async (): Promise<void> => {
+    while (cursor < items.length) {
+      const index = cursor;
+      cursor += 1;
+      results[index] = await task(items[index] as T);
+    }
+  };
+  await Promise.all(
+    Array.from({ length: Math.min(limit, items.length) }, worker)
+  );
+  return results;
+};
+
 const checkWorkspaceRegistryPosture = async (
   workspace: RegistryWorkspace,
   view: RegistryView,
+  versionView: RegistryVersionView,
   expectedTag: string
 ): Promise<RegistryResult> => {
   try {
@@ -238,6 +403,7 @@ const checkWorkspaceRegistryPosture = async (
       name: workspace.name,
       status: 'published',
       version: registry.version ?? '(unknown)',
+      versionPublished: await versionView(workspace.name, workspace.version),
       workspaceVersion: workspace.version,
     };
   } catch (error) {
@@ -250,33 +416,97 @@ const checkWorkspaceRegistryPosture = async (
   }
 };
 
-export const checkRegistryPosture = async (
+type CheckRegistryPostureArgs =
+  | readonly [versionView: RegistryVersionView, expectedTag: string]
+  | readonly [expectedTag: string];
+
+const normalizeCheckRegistryPostureArgs = (
+  args: CheckRegistryPostureArgs
+): {
+  readonly expectedTag: string;
+  readonly versionView: RegistryVersionView;
+} => {
+  if (args.length === 1) {
+    return { expectedTag: args[0], versionView: unknownRegistryVersionView };
+  }
+  return { expectedTag: args[1], versionView: args[0] };
+};
+
+export function checkRegistryPosture(
   workspaces: readonly RegistryWorkspace[],
   view: RegistryView,
   expectedTag: string
-): Promise<RegistryResult[]> =>
-  Promise.all(
-    workspaces.map((workspace) =>
-      checkWorkspaceRegistryPosture(workspace, view, expectedTag)
-    )
+): Promise<RegistryResult[]>;
+export function checkRegistryPosture(
+  workspaces: readonly RegistryWorkspace[],
+  view: RegistryView,
+  versionView: RegistryVersionView,
+  expectedTag: string
+): Promise<RegistryResult[]>;
+export async function checkRegistryPosture(
+  workspaces: readonly RegistryWorkspace[],
+  view: RegistryView,
+  ...args: CheckRegistryPostureArgs
+): Promise<RegistryResult[]> {
+  const { expectedTag, versionView } = normalizeCheckRegistryPostureArgs(args);
+  return mapBounded(workspaces, PROBE_CONCURRENCY, (workspace) =>
+    checkWorkspaceRegistryPosture(workspace, view, versionView, expectedTag)
   );
+}
+
+/**
+ * Phase-aware registry errors, derived from the shared classifier.
+ *
+ * `ready` (pre-publish): only a tag pointing *ahead* of the target or an
+ * inaccessible registry is an error. A behind tag or an unpublished target is
+ * the expected state before publish runs, not a failure.
+ *
+ * `published` (post-publish): every package must be `complete`.
+ */
+const normalizeRegistryCheckPhase = (
+  phaseOrRequirePublished: boolean | RegistryCheckPhase
+): RegistryCheckPhase => {
+  if (typeof phaseOrRequirePublished !== 'boolean') {
+    return phaseOrRequirePublished;
+  }
+  return phaseOrRequirePublished ? 'published' : 'ready';
+};
 
 export const registryPostureErrors = (
   results: readonly RegistryResult[],
   expectedTag: string,
-  requirePublished: boolean
+  phaseOrRequirePublished: boolean | RegistryCheckPhase
 ): string[] => {
+  const phase = normalizeRegistryCheckPhase(phaseOrRequirePublished);
   const errors: string[] = [];
   for (const result of results) {
-    if (result.status === 'inaccessible') {
-      errors.push(`${result.name}: registry probe failed: ${result.error}`);
-    } else if (result.status === 'missing') {
-      if (requirePublished) {
-        errors.push(`${result.name}: package is missing from the registry`);
-      }
-    } else if (result.expectedTagVersion !== result.workspaceVersion) {
+    const state = classifyPackageRegistryState(factsFromResult(result));
+    if (state.kind === 'registry-inaccessible') {
+      errors.push(`${result.name}: registry probe failed: ${state.error}`);
+      continue;
+    }
+    if (state.kind === 'tag-points-ahead') {
       errors.push(
-        `${result.name}: dist-tag ${expectedTag} points to ${result.expectedTagVersion ?? '(missing)'}, expected ${result.workspaceVersion}`
+        `${result.name}: dist-tag ${expectedTag} points to ${state.currentTagVersion}, which is newer than target ${result.workspaceVersion}`
+      );
+      continue;
+    }
+    if (phase === 'ready' || state.kind === 'complete') {
+      continue;
+    }
+    if (state.kind === 'first-time-package') {
+      errors.push(`${result.name}: package is missing from the registry`);
+    } else if (state.kind === 'needs-publish') {
+      const targetState =
+        result.status === 'published' && result.versionPublished === undefined
+          ? 'publish state was not probed'
+          : 'is not published';
+      errors.push(
+        `${result.name}: target version ${result.workspaceVersion} ${targetState}`
+      );
+    } else if (state.kind === 'needs-tag-repair') {
+      errors.push(
+        `${result.name}: needs dist-tag update — ${expectedTag} points to ${state.currentTagVersion ?? '(missing)'}, target ${result.workspaceVersion}`
       );
     }
   }
@@ -290,6 +520,18 @@ export const formatDistTagSummary = (
     ', '
   );
 
+const formatTargetVersionStatus = (
+  versionPublished: boolean | undefined
+): string => {
+  if (versionPublished === true) {
+    return 'target version published';
+  }
+  if (versionPublished === false) {
+    return 'target version not published yet';
+  }
+  return 'target version publish state unknown';
+};
+
 const printResults = (
   results: readonly RegistryResult[],
   expectedTag: string
@@ -297,8 +539,9 @@ const printResults = (
   console.log(`Registry preflight for dist-tag "${expectedTag}"`);
   for (const result of results) {
     if (result.status === 'published') {
+      const targetStatus = formatTargetVersionStatus(result.versionPublished);
       console.log(
-        `✓ ${result.name}@${result.workspaceVersion}: published (registry version ${result.version}, expected ${expectedTag}=${result.expectedTagVersion ?? 'missing'}, tags ${formatDistTagSummary(result.distTags)})`
+        `✓ ${result.name}@${result.workspaceVersion}: package exists, ${targetStatus} (registry version ${result.version}, expected ${expectedTag}=${result.expectedTagVersion ?? 'missing'}, tags ${formatDistTagSummary(result.distTags)})`
       );
     } else if (result.status === 'missing') {
       console.log(
@@ -310,18 +553,38 @@ const printResults = (
   }
 };
 
+const normalizeRegistryPreflightViews = (
+  view: RegistryView | undefined,
+  versionView: RegistryVersionView | undefined
+): {
+  readonly versionView: RegistryVersionView;
+  readonly view: RegistryView;
+} => {
+  if (view === undefined) {
+    return { versionView: npmRegistryVersionView, view: npmRegistryView };
+  }
+  return { versionView: versionView ?? unknownRegistryVersionView, view };
+};
+
 export const runRegistryPreflight = async (
   options: RegistryPreflightOptions,
-  view: RegistryView = npmRegistryView
+  view?: RegistryView,
+  versionView?: RegistryVersionView
 ): Promise<number> => {
+  const registryViews = normalizeRegistryPreflightViews(view, versionView);
   const expectedTag = options.tag ?? (await resolveDefaultTag());
   const workspaces = await discoverRegistryWorkspaces();
-  const results = await checkRegistryPosture(workspaces, view, expectedTag);
+  const results = await checkRegistryPosture(
+    workspaces,
+    registryViews.view,
+    registryViews.versionView,
+    expectedTag
+  );
   printResults(results, expectedTag);
   const errors = registryPostureErrors(
     results,
     expectedTag,
-    options.requirePublished
+    options.requirePublished ? 'published' : 'ready'
   );
   if (errors.length > 0) {
     console.error('\nRegistry preflight failed:');

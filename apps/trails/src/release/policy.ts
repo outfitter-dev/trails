@@ -2,8 +2,15 @@
 import { readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 
-import { discoverRegistryWorkspaces } from './native-bun-registry.js';
-import type { RegistryResult } from './native-bun-registry.js';
+import {
+  classifyPackageRegistryState,
+  discoverRegistryWorkspaces,
+} from './native-bun-registry.js';
+import type {
+  PackageRegistryFacts,
+  RegistryResult,
+} from './native-bun-registry.js';
+import { compareSemver, parseSemver } from './semver.js';
 
 export type PublishIntent =
   | 'publish:auto'
@@ -452,15 +459,23 @@ const readLabelFamily = <T extends string>(
   return result;
 };
 
+const factsFromPolicyPackage = (
+  entry: ReleasePolicyRegistryPackage
+): PackageRegistryFacts => ({
+  expectedTagVersion: entry.expectedTagVersion,
+  status: entry.status,
+  targetVersion: entry.version,
+  versionPublished: entry.versionPublished,
+});
+
 const registryComplete = (
   packages: readonly ReleasePolicyRegistryPackage[]
 ): boolean =>
   packages.length > 0 &&
   packages.every(
     (entry) =>
-      entry.status === 'published' &&
-      entry.expectedTagVersion === entry.version &&
-      (entry.versionPublished ?? true)
+      classifyPackageRegistryState(factsFromPolicyPackage(entry)).kind ===
+      'complete'
   );
 
 const registryBlockers = (
@@ -468,31 +483,20 @@ const registryBlockers = (
   distTag: string
 ): readonly string[] =>
   packages.flatMap((entry) => {
-    if (entry.status === 'inaccessible') {
+    const state = classifyPackageRegistryState(factsFromPolicyPackage(entry));
+    if (state.kind === 'registry-inaccessible') {
       return [`${entry.name}: registry state is inaccessible`];
     }
-
-    if (
-      entry.status === 'published' &&
-      entry.expectedTagVersion !== undefined &&
-      entry.expectedTagVersion !== entry.version &&
-      compareSemver(entry.expectedTagVersion, entry.version) > 0
-    ) {
+    if (state.kind === 'tag-points-ahead') {
       return [
-        `${entry.name}: dist-tag ${distTag} points to ${entry.expectedTagVersion}, expected ${entry.version}`,
+        `${entry.name}: dist-tag ${distTag} points to ${state.currentTagVersion}, expected ${entry.version}`,
       ];
     }
-
-    if (
-      entry.status === 'published' &&
-      entry.versionPublished === true &&
-      entry.expectedTagVersion !== entry.version
-    ) {
+    if (state.kind === 'needs-tag-repair') {
       return [
-        `${entry.name}: version ${entry.version} is already published but dist-tag ${distTag} points to ${entry.expectedTagVersion ?? '(missing)'}`,
+        `${entry.name}: version ${entry.version} is already published but dist-tag ${distTag} points to ${state.currentTagVersion ?? '(missing)'}`,
       ];
     }
-
     return [];
   });
 
@@ -823,89 +827,6 @@ export const releaseIntentForVersionDelta = (
   return undefined;
 };
 
-const compareSemver = (leftVersion: string, rightVersion: string): number => {
-  const left = parseSemver(leftVersion);
-  const right = parseSemver(rightVersion);
-  if (!left || !right) {
-    return leftVersion.localeCompare(rightVersion);
-  }
-
-  for (const key of ['major', 'minor', 'patch'] as const) {
-    const delta = left[key] - right[key];
-    if (delta !== 0) {
-      return delta;
-    }
-  }
-
-  if (left.prerelease === right.prerelease) {
-    return 0;
-  }
-  if (!left.prerelease) {
-    return 1;
-  }
-  if (!right.prerelease) {
-    return -1;
-  }
-  return comparePrerelease(left.prerelease, right.prerelease);
-};
-
-const comparePrerelease = (leftValue: string, rightValue: string): number => {
-  const left = parsePrerelease(leftValue);
-  const right = parsePrerelease(rightValue);
-  const length = Math.max(left.length, right.length);
-
-  for (let index = 0; index < length; index += 1) {
-    const leftPart = left[index];
-    const rightPart = right[index];
-    if (leftPart === undefined) {
-      return -1;
-    }
-    if (rightPart === undefined) {
-      return 1;
-    }
-    if (leftPart === rightPart) {
-      continue;
-    }
-    if (typeof leftPart === 'number' && typeof rightPart === 'number') {
-      return leftPart - rightPart;
-    }
-    if (typeof leftPart === 'number') {
-      return -1;
-    }
-    if (typeof rightPart === 'number') {
-      return 1;
-    }
-    const delta = leftPart.localeCompare(rightPart);
-    if (delta !== 0) {
-      return delta;
-    }
-  }
-
-  return 0;
-};
-
-const parsePrerelease = (value: string): (number | string)[] =>
-  value
-    .split('.')
-    .map((part) => (/^[0-9]+$/u.test(part) ? Number.parseInt(part, 10) : part));
-
-const parseSemver = (version: string) => {
-  const match = version.match(/^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$/u);
-  if (!match) {
-    return;
-  }
-  const [, major, minor, patch, prerelease] = match;
-  if (!major || !minor || !patch) {
-    return;
-  }
-  return {
-    major: Number.parseInt(major, 10),
-    minor: Number.parseInt(minor, 10),
-    patch: Number.parseInt(patch, 10),
-    prerelease,
-  };
-};
-
 const writeGitHubOutput = async (
   values: Record<string, boolean | number | string | undefined>
 ): Promise<void> => {
@@ -1051,77 +972,37 @@ const distTagForVersion = async (version: string): Promise<string> => {
     : 'latest';
 };
 
-const registryPackagesFromResults = async (
+const registryPackagesFromResults = (
   results: readonly RegistryResult[]
-): Promise<readonly ReleasePolicyRegistryPackage[]> =>
-  Promise.all(
-    results.map(async (result) => {
-      const versionPublished =
-        result.status === 'published'
-          ? await readPackageVersionPublished(
-              result.name,
-              result.workspaceVersion
-            )
-          : false;
-
-      if (result.status === 'published') {
-        return {
-          expectedTagVersion: result.expectedTagVersion,
-          name: result.name,
-          status: 'published',
-          version: result.workspaceVersion,
-          versionPublished,
-        };
-      }
+): readonly ReleasePolicyRegistryPackage[] =>
+  results.map((result) => {
+    if (result.status === 'published') {
       return {
+        expectedTagVersion: result.expectedTagVersion,
         name: result.name,
-        status: result.status,
+        status: 'published',
         version: result.workspaceVersion,
-        versionPublished,
+        versionPublished: result.versionPublished,
       };
-    })
-  );
-
-const readPackageVersionPublished = async (
-  name: string,
-  version: string
-): Promise<boolean> => {
-  const subprocess = Bun.spawn(
-    ['npm', 'view', `${name}@${version}`, 'version', '--json'],
-    {
-      cwd: repoRoot,
-      stderr: 'pipe',
-      stdin: 'ignore',
-      stdout: 'pipe',
     }
-  );
-  const [exitCode, stdout, stderr] = await Promise.all([
-    subprocess.exited,
-    new Response(subprocess.stdout).text(),
-    new Response(subprocess.stderr).text(),
-  ]);
-
-  if (exitCode === 0) {
-    return JSON.parse(stdout.trim()) === version;
-  }
-
-  const combined = `${stdout}\n${stderr}`;
-  if (combined.includes('E404') || combined.includes('404 Not Found')) {
-    return false;
-  }
-
-  throw new Error(stderr.trim() || `npm view failed for ${name}@${version}`);
-};
+    return {
+      name: result.name,
+      status: result.status,
+      version: result.workspaceVersion,
+      versionPublished: false,
+    };
+  });
 
 const readRegistryPackages = async (
   distTag: string
 ): Promise<readonly ReleasePolicyRegistryPackage[]> => {
-  const { checkRegistryPosture, npmRegistryView } =
+  const { checkRegistryPosture, npmRegistryView, npmRegistryVersionView } =
     await import('./native-bun-registry.js');
   const workspaces = await discoverRegistryWorkspaces(repoRoot);
   const results = await checkRegistryPosture(
     workspaces,
     npmRegistryView,
+    npmRegistryVersionView,
     distTag
   );
   return registryPackagesFromResults(results);

@@ -72,14 +72,20 @@ export {
 } from './pack-coherence.js';
 export {
   checkRegistryPosture,
+  classifyPackageRegistryState,
   discoverRegistryWorkspaces,
   formatDistTagSummary,
+  npmRegistryVersionView,
   npmRegistryView,
   registryPostureErrors,
   runRegistryPreflight,
   runRegistryPreflightCli,
+  type PackageRegistryFacts,
+  type PackageRegistryState,
+  type RegistryCheckPhase,
   type RegistryPreflightOptions,
   type RegistryResult,
+  type RegistryVersionView,
   type RegistryView,
   type RegistryWorkspace,
 } from './native-bun-registry.js';

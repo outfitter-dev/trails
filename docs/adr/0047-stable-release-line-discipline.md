@@ -36,8 +36,11 @@ The repo already has a workable release mechanism:
 - `bun run publish:packages` publishes through Bun and derives the dist-tag
   from `.changeset/pre.json`.
 - `bun run publish:registry-check` and
-  `bun run publish:registry-check:published` verify registry availability and
-  dist-tag posture without mutating the registry.
+  `bun run publish:registry-check:published` verify registry posture without
+  mutating the registry. The first command is the pre-publish readiness check:
+  it proves the registry is reachable and the expected tag is not ahead of the
+  repo target, but it may pass while the target version is still unpublished.
+  The `:published` variant is the post-publish equality gate.
 
 What was missing was the stable-line decision those tools enforce. Without an ADR, release docs can drift back toward operator memory: "run the right thing, publish the right packages, recover carefully." Stable needs that memory turned into a contract.
 
@@ -170,7 +173,8 @@ A release PR that changes package versions or prepares a stable cutover should c
 
 - `bunx changeset status --verbose`;
 - `bun run publish:check`;
-- `bun run publish:registry-check`;
+- `bun run publish:registry-check` before publication, and
+  `bun run publish:registry-check:published` after publication;
 - fresh-start generated app smoke when scaffolds or generated dependencies are
   in scope;
 - ADR and runbook checks when release doctrine or procedure changes.

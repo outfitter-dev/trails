@@ -48,11 +48,15 @@ The native Bun release binding follows that source. The package scripts below ar
 
 - `bun run publish:check` is local and read-only.
 - `bun run publish:registry-check` defaults to `.changeset/pre.json`'s tag in
-  prerelease mode, so it checks `beta` today.
+  prerelease mode, so it checks `beta` today. This is the pre-publish
+  readiness check: it proves the registry is reachable and the expected tag is
+  not ahead of the repo target. It may pass while the tag still points at the
+  previous published beta.
 - `bun run publish:packages` publishes with Bun and uses the same prerelease tag
   by default.
 - `bun run publish:registry-check:published` verifies the expected dist-tag
-  after publication.
+  after publication and requires every public package to exist at the repo
+  target version.
 
 During the beta line, `latest` may intentionally lag behind `beta`. Operators should not advance `latest` after every beta publication. Move `latest` only when leaving prerelease mode for the stable 1.x line, or after a separate explicit release decision that says a beta should become the unqualified default.
 
@@ -70,7 +74,15 @@ The standard beta posture check is:
 bun run publish:registry-check
 ```
 
-Its output validates the expected tag and prints both `latest` and `beta` for each published public workspace package, making tag lag visible.
+Its output validates registry readiness and prints both `latest` and `beta` for each published public workspace package, making tag lag visible. A behind tag is expected before the current beta has been published; the check fails when the registry is inaccessible or the tag points ahead of the repo target.
+
+After publishing, use the strict equality gate:
+
+```bash
+bun run publish:registry-check:published
+```
+
+That check requires every public workspace package to exist at the repo target version and the expected dist-tag to point at that version.
 
 For a small representative spot check:
 
@@ -118,7 +130,9 @@ After substantial stacks merge to `main`:
 5. Review package versions, changelogs, generated lockfile changes, and
    generated-app dependency ranges.
 6. Run the version-branch gates, including `bun run publish:check` and
-   `bun run publish:registry-check`.
+   `bun run publish:registry-check`. The registry check is a pre-publish
+   readiness gate, so it may pass while the current release is still unpublished
+   and the channel tag points at the previous beta.
 7. Submit and merge the version PR only after CI and review are clean. The
    GitHub release workflow creates or updates the generated
    `changeset-release/main` PR, applies missing `publish:*`, `channel:*`, and

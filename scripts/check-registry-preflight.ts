@@ -7,10 +7,16 @@ if (import.meta.main) {
 
 export {
   checkRegistryPosture,
+  classifyPackageRegistryState,
   discoverRegistryWorkspaces,
   formatDistTagSummary,
   registryPostureErrors,
   runRegistryPreflight,
+  type PackageRegistryFacts,
+  type PackageRegistryState,
+  type RegistryCheckPhase,
+  type RegistryResult,
+  type RegistryVersionView,
   type RegistryView,
   type RegistryWorkspace,
 } from '@ontrails/trails/release';
