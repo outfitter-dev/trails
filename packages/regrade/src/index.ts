@@ -7,6 +7,7 @@ export {
   buildRegradeReport,
   createTermRewriteClass,
   createWardenTermRewriteClass,
+  loadWardenTermRewriteClasses,
   regradeReportOutput,
   runRegrade,
   selectRegradeClasses,
@@ -24,6 +25,7 @@ export type {
   RegradeReviewSpan,
   RegradeScanTargets,
   RegradeSelection,
+  RegradeWardenClassSet,
 } from './downstream/report.js';
 export {
   createAstIdentifierRenameClass,

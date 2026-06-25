@@ -7,6 +7,7 @@ import type {
 import {
   getWardenRuleMetadata,
   isWardenSourceScanTarget,
+  loadProjectWardenRules,
   wardenRules,
 } from '@ontrails/warden';
 import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
@@ -87,6 +88,13 @@ export interface RegradeClass {
   ) => RegradeClassResult;
   /** Scan targets this class knows how to inspect. */
   readonly scanTargets?: RegradeScanTargets;
+}
+
+export interface RegradeWardenClassSet {
+  /** Built-in and project-local Warden term-rewrite classes. */
+  readonly classes: readonly RegradeClass[];
+  /** Diagnostics raised while loading project-local rules. */
+  readonly diagnostics: readonly WardenDiagnostic[];
 }
 
 /** Which regrade classes a run should execute. */
@@ -354,7 +362,7 @@ const applyWardenEdits = (
 export const createWardenTermRewriteClass = (
   rule: WardenRule
 ): RegradeClass | null => {
-  const metadata = getWardenRuleMetadata(rule.name);
+  const metadata = getWardenRuleMetadata(rule);
   if (metadata?.fix?.class !== TERM_REWRITE_FIX_CLASS) {
     return null;
   }
@@ -1018,3 +1026,55 @@ export const wardenTermRewriteClasses: readonly RegradeClass[] = Object.freeze(
     return cls === null ? [] : [cls];
   })
 );
+
+const duplicateClassDiagnostics = (
+  root: string,
+  classes: readonly RegradeClass[]
+): readonly WardenDiagnostic[] => {
+  const seen = new Set<string>();
+  const diagnostics: WardenDiagnostic[] = [];
+  for (const cls of classes) {
+    if (!seen.has(cls.id)) {
+      seen.add(cls.id);
+      continue;
+    }
+    diagnostics.push({
+      filePath: root,
+      line: 1,
+      message: `Duplicate Regrade class id "${cls.id}" from Warden term-rewrite rules.`,
+      rule: 'regrade-warden-term-rewrite-classes',
+      severity: 'error',
+    });
+  }
+  return diagnostics;
+};
+
+/**
+ * Load built-in and project-local Warden term-rewrite rules as Regrade classes.
+ *
+ * Built-ins are always available. When `root` is provided, committed
+ * project-local Warden rules under `.trails/rules.ts` or direct
+ * `.trails/rules/*.ts` modules are loaded and any term-rewrite-capable source
+ * rules join the class set.
+ */
+export const loadWardenTermRewriteClasses = async (
+  root?: string
+): Promise<RegradeWardenClassSet> => {
+  if (root === undefined) {
+    return { classes: wardenTermRewriteClasses, diagnostics: [] };
+  }
+
+  const projectRules = await loadProjectWardenRules(root);
+  const projectClasses = projectRules.sourceRules.flatMap((rule) => {
+    const cls = createWardenTermRewriteClass(rule);
+    return cls === null ? [] : [cls];
+  });
+  const classes = [...wardenTermRewriteClasses, ...projectClasses];
+  return {
+    classes,
+    diagnostics: [
+      ...projectRules.diagnostics,
+      ...duplicateClassDiagnostics(root, classes),
+    ],
+  };
+};

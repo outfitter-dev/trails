@@ -2,12 +2,18 @@
  * `regrade` trail -- Run downstream migration checks and safe rewrites.
  */
 
-import { NotFoundError, Result, trail, validateOutput } from '@ontrails/core';
+import {
+  InternalError,
+  NotFoundError,
+  Result,
+  trail,
+  validateOutput,
+} from '@ontrails/core';
 import type { Result as TrailsResult } from '@ontrails/core';
 import {
   regradeReportOutput,
   runRegrade,
-  wardenTermRewriteClasses,
+  loadWardenTermRewriteClasses,
 } from '@ontrails/regrade';
 import type { RegradeReport } from '@ontrails/regrade';
 import { z } from 'zod';
@@ -33,15 +39,27 @@ const regradeInputSchema = z.object({
 });
 
 export const regradeTrail = trail('regrade', {
-  blaze: (input, ctx) => {
+  blaze: async (input, ctx) => {
     const rootDirResult = resolveTrailRootDir(input.rootDir, ctx.cwd);
     if (rootDirResult.isErr()) {
       return rootDirResult;
     }
 
+    const classSet = await loadWardenTermRewriteClasses(rootDirResult.value);
+    if (classSet.diagnostics.length > 0) {
+      return Result.err(
+        new InternalError('Failed to load Regrade project Warden rules.', {
+          context: {
+            diagnostics: classSet.diagnostics,
+            rootDir: rootDirResult.value,
+          },
+        })
+      );
+    }
+
     const reportResult: TrailsResult<RegradeReport | null, Error> = runRegrade({
       apply: input.apply,
-      classes: wardenTermRewriteClasses,
+      classes: classSet.classes,
       includeEntries: input.includeEntries,
       root: rootDirResult.value,
       ...(input.classIds === undefined

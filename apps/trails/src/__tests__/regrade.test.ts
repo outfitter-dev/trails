@@ -94,6 +94,95 @@ describe('trails regrade', () => {
     }
   });
 
+  test('loads project-local Warden term rewrites from the regrade root', async () => {
+    const dir = makeTempDir();
+    try {
+      mkdirSync(join(dir, '.trails'), { recursive: true });
+      mkdirSync(join(dir, 'src'), { recursive: true });
+      const target = join(dir, 'src', 'surface.ts');
+      writeFileSync(target, 'export const facet = "inspect";\n');
+      writeFileSync(
+        join(dir, '.trails', 'rules.ts'),
+        `
+import type { WardenRule } from '@ontrails/warden';
+
+const lineForOffset = (source: string, offset: number): number => {
+  let line = 1;
+  for (let index = 0; index < offset; index += 1) {
+    if (source.codePointAt(index) === 10) {
+      line += 1;
+    }
+  }
+  return line;
+};
+
+const rule = {
+  check(sourceCode: string, filePath: string) {
+    const diagnostics = [];
+    const matcher = /\\bfacet\\b/g;
+    for (const match of sourceCode.matchAll(matcher)) {
+      const start = match.index ?? 0;
+      diagnostics.push({
+        filePath,
+        fix: {
+          class: 'term-rewrite',
+          edits: [{ end: start + 'facet'.length, replacement: 'trailhead', start }],
+          reason: "Rename 'facet' to 'trailhead'.",
+          safety: 'safe',
+        },
+        line: lineForOffset(sourceCode, start),
+        message: "Rename 'facet' to 'trailhead'.",
+        rule: 'repo-local-facet-vocab',
+        severity: 'error',
+      });
+    }
+    return diagnostics;
+  },
+  description: 'Rename repo-local facet vocabulary.',
+  metadata: {
+    concern: 'meta',
+    depth: 'source',
+    fix: { class: 'term-rewrite', safety: 'safe' },
+    invariant: 'Repo-local facet vocabulary migrates through Regrade.',
+    lifecycle: { state: 'temporary', retireWhen: 'facet family cutover completes' },
+    scope: 'repo-local',
+    tier: 'source-static',
+  },
+  name: 'repo-local-facet-vocab',
+  severity: 'error',
+} satisfies WardenRule;
+
+export default rule;
+`
+      );
+
+      const result = await regradeTrail.blaze(
+        {
+          apply: true,
+          classIds: ['term-rewrite:repo-local-facet-vocab'],
+          rootDir: dir,
+        },
+        { cwd: dir, env: {} } as never
+      );
+
+      expect(result.isOk()).toBe(true);
+      if (result.isErr()) {
+        throw result.error;
+      }
+      expect(result.value.selectedClassIds).toEqual([
+        'term-rewrite:repo-local-facet-vocab',
+      ]);
+      expect(result.value.apply).toMatchObject({
+        applied: 1,
+        filesChanged: 1,
+        review: 0,
+      });
+      expect(readFileSync(target, 'utf8')).toContain('trailhead');
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
   test('apply mode returns a Trails error when a rewrite cannot be written', async () => {
     const dir = makeTempDir();
     try {

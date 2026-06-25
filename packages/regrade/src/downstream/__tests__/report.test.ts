@@ -312,6 +312,28 @@ describe('wardenTermRewriteClasses', () => {
     );
   });
 
+  test('projects rule-local term-rewrite metadata for project rules', () => {
+    const rule = {
+      check: () => [],
+      description: 'Project-local term rewrite.',
+      metadata: {
+        concern: 'meta',
+        depth: 'source',
+        fix: { class: 'term-rewrite', safety: 'safe' },
+        invariant: 'Project-local Warden term rewrites can feed Regrade.',
+        lifecycle: { retireWhen: 'migration completes', state: 'temporary' },
+        scope: 'repo-local',
+        tier: 'source-static',
+      },
+      name: 'project-local-term-rewrite',
+      severity: 'error',
+    } satisfies WardenRule;
+
+    const cls = createWardenTermRewriteClass(rule);
+
+    expect(cls?.id).toBe('term-rewrite:project-local-term-rewrite');
+  });
+
   test('preserves Warden scan-target filtering for Warden-backed classes', () => {
     const checkedPaths: string[] = [];
     const rule = {
