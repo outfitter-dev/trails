@@ -250,6 +250,7 @@ describe('wardenTermRewriteClasses', () => {
     const report = buildRegradeReport({
       classes: wardenTermRewriteClasses,
       files: [{ path: 'src/a.ts', source: 'export const ok = true;' }],
+      includeEntries: 'all',
       root: '/repo',
       skipped: [],
     });
@@ -396,6 +397,7 @@ describe('buildRegradeReport', () => {
         { path: 'src/b.ts', source: 'const signalHandler = 1;' },
         { path: 'src/c.ts', source: 'const x = 1;' },
       ],
+      includeEntries: 'all',
       root: '/repo',
       skipped: [{ path: 'dist', reason: 'ignored-directory' }],
     });
@@ -417,6 +419,32 @@ describe('buildRegradeReport', () => {
     expect(byPath.get('src/b.ts')?.outcome).toBe('needs-review');
     expect(byPath.get('src/c.ts')?.outcome).toBe('no-op');
     expect(byPath.get('dist')?.outcome).toBe('skip');
+    expect(report.skipsByReason).toEqual({ 'ignored-directory': 1 });
+  });
+
+  test('defaults report entries to actionable outcomes', () => {
+    const report = buildRegradeReport({
+      classes: [signalToPing],
+      files: [
+        { path: 'src/a.ts', source: 'const signal = 1;' },
+        { path: 'src/b.ts', source: 'const signalHandler = 1;' },
+        { path: 'src/c.ts', source: 'const x = 1;' },
+      ],
+      root: '/repo',
+      skipped: [{ path: 'dist', reason: 'ignored-directory' }],
+    });
+
+    expect(report.scanned).toBe(3);
+    expect(report.skipped).toBe(1);
+    expect(report.skipsByReason).toEqual({ 'ignored-directory': 1 });
+    expect(report.entries.map((entry) => entry.path)).toEqual([
+      'src/a.ts',
+      'src/b.ts',
+    ]);
+    expect(report.entries.map((entry) => entry.outcome)).toEqual([
+      'rewrite',
+      'needs-review',
+    ]);
   });
 
   test('selection runs one class without executing the others', () => {
@@ -455,6 +483,7 @@ describe('buildRegradeReport', () => {
         // Real source file with no diagnostics — a genuine no-op scan.
         { path: 'src/auth.ts', source: 'export const x = 1;\n' },
       ],
+      includeEntries: 'all',
       root: '/repo',
       skipped: [],
     });
@@ -521,7 +550,11 @@ describe('runRegrade', () => {
   test('runRegrade reports coverage over a real root', () => {
     const root = writeReportFixture();
     try {
-      const report = expectRunRegradeOk({ classes: [signalToPing], root });
+      const report = expectRunRegradeOk({
+        classes: [signalToPing],
+        includeEntries: 'all',
+        root,
+      });
       expect(report).not.toBeNull();
       const r = report as NonNullable<typeof report>;
       // dist/out.ts is skipped at the directory level, so only 2 files scanned.
@@ -562,6 +595,7 @@ describe('runRegrade', () => {
             scanTargets: { extensions: ['.md'] },
           },
         ],
+        includeEntries: 'all',
         root,
         selection: { classIds: ['docs-term'] },
       });

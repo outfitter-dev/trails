@@ -19,6 +19,7 @@ export type {
   RegradeClassResult,
   RegradeReport,
   RegradeReportEntry,
+  RegradeReportEntrySelection,
   RegradeReviewDetail,
   RegradeReviewSpan,
   RegradeScanTargets,

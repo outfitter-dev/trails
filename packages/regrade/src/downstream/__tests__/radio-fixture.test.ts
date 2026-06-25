@@ -93,6 +93,7 @@ describe('Radio-shaped downstream fixture (TRL-846)', () => {
     try {
       const result = runRegrade({
         classes: wardenTermRewriteClasses,
+        includeEntries: 'all',
         root,
         selection: { classIds: [crossToComposeClassId] },
       });

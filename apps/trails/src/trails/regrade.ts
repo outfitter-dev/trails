@@ -23,6 +23,12 @@ const regradeInputSchema = z.object({
     .array(z.string())
     .optional()
     .describe('Regrade class ids to run (defaults to all built-in classes)'),
+  includeEntries: z
+    .enum(['actionable', 'all'])
+    .default('actionable')
+    .describe(
+      'Report entry detail to include; counts always cover the full run'
+    ),
   rootDir: z.string().optional().describe('Workspace root directory'),
 });
 
@@ -36,6 +42,7 @@ export const regradeTrail = trail('regrade', {
     const reportResult: TrailsResult<RegradeReport | null, Error> = runRegrade({
       apply: input.apply,
       classes: wardenTermRewriteClasses,
+      includeEntries: input.includeEntries,
       root: rootDirResult.value,
       ...(input.classIds === undefined
         ? {}

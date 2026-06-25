@@ -95,6 +95,9 @@ export interface RegradeSelection {
   readonly classIds?: readonly string[];
 }
 
+/** Which report entries should be returned. Counts always cover the full run. */
+export type RegradeReportEntrySelection = 'actionable' | 'all';
+
 /** Optional write summary for an apply-mode regrade run. */
 export interface RegradeApplySummary {
   /** Safe rewrite outcomes written to disk. */
@@ -539,6 +542,8 @@ export interface RegradeReport {
   readonly review: number;
   /** Entries skipped (collection skips plus any run-level skips). */
   readonly skipped: number;
+  /** Skipped entries grouped by reason. */
+  readonly skipsByReason: Readonly<Record<string, number>>;
   /** Per-entry detail, sorted by path. */
   readonly entries: readonly RegradeReportEntry[];
   /** Apply-mode summary; absent for dry-run report-only calls. */
@@ -642,6 +647,32 @@ interface RegradeEvaluation {
   readonly rewrites: readonly RegradeRewriteCandidate[];
 }
 
+const includeEntryInReport = (
+  entry: RegradeReportEntry,
+  selection: RegradeReportEntrySelection
+): boolean =>
+  selection === 'all' ||
+  entry.outcome === 'rewrite' ||
+  entry.outcome === 'needs-review';
+
+const skipsByReason = (
+  entries: readonly RegradeReportEntry[]
+): Readonly<Record<string, number>> => {
+  const counts = new Map<string, number>();
+  for (const entry of entries) {
+    if (entry.outcome !== 'skip') {
+      continue;
+    }
+    const reason = entry.reason ?? 'skipped';
+    counts.set(reason, (counts.get(reason) ?? 0) + 1);
+  }
+  return Object.fromEntries(
+    [...counts.entries()].toSorted(([left], [right]) =>
+      left.localeCompare(right)
+    )
+  );
+};
+
 /**
  * Build a coverage report from already-read source files. Pure: no filesystem
  * access, so coverage semantics are testable directly.
@@ -656,7 +687,9 @@ const buildRegradeEvaluation = (params: {
   readonly skipped: readonly SkippedSource[];
   readonly classes: readonly RegradeClass[];
   readonly selection?: RegradeSelection;
+  readonly includeEntries?: RegradeReportEntrySelection;
 }): RegradeEvaluation => {
+  const entrySelection = params.includeEntries ?? 'actionable';
   const { selected, unknownClassIds } = selectRegradeClasses(
     params.classes,
     params.selection
@@ -685,8 +718,11 @@ const buildRegradeEvaluation = (params: {
     reason: entry.reason,
   }));
 
-  const entries = [...fileEntries, ...skipEntries].toSorted((a, b) =>
+  const allEntries = [...fileEntries, ...skipEntries].toSorted((a, b) =>
     a.path.localeCompare(b.path)
+  );
+  const entries = allEntries.filter((entry) =>
+    includeEntryInReport(entry, entrySelection)
   );
 
   // Class-level skips (e.g. scan-target filtering) are accounted as skipped, not
@@ -710,6 +746,7 @@ const buildRegradeEvaluation = (params: {
       scanned: scannedEntries.length,
       selectedClassIds: selected.map((cls) => cls.id),
       skipped: skipEntries.length + fileSkipCount,
+      skipsByReason: skipsByReason(allEntries),
       unknownClassIds,
     },
     rewrites,
@@ -726,6 +763,7 @@ export const buildRegradeReport = (params: {
   readonly skipped: readonly SkippedSource[];
   readonly classes: readonly RegradeClass[];
   readonly selection?: RegradeSelection;
+  readonly includeEntries?: RegradeReportEntrySelection;
 }): RegradeReport => buildRegradeEvaluation(params).report;
 
 const applyRegradeEvaluation = (
@@ -797,6 +835,7 @@ const runRegradeEvaluation = (params: {
   readonly classes: readonly RegradeClass[];
   readonly selection?: RegradeSelection;
   readonly collection?: DownstreamCollectionOptions;
+  readonly includeEntries?: RegradeReportEntrySelection;
 }): RegradeEvaluation | null => {
   const { selected, unknownClassIds } = selectRegradeClasses(
     params.classes,
@@ -811,6 +850,9 @@ const runRegradeEvaluation = (params: {
       files: [],
       root: params.root,
       skipped: [],
+      ...(params.includeEntries === undefined
+        ? {}
+        : { includeEntries: params.includeEntries }),
       ...(params.selection === undefined
         ? {}
         : { selection: params.selection }),
@@ -844,6 +886,9 @@ const runRegradeEvaluation = (params: {
     files,
     root: params.root,
     skipped,
+    ...(params.includeEntries === undefined
+      ? {}
+      : { includeEntries: params.includeEntries }),
     ...(params.selection === undefined ? {} : { selection: params.selection }),
   });
 };
@@ -861,6 +906,7 @@ export const runRegrade = (params: {
   readonly selection?: RegradeSelection;
   readonly collection?: DownstreamCollectionOptions;
   readonly apply?: boolean;
+  readonly includeEntries?: RegradeReportEntrySelection;
 }): Result<RegradeReport | null, InternalError> => {
   const evaluation = runRegradeEvaluation(params);
   if (evaluation === null) {
@@ -941,7 +987,9 @@ export const regradeReportOutput = z.object({
     .describe('Apply-mode summary; absent for dry-run report-only calls'),
   entries: z
     .array(regradeReportEntrySchema)
-    .describe('Per-entry detail, sorted by path'),
+    .describe(
+      'Per-entry detail, sorted by path. Defaults to actionable rewrite/review entries.'
+    ),
   matched: z.number().describe('Files with a rewrite or review outcome'),
   review: z.number().describe('Files routed to review'),
   rewritten: z.number().describe('Files with a rewrite outcome'),
@@ -949,6 +997,9 @@ export const regradeReportOutput = z.object({
   scanned: z.number().describe('Source files inspected'),
   selectedClassIds: z.array(z.string()).describe('Class ids executed'),
   skipped: z.number().describe('Entries skipped'),
+  skipsByReason: z
+    .record(z.string(), z.number())
+    .describe('Skipped entries grouped by reason'),
   unknownClassIds: z
     .array(z.string())
     .describe('Selected ids that did not resolve to a class'),
