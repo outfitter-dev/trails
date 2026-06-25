@@ -94,6 +94,8 @@
     "plain-compose-input",
     "public-helper-subpaths",
     "pure-transpose-revisions",
+    "registry-etarget-prepublish",
+    "registry-tarball-proof",
     "regrade-warden-review-details",
     "release-pack-coherence-guard",
     "release-policy-proof-reuse",

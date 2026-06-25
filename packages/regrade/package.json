@@ -1,6 +1,6 @@
 {
   "name": "@ontrails/regrade",
-  "version": "1.0.0-beta.29",
+  "version": "1.0.0-beta.30",
   "description": "Downstream migration reporting and safe rewrite helpers for Trails.",
   "files": [
     "src/**/*.ts",

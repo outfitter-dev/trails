@@ -1,5 +1,26 @@
 # trails
 
+## 1.0.0-beta.30
+
+### Patch Changes
+
+- 5510807: Treat npm `ETARGET` exact-version probes as unpublished target versions during registry readiness checks.
+- b0ff8b9: Teach the registry preflight to verify first-time package publishes when npm's package summary lags behind dist-tags and tarball availability.
+  - @ontrails/commander@1.0.0-beta.30
+  - @ontrails/adapter-kit@1.0.0-beta.30
+  - @ontrails/cli@1.0.0-beta.30
+  - @ontrails/config@1.0.0-beta.30
+  - @ontrails/core@1.0.0-beta.30
+  - @ontrails/http@1.0.0-beta.30
+  - @ontrails/mcp@1.0.0-beta.30
+  - @ontrails/observe@1.0.0-beta.30
+  - @ontrails/permits@1.0.0-beta.30
+  - @ontrails/regrade@1.0.0-beta.30
+  - @ontrails/topographer@1.0.0-beta.30
+  - @ontrails/tracing@1.0.0-beta.30
+  - @ontrails/warden@1.0.0-beta.30
+  - @ontrails/wayfinder@1.0.0-beta.30
+
 ## 1.0.0-beta.29
 
 ### Patch Changes
