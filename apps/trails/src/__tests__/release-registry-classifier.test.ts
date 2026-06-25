@@ -304,6 +304,12 @@ describe('npm registry fallback wiring', () => {
       'npm ERR! 404 Not Found - GET https://registry.npmjs.org/@ontrails%2fregrade - Not found',
     stdout: '',
   };
+  const noMatchingVersionResult = {
+    exitCode: 1,
+    stderr:
+      'npm error code ETARGET\nnpm error notarget No matching version found for @ontrails/core@1.0.0-beta.30.',
+    stdout: '',
+  };
 
   test('falls back from npm view package 404 to npm dist-tag facts', async () => {
     const commands: string[][] = [];
@@ -370,6 +376,24 @@ describe('npm registry fallback wiring', () => {
     expect(commands).toEqual([
       ['view', '@ontrails/regrade@1.0.0-beta.29', 'version', '--json'],
       ['pack', '@ontrails/regrade@1.0.0-beta.29', '--dry-run', '--json'],
+    ]);
+  });
+
+  test('treats npm exact-version ETARGET as an unpublished target', async () => {
+    const commands: string[][] = [];
+    const runNpm: NpmCommandRunner = async (args) => {
+      commands.push([...args]);
+      if (args[0] === 'view') {
+        return noMatchingVersionResult;
+      }
+      throw new Error(`unexpected npm command: ${args.join(' ')}`);
+    };
+
+    await expect(
+      createNpmRegistryVersionView(runNpm)('@ontrails/core', '1.0.0-beta.30')
+    ).resolves.toBe(false);
+    expect(commands).toEqual([
+      ['view', '@ontrails/core@1.0.0-beta.30', 'version', '--json'],
     ]);
   });
 });

@@ -339,6 +339,17 @@ const isNpmNotFoundOutput = (stdout: string, stderr: string): boolean => {
   return combined.includes('E404') || combined.includes('404 Not Found');
 };
 
+const isNpmExactVersionMissingOutput = (
+  stdout: string,
+  stderr: string
+): boolean => {
+  const combined = `${stdout}\n${stderr}`;
+  return (
+    combined.includes('ETARGET') ||
+    combined.includes('No matching version found')
+  );
+};
+
 export const parseNpmDistTagListOutput = (
   stdout: string
 ): Record<string, string> => {
@@ -454,6 +465,9 @@ export const createNpmRegistryVersionView =
     if (exitCode === 0) {
       return JSON.parse(stdout.trim()) === version;
     }
+    if (isNpmExactVersionMissingOutput(stdout, stderr)) {
+      return false;
+    }
     if (!isNpmNotFoundOutput(stdout, stderr)) {
       throw new Error(
         stderr.trim() || `npm view failed for ${name}@${version}`
@@ -472,6 +486,9 @@ export const createNpmRegistryVersionView =
         name,
         version
       );
+    }
+    if (isNpmExactVersionMissingOutput(packResult.stdout, packResult.stderr)) {
+      return false;
     }
     if (isNpmNotFoundOutput(packResult.stdout, packResult.stderr)) {
       return false;
