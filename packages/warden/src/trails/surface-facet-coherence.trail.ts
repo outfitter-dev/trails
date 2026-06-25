@@ -18,7 +18,7 @@ export const surfaceFacetCoherenceTrail = wrapRule({
   },
 };`,
       },
-      name: 'Reviewable surface facet map',
+      name: 'Reviewable trailhead map',
     },
   ],
   rule: surfaceFacetCoherence,

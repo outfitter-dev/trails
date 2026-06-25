@@ -319,7 +319,11 @@ describe('wardenTermRewriteClasses', () => {
       metadata: {
         concern: 'meta',
         depth: 'source',
-        fix: { class: 'term-rewrite', safety: 'safe' },
+        fix: {
+          class: 'term-rewrite',
+          safety: 'safe',
+          scanTargets: { extensions: ['.md'] },
+        },
         invariant: 'Project-local Warden term rewrites can feed Regrade.',
         lifecycle: { retireWhen: 'migration completes', state: 'temporary' },
         scope: 'repo-local',
@@ -332,6 +336,7 @@ describe('wardenTermRewriteClasses', () => {
     const cls = createWardenTermRewriteClass(rule);
 
     expect(cls?.id).toBe('term-rewrite:project-local-term-rewrite');
+    expect(cls?.scanTargets).toEqual({ extensions: ['.md'] });
   });
 
   test('preserves Warden scan-target filtering for Warden-backed classes', () => {

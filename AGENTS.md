@@ -90,11 +90,11 @@ Use the project language consistently:
 
 ## Surface Accommodations
 
-Land the capability in the trail and accommodate the surface in projection. Surface accommodations include aliases, future input mappings, and surface facets. They are valid only while the same authored trail contract remains true.
+Land the capability in the trail and accommodate the surface in projection. Surface accommodations include aliases, future input mappings, and trailheads. They are valid only while the same authored trail contract remains true.
 
 - Aliases and input mappings live on the approach axis: many approaches may converge on one trail, but they must normalize without lying.
-- Surface facets live on the entry axis: one grouped entry may gather several trails, but it must preserve selected member trail identity at invocation and response time.
-- Treat a shape as a trail fork when it changes intent, permits, errors, outputs, lifecycle, side effects, or hides which trail is running. Use a distinct trail, a composing trail, or a surface facet that preserves member identity instead.
+- Trailheads live on the entry axis: one grouped entry may gather several trails, but it must preserve selected member trail identity at invocation and response time.
+- Treat a shape as a trail fork when it changes intent, permits, errors, outputs, lifecycle, side effects, or hides which trail is running. Use a distinct trail, a composing trail, or a trailhead that preserves member identity instead.
 
 See [ADR-0050](docs/adr/0050-surface-accommodations-preserve-trail-identity.md) and [Surface Accommodations](docs/surfaces/surface-accommodations.md).
 
@@ -164,7 +164,7 @@ This section is generated from the live `@ontrails/warden` rule manifest. Keep t
 - `cli-command-route-coherence` (error, topo/topo-aware, external): CLI command routes and aliases resolve to one coherent trail contract.
 - `duplicate-public-contract` (warn, topo/topo-aware, external): Public surface trails should not expose duplicate normalized contract facts.
 - `library-projection-coherence` (error, topo/topo-aware, external): Resolved library projection exports are collision-free and target existing trails.
-- `surface-facet-coherence` (warn, source/source-static, external): Surface facet maps avoid selector overlap, hidden visibility widening, and drift-prone dynamic selectors.
+- `surface-facet-coherence` (warn, source/source-static, external): Trailhead maps avoid selector overlap, hidden visibility widening, and drift-prone dynamic selectors.
 - `trail-fork-coaching` (warn, all/source-static, advisory): Trails avoid hiding distinct capabilities behind branching action or operation inputs.
 
 #### Permits
@@ -218,7 +218,7 @@ This section is generated from the live `@ontrails/warden` rule manifest. Keep t
 - `resource-exists`: Make declared resources resolve to authored resource definitions.
 - `resource-mock-coverage`: Make each resource declare a test mock or an explicit unmockable reason.
 - `static-resource-accessor-preference`: Use statically scoped resource helpers when the resource definition is already available.
-- `surface-facet-coherence`: Keep surface facet maps reviewable before they reach MCP projection.
+- `surface-facet-coherence`: Keep trailhead maps reviewable before they reach MCP projection.
 - `trail-fork-coaching`: Keep surface accommodations from hiding several capabilities behind one branching trail input.
 
 <!-- warden-guide:end -->

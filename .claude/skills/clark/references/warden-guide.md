@@ -71,7 +71,7 @@ This file is generated from the live `@ontrails/warden` rule manifest. Repo-trac
 - `cli-command-route-coherence` (error, topo/topo-aware, external): CLI command routes and aliases resolve to one coherent trail contract. Guidance: Keep every CLI command route and alias normalized into one trail contract.
 - `duplicate-public-contract` (warn, topo/topo-aware, external): Public surface trails should not expose duplicate normalized contract facts. Guidance: Keep duplicate public contract facts from drifting into separate capabilities.
 - `library-projection-coherence` (error, topo/topo-aware, external): Resolved library projection exports are collision-free and target existing trails. Guidance: Keep resolved library projection exports collision-free and attached to one trail contract.
-- `surface-facet-coherence` (warn, source/source-static, external): Surface facet maps avoid selector overlap, hidden visibility widening, and drift-prone dynamic selectors. Guidance: Keep surface facet maps reviewable before they reach MCP projection.
+- `surface-facet-coherence` (warn, source/source-static, external): Trailhead maps avoid selector overlap, hidden visibility widening, and drift-prone dynamic selectors. Guidance: Keep trailhead maps reviewable before they reach MCP projection.
 - `trail-fork-coaching` (warn, all/source-static, advisory): Trails avoid hiding distinct capabilities behind branching action or operation inputs. Guidance: Keep surface accommodations from hiding several capabilities behind one branching trail input.
 
 ### Permits

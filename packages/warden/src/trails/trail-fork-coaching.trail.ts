@@ -10,7 +10,7 @@ export const trailForkCoachingTrail = wrapRule({
             filePath: 'users.ts',
             line: 9,
             message:
-              'Trail "users.manage" branches on input.action ("create", "delete"). This may be a trail fork hidden as a surface accommodation. If branches change semantics (intent, permits, errors, outputs, lifecycle, or side effects) or structure (selected trail identity), split them into distinct trails, a composing trail, or a surface facet that preserves member identity.',
+              'Trail "users.manage" branches on input.action ("create", "delete"). This may be a trail fork hidden as a surface accommodation. If branches change semantics (intent, permits, errors, outputs, lifecycle, or side effects) or structure (selected trail identity), split them into distinct trails, a composing trail, or a trailhead that preserves member identity.',
             rule: 'trail-fork-coaching',
             severity: 'warn',
           },

@@ -131,6 +131,20 @@ export interface WardenFixEdit {
 }
 
 /**
+ * Source targets a fix class can inspect when projected into downstream tools.
+ *
+ * Warden itself decides which committed files it scans. This metadata is for
+ * consumers such as Regrade that need to derive a narrower collection before
+ * invoking the rule against an explicit downstream root.
+ */
+export interface WardenFixScanTargets {
+  /** Source extensions the fix class can inspect. */
+  readonly extensions?: readonly string[] | undefined;
+  /** Directory names to skip during downstream collection. */
+  readonly ignoredDirectories?: readonly string[] | undefined;
+}
+
+/**
  * Per-finding fix metadata attached to a diagnostic.
  *
  * Authored on the diagnostic at construction because only the rule that matched
@@ -164,6 +178,8 @@ export interface WardenFixCapability {
   readonly class: WardenFixClass;
   /** Default safety for fixes this rule emits. */
   readonly safety: WardenFixSafety;
+  /** Downstream scan targets for tools that project this fix capability. */
+  readonly scanTargets?: WardenFixScanTargets | undefined;
 }
 
 /**

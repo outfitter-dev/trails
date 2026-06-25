@@ -11,7 +11,7 @@
 - **[Stable Cutover Runbook](./releases/stable-cutover.md)** — Beta-to-1.0 cutover sequence, publish boundaries, and recovery checks
 - **[Beta Channel Policy](./releases/beta-channel-policy.md)** — Beta install tags, `latest` posture, version cadence, and read-only registry checks
 - **[Plugin Release Runbook](./releases/plugin-release.md)** — Claude plugin/skills refresh, dogfood, and manual publication checks
-- **[Surface Facets Release Notes](./releases/surface-facets.md)** — Release prep, migration posture, and publish path for MCP surface facets
+- **[Trailheads Release Notes](./releases/surface-facets.md)** — Release prep, migration posture, and publish path for MCP trailheads
 - **[Wayfinder V0 Release Notes](./releases/wayfinder-v0.md)** — Release prep, MCP exposure posture, and non-goals for the first real Wayfinder catalog
 - **[Beta 15](./releases/beta15.md)** — Beta 15 release-prep notes and known CLI follow-up work
 - **[Beta 15 to Beta 19](./releases/beta15-to-beta19.md)** — Downstream operator guide: package install, surface decisions, `cross`→`compose` rename, trail versioning, adapter authoring, Topographer adoption, validation checklist
@@ -33,10 +33,10 @@
 
 - **[CLI Surface](./surfaces/cli.md)** — Shipped today. Flag derivation, output modes, exit codes, `--dry-run`
 - **[MCP Surface](./surfaces/mcp.md)** — Shipped today. Tool naming, annotations, progress bridge
-- **[Surface Accommodations](./surfaces/surface-accommodations.md)** — How aliases, input mappings, facets, and trail forks keep surfaces honest
-- **[Surface Facets](./surfaces/surface-facets.md)** — MCP shaping for dense topos without adding a core facet primitive
+- **[Surface Accommodations](./surfaces/surface-accommodations.md)** — How aliases, input mappings, trailheads, and trail forks keep surfaces honest
+- **[Trailheads](./surfaces/surface-facets.md)** — MCP shaping for dense topos without adding a new core primitive
 - **[HTTP Surface](./surfaces/http.md)** — Shipped today. Route derivation, Web Fetch kernel, Hono adapter, Bun-native serving, webhook activation
-- **[Surface Facet Parity](./surfaces/surface-facet-parity.md)** — Deferred CLI/HTTP parity decision after MCP proves grouped projection
+- **[Trailhead Parity](./surfaces/surface-facet-parity.md)** — Deferred CLI/HTTP parity decision after MCP proves grouped projection
 - **WebSocket Surface** — Planned, not yet implemented. See [Horizons](./horizons.md) for the current direction.
 
 ## Governing your codebase?

@@ -84,7 +84,7 @@ Trail examples are projected as structured metadata under `_meta["ontrails/examp
 
 Cold context is projected through MCP resources, not extra Trails resources. `surface(graph)` and `createServer(graph)` expose MCP resources by default:
 
-- `trails://surface-map` lists the resolved MCP tool projection, including ordinary tools, facet tools, schemas, versions, deferred hints, and member trail IDs.
+- `trails://surface-map` lists the resolved MCP tool projection, including ordinary tools, trailhead tools, schemas, versions, deferred hints, and member trail IDs.
 - `trails://examples/<trailId>` exposes structured examples for exposed trails that define examples.
 - `trails://trail/<trailId>` exposes MCP-visible graph facts for an exposed trail when graph resources are enabled.
 
@@ -104,7 +104,7 @@ await surface(graph, {
 
 Graph resources are opt-in for general MCP hosts because they widen cold context for every exposed trail. The Trails operator enables them so agents can inspect high-signal graph facts without invoking another tool.
 
-Facet definitions may set `mcp: { loading: 'deferred' }`. In this release, deferred loading is a compatibility hint under `_meta["ontrails/deferred"]`; the MCP tool schema remains present so clients that do not understand deferred loading continue to work.
+Trailhead definitions may set `mcp: { loading: 'deferred' }`. In this release, deferred loading is a compatibility hint under `_meta["ontrails/deferred"]`; the MCP tool schema remains present so clients that do not understand deferred loading continue to work.
 
 ## Tool naming
 

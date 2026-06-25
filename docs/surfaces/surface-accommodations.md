@@ -21,8 +21,8 @@ Use these terms when deciding whether a surface concern belongs on a trail, in a
 | `path` | The surface-local realization of an approach: a CLI command path, MCP tool name, HTTP path, or library export name. |
 | `alias` | An alternate approach to the same surface entry and the same trail contract. |
 | `input mapping` | Surface-shaped input that normalizes into the same authored trail input contract. |
-| `surface facet` | One grouped surface entry over multiple trails, with member trail identity preserved at invocation and response time. |
-| `trail fork` | The point where a proposed accommodation is no longer honest. Author a distinct trail, a composing trail, or a facet that preserves member identity. |
+| `trailhead` | One grouped surface entry over multiple trails, with member trail identity preserved at invocation and response time. |
+| `trail fork` | The point where a proposed accommodation is no longer honest. Author a distinct trail, a composing trail, or a trailhead that preserves member identity. |
 
 `trail fork` is doctrine language, not a new API primitive. Do not confuse it with lifecycle/version forks in trail versioning.
 
@@ -39,11 +39,11 @@ The **approach axis** is N-to-1. Several approaches can reach the same trail:
 
 The invariant is: converge without lying.
 
-The **entry axis** is 1-to-N when a surface facet is involved. One grouped surface entry can expose several trails, but it must keep the selected member trail visible.
+The **entry axis** is 1-to-N when a trailhead is involved. One grouped surface entry can expose several trails, but it must keep the selected member trail visible.
 
 The invariant is: gather without merging.
 
-Those axes are related, but not interchangeable. An alias is not a facet. A facet is not a generic action bag. An input mapping is not alternate behavior.
+Those axes are related, but not interchangeable. An alias is not a trailhead. A trailhead is not a generic action bag. An input mapping is not alternate behavior.
 
 ## Fork Test
 
@@ -62,7 +62,7 @@ When the test fails, use one of these shapes instead:
 
 - a distinct trail for a distinct capability;
 - a composing trail when the capability truly coordinates existing trails;
-- a surface facet when the surface needs one grouped entry over existing trails and can preserve member identity.
+- a trailhead when the surface needs one grouped entry over existing trails and can preserve member identity.
 
 ## Examples
 
@@ -70,9 +70,9 @@ A CLI compatibility command such as `wayfind find` for `wayfind.search` is an al
 
 A CLI spelling that accepts a different ergonomic shape but normalizes into the same authored input is an input mapping. It must remain inspectable and cannot invent hidden behavior.
 
-An MCP `inspect` tool over several read-only topo inspection trails is a surface facet when the call includes the selected `trail` and the result returns the same selected `trail` with its output.
+An MCP `inspect` tool over several read-only topo inspection trails is a trailhead when the call includes the selected `trail` and the result returns the same selected `trail` with its output.
 
-A command like `manage users --action delete` that hides create, update, and delete behind one action field is usually a trail fork. Prefer separate trails and, if the surface needs grouping, a facet that still exposes the selected member trail.
+A command like `manage users --action delete` that hides create, update, and delete behind one action field is usually a trail fork. Prefer separate trails and, if the surface needs grouping, a trailhead that still exposes the selected member trail.
 
 ## Classification
 
@@ -80,7 +80,7 @@ A command like `manage users --action delete` that hides create, update, and del
 | --- | --- |
 | One trail, another path, no input reshape | Alias |
 | One trail, surface-shaped input that normalizes honestly | Input mapping |
-| Many trails, one grouped entry, member trail identity preserved | Surface facet |
+| Many trails, one grouped entry, member trail identity preserved | Trailhead |
 | Different intent, permits, errors, outputs, lifecycle, side effects, or hidden member identity | Distinct trail or composing trail |
 
 ## Surface-Local Words

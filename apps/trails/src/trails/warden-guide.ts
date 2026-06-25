@@ -37,6 +37,12 @@ const wardenRuleGuideEntrySchema = z.object({
     .object({
       class: z.enum(wardenFixClasses),
       safety: z.enum(wardenFixSafeties),
+      scanTargets: z
+        .object({
+          extensions: z.array(z.string()).readonly().optional(),
+          ignoredDirectories: z.array(z.string()).readonly().optional(),
+        })
+        .optional(),
     })
     .optional(),
   guidance: wardenGuidanceSchema.optional(),
@@ -54,10 +60,9 @@ const wardenRuleGuideEntrySchema = z.object({
 const wardenGuideManifestSchema = z.object({
   generatedFrom: z.object({
     package: z.literal('@ontrails/warden'),
-    registries: z.tuple([
-      z.literal('wardenRules'),
-      z.literal('wardenTopoRules'),
-    ]),
+    registries: z
+      .tuple([z.literal('wardenRules'), z.literal('wardenTopoRules')])
+      .readonly(),
     source: z.literal('builtin-rule-metadata'),
   }),
   kind: z.literal('trails-warden-guide-manifest'),

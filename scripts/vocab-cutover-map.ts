@@ -359,10 +359,10 @@ export const auditRules: readonly VocabAuditRule[] = [
   {
     allowMatches: surfaceTermAllowedMatches,
     description:
-      'Old boundary terminology still uses trailhead instead of surface',
+      'Old surface API terminology still uses trailhead entrypoints or keys instead of surface',
     excludePaths: reviewedSurfaceMentionPaths,
     id: 'surface-term',
-    pattern: String.raw`\b[Tt]railhead(s)?\b|TRAILHEAD_KEY|__trails_trailhead`,
+    pattern: String.raw`\btrailhead\(|\bTRAILHEAD_KEY\b|__trails_trailhead|\btrailhead\.lock\b|_trailhead\.json`,
   },
   {
     description:

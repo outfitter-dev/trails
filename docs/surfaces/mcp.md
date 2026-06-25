@@ -68,15 +68,15 @@ When a trail declares `output`, the MCP tool definition includes an `outputSchem
 
 Trail examples are exposed as structured tool metadata under `_meta["ontrails/examples"]`. Each example keeps the authored input, expected output or error, a success/error kind, and provenance pointing back to `trail.examples`; clients do not need to scrape example JSON from prose descriptions.
 
-## Surface Facets
+## Trailheads
 
-Dense MCP surfaces can use surface facets to group related trails into fewer agent-facing tools while preserving the underlying trail contracts. Facets are surface accommodations on the entry axis: they group and select without merging. The full guide is [Surface Facets](surface-facets.md), and the accepted cross-surface doctrine is [ADR-0050](../adr/0050-surface-accommodations-preserve-trail-identity.md). The short version:
+Dense MCP surfaces can use trailheads to group related trails into fewer agent-facing tools while preserving the underlying trail contracts. Trailheads are surface accommodations on the entry axis: they group and select without merging. The full guide is [Trailheads](surface-facets.md), and the accepted cross-surface doctrine is [ADR-0050](../adr/0050-surface-accommodations-preserve-trail-identity.md). The short version:
 
-- author a facet map in MCP surface options;
-- each facet becomes one MCP tool;
-- call the facet with `{ trail, input }`;
+- author a trailhead map in MCP surface options;
+- each trailhead becomes one MCP tool;
+- call the trailhead with `{ trail, input }`;
 - successful responses return `{ trail, output }`;
-- inspect `trails://surface-map` for facet IDs, member trail IDs, schemas, and deferred-loading hints, and use `trails://examples/<trailId>` for member examples.
+- inspect `trails://surface-map` for trailhead IDs, member trail IDs, schemas, and deferred-loading hints, and use `trails://examples/<trailId>` for member examples.
 
 ## MCP Resources For Cold Context
 
@@ -84,7 +84,7 @@ Cold context belongs in **MCP resources**, not in extra tools and not in Trails 
 
 | Resource URI | Contents |
 | --- | --- |
-| `trails://surface-map` | Resolved MCP surface projection: tool names, trail IDs, facet IDs, member trail IDs, input/output schemas, versions, annotations, and deferred hints |
+| `trails://surface-map` | Resolved MCP surface projection: tool names, trail IDs, `facetId` values, member trail IDs, input/output schemas, versions, annotations, and deferred hints |
 | `trails://examples/<trailId>` | Structured examples for an exposed trail, when the trail defines examples |
 | `trails://trail/<trailId>` | MCP-visible graph facts for an exposed trail: identity, intent, visibility, composition, resource and signal references, and projected MCP tool metadata |
 
@@ -108,7 +108,7 @@ The resource naming is intentionally qualified: `McpResource`, `McpResources`, a
 
 ## Deferred Loading Hint
 
-Facet tools may opt into deferred loading:
+Trailhead tools may opt into deferred loading:
 
 ```typescript
 await surface(graph, {
@@ -122,7 +122,7 @@ await surface(graph, {
 });
 ```
 
-Deferred loading is a compatibility hint under `_meta["ontrails/deferred"]`. It does not omit required tool schemas from `tools/list` in this release, so older MCP clients still receive a complete tool definition. Clients that understand the hint can prefer the surface-map resource and defer expensive schema inspection until they need the facet.
+Deferred loading is a compatibility hint under `_meta["ontrails/deferred"]`. It does not omit required tool schemas from `tools/list` in this release, so older MCP clients still receive a complete tool definition. Clients that understand the hint can prefer the surface-map resource and defer expensive schema inspection until they need the trailhead.
 
 ## Annotations
 
@@ -230,13 +230,13 @@ await surface(graph, {
 
 Wayfinder trails are internal read tools over saved graph artifacts and package evidence. Expose them on MCP only when the host operator wants agents to inspect facts directly, and include explicit trail IDs instead of widening the whole `wayfind.*` namespace.
 
-The Trails operator MCP surface starts with selected first-class Wayfinder tools: `wayfind.overview`, `wayfind.search`, `wayfind.trails`, `wayfind.contract`, `wayfind.examples`, `wayfind.errors`, `wayfind.nearby`, `wayfind.impact`, `wayfind.adapters`, and `wayfind.diff`. It also enables `trails://trail/<trailId>` graph resources for exposed trails. The tools remain direct rather than one broad Wayfinder facet so agents can see read-only annotations, descriptions, output schemas, and permission boundaries at the tool boundary. The cohesive `trails wayfind` navigation grammar is a CLI accommodation over these graph-read trails; MCP keeps explicit tools until a server-owned workspace-root binding can safely expose file outline and combined selector behavior. Live-source outline stays on the local CLI until that binding exists. Adjacent saved-topo inspection stays grouped in the operator's existing `inspect` facet; unselected Wayfinder queries are not exposed by default.
+The Trails operator MCP surface starts with selected first-class Wayfinder tools: `wayfind.overview`, `wayfind.search`, `wayfind.trails`, `wayfind.contract`, `wayfind.examples`, `wayfind.errors`, `wayfind.nearby`, `wayfind.impact`, `wayfind.adapters`, and `wayfind.diff`. It also enables `trails://trail/<trailId>` graph resources for exposed trails. The tools remain direct rather than one broad Wayfinder trailhead so agents can see read-only annotations, descriptions, output schemas, and permission boundaries at the tool boundary. The cohesive `trails wayfind` navigation grammar is a CLI accommodation over these graph-read trails; MCP keeps explicit tools until a server-owned workspace-root binding can safely expose file outline and combined selector behavior. Live-source outline stays on the local CLI until that binding exists. Adjacent saved-topo inspection stays grouped in the operator's existing `inspect` trailhead; unselected Wayfinder queries are not exposed by default.
 
 Do not document or expose deferred Wayfinder ideas as if they exist. V0 has no semantic search, signposts, or `wayfind.implications`; the CLI text-query selector is deterministic indexed graph filtering, not semantic search.
 
-## Surface Facet Field Notes
+## Trailhead Field Notes
 
-Dense MCP surfaces can use surface facets to group related trails into fewer agent-facing tools. The current evidence ledger lives in [Surface Facet Field Notes](surface-facet-field-notes.md). Read it before generalizing facet behavior to another app or surface. It records the first Trails operator MCP shaping pass, the shortened evidence window, what survived contact, and what remains deferred.
+Dense MCP surfaces can use trailheads to group related trails into fewer agent-facing tools. The current evidence ledger lives in [Trailhead Field Notes](surface-facet-field-notes.md). Read it before generalizing trailhead behavior to another app or surface. It records the first Trails operator MCP shaping pass, the shortened evidence window, what survived contact, and what remains deferred.
 
 ## Server Configuration
 

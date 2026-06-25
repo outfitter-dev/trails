@@ -65,9 +65,9 @@ blaze: async (input, ctx) => {
 
 Trail `examples` are included in MCP tool metadata. Agents use these to understand expected input/output shapes and plan tool usage without trial and error.
 
-## Surface Facets
+## Trailheads
 
-Use surface facets only when a dense MCP surface needs grouped affordances. A surface facet is an MCP projection over existing trails, not a new trail, graph node, package category, or core `Facet` primitive. It groups and selects without merging.
+Use trailheads only when a dense MCP surface needs grouped affordances. A trailhead is an MCP projection over existing trails, not a new trail, graph node, package category, or core `Facet` primitive. It groups and selects without merging.
 
 ```typescript
 import type { McpSurfaceFacetMap } from '@ontrails/mcp';
@@ -86,7 +86,7 @@ await surface(graph, {
 });
 ```
 
-Facet tools are called with a trail discriminator and nested input:
+Trailhead tools are called with a trail discriminator and nested input:
 
 ```json
 {
@@ -115,7 +115,7 @@ Rules for agents:
 - Check both trail fork boundaries: no changed intent, permits, errors, outputs, lifecycle, or side effects, and no hidden member trail identity.
 - Prefer explicit selector lists for editorial groups.
 - Treat selector overlap and description drift as governance findings, not routine silencing candidates.
-- Do not invent `facet()`, `overlapsWith`, or adapter-kit facet config.
+- Do not invent `facet()`, `overlapsWith`, or adapter-kit `facet` config.
 - Do not assume CLI or HTTP parity; those surfaces have separate economics.
 
 ## MCP Resources
@@ -124,7 +124,7 @@ MCP resources are protocol resources for cold context. They are not Trails `reso
 
 By default, `surface(graph)` and `createServer(graph)` expose:
 
-- `trails://surface-map` for the resolved MCP projection, including facet IDs, member trail IDs, schemas, examples metadata, versions, and deferred hints.
+- `trails://surface-map` for the resolved MCP projection, including `facetId` values, member trail IDs, schemas, examples metadata, versions, and deferred hints.
 - `trails://examples/<trailId>` for structured examples on exposed trails.
 
 Use `mcpResources: false` only when the host intentionally wants no MCP resource capability. Use `mcpResources: { examples: false, surfaceMap: true }` to keep a narrower resource set.
@@ -169,6 +169,6 @@ Each `McpToolDefinition` includes:
 - `description` — trail description with first example appended
 - `handler` — async function that runs the full `executeTrail` pipeline
 - `trailId` — the original trail ID this tool was derived from (useful for filtering and introspection)
-- `facetId` / `memberTrailIds` — present when the tool was derived from a surface facet
+- `facetId` / `memberTrailIds` — present when the tool was derived from a trailhead
 
 This gives you the raw tool definitions to register manually while still benefiting from automatic schema derivation and annotation mapping.

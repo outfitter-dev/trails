@@ -209,6 +209,24 @@ type WardenEditApplication =
   | { readonly ok: true; readonly nextSource: string }
   | { readonly ok: false; readonly reason: string };
 
+const regradeScanTargetsFromWardenFix = (
+  scanTargets: NonNullable<
+    NonNullable<ReturnType<typeof getWardenRuleMetadata>>['fix']
+  >['scanTargets']
+): RegradeScanTargets | undefined => {
+  if (scanTargets === undefined) {
+    return undefined;
+  }
+  return {
+    ...(scanTargets.extensions === undefined
+      ? {}
+      : { extensions: scanTargets.extensions }),
+    ...(scanTargets.ignoredDirectories === undefined
+      ? {}
+      : { ignoredDirectories: scanTargets.ignoredDirectories }),
+  };
+};
+
 const diagnosticNote = (diagnostic: WardenDiagnostic): string => {
   const reason = diagnostic.fix?.reason ?? diagnostic.message;
   return `${diagnostic.rule}:${diagnostic.line}: ${reason}`;
@@ -366,6 +384,7 @@ export const createWardenTermRewriteClass = (
   if (metadata?.fix?.class !== TERM_REWRITE_FIX_CLASS) {
     return null;
   }
+  const scanTargets = regradeScanTargetsFromWardenFix(metadata.fix.scanTargets);
 
   return {
     apply: (
@@ -456,6 +475,7 @@ export const createWardenTermRewriteClass = (
     },
     describe: `${rule.description} (${metadata.fix.safety} ${metadata.fix.class})`,
     id: `${metadata.fix.class}:${rule.name}`,
+    ...(scanTargets === undefined ? {} : { scanTargets }),
   };
 };
 

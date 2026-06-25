@@ -356,7 +356,7 @@ export const surfaceFacetCoherence: WardenRule = {
     return diagnostics;
   },
   description:
-    'Coach surface facet maps away from selector overlap, hidden visibility widening, and drift-prone dynamic selectors.',
+    'Coach trailhead maps away from selector overlap, hidden visibility widening, and drift-prone dynamic selectors.',
   name: RULE_NAME,
   severity: 'warn',
 };

@@ -17,7 +17,7 @@ The package exports `wayfinderTopo` plus individual graph-read trails.
 | `wayfind.resources` | List resource summaries and declaring trails. |
 | `wayfind.signals` | List signal summaries, producers, and consumers. |
 | `wayfind.surfaces` | List saved surface membership facts. |
-| `wayfind.facets` | List resolved surface facet metadata and members. |
+| `wayfind.facets` | List resolved trailhead metadata and members. |
 | `wayfind.versions` | List current and historical trail version records. |
 | `wayfind.examples` | List saved examples without executing trails. |
 | `wayfind.errors` | List saved trail error facts with provenance and completeness. |
@@ -58,7 +58,7 @@ const result = await wayfindOverviewTrail.blaze(
 );
 ```
 
-The output includes counts for trails, contours, resources, signals, surfaces, facets, versions, and examples, along with the TopoGraph artifact source.
+The output includes counts for trails, contours, resources, signals, surfaces, trailheads, versions, and examples, along with the TopoGraph artifact source.
 
 ## Typed Filtering
 
@@ -83,7 +83,7 @@ const result = await wayfindSearchTrail.blaze(
 );
 ```
 
-Supported filters include entity kind, exact ID, ID glob, text query, ID prefix, namespace, intent, surface, facet, versioning, example coverage, resource usage, and signal usage. Use `createWayfinderGraphEntityPredicate` or `filterWayfinderEntityRefs` when matching relationship filters directly in code so facet membership and derived surfaces are evaluated with graph-derived context.
+Supported filters include entity kind, exact ID, ID glob, text query, ID prefix, namespace, intent, surface, trailhead, versioning, example coverage, resource usage, and signal usage. Use `createWayfinderGraphEntityPredicate` or `filterWayfinderEntityRefs` when matching relationship filters directly in code so trailhead membership and derived surfaces are evaluated with graph-derived context.
 
 Example coverage filters are evaluated against the entity being returned. `wayfind.examples` widens parent trail matches to include current examples plus historical version examples, exact historical-version matches return only that version's examples, and exact current-version matches return the current entry examples. `exampleCoverage: false` is intentionally not widened into covered historical version examples.
 
@@ -163,13 +163,13 @@ apps/trails/src/trails/compile.ts
 
 When saved graph artifacts are missing, `outline` still renders source facts and emits an actionable diagnostic with the compile command shape, including the app module, root directory, and required `topo:write` permit scope. That diagnostic is a prompt to refresh graph evidence; it is not required for source-only navigation.
 
-## Surfaces, Facets, Versions, And Examples
+## Surfaces, Trailheads, Versions, And Examples
 
-`wayfind.surfaces` includes both directly rendered trail surfaces and facet-rendered surfaces. `wayfind.facets` returns facet membership, visibility, and descriptions. `wayfind.versions` returns current and historical trail versions sorted by trail ID and numeric version. `wayfind.examples` lists saved examples without executing any trail.
+`wayfind.surfaces` includes both directly rendered trail surfaces and trailhead-rendered surfaces. `wayfind.facets` returns trailhead membership, visibility, and descriptions. `wayfind.versions` returns current and historical trail versions sorted by trail ID and numeric version. `wayfind.examples` lists saved examples without executing any trail.
 
 ## Nearby, Impact, And Diff
 
-`wayfind.nearby` returns the direct saved graph relationships around one entity. The relation graph is typed and deterministic: resources point to trails that use them, signals point to producing or consuming trails, surfaces and facets point to rendered member trails, composed trails point to their composers, and trails point to saved version records.
+`wayfind.nearby` returns the direct saved graph relationships around one entity. The relation graph is typed and deterministic: resources point to trails that use them, signals point to producing or consuming trails, surfaces and trailheads point to rendered member trails, composed trails point to their composers, and trails point to saved version records.
 
 ```ts
 import {
@@ -203,6 +203,6 @@ await wayfindDiffTrail.blaze(
 );
 ```
 
-`wayfind.impact` walks those typed relation edges with `downstream`, `upstream`, or `both` direction. `downstream` follows the stored edge direction, which is oriented from contract substrate to affected graph members: resource-to-trail, signal-to-trail, surface-to-trail, facet-to-trail, composed-trail-to-composer, and trail-to-version. `wayfind.diff` compares two saved TopoGraph artifacts with `deriveTopoGraphDiff`; it requires an explicit `againstDir` or `againstRootDir` baseline instead of deriving either graph from live source.
+`wayfind.impact` walks those typed relation edges with `downstream`, `upstream`, or `both` direction. `downstream` follows the stored edge direction, which is oriented from contract substrate to affected graph members: resource-to-trail, signal-to-trail, surface-to-trail, trailhead-to-trail, composed-trail-to-composer, and trail-to-version. `wayfind.diff` compares two saved TopoGraph artifacts with `deriveTopoGraphDiff`; it requires an explicit `againstDir` or `againstRootDir` baseline instead of deriving either graph from live source.
 
 These queries are intentionally graph-read only. They do not provide semantic search, signposts, or implications yet.

@@ -610,7 +610,7 @@ const builtinWardenRuleMetadataInput = {
     guidance: {
       docs: [
         {
-          label: 'Surface Facets ADR',
+          label: 'Trailheads ADR',
           path: 'docs/adr/drafts/20260603-surface-facets-shape-dense-topos.md',
         },
       ],
@@ -620,10 +620,10 @@ const builtinWardenRuleMetadataInput = {
         'Record explicit visibility-widening acceptance and stable-description metadata when a facet intentionally widens visibility.',
       ],
       summary:
-        'Keep surface facet maps reviewable before they reach MCP projection.',
+        'Keep trailhead maps reviewable before they reach MCP projection.',
     },
     invariant:
-      'Surface facet maps avoid selector overlap, hidden visibility widening, and drift-prone dynamic selectors.',
+      'Trailhead maps avoid selector overlap, hidden visibility widening, and drift-prone dynamic selectors.',
     tier: 'source-static',
   },
   'trail-fork-coaching': {

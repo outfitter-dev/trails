@@ -2,9 +2,9 @@
 
 `docs/lexicon.md` is the source of truth for current vocabulary. The terms below are ratified to change in the v1 ADR Canon Reset (TRL). This file is a heads-up, not a second lexicon — until the reset lands:
 
-- current code, docs, examples, and lexicon entries use the **Current** column — keep using it when describing live reality;
+- current code, API identifiers, examples, and lexicon entries use the **Current** column — keep using it when describing live API reality;
 - the **Target** column is the agreed direction — do not treat the current term as permanent;
-- do not adopt a target term in code, docs, or examples yet. Doing so before the cutover creates exactly the drift this file exists to prevent.
+- do not adopt a target term in code or examples yet. Prose documentation may move only when a cutover branch also updates this file and leaves live API identifiers explicit.
 
 | Current (live) | Target (v1 reset) | Scope |
 | --- | --- | --- |
@@ -19,3 +19,5 @@ Also in flight, tracked for the reset:
 - The docs information architecture (the draft documentation-structure ADR) and the location of release notes are unsettled. Do not build on a specific docs taxonomy yet.
 
 This file is temporary. When the v1 reset lands, these changes fold into `docs/lexicon.md` and this file is deleted.
+
+The `facet` to `trailhead` prose cutover has started. Current API identifiers such as `facets`, `facetId`, `McpSurfaceFacetMap`, `wayfind.facets`, and `surface-facet-coherence` remain live until their code/API migration lands.

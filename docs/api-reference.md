@@ -487,11 +487,12 @@ AstParseResult, AstParseDiagnostic, SourceEdit, SourceLocation
 
 ```typescript
 // Downstream migration reporting and safe rewrites
-runRegrade({ root, classes, selection?, collection?, apply? }) // Result<RegradeReport | null, InternalError>
-buildRegradeReport({ root, files, skipped, classes, selection? })
+runRegrade({ root, classes, selection?, collection?, apply?, includeEntries? }) // Result<RegradeReport | null, InternalError>
+buildRegradeReport({ root, files, skipped, classes, selection?, includeEntries? })
 selectRegradeClasses(classes, selection?)
 
 // Built-in Warden-backed migration classes
+loadWardenTermRewriteClasses(root?)
 wardenTermRewriteClasses
 createWardenTermRewriteClass(rule)
 createTermRewriteClass({ from, to, id?, describe? })
@@ -508,6 +509,8 @@ literalRegradeTopo, literalRegradeTrail
 RegradeClass, RegradeClassResult, RegradeReport, RegradeReportEntry
 RegradeReviewDetail, RegradeReviewSpan, RegradeScanTargets, RegradeSelection
 ```
+
+Regrade reports always include full aggregate counts, unknown class IDs, scan statistics, and skip reasons. Report `entries` default to actionable rewrite and review outcomes; pass `includeEntries: 'all'` to include no-op and skip entries.
 
 ## `@ontrails/config`
 
@@ -702,7 +705,7 @@ The adapter emits stable `trails.*` attributes for trace identity, lineage, trai
 | Name | Intent |
 | --- | --- |
 | `trailblaze(topo, options?)` | Future hosted runtime; not shipped |
-| `trailhead` | Historical boundary term retired from active user-facing vocabulary |
+| `trailhead()` | Historical boundary API retired in favor of `surface()` |
 | `scout` | Agent-side runtime discovery |
 | `validateExample`, `validateCompose` | Contract verification family |
 | `generateDocs`, `generateOpenApi`, `generateLlmsTxt` | Build-time doc generation |

@@ -487,10 +487,10 @@ A mechanically derived output from authored information. The topo store is a rel
 | `path` | Surface-local realization of an approach: command path, tool name, HTTP path, or export name |
 | `alias` | Alternate approach to the same surface entry and same trail contract |
 | `input mapping` | Surface-shaped input normalization into the same authored trail input contract |
-| `facet` | Qualified projection-slice vocabulary; use `surface facet` or `schema facet`, not bare `facet` as a primitive |
-| `surface facet` | Surface-side grouped entry over existing trails; not a graph node, package category, or core `Facet` primitive |
+| `facet` | Qualified projection-slice vocabulary; use `trailhead` or `schema facet`, not bare `facet` as a primitive |
+| `trailhead` | Surface-side grouped entry over existing trails; not a graph node, package category, or core `Facet` primitive |
 | `schema facet` | Descriptive phrase for a schema-owned slice or view when docs need it; not a decided public API |
-| `trail fork` | Doctrine phrase for the point where a surface accommodation would change semantics or merge or hide member identity; author a distinct trail, composing trail, or surface facet that preserves identity instead |
+| `trail fork` | Doctrine phrase for the point where a surface accommodation would change semantics or merge or hide member identity; author a distinct trail, composing trail, or trailhead that preserves identity instead |
 | `MCP resources` | MCP protocol resources used for cold context; not Trails `resource()` infrastructure declarations |
 | `integration (colloquial)` | Ordinary English for places Trails integrates with an external system; not a public taxonomy category |
 | `logger` / `logging` | Structured logging — framework provides the interface; developers bring their own |
@@ -520,7 +520,7 @@ These are directional. They should not be reused for unrelated concepts.
 | `pack` | Distributable capability bundle |
 | `depot` | Registry or distribution point for packs and shared assets |
 | `dispatch` | Activation/source fan-out from a source to consuming trails; not the direct execution helper |
-| `trailhead` | Historical boundary term retired from active user-facing vocabulary. Use `surface` in docs, examples, and public APIs. |
+| `trailhead()` | Historical boundary API retired in favor of `surface()`. Use `trailhead` only for a grouped surface entry over existing trails. |
 | `connector` | Historical package-boundary term retired from active user-facing taxonomy. Use `adapter` in docs, examples, and public APIs. |
 | `_draft.` | Reserved ID prefix for draft state. Trails, signals, and other primitives with `_draft.` IDs are visible in source but excluded from the resolved graph, established surfaces, and graph exports. Draft state is visible debt — it must never leak into established outputs. See ADR-0021. |
 

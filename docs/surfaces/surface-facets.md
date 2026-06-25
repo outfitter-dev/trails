@@ -1,39 +1,39 @@
-# Surface Facets
+# Trailheads
 
-Surface facets group and select without merging. They expose related trails through one surface affordance while preserving the trails themselves. They are useful when a dense topo is still semantically clear but a surface becomes hard to scan.
+Trailheads group and select without merging. They expose related trails through one surface affordance while preserving the trails themselves. They are useful when a dense topo is still semantically clear but a surface becomes hard to scan.
 
-MCP hits this pressure first. MCP clients often load tool names, descriptions, input schemas, output schemas, and examples into agent context. A flat one-trail-one-tool projection stays faithful, but it can make a dense operator surface expensive to inspect. A surface facet lets the surface say "these trails belong together here" while the trail contracts remain the source of truth.
+MCP hits this pressure first. MCP clients often load tool names, descriptions, input schemas, output schemas, and examples into agent context. A flat one-trail-one-tool projection stays faithful, but it can make a dense operator surface expensive to inspect. A trailhead lets the surface say "these trails belong together here" while the trail contracts remain the source of truth.
 
-Surface facets are not a core `Facet` primitive. Do not look for `facet()`, do not create a shared `Facet` type, and do not add facet authoring configuration to adapter-kit.
+Trailheads are not a core `Facet` primitive. Do not look for `facet()`, do not create a shared `Facet` type, and do not add trailhead authoring configuration to adapter-kit.
 
-A facet is a surface accommodation on the entry axis: one grouped surface entry over several trails. It is not an alternate approach to one trail. Aliases and input mappings are N-to-1 accommodations that converge on one trail contract; facets are 1-to-N accommodations that gather several trails while preserving member identity. See [ADR-0050](../adr/0050-surface-accommodations-preserve-trail-identity.md) and [Surface Accommodations](surface-accommodations.md) for the full vocabulary.
+A trailhead is a surface accommodation on the entry axis: one grouped surface entry over several trails. It is not an alternate approach to one trail. Aliases and input mappings are N-to-1 accommodations that converge on one trail contract; trailheads are 1-to-N accommodations that gather several trails while preserving member identity. See [ADR-0050](../adr/0050-surface-accommodations-preserve-trail-identity.md) and [Surface Accommodations](surface-accommodations.md) for the full vocabulary.
 
 ## When To Use One
 
-Use a surface facet when:
+Use a trailhead when:
 
 - the underlying trails are still the right product boundary;
 - a surface has too many adjacent affordances for agents or users to scan cheaply;
 - the grouped affordance can keep the original trail ID visible at invocation and response time;
 - the surface can expose resolved metadata so agents can inspect membership without reading source.
 
-Do not use a surface facet when:
+Do not use a trailhead when:
 
 - you are really trying to create a new domain operation;
 - grouping would hide important trail identity or output shape;
 - direct trail projection is already clear enough;
 - you need CLI or HTTP parity before MCP has proved the pattern for your app.
 
-The fork test still applies. If a grouped affordance would merge contracts, hide which trail is selected, or introduce an action vocabulary such as `{ action: "create" | "delete" }`, split the capability into distinct trails or a composing trail first. A facet may group and select; it must not merge and obscure.
+The fork test still applies. If a grouped affordance would merge contracts, hide which trail is selected, or introduce an action vocabulary such as `{ action: "create" | "delete" }`, split the capability into distinct trails or a composing trail first. A trailhead may group and select; it must not merge and obscure.
 
 That boundary has two parts:
 
-- **Semantic:** the facet does not change member intent, permits, errors, outputs, lifecycle, or side effects.
-- **Structural:** the facet keeps member trail identity visible at invocation and response time.
+- **Semantic:** the trailhead does not change member intent, permits, errors, outputs, lifecycle, or side effects.
+- **Structural:** the trailhead keeps member trail identity visible at invocation and response time.
 
 ## MCP Authoring Shape
 
-`@ontrails/mcp` accepts `facets` in the surface options:
+`@ontrails/mcp` accepts the `facets` option in surface options:
 
 ```typescript
 import type { McpSurfaceFacetMap } from '@ontrails/mcp';
@@ -61,11 +61,11 @@ await surface(graph, {
 });
 ```
 
-Prefer explicit lists for editorial groups. Glob selectors such as `topo.*` reuse the normal surface filtering grammar, but broad selectors need more care: membership drift can make descriptions stale and can create facet overlap.
+Prefer explicit lists for editorial groups. Glob selectors such as `topo.*` reuse the normal surface filtering grammar, but broad selectors need more care: membership drift can make descriptions stale and can create trailhead overlap.
 
 ## MCP Projection Shape
 
-Each MCP surface facet projects as one MCP tool named from the topo name and facet ID. A `governance` facet in topo `trails` derives `trails_governance`.
+Each MCP trailhead projects as one MCP tool named from the topo name and trailhead ID. A `governance` trailhead in topo `trails` derives `trails_governance`.
 
 The input schema requires a trail discriminator plus the selected trail input:
 
@@ -92,15 +92,15 @@ Successful outputs are correlated with the selected trail:
 }
 ```
 
-That envelope is intentional. A facet can contain trails with different output schemas, so the returned trail ID must stay visible for agents and downstream readers. If a proposed grouped tool would remove that correlation, it has become a trail fork rather than a facet.
+That envelope is intentional. A trailhead can contain trails with different output schemas, so the returned trail ID must stay visible for agents and downstream readers. If a proposed grouped tool would remove that correlation, it has become a trail fork rather than a trailhead.
 
 ## Visibility And Overlap
 
-Trail visibility remains authoritative. A facet may narrow the projection, but it cannot make an internal trail public. If a public facet selector matches an internal trail, runtime projection omits that internal member.
+Trail visibility remains authoritative. A trailhead may narrow the projection, but it cannot make an internal trail public. If a public trailhead selector matches an internal trail, runtime projection omits that internal member.
 
-Facet selector overlap is treated as drift. Narrow the selectors instead of adding an escape hatch. The rejected shape is `overlapsWith`; it would let a facet map silence ambiguity without clarifying ownership.
+Trailhead selector overlap is treated as drift. Narrow the selectors instead of adding an escape hatch. The rejected shape is `overlapsWith`; it would let a map silence ambiguity without clarifying ownership.
 
-When a facet intentionally spans visibility tiers, record the acknowledgement:
+When a trailhead intentionally spans visibility tiers, record the acknowledgement:
 
 ```typescript
 const facets = {
@@ -116,7 +116,7 @@ The acknowledgement does not widen runtime behavior. It only tells governance th
 
 ## Description Drift
 
-Facet descriptions are authored prose over resolved membership. If the member set changes, the description may become false even when every individual trail is valid.
+Trailhead descriptions are authored prose over resolved membership. If the member set changes, the description may become false even when every individual trail is valid.
 
 Use `descriptionStableThrough` only when the description is intentionally stable through a known member-set hash. Do not use it as routine noise suppression.
 
@@ -137,16 +137,16 @@ Use MCP resources for cold context. The default MCP surface exposes:
 - `trails://surface-map` for the resolved MCP surface projection;
 - `trails://examples/<trailId>` for structured examples on exposed trails.
 
-The surface map includes ordinary tools and facet tools. Facet entries expose `facetId`, `memberTrailIds`, input/output schemas, annotations, and deferred-loading hints.
+The surface map includes ordinary tools and trailhead tools. Trailhead entries expose `facetId`, `memberTrailIds`, input/output schemas, annotations, and deferred-loading hints.
 
 The phrase is **MCP resources**. Trails `resource()` still means an infrastructure dependency declared on a trail contract.
 
 ## Adapter-Kit Boundary
 
-Adapter-kit does not author surface facets. It may expose raw adapter evidence, such as `adapterType` and target conformance paths, that future surface or governance checks can interpret against resolved projection metadata.
+Adapter-kit does not author trailheads. It may expose raw adapter evidence, such as `adapterType` and target conformance paths, that future surface or governance checks can interpret against resolved projection metadata.
 
-If an adapter claims grouped affordances later, the validator should consume resolved surface data: facet ID, member trail IDs, effective visibility, description, member-set hash, and `{ trail, output }` correlation shape. No adapter target is required to support grouping unless it explicitly claims that capability.
+If an adapter claims grouped affordances later, the validator should consume resolved surface data: trailhead ID, member trail IDs, effective visibility, description, member-set hash, and `{ trail, output }` correlation shape. No adapter target is required to support grouping unless it explicitly claims that capability.
 
 ## CLI And HTTP
 
-CLI and HTTP parity are deferred. CLI should be evaluated as command-group consolidation, not as an MCP-style generic action tool. HTTP should be evaluated as route-group projection, OpenAPI organization, or a rejected non-fit. See [Surface Facet Parity](surface-facet-parity.md) for the current decision.
+CLI and HTTP parity are deferred. CLI should be evaluated as command-group consolidation, not as an MCP-style generic action tool. HTTP should be evaluated as route-group projection, OpenAPI organization, or a rejected non-fit. See [Trailhead Parity](surface-facet-parity.md) for the current decision.

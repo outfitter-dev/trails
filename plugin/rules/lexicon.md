@@ -13,7 +13,7 @@ Use Trails-branded terms consistently. These are non-negotiable in code, docs, a
 | `surface` | serve, mount, start, wire up |
 | `surface accommodation` | surface workaround, alternate behavior, generic route vocabulary |
 | `surface entry` | endpoint, route, action (when cross-surface) |
-| `approach` | route, path, facet (when cross-surface) |
+| `approach` | route, path, trailhead (when cross-surface) |
 | `resource` | provider, dependency, service |
 | `signal` | event, notification, message |
 | `layer` | gate, middleware |
@@ -24,7 +24,7 @@ Use Trails-branded terms consistently. These are non-negotiable in code, docs, a
 | `survey` | introspect, inspect, describe |
 | `guide` | docs, help, manual |
 | `adapter` | connector, bridge, transport shim |
-| `surface facet` | facet primitive, facet API, facet package |
+| `trailhead` | `facet` primitive, `facet` API, `facet` package |
 | `MCP resources` | Trails resources, dependencies, services (when referring to MCP protocol resources) |
 
 ## When Writing
@@ -36,7 +36,7 @@ Use Trails-branded terms consistently. These are non-negotiable in code, docs, a
 - Standard terms stay standard: `config`, `Result`, and `Error`.
 - `connector` is retired public taxonomy. Use `adapter` for a thin runtime-specific layer.
 - `resource` is a branded term: `resource()` defines a typed infrastructure dependency. Use `resources: [...]` on trail specs to declare dependencies. Do not use "resource" for generic helpers or utility classes.
-- `facet` is qualified projection vocabulary. Use `surface facet` for surface-side grouped projection and `schema facet` only as descriptive schema-slice prose. Do not invent a core `Facet` primitive, `facet()`, or adapter-kit facet config.
-- `surface accommodation` is the cross-surface family for aliases, input mappings, and surface facets. Use the ADR-0050 fork test before suggesting one.
+- `facet` is qualified projection vocabulary. Use `trailhead` for surface-side grouped projection and `schema facet` only as descriptive schema-slice prose. Do not invent a core `Facet` primitive, `facet()`, or adapter-kit `facet` config.
+- `surface accommodation` is the cross-surface family for aliases, input mappings, and trailheads. Use the ADR-0050 fork test before suggesting one.
 - `surface entry` and `approach` are named concepts, not necessarily authored primitives. Do not turn them into APIs unless the repo has already done so.
 - `MCP resources` are MCP protocol resources for cold context. Keep the qualifier when writing about `trails://surface-map` or example resources so they do not collide with Trails `resource()` declarations.

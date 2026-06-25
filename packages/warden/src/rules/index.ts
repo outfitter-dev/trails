@@ -77,6 +77,7 @@ export type {
   WardenFixCapability,
   WardenFixClass,
   WardenFixEdit,
+  WardenFixScanTargets,
   WardenFixSafety,
   WardenGuidance,
   WardenGuidanceLink,

@@ -2861,7 +2861,7 @@
           "fromPath": "docs/surfaces/cli.md"
         },
         {
-          "context": "Dense MCP surfaces can use surface facets to group related trails into fewer agent-facing tools while preserving the underlying trail contracts. Facets are surface accommodations on the entry axis: th",
+          "context": "Dense MCP surfaces can use trailheads to group related trails into fewer agent-facing tools while preserving the underlying trail contracts. Trailheads are surface accommodations on the entry axis: th",
           "from": "mcp",
           "fromPath": "docs/surfaces/mcp.md"
         },
@@ -2871,12 +2871,12 @@
           "fromPath": "docs/surfaces/surface-accommodations.md"
         },
         {
-          "context": "Use the surface-accommodation vocabulary from [ADR-0050](../adr/0050-surface-accommodations-preserve-trail-identity.md) when evaluating parity. Facets live on the entry axis: one grouped surface entry",
+          "context": "Use the surface-accommodation vocabulary from [ADR-0050](../adr/0050-surface-accommodations-preserve-trail-identity.md) when evaluating parity. Trailheads live on the entry axis: one grouped surface e",
           "from": "surface-facet-parity",
           "fromPath": "docs/surfaces/surface-facet-parity.md"
         },
         {
-          "context": "A facet is a surface accommodation on the entry axis: one grouped surface entry over several trails. It is not an alternate approach to one trail. Aliases and input mappings are N-to-1 accommodations ",
+          "context": "A trailhead is a surface accommodation on the entry axis: one grouped surface entry over several trails. It is not an alternate approach to one trail. Aliases and input mappings are N-to-1 accommodati",
           "from": "surface-facets",
           "fromPath": "docs/surfaces/surface-facets.md"
         }
