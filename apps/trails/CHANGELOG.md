@@ -1,5 +1,30 @@
 # trails
 
+## 1.0.0-beta.29
+
+### Patch Changes
+
+- 52425c5: Consolidate registry verdicts behind one shared `packageRegistry` classifier.
+
+  `apps/trails/src/release` now derives every package's registry state — `complete`, `needs-publish`, `first-time-package`, `needs-tag-repair`, `tag-points-ahead`, `registry-inaccessible` — from a single `classifyPackageRegistryState` function, fed by an exact-version probe (`npm view <name>@<version>`). The release policy engine and the registry preflight both consume it, so their verdicts can no longer drift, and the missing "is the target version actually published" fact is now first-class.
+
+  The preflight check is phase-aware: `publish:registry-check` (ready) treats an unpublished target or a behind dist-tag as expected pre-publish work rather than a failure, while `publish:registry-check:published` still requires every package to be fully published and tagged. This fixes the confusing failure seen when the repo is several releases ahead of the published `beta` tag. Exact-version probes run with bounded concurrency so release checks stay responsive. No publish or dist-tag mutation is performed.
+
+  - @ontrails/commander@1.0.0-beta.29
+  - @ontrails/adapter-kit@1.0.0-beta.29
+  - @ontrails/cli@1.0.0-beta.29
+  - @ontrails/config@1.0.0-beta.29
+  - @ontrails/core@1.0.0-beta.29
+  - @ontrails/http@1.0.0-beta.29
+  - @ontrails/mcp@1.0.0-beta.29
+  - @ontrails/observe@1.0.0-beta.29
+  - @ontrails/permits@1.0.0-beta.29
+  - @ontrails/regrade@1.0.0-beta.29
+  - @ontrails/topographer@1.0.0-beta.29
+  - @ontrails/tracing@1.0.0-beta.29
+  - @ontrails/warden@1.0.0-beta.29
+  - @ontrails/wayfinder@1.0.0-beta.29
+
 ## 1.0.0-beta.28
 
 ### Patch Changes

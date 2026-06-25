@@ -87,6 +87,7 @@
     "observability-migration-docs",
     "observability-v1-boundary",
     "openapi-http-home",
+    "packageregistry-classifier",
     "packed-warden-draft-prefix",
     "permits-connector-to-adapter",
     "permits-jwt-subpath-posture",
