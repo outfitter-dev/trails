@@ -3,9 +3,14 @@ import { describe, expect, test } from 'bun:test';
 import {
   checkRegistryPosture,
   classifyPackageRegistryState,
+  createNpmRegistryVersionView,
+  createNpmRegistryView,
+  parseNpmDistTagListOutput,
+  parseNpmPackDryRunPublishedVersion,
   registryPostureErrors,
 } from '../release/native-bun-registry.js';
 import type {
+  NpmCommandRunner,
   PackageRegistryFacts,
   RegistryResult,
   RegistryVersionView,
@@ -147,6 +152,15 @@ const tagAheadView: RegistryView = async (name) => ({
   version: '1.0.0-beta.29',
 });
 
+const packumentLagView: RegistryView = async (name) => ({
+  'dist-tags': {
+    beta: '1.0.0-beta.29',
+    latest: '1.0.0-beta.29',
+  },
+  name,
+  version: '1.0.0-beta.29',
+});
+
 const targetAbsent: RegistryVersionView = async () => false;
 const targetPublished: RegistryVersionView = async () => true;
 
@@ -222,6 +236,140 @@ describe('registryPostureErrors — phase behavior', () => {
     expect(registryPostureErrors(results, 'beta', 'ready')).toEqual([ahead]);
     expect(registryPostureErrors(results, 'beta', 'published')).toEqual([
       ahead,
+    ]);
+  });
+
+  test('first-time package packument lag can still prove the published target', async () => {
+    const results = await checkRegistryPosture(
+      [
+        {
+          name: '@ontrails/regrade',
+          path: 'packages/regrade',
+          version: '1.0.0-beta.29',
+        },
+      ],
+      packumentLagView,
+      targetPublished,
+      'beta'
+    );
+
+    expect(registryPostureErrors(results, 'beta', 'published')).toEqual([]);
+  });
+});
+
+describe('npm registry fallback parsers', () => {
+  test('parses npm dist-tag ls output into dist-tag facts', () => {
+    expect(
+      parseNpmDistTagListOutput('beta: 1.0.0-beta.29\nlatest: 1.0.0-beta.29\n')
+    ).toEqual({
+      beta: '1.0.0-beta.29',
+      latest: '1.0.0-beta.29',
+    });
+  });
+
+  test('recognizes an npm pack dry-run tarball as exact-version proof', () => {
+    expect(
+      parseNpmPackDryRunPublishedVersion(
+        JSON.stringify([
+          {
+            id: '@ontrails/regrade@1.0.0-beta.29',
+            name: '@ontrails/regrade',
+            version: '1.0.0-beta.29',
+          },
+        ]),
+        '@ontrails/regrade',
+        '1.0.0-beta.29'
+      )
+    ).toBe(true);
+    expect(
+      parseNpmPackDryRunPublishedVersion(
+        JSON.stringify([
+          {
+            id: '@ontrails/regrade@1.0.0-beta.28',
+            name: '@ontrails/regrade',
+            version: '1.0.0-beta.28',
+          },
+        ]),
+        '@ontrails/regrade',
+        '1.0.0-beta.29'
+      )
+    ).toBe(false);
+  });
+});
+
+describe('npm registry fallback wiring', () => {
+  const notFoundResult = {
+    exitCode: 1,
+    stderr:
+      'npm ERR! 404 Not Found - GET https://registry.npmjs.org/@ontrails%2fregrade - Not found',
+    stdout: '',
+  };
+
+  test('falls back from npm view package 404 to npm dist-tag facts', async () => {
+    const commands: string[][] = [];
+    const runNpm: NpmCommandRunner = async (args) => {
+      commands.push([...args]);
+      if (args[0] === 'view') {
+        return notFoundResult;
+      }
+      if (args.join(' ') === 'dist-tag ls @ontrails/regrade') {
+        return {
+          exitCode: 0,
+          stderr: '',
+          stdout: 'beta: 1.0.0-beta.29\nlatest: 1.0.0-beta.29\n',
+        };
+      }
+      throw new Error(`unexpected npm command: ${args.join(' ')}`);
+    };
+
+    await expect(
+      createNpmRegistryView(runNpm)('@ontrails/regrade')
+    ).resolves.toEqual({
+      'dist-tags': {
+        beta: '1.0.0-beta.29',
+        latest: '1.0.0-beta.29',
+      },
+      name: '@ontrails/regrade',
+      version: '1.0.0-beta.29',
+    });
+    expect(commands).toEqual([
+      ['view', '@ontrails/regrade', 'name', 'version', 'dist-tags', '--json'],
+      ['dist-tag', 'ls', '@ontrails/regrade'],
+    ]);
+  });
+
+  test('falls back from npm view exact-version 404 to npm pack proof', async () => {
+    const commands: string[][] = [];
+    const runNpm: NpmCommandRunner = async (args) => {
+      commands.push([...args]);
+      if (args[0] === 'view') {
+        return notFoundResult;
+      }
+      if (
+        args.join(' ') ===
+        'pack @ontrails/regrade@1.0.0-beta.29 --dry-run --json'
+      ) {
+        return {
+          exitCode: 0,
+          stderr: '',
+          stdout: JSON.stringify([
+            {
+              id: '@ontrails/regrade@1.0.0-beta.29',
+              name: '@ontrails/regrade',
+              version: '1.0.0-beta.29',
+            },
+          ]),
+        };
+      }
+      throw new Error(`unexpected npm command: ${args.join(' ')}`);
+    };
+
+    await expect(
+      createNpmRegistryVersionView(runNpm)('@ontrails/regrade', '1.0.0-beta.29')
+    ).resolves.toBe(true);
+    expect(commands).toEqual([
+      ['view', '@ontrails/regrade@1.0.0-beta.29', 'version', '--json'],
+      ['pack', '@ontrails/regrade@1.0.0-beta.29', '--dry-run', '--json'],
     ]);
   });
 });

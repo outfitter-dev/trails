@@ -304,26 +304,131 @@ export const discoverRegistryWorkspaces = async (
 
 export type RegistryView = (name: string) => Promise<NpmView | null>;
 
-export const npmRegistryView: RegistryView = async (name) => {
-  const proc = Bun.spawn(
-    ['npm', 'view', name, 'name', 'version', 'dist-tags', '--json'],
-    { stderr: 'pipe', stdin: 'ignore', stdout: 'pipe' }
-  );
+export interface NpmCommandResult {
+  readonly exitCode: number;
+  readonly stderr: string;
+  readonly stdout: string;
+}
+
+export type NpmCommandRunner = (
+  args: readonly string[]
+) => Promise<NpmCommandResult>;
+
+const readSpawnResult = async (
+  proc: Bun.Subprocess<'ignore', 'pipe', 'pipe'>
+): Promise<NpmCommandResult> => {
   const [stdout, stderr, exitCode] = await Promise.all([
     new Response(proc.stdout).text(),
     new Response(proc.stderr).text(),
     proc.exited,
   ]);
+  return { exitCode, stderr, stdout };
+};
 
-  if (exitCode === 0) {
-    return JSON.parse(stdout) as NpmView;
-  }
+const runNpmCommand: NpmCommandRunner = async (args) =>
+  readSpawnResult(
+    Bun.spawn(['npm', ...args], {
+      stderr: 'pipe',
+      stdin: 'ignore',
+      stdout: 'pipe',
+    })
+  );
+
+const isNpmNotFoundOutput = (stdout: string, stderr: string): boolean => {
   const combined = `${stdout}\n${stderr}`;
-  if (combined.includes('E404') || combined.includes('404 Not Found')) {
+  return combined.includes('E404') || combined.includes('404 Not Found');
+};
+
+export const parseNpmDistTagListOutput = (
+  stdout: string
+): Record<string, string> => {
+  const distTags: Record<string, string> = {};
+  for (const line of stdout.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (trimmed.length === 0) {
+      continue;
+    }
+    const separator = trimmed.indexOf(':');
+    if (separator < 1) {
+      continue;
+    }
+    const tag = trimmed.slice(0, separator).trim();
+    const version = trimmed.slice(separator + 1).trim();
+    if (tag.length > 0 && version.length > 0) {
+      distTags[tag] = version;
+    }
+  }
+  return distTags;
+};
+
+export const parseNpmPackDryRunPublishedVersion = (
+  stdout: string,
+  name: string,
+  version: string
+): boolean => {
+  const parsed = JSON.parse(stdout.trim()) as unknown;
+  if (!Array.isArray(parsed)) {
+    return false;
+  }
+  return parsed.some((entry) => {
+    if (typeof entry !== 'object' || entry === null) {
+      return false;
+    }
+    const candidate = entry as {
+      readonly id?: unknown;
+      readonly name?: unknown;
+      readonly version?: unknown;
+    };
+    return (
+      candidate.id === `${name}@${version}` ||
+      (candidate.name === name && candidate.version === version)
+    );
+  });
+};
+
+const npmDistTagRegistryView = async (
+  name: string,
+  runNpm: NpmCommandRunner
+): Promise<NpmView | null> => {
+  const { exitCode, stderr, stdout } = await runNpm(['dist-tag', 'ls', name]);
+  if (exitCode !== 0) {
+    if (isNpmNotFoundOutput(stdout, stderr)) {
+      return null;
+    }
+    throw new Error(stderr.trim() || `npm dist-tag ls failed for ${name}`);
+  }
+
+  const distTags = parseNpmDistTagListOutput(stdout);
+  const version =
+    distTags['latest'] ?? distTags['beta'] ?? Object.values(distTags)[0];
+  if (version === undefined) {
     return null;
   }
-  throw new Error(stderr.trim() || `npm view failed for ${name}`);
+  return { 'dist-tags': distTags, name, version };
 };
+
+export const createNpmRegistryView =
+  (runNpm: NpmCommandRunner = runNpmCommand): RegistryView =>
+  async (name) => {
+    const { exitCode, stderr, stdout } = await runNpm([
+      'view',
+      name,
+      'name',
+      'version',
+      'dist-tags',
+      '--json',
+    ]);
+
+    if (exitCode === 0) {
+      return JSON.parse(stdout) as NpmView;
+    }
+    if (isNpmNotFoundOutput(stdout, stderr)) {
+      return npmDistTagRegistryView(name, runNpm);
+    }
+    throw new Error(stderr.trim() || `npm view failed for ${name}`);
+  };
+
+export const npmRegistryView: RegistryView = createNpmRegistryView();
 
 /** Probe whether an exact `name@version` is published. The missing fact that
  * a tag/version summary alone cannot answer. */
@@ -336,29 +441,48 @@ const UNKNOWN_REGISTRY_VERSION_STATE: { readonly published?: boolean } = {};
 const unknownRegistryVersionView: RegistryVersionView = async () =>
   UNKNOWN_REGISTRY_VERSION_STATE.published;
 
-export const npmRegistryVersionView: RegistryVersionView = async (
-  name,
-  version
-) => {
-  const proc = Bun.spawn(
-    ['npm', 'view', `${name}@${version}`, 'version', '--json'],
-    { stderr: 'pipe', stdin: 'ignore', stdout: 'pipe' }
-  );
-  const [stdout, stderr, exitCode] = await Promise.all([
-    new Response(proc.stdout).text(),
-    new Response(proc.stderr).text(),
-    proc.exited,
-  ]);
+export const createNpmRegistryVersionView =
+  (runNpm: NpmCommandRunner = runNpmCommand): RegistryVersionView =>
+  async (name, version) => {
+    const { exitCode, stderr, stdout } = await runNpm([
+      'view',
+      `${name}@${version}`,
+      'version',
+      '--json',
+    ]);
 
-  if (exitCode === 0) {
-    return JSON.parse(stdout.trim()) === version;
-  }
-  const combined = `${stdout}\n${stderr}`;
-  if (combined.includes('E404') || combined.includes('404 Not Found')) {
-    return false;
-  }
-  throw new Error(stderr.trim() || `npm view failed for ${name}@${version}`);
-};
+    if (exitCode === 0) {
+      return JSON.parse(stdout.trim()) === version;
+    }
+    if (!isNpmNotFoundOutput(stdout, stderr)) {
+      throw new Error(
+        stderr.trim() || `npm view failed for ${name}@${version}`
+      );
+    }
+
+    const packResult = await runNpm([
+      'pack',
+      `${name}@${version}`,
+      '--dry-run',
+      '--json',
+    ]);
+    if (packResult.exitCode === 0) {
+      return parseNpmPackDryRunPublishedVersion(
+        packResult.stdout,
+        name,
+        version
+      );
+    }
+    if (isNpmNotFoundOutput(packResult.stdout, packResult.stderr)) {
+      return false;
+    }
+    throw new Error(
+      packResult.stderr.trim() || `npm pack failed for ${name}@${version}`
+    );
+  };
+
+export const npmRegistryVersionView: RegistryVersionView =
+  createNpmRegistryVersionView();
 
 /** Run async tasks with a bounded number in flight, preserving input order. */
 const mapBounded = async <T, R>(
