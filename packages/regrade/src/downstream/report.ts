@@ -19,6 +19,8 @@ import {
   collectDownstreamSources,
 } from './collect.js';
 import type { DownstreamCollectionOptions, SkippedSource } from './collect.js';
+import type { VocabularyRegradeRun } from './vocabulary.js';
+import { vocabularyRegradeRunOutput } from './vocabulary.js';
 
 /**
  * Regrade-class selection and coverage reporting (TRL-845).
@@ -576,6 +578,8 @@ export interface RegradeReport {
   readonly entries: readonly RegradeReportEntry[];
   /** Apply-mode summary; absent for dry-run report-only calls. */
   readonly apply?: RegradeApplySummary;
+  /** Vocabulary regrade run: plan, ledger, and completion report. */
+  readonly run?: VocabularyRegradeRun;
 }
 
 interface RegradeRewriteCandidate {
@@ -1022,6 +1026,9 @@ export const regradeReportOutput = z.object({
   review: z.number().describe('Files routed to review'),
   rewritten: z.number().describe('Files with a rewrite outcome'),
   root: z.string().describe('Root the run scanned'),
+  run: vocabularyRegradeRunOutput
+    .optional()
+    .describe('Vocabulary regrade run: plan, ledger, and completion report'),
   scanned: z.number().describe('Source files inspected'),
   selectedClassIds: z.array(z.string()).describe('Class ids executed'),
   skipped: z.number().describe('Entries skipped'),

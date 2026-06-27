@@ -13,6 +13,11 @@ export {
   selectRegradeClasses,
   wardenTermRewriteClasses,
 } from './downstream/report.js';
+export {
+  runVocabularyRegrade,
+  vocabularyRegradePlanSchema,
+  vocabularyRegradeRunOutput,
+} from './downstream/vocabulary.js';
 export type {
   RegradeApplySummary,
   RegradeClass,
@@ -27,6 +32,17 @@ export type {
   RegradeSelection,
   RegradeWardenClassSet,
 } from './downstream/report.js';
+export type {
+  VocabularyOccurrence,
+  VocabularyPreserveRule,
+  VocabularyRegradePlan,
+  VocabularyRegradeScope,
+  VocabularyRegradeRun,
+  VocabularyRunGate,
+  VocabularyRunLedger,
+  VocabularyRunReport,
+  VocabularyVerdict,
+} from './downstream/vocabulary.js';
 export {
   createAstIdentifierRenameClass,
   createAstRewriteClass,

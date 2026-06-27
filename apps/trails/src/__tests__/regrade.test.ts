@@ -9,13 +9,70 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { operatorApp } from '../app.js';
 import { regradeTrail } from '../trails/regrade.js';
 
 const makeTempDir = (): string =>
   mkdtempSync(join(tmpdir(), `trails-regrade-test-${Date.now()}-`));
+
+const repoRoot = fileURLToPath(new URL('../../../..', import.meta.url));
+const trailsBinPath = fileURLToPath(
+  new URL('../../bin/trails.ts', import.meta.url)
+);
+const cliTimeoutMs = 30_000;
+
+interface RawCliRun {
+  readonly exitCode: number;
+  readonly stderr: string;
+  readonly stdout: string;
+}
+
+const runRawCli = (
+  args: readonly string[],
+  cwd: string = repoRoot
+): RawCliRun => {
+  const command = [process.execPath, trailsBinPath, ...args];
+  const proc = Bun.spawnSync({
+    cmd: command,
+    cwd,
+    env: { ...process.env, NO_COLOR: '1' } as Record<string, string>,
+    stderr: 'pipe',
+    stdout: 'pipe',
+    timeout: cliTimeoutMs,
+  });
+  const stdout = proc.stdout.toString();
+  const stderr = proc.stderr.toString();
+  const signalCode = proc.signalCode ?? undefined;
+  if (proc.exitedDueToTimeout || signalCode !== undefined) {
+    throw new Error(
+      [
+        `Regrade CLI subprocess ${proc.exitedDueToTimeout ? 'timed out' : 'terminated'} before producing output.`,
+        `command: ${command.join(' ')}`,
+        `cwd: ${cwd}`,
+        ...(proc.exitedDueToTimeout ? [`timeoutMs: ${cliTimeoutMs}`] : []),
+        `exitCode: ${proc.exitCode ?? 'null'}`,
+        `signal: ${signalCode ?? 'null'}`,
+        `stdout: ${stdout}`,
+        `stderr: ${stderr}`,
+      ].join('\n')
+    );
+  }
+
+  return {
+    exitCode: proc.exitCode ?? -1,
+    stderr,
+    stdout,
+  };
+};
+
+const writeFile = (root: string, path: string, value: string): void => {
+  const filePath = join(root, path);
+  mkdirSync(dirname(filePath), { recursive: true });
+  writeFileSync(filePath, value);
+};
 
 const unwrapCommands = () => {
   const result = deriveCliCommands(operatorApp);
@@ -34,7 +91,229 @@ describe('trails regrade', () => {
 
     expect(command).toBeDefined();
     expect(command?.path).toEqual(['regrade']);
+    expect(command?.args.map((arg) => arg.name).slice(0, 2)).toEqual([
+      'from',
+      'to',
+    ]);
     expect(command?.trail.intent).toBe('write');
+  });
+
+  test('dry-runs vocabulary regrades with an occurrence-level ledger', async () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(
+        dir,
+        'src/surface.ts',
+        [
+          'export const facet = "facet";',
+          'export const facetId = facet;',
+          'export const facets = ["inspect"];',
+          '',
+        ].join('\n')
+      );
+
+      const result = await regradeTrail.blaze(
+        {
+          from: 'facet',
+          include: ['src/**/*.ts'],
+          rootDir: dir,
+          to: 'trailhead',
+        },
+        { cwd: dir, env: {} } as never
+      );
+
+      expect(result.isOk()).toBe(true);
+      if (result.isErr()) {
+        throw result.error;
+      }
+      expect(result.value.run?.plan).toMatchObject({
+        from: 'facet',
+        kind: 'vocabulary',
+        to: 'trailhead',
+      });
+      expect(result.value.run?.ledger.forms).toEqual({
+        facet: 'modified',
+        facetId: 'deferred',
+        facets: 'modified',
+      });
+      expect(
+        result.value.run?.ledger.occurrences.map((occurrence) => ({
+          form: occurrence.form,
+          replacement: occurrence.replacement,
+          verdict: occurrence.verdict,
+        }))
+      ).toEqual([
+        { form: 'facet', replacement: 'trailhead', verdict: 'modified' },
+        { form: 'facet', replacement: 'trailhead', verdict: 'modified' },
+        { form: 'facet', replacement: 'trailhead', verdict: 'modified' },
+        { form: 'facets', replacement: 'trailheads', verdict: 'modified' },
+        { form: 'facetId', replacement: undefined, verdict: 'deferred' },
+      ]);
+      expect(result.value.run?.report).toMatchObject({
+        applied: 0,
+        deferred: 1,
+        gate: {
+          reasons: [
+            'safe-modifications-not-yet-applied',
+            'deferred-forms-or-occurrences',
+          ],
+          remaining: 5,
+          status: 'open',
+        },
+        modified: 4,
+        open: 5,
+        skipped: 0,
+      });
+      expect(readFileSync(join(dir, 'src', 'surface.ts'), 'utf8')).toContain(
+        'facet'
+      );
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('apply mode writes safe vocabulary regrades but keeps review inventory open', async () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(
+        dir,
+        'docs/surface.md',
+        'Facet docs mention facet and facets.\n'
+      );
+      writeFile(
+        dir,
+        'src/surface.ts',
+        'export const facetId = "manual";\nexport const facet = "facet";\n'
+      );
+
+      const result = await regradeTrail.blaze(
+        {
+          apply: true,
+          extensions: ['.md', '.ts'],
+          from: 'facet',
+          rootDir: dir,
+          to: 'trailhead',
+        },
+        { cwd: dir, env: {} } as never
+      );
+
+      expect(result.isOk()).toBe(true);
+      if (result.isErr()) {
+        throw result.error;
+      }
+      expect(result.value.apply).toMatchObject({
+        applied: 5,
+        filesChanged: 2,
+        review: 1,
+      });
+      expect(result.value.run?.report).toMatchObject({
+        applied: 5,
+        deferred: 1,
+        gate: {
+          reasons: ['deferred-forms-or-occurrences'],
+          remaining: 1,
+          status: 'open',
+        },
+        modified: 0,
+        open: 1,
+      });
+      expect(readFileSync(join(dir, 'docs', 'surface.md'), 'utf8')).toBe(
+        'Trailhead docs mention trailhead and trailheads.\n'
+      );
+      expect(readFileSync(join(dir, 'src', 'surface.ts'), 'utf8')).toContain(
+        'facetId'
+      );
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('CLI accepts regrade source and target as positional arguments', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(dir, 'src/surface.ts', 'export const facet = "facet";\n');
+
+      const result = runRawCli([
+        'regrade',
+        'facet',
+        'trailhead',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+
+      expect(result.exitCode).toBe(0);
+      const parsed = JSON.parse(result.stdout) as {
+        readonly run?: {
+          readonly plan?: { readonly from?: string; readonly to?: string };
+          readonly report?: {
+            readonly modified?: number;
+            readonly open?: number;
+          };
+        };
+      };
+      expect(parsed.run?.plan).toMatchObject({
+        from: 'facet',
+        to: 'trailhead',
+      });
+      expect(parsed.run?.report?.modified).toBe(2);
+      expect(parsed.run?.report?.open).toBe(2);
+      expect(readFileSync(join(dir, 'src', 'surface.ts'), 'utf8')).toContain(
+        'facet'
+      );
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('rejects vocabulary-only inputs without a source and target', async () => {
+    const dir = makeTempDir();
+    try {
+      const result = await regradeTrail.blaze(
+        { include: ['src/**/*.ts'], rootDir: dir },
+        { cwd: dir, env: {} } as never
+      );
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error.constructor.name).toBe('ValidationError');
+        expect(result.error.message).toContain('requires both `from` and `to`');
+      }
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('CLI rejects vocabulary-only inputs without a source and target', () => {
+    const dir = makeTempDir();
+    try {
+      const result = runRawCli([
+        'regrade',
+        '--include',
+        'src/**/*.ts',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+
+      expect(result.exitCode).toBe(1);
+      const parsed = JSON.parse(result.stderr) as {
+        readonly error?: {
+          readonly category?: string;
+          readonly message?: string;
+          readonly name?: string;
+        };
+        readonly ok?: boolean;
+      };
+      expect(parsed.ok).toBe(false);
+      expect(parsed.error).toMatchObject({
+        category: 'validation',
+        name: 'ValidationError',
+      });
+      expect(parsed.error?.message).toContain('requires both `from` and `to`');
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
   });
 
   test('dry-runs safe downstream rewrites by default', async () => {

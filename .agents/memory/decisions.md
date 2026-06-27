@@ -198,3 +198,13 @@ Merit aside: a *gate* is a point (binary allow/deny on a path); the job is a *br
 **Basis:** Gate-on-demonstrated-need applied to vocabulary; tenets "add with intent" + the evaluation hierarchy (codify after the pattern recurs in shipped code). Lewis's discipline.
 
 **Confidence:** High. Low cost to defer; reversible.
+
+### 2026-06-27 Regrade verdict vocabulary: `modified` / `skipped` / `deferred`
+
+**Question:** What are the regrade verdict words, and do the form (triage) and occurrence (resolution) levels share them?
+
+**Decision:** One verdict triple at **both** levels — verbs `modify` / `skip` / `defer`, stored states **`modified` / `skipped` / `deferred`**. The rollup over everything still `deferred` is **`open`** (retires the generic `review`). `preserve` survives only as an authored plan rule (a `preserve` match makes a use come out `skipped`); `capture` / `ignore` / `uncertain` / `review` retired as verdict words.
+
+**Basis (principles):** (1) name the level by the *record* (form vs occurrence), not the word, so the triple can be shared; (2) full-symmetric or full-distinct, never messy-partial (the old `preserve`-at-both-but-not-the-rest was the bug); (3) verdicts name the thing's resolved *state* (participles), which makes the set uniform and dissolves `pending`'s odd-one-out problem; (4) agent-native — the defer goes to a *judge* (agent first), so "needs judgment," not "needs human"; (5) a defer is an active decision (route to the judge), so `deferred`, not `pending`. Word calls: `modify` over `rename` (too narrow) and `update` (CRUD collision); `skip` over `keep` (fate-framing); `open` over `review` (agent-neutral, parallels the gate).
+
+**Confidence:** High. Full rationale: `.agents/notes/2026-06-27-regrade-verdict-vocabulary.md`; reflected in `.agents/notes/2026-06-26-regrade.md`. PR #831 was amended before merge so the new vocabulary regrade `run` contract uses this verdict set and a per-form triage map; the generic class-mode report keeps its existing `rewrite` / `needs-review` outcomes for compatibility.
