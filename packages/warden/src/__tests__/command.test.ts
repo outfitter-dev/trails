@@ -15,6 +15,9 @@ import { parseWardenCommandArgs, runWardenCommand } from '../command.js';
 const makeTempDir = (): string =>
   mkdtempSync(join(tmpdir(), 'warden-command-'));
 
+const unsafeDevPermitScript = (): string =>
+  `trails run dangerous --dev${'-permit'}\n`;
+
 describe('parseWardenCommandArgs', () => {
   test('expands presets and generic CLI value aliases', () => {
     const parsed = parseWardenCommandArgs([
@@ -23,6 +26,10 @@ describe('parseWardenCommandArgs', () => {
       '--strict',
       '--cached',
       '--exclude-drafts',
+      '--jurisdiction-ignore',
+      '.agents/notes/**,.scratch/**',
+      '--jurisdiction-ignore',
+      'tmp/**',
       '-a',
       'trails,admin',
       '--no-lock-mutation',
@@ -35,6 +42,9 @@ describe('parseWardenCommandArgs', () => {
       drafts: 'exclude',
       failOn: 'warning',
       format: 'json',
+      jurisdiction: {
+        ignore: ['.agents/notes/**', '.scratch/**', 'tmp/**'],
+      },
       lock: 'cached',
       noLockMutation: true,
     });
@@ -273,6 +283,94 @@ describe('runWardenCommand', () => {
         depth: 'source',
         lock: 'skip',
       });
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('applies Warden jurisdiction ignores from project config', async () => {
+    const dir = makeTempDir();
+    try {
+      mkdirSync(join(dir, '.agents', 'notes'), { recursive: true });
+      mkdirSync(join(dir, '.agents', 'skills', 'demo'), { recursive: true });
+      writeFileSync(
+        join(dir, 'trails.config.json'),
+        `${JSON.stringify({
+          warden: {
+            depth: 'source',
+            jurisdiction: { ignore: ['.agents/notes/**'] },
+            lock: 'skip',
+          },
+        })}\n`
+      );
+      writeFileSync(
+        join(dir, '.agents', 'notes', 'scratch.sh'),
+        unsafeDevPermitScript()
+      );
+      writeFileSync(
+        join(dir, '.agents', 'skills', 'demo', 'SKILL.sh'),
+        unsafeDevPermitScript()
+      );
+
+      const result = await runWardenCommand({
+        args: ['--format', 'json'],
+        cwd: dir,
+        env: {},
+      });
+
+      const diagnosticPaths = result.report.diagnostics.map(
+        (diagnostic) => diagnostic.filePath
+      );
+      expect(diagnosticPaths).not.toContain(
+        join(dir, '.agents', 'notes', 'scratch.sh')
+      );
+      expect(diagnosticPaths).toContain(
+        join(dir, '.agents', 'skills', 'demo', 'SKILL.sh')
+      );
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('lets CLI jurisdiction ignores override project config', async () => {
+    const dir = makeTempDir();
+    try {
+      mkdirSync(join(dir, '.agents', 'notes'), { recursive: true });
+      mkdirSync(join(dir, '.agents', 'skills', 'demo'), { recursive: true });
+      writeFileSync(
+        join(dir, 'trails.config.json'),
+        `${JSON.stringify({
+          warden: {
+            depth: 'source',
+            jurisdiction: { ignore: ['.agents/skills/**'] },
+            lock: 'skip',
+          },
+        })}\n`
+      );
+      writeFileSync(
+        join(dir, '.agents', 'notes', 'scratch.sh'),
+        unsafeDevPermitScript()
+      );
+      writeFileSync(
+        join(dir, '.agents', 'skills', 'demo', 'SKILL.sh'),
+        unsafeDevPermitScript()
+      );
+
+      const result = await runWardenCommand({
+        args: ['--format', 'json', '--jurisdiction-ignore', '.agents/notes/**'],
+        cwd: dir,
+        env: {},
+      });
+
+      const diagnosticPaths = result.report.diagnostics.map(
+        (diagnostic) => diagnostic.filePath
+      );
+      expect(diagnosticPaths).not.toContain(
+        join(dir, '.agents', 'notes', 'scratch.sh')
+      );
+      expect(diagnosticPaths).toContain(
+        join(dir, '.agents', 'skills', 'demo', 'SKILL.sh')
+      );
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }

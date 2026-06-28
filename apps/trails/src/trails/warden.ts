@@ -57,6 +57,10 @@ const wardenInputSchema = z.object({
     .default(false)
     .describe('Alias for --drafts include'),
   json: z.boolean().default(false).describe('Alias for --format json'),
+  jurisdictionIgnore: z
+    .array(z.string())
+    .optional()
+    .describe('Root-relative path globs that Warden should not govern'),
   lock: z.enum(wardenLockValues).optional().describe('Lockfile mode'),
   noLockMutation: z
     .boolean()
@@ -106,6 +110,16 @@ const pushApps = (
   }
 };
 
+const pushRepeatedValues = (
+  args: string[],
+  flag: string,
+  values: readonly string[] | undefined
+): void => {
+  for (const value of values ?? []) {
+    args.push(flag, value);
+  }
+};
+
 export const buildWardenCommandArgs = (
   input: WardenTrailInput
 ): readonly string[] => {
@@ -150,6 +164,7 @@ export const buildWardenCommandArgs = (
   pushFlag(args, input.fix, '--fix');
   pushFlag(args, input.adapterCheck, '--adapter-check');
   pushValue(args, '--config-path', input.configPath);
+  pushRepeatedValues(args, '--jurisdiction-ignore', input.jurisdictionIgnore);
   pushApps(args, input.apps);
 
   return args;

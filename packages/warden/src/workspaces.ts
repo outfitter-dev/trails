@@ -3,7 +3,9 @@
  */
 
 import { existsSync, readdirSync, readFileSync, realpathSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join, relative, resolve } from 'node:path';
+
+import { matchesAnyPathPattern } from './path-scope.js';
 
 export interface WardenPublicWorkspace {
   readonly name: string;
@@ -13,6 +15,10 @@ export interface WardenPublicWorkspace {
   readonly bin?: Readonly<Record<string, string>> | undefined;
   readonly exportTargets?: Readonly<Record<string, string>> | undefined;
   readonly files?: readonly string[] | undefined;
+}
+
+export interface WardenWorkspaceCollectionOptions {
+  readonly ignore?: readonly string[];
 }
 
 interface RootManifest {
@@ -36,6 +42,9 @@ const normalizeRealPath = (path: string): string => {
     return normalizePath(resolve(path));
   }
 };
+
+const rootRelativePath = (rootDir: string, path: string): string =>
+  normalizePath(relative(rootDir, path));
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   Boolean(value && typeof value === 'object' && !Array.isArray(value));
@@ -208,7 +217,8 @@ const publicWorkspaceFromManifest = (
 };
 
 export const collectPublicWorkspaces = (
-  rootDir: string
+  rootDir: string,
+  options: WardenWorkspaceCollectionOptions = {}
 ): ReadonlyMap<string, WardenPublicWorkspace> => {
   const normalizedRoot = normalizeRealPath(rootDir);
   const rootManifest = readJson<RootManifest>(
@@ -228,7 +238,17 @@ export const collectPublicWorkspaces = (
       }
 
       const workspace = publicWorkspaceFromManifest(packageJsonPath, manifest);
-      if (workspace) {
+      if (
+        workspace &&
+        !matchesAnyPathPattern(
+          rootRelativePath(normalizedRoot, workspace.rootDir),
+          options.ignore ?? []
+        ) &&
+        !matchesAnyPathPattern(
+          rootRelativePath(normalizedRoot, workspace.packageJsonPath),
+          options.ignore ?? []
+        )
+      ) {
         workspaces.set(workspace.name, workspace);
       }
     }

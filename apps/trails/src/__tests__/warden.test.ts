@@ -200,6 +200,7 @@ describe('trails warden', () => {
       github: true,
       includeDrafts: false,
       json: false,
+      jurisdictionIgnore: ['.agents/notes/**', '.scratch/**'],
       lock: 'auto',
       noLockMutation: true,
       onlyDrafts: false,
@@ -221,6 +222,10 @@ describe('trails warden', () => {
       '--no-lock-mutation',
       '--fix',
       '--adapter-check',
+      '--jurisdiction-ignore',
+      '.agents/notes/**',
+      '--jurisdiction-ignore',
+      '.scratch/**',
       '--apps',
       'trails,demo',
     ]);
@@ -353,6 +358,42 @@ describe('trails warden', () => {
     );
   });
 
+  test('trails warden forwards jurisdiction ignore value flags', () => {
+    const dir = makeTempDir();
+    try {
+      mkdirSync(join(dir, '.agents', 'notes'), { recursive: true });
+      writeFileSync(
+        join(dir, '.agents', 'notes', 'ignored.ts'),
+        `export const flag = '--dev${'-permit'}';\n`
+      );
+
+      const raw = runCli(
+        trailsBinPath,
+        [
+          'warden',
+          '--depth',
+          'source',
+          '--lock',
+          'skip',
+          '--json',
+          '--root-dir',
+          dir,
+          '--jurisdiction-ignore',
+          '.agents/notes/**',
+        ],
+        repoRoot
+      );
+
+      expect(raw.exitCode).toBe(0);
+      expect(raw.json).toMatchObject({
+        passed: true,
+        summary: { errors: 0 },
+      });
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
   test('standalone Warden bin shows help without running checks', () => {
     const raw = runRawCli(wardenBinPath, ['--help'], repoRoot);
 
@@ -362,6 +403,7 @@ describe('trails warden', () => {
     expect(raw.stdout).toContain('--depth <value>');
     expect(raw.stdout).toContain('--fix');
     expect(raw.stdout).toContain('--adapter-check');
+    expect(raw.stdout).toContain('--jurisdiction-ignore <glob>');
     expect(raw.stdout).not.toContain('Warden Report');
   });
 

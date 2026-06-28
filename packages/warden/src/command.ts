@@ -26,6 +26,7 @@ import type {
   WardenDraftsMode,
   WardenFailOn,
   WardenFormat,
+  WardenJurisdiction,
   WardenLockMode,
 } from './config.js';
 import {
@@ -57,6 +58,7 @@ interface MutableWardenConfigLayer {
   drafts?: WardenDraftsMode | undefined;
   failOn?: WardenFailOn | undefined;
   format?: WardenFormat | undefined;
+  jurisdiction?: WardenJurisdiction | undefined;
   lock?: WardenLockMode | undefined;
   noLockMutation?: boolean | undefined;
 }
@@ -90,6 +92,12 @@ const cleanUndefined = <T extends Record<string, unknown>>(
   ) as Partial<T>;
 
 const splitApps = (value: string): readonly string[] =>
+  value
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0);
+
+const splitCommaDelimitedValues = (value: string): readonly string[] =>
   value
     .split(',')
     .map((entry) => entry.trim())
@@ -244,6 +252,7 @@ const parseTokens = (
         'fail-on': { type: 'string' },
         fix: { type: 'boolean' },
         format: { type: 'string' },
+        'jurisdiction-ignore': { multiple: true, type: 'string' },
         lock: { type: 'string' },
         'no-lock-mutation': { type: 'boolean' },
         'pre-push': { type: 'boolean' },
@@ -395,6 +404,19 @@ const applyCommandOption = (
   }
   if (token.name === 'config-path') {
     state.configPath = value;
+    return;
+  }
+  if (token.name === 'jurisdiction-ignore') {
+    if (value === undefined) {
+      state.diagnostics.push(
+        diagnostic({ message: '--jurisdiction-ignore requires a path glob.' })
+      );
+      return;
+    }
+    const existing = state.cli.jurisdiction?.ignore ?? [];
+    state.cli.jurisdiction = {
+      ignore: [...existing, ...splitCommaDelimitedValues(value)],
+    };
     return;
   }
   if (token.name === 'fix') {
@@ -818,6 +840,7 @@ const buildRunOptions = ({
     failOn: cli.failOn,
     fix,
     format: cli.format,
+    jurisdiction: cli.jurisdiction,
     lock: cli.lock,
     noLockMutation: cli.noLockMutation,
     rootDir,

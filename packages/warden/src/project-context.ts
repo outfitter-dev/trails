@@ -81,16 +81,42 @@ const exportAliasesForWorkspaces = (
   return aliases;
 };
 
+const resolveOptionsWithWorkspaceAliases = (
+  publicWorkspaces: ReadonlyMap<string, WardenPublicWorkspace> | undefined,
+  resolveOptions: WardenResolverOptions['resolveOptions'] | undefined
+): WardenResolverOptions['resolveOptions'] => {
+  if (!publicWorkspaces) {
+    return resolveOptions;
+  }
+
+  const workspaceAliases = exportAliasesForWorkspaces(publicWorkspaces);
+  return {
+    ...resolveOptions,
+    alias: {
+      ...workspaceAliases,
+      ...resolveOptions?.alias,
+    },
+  };
+};
+
 export const collectProjectImportResolutions = ({
+  publicWorkspaces,
   resolveOptions,
   rootDir,
   sourceFiles,
 }: {
+  readonly publicWorkspaces?: ReadonlyMap<string, WardenPublicWorkspace>;
   readonly resolveOptions?: WardenResolverOptions['resolveOptions'];
   readonly rootDir: string;
   readonly sourceFiles: readonly WardenProjectContextSourceFile[];
 }): ReadonlyMap<string, readonly WardenImportResolution[]> => {
-  const resolver = createWardenResolver({ resolveOptions, rootDir });
+  const resolver = createWardenResolver({
+    resolveOptions: resolveOptionsWithWorkspaceAliases(
+      publicWorkspaces,
+      resolveOptions
+    ),
+    rootDir,
+  });
   const resolutionsByFile = new Map<
     string,
     readonly WardenImportResolution[]
@@ -118,13 +144,16 @@ export const collectProjectImportResolutions = ({
 };
 
 export const collectProjectDocumentationImportResolutions = ({
+  publicWorkspaces: providedPublicWorkspaces,
   rootDir,
   sourceFiles,
 }: {
+  readonly publicWorkspaces?: ReadonlyMap<string, WardenPublicWorkspace>;
   readonly rootDir: string;
   readonly sourceFiles: readonly WardenProjectContextSourceFile[];
 }): ReadonlyMap<string, readonly WardenImportResolution[]> => {
-  const publicWorkspaces = collectPublicWorkspaces(rootDir);
+  const publicWorkspaces =
+    providedPublicWorkspaces ?? collectPublicWorkspaces(rootDir);
   const resolver = createWardenResolver({
     resolveOptions: { alias: exportAliasesForWorkspaces(publicWorkspaces) },
     rootDir,

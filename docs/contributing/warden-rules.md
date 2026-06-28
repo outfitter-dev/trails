@@ -49,6 +49,8 @@ Warden does not recursively discover nested rule files. Keep the public project-
 
 Project-root discovery uses committed project markers such as `trails.config.*` or `trails.lock`, with source-shaped projects as fallback when no committed marker exists above them. A bare `.trails/` directory is not a root marker by itself. This lets Warden find root-local rules from nested cwd invocations without making every incidental `.trails/` folder look like a project boundary.
 
+Use `warden.jurisdiction.ignore` in project config, or `trails warden --jurisdiction-ignore <glob>` for a single run, when Warden should not govern local notes, scratch space, generated state, or other root-relative paths. Jurisdiction is a path-scope boundary for governance, not a rule skip-list: ignored files do not feed source diagnostics or project-derived facts. Keep durable skills, plugin assets, and source-owned agent guidance in scope unless the project has a concrete reason to exclude them.
+
 Use `.trails/rules.ts` or direct `.trails/rules/*.ts` children when the invariant is real for this project but not yet a framework promise. Promote the rule into `@ontrails/warden` only after the survival tests show it belongs to Trails users broadly. Delete it when the migration or temporary hardening window closes.
 
 ## Core Principle

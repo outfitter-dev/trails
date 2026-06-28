@@ -425,6 +425,7 @@ SurfaceParityOptions, SurfaceParityComparison
 runWarden(options?), formatWardenReport(report), checkDrift(rootDir, topo?)
 // WardenOptions includes optional tier: source-static | project-static | topo-aware | drift | advisory
 // WardenOptions includes projectRules: false for embedders that opt out of project-local rules
+// WardenOptions includes jurisdiction.ignore root-relative globs for paths Warden should not govern
 loadProjectWardenRules(rootDir)    // load .trails/rules.ts or direct .trails/rules/*.ts modules
 
 // Built-in registries and wrapped topo
@@ -462,7 +463,12 @@ WardenOptions, WardenReport, WardenDiagnostic, WardenSeverity, DriftResult
 ProjectAwareWardenRule, ProjectContext, TopoAwareWardenRule, WardenRule
 WardenRuleMetadata, WardenRuleTier, WardenRuleScope, WardenRuleLifecycle
 RuleInput, ProjectAwareRuleInput, RuleOutput, TopoAwareRuleInput
+WardenJurisdiction
+matchesPathPattern(path, pattern), matchesAnyPathPattern(path, patterns)
+pathPatternToRegExp(pattern)
 ```
+
+Project `trails.config.*` files may provide `warden.jurisdiction.ignore` defaults, and `trails warden --jurisdiction-ignore <glob>` can override them for a single run. Jurisdiction globs are root-relative path-scope controls for governance; use Regrade `scope.ignore` for migration scan scope.
 
 ## `@ontrails/warden/ast`
 

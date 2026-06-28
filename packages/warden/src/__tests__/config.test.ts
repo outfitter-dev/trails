@@ -15,6 +15,9 @@ describe('wardenConfigSchema', () => {
       drafts: 'include',
       failOn: 'error',
       format: 'summary',
+      jurisdiction: {
+        ignore: [],
+      },
       lock: 'auto',
     });
   });
@@ -26,6 +29,9 @@ describe('wardenConfigSchema', () => {
       drafts: 'exclude',
       failOn: 'warning',
       format: 'github',
+      jurisdiction: {
+        ignore: ['.agents/notes/**', '.scratch/**'],
+      },
       lock: 'cached',
     });
 
@@ -36,6 +42,9 @@ describe('wardenConfigSchema', () => {
       drafts: 'exclude',
       failOn: 'warning',
       format: 'github',
+      jurisdiction: {
+        ignore: ['.agents/notes/**', '.scratch/**'],
+      },
       lock: 'cached',
     });
   });
@@ -75,6 +84,9 @@ describe('wardenConfigSchema', () => {
         drafts: 'include',
         failOn: 'error',
         format: 'summary',
+        jurisdiction: {
+          ignore: [],
+        },
         lock: 'auto',
       },
     });
@@ -98,6 +110,9 @@ describe('wardenConfigSchema', () => {
       drafts: 'include',
       failOn: 'error',
       format: 'json',
+      jurisdiction: {
+        ignore: [],
+      },
       lock: 'cached',
       noLockMutation: false,
     });

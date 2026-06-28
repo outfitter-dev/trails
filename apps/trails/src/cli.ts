@@ -247,6 +247,7 @@ const wardenValueFlags = new Set([
   '--drafts',
   '--fail-on',
   '--format',
+  '--jurisdiction-ignore',
   '--lock',
   '--root-dir',
 ]);

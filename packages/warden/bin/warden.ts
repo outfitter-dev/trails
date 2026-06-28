@@ -19,6 +19,7 @@ Options:
   --fail-on <value>            error or warning
   --format <value>             summary, github, or json
   --drafts <value>             include, exclude, or only
+  --jurisdiction-ignore <glob> Root-relative path glob Warden should not govern
   --lock <value>               auto, cached, refresh, or skip
   --no-lock-mutation           Do not write lock artifacts
   --strict                     Fail on warnings

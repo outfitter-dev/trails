@@ -16,7 +16,10 @@ import {
 } from '../project-context.js';
 import { publicInternalDeepImports } from '../rules/public-internal-deep-imports.js';
 import type { ProjectContext } from '../rules/types.js';
-import type { WardenProjectContextSourceFile } from '../project-context.js';
+import type {
+  WardenProjectContextSourceFile,
+  WardenPublicWorkspace,
+} from '../project-context.js';
 
 const makeTempDir = (prefix: string): string => {
   const dir = join(
@@ -142,19 +145,29 @@ const createFixture = (): PublicSurfaceFixture => {
 
 const collectContext = (
   fixture: PublicSurfaceFixture,
-  sourceFiles: readonly WardenProjectContextSourceFile[]
+  sourceFiles: readonly WardenProjectContextSourceFile[],
+  options: {
+    readonly publicWorkspaces?: ReadonlyMap<string, WardenPublicWorkspace>;
+  } = {}
 ): ProjectContext => ({
   documentedImportResolutionsByFile:
     collectProjectDocumentationImportResolutions({
+      ...(options.publicWorkspaces
+        ? { publicWorkspaces: options.publicWorkspaces }
+        : {}),
       rootDir: fixture.rootDir,
       sourceFiles,
     }),
   importResolutionsByFile: collectProjectImportResolutions({
+    ...(options.publicWorkspaces
+      ? { publicWorkspaces: options.publicWorkspaces }
+      : {}),
     rootDir: fixture.rootDir,
     sourceFiles,
   }),
   knownTrailIds: new Set<string>(),
-  publicWorkspaces: collectPublicWorkspaces(fixture.rootDir),
+  publicWorkspaces:
+    options.publicWorkspaces ?? collectPublicWorkspaces(fixture.rootDir),
 });
 
 const checkFixture = (
@@ -211,6 +224,36 @@ describe('public-internal-deep-imports', () => {
         ];
 
       expect(target?.endsWith('/src/conditional.ts')).toBe(true);
+    } finally {
+      rmSync(fixture.rootDir, { force: true, recursive: true });
+    }
+  });
+
+  test('honors jurisdiction ignores for project-derived workspace facts', () => {
+    const fixture = createFixture();
+    try {
+      const workspaces = collectPublicWorkspaces(fixture.rootDir, {
+        ignore: ['packages/core/**'],
+      });
+      const sourceCode =
+        'Use `@ontrails/core/internal/secret` only if it is public.\\n';
+      writeSource(fixture.readmePath, sourceCode);
+      const sourceFile = {
+        filePath: fixture.readmePath,
+        kind: 'documentation' as const,
+        sourceCode,
+      };
+
+      expect([...workspaces.keys()]).not.toContain('@ontrails/core');
+      expect(
+        publicInternalDeepImports.checkWithContext(
+          sourceCode,
+          fixture.readmePath,
+          collectContext(fixture, [sourceFile], {
+            publicWorkspaces: workspaces,
+          })
+        )
+      ).toEqual([]);
     } finally {
       rmSync(fixture.rootDir, { force: true, recursive: true });
     }

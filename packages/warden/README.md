@@ -47,6 +47,28 @@ Warden uses the shared Trails project-root resolver when a caller does not pass 
 
 This is the right home for repo-specific migration checks or governance that has not earned a place in `@ontrails/warden` itself.
 
+## Jurisdiction
+
+Use `warden.jurisdiction.ignore` in `trails.config.*` to keep generated, scratch, or local planning paths outside Warden governance while leaving durable project paths in scope.
+
+```json
+{
+  "warden": {
+    "jurisdiction": {
+      "ignore": [".scratch/**", ".agents/notes/**"]
+    }
+  }
+}
+```
+
+For a single run, pass one or more root-relative globs:
+
+```bash
+warden --jurisdiction-ignore '.scratch/**' --jurisdiction-ignore '.agents/notes/**'
+```
+
+Jurisdiction is a governance boundary, not a migration scan boundary. Regrade uses its own `scope.ignore` / `--ignore` controls for migration plans.
+
 A rule module may export `rule`, `rules`, `sourceRule`, `sourceRules`, `topoRule`, or `topoRules`. Rules without explicit metadata receive default repo-local source-static or topo-aware metadata so short migration rules can run without extra ceremony. Project-aware source rules that provide `checkWithContext()` default to repo-local project-static metadata.
 
 ```typescript
@@ -161,6 +183,9 @@ This is the same factory used internally to build all built-in rule trails.
 | `formatGitHubAnnotations(report)` | GitHub Actions annotation format |
 | `formatJson(report)` | Machine-readable JSON |
 | `formatSummary(report)` | Compact summary line |
+| `matchesPathPattern(path, pattern)` | Test a root-relative path against a Warden jurisdiction glob |
+| `matchesAnyPathPattern(path, patterns)` | Test a root-relative path against any Warden jurisdiction glob |
+| `pathPatternToRegExp(pattern)` | Compile a Warden jurisdiction glob into a regular expression |
 | `wrapRule(rule)` | Wrap a custom rule as a trail (same factory used for all built-in rule trails) |
 
 AST parser helpers are exported from `@ontrails/warden/ast`, not the root runtime barrel. The stable authoring surface includes `parse`, `walk`, `walkScope`, `walkWithParents`, `walkWithScopeContext`, `offsetToLine`, `offsetToLineColumn`, source-edit helpers, `findTrailDefinitions`, `findBlazeBodies`, `findContourDefinitions`, `isBlazeCall`, and string-literal helpers.
