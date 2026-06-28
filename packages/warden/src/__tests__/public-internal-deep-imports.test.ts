@@ -229,11 +229,11 @@ describe('public-internal-deep-imports', () => {
     }
   });
 
-  test('honors jurisdiction ignores for project-derived workspace facts', () => {
+  test('honors scope excludes for project-derived workspace facts', () => {
     const fixture = createFixture();
     try {
       const workspaces = collectPublicWorkspaces(fixture.rootDir, {
-        ignore: ['packages/core/**'],
+        exclude: ['packages/core/**'],
       });
       const sourceCode =
         'Use `@ontrails/core/internal/secret` only if it is public.\\n';

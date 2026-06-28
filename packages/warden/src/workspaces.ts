@@ -5,7 +5,7 @@
 import { existsSync, readdirSync, readFileSync, realpathSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 
-import { matchesAnyPathPattern } from './path-scope.js';
+import { matchesAnyPathGlob } from '@ontrails/core';
 
 export interface WardenPublicWorkspace {
   readonly name: string;
@@ -18,7 +18,7 @@ export interface WardenPublicWorkspace {
 }
 
 export interface WardenWorkspaceCollectionOptions {
-  readonly ignore?: readonly string[];
+  readonly exclude?: readonly string[];
 }
 
 interface RootManifest {
@@ -240,13 +240,13 @@ export const collectPublicWorkspaces = (
       const workspace = publicWorkspaceFromManifest(packageJsonPath, manifest);
       if (
         workspace &&
-        !matchesAnyPathPattern(
+        !matchesAnyPathGlob(
           rootRelativePath(normalizedRoot, workspace.rootDir),
-          options.ignore ?? []
+          options.exclude ?? []
         ) &&
-        !matchesAnyPathPattern(
+        !matchesAnyPathGlob(
           rootRelativePath(normalizedRoot, workspace.packageJsonPath),
-          options.ignore ?? []
+          options.exclude ?? []
         )
       ) {
         workspaces.set(workspace.name, workspace);

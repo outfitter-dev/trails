@@ -15,10 +15,10 @@ describe('wardenConfigSchema', () => {
       drafts: 'include',
       failOn: 'error',
       format: 'summary',
-      jurisdiction: {
-        ignore: [],
-      },
       lock: 'auto',
+      scope: {
+        exclude: [],
+      },
     });
   });
 
@@ -29,10 +29,10 @@ describe('wardenConfigSchema', () => {
       drafts: 'exclude',
       failOn: 'warning',
       format: 'github',
-      jurisdiction: {
-        ignore: ['.agents/notes/**', '.scratch/**'],
-      },
       lock: 'cached',
+      scope: {
+        exclude: ['.agents/notes/**', '.scratch/**'],
+      },
     });
 
     expect(result.success).toBe(true);
@@ -42,10 +42,10 @@ describe('wardenConfigSchema', () => {
       drafts: 'exclude',
       failOn: 'warning',
       format: 'github',
-      jurisdiction: {
-        ignore: ['.agents/notes/**', '.scratch/**'],
-      },
       lock: 'cached',
+      scope: {
+        exclude: ['.agents/notes/**', '.scratch/**'],
+      },
     });
   });
 
@@ -84,10 +84,10 @@ describe('wardenConfigSchema', () => {
         drafts: 'include',
         failOn: 'error',
         format: 'summary',
-        jurisdiction: {
-          ignore: [],
-        },
         lock: 'auto',
+        scope: {
+          exclude: [],
+        },
       },
     });
   });
@@ -110,11 +110,11 @@ describe('wardenConfigSchema', () => {
       drafts: 'include',
       failOn: 'error',
       format: 'json',
-      jurisdiction: {
-        ignore: [],
-      },
       lock: 'cached',
       noLockMutation: false,
+      scope: {
+        exclude: [],
+      },
     });
   });
 

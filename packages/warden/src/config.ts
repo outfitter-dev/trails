@@ -10,12 +10,12 @@ export const wardenDraftsValues = ['include', 'exclude', 'only'] as const;
 
 const appNameSchema = z.string().min(1);
 
-const wardenJurisdictionSchema = z
+const wardenScopeSchema = z
   .object({
-    ignore: z.array(z.string().min(1)).default([]),
+    exclude: z.array(z.string().min(1)).default([]),
   })
   .strict()
-  .default({ ignore: [] });
+  .default({ exclude: [] });
 
 const wardenConfigObjectSchema = z
   .object({
@@ -24,8 +24,8 @@ const wardenConfigObjectSchema = z
     drafts: z.enum(wardenDraftsValues).default('include'),
     failOn: z.enum(wardenFailOnValues).default('error'),
     format: z.enum(wardenFormatValues).default('summary'),
-    jurisdiction: wardenJurisdictionSchema,
     lock: z.enum(wardenLockValues).default('auto'),
+    scope: wardenScopeSchema,
   })
   .strict();
 
@@ -39,7 +39,7 @@ export type WardenDepth = (typeof wardenDepthValues)[number];
 export type WardenDraftsMode = (typeof wardenDraftsValues)[number];
 export type WardenFailOn = (typeof wardenFailOnValues)[number];
 export type WardenFormat = (typeof wardenFormatValues)[number];
-export type WardenJurisdiction = z.output<typeof wardenJurisdictionSchema>;
+export type WardenScope = z.output<typeof wardenScopeSchema>;
 export type WardenLockMode = (typeof wardenLockValues)[number];
 
 export interface WardenConfigLayer extends Partial<WardenConfig> {

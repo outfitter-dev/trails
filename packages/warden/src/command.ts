@@ -26,7 +26,7 @@ import type {
   WardenDraftsMode,
   WardenFailOn,
   WardenFormat,
-  WardenJurisdiction,
+  WardenScope,
   WardenLockMode,
 } from './config.js';
 import {
@@ -58,7 +58,7 @@ interface MutableWardenConfigLayer {
   drafts?: WardenDraftsMode | undefined;
   failOn?: WardenFailOn | undefined;
   format?: WardenFormat | undefined;
-  jurisdiction?: WardenJurisdiction | undefined;
+  scope?: WardenScope | undefined;
   lock?: WardenLockMode | undefined;
   noLockMutation?: boolean | undefined;
 }
@@ -252,11 +252,11 @@ const parseTokens = (
         'fail-on': { type: 'string' },
         fix: { type: 'boolean' },
         format: { type: 'string' },
-        'jurisdiction-ignore': { multiple: true, type: 'string' },
         lock: { type: 'string' },
         'no-lock-mutation': { type: 'boolean' },
         'pre-push': { type: 'boolean' },
         'root-dir': { type: 'string' },
+        'scope-exclude': { multiple: true, type: 'string' },
         strict: { type: 'boolean' },
         ...valueAliasParseOptions,
       },
@@ -406,16 +406,16 @@ const applyCommandOption = (
     state.configPath = value;
     return;
   }
-  if (token.name === 'jurisdiction-ignore') {
+  if (token.name === 'scope-exclude') {
     if (value === undefined) {
       state.diagnostics.push(
-        diagnostic({ message: '--jurisdiction-ignore requires a path glob.' })
+        diagnostic({ message: '--scope-exclude requires a path glob.' })
       );
       return;
     }
-    const existing = state.cli.jurisdiction?.ignore ?? [];
-    state.cli.jurisdiction = {
-      ignore: [...existing, ...splitCommaDelimitedValues(value)],
+    const existing = state.cli.scope?.exclude ?? [];
+    state.cli.scope = {
+      exclude: [...existing, ...splitCommaDelimitedValues(value)],
     };
     return;
   }
@@ -840,10 +840,10 @@ const buildRunOptions = ({
     failOn: cli.failOn,
     fix,
     format: cli.format,
-    jurisdiction: cli.jurisdiction,
     lock: cli.lock,
     noLockMutation: cli.noLockMutation,
     rootDir,
+    scope: cli.scope,
     topos,
   }),
   env,

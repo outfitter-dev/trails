@@ -57,10 +57,6 @@ const wardenInputSchema = z.object({
     .default(false)
     .describe('Alias for --drafts include'),
   json: z.boolean().default(false).describe('Alias for --format json'),
-  jurisdictionIgnore: z
-    .array(z.string())
-    .optional()
-    .describe('Root-relative path globs that Warden should not govern'),
   lock: z.enum(wardenLockValues).optional().describe('Lockfile mode'),
   noLockMutation: z
     .boolean()
@@ -70,6 +66,10 @@ const wardenInputSchema = z.object({
   prePush: z.boolean().default(false).describe('Use the pre-push preset'),
   refresh: z.boolean().default(false).describe('Alias for --lock refresh'),
   rootDir: z.string().optional().describe('Root directory to scan'),
+  scopeExclude: z
+    .array(z.string())
+    .optional()
+    .describe('Root-relative path globs that Warden should not govern'),
   skipLock: z.boolean().default(false).describe('Alias for --lock skip'),
   strict: z.boolean().default(false).describe('Alias for --fail-on warning'),
   summary: z.boolean().default(false).describe('Alias for --format summary'),
@@ -164,7 +164,7 @@ export const buildWardenCommandArgs = (
   pushFlag(args, input.fix, '--fix');
   pushFlag(args, input.adapterCheck, '--adapter-check');
   pushValue(args, '--config-path', input.configPath);
-  pushRepeatedValues(args, '--jurisdiction-ignore', input.jurisdictionIgnore);
+  pushRepeatedValues(args, '--scope-exclude', input.scopeExclude);
   pushApps(args, input.apps);
 
   return args;

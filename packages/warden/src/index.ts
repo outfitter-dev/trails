@@ -101,7 +101,7 @@ export type {
   WardenDraftsMode,
   WardenFailOn,
   WardenFormat,
-  WardenJurisdiction,
+  WardenScope,
   WardenLockMode,
   EffectiveWardenConfig,
   ResolveWardenConfigOptions,
@@ -109,11 +109,6 @@ export type {
   WardenConfigResolution,
 } from './config.js';
 export { resolveWardenConfig } from './config.js';
-export {
-  matchesAnyPathPattern,
-  matchesPathPattern,
-  pathPatternToRegExp,
-} from './path-scope.js';
 
 // CI formatters
 export {

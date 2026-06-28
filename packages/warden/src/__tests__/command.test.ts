@@ -26,9 +26,9 @@ describe('parseWardenCommandArgs', () => {
       '--strict',
       '--cached',
       '--exclude-drafts',
-      '--jurisdiction-ignore',
+      '--scope-exclude',
       '.agents/notes/**,.scratch/**',
-      '--jurisdiction-ignore',
+      '--scope-exclude',
       'tmp/**',
       '-a',
       'trails,admin',
@@ -42,11 +42,11 @@ describe('parseWardenCommandArgs', () => {
       drafts: 'exclude',
       failOn: 'warning',
       format: 'json',
-      jurisdiction: {
-        ignore: ['.agents/notes/**', '.scratch/**', 'tmp/**'],
-      },
       lock: 'cached',
       noLockMutation: true,
+      scope: {
+        exclude: ['.agents/notes/**', '.scratch/**', 'tmp/**'],
+      },
     });
     expect(parsed.diagnostics).toEqual([]);
   });
@@ -288,7 +288,7 @@ describe('runWardenCommand', () => {
     }
   });
 
-  test('applies Warden jurisdiction ignores from project config', async () => {
+  test('applies Warden scope excludes from project config', async () => {
     const dir = makeTempDir();
     try {
       mkdirSync(join(dir, '.agents', 'notes'), { recursive: true });
@@ -298,8 +298,8 @@ describe('runWardenCommand', () => {
         `${JSON.stringify({
           warden: {
             depth: 'source',
-            jurisdiction: { ignore: ['.agents/notes/**'] },
             lock: 'skip',
+            scope: { exclude: ['.agents/notes/**'] },
           },
         })}\n`
       );
@@ -332,7 +332,7 @@ describe('runWardenCommand', () => {
     }
   });
 
-  test('lets CLI jurisdiction ignores override project config', async () => {
+  test('lets CLI scope excludes override project config', async () => {
     const dir = makeTempDir();
     try {
       mkdirSync(join(dir, '.agents', 'notes'), { recursive: true });
@@ -342,8 +342,8 @@ describe('runWardenCommand', () => {
         `${JSON.stringify({
           warden: {
             depth: 'source',
-            jurisdiction: { ignore: ['.agents/skills/**'] },
             lock: 'skip',
+            scope: { exclude: ['.agents/skills/**'] },
           },
         })}\n`
       );
@@ -357,7 +357,7 @@ describe('runWardenCommand', () => {
       );
 
       const result = await runWardenCommand({
-        args: ['--format', 'json', '--jurisdiction-ignore', '.agents/notes/**'],
+        args: ['--format', 'json', '--scope-exclude', '.agents/notes/**'],
         cwd: dir,
         env: {},
       });

@@ -200,12 +200,12 @@ describe('trails warden', () => {
       github: true,
       includeDrafts: false,
       json: false,
-      jurisdictionIgnore: ['.agents/notes/**', '.scratch/**'],
       lock: 'auto',
       noLockMutation: true,
       onlyDrafts: false,
       prePush: false,
       refresh: false,
+      scopeExclude: ['.agents/notes/**', '.scratch/**'],
       skipLock: false,
       strict: true,
       summary: false,
@@ -222,9 +222,9 @@ describe('trails warden', () => {
       '--no-lock-mutation',
       '--fix',
       '--adapter-check',
-      '--jurisdiction-ignore',
+      '--scope-exclude',
       '.agents/notes/**',
-      '--jurisdiction-ignore',
+      '--scope-exclude',
       '.scratch/**',
       '--apps',
       'trails,demo',
@@ -358,7 +358,7 @@ describe('trails warden', () => {
     );
   });
 
-  test('trails warden forwards jurisdiction ignore value flags', () => {
+  test('trails warden forwards scope exclude value flags', () => {
     const dir = makeTempDir();
     try {
       mkdirSync(join(dir, '.agents', 'notes'), { recursive: true });
@@ -378,7 +378,7 @@ describe('trails warden', () => {
           '--json',
           '--root-dir',
           dir,
-          '--jurisdiction-ignore',
+          '--scope-exclude',
           '.agents/notes/**',
         ],
         repoRoot
@@ -403,7 +403,7 @@ describe('trails warden', () => {
     expect(raw.stdout).toContain('--depth <value>');
     expect(raw.stdout).toContain('--fix');
     expect(raw.stdout).toContain('--adapter-check');
-    expect(raw.stdout).toContain('--jurisdiction-ignore <glob>');
+    expect(raw.stdout).toContain('--scope-exclude <glob>');
     expect(raw.stdout).not.toContain('Warden Report');
   });
 

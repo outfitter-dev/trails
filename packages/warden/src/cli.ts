@@ -8,10 +8,10 @@
 import { isAbsolute, relative, resolve } from 'node:path';
 
 import { resolveTrailsProjectRoot } from '@ontrails/config';
+import { getContourReferences, matchesAnyPathGlob } from '@ontrails/core';
 import type { Topo } from '@ontrails/core';
 import { deriveTopoGraph } from '@ontrails/topographer';
 import type { TopoGraph } from '@ontrails/topographer';
-import { getContourReferences } from '@ontrails/core';
 
 import type {
   EffectiveWardenConfig,
@@ -20,7 +20,7 @@ import type {
   WardenDepth,
   WardenFailOn,
   WardenFormat,
-  WardenJurisdiction,
+  WardenScope,
   WardenLockMode,
 } from './config.js';
 import { runWardenAdapterChecks } from './adapter-check.js';
@@ -29,7 +29,6 @@ import { isDraftMarkedFile } from './draft.js';
 import { applySafeFixesToSource, hasSafeFixEdits } from './fix.js';
 import type { DriftResult } from './drift.js';
 import { checkDrift } from './drift.js';
-import { matchesAnyPathPattern } from './path-scope.js';
 import { loadProjectWardenRules } from './project-rules.js';
 import type { ProjectWardenRules } from './project-rules.js';
 import {
@@ -108,7 +107,7 @@ export interface WardenRunOptions {
   /** Output format requested by the caller. */
   readonly format?: WardenFormat | undefined;
   /** Root-relative source paths that Warden should not govern. */
-  readonly jurisdiction?: WardenJurisdiction | undefined;
+  readonly scope?: WardenScope | undefined;
   /** Lockfile mode requested by the caller. */
   readonly lock?: WardenLockMode | undefined;
   /** Suppress lockfile mutation for CI/pre-push callers. */
@@ -264,30 +263,28 @@ const filterSourceFilesByDraftMode = (
         draftModeIncludesFile(sourceFile.filePath, drafts)
       );
 
-const rootRelativeJurisdictionPath = (
-  rootDir: string,
-  filePath: string
-): string => relative(rootDir, filePath).replaceAll('\\', '/');
+const rootRelativeScopePath = (rootDir: string, filePath: string): string =>
+  relative(rootDir, filePath).replaceAll('\\', '/');
 
-const filterSourceFilesByJurisdiction = (
+const filterSourceFilesByScope = (
   sourceFiles: readonly SourceFile[],
   rootDir: string,
-  jurisdiction: WardenJurisdiction
+  scope: WardenScope
 ): readonly SourceFile[] => {
-  if (jurisdiction.ignore.length === 0) {
+  if (scope.exclude.length === 0) {
     return sourceFiles;
   }
 
   return sourceFiles.filter(
     (sourceFile) =>
-      !matchesAnyPathPattern(
-        rootRelativeJurisdictionPath(rootDir, sourceFile.filePath),
-        jurisdiction.ignore
+      !matchesAnyPathGlob(
+        rootRelativeScopePath(rootDir, sourceFile.filePath),
+        scope.exclude
       )
   );
 };
 
-const EMPTY_WARDEN_JURISDICTION: WardenJurisdiction = { ignore: [] };
+const EMPTY_WARDEN_SCOPE: WardenScope = { exclude: [] };
 
 const collectDevPermitTestFiles = (dir: string): readonly string[] => {
   const glob = new Bun.Glob('**/*.ts');
@@ -856,7 +853,7 @@ const buildProjectContext = (
   sourceFiles: readonly SourceFile[],
   rootDir: string,
   appTopos: readonly Topo[] = [],
-  jurisdiction: WardenJurisdiction = EMPTY_WARDEN_JURISDICTION
+  scope: WardenScope = EMPTY_WARDEN_SCOPE
 ): ProjectContext => {
   const context = createMutableProjectContext();
   const typeScriptSourceFiles = sourceFiles.filter(
@@ -866,7 +863,7 @@ const buildProjectContext = (
     (sourceFile) => sourceFile.kind === 'documentation'
   );
   context.publicWorkspaces = collectPublicWorkspaces(rootDir, {
-    ignore: jurisdiction.ignore,
+    exclude: scope.exclude,
   });
 
   if (appTopos.length > 0) {
@@ -1179,7 +1176,7 @@ interface WardenLintResult {
 const lintFiles = async (
   rootDir: string,
   drafts: EffectiveWardenConfig['drafts'],
-  jurisdiction: EffectiveWardenConfig['jurisdiction'],
+  scope: EffectiveWardenConfig['scope'],
   topoTargets: readonly WardenTopoTarget[],
   extraTopoRules: readonly TopoAwareWardenRule[],
   extraSourceRules: readonly WardenRule[],
@@ -1194,16 +1191,16 @@ const lintFiles = async (
     };
   }
 
-  const sourceFiles = filterSourceFilesByJurisdiction(
+  const sourceFiles = filterSourceFilesByScope(
     filterSourceFilesByDraftMode(await loadSourceFiles(rootDir), drafts),
     rootDir,
-    jurisdiction
+    scope
   );
   const context = buildProjectContext(
     sourceFiles,
     rootDir,
     topoTargets.map((target) => target.topo),
-    jurisdiction
+    scope
   );
   const allDiagnostics: WardenDiagnostic[] = [
     ...lintSourceFiles(sourceFiles, context, extraSourceRules, selector),
@@ -1376,7 +1373,7 @@ const buildCliConfigLayer = (options: WardenRunOptions): WardenConfigLayer => ({
   ...(options.drafts ? { drafts: options.drafts } : {}),
   ...(options.failOn ? { failOn: options.failOn } : {}),
   ...(options.format ? { format: options.format } : {}),
-  ...(options.jurisdiction ? { jurisdiction: options.jurisdiction } : {}),
+  ...(options.scope ? { scope: options.scope } : {}),
   ...(options.lock ? { lock: options.lock } : {}),
   ...(options.noLockMutation === undefined
     ? {}
@@ -1514,7 +1511,7 @@ export const runWarden = async (
     ? await lintFiles(
         rootDir,
         effectiveConfig.drafts,
-        effectiveConfig.jurisdiction,
+        effectiveConfig.scope,
         topoTargets,
         [...projectRules.topoRules, ...(options.extraTopoRules ?? [])],
         [...projectRules.sourceRules, ...(options.extraSourceRules ?? [])],
