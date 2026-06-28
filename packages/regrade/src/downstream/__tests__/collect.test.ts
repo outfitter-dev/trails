@@ -123,6 +123,60 @@ describe('collectDownstreamSources', () => {
     }
   });
 
+  test('honors path-scope ignore globs without hiding sibling skill paths', () => {
+    const root = mkdtempSync(join(tmpdir(), 'regrade-collect-ignore-'));
+    try {
+      writeFileSync(join(root, 'README.md'), '# root\n');
+      mkdirSync(join(root, '.agents', 'notes'), { recursive: true });
+      mkdirSync(join(root, '.agents', 'plans'), { recursive: true });
+      mkdirSync(join(root, '.agents', 'goals'), { recursive: true });
+      mkdirSync(join(root, '.agents', 'skills', 'trails'), {
+        recursive: true,
+      });
+      mkdirSync(join(root, '.scratch'), { recursive: true });
+      mkdirSync(join(root, 'plugin', 'skills', 'trails'), {
+        recursive: true,
+      });
+      writeFileSync(join(root, '.agents', 'notes', 'old.ts'), 'facet\n');
+      writeFileSync(join(root, '.agents', 'plans', 'old.ts'), 'facet\n');
+      writeFileSync(join(root, '.agents', 'goals', 'old.ts'), 'facet\n');
+      writeFileSync(
+        join(root, '.agents', 'skills', 'trails', 'SKILL.ts'),
+        'facet\n'
+      );
+      writeFileSync(join(root, '.scratch', 'old.ts'), 'facet\n');
+      writeFileSync(
+        join(root, 'plugin', 'skills', 'trails', 'SKILL.ts'),
+        'facet\n'
+      );
+
+      const collection = collectDownstreamSources(root, {
+        ignore: [
+          '.scratch/**',
+          '.agents/notes/**',
+          '.agents/plans/**',
+          '.agents/goals/**',
+        ],
+      });
+      expect(collection).not.toBeNull();
+      const result = collection as NonNullable<typeof collection>;
+
+      expect(result.files.map((file) => file.path)).toEqual([
+        '.agents/skills/trails/SKILL.ts',
+        'plugin/skills/trails/SKILL.ts',
+      ]);
+      const skippedReasons = new Map(
+        result.skipped.map((entry) => [entry.path, entry.reason])
+      );
+      expect(skippedReasons.get('.agents/notes')).toBe('ignored-glob');
+      expect(skippedReasons.get('.agents/plans')).toBe('ignored-glob');
+      expect(skippedReasons.get('.agents/goals')).toBe('ignored-glob');
+      expect(skippedReasons.get('.scratch')).toBe('ignored-glob');
+    } finally {
+      rmSync(root, { force: true, recursive: true });
+    }
+  });
+
   test('normalizes relative roots to preserve absolute file paths', () => {
     const root = writeFixture();
     try {

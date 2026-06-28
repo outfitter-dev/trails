@@ -739,6 +739,47 @@ describe('runRegrade', () => {
     }
   });
 
+  test('class-mode collection ignore keeps apply mode away from ignored paths', () => {
+    const root = mkdtempSync(join(tmpdir(), 'regrade-apply-ignore-'));
+    mkdirSync(join(root, '.scratch'), { recursive: true });
+    mkdirSync(join(root, 'src'), { recursive: true });
+    writeFileSync(
+      join(root, '.scratch', 'old.ts'),
+      'export const signal = 1;\n'
+    );
+    writeFileSync(join(root, 'src', 'a.ts'), 'export const signal = 2;\n');
+    try {
+      const report = expectRunRegradeOk({
+        apply: true,
+        classes: [signalToPing],
+        collection: {
+          ignore: ['.scratch/**'],
+        },
+        includeEntries: 'all',
+        root,
+      });
+
+      expect(report?.scanned).toBe(1);
+      expect(report?.rewritten).toBe(1);
+      expect(report?.skipsByReason).toMatchObject({ 'ignored-glob': 1 });
+      expect(report?.entries).toContainEqual(
+        expect.objectContaining({
+          outcome: 'skip',
+          path: '.scratch',
+          reason: 'ignored-glob',
+        })
+      );
+      expect(readFileSync(join(root, '.scratch', 'old.ts'), 'utf8')).toBe(
+        'export const signal = 1;\n'
+      );
+      expect(readFileSync(join(root, 'src', 'a.ts'), 'utf8')).toBe(
+        'export const ping = 2;\n'
+      );
+    } finally {
+      rmSync(root, { force: true, recursive: true });
+    }
+  });
+
   test('apply mode writes nothing when selected classes include an unknown id', () => {
     const root = mkdtempSync(join(tmpdir(), 'regrade-apply-unknown-'));
     mkdirSync(join(root, 'src'), { recursive: true });

@@ -266,6 +266,132 @@ describe('trails regrade', () => {
     }
   });
 
+  test('CLI accepts path-scope ignore globs for vocabulary regrades', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(dir, '.agents/notes/history.ts', 'export const facet = 1;\n');
+      writeFile(
+        dir,
+        '.agents/skills/trails/SKILL.ts',
+        'export const facet = 1;\n'
+      );
+      writeFile(dir, '.scratch/history.ts', 'export const facet = 1;\n');
+      writeFile(
+        dir,
+        'plugin/skills/trails/SKILL.ts',
+        'export const facet = 1;\n'
+      );
+
+      const result = runRawCli([
+        'regrade',
+        'facet',
+        'trailhead',
+        '--root-dir',
+        dir,
+        '--ignore',
+        '.scratch/**',
+        '--ignore',
+        '.agents/notes/**',
+        '--json',
+      ]);
+
+      expect(result.exitCode).toBe(0);
+      const parsed = JSON.parse(result.stdout) as {
+        readonly run?: {
+          readonly ledger?: {
+            readonly occurrences?: readonly { readonly path: string }[];
+          };
+          readonly plan?: { readonly scope?: { readonly ignore?: string[] } };
+        };
+        readonly skipsByReason?: Record<string, number>;
+      };
+      expect(parsed.run?.plan?.scope?.ignore).toEqual([
+        '.scratch/**',
+        '.agents/notes/**',
+      ]);
+      expect(parsed.run?.ledger?.occurrences?.map((o) => o.path)).toEqual([
+        '.agents/skills/trails/SKILL.ts',
+        'plugin/skills/trails/SKILL.ts',
+      ]);
+      expect(parsed.skipsByReason).toMatchObject({ 'ignored-glob': 2 });
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('CLI accepts path-scope ignore globs for class-mode apply', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(
+        dir,
+        '.scratch/play.ts',
+        'export const play = trail("play", { crosses: [] });\n'
+      );
+      writeFile(
+        dir,
+        'src/play.ts',
+        'export const play = trail("play", { crosses: [] });\n'
+      );
+
+      const result = runRawCli([
+        'regrade',
+        '--root-dir',
+        dir,
+        '--class-ids',
+        'term-rewrite:no-retired-cross-vocabulary',
+        '--ignore',
+        '.scratch/**',
+        '--apply',
+        '--json',
+      ]);
+
+      expect(result.exitCode).toBe(0);
+      const parsed = JSON.parse(result.stdout) as {
+        readonly apply?: {
+          readonly applied?: number;
+          readonly filesChanged?: number;
+        };
+        readonly skipsByReason?: Record<string, number>;
+      };
+      expect(parsed.apply).toMatchObject({ applied: 1, filesChanged: 1 });
+      expect(parsed.skipsByReason).toMatchObject({ 'ignored-glob': 1 });
+      expect(readFileSync(join(dir, '.scratch', 'play.ts'), 'utf8')).toContain(
+        'crosses'
+      );
+      expect(readFileSync(join(dir, 'src', 'play.ts'), 'utf8')).toContain(
+        'composes'
+      );
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('schema exposes regrade ignore input for CLI and MCP callers', () => {
+    const result = runRawCli(['schema', 'regrade']);
+
+    expect(result.exitCode).toBe(0);
+    const parsed = JSON.parse(result.stdout) as {
+      readonly command?: {
+        readonly flags?: readonly {
+          readonly name?: string;
+          readonly type?: string;
+          readonly variadic?: boolean;
+        }[];
+        readonly input?: {
+          readonly properties?: Record<string, unknown>;
+        };
+      };
+    };
+    expect(parsed.command?.input?.properties).toHaveProperty('ignore');
+    expect(parsed.command?.flags).toContainEqual(
+      expect.objectContaining({
+        name: 'ignore',
+        type: 'string[]',
+        variadic: true,
+      })
+    );
+  });
+
   test('rejects vocabulary-only inputs without a source and target', async () => {
     const dir = makeTempDir();
     try {

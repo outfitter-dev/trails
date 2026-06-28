@@ -513,7 +513,7 @@ RegradeReviewDetail, RegradeReviewSpan, RegradeScanTargets, RegradeSelection
 VocabularyRegradePlan, VocabularyRunLedger, VocabularyRunReport
 ```
 
-Regrade reports always include full aggregate counts, unknown class IDs, scan statistics, and skip reasons. Report `entries` default to actionable rewrite and review outcomes; pass `includeEntries: 'all'` to include no-op and skip entries. Vocabulary regrade runs add a `run` block with the authored plan, observed form and occurrence ledger, and projected completion gate so CLI and MCP callers can see what was modified, skipped, or deferred with an `open` count.
+Regrade reports always include full aggregate counts, unknown class IDs, scan statistics, and skip reasons. Report `entries` default to actionable rewrite and review outcomes; pass `includeEntries: 'all'` to include no-op and skip entries. Vocabulary regrade runs add a `run` block with the authored plan, observed form and occurrence ledger, and projected completion gate so CLI and MCP callers can see what was modified, skipped, or deferred with an `open` count. Vocabulary plans can also carry `scope.ignore` path globs, exposed as `trails regrade --ignore <glob>`, to keep migration scope away from local notes, scratch space, generated state, or other paths that should not be scanned for that transition.
 
 ## `@ontrails/config`
 

@@ -5,6 +5,7 @@ import { z } from 'zod';
 import {
   DEFAULT_IGNORED_DIRECTORIES,
   collectDownstreamSources,
+  matchesAnyPathPattern,
 } from './collect.js';
 import type { DownstreamCollectionOptions, SkippedSource } from './collect.js';
 import type {
@@ -24,6 +25,7 @@ export interface VocabularyPreserveRule {
 export interface VocabularyRegradeScope {
   readonly exclude?: readonly string[];
   readonly extensions?: readonly string[];
+  readonly ignore?: readonly string[];
   readonly ignoredDirectories?: readonly string[];
   readonly include?: readonly string[];
 }
@@ -266,35 +268,6 @@ const validateVocabularyPlan = (
   return Result.ok();
 };
 
-const pathPatternToRegExp = (pattern: string): RegExp => {
-  let expression = '';
-  for (let index = 0; index < pattern.length; index += 1) {
-    const char = pattern.at(index);
-    if (char === '*' && pattern.at(index + 1) === '*') {
-      if (pattern.at(index + 2) === '/') {
-        expression += '(?:.*/)?';
-        index += 2;
-      } else {
-        expression += '.*';
-        index += 1;
-      }
-      continue;
-    }
-    expression += char === '*' ? '[^/]*' : escapeRegExp(char ?? '');
-  }
-  return new RegExp(`^${expression}$`);
-};
-
-const matchesAnyPathPattern = (
-  path: string,
-  patterns: readonly string[] | undefined
-): boolean => {
-  if (patterns === undefined || patterns.length === 0) {
-    return false;
-  }
-  return patterns.some((pattern) => pathPatternToRegExp(pattern).test(path));
-};
-
 const includedByScope = (
   path: string,
   scope: VocabularyRegradeScope | undefined
@@ -302,7 +275,8 @@ const includedByScope = (
   (scope?.include === undefined ||
     scope.include.length === 0 ||
     matchesAnyPathPattern(path, scope.include)) &&
-  !matchesAnyPathPattern(path, scope?.exclude);
+  !matchesAnyPathPattern(path, scope?.exclude) &&
+  !matchesAnyPathPattern(path, scope?.ignore);
 
 const compilePreservePattern = (pattern: string): RegExp => {
   try {
@@ -780,6 +754,9 @@ export const runVocabularyRegrade = (params: {
 
   const collected = collectDownstreamSources(params.root, {
     extensions: params.plan.scope?.extensions ?? VOCABULARY_SOURCE_EXTENSIONS,
+    ...(params.plan.scope?.ignore === undefined
+      ? {}
+      : { ignore: params.plan.scope.ignore }),
     ignoredDirectories:
       params.plan.scope?.ignoredDirectories ?? DEFAULT_IGNORED_DIRECTORIES,
   } satisfies DownstreamCollectionOptions);
@@ -892,6 +869,10 @@ const vocabularyRegradeScopeSchema = z.object({
     .array(z.string())
     .optional()
     .describe('Source file extensions to scan for this regrade'),
+  ignore: z
+    .array(z.string())
+    .optional()
+    .describe('Root-relative path globs to skip before scanning this regrade'),
   ignoredDirectories: z
     .array(z.string())
     .optional()

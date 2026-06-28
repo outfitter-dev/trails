@@ -40,12 +40,16 @@ const regradeInputSchema = z.object({
   extensions: z
     .array(z.string())
     .optional()
-    .describe('Source file extensions to scan in vocabulary regrade mode'),
+    .describe('Source file extensions to scan during Regrade collection'),
   from: z
     .string()
     .min(1)
     .optional()
     .describe('Source vocabulary term for a vocabulary regrade'),
+  ignore: z
+    .array(z.string())
+    .optional()
+    .describe('Root-relative path globs to skip during Regrade collection'),
   include: z
     .array(z.string())
     .optional()
@@ -82,13 +86,30 @@ const regradeInputSchema = z.object({
 
 const hasVocabularyInput = (input: z.output<typeof regradeInputSchema>) =>
   input.exclude !== undefined ||
-  input.extensions !== undefined ||
   input.from !== undefined ||
   input.include !== undefined ||
   input.intent !== undefined ||
   input.overrides !== undefined ||
   input.preserve !== undefined ||
   input.to !== undefined;
+
+const classModeCollection = (
+  input: z.output<typeof regradeInputSchema>
+):
+  | {
+      readonly extensions?: readonly string[];
+      readonly ignore?: readonly string[];
+    }
+  | undefined => {
+  if (input.extensions === undefined && input.ignore === undefined) {
+    return undefined;
+  }
+
+  return {
+    ...(input.extensions === undefined ? {} : { extensions: input.extensions }),
+    ...(input.ignore === undefined ? {} : { ignore: input.ignore }),
+  };
+};
 
 const buildVocabularyPlan = (
   input: z.output<typeof regradeInputSchema>
@@ -125,6 +146,7 @@ const buildVocabularyPlan = (
       ...(input.extensions === undefined
         ? {}
         : { extensions: input.extensions }),
+      ...(input.ignore === undefined ? {} : { ignore: input.ignore }),
       ...(input.include === undefined ? {} : { include: input.include }),
     },
     to: input.to,
@@ -184,9 +206,11 @@ export const regradeTrail = trail('regrade', {
       );
     }
 
+    const collection = classModeCollection(input);
     const reportResult: TrailsResult<RegradeReport | null, Error> = runRegrade({
       apply: input.apply,
       classes: classSet.classes,
+      ...(collection === undefined ? {} : { collection }),
       includeEntries: input.includeEntries,
       root: rootDirResult.value,
       ...(input.classIds === undefined

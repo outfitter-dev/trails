@@ -535,6 +535,7 @@ const deriveCollectionOptions = (
   return {
     extensions: collection?.extensions ?? targetExtensions,
     ignoredDirectories: collection?.ignoredDirectories ?? ignoredDirectories,
+    ...(collection?.ignore === undefined ? {} : { ignore: collection.ignore }),
   };
 };
 

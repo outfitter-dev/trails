@@ -163,6 +163,51 @@ describe('runVocabularyRegrade', () => {
     }
   });
 
+  test('ignores path globs before reading vocabulary occurrences', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(dir, '.agents/notes/history.ts', 'export const facet = 1;\n');
+      writeFile(
+        dir,
+        '.agents/skills/trails/SKILL.ts',
+        'export const facet = 1;\n'
+      );
+      writeFile(dir, '.scratch/history.ts', 'export const facet = 1;\n');
+      writeFile(
+        dir,
+        'plugin/skills/trails/SKILL.ts',
+        'export const facet = 1;\n'
+      );
+
+      const result = runVocabularyRegrade({
+        plan: {
+          from: 'facet',
+          kind: 'vocabulary',
+          scope: {
+            ignore: ['.scratch/**', '.agents/notes/**'],
+          },
+          to: 'trailhead',
+        },
+        root: dir,
+      });
+
+      expect(result.isOk()).toBe(true);
+      if (result.isErr()) {
+        throw result.error;
+      }
+      expect(result.value?.run?.ledger.occurrences.map((o) => o.path)).toEqual([
+        '.agents/skills/trails/SKILL.ts',
+        'plugin/skills/trails/SKILL.ts',
+      ]);
+      expect(result.value?.skipsByReason).toMatchObject({
+        'ignored-glob': 2,
+      });
+      expect(result.value?.scanned).toBe(2);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
   test('prefers longer override captures over overlapping defaults', () => {
     const dir = makeTempDir();
     try {
