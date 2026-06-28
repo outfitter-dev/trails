@@ -112,6 +112,20 @@ export type {
 // Context factory
 export { createTrailContext, passthroughTrace } from './context.js';
 
+// Glob and path scope
+export { globToRegExp, matchesAnyGlob, matchesGlob } from './glob.js';
+export type { GlobConfig } from './glob.js';
+export {
+  includedByPathScope,
+  matchesAnyPathGlob,
+  matchesPathGlob,
+  normalizePathScopePath,
+  pathScopeSchema,
+} from './path-scope.js';
+export type { PathGlob, PathScope } from './path-scope.js';
+export { matchesAnyTrailIdGlob, matchesTrailIdGlob } from './trail-id-glob.js';
+export type { TrailIdGlob } from './trail-id-glob.js';
+
 // Resource
 export {
   createResourceLookup,
