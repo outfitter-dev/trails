@@ -21,6 +21,7 @@ bun apps/trails/bin/trails.ts wayfind --overview --root-dir . --json
 bun apps/trails/bin/trails.ts wayfind --trails --intent read --root-dir . --json
 bun apps/trails/bin/trails.ts wayfind wayfind.search --contract --root-dir . --json
 bun apps/trails/bin/trails.ts wayfind pattern "wayfind.*" --root-dir . --json
+bun apps/trails/bin/trails.ts wayfind pattern "wayfind.**" --root-dir . --json
 bun apps/trails/bin/trails.ts wayfind query "release drift" --root-dir . --json
 bun apps/trails/bin/trails.ts wayfind --errors --root-dir . --json
 bun apps/trails/bin/trails.ts wayfind --resources --root-dir . --json
@@ -32,6 +33,8 @@ bun apps/trails/bin/trails.ts wayfind --source live --module apps/trails/src/app
 ```
 
 Use `trails schema <command...>` when you need the accepted CLI routes, aliases, flags, and schemas for an operator command before invoking it from a shell.
+
+Wayfinder pattern queries and `idGlob` filters use trail-id globs: `*` matches one dotted segment, `**` matches any remaining dotted depth, and `?` matches one character inside a segment. Path scope controls use the same wildcard family with path separators instead: Warden `scope.exclude` and Regrade `scope.exclude` should receive root-relative path globs such as `.agents/notes/**`, `.scratch/**`, or `src/**/*.ts`.
 
 Use `trails wayfind file <file> --outline` before reading a large source file when you need a compact source map. It parses the explicit file path, reports imports, exports, declarations, app declarations, and authored trail IDs, and links those trail IDs to saved graph facts when artifacts exist. The underlying outline trail still supports feature-specific views; the operator CLI exposes the file resolver first so file navigation does not get mixed with graph ID lookup.
 

@@ -51,6 +51,8 @@ For Trails graph-navigation questions, use Wayfinder before reconstructing topo 
 
 `trails wayfind file <file> --outline` is the source-navigation exception inside Wayfinder: it parses the explicit source file live, then cross-references saved graph artifacts when they are available.
 
+Use the shared glob vocabulary precisely. Trail-id selectors use dotted globs (`entity.*`, `entity.**`, `entity.????`). Warden and Regrade scope controls use root-relative path globs through the stable `PathScope` shape: `include`, `exclude`, and `extensions`. Do not reintroduce Regrade `ignore` or Warden `jurisdiction` naming.
+
 Fall back to `rg`, qmd, source reads, or a fresh compile when Wayfinder reports missing or stale artifacts, when the task needs source text that Topographer does not project, or when writing new artifacts would violate the current work authority. When you fall back, say why so the next agent does not silently repeat the same graph reconstruction.
 
 ## Lexicon

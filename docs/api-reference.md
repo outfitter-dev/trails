@@ -95,6 +95,14 @@ deriveFields(schema, overrides?)   // → Field[] (faithfully representable fiel
 deriveCliPath(trailId)             // trail ID → hierarchical CLI command path
 Field, FieldOverride
 
+// Shared glob and scope contracts
+globToRegExp(pattern, config), matchesGlob(value, pattern, config), matchesAnyGlob(value, patterns, config)
+matchesTrailIdGlob(id, pattern), matchesAnyTrailIdGlob(id, patterns)
+pathScopeSchema, includedByPathScope(path, scope)
+matchesPathGlob(path, pattern), matchesAnyPathGlob(path, patterns)
+normalizePathScopePath(path)
+GlobConfig, TrailIdGlob, PathGlob, PathScope
+
 // Surface derivation
 validateSurfaceTopo(topo, options?) // shared established-topo guard for surface projections
 withSurfaceMarker(surface, ctx?)    // merge a surface marker into execution context extensions
@@ -133,6 +141,8 @@ SerializedError, zodToJsonSchema(schema)
 securePath, isPathSafe, deriveSafePath
 findWorkspaceRoot, isInsideWorkspace, deriveRelativePath
 ```
+
+Core owns the shared glob machinery used by surface selectors, Wayfinder ID filters, Warden scope, and Regrade scan scope. Trail-id globs use dotted separators (`entity.*`, `entity.**`, `entity.????`); path-scope globs use path separators (`.agents/notes/**`, `src/**/*.ts`). `PathScope` is the stable scan/governance shape: `{ include?: string[], exclude?: string[], extensions?: string[] }`.
 
 ## `@ontrails/core/trails`
 
