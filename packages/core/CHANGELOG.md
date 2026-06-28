@@ -1,5 +1,12 @@
 # @ontrails/core
 
+## 1.0.0-beta.31
+
+### Patch Changes
+
+- 4cd5d4e: Add shared glob, path-scope, and trail-id glob contracts for downstream Trails tooling.
+- 38907cc: Adopt the shared trail-id glob engine for surface filtering and Wayfinder entity filters so dotted `*`, `**`, and `?` patterns behave consistently across graph inspection and surface selection.
+
 ## 1.0.0-beta.30
 
 ## 1.0.0-beta.29

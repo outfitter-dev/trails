@@ -1,5 +1,19 @@
 # @ontrails/mcp
 
+## 1.0.0-beta.31
+
+### Patch Changes
+
+- ee9f3ae: Let Warden fix capabilities declare downstream scan targets and have Regrade
+  honor those targets for Warden-backed term-rewrite classes.
+
+  Dogfood the first safe facet-to-trailhead prose rewrite through project-local
+  Warden rules and Regrade.
+
+- Updated dependencies [4cd5d4e]
+- Updated dependencies [38907cc]
+  - @ontrails/core@1.0.0-beta.31
+
 ## 1.0.0-beta.30
 
 ### Patch Changes
