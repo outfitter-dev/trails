@@ -33,6 +33,11 @@ export type {
   RegradeWardenClassSet,
 } from './downstream/report.js';
 export type {
+  RegradeScanDirectoryBucket,
+  RegradeScanExtensionBucket,
+  RegradeScanSummary,
+} from './downstream/scan-summary.js';
+export type {
   VocabularyOccurrence,
   VocabularyPreserveRule,
   VocabularyRegradePlan,

@@ -13,6 +13,7 @@ import type {
   RegradeReport,
   RegradeReportEntry,
 } from './report.js';
+import { buildRegradeScanSummary } from './scan-summary.js';
 
 export type VocabularyVerdict = 'deferred' | 'modified' | 'skipped';
 
@@ -808,23 +809,18 @@ export const runVocabularyRegrade = (params: {
   }
 
   const entrySelection = params.includeEntries ?? 'actionable';
+  const reportEntries = reportEvaluation.entries;
+  const actionableEntries = reportEntries.filter(
+    (entry) => entry.outcome === 'rewrite' || entry.outcome === 'needs-review'
+  );
+  const reportSkippedByReason = skippedByReason(reportEvaluation.skipped);
   const report: RegradeReport = {
-    entries:
-      entrySelection === 'all'
-        ? reportEvaluation.entries
-        : reportEvaluation.entries.filter(
-            (entry) =>
-              entry.outcome === 'rewrite' || entry.outcome === 'needs-review'
-          ),
-    matched: reportEvaluation.entries.filter(
-      (entry) => entry.outcome === 'rewrite' || entry.outcome === 'needs-review'
-    ).length,
-    review: reportEvaluation.entries.filter(
-      (entry) => entry.outcome === 'needs-review'
-    ).length,
-    rewritten: reportEvaluation.entries.filter(
-      (entry) => entry.outcome === 'rewrite'
-    ).length,
+    entries: entrySelection === 'all' ? reportEntries : actionableEntries,
+    matched: actionableEntries.length,
+    review: reportEntries.filter((entry) => entry.outcome === 'needs-review')
+      .length,
+    rewritten: reportEntries.filter((entry) => entry.outcome === 'rewrite')
+      .length,
     root: collected.root,
     run:
       applySummary === undefined
@@ -837,12 +833,21 @@ export const runVocabularyRegrade = (params: {
               filesChanged: applySummary.filesChanged,
             },
           },
+    scan: buildRegradeScanSummary({
+      matchedPaths: actionableEntries.map((entry) => entry.path),
+      occurrencePaths: reportEvaluation.occurrences.map(
+        (occurrence) => occurrence.path
+      ),
+      scanned: reportEvaluation.scanned,
+      skipped: reportEvaluation.skipped.length,
+      skippedByReason: reportSkippedByReason,
+    }),
     scanned: reportEvaluation.scanned,
     selectedClassIds: [
       params.plan.id ?? `vocabulary:${params.plan.from}->${params.plan.to}`,
     ],
     skipped: reportEvaluation.skipped.length,
-    skipsByReason: skippedByReason(reportEvaluation.skipped),
+    skipsByReason: reportSkippedByReason,
     unknownClassIds: [],
   };
 

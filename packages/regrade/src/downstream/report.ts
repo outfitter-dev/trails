@@ -19,6 +19,11 @@ import {
   collectDownstreamSources,
 } from './collect.js';
 import type { DownstreamCollectionOptions, SkippedSource } from './collect.js';
+import {
+  buildRegradeScanSummary,
+  regradeScanSummaryOutput,
+} from './scan-summary.js';
+import type { RegradeScanSummary } from './scan-summary.js';
 import type { VocabularyRegradeRun } from './vocabulary.js';
 import { vocabularyRegradeRunOutput } from './vocabulary.js';
 
@@ -575,6 +580,8 @@ export interface RegradeReport {
   readonly skipped: number;
   /** Skipped entries grouped by reason. */
   readonly skipsByReason: Readonly<Record<string, number>>;
+  /** Agent-facing inventory summary for the scan. */
+  readonly scan: RegradeScanSummary;
   /** Per-entry detail, sorted by path. */
   readonly entries: readonly RegradeReportEntry[];
   /** Apply-mode summary; absent for dry-run report-only calls. */
@@ -768,6 +775,11 @@ const buildRegradeEvaluation = (params: {
   const review = scannedEntries.filter(
     (e) => e.outcome === 'needs-review'
   ).length;
+  const matchedPaths = scannedEntries
+    .filter((e) => e.outcome === 'rewrite' || e.outcome === 'needs-review')
+    .map((entry) => entry.path);
+  const skipped = skipEntries.length + fileSkipCount;
+  const skippedReasons = skipsByReason(allEntries);
 
   return {
     report: {
@@ -776,10 +788,16 @@ const buildRegradeEvaluation = (params: {
       review,
       rewritten,
       root: params.root,
+      scan: buildRegradeScanSummary({
+        matchedPaths,
+        scanned: scannedEntries.length,
+        skipped,
+        skippedByReason: skippedReasons,
+      }),
       scanned: scannedEntries.length,
       selectedClassIds: selected.map((cls) => cls.id),
-      skipped: skipEntries.length + fileSkipCount,
-      skipsByReason: skipsByReason(allEntries),
+      skipped,
+      skipsByReason: skippedReasons,
       unknownClassIds,
     },
     rewrites,
@@ -1030,6 +1048,9 @@ export const regradeReportOutput = z.object({
   run: vocabularyRegradeRunOutput
     .optional()
     .describe('Vocabulary regrade run: plan, ledger, and completion report'),
+  scan: regradeScanSummaryOutput.describe(
+    'Agent-facing inventory summary for the scan'
+  ),
   scanned: z.number().describe('Source files inspected'),
   selectedClassIds: z.array(z.string()).describe('Class ids executed'),
   skipped: z.number().describe('Entries skipped'),

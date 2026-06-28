@@ -303,6 +303,23 @@ describe('trails regrade', () => {
           };
           readonly plan?: { readonly scope?: { readonly ignore?: string[] } };
         };
+        readonly scan?: {
+          readonly byDirectory?: readonly {
+            readonly files: number;
+            readonly occurrences?: number;
+            readonly path: string;
+          }[];
+          readonly byExtension?: readonly {
+            readonly extension: string;
+            readonly files: number;
+            readonly occurrences?: number;
+          }[];
+          readonly files?: {
+            readonly matched: number;
+            readonly scanned: number;
+            readonly skipped: number;
+          };
+        };
         readonly skipsByReason?: Record<string, number>;
       };
       expect(parsed.run?.plan?.scope?.ignore).toEqual([
@@ -312,6 +329,18 @@ describe('trails regrade', () => {
       expect(parsed.run?.ledger?.occurrences?.map((o) => o.path)).toEqual([
         '.agents/skills/trails/SKILL.ts',
         'plugin/skills/trails/SKILL.ts',
+      ]);
+      expect(parsed.scan?.files).toEqual({
+        matched: 2,
+        scanned: 2,
+        skipped: 2,
+      });
+      expect(parsed.scan?.byDirectory).toEqual([
+        { files: 1, occurrences: 1, path: '.agents' },
+        { files: 1, occurrences: 1, path: 'plugin' },
+      ]);
+      expect(parsed.scan?.byExtension).toEqual([
+        { extension: '.ts', files: 2, occurrences: 2 },
       ]);
       expect(parsed.skipsByReason).toMatchObject({ 'ignored-glob': 2 });
     } finally {
@@ -380,9 +409,13 @@ describe('trails regrade', () => {
         readonly input?: {
           readonly properties?: Record<string, unknown>;
         };
+        readonly output?: {
+          readonly properties?: Record<string, unknown>;
+        };
       };
     };
     expect(parsed.command?.input?.properties).toHaveProperty('ignore');
+    expect(parsed.command?.output?.properties).toHaveProperty('scan');
     expect(parsed.command?.flags).toContainEqual(
       expect.objectContaining({
         name: 'ignore',

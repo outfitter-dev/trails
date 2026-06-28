@@ -244,6 +244,11 @@ describe('Trails MCP surface shaping', () => {
             open: 2,
           },
         },
+        scan: {
+          byDirectory: [{ files: 1, occurrences: 2, path: 'src' }],
+          byExtension: [{ extension: '.ts', files: 1, occurrences: 2 }],
+          files: { matched: 1, scanned: 1, skipped: 0 },
+        },
       });
       expect(readFileSync(join(dir, 'src', 'surface.ts'), 'utf8')).toContain(
         'facet'

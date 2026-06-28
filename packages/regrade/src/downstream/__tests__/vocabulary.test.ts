@@ -202,6 +202,15 @@ describe('runVocabularyRegrade', () => {
       expect(result.value?.skipsByReason).toMatchObject({
         'ignored-glob': 2,
       });
+      expect(result.value?.scan).toEqual({
+        byDirectory: [
+          { files: 1, occurrences: 1, path: '.agents' },
+          { files: 1, occurrences: 1, path: 'plugin' },
+        ],
+        byExtension: [{ extension: '.ts', files: 2, occurrences: 2 }],
+        files: { matched: 2, scanned: 2, skipped: 2 },
+        skippedByReason: { 'ignored-glob': 2 },
+      });
       expect(result.value?.scanned).toBe(2);
     } finally {
       rmSync(dir, { force: true, recursive: true });

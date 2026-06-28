@@ -434,6 +434,12 @@ describe('buildRegradeReport', () => {
     expect(report.review).toBe(1);
     expect(report.matched).toBe(2);
     expect(report.skipped).toBe(1);
+    expect(report.scan).toEqual({
+      byDirectory: [{ files: 2, path: 'src' }],
+      byExtension: [{ extension: '.ts', files: 2 }],
+      files: { matched: 2, scanned: 3, skipped: 1 },
+      skippedByReason: { 'ignored-directory': 1 },
+    });
     expect(report.selectedClassIds).toEqual(['term-rewrite:signal->ping']);
     expect(report.entries.map((e) => e.path)).toEqual([
       'dist',
