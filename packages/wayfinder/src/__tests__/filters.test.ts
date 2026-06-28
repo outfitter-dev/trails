@@ -42,6 +42,13 @@ const userCreate = trail('user.create', {
   resources: [db],
 });
 
+const userAdminAudit = trail('user.admin.audit', {
+  blaze: () => Result.ok({ ok: true }),
+  input: z.object({}),
+  intent: 'read',
+  output: z.object({ ok: z.boolean() }),
+});
+
 const auditRebuild = trail('audit.rebuild', {
   blaze: () => Result.ok({ ok: true }),
   input: z.object({}),
@@ -93,6 +100,7 @@ const makeGraph = (): TopoGraph =>
         auditRebuild,
         db,
         inviteCreate,
+        userAdminAudit,
         userCreate,
         userCreated,
         userShow,
@@ -160,12 +168,18 @@ describe('wayfinder typed filters', () => {
     const graph = makeGraph();
 
     expect(ids(graph, { kind: 'trail', namespace: 'user' })).toEqual([
+      'user.admin.audit',
       'user.create',
       'user.show',
     ]);
     expect(ids(graph, { id: 'user.show' })).toEqual(['user.show']);
     expect(ids(graph, { idPrefix: 'audit.' })).toEqual(['audit.rebuild']);
     expect(ids(graph, { idGlob: 'user.*', kind: 'trail' })).toEqual([
+      'user.create',
+      'user.show',
+    ]);
+    expect(ids(graph, { idGlob: 'user.**', kind: 'trail' })).toEqual([
+      'user.admin.audit',
       'user.create',
       'user.show',
     ]);
@@ -244,6 +258,6 @@ describe('wayfinder typed filters', () => {
       listWayfinderEntityRefs(graph)
         .filter(graphPredicate)
         .map((ref) => ref.id)
-    ).toEqual(['user.create', 'user.show']);
+    ).toEqual(['user.admin.audit', 'user.create', 'user.show']);
   });
 });

@@ -73,6 +73,12 @@ describe('matchesTrailPattern', () => {
     expect(matchesTrailPattern('entity.admin.show', 'entity.*')).toBe(false);
   });
 
+  test('? matches one character inside a dotted segment', () => {
+    expect(matchesTrailPattern('entity.show', 'entity.????')).toBe(true);
+    expect(matchesTrailPattern('entity.admin', 'entity.????')).toBe(false);
+    expect(matchesTrailPattern('entity.admin.show', 'entity.????')).toBe(false);
+  });
+
   test('** matches any remaining dotted depth', () => {
     expect(matchesTrailPattern('entity.admin.show', 'entity.**')).toBe(true);
     expect(matchesTrailPattern('entity.show', 'entity.**')).toBe(true);

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { matchesAnyTrailIdGlob } from '@ontrails/core';
 import type {
   TopoGraph,
   TopoGraphEntry,
@@ -98,12 +99,6 @@ const includesAny = (
 
 const namespaceMatches = (id: string, namespace: string): boolean =>
   id === namespace || id.startsWith(`${namespace}.`);
-
-const globToRegExp = (glob: string): RegExp => {
-  const escaped = glob.replaceAll(/[.+^${}()|[\]\\]/g, '\\$&');
-  const pattern = `^${escaped.replaceAll('*', '.*').replaceAll('?', '.')}$`;
-  return new RegExp(pattern);
-};
 
 const entryHasVersioning = (entry: TopoGraphEntry): boolean =>
   entry.version !== undefined ||
@@ -288,7 +283,7 @@ const matchesIdentityFilters = (
   }
   if (
     filters.idGlobs.length > 0 &&
-    !filters.idGlobs.some((glob) => globToRegExp(glob).test(ref.id))
+    !matchesAnyTrailIdGlob(ref.id, filters.idGlobs)
   ) {
     return false;
   }
