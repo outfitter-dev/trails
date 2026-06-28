@@ -745,8 +745,8 @@ describe('runRegrade', () => {
     }
   });
 
-  test('class-mode collection ignore keeps apply mode away from ignored paths', () => {
-    const root = mkdtempSync(join(tmpdir(), 'regrade-apply-ignore-'));
+  test('class-mode collection exclude keeps apply mode away from ignored paths', () => {
+    const root = mkdtempSync(join(tmpdir(), 'regrade-apply-exclude-'));
     mkdirSync(join(root, '.scratch'), { recursive: true });
     mkdirSync(join(root, 'src'), { recursive: true });
     writeFileSync(
@@ -759,7 +759,7 @@ describe('runRegrade', () => {
         apply: true,
         classes: [signalToPing],
         collection: {
-          ignore: ['.scratch/**'],
+          exclude: ['.scratch/**'],
         },
         includeEntries: 'all',
         root,

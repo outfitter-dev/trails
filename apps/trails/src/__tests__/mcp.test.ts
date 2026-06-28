@@ -171,11 +171,11 @@ describe('Trails MCP surface shaping', () => {
     expect(regrade.inputSchema).toMatchObject({
       properties: {
         configPath: expect.objectContaining({ type: 'string' }),
-        from: expect.objectContaining({ type: 'string' }),
-        ignore: expect.objectContaining({
+        exclude: expect.objectContaining({
           items: expect.objectContaining({ type: 'string' }),
           type: 'array',
         }),
+        from: expect.objectContaining({ type: 'string' }),
         to: expect.objectContaining({ type: 'string' }),
       },
       type: 'object',

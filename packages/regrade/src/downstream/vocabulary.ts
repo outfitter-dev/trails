@@ -1,11 +1,15 @@
-import { InternalError, Result, ValidationError } from '@ontrails/core';
+import {
+  InternalError,
+  Result,
+  ValidationError,
+  matchesAnyPathGlob,
+} from '@ontrails/core';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { z } from 'zod';
 
 import {
   DEFAULT_IGNORED_DIRECTORIES,
   collectDownstreamSources,
-  matchesAnyPathPattern,
 } from './collect.js';
 import type { DownstreamCollectionOptions, SkippedSource } from './collect.js';
 import type {
@@ -26,7 +30,6 @@ export interface VocabularyPreserveRule {
 export interface VocabularyRegradeScope {
   readonly exclude?: readonly string[];
   readonly extensions?: readonly string[];
-  readonly ignore?: readonly string[];
   readonly ignoredDirectories?: readonly string[];
   readonly include?: readonly string[];
 }
@@ -275,9 +278,8 @@ const includedByScope = (
 ): boolean =>
   (scope?.include === undefined ||
     scope.include.length === 0 ||
-    matchesAnyPathPattern(path, scope.include)) &&
-  !matchesAnyPathPattern(path, scope?.exclude) &&
-  !matchesAnyPathPattern(path, scope?.ignore);
+    matchesAnyPathGlob(path, scope.include)) &&
+  !matchesAnyPathGlob(path, scope?.exclude);
 
 const compilePreservePattern = (pattern: string): RegExp => {
   try {
@@ -294,7 +296,7 @@ const preserveRuleForOccurrence = (
   plan.preserve?.find((rule) => {
     if (
       rule.paths !== undefined &&
-      !matchesAnyPathPattern(occurrence.path, rule.paths)
+      !matchesAnyPathGlob(occurrence.path, rule.paths)
     ) {
       return false;
     }
@@ -755,9 +757,9 @@ export const runVocabularyRegrade = (params: {
 
   const collected = collectDownstreamSources(params.root, {
     extensions: params.plan.scope?.extensions ?? VOCABULARY_SOURCE_EXTENSIONS,
-    ...(params.plan.scope?.ignore === undefined
+    ...(params.plan.scope?.exclude === undefined
       ? {}
-      : { ignore: params.plan.scope.ignore }),
+      : { exclude: params.plan.scope.exclude }),
     ignoredDirectories:
       params.plan.scope?.ignoredDirectories ?? DEFAULT_IGNORED_DIRECTORIES,
   } satisfies DownstreamCollectionOptions);
@@ -874,10 +876,6 @@ const vocabularyRegradeScopeSchema = z.object({
     .array(z.string())
     .optional()
     .describe('Source file extensions to scan for this regrade'),
-  ignore: z
-    .array(z.string())
-    .optional()
-    .describe('Root-relative path globs to skip before scanning this regrade'),
   ignoredDirectories: z
     .array(z.string())
     .optional()

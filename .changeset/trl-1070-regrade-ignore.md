@@ -3,5 +3,5 @@
 "@ontrails/trails": patch
 ---
 
-Add path-scope ignore globs for vocabulary Regrade runs and expose them through
-the `trails regrade` CLI/MCP contract.
+Add Regrade path-scope exclusion globs for vocabulary runs and expose them
+through the `trails regrade` CLI/MCP contract.

@@ -538,9 +538,11 @@ const deriveCollectionOptions = (
   );
 
   return {
+    ...(collection?.exclude === undefined
+      ? {}
+      : { exclude: collection.exclude }),
     extensions: collection?.extensions ?? targetExtensions,
     ignoredDirectories: collection?.ignoredDirectories ?? ignoredDirectories,
-    ...(collection?.ignore === undefined ? {} : { ignore: collection.ignore }),
   };
 };
 

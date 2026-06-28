@@ -266,7 +266,7 @@ describe('trails regrade', () => {
     }
   });
 
-  test('CLI accepts path-scope ignore globs for vocabulary regrades', () => {
+  test('CLI accepts path-scope exclude globs for vocabulary regrades', () => {
     const dir = makeTempDir();
     try {
       writeFile(dir, '.agents/notes/history.ts', 'export const facet = 1;\n');
@@ -288,9 +288,9 @@ describe('trails regrade', () => {
         'trailhead',
         '--root-dir',
         dir,
-        '--ignore',
+        '--exclude',
         '.scratch/**',
-        '--ignore',
+        '--exclude',
         '.agents/notes/**',
         '--json',
       ]);
@@ -301,7 +301,7 @@ describe('trails regrade', () => {
           readonly ledger?: {
             readonly occurrences?: readonly { readonly path: string }[];
           };
-          readonly plan?: { readonly scope?: { readonly ignore?: string[] } };
+          readonly plan?: { readonly scope?: { readonly exclude?: string[] } };
         };
         readonly scan?: {
           readonly byDirectory?: readonly {
@@ -322,7 +322,7 @@ describe('trails regrade', () => {
         };
         readonly skipsByReason?: Record<string, number>;
       };
-      expect(parsed.run?.plan?.scope?.ignore).toEqual([
+      expect(parsed.run?.plan?.scope?.exclude).toEqual([
         '.scratch/**',
         '.agents/notes/**',
       ]);
@@ -348,7 +348,7 @@ describe('trails regrade', () => {
     }
   });
 
-  test('CLI accepts path-scope ignore globs for class-mode apply', () => {
+  test('CLI accepts path-scope exclude globs for class-mode apply', () => {
     const dir = makeTempDir();
     try {
       writeFile(
@@ -368,7 +368,7 @@ describe('trails regrade', () => {
         dir,
         '--class-ids',
         'term-rewrite:no-retired-cross-vocabulary',
-        '--ignore',
+        '--exclude',
         '.scratch/**',
         '--apply',
         '--json',
@@ -403,7 +403,7 @@ describe('trails regrade', () => {
         'trails.config.json',
         JSON.stringify({
           regrade: {
-            scope: { ignore: ['.scratch/**'] },
+            scope: { exclude: ['.scratch/**'] },
           },
         })
       );
@@ -463,7 +463,7 @@ describe('trails regrade', () => {
         'trails.config.json',
         JSON.stringify({
           regrade: {
-            scope: { ignore: ['.scratch/**', '.agents/notes/**'] },
+            scope: { exclude: ['.scratch/**', '.agents/notes/**'] },
           },
         })
       );
@@ -495,11 +495,11 @@ describe('trails regrade', () => {
           readonly ledger?: {
             readonly occurrences?: readonly { readonly path: string }[];
           };
-          readonly plan?: { readonly scope?: { readonly ignore?: string[] } };
+          readonly plan?: { readonly scope?: { readonly exclude?: string[] } };
         };
         readonly skipsByReason?: Record<string, number>;
       };
-      expect(parsed.run?.plan?.scope?.ignore).toEqual([
+      expect(parsed.run?.plan?.scope?.exclude).toEqual([
         '.scratch/**',
         '.agents/notes/**',
       ]);
@@ -521,7 +521,7 @@ describe('trails regrade', () => {
         'trails.config.json',
         JSON.stringify({
           regrade: {
-            scope: { ignore: ['.agents/notes/**'] },
+            scope: { exclude: ['.agents/notes/**'] },
           },
         })
       );
@@ -531,8 +531,8 @@ describe('trails regrade', () => {
 
       const result = await regradeTrail.blaze(
         {
+          exclude: ['.scratch/**'],
           from: 'facet',
-          ignore: ['.scratch/**'],
           rootDir: dir,
           to: 'trailhead',
         },
@@ -543,7 +543,7 @@ describe('trails regrade', () => {
       if (result.isErr()) {
         throw result.error;
       }
-      expect(result.value.run?.plan.scope?.ignore).toEqual(['.scratch/**']);
+      expect(result.value.run?.plan.scope?.exclude).toEqual(['.scratch/**']);
       expect(result.value.run?.ledger.occurrences.map((o) => o.path)).toEqual([
         '.agents/notes/history.ts',
         'src/keep.ts',
@@ -574,7 +574,7 @@ describe('trails regrade', () => {
       };
     };
     expect(parsed.command?.input?.properties).toHaveProperty('configPath');
-    expect(parsed.command?.input?.properties).toHaveProperty('ignore');
+    expect(parsed.command?.input?.properties).toHaveProperty('exclude');
     expect(parsed.command?.output?.properties).toHaveProperty('scan');
     expect(parsed.command?.flags).toContainEqual(
       expect.objectContaining({
@@ -585,7 +585,7 @@ describe('trails regrade', () => {
     );
     expect(parsed.command?.flags).toContainEqual(
       expect.objectContaining({
-        name: 'ignore',
+        name: 'exclude',
         type: 'string[]',
         variadic: true,
       })

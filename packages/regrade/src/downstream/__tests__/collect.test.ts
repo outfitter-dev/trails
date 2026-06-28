@@ -123,8 +123,8 @@ describe('collectDownstreamSources', () => {
     }
   });
 
-  test('honors path-scope ignore globs without hiding sibling skill paths', () => {
-    const root = mkdtempSync(join(tmpdir(), 'regrade-collect-ignore-'));
+  test('honors path-scope exclude globs without hiding sibling skill paths', () => {
+    const root = mkdtempSync(join(tmpdir(), 'regrade-collect-exclude-'));
     try {
       writeFileSync(join(root, 'README.md'), '# root\n');
       mkdirSync(join(root, '.agents', 'notes'), { recursive: true });
@@ -151,7 +151,7 @@ describe('collectDownstreamSources', () => {
       );
 
       const collection = collectDownstreamSources(root, {
-        ignore: [
+        exclude: [
           '.scratch/**',
           '.agents/notes/**',
           '.agents/plans/**',

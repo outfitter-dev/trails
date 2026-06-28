@@ -1,4 +1,9 @@
-import { NotFoundError, Result, trail } from '@ontrails/core';
+import {
+  NotFoundError,
+  Result,
+  matchesAnyPathGlob,
+  trail,
+} from '@ontrails/core';
 import { readdirSync } from 'node:fs';
 import { join, posix, relative, resolve, sep } from 'node:path';
 import { z } from 'zod';
@@ -67,7 +72,7 @@ export interface DownstreamCollectionOptions {
   /** Source extensions to collect. Defaults to {@link DEFAULT_SOURCE_EXTENSIONS}. */
   readonly extensions?: readonly string[];
   /** Root-relative path globs to skip before collection. */
-  readonly ignore?: readonly string[];
+  readonly exclude?: readonly string[];
 }
 
 /** Outcome of classifying a single directory entry. */
@@ -80,42 +85,6 @@ const extensionOf = (name: string): string => {
   const dot = name.lastIndexOf('.');
   return dot <= 0 ? '' : name.slice(dot);
 };
-
-const escapeRegExp = (value: string): string =>
-  value.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-export const pathPatternToRegExp = (pattern: string): RegExp => {
-  let expression = '';
-  for (let index = 0; index < pattern.length; index += 1) {
-    const char = pattern.at(index);
-    if (char === '*' && pattern.at(index + 1) === '*') {
-      if (pattern.at(index + 2) === '/') {
-        expression += '(?:.*/)?';
-        index += 2;
-      } else {
-        expression += '.*';
-        index += 1;
-      }
-      continue;
-    }
-    expression += char === '*' ? '[^/]*' : escapeRegExp(char ?? '');
-  }
-  return new RegExp(`^${expression}$`);
-};
-
-export const matchesPathPattern = (path: string, pattern: string): boolean => {
-  if (pathPatternToRegExp(pattern).test(path)) {
-    return true;
-  }
-  return pattern.endsWith('/**') && path === pattern.slice(0, -3);
-};
-
-export const matchesAnyPathPattern = (
-  path: string,
-  patterns: readonly string[] | undefined
-): boolean =>
-  patterns !== undefined &&
-  patterns.some((pattern) => matchesPathPattern(path, pattern));
 
 /**
  * Decide what to do with a single directory entry. Pure: no filesystem access,
@@ -215,7 +184,7 @@ export const collectDownstreamSources = (
     for (const entry of read.entries) {
       const absolutePath = join(current, entry.name);
       const path = toPosixRelative(absoluteRoot, absolutePath);
-      if (matchesAnyPathPattern(path, options.ignore)) {
+      if (matchesAnyPathGlob(path, options.exclude)) {
         skipped.push({ path, reason: 'ignored-glob' });
         continue;
       }
@@ -240,14 +209,14 @@ export const collectDownstreamSources = (
 };
 
 export const collectDownstreamSourcesInput = z.object({
+  exclude: z
+    .array(z.string())
+    .optional()
+    .describe('Root-relative path globs to skip before collection'),
   extensions: z
     .array(z.string())
     .optional()
     .describe('Source file extensions to collect (defaults to .ts and .tsx)'),
-  ignore: z
-    .array(z.string())
-    .optional()
-    .describe('Root-relative path globs to skip before collection'),
   ignoredDirectories: z
     .array(z.string())
     .optional()
@@ -293,7 +262,7 @@ export const collectDownstreamSourcesTrail = trail(
         ...(input.extensions === undefined
           ? {}
           : { extensions: input.extensions }),
-        ...(input.ignore === undefined ? {} : { ignore: input.ignore }),
+        ...(input.exclude === undefined ? {} : { exclude: input.exclude }),
         ...(input.ignoredDirectories === undefined
           ? {}
           : { ignoredDirectories: input.ignoredDirectories }),

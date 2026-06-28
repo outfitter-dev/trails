@@ -468,7 +468,7 @@ matchesPathPattern(path, pattern), matchesAnyPathPattern(path, patterns)
 pathPatternToRegExp(pattern)
 ```
 
-Project `trails.config.*` files may provide `warden.jurisdiction.ignore` defaults, and `trails warden --jurisdiction-ignore <glob>` can override them for a single run. Jurisdiction globs are root-relative path-scope controls for governance; use Regrade `scope.ignore` for migration scan scope.
+Project `trails.config.*` files may provide `warden.jurisdiction.ignore` defaults, and `trails warden --jurisdiction-ignore <glob>` can override them for a single run. Jurisdiction globs are root-relative path-scope controls for governance; use Regrade `scope.exclude` for migration scan scope.
 
 ## `@ontrails/warden/ast`
 
@@ -520,7 +520,7 @@ RegradeScanDirectoryBucket, RegradeScanExtensionBucket, RegradeScanSummary
 VocabularyRegradePlan, VocabularyRunLedger, VocabularyRunReport
 ```
 
-Regrade reports always include full aggregate counts, unknown class IDs, scan statistics, and skip reasons. Report `entries` default to actionable rewrite and review outcomes; pass `includeEntries: 'all'` to include no-op and skip entries. The `scan` block summarizes matched, scanned, and skipped files, then groups matched files by extension and top-level path segment; vocabulary reports include occurrence counts in those buckets. Vocabulary regrade runs add a `run` block with the authored plan, observed form and occurrence ledger, and projected completion gate so CLI and MCP callers can see what was modified, skipped, or deferred with an `open` count. Vocabulary plans can also carry `scope.ignore` path globs, exposed as `trails regrade --ignore <glob>`, to keep migration scope away from local notes, scratch space, generated state, or other paths that should not be scanned for that transition. Project `trails.config.*` files may provide `regrade.scope` defaults for `include`, `exclude`, `extensions`, and `ignore`; explicit CLI or MCP plan inputs override those defaults.
+Regrade reports always include full aggregate counts, unknown class IDs, scan statistics, and skip reasons. Report `entries` default to actionable rewrite and review outcomes; pass `includeEntries: 'all'` to include no-op and skip entries. The `scan` block summarizes matched, scanned, and skipped files, then groups matched files by extension and top-level path segment; vocabulary reports include occurrence counts in those buckets. Vocabulary regrade runs add a `run` block with the authored plan, observed form and occurrence ledger, and projected completion gate so CLI and MCP callers can see what was modified, skipped, or deferred with an `open` count. Vocabulary plans can also carry `scope.exclude` path globs, exposed as `trails regrade --exclude <glob>`, to keep migration scope away from local notes, scratch space, generated state, or other paths that should not be scanned for that transition. Project `trails.config.*` files may provide `regrade.scope` defaults for `include`, `exclude`, and `extensions`; explicit CLI or MCP plan inputs override those defaults.
 
 ## `@ontrails/config`
 

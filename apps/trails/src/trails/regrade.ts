@@ -39,9 +39,7 @@ const regradeInputSchema = z.object({
   exclude: z
     .array(z.string())
     .optional()
-    .describe(
-      'Root-relative path patterns to exclude in vocabulary regrade mode'
-    ),
+    .describe('Root-relative path globs to exclude during Regrade collection'),
   extensions: z
     .array(z.string())
     .optional()
@@ -51,10 +49,6 @@ const regradeInputSchema = z.object({
     .min(1)
     .optional()
     .describe('Source vocabulary term for a vocabulary regrade'),
-  ignore: z
-    .array(z.string())
-    .optional()
-    .describe('Root-relative path globs to skip during Regrade collection'),
   include: z
     .array(z.string())
     .optional()
@@ -90,7 +84,6 @@ const regradeInputSchema = z.object({
 });
 
 const hasVocabularyInput = (input: z.output<typeof regradeInputSchema>) =>
-  input.exclude !== undefined ||
   input.from !== undefined ||
   input.include !== undefined ||
   input.intent !== undefined ||
@@ -103,35 +96,34 @@ const classModeCollection = (
   configScope?: RegradeConfigScope | undefined
 ):
   | {
+      readonly exclude?: readonly string[];
       readonly extensions?: readonly string[];
-      readonly ignore?: readonly string[];
     }
   | undefined => {
   if (
+    configScope?.exclude === undefined &&
     configScope?.extensions === undefined &&
-    configScope?.ignore === undefined &&
-    input.extensions === undefined &&
-    input.ignore === undefined
+    input.exclude === undefined &&
+    input.extensions === undefined
   ) {
     return undefined;
   }
 
   return {
+    ...(configScope?.exclude === undefined
+      ? {}
+      : { exclude: configScope.exclude }),
     ...(configScope?.extensions === undefined
       ? {}
       : { extensions: configScope.extensions }),
-    ...(configScope?.ignore === undefined
-      ? {}
-      : { ignore: configScope.ignore }),
+    ...(input.exclude === undefined ? {} : { exclude: input.exclude }),
     ...(input.extensions === undefined ? {} : { extensions: input.extensions }),
-    ...(input.ignore === undefined ? {} : { ignore: input.ignore }),
   };
 };
 
 interface RegradeConfigScope {
   readonly exclude?: readonly string[] | undefined;
   readonly extensions?: readonly string[] | undefined;
-  readonly ignore?: readonly string[] | undefined;
   readonly include?: readonly string[] | undefined;
 }
 
@@ -145,7 +137,6 @@ const vocabularyScopeFromConfig = (
         ...(scope.extensions === undefined
           ? {}
           : { extensions: scope.extensions }),
-        ...(scope.ignore === undefined ? {} : { ignore: scope.ignore }),
         ...(scope.include === undefined ? {} : { include: scope.include }),
       };
 
@@ -186,7 +177,6 @@ const buildVocabularyPlan = (
       ...(input.extensions === undefined
         ? {}
         : { extensions: input.extensions }),
-      ...(input.ignore === undefined ? {} : { ignore: input.ignore }),
       ...(input.include === undefined ? {} : { include: input.include }),
     },
     to: input.to,

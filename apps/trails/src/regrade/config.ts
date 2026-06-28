@@ -6,7 +6,6 @@ import { z } from 'zod';
 const regradeScopeConfigSchema = z.object({
   exclude: z.array(z.string()).optional(),
   extensions: z.array(z.string()).optional(),
-  ignore: z.array(z.string()).optional(),
   include: z.array(z.string()).optional(),
 });
 

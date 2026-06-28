@@ -152,7 +152,7 @@ describe('runVocabularyRegrade', () => {
       }
       expect(result.value?.scanned).toBe(1);
       expect(result.value?.skipsByReason).toMatchObject({
-        'excluded-by-regrade-scope': 1,
+        'ignored-glob': 1,
       });
       expect(result.value?.run?.ledger.occurrences.map((o) => o.path)).toEqual([
         'src/keep.ts',
@@ -184,7 +184,7 @@ describe('runVocabularyRegrade', () => {
           from: 'facet',
           kind: 'vocabulary',
           scope: {
-            ignore: ['.scratch/**', '.agents/notes/**'],
+            exclude: ['.scratch/**', '.agents/notes/**'],
           },
           to: 'trailhead',
         },
