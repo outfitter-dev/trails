@@ -395,7 +395,166 @@ describe('trails regrade', () => {
     }
   });
 
-  test('schema exposes regrade ignore input for CLI and MCP callers', () => {
+  test('CLI applies config scope defaults to class-mode apply', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(
+        dir,
+        'trails.config.json',
+        JSON.stringify({
+          regrade: {
+            scope: { ignore: ['.scratch/**'] },
+          },
+        })
+      );
+      writeFile(
+        dir,
+        '.scratch/play.ts',
+        'export const play = trail("play", { crosses: [] });\n'
+      );
+      writeFile(
+        dir,
+        'src/play.ts',
+        'export const play = trail("play", { crosses: [] });\n'
+      );
+
+      const result = runRawCli([
+        'regrade',
+        '--root-dir',
+        dir,
+        '--class-ids',
+        'term-rewrite:no-retired-cross-vocabulary',
+        '--config-path',
+        'trails.config.json',
+        '--apply',
+        '--json',
+      ]);
+
+      expect(result.exitCode).toBe(0);
+      const parsed = JSON.parse(result.stdout) as {
+        readonly apply?: {
+          readonly applied?: number;
+          readonly filesChanged?: number;
+        };
+        readonly scan?: {
+          readonly skippedByReason?: Record<string, number>;
+        };
+      };
+      expect(parsed.apply).toMatchObject({ applied: 1, filesChanged: 1 });
+      expect(parsed.scan?.skippedByReason).toMatchObject({
+        'ignored-glob': 1,
+      });
+      expect(readFileSync(join(dir, '.scratch', 'play.ts'), 'utf8')).toContain(
+        'crosses'
+      );
+      expect(readFileSync(join(dir, 'src', 'play.ts'), 'utf8')).toContain(
+        'composes'
+      );
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('loads vocabulary scope defaults from trails config', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(
+        dir,
+        'trails.config.json',
+        JSON.stringify({
+          regrade: {
+            scope: { ignore: ['.scratch/**', '.agents/notes/**'] },
+          },
+        })
+      );
+      writeFile(dir, '.agents/notes/history.ts', 'export const facet = 1;\n');
+      writeFile(
+        dir,
+        '.agents/skills/trails/SKILL.ts',
+        'export const facet = 1;\n'
+      );
+      writeFile(dir, '.scratch/history.ts', 'export const facet = 1;\n');
+      writeFile(
+        dir,
+        'plugin/skills/trails/SKILL.ts',
+        'export const facet = 1;\n'
+      );
+
+      const result = runRawCli([
+        'regrade',
+        'facet',
+        'trailhead',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+
+      expect(result.exitCode).toBe(0);
+      const parsed = JSON.parse(result.stdout) as {
+        readonly run?: {
+          readonly ledger?: {
+            readonly occurrences?: readonly { readonly path: string }[];
+          };
+          readonly plan?: { readonly scope?: { readonly ignore?: string[] } };
+        };
+        readonly skipsByReason?: Record<string, number>;
+      };
+      expect(parsed.run?.plan?.scope?.ignore).toEqual([
+        '.scratch/**',
+        '.agents/notes/**',
+      ]);
+      expect(parsed.run?.ledger?.occurrences?.map((o) => o.path)).toEqual([
+        '.agents/skills/trails/SKILL.ts',
+        'plugin/skills/trails/SKILL.ts',
+      ]);
+      expect(parsed.skipsByReason).toMatchObject({ 'ignored-glob': 2 });
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('explicit vocabulary scope overrides config defaults', async () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(
+        dir,
+        'trails.config.json',
+        JSON.stringify({
+          regrade: {
+            scope: { ignore: ['.agents/notes/**'] },
+          },
+        })
+      );
+      writeFile(dir, '.agents/notes/history.ts', 'export const facet = 1;\n');
+      writeFile(dir, '.scratch/history.ts', 'export const facet = 1;\n');
+      writeFile(dir, 'src/keep.ts', 'export const facet = 1;\n');
+
+      const result = await regradeTrail.blaze(
+        {
+          from: 'facet',
+          ignore: ['.scratch/**'],
+          rootDir: dir,
+          to: 'trailhead',
+        },
+        { cwd: dir, env: {} } as never
+      );
+
+      expect(result.isOk()).toBe(true);
+      if (result.isErr()) {
+        throw result.error;
+      }
+      expect(result.value.run?.plan.scope?.ignore).toEqual(['.scratch/**']);
+      expect(result.value.run?.ledger.occurrences.map((o) => o.path)).toEqual([
+        '.agents/notes/history.ts',
+        'src/keep.ts',
+      ]);
+      expect(result.value.skipsByReason).toMatchObject({ 'ignored-glob': 1 });
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('schema exposes regrade scope inputs for CLI and MCP callers', () => {
     const result = runRawCli(['schema', 'regrade']);
 
     expect(result.exitCode).toBe(0);
@@ -414,8 +573,16 @@ describe('trails regrade', () => {
         };
       };
     };
+    expect(parsed.command?.input?.properties).toHaveProperty('configPath');
     expect(parsed.command?.input?.properties).toHaveProperty('ignore');
     expect(parsed.command?.output?.properties).toHaveProperty('scan');
+    expect(parsed.command?.flags).toContainEqual(
+      expect.objectContaining({
+        name: 'config-path',
+        type: 'string',
+        variadic: false,
+      })
+    );
     expect(parsed.command?.flags).toContainEqual(
       expect.objectContaining({
         name: 'ignore',

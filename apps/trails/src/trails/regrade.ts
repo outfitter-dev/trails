@@ -20,6 +20,7 @@ import {
 import type { RegradeReport, VocabularyRegradePlan } from '@ontrails/regrade';
 import { z } from 'zod';
 
+import { loadRegradeConfig } from '../regrade/config.js';
 import { resolveTrailRootDir } from './root-dir.js';
 
 const regradeInputSchema = z.object({
@@ -31,6 +32,10 @@ const regradeInputSchema = z.object({
     .array(z.string())
     .optional()
     .describe('Regrade class ids to run (defaults to all built-in classes)'),
+  configPath: z
+    .string()
+    .optional()
+    .describe('Path to a Trails config file with regrade defaults'),
   exclude: z
     .array(z.string())
     .optional()
@@ -94,25 +99,59 @@ const hasVocabularyInput = (input: z.output<typeof regradeInputSchema>) =>
   input.to !== undefined;
 
 const classModeCollection = (
-  input: z.output<typeof regradeInputSchema>
+  input: z.output<typeof regradeInputSchema>,
+  configScope?: RegradeConfigScope | undefined
 ):
   | {
       readonly extensions?: readonly string[];
       readonly ignore?: readonly string[];
     }
   | undefined => {
-  if (input.extensions === undefined && input.ignore === undefined) {
+  if (
+    configScope?.extensions === undefined &&
+    configScope?.ignore === undefined &&
+    input.extensions === undefined &&
+    input.ignore === undefined
+  ) {
     return undefined;
   }
 
   return {
+    ...(configScope?.extensions === undefined
+      ? {}
+      : { extensions: configScope.extensions }),
+    ...(configScope?.ignore === undefined
+      ? {}
+      : { ignore: configScope.ignore }),
     ...(input.extensions === undefined ? {} : { extensions: input.extensions }),
     ...(input.ignore === undefined ? {} : { ignore: input.ignore }),
   };
 };
 
+interface RegradeConfigScope {
+  readonly exclude?: readonly string[] | undefined;
+  readonly extensions?: readonly string[] | undefined;
+  readonly ignore?: readonly string[] | undefined;
+  readonly include?: readonly string[] | undefined;
+}
+
+const vocabularyScopeFromConfig = (
+  scope: RegradeConfigScope | undefined
+): VocabularyRegradePlan['scope'] | undefined =>
+  scope === undefined
+    ? undefined
+    : {
+        ...(scope.exclude === undefined ? {} : { exclude: scope.exclude }),
+        ...(scope.extensions === undefined
+          ? {}
+          : { extensions: scope.extensions }),
+        ...(scope.ignore === undefined ? {} : { ignore: scope.ignore }),
+        ...(scope.include === undefined ? {} : { include: scope.include }),
+      };
+
 const buildVocabularyPlan = (
-  input: z.output<typeof regradeInputSchema>
+  input: z.output<typeof regradeInputSchema>,
+  configScope?: VocabularyRegradePlan['scope']
 ): TrailsResult<VocabularyRegradePlan, ValidationError> => {
   if (input.from === undefined || input.to === undefined) {
     return Result.err(
@@ -142,6 +181,7 @@ const buildVocabularyPlan = (
           })),
         }),
     scope: {
+      ...configScope,
       ...(input.exclude === undefined ? {} : { exclude: input.exclude }),
       ...(input.extensions === undefined
         ? {}
@@ -161,8 +201,23 @@ export const regradeTrail = trail('regrade', {
       return rootDirResult;
     }
 
+    const configResult = await loadRegradeConfig({
+      ...(input.configPath === undefined
+        ? {}
+        : { configPath: input.configPath }),
+      env: ctx.env,
+      rootDir: rootDirResult.value,
+    });
+    if (configResult.isErr()) {
+      return configResult;
+    }
+    const configScope = configResult.value.config?.scope;
+
     if (hasVocabularyInput(input)) {
-      const planResult = buildVocabularyPlan(input);
+      const planResult = buildVocabularyPlan(
+        input,
+        vocabularyScopeFromConfig(configScope)
+      );
       if (planResult.isErr()) {
         return planResult;
       }
@@ -206,7 +261,7 @@ export const regradeTrail = trail('regrade', {
       );
     }
 
-    const collection = classModeCollection(input);
+    const collection = classModeCollection(input, configScope);
     const reportResult: TrailsResult<RegradeReport | null, Error> = runRegrade({
       apply: input.apply,
       classes: classSet.classes,
