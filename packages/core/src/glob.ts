@@ -2,7 +2,15 @@ export interface GlobConfig {
   readonly separator: '/' | '.';
 }
 
-const escapeRegExp = (value: string): string =>
+/**
+ * Escape a literal string so it can be embedded safely in a RegExp source.
+ *
+ * @example
+ * ```ts
+ * const pattern = new RegExp(`^${escapeRegExp('@ontrails/core')}$`);
+ * ```
+ */
+export const escapeRegExp = (value: string): string =>
   value.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const separatorRegExp = (separator: GlobConfig['separator']): string =>

@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 
+import { escapeRegExp } from '@ontrails/core';
 import { spawnSync } from 'node:child_process';
 import { basename, dirname, extname } from 'node:path';
 
@@ -105,9 +106,6 @@ const titleFromMarkdown = (file: string, markdown: string) => {
 };
 
 const stripFirstH1 = (markdown: string) => markdown.replace(/^#\s+.+\n+/, '');
-
-const escapeRegExp = (value: string) =>
-  value.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const readFrontmatterValue = (frontmatter: string | undefined, key: string) => {
   if (!frontmatter) {

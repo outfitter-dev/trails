@@ -2,6 +2,7 @@ import {
   InternalError,
   Result,
   ValidationError,
+  escapeRegExp,
   matchesAnyPathGlob,
 } from '@ontrails/core';
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -118,9 +119,6 @@ const VOCABULARY_SOURCE_EXTENSIONS = Object.freeze([
   '.yaml',
   '.yml',
 ]);
-
-const escapeRegExp = (value: string): string =>
-  value.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const uniqueSorted = (values: readonly string[]): readonly string[] =>
   [...new Set(values)].toSorted((a, b) => a.localeCompare(b));

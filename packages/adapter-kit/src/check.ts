@@ -14,6 +14,8 @@ import {
 } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 
+import { escapeRegExp } from '@ontrails/core';
+
 import { deriveAdapterTargetCatalog } from './catalog.js';
 import type {
   AdapterTargetCatalog,
@@ -432,9 +434,6 @@ const collectSourceFiles = (dir: string): readonly string[] => {
   visit(dir);
   return files.toSorted();
 };
-
-const escapeRegExp = (value: string): string =>
-  value.replaceAll(/[.*+?^${}()|[\]\\]/gu, '\\$&');
 
 const isIdentifierChar = (char: string | undefined): boolean =>
   char !== undefined && /[$\w]/u.test(char);

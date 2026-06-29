@@ -113,7 +113,12 @@ export type {
 export { createTrailContext, passthroughTrace } from './context.js';
 
 // Glob and path scope
-export { globToRegExp, matchesAnyGlob, matchesGlob } from './glob.js';
+export {
+  escapeRegExp,
+  globToRegExp,
+  matchesAnyGlob,
+  matchesGlob,
+} from './glob.js';
 export type { GlobConfig } from './glob.js';
 export {
   includedByPathScope,

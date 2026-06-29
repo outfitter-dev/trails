@@ -8,6 +8,7 @@
 
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, isAbsolute, resolve } from 'node:path';
+import { escapeRegExp } from '@ontrails/core';
 import type { AstNode } from './ast.js';
 import {
   collectScopeFrameBindings,
@@ -287,9 +288,6 @@ const extractIdentifierName = (node: AstNode | undefined): string | null =>
   node?.type === 'Identifier' ? (getNodeName(node) ?? null) : null;
 
 const DEFAULT_RESULT_TYPE_NAMES = new Set(['Result']);
-
-const escapeRegExp = (value: string): string =>
-  value.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const hasGenericTypeReference = (
   annotationText: string,

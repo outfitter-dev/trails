@@ -1,5 +1,6 @@
 import { readFile, readdir, writeFile } from 'node:fs/promises';
 import { join, relative } from 'node:path';
+import { escapeRegExp } from '@ontrails/core';
 
 export interface ReleasePackCoherenceInput {
   readonly branchName?: string | undefined;
@@ -233,9 +234,6 @@ export const findLockfileWorkspaceMetadataMismatches = ({
   }
   return mismatches;
 };
-
-const escapeRegExp = (text: string): string =>
-  text.replaceAll(/[.*+?^${}()|[\]\\]/gu, '\\$&');
 
 const findWorkspaceBlockRange = (
   text: string,

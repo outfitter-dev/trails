@@ -1,10 +1,17 @@
 import { describe, expect, test } from 'bun:test';
 
-import { matchesGlob } from '../glob.js';
+import { escapeRegExp, matchesGlob } from '../glob.js';
 import { includedByPathScope, matchesPathGlob } from '../path-scope.js';
 import { matchesTrailIdGlob } from '../trail-id-glob.js';
 
 describe('glob engine', () => {
+  test('escapes strings for literal regexp embedding', () => {
+    const pattern = new RegExp(`^${escapeRegExp('@ontrails/core?')}$`);
+
+    expect(pattern.test('@ontrails/core?')).toBe(true);
+    expect(pattern.test('@ontrails/corex')).toBe(false);
+  });
+
   test('matches segment wildcards without crossing the separator', () => {
     expect(matchesGlob('entity.show', 'entity.*', { separator: '.' })).toBe(
       true

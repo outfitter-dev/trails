@@ -96,7 +96,7 @@ deriveCliPath(trailId)             // trail ID → hierarchical CLI command path
 Field, FieldOverride
 
 // Shared glob and scope contracts
-globToRegExp(pattern, config), matchesGlob(value, pattern, config), matchesAnyGlob(value, patterns, config)
+escapeRegExp(value), globToRegExp(pattern, config), matchesGlob(value, pattern, config), matchesAnyGlob(value, patterns, config)
 matchesTrailIdGlob(id, pattern), matchesAnyTrailIdGlob(id, patterns)
 pathScopeSchema, includedByPathScope(path, scope)
 matchesPathGlob(path, pattern), matchesAnyPathGlob(path, patterns)

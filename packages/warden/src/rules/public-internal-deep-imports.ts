@@ -1,5 +1,6 @@
 import { existsSync, realpathSync } from 'node:fs';
 import { resolve, sep } from 'node:path';
+import { escapeRegExp } from '@ontrails/core';
 
 import {
   extractStringLiteral,
@@ -302,9 +303,6 @@ const rootBarrelDiagnostics = (
 
 const stripLeadingDotSlash = (path: string): string =>
   path.startsWith('./') ? path.slice(2) : path;
-
-const escapeRegExp = (value: string): string =>
-  value.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const wildcardPatternSource = (pattern: string): string => {
   let regexSource = '';

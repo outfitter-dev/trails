@@ -1,4 +1,4 @@
-import { InternalError, Result } from '@ontrails/core';
+import { InternalError, Result, escapeRegExp } from '@ontrails/core';
 import type {
   WardenDiagnostic,
   WardenFixEdit,
@@ -154,9 +154,6 @@ export interface RegradeReviewDetail {
   /** Symbol or term that triggered review. */
   readonly symbol?: string;
 }
-
-const escapeRegExp = (value: string): string =>
-  value.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /**
  * Build a whole-word term-rewrite class.

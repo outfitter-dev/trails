@@ -126,6 +126,9 @@
     "packages/adapter-kit": {
       "name": "@ontrails/adapter-kit",
       "version": "1.0.0-beta.31",
+      "dependencies": {
+        "@ontrails/core": "workspace:^",
+      },
     },
     "packages/cli": {
       "name": "@ontrails/cli",

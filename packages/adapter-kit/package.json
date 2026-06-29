@@ -19,5 +19,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "oxlint ./src",
     "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@ontrails/core": "workspace:^"
   }
 }
