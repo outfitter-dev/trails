@@ -32,7 +32,7 @@ Each source-file rule is wrapped via `wrapRule()` into a trail with ID `warden.r
 
 **Intent** is always `'read'` — rules are pure analysis, they never modify source files.
 
-Rules have examples showing both clean code (empty diagnostics array) and violations (expected diagnostics with specific messages and line numbers). This means every rule's behavior is documented in the contract itself, not in separate test files or prose.
+Rules have examples showing both clean code (empty diagnostics array) and diagnostic cases (expected diagnostics with specific messages and line numbers). This means every rule's behavior is documented in the contract itself, not in separate test files or prose.
 
 The built-in wrappers are collected into `wardenTopo`, but dispatch now follows the runtime shape instead of pretending every rule is file-scoped. `runWardenTrails(filePath, sourceCode, options?)` iterates only the file-scoped wrappers. `runTopoAwareWardenTrails(topo)` dispatches topo-aware wrappers once per resolved graph. `runWarden()` composes both paths, running file-scoped analysis across the requested sources and then adding topo-aware diagnostics when invoked with a resolved `Topo`.
 

@@ -39,7 +39,7 @@ A trail wrapper is a `trail()` instance. It carries:
 
 - `.blaze` — the authored implementation that establishes how the rule trail runs
 - `.input` / `.output` — schemas describing the contract
-- `.examples` — the happy-path and violation cases that feed `testAll()`
+- `.examples` — the happy-path and diagnostic cases that feed `testAll()`
 - `.id` — the canonical `warden.rule.<name>` identifier
 - The rest of the trail contract
 

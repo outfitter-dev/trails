@@ -4,7 +4,7 @@ slug: owner-first-authority
 title: Owner-First Authority
 status: accepted
 created: 2026-04-30
-updated: 2026-04-30
+updated: 2026-06-29
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [0, 7, 26, 35, 36]
 ---
@@ -58,6 +58,20 @@ This means:
 | Adapter descriptors | the adapter package or descriptor owner once the descriptor model lands |
 
 The export is boring on purpose. Prefer an `as const` array, a typed object, or a small mapper that directly represents the owner's knowledge. Do not introduce a generic authority system before the natural owner has been tested.
+
+### Natural altitude chooses the owner
+
+Ownership belongs at the lowest package altitude where the fact remains true without depending on a particular app, surface, command, or consumer.
+
+Use this test before extracting a helper or moving a duplicated fact:
+
+1. **Concept fact:** if the fact defines a primitive or contract category, it belongs to that concept's package.
+2. **Durable graph fact:** if the fact is derived from the resolved graph and is persisted, hashed, diffed, or compared across processes, it belongs to Topographer.
+3. **Surface fact:** if the fact only exists because a surface renders the graph in that surface's idiom, it belongs to that surface package.
+4. **App fact:** if the fact is true only for one app or operator command, it stays in the app.
+5. **Repo fact:** if the fact only helps this repository build, test, or migrate itself, it stays in repo tooling or repo-local Warden rules.
+
+Do not move a helper upward merely because two packages want convenience. Move it upward when its lower copies would otherwise re-derive the same owner-held truth.
 
 ### Consumers import owner data instead of copying it
 

@@ -480,6 +480,7 @@ A mechanically derived output from authored information. The topo store is a rel
 | `meta` | Annotations for tooling and filtering |
 | `Result` | Ok/Err return type |
 | `error` | Error types |
+| `diagnostic` | Analyzer-reported problem or guidance item emitted by Warden, config checks, validation, or similar tooling. Do not use `issue`, `finding`, or `violation` as the framework noun for this shape. |
 | `adapter` | Canonical public category for a package or subpath that connects Trails to a named external library, framework, tool, platform, format, or ecosystem |
 | `surface accommodation` | Projection-level fit adjustment that lets a surface feel native without changing the trail contract |
 | `surface entry` | Invocable affordance exposed by a surface: CLI command, MCP tool, HTTP route, or library export |

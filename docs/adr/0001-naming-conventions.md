@@ -4,7 +4,7 @@ slug: naming-conventions
 title: Naming Conventions — Guessable API Through Structural Rules
 status: accepted
 created: 2026-03-27
-updated: 2026-05-26
+updated: 2026-06-29
 owners: ['[galligan](https://github.com/galligan)']
 ---
 
@@ -183,6 +183,51 @@ deriveHttpRoutes(graph);
 ```
 
 Derivations stay pure. When a derivation can fail because the authored graph is invalid or collides with itself, it reports that failure as `Result.err(...)` rather than throwing.
+
+### Accessor verb family
+
+The `get` / `read` / `find` / `list` family is distinct-on-purpose. Do not flatten it into one generic accessor verb.
+
+| Verb | Meaning | Examples |
+| --- | --- | --- |
+| `get*` | In-memory access to a known object, field, or registry entry | `getTraceSink()`, `getWebhookHeader()` |
+| `read*` | External source IO, including files, registry state, and persisted artifacts | `readPackageJson()`, `readTrailsLock()` |
+| `find*` | May-miss discovery or search where absence is a normal result | `findWorkspaceRoot()`, `findTrailsProjectRoot()` |
+| `list*` | Enumerate a collection without implying lookup by one key | `listTopoSnapshots()`, `listWayfinderEntityRefs()` |
+
+Use this family as call-site discipline. If a helper reads the filesystem, a registry, or a persisted lock, it should not be named `get*`. If a helper searches and can miss, it should not be named `read*`. If a helper enumerates many values, `list*` is clearer than `find*`.
+
+### `build*` vs `derive*`
+
+Use `derive*` when a helper mechanically projects facts from an authored contract, resolved graph, or other framework-owned source of truth. Use `build*` when a helper assembles a report, string, fixture, or runtime shape from raw materials and formatting choices.
+
+The test is source ownership: if the result should change only because the source contract changed, it is probably a derivation. If the result carries presentation, formatting, aggregation policy, or non-contract inputs, it may be a build.
+
+### Location field names
+
+Use location fields consistently:
+
+| Name | Meaning |
+| --- | --- |
+| `path` | Root-relative POSIX path or logical path in the current project scope |
+| `absolutePath` | Absolute filesystem path |
+| `filePath` | Public file-scoped diagnostic field or function parameter naming the analyzed file |
+| `sourcePath` | Source-analysis path when it must be distinguished from another file path in the same shape |
+| `file` | Surface or schema input name when the caller literally provides a file argument |
+
+Do not mix `file` and `filePath` inside the same returned diagnostic shape unless they name different concepts.
+
+### `scope`, `selector`, and `filter`
+
+These three words are related but not interchangeable.
+
+| Term | Meaning |
+| --- | --- |
+| `scope` | Boundary of what a command, rule, or query is allowed to inspect |
+| `selector` | Expression that chooses members inside an already chosen scope |
+| `filter` | Predicate or parameter that narrows an already selected set |
+
+Warden and Regrade path boundaries use `scope`. Trailhead and Wayfinder member matching may use `selector` when the value chooses members. Query options that remove items from a result set may use `filter`.
 
 ### `validate*` for contract verification
 

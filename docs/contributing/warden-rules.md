@@ -234,4 +234,4 @@ When an audit produces a prevention candidate:
 6. Add tests that prove both accepted code and the diagnostic shape.
 7. Record any temporary rule's deletion trigger.
 
-Forward-looking skills, docs, and advisory reports can consume owner data and Warden findings. They do not become parallel authority.
+Forward-looking skills, docs, and advisory reports can consume owner data and Warden diagnostics. They do not become parallel authority.
