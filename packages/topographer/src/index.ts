@@ -4,6 +4,20 @@
 
 // Derivation
 export { deriveTopoGraph } from './derive.js';
+export {
+  deriveActivationGraph,
+  deriveDeclaredTrailActivation,
+  deriveSignalActivationRelations,
+} from './activation-report.js';
+export type {
+  ActivationChainReport,
+  ActivationEdgeReport,
+  ActivationGraphReport,
+  ActivationOverviewReport,
+  ActivationSourceReport,
+  SignalActivationRelations,
+  TrailActivationReport,
+} from './activation-report.js';
 export { deriveTopoGraphHash } from './hash.js';
 export { deriveTopoGraphDiff } from './diff.js';
 export {

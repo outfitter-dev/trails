@@ -65,6 +65,9 @@ Compatibility helpers still read the previous `.trails/trails.lock` plus `.trail
 | Export | What it does |
 | --- | --- |
 | `deriveTopoGraph(topo)` | Deterministic TopoGraph of every established trail, signal, resource, and contour |
+| `deriveActivationGraph(topoGraph)` | Static activation overview for trails, signals, and activation sources in a TopoGraph |
+| `deriveDeclaredTrailActivation(entry)` | Trail-local activation report from a resolved TopoGraph entry |
+| `deriveSignalActivationRelations(topoGraph)` | Signal-local activation relations for source and consumer navigation |
 | `deriveTopoGraphHash(topoGraph)` | Stable SHA-256 hash of the TopoGraph |
 | `deriveTopoGraphDiff(prev, curr)` | Semantic diff with `breaking`, `warning`, and `info` classifications |
 | `writeTrailsLock(lock, options?)` | Write root `trails.lock` as a v4 lock envelope |

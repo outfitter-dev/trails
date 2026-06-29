@@ -254,6 +254,8 @@ These are programmatic Topographer APIs for deriving, hashing, diffing, reading,
 ```typescript
 // TopoGraph and lock artifact helpers
 deriveTopoGraph(graph), deriveTopoGraphHash(topoGraph), deriveTopoGraphDiff(before, after)
+deriveActivationGraph(topoGraph), deriveDeclaredTrailActivation(entry)
+deriveSignalActivationRelations(topoGraph)
 writeTrailsLock(lock, options?), readTrailsLock(options?)
 readTopoGraph(options?), readWorkspaceTrailIndex(options?)
 writeTopoGraph(topoGraph, options?), writeLockManifest(manifest, options?), readLockManifest(options?) // legacy beta artifact-family helpers
@@ -265,6 +267,8 @@ pinTopoSnapshot(id, name, options?), unpinTopoSnapshot(nameOrId, options?)
 TOPO_STORE_SCHEMA_VERSION
 
 TopoGraph, TopoGraphEntry, TopoGraphContourReference, TrailsLock, LockManifest, DiffResult, DiffEntry, JsonSchema
+ActivationGraphReport, TrailActivationReport, SignalActivationRelations
+ActivationOverviewReport, ActivationSourceReport, ActivationChainReport, ActivationEdgeReport
 WriteOptions, ReadOptions
 ReadOnlyTopoStore, MockTopoStoreSeed, TopoSnapshot, TopoStoreRef
 TopoStoreActivationContextRecord, TopoStoreExportRecord, TopoStoreResourceRecord
