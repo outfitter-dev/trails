@@ -269,6 +269,7 @@ Use Graphite for source control operations.
 - `git status` and `git diff` are the normal read-only exceptions.
 - We use Conventional Commits.
 - Keep PRs small, isolate mechanical changes when possible, and keep PRs in draft until CI is green.
+- When referencing Linear issues or GitHub PRs, use Markdown links whose label is only the short identifier, such as `[TRL-1091](...)` or `[#830](...)`, so handoffs stay easy to scan and jump through.
 - Treat a Greptile error comment (`Greptile encountered an error while reviewing this PR`) as a blocker, not as a completed review.
 - When performing fixes across stacked branches, prefer the owning branch: check it out, make the focused fix there, `gt modify`, restack, and verify upward. Use `gt absorb -a` only when the stack owner explicitly chooses a top-branch absorption workflow.
 - During local review, missing branch-local release intent for public trail additions/removals, visibility transitions, input/output changes, or surface exposure changes is a P2 release-quality blocker. Identify the owning branch, add the changeset or explicit no-release reason there, restack, and re-run `bun run changeset:check` or `trails release check --json` upward.
