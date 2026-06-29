@@ -63,6 +63,7 @@ RetryExhaustedError
 ErrorCategory, isTrailsError(value?), isRetryable(error)
 mapSurfaceError(surface, error), projectSurfaceError(surface, error)
 projectErrorClassSurface(surface, errorName)
+DiagnosticBase, DiagnosticSeverity, RuleDiagnosticBase
 
 // Implementation & context
 Implementation<I, O>              // (input, ctx) => Result | Promise<Result>
@@ -597,7 +598,7 @@ authVerify                           // verify a bearer token and return a permi
 
 // Governance
 validatePermits(trails)              // check trails against permit governance rules
-PermitDiagnostic
+PermitDiagnostic, PermitDiagnosticSeverity
 ```
 
 ### `@ontrails/permits/jwt`

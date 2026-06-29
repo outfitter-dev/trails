@@ -1,4 +1,9 @@
-import type { Intent, Topo } from '@ontrails/core';
+import type {
+  DiagnosticSeverity,
+  Intent,
+  RuleDiagnosticBase,
+  Topo,
+} from '@ontrails/core';
 import type { TopoGraph } from '@ontrails/topographer';
 
 import type { WardenDepth } from '../config.js';
@@ -8,7 +13,7 @@ import type { WardenPublicWorkspace } from '../workspaces.js';
 /**
  * Severity level for warden diagnostics.
  */
-export type WardenSeverity = 'error' | 'warn';
+export type WardenSeverity = DiagnosticSeverity;
 
 /**
  * Execution tier for a Warden rule.
@@ -207,7 +212,7 @@ export interface WardenRuleMetadata {
 /**
  * A single diagnostic reported by a warden rule.
  */
-export interface WardenDiagnostic {
+export interface WardenDiagnostic extends RuleDiagnosticBase {
   /** Rule identifier, e.g. "no-throw-in-implementation" */
   readonly rule: string;
   /** Optional rule-local diagnostic code for checks with multiple stable findings. */

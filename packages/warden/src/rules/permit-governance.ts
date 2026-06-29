@@ -10,7 +10,7 @@ const toWardenDiagnostic = (
   line: 1,
   message: diagnostic.message,
   rule: `permit.${diagnostic.rule}`,
-  severity: diagnostic.severity === 'error' ? 'error' : 'warn',
+  severity: diagnostic.severity,
 });
 
 export const permitGovernance: TopoAwareWardenRule = {

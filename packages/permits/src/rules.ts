@@ -1,14 +1,20 @@
-import type { Trail } from '@ontrails/core';
+import type {
+  DiagnosticSeverity,
+  RuleDiagnosticBase,
+  Trail,
+} from '@ontrails/core';
 
 // ---------------------------------------------------------------------------
 // Diagnostic type
 // ---------------------------------------------------------------------------
 
+export type PermitDiagnosticSeverity = DiagnosticSeverity;
+
 /** A single governance finding from a permit rule. */
-export interface PermitDiagnostic {
+export interface PermitDiagnostic extends RuleDiagnosticBase {
   readonly trailId: string;
   readonly rule: string;
-  readonly severity: 'error' | 'warning';
+  readonly severity: PermitDiagnosticSeverity;
   readonly message: string;
 }
 
@@ -70,7 +76,7 @@ export const writeWithoutPermit: Rule = (trails) =>
     .map((t) => ({
       message: `Trail "${t.id}" has write intent but no permit declaration`,
       rule: 'writeWithoutPermit',
-      severity: 'warning' as const,
+      severity: 'warn' as const,
       trailId: t.id,
     }));
 
@@ -101,7 +107,7 @@ export const scopeNamingConsistency: Rule = (trails) =>
       .map((scope) => ({
         message: `Scope "${scope}" on trail "${t.id}" does not follow entity:action convention`,
         rule: 'scopeNamingConsistency',
-        severity: 'warning' as const,
+        severity: 'warn' as const,
         trailId: t.id,
       }))
   );
@@ -143,7 +149,7 @@ const orphanDiagnostics = (
     .map(([scope, ids]) => ({
       message: `Scope "${scope}" appears only on trail "${[...ids][0]}" — possible typo`,
       rule: 'orphanScopeDetection',
-      severity: 'warning' as const,
+      severity: 'warn' as const,
       trailId: [...ids][0] ?? '',
     }));
 

@@ -68,6 +68,11 @@ export {
   redactErrorString,
 } from './error-projection.js';
 export type { ErrorDiagnosticsProjection } from './error-projection.js';
+export type {
+  DiagnosticBase,
+  DiagnosticSeverity,
+  RuleDiagnosticBase,
+} from './diagnostics.js';
 
 // Types
 export type {

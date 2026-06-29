@@ -15,7 +15,10 @@ import {
 import { dirname, join, relative, resolve } from 'node:path';
 
 import { escapeRegExp, listWorkspacePackages } from '@ontrails/core';
-import type { WorkspacePackage as CoreWorkspacePackage } from '@ontrails/core';
+import type {
+  DiagnosticBase,
+  WorkspacePackage as CoreWorkspacePackage,
+} from '@ontrails/core';
 
 import { deriveAdapterTargetCatalog } from './catalog.js';
 import type {
@@ -36,15 +39,14 @@ export type AdapterCheckDiagnosticCode =
   | 'unknown-adapter-target'
   | 'unsupported-placement';
 
-export type AdapterCheckDiagnosticSeverity = 'error' | 'warn';
+export type AdapterCheckDiagnosticSeverity = DiagnosticBase['severity'];
 
-export interface AdapterCheckDiagnostic {
+export interface AdapterCheckDiagnostic extends DiagnosticBase<AdapterCheckDiagnosticCode> {
   readonly code: AdapterCheckDiagnosticCode;
   readonly message: string;
   readonly packageJsonPath: string;
   readonly packageName?: string | undefined;
   readonly placement?: AdapterTargetPlacement | undefined;
-  readonly severity: AdapterCheckDiagnosticSeverity;
   readonly target?: string | undefined;
 }
 

@@ -80,7 +80,7 @@ describe('writeWithoutPermit', () => {
     expect(diagnostics).toHaveLength(1);
     expect(diagnostics[0]).toMatchObject({
       rule: 'writeWithoutPermit',
-      severity: 'warning',
+      severity: 'warn',
       trailId: 'user.create',
     });
   });
@@ -108,7 +108,7 @@ describe('writeWithoutPermit', () => {
     expect(diagnostics).toHaveLength(1);
     expect(diagnostics[0]).toMatchObject({
       rule: 'writeWithoutPermit',
-      severity: 'warning',
+      severity: 'warn',
       trailId: 'user.update',
     });
   });
@@ -150,7 +150,7 @@ describe('scopeNamingConsistency', () => {
     expect(diagnostics[0]).toMatchObject({
       message: expect.stringContaining('admin'),
       rule: 'scopeNamingConsistency',
-      severity: 'warning',
+      severity: 'warn',
       trailId: 'admin.panel',
     });
   });
