@@ -1,5 +1,13 @@
 # @ontrails/store
 
+## 1.0.0-beta.31
+
+### Patch Changes
+
+- Updated dependencies [4cd5d4e]
+- Updated dependencies [38907cc]
+  - @ontrails/core@1.0.0-beta.31
+
 ## 1.0.0-beta.30
 
 ### Patch Changes

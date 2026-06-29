@@ -1,5 +1,36 @@
 # @ontrails/regrade
 
+## 1.0.0-beta.31
+
+### Patch Changes
+
+- e2f3d23: Default Regrade reports to actionable entries, add skip counts grouped by
+  reason, and expose an `includeEntries` option for full report inventories.
+- 9be2b7e: Load project-local Warden term-rewrite rules from the Regrade root so repo-owned
+  migration classes can run through `trails regrade`.
+- 47f782c: Add occurrence-level vocabulary regrade reports with plan, ledger,
+  and completion-gate facts. The Trails `regrade` operator command now supports
+  positional `<from> <to>` regrade runs and exposes the same capability through
+  the curated MCP surface.
+- ee9f3ae: Let Warden fix capabilities declare downstream scan targets and have Regrade
+  honor those targets for Warden-backed term-rewrite classes.
+
+  Dogfood the first safe facet-to-trailhead prose rewrite through project-local
+  Warden rules and Regrade.
+
+- 982a4d7: Add Regrade path-scope exclusion globs for vocabulary runs and expose them
+  through the `trails regrade` CLI/MCP contract.
+- 1540233: Add Regrade scan inventory summaries that group matched files by extension and
+  top-level path, with occurrence counts for vocabulary regrade reports.
+- a079073: Rename Regrade path-scope scan controls from `ignore` to `exclude` across CLI, MCP, and project config.
+- Updated dependencies [ee9f3ae]
+- Updated dependencies [a0126d9]
+- Updated dependencies [4cd5d4e]
+- Updated dependencies [6a26a08]
+- Updated dependencies [38907cc]
+  - @ontrails/warden@1.0.0-beta.31
+  - @ontrails/core@1.0.0-beta.31
+
 ## 1.0.0-beta.30
 
 ### Patch Changes

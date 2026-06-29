@@ -1,5 +1,29 @@
 # @ontrails/warden
 
+## 1.0.0-beta.31
+
+### Patch Changes
+
+- ee9f3ae: Let Warden fix capabilities declare downstream scan targets and have Regrade
+  honor those targets for Warden-backed term-rewrite classes.
+
+  Dogfood the first safe facet-to-trailhead prose rewrite through project-local
+  Warden rules and Regrade.
+
+- a0126d9: Add Warden `scope.exclude` globs through project config and the Trails CLI
+  wrapper so governance runs can exclude local notes, scratch space, and generated
+  state without dropping durable skills or plugin assets from scope.
+- 6a26a08: Rename Warden governance scope controls from jurisdiction ignore settings to `scope.exclude` across config, CLI, and Trails surfaces.
+- Updated dependencies [4cd5d4e]
+- Updated dependencies [38907cc]
+  - @ontrails/core@1.0.0-beta.31
+  - @ontrails/adapter-kit@1.0.0-beta.31
+  - @ontrails/cli@1.0.0-beta.31
+  - @ontrails/config@1.0.0-beta.31
+  - @ontrails/permits@1.0.0-beta.31
+  - @ontrails/store@1.0.0-beta.31
+  - @ontrails/topographer@1.0.0-beta.31
+
 ## 1.0.0-beta.30
 
 ### Patch Changes

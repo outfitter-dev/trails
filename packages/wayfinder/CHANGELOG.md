@@ -1,5 +1,26 @@
 # @ontrails/wayfinder
 
+## 1.0.0-beta.31
+
+### Patch Changes
+
+- ee9f3ae: Let Warden fix capabilities declare downstream scan targets and have Regrade
+  honor those targets for Warden-backed term-rewrite classes.
+
+  Dogfood the first safe facet-to-trailhead prose rewrite through project-local
+  Warden rules and Regrade.
+
+- 38907cc: Adopt the shared trail-id glob engine for surface filtering and Wayfinder entity filters so dotted `*`, `**`, and `?` patterns behave consistently across graph inspection and surface selection.
+- Updated dependencies [ee9f3ae]
+- Updated dependencies [a0126d9]
+- Updated dependencies [4cd5d4e]
+- Updated dependencies [6a26a08]
+- Updated dependencies [38907cc]
+  - @ontrails/warden@1.0.0-beta.31
+  - @ontrails/core@1.0.0-beta.31
+  - @ontrails/adapter-kit@1.0.0-beta.31
+  - @ontrails/topographer@1.0.0-beta.31
+
 ## 1.0.0-beta.30
 
 ### Patch Changes
