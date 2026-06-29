@@ -139,7 +139,9 @@ SerializedError, zodToJsonSchema(schema)
 
 // Path security & workspace
 securePath, isPathSafe, deriveSafePath
-findWorkspaceRoot, isInsideWorkspace, deriveRelativePath
+findWorkspaceRoot, isInsideWorkspace, deriveRelativePath, listWorkspacePatterns
+listWorkspacePackageDirs, listWorkspacePackages, findWorkspacePackage
+WorkspaceRootManifest, WorkspacePackage
 ```
 
 Core owns the shared glob machinery used by surface selectors, Wayfinder ID filters, Warden scope, and Regrade scan scope. Trail-id globs use dotted separators (`entity.*`, `entity.**`, `entity.????`); path-scope globs use path separators (`.agents/notes/**`, `src/**/*.ts`). `PathScope` is the stable scan/governance shape: `{ include?: string[], exclude?: string[], extensions?: string[] }`.

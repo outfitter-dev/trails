@@ -2,10 +2,10 @@
  * Workspace-manifest discovery for Warden project-aware rules.
  */
 
-import { existsSync, readdirSync, readFileSync, realpathSync } from 'node:fs';
+import { realpathSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 
-import { matchesAnyPathGlob } from '@ontrails/core';
+import { listWorkspacePackages, matchesAnyPathGlob } from '@ontrails/core';
 
 export interface WardenPublicWorkspace {
   readonly name: string;
@@ -19,10 +19,6 @@ export interface WardenPublicWorkspace {
 
 export interface WardenWorkspaceCollectionOptions {
   readonly exclude?: readonly string[];
-}
-
-interface RootManifest {
-  readonly workspaces?: unknown;
 }
 
 interface PackageManifest {
@@ -48,52 +44,6 @@ const rootRelativePath = (rootDir: string, path: string): string =>
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   Boolean(value && typeof value === 'object' && !Array.isArray(value));
-
-const readJson = <T>(path: string): T | undefined => {
-  try {
-    return JSON.parse(readFileSync(path, 'utf8')) as T;
-  } catch {
-    return undefined;
-  }
-};
-
-const workspacePatternsFromManifest = (
-  manifest: RootManifest | undefined
-): readonly string[] => {
-  const { workspaces } = manifest ?? {};
-  if (Array.isArray(workspaces)) {
-    return workspaces.filter(
-      (pattern): pattern is string => typeof pattern === 'string'
-    );
-  }
-
-  const packages = isRecord(workspaces) ? workspaces['packages'] : undefined;
-  return Array.isArray(packages)
-    ? packages.filter(
-        (pattern): pattern is string => typeof pattern === 'string'
-      )
-    : [];
-};
-
-const workspaceDirsForPattern = (
-  rootDir: string,
-  pattern: string
-): readonly string[] => {
-  if (!pattern.endsWith('/*')) {
-    const workspaceDir = join(rootDir, pattern);
-    return existsSync(workspaceDir) ? [workspaceDir] : [];
-  }
-
-  const groupDir = join(rootDir, pattern.slice(0, -2));
-  if (!existsSync(groupDir)) {
-    return [];
-  }
-
-  return readdirSync(groupDir, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => join(groupDir, entry.name))
-    .toSorted();
-};
 
 const packageLocalName = (name: string): string =>
   name.split('/').at(-1) ?? name;
@@ -221,36 +171,27 @@ export const collectPublicWorkspaces = (
   options: WardenWorkspaceCollectionOptions = {}
 ): ReadonlyMap<string, WardenPublicWorkspace> => {
   const normalizedRoot = normalizeRealPath(rootDir);
-  const rootManifest = readJson<RootManifest>(
-    join(normalizedRoot, 'package.json')
-  );
   const workspaces = new Map<string, WardenPublicWorkspace>();
 
-  for (const pattern of workspacePatternsFromManifest(rootManifest)) {
-    for (const workspaceDir of workspaceDirsForPattern(
-      normalizedRoot,
-      pattern
-    )) {
-      const packageJsonPath = join(workspaceDir, 'package.json');
-      const manifest = readJson<PackageManifest>(packageJsonPath);
-      if (!manifest) {
-        continue;
-      }
-
-      const workspace = publicWorkspaceFromManifest(packageJsonPath, manifest);
-      if (
-        workspace &&
-        !matchesAnyPathGlob(
-          rootRelativePath(normalizedRoot, workspace.rootDir),
-          options.exclude ?? []
-        ) &&
-        !matchesAnyPathGlob(
-          rootRelativePath(normalizedRoot, workspace.packageJsonPath),
-          options.exclude ?? []
-        )
-      ) {
-        workspaces.set(workspace.name, workspace);
-      }
+  for (const workspacePackage of listWorkspacePackages<PackageManifest>(
+    normalizedRoot
+  )) {
+    const workspace = publicWorkspaceFromManifest(
+      workspacePackage.packageJsonPath,
+      workspacePackage.manifest
+    );
+    if (
+      workspace &&
+      !matchesAnyPathGlob(
+        rootRelativePath(normalizedRoot, workspace.rootDir),
+        options.exclude ?? []
+      ) &&
+      !matchesAnyPathGlob(
+        rootRelativePath(normalizedRoot, workspace.packageJsonPath),
+        options.exclude ?? []
+      )
+    ) {
+      workspaces.set(workspace.name, workspace);
     }
   }
 

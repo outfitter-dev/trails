@@ -5,9 +5,13 @@ import { resolve, join } from 'node:path';
 
 import { NotFoundError } from '../errors.js';
 import {
+  findWorkspacePackage,
   findWorkspaceRoot,
   isInsideWorkspace,
   deriveRelativePath,
+  listWorkspacePackageDirs,
+  listWorkspacePackages,
+  listWorkspacePatterns,
 } from '../workspace.js';
 
 // ---------------------------------------------------------------------------
@@ -128,6 +132,108 @@ describe('findWorkspaceRoot', () => {
         result.isOk() ||
         (result as unknown as { error: Error }).error instanceof NotFoundError;
       expect(isAcceptable).toBe(true);
+    } finally {
+      rmSync(root, { force: true, recursive: true });
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// workspace package discovery
+// ---------------------------------------------------------------------------
+
+describe('workspace package discovery', () => {
+  test('lists patterns from array and packages-object manifest forms', () => {
+    expect(
+      listWorkspacePatterns({ workspaces: ['packages/*', 123, 'apps/demo'] })
+    ).toEqual(['packages/*', 'apps/demo']);
+    expect(
+      listWorkspacePatterns({
+        workspaces: { packages: ['adapters/*', false, 'apps/*'] },
+      })
+    ).toEqual(['adapters/*', 'apps/*']);
+    expect(
+      listWorkspacePatterns({ workspaces: { nope: ['packages/*'] } })
+    ).toEqual([]);
+  });
+
+  test('lists exact and one-level workspace package directories only', () => {
+    const root = createTempDir();
+    try {
+      const packagesDir = join(root, 'packages');
+      const core = join(packagesDir, 'core');
+      const docs = join(packagesDir, 'docs');
+      const nested = join(packagesDir, 'nested', 'child');
+      const app = join(root, 'apps', 'demo');
+      mkdirSync(core, { recursive: true });
+      mkdirSync(docs, { recursive: true });
+      mkdirSync(nested, { recursive: true });
+      mkdirSync(app, { recursive: true });
+      writeJson(core, 'package.json', { name: '@scope/core' });
+      writeJson(nested, 'package.json', { name: '@scope/nested-child' });
+      writeJson(app, 'package.json', { name: '@scope/app' });
+
+      expect(
+        listWorkspacePackageDirs(root, ['packages/*', 'apps/demo']).map((dir) =>
+          dir.replace(root, '<root>')
+        )
+      ).toEqual(['<root>/packages/core', '<root>/apps/demo']);
+    } finally {
+      rmSync(root, { force: true, recursive: true });
+    }
+  });
+
+  test('lists workspace packages with normalized metadata and stable ordering', () => {
+    const root = createTempDir();
+    try {
+      writeJson(root, 'package.json', {
+        name: 'root',
+        workspaces: ['packages/*', 'apps/demo'],
+      });
+      mkdirSync(join(root, 'packages', 'b'), { recursive: true });
+      mkdirSync(join(root, 'packages', 'a'), { recursive: true });
+      mkdirSync(join(root, 'apps', 'demo'), { recursive: true });
+      writeJson(join(root, 'packages', 'b'), 'package.json', {
+        name: '@scope/b',
+      });
+      writeJson(join(root, 'packages', 'a'), 'package.json', {
+        name: '@scope/a',
+      });
+      writeJson(join(root, 'apps', 'demo'), 'package.json', {
+        name: '@scope/demo',
+      });
+
+      expect(
+        listWorkspacePackages(root).map((workspacePackage) => ({
+          name: workspacePackage.manifest.name,
+          workspacePath: workspacePackage.workspacePath,
+        }))
+      ).toEqual([
+        { name: '@scope/demo', workspacePath: 'apps/demo' },
+        { name: '@scope/a', workspacePath: 'packages/a' },
+        { name: '@scope/b', workspacePath: 'packages/b' },
+      ]);
+    } finally {
+      rmSync(root, { force: true, recursive: true });
+    }
+  });
+
+  test('finds a workspace package by package name', () => {
+    const root = createTempDir();
+    try {
+      writeJson(root, 'package.json', {
+        name: 'root',
+        workspaces: ['packages/*'],
+      });
+      mkdirSync(join(root, 'packages', 'core'), { recursive: true });
+      writeJson(join(root, 'packages', 'core'), 'package.json', {
+        name: '@scope/core',
+      });
+
+      expect(findWorkspacePackage(root, '@scope/core')?.workspacePath).toBe(
+        'packages/core'
+      );
+      expect(findWorkspacePackage(root, '@scope/missing')).toBeUndefined();
     } finally {
       rmSync(root, { force: true, recursive: true });
     }

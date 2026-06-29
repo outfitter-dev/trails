@@ -13,9 +13,16 @@ import type {
   AdapterTargetConformanceManifest,
   AdapterTargetPlacement,
 } from '@ontrails/adapter-kit';
-import { Result, trail, ValidationError } from '@ontrails/core';
-import { existsSync, readdirSync, readFileSync, realpathSync } from 'node:fs';
-import { dirname, join, relative, resolve } from 'node:path';
+import {
+  findWorkspacePackage,
+  listWorkspacePatterns,
+  Result,
+  trail,
+  ValidationError,
+} from '@ontrails/core';
+import type { WorkspaceRootManifest } from '@ontrails/core';
+import { existsSync, readFileSync, realpathSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
 import { z } from 'zod';
 
 import {
@@ -69,18 +76,9 @@ interface AdapterOperationPlan {
   readonly targetKey: string;
 }
 
-interface RootManifest {
-  readonly workspaces?: unknown;
-}
-
 interface WorkspacePackageManifest {
   readonly exports?: unknown;
   readonly name?: unknown;
-}
-
-interface WorkspacePackageName {
-  readonly name: string;
-  readonly workspacePath: string;
 }
 
 interface LocalNamedReexport {
@@ -123,27 +121,6 @@ const readJson = <T>(path: string): T | undefined => {
   }
 };
 
-const workspacePatternsFromManifest = (
-  manifest: RootManifest | undefined
-): readonly string[] => {
-  const { workspaces } = manifest ?? {};
-  if (Array.isArray(workspaces)) {
-    return workspaces.filter(
-      (pattern): pattern is string => typeof pattern === 'string'
-    );
-  }
-
-  const packages =
-    workspaces && typeof workspaces === 'object' && !Array.isArray(workspaces)
-      ? (workspaces as Record<string, unknown>)['packages']
-      : undefined;
-  return Array.isArray(packages)
-    ? packages.filter(
-        (pattern): pattern is string => typeof pattern === 'string'
-      )
-    : [];
-};
-
 const normalizeWorkspacePattern = (pattern: string): string =>
   pattern.replace(/^\.\//u, '').replace(/\/+$/u, '');
 
@@ -169,52 +146,12 @@ const rootWorkspaceIncludesPath = (
   rootDir: string,
   workspacePath: string
 ): boolean => {
-  const rootManifest = readJson<RootManifest>(join(rootDir, 'package.json'));
-  return workspacePatternsFromManifest(rootManifest).some((pattern) =>
+  const rootManifest = readJson<WorkspaceRootManifest>(
+    join(rootDir, 'package.json')
+  );
+  return listWorkspacePatterns(rootManifest).some((pattern) =>
     workspacePatternCoversPath(pattern, workspacePath)
   );
-};
-
-const workspaceDirsForPattern = (
-  rootDir: string,
-  pattern: string
-): readonly string[] => {
-  if (!pattern.endsWith('/*')) {
-    const workspaceDir = join(rootDir, pattern);
-    return existsSync(workspaceDir) ? [workspaceDir] : [];
-  }
-
-  const groupDir = join(rootDir, pattern.slice(0, -2));
-  if (!existsSync(groupDir)) {
-    return [];
-  }
-
-  return readdirSync(groupDir, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => join(groupDir, entry.name))
-    .toSorted();
-};
-
-const findWorkspacePackageName = (
-  rootDir: string,
-  packageName: string
-): WorkspacePackageName | undefined => {
-  const rootManifest = readJson<RootManifest>(join(rootDir, 'package.json'));
-  for (const pattern of workspacePatternsFromManifest(rootManifest)) {
-    for (const workspaceDir of workspaceDirsForPattern(rootDir, pattern)) {
-      const manifest = readJson<WorkspacePackageManifest>(
-        join(workspaceDir, 'package.json')
-      );
-      if (manifest?.name === packageName) {
-        return {
-          name: packageName,
-          workspacePath: relative(rootDir, workspaceDir),
-        };
-      }
-    }
-  }
-
-  return undefined;
 };
 
 const resolvePhysicalRootDir = (
@@ -882,10 +819,13 @@ const buildExtractedPlan = (
   if (!packageNamePattern.test(packageName)) {
     return fail(packageNameMessage);
   }
-  const existingPackage = findWorkspacePackageName(rootDir, packageName);
+  const existingPackage = findWorkspacePackage<WorkspacePackageManifest>(
+    rootDir,
+    packageName
+  );
   if (existingPackage) {
     return fail(
-      `Workspace package name "${existingPackage.name}" already exists at ${existingPackage.workspacePath}.`
+      `Workspace package name "${packageName}" already exists at ${existingPackage.workspacePath}.`
     );
   }
 

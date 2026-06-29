@@ -6,14 +6,10 @@
  * internal tooling package.
  */
 
-import {
-  existsSync,
-  readdirSync,
-  readFileSync,
-  realpathSync,
-  statSync,
-} from 'node:fs';
+import { existsSync, readFileSync, realpathSync, statSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
+
+import { listWorkspacePackages } from '@ontrails/core';
 
 export const adapterTargetPlacements = ['extracted', 'subpath'] as const;
 
@@ -66,15 +62,15 @@ export interface AdapterTargetCatalog {
   readonly targets: readonly AdapterTargetCatalogEntry[];
 }
 
-interface RootManifest {
-  readonly workspaces?: unknown;
-}
-
 export interface AdapterTargetPackageManifest {
   readonly exports?: unknown;
   readonly name?: unknown;
   readonly trails?: unknown;
 }
+
+type NamedAdapterTargetPackageManifest = AdapterTargetPackageManifest & {
+  readonly name: string;
+};
 
 export interface AdapterTargetParseContext {
   readonly blockedExportSpecifiers: readonly string[];
@@ -179,14 +175,6 @@ const localDeclarationKind = (
     'u'
   );
   return typeDeclarationPattern.test(code) ? 'type' : undefined;
-};
-
-const readJson = <T>(path: string): T | undefined => {
-  try {
-    return JSON.parse(readFileSync(path, 'utf8')) as T;
-  } catch {
-    return undefined;
-  }
 };
 
 const maskDeadSourceText = (
@@ -412,44 +400,6 @@ const exportedLocalBindingKind = (
     return 'type';
   }
   return importSpecifier ? resolveImportKind(importSpecifier) : undefined;
-};
-
-const workspacePatternsFromManifest = (
-  manifest: RootManifest | undefined
-): readonly string[] => {
-  const { workspaces } = manifest ?? {};
-  if (Array.isArray(workspaces)) {
-    return workspaces.filter(
-      (pattern): pattern is string => typeof pattern === 'string'
-    );
-  }
-
-  const packages = isRecord(workspaces) ? workspaces['packages'] : undefined;
-  return Array.isArray(packages)
-    ? packages.filter(
-        (pattern): pattern is string => typeof pattern === 'string'
-      )
-    : [];
-};
-
-const workspaceDirsForPattern = (
-  rootDir: string,
-  pattern: string
-): readonly string[] => {
-  if (!pattern.endsWith('/*')) {
-    const workspaceDir = join(rootDir, pattern);
-    return existsSync(workspaceDir) ? [workspaceDir] : [];
-  }
-
-  const groupDir = join(rootDir, pattern.slice(0, -2));
-  if (!existsSync(groupDir)) {
-    return [];
-  }
-
-  return readdirSync(groupDir, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => join(groupDir, entry.name))
-    .toSorted();
 };
 
 const exportConditions = new Set([
@@ -1401,40 +1351,27 @@ export const parseAdapterTargetsFromManifest = (
 export const deriveAdapterTargetCatalog = (
   rootDir: string
 ): AdapterTargetCatalog => {
-  const normalizedRoot = normalizeRealPath(rootDir);
-  const rootManifest = readJson<RootManifest>(
-    join(normalizedRoot, 'package.json')
-  );
   const diagnostics: AdapterTargetCatalogDiagnostic[] = [];
   const targets: AdapterTargetCatalogEntry[] = [];
 
-  for (const pattern of workspacePatternsFromManifest(rootManifest)) {
-    for (const workspaceDir of workspaceDirsForPattern(
-      normalizedRoot,
-      pattern
-    )) {
-      const packageJsonPath = join(workspaceDir, 'package.json');
-      const manifest = readJson<AdapterTargetPackageManifest>(packageJsonPath);
-      if (!manifest || typeof manifest.name !== 'string') {
-        continue;
-      }
-
-      const packageRoot = normalizeRealPath(dirname(packageJsonPath));
-      const normalizedExports = normalizeExportTargets(
-        packageRoot,
-        manifest.name,
-        manifest.exports
-      );
-      const parsed = parseAdapterTargetsFromManifest(manifest, {
-        blockedExportSpecifiers: normalizedExports.blocked,
-        exportTargets: normalizedExports.targets,
-        packageJsonPath: normalizeRealPath(packageJsonPath),
-        packageName: manifest.name,
-        packageRoot,
-      });
-      diagnostics.push(...parsed.diagnostics);
-      targets.push(...parsed.targets);
-    }
+  for (const workspacePackage of listWorkspacePackages<NamedAdapterTargetPackageManifest>(
+    rootDir
+  )) {
+    const { manifest, packageJsonPath, packageRoot } = workspacePackage;
+    const normalizedExports = normalizeExportTargets(
+      packageRoot,
+      manifest.name,
+      manifest.exports
+    );
+    const parsed = parseAdapterTargetsFromManifest(manifest, {
+      blockedExportSpecifiers: normalizedExports.blocked,
+      exportTargets: normalizedExports.targets,
+      packageJsonPath,
+      packageName: manifest.name,
+      packageRoot,
+    });
+    diagnostics.push(...parsed.diagnostics);
+    targets.push(...parsed.targets);
   }
 
   const sortedTargets = targets.toSorted((left, right) =>

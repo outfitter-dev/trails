@@ -19,6 +19,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import {
   deriveSafePath,
   isTrailsError,
+  listWorkspacePackages,
   PermissionError,
   Result,
   ValidationError,
@@ -278,6 +279,8 @@ interface PackageJson {
   readonly workspaces?: unknown;
 }
 
+type NamedPackageJson = PackageJson & { readonly name: string };
+
 const readPackageJson = (packagePath: string): PackageJson | undefined => {
   try {
     return JSON.parse(readFileSync(packagePath, 'utf8')) as PackageJson;
@@ -327,20 +330,6 @@ const isPackageLocalImport = (
 const isScannableModule = (modulePath: string): boolean =>
   SCANNABLE_EXTENSIONS.has(extname(modulePath));
 
-const resolveImportedModulePath = (
-  importerPath: string,
-  importPath: string
-): string => {
-  const resolved = import.meta.resolve(
-    importPath,
-    pathToFileURL(importerPath).href
-  );
-  return resolveFilesystemModulePath(
-    fileURLToPath(resolved),
-    dirname(importerPath)
-  );
-};
-
 const readDirectoryEntries = (directoryPath: string): readonly string[] => {
   try {
     return readdirSync(directoryPath);
@@ -359,25 +348,18 @@ const safeStat = (
   }
 };
 
-const readWorkspacePatterns = (cwd: string): readonly string[] => {
-  const rootPackage = readPackageJson(join(cwd, 'package.json'));
-  const workspaces = rootPackage?.workspaces;
-  if (Array.isArray(workspaces)) {
-    return workspaces.filter(
-      (pattern): pattern is string => typeof pattern === 'string'
-    );
-  }
-  if (
-    typeof workspaces === 'object' &&
-    workspaces !== null &&
-    'packages' in workspaces &&
-    Array.isArray(workspaces.packages)
-  ) {
-    return workspaces.packages.filter(
-      (pattern): pattern is string => typeof pattern === 'string'
-    );
-  }
-  return [];
+const resolveImportedModulePath = (
+  importerPath: string,
+  importPath: string
+): string => {
+  const resolved = import.meta.resolve(
+    importPath,
+    pathToFileURL(importerPath).href
+  );
+  return resolveFilesystemModulePath(
+    fileURLToPath(resolved),
+    dirname(importerPath)
+  );
 };
 
 interface WorkspacePackage {
@@ -386,45 +368,12 @@ interface WorkspacePackage {
   readonly packageRoot: string;
 }
 
-const listWorkspacePackageRoots = (cwd: string): readonly string[] => {
-  const roots: string[] = [];
-  for (const pattern of readWorkspacePatterns(cwd)) {
-    if (pattern.endsWith('/*')) {
-      const baseDir = resolve(cwd, pattern.slice(0, -2));
-      for (const entry of readDirectoryEntries(baseDir)) {
-        const entryPath = join(baseDir, entry);
-        if (safeStat(entryPath)?.isDirectory()) {
-          roots.push(entryPath);
-        }
-      }
-      continue;
-    }
-
-    if (!pattern.includes('*')) {
-      roots.push(resolve(cwd, pattern));
-    }
-  }
-  return roots;
-};
-
-const readWorkspacePackages = (cwd: string): readonly WorkspacePackage[] => {
-  const packages: WorkspacePackage[] = [];
-  for (const packageRoot of listWorkspacePackageRoots(cwd)) {
-    const packageJson = readPackageJson(join(packageRoot, 'package.json'));
-    if (
-      packageJson !== undefined &&
-      typeof packageJson.name === 'string' &&
-      packageJson.name.length > 0
-    ) {
-      packages.push({
-        name: packageJson.name,
-        packageJson,
-        packageRoot,
-      });
-    }
-  }
-  return packages;
-};
+const readWorkspacePackages = (cwd: string): readonly WorkspacePackage[] =>
+  listWorkspacePackages<NamedPackageJson>(cwd).map((workspacePackage) => ({
+    name: workspacePackage.manifest.name,
+    packageJson: workspacePackage.manifest,
+    packageRoot: workspacePackage.packageRoot,
+  }));
 
 const parsePackageSpecifier = (
   importPath: string

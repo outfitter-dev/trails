@@ -14,7 +14,8 @@ import {
 } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 
-import { escapeRegExp } from '@ontrails/core';
+import { escapeRegExp, listWorkspacePackages } from '@ontrails/core';
+import type { WorkspacePackage as CoreWorkspacePackage } from '@ontrails/core';
 
 import { deriveAdapterTargetCatalog } from './catalog.js';
 import type {
@@ -95,10 +96,6 @@ export interface AdapterCheckReport {
   readonly targets: readonly AdapterTargetCatalogEntry[];
 }
 
-interface RootManifest {
-  readonly workspaces?: unknown;
-}
-
 interface AdapterCheckPackageManifest {
   readonly dependencies?: unknown;
   readonly devDependencies?: unknown;
@@ -109,12 +106,7 @@ interface AdapterCheckPackageManifest {
   readonly trails?: unknown;
 }
 
-interface WorkspacePackage {
-  readonly manifest: AdapterCheckPackageManifest;
-  readonly packageJsonPath: string;
-  readonly packageRoot: string;
-  readonly workspacePath: string;
-}
+type WorkspacePackage = CoreWorkspacePackage<AdapterCheckPackageManifest>;
 
 interface AdapterMetadata {
   readonly target: string;
@@ -137,84 +129,8 @@ const normalizeRealPath = (path: string): string => {
   }
 };
 
-const readJson = <T>(path: string): T | undefined => {
-  try {
-    return JSON.parse(readFileSync(path, 'utf8')) as T;
-  } catch {
-    return undefined;
-  }
-};
-
-const workspacePatternsFromManifest = (
-  manifest: RootManifest | undefined
-): readonly string[] => {
-  const { workspaces } = manifest ?? {};
-  if (Array.isArray(workspaces)) {
-    return workspaces.filter(
-      (pattern): pattern is string => typeof pattern === 'string'
-    );
-  }
-
-  const packages = isRecord(workspaces) ? workspaces['packages'] : undefined;
-  return Array.isArray(packages)
-    ? packages.filter(
-        (pattern): pattern is string => typeof pattern === 'string'
-      )
-    : [];
-};
-
-const workspaceDirsForPattern = (
-  rootDir: string,
-  pattern: string
-): readonly string[] => {
-  if (!pattern.endsWith('/*')) {
-    const workspaceDir = join(rootDir, pattern);
-    return existsSync(workspaceDir) ? [workspaceDir] : [];
-  }
-
-  const groupDir = join(rootDir, pattern.slice(0, -2));
-  if (!existsSync(groupDir)) {
-    return [];
-  }
-
-  return readdirSync(groupDir, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => join(groupDir, entry.name))
-    .toSorted();
-};
-
-const workspacePackages = (rootDir: string): readonly WorkspacePackage[] => {
-  const normalizedRoot = normalizeRealPath(rootDir);
-  const rootManifest = readJson<RootManifest>(
-    join(normalizedRoot, 'package.json')
-  );
-  const packages: WorkspacePackage[] = [];
-
-  for (const pattern of workspacePatternsFromManifest(rootManifest)) {
-    for (const workspaceDir of workspaceDirsForPattern(
-      normalizedRoot,
-      pattern
-    )) {
-      const packageJsonPath = join(workspaceDir, 'package.json');
-      const manifest = readJson<AdapterCheckPackageManifest>(packageJsonPath);
-      if (!manifest || typeof manifest.name !== 'string') {
-        continue;
-      }
-
-      const packageRoot = normalizeRealPath(dirname(packageJsonPath));
-      packages.push({
-        manifest,
-        packageJsonPath: normalizeRealPath(packageJsonPath),
-        packageRoot,
-        workspacePath: normalizePath(relative(normalizedRoot, packageRoot)),
-      });
-    }
-  }
-
-  return packages.toSorted((left, right) =>
-    left.workspacePath.localeCompare(right.workspacePath)
-  );
-};
+const workspacePackages = (rootDir: string): readonly WorkspacePackage[] =>
+  listWorkspacePackages<AdapterCheckPackageManifest>(rootDir);
 
 const resolveExportTarget = (
   target: unknown,

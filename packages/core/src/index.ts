@@ -600,10 +600,15 @@ export { securePath, isPathSafe, deriveSafePath } from './path-security.js';
 
 // Workspace
 export {
+  deriveRelativePath,
+  findWorkspacePackage,
   findWorkspaceRoot,
   isInsideWorkspace,
-  deriveRelativePath,
+  listWorkspacePackageDirs,
+  listWorkspacePackages,
+  listWorkspacePatterns,
 } from './workspace.js';
+export type { WorkspacePackage, WorkspaceRootManifest } from './workspace.js';
 
 // Blob
 export {
