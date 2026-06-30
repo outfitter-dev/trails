@@ -119,10 +119,15 @@ export const resolveRepoRoot = (
   provider?: HostProvider
 ): string => {
   const providerEnvVars = providerRootEnvVars(provider);
-  const orderedEnvVars = [
-    ...providerEnvVars,
-    ...config.root.envVars.filter((name) => !providerEnvVars.includes(name)),
-  ];
+  const orderedEnvVars =
+    provider === 'cursor'
+      ? providerEnvVars
+      : [
+          ...providerEnvVars,
+          ...config.root.envVars.filter(
+            (name) => !providerEnvVars.includes(name)
+          ),
+        ];
 
   for (const name of orderedEnvVars) {
     const candidate = env[name];
