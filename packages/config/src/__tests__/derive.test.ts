@@ -256,6 +256,23 @@ describe('deriveConfigEnvExample()', () => {
     expect(result).toContain('default: 3000');
   });
 
+  test('does not advertise ignored object env bindings', () => {
+    const objectEnvSchema = z.object({
+      db: env(
+        z.object({
+          host: env(z.string(), 'DB_HOST'),
+          port: z.number().default(5432),
+        }),
+        'DB_CONFIG'
+      ),
+    });
+
+    const result = deriveConfigEnvExample(objectEnvSchema);
+
+    expect(result).not.toContain('DB_CONFIG=');
+    expect(result).toContain('DB_HOST=');
+  });
+
   test('returns empty string when no env vars are present', () => {
     const noEnvSchema = z.object({
       name: z.string(),

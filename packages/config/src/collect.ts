@@ -79,6 +79,10 @@ const walkObjectShape = (
 
   for (const [key, fieldSchema] of Object.entries(shape)) {
     const path = prefix ? `${prefix}.${key}` : key;
+    const meta = extractConfigMeta(fieldSchema);
+    if (meta) {
+      result.set(path, meta);
+    }
 
     if (isZodObject(fieldSchema)) {
       queue.push({
@@ -87,11 +91,6 @@ const walkObjectShape = (
           Record<string, z.ZodType>
         >,
       });
-    } else {
-      const meta = extractConfigMeta(fieldSchema);
-      if (meta) {
-        result.set(path, meta);
-      }
     }
   }
 };

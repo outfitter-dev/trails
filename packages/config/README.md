@@ -166,7 +166,7 @@ export const myTrail = trail('my.trail', {
 
 ### `config.check`
 
-Validate config values against the schema. Returns diagnostics with field-level status (valid, missing, invalid, deprecated, default).
+Validate config values against the schema. Returns a config report with field-level status (valid, missing, invalid, deprecated, default) and the checked field values when available.
 
 ### `config.describe`
 

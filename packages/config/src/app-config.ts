@@ -7,7 +7,7 @@ import { dirname, join } from 'node:path';
 import { NotFoundError, Result, ValidationError } from '@ontrails/core';
 import type { z } from 'zod';
 
-import type { CheckResult } from './doctor.js';
+import type { ConfigReport } from './doctor.js';
 import { checkConfig } from './doctor.js';
 import type { FieldDescription } from './derive-fields.js';
 import { deriveConfigFields } from './derive-fields.js';
@@ -58,11 +58,11 @@ export interface AppConfig<T extends z.ZodType> {
   /** Describe all fields in the schema without needing values. */
   describe(): readonly FieldDescription[];
 
-  /** Check a config object against the schema and return diagnostics. */
+  /** Check a config object against the schema and return field reports. */
   check(
     values: Record<string, unknown>,
     options?: { readonly env?: Record<string, string | undefined> }
-  ): CheckResult;
+  ): ConfigReport;
 
   /** Show which source won for each config field. */
   explain(

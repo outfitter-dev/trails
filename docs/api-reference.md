@@ -577,7 +577,7 @@ configDescribe                       // describe all schema fields
 configExplain                        // show which source won per field
 configInit                           // generate example config files
 
-DefineConfigOptions, ConfigState, ConfigFieldMeta, ConfigDiagnostic
+DefineConfigOptions, ConfigState, ConfigFieldMeta, ConfigReport, ConfigFieldReport
 ```
 
 ## `@ontrails/permits`

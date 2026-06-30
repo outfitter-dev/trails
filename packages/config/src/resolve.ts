@@ -9,7 +9,12 @@ import { Result, ValidationError } from '@ontrails/core';
 
 import { collectConfigMeta } from './collect.js';
 import { deepMerge } from './merge.js';
-import { zodDef } from './zod-utils.js';
+import {
+  coerceEnvValue,
+  getSchemaAtPath,
+  isZodContainer,
+  zodDef,
+} from './zod-utils.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -24,72 +29,6 @@ export interface DeriveConfigOptions<T extends z.ZodType> {
   readonly localOverrides?: Record<string, unknown> | undefined;
   readonly env?: Record<string, string | undefined> | undefined;
 }
-
-// ---------------------------------------------------------------------------
-// Env coercion helpers (defined before consumers)
-// ---------------------------------------------------------------------------
-
-/** Boolean string values we accept from environment variables. */
-const BOOL_TRUE = new Set(['true', '1']);
-const BOOL_FALSE = new Set(['false', '0']);
-
-/** Primitive type names we can coerce env strings into. */
-const PRIMITIVE_TYPES = new Set(['number', 'boolean', 'string']);
-
-/** Try to advance one level through a Zod wrapper, returning the inner type or undefined. */
-const unwrapOne = (
-  schema: z.ZodType
-): { typeName: string | undefined; inner: z.ZodType | undefined } => {
-  const def = zodDef(schema);
-  return {
-    inner: def['innerType'] as z.ZodType | undefined,
-    typeName: def['type'] as string | undefined,
-  };
-};
-
-/** Unwrap ZodDefault / ZodOptional / ZodNullable to find the base type name. */
-const resolveBaseTypeName = (schema: z.ZodType): string => {
-  let current: z.ZodType = schema;
-
-  for (let depth = 0; depth < 10; depth += 1) {
-    const { typeName, inner } = unwrapOne(current);
-    if (typeName && PRIMITIVE_TYPES.has(typeName)) {
-      return typeName;
-    }
-    if (!inner) {
-      break;
-    }
-    current = inner;
-  }
-
-  return 'string';
-};
-
-/** Coerce a boolean env string. Returns the original string if unrecognized. */
-const coerceBooleanEnv = (raw: string): unknown => {
-  if (BOOL_TRUE.has(raw)) {
-    return true;
-  }
-  if (BOOL_FALSE.has(raw)) {
-    return false;
-  }
-  return raw;
-};
-
-/** Coerce env var lookup table keyed by base type name. */
-const ENV_COERCERS: Record<string, (raw: string) => unknown> = {
-  boolean: coerceBooleanEnv,
-  number: (raw: string) => {
-    const n = Number(raw);
-    return Number.isNaN(n) ? raw : n;
-  },
-};
-
-/** Coerce a string env value to the type expected by the schema field. */
-const coerceEnvValue = (raw: string, schema: z.ZodType): unknown => {
-  const coercer = ENV_COERCERS[resolveBaseTypeName(schema)];
-  return coercer ? coercer(raw) : raw;
-};
 
 // ---------------------------------------------------------------------------
 // Path utilities
@@ -132,33 +71,6 @@ const setAtPath = (
   parent[parts.at(-1) as string] = value;
 };
 
-/** Resolve one step of a Zod shape walk: find the field schema for a key. */
-const resolveShapeStep = (
-  current: z.ZodType,
-  key: string
-): z.ZodType | undefined => {
-  const shape = zodDef(current)['shape'] as
-    | Record<string, z.ZodType>
-    | undefined;
-  return shape?.[key];
-};
-
-/** Walk a Zod schema shape to find the field at a dot-separated path. */
-const getFieldSchema = (
-  schema: z.ZodType,
-  path: string
-): z.ZodType | undefined => {
-  let current: z.ZodType = schema;
-  for (const part of path.split('.')) {
-    const next = resolveShapeStep(current, part);
-    if (!next) {
-      return undefined;
-    }
-    current = next;
-  }
-  return current;
-};
-
 // ---------------------------------------------------------------------------
 // Env overlay
 // ---------------------------------------------------------------------------
@@ -170,7 +82,10 @@ const applyOneEnvOverride = (
   path: string,
   envValue: string
 ): void => {
-  const fieldSchema = getFieldSchema(schema, path);
+  const fieldSchema = getSchemaAtPath(schema, path);
+  if (fieldSchema && isZodContainer(fieldSchema)) {
+    return;
+  }
   const coerced = fieldSchema
     ? coerceEnvValue(envValue, fieldSchema)
     : envValue;

@@ -8,7 +8,14 @@ import type { z } from 'zod';
 
 import { collectConfigMeta } from './collect.js';
 import { isLikelySecret } from './secret-heuristics.js';
-import { getAtPath, isZodObject, unwrapToBase, zodDef } from './zod-utils.js';
+import {
+  getAtPath,
+  getSchemaAtPath,
+  isZodContainer,
+  isZodObject,
+  unwrapToBase,
+  zodDef,
+} from './zod-utils.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -64,11 +71,62 @@ const buildSecretSet = (
   return result;
 };
 
+/** Build a set of env-backed container paths that env overlay skips. */
+const buildSkippedEnvContainerSet = (
+  schema: z.ZodObject<Record<string, z.ZodType>>,
+  envMap: Map<string, string>
+): Set<string> => {
+  const result = new Set<string>();
+  for (const path of envMap.keys()) {
+    const fieldSchema = getSchemaAtPath(schema, path);
+    if (fieldSchema && isZodContainer(fieldSchema)) {
+      result.add(path);
+    }
+  }
+  return result;
+};
+
 /** Source entries in reverse precedence order for winner detection. */
 type SourceEntry = readonly [
   name: ProvenanceEntry['source'],
   values: Record<string, unknown> | undefined,
 ];
+
+/** Compare JSON-shaped config values for provenance winner detection. */
+const areConfigValuesEqual = (left: unknown, right: unknown): boolean => {
+  if (Object.is(left, right)) {
+    return true;
+  }
+  if (Array.isArray(left) || Array.isArray(right)) {
+    if (!(Array.isArray(left) && Array.isArray(right))) {
+      return false;
+    }
+    return (
+      left.length === right.length &&
+      left.every((value, index) => areConfigValuesEqual(value, right[index]))
+    );
+  }
+  if (
+    typeof left !== 'object' ||
+    left === null ||
+    typeof right !== 'object' ||
+    right === null
+  ) {
+    return false;
+  }
+  const leftRecord = left as Record<string, unknown>;
+  const rightRecord = right as Record<string, unknown>;
+  const leftKeys = Object.keys(leftRecord);
+  const rightKeys = Object.keys(rightRecord);
+  return (
+    leftKeys.length === rightKeys.length &&
+    leftKeys.every(
+      (key) =>
+        Object.hasOwn(rightRecord, key) &&
+        areConfigValuesEqual(leftRecord[key], rightRecord[key])
+    )
+  );
+};
 
 /** Determine which source provided the winning value for a given path. */
 const determineSource = (
@@ -76,9 +134,10 @@ const determineSource = (
   resolved: Record<string, unknown>,
   sources: readonly SourceEntry[],
   envMap: Map<string, string>,
+  skippedEnvContainers: Set<string>,
   envVars: Record<string, string | undefined> | undefined
 ): ProvenanceEntry['source'] => {
-  if (envVars && envMap.has(path)) {
+  if (envVars && envMap.has(path) && !skippedEnvContainers.has(path)) {
     const envVar = envMap.get(path);
     if (envVar && envVars[envVar] !== undefined) {
       return 'env';
@@ -87,7 +146,10 @@ const determineSource = (
 
   const resolvedValue = getAtPath(resolved, path);
   for (const [name, values] of sources) {
-    if (values && getAtPath(values, path) === resolvedValue) {
+    if (
+      values &&
+      areConfigValuesEqual(getAtPath(values, path), resolvedValue)
+    ) {
       return name;
     }
   }
@@ -143,6 +205,7 @@ export const deriveConfigProvenance = <T extends z.ZodType>(
   >;
   const envMap = buildEnvMap(objSchema);
   const secretSet = buildSecretSet(objSchema);
+  const skippedEnvContainers = buildSkippedEnvContainerSet(objSchema, envMap);
 
   const sources: readonly SourceEntry[] = [
     ['local', options.local],
@@ -158,6 +221,7 @@ export const deriveConfigProvenance = <T extends z.ZodType>(
       options.resolved,
       sources,
       envMap,
+      skippedEnvContainers,
       options.env
     );
     const envVarName = envMap.get(path);

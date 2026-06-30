@@ -10,6 +10,7 @@ import { collectConfigMeta } from '../collect.js';
 import type { ConfigFieldMeta } from '../extensions.js';
 
 import { isLikelySecret } from '../secret-heuristics.js';
+import { isZodContainer } from '../zod-utils.js';
 
 import {
   formatValue,
@@ -78,6 +79,9 @@ const collectEnvEntries = (
     }
     const fieldSchema = deriveFieldByPath(schema, path);
     if (!fieldSchema) {
+      continue;
+    }
+    if (isZodContainer(fieldSchema)) {
       continue;
     }
     entries.push(...envEntry(fieldMeta.env, fieldSchema, fieldMeta));

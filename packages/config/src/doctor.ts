@@ -1,5 +1,5 @@
 /**
- * Config doctor — structured diagnostics for a config object against a schema.
+ * Config doctor — structured field reports for a config object against a schema.
  *
  * Reports which fields are valid, missing, using defaults, deprecated, or invalid.
  */
@@ -7,14 +7,22 @@
 import type { z } from 'zod';
 
 import { collectConfigMeta } from './collect.js';
-import { getAtPath, isZodObject, unwrapToBase, zodDef } from './zod-utils.js';
+import {
+  coerceEnvValue,
+  getAtPath,
+  getSchemaAtPath,
+  isZodContainer,
+  isZodObject,
+  unwrapToBase,
+  zodDef,
+} from './zod-utils.js';
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-/** Diagnostic status for a single config field. */
-export interface ConfigDiagnostic {
+/** Validation status for a single config field. */
+export interface ConfigFieldReport {
   readonly path: string;
   readonly status: 'valid' | 'missing' | 'invalid' | 'deprecated' | 'default';
   readonly message: string;
@@ -22,8 +30,8 @@ export interface ConfigDiagnostic {
 }
 
 /** Aggregated result from checking config against a schema. */
-export interface CheckResult {
-  readonly diagnostics: readonly ConfigDiagnostic[];
+export interface ConfigReport {
+  readonly fields: readonly ConfigFieldReport[];
   readonly valid: boolean;
 }
 
@@ -74,9 +82,20 @@ const applyEnvToValues = (
   const meta = collectConfigMeta(schema);
   const result = structuredClone(values) as Record<string, unknown>;
   for (const [path, fieldMeta] of meta) {
-    if (fieldMeta.env && envVars[fieldMeta.env] !== undefined) {
-      setAtPath(result, path, envVars[fieldMeta.env]);
+    const fieldSchema = getSchemaAtPath(schema, path);
+    const envName = fieldMeta.env;
+    const envValue = envName ? envVars[envName] : undefined;
+    if (!envName || envValue === undefined) {
+      continue;
     }
+    if (fieldSchema && isZodContainer(fieldSchema)) {
+      continue;
+    }
+    setAtPath(
+      result,
+      path,
+      fieldSchema ? coerceEnvValue(envValue, fieldSchema) : envValue
+    );
   }
   return result;
 };
@@ -96,7 +115,7 @@ const validateFieldValue = (
   path: string,
   fieldSchema: z.ZodType,
   value: unknown
-): ConfigDiagnostic => {
+): ConfigFieldReport => {
   const result = fieldSchema.safeParse(value);
   if (result.success) {
     return { message: 'OK', path, status: 'valid', value };
@@ -112,7 +131,7 @@ const classifyField = (
   fieldSchema: z.ZodType,
   values: Record<string, unknown>,
   deprecatedMeta: Map<string, string>
-): ConfigDiagnostic => {
+): ConfigFieldReport => {
   const value = getAtPath(values, path);
   const deprecationMsg = deprecatedMeta.get(path);
 
@@ -190,7 +209,7 @@ const collectLeaves = (schema: z.ZodType): WalkEntry[] => {
 // ---------------------------------------------------------------------------
 
 /**
- * Check a config object against a schema and return structured diagnostics.
+ * Check a config object against a schema and return structured field reports.
  *
  * Reports which fields are valid, missing, using defaults, deprecated, or invalid.
  */
@@ -198,7 +217,7 @@ export const checkConfig = <T extends z.ZodType>(
   schema: T,
   values: Record<string, unknown>,
   options?: { readonly env?: Record<string, string | undefined> }
-): CheckResult => {
+): ConfigReport => {
   const objSchema = schema as unknown as z.ZodObject<Record<string, z.ZodType>>;
   const effectiveValues = options?.env
     ? applyEnvToValues(values, objSchema, options.env)
@@ -207,13 +226,13 @@ export const checkConfig = <T extends z.ZodType>(
   const deprecatedMeta = collectDeprecatedPaths(objSchema);
   const leaves = collectLeaves(objSchema);
 
-  const diagnostics = leaves.map((leaf) =>
+  const fields = leaves.map((leaf) =>
     classifyField(leaf.path, leaf.schema, effectiveValues, deprecatedMeta)
   );
 
-  const valid = diagnostics.every(
+  const valid = fields.every(
     (d) => d.status !== 'missing' && d.status !== 'invalid'
   );
 
-  return { diagnostics, valid };
+  return { fields, valid };
 };

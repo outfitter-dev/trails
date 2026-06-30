@@ -106,6 +106,30 @@ describe('deriveConfigProvenance', () => {
       expect(host?.source).toBe('env');
       expect(host?.value).toBe('env.example.com');
     });
+
+    test('does not report env as source for skipped container bindings', () => {
+      const envSchema = z.object({
+        db: env(
+          z
+            .object({
+              host: z.string(),
+            })
+            .catch({ host: 'fallback' }),
+          'DB_CONFIG'
+        ),
+      });
+
+      const entries = deriveConfigProvenance({
+        base: { db: { host: 'base.example.com' } },
+        env: { DB_CONFIG: '{"host":"env.example.com"}' },
+        resolved: { db: { host: 'base.example.com' } },
+        schema: envSchema,
+      });
+
+      const db = entries.find((entry) => entry.path === 'db');
+      expect(db?.source).toBe('base');
+      expect(db?.value).toEqual({ host: 'base.example.com' });
+    });
   });
 
   describe('secret redaction', () => {

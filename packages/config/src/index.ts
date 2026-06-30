@@ -36,8 +36,8 @@ export {
 export { deriveConfigFields, type FieldDescription } from './derive-fields.js';
 export {
   checkConfig,
-  type CheckResult,
-  type ConfigDiagnostic,
+  type ConfigReport,
+  type ConfigFieldReport,
 } from './doctor.js';
 export { env, secret, deprecated, type ConfigFieldMeta } from './extensions.js';
 export {

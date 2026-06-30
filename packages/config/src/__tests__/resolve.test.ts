@@ -134,6 +134,62 @@ describe('deriveConfig', () => {
       expect(result.unwrap().port).toBe(8080);
     });
 
+    test('coerces env values through catch wrappers', () => {
+      const schema = z.object({
+        port: env(z.number().catch(3000), 'PORT'),
+      });
+
+      const result = deriveConfig({
+        env: { PORT: '8080' },
+        schema,
+      });
+
+      expect(result.isOk()).toBe(true);
+      expect(result.unwrap().port).toBe(8080);
+    });
+
+    test('coerces env values through prefault wrappers', () => {
+      const schema = z.object({
+        port: env(z.number().prefault(3000), 'PORT'),
+      });
+
+      const result = deriveConfig({
+        env: { PORT: '8080' },
+        schema,
+      });
+
+      expect(result.isOk()).toBe(true);
+      expect(result.unwrap().port).toBe(8080);
+    });
+
+    test('coerces env values through nonoptional wrappers', () => {
+      const schema = z.object({
+        port: env(z.number().optional().nonoptional(), 'PORT'),
+      });
+
+      const result = deriveConfig({
+        env: { PORT: '8080' },
+        schema,
+      });
+
+      expect(result.isOk()).toBe(true);
+      expect(result.unwrap().port).toBe(8080);
+    });
+
+    test('coerces env values through readonly wrappers', () => {
+      const schema = z.object({
+        port: env(z.number().readonly(), 'PORT'),
+      });
+
+      const result = deriveConfig({
+        env: { PORT: '8080' },
+        schema,
+      });
+
+      expect(result.isOk()).toBe(true);
+      expect(result.unwrap().port).toBe(8080);
+    });
+
     test('rejects non-numeric string with Zod error instead of NaN', () => {
       const schema = z.object({
         port: env(z.number(), 'PORT').default(3000),
@@ -168,6 +224,44 @@ describe('deriveConfig', () => {
       expect(falseValues.isOk()).toBe(true);
       expect(falseValues.unwrap().debug).toBe(false);
       expect(falseValues.unwrap().verbose).toBe(false);
+    });
+
+    test('preserves enum-backed env overrides', () => {
+      const schema = z.object({
+        mode: env(z.enum(['dev', 'prod']), 'APP_MODE').default('dev'),
+      });
+
+      const result = deriveConfig({
+        env: { APP_MODE: 'prod' },
+        schema,
+      });
+
+      expect(result.isOk()).toBe(true);
+      expect(result.unwrap().mode).toBe('prod');
+    });
+
+    test('skips object env bindings instead of replacing nested config with a string', () => {
+      const schema = z.object({
+        db: env(
+          z.object({
+            host: z.string(),
+            port: z.number(),
+          }),
+          'DB_CONFIG'
+        ),
+      });
+
+      const result = deriveConfig({
+        base: { db: { host: 'db.example.com', port: 5432 } },
+        env: { DB_CONFIG: '{"host":"env.example.com","port":9999}' },
+        schema,
+      });
+
+      expect(result.isOk()).toBe(true);
+      expect(result.unwrap().db).toEqual({
+        host: 'db.example.com',
+        port: 5432,
+      });
     });
   });
 
