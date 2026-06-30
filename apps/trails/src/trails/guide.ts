@@ -10,8 +10,8 @@ import { z } from 'zod';
 import { withFreshOperatorApp } from './operator-context.js';
 import { trailDetailOutput } from './topo-output-schemas.js';
 import {
-  buildCurrentGuideEntries,
-  buildCurrentTopoDetail,
+  deriveCurrentGuideEntries,
+  deriveCurrentTopoDetail,
   readSurfaceLayerNamesFromContext,
 } from './topo-read-support.js';
 import { createIsolatedExampleInput } from './topo-support.js';
@@ -53,7 +53,7 @@ export const guideTrail = trail('guide', {
   blaze: async (input: GuideTrailInput, ctx) =>
     withFreshOperatorApp<GuideTrailOutput>(input, ctx, ({ lease, rootDir }) => {
       if (input.trailId) {
-        const detail = buildCurrentTopoDetail(lease.app, input.trailId, {
+        const detail = deriveCurrentTopoDetail(lease.app, input.trailId, {
           cliAliases: lease.cliAliases,
           rootDir,
           surfaceLayerNames: readSurfaceLayerNamesFromContext(ctx),
@@ -70,7 +70,7 @@ export const guideTrail = trail('guide', {
       }
 
       return Result.ok({
-        entries: buildCurrentGuideEntries(lease.app, {
+        entries: deriveCurrentGuideEntries(lease.app, {
           rootDir,
         }) as GuideEntry[],
         mode: 'list' as const,

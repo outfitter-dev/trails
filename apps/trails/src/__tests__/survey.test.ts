@@ -55,8 +55,8 @@ import {
 } from '../trails/survey.js';
 import { loadApp } from '../trails/load-app.js';
 import {
-  buildCurrentTopoMatches,
-  buildCurrentTrailDetail,
+  deriveCurrentTopoMatches,
+  deriveCurrentTrailDetail,
   readSurfaceLayerNamesFromContext,
 } from '../trails/topo-read-support.js';
 import {
@@ -657,10 +657,10 @@ describe('trails survey detail', () => {
     });
     const layeredApp = topo('layered-app', { layered });
 
-    const detail = buildCurrentTrailDetail(layeredApp, layered.id, {
+    const detail = deriveCurrentTrailDetail(layeredApp, layered.id, {
       surfaceLayerNames: { cli: ['cli-B'], http: ['http-C'] },
     });
-    const matches = buildCurrentTopoMatches(layeredApp, layered.id, {
+    const matches = deriveCurrentTopoMatches(layeredApp, layered.id, {
       surfaceLayerNames: { mcp: ['mcp-D'] },
     });
 

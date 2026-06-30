@@ -5,7 +5,7 @@ import { ConflictError, trail, topo, Result } from '@ontrails/core';
 import { z } from 'zod';
 
 import { guideTrail } from '../trails/guide.js';
-import { buildCurrentGuideEntries } from '../trails/topo-read-support.js';
+import { deriveCurrentGuideEntries } from '../trails/topo-read-support.js';
 
 // ---------------------------------------------------------------------------
 // Test fixtures
@@ -120,7 +120,7 @@ describe('trails guide', () => {
     });
     const versionedApp = topo('guide-versioned-app', { versioned });
 
-    expect(buildCurrentGuideEntries(versionedApp)).toEqual([
+    expect(deriveCurrentGuideEntries(versionedApp)).toEqual([
       expect.objectContaining({
         exampleCount: 1,
         id: 'guide.versioned',

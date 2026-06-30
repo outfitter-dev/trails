@@ -144,7 +144,7 @@ const readCommittedLock = async (
 // Public read-only consumers
 // ---------------------------------------------------------------------------
 
-export const buildTopoSummary = (
+export const deriveTopoSummary = (
   app: Topo,
   options?: { readonly rootDir?: string }
 ): TopoSummaryReport => {
@@ -160,17 +160,17 @@ export const buildTopoSummary = (
   };
 };
 
-export const buildCurrentTopoBrief = (
+export const deriveCurrentTopoBrief = (
   app: Topo,
   _options?: { readonly rootDir?: string }
 ): BriefReport => deriveBriefReport(app);
 
-export const buildCurrentTopoList = (
+export const deriveCurrentTopoList = (
   app: Topo,
   _options?: { readonly rootDir?: string }
 ): SurveyListReport => deriveSurveyList(app);
 
-export const buildCurrentGuideEntries = (
+export const deriveCurrentGuideEntries = (
   app: Topo,
   _options?: { readonly rootDir?: string }
 ): readonly {
@@ -189,7 +189,7 @@ export const buildCurrentGuideEntries = (
     }))
     .toSorted((a, b) => a.id.localeCompare(b.id));
 
-export const buildCurrentTrailDetail = (
+export const deriveCurrentTrailDetail = (
   app: Topo,
   id: string,
   options?: CurrentTopoReadOptions
@@ -203,7 +203,7 @@ export const buildCurrentTrailDetail = (
       });
 };
 
-export const buildCurrentResourceDetail = (
+export const deriveCurrentResourceDetail = (
   app: Topo,
   id: string,
   _options?: { readonly rootDir?: string }
@@ -212,22 +212,22 @@ export const buildCurrentResourceDetail = (
     ? undefined
     : (deriveResourceDetail(app, id) as CurrentResourceDetail);
 
-export const buildCurrentSignalDetail = (
+export const deriveCurrentSignalDetail = (
   app: Topo,
   id: string,
   _options?: { readonly rootDir?: string }
 ): SignalDetailReport | undefined => deriveSignalDetail(app, id);
 
-export const buildCurrentTopoDetail = (
+export const deriveCurrentTopoDetail = (
   app: Topo,
   id: string,
   options?: CurrentTopoReadOptions
 ): CurrentTopoDetail | undefined =>
-  buildCurrentTrailDetail(app, id, options) ??
-  buildCurrentResourceDetail(app, id) ??
-  buildCurrentSignalDetail(app, id);
+  deriveCurrentTrailDetail(app, id, options) ??
+  deriveCurrentResourceDetail(app, id) ??
+  deriveCurrentSignalDetail(app, id);
 
-export const buildCurrentTopoMatches = (
+export const deriveCurrentTopoMatches = (
   app: Topo,
   id: string,
   options?: CurrentTopoReadOptions
@@ -251,7 +251,7 @@ export const buildCurrentTopoMatches = (
     });
   }
 
-  const resource = buildCurrentResourceDetail(app, id);
+  const resource = deriveCurrentResourceDetail(app, id);
   if (resource !== undefined) {
     matches.push({ detail: resource, kind: 'resource' });
   }

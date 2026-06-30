@@ -3,7 +3,7 @@ import { z } from 'zod';
 
 import { withFreshOperatorApp } from './operator-context.js';
 import { activationOverviewOutput } from './topo-output-schemas.js';
-import { buildTopoSummary } from './topo-read-support.js';
+import { deriveTopoSummary } from './topo-read-support.js';
 import { createIsolatedExampleInput } from './topo-support.js';
 
 const summaryOutput = z.object({
@@ -74,7 +74,7 @@ const summaryOutput = z.object({
 export const topoTrail = trail('topo', {
   blaze: async (input, ctx) =>
     withFreshOperatorApp(input, ctx, ({ lease, rootDir }) =>
-      Result.ok(buildTopoSummary(lease.app, { rootDir }))
+      Result.ok(deriveTopoSummary(lease.app, { rootDir }))
     ),
   description: 'Show the current topo summary and entry list',
   examples: [

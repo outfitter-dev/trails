@@ -30,12 +30,12 @@ import { writeIsolatedExampleJsonFile } from '../local-state-io.js';
 
 import { withFreshAppLease, withOperatorRootDir } from './operator-context.js';
 import {
-  buildCurrentTopoBrief,
-  buildCurrentTopoList,
-  buildCurrentTopoMatches,
-  buildCurrentTrailDetail,
-  buildCurrentResourceDetail,
-  buildCurrentSignalDetail,
+  deriveCurrentTopoBrief,
+  deriveCurrentTopoList,
+  deriveCurrentTopoMatches,
+  deriveCurrentTrailDetail,
+  deriveCurrentResourceDetail,
+  deriveCurrentSignalDetail,
   readSurfaceLayerNamesFromContext,
 } from './topo-read-support.js';
 import {
@@ -511,7 +511,7 @@ const buildSurveyLookup = (
     | undefined,
   surfaceLayerNames?: Partial<SurfaceLayerNames> | undefined
 ): Result<object, Error> => {
-  const matches = buildCurrentTopoMatches(app, entityId, {
+  const matches = deriveCurrentTopoMatches(app, entityId, {
     cliAliases,
     rootDir,
     surfaceLayerNames,
@@ -528,7 +528,7 @@ const buildSurveyTrailDetail = (
     | undefined,
   surfaceLayerNames?: Partial<SurfaceLayerNames> | undefined
 ): Result<object, Error> => {
-  const detail = buildCurrentTrailDetail(app, id, {
+  const detail = deriveCurrentTrailDetail(app, id, {
     cliAliases,
     rootDir,
     surfaceLayerNames,
@@ -543,7 +543,7 @@ const buildSurveyResourceDetail = (
   id: string,
   rootDir: string
 ): Result<object, Error> => {
-  const detail = buildCurrentResourceDetail(app, id, { rootDir });
+  const detail = deriveCurrentResourceDetail(app, id, { rootDir });
   return detail === undefined
     ? Result.err(new NotFoundError(`Resource not found: ${id}`))
     : Result.ok(detail);
@@ -554,7 +554,7 @@ const buildSurveySignalDetail = (
   id: string,
   rootDir: string
 ): Result<object, Error> => {
-  const detail = buildCurrentSignalDetail(app, id, { rootDir });
+  const detail = deriveCurrentSignalDetail(app, id, { rootDir });
   return detail === undefined
     ? Result.err(new NotFoundError(`Signal not found: ${id}`))
     : Result.ok(detail);
@@ -600,7 +600,7 @@ const surveyHandlers: Record<SurveyMode, SurveyHandler> = {
           surfaceLayerNames
         ),
   overview: (app, _input, rootDir) =>
-    Result.ok(buildCurrentTopoList(app, { rootDir })),
+    Result.ok(deriveCurrentTopoList(app, { rootDir })),
 };
 
 const envelopeSurveyValue = (
@@ -824,7 +824,7 @@ export const surveyTrail = trail('survey', {
 export const surveyBriefTrail = trail('survey.brief', {
   blaze: async (input, ctx) =>
     withResolvedSurveyApp(input, ctx.cwd, (app, rootDir) =>
-      Result.ok(buildCurrentTopoBrief(app, { rootDir }))
+      Result.ok(deriveCurrentTopoBrief(app, { rootDir }))
     ),
   description: 'Summarize topo capabilities',
   examples: [
