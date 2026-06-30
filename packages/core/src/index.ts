@@ -132,7 +132,7 @@ export {
   normalizePathScopePath,
   pathScopeSchema,
 } from './path-scope.js';
-export type { PathGlob, PathScope } from './path-scope.js';
+export type { PathGlob, PathScope, ScanTargets } from './path-scope.js';
 export { matchesAnyTrailIdGlob, matchesTrailIdGlob } from './trail-id-glob.js';
 export type { TrailIdGlob } from './trail-id-glob.js';
 

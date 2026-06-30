@@ -222,6 +222,19 @@ describe('derive', () => {
       });
     });
 
+    test('readonly z.array(z.string()) derives from the inner field shape', () => {
+      const schema = z.object({
+        tags: z.array(z.string()).readonly().optional().describe('Tags'),
+      });
+      const fields = deriveFields(schema);
+      expect(fields[0]).toMatchObject({
+        label: 'Tags',
+        name: 'tags',
+        required: false,
+        type: 'string[]',
+      });
+    });
+
     test('z.array(z.string()) with default sets default value', () => {
       const schema = z.object({
         items: z.array(z.string()).default(['a', 'b']),

@@ -7,10 +7,11 @@ import {
   NotFoundError,
   Result,
   ValidationError,
+  pathScopeSchema,
   trail,
   validateOutput,
 } from '@ontrails/core';
-import type { Result as TrailsResult } from '@ontrails/core';
+import type { PathScope, Result as TrailsResult } from '@ontrails/core';
 import {
   loadWardenTermRewriteClasses,
   regradeReportOutput,
@@ -23,7 +24,19 @@ import { z } from 'zod';
 import { loadRegradeConfig } from '../regrade/config.js';
 import { resolveTrailRootDir } from './root-dir.js';
 
-const regradeInputSchema = z.object({
+const regradePathScopeInputSchema = pathScopeSchema.extend({
+  exclude: pathScopeSchema.shape.exclude.describe(
+    'Root-relative path globs to exclude during Regrade collection'
+  ),
+  extensions: pathScopeSchema.shape.extensions.describe(
+    'Source file extensions to scan during Regrade collection'
+  ),
+  include: pathScopeSchema.shape.include.describe(
+    'Root-relative path patterns to include in vocabulary regrade mode'
+  ),
+});
+
+const regradeInputSchema = regradePathScopeInputSchema.extend({
   apply: z
     .boolean()
     .default(false)
@@ -36,25 +49,11 @@ const regradeInputSchema = z.object({
     .string()
     .optional()
     .describe('Path to a Trails config file with regrade defaults'),
-  exclude: z
-    .array(z.string())
-    .optional()
-    .describe('Root-relative path globs to exclude during Regrade collection'),
-  extensions: z
-    .array(z.string())
-    .optional()
-    .describe('Source file extensions to scan during Regrade collection'),
   from: z
     .string()
     .min(1)
     .optional()
     .describe('Source vocabulary term for a vocabulary regrade'),
-  include: z
-    .array(z.string())
-    .optional()
-    .describe(
-      'Root-relative path patterns to include in vocabulary regrade mode'
-    ),
   includeEntries: z
     .enum(['actionable', 'all'])
     .default('actionable')
@@ -122,9 +121,9 @@ const classModeCollection = (
 };
 
 interface RegradeConfigScope {
-  readonly exclude?: readonly string[] | undefined;
-  readonly extensions?: readonly string[] | undefined;
-  readonly include?: readonly string[] | undefined;
+  readonly exclude?: PathScope['exclude'] | undefined;
+  readonly extensions?: PathScope['extensions'] | undefined;
+  readonly include?: PathScope['include'] | undefined;
 }
 
 const vocabularyScopeFromConfig = (

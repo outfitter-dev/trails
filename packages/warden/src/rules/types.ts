@@ -2,6 +2,7 @@ import type {
   DiagnosticSeverity,
   Intent,
   RuleDiagnosticBase,
+  ScanTargets,
   Topo,
 } from '@ontrails/core';
 import type { TopoGraph } from '@ontrails/topographer';
@@ -142,12 +143,13 @@ export interface WardenFixEdit {
  * consumers such as Regrade that need to derive a narrower collection before
  * invoking the rule against an explicit downstream root.
  */
-export interface WardenFixScanTargets {
-  /** Source extensions the fix class can inspect. */
-  readonly extensions?: readonly string[] | undefined;
-  /** Directory names to skip during downstream collection. */
-  readonly ignoredDirectories?: readonly string[] | undefined;
-}
+export type WardenFixScanTargets = ScanTargets & {
+  /**
+   * @deprecated Compatibility bridge for Warden-backed Regrade classes that
+   * predate PathScope. Prefer Regrade collection scope for new callers.
+   */
+  readonly ignoredDirectories?: readonly string[];
+};
 
 /**
  * Per-finding fix metadata attached to a diagnostic.

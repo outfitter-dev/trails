@@ -39,8 +39,8 @@ const wardenRuleGuideEntrySchema = z.object({
       safety: z.enum(wardenFixSafeties),
       scanTargets: z
         .object({
+          exclude: z.array(z.string()).readonly().optional(),
           extensions: z.array(z.string()).readonly().optional(),
-          ignoredDirectories: z.array(z.string()).readonly().optional(),
         })
         .optional(),
     })

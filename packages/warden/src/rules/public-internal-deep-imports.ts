@@ -1,6 +1,6 @@
 import { existsSync, realpathSync } from 'node:fs';
 import { resolve, sep } from 'node:path';
-import { escapeRegExp } from '@ontrails/core';
+import { matchesPathGlob } from '@ontrails/core';
 
 import {
   extractStringLiteral,
@@ -304,47 +304,6 @@ const rootBarrelDiagnostics = (
 const stripLeadingDotSlash = (path: string): string =>
   path.startsWith('./') ? path.slice(2) : path;
 
-const wildcardPatternSource = (pattern: string): string => {
-  let regexSource = '';
-  for (let index = 0; index < pattern.length; index += 1) {
-    const char = pattern[index];
-    if (char === '*') {
-      if (pattern[index + 1] === '*') {
-        regexSource += '.*';
-        index += 1;
-      } else {
-        regexSource += '[^/]*';
-      }
-      continue;
-    }
-    regexSource += escapeRegExp(char ?? '');
-  }
-  return regexSource;
-};
-
-const segmentWildcardPatternCovers = (
-  filePath: string,
-  pattern: string
-): boolean => new RegExp(`^${wildcardPatternSource(pattern)}$`).test(filePath);
-
-const deepWildcardPatternCovers = (
-  filePath: string,
-  pattern: string,
-  globIndex: number
-): boolean => {
-  const prefix = pattern.slice(0, globIndex + 1);
-  if (!filePath.startsWith(prefix)) {
-    return false;
-  }
-  const suffixPattern = pattern.slice(globIndex + '/**/'.length);
-  if (suffixPattern.length === 0) {
-    return true;
-  }
-  const remainingPath = filePath.slice(prefix.length);
-  const regexSource = `^(?:.*/)?${wildcardPatternSource(suffixPattern)}$`;
-  return new RegExp(regexSource).test(remainingPath);
-};
-
 const filePatternCovers = (filePath: string, pattern: string): boolean => {
   const normalizedFilePath = normalizePath(stripLeadingDotSlash(filePath));
   const normalizedPattern = normalizePath(stripLeadingDotSlash(pattern));
@@ -357,27 +316,10 @@ const filePatternCovers = (filePath: string, pattern: string): boolean => {
   if (normalizedPattern === '**') {
     return true;
   }
-  if (normalizedPattern.endsWith('/**')) {
-    const prefix = normalizedPattern.slice(0, -2);
-    return normalizedFilePath.startsWith(prefix);
-  }
-
-  const globIndex = normalizedPattern.indexOf('/**/');
-  if (globIndex === -1) {
-    if (normalizedPattern.includes('*')) {
-      return segmentWildcardPatternCovers(
-        normalizedFilePath,
-        normalizedPattern
-      );
-    }
+  if (!normalizedPattern.includes('*') && !normalizedPattern.includes('?')) {
     return normalizedFilePath.startsWith(`${normalizedPattern}/`);
   }
-
-  return deepWildcardPatternCovers(
-    normalizedFilePath,
-    normalizedPattern,
-    globIndex
-  );
+  return matchesPathGlob(normalizedFilePath, normalizedPattern);
 };
 
 const filesCoverTarget = (

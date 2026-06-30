@@ -9,7 +9,10 @@ import {
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 
-import { runVocabularyRegrade } from '../vocabulary.js';
+import {
+  runVocabularyRegrade,
+  vocabularyRegradePlanSchema,
+} from '../vocabulary.js';
 
 const makeTempDir = (): string =>
   mkdtempSync(join(tmpdir(), `trails-vocabulary-regrade-${Date.now()}-`));
@@ -212,6 +215,36 @@ describe('runVocabularyRegrade', () => {
         skippedByReason: { 'ignored-glob': 2 },
       });
       expect(result.value?.scanned).toBe(2);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('preserves legacy ignored-directory overrides during collection', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(dir, 'dist/generated.md', 'facet in generated output\n');
+      const plan = vocabularyRegradePlanSchema.parse({
+        from: 'facet',
+        kind: 'vocabulary',
+        scope: { ignoredDirectories: [] },
+        to: 'trailhead',
+      });
+
+      const result = runVocabularyRegrade({
+        plan,
+        root: dir,
+      });
+
+      expect(plan.scope?.ignoredDirectories).toEqual([]);
+      expect(result.isOk()).toBe(true);
+      if (result.isErr()) {
+        throw result.error;
+      }
+      expect(result.value?.scanned).toBe(1);
+      expect(result.value?.run?.ledger.occurrences.map((o) => o.path)).toEqual([
+        'dist/generated.md',
+      ]);
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }

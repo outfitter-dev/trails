@@ -145,7 +145,7 @@ const propagateDescription = (
   }
 };
 
-/** Step one level of optional/default unwrapping. Returns null if not a wrapper type. */
+/** Step one level of transparent wrapper unwrapping. Returns null if not a wrapper type. */
 const unwrapStep = (
   current: ZodInternals,
   state: {
@@ -155,10 +155,16 @@ const unwrapStep = (
   }
 ): ZodInternals | null => {
   const defType = current._zod.def['type'] as string;
-  if (defType !== 'optional' && defType !== 'default') {
+  if (
+    defType !== 'optional' &&
+    defType !== 'default' &&
+    defType !== 'readonly'
+  ) {
     return null;
   }
-  state.required = false;
+  if (defType !== 'readonly') {
+    state.required = false;
+  }
   if (defType === 'default') {
     state.defaultValue = current._zod.def['defaultValue'];
   }

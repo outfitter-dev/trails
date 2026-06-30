@@ -322,7 +322,7 @@ describe('wardenTermRewriteClasses', () => {
         fix: {
           class: 'term-rewrite',
           safety: 'safe',
-          scanTargets: { extensions: ['.md'] },
+          scanTargets: { extensions: ['.md'], ignoredDirectories: [] },
         },
         invariant: 'Project-local Warden term rewrites can feed Regrade.',
         lifecycle: { retireWhen: 'migration completes', state: 'temporary' },
@@ -336,7 +336,10 @@ describe('wardenTermRewriteClasses', () => {
     const cls = createWardenTermRewriteClass(rule);
 
     expect(cls?.id).toBe('term-rewrite:project-local-term-rewrite');
-    expect(cls?.scanTargets).toEqual({ extensions: ['.md'] });
+    expect(cls?.scanTargets).toEqual({
+      extensions: ['.md'],
+      ignoredDirectories: [],
+    });
   });
 
   test('preserves Warden scan-target filtering for Warden-backed classes', () => {
@@ -648,6 +651,348 @@ describe('runRegrade', () => {
     }
   });
 
+  test('all-extension classes widen multi-class collection', () => {
+    const root = mkdtempSync(join(tmpdir(), 'regrade-all-extension-class-'));
+    try {
+      mkdirSync(join(root, 'src'), { recursive: true });
+      writeFileSync(join(root, 'README.md'), 'sourceTerm\n');
+      writeFileSync(
+        join(root, 'src', 'sourceTerm.ts'),
+        'export const sourceTerm = 1;\n'
+      );
+
+      const allExtensionTerm = {
+        ...createTermRewriteClass({
+          from: 'sourceTerm',
+          id: 'all-extension-term',
+          to: 'targetTerm',
+        }),
+        scanTargets: { extensions: [] },
+      } satisfies RegradeClass;
+
+      const report = expectRunRegradeOk({
+        classes: [
+          {
+            apply: (source) =>
+              source.includes('sourceTerm')
+                ? {
+                    kind: 'rewrite',
+                    nextSource: source.replaceAll('sourceTerm', 'targetTerm'),
+                    notes: ['Rewrote docs term.'],
+                  }
+                : { kind: 'no-op', notes: [] },
+            describe: 'Rewrite docs vocabulary.',
+            id: 'docs-term',
+            scanTargets: { extensions: ['.md'] },
+          },
+          allExtensionTerm,
+        ],
+        includeEntries: 'all',
+        root,
+        selection: { classIds: ['docs-term', 'all-extension-term'] },
+      });
+
+      expect(report?.entries.map((entry) => entry.path)).toEqual([
+        'README.md',
+        'src/sourceTerm.ts',
+      ]);
+      expect(
+        report?.entries.find((entry) => entry.path === 'src/sourceTerm.ts')
+      ).toMatchObject({
+        classId: 'all-extension-term',
+        outcome: 'rewrite',
+      });
+      expect(report?.rewritten).toBe(2);
+      expect(report?.scanned).toBe(2);
+    } finally {
+      rmSync(root, { force: true, recursive: true });
+    }
+  });
+
+  test('all-extension classes do not widen default class targets', () => {
+    const root = mkdtempSync(
+      join(tmpdir(), 'regrade-default-extension-class-')
+    );
+    try {
+      mkdirSync(join(root, 'src'), { recursive: true });
+      writeFileSync(join(root, 'README.md'), 'defaultTerm\n');
+      writeFileSync(
+        join(root, 'src', 'defaultTerm.ts'),
+        'export const defaultTerm = 1;\n'
+      );
+
+      const defaultTerm = createTermRewriteClass({
+        from: 'defaultTerm',
+        id: 'default-term',
+        to: 'targetTerm',
+      });
+      const allExtensionNoop = {
+        apply: () => ({ kind: 'no-op', notes: [] }),
+        describe: 'Inspect every extension without rewriting.',
+        id: 'all-extension-noop',
+        scanTargets: { extensions: [] },
+      } satisfies RegradeClass;
+
+      const report = expectRunRegradeOk({
+        classes: [defaultTerm, allExtensionNoop],
+        includeEntries: 'all',
+        root,
+        selection: { classIds: ['default-term', 'all-extension-noop'] },
+      });
+
+      expect(
+        report?.entries.find((entry) => entry.path === 'README.md')
+      ).toMatchObject({
+        outcome: 'no-op',
+      });
+      expect(
+        report?.entries.find((entry) => entry.path === 'src/defaultTerm.ts')
+      ).toMatchObject({
+        classId: 'default-term',
+        outcome: 'rewrite',
+      });
+      expect(report?.rewritten).toBe(1);
+      expect(report?.scanned).toBe(2);
+    } finally {
+      rmSync(root, { force: true, recursive: true });
+    }
+  });
+
+  test('class scan excludes do not hide files from other selected classes', () => {
+    const root = mkdtempSync(join(tmpdir(), 'regrade-class-exclude-'));
+    try {
+      mkdirSync(join(root, 'src', 'generated'), { recursive: true });
+      writeFileSync(
+        join(root, 'src', 'generated', 'a.ts'),
+        'export const signal = 1;\n'
+      );
+
+      const excludingClass = {
+        ...createTermRewriteClass({
+          from: 'signal',
+          id: 'class-a',
+          to: 'blocked',
+        }),
+        scanTargets: { exclude: ['src/generated/**'] },
+      } satisfies RegradeClass;
+      const rewriteClass = createTermRewriteClass({
+        from: 'signal',
+        id: 'class-b',
+        to: 'ping',
+      });
+
+      const report = expectRunRegradeOk({
+        classes: [excludingClass, rewriteClass],
+        includeEntries: 'all',
+        root,
+      });
+
+      expect(report?.scanned).toBe(1);
+      expect(report?.skipped).toBe(0);
+      expect(report?.rewritten).toBe(1);
+      expect(report?.entries).toContainEqual(
+        expect.objectContaining({
+          classId: 'class-b',
+          outcome: 'rewrite',
+          path: 'src/generated/a.ts',
+        })
+      );
+    } finally {
+      rmSync(root, { force: true, recursive: true });
+    }
+  });
+
+  test('later class no-ops still count as scanned after an earlier class skip', () => {
+    const root = mkdtempSync(join(tmpdir(), 'regrade-class-skip-noop-'));
+    try {
+      mkdirSync(join(root, 'src', 'generated'), { recursive: true });
+      writeFileSync(
+        join(root, 'src', 'generated', 'a.ts'),
+        'export const value = 1;\n'
+      );
+
+      const excludingClass = {
+        ...createTermRewriteClass({
+          from: 'signal',
+          id: 'class-a',
+          to: 'blocked',
+        }),
+        scanTargets: { exclude: ['src/generated/**'] },
+      } satisfies RegradeClass;
+      const noOpClass = createTermRewriteClass({
+        from: 'missingTerm',
+        id: 'class-b',
+        to: 'replacement',
+      });
+
+      const report = expectRunRegradeOk({
+        classes: [excludingClass, noOpClass],
+        includeEntries: 'all',
+        root,
+      });
+
+      expect(report?.scanned).toBe(1);
+      expect(report?.skipped).toBe(0);
+      expect(report?.entries).toContainEqual(
+        expect.objectContaining({
+          outcome: 'no-op',
+          path: 'src/generated/a.ts',
+        })
+      );
+    } finally {
+      rmSync(root, { force: true, recursive: true });
+    }
+  });
+
+  test('legacy class ignored-directory overrides can scan default-pruned directories', () => {
+    const root = mkdtempSync(join(tmpdir(), 'regrade-class-ignored-dirs-'));
+    try {
+      mkdirSync(join(root, 'dist', 'generated'), { recursive: true });
+      writeFileSync(
+        join(root, 'dist', 'generated', 'a.ts'),
+        'export const signal = 1;\n'
+      );
+
+      const report = expectRunRegradeOk({
+        classes: [
+          {
+            ...signalToPing,
+            scanTargets: { ignoredDirectories: [] },
+          },
+        ],
+        includeEntries: 'all',
+        root,
+      });
+
+      expect(report?.scanned).toBe(1);
+      expect(report?.skipped).toBe(0);
+      expect(report?.entries).toContainEqual(
+        expect.objectContaining({
+          classId: 'term-rewrite:signal->ping',
+          outcome: 'rewrite',
+          path: 'dist/generated/a.ts',
+        })
+      );
+    } finally {
+      rmSync(root, { force: true, recursive: true });
+    }
+  });
+
+  test('legacy ignored-directory opt-outs stay scoped to the owning class', () => {
+    const root = mkdtempSync(join(tmpdir(), 'regrade-class-ignored-scope-'));
+    try {
+      mkdirSync(join(root, 'dist', 'generated'), { recursive: true });
+      writeFileSync(
+        join(root, 'dist', 'generated', 'a.ts'),
+        'export const signal = 1;\n'
+      );
+
+      const optInNoOpClass = {
+        ...createTermRewriteClass({
+          from: 'missingTerm',
+          id: 'class-a',
+          to: 'replacement',
+        }),
+        scanTargets: { ignoredDirectories: [] },
+      } satisfies RegradeClass;
+      const defaultScopedClass = createTermRewriteClass({
+        from: 'signal',
+        id: 'class-b',
+        to: 'ping',
+      });
+
+      const report = expectRunRegradeOk({
+        classes: [optInNoOpClass, defaultScopedClass],
+        includeEntries: 'all',
+        root,
+      });
+
+      expect(report?.rewritten).toBe(0);
+      expect(report?.scanned).toBe(1);
+      expect(report?.entries).toContainEqual(
+        expect.objectContaining({
+          outcome: 'no-op',
+          path: 'dist/generated/a.ts',
+        })
+      );
+    } finally {
+      rmSync(root, { force: true, recursive: true });
+    }
+  });
+
+  test('run-level ignored-directory overrides apply to every selected class', () => {
+    const root = mkdtempSync(join(tmpdir(), 'regrade-run-ignored-dirs-'));
+    try {
+      mkdirSync(join(root, 'dist', 'generated'), { recursive: true });
+      writeFileSync(
+        join(root, 'dist', 'generated', 'a.ts'),
+        'export const signal = 1;\n'
+      );
+
+      const defaultScopedClass = createTermRewriteClass({
+        from: 'signal',
+        id: 'class-b',
+        to: 'ping',
+      });
+
+      const report = expectRunRegradeOk({
+        classes: [defaultScopedClass],
+        collection: { ignoredDirectories: [] },
+        includeEntries: 'all',
+        root,
+      });
+
+      expect(report?.rewritten).toBe(1);
+      expect(report?.entries).toContainEqual(
+        expect.objectContaining({
+          classId: 'class-b',
+          outcome: 'rewrite',
+          path: 'dist/generated/a.ts',
+        })
+      );
+    } finally {
+      rmSync(root, { force: true, recursive: true });
+    }
+  });
+
+  test('run-level ignored-directory overrides beat legacy class targets', () => {
+    const root = mkdtempSync(join(tmpdir(), 'regrade-run-ignored-wins-'));
+    try {
+      mkdirSync(join(root, 'dist', 'generated'), { recursive: true });
+      writeFileSync(
+        join(root, 'dist', 'generated', 'a.ts'),
+        'export const signal = 1;\n'
+      );
+
+      const legacyScopedClass = {
+        ...createTermRewriteClass({
+          from: 'signal',
+          id: 'class-b',
+          to: 'ping',
+        }),
+        scanTargets: { ignoredDirectories: ['dist'] },
+      } satisfies RegradeClass;
+
+      const report = expectRunRegradeOk({
+        classes: [legacyScopedClass],
+        collection: { ignoredDirectories: [] },
+        includeEntries: 'all',
+        root,
+      });
+
+      expect(report?.rewritten).toBe(1);
+      expect(report?.entries).toContainEqual(
+        expect.objectContaining({
+          classId: 'class-b',
+          outcome: 'rewrite',
+          path: 'dist/generated/a.ts',
+        })
+      );
+    } finally {
+      rmSync(root, { force: true, recursive: true });
+    }
+  });
+
   test('unknown-only selection reports ids without collecting sources', () => {
     const root = mkdtempSync(join(tmpdir(), 'regrade-run-unknown-only-'));
     try {
@@ -780,6 +1125,41 @@ describe('runRegrade', () => {
       );
       expect(readFileSync(join(root, 'src', 'a.ts'), 'utf8')).toBe(
         'export const ping = 2;\n'
+      );
+    } finally {
+      rmSync(root, { force: true, recursive: true });
+    }
+  });
+
+  test('single class scan excludes are reported as class skips', () => {
+    const root = mkdtempSync(join(tmpdir(), 'regrade-single-class-exclude-'));
+    try {
+      mkdirSync(join(root, 'src', 'generated'), { recursive: true });
+      writeFileSync(
+        join(root, 'src', 'generated', 'a.ts'),
+        'export const signal = 1;\n'
+      );
+
+      const report = expectRunRegradeOk({
+        classes: [
+          {
+            ...signalToPing,
+            scanTargets: { exclude: ['src/generated/**'] },
+          },
+        ],
+        includeEntries: 'all',
+        root,
+      });
+
+      expect(report?.scanned).toBe(0);
+      expect(report?.skipped).toBe(1);
+      expect(report?.entries).toContainEqual(
+        expect.objectContaining({
+          classId: 'term-rewrite:signal->ping',
+          outcome: 'skip',
+          path: 'src/generated/a.ts',
+          reason: 'regrade-scan-target-filtered',
+        })
       );
     } finally {
       rmSync(root, { force: true, recursive: true });

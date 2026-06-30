@@ -8,10 +8,7 @@ import {
 import { readFileSync, writeFileSync } from 'node:fs';
 import { z } from 'zod';
 
-import {
-  DEFAULT_IGNORED_DIRECTORIES,
-  collectDownstreamSources,
-} from './collect.js';
+import { collectDownstreamSources } from './collect.js';
 import type { DownstreamCollectionOptions, SkippedSource } from './collect.js';
 import type {
   RegradeApplySummary,
@@ -31,6 +28,11 @@ export interface VocabularyPreserveRule {
 export interface VocabularyRegradeScope {
   readonly exclude?: readonly string[];
   readonly extensions?: readonly string[];
+  /**
+   * @deprecated Use `exclude` path globs for new plans. This remains as a
+   * compatibility bridge for pre-path-scope plans that intentionally disabled
+   * the collector's default directory pruning.
+   */
   readonly ignoredDirectories?: readonly string[];
   readonly include?: readonly string[];
 }
@@ -758,8 +760,9 @@ export const runVocabularyRegrade = (params: {
     ...(params.plan.scope?.exclude === undefined
       ? {}
       : { exclude: params.plan.scope.exclude }),
-    ignoredDirectories:
-      params.plan.scope?.ignoredDirectories ?? DEFAULT_IGNORED_DIRECTORIES,
+    ...(params.plan.scope?.ignoredDirectories === undefined
+      ? {}
+      : { ignoredDirectories: params.plan.scope.ignoredDirectories }),
   } satisfies DownstreamCollectionOptions);
   if (collected === null) {
     return Result.ok(null);
@@ -877,7 +880,9 @@ const vocabularyRegradeScopeSchema = z.object({
   ignoredDirectories: z
     .array(z.string())
     .optional()
-    .describe('Directory names to skip during collection'),
+    .describe(
+      'Deprecated compatibility override for legacy plans. Use exclude globs for new plans.'
+    ),
   include: z
     .array(z.string())
     .optional()

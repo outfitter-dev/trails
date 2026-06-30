@@ -1,17 +1,16 @@
 import { loadTrailsConfigValue } from '@ontrails/config';
-import { InternalError, Result, ValidationError } from '@ontrails/core';
+import {
+  InternalError,
+  Result,
+  ValidationError,
+  pathScopeSchema,
+} from '@ontrails/core';
 import type { Result as TrailsResult } from '@ontrails/core';
 import { z } from 'zod';
 
-const regradeScopeConfigSchema = z.object({
-  exclude: z.array(z.string()).optional(),
-  extensions: z.array(z.string()).optional(),
-  include: z.array(z.string()).optional(),
-});
-
 export const regradeConfigSchema = z
   .object({
-    scope: regradeScopeConfigSchema.optional(),
+    scope: pathScopeSchema.optional(),
   })
   .default({});
 

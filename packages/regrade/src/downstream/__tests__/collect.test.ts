@@ -61,10 +61,22 @@ describe('classifyDownstreamEntry', () => {
       classifyDownstreamEntry('app.js', 'file', { extensions: ['.js'] })
     ).toEqual({ action: 'collect' });
     expect(
+      classifyDownstreamEntry('app.md', 'file', { extensions: ['md'] })
+    ).toEqual({ action: 'collect' });
+    expect(
       classifyDownstreamEntry('build', 'directory', {
         ignoredDirectories: ['build'],
       })
     ).toEqual({ action: 'skip', reason: 'ignored-directory' });
+  });
+
+  test('treats an empty extension list as no extension filter', () => {
+    expect(
+      classifyDownstreamEntry('README.md', 'file', { extensions: [] })
+    ).toEqual({ action: 'collect' });
+    expect(
+      classifyDownstreamEntry('Makefile', 'file', { extensions: [] })
+    ).toEqual({ action: 'collect' });
   });
 });
 
@@ -172,6 +184,27 @@ describe('collectDownstreamSources', () => {
       expect(skippedReasons.get('.agents/plans')).toBe('ignored-glob');
       expect(skippedReasons.get('.agents/goals')).toBe('ignored-glob');
       expect(skippedReasons.get('.scratch')).toBe('ignored-glob');
+    } finally {
+      rmSync(root, { force: true, recursive: true });
+    }
+  });
+
+  test('empty extension lists collect every otherwise-scoped file', () => {
+    const root = writeFixture();
+    try {
+      const collection = collectDownstreamSources(root, { extensions: [] });
+      expect(collection).not.toBeNull();
+      const result = collection as NonNullable<typeof collection>;
+
+      expect(result.files.map((file) => file.path)).toEqual([
+        'src/nested/ping.ts',
+        'src/README.md',
+        'src/signal.ts',
+        'src/view.tsx',
+      ]);
+      expect(
+        result.skipped.some((entry) => entry.path === 'src/README.md')
+      ).toBe(false);
     } finally {
       rmSync(root, { force: true, recursive: true });
     }

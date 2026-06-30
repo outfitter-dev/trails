@@ -1,4 +1,10 @@
-import { InternalError, Result, escapeRegExp } from '@ontrails/core';
+import {
+  InternalError,
+  Result,
+  escapeRegExp,
+  includedByPathScope,
+} from '@ontrails/core';
+import type { ScanTargets } from '@ontrails/core';
 import type {
   WardenDiagnostic,
   WardenFixEdit,
@@ -75,12 +81,14 @@ export interface RegradeClassContext {
 }
 
 /** Files a regrade class knows how to inspect. */
-export interface RegradeScanTargets {
-  /** Source extensions the class can inspect. */
-  readonly extensions?: readonly string[];
-  /** Directory names to skip during collection. */
+export type RegradeScanTargets = ScanTargets & {
+  /**
+   * @deprecated Use collection-level `exclude` globs. Preserved so existing
+   * Regrade classes can explicitly opt into directories the default collector
+   * prunes, such as `dist`, while migrating to PathScope.
+   */
   readonly ignoredDirectories?: readonly string[];
-}
+};
 
 /** One named, contract-aware transform. */
 export interface RegradeClass {
@@ -222,6 +230,9 @@ const regradeScanTargetsFromWardenFix = (
     return undefined;
   }
   return {
+    ...(scanTargets.exclude === undefined
+      ? {}
+      : { exclude: scanTargets.exclude }),
     ...(scanTargets.extensions === undefined
       ? {}
       : { extensions: scanTargets.extensions }),
@@ -514,32 +525,53 @@ export const selectRegradeClasses = (
 const uniqueSorted = (values: readonly string[]): readonly string[] =>
   [...new Set(values)].toSorted((a, b) => a.localeCompare(b));
 
+const intersectValues = (
+  left: readonly string[],
+  right: readonly string[]
+): readonly string[] => left.filter((value) => right.includes(value));
+
+const deriveClassIgnoredDirectories = (
+  classes: readonly RegradeClass[]
+): readonly string[] | undefined => {
+  const explicitTargets = classes
+    .map((cls) => cls.scanTargets?.ignoredDirectories)
+    .filter((value): value is readonly string[] => value !== undefined);
+  if (explicitTargets.length === 0) {
+    return undefined;
+  }
+
+  let common = explicitTargets[0] ?? [];
+  for (const target of explicitTargets.slice(1)) {
+    common = intersectValues(common, target);
+  }
+  return uniqueSorted(common);
+};
+
 const deriveCollectionOptions = (
   classes: readonly RegradeClass[],
   collection: DownstreamCollectionOptions | undefined
 ): DownstreamCollectionOptions => {
-  const targetExtensions = uniqueSorted(
-    classes.length === 0
-      ? DEFAULT_SOURCE_EXTENSIONS
-      : classes.flatMap(
-          (cls) => cls.scanTargets?.extensions ?? DEFAULT_SOURCE_EXTENSIONS
-        )
+  const allExtensions = classes.some(
+    (cls) => cls.scanTargets?.extensions?.length === 0
   );
-  const ignoredDirectories = uniqueSorted(
-    classes.length === 0
-      ? DEFAULT_IGNORED_DIRECTORIES
-      : classes.flatMap(
-          (cls) =>
-            cls.scanTargets?.ignoredDirectories ?? DEFAULT_IGNORED_DIRECTORIES
-        )
-  );
-
+  const targetExtensions = allExtensions
+    ? []
+    : uniqueSorted(
+        classes.length === 0
+          ? DEFAULT_SOURCE_EXTENSIONS
+          : classes.flatMap(
+              (cls) => cls.scanTargets?.extensions ?? DEFAULT_SOURCE_EXTENSIONS
+            )
+      );
   return {
     ...(collection?.exclude === undefined
       ? {}
       : { exclude: collection.exclude }),
     extensions: collection?.extensions ?? targetExtensions,
-    ignoredDirectories: collection?.ignoredDirectories ?? ignoredDirectories,
+    ignoredDirectories:
+      collection?.ignoredDirectories ??
+      deriveClassIgnoredDirectories(classes) ??
+      DEFAULT_IGNORED_DIRECTORIES,
   };
 };
 
@@ -601,20 +633,76 @@ interface RegradeClassifiedFile {
   readonly rewrite?: RegradeRewriteCandidate;
 }
 
+const isIgnoredByClassDirectories = (
+  path: string,
+  ignoredDirectories: readonly string[] | undefined
+): boolean => {
+  if (ignoredDirectories === undefined || ignoredDirectories.length === 0) {
+    return false;
+  }
+  return path
+    .split('/')
+    .slice(0, -1)
+    .some((segment) => ignoredDirectories.includes(segment));
+};
+
+const classScanTargetSkip = (
+  cls: RegradeClass,
+  path: string,
+  collection: DownstreamCollectionOptions | undefined
+): RegradeClassResult | undefined => {
+  const ignoredDirectories =
+    collection?.ignoredDirectories ??
+    cls.scanTargets?.ignoredDirectories ??
+    DEFAULT_IGNORED_DIRECTORIES;
+  if (isIgnoredByClassDirectories(path, ignoredDirectories)) {
+    return {
+      kind: 'skipped',
+      notes: [`Skipped by ${cls.id} scan-target filtering.`],
+      reason: 'regrade-scan-target-filtered',
+    };
+  }
+  const effectiveScanTargets: ScanTargets | undefined =
+    cls.scanTargets?.extensions === undefined &&
+    collection?.extensions === undefined
+      ? {
+          ...cls.scanTargets,
+          extensions: DEFAULT_SOURCE_EXTENSIONS,
+        }
+      : cls.scanTargets;
+  if (
+    effectiveScanTargets === undefined ||
+    includedByPathScope(path, effectiveScanTargets)
+  ) {
+    return undefined;
+  }
+  return {
+    kind: 'skipped',
+    notes: [`Skipped by ${cls.id} scan-target filtering.`],
+    reason: 'regrade-scan-target-filtered',
+  };
+};
+
 const classifyFile = (
   path: string,
   source: string,
   context: RegradeClassContext,
-  selected: readonly RegradeClass[]
+  selected: readonly RegradeClass[],
+  collection?: DownstreamCollectionOptions
 ): RegradeClassifiedFile => {
   // First selected class that matches (rewrite or review) wins, mirroring the
-  // "run one class" emphasis. A scan-target skip is remembered so the file is
-  // accounted as skipped rather than a scanned/clean no-op. No-ops fall through.
+  // "run one class" emphasis. Scan-target skips only own the file when no
+  // selected class inspects it; a later no-op still counts as a clean scan.
   let skipped:
     | { readonly classId: string; readonly result: RegradeClassResult }
     | undefined;
+  let inspected = false;
   for (const cls of selected) {
-    const result = cls.apply(source, context);
+    const result =
+      classScanTargetSkip(cls, path, collection) ?? cls.apply(source, context);
+    if (result.kind !== 'skipped') {
+      inspected = true;
+    }
     if (result.kind === 'rewrite') {
       if (typeof result.nextSource !== 'string') {
         return {
@@ -667,7 +755,7 @@ const classifyFile = (
       skipped = { classId: cls.id, result };
     }
   }
-  if (skipped !== undefined) {
+  if (!inspected && skipped !== undefined) {
     return {
       entry: {
         classId: skipped.classId,
@@ -726,6 +814,7 @@ const buildRegradeEvaluation = (params: {
   readonly skipped: readonly SkippedSource[];
   readonly classes: readonly RegradeClass[];
   readonly selection?: RegradeSelection;
+  readonly collection?: DownstreamCollectionOptions;
   readonly includeEntries?: RegradeReportEntrySelection;
 }): RegradeEvaluation => {
   const entrySelection = params.includeEntries ?? 'actionable';
@@ -744,7 +833,8 @@ const buildRegradeEvaluation = (params: {
           : { absolutePath: file.absolutePath }),
         path: file.path,
       },
-      selected
+      selected,
+      params.collection
     )
   );
   const fileEntries = classifiedFiles.map((file) => file.entry);
@@ -813,6 +903,7 @@ export const buildRegradeReport = (params: {
   readonly skipped: readonly SkippedSource[];
   readonly classes: readonly RegradeClass[];
   readonly selection?: RegradeSelection;
+  readonly collection?: DownstreamCollectionOptions;
   readonly includeEntries?: RegradeReportEntrySelection;
 }): RegradeReport => buildRegradeEvaluation(params).report;
 
@@ -897,6 +988,9 @@ const runRegradeEvaluation = (params: {
     }
     return buildRegradeEvaluation({
       classes: params.classes,
+      ...(params.collection === undefined
+        ? {}
+        : { collection: params.collection }),
       files: [],
       root: params.root,
       skipped: [],
@@ -933,6 +1027,9 @@ const runRegradeEvaluation = (params: {
 
   return buildRegradeEvaluation({
     classes: params.classes,
+    ...(params.collection === undefined
+      ? {}
+      : { collection: params.collection }),
     files,
     root: params.root,
     skipped,

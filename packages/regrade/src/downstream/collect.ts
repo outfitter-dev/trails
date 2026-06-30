@@ -86,6 +86,16 @@ const extensionOf = (name: string): string => {
   return dot <= 0 ? '' : name.slice(dot);
 };
 
+const normalizeExtension = (extension: string): string =>
+  extension === '' || extension.startsWith('.') ? extension : `.${extension}`;
+
+const collectionExtensions = (
+  extensions: readonly string[] | undefined
+): readonly string[] =>
+  extensions === undefined
+    ? DEFAULT_SOURCE_EXTENSIONS
+    : extensions.map(normalizeExtension);
+
 /**
  * Decide what to do with a single directory entry. Pure: no filesystem access,
  * so collection policy can be tested directly with synthetic entries.
@@ -97,7 +107,7 @@ export const classifyDownstreamEntry = (
 ): DownstreamEntryClassification => {
   const ignoredDirectories =
     options.ignoredDirectories ?? DEFAULT_IGNORED_DIRECTORIES;
-  const extensions = options.extensions ?? DEFAULT_SOURCE_EXTENSIONS;
+  const extensions = collectionExtensions(options.extensions);
 
   if (kind === 'directory') {
     return ignoredDirectories.includes(name)
@@ -107,7 +117,7 @@ export const classifyDownstreamEntry = (
   if (kind === 'other') {
     return { action: 'skip', reason: 'unsupported-entry' };
   }
-  return extensions.includes(extensionOf(name))
+  return extensions.length === 0 || extensions.includes(extensionOf(name))
     ? { action: 'collect' }
     : { action: 'skip', reason: 'unsupported-extension' };
 };

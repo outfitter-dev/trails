@@ -38,6 +38,8 @@ export const pathScopeSchema = z
 
 export type PathScope = z.output<typeof pathScopeSchema>;
 
+export type ScanTargets = Pick<PathScope, 'exclude' | 'extensions'>;
+
 const extensionOf = (path: string): string => {
   const normalized = normalizePathScopePath(path);
   const name = normalized.slice(normalized.lastIndexOf('/') + 1);
