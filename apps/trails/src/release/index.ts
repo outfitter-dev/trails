@@ -90,6 +90,18 @@ export {
   type RegistryWorkspace,
 } from './native-bun-registry.js';
 export {
+  collectReleaseNotesInput,
+  dedupeReleaseChanges,
+  extractChangelogEntry,
+  renderReleaseNotes,
+  type ReleaseNotesCollectOptions,
+  type ReleaseNotesChange,
+  type ReleaseNotesInput,
+  type ReleaseNotesPackageVersion,
+  type ReleaseNotesParsedChange,
+} from './notes.js';
+export { runReleaseNotesCli } from './notes-cli.js';
+export {
   channelIntentForDistTag,
   evaluateReleasePolicy,
   labelsForReleasePullRequest,

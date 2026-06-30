@@ -1,6 +1,9 @@
 {
   "$schema": "https://unpkg.com/@changesets/config@3.0.0/schema.json",
-  "changelog": "@changesets/cli/changelog",
+  "changelog": [
+    "../scripts/changesets/changelog.cjs",
+    { "repo": "outfitter-dev/trails" }
+  ],
   "commit": false,
   "fixed": [["@ontrails/*"]],
   "linked": [],

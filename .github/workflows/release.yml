@@ -44,6 +44,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: bun run publish:label-release-pr
+      - name: Update version PR body
+        if: steps.changesets.outputs.hasChangesets == 'true'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          git fetch --no-tags origin changeset-release/main
+          git checkout --force FETCH_HEAD
+          bun scripts/release-notes.ts update-release-pr
       - name: Validate version PR
         if: steps.changesets.outputs.hasChangesets == 'true'
         run: |
@@ -142,6 +150,7 @@ jobs:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
+      - uses: ./.github/actions/setup
       - name: Create GitHub release
         env:
           DIST_TAG: ${{ needs.publish-policy.outputs.tag }}
@@ -156,7 +165,11 @@ jobs:
           fi
 
           tag="v$VERSION"
-          notes="Published @ontrails/* packages at $VERSION to npm with dist-tag \`$DIST_TAG\`."
+          notes_file="$(mktemp)"
+          bun scripts/release-notes.ts github-release \
+            --version "$VERSION" \
+            --dist-tag "$DIST_TAG" \
+            > "$notes_file"
           version_target="$(git log -n 1 --format=%H -S "\"version\": \"$VERSION\"" -- apps/trails/package.json)"
           if [ -z "$version_target" ]; then
             echo "Could not resolve commit that introduced apps/trails/package.json version $VERSION" >&2
@@ -181,6 +194,6 @@ jobs:
             gh release create "$tag" \
               --verify-tag \
               --title "Trails v$VERSION" \
-              --notes "$notes" \
+              --notes-file "$notes_file" \
               "${create_args[@]}"
           fi
