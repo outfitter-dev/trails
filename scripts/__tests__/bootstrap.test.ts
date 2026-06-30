@@ -64,6 +64,12 @@ describe('bootstrap dispatcher', () => {
       provider: 'claude',
       update: false,
     });
+    expect(parseBootstrapArgs(['cursor', '--update'])).toEqual({
+      command: 'cursor',
+      force: false,
+      provider: 'cursor',
+      update: true,
+    });
     expect(parseBootstrapArgs(['doctor'])).toEqual({
       command: 'doctor',
       force: false,
@@ -94,7 +100,7 @@ describe('bootstrap dispatcher', () => {
 
     expect(proc.exitCode).toBe(0);
     expect(proc.stdout.toString()).toContain(
-      'repo|agent|codex|claude|doctor|teardown'
+      'repo|agent|codex|claude|cursor|doctor|teardown'
     );
   });
 });
@@ -207,6 +213,29 @@ describe('bootstrap repo policy', () => {
     }
   });
 
+  test('env-detected Cursor provider resolves from cwd before generic roots', () => {
+    const config = loadBootstrapConfig();
+    const cursorRoot = makeRepoRoot();
+    const genericRoot = makeRepoRoot();
+    const env = {
+      CURSOR_AGENT: '1',
+      GITHUB_WORKSPACE: genericRoot,
+    } as NodeJS.ProcessEnv;
+    try {
+      const host = detectHost(env, config);
+      expect(host).toMatchObject({
+        provider: 'cursor',
+        remote: true,
+      });
+      expect(resolveRepoRoot(cursorRoot, env, config, host.provider)).toBe(
+        cursorRoot
+      );
+    } finally {
+      rmSync(cursorRoot, { force: true, recursive: true });
+      rmSync(genericRoot, { force: true, recursive: true });
+    }
+  });
+
   test('root resolution accepts CLAUDECODE when it carries a repo path', () => {
     const config = loadBootstrapConfig();
     const claudeRoot = makeRepoRoot();
@@ -238,6 +267,41 @@ describe('bootstrap repo policy', () => {
       provider: 'factory',
       remote: true,
     });
+  });
+
+  test('host detection recognizes Cursor cloud agents as a remote provider', () => {
+    const config = loadBootstrapConfig();
+    expect(
+      detectHost({ CURSOR_AGENT: '1' } as NodeJS.ProcessEnv, config)
+    ).toMatchObject({
+      bunPolicy: 'strict',
+      provider: 'cursor',
+      remote: true,
+    });
+    expect(
+      detectHost({ CURSOR_AGENT: 'true' } as NodeJS.ProcessEnv, config)
+    ).toMatchObject({
+      bunPolicy: 'strict',
+      provider: 'cursor',
+      remote: true,
+    });
+  });
+
+  test('cursor root resolution falls back to the cwd checkout', () => {
+    const config = loadBootstrapConfig();
+    const cursorRoot = makeRepoRoot();
+    try {
+      expect(
+        resolveRepoRoot(
+          cursorRoot,
+          { CURSOR_AGENT: '1' } as NodeJS.ProcessEnv,
+          config,
+          'cursor'
+        )
+      ).toBe(cursorRoot);
+    } finally {
+      rmSync(cursorRoot, { force: true, recursive: true });
+    }
   });
 
   test('linked worktree detection compares git dir and common dir', () => {
