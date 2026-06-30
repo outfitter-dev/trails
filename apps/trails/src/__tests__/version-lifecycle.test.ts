@@ -287,6 +287,7 @@ describe('trails lifecycle commands', () => {
       if (revised.isErr()) {
         throw revised.error;
       }
+      expect(revised.value.filePath).toBe(join(dir, 'src', 'app.ts'));
       let source = readFileSync(join(dir, 'src', 'app.ts'), 'utf8');
       expect(source).toContain('version: 2');
       expect(source).toContain('versions: {');
@@ -306,6 +307,7 @@ describe('trails lifecycle commands', () => {
       if (deprecated.isErr()) {
         throw deprecated.error;
       }
+      expect(deprecated.value.filePath).toBe(join(dir, 'src', 'app.ts'));
       source = readFileSync(join(dir, 'src', 'app.ts'), 'utf8');
       expect(source).toContain(
         '      status: { state: \'deprecated\', successor: 2, note: "Use v2." }'

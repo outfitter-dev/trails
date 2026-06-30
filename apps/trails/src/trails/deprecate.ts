@@ -51,7 +51,7 @@ export const deprecateTrail = trail('deprecate', {
   }),
   intent: 'write',
   output: z.object({
-    file: z.string(),
+    filePath: z.string(),
     trailId: z.string(),
     updated: z.boolean(),
   }),

@@ -23,7 +23,7 @@ export interface LifecycleCommandInput {
 }
 
 export interface LifecycleWriteResult {
-  readonly file: string;
+  readonly filePath: string;
   readonly trailId: string;
   readonly updated: boolean;
   readonly warnings?: readonly string[] | undefined;
@@ -32,8 +32,8 @@ export interface LifecycleWriteResult {
 interface TrailSourceMatch {
   readonly configEnd: number;
   readonly configStart: number;
-  readonly filePath: string;
   readonly source: string;
+  readonly sourcePath: string;
 }
 
 interface PropertyMatch {
@@ -108,8 +108,8 @@ const findTrailSource = (
       return Result.ok({
         configEnd: match.config.end,
         configStart: match.config.start,
-        filePath,
         source: source.value,
+        sourcePath: filePath,
       });
     }
   }
@@ -566,13 +566,13 @@ export const reviseTrailSource = (
       blaze?.value
     )
   );
-  const written = writeLifecycleSourceFile(match.value.filePath, nextSource);
+  const written = writeLifecycleSourceFile(match.value.sourcePath, nextSource);
   if (written.isErr()) {
     return written;
   }
 
   return Result.ok({
-    file: match.value.filePath,
+    filePath: match.value.sourcePath,
     trailId: trail.id,
     updated: true,
     ...(usesForkPlaceholder
@@ -724,18 +724,18 @@ export const setVersionStatusSource = (
         );
   if (nextSource === match.value.source) {
     return Result.ok({
-      file: match.value.filePath,
+      filePath: match.value.sourcePath,
       trailId: target.trailId,
       updated: false,
     });
   }
-  const written = writeLifecycleSourceFile(match.value.filePath, nextSource);
+  const written = writeLifecycleSourceFile(match.value.sourcePath, nextSource);
   if (written.isErr()) {
     return written;
   }
 
   return Result.ok({
-    file: match.value.filePath,
+    filePath: match.value.sourcePath,
     trailId: target.trailId,
     updated: true,
   });
@@ -768,18 +768,18 @@ export const forkVersionEntrySource = (
   const nextSource = rewrite.source;
   if (nextSource === match.value.source) {
     return Result.ok({
-      file: match.value.filePath,
+      filePath: match.value.sourcePath,
       trailId: target.trailId,
       updated: false,
     });
   }
-  const written = writeLifecycleSourceFile(match.value.filePath, nextSource);
+  const written = writeLifecycleSourceFile(match.value.sourcePath, nextSource);
   if (written.isErr()) {
     return written;
   }
 
   return Result.ok({
-    file: match.value.filePath,
+    filePath: match.value.sourcePath,
     trailId: target.trailId,
     updated: true,
     ...(rewrite.usedPlaceholder

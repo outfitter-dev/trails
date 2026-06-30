@@ -44,7 +44,7 @@ export const reviseTrail = trail('revise', {
   }),
   intent: 'write',
   output: z.object({
-    file: z.string(),
+    filePath: z.string(),
     trailId: z.string(),
     updated: z.boolean(),
     warnings: z.array(z.string()).optional(),
