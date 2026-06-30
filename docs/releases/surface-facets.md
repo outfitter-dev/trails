@@ -1,16 +1,16 @@
-# Surface Facets Release Notes
+# Surface Trailheads Release Notes
 
-Surface facets are an additive beta feature for dense MCP surfaces. They let an MCP surface group related trails into fewer tools while preserving the original trail contract, trail ID, input schema, output schema, examples, errors, visibility, and execution path.
+Surface trailheads are an additive beta feature for dense MCP surfaces. They let an MCP surface group related trails into fewer tools while preserving the original trail contract, trail ID, input schema, output schema, examples, errors, visibility, and execution path.
 
 ## Changed Packages
 
-The Surface Facets & MCP Shaping stack changes these publishable packages:
+The Surface Trailheads & MCP Shaping stack changes these publishable packages:
 
-- `@ontrails/topographer`: serializes resolved facet metadata in TopoGraph artifacts and semantic diffs.
-- `@ontrails/mcp`: adds MCP surface facets, MCP resource projection for cold context, and deferred-loading metadata hints.
-- `@ontrails/trails`: adds the Trails operator MCP entrypoint and deferred facet map.
+- `@ontrails/topographer`: serializes resolved trailhead metadata in TopoGraph artifacts and semantic diffs.
+- `@ontrails/mcp`: adds MCP surface trailheads, MCP resource projection for cold context, and deferred-loading metadata hints.
+- `@ontrails/trails`: adds the Trails operator MCP entrypoint and deferred trailhead map.
 - `@ontrails/warden`: adds `surface-facet-coherence` guidance for overlap, dynamic selectors, visibility acknowledgement, and description hygiene.
-- `@ontrails/adapter-kit`: exposes adapter type evidence for downstream projection checks without authoring facets.
+- `@ontrails/adapter-kit`: exposes adapter type evidence for downstream projection checks without authoring trailheads.
 
 Each package-touching branch carries a branch-local changeset:
 
@@ -22,7 +22,7 @@ Each package-touching branch carries a branch-local changeset:
 
 ## What Ships
 
-### MCP Surface Facets
+### MCP Surface Trailheads
 
 Authors can pass `facets` to `@ontrails/mcp` surface options:
 
@@ -38,7 +38,7 @@ await surface(graph, {
 });
 ```
 
-Each facet becomes one MCP tool. Calls use the selected trail ID plus nested input:
+Each trailhead becomes one MCP tool. Calls use the selected trail ID plus nested input:
 
 ```json
 { "trail": "warden", "input": { "apps": ["apps/trails/src/app.ts"] } }
@@ -54,27 +54,27 @@ Successful outputs are correlated:
 
 MCP resources are enabled by default:
 
-- `trails://surface-map` exposes the resolved MCP projection, including ordinary tools and facet tools.
+- `trails://surface-map` exposes the resolved MCP projection, including ordinary tools and trailhead tools.
 - `trails://examples/<trailId>` exposes structured examples for exposed trails.
 
 Use `mcpResources: false` to disable MCP resources, or a `McpResourcesConfig` object to select `surfaceMap` and `examples` individually.
 
 ### Deferred Loading Hint
 
-`mcp: { loading: 'deferred' }` marks a facet tool with `_meta["ontrails/deferred"]`. It is a compatibility hint only. Required schemas still appear in `tools/list` so older clients continue to work.
+`mcp: { loading: 'deferred' }` marks a trailhead tool with `_meta["ontrails/deferred"]`. It is a compatibility hint only. Required schemas still appear in `tools/list` so older clients continue to work.
 
 ### Adapter-Kit Boundary
 
-Adapter-kit does not define, author, or own facets. It may provide raw adapter evidence such as `adapterType` for future surface-projection conformance checks, but grouped affordance validation should consume resolved surface metadata from the surface or governance layer.
+Adapter-kit does not define, author, or own trailheads. It may provide raw adapter evidence such as `adapterType` for future surface-projection conformance checks, but grouped affordance validation should consume resolved surface metadata from the surface or governance layer.
 
 ## Migration Posture
 
-Existing MCP consumers that use one-trail-one-tool projection do not need to migrate. Surface facets are opt-in.
+Existing MCP consumers that use one-trail-one-tool projection do not need to migrate. Surface trailheads are opt-in.
 
 Apps that want a shaped MCP surface should:
 
 1. Keep trail contracts unchanged.
-2. Add an explicit MCP facet map near the MCP surface entrypoint.
+2. Add an explicit MCP trailhead map near the MCP surface entrypoint.
 3. Enable MCP resources or keep the default resource projection.
 4. Run Warden and watch for selector overlap, dynamic selectors, visibility widening acknowledgements, and stale descriptions.
 5. Update app docs or agent guidance so callers know to inspect `trails://surface-map` before guessing at grouped tools.
@@ -101,10 +101,10 @@ Do not publish from the feature stack unless explicitly authorized. This note is
 
 ## Distribution-Ready Gate
 
-Before cutting the beta that includes surface facets, confirm:
+Before cutting the beta that includes surface trailheads, confirm:
 
-- docs include the user-facing facet guide, MCP resource/deferred guidance, and CLI/HTTP parity decision;
-- Trails skill/plugin guidance teaches facets as governed surface projection, not a new primitive;
+- docs include the user-facing trailhead guide, MCP resource/deferred guidance, and CLI/HTTP parity decision;
+- Trails skill/plugin guidance teaches trailheads as governed surface projection, not a new primitive;
 - Warden generated guidance is refreshed and checked;
 - `trails release smoke --check wayfinder-dogfood` or the repo wrapper
   `bun run wayfinder:dogfood` proves the Trails operator topo remains

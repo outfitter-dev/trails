@@ -8,7 +8,7 @@ Wayfinder is now a real graph-read package, not just a reserved shell. The v0 ca
 - Graph queries read existing Topographer artifacts or topo-store records. Adapter facts read package and conformance evidence through `@ontrails/adapter-kit`. V0 does not boot apps, resolve resources, reach the network, or mutate local state.
 - Query results include source and drift metadata so agents can distinguish aligned artifacts from missing, stale, or schema-drifted artifacts.
 - Version and example listings preserve trail-version semantics: version records sort numerically, parent trail example filters include current and historical version examples, and `exampleCoverage: false` stays scoped to uncovered entities.
-- The Trails operator MCP surface exposes a selected read-only subset as direct tools and keeps broader saved-topo inspection behind the `inspect` facet.
+- The Trails operator MCP surface exposes a selected read-only subset as direct tools and keeps broader saved-topo inspection grouped under `inspect`.
 
 ## Migration Posture
 
