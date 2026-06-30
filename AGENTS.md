@@ -382,3 +382,11 @@ Each package's main `tsconfig.json` excludes test files so build output stays cl
 - Team: `TRL`
 - Team ID: `97523b42-84f2-4cea-bd70-22b245cc3f59`
 - Branch naming: `trl-NNN-<linear-title>` when working from a Linear issue
+
+## Cursor Cloud specific instructions
+
+Toolchain is preinstalled in the VM snapshot and resolved through the shell profile (`~/.bashrc`/`~/.profile`): Bun (pinned by `.bun-version`, installed at `~/.bun`) and Node via nvm (`default` alias). The session-startup update script runs `bun install`. Standard commands live in the [Commands](#commands) section above; the notes below are only the non-obvious caveats.
+
+- **Node version gotcha.** Lint/format and the oxlint-plugin tests load the TypeScript `oxlint.config.ts`, which oxlint can only parse on Node `>=22.18.0`. The VM ships an older default `node` at `/exec-daemon/node` (`v22.14.0`); the working Node (`v22.23.1`) comes from nvm. If `bun run lint`, `bun run format:check`, or `packages/oxlint-plugin` tests fail with `ERR_UNKNOWN_FILE_EXTENSION` / "TypeScript config files require Node.js ... >=22.18.0", your shell is using `/exec-daemon/node` — run from a profile-sourced shell or `nvm use default` so the newer Node is first on `PATH`.
+- **Demo write trails are permit-gated.** In `apps/trails-demo`, write trails (`entity.add`, `entity.delete`, `demo.upsert`, `entity.onboard`) require the `entity:write` permit scope. The demo's CLI (`bun run bin/demo.ts ...`) and HTTP (`bun run http`, port 3000) surfaces do not configure a permit resolver, so writes return `PermitError` by design — only the read paths (`entity.show`, `entity.list`, `search`) work over those surfaces out of the box. To exercise a write end-to-end, drive the trail through the in-memory library surface (`@ontrails/library` `surface(graph, { ctx: { permit: { id, scopes: ['entity:write'] } } })`) or via the test harness (`testAll`/`testTrail` from `@ontrails/testing`).
+- **Demo storage is ephemeral.** The demo resource is an in-process Drizzle/SQLite store seeded fresh per process, so data does not persist across separate CLI invocations; create-then-read flows must run within one process (e.g. the HTTP server's lifetime or a single script).
