@@ -15,13 +15,14 @@ BUN_VERSION_FILE="$REPO_ROOT/.bun-version"
 
 usage() {
   cat <<'EOF'
-Usage: ./scripts/bootstrap.sh [repo|agent|codex|claude|doctor|teardown] [--force] [--update]
+Usage: ./scripts/bootstrap.sh [repo|agent|codex|claude|cursor|doctor|teardown] [--force] [--update]
 
 Commands:
   repo     Make this checkout runnable (default)
   agent    Repo bootstrap plus agent lifecycle diagnostics
   codex    Codex agent bootstrap with provider-specific root detection
   claude   Claude agent bootstrap with provider-specific root detection
+  cursor   Cursor agent bootstrap with provider-specific root detection
   doctor   Diagnostics only; no install, cleanup, or mutation
   teardown Conservative cleanup of configured runtime artifacts only
 
@@ -39,7 +40,7 @@ fi
 
 SUBCOMMAND="${1:-repo}"
 case "$SUBCOMMAND" in
-  repo|agent|codex|claude|doctor|sweep|teardown)
+  repo|agent|codex|claude|cursor|doctor|sweep|teardown)
     shift || true
     ;;
   --force|--update)
