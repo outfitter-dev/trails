@@ -133,6 +133,172 @@ describe('runVocabularyRegrade', () => {
     }
   });
 
+  test('defers markdown code contexts instead of treating them as safe prose', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(
+        dir,
+        'docs/surface.md',
+        [
+          'facet prose should move.',
+          'Inline `facet` should be reviewed.',
+          '',
+          '```ts',
+          'facets: {',
+          '  inspect: ["facet"],',
+          '}',
+          '```',
+          '',
+        ].join('\n')
+      );
+
+      const result = runVocabularyRegrade({
+        apply: true,
+        plan: {
+          from: 'facet',
+          kind: 'vocabulary',
+          scope: { extensions: ['.md'] },
+          to: 'trailhead',
+        },
+        root: dir,
+      });
+
+      expect(result.isOk()).toBe(true);
+      if (result.isErr()) {
+        throw result.error;
+      }
+      expect(readFileSync(join(dir, 'docs', 'surface.md'), 'utf8')).toBe(
+        [
+          'trailhead prose should move.',
+          'Inline `facet` should be reviewed.',
+          '',
+          '```ts',
+          'facets: {',
+          '  inspect: ["facet"],',
+          '}',
+          '```',
+          '',
+        ].join('\n')
+      );
+      expect(
+        result.value?.run?.ledger.occurrences.map((occurrence) => ({
+          form: occurrence.form,
+          reason: occurrence.reason,
+          replacement: occurrence.replacement,
+          verdict: occurrence.verdict,
+        }))
+      ).toEqual([
+        {
+          form: 'facet',
+          reason: 'markdown-code-context',
+          replacement: undefined,
+          verdict: 'deferred',
+        },
+        {
+          form: 'facets',
+          reason: 'markdown-code-context',
+          replacement: undefined,
+          verdict: 'deferred',
+        },
+        {
+          form: 'facet',
+          reason: 'markdown-code-context',
+          replacement: undefined,
+          verdict: 'deferred',
+        },
+      ]);
+      expect(result.value?.apply).toMatchObject({
+        applied: 1,
+        filesChanged: 1,
+        review: 1,
+      });
+      expect(result.value?.run?.report).toMatchObject({
+        applied: 1,
+        deferred: 3,
+        gate: {
+          reasons: ['deferred-forms-or-occurrences'],
+          remaining: 3,
+          status: 'open',
+        },
+        modified: 0,
+        open: 3,
+      });
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('defers multi-backtick and blockquoted markdown code contexts', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(
+        dir,
+        'docs/surface.md',
+        [
+          'Use ``facet`` as a literal.',
+          '',
+          '> ```ts',
+          '> facet',
+          '> ```',
+          '',
+        ].join('\n')
+      );
+
+      const result = runVocabularyRegrade({
+        apply: true,
+        plan: {
+          from: 'facet',
+          kind: 'vocabulary',
+          scope: { extensions: ['.md'] },
+          to: 'trailhead',
+        },
+        root: dir,
+      });
+
+      expect(result.isOk()).toBe(true);
+      if (result.isErr()) {
+        throw result.error;
+      }
+      expect(readFileSync(join(dir, 'docs', 'surface.md'), 'utf8')).toBe(
+        [
+          'Use ``facet`` as a literal.',
+          '',
+          '> ```ts',
+          '> facet',
+          '> ```',
+          '',
+        ].join('\n')
+      );
+      expect(
+        result.value?.run?.ledger.occurrences.map((occurrence) => ({
+          form: occurrence.form,
+          reason: occurrence.reason,
+          verdict: occurrence.verdict,
+        }))
+      ).toEqual([
+        {
+          form: 'facet',
+          reason: 'markdown-code-context',
+          verdict: 'deferred',
+        },
+        {
+          form: 'facet',
+          reason: 'markdown-code-context',
+          verdict: 'deferred',
+        },
+      ]);
+      expect(result.value?.run?.report).toMatchObject({
+        applied: 0,
+        deferred: 2,
+        gate: { status: 'open' },
+        modified: 0,
+        open: 2,
+      });
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
   test('scopes path discovery before judging occurrences', () => {
     const dir = makeTempDir();
     try {

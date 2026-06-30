@@ -18,7 +18,11 @@ import {
   runRegrade,
   runVocabularyRegrade,
 } from '@ontrails/regrade';
-import type { RegradeReport, VocabularyRegradePlan } from '@ontrails/regrade';
+import type {
+  RegradeReport,
+  VocabularyPreserveRule,
+  VocabularyRegradePlan,
+} from '@ontrails/regrade';
 import { z } from 'zod';
 
 import { loadRegradeConfig } from '../regrade/config.js';
@@ -35,6 +39,20 @@ const regradePathScopeInputSchema = pathScopeSchema.extend({
     'Root-relative path patterns to include in vocabulary regrade mode'
   ),
 });
+
+const regradePreserveRuleInputSchema = z.object({
+  paths: z
+    .array(z.string())
+    .optional()
+    .describe('Root-relative path globs where this preserve rule applies'),
+  pattern: z.string().min(1).describe('Regex or literal pattern to preserve'),
+  reason: z.string().optional().describe('Why this form is preserved'),
+});
+
+const regradePreserveInputSchema = z.union([
+  z.string().min(1),
+  regradePreserveRuleInputSchema,
+]);
 
 const regradeInputSchema = regradePathScopeInputSchema.extend({
   apply: z
@@ -69,10 +87,10 @@ const regradeInputSchema = regradePathScopeInputSchema.extend({
     .optional()
     .describe('Explicit source-form to target-form mappings'),
   preserve: z
-    .array(z.string().min(1))
+    .array(regradePreserveInputSchema)
     .optional()
     .describe(
-      'Regex or literal contexts to preserve during a vocabulary regrade'
+      'Regex or literal contexts, or structured preserve rules, for a vocabulary regrade'
     ),
   rootDir: z.string().optional().describe('Workspace root directory'),
   to: z
@@ -139,6 +157,21 @@ const vocabularyScopeFromConfig = (
         ...(scope.include === undefined ? {} : { include: scope.include }),
       };
 
+const vocabularyPreserveFromInput = (
+  preserve: z.output<typeof regradeInputSchema>['preserve']
+): readonly VocabularyPreserveRule[] | undefined =>
+  preserve?.map((rule) => {
+    if (typeof rule === 'string') {
+      return { pattern: rule, reason: 'preserved-by-operator-input' };
+    }
+
+    return {
+      ...(rule.paths === undefined ? {} : { paths: rule.paths }),
+      pattern: rule.pattern,
+      ...(rule.reason === undefined ? {} : { reason: rule.reason }),
+    };
+  });
+
 const buildVocabularyPlan = (
   input: z.output<typeof regradeInputSchema>,
   configScope?: VocabularyRegradePlan['scope']
@@ -156,20 +189,15 @@ const buildVocabularyPlan = (
     );
   }
 
+  const preserve = vocabularyPreserveFromInput(input.preserve);
+
   return Result.ok({
     from: input.from,
     id: `vocabulary:${input.from}->${input.to}`,
     kind: 'vocabulary',
     ...(input.intent === undefined ? {} : { intent: input.intent }),
     ...(input.overrides === undefined ? {} : { overrides: input.overrides }),
-    ...(input.preserve === undefined
-      ? {}
-      : {
-          preserve: input.preserve.map((pattern) => ({
-            pattern,
-            reason: 'preserved-by-operator-input',
-          })),
-        }),
+    ...(preserve === undefined ? {} : { preserve }),
     scope: {
       ...configScope,
       ...(input.exclude === undefined ? {} : { exclude: input.exclude }),

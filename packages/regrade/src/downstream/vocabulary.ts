@@ -192,6 +192,106 @@ const contextForOffset = (
   return source.slice(lineStart, lineEnd).trim();
 };
 
+const isMarkdownPath = (path: string): boolean =>
+  path.endsWith('.md') || path.endsWith('.mdx');
+
+const sourceLineBoundsForOffset = (
+  source: string,
+  start: number,
+  end: number
+): { readonly lineEnd: number; readonly lineStart: number } => {
+  const lineStart = source.lastIndexOf('\n', start - 1) + 1;
+  const nextLine = source.indexOf('\n', end);
+  return { lineEnd: nextLine === -1 ? source.length : nextLine, lineStart };
+};
+
+const markdownBacktickRuns = (value: string): readonly RegExpMatchArray[] => [
+  ...value.matchAll(/(?<!\\)`+/g),
+];
+
+const isMarkdownInlineCodeContext = (
+  source: string,
+  start: number,
+  end: number
+): boolean => {
+  const { lineEnd, lineStart } = sourceLineBoundsForOffset(source, start, end);
+  const line = source.slice(lineStart, lineEnd);
+  const relativeStart = start - lineStart;
+  const relativeEnd = end - lineStart;
+  let openRun: { readonly length: number; readonly start: number } | undefined;
+
+  for (const run of markdownBacktickRuns(line)) {
+    const runStart = run.index ?? 0;
+    const [value] = run;
+    const runLength = value.length;
+    if (openRun === undefined) {
+      openRun = { length: runLength, start: runStart };
+      continue;
+    }
+    if (runLength !== openRun.length) {
+      continue;
+    }
+    if (
+      openRun.start + openRun.length <= relativeStart &&
+      relativeEnd <= runStart
+    ) {
+      return true;
+    }
+    openRun = undefined;
+  }
+
+  return false;
+};
+
+const markdownFenceLinePattern = /^\s*(?:>\s*){0,8}(```|~~~)/;
+
+const isMarkdownFenceContext = (source: string, start: number): boolean => {
+  const before = source.slice(0, start);
+  let fenced = false;
+  for (const line of before.split('\n')) {
+    if (markdownFenceLinePattern.test(line)) {
+      fenced = !fenced;
+    }
+  }
+  return fenced;
+};
+
+const isMarkdownCodeContext = (
+  file: SourceFile,
+  start: number,
+  end: number
+): boolean =>
+  isMarkdownPath(file.path) &&
+  (isMarkdownInlineCodeContext(file.source, start, end) ||
+    isMarkdownFenceContext(file.source, start));
+
+const vocabularyOccurrenceReason = (
+  preserveRule: VocabularyPreserveRule | undefined,
+  markdownCodeContext: boolean,
+  defaultReason: string
+): string => {
+  if (preserveRule !== undefined) {
+    return preserveRule.reason ?? 'preserved-by-plan';
+  }
+  if (markdownCodeContext) {
+    return 'markdown-code-context';
+  }
+  return defaultReason;
+};
+
+const capturedVocabularyVerdict = (
+  preserveRule: VocabularyPreserveRule | undefined,
+  markdownCodeContext: boolean
+): VocabularyVerdict => {
+  if (preserveRule !== undefined) {
+    return 'skipped';
+  }
+  if (markdownCodeContext) {
+    return 'deferred';
+  }
+  return 'modified';
+};
+
 const preserveCase = (sourceForm: string, replacement: string): string => {
   if (sourceForm.toUpperCase() === sourceForm) {
     return replacement.toUpperCase();
@@ -337,15 +437,18 @@ const occurrencesForFile = (
         start,
       };
       const preserveRule = preserveRuleForOccurrence(baseOccurrence, plan);
+      const markdownCodeContext = isMarkdownCodeContext(file, start, end);
       candidates.push({
         ...baseOccurrence,
-        reason:
-          preserveRule?.reason ??
-          (preserveRule === undefined ? 'captured-form' : 'preserved-by-plan'),
-        ...(preserveRule === undefined
+        reason: vocabularyOccurrenceReason(
+          preserveRule,
+          markdownCodeContext,
+          'captured-form'
+        ),
+        ...(preserveRule === undefined && !markdownCodeContext
           ? { replacement: preserveCase(match[0], replacement) }
           : {}),
-        verdict: preserveRule === undefined ? 'modified' : 'skipped',
+        verdict: capturedVocabularyVerdict(preserveRule, markdownCodeContext),
       });
     }
   }
@@ -388,11 +491,11 @@ const deferredOccurrencesForFile = (
     const preserveRule = preserveRuleForOccurrence(baseOccurrence, plan);
     occurrences.push({
       ...baseOccurrence,
-      reason:
-        preserveRule?.reason ??
-        (preserveRule === undefined
-          ? 'unclassified-neighbor'
-          : 'preserved-by-plan'),
+      reason: vocabularyOccurrenceReason(
+        preserveRule,
+        isMarkdownCodeContext(file, baseOccurrence.start, baseOccurrence.end),
+        'unclassified-neighbor'
+      ),
       verdict: preserveRule === undefined ? 'deferred' : 'skipped',
     });
   };

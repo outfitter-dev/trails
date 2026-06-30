@@ -348,6 +348,97 @@ describe('trails regrade', () => {
     }
   });
 
+  test('CLI accepts structured preserve rules through input json', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(dir, 'src/surface.ts', 'export const facetId = "preserved";\n');
+      writeFile(dir, 'docs/surface.md', 'The facetId field needs review.\n');
+
+      const input = {
+        from: 'facet',
+        include: ['src/**', 'docs/**'],
+        preserve: [
+          {
+            paths: ['src/**'],
+            pattern: '^facetId$',
+            reason: 'live-api-identifier',
+          },
+        ],
+        to: 'trailhead',
+      };
+
+      const result = runRawCli([
+        'regrade',
+        '--root-dir',
+        dir,
+        '--input-json',
+        JSON.stringify(input),
+        '--json',
+      ]);
+
+      expect(result.exitCode).toBe(0);
+      const parsed = JSON.parse(result.stdout) as {
+        readonly run?: {
+          readonly ledger?: {
+            readonly occurrences?: readonly {
+              readonly form: string;
+              readonly path: string;
+              readonly reason: string;
+              readonly verdict: string;
+            }[];
+          };
+          readonly plan?: {
+            readonly preserve?: readonly {
+              readonly paths?: readonly string[];
+              readonly pattern?: string;
+              readonly reason?: string;
+            }[];
+          };
+          readonly report?: {
+            readonly deferred?: number;
+            readonly modified?: number;
+            readonly skipped?: number;
+          };
+        };
+      };
+      expect(parsed.run?.plan?.preserve).toEqual([
+        {
+          paths: ['src/**'],
+          pattern: '^facetId$',
+          reason: 'live-api-identifier',
+        },
+      ]);
+      expect(
+        parsed.run?.ledger?.occurrences?.map((occurrence) => ({
+          form: occurrence.form,
+          path: occurrence.path,
+          reason: occurrence.reason,
+          verdict: occurrence.verdict,
+        }))
+      ).toEqual([
+        {
+          form: 'facetId',
+          path: 'docs/surface.md',
+          reason: 'unclassified-neighbor',
+          verdict: 'deferred',
+        },
+        {
+          form: 'facetId',
+          path: 'src/surface.ts',
+          reason: 'live-api-identifier',
+          verdict: 'skipped',
+        },
+      ]);
+      expect(parsed.run?.report).toMatchObject({
+        deferred: 1,
+        modified: 0,
+        skipped: 1,
+      });
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
   test('CLI accepts path-scope exclude globs for class-mode apply', () => {
     const dir = makeTempDir();
     try {
