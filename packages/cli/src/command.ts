@@ -7,25 +7,15 @@
  */
 
 import type {
+  AnyTrail,
   Layer,
   Result,
   CliCommandRoute,
   SurfaceTrailVersionProjection,
-  Trail,
   TrailContext,
 } from '@ontrails/core';
 
-// ---------------------------------------------------------------------------
-// AnyTrail -- type-erased trail for the CLI boundary
-// ---------------------------------------------------------------------------
-
-/**
- * Type-erased trail reference. At the CLI adapter boundary we lose
- * generic type information since flags/args are parsed as strings.
- * Using `any` here is intentional -- the Zod schema validates at runtime.
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type AnyTrail = Trail<any, any, any>;
+export type { AnyTrail } from '@ontrails/core';
 
 // ---------------------------------------------------------------------------
 // CliFlag
