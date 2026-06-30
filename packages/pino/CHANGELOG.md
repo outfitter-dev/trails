@@ -1,5 +1,11 @@
 # @ontrails/pino
 
+## 1.0.0-beta.32
+
+### Patch Changes
+
+- @ontrails/observe@1.0.0-beta.32
+
 ## 1.0.0-beta.31
 
 ### Patch Changes

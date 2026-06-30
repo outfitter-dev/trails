@@ -1,5 +1,20 @@
 # @ontrails/adapter-kit
 
+## 1.0.0-beta.32
+
+### Patch Changes
+
+- 3e5c0fc: Export shared diagnostic base types from core and align governance diagnostic
+  severity vocabulary across adapter checks, permits, and Warden.
+- f3c4fef: Export a shared `escapeRegExp` helper from core and migrate first-party callers off local copies.
+- cb0a9d8: Export shared workspace package discovery helpers from core and migrate first-party discovery callers.
+- Updated dependencies [3e5c0fc]
+- Updated dependencies [f3c4fef]
+- Updated dependencies [cb0a9d8]
+- Updated dependencies [21c6dda]
+- Updated dependencies [fe72b84]
+  - @ontrails/core@1.0.0-beta.32
+
 ## 1.0.0-beta.31
 
 ## 1.0.0-beta.30

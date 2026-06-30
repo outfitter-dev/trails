@@ -1,5 +1,19 @@
 # @ontrails/regrade
 
+## 1.0.0-beta.32
+
+### Patch Changes
+
+- f3c4fef: Export a shared `escapeRegExp` helper from core and migrate first-party callers off local copies.
+- fe72b84: Fold remaining Regrade and Warden scan-target surfaces onto the shared path-scope vocabulary.
+- Updated dependencies [3e5c0fc]
+- Updated dependencies [f3c4fef]
+- Updated dependencies [cb0a9d8]
+- Updated dependencies [21c6dda]
+- Updated dependencies [fe72b84]
+  - @ontrails/core@1.0.0-beta.32
+  - @ontrails/warden@1.0.0-beta.32
+
 ## 1.0.0-beta.31
 
 ### Patch Changes

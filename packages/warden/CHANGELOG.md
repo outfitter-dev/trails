@@ -1,5 +1,30 @@
 # @ontrails/warden
 
+## 1.0.0-beta.32
+
+### Patch Changes
+
+- 3e5c0fc: Export shared diagnostic base types from core and align governance diagnostic
+  severity vocabulary across adapter checks, permits, and Warden.
+- f3c4fef: Export a shared `escapeRegExp` helper from core and migrate first-party callers off local copies.
+- cb0a9d8: Export shared workspace package discovery helpers from core and migrate first-party discovery callers.
+- fe72b84: Fold remaining Regrade and Warden scan-target surfaces onto the shared path-scope vocabulary.
+- Updated dependencies [3e5c0fc]
+- Updated dependencies [f3c4fef]
+- Updated dependencies [cb0a9d8]
+- Updated dependencies [8db145e]
+- Updated dependencies [2b819f4]
+- Updated dependencies [21c6dda]
+- Updated dependencies [860ef32]
+- Updated dependencies [fe72b84]
+  - @ontrails/adapter-kit@1.0.0-beta.32
+  - @ontrails/core@1.0.0-beta.32
+  - @ontrails/permits@1.0.0-beta.32
+  - @ontrails/topographer@1.0.0-beta.32
+  - @ontrails/config@1.0.0-beta.32
+  - @ontrails/cli@1.0.0-beta.32
+  - @ontrails/store@1.0.0-beta.32
+
 ## 1.0.0-beta.31
 
 ### Patch Changes

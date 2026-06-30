@@ -1,5 +1,39 @@
 # trails
 
+## 1.0.0-beta.32
+
+### Patch Changes
+
+- f3c4fef: Export a shared `escapeRegExp` helper from core and migrate first-party callers off local copies.
+- cb0a9d8: Export shared workspace package discovery helpers from core and migrate first-party discovery callers.
+- 8db145e: Move activation report derivation into Topographer and keep the Trails app
+  consuming the owner-held activation facts through a compatibility re-export.
+- 8e2603c: Rename read-only topo helper exports from `build*` to `derive*`.
+- 7a3a25f: Rename version lifecycle result paths from `file` to `filePath`.
+- fe72b84: Fold remaining Regrade and Warden scan-target surfaces onto the shared path-scope vocabulary.
+- Updated dependencies [3e5c0fc]
+- Updated dependencies [f3c4fef]
+- Updated dependencies [cb0a9d8]
+- Updated dependencies [8db145e]
+- Updated dependencies [2b819f4]
+- Updated dependencies [21c6dda]
+- Updated dependencies [860ef32]
+- Updated dependencies [fe72b84]
+  - @ontrails/adapter-kit@1.0.0-beta.32
+  - @ontrails/core@1.0.0-beta.32
+  - @ontrails/permits@1.0.0-beta.32
+  - @ontrails/warden@1.0.0-beta.32
+  - @ontrails/regrade@1.0.0-beta.32
+  - @ontrails/topographer@1.0.0-beta.32
+  - @ontrails/config@1.0.0-beta.32
+  - @ontrails/cli@1.0.0-beta.32
+  - @ontrails/commander@1.0.0-beta.32
+  - @ontrails/http@1.0.0-beta.32
+  - @ontrails/mcp@1.0.0-beta.32
+  - @ontrails/observe@1.0.0-beta.32
+  - @ontrails/tracing@1.0.0-beta.32
+  - @ontrails/wayfinder@1.0.0-beta.32
+
 ## 1.0.0-beta.31
 
 ### Patch Changes
