@@ -1,5 +1,20 @@
 # @ontrails/wayfinder
 
+## 1.0.0-beta.32
+
+### Patch Changes
+
+- Updated dependencies [3e5c0fc]
+- Updated dependencies [f3c4fef]
+- Updated dependencies [cb0a9d8]
+- Updated dependencies [8db145e]
+- Updated dependencies [21c6dda]
+- Updated dependencies [fe72b84]
+  - @ontrails/adapter-kit@1.0.0-beta.32
+  - @ontrails/core@1.0.0-beta.32
+  - @ontrails/warden@1.0.0-beta.32
+  - @ontrails/topographer@1.0.0-beta.32
+
 ## 1.0.0-beta.31
 
 ### Patch Changes

@@ -1,5 +1,18 @@
 # @ontrails/permits
 
+## 1.0.0-beta.32
+
+### Patch Changes
+
+- 3e5c0fc: Export shared diagnostic base types from core and align governance diagnostic
+  severity vocabulary across adapter checks, permits, and Warden.
+- Updated dependencies [3e5c0fc]
+- Updated dependencies [f3c4fef]
+- Updated dependencies [cb0a9d8]
+- Updated dependencies [21c6dda]
+- Updated dependencies [fe72b84]
+  - @ontrails/core@1.0.0-beta.32
+
 ## 1.0.0-beta.31
 
 ### Patch Changes

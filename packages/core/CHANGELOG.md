@@ -1,5 +1,16 @@
 # @ontrails/core
 
+## 1.0.0-beta.32
+
+### Patch Changes
+
+- 3e5c0fc: Export shared diagnostic base types from core and align governance diagnostic
+  severity vocabulary across adapter checks, permits, and Warden.
+- f3c4fef: Export a shared `escapeRegExp` helper from core and migrate first-party callers off local copies.
+- cb0a9d8: Export shared workspace package discovery helpers from core and migrate first-party discovery callers.
+- 21c6dda: Rename topo and draft report types to `TopoDiagnostic` and `DraftDiagnostic`, with deprecated `TopoIssue` and `DraftFinding` aliases preserved for source compatibility.
+- fe72b84: Fold remaining Regrade and Warden scan-target surfaces onto the shared path-scope vocabulary.
+
 ## 1.0.0-beta.31
 
 ### Patch Changes
