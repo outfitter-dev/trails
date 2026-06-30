@@ -25,7 +25,7 @@ export interface DraftDependency {
   readonly toId: string;
 }
 
-export interface DraftFinding {
+export interface DraftDiagnostic {
   readonly id: string;
   readonly kind: 'contour' | 'resource' | 'signal' | 'trail' | 'unknown';
   readonly message: string;
@@ -34,11 +34,19 @@ export interface DraftFinding {
   readonly dependsOn?: string | undefined;
 }
 
+/**
+ * @deprecated Use {@link DraftDiagnostic}. Kept as a source-compatible alias
+ * during the v1 vocabulary cutover.
+ */
+export interface DraftFinding extends DraftDiagnostic {
+  readonly id: DraftDiagnostic['id'];
+}
+
 export interface DraftReport {
   readonly contaminatedIds: ReadonlySet<string>;
   readonly declaredDraftIds: ReadonlySet<string>;
   readonly dependencies: readonly DraftDependency[];
-  readonly findings: readonly DraftFinding[];
+  readonly findings: readonly DraftDiagnostic[];
 }
 
 interface DraftReason {
@@ -120,7 +128,7 @@ const nodeKind = (
   trails: ReadonlyMap<string, AnyTrail>,
   signals: ReadonlyMap<string, AnySignal>,
   resources: ReadonlyMap<string, AnyResource>
-): DraftFinding['kind'] => {
+): DraftDiagnostic['kind'] => {
   if (contours.has(id)) {
     return 'contour';
   }
@@ -136,7 +144,7 @@ const nodeKind = (
   return 'unknown';
 };
 
-const displayKind = (kind: DraftFinding['kind']): string =>
+const displayKind = (kind: DraftDiagnostic['kind']): string =>
   kind === 'unknown' ? 'Node' : kind[0]?.toUpperCase() + kind.slice(1);
 
 const draftIdsFromKeys = (keys: Iterable<string>): string[] =>
@@ -152,8 +160,8 @@ const collectDeclaredDraftIds = (topo: Topo): ReadonlySet<string> =>
 
 const findingForDraftId = (
   id: string,
-  kind: DraftFinding['kind']
-): DraftFinding => ({
+  kind: DraftDiagnostic['kind']
+): DraftDiagnostic => ({
   id,
   kind,
   message: `${displayKind(id ? kind : 'unknown')} "${id}" is draft and cannot appear in the established graph.`,
@@ -162,9 +170,9 @@ const findingForDraftId = (
 
 const findingForContamination = (
   id: string,
-  kind: DraftFinding['kind'],
+  kind: DraftDiagnostic['kind'],
   reason: DraftReason
-): DraftFinding => {
+): DraftDiagnostic => {
   const dependencyLabel = isDraftId(reason.dependsOn)
     ? `draft "${reason.dependsOn}"`
     : `draft-contaminated "${reason.dependsOn}"`;
@@ -244,7 +252,7 @@ const contaminationFindingForId = (
   trails: ReadonlyMap<string, AnyTrail>,
   signals: ReadonlyMap<string, AnySignal>,
   resources: ReadonlyMap<string, AnyResource>
-): DraftFinding | undefined => {
+): DraftDiagnostic | undefined => {
   if (declaredDraftIds.has(id)) {
     return undefined;
   }
@@ -269,7 +277,7 @@ const collectFindings = (
   trails: ReadonlyMap<string, AnyTrail>,
   signals: ReadonlyMap<string, AnySignal>,
   resources: ReadonlyMap<string, AnyResource>
-): DraftFinding[] => [
+): DraftDiagnostic[] => [
   ...[...declaredDraftIds]
     .toSorted()
     .map((id) =>

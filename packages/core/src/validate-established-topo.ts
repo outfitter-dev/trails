@@ -2,7 +2,7 @@ import { ValidationError } from './errors.js';
 import { Result } from './result.js';
 import type { Topo } from './topo.js';
 import { validateDraftFreeTopo } from './draft.js';
-import type { TopoIssue } from './validate-topo.js';
+import type { TopoDiagnostic } from './validate-topo.js';
 import { validateTopo } from './validate-topo.js';
 
 const PROJECTION_BLOCKING_RULES = new Set([
@@ -27,7 +27,7 @@ const keepProjectionBlockingIssues = (
   }
 
   const issues = (
-    result.error.context as { issues?: readonly TopoIssue[] } | undefined
+    result.error.context as { issues?: readonly TopoDiagnostic[] } | undefined
   )?.issues;
   const remainingIssues = issues?.filter((issue) =>
     PROJECTION_BLOCKING_RULES.has(issue.rule)

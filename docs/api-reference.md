@@ -89,7 +89,7 @@ validateOutput(schema, data)       // → Result<T, ValidationError>
 stripDefaultWrappers(schema), stripDefaultsFromShape(schema)
 validateTopo(topo)                 // → Result<void, ValidationError>; called by testAll()
 validateEstablishedTopo(topo)      // → Result<void, ValidationError>; rejects draft-contaminated outputs
-TopoIssue
+TopoDiagnostic
 
 // Schema derivation
 deriveFields(schema, overrides?)   // → Field[] (faithfully representable fields only)

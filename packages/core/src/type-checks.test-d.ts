@@ -23,7 +23,27 @@ import type { BasePermit } from './permits.js';
 import { Result } from './result.js';
 import type { ComposeFn, FireFn } from './types.js';
 import type { ComposeInput, TrailInput, TrailOutput } from './type-utils.js';
+import type { DraftFinding as DirectDraftFinding } from './draft.js';
+import type { TopoIssue as DirectTopoIssue } from './validate-topo.js';
+import type {
+  DraftDiagnostic as BarrelDraftDiagnostic,
+  DraftFinding as BarrelDraftFinding,
+  TopoDiagnostic as BarrelTopoDiagnostic,
+  TopoIssue as BarrelTopoIssue,
+} from './index.js';
 import { z } from 'zod';
+
+declare module './draft.js' {
+  interface DraftFinding {
+    readonly extensionField?: string;
+  }
+}
+
+declare module './validate-topo.js' {
+  interface TopoIssue {
+    readonly extensionField?: string;
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -36,8 +56,39 @@ type IsExact<A, B> =
       ? true
       : false
     : false;
+type IsAssignable<A, B> = A extends B ? true : false;
 
 declare const compose: ComposeFn;
+
+export type DraftFindingDeprecatedNameStaysCompatible = Assert<
+  IsAssignable<BarrelDraftFinding, BarrelDraftDiagnostic>
+>;
+export type DraftFindingCanonicalStaysAssignable = Assert<
+  IsAssignable<BarrelDraftDiagnostic, BarrelDraftFinding>
+>;
+export type TopoIssueDeprecatedNameStaysCompatible = Assert<
+  IsAssignable<BarrelTopoIssue, BarrelTopoDiagnostic>
+>;
+export type TopoIssueCanonicalStaysAssignable = Assert<
+  IsAssignable<BarrelTopoDiagnostic, BarrelTopoIssue>
+>;
+
+const augmentedDraftFinding: DirectDraftFinding = {
+  extensionField: 'ok',
+  id: 'draft.example',
+  kind: 'trail',
+  message: 'Draft example',
+  rule: 'draft-id',
+};
+void augmentedDraftFinding;
+
+const augmentedTopoIssue: DirectTopoIssue = {
+  extensionField: 'ok',
+  message: 'Topo example',
+  rule: 'example',
+  trailId: 'example',
+};
+void augmentedTopoIssue;
 
 const defaultedTrail = trail('typecheck.defaulted-input', {
   blaze: (input) => {

@@ -34,7 +34,7 @@ import { validateWebhookSource } from './webhook.js';
 // Issue shape
 // ---------------------------------------------------------------------------
 
-export interface TopoIssue {
+export interface TopoDiagnostic {
   readonly trailId: string;
   readonly rule: string;
   readonly message: string;
@@ -42,6 +42,14 @@ export interface TopoIssue {
   readonly schemaIssues?: readonly TopoSchemaIssue[];
   readonly sourceId?: string;
   readonly sourceKind?: string;
+}
+
+/**
+ * @deprecated Use {@link TopoDiagnostic}. Kept as a source-compatible alias
+ * during the v1 vocabulary cutover.
+ */
+export interface TopoIssue extends TopoDiagnostic {
+  readonly trailId: TopoDiagnostic['trailId'];
 }
 
 export type TopoSchemaIssue = ActivationSchemaIssue;
@@ -92,8 +100,8 @@ const buildComposeGraph = (
 /** Detect multi-node cycles in the trail composing graph via DFS. */
 const detectComposeCycles = (
   trails: ReadonlyMap<string, AnyTrail>
-): TopoIssue[] => {
-  const issues: TopoIssue[] = [];
+): TopoDiagnostic[] => {
+  const issues: TopoDiagnostic[] = [];
   const { color, graph } = buildComposeGraph(trails);
 
   const dfs = (node: string, path: string[]): void => {
@@ -128,8 +136,8 @@ const detectComposeCycles = (
 const checkComposes = (
   trails: ReadonlyMap<string, AnyTrail>,
   topo: Topo
-): TopoIssue[] => {
-  const issues: TopoIssue[] = [];
+): TopoDiagnostic[] => {
+  const issues: TopoDiagnostic[] = [];
   for (const [id, trail] of trails) {
     for (const composedId of trail.composes) {
       if (composedId === id) {
@@ -182,8 +190,8 @@ const checkComposes = (
 const checkResources = (
   trails: ReadonlyMap<string, AnyTrail>,
   topo: Topo
-): TopoIssue[] => {
-  const issues: TopoIssue[] = [];
+): TopoDiagnostic[] => {
+  const issues: TopoDiagnostic[] = [];
 
   for (const [id, trail] of trails) {
     for (const declaredResource of trail.resources) {
@@ -237,8 +245,8 @@ const checkOneExample = (
   inputSchema: { safeParse: (data: unknown) => { success: boolean } },
   hasOutput: boolean,
   label = `Example "${example.name}"`
-): TopoIssue[] => {
-  const issues: TopoIssue[] = [];
+): TopoDiagnostic[] => {
+  const issues: TopoDiagnostic[] = [];
   const result = validateInput(inputSchema as AnyTrail['input'], example.input);
   if (result.isErr() && example.error !== 'ValidationError') {
     issues.push({
@@ -257,7 +265,7 @@ const checkOneExample = (
   return issues;
 };
 
-const checkVersionExamples = (id: string, trail: AnyTrail): TopoIssue[] =>
+const checkVersionExamples = (id: string, trail: AnyTrail): TopoDiagnostic[] =>
   Object.entries(trail.versions ?? {}).flatMap(([version, entry]) => {
     if (isArchivedTrailVersionEntry(entry)) {
       return [];
@@ -274,8 +282,10 @@ const checkVersionExamples = (id: string, trail: AnyTrail): TopoIssue[] =>
     );
   });
 
-const checkExamples = (trails: ReadonlyMap<string, AnyTrail>): TopoIssue[] => {
-  const issues: TopoIssue[] = [];
+const checkExamples = (
+  trails: ReadonlyMap<string, AnyTrail>
+): TopoDiagnostic[] => {
+  const issues: TopoDiagnostic[] = [];
   for (const [id, trail] of trails) {
     if (trail.examples) {
       for (const example of trail.examples) {
@@ -292,8 +302,8 @@ const checkExamples = (trails: ReadonlyMap<string, AnyTrail>): TopoIssue[] => {
 const checkSignalOrigins = (
   signals: ReadonlyMap<string, AnySignal>,
   topo: Topo
-): TopoIssue[] => {
-  const issues: TopoIssue[] = [];
+): TopoDiagnostic[] => {
+  const issues: TopoDiagnostic[] = [];
   for (const [id, evt] of signals) {
     if (!evt.from) {
       continue;
@@ -314,8 +324,8 @@ const checkSignalOrigins = (
 const checkSignalReferences = (
   trails: ReadonlyMap<string, AnyTrail>,
   signals: ReadonlyMap<string, AnySignal>
-): TopoIssue[] => {
-  const issues: TopoIssue[] = [];
+): TopoDiagnostic[] => {
+  const issues: TopoDiagnostic[] = [];
 
   for (const [id, trail] of trails) {
     for (const signalId of trail.fires ?? []) {
@@ -344,8 +354,8 @@ const checkSignalReferences = (
 
 const checkActivationSources = (
   trails: ReadonlyMap<string, AnyTrail>
-): TopoIssue[] => {
-  const issues: TopoIssue[] = [];
+): TopoDiagnostic[] => {
+  const issues: TopoDiagnostic[] = [];
   const sourceDeclarations = new Map<
     string,
     {
@@ -440,7 +450,7 @@ const createSourceCompatibilityIssue = (
   trailId: string,
   activation: ActivationEntry,
   schemaIssues: readonly TopoSchemaIssue[]
-): TopoIssue => {
+): TopoDiagnostic => {
   const [firstIssue] = schemaIssues;
   const inputPath = firstIssue?.path ?? Object.freeze([]);
   return {
@@ -458,7 +468,7 @@ const checkSourcePayloadCompatibility = (
   trail: AnyTrail,
   activation: ActivationEntry,
   signals: ReadonlyMap<string, AnySignal>
-): TopoIssue | undefined => {
+): TopoDiagnostic | undefined => {
   if (
     !isKnownActivationSourceKind(activation.source.kind) ||
     isDraftId(activation.source.id)
@@ -483,8 +493,8 @@ const checkSourcePayloadCompatibility = (
 const checkActivationSourceInputCompatibility = (
   trails: ReadonlyMap<string, AnyTrail>,
   signals: ReadonlyMap<string, AnySignal>
-): TopoIssue[] => {
-  const issues: TopoIssue[] = [];
+): TopoDiagnostic[] => {
+  const issues: TopoDiagnostic[] = [];
 
   for (const trail of trails.values()) {
     for (const activation of trail.activationSources ?? []) {
@@ -501,8 +511,8 @@ const checkActivationSourceInputCompatibility = (
 const checkContourReferences = (
   contours: ReadonlyMap<string, AnyContour>,
   topo: Topo
-): TopoIssue[] => {
-  const issues: TopoIssue[] = [];
+): TopoDiagnostic[] => {
+  const issues: TopoDiagnostic[] = [];
 
   for (const [name, contourDef] of contours) {
     for (const ref of getContourReferences(contourDef)) {

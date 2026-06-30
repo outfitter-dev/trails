@@ -9,7 +9,7 @@ import { resource } from '../resource.js';
 import { Result } from '../result.js';
 import { trail } from '../trail.js';
 import { topo } from '../topo.js';
-import type { TopoIssue } from '../validate-topo.js';
+import type { TopoDiagnostic } from '../validate-topo.js';
 import { validateTopo } from '../validate-topo.js';
 import { webhook } from '../webhook.js';
 
@@ -62,12 +62,13 @@ const mockSignal = (id: string, from?: readonly string[]) => ({
 });
 
 /** Extract issues from a failed validateTopo result. */
-const extractIssues = (result: Result<void, Error>): TopoIssue[] => {
+const extractIssues = (result: Result<void, Error>): TopoDiagnostic[] => {
   if (result.isOk()) {
     return [];
   }
-  const ctx = (result.error as { context?: { issues?: TopoIssue[] } }).context;
-  return (ctx?.issues ?? []) as TopoIssue[];
+  const ctx = (result.error as { context?: { issues?: TopoDiagnostic[] } })
+    .context;
+  return (ctx?.issues ?? []) as TopoDiagnostic[];
 };
 
 // ---------------------------------------------------------------------------

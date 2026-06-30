@@ -441,13 +441,14 @@ export {
 export type {
   DraftDependency,
   DraftDependencyKind,
+  DraftDiagnostic,
   DraftFinding,
   DraftReport,
 } from './draft.js';
 
 // Topo validation
 export { validateTopo } from './validate-topo.js';
-export type { TopoIssue } from './validate-topo.js';
+export type { TopoDiagnostic, TopoIssue } from './validate-topo.js';
 export { validateEstablishedTopo } from './validate-established-topo.js';
 
 // Layer

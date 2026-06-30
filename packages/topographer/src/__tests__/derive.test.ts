@@ -13,7 +13,7 @@ import {
   trail,
   webhook,
 } from '@ontrails/core';
-import type { Layer, Topo, TopoIssue } from '@ontrails/core';
+import type { Layer, Topo, TopoDiagnostic } from '@ontrails/core';
 import { z } from 'zod';
 
 import { deriveTopoGraph } from '../derive.js';
@@ -78,13 +78,13 @@ const expectSchemaProperties = (
   );
 };
 
-const expectTopoGraphTopoIssue = (tp: Topo, rule: string) => {
+const expectTopoGraphTopoDiagnostic = (tp: Topo, rule: string) => {
   try {
     deriveTopoGraph(tp);
   } catch (error) {
     expect(error).toBeInstanceOf(ValidationError);
     const issues = (error as ValidationError).context?.['issues'] as
-      | readonly TopoIssue[]
+      | readonly TopoDiagnostic[]
       | undefined;
     expect(issues).toContainEqual(expect.objectContaining({ rule }));
     return;
@@ -1297,7 +1297,10 @@ describe('deriveTopoGraph', () => {
         input: z.object({}),
       });
 
-      expectTopoGraphTopoIssue(topoFrom({ producer }), 'signal-fire-exists');
+      expectTopoGraphTopoDiagnostic(
+        topoFrom({ producer }),
+        'signal-fire-exists'
+      );
     });
 
     test('rejects consumer references to missing signals', () => {
@@ -1307,7 +1310,7 @@ describe('deriveTopoGraph', () => {
         on: ['entity.missing'],
       });
 
-      expectTopoGraphTopoIssue(topoFrom({ consumer }), 'signal-on-exists');
+      expectTopoGraphTopoDiagnostic(topoFrom({ consumer }), 'signal-on-exists');
     });
   });
 });
