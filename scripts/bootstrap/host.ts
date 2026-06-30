@@ -94,7 +94,7 @@ export const detectHost = (
   const remote =
     explicitRemote ??
     (env['CLAUDE_CODE_REMOTE'] === 'true' ||
-      env['CURSOR_AGENT'] === '1' ||
+      provider === 'cursor' ||
       env['GITHUB_ACTIONS'] === 'true' ||
       env['CI'] === 'true');
   const explicitPolicy = env['TRAILS_AGENT_BUN_POLICY'] as

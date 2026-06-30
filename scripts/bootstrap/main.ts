@@ -98,7 +98,7 @@ const runMain = async (): Promise<void> => {
           TRAILS_AGENT_ENV_PROVIDER: parsed.provider,
         };
   const host = detectHost(env, config);
-  const repoRoot = resolveRepoRoot(process.cwd(), env, config, parsed.provider);
+  const repoRoot = resolveRepoRoot(process.cwd(), env, config, host.provider);
 
   switch (parsed.command) {
     case 'repo': {

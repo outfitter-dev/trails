@@ -213,6 +213,29 @@ describe('bootstrap repo policy', () => {
     }
   });
 
+  test('env-detected Cursor provider resolves from cwd before generic roots', () => {
+    const config = loadBootstrapConfig();
+    const cursorRoot = makeRepoRoot();
+    const genericRoot = makeRepoRoot();
+    const env = {
+      CURSOR_AGENT: '1',
+      GITHUB_WORKSPACE: genericRoot,
+    } as NodeJS.ProcessEnv;
+    try {
+      const host = detectHost(env, config);
+      expect(host).toMatchObject({
+        provider: 'cursor',
+        remote: true,
+      });
+      expect(resolveRepoRoot(cursorRoot, env, config, host.provider)).toBe(
+        cursorRoot
+      );
+    } finally {
+      rmSync(cursorRoot, { force: true, recursive: true });
+      rmSync(genericRoot, { force: true, recursive: true });
+    }
+  });
+
   test('root resolution accepts CLAUDECODE when it carries a repo path', () => {
     const config = loadBootstrapConfig();
     const claudeRoot = makeRepoRoot();
@@ -250,6 +273,13 @@ describe('bootstrap repo policy', () => {
     const config = loadBootstrapConfig();
     expect(
       detectHost({ CURSOR_AGENT: '1' } as NodeJS.ProcessEnv, config)
+    ).toMatchObject({
+      bunPolicy: 'strict',
+      provider: 'cursor',
+      remote: true,
+    });
+    expect(
+      detectHost({ CURSOR_AGENT: 'true' } as NodeJS.ProcessEnv, config)
     ).toMatchObject({
       bunPolicy: 'strict',
       provider: 'cursor',
