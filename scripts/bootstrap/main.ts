@@ -9,7 +9,7 @@ import { runTeardown } from './sweep.js';
 export interface ParsedBootstrapArgs {
   readonly command: BootstrapCommand;
   readonly force: boolean;
-  readonly provider: 'claude' | 'codex' | undefined;
+  readonly provider: 'claude' | 'codex' | 'cursor' | undefined;
   readonly update: boolean;
 }
 
@@ -17,6 +17,7 @@ const COMMANDS: ReadonlySet<string> = new Set([
   'agent',
   'claude',
   'codex',
+  'cursor',
   'doctor',
   'repo',
   'sweep',
@@ -55,19 +56,23 @@ export const parseBootstrapArgs = (
   return {
     command: command as BootstrapCommand,
     force,
-    provider: command === 'claude' || command === 'codex' ? command : undefined,
+    provider:
+      command === 'claude' || command === 'codex' || command === 'cursor'
+        ? command
+        : undefined,
     update,
   };
 };
 
 export const printUsage = (): void => {
-  console.error(`Usage: ./scripts/bootstrap.sh [repo|agent|codex|claude|doctor|teardown] [--force] [--update]
+  console.error(`Usage: ./scripts/bootstrap.sh [repo|agent|codex|claude|cursor|doctor|teardown] [--force] [--update]
 
 Commands:
   repo     Make this checkout runnable (default)
   agent    Repo bootstrap plus agent lifecycle diagnostics
   codex    Codex agent bootstrap with provider-specific root detection
   claude   Claude agent bootstrap with provider-specific root detection
+  cursor   Cursor agent bootstrap with provider-specific root detection
   doctor   Diagnostics only; no install, cleanup, or mutation
   teardown Conservative cleanup of configured runtime artifacts only
 
@@ -117,7 +122,8 @@ const runMain = async (): Promise<void> => {
       return;
     }
     case 'codex':
-    case 'claude': {
+    case 'claude':
+    case 'cursor': {
       await runAgentBootstrap({
         config,
         force: true,

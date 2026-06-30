@@ -3,7 +3,13 @@ import { resolve } from 'node:path';
 import type { BootstrapConfig, BunPolicy } from './config.js';
 import { DEFAULT_REPO_ROOT, isRepoRoot, run } from './shared.js';
 
-export type HostProvider = 'claude' | 'codex' | 'devin' | 'factory' | 'generic';
+export type HostProvider =
+  | 'claude'
+  | 'codex'
+  | 'cursor'
+  | 'devin'
+  | 'factory'
+  | 'generic';
 
 export interface HostInfo {
   readonly provider: HostProvider;
@@ -34,6 +40,9 @@ const detectProvider = (env: NodeJS.ProcessEnv): HostProvider => {
   ) {
     return 'claude';
   }
+  if (env['CURSOR_AGENT'] !== undefined) {
+    return 'cursor';
+  }
   if (env['FACTORY_PROJECT_DIR'] !== undefined) {
     return 'factory';
   }
@@ -52,6 +61,11 @@ const providerRootEnvVars = (
     }
     case 'claude': {
       return ['CLAUDE_PROJECT_DIR', 'CLAUDECODE'];
+    }
+    case 'cursor': {
+      // Cursor cloud agents run from the workspace checkout itself; the repo
+      // root resolves from cwd / git root rather than a dedicated env var.
+      return [];
     }
     case 'factory': {
       return ['FACTORY_PROJECT_DIR'];
@@ -80,6 +94,7 @@ export const detectHost = (
   const remote =
     explicitRemote ??
     (env['CLAUDE_CODE_REMOTE'] === 'true' ||
+      env['CURSOR_AGENT'] === '1' ||
       env['GITHUB_ACTIONS'] === 'true' ||
       env['CI'] === 'true');
   const explicitPolicy = env['TRAILS_AGENT_BUN_POLICY'] as
