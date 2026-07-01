@@ -131,10 +131,25 @@ describe('trails regrade', () => {
         kind: 'vocabulary',
         to: 'trailhead',
       });
+      expect(result.value.run?.preserveInventory).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            paths: expect.arrayContaining(['**/*.ts']),
+            pattern: expect.stringContaining('facetId'),
+            reason: 'current-live-mcp-facet-field',
+            source: 'derived-live-api',
+          }),
+          expect.objectContaining({
+            pattern: expect.stringContaining('wayfind\\.facets'),
+            reason: 'current-live-trail-id',
+            source: 'derived-live-api',
+          }),
+        ])
+      );
       expect(result.value.run?.ledger.forms).toEqual({
         facet: 'modified',
-        facetId: 'deferred',
-        facets: 'modified',
+        facetId: 'skipped',
+        facets: 'skipped',
       });
       expect(
         result.value.run?.ledger.occurrences.map((occurrence) => ({
@@ -143,60 +158,59 @@ describe('trails regrade', () => {
           replacement: occurrence.replacement,
           verdict: occurrence.verdict,
         }))
-      ).toEqual([
-        {
-          disposition: 'in-family-modified',
-          form: 'facet',
-          replacement: 'trailhead',
-          verdict: 'modified',
-        },
-        {
-          disposition: 'in-family-modified',
-          form: 'facet',
-          replacement: 'trailhead',
-          verdict: 'modified',
-        },
-        {
-          disposition: 'in-family-modified',
-          form: 'facet',
-          replacement: 'trailhead',
-          verdict: 'modified',
-        },
-        {
-          disposition: 'in-family-modified',
-          form: 'facets',
-          replacement: 'trailheads',
-          verdict: 'modified',
-        },
-        {
-          disposition: 'in-family-unresolved',
-          form: 'facetId',
-          replacement: undefined,
-          verdict: 'deferred',
-        },
-      ]);
+      ).toEqual(
+        expect.arrayContaining([
+          {
+            disposition: 'in-family-modified',
+            form: 'facet',
+            replacement: 'trailhead',
+            verdict: 'modified',
+          },
+          {
+            disposition: 'in-family-modified',
+            form: 'facet',
+            replacement: 'trailhead',
+            verdict: 'modified',
+          },
+          {
+            disposition: 'in-family-modified',
+            form: 'facet',
+            replacement: 'trailhead',
+            verdict: 'modified',
+          },
+          {
+            disposition: 'preserve-current-live-api',
+            form: 'facetId',
+            replacement: undefined,
+            verdict: 'skipped',
+          },
+          {
+            disposition: 'preserve-current-live-api',
+            form: 'facets',
+            replacement: undefined,
+            verdict: 'skipped',
+          },
+        ])
+      );
+      expect(result.value.run?.ledger.occurrences).toHaveLength(5);
       expect(result.value.run?.report).toMatchObject({
         applied: 0,
-        deferred: 1,
+        deferred: 0,
         dispositions: {
-          'in-family-modified': 4,
-          'in-family-unresolved': 1,
+          'in-family-modified': 3,
+          'preserve-current-live-api': 2,
         },
         gate: {
-          reasons: [
-            'safe-modifications-not-yet-applied',
-            'deferred-forms-or-occurrences',
-          ],
-          remaining: 5,
+          reasons: ['safe-modifications-not-yet-applied'],
+          remaining: 3,
           remainingByDisposition: {
-            'in-family-modified': 4,
-            'in-family-unresolved': 1,
+            'in-family-modified': 3,
           },
           status: 'open',
         },
-        modified: 4,
-        open: 5,
-        skipped: 0,
+        modified: 3,
+        open: 3,
+        skipped: 2,
       });
       expect(readFileSync(join(dir, 'src', 'surface.ts'), 'utf8')).toContain(
         'facet'
@@ -236,12 +250,13 @@ describe('trails regrade', () => {
         throw result.error;
       }
       expect(result.value.apply).toMatchObject({
-        applied: 5,
+        applied: 4,
         filesChanged: 2,
         review: 1,
+        skipped: 1,
       });
       expect(result.value.run?.report).toMatchObject({
-        applied: 5,
+        applied: 4,
         deferred: 1,
         gate: {
           reasons: ['deferred-forms-or-occurrences'],
@@ -250,9 +265,10 @@ describe('trails regrade', () => {
         },
         modified: 0,
         open: 1,
+        skipped: 1,
       });
       expect(readFileSync(join(dir, 'docs', 'surface.md'), 'utf8')).toBe(
-        'Trailhead docs mention trailhead and trailheads.\n'
+        'Facet docs mention trailhead and trailheads.\n'
       );
       expect(readFileSync(join(dir, 'src', 'surface.ts'), 'utf8')).toContain(
         'facetId'
@@ -294,6 +310,64 @@ describe('trails regrade', () => {
       expect(parsed.run?.report?.open).toBe(2);
       expect(readFileSync(join(dir, 'src', 'surface.ts'), 'utf8')).toContain(
         'facet'
+      );
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('CLI regrade uses governed registry review forms', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(
+        dir,
+        'src/blaze.ts',
+        'export const blaze = "safe";\nexport const blazing = "review";\n'
+      );
+
+      const result = runRawCli([
+        'regrade',
+        'blaze',
+        'implementation',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+
+      expect(result.exitCode).toBe(0);
+      const parsed = JSON.parse(result.stdout) as {
+        readonly run?: {
+          readonly ledger?: {
+            readonly forms?: Record<string, string>;
+            readonly occurrences?: readonly {
+              readonly form?: string;
+              readonly verdict?: string;
+            }[];
+          };
+          readonly plan?: {
+            readonly deferForms?: readonly string[];
+            readonly id?: string;
+          };
+          readonly report?: {
+            readonly gate?: { readonly reasons?: readonly string[] };
+          };
+        };
+      };
+      expect(parsed.run?.plan).toMatchObject({
+        deferForms: expect.arrayContaining(['blazing']),
+        id: 'v1-blaze-implementation',
+      });
+      expect(parsed.run?.ledger?.forms).toMatchObject({
+        blaze: 'modified',
+        blazing: 'deferred',
+      });
+      expect(parsed.run?.ledger?.occurrences).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ form: 'blazing', verdict: 'deferred' }),
+        ])
+      );
+      expect(parsed.run?.report?.gate?.reasons).toContain(
+        'deferred-forms-or-occurrences'
       );
     } finally {
       rmSync(dir, { force: true, recursive: true });
@@ -431,6 +505,12 @@ describe('trails regrade', () => {
               readonly reason?: string;
             }[];
           };
+          readonly preserveInventory?: readonly {
+            readonly evidence?: readonly string[];
+            readonly pattern?: string;
+            readonly reason?: string;
+            readonly source?: string;
+          }[];
           readonly report?: {
             readonly deferred?: number;
             readonly dispositions?: Readonly<Record<string, number>>;
@@ -447,6 +527,16 @@ describe('trails regrade', () => {
           reason: 'live-api-identifier',
         },
       ]);
+      expect(parsed.run?.preserveInventory).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            paths: expect.arrayContaining(['**/*.ts']),
+            pattern: expect.stringContaining('facetId'),
+            reason: 'current-live-mcp-facet-field',
+            source: 'derived-live-api',
+          }),
+        ])
+      );
       expect(
         parsed.run?.ledger?.occurrences?.map((occurrence) => ({
           disposition: occurrence.disposition,
@@ -478,6 +568,189 @@ describe('trails regrade', () => {
           'preserve-current-live-api': 1,
         },
         modified: 0,
+        skipped: 1,
+      });
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('derived live API preserves match the occurrence span, not just the line', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(
+        dir,
+        'src/surface.ts',
+        [
+          "ctx.compose('wayfind.facets', { facets });",
+          'export type McpSurfaceFacetMap = Record<string, unknown>;',
+          'export interface Options {',
+          '  readonly facets?: McpSurfaceFacetMap | undefined;',
+          '}',
+          '',
+        ].join('\n')
+      );
+
+      const result = runRawCli([
+        'regrade',
+        '--root-dir',
+        dir,
+        'facet',
+        'trailhead',
+        '--apply',
+        '--json',
+      ]);
+
+      expect(result.exitCode).toBe(0);
+      const source = readFileSync(join(dir, 'src', 'surface.ts'), 'utf8');
+      expect(source).toContain(
+        "ctx.compose('wayfind.facets', { trailheads });"
+      );
+      expect(source).toContain(
+        'readonly facets?: McpSurfaceFacetMap | undefined;'
+      );
+
+      const parsed = JSON.parse(result.stdout) as {
+        readonly run?: {
+          readonly ledger?: {
+            readonly occurrences?: readonly {
+              readonly context: string;
+              readonly form: string;
+              readonly reason: string;
+              readonly verdict: string;
+            }[];
+          };
+        };
+      };
+      const liveApiOccurrences = parsed.run?.ledger?.occurrences
+        ?.filter(
+          (occurrence) =>
+            occurrence.form === 'facets' ||
+            occurrence.form === 'McpSurfaceFacetMap'
+        )
+        .map((occurrence) => ({
+          context: occurrence.context,
+          form: occurrence.form,
+          reason: occurrence.reason,
+          verdict: occurrence.verdict,
+        }));
+      expect(liveApiOccurrences).toEqual(
+        expect.arrayContaining([
+          {
+            context: "ctx.compose('wayfind.facets', { trailheads });",
+            form: 'facets',
+            reason: 'current-live-trail-id',
+            verdict: 'skipped',
+          },
+          {
+            context:
+              'export type McpSurfaceFacetMap = Record<string, unknown>;',
+            form: 'McpSurfaceFacetMap',
+            reason: 'current-live-mcp-facet-type',
+            verdict: 'skipped',
+          },
+          {
+            context: 'readonly facets?: McpSurfaceFacetMap | undefined;',
+            form: 'facets',
+            reason: 'current-live-mcp-facets-property',
+            verdict: 'skipped',
+          },
+          {
+            context: 'readonly facets?: McpSurfaceFacetMap | undefined;',
+            form: 'McpSurfaceFacetMap',
+            reason: 'current-live-mcp-facet-type',
+            verdict: 'skipped',
+          },
+        ])
+      );
+      expect(
+        liveApiOccurrences?.every(
+          (occurrence) => occurrence.verdict === 'skipped'
+        )
+      ).toBe(true);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('CLI forwards form-scoped preserve rules from input json', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(dir, 'src/api.ts', 'export const legacyId = legacy;\n');
+
+      const result = runRawCli([
+        'regrade',
+        '--root-dir',
+        dir,
+        '--input-json',
+        JSON.stringify({
+          from: 'legacy',
+          include: ['src/**'],
+          preserve: [
+            {
+              disposition: 'preserve-current-live-api',
+              forms: ['legacyId'],
+              pattern: String.raw`\blegacyId\b\s*=`,
+              reason: 'current-live-api-field',
+            },
+          ],
+          to: 'current',
+        }),
+        '--json',
+      ]);
+
+      expect(result.exitCode).toBe(0);
+      const parsed = JSON.parse(result.stdout) as {
+        readonly run?: {
+          readonly ledger?: {
+            readonly occurrences?: readonly {
+              readonly disposition: string;
+              readonly form: string;
+              readonly reason: string;
+              readonly verdict: string;
+            }[];
+          };
+          readonly plan?: {
+            readonly preserve?: readonly {
+              readonly forms?: readonly string[];
+              readonly pattern?: string;
+            }[];
+          };
+          readonly report?: {
+            readonly modified?: number;
+            readonly skipped?: number;
+          };
+        };
+      };
+      expect(parsed.run?.plan?.preserve?.[0]).toMatchObject({
+        forms: ['legacyId'],
+        pattern: String.raw`\blegacyId\b\s*=`,
+      });
+      expect(
+        parsed.run?.ledger?.occurrences?.map((occurrence) => ({
+          disposition: occurrence.disposition,
+          form: occurrence.form,
+          reason: occurrence.reason,
+          verdict: occurrence.verdict,
+        }))
+      ).toEqual(
+        expect.arrayContaining([
+          {
+            disposition: 'preserve-current-live-api',
+            form: 'legacyId',
+            reason: 'current-live-api-field',
+            verdict: 'skipped',
+          },
+          {
+            disposition: 'in-family-modified',
+            form: 'legacy',
+            reason: 'captured-form',
+            verdict: 'modified',
+          },
+        ])
+      );
+      expect(parsed.run?.report).toMatchObject({
+        modified: 1,
         skipped: 1,
       });
     } finally {

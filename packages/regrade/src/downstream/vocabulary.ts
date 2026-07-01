@@ -38,9 +38,15 @@ const vocabularyDispositions = new Set<string>(vocabularyDispositionValues);
 
 export interface VocabularyPreserveRule {
   readonly disposition?: VocabularyDisposition;
+  readonly forms?: readonly string[];
   readonly pattern: string;
   readonly reason?: string;
   readonly paths?: readonly string[];
+}
+
+export interface VocabularyPreserveInventoryEntry extends VocabularyPreserveRule {
+  readonly evidence: readonly string[];
+  readonly source: 'derived-live-api';
 }
 
 export interface VocabularyRegradeScope {
@@ -113,6 +119,7 @@ export interface VocabularyRunReport {
 export interface VocabularyRegradeRun {
   readonly ledger: VocabularyRunLedger;
   readonly plan: VocabularyRegradePlan;
+  readonly preserveInventory?: readonly VocabularyPreserveInventoryEntry[];
   readonly report: VocabularyRunReport;
 }
 
@@ -126,10 +133,12 @@ interface SourceOccurrence extends VocabularyOccurrence {
   readonly absolutePath: string;
 }
 
-type SourceOccurrenceDraft = Omit<
+interface SourceOccurrenceDraft extends Omit<
   SourceOccurrence,
   'disposition' | 'reason' | 'verdict'
->;
+> {
+  readonly contextColumn: number;
+}
 
 interface VocabularyEvaluation {
   readonly entries: readonly RegradeReportEntry[];
@@ -230,15 +239,20 @@ const lineColumnForOffset = (
   return { column, line };
 };
 
-const contextForOffset = (
+const contextDetailsForOffset = (
   source: string,
   start: number,
   end: number
-): string => {
+): { readonly context: string; readonly contextColumn: number } => {
   const lineStart = source.lastIndexOf('\n', start - 1) + 1;
   const nextLine = source.indexOf('\n', end);
   const lineEnd = nextLine === -1 ? source.length : nextLine;
-  return source.slice(lineStart, lineEnd).trim();
+  const rawLine = source.slice(lineStart, lineEnd);
+  const leadingTrimmed = rawLine.length - rawLine.trimStart().length;
+  return {
+    context: rawLine.trim(),
+    contextColumn: start - lineStart - leadingTrimmed + 1,
+  };
 };
 
 const isMarkdownPath = (path: string): boolean =>
@@ -456,8 +470,68 @@ const validateVocabularyPlan = (
         )
       );
     }
+    if (rule.forms?.some((form) => form.trim().length === 0) === true) {
+      return Result.err(
+        new ValidationError(
+          'Vocabulary Regrade plan preserve forms cannot be empty.'
+        )
+      );
+    }
   }
   return Result.ok();
+};
+
+const validatePreserveInventory = (
+  inventory: readonly VocabularyPreserveInventoryEntry[] | undefined
+): Result<void, ValidationError> => {
+  for (const entry of inventory ?? []) {
+    if (entry.pattern.trim().length === 0) {
+      return Result.err(
+        new ValidationError(
+          'Vocabulary Regrade preserve inventory patterns cannot be empty.'
+        )
+      );
+    }
+    if (entry.forms?.some((form) => form.trim().length === 0) === true) {
+      return Result.err(
+        new ValidationError(
+          'Vocabulary Regrade preserve inventory forms cannot be empty.'
+        )
+      );
+    }
+    if (
+      entry.disposition !== undefined &&
+      !vocabularyDispositions.has(entry.disposition)
+    ) {
+      return Result.err(
+        new ValidationError(
+          `Vocabulary Regrade preserve inventory disposition "${entry.disposition}" is not supported.`
+        )
+      );
+    }
+    if (entry.evidence.length === 0) {
+      return Result.err(
+        new ValidationError(
+          'Vocabulary Regrade preserve inventory entries need evidence.'
+        )
+      );
+    }
+  }
+  return Result.ok();
+};
+
+const effectivePlanForRun = (
+  plan: VocabularyRegradePlan,
+  preserveInventory: readonly VocabularyPreserveInventoryEntry[] | undefined
+): VocabularyRegradePlan => {
+  if (preserveInventory === undefined || preserveInventory.length === 0) {
+    return plan;
+  }
+
+  return {
+    ...plan,
+    preserve: [...(plan.preserve ?? []), ...preserveInventory],
+  };
 };
 
 const vocabularyScanFlags = (plan: VocabularyRegradePlan): string =>
@@ -480,21 +554,59 @@ const compilePreservePattern = (pattern: string): RegExp => {
   }
 };
 
+const globalPreservePattern = (pattern: RegExp): RegExp => {
+  const flags = pattern.flags.includes('g')
+    ? pattern.flags
+    : `${pattern.flags}g`;
+  return new RegExp(pattern.source, flags);
+};
+
+const patternOverlapsOccurrence = (
+  pattern: RegExp,
+  occurrence: SourceOccurrenceDraft
+): boolean => {
+  const occurrenceStart = occurrence.contextColumn - 1;
+  const occurrenceEnd = occurrenceStart + occurrence.form.length;
+
+  for (const match of occurrence.context.matchAll(
+    globalPreservePattern(pattern)
+  )) {
+    const matchStart = match.index ?? 0;
+    const matchEnd = matchStart + match[0].length;
+    if (
+      matchStart !== matchEnd &&
+      occurrenceStart < matchEnd &&
+      matchStart < occurrenceEnd
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+};
+
 const preserveRuleForOccurrence = (
   occurrence: SourceOccurrenceDraft,
   plan: VocabularyRegradePlan
 ): VocabularyPreserveRule | undefined =>
   plan.preserve?.find((rule) => {
+    if (rule.forms !== undefined && !rule.forms.includes(occurrence.form)) {
+      return false;
+    }
     if (
       rule.paths !== undefined &&
       !matchesAnyPathGlob(occurrence.path, rule.paths)
     ) {
       return false;
     }
-    return (
-      compilePreservePattern(rule.pattern).test(occurrence.context) ||
-      compilePreservePattern(rule.pattern).test(occurrence.form)
-    );
+    const pattern = compilePreservePattern(rule.pattern);
+    if (
+      pattern.test(occurrence.form) ||
+      patternOverlapsOccurrence(pattern, occurrence)
+    ) {
+      return true;
+    }
+    return rule.forms === undefined && pattern.test(occurrence.context);
   });
 
 const occurrenceOverlaps = (
@@ -513,10 +625,12 @@ const occurrenceDraftForSpan = (
   form = file.source.slice(start, end)
 ): SourceOccurrenceDraft => {
   const { column, line } = lineColumnForOffset(file.source, start);
+  const context = contextDetailsForOffset(file.source, start, end);
   return {
     absolutePath: file.absolutePath,
     column,
-    context: contextForOffset(file.source, start, end),
+    context: context.context,
+    contextColumn: context.contextColumn,
     end,
     form,
     line,
@@ -539,17 +653,24 @@ const deferredOccurrenceFromDraft = (
   );
   const verdict = preserveRule === undefined ? 'deferred' : 'skipped';
   return {
-    ...baseOccurrence,
+    absolutePath: baseOccurrence.absolutePath,
+    column: baseOccurrence.column,
+    context: baseOccurrence.context,
     disposition: vocabularyOccurrenceDisposition(
       verdict,
       preserveRule,
       markdownCodeContext
     ),
+    end: baseOccurrence.end,
+    form: baseOccurrence.form,
+    line: baseOccurrence.line,
+    path: baseOccurrence.path,
     reason: vocabularyOccurrenceReason(
       preserveRule,
       markdownCodeContext,
       reason
     ),
+    start: baseOccurrence.start,
     verdict,
   };
 };
@@ -608,10 +729,12 @@ const occurrencesForFile = (
         continue;
       }
       const { column, line } = lineColumnForOffset(file.source, start);
+      const context = contextDetailsForOffset(file.source, start, end);
       const baseOccurrence = {
         absolutePath: file.absolutePath,
         column,
-        context: contextForOffset(file.source, start, end),
+        context: context.context,
+        contextColumn: context.contextColumn,
         end,
         form: match[0],
         line,
@@ -625,12 +748,18 @@ const occurrencesForFile = (
         markdownCodeContext
       );
       candidates.push({
-        ...baseOccurrence,
+        absolutePath: baseOccurrence.absolutePath,
+        column: baseOccurrence.column,
+        context: baseOccurrence.context,
         disposition: vocabularyOccurrenceDisposition(
           verdict,
           preserveRule,
           markdownCodeContext
         ),
+        end: baseOccurrence.end,
+        form: baseOccurrence.form,
+        line: baseOccurrence.line,
+        path: baseOccurrence.path,
         reason: vocabularyOccurrenceReason(
           preserveRule,
           markdownCodeContext,
@@ -639,6 +768,7 @@ const occurrencesForFile = (
         ...(preserveRule === undefined && !markdownCodeContext
           ? { replacement: preserveCase(match[0], replacement) }
           : {}),
+        start: baseOccurrence.start,
         verdict,
       });
     }
@@ -825,28 +955,31 @@ const applyOccurrenceRewrites = (
 
 const buildVocabularyEvaluation = (params: {
   readonly apply?: boolean;
+  readonly effectivePlan?: VocabularyRegradePlan | undefined;
   readonly files: readonly SourceFile[];
   readonly plan: VocabularyRegradePlan;
+  readonly preserveInventory?: readonly VocabularyPreserveInventoryEntry[];
   readonly root: string;
   readonly skipped: readonly SkippedSource[];
 }): VocabularyEvaluation => {
-  const targetForms = targetFormsForPlan(params.plan);
+  const effectivePlan = params.effectivePlan ?? params.plan;
+  const targetForms = targetFormsForPlan(effectivePlan);
   const scopedFiles = params.files.filter((file) =>
-    includedByScope(file.path, params.plan.scope)
+    includedByScope(file.path, effectivePlan.scope)
   );
   const scopeSkipped: SkippedSource[] = params.files
-    .filter((file) => !includedByScope(file.path, params.plan.scope))
+    .filter((file) => !includedByScope(file.path, effectivePlan.scope))
     .map((file) => ({ path: file.path, reason: 'excluded-by-regrade-scope' }));
   const occurrences = scopedFiles.flatMap((file) => {
     const deferredOccurrences = deferredOccurrencesForFile(
       file,
-      params.plan,
+      effectivePlan,
       targetForms
     );
     return [
       ...occurrencesForFile(
         file,
-        params.plan,
+        effectivePlan,
         targetForms,
         deferredOccurrences
       ),
@@ -939,6 +1072,10 @@ const buildVocabularyEvaluation = (params: {
         ),
       },
       plan: params.plan,
+      ...(params.preserveInventory === undefined ||
+      params.preserveInventory.length === 0
+        ? {}
+        : { preserveInventory: params.preserveInventory }),
       report: {
         applied: params.apply === true ? modifiedOccurrences.length : 0,
         deferred: deferredOccurrences.length,
@@ -1041,30 +1178,12 @@ const applyVocabularyEvaluation = (
   });
 };
 
-export const runVocabularyRegrade = (params: {
-  readonly apply?: boolean;
-  readonly includeEntries?: 'actionable' | 'all';
-  readonly plan: VocabularyRegradePlan;
-  readonly root: string;
-}): Result<RegradeReport | null, InternalError | ValidationError> => {
-  const planValidation = validateVocabularyPlan(params.plan);
-  if (planValidation.isErr()) {
-    return planValidation;
-  }
-
-  const collected = collectDownstreamSources(params.root, {
-    extensions: params.plan.scope?.extensions ?? VOCABULARY_SOURCE_EXTENSIONS,
-    ...(params.plan.scope?.exclude === undefined
-      ? {}
-      : { exclude: params.plan.scope.exclude }),
-    ...(params.plan.scope?.ignoredDirectories === undefined
-      ? {}
-      : { ignoredDirectories: params.plan.scope.ignoredDirectories }),
-  } satisfies DownstreamCollectionOptions);
-  if (collected === null) {
-    return Result.ok(null);
-  }
-
+const readVocabularySourceFiles = (
+  collected: NonNullable<ReturnType<typeof collectDownstreamSources>>
+): {
+  readonly files: readonly SourceFile[];
+  readonly skipped: readonly SkippedSource[];
+} => {
   const files: SourceFile[] = [];
   const skipped: SkippedSource[] = [...collected.skipped];
   for (const file of collected.files) {
@@ -1078,19 +1197,87 @@ export const runVocabularyRegrade = (params: {
       skipped.push({ path: file.path, reason: 'unreadable-file' });
     }
   }
+  return { files, skipped };
+};
 
-  const dryRunEvaluation = buildVocabularyEvaluation({
+const buildRunVocabularyEvaluation = (params: {
+  readonly apply: boolean;
+  readonly effectivePlan: VocabularyRegradePlan;
+  readonly files: readonly SourceFile[];
+  readonly plan: VocabularyRegradePlan;
+  readonly preserveInventory:
+    | readonly VocabularyPreserveInventoryEntry[]
+    | undefined;
+  readonly root: string;
+  readonly skipped: readonly SkippedSource[];
+}): VocabularyEvaluation =>
+  buildVocabularyEvaluation({
+    apply: params.apply,
+    effectivePlan: params.effectivePlan,
+    files: params.files,
+    plan: params.plan,
+    ...(params.preserveInventory === undefined
+      ? {}
+      : { preserveInventory: params.preserveInventory }),
+    root: params.root,
+    skipped: params.skipped,
+  });
+
+export const runVocabularyRegrade = (params: {
+  readonly apply?: boolean;
+  readonly includeEntries?: 'actionable' | 'all';
+  readonly plan: VocabularyRegradePlan;
+  readonly preserveInventory?: readonly VocabularyPreserveInventoryEntry[];
+  readonly root: string;
+}): Result<RegradeReport | null, InternalError | ValidationError> => {
+  const planValidation = validateVocabularyPlan(params.plan);
+  if (planValidation.isErr()) {
+    return planValidation;
+  }
+  const inventoryValidation = validatePreserveInventory(
+    params.preserveInventory
+  );
+  if (inventoryValidation.isErr()) {
+    return inventoryValidation;
+  }
+
+  const effectivePlan = effectivePlanForRun(
+    params.plan,
+    params.preserveInventory
+  );
+
+  const collected = collectDownstreamSources(params.root, {
+    extensions: effectivePlan.scope?.extensions ?? VOCABULARY_SOURCE_EXTENSIONS,
+    ...(effectivePlan.scope?.exclude === undefined
+      ? {}
+      : { exclude: effectivePlan.scope.exclude }),
+    ...(effectivePlan.scope?.ignoredDirectories === undefined
+      ? {}
+      : { ignoredDirectories: effectivePlan.scope.ignoredDirectories }),
+  } satisfies DownstreamCollectionOptions);
+  if (collected === null) {
+    return Result.ok(null);
+  }
+
+  const { files, skipped } = readVocabularySourceFiles(collected);
+
+  const dryRunEffectiveEvaluation = buildRunVocabularyEvaluation({
     apply: false,
+    effectivePlan,
     files,
     plan: params.plan,
+    preserveInventory: params.preserveInventory,
     root: params.root,
     skipped,
   });
-  let reportEvaluation = dryRunEvaluation;
+  let reportEvaluation = dryRunEffectiveEvaluation;
   let applySummary: RegradeApplySummary | undefined;
 
   if (params.apply === true) {
-    const applyResult = applyVocabularyEvaluation(files, dryRunEvaluation);
+    const applyResult = applyVocabularyEvaluation(
+      files,
+      dryRunEffectiveEvaluation
+    );
     if (applyResult.isErr()) {
       return applyResult;
     }
@@ -1099,10 +1286,12 @@ export const runVocabularyRegrade = (params: {
       ...file,
       source: readFileSync(file.absolutePath, 'utf8'),
     }));
-    reportEvaluation = buildVocabularyEvaluation({
+    reportEvaluation = buildRunVocabularyEvaluation({
       apply: true,
+      effectivePlan,
       files: appliedFiles,
       plan: params.plan,
+      preserveInventory: params.preserveInventory,
       root: params.root,
       skipped,
     });
@@ -1161,6 +1350,10 @@ const vocabularyPreserveRuleSchema = z.object({
     .enum(vocabularyDispositionValues)
     .optional()
     .describe('Classification for occurrences preserved by this rule'),
+  forms: z
+    .array(z.string().min(1))
+    .optional()
+    .describe('Matched forms this preserve rule applies to'),
   paths: z
     .array(z.string())
     .optional()
@@ -1168,6 +1361,14 @@ const vocabularyPreserveRuleSchema = z.object({
   pattern: z.string().describe('Regex or literal pattern to preserve'),
   reason: z.string().optional().describe('Why this form is preserved'),
 });
+
+const vocabularyPreserveInventoryEntrySchema =
+  vocabularyPreserveRuleSchema.extend({
+    evidence: z
+      .array(z.string().min(1))
+      .describe('Graph or surface facts that justify this derived preserve'),
+    source: z.literal('derived-live-api').describe('Derived inventory source'),
+  });
 
 const vocabularyDispositionCountSchema = z.object(
   Object.fromEntries(
@@ -1260,6 +1461,12 @@ export const vocabularyRegradeRunOutput = z.object({
     })
     .describe('Observed run ledger'),
   plan: vocabularyRegradePlanSchema.describe('Authored regrade plan'),
+  preserveInventory: z
+    .array(vocabularyPreserveInventoryEntrySchema)
+    .optional()
+    .describe(
+      'Derived live-API preserve inventory applied at run time without changing the authored plan'
+    ),
   report: z
     .object({
       applied: z.number().describe('Modified occurrences applied to disk'),

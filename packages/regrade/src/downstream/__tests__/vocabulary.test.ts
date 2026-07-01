@@ -764,6 +764,46 @@ describe('runVocabularyRegrade', () => {
     }
   });
 
+  test('keeps context-only preserve markers effective for captured forms', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(dir, 'src/surface.ts', 'const facet = 1; // no-rewrite\n');
+
+      const result = runVocabularyRegrade({
+        apply: true,
+        plan: {
+          from: 'facet',
+          kind: 'vocabulary',
+          preserve: [{ pattern: 'no-rewrite', reason: 'operator marker' }],
+          to: 'trailhead',
+        },
+        root: dir,
+      });
+
+      expect(result.isOk()).toBe(true);
+      if (result.isErr()) {
+        throw result.error;
+      }
+      expect(readFileSync(join(dir, 'src', 'surface.ts'), 'utf8')).toBe(
+        'const facet = 1; // no-rewrite\n'
+      );
+      expect(result.value.run.ledger.occurrences).toMatchObject([
+        {
+          form: 'facet',
+          reason: 'operator marker',
+          verdict: 'skipped',
+        },
+      ]);
+      expect(result.value.run.report).toMatchObject({
+        modified: 0,
+        open: 0,
+        skipped: 1,
+      });
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
   test('reports form verdicts from observed occurrences only', () => {
     const dir = makeTempDir();
     try {
@@ -984,6 +1024,32 @@ describe('runVocabularyRegrade', () => {
         );
         expect(invalidDisposition.error.message).toContain(
           'preserve disposition "bogus" is not supported'
+        );
+      }
+
+      const invalidInventoryDisposition = runVocabularyRegrade({
+        plan: {
+          from: 'facet',
+          kind: 'vocabulary',
+          to: 'trailhead',
+        },
+        preserveInventory: [
+          {
+            disposition: 'bogus',
+            evidence: ['derived proof'],
+            pattern: 'facet',
+            source: 'derived-live-api',
+          },
+        ] as Parameters<typeof runVocabularyRegrade>[0]['preserveInventory'],
+        root: dir,
+      });
+      expect(invalidInventoryDisposition.isErr()).toBe(true);
+      if (invalidInventoryDisposition.isErr()) {
+        expect(invalidInventoryDisposition.error.constructor.name).toBe(
+          'ValidationError'
+        );
+        expect(invalidInventoryDisposition.error.message).toContain(
+          'preserve inventory disposition "bogus" is not supported'
         );
       }
     } finally {

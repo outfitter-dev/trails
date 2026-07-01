@@ -13,6 +13,7 @@ import {
 } from '@ontrails/core';
 import type { PathScope, Result as TrailsResult } from '@ontrails/core';
 import {
+  listVocabularyRegradePlansFromRegistry,
   loadWardenTermRewriteClasses,
   regradeReportOutput,
   runRegrade,
@@ -27,6 +28,7 @@ import type {
 import { z } from 'zod';
 
 import { loadRegradeConfig } from '../regrade/config.js';
+import { deriveLiveApiPreserveInventory } from '../regrade/live-api-preserve.js';
 import { resolveTrailRootDir } from './root-dir.js';
 
 const regradePathScopeInputSchema = pathScopeSchema.extend({
@@ -46,6 +48,10 @@ const regradePreserveRuleInputSchema = z.object({
     .enum(vocabularyDispositionValues)
     .optional()
     .describe('Classification to assign to occurrences this rule preserves'),
+  forms: z
+    .array(z.string().min(1))
+    .optional()
+    .describe('Matched forms this preserve rule applies to'),
   paths: z
     .array(z.string())
     .optional()
@@ -174,11 +180,48 @@ const vocabularyPreserveFromInput = (
       ...(rule.disposition === undefined
         ? {}
         : { disposition: rule.disposition }),
+      ...(rule.forms === undefined ? {} : { forms: rule.forms }),
       ...(rule.paths === undefined ? {} : { paths: rule.paths }),
       pattern: rule.pattern,
       ...(rule.reason === undefined ? {} : { reason: rule.reason }),
     };
   });
+
+const vocabularyRegistryPlanForInput = (
+  input: z.output<typeof regradeInputSchema>
+): VocabularyRegradePlan | undefined =>
+  listVocabularyRegradePlansFromRegistry().find(
+    (plan) => plan.from === input.from && plan.to === input.to
+  );
+
+const mergeVocabularyOverrides = (
+  registryPlan: VocabularyRegradePlan | undefined,
+  input: z.output<typeof regradeInputSchema>
+): VocabularyRegradePlan['overrides'] | undefined => {
+  const overrides = {
+    ...registryPlan?.overrides,
+    ...input.overrides,
+  };
+  return Object.keys(overrides).length === 0 ? undefined : overrides;
+};
+
+const mergeVocabularyPreserveRules = (
+  registryPlan: VocabularyRegradePlan | undefined,
+  preserve: readonly VocabularyPreserveRule[] | undefined
+): readonly VocabularyPreserveRule[] | undefined => {
+  const rules = [...(registryPlan?.preserve ?? []), ...(preserve ?? [])];
+  return rules.length === 0 ? undefined : rules;
+};
+
+const vocabularyIntentForInput = (
+  input: z.output<typeof regradeInputSchema>,
+  registryPlan: VocabularyRegradePlan | undefined
+): string | undefined => {
+  if (input.intent !== undefined) {
+    return input.intent;
+  }
+  return registryPlan?.intent;
+};
 
 const buildVocabularyPlan = (
   input: z.output<typeof regradeInputSchema>,
@@ -198,14 +241,24 @@ const buildVocabularyPlan = (
   }
 
   const preserve = vocabularyPreserveFromInput(input.preserve);
+  const registryPlan = vocabularyRegistryPlanForInput(input);
+  const intent = vocabularyIntentForInput(input, registryPlan);
+  const overrides = mergeVocabularyOverrides(registryPlan, input);
+  const preserveRules = mergeVocabularyPreserveRules(registryPlan, preserve);
 
   return Result.ok({
+    ...(registryPlan?.caseSensitive === undefined
+      ? {}
+      : { caseSensitive: registryPlan.caseSensitive }),
+    ...(registryPlan?.deferForms === undefined
+      ? {}
+      : { deferForms: registryPlan.deferForms }),
     from: input.from,
-    id: `vocabulary:${input.from}->${input.to}`,
+    id: registryPlan?.id ?? `vocabulary:${input.from}->${input.to}`,
     kind: 'vocabulary',
-    ...(input.intent === undefined ? {} : { intent: input.intent }),
-    ...(input.overrides === undefined ? {} : { overrides: input.overrides }),
-    ...(preserve === undefined ? {} : { preserve }),
+    ...(intent === undefined ? {} : { intent }),
+    ...(overrides === undefined ? {} : { overrides }),
+    ...(preserveRules === undefined ? {} : { preserve: preserveRules }),
     scope: {
       ...configScope,
       ...(input.exclude === undefined ? {} : { exclude: input.exclude }),
@@ -246,11 +299,15 @@ export const regradeTrail = trail('regrade', {
       if (planResult.isErr()) {
         return planResult;
       }
+      const preserveInventory = await deriveLiveApiPreserveInventory(
+        planResult.value
+      );
       const reportResult: TrailsResult<RegradeReport | null, Error> =
         runVocabularyRegrade({
           apply: input.apply,
           includeEntries: input.includeEntries,
           plan: planResult.value,
+          ...(preserveInventory.length === 0 ? {} : { preserveInventory }),
           root: rootDirResult.value,
         });
       if (reportResult.isErr()) {

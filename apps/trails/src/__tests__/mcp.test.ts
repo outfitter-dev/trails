@@ -181,6 +181,7 @@ describe('Trails MCP surface shaping', () => {
       type: 'object',
     });
     expect(JSON.stringify(regrade.inputSchema)).toContain('disposition');
+    expect(JSON.stringify(regrade.inputSchema)).toContain('forms');
     expect(JSON.stringify(regrade.inputSchema)).toContain(
       'preserve-current-live-api'
     );
@@ -242,13 +243,6 @@ describe('Trails MCP surface shaping', () => {
       const result = await regrade.handler(
         {
           from: 'facet',
-          preserve: [
-            {
-              disposition: 'preserve-current-live-api',
-              pattern: '^facetId$',
-              reason: 'live-api-identifier',
-            },
-          ],
           rootDir: dir,
           to: 'trailhead',
         },
@@ -265,11 +259,26 @@ describe('Trails MCP surface shaping', () => {
               readonly verdict?: string;
             }[];
           };
+          readonly preserveInventory?: readonly {
+            readonly evidence?: readonly string[];
+            readonly pattern?: string;
+            readonly reason?: string;
+            readonly source?: string;
+          }[];
         };
       };
       expect(result.structuredContent).toMatchObject({
         run: {
           plan: { from: 'facet', to: 'trailhead' },
+          preserveInventory: expect.arrayContaining([
+            expect.objectContaining({
+              evidence: expect.arrayContaining(['topo.facet:inspect']),
+              paths: expect.arrayContaining(['**/*.ts']),
+              pattern: expect.stringContaining('facetId'),
+              reason: 'current-live-mcp-facet-field',
+              source: 'derived-live-api',
+            }),
+          ]),
           report: {
             dispositions: {
               'in-family-modified': 3,
@@ -304,6 +313,60 @@ describe('Trails MCP surface shaping', () => {
       );
       expect(readFileSync(join(dir, 'src', 'surface.ts'), 'utf8')).toContain(
         'facet'
+      );
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('executes registry-backed regrade review forms through MCP', async () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(
+        dir,
+        'src/blaze.ts',
+        'export const blaze = "safe";\nexport const blazing = "review";\n'
+      );
+      const tools = unwrapTools(trailsMcpApp, trailsMcpSurfaceOptions);
+      const regrade = requireTool(tools, 'trails_regrade');
+
+      const result = await regrade.handler(
+        {
+          from: 'blaze',
+          rootDir: dir,
+          to: 'implementation',
+        },
+        {}
+      );
+
+      expect(result.isError).toBeUndefined();
+      const structured = result.structuredContent as {
+        readonly run?: {
+          readonly ledger?: {
+            readonly forms?: Record<string, string>;
+            readonly occurrences?: readonly {
+              readonly form?: string;
+              readonly verdict?: string;
+            }[];
+          };
+          readonly plan?: {
+            readonly deferForms?: readonly string[];
+            readonly id?: string;
+          };
+        };
+      };
+      expect(structured.run?.plan).toMatchObject({
+        deferForms: expect.arrayContaining(['blazing']),
+        id: 'v1-blaze-implementation',
+      });
+      expect(structured.run?.ledger?.forms).toMatchObject({
+        blaze: 'modified',
+        blazing: 'deferred',
+      });
+      expect(structured.run?.ledger?.occurrences).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ form: 'blazing', verdict: 'deferred' }),
+        ])
       );
     } finally {
       rmSync(dir, { force: true, recursive: true });
