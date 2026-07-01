@@ -16,6 +16,7 @@ import { deadInternalTrail } from './dead-internal-trail.js';
 import { deadPublicTrail } from './dead-public-trail.js';
 import { draftFileMarking } from './draft-file-marking.js';
 import { draftVisibleDebt } from './draft-visible-debt.js';
+import { duplicateExportedSymbol } from './duplicate-exported-symbol.js';
 import { duplicatePublicContract } from './duplicate-public-contract.js';
 import { errorMappingCompleteness } from './error-mapping-completeness.js';
 import { exampleValid } from './example-valid.js';
@@ -95,6 +96,7 @@ export const registeredRuleNames: readonly string[] = [
   deadInternalTrail.name,
   deadPublicTrail.name,
   deprecationWithoutGuidance.name,
+  duplicateExportedSymbol.name,
   duplicatePublicContract.name,
   draftFileMarking.name,
   draftVisibleDebt.name,

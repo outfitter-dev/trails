@@ -85,6 +85,23 @@ export const publicWorkspaceSchema = z.object({
   rootDir: z.string(),
 });
 
+export const exportedSymbolDefinitionSchema = z.object({
+  filePath: z.string(),
+  kind: z.enum([
+    'class',
+    'const',
+    'enum',
+    'export',
+    'function',
+    'interface',
+    'type',
+  ]),
+  line: z.number(),
+  name: z.string(),
+  workspaceName: z.string(),
+  workspaceRoot: z.string(),
+});
+
 /**
  * Extended input for project-aware warden rule trails.
  *
@@ -114,6 +131,10 @@ export const projectAwareRuleInput = ruleInput.extend({
     .record(z.string(), z.array(importResolutionSchema))
     .optional()
     .describe('Resolved docs/specifier facts keyed by documentation file path'),
+  exportedSymbolDefinitionsByName: z
+    .record(z.string(), z.array(exportedSymbolDefinitionSchema))
+    .optional()
+    .describe('Public exported symbol definitions grouped by exported name'),
   importResolutionsByFile: z
     .record(z.string(), z.array(importResolutionSchema))
     .optional()

@@ -10,6 +10,7 @@ export { deprecationWithoutGuidanceTrail } from './deprecation-without-guidance.
 export { duplicatePublicContractTrail } from './duplicate-public-contract.trail.js';
 export { draftFileMarkingTrail } from './draft-file-marking.trail.js';
 export { draftVisibleDebtTrail } from './draft-visible-debt.trail.js';
+export { duplicateExportedSymbolTrail } from './duplicate-exported-symbol.trail.js';
 export { errorMappingCompletenessTrail } from './error-mapping-completeness.trail.js';
 export { exampleValidTrail } from './example-valid.trail.js';
 export { firesDeclarationsTrail } from './fires-declarations.trail.js';

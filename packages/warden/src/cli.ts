@@ -33,6 +33,7 @@ import { loadProjectWardenRules } from './project-rules.js';
 import type { ProjectWardenRules } from './project-rules.js';
 import {
   collectProjectDocumentationImportResolutions,
+  collectProjectExportedSymbolDefinitions,
   collectProjectImportResolutions,
   collectPublicWorkspaces,
 } from './project-context.js';
@@ -61,6 +62,7 @@ import type {
   ProjectContext,
   TopoAwareWardenRule,
   WardenDiagnostic,
+  WardenExportedSymbolDefinition,
   WardenGuidanceLink,
   WardenRule,
   WardenRuleTier,
@@ -364,6 +366,10 @@ interface MutableProjectContext {
   knownTrailIds: Set<string>;
   topoTrailIds: Set<string>;
   importResolutionsByFile: Map<string, readonly WardenImportResolution[]>;
+  exportedSymbolDefinitionsByName: Map<
+    string,
+    readonly WardenExportedSymbolDefinition[]
+  >;
   documentedImportResolutionsByFile: Map<
     string,
     readonly WardenImportResolution[]
@@ -383,6 +389,7 @@ const createMutableProjectContext = (): MutableProjectContext => ({
     string,
     readonly WardenImportResolution[]
   >(),
+  exportedSymbolDefinitionsByName: new Map(),
   importResolutionsByFile: new Map<string, readonly WardenImportResolution[]>(),
   knownContourIds: new Set<string>(),
   knownResourceIds: new Set<string>(),
@@ -451,6 +458,12 @@ const toProjectContext = (context: MutableProjectContext): ProjectContext => ({
     ? {
         documentedImportResolutionsByFile:
           context.documentedImportResolutionsByFile,
+      }
+    : {}),
+  ...(context.exportedSymbolDefinitionsByName.size > 0
+    ? {
+        exportedSymbolDefinitionsByName:
+          context.exportedSymbolDefinitionsByName,
       }
     : {}),
   ...(context.onTargetSignalIds.size > 0
@@ -849,6 +862,21 @@ const collectFileDocumentedImportResolutions = (
   }
 };
 
+const collectFileExportedSymbolDefinitions = (
+  rootDir: string,
+  sourceFiles: readonly SourceFile[],
+  context: MutableProjectContext
+): void => {
+  const definitionsByName = collectProjectExportedSymbolDefinitions({
+    publicWorkspaces: context.publicWorkspaces,
+    rootDir,
+    sourceFiles,
+  });
+  for (const [name, definitions] of definitionsByName) {
+    context.exportedSymbolDefinitionsByName.set(name, definitions);
+  }
+};
+
 const buildProjectContext = (
   sourceFiles: readonly SourceFile[],
   rootDir: string,
@@ -888,6 +916,7 @@ const buildProjectContext = (
     documentationSourceFiles,
     context
   );
+  collectFileExportedSymbolDefinitions(rootDir, typeScriptSourceFiles, context);
 
   return toProjectContext(context);
 };

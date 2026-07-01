@@ -88,6 +88,13 @@ const buildProjectContext = (input: ProjectAwareRuleInput): ProjectContext => ({
         ),
       }
     : {}),
+  ...(input.exportedSymbolDefinitionsByName
+    ? {
+        exportedSymbolDefinitionsByName: new Map(
+          Object.entries(input.exportedSymbolDefinitionsByName)
+        ),
+      }
+    : {}),
   ...(input.publicWorkspaces
     ? { publicWorkspaces: new Map(Object.entries(input.publicWorkspaces)) }
     : {}),

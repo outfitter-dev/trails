@@ -15,7 +15,26 @@ import type {
   WardenImportResolution,
   WardenResolverOptions,
 } from './resolve.js';
-import { offsetToLine } from './rules/ast.js';
+import {
+  getNodeBodyStatements,
+  getNodeDeclaration,
+  getNodeDeclarations,
+  getNodeExportKind,
+  getNodeExported,
+  getNodeId,
+  getNodeLocal,
+  getNodeName,
+  getNodeSource,
+  getNodeSpecifiers,
+  getNodeValue,
+  isDeclarationWithId,
+  isExportNamedDeclaration,
+  isVariableDeclaration,
+  offsetToLine,
+  parse,
+} from './rules/ast.js';
+import type { AstNode } from './rules/ast.js';
+import type { WardenExportedSymbolDefinition } from './rules/types.js';
 import { collectPublicWorkspaces } from './workspaces.js';
 import type { WardenPublicWorkspace } from './workspaces.js';
 
@@ -186,6 +205,241 @@ export const collectProjectDocumentationImportResolutions = ({
   }
 
   return resolutionsByFile;
+};
+
+const exportedKindForDeclaration = (
+  declaration: AstNode
+): WardenExportedSymbolDefinition['kind'] | null => {
+  if (declaration.type === 'ClassDeclaration') {
+    return 'class';
+  }
+  if (declaration.type === 'FunctionDeclaration') {
+    return 'function';
+  }
+  if (
+    declaration.type === 'EnumDeclaration' ||
+    declaration.type === 'TSEnumDeclaration'
+  ) {
+    return 'enum';
+  }
+  if (
+    declaration.type === 'InterfaceDeclaration' ||
+    declaration.type === 'TSInterfaceDeclaration'
+  ) {
+    return 'interface';
+  }
+  if (declaration.type === 'TSTypeAliasDeclaration') {
+    return 'type';
+  }
+  if (isVariableDeclaration(declaration)) {
+    return 'const';
+  }
+  return null;
+};
+
+const publicExportTargetWorkspacesByPath = (
+  publicWorkspaces: ReadonlyMap<string, WardenPublicWorkspace>
+): ReadonlyMap<string, WardenPublicWorkspace> => {
+  const workspacesByTargetPath = new Map<string, WardenPublicWorkspace>();
+  for (const workspace of publicWorkspaces.values()) {
+    for (const target of Object.values(workspace.exportTargets ?? {})) {
+      workspacesByTargetPath.set(normalizeRealPath(target), workspace);
+    }
+  }
+  return workspacesByTargetPath;
+};
+
+const readNameNode = (node: AstNode | undefined): string | null => {
+  if (!node) {
+    return null;
+  }
+  if (node.type === 'Identifier') {
+    return getNodeName(node) ?? null;
+  }
+  if (node.type === 'Literal' || node.type === 'StringLiteral') {
+    const value = getNodeValue(node);
+    return typeof value === 'string' ? value : null;
+  }
+  return null;
+};
+
+const exportedSpecifierKind = (
+  statement: AstNode,
+  specifier: AstNode
+): WardenExportedSymbolDefinition['kind'] =>
+  getNodeExportKind(statement) === 'type' ||
+  getNodeExportKind(specifier) === 'type'
+    ? 'type'
+    : 'export';
+
+const reexportedDefinitions = ({
+  filePath,
+  sourceCode,
+  statement,
+  workspace,
+}: {
+  readonly filePath: string;
+  readonly sourceCode: string;
+  readonly statement: AstNode;
+  readonly workspace: WardenPublicWorkspace;
+}): readonly WardenExportedSymbolDefinition[] => {
+  const specifiers = getNodeSpecifiers(statement) ?? [];
+  return specifiers.flatMap((specifier) => {
+    if (specifier.type !== 'ExportSpecifier') {
+      return [];
+    }
+    const exported = getNodeExported(specifier);
+    const local = getNodeLocal(specifier);
+    const name = readNameNode(exported) ?? readNameNode(local);
+    return name
+      ? [
+          {
+            filePath,
+            kind: exportedSpecifierKind(statement, specifier),
+            line: offsetToLine(sourceCode, specifier.start),
+            name,
+            workspaceName: workspace.name,
+            workspaceRoot: workspace.rootDir,
+          } satisfies WardenExportedSymbolDefinition,
+        ]
+      : [];
+  });
+};
+
+const namedDeclarationDefinitions = ({
+  declaration,
+  filePath,
+  sourceCode,
+  workspace,
+}: {
+  readonly declaration: AstNode;
+  readonly filePath: string;
+  readonly sourceCode: string;
+  readonly workspace: WardenPublicWorkspace;
+}): readonly WardenExportedSymbolDefinition[] => {
+  const kind = exportedKindForDeclaration(declaration);
+  if (!kind) {
+    return [];
+  }
+
+  if (isVariableDeclaration(declaration)) {
+    return getNodeDeclarations(declaration).flatMap((declarator) => {
+      const name = getNodeName(getNodeId(declarator));
+      return name
+        ? [
+            {
+              filePath,
+              kind,
+              line: offsetToLine(sourceCode, declarator.start),
+              name,
+              workspaceName: workspace.name,
+              workspaceRoot: workspace.rootDir,
+            } satisfies WardenExportedSymbolDefinition,
+          ]
+        : [];
+    });
+  }
+
+  if (!isDeclarationWithId(declaration)) {
+    return [];
+  }
+
+  const name = getNodeName(getNodeId(declaration));
+  return name
+    ? [
+        {
+          filePath,
+          kind,
+          line: offsetToLine(sourceCode, declaration.start),
+          name,
+          workspaceName: workspace.name,
+          workspaceRoot: workspace.rootDir,
+        } satisfies WardenExportedSymbolDefinition,
+      ]
+    : [];
+};
+
+const collectExportedSymbolDefinitionsForFile = (
+  sourceFile: WardenProjectContextSourceFile,
+  publicExportTargetWorkspaces: ReadonlyMap<string, WardenPublicWorkspace>
+): readonly WardenExportedSymbolDefinition[] => {
+  if (sourceFile.kind !== 'typescript') {
+    return [];
+  }
+
+  const workspace = publicExportTargetWorkspaces.get(
+    normalizeRealPath(sourceFile.filePath)
+  );
+  if (!workspace) {
+    return [];
+  }
+
+  const ast = parse(sourceFile.filePath, sourceFile.sourceCode);
+  if (!ast) {
+    return [];
+  }
+
+  return getNodeBodyStatements(ast).flatMap((statement) => {
+    if (!isExportNamedDeclaration(statement)) {
+      return [];
+    }
+    if (getNodeSource(statement) || getNodeSpecifiers(statement)?.length) {
+      return reexportedDefinitions({
+        filePath: sourceFile.filePath,
+        sourceCode: sourceFile.sourceCode,
+        statement,
+        workspace,
+      });
+    }
+    const declaration = getNodeDeclaration(statement);
+    return declaration
+      ? namedDeclarationDefinitions({
+          declaration,
+          filePath: sourceFile.filePath,
+          sourceCode: sourceFile.sourceCode,
+          workspace,
+        })
+      : [];
+  });
+};
+
+export const collectProjectExportedSymbolDefinitions = ({
+  publicWorkspaces: providedPublicWorkspaces,
+  rootDir,
+  sourceFiles,
+}: {
+  readonly publicWorkspaces?: ReadonlyMap<string, WardenPublicWorkspace>;
+  readonly rootDir: string;
+  readonly sourceFiles: readonly WardenProjectContextSourceFile[];
+}): ReadonlyMap<string, readonly WardenExportedSymbolDefinition[]> => {
+  const publicWorkspaces =
+    providedPublicWorkspaces ?? collectPublicWorkspaces(rootDir);
+  const publicExportTargetWorkspaces =
+    publicExportTargetWorkspacesByPath(publicWorkspaces);
+  const definitionsByName = new Map<string, WardenExportedSymbolDefinition[]>();
+
+  for (const sourceFile of sourceFiles) {
+    for (const definition of collectExportedSymbolDefinitionsForFile(
+      sourceFile,
+      publicExportTargetWorkspaces
+    )) {
+      const existing = definitionsByName.get(definition.name) ?? [];
+      existing.push(definition);
+      definitionsByName.set(definition.name, existing);
+    }
+  }
+
+  return new Map(
+    [...definitionsByName.entries()].map(([name, definitions]) => [
+      name,
+      definitions.toSorted(
+        (left, right) =>
+          left.workspaceName.localeCompare(right.workspaceName) ||
+          left.filePath.localeCompare(right.filePath) ||
+          left.line - right.line
+      ),
+    ])
+  );
 };
 
 export { collectPublicWorkspaces };

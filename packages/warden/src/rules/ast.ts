@@ -109,9 +109,11 @@ export interface VariableDeclaratorNode extends AstNode {
 export interface DeclarationWithIdNode extends AstNode {
   readonly type:
     | 'ClassDeclaration'
+    | 'EnumDeclaration'
     | 'FunctionDeclaration'
     | 'InterfaceDeclaration'
     | 'TSInterfaceDeclaration'
+    | 'TSEnumDeclaration'
     | 'TSTypeAliasDeclaration';
   readonly id?: AstNode;
 }
@@ -408,9 +410,11 @@ export const isDeclarationWithId = (
 ): node is DeclarationWithIdNode =>
   isNodeType<DeclarationWithIdNode>(node, [
     'ClassDeclaration',
+    'EnumDeclaration',
     'FunctionDeclaration',
     'InterfaceDeclaration',
     'TSInterfaceDeclaration',
+    'TSEnumDeclaration',
     'TSTypeAliasDeclaration',
   ]);
 

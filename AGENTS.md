@@ -108,7 +108,7 @@ See [ADR-0050](docs/adr/0050-surface-accommodations-preserve-trail-identity.md) 
 This section is generated from the live `@ontrails/warden` rule manifest. Keep the human-authored guidance above as orientation; use this block as the enforceable-rule index.
 
 - Guide input command: `bun apps/trails/bin/trails.ts warden guide --manifest`
-- Rule count: 69
+- Rule count: 70
 
 ### Rule Index
 
@@ -131,6 +131,7 @@ This section is generated from the live `@ontrails/warden` rule manifest. Keep t
 
 - `circular-refs` (warn, project/project-static, external): Contour reference graphs must be acyclic.
 - `contour-exists` (error, project/project-static, external): Declared contour references resolve to known contours.
+- `duplicate-exported-symbol` (warn, project/project-static, repo-local): First-party packages should not define the same exported symbol name in parallel.
 - `example-valid` (error, source/source-static, external): Trail examples remain valid against their authored schema.
 - `incomplete-accessor-for-standard-op` (error, topo/topo-aware, external): Standard CRUD operations expose the expected accessor shape.
 - `incomplete-crud` (warn, project/project-static, external): Versioned CRUD entities expose complete operation coverage.
@@ -209,6 +210,7 @@ This section is generated from the live `@ontrails/warden` rule manifest. Keep t
 
 - `cli-command-route-coherence`: Keep every CLI command route and alias normalized into one trail contract.
 - `dead-public-trail`: Anchor exported public trails in a topo, composition edge, or activation source.
+- `duplicate-exported-symbol`: Keep exported symbol ownership from drifting across first-party packages.
 - `duplicate-public-contract`: Keep duplicate public contract facts from drifting into separate capabilities.
 - `example-valid`: Keep trail examples synchronized with their authored schemas.
 - `library-projection-coherence`: Keep resolved library projection exports collision-free and attached to one trail contract.

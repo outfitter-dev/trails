@@ -8,6 +8,7 @@ import { deadInternalTrail } from './dead-internal-trail.js';
 import { deadPublicTrail } from './dead-public-trail.js';
 import { draftFileMarking } from './draft-file-marking.js';
 import { draftVisibleDebt } from './draft-visible-debt.js';
+import { duplicateExportedSymbol } from './duplicate-exported-symbol.js';
 import { duplicatePublicContract } from './duplicate-public-contract.js';
 import { errorMappingCompleteness } from './error-mapping-completeness.js';
 import { exampleValid } from './example-valid.js';
@@ -82,6 +83,7 @@ export type {
   WardenFixSafety,
   WardenGuidance,
   WardenGuidanceLink,
+  WardenExportedSymbolDefinition,
   WardenRuleLifecycle,
   WardenRuleLifecycleState,
   WardenRuleConcern,
@@ -140,6 +142,7 @@ export { deadInternalTrail } from './dead-internal-trail.js';
 export { deadPublicTrail } from './dead-public-trail.js';
 export { draftFileMarking } from './draft-file-marking.js';
 export { draftVisibleDebt } from './draft-visible-debt.js';
+export { duplicateExportedSymbol } from './duplicate-exported-symbol.js';
 export { duplicatePublicContract } from './duplicate-public-contract.js';
 export { errorMappingCompleteness } from './error-mapping-completeness.js';
 export { exampleValid } from './example-valid.js';
@@ -214,6 +217,7 @@ export const wardenRules: ReadonlyMap<string, WardenRule> = new Map<
   [deadPublicTrail.name, deadPublicTrail],
   [draftFileMarking.name, draftFileMarking],
   [draftVisibleDebt.name, draftVisibleDebt],
+  [duplicateExportedSymbol.name, duplicateExportedSymbol],
   [errorMappingCompleteness.name, errorMappingCompleteness],
   [exampleValid.name, exampleValid],
   [firesDeclarations.name, firesDeclarations],

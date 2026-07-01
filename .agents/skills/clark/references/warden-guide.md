@@ -5,7 +5,7 @@
 This file is generated from the live `@ontrails/warden` rule manifest. Repo-tracked skills, agents, and plugin prompts should reference this file instead of copying rule prose by hand.
 
 - Guide input command: `bun apps/trails/bin/trails.ts warden guide --agent-json`
-- Rule count: 69
+- Rule count: 70
 
 ## Agent Instructions
 
@@ -36,6 +36,7 @@ This file is generated from the live `@ontrails/warden` rule manifest. Repo-trac
 
 - `circular-refs` (warn, project/project-static, external): Contour reference graphs must be acyclic.
 - `contour-exists` (error, project/project-static, external): Declared contour references resolve to known contours.
+- `duplicate-exported-symbol` (warn, project/project-static, repo-local): First-party packages should not define the same exported symbol name in parallel. Guidance: Keep exported symbol ownership from drifting across first-party packages.
 - `example-valid` (error, source/source-static, external): Trail examples remain valid against their authored schema. Guidance: Keep trail examples synchronized with their authored schemas.
 - `incomplete-accessor-for-standard-op` (error, topo/topo-aware, external): Standard CRUD operations expose the expected accessor shape.
 - `incomplete-crud` (warn, project/project-static, external): Versioned CRUD entities expose complete operation coverage.

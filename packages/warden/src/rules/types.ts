@@ -235,6 +235,29 @@ export interface WardenDiagnostic extends RuleDiagnosticBase {
   readonly fix?: WardenFix | undefined;
 }
 
+/** Public exported symbol observed from a first-party package export target. */
+export interface WardenExportedSymbolDefinition {
+  /** Exported binding name. */
+  readonly name: string;
+  /** Export declaration kind that introduced the binding. */
+  readonly kind:
+    | 'class'
+    | 'const'
+    | 'enum'
+    | 'export'
+    | 'function'
+    | 'interface'
+    | 'type';
+  /** Absolute or runner-provided file path containing the definition. */
+  readonly filePath: string;
+  /** 1-based source line where the exported definition starts. */
+  readonly line: number;
+  /** First-party workspace package that owns the definition. */
+  readonly workspaceName: string;
+  /** Filesystem root of the owning workspace. */
+  readonly workspaceRoot: string;
+}
+
 /**
  * A warden rule analyzes one source file and returns diagnostics.
  *
@@ -294,6 +317,11 @@ export interface ProjectContext {
   >;
   /** Non-private published @ontrails workspaces discovered from the root manifest. */
   readonly publicWorkspaces?: ReadonlyMap<string, WardenPublicWorkspace>;
+  /** Public package export definitions grouped by exported name. */
+  readonly exportedSymbolDefinitionsByName?: ReadonlyMap<
+    string,
+    readonly WardenExportedSymbolDefinition[]
+  >;
   /** Normalized trail intents by trail ID across the project. */
   readonly trailIntentsById?: ReadonlyMap<string, Intent>;
   /**

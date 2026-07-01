@@ -76,6 +76,7 @@ const concernByRuleName: Partial<Record<string, WardenRuleConcern>> = {
   'deprecation-without-guidance': 'lifecycle',
   'draft-file-marking': 'lifecycle',
   'draft-visible-debt': 'lifecycle',
+  'duplicate-exported-symbol': 'general',
   'duplicate-public-contract': 'meta',
   'error-mapping-completeness': 'results',
   'fires-declarations': 'signals',
@@ -220,6 +221,26 @@ const builtinWardenRuleMetadataInput = {
     ...durableExternal,
     invariant: 'Draft-authored IDs remain visible debt.',
     tier: 'source-static',
+  },
+  'duplicate-exported-symbol': {
+    ...durableRepoLocal,
+    guidance: {
+      docs: [
+        {
+          label: 'Package ownership',
+          path: 'docs/contributing/package-ownership.md',
+        },
+      ],
+      relatedRules: [
+        'resolved-import-boundary',
+        'public-internal-deep-imports',
+      ],
+      summary:
+        'Keep exported symbol ownership from drifting across first-party packages.',
+    },
+    invariant:
+      'First-party packages should not define the same exported symbol name in parallel.',
+    tier: 'project-static',
   },
   'duplicate-public-contract': {
     ...durableExternal,
