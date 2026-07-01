@@ -1,5 +1,15 @@
 # @ontrails/cli
 
+## 1.0.0-beta.33
+
+### Patch Changes
+
+- [`945cb4b`](https://github.com/outfitter-dev/trails/commit/945cb4b0bef40ddb098c2a3816f9adad6f135410): Honor explicit structured input values over CLI flag defaults when commands merge
+  `--input-json` or `--input` payloads.
+
+  Commander now forwards user-supplied flag metadata so explicit flag values that
+  match a default still keep normal CLI precedence over structured input.
+
 ## 1.0.0-beta.32
 
 ### Patch Changes
