@@ -4,7 +4,7 @@ slug: unified-observability
 title: Unified Observability
 status: accepted
 created: 2026-04-09
-updated: 2026-05-19
+updated: 2026-07-01
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [6, 13, 39]
 ---
@@ -139,6 +139,8 @@ For v1, `@ontrails/observe` is the canonical production observability package. A
 
 `@ontrails/tracing/otel` remains the supported v1 OpenTelemetry adapter subpath. The API uses adapter vocabulary (`createOtelAdapter`, `OtelAdapterOptions`) and may move to a dedicated adapter package in a later release, but v1 does not require creating `@ontrails/otel`.
 
+**Migration closure (2026-07-01):** The split described above has landed. `@ontrails/tracing` no longer owns parallel implementations of signal trace construction or bounded memory sink retention. It re-exports the core signal helpers and wraps the observe-owned memory sink for compatibility.
+
 ### Dev-time tracing vs production observability
 
 The split is deliberate. Core handles the inner development loop. `@ontrails/observe` handles production.
@@ -156,7 +158,7 @@ A developer never needs `@ontrails/observe` to define or run trails. They need i
 
 Observability follows the Trails posture: zero config by default, one declaration to customize.
 
-The process-level sink registry still keeps `NOOP_SINK` as the disabled baseline. Core owns that registry and the trace record contract, but not a storage sink. Bounded memory tracing is a package-level sink exposed by `@ontrails/observe` for app code and local tooling, and by `@ontrails/tracing` as compatibility while the earlier tracing package migrates. Core does not allocate trace records until a real sink is installed.
+The process-level sink registry still keeps `NOOP_SINK` as the disabled baseline. Core owns that registry and the trace record contract, but not a storage sink. Bounded memory tracing is a package-level sink exposed by `@ontrails/observe` for app code and local tooling, and by `@ontrails/tracing` as a compatibility wrapper. Core does not allocate trace records until a real sink is installed.
 
 Without `@ontrails/observe`, the default execution path stays inert:
 

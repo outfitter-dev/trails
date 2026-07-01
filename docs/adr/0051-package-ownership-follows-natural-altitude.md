@@ -1,14 +1,15 @@
 ---
+id: 51
 slug: package-ownership-follows-natural-altitude
 title: Package Ownership Follows Natural Altitude
-status: draft
+status: accepted
 created: 2026-07-01
 updated: 2026-07-01
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [1, 9, 41]
 ---
 
-# ADR: Package Ownership Follows Natural Altitude
+# ADR-0051: Package Ownership Follows Natural Altitude
 
 ## Context
 
@@ -21,7 +22,7 @@ The useful cases follow one pattern:
 - diagnostic base fields belong in `@ontrails/core`;
 - app and package code should consume those owners instead of copying the kernel locally.
 
-The tracing cleanup is the live proof. [ADR-0041](../0041-unified-observability.md) already says core owns intrinsic tracing, `@ontrails/observe` owns app-facing sink contracts, and `@ontrails/tracing` remains compatibility plus developer state. This stack uses that boundary to remove the signal trace helper fork from `packages/tracing/src/signal-trace.ts` and the bounded memory sink fork from `packages/tracing/src/memory-sink.ts`.
+The tracing cleanup is the live proof. [ADR-0041](0041-unified-observability.md) already says core owns intrinsic tracing, `@ontrails/observe` owns app-facing sink contracts, and `@ontrails/tracing` remains compatibility plus developer state. This stack uses that boundary to remove the signal trace helper fork from `packages/tracing/src/signal-trace.ts` and the bounded memory sink fork from `packages/tracing/src/memory-sink.ts`.
 
 Without a package ownership rule, each cleanup is argued from scratch. Agents can fix the local duplicate while missing the reusable owner. That is how parallel ledgers grow.
 
@@ -41,9 +42,9 @@ The review test is:
 
 > Can this package consume an owner-owned contract, or is it quietly re-authoring the same concept?
 
-The committed [Package Ownership Map](../../contributing/package-ownership.md) is the evidence appendix for this ADR. It records owned capabilities, migrations, proposed extractions, and tracked unknowns. The first pass deliberately proposes new extraction issues inline instead of creating them automatically. Issue creation remains a separate approval step.
+The committed [Package Ownership Map](../contributing/package-ownership.md) is the evidence appendix for this ADR. It records owned capabilities, migrations, proposed extractions, and tracked unknowns. The first pass deliberately proposes new extraction issues inline instead of creating them automatically. Issue creation remains a separate approval step.
 
-This ADR stays draft until the tracing migration lands. Acceptance should cite the migration as proof that the doctrine works on real code, not only on paper.
+This ADR is accepted with the tracing migration as proof that the doctrine works on real code, not only on paper.
 
 ## Consequences
 
@@ -55,7 +56,7 @@ This ADR stays draft until the tracing migration lands. Acceptance should cite t
 
 ## References
 
-- [Package Ownership Map](../../contributing/package-ownership.md)
-- [ADR-0001: Naming Conventions](../0001-naming-conventions.md)
-- [ADR-0009: First-Class Resources](../0009-first-class-resources.md)
-- [ADR-0041: Unified Observability](../0041-unified-observability.md)
+- [Package Ownership Map](../contributing/package-ownership.md)
+- [ADR-0001: Naming Conventions](0001-naming-conventions.md)
+- [ADR-0009: First-Class Resources](0009-first-class-resources.md)
+- [ADR-0041: Unified Observability](0041-unified-observability.md)

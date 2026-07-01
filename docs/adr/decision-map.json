@@ -269,6 +269,11 @@
           "fromPath": "docs/adr/0049-composition-is-compose-not-cross.md"
         },
         {
+          "context": "- [ADR-0001: Naming Conventions](0001-naming-conventions.md)",
+          "from": "0051",
+          "fromPath": "docs/adr/0051-package-ownership-follows-natural-altitude.md"
+        },
+        {
           "context": "- docs/adr/0001-naming-conventions.md",
           "from": "20260406",
           "fromPath": "docs/adr/drafts/20260406-documentation-structure.md"
@@ -282,11 +287,6 @@
           "context": "[adr-0001]: ../0001-naming-conventions.md",
           "from": "20260612",
           "fromPath": "docs/adr/drafts/20260612-verdicts-run-on-stable-ground.md"
-        },
-        {
-          "context": "- [ADR-0001: Naming Conventions](../0001-naming-conventions.md)",
-          "from": "20260701",
-          "fromPath": "docs/adr/drafts/20260701-package-ownership-follows-natural-altitude.md"
         },
         {
           "context": "Canonical public surface-facing reference. For naming conventions and decision history, see [ADR-0001](./adr/0001-naming-conventions.md).",
@@ -931,6 +931,11 @@
           "fromPath": "docs/adr/0040-resource-scoped-store-signal-identity.md"
         },
         {
+          "context": "- [ADR-0009: First-Class Resources](0009-first-class-resources.md)",
+          "from": "0051",
+          "fromPath": "docs/adr/0051-package-ownership-follows-natural-altitude.md"
+        },
+        {
           "context": "- docs/adr/0009-first-class-resources.md",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-packs-namespace-boundaries.md"
@@ -949,11 +954,6 @@
           "context": "[adr-0009]: ../0009-first-class-resources.md",
           "from": "20260612",
           "fromPath": "docs/adr/drafts/20260612-library-surface-and-compiler.md"
-        },
-        {
-          "context": "- [ADR-0009: First-Class Resources](../0009-first-class-resources.md)",
-          "from": "20260701",
-          "fromPath": "docs/adr/drafts/20260701-package-ownership-follows-natural-altitude.md"
         },
         {
           "context": "- [ADR-0009: First-Class Resources](../adr/0009-first-class-resources.md)",
@@ -1199,7 +1199,7 @@
       "status": "partially-superseded",
       "superseded_by": ["23"],
       "title": "Tracing — Runtime Recording Primitive",
-      "updated": "2026-05-19"
+      "updated": "2026-07-01"
     },
     {
       "created": "2026-04-02",
@@ -1692,7 +1692,7 @@
           "fromPath": "docs/adr/0001-naming-conventions.md"
         },
         {
-          "context": "> **Status update (2026-04-08):** Originally landed as \"Tracker\" and renamed to \"Tracing\" by [ADR-0023: Simplifying the Trails Lexicon](0023-simplifying-the-trails-lexicon.md), implemented via TRL-196",
+          "context": "> - **2026-04-08:** Originally landed as \"Tracker\" and renamed to \"Tracing\" by [ADR-0023: Simplifying the Trails Lexicon](0023-simplifying-the-trails-lexicon.md), implemented via TRL-196. The tracker→",
           "from": "0013",
           "fromPath": "docs/adr/0013-tracing.md"
         },
@@ -2493,6 +2493,11 @@
           "fromPath": "docs/adr/0043-layer-evolution.md"
         },
         {
+          "context": "The tracing cleanup is the live proof. [ADR-0041](0041-unified-observability.md) already says core owns intrinsic tracing, `@ontrails/observe` owns app-facing sink contracts, and `@ontrails/tracing` r",
+          "from": "0051",
+          "fromPath": "docs/adr/0051-package-ownership-follows-natural-altitude.md"
+        },
+        {
           "context": "- docs/adr/0041-unified-observability.md",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-direct-invocation.md"
@@ -2506,11 +2511,6 @@
           "context": "- docs/adr/0041-unified-observability.md",
           "from": "20260503",
           "fromPath": "docs/adr/drafts/20260503-wayfinding.md"
-        },
-        {
-          "context": "The tracing cleanup is the live proof. [ADR-0041](../0041-unified-observability.md) already says core owns intrinsic tracing, `@ontrails/observe` owns app-facing sink contracts, and `@ontrails/tracing",
-          "from": "20260701",
-          "fromPath": "docs/adr/drafts/20260701-package-ownership-follows-natural-altitude.md"
         },
         {
           "context": "- [ADR-0041: Unified Observability](../adr/0041-unified-observability.md)",
@@ -2530,7 +2530,7 @@
       "status": "accepted",
       "superseded_by": null,
       "title": "Unified Observability",
-      "updated": "2026-05-19"
+      "updated": "2026-07-01"
     },
     {
       "created": "2026-05-02",
@@ -2919,6 +2919,19 @@
       "superseded_by": null,
       "title": "Surface Accommodations Preserve Trail Identity",
       "updated": "2026-06-14"
+    },
+    {
+      "created": "2026-07-01",
+      "depends_on": ["1", "9", "41"],
+      "inbound": [],
+      "number": "0051",
+      "owners": ["[galligan](https://github.com/galligan)"],
+      "path": "docs/adr/0051-package-ownership-follows-natural-altitude.md",
+      "slug": "package-ownership-follows-natural-altitude",
+      "status": "accepted",
+      "superseded_by": null,
+      "title": "Package Ownership Follows Natural Altitude",
+      "updated": "2026-07-01"
     }
   ],
   "version": 1

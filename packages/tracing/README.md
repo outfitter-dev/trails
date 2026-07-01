@@ -12,13 +12,17 @@ Use `@ontrails/tracing` when you need compatibility imports for core tracing pri
 
 The `@ontrails/tracing/otel` subpath is the supported v1 OpenTelemetry adapter path. It exports adapter-named APIs such as `createOtelAdapter`, `OtelAdapterOptions`, `OtelExporter`, and `OtelSpan`; no separate `@ontrails/otel` package exists for v1. Trails keeps the internal trace model native to `TraceRecord`, then translates outward at this subpath so the adapter does not force an OpenTelemetry SDK dependency on every tracing user.
 
+Compatibility exports in this package are shims, not second implementations. Core owns `TraceRecord`, trace context, sink registration, activation records, and signal trace writing. Observe owns bounded memory sink behavior. This package re-exports or wraps those owners so older imports continue to work while new code can import from the natural owner directly.
+
+For migration, `@ontrails/tracing` still re-exports core tracing primitives such as `registerTraceSink`, `clearTraceSink`, and `NOOP_SINK`. New code should import those primitives from `@ontrails/core`.
+
 ## The core pattern
 
 ### 1. Register a sink
 
 ```typescript
 import { createMemorySink } from '@ontrails/observe';
-import { registerTraceSink } from '@ontrails/tracing';
+import { registerTraceSink } from '@ontrails/core';
 
 const sink = createMemorySink({ maxRecords: 1000 });
 registerTraceSink(sink);
@@ -104,7 +108,7 @@ For testing and demos:
 
 ```typescript
 import { createMemorySink } from '@ontrails/observe';
-import { registerTraceSink, clearTraceSink } from '@ontrails/tracing';
+import { clearTraceSink, registerTraceSink } from '@ontrails/core';
 
 const sink = createMemorySink({ maxRecords: 500 });
 registerTraceSink(sink);
@@ -118,18 +122,15 @@ try {
 }
 ```
 
-`createMemorySink()` is bounded by default. Older records drop once `maxRecords` is reached, and `sink.droppedCount` reports how many were discarded since the last `sink.clear()`. `createBoundedMemorySink()` is an explicit alias for the same factory. `clearTraceSink()` restores `NOOP_SINK`.
+`createMemorySink()` is bounded by default. Older records drop once `maxRecords` is reached, and `sink.droppedCount` reports how many were discarded since the last `sink.clear()`. The `@ontrails/tracing` export is a compatibility wrapper over the `@ontrails/observe` implementation: prefer `@ontrails/observe` for new sink usage, and keep the tracing import only when migrating older code. `createBoundedMemorySink()` is an explicit alias for the same factory. `clearTraceSink()` restores `NOOP_SINK`.
 
 ### Dev store
 
 SQLite-backed persistence for local development:
 
 ```typescript
-import {
-  createDevStore,
-  registerTraceSink,
-  registerTraceStore,
-} from '@ontrails/tracing';
+import { registerTraceSink } from '@ontrails/core';
+import { createDevStore, registerTraceStore } from '@ontrails/tracing';
 
 const store = createDevStore({
   path: './debug.db',
@@ -148,7 +149,7 @@ Export traces to any OTel-compatible collector:
 
 ```typescript
 import { createOtelAdapter } from '@ontrails/tracing/otel';
-import { registerTraceSink } from '@ontrails/tracing';
+import { registerTraceSink } from '@ontrails/core';
 
 const sink = createOtelAdapter({
   exporter: async (spans) => {
@@ -200,7 +201,7 @@ if (shouldSample('read', config)) {
 
 ```typescript
 import { createMemorySink } from '@ontrails/observe';
-import { registerTraceSink, clearTraceSink } from '@ontrails/tracing';
+import { clearTraceSink, registerTraceSink } from '@ontrails/core';
 import { testAll } from '@ontrails/testing';
 
 const sink = createMemorySink();
@@ -220,5 +221,5 @@ Use `clearTraceSink()` or `registerTraceSink(NOOP_SINK)` to switch back to the s
 ## Installation
 
 ```bash
-bun add @ontrails/observe @ontrails/tracing
+bun add @ontrails/core @ontrails/observe @ontrails/tracing
 ```
