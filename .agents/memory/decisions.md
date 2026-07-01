@@ -244,3 +244,15 @@ Merit aside: a *gate* is a point (binary allow/deny on a path); the job is a *br
 **Basis (tenets):** regressions-harden-the-trail (the dogfood to substrate loop is the v1 posture); derive-by-default + the-contract-is-queryable (preserve derivation); one-schema / surfaces-are-peers (input precedence); kind-by-coverage (code vs prose engines).
 
 **Confidence:** High. RETRO: `.agents/goals/2026-06-30-regrade-vocab-tracer/RETRO.md`. Follow-ups teed up: CLI precedence, derived-preserve substrate, phase-2 gated slice — all relate to TRL-1116.
+
+### 2026-07-01 Issue-writing fall-down: components captured, seams orphaned (from the TRL-1125 miss)
+
+**Question:** The one-command governed-code invocation (TRL-1125) escaped V0 planning even though every component — engine (1120), registry (1121), classification (1122), derived-preserve (1118) — had an issue and V0 was declared done. It was found only by *running* the engine by hand. Matt: "tells me there's a fall down in how we write issues." Root cause + fix?
+
+**Decision (diagnosis):** We decompose issues by **component (noun/capability)** and define "done" at the **component level** ("this piece compiles and its tests pass"). Nothing forces the parts to *compose* into a usable end-to-end flow, so the **seam** — the verb that wires the nouns into a one-command journey — gets no issue and no owner, and hides inside a per-consumer execution issue. A milestone then reads 100% done while the thing it's for can't be run. Sharpest form: **the substrate had no surface.** We'd never ship a public trail without its surface+docs, but we shipped a substrate without its invocation because internally "compiles + tests" counted as done — i.e. **internal substrate escaped our own distribution-ready-done bar.** Compounded by building **bottom-up/parts-first** with no top-down tracer to force the seams.
+
+**Fix (how to write issues):** (1) A milestone isn't done until there's a **usable end-to-end proof** (a tracer / one-command demo), not just "each component works." (2) Write the **seam/integration issue explicitly, at its shared altitude** — never folded into a per-consumer execution issue. (3) Run a **thin top-down tracer first** to force seams before building parts thick. (4) Apply **distribution-ready-done to substrate** (invocation + docs are part of substrate done), not just public features.
+
+**Other same-class gaps found:** v1-workflow docs/agent-guidance (no issue at all); the `reviewDeclarationTypes` public-API auto-rename-vs-review policy (confirm it's inside TRL-1123's "review gates" or capture it).
+
+**Basis (tenets):** "ship the whole developer experience" / done-means-usable-teachable-releasable — applied to substrate, not just features; natural-altitude (seams live at shared altitude). **Confidence:** High. Fourth run-exposed gap in the loop (structured-preserve, md-code-shield, `--input-json`, now TRL-1125) — the pattern is that *running* finds seams that *reading/planning* cannot.

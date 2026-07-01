@@ -66,3 +66,14 @@ export const listVocabularyRegradePlansFromRegistry =
     listGovernedVocabularyTransitions()
       .map(vocabularyRegradePlanFromTransition)
       .filter((plan): plan is VocabularyRegradePlan => plan !== null);
+
+export const vocabularyRegradeTransitionForInput = (
+  from: string,
+  to: string
+): GovernedVocabularyTransition | undefined =>
+  listGovernedVocabularyTransitions().find(
+    (transition) =>
+      transition.from === from &&
+      transition.target.kind === 'single' &&
+      transition.target.to === to
+  );

@@ -22,6 +22,7 @@ export {
 export {
   listVocabularyRegradePlansFromRegistry,
   vocabularyRegradePlanFromTransition,
+  vocabularyRegradeTransitionForInput,
 } from './downstream/vocabulary-registry.js';
 export type {
   RegradeApplySummary,

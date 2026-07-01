@@ -73,6 +73,8 @@ export interface DownstreamCollectionOptions {
   readonly extensions?: readonly string[];
   /** Root-relative path globs to skip before collection. */
   readonly exclude?: readonly string[];
+  /** Root-relative path globs to collect. Omit to collect all matching files. */
+  readonly include?: readonly string[];
 }
 
 /** Outcome of classifying a single directory entry. */
@@ -204,7 +206,15 @@ export const collectDownstreamSources = (
         options
       );
       if (classification.action === 'collect') {
-        files.push({ absolutePath, path });
+        if (
+          options.include !== undefined &&
+          options.include.length > 0 &&
+          !matchesAnyPathGlob(path, options.include)
+        ) {
+          skipped.push({ path, reason: 'not-included-glob' });
+        } else {
+          files.push({ absolutePath, path });
+        }
       } else if (classification.action === 'recurse') {
         queue.push(absolutePath);
       } else {
@@ -231,6 +241,10 @@ export const collectDownstreamSourcesInput = z.object({
     .array(z.string())
     .optional()
     .describe('Directory names to skip during collection'),
+  include: z
+    .array(z.string())
+    .optional()
+    .describe('Root-relative path globs to collect'),
   root: z
     .string()
     .describe('Absolute path to the downstream repo root to scan'),
@@ -273,6 +287,7 @@ export const collectDownstreamSourcesTrail = trail(
           ? {}
           : { extensions: input.extensions }),
         ...(input.exclude === undefined ? {} : { exclude: input.exclude }),
+        ...(input.include === undefined ? {} : { include: input.include }),
         ...(input.ignoredDirectories === undefined
           ? {}
           : { ignoredDirectories: input.ignoredDirectories }),

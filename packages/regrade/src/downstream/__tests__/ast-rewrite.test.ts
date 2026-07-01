@@ -207,6 +207,33 @@ describe('createAstIdentifierRenameClass', () => {
     );
   });
 
+  test('preserves individual identifier occurrences when requested', () => {
+    const cls = createAstIdentifierRenameClass({
+      from: 'sourceTerm',
+      shouldPreserve: (occurrence) =>
+        occurrence.path === 'src/sourceTerm.ts' &&
+        occurrence.start < occurrence.source.indexOf('other'),
+      to: 'targetTerm',
+    });
+    const result = cls.apply(
+      [
+        'export const sourceTerm = 1;',
+        'export const other = sourceTerm;',
+        '',
+      ].join('\n'),
+      { path: 'src/sourceTerm.ts' }
+    );
+
+    expect(result.kind).toBe('rewrite');
+    expect(result.nextSource).toBe(
+      [
+        'export const sourceTerm = 1;',
+        'export const other = targetTerm;',
+        '',
+      ].join('\n')
+    );
+  });
+
   test('routes configured shadowed declarations to review', () => {
     const cls = createAstIdentifierRenameClass({
       from: 'sourceTerm',
