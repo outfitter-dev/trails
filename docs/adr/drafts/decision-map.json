@@ -325,6 +325,19 @@
       "superseded_by": null,
       "title": "Project Substrate Names Its Truth",
       "updated": "2026-06-22"
+    },
+    {
+      "created": "2026-07-01",
+      "depends_on": ["1", "9", "41"],
+      "inbound": [],
+      "number": null,
+      "owners": ["[galligan](https://github.com/galligan)"],
+      "path": "docs/adr/drafts/20260701-package-ownership-follows-natural-altitude.md",
+      "slug": "package-ownership-follows-natural-altitude",
+      "status": "draft",
+      "superseded_by": null,
+      "title": "Package Ownership Follows Natural Altitude",
+      "updated": "2026-07-01"
     }
   ],
   "version": 1

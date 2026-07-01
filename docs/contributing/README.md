@@ -10,6 +10,8 @@ If you are building an app with Trails, start with the user-facing docs in [`doc
   criteria, and code shape conventions.
 - [Codebase Navigation](./codebase-navigation.md) — repository orientation,
   source-of-truth locations, generated files, and symbol navigation.
+- [Package Ownership Map](./package-ownership.md) — current natural-altitude
+  map for cross-cutting capabilities and proposed extractions.
 - [Warden Rules](./warden-rules.md) — how to author and audit durable Warden
   and repo-local correctness rules.
 - [Script Graduation](./script-graduation.md) — when root-script behavior must
