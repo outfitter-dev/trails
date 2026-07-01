@@ -228,3 +228,19 @@ Merit aside: a *gate* is a point (binary allow/deny on a path); the job is a *br
 **Basis (tenets):** the evaluation hierarchy ("can this be a specialization of an existing primitive?") applied at package scope; "one write, many reads." The guard is gate-on-demonstrated-need (avoid speculatively centralizing).
 
 **Confidence:** High on the principle (Matt co-developed + endorsed). ADR/map pending (TRL-1110 → TRL-1111). The whole Coherence Cleanup project is this doctrine applied tactically.
+
+### 2026-06-30 Regrade vocabulary-transition model (from the facet to trailhead dogfood)
+
+**Question:** Lewis's first v1 vocabulary dogfood (`facet` to `trailhead`, prose docs) ended with safe rewrites exhausted plus 38 *classified* review occurrences (gate intentionally open). Five doctrine questions from the RETRO: completion shape, preserve-rule home, code-context handling, `--input-json` precedence, phase-2 readiness.
+
+**Decisions:**
+
+1. **Completion = family/slice + classification, NOT a gate redefinition.** Vocabulary transitions migrate family-by-family. A *slice* is complete when its authorized family's safe rewrites are exhausted AND every remaining occurrence is *classified* (preserve, or a named out-of-family/future slice). The run gate ("green = nothing deferred") is unchanged; open *classified* inventory is the slice handoff; raw *unclassified* deferred still blocks. A classified-out occurrence is `skipped(reason)` / a forward-pointer, not raw `deferred`.
+2. **Preserve rules split by provenance; derive the bulk.** Derived (live-API/stable-IDs from the topo; don't hand-list; contract-is-queryable), authored-durable (plan-level idioms the framework can't derive), per-run tactical (operator run input; transient). The hand-maintained list is the parallel-ledger smell: derive it.
+3. **Code contexts are out-of-engine for prose regrades (a kind-boundary).** Vocabulary regrades operate on prose only; code/identifier contexts (markdown code, string literals, identifiers) route to inventory and are handled by the AST `symbol` regrade or preserve. The `markdown-code-context` deferral is the general rule.
+4. **`--input-json` precedence is a surface/CLI doctrine bug, not Regrade.** Explicit (flag OR structured) beats default; flag-default applies only when neither set the value. Surfaces-are-peers (CLI/MCP parity). Regrade only *exposed* it.
+5. **Phase 2 (code/API `facet` to `trailhead`) is gated, not by-hand.** Ready to plan, but must be Regrade-driven on substrate: the AST symbol-regrade class + governed-transition provenance (TRL-1116) + the derived live-API preserve inventory. Don't touch live API by hand (= the C2-stack mistake we corrected).
+
+**Basis (tenets):** regressions-harden-the-trail (the dogfood to substrate loop is the v1 posture); derive-by-default + the-contract-is-queryable (preserve derivation); one-schema / surfaces-are-peers (input precedence); kind-by-coverage (code vs prose engines).
+
+**Confidence:** High. RETRO: `.agents/goals/2026-06-30-regrade-vocab-tracer/RETRO.md`. Follow-ups teed up: CLI precedence, derived-preserve substrate, phase-2 gated slice — all relate to TRL-1116.
