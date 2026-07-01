@@ -96,6 +96,24 @@ export type {
 } from './types.js';
 
 export {
+  formatGovernedVocabularyTransitionGuide,
+  getGovernedVocabularyTransition,
+  governedVocabularyPreserveRuleSchema,
+  governedVocabularyRegistrySchema,
+  governedVocabularyTargetSchema,
+  governedVocabularyTransitionSchema,
+  governedVocabularyTransitionStatuses,
+  governedVocabularyTransitions,
+  listGovernedVocabularyTransitions,
+  requireGovernedVocabularyTransition,
+} from './retired-vocabulary.js';
+export type {
+  GovernedVocabularyPreserveRule,
+  GovernedVocabularyTarget,
+  GovernedVocabularyTransition,
+  GovernedVocabularyTransitionInput,
+} from './retired-vocabulary.js';
+export {
   builtinWardenRuleMetadata,
   getWardenRuleMetadata,
   listWardenRuleMetadata,

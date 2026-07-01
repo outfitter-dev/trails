@@ -38,6 +38,8 @@ export interface VocabularyRegradeScope {
 }
 
 export interface VocabularyRegradePlan {
+  readonly caseSensitive?: boolean;
+  readonly deferForms?: readonly string[];
   readonly from: string;
   readonly id?: string;
   readonly intent?: string;
@@ -98,6 +100,8 @@ interface SourceFile {
 interface SourceOccurrence extends VocabularyOccurrence {
   readonly absolutePath: string;
 }
+
+type SourceOccurrenceDraft = Omit<SourceOccurrence, 'reason' | 'verdict'>;
 
 interface VocabularyEvaluation {
   readonly entries: readonly RegradeReportEntry[];
@@ -331,6 +335,9 @@ const targetFormsForPlan = (
   return forms;
 };
 
+const deferFormsForPlan = (plan: VocabularyRegradePlan): readonly string[] =>
+  Array.isArray(plan.deferForms) ? uniqueSorted(plan.deferForms) : [];
+
 const validateVocabularyPlan = (
   plan: VocabularyRegradePlan
 ): Result<void, ValidationError> => {
@@ -360,6 +367,15 @@ const validateVocabularyPlan = (
       );
     }
   }
+  for (const form of deferFormsForPlan(plan)) {
+    if (form.trim().length === 0) {
+      return Result.err(
+        new ValidationError(
+          'Vocabulary Regrade plan deferForms entries cannot be empty.'
+        )
+      );
+    }
+  }
   for (const rule of plan.preserve ?? []) {
     if (rule.pattern.trim().length === 0) {
       return Result.err(
@@ -371,6 +387,9 @@ const validateVocabularyPlan = (
   }
   return Result.ok();
 };
+
+const vocabularyScanFlags = (plan: VocabularyRegradePlan): string =>
+  plan.caseSensitive === true ? 'g' : 'gi';
 
 const includedByScope = (
   path: string,
@@ -390,7 +409,7 @@ const compilePreservePattern = (pattern: string): RegExp => {
 };
 
 const preserveRuleForOccurrence = (
-  occurrence: Omit<SourceOccurrence, 'reason' | 'verdict'>,
+  occurrence: SourceOccurrenceDraft,
   plan: VocabularyRegradePlan
 ): VocabularyPreserveRule | undefined =>
   plan.preserve?.find((rule) => {
@@ -406,10 +425,87 @@ const preserveRuleForOccurrence = (
     );
   });
 
+const occurrenceOverlaps = (
+  occurrences: readonly SourceOccurrence[],
+  start: number,
+  end: number
+): boolean =>
+  occurrences.some(
+    (occurrence) => start < occurrence.end && occurrence.start < end
+  );
+
+const occurrenceDraftForSpan = (
+  file: SourceFile,
+  start: number,
+  end: number,
+  form = file.source.slice(start, end)
+): SourceOccurrenceDraft => {
+  const { column, line } = lineColumnForOffset(file.source, start);
+  return {
+    absolutePath: file.absolutePath,
+    column,
+    context: contextForOffset(file.source, start, end),
+    end,
+    form,
+    line,
+    path: file.path,
+    start,
+  };
+};
+
+const deferredOccurrenceFromDraft = (
+  file: SourceFile,
+  plan: VocabularyRegradePlan,
+  baseOccurrence: SourceOccurrenceDraft,
+  reason = 'unclassified-neighbor'
+): SourceOccurrence => {
+  const preserveRule = preserveRuleForOccurrence(baseOccurrence, plan);
+  return {
+    ...baseOccurrence,
+    reason: vocabularyOccurrenceReason(
+      preserveRule,
+      isMarkdownCodeContext(file, baseOccurrence.start, baseOccurrence.end),
+      reason
+    ),
+    verdict: preserveRule === undefined ? 'deferred' : 'skipped',
+  };
+};
+
+const exactDeferredFormOccurrencesForFile = (
+  file: SourceFile,
+  plan: VocabularyRegradePlan,
+  deferForms: readonly string[]
+): readonly SourceOccurrence[] => {
+  const occurrences: SourceOccurrence[] = [];
+  for (const form of deferForms) {
+    const pattern = new RegExp(escapeRegExp(form), vocabularyScanFlags(plan));
+    for (const match of file.source.matchAll(pattern)) {
+      const start = match.index ?? 0;
+      const end = start + match[0].length;
+      if (
+        !hasWordBoundary(file.source, start, end) ||
+        occurrenceOverlaps(occurrences, start, end)
+      ) {
+        continue;
+      }
+      occurrences.push(
+        deferredOccurrenceFromDraft(
+          file,
+          plan,
+          occurrenceDraftForSpan(file, start, end, match[0]),
+          'deferred-form'
+        )
+      );
+    }
+  }
+  return occurrences;
+};
+
 const occurrencesForFile = (
   file: SourceFile,
   plan: VocabularyRegradePlan,
-  targetForms: Map<string, string>
+  targetForms: Map<string, string>,
+  deferredOccurrences: readonly SourceOccurrence[]
 ): readonly SourceOccurrence[] => {
   const occurrences: SourceOccurrence[] = [];
   const candidates: SourceOccurrence[] = [];
@@ -418,11 +514,14 @@ const occurrencesForFile = (
   );
 
   for (const [form, replacement] of forms) {
-    const pattern = new RegExp(escapeRegExp(form), 'gi');
+    const pattern = new RegExp(escapeRegExp(form), vocabularyScanFlags(plan));
     for (const match of file.source.matchAll(pattern)) {
       const start = match.index ?? 0;
       const end = start + match[0].length;
-      if (!hasWordBoundary(file.source, start, end)) {
+      if (
+        !hasWordBoundary(file.source, start, end) ||
+        occurrenceOverlaps(deferredOccurrences, start, end)
+      ) {
         continue;
       }
       const { column, line } = lineColumnForOffset(file.source, start);
@@ -479,29 +578,23 @@ const deferredOccurrencesForFile = (
   plan: VocabularyRegradePlan,
   targetForms: Map<string, string>
 ): readonly SourceOccurrence[] => {
+  const deferForms = deferFormsForPlan(plan);
   const knownForms = new Set(
-    [...targetForms.keys()].flatMap((form) => [form, form.toLowerCase()])
+    plan.caseSensitive === true
+      ? [...targetForms.keys(), ...deferForms]
+      : [...targetForms.keys(), ...deferForms].flatMap((form) => [
+          form,
+          form.toLowerCase(),
+        ])
   );
   const lowerFrom = plan.from.toLowerCase();
   const tokenPattern = /[A-Za-z_$][A-Za-z0-9_$-]*/g;
-  const occurrences: SourceOccurrence[] = [];
-  const pushOccurrence = (
-    baseOccurrence: Omit<SourceOccurrence, 'reason' | 'verdict'>
-  ): void => {
-    const preserveRule = preserveRuleForOccurrence(baseOccurrence, plan);
-    occurrences.push({
-      ...baseOccurrence,
-      reason: vocabularyOccurrenceReason(
-        preserveRule,
-        isMarkdownCodeContext(file, baseOccurrence.start, baseOccurrence.end),
-        'unclassified-neighbor'
-      ),
-      verdict: preserveRule === undefined ? 'deferred' : 'skipped',
-    });
-  };
+  const occurrences = [
+    ...exactDeferredFormOccurrencesForFile(file, plan, deferForms),
+  ];
 
   for (const form of targetForms.keys()) {
-    const pattern = new RegExp(escapeRegExp(form), 'gi');
+    const pattern = new RegExp(escapeRegExp(form), vocabularyScanFlags(plan));
     for (const match of file.source.matchAll(pattern)) {
       const matchStart = match.index ?? 0;
       const matchEnd = matchStart + match[0].length;
@@ -515,35 +608,31 @@ const deferredOccurrencesForFile = (
       );
       const matchedForm = file.source.slice(start, end);
       const lowerMatchedForm = matchedForm.toLowerCase();
-      const overlaps = occurrences.some(
-        (occurrence) => start < occurrence.end && occurrence.start < end
-      );
       if (
-        overlaps ||
+        occurrenceOverlaps(occurrences, start, end) ||
         knownForms.has(matchedForm) ||
-        knownForms.has(lowerMatchedForm) ||
+        (plan.caseSensitive !== true && knownForms.has(lowerMatchedForm)) ||
         !lowerMatchedForm.includes(lowerFrom)
       ) {
         continue;
       }
-      const { column, line } = lineColumnForOffset(file.source, start);
-      pushOccurrence({
-        absolutePath: file.absolutePath,
-        column,
-        context: contextForOffset(file.source, start, end),
-        end,
-        form: matchedForm,
-        line,
-        path: file.path,
-        start,
-      });
+      occurrences.push(
+        deferredOccurrenceFromDraft(
+          file,
+          plan,
+          occurrenceDraftForSpan(file, start, end, matchedForm)
+        )
+      );
     }
   }
 
   for (const match of file.source.matchAll(tokenPattern)) {
     const [form] = match;
     const lower = form.toLowerCase();
-    if (knownForms.has(form) || knownForms.has(lower)) {
+    if (
+      knownForms.has(form) ||
+      (plan.caseSensitive !== true && knownForms.has(lower))
+    ) {
       continue;
     }
     if (!lower.includes(lowerFrom)) {
@@ -551,23 +640,16 @@ const deferredOccurrencesForFile = (
     }
     const start = match.index ?? 0;
     const end = start + form.length;
-    const overlaps = occurrences.some(
-      (occurrence) => start < occurrence.end && occurrence.start < end
-    );
-    if (overlaps) {
+    if (occurrenceOverlaps(occurrences, start, end)) {
       continue;
     }
-    const { column, line } = lineColumnForOffset(file.source, start);
-    pushOccurrence({
-      absolutePath: file.absolutePath,
-      column,
-      context: contextForOffset(file.source, start, end),
-      end,
-      form,
-      line,
-      path: file.path,
-      start,
-    });
+    occurrences.push(
+      deferredOccurrenceFromDraft(
+        file,
+        plan,
+        occurrenceDraftForSpan(file, start, end, form)
+      )
+    );
   }
   return occurrences.toSorted((left, right) =>
     left.path === right.path
@@ -663,10 +745,22 @@ const buildVocabularyEvaluation = (params: {
   const scopeSkipped: SkippedSource[] = params.files
     .filter((file) => !includedByScope(file.path, params.plan.scope))
     .map((file) => ({ path: file.path, reason: 'excluded-by-regrade-scope' }));
-  const occurrences = scopedFiles.flatMap((file) => [
-    ...occurrencesForFile(file, params.plan, targetForms),
-    ...deferredOccurrencesForFile(file, params.plan, targetForms),
-  ]);
+  const occurrences = scopedFiles.flatMap((file) => {
+    const deferredOccurrences = deferredOccurrencesForFile(
+      file,
+      params.plan,
+      targetForms
+    );
+    return [
+      ...occurrencesForFile(
+        file,
+        params.plan,
+        targetForms,
+        deferredOccurrences
+      ),
+      ...deferredOccurrences,
+    ];
+  });
   const occurrencesByPath = new Map<string, SourceOccurrence[]>();
   for (const occurrence of occurrences) {
     const existing = occurrencesByPath.get(occurrence.path) ?? [];
@@ -993,6 +1087,14 @@ const vocabularyRegradeScopeSchema = z.object({
 });
 
 export const vocabularyRegradePlanSchema = z.object({
+  caseSensitive: z
+    .boolean()
+    .optional()
+    .describe('Whether source form scanning preserves case exactly'),
+  deferForms: z
+    .array(z.string().min(1))
+    .optional()
+    .describe('Known forms that must be inventoried for review, not rewritten'),
   from: z.string().min(1).describe('Source vocabulary term or phrase'),
   id: z.string().optional().describe('Stable authored regrade plan id'),
   intent: z.string().optional().describe('Human-authored migration intent'),

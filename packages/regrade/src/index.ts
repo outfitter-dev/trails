@@ -18,6 +18,10 @@ export {
   vocabularyRegradePlanSchema,
   vocabularyRegradeRunOutput,
 } from './downstream/vocabulary.js';
+export {
+  listVocabularyRegradePlansFromRegistry,
+  vocabularyRegradePlanFromTransition,
+} from './downstream/vocabulary-registry.js';
 export type {
   RegradeApplySummary,
   RegradeClass,

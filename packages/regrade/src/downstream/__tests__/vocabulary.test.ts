@@ -8,11 +8,16 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
+import { getGovernedVocabularyTransition } from '@ontrails/warden';
 
 import {
   runVocabularyRegrade,
   vocabularyRegradePlanSchema,
 } from '../vocabulary.js';
+import {
+  listVocabularyRegradePlansFromRegistry,
+  vocabularyRegradePlanFromTransition,
+} from '../vocabulary-registry.js';
 
 const makeTempDir = (): string =>
   mkdtempSync(join(tmpdir(), `trails-vocabulary-regrade-${Date.now()}-`));
@@ -24,6 +29,173 @@ const writeFile = (root: string, path: string, value: string): void => {
 };
 
 describe('runVocabularyRegrade', () => {
+  test('runs single-target governed vocabulary transitions from the registry', () => {
+    const transition = getGovernedVocabularyTransition('v1-facet-trailhead');
+    expect(transition).toBeDefined();
+    if (transition === undefined) {
+      throw new Error('Expected facet vocabulary transition.');
+    }
+    const plan = vocabularyRegradePlanFromTransition(transition);
+    expect(plan).toMatchObject({
+      from: 'facet',
+      id: 'v1-facet-trailhead',
+      kind: 'vocabulary',
+      to: 'trailhead',
+    });
+    if (plan === null) {
+      throw new Error('Expected single-target transition to produce a plan.');
+    }
+
+    const dir = makeTempDir();
+    try {
+      writeFile(
+        dir,
+        'src/surface.ts',
+        'export const facets = ["facet"];\nexport const Facet = "review";\nexport const facetId = "manual";\n'
+      );
+
+      const result = runVocabularyRegrade({
+        plan: { ...plan, scope: { include: ['src/**/*.ts'] } },
+        root: dir,
+      });
+
+      expect(result.isOk()).toBe(true);
+      if (result.isErr()) {
+        throw result.error;
+      }
+      expect(result.value.run.ledger.forms).toMatchObject({
+        Facet: 'deferred',
+        facet: 'modified',
+        facetId: 'deferred',
+        facets: 'modified',
+      });
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('does not turn classified vocabulary transitions into unsafe plans', () => {
+    const transition = getGovernedVocabularyTransition(
+      'v1-projection-derive-render'
+    );
+    expect(transition).toBeDefined();
+    if (transition === undefined) {
+      throw new Error('Expected projection vocabulary transition.');
+    }
+
+    expect(vocabularyRegradePlanFromTransition(transition)).toBeNull();
+  });
+
+  test('does not turn review-only registry defaults into unsafe plans', () => {
+    const transition = getGovernedVocabularyTransition('cross-compose');
+    expect(transition).toBeDefined();
+    if (transition === undefined) {
+      throw new Error('Expected cross vocabulary transition.');
+    }
+
+    expect(vocabularyRegradePlanFromTransition(transition)).toBeNull();
+    expect(
+      listVocabularyRegradePlansFromRegistry().map((plan) => plan.id)
+    ).not.toContain('cross-compose');
+  });
+
+  test('registry-generated plans preserve review forms as deferred inventory', () => {
+    const transition = getGovernedVocabularyTransition(
+      'v1-blaze-implementation'
+    );
+    expect(transition).toBeDefined();
+    if (transition === undefined) {
+      throw new Error('Expected blaze vocabulary transition.');
+    }
+    const plan = vocabularyRegradePlanFromTransition(transition);
+    if (plan === null) {
+      throw new Error(
+        'Expected blaze vocabulary transition to produce a plan.'
+      );
+    }
+    expect(plan).toMatchObject({
+      from: 'blaze',
+      id: 'v1-blaze-implementation',
+      kind: 'vocabulary',
+      to: 'implementation',
+    });
+    expect(plan.deferForms).toContain('blazing');
+
+    const dir = makeTempDir();
+    try {
+      writeFile(
+        dir,
+        'src/blaze.ts',
+        'export const blaze = "safe";\nexport const blazing = "review";\n'
+      );
+
+      const result = runVocabularyRegrade({
+        plan: { ...plan, scope: { include: ['src/**/*.ts'] } },
+        root: dir,
+      });
+
+      expect(result.isOk()).toBe(true);
+      if (result.isErr()) {
+        throw result.error;
+      }
+      expect(result.value.run.ledger.forms).toMatchObject({
+        blaze: 'modified',
+        blazing: 'deferred',
+      });
+      expect(result.value.run.report.gate.status).toBe('open');
+      expect(result.value.run.report.gate.reasons).toContain(
+        'deferred-forms-or-occurrences'
+      );
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('lets deferred forms take precedence over safe rewrite targets', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(dir, 'src/surface.ts', 'export const facet = "facet";\n');
+
+      const result = runVocabularyRegrade({
+        apply: true,
+        plan: {
+          deferForms: ['facet'],
+          from: 'facet',
+          kind: 'vocabulary',
+          scope: { include: ['src/**/*.ts'] },
+          to: 'trailhead',
+        },
+        root: dir,
+      });
+
+      expect(result.isOk()).toBe(true);
+      if (result.isErr()) {
+        throw result.error;
+      }
+      expect(result.value.run.ledger.forms).toEqual({ facet: 'deferred' });
+      expect(
+        result.value.run.ledger.occurrences.every(
+          (occurrence) => occurrence.verdict === 'deferred'
+        )
+      ).toBe(true);
+      expect(result.value.run.report).toMatchObject({
+        deferred: 2,
+        gate: {
+          reasons: ['deferred-forms-or-occurrences'],
+          remaining: 2,
+          status: 'open',
+        },
+        modified: 0,
+        open: 2,
+      });
+      expect(readFileSync(join(dir, 'src', 'surface.ts'), 'utf8')).toBe(
+        'export const facet = "facet";\n'
+      );
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
   test('dry-runs authored vocabulary plans into plan ledger report shape', () => {
     const dir = makeTempDir();
     try {

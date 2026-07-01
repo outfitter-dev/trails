@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 
 import { noRetiredCrossVocabulary } from '../rules/no-retired-cross-vocabulary.js';
+import { requireGovernedVocabularyTransition } from '../rules/retired-vocabulary.js';
 
 const RULE_NAME = 'no-retired-cross-vocabulary';
 
@@ -53,6 +54,29 @@ describe('no-retired-cross-vocabulary', () => {
         },
       ]
     );
+  });
+
+  test('safe rewrites come from the governed vocabulary registry', () => {
+    const transition = requireGovernedVocabularyTransition('cross-compose');
+    const source = [
+      'const a = ctx.cross(loadTrack, input);',
+      'const b = crossInput;',
+      'const c = crosses;',
+    ].join('\n');
+
+    const diagnostics = check(source);
+
+    const replacementsBySourceForm = Object.fromEntries(
+      diagnostics.map((diagnostic) => {
+        const edit = diagnostic.fix?.edits?.[0];
+        if (edit === undefined) {
+          throw new Error('Expected safe rewrite edit.');
+        }
+        return [source.slice(edit.start, edit.end), edit.replacement];
+      })
+    );
+
+    expect(replacementsBySourceForm).toEqual(transition.safeRewriteForms);
   });
 
   test('routes Cross type prefixes and partial identifiers to review', () => {
@@ -121,6 +145,7 @@ describe('no-retired-cross-vocabulary', () => {
       '/repo/docs/adr/0049-composition-is-compose-not-cross.md',
       '/repo/packages/warden/src/rules/no-retired-cross-vocabulary.ts',
       '/repo/packages/warden/src/rules/metadata.ts',
+      '/repo/packages/warden/src/rules/retired-vocabulary.ts',
       '/repo/packages/warden/src/trails/no-retired-cross-vocabulary.trail.ts',
     ]) {
       const diagnostics = noRetiredCrossVocabulary.check(

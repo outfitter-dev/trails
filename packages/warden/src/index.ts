@@ -35,8 +35,18 @@ export type {
 // Rule registry
 export {
   builtinWardenRuleMetadata,
+  formatGovernedVocabularyTransitionGuide,
+  getGovernedVocabularyTransition,
+  governedVocabularyPreserveRuleSchema,
+  governedVocabularyRegistrySchema,
+  governedVocabularyTargetSchema,
+  governedVocabularyTransitionSchema,
+  governedVocabularyTransitionStatuses,
+  governedVocabularyTransitions,
   getWardenRuleMetadata,
   listWardenRuleMetadata,
+  listGovernedVocabularyTransitions,
+  requireGovernedVocabularyTransition,
   wardenFixClasses,
   wardenFixSafeties,
   wardenRuleConcerns,
@@ -45,6 +55,12 @@ export {
   wardenRuleTiers,
   wardenRules,
   wardenTopoRules,
+} from './rules/index.js';
+export type {
+  GovernedVocabularyPreserveRule,
+  GovernedVocabularyTarget,
+  GovernedVocabularyTransition,
+  GovernedVocabularyTransitionInput,
 } from './rules/index.js';
 
 // Rule-scoped cache controls for long-lived consumers (watch mode, LSPs).

@@ -8,17 +8,25 @@
  */
 import { resolve, sep } from 'node:path';
 
+import { requireGovernedVocabularyTransition } from './retired-vocabulary.js';
 import type { WardenDiagnostic, WardenFix, WardenRule } from './types.js';
 
 const RULE_NAME = 'no-retired-cross-vocabulary';
 
-const SAFE_REWRITES = [
-  { from: 'ctx.cross', to: 'ctx.compose' },
-  { from: 'crossInput', to: 'composeInput' },
-  { from: 'crosses', to: 'composes' },
-] as const;
+const CROSS_COMPOSE_TRANSITION =
+  requireGovernedVocabularyTransition('cross-compose');
 
-const REVIEW_TERMS = ['Cross', 'cross'] as const;
+if (CROSS_COMPOSE_TRANSITION.target.kind !== 'single') {
+  throw new Error('cross-compose transition must have a single target.');
+}
+
+const COMPOSE_TARGET = CROSS_COMPOSE_TRANSITION.target.to;
+
+const SAFE_REWRITES = Object.entries(
+  CROSS_COMPOSE_TRANSITION.safeRewriteForms
+).map(([from, to]) => ({ from, to }));
+
+const REVIEW_TERMS = CROSS_COMPOSE_TRANSITION.reviewForms;
 
 const IDENTIFIER_CHAR = /[$0-9A-Z_a-z]/u;
 
@@ -28,6 +36,7 @@ const ALLOWED_PATH_SUFFIXES: readonly string[] = [
   '/docs/adr/0049-composition-is-compose-not-cross.md',
   '/packages/warden/src/rules/no-retired-cross-vocabulary.ts',
   '/packages/warden/src/rules/metadata.ts',
+  '/packages/warden/src/rules/retired-vocabulary.ts',
   '/packages/warden/src/trails/no-retired-cross-vocabulary.trail.ts',
   '/scripts/vocab-cutover-rewrite.ts',
 ];
@@ -40,7 +49,7 @@ interface SafeRewriteMatch {
 
 interface ReviewMatch {
   readonly index: number;
-  readonly term: (typeof REVIEW_TERMS)[number];
+  readonly term: string;
 }
 
 const normalizePath = (filePath: string): string =>
@@ -150,7 +159,7 @@ const safeFix = (match: SafeRewriteMatch): WardenFix => ({
 
 const reviewFix = (term: string): WardenFix => ({
   class: 'term-rewrite',
-  reason: `Retired composition vocabulary '${term}' appears in a larger or ambiguous form. Review before migrating to compose vocabulary.`,
+  reason: `Retired composition vocabulary '${term}' appears in a larger or ambiguous form. Review before migrating to ${COMPOSE_TARGET} vocabulary.`,
   safety: 'review',
 });
 
@@ -158,7 +167,7 @@ const safeMessage = (match: SafeRewriteMatch): string =>
   `Retired composition vocabulary '${match.from}' should be '${match.to}' after the beta.19 compose cutover.`;
 
 const reviewMessage = (term: string): string =>
-  `Retired composition vocabulary '${term}' needs review before migrating to compose vocabulary.`;
+  `Retired composition vocabulary '${term}' needs review before migrating to ${COMPOSE_TARGET} vocabulary.`;
 
 export const noRetiredCrossVocabulary: WardenRule = {
   check(sourceCode: string, filePath: string): readonly WardenDiagnostic[] {
