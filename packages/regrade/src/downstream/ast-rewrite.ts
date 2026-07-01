@@ -232,6 +232,18 @@ export interface AstIdentifierRenameClassOptions {
   readonly from: string;
   readonly id?: string;
   readonly reviewDeclarationTypes?: ReadonlySet<string>;
+  readonly shouldPreserve?: (
+    occurrence: AstIdentifierRenameOccurrence
+  ) => boolean;
+  readonly to: string;
+}
+
+export interface AstIdentifierRenameOccurrence {
+  readonly end: number;
+  readonly from: string;
+  readonly path: string;
+  readonly source: string;
+  readonly start: number;
   readonly to: string;
 }
 
@@ -288,6 +300,19 @@ export const createAstIdentifierRenameClass = (
         };
       }
 
+      if (
+        options.shouldPreserve?.({
+          end: span.end,
+          from: options.from,
+          path: context.path,
+          source: context.source,
+          start: span.start,
+          to: options.to,
+        }) === true
+      ) {
+        return null;
+      }
+
       const declaration = context.getDeclaration(options.from);
       if (declaration && reviewDeclarationTypes.has(declaration.type)) {
         const location = offsetToLineColumn(context.source, span.start);
@@ -321,7 +346,12 @@ export const createAstIdentifierRenameClass = (
 };
 
 export const createGovernedAstIdentifierRenameClasses = (
-  transition: GovernedVocabularyTransition
+  transition: GovernedVocabularyTransition,
+  options: {
+    readonly shouldPreserve?: (
+      occurrence: AstIdentifierRenameOccurrence
+    ) => boolean;
+  } = {}
 ): readonly RegradeClass[] =>
   transition.symbolRenames.map((rename) =>
     createAstIdentifierRenameClass({
@@ -329,6 +359,9 @@ export const createGovernedAstIdentifierRenameClasses = (
       from: rename.from,
       id: `ast-symbol-rename:${transition.id}:${rename.from}->${rename.to}`,
       reviewDeclarationTypes: new Set(rename.reviewDeclarationTypes),
+      ...(options.shouldPreserve === undefined
+        ? {}
+        : { shouldPreserve: options.shouldPreserve }),
       to: rename.to,
     })
   );

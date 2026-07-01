@@ -252,6 +252,41 @@ describe('runVocabularyRegrade', () => {
     }
   });
 
+  test('honors include globs when collecting vocabulary sources', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(dir, 'docs/keep.md', 'facet\n');
+      writeFile(dir, 'docs/skip.md', 'facet\n');
+
+      const result = runVocabularyRegrade({
+        apply: true,
+        plan: {
+          from: 'facet',
+          kind: 'vocabulary',
+          scope: { extensions: ['.md'], include: ['docs/keep.*'] },
+          to: 'trailhead',
+        },
+        root: dir,
+      });
+
+      expect(result.isOk()).toBe(true);
+      if (result.isErr()) {
+        throw result.error;
+      }
+      expect(result.value?.skipsByReason).toMatchObject({
+        'not-included-glob': 1,
+      });
+      expect(readFileSync(join(dir, 'docs', 'keep.md'), 'utf8')).toBe(
+        'trailhead\n'
+      );
+      expect(readFileSync(join(dir, 'docs', 'skip.md'), 'utf8')).toBe(
+        'facet\n'
+      );
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
   test('applies safe captures and preserves authored contexts', () => {
     const dir = makeTempDir();
     try {

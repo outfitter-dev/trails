@@ -1,4 +1,3 @@
-import { escapeRegExp } from '@ontrails/core';
 import type {
   VocabularyPreserveInventoryEntry,
   VocabularyRegradePlan,
@@ -10,9 +9,6 @@ import { getGovernedVocabularyTransition } from '@ontrails/warden';
 import { trailsMcpFacets } from '../mcp-options.js';
 
 const facetTransitionId = 'v1-facet-trailhead';
-
-const containedPattern = (value: string): string =>
-  `\\b${escapeRegExp(value)}\\b`;
 
 const sourceCodePaths = [
   '**/*.cjs',
@@ -84,8 +80,8 @@ export const deriveLiveApiPreserveInventory = async (
     addInventoryEntry(inventory, {
       evidence: ['topo.entry:wayfind.facets'],
       forms: ['facets'],
-      pattern: containedPattern('wayfind.facets'),
-      reason: 'current-live-trail-id',
+      pattern: String.raw`\bwayfind\.facets\b['"],\s*\{\s*facets\b`,
+      reason: 'current-live-trail-compose-input',
     });
   }
 

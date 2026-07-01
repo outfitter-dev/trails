@@ -210,6 +210,28 @@ describe('collectDownstreamSources', () => {
     }
   });
 
+  test('honors include globs while still recursing into candidate directories', () => {
+    const root = writeFixture();
+    try {
+      const collection = collectDownstreamSources(root, {
+        include: ['src/nested/**'],
+      });
+      expect(collection).not.toBeNull();
+      const result = collection as NonNullable<typeof collection>;
+
+      expect(result.files.map((file) => file.path)).toEqual([
+        'src/nested/ping.ts',
+      ]);
+      const skippedReasons = new Map(
+        result.skipped.map((entry) => [entry.path, entry.reason])
+      );
+      expect(skippedReasons.get('src/signal.ts')).toBe('not-included-glob');
+      expect(skippedReasons.get('src/view.tsx')).toBe('not-included-glob');
+    } finally {
+      rmSync(root, { force: true, recursive: true });
+    }
+  });
+
   test('normalizes relative roots to preserve absolute file paths', () => {
     const root = writeFixture();
     try {
@@ -253,6 +275,25 @@ describe('collectDownstreamSourcesTrail', () => {
           'src/nested/ping.ts',
           'src/signal.ts',
           'src/view.tsx',
+        ]);
+      }
+    } finally {
+      rmSync(root, { force: true, recursive: true });
+    }
+  });
+
+  test('forwards include globs to the collector', async () => {
+    const root = writeFixture();
+    try {
+      const result = await executeTrail(collectDownstreamSourcesTrail, {
+        include: ['src/nested/**'],
+        root,
+      });
+      expect(result.isOk()).toBe(true);
+      if (result.isOk()) {
+        const value = result.value as { files: { path: string }[] };
+        expect(value.files.map((file) => file.path)).toEqual([
+          'src/nested/ping.ts',
         ]);
       }
     } finally {

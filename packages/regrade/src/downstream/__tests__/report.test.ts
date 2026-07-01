@@ -652,6 +652,53 @@ describe('runRegrade', () => {
     }
   });
 
+  test('runRegrade forwards include globs to downstream collection', () => {
+    const root = mkdtempSync(join(tmpdir(), 'regrade-include-scope-'));
+    try {
+      mkdirSync(join(root, 'other'), { recursive: true });
+      mkdirSync(join(root, 'src'), { recursive: true });
+      writeFileSync(
+        join(root, 'other', 'sourceTerm.ts'),
+        'export const sourceTerm = 1;\n'
+      );
+      writeFileSync(
+        join(root, 'src', 'sourceTerm.ts'),
+        'export const sourceTerm = 1;\n'
+      );
+
+      const report = expectRunRegradeOk({
+        classes: [
+          createTermRewriteClass({
+            from: 'sourceTerm',
+            id: 'source-term',
+            to: 'targetTerm',
+          }),
+        ],
+        collection: { include: ['src/**'] },
+        includeEntries: 'all',
+        root,
+      });
+
+      expect(report?.entries).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            outcome: 'rewrite',
+            path: 'src/sourceTerm.ts',
+          }),
+          expect.objectContaining({
+            outcome: 'skip',
+            path: 'other/sourceTerm.ts',
+            reason: 'not-included-glob',
+          }),
+        ])
+      );
+      expect(report?.rewritten).toBe(1);
+      expect(report?.scanned).toBe(1);
+    } finally {
+      rmSync(root, { force: true, recursive: true });
+    }
+  });
+
   test('all-extension classes widen multi-class collection', () => {
     const root = mkdtempSync(join(tmpdir(), 'regrade-all-extension-class-'));
     try {
