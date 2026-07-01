@@ -1,5 +1,7 @@
 # @ontrails/cli
 
+## 1.0.0-beta.34
+
 ## 1.0.0-beta.33
 
 ### Patch Changes

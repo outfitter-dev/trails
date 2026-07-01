@@ -1,5 +1,11 @@
 # trails
 
+## 1.0.0-beta.34
+
+### Patch Changes
+
+- [`d67558b`](https://github.com/outfitter-dev/trails/commit/d67558bea3bfa363ed57e0f4091b6eccbf2a7710): Run governed AST symbol renames from the registry-backed `trails regrade` command path, including MCP parity, while preserving derived live API forms.
+
 ## 1.0.0-beta.33
 
 ### Patch Changes
