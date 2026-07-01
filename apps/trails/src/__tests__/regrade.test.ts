@@ -138,26 +138,60 @@ describe('trails regrade', () => {
       });
       expect(
         result.value.run?.ledger.occurrences.map((occurrence) => ({
+          disposition: occurrence.disposition,
           form: occurrence.form,
           replacement: occurrence.replacement,
           verdict: occurrence.verdict,
         }))
       ).toEqual([
-        { form: 'facet', replacement: 'trailhead', verdict: 'modified' },
-        { form: 'facet', replacement: 'trailhead', verdict: 'modified' },
-        { form: 'facet', replacement: 'trailhead', verdict: 'modified' },
-        { form: 'facets', replacement: 'trailheads', verdict: 'modified' },
-        { form: 'facetId', replacement: undefined, verdict: 'deferred' },
+        {
+          disposition: 'in-family-modified',
+          form: 'facet',
+          replacement: 'trailhead',
+          verdict: 'modified',
+        },
+        {
+          disposition: 'in-family-modified',
+          form: 'facet',
+          replacement: 'trailhead',
+          verdict: 'modified',
+        },
+        {
+          disposition: 'in-family-modified',
+          form: 'facet',
+          replacement: 'trailhead',
+          verdict: 'modified',
+        },
+        {
+          disposition: 'in-family-modified',
+          form: 'facets',
+          replacement: 'trailheads',
+          verdict: 'modified',
+        },
+        {
+          disposition: 'in-family-unresolved',
+          form: 'facetId',
+          replacement: undefined,
+          verdict: 'deferred',
+        },
       ]);
       expect(result.value.run?.report).toMatchObject({
         applied: 0,
         deferred: 1,
+        dispositions: {
+          'in-family-modified': 4,
+          'in-family-unresolved': 1,
+        },
         gate: {
           reasons: [
             'safe-modifications-not-yet-applied',
             'deferred-forms-or-occurrences',
           ],
           remaining: 5,
+          remainingByDisposition: {
+            'in-family-modified': 4,
+            'in-family-unresolved': 1,
+          },
           status: 'open',
         },
         modified: 4,
@@ -359,6 +393,7 @@ describe('trails regrade', () => {
         include: ['src/**', 'docs/**'],
         preserve: [
           {
+            disposition: 'preserve-current-live-api',
             paths: ['src/**'],
             pattern: '^facetId$',
             reason: 'live-api-identifier',
@@ -381,6 +416,7 @@ describe('trails regrade', () => {
         readonly run?: {
           readonly ledger?: {
             readonly occurrences?: readonly {
+              readonly disposition: string;
               readonly form: string;
               readonly path: string;
               readonly reason: string;
@@ -389,6 +425,7 @@ describe('trails regrade', () => {
           };
           readonly plan?: {
             readonly preserve?: readonly {
+              readonly disposition?: string;
               readonly paths?: readonly string[];
               readonly pattern?: string;
               readonly reason?: string;
@@ -396,6 +433,7 @@ describe('trails regrade', () => {
           };
           readonly report?: {
             readonly deferred?: number;
+            readonly dispositions?: Readonly<Record<string, number>>;
             readonly modified?: number;
             readonly skipped?: number;
           };
@@ -403,6 +441,7 @@ describe('trails regrade', () => {
       };
       expect(parsed.run?.plan?.preserve).toEqual([
         {
+          disposition: 'preserve-current-live-api',
           paths: ['src/**'],
           pattern: '^facetId$',
           reason: 'live-api-identifier',
@@ -410,6 +449,7 @@ describe('trails regrade', () => {
       ]);
       expect(
         parsed.run?.ledger?.occurrences?.map((occurrence) => ({
+          disposition: occurrence.disposition,
           form: occurrence.form,
           path: occurrence.path,
           reason: occurrence.reason,
@@ -417,12 +457,14 @@ describe('trails regrade', () => {
         }))
       ).toEqual([
         {
+          disposition: 'in-family-unresolved',
           form: 'facetId',
           path: 'docs/surface.md',
           reason: 'unclassified-neighbor',
           verdict: 'deferred',
         },
         {
+          disposition: 'preserve-current-live-api',
           form: 'facetId',
           path: 'src/surface.ts',
           reason: 'live-api-identifier',
@@ -431,6 +473,10 @@ describe('trails regrade', () => {
       ]);
       expect(parsed.run?.report).toMatchObject({
         deferred: 1,
+        dispositions: {
+          'in-family-unresolved': 1,
+          'preserve-current-live-api': 1,
+        },
         modified: 0,
         skipped: 1,
       });
@@ -717,6 +763,17 @@ describe('trails regrade', () => {
     expect(parsed.command?.input?.properties).toHaveProperty('configPath');
     expect(parsed.command?.input?.properties).toHaveProperty('exclude');
     expect(parsed.command?.output?.properties).toHaveProperty('scan');
+    expect(JSON.stringify(parsed.command?.input)).toContain('disposition');
+    expect(JSON.stringify(parsed.command?.input)).toContain(
+      'preserve-current-live-api'
+    );
+    expect(JSON.stringify(parsed.command?.output)).toContain('dispositions');
+    expect(JSON.stringify(parsed.command?.output)).toContain(
+      'remainingByDisposition'
+    );
+    expect(JSON.stringify(parsed.command?.output)).toContain(
+      'in-family-unresolved'
+    );
     expect(parsed.command?.flags).toContainEqual(
       expect.objectContaining({
         name: 'config-path',

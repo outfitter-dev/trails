@@ -17,6 +17,7 @@ import {
   regradeReportOutput,
   runRegrade,
   runVocabularyRegrade,
+  vocabularyDispositionValues,
 } from '@ontrails/regrade';
 import type {
   RegradeReport,
@@ -41,6 +42,10 @@ const regradePathScopeInputSchema = pathScopeSchema.extend({
 });
 
 const regradePreserveRuleInputSchema = z.object({
+  disposition: z
+    .enum(vocabularyDispositionValues)
+    .optional()
+    .describe('Classification to assign to occurrences this rule preserves'),
   paths: z
     .array(z.string())
     .optional()
@@ -166,6 +171,9 @@ const vocabularyPreserveFromInput = (
     }
 
     return {
+      ...(rule.disposition === undefined
+        ? {}
+        : { disposition: rule.disposition }),
       ...(rule.paths === undefined ? {} : { paths: rule.paths }),
       pattern: rule.pattern,
       ...(rule.reason === undefined ? {} : { reason: rule.reason }),

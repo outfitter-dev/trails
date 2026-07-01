@@ -823,8 +823,14 @@ describe('runVocabularyRegrade', () => {
         'legacy facetId\nactive facetId\n'
       );
       expect(result.value?.run?.ledger.occurrences).toMatchObject([
-        { form: 'facetId', reason: 'legacy API name', verdict: 'skipped' },
         {
+          disposition: 'explicit-preserve',
+          form: 'facetId',
+          reason: 'legacy API name',
+          verdict: 'skipped',
+        },
+        {
+          disposition: 'in-family-unresolved',
           form: 'facetId',
           reason: 'unclassified-neighbor',
           verdict: 'deferred',
@@ -832,7 +838,15 @@ describe('runVocabularyRegrade', () => {
       ]);
       expect(result.value?.run?.report).toMatchObject({
         deferred: 1,
-        gate: { reasons: ['deferred-forms-or-occurrences'], status: 'open' },
+        dispositions: {
+          'explicit-preserve': 1,
+          'in-family-unresolved': 1,
+        },
+        gate: {
+          reasons: ['deferred-forms-or-occurrences'],
+          remainingByDisposition: { 'in-family-unresolved': 1 },
+          status: 'open',
+        },
         open: 1,
         skipped: 1,
       });
@@ -952,6 +966,25 @@ describe('runVocabularyRegrade', () => {
       expect(emptyPreserve.isErr()).toBe(true);
       if (emptyPreserve.isErr()) {
         expect(emptyPreserve.error.constructor.name).toBe('ValidationError');
+      }
+
+      const invalidDisposition = runVocabularyRegrade({
+        plan: {
+          from: 'facet',
+          kind: 'vocabulary',
+          preserve: [{ disposition: 'bogus', pattern: 'facet' }],
+          to: 'trailhead',
+        } as Parameters<typeof runVocabularyRegrade>[0]['plan'],
+        root: dir,
+      });
+      expect(invalidDisposition.isErr()).toBe(true);
+      if (invalidDisposition.isErr()) {
+        expect(invalidDisposition.error.constructor.name).toBe(
+          'ValidationError'
+        );
+        expect(invalidDisposition.error.message).toContain(
+          'preserve disposition "bogus" is not supported'
+        );
       }
     } finally {
       rmSync(dir, { force: true, recursive: true });

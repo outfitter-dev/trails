@@ -180,6 +180,10 @@ describe('Trails MCP surface shaping', () => {
       },
       type: 'object',
     });
+    expect(JSON.stringify(regrade.inputSchema)).toContain('disposition');
+    expect(JSON.stringify(regrade.inputSchema)).toContain(
+      'preserve-current-live-api'
+    );
 
     expect(warden.description).toBe('Run governance checks (lint + drift)');
     expect(warden.annotations).toEqual({
@@ -227,30 +231,77 @@ describe('Trails MCP surface shaping', () => {
   test('executes regrade through the MCP tool handler', async () => {
     const dir = makeTempDir();
     try {
-      writeFile(dir, 'src/surface.ts', 'export const facet = "facet";\n');
+      writeFile(
+        dir,
+        'src/surface.ts',
+        'export const facet = "facet";\nexport const facetId = facet;\n'
+      );
       const tools = unwrapTools(trailsMcpApp, trailsMcpSurfaceOptions);
       const regrade = requireTool(tools, 'trails_regrade');
 
       const result = await regrade.handler(
-        { from: 'facet', rootDir: dir, to: 'trailhead' },
+        {
+          from: 'facet',
+          preserve: [
+            {
+              disposition: 'preserve-current-live-api',
+              pattern: '^facetId$',
+              reason: 'live-api-identifier',
+            },
+          ],
+          rootDir: dir,
+          to: 'trailhead',
+        },
         {}
       );
 
       expect(result.isError).toBeUndefined();
+      const structured = result.structuredContent as {
+        readonly run?: {
+          readonly ledger?: {
+            readonly occurrences?: readonly {
+              readonly disposition?: string;
+              readonly form?: string;
+              readonly verdict?: string;
+            }[];
+          };
+        };
+      };
       expect(result.structuredContent).toMatchObject({
         run: {
           plan: { from: 'facet', to: 'trailhead' },
           report: {
-            modified: 2,
-            open: 2,
+            dispositions: {
+              'in-family-modified': 3,
+              'preserve-current-live-api': 1,
+            },
+            gate: {
+              remainingByDisposition: { 'in-family-modified': 3 },
+            },
+            modified: 3,
+            open: 3,
           },
         },
         scan: {
-          byDirectory: [{ files: 1, occurrences: 2, path: 'src' }],
-          byExtension: [{ extension: '.ts', files: 1, occurrences: 2 }],
+          byDirectory: [{ files: 1, occurrences: 4, path: 'src' }],
+          byExtension: [{ extension: '.ts', files: 1, occurrences: 4 }],
           files: { matched: 1, scanned: 1, skipped: 0 },
         },
       });
+      expect(structured.run?.ledger?.occurrences).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            disposition: 'in-family-modified',
+            form: 'facet',
+            verdict: 'modified',
+          }),
+          expect.objectContaining({
+            disposition: 'preserve-current-live-api',
+            form: 'facetId',
+            verdict: 'skipped',
+          }),
+        ])
+      );
       expect(readFileSync(join(dir, 'src', 'surface.ts'), 'utf8')).toContain(
         'facet'
       );

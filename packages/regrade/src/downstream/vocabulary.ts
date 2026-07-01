@@ -19,7 +19,25 @@ import { buildRegradeScanSummary } from './scan-summary.js';
 
 export type VocabularyVerdict = 'deferred' | 'modified' | 'skipped';
 
+export const vocabularyDispositionValues = [
+  'code-context-out-of-engine',
+  'docs-only',
+  'explicit-preserve',
+  'forward-pointer',
+  'ignored-by-scope',
+  'in-family-modified',
+  'in-family-unresolved',
+  'out-of-family',
+  'preserve-current-live-api',
+] as const;
+
+export type VocabularyDisposition =
+  (typeof vocabularyDispositionValues)[number];
+
+const vocabularyDispositions = new Set<string>(vocabularyDispositionValues);
+
 export interface VocabularyPreserveRule {
+  readonly disposition?: VocabularyDisposition;
   readonly pattern: string;
   readonly reason?: string;
   readonly paths?: readonly string[];
@@ -53,6 +71,7 @@ export interface VocabularyRegradePlan {
 export interface VocabularyOccurrence {
   readonly column: number;
   readonly context: string;
+  readonly disposition: VocabularyDisposition;
   readonly end: number;
   readonly form: string;
   readonly line: number;
@@ -71,6 +90,9 @@ export interface VocabularyRunLedger {
 
 export interface VocabularyRunGate {
   readonly remaining: number;
+  readonly remainingByDisposition: Partial<
+    Readonly<Record<VocabularyDisposition, number>>
+  >;
   readonly reasons: readonly string[];
   readonly status: 'green' | 'open';
 }
@@ -78,6 +100,9 @@ export interface VocabularyRunGate {
 export interface VocabularyRunReport {
   readonly applied: number;
   readonly deferred: number;
+  readonly dispositions: Partial<
+    Readonly<Record<VocabularyDisposition, number>>
+  >;
   readonly filesChanged: number;
   readonly gate: VocabularyRunGate;
   readonly modified: number;
@@ -101,7 +126,10 @@ interface SourceOccurrence extends VocabularyOccurrence {
   readonly absolutePath: string;
 }
 
-type SourceOccurrenceDraft = Omit<SourceOccurrence, 'reason' | 'verdict'>;
+type SourceOccurrenceDraft = Omit<
+  SourceOccurrence,
+  'disposition' | 'reason' | 'verdict'
+>;
 
 interface VocabularyEvaluation {
   readonly entries: readonly RegradeReportEntry[];
@@ -128,6 +156,23 @@ const VOCABULARY_SOURCE_EXTENSIONS = Object.freeze([
 
 const uniqueSorted = (values: readonly string[]): readonly string[] =>
   [...new Set(values)].toSorted((a, b) => a.localeCompare(b));
+
+const vocabularyDispositionCounts = (
+  occurrences: readonly VocabularyOccurrence[]
+): Partial<Readonly<Record<VocabularyDisposition, number>>> => {
+  const counts = new Map<VocabularyDisposition, number>();
+  for (const occurrence of occurrences) {
+    counts.set(
+      occurrence.disposition,
+      (counts.get(occurrence.disposition) ?? 0) + 1
+    );
+  }
+  return Object.fromEntries(
+    [...counts.entries()].toSorted(([left], [right]) =>
+      left.localeCompare(right)
+    )
+  );
+};
 
 const isVocabularyTokenCharacter = (value: string): boolean =>
   /[A-Za-z0-9_$-]/.test(value);
@@ -296,6 +341,23 @@ const capturedVocabularyVerdict = (
   return 'modified';
 };
 
+const vocabularyOccurrenceDisposition = (
+  verdict: VocabularyVerdict,
+  preserveRule: VocabularyPreserveRule | undefined,
+  markdownCodeContext: boolean
+): VocabularyDisposition => {
+  if (preserveRule !== undefined) {
+    return preserveRule.disposition ?? 'explicit-preserve';
+  }
+  if (markdownCodeContext) {
+    return 'code-context-out-of-engine';
+  }
+  if (verdict === 'modified') {
+    return 'in-family-modified';
+  }
+  return 'in-family-unresolved';
+};
+
 const preserveCase = (sourceForm: string, replacement: string): string => {
   if (sourceForm.toUpperCase() === sourceForm) {
     return replacement.toUpperCase();
@@ -384,6 +446,16 @@ const validateVocabularyPlan = (
         )
       );
     }
+    if (
+      rule.disposition !== undefined &&
+      !vocabularyDispositions.has(rule.disposition)
+    ) {
+      return Result.err(
+        new ValidationError(
+          `Vocabulary Regrade plan preserve disposition "${rule.disposition}" is not supported.`
+        )
+      );
+    }
   }
   return Result.ok();
 };
@@ -460,14 +532,25 @@ const deferredOccurrenceFromDraft = (
   reason = 'unclassified-neighbor'
 ): SourceOccurrence => {
   const preserveRule = preserveRuleForOccurrence(baseOccurrence, plan);
+  const markdownCodeContext = isMarkdownCodeContext(
+    file,
+    baseOccurrence.start,
+    baseOccurrence.end
+  );
+  const verdict = preserveRule === undefined ? 'deferred' : 'skipped';
   return {
     ...baseOccurrence,
+    disposition: vocabularyOccurrenceDisposition(
+      verdict,
+      preserveRule,
+      markdownCodeContext
+    ),
     reason: vocabularyOccurrenceReason(
       preserveRule,
-      isMarkdownCodeContext(file, baseOccurrence.start, baseOccurrence.end),
+      markdownCodeContext,
       reason
     ),
-    verdict: preserveRule === undefined ? 'deferred' : 'skipped',
+    verdict,
   };
 };
 
@@ -537,8 +620,17 @@ const occurrencesForFile = (
       };
       const preserveRule = preserveRuleForOccurrence(baseOccurrence, plan);
       const markdownCodeContext = isMarkdownCodeContext(file, start, end);
+      const verdict = capturedVocabularyVerdict(
+        preserveRule,
+        markdownCodeContext
+      );
       candidates.push({
         ...baseOccurrence,
+        disposition: vocabularyOccurrenceDisposition(
+          verdict,
+          preserveRule,
+          markdownCodeContext
+        ),
         reason: vocabularyOccurrenceReason(
           preserveRule,
           markdownCodeContext,
@@ -547,7 +639,7 @@ const occurrencesForFile = (
         ...(preserveRule === undefined && !markdownCodeContext
           ? { replacement: preserveCase(match[0], replacement) }
           : {}),
-        verdict: capturedVocabularyVerdict(preserveRule, markdownCodeContext),
+        verdict,
       });
     }
   }
@@ -791,6 +883,10 @@ const buildVocabularyEvaluation = (params: {
   const deferredOccurrences = occurrences.filter(
     (occurrence) => occurrence.verdict === 'deferred'
   );
+  const unresolvedOccurrences = occurrences.filter(
+    (occurrence) =>
+      occurrence.verdict === 'modified' || occurrence.verdict === 'deferred'
+  );
   const forms: Record<string, VocabularyVerdict> = {};
   for (const occurrence of occurrences) {
     const current = forms[occurrence.form];
@@ -817,7 +913,7 @@ const buildVocabularyEvaluation = (params: {
   if (deferredForms.length > 0) {
     gateReasons.push('deferred-forms-or-occurrences');
   }
-  const open = modifiedOccurrences.length + deferredOccurrences.length;
+  const open = unresolvedOccurrences.length;
 
   return {
     entries: [
@@ -846,10 +942,14 @@ const buildVocabularyEvaluation = (params: {
       report: {
         applied: params.apply === true ? modifiedOccurrences.length : 0,
         deferred: deferredOccurrences.length,
+        dispositions: vocabularyDispositionCounts(occurrences),
         filesChanged: params.apply === true ? rewrittenPaths.size : 0,
         gate: {
           reasons: gateReasons,
           remaining: open,
+          remainingByDisposition: vocabularyDispositionCounts(
+            unresolvedOccurrences
+          ),
           status: gateReasons.length === 0 ? 'green' : 'open',
         },
         modified: modifiedOccurrences.length,
@@ -1057,6 +1157,10 @@ export const runVocabularyRegrade = (params: {
 };
 
 const vocabularyPreserveRuleSchema = z.object({
+  disposition: z
+    .enum(vocabularyDispositionValues)
+    .optional()
+    .describe('Classification for occurrences preserved by this rule'),
   paths: z
     .array(z.string())
     .optional()
@@ -1064,6 +1168,15 @@ const vocabularyPreserveRuleSchema = z.object({
   pattern: z.string().describe('Regex or literal pattern to preserve'),
   reason: z.string().optional().describe('Why this form is preserved'),
 });
+
+const vocabularyDispositionCountSchema = z.object(
+  Object.fromEntries(
+    vocabularyDispositionValues.map((disposition) => [
+      disposition,
+      z.number().optional(),
+    ])
+  ) as Record<VocabularyDisposition, z.ZodOptional<z.ZodNumber>>
+);
 
 const vocabularyRegradeScopeSchema = z.object({
   exclude: z
@@ -1125,6 +1238,9 @@ export const vocabularyRegradeRunOutput = z.object({
           z.object({
             column: z.number().describe('One-based source column'),
             context: z.string().describe('Source-line context'),
+            disposition: z
+              .enum(vocabularyDispositionValues)
+              .describe('Occurrence-level classification beside the verdict'),
             end: z.number().describe('Source end offset'),
             form: z.string().describe('Matched vocabulary form'),
             line: z.number().describe('One-based source line'),
@@ -1148,11 +1264,17 @@ export const vocabularyRegradeRunOutput = z.object({
     .object({
       applied: z.number().describe('Modified occurrences applied to disk'),
       deferred: z.number().describe('Deferred occurrence count'),
+      dispositions: z
+        .object(vocabularyDispositionCountSchema.shape)
+        .describe('Occurrence counts grouped by disposition'),
       filesChanged: z.number().describe('Distinct files changed on disk'),
       gate: z
         .object({
           reasons: z.array(z.string()).describe('Open-gate reasons'),
           remaining: z.number().describe('Unresolved occurrence count'),
+          remainingByDisposition: z
+            .object(vocabularyDispositionCountSchema.shape)
+            .describe('Unresolved occurrence counts grouped by disposition'),
           status: z
             .enum(['green', 'open'])
             .describe('Whether the run is complete'),

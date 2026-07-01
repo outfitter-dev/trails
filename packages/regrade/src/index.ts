@@ -15,6 +15,7 @@ export {
 } from './downstream/report.js';
 export {
   runVocabularyRegrade,
+  vocabularyDispositionValues,
   vocabularyRegradePlanSchema,
   vocabularyRegradeRunOutput,
 } from './downstream/vocabulary.js';
@@ -42,6 +43,7 @@ export type {
   RegradeScanSummary,
 } from './downstream/scan-summary.js';
 export type {
+  VocabularyDisposition,
   VocabularyOccurrence,
   VocabularyPreserveRule,
   VocabularyRegradePlan,
