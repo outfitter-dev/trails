@@ -43,8 +43,8 @@ The review question:
 | Surface error projection | `@ontrails/core` | CLI, MCP, HTTP, Warden coverage | `owned` | `packages/core/src/transport-error-map.ts` owns surface error mapping. Surfaces consume it. |
 | Schema-derived fields | `@ontrails/core` | CLI, MCP, docs, examples | `owned` | Field derivation belongs with schema and trail contract logic, not individual surfaces. |
 | Config merge and resolution primitive | `@ontrails/config` today | Trails app config, future adopter config | `owned` | `@ontrails/config` is the current package owner for schema-validated config loading. Future work may revisit package placement, but consumers should not reimplement merge and file loading. |
-| Signal trace record construction and writing | `@ontrails/core` | `@ontrails/tracing`, signal runtime | `migration` | Core already owns `createSignalTraceRecord` and `writeSignalTraceRecord` internally in `packages/core/src/tracing.ts`; `packages/tracing/src/signal-trace.ts` still forks them. Proposed extraction: export the core helpers and make tracing re-export them for compatibility. |
-| Bounded memory trace sink | `@ontrails/observe` | `@ontrails/tracing`, CLI trace rendering, tests | `migration` | Observe owns `createMemorySink` in `packages/observe/src/memory.ts`. Tracing still carries a duplicate `memory-sink.ts` with a different accessor shape. Proposed extraction: make observe the canonical memory sink and keep tracing compatibility without a second implementation. |
+| Signal trace record construction and writing | `@ontrails/core` | `@ontrails/tracing`, signal runtime | `owned` | Core exports `createSignalTraceRecord` and `writeSignalTraceRecord`; tracing re-exports them for compatibility instead of forking record construction and sink writing. |
+| Bounded memory trace sink | `@ontrails/observe` | `@ontrails/tracing`, CLI trace rendering, tests | `owned` | Observe owns `createMemorySink` and `DEFAULT_MEMORY_SINK_MAX_RECORDS`. Tracing keeps a compatibility wrapper over the observe sink without a second retained-record implementation. |
 | Tracing dev-state store | `@ontrails/tracing` | tracing query/status trails, local dev tooling | `owned` | SQLite dev store, trace store registry, cleanup helpers, and query/status trails remain tracing-owned because they are developer-state tooling, not production sink contracts. |
 | OpenTelemetry trace adapter | `@ontrails/tracing/otel` for v1 | users exporting traces | `owned` | ADR-0041 keeps the v1 OTel adapter at the current `@ontrails/tracing/otel` subpath. It is an adapter boundary, not an observe memory-sink contract. |
 | Activation graph derived facts | `@ontrails/topographer` | Trails app topo reports | `owned` | Prior cleanup moved activation-derived facts to Topographer so app reports do not re-project the activation graph. |
@@ -58,12 +58,10 @@ The review question:
 
 ## Proposed Extractions
 
-These are findings from the map. They are not newly created Linear issues in this branch.
+These are open findings from the map. They are not newly created Linear issues in this branch.
 
 | Finding | Proposed extraction | Why it belongs there |
 | --- | --- | --- |
-| Tracing signal helpers fork | Export `createSignalTraceRecord` and `writeSignalTraceRecord` from `@ontrails/core`; make `@ontrails/tracing` re-export them. | Core owns intrinsic trace context, sink registry, signal lifecycle writing, and the runtime call sites. |
-| Tracing memory sink fork | Make `@ontrails/observe` the canonical bounded memory sink; keep `@ontrails/tracing` compatibility without a second implementation. | Observe owns app-facing sink contracts and sink implementations. |
 | Stable topo hash duplicate | Expose or consume the Topographer-owned stable hash from watch mode. | Topographer owns topo artifact identity. |
 | Adapter source scan duplicate | Move reusable source masking and import/export scans to adapter-kit; let `create-adapter` consume it. | Adapter-kit owns adapter authoring conformance. |
 

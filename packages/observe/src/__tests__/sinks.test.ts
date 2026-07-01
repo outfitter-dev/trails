@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import {
+  DEFAULT_MEMORY_SINK_MAX_RECORDS,
   createConsoleSink,
   createFileSink,
   createJsonFormatter,
@@ -632,6 +633,10 @@ describe('createFileSink', () => {
 });
 
 describe('createMemorySink', () => {
+  test('exports the default capacity from the public barrel', () => {
+    expect(DEFAULT_MEMORY_SINK_MAX_RECORDS).toBe(1000);
+  });
+
   test('retains trace records up to the configured cap', async () => {
     const sink = createMemorySink({ maxRecords: 2 });
 

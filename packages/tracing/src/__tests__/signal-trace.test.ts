@@ -6,10 +6,7 @@ import {
 } from '@ontrails/core';
 import type { TraceContext, TraceRecord, TraceSink } from '@ontrails/core';
 
-import {
-  createSignalTraceRecord,
-  writeSignalTraceRecord,
-} from '../signal-trace.js';
+import { createSignalTraceRecord, writeSignalTraceRecord } from '../index.js';
 
 const parent: TraceContext = {
   rootId: 'root-1',
@@ -36,6 +33,7 @@ describe('signal trace helpers', () => {
       name: 'signal.fired',
       parentId: 'span-1',
       rootId: 'root-1',
+      sampled: true,
       status: 'ok',
       traceId: 'trace-1',
     });

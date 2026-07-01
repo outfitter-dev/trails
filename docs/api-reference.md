@@ -635,6 +635,7 @@ createConsoleSink(options?)          // write log records to console output
 createFileSink(options)              // append log records to a file
 createMemorySink(options?)           // bounded in-memory trace sink
 createBoundedMemorySink(options?)    // explicit alias for createMemorySink
+DEFAULT_MEMORY_SINK_MAX_RECORDS      // default retained trace record cap
 createJsonFormatter()                // JSON log formatter
 createPrettyFormatter(options?)      // human-readable log formatter
 renderTraceTree(records)             // render trace records as a tree
@@ -676,11 +677,11 @@ createTraceRecord(options)           // construct a root or child TraceRecord ex
 createActivationTraceRecord(name, options?) // construct an activation boundary TraceRecord
 writeActivationTraceRecord(name, attrs, status?, category?, parent?) // write an activation boundary TraceRecord
 
-// Signal lifecycle helpers (from @ontrails/tracing)
+// Signal lifecycle helpers (from @ontrails/core and re-exported from @ontrails/tracing)
 createSignalTraceRecord(parent, name, attrs?) // construct a signal lifecycle TraceRecord
 writeSignalTraceRecord(ctx, name, attrs, status?, category?) // write a signal lifecycle TraceRecord
 
-// Compatibility/local testing sinks (implemented by @ontrails/tracing; prefer @ontrails/observe for new sink usage)
+// Compatibility/local testing sinks (wrapping @ontrails/observe; prefer @ontrails/observe for new sink usage)
 createMemorySink(options?)           // bounded in-memory sink for testing
 createBoundedMemorySink(options?)    // explicit alias for createMemorySink
 createDevStore(options?)             // SQLite-backed persistent sink for development

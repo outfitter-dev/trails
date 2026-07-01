@@ -506,6 +506,7 @@ export type { ExecuteTrailOptions } from './execute.js';
 export {
   clearTraceSink,
   createActivationTraceRecord,
+  createSignalTraceRecord,
   createTraceRecord,
   getTraceContext,
   getTraceSink,
@@ -514,6 +515,7 @@ export {
   TRACE_CONTEXT_KEY,
   traceContextFromRecord,
   writeActivationTraceRecord,
+  writeSignalTraceRecord,
 } from './tracing.js';
 export type {
   ActivationTraceRecordName,

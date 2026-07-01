@@ -6,7 +6,7 @@ import {
   DEFAULT_MEMORY_SINK_MAX_RECORDS,
   createBoundedMemorySink,
   createMemorySink,
-} from '../memory-sink.js';
+} from '../index.js';
 
 const makeRecord = (id: string): TraceRecord => ({
   attrs: {},
@@ -48,6 +48,32 @@ describe('memory trace sink', () => {
 
     expect(sink.records).toEqual([]);
     expect(sink.droppedCount).toBe(0);
+  });
+
+  test('records remains a live compatibility view', () => {
+    const sink = createMemorySink({ maxRecords: 2 });
+    const { records } = sink;
+
+    sink.write(makeRecord('a'));
+    sink.write(makeRecord('b'));
+    sink.write(makeRecord('c'));
+
+    expect(records.map((record) => record.id)).toEqual(['b', 'c']);
+    expect(records).toBe(sink.records);
+  });
+
+  test('records sync does not spread retained records into call arguments', () => {
+    const recordCount = 100_000;
+    const sink = createMemorySink({ maxRecords: recordCount });
+    const { records } = sink;
+
+    for (let index = 0; index < recordCount; index += 1) {
+      sink.write(makeRecord(String(index)));
+    }
+
+    expect(records).toHaveLength(recordCount);
+    expect(records.at(0)?.id).toBe('0');
+    expect(records.at(-1)?.id).toBe(String(recordCount - 1));
   });
 
   test('snapshot returns a stable copy', () => {
