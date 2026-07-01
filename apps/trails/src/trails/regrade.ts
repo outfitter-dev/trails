@@ -381,6 +381,17 @@ const mergeRegradeReports = (
       (left.classId ?? '').localeCompare(right.classId ?? '')
   );
   const matchedPaths = actionableEntryPaths(entries);
+  const rewritten = new Set(
+    entries
+      .filter((entry) => entry.outcome === 'rewrite')
+      .map((entry) => entry.path)
+  ).size;
+  const review = new Set(
+    entries
+      .filter((entry) => entry.outcome === 'needs-review')
+      .map((entry) => entry.path)
+  ).size;
+  const matched = new Set(matchedPaths).size;
   const occurrencePaths =
     vocabularyReport.run?.ledger.occurrences.map(
       (occurrence) => occurrence.path
@@ -395,9 +406,9 @@ const mergeRegradeReports = (
     ...vocabularyReport,
     ...(apply === undefined ? {} : { apply }),
     entries,
-    matched: vocabularyReport.matched + symbolReport.matched,
-    review: vocabularyReport.review + symbolReport.review,
-    rewritten: vocabularyReport.rewritten + symbolReport.rewritten,
+    matched,
+    review,
+    rewritten,
     scan: {
       byDirectory: mergedDirectoryBuckets(matchedPaths, occurrencePaths),
       byExtension: mergedExtensionBuckets(matchedPaths, occurrencePaths),
