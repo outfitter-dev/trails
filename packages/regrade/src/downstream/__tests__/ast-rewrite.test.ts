@@ -1,9 +1,11 @@
 import { describe, expect, test } from 'bun:test';
 import { createSourceEdit, getNodeName } from '@ontrails/warden/ast';
+import { getGovernedVocabularyTransition } from '@ontrails/warden';
 
 import {
   createAstIdentifierRenameClass,
   createAstRewriteClass,
+  createGovernedAstIdentifierRenameClasses,
 } from '../ast-rewrite.js';
 
 describe('createAstRewriteClass', () => {
@@ -149,6 +151,62 @@ describe('createAstIdentifierRenameClass', () => {
     );
   });
 
+  test('renames representative type-position symbols', () => {
+    const cls = createAstIdentifierRenameClass({
+      from: 'SourceType',
+      to: 'TargetType',
+    });
+    const result = cls.apply(
+      [
+        'type SourceAlias = SourceType;',
+        'interface Box extends SourceType {',
+        '  value: SourceType;',
+        '}',
+        'const value = {} as SourceType;',
+        '',
+      ].join('\n'),
+      { path: 'src/types.ts' }
+    );
+
+    expect(result.kind).toBe('rewrite');
+    expect(result.nextSource).toBe(
+      [
+        'type SourceAlias = TargetType;',
+        'interface Box extends TargetType {',
+        '  value: TargetType;',
+        '}',
+        'const value = {} as TargetType;',
+        '',
+      ].join('\n')
+    );
+  });
+
+  test('does not rewrite comments or string literal text', () => {
+    const cls = createAstIdentifierRenameClass({
+      from: 'sourceTerm',
+      to: 'targetTerm',
+    });
+    const result = cls.apply(
+      [
+        '// sourceTerm remains prose',
+        'const label = "sourceTerm remains a string";',
+        'const sourceTerm = 1;',
+        '',
+      ].join('\n'),
+      { path: 'src/sourceTerm.ts' }
+    );
+
+    expect(result.kind).toBe('rewrite');
+    expect(result.nextSource).toBe(
+      [
+        '// sourceTerm remains prose',
+        'const label = "sourceTerm remains a string";',
+        'const targetTerm = 1;',
+        '',
+      ].join('\n')
+    );
+  });
+
   test('routes configured shadowed declarations to review', () => {
     const cls = createAstIdentifierRenameClass({
       from: 'sourceTerm',
@@ -178,7 +236,7 @@ describe('createAstIdentifierRenameClass', () => {
         expectedTarget: 'Rename identifier "sourceTerm" to "targetTerm".',
         nodeKind: 'Identifier',
         reason: 'ast-identifier-review-declaration',
-        span: { column: 16, end: 118, line: 3, start: 96 },
+        span: { column: 16, end: 106, line: 3, start: 96 },
         suggestedValidation: 'bun run typecheck',
         symbol: 'sourceTerm',
       },
@@ -190,6 +248,94 @@ describe('createAstIdentifierRenameClass', () => {
         span: { column: 10, end: 141, line: 4, start: 131 },
         suggestedValidation: 'bun run typecheck',
         symbol: 'sourceTerm',
+      },
+    ]);
+  });
+
+  test('creates governed identifier rename classes from registry symbols', () => {
+    const transition = getGovernedVocabularyTransition('v1-facet-trailhead');
+    expect(transition).toBeDefined();
+    if (transition === undefined) {
+      throw new Error('Expected facet vocabulary transition.');
+    }
+
+    const classes = createGovernedAstIdentifierRenameClasses(transition);
+    const facetIdClass = classes.find((cls) =>
+      cls.id.includes('facetId->trailheadId')
+    );
+    expect(facetIdClass).toBeDefined();
+    if (facetIdClass === undefined) {
+      throw new Error('Expected facetId rename class.');
+    }
+
+    const result = facetIdClass.apply(
+      [
+        'export interface FacetRecord { facetId: string }',
+        'export const current = { facetId: "manual" };',
+        '',
+      ].join('\n'),
+      { path: 'src/facets.ts' }
+    );
+
+    expect(result.kind).toBe('rewrite');
+    expect(result.nextSource).toBe(
+      [
+        'export interface FacetRecord { trailheadId: string }',
+        'export const current = { trailheadId: "manual" };',
+        '',
+      ].join('\n')
+    );
+  });
+
+  test('routes governed registry shadow declarations to review', () => {
+    const transition = getGovernedVocabularyTransition('cross-compose');
+    expect(transition).toBeDefined();
+    if (transition === undefined) {
+      throw new Error('Expected cross vocabulary transition.');
+    }
+
+    const classes = createGovernedAstIdentifierRenameClasses(transition);
+    const crossInputClass = classes.find((cls) =>
+      cls.id.includes('crossInput->composeInput')
+    );
+    expect(crossInputClass).toBeDefined();
+    if (crossInputClass === undefined) {
+      throw new Error('Expected crossInput rename class.');
+    }
+
+    const result = crossInputClass.apply(
+      [
+        "import { crossInput } from './composition';",
+        'export const current = crossInput;',
+        'function local(crossInput: string) {',
+        '  return crossInput;',
+        '}',
+        '',
+      ].join('\n'),
+      { path: 'src/composition.ts' }
+    );
+
+    expect(result.kind).toBe('needs-review');
+    expect(result.reason).toBe('ast-identifier-review-declaration');
+    expect(result.nextSource).toBeUndefined();
+    expect(result.reviewDetails).toEqual([
+      {
+        classId: 'ast-symbol-rename:cross-compose:crossInput->composeInput',
+        expectedTarget: 'Rename identifier "crossInput" to "composeInput".',
+        nodeKind: 'Identifier',
+        reason: 'ast-identifier-review-declaration',
+        span: { column: 16, end: 104, line: 3, start: 94 },
+        suggestedValidation: 'bun run typecheck',
+        symbol: 'crossInput',
+      },
+      {
+        classId: 'ast-symbol-rename:cross-compose:crossInput->composeInput',
+        expectedTarget: 'Rename identifier "crossInput" to "composeInput".',
+        nodeKind: 'Identifier',
+        reason: 'ast-identifier-review-declaration',
+        span: { column: 10, end: 135, line: 4, start: 125 },
+        suggestedValidation: 'bun run typecheck',
+        symbol: 'crossInput',
       },
     ]);
   });

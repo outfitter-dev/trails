@@ -35,6 +35,12 @@ export const governedVocabularyPreserveRuleSchema = z.object({
   reason: z.string().min(1),
 });
 
+export const governedVocabularySymbolRenameSchema = z.object({
+  from: z.string().min(1),
+  reviewDeclarationTypes: z.array(z.string().min(1)).default([]),
+  to: z.string().min(1),
+});
+
 export const governedVocabularyTransitionSchema = z.object({
   codeIdentifiers: z.array(z.string().min(1)).default([]),
   docs: z.object({
@@ -51,6 +57,7 @@ export const governedVocabularyTransitionSchema = z.object({
   reviewForms: z.array(z.string().min(1)).default([]),
   safeRewriteForms: z.record(z.string().min(1), z.string().min(1)).default({}),
   status: z.enum(governedVocabularyTransitionStatuses),
+  symbolRenames: z.array(governedVocabularySymbolRenameSchema).default([]),
   target: governedVocabularyTargetSchema,
 });
 
@@ -87,6 +94,9 @@ export type GovernedVocabularyPreserveRule = z.output<
 export type GovernedVocabularyTarget = z.output<
   typeof governedVocabularyTargetSchema
 >;
+export type GovernedVocabularySymbolRename = z.output<
+  typeof governedVocabularySymbolRenameSchema
+>;
 export type GovernedVocabularyTransition = z.output<
   typeof governedVocabularyTransitionSchema
 >;
@@ -98,6 +108,10 @@ const defineTransition = (
   input: GovernedVocabularyTransitionInput
 ): GovernedVocabularyTransition =>
   governedVocabularyTransitionSchema.parse(input);
+
+const reviewFunctionParamDeclarations = {
+  reviewDeclarationTypes: ['FunctionParam'],
+};
 
 export const governedVocabularyTransitions =
   governedVocabularyRegistrySchema.parse([
@@ -124,6 +138,15 @@ export const governedVocabularyTransitions =
         'ctx.cross': 'ctx.compose',
       },
       status: 'complete',
+      symbolRenames: [
+        { ...reviewFunctionParamDeclarations, from: 'cross', to: 'compose' },
+        {
+          ...reviewFunctionParamDeclarations,
+          from: 'crossInput',
+          to: 'composeInput',
+        },
+        { ...reviewFunctionParamDeclarations, from: 'crosses', to: 'composes' },
+      ],
       target: { kind: 'single', to: 'compose' },
     }),
     defineTransition({
@@ -148,6 +171,18 @@ export const governedVocabularyTransitions =
         blazes: 'implementations',
       },
       status: 'planned',
+      symbolRenames: [
+        {
+          ...reviewFunctionParamDeclarations,
+          from: 'blaze',
+          to: 'implementation',
+        },
+        {
+          ...reviewFunctionParamDeclarations,
+          from: 'blazes',
+          to: 'implementations',
+        },
+      ],
       target: { kind: 'single', to: 'implementation' },
     }),
     defineTransition({
@@ -171,6 +206,14 @@ export const governedVocabularyTransitions =
         contours: 'entities',
       },
       status: 'planned',
+      symbolRenames: [
+        { ...reviewFunctionParamDeclarations, from: 'contour', to: 'entity' },
+        {
+          ...reviewFunctionParamDeclarations,
+          from: 'contours',
+          to: 'entities',
+        },
+      ],
       target: { kind: 'single', to: 'entity' },
     }),
     defineTransition({
@@ -201,6 +244,24 @@ export const governedVocabularyTransitions =
         facets: 'trailheads',
       },
       status: 'planned',
+      symbolRenames: [
+        { ...reviewFunctionParamDeclarations, from: 'facet', to: 'trailhead' },
+        {
+          ...reviewFunctionParamDeclarations,
+          from: 'facets',
+          to: 'trailheads',
+        },
+        {
+          ...reviewFunctionParamDeclarations,
+          from: 'facetId',
+          to: 'trailheadId',
+        },
+        {
+          ...reviewFunctionParamDeclarations,
+          from: 'McpSurfaceFacetMap',
+          to: 'McpSurfaceTrailheadMap',
+        },
+      ],
       target: { kind: 'single', to: 'trailhead' },
     }),
     defineTransition({

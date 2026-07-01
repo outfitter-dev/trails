@@ -1326,6 +1326,47 @@ describe('applySafeFixesToFiles', () => {
     }
   });
 
+  test('dedupes identical safe edits from multiple diagnostics', async () => {
+    const dir = makeTempDir();
+    try {
+      const filePath = join(dir, 'entity.ts');
+      writeFileSync(filePath, 'const signal = 1;');
+      const first: WardenDiagnostic = {
+        filePath,
+        fix: {
+          class: 'term-rewrite',
+          edits: [{ end: 12, replacement: 'ping', start: 6 }],
+          reason: 'rename signal to ping',
+          safety: 'safe',
+        },
+        line: 1,
+        message: 'rename signal',
+        rule: 'synthetic-safe-fix',
+        severity: 'warn',
+      };
+      const second: WardenDiagnostic = {
+        ...first,
+        message: 'rename signal from another rule',
+        rule: 'synthetic-overlapping-safe-fix',
+      };
+
+      const summary = await applySafeFixesToFiles([first, second], {
+        allowedFilePaths: [filePath],
+        rootDir: dir,
+      });
+
+      expect(summary).toMatchObject({
+        applied: 2,
+        filesChanged: 1,
+        skipped: 0,
+      });
+      expect(summary.appliedDiagnostics).toEqual([first, second]);
+      expect(readFileSync(filePath, 'utf8')).toBe('const ping = 1;');
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
   test('leaves review-only and edit-less fixes unapplied and counted as skipped', async () => {
     const dir = makeTempDir();
     try {

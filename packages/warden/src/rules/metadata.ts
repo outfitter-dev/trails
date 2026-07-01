@@ -80,6 +80,7 @@ const concernByRuleName: Partial<Record<string, WardenRuleConcern>> = {
   'error-mapping-completeness': 'results',
   'fires-declarations': 'signals',
   'fork-without-preserved-blaze': 'lifecycle',
+  'governed-symbol-residue': 'lifecycle',
   'implementation-returns-result': 'results',
   'intent-propagation': 'composition',
   'library-projection-coherence': 'meta',
@@ -263,6 +264,13 @@ const builtinWardenRuleMetadataInput = {
   'fork-without-preserved-blaze': {
     ...durableExternal,
     invariant: 'Fork version entries preserve their historical blaze.',
+    tier: 'source-static',
+  },
+  'governed-symbol-residue': {
+    ...durableExternal,
+    fix: { class: 'term-rewrite', safety: 'safe' },
+    invariant:
+      'Active governed vocabulary symbol renames do not leave retired identifiers in source.',
     tier: 'source-static',
   },
   'implementation-returns-result': {

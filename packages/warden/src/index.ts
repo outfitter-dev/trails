@@ -39,6 +39,7 @@ export {
   getGovernedVocabularyTransition,
   governedVocabularyPreserveRuleSchema,
   governedVocabularyRegistrySchema,
+  governedVocabularySymbolRenameSchema,
   governedVocabularyTargetSchema,
   governedVocabularyTransitionSchema,
   governedVocabularyTransitionStatuses,
@@ -58,6 +59,7 @@ export {
 } from './rules/index.js';
 export type {
   GovernedVocabularyPreserveRule,
+  GovernedVocabularySymbolRename,
   GovernedVocabularyTarget,
   GovernedVocabularyTransition,
   GovernedVocabularyTransitionInput,
@@ -199,6 +201,7 @@ export {
   exampleValidTrail,
   firesDeclarationsTrail,
   forkWithoutPreservedBlazeTrail,
+  governedSymbolResidueTrail,
   implementationReturnsResultTrail,
   incompleteAccessorForStandardOpTrail,
   incompleteCrudTrail,

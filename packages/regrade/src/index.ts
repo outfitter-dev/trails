@@ -55,6 +55,7 @@ export type {
 export {
   createAstIdentifierRenameClass,
   createAstRewriteClass,
+  createGovernedAstIdentifierRenameClasses,
 } from './downstream/ast-rewrite.js';
 export type {
   AstIdentifierRenameClassOptions,

@@ -12,6 +12,7 @@ import {
   validateSourceEdits,
   walkWithScopeContext,
 } from '@ontrails/warden/ast';
+import type { GovernedVocabularyTransition } from '@ontrails/warden';
 
 import type {
   RegradeClass,
@@ -237,6 +238,17 @@ export interface AstIdentifierRenameClassOptions {
 const isIdentifierNamed = (node: AstNode, name: string): boolean =>
   node.type === 'Identifier' && identifierName(node) === name;
 
+const identifierTokenSpan = (
+  node: AstNode,
+  source: string,
+  name: string
+): { readonly end: number; readonly start: number } | null => {
+  const end = node.start + name.length;
+  return source.slice(node.start, end) === name
+    ? { end, start: node.start }
+    : null;
+};
+
 export const createAstIdentifierRenameClass = (
   options: AstIdentifierRenameClassOptions
 ): RegradeClass => {
@@ -253,9 +265,32 @@ export const createAstIdentifierRenameClass = (
         return null;
       }
 
+      const span = identifierTokenSpan(node, context.source, options.from);
+      if (span === null) {
+        const location = offsetToLineColumn(context.source, node.start);
+        return {
+          detail: {
+            expectedTarget: `Rename identifier "${options.from}" to "${options.to}".`,
+            nodeKind: node.type,
+            reason: 'ast-identifier-token-span-unverified',
+            span: {
+              column: location.column,
+              end: node.end,
+              line: location.line,
+              start: node.start,
+            },
+            suggestedValidation: 'bun run typecheck',
+            symbol: options.from,
+          },
+          kind: 'review',
+          note: `Identifier "${options.from}" token span could not be verified; routed to review.`,
+          reason: 'ast-identifier-token-span-unverified',
+        };
+      }
+
       const declaration = context.getDeclaration(options.from);
       if (declaration && reviewDeclarationTypes.has(declaration.type)) {
-        const location = offsetToLineColumn(context.source, node.start);
+        const location = offsetToLineColumn(context.source, span.start);
         return {
           detail: {
             expectedTarget: `Rename identifier "${options.from}" to "${options.to}".`,
@@ -263,9 +298,9 @@ export const createAstIdentifierRenameClass = (
             reason: 'ast-identifier-review-declaration',
             span: {
               column: location.column,
-              end: node.end,
+              end: span.end,
               line: location.line,
-              start: node.start,
+              start: span.start,
             },
             suggestedValidation: 'bun run typecheck',
             symbol: options.from,
@@ -277,10 +312,23 @@ export const createAstIdentifierRenameClass = (
       }
 
       return {
-        edit: createSourceEdit(node.start, node.end, options.to),
+        edit: createSourceEdit(span.start, span.end, options.to),
         kind: 'edit',
         note: `Renamed identifier "${options.from}" to "${options.to}".`,
       };
     },
   });
 };
+
+export const createGovernedAstIdentifierRenameClasses = (
+  transition: GovernedVocabularyTransition
+): readonly RegradeClass[] =>
+  transition.symbolRenames.map((rename) =>
+    createAstIdentifierRenameClass({
+      describe: `Rename governed symbol "${rename.from}" to "${rename.to}" for ${transition.id}.`,
+      from: rename.from,
+      id: `ast-symbol-rename:${transition.id}:${rename.from}->${rename.to}`,
+      reviewDeclarationTypes: new Set(rename.reviewDeclarationTypes),
+      to: rename.to,
+    })
+  );

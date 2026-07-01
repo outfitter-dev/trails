@@ -95,16 +95,22 @@ export const applySafeFixesToSource = (
   const applied: WardenDiagnostic[] = [];
   const skipped: WardenDiagnostic[] = [];
   const edits: ResolvedEdit[] = [];
+  const seenEdits = new Set<string>();
 
   for (const diagnostic of diagnostics) {
     if (hasSafeFixEdits(diagnostic)) {
       applied.push(diagnostic);
       for (const edit of diagnostic.fix.edits) {
-        edits.push({
+        const resolvedEdit = {
           end: edit.end,
           replacement: edit.replacement,
           start: edit.start,
-        });
+        };
+        const key = `${String(resolvedEdit.start)}\0${String(resolvedEdit.end)}\0${resolvedEdit.replacement}`;
+        if (!seenEdits.has(key)) {
+          seenEdits.add(key);
+          edits.push(resolvedEdit);
+        }
       }
     } else {
       skipped.push(diagnostic);

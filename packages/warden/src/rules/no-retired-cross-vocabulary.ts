@@ -37,6 +37,7 @@ const ALLOWED_PATH_SUFFIXES: readonly string[] = [
   '/packages/warden/src/rules/no-retired-cross-vocabulary.ts',
   '/packages/warden/src/rules/metadata.ts',
   '/packages/warden/src/rules/retired-vocabulary.ts',
+  '/packages/warden/src/trails/governed-symbol-residue.trail.ts',
   '/packages/warden/src/trails/no-retired-cross-vocabulary.trail.ts',
   '/scripts/vocab-cutover-rewrite.ts',
 ];

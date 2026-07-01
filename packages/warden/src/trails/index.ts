@@ -14,6 +14,7 @@ export { errorMappingCompletenessTrail } from './error-mapping-completeness.trai
 export { exampleValidTrail } from './example-valid.trail.js';
 export { firesDeclarationsTrail } from './fires-declarations.trail.js';
 export { forkWithoutPreservedBlazeTrail } from './fork-without-preserved-blaze.trail.js';
+export { governedSymbolResidueTrail } from './governed-symbol-residue.trail.js';
 export { implementationReturnsResultTrail } from './implementation-returns-result.trail.js';
 export { incompleteAccessorForStandardOpTrail } from './incomplete-accessor-for-standard-op.trail.js';
 export { incompleteCrudTrail } from './incomplete-crud.trail.js';

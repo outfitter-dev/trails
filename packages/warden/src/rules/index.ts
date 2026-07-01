@@ -12,6 +12,7 @@ import { duplicatePublicContract } from './duplicate-public-contract.js';
 import { errorMappingCompleteness } from './error-mapping-completeness.js';
 import { exampleValid } from './example-valid.js';
 import { firesDeclarations } from './fires-declarations.js';
+import { governedSymbolResidue } from './governed-symbol-residue.js';
 import { implementationReturnsResult } from './implementation-returns-result.js';
 import { incompleteAccessorForStandardOp } from './incomplete-accessor-for-standard-op.js';
 import { incompleteCrud } from './incomplete-crud.js';
@@ -100,6 +101,7 @@ export {
   getGovernedVocabularyTransition,
   governedVocabularyPreserveRuleSchema,
   governedVocabularyRegistrySchema,
+  governedVocabularySymbolRenameSchema,
   governedVocabularyTargetSchema,
   governedVocabularyTransitionSchema,
   governedVocabularyTransitionStatuses,
@@ -109,6 +111,7 @@ export {
 } from './retired-vocabulary.js';
 export type {
   GovernedVocabularyPreserveRule,
+  GovernedVocabularySymbolRename,
   GovernedVocabularyTarget,
   GovernedVocabularyTransition,
   GovernedVocabularyTransitionInput,
@@ -141,6 +144,7 @@ export { duplicatePublicContract } from './duplicate-public-contract.js';
 export { errorMappingCompleteness } from './error-mapping-completeness.js';
 export { exampleValid } from './example-valid.js';
 export { firesDeclarations } from './fires-declarations.js';
+export { governedSymbolResidue } from './governed-symbol-residue.js';
 export { incompleteAccessorForStandardOp } from './incomplete-accessor-for-standard-op.js';
 export { incompleteCrud } from './incomplete-crud.js';
 export { intentPropagation } from './intent-propagation.js';
@@ -213,6 +217,7 @@ export const wardenRules: ReadonlyMap<string, WardenRule> = new Map<
   [errorMappingCompleteness.name, errorMappingCompleteness],
   [exampleValid.name, exampleValid],
   [firesDeclarations.name, firesDeclarations],
+  [governedSymbolResidue.name, governedSymbolResidue],
   [incompleteCrud.name, incompleteCrud],
   [intentPropagation.name, intentPropagation],
   [layerFieldNameDrift.name, layerFieldNameDrift],

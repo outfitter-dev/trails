@@ -20,6 +20,7 @@ import { duplicatePublicContract } from './duplicate-public-contract.js';
 import { errorMappingCompleteness } from './error-mapping-completeness.js';
 import { exampleValid } from './example-valid.js';
 import { firesDeclarations } from './fires-declarations.js';
+import { governedSymbolResidue } from './governed-symbol-residue.js';
 import { implementationReturnsResult } from './implementation-returns-result.js';
 import { incompleteAccessorForStandardOp } from './incomplete-accessor-for-standard-op.js';
 import { incompleteCrud } from './incomplete-crud.js';
@@ -100,6 +101,7 @@ export const registeredRuleNames: readonly string[] = [
   errorMappingCompleteness.name,
   exampleValid.name,
   firesDeclarations.name,
+  governedSymbolResidue.name,
   forkWithoutPreservedBlaze.name,
   implementationReturnsResult.name,
   incompleteAccessorForStandardOp.name,
