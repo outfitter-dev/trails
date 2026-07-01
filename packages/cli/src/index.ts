@@ -2,6 +2,7 @@
 export type {
   AnyTrail,
   CliCommand,
+  CliCommandExecuteOptions,
   CliFlag,
   CliArg,
   CliFlagValueAlias,

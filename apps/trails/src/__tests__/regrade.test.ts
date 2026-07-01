@@ -439,6 +439,56 @@ describe('trails regrade', () => {
     }
   });
 
+  test('CLI honors apply mode from input json without --apply', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(dir, 'docs/surface.md', 'The facet docs are ready.\n');
+
+      const result = runRawCli([
+        'regrade',
+        '--root-dir',
+        dir,
+        '--input-json',
+        JSON.stringify({
+          apply: true,
+          from: 'facet',
+          include: ['docs/**'],
+          to: 'trailhead',
+        }),
+        '--json',
+      ]);
+
+      expect(result.exitCode).toBe(0);
+      const parsed = JSON.parse(result.stdout) as {
+        readonly apply?: {
+          readonly applied?: number;
+          readonly filesChanged?: number;
+        };
+        readonly run?: {
+          readonly report?: {
+            readonly applied?: number;
+            readonly gate?: {
+              readonly status?: string;
+            };
+          };
+        };
+      };
+      expect(parsed.apply).toMatchObject({
+        applied: 1,
+        filesChanged: 1,
+      });
+      expect(parsed.run?.report).toMatchObject({
+        applied: 1,
+        gate: { status: 'green' },
+      });
+      expect(readFileSync(join(dir, 'docs/surface.md'), 'utf8')).toBe(
+        'The trailhead docs are ready.\n'
+      );
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
   test('CLI accepts path-scope exclude globs for class-mode apply', () => {
     const dir = makeTempDir();
     try {

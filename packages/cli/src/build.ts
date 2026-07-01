@@ -32,7 +32,13 @@ import {
   withSurfaceLayerNames,
 } from '@ontrails/core';
 
-import type { AnyTrail, CliArg, CliCommand, CliFlag } from './command.js';
+import type {
+  AnyTrail,
+  CliArg,
+  CliCommand,
+  CliCommandExecuteOptions,
+  CliFlag,
+} from './command.js';
 import {
   detectDateFieldKinds,
   detectDateFields,
@@ -252,9 +258,65 @@ const paginatePreset = (): CliFlag[] => [
   },
 ];
 
+const isJsonLikeDefault = (
+  value: unknown
+): value is readonly unknown[] | object =>
+  Array.isArray(value) ||
+  (value !== null &&
+    typeof value === 'object' &&
+    Object.getPrototypeOf(value) === Object.prototype);
+
+const defaultValuesEqual = (actual: unknown, expected: unknown): boolean => {
+  if (Object.is(actual, expected)) {
+    return true;
+  }
+  if (!isJsonLikeDefault(actual) || !isJsonLikeDefault(expected)) {
+    return false;
+  }
+  try {
+    return JSON.stringify(actual) === JSON.stringify(expected);
+  } catch {
+    return false;
+  }
+};
+
+const isParsedDefaultValue = (
+  defaultFlagValues: ReadonlyMap<string, unknown>,
+  userSuppliedFlagKeys: ReadonlySet<string>,
+  key: string,
+  value: unknown
+): boolean =>
+  !userSuppliedFlagKeys.has(key) &&
+  defaultFlagValues.has(key) &&
+  defaultValuesEqual(value, defaultFlagValues.get(key));
+
+const collectDefaultFlagValues = (
+  flags: readonly CliFlag[]
+): ReadonlyMap<string, unknown> => {
+  const defaults = new Map<string, unknown>();
+  for (const flag of flags) {
+    if (flag.default !== undefined) {
+      defaults.set(kebabToCamel(flag.name), flag.default);
+    }
+  }
+  return defaults;
+};
+
+const normalizeFlagKeySet = (
+  keys?: ReadonlySet<string> | undefined
+): ReadonlySet<string> => {
+  const normalized = new Set<string>();
+  for (const key of keys ?? []) {
+    normalized.add(kebabToCamel(key));
+  }
+  return normalized;
+};
+
 /** Merge parsed args and flags into a camelCase input record. */
 const mergeArgsAndFlags = (
   metaFlagNames: ReadonlySet<string>,
+  defaultFlagValues: ReadonlyMap<string, unknown>,
+  userSuppliedFlagKeys: ReadonlySet<string>,
   structuredInput: Record<string, unknown>,
   parsedArgs: Record<string, unknown>,
   parsedFlags: Record<string, unknown>
@@ -268,9 +330,18 @@ const mergeArgsAndFlags = (
     mergedInput[key] = value;
   }
   for (const [key, value] of Object.entries(parsedFlags)) {
-    if (!metaFlagNames.has(key) && value !== undefined) {
-      mergedInput[key] = value;
+    if (metaFlagNames.has(key) || value === undefined) {
+      continue;
     }
+    if (
+      isParsedDefaultValue(defaultFlagValues, userSuppliedFlagKeys, key, value)
+    ) {
+      if (mergedInput[key] === undefined) {
+        mergedInput[key] = value;
+      }
+      continue;
+    }
+    mergedInput[key] = value;
   }
   return mergedInput;
 };
@@ -359,6 +430,8 @@ const applyDateShortcutsInPlace = (
 const resolveMergedInput = async (
   fields: readonly Field[],
   metaFlagNames: ReadonlySet<string>,
+  defaultFlagValues: ReadonlyMap<string, unknown>,
+  userSuppliedFlagKeys: ReadonlySet<string>,
   dateFields: readonly string[],
   dateFieldKinds: Readonly<Record<string, DateShortcutKind>>,
   parsedArgs: Record<string, unknown>,
@@ -382,6 +455,8 @@ const resolveMergedInput = async (
   );
   const mergedInput = mergeArgsAndFlags(
     metaFlagNames,
+    defaultFlagValues,
+    userSuppliedFlagKeys,
     structuredInput.payload ?? {},
     trailArgs,
     normalizedFlags
@@ -422,6 +497,8 @@ const maybeAddStructuredInputHint = (
 const safeMergeInput = async (
   fields: readonly Field[],
   metaFlagNames: ReadonlySet<string>,
+  defaultFlagValues: ReadonlyMap<string, unknown>,
+  userSuppliedFlagKeys: ReadonlySet<string>,
   dateFields: readonly string[],
   dateFieldKinds: Readonly<Record<string, DateShortcutKind>>,
   parsedArgs: Record<string, unknown>,
@@ -438,6 +515,8 @@ const safeMergeInput = async (
       await resolveMergedInput(
         fields,
         metaFlagNames,
+        defaultFlagValues,
+        userSuppliedFlagKeys,
         dateFields,
         dateFieldKinds,
         parsedArgs,
@@ -940,6 +1019,7 @@ const createExecute =
     t: AnyTrail,
     fields: readonly Field[],
     trailInputExcludeKeys: ReadonlySet<string>,
+    defaultFlagValues: ReadonlyMap<string, unknown>,
     dateFields: readonly string[],
     dateFieldKinds: Readonly<Record<string, DateShortcutKind>>,
     shouldHintStructuredInput: boolean,
@@ -949,11 +1029,17 @@ const createExecute =
   async (
     parsedArgs: Record<string, unknown>,
     parsedFlags: Record<string, unknown>,
-    ctxOverrides?: Partial<TrailContext>
+    ctxOverrides?: Partial<TrailContext>,
+    executeOptions?: CliCommandExecuteOptions
   ): Promise<Result<unknown, Error>> => {
+    const userSuppliedFlagKeys = normalizeFlagKeySet(
+      executeOptions?.userSuppliedFlagKeys ?? new Set(Object.keys(parsedFlags))
+    );
     const merged = await safeMergeInput(
       fields,
       trailInputExcludeKeys,
+      defaultFlagValues,
+      userSuppliedFlagKeys,
       dateFields,
       dateFieldKinds,
       parsedArgs,
@@ -1191,6 +1277,7 @@ const toCliCommand = (
     claimedFlagKebabs
   );
   const flags = [...trailFlags, ...layerProjection.flags];
+  const defaultFlagValues = collectDefaultFlagValues(flags);
   const layerMappedKeys = collectLayerMappedKeys(layerProjection.projections);
   // The executor strips both meta flags and layer-mapped flag values from
   // the trail input so layer-only flags never reach trail validation.
@@ -1224,6 +1311,7 @@ const toCliCommand = (
       t,
       fields,
       trailInputExcludeKeys,
+      defaultFlagValues,
       dateFields,
       dateFieldKinds,
       shouldHintStructuredInput,

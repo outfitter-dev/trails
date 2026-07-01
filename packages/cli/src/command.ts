@@ -57,6 +57,17 @@ export interface CliArg {
 // CliCommand
 // ---------------------------------------------------------------------------
 
+export interface CliCommandExecuteOptions {
+  /**
+   * CamelCase or kebab-case parsed flag keys that came directly from argv.
+   *
+   * Adapters that preserve framework-defaulted parsed flag values should pass
+   * this set so default-valued but explicitly supplied flags keep normal flag
+   * precedence over structured input.
+   */
+  readonly userSuppliedFlagKeys?: ReadonlySet<string> | undefined;
+}
+
 /** A framework-agnostic representation of a CLI command. */
 export interface CliCommand {
   readonly path: readonly string[];
@@ -82,10 +93,14 @@ export interface CliCommand {
    * @param ctxOverrides - Optional per-invocation overrides merged into the
    *   TrailContext before execution. The CLI surface marker is always
    *   applied on top of these overrides.
+   * @param executeOptions - Optional adapter metadata about parsed argv
+   *   provenance. Callers may omit it when parsed flags contain only explicit
+   *   values.
    */
   execute(
     parsedArgs: Record<string, unknown>,
     parsedFlags: Record<string, unknown>,
-    ctxOverrides?: Partial<TrailContext>
+    ctxOverrides?: Partial<TrailContext>,
+    executeOptions?: CliCommandExecuteOptions
   ): Promise<Result<unknown, Error>>;
 }

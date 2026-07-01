@@ -594,6 +594,97 @@ describe('buildCommands execution', () => {
     });
   });
 
+  test('structured input beats parsed flag defaults', async () => {
+    let receivedInput: unknown;
+    const t = trail('regrade-like', {
+      blaze: (input) => {
+        receivedInput = input;
+        return Result.ok(input);
+      },
+      input: z.object({
+        apply: z.boolean().default(false),
+        query: z.string(),
+      }),
+    });
+    const app = makeApp(t);
+    const commands = buildCommands(app);
+
+    await commands[0]?.execute(
+      {},
+      {
+        apply: false,
+        'input-json': '{"apply":true,"query":"from json"}',
+      },
+      undefined,
+      { userSuppliedFlagKeys: new Set() }
+    );
+
+    expect(receivedInput).toEqual({
+      apply: true,
+      query: 'from json',
+    });
+  });
+
+  test('explicit same-as-default flags beat structured input', async () => {
+    let receivedInput: unknown;
+    const t = trail('regrade-explicit', {
+      blaze: (input) => {
+        receivedInput = input;
+        return Result.ok(input);
+      },
+      input: z.object({
+        apply: z.boolean().default(false),
+        query: z.string(),
+      }),
+    });
+    const app = makeApp(t);
+    const commands = buildCommands(app);
+
+    await commands[0]?.execute(
+      {},
+      {
+        apply: false,
+        'input-json': '{"apply":true,"query":"from json"}',
+      },
+      undefined,
+      { userSuppliedFlagKeys: new Set(['apply']) }
+    );
+
+    expect(receivedInput).toEqual({
+      apply: false,
+      query: 'from json',
+    });
+  });
+
+  test('direct default-valued flags without provenance beat structured input', async () => {
+    let receivedInput: unknown;
+    const t = trail('regrade-direct-explicit', {
+      blaze: (input) => {
+        receivedInput = input;
+        return Result.ok(input);
+      },
+      input: z.object({
+        apply: z.boolean().default(false),
+        query: z.string(),
+      }),
+    });
+    const app = makeApp(t);
+    const commands = buildCommands(app);
+
+    await commands[0]?.execute(
+      {},
+      {
+        apply: false,
+        'input-json': '{"apply":true,"query":"from json"}',
+      }
+    );
+
+    expect(receivedInput).toEqual({
+      apply: false,
+      query: 'from json',
+    });
+  });
+
   test('resolveInput only fills missing values and never overwrites explicit input', async () => {
     let receivedInput: unknown;
     const t = trail('prompted', {

@@ -1182,6 +1182,37 @@ describe('toCommander option wiring', () => {
     expect(received).toEqual({ format: 'text' });
   });
 
+  test('default-valued aliases override structured input', async () => {
+    let observed: unknown;
+    const t = trail('render', {
+      blaze: (input) => {
+        observed = input;
+        return Result.ok(input);
+      },
+      fields: {
+        outputFormat: { aliases: true },
+      },
+      input: z.object({
+        outputFormat: z.enum(['json', 'text']).default('text'),
+      }),
+    });
+    const app = makeApp(t);
+    const commands = buildCommands(app, { onResult: noopResult });
+    const program = toCommander(commands, { name: 'test' });
+    program.exitOverride();
+
+    await program.parseAsync([
+      'node',
+      'test',
+      'render',
+      '--input-json',
+      '{"outputFormat":"json"}',
+      '--text',
+    ]);
+
+    expect(observed).toEqual({ outputFormat: 'text' });
+  });
+
   test('value aliases reject simultaneous canonical enum flags', async () => {
     let received: Record<string, unknown> | undefined;
     const commands: CliCommand[] = [
@@ -1300,6 +1331,38 @@ describe('toCommander option wiring', () => {
 
       await program.parseAsync(['node', 'test', 'check', '--strict']);
       expect(spy.received['strict']).toBe(true);
+    });
+
+    test('explicit --no-<flag> overrides structured input through Commander', async () => {
+      let observed: unknown;
+      const t = trail('regrade-like', {
+        blaze: (input) => {
+          observed = input;
+          return Result.ok(input);
+        },
+        input: z.object({
+          apply: z.boolean().default(false),
+          query: z.string(),
+        }),
+      });
+      const app = makeApp(t);
+      const commands = buildCommands(app, { onResult: noopResult });
+      const program = toCommander(commands, { name: 'test' });
+      program.exitOverride();
+
+      await program.parseAsync([
+        'node',
+        'test',
+        'regrade-like',
+        '--input-json',
+        '{"apply":true,"query":"from json"}',
+        '--no-apply',
+      ]);
+
+      expect(observed).toEqual({
+        apply: false,
+        query: 'from json',
+      });
     });
 
     test('omitted --dry-run preserves a createContext dryRun default through Commander', async () => {

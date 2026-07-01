@@ -581,7 +581,12 @@ const wireAction = (
         action.parsedFlags,
         action.userSuppliedFlagKeys
       );
-      await action.command.execute(action.parsedArgs, parsedFlags);
+      await action.command.execute(action.parsedArgs, parsedFlags, undefined, {
+        userSuppliedFlagKeys: getCanonicalUserSuppliedFlagKeys(
+          action.command.flags,
+          action.userSuppliedFlagKeys
+        ),
+      });
     } catch (error: unknown) {
       handleError(
         error,
