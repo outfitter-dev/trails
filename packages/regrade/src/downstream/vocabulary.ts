@@ -1251,6 +1251,9 @@ export const runVocabularyRegrade = (params: {
     ...(effectivePlan.scope?.exclude === undefined
       ? {}
       : { exclude: effectivePlan.scope.exclude }),
+    ...(effectivePlan.scope?.include === undefined
+      ? {}
+      : { include: effectivePlan.scope.include }),
     ...(effectivePlan.scope?.ignoredDirectories === undefined
       ? {}
       : { ignoredDirectories: effectivePlan.scope.ignoredDirectories }),

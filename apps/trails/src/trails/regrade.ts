@@ -7,6 +7,7 @@ import {
   NotFoundError,
   Result,
   ValidationError,
+  matchesAnyPathGlob,
   pathScopeSchema,
   trail,
   validateOutput,
@@ -32,6 +33,7 @@ import type {
   VocabularyRegradePlan,
   VocabularyPreserveInventoryEntry,
 } from '@ontrails/regrade';
+import { readdirSync } from 'node:fs';
 import { z } from 'zod';
 
 import { loadRegradeConfig } from '../regrade/config.js';
@@ -181,8 +183,92 @@ const symbolSourceExtensions: readonly string[] = [
   '.tsx',
 ] as const;
 
+const vocabularyProseExtensions: readonly string[] = [
+  '.md',
+  '.mdx',
+  '.txt',
+] as const;
+
 const normalizeExtension = (extension: string): string =>
   extension === '' || extension.startsWith('.') ? extension : `.${extension}`;
+
+const compileVocabularyPreservePattern = (pattern: string): RegExp => {
+  try {
+    return new RegExp(pattern);
+  } catch {
+    return new RegExp(pattern.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  }
+};
+
+const globalVocabularyPreservePattern = (pattern: RegExp): RegExp => {
+  const flags = pattern.flags.includes('g')
+    ? pattern.flags
+    : `${pattern.flags}g`;
+  return new RegExp(pattern.source, flags);
+};
+
+const preservePatternOverlapsSpan = (
+  pattern: RegExp,
+  source: string,
+  start: number,
+  end: number
+): boolean => {
+  for (const match of source.matchAll(
+    globalVocabularyPreservePattern(pattern)
+  )) {
+    const matchStart = match.index ?? 0;
+    const matchEnd = matchStart + match[0].length;
+    if (matchStart !== matchEnd && start < matchEnd && matchStart < end) {
+      return true;
+    }
+  }
+  return false;
+};
+
+const preserveRuleMatchesSymbolOccurrence = (
+  rule: VocabularyPreserveRule,
+  occurrence: {
+    readonly form: string;
+    readonly path: string;
+    readonly source: string;
+    readonly start: number;
+    readonly end: number;
+  }
+): boolean => {
+  if (rule.forms !== undefined && !rule.forms.includes(occurrence.form)) {
+    return false;
+  }
+  if (
+    rule.paths !== undefined &&
+    !matchesAnyPathGlob(occurrence.path, rule.paths)
+  ) {
+    return false;
+  }
+  const pattern = compileVocabularyPreservePattern(rule.pattern);
+  return (
+    pattern.test(occurrence.form) ||
+    preservePatternOverlapsSpan(
+      pattern,
+      occurrence.source,
+      occurrence.start,
+      occurrence.end
+    )
+  );
+};
+
+const symbolOccurrenceIsPreserved = (
+  rules: readonly VocabularyPreserveRule[] | undefined,
+  occurrence: {
+    readonly form: string;
+    readonly path: string;
+    readonly source: string;
+    readonly start: number;
+    readonly end: number;
+  }
+): boolean =>
+  rules?.some((rule) =>
+    preserveRuleMatchesSymbolOccurrence(rule, occurrence)
+  ) ?? false;
 
 const vocabularyScopeFromConfig = (
   scope: RegradeConfigScope | undefined
@@ -401,6 +487,7 @@ const mergeRegradeReports = (
     symbolReport.skipsByReason
   );
   const apply = mergeApplySummary(vocabularyReport.apply, symbolReport.apply);
+  const scanned = vocabularyReport.scanned + symbolReport.scanned;
 
   return {
     ...vocabularyReport,
@@ -414,12 +501,12 @@ const mergeRegradeReports = (
       byExtension: mergedExtensionBuckets(matchedPaths, occurrencePaths),
       files: {
         matched: new Set(matchedPaths).size,
-        scanned: Math.max(vocabularyReport.scanned, symbolReport.scanned),
+        scanned,
         skipped: Math.max(vocabularyReport.skipped, symbolReport.skipped),
       },
       skippedByReason,
     },
-    scanned: Math.max(vocabularyReport.scanned, symbolReport.scanned),
+    scanned,
     selectedClassIds: uniqueSorted([
       ...vocabularyReport.selectedClassIds,
       ...symbolReport.selectedClassIds,
@@ -432,20 +519,6 @@ const mergeRegradeReports = (
     ]),
   };
 };
-
-const preservedFormsFromRules = (
-  rules: readonly VocabularyPreserveRule[] | undefined
-): ReadonlySet<string> => new Set(rules?.flatMap((rule) => rule.forms ?? []));
-
-const preservedFormsFromInventory = (
-  inventory: readonly VocabularyPreserveInventoryEntry[]
-): ReadonlySet<string> =>
-  new Set(inventory.flatMap((rule) => rule.forms ?? []));
-
-const combinePreservedForms = (
-  left: ReadonlySet<string>,
-  right: ReadonlySet<string>
-): ReadonlySet<string> => new Set([...left, ...right]);
 
 const vocabularySymbolCollection = (
   scope: VocabularyRegradePlan['scope'] | undefined
@@ -477,6 +550,46 @@ const vocabularySymbolCollection = (
     ...(codeExtensions.length === 0 ? {} : { extensions: codeExtensions }),
     ...(include === undefined ? {} : { include }),
   };
+};
+
+const vocabularyProseScope = (
+  scope: VocabularyRegradePlan['scope'] | undefined
+): NonNullable<VocabularyRegradePlan['scope']> | null => {
+  const explicitExtensions = scope?.extensions !== undefined;
+  const extensions =
+    scope?.extensions === undefined
+      ? vocabularyProseExtensions
+      : uniqueSorted(
+          scope.extensions
+            .map(normalizeExtension)
+            .filter((extension) =>
+              vocabularyProseExtensions.includes(extension)
+            )
+        );
+
+  if (explicitExtensions && extensions.length === 0) {
+    return null;
+  }
+
+  return {
+    ...(scope?.exclude === undefined ? {} : { exclude: scope.exclude }),
+    extensions,
+    ...(scope?.ignoredDirectories === undefined
+      ? {}
+      : { ignoredDirectories: scope.ignoredDirectories }),
+    ...(scope?.include === undefined ? {} : { include: scope.include }),
+  };
+};
+
+const vocabularyProsePlan = (
+  plan: VocabularyRegradePlan
+): VocabularyRegradePlan | null => {
+  const scope = vocabularyProseScope(plan.scope);
+  if (scope === null) {
+    return null;
+  }
+
+  return { ...plan, scope };
 };
 
 const mergeVocabularyOverrides = (
@@ -563,6 +676,22 @@ const regradeRootNotFound = (rootDir: string) =>
     )
   );
 
+const regradeNoEngineForScope = () =>
+  Result.err(
+    new ValidationError(
+      'Vocabulary regrade has no prose or governed symbol engine for the selected extension scope.'
+    )
+  );
+
+const regradeRootIsReadable = (rootDir: string): boolean => {
+  try {
+    readdirSync(rootDir, { withFileTypes: true });
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 const validateRegradeReport = (
   report: RegradeReport
 ): TrailsResult<z.output<typeof regradeReportOutput>, Error> =>
@@ -579,15 +708,7 @@ const runGovernedSymbolRegrade = (params: {
     params.plan.from,
     params.plan.to
   );
-  const preservedForms = combinePreservedForms(
-    preservedFormsFromRules(params.plan.preserve),
-    preservedFormsFromInventory(params.preserveInventory)
-  );
-  const symbolRenames =
-    transition?.symbolRenames.filter(
-      (rename) => !preservedForms.has(rename.from)
-    ) ?? [];
-  if (transition === undefined || symbolRenames.length === 0) {
+  if (transition === undefined) {
     return Result.ok(null);
   }
 
@@ -597,10 +718,29 @@ const runGovernedSymbolRegrade = (params: {
   }
   return runRegrade({
     apply: params.apply,
-    classes: createGovernedAstIdentifierRenameClasses({
-      ...transition,
-      symbolRenames,
-    }),
+    classes: createGovernedAstIdentifierRenameClasses(
+      {
+        ...transition,
+        symbolRenames: transition.symbolRenames,
+      },
+      {
+        shouldPreserve: (occurrence) =>
+          symbolOccurrenceIsPreserved(params.plan.preserve, {
+            end: occurrence.end,
+            form: occurrence.from,
+            path: occurrence.path,
+            source: occurrence.source,
+            start: occurrence.start,
+          }) ||
+          symbolOccurrenceIsPreserved(params.preserveInventory, {
+            end: occurrence.end,
+            form: occurrence.from,
+            path: occurrence.path,
+            source: occurrence.source,
+            start: occurrence.start,
+          }),
+      }
+    ),
     ...(symbolCollection === undefined ? {} : { collection: symbolCollection }),
     includeEntries: params.includeEntries,
     root: params.rootDir,
@@ -619,29 +759,26 @@ const runVocabularyCommandRegrade = async (
   if (planResult.isErr()) {
     return planResult;
   }
+  if (!regradeRootIsReadable(rootDir)) {
+    return regradeRootNotFound(rootDir);
+  }
 
   const preserveInventory = await deriveLiveApiPreserveInventory(
     planResult.value
   );
+  const prosePlan = vocabularyProsePlan(planResult.value);
   const reportResult: TrailsResult<RegradeReport | null, Error> =
-    runVocabularyRegrade({
-      apply: input.apply,
-      includeEntries: input.includeEntries,
-      plan: planResult.value,
-      ...(preserveInventory.length === 0 ? {} : { preserveInventory }),
-      root: rootDir,
-    });
+    prosePlan === null
+      ? Result.ok(null)
+      : runVocabularyRegrade({
+          apply: input.apply,
+          includeEntries: input.includeEntries,
+          plan: prosePlan,
+          ...(preserveInventory.length === 0 ? {} : { preserveInventory }),
+          root: rootDir,
+        });
   if (reportResult.isErr()) {
     return reportResult;
-  }
-
-  const report = reportResult.value;
-  if (report === null) {
-    return regradeRootNotFound(rootDir);
-  }
-  const validated = validateRegradeReport(report);
-  if (validated.isErr()) {
-    return validated;
   }
 
   const symbolReportResult = runGovernedSymbolRegrade({
@@ -654,12 +791,26 @@ const runVocabularyCommandRegrade = async (
   if (symbolReportResult.isErr()) {
     return symbolReportResult;
   }
-  if (symbolReportResult.value === null) {
+
+  const report = reportResult.value;
+  const symbolReport = symbolReportResult.value;
+  if (report === null) {
+    if (symbolReport === null) {
+      return regradeNoEngineForScope();
+    }
+    return validateRegradeReport(symbolReport);
+  }
+
+  const validated = validateRegradeReport(report);
+  if (validated.isErr()) {
+    return validated;
+  }
+  if (symbolReport === null) {
     return Result.ok(validated.value);
   }
 
   const mergedValidated = validateRegradeReport(
-    mergeRegradeReports(report, symbolReportResult.value)
+    mergeRegradeReports(report, symbolReport)
   );
   return mergedValidated;
 };

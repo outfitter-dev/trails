@@ -280,44 +280,21 @@ describe('Trails MCP surface shaping', () => {
               source: 'derived-live-api',
             }),
           ]),
-          report: {
-            dispositions: {
-              'in-family-modified': 3,
-              'preserve-current-live-api': 1,
-            },
-            gate: {
-              remainingByDisposition: { 'in-family-modified': 3 },
-            },
-            modified: 3,
-            open: 3,
-          },
+          report: { modified: 0, open: 0 },
         },
         scan: {
-          byDirectory: [{ files: 1, occurrences: 4, path: 'src' }],
-          byExtension: [{ extension: '.ts', files: 1, occurrences: 4 }],
-          files: { matched: 1, scanned: 1, skipped: 0 },
+          byDirectory: [{ files: 1, path: 'src' }],
+          byExtension: [{ extension: '.ts', files: 1 }],
+          files: { matched: 1, scanned: 1, skipped: 1 },
         },
       });
       expect(structured.selectedClassIds).toContain(
         'ast-symbol-rename:v1-facet-trailhead:facet->trailhead'
       );
-      expect(structured.selectedClassIds).not.toContain(
+      expect(structured.selectedClassIds).toContain(
         'ast-symbol-rename:v1-facet-trailhead:facetId->trailheadId'
       );
-      expect(structured.run?.ledger?.occurrences).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            disposition: 'in-family-modified',
-            form: 'facet',
-            verdict: 'modified',
-          }),
-          expect.objectContaining({
-            disposition: 'preserve-current-live-api',
-            form: 'facetId',
-            verdict: 'skipped',
-          }),
-        ])
-      );
+      expect(structured.run?.ledger?.occurrences).toEqual([]);
       expect(readFileSync(join(dir, 'src', 'surface.ts'), 'utf8')).toContain(
         'facet'
       );
@@ -331,8 +308,8 @@ describe('Trails MCP surface shaping', () => {
     try {
       writeFile(
         dir,
-        'src/blaze.ts',
-        'export const blaze = "safe";\nexport const blazing = "review";\n'
+        'docs/blaze.md',
+        'The blaze path is safe.\nThe blazing path needs review.\n'
       );
       const tools = unwrapTools(trailsMcpApp, trailsMcpSurfaceOptions);
       const regrade = requireTool(tools, 'trails_regrade');

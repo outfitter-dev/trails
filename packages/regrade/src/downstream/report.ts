@@ -567,6 +567,9 @@ const deriveCollectionOptions = (
     ...(collection?.exclude === undefined
       ? {}
       : { exclude: collection.exclude }),
+    ...(collection?.include === undefined
+      ? {}
+      : { include: collection.include }),
     extensions: collection?.extensions ?? targetExtensions,
     ignoredDirectories:
       collection?.ignoredDirectories ??

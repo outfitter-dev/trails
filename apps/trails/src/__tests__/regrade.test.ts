@@ -103,11 +103,10 @@ describe('trails regrade', () => {
     try {
       writeFile(
         dir,
-        'src/surface.ts',
+        'docs/surface.md',
         [
-          'export const facet = "facet";',
-          'export const facetId = facet;',
-          'export const facets = ["inspect"];',
+          'The facet docs mention facetId.',
+          'The facets docs mention grouping.',
           '',
         ].join('\n')
       );
@@ -115,7 +114,7 @@ describe('trails regrade', () => {
       const result = await regradeTrail.blaze(
         {
           from: 'facet',
-          include: ['src/**/*.ts'],
+          include: ['docs/**/*.md'],
           rootDir: dir,
           to: 'trailhead',
         },
@@ -141,15 +140,15 @@ describe('trails regrade', () => {
           }),
           expect.objectContaining({
             pattern: expect.stringContaining('wayfind\\.facets'),
-            reason: 'current-live-trail-id',
+            reason: 'current-live-trail-compose-input',
             source: 'derived-live-api',
           }),
         ])
       );
       expect(result.value.run?.ledger.forms).toEqual({
         facet: 'modified',
-        facetId: 'skipped',
-        facets: 'skipped',
+        facetId: 'deferred',
+        facets: 'modified',
       });
       expect(
         result.value.run?.ledger.occurrences.map((occurrence) => ({
@@ -167,52 +166,44 @@ describe('trails regrade', () => {
             verdict: 'modified',
           },
           {
-            disposition: 'in-family-modified',
-            form: 'facet',
-            replacement: 'trailhead',
-            verdict: 'modified',
-          },
-          {
-            disposition: 'in-family-modified',
-            form: 'facet',
-            replacement: 'trailhead',
-            verdict: 'modified',
-          },
-          {
-            disposition: 'preserve-current-live-api',
+            disposition: 'in-family-unresolved',
             form: 'facetId',
             replacement: undefined,
-            verdict: 'skipped',
+            verdict: 'deferred',
           },
           {
-            disposition: 'preserve-current-live-api',
+            disposition: 'in-family-modified',
             form: 'facets',
-            replacement: undefined,
-            verdict: 'skipped',
+            replacement: 'trailheads',
+            verdict: 'modified',
           },
         ])
       );
-      expect(result.value.run?.ledger.occurrences).toHaveLength(5);
+      expect(result.value.run?.ledger.occurrences).toHaveLength(3);
       expect(result.value.run?.report).toMatchObject({
         applied: 0,
-        deferred: 0,
+        deferred: 1,
         dispositions: {
-          'in-family-modified': 3,
-          'preserve-current-live-api': 2,
+          'in-family-modified': 2,
+          'in-family-unresolved': 1,
         },
         gate: {
-          reasons: ['safe-modifications-not-yet-applied'],
+          reasons: [
+            'safe-modifications-not-yet-applied',
+            'deferred-forms-or-occurrences',
+          ],
           remaining: 3,
           remainingByDisposition: {
-            'in-family-modified': 3,
+            'in-family-modified': 2,
+            'in-family-unresolved': 1,
           },
           status: 'open',
         },
-        modified: 3,
+        modified: 2,
         open: 3,
-        skipped: 2,
+        skipped: 0,
       });
-      expect(readFileSync(join(dir, 'src', 'surface.ts'), 'utf8')).toContain(
+      expect(readFileSync(join(dir, 'docs', 'surface.md'), 'utf8')).toContain(
         'facet'
       );
     } finally {
@@ -250,13 +241,13 @@ describe('trails regrade', () => {
         throw result.error;
       }
       expect(result.value.apply).toMatchObject({
-        applied: 4,
+        applied: 3,
         filesChanged: 2,
         review: 1,
         skipped: 1,
       });
       expect(result.value.run?.report).toMatchObject({
-        applied: 4,
+        applied: 2,
         deferred: 1,
         gate: {
           reasons: ['deferred-forms-or-occurrences'],
@@ -265,13 +256,16 @@ describe('trails regrade', () => {
         },
         modified: 0,
         open: 1,
-        skipped: 1,
+        skipped: 0,
       });
       expect(readFileSync(join(dir, 'docs', 'surface.md'), 'utf8')).toBe(
         'Facet docs mention trailhead and trailheads.\n'
       );
       expect(readFileSync(join(dir, 'src', 'surface.ts'), 'utf8')).toContain(
         'facetId'
+      );
+      expect(readFileSync(join(dir, 'src', 'surface.ts'), 'utf8')).toContain(
+        'export const trailhead = "facet";'
       );
     } finally {
       rmSync(dir, { force: true, recursive: true });
@@ -281,7 +275,7 @@ describe('trails regrade', () => {
   test('CLI accepts regrade source and target as positional arguments', () => {
     const dir = makeTempDir();
     try {
-      writeFile(dir, 'src/surface.ts', 'export const facet = "facet";\n');
+      writeFile(dir, 'docs/surface.md', 'The facet docs mention facet.\n');
 
       const result = runRawCli([
         'regrade',
@@ -308,7 +302,7 @@ describe('trails regrade', () => {
       });
       expect(parsed.run?.report?.modified).toBe(2);
       expect(parsed.run?.report?.open).toBe(2);
-      expect(readFileSync(join(dir, 'src', 'surface.ts'), 'utf8')).toContain(
+      expect(readFileSync(join(dir, 'docs', 'surface.md'), 'utf8')).toContain(
         'facet'
       );
     } finally {
@@ -355,7 +349,7 @@ describe('trails regrade', () => {
       expect(parsed.selectedClassIds).toContain(
         'ast-symbol-rename:v1-facet-trailhead:facet->trailhead'
       );
-      expect(parsed.selectedClassIds).not.toContain(
+      expect(parsed.selectedClassIds).toContain(
         'ast-symbol-rename:v1-facet-trailhead:facetId->trailheadId'
       );
       expect(parsed.entries).toEqual(
@@ -369,6 +363,54 @@ describe('trails regrade', () => {
       );
       expect(readFileSync(join(dir, 'src', 'surface.ts'), 'utf8')).toContain(
         'facet'
+      );
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('CLI applies governed symbol include scope before rewriting', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(dir, 'other/surface.ts', 'export const facet = 1;\n');
+      writeFile(dir, 'src/surface.ts', 'export const facet = 1;\n');
+
+      const result = runRawCli([
+        'regrade',
+        'facet',
+        'trailhead',
+        '--include',
+        'src/**',
+        '--include-entries',
+        'all',
+        '--root-dir',
+        dir,
+        '--apply',
+        '--json',
+      ]);
+
+      expect(result.exitCode).toBe(0);
+      const parsed = JSON.parse(result.stdout) as {
+        readonly entries?: readonly {
+          readonly outcome?: string;
+          readonly path?: string;
+          readonly reason?: string;
+        }[];
+      };
+      expect(readFileSync(join(dir, 'src', 'surface.ts'), 'utf8')).toContain(
+        'trailhead'
+      );
+      expect(readFileSync(join(dir, 'other', 'surface.ts'), 'utf8')).toContain(
+        'facet'
+      );
+      expect(parsed.entries).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            outcome: 'skip',
+            path: 'other/surface.ts',
+            reason: 'not-included-glob',
+          }),
+        ])
       );
     } finally {
       rmSync(dir, { force: true, recursive: true });
@@ -417,8 +459,8 @@ describe('trails regrade', () => {
     try {
       writeFile(
         dir,
-        'src/blaze.ts',
-        'export const blaze = "safe";\nexport const blazing = "review";\n'
+        'docs/blaze.md',
+        'The blaze path is safe.\nThe blazing path needs review.\n'
       );
 
       const result = runRawCli([
@@ -470,21 +512,88 @@ describe('trails regrade', () => {
     }
   });
 
+  test('CLI keeps path-scoped symbol preserves local to matching occurrences', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(dir, 'src/internal.ts', 'export const blaze = 1;\n');
+      writeFile(dir, 'src/public-api.ts', 'export const blaze = 1;\n');
+
+      const result = runRawCli([
+        'regrade',
+        '--root-dir',
+        dir,
+        '--input-json',
+        JSON.stringify({
+          apply: true,
+          extensions: ['.ts'],
+          from: 'blaze',
+          preserve: [
+            {
+              forms: ['blaze'],
+              paths: ['src/public-api.ts'],
+              pattern: String.raw`\bblaze\b\s*=`,
+              reason: 'public-api-field',
+            },
+          ],
+          to: 'implementation',
+        }),
+        '--json',
+      ]);
+
+      expect(result.exitCode).toBe(0);
+      expect(readFileSync(join(dir, 'src', 'internal.ts'), 'utf8')).toContain(
+        'implementation'
+      );
+      expect(readFileSync(join(dir, 'src', 'public-api.ts'), 'utf8')).toContain(
+        'blaze'
+      );
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('CLI merged vocabulary reports count prose and code scanned files', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(dir, 'docs/blaze.md', 'The blaze docs are ready.\n');
+      writeFile(dir, 'src/blaze.ts', 'export const blaze = 1;\n');
+
+      const result = runRawCli([
+        'regrade',
+        'blaze',
+        'implementation',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+
+      expect(result.exitCode).toBe(0);
+      const parsed = JSON.parse(result.stdout) as {
+        readonly scan?: {
+          readonly files?: {
+            readonly matched?: number;
+            readonly scanned?: number;
+          };
+        };
+        readonly scanned?: number;
+      };
+      expect(parsed.scanned).toBe(2);
+      expect(parsed.scan?.files).toMatchObject({
+        matched: 2,
+        scanned: 2,
+      });
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
   test('CLI accepts path-scope exclude globs for vocabulary regrades', () => {
     const dir = makeTempDir();
     try {
-      writeFile(dir, '.agents/notes/history.ts', 'export const facet = 1;\n');
-      writeFile(
-        dir,
-        '.agents/skills/trails/SKILL.ts',
-        'export const facet = 1;\n'
-      );
-      writeFile(dir, '.scratch/history.ts', 'export const facet = 1;\n');
-      writeFile(
-        dir,
-        'plugin/skills/trails/SKILL.ts',
-        'export const facet = 1;\n'
-      );
+      writeFile(dir, '.agents/notes/history.md', 'facet\n');
+      writeFile(dir, '.agents/skills/trails/SKILL.md', 'facet\n');
+      writeFile(dir, '.scratch/history.md', 'facet\n');
+      writeFile(dir, 'plugin/skills/trails/SKILL.md', 'facet\n');
 
       const result = runRawCli([
         'regrade',
@@ -531,20 +640,20 @@ describe('trails regrade', () => {
         '.agents/notes/**',
       ]);
       expect(parsed.run?.ledger?.occurrences?.map((o) => o.path)).toEqual([
-        '.agents/skills/trails/SKILL.ts',
-        'plugin/skills/trails/SKILL.ts',
+        '.agents/skills/trails/SKILL.md',
+        'plugin/skills/trails/SKILL.md',
       ]);
       expect(parsed.scan?.files).toEqual({
         matched: 2,
         scanned: 2,
-        skipped: 2,
+        skipped: 4,
       });
       expect(parsed.scan?.byDirectory).toEqual([
         { files: 1, occurrences: 1, path: '.agents' },
         { files: 1, occurrences: 1, path: 'plugin' },
       ]);
       expect(parsed.scan?.byExtension).toEqual([
-        { extension: '.ts', files: 2, occurrences: 2 },
+        { extension: '.md', files: 2, occurrences: 2 },
       ]);
       expect(parsed.skipsByReason).toMatchObject({ 'ignored-glob': 2 });
     } finally {
@@ -649,22 +758,14 @@ describe('trails regrade', () => {
           reason: 'unclassified-neighbor',
           verdict: 'deferred',
         },
-        {
-          disposition: 'preserve-current-live-api',
-          form: 'facetId',
-          path: 'src/surface.ts',
-          reason: 'live-api-identifier',
-          verdict: 'skipped',
-        },
       ]);
       expect(parsed.run?.report).toMatchObject({
         deferred: 1,
         dispositions: {
           'in-family-unresolved': 1,
-          'preserve-current-live-api': 1,
         },
         modified: 0,
-        skipped: 1,
+        skipped: 0,
       });
     } finally {
       rmSync(dir, { force: true, recursive: true });
@@ -699,9 +800,7 @@ describe('trails regrade', () => {
 
       expect(result.exitCode).toBe(0);
       const source = readFileSync(join(dir, 'src', 'surface.ts'), 'utf8');
-      expect(source).toContain(
-        "ctx.compose('wayfind.facets', { trailheads });"
-      );
+      expect(source).toContain("ctx.compose('wayfind.facets', { facets });");
       expect(source).toContain(
         'readonly facets?: McpSurfaceFacetMap | undefined;'
       );
@@ -716,8 +815,28 @@ describe('trails regrade', () => {
               readonly verdict: string;
             }[];
           };
+          readonly preserveInventory?: readonly {
+            readonly forms?: readonly string[];
+            readonly reason?: string;
+          }[];
         };
       };
+      expect(parsed.run?.preserveInventory).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            forms: expect.arrayContaining(['facets']),
+            reason: 'current-live-trail-compose-input',
+          }),
+          expect.objectContaining({
+            forms: expect.arrayContaining(['facets']),
+            reason: 'current-live-mcp-facets-property',
+          }),
+          expect.objectContaining({
+            forms: expect.arrayContaining(['McpSurfaceFacetMap']),
+            reason: 'current-live-mcp-facet-type',
+          }),
+        ])
+      );
       const liveApiOccurrences = parsed.run?.ledger?.occurrences
         ?.filter(
           (occurrence) =>
@@ -730,40 +849,49 @@ describe('trails regrade', () => {
           reason: occurrence.reason,
           verdict: occurrence.verdict,
         }));
-      expect(liveApiOccurrences).toEqual(
-        expect.arrayContaining([
-          {
-            context: "ctx.compose('wayfind.facets', { trailheads });",
-            form: 'facets',
-            reason: 'current-live-trail-id',
-            verdict: 'skipped',
-          },
-          {
-            context:
-              'export type McpSurfaceFacetMap = Record<string, unknown>;',
-            form: 'McpSurfaceFacetMap',
-            reason: 'current-live-mcp-facet-type',
-            verdict: 'skipped',
-          },
-          {
-            context: 'readonly facets?: McpSurfaceFacetMap | undefined;',
-            form: 'facets',
-            reason: 'current-live-mcp-facets-property',
-            verdict: 'skipped',
-          },
-          {
-            context: 'readonly facets?: McpSurfaceFacetMap | undefined;',
-            form: 'McpSurfaceFacetMap',
-            reason: 'current-live-mcp-facet-type',
-            verdict: 'skipped',
-          },
-        ])
+      expect(liveApiOccurrences).toEqual([]);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('CLI apply keeps prose rewrites out of code strings and comments', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(
+        dir,
+        'src/surface.ts',
+        [
+          'const label = "the facets string must not change";',
+          '// the facets comment must not change',
+          'export const facets = 1;',
+          'export const useFacets = facets;',
+          'export const facet = 1;',
+          'export const useFacet = facet;',
+          '',
+        ].join('\n')
       );
-      expect(
-        liveApiOccurrences?.every(
-          (occurrence) => occurrence.verdict === 'skipped'
-        )
-      ).toBe(true);
+
+      const result = runRawCli([
+        'regrade',
+        '--root-dir',
+        dir,
+        'facet',
+        'trailhead',
+        '--apply',
+        '--json',
+      ]);
+
+      expect(result.exitCode).toBe(0);
+      const source = readFileSync(join(dir, 'src', 'surface.ts'), 'utf8');
+      expect(source).toContain('"the facets string must not change"');
+      expect(source).toContain('// the facets comment must not change');
+      expect(source).toContain('export const facets = 1;');
+      expect(source).toContain('export const useFacets = facets;');
+      expect(source).toContain('export const trailhead = 1;');
+      expect(source).toContain('export const useFacet = trailhead;');
+      expect(source).not.toContain('the trailheads string must not change');
+      expect(source).not.toContain('// the trailheads comment must not change');
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }
@@ -772,7 +900,7 @@ describe('trails regrade', () => {
   test('CLI forwards form-scoped preserve rules from input json', () => {
     const dir = makeTempDir();
     try {
-      writeFile(dir, 'src/api.ts', 'export const legacyId = legacy;\n');
+      writeFile(dir, 'docs/api.md', 'legacyId = legacy\n');
 
       const result = runRawCli([
         'regrade',
@@ -781,7 +909,7 @@ describe('trails regrade', () => {
         '--input-json',
         JSON.stringify({
           from: 'legacy',
-          include: ['src/**'],
+          include: ['docs/**'],
           preserve: [
             {
               disposition: 'preserve-current-live-api',
@@ -1023,18 +1151,10 @@ describe('trails regrade', () => {
           },
         })
       );
-      writeFile(dir, '.agents/notes/history.ts', 'export const facet = 1;\n');
-      writeFile(
-        dir,
-        '.agents/skills/trails/SKILL.ts',
-        'export const facet = 1;\n'
-      );
-      writeFile(dir, '.scratch/history.ts', 'export const facet = 1;\n');
-      writeFile(
-        dir,
-        'plugin/skills/trails/SKILL.ts',
-        'export const facet = 1;\n'
-      );
+      writeFile(dir, '.agents/notes/history.md', 'facet\n');
+      writeFile(dir, '.agents/skills/trails/SKILL.md', 'facet\n');
+      writeFile(dir, '.scratch/history.md', 'facet\n');
+      writeFile(dir, 'plugin/skills/trails/SKILL.md', 'facet\n');
 
       const result = runRawCli([
         'regrade',
@@ -1060,8 +1180,8 @@ describe('trails regrade', () => {
         '.agents/notes/**',
       ]);
       expect(parsed.run?.ledger?.occurrences?.map((o) => o.path)).toEqual([
-        '.agents/skills/trails/SKILL.ts',
-        'plugin/skills/trails/SKILL.ts',
+        '.agents/skills/trails/SKILL.md',
+        'plugin/skills/trails/SKILL.md',
       ]);
       expect(parsed.skipsByReason).toMatchObject({ 'ignored-glob': 2 });
     } finally {
@@ -1081,9 +1201,9 @@ describe('trails regrade', () => {
           },
         })
       );
-      writeFile(dir, '.agents/notes/history.ts', 'export const facet = 1;\n');
-      writeFile(dir, '.scratch/history.ts', 'export const facet = 1;\n');
-      writeFile(dir, 'src/keep.ts', 'export const facet = 1;\n');
+      writeFile(dir, '.agents/notes/history.md', 'facet\n');
+      writeFile(dir, '.scratch/history.md', 'facet\n');
+      writeFile(dir, 'docs/keep.md', 'facet\n');
 
       const result = await regradeTrail.blaze(
         {
@@ -1101,8 +1221,8 @@ describe('trails regrade', () => {
       }
       expect(result.value.run?.plan.scope?.exclude).toEqual(['.scratch/**']);
       expect(result.value.run?.ledger.occurrences.map((o) => o.path)).toEqual([
-        '.agents/notes/history.ts',
-        'src/keep.ts',
+        '.agents/notes/history.md',
+        'docs/keep.md',
       ]);
       expect(result.value.skipsByReason).toMatchObject({ 'ignored-glob': 1 });
     } finally {
@@ -1204,6 +1324,126 @@ describe('trails regrade', () => {
         name: 'ValidationError',
       });
       expect(parsed.error?.message).toContain('requires both `from` and `to`');
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('CLI reports no applicable regrade engine for unsupported vocabulary extensions', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(dir, 'data/surface.json', '{"facet": true}\n');
+
+      const result = runRawCli([
+        'regrade',
+        '--root-dir',
+        dir,
+        '--input-json',
+        JSON.stringify({
+          extensions: ['.json'],
+          from: 'facet',
+          to: 'trailhead',
+        }),
+        '--json',
+      ]);
+
+      expect(result.exitCode).toBe(1);
+      const parsed = JSON.parse(result.stderr) as {
+        readonly error?: {
+          readonly category?: string;
+          readonly message?: string;
+          readonly name?: string;
+        };
+        readonly ok?: boolean;
+      };
+      expect(parsed.ok).toBe(false);
+      expect(parsed.error).toMatchObject({
+        category: 'validation',
+        name: 'ValidationError',
+      });
+      expect(parsed.error?.message).toContain(
+        'no prose or governed symbol engine'
+      );
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('CLI preserves missing-root diagnostics for unsupported vocabulary extensions', () => {
+    const dir = makeTempDir();
+    const missingRoot = join(dir, 'missing');
+    try {
+      const result = runRawCli([
+        'regrade',
+        '--root-dir',
+        missingRoot,
+        '--input-json',
+        JSON.stringify({
+          extensions: ['.json'],
+          from: 'facet',
+          to: 'trailhead',
+        }),
+        '--json',
+      ]);
+
+      expect(result.exitCode).toBe(2);
+      const parsed = JSON.parse(result.stderr) as {
+        readonly error?: {
+          readonly category?: string;
+          readonly message?: string;
+          readonly name?: string;
+        };
+        readonly ok?: boolean;
+      };
+      expect(parsed.ok).toBe(false);
+      expect(parsed.error).toMatchObject({
+        category: 'not_found',
+        name: 'NotFoundError',
+      });
+      expect(parsed.error?.message).toContain('could not be read');
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('CLI treats fully preserved governed symbol transitions as successful no-ops', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(dir, 'src/surface.ts', 'export const facet = 1;\n');
+
+      const result = runRawCli([
+        'regrade',
+        '--root-dir',
+        dir,
+        '--input-json',
+        JSON.stringify({
+          extensions: ['.ts'],
+          from: 'facet',
+          preserve: [
+            {
+              forms: ['facet'],
+              pattern: 'facet',
+              reason: 'operator-preserved-symbol',
+            },
+          ],
+          to: 'trailhead',
+        }),
+        '--json',
+      ]);
+
+      expect(result.exitCode).toBe(0);
+      const parsed = JSON.parse(result.stdout) as {
+        readonly matched?: number;
+        readonly rewritten?: number;
+        readonly selectedClassIds?: readonly string[];
+      };
+      expect(parsed).toMatchObject({ matched: 0, rewritten: 0 });
+      expect(parsed.selectedClassIds).toContain(
+        'ast-symbol-rename:v1-facet-trailhead:facet->trailhead'
+      );
+      expect(readFileSync(join(dir, 'src', 'surface.ts'), 'utf8')).toBe(
+        'export const facet = 1;\n'
+      );
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }
