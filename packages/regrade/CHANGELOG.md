@@ -1,5 +1,20 @@
 # @ontrails/regrade
 
+## 1.0.0-beta.33
+
+### Patch Changes
+
+- [`0c40138`](https://github.com/outfitter-dev/trails/commit/0c40138efb962e779710daa172bdfd756d9d992f): Harden vocabulary regrades by deferring Markdown code contexts for review and
+  exposing structured preserve rules through the Trails `regrade` command.
+- [`7d65189`](https://github.com/outfitter-dev/trails/commit/7d65189cc33408755fe07a0b5679f1ed01123455): Expose derived live-API preserve inventory in vocabulary Regrade runs and have the Trails operator regrade surface derive current facet API preserves from live topo and MCP surface facts.
+- [`fc002d5`](https://github.com/outfitter-dev/trails/commit/fc002d5669f4303427e99f45f9998fd0b0172bdb): Add governed AST identifier rename helpers and Warden residue detection for
+  active vocabulary symbol transitions.
+- [`6ca0d8f`](https://github.com/outfitter-dev/trails/commit/6ca0d8f776801eee71ddd86cb88c198eaf5815fd): Add a typed governed-vocabulary transition registry that Warden owns and Regrade
+  can consume for migration planning.
+- [`04bb8a4`](https://github.com/outfitter-dev/trails/commit/04bb8a42af4ada51a74b1d8c83697db92035b5e9): Expose vocabulary Regrade occurrence dispositions and disposition summary counts alongside mechanical verdicts.
+
+  Accept explicit preserve-rule dispositions through the `trails regrade` CLI/MCP contract.
+
 ## 1.0.0-beta.32
 
 ### Patch Changes

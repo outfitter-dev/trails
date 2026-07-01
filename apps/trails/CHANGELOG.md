@@ -1,5 +1,17 @@
 # trails
 
+## 1.0.0-beta.33
+
+### Patch Changes
+
+- [`04a6057`](https://github.com/outfitter-dev/trails/commit/04a6057502281fb81d1eb77df140d07181bfdd07): Clean generated release output by suppressing internal dependency cascade noise in package changelogs and rendering generated release PR and GitHub Release notes from the same Highlights, Changes, and Package Versions summary.
+- [`0c40138`](https://github.com/outfitter-dev/trails/commit/0c40138efb962e779710daa172bdfd756d9d992f): Harden vocabulary regrades by deferring Markdown code contexts for review and
+  exposing structured preserve rules through the Trails `regrade` command.
+- [`7d65189`](https://github.com/outfitter-dev/trails/commit/7d65189cc33408755fe07a0b5679f1ed01123455): Expose derived live-API preserve inventory in vocabulary Regrade runs and have the Trails operator regrade surface derive current facet API preserves from live topo and MCP surface facts.
+- [`04bb8a4`](https://github.com/outfitter-dev/trails/commit/04bb8a42af4ada51a74b1d8c83697db92035b5e9): Expose vocabulary Regrade occurrence dispositions and disposition summary counts alongside mechanical verdicts.
+
+  Accept explicit preserve-rule dispositions through the `trails regrade` CLI/MCP contract.
+
 ## 1.0.0-beta.32
 
 ### Patch Changes

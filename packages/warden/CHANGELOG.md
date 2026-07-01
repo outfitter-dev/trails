@@ -1,5 +1,14 @@
 # @ontrails/warden
 
+## 1.0.0-beta.33
+
+### Patch Changes
+
+- [`fc002d5`](https://github.com/outfitter-dev/trails/commit/fc002d5669f4303427e99f45f9998fd0b0172bdb): Add governed AST identifier rename helpers and Warden residue detection for
+  active vocabulary symbol transitions.
+- [`6ca0d8f`](https://github.com/outfitter-dev/trails/commit/6ca0d8f776801eee71ddd86cb88c198eaf5815fd): Add a typed governed-vocabulary transition registry that Warden owns and Regrade
+  can consume for migration planning.
+
 ## 1.0.0-beta.32
 
 ### Patch Changes
