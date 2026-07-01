@@ -316,6 +316,102 @@ describe('trails regrade', () => {
     }
   });
 
+  test('CLI runs governed symbol renames from the registry-backed command path', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(
+        dir,
+        'src/surface.ts',
+        [
+          'export const facet = "facet";',
+          'export const facetId = facet;',
+          'export const facets = ["inspect"];',
+          '',
+        ].join('\n')
+      );
+
+      const result = runRawCli([
+        'regrade',
+        'facet',
+        'trailhead',
+        '--include',
+        'src/**/*.ts',
+        '--include-entries',
+        'all',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+
+      expect(result.exitCode).toBe(0);
+      const parsed = JSON.parse(result.stdout) as {
+        readonly entries?: readonly {
+          readonly classId?: string;
+          readonly outcome?: string;
+          readonly path?: string;
+        }[];
+        readonly selectedClassIds?: readonly string[];
+      };
+      expect(parsed.selectedClassIds).toContain(
+        'ast-symbol-rename:v1-facet-trailhead:facet->trailhead'
+      );
+      expect(parsed.selectedClassIds).not.toContain(
+        'ast-symbol-rename:v1-facet-trailhead:facetId->trailheadId'
+      );
+      expect(parsed.entries).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            classId: 'ast-symbol-rename:v1-facet-trailhead:facet->trailhead',
+            outcome: 'rewrite',
+            path: 'src/surface.ts',
+          }),
+        ])
+      );
+      expect(readFileSync(join(dir, 'src', 'surface.ts'), 'utf8')).toContain(
+        'facet'
+      );
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('CLI skips governed symbol renames when explicit extensions exclude source code', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(
+        dir,
+        'src/surface.ts',
+        [
+          'export const facet = "facet";',
+          'export const facetId = facet;',
+          'export const facets = ["inspect"];',
+          '',
+        ].join('\n')
+      );
+
+      const result = runRawCli([
+        'regrade',
+        'facet',
+        'trailhead',
+        '--extensions',
+        '.md',
+        '--include-entries',
+        'all',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+
+      expect(result.exitCode).toBe(0);
+      const parsed = JSON.parse(result.stdout) as {
+        readonly selectedClassIds?: readonly string[];
+      };
+      expect(parsed.selectedClassIds).toEqual(['v1-facet-trailhead']);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
   test('CLI regrade uses governed registry review forms', () => {
     const dir = makeTempDir();
     try {

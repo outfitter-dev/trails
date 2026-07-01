@@ -251,6 +251,7 @@ describe('Trails MCP surface shaping', () => {
 
       expect(result.isError).toBeUndefined();
       const structured = result.structuredContent as {
+        readonly selectedClassIds?: readonly string[];
         readonly run?: {
           readonly ledger?: {
             readonly occurrences?: readonly {
@@ -297,6 +298,12 @@ describe('Trails MCP surface shaping', () => {
           files: { matched: 1, scanned: 1, skipped: 0 },
         },
       });
+      expect(structured.selectedClassIds).toContain(
+        'ast-symbol-rename:v1-facet-trailhead:facet->trailhead'
+      );
+      expect(structured.selectedClassIds).not.toContain(
+        'ast-symbol-rename:v1-facet-trailhead:facetId->trailheadId'
+      );
       expect(structured.run?.ledger?.occurrences).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
