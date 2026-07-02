@@ -20,4 +20,6 @@ Also in flight, tracked for the reset:
 
 This file is temporary. When the v1 reset lands, these changes fold into `docs/lexicon.md` and this file is deleted.
 
+The execution plan is [v1 Vocabulary Reset Transition Plan](releases/v1-vocabulary-reset.md). That plan owns family order, compatibility policy, namespace census rules, and verification. This file only records current live terms and ratified target terms.
+
 The `facet` to `trailhead` prose cutover has started. Current API identifiers such as `facets`, `facetId`, `McpSurfaceFacetMap`, `wayfind.facets`, and `surface-facet-coherence` remain live until their code/API migration lands.
