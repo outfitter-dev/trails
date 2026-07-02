@@ -29,6 +29,7 @@ import type {
   DraftDiagnostic as BarrelDraftDiagnostic,
   DraftFinding as BarrelDraftFinding,
   TopoDiagnostic as BarrelTopoDiagnostic,
+  TopoMissingReference as BarrelTopoMissingReference,
   TopoIssue as BarrelTopoIssue,
 } from './index.js';
 import { z } from 'zod';
@@ -89,6 +90,16 @@ const augmentedTopoIssue: DirectTopoIssue = {
   trailId: 'example',
 };
 void augmentedTopoIssue;
+
+const topoMissingReference: BarrelTopoMissingReference = {
+  fromId: 'entity.versioned',
+  fromKind: 'trail-version',
+  fromTrailId: 'entity.versioned',
+  missingId: 'entity.missing',
+  referenceKind: 'compose',
+  version: 1,
+};
+void topoMissingReference;
 
 const defaultedTrail = trail('typecheck.defaulted-input', {
   blaze: (input) => {

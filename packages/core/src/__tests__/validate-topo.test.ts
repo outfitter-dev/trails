@@ -10,7 +10,7 @@ import { Result } from '../result.js';
 import { trail } from '../trail.js';
 import { topo } from '../topo.js';
 import type { TopoDiagnostic } from '../validate-topo.js';
-import { validateTopo } from '../validate-topo.js';
+import { getTopoDiagnostics, validateTopo } from '../validate-topo.js';
 import { webhook } from '../webhook.js';
 
 // ---------------------------------------------------------------------------
@@ -89,6 +89,22 @@ describe('validateTopo', () => {
     expect(result.isOk()).toBe(true);
   });
 
+  test('exposes structured diagnostics without parsing messages', () => {
+    const app = topo('app', {
+      exportTrail: mockTrail('entity.export', {
+        composes: ['entity.missing'],
+      }),
+    });
+
+    const result = validateTopo(app);
+    expect(result.isErr()).toBe(true);
+
+    const diagnostics = result.isErr() ? getTopoDiagnostics(result.error) : [];
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0]?.code).toBe('topo.missing-reference');
+    expect(diagnostics[0]?.reference?.missingId).toBe('entity.missing');
+  });
+
   describe('trail composing', () => {
     test('draft compositions are allowed in the authored graph', () => {
       const app = topo('app', {
@@ -115,6 +131,14 @@ describe('validateTopo', () => {
       expect(issues).toHaveLength(1);
       expect(issues[0]?.rule).toBe('compose-exists');
       expect(issues[0]?.message).toContain('entity.missing');
+      expect(issues[0]?.code).toBe('topo.missing-reference');
+      expect(issues[0]?.reference).toEqual({
+        fromId: 'entity.onboard',
+        fromKind: 'trail',
+        fromTrailId: 'entity.onboard',
+        missingId: 'entity.missing',
+        referenceKind: 'compose',
+      });
     });
 
     test('live fork version composing a non-existent trail fails', () => {
@@ -145,6 +169,15 @@ describe('validateTopo', () => {
       expect(issues[0]?.trailId).toBe('entity.versioned');
       expect(issues[0]?.message).toContain('Version 1');
       expect(issues[0]?.message).toContain('entity.missing');
+      expect(issues[0]?.code).toBe('topo.missing-reference');
+      expect(issues[0]?.reference).toEqual({
+        fromId: 'entity.versioned',
+        fromKind: 'trail-version',
+        fromTrailId: 'entity.versioned',
+        missingId: 'entity.missing',
+        referenceKind: 'compose',
+        version: 1,
+      });
     });
 
     test('archived fork version composing a missing trail is not live-validated', () => {
@@ -329,6 +362,14 @@ describe('validateTopo', () => {
       expect(issues).toHaveLength(1);
       expect(issues[0]?.rule).toBe('resource-exists');
       expect(issues[0]?.message).toContain('db.main');
+      expect(issues[0]?.code).toBe('topo.missing-reference');
+      expect(issues[0]?.reference).toEqual({
+        fromId: 'entity.show',
+        fromKind: 'trail',
+        fromTrailId: 'entity.show',
+        missingId: 'db.main',
+        referenceKind: 'resource',
+      });
     });
 
     test('live fork version declaring a missing resource fails', () => {
@@ -360,6 +401,15 @@ describe('validateTopo', () => {
       expect(issues[0]?.trailId).toBe('entity.versioned');
       expect(issues[0]?.message).toContain('Version 1');
       expect(issues[0]?.message).toContain('db.main');
+      expect(issues[0]?.code).toBe('topo.missing-reference');
+      expect(issues[0]?.reference).toEqual({
+        fromId: 'entity.versioned',
+        fromKind: 'trail-version',
+        fromTrailId: 'entity.versioned',
+        missingId: 'db.main',
+        referenceKind: 'resource',
+        version: 1,
+      });
     });
   });
 
@@ -562,6 +612,13 @@ describe('validateTopo', () => {
       expect(issues).toHaveLength(1);
       expect(issues[0]?.rule).toBe('contour-reference-exists');
       expect(issues[0]?.message).toContain('user');
+      expect(issues[0]?.code).toBe('topo.missing-reference');
+      expect(issues[0]?.reference).toEqual({
+        fromId: 'post',
+        fromKind: 'contour',
+        missingId: 'user',
+        referenceKind: 'contour-reference',
+      });
     });
 
     test('draft contour references are allowed', () => {
@@ -596,6 +653,13 @@ describe('validateTopo', () => {
       expect(issues).toHaveLength(1);
       expect(issues[0]?.rule).toBe('signal-origin-exists');
       expect(issues[0]?.message).toContain('entity.ghost');
+      expect(issues[0]?.code).toBe('topo.missing-reference');
+      expect(issues[0]?.reference).toEqual({
+        fromId: 'entity.updated',
+        fromKind: 'signal',
+        missingId: 'entity.ghost',
+        referenceKind: 'signal-origin',
+      });
     });
 
     test('signal without origins is accepted', () => {
@@ -638,6 +702,14 @@ describe('validateTopo', () => {
       expect(issues).toHaveLength(1);
       expect(issues[0]?.rule).toBe('signal-fire-exists');
       expect(issues[0]?.message).toContain('entity.missing');
+      expect(issues[0]?.code).toBe('topo.missing-reference');
+      expect(issues[0]?.reference).toEqual({
+        fromId: 'entity.produce',
+        fromKind: 'trail',
+        fromTrailId: 'entity.produce',
+        missingId: 'entity.missing',
+        referenceKind: 'signal-fire',
+      });
     });
 
     test('trail activating from a missing signal fails', () => {
@@ -654,6 +726,14 @@ describe('validateTopo', () => {
       expect(issues).toHaveLength(1);
       expect(issues[0]?.rule).toBe('signal-on-exists');
       expect(issues[0]?.message).toContain('entity.missing');
+      expect(issues[0]?.code).toBe('topo.missing-reference');
+      expect(issues[0]?.reference).toEqual({
+        fromId: 'entity.consume',
+        fromKind: 'trail',
+        fromTrailId: 'entity.consume',
+        missingId: 'entity.missing',
+        referenceKind: 'signal-on',
+      });
     });
 
     test('draft signal references are allowed in the authored graph', () => {

@@ -447,8 +447,15 @@ export type {
 } from './draft.js';
 
 // Topo validation
-export { validateTopo } from './validate-topo.js';
-export type { TopoDiagnostic, TopoIssue } from './validate-topo.js';
+export { getTopoDiagnostics, validateTopo } from './validate-topo.js';
+export type {
+  TopoDiagnostic,
+  TopoDiagnosticCode,
+  TopoIssue,
+  TopoMissingReference,
+  TopoReferenceKind,
+  TopoReferenceOwnerKind,
+} from './validate-topo.js';
 export { validateEstablishedTopo } from './validate-established-topo.js';
 
 // Layer

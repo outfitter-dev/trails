@@ -34,11 +34,49 @@ import { validateWebhookSource } from './webhook.js';
 // Issue shape
 // ---------------------------------------------------------------------------
 
+export type TopoDiagnosticCode = 'topo.missing-reference';
+
+export type TopoReferenceKind =
+  | 'compose'
+  | 'contour-reference'
+  | 'resource'
+  | 'signal-fire'
+  | 'signal-on'
+  | 'signal-origin';
+
+export type TopoReferenceOwnerKind =
+  | 'contour'
+  | 'signal'
+  | 'trail'
+  | 'trail-version';
+
+/**
+ * Stable machine-readable payload for dangling topo references.
+ *
+ * Consumers such as Regrade should branch on `code` and `reference` instead
+ * of parsing `message`, which remains a human-readable diagnostic.
+ */
+export interface TopoMissingReference {
+  readonly fromId: string;
+  readonly fromKind: TopoReferenceOwnerKind;
+  readonly fromTrailId?: string;
+  readonly missingId: string;
+  readonly referenceKind: TopoReferenceKind;
+  readonly version?: number;
+}
+
 export interface TopoDiagnostic {
+  /**
+   * Stable machine-readable code. Human-facing messages may change for
+   * clarity; downstream automation should depend on this code and the typed
+   * payload fields.
+   */
+  readonly code?: TopoDiagnosticCode;
   readonly trailId: string;
   readonly rule: string;
   readonly message: string;
   readonly inputPath?: readonly (string | number)[];
+  readonly reference?: TopoMissingReference;
   readonly schemaIssues?: readonly TopoSchemaIssue[];
   readonly sourceId?: string;
   readonly sourceKind?: string;
@@ -53,6 +91,22 @@ export interface TopoIssue extends TopoDiagnostic {
 }
 
 export type TopoSchemaIssue = ActivationSchemaIssue;
+
+const isTopoDiagnostic = (value: unknown): value is TopoDiagnostic =>
+  typeof value === 'object' &&
+  value !== null &&
+  typeof (value as { message?: unknown }).message === 'string' &&
+  typeof (value as { rule?: unknown }).rule === 'string' &&
+  typeof (value as { trailId?: unknown }).trailId === 'string';
+
+const missingReferenceDiagnostic = (
+  issue: Omit<TopoDiagnostic, 'code' | 'reference'> & {
+    readonly reference: TopoMissingReference;
+  }
+): TopoDiagnostic => ({
+  ...issue,
+  code: 'topo.missing-reference',
+});
 
 // ---------------------------------------------------------------------------
 // Validators
@@ -147,11 +201,20 @@ const checkComposes = (
           trailId: id,
         });
       } else if (!topo.has(composedId) && !isDraftId(composedId)) {
-        issues.push({
-          message: `Composes "${composedId}" which is not in the topo`,
-          rule: 'compose-exists',
-          trailId: id,
-        });
+        issues.push(
+          missingReferenceDiagnostic({
+            message: `Composes "${composedId}" which is not in the topo`,
+            reference: {
+              fromId: id,
+              fromKind: 'trail',
+              fromTrailId: id,
+              missingId: composedId,
+              referenceKind: 'compose',
+            },
+            rule: 'compose-exists',
+            trailId: id,
+          })
+        );
       }
     }
     for (const [rawVersion, entry] of Object.entries(trail.versions ?? {})) {
@@ -174,11 +237,21 @@ const checkComposes = (
             trailId: id,
           });
         } else if (!topo.has(composedId) && !isDraftId(composedId)) {
-          issues.push({
-            message: `Version ${version} composes "${composedId}" which is not in the topo`,
-            rule: 'compose-exists',
-            trailId: id,
-          });
+          issues.push(
+            missingReferenceDiagnostic({
+              message: `Version ${version} composes "${composedId}" which is not in the topo`,
+              reference: {
+                fromId: id,
+                fromKind: 'trail-version',
+                fromTrailId: id,
+                missingId: composedId,
+                referenceKind: 'compose',
+                version,
+              },
+              rule: 'compose-exists',
+              trailId: id,
+            })
+          );
         }
       }
     }
@@ -199,11 +272,20 @@ const checkResources = (
         !topo.hasResource(declaredResource.id) &&
         !isDraftId(declaredResource.id)
       ) {
-        issues.push({
-          message: `Resource "${declaredResource.id}" is not in the topo`,
-          rule: 'resource-exists',
-          trailId: id,
-        });
+        issues.push(
+          missingReferenceDiagnostic({
+            message: `Resource "${declaredResource.id}" is not in the topo`,
+            reference: {
+              fromId: id,
+              fromKind: 'trail',
+              fromTrailId: id,
+              missingId: declaredResource.id,
+              referenceKind: 'resource',
+            },
+            rule: 'resource-exists',
+            trailId: id,
+          })
+        );
       }
     }
     for (const [rawVersion, entry] of Object.entries(trail.versions ?? {})) {
@@ -221,11 +303,21 @@ const checkResources = (
           !topo.hasResource(declaredResource.id) &&
           !isDraftId(declaredResource.id)
         ) {
-          issues.push({
-            message: `Version ${version} resource "${declaredResource.id}" is not in the topo`,
-            rule: 'resource-exists',
-            trailId: id,
-          });
+          issues.push(
+            missingReferenceDiagnostic({
+              message: `Version ${version} resource "${declaredResource.id}" is not in the topo`,
+              reference: {
+                fromId: id,
+                fromKind: 'trail-version',
+                fromTrailId: id,
+                missingId: declaredResource.id,
+                referenceKind: 'resource',
+                version,
+              },
+              rule: 'resource-exists',
+              trailId: id,
+            })
+          );
         }
       }
     }
@@ -310,11 +402,19 @@ const checkSignalOrigins = (
     }
     for (const originId of evt.from) {
       if (!topo.has(originId) && !isDraftId(originId)) {
-        issues.push({
-          message: `Signal origin "${originId}" is not in the topo`,
-          rule: 'signal-origin-exists',
-          trailId: id,
-        });
+        issues.push(
+          missingReferenceDiagnostic({
+            message: `Signal origin "${originId}" is not in the topo`,
+            reference: {
+              fromId: id,
+              fromKind: 'signal',
+              missingId: originId,
+              referenceKind: 'signal-origin',
+            },
+            rule: 'signal-origin-exists',
+            trailId: id,
+          })
+        );
       }
     }
   }
@@ -330,21 +430,39 @@ const checkSignalReferences = (
   for (const [id, trail] of trails) {
     for (const signalId of trail.fires ?? []) {
       if (!signals.has(signalId) && !isDraftId(signalId)) {
-        issues.push({
-          message: `Trail fires signal "${signalId}" which is not in the topo`,
-          rule: 'signal-fire-exists',
-          trailId: id,
-        });
+        issues.push(
+          missingReferenceDiagnostic({
+            message: `Trail fires signal "${signalId}" which is not in the topo`,
+            reference: {
+              fromId: id,
+              fromKind: 'trail',
+              fromTrailId: id,
+              missingId: signalId,
+              referenceKind: 'signal-fire',
+            },
+            rule: 'signal-fire-exists',
+            trailId: id,
+          })
+        );
       }
     }
 
     for (const signalId of trail.on ?? []) {
       if (!signals.has(signalId) && !isDraftId(signalId)) {
-        issues.push({
-          message: `Trail declares on signal "${signalId}" which is not in the topo`,
-          rule: 'signal-on-exists',
-          trailId: id,
-        });
+        issues.push(
+          missingReferenceDiagnostic({
+            message: `Trail declares on signal "${signalId}" which is not in the topo`,
+            reference: {
+              fromId: id,
+              fromKind: 'trail',
+              fromTrailId: id,
+              missingId: signalId,
+              referenceKind: 'signal-on',
+            },
+            rule: 'signal-on-exists',
+            trailId: id,
+          })
+        );
       }
     }
   }
@@ -517,11 +635,19 @@ const checkContourReferences = (
   for (const [name, contourDef] of contours) {
     for (const ref of getContourReferences(contourDef)) {
       if (!topo.hasContour(ref.contour) && !isDraftId(ref.contour)) {
-        issues.push({
-          message: `Contour "${name}" references "${ref.contour}" which is not in the topo`,
-          rule: 'contour-reference-exists',
-          trailId: name,
-        });
+        issues.push(
+          missingReferenceDiagnostic({
+            message: `Contour "${name}" references "${ref.contour}" which is not in the topo`,
+            reference: {
+              fromId: name,
+              fromKind: 'contour',
+              missingId: ref.contour,
+              referenceKind: 'contour-reference',
+            },
+            rule: 'contour-reference-exists',
+            trailId: name,
+          })
+        );
       }
     }
   }
@@ -532,6 +658,21 @@ const checkContourReferences = (
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
+
+/**
+ * Extract structured topo diagnostics from a validation error.
+ *
+ * `validateTopo` keeps source compatibility by returning `Result<void,
+ * ValidationError>`. Consumers that need machine-readable diagnostics should
+ * use this helper instead of parsing the human `message` text.
+ */
+export const getTopoDiagnostics = (
+  error: ValidationError
+): readonly TopoDiagnostic[] => {
+  const context = error.context as { issues?: unknown } | undefined;
+  const issues = context?.issues;
+  return Array.isArray(issues) ? issues.filter(isTopoDiagnostic) : [];
+};
 
 /**
  * Validate the structural integrity of a Topo graph.
