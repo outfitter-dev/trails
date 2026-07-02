@@ -383,10 +383,70 @@ const preserveCase = (sourceForm: string, replacement: string): string => {
   return replacement;
 };
 
-const pluralize = (value: string): string =>
-  value.endsWith('s') || value.endsWith('x') || value.endsWith('ch')
-    ? `${value}es`
-    : `${value}s`;
+const isSimpleVocabularyWord = (value: string): boolean =>
+  /^[A-Za-z]+$/.test(value);
+
+const endsWithConsonantY = (value: string): boolean => {
+  const penultimate = value.at(-2);
+  return (
+    value.endsWith('y') &&
+    penultimate !== undefined &&
+    !/[aeiou]/.test(penultimate)
+  );
+};
+
+const pluralize = (value: string): string => {
+  const lower = value.toLowerCase();
+  let lowerForm: string;
+  if (endsWithConsonantY(lower)) {
+    lowerForm = `${lower.slice(0, -1)}ies`;
+  } else if (
+    lower.endsWith('s') ||
+    lower.endsWith('x') ||
+    lower.endsWith('ch')
+  ) {
+    lowerForm = `${lower}es`;
+  } else {
+    lowerForm = `${lower}s`;
+  }
+  return preserveCase(value, lowerForm);
+};
+
+const pastTenseForm = (value: string): string => {
+  const lower = value.toLowerCase();
+  let lowerForm: string;
+  if (endsWithConsonantY(lower)) {
+    lowerForm = `${lower.slice(0, -1)}ied`;
+  } else if (lower.endsWith('e')) {
+    lowerForm = `${lower}d`;
+  } else {
+    lowerForm = `${lower}ed`;
+  }
+  return preserveCase(value, lowerForm);
+};
+
+const presentParticipleForm = (value: string): string => {
+  const lower = value.toLowerCase();
+  let lowerForm: string;
+  if (lower.endsWith('ie')) {
+    lowerForm = `${lower.slice(0, -2)}ying`;
+  } else if (lower.endsWith('e') && !lower.endsWith('ee')) {
+    lowerForm = `${lower.slice(0, -1)}ing`;
+  } else {
+    lowerForm = `${lower}ing`;
+  }
+  return preserveCase(value, lowerForm);
+};
+
+const defaultDeferredVocabularyForms = (from: string): readonly string[] => {
+  if (!isSimpleVocabularyWord(from)) {
+    return [];
+  }
+  return uniqueSorted([
+    pastTenseForm(from),
+    presentParticipleForm(from),
+  ]).filter((form) => form !== from && form !== pluralize(from));
+};
 
 const defaultVocabularyForms = (from: string, to: string) =>
   new Map<string, string>([
@@ -401,6 +461,11 @@ const normalizedOverrideEntries = (
     left.localeCompare(right)
   );
 
+const formIdentityForPlan = (
+  plan: VocabularyRegradePlan,
+  form: string
+): string => (plan.caseSensitive === true ? form : form.toLowerCase());
+
 const targetFormsForPlan = (
   plan: VocabularyRegradePlan
 ): Map<string, string> => {
@@ -411,8 +476,19 @@ const targetFormsForPlan = (
   return forms;
 };
 
-const deferFormsForPlan = (plan: VocabularyRegradePlan): readonly string[] =>
-  Array.isArray(plan.deferForms) ? uniqueSorted(plan.deferForms) : [];
+const deferFormsForPlan = (plan: VocabularyRegradePlan): readonly string[] => {
+  const overrideForms = new Set(
+    normalizedOverrideEntries(plan.overrides).map(([form]) =>
+      formIdentityForPlan(plan, form)
+    )
+  );
+  return uniqueSorted([
+    ...defaultDeferredVocabularyForms(plan.from).filter(
+      (form) => !overrideForms.has(formIdentityForPlan(plan, form))
+    ),
+    ...(plan.deferForms ?? []),
+  ]);
+};
 
 const validateVocabularyPlan = (
   plan: VocabularyRegradePlan
@@ -610,7 +686,10 @@ const preserveRuleForOccurrence = (
   });
 
 const occurrenceOverlaps = (
-  occurrences: readonly SourceOccurrence[],
+  occurrences: readonly {
+    readonly end: number;
+    readonly start: number;
+  }[],
   start: number,
   end: number
 ): boolean =>
@@ -678,17 +757,28 @@ const deferredOccurrenceFromDraft = (
 const exactDeferredFormOccurrencesForFile = (
   file: SourceFile,
   plan: VocabularyRegradePlan,
-  deferForms: readonly string[]
+  deferForms: readonly string[],
+  targetFormSpans: readonly {
+    readonly end: number;
+    readonly start: number;
+  }[]
 ): readonly SourceOccurrence[] => {
   const occurrences: SourceOccurrence[] = [];
+  const authoredDeferForms = new Set(
+    (plan.deferForms ?? []).map((form) => formIdentityForPlan(plan, form))
+  );
   for (const form of deferForms) {
     const pattern = new RegExp(escapeRegExp(form), vocabularyScanFlags(plan));
     for (const match of file.source.matchAll(pattern)) {
       const start = match.index ?? 0;
       const end = start + match[0].length;
+      const isAuthoredDefer = authoredDeferForms.has(
+        formIdentityForPlan(plan, form)
+      );
       if (
         !hasWordBoundary(file.source, start, end) ||
-        occurrenceOverlaps(occurrences, start, end)
+        occurrenceOverlaps(occurrences, start, end) ||
+        (!isAuthoredDefer && occurrenceOverlaps(targetFormSpans, start, end))
       ) {
         continue;
       }
@@ -703,6 +793,32 @@ const exactDeferredFormOccurrencesForFile = (
     }
   }
   return occurrences;
+};
+
+const targetFormSpansForFile = (
+  file: SourceFile,
+  plan: VocabularyRegradePlan,
+  targetForms: Map<string, string>
+): readonly {
+  readonly end: number;
+  readonly start: number;
+}[] => {
+  const spans: { end: number; start: number }[] = [];
+  for (const form of targetForms.keys()) {
+    const pattern = new RegExp(escapeRegExp(form), vocabularyScanFlags(plan));
+    for (const match of file.source.matchAll(pattern)) {
+      const start = match.index ?? 0;
+      const end = start + match[0].length;
+      if (
+        !hasWordBoundary(file.source, start, end) ||
+        occurrenceOverlaps(spans, start, end)
+      ) {
+        continue;
+      }
+      spans.push({ end, start });
+    }
+  }
+  return spans;
 };
 
 const occurrencesForFile = (
@@ -801,6 +917,7 @@ const deferredOccurrencesForFile = (
   targetForms: Map<string, string>
 ): readonly SourceOccurrence[] => {
   const deferForms = deferFormsForPlan(plan);
+  const targetFormSpans = targetFormSpansForFile(file, plan, targetForms);
   const knownForms = new Set(
     plan.caseSensitive === true
       ? [...targetForms.keys(), ...deferForms]
@@ -812,7 +929,12 @@ const deferredOccurrencesForFile = (
   const lowerFrom = plan.from.toLowerCase();
   const tokenPattern = /[A-Za-z_$][A-Za-z0-9_$-]*/g;
   const occurrences = [
-    ...exactDeferredFormOccurrencesForFile(file, plan, deferForms),
+    ...exactDeferredFormOccurrencesForFile(
+      file,
+      plan,
+      deferForms,
+      targetFormSpans
+    ),
   ];
 
   for (const form of targetForms.keys()) {

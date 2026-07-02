@@ -252,6 +252,272 @@ describe('runVocabularyRegrade', () => {
     }
   });
 
+  test('discovers obvious prose morphology as deferred review inventory', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(dir, 'docs/blaze.md', 'blaze blazes blazed blazing\n');
+
+      const result = runVocabularyRegrade({
+        plan: {
+          from: 'blaze',
+          kind: 'vocabulary',
+          scope: { extensions: ['.md'] },
+          to: 'implementation',
+        },
+        root: dir,
+      });
+
+      expect(result.isOk()).toBe(true);
+      if (result.isErr()) {
+        throw result.error;
+      }
+      expect(result.value?.run?.ledger.forms).toEqual({
+        blaze: 'modified',
+        blazed: 'deferred',
+        blazes: 'modified',
+        blazing: 'deferred',
+      });
+      expect(
+        result.value?.run?.ledger.occurrences.map((occurrence) => ({
+          form: occurrence.form,
+          reason: occurrence.reason,
+          verdict: occurrence.verdict,
+        }))
+      ).toEqual([
+        { form: 'blaze', reason: 'captured-form', verdict: 'modified' },
+        { form: 'blazes', reason: 'captured-form', verdict: 'modified' },
+        { form: 'blazed', reason: 'deferred-form', verdict: 'deferred' },
+        { form: 'blazing', reason: 'deferred-form', verdict: 'deferred' },
+      ]);
+      expect(result.value?.run?.report).toMatchObject({
+        deferred: 2,
+        gate: {
+          reasons: [
+            'safe-modifications-not-yet-applied',
+            'deferred-forms-or-occurrences',
+          ],
+          status: 'open',
+        },
+        modified: 2,
+        open: 4,
+      });
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('discovers derived morphology case-insensitively', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(dir, 'docs/blaze.md', 'Blaze Blazes Blazed Blazing\n');
+
+      const result = runVocabularyRegrade({
+        plan: {
+          from: 'Blaze',
+          kind: 'vocabulary',
+          scope: { extensions: ['.md'] },
+          to: 'Implementation',
+        },
+        root: dir,
+      });
+
+      expect(result.isOk()).toBe(true);
+      if (result.isErr()) {
+        throw result.error;
+      }
+      expect(result.value?.run?.ledger.forms).toEqual({
+        Blaze: 'modified',
+        Blazed: 'deferred',
+        Blazes: 'modified',
+        Blazing: 'deferred',
+      });
+      expect(result.value?.run?.report.gate.status).toBe('open');
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('discovers stem-changing prose morphology as deferred review inventory', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(dir, 'docs/try.md', 'try tries tried trying\n');
+      writeFile(dir, 'docs/die.md', 'die dies died dying\n');
+
+      const tryResult = runVocabularyRegrade({
+        plan: {
+          from: 'try',
+          kind: 'vocabulary',
+          scope: { include: ['docs/try.md'] },
+          to: 'attempt',
+        },
+        root: dir,
+      });
+      const dieResult = runVocabularyRegrade({
+        plan: {
+          from: 'die',
+          kind: 'vocabulary',
+          scope: { include: ['docs/die.md'] },
+          to: 'expire',
+        },
+        root: dir,
+      });
+
+      expect(tryResult.isOk()).toBe(true);
+      expect(dieResult.isOk()).toBe(true);
+      if (tryResult.isErr()) {
+        throw tryResult.error;
+      }
+      if (dieResult.isErr()) {
+        throw dieResult.error;
+      }
+      expect(tryResult.value.run.ledger.forms).toEqual({
+        tried: 'deferred',
+        tries: 'modified',
+        try: 'modified',
+        trying: 'deferred',
+      });
+      expect(dieResult.value.run.ledger.forms).toEqual({
+        die: 'modified',
+        died: 'deferred',
+        dies: 'modified',
+        dying: 'deferred',
+      });
+      expect(tryResult.value.run.report.gate.status).toBe('open');
+      expect(dieResult.value.run.report.gate.status).toBe('open');
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('lets explicit overrides resolve derived deferred morphology', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(
+        dir,
+        'docs/blaze.md',
+        'blaze belongs here\nblazed belongs here\nblazing needs review\n'
+      );
+
+      const result = runVocabularyRegrade({
+        apply: true,
+        plan: {
+          from: 'blaze',
+          kind: 'vocabulary',
+          overrides: { blazed: 'implemented' },
+          scope: { extensions: ['.md'] },
+          to: 'implementation',
+        },
+        root: dir,
+      });
+
+      expect(result.isOk()).toBe(true);
+      if (result.isErr()) {
+        throw result.error;
+      }
+      expect(result.value.apply).toMatchObject({
+        applied: 2,
+        filesChanged: 1,
+        review: 1,
+      });
+      expect(result.value?.run?.ledger.forms).toEqual({
+        blazing: 'deferred',
+      });
+      expect(
+        result.value?.run?.ledger.occurrences.map((occurrence) => ({
+          form: occurrence.form,
+          verdict: occurrence.verdict,
+        }))
+      ).toEqual([{ form: 'blazing', verdict: 'deferred' }]);
+      expect(readFileSync(join(dir, 'docs', 'blaze.md'), 'utf8')).toBe(
+        'implementation belongs here\nimplemented belongs here\nblazing needs review\n'
+      );
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('matches override forms case-insensitively when removing derived defers', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(
+        dir,
+        'docs/blaze.md',
+        'blaze belongs here\nblazed belongs here\nblazing needs review\n'
+      );
+
+      const result = runVocabularyRegrade({
+        apply: true,
+        plan: {
+          from: 'blaze',
+          kind: 'vocabulary',
+          overrides: { Blazed: 'implemented' },
+          scope: { extensions: ['.md'] },
+          to: 'implementation',
+        },
+        root: dir,
+      });
+
+      expect(result.isOk()).toBe(true);
+      if (result.isErr()) {
+        throw result.error;
+      }
+      expect(result.value.apply).toMatchObject({
+        applied: 2,
+        filesChanged: 1,
+        review: 1,
+      });
+      expect(result.value?.run?.ledger.forms).toEqual({
+        blazing: 'deferred',
+      });
+      expect(readFileSync(join(dir, 'docs', 'blaze.md'), 'utf8')).toBe(
+        'implementation belongs here\nimplemented belongs here\nblazing needs review\n'
+      );
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('lets longer explicit overrides outrank overlapping derived defers', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(
+        dir,
+        'docs/blaze.md',
+        'the blazing trail is clear\nstandalone blazing needs review\n'
+      );
+
+      const result = runVocabularyRegrade({
+        apply: true,
+        plan: {
+          from: 'blaze',
+          kind: 'vocabulary',
+          overrides: { 'blazing trail': 'implementation trail' },
+          scope: { extensions: ['.md'] },
+          to: 'implementation',
+        },
+        root: dir,
+      });
+
+      expect(result.isOk()).toBe(true);
+      if (result.isErr()) {
+        throw result.error;
+      }
+      expect(result.value.apply).toMatchObject({
+        applied: 1,
+        filesChanged: 1,
+        review: 1,
+      });
+      expect(result.value?.run?.ledger.forms).toEqual({
+        blazing: 'deferred',
+      });
+      expect(readFileSync(join(dir, 'docs', 'blaze.md'), 'utf8')).toBe(
+        'the implementation trail is clear\nstandalone blazing needs review\n'
+      );
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
   test('honors include globs when collecting vocabulary sources', () => {
     const dir = makeTempDir();
     try {
