@@ -1,5 +1,12 @@
 # @ontrails/regrade
 
+## 1.0.0-beta.35
+
+### Patch Changes
+
+- [`3842160`](https://github.com/outfitter-dev/trails/commit/3842160ac4030807cb2dfca8e1da75e03febccf2): Teach vocabulary regrades to discover simple prose morphology as deferred
+  review inventory so authored plans surface forms like `blazed` and `blazing`.
+
 ## 1.0.0-beta.34
 
 ### Patch Changes
