@@ -1,5 +1,13 @@
 # @ontrails/core
 
+## 1.0.0-beta.35
+
+### Patch Changes
+
+- [`417bd84`](https://github.com/outfitter-dev/trails/commit/417bd8471d0f0f47ad5f33cd2ac1c606eccd72f8): Promote signal trace helpers from tracing compatibility code to core exports, and make tracing's memory sink wrapper use the observe-owned implementation.
+- [`a88114b`](https://github.com/outfitter-dev/trails/commit/a88114b4dd0772db6b58ecdb7671e4169e6bdca5): Expose stable typed topo diagnostics for missing references so downstream
+  migration tooling can consume validation results without parsing human messages.
+
 ## 1.0.0-beta.34
 
 ## 1.0.0-beta.33

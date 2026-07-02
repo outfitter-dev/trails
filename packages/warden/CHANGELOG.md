@@ -1,5 +1,11 @@
 # @ontrails/warden
 
+## 1.0.0-beta.35
+
+### Patch Changes
+
+- [`1f5659b`](https://github.com/outfitter-dev/trails/commit/1f5659bfe39568f7bbee0503ace8b6e562d3f899): Add the `duplicate-exported-symbol` Warden rule to warn when multiple first-party packages define the same exported symbol name.
+
 ## 1.0.0-beta.34
 
 ## 1.0.0-beta.33

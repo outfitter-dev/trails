@@ -1,5 +1,12 @@
 # @ontrails/tracing
 
+## 1.0.0-beta.35
+
+### Patch Changes
+
+- [`38e8fd6`](https://github.com/outfitter-dev/trails/commit/38e8fd641d694f6bb1009f4b4bf38f92e875ec95): Document the completed tracing compatibility boundary and add tests proving core tracing primitive re-exports and the observe-owned memory sink compatibility wrapper.
+- [`417bd84`](https://github.com/outfitter-dev/trails/commit/417bd8471d0f0f47ad5f33cd2ac1c606eccd72f8): Promote signal trace helpers from tracing compatibility code to core exports, and make tracing's memory sink wrapper use the observe-owned implementation.
+
 ## 1.0.0-beta.34
 
 ## 1.0.0-beta.33
