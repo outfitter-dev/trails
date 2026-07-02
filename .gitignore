@@ -13,6 +13,7 @@ dist/
 !.agents/plans/20*/
 !.agents/plans/20*/**
 .agents/notes/
+.agents/regrade/
 .claude/agent-memory/
 .claude/scheduled_tasks.lock
 .claude/worktrees/
