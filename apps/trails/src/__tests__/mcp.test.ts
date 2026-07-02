@@ -303,6 +303,169 @@ describe('Trails MCP surface shaping', () => {
     }
   });
 
+  test('executes facet to trailhead dogfood reports through MCP', async () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(
+        dir,
+        'docs/surface.md',
+        'The facet docs mention facets. facetId stays review.\n'
+      );
+      writeFile(
+        dir,
+        'src/surface.ts',
+        [
+          'export const facet = "facet";',
+          'export const facetId = facet;',
+          'export const facets = [facet];',
+          '',
+        ].join('\n')
+      );
+      writeFile(dir, '.agents/notes/history.md', 'facet\n');
+      writeFile(dir, '.agents/skills/trails/SKILL.md', 'facet\n');
+      writeFile(dir, '.scratch/history.md', 'facet\n');
+      writeFile(dir, 'plugin/skills/trails/SKILL.md', 'facet\n');
+
+      const tools = unwrapTools(trailsMcpApp, trailsMcpSurfaceOptions);
+      const regrade = requireTool(tools, 'trails_regrade');
+
+      const result = await regrade.handler(
+        {
+          exclude: ['.agents/notes/**', '.scratch/**'],
+          from: 'facet',
+          includeEntries: 'all',
+          rootDir: dir,
+          to: 'trailhead',
+        },
+        {}
+      );
+
+      expect(result.isError).toBeUndefined();
+      const structured = result.structuredContent as {
+        readonly entries?: readonly {
+          readonly classId?: string;
+          readonly outcome?: string;
+          readonly path?: string;
+          readonly reason?: string;
+        }[];
+        readonly run?: {
+          readonly ledger?: {
+            readonly forms?: Record<string, string>;
+            readonly occurrences?: readonly {
+              readonly form?: string;
+              readonly path?: string;
+              readonly replacement?: string;
+              readonly verdict?: string;
+            }[];
+          };
+          readonly plan?: {
+            readonly from?: string;
+            readonly id?: string;
+            readonly scope?: { readonly exclude?: readonly string[] };
+            readonly to?: string;
+          };
+          readonly report?: {
+            readonly gate?: { readonly status?: string };
+            readonly modified?: number;
+            readonly open?: number;
+          };
+        };
+        readonly selectedClassIds?: readonly string[];
+      };
+
+      expect(structured.selectedClassIds).toEqual(
+        expect.arrayContaining([
+          'ast-symbol-rename:v1-facet-trailhead:facet->trailhead',
+          'ast-symbol-rename:v1-facet-trailhead:facetId->trailheadId',
+          'ast-symbol-rename:v1-facet-trailhead:facets->trailheads',
+          'v1-facet-trailhead',
+        ])
+      );
+      expect(structured.run?.plan).toMatchObject({
+        from: 'facet',
+        id: 'v1-facet-trailhead',
+        scope: { exclude: ['.agents/notes/**', '.scratch/**'] },
+        to: 'trailhead',
+      });
+      expect(structured.run?.ledger?.forms).toMatchObject({
+        facet: 'modified',
+        facetId: 'deferred',
+        facets: 'modified',
+      });
+      expect(structured.run?.ledger?.occurrences).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            form: 'facet',
+            path: '.agents/skills/trails/SKILL.md',
+            replacement: 'trailhead',
+            verdict: 'modified',
+          }),
+          expect.objectContaining({
+            form: 'facetId',
+            path: 'docs/surface.md',
+            verdict: 'deferred',
+          }),
+        ])
+      );
+      expect(
+        structured.run?.ledger?.occurrences?.map((entry) => entry.path)
+      ).not.toContain('.agents/notes/history.md');
+      expect(
+        structured.run?.ledger?.occurrences?.map((entry) => entry.path)
+      ).not.toContain('.scratch/history.md');
+      expect(structured.run?.report).toMatchObject({
+        gate: { status: 'open' },
+        modified: 4,
+        open: 5,
+      });
+      expect(structured.entries).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            classId: 'ast-symbol-rename:v1-facet-trailhead:facet->trailhead',
+            outcome: 'rewrite',
+            path: 'src/surface.ts',
+          }),
+          expect.objectContaining({
+            outcome: 'needs-review',
+            path: 'docs/surface.md',
+            reason: 'vocabulary-judgment-deferred',
+          }),
+        ])
+      );
+      expect(readFileSync(join(dir, 'docs', 'surface.md'), 'utf8')).toBe(
+        'The facet docs mention facets. facetId stays review.\n'
+      );
+      expect(readFileSync(join(dir, 'src', 'surface.ts'), 'utf8')).toBe(
+        [
+          'export const facet = "facet";',
+          'export const facetId = facet;',
+          'export const facets = [facet];',
+          '',
+        ].join('\n')
+      );
+      expect(
+        readFileSync(join(dir, '.agents', 'notes', 'history.md'), 'utf8')
+      ).toBe('facet\n');
+      expect(
+        readFileSync(
+          join(dir, '.agents', 'skills', 'trails', 'SKILL.md'),
+          'utf8'
+        )
+      ).toBe('facet\n');
+      expect(readFileSync(join(dir, '.scratch', 'history.md'), 'utf8')).toBe(
+        'facet\n'
+      );
+      expect(
+        readFileSync(
+          join(dir, 'plugin', 'skills', 'trails', 'SKILL.md'),
+          'utf8'
+        )
+      ).toBe('facet\n');
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
   test('executes registry-backed regrade review forms through MCP', async () => {
     const dir = makeTempDir();
     try {
