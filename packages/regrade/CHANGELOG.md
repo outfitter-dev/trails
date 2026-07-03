@@ -1,5 +1,12 @@
 # @ontrails/regrade
 
+## 1.0.0-beta.36
+
+### Patch Changes
+
+- [`6e63e48`](https://github.com/outfitter-dev/trails/commit/6e63e483617b84cb6868d0c4d58d5b5a8d3b9ed2): Complete the v1 grouped surface-entry vocabulary cutover from facet to trailhead, including Regrade dogfood support for governed string literal renames and composed AST rewrite application.
+- [`26786a1`](https://github.com/outfitter-dev/trails/commit/26786a14acbe9ed03f69adbdac22968891e33df1): Persist vocabulary Regrade plan artifacts, expose plan/check/preview/apply flows across CLI and MCP, and write applied plan history for reviewed vocabulary migrations.
+
 ## 1.0.0-beta.35
 
 ### Patch Changes
