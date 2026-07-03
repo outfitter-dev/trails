@@ -348,10 +348,11 @@ Trails CLI apps can expose command schemas from the same topo and framework-agno
 
 ```bash
 trails schema
+trails schema regrade
 trails schema wayfind
 trails schema wayfind pattern
 ```
 
-The no-arg form returns a command contract index. Targeted schema lookup accepts any canonical or alias command path and returns the full command-contract envelope: command path, trail id, args, flags, routes, aliases, input schema, output schema, examples, and version metadata when derivable.
+The no-arg form returns a command contract index. Targeted schema lookup accepts any canonical or alias command path and returns the full command-contract envelope: command path, trail id, args, flags, routes, aliases, input schema, output schema, examples, and version metadata when derivable. When the path is also a command namespace, the output includes a `namespace.commands` array with the child command contracts so agents can inspect families such as `regrade` before choosing `regrade plan`, `regrade plans`, `regrade check`, `regrade preview`, or `regrade apply`.
 
 Schema visibility describes the surface-bound CLI commands. Apps may configure broader schema visibility for dev or agent environments, but runtime schema output must not reveal hidden/internal schemas that the app author did not choose to expose.

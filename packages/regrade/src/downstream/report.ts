@@ -622,6 +622,27 @@ export interface RegradeReport {
   readonly apply?: RegradeApplySummary;
   /** Vocabulary regrade run: plan, ledger, and completion report. */
   readonly run?: VocabularyRegradeRun;
+  /** Saved active Regrade plan evidence for vocabulary regrades. */
+  readonly plan?: {
+    readonly path: string;
+    readonly schemaVersion: number;
+    readonly status: 'active' | 'stale';
+  };
+  /** Saved applied Regrade history evidence for vocabulary regrades. */
+  readonly history?: {
+    readonly path: string;
+    readonly schemaVersion: number;
+    readonly status: 'applied';
+  };
+  /**
+   * @deprecated Persisted transition record evidence for vocabulary regrades.
+   *   Use `plan` and `history` summaries in public surfaces.
+   */
+  readonly record?: {
+    readonly path: string;
+    readonly schemaVersion: number;
+    readonly status: 'candidate' | 'applied' | 'checked';
+  };
 }
 
 interface RegradeRewriteCandidate {
@@ -1157,7 +1178,37 @@ export const regradeReportOutput = z.object({
     .describe(
       'Per-entry detail, sorted by path. Defaults to actionable rewrite/review entries.'
     ),
+  history: z
+    .object({
+      path: z.string().describe('Root-relative applied history entry path'),
+      schemaVersion: z.number().describe('Regrade history schema version'),
+      status: z
+        .literal('applied')
+        .describe('How this command used the Regrade history entry'),
+    })
+    .optional()
+    .describe('Saved applied Regrade history evidence'),
   matched: z.number().describe('Files with a rewrite or review outcome'),
+  plan: z
+    .object({
+      path: z.string().describe('Root-relative Regrade plan path'),
+      schemaVersion: z.number().describe('Regrade plan schema version'),
+      status: z
+        .enum(['active', 'stale'])
+        .describe('Whether the saved plan still matches the source tree'),
+    })
+    .optional()
+    .describe('Saved active Regrade plan evidence'),
+  record: z
+    .object({
+      path: z.string().describe('Root-relative transition record path'),
+      schemaVersion: z.number().describe('Transition record schema version'),
+      status: z
+        .enum(['candidate', 'applied', 'checked'])
+        .describe('How this command used the transition record'),
+    })
+    .optional()
+    .describe('Persisted transition record evidence'),
   review: z.number().describe('Files routed to review'),
   rewritten: z.number().describe('Files with a rewrite outcome'),
   root: z.string().describe('Root the run scanned'),

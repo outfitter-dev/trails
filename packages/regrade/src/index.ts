@@ -14,10 +14,17 @@ export {
   wardenTermRewriteClasses,
 } from './downstream/report.js';
 export {
+  VOCABULARY_TRANSITION_RECORD_SCHEMA_VERSION,
+  buildVocabularyTransitionRecord,
+  readVocabularyTransitionRecord,
   runVocabularyRegrade,
+  transitionRecordReportWithSummary,
   vocabularyDispositionValues,
   vocabularyRegradePlanSchema,
   vocabularyRegradeRunOutput,
+  vocabularyTransitionRecordPath,
+  vocabularyTransitionRecordSchema,
+  writeVocabularyTransitionRecord,
 } from './downstream/vocabulary.js';
 export {
   listVocabularyRegradePlansFromRegistry,
@@ -54,6 +61,9 @@ export type {
   VocabularyRunGate,
   VocabularyRunLedger,
   VocabularyRunReport,
+  VocabularyTransitionRecord,
+  VocabularyTransitionRecordEnvironment,
+  VocabularyTransitionRecordSummary,
   VocabularyVerdict,
 } from './downstream/vocabulary.js';
 export {

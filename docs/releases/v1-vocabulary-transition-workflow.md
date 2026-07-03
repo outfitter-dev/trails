@@ -16,23 +16,26 @@ Start from the issue, not from memory.
 
 The packet is the operative contract for an executor. If the packet drops an issue requirement, the work will probably drop it too.
 
-## Dry Run
+## Plan
 
-Run the transition through the supported surface and save the JSON report:
+Write the transition through the supported surface and save the JSON report:
 
 ```bash
-bun apps/trails/bin/trails.ts regrade facet trailhead \
+bun apps/trails/bin/trails.ts regrade plan facet trailhead \
   --root-dir . \
   --include-entries all \
-  --json > .tmp-regrade/facet-trailhead-dry-run.json
+  --json > .tmp-regrade/facet-trailhead-plan.json
+
+PLAN_PATH="$(jq -r '.path' .tmp-regrade/facet-trailhead-plan.json)"
 ```
 
-Use the family names for the current transition. Do not substitute raw `rg` for the Regrade report; raw search is only the census cross-check.
+Use the family names for the current transition. Planning writes an active plan artifact under `.trails/regrade/<slug>.json`; it does not apply source edits. Do not substitute raw `rg` for the Regrade report; raw search is only the census cross-check.
 
 Record:
 
 - command;
 - saved JSON path;
+- active plan path;
 - selected class ids;
 - scan scope;
 - scanned, matched, rewritten, review, and skipped counts;
@@ -40,7 +43,7 @@ Record:
 - skip reasons;
 - whether the gate is open and why.
 
-If the first dry-run scans historical release notes, memory, archive plans, generated output, or local scratch space, fix the transition scope or project config before applying. Do not wave it through as "just noisy."
+If the first plan scans historical release notes, memory, archive plans, generated output, or local scratch space, fix the transition scope or project config before applying. Do not wave it through as "just noisy."
 
 ## Namespace Census
 
@@ -65,17 +68,32 @@ The census must name the commands used and the exact paths where old public iden
 
 ## Apply
 
-Apply only after the dry-run and census are understood:
+Apply only after the plan, preview, and census are understood:
 
 ```bash
-bun apps/trails/bin/trails.ts regrade facet trailhead \
+bun apps/trails/bin/trails.ts regrade preview \
   --root-dir . \
+  --plan "$PLAN_PATH" \
   --include-entries all \
-  --apply \
+  --json > .tmp-regrade/facet-trailhead-preview.json
+
+bun apps/trails/bin/trails.ts regrade apply \
+  --root-dir . \
+  --plan "$PLAN_PATH" \
+  --include-entries all \
+  --dry-run \
+  --json > .tmp-regrade/facet-trailhead-apply-dry-run.json
+
+bun apps/trails/bin/trails.ts regrade apply \
+  --root-dir . \
+  --plan "$PLAN_PATH" \
+  --include-entries all \
   --json > .tmp-regrade/facet-trailhead-apply.json
 ```
 
-Regrade is the primary migration engine. Manual edits are reviewed follow-up after Regrade exhausts the safe slice, not a substitute for running the transition.
+Regrade is the primary migration engine. Apply consumes an active plan artifact and moves the evidence to `.trails/regrade/history/<slug>-<hash>.json`. Manual edits are reviewed follow-up after Regrade exhausts the safe slice, not a substitute for running the transition.
+
+Use `trails regrade check --root-dir . --plan "$PLAN_PATH"` when a family should prove the saved plan gate without writing. The check succeeds only when the plan is fresh and its completion gate is green. Use `trails regrade plans --root-dir .` when more than one active plan may exist, because commands without `--plan <path-or-name>` intentionally fail on ambiguity.
 
 Safe follow-up edits usually include:
 
@@ -93,8 +111,10 @@ Every family PR body and retro must include an "Execution Gate Evidence" block:
 ```markdown
 ## Execution Gate Evidence
 
-- Regrade dry-run: `<command>` -> `<saved-json-path>`
-- Regrade apply: `<command>` -> `<saved-json-path>`
+- Regrade plan: `<command>` -> `<saved-json-path>`, `plan.path <path>`
+- Regrade check/preview: `<commands>` -> `<saved-json-paths>`
+- Regrade apply dry-run: `<command>` -> `<saved-json-path>`
+- Regrade apply: `<command>` -> `<saved-json-path>`, `history.path <path>`
 - Counts: changed N, preserved N, deferred N, skipped N, historical N
 - Census: product identifiers 0 unexpected, registry/test fixtures N expected, historical N preserved
 - CLI/MCP evidence: `<commands>`

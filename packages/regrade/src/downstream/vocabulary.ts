@@ -5,7 +5,9 @@ import {
   escapeRegExp,
   matchesAnyPathGlob,
 } from '@ontrails/core';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { dirname, isAbsolute, join, normalize, relative } from 'node:path';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { z } from 'zod';
 
 import { collectDownstreamSources } from './collect.js';
@@ -121,6 +123,34 @@ export interface VocabularyRegradeRun {
   readonly plan: VocabularyRegradePlan;
   readonly preserveInventory?: readonly VocabularyPreserveInventoryEntry[];
   readonly report: VocabularyRunReport;
+}
+
+export const VOCABULARY_TRANSITION_RECORD_SCHEMA_VERSION = 1;
+
+export interface VocabularyTransitionRecordEnvironment {
+  readonly commitSha?: string;
+  readonly engineVersion?: string;
+  readonly graphHash?: string;
+  readonly root: string;
+}
+
+export interface VocabularyTransitionRecord {
+  readonly environment: VocabularyTransitionRecordEnvironment;
+  readonly kind: 'vocabulary-transition-record';
+  readonly recordPath: string;
+  readonly report: Omit<RegradeReport, 'record'>;
+  readonly schemaVersion: typeof VOCABULARY_TRANSITION_RECORD_SCHEMA_VERSION;
+  readonly transition: {
+    readonly from: string;
+    readonly id: string;
+    readonly to: string;
+  };
+}
+
+export interface VocabularyTransitionRecordSummary {
+  readonly path: string;
+  readonly schemaVersion: typeof VOCABULARY_TRANSITION_RECORD_SCHEMA_VERSION;
+  readonly status: 'candidate' | 'applied' | 'checked';
 }
 
 interface SourceFile {
@@ -1622,3 +1652,282 @@ export const vocabularyRegradeRunOutput = z.object({
     })
     .describe('Projected run report'),
 });
+
+const vocabularyTransitionRecordEnvironmentSchema = z
+  .object({
+    commitSha: z.string().optional(),
+    engineVersion: z.string().optional(),
+    graphHash: z.string().optional(),
+    root: z.string(),
+  })
+  .strict();
+
+const vocabularyTransitionRecordReportSchema = z
+  .object({
+    apply: z.unknown().optional(),
+    entries: z.array(z.unknown()),
+    matched: z.number(),
+    review: z.number(),
+    rewritten: z.number(),
+    root: z.string(),
+    run: vocabularyRegradeRunOutput,
+    scan: z.unknown(),
+    scanned: z.number(),
+    selectedClassIds: z.array(z.string()),
+    skipped: z.number(),
+    skipsByReason: z.record(z.string(), z.number()),
+    unknownClassIds: z.array(z.string()),
+  })
+  .strict();
+
+const normalizeTransitionRecordPath = (path: string): string =>
+  normalize(path).replaceAll('\\', '/');
+
+const isSafeRootRelativeRecordPath = (path: string): boolean => {
+  const normalized = normalizeTransitionRecordPath(path);
+  return (
+    normalized.length > 0 &&
+    !isAbsolute(normalized) &&
+    normalized !== '..' &&
+    !normalized.startsWith('../')
+  );
+};
+
+export const vocabularyTransitionRecordSchema = z
+  .object({
+    environment: vocabularyTransitionRecordEnvironmentSchema,
+    kind: z.literal('vocabulary-transition-record'),
+    recordPath: z.string().refine(isSafeRootRelativeRecordPath),
+    report: vocabularyTransitionRecordReportSchema,
+    schemaVersion: z.literal(VOCABULARY_TRANSITION_RECORD_SCHEMA_VERSION),
+    transition: z
+      .object({
+        from: z.string(),
+        id: z.string(),
+        to: z.string(),
+      })
+      .strict(),
+  })
+  .strict();
+
+const transitionRecordSlug = (run: VocabularyRegradeRun): string =>
+  `${run.plan.from}-to-${run.plan.to}`
+    .toLowerCase()
+    .replaceAll(/[^a-z0-9]+/g, '-')
+    .replaceAll(/^-|-$/g, '');
+
+const stableJson = (value: unknown): string =>
+  JSON.stringify(value, (_key, nested) => {
+    if (
+      nested === null ||
+      typeof nested !== 'object' ||
+      Array.isArray(nested)
+    ) {
+      return nested as unknown;
+    }
+    return Object.fromEntries(
+      Object.entries(nested as Record<string, unknown>).toSorted(
+        ([left], [right]) => left.localeCompare(right)
+      )
+    );
+  });
+
+const shortHashForRun = (
+  run: VocabularyRegradeRun,
+  environment?: Partial<VocabularyTransitionRecordEnvironment>
+): string => {
+  const explicitHash = environment?.graphHash ?? environment?.commitSha;
+  if (explicitHash !== undefined && explicitHash.length > 0) {
+    return explicitHash.slice(0, 7);
+  }
+  return createHash('sha256')
+    .update(stableJson({ ledger: run.ledger, plan: run.plan }))
+    .digest('hex')
+    .slice(0, 7);
+};
+
+export const vocabularyTransitionRecordPath = (params: {
+  readonly environment?: Partial<VocabularyTransitionRecordEnvironment>;
+  readonly root: string;
+  readonly run: VocabularyRegradeRun;
+}): string =>
+  join(
+    '.trails',
+    'regrade',
+    'history',
+    `${transitionRecordSlug(params.run)}-${shortHashForRun(params.run, params.environment)}.json`
+  );
+
+const reportWithoutRecord = (
+  report: RegradeReport
+): Omit<RegradeReport, 'record'> => {
+  const { record: _record, ...rest } = report;
+  return rest;
+};
+
+const transitionRecordPathForWrite = (params: {
+  readonly environment: VocabularyTransitionRecordEnvironment;
+  readonly recordPath?: string;
+  readonly report: RegradeReport;
+  readonly root: string;
+}): Result<string, ValidationError> => {
+  const recordPath =
+    params.recordPath ??
+    vocabularyTransitionRecordPath({
+      environment: params.environment,
+      root: params.root,
+      run: params.report.run as VocabularyRegradeRun,
+    });
+  const normalized = normalizeTransitionRecordPath(
+    isAbsolute(recordPath) ? relative(params.root, recordPath) : recordPath
+  );
+  if (!isSafeRootRelativeRecordPath(normalized)) {
+    return Result.err(
+      new ValidationError(
+        'Vocabulary transition record path must stay inside the regrade root.',
+        { context: { recordPath } }
+      )
+    );
+  }
+  return Result.ok(normalized);
+};
+
+export const buildVocabularyTransitionRecord = (params: {
+  readonly environment?: Partial<VocabularyTransitionRecordEnvironment>;
+  readonly recordPath?: string;
+  readonly report: RegradeReport;
+  readonly root: string;
+}): Result<VocabularyTransitionRecord, ValidationError> => {
+  if (params.report.run === undefined) {
+    return Result.err(
+      new ValidationError(
+        'Vocabulary transition records require a vocabulary Regrade report.'
+      )
+    );
+  }
+
+  const environment: VocabularyTransitionRecordEnvironment = {
+    ...(params.environment?.commitSha === undefined
+      ? {}
+      : { commitSha: params.environment.commitSha }),
+    ...(params.environment?.engineVersion === undefined
+      ? {}
+      : { engineVersion: params.environment.engineVersion }),
+    ...(params.environment?.graphHash === undefined
+      ? {}
+      : { graphHash: params.environment.graphHash }),
+    root: params.root,
+  };
+  const recordPathResult = transitionRecordPathForWrite({
+    environment,
+    report: params.report,
+    root: params.root,
+    ...(params.recordPath === undefined
+      ? {}
+      : { recordPath: params.recordPath }),
+  });
+  if (recordPathResult.isErr()) {
+    return recordPathResult;
+  }
+  const recordPath = recordPathResult.value;
+  const record: VocabularyTransitionRecord = {
+    environment,
+    kind: 'vocabulary-transition-record',
+    recordPath,
+    report: reportWithoutRecord(params.report),
+    schemaVersion: VOCABULARY_TRANSITION_RECORD_SCHEMA_VERSION,
+    transition: {
+      from: params.report.run.plan.from,
+      id:
+        params.report.run.plan.id ??
+        `vocabulary:${params.report.run.plan.from}->${params.report.run.plan.to}`,
+      to: params.report.run.plan.to,
+    },
+  };
+  const parsed = vocabularyTransitionRecordSchema.safeParse(record);
+  if (!parsed.success) {
+    return Result.err(
+      new ValidationError('Invalid vocabulary transition record.', {
+        context: { issues: parsed.error.issues },
+      })
+    );
+  }
+  return Result.ok(parsed.data as VocabularyTransitionRecord);
+};
+
+export const writeVocabularyTransitionRecord = (params: {
+  readonly environment?: Partial<VocabularyTransitionRecordEnvironment>;
+  readonly recordPath?: string;
+  readonly report: RegradeReport;
+  readonly root: string;
+  readonly status: VocabularyTransitionRecordSummary['status'];
+}): Result<
+  {
+    readonly record: VocabularyTransitionRecord;
+    readonly summary: VocabularyTransitionRecordSummary;
+  },
+  InternalError | ValidationError
+> => {
+  const recordResult = buildVocabularyTransitionRecord(params);
+  if (recordResult.isErr()) {
+    return recordResult;
+  }
+  const record = recordResult.value;
+  const absolutePath = isAbsolute(record.recordPath)
+    ? record.recordPath
+    : join(params.root, record.recordPath);
+  try {
+    mkdirSync(dirname(absolutePath), { recursive: true });
+    writeFileSync(absolutePath, `${JSON.stringify(record, null, 2)}\n`);
+  } catch (error) {
+    return Result.err(
+      new InternalError('Failed to write vocabulary transition record.', {
+        ...(error instanceof Error ? { cause: error } : {}),
+        context: { path: record.recordPath },
+      })
+    );
+  }
+  return Result.ok({
+    record,
+    summary: {
+      path: record.recordPath,
+      schemaVersion: record.schemaVersion,
+      status: params.status,
+    },
+  });
+};
+
+export const readVocabularyTransitionRecord = (
+  path: string
+): Result<VocabularyTransitionRecord, InternalError | ValidationError> => {
+  if (!existsSync(path)) {
+    return Result.err(
+      new ValidationError(`Vocabulary transition record "${path}" not found.`)
+    );
+  }
+  let parsedJson: unknown;
+  try {
+    parsedJson = JSON.parse(readFileSync(path, 'utf8'));
+  } catch (error) {
+    return Result.err(
+      new InternalError('Failed to read vocabulary transition record.', {
+        ...(error instanceof Error ? { cause: error } : {}),
+        context: { path },
+      })
+    );
+  }
+  const parsed = vocabularyTransitionRecordSchema.safeParse(parsedJson);
+  if (!parsed.success) {
+    return Result.err(
+      new ValidationError('Invalid vocabulary transition record.', {
+        context: { issues: parsed.error.issues, path },
+      })
+    );
+  }
+  return Result.ok(parsed.data as VocabularyTransitionRecord);
+};
+
+export const transitionRecordReportWithSummary = (
+  report: RegradeReport,
+  summary: VocabularyTransitionRecordSummary
+): RegradeReport => ({ ...report, record: summary });

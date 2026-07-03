@@ -9,6 +9,7 @@ dist/
 .DS_Store
 .trail/
 .agents/plans/*
+.agents/goals/
 !.agents/plans/PLANNING.md
 !.agents/plans/20*/
 !.agents/plans/20*/**

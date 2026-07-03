@@ -14,6 +14,18 @@ const writeJson = (value: unknown): void => {
   process.stdout.write(`${JSON.stringify(value, null, 2)}\n`);
 };
 
+const pathStartsWith = (
+  path: readonly string[],
+  prefix: readonly string[]
+): boolean =>
+  path.length > prefix.length &&
+  prefix.every((segment, index) => path[index] === segment);
+
+const childCommandsForPath = (
+  schema: ReturnType<typeof deriveCliSchema>,
+  path: readonly string[]
+) => schema.commands.filter((entry) => pathStartsWith(entry.commandPath, path));
+
 export const attachSchemaCommand = (
   program: Command,
   commands: readonly CliCommand[]
@@ -30,12 +42,33 @@ export const attachSchemaCommand = (
       }
 
       const command = findCliSchemaCommand(schema, path);
+      const children = childCommandsForPath(schema, path);
       if (command === undefined) {
+        if (children.length > 0) {
+          writeJson({
+            namespace: {
+              commandPath: path,
+              commands: children,
+            },
+          });
+          return;
+        }
+
         process.stderr.write(`Unknown CLI command: ${path.join(' ')}\n`);
         process.exitCode = 1;
         return;
       }
 
-      writeJson({ command });
+      writeJson(
+        children.length === 0
+          ? { command }
+          : {
+              command,
+              namespace: {
+                commandPath: path,
+                commands: children,
+              },
+            }
+      );
     });
 };

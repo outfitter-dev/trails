@@ -509,9 +509,15 @@ AstParseResult, AstParseDiagnostic, SourceEdit, SourceLocation
 ```typescript
 // Downstream migration reporting and safe rewrites
 runRegrade({ root, classes, selection?, collection?, apply?, includeEntries? }) // Result<RegradeReport | null, InternalError>
-runVocabularyRegrade({ root, plan, apply?, includeEntries? }) // Result<RegradeReport | null, Error>
+runVocabularyRegrade({ root, plan, apply?, includeEntries?, preserveInventory? }) // Result<RegradeReport | null, Error>
 buildRegradeReport({ root, files, skipped, classes, selection?, includeEntries? })
 selectRegradeClasses(classes, selection?)
+// Legacy transition-record compatibility helpers; prefer the Trails app Regrade plan commands.
+vocabularyTransitionRecordPath({ root, run, environment? })
+buildVocabularyTransitionRecord({ root, report, environment?, recordPath? })
+writeVocabularyTransitionRecord({ root, report, status, environment?, recordPath? })
+readVocabularyTransitionRecord(path)
+transitionRecordReportWithSummary(report, summary)
 
 // Built-in Warden-backed migration classes
 loadWardenTermRewriteClasses(root?)
@@ -525,7 +531,7 @@ createAstIdentifierRenameClass({ from, to, id?, describe?, reviewDeclarationType
 
 // Schemas
 regradeReportOutput
-vocabularyRegradePlanSchema, vocabularyRegradeRunOutput
+vocabularyRegradePlanSchema, vocabularyRegradeRunOutput, vocabularyTransitionRecordSchema
 literalRegradeTopo, literalRegradeTrail
 
 // Types
@@ -533,9 +539,10 @@ RegradeClass, RegradeClassResult, RegradeReport, RegradeReportEntry
 RegradeReviewDetail, RegradeReviewSpan, RegradeScanTargets, RegradeSelection
 RegradeScanDirectoryBucket, RegradeScanExtensionBucket, RegradeScanSummary
 VocabularyRegradePlan, VocabularyRunLedger, VocabularyRunReport
+VocabularyTransitionRecord, VocabularyTransitionRecordSummary // legacy compatibility types
 ```
 
-Regrade reports always include full aggregate counts, unknown class IDs, scan statistics, and skip reasons. Report `entries` default to actionable rewrite and review outcomes; pass `includeEntries: 'all'` to include no-op and skip entries. The `scan` block summarizes matched, scanned, and skipped files, then groups matched files by extension and top-level path segment; vocabulary reports include occurrence counts in those buckets. Vocabulary regrade runs add a `run` block with the authored plan, observed form and occurrence ledger, and projected completion gate so CLI and MCP callers can see what was modified, skipped, or deferred with an `open` count. Vocabulary plans can also carry `scope.exclude` path globs, exposed as `trails regrade --exclude <glob>`, to keep migration scope away from local notes, scratch space, generated state, or other paths that should not be scanned for that transition. Project `trails.config.*` files may provide `regrade.scope` defaults for `include`, `exclude`, and `extensions`; explicit CLI or MCP plan inputs override those defaults.
+Regrade reports always include full aggregate counts, unknown class IDs, scan statistics, and skip reasons. Report `entries` default to actionable rewrite and review outcomes; pass `includeEntries: 'all'` to include no-op and skip entries. The `scan` block summarizes matched, scanned, and skipped files, then groups matched files by extension and top-level path segment; vocabulary reports include occurrence counts in those buckets. Vocabulary regrade runs add a `run` block with the authored plan, observed form and occurrence ledger, and projected completion gate so CLI and MCP callers can see what was modified, skipped, or deferred with an `open` count. The Trails app exposes that lifecycle as Regrade plan commands: `trails regrade plan <from> <to>` writes an active plan under `.trails/regrade/<slug>.json`, `trails regrade plans` lists active, stale, and applied plans, `trails regrade check` proves the saved plan is fresh and gate-green, `trails regrade preview` reruns the plan without writing, and `trails regrade apply` consumes the plan and writes history under `.trails/regrade/history/`. `--dry-run` is an apply modifier, not a plan-writing mode. Vocabulary plans can also carry `scope.exclude` path globs, exposed as `trails regrade plan --exclude <glob>`, to keep migration scope away from local notes, scratch space, generated state, or other paths that should not be scanned for that transition. Project `trails.config.*` files may provide `regrade.scope` defaults for `include`, `exclude`, and `extensions`; explicit CLI or MCP plan inputs override those defaults.
 
 ## `@ontrails/config`
 

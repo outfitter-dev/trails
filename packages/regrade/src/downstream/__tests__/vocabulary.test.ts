@@ -11,8 +11,12 @@ import { dirname, join } from 'node:path';
 import { getGovernedVocabularyTransition } from '@ontrails/warden';
 
 import {
+  readVocabularyTransitionRecord,
   runVocabularyRegrade,
+  transitionRecordReportWithSummary,
   vocabularyRegradePlanSchema,
+  vocabularyTransitionRecordPath,
+  writeVocabularyTransitionRecord,
 } from '../vocabulary.js';
 import {
   listVocabularyRegradePlansFromRegistry,
@@ -261,6 +265,167 @@ describe('runVocabularyRegrade', () => {
       expect(readFileSync(join(dir, 'src', 'surface.ts'), 'utf8')).toContain(
         'facet'
       );
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('writes transition records as stable history evidence', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(
+        dir,
+        'src/surface.ts',
+        'export const facet = "facet";\nexport const facetId = "manual";\n'
+      );
+
+      const result = runVocabularyRegrade({
+        plan: {
+          from: 'facet',
+          id: 'v1-facet-trailhead',
+          kind: 'vocabulary',
+          scope: { include: ['src/**/*.ts'] },
+          to: 'trailhead',
+        },
+        root: dir,
+      });
+      expect(result.isOk()).toBe(true);
+      if (result.isErr()) {
+        throw result.error;
+      }
+
+      const recordPath = vocabularyTransitionRecordPath({
+        root: dir,
+        run: result.value.run,
+      });
+      expect(recordPath).toMatch(
+        /^\.trails\/regrade\/history\/facet-to-trailhead-[a-f0-9]{7}\.json$/
+      );
+
+      const writeResult = writeVocabularyTransitionRecord({
+        report: result.value,
+        root: dir,
+        status: 'candidate',
+      });
+      expect(writeResult.isOk()).toBe(true);
+      if (writeResult.isErr()) {
+        throw writeResult.error;
+      }
+      expect(writeResult.value.summary).toEqual({
+        path: recordPath,
+        schemaVersion: 1,
+        status: 'candidate',
+      });
+
+      const readResult = readVocabularyTransitionRecord(
+        join(dir, writeResult.value.summary.path)
+      );
+      expect(readResult.isOk()).toBe(true);
+      if (readResult.isErr()) {
+        throw readResult.error;
+      }
+      expect(readResult.value).toMatchObject({
+        kind: 'vocabulary-transition-record',
+        recordPath,
+        schemaVersion: 1,
+        transition: {
+          from: 'facet',
+          id: 'v1-facet-trailhead',
+          to: 'trailhead',
+        },
+      });
+      expect(readResult.value.report.record).toBeUndefined();
+
+      expect(
+        transitionRecordReportWithSummary(
+          result.value,
+          writeResult.value.summary
+        ).record
+      ).toEqual(writeResult.value.summary);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('rejects transition records with parallel report evidence', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(dir, 'src/surface.ts', 'export const facet = "facet";\n');
+      const result = runVocabularyRegrade({
+        plan: {
+          from: 'facet',
+          kind: 'vocabulary',
+          scope: { include: ['src/**/*.ts'] },
+          to: 'trailhead',
+        },
+        root: dir,
+      });
+      expect(result.isOk()).toBe(true);
+      if (result.isErr()) {
+        throw result.error;
+      }
+      const writeResult = writeVocabularyTransitionRecord({
+        report: result.value,
+        root: dir,
+        status: 'candidate',
+      });
+      expect(writeResult.isOk()).toBe(true);
+      if (writeResult.isErr()) {
+        throw writeResult.error;
+      }
+      const recordFile = join(dir, writeResult.value.summary.path);
+      const record = JSON.parse(readFileSync(recordFile, 'utf8')) as Record<
+        string,
+        unknown
+      >;
+      record.report = {
+        ...(record.report as Record<string, unknown>),
+        ledger: { competing: true },
+      };
+      writeFileSync(recordFile, `${JSON.stringify(record, null, 2)}\n`);
+
+      const readResult = readVocabularyTransitionRecord(recordFile);
+      expect(readResult.isErr()).toBe(true);
+      if (readResult.isErr()) {
+        expect(readResult.error.constructor.name).toBe('ValidationError');
+      }
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('rejects transition record paths outside the root', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(dir, 'src/surface.ts', 'export const facet = "facet";\n');
+      const result = runVocabularyRegrade({
+        plan: {
+          from: 'facet',
+          kind: 'vocabulary',
+          scope: { include: ['src/**/*.ts'] },
+          to: 'trailhead',
+        },
+        root: dir,
+      });
+      expect(result.isOk()).toBe(true);
+      if (result.isErr()) {
+        throw result.error;
+      }
+
+      const relativeEscape = writeVocabularyTransitionRecord({
+        recordPath: '../outside.json',
+        report: result.value,
+        root: dir,
+        status: 'candidate',
+      });
+      expect(relativeEscape.isErr()).toBe(true);
+      const absoluteEscape = writeVocabularyTransitionRecord({
+        recordPath: join(dirname(dir), 'outside.json'),
+        report: result.value,
+        root: dir,
+        status: 'candidate',
+      });
+      expect(absoluteEscape.isErr()).toBe(true);
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }
