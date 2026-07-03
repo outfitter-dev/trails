@@ -20,6 +20,23 @@ const preserveRulesFromTransition = (
     reason: rule.reason,
   }));
 
+const scopeFromTransition = (
+  transition: GovernedVocabularyTransition
+): VocabularyRegradePlan['scope'] | undefined => {
+  const { scope } = transition;
+  if (scope === undefined) {
+    return undefined;
+  }
+  return {
+    ...(scope.exclude === undefined ? {} : { exclude: scope.exclude }),
+    ...(scope.extensions === undefined ? {} : { extensions: scope.extensions }),
+    ...(scope.ignoredDirectories === undefined
+      ? {}
+      : { ignoredDirectories: scope.ignoredDirectories }),
+    ...(scope.include === undefined ? {} : { include: scope.include }),
+  };
+};
+
 const defaultFormsAreRegistrySafe = (
   transition: GovernedVocabularyTransition
 ): boolean => {
@@ -48,6 +65,7 @@ export const vocabularyRegradePlanFromTransition = (
     return null;
   }
 
+  const scope = scopeFromTransition(transition);
   return {
     caseSensitive: true,
     deferForms: transition.reviewForms,
@@ -57,6 +75,7 @@ export const vocabularyRegradePlanFromTransition = (
     kind: 'vocabulary',
     overrides: transition.safeRewriteForms,
     preserve: preserveRulesFromTransition(transition),
+    ...(scope === undefined ? {} : { scope }),
     to: transition.target.to,
   };
 };

@@ -13,7 +13,7 @@ export const relationKindSchema = z.enum([
   'composed-by',
   'consumed-by',
   'contour-referenced-by',
-  'facet-groups',
+  'trailhead-groups',
   'fired-by',
   'has-version',
   'surface-projects',
@@ -24,7 +24,7 @@ export const relationRefSchema = z.object({
   id: z.string(),
   kind: z.enum([
     'contour',
-    'facet',
+    'trailhead',
     'resource',
     'signal',
     'surface',
@@ -169,14 +169,14 @@ export const relationEdges = (graph: TopoGraph): readonly RelationEdge[] => {
     }
   }
 
-  for (const facet of graph.facets ?? []) {
-    const facetRef = refFor(graph, facet.id, 'facet');
-    const surfaceRefs = facet.surfaces.map((surfaceId) =>
+  for (const trailhead of graph.trailheads ?? []) {
+    const trailheadRef = refFor(graph, trailhead.id, 'trailhead');
+    const surfaceRefs = trailhead.surfaces.map((surfaceId) =>
       refFor(graph, surfaceId, 'surface')
     );
-    for (const memberId of facet.memberIds) {
+    for (const memberId of trailhead.memberIds) {
       const memberRef = refFor(graph, memberId, 'trail');
-      add(facetRef, 'facet-groups', memberRef);
+      add(trailheadRef, 'trailhead-groups', memberRef);
       for (const surfaceRef of surfaceRefs) {
         add(surfaceRef, 'surface-projects', memberRef);
       }

@@ -111,7 +111,7 @@ const concernByRuleName: Partial<Record<string, WardenRuleConcern>> = {
   'scheduled-destroy-intent': 'lifecycle',
   'signal-graph-coaching': 'signals',
   'static-resource-accessor-preference': 'resources',
-  'surface-facet-coherence': 'meta',
+  'surface-trailhead-coherence': 'meta',
   'trail-fork-coaching': 'meta',
   'unmaterialized-activation-source': 'lifecycle',
   'valid-detour-contract': 'results',
@@ -329,7 +329,10 @@ const builtinWardenRuleMetadataInput = {
           path: 'docs/adr/drafts/20260612-library-surface-and-compiler.md',
         },
       ],
-      relatedRules: ['cli-command-route-coherence', 'surface-facet-coherence'],
+      relatedRules: [
+        'cli-command-route-coherence',
+        'surface-trailhead-coherence',
+      ],
       steps: [
         'Rename one source trail or add an explicit library export override before generating a package.',
         'Keep serialized library projection exports attached to existing trail IDs.',
@@ -634,19 +637,19 @@ const builtinWardenRuleMetadataInput = {
     scope: 'advisory',
     tier: 'source-static',
   },
-  'surface-facet-coherence': {
+  'surface-trailhead-coherence': {
     ...durableExternal,
     guidance: {
       docs: [
         {
           label: 'Trailheads ADR',
-          path: 'docs/adr/drafts/20260603-surface-facets-shape-dense-topos.md',
+          path: 'docs/adr/drafts/20260603-surface-trailheads-shape-dense-topos.md',
         },
       ],
       steps: [
-        'Keep facet selectors as explicit string literals or literal arrays when possible.',
-        'Ensure each public trail belongs to one facet owner.',
-        'Record explicit visibility-widening acceptance and stable-description metadata when a facet intentionally widens visibility.',
+        'Keep trailhead selectors as explicit string literals or literal arrays when possible.',
+        'Ensure each public trail belongs to one trailhead owner.',
+        'Record explicit visibility-widening acceptance and stable-description metadata when a trailhead intentionally widens visibility.',
       ],
       summary:
         'Keep trailhead maps reviewable before they reach MCP projection.',
@@ -668,12 +671,15 @@ const builtinWardenRuleMetadataInput = {
           path: 'docs/surfaces/surface-accommodations.md',
         },
       ],
-      relatedRules: ['surface-facet-coherence', 'cli-command-route-coherence'],
+      relatedRules: [
+        'surface-trailhead-coherence',
+        'cli-command-route-coherence',
+      ],
       steps: [
         'Check the semantic fork boundary: intent, permits, outputs, errors, lifecycle, and side effects.',
         'Check the structural fork boundary: selected trail identity stays visible instead of hiding behind action vocabulary.',
         'Split real capability forks into distinct trails or a composing trail.',
-        'Use a facet only when one surface entry needs to group multiple trails while preserving selected member identity.',
+        'Use a trailhead only when one surface entry needs to group multiple trails while preserving selected member identity.',
       ],
       summary:
         'Keep surface accommodations from hiding several capabilities behind one branching trail input.',
@@ -744,7 +750,7 @@ const builtinWardenRuleMetadataInput = {
 
 export type BuiltinWardenRuleName = keyof typeof builtinWardenRuleMetadataInput;
 
-const withFacetDefaults = (
+const withRuleDefaults = (
   name: string,
   metadata: BuiltinWardenRuleMetadataInput
 ): WardenRuleMetadata => ({
@@ -756,7 +762,7 @@ const withFacetDefaults = (
 export const builtinWardenRuleMetadata = Object.fromEntries(
   Object.entries(builtinWardenRuleMetadataInput).map(([name, metadata]) => [
     name,
-    withFacetDefaults(name, metadata),
+    withRuleDefaults(name, metadata),
   ])
 ) as Readonly<Record<BuiltinWardenRuleName, WardenRuleMetadata>>;
 

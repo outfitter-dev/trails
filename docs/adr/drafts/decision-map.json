@@ -247,18 +247,18 @@
       "depends_on": ["0", "17", "27", "35", "42", "46", "50"],
       "inbound": [
         {
-          "context": "- [Surface Facets draft](20260603-surface-facets-shape-dense-topos.md)",
+          "context": "- [Surface Trailheads draft](20260603-surface-trailheads-shape-dense-topos.md)",
           "from": "20260613",
           "fromPath": "docs/adr/drafts/20260613-cli-command-routes.md"
         }
       ],
       "number": null,
       "owners": ["[galligan](https://github.com/galligan)"],
-      "path": "docs/adr/drafts/20260603-surface-facets-shape-dense-topos.md",
-      "slug": "surface-facets-shape-dense-topos",
+      "path": "docs/adr/drafts/20260603-surface-trailheads-shape-dense-topos.md",
+      "slug": "surface-trailheads-shape-dense-topos",
       "status": "draft",
       "superseded_by": null,
-      "title": "Surface Facets Shape Dense Topos",
+      "title": "Surface Trailheads Shape Dense Topos",
       "updated": "2026-06-13"
     },
     {

@@ -40,6 +40,15 @@ describe('runVocabularyRegrade', () => {
       from: 'facet',
       id: 'v1-facet-trailhead',
       kind: 'vocabulary',
+      scope: {
+        exclude: [
+          '.agents/memory/**',
+          '.agents/plans/archive/**',
+          '.changeset/**',
+          '**/CHANGELOG.md',
+          'packages/warden/src/rules/retired-vocabulary.ts',
+        ],
+      },
       to: 'trailhead',
     });
     if (plan === null) {
@@ -117,6 +126,11 @@ describe('runVocabularyRegrade', () => {
       from: 'blaze',
       id: 'v1-blaze-implementation',
       kind: 'vocabulary',
+      scope: {
+        exclude: expect.arrayContaining([
+          'packages/warden/src/rules/retired-vocabulary.ts',
+        ]),
+      },
       to: 'implementation',
     });
     expect(plan.deferForms).toContain('blazing');

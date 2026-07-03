@@ -693,16 +693,20 @@ const classifyFile = (
   selected: readonly RegradeClass[],
   collection?: DownstreamCollectionOptions
 ): RegradeClassifiedFile => {
-  // First selected class that matches (rewrite or review) wins, mirroring the
-  // "run one class" emphasis. Scan-target skips only own the file when no
-  // selected class inspects it; a later no-op still counts as a clean scan.
+  // Compose safe rewrites across selected classes in memory so one governed
+  // transition can move every compatible symbol in a file. Review still wins:
+  // if any class needs judgment, no partial rewrite is returned for that file.
   let skipped:
     | { readonly classId: string; readonly result: RegradeClassResult }
     | undefined;
   let inspected = false;
+  let currentSource = source;
+  const rewriteClassIds: string[] = [];
+  const rewriteNotes: string[] = [];
   for (const cls of selected) {
     const result =
-      classScanTargetSkip(cls, path, collection) ?? cls.apply(source, context);
+      classScanTargetSkip(cls, path, collection) ??
+      cls.apply(currentSource, context);
     if (result.kind !== 'skipped') {
       inspected = true;
     }
@@ -718,38 +722,29 @@ const classifyFile = (
           },
         };
       }
-      const entry = {
-        classId: cls.id,
-        notes: result.notes,
-        outcome: 'rewrite',
-        path,
-      } satisfies RegradeReportEntry;
-      return {
-        entry,
-        ...(context.absolutePath === undefined
-          ? {}
-          : {
-              rewrite: {
-                absolutePath: context.absolutePath,
-                classId: cls.id,
-                nextSource: result.nextSource,
-                path,
-              },
-            }),
-      };
+      currentSource = result.nextSource;
+      rewriteClassIds.push(cls.id);
+      rewriteNotes.push(...(result.notes ?? []));
+      continue;
     }
     if (result.kind === 'needs-review') {
-      const reviewDetails = result.reviewDetails?.map((detail) => ({
+      const originalSourceResult =
+        currentSource === source ? result : cls.apply(source, context);
+      const reviewResult =
+        originalSourceResult.kind === 'needs-review'
+          ? originalSourceResult
+          : result;
+      const reviewDetails = reviewResult.reviewDetails?.map((detail) => ({
         ...detail,
         classId: detail.classId ?? cls.id,
       }));
       return {
         entry: {
           classId: cls.id,
-          notes: result.notes,
+          notes: reviewResult.notes,
           outcome: 'needs-review',
           path,
-          reason: result.reason ?? 'needs-review',
+          reason: reviewResult.reason ?? 'needs-review',
           ...(reviewDetails === undefined ? {} : { reviewDetails }),
         },
       };
@@ -757,6 +752,28 @@ const classifyFile = (
     if (result.kind === 'skipped' && skipped === undefined) {
       skipped = { classId: cls.id, result };
     }
+  }
+  if (rewriteClassIds.length > 0) {
+    const classId = rewriteClassIds.join(',');
+    const entry = {
+      classId,
+      notes: rewriteNotes,
+      outcome: 'rewrite',
+      path,
+    } satisfies RegradeReportEntry;
+    return {
+      entry,
+      ...(context.absolutePath === undefined
+        ? {}
+        : {
+            rewrite: {
+              absolutePath: context.absolutePath,
+              classId,
+              nextSource: currentSource,
+              path,
+            },
+          }),
+    };
   }
   if (!inspected && skipped !== undefined) {
     return {

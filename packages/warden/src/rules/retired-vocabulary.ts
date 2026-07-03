@@ -35,9 +35,21 @@ export const governedVocabularyPreserveRuleSchema = z.object({
   reason: z.string().min(1),
 });
 
+export const governedVocabularyScopeSchema = z.object({
+  exclude: z.array(z.string().min(1)).optional(),
+  extensions: z.array(z.string().min(1)).optional(),
+  ignoredDirectories: z.array(z.string().min(1)).optional(),
+  include: z.array(z.string().min(1)).optional(),
+});
+
 export const governedVocabularySymbolRenameSchema = z.object({
   from: z.string().min(1),
   reviewDeclarationTypes: z.array(z.string().min(1)).default([]),
+  to: z.string().min(1),
+});
+
+export const governedVocabularyLiteralRenameSchema = z.object({
+  from: z.string().min(1),
   to: z.string().min(1),
 });
 
@@ -56,7 +68,11 @@ export const governedVocabularyTransitionSchema = z.object({
   preserve: z.array(governedVocabularyPreserveRuleSchema).default([]),
   reviewForms: z.array(z.string().min(1)).default([]),
   safeRewriteForms: z.record(z.string().min(1), z.string().min(1)).default({}),
+  scope: governedVocabularyScopeSchema.optional(),
   status: z.enum(governedVocabularyTransitionStatuses),
+  stringLiteralRenames: z
+    .array(governedVocabularyLiteralRenameSchema)
+    .default([]),
   symbolRenames: z.array(governedVocabularySymbolRenameSchema).default([]),
   target: governedVocabularyTargetSchema,
 });
@@ -91,11 +107,17 @@ export const governedVocabularyRegistrySchema = z
 export type GovernedVocabularyPreserveRule = z.output<
   typeof governedVocabularyPreserveRuleSchema
 >;
+export type GovernedVocabularyScope = z.output<
+  typeof governedVocabularyScopeSchema
+>;
 export type GovernedVocabularyTarget = z.output<
   typeof governedVocabularyTargetSchema
 >;
 export type GovernedVocabularySymbolRename = z.output<
   typeof governedVocabularySymbolRenameSchema
+>;
+export type GovernedVocabularyLiteralRename = z.output<
+  typeof governedVocabularyLiteralRenameSchema
 >;
 export type GovernedVocabularyTransition = z.output<
   typeof governedVocabularyTransitionSchema
@@ -112,6 +134,34 @@ const defineTransition = (
 const reviewFunctionParamDeclarations = {
   reviewDeclarationTypes: ['FunctionParam'],
 };
+
+const v1VocabularyHistoricalExcludes = [
+  '.agents/memory/**',
+  '.agents/plans/archive/**',
+  '.changeset/**',
+  '**/CHANGELOG.md',
+];
+
+const v1VocabularySelfExcludes = [
+  'packages/warden/src/rules/retired-vocabulary.ts',
+];
+
+const unique = (values: readonly string[]): string[] => [...new Set(values)];
+
+const defineV1Transition = (
+  input: GovernedVocabularyTransitionInput
+): GovernedVocabularyTransition =>
+  defineTransition({
+    ...input,
+    scope: {
+      ...input.scope,
+      exclude: unique([
+        ...v1VocabularyHistoricalExcludes,
+        ...v1VocabularySelfExcludes,
+        ...(input.scope?.exclude ?? []),
+      ]),
+    },
+  });
 
 export const governedVocabularyTransitions =
   governedVocabularyRegistrySchema.parse([
@@ -149,7 +199,7 @@ export const governedVocabularyTransitions =
       ],
       target: { kind: 'single', to: 'compose' },
     }),
-    defineTransition({
+    defineV1Transition({
       codeIdentifiers: ['blaze', 'blazes'],
       docs: {
         guidance: [
@@ -185,7 +235,7 @@ export const governedVocabularyTransitions =
       ],
       target: { kind: 'single', to: 'implementation' },
     }),
-    defineTransition({
+    defineV1Transition({
       codeIdentifiers: ['contour', 'contours'],
       docs: {
         guidance: [
@@ -216,7 +266,7 @@ export const governedVocabularyTransitions =
       ],
       target: { kind: 'single', to: 'entity' },
     }),
-    defineTransition({
+    defineV1Transition({
       codeIdentifiers: [
         'facets',
         'facetId',
@@ -243,7 +293,11 @@ export const governedVocabularyTransitions =
         facet: 'trailhead',
         facets: 'trailheads',
       },
-      status: 'planned',
+      status: 'complete',
+      stringLiteralRenames: [
+        { from: 'surface-facet-coherence', to: 'surface-trailhead-coherence' },
+        { from: 'wayfind.facets', to: 'wayfind.trailheads' },
+      ],
       symbolRenames: [
         { ...reviewFunctionParamDeclarations, from: 'facet', to: 'trailhead' },
         {
@@ -264,7 +318,7 @@ export const governedVocabularyTransitions =
       ],
       target: { kind: 'single', to: 'trailhead' },
     }),
-    defineTransition({
+    defineV1Transition({
       codeIdentifiers: [],
       docs: {
         guidance: [

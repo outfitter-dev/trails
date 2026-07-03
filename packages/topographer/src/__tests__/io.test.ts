@@ -123,10 +123,10 @@ describe('writeTopoGraph / readTopoGraph', () => {
     expect(result).toEqual(map);
   });
 
-  test('round-trips topo facet metadata', async () => {
+  test('round-trips topo trailhead metadata', async () => {
     const map: TopoGraph = {
       ...makeTopoGraph(),
-      facets: [
+      trailheads: [
         {
           description: 'Read topo.',
           id: 'topo',
@@ -140,7 +140,7 @@ describe('writeTopoGraph / readTopoGraph', () => {
     await writeTopoGraph(map, { dir: tempDir });
     const result = await readTopoGraph({ dir: tempDir });
 
-    expect(result?.facets).toEqual(map.facets);
+    expect(result?.trailheads).toEqual(map.trailheads);
   });
 
   test('returns null for missing file', async () => {
@@ -166,6 +166,32 @@ describe('writeTopoGraph / readTopoGraph', () => {
       join(tempDir, 'topo.lock'),
       `${JSON.stringify(
         { ...makeTopoGraph(), topoGraphSchemaVersion: '1.0' },
+        null,
+        2
+      )}\n`
+    );
+
+    await expect(readTopoGraph({ dir: tempDir })).rejects.toThrow(
+      'regenerate with `trails compile`'
+    );
+  });
+
+  test('rejects v2 topo graphs that carry legacy facet artifacts', async () => {
+    await Bun.write(
+      join(tempDir, 'topo.lock'),
+      `${JSON.stringify(
+        {
+          ...makeTopoGraph(),
+          facets: [
+            {
+              derivedName: 'legacy',
+              id: 'legacy',
+              surfaces: ['mcp'],
+              trailIds: ['trail.read'],
+            },
+          ],
+          topoGraphSchemaVersion: 2,
+        },
         null,
         2
       )}\n`

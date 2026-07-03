@@ -11,7 +11,7 @@ import type {
 } from '@ontrails/core';
 import { z } from 'zod';
 
-export const TOPO_GRAPH_SCHEMA_VERSION = 2;
+export const TOPO_GRAPH_SCHEMA_VERSION = 3;
 export const TRAILS_LOCK_SCHEMA_VERSION = 4;
 
 export type TopoGraphExample = StructuredSignalExample | StructuredTrailExample;
@@ -127,11 +127,11 @@ export interface TopoGraphForceEntry {
   readonly source: 'trails compile --force';
 }
 
-export type TopoGraphFacetTrailSelector = string | readonly string[];
+export type TopoGraphTrailheadTrailSelector = string | readonly string[];
 
-export interface TopoGraphFacetDeclaration {
+export interface TopoGraphTrailheadDeclaration {
   readonly id: string;
-  readonly trails: TopoGraphFacetTrailSelector;
+  readonly trails: TopoGraphTrailheadTrailSelector;
   readonly description: string;
   readonly surfaces?: readonly string[] | undefined;
   readonly visibility?: 'public' | 'internal' | undefined;
@@ -139,7 +139,7 @@ export interface TopoGraphFacetDeclaration {
   readonly visibilityWideningAccepted?: true | undefined;
 }
 
-export interface TopoGraphFacetEntry {
+export interface TopoGraphTrailheadEntry {
   readonly id: string;
   readonly description: string;
   readonly memberIds: readonly string[];
@@ -254,7 +254,7 @@ export interface TopoGraph {
   >;
   readonly generatedAt: string;
   readonly entries: readonly TopoGraphEntry[];
-  readonly facets?: readonly TopoGraphFacetEntry[] | undefined;
+  readonly trailheads?: readonly TopoGraphTrailheadEntry[] | undefined;
   readonly forces?: readonly TopoGraphForceEntry[] | undefined;
   readonly library?: TopoGraphLibraryProjection | undefined;
   readonly workspace?: WorkspaceTopoMetadata | undefined;
@@ -264,7 +264,7 @@ export interface DeriveTopoGraphOptions {
   readonly cliAliases?:
     | Readonly<Record<string, readonly CliCommandAliasInput[]>>
     | undefined;
-  readonly facets?: readonly TopoGraphFacetDeclaration[] | undefined;
+  readonly trailheads?: readonly TopoGraphTrailheadDeclaration[] | undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -334,7 +334,7 @@ const topoGraphForceEntrySchema = z
   })
   .strict();
 
-export const topoGraphFacetEntrySchema = z
+export const topoGraphTrailheadEntrySchema = z
   .object({
     description: z.string(),
     descriptionStableThrough: z.string().optional(),
@@ -412,11 +412,11 @@ export const topoGraphSchema = z
         })
         .passthrough()
     ),
-    facets: z.array(topoGraphFacetEntrySchema).optional(),
     forces: z.array(topoGraphForceEntrySchema).optional(),
     generatedAt: z.string(),
     library: topoGraphLibraryProjectionSchema.optional(),
     topoGraphSchemaVersion: z.literal(TOPO_GRAPH_SCHEMA_VERSION),
+    trailheads: z.array(topoGraphTrailheadEntrySchema).optional(),
     workspace: workspaceTopoMetadataSchema.optional(),
   })
   .strict();
@@ -472,7 +472,7 @@ export type TrailsLock = z.infer<typeof trailsLockSchema>;
 
 export interface DiffEntry {
   readonly id: string;
-  readonly kind: 'contour' | 'trail' | 'signal' | 'resource' | 'facet';
+  readonly kind: 'contour' | 'trail' | 'signal' | 'resource' | 'trailhead';
   readonly change: 'added' | 'removed' | 'modified';
   readonly severity: 'info' | 'warning' | 'breaking';
   readonly details: readonly string[];

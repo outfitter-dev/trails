@@ -71,20 +71,20 @@ export const MCP_TOOL_EXAMPLES_META_KEY = 'ontrails/examples';
 export const MCP_TOOL_ERROR_META_KEY = 'ontrails/error';
 
 /**
- * Metadata key used to identify MCP tools derived from surface facets.
+ * Metadata key used to identify MCP tools derived from surface trailheads.
  *
- * Surface facets preserve member trail identity rather than merging member
- * contracts. The metadata names the facet and its member trail IDs so clients
+ * Surface trailheads preserve member trail identity rather than merging member
+ * contracts. The metadata names the trailhead and its member trail IDs so clients
  * can inspect the grouped entry before choosing a selected trail.
  *
  * @example
  * ```ts
- * import { MCP_TOOL_FACET_META_KEY } from '@ontrails/mcp';
+ * import { MCP_TOOL_TRAILHEAD_META_KEY } from '@ontrails/mcp';
  *
- * const facet = tool._meta?.[MCP_TOOL_FACET_META_KEY];
+ * const trailhead = tool._meta?.[MCP_TOOL_TRAILHEAD_META_KEY];
  * ```
  */
-export const MCP_TOOL_FACET_META_KEY = 'ontrails/facet';
+export const MCP_TOOL_TRAILHEAD_META_KEY = 'ontrails/trailhead';
 
 /**
  * Metadata key used as a compatibility hint for clients that support
@@ -107,17 +107,17 @@ export interface DeriveMcpToolsOptions extends BaseSurfaceOptions {
   readonly createContext?:
     | (() => TrailContextInit | Promise<TrailContextInit>)
     | undefined;
-  readonly facets?: McpSurfaceFacetMap | undefined;
+  readonly trailheads?: McpSurfaceTrailheadMap | undefined;
   readonly layers?: readonly Layer[] | undefined;
   readonly resources?: ResourceOverrideMap | undefined;
   readonly resolvePermit?: ResolveMcpPermit | undefined;
 }
 
-export type McpSurfaceFacetTrailSelector = string | readonly string[];
+export type McpSurfaceTrailheadTrailSelector = string | readonly string[];
 
 /** Surface-side grouped entry over existing trails. */
-export interface McpSurfaceFacetDefinition {
-  readonly trails: McpSurfaceFacetTrailSelector;
+export interface McpSurfaceTrailheadDefinition {
+  readonly trails: McpSurfaceTrailheadTrailSelector;
   readonly description: string;
   readonly visibility?: 'public' | 'internal' | undefined;
   readonly descriptionStableThrough?: string | undefined;
@@ -129,8 +129,8 @@ export interface McpSurfaceFacetDefinition {
     | undefined;
 }
 
-export type McpSurfaceFacetMap = Readonly<
-  Record<string, McpSurfaceFacetDefinition>
+export type McpSurfaceTrailheadMap = Readonly<
+  Record<string, McpSurfaceTrailheadDefinition>
 >;
 
 export interface ResolveMcpPermitInput {
@@ -149,7 +149,7 @@ export interface McpToolDefinition {
   readonly _meta?: Record<string, unknown> | undefined;
   readonly annotations: McpAnnotations | undefined;
   readonly description: string | undefined;
-  readonly facetId?: string | undefined;
+  readonly trailheadId?: string | undefined;
   readonly handler: (
     args: Record<string, unknown>,
     extra: McpExtra
@@ -1025,19 +1025,19 @@ const buildToolDefinition = (
   };
 };
 
-const facetSelectors = (
-  selector: McpSurfaceFacetTrailSelector
+const trailheadSelectors = (
+  selector: McpSurfaceTrailheadTrailSelector
 ): readonly string[] => (typeof selector === 'string' ? [selector] : selector);
 
-const matchesFacetSelector = (
+const matchesTrailheadSelector = (
   trailId: string,
-  selector: McpSurfaceFacetTrailSelector
+  selector: McpSurfaceTrailheadTrailSelector
 ): boolean =>
-  facetSelectors(selector).some((pattern) =>
+  trailheadSelectors(selector).some((pattern) =>
     matchesTrailPattern(trailId, pattern)
   );
 
-interface FacetMemberTool {
+interface TrailheadMemberTool {
   readonly tool: McpToolDefinition;
   readonly trail: Trail<unknown, unknown, unknown>;
 }
@@ -1045,8 +1045,8 @@ interface FacetMemberTool {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === 'object' && !Array.isArray(value);
 
-const buildFacetInputSchema = (
-  members: readonly FacetMemberTool[]
+const buildTrailheadInputSchema = (
+  members: readonly TrailheadMemberTool[]
 ): Record<string, unknown> => ({
   anyOf: members.map(({ tool, trail }) => ({
     properties: {
@@ -1067,8 +1067,8 @@ const buildFacetInputSchema = (
   type: 'object',
 });
 
-const buildFacetOutputSchema = (
-  members: readonly FacetMemberTool[]
+const buildTrailheadOutputSchema = (
+  members: readonly TrailheadMemberTool[]
 ): Record<string, unknown> => {
   const outputSchemas = members.map(({ tool }) => tool.outputSchema ?? {});
   return {
@@ -1101,7 +1101,7 @@ const parseJsonTextContent = (
   }
 };
 
-const wrapFacetResult = (
+const wrapTrailheadResult = (
   trailId: string,
   result: McpToolResult
 ): McpToolResult => {
@@ -1121,9 +1121,9 @@ const wrapFacetResult = (
   };
 };
 
-const createFacetHandler = (
-  facetId: string,
-  members: readonly FacetMemberTool[]
+const createTrailheadHandler = (
+  trailheadId: string,
+  members: readonly TrailheadMemberTool[]
 ): McpToolDefinition['handler'] => {
   const byTrailId = new Map(
     members.map((member) => [member.trail.id, member.tool])
@@ -1135,7 +1135,7 @@ const createFacetHandler = (
     if (tool === undefined) {
       return mcpError(
         new ValidationError(
-          `MCP facet "${facetId}" received unknown trail selector "${trailId || '(missing)'}"`
+          `MCP trailhead "${trailheadId}" received unknown trail selector "${trailId || '(missing)'}"`
         )
       );
     }
@@ -1144,17 +1144,17 @@ const createFacetHandler = (
     if (!isRecord(input)) {
       return mcpError(
         new ValidationError(
-          `MCP facet "${facetId}" expects an object input for trail "${trailId}"`
+          `MCP trailhead "${trailheadId}" expects an object input for trail "${trailId}"`
         )
       );
     }
 
-    return wrapFacetResult(trailId, await tool.handler(input, extra));
+    return wrapTrailheadResult(trailId, await tool.handler(input, extra));
   };
 };
 
-const deriveFacetIntent = (
-  members: readonly FacetMemberTool[]
+const deriveTrailheadIntent = (
+  members: readonly TrailheadMemberTool[]
 ): Pick<Trail<unknown, unknown, unknown>, 'intent'>['intent'] => {
   if (members.every(({ trail }) => trail.intent === 'read')) {
     return 'read';
@@ -1165,14 +1165,14 @@ const deriveFacetIntent = (
   return 'write';
 };
 
-const deriveFacetAnnotations = (
-  definition: McpSurfaceFacetDefinition,
-  members: readonly FacetMemberTool[]
+const deriveTrailheadAnnotations = (
+  definition: McpSurfaceTrailheadDefinition,
+  members: readonly TrailheadMemberTool[]
 ): McpAnnotations | undefined => {
   const annotations = deriveAnnotations({
     description: definition.description,
     idempotent: false,
-    intent: deriveFacetIntent(members),
+    intent: deriveTrailheadIntent(members),
   } as Pick<
     Trail<unknown, unknown, unknown>,
     'description' | 'idempotent' | 'intent'
@@ -1180,15 +1180,15 @@ const deriveFacetAnnotations = (
   return Object.keys(annotations).length > 0 ? annotations : undefined;
 };
 
-const buildFacetMeta = (
-  facetId: string,
-  definition: McpSurfaceFacetDefinition,
+const buildTrailheadMeta = (
+  trailheadId: string,
+  definition: McpSurfaceTrailheadDefinition,
   memberTrailIds: readonly string[]
 ): Record<string, unknown> | undefined =>
   mergeMeta(
     {
-      [MCP_TOOL_FACET_META_KEY]: {
-        id: facetId,
+      [MCP_TOOL_TRAILHEAD_META_KEY]: {
+        id: trailheadId,
         memberTrailIds,
       },
     },
@@ -1197,23 +1197,23 @@ const buildFacetMeta = (
       : undefined
   );
 
-const buildFacetToolDefinition = (
+const buildTrailheadToolDefinition = (
   graph: Topo,
-  facetId: string,
-  definition: McpSurfaceFacetDefinition,
-  members: readonly FacetMemberTool[]
+  trailheadId: string,
+  definition: McpSurfaceTrailheadDefinition,
+  members: readonly TrailheadMemberTool[]
 ): McpToolDefinition => {
   const memberTrailIds = members.map(({ trail }) => trail.id);
   return {
-    _meta: buildFacetMeta(facetId, definition, memberTrailIds),
-    annotations: deriveFacetAnnotations(definition, members),
+    _meta: buildTrailheadMeta(trailheadId, definition, memberTrailIds),
+    annotations: deriveTrailheadAnnotations(definition, members),
     description: definition.description,
-    facetId,
-    handler: createFacetHandler(facetId, members),
-    inputSchema: buildFacetInputSchema(members),
+    handler: createTrailheadHandler(trailheadId, members),
+    inputSchema: buildTrailheadInputSchema(members),
     memberTrailIds,
-    name: deriveToolName(graph.name, facetId),
-    outputSchema: buildFacetOutputSchema(members),
+    name: deriveToolName(graph.name, trailheadId),
+    outputSchema: buildTrailheadOutputSchema(members),
+    trailheadId,
   };
 };
 
@@ -1256,54 +1256,56 @@ const validateToolBuild = (
   options: DeriveMcpToolsOptions
 ): Result<void, Error> => validateSurfaceTopo(graph, options);
 
-const collectFacetMembers = (
+const collectTrailheadMembers = (
   graph: Topo,
-  definition: McpSurfaceFacetDefinition,
+  definition: McpSurfaceTrailheadDefinition,
   availableTrails: readonly Trail<unknown, unknown, unknown>[],
   layers: readonly Layer[],
   options: DeriveMcpToolsOptions
-): readonly FacetMemberTool[] =>
+): readonly TrailheadMemberTool[] =>
   availableTrails
     .filter((trailItem) =>
-      matchesFacetSelector(trailItem.id, definition.trails)
+      matchesTrailheadSelector(trailItem.id, definition.trails)
     )
     .map((trailItem) => ({
       tool: buildToolDefinition(graph, trailItem, layers, options),
       trail: trailItem,
     }));
 
-const registerFacet = (
+const registerTrailhead = (
   graph: Topo,
-  facetId: string,
-  definition: McpSurfaceFacetDefinition,
-  members: readonly FacetMemberTool[],
+  trailheadId: string,
+  definition: McpSurfaceTrailheadDefinition,
+  members: readonly TrailheadMemberTool[],
   nameToSourceId: Map<string, string>,
   tools: McpToolDefinition[]
 ): Result<void, Error> => {
   if (members.length === 0) {
     return Result.err(
       new ValidationError(
-        `MCP facet "${facetId}" did not match any surface-eligible trails`
+        `MCP trailhead "${trailheadId}" did not match any surface-eligible trails`
       )
     );
   }
 
-  const toolName = deriveToolName(graph.name, facetId);
+  const toolName = deriveToolName(graph.name, trailheadId);
   const existingId = nameToSourceId.get(toolName);
   if (existingId !== undefined) {
     return Result.err(
       new ValidationError(
-        `MCP tool-name collision: "${existingId}" and "facet:${facetId}" both derive the tool name "${toolName}"`
+        `MCP tool-name collision: "${existingId}" and "trailhead:${trailheadId}" both derive the tool name "${toolName}"`
       )
     );
   }
 
-  nameToSourceId.set(toolName, `facet:${facetId}`);
-  tools.push(buildFacetToolDefinition(graph, facetId, definition, members));
+  nameToSourceId.set(toolName, `trailhead:${trailheadId}`);
+  tools.push(
+    buildTrailheadToolDefinition(graph, trailheadId, definition, members)
+  );
   return Result.ok();
 };
 
-const registerFacets = (
+const registerTrailheads = (
   graph: Topo,
   options: DeriveMcpToolsOptions,
   layers: readonly Layer[],
@@ -1311,16 +1313,18 @@ const registerFacets = (
   nameToSourceId: Map<string, string>,
   tools: McpToolDefinition[]
 ): Result<ReadonlySet<string>, Error> => {
-  const { facets } = options;
+  const { trailheads } = options;
   const consumedTrailIds = new Set<string>();
   const ownerByTrailId = new Map<string, string>();
 
-  if (facets === undefined || Object.keys(facets).length === 0) {
+  if (trailheads === undefined || Object.keys(trailheads).length === 0) {
     return Result.ok(consumedTrailIds);
   }
 
-  for (const [facetId, definition] of Object.entries(facets).toSorted()) {
-    const members = collectFacetMembers(
+  for (const [trailheadId, definition] of Object.entries(
+    trailheads
+  ).toSorted()) {
+    const members = collectTrailheadMembers(
       graph,
       definition,
       availableTrails,
@@ -1332,17 +1336,17 @@ const registerFacets = (
       if (previous !== undefined) {
         return Result.err(
           new ValidationError(
-            `MCP facet overlap: trail "${memberTrail.id}" is selected by facets "${previous}" and "${facetId}"`
+            `MCP trailhead overlap: trail "${memberTrail.id}" is selected by trailheads "${previous}" and "${trailheadId}"`
           )
         );
       }
-      ownerByTrailId.set(memberTrail.id, facetId);
+      ownerByTrailId.set(memberTrail.id, trailheadId);
       consumedTrailIds.add(memberTrail.id);
     }
 
-    const registered = registerFacet(
+    const registered = registerTrailhead(
       graph,
-      facetId,
+      trailheadId,
       definition,
       members,
       nameToSourceId,
@@ -1364,7 +1368,7 @@ const registerTools = (
   const tools: McpToolDefinition[] = [];
   const nameToSourceId = new Map<string, string>();
   const availableTrails = eligibleTrails(graph, options);
-  const registeredFacets = registerFacets(
+  const registeredTrailheads = registerTrailheads(
     graph,
     options,
     layers,
@@ -1372,10 +1376,10 @@ const registerTools = (
     nameToSourceId,
     tools
   );
-  if (registeredFacets.isErr()) {
-    return registeredFacets;
+  if (registeredTrailheads.isErr()) {
+    return registeredTrailheads;
   }
-  const consumedTrailIds = registeredFacets.value;
+  const consumedTrailIds = registeredTrailheads.value;
 
   for (const trailItem of availableTrails) {
     if (consumedTrailIds.has(trailItem.id)) {

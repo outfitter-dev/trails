@@ -18,17 +18,42 @@ describe('governed-symbol-residue', () => {
     expect(diagnostics).toEqual([]);
   });
 
-  test('does not flag prose, strings, or planned v1 symbols before activation', () => {
+  test('flags completed v1 symbols without flagging prose or strings', () => {
     const diagnostics = check(
       [
         'const message = "crossInput and ctx.cross in prose";',
-        'const facet = "planned but not active yet";',
-        'const facets = ["still planned"];',
+        'const facet = "retired but string-safe";',
+        'const facets = ["retired but string-safe"];',
         '',
       ].join('\n')
     );
 
-    expect(diagnostics).toEqual([]);
+    expect(diagnostics).toEqual([
+      expect.objectContaining({
+        fix: expect.objectContaining({
+          class: 'term-rewrite',
+          edits: [{ end: 64, replacement: 'trailhead', start: 59 }],
+          safety: 'safe',
+        }),
+        line: 2,
+        message:
+          "Retired governed symbol 'facet' should migrate to 'trailhead'.",
+        rule: 'governed-symbol-residue',
+        severity: 'error',
+      }),
+      expect.objectContaining({
+        fix: expect.objectContaining({
+          class: 'term-rewrite',
+          edits: [{ end: 106, replacement: 'trailheads', start: 100 }],
+          safety: 'safe',
+        }),
+        line: 3,
+        message:
+          "Retired governed symbol 'facets' should migrate to 'trailheads'.",
+        rule: 'governed-symbol-residue',
+        severity: 'error',
+      }),
+    ]);
   });
 
   test('allows the governed vocabulary registry to name retired symbols', () => {

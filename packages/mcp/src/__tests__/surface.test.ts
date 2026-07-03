@@ -97,20 +97,20 @@ describe('surface', () => {
   test('CreateServerOptions accepts flattened identity and resource fields', () => {
     const opts: Parameters<typeof surface>[1] = {
       description: 'Test MCP server',
-      facets: {
+      mcpResources: { examples: true, surfaceMap: true },
+      name: 'testapp',
+      resources: {},
+      trailheads: {
         read: {
           description: 'Read tools.',
           trails: 'read.*',
         },
       },
-      mcpResources: { examples: true, surfaceMap: true },
-      name: 'testapp',
-      resources: {},
       validate: false,
       version: '1.2.3',
     };
     expect(opts.description).toBe('Test MCP server');
-    expect(opts.facets?.read?.trails).toBe('read.*');
+    expect(opts.trailheads?.read?.trails).toBe('read.*');
     expect(opts.mcpResources).toEqual({ examples: true, surfaceMap: true });
     expect(opts.name).toBe('testapp');
     expect(opts.resources).toEqual({});

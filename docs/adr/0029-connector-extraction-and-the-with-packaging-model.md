@@ -44,7 +44,7 @@ The packaging model needs to describe those layers without inventing a new rule 
 
 An adapter bridges Trails contracts to a named external system, library, framework, tool, platform, format, or ecosystem. The distinction between materializing a surface and translating a record is descriptive, not categorical: Hono, Commander, Drizzle, LogTape, JWT, and OTel all sit at boundary points and follow the same packaging discipline.
 
-`integration` remains available as colloquial English. It is not a second public taxonomy category. `facet` remains reserved for projection slices of an authored contract or surface, not for package or subpath boundaries.
+`integration` remains available as colloquial English. It is not a second public taxonomy category. `trailhead` names grouped surface entries, and `schema facet` remains descriptive schema-slice prose; neither term names package or subpath boundaries.
 
 ## Decision
 
@@ -244,7 +244,7 @@ The return type is identical. The topo registration is identical. The trail's `r
 ### Amendment log
 
 - 2026-04-16: In-place vocabulary update per ADR-0035 Cutover 3 — title updated to drop `with-*` prefix convention, naming rules revised for extracted connectors, migration table and composition layer table aligned with surface API grammar.
-- 2026-05-08: Connector-to-adapter taxonomy cutover — `adapter` becomes the canonical public package category, `integration` is retained only as colloquial prose, `facet` is reserved for projection slices, and the historical `connectors/` workspace root is superseded by `adapters/`.
+- 2026-05-08: Connector-to-adapter taxonomy cutover — `adapter` becomes the canonical public package category, `integration` is retained only as colloquial prose, and the historical `connectors/` workspace root is superseded by `adapters/`. Later v1 vocabulary work moved grouped surface entries to `trailhead`.
 - 2026-05-16: Web Fetch kernel amendment — runtime materializers with no third-party dependency may stay as subpaths on the owning projection package, covering `@ontrails/http/fetch` and `@ontrails/http/bun` while preserving `@ontrails/hono` as the extracted Hono adapter.
 - 2026-06-09: Binding vocabulary note — this ADR's built-in-materializer vs extracted-adapter distinction is the `native binding` vs `adapter binding` distinction now defined in [the lexicon](../lexicon.md#binding); the dependency-boundary test in this ADR sets the kind.
 

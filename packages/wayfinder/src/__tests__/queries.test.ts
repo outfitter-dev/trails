@@ -180,7 +180,7 @@ const writeArtifactsAt = async (
       cliAliases: {
         'user.create': [['u', 'create']],
       },
-      facets: [
+      trailheads: [
         {
           description: 'User operations.',
           id: 'users',
@@ -351,7 +351,6 @@ describe('wayfinder graph-read query trails', () => {
       'wayfind.diff',
       'wayfind.errors',
       'wayfind.examples',
-      'wayfind.facets',
       'wayfind.impact',
       'wayfind.nearby',
       'wayfind.outline',
@@ -360,6 +359,7 @@ describe('wayfinder graph-read query trails', () => {
       'wayfind.search',
       'wayfind.signals',
       'wayfind.surfaces',
+      'wayfind.trailheads',
       'wayfind.trails',
       'wayfind.versions',
     ]);
@@ -577,10 +577,10 @@ describe('wayfinder graph-read query trails', () => {
     expect(overview.generatedAt).toBe('2026-06-04T00:00:00.000Z');
     expect(overview.counts).toMatchObject({
       examples: 3,
-      facets: 1,
       resources: 1,
       signals: 1,
       surfaces: 2,
+      trailheads: 1,
       trails: 4,
       versions: 2,
     });
@@ -766,8 +766,12 @@ describe('wayfinder graph-read query trails', () => {
       ],
     });
     expect(surfaces.surfaces).toEqual([
-      { facets: [], id: 'cli', trails: ['user.create'] },
-      { facets: ['users'], id: 'mcp', trails: ['user.create', 'user.show'] },
+      { id: 'cli', trailheads: [], trails: ['user.create'] },
+      {
+        id: 'mcp',
+        trailheads: ['users'],
+        trails: ['user.create', 'user.show'],
+      },
     ]);
   });
 
@@ -1039,7 +1043,7 @@ describe('wayfinder graph-read query trails', () => {
   test('describes entities and returns explicit not found results', async () => {
     const described = await expectOk(
       wayfindDescribeTrail.blaze(
-        { id: 'users', kind: 'facet', rootDir: tempDir },
+        { id: 'users', kind: 'trailhead', rootDir: tempDir },
         ctx()
       )
     );
@@ -1050,7 +1054,7 @@ describe('wayfinder graph-read query trails', () => {
 
     expect(described.entity).toMatchObject({
       id: 'users',
-      kind: 'facet',
+      kind: 'trailhead',
       memberIds: ['user.create', 'user.show'],
     });
     expect(missing.isErr()).toBe(true);
@@ -1058,7 +1062,7 @@ describe('wayfinder graph-read query trails', () => {
   });
 
   test('describes non-entry entities by id when the kind is omitted', async () => {
-    const facet = await expectOk(
+    const trailhead = await expectOk(
       wayfindDescribeTrail.blaze({ id: 'users', rootDir: tempDir }, ctx())
     );
     const surface = await expectOk(
@@ -1071,7 +1075,7 @@ describe('wayfinder graph-read query trails', () => {
       )
     );
 
-    expect(facet.entity).toMatchObject({ id: 'users', kind: 'facet' });
+    expect(trailhead.entity).toMatchObject({ id: 'users', kind: 'trailhead' });
     expect(surface.entity).toMatchObject({ id: 'cli', kind: 'surface' });
     expect(version.entity).toMatchObject({
       id: 'invite.create@1',
@@ -1214,11 +1218,6 @@ describe('wayfinder graph-read query trails', () => {
     ).toEqual([
       {
         direction: 'incoming',
-        ids: ['users'],
-        relation: 'facet-groups',
-      },
-      {
-        direction: 'incoming',
         ids: ['user.created'],
         relation: 'fired-by',
       },
@@ -1229,13 +1228,18 @@ describe('wayfinder graph-read query trails', () => {
       },
       {
         direction: 'incoming',
+        ids: ['users'],
+        relation: 'trailhead-groups',
+      },
+      {
+        direction: 'incoming',
         ids: ['db.main'],
         relation: 'used-by',
       },
     ]);
   });
 
-  test('includes facet-rendered trails in surface graph relationships', async () => {
+  test('includes trailhead-rendered trails in surface graph relationships', async () => {
     const nearby = await expectOk(
       wayfindNearbyTrail.blaze(
         { id: 'mcp', kind: 'surface', rootDir: tempDir },
@@ -1340,7 +1344,7 @@ describe('wayfinder graph-read query trails', () => {
     expect(inbound.isOk()).toBe(true);
     expect(
       inbound.isOk() ? inbound.value.nodes.map((node) => node.id) : []
-    ).toEqual(['users', 'db.main', 'user.created', 'cli', 'mcp']);
+    ).toEqual(['db.main', 'user.created', 'cli', 'mcp', 'users']);
     expect(vicinity.isOk()).toBe(true);
     expect(
       vicinity.isOk()
@@ -1351,9 +1355,9 @@ describe('wayfinder graph-read query trails', () => {
           ])
         : []
     ).toEqual([
-      ['incoming', 'facet-groups', ['users']],
       ['incoming', 'fired-by', ['user.created']],
       ['incoming', 'surface-projects', ['cli', 'mcp']],
+      ['incoming', 'trailhead-groups', ['users']],
       ['incoming', 'used-by', ['db.main']],
     ]);
     expect(filtered.isOk()).toBe(true);
@@ -1399,11 +1403,11 @@ describe('wayfinder graph-read query trails', () => {
       upstream.nodes.map((node) => [node.id, node.depth, node.via])
     ).toEqual([['invite.create', 1, 'has-version']]);
     expect(both.nodes.map((node) => [node.id, node.depth, node.via])).toEqual([
-      ['users', 1, 'facet-groups'],
       ['db.main', 1, 'used-by'],
       ['user.created', 1, 'fired-by'],
       ['cli', 1, 'surface-projects'],
       ['mcp', 1, 'surface-projects'],
+      ['users', 1, 'trailhead-groups'],
     ]);
   });
 
@@ -1492,13 +1496,15 @@ describe('wayfinder graph-read query trails', () => {
     await writeArtifactsAt(baselineRoot, (topoGraph) => ({
       ...topoGraph,
       entries: topoGraph.entries.filter((entry) => entry.id !== 'user.create'),
-      facets: topoGraph.facets?.map((facet) =>
-        facet.id === 'users'
+      trailheads: topoGraph.trailheads?.map((trailhead) =>
+        trailhead.id === 'users'
           ? {
-              ...facet,
-              memberIds: facet.memberIds.filter((id) => id !== 'user.create'),
+              ...trailhead,
+              memberIds: trailhead.memberIds.filter(
+                (id) => id !== 'user.create'
+              ),
             }
-          : facet
+          : trailhead
       ),
     }));
 

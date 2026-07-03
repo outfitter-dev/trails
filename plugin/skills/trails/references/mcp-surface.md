@@ -70,18 +70,18 @@ Trail `examples` are included in MCP tool metadata. Agents use these to understa
 Use trailheads only when a dense MCP surface needs grouped affordances. A trailhead is an MCP projection over existing trails, not a new trail, graph node, package category, or core `Facet` primitive. It groups and selects without merging.
 
 ```typescript
-import type { McpSurfaceFacetMap } from '@ontrails/mcp';
+import type { McpSurfaceTrailheadMap } from '@ontrails/mcp';
 
-const facets = {
+const trailheads = {
   governance: {
     description: 'Run project diagnostics and Warden guidance.',
     mcp: { loading: 'deferred' },
     trails: ['doctor', 'warden', 'warden.guide'],
   },
-} satisfies McpSurfaceFacetMap;
+} satisfies McpSurfaceTrailheadMap;
 
 await surface(graph, {
-  facets,
+  trailheads,
   mcpResources: { examples: true, surfaceMap: true },
 });
 ```
@@ -124,7 +124,7 @@ MCP resources are protocol resources for cold context. They are not Trails `reso
 
 By default, `surface(graph)` and `createServer(graph)` expose:
 
-- `trails://surface-map` for the resolved MCP projection, including `facetId` values, member trail IDs, schemas, examples metadata, versions, and deferred hints.
+- `trails://surface-map` for the resolved MCP projection, including `trailheadId` values, member trail IDs, schemas, examples metadata, versions, and deferred hints.
 - `trails://examples/<trailId>` for structured examples on exposed trails.
 
 Use `mcpResources: false` only when the host intentionally wants no MCP resource capability. Use `mcpResources: { examples: false, surfaceMap: true }` to keep a narrower resource set.
@@ -145,7 +145,7 @@ await surface(graph, {
 });
 ```
 
-`surface(graph, options)` and `createServer(graph, options)` accept the same options bag: `name`, `version`, `description`, `include`, `exclude`, `intent`, `layers`, `createContext`, `configValues`, `resources`, `facets`, `mcpResources`, and `validate`.
+`surface(graph, options)` and `createServer(graph, options)` accept the same options bag: `name`, `version`, `description`, `include`, `exclude`, `intent`, `layers`, `createContext`, `configValues`, `resources`, `trailheads`, `mcpResources`, and `validate`.
 
 ## Escape Hatch
 
@@ -169,6 +169,6 @@ Each `McpToolDefinition` includes:
 - `description` — trail description with first example appended
 - `handler` — async function that runs the full `executeTrail` pipeline
 - `trailId` — the original trail ID this tool was derived from (useful for filtering and introspection)
-- `facetId` / `memberTrailIds` — present when the tool was derived from a trailhead
+- `trailheadId` / `memberTrailIds` — present when the tool was derived from a trailhead
 
 This gives you the raw tool definitions to register manually while still benefiting from automatic schema derivation and annotation mapping.

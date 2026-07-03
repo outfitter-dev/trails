@@ -41,8 +41,8 @@ import type {
   TopoGraphActivationGraph,
   TopoGraphActivationSource,
   TopoGraphEntry,
-  TopoGraphFacetDeclaration,
-  TopoGraphFacetEntry,
+  TopoGraphTrailheadDeclaration,
+  TopoGraphTrailheadEntry,
   TopoGraphFieldOverride,
   TopoGraphFieldOverrideKey,
 } from './types.js';
@@ -661,14 +661,14 @@ const collectEntries = (
 };
 
 const selectorPatterns = (
-  selector: TopoGraphFacetDeclaration['trails']
+  selector: TopoGraphTrailheadDeclaration['trails']
 ): readonly string[] => (typeof selector === 'string' ? [selector] : selector);
 
-const resolveFacetMemberIds = (
+const resolveTrailheadMemberIds = (
   topo: Topo,
-  facet: TopoGraphFacetDeclaration
+  trailhead: TopoGraphTrailheadDeclaration
 ): readonly string[] => {
-  const patterns = selectorPatterns(facet.trails);
+  const patterns = selectorPatterns(trailhead.trails);
   return [...topo.trails.values()]
     .filter((trail) =>
       patterns.some((pattern) => matchesTrailPattern(trail.id, pattern))
@@ -677,42 +677,42 @@ const resolveFacetMemberIds = (
     .toSorted();
 };
 
-const facetToEntry = (
+const trailheadToEntry = (
   topo: Topo,
-  facet: TopoGraphFacetDeclaration
-): TopoGraphFacetEntry => {
-  const memberIds = resolveFacetMemberIds(topo, facet);
+  trailhead: TopoGraphTrailheadDeclaration
+): TopoGraphTrailheadEntry => {
+  const memberIds = resolveTrailheadMemberIds(topo, trailhead);
   const entry: Record<string, unknown> = {
-    description: facet.description,
-    id: facet.id,
+    description: trailhead.description,
+    id: trailhead.id,
     memberIds,
     memberSetHash: deriveStableHash(memberIds),
-    surfaces: (facet.surfaces ?? []).toSorted(),
+    surfaces: (trailhead.surfaces ?? []).toSorted(),
   };
 
-  if (facet.descriptionStableThrough !== undefined) {
-    entry['descriptionStableThrough'] = facet.descriptionStableThrough;
+  if (trailhead.descriptionStableThrough !== undefined) {
+    entry['descriptionStableThrough'] = trailhead.descriptionStableThrough;
   }
-  if (facet.visibility !== undefined) {
-    entry['visibility'] = facet.visibility;
+  if (trailhead.visibility !== undefined) {
+    entry['visibility'] = trailhead.visibility;
   }
-  if (facet.visibilityWideningAccepted === true) {
+  if (trailhead.visibilityWideningAccepted === true) {
     entry['visibilityWideningAccepted'] = true;
   }
 
-  return sortKeys(entry) as unknown as TopoGraphFacetEntry;
+  return sortKeys(entry) as unknown as TopoGraphTrailheadEntry;
 };
 
-const collectFacets = (
+const collectTrailheads = (
   topo: Topo,
   options: DeriveTopoGraphOptions | undefined
-): readonly TopoGraphFacetEntry[] | undefined => {
-  const facets = options?.facets;
-  if (facets === undefined || facets.length === 0) {
+): readonly TopoGraphTrailheadEntry[] | undefined => {
+  const trailheads = options?.trailheads;
+  if (trailheads === undefined || trailheads.length === 0) {
     return undefined;
   }
-  return facets
-    .map((facet) => facetToEntry(topo, facet))
+  return trailheads
+    .map((trailhead) => trailheadToEntry(topo, trailhead))
     .toSorted((a, b) => a.id.localeCompare(b.id));
 };
 
@@ -733,7 +733,7 @@ export const deriveTopoGraph = (
   );
   const activationSources = collectActivationSourceCatalog(topo);
   const activationEdges = collectActivationGraphEdges(topo);
-  const facets = collectFacets(topo, options);
+  const trailheads = collectTrailheads(topo, options);
   const library = collectLibraryProjection(topo);
 
   return {
@@ -742,7 +742,7 @@ export const deriveTopoGraph = (
       activationSources.map((source) => [source.key, source])
     ),
     entries: sorted,
-    ...(facets === undefined ? {} : { facets }),
+    ...(trailheads === undefined ? {} : { trailheads }),
     generatedAt: new Date().toISOString(),
     library,
     topoGraphSchemaVersion: TOPO_GRAPH_SCHEMA_VERSION,

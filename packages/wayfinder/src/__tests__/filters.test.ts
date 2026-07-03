@@ -106,7 +106,7 @@ const makeGraph = (): TopoGraph =>
         userShow,
       }),
       {
-        facets: [
+        trailheads: [
           {
             description: 'User operations.',
             id: 'users',
@@ -126,7 +126,6 @@ describe('wayfinder typed filters', () => {
     expect(
       wayfinderEntityFilterSchema.parse({
         exampleCoverage: true,
-        facet: 'users',
         idGlob: 'user.*',
         idPrefix: 'user.',
         intent: ['read', 'write'],
@@ -134,13 +133,13 @@ describe('wayfinder typed filters', () => {
         namespace: 'user',
         query: 'create',
         surface: 'mcp',
+        trailhead: 'users',
         usesResource: 'db.main',
         usesSignal: 'user.created',
         versioned: false,
       })
     ).toEqual({
       exampleCoverage: true,
-      facet: 'users',
       idGlob: 'user.*',
       idPrefix: 'user.',
       intent: ['read', 'write'],
@@ -148,16 +147,19 @@ describe('wayfinder typed filters', () => {
       namespace: 'user',
       query: 'create',
       surface: 'mcp',
+      trailhead: 'users',
       usesResource: 'db.main',
       usesSignal: 'user.created',
       versioned: false,
     });
   });
 
-  test('lists graph, facet, surface, and version entity refs', () => {
+  test('lists graph, trailhead, surface, and version entity refs', () => {
     const refs = listWayfinderEntityRefs(makeGraph());
 
-    expect(refs.map((ref) => `${ref.kind}:${ref.id}`)).toContain('facet:users');
+    expect(refs.map((ref) => `${ref.kind}:${ref.id}`)).toContain(
+      'trailhead:users'
+    );
     expect(refs.map((ref) => `${ref.kind}:${ref.id}`)).toContain('surface:mcp');
     expect(refs.map((ref) => `${ref.kind}:${ref.id}`)).toContain(
       'version:invite.create@1'
@@ -201,14 +203,14 @@ describe('wayfinder typed filters', () => {
     ]);
   });
 
-  test('filters by surface and facet membership', () => {
+  test('filters by surface and trailhead membership', () => {
     const graph = makeGraph();
 
     expect(ids(graph, { kind: 'trail', surface: 'mcp' })).toEqual([
       'user.create',
       'user.show',
     ]);
-    expect(ids(graph, { facet: 'users', kind: 'trail' })).toEqual([
+    expect(ids(graph, { kind: 'trail', trailhead: 'users' })).toEqual([
       'user.create',
       'user.show',
     ]);

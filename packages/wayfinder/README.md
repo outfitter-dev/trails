@@ -17,7 +17,7 @@ The package exports `wayfinderTopo` plus individual graph-read trails.
 | `wayfind.resources` | List resource summaries and declaring trails. |
 | `wayfind.signals` | List signal summaries, producers, and consumers. |
 | `wayfind.surfaces` | List saved surface membership facts. |
-| `wayfind.facets` | List resolved trailhead metadata and members. |
+| `wayfind.trailheads` | List resolved trailhead metadata and members. |
 | `wayfind.versions` | List current and historical trail version records. |
 | `wayfind.examples` | List saved examples without executing trails. |
 | `wayfind.errors` | List saved trail error facts with provenance and completeness. |
@@ -165,7 +165,7 @@ When saved graph artifacts are missing, `outline` still renders source facts and
 
 ## Surfaces, Trailheads, Versions, And Examples
 
-`wayfind.surfaces` includes both directly rendered trail surfaces and trailhead-rendered surfaces. `wayfind.facets` returns trailhead membership, visibility, and descriptions. `wayfind.versions` returns current and historical trail versions sorted by trail ID and numeric version. `wayfind.examples` lists saved examples without executing any trail.
+`wayfind.surfaces` includes both directly rendered trail surfaces and trailhead-rendered surfaces. `wayfind.trailheads` returns trailhead membership, visibility, and descriptions. `wayfind.versions` returns current and historical trail versions sorted by trail ID and numeric version. `wayfind.examples` lists saved examples without executing any trail.
 
 ## Nearby, Impact, And Diff
 

@@ -101,7 +101,7 @@ const adapterFactsInputSchema = z
 
 const inspectKindSchema = z.enum([
   'contour',
-  'facet',
+  'trailhead',
   'resource',
   'signal',
   'surface',
@@ -230,12 +230,12 @@ const signalSummarySchema = entrySummarySchema.extend({
 });
 
 const surfaceSummarySchema = z.object({
-  facets: z.array(z.string()).readonly(),
   id: z.string(),
+  trailheads: z.array(z.string()).readonly(),
   trails: z.array(z.string()).readonly(),
 });
 
-const facetSummarySchema = z.object({
+const trailheadSummarySchema = z.object({
   description: z.string(),
   id: z.string(),
   memberIds: z.array(z.string()).readonly(),
@@ -359,7 +359,7 @@ const diffEntryOutputSchema = z.object({
   change: z.enum(['added', 'removed', 'modified']),
   details: z.array(z.string()).readonly(),
   id: z.string(),
-  kind: z.enum(['contour', 'facet', 'resource', 'signal', 'trail']),
+  kind: z.enum(['contour', 'trailhead', 'resource', 'signal', 'trail']),
   severity: z.enum(['info', 'warning', 'breaking']),
 });
 
@@ -675,17 +675,17 @@ const surfaceSummaries = (graph: TopoGraph) => {
       surfaceIds.add(surface);
     }
   }
-  for (const facet of graph.facets ?? []) {
-    for (const surface of facet.surfaces) {
+  for (const trailhead of graph.trailheads ?? []) {
+    for (const surface of trailhead.surfaces) {
       surfaceIds.add(surface);
     }
   }
   return [...surfaceIds].toSorted().map((surface) => ({
-    facets: (graph.facets ?? [])
-      .filter((facet) => facet.surfaces.includes(surface))
-      .map((facet) => facet.id)
-      .toSorted(),
     id: surface,
+    trailheads: (graph.trailheads ?? [])
+      .filter((trailhead) => trailhead.surfaces.includes(surface))
+      .map((trailhead) => trailhead.id)
+      .toSorted(),
     trails: filterWayfinderEntityRefs(graph, {
       kind: 'trail',
       surface,
@@ -693,13 +693,13 @@ const surfaceSummaries = (graph: TopoGraph) => {
   }));
 };
 
-const facetSummaries = (graph: TopoGraph) =>
-  (graph.facets ?? []).map((facet) => ({
-    description: facet.description,
-    id: facet.id,
-    memberIds: facet.memberIds,
-    surfaces: facet.surfaces,
-    visibility: facet.visibility,
+const trailheadSummaries = (graph: TopoGraph) =>
+  (graph.trailheads ?? []).map((trailhead) => ({
+    description: trailhead.description,
+    id: trailhead.id,
+    memberIds: trailhead.memberIds,
+    surfaces: trailhead.surfaces,
+    visibility: trailhead.visibility,
   }));
 
 const versionSummaries = (graph: TopoGraph) =>
@@ -902,9 +902,13 @@ const describeSurface = (graph: TopoGraph, id: string) => {
   return surface === undefined ? undefined : { ...surface, kind: 'surface' };
 };
 
-const describeFacet = (graph: TopoGraph, id: string) => {
-  const facet = facetSummaries(graph).find((candidate) => candidate.id === id);
-  return facet === undefined ? undefined : { ...facet, kind: 'facet' };
+const describeTrailhead = (graph: TopoGraph, id: string) => {
+  const trailhead = trailheadSummaries(graph).find(
+    (candidate) => candidate.id === id
+  );
+  return trailhead === undefined
+    ? undefined
+    : { ...trailhead, kind: 'trailhead' };
 };
 
 const describeVersion = (graph: TopoGraph, id: string) => {
@@ -953,9 +957,9 @@ const describeCandidates = (
       value: entry as unknown as ResolvedEntity,
     });
   }
-  const facet = describeFacet(graph, id);
-  if (facet !== undefined) {
-    candidates.push({ kind: 'facet', value: facet });
+  const trailhead = describeTrailhead(graph, id);
+  if (trailhead !== undefined) {
+    candidates.push({ kind: 'trailhead', value: trailhead });
   }
   const surface = describeSurface(graph, id);
   if (surface !== undefined) {
@@ -975,8 +979,8 @@ const describeEntry = (
   if (input.kind === 'surface') {
     return Result.ok(describeSurface(graph, input.id));
   }
-  if (input.kind === 'facet') {
-    return Result.ok(describeFacet(graph, input.id));
+  if (input.kind === 'trailhead') {
+    return Result.ok(describeTrailhead(graph, input.id));
   }
   if (input.kind === 'version') {
     return Result.ok(describeVersion(graph, input.id));
@@ -1016,7 +1020,7 @@ const contractEntryKind = (
   kind: ContractInput['kind']
 ): TopoGraphEntry['kind'] | undefined =>
   kind === undefined ||
-  kind === 'facet' ||
+  kind === 'trailhead' ||
   kind === 'surface' ||
   kind === 'version'
     ? undefined
@@ -1036,12 +1040,12 @@ const contractEntry = (
   version: entry.version ?? null,
 });
 
-const contractSurfaceOrFacet = (
+const contractSurfaceOrTrailhead = (
   graph: TopoGraph,
   input: ContractInput
 ): ResolvedEntity | undefined => {
-  if (input.kind === 'facet') {
-    return describeFacet(graph, input.id);
+  if (input.kind === 'trailhead') {
+    return describeTrailhead(graph, input.id);
   }
   if (input.kind === 'surface') {
     return describeSurface(graph, input.id);
@@ -1056,8 +1060,8 @@ const contractFor = (
   if (input.kind === 'version' || input.version !== undefined) {
     return Result.ok(contractVersionFor(graph, input));
   }
-  if (input.kind === 'surface' || input.kind === 'facet') {
-    return Result.ok(contractSurfaceOrFacet(graph, input));
+  if (input.kind === 'surface' || input.kind === 'trailhead') {
+    return Result.ok(contractSurfaceOrTrailhead(graph, input));
   }
   if (input.kind === undefined) {
     const candidates: ResolvedEntityCandidate[] = [];
@@ -1065,9 +1069,9 @@ const contractFor = (
     if (entry !== undefined) {
       candidates.push({ kind: entry.kind, value: contractEntry(entry) });
     }
-    const facet = describeFacet(graph, input.id);
-    if (facet !== undefined) {
-      candidates.push({ kind: 'facet', value: facet });
+    const trailhead = describeTrailhead(graph, input.id);
+    if (trailhead !== undefined) {
+      candidates.push({ kind: 'trailhead', value: trailhead });
     }
     const surface = describeSurface(graph, input.id);
     if (surface !== undefined) {
@@ -1082,7 +1086,7 @@ const contractFor = (
 
   const entry = entryById(graph, input.id, contractEntryKind(input.kind));
   if (entry === undefined) {
-    return Result.ok(contractSurfaceOrFacet(graph, input));
+    return Result.ok(contractSurfaceOrTrailhead(graph, input));
   }
   return Result.ok(contractEntry(entry));
 };
@@ -1136,10 +1140,10 @@ export const wayfindOverviewTrail = trail('wayfind.overview', {
         counts: {
           contours: contourSummaries(graph).length,
           examples: exampleSummaries(graph).length,
-          facets: facetSummaries(graph).length,
           resources: resourceSummaries(graph).length,
           signals: signalSummaries(graph).length,
           surfaces: surfaceSummaries(graph).length,
+          trailheads: trailheadSummaries(graph).length,
           trails: trailSummaries(graph).length,
           versions: versionSummaries(graph).length,
         },
@@ -1161,10 +1165,10 @@ export const wayfindOverviewTrail = trail('wayfind.overview', {
     counts: z.object({
       contours: z.number(),
       examples: z.number(),
-      facets: z.number(),
       resources: z.number(),
       signals: z.number(),
       surfaces: z.number(),
+      trailheads: z.number(),
       trails: z.number(),
       versions: z.number(),
     }),
@@ -1323,7 +1327,7 @@ export const wayfindSurfacesTrail = trail('wayfind.surfaces', {
         ),
       };
     }),
-  description: 'List saved direct and facet-rendered surfaces',
+  description: 'List saved direct and trailhead-rendered surfaces',
   examples: [{ input: {}, name: 'List surfaces' }],
   input: filteredInputSchema,
   intent: 'read',
@@ -1333,28 +1337,28 @@ export const wayfindSurfacesTrail = trail('wayfind.surfaces', {
   visibility: 'internal',
 });
 
-export const wayfindFacetsTrail = trail('wayfind.facets', {
+export const wayfindTrailheadsTrail = trail('wayfind.trailheads', {
   blaze: async (input, ctx) =>
     withGraph(input, ctx.cwd, (loaded) => {
       const ids = filteredIds(
         loaded.graph,
-        'facet',
+        'trailhead',
         input.filters,
         input.limit
       );
       return {
         ...envelope(loaded),
-        facets: facetSummaries(loaded.graph).filter((entry) =>
+        trailheads: trailheadSummaries(loaded.graph).filter((entry) =>
           ids.has(entry.id)
         ),
       };
     }),
-  description: 'List saved facet membership',
-  examples: [{ input: {}, name: 'List facets' }],
+  description: 'List saved trailhead membership',
+  examples: [{ input: {}, name: 'List trailheads' }],
   input: filteredInputSchema,
   intent: 'read',
   output: envelopeSchema.extend({
-    facets: z.array(facetSummarySchema).readonly(),
+    trailheads: z.array(trailheadSummarySchema).readonly(),
   }),
   visibility: 'internal',
 });
@@ -1599,7 +1603,6 @@ export const wayfinderTopo = topo('wayfinder', {
   wayfindDiffTrail,
   wayfindErrorsTrail,
   wayfindExamplesTrail,
-  wayfindFacetsTrail,
   wayfindImpactTrail,
   wayfindNearbyTrail,
   wayfindOutlineTrail,
@@ -1608,6 +1611,7 @@ export const wayfinderTopo = topo('wayfinder', {
   wayfindSearchTrail,
   wayfindSignalsTrail,
   wayfindSurfacesTrail,
+  wayfindTrailheadsTrail,
   wayfindTrailsTrail,
   wayfindVersionsTrail,
 });

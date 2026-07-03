@@ -488,7 +488,7 @@ A mechanically derived output from authored information. The topo store is a rel
 | `path` | Surface-local realization of an approach: command path, tool name, HTTP path, or export name |
 | `alias` | Alternate approach to the same surface entry and same trail contract |
 | `input mapping` | Surface-shaped input normalization into the same authored trail input contract |
-| `facet` | Qualified projection-slice vocabulary; use `trailhead` or `schema facet`, not bare `facet` as a primitive |
+| `facet` | Retired bare vocabulary; use `trailhead` for grouped surface entries or `schema facet` only as descriptive schema prose |
 | `trailhead` | Surface-side grouped entry over existing trails; not a graph node, package category, or core `Facet` primitive |
 | `schema facet` | Descriptive phrase for a schema-owned slice or view when docs need it; not a decided public API |
 | `trail fork` | Doctrine phrase for the point where a surface accommodation would change semantics or merge or hide member identity; author a distinct trail, composing trail, or trailhead that preserves identity instead |

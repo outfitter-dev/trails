@@ -26,7 +26,7 @@ Earlier implementations produced `trailhead.lock` through the legacy survey gene
 
 As the framework grows, more resolved state needs the same treatment: surfaces, signals, activation sources, resources, config, the reactive graph. Each is "resolved state of the system that should be diffable and governable." Splitting them into separate lockfiles creates multiple files to commit, multiple CI checks to configure, and multiple commands to remember.
 
-But the deeper issue is that these aren't independent concerns. A trail's surface derivation, its activation sources, its signal fires, its resource dependencies, and its `composes` declarations are all facets of the same graph. Surfaces reference trails. `fires` references signals. Signals reference producers and consumers. Resources reference config. The resolved state of the system is a single connected graph, not a collection of independent sections.
+But the deeper issue is that these aren't independent concerns. A trail's surface derivation, its activation sources, its signal fires, its resource dependencies, and its `composes` declarations are all trailheads of the same graph. Surfaces reference trails. `fires` references signals. Signals reference producers and consumers. Resources reference config. The resolved state of the system is a single connected graph, not a collection of independent sections.
 
 ### The lockfile as the story
 

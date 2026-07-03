@@ -9,26 +9,26 @@ The Surface Trailheads & MCP Shaping stack changes these publishable packages:
 - `@ontrails/topographer`: serializes resolved trailhead metadata in TopoGraph artifacts and semantic diffs.
 - `@ontrails/mcp`: adds MCP surface trailheads, MCP resource projection for cold context, and deferred-loading metadata hints.
 - `@ontrails/trails`: adds the Trails operator MCP entrypoint and deferred trailhead map.
-- `@ontrails/warden`: adds `surface-facet-coherence` guidance for overlap, dynamic selectors, visibility acknowledgement, and description hygiene.
+- `@ontrails/warden`: adds `surface-trailhead-coherence` guidance for overlap, dynamic selectors, visibility acknowledgement, and description hygiene.
 - `@ontrails/adapter-kit`: exposes adapter type evidence for downstream projection checks without authoring trailheads.
 
 Each package-touching branch carries a branch-local changeset:
 
-- `.changeset/trl-889-surface-facet-metadata.md`
-- `.changeset/trl-892-mcp-surface-facets.md`
-- `.changeset/trl-888-trails-operator-mcp-facets.md`
-- `.changeset/trl-893-surface-facet-warden.md`
+- `.changeset/trl-889-surface-trailhead-metadata.md`
+- `.changeset/trl-892-mcp-surface-trailheads.md`
+- `.changeset/trl-888-trails-operator-mcp-trailheads.md`
+- `.changeset/trl-893-surface-trailhead-warden.md`
 - `.changeset/trl-891-mcp-resource-docs.md`
 
 ## What Ships
 
 ### MCP Surface Trailheads
 
-Authors can pass `facets` to `@ontrails/mcp` surface options:
+Authors can pass `trailheads` to `@ontrails/mcp` surface options:
 
 ```typescript
 await surface(graph, {
-  facets: {
+  trailheads: {
     governance: {
       description: 'Run project diagnostics and Warden guidance.',
       mcp: { loading: 'deferred' },

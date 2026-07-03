@@ -18,6 +18,7 @@ Use these artifacts together:
 | `packages/regrade/src/downstream/vocabulary-registry.ts` | Registry-to-Regrade bridge for single-target vocabulary plans. |
 | Regrade run output | Observed ledger and report for an execution attempt. |
 | This document | Execution order, compatibility posture, namespace census policy, and release boundaries. |
+| [v1 Vocabulary Transition Workflow](./v1-vocabulary-transition-workflow.md) | Fieldguide for running one family through Regrade, recording evidence, and keeping the goal packet aligned with issue acceptance criteria. |
 
 Do not copy the registry tables into another durable ledger. If a family needs a new form, symbol rename, preserve rule, or review rule, update the typed registry and tests, then let this plan cite that fact.
 
@@ -77,7 +78,7 @@ Family-specific decisions:
 
 | Family | Compatibility decision |
 | --- | --- |
-| `facet` -> `trailhead` | Hard v1 cutover for code and API names. Surface-visible names such as `wayfind.facets` and `surface-facet-coherence` must be named in the namespace census before they move. No long-lived alias window by default. |
+| `facet` -> `trailhead` | Hard v1 cutover for grouped surface-entry code and API names. Surface-visible names such as `wayfind.trailheads` and `surface-trailhead-coherence` moved in the tracer family. No long-lived alias window by default. |
 | `blaze` -> `implementation` | Hard v1 authoring-API cutover. Do not support both `blaze` and `implementation` as peer trail fields after the reset; that would create two authored shapes for one contract. |
 | `contour` -> `entity` | Hard v1 authoring/API cutover. Preserve app-domain uses of `entity` and historical contour references through review instead of assuming every occurrence is a framework declaration. |
 | `projection` -> `derive` / `render` | No alias window. This is a classification family, not a rename family. Occurrences become `derive`, `render`, `Derived`, historical, or review inventory. |
@@ -122,9 +123,9 @@ This is the first tracer. It must prove:
 
 - Regrade can run the registry-owned plan through CLI and MCP.
 - The report separates modified, preserved, deferred, and skipped occurrences.
-- Surface-visible identifiers are classified before moving: `facets`, `facetId`, `McpSurfaceFacetMap`, `wayfind.facets`, and `surface-facet-coherence`.
-- `docs/surfaces/surface-facets.md` filename and title cleanup is either handled in this family or explicitly spun out as docs-only cleanup.
-- The v1 transition workflow teaching doc is written from the actual run.
+- Surface-visible identifiers moved in this family: `trailheads`, `trailheadId`, `McpSurfaceTrailheadMap`, `wayfind.trailheads`, and `surface-trailhead-coherence`.
+- `docs/surfaces/surface-trailheads.md` filename and title cleanup is handled in this family.
+- The [v1 transition workflow teaching doc](./v1-vocabulary-transition-workflow.md) is written from the actual run.
 
 ### Blaze To Implementation
 
@@ -134,7 +135,7 @@ Purpose: rename the authored behavior field and related code/API vocabulary to `
 
 Execution issue: [TRL-1018](https://linear.app/outfitter/issue/TRL-1018/).
 
-This is the highest-blast authoring family. It must wait for the facet tracer and the structured review detail needed by [TRL-1016](https://linear.app/outfitter/issue/TRL-1016/) unless the facet run proves current review output is already sufficient at scale.
+This is the highest-blast authoring family. It must wait for the trailhead tracer and the structured review detail needed by [TRL-1016](https://linear.app/outfitter/issue/TRL-1016/) unless the trailhead run proves current review output is already sufficient at scale.
 
 The execution issue must:
 

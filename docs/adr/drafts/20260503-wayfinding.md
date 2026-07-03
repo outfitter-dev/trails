@@ -209,7 +209,7 @@ The existing catalog maps onto the algebra this way:
 | `wayfind.overview` | `overview` view over the saved graph | keep |
 | `wayfind.search` | `query` / `pattern` resolver over saved graph entities | reshape behind operator grammar |
 | `wayfind.trails`, `wayfind.resources`, `wayfind.signals`, `wayfind.surfaces` | population filters plus `list` view | reshape |
-| `wayfind.facets` | current grouped surface entry facts; rename follows the vocabulary reset | reshape |
+| `wayfind.trailheads` | current grouped surface entry facts; rename follows the vocabulary reset | reshape |
 | `wayfind.versions`, `wayfind.examples`, `wayfind.errors` | includes and focused list views | reshape |
 | `wayfind.adapters` | adapter predicate plus included surface delivery facts | reshape |
 | `wayfind.describe`, `wayfind.contract`, `wayfind.outline` | views | keep, rendered through the shared planner and file selector |

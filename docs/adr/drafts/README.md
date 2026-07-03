@@ -44,7 +44,7 @@ Draft map: `docs/adr/drafts/decision-map.json`; numbered map: `docs/adr/decision
 
 - [One-Schema Trail Input](20260603-one-schema-trail-input.md)
   - depends on [ADR-0000: Core Premise — Contract-First, Surface-Agnostic Design](../0000-core-premise.md), [ADR-0006: Shared Execution Pipeline with Result-Returning Builders](../0006-shared-execution-pipeline.md), [ADR-0020: Flags for Fields, Structured Input on the CLI](../0020-flags-for-fields-structured-input-on-the-cli.md), [ADR-0024: Typed Trail Composition](../0024-typed-trail-composition.md), [ADR-0048: Trail Versioning v3](../0048-trail-versioning-v3.md)
-- [Surface Facets Shape Dense Topos](20260603-surface-facets-shape-dense-topos.md)
+- [Surface Trailheads Shape Dense Topos](20260603-surface-trailheads-shape-dense-topos.md)
   - depends on [ADR-0000: Core Premise — Contract-First, Surface-Agnostic Design](../0000-core-premise.md), [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md), [ADR-0027: Trail Visibility and Surface Filtering](../0027-visibility-and-filtering.md), [ADR-0035: Surface APIs Render the Graph](../0035-surface-apis-render-the-graph.md), [ADR-0042: Core/Topographer Boundary Doctrine](../0042-core-topographer-boundary-doctrine.md), [ADR-0046: Lock v3 Artifact Family](../0046-lock-v3-artifact-family.md), [ADR-0050: Surface Accommodations Preserve Trail Identity](../0050-surface-accommodations-preserve-trail-identity.md)
 - [Release Provenance as Lifecycle Projection](20260608-release-provenance-as-lifecycle-projection.md)
   - depends on [ADR-0047: Stable Release Line Discipline](../0047-stable-release-line-discipline.md), [ADR-0048: Trail Versioning v3](../0048-trail-versioning-v3.md)

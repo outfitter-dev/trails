@@ -20,7 +20,7 @@ import {
 
 import { trailsMcpApp } from '../mcp-app.js';
 import {
-  trailsMcpFacets,
+  trailsMcpTrailheads,
   trailsMcpIncludedTrails,
   trailsMcpSurfaceOptions,
 } from '../mcp-options.js';
@@ -40,6 +40,13 @@ const parseJson = (text: string | undefined): unknown => {
 
 const makeTempDir = (): string =>
   mkdtempSync(join(tmpdir(), `trails-mcp-regrade-test-${Date.now()}-`));
+const facetTrailheadRegistryExcludes = [
+  '.agents/memory/**',
+  '.agents/plans/archive/**',
+  '.changeset/**',
+  '**/CHANGELOG.md',
+  'packages/warden/src/rules/retired-vocabulary.ts',
+];
 
 const writeFile = (root: string, path: string, value: string): void => {
   const filePath = join(root, path);
@@ -100,7 +107,7 @@ describe('Trails MCP surface shaping', () => {
 
     const inspectTool = requireTool(tools, 'trails_inspect');
     expect(inspectTool?.trailId).toBeUndefined();
-    expect(inspectTool?.facetId).toBe('inspect');
+    expect(inspectTool?.trailheadId).toBe('inspect');
     expect(inspectTool?.memberTrailIds?.toSorted()).toEqual([
       'guide',
       'survey',
@@ -121,7 +128,7 @@ describe('Trails MCP surface shaping', () => {
 
     for (const tool of tools.filter((item) => item.name !== 'trails_inspect')) {
       expect(tool.trailId).toBeDefined();
-      expect(tool.facetId).toBeUndefined();
+      expect(tool.trailheadId).toBeUndefined();
       expect(tool.memberTrailIds).toBeUndefined();
       expect(tool._meta?.[MCP_TOOL_DEFERRED_META_KEY]).toBeUndefined();
     }
@@ -271,15 +278,6 @@ describe('Trails MCP surface shaping', () => {
       expect(result.structuredContent).toMatchObject({
         run: {
           plan: { from: 'facet', to: 'trailhead' },
-          preserveInventory: expect.arrayContaining([
-            expect.objectContaining({
-              evidence: expect.arrayContaining(['topo.facet:inspect']),
-              paths: expect.arrayContaining(['**/*.ts']),
-              pattern: expect.stringContaining('facetId'),
-              reason: 'current-live-mcp-facet-field',
-              source: 'derived-live-api',
-            }),
-          ]),
           report: { modified: 0, open: 0 },
         },
         scan: {
@@ -296,14 +294,14 @@ describe('Trails MCP surface shaping', () => {
       );
       expect(structured.run?.ledger?.occurrences).toEqual([]);
       expect(readFileSync(join(dir, 'src', 'surface.ts'), 'utf8')).toContain(
-        'facet'
+        'facetId'
       );
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }
   });
 
-  test('executes facet to trailhead dogfood reports through MCP', async () => {
+  test('executes trailhead to trailhead dogfood reports through MCP', async () => {
     const dir = makeTempDir();
     try {
       writeFile(
@@ -384,7 +382,13 @@ describe('Trails MCP surface shaping', () => {
       expect(structured.run?.plan).toMatchObject({
         from: 'facet',
         id: 'v1-facet-trailhead',
-        scope: { exclude: ['.agents/notes/**', '.scratch/**'] },
+        scope: {
+          exclude: [
+            ...facetTrailheadRegistryExcludes,
+            '.agents/notes/**',
+            '.scratch/**',
+          ],
+        },
         to: 'trailhead',
       });
       expect(structured.run?.ledger?.forms).toMatchObject({
@@ -421,7 +425,9 @@ describe('Trails MCP surface shaping', () => {
       expect(structured.entries).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            classId: 'ast-symbol-rename:v1-facet-trailhead:facet->trailhead',
+            classId: expect.stringContaining(
+              'ast-symbol-rename:v1-facet-trailhead:facet->trailhead'
+            ),
             outcome: 'rewrite',
             path: 'src/surface.ts',
           }),
@@ -520,10 +526,10 @@ describe('Trails MCP surface shaping', () => {
     }
   });
 
-  test('keeps app-authored facet selectors explicit enough for review', () => {
-    expect(trailsMcpFacets.inspect.trails).toContain('survey');
-    expect(trailsMcpFacets.inspect.trails).not.toContain('survey.*');
-    expect(Object.keys(trailsMcpFacets)).toEqual(['inspect']);
+  test('keeps app-authored trailhead selectors explicit enough for review', () => {
+    expect(trailsMcpTrailheads.inspect.trails).toContain('survey');
+    expect(trailsMcpTrailheads.inspect.trails).not.toContain('survey.*');
+    expect(Object.keys(trailsMcpTrailheads)).toEqual(['inspect']);
     expect(trailsMcpIncludedTrails).toContain('release.check');
     expect(trailsMcpIncludedTrails).toContain('release.smoke');
     expect(trailsMcpIncludedTrails).toContain('regrade');
@@ -607,18 +613,18 @@ describe('Trails MCP surface shaping', () => {
     const projectedMap = parseJson(surfaceMap?.text) as {
       readonly tools?: readonly {
         readonly deferred?: boolean | undefined;
-        readonly facetId?: string | undefined;
+        readonly trailheadId?: string | undefined;
         readonly name?: string | undefined;
         readonly trailId?: string | undefined;
       }[];
     };
     expect(
-      projectedMap.tools?.find((tool) => tool.facetId === 'inspect')
+      projectedMap.tools?.find((tool) => tool.trailheadId === 'inspect')
     ).toEqual(
       expect.objectContaining({
         deferred: true,
-        facetId: 'inspect',
         name: 'trails_inspect',
+        trailheadId: 'inspect',
       })
     );
     expect(

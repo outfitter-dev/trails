@@ -14,7 +14,13 @@ export interface WayfinderArtifactSource {
 
 export interface WayfinderContractRef {
   readonly id: string;
-  readonly kind: 'contour' | 'facet' | 'resource' | 'signal' | 'topo' | 'trail';
+  readonly kind:
+    | 'contour'
+    | 'trailhead'
+    | 'resource'
+    | 'signal'
+    | 'topo'
+    | 'trail';
   readonly field?: string | undefined;
 }
 

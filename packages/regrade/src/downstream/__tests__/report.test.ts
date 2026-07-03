@@ -20,6 +20,7 @@ import {
   wardenTermRewriteClasses,
 } from '../report.js';
 import type { RegradeClass, RegradeReport } from '../report.js';
+import { createAstIdentifierRenameClass } from '../ast-rewrite.js';
 
 const signalToPing = createTermRewriteClass({ from: 'signal', to: 'ping' });
 
@@ -88,6 +89,32 @@ describe('createTermRewriteClass', () => {
         symbol: 'sourceTerm',
       },
     ]);
+  });
+
+  test('keeps review spans anchored to original source after in-memory rewrites', () => {
+    const source =
+      'export const facet = 1; export function render(facets: string) { return facets; }\n';
+    const report = buildRegradeReport({
+      classes: [
+        createAstIdentifierRenameClass({
+          from: 'facet',
+          to: 'trailhead',
+        }),
+        createAstIdentifierRenameClass({
+          from: 'facets',
+          reviewDeclarationTypes: new Set(['FunctionParam']),
+          to: 'trailheads',
+        }),
+      ],
+      files: [{ path: 'src/surface.ts', source }],
+      root: '/repo',
+      skipped: [],
+    });
+
+    expect(report.entries[0]?.outcome).toBe('needs-review');
+    expect(report.entries[0]?.reviewDetails?.[0]?.span.start).toBe(
+      source.indexOf('facets')
+    );
   });
 
   test('routes mixed whole-word and partial matches to review', () => {

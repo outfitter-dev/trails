@@ -40,7 +40,7 @@ Open questions before CLI parity:
 HTTP does not pay MCP's schema-context cost, and route names are externally stable API contracts. A raw MCP-style route such as the following would be a poor fit:
 
 ```http
-POST /facets/governance
+POST /trailheads/governance
 { "trail": "warden", "input": {} }
 ```
 

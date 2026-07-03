@@ -1,16 +1,16 @@
 import { describe, expect, test } from 'bun:test';
 
-import { surfaceFacetCoherence } from '../rules/surface-facet-coherence.js';
+import { surfaceTrailheadCoherence } from '../rules/surface-trailhead-coherence.js';
 
 const check = (sourceCode: string) =>
-  surfaceFacetCoherence.check(sourceCode, 'src/mcp-options.ts');
+  surfaceTrailheadCoherence.check(sourceCode, 'src/mcp-options.ts');
 
-describe('surface-facet-coherence', () => {
-  test('allows explicit non-overlapping facet maps', () => {
+describe('surface-trailhead-coherence', () => {
+  test('allows explicit non-overlapping trailhead maps', () => {
     const diagnostics = check(`
-import type { McpSurfaceFacetMap } from '@ontrails/mcp';
+import type { McpSurfaceTrailheadMap } from '@ontrails/mcp';
 
-export const facets = {
+export const trailheads = {
   inspect: {
     description: 'Inspect topo state.',
     trails: ['survey', 'survey.brief'],
@@ -19,15 +19,15 @@ export const facets = {
     description: 'Run diagnostics.',
     trails: ['warden', 'doctor'],
   },
-} satisfies McpSurfaceFacetMap;
+} satisfies McpSurfaceTrailheadMap;
 `);
 
     expect(diagnostics).toEqual([]);
   });
 
-  test('flags selectors that overlap across facets', () => {
+  test('flags selectors that overlap across trailheads', () => {
     const diagnostics = check(`
-export const facets = {
+export const trailheads = {
   inspect: {
     description: 'Inspect topo state.',
     trails: ['survey.*'],
@@ -47,7 +47,7 @@ export const facets = {
   test('flags missing descriptions and dynamic selectors', () => {
     const diagnostics = check(`
 const selector = 'survey';
-export const facets = {
+export const trailheads = {
   inspect: {
     trails: selector,
   },
@@ -65,7 +65,7 @@ export const facets = {
 
   test('flags public visibility widening without acceptance metadata', () => {
     const diagnostics = check(`
-export const facets = {
+export const trailheads = {
   inspect: {
     description: 'Inspect topo state.',
     trails: ['survey'],
@@ -80,7 +80,7 @@ export const facets = {
 
   test('requires stable description metadata when widening is accepted', () => {
     const diagnostics = check(`
-export const facets = {
+export const trailheads = {
   inspect: {
     description: 'Inspect topo state.',
     trails: ['survey'],
@@ -94,10 +94,10 @@ export const facets = {
     expect(diagnostics[0]?.message).toContain('descriptionStableThrough');
   });
 
-  test('recognizes inline facets options', () => {
+  test('recognizes inline trailheads options', () => {
     const diagnostics = check(`
 export const options = {
-  facets: {
+  trailheads: {
     inspect: {
       description: 'Inspect topo state.',
       trails: ['survey'],
@@ -113,7 +113,7 @@ export const options = {
     expect(diagnostics).toEqual([]);
   });
 
-  test('ignores non-facet objects that include trails summary counts', () => {
+  test('ignores non-trailhead objects that include trails summary counts', () => {
     const diagnostics = check(`
 export const lockManifest = {
   summary: {

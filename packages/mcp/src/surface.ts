@@ -20,7 +20,7 @@ import type {
 } from '@ontrails/core';
 
 import type {
-  McpSurfaceFacetMap,
+  McpSurfaceTrailheadMap,
   McpToolDefinition,
   ResolveMcpPermit,
 } from './build.js';
@@ -38,7 +38,7 @@ export interface CreateServerOptions extends BaseSurfaceOptions {
     | (() => TrailContextInit | Promise<TrailContextInit>)
     | undefined;
   readonly description?: string | undefined;
-  readonly facets?: McpSurfaceFacetMap | undefined;
+  readonly trailheads?: McpSurfaceTrailheadMap | undefined;
   readonly layers?: readonly Layer[] | undefined;
   readonly mcpResources?: McpResourcesConfig | false | undefined;
   readonly name?: string | undefined;
@@ -220,12 +220,12 @@ export const createServer = (
     configValues: options.configValues,
     createContext: options.createContext,
     exclude: options.exclude,
-    facets: options.facets,
     include: options.include,
     intent: options.intent,
     layers: options.layers,
     resolvePermit: options.resolvePermit,
     resources: options.resources,
+    trailheads: options.trailheads,
     validate: options.validate,
   });
 

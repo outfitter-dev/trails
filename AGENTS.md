@@ -168,7 +168,7 @@ This section is generated from the live `@ontrails/warden` rule manifest. Keep t
 - `cli-command-route-coherence` (error, topo/topo-aware, external): CLI command routes and aliases resolve to one coherent trail contract.
 - `duplicate-public-contract` (warn, topo/topo-aware, external): Public surface trails should not expose duplicate normalized contract facts.
 - `library-projection-coherence` (error, topo/topo-aware, external): Resolved library projection exports are collision-free and target existing trails.
-- `surface-facet-coherence` (warn, source/source-static, external): Trailhead maps avoid selector overlap, hidden visibility widening, and drift-prone dynamic selectors.
+- `surface-trailhead-coherence` (warn, source/source-static, external): Trailhead maps avoid selector overlap, hidden visibility widening, and drift-prone dynamic selectors.
 - `trail-fork-coaching` (warn, all/source-static, advisory): Trails avoid hiding distinct capabilities behind branching action or operation inputs.
 
 #### Permits
@@ -223,7 +223,7 @@ This section is generated from the live `@ontrails/warden` rule manifest. Keep t
 - `resource-exists`: Make declared resources resolve to authored resource definitions.
 - `resource-mock-coverage`: Make each resource declare a test mock or an explicit unmockable reason.
 - `static-resource-accessor-preference`: Use statically scoped resource helpers when the resource definition is already available.
-- `surface-facet-coherence`: Keep trailhead maps reviewable before they reach MCP projection.
+- `surface-trailhead-coherence`: Keep trailhead maps reviewable before they reach MCP projection.
 - `trail-fork-coaching`: Keep surface accommodations from hiding several capabilities behind one branching trail input.
 
 <!-- warden-guide:end -->

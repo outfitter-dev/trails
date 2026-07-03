@@ -7,7 +7,7 @@ import type { Topo, Trail } from '@ontrails/core';
 
 import {
   MCP_TOOL_DEFERRED_META_KEY,
-  MCP_TOOL_FACET_META_KEY,
+  MCP_TOOL_TRAILHEAD_META_KEY,
 } from './build.js';
 import type { McpToolDefinition } from './build.js';
 
@@ -74,7 +74,7 @@ export interface BuiltMcpResources {
 interface McpSurfaceMapTool {
   readonly annotations: McpToolDefinition['annotations'];
   readonly description: string | undefined;
-  readonly facetId?: string | undefined;
+  readonly trailheadId?: string | undefined;
   readonly inputSchema: Record<string, unknown>;
   readonly memberTrailIds?: readonly string[] | undefined;
   readonly name: string;
@@ -112,7 +112,7 @@ const projectSurfaceMapTool = (tool: McpToolDefinition): McpSurfaceMapTool => ({
   description: tool.description,
   inputSchema: tool.inputSchema,
   name: tool.name,
-  ...(tool.facetId === undefined ? {} : { facetId: tool.facetId }),
+  ...(tool.trailheadId === undefined ? {} : { trailheadId: tool.trailheadId }),
   ...(tool.memberTrailIds === undefined
     ? {}
     : { memberTrailIds: tool.memberTrailIds }),
@@ -323,14 +323,14 @@ export const buildMcpResources = (
 };
 
 /**
- * Return whether an MCP tool was projected from a surface facet.
+ * Return whether an MCP tool was projected from a surface trailhead.
  *
  * @example
  * ```ts
- * import { isMcpFacetTool } from '@ontrails/mcp';
+ * import { isMcpTrailheadTool } from '@ontrails/mcp';
  *
- * const facetTools = tools.filter(isMcpFacetTool);
+ * const trailheadTools = tools.filter(isMcpTrailheadTool);
  * ```
  */
-export const isMcpFacetTool = (tool: McpToolDefinition): boolean =>
-  tool._meta?.[MCP_TOOL_FACET_META_KEY] !== undefined;
+export const isMcpTrailheadTool = (tool: McpToolDefinition): boolean =>
+  tool._meta?.[MCP_TOOL_TRAILHEAD_META_KEY] !== undefined;

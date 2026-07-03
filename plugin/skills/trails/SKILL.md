@@ -3,7 +3,7 @@ name: trails
 description: Build with the Trails framework — define trail contracts, open CLI/MCP surfaces, test with examples, debug errors, migrate codebases, run governance. Use when creating trails, adding surfaces, testing, debugging Trails errors, migrating to Trails, running warden, or any work involving @ontrails/* packages.
 metadata:
   trails:
-    version: 1.0.0-beta.30
+    version: 1.0.0-beta.35
 ---
 
 # Trails
@@ -106,7 +106,7 @@ trails schema wayfind
 ```
 
 - Start with `wayfind.overview` to learn artifact source, freshness, and graph counts.
-- Use the selected operator CLI shape for filtered discovery: `trails wayfind --trails`, `--resources`, `--signals`, `--surfaces`, `--facets`, `--versions`, `--examples`, `--errors`, `--adapters`, or `--adapter <package>`. Package-level Wayfinder trails may exist beyond the operator CLI/MCP selection; check `trails schema wayfind` before constructing shell calls.
+- Use the selected operator CLI shape for filtered discovery: `trails wayfind --trails`, `--resources`, `--signals`, `--surfaces`, `--trailheads`, `--versions`, `--examples`, `--errors`, `--adapters`, or `--adapter <package>`. Package-level Wayfinder trails may exist beyond the operator CLI/MCP selection; check `trails schema wayfind` before constructing shell calls.
 - Use `trails schema <command...>` when you need accepted CLI routes, aliases, flags, and schemas before constructing shell calls.
 - Use `wayfind.describe` for a full saved entity record and `wayfind.contract` for a trail or version input/output/intent summary.
 - Use `wayfind.nearby`, `wayfind.impact`, and `wayfind.diff` for relation context, blast-radius reads, and explicit saved-baseline comparison.
@@ -194,7 +194,7 @@ Dense MCP surfaces may use **trailheads** to group related trails into fewer age
 
 ```typescript
 await surface(graph, {
-  facets: {
+  trailheads: {
     governance: {
       description: 'Run project diagnostics and Warden guidance.',
       mcp: { loading: 'deferred' },

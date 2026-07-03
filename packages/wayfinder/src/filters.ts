@@ -4,13 +4,13 @@ import { matchesAnyTrailIdGlob } from '@ontrails/core';
 import type {
   TopoGraph,
   TopoGraphEntry,
-  TopoGraphFacetEntry,
+  TopoGraphTrailheadEntry,
   TopoGraphVersionEntry,
 } from '@ontrails/topographer';
 
 export const wayfinderEntityKindSchema = z.enum([
   'contour',
-  'facet',
+  'trailhead',
   'resource',
   'signal',
   'surface',
@@ -39,7 +39,6 @@ const intentListSchema = z.union([
 export const wayfinderEntityFilterSchema = z
   .object({
     exampleCoverage: z.boolean().optional(),
-    facet: stringListSchema.optional(),
     id: stringListSchema.optional(),
     idGlob: stringListSchema.optional(),
     idPrefix: stringListSchema.optional(),
@@ -48,6 +47,7 @@ export const wayfinderEntityFilterSchema = z
     namespace: stringListSchema.optional(),
     query: z.string().optional(),
     surface: stringListSchema.optional(),
+    trailhead: stringListSchema.optional(),
     usesResource: stringListSchema.optional(),
     usesSignal: stringListSchema.optional(),
     versioned: z.boolean().optional(),
@@ -64,7 +64,7 @@ export type WayfinderEntityFilters = z.output<
 
 export interface WayfinderEntityRef {
   readonly entry?: TopoGraphEntry | undefined;
-  readonly facet?: TopoGraphFacetEntry | undefined;
+  readonly trailhead?: TopoGraphTrailheadEntry | undefined;
   readonly id: string;
   readonly kind: WayfinderEntityKind;
   readonly trailId?: string | undefined;
@@ -73,9 +73,9 @@ export interface WayfinderEntityRef {
 }
 
 export interface WayfinderFilterContext {
-  readonly facetsById: ReadonlyMap<string, TopoGraphFacetEntry>;
-  readonly facetIdsByTrailId: ReadonlyMap<string, readonly string[]>;
-  readonly facetSurfacesByTrailId: ReadonlyMap<string, readonly string[]>;
+  readonly trailheadsById: ReadonlyMap<string, TopoGraphTrailheadEntry>;
+  readonly trailheadIdsByTrailId: ReadonlyMap<string, readonly string[]>;
+  readonly trailheadSurfacesByTrailId: ReadonlyMap<string, readonly string[]>;
 }
 
 const toArray = <TValue>(
@@ -123,15 +123,17 @@ const entrySurfaces = (
   ref: WayfinderEntityRef,
   context: WayfinderFilterContext
 ): readonly string[] => {
-  if (ref.kind === 'facet') {
-    return ref.facet?.surfaces ?? [];
+  if (ref.kind === 'trailhead') {
+    return ref.trailhead?.surfaces ?? [];
   }
   if (ref.kind === 'surface') {
     return [ref.id];
   }
   return [
-    ...(ref.entry?.surfaces ?? context.facetsById.get(ref.id)?.surfaces ?? []),
-    ...(context.facetSurfacesByTrailId.get(ref.trailId ?? ref.id) ?? []),
+    ...(ref.entry?.surfaces ??
+      context.trailheadsById.get(ref.id)?.surfaces ??
+      []),
+    ...(context.trailheadSurfacesByTrailId.get(ref.trailId ?? ref.id) ?? []),
   ];
 };
 
@@ -163,33 +165,33 @@ const refSignalIds = (ref: WayfinderEntityRef): readonly string[] => {
   return ref.kind === 'signal' ? [ref.id] : [];
 };
 
-const refFacetIds = (
+const refTrailheadIds = (
   ref: WayfinderEntityRef,
   context: WayfinderFilterContext
 ): readonly string[] => {
-  if (ref.kind === 'facet') {
+  if (ref.kind === 'trailhead') {
     return [ref.id];
   }
-  return context.facetIdsByTrailId.get(ref.trailId ?? ref.id) ?? [];
+  return context.trailheadIdsByTrailId.get(ref.trailId ?? ref.id) ?? [];
 };
 
 export const createWayfinderFilterContext = (
   topoGraph: TopoGraph
 ): WayfinderFilterContext => {
-  const facetsById = new Map<string, TopoGraphFacetEntry>();
-  const facetIdsByTrailId = new Map<string, string[]>();
-  const facetSurfacesByTrailId = new Map<string, string[]>();
+  const trailheadsById = new Map<string, TopoGraphTrailheadEntry>();
+  const trailheadIdsByTrailId = new Map<string, string[]>();
+  const trailheadSurfacesByTrailId = new Map<string, string[]>();
 
-  for (const facet of topoGraph.facets ?? []) {
-    facetsById.set(facet.id, facet);
-    for (const memberId of facet.memberIds) {
-      const current = facetIdsByTrailId.get(memberId) ?? [];
-      current.push(facet.id);
-      facetIdsByTrailId.set(memberId, current);
+  for (const trailhead of topoGraph.trailheads ?? []) {
+    trailheadsById.set(trailhead.id, trailhead);
+    for (const memberId of trailhead.memberIds) {
+      const current = trailheadIdsByTrailId.get(memberId) ?? [];
+      current.push(trailhead.id);
+      trailheadIdsByTrailId.set(memberId, current);
 
-      const currentSurfaces = facetSurfacesByTrailId.get(memberId) ?? [];
-      currentSurfaces.push(...facet.surfaces);
-      facetSurfacesByTrailId.set(
+      const currentSurfaces = trailheadSurfacesByTrailId.get(memberId) ?? [];
+      currentSurfaces.push(...trailhead.surfaces);
+      trailheadSurfacesByTrailId.set(
         memberId,
         [...new Set(currentSurfaces)].toSorted()
       );
@@ -197,9 +199,9 @@ export const createWayfinderFilterContext = (
   }
 
   return {
-    facetIdsByTrailId,
-    facetSurfacesByTrailId,
-    facetsById,
+    trailheadIdsByTrailId,
+    trailheadSurfacesByTrailId,
+    trailheadsById,
   };
 };
 
@@ -212,8 +214,8 @@ export const listWayfinderEntityRefs = (
     kind: entry.kind,
   }));
 
-  for (const facet of topoGraph.facets ?? []) {
-    refs.push({ facet, id: facet.id, kind: 'facet' });
+  for (const trailhead of topoGraph.trailheads ?? []) {
+    refs.push({ id: trailhead.id, kind: 'trailhead', trailhead });
   }
 
   const surfaceIds = new Set<string>();
@@ -222,8 +224,8 @@ export const listWayfinderEntityRefs = (
       surfaceIds.add(surface);
     }
   }
-  for (const facet of topoGraph.facets ?? []) {
-    for (const surface of facet.surfaces) {
+  for (const trailhead of topoGraph.trailheads ?? []) {
+    for (const surface of trailhead.surfaces) {
       surfaceIds.add(surface);
     }
   }
@@ -324,14 +326,14 @@ const matchesRelationshipFilters = (
   ref: WayfinderEntityRef,
   context: WayfinderFilterContext,
   filters: {
-    readonly facets: readonly string[];
+    readonly trailheads: readonly string[];
     readonly resources: readonly string[];
     readonly signals: readonly string[];
     readonly surfaces: readonly string[];
   }
 ): boolean =>
   includesAny(entrySurfaces(ref, context), filters.surfaces) &&
-  includesAny(refFacetIds(ref, context), filters.facets) &&
+  includesAny(refTrailheadIds(ref, context), filters.trailheads) &&
   includesAny(refResourceIds(ref), filters.resources) &&
   includesAny(refSignalIds(ref), filters.signals);
 
@@ -350,7 +352,7 @@ const matchesQueryFilter = (
     ref.trailId,
     ref.entry?.intent,
     ...entrySurfaces(ref, context),
-    ...refFacetIds(ref, context),
+    ...refTrailheadIds(ref, context),
     ...refResourceIds(ref),
     ...refSignalIds(ref),
   ]
@@ -372,7 +374,7 @@ export const createWayfinderEntityPredicate = (
   const namespaces = toArray(parsed.namespace);
   const intents = toArray(parsed.intent);
   const surfaces = toArray(parsed.surface);
-  const facets = toArray(parsed.facet);
+  const trailheads = toArray(parsed.trailhead);
   const resources = toArray(parsed.usesResource);
   const signals = toArray(parsed.usesSignal);
   return (ref) => {
@@ -395,10 +397,10 @@ export const createWayfinderEntityPredicate = (
     }
     if (
       !matchesRelationshipFilters(ref, context, {
-        facets,
         resources,
         signals,
         surfaces,
+        trailheads,
       })
     ) {
       return false;

@@ -26,7 +26,7 @@ Trails models release work as a lifecycle projection over existing facts:
 
 - package changes and publishable workspace membership;
 - source diffs in the owning branch;
-- resolved topo facts, including trail contracts, surfaces, facets, resources, signals, examples, and versions;
+- resolved topo facts, including trail contracts, surfaces, trailheads, resources, signals, examples, and versions;
 - configured release rules and positive release intent;
 - emitted release outputs.
 
@@ -42,7 +42,7 @@ A **release rule** is a configured policy that decides which release facts requi
 
 A **release output** is an emitted artifact. Changeset files and package changelogs are the first concrete output family. Future emitters may produce release notes, migration packets, reviewer summaries, or downstream upgrade guidance, but they should read the same facts, rules, and intent sources rather than invent their own parallel release model.
 
-A **release target** is a deferred named scope for future release planning: package, app, surface, facet, channel, or stack segment. Release targets are not implemented in the first slice. The current branch-local check operates at PR and package scope and records enough evidence to leave room for target-aware release planning later.
+A **release target** is a deferred named scope for future release planning: package, app, surface, trailhead, channel, or stack segment. Release targets are not implemented in the first slice. The current branch-local check operates at PR and package scope and records enough evidence to leave room for target-aware release planning later.
 
 ### Trail versions and package semver stay distinct
 

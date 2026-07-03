@@ -19,7 +19,7 @@ import {
   MCP_TOOL_DEFERRED_META_KEY,
   MCP_TOOL_ERROR_META_KEY,
   MCP_TOOL_EXAMPLES_META_KEY,
-  MCP_TOOL_FACET_META_KEY,
+  MCP_TOOL_TRAILHEAD_META_KEY,
   deriveMcpTools,
 } from '../build.js';
 import type { McpExtra, McpToolDefinition } from '../build.js';
@@ -643,7 +643,7 @@ describe('deriveMcpTools', () => {
     });
   });
 
-  describe('facets', () => {
+  describe('trailheads', () => {
     const readTopoTrail = trail('topo.read', {
       blaze: (input) => Result.ok({ id: input.id, title: 'Topo' }),
       description: 'Read topo.',
@@ -659,14 +659,14 @@ describe('deriveMcpTools', () => {
       output: z.object({ summary: z.string() }),
     });
 
-    test('collapses selected member trails into one faceted tool', () => {
+    test('collapses selected member trails into one trailheaded tool', () => {
       const app = topo('myapp', {
         describeTopoTrail,
         echoTrail,
         readTopoTrail,
       });
       const tools = buildTools(app, {
-        facets: {
+        trailheads: {
           topo: {
             description: 'Read topo state.',
             mcp: { loading: 'deferred' },
@@ -680,16 +680,19 @@ describe('deriveMcpTools', () => {
         'myapp_topo',
       ]);
 
-      const facetTool = requireTool(tools, 'myapp_topo');
-      expect(facetTool.trailId).toBeUndefined();
-      expect(facetTool.facetId).toBe('topo');
-      expect(facetTool.memberTrailIds).toEqual(['topo.describe', 'topo.read']);
-      expect(facetTool._meta?.[MCP_TOOL_DEFERRED_META_KEY]).toBe(true);
-      expect(facetTool._meta?.[MCP_TOOL_FACET_META_KEY]).toEqual({
+      const trailheadTool = requireTool(tools, 'myapp_topo');
+      expect(trailheadTool.trailId).toBeUndefined();
+      expect(trailheadTool.trailheadId).toBe('topo');
+      expect(trailheadTool.memberTrailIds).toEqual([
+        'topo.describe',
+        'topo.read',
+      ]);
+      expect(trailheadTool._meta?.[MCP_TOOL_DEFERRED_META_KEY]).toBe(true);
+      expect(trailheadTool._meta?.[MCP_TOOL_TRAILHEAD_META_KEY]).toEqual({
         id: 'topo',
         memberTrailIds: ['topo.describe', 'topo.read'],
       });
-      expect(facetTool.inputSchema).toMatchObject({
+      expect(trailheadTool.inputSchema).toMatchObject({
         properties: {
           trail: { enum: ['topo.describe', 'topo.read'], type: 'string' },
         },
@@ -702,7 +705,7 @@ describe('deriveMcpTools', () => {
       const app = topo('myapp', { describeTopoTrail, readTopoTrail });
       const tool = requireOnlyTool(
         buildTools(app, {
-          facets: {
+          trailheads: {
             topo: {
               description: 'Read topo state.',
               trails: 'topo.*',
@@ -727,11 +730,11 @@ describe('deriveMcpTools', () => {
       });
     });
 
-    test('returns a validation error for unknown facet trail selectors', async () => {
+    test('returns a validation error for unknown trailhead trail selectors', async () => {
       const app = topo('myapp', { readTopoTrail });
       const tool = requireOnlyTool(
         buildTools(app, {
-          facets: {
+          trailheads: {
             topo: {
               description: 'Read topo state.',
               trails: 'topo.*',
@@ -749,10 +752,10 @@ describe('deriveMcpTools', () => {
       expect(result.content[0]?.text).toContain('unknown trail selector');
     });
 
-    test('rejects facet selectors that overlap without narrowing', () => {
+    test('rejects trailhead selectors that overlap without narrowing', () => {
       const app = topo('myapp', { describeTopoTrail, readTopoTrail });
       const result = deriveMcpTools(app, {
-        facets: {
+        trailheads: {
           one: {
             description: 'One.',
             trails: 'topo.*',
@@ -765,7 +768,7 @@ describe('deriveMcpTools', () => {
       });
 
       expect(result.isErr()).toBe(true);
-      expect(result.error?.message).toMatch(/facet overlap/i);
+      expect(result.error?.message).toMatch(/trailhead overlap/i);
     });
   });
 

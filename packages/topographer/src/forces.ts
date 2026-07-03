@@ -15,7 +15,7 @@ type ForceableDiffEntry = DiffEntry & {
 };
 
 const isForceableDiffEntry = (diff: DiffEntry): diff is ForceableDiffEntry =>
-  diff.kind !== 'facet';
+  diff.kind !== 'trailhead';
 
 const toForceEntry = (
   diff: ForceableDiffEntry,

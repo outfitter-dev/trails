@@ -47,6 +47,20 @@ describe('@ontrails/warden public API', () => {
     expect(typeof warden.loadProjectWardenRules).toBe('function');
   });
 
+  test('exports governed vocabulary transition schemas from the root entrypoint', () => {
+    expect(
+      warden.governedVocabularyScopeSchema.parse({
+        exclude: ['.agents/memory/**'],
+      }).exclude
+    ).toEqual(['.agents/memory/**']);
+    expect(
+      warden.governedVocabularyLiteralRenameSchema.parse({
+        from: 'wayfind.facets',
+        to: 'wayfind.trailheads',
+      }).to
+    ).toBe('wayfind.trailheads');
+  });
+
   test('exports the composable Warden config schema from the root entrypoint', () => {
     const omittedSection: unknown = undefined;
     const result = warden.wardenConfigSchema.safeParse(omittedSection);

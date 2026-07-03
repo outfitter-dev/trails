@@ -33,14 +33,14 @@ That boundary has two parts:
 
 ## MCP Authoring Shape
 
-`@ontrails/mcp` accepts the `facets` option in surface options:
+`@ontrails/mcp` accepts the `trailheads` option in surface options:
 
 ```typescript
-import type { McpSurfaceFacetMap } from '@ontrails/mcp';
+import type { McpSurfaceTrailheadMap } from '@ontrails/mcp';
 import { surface } from '@ontrails/mcp';
 import { graph } from './app';
 
-const facets = {
+const trailheads = {
   governance: {
     description:
       'Run project diagnostics, adapter readiness checks, and Warden guidance.',
@@ -53,10 +53,10 @@ const facets = {
     mcp: { loading: 'deferred' },
     trails: ['survey', 'survey.diff', 'topo', 'guide'],
   },
-} satisfies McpSurfaceFacetMap;
+} satisfies McpSurfaceTrailheadMap;
 
 await surface(graph, {
-  facets,
+  trailheads,
   mcpResources: { examples: true, surfaceMap: true },
 });
 ```
@@ -103,13 +103,13 @@ Trailhead selector overlap is treated as drift. Narrow the selectors instead of 
 When a trailhead intentionally spans visibility tiers, record the acknowledgement:
 
 ```typescript
-const facets = {
+const trailheads = {
   ops: {
     description: 'Operator-only diagnostics.',
     trails: ['doctor', 'dev.*'],
     visibilityWideningAccepted: true,
   },
-} satisfies McpSurfaceFacetMap;
+} satisfies McpSurfaceTrailheadMap;
 ```
 
 The acknowledgement does not widen runtime behavior. It only tells governance that the author saw the mixed-visibility grouping.
@@ -121,13 +121,13 @@ Trailhead descriptions are authored prose over resolved membership. If the membe
 Use `descriptionStableThrough` only when the description is intentionally stable through a known member-set hash. Do not use it as routine noise suppression.
 
 ```typescript
-const facets = {
+const trailheads = {
   inspect: {
     description: 'Inspect topo state and generated artifacts.',
     descriptionStableThrough: 'sha256:...',
     trails: ['survey', 'topo.*'],
   },
-} satisfies McpSurfaceFacetMap;
+} satisfies McpSurfaceTrailheadMap;
 ```
 
 ## MCP Resources
@@ -137,7 +137,7 @@ Use MCP resources for cold context. The default MCP surface exposes:
 - `trails://surface-map` for the resolved MCP surface projection;
 - `trails://examples/<trailId>` for structured examples on exposed trails.
 
-The surface map includes ordinary tools and trailhead tools. Trailhead entries expose `facetId`, `memberTrailIds`, input/output schemas, annotations, and deferred-loading hints.
+The surface map includes ordinary tools and trailhead tools. Trailhead entries expose `trailheadId`, `memberTrailIds`, input/output schemas, annotations, and deferred-loading hints.
 
 The phrase is **MCP resources**. Trails `resource()` still means an infrastructure dependency declared on a trail contract.
 
@@ -149,4 +149,4 @@ If an adapter claims grouped affordances later, the validator should consume res
 
 ## CLI And HTTP
 
-CLI and HTTP parity are deferred. CLI should be evaluated as command-group consolidation, not as an MCP-style generic action tool. HTTP should be evaluated as route-group projection, OpenAPI organization, or a rejected non-fit. See [Trailhead Parity](surface-facet-parity.md) for the current decision.
+CLI and HTTP parity are deferred. CLI should be evaluated as command-group consolidation, not as an MCP-style generic action tool. HTTP should be evaluated as route-group projection, OpenAPI organization, or a rejected non-fit. See [Trailhead Parity](surface-trailhead-parity.md) for the current decision.

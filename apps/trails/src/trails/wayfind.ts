@@ -40,7 +40,6 @@ const wayfindInputSchema = z
       .default(false)
       .describe('Render the describe view for the selected target'),
     errors: z.boolean().default(false).describe('Resolve trail error facts'),
-    facets: z.boolean().default(false).describe('Resolve surface facet facts'),
     impact: z
       .boolean()
       .default(false)
@@ -81,6 +80,10 @@ const wayfindInputSchema = z
       .string()
       .optional()
       .describe('Graph entity ID or source file path to inspect'),
+    trailheads: z
+      .boolean()
+      .default(false)
+      .describe('Resolve surface trailhead facts'),
     trails: z.boolean().default(false).describe('Resolve trail facts'),
     view: wayfinderViewSchema
       .default('list')
@@ -134,7 +137,7 @@ const wayfindInputSchema = z
       (input.adapter === undefined &&
         !input.contours &&
         !input.errors &&
-        !input.facets &&
+        !input.trailheads &&
         input.intent === undefined &&
         !input.resources &&
         !input.signals &&
@@ -200,7 +203,7 @@ const hasLiveTypedFilter = (input: WayfindInput): boolean =>
   input.adapter !== undefined ||
   input.contours ||
   input.errors ||
-  input.facets ||
+  input.trailheads ||
   input.intent !== undefined ||
   input.resources ||
   input.signals ||
@@ -214,14 +217,14 @@ const populationFilters = (
   readonly kind?:
     | readonly (
         | 'contour'
-        | 'facet'
+        | 'trailhead'
         | 'resource'
         | 'signal'
         | 'surface'
         | 'trail'
       )[]
     | 'contour'
-    | 'facet'
+    | 'trailhead'
     | 'resource'
     | 'signal'
     | 'surface'
@@ -232,7 +235,7 @@ const populationFilters = (
 } => {
   const kinds = [
     ...(input.contours ? ['contour' as const] : []),
-    ...(input.facets ? ['facet' as const] : []),
+    ...(input.trailheads ? ['trailhead' as const] : []),
     ...(input.resources ? ['resource' as const] : []),
     ...(input.signals ? ['signal' as const] : []),
     ...(input.surfaces ? ['surface' as const] : []),
@@ -713,9 +716,9 @@ const viewPopulation = async (
       view: 'list' as const,
     };
   }
-  if (input.facets) {
+  if (input.trailheads) {
     return {
-      result: ctx.compose('wayfind.facets', {
+      result: ctx.compose('wayfind.trailheads', {
         filters,
         limit: input.limit,
         ...sourceInput(input),
@@ -791,7 +794,7 @@ export const wayfindTrail = trail('wayfind.navigate', {
     'wayfind.describe',
     'wayfind.errors',
     'wayfind.examples',
-    'wayfind.facets',
+    'wayfind.trailheads',
     'wayfind.impact',
     'wayfind.nearby',
     'wayfind.outline',
@@ -842,8 +845,8 @@ export const wayfindTrail = trail('wayfind.navigate', {
       name: 'List surface facts',
     },
     {
-      input: { facets: true },
-      name: 'List facet facts',
+      input: { trailheads: true },
+      name: 'List trailhead facts',
     },
     {
       input: { overview: true },

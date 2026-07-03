@@ -8,7 +8,7 @@ This guide is temporary. Deprecate it after first-party Trails projects and down
 
 `adapter` is now the public package and subpath category for code that bridges Trails to a named external library, framework, tool, platform, format, or ecosystem. Historical prose may still mention `connector`, but current APIs, generated examples, package docs, and workspace paths use `adapter`.
 
-`integration` remains ordinary English, not a taxonomy bucket. `facet` remains reserved for projection slices of authored contracts or surfaces.
+`integration` remains ordinary English, not a taxonomy bucket. `trailhead` is the grouped surface-entry term; use `schema facet` only when describing schema-owned slices.
 
 ## Rename Map
 
@@ -37,9 +37,9 @@ Do not extract `@ontrails/jwt` or `@ontrails/otel` as part of this migration.
 
 `@ontrails/adapter-kit` checks adapter package readiness. It verifies package placement, owner target metadata, public exports, dependency direction, and conformance tests. That is **contract-content conformance**: the adapter package claims a target and proves it can be built and reviewed as that target.
 
-Surface facets introduce a separate kind of question: whether a surface adapter can support a grouped affordance over already-resolved trails. That is **surface-projection conformance**. It should consume resolved projection evidence such as the facet ID, member trail IDs, effective visibility, description, member-set hash, and `{ trail, output }` correlation shape.
+Surface trailheads introduce a separate kind of question: whether a surface adapter can support a grouped affordance over already-resolved trails. That is **surface-projection conformance**. It should consume resolved projection evidence such as the trailhead ID, member trail IDs, effective visibility, description, member-set hash, and `{ trail, output }` correlation shape.
 
-Do not add facet authoring configuration to adapter-kit. Adapter-kit may expose raw evidence such as `adapterType` and target conformance paths; the surface or governance layer that already has the resolved projection should validate any future grouped-affordance claim. No adapter target is required to support grouping unless it explicitly claims that capability.
+Do not add trailhead authoring configuration to adapter-kit. Adapter-kit may expose raw evidence such as `adapterType` and target conformance paths; the surface or governance layer that already has the resolved projection should validate any future grouped-affordance claim. No adapter target is required to support grouping unless it explicitly claims that capability.
 
 ## Code Imports
 

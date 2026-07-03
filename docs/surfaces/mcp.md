@@ -70,7 +70,7 @@ Trail examples are exposed as structured tool metadata under `_meta["ontrails/ex
 
 ## Trailheads
 
-Dense MCP surfaces can use trailheads to group related trails into fewer agent-facing tools while preserving the underlying trail contracts. Trailheads are surface accommodations on the entry axis: they group and select without merging. The full guide is [Trailheads](surface-facets.md), and the accepted cross-surface doctrine is [ADR-0050](../adr/0050-surface-accommodations-preserve-trail-identity.md). The short version:
+Dense MCP surfaces can use trailheads to group related trails into fewer agent-facing tools while preserving the underlying trail contracts. Trailheads are surface accommodations on the entry axis: they group and select without merging. The full guide is [Trailheads](surface-trailheads.md), and the accepted cross-surface doctrine is [ADR-0050](../adr/0050-surface-accommodations-preserve-trail-identity.md). The short version:
 
 - author a trailhead map in MCP surface options;
 - each trailhead becomes one MCP tool;
@@ -84,7 +84,7 @@ Cold context belongs in **MCP resources**, not in extra tools and not in Trails 
 
 | Resource URI | Contents |
 | --- | --- |
-| `trails://surface-map` | Resolved MCP surface projection: tool names, trail IDs, `facetId` values, member trail IDs, input/output schemas, versions, annotations, and deferred hints |
+| `trails://surface-map` | Resolved MCP surface projection: tool names, trail IDs, `trailheadId` values, member trail IDs, input/output schemas, versions, annotations, and deferred hints |
 | `trails://examples/<trailId>` | Structured examples for an exposed trail, when the trail defines examples |
 | `trails://trail/<trailId>` | MCP-visible graph facts for an exposed trail: identity, intent, visibility, composition, resource and signal references, and projected MCP tool metadata |
 
@@ -112,7 +112,7 @@ Trailhead tools may opt into deferred loading:
 
 ```typescript
 await surface(graph, {
-  facets: {
+  trailheads: {
     governance: {
       description: 'Run project diagnostics and Warden guidance.',
       mcp: { loading: 'deferred' },
@@ -236,7 +236,7 @@ Do not document or expose deferred Wayfinder ideas as if they exist. V0 has no s
 
 ## Trailhead Field Notes
 
-Dense MCP surfaces can use trailheads to group related trails into fewer agent-facing tools. The current evidence ledger lives in [Trailhead Field Notes](surface-facet-field-notes.md). Read it before generalizing trailhead behavior to another app or surface. It records the first Trails operator MCP shaping pass, the shortened evidence window, what survived contact, and what remains deferred.
+Dense MCP surfaces can use trailheads to group related trails into fewer agent-facing tools. The current evidence ledger lives in [Trailhead Field Notes](surface-trailhead-field-notes.md). Read it before generalizing trailhead behavior to another app or surface. It records the first Trails operator MCP shaping pass, the shortened evidence window, what survived contact, and what remains deferred.
 
 ## Server Configuration
 

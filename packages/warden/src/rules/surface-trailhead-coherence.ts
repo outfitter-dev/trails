@@ -22,10 +22,10 @@ import {
 import type { AstNode } from './ast.js';
 import type { WardenDiagnostic, WardenRule } from './types.js';
 
-const RULE_NAME = 'surface-facet-coherence';
+const RULE_NAME = 'surface-trailhead-coherence';
 
-interface FacetSelector {
-  readonly facetId: string;
+interface TrailheadSelector {
+  readonly trailheadId: string;
   readonly node: AstNode;
   readonly value: string;
 }
@@ -68,28 +68,30 @@ const diagnostic = (
   severity: 'warn',
 });
 
-const isFacetDefinition = (node: AstNode): boolean =>
+const isTrailheadDefinition = (node: AstNode): boolean =>
   node.type === 'ObjectExpression' &&
   findConfigProperty(node, 'trails') !== null;
 
-const isFacetMapCandidate = (node: AstNode): boolean =>
+const isTrailheadMapCandidate = (node: AstNode): boolean =>
   objectProperties(node).some((property) => {
     const value = unwrapExpression(propertyValue(property));
-    return value !== undefined && isFacetDefinition(value);
+    return value !== undefined && isTrailheadDefinition(value);
   });
 
-const isFacetMapBindingName = (name: string | null): boolean =>
+const isTrailheadMapBindingName = (name: string | null): boolean =>
   name !== null &&
-  (name === 'facets' || name.endsWith('Facets') || name.endsWith('FacetMap'));
+  (name === 'trailheads' ||
+    name.endsWith('Trailheads') ||
+    name.endsWith('TrailheadMap'));
 
-const hasFacetMapTypeAnnotation = (
+const hasTrailheadMapTypeAnnotation = (
   sourceCode: string,
   node: AstNode
 ): boolean => {
   const typeAnnotation = getNodeTypeAnnotation(node);
   return (
     typeAnnotation !== undefined &&
-    /\b(?:McpSurfaceFacetMap|TopoGraphFacetDeclaration|FacetMap)\b/.test(
+    /\b(?:McpSurfaceTrailheadMap|TopoGraphTrailheadDeclaration|TrailheadMap)\b/.test(
       sourceCode.slice(typeAnnotation.start, typeAnnotation.end)
     )
   );
@@ -109,10 +111,10 @@ const selectorNodes = (trailsNode: AstNode): readonly AstNode[] | null => {
 const collectLiteralSelectors = (
   sourceCode: string,
   filePath: string,
-  facetId: string,
+  trailheadId: string,
   trailsProp: AstNode,
   diagnostics: WardenDiagnostic[]
-): readonly FacetSelector[] => {
+): readonly TrailheadSelector[] => {
   const trailsValue = propertyValue(trailsProp);
   const nodes = trailsValue ? selectorNodes(trailsValue) : null;
   if (nodes === null || nodes.length === 0) {
@@ -121,13 +123,13 @@ const collectLiteralSelectors = (
         sourceCode,
         filePath,
         trailsProp,
-        `Surface facet "${facetId}" uses a dynamic trails selector. Keep facet selectors as string literals so Warden can check overlap and drift.`
+        `Surface trailhead "${trailheadId}" uses a dynamic trails selector. Keep trailhead selectors as string literals so Warden can check overlap and drift.`
       )
     );
     return [];
   }
 
-  const selectors: FacetSelector[] = [];
+  const selectors: TrailheadSelector[] = [];
   for (const node of nodes) {
     const selectorValue = extractStringOrTemplateLiteral(node);
     if (selectorValue === null) {
@@ -136,12 +138,12 @@ const collectLiteralSelectors = (
           sourceCode,
           filePath,
           node,
-          `Surface facet "${facetId}" uses a dynamic trails selector. Keep facet selectors as string literals so Warden can check overlap and drift.`
+          `Surface trailhead "${trailheadId}" uses a dynamic trails selector. Keep trailhead selectors as string literals so Warden can check overlap and drift.`
         )
       );
       continue;
     }
-    selectors.push({ facetId, node, value: selectorValue });
+    selectors.push({ node, trailheadId, value: selectorValue });
   }
   return selectors;
 };
@@ -176,21 +178,21 @@ const literalBooleanProperty = (
 };
 
 const selectorsMayOverlap = (
-  first: FacetSelector,
-  second: FacetSelector
+  first: TrailheadSelector,
+  second: TrailheadSelector
 ): boolean =>
   first.value === second.value ||
   matchesTrailPattern(first.value, second.value) ||
   matchesTrailPattern(second.value, first.value);
 
-const diagnoseFacetDefinition = (
+const diagnoseTrailheadDefinition = (
   sourceCode: string,
   filePath: string,
-  facetId: string,
+  trailheadId: string,
   definition: AstNode
 ): {
   readonly diagnostics: readonly WardenDiagnostic[];
-  readonly selectors: readonly FacetSelector[];
+  readonly selectors: readonly TrailheadSelector[];
 } => {
   const diagnostics: WardenDiagnostic[] = [];
   const trailsProp = findConfigProperty(definition, 'trails');
@@ -200,7 +202,7 @@ const diagnoseFacetDefinition = (
       : collectLiteralSelectors(
           sourceCode,
           filePath,
-          facetId,
+          trailheadId,
           trailsProp,
           diagnostics
         );
@@ -211,7 +213,7 @@ const diagnoseFacetDefinition = (
         sourceCode,
         filePath,
         definition,
-        `Surface facet "${facetId}" needs a non-empty description so MCP clients and agents can choose it without guessing.`
+        `Surface trailhead "${trailheadId}" needs a non-empty description so MCP clients and agents can choose it without guessing.`
       )
     );
   }
@@ -227,7 +229,7 @@ const diagnoseFacetDefinition = (
         sourceCode,
         filePath,
         definition,
-        `Surface facet "${facetId}" explicitly sets public visibility without visibilityWideningAccepted: true. Facets must not accidentally widen hidden trails.`
+        `Surface trailhead "${trailheadId}" explicitly sets public visibility without visibilityWideningAccepted: true. Trailheads must not accidentally widen hidden trails.`
       )
     );
   }
@@ -241,7 +243,7 @@ const diagnoseFacetDefinition = (
         sourceCode,
         filePath,
         definition,
-        `Surface facet "${facetId}" accepts visibility widening but does not record descriptionStableThrough review metadata.`
+        `Surface trailhead "${trailheadId}" accepts visibility widening but does not record descriptionStableThrough review metadata.`
       )
     );
   }
@@ -249,24 +251,24 @@ const diagnoseFacetDefinition = (
   return { diagnostics, selectors };
 };
 
-const diagnoseFacetMap = (
+const diagnoseTrailheadMap = (
   sourceCode: string,
   filePath: string,
-  facetMap: AstNode
+  trailheadMap: AstNode
 ): readonly WardenDiagnostic[] => {
   const diagnostics: WardenDiagnostic[] = [];
-  const selectors: FacetSelector[] = [];
+  const selectors: TrailheadSelector[] = [];
 
-  for (const property of objectProperties(facetMap)) {
-    const facetId = getPropertyName(getNodeKey(property));
+  for (const property of objectProperties(trailheadMap)) {
+    const trailheadId = getPropertyName(getNodeKey(property));
     const value = unwrapExpression(propertyValue(property));
-    if (!facetId || value === undefined || !isFacetDefinition(value)) {
+    if (!trailheadId || value === undefined || !isTrailheadDefinition(value)) {
       continue;
     }
-    const result = diagnoseFacetDefinition(
+    const result = diagnoseTrailheadDefinition(
       sourceCode,
       filePath,
-      facetId,
+      trailheadId,
       value
     );
     diagnostics.push(...result.diagnostics);
@@ -282,7 +284,7 @@ const diagnoseFacetMap = (
       const second = selectors[j];
       if (
         !second ||
-        first.facetId === second.facetId ||
+        first.trailheadId === second.trailheadId ||
         !selectorsMayOverlap(first, second)
       ) {
         continue;
@@ -292,7 +294,7 @@ const diagnoseFacetMap = (
           sourceCode,
           filePath,
           second.node,
-          `Surface facet selector "${second.value}" in "${second.facetId}" overlaps selector "${first.value}" in "${first.facetId}". Narrow one facet so each public trail has one MCP owner.`
+          `Surface trailhead selector "${second.value}" in "${second.trailheadId}" overlaps selector "${first.value}" in "${first.trailheadId}". Narrow one trailhead so each public trail has one MCP owner.`
         )
       );
     }
@@ -301,7 +303,7 @@ const diagnoseFacetMap = (
   return diagnostics;
 };
 
-export const surfaceFacetCoherence: WardenRule = {
+export const surfaceTrailheadCoherence: WardenRule = {
   check(sourceCode, filePath) {
     const ast = parse(filePath, sourceCode);
     if (!ast) {
@@ -316,18 +318,20 @@ export const surfaceFacetCoherence: WardenRule = {
         unwrapped === undefined ||
         unwrapped.type !== 'ObjectExpression' ||
         seen.has(unwrapped.start) ||
-        !isFacetMapCandidate(unwrapped)
+        !isTrailheadMapCandidate(unwrapped)
       ) {
         return;
       }
       seen.add(unwrapped.start);
-      diagnostics.push(...diagnoseFacetMap(sourceCode, filePath, unwrapped));
+      diagnostics.push(
+        ...diagnoseTrailheadMap(sourceCode, filePath, unwrapped)
+      );
     };
 
     walk(ast, (node) => {
       if (node.type === 'Property') {
         const propertyName = getPropertyName(getNodeKey(node));
-        if (propertyName === 'facets') {
+        if (propertyName === 'trailheads') {
           diagnoseCandidate(propertyValue(node));
         }
         return;
@@ -337,7 +341,7 @@ export const surfaceFacetCoherence: WardenRule = {
         const bindingName = getNodeName(getNodeId(node));
         if (
           typeof bindingName === 'string' &&
-          isFacetMapBindingName(bindingName)
+          isTrailheadMapBindingName(bindingName)
         ) {
           diagnoseCandidate(getNodeInit(node) ?? undefined);
         }
@@ -347,7 +351,7 @@ export const surfaceFacetCoherence: WardenRule = {
       if (
         (node.type === 'TSAsExpression' ||
           node.type === 'TSSatisfiesExpression') &&
-        hasFacetMapTypeAnnotation(sourceCode, node)
+        hasTrailheadMapTypeAnnotation(sourceCode, node)
       ) {
         diagnoseCandidate(node);
       }

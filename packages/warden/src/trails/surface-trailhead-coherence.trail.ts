@@ -1,13 +1,13 @@
-import { surfaceFacetCoherence } from '../rules/surface-facet-coherence.js';
+import { surfaceTrailheadCoherence } from '../rules/surface-trailhead-coherence.js';
 import { wrapRule } from './wrap-rule.js';
 
-export const surfaceFacetCoherenceTrail = wrapRule({
+export const surfaceTrailheadCoherenceTrail = wrapRule({
   examples: [
     {
       expected: { diagnostics: [] },
       input: {
         filePath: 'mcp-options.ts',
-        sourceCode: `export const facets = {
+        sourceCode: `export const trailheads = {
   inspect: {
     description: "Inspect topo state.",
     trails: ["survey", "survey.brief"],
@@ -21,5 +21,5 @@ export const surfaceFacetCoherenceTrail = wrapRule({
       name: 'Reviewable trailhead map',
     },
   ],
-  rule: surfaceFacetCoherence,
+  rule: surfaceTrailheadCoherence,
 });

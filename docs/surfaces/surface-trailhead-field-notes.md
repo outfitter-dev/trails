@@ -35,7 +35,7 @@ TRL-908 revised the dogfood surface around permission boundaries. The Trails ope
 
 - **Schema size:** deferred loading is only a compatibility hint today. Clients that still load all schemas need to keep working, and large member schemas may still be expensive until richer MCP client support exists.
 - **Description drift:** descriptions can become false as member lists evolve. `descriptionStableThrough` should be reserved for intentional stability, not used as a routine silencer.
-- **Missing metadata:** the surface map should remain the place to look for member trail IDs, `facetId` values, output schemas, examples, versions, and deferred hints. If agents still need to inspect source after reading it, the resource shape needs more work.
+- **Missing metadata:** the surface map should remain the place to look for member trail IDs, `trailheadId` values, output schemas, examples, versions, and deferred hints. If agents still need to inspect source after reading it, the resource shape needs more work.
 - **Selector overlap:** overlap should stay visible as a Warden finding unless future evidence shows a precise, governed exception is needed.
 
 ## Dropped Or Deferred

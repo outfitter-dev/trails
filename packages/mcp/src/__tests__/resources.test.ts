@@ -24,7 +24,7 @@ const parseJson = (text: string | undefined): unknown => {
 };
 
 describe('buildMcpResources', () => {
-  test('projects a surface map resource with faceted tool metadata', () => {
+  test('projects a surface map resource with trailheaded tool metadata', () => {
     const readTopo = trail('topo.read', {
       blaze: () => Result.ok({ ok: true }),
       description: 'Read topo.',
@@ -33,7 +33,7 @@ describe('buildMcpResources', () => {
     });
     const app = topo('myapp', { readTopo });
     const tools = unwrapTools(app, {
-      facets: {
+      trailheads: {
         topo: {
           description: 'Read topo state.',
           mcp: { loading: 'deferred' },
@@ -53,16 +53,16 @@ describe('buildMcpResources', () => {
       tools: [
         {
           deferred: true,
-          facetId: 'topo',
           memberTrailIds: ['topo.read'],
           name: 'myapp_topo',
+          trailheadId: 'topo',
         },
       ],
     });
     expect(tools[0]?._meta?.[MCP_TOOL_DEFERRED_META_KEY]).toBe(true);
   });
 
-  test('projects examples for trails exposed through a facet', () => {
+  test('projects examples for trails exposed through a trailhead', () => {
     const readTopo = trail('topo.read', {
       blaze: (input) => Result.ok({ id: input.id }),
       examples: [
@@ -77,7 +77,7 @@ describe('buildMcpResources', () => {
     });
     const app = topo('myapp', { readTopo });
     const tools = unwrapTools(app, {
-      facets: {
+      trailheads: {
         topo: {
           description: 'Read topo state.',
           trails: 'topo.*',

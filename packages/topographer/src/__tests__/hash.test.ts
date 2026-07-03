@@ -122,10 +122,10 @@ describe('deriveTopoGraphHash', () => {
     expect(deriveTopoGraphHash(map1)).toBe(deriveTopoGraphHash(map2));
   });
 
-  test('facet metadata participates in the hash', () => {
+  test('trailhead metadata participates in the hash', () => {
     const map1 = makeTopoGraph();
     const map2 = makeTopoGraph({
-      facets: [
+      trailheads: [
         {
           description: 'Read topo.',
           id: 'topo',

@@ -1170,8 +1170,8 @@ describe('deriveTopoGraph', () => {
     });
   });
 
-  describe('facets', () => {
-    test('derives sorted resolved facet metadata from selectors', () => {
+  describe('trailheads', () => {
+    test('derives sorted resolved trailhead metadata from selectors', () => {
       const describeTopo = trail('topo.describe', {
         blaze: noop,
         input: z.object({ root: z.string() }),
@@ -1188,7 +1188,7 @@ describe('deriveTopoGraph', () => {
       const map = deriveTopoGraph(
         topoFrom({ describeTopo, listTopo, resetDev }),
         {
-          facets: [
+          trailheads: [
             {
               description: 'Read and inspect topo state.',
               id: 'topo',
@@ -1199,7 +1199,7 @@ describe('deriveTopoGraph', () => {
         }
       );
 
-      expect(map.facets).toEqual([
+      expect(map.trailheads).toEqual([
         expect.objectContaining({
           description: 'Read and inspect topo state.',
           id: 'topo',
@@ -1210,7 +1210,7 @@ describe('deriveTopoGraph', () => {
       ]);
     });
 
-    test('sorts facet members and surfaces for deterministic output', () => {
+    test('sorts trailhead members and surfaces for deterministic output', () => {
       const read = trail('topo.read', {
         blaze: noop,
         input: z.object({}),
@@ -1221,7 +1221,7 @@ describe('deriveTopoGraph', () => {
       });
 
       const map = deriveTopoGraph(topoFrom({ read, write }), {
-        facets: [
+        trailheads: [
           {
             description: 'Topo operations.',
             id: 'topo',
@@ -1231,8 +1231,11 @@ describe('deriveTopoGraph', () => {
         ],
       });
 
-      expect(map.facets?.[0]?.memberIds).toEqual(['topo.read', 'topo.write']);
-      expect(map.facets?.[0]?.surfaces).toEqual(['cli', 'mcp']);
+      expect(map.trailheads?.[0]?.memberIds).toEqual([
+        'topo.read',
+        'topo.write',
+      ]);
+      expect(map.trailheads?.[0]?.surfaces).toEqual(['cli', 'mcp']);
     });
   });
 
@@ -1254,7 +1257,7 @@ describe('deriveTopoGraph', () => {
       expect(map1.topoGraphSchemaVersion).toBe(map2.topoGraphSchemaVersion);
     });
 
-    test('schema version is set to 1', () => {
+    test('schema version is set to the current TopoGraph schema version', () => {
       const t = trail('v.check', {
         blaze: noop,
         input: z.object({}),

@@ -10,7 +10,6 @@
 | --- | --- | --- |
 | `blaze` | `implementation` | the authored-behavior field on a trail |
 | `contour` | `entity` | the domain-object declaration (schema + identity + examples) |
-| `facet` | `trailhead` | one grouped surface entry fronting several trails |
 | `projection` / `project` (verb) | `derive` + `render` | split by stage: `derive` = canonical facts, `render` = surface presentation; the information-architecture category `Projected` becomes `Derived` |
 
 Also in flight, tracked for the reset:
@@ -22,4 +21,6 @@ This file is temporary. When the v1 reset lands, these changes fold into `docs/l
 
 The execution plan is [v1 Vocabulary Reset Transition Plan](releases/v1-vocabulary-reset.md). That plan owns family order, compatibility policy, namespace census rules, and verification. This file only records current live terms and ratified target terms.
 
-The `facet` to `trailhead` prose cutover has started. Current API identifiers such as `facets`, `facetId`, `McpSurfaceFacetMap`, `wayfind.facets`, and `surface-facet-coherence` remain live until their code/API migration lands.
+Completed family:
+
+- `facet` -> `trailhead` landed as the live code/API term for grouped surface entries. Current API identifiers include `trailheads`, `trailheadId`, `McpSurfaceTrailheadMap`, `wayfind.trailheads`, and `surface-trailhead-coherence`.

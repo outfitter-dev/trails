@@ -63,7 +63,7 @@ describe('Trails Wayfinder CLI surface', () => {
     expect(commandPaths).not.toContain('wayfind impact');
     expect(commandPaths).not.toContain('wayfind outline');
     expect(commandPaths).not.toContain('wayfind contours');
-    expect(commandPaths).not.toContain('wayfind facets');
+    expect(commandPaths).not.toContain('wayfind trailheads');
     expect(commandPaths).not.toContain('wayfind signals');
 
     expect(trailIds).toContain('wayfind.navigate');
@@ -79,7 +79,7 @@ describe('Trails Wayfinder CLI surface', () => {
     expect(trailIds).not.toContain('wayfind.impact');
     expect(trailIds).not.toContain('wayfind.outline');
     expect(trailIds).not.toContain('wayfind.contours');
-    expect(trailIds).not.toContain('wayfind.facets');
+    expect(trailIds).not.toContain('wayfind.trailheads');
     expect(trailIds).not.toContain('wayfind.signals');
 
     const file = commands.find(
@@ -104,7 +104,7 @@ describe('Trails Wayfinder CLI surface', () => {
         'deps',
         'describe',
         'errors',
-        'facets',
+        'trailheads',
         'impact',
         'include',
         'map',
@@ -186,7 +186,7 @@ describe('Trails Wayfinder CLI surface', () => {
     );
     expect(navigate).toBeDefined();
 
-    for (const flag of ['contours', 'signals', 'facets'] as const) {
+    for (const flag of ['contours', 'signals', 'trailheads'] as const) {
       const result = await navigate?.execute(
         {},
         { [flag]: true, source: 'live' },
@@ -414,7 +414,7 @@ describe('Trails Wayfinder CLI surface', () => {
     for (const [flag, trailId] of [
       ['contours', 'wayfind.contours'],
       ['signals', 'wayfind.signals'],
-      ['facets', 'wayfind.facets'],
+      ['trailheads', 'wayfind.trailheads'],
     ] as const) {
       const context = fakeWayfindContext();
       const result = await wayfindTrail.blaze(

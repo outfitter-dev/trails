@@ -8,7 +8,7 @@ import type {
   JsonSchema,
   TopoGraph,
   TopoGraphEntry,
-  TopoGraphFacetEntry,
+  TopoGraphTrailheadEntry,
   TopoGraphForceEntry,
   TopoGraphVersionEntry,
 } from './types.js';
@@ -48,8 +48,8 @@ const capitalize = (s: string): string =>
   `${s.charAt(0).toUpperCase()}${s.slice(1)}`;
 
 const labelForKind = (kind: DiffEntry['kind']): string => {
-  if (kind === 'facet') {
-    return 'Facet';
+  if (kind === 'trailhead') {
+    return 'Trailhead';
   }
   if (kind === 'contour') {
     return 'Contour';
@@ -760,29 +760,29 @@ const addSetChangeDetail = (
   }
 };
 
-const diffFacet = (
-  prev: TopoGraphFacetEntry,
-  curr: TopoGraphFacetEntry
+const diffTrailhead = (
+  prev: TopoGraphTrailheadEntry,
+  curr: TopoGraphTrailheadEntry
 ): DiffEntry | undefined => {
   const acc: DetailAccumulator = { details: [], severity: 'info' };
 
   addSetChangeDetail(
     acc,
-    'Facet member',
+    'Trailhead member',
     prev.memberIds,
     curr.memberIds,
     'warning'
   );
   addSetChangeDetail(
     acc,
-    'Facet surface',
+    'Trailhead surface',
     prev.surfaces,
     curr.surfaces,
     'warning'
   );
 
   if (prev.memberSetHash !== curr.memberSetHash) {
-    addDetail(acc, 'warning', 'Facet member-set hash changed');
+    addDetail(acc, 'warning', 'Trailhead member-set hash changed');
   }
   if (prev.description !== curr.description) {
     addDetail(acc, 'info', 'Description updated');
@@ -809,35 +809,35 @@ const diffFacet = (
     change: 'modified',
     details: acc.details,
     id: curr.id,
-    kind: 'facet',
+    kind: 'trailhead',
     severity: acc.severity,
   };
 };
 
-const diffFacets = (prev: TopoGraph, curr: TopoGraph): DiffEntry[] => {
+const diffTrailheads = (prev: TopoGraph, curr: TopoGraph): DiffEntry[] => {
   const prevById = new Map(
-    (prev.facets ?? []).map((facet) => [facet.id, facet])
+    (prev.trailheads ?? []).map((trailhead) => [trailhead.id, trailhead])
   );
   const currById = new Map(
-    (curr.facets ?? []).map((facet) => [facet.id, facet])
+    (curr.trailheads ?? []).map((trailhead) => [trailhead.id, trailhead])
   );
   const entries: DiffEntry[] = [];
 
-  for (const [id, facet] of [...currById.entries()].toSorted(([a], [b]) =>
+  for (const [id, trailhead] of [...currById.entries()].toSorted(([a], [b]) =>
     a.localeCompare(b)
   )) {
     const previous = prevById.get(id);
     if (previous === undefined) {
       entries.push({
         change: 'added',
-        details: [`Facet "${id}" added`],
+        details: [`Trailhead "${id}" added`],
         id,
-        kind: 'facet',
+        kind: 'trailhead',
         severity: 'info',
       });
       continue;
     }
-    const diff = diffFacet(previous, facet);
+    const diff = diffTrailhead(previous, trailhead);
     if (diff !== undefined) {
       entries.push(diff);
     }
@@ -849,9 +849,9 @@ const diffFacets = (prev: TopoGraph, curr: TopoGraph): DiffEntry[] => {
     if (!currById.has(id)) {
       entries.push({
         change: 'removed',
-        details: [`Facet "${id}" removed`],
+        details: [`Trailhead "${id}" removed`],
         id,
-        kind: 'facet',
+        kind: 'trailhead',
         severity: 'warning',
       });
     }
@@ -1061,7 +1061,7 @@ const collectDiffEntries = (
   ...findRemoved(prevById, currById),
   ...findModified(prevById, currById),
   ...diffGraphForces(prev, curr),
-  ...diffFacets(prev, curr),
+  ...diffTrailheads(prev, curr),
 ];
 
 export const deriveTopoGraphDiff = (

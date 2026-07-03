@@ -1,4 +1,7 @@
-import type { CreateServerOptions, McpSurfaceFacetMap } from '@ontrails/mcp';
+import type {
+  CreateServerOptions,
+  McpSurfaceTrailheadMap,
+} from '@ontrails/mcp';
 
 export const trailsMcpIncludedTrails = [
   'adapter.check',
@@ -47,7 +50,7 @@ export const trailsMcpIncludedTrails = [
   'wayfind.trails',
 ] as const;
 
-export const trailsMcpFacets = {
+export const trailsMcpTrailheads = {
   inspect: {
     description:
       'Inspect saved topo structure, resources, signals, surfaces, and diffs.',
@@ -65,13 +68,13 @@ export const trailsMcpFacets = {
       'topo.history',
     ],
   },
-} satisfies McpSurfaceFacetMap;
+} satisfies McpSurfaceTrailheadMap;
 
 export const trailsMcpSurfaceOptions = {
   description:
-    'Trails framework operator surface. Use MCP resources for cold context, direct tools for high-signal work, and the inspect facet for saved topo reads.',
-  facets: trailsMcpFacets,
+    'Trails framework operator surface. Use MCP resources for cold context, direct tools for high-signal work, and the inspect trailhead for saved topo reads.',
   include: trailsMcpIncludedTrails,
   mcpResources: { examples: true, graph: true, surfaceMap: true },
   name: 'trails',
+  trailheads: trailsMcpTrailheads,
 } satisfies CreateServerOptions;

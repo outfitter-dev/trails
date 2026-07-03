@@ -312,6 +312,45 @@ const vocabularyRegistryPlanForInput = (
 const uniqueSorted = (values: readonly string[]): readonly string[] =>
   [...new Set(values)].toSorted((left, right) => left.localeCompare(right));
 
+const uniqueInOrder = (values: readonly string[]): readonly string[] => [
+  ...new Set(values),
+];
+
+const mergeScopeList = (
+  left: readonly string[] | undefined,
+  right: readonly string[] | undefined
+): readonly string[] | undefined => {
+  const merged = uniqueInOrder([...(left ?? []), ...(right ?? [])]);
+  return merged.length === 0 ? undefined : merged;
+};
+
+const mergeVocabularyScope = (
+  registryScope: VocabularyRegradePlan['scope'] | undefined,
+  configScope: VocabularyRegradePlan['scope'] | undefined,
+  input: Pick<RegradeInput, 'exclude' | 'extensions' | 'include'>
+): VocabularyRegradePlan['scope'] | undefined => {
+  const callerExclude = input.exclude ?? configScope?.exclude;
+  const callerInclude = input.include ?? configScope?.include;
+  const extensions =
+    input.extensions ?? configScope?.extensions ?? registryScope?.extensions;
+  const exclude = mergeScopeList(registryScope?.exclude, callerExclude);
+  const include = mergeScopeList(registryScope?.include, callerInclude);
+
+  if (
+    exclude === undefined &&
+    extensions === undefined &&
+    include === undefined
+  ) {
+    return undefined;
+  }
+
+  return {
+    ...(exclude === undefined ? {} : { exclude }),
+    ...(extensions === undefined ? {} : { extensions }),
+    ...(include === undefined ? {} : { include }),
+  };
+};
+
 const mergeNumericRecords = (
   left: Readonly<Record<string, number>>,
   right: Readonly<Record<string, number>>
@@ -643,6 +682,7 @@ const buildVocabularyPlan = (
   const intent = vocabularyIntentForInput(input, registryPlan);
   const overrides = mergeVocabularyOverrides(registryPlan, input);
   const preserveRules = mergeVocabularyPreserveRules(registryPlan, preserve);
+  const scope = mergeVocabularyScope(registryPlan?.scope, configScope, input);
 
   return Result.ok({
     ...(registryPlan?.caseSensitive === undefined
@@ -657,14 +697,7 @@ const buildVocabularyPlan = (
     ...(intent === undefined ? {} : { intent }),
     ...(overrides === undefined ? {} : { overrides }),
     ...(preserveRules === undefined ? {} : { preserve: preserveRules }),
-    scope: {
-      ...configScope,
-      ...(input.exclude === undefined ? {} : { exclude: input.exclude }),
-      ...(input.extensions === undefined
-        ? {}
-        : { extensions: input.extensions }),
-      ...(input.include === undefined ? {} : { include: input.include }),
-    },
+    ...(scope === undefined ? {} : { scope }),
     to: input.to,
   });
 };

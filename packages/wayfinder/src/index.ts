@@ -82,7 +82,7 @@ export {
   wayfindDiffTrail,
   wayfindErrorsTrail,
   wayfindExamplesTrail,
-  wayfindFacetsTrail,
+  wayfindTrailheadsTrail,
   wayfindImpactTrail,
   wayfindNearbyTrail,
   wayfindOverviewTrail,

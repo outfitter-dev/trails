@@ -6,7 +6,9 @@ import type {
 import {
   applySourceEdits,
   createSourceEdit,
+  getStringValue,
   identifierName,
+  isStringLiteral,
   offsetToLineColumn,
   parseWithDiagnostics,
   validateSourceEdits,
@@ -247,6 +249,16 @@ export interface AstIdentifierRenameOccurrence {
   readonly to: string;
 }
 
+export interface AstStringLiteralRenameClassOptions {
+  readonly describe?: string;
+  readonly from: string;
+  readonly id?: string;
+  readonly shouldPreserve?: (
+    occurrence: AstIdentifierRenameOccurrence
+  ) => boolean;
+  readonly to: string;
+}
+
 const isIdentifierNamed = (node: AstNode, name: string): boolean =>
   node.type === 'Identifier' && identifierName(node) === name;
 
@@ -345,6 +357,78 @@ export const createAstIdentifierRenameClass = (
   });
 };
 
+const stringLiteralValueSpan = (
+  node: AstNode,
+  source: string,
+  value: string
+): { readonly end: number; readonly start: number } | null => {
+  const raw = source.slice(node.start, node.end);
+  const relativeStart = raw.indexOf(value);
+  if (relativeStart === -1 || raw.includes(value, relativeStart + 1)) {
+    return null;
+  }
+  const start = node.start + relativeStart;
+  return { end: start + value.length, start };
+};
+
+export const createAstStringLiteralRenameClass = (
+  options: AstStringLiteralRenameClassOptions
+): RegradeClass =>
+  createAstRewriteClass({
+    describe:
+      options.describe ??
+      `Rename string literal "${options.from}" to "${options.to}".`,
+    id:
+      options.id ?? `ast-string-literal-rename:${options.from}->${options.to}`,
+    visit: (node, context) => {
+      if (!isStringLiteral(node) || getStringValue(node) !== options.from) {
+        return null;
+      }
+
+      const span = stringLiteralValueSpan(node, context.source, options.from);
+      if (span === null) {
+        const location = offsetToLineColumn(context.source, node.start);
+        return {
+          detail: {
+            expectedTarget: `Rename string literal "${options.from}" to "${options.to}".`,
+            nodeKind: node.type,
+            reason: 'ast-string-literal-token-span-unverified',
+            span: {
+              column: location.column,
+              end: node.end,
+              line: location.line,
+              start: node.start,
+            },
+            suggestedValidation: 'bun run typecheck',
+            symbol: options.from,
+          },
+          kind: 'review',
+          note: `String literal "${options.from}" token span could not be verified; routed to review.`,
+          reason: 'ast-string-literal-token-span-unverified',
+        };
+      }
+
+      if (
+        options.shouldPreserve?.({
+          end: span.end,
+          from: options.from,
+          path: context.path,
+          source: context.source,
+          start: span.start,
+          to: options.to,
+        }) === true
+      ) {
+        return null;
+      }
+
+      return {
+        edit: createSourceEdit(span.start, span.end, options.to),
+        kind: 'edit',
+        note: `Renamed string literal "${options.from}" to "${options.to}".`,
+      };
+    },
+  });
+
 export const createGovernedAstIdentifierRenameClasses = (
   transition: GovernedVocabularyTransition,
   options: {
@@ -352,8 +436,8 @@ export const createGovernedAstIdentifierRenameClasses = (
       occurrence: AstIdentifierRenameOccurrence
     ) => boolean;
   } = {}
-): readonly RegradeClass[] =>
-  transition.symbolRenames.map((rename) =>
+): readonly RegradeClass[] => [
+  ...transition.symbolRenames.map((rename) =>
     createAstIdentifierRenameClass({
       describe: `Rename governed symbol "${rename.from}" to "${rename.to}" for ${transition.id}.`,
       from: rename.from,
@@ -364,4 +448,16 @@ export const createGovernedAstIdentifierRenameClasses = (
         : { shouldPreserve: options.shouldPreserve }),
       to: rename.to,
     })
-  );
+  ),
+  ...transition.stringLiteralRenames.map((rename) =>
+    createAstStringLiteralRenameClass({
+      describe: `Rename governed string literal "${rename.from}" to "${rename.to}" for ${transition.id}.`,
+      from: rename.from,
+      id: `ast-string-literal-rename:${transition.id}:${rename.from}->${rename.to}`,
+      ...(options.shouldPreserve === undefined
+        ? {}
+        : { shouldPreserve: options.shouldPreserve }),
+      to: rename.to,
+    })
+  ),
+];

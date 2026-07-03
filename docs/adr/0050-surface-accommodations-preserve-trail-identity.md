@@ -25,7 +25,7 @@ The framework already had the pieces:
 Dogfooding exposed the missing doctrine between those decisions. Without a closed vocabulary for surface fit, agents tend to either:
 
 - hide several capabilities behind one branching trail input, such as `{ action: "create" | "delete" }`;
-- call every grouped or alternate surface shape a "facet";
+- call every grouped or alternate surface shape a "trailhead";
 - overuse surface-local words such as HTTP route as cross-surface categories;
 - ask developers to author machinery that Trails can derive.
 
@@ -55,8 +55,8 @@ Use these terms when deciding whether a surface concern belongs on the trail, in
 | `path` | Surface-local realization of an approach: command path, tool name, HTTP path, or export name. |
 | `alias` | Alternate approach to the same surface entry and same trail contract. |
 | `input mapping` | Surface-shaped input that normalizes into the same authored trail input contract. |
-| `surface facet` | One grouped surface entry over multiple trails, with member identity preserved at invocation and response time. |
-| `trail fork` | The point where a proposed accommodation is no longer honest. Author a distinct trail, a composing trail, or a facet that preserves member identity. |
+| `surface trailhead` | One grouped surface entry over multiple trails, with member identity preserved at invocation and response time. |
+| `trail fork` | The point where a proposed accommodation is no longer honest. Author a distinct trail, a composing trail, or a trailhead that preserves member identity. |
 
 `trail fork` is doctrine language, not a new API primitive. Do not confuse it with versioning forks.
 
@@ -73,11 +73,11 @@ The **approach axis** is N-to-1. Several approaches can converge on one trail:
 
 The invariant is: converge without lying.
 
-The **entry axis** is 1-to-N when a surface facet is involved. One grouped surface entry can expose several trails, but it must keep the selected member trail visible.
+The **entry axis** is 1-to-N when a surface trailhead is involved. One grouped surface entry can expose several trails, but it must keep the selected member trail visible.
 
 The invariant is: gather without merging.
 
-The cardinality shorthand is a teaching aid, not a type system. Aliases and facets live on different axes. A facet is not a generic action bag. An alias is not a facet. An input mapping is not alternate behavior.
+The cardinality shorthand is a teaching aid, not a type system. Aliases and trailheads live on different axes. A trailhead is not a generic action bag. An alias is not a trailhead. An input mapping is not alternate behavior.
 
 ### Trail Fork Test
 
@@ -91,7 +91,7 @@ If either boundary fails, the shape is not an accommodation. Use one of these in
 
 - a distinct trail for a distinct capability;
 - a composing trail when the capability truly coordinates existing trails;
-- a surface facet when the surface needs one grouped entry over existing trails and can preserve member identity.
+- a surface trailhead when the surface needs one grouped entry over existing trails and can preserve member identity.
 
 ### Surface Implications
 
@@ -99,13 +99,13 @@ CLI command routes are CLI-local projection metadata. A CLI alias is an alternat
 
 > Can this route be normalized into the same trail contract without lying?
 
-MCP surface facets group and select without merging. The current MCP implementation proves the shape:
+MCP surface trailheads group and select without merging. The current MCP implementation proves the shape:
 
-- a facet tool accepts `{ trail, input }`;
+- a trailhead tool accepts `{ trail, input }`;
 - the selected trail dispatches through the ordinary MCP tool handler;
 - a successful response returns `{ trail, output }`;
-- facet tool metadata records `facetId` and `memberTrailIds`;
-- intent annotations roll up conservatively: all read stays read, any destroy becomes destroy, otherwise the facet is write.
+- trailhead tool metadata records `trailheadId` and `memberTrailIds`;
+- intent annotations roll up conservatively: all read stays read, any destroy becomes destroy, otherwise the trailhead is write.
 
 HTTP keeps `route` as HTTP-local vocabulary. CLI may use the phrase "CLI command route" for concrete accepted command paths. Neither phrase becomes the cross-surface family term.
 
@@ -116,26 +116,26 @@ Adapter-kit does not author surface accommodations. It may validate or report re
 Warden should make surface accommodation drift harder to miss:
 
 - `cli-command-route-coherence` keeps accepted CLI command paths normalized into one trail contract.
-- `surface-facet-coherence` keeps facet maps reviewable before MCP projection.
+- `surface-trailhead-coherence` keeps trailhead maps reviewable before MCP projection.
 - `trail-fork-coaching` warns when an authored trail branches on suspicious action or operation fields.
 
 `trail-fork-coaching` remains advisory. It must coach toward the semantic and structural fork test without claiming certainty from field names alone.
 
-Future governance may add per-member intent or permit metadata for intentionally heterogeneous facets. The default remains conservative: prefer homogeneous facets, or keep high-signal and permission-sensitive operations as direct surface entries.
+Future governance may add per-member intent or permit metadata for intentionally heterogeneous trailheads. The default remains conservative: prefer homogeneous trailheads, or keep high-signal and permission-sensitive operations as direct surface entries.
 
 ### Non-Goals
 
 This ADR does not add:
 
-- a core `Facet` primitive or `facet()` API;
-- adapter-kit-owned facet configuration;
+- a core grouped-entry primitive or `facet()` API;
+- adapter-kit-owned trailhead configuration;
 - generic cross-surface "route" vocabulary;
 - conditional command recipes or a second CLI authoring language;
 - permission to hide multiple capabilities behind one branching trail.
 
 ## Consequences
 
-- Reviewers can classify surface-fit work as alias, input mapping, surface facet, or trail fork instead of debating from vibes.
+- Reviewers can classify surface-fit work as alias, input mapping, surface trailhead, or trail fork instead of debating from vibes.
 - Surface-specific projection code may stay ergonomic without taking ownership of domain behavior.
 - Agent guidance must teach the fork test and the two axes before suggesting implementation shapes.
 - Existing surface docs should cite this ADR instead of carrying their own private doctrine.
@@ -149,5 +149,5 @@ Wayfinder, Warden, schema inspection, and agents can see the same accepted surfa
 - [ADR-0035: Surface APIs Render the Graph](0035-surface-apis-render-the-graph.md)
 - [ADR-0046: Lock v3 Artifact Family](0046-lock-v3-artifact-family.md)
 - [Surface Accommodations](../surfaces/surface-accommodations.md)
-- [Surface Facets](../surfaces/surface-facets.md)
+- [Surface Trailheads](../surfaces/surface-trailheads.md)
 - [CLI Surface](../surfaces/cli.md)

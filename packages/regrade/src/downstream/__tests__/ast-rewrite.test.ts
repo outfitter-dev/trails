@@ -312,6 +312,32 @@ describe('createAstIdentifierRenameClass', () => {
         '',
       ].join('\n')
     );
+
+    const trailIdClass = classes.find((cls) =>
+      cls.id.includes('wayfind.facets->wayfind.trailheads')
+    );
+    expect(trailIdClass).toBeDefined();
+    if (trailIdClass === undefined) {
+      throw new Error('Expected wayfind.facets literal rename class.');
+    }
+
+    const trailIdResult = trailIdClass.apply(
+      [
+        "ctx.compose('wayfind.facets', { facets });",
+        'const text = "wayfind.facets";',
+        '',
+      ].join('\n'),
+      { path: 'src/wayfind.ts' }
+    );
+
+    expect(trailIdResult.kind).toBe('rewrite');
+    expect(trailIdResult.nextSource).toBe(
+      [
+        "ctx.compose('wayfind.trailheads', { facets });",
+        'const text = "wayfind.trailheads";',
+        '',
+      ].join('\n')
+    );
   });
 
   test('routes governed registry shadow declarations to review', () => {

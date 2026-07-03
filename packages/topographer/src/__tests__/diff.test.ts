@@ -637,12 +637,12 @@ describe('deriveTopoGraphDiff', () => {
     });
   });
 
-  describe('facets', () => {
-    test('reports added facets as informational', () => {
+  describe('trailheads', () => {
+    test('reports added trailheads as informational', () => {
       const prev = topoGraph([]);
       const curr = {
         ...topoGraph([]),
-        facets: [
+        trailheads: [
           {
             description: 'Read topo.',
             id: 'topo',
@@ -658,15 +658,15 @@ describe('deriveTopoGraphDiff', () => {
       expect(result.info[0]).toMatchObject({
         change: 'added',
         id: 'topo',
-        kind: 'facet',
+        kind: 'trailhead',
       });
-      expect(result.info[0]?.details).toContain('Facet "topo" added');
+      expect(result.info[0]?.details).toContain('Trailhead "topo" added');
     });
 
-    test('reports facet membership changes as warnings', () => {
+    test('reports trailhead membership changes as warnings', () => {
       const prev = {
         ...topoGraph([]),
-        facets: [
+        trailheads: [
           {
             description: 'Read topo.',
             id: 'topo',
@@ -678,7 +678,7 @@ describe('deriveTopoGraphDiff', () => {
       };
       const curr = {
         ...topoGraph([]),
-        facets: [
+        trailheads: [
           {
             description: 'Read topo.',
             id: 'topo',
@@ -694,20 +694,20 @@ describe('deriveTopoGraphDiff', () => {
       expect(result.warnings[0]).toMatchObject({
         change: 'modified',
         id: 'topo',
-        kind: 'facet',
+        kind: 'trailhead',
       });
       expect(result.warnings[0]?.details).toContain(
-        'Facet member added: "topo.describe"'
+        'Trailhead member added: "topo.describe"'
       );
       expect(result.warnings[0]?.details).toContain(
-        'Facet member-set hash changed'
+        'Trailhead member-set hash changed'
       );
     });
 
-    test('reports facet description changes as informational', () => {
+    test('reports trailhead description changes as informational', () => {
       const prev = {
         ...topoGraph([]),
-        facets: [
+        trailheads: [
           {
             description: 'Old topo.',
             id: 'topo',
@@ -719,7 +719,7 @@ describe('deriveTopoGraphDiff', () => {
       };
       const curr = {
         ...topoGraph([]),
-        facets: [
+        trailheads: [
           {
             description: 'New topo.',
             id: 'topo',
@@ -735,7 +735,7 @@ describe('deriveTopoGraphDiff', () => {
       expect(result.info[0]).toMatchObject({
         change: 'modified',
         id: 'topo',
-        kind: 'facet',
+        kind: 'trailhead',
       });
       expect(result.info[0]?.details).toContain('Description updated');
     });

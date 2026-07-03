@@ -33,6 +33,9 @@ describe('governed vocabulary registry', () => {
     );
     expect(projection?.oldForms).toContain('project');
     expect(projection?.target.kind).toBe('classified');
+
+    const facet = getGovernedVocabularyTransition('v1-facet-trailhead');
+    expect(facet?.status).toBe('complete');
   });
 
   test('validates registry shape and rejects incomplete entries', () => {
@@ -49,6 +52,19 @@ describe('governed vocabulary registry', () => {
         },
       ])
     ).toThrow(ZodError);
+  });
+
+  test('keeps v1 vocabulary transitions from rewriting the registry itself', () => {
+    const v1Transitions = listGovernedVocabularyTransitions().filter(
+      (transition) => transition.id.startsWith('v1-')
+    );
+
+    expect(v1Transitions.length).toBeGreaterThan(0);
+    for (const transition of v1Transitions) {
+      expect(transition.scope?.exclude).toContain(
+        'packages/warden/src/rules/retired-vocabulary.ts'
+      );
+    }
   });
 
   test('rejects duplicate ids and duplicate source terms', () => {

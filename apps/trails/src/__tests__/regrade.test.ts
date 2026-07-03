@@ -23,6 +23,13 @@ const trailsBinPath = fileURLToPath(
   new URL('../../bin/trails.ts', import.meta.url)
 );
 const cliTimeoutMs = 30_000;
+const facetTrailheadRegistryExcludes = [
+  '.agents/memory/**',
+  '.agents/plans/archive/**',
+  '.changeset/**',
+  '**/CHANGELOG.md',
+  'packages/warden/src/rules/retired-vocabulary.ts',
+];
 
 interface RawCliRun {
   readonly exitCode: number;
@@ -130,21 +137,7 @@ describe('trails regrade', () => {
         kind: 'vocabulary',
         to: 'trailhead',
       });
-      expect(result.value.run?.preserveInventory).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            paths: expect.arrayContaining(['**/*.ts']),
-            pattern: expect.stringContaining('facetId'),
-            reason: 'current-live-mcp-facet-field',
-            source: 'derived-live-api',
-          }),
-          expect.objectContaining({
-            pattern: expect.stringContaining('wayfind\\.facets'),
-            reason: 'current-live-trail-compose-input',
-            source: 'derived-live-api',
-          }),
-        ])
-      );
+      expect(result.value.run?.preserveInventory).toBeUndefined();
       expect(result.value.run?.ledger.forms).toEqual({
         facet: 'modified',
         facetId: 'deferred',
@@ -262,7 +255,7 @@ describe('trails regrade', () => {
         'Facet docs mention trailhead and trailheads.\n'
       );
       expect(readFileSync(join(dir, 'src', 'surface.ts'), 'utf8')).toContain(
-        'facetId'
+        'trailheadId'
       );
       expect(readFileSync(join(dir, 'src', 'surface.ts'), 'utf8')).toContain(
         'export const trailhead = "facet";'
@@ -355,7 +348,9 @@ describe('trails regrade', () => {
       expect(parsed.entries).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            classId: 'ast-symbol-rename:v1-facet-trailhead:facet->trailhead',
+            classId: expect.stringContaining(
+              'ast-symbol-rename:v1-facet-trailhead:facet->trailhead'
+            ),
             outcome: 'rewrite',
             path: 'src/surface.ts',
           }),
@@ -450,13 +445,20 @@ describe('trails regrade', () => {
           'ast-symbol-rename:v1-facet-trailhead:facet->trailhead',
           'ast-symbol-rename:v1-facet-trailhead:facetId->trailheadId',
           'ast-symbol-rename:v1-facet-trailhead:facets->trailheads',
+          'ast-symbol-rename:v1-facet-trailhead:McpSurfaceFacetMap->McpSurfaceTrailheadMap',
           'v1-facet-trailhead',
         ])
       );
       expect(parsed.run?.plan).toMatchObject({
         from: 'facet',
         id: 'v1-facet-trailhead',
-        scope: { exclude: ['.agents/notes/**', '.scratch/**'] },
+        scope: {
+          exclude: [
+            ...facetTrailheadRegistryExcludes,
+            '.agents/notes/**',
+            '.scratch/**',
+          ],
+        },
         to: 'trailhead',
       });
       expect(parsed.run?.ledger?.forms).toMatchObject({
@@ -507,7 +509,9 @@ describe('trails regrade', () => {
       expect(parsed.entries).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            classId: 'ast-symbol-rename:v1-facet-trailhead:facet->trailhead',
+            classId: expect.stringContaining(
+              'ast-symbol-rename:v1-facet-trailhead:facet->trailhead'
+            ),
             outcome: 'rewrite',
             path: 'src/surface.ts',
           }),
@@ -820,6 +824,7 @@ describe('trails regrade', () => {
         readonly skipsByReason?: Record<string, number>;
       };
       expect(parsed.run?.plan?.scope?.exclude).toEqual([
+        ...facetTrailheadRegistryExcludes,
         '.scratch/**',
         '.agents/notes/**',
       ]);
@@ -840,6 +845,48 @@ describe('trails regrade', () => {
         { extension: '.md', files: 2, occurrences: 2 },
       ]);
       expect(parsed.skipsByReason).toMatchObject({ 'ignored-glob': 2 });
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('CLI applies registry path-scope defaults for governed vocabulary regrades', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(dir, '.changeset/historical.md', 'facet\n');
+      writeFile(dir, 'packages/core/CHANGELOG.md', 'facet\n');
+      writeFile(dir, '.agents/memory/decisions.md', 'facet\n');
+      writeFile(dir, '.agents/plans/archive/old/PLAN.md', 'facet\n');
+      writeFile(dir, 'docs/current.md', 'facet\n');
+      writeFile(dir, 'plugin/skills/trails/SKILL.md', 'facet\n');
+
+      const result = runRawCli([
+        'regrade',
+        'facet',
+        'trailhead',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+
+      expect(result.exitCode).toBe(0);
+      const parsed = JSON.parse(result.stdout) as {
+        readonly run?: {
+          readonly ledger?: {
+            readonly occurrences?: readonly { readonly path: string }[];
+          };
+          readonly plan?: { readonly scope?: { readonly exclude?: string[] } };
+        };
+        readonly skipsByReason?: Record<string, number>;
+      };
+      expect(parsed.run?.plan?.scope?.exclude).toEqual(
+        facetTrailheadRegistryExcludes
+      );
+      expect(parsed.run?.ledger?.occurrences?.map((o) => o.path)).toEqual([
+        'docs/current.md',
+        'plugin/skills/trails/SKILL.md',
+      ]);
+      expect(parsed.skipsByReason).toMatchObject({ 'ignored-glob': 4 });
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }
@@ -916,16 +963,7 @@ describe('trails regrade', () => {
           reason: 'live-api-identifier',
         },
       ]);
-      expect(parsed.run?.preserveInventory).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            paths: expect.arrayContaining(['**/*.ts']),
-            pattern: expect.stringContaining('facetId'),
-            reason: 'current-live-mcp-facet-field',
-            source: 'derived-live-api',
-          }),
-        ])
-      );
+      expect(parsed.run?.preserveInventory).toBeUndefined();
       expect(
         parsed.run?.ledger?.occurrences?.map((occurrence) => ({
           disposition: occurrence.disposition,
@@ -956,7 +994,7 @@ describe('trails regrade', () => {
     }
   });
 
-  test('derived live API preserves match the occurrence span, not just the line', () => {
+  test('facet API identifiers migrate after the live API cutover', () => {
     const dir = makeTempDir();
     try {
       writeFile(
@@ -984,56 +1022,22 @@ describe('trails regrade', () => {
 
       expect(result.exitCode).toBe(0);
       const source = readFileSync(join(dir, 'src', 'surface.ts'), 'utf8');
-      expect(source).toContain("ctx.compose('wayfind.facets', { facets });");
       expect(source).toContain(
-        'readonly facets?: McpSurfaceFacetMap | undefined;'
+        "ctx.compose('wayfind.trailheads', { trailheads });"
+      );
+      expect(source).toContain(
+        'readonly trailheads?: McpSurfaceTrailheadMap | undefined;'
       );
 
       const parsed = JSON.parse(result.stdout) as {
         readonly run?: {
-          readonly ledger?: {
-            readonly occurrences?: readonly {
-              readonly context: string;
-              readonly form: string;
-              readonly reason: string;
-              readonly verdict: string;
-            }[];
-          };
           readonly preserveInventory?: readonly {
             readonly forms?: readonly string[];
             readonly reason?: string;
           }[];
         };
       };
-      expect(parsed.run?.preserveInventory).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            forms: expect.arrayContaining(['facets']),
-            reason: 'current-live-trail-compose-input',
-          }),
-          expect.objectContaining({
-            forms: expect.arrayContaining(['facets']),
-            reason: 'current-live-mcp-facets-property',
-          }),
-          expect.objectContaining({
-            forms: expect.arrayContaining(['McpSurfaceFacetMap']),
-            reason: 'current-live-mcp-facet-type',
-          }),
-        ])
-      );
-      const liveApiOccurrences = parsed.run?.ledger?.occurrences
-        ?.filter(
-          (occurrence) =>
-            occurrence.form === 'facets' ||
-            occurrence.form === 'McpSurfaceFacetMap'
-        )
-        .map((occurrence) => ({
-          context: occurrence.context,
-          form: occurrence.form,
-          reason: occurrence.reason,
-          verdict: occurrence.verdict,
-        }));
-      expect(liveApiOccurrences).toEqual([]);
+      expect(parsed.run?.preserveInventory).toBeUndefined();
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }
@@ -1070,8 +1074,8 @@ describe('trails regrade', () => {
       const source = readFileSync(join(dir, 'src', 'surface.ts'), 'utf8');
       expect(source).toContain('"the facets string must not change"');
       expect(source).toContain('// the facets comment must not change');
-      expect(source).toContain('export const facets = 1;');
-      expect(source).toContain('export const useFacets = facets;');
+      expect(source).toContain('export const trailheads = 1;');
+      expect(source).toContain('export const useFacets = trailheads;');
       expect(source).toContain('export const trailhead = 1;');
       expect(source).toContain('export const useFacet = trailhead;');
       expect(source).not.toContain('the trailheads string must not change');
@@ -1360,6 +1364,7 @@ describe('trails regrade', () => {
         readonly skipsByReason?: Record<string, number>;
       };
       expect(parsed.run?.plan?.scope?.exclude).toEqual([
+        ...facetTrailheadRegistryExcludes,
         '.scratch/**',
         '.agents/notes/**',
       ]);
@@ -1403,7 +1408,10 @@ describe('trails regrade', () => {
       if (result.isErr()) {
         throw result.error;
       }
-      expect(result.value.run?.plan.scope?.exclude).toEqual(['.scratch/**']);
+      expect(result.value.run?.plan.scope?.exclude).toEqual([
+        ...facetTrailheadRegistryExcludes,
+        '.scratch/**',
+      ]);
       expect(result.value.run?.ledger.occurrences.map((o) => o.path)).toEqual([
         '.agents/notes/history.md',
         'docs/keep.md',

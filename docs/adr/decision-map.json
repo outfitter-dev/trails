@@ -182,7 +182,7 @@
         {
           "context": "- [ADR-0000: Core Premise](../0000-core-premise.md) - the trail remains the product and surfaces render the contract",
           "from": "20260603",
-          "fromPath": "docs/adr/drafts/20260603-surface-facets-shape-dense-topos.md"
+          "fromPath": "docs/adr/drafts/20260603-surface-trailheads-shape-dense-topos.md"
         },
         {
           "context": "[adr-0000]: ../0000-core-premise.md",
@@ -1470,7 +1470,7 @@
         {
           "context": "- [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md) - resolved graph inspection and drift protection",
           "from": "20260603",
-          "fromPath": "docs/adr/drafts/20260603-surface-facets-shape-dense-topos.md"
+          "fromPath": "docs/adr/drafts/20260603-surface-trailheads-shape-dense-topos.md"
         },
         {
           "context": "- [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md) — established the resolved graph as a serialized artifact.",
@@ -1955,7 +1955,7 @@
         {
           "context": "- [ADR-0027: Trail Visibility and Surface Filtering](../0027-visibility-and-filtering.md) - selector grammar and visibility semantics",
           "from": "20260603",
-          "fromPath": "docs/adr/drafts/20260603-surface-facets-shape-dense-topos.md"
+          "fromPath": "docs/adr/drafts/20260603-surface-trailheads-shape-dense-topos.md"
         }
       ],
       "number": "0027",
@@ -2291,7 +2291,7 @@
         {
           "context": "- [ADR-0035: Surface APIs Render the Graph](../0035-surface-apis-render-the-graph.md) - `derive*`, `create*`, and `surface()` projection ladder",
           "from": "20260603",
-          "fromPath": "docs/adr/drafts/20260603-surface-facets-shape-dense-topos.md"
+          "fromPath": "docs/adr/drafts/20260603-surface-trailheads-shape-dense-topos.md"
         },
         {
           "context": "- [ADR-0035: Surface APIs Render The Graph](../0035-surface-apis-render-the-graph.md)",
@@ -2554,7 +2554,7 @@
         {
           "context": "- [ADR-0042: Core/Topographer Boundary Doctrine](../0042-core-topographer-boundary-doctrine.md) - durable graph artifacts belong to topographer",
           "from": "20260603",
-          "fromPath": "docs/adr/drafts/20260603-surface-facets-shape-dense-topos.md"
+          "fromPath": "docs/adr/drafts/20260603-surface-trailheads-shape-dense-topos.md"
         },
         {
           "context": "- [ADR-0042: Core/Topographer Boundary Doctrine](../0042-core-topographer-boundary-doctrine.md) — keeps durable graph derivation owned outside core runtime contracts.",
@@ -2715,7 +2715,7 @@
         {
           "context": "- [ADR-0046: Lock v3 Artifact Family](../0046-lock-v3-artifact-family.md) - `.trails/topo.lock` as the inspectable topo content artifact",
           "from": "20260603",
-          "fromPath": "docs/adr/drafts/20260603-surface-facets-shape-dense-topos.md"
+          "fromPath": "docs/adr/drafts/20260603-surface-trailheads-shape-dense-topos.md"
         },
         {
           "context": "[adr-0046]: ../0046-lock-v3-artifact-family.md",
@@ -2873,7 +2873,7 @@
         {
           "context": "- [ADR-0050: Surface Accommodations Preserve Trail Identity](../0050-surface-accommodations-preserve-trail-identity.md) - surface accommodation vocabulary and fork test",
           "from": "20260603",
-          "fromPath": "docs/adr/drafts/20260603-surface-facets-shape-dense-topos.md"
+          "fromPath": "docs/adr/drafts/20260603-surface-trailheads-shape-dense-topos.md"
         },
         {
           "context": "- [ADR-0050: Surface Accommodations Preserve Trail Identity](../0050-surface-accommodations-preserve-trail-identity.md)",
@@ -2902,13 +2902,13 @@
         },
         {
           "context": "Use the surface-accommodation vocabulary from [ADR-0050](../adr/0050-surface-accommodations-preserve-trail-identity.md) when evaluating parity. Trailheads live on the entry axis: one grouped surface e",
-          "from": "surface-facet-parity",
-          "fromPath": "docs/surfaces/surface-facet-parity.md"
+          "from": "surface-trailhead-parity",
+          "fromPath": "docs/surfaces/surface-trailhead-parity.md"
         },
         {
           "context": "A trailhead is a surface accommodation on the entry axis: one grouped surface entry over several trails. It is not an alternate approach to one trail. Aliases and input mappings are N-to-1 accommodati",
-          "from": "surface-facets",
-          "fromPath": "docs/surfaces/surface-facets.md"
+          "from": "surface-trailheads",
+          "fromPath": "docs/surfaces/surface-trailheads.md"
         }
       ],
       "number": "0050",

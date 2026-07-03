@@ -163,7 +163,7 @@ Absolute aliases are explicit because they can cross out of the canonical parent
 
 Some aliases belong to the app or distribution instead of the trail. They may exist for migration, compatibility, or local command ergonomics.
 
-Those aliases live on the CLI surface configuration, following the surface facet precedent. They target trail IDs, not repeated canonical command strings.
+Those aliases live on the CLI surface configuration, following the surface trailhead precedent. They target trail IDs, not repeated canonical command strings.
 
 ```ts
 await surface(app, {
@@ -194,7 +194,7 @@ If graph visibility fails to solve a concrete drift problem, a later ADR may add
 
 An alternate command path becomes a trail fork when it would change intent, permit requirements, error meaning, output meaning, lifecycle, side effects, or which trail is actually running.
 
-Trail forks are not represented as CLI route metadata. They become distinct trails, composing trails, or surface facets that preserve member identity.
+Trail forks are not represented as CLI route metadata. They become distinct trails, composing trails, or surface trailheads that preserve member identity.
 
 ### Resolved CLI projections record the route story
 
@@ -279,7 +279,7 @@ This is a direct extension of "one write, many reads": the trail owns the contra
 - This ADR does not make aliases change permit, intent, output, or error
 behavior.
 - This ADR does not require every compatibility alias to be trail-authored.
-- This ADR does not replace facets. Facets group many trails into one surface
+- This ADR does not replace trailheads. Trailheads group many trails into one surface
 affordance; aliases provide alternate command paths into one trail.
 
 ## References
@@ -291,4 +291,4 @@ affordance; aliases provide alternate command paths into one trail.
 - [ADR-0050: Surface Accommodations Preserve Trail Identity](../0050-surface-accommodations-preserve-trail-identity.md)
 - [Tenets](../../tenets.md)
 - [CLI Surface](../../surfaces/cli.md)
-- [Surface Facets draft](20260603-surface-facets-shape-dense-topos.md)
+- [Surface Trailheads draft](20260603-surface-trailheads-shape-dense-topos.md)
