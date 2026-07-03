@@ -1,6 +1,6 @@
 {
   "name": "@ontrails/wayfinder",
-  "version": "1.0.0-beta.35",
+  "version": "1.0.0-beta.36",
   "description": "Agent wayfinding query trails over saved graph and package evidence.",
   "files": [
     "src/**/*.ts",
