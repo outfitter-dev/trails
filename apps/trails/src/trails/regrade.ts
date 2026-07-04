@@ -166,19 +166,52 @@ const REGRADE_PLAN_SCHEMA_VERSION = 1;
 
 const regradePlanProvenanceValueSchema = z.enum(['authored', 'derived']);
 
+const regradeExpansionCandidateSchema = z.union([
+  z.object({
+    evidence: z
+      .array(
+        z.object({
+          column: z.number().optional(),
+          detail: z.string().optional(),
+          line: z.number().optional(),
+          path: z.string(),
+        })
+      )
+      .default([]),
+    kind: z.enum(['file-rename', 'form', 'namespace', 'preserve']),
+    reason: z.string().optional(),
+    status: z.enum(['pending', 'rejected']).default('pending'),
+    suggestedClassification: z.string(),
+    value: z.string(),
+  }),
+  z
+    .object({
+      detail: z.string().optional(),
+      path: z.string(),
+      status: z.enum(['pending', 'rejected']).default('pending'),
+    })
+    .transform((candidate) => ({
+      evidence: [
+        {
+          ...(candidate.detail === undefined
+            ? {}
+            : { detail: candidate.detail }),
+          path: candidate.path,
+        },
+      ],
+      kind: 'file-rename' as const,
+      ...(candidate.detail === undefined ? {} : { reason: candidate.detail }),
+      status: candidate.status,
+      suggestedClassification: 'legacy-path-candidate',
+      value: candidate.path,
+    })),
+]);
+
 const regradePlanArtifactSchema = z
   .object({
     expansion: z
       .object({
-        candidates: z
-          .array(
-            z.object({
-              detail: z.string().optional(),
-              path: z.string(),
-              status: z.enum(['pending', 'rejected']).default('pending'),
-            })
-          )
-          .default([]),
+        candidates: z.array(regradeExpansionCandidateSchema).default([]),
       })
       .optional(),
     kind: z.literal('regrade-plan'),
@@ -193,6 +226,10 @@ const regradePlanArtifactSchema = z
   .strict();
 
 const regradePlanSummarySchema = z.object({
+  expansionPending: z
+    .number()
+    .optional()
+    .describe('Pending staged expansion candidates on this plan'),
   from: z.string(),
   path: z.string(),
   schemaVersion: z.number(),
@@ -281,9 +318,17 @@ type RegradeApplyPlanInput = z.output<typeof regradeApplyPlanInputSchema>;
 
 interface RegradePlanExpansion {
   readonly candidates: readonly {
-    readonly detail?: string | undefined;
-    readonly path: string;
+    readonly evidence: readonly {
+      readonly column?: number | undefined;
+      readonly detail?: string | undefined;
+      readonly line?: number | undefined;
+      readonly path: string;
+    }[];
+    readonly kind: 'file-rename' | 'form' | 'namespace' | 'preserve';
+    readonly reason?: string | undefined;
     readonly status: 'pending' | 'rejected';
+    readonly suggestedClassification: string;
+    readonly value: string;
   }[];
 }
 
@@ -1189,6 +1234,11 @@ const regradeHistoryPathForReport = (
   return join(regradePlanDirectory(rootDir), 'history', `${slug}-${hash}.json`);
 };
 
+const pendingExpansionCandidateCount = (plan: RegradePlanArtifact): number =>
+  plan.expansion?.candidates.filter(
+    (candidate) => candidate.status === 'pending'
+  ).length ?? 0;
+
 const reportWithPlanSummary = (
   report: RegradeReport,
   plan: RegradePlanArtifact,
@@ -1196,6 +1246,9 @@ const reportWithPlanSummary = (
 ): RegradeReport => ({
   ...report,
   plan: {
+    ...(pendingExpansionCandidateCount(plan) === 0
+      ? {}
+      : { expansionPending: pendingExpansionCandidateCount(plan) }),
     path: plan.path,
     schemaVersion: plan.schemaVersion,
     status,
@@ -1781,15 +1834,240 @@ const runVocabularyCommandRegrade = async (
   });
 };
 
+const expansionCandidateKey = (
+  candidate: RegradePlanExpansion['candidates'][number]
+): string =>
+  [candidate.kind, candidate.value, candidate.suggestedClassification].join(
+    '\0'
+  );
+
+const expansionEvidenceKey = (
+  evidence: RegradePlanExpansion['candidates'][number]['evidence'][number]
+): string =>
+  [
+    evidence.path,
+    evidence.line ?? '',
+    evidence.column ?? '',
+    evidence.detail ?? '',
+  ].join('\0');
+
+const mergeExpansionEvidence = (
+  left: RegradePlanExpansion['candidates'][number]['evidence'],
+  right: RegradePlanExpansion['candidates'][number]['evidence']
+): RegradePlanExpansion['candidates'][number]['evidence'] => {
+  const merged = new Map<
+    string,
+    RegradePlanExpansion['candidates'][number]['evidence'][number]
+  >();
+  for (const evidence of [...left, ...right]) {
+    merged.set(expansionEvidenceKey(evidence), evidence);
+  }
+  return [...merged.values()].toSorted((a, b) =>
+    a.path === b.path
+      ? (a.line ?? 0) - (b.line ?? 0) ||
+        (a.column ?? 0) - (b.column ?? 0) ||
+        (a.detail ?? '').localeCompare(b.detail ?? '')
+      : a.path.localeCompare(b.path)
+  );
+};
+
+const compareCandidates = (
+  left: RegradePlanExpansion['candidates'][number],
+  right: RegradePlanExpansion['candidates'][number]
+): number => {
+  if (left.kind !== right.kind) {
+    return left.kind.localeCompare(right.kind);
+  }
+  if (left.value !== right.value) {
+    return left.value.localeCompare(right.value);
+  }
+  return left.suggestedClassification.localeCompare(
+    right.suggestedClassification
+  );
+};
+
 const expansionForReport = (
   report: RegradeReport
-): RegradePlanArtifact['expansion'] => ({
-  candidates: report.entries.map((entry) => ({
-    detail: entry.reason,
-    path: entry.path,
-    status: 'pending',
-  })),
-});
+): RegradePlanArtifact['expansion'] => {
+  const candidates = new Map<
+    string,
+    RegradePlanExpansion['candidates'][number]
+  >();
+  const candidateValues = new Set<string>();
+  const addCandidate = (
+    candidate: RegradePlanExpansion['candidates'][number]
+  ): void => {
+    const key = expansionCandidateKey(candidate);
+    candidateValues.add(`${candidate.kind}\0${candidate.value}`);
+    const current = candidates.get(key);
+    if (current === undefined) {
+      candidates.set(key, candidate);
+      return;
+    }
+    candidates.set(key, {
+      ...current,
+      evidence: mergeExpansionEvidence(current.evidence, candidate.evidence),
+    });
+  };
+
+  for (const occurrence of report.run?.ledger.occurrences ?? []) {
+    if (occurrence.verdict !== 'deferred') {
+      continue;
+    }
+    addCandidate({
+      evidence: [
+        {
+          column: occurrence.column,
+          detail: occurrence.reason,
+          line: occurrence.line,
+          path: occurrence.path,
+        },
+      ],
+      kind: 'form',
+      status: 'pending',
+      suggestedClassification: occurrence.disposition,
+      value: occurrence.form,
+    });
+  }
+
+  for (const entry of report.entries) {
+    if (entry.outcome !== 'needs-review' || entry.reviewDetails === undefined) {
+      continue;
+    }
+    for (const detail of entry.reviewDetails) {
+      if (detail.symbol === undefined) {
+        continue;
+      }
+      if (candidateValues.has(`form\0${detail.symbol}`)) {
+        continue;
+      }
+      addCandidate({
+        evidence: [
+          {
+            ...(detail.span === undefined
+              ? {}
+              : {
+                  column: detail.span.column,
+                  line: detail.span.line,
+                }),
+            detail: detail.reason,
+            path: entry.path,
+          },
+        ],
+        kind: 'form',
+        status: 'pending',
+        suggestedClassification: entry.reason ?? detail.reason,
+        value: detail.symbol,
+      });
+    }
+  }
+
+  return { candidates: [...candidates.values()].toSorted(compareCandidates) };
+};
+
+const preserveRuleCoversForm = (
+  rule: VocabularyPreserveRule,
+  form: string
+): boolean =>
+  (rule.forms === undefined || rule.forms.includes(form)) &&
+  compileVocabularyPreservePattern(rule.pattern).test(form);
+
+const preserveRuleCoversCandidateEvidence = (
+  rule: VocabularyPreserveRule,
+  form: string,
+  evidence: RegradePlanExpansion['candidates'][number]['evidence'][number]
+): boolean =>
+  preserveRuleCoversForm(rule, form) &&
+  (rule.paths === undefined || matchesAnyPathGlob(evidence.path, rule.paths));
+
+const preserveRulesCoverFormCandidate = (
+  preserve: readonly VocabularyPreserveRule[] | undefined,
+  candidate: RegradePlanExpansion['candidates'][number]
+): boolean => {
+  if (preserve === undefined) {
+    return false;
+  }
+  if (candidate.kind !== 'form') {
+    return false;
+  }
+
+  if (candidate.evidence.length === 0) {
+    return preserve.some(
+      (rule) =>
+        rule.paths === undefined &&
+        preserveRuleCoversForm(rule, candidate.value)
+    );
+  }
+
+  return candidate.evidence.every((evidence) =>
+    preserve.some((rule) =>
+      preserveRuleCoversCandidateEvidence(rule, candidate.value, evidence)
+    )
+  );
+};
+
+const primaryPlanCoversExpansionCandidate = (
+  plan: VocabularyRegradePlan,
+  candidate: RegradePlanExpansion['candidates'][number]
+): boolean => {
+  if (candidate.kind !== 'form') {
+    return false;
+  }
+  return (
+    plan.deferForms?.includes(candidate.value) === true ||
+    plan.overrides?.[candidate.value] !== undefined ||
+    preserveRulesCoverFormCandidate(plan.preserve, candidate)
+  );
+};
+
+const mergeRegradePlanExpansion = (
+  current: RegradePlanExpansion | undefined,
+  next: RegradePlanExpansion | undefined,
+  plan: VocabularyRegradePlan
+): RegradePlanExpansion | undefined => {
+  const candidates = new Map<
+    string,
+    RegradePlanExpansion['candidates'][number]
+  >();
+
+  for (const candidate of current?.candidates ?? []) {
+    if (primaryPlanCoversExpansionCandidate(plan, candidate)) {
+      continue;
+    }
+    candidates.set(expansionCandidateKey(candidate), candidate);
+  }
+
+  for (const candidate of next?.candidates ?? []) {
+    if (primaryPlanCoversExpansionCandidate(plan, candidate)) {
+      continue;
+    }
+    const key = expansionCandidateKey(candidate);
+    const existing = candidates.get(key);
+    if (existing?.status === 'rejected') {
+      candidates.set(key, existing);
+      continue;
+    }
+    candidates.set(key, {
+      ...candidate,
+      ...(existing === undefined
+        ? {}
+        : {
+            evidence: mergeExpansionEvidence(
+              existing.evidence,
+              candidate.evidence
+            ),
+            status: existing.status,
+          }),
+    });
+  }
+
+  const merged = [...candidates.values()]
+    .filter(
+      (candidate) => !primaryPlanCoversExpansionCandidate(plan, candidate)
+    )
+    .toSorted(compareCandidates);
+  return merged.length === 0 ? undefined : { candidates: merged };
+};
 
 const runPlanRegrade = async (
   input: RegradePlanInput,
@@ -1842,8 +2120,13 @@ const runPlanRegrade = async (
   if (report.isErr()) {
     return report;
   }
+  const expansion = mergeRegradePlanExpansion(
+    current?.expansion,
+    input.expand ? expansionForReport(report.value) : undefined,
+    plan
+  );
   const artifact = buildRegradePlanArtifact({
-    ...(input.expand ? { expansion: expansionForReport(report.value) } : {}),
+    ...(expansion === undefined ? {} : { expansion }),
     input,
     plan,
     report: report.value,
@@ -1854,7 +2137,6 @@ const runPlanRegrade = async (
       ? artifact
       : {
           ...artifact,
-          expansion: current.expansion ?? artifact.expansion,
           provenance: preserveAuthoredPlanProvenance(
             current,
             artifact.provenance
@@ -2094,7 +2376,9 @@ const listRegradePlans = async (
     if (report.isErr()) {
       return report;
     }
+    const expansionPending = pendingExpansionCandidateCount(artifact.value);
     plans.push({
+      ...(expansionPending === 0 ? {} : { expansionPending }),
       from: artifact.value.plan.from,
       path: artifact.value.path,
       schemaVersion: artifact.value.schemaVersion,

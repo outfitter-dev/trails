@@ -666,8 +666,8 @@ describe('Trails MCP surface shaping', () => {
     try {
       writeFile(
         dir,
-        'docs/blaze.md',
-        'The blaze path is safe.\nThe blazing path needs review.\n'
+        'docs/alpha.md',
+        'The alpha path is safe.\nThe alphaing path needs review.\n'
       );
       const tools = unwrapTools(trailsMcpApp, trailsMcpSurfaceOptions);
       const planRegrade = requireTool(tools, 'trails_plan_regrade');
@@ -675,9 +675,10 @@ describe('Trails MCP surface shaping', () => {
 
       const planResult = await planRegrade.handler(
         {
-          from: 'blaze',
+          expand: true,
+          from: 'alpha',
           rootDir: dir,
-          to: 'implementation',
+          to: 'omega',
         },
         {}
       );
@@ -697,22 +698,36 @@ describe('Trails MCP surface shaping', () => {
           readonly plan?: {
             readonly deferForms?: readonly string[];
             readonly id?: string;
+            readonly from?: string;
+            readonly to?: string;
           };
         };
       };
       expect(structured.run?.plan).toMatchObject({
-        deferForms: expect.arrayContaining(['blazing']),
-        id: 'v1-blaze-implementation',
+        from: 'alpha',
+        to: 'omega',
       });
       expect(structured.run?.ledger?.forms).toMatchObject({
-        blaze: 'modified',
-        blazing: 'deferred',
+        alpha: 'modified',
+        alphaing: 'deferred',
       });
       expect(structured.run?.ledger?.occurrences).toEqual(
         expect.arrayContaining([
-          expect.objectContaining({ form: 'blazing', verdict: 'deferred' }),
+          expect.objectContaining({ form: 'alphaing', verdict: 'deferred' }),
         ])
       );
+      expect(planResult.structuredContent).toMatchObject({
+        expansion: {
+          candidates: [
+            expect.objectContaining({
+              kind: 'form',
+              status: 'pending',
+              suggestedClassification: 'in-family-unresolved',
+              value: 'alphaing',
+            }),
+          ],
+        },
+      });
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }

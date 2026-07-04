@@ -45,6 +45,8 @@ Record:
 
 If the first plan scans historical release notes, memory, archive plans, generated output, or local scratch space, fix the transition scope or project config before applying. Do not wave it through as "just noisy."
 
+When the conservative plan needs wider discovery, rerun `trails regrade plan <from> <to> --expand --root-dir . --json` for the same transition and review the plan's `expansion.candidates` section. Use `trails regrade check --plan "$PLAN_PATH"`, `trails regrade preview --plan "$PLAN_PATH"`, and `trails regrade apply --plan "$PLAN_PATH"` after the plan exists. Expansion candidates are durable review inventory with kind, value, evidence, suggested classification, and status. Rejected candidates stay in the plan as suppression memory; adopted candidates move into the primary authored plan sections before apply. Pending expansion candidates are never applied by themselves.
+
 ## Namespace Census
 
 Before applying, build a census for every public namespace the family might touch. Compare three sources:

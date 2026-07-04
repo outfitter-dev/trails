@@ -624,6 +624,7 @@ export interface RegradeReport {
   readonly run?: VocabularyRegradeRun;
   /** Saved active Regrade plan evidence for vocabulary regrades. */
   readonly plan?: {
+    readonly expansionPending?: number;
     readonly path: string;
     readonly schemaVersion: number;
     readonly status: 'active' | 'stale';
@@ -1191,6 +1192,10 @@ export const regradeReportOutput = z.object({
   matched: z.number().describe('Files with a rewrite or review outcome'),
   plan: z
     .object({
+      expansionPending: z
+        .number()
+        .optional()
+        .describe('Pending staged expansion candidates on this plan'),
       path: z.string().describe('Root-relative Regrade plan path'),
       schemaVersion: z.number().describe('Regrade plan schema version'),
       status: z
