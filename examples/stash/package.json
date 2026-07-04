@@ -1,0 +1,13 @@
+{
+  "name": "stash",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -b",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint ./src",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  }
+}

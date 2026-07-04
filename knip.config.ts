@@ -70,6 +70,9 @@ const workspaceEntries = [
   ...packageWorkspaceDirs('apps').map(
     (workspace) => [workspace, createAppWorkspace(workspace)] as const
   ),
+  ...packageWorkspaceDirs('examples').map(
+    (workspace) => [workspace, createAppWorkspace(workspace)] as const
+  ),
 ];
 
 const workspaceMap = Object.fromEntries(workspaceEntries);
