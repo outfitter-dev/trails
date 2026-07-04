@@ -113,6 +113,11 @@ export const PUBLIC_API_EXAMPLE_TARGETS: readonly PublicApiPackageTarget[] = [
     minimumExports: ['createApp', 'surface'],
     packageName: '@ontrails/hono',
   },
+  {
+    indexPath: 'adapters/cloudflare/src/index.ts',
+    minimumExports: ['createWorkersHandler', 'cloudflareKv'],
+    packageName: '@ontrails/cloudflare',
+  },
 ] as const;
 
 export interface ResolvedPublicApiTarget extends PublicApiPackageTarget {
