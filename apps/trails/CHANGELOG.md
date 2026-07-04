@@ -1,5 +1,11 @@
 # trails
 
+## 1.0.0-beta.37
+
+### Patch Changes
+
+- [`09f15de`](https://github.com/outfitter-dev/trails/commit/09f15def8fcc8c28b0d604f436e6eeed46da8f37): Stage wide-net Regrade expansion candidates as structured plan review inventory with evidence, status, and pending counts.
+
 ## 1.0.0-beta.36
 
 ### Patch Changes

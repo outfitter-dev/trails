@@ -27,7 +27,11 @@
     "@ontrails/pino": "1.0.0-beta.17",
     "@ontrails/adapter-kit": "1.0.0-beta.18",
     "@ontrails/regrade": "1.0.0-beta.18",
-    "@ontrails/library": "1.0.0-beta.24"
+    "@ontrails/library": "1.0.0-beta.24",
+    "junction": "0.0.0",
+    "lookout": "0.0.0",
+    "packlist": "0.0.0",
+    "switchback": "0.0.0"
   },
   "changesets": [
     "adapter-kit-wildcard-exports",
@@ -219,6 +223,7 @@
     "trl-1122-regrade-dispositions",
     "trl-1125-governed-symbol-command",
     "trl-1132-regrade-transition-records",
+    "trl-1148-regrade-plan-expansion",
     "trl-117-deprecated-status-guidance",
     "trl-118-surface-version-negotiation",
     "trl-119-lifecycle-cli",
