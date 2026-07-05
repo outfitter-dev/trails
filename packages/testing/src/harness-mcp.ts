@@ -80,8 +80,11 @@ export const createMcpHarness = (options: McpHarnessOptions): McpHarness => {
 
       const result = await tool.handler(args, {
         abortSignal: extra?.abortSignal,
+        authorization: extra?.authorization,
+        permit: extra?.permit,
         progressToken: extra?.progressToken,
         sendProgress: extra?.sendProgress,
+        sessionId: extra?.sessionId,
       });
 
       return {
