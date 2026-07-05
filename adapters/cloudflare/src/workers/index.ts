@@ -34,7 +34,11 @@ export {
   getEnvBinding,
   registerEnvBinding,
 } from '../env.js';
-export type { EnvBindingSpec, WorkersEnv } from '../env.js';
+export type {
+  BuildEnvResourceOverridesOptions,
+  EnvBindingSpec,
+  WorkersEnv,
+} from '../env.js';
 
 // ---------------------------------------------------------------------------
 // Options
@@ -124,14 +128,25 @@ const mapCaughtError = (error: unknown): Response => {
 const resolveResourceOverrides = (
   graph: Topo,
   env: WorkersEnv,
-  resources: WorkersResourceOverrides | undefined
+  options: CreateWorkersHandlerOptions
 ): ResourceOverrideMap => {
-  const envOverrides = buildEnvResourceOverrides(graph, env);
+  // Explicit overrides are the documented escape hatch, so they resolve
+  // first: an overridden resource never requires its env binding. Surface
+  // filters are forwarded so trails the handler does not expose never
+  // require theirs either.
+  const userOverrides =
+    typeof options.resources === 'function'
+      ? options.resources(env)
+      : (options.resources ?? {});
+  const envOverrides = buildEnvResourceOverrides(graph, env, {
+    except: Object.keys(userOverrides),
+    exclude: options.exclude,
+    include: options.include,
+    intent: options.intent,
+  });
   if (envOverrides.isErr()) {
     throw envOverrides.error;
   }
-  const userOverrides =
-    typeof resources === 'function' ? resources(env) : (resources ?? {});
   return { ...envOverrides.value, ...userOverrides };
 };
 
@@ -178,7 +193,7 @@ export const createWorkersHandler = (
       layers: options.layers,
       maxJsonBodyBytes: options.maxJsonBodyBytes,
       resolvePermit: options.resolvePermit,
-      resources: resolveResourceOverrides(graph, env ?? {}, options.resources),
+      resources: resolveResourceOverrides(graph, env ?? {}, options),
       validate: options.validate,
     });
     materialized = { env, handle };

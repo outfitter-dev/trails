@@ -135,4 +135,81 @@ describe('workers env bridge', () => {
     );
     expect(value).toBe('override');
   });
+
+  test('an explicit override satisfies the resource when the env binding is absent', async () => {
+    const overrideKv = createMemoryKv();
+    await overrideKv.put('color', 'override');
+    const worker = createWorkersHandler(buildGraph(), {
+      resources: { flags: overrideKv },
+    });
+
+    // The documented escape hatch: no FLAGS binding on env, but the resource
+    // is provided explicitly, so no missing-binding error may surface.
+    const value = await readValue(await worker.fetch(flagRequest(), {}));
+    expect(value).toBe('override');
+  });
+
+  test('trails filtered off the surface never require their env bindings', async () => {
+    const ping = trail('ping', {
+      blaze: (input) => Result.ok({ reply: input.message }),
+      input: z.object({ message: z.string() }),
+      intent: 'read',
+      output: z.object({ reply: z.string() }),
+    });
+    const graph = topo('cf-env-bridge-filtered', { flags, ping, showFlag });
+    const worker = createWorkersHandler(graph, { include: ['ping'] });
+
+    // Only /ping is exposed; the KV-backed trail is filtered out, so the
+    // missing FLAGS binding must not fail materialization.
+    const response = await worker.fetch(
+      new Request('http://localhost/ping?message=hi'),
+      {}
+    );
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ data: { reply: 'hi' } });
+
+    const filteredOut = await worker.fetch(flagRequest(), {});
+    expect(filteredOut.status).toBe(404);
+  });
+
+  test('resolves env bindings declared only by fork version entries', async () => {
+    const versionedFlag = trail('flag.versioned', {
+      blaze: (input) => Result.ok({ value: `static:${input.key}` }),
+      input: z.object({ key: z.string() }),
+      intent: 'read',
+      output: z.object({ value: z.string().nullable() }),
+      version: 2,
+      versions: {
+        1: {
+          blaze: async (_input, ctx) => {
+            const value = await flags.from(ctx).get('color');
+            return Result.ok({ value });
+          },
+          input: z.object({ key: z.string() }),
+          output: z.object({ value: z.string().nullable() }),
+          resources: [flags],
+        },
+      },
+    });
+    const graph = topo('cf-env-bridge-versions', { flags, versionedFlag });
+    const worker = createWorkersHandler(graph);
+    const kv = createMemoryKv();
+    await kv.put('color', 'from-kv');
+
+    // The current contract declares no resources; only the fork entry does.
+    // Selecting the historical version must still receive the env binding.
+    const forkResponse = await worker.fetch(
+      new Request('http://localhost/flag/versioned?key=color', {
+        headers: { 'X-Trails-Version': '1' },
+      }),
+      { FLAGS: kv }
+    );
+    expect(await readValue(forkResponse)).toBe('from-kv');
+
+    const currentResponse = await worker.fetch(
+      new Request('http://localhost/flag/versioned?key=color'),
+      { FLAGS: kv }
+    );
+    expect(await readValue(currentResponse)).toBe('static:color');
+  });
 });

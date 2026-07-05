@@ -37,7 +37,7 @@ export default createWorkersHandler(graph, {
 Worker bindings (KV, D1, R2, queues) live on `env`, which arrives per request — they cannot be captured at module init. The bridge closes that gap once, for every subpath in this collection:
 
 1. A subpath authors an ordinary `resource()` definition and registers an `EnvBindingSpec` for it (`registerEnvBinding(definition, { binding, fromEnv })`).
-2. `createWorkersHandler` walks the topo's declared resources, and for each env-bound definition resolves `env[binding]` through `fromEnv` into a resource override.
+2. `createWorkersHandler` walks the declared resources of the trails the surface actually exposes (honoring `include`/`exclude`/`intent`, and including fork-version resources), and for each env-bound definition resolves `env[binding]` through `fromEnv` into a resource override. Explicitly overridden resource IDs skip env resolution entirely, so an override never requires its binding.
 3. The kernel handler is materialized per env identity. The Workers runtime keeps `env` stable within an isolate, so steady-state requests reuse one materialization — but any request carrying a different env object re-resolves every env-bound resource before it executes.
 
 Because resource overrides are checked before core's singleton resource cache, no resource instance can serve a request with a stale env. This guarantee has a dedicated regression test (`src/workers/__tests__/env-bridge.test.ts`).

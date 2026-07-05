@@ -13,7 +13,11 @@ export {
   getEnvBinding,
   registerEnvBinding,
 } from './env.js';
-export type { EnvBindingSpec, WorkersEnv } from './env.js';
+export type {
+  BuildEnvResourceOverridesOptions,
+  EnvBindingSpec,
+  WorkersEnv,
+} from './env.js';
 export { cloudflareKv, createMemoryKv } from './kv/index.js';
 export type {
   CloudflareKv,
