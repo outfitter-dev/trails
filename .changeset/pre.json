@@ -31,7 +31,8 @@
     "junction": "0.0.0",
     "lookout": "0.0.0",
     "packlist": "0.0.0",
-    "switchback": "0.0.0"
+    "switchback": "0.0.0",
+    "@ontrails/cloudflare": "1.0.0-beta.37"
   },
   "changesets": [
     "adapter-kit-wildcard-exports",
@@ -52,6 +53,7 @@
     "cli-api-examples",
     "cli-utility-examples",
     "cli-value-aliases",
+    "cloudflare-workers-kv",
     "codex-review-fixes",
     "commander-adapter-package",
     "commander-consumer-cutover",

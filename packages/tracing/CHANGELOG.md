@@ -1,5 +1,7 @@
 # @ontrails/tracing
 
+## 1.0.0-beta.38
+
 ## 1.0.0-beta.37
 
 ## 1.0.0-beta.36
