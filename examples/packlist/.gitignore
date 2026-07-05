@@ -1,0 +1,4 @@
+packlist.sqlite
+packlist.sqlite-journal
+packlist.sqlite-wal
+packlist.sqlite-shm

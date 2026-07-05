@@ -1,0 +1,6221 @@
+{
+  "scope": {
+    "app": "packlist"
+  },
+  "summary": {
+    "contours": 3,
+    "resources": 1,
+    "signals": 10,
+    "trails": 25
+  },
+  "topoGraph": {
+    "activationGraph": {
+      "edgeCount": 1,
+      "edges": [
+        {
+          "hasWhere": false,
+          "sourceId": "pack.weight-stale",
+          "sourceKey": "signal:pack.weight-stale",
+          "sourceKind": "signal",
+          "trailId": "pack.recalculate"
+        }
+      ],
+      "sourceCount": 1,
+      "sourceKeys": [
+        "signal:pack.weight-stale"
+      ],
+      "trailIds": [
+        "pack.recalculate"
+      ]
+    },
+    "activationSources": {
+      "signal:pack.weight-stale": {
+        "id": "pack.weight-stale",
+        "key": "signal:pack.weight-stale",
+        "kind": "signal"
+      }
+    },
+    "entries": [
+      {
+        "exampleCount": 0,
+        "id": "db",
+        "kind": "resource",
+        "surfaces": [],
+        "description": "SQLite gear/pack/trip store. Set PACKLIST_DB to relocate the database file.",
+        "healthcheck": true
+      },
+      {
+        "exampleCount": 0,
+        "id": "db:gear.created",
+        "kind": "signal",
+        "surfaces": [],
+        "consumers": [],
+        "description": "Fired after a \"gear\" entity is created.",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "input": {
+          "properties": {
+            "category": {
+              "enum": [
+                "shelter",
+                "cook",
+                "wear",
+                "carry",
+                "other"
+              ],
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "notes": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "version": {
+              "type": "number"
+            },
+            "weightGrams": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "category",
+            "id",
+            "name",
+            "weightGrams",
+            "version"
+          ],
+          "type": "object"
+        },
+        "payload": {
+          "properties": {
+            "category": {
+              "enum": [
+                "shelter",
+                "cook",
+                "wear",
+                "carry",
+                "other"
+              ],
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "notes": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "version": {
+              "type": "number"
+            },
+            "weightGrams": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "category",
+            "id",
+            "name",
+            "weightGrams",
+            "version"
+          ],
+          "type": "object"
+        },
+        "producers": []
+      },
+      {
+        "exampleCount": 0,
+        "id": "db:gear.removed",
+        "kind": "signal",
+        "surfaces": [],
+        "consumers": [],
+        "description": "Fired after a \"gear\" entity is removed.",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "input": {
+          "properties": {
+            "category": {
+              "enum": [
+                "shelter",
+                "cook",
+                "wear",
+                "carry",
+                "other"
+              ],
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "notes": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "version": {
+              "type": "number"
+            },
+            "weightGrams": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "category",
+            "id",
+            "name",
+            "weightGrams",
+            "version"
+          ],
+          "type": "object"
+        },
+        "payload": {
+          "properties": {
+            "category": {
+              "enum": [
+                "shelter",
+                "cook",
+                "wear",
+                "carry",
+                "other"
+              ],
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "notes": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "version": {
+              "type": "number"
+            },
+            "weightGrams": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "category",
+            "id",
+            "name",
+            "weightGrams",
+            "version"
+          ],
+          "type": "object"
+        },
+        "producers": []
+      },
+      {
+        "exampleCount": 0,
+        "id": "db:gear.updated",
+        "kind": "signal",
+        "surfaces": [],
+        "consumers": [],
+        "description": "Fired after a \"gear\" entity is updated.",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "input": {
+          "properties": {
+            "category": {
+              "enum": [
+                "shelter",
+                "cook",
+                "wear",
+                "carry",
+                "other"
+              ],
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "notes": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "version": {
+              "type": "number"
+            },
+            "weightGrams": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "category",
+            "id",
+            "name",
+            "weightGrams",
+            "version"
+          ],
+          "type": "object"
+        },
+        "payload": {
+          "properties": {
+            "category": {
+              "enum": [
+                "shelter",
+                "cook",
+                "wear",
+                "carry",
+                "other"
+              ],
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "notes": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "version": {
+              "type": "number"
+            },
+            "weightGrams": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "category",
+            "id",
+            "name",
+            "weightGrams",
+            "version"
+          ],
+          "type": "object"
+        },
+        "producers": []
+      },
+      {
+        "exampleCount": 0,
+        "id": "db:pack.created",
+        "kind": "signal",
+        "surfaces": [],
+        "consumers": [],
+        "description": "Fired after a \"pack\" entity is created.",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "input": {
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "items": {
+              "items": {
+                "properties": {
+                  "gearId": {
+                    "type": "string"
+                  },
+                  "quantity": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "gearId",
+                  "quantity"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "name": {
+              "type": "string"
+            },
+            "version": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "id",
+            "items",
+            "name",
+            "version"
+          ],
+          "type": "object"
+        },
+        "payload": {
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "items": {
+              "items": {
+                "properties": {
+                  "gearId": {
+                    "type": "string"
+                  },
+                  "quantity": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "gearId",
+                  "quantity"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "name": {
+              "type": "string"
+            },
+            "version": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "id",
+            "items",
+            "name",
+            "version"
+          ],
+          "type": "object"
+        },
+        "producers": []
+      },
+      {
+        "exampleCount": 0,
+        "id": "db:pack.removed",
+        "kind": "signal",
+        "surfaces": [],
+        "consumers": [],
+        "description": "Fired after a \"pack\" entity is removed.",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "input": {
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "items": {
+              "items": {
+                "properties": {
+                  "gearId": {
+                    "type": "string"
+                  },
+                  "quantity": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "gearId",
+                  "quantity"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "name": {
+              "type": "string"
+            },
+            "version": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "id",
+            "items",
+            "name",
+            "version"
+          ],
+          "type": "object"
+        },
+        "payload": {
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "items": {
+              "items": {
+                "properties": {
+                  "gearId": {
+                    "type": "string"
+                  },
+                  "quantity": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "gearId",
+                  "quantity"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "name": {
+              "type": "string"
+            },
+            "version": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "id",
+            "items",
+            "name",
+            "version"
+          ],
+          "type": "object"
+        },
+        "producers": []
+      },
+      {
+        "exampleCount": 0,
+        "id": "db:pack.updated",
+        "kind": "signal",
+        "surfaces": [],
+        "consumers": [],
+        "description": "Fired after a \"pack\" entity is updated.",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "input": {
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "items": {
+              "items": {
+                "properties": {
+                  "gearId": {
+                    "type": "string"
+                  },
+                  "quantity": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "gearId",
+                  "quantity"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "name": {
+              "type": "string"
+            },
+            "version": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "id",
+            "items",
+            "name",
+            "version"
+          ],
+          "type": "object"
+        },
+        "payload": {
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "items": {
+              "items": {
+                "properties": {
+                  "gearId": {
+                    "type": "string"
+                  },
+                  "quantity": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "gearId",
+                  "quantity"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "name": {
+              "type": "string"
+            },
+            "version": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "id",
+            "items",
+            "name",
+            "version"
+          ],
+          "type": "object"
+        },
+        "producers": []
+      },
+      {
+        "exampleCount": 0,
+        "id": "db:trip.created",
+        "kind": "signal",
+        "surfaces": [],
+        "consumers": [],
+        "description": "Fired after a \"trip\" entity is created.",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "input": {
+          "properties": {
+            "endDate": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "notes": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "packId": {
+              "type": "string"
+            },
+            "startDate": {
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "planned",
+                "active",
+                "done"
+              ],
+              "type": "string"
+            },
+            "version": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "endDate",
+            "id",
+            "name",
+            "packId",
+            "startDate",
+            "status",
+            "version"
+          ],
+          "type": "object"
+        },
+        "payload": {
+          "properties": {
+            "endDate": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "notes": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "packId": {
+              "type": "string"
+            },
+            "startDate": {
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "planned",
+                "active",
+                "done"
+              ],
+              "type": "string"
+            },
+            "version": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "endDate",
+            "id",
+            "name",
+            "packId",
+            "startDate",
+            "status",
+            "version"
+          ],
+          "type": "object"
+        },
+        "producers": []
+      },
+      {
+        "exampleCount": 0,
+        "id": "db:trip.removed",
+        "kind": "signal",
+        "surfaces": [],
+        "consumers": [],
+        "description": "Fired after a \"trip\" entity is removed.",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "input": {
+          "properties": {
+            "endDate": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "notes": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "packId": {
+              "type": "string"
+            },
+            "startDate": {
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "planned",
+                "active",
+                "done"
+              ],
+              "type": "string"
+            },
+            "version": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "endDate",
+            "id",
+            "name",
+            "packId",
+            "startDate",
+            "status",
+            "version"
+          ],
+          "type": "object"
+        },
+        "payload": {
+          "properties": {
+            "endDate": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "notes": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "packId": {
+              "type": "string"
+            },
+            "startDate": {
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "planned",
+                "active",
+                "done"
+              ],
+              "type": "string"
+            },
+            "version": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "endDate",
+            "id",
+            "name",
+            "packId",
+            "startDate",
+            "status",
+            "version"
+          ],
+          "type": "object"
+        },
+        "producers": []
+      },
+      {
+        "exampleCount": 0,
+        "id": "db:trip.updated",
+        "kind": "signal",
+        "surfaces": [],
+        "consumers": [],
+        "description": "Fired after a \"trip\" entity is updated.",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "input": {
+          "properties": {
+            "endDate": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "notes": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "packId": {
+              "type": "string"
+            },
+            "startDate": {
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "planned",
+                "active",
+                "done"
+              ],
+              "type": "string"
+            },
+            "version": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "endDate",
+            "id",
+            "name",
+            "packId",
+            "startDate",
+            "status",
+            "version"
+          ],
+          "type": "object"
+        },
+        "payload": {
+          "properties": {
+            "endDate": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "notes": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "packId": {
+              "type": "string"
+            },
+            "startDate": {
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "planned",
+                "active",
+                "done"
+              ],
+              "type": "string"
+            },
+            "version": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "endDate",
+            "id",
+            "name",
+            "packId",
+            "startDate",
+            "status",
+            "version"
+          ],
+          "type": "object"
+        },
+        "producers": []
+      },
+      {
+        "exampleCount": 4,
+        "id": "gear",
+        "kind": "contour",
+        "surfaces": [],
+        "identity": "id",
+        "schema": {
+          "properties": {
+            "category": {
+              "enum": [
+                "shelter",
+                "cook",
+                "wear",
+                "carry",
+                "other"
+              ],
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "notes": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "version": {
+              "type": "number"
+            },
+            "weightGrams": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "category",
+            "id",
+            "name",
+            "weightGrams"
+          ],
+          "type": "object"
+        }
+      },
+      {
+        "exampleCount": 2,
+        "id": "gear.create",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "gear",
+            "create"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "gear",
+                "create"
+              ],
+              "source": "derived",
+              "target": "gear.create"
+            }
+          ]
+        },
+        "description": "Add a piece of gear to the locker",
+        "examples": [
+          {
+            "input": {
+              "category": "other",
+              "name": "Sleeping Bag",
+              "weightGrams": 860
+            },
+            "kind": "success",
+            "name": "Add new gear",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Create gear with a unique name",
+            "expectedMatch": {
+              "category": "other",
+              "name": "Sleeping Bag",
+              "weightGrams": 860
+            }
+          },
+          {
+            "input": {
+              "category": "shelter",
+              "name": "Tent",
+              "weightGrams": 1700
+            },
+            "kind": "error",
+            "name": "Duplicate gear name conflicts",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Duplicate gear names are rejected with a conflict",
+            "error": "AlreadyExistsError"
+          }
+        ],
+        "input": {
+          "properties": {
+            "category": {
+              "description": "Gear category: shelter, cook, wear, carry, or other",
+              "enum": [
+                "shelter",
+                "cook",
+                "wear",
+                "carry",
+                "other"
+              ],
+              "type": "string"
+            },
+            "name": {
+              "description": "Unique gear name",
+              "type": "string"
+            },
+            "notes": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Free-form notes"
+            },
+            "weightGrams": {
+              "description": "Weight in grams",
+              "type": "number"
+            }
+          },
+          "required": [
+            "category",
+            "name",
+            "weightGrams"
+          ],
+          "type": "object"
+        },
+        "marker": "bf6d820b7eb2c67b",
+        "output": {
+          "properties": {
+            "category": {
+              "description": "Gear category: shelter, cook, wear, carry, or other",
+              "enum": [
+                "shelter",
+                "cook",
+                "wear",
+                "carry",
+                "other"
+              ],
+              "type": "string"
+            },
+            "id": {
+              "description": "Generated gear id",
+              "type": "string"
+            },
+            "name": {
+              "description": "Unique gear name",
+              "type": "string"
+            },
+            "notes": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Free-form notes"
+            },
+            "version": {
+              "description": "Optimistic concurrency version",
+              "type": "number"
+            },
+            "weightGrams": {
+              "description": "Weight in grams",
+              "type": "number"
+            }
+          },
+          "required": [
+            "category",
+            "id",
+            "name",
+            "version",
+            "weightGrams"
+          ],
+          "type": "object"
+        },
+        "permit": {
+          "scopes": [
+            "packlist:write"
+          ]
+        },
+        "resources": [
+          "db"
+        ],
+        "supports": [
+          1,
+          2
+        ],
+        "version": 2,
+        "versions": {
+          "1": {
+            "exampleCount": 2,
+            "examples": [
+              {
+                "input": {
+                  "category": "shelter",
+                  "name": "Ultralight Tarp",
+                  "weightOz": 16
+                },
+                "kind": "success",
+                "name": "Add gear in ounces (v1)",
+                "provenance": {
+                  "source": "trail.versions.examples"
+                },
+                "description": "The v1 contract accepts ounces and reports ounces",
+                "expectedMatch": {
+                  "category": "shelter",
+                  "name": "Ultralight Tarp"
+                }
+              },
+              {
+                "input": {
+                  "category": "shelter",
+                  "name": "Tent",
+                  "weightOz": 60
+                },
+                "kind": "error",
+                "name": "Duplicate gear name conflicts (v1)",
+                "provenance": {
+                  "source": "trail.versions.examples"
+                },
+                "description": "The duplicate-name conflict predates v2",
+                "error": "AlreadyExistsError"
+              }
+            ],
+            "input": {
+              "properties": {
+                "category": {
+                  "description": "Gear category: shelter, cook, wear, carry, or other",
+                  "enum": [
+                    "shelter",
+                    "cook",
+                    "wear",
+                    "carry",
+                    "other"
+                  ],
+                  "type": "string"
+                },
+                "name": {
+                  "description": "Unique gear name",
+                  "type": "string"
+                },
+                "notes": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Free-form notes"
+                },
+                "weightOz": {
+                  "description": "Weight in ounces",
+                  "type": "number"
+                }
+              },
+              "required": [
+                "category",
+                "name",
+                "weightOz"
+              ],
+              "type": "object"
+            },
+            "kind": "fork",
+            "marker": "2e86f88bc0098367",
+            "output": {
+              "properties": {
+                "category": {
+                  "description": "Gear category: shelter, cook, wear, carry, or other",
+                  "enum": [
+                    "shelter",
+                    "cook",
+                    "wear",
+                    "carry",
+                    "other"
+                  ],
+                  "type": "string"
+                },
+                "id": {
+                  "description": "Generated gear id",
+                  "type": "string"
+                },
+                "name": {
+                  "description": "Unique gear name",
+                  "type": "string"
+                },
+                "notes": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Free-form notes"
+                },
+                "version": {
+                  "description": "Optimistic concurrency version",
+                  "type": "number"
+                },
+                "weightOz": {
+                  "description": "Weight in ounces",
+                  "type": "number"
+                }
+              },
+              "required": [
+                "category",
+                "id",
+                "name",
+                "version",
+                "weightOz"
+              ],
+              "type": "object"
+            },
+            "resources": [
+              "db"
+            ],
+            "status": {
+              "migration": [
+                "Send weightGrams instead of weightOz (1 oz = 28.3495 g).",
+                "Read weights back in grams; v2 responses no longer include weightOz."
+              ],
+              "note": "v1 stays callable through version negotiation while integrations move to grams.",
+              "state": "deprecated",
+              "successor": 2
+            }
+          }
+        }
+      },
+      {
+        "exampleCount": 2,
+        "id": "gear.delete",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "gear",
+            "delete"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "gear",
+                "delete"
+              ],
+              "source": "derived",
+              "target": "gear.delete"
+            }
+          ]
+        },
+        "description": "Remove a piece of gear from the locker",
+        "examples": [
+          {
+            "input": {
+              "id": "gear-oldstove"
+            },
+            "kind": "success",
+            "name": "Delete existing gear",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Delete gear that exists",
+            "expected": {
+              "deleted": true,
+              "id": "gear-oldstove"
+            }
+          },
+          {
+            "input": {
+              "id": "gear-missing"
+            },
+            "kind": "error",
+            "name": "Delete missing gear",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Missing ids report not found",
+            "error": "NotFoundError"
+          }
+        ],
+        "input": {
+          "properties": {
+            "id": {
+              "description": "Gear id to delete",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "type": "object"
+        },
+        "intent": "destroy",
+        "output": {
+          "properties": {
+            "deleted": {
+              "type": "boolean"
+            },
+            "id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "deleted",
+            "id"
+          ],
+          "type": "object"
+        },
+        "permit": {
+          "scopes": [
+            "packlist:write"
+          ]
+        },
+        "resources": [
+          "db"
+        ]
+      },
+      {
+        "exampleCount": 2,
+        "id": "gear.list",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "gear",
+            "list"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "gear",
+                "list"
+              ],
+              "source": "derived",
+              "target": "gear.list"
+            }
+          ]
+        },
+        "description": "List gear, optionally filtered by category",
+        "examples": [
+          {
+            "input": {},
+            "kind": "success",
+            "name": "List all gear",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "List the whole gear locker"
+          },
+          {
+            "input": {
+              "category": "cook"
+            },
+            "kind": "success",
+            "name": "List cook gear",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Filter the locker down to one category"
+          }
+        ],
+        "input": {
+          "properties": {
+            "category": {
+              "description": "Gear category: shelter, cook, wear, carry, or other",
+              "enum": [
+                "shelter",
+                "cook",
+                "wear",
+                "carry",
+                "other"
+              ],
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "intent": "read",
+        "output": {
+          "items": {
+            "properties": {
+              "category": {
+                "description": "Gear category: shelter, cook, wear, carry, or other",
+                "enum": [
+                  "shelter",
+                  "cook",
+                  "wear",
+                  "carry",
+                  "other"
+                ],
+                "type": "string"
+              },
+              "id": {
+                "description": "Generated gear id",
+                "type": "string"
+              },
+              "name": {
+                "description": "Unique gear name",
+                "type": "string"
+              },
+              "notes": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Free-form notes"
+              },
+              "version": {
+                "description": "Optimistic concurrency version",
+                "type": "number"
+              },
+              "weightGrams": {
+                "description": "Weight in grams",
+                "type": "number"
+              }
+            },
+            "required": [
+              "category",
+              "id",
+              "name",
+              "version",
+              "weightGrams"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "resources": [
+          "db"
+        ]
+      },
+      {
+        "exampleCount": 2,
+        "id": "gear.read",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "gear",
+            "read"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "gear",
+                "read"
+              ],
+              "source": "derived",
+              "target": "gear.read"
+            }
+          ]
+        },
+        "description": "Show one piece of gear by id",
+        "examples": [
+          {
+            "input": {
+              "id": "gear-tent"
+            },
+            "kind": "success",
+            "name": "Read existing gear",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Look up gear by its id",
+            "expectedMatch": {
+              "id": "gear-tent",
+              "name": "Tent"
+            }
+          },
+          {
+            "input": {
+              "id": "gear-missing"
+            },
+            "kind": "error",
+            "name": "Read missing gear",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Missing ids report not found",
+            "error": "NotFoundError"
+          }
+        ],
+        "input": {
+          "properties": {
+            "id": {
+              "description": "Gear id to look up",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "type": "object"
+        },
+        "intent": "read",
+        "output": {
+          "properties": {
+            "category": {
+              "description": "Gear category: shelter, cook, wear, carry, or other",
+              "enum": [
+                "shelter",
+                "cook",
+                "wear",
+                "carry",
+                "other"
+              ],
+              "type": "string"
+            },
+            "id": {
+              "description": "Generated gear id",
+              "type": "string"
+            },
+            "name": {
+              "description": "Unique gear name",
+              "type": "string"
+            },
+            "notes": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Free-form notes"
+            },
+            "version": {
+              "description": "Optimistic concurrency version",
+              "type": "number"
+            },
+            "weightGrams": {
+              "description": "Weight in grams",
+              "type": "number"
+            }
+          },
+          "required": [
+            "category",
+            "id",
+            "name",
+            "version",
+            "weightGrams"
+          ],
+          "type": "object"
+        },
+        "resources": [
+          "db"
+        ]
+      },
+      {
+        "exampleCount": 0,
+        "id": "gear.reconcile",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "gear",
+            "reconcile"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "gear",
+                "reconcile"
+              ],
+              "source": "derived",
+              "target": "gear.reconcile"
+            }
+          ]
+        },
+        "contours": [
+          "gear"
+        ],
+        "description": "Reconcile version conflicts for \"gear\" entities.",
+        "detours": [
+          {
+            "maxAttempts": 1,
+            "on": "ConflictError"
+          }
+        ],
+        "input": {
+          "properties": {
+            "category": {
+              "enum": [
+                "shelter",
+                "cook",
+                "wear",
+                "carry",
+                "other"
+              ],
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "notes": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "version": {
+              "type": "number"
+            },
+            "weightGrams": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "category",
+            "name",
+            "weightGrams",
+            "version"
+          ],
+          "type": "object"
+        },
+        "output": {
+          "properties": {
+            "category": {
+              "enum": [
+                "shelter",
+                "cook",
+                "wear",
+                "carry",
+                "other"
+              ],
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "notes": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "version": {
+              "type": "number"
+            },
+            "weightGrams": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "category",
+            "id",
+            "name",
+            "weightGrams",
+            "version"
+          ],
+          "type": "object"
+        },
+        "pattern": "reconcile",
+        "permit": {
+          "scopes": [
+            "packlist:write"
+          ]
+        },
+        "resources": [
+          "db"
+        ]
+      },
+      {
+        "exampleCount": 2,
+        "id": "gear.update",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "gear",
+            "update"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "gear",
+                "update"
+              ],
+              "source": "derived",
+              "target": "gear.update"
+            }
+          ]
+        },
+        "description": "Update fields on a piece of gear; weight changes mark carrying packs stale",
+        "examples": [
+          {
+            "input": {
+              "id": "gear-stove",
+              "weightGrams": 250
+            },
+            "kind": "success",
+            "name": "Update gear weight",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Re-weighing gear carried by a pack fires pack.weight-stale",
+            "expectedMatch": {
+              "id": "gear-stove",
+              "weightGrams": 250
+            },
+            "signals": [
+              {
+                "signalId": "pack.weight-stale",
+                "payloadMatch": {
+                  "gearId": "gear-stove",
+                  "packIds": [
+                    "pack-weekend"
+                  ],
+                  "weightGrams": 250
+                }
+              }
+            ]
+          },
+          {
+            "input": {
+              "id": "gear-missing",
+              "weightGrams": 1
+            },
+            "kind": "error",
+            "name": "Update missing gear",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Missing ids report not found",
+            "error": "NotFoundError"
+          }
+        ],
+        "fires": [
+          "pack.weight-stale"
+        ],
+        "input": {
+          "properties": {
+            "category": {
+              "description": "Gear category: shelter, cook, wear, carry, or other",
+              "enum": [
+                "shelter",
+                "cook",
+                "wear",
+                "carry",
+                "other"
+              ],
+              "type": "string"
+            },
+            "id": {
+              "description": "Gear id to update",
+              "type": "string"
+            },
+            "name": {
+              "description": "New unique gear name",
+              "type": "string"
+            },
+            "notes": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Free-form notes"
+            },
+            "weightGrams": {
+              "description": "Weight in grams",
+              "type": "number"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "type": "object"
+        },
+        "output": {
+          "properties": {
+            "category": {
+              "description": "Gear category: shelter, cook, wear, carry, or other",
+              "enum": [
+                "shelter",
+                "cook",
+                "wear",
+                "carry",
+                "other"
+              ],
+              "type": "string"
+            },
+            "id": {
+              "description": "Generated gear id",
+              "type": "string"
+            },
+            "name": {
+              "description": "Unique gear name",
+              "type": "string"
+            },
+            "notes": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Free-form notes"
+            },
+            "version": {
+              "description": "Optimistic concurrency version",
+              "type": "number"
+            },
+            "weightGrams": {
+              "description": "Weight in grams",
+              "type": "number"
+            }
+          },
+          "required": [
+            "category",
+            "id",
+            "name",
+            "version",
+            "weightGrams"
+          ],
+          "type": "object"
+        },
+        "permit": {
+          "scopes": [
+            "packlist:write"
+          ]
+        },
+        "resources": [
+          "db"
+        ]
+      },
+      {
+        "exampleCount": 2,
+        "id": "pack",
+        "kind": "contour",
+        "surfaces": [],
+        "identity": "id",
+        "schema": {
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "items": {
+              "items": {
+                "properties": {
+                  "gearId": {
+                    "type": "string"
+                  },
+                  "quantity": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "gearId",
+                  "quantity"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "name": {
+              "type": "string"
+            },
+            "version": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "id",
+            "items",
+            "name"
+          ],
+          "type": "object"
+        }
+      },
+      {
+        "exampleCount": 3,
+        "id": "pack.add-gear",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "pack",
+            "add-gear"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "pack",
+                "add-gear"
+              ],
+              "source": "derived",
+              "target": "pack.add-gear"
+            }
+          ]
+        },
+        "description": "Add gear to a pack (or increase its quantity)",
+        "examples": [
+          {
+            "input": {
+              "gearId": "gear-bearcan",
+              "packId": "pack-weekend",
+              "quantity": 1
+            },
+            "kind": "success",
+            "name": "Add gear to a pack",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Adding gear appends an item line to the pack",
+            "expectedMatch": {
+              "id": "pack-weekend"
+            }
+          },
+          {
+            "input": {
+              "gearId": "gear-tent",
+              "packId": "pack-weekend",
+              "quantity": 0
+            },
+            "kind": "error",
+            "name": "Reject zero quantity",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Quantities below one are rejected at the boundary",
+            "error": "ValidationError"
+          },
+          {
+            "input": {
+              "gearId": "gear-missing",
+              "packId": "pack-weekend",
+              "quantity": 1
+            },
+            "kind": "error",
+            "name": "Add missing gear",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Unknown gear ids report not found",
+            "error": "NotFoundError"
+          }
+        ],
+        "input": {
+          "properties": {
+            "gearId": {
+              "description": "Gear id to add",
+              "type": "string"
+            },
+            "packId": {
+              "description": "Pack id to modify",
+              "type": "string"
+            },
+            "quantity": {
+              "description": "How many to add (at least 1)",
+              "type": "number"
+            }
+          },
+          "required": [
+            "gearId",
+            "packId",
+            "quantity"
+          ],
+          "type": "object"
+        },
+        "output": {
+          "properties": {
+            "id": {
+              "description": "Generated pack id",
+              "type": "string"
+            },
+            "items": {
+              "items": {
+                "properties": {
+                  "gearId": {
+                    "description": "Gear carried in this pack",
+                    "type": "string"
+                  },
+                  "quantity": {
+                    "description": "How many of that gear",
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "gearId",
+                  "quantity"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "name": {
+              "description": "Pack name",
+              "type": "string"
+            },
+            "version": {
+              "description": "Optimistic concurrency version",
+              "type": "number"
+            }
+          },
+          "required": [
+            "id",
+            "items",
+            "name",
+            "version"
+          ],
+          "type": "object"
+        },
+        "permit": {
+          "scopes": [
+            "packlist:write"
+          ]
+        },
+        "resources": [
+          "db"
+        ]
+      },
+      {
+        "exampleCount": 0,
+        "id": "pack.create",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "pack",
+            "create"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "pack",
+                "create"
+              ],
+              "source": "derived",
+              "target": "pack.create"
+            }
+          ]
+        },
+        "contours": [
+          "pack"
+        ],
+        "input": {
+          "properties": {
+            "items": {
+              "items": {
+                "properties": {
+                  "gearId": {
+                    "type": "string"
+                  },
+                  "quantity": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "gearId",
+                  "quantity"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "name": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "items",
+            "name"
+          ],
+          "type": "object"
+        },
+        "output": {
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "items": {
+              "items": {
+                "properties": {
+                  "gearId": {
+                    "type": "string"
+                  },
+                  "quantity": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "gearId",
+                  "quantity"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "name": {
+              "type": "string"
+            },
+            "version": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "id",
+            "items",
+            "name",
+            "version"
+          ],
+          "type": "object"
+        },
+        "pattern": "crud",
+        "permit": {
+          "scopes": [
+            "packlist:write"
+          ]
+        },
+        "resources": [
+          "db"
+        ]
+      },
+      {
+        "exampleCount": 2,
+        "id": "pack.delete",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "pack",
+            "delete"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "pack",
+                "delete"
+              ],
+              "source": "derived",
+              "target": "pack.delete"
+            }
+          ]
+        },
+        "contours": [
+          "pack"
+        ],
+        "examples": [
+          {
+            "input": {
+              "id": "pack-weekend"
+            },
+            "kind": "success",
+            "name": "Delete pack pack-weekend",
+            "provenance": {
+              "source": "trail.examples"
+            }
+          },
+          {
+            "input": {
+              "id": "pack-retired"
+            },
+            "kind": "success",
+            "name": "Delete pack pack-retired",
+            "provenance": {
+              "source": "trail.examples"
+            }
+          }
+        ],
+        "input": {
+          "properties": {
+            "id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "type": "object"
+        },
+        "intent": "destroy",
+        "output": {},
+        "pattern": "crud",
+        "permit": {
+          "scopes": [
+            "packlist:write"
+          ]
+        },
+        "resources": [
+          "db"
+        ]
+      },
+      {
+        "exampleCount": 0,
+        "id": "pack.list",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "pack",
+            "list"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "pack",
+                "list"
+              ],
+              "source": "derived",
+              "target": "pack.list"
+            }
+          ]
+        },
+        "contours": [
+          "pack"
+        ],
+        "input": {
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "items": {
+              "items": {
+                "properties": {
+                  "gearId": {
+                    "type": "string"
+                  },
+                  "quantity": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "gearId",
+                  "quantity"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "name": {
+              "type": "string"
+            },
+            "version": {
+              "type": "number"
+            }
+          },
+          "type": "object"
+        },
+        "intent": "read",
+        "output": {
+          "items": {
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "items": {
+                "items": {
+                  "properties": {
+                    "gearId": {
+                      "type": "string"
+                    },
+                    "quantity": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "gearId",
+                    "quantity"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "name": {
+                "type": "string"
+              },
+              "version": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "id",
+              "items",
+              "name",
+              "version"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "pattern": "crud",
+        "resources": [
+          "db"
+        ]
+      },
+      {
+        "exampleCount": 0,
+        "id": "pack.read",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "pack",
+            "read"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "pack",
+                "read"
+              ],
+              "source": "derived",
+              "target": "pack.read"
+            }
+          ]
+        },
+        "contours": [
+          "pack"
+        ],
+        "input": {
+          "properties": {
+            "id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "type": "object"
+        },
+        "intent": "read",
+        "output": {
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "items": {
+              "items": {
+                "properties": {
+                  "gearId": {
+                    "type": "string"
+                  },
+                  "quantity": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "gearId",
+                  "quantity"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "name": {
+              "type": "string"
+            },
+            "version": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "id",
+            "items",
+            "name",
+            "version"
+          ],
+          "type": "object"
+        },
+        "pattern": "crud",
+        "resources": [
+          "db"
+        ]
+      },
+      {
+        "exampleCount": 2,
+        "id": "pack.recalculate",
+        "kind": "trail",
+        "surfaces": [],
+        "activationSources": [
+          {
+            "source": {
+              "id": "pack.weight-stale",
+              "key": "signal:pack.weight-stale",
+              "kind": "signal"
+            }
+          }
+        ],
+        "cli": {
+          "path": [
+            "pack",
+            "recalculate"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "pack",
+                "recalculate"
+              ],
+              "source": "derived",
+              "target": "pack.recalculate"
+            }
+          ]
+        },
+        "composes": [
+          "pack.weight"
+        ],
+        "description": "React to pack.weight-stale by recomputing and logging affected pack weights",
+        "examples": [
+          {
+            "input": {
+              "gearId": "gear-stove",
+              "gearName": "Canister Stove",
+              "packIds": [
+                "pack-weekend"
+              ],
+              "previousWeightGrams": 220,
+              "weightGrams": 250
+            },
+            "kind": "success",
+            "name": "Recalculate stale packs",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Recompute the packs named in the stale signal payload"
+          },
+          {
+            "input": {
+              "gearId": "gear-stove",
+              "gearName": "Canister Stove",
+              "packIds": [],
+              "previousWeightGrams": 220,
+              "weightGrams": 250
+            },
+            "kind": "success",
+            "name": "Recalculate nothing",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "An empty pack list is a no-op",
+            "expected": {
+              "recalculated": []
+            }
+          }
+        ],
+        "input": {
+          "properties": {
+            "gearId": {
+              "description": "Gear whose weight changed",
+              "type": "string"
+            },
+            "gearName": {
+              "description": "Name of the changed gear",
+              "type": "string"
+            },
+            "packIds": {
+              "description": "Packs to recompute",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "previousWeightGrams": {
+              "description": "Weight before the update",
+              "type": "number"
+            },
+            "weightGrams": {
+              "description": "Weight after the update",
+              "type": "number"
+            }
+          },
+          "required": [
+            "gearId",
+            "gearName",
+            "packIds",
+            "previousWeightGrams",
+            "weightGrams"
+          ],
+          "type": "object"
+        },
+        "intent": "read",
+        "on": [
+          "pack.weight-stale"
+        ],
+        "output": {
+          "properties": {
+            "recalculated": {
+              "items": {
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "packId": {
+                    "type": "string"
+                  },
+                  "totalWeightGrams": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "name",
+                  "packId",
+                  "totalWeightGrams"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "recalculated"
+          ],
+          "type": "object"
+        },
+        "resources": [
+          "db"
+        ]
+      },
+      {
+        "exampleCount": 0,
+        "id": "pack.reconcile",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "pack",
+            "reconcile"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "pack",
+                "reconcile"
+              ],
+              "source": "derived",
+              "target": "pack.reconcile"
+            }
+          ]
+        },
+        "contours": [
+          "pack"
+        ],
+        "description": "Reconcile version conflicts for \"pack\" entities.",
+        "detours": [
+          {
+            "maxAttempts": 1,
+            "on": "ConflictError"
+          }
+        ],
+        "input": {
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "items": {
+              "items": {
+                "properties": {
+                  "gearId": {
+                    "type": "string"
+                  },
+                  "quantity": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "gearId",
+                  "quantity"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "name": {
+              "type": "string"
+            },
+            "version": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "items",
+            "name",
+            "version"
+          ],
+          "type": "object"
+        },
+        "output": {
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "items": {
+              "items": {
+                "properties": {
+                  "gearId": {
+                    "type": "string"
+                  },
+                  "quantity": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "gearId",
+                  "quantity"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "name": {
+              "type": "string"
+            },
+            "version": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "id",
+            "items",
+            "name",
+            "version"
+          ],
+          "type": "object"
+        },
+        "pattern": "reconcile",
+        "permit": {
+          "scopes": [
+            "packlist:write"
+          ]
+        },
+        "resources": [
+          "db"
+        ]
+      },
+      {
+        "exampleCount": 3,
+        "id": "pack.remove-gear",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "pack",
+            "remove-gear"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "pack",
+                "remove-gear"
+              ],
+              "source": "derived",
+              "target": "pack.remove-gear"
+            }
+          ]
+        },
+        "description": "Remove gear from a pack (idempotent)",
+        "examples": [
+          {
+            "input": {
+              "gearId": "gear-stove",
+              "packId": "pack-weekend"
+            },
+            "kind": "success",
+            "name": "Remove gear from a pack",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Removing carried gear drops its item line",
+            "expectedMatch": {
+              "id": "pack-weekend"
+            }
+          },
+          {
+            "input": {
+              "gearId": "gear-bearcan",
+              "packId": "pack-weekend"
+            },
+            "kind": "success",
+            "name": "Remove absent gear is idempotent",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Removing gear that is not in the pack is a no-op",
+            "expectedMatch": {
+              "id": "pack-weekend"
+            }
+          },
+          {
+            "input": {
+              "gearId": "gear-tent",
+              "packId": "pack-missing"
+            },
+            "kind": "error",
+            "name": "Remove from missing pack",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Unknown pack ids report not found",
+            "error": "NotFoundError"
+          }
+        ],
+        "input": {
+          "properties": {
+            "gearId": {
+              "description": "Gear id to remove",
+              "type": "string"
+            },
+            "packId": {
+              "description": "Pack id to modify",
+              "type": "string"
+            }
+          },
+          "required": [
+            "gearId",
+            "packId"
+          ],
+          "type": "object"
+        },
+        "output": {
+          "properties": {
+            "id": {
+              "description": "Generated pack id",
+              "type": "string"
+            },
+            "items": {
+              "items": {
+                "properties": {
+                  "gearId": {
+                    "description": "Gear carried in this pack",
+                    "type": "string"
+                  },
+                  "quantity": {
+                    "description": "How many of that gear",
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "gearId",
+                  "quantity"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "name": {
+              "description": "Pack name",
+              "type": "string"
+            },
+            "version": {
+              "description": "Optimistic concurrency version",
+              "type": "number"
+            }
+          },
+          "required": [
+            "id",
+            "items",
+            "name",
+            "version"
+          ],
+          "type": "object"
+        },
+        "permit": {
+          "scopes": [
+            "packlist:write"
+          ]
+        },
+        "resources": [
+          "db"
+        ]
+      },
+      {
+        "exampleCount": 0,
+        "id": "pack.update",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "pack",
+            "update"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "pack",
+                "update"
+              ],
+              "source": "derived",
+              "target": "pack.update"
+            }
+          ]
+        },
+        "contours": [
+          "pack"
+        ],
+        "input": {
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "items": {
+              "items": {
+                "properties": {
+                  "gearId": {
+                    "type": "string"
+                  },
+                  "quantity": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "gearId",
+                  "quantity"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "name": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "type": "object"
+        },
+        "output": {
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "items": {
+              "items": {
+                "properties": {
+                  "gearId": {
+                    "type": "string"
+                  },
+                  "quantity": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "gearId",
+                  "quantity"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "name": {
+              "type": "string"
+            },
+            "version": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "id",
+            "items",
+            "name",
+            "version"
+          ],
+          "type": "object"
+        },
+        "pattern": "crud",
+        "permit": {
+          "scopes": [
+            "packlist:write"
+          ]
+        },
+        "resources": [
+          "db"
+        ]
+      },
+      {
+        "exampleCount": 2,
+        "id": "pack.weight",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "pack",
+            "weight"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "pack",
+                "weight"
+              ],
+              "source": "derived",
+              "target": "pack.weight"
+            }
+          ]
+        },
+        "composes": [
+          "gear.read"
+        ],
+        "description": "Derive a pack’s total weight from current gear weights (never stored)",
+        "examples": [
+          {
+            "input": {
+              "packId": "pack-weekend"
+            },
+            "kind": "success",
+            "name": "Weigh a pack",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Weekend Loop carries the tent and stove fixtures",
+            "expectedMatch": {
+              "name": "Weekend Loop",
+              "packId": "pack-weekend",
+              "totalWeightGrams": 2020
+            }
+          },
+          {
+            "input": {
+              "packId": "pack-missing"
+            },
+            "kind": "error",
+            "name": "Weigh a missing pack",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Unknown pack ids report not found",
+            "error": "NotFoundError"
+          }
+        ],
+        "input": {
+          "properties": {
+            "packId": {
+              "description": "Pack id to weigh",
+              "type": "string"
+            }
+          },
+          "required": [
+            "packId"
+          ],
+          "type": "object"
+        },
+        "intent": "read",
+        "output": {
+          "properties": {
+            "items": {
+              "items": {
+                "properties": {
+                  "gearId": {
+                    "description": "Gear carried in the pack",
+                    "type": "string"
+                  },
+                  "name": {
+                    "description": "Gear name",
+                    "type": "string"
+                  },
+                  "quantity": {
+                    "description": "How many are carried",
+                    "type": "number"
+                  },
+                  "subtotalGrams": {
+                    "description": "quantity × weightGrams",
+                    "type": "number"
+                  },
+                  "weightGrams": {
+                    "description": "Current weight of one unit",
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "gearId",
+                  "name",
+                  "quantity",
+                  "subtotalGrams",
+                  "weightGrams"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "name": {
+              "type": "string"
+            },
+            "packId": {
+              "type": "string"
+            },
+            "totalWeightGrams": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "items",
+            "name",
+            "packId",
+            "totalWeightGrams"
+          ],
+          "type": "object"
+        },
+        "resources": [
+          "db"
+        ]
+      },
+      {
+        "exampleCount": 0,
+        "id": "pack.weight-stale",
+        "kind": "signal",
+        "surfaces": [],
+        "consumers": [
+          "pack.recalculate"
+        ],
+        "description": "Fired when a gear weight change invalidates the derived weight of packs carrying that gear",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "from": [
+          "gear.update"
+        ],
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "input": {
+          "properties": {
+            "gearId": {
+              "description": "Gear whose weight changed",
+              "type": "string"
+            },
+            "gearName": {
+              "description": "Name of the changed gear",
+              "type": "string"
+            },
+            "packIds": {
+              "description": "Packs whose derived weight is now stale",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "previousWeightGrams": {
+              "description": "Weight before the update",
+              "type": "number"
+            },
+            "weightGrams": {
+              "description": "Weight after the update",
+              "type": "number"
+            }
+          },
+          "required": [
+            "gearId",
+            "gearName",
+            "packIds",
+            "previousWeightGrams",
+            "weightGrams"
+          ],
+          "type": "object"
+        },
+        "payload": {
+          "properties": {
+            "gearId": {
+              "description": "Gear whose weight changed",
+              "type": "string"
+            },
+            "gearName": {
+              "description": "Name of the changed gear",
+              "type": "string"
+            },
+            "packIds": {
+              "description": "Packs whose derived weight is now stale",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "previousWeightGrams": {
+              "description": "Weight before the update",
+              "type": "number"
+            },
+            "weightGrams": {
+              "description": "Weight after the update",
+              "type": "number"
+            }
+          },
+          "required": [
+            "gearId",
+            "gearName",
+            "packIds",
+            "previousWeightGrams",
+            "weightGrams"
+          ],
+          "type": "object"
+        },
+        "producers": [
+          "gear.update"
+        ]
+      },
+      {
+        "exampleCount": 1,
+        "id": "seed.demo",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "seed",
+            "demo"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "seed",
+                "demo"
+              ],
+              "source": "derived",
+              "target": "seed.demo"
+            }
+          ]
+        },
+        "description": "Load the demo gear, pack, and trip (idempotent)",
+        "examples": [
+          {
+            "input": {},
+            "kind": "success",
+            "name": "Seed the demo data",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Seeding reports how many rows were written",
+            "expected": {
+              "gear": 4,
+              "packs": 1,
+              "trips": 1
+            }
+          }
+        ],
+        "input": {
+          "properties": {},
+          "type": "object"
+        },
+        "output": {
+          "properties": {
+            "gear": {
+              "type": "number"
+            },
+            "packs": {
+              "type": "number"
+            },
+            "trips": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "gear",
+            "packs",
+            "trips"
+          ],
+          "type": "object"
+        },
+        "permit": {
+          "scopes": [
+            "packlist:write"
+          ]
+        },
+        "resources": [
+          "db"
+        ]
+      },
+      {
+        "exampleCount": 2,
+        "id": "trip",
+        "kind": "contour",
+        "surfaces": [],
+        "identity": "id",
+        "schema": {
+          "properties": {
+            "endDate": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "notes": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "packId": {
+              "type": "string"
+            },
+            "startDate": {
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "planned",
+                "active",
+                "done"
+              ],
+              "type": "string"
+            },
+            "version": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "endDate",
+            "id",
+            "name",
+            "packId",
+            "startDate",
+            "status"
+          ],
+          "type": "object"
+        }
+      },
+      {
+        "exampleCount": 2,
+        "id": "trip.checklist",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "trip",
+            "checklist"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "trip",
+                "checklist"
+              ],
+              "source": "derived",
+              "target": "trip.checklist"
+            }
+          ]
+        },
+        "composes": [
+          "gear.list",
+          "pack.read"
+        ],
+        "description": "Build the packing checklist for a trip from its pack",
+        "examples": [
+          {
+            "input": {
+              "id": "trip-lostcoast"
+            },
+            "kind": "success",
+            "name": "Checklist for a planned trip",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Checklist rows join pack items with current gear",
+            "expectedMatch": {
+              "packName": "Weekend Loop",
+              "totalWeightGrams": 2020,
+              "tripName": "Lost Coast"
+            }
+          },
+          {
+            "input": {
+              "id": "trip-missing"
+            },
+            "kind": "error",
+            "name": "Checklist for a missing trip",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Unknown trip ids report not found",
+            "error": "NotFoundError"
+          }
+        ],
+        "input": {
+          "properties": {
+            "id": {
+              "description": "Trip id to build a checklist for",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "type": "object"
+        },
+        "intent": "read",
+        "output": {
+          "properties": {
+            "packName": {
+              "type": "string"
+            },
+            "rows": {
+              "items": {
+                "properties": {
+                  "category": {
+                    "description": "Gear category",
+                    "type": "string"
+                  },
+                  "name": {
+                    "description": "Gear name",
+                    "type": "string"
+                  },
+                  "packed": {
+                    "description": "Starting state for the checklist",
+                    "type": "boolean"
+                  },
+                  "quantity": {
+                    "description": "How many to pack",
+                    "type": "number"
+                  },
+                  "weightGrams": {
+                    "description": "Weight of one unit",
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "category",
+                  "name",
+                  "packed",
+                  "quantity",
+                  "weightGrams"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "totalWeightGrams": {
+              "type": "number"
+            },
+            "tripId": {
+              "type": "string"
+            },
+            "tripName": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "packName",
+            "rows",
+            "totalWeightGrams",
+            "tripId",
+            "tripName"
+          ],
+          "type": "object"
+        },
+        "resources": [
+          "db"
+        ]
+      },
+      {
+        "exampleCount": 2,
+        "id": "trip.complete",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "trip",
+            "complete"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "trip",
+                "complete"
+              ],
+              "source": "derived",
+              "target": "trip.complete"
+            }
+          ]
+        },
+        "description": "Mark a trip as done",
+        "examples": [
+          {
+            "input": {
+              "id": "trip-lostcoast"
+            },
+            "kind": "success",
+            "name": "Complete a planned trip",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Completing a planned trip flips its status",
+            "expectedMatch": {
+              "id": "trip-lostcoast",
+              "status": "done"
+            }
+          },
+          {
+            "input": {
+              "id": "trip-done"
+            },
+            "kind": "error",
+            "name": "Complete an already-done trip",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Trips cannot be completed twice",
+            "error": "ValidationError"
+          }
+        ],
+        "input": {
+          "properties": {
+            "id": {
+              "description": "Trip id to complete",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "type": "object"
+        },
+        "output": {
+          "properties": {
+            "endDate": {
+              "description": "Trip end date (ISO)",
+              "type": "string"
+            },
+            "id": {
+              "description": "Generated trip id",
+              "type": "string"
+            },
+            "name": {
+              "description": "Trip name",
+              "type": "string"
+            },
+            "notes": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Free-form notes"
+            },
+            "packId": {
+              "description": "Pack carried on this trip",
+              "type": "string"
+            },
+            "startDate": {
+              "description": "Trip start date (ISO)",
+              "type": "string"
+            },
+            "status": {
+              "description": "planned, active, or done",
+              "enum": [
+                "planned",
+                "active",
+                "done"
+              ],
+              "type": "string"
+            },
+            "version": {
+              "description": "Optimistic concurrency version",
+              "type": "number"
+            }
+          },
+          "required": [
+            "endDate",
+            "id",
+            "name",
+            "packId",
+            "startDate",
+            "status",
+            "version"
+          ],
+          "type": "object"
+        },
+        "permit": {
+          "scopes": [
+            "packlist:write"
+          ]
+        },
+        "resources": [
+          "db"
+        ]
+      },
+      {
+        "exampleCount": 0,
+        "id": "trip.create",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "trip",
+            "create"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "trip",
+                "create"
+              ],
+              "source": "derived",
+              "target": "trip.create"
+            }
+          ]
+        },
+        "contours": [
+          "trip"
+        ],
+        "input": {
+          "properties": {
+            "endDate": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "notes": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "packId": {
+              "type": "string"
+            },
+            "startDate": {
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "planned",
+                "active",
+                "done"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "endDate",
+            "name",
+            "packId",
+            "startDate",
+            "status"
+          ],
+          "type": "object"
+        },
+        "output": {
+          "properties": {
+            "endDate": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "notes": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "packId": {
+              "type": "string"
+            },
+            "startDate": {
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "planned",
+                "active",
+                "done"
+              ],
+              "type": "string"
+            },
+            "version": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "endDate",
+            "id",
+            "name",
+            "packId",
+            "startDate",
+            "status",
+            "version"
+          ],
+          "type": "object"
+        },
+        "pattern": "crud",
+        "permit": {
+          "scopes": [
+            "packlist:write"
+          ]
+        },
+        "resources": [
+          "db"
+        ]
+      },
+      {
+        "exampleCount": 2,
+        "id": "trip.delete",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "trip",
+            "delete"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "trip",
+                "delete"
+              ],
+              "source": "derived",
+              "target": "trip.delete"
+            }
+          ]
+        },
+        "contours": [
+          "trip"
+        ],
+        "examples": [
+          {
+            "input": {
+              "id": "trip-lostcoast"
+            },
+            "kind": "success",
+            "name": "Delete trip trip-lostcoast",
+            "provenance": {
+              "source": "trail.examples"
+            }
+          },
+          {
+            "input": {
+              "id": "trip-done"
+            },
+            "kind": "success",
+            "name": "Delete trip trip-done",
+            "provenance": {
+              "source": "trail.examples"
+            }
+          }
+        ],
+        "input": {
+          "properties": {
+            "id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "type": "object"
+        },
+        "intent": "destroy",
+        "output": {},
+        "pattern": "crud",
+        "permit": {
+          "scopes": [
+            "packlist:write"
+          ]
+        },
+        "resources": [
+          "db"
+        ]
+      },
+      {
+        "exampleCount": 0,
+        "id": "trip.list",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "trip",
+            "list"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "trip",
+                "list"
+              ],
+              "source": "derived",
+              "target": "trip.list"
+            }
+          ]
+        },
+        "contours": [
+          "trip"
+        ],
+        "input": {
+          "properties": {
+            "endDate": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "notes": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "packId": {
+              "type": "string"
+            },
+            "startDate": {
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "planned",
+                "active",
+                "done"
+              ],
+              "type": "string"
+            },
+            "version": {
+              "type": "number"
+            }
+          },
+          "type": "object"
+        },
+        "intent": "read",
+        "output": {
+          "items": {
+            "properties": {
+              "endDate": {
+                "type": "string"
+              },
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "notes": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "packId": {
+                "type": "string"
+              },
+              "startDate": {
+                "type": "string"
+              },
+              "status": {
+                "enum": [
+                  "planned",
+                  "active",
+                  "done"
+                ],
+                "type": "string"
+              },
+              "version": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "endDate",
+              "id",
+              "name",
+              "packId",
+              "startDate",
+              "status",
+              "version"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "pattern": "crud",
+        "resources": [
+          "db"
+        ]
+      },
+      {
+        "exampleCount": 0,
+        "id": "trip.read",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "trip",
+            "read"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "trip",
+                "read"
+              ],
+              "source": "derived",
+              "target": "trip.read"
+            }
+          ]
+        },
+        "contours": [
+          "trip"
+        ],
+        "input": {
+          "properties": {
+            "id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "type": "object"
+        },
+        "intent": "read",
+        "output": {
+          "properties": {
+            "endDate": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "notes": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "packId": {
+              "type": "string"
+            },
+            "startDate": {
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "planned",
+                "active",
+                "done"
+              ],
+              "type": "string"
+            },
+            "version": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "endDate",
+            "id",
+            "name",
+            "packId",
+            "startDate",
+            "status",
+            "version"
+          ],
+          "type": "object"
+        },
+        "pattern": "crud",
+        "resources": [
+          "db"
+        ]
+      },
+      {
+        "exampleCount": 0,
+        "id": "trip.reconcile",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "trip",
+            "reconcile"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "trip",
+                "reconcile"
+              ],
+              "source": "derived",
+              "target": "trip.reconcile"
+            }
+          ]
+        },
+        "contours": [
+          "trip"
+        ],
+        "description": "Reconcile version conflicts for \"trip\" entities.",
+        "detours": [
+          {
+            "maxAttempts": 1,
+            "on": "ConflictError"
+          }
+        ],
+        "input": {
+          "properties": {
+            "endDate": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "notes": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "packId": {
+              "type": "string"
+            },
+            "startDate": {
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "planned",
+                "active",
+                "done"
+              ],
+              "type": "string"
+            },
+            "version": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "endDate",
+            "name",
+            "packId",
+            "startDate",
+            "status",
+            "version"
+          ],
+          "type": "object"
+        },
+        "output": {
+          "properties": {
+            "endDate": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "notes": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "packId": {
+              "type": "string"
+            },
+            "startDate": {
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "planned",
+                "active",
+                "done"
+              ],
+              "type": "string"
+            },
+            "version": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "endDate",
+            "id",
+            "name",
+            "packId",
+            "startDate",
+            "status",
+            "version"
+          ],
+          "type": "object"
+        },
+        "pattern": "reconcile",
+        "permit": {
+          "scopes": [
+            "packlist:write"
+          ]
+        },
+        "resources": [
+          "db"
+        ]
+      },
+      {
+        "exampleCount": 0,
+        "id": "trip.update",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "trip",
+            "update"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "trip",
+                "update"
+              ],
+              "source": "derived",
+              "target": "trip.update"
+            }
+          ]
+        },
+        "contours": [
+          "trip"
+        ],
+        "input": {
+          "properties": {
+            "endDate": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "notes": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "packId": {
+              "type": "string"
+            },
+            "startDate": {
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "planned",
+                "active",
+                "done"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "type": "object"
+        },
+        "output": {
+          "properties": {
+            "endDate": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "notes": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "packId": {
+              "type": "string"
+            },
+            "startDate": {
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "planned",
+                "active",
+                "done"
+              ],
+              "type": "string"
+            },
+            "version": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "endDate",
+            "id",
+            "name",
+            "packId",
+            "startDate",
+            "status",
+            "version"
+          ],
+          "type": "object"
+        },
+        "pattern": "crud",
+        "permit": {
+          "scopes": [
+            "packlist:write"
+          ]
+        },
+        "resources": [
+          "db"
+        ]
+      }
+    ],
+    "library": {
+      "app": "packlist",
+      "collisions": [],
+      "excluded": [
+        {
+          "reason": "activation",
+          "trailId": "pack.recalculate"
+        }
+      ],
+      "exports": [
+        {
+          "description": "Add a piece of gear to the locker",
+          "exportName": "gearCreate",
+          "input": {
+            "properties": {
+              "category": {
+                "description": "Gear category: shelter, cook, wear, carry, or other",
+                "enum": [
+                  "shelter",
+                  "cook",
+                  "wear",
+                  "carry",
+                  "other"
+                ],
+                "type": "string"
+              },
+              "name": {
+                "description": "Unique gear name",
+                "type": "string"
+              },
+              "notes": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Free-form notes"
+              },
+              "weightGrams": {
+                "description": "Weight in grams",
+                "type": "number"
+              }
+            },
+            "required": [
+              "category",
+              "name",
+              "weightGrams"
+            ],
+            "type": "object"
+          },
+          "intent": "write",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "category": {
+                "description": "Gear category: shelter, cook, wear, carry, or other",
+                "enum": [
+                  "shelter",
+                  "cook",
+                  "wear",
+                  "carry",
+                  "other"
+                ],
+                "type": "string"
+              },
+              "id": {
+                "description": "Generated gear id",
+                "type": "string"
+              },
+              "name": {
+                "description": "Unique gear name",
+                "type": "string"
+              },
+              "notes": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Free-form notes"
+              },
+              "version": {
+                "description": "Optimistic concurrency version",
+                "type": "number"
+              },
+              "weightGrams": {
+                "description": "Weight in grams",
+                "type": "number"
+              }
+            },
+            "required": [
+              "category",
+              "id",
+              "name",
+              "version",
+              "weightGrams"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "db"
+          ],
+          "trailId": "gear.create",
+          "version": 2
+        },
+        {
+          "description": "Remove a piece of gear from the locker",
+          "exportName": "gearDelete",
+          "input": {
+            "properties": {
+              "id": {
+                "description": "Gear id to delete",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "type": "object"
+          },
+          "intent": "destroy",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "deleted": {
+                "type": "boolean"
+              },
+              "id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "deleted",
+              "id"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "db"
+          ],
+          "trailId": "gear.delete"
+        },
+        {
+          "description": "List gear, optionally filtered by category",
+          "exportName": "gearList",
+          "input": {
+            "properties": {
+              "category": {
+                "description": "Gear category: shelter, cook, wear, carry, or other",
+                "enum": [
+                  "shelter",
+                  "cook",
+                  "wear",
+                  "carry",
+                  "other"
+                ],
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "intent": "read",
+          "nameSource": "derived",
+          "output": {
+            "items": {
+              "properties": {
+                "category": {
+                  "description": "Gear category: shelter, cook, wear, carry, or other",
+                  "enum": [
+                    "shelter",
+                    "cook",
+                    "wear",
+                    "carry",
+                    "other"
+                  ],
+                  "type": "string"
+                },
+                "id": {
+                  "description": "Generated gear id",
+                  "type": "string"
+                },
+                "name": {
+                  "description": "Unique gear name",
+                  "type": "string"
+                },
+                "notes": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Free-form notes"
+                },
+                "version": {
+                  "description": "Optimistic concurrency version",
+                  "type": "number"
+                },
+                "weightGrams": {
+                  "description": "Weight in grams",
+                  "type": "number"
+                }
+              },
+              "required": [
+                "category",
+                "id",
+                "name",
+                "version",
+                "weightGrams"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "resources": [
+            "db"
+          ],
+          "trailId": "gear.list"
+        },
+        {
+          "description": "Show one piece of gear by id",
+          "exportName": "gearRead",
+          "input": {
+            "properties": {
+              "id": {
+                "description": "Gear id to look up",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "type": "object"
+          },
+          "intent": "read",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "category": {
+                "description": "Gear category: shelter, cook, wear, carry, or other",
+                "enum": [
+                  "shelter",
+                  "cook",
+                  "wear",
+                  "carry",
+                  "other"
+                ],
+                "type": "string"
+              },
+              "id": {
+                "description": "Generated gear id",
+                "type": "string"
+              },
+              "name": {
+                "description": "Unique gear name",
+                "type": "string"
+              },
+              "notes": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Free-form notes"
+              },
+              "version": {
+                "description": "Optimistic concurrency version",
+                "type": "number"
+              },
+              "weightGrams": {
+                "description": "Weight in grams",
+                "type": "number"
+              }
+            },
+            "required": [
+              "category",
+              "id",
+              "name",
+              "version",
+              "weightGrams"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "db"
+          ],
+          "trailId": "gear.read"
+        },
+        {
+          "description": "Reconcile version conflicts for \"gear\" entities.",
+          "exportName": "gearReconcile",
+          "input": {
+            "properties": {
+              "category": {
+                "enum": [
+                  "shelter",
+                  "cook",
+                  "wear",
+                  "carry",
+                  "other"
+                ],
+                "type": "string"
+              },
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "notes": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "version": {
+                "type": "number"
+              },
+              "weightGrams": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "category",
+              "name",
+              "weightGrams",
+              "version"
+            ],
+            "type": "object"
+          },
+          "intent": "write",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "category": {
+                "enum": [
+                  "shelter",
+                  "cook",
+                  "wear",
+                  "carry",
+                  "other"
+                ],
+                "type": "string"
+              },
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "notes": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "version": {
+                "type": "number"
+              },
+              "weightGrams": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "category",
+              "id",
+              "name",
+              "weightGrams",
+              "version"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "db"
+          ],
+          "trailId": "gear.reconcile"
+        },
+        {
+          "description": "Update fields on a piece of gear; weight changes mark carrying packs stale",
+          "exportName": "gearUpdate",
+          "input": {
+            "properties": {
+              "category": {
+                "description": "Gear category: shelter, cook, wear, carry, or other",
+                "enum": [
+                  "shelter",
+                  "cook",
+                  "wear",
+                  "carry",
+                  "other"
+                ],
+                "type": "string"
+              },
+              "id": {
+                "description": "Gear id to update",
+                "type": "string"
+              },
+              "name": {
+                "description": "New unique gear name",
+                "type": "string"
+              },
+              "notes": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Free-form notes"
+              },
+              "weightGrams": {
+                "description": "Weight in grams",
+                "type": "number"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "type": "object"
+          },
+          "intent": "write",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "category": {
+                "description": "Gear category: shelter, cook, wear, carry, or other",
+                "enum": [
+                  "shelter",
+                  "cook",
+                  "wear",
+                  "carry",
+                  "other"
+                ],
+                "type": "string"
+              },
+              "id": {
+                "description": "Generated gear id",
+                "type": "string"
+              },
+              "name": {
+                "description": "Unique gear name",
+                "type": "string"
+              },
+              "notes": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Free-form notes"
+              },
+              "version": {
+                "description": "Optimistic concurrency version",
+                "type": "number"
+              },
+              "weightGrams": {
+                "description": "Weight in grams",
+                "type": "number"
+              }
+            },
+            "required": [
+              "category",
+              "id",
+              "name",
+              "version",
+              "weightGrams"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "db"
+          ],
+          "trailId": "gear.update"
+        },
+        {
+          "description": "Add gear to a pack (or increase its quantity)",
+          "exportName": "packAddGear",
+          "input": {
+            "properties": {
+              "gearId": {
+                "description": "Gear id to add",
+                "type": "string"
+              },
+              "packId": {
+                "description": "Pack id to modify",
+                "type": "string"
+              },
+              "quantity": {
+                "description": "How many to add (at least 1)",
+                "type": "number"
+              }
+            },
+            "required": [
+              "gearId",
+              "packId",
+              "quantity"
+            ],
+            "type": "object"
+          },
+          "intent": "write",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "id": {
+                "description": "Generated pack id",
+                "type": "string"
+              },
+              "items": {
+                "items": {
+                  "properties": {
+                    "gearId": {
+                      "description": "Gear carried in this pack",
+                      "type": "string"
+                    },
+                    "quantity": {
+                      "description": "How many of that gear",
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "gearId",
+                    "quantity"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "name": {
+                "description": "Pack name",
+                "type": "string"
+              },
+              "version": {
+                "description": "Optimistic concurrency version",
+                "type": "number"
+              }
+            },
+            "required": [
+              "id",
+              "items",
+              "name",
+              "version"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "db"
+          ],
+          "trailId": "pack.add-gear"
+        },
+        {
+          "exportName": "packCreate",
+          "input": {
+            "properties": {
+              "items": {
+                "items": {
+                  "properties": {
+                    "gearId": {
+                      "type": "string"
+                    },
+                    "quantity": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "gearId",
+                    "quantity"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "items",
+              "name"
+            ],
+            "type": "object"
+          },
+          "intent": "write",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "items": {
+                "items": {
+                  "properties": {
+                    "gearId": {
+                      "type": "string"
+                    },
+                    "quantity": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "gearId",
+                    "quantity"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "name": {
+                "type": "string"
+              },
+              "version": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "id",
+              "items",
+              "name",
+              "version"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "db"
+          ],
+          "trailId": "pack.create"
+        },
+        {
+          "exportName": "packDelete",
+          "input": {
+            "properties": {
+              "id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "type": "object"
+          },
+          "intent": "destroy",
+          "nameSource": "derived",
+          "output": {},
+          "resources": [
+            "db"
+          ],
+          "trailId": "pack.delete"
+        },
+        {
+          "exportName": "packList",
+          "input": {
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "items": {
+                "items": {
+                  "properties": {
+                    "gearId": {
+                      "type": "string"
+                    },
+                    "quantity": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "gearId",
+                    "quantity"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "name": {
+                "type": "string"
+              },
+              "version": {
+                "type": "number"
+              }
+            },
+            "type": "object"
+          },
+          "intent": "read",
+          "nameSource": "derived",
+          "output": {
+            "items": {
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "items": {
+                  "items": {
+                    "properties": {
+                      "gearId": {
+                        "type": "string"
+                      },
+                      "quantity": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "gearId",
+                      "quantity"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "version": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "id",
+                "items",
+                "name",
+                "version"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "resources": [
+            "db"
+          ],
+          "trailId": "pack.list"
+        },
+        {
+          "exportName": "packRead",
+          "input": {
+            "properties": {
+              "id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "type": "object"
+          },
+          "intent": "read",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "items": {
+                "items": {
+                  "properties": {
+                    "gearId": {
+                      "type": "string"
+                    },
+                    "quantity": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "gearId",
+                    "quantity"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "name": {
+                "type": "string"
+              },
+              "version": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "id",
+              "items",
+              "name",
+              "version"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "db"
+          ],
+          "trailId": "pack.read"
+        },
+        {
+          "description": "Reconcile version conflicts for \"pack\" entities.",
+          "exportName": "packReconcile",
+          "input": {
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "items": {
+                "items": {
+                  "properties": {
+                    "gearId": {
+                      "type": "string"
+                    },
+                    "quantity": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "gearId",
+                    "quantity"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "name": {
+                "type": "string"
+              },
+              "version": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "items",
+              "name",
+              "version"
+            ],
+            "type": "object"
+          },
+          "intent": "write",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "items": {
+                "items": {
+                  "properties": {
+                    "gearId": {
+                      "type": "string"
+                    },
+                    "quantity": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "gearId",
+                    "quantity"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "name": {
+                "type": "string"
+              },
+              "version": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "id",
+              "items",
+              "name",
+              "version"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "db"
+          ],
+          "trailId": "pack.reconcile"
+        },
+        {
+          "description": "Remove gear from a pack (idempotent)",
+          "exportName": "packRemoveGear",
+          "input": {
+            "properties": {
+              "gearId": {
+                "description": "Gear id to remove",
+                "type": "string"
+              },
+              "packId": {
+                "description": "Pack id to modify",
+                "type": "string"
+              }
+            },
+            "required": [
+              "gearId",
+              "packId"
+            ],
+            "type": "object"
+          },
+          "intent": "write",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "id": {
+                "description": "Generated pack id",
+                "type": "string"
+              },
+              "items": {
+                "items": {
+                  "properties": {
+                    "gearId": {
+                      "description": "Gear carried in this pack",
+                      "type": "string"
+                    },
+                    "quantity": {
+                      "description": "How many of that gear",
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "gearId",
+                    "quantity"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "name": {
+                "description": "Pack name",
+                "type": "string"
+              },
+              "version": {
+                "description": "Optimistic concurrency version",
+                "type": "number"
+              }
+            },
+            "required": [
+              "id",
+              "items",
+              "name",
+              "version"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "db"
+          ],
+          "trailId": "pack.remove-gear"
+        },
+        {
+          "exportName": "packUpdate",
+          "input": {
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "items": {
+                "items": {
+                  "properties": {
+                    "gearId": {
+                      "type": "string"
+                    },
+                    "quantity": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "gearId",
+                    "quantity"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "type": "object"
+          },
+          "intent": "write",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "items": {
+                "items": {
+                  "properties": {
+                    "gearId": {
+                      "type": "string"
+                    },
+                    "quantity": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "gearId",
+                    "quantity"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "name": {
+                "type": "string"
+              },
+              "version": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "id",
+              "items",
+              "name",
+              "version"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "db"
+          ],
+          "trailId": "pack.update"
+        },
+        {
+          "description": "Derive a pack’s total weight from current gear weights (never stored)",
+          "exportName": "packWeight",
+          "input": {
+            "properties": {
+              "packId": {
+                "description": "Pack id to weigh",
+                "type": "string"
+              }
+            },
+            "required": [
+              "packId"
+            ],
+            "type": "object"
+          },
+          "intent": "read",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "items": {
+                "items": {
+                  "properties": {
+                    "gearId": {
+                      "description": "Gear carried in the pack",
+                      "type": "string"
+                    },
+                    "name": {
+                      "description": "Gear name",
+                      "type": "string"
+                    },
+                    "quantity": {
+                      "description": "How many are carried",
+                      "type": "number"
+                    },
+                    "subtotalGrams": {
+                      "description": "quantity × weightGrams",
+                      "type": "number"
+                    },
+                    "weightGrams": {
+                      "description": "Current weight of one unit",
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "gearId",
+                    "name",
+                    "quantity",
+                    "subtotalGrams",
+                    "weightGrams"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "name": {
+                "type": "string"
+              },
+              "packId": {
+                "type": "string"
+              },
+              "totalWeightGrams": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "items",
+              "name",
+              "packId",
+              "totalWeightGrams"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "db"
+          ],
+          "trailId": "pack.weight"
+        },
+        {
+          "description": "Load the demo gear, pack, and trip (idempotent)",
+          "exportName": "seedDemo",
+          "input": {
+            "properties": {},
+            "type": "object"
+          },
+          "intent": "write",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "gear": {
+                "type": "number"
+              },
+              "packs": {
+                "type": "number"
+              },
+              "trips": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "gear",
+              "packs",
+              "trips"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "db"
+          ],
+          "trailId": "seed.demo"
+        },
+        {
+          "description": "Build the packing checklist for a trip from its pack",
+          "exportName": "tripChecklist",
+          "input": {
+            "properties": {
+              "id": {
+                "description": "Trip id to build a checklist for",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "type": "object"
+          },
+          "intent": "read",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "packName": {
+                "type": "string"
+              },
+              "rows": {
+                "items": {
+                  "properties": {
+                    "category": {
+                      "description": "Gear category",
+                      "type": "string"
+                    },
+                    "name": {
+                      "description": "Gear name",
+                      "type": "string"
+                    },
+                    "packed": {
+                      "description": "Starting state for the checklist",
+                      "type": "boolean"
+                    },
+                    "quantity": {
+                      "description": "How many to pack",
+                      "type": "number"
+                    },
+                    "weightGrams": {
+                      "description": "Weight of one unit",
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "category",
+                    "name",
+                    "packed",
+                    "quantity",
+                    "weightGrams"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "totalWeightGrams": {
+                "type": "number"
+              },
+              "tripId": {
+                "type": "string"
+              },
+              "tripName": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "packName",
+              "rows",
+              "totalWeightGrams",
+              "tripId",
+              "tripName"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "db"
+          ],
+          "trailId": "trip.checklist"
+        },
+        {
+          "description": "Mark a trip as done",
+          "exportName": "tripComplete",
+          "input": {
+            "properties": {
+              "id": {
+                "description": "Trip id to complete",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "type": "object"
+          },
+          "intent": "write",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "endDate": {
+                "description": "Trip end date (ISO)",
+                "type": "string"
+              },
+              "id": {
+                "description": "Generated trip id",
+                "type": "string"
+              },
+              "name": {
+                "description": "Trip name",
+                "type": "string"
+              },
+              "notes": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Free-form notes"
+              },
+              "packId": {
+                "description": "Pack carried on this trip",
+                "type": "string"
+              },
+              "startDate": {
+                "description": "Trip start date (ISO)",
+                "type": "string"
+              },
+              "status": {
+                "description": "planned, active, or done",
+                "enum": [
+                  "planned",
+                  "active",
+                  "done"
+                ],
+                "type": "string"
+              },
+              "version": {
+                "description": "Optimistic concurrency version",
+                "type": "number"
+              }
+            },
+            "required": [
+              "endDate",
+              "id",
+              "name",
+              "packId",
+              "startDate",
+              "status",
+              "version"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "db"
+          ],
+          "trailId": "trip.complete"
+        },
+        {
+          "exportName": "tripCreate",
+          "input": {
+            "properties": {
+              "endDate": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "notes": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "packId": {
+                "type": "string"
+              },
+              "startDate": {
+                "type": "string"
+              },
+              "status": {
+                "enum": [
+                  "planned",
+                  "active",
+                  "done"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "endDate",
+              "name",
+              "packId",
+              "startDate",
+              "status"
+            ],
+            "type": "object"
+          },
+          "intent": "write",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "endDate": {
+                "type": "string"
+              },
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "notes": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "packId": {
+                "type": "string"
+              },
+              "startDate": {
+                "type": "string"
+              },
+              "status": {
+                "enum": [
+                  "planned",
+                  "active",
+                  "done"
+                ],
+                "type": "string"
+              },
+              "version": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "endDate",
+              "id",
+              "name",
+              "packId",
+              "startDate",
+              "status",
+              "version"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "db"
+          ],
+          "trailId": "trip.create"
+        },
+        {
+          "exportName": "tripDelete",
+          "input": {
+            "properties": {
+              "id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "type": "object"
+          },
+          "intent": "destroy",
+          "nameSource": "derived",
+          "output": {},
+          "resources": [
+            "db"
+          ],
+          "trailId": "trip.delete"
+        },
+        {
+          "exportName": "tripList",
+          "input": {
+            "properties": {
+              "endDate": {
+                "type": "string"
+              },
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "notes": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "packId": {
+                "type": "string"
+              },
+              "startDate": {
+                "type": "string"
+              },
+              "status": {
+                "enum": [
+                  "planned",
+                  "active",
+                  "done"
+                ],
+                "type": "string"
+              },
+              "version": {
+                "type": "number"
+              }
+            },
+            "type": "object"
+          },
+          "intent": "read",
+          "nameSource": "derived",
+          "output": {
+            "items": {
+              "properties": {
+                "endDate": {
+                  "type": "string"
+                },
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "notes": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "packId": {
+                  "type": "string"
+                },
+                "startDate": {
+                  "type": "string"
+                },
+                "status": {
+                  "enum": [
+                    "planned",
+                    "active",
+                    "done"
+                  ],
+                  "type": "string"
+                },
+                "version": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "endDate",
+                "id",
+                "name",
+                "packId",
+                "startDate",
+                "status",
+                "version"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "resources": [
+            "db"
+          ],
+          "trailId": "trip.list"
+        },
+        {
+          "exportName": "tripRead",
+          "input": {
+            "properties": {
+              "id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "type": "object"
+          },
+          "intent": "read",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "endDate": {
+                "type": "string"
+              },
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "notes": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "packId": {
+                "type": "string"
+              },
+              "startDate": {
+                "type": "string"
+              },
+              "status": {
+                "enum": [
+                  "planned",
+                  "active",
+                  "done"
+                ],
+                "type": "string"
+              },
+              "version": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "endDate",
+              "id",
+              "name",
+              "packId",
+              "startDate",
+              "status",
+              "version"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "db"
+          ],
+          "trailId": "trip.read"
+        },
+        {
+          "description": "Reconcile version conflicts for \"trip\" entities.",
+          "exportName": "tripReconcile",
+          "input": {
+            "properties": {
+              "endDate": {
+                "type": "string"
+              },
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "notes": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "packId": {
+                "type": "string"
+              },
+              "startDate": {
+                "type": "string"
+              },
+              "status": {
+                "enum": [
+                  "planned",
+                  "active",
+                  "done"
+                ],
+                "type": "string"
+              },
+              "version": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "endDate",
+              "name",
+              "packId",
+              "startDate",
+              "status",
+              "version"
+            ],
+            "type": "object"
+          },
+          "intent": "write",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "endDate": {
+                "type": "string"
+              },
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "notes": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "packId": {
+                "type": "string"
+              },
+              "startDate": {
+                "type": "string"
+              },
+              "status": {
+                "enum": [
+                  "planned",
+                  "active",
+                  "done"
+                ],
+                "type": "string"
+              },
+              "version": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "endDate",
+              "id",
+              "name",
+              "packId",
+              "startDate",
+              "status",
+              "version"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "db"
+          ],
+          "trailId": "trip.reconcile"
+        },
+        {
+          "exportName": "tripUpdate",
+          "input": {
+            "properties": {
+              "endDate": {
+                "type": "string"
+              },
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "notes": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "packId": {
+                "type": "string"
+              },
+              "startDate": {
+                "type": "string"
+              },
+              "status": {
+                "enum": [
+                  "planned",
+                  "active",
+                  "done"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "type": "object"
+          },
+          "intent": "write",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "endDate": {
+                "type": "string"
+              },
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "notes": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "packId": {
+                "type": "string"
+              },
+              "startDate": {
+                "type": "string"
+              },
+              "status": {
+                "enum": [
+                  "planned",
+                  "active",
+                  "done"
+                ],
+                "type": "string"
+              },
+              "version": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "endDate",
+              "id",
+              "name",
+              "packId",
+              "startDate",
+              "status",
+              "version"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "db"
+          ],
+          "trailId": "trip.update"
+        }
+      ]
+    },
+    "topoGraphSchemaVersion": 3
+  },
+  "topoGraphHash": "38e6c1180c853844867e8070381c75bc14f57aa0333e4e0824bc14c12626d0ca",
+  "version": 4
+}

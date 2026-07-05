@@ -188,6 +188,21 @@
     "examples/packlist": {
       "name": "packlist",
       "version": "0.0.0",
+      "bin": {
+        "packlist": "./bin/packlist.ts",
+      },
+      "dependencies": {
+        "@ontrails/commander": "workspace:^",
+        "@ontrails/core": "workspace:^",
+        "@ontrails/drizzle": "workspace:^",
+        "@ontrails/hono": "workspace:^",
+        "@ontrails/mcp": "workspace:^",
+        "@ontrails/store": "workspace:^",
+        "zod": "catalog:",
+      },
+      "devDependencies": {
+        "@ontrails/testing": "workspace:^",
+      },
     },
     "examples/stash": {
       "name": "stash",
