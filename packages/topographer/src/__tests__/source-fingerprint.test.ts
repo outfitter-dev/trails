@@ -5,10 +5,10 @@ import { join } from 'node:path';
 
 import { deriveSourceFingerprint } from '../source-fingerprint.js';
 
-const withFixtureDir = (probe: (dir: string) => void): void => {
+const withFixtureDir = (exercise: (dir: string) => void): void => {
   const dir = mkdtempSync(join(tmpdir(), 'source-fingerprint-'));
   try {
-    probe(dir);
+    exercise(dir);
   } finally {
     rmSync(dir, { force: true, recursive: true });
   }

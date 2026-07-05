@@ -29,6 +29,7 @@ import type {
 
 import { addPermitRequirement } from '../permit.js';
 import { collectLibraryProjection } from '../library-projection.js';
+import { collectTopoGraphOverlays } from '../overlays.js';
 import { deriveStableHash } from '../hash.js';
 import { TOPO_GRAPH_SCHEMA_VERSION } from '../types.js';
 import { projectTrailVersions } from '../versioning.js';
@@ -37,6 +38,7 @@ import type {
   TopoGraphFieldOverride,
   TopoGraphFieldOverrideKey,
   TopoGraphLibraryProjection,
+  TopoGraphOverlays,
 } from '../types.js';
 import type {
   CreateTopoSnapshotInput,
@@ -60,6 +62,7 @@ type TopoGraphRecord = Readonly<{
   readonly entries: readonly TopoGraphEntryRecord[];
   readonly generatedAt: string;
   readonly library: TopoGraphLibraryProjection;
+  readonly overlays?: TopoGraphOverlays | undefined;
   readonly topoGraphSchemaVersion: typeof TOPO_GRAPH_SCHEMA_VERSION;
 }>;
 
@@ -1248,8 +1251,9 @@ const buildTopoGraph = (
     }>
   >,
   trails: readonly AnyTrail[],
-  options?: Pick<CreateTopoSnapshotInput, 'cliAliases'> | undefined
+  options?: Pick<CreateTopoSnapshotInput, 'cliAliases' | 'overlays'> | undefined
 ): TopoGraphRecord => {
+  const overlays = collectTopoGraphOverlays(topo, options?.overlays);
   const signalRelations = collectSignalGraphRelations(signals, trails);
   const activationSources = collectActivationSourceCatalog(trails);
   const activationEdges = collectActivationGraphEdges(trails);
@@ -1284,6 +1288,7 @@ const buildTopoGraph = (
     entries,
     generatedAt,
     library: collectLibraryProjection(topo),
+    ...(overlays === undefined ? {} : { overlays }),
     topoGraphSchemaVersion: TOPO_GRAPH_SCHEMA_VERSION,
   };
 };
@@ -1321,7 +1326,7 @@ const buildStoredTopoExport = (
   db: Database,
   snapshot: TopoSnapshot,
   topo: Topo,
-  options?: Pick<CreateTopoSnapshotInput, 'cliAliases'> | undefined
+  options?: Pick<CreateTopoSnapshotInput, 'cliAliases' | 'overlays'> | undefined
 ): MaterializedTopoArtifacts => {
   const contours = topo
     .listContours()

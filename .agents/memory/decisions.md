@@ -256,3 +256,57 @@ Merit aside: a *gate* is a point (binary allow/deny on a path); the job is a *br
 **Other same-class gaps found:** v1-workflow docs/agent-guidance (no issue at all); the `reviewDeclarationTypes` public-API auto-rename-vs-review policy (confirm it's inside TRL-1123's "review gates" or capture it).
 
 **Basis (tenets):** "ship the whole developer experience" / done-means-usable-teachable-releasable — applied to substrate, not just features; natural-altitude (seams live at shared altitude). **Confidence:** High. Fourth run-exposed gap in the loop (structured-preserve, md-code-shield, `--input-json`, now TRL-1125) — the pattern is that *running* finds seams that *reading/planning* cannot.
+
+### 2026-07-02 Package taxonomy rulings (from the 2026-07-01 hot-take note)
+
+**Question:** The package-taxonomy note proposed (a) teaching package families instead of consolidating, (b) "longer term" moving tracing dev-state into `@ontrails/observe/dev`/`observe/otel` subpaths, (c) treating logtape/pino as adapters, (d) a post-reset re-audit of `detour`/`fires`/`transpose`/`survey`.
+
+**Decisions:**
+
+1. **Families: teach, derive, don't consolidate.** Family is authored metadata per package (one write); docs render it (many reads). A hand-maintained docs table is a parallel ledger. → TRL-1127.
+2. **Observe-subpath consolidation of tracing dev-state: REJECTED, not deferred.** It would reopen the ADR-0041 boundary closed in #870 the day after closing it, with no new evidence — and it inverts natural altitude (ADR-0051): observe is a low-altitude contracts/sinks package; tracing dev-state is high-altitude tooling (query/status *trails*, SQLite store, OTel bridge). Subpaths hide coupling from the docs page, not from the dependency graph. Re-open only with new evidence.
+3. **The line that distinguishes ruling 2 from the logtape/pino fold (TRL-1126):** subpath-on-primitive is for **zero-dep structural bridges shaped entirely around the owner's contracts** (logtape/pino over observe's `LogSink`; precedent `tracing/otel`). It is NOT for dependency-heavy tooling that would raise the owner's altitude. Same word ("subpath"), opposite altitude direction — don't conflate.
+4. **logtape/pino violate the adapter dependency test** (verified: zero foreign deps, structural typing, only peer = observe). Recommended fold into `@ontrails/observe/logtape|pino`; explicit alternative move-to-`adapters/` requires a recorded discoverability carve-out to the dependency test. Matt decides in TRL-1126.
+5. **Post-reset re-audit is evidence-gated and the bar goes UP** now that governed renames are cheap (deferral is nearly free, so "while we're at it" batching loses its justification). Candidates never enter `lexicon-pending.md` before ratification. → TRL-1128.
+
+**Basis (tenets):** one-write-many-reads (families as authored metadata); natural altitude / ADR-0051 (rulings 2–3); add-with-intent + evidence-over-aesthetics (ruling 5). **Confidence:** High on 1–3 and 5; ruling 4 is a recommendation pending Matt's call.
+
+### 2026-07-02 Regrade scope & file-rename rulings (from the facet tracer #880 review)
+
+**Question:** The facet tracer left three capability gaps: file renames done by hand outside the transition contract; registry path *excludes* that silently unscan everything they match; and docs updates that can fall through via quiet scope holes. Matt: filenames should be in the mix, with recursion to catch references; directories should be lockable off-limits — but some catches should be *flagged into the judgment workflow*, not vanish.
+
+**Decisions:**
+
+1. **File renames become governed transition facts** (TRL-1130): authored `fileRenames` in the typed registry; in-scope *references* to renamed files are **derived** from the declaration (nobody authors the reference list). Recursion is bounded by design: apply all renames first, then ONE reference pass against the final rename map — chains resolve without fixpoint iteration; genuinely recursive residue routes to review.
+2. **Scope is three tiers, not one exclude bucket** (TRL-1131). Tier 1 hard-exclude (never scanned): mechanical noise only. Tier 2 policy-classified: historical surfaces (CHANGELOGs, .changeset/, ADR history) are *scanned*, auto-disposed (`historical-by-policy`, extending the TRL-1122 disposition set), **counted in the report**, never rewritten by default, overridable through normal judgment. Tier 3 in-scope — **docs are tier 3 by default** and can only leave via recorded registry policy, never a quiet glob omission. "Off limits" and "caught and flagged" are different tiers, not a contradiction.
+3. **Docs-skipping made structural:** the family report carries a docs-coverage line (teaching surfaces touched vs census-expected); a miss is a gate failure, not a post-merge discovery.
+4. **Process rule — packet-acceptance diff:** the TRL-1119 teaching doc escaped a *third* time because the goal packet never carried it; the packet is the executor's operative contract and issue→packet transcription is lossy. Every acceptance line is carried into the packet DoD or explicitly waived with a reason, checked before execution starts.
+
+**Basis (tenets):** derive-what's-known (reference closure from rename declarations); the-contract-is-queryable + gate honesty (tier-2 visibility over silent exclusion); ship-the-whole-DX (docs-coverage as gate); regressions-harden-the-trail (three run-exposed substrate fixes landed in-stack in #880 — the loop is working). **Confidence:** High. Note: `.agents/notes/2026-07-02-trl-1119-review-and-regrade-scope-followup.md`.
+
+### 2026-07-02 Regrade transition records — the change carries its own memory (ratified)
+
+**Question:** Matt: we're stacking assumptions (well-authored acceptance criteria → pre-work done → diligent executor → criteria met) — probabilistic outcomes layered on probabilistic outcomes. Adopters won't have our discipline. How does Regrade carry the burden itself, and what artifact survives?
+
+**Decision (Matt + Clark, basis for a future ADR — full note `.agents/notes/2026-07-02-regrade-transition-records.md`):**
+
+1. **Principle: checkpoint probabilistic steps through deterministic artifacts.** Every meaningful run writes a **transition record** (resolved plan snapshot + occurrence ledger with dispositions + gate state + environment incl. topo lock graph hash). The record is the story of the change, as the lock is the story of the system.
+2. **Committed, at `.trails/regrade/history/<from>-to-<target>-<lockhash7>.json`** (Matt's naming: kebab transition name + short lock hash; commit-SHA fallback until root trails.lock is universal). Name collision = same transition on same graph state = idempotency signal. Extends `.trails/`'s existing committed-beside-local pattern. → TRL-1132 (Urgent).
+3. **The record is load-bearing:** apply consumes a confirmed plan record (Terraform contract; no blind apply; stale lock-hash → re-plan), and `--check` computes the gate as machine acceptance so adopters' vague issues stop mattering for the checkable half. → TRL-1133 (Urgent). Both **block blaze (TRL-1018)**.
+4. **Stance reversal ratified:** enforcement can retire when a transition completes; **evidence never should.** History enables Warden reintroduction + unknown-permutation watch (stem-match not in form set/ledger = legible "missed permutation" finding). → TRL-1135.
+5. **Seed → derived plan** for the naive path: `from`/`to` is a seed; morphology, filename candidates, census tiers, and topo-derived live-API preserves (ON by default) are derived into a proposed plan; derived candidates start review-routed. → TRL-1134. Posture: **aggressive discovery, conservative application, total visibility.**
+
+**Basis (tenets):** regressions-harden-the-trail's move-left ladder applied to the workflow itself (we built the engine contract-first but left the workflow discipline-first — operator memory must move into the contract); derive-by-default; the-contract-is-queryable. **Confidence:** High. Open questions (record weight, dry-run commit policy, morphology derivation mode, lifecycle home) recorded in the note for the ADR.
+
+### 2026-07-05 Overlay: the lock's one extension noun; alias/trailhead subsumed; layer kept
+
+**Question (Matt's first-principles push, three rounds):** (1) Do cliAliases and trailheads need to exist as framework concepts, or does the new lock-extension mechanism subsume them? (2) What is the unifying noun — section, segment, or overlay? (3) Is `layer` still the right word alongside it?
+
+**Decisions:**
+
+1. **Subsume, fully.** Aliases and trailheads are duals (N→1 / 1→N) of one construct: named bindings from a surface's namespace onto trails. One shared schema: scalar value = transparent synonym, list value = grouped entry, **singleton list stays a group** (the typing rule that keeps it honest — cardinality is NOT the discriminator; value shape is). ADR-0050 protections re-key onto shapes (normalize-without-lying → scalar; identity-preservation → list). Both behaviors become available on all surfaces automatically. `alias`/`trailhead` survive as prose/teaching words only.
+2. **The noun is `overlay`** (section → segment → overlay across three rounds, each fixing the last's flaw): section named the storage slot, not the concept; segment implies *partition-of-a-route* (parts the whole depends on) but the mechanism is *additive* — and **the lock is a map, not a route**. Overlay scores perfectly: never alters the base, tolerant reader IS the defining GIS-overlay property (the metaphor self-explains the hardest guarantee), themed/namespaced, provenance-cited. Grammar: `Overlay` type, `trailsOverlays` export (sole channel), lock field `overlays`, `wayfind overlay <ns>`, `surfaceOverlay` helper. Bonus: kills the "trail segments/trails segments" homophone.
+3. **`layer` keeps its name.** Middleware-standard, tenets chose it deliberately, no better successor (wrapper flavorless; stage linear-not-wrapping; gate saturated). Contrast pair for the lexicon: **"layers wrap what runs; overlays enrich the map."** Layer↔overlay adjacency goes on TRL-1128's evidence-gated watch list — act on demonstrated confusion only.
+4. **Anticipation recorded:** if layer declarations ever need lock visibility, they ride an overlay — never a fourth lift channel.
+
+**Basis (tenets):** natural altitude applied to vocabulary (a concept belongs to the package that acts on it; core knows only the envelope); brand test (overlay self-explains via common map knowledge); evidence-over-adjacency for renames (Regrade makes them cheap, which RAISES the bar for speculative ones). **Sequencing:** rename folds into the unmerged #900–903 restack (free — nothing shipped); TRL-1197 becomes the subsumption ADR. **Confidence:** High; Matt ratified all three explicitly.

@@ -7,6 +7,7 @@ import type {
   CliCommandRoute,
   StructuredSignalExample,
   StructuredTrailExample,
+  Topo,
   TrailVersionStatus,
 } from '@ontrails/core';
 import { z } from 'zod';
@@ -193,6 +194,27 @@ export interface TopoGraphLibraryProjection {
 // TopoGraph
 // ---------------------------------------------------------------------------
 
+/**
+ * Namespaced fact overlays embedded on a topo graph, keyed by contribution
+ * namespace. Values are overlay-owned JSON-plain facts; readers that do not
+ * recognize a namespace preserve it verbatim.
+ */
+export type TopoGraphOverlays = Readonly<Record<string, unknown>>;
+
+/**
+ * A namespaced overlay contribution consumed by the topo graph derivers as
+ * data. Each registration owns one namespace and supplies the schema its
+ * derived facts must satisfy before they enter the graph.
+ */
+export interface TopoGraphOverlayRegistration {
+  /** Unique dotted-kebab namespace, e.g. "cloudflare" or "cloudflare.workers". */
+  readonly namespace: string;
+  /** Zod schema the derived facts must satisfy before they enter the graph. */
+  readonly schema: z.ZodType;
+  /** Derive the namespace's facts from the topo. Must be deterministic. */
+  readonly derive: (topo: Topo) => unknown;
+}
+
 export interface TopoGraphEntry {
   readonly id: string;
   readonly kind: 'contour' | 'trail' | 'signal' | 'resource';
@@ -262,6 +284,12 @@ export interface TopoGraph {
   readonly trailheads?: readonly TopoGraphTrailheadEntry[] | undefined;
   readonly forces?: readonly TopoGraphForceEntry[] | undefined;
   readonly library?: TopoGraphLibraryProjection | undefined;
+  /**
+   * Namespaced fact overlays contributed by registered overlay contributions
+   * (adapters). Unknown namespaces are preserved verbatim by every reader
+   * (tolerant reader) and covered by the canonical graph hash.
+   */
+  readonly overlays?: TopoGraphOverlays | undefined;
   readonly workspace?: WorkspaceTopoMetadata | undefined;
 }
 
@@ -269,6 +297,7 @@ export interface DeriveTopoGraphOptions {
   readonly cliAliases?:
     | Readonly<Record<string, readonly CliCommandAliasInput[]>>
     | undefined;
+  readonly overlays?: readonly TopoGraphOverlayRegistration[] | undefined;
   readonly trailheads?: readonly TopoGraphTrailheadDeclaration[] | undefined;
 }
 
@@ -420,6 +449,7 @@ export const topoGraphSchema = z
     forces: z.array(topoGraphForceEntrySchema).optional(),
     generatedAt: z.string().optional(),
     library: topoGraphLibraryProjectionSchema.optional(),
+    overlays: z.record(z.string(), z.unknown()).optional(),
     topoGraphSchemaVersion: z.literal(TOPO_GRAPH_SCHEMA_VERSION),
     trailheads: z.array(topoGraphTrailheadEntrySchema).optional(),
     workspace: workspaceTopoMetadataSchema.optional(),

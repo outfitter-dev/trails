@@ -3,6 +3,8 @@ import type { Database, SQLQueryBindings } from 'bun:sqlite';
 import { ensureSubsystemSchema } from '@ontrails/core';
 import type { CliCommandAliasInput } from '@ontrails/core';
 
+import type { TopoGraphOverlayRegistration } from '../types.js';
+
 const TOPO_SUBSYSTEM = 'topo';
 const TOPO_TABLE_STATEMENTS = [
   `CREATE TABLE IF NOT EXISTS topo_snapshots (
@@ -211,6 +213,7 @@ export interface CreateTopoSnapshotInput {
   readonly gitSha?: string;
   readonly id?: string;
   readonly resourceCount?: number;
+  readonly overlays?: readonly TopoGraphOverlayRegistration[] | undefined;
   readonly signalCount?: number;
   readonly sourceFingerprint?: string;
   readonly trailCount?: number;

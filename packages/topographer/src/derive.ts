@@ -31,6 +31,7 @@ import type {
 import { addPermitRequirement } from './permit.js';
 import { deriveStableHash } from './hash.js';
 import { collectLibraryProjection } from './library-projection.js';
+import { collectTopoGraphOverlays } from './overlays.js';
 import { TOPO_GRAPH_SCHEMA_VERSION } from './types.js';
 import { projectTrailVersions } from './versioning.js';
 import type {
@@ -734,6 +735,7 @@ export const deriveTopoGraph = (
   const activationSources = collectActivationSourceCatalog(topo);
   const activationEdges = collectActivationGraphEdges(topo);
   const trailheads = collectTrailheads(topo, options);
+  const overlays = collectTopoGraphOverlays(topo, options?.overlays);
   const library = collectLibraryProjection(topo);
 
   return {
@@ -743,6 +745,7 @@ export const deriveTopoGraph = (
     ),
     entries: sorted,
     ...(trailheads === undefined ? {} : { trailheads }),
+    ...(overlays === undefined ? {} : { overlays }),
     generatedAt: new Date().toISOString(),
     library,
     topoGraphSchemaVersion: TOPO_GRAPH_SCHEMA_VERSION,
