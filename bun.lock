@@ -157,6 +157,21 @@
     "examples/switchback": {
       "name": "switchback",
       "version": "0.0.0",
+      "bin": {
+        "switchback": "./bin/switchback.ts",
+      },
+      "dependencies": {
+        "@ontrails/commander": "workspace:^",
+        "@ontrails/core": "workspace:^",
+        "@ontrails/library": "workspace:^",
+        "@ontrails/mcp": "workspace:^",
+        "zod": "catalog:",
+      },
+      "devDependencies": {
+        "@ontrails/testing": "workspace:^",
+        "@ontrails/topographer": "workspace:^",
+        "@ontrails/warden": "workspace:^",
+      },
     },
     "packages/adapter-kit": {
       "name": "@ontrails/adapter-kit",

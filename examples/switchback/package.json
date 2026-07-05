@@ -2,12 +2,41 @@
   "name": "switchback",
   "version": "0.0.0",
   "private": true,
+  "description": "Feature flags with deterministic, explainable evaluation — the Trails library-first showcase",
+  "bin": {
+    "switchback": "./bin/switchback.ts"
+  },
+  "files": [
+    "bin/**/*.ts",
+    "src/**/*.ts",
+    "!src/**/__tests__/**",
+    "!src/**/*.test.ts",
+    "switchback.flags.json",
+    "README.md"
+  ],
   "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./app": "./src/app.ts",
+    "./package.json": "./package.json"
+  },
   "scripts": {
     "build": "tsc -b",
     "test": "bun test",
     "typecheck": "tsc --noEmit",
     "lint": "oxlint ./src",
     "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@ontrails/commander": "workspace:^",
+    "@ontrails/core": "workspace:^",
+    "@ontrails/library": "workspace:^",
+    "@ontrails/mcp": "workspace:^",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@ontrails/testing": "workspace:^",
+    "@ontrails/topographer": "workspace:^",
+    "@ontrails/warden": "workspace:^"
   }
 }
