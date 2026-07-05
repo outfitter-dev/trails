@@ -65,6 +65,12 @@ const wayfindInputSchema = z
       .boolean()
       .default(false)
       .describe('Render the outline view for a source file target'),
+    overlay: z
+      .string()
+      .optional()
+      .describe(
+        'Read a namespaced fact overlay from the saved graph (e.g. --overlay cloudflare)'
+      ),
     overview: z
       .boolean()
       .default(false)
@@ -158,7 +164,34 @@ const wayfindInputSchema = z
         '--include attaches facts to a target or filtered population from locked artifacts; impact/deps and live-source includes are not supported yet.',
       path: ['include'],
     }
-  );
+  )
+  .refine(
+    (input) =>
+      input.overlay === undefined ||
+      (input.target === undefined &&
+        !input.deps &&
+        !input.impact &&
+        input.include.length === 0 &&
+        input.adapter === undefined &&
+        !input.contours &&
+        !input.errors &&
+        !input.trailheads &&
+        input.intent === undefined &&
+        !input.resources &&
+        !input.signals &&
+        !input.surfaces &&
+        !input.trails),
+    {
+      message:
+        'The --overlay flag reads one lock overlay and cannot be combined with targets, population selectors, or includes.',
+      path: ['overlay'],
+    }
+  )
+  .refine((input) => input.overlay === undefined || input.source !== 'live', {
+    message:
+      '--overlay reads namespaced overlays from locked artifacts; live source does not carry lock overlays.',
+    path: ['overlay'],
+  });
 
 const wayfindComposeInputSchema = z
   .object({
@@ -770,6 +803,17 @@ export const wayfindTrail = trail('wayfind.navigate', {
         );
       }
     }
+    if (input.overlay !== undefined) {
+      return envelopeFor(
+        await ctx.compose('wayfind.overlay', {
+          namespace: input.overlay,
+          ...sourceInput(input),
+        }),
+        input,
+        ctx,
+        'list'
+      );
+    }
     const dispatched =
       (await viewRelation(input, ctx)) ??
       (await (input.target === undefined
@@ -794,6 +838,7 @@ export const wayfindTrail = trail('wayfind.navigate', {
     'wayfind.describe',
     'wayfind.errors',
     'wayfind.examples',
+    'wayfind.overlay',
     'wayfind.trailheads',
     'wayfind.impact',
     'wayfind.nearby',
@@ -851,6 +896,10 @@ export const wayfindTrail = trail('wayfind.navigate', {
     {
       input: { overview: true },
       name: 'Show graph overview',
+    },
+    {
+      input: { overlay: 'cloudflare' },
+      name: 'Read a namespaced lock overlay',
     },
     {
       input: { include: ['examples'], target: 'wayfind.search' },

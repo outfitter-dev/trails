@@ -37,6 +37,7 @@ import {
   wayfindDiffTrail,
   wayfindErrorsTrail,
   wayfindExamplesTrail,
+  wayfindOverlayTrail,
   wayfindImpactTrail,
   wayfindNearbyTrail,
   wayfindOverviewTrail,
@@ -354,6 +355,7 @@ describe('wayfinder graph-read query trails', () => {
       'wayfind.impact',
       'wayfind.nearby',
       'wayfind.outline',
+      'wayfind.overlay',
       'wayfind.overview',
       'wayfind.resources',
       'wayfind.search',
@@ -562,6 +564,65 @@ describe('wayfinder graph-read query trails', () => {
     expect(configured.adapters.map((entry) => entry.kind)).toEqual([
       'configured',
     ]);
+  });
+
+  test('reads a namespaced lock overlay generically', async () => {
+    await writeArtifacts((topoGraph) => ({
+      ...topoGraph,
+      overlays: {
+        cloudflare: { workers: [{ name: 'edge' }] },
+        'future.family': { facts: true },
+      },
+    }));
+
+    const result = await expectOk(
+      wayfindOverlayTrail.blaze(
+        { namespace: 'cloudflare', rootDir: tempDir },
+        ctx()
+      )
+    );
+
+    expect(result.namespace).toBe('cloudflare');
+    expect(result.namespaces).toEqual(['cloudflare', 'future.family']);
+    expect(result.facts).toEqual({ workers: [{ name: 'edge' }] });
+    expect(result.source.kind).toBe('topoGraph');
+  });
+
+  test('lists available namespaces when the requested overlay is missing', async () => {
+    await writeArtifacts((topoGraph) => ({
+      ...topoGraph,
+      overlays: {
+        cloudflare: { workers: [] },
+        'future.family': { facts: true },
+      },
+    }));
+
+    const result = await wayfindOverlayTrail.blaze(
+      { namespace: 'missing', rootDir: tempDir },
+      ctx()
+    );
+
+    expect(result.isErr()).toBe(true);
+    expect(result.isErr() ? result.error.name : '').toBe('NotFoundError');
+    const message = result.isErr() ? result.error.message : '';
+    expect(message).toContain('No lock overlay named "missing"');
+    expect(message).toContain('cloudflare');
+    expect(message).toContain('future.family');
+    expect(message).toContain('trails compile');
+    expect(message).not.toMatch(/hand|edit the lock/i);
+  });
+
+  test('reports no overlays when the graph carries none', async () => {
+    const result = await wayfindOverlayTrail.blaze(
+      { namespace: 'cloudflare', rootDir: tempDir },
+      ctx()
+    );
+
+    expect(result.isErr()).toBe(true);
+    expect(result.isErr() ? result.error.name : '').toBe('NotFoundError');
+    expect(result.isErr() ? result.error.message : '').toContain(
+      'Available overlays: none'
+    );
   });
 
   test('summarizes saved graph shape and provenance', async () => {

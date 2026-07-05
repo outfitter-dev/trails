@@ -227,6 +227,67 @@ describe('Trails Wayfinder CLI surface', () => {
     );
   });
 
+  test('rejects --overlay combined with targets, selectors, or includes', async () => {
+    const navigate = unwrapCommands().find(
+      (command) => command.trail.id === 'wayfind.navigate'
+    );
+    expect(navigate).toBeDefined();
+
+    for (const flags of [
+      { overlay: 'cloudflare', target: 'wayfind.search' },
+      { overlay: 'cloudflare', trails: true },
+      { include: ['examples'], overlay: 'cloudflare' },
+    ]) {
+      const result = await navigate?.execute({}, flags, {
+        cwd: process.cwd(),
+      });
+
+      expect(result?.isErr()).toBe(true);
+      expect(result?.error.message).toContain(
+        'The --overlay flag reads one lock overlay'
+      );
+    }
+  });
+
+  test('rejects --overlay against the live source', async () => {
+    const navigate = unwrapCommands().find(
+      (command) => command.trail.id === 'wayfind.navigate'
+    );
+    expect(navigate).toBeDefined();
+
+    const result = await navigate?.execute(
+      {},
+      { overlay: 'cloudflare', source: 'live' },
+      { cwd: process.cwd() }
+    );
+
+    expect(result?.isErr()).toBe(true);
+    expect(result?.error.message).toContain('locked artifacts');
+  });
+
+  test('dispatches --overlay through the generic overlay read', async () => {
+    const facts = fakeWayfindContext();
+    const result = await wayfindTrail.blaze(
+      parseWayfindInput({ overlay: 'cloudflare', rootDir: '/repo' }),
+      facts.ctx
+    );
+
+    expect(result.isOk()).toBe(true);
+    if (result.isErr()) {
+      throw result.error;
+    }
+    expect(facts.calls).toEqual([
+      {
+        id: 'wayfind.overlay',
+        input: { namespace: 'cloudflare', rootDir: '/repo' },
+      },
+    ]);
+    expect(result.value).toMatchObject({
+      result: { id: 'wayfind.overlay' },
+      view: 'list',
+    });
+  });
+
   test('rejects target lookup mixed with population selector flags', async () => {
     const navigate = unwrapCommands().find(
       (command) => command.trail.id === 'wayfind.navigate'

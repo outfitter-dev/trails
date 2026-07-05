@@ -99,6 +99,13 @@ const adapterFactsInputSchema = z
   })
   .strict();
 
+const overlayInputSchema = sourceInputSchema.extend({
+  namespace: z
+    .string()
+    .min(1)
+    .describe('Overlay namespace to read from the saved graph'),
+});
+
 const inspectKindSchema = z.enum([
   'contour',
   'trailhead',
@@ -1427,6 +1434,42 @@ export const wayfindAdaptersTrail = trail('wayfind.adapters', {
   visibility: 'internal',
 });
 
+export const wayfindOverlayTrail = trail('wayfind.overlay', {
+  blaze: async (input, ctx) => {
+    const loaded = await loadGraph(input, ctx.cwd);
+    if (loaded.isErr()) {
+      return loaded;
+    }
+    const overlays = loaded.value.graph.overlays ?? {};
+    const namespaces = Object.keys(overlays).toSorted();
+    if (!Object.hasOwn(overlays, input.namespace)) {
+      return Result.err(
+        new NotFoundError(
+          `No lock overlay named "${input.namespace}". Available overlays: ${namespaces.length === 0 ? 'none' : namespaces.join(', ')}. Adapters contribute overlays via trailsOverlays; run \`trails compile\` to refresh the lock.`
+        )
+      );
+    }
+    return Result.ok({
+      ...envelope(loaded.value),
+      facts: overlays[input.namespace],
+      namespace: input.namespace,
+      namespaces,
+    });
+  },
+  description: 'Read a namespaced fact overlay from the saved graph',
+  examples: [
+    { input: { namespace: 'cloudflare' }, name: 'Read cloudflare lock facts' },
+  ],
+  input: overlayInputSchema,
+  intent: 'read',
+  output: envelopeSchema.extend({
+    facts: z.unknown(),
+    namespace: z.string(),
+    namespaces: z.array(z.string()).readonly(),
+  }),
+  visibility: 'internal',
+});
+
 export const wayfindDescribeTrail = trail('wayfind.describe', {
   args: ['id'],
   blaze: async (input, ctx) => {
@@ -1606,6 +1649,7 @@ export const wayfinderTopo = topo('wayfinder', {
   wayfindImpactTrail,
   wayfindNearbyTrail,
   wayfindOutlineTrail,
+  wayfindOverlayTrail,
   wayfindOverviewTrail,
   wayfindResourcesTrail,
   wayfindSearchTrail,

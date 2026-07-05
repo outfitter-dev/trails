@@ -254,6 +254,7 @@ These are programmatic Topographer APIs for deriving, hashing, diffing, reading,
 ```typescript
 // TopoGraph and lock artifact helpers
 deriveTopoGraph(graph), deriveTopoGraphHash(topoGraph), deriveTopoGraphDiff(before, after)
+collectTopoGraphOverlays(topo, registrations) // namespaced overlays (adapter-contributed facts)
 deriveActivationGraph(topoGraph), deriveDeclaredTrailActivation(entry)
 deriveSignalActivationRelations(topoGraph)
 writeTrailsLock(lock, options?), readTrailsLock(options?)
@@ -267,6 +268,7 @@ pinTopoSnapshot(id, name, options?), unpinTopoSnapshot(nameOrId, options?)
 TOPO_STORE_SCHEMA_VERSION
 
 TopoGraph, TopoGraphEntry, TopoGraphContourReference, TrailsLock, LockManifest, DiffResult, DiffEntry, JsonSchema
+TopoGraphOverlays, TopoGraphOverlayRegistration
 ActivationGraphReport, TrailActivationReport, SignalActivationRelations
 ActivationOverviewReport, ActivationSourceReport, ActivationChainReport, ActivationEdgeReport
 WriteOptions, ReadOptions
@@ -296,7 +298,7 @@ wayfinderTopo
 wayfindOverviewTrail, wayfindSearchTrail
 wayfindTrailsTrail, wayfindContoursTrail, wayfindResourcesTrail, wayfindSignalsTrail
 wayfindSurfacesTrail, wayfindFacetsTrail, wayfindVersionsTrail, wayfindExamplesTrail
-wayfindErrorsTrail, wayfindAdaptersTrail
+wayfindErrorsTrail, wayfindAdaptersTrail, wayfindOverlayTrail
 wayfindDescribeTrail, wayfindContractTrail, wayfindNearbyTrail, wayfindImpactTrail
 wayfindOutlineTrail, wayfindDiffTrail
 
