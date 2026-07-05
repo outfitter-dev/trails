@@ -46,6 +46,7 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@ontrails/cloudflare": "workspace:^",
     "@ontrails/testing": "workspace:^"
   }
 }

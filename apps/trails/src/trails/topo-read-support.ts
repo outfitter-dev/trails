@@ -27,7 +27,11 @@ import {
   readTrailsLock,
   stripTopoGraphForces,
 } from '@ontrails/topographer';
-import type { LockManifest, TopoGraph } from '@ontrails/topographer';
+import type {
+  LockManifest,
+  TopoGraph,
+  TopoGraphOverlayRegistration,
+} from '@ontrails/topographer';
 
 import type {
   BriefReport,
@@ -76,6 +80,7 @@ export interface CurrentTopoReadOptions {
     | Readonly<Record<string, readonly CliCommandAliasInput[]>>
     | undefined;
   readonly rootDir?: string | undefined;
+  readonly overlays?: readonly TopoGraphOverlayRegistration[] | undefined;
   readonly surfaceLayerNames?: Partial<SurfaceLayerNames> | undefined;
 }
 
@@ -199,7 +204,10 @@ export const deriveCurrentTrailDetail = (
     ? undefined
     : deriveTrailDetail(trail, app, undefined, {
         surfaceLayerNames: options?.surfaceLayerNames,
-        topoGraph: deriveTopoGraph(app, { cliAliases: options?.cliAliases }),
+        topoGraph: deriveTopoGraph(app, {
+          cliAliases: options?.cliAliases,
+          overlays: options?.overlays,
+        }),
       });
 };
 
@@ -238,7 +246,10 @@ export const deriveCurrentTopoMatches = (
     (activationGraph ??= deriveActivationGraph(app));
   let topoGraph: ReturnType<typeof deriveTopoGraph> | undefined;
   const getTopoGraph = (): ReturnType<typeof deriveTopoGraph> =>
-    (topoGraph ??= deriveTopoGraph(app, { cliAliases: options?.cliAliases }));
+    (topoGraph ??= deriveTopoGraph(app, {
+      cliAliases: options?.cliAliases,
+      overlays: options?.overlays,
+    }));
 
   const trail = app.get(id);
   if (trail !== undefined) {
@@ -271,6 +282,7 @@ export const validateCurrentTopo = async (
       | Readonly<Record<string, readonly CliCommandAliasInput[]>>
       | undefined;
     readonly rootDir?: string;
+    readonly overlays?: readonly TopoGraphOverlayRegistration[] | undefined;
   }
 ): Promise<Result<TopoValidateReport, Error>> => {
   const rootDir = deriveRootDir(options?.rootDir);
@@ -299,6 +311,7 @@ export const validateCurrentTopo = async (
 
   const currentExport = deriveCurrentTopoExport(app, {
     cliAliases: options?.cliAliases,
+    overlays: options?.overlays,
     rootDir,
   });
   if (currentExport.isErr()) {

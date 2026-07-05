@@ -91,6 +91,18 @@ if (testingWorkspaceEntry) {
   };
 }
 
+// The lock-overlays proof test writes a fixture app whose source string
+// imports `@ontrails/cloudflare`; the devDependency exists so that fixture
+// resolves at runtime, but knip cannot see imports inside string literals.
+const trailsAppWorkspace = 'apps/trails';
+const trailsAppWorkspaceEntry = workspaceMap[trailsAppWorkspace];
+if (trailsAppWorkspaceEntry) {
+  workspaceMap[trailsAppWorkspace] = {
+    ...trailsAppWorkspaceEntry,
+    ignoreDependencies: ['@ontrails/cloudflare'],
+  };
+}
+
 const config: KnipConfig = {
   ignoreExportsUsedInFile: true,
   treatConfigHintsAsErrors: true,

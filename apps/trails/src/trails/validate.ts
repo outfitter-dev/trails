@@ -9,6 +9,7 @@ export const validateTrail = trail('validate', {
     withFreshOperatorApp(input, ctx, ({ lease, rootDir }) =>
       validateCurrentTopo(lease.app, {
         cliAliases: lease.cliAliases,
+        overlays: lease.overlays,
         rootDir,
       })
     ),

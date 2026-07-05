@@ -19,6 +19,7 @@ import {
 import type {
   LockManifest,
   TopoGraph,
+  TopoGraphOverlayRegistration,
   TopoSnapshot,
   TrailsLock,
 } from '@ontrails/topographer';
@@ -50,17 +51,25 @@ type CliAliasesOption = Readonly<
   Record<string, readonly CliCommandAliasInput[]>
 >;
 
+type OverlaysOption = readonly TopoGraphOverlayRegistration[];
+
 const persistAndReadStoredExport = (
   app: Topo,
   db: ReturnType<typeof openWriteTrailsDb>,
   rootDir: string,
-  options?: { readonly cliAliases?: CliAliasesOption | undefined } | undefined
+  options?:
+    | {
+        readonly cliAliases?: CliAliasesOption | undefined;
+        readonly overlays?: OverlaysOption | undefined;
+      }
+    | undefined
 ): Result<
   { snapshot: TopoSnapshot; storedExport: StoredTopoExport },
   Error
 > => {
   const snapshotResult = createStoredTopoSnapshot(db, app, {
     cliAliases: options?.cliAliases,
+    overlays: options?.overlays,
     sourceFingerprint: deriveSourceFingerprint(rootDir),
     ...readGitState(rootDir),
     ...deriveTopoCounts(app),
@@ -129,6 +138,7 @@ export const deriveCurrentTopoExport = (
   options?: {
     readonly cliAliases?: CliAliasesOption | undefined;
     readonly rootDir?: string;
+    readonly overlays?: OverlaysOption | undefined;
   }
 ): Result<StoredTopoExport, Error> => {
   const rootDir = deriveRootDir(options?.rootDir);
@@ -137,6 +147,7 @@ export const deriveCurrentTopoExport = (
   try {
     const projected = persistAndReadStoredExport(app, db, rootDir, {
       cliAliases: options?.cliAliases,
+      overlays: options?.overlays,
     });
     return projected.isErr()
       ? projected
@@ -265,6 +276,7 @@ export const exportCurrentTopo = async (
     readonly cliAliases?: CliAliasesOption | undefined;
     readonly force?: boolean | undefined;
     readonly rootDir?: string;
+    readonly overlays?: OverlaysOption | undefined;
   }
 ): Promise<Result<TopoExportReport, Error>> => {
   const rootDir = deriveRootDir(options?.rootDir);
@@ -273,6 +285,7 @@ export const exportCurrentTopo = async (
   try {
     const candidate = deriveCurrentTopoExport(app, {
       cliAliases: options?.cliAliases,
+      overlays: options?.overlays,
       rootDir,
     });
     if (candidate.isErr()) {
@@ -290,6 +303,7 @@ export const exportCurrentTopo = async (
     db = openWriteTrailsDb({ rootDir });
     const persisted = persistAndReadStoredExport(app, db, rootDir, {
       cliAliases: options?.cliAliases,
+      overlays: options?.overlays,
     });
     if (persisted.isErr()) {
       return persisted;

@@ -55,6 +55,7 @@ export const guideTrail = trail('guide', {
       if (input.trailId) {
         const detail = deriveCurrentTopoDetail(lease.app, input.trailId, {
           cliAliases: lease.cliAliases,
+          overlays: lease.overlays,
           rootDir,
           surfaceLayerNames: readSurfaceLayerNamesFromContext(ctx),
         });

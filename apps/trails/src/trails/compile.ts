@@ -1,5 +1,6 @@
 import { trail } from '@ontrails/core';
 import type { CliCommandAliasInput, Result, Topo } from '@ontrails/core';
+import type { TopoGraphOverlayRegistration } from '@ontrails/topographer';
 import { z } from 'zod';
 
 import { withFreshOperatorApp } from './operator-context.js';
@@ -18,6 +19,7 @@ export const compileCurrentTopo = async (
       | undefined;
     readonly force?: boolean | undefined;
     readonly rootDir?: string;
+    readonly overlays?: readonly TopoGraphOverlayRegistration[] | undefined;
   }
 ): Promise<Result<TopoExportReport, Error>> => exportCurrentTopo(app, options);
 
@@ -38,6 +40,7 @@ export const compileTrail = trail('compile', {
       compileCurrentTopo(lease.app, {
         cliAliases: lease.cliAliases,
         force: input.force,
+        overlays: lease.overlays,
         rootDir,
       })
     ),
