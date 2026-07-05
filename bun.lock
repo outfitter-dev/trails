@@ -32,6 +32,7 @@
         "@ontrails/core": "workspace:^",
       },
       "devDependencies": {
+        "@ontrails/adapter-kit": "workspace:^",
         "@ontrails/testing": "workspace:^",
         "miniflare": "^4.20250617.4",
       },
@@ -196,6 +197,9 @@
       "version": "1.0.0-beta.38",
       "dependencies": {
         "@ontrails/core": "workspace:^",
+      },
+      "peerDependencies": {
+        "zod": "catalog:",
       },
     },
     "packages/cli": {

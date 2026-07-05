@@ -101,3 +101,19 @@ testAll(graph);
 ## Local integration testing
 
 Integration runs are local-first via [miniflare](https://miniflare.dev) (workerd in-process): the test lane bundles a demo Worker with `Bun.build`, boots it with a real KV namespace, and exercises HTTP, webhook, and KV routes. See `src/__tests__/miniflare.test.ts`. Real-account deploys are manual and never CI-required.
+
+## Lock facts
+
+`cloudflareOverlay` (root export) is the adapter's lock overlay overlay: an `Overlay` pairing the `cloudflare` namespace with an elevated zod fact schema and a deterministic derive over the app's topo. It records every env-bound resource as `{ binding, resourceId }` so the committed `trails.lock` documents which wrangler bindings the app depends on.
+
+An app opts in by exporting the overlay list next to its topo, then compiling:
+
+```ts
+// src/app.ts
+import { cloudflareOverlay } from '@ontrails/cloudflare';
+
+export const app = topo('my-worker', { readFlag });
+export const trailsOverlays = [cloudflareOverlay];
+```
+
+`trails compile` validates the derived facts against the schema and embeds them as `overlays.cloudflare`; `trails wayfind --facts cloudflare` reads them back. Toolchains that predate a overlay's namespace preserve it byte-for-byte — adding a new fact family never edits the lock schema or graph type.

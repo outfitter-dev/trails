@@ -1,4 +1,6 @@
 export { checkAdapters } from './check.js';
+export { isOverlay } from './overlay.js';
+export type { Overlay } from './overlay.js';
 export type {
   AdapterCheckDiagnostic,
   AdapterCheckDiagnosticCode,

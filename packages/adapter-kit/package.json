@@ -22,5 +22,8 @@
   },
   "dependencies": {
     "@ontrails/core": "workspace:^"
+  },
+  "peerDependencies": {
+    "zod": "catalog:"
   }
 }

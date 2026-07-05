@@ -27,6 +27,7 @@
     "@ontrails/core": "workspace:^"
   },
   "devDependencies": {
+    "@ontrails/adapter-kit": "workspace:^",
     "@ontrails/testing": "workspace:^",
     "miniflare": "^4.20250617.4"
   },

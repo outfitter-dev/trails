@@ -5,9 +5,13 @@
  * - `@ontrails/cloudflare/workers` — HTTP surface materializer (fetch handler)
  * - `@ontrails/cloudflare/kv` — key-value resource
  *
- * The root export re-exports the subpaths for convenience and adapter tooling.
+ * The root export re-exports the subpaths for convenience and adapter
+ * tooling, and owns the adapter's `trails.lock` overlay overlay
+ * (`cloudflareOverlay`).
  */
 
+export { cloudflareOverlay } from './facts.js';
+export type { CloudflareLockFacts } from './facts.js';
 export {
   buildEnvResourceOverrides,
   getEnvBinding,
