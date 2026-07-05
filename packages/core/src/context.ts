@@ -21,11 +21,25 @@ export const passthroughTrace: TraceFn = async <T>(
   fn: () => T | Promise<T>
 ): Promise<T> => await fn();
 
+const defaultCwd = (): string =>
+  typeof process === 'undefined' ? '/' : process.cwd();
+
+const defaultEnv = (): Record<string, string | undefined> =>
+  typeof process === 'undefined'
+    ? {}
+    : (process.env as Record<string, string | undefined>);
+
+const defaultRequestId = (): string =>
+  typeof Bun === 'undefined' ? crypto.randomUUID() : Bun.randomUUIDv7();
+
 /**
  * Create a TrailContext with sensible defaults.
  *
- * - `requestId` defaults to `Bun.randomUUIDv7()` (sortable v7 UUID)
+ * - `requestId` defaults to `Bun.randomUUIDv7()` (sortable v7 UUID), falling
+ *   back to `crypto.randomUUID()` on runtimes without the `Bun` global
  * - `abortSignal` defaults to a fresh, non-aborted `AbortSignal`
+ * - `cwd`/`env` default to the `process` globals when available, and to
+ *   `'/'`/`{}` on runtimes without `process` (for example Cloudflare Workers)
  * - All other fields come from `overrides`
  */
 export const createTrailContext = (
@@ -33,10 +47,10 @@ export const createTrailContext = (
 ): TrailContext => {
   const ctx = {
     abortSignal: new AbortController().signal,
-    cwd: process.cwd(),
+    cwd: defaultCwd(),
     dryRun: false,
-    env: process.env as Record<string, string | undefined>,
-    requestId: Bun.randomUUIDv7(),
+    env: defaultEnv(),
+    requestId: defaultRequestId(),
     trace: passthroughTrace,
     ...overrides,
   } as MutableTrailContext;
