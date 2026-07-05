@@ -1,0 +1,6172 @@
+{
+  "scope": {
+    "app": "lookout"
+  },
+  "summary": {
+    "contours": 0,
+    "resources": 3,
+    "signals": 14,
+    "trails": 22
+  },
+  "topoGraph": {
+    "activationGraph": {
+      "edgeCount": 3,
+      "edges": [
+        {
+          "hasWhere": false,
+          "sourceId": "schedule.probe.sweep",
+          "sourceKey": "schedule:schedule.probe.sweep",
+          "sourceKind": "schedule",
+          "trailId": "probe.sweep"
+        },
+        {
+          "hasWhere": false,
+          "sourceId": "probe.failed",
+          "sourceKey": "signal:probe.failed",
+          "sourceKind": "signal",
+          "trailId": "incident.open"
+        },
+        {
+          "hasWhere": false,
+          "sourceId": "probe.recovered",
+          "sourceKey": "signal:probe.recovered",
+          "sourceKind": "signal",
+          "trailId": "incident.resolve"
+        }
+      ],
+      "sourceCount": 3,
+      "sourceKeys": [
+        "schedule:schedule.probe.sweep",
+        "signal:probe.failed",
+        "signal:probe.recovered"
+      ],
+      "trailIds": [
+        "incident.open",
+        "incident.resolve",
+        "probe.sweep"
+      ]
+    },
+    "activationSources": {
+      "schedule:schedule.probe.sweep": {
+        "cron": "* * * * *",
+        "id": "schedule.probe.sweep",
+        "input": {},
+        "key": "schedule:schedule.probe.sweep",
+        "kind": "schedule"
+      },
+      "signal:probe.failed": {
+        "id": "probe.failed",
+        "key": "signal:probe.failed",
+        "kind": "signal"
+      },
+      "signal:probe.recovered": {
+        "id": "probe.recovered",
+        "key": "signal:probe.recovered",
+        "kind": "signal"
+      }
+    },
+    "entries": [
+      {
+        "exampleCount": 1,
+        "id": "check.create",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "check",
+            "create"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "check",
+                "create"
+              ],
+              "source": "derived",
+              "target": "check.create"
+            }
+          ]
+        },
+        "description": "Register a new endpoint check and start monitoring it.",
+        "examples": [
+          {
+            "input": {
+              "intervalSeconds": 60,
+              "name": "api",
+              "url": "https://api.example.com/health"
+            },
+            "kind": "success",
+            "name": "Create a check",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Register a check with the default expectations",
+            "expectedMatch": {
+              "enabled": true,
+              "intervalSeconds": 60,
+              "name": "api",
+              "state": "unknown",
+              "url": "https://api.example.com/health"
+            }
+          }
+        ],
+        "input": {
+          "properties": {
+            "expectBodyIncludes": {
+              "description": "Substring the response body must contain",
+              "type": "string"
+            },
+            "expectStatus": {
+              "default": 200,
+              "description": "HTTP status the probe expects",
+              "type": "number"
+            },
+            "intervalSeconds": {
+              "description": "Probe interval in seconds (minimum 30)",
+              "type": "number"
+            },
+            "method": {
+              "default": "GET",
+              "description": "HTTP method",
+              "enum": [
+                "GET",
+                "HEAD"
+              ],
+              "type": "string"
+            },
+            "name": {
+              "description": "Human-readable check name",
+              "type": "string"
+            },
+            "timeoutMs": {
+              "default": 2000,
+              "description": "Per-attempt timeout in milliseconds",
+              "type": "number"
+            },
+            "url": {
+              "description": "URL to probe",
+              "type": "string"
+            }
+          },
+          "required": [
+            "intervalSeconds",
+            "name",
+            "url"
+          ],
+          "type": "object"
+        },
+        "output": {
+          "properties": {
+            "createdAt": {
+              "type": "string"
+            },
+            "enabled": {
+              "type": "boolean"
+            },
+            "expect": {
+              "properties": {
+                "bodyIncludes": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "number"
+                }
+              },
+              "type": "object"
+            },
+            "id": {
+              "type": "string"
+            },
+            "intervalSeconds": {
+              "type": "number"
+            },
+            "method": {
+              "enum": [
+                "GET",
+                "HEAD"
+              ],
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "state": {
+              "enum": [
+                "up",
+                "down",
+                "unknown"
+              ],
+              "type": "string"
+            },
+            "timeoutMs": {
+              "type": "number"
+            },
+            "updatedAt": {
+              "type": "string"
+            },
+            "url": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "enabled",
+            "expect",
+            "id",
+            "intervalSeconds",
+            "method",
+            "name",
+            "state",
+            "timeoutMs",
+            "updatedAt",
+            "url"
+          ],
+          "type": "object"
+        },
+        "permit": {
+          "scopes": [
+            "lookout:admin"
+          ]
+        },
+        "resources": [
+          "lookout.db"
+        ]
+      },
+      {
+        "exampleCount": 2,
+        "id": "check.delete",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "check",
+            "delete"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "check",
+                "delete"
+              ],
+              "source": "derived",
+              "target": "check.delete"
+            }
+          ]
+        },
+        "description": "Delete a check and stop monitoring it.",
+        "examples": [
+          {
+            "input": {
+              "id": "chk_retired"
+            },
+            "kind": "success",
+            "name": "Delete a check",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Delete a seeded demo check",
+            "expected": {
+              "deleted": true,
+              "id": "chk_retired"
+            }
+          },
+          {
+            "input": {
+              "id": "chk_missing"
+            },
+            "kind": "error",
+            "name": "Delete a missing check",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Unknown ids return NotFoundError",
+            "error": "NotFoundError"
+          }
+        ],
+        "input": {
+          "properties": {
+            "id": {
+              "description": "Check id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "type": "object"
+        },
+        "intent": "destroy",
+        "output": {
+          "properties": {
+            "deleted": {
+              "type": "boolean"
+            },
+            "id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "deleted",
+            "id"
+          ],
+          "type": "object"
+        },
+        "permit": {
+          "scopes": [
+            "lookout:admin"
+          ]
+        },
+        "resources": [
+          "lookout.db"
+        ]
+      },
+      {
+        "exampleCount": 2,
+        "id": "check.get",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "check",
+            "get"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "check",
+                "get"
+              ],
+              "source": "derived",
+              "target": "check.get"
+            }
+          ]
+        },
+        "description": "Show one check by id.",
+        "examples": [
+          {
+            "input": {
+              "id": "chk_steady"
+            },
+            "kind": "success",
+            "name": "Get a check",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Look up a seeded demo check",
+            "expectedMatch": {
+              "id": "chk_steady",
+              "name": "steady"
+            }
+          },
+          {
+            "input": {
+              "id": "chk_missing"
+            },
+            "kind": "error",
+            "name": "Get a missing check",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Unknown ids return NotFoundError",
+            "error": "NotFoundError"
+          }
+        ],
+        "input": {
+          "properties": {
+            "id": {
+              "description": "Check id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "type": "object"
+        },
+        "intent": "read",
+        "output": {
+          "properties": {
+            "createdAt": {
+              "type": "string"
+            },
+            "enabled": {
+              "type": "boolean"
+            },
+            "expect": {
+              "properties": {
+                "bodyIncludes": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "number"
+                }
+              },
+              "type": "object"
+            },
+            "id": {
+              "type": "string"
+            },
+            "intervalSeconds": {
+              "type": "number"
+            },
+            "method": {
+              "enum": [
+                "GET",
+                "HEAD"
+              ],
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "state": {
+              "enum": [
+                "up",
+                "down",
+                "unknown"
+              ],
+              "type": "string"
+            },
+            "timeoutMs": {
+              "type": "number"
+            },
+            "updatedAt": {
+              "type": "string"
+            },
+            "url": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "enabled",
+            "expect",
+            "id",
+            "intervalSeconds",
+            "method",
+            "name",
+            "state",
+            "timeoutMs",
+            "updatedAt",
+            "url"
+          ],
+          "type": "object"
+        },
+        "permit": "public",
+        "resources": [
+          "lookout.db"
+        ]
+      },
+      {
+        "exampleCount": 1,
+        "id": "check.list",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "check",
+            "list"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "check",
+                "list"
+              ],
+              "source": "derived",
+              "target": "check.list"
+            }
+          ]
+        },
+        "description": "List registered checks.",
+        "examples": [
+          {
+            "input": {},
+            "kind": "success",
+            "name": "List checks",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "List every registered check"
+          }
+        ],
+        "input": {
+          "properties": {
+            "enabled": {
+              "description": "Filter by enabled state",
+              "type": "boolean"
+            }
+          },
+          "type": "object"
+        },
+        "intent": "read",
+        "output": {
+          "properties": {
+            "checks": {
+              "items": {
+                "properties": {
+                  "createdAt": {
+                    "type": "string"
+                  },
+                  "enabled": {
+                    "type": "boolean"
+                  },
+                  "expect": {
+                    "properties": {
+                      "bodyIncludes": {
+                        "type": "string"
+                      },
+                      "status": {
+                        "type": "number"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "intervalSeconds": {
+                    "type": "number"
+                  },
+                  "method": {
+                    "enum": [
+                      "GET",
+                      "HEAD"
+                    ],
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "state": {
+                    "enum": [
+                      "up",
+                      "down",
+                      "unknown"
+                    ],
+                    "type": "string"
+                  },
+                  "timeoutMs": {
+                    "type": "number"
+                  },
+                  "updatedAt": {
+                    "type": "string"
+                  },
+                  "url": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "createdAt",
+                  "enabled",
+                  "expect",
+                  "id",
+                  "intervalSeconds",
+                  "method",
+                  "name",
+                  "state",
+                  "timeoutMs",
+                  "updatedAt",
+                  "url"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "total": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "checks",
+            "total"
+          ],
+          "type": "object"
+        },
+        "permit": "public",
+        "resources": [
+          "lookout.db"
+        ]
+      },
+      {
+        "exampleCount": 1,
+        "id": "check.pause",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "check",
+            "pause"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "check",
+                "pause"
+              ],
+              "source": "derived",
+              "target": "check.pause"
+            }
+          ]
+        },
+        "description": "Pause a check — the cron sweep stops scheduling probes for it.",
+        "examples": [
+          {
+            "input": {
+              "id": "chk_flaky"
+            },
+            "kind": "success",
+            "name": "Pause a check",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Pause a seeded demo check",
+            "expectedMatch": {
+              "enabled": false,
+              "id": "chk_flaky"
+            }
+          }
+        ],
+        "input": {
+          "properties": {
+            "id": {
+              "description": "Check id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "type": "object"
+        },
+        "output": {
+          "properties": {
+            "createdAt": {
+              "type": "string"
+            },
+            "enabled": {
+              "type": "boolean"
+            },
+            "expect": {
+              "properties": {
+                "bodyIncludes": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "number"
+                }
+              },
+              "type": "object"
+            },
+            "id": {
+              "type": "string"
+            },
+            "intervalSeconds": {
+              "type": "number"
+            },
+            "method": {
+              "enum": [
+                "GET",
+                "HEAD"
+              ],
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "state": {
+              "enum": [
+                "up",
+                "down",
+                "unknown"
+              ],
+              "type": "string"
+            },
+            "timeoutMs": {
+              "type": "number"
+            },
+            "updatedAt": {
+              "type": "string"
+            },
+            "url": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "enabled",
+            "expect",
+            "id",
+            "intervalSeconds",
+            "method",
+            "name",
+            "state",
+            "timeoutMs",
+            "updatedAt",
+            "url"
+          ],
+          "type": "object"
+        },
+        "permit": {
+          "scopes": [
+            "lookout:admin"
+          ]
+        },
+        "resources": [
+          "lookout.db"
+        ]
+      },
+      {
+        "exampleCount": 1,
+        "id": "check.resume",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "check",
+            "resume"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "check",
+                "resume"
+              ],
+              "source": "derived",
+              "target": "check.resume"
+            }
+          ]
+        },
+        "description": "Resume a paused check — the cron sweep schedules probes again.",
+        "examples": [
+          {
+            "input": {
+              "id": "chk_flaky"
+            },
+            "kind": "success",
+            "name": "Resume a check",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Resume a seeded demo check",
+            "expectedMatch": {
+              "enabled": true,
+              "id": "chk_flaky"
+            }
+          }
+        ],
+        "input": {
+          "properties": {
+            "id": {
+              "description": "Check id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "type": "object"
+        },
+        "output": {
+          "properties": {
+            "createdAt": {
+              "type": "string"
+            },
+            "enabled": {
+              "type": "boolean"
+            },
+            "expect": {
+              "properties": {
+                "bodyIncludes": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "number"
+                }
+              },
+              "type": "object"
+            },
+            "id": {
+              "type": "string"
+            },
+            "intervalSeconds": {
+              "type": "number"
+            },
+            "method": {
+              "enum": [
+                "GET",
+                "HEAD"
+              ],
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "state": {
+              "enum": [
+                "up",
+                "down",
+                "unknown"
+              ],
+              "type": "string"
+            },
+            "timeoutMs": {
+              "type": "number"
+            },
+            "updatedAt": {
+              "type": "string"
+            },
+            "url": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "enabled",
+            "expect",
+            "id",
+            "intervalSeconds",
+            "method",
+            "name",
+            "state",
+            "timeoutMs",
+            "updatedAt",
+            "url"
+          ],
+          "type": "object"
+        },
+        "permit": {
+          "scopes": [
+            "lookout:admin"
+          ]
+        },
+        "resources": [
+          "lookout.db"
+        ]
+      },
+      {
+        "exampleCount": 1,
+        "id": "check.update",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "check",
+            "update"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "check",
+                "update"
+              ],
+              "source": "derived",
+              "target": "check.update"
+            }
+          ]
+        },
+        "description": "Update fields on an existing check.",
+        "examples": [
+          {
+            "input": {
+              "id": "chk_flaky",
+              "intervalSeconds": 45
+            },
+            "kind": "success",
+            "name": "Update a check interval",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Tighten the probe interval on a seeded check",
+            "expectedMatch": {
+              "id": "chk_flaky",
+              "intervalSeconds": 45
+            }
+          }
+        ],
+        "input": {
+          "properties": {
+            "expectBodyIncludes": {
+              "description": "Substring the response body must contain",
+              "type": "string"
+            },
+            "expectStatus": {
+              "description": "HTTP status the probe expects",
+              "type": "number"
+            },
+            "id": {
+              "description": "Check id",
+              "type": "string"
+            },
+            "intervalSeconds": {
+              "description": "Probe interval in seconds (minimum 30)",
+              "type": "number"
+            },
+            "method": {
+              "description": "HTTP method",
+              "enum": [
+                "GET",
+                "HEAD"
+              ],
+              "type": "string"
+            },
+            "name": {
+              "description": "Human-readable check name",
+              "type": "string"
+            },
+            "timeoutMs": {
+              "description": "Per-attempt timeout in milliseconds",
+              "type": "number"
+            },
+            "url": {
+              "description": "URL to probe",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "type": "object"
+        },
+        "output": {
+          "properties": {
+            "createdAt": {
+              "type": "string"
+            },
+            "enabled": {
+              "type": "boolean"
+            },
+            "expect": {
+              "properties": {
+                "bodyIncludes": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "number"
+                }
+              },
+              "type": "object"
+            },
+            "id": {
+              "type": "string"
+            },
+            "intervalSeconds": {
+              "type": "number"
+            },
+            "method": {
+              "enum": [
+                "GET",
+                "HEAD"
+              ],
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "state": {
+              "enum": [
+                "up",
+                "down",
+                "unknown"
+              ],
+              "type": "string"
+            },
+            "timeoutMs": {
+              "type": "number"
+            },
+            "updatedAt": {
+              "type": "string"
+            },
+            "url": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "enabled",
+            "expect",
+            "id",
+            "intervalSeconds",
+            "method",
+            "name",
+            "state",
+            "timeoutMs",
+            "updatedAt",
+            "url"
+          ],
+          "type": "object"
+        },
+        "permit": {
+          "scopes": [
+            "lookout:admin"
+          ]
+        },
+        "resources": [
+          "lookout.db"
+        ]
+      },
+      {
+        "exampleCount": 1,
+        "id": "incident.acknowledge",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "incident",
+            "acknowledge"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "incident",
+                "acknowledge"
+              ],
+              "source": "derived",
+              "target": "incident.acknowledge"
+            }
+          ]
+        },
+        "description": "Acknowledge an incident so on-call knows it is being handled.",
+        "examples": [
+          {
+            "input": {
+              "by": "matt",
+              "id": "inc_demo"
+            },
+            "kind": "success",
+            "name": "Acknowledge an incident",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Acknowledge the seeded demo incident",
+            "expectedMatch": {
+              "id": "inc_demo",
+              "status": "acknowledged"
+            }
+          }
+        ],
+        "input": {
+          "properties": {
+            "by": {
+              "description": "Who is acknowledging",
+              "type": "string"
+            },
+            "id": {
+              "description": "Incident id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "type": "object"
+        },
+        "output": {
+          "properties": {
+            "acknowledgedBy": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "checkId": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "openedAt": {
+              "type": "string"
+            },
+            "probeCount": {
+              "type": "number"
+            },
+            "resolvedAt": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "status": {
+              "enum": [
+                "open",
+                "acknowledged",
+                "resolved"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "acknowledgedBy",
+            "checkId",
+            "id",
+            "openedAt",
+            "probeCount",
+            "resolvedAt",
+            "status"
+          ],
+          "type": "object"
+        },
+        "permit": {
+          "scopes": [
+            "lookout:admin"
+          ]
+        },
+        "resources": [
+          "lookout.db"
+        ]
+      },
+      {
+        "exampleCount": 2,
+        "id": "incident.get",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "incident",
+            "get"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "incident",
+                "get"
+              ],
+              "source": "derived",
+              "target": "incident.get"
+            }
+          ]
+        },
+        "description": "Show one incident by id.",
+        "examples": [
+          {
+            "input": {
+              "id": "inc_demo"
+            },
+            "kind": "success",
+            "name": "Get an incident",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Look up the seeded demo incident",
+            "expectedMatch": {
+              "checkId": "chk_retired",
+              "id": "inc_demo"
+            }
+          },
+          {
+            "input": {
+              "id": "inc_missing"
+            },
+            "kind": "error",
+            "name": "Get a missing incident",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Unknown ids return NotFoundError",
+            "error": "NotFoundError"
+          }
+        ],
+        "input": {
+          "properties": {
+            "id": {
+              "description": "Incident id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "type": "object"
+        },
+        "intent": "read",
+        "output": {
+          "properties": {
+            "acknowledgedBy": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "checkId": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "openedAt": {
+              "type": "string"
+            },
+            "probeCount": {
+              "type": "number"
+            },
+            "resolvedAt": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "status": {
+              "enum": [
+                "open",
+                "acknowledged",
+                "resolved"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "acknowledgedBy",
+            "checkId",
+            "id",
+            "openedAt",
+            "probeCount",
+            "resolvedAt",
+            "status"
+          ],
+          "type": "object"
+        },
+        "permit": "public",
+        "resources": [
+          "lookout.db"
+        ]
+      },
+      {
+        "exampleCount": 1,
+        "id": "incident.list",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "incident",
+            "list"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "incident",
+                "list"
+              ],
+              "source": "derived",
+              "target": "incident.list"
+            }
+          ]
+        },
+        "description": "List incidents, newest first.",
+        "examples": [
+          {
+            "input": {},
+            "kind": "success",
+            "name": "List incidents",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "The demo store seeds one open incident",
+            "expectedMatch": {
+              "total": 1
+            }
+          }
+        ],
+        "input": {
+          "properties": {
+            "status": {
+              "description": "Filter by incident status",
+              "enum": [
+                "open",
+                "acknowledged",
+                "resolved"
+              ],
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "intent": "read",
+        "output": {
+          "properties": {
+            "incidents": {
+              "items": {
+                "properties": {
+                  "acknowledgedBy": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "checkId": {
+                    "type": "string"
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "openedAt": {
+                    "type": "string"
+                  },
+                  "probeCount": {
+                    "type": "number"
+                  },
+                  "resolvedAt": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "status": {
+                    "enum": [
+                      "open",
+                      "acknowledged",
+                      "resolved"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "acknowledgedBy",
+                  "checkId",
+                  "id",
+                  "openedAt",
+                  "probeCount",
+                  "resolvedAt",
+                  "status"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "total": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "incidents",
+            "total"
+          ],
+          "type": "object"
+        },
+        "permit": "public",
+        "resources": [
+          "lookout.db"
+        ]
+      },
+      {
+        "exampleCount": 2,
+        "id": "incident.open",
+        "kind": "trail",
+        "surfaces": [],
+        "activationSources": [
+          {
+            "source": {
+              "id": "probe.failed",
+              "key": "signal:probe.failed",
+              "kind": "signal"
+            }
+          }
+        ],
+        "cli": {
+          "path": [
+            "incident",
+            "open"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "incident",
+                "open"
+              ],
+              "source": "derived",
+              "target": "incident.open"
+            }
+          ]
+        },
+        "composes": [
+          "notify.dispatch"
+        ],
+        "description": "Open an incident when a check transitions to down; dedupes when one is already open.",
+        "examples": [
+          {
+            "input": {
+              "at": "2026-07-01T03:12:00.000Z",
+              "checkId": "chk_steady",
+              "checkName": "steady",
+              "failureReason": "upstream answered 503",
+              "probeId": "prb_1",
+              "url": "http://localhost:4090/steady"
+            },
+            "kind": "success",
+            "name": "Open an incident",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "A fresh up→down transition opens an incident and notifies",
+            "expectedMatch": {
+              "deduped": false,
+              "notified": true
+            }
+          },
+          {
+            "input": {
+              "at": "2026-07-01T03:13:00.000Z",
+              "checkId": "chk_retired",
+              "checkName": "retired",
+              "failureReason": "upstream answered 503",
+              "probeId": "prb_2",
+              "url": "http://localhost:4090/flaky"
+            },
+            "kind": "success",
+            "name": "Dedupe against an open incident",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "A failure signal for a check with an open incident dedupes to a no-op",
+            "expectedMatch": {
+              "deduped": true,
+              "notified": false
+            }
+          }
+        ],
+        "input": {
+          "properties": {
+            "at": {
+              "description": "ISO timestamp of the resolving probe",
+              "type": "string"
+            },
+            "checkId": {
+              "description": "Check that changed state",
+              "type": "string"
+            },
+            "checkName": {
+              "description": "Human-readable check name",
+              "type": "string"
+            },
+            "failureReason": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Why the probe failed, null on recovery"
+            },
+            "probeId": {
+              "description": "Probe row that resolved the transition",
+              "type": "string"
+            },
+            "url": {
+              "description": "Probed URL",
+              "type": "string"
+            }
+          },
+          "required": [
+            "at",
+            "checkId",
+            "checkName",
+            "failureReason",
+            "probeId",
+            "url"
+          ],
+          "type": "object"
+        },
+        "on": [
+          "probe.failed"
+        ],
+        "output": {
+          "properties": {
+            "deduped": {
+              "type": "boolean"
+            },
+            "incident": {
+              "properties": {
+                "acknowledgedBy": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "checkId": {
+                  "type": "string"
+                },
+                "id": {
+                  "type": "string"
+                },
+                "openedAt": {
+                  "type": "string"
+                },
+                "probeCount": {
+                  "type": "number"
+                },
+                "resolvedAt": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "status": {
+                  "enum": [
+                    "open",
+                    "acknowledged",
+                    "resolved"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "acknowledgedBy",
+                "checkId",
+                "id",
+                "openedAt",
+                "probeCount",
+                "resolvedAt",
+                "status"
+              ],
+              "type": "object"
+            },
+            "notified": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "deduped",
+            "incident",
+            "notified"
+          ],
+          "type": "object"
+        },
+        "resources": [
+          "lookout.db"
+        ]
+      },
+      {
+        "exampleCount": 2,
+        "id": "incident.resolve",
+        "kind": "trail",
+        "surfaces": [],
+        "activationSources": [
+          {
+            "source": {
+              "id": "probe.recovered",
+              "key": "signal:probe.recovered",
+              "kind": "signal"
+            }
+          }
+        ],
+        "cli": {
+          "path": [
+            "incident",
+            "resolve"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "incident",
+                "resolve"
+              ],
+              "source": "derived",
+              "target": "incident.resolve"
+            }
+          ]
+        },
+        "composes": [
+          "notify.dispatch"
+        ],
+        "description": "Resolve the open incident when a check transitions back to up.",
+        "examples": [
+          {
+            "input": {
+              "at": "2026-07-01T03:20:00.000Z",
+              "checkId": "chk_retired",
+              "checkName": "retired",
+              "failureReason": null,
+              "probeId": "prb_3",
+              "url": "http://localhost:4090/steady"
+            },
+            "kind": "success",
+            "name": "Resolve an incident",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "A down→up transition resolves the open incident",
+            "expectedMatch": {
+              "notified": true,
+              "resolved": true
+            }
+          },
+          {
+            "input": {
+              "at": "2026-07-01T03:21:00.000Z",
+              "checkId": "chk_steady",
+              "checkName": "steady",
+              "failureReason": null,
+              "probeId": "prb_4",
+              "url": "http://localhost:4090/steady"
+            },
+            "kind": "success",
+            "name": "Recovery without an incident",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "A recovery with no open incident is a no-op",
+            "expectedMatch": {
+              "notified": false,
+              "resolved": false
+            }
+          }
+        ],
+        "input": {
+          "properties": {
+            "at": {
+              "description": "ISO timestamp of the resolving probe",
+              "type": "string"
+            },
+            "checkId": {
+              "description": "Check that changed state",
+              "type": "string"
+            },
+            "checkName": {
+              "description": "Human-readable check name",
+              "type": "string"
+            },
+            "failureReason": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Why the probe failed, null on recovery"
+            },
+            "probeId": {
+              "description": "Probe row that resolved the transition",
+              "type": "string"
+            },
+            "url": {
+              "description": "Probed URL",
+              "type": "string"
+            }
+          },
+          "required": [
+            "at",
+            "checkId",
+            "checkName",
+            "failureReason",
+            "probeId",
+            "url"
+          ],
+          "type": "object"
+        },
+        "on": [
+          "probe.recovered"
+        ],
+        "output": {
+          "properties": {
+            "incident": {
+              "anyOf": [
+                {
+                  "properties": {
+                    "acknowledgedBy": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "checkId": {
+                      "type": "string"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "openedAt": {
+                      "type": "string"
+                    },
+                    "probeCount": {
+                      "type": "number"
+                    },
+                    "resolvedAt": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "status": {
+                      "enum": [
+                        "open",
+                        "acknowledged",
+                        "resolved"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "acknowledgedBy",
+                    "checkId",
+                    "id",
+                    "openedAt",
+                    "probeCount",
+                    "resolvedAt",
+                    "status"
+                  ],
+                  "type": "object"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "notified": {
+              "type": "boolean"
+            },
+            "resolved": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "incident",
+            "notified",
+            "resolved"
+          ],
+          "type": "object"
+        },
+        "resources": [
+          "lookout.db"
+        ]
+      },
+      {
+        "exampleCount": 0,
+        "id": "lookout.db",
+        "kind": "resource",
+        "surfaces": [],
+        "description": "SQLite store for lookout checks, probes, incidents, and notifications.",
+        "healthcheck": true
+      },
+      {
+        "exampleCount": 0,
+        "id": "lookout.db:checks.created",
+        "kind": "signal",
+        "surfaces": [],
+        "consumers": [],
+        "description": "Fired after a \"checks\" entity is created.",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "input": {
+          "properties": {
+            "createdAt": {
+              "type": "string"
+            },
+            "enabled": {
+              "type": "boolean"
+            },
+            "expect": {
+              "properties": {
+                "bodyIncludes": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "number"
+                }
+              },
+              "type": "object"
+            },
+            "id": {
+              "type": "string"
+            },
+            "intervalSeconds": {
+              "type": "number"
+            },
+            "method": {
+              "enum": [
+                "GET",
+                "HEAD"
+              ],
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "state": {
+              "enum": [
+                "up",
+                "down",
+                "unknown"
+              ],
+              "type": "string"
+            },
+            "timeoutMs": {
+              "type": "number"
+            },
+            "updatedAt": {
+              "type": "string"
+            },
+            "url": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "enabled",
+            "expect",
+            "id",
+            "intervalSeconds",
+            "method",
+            "name",
+            "state",
+            "timeoutMs",
+            "updatedAt",
+            "url"
+          ],
+          "type": "object"
+        },
+        "payload": {
+          "properties": {
+            "createdAt": {
+              "type": "string"
+            },
+            "enabled": {
+              "type": "boolean"
+            },
+            "expect": {
+              "properties": {
+                "bodyIncludes": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "number"
+                }
+              },
+              "type": "object"
+            },
+            "id": {
+              "type": "string"
+            },
+            "intervalSeconds": {
+              "type": "number"
+            },
+            "method": {
+              "enum": [
+                "GET",
+                "HEAD"
+              ],
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "state": {
+              "enum": [
+                "up",
+                "down",
+                "unknown"
+              ],
+              "type": "string"
+            },
+            "timeoutMs": {
+              "type": "number"
+            },
+            "updatedAt": {
+              "type": "string"
+            },
+            "url": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "enabled",
+            "expect",
+            "id",
+            "intervalSeconds",
+            "method",
+            "name",
+            "state",
+            "timeoutMs",
+            "updatedAt",
+            "url"
+          ],
+          "type": "object"
+        },
+        "producers": []
+      },
+      {
+        "exampleCount": 0,
+        "id": "lookout.db:checks.removed",
+        "kind": "signal",
+        "surfaces": [],
+        "consumers": [],
+        "description": "Fired after a \"checks\" entity is removed.",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "input": {
+          "properties": {
+            "createdAt": {
+              "type": "string"
+            },
+            "enabled": {
+              "type": "boolean"
+            },
+            "expect": {
+              "properties": {
+                "bodyIncludes": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "number"
+                }
+              },
+              "type": "object"
+            },
+            "id": {
+              "type": "string"
+            },
+            "intervalSeconds": {
+              "type": "number"
+            },
+            "method": {
+              "enum": [
+                "GET",
+                "HEAD"
+              ],
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "state": {
+              "enum": [
+                "up",
+                "down",
+                "unknown"
+              ],
+              "type": "string"
+            },
+            "timeoutMs": {
+              "type": "number"
+            },
+            "updatedAt": {
+              "type": "string"
+            },
+            "url": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "enabled",
+            "expect",
+            "id",
+            "intervalSeconds",
+            "method",
+            "name",
+            "state",
+            "timeoutMs",
+            "updatedAt",
+            "url"
+          ],
+          "type": "object"
+        },
+        "payload": {
+          "properties": {
+            "createdAt": {
+              "type": "string"
+            },
+            "enabled": {
+              "type": "boolean"
+            },
+            "expect": {
+              "properties": {
+                "bodyIncludes": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "number"
+                }
+              },
+              "type": "object"
+            },
+            "id": {
+              "type": "string"
+            },
+            "intervalSeconds": {
+              "type": "number"
+            },
+            "method": {
+              "enum": [
+                "GET",
+                "HEAD"
+              ],
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "state": {
+              "enum": [
+                "up",
+                "down",
+                "unknown"
+              ],
+              "type": "string"
+            },
+            "timeoutMs": {
+              "type": "number"
+            },
+            "updatedAt": {
+              "type": "string"
+            },
+            "url": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "enabled",
+            "expect",
+            "id",
+            "intervalSeconds",
+            "method",
+            "name",
+            "state",
+            "timeoutMs",
+            "updatedAt",
+            "url"
+          ],
+          "type": "object"
+        },
+        "producers": []
+      },
+      {
+        "exampleCount": 0,
+        "id": "lookout.db:checks.updated",
+        "kind": "signal",
+        "surfaces": [],
+        "consumers": [],
+        "description": "Fired after a \"checks\" entity is updated.",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "input": {
+          "properties": {
+            "createdAt": {
+              "type": "string"
+            },
+            "enabled": {
+              "type": "boolean"
+            },
+            "expect": {
+              "properties": {
+                "bodyIncludes": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "number"
+                }
+              },
+              "type": "object"
+            },
+            "id": {
+              "type": "string"
+            },
+            "intervalSeconds": {
+              "type": "number"
+            },
+            "method": {
+              "enum": [
+                "GET",
+                "HEAD"
+              ],
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "state": {
+              "enum": [
+                "up",
+                "down",
+                "unknown"
+              ],
+              "type": "string"
+            },
+            "timeoutMs": {
+              "type": "number"
+            },
+            "updatedAt": {
+              "type": "string"
+            },
+            "url": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "enabled",
+            "expect",
+            "id",
+            "intervalSeconds",
+            "method",
+            "name",
+            "state",
+            "timeoutMs",
+            "updatedAt",
+            "url"
+          ],
+          "type": "object"
+        },
+        "payload": {
+          "properties": {
+            "createdAt": {
+              "type": "string"
+            },
+            "enabled": {
+              "type": "boolean"
+            },
+            "expect": {
+              "properties": {
+                "bodyIncludes": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "number"
+                }
+              },
+              "type": "object"
+            },
+            "id": {
+              "type": "string"
+            },
+            "intervalSeconds": {
+              "type": "number"
+            },
+            "method": {
+              "enum": [
+                "GET",
+                "HEAD"
+              ],
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "state": {
+              "enum": [
+                "up",
+                "down",
+                "unknown"
+              ],
+              "type": "string"
+            },
+            "timeoutMs": {
+              "type": "number"
+            },
+            "updatedAt": {
+              "type": "string"
+            },
+            "url": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "enabled",
+            "expect",
+            "id",
+            "intervalSeconds",
+            "method",
+            "name",
+            "state",
+            "timeoutMs",
+            "updatedAt",
+            "url"
+          ],
+          "type": "object"
+        },
+        "producers": []
+      },
+      {
+        "exampleCount": 0,
+        "id": "lookout.db:incidents.created",
+        "kind": "signal",
+        "surfaces": [],
+        "consumers": [],
+        "description": "Fired after a \"incidents\" entity is created.",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "input": {
+          "properties": {
+            "acknowledgedBy": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "checkId": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "openedAt": {
+              "type": "string"
+            },
+            "probeCount": {
+              "type": "number"
+            },
+            "resolvedAt": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "status": {
+              "enum": [
+                "open",
+                "acknowledged",
+                "resolved"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "acknowledgedBy",
+            "checkId",
+            "id",
+            "openedAt",
+            "probeCount",
+            "resolvedAt",
+            "status"
+          ],
+          "type": "object"
+        },
+        "payload": {
+          "properties": {
+            "acknowledgedBy": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "checkId": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "openedAt": {
+              "type": "string"
+            },
+            "probeCount": {
+              "type": "number"
+            },
+            "resolvedAt": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "status": {
+              "enum": [
+                "open",
+                "acknowledged",
+                "resolved"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "acknowledgedBy",
+            "checkId",
+            "id",
+            "openedAt",
+            "probeCount",
+            "resolvedAt",
+            "status"
+          ],
+          "type": "object"
+        },
+        "producers": []
+      },
+      {
+        "exampleCount": 0,
+        "id": "lookout.db:incidents.removed",
+        "kind": "signal",
+        "surfaces": [],
+        "consumers": [],
+        "description": "Fired after a \"incidents\" entity is removed.",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "input": {
+          "properties": {
+            "acknowledgedBy": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "checkId": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "openedAt": {
+              "type": "string"
+            },
+            "probeCount": {
+              "type": "number"
+            },
+            "resolvedAt": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "status": {
+              "enum": [
+                "open",
+                "acknowledged",
+                "resolved"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "acknowledgedBy",
+            "checkId",
+            "id",
+            "openedAt",
+            "probeCount",
+            "resolvedAt",
+            "status"
+          ],
+          "type": "object"
+        },
+        "payload": {
+          "properties": {
+            "acknowledgedBy": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "checkId": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "openedAt": {
+              "type": "string"
+            },
+            "probeCount": {
+              "type": "number"
+            },
+            "resolvedAt": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "status": {
+              "enum": [
+                "open",
+                "acknowledged",
+                "resolved"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "acknowledgedBy",
+            "checkId",
+            "id",
+            "openedAt",
+            "probeCount",
+            "resolvedAt",
+            "status"
+          ],
+          "type": "object"
+        },
+        "producers": []
+      },
+      {
+        "exampleCount": 0,
+        "id": "lookout.db:incidents.updated",
+        "kind": "signal",
+        "surfaces": [],
+        "consumers": [],
+        "description": "Fired after a \"incidents\" entity is updated.",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "input": {
+          "properties": {
+            "acknowledgedBy": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "checkId": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "openedAt": {
+              "type": "string"
+            },
+            "probeCount": {
+              "type": "number"
+            },
+            "resolvedAt": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "status": {
+              "enum": [
+                "open",
+                "acknowledged",
+                "resolved"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "acknowledgedBy",
+            "checkId",
+            "id",
+            "openedAt",
+            "probeCount",
+            "resolvedAt",
+            "status"
+          ],
+          "type": "object"
+        },
+        "payload": {
+          "properties": {
+            "acknowledgedBy": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "checkId": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "openedAt": {
+              "type": "string"
+            },
+            "probeCount": {
+              "type": "number"
+            },
+            "resolvedAt": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "status": {
+              "enum": [
+                "open",
+                "acknowledged",
+                "resolved"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "acknowledgedBy",
+            "checkId",
+            "id",
+            "openedAt",
+            "probeCount",
+            "resolvedAt",
+            "status"
+          ],
+          "type": "object"
+        },
+        "producers": []
+      },
+      {
+        "exampleCount": 0,
+        "id": "lookout.db:notifications.created",
+        "kind": "signal",
+        "surfaces": [],
+        "consumers": [],
+        "description": "Fired after a \"notifications\" entity is created.",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "input": {
+          "properties": {
+            "channel": {
+              "enum": [
+                "console",
+                "webhook"
+              ],
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "incidentId": {
+              "type": "string"
+            },
+            "ok": {
+              "type": "boolean"
+            },
+            "sentAt": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "channel",
+            "id",
+            "incidentId",
+            "ok",
+            "sentAt"
+          ],
+          "type": "object"
+        },
+        "payload": {
+          "properties": {
+            "channel": {
+              "enum": [
+                "console",
+                "webhook"
+              ],
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "incidentId": {
+              "type": "string"
+            },
+            "ok": {
+              "type": "boolean"
+            },
+            "sentAt": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "channel",
+            "id",
+            "incidentId",
+            "ok",
+            "sentAt"
+          ],
+          "type": "object"
+        },
+        "producers": []
+      },
+      {
+        "exampleCount": 0,
+        "id": "lookout.db:notifications.removed",
+        "kind": "signal",
+        "surfaces": [],
+        "consumers": [],
+        "description": "Fired after a \"notifications\" entity is removed.",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "input": {
+          "properties": {
+            "channel": {
+              "enum": [
+                "console",
+                "webhook"
+              ],
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "incidentId": {
+              "type": "string"
+            },
+            "ok": {
+              "type": "boolean"
+            },
+            "sentAt": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "channel",
+            "id",
+            "incidentId",
+            "ok",
+            "sentAt"
+          ],
+          "type": "object"
+        },
+        "payload": {
+          "properties": {
+            "channel": {
+              "enum": [
+                "console",
+                "webhook"
+              ],
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "incidentId": {
+              "type": "string"
+            },
+            "ok": {
+              "type": "boolean"
+            },
+            "sentAt": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "channel",
+            "id",
+            "incidentId",
+            "ok",
+            "sentAt"
+          ],
+          "type": "object"
+        },
+        "producers": []
+      },
+      {
+        "exampleCount": 0,
+        "id": "lookout.db:notifications.updated",
+        "kind": "signal",
+        "surfaces": [],
+        "consumers": [],
+        "description": "Fired after a \"notifications\" entity is updated.",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "input": {
+          "properties": {
+            "channel": {
+              "enum": [
+                "console",
+                "webhook"
+              ],
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "incidentId": {
+              "type": "string"
+            },
+            "ok": {
+              "type": "boolean"
+            },
+            "sentAt": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "channel",
+            "id",
+            "incidentId",
+            "ok",
+            "sentAt"
+          ],
+          "type": "object"
+        },
+        "payload": {
+          "properties": {
+            "channel": {
+              "enum": [
+                "console",
+                "webhook"
+              ],
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "incidentId": {
+              "type": "string"
+            },
+            "ok": {
+              "type": "boolean"
+            },
+            "sentAt": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "channel",
+            "id",
+            "incidentId",
+            "ok",
+            "sentAt"
+          ],
+          "type": "object"
+        },
+        "producers": []
+      },
+      {
+        "exampleCount": 0,
+        "id": "lookout.db:probes.created",
+        "kind": "signal",
+        "surfaces": [],
+        "consumers": [],
+        "description": "Fired after a \"probes\" entity is created.",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "input": {
+          "properties": {
+            "attempts": {
+              "type": "number"
+            },
+            "checkId": {
+              "type": "string"
+            },
+            "durationMs": {
+              "type": "number"
+            },
+            "failureReason": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "id": {
+              "type": "string"
+            },
+            "outcome": {
+              "enum": [
+                "up",
+                "down",
+                "recovered-after-retry"
+              ],
+              "type": "string"
+            },
+            "startedAt": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "attempts",
+            "checkId",
+            "durationMs",
+            "failureReason",
+            "id",
+            "outcome",
+            "startedAt"
+          ],
+          "type": "object"
+        },
+        "payload": {
+          "properties": {
+            "attempts": {
+              "type": "number"
+            },
+            "checkId": {
+              "type": "string"
+            },
+            "durationMs": {
+              "type": "number"
+            },
+            "failureReason": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "id": {
+              "type": "string"
+            },
+            "outcome": {
+              "enum": [
+                "up",
+                "down",
+                "recovered-after-retry"
+              ],
+              "type": "string"
+            },
+            "startedAt": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "attempts",
+            "checkId",
+            "durationMs",
+            "failureReason",
+            "id",
+            "outcome",
+            "startedAt"
+          ],
+          "type": "object"
+        },
+        "producers": []
+      },
+      {
+        "exampleCount": 0,
+        "id": "lookout.db:probes.removed",
+        "kind": "signal",
+        "surfaces": [],
+        "consumers": [],
+        "description": "Fired after a \"probes\" entity is removed.",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "input": {
+          "properties": {
+            "attempts": {
+              "type": "number"
+            },
+            "checkId": {
+              "type": "string"
+            },
+            "durationMs": {
+              "type": "number"
+            },
+            "failureReason": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "id": {
+              "type": "string"
+            },
+            "outcome": {
+              "enum": [
+                "up",
+                "down",
+                "recovered-after-retry"
+              ],
+              "type": "string"
+            },
+            "startedAt": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "attempts",
+            "checkId",
+            "durationMs",
+            "failureReason",
+            "id",
+            "outcome",
+            "startedAt"
+          ],
+          "type": "object"
+        },
+        "payload": {
+          "properties": {
+            "attempts": {
+              "type": "number"
+            },
+            "checkId": {
+              "type": "string"
+            },
+            "durationMs": {
+              "type": "number"
+            },
+            "failureReason": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "id": {
+              "type": "string"
+            },
+            "outcome": {
+              "enum": [
+                "up",
+                "down",
+                "recovered-after-retry"
+              ],
+              "type": "string"
+            },
+            "startedAt": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "attempts",
+            "checkId",
+            "durationMs",
+            "failureReason",
+            "id",
+            "outcome",
+            "startedAt"
+          ],
+          "type": "object"
+        },
+        "producers": []
+      },
+      {
+        "exampleCount": 0,
+        "id": "lookout.db:probes.updated",
+        "kind": "signal",
+        "surfaces": [],
+        "consumers": [],
+        "description": "Fired after a \"probes\" entity is updated.",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "input": {
+          "properties": {
+            "attempts": {
+              "type": "number"
+            },
+            "checkId": {
+              "type": "string"
+            },
+            "durationMs": {
+              "type": "number"
+            },
+            "failureReason": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "id": {
+              "type": "string"
+            },
+            "outcome": {
+              "enum": [
+                "up",
+                "down",
+                "recovered-after-retry"
+              ],
+              "type": "string"
+            },
+            "startedAt": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "attempts",
+            "checkId",
+            "durationMs",
+            "failureReason",
+            "id",
+            "outcome",
+            "startedAt"
+          ],
+          "type": "object"
+        },
+        "payload": {
+          "properties": {
+            "attempts": {
+              "type": "number"
+            },
+            "checkId": {
+              "type": "string"
+            },
+            "durationMs": {
+              "type": "number"
+            },
+            "failureReason": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "id": {
+              "type": "string"
+            },
+            "outcome": {
+              "enum": [
+                "up",
+                "down",
+                "recovered-after-retry"
+              ],
+              "type": "string"
+            },
+            "startedAt": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "attempts",
+            "checkId",
+            "durationMs",
+            "failureReason",
+            "id",
+            "outcome",
+            "startedAt"
+          ],
+          "type": "object"
+        },
+        "producers": []
+      },
+      {
+        "exampleCount": 0,
+        "id": "lookout.probe-http",
+        "kind": "resource",
+        "surfaces": [],
+        "description": "Outbound HTTP client used by probe.run; the mock plays scripted per-URL reply sequences."
+      },
+      {
+        "exampleCount": 1,
+        "id": "notify.dispatch",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "notify",
+            "dispatch"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "notify",
+                "dispatch"
+              ],
+              "source": "derived",
+              "target": "notify.dispatch"
+            }
+          ]
+        },
+        "description": "Fan an incident lifecycle event out to the configured channels and record each delivery.",
+        "examples": [
+          {
+            "input": {
+              "incidentId": "inc_demo",
+              "kind": "opened",
+              "message": "check \"flaky\" is down"
+            },
+            "kind": "success",
+            "name": "Dispatch to console",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Console delivery always runs; webhook only when configured",
+            "expected": {
+              "deliveries": [
+                {
+                  "channel": "console",
+                  "ok": true
+                }
+              ]
+            }
+          }
+        ],
+        "input": {
+          "properties": {
+            "incidentId": {
+              "description": "Incident this notification belongs to",
+              "type": "string"
+            },
+            "kind": {
+              "description": "Incident lifecycle event being announced",
+              "enum": [
+                "opened",
+                "resolved"
+              ],
+              "type": "string"
+            },
+            "message": {
+              "description": "Human-readable notification text",
+              "type": "string"
+            }
+          },
+          "required": [
+            "incidentId",
+            "kind",
+            "message"
+          ],
+          "type": "object"
+        },
+        "output": {
+          "properties": {
+            "deliveries": {
+              "items": {
+                "properties": {
+                  "channel": {
+                    "enum": [
+                      "console",
+                      "webhook"
+                    ],
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "channel",
+                  "ok"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "deliveries"
+          ],
+          "type": "object"
+        },
+        "resources": [
+          "lookout.db",
+          "lookout.probe-http"
+        ]
+      },
+      {
+        "exampleCount": 1,
+        "id": "probe.failed",
+        "kind": "signal",
+        "surfaces": [],
+        "consumers": [
+          "incident.open"
+        ],
+        "description": "A check transitioned up→down (fired once per outage, not per probe).",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "examples": [
+          {
+            "kind": "payload",
+            "payload": {
+              "at": "2026-07-01T03:12:00.000Z",
+              "checkId": "chk_flaky",
+              "checkName": "flaky",
+              "failureReason": "upstream answered 503",
+              "probeId": "prb_1",
+              "url": "http://localhost:4090/flaky"
+            },
+            "provenance": {
+              "source": "signal.examples"
+            }
+          }
+        ],
+        "from": [
+          "probe.run"
+        ],
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "input": {
+          "properties": {
+            "at": {
+              "description": "ISO timestamp of the resolving probe",
+              "type": "string"
+            },
+            "checkId": {
+              "description": "Check that changed state",
+              "type": "string"
+            },
+            "checkName": {
+              "description": "Human-readable check name",
+              "type": "string"
+            },
+            "failureReason": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Why the probe failed, null on recovery"
+            },
+            "probeId": {
+              "description": "Probe row that resolved the transition",
+              "type": "string"
+            },
+            "url": {
+              "description": "Probed URL",
+              "type": "string"
+            }
+          },
+          "required": [
+            "at",
+            "checkId",
+            "checkName",
+            "failureReason",
+            "probeId",
+            "url"
+          ],
+          "type": "object"
+        },
+        "payload": {
+          "properties": {
+            "at": {
+              "description": "ISO timestamp of the resolving probe",
+              "type": "string"
+            },
+            "checkId": {
+              "description": "Check that changed state",
+              "type": "string"
+            },
+            "checkName": {
+              "description": "Human-readable check name",
+              "type": "string"
+            },
+            "failureReason": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Why the probe failed, null on recovery"
+            },
+            "probeId": {
+              "description": "Probe row that resolved the transition",
+              "type": "string"
+            },
+            "url": {
+              "description": "Probed URL",
+              "type": "string"
+            }
+          },
+          "required": [
+            "at",
+            "checkId",
+            "checkName",
+            "failureReason",
+            "probeId",
+            "url"
+          ],
+          "type": "object"
+        },
+        "producers": [
+          "probe.run"
+        ]
+      },
+      {
+        "exampleCount": 1,
+        "id": "probe.history",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "probe",
+            "history"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "probe",
+                "history"
+              ],
+              "source": "derived",
+              "target": "probe.history"
+            }
+          ]
+        },
+        "description": "Probe history for one check, newest first, windowed and paginated.",
+        "examples": [
+          {
+            "input": {
+              "checkId": "chk_steady"
+            },
+            "kind": "success",
+            "name": "Empty history",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "A fresh check has no probe history yet",
+            "expected": {
+              "probes": [],
+              "total": 0
+            }
+          }
+        ],
+        "input": {
+          "properties": {
+            "checkId": {
+              "description": "Check id",
+              "type": "string"
+            },
+            "limit": {
+              "default": 50,
+              "description": "Maximum results",
+              "type": "number"
+            },
+            "offset": {
+              "default": 0,
+              "description": "Pagination offset",
+              "type": "number"
+            },
+            "sinceHours": {
+              "description": "Only include probes from the last N hours",
+              "type": "number"
+            }
+          },
+          "required": [
+            "checkId"
+          ],
+          "type": "object"
+        },
+        "intent": "read",
+        "output": {
+          "properties": {
+            "probes": {
+              "items": {
+                "properties": {
+                  "attempts": {
+                    "type": "number"
+                  },
+                  "checkId": {
+                    "type": "string"
+                  },
+                  "durationMs": {
+                    "type": "number"
+                  },
+                  "failureReason": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "outcome": {
+                    "enum": [
+                      "up",
+                      "down",
+                      "recovered-after-retry"
+                    ],
+                    "type": "string"
+                  },
+                  "startedAt": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "attempts",
+                  "checkId",
+                  "durationMs",
+                  "failureReason",
+                  "id",
+                  "outcome",
+                  "startedAt"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "total": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "probes",
+            "total"
+          ],
+          "type": "object"
+        },
+        "permit": "public",
+        "resources": [
+          "lookout.db"
+        ]
+      },
+      {
+        "exampleCount": 1,
+        "id": "probe.prune",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "probe",
+            "prune"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "probe",
+                "prune"
+              ],
+              "source": "derived",
+              "target": "probe.prune"
+            }
+          ]
+        },
+        "description": "Reconcile stored probe volume against the retention cap, pruning the oldest rows per check.",
+        "dryRunCapable": true,
+        "examples": [
+          {
+            "input": {},
+            "kind": "success",
+            "name": "Prune within retention",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Nothing to prune when history is within retention",
+            "expected": {
+              "dryRun": false,
+              "removed": 0
+            }
+          }
+        ],
+        "input": {
+          "properties": {
+            "keepPerCheck": {
+              "default": 100,
+              "description": "Probe rows to keep per check",
+              "type": "number"
+            }
+          },
+          "type": "object"
+        },
+        "intent": "destroy",
+        "output": {
+          "properties": {
+            "dryRun": {
+              "type": "boolean"
+            },
+            "removed": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "dryRun",
+            "removed"
+          ],
+          "type": "object"
+        },
+        "permit": {
+          "scopes": [
+            "lookout:admin"
+          ]
+        },
+        "resources": [
+          "lookout.db"
+        ]
+      },
+      {
+        "exampleCount": 1,
+        "id": "probe.recovered",
+        "kind": "signal",
+        "surfaces": [],
+        "consumers": [
+          "incident.resolve"
+        ],
+        "description": "A check transitioned down→up.",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "examples": [
+          {
+            "kind": "payload",
+            "payload": {
+              "at": "2026-07-01T03:20:00.000Z",
+              "checkId": "chk_flaky",
+              "checkName": "flaky",
+              "failureReason": null,
+              "probeId": "prb_2",
+              "url": "http://localhost:4090/flaky"
+            },
+            "provenance": {
+              "source": "signal.examples"
+            }
+          }
+        ],
+        "from": [
+          "probe.run"
+        ],
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "input": {
+          "properties": {
+            "at": {
+              "description": "ISO timestamp of the resolving probe",
+              "type": "string"
+            },
+            "checkId": {
+              "description": "Check that changed state",
+              "type": "string"
+            },
+            "checkName": {
+              "description": "Human-readable check name",
+              "type": "string"
+            },
+            "failureReason": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Why the probe failed, null on recovery"
+            },
+            "probeId": {
+              "description": "Probe row that resolved the transition",
+              "type": "string"
+            },
+            "url": {
+              "description": "Probed URL",
+              "type": "string"
+            }
+          },
+          "required": [
+            "at",
+            "checkId",
+            "checkName",
+            "failureReason",
+            "probeId",
+            "url"
+          ],
+          "type": "object"
+        },
+        "payload": {
+          "properties": {
+            "at": {
+              "description": "ISO timestamp of the resolving probe",
+              "type": "string"
+            },
+            "checkId": {
+              "description": "Check that changed state",
+              "type": "string"
+            },
+            "checkName": {
+              "description": "Human-readable check name",
+              "type": "string"
+            },
+            "failureReason": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Why the probe failed, null on recovery"
+            },
+            "probeId": {
+              "description": "Probe row that resolved the transition",
+              "type": "string"
+            },
+            "url": {
+              "description": "Probed URL",
+              "type": "string"
+            }
+          },
+          "required": [
+            "at",
+            "checkId",
+            "checkName",
+            "failureReason",
+            "probeId",
+            "url"
+          ],
+          "type": "object"
+        },
+        "producers": [
+          "probe.run"
+        ]
+      },
+      {
+        "exampleCount": 2,
+        "id": "probe.run",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "probe",
+            "run"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "probe",
+                "run"
+              ],
+              "source": "derived",
+              "target": "probe.run"
+            }
+          ]
+        },
+        "description": "Probe one check: transient failures recover through detours, resolved probes record a row and move the derived check state. Fires probe.failed on up→down and probe.recovered on down→up.",
+        "detours": [
+          {
+            "maxAttempts": 2,
+            "on": "TimeoutError"
+          },
+          {
+            "maxAttempts": 2,
+            "on": "NetworkError"
+          }
+        ],
+        "examples": [
+          {
+            "input": {
+              "checkId": "chk_steady"
+            },
+            "kind": "success",
+            "name": "Probe an up check",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "A healthy endpoint resolves up on the first attempt",
+            "expectedMatch": {
+              "attempts": 1,
+              "checkId": "chk_steady",
+              "failureReason": null,
+              "outcome": "up",
+              "state": "up",
+              "transition": "none"
+            }
+          },
+          {
+            "input": {
+              "checkId": "chk_missing"
+            },
+            "kind": "error",
+            "name": "Probe a missing check",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Unknown check ids return NotFoundError",
+            "error": "NotFoundError"
+          }
+        ],
+        "fires": [
+          "probe.failed",
+          "probe.recovered"
+        ],
+        "input": {
+          "properties": {
+            "checkId": {
+              "description": "Check to probe",
+              "type": "string"
+            }
+          },
+          "required": [
+            "checkId"
+          ],
+          "type": "object"
+        },
+        "output": {
+          "properties": {
+            "attempts": {
+              "type": "number"
+            },
+            "checkId": {
+              "type": "string"
+            },
+            "durationMs": {
+              "type": "number"
+            },
+            "failureReason": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "outcome": {
+              "enum": [
+                "up",
+                "down",
+                "recovered-after-retry"
+              ],
+              "type": "string"
+            },
+            "previousState": {
+              "enum": [
+                "up",
+                "down",
+                "unknown"
+              ],
+              "type": "string"
+            },
+            "probeId": {
+              "type": "string"
+            },
+            "startedAt": {
+              "type": "string"
+            },
+            "state": {
+              "enum": [
+                "up",
+                "down"
+              ],
+              "type": "string"
+            },
+            "transition": {
+              "enum": [
+                "none",
+                "failed",
+                "recovered"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "attempts",
+            "checkId",
+            "durationMs",
+            "failureReason",
+            "outcome",
+            "previousState",
+            "probeId",
+            "startedAt",
+            "state",
+            "transition"
+          ],
+          "type": "object"
+        },
+        "resources": [
+          "lookout.db",
+          "lookout.probe-http"
+        ]
+      },
+      {
+        "exampleCount": 1,
+        "id": "probe.sweep",
+        "kind": "trail",
+        "surfaces": [],
+        "activationSources": [
+          {
+            "source": {
+              "cron": "* * * * *",
+              "id": "schedule.probe.sweep",
+              "input": {},
+              "key": "schedule:schedule.probe.sweep",
+              "kind": "schedule"
+            }
+          }
+        ],
+        "cli": {
+          "path": [
+            "probe",
+            "sweep"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "probe",
+                "sweep"
+              ],
+              "source": "derived",
+              "target": "probe.sweep"
+            }
+          ]
+        },
+        "composes": [
+          "probe.run"
+        ],
+        "description": "Probe every enabled check that is due per its own interval; the cron source ticks this each minute.",
+        "examples": [
+          {
+            "input": {},
+            "kind": "success",
+            "name": "Sweep due checks",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Both enabled demo checks are due on a fresh store",
+            "expectedMatch": {
+              "probed": 2
+            }
+          }
+        ],
+        "input": {
+          "properties": {},
+          "type": "object"
+        },
+        "output": {
+          "properties": {
+            "due": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "probed": {
+              "type": "number"
+            },
+            "results": {
+              "items": {
+                "properties": {
+                  "checkId": {
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "outcome": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "checkId",
+                  "ok",
+                  "outcome"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "due",
+            "probed",
+            "results"
+          ],
+          "type": "object"
+        },
+        "resources": [
+          "lookout.db"
+        ]
+      },
+      {
+        "exampleCount": 1,
+        "id": "status.badge",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "status",
+            "badge"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "status",
+                "badge"
+              ],
+              "source": "derived",
+              "target": "status.badge"
+            }
+          ]
+        },
+        "composes": [
+          "uptime.report"
+        ],
+        "description": "Tiny per-check JSON payload for embedding (badge-shaped, JSON in v1).",
+        "examples": [
+          {
+            "input": {
+              "checkId": "chk_steady"
+            },
+            "kind": "success",
+            "name": "Badge for a check",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "A fresh check reports its state with no uptime claim",
+            "expected": {
+              "checkId": "chk_steady",
+              "label": "steady",
+              "state": "unknown",
+              "uptime7d": null
+            }
+          }
+        ],
+        "input": {
+          "properties": {
+            "checkId": {
+              "description": "Check id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "checkId"
+          ],
+          "type": "object"
+        },
+        "intent": "read",
+        "output": {
+          "properties": {
+            "checkId": {
+              "type": "string"
+            },
+            "label": {
+              "type": "string"
+            },
+            "state": {
+              "enum": [
+                "up",
+                "down",
+                "unknown"
+              ],
+              "type": "string"
+            },
+            "uptime7d": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "checkId",
+            "label",
+            "state",
+            "uptime7d"
+          ],
+          "type": "object"
+        },
+        "permit": "public",
+        "resources": [
+          "lookout.db"
+        ]
+      },
+      {
+        "exampleCount": 1,
+        "id": "status.summary",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "status"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "status"
+              ],
+              "source": "trail",
+              "target": "status.summary"
+            }
+          ]
+        },
+        "composes": [
+          "incident.list",
+          "uptime.report"
+        ],
+        "description": "The public status page payload: per-check state, 7d/30d uptime, and open incident count.",
+        "examples": [
+          {
+            "input": {},
+            "kind": "success",
+            "name": "Status summary",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "The demo store seeds three checks and one open incident",
+            "expectedMatch": {
+              "openIncidents": 1
+            }
+          }
+        ],
+        "input": {
+          "properties": {},
+          "type": "object"
+        },
+        "intent": "read",
+        "output": {
+          "properties": {
+            "checks": {
+              "items": {
+                "properties": {
+                  "checkId": {
+                    "type": "string"
+                  },
+                  "enabled": {
+                    "type": "boolean"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "state": {
+                    "enum": [
+                      "up",
+                      "down",
+                      "unknown"
+                    ],
+                    "type": "string"
+                  },
+                  "uptime30d": {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "uptime7d": {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "url": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "checkId",
+                  "enabled",
+                  "name",
+                  "state",
+                  "uptime30d",
+                  "uptime7d",
+                  "url"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "generatedAt": {
+              "type": "string"
+            },
+            "openIncidents": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "checks",
+            "generatedAt",
+            "openIncidents"
+          ],
+          "type": "object"
+        },
+        "permit": "public",
+        "resources": [
+          "lookout.db"
+        ]
+      },
+      {
+        "exampleCount": 0,
+        "id": "tracing",
+        "kind": "resource",
+        "surfaces": [],
+        "description": "Telemetry query resource"
+      },
+      {
+        "exampleCount": 3,
+        "id": "tracing.query",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "tracing",
+            "query"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "tracing",
+                "query"
+              ],
+              "source": "derived",
+              "target": "tracing.query"
+            }
+          ]
+        },
+        "examples": [
+          {
+            "input": {},
+            "kind": "success",
+            "name": "Recent traces",
+            "provenance": {
+              "source": "trail.examples"
+            }
+          },
+          {
+            "input": {
+              "trailId": "user.create"
+            },
+            "kind": "success",
+            "name": "Filter by trail",
+            "provenance": {
+              "source": "trail.examples"
+            }
+          },
+          {
+            "input": {
+              "errorsOnly": true
+            },
+            "kind": "success",
+            "name": "Errors only",
+            "provenance": {
+              "source": "trail.examples"
+            }
+          }
+        ],
+        "input": {
+          "properties": {
+            "errorsOnly": {
+              "default": false,
+              "description": "Show only failed traces",
+              "type": "boolean"
+            },
+            "limit": {
+              "default": 20,
+              "description": "Max results",
+              "type": "number"
+            },
+            "traceId": {
+              "description": "Show full trace tree",
+              "type": "string"
+            },
+            "trailId": {
+              "description": "Filter by trail ID",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "intent": "read",
+        "output": {
+          "properties": {
+            "count": {
+              "type": "number"
+            },
+            "records": {
+              "items": {
+                "properties": {
+                  "attrs": {},
+                  "endedAt": {
+                    "type": "number"
+                  },
+                  "errorCategory": {
+                    "type": "string"
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "intent": {
+                    "type": "string"
+                  },
+                  "kind": {
+                    "enum": [
+                      "activation",
+                      "signal",
+                      "span",
+                      "trail"
+                    ],
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "parentId": {
+                    "type": "string"
+                  },
+                  "rootId": {
+                    "type": "string"
+                  },
+                  "startedAt": {
+                    "type": "number"
+                  },
+                  "status": {
+                    "enum": [
+                      "ok",
+                      "err",
+                      "cancelled"
+                    ],
+                    "type": "string"
+                  },
+                  "surface": {
+                    "type": "string"
+                  },
+                  "traceId": {
+                    "type": "string"
+                  },
+                  "trailId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "attrs",
+                  "id",
+                  "kind",
+                  "name",
+                  "rootId",
+                  "startedAt",
+                  "status",
+                  "traceId"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "count",
+            "records"
+          ],
+          "type": "object"
+        },
+        "resources": [
+          "tracing"
+        ]
+      },
+      {
+        "exampleCount": 1,
+        "id": "tracing.status",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "tracing",
+            "status"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "tracing",
+                "status"
+              ],
+              "source": "derived",
+              "target": "tracing.status"
+            }
+          ]
+        },
+        "examples": [
+          {
+            "input": {},
+            "kind": "success",
+            "name": "Check tracing status",
+            "provenance": {
+              "source": "trail.examples"
+            }
+          }
+        ],
+        "input": {
+          "properties": {},
+          "type": "object"
+        },
+        "intent": "read",
+        "output": {
+          "properties": {
+            "active": {
+              "type": "boolean"
+            },
+            "recordCount": {
+              "type": "number"
+            },
+            "samplingConfig": {
+              "properties": {
+                "destroy": {
+                  "type": "number"
+                },
+                "read": {
+                  "type": "number"
+                },
+                "write": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "destroy",
+                "read",
+                "write"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "active",
+            "recordCount",
+            "samplingConfig"
+          ],
+          "type": "object"
+        },
+        "resources": [
+          "tracing"
+        ]
+      },
+      {
+        "exampleCount": 1,
+        "id": "uptime.report",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "uptime",
+            "report"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "uptime",
+                "report"
+              ],
+              "source": "derived",
+              "target": "uptime.report"
+            }
+          ]
+        },
+        "composes": [
+          "probe.history"
+        ],
+        "description": "Windowed uptime percentages computed from recorded probe outcomes.",
+        "examples": [
+          {
+            "input": {
+              "checkId": "chk_steady"
+            },
+            "kind": "success",
+            "name": "Uptime with no history",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "No probes yet means no uptime claim — null, not 100%",
+            "expected": {
+              "checkId": "chk_steady",
+              "days": 7,
+              "downCount": 0,
+              "probeCount": 0,
+              "recoveredCount": 0,
+              "upCount": 0,
+              "uptimePercent": null
+            }
+          }
+        ],
+        "input": {
+          "properties": {
+            "checkId": {
+              "description": "Check id",
+              "type": "string"
+            },
+            "days": {
+              "default": 7,
+              "description": "Window size in days",
+              "type": "number"
+            }
+          },
+          "required": [
+            "checkId"
+          ],
+          "type": "object"
+        },
+        "intent": "read",
+        "output": {
+          "properties": {
+            "checkId": {
+              "type": "string"
+            },
+            "days": {
+              "type": "number"
+            },
+            "downCount": {
+              "type": "number"
+            },
+            "probeCount": {
+              "type": "number"
+            },
+            "recoveredCount": {
+              "type": "number"
+            },
+            "upCount": {
+              "type": "number"
+            },
+            "uptimePercent": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "checkId",
+            "days",
+            "downCount",
+            "probeCount",
+            "recoveredCount",
+            "upCount",
+            "uptimePercent"
+          ],
+          "type": "object"
+        },
+        "permit": "public"
+      }
+    ],
+    "library": {
+      "app": "lookout",
+      "collisions": [],
+      "excluded": [
+        {
+          "reason": "activation",
+          "trailId": "incident.open"
+        },
+        {
+          "reason": "activation",
+          "trailId": "incident.resolve"
+        },
+        {
+          "reason": "internal",
+          "trailId": "notify.dispatch"
+        },
+        {
+          "reason": "internal",
+          "trailId": "probe.run"
+        },
+        {
+          "reason": "activation",
+          "trailId": "probe.sweep"
+        }
+      ],
+      "exports": [
+        {
+          "description": "Register a new endpoint check and start monitoring it.",
+          "exportName": "checkCreate",
+          "input": {
+            "properties": {
+              "expectBodyIncludes": {
+                "description": "Substring the response body must contain",
+                "type": "string"
+              },
+              "expectStatus": {
+                "default": 200,
+                "description": "HTTP status the probe expects",
+                "type": "number"
+              },
+              "intervalSeconds": {
+                "description": "Probe interval in seconds (minimum 30)",
+                "type": "number"
+              },
+              "method": {
+                "default": "GET",
+                "description": "HTTP method",
+                "enum": [
+                  "GET",
+                  "HEAD"
+                ],
+                "type": "string"
+              },
+              "name": {
+                "description": "Human-readable check name",
+                "type": "string"
+              },
+              "timeoutMs": {
+                "default": 2000,
+                "description": "Per-attempt timeout in milliseconds",
+                "type": "number"
+              },
+              "url": {
+                "description": "URL to probe",
+                "type": "string"
+              }
+            },
+            "required": [
+              "intervalSeconds",
+              "name",
+              "url"
+            ],
+            "type": "object"
+          },
+          "intent": "write",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "createdAt": {
+                "type": "string"
+              },
+              "enabled": {
+                "type": "boolean"
+              },
+              "expect": {
+                "properties": {
+                  "bodyIncludes": {
+                    "type": "string"
+                  },
+                  "status": {
+                    "type": "number"
+                  }
+                },
+                "type": "object"
+              },
+              "id": {
+                "type": "string"
+              },
+              "intervalSeconds": {
+                "type": "number"
+              },
+              "method": {
+                "enum": [
+                  "GET",
+                  "HEAD"
+                ],
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "state": {
+                "enum": [
+                  "up",
+                  "down",
+                  "unknown"
+                ],
+                "type": "string"
+              },
+              "timeoutMs": {
+                "type": "number"
+              },
+              "updatedAt": {
+                "type": "string"
+              },
+              "url": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "createdAt",
+              "enabled",
+              "expect",
+              "id",
+              "intervalSeconds",
+              "method",
+              "name",
+              "state",
+              "timeoutMs",
+              "updatedAt",
+              "url"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "lookout.db"
+          ],
+          "trailId": "check.create"
+        },
+        {
+          "description": "Delete a check and stop monitoring it.",
+          "exportName": "checkDelete",
+          "input": {
+            "properties": {
+              "id": {
+                "description": "Check id",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "type": "object"
+          },
+          "intent": "destroy",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "deleted": {
+                "type": "boolean"
+              },
+              "id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "deleted",
+              "id"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "lookout.db"
+          ],
+          "trailId": "check.delete"
+        },
+        {
+          "description": "Show one check by id.",
+          "exportName": "checkGet",
+          "input": {
+            "properties": {
+              "id": {
+                "description": "Check id",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "type": "object"
+          },
+          "intent": "read",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "createdAt": {
+                "type": "string"
+              },
+              "enabled": {
+                "type": "boolean"
+              },
+              "expect": {
+                "properties": {
+                  "bodyIncludes": {
+                    "type": "string"
+                  },
+                  "status": {
+                    "type": "number"
+                  }
+                },
+                "type": "object"
+              },
+              "id": {
+                "type": "string"
+              },
+              "intervalSeconds": {
+                "type": "number"
+              },
+              "method": {
+                "enum": [
+                  "GET",
+                  "HEAD"
+                ],
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "state": {
+                "enum": [
+                  "up",
+                  "down",
+                  "unknown"
+                ],
+                "type": "string"
+              },
+              "timeoutMs": {
+                "type": "number"
+              },
+              "updatedAt": {
+                "type": "string"
+              },
+              "url": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "createdAt",
+              "enabled",
+              "expect",
+              "id",
+              "intervalSeconds",
+              "method",
+              "name",
+              "state",
+              "timeoutMs",
+              "updatedAt",
+              "url"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "lookout.db"
+          ],
+          "trailId": "check.get"
+        },
+        {
+          "description": "List registered checks.",
+          "exportName": "checkList",
+          "input": {
+            "properties": {
+              "enabled": {
+                "description": "Filter by enabled state",
+                "type": "boolean"
+              }
+            },
+            "type": "object"
+          },
+          "intent": "read",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "checks": {
+                "items": {
+                  "properties": {
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "enabled": {
+                      "type": "boolean"
+                    },
+                    "expect": {
+                      "properties": {
+                        "bodyIncludes": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "number"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "intervalSeconds": {
+                      "type": "number"
+                    },
+                    "method": {
+                      "enum": [
+                        "GET",
+                        "HEAD"
+                      ],
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "enum": [
+                        "up",
+                        "down",
+                        "unknown"
+                      ],
+                      "type": "string"
+                    },
+                    "timeoutMs": {
+                      "type": "number"
+                    },
+                    "updatedAt": {
+                      "type": "string"
+                    },
+                    "url": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "createdAt",
+                    "enabled",
+                    "expect",
+                    "id",
+                    "intervalSeconds",
+                    "method",
+                    "name",
+                    "state",
+                    "timeoutMs",
+                    "updatedAt",
+                    "url"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "total": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "checks",
+              "total"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "lookout.db"
+          ],
+          "trailId": "check.list"
+        },
+        {
+          "description": "Pause a check — the cron sweep stops scheduling probes for it.",
+          "exportName": "checkPause",
+          "input": {
+            "properties": {
+              "id": {
+                "description": "Check id",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "type": "object"
+          },
+          "intent": "write",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "createdAt": {
+                "type": "string"
+              },
+              "enabled": {
+                "type": "boolean"
+              },
+              "expect": {
+                "properties": {
+                  "bodyIncludes": {
+                    "type": "string"
+                  },
+                  "status": {
+                    "type": "number"
+                  }
+                },
+                "type": "object"
+              },
+              "id": {
+                "type": "string"
+              },
+              "intervalSeconds": {
+                "type": "number"
+              },
+              "method": {
+                "enum": [
+                  "GET",
+                  "HEAD"
+                ],
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "state": {
+                "enum": [
+                  "up",
+                  "down",
+                  "unknown"
+                ],
+                "type": "string"
+              },
+              "timeoutMs": {
+                "type": "number"
+              },
+              "updatedAt": {
+                "type": "string"
+              },
+              "url": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "createdAt",
+              "enabled",
+              "expect",
+              "id",
+              "intervalSeconds",
+              "method",
+              "name",
+              "state",
+              "timeoutMs",
+              "updatedAt",
+              "url"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "lookout.db"
+          ],
+          "trailId": "check.pause"
+        },
+        {
+          "description": "Resume a paused check — the cron sweep schedules probes again.",
+          "exportName": "checkResume",
+          "input": {
+            "properties": {
+              "id": {
+                "description": "Check id",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "type": "object"
+          },
+          "intent": "write",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "createdAt": {
+                "type": "string"
+              },
+              "enabled": {
+                "type": "boolean"
+              },
+              "expect": {
+                "properties": {
+                  "bodyIncludes": {
+                    "type": "string"
+                  },
+                  "status": {
+                    "type": "number"
+                  }
+                },
+                "type": "object"
+              },
+              "id": {
+                "type": "string"
+              },
+              "intervalSeconds": {
+                "type": "number"
+              },
+              "method": {
+                "enum": [
+                  "GET",
+                  "HEAD"
+                ],
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "state": {
+                "enum": [
+                  "up",
+                  "down",
+                  "unknown"
+                ],
+                "type": "string"
+              },
+              "timeoutMs": {
+                "type": "number"
+              },
+              "updatedAt": {
+                "type": "string"
+              },
+              "url": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "createdAt",
+              "enabled",
+              "expect",
+              "id",
+              "intervalSeconds",
+              "method",
+              "name",
+              "state",
+              "timeoutMs",
+              "updatedAt",
+              "url"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "lookout.db"
+          ],
+          "trailId": "check.resume"
+        },
+        {
+          "description": "Update fields on an existing check.",
+          "exportName": "checkUpdate",
+          "input": {
+            "properties": {
+              "expectBodyIncludes": {
+                "description": "Substring the response body must contain",
+                "type": "string"
+              },
+              "expectStatus": {
+                "description": "HTTP status the probe expects",
+                "type": "number"
+              },
+              "id": {
+                "description": "Check id",
+                "type": "string"
+              },
+              "intervalSeconds": {
+                "description": "Probe interval in seconds (minimum 30)",
+                "type": "number"
+              },
+              "method": {
+                "description": "HTTP method",
+                "enum": [
+                  "GET",
+                  "HEAD"
+                ],
+                "type": "string"
+              },
+              "name": {
+                "description": "Human-readable check name",
+                "type": "string"
+              },
+              "timeoutMs": {
+                "description": "Per-attempt timeout in milliseconds",
+                "type": "number"
+              },
+              "url": {
+                "description": "URL to probe",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "type": "object"
+          },
+          "intent": "write",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "createdAt": {
+                "type": "string"
+              },
+              "enabled": {
+                "type": "boolean"
+              },
+              "expect": {
+                "properties": {
+                  "bodyIncludes": {
+                    "type": "string"
+                  },
+                  "status": {
+                    "type": "number"
+                  }
+                },
+                "type": "object"
+              },
+              "id": {
+                "type": "string"
+              },
+              "intervalSeconds": {
+                "type": "number"
+              },
+              "method": {
+                "enum": [
+                  "GET",
+                  "HEAD"
+                ],
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "state": {
+                "enum": [
+                  "up",
+                  "down",
+                  "unknown"
+                ],
+                "type": "string"
+              },
+              "timeoutMs": {
+                "type": "number"
+              },
+              "updatedAt": {
+                "type": "string"
+              },
+              "url": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "createdAt",
+              "enabled",
+              "expect",
+              "id",
+              "intervalSeconds",
+              "method",
+              "name",
+              "state",
+              "timeoutMs",
+              "updatedAt",
+              "url"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "lookout.db"
+          ],
+          "trailId": "check.update"
+        },
+        {
+          "description": "Acknowledge an incident so on-call knows it is being handled.",
+          "exportName": "incidentAcknowledge",
+          "input": {
+            "properties": {
+              "by": {
+                "description": "Who is acknowledging",
+                "type": "string"
+              },
+              "id": {
+                "description": "Incident id",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "type": "object"
+          },
+          "intent": "write",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "acknowledgedBy": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "checkId": {
+                "type": "string"
+              },
+              "id": {
+                "type": "string"
+              },
+              "openedAt": {
+                "type": "string"
+              },
+              "probeCount": {
+                "type": "number"
+              },
+              "resolvedAt": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "status": {
+                "enum": [
+                  "open",
+                  "acknowledged",
+                  "resolved"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "acknowledgedBy",
+              "checkId",
+              "id",
+              "openedAt",
+              "probeCount",
+              "resolvedAt",
+              "status"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "lookout.db"
+          ],
+          "trailId": "incident.acknowledge"
+        },
+        {
+          "description": "Show one incident by id.",
+          "exportName": "incidentGet",
+          "input": {
+            "properties": {
+              "id": {
+                "description": "Incident id",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "type": "object"
+          },
+          "intent": "read",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "acknowledgedBy": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "checkId": {
+                "type": "string"
+              },
+              "id": {
+                "type": "string"
+              },
+              "openedAt": {
+                "type": "string"
+              },
+              "probeCount": {
+                "type": "number"
+              },
+              "resolvedAt": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "status": {
+                "enum": [
+                  "open",
+                  "acknowledged",
+                  "resolved"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "acknowledgedBy",
+              "checkId",
+              "id",
+              "openedAt",
+              "probeCount",
+              "resolvedAt",
+              "status"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "lookout.db"
+          ],
+          "trailId": "incident.get"
+        },
+        {
+          "description": "List incidents, newest first.",
+          "exportName": "incidentList",
+          "input": {
+            "properties": {
+              "status": {
+                "description": "Filter by incident status",
+                "enum": [
+                  "open",
+                  "acknowledged",
+                  "resolved"
+                ],
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "intent": "read",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "incidents": {
+                "items": {
+                  "properties": {
+                    "acknowledgedBy": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "checkId": {
+                      "type": "string"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "openedAt": {
+                      "type": "string"
+                    },
+                    "probeCount": {
+                      "type": "number"
+                    },
+                    "resolvedAt": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "status": {
+                      "enum": [
+                        "open",
+                        "acknowledged",
+                        "resolved"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "acknowledgedBy",
+                    "checkId",
+                    "id",
+                    "openedAt",
+                    "probeCount",
+                    "resolvedAt",
+                    "status"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "total": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "incidents",
+              "total"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "lookout.db"
+          ],
+          "trailId": "incident.list"
+        },
+        {
+          "description": "Probe history for one check, newest first, windowed and paginated.",
+          "exportName": "probeHistory",
+          "input": {
+            "properties": {
+              "checkId": {
+                "description": "Check id",
+                "type": "string"
+              },
+              "limit": {
+                "default": 50,
+                "description": "Maximum results",
+                "type": "number"
+              },
+              "offset": {
+                "default": 0,
+                "description": "Pagination offset",
+                "type": "number"
+              },
+              "sinceHours": {
+                "description": "Only include probes from the last N hours",
+                "type": "number"
+              }
+            },
+            "required": [
+              "checkId"
+            ],
+            "type": "object"
+          },
+          "intent": "read",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "probes": {
+                "items": {
+                  "properties": {
+                    "attempts": {
+                      "type": "number"
+                    },
+                    "checkId": {
+                      "type": "string"
+                    },
+                    "durationMs": {
+                      "type": "number"
+                    },
+                    "failureReason": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "outcome": {
+                      "enum": [
+                        "up",
+                        "down",
+                        "recovered-after-retry"
+                      ],
+                      "type": "string"
+                    },
+                    "startedAt": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "attempts",
+                    "checkId",
+                    "durationMs",
+                    "failureReason",
+                    "id",
+                    "outcome",
+                    "startedAt"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "total": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "probes",
+              "total"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "lookout.db"
+          ],
+          "trailId": "probe.history"
+        },
+        {
+          "description": "Reconcile stored probe volume against the retention cap, pruning the oldest rows per check.",
+          "exportName": "probePrune",
+          "input": {
+            "properties": {
+              "keepPerCheck": {
+                "default": 100,
+                "description": "Probe rows to keep per check",
+                "type": "number"
+              }
+            },
+            "type": "object"
+          },
+          "intent": "destroy",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "dryRun": {
+                "type": "boolean"
+              },
+              "removed": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "dryRun",
+              "removed"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "lookout.db"
+          ],
+          "trailId": "probe.prune"
+        },
+        {
+          "description": "Tiny per-check JSON payload for embedding (badge-shaped, JSON in v1).",
+          "exportName": "statusBadge",
+          "input": {
+            "properties": {
+              "checkId": {
+                "description": "Check id",
+                "type": "string"
+              }
+            },
+            "required": [
+              "checkId"
+            ],
+            "type": "object"
+          },
+          "intent": "read",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "checkId": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "state": {
+                "enum": [
+                  "up",
+                  "down",
+                  "unknown"
+                ],
+                "type": "string"
+              },
+              "uptime7d": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "checkId",
+              "label",
+              "state",
+              "uptime7d"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "lookout.db"
+          ],
+          "trailId": "status.badge"
+        },
+        {
+          "description": "The public status page payload: per-check state, 7d/30d uptime, and open incident count.",
+          "exportName": "statusSummary",
+          "input": {
+            "properties": {},
+            "type": "object"
+          },
+          "intent": "read",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "checks": {
+                "items": {
+                  "properties": {
+                    "checkId": {
+                      "type": "string"
+                    },
+                    "enabled": {
+                      "type": "boolean"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "enum": [
+                        "up",
+                        "down",
+                        "unknown"
+                      ],
+                      "type": "string"
+                    },
+                    "uptime30d": {
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "uptime7d": {
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "url": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "checkId",
+                    "enabled",
+                    "name",
+                    "state",
+                    "uptime30d",
+                    "uptime7d",
+                    "url"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "generatedAt": {
+                "type": "string"
+              },
+              "openIncidents": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "checks",
+              "generatedAt",
+              "openIncidents"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "lookout.db"
+          ],
+          "trailId": "status.summary"
+        },
+        {
+          "exportName": "tracingQuery",
+          "input": {
+            "properties": {
+              "errorsOnly": {
+                "default": false,
+                "description": "Show only failed traces",
+                "type": "boolean"
+              },
+              "limit": {
+                "default": 20,
+                "description": "Max results",
+                "type": "number"
+              },
+              "traceId": {
+                "description": "Show full trace tree",
+                "type": "string"
+              },
+              "trailId": {
+                "description": "Filter by trail ID",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "intent": "read",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "count": {
+                "type": "number"
+              },
+              "records": {
+                "items": {
+                  "properties": {
+                    "attrs": {},
+                    "endedAt": {
+                      "type": "number"
+                    },
+                    "errorCategory": {
+                      "type": "string"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "intent": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "enum": [
+                        "activation",
+                        "signal",
+                        "span",
+                        "trail"
+                      ],
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "parentId": {
+                      "type": "string"
+                    },
+                    "rootId": {
+                      "type": "string"
+                    },
+                    "startedAt": {
+                      "type": "number"
+                    },
+                    "status": {
+                      "enum": [
+                        "ok",
+                        "err",
+                        "cancelled"
+                      ],
+                      "type": "string"
+                    },
+                    "surface": {
+                      "type": "string"
+                    },
+                    "traceId": {
+                      "type": "string"
+                    },
+                    "trailId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "attrs",
+                    "id",
+                    "kind",
+                    "name",
+                    "rootId",
+                    "startedAt",
+                    "status",
+                    "traceId"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "count",
+              "records"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "tracing"
+          ],
+          "trailId": "tracing.query"
+        },
+        {
+          "exportName": "tracingStatus",
+          "input": {
+            "properties": {},
+            "type": "object"
+          },
+          "intent": "read",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "active": {
+                "type": "boolean"
+              },
+              "recordCount": {
+                "type": "number"
+              },
+              "samplingConfig": {
+                "properties": {
+                  "destroy": {
+                    "type": "number"
+                  },
+                  "read": {
+                    "type": "number"
+                  },
+                  "write": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "destroy",
+                  "read",
+                  "write"
+                ],
+                "type": "object"
+              }
+            },
+            "required": [
+              "active",
+              "recordCount",
+              "samplingConfig"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "tracing"
+          ],
+          "trailId": "tracing.status"
+        },
+        {
+          "description": "Windowed uptime percentages computed from recorded probe outcomes.",
+          "exportName": "uptimeReport",
+          "input": {
+            "properties": {
+              "checkId": {
+                "description": "Check id",
+                "type": "string"
+              },
+              "days": {
+                "default": 7,
+                "description": "Window size in days",
+                "type": "number"
+              }
+            },
+            "required": [
+              "checkId"
+            ],
+            "type": "object"
+          },
+          "intent": "read",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "checkId": {
+                "type": "string"
+              },
+              "days": {
+                "type": "number"
+              },
+              "downCount": {
+                "type": "number"
+              },
+              "probeCount": {
+                "type": "number"
+              },
+              "recoveredCount": {
+                "type": "number"
+              },
+              "upCount": {
+                "type": "number"
+              },
+              "uptimePercent": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "checkId",
+              "days",
+              "downCount",
+              "probeCount",
+              "recoveredCount",
+              "upCount",
+              "uptimePercent"
+            ],
+            "type": "object"
+          },
+          "resources": [],
+          "trailId": "uptime.report"
+        }
+      ]
+    },
+    "topoGraphSchemaVersion": 3
+  },
+  "topoGraphHash": "526e6f3b3e26a6d50ddea1a32d70d9644793f44fadb75af1dc74829ac37840fc",
+  "version": 4
+}

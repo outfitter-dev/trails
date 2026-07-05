@@ -2,12 +2,33 @@
   "name": "lookout",
   "version": "0.0.0",
   "private": true,
+  "bin": {
+    "lookout": "./bin/lookout.ts"
+  },
   "type": "module",
   "scripts": {
     "build": "tsc -b",
     "test": "bun test",
     "typecheck": "tsc --noEmit",
     "lint": "oxlint ./src",
-    "clean": "rm -rf dist *.tsbuildinfo"
+    "clean": "rm -rf dist *.tsbuildinfo",
+    "dev": "bun bin/lookout.ts dev",
+    "http": "bun src/http.ts",
+    "flaky-server": "bun scripts/flaky-server.ts"
+  },
+  "dependencies": {
+    "@ontrails/commander": "workspace:^",
+    "@ontrails/core": "workspace:^",
+    "@ontrails/drizzle": "workspace:^",
+    "@ontrails/hono": "workspace:^",
+    "@ontrails/http": "workspace:^",
+    "@ontrails/mcp": "workspace:^",
+    "@ontrails/observe": "workspace:^",
+    "@ontrails/store": "workspace:^",
+    "@ontrails/tracing": "workspace:^",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@ontrails/testing": "workspace:^"
   }
 }

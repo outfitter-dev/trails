@@ -145,6 +145,24 @@
     "examples/lookout": {
       "name": "lookout",
       "version": "0.0.0",
+      "bin": {
+        "lookout": "./bin/lookout.ts",
+      },
+      "dependencies": {
+        "@ontrails/commander": "workspace:^",
+        "@ontrails/core": "workspace:^",
+        "@ontrails/drizzle": "workspace:^",
+        "@ontrails/hono": "workspace:^",
+        "@ontrails/http": "workspace:^",
+        "@ontrails/mcp": "workspace:^",
+        "@ontrails/observe": "workspace:^",
+        "@ontrails/store": "workspace:^",
+        "@ontrails/tracing": "workspace:^",
+        "zod": "catalog:",
+      },
+      "devDependencies": {
+        "@ontrails/testing": "workspace:^",
+      },
     },
     "examples/packlist": {
       "name": "packlist",
