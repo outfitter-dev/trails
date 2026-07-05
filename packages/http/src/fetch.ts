@@ -1,12 +1,14 @@
 import {
+  BLOB_REF_SCHEMA_META_KEY,
   CancelledError,
+  isBlobRef,
   isTrailsError,
   NotFoundError,
   projectErrorDiagnostics,
   projectPublicSurfaceError,
   ValidationError,
 } from '@ontrails/core';
-import type { Topo } from '@ontrails/core';
+import type { BlobRef, Topo } from '@ontrails/core';
 
 import { deriveHttpRoutes } from './build.js';
 import type { DeriveHttpRoutesOptions, HttpRouteDefinition } from './build.js';
@@ -337,11 +339,55 @@ interface ResultLike {
   readonly value?: unknown;
 }
 
+/**
+ * True when the route's trail declares a BlobRef output schema — the
+ * authored fact that selects byte streaming over the JSON envelope.
+ */
+const rendersBlobOutput = (route: HttpRouteDefinition): boolean => {
+  const { output } = route.trail;
+  if (output === undefined) {
+    return false;
+  }
+  const maybeMeta = (output as { meta?: () => unknown }).meta;
+  if (typeof maybeMeta !== 'function') {
+    return false;
+  }
+  const meta = maybeMeta.call(output);
+  return (
+    typeof meta === 'object' &&
+    meta !== null &&
+    (meta as Record<string, unknown>)[BLOB_REF_SCHEMA_META_KEY] === true
+  );
+};
+
+/**
+ * Narrow blob bytes for `Response`. `BlobRef.data` is typed `Uint8Array`
+ * (ArrayBufferLike backing) while `BodyInit` wants a plain-ArrayBuffer
+ * view; blob producers construct views over plain buffers, so narrowing
+ * here avoids copying the bytes.
+ */
+const blobBody = (data: BlobRef['data']): BodyInit =>
+  data instanceof ReadableStream ? data : (data as Uint8Array<ArrayBuffer>);
+
+/** Stream a BlobRef's bytes with its declared content type and length. */
+const blobResponse = (blob: BlobRef): Response =>
+  new Response(blobBody(blob.data), {
+    headers: {
+      'Content-Length': String(blob.size),
+      'Content-Type': blob.mimeType,
+    },
+    status: 200,
+  });
+
 const mapResultToResponse = (
   result: ResultLike,
-  request: Request
+  request: Request,
+  options?: { readonly rendersBlob?: boolean }
 ): Response => {
   if (result.isOk()) {
+    if (options?.rendersBlob === true && isBlobRef(result.value)) {
+      return blobResponse(result.value);
+    }
     return json({ data: result.value }, 200);
   }
   const error = result.error ?? new Error('Unknown error');
@@ -511,6 +557,7 @@ export const createRouteHandler = (
   const runtimeOptions = {
     maxJsonBodyBytes: resolveMaxJsonBodyBytes(options.maxJsonBodyBytes),
   };
+  const rendersBlob = rendersBlobOutput(route);
 
   return async (request) => {
     try {
@@ -540,7 +587,7 @@ export const createRouteHandler = (
       const result = await route.execute(rawInput, requestId, request.signal, {
         headers: request.headers,
       });
-      return mapResultToResponse(result, request);
+      return mapResultToResponse(result, request, { rendersBlob });
     } catch (error: unknown) {
       return handleCaughtError(error, request);
     }

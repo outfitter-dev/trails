@@ -203,6 +203,20 @@ HTTP 200 for all successful responses.
 
 The `code` is the error class name. The `category` matches the error taxonomy. HTTP bodies use the shared public error projection: `TrailsError` messages are redacted before they are returned, internal-category errors are made opaque, and unknown native errors are reported as `InternalError` with `Internal server error`.
 
+### Blob outputs
+
+When a trail declares `output: blobRefSchema`, the derived route streams the returned `BlobRef`'s bytes instead of the JSON envelope: `Content-Type` comes from the blob's `mimeType` and `Content-Length` from its `size`. Both `Uint8Array` and `ReadableStream` payloads stream as-is. Error results from the same trail still use the JSON error envelope, so clients can branch on the response content type.
+
+```ts
+const fileRaw = trail('file.raw', {
+  blaze: async (input, ctx) => Result.ok(createBlobRef({ /* ... */ })),
+  input: z.object({ name: z.string() }),
+  intent: 'read',
+  output: blobRefSchema,
+});
+// GET /file/raw?name=notes.txt → 200 with raw bytes + the blob's mimeType
+```
+
 ## Status Code Mapping
 
 Status codes come directly from the error taxonomy -- the same mapping used across all surfaces:

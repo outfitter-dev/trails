@@ -1,8 +1,11 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test';
 
 import {
+  NotFoundError,
   PermissionError,
   Result,
+  blobRefSchema,
+  createBlobRef,
   getWebhookHeader,
   trail,
   topo,
@@ -441,5 +444,92 @@ describe('@ontrails/http/fetch', () => {
     });
     expect(invalidWebhookCategories).toEqual(['internal']);
     expect(loggedErrors).toHaveLength(1);
+  });
+});
+
+describe('BlobRef byte serving (TRL-1192)', () => {
+  const fileBytes = new TextEncoder().encode('raw file bytes');
+
+  const fileRawTrail = trail('file.raw', {
+    blaze: (input) =>
+      input.name === 'missing.txt'
+        ? Result.err(new NotFoundError('No such file'))
+        : Result.ok(
+            createBlobRef({
+              data: fileBytes,
+              mimeType: 'text/plain; charset=utf-8',
+              name: input.name,
+              size: fileBytes.byteLength,
+            })
+          ),
+    input: z.object({ name: z.string() }),
+    intent: 'read',
+    output: blobRefSchema,
+  });
+
+  test('streams Uint8Array blob bytes with mimeType and Content-Length', async () => {
+    const handler = createFetchHandler(topo('blob-api', { fileRawTrail }));
+
+    const response = await handler(buildRequest('/file/raw?name=notes.txt'));
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Content-Type')).toBe(
+      'text/plain; charset=utf-8'
+    );
+    expect(response.headers.get('Content-Length')).toBe(
+      String(fileBytes.byteLength)
+    );
+    expect(new Uint8Array(await response.arrayBuffer())).toEqual(fileBytes);
+  });
+
+  test('streams ReadableStream blob data', async () => {
+    const streamTrail = trail('file.stream', {
+      blaze: () =>
+        Result.ok(
+          createBlobRef({
+            data: new Response(fileBytes).body ?? new ReadableStream(),
+            mimeType: 'application/octet-stream',
+            name: 'stream.bin',
+            size: fileBytes.byteLength,
+          })
+        ),
+      input: z.object({}),
+      intent: 'read',
+      output: blobRefSchema,
+    });
+    const handler = createFetchHandler(topo('blob-api', { streamTrail }));
+
+    const response = await handler(buildRequest('/file/stream'));
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Content-Type')).toBe(
+      'application/octet-stream'
+    );
+    expect(new Uint8Array(await response.arrayBuffer())).toEqual(fileBytes);
+  });
+
+  test('error results from blob trails stay JSON error envelopes', async () => {
+    const handler = createFetchHandler(topo('blob-api', { fileRawTrail }));
+
+    const response = await handler(buildRequest('/file/raw?name=missing.txt'));
+
+    expect(response.status).toBe(404);
+    expect(response.headers.get('Content-Type')).toContain('application/json');
+    expect(await response.json()).toEqual({
+      error: {
+        category: 'not_found',
+        code: 'NotFoundError',
+        message: 'No such file',
+      },
+    });
+  });
+
+  test('non-blob trails keep the JSON data envelope', async () => {
+    const handler = createFetchHandler(topo('blob-api', { echoTrail }));
+
+    const response = await handler(buildRequest('/echo?message=json'));
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ data: { reply: 'json' } });
   });
 });
