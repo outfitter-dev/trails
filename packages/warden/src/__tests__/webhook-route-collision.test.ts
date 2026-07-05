@@ -334,4 +334,54 @@ describe('webhook-route-collision', () => {
       rmSync(rootDir, { force: true, recursive: true });
     }
   });
+
+  test('errors when a dynamic-segment pattern overlaps a static webhook path', async () => {
+    const dynamicIngress = webhook('webhook.relay.ingress', {
+      parse: z.object({ endpoint: z.string() }),
+      path: '/webhooks/:endpoint',
+    });
+    const dynamicReceiver = trail('relay.receive', {
+      blaze: () => Result.ok({ ok: true }),
+      input: z.object({ endpoint: z.string() }),
+      on: [dynamicIngress],
+      output: z.object({ ok: z.boolean() }),
+    });
+
+    const diagnostics = await webhookRouteCollision.checkTopo(
+      topo('webhook-routes-pattern-overlap', {
+        dynamicReceiver,
+        paymentReceiver,
+      })
+    );
+
+    expect(diagnostics).toEqual([
+      expect.objectContaining({
+        message: expect.stringContaining('pattern overlap'),
+        rule: 'webhook-route-collision',
+        severity: 'error',
+      }),
+    ]);
+  });
+
+  test('stays quiet for dynamic patterns that cannot match the same path', async () => {
+    const hooksIngress = webhook('webhook.relay.hooks', {
+      parse: z.object({ endpoint: z.string() }),
+      path: '/hooks/:endpoint',
+    });
+    const hooksReceiver = trail('relay.hooks.receive', {
+      blaze: () => Result.ok({ ok: true }),
+      input: z.object({ endpoint: z.string() }),
+      on: [hooksIngress],
+      output: z.object({ ok: z.boolean() }),
+    });
+
+    const diagnostics = await webhookRouteCollision.checkTopo(
+      topo('webhook-routes-pattern-disjoint', {
+        hooksReceiver,
+        paymentReceiver,
+      })
+    );
+
+    expect(diagnostics).toEqual([]);
+  });
 });

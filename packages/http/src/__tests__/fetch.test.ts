@@ -7,6 +7,7 @@ import {
   blobRefSchema,
   createBlobRef,
   getWebhookHeader,
+  resource,
   trail,
   topo,
   webhook,
@@ -531,5 +532,170 @@ describe('BlobRef byte serving (TRL-1192)', () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ data: { reply: 'json' } });
+  });
+});
+
+describe('webhook ingress v2 (TRL-1194)', () => {
+  const ingressWebhook = webhook('relay.ingress', {
+    headers: ['content-type', 'x-junction-signature'],
+    parse: z.object({
+      endpoint: z.string(),
+      headers: z.record(z.string(), z.string()),
+      rawBody: z.string(),
+    }),
+    path: '/hooks/:endpoint',
+    rawBody: true,
+  });
+
+  const receiveTrail = trail('ingress.receive', {
+    blaze: (input) =>
+      Result.ok({
+        endpoint: input.endpoint,
+        headerNames: Object.keys(input.headers).toSorted(),
+        rawBody: input.rawBody,
+      }),
+    input: z.object({
+      endpoint: z.string(),
+      headers: z.record(z.string(), z.string()),
+      rawBody: z.string(),
+    }),
+    on: [ingressWebhook],
+    output: z.object({
+      endpoint: z.string(),
+      headerNames: z.array(z.string()),
+      rawBody: z.string(),
+    }),
+  });
+
+  test('delivers path params, raw body, and allowlisted headers to the trail', async () => {
+    const handler = createFetchHandler(topo('ingress-api', { receiveTrail }));
+
+    const response = await handler(
+      buildRequest('/hooks/github', {
+        body: '{"payload":true}',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Junction-Signature': 'sig-1',
+          'X-Secret-Internal': 'never-delivered',
+        },
+        method: 'POST',
+      })
+    );
+
+    expect(response.status).toBe(202);
+    expect(await response.json()).toEqual({
+      data: {
+        endpoint: 'github',
+        headerNames: ['content-type', 'x-junction-signature'],
+        rawBody: '{"payload":true}',
+      },
+    });
+  });
+
+  test('rawBody webhooks accept non-JSON bodies — the trail owns interpretation', async () => {
+    const handler = createFetchHandler(topo('ingress-api', { receiveTrail }));
+
+    const response = await handler(
+      buildRequest('/hooks/stripe', {
+        body: 'not json at all',
+        headers: { 'Content-Type': 'text/plain' },
+        method: 'POST',
+      })
+    );
+
+    expect(response.status).toBe(202);
+    expect(await response.json()).toEqual({
+      data: {
+        endpoint: 'stripe',
+        headerNames: ['content-type'],
+        rawBody: 'not json at all',
+      },
+    });
+  });
+
+  test('unmatched dynamic paths fall through to not-found', async () => {
+    const handler = createFetchHandler(topo('ingress-api', { receiveTrail }));
+
+    const response = await handler(
+      buildRequest('/hooks/github/extra', { method: 'POST' })
+    );
+
+    expect(response.status).toBe(404);
+  });
+
+  test('classic static webhooks keep their exact-match behavior and 200 status', async () => {
+    const handler = createFetchHandler(
+      topo('ingress-api', { paymentWebhookTrail })
+    );
+
+    const response = await handler(
+      buildRequest('/webhooks/payment', {
+        body: JSON.stringify({ paymentId: 'pay_1' }),
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Webhook-Secret': webhookSecret,
+        },
+        method: 'POST',
+      })
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      data: { paymentId: 'pay_1' },
+    });
+  });
+
+  test('verify reaches declared resources through its context', async () => {
+    const secrets = resource('ingress.secrets', {
+      create: () => Result.ok({ github: 'store-held-secret' }),
+    });
+    const verifiedWebhook = webhook('relay.verified', {
+      parse: z.object({ endpoint: z.string(), rawBody: z.string() }),
+      path: '/verified/:endpoint',
+      rawBody: true,
+      resources: [secrets],
+      verify: (request, ctx) => {
+        if (ctx === undefined) {
+          return Result.err(new PermissionError('No verify context'));
+        }
+        const expected = (secrets.from(ctx) as Record<string, string>)[
+          'github'
+        ];
+        return getWebhookHeader(request, 'x-signature') === expected
+          ? Result.ok()
+          : Result.err(new PermissionError('Invalid signature'));
+      },
+    });
+    const verifiedTrail = trail('verified.receive', {
+      blaze: (input) => Result.ok({ endpoint: input.endpoint }),
+      input: z.object({ endpoint: z.string(), rawBody: z.string() }),
+      on: [verifiedWebhook],
+      output: z.object({ endpoint: z.string() }),
+    });
+    const handler = createFetchHandler(topo('ingress-api', { verifiedTrail }));
+
+    const accepted = await handler(
+      buildRequest('/verified/github', {
+        body: '{}',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Signature': 'store-held-secret',
+        },
+        method: 'POST',
+      })
+    );
+    expect(accepted.status).toBe(202);
+
+    const rejected = await handler(
+      buildRequest('/verified/github', {
+        body: '{}',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Signature': 'wrong',
+        },
+        method: 'POST',
+      })
+    );
+    expect(rejected.status).toBe(403);
   });
 });

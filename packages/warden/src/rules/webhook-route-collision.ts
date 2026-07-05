@@ -1,4 +1,7 @@
-import { shouldIncludeTrailForSurface } from '@ontrails/core';
+import {
+  shouldIncludeTrailForSurface,
+  webhookPathPatternsOverlap,
+} from '@ontrails/core';
 import type { Topo, Trail } from '@ontrails/core';
 
 import type { TopoAwareWardenRule, WardenDiagnostic } from './types.js';
@@ -200,6 +203,65 @@ const collectPolicyMismatchDiagnostics = (
   return diagnostics;
 };
 
+const hasDynamicSegment = (path: string): boolean => path.includes('/:');
+
+/**
+ * Flag distinct route keys whose path patterns can both match one concrete
+ * request. Exact-key collisions are handled by the grouping pass; this pass
+ * extends detection to dynamic-segment patterns (`/hooks/:endpoint` vs
+ * `/hooks/github`), where at least one webhook claim participates.
+ */
+const collectPatternOverlapDiagnostics = (
+  claimsByRoute: ReadonlyMap<string, readonly RouteClaim[]>
+): WardenDiagnostic[] => {
+  const diagnostics: WardenDiagnostic[] = [];
+  const keys = [...claimsByRoute.keys()].toSorted();
+
+  for (const [index, leftKey] of keys.entries()) {
+    for (const rightKey of keys.slice(index + 1)) {
+      const leftClaims = claimsByRoute.get(leftKey) ?? [];
+      const rightClaims = claimsByRoute.get(rightKey) ?? [];
+      const [leftFirst] = leftClaims;
+      const [rightFirst] = rightClaims;
+      if (leftFirst === undefined || rightFirst === undefined) {
+        continue;
+      }
+      if (leftFirst.method !== rightFirst.method) {
+        continue;
+      }
+      if (
+        !(
+          hasDynamicSegment(leftFirst.path) ||
+          hasDynamicSegment(rightFirst.path)
+        )
+      ) {
+        continue;
+      }
+      const participants = [...leftClaims, ...rightClaims];
+      if (!participants.some((claim) => claim.type === 'webhook')) {
+        continue;
+      }
+      if (!webhookPathPatternsOverlap(leftFirst.path, rightFirst.path)) {
+        continue;
+      }
+      diagnostics.push({
+        filePath: TOPO_FILE,
+        line: 1,
+        message: `HTTP webhook route pattern overlap between ${leftKey} and ${rightKey}: ${sortedClaims(
+          participants
+        )
+          .map(claimLabel)
+          .join(
+            ', '
+          )}. Both patterns can match one request path; make the patterns disjoint or merge the sources.`,
+        rule: RULE_NAME,
+        severity: 'error',
+      });
+    }
+  }
+  return diagnostics;
+};
+
 const buildDiagnostics = (claims: readonly RouteClaim[]) => {
   const claimsByRoute = new Map<string, RouteClaim[]>();
   for (const claim of claims) {
@@ -227,6 +289,7 @@ const buildDiagnostics = (claims: readonly RouteClaim[]) => {
     }
     diagnostics.push(...collectPolicyMismatchDiagnostics(key, webhookClaims));
   }
+  diagnostics.push(...collectPatternOverlapDiagnostics(claimsByRoute));
   return diagnostics;
 };
 

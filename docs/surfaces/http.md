@@ -175,7 +175,36 @@ export const stripePaymentSucceeded = webhook(
 );
 ```
 
-Route collision handling is explicit. If two webhook sources claim the same method and path, or a webhook source collides with a derived direct trail route such as `trail('webhooks.payment', ...)`, `deriveHttpRoutes()` returns a `ValidationError` and Warden reports `webhook-route-collision`.
+Route collision handling is explicit. If two webhook sources claim the same method and path, or a webhook source collides with a derived direct trail route such as `trail('webhooks.payment', ...)`, `deriveHttpRoutes()` returns a `ValidationError` and Warden reports `webhook-route-collision`. The rule also flags dynamic patterns that can match the same request path (`/hooks/:endpoint` overlaps `/hooks/github`), not just exact duplicates.
+
+### Ingress envelopes: dynamic paths, raw body, allowlisted headers
+
+Store-verified, per-endpoint ingress is declared on the source. A `webhook()` may use dynamic path segments, opt into raw body delivery, allowlist headers for the trail boundary, and declare resources its `verify` can reach:
+
+```typescript
+const relayIngress = webhook('relay.ingress', {
+  path: '/hooks/:endpointId',
+  rawBody: true,
+  headers: ['content-type', 'x-junction-signature'],
+  parse: z.object({
+    endpointId: z.string(),
+    headers: z.record(z.string(), z.string()),
+    rawBody: z.string(),
+  }),
+  resources: [relayStoreResource],
+  verify: (request, ctx) => {
+    if (ctx === undefined) {
+      return Result.err(new PermissionError('Missing verify context'));
+    }
+    // ctx reaches declared resources — e.g. per-endpoint secrets.
+    const store = relayStoreResource.from(ctx);
+    /* ... */
+    return Result.ok();
+  },
+});
+```
+
+When any of these features is used, the delivered value is an **envelope** instead of the bare JSON body: `{ ...pathParams, body?, headers?, rawBody? }`. Segment values arrive under their segment names, `headers` contains only the lowercased allowlisted entries, `rawBody` is the exact body text (with `rawBody: true`, a non-JSON body is not a surface failure — the trail owns interpretation; `body` is the parsed JSON when parseable). The `parse` schema validates the envelope at the boundary, so the trail input stays schema-declared. Envelope-mode ingress responds `202 Accepted` on success; classic static webhooks keep their `200` and JSON-body gating.
 
 ## Response Format
 

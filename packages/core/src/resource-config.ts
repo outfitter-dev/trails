@@ -585,7 +585,7 @@ const withResolvedResources = (
 /**
  * Resolved trail context plus lease release for resources used by the run.
  */
-interface ResolvedResourceScope {
+export interface ResolvedResourceScope {
   readonly ctx: TrailContext;
   release(): void;
 }
@@ -593,14 +593,26 @@ interface ResolvedResourceScope {
 const releaseNoResources = (): undefined => undefined;
 
 /**
- * Resolve all declared resources for a trail.
+ * Resolve all declared resources for a resource-bearing declaration.
  *
  * Validates per-resource config, checks overrides and caches, and creates
  * new instances as needed. Returns an enriched context with all resource
- * instances injected into extensions.
+ * instances injected into extensions. Callers own the returned `release`.
+ *
+ * @example
+ * ```ts
+ * const scope = await createResources(
+ *   { resources: [secretsStore] },
+ *   createTrailContext()
+ * );
+ * if (scope.isOk()) {
+ *   const secrets = secretsStore.from(scope.value.ctx);
+ *   scope.value.release();
+ * }
+ * ```
  */
 export const createResources = async (
-  trail: AnyTrail,
+  trail: Pick<AnyTrail, 'resources'>,
   ctx: TrailContext,
   overrides?: ResourceOverrideMap,
   configValues?: ConfigValues

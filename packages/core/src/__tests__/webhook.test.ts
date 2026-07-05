@@ -4,14 +4,19 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 
 import { z } from 'zod';
 
+import { createTrailContext } from '../context.js';
 import { InternalError, PermissionError, ValidationError } from '../errors.js';
+import { resource } from '../resource.js';
+import { createResources } from '../resource-config.js';
 import { Result } from '../result.js';
 import {
   getWebhookHeader,
   getWebhookHeaders,
+  matchWebhookPath,
   validateWebhookSource,
   verifyWebhookRequest,
   webhook,
+  webhookPathPatternsOverlap,
 } from '../webhook.js';
 
 const signBody = (secret: string, body: string): string =>
@@ -41,6 +46,7 @@ describe('webhook()', () => {
       method: 'POST',
       parse: expect.any(Object),
       path: '/webhooks/payment',
+      pathParams: [],
     });
     expect(Object.isFrozen(source)).toBe(true);
     expect(Object.isFrozen(source.meta)).toBe(true);
@@ -274,5 +280,125 @@ describe('webhook()', () => {
     expect(verified.isErr() ? verified.error : undefined).toBeInstanceOf(
       InternalError
     );
+  });
+});
+
+describe('webhook ingress v2 (TRL-1194)', () => {
+  test('accepts dynamic path segments and derives pathParams', () => {
+    const source = webhook('relay.ingress', {
+      headers: ['Content-Type', 'X-Junction-Signature'],
+      parse: z.object({ endpoint: z.string(), rawBody: z.string() }),
+      path: '/hooks/:endpoint',
+      rawBody: true,
+    });
+
+    expect(source.pathParams).toEqual(['endpoint']);
+    expect(source.rawBody).toBe(true);
+    expect(source.headers).toEqual(['content-type', 'x-junction-signature']);
+  });
+
+  test('rejects malformed and duplicate path segments', () => {
+    expect(() =>
+      webhook('relay.bad-segment', {
+        parse: z.object({}),
+        path: '/hooks/:1endpoint',
+      })
+    ).toThrow(ValidationError);
+    expect(() =>
+      webhook('relay.duplicate-segment', {
+        parse: z.object({}),
+        path: '/hooks/:endpoint/:endpoint',
+      })
+    ).toThrow(ValidationError);
+  });
+
+  test('rejects path segments that shadow reserved envelope fields', () => {
+    for (const reserved of ['body', 'headers', 'rawBody']) {
+      expect(() =>
+        webhook(`relay.reserved-${reserved}`, {
+          parse: z.object({}),
+          path: `/hooks/:${reserved}`,
+        })
+      ).toThrow(ValidationError);
+    }
+  });
+
+  test('matchWebhookPath keeps raw text for malformed percent-encoding', () => {
+    expect(matchWebhookPath('/hooks/:endpoint', '/hooks/%E0%A4%A')).toEqual({
+      endpoint: '%E0%A4%A',
+    });
+    expect(matchWebhookPath('/hooks/:endpoint', '/hooks/gh%20hub')).toEqual({
+      endpoint: 'gh hub',
+    });
+  });
+
+  test('matchWebhookPath captures segment values and rejects mismatches', () => {
+    expect(matchWebhookPath('/hooks/:endpoint', '/hooks/github')).toEqual({
+      endpoint: 'github',
+    });
+    expect(
+      matchWebhookPath('/hooks/:endpoint/:event', '/hooks/github/push')
+    ).toEqual({ endpoint: 'github', event: 'push' });
+    expect(matchWebhookPath('/hooks/:endpoint', '/hooks')).toBeUndefined();
+    expect(
+      matchWebhookPath('/hooks/:endpoint', '/other/github')
+    ).toBeUndefined();
+    expect(matchWebhookPath('/hooks/payment', '/hooks/payment')).toEqual({});
+    expect(matchWebhookPath('/hooks/:endpoint', '/hooks/')).toBeUndefined();
+  });
+
+  test('webhookPathPatternsOverlap detects overlapping patterns', () => {
+    expect(
+      webhookPathPatternsOverlap('/hooks/:endpoint', '/hooks/github')
+    ).toBe(true);
+    expect(webhookPathPatternsOverlap('/hooks/:a', '/hooks/:b')).toBe(true);
+    expect(webhookPathPatternsOverlap('/hooks/:a', '/api/:b')).toBe(false);
+    expect(webhookPathPatternsOverlap('/hooks/:a', '/hooks/:a/extra')).toBe(
+      false
+    );
+  });
+
+  test('verifyWebhookRequest forwards a context to resource-capable verifiers', async () => {
+    let seenSecret: string | undefined;
+    const secrets = resource('webhook.secrets', {
+      create: () => Result.ok({ github: 'shh' }),
+    });
+    const source = webhook('relay.verified', {
+      parse: z.object({}),
+      path: '/hooks/:endpoint',
+      resources: [secrets],
+      verify: (request, ctx) => {
+        if (ctx === undefined) {
+          return Result.err(new PermissionError('No context provided'));
+        }
+        seenSecret = (secrets.from(ctx) as Record<string, string>)['github'];
+        return getWebhookHeader(request, 'x-signature') === seenSecret
+          ? Result.ok()
+          : Result.err(new PermissionError('Bad signature'));
+      },
+    });
+
+    const scope = await createResources(
+      { resources: [secrets] },
+      createTrailContext()
+    );
+    expect(scope.isOk()).toBe(true);
+    if (!scope.isOk()) {
+      return;
+    }
+
+    const accepted = await verifyWebhookRequest(
+      source,
+      {
+        body: '{}',
+        headers: { 'x-signature': 'shh' },
+        method: 'POST',
+        path: '/hooks/github',
+      },
+      scope.value.ctx
+    );
+    expect(accepted.isOk()).toBe(true);
+    expect(seenSecret).toBe('shh');
+    scope.value.release();
   });
 });

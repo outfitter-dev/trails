@@ -143,8 +143,13 @@ export {
   isResource,
   resource,
 } from './resource.js';
-export { drainResources, resolveResourceConfig } from './resource-config.js';
+export {
+  createResources,
+  drainResources,
+  resolveResourceConfig,
+} from './resource-config.js';
 export type {
+  ResolvedResourceScope,
   ResourceConfigValues,
   ResourceDrainReport,
 } from './resource-config.js';
@@ -304,10 +309,13 @@ export type {
 export {
   getWebhookHeader,
   getWebhookHeaders,
+  matchWebhookPath,
+  parseWebhookPathParams,
   validateWebhookSource,
   verifyWebhookRequest,
   webhook,
   webhookMethods,
+  webhookPathPatternsOverlap,
 } from './webhook.js';
 export type {
   WebhookMethod,

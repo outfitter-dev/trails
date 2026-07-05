@@ -12,6 +12,8 @@ import {
   ValidationError,
   buildActivationProvenanceTraceAttrs,
   collectAttachedTypedLayers,
+  createResources,
+  createTrailContext,
   deriveSurfaceTrailVersionProjections,
   executeTrail,
   filterSurfaceTrails,
@@ -1038,6 +1040,44 @@ type MergeableWebhookRoute = HttpRouteDefinition & {
   readonly [WEBHOOK_INVALID_RECORDERS]?: readonly WebhookInvalidConsumerRecorder[];
 };
 
+/**
+ * Wrap a webhook source's `verify` for the route boundary.
+ *
+ * Sources that declare `resources` get a resource-capable context: the
+ * declared resources are resolved (honoring surface overrides and config
+ * values) for the duration of the verification and released afterwards,
+ * so signature checks can reach stores holding per-endpoint secrets.
+ */
+const createWebhookVerifier =
+  (
+    source: WebhookSource,
+    options: DeriveHttpRoutesOptions
+  ): ((request: WebhookVerifyRequest) => Promise<Result<void, Error>>) =>
+  async (request) => {
+    const declared = source.resources ?? [];
+    if (source.verify === undefined || declared.length === 0) {
+      return await verifyWebhookRequest(source, request);
+    }
+
+    const seed = options.createContext
+      ? await options.createContext()
+      : undefined;
+    const scope = await createResources(
+      { resources: declared },
+      createTrailContext(seed),
+      options.resources,
+      options.configValues
+    );
+    if (scope.isErr()) {
+      return scope;
+    }
+    try {
+      return await verifyWebhookRequest(source, request, scope.value.ctx);
+    } finally {
+      scope.value.release();
+    }
+  };
+
 const buildWebhookRoute = (
   graph: Topo,
   trail: Trail<unknown, unknown, unknown>,
@@ -1089,7 +1129,7 @@ const buildWebhookRoute = (
     ),
     trail,
     trailId: trail.id,
-    verifyWebhook: (request) => verifyWebhookRequest(source.value, request),
+    verifyWebhook: createWebhookVerifier(source.value, options),
     ...(versions === undefined ? {} : { versions }),
     webhookSource: source.value,
   };
@@ -1142,6 +1182,20 @@ const hasMatchingWebhookParse = (
   right: HttpRouteDefinition
 ): boolean => left.webhookSource?.parse === right.webhookSource?.parse;
 
+/**
+ * Envelope facts must agree before merging: the merged route delivers one
+ * envelope shape, so diverging `rawBody`/`headers` declarations would
+ * silently drop a consumer's declared fields.
+ */
+const hasMatchingWebhookEnvelope = (
+  left: HttpRouteDefinition,
+  right: HttpRouteDefinition
+): boolean =>
+  (left.webhookSource?.rawBody === true) ===
+    (right.webhookSource?.rawBody === true) &&
+  JSON.stringify(left.webhookSource?.headers ?? null) ===
+    JSON.stringify(right.webhookSource?.headers ?? null);
+
 const webhookConsumers = (
   route: MergeableWebhookRoute
 ): readonly WebhookConsumerExecute[] | undefined => route[WEBHOOK_CONSUMERS];
@@ -1176,6 +1230,14 @@ const mergeWebhookRoutes = (
     return {
       error: new ValidationError(
         `HTTP route collision: trails "${existing.trailId}" and "${route.trailId}" share webhook source "${existing.webhookSource?.id}" on ${route.method} ${route.path} but declare a mismatched webhook parse contract. Reuse the same WebhookSource object so both consumers parse payloads under one contract.`
+      ),
+      kind: 'parse-mismatch',
+    };
+  }
+  if (!hasMatchingWebhookEnvelope(existing, route)) {
+    return {
+      error: new ValidationError(
+        `HTTP route collision: trails "${existing.trailId}" and "${route.trailId}" share webhook source "${existing.webhookSource?.id}" on ${route.method} ${route.path} but declare mismatched rawBody/headers envelope facts. Reuse the same WebhookSource object so both consumers receive one envelope shape.`
       ),
       kind: 'parse-mismatch',
     };

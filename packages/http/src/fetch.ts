@@ -3,7 +3,9 @@ import {
   CancelledError,
   isBlobRef,
   isTrailsError,
+  matchWebhookPath,
   NotFoundError,
+  parseWebhookPathParams,
   projectErrorDiagnostics,
   projectPublicSurfaceError,
   ValidationError,
@@ -475,11 +477,76 @@ const recordInvalidWebhook = async (
 const errorCategoryForWebhookFailure = (error: Error | undefined): string =>
   error !== undefined && isTrailsError(error) ? error.category : 'internal';
 
+/**
+ * True when the route's webhook source opts into ingress-envelope
+ * delivery: dynamic path segments, raw body, or allowlisted headers.
+ */
+const usesWebhookEnvelope = (route: HttpRouteDefinition): boolean => {
+  const source = route.webhookSource;
+  return (
+    source !== undefined &&
+    (source.rawBody === true ||
+      source.headers !== undefined ||
+      parseWebhookPathParams(source.path).length > 0)
+  );
+};
+
+const pickAllowlistedHeaders = (
+  headers: Headers,
+  allowlist: readonly string[]
+): Record<string, string> => {
+  const allowed = new Set(allowlist.map((name) => name.toLowerCase()));
+  const kept: Record<string, string> = {};
+  for (const [name, value] of headers) {
+    const normalized = name.toLowerCase();
+    if (allowed.has(normalized)) {
+      kept[normalized] = value;
+    }
+  }
+  return kept;
+};
+
+/**
+ * Assemble the delivered webhook value.
+ *
+ * Classic webhooks deliver the parsed JSON body directly. Envelope-mode
+ * webhooks deliver `{ ...pathParams, body?, headers?, rawBody? }` — the
+ * schema-declared boundary shape TRL-1194 lifts from the hand-mounted
+ * ingress routes.
+ */
+const buildWebhookDeliveredValue = (
+  route: HttpRouteDefinition,
+  request: Request,
+  rawBody: string,
+  jsonBody: unknown,
+  pathParams: Readonly<Record<string, string>> | undefined
+): unknown => {
+  const source = route.webhookSource;
+  if (source === undefined || !usesWebhookEnvelope(route)) {
+    return jsonBody;
+  }
+  return {
+    ...(jsonBody === undefined ? {} : { body: jsonBody }),
+    ...(source.headers === undefined
+      ? {}
+      : { headers: pickAllowlistedHeaders(request.headers, source.headers) }),
+    ...(source.rawBody === true ? { rawBody } : {}),
+    ...pathParams,
+  };
+};
+
 const handleWebhookRoute = async (
   route: HttpRouteDefinition,
   options: RuntimeOptions,
   request: Request
 ): Promise<Response> => {
+  const envelope = usesWebhookEnvelope(route);
+  // Self-derive dynamic segment values from the route's own pattern so
+  // every adapter (fetch dispatcher, Bun routes, Hono) gets pattern
+  // support without threading params through handler signatures.
+  const pathParams = envelope
+    ? matchWebhookPath(route.path, new URL(request.url).pathname)
+    : undefined;
   const rawBody = await readWebhookBodyText(request, options.maxJsonBodyBytes);
 
   if (rawBody === JSON_BODY_INVALID_CONTENT_LENGTH) {
@@ -504,12 +571,22 @@ const handleWebhookRoute = async (
   }
 
   const jsonBody = parseWebhookBodyText(request, rawBody);
-  if (jsonBody === JSON_PARSE_ERROR) {
+  // With rawBody delivery the trail owns payload interpretation, so a
+  // non-JSON body is not a surface-level failure.
+  if (jsonBody === JSON_PARSE_ERROR && route.webhookSource?.rawBody !== true) {
     await recordInvalidWebhook(route);
     return invalidJsonResponse();
   }
 
-  const parsed = route.parseWebhookInput?.(jsonBody);
+  const delivered = buildWebhookDeliveredValue(
+    route,
+    request,
+    rawBody,
+    jsonBody === JSON_PARSE_ERROR ? undefined : jsonBody,
+    pathParams
+  );
+
+  const parsed = route.parseWebhookInput?.(delivered);
   if (parsed === undefined) {
     await recordInvalidWebhook(route, 'internal');
     return mapResultToResponse(
@@ -529,6 +606,11 @@ const handleWebhookRoute = async (
   const result = await route.execute(parsed.value, requestId, request.signal, {
     headers: request.headers,
   });
+  // Envelope-mode ingress acknowledges accepted work with 202, matching
+  // the accepted-for-processing semantics of webhook receivers.
+  if (envelope && result.isOk()) {
+    return json({ data: result.value }, 202);
+  }
   return mapResultToResponse(result, request);
 };
 
@@ -628,22 +710,45 @@ export const createFetchHandler = (
     throw routesResult.error;
   }
 
-  const routeHandlers = new Map<
-    string,
-    (request: Request) => Promise<Response>
-  >();
+  type BoundRouteHandler = (request: Request) => Promise<Response>;
+
+  const routeHandlers = new Map<string, BoundRouteHandler>();
+  const patternRoutes: {
+    readonly handler: BoundRouteHandler;
+    readonly method: string;
+    readonly pattern: string;
+  }[] = [];
   for (const route of routesResult.value) {
-    routeHandlers.set(
-      routeKey(route.method, route.path),
-      createRouteHandler(route, {
-        maxJsonBodyBytes: options.maxJsonBodyBytes,
-      })
-    );
+    const handler = createRouteHandler(route, {
+      maxJsonBodyBytes: options.maxJsonBodyBytes,
+    });
+    if (parseWebhookPathParams(route.path).length > 0) {
+      patternRoutes.push({
+        handler,
+        method: route.method.toUpperCase(),
+        pattern: route.path,
+      });
+      continue;
+    }
+    routeHandlers.set(routeKey(route.method, route.path), handler);
   }
 
   return async (request) => {
     const path = new URL(request.url).pathname;
     const handler = routeHandlers.get(routeKey(request.method, path));
-    return handler === undefined ? notFoundResponse(request) : handler(request);
+    if (handler !== undefined) {
+      return handler(request);
+    }
+    // Exact routes win; dynamic-segment routes match in registration order.
+    const method = request.method.toUpperCase();
+    for (const candidate of patternRoutes) {
+      if (candidate.method !== method) {
+        continue;
+      }
+      if (matchWebhookPath(candidate.pattern, path) !== undefined) {
+        return candidate.handler(request);
+      }
+    }
+    return notFoundResponse(request);
   };
 };
