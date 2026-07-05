@@ -186,6 +186,7 @@ export {
 export type { ActivationSourceProjection } from './activation-source-projection.js';
 export {
   deriveSupportedTrailVersions,
+  forkVersion,
   getTrailVersionEntryKind,
   hasDeprecatedTrailVersionGuidance,
   intentValues,
@@ -224,6 +225,7 @@ export type {
   TrailVersionArchivedStatus,
   TrailVersionDeprecatedStatus,
   TrailVersionForkEntry,
+  TrailVersionForkSpec,
   TrailVersionRevisionEntry,
   TrailVersions,
   TrailVersionStatus,

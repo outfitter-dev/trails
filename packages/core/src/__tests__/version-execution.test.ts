@@ -14,7 +14,7 @@ import { Result } from '../result';
 import { resource } from '../resource';
 import { run } from '../run';
 import { topo } from '../topo';
-import { trail } from '../trail';
+import { forkVersion, trail } from '../trail';
 import type { TrailContext } from '../types';
 import { deriveTrailVersionMarkers } from '../version-marker';
 
@@ -444,5 +444,41 @@ describe('trail version execution', () => {
 
     expect(result.isOk()).toBe(true);
     expect(result.unwrap()).toEqual({ ok: true });
+  });
+
+  test('executes a forkVersion-authored entry with schema-validated typed input', async () => {
+    // TRL-1180: forkVersion threads the entry schemas into the blaze, so the
+    // v1 blaze below reads typed fields without re-parsing.
+    const gearTrail = trail('version.runtime.fork-helper', {
+      blaze: (input) =>
+        Result.ok({ id: input.name, weightGrams: input.weightGrams }),
+      input: z.object({ name: z.string(), weightGrams: z.number() }),
+      output: z.object({ id: z.string(), weightGrams: z.number() }),
+      version: 2,
+      versions: {
+        1: forkVersion({
+          blaze: (input) =>
+            Result.ok({ id: input.name, weightOz: input.weightOz * 2 }),
+          input: z.object({ name: z.string(), weightOz: z.number() }),
+          output: z.object({ id: z.string(), weightOz: z.number() }),
+        }),
+      },
+    });
+
+    const forked = await executeTrail(
+      gearTrail,
+      { name: 'tarp', weightOz: 8 },
+      { version: 1 }
+    );
+    expect(forked.isOk()).toBe(true);
+    expect(forked.unwrap()).toEqual({ id: 'tarp', weightOz: 16 });
+
+    const invalid = await executeTrail(
+      gearTrail,
+      { name: 'tarp' },
+      { version: 1 }
+    );
+    expect(invalid.isErr()).toBe(true);
+    expect(invalid.error).toBeInstanceOf(ValidationError);
   });
 });

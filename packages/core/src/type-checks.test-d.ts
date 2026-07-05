@@ -11,7 +11,7 @@
  */
 
 import type { Signal, SignalSpec } from './signal.js';
-import { trail } from './trail.js';
+import { forkVersion, trail } from './trail.js';
 import type { Trail, TrailSpec, TrailVersionRevisionEntry } from './trail.js';
 import type { ExecuteTrailOptions } from './execute.js';
 import { resource } from './resource.js';
@@ -530,6 +530,64 @@ export type RevisionRuntimeFieldContract = [
 ] extends [true]
   ? 'pass'
   : never;
+
+// ---------------------------------------------------------------------------
+// forkVersion threads the entry's own schemas into the fork blaze (TRL-1180)
+// ---------------------------------------------------------------------------
+
+const forkV1Input = z.object({ name: z.string(), weightOz: z.number() });
+const forkV1Output = z.object({ id: z.string(), weightOz: z.number() });
+
+const _typedForkEntry = forkVersion({
+  blaze: (input) => {
+    type AssertForkBlazeInputTyped = Assert<
+      IsExact<typeof input, { name: string; weightOz: number }>
+    >;
+    const _forkBlazeInputTyped: AssertForkBlazeInputTyped = true;
+    void _forkBlazeInputTyped;
+    return Result.ok({ id: input.name, weightOz: input.weightOz });
+  },
+  input: forkV1Input,
+  output: forkV1Output,
+});
+type AssertForkEntryAssignable = Assert<
+  IsAssignable<
+    typeof _typedForkEntry,
+    NonNullable<TrailSpec<{ ok: boolean }, string>['versions']>[number]
+  >
+>;
+export type ForkVersionEntryContract = [AssertForkEntryAssignable] extends [
+  true,
+]
+  ? 'pass'
+  : never;
+
+const _typedForkEntryOutputChecked = forkVersion({
+  // @ts-expect-error — blaze must return the entry output shape, not extras
+  blaze: (input) => Result.ok({ unexpected: input.name }),
+  input: forkV1Input,
+  output: forkV1Output,
+});
+export type ForkVersionOutputEnforced = typeof _typedForkEntryOutputChecked;
+
+const _typedForkEntryComposeInput = forkVersion({
+  blaze: (input) => {
+    type AssertForkComposeMerged = Assert<
+      IsExact<
+        typeof input,
+        { name: string; weightOz: number } & { source: string }
+      >
+    >;
+    const _forkComposeMerged: AssertForkComposeMerged = true;
+    void _forkComposeMerged;
+    return Result.ok({ id: input.source, weightOz: input.weightOz });
+  },
+  composeInput: z.object({ source: z.string() }),
+  input: forkV1Input,
+  output: forkV1Output,
+});
+export type ForkVersionComposeInputContract =
+  typeof _typedForkEntryComposeInput;
 
 // ---------------------------------------------------------------------------
 // ExecuteTrailOptions keeps compose-validation internals out of the public API

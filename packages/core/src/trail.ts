@@ -315,6 +315,84 @@ export type TrailVersions<
   >
 >;
 
+/**
+ * Spec for {@link forkVersion}: a fork entry whose blaze signature is owned
+ * by the entry's own schemas instead of falling back to `unknown`.
+ */
+export interface TrailVersionForkSpec<
+  TInputSchema extends z.ZodType,
+  TOutputSchema extends z.ZodType,
+  TComposeInputSchema extends z.ZodType | undefined = undefined,
+> {
+  /** The historical blaze, typed by this entry's schemas. */
+  readonly blaze: Implementation<
+    BlazeInput<
+      z.output<TInputSchema>,
+      ComposeSchemaOutput<TComposeInputSchema>
+    >,
+    z.output<TOutputSchema>
+  >;
+  readonly composeInput?: TComposeInputSchema | undefined;
+  readonly composes?: readonly (string | AnyTrail)[] | undefined;
+  readonly detours?:
+    | readonly Detour<
+        z.output<TInputSchema>,
+        z.output<TOutputSchema>,
+        TrailsError
+      >[]
+    | undefined;
+  readonly examples?:
+    | readonly TrailExample<z.input<TInputSchema>, z.output<TOutputSchema>>[]
+    | undefined;
+  readonly input: TInputSchema;
+  readonly output: TOutputSchema;
+  readonly resources?: readonly AnyResource[] | undefined;
+  readonly status?: TrailVersionStatus | undefined;
+}
+
+/**
+ * Author a fork version entry with a blaze typed by the entry's own schemas.
+ *
+ * `TrailVersions` fixes every entry's generics to `unknown`, so a fork blaze
+ * written inline receives `unknown` input and authors end up re-parsing the
+ * already-validated value just to narrow it. This helper threads the entry's
+ * `input`/`output` schemas into the blaze signature and erases the generics
+ * on the way out. The erasure is sound because the fork pipeline validates
+ * raw input against this entry's own `input` schema before dispatching to
+ * the entry blaze (see `createForkTrailVersion` in execute.ts).
+ *
+ * @example
+ * ```ts
+ * const gearV1Input = z.object({ name: z.string(), weightOz: z.number() });
+ * const gearV1Output = z.object({ id: z.string(), weightOz: z.number() });
+ *
+ * const gearCreate = trail('gear.create', {
+ *   // ... current v2 contract ...
+ *   version: 2,
+ *   versions: {
+ *     1: forkVersion({
+ *       blaze: (input) =>
+ *         // input is { name: string; weightOz: number } — no re-parse
+ *         Result.ok({ id: input.name, weightOz: input.weightOz }),
+ *       input: gearV1Input,
+ *       output: gearV1Output,
+ *     }),
+ *   },
+ * });
+ * ```
+ */
+export const forkVersion = <
+  TInputSchema extends z.ZodType,
+  TOutputSchema extends z.ZodType,
+  TComposeInputSchema extends z.ZodType | undefined = undefined,
+>(
+  spec: TrailVersionForkSpec<TInputSchema, TOutputSchema, TComposeInputSchema>
+): TrailVersionForkEntry =>
+  // Erasing the per-entry generics narrows function parameters, which TS
+  // cannot express without a conversion. Safe: the fork pipeline re-validates
+  // input against `spec.input` before the blaze runs.
+  spec as unknown as TrailVersionForkEntry;
+
 export const getTrailVersionEntryKind = (
   entry: TrailVersionEntry
 ): TrailVersionEntryKind => {
