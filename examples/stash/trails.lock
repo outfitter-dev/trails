@@ -1,0 +1,6041 @@
+{
+  "scope": {
+    "app": "stash"
+  },
+  "summary": {
+    "contours": 1,
+    "resources": 2,
+    "signals": 20,
+    "trails": 20
+  },
+  "topoGraph": {
+    "activationGraph": {
+      "edgeCount": 2,
+      "edges": [
+        {
+          "hasWhere": false,
+          "sourceId": "snippet.created",
+          "sourceKey": "signal:snippet.created",
+          "sourceKind": "signal",
+          "trailId": "search.index"
+        },
+        {
+          "hasWhere": false,
+          "sourceId": "snippet.updated",
+          "sourceKey": "signal:snippet.updated",
+          "sourceKind": "signal",
+          "trailId": "search.index"
+        }
+      ],
+      "sourceCount": 2,
+      "sourceKeys": [
+        "signal:snippet.created",
+        "signal:snippet.updated"
+      ],
+      "trailIds": [
+        "search.index"
+      ]
+    },
+    "activationSources": {
+      "signal:snippet.created": {
+        "id": "snippet.created",
+        "key": "signal:snippet.created",
+        "kind": "signal"
+      },
+      "signal:snippet.updated": {
+        "id": "snippet.updated",
+        "key": "signal:snippet.updated",
+        "kind": "signal"
+      }
+    },
+    "entries": [
+      {
+        "exampleCount": 0,
+        "id": "auth",
+        "kind": "resource",
+        "surfaces": [],
+        "description": "Authentication adapter"
+      },
+      {
+        "exampleCount": 2,
+        "id": "file.raw",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "file",
+            "raw"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "file",
+                "raw"
+              ],
+              "source": "derived",
+              "target": "file.raw"
+            }
+          ]
+        },
+        "description": "Serve one file of one revision as raw bytes with a content type derived from its extension",
+        "examples": [
+          {
+            "input": {
+              "name": "greet.ts",
+              "seq": 1,
+              "snippetId": "snip_hello"
+            },
+            "kind": "success",
+            "name": "Raw file bytes",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Fetch the raw bytes of a seeded file"
+          },
+          {
+            "input": {
+              "name": "nope.ts",
+              "seq": 1,
+              "snippetId": "snip_hello"
+            },
+            "kind": "error",
+            "name": "Raw missing file",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Unknown file names return NotFoundError",
+            "error": "NotFoundError"
+          }
+        ],
+        "input": {
+          "properties": {
+            "name": {
+              "description": "File name within the revision",
+              "type": "string"
+            },
+            "seq": {
+              "description": "Revision sequence number",
+              "type": "number"
+            },
+            "snippetId": {
+              "description": "Snippet id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "name",
+            "seq",
+            "snippetId"
+          ],
+          "type": "object"
+        },
+        "intent": "read",
+        "output": {
+          "properties": {
+            "kind": {
+              "const": "blob"
+            },
+            "mimeType": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "size": {
+              "type": "number"
+            },
+            "uri": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "mimeType",
+            "name",
+            "size",
+            "uri"
+          ],
+          "type": "object"
+        },
+        "resources": [
+          "stash.db"
+        ]
+      },
+      {
+        "exampleCount": 2,
+        "id": "revision.diff",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "revision",
+            "diff"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "revision",
+                "diff"
+              ],
+              "source": "derived",
+              "target": "revision.diff"
+            }
+          ]
+        },
+        "description": "Naive line diff between two revisions of a snippet",
+        "examples": [
+          {
+            "input": {
+              "from": 1,
+              "snippetId": "snip_hello",
+              "to": 1
+            },
+            "kind": "success",
+            "name": "Diff identical revisions",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Diff a revision against itself",
+            "expected": {
+              "files": [
+                {
+                  "addedLines": [],
+                  "name": "greet.ts",
+                  "removedLines": [],
+                  "status": "unchanged"
+                }
+              ],
+              "from": 1,
+              "to": 1
+            }
+          },
+          {
+            "input": {
+              "from": 1,
+              "snippetId": "snip_hello",
+              "to": 99
+            },
+            "kind": "error",
+            "name": "Diff a missing revision",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Unknown seqs return NotFoundError",
+            "error": "NotFoundError"
+          }
+        ],
+        "input": {
+          "properties": {
+            "from": {
+              "description": "Base revision seq",
+              "type": "number"
+            },
+            "snippetId": {
+              "description": "Snippet id",
+              "type": "string"
+            },
+            "to": {
+              "description": "Target revision seq",
+              "type": "number"
+            }
+          },
+          "required": [
+            "from",
+            "snippetId",
+            "to"
+          ],
+          "type": "object"
+        },
+        "intent": "read",
+        "output": {
+          "properties": {
+            "files": {
+              "items": {
+                "properties": {
+                  "addedLines": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "removedLines": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "status": {
+                    "enum": [
+                      "added",
+                      "removed",
+                      "modified",
+                      "unchanged"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "addedLines",
+                  "name",
+                  "removedLines",
+                  "status"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "from": {
+              "type": "number"
+            },
+            "to": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "files",
+            "from",
+            "to"
+          ],
+          "type": "object"
+        },
+        "resources": [
+          "stash.db"
+        ]
+      },
+      {
+        "exampleCount": 2,
+        "id": "revision.get",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "revision",
+            "get"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "revision",
+                "get"
+              ],
+              "source": "derived",
+              "target": "revision.get"
+            }
+          ]
+        },
+        "description": "Read one revision of a snippet, including full file contents",
+        "examples": [
+          {
+            "input": {
+              "seq": 1,
+              "snippetId": "snip_hello"
+            },
+            "kind": "success",
+            "name": "Get a revision",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Read revision 1 of a snippet",
+            "expected": {
+              "createdAt": "2026-01-01T00:00:00.000Z",
+              "files": [
+                {
+                  "content": "export const greet = (name: string): string => `Hello, ${name}!`;\n",
+                  "encoding": "utf8",
+                  "language": "typescript",
+                  "name": "greet.ts"
+                }
+              ],
+              "message": "initial revision",
+              "seq": 1,
+              "snippetId": "snip_hello"
+            }
+          },
+          {
+            "input": {
+              "seq": 99,
+              "snippetId": "snip_hello"
+            },
+            "kind": "error",
+            "name": "Get a missing revision",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Unknown seqs return NotFoundError",
+            "error": "NotFoundError"
+          }
+        ],
+        "input": {
+          "properties": {
+            "seq": {
+              "description": "Revision sequence number",
+              "type": "number"
+            },
+            "snippetId": {
+              "description": "Snippet id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "seq",
+            "snippetId"
+          ],
+          "type": "object"
+        },
+        "intent": "read",
+        "output": {
+          "properties": {
+            "createdAt": {
+              "type": "string"
+            },
+            "files": {
+              "items": {
+                "properties": {
+                  "content": {
+                    "description": "File content: UTF-8 text, or base64 when encoding is \"base64\"",
+                    "type": "string"
+                  },
+                  "encoding": {
+                    "default": "utf8",
+                    "description": "Content encoding; use \"base64\" for binary files",
+                    "enum": [
+                      "utf8",
+                      "base64"
+                    ],
+                    "type": "string"
+                  },
+                  "language": {
+                    "description": "Language hint, e.g. \"typescript\" (optional)",
+                    "type": "string"
+                  },
+                  "name": {
+                    "description": "File name including extension",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "content",
+                  "name"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "message": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "seq": {
+              "type": "number"
+            },
+            "snippetId": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "files",
+            "message",
+            "seq",
+            "snippetId"
+          ],
+          "type": "object"
+        },
+        "resources": [
+          "stash.db"
+        ]
+      },
+      {
+        "exampleCount": 2,
+        "id": "revision.list",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "revision",
+            "list"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "revision",
+                "list"
+              ],
+              "source": "derived",
+              "target": "revision.list"
+            }
+          ]
+        },
+        "description": "List a snippet’s revisions in seq order",
+        "examples": [
+          {
+            "input": {
+              "snippetId": "snip_hello"
+            },
+            "kind": "success",
+            "name": "List revisions",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "List the revision history for a snippet",
+            "expected": {
+              "revisions": [
+                {
+                  "createdAt": "2026-01-01T00:00:00.000Z",
+                  "fileNames": [
+                    "greet.ts"
+                  ],
+                  "message": "initial revision",
+                  "seq": 1
+                }
+              ],
+              "total": 1
+            }
+          },
+          {
+            "input": {
+              "snippetId": "snip_missing"
+            },
+            "kind": "error",
+            "name": "List revisions of a missing snippet",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Unknown snippet ids return NotFoundError",
+            "error": "NotFoundError"
+          }
+        ],
+        "input": {
+          "properties": {
+            "snippetId": {
+              "description": "Snippet id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "snippetId"
+          ],
+          "type": "object"
+        },
+        "intent": "read",
+        "output": {
+          "properties": {
+            "revisions": {
+              "items": {
+                "properties": {
+                  "createdAt": {
+                    "type": "string"
+                  },
+                  "fileNames": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "message": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "seq": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "createdAt",
+                  "fileNames",
+                  "message",
+                  "seq"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "total": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "revisions",
+            "total"
+          ],
+          "type": "object"
+        },
+        "resources": [
+          "stash.db"
+        ]
+      },
+      {
+        "exampleCount": 1,
+        "id": "search.index",
+        "kind": "trail",
+        "surfaces": [],
+        "activationSources": [
+          {
+            "source": {
+              "id": "snippet.created",
+              "key": "signal:snippet.created",
+              "kind": "signal"
+            }
+          },
+          {
+            "source": {
+              "id": "snippet.updated",
+              "key": "signal:snippet.updated",
+              "kind": "signal"
+            }
+          }
+        ],
+        "cli": {
+          "path": [
+            "search",
+            "index"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "search",
+                "index"
+              ],
+              "source": "derived",
+              "target": "search.index"
+            }
+          ]
+        },
+        "description": "Re-derive the search index rows for one snippet; deletes and secret snippets deindex",
+        "examples": [
+          {
+            "input": {
+              "snippetId": "snip_hello"
+            },
+            "kind": "success",
+            "name": "Index a snippet",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Reindex a seeded public snippet"
+          }
+        ],
+        "input": {
+          "properties": {
+            "snippetId": {
+              "description": "Snippet id to (re)index",
+              "type": "string"
+            }
+          },
+          "required": [
+            "snippetId"
+          ],
+          "type": "object"
+        },
+        "on": [
+          "snippet.created",
+          "snippet.updated"
+        ],
+        "output": {
+          "properties": {
+            "indexed": {
+              "type": "boolean"
+            },
+            "snippetId": {
+              "type": "string"
+            },
+            "terms": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "indexed",
+            "snippetId",
+            "terms"
+          ],
+          "type": "object"
+        },
+        "permit": {
+          "scopes": []
+        },
+        "resources": [
+          "stash.db"
+        ]
+      },
+      {
+        "exampleCount": 2,
+        "id": "search.query",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "search",
+            "query"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "search",
+                "query"
+              ],
+              "source": "derived",
+              "target": "search.query"
+            }
+          ]
+        },
+        "description": "Search public snippets by keyword over the derived index",
+        "examples": [
+          {
+            "input": {
+              "limit": 10,
+              "query": "greet"
+            },
+            "kind": "success",
+            "name": "Search finds a match",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Find a snippet by a word in its description",
+            "expected": {
+              "query": "greet",
+              "results": [
+                {
+                  "createdAt": "2026-01-01T00:00:00.000Z",
+                  "description": "Greet the trail crew from TypeScript",
+                  "forkOf": null,
+                  "id": "snip_hello",
+                  "ownerId": "usr_alice",
+                  "starCount": 1,
+                  "updatedAt": "2026-01-01T00:00:00.000Z",
+                  "version": 1,
+                  "visibility": "public"
+                }
+              ],
+              "total": 1
+            }
+          },
+          {
+            "input": {
+              "limit": 10,
+              "query": "zebra"
+            },
+            "kind": "success",
+            "name": "Search finds nothing",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Queries with no matches return an empty result set",
+            "expected": {
+              "query": "zebra",
+              "results": [],
+              "total": 0
+            }
+          }
+        ],
+        "input": {
+          "properties": {
+            "limit": {
+              "default": 10,
+              "description": "Maximum results",
+              "type": "number"
+            },
+            "query": {
+              "description": "Search terms (AND across words)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "type": "object"
+        },
+        "intent": "read",
+        "output": {
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "results": {
+              "items": {
+                "properties": {
+                  "createdAt": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "forkOf": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "ownerId": {
+                    "type": "string"
+                  },
+                  "starCount": {
+                    "type": "number"
+                  },
+                  "updatedAt": {
+                    "type": "string"
+                  },
+                  "version": {
+                    "type": "number"
+                  },
+                  "visibility": {
+                    "enum": [
+                      "public",
+                      "secret"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "createdAt",
+                  "description",
+                  "forkOf",
+                  "id",
+                  "ownerId",
+                  "starCount",
+                  "updatedAt",
+                  "version",
+                  "visibility"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "total": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "query",
+            "results",
+            "total"
+          ],
+          "type": "object"
+        },
+        "resources": [
+          "stash.db"
+        ]
+      },
+      {
+        "exampleCount": 1,
+        "id": "search.reindex",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "search",
+            "reindex"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "search",
+                "reindex"
+              ],
+              "source": "derived",
+              "target": "search.reindex"
+            }
+          ]
+        },
+        "description": "Rebuild the entire search index from scratch; requires the search:admin scope",
+        "examples": [
+          {
+            "input": {},
+            "kind": "success",
+            "name": "Reindex everything",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Full rebuild over every public snippet"
+          }
+        ],
+        "input": {
+          "properties": {},
+          "type": "object"
+        },
+        "output": {
+          "properties": {
+            "snippets": {
+              "type": "number"
+            },
+            "terms": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "snippets",
+            "terms"
+          ],
+          "type": "object"
+        },
+        "permit": {
+          "scopes": [
+            "search:admin"
+          ]
+        },
+        "resources": [
+          "stash.db"
+        ]
+      },
+      {
+        "exampleCount": 1,
+        "id": "snippet.create",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "snippet",
+            "create"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "snippet",
+                "create"
+              ],
+              "source": "derived",
+              "target": "snippet.create"
+            }
+          ]
+        },
+        "description": "Create a snippet with its first revision",
+        "examples": [
+          {
+            "input": {
+              "description": "A tiny JSON config example",
+              "files": [
+                {
+                  "content": "{ \"retries\": 3 }\n",
+                  "language": "json",
+                  "name": "config.json"
+                }
+              ],
+              "message": "initial revision",
+              "visibility": "public"
+            },
+            "kind": "success",
+            "name": "Create a snippet",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Create a public snippet with one file"
+          }
+        ],
+        "fires": [
+          "snippet.created"
+        ],
+        "input": {
+          "properties": {
+            "description": {
+              "description": "What this snippet is about",
+              "type": "string"
+            },
+            "files": {
+              "description": "Files for revision 1 (at least one)",
+              "items": {
+                "properties": {
+                  "content": {
+                    "description": "File content: UTF-8 text, or base64 when encoding is \"base64\"",
+                    "type": "string"
+                  },
+                  "encoding": {
+                    "default": "utf8",
+                    "description": "Content encoding; use \"base64\" for binary files",
+                    "enum": [
+                      "utf8",
+                      "base64"
+                    ],
+                    "type": "string"
+                  },
+                  "language": {
+                    "description": "Language hint, e.g. \"typescript\" (optional)",
+                    "type": "string"
+                  },
+                  "name": {
+                    "description": "File name including extension",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "content",
+                  "name"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "message": {
+              "description": "Optional revision message for revision 1",
+              "type": "string"
+            },
+            "visibility": {
+              "default": "public",
+              "description": "Snippet visibility: public, or secret (owner-only)",
+              "enum": [
+                "public",
+                "secret"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "description",
+            "files"
+          ],
+          "type": "object"
+        },
+        "output": {
+          "properties": {
+            "createdAt": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "forkOf": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "id": {
+              "type": "string"
+            },
+            "latestRevision": {
+              "properties": {
+                "createdAt": {
+                  "type": "string"
+                },
+                "fileNames": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "message": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "seq": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "createdAt",
+                "fileNames",
+                "message",
+                "seq"
+              ],
+              "type": "object"
+            },
+            "ownerId": {
+              "type": "string"
+            },
+            "starCount": {
+              "type": "number"
+            },
+            "updatedAt": {
+              "type": "string"
+            },
+            "version": {
+              "type": "number"
+            },
+            "visibility": {
+              "enum": [
+                "public",
+                "secret"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "description",
+            "forkOf",
+            "id",
+            "ownerId",
+            "starCount",
+            "updatedAt",
+            "version",
+            "visibility",
+            "latestRevision"
+          ],
+          "type": "object"
+        },
+        "permit": {
+          "scopes": [
+            "snippet:write"
+          ]
+        },
+        "resources": [
+          "stash.db"
+        ]
+      },
+      {
+        "exampleCount": 0,
+        "id": "snippet.created",
+        "kind": "signal",
+        "surfaces": [],
+        "consumers": [
+          "search.index"
+        ],
+        "description": "Fired when a snippet is created, including forks",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "from": [
+          "snippet.create"
+        ],
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "input": {
+          "properties": {
+            "ownerId": {
+              "type": "string"
+            },
+            "snippetId": {
+              "type": "string"
+            },
+            "visibility": {
+              "enum": [
+                "public",
+                "secret"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "ownerId",
+            "snippetId",
+            "visibility"
+          ],
+          "type": "object"
+        },
+        "payload": {
+          "properties": {
+            "ownerId": {
+              "type": "string"
+            },
+            "snippetId": {
+              "type": "string"
+            },
+            "visibility": {
+              "enum": [
+                "public",
+                "secret"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "ownerId",
+            "snippetId",
+            "visibility"
+          ],
+          "type": "object"
+        },
+        "producers": [
+          "snippet.create"
+        ]
+      },
+      {
+        "exampleCount": 2,
+        "id": "snippet.delete",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "snippet",
+            "delete"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "snippet",
+                "delete"
+              ],
+              "source": "derived",
+              "target": "snippet.delete"
+            }
+          ]
+        },
+        "description": "Delete a snippet and cascade its revisions, stars, and index entries",
+        "examples": [
+          {
+            "input": {
+              "id": "snip_scratch"
+            },
+            "kind": "success",
+            "name": "Delete a snippet",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Delete a snippet you own",
+            "expected": {
+              "deleted": true,
+              "id": "snip_scratch"
+            }
+          },
+          {
+            "input": {
+              "id": "snip_missing"
+            },
+            "kind": "error",
+            "name": "Delete a missing snippet",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Unknown ids return NotFoundError",
+            "error": "NotFoundError"
+          }
+        ],
+        "fires": [
+          "snippet.updated"
+        ],
+        "input": {
+          "properties": {
+            "id": {
+              "description": "Snippet id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "type": "object"
+        },
+        "intent": "destroy",
+        "output": {
+          "properties": {
+            "deleted": {
+              "type": "boolean"
+            },
+            "id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "deleted",
+            "id"
+          ],
+          "type": "object"
+        },
+        "permit": {
+          "scopes": [
+            "snippet:write"
+          ]
+        },
+        "resources": [
+          "stash.db"
+        ]
+      },
+      {
+        "exampleCount": 2,
+        "id": "snippet.fork",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "snippet",
+            "fork"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "snippet",
+                "fork"
+              ],
+              "source": "derived",
+              "target": "snippet.fork"
+            }
+          ]
+        },
+        "composes": [
+          "revision.get",
+          "snippet.create",
+          "snippet.get"
+        ],
+        "description": "Fork a snippet you can see into your own account, preserving lineage",
+        "examples": [
+          {
+            "input": {
+              "id": "snip_hello"
+            },
+            "kind": "success",
+            "name": "Fork a snippet",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Fork a public snippet"
+          },
+          {
+            "input": {
+              "id": "snip_missing"
+            },
+            "kind": "error",
+            "name": "Fork a missing snippet",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Unknown ids — and other users’ secret snippets — return NotFoundError",
+            "error": "NotFoundError"
+          }
+        ],
+        "input": {
+          "properties": {
+            "id": {
+              "description": "Snippet id to fork",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "type": "object"
+        },
+        "output": {
+          "properties": {
+            "createdAt": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "forkOf": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "id": {
+              "type": "string"
+            },
+            "latestRevision": {
+              "properties": {
+                "createdAt": {
+                  "type": "string"
+                },
+                "fileNames": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "message": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "seq": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "createdAt",
+                "fileNames",
+                "message",
+                "seq"
+              ],
+              "type": "object"
+            },
+            "ownerId": {
+              "type": "string"
+            },
+            "starCount": {
+              "type": "number"
+            },
+            "updatedAt": {
+              "type": "string"
+            },
+            "version": {
+              "type": "number"
+            },
+            "visibility": {
+              "enum": [
+                "public",
+                "secret"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "description",
+            "forkOf",
+            "id",
+            "ownerId",
+            "starCount",
+            "updatedAt",
+            "version",
+            "visibility",
+            "latestRevision"
+          ],
+          "type": "object"
+        },
+        "permit": {
+          "scopes": [
+            "snippet:write"
+          ]
+        }
+      },
+      {
+        "exampleCount": 2,
+        "id": "snippet.get",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "snippet",
+            "get"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "snippet",
+                "get"
+              ],
+              "source": "derived",
+              "target": "snippet.get"
+            }
+          ]
+        },
+        "description": "Show a snippet with its latest revision; secret snippets are owner-only",
+        "examples": [
+          {
+            "input": {
+              "id": "snip_hello"
+            },
+            "kind": "success",
+            "name": "Get a public snippet",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Read a public snippet by id",
+            "expected": {
+              "createdAt": "2026-01-01T00:00:00.000Z",
+              "description": "Greet the trail crew from TypeScript",
+              "forkOf": null,
+              "id": "snip_hello",
+              "latestRevision": {
+                "createdAt": "2026-01-01T00:00:00.000Z",
+                "fileNames": [
+                  "greet.ts"
+                ],
+                "message": "initial revision",
+                "seq": 1
+              },
+              "ownerId": "usr_alice",
+              "starCount": 1,
+              "updatedAt": "2026-01-01T00:00:00.000Z",
+              "version": 1,
+              "visibility": "public"
+            }
+          },
+          {
+            "input": {
+              "id": "snip_missing"
+            },
+            "kind": "error",
+            "name": "Get a missing snippet",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Unknown ids return NotFoundError",
+            "error": "NotFoundError"
+          }
+        ],
+        "input": {
+          "properties": {
+            "id": {
+              "description": "Snippet id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "type": "object"
+        },
+        "intent": "read",
+        "output": {
+          "properties": {
+            "createdAt": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "forkOf": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "id": {
+              "type": "string"
+            },
+            "latestRevision": {
+              "properties": {
+                "createdAt": {
+                  "type": "string"
+                },
+                "fileNames": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "message": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "seq": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "createdAt",
+                "fileNames",
+                "message",
+                "seq"
+              ],
+              "type": "object"
+            },
+            "ownerId": {
+              "type": "string"
+            },
+            "starCount": {
+              "type": "number"
+            },
+            "updatedAt": {
+              "type": "string"
+            },
+            "version": {
+              "type": "number"
+            },
+            "visibility": {
+              "enum": [
+                "public",
+                "secret"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "description",
+            "forkOf",
+            "id",
+            "ownerId",
+            "starCount",
+            "updatedAt",
+            "version",
+            "visibility",
+            "latestRevision"
+          ],
+          "type": "object"
+        },
+        "resources": [
+          "stash.db"
+        ]
+      },
+      {
+        "exampleCount": 2,
+        "id": "snippet.list",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "snippet",
+            "list"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "snippet",
+                "list"
+              ],
+              "source": "derived",
+              "target": "snippet.list"
+            }
+          ]
+        },
+        "description": "List snippets with owner and visibility filters; secret snippets appear only for their owner",
+        "examples": [
+          {
+            "input": {
+              "limit": 20,
+              "offset": 0
+            },
+            "kind": "success",
+            "name": "List snippets",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "List every snippet visible to the caller"
+          },
+          {
+            "input": {
+              "limit": 20,
+              "offset": 0,
+              "owner": "usr_alice"
+            },
+            "kind": "success",
+            "name": "List snippets by owner",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Filter by owner"
+          }
+        ],
+        "input": {
+          "properties": {
+            "limit": {
+              "default": 20,
+              "description": "Page size",
+              "type": "number"
+            },
+            "offset": {
+              "default": 0,
+              "description": "Pagination offset",
+              "type": "number"
+            },
+            "owner": {
+              "description": "Filter by owner user id",
+              "type": "string"
+            },
+            "visibility": {
+              "description": "Filter by visibility (secret only matches your own)",
+              "enum": [
+                "public",
+                "secret"
+              ],
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "intent": "read",
+        "output": {
+          "properties": {
+            "snippets": {
+              "items": {
+                "properties": {
+                  "createdAt": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "forkOf": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "ownerId": {
+                    "type": "string"
+                  },
+                  "starCount": {
+                    "type": "number"
+                  },
+                  "updatedAt": {
+                    "type": "string"
+                  },
+                  "version": {
+                    "type": "number"
+                  },
+                  "visibility": {
+                    "enum": [
+                      "public",
+                      "secret"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "createdAt",
+                  "description",
+                  "forkOf",
+                  "id",
+                  "ownerId",
+                  "starCount",
+                  "updatedAt",
+                  "version",
+                  "visibility"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "total": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "snippets",
+            "total"
+          ],
+          "type": "object"
+        },
+        "resources": [
+          "stash.db"
+        ]
+      },
+      {
+        "exampleCount": 2,
+        "id": "snippet.star",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "snippet",
+            "star"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "snippet",
+                "star"
+              ],
+              "source": "derived",
+              "target": "snippet.star"
+            }
+          ]
+        },
+        "description": "Star a snippet (idempotent)",
+        "examples": [
+          {
+            "input": {
+              "id": "snip_hello"
+            },
+            "kind": "success",
+            "name": "Star a snippet",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Star a public snippet",
+            "expected": {
+              "snippetId": "snip_hello",
+              "starCount": 2,
+              "starred": true
+            }
+          },
+          {
+            "input": {
+              "id": "snip_missing"
+            },
+            "kind": "error",
+            "name": "Star a missing snippet",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Unknown ids return NotFoundError",
+            "error": "NotFoundError"
+          }
+        ],
+        "idempotent": true,
+        "input": {
+          "properties": {
+            "id": {
+              "description": "Snippet id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "type": "object"
+        },
+        "output": {
+          "properties": {
+            "snippetId": {
+              "type": "string"
+            },
+            "starCount": {
+              "type": "number"
+            },
+            "starred": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "snippetId",
+            "starCount",
+            "starred"
+          ],
+          "type": "object"
+        },
+        "permit": {
+          "scopes": [
+            "snippet:interact"
+          ]
+        },
+        "resources": [
+          "stash.db"
+        ]
+      },
+      {
+        "exampleCount": 1,
+        "id": "snippet.unstar",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "snippet",
+            "unstar"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "snippet",
+                "unstar"
+              ],
+              "source": "derived",
+              "target": "snippet.unstar"
+            }
+          ]
+        },
+        "description": "Remove your star from a snippet (idempotent)",
+        "examples": [
+          {
+            "input": {
+              "id": "snip_hello"
+            },
+            "kind": "success",
+            "name": "Unstar a snippet",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Unstar a snippet you have not starred is a no-op",
+            "expected": {
+              "snippetId": "snip_hello",
+              "starCount": 1,
+              "starred": false
+            }
+          }
+        ],
+        "idempotent": true,
+        "input": {
+          "properties": {
+            "id": {
+              "description": "Snippet id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "type": "object"
+        },
+        "output": {
+          "properties": {
+            "snippetId": {
+              "type": "string"
+            },
+            "starCount": {
+              "type": "number"
+            },
+            "starred": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "snippetId",
+            "starCount",
+            "starred"
+          ],
+          "type": "object"
+        },
+        "permit": {
+          "scopes": [
+            "snippet:interact"
+          ]
+        },
+        "resources": [
+          "stash.db"
+        ]
+      },
+      {
+        "exampleCount": 2,
+        "id": "snippet.update",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "snippet",
+            "update"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "snippet",
+                "update"
+              ],
+              "source": "derived",
+              "target": "snippet.update"
+            }
+          ]
+        },
+        "description": "Add a new revision to a snippet; earlier revisions are never mutated",
+        "examples": [
+          {
+            "input": {
+              "files": [
+                {
+                  "content": "export const greet = (name: string): string => `Hello again, ${name}!`;\n",
+                  "language": "typescript",
+                  "name": "greet.ts"
+                }
+              ],
+              "id": "snip_hello",
+              "message": "friendlier greeting"
+            },
+            "kind": "success",
+            "name": "Update a snippet",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Publish a second revision of a snippet"
+          },
+          {
+            "input": {
+              "files": [
+                {
+                  "content": "x\n",
+                  "name": "x.txt"
+                }
+              ],
+              "id": "snip_missing"
+            },
+            "kind": "error",
+            "name": "Update a missing snippet",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Unknown ids return NotFoundError",
+            "error": "NotFoundError"
+          }
+        ],
+        "fires": [
+          "snippet.updated"
+        ],
+        "input": {
+          "properties": {
+            "files": {
+              "description": "Full file set for the new revision",
+              "items": {
+                "properties": {
+                  "content": {
+                    "description": "File content: UTF-8 text, or base64 when encoding is \"base64\"",
+                    "type": "string"
+                  },
+                  "encoding": {
+                    "default": "utf8",
+                    "description": "Content encoding; use \"base64\" for binary files",
+                    "enum": [
+                      "utf8",
+                      "base64"
+                    ],
+                    "type": "string"
+                  },
+                  "language": {
+                    "description": "Language hint, e.g. \"typescript\" (optional)",
+                    "type": "string"
+                  },
+                  "name": {
+                    "description": "File name including extension",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "content",
+                  "name"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "id": {
+              "description": "Snippet id",
+              "type": "string"
+            },
+            "message": {
+              "description": "Optional revision message",
+              "type": "string"
+            }
+          },
+          "required": [
+            "files",
+            "id"
+          ],
+          "type": "object"
+        },
+        "output": {
+          "properties": {
+            "createdAt": {
+              "type": "string"
+            },
+            "files": {
+              "items": {
+                "properties": {
+                  "content": {
+                    "description": "File content: UTF-8 text, or base64 when encoding is \"base64\"",
+                    "type": "string"
+                  },
+                  "encoding": {
+                    "default": "utf8",
+                    "description": "Content encoding; use \"base64\" for binary files",
+                    "enum": [
+                      "utf8",
+                      "base64"
+                    ],
+                    "type": "string"
+                  },
+                  "language": {
+                    "description": "Language hint, e.g. \"typescript\" (optional)",
+                    "type": "string"
+                  },
+                  "name": {
+                    "description": "File name including extension",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "content",
+                  "name"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "message": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "seq": {
+              "type": "number"
+            },
+            "snippetId": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "files",
+            "message",
+            "seq",
+            "snippetId"
+          ],
+          "type": "object"
+        },
+        "permit": {
+          "scopes": [
+            "snippet:write"
+          ]
+        },
+        "resources": [
+          "stash.db"
+        ]
+      },
+      {
+        "exampleCount": 0,
+        "id": "snippet.updated",
+        "kind": "signal",
+        "surfaces": [],
+        "consumers": [
+          "search.index"
+        ],
+        "description": "Fired when a snippet gains a revision or is deleted",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "from": [
+          "snippet.delete",
+          "snippet.update"
+        ],
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "input": {
+          "properties": {
+            "action": {
+              "enum": [
+                "updated",
+                "deleted"
+              ],
+              "type": "string"
+            },
+            "snippetId": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "action",
+            "snippetId"
+          ],
+          "type": "object"
+        },
+        "payload": {
+          "properties": {
+            "action": {
+              "enum": [
+                "updated",
+                "deleted"
+              ],
+              "type": "string"
+            },
+            "snippetId": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "action",
+            "snippetId"
+          ],
+          "type": "object"
+        },
+        "producers": [
+          "snippet.delete",
+          "snippet.update"
+        ]
+      },
+      {
+        "exampleCount": 0,
+        "id": "snippets",
+        "kind": "contour",
+        "surfaces": [],
+        "identity": "id",
+        "schema": {
+          "properties": {
+            "createdAt": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "forkOf": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Snippet id this snippet was forked from, or null"
+            },
+            "id": {
+              "type": "string"
+            },
+            "ownerId": {
+              "type": "string"
+            },
+            "updatedAt": {
+              "type": "string"
+            },
+            "version": {
+              "type": "number"
+            },
+            "visibility": {
+              "description": "Snippet visibility: public, or secret (owner-only)",
+              "enum": [
+                "public",
+                "secret"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "description",
+            "forkOf",
+            "id",
+            "ownerId",
+            "visibility"
+          ],
+          "type": "object"
+        }
+      },
+      {
+        "exampleCount": 0,
+        "id": "snippets.reconcile",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "snippets",
+            "reconcile"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "snippets",
+                "reconcile"
+              ],
+              "source": "derived",
+              "target": "snippets.reconcile"
+            }
+          ]
+        },
+        "contours": [
+          "snippets"
+        ],
+        "description": "Reconcile a snippet row by versioned upsert (last-write-wins on conflict)",
+        "detours": [
+          {
+            "maxAttempts": 1,
+            "on": "ConflictError"
+          }
+        ],
+        "input": {
+          "properties": {
+            "createdAt": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "forkOf": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Snippet id this snippet was forked from, or null"
+            },
+            "id": {
+              "type": "string"
+            },
+            "ownerId": {
+              "type": "string"
+            },
+            "updatedAt": {
+              "type": "string"
+            },
+            "version": {
+              "type": "number"
+            },
+            "visibility": {
+              "description": "Snippet visibility: public, or secret (owner-only)",
+              "enum": [
+                "public",
+                "secret"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "description",
+            "forkOf",
+            "ownerId",
+            "visibility",
+            "version"
+          ],
+          "type": "object"
+        },
+        "output": {
+          "properties": {
+            "createdAt": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "forkOf": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Snippet id this snippet was forked from, or null"
+            },
+            "id": {
+              "type": "string"
+            },
+            "ownerId": {
+              "type": "string"
+            },
+            "updatedAt": {
+              "type": "string"
+            },
+            "version": {
+              "type": "number"
+            },
+            "visibility": {
+              "description": "Snippet visibility: public, or secret (owner-only)",
+              "enum": [
+                "public",
+                "secret"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "description",
+            "forkOf",
+            "id",
+            "ownerId",
+            "updatedAt",
+            "visibility",
+            "version"
+          ],
+          "type": "object"
+        },
+        "pattern": "reconcile",
+        "resources": [
+          "stash.db"
+        ]
+      },
+      {
+        "exampleCount": 0,
+        "id": "stash.db",
+        "kind": "resource",
+        "surfaces": [],
+        "description": "SQLite snippet store: snippets, revisions, stars, users, tokens, and the derived search index.",
+        "healthcheck": true
+      },
+      {
+        "exampleCount": 0,
+        "id": "stash.db:revisions.created",
+        "kind": "signal",
+        "surfaces": [],
+        "consumers": [],
+        "description": "Fired after a \"revisions\" entity is created.",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "input": {
+          "properties": {
+            "createdAt": {
+              "type": "string"
+            },
+            "files": {
+              "items": {
+                "properties": {
+                  "content": {
+                    "description": "File content: UTF-8 text, or base64 when encoding is \"base64\"",
+                    "type": "string"
+                  },
+                  "encoding": {
+                    "default": "utf8",
+                    "description": "Content encoding; use \"base64\" for binary files",
+                    "enum": [
+                      "utf8",
+                      "base64"
+                    ],
+                    "type": "string"
+                  },
+                  "language": {
+                    "description": "Language hint, e.g. \"typescript\" (optional)",
+                    "type": "string"
+                  },
+                  "name": {
+                    "description": "File name including extension",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "content",
+                  "name"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "id": {
+              "type": "string"
+            },
+            "message": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "seq": {
+              "type": "number"
+            },
+            "snippetId": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "files",
+            "id",
+            "message",
+            "seq",
+            "snippetId"
+          ],
+          "type": "object"
+        },
+        "payload": {
+          "properties": {
+            "createdAt": {
+              "type": "string"
+            },
+            "files": {
+              "items": {
+                "properties": {
+                  "content": {
+                    "description": "File content: UTF-8 text, or base64 when encoding is \"base64\"",
+                    "type": "string"
+                  },
+                  "encoding": {
+                    "default": "utf8",
+                    "description": "Content encoding; use \"base64\" for binary files",
+                    "enum": [
+                      "utf8",
+                      "base64"
+                    ],
+                    "type": "string"
+                  },
+                  "language": {
+                    "description": "Language hint, e.g. \"typescript\" (optional)",
+                    "type": "string"
+                  },
+                  "name": {
+                    "description": "File name including extension",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "content",
+                  "name"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "id": {
+              "type": "string"
+            },
+            "message": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "seq": {
+              "type": "number"
+            },
+            "snippetId": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "files",
+            "id",
+            "message",
+            "seq",
+            "snippetId"
+          ],
+          "type": "object"
+        },
+        "producers": []
+      },
+      {
+        "exampleCount": 0,
+        "id": "stash.db:revisions.removed",
+        "kind": "signal",
+        "surfaces": [],
+        "consumers": [],
+        "description": "Fired after a \"revisions\" entity is removed.",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "input": {
+          "properties": {
+            "createdAt": {
+              "type": "string"
+            },
+            "files": {
+              "items": {
+                "properties": {
+                  "content": {
+                    "description": "File content: UTF-8 text, or base64 when encoding is \"base64\"",
+                    "type": "string"
+                  },
+                  "encoding": {
+                    "default": "utf8",
+                    "description": "Content encoding; use \"base64\" for binary files",
+                    "enum": [
+                      "utf8",
+                      "base64"
+                    ],
+                    "type": "string"
+                  },
+                  "language": {
+                    "description": "Language hint, e.g. \"typescript\" (optional)",
+                    "type": "string"
+                  },
+                  "name": {
+                    "description": "File name including extension",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "content",
+                  "name"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "id": {
+              "type": "string"
+            },
+            "message": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "seq": {
+              "type": "number"
+            },
+            "snippetId": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "files",
+            "id",
+            "message",
+            "seq",
+            "snippetId"
+          ],
+          "type": "object"
+        },
+        "payload": {
+          "properties": {
+            "createdAt": {
+              "type": "string"
+            },
+            "files": {
+              "items": {
+                "properties": {
+                  "content": {
+                    "description": "File content: UTF-8 text, or base64 when encoding is \"base64\"",
+                    "type": "string"
+                  },
+                  "encoding": {
+                    "default": "utf8",
+                    "description": "Content encoding; use \"base64\" for binary files",
+                    "enum": [
+                      "utf8",
+                      "base64"
+                    ],
+                    "type": "string"
+                  },
+                  "language": {
+                    "description": "Language hint, e.g. \"typescript\" (optional)",
+                    "type": "string"
+                  },
+                  "name": {
+                    "description": "File name including extension",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "content",
+                  "name"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "id": {
+              "type": "string"
+            },
+            "message": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "seq": {
+              "type": "number"
+            },
+            "snippetId": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "files",
+            "id",
+            "message",
+            "seq",
+            "snippetId"
+          ],
+          "type": "object"
+        },
+        "producers": []
+      },
+      {
+        "exampleCount": 0,
+        "id": "stash.db:revisions.updated",
+        "kind": "signal",
+        "surfaces": [],
+        "consumers": [],
+        "description": "Fired after a \"revisions\" entity is updated.",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "input": {
+          "properties": {
+            "createdAt": {
+              "type": "string"
+            },
+            "files": {
+              "items": {
+                "properties": {
+                  "content": {
+                    "description": "File content: UTF-8 text, or base64 when encoding is \"base64\"",
+                    "type": "string"
+                  },
+                  "encoding": {
+                    "default": "utf8",
+                    "description": "Content encoding; use \"base64\" for binary files",
+                    "enum": [
+                      "utf8",
+                      "base64"
+                    ],
+                    "type": "string"
+                  },
+                  "language": {
+                    "description": "Language hint, e.g. \"typescript\" (optional)",
+                    "type": "string"
+                  },
+                  "name": {
+                    "description": "File name including extension",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "content",
+                  "name"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "id": {
+              "type": "string"
+            },
+            "message": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "seq": {
+              "type": "number"
+            },
+            "snippetId": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "files",
+            "id",
+            "message",
+            "seq",
+            "snippetId"
+          ],
+          "type": "object"
+        },
+        "payload": {
+          "properties": {
+            "createdAt": {
+              "type": "string"
+            },
+            "files": {
+              "items": {
+                "properties": {
+                  "content": {
+                    "description": "File content: UTF-8 text, or base64 when encoding is \"base64\"",
+                    "type": "string"
+                  },
+                  "encoding": {
+                    "default": "utf8",
+                    "description": "Content encoding; use \"base64\" for binary files",
+                    "enum": [
+                      "utf8",
+                      "base64"
+                    ],
+                    "type": "string"
+                  },
+                  "language": {
+                    "description": "Language hint, e.g. \"typescript\" (optional)",
+                    "type": "string"
+                  },
+                  "name": {
+                    "description": "File name including extension",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "content",
+                  "name"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "id": {
+              "type": "string"
+            },
+            "message": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "seq": {
+              "type": "number"
+            },
+            "snippetId": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "files",
+            "id",
+            "message",
+            "seq",
+            "snippetId"
+          ],
+          "type": "object"
+        },
+        "producers": []
+      },
+      {
+        "exampleCount": 0,
+        "id": "stash.db:searchEntries.created",
+        "kind": "signal",
+        "surfaces": [],
+        "consumers": [],
+        "description": "Fired after a \"searchEntries\" entity is created.",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "input": {
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "snippetId": {
+              "type": "string"
+            },
+            "term": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "snippetId",
+            "term"
+          ],
+          "type": "object"
+        },
+        "payload": {
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "snippetId": {
+              "type": "string"
+            },
+            "term": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "snippetId",
+            "term"
+          ],
+          "type": "object"
+        },
+        "producers": []
+      },
+      {
+        "exampleCount": 0,
+        "id": "stash.db:searchEntries.removed",
+        "kind": "signal",
+        "surfaces": [],
+        "consumers": [],
+        "description": "Fired after a \"searchEntries\" entity is removed.",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "input": {
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "snippetId": {
+              "type": "string"
+            },
+            "term": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "snippetId",
+            "term"
+          ],
+          "type": "object"
+        },
+        "payload": {
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "snippetId": {
+              "type": "string"
+            },
+            "term": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "snippetId",
+            "term"
+          ],
+          "type": "object"
+        },
+        "producers": []
+      },
+      {
+        "exampleCount": 0,
+        "id": "stash.db:searchEntries.updated",
+        "kind": "signal",
+        "surfaces": [],
+        "consumers": [],
+        "description": "Fired after a \"searchEntries\" entity is updated.",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "input": {
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "snippetId": {
+              "type": "string"
+            },
+            "term": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "snippetId",
+            "term"
+          ],
+          "type": "object"
+        },
+        "payload": {
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "snippetId": {
+              "type": "string"
+            },
+            "term": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "snippetId",
+            "term"
+          ],
+          "type": "object"
+        },
+        "producers": []
+      },
+      {
+        "exampleCount": 0,
+        "id": "stash.db:snippets.created",
+        "kind": "signal",
+        "surfaces": [],
+        "consumers": [],
+        "description": "Fired after a \"snippets\" entity is created.",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "input": {
+          "properties": {
+            "createdAt": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "forkOf": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Snippet id this snippet was forked from, or null"
+            },
+            "id": {
+              "type": "string"
+            },
+            "ownerId": {
+              "type": "string"
+            },
+            "updatedAt": {
+              "type": "string"
+            },
+            "version": {
+              "type": "number"
+            },
+            "visibility": {
+              "description": "Snippet visibility: public, or secret (owner-only)",
+              "enum": [
+                "public",
+                "secret"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "description",
+            "forkOf",
+            "id",
+            "ownerId",
+            "updatedAt",
+            "visibility",
+            "version"
+          ],
+          "type": "object"
+        },
+        "payload": {
+          "properties": {
+            "createdAt": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "forkOf": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Snippet id this snippet was forked from, or null"
+            },
+            "id": {
+              "type": "string"
+            },
+            "ownerId": {
+              "type": "string"
+            },
+            "updatedAt": {
+              "type": "string"
+            },
+            "version": {
+              "type": "number"
+            },
+            "visibility": {
+              "description": "Snippet visibility: public, or secret (owner-only)",
+              "enum": [
+                "public",
+                "secret"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "description",
+            "forkOf",
+            "id",
+            "ownerId",
+            "updatedAt",
+            "visibility",
+            "version"
+          ],
+          "type": "object"
+        },
+        "producers": []
+      },
+      {
+        "exampleCount": 0,
+        "id": "stash.db:snippets.removed",
+        "kind": "signal",
+        "surfaces": [],
+        "consumers": [],
+        "description": "Fired after a \"snippets\" entity is removed.",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "input": {
+          "properties": {
+            "createdAt": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "forkOf": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Snippet id this snippet was forked from, or null"
+            },
+            "id": {
+              "type": "string"
+            },
+            "ownerId": {
+              "type": "string"
+            },
+            "updatedAt": {
+              "type": "string"
+            },
+            "version": {
+              "type": "number"
+            },
+            "visibility": {
+              "description": "Snippet visibility: public, or secret (owner-only)",
+              "enum": [
+                "public",
+                "secret"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "description",
+            "forkOf",
+            "id",
+            "ownerId",
+            "updatedAt",
+            "visibility",
+            "version"
+          ],
+          "type": "object"
+        },
+        "payload": {
+          "properties": {
+            "createdAt": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "forkOf": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Snippet id this snippet was forked from, or null"
+            },
+            "id": {
+              "type": "string"
+            },
+            "ownerId": {
+              "type": "string"
+            },
+            "updatedAt": {
+              "type": "string"
+            },
+            "version": {
+              "type": "number"
+            },
+            "visibility": {
+              "description": "Snippet visibility: public, or secret (owner-only)",
+              "enum": [
+                "public",
+                "secret"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "description",
+            "forkOf",
+            "id",
+            "ownerId",
+            "updatedAt",
+            "visibility",
+            "version"
+          ],
+          "type": "object"
+        },
+        "producers": []
+      },
+      {
+        "exampleCount": 0,
+        "id": "stash.db:snippets.updated",
+        "kind": "signal",
+        "surfaces": [],
+        "consumers": [],
+        "description": "Fired after a \"snippets\" entity is updated.",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "input": {
+          "properties": {
+            "createdAt": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "forkOf": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Snippet id this snippet was forked from, or null"
+            },
+            "id": {
+              "type": "string"
+            },
+            "ownerId": {
+              "type": "string"
+            },
+            "updatedAt": {
+              "type": "string"
+            },
+            "version": {
+              "type": "number"
+            },
+            "visibility": {
+              "description": "Snippet visibility: public, or secret (owner-only)",
+              "enum": [
+                "public",
+                "secret"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "description",
+            "forkOf",
+            "id",
+            "ownerId",
+            "updatedAt",
+            "visibility",
+            "version"
+          ],
+          "type": "object"
+        },
+        "payload": {
+          "properties": {
+            "createdAt": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "forkOf": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Snippet id this snippet was forked from, or null"
+            },
+            "id": {
+              "type": "string"
+            },
+            "ownerId": {
+              "type": "string"
+            },
+            "updatedAt": {
+              "type": "string"
+            },
+            "version": {
+              "type": "number"
+            },
+            "visibility": {
+              "description": "Snippet visibility: public, or secret (owner-only)",
+              "enum": [
+                "public",
+                "secret"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "description",
+            "forkOf",
+            "id",
+            "ownerId",
+            "updatedAt",
+            "visibility",
+            "version"
+          ],
+          "type": "object"
+        },
+        "producers": []
+      },
+      {
+        "exampleCount": 0,
+        "id": "stash.db:stars.created",
+        "kind": "signal",
+        "surfaces": [],
+        "consumers": [],
+        "description": "Fired after a \"stars\" entity is created.",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "input": {
+          "properties": {
+            "createdAt": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "snippetId": {
+              "type": "string"
+            },
+            "userId": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "id",
+            "snippetId",
+            "userId"
+          ],
+          "type": "object"
+        },
+        "payload": {
+          "properties": {
+            "createdAt": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "snippetId": {
+              "type": "string"
+            },
+            "userId": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "id",
+            "snippetId",
+            "userId"
+          ],
+          "type": "object"
+        },
+        "producers": []
+      },
+      {
+        "exampleCount": 0,
+        "id": "stash.db:stars.removed",
+        "kind": "signal",
+        "surfaces": [],
+        "consumers": [],
+        "description": "Fired after a \"stars\" entity is removed.",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "input": {
+          "properties": {
+            "createdAt": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "snippetId": {
+              "type": "string"
+            },
+            "userId": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "id",
+            "snippetId",
+            "userId"
+          ],
+          "type": "object"
+        },
+        "payload": {
+          "properties": {
+            "createdAt": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "snippetId": {
+              "type": "string"
+            },
+            "userId": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "id",
+            "snippetId",
+            "userId"
+          ],
+          "type": "object"
+        },
+        "producers": []
+      },
+      {
+        "exampleCount": 0,
+        "id": "stash.db:stars.updated",
+        "kind": "signal",
+        "surfaces": [],
+        "consumers": [],
+        "description": "Fired after a \"stars\" entity is updated.",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "input": {
+          "properties": {
+            "createdAt": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "snippetId": {
+              "type": "string"
+            },
+            "userId": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "id",
+            "snippetId",
+            "userId"
+          ],
+          "type": "object"
+        },
+        "payload": {
+          "properties": {
+            "createdAt": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "snippetId": {
+              "type": "string"
+            },
+            "userId": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "id",
+            "snippetId",
+            "userId"
+          ],
+          "type": "object"
+        },
+        "producers": []
+      },
+      {
+        "exampleCount": 0,
+        "id": "stash.db:tokens.created",
+        "kind": "signal",
+        "surfaces": [],
+        "consumers": [],
+        "description": "Fired after a \"tokens\" entity is created.",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "input": {
+          "properties": {
+            "createdAt": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "revoked": {
+              "default": false,
+              "type": "boolean"
+            },
+            "scopes": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "secret": {
+              "type": "string"
+            },
+            "userId": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "id",
+            "name",
+            "scopes",
+            "secret",
+            "userId"
+          ],
+          "type": "object"
+        },
+        "payload": {
+          "properties": {
+            "createdAt": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "revoked": {
+              "default": false,
+              "type": "boolean"
+            },
+            "scopes": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "secret": {
+              "type": "string"
+            },
+            "userId": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "id",
+            "name",
+            "scopes",
+            "secret",
+            "userId"
+          ],
+          "type": "object"
+        },
+        "producers": []
+      },
+      {
+        "exampleCount": 0,
+        "id": "stash.db:tokens.removed",
+        "kind": "signal",
+        "surfaces": [],
+        "consumers": [],
+        "description": "Fired after a \"tokens\" entity is removed.",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "input": {
+          "properties": {
+            "createdAt": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "revoked": {
+              "default": false,
+              "type": "boolean"
+            },
+            "scopes": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "secret": {
+              "type": "string"
+            },
+            "userId": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "id",
+            "name",
+            "scopes",
+            "secret",
+            "userId"
+          ],
+          "type": "object"
+        },
+        "payload": {
+          "properties": {
+            "createdAt": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "revoked": {
+              "default": false,
+              "type": "boolean"
+            },
+            "scopes": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "secret": {
+              "type": "string"
+            },
+            "userId": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "id",
+            "name",
+            "scopes",
+            "secret",
+            "userId"
+          ],
+          "type": "object"
+        },
+        "producers": []
+      },
+      {
+        "exampleCount": 0,
+        "id": "stash.db:tokens.updated",
+        "kind": "signal",
+        "surfaces": [],
+        "consumers": [],
+        "description": "Fired after a \"tokens\" entity is updated.",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "input": {
+          "properties": {
+            "createdAt": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "revoked": {
+              "default": false,
+              "type": "boolean"
+            },
+            "scopes": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "secret": {
+              "type": "string"
+            },
+            "userId": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "id",
+            "name",
+            "scopes",
+            "secret",
+            "userId"
+          ],
+          "type": "object"
+        },
+        "payload": {
+          "properties": {
+            "createdAt": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "revoked": {
+              "default": false,
+              "type": "boolean"
+            },
+            "scopes": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "secret": {
+              "type": "string"
+            },
+            "userId": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "id",
+            "name",
+            "scopes",
+            "secret",
+            "userId"
+          ],
+          "type": "object"
+        },
+        "producers": []
+      },
+      {
+        "exampleCount": 0,
+        "id": "stash.db:users.created",
+        "kind": "signal",
+        "surfaces": [],
+        "consumers": [],
+        "description": "Fired after a \"users\" entity is created.",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "input": {
+          "properties": {
+            "createdAt": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "id",
+            "name"
+          ],
+          "type": "object"
+        },
+        "payload": {
+          "properties": {
+            "createdAt": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "id",
+            "name"
+          ],
+          "type": "object"
+        },
+        "producers": []
+      },
+      {
+        "exampleCount": 0,
+        "id": "stash.db:users.removed",
+        "kind": "signal",
+        "surfaces": [],
+        "consumers": [],
+        "description": "Fired after a \"users\" entity is removed.",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "input": {
+          "properties": {
+            "createdAt": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "id",
+            "name"
+          ],
+          "type": "object"
+        },
+        "payload": {
+          "properties": {
+            "createdAt": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "id",
+            "name"
+          ],
+          "type": "object"
+        },
+        "producers": []
+      },
+      {
+        "exampleCount": 0,
+        "id": "stash.db:users.updated",
+        "kind": "signal",
+        "surfaces": [],
+        "consumers": [],
+        "description": "Fired after a \"users\" entity is updated.",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "input": {
+          "properties": {
+            "createdAt": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "id",
+            "name"
+          ],
+          "type": "object"
+        },
+        "payload": {
+          "properties": {
+            "createdAt": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "id",
+            "name"
+          ],
+          "type": "object"
+        },
+        "producers": []
+      },
+      {
+        "exampleCount": 1,
+        "id": "token.create",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "token",
+            "create"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "token",
+                "create"
+              ],
+              "source": "derived",
+              "target": "token.create"
+            }
+          ]
+        },
+        "description": "Create an API token; the secret is returned once and never again",
+        "examples": [
+          {
+            "input": {
+              "name": "ci-publisher",
+              "scopes": [
+                "snippet:write",
+                "snippet:interact"
+              ]
+            },
+            "kind": "success",
+            "name": "Create a token",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Mint a read-write token"
+          }
+        ],
+        "input": {
+          "properties": {
+            "name": {
+              "description": "Label for this token",
+              "type": "string"
+            },
+            "scopes": {
+              "description": "Scopes to grant: snippet:write, snippet:interact, token:manage, search:admin",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "name",
+            "scopes"
+          ],
+          "type": "object"
+        },
+        "output": {
+          "properties": {
+            "createdAt": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "revoked": {
+              "type": "boolean"
+            },
+            "scopes": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "secret": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "id",
+            "name",
+            "revoked",
+            "scopes",
+            "secret"
+          ],
+          "type": "object"
+        },
+        "permit": {
+          "scopes": [
+            "token:manage"
+          ]
+        },
+        "resources": [
+          "stash.db"
+        ]
+      },
+      {
+        "exampleCount": 1,
+        "id": "token.list",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "token",
+            "list"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "token",
+                "list"
+              ],
+              "source": "derived",
+              "target": "token.list"
+            }
+          ]
+        },
+        "description": "List your tokens with secrets redacted",
+        "examples": [
+          {
+            "input": {},
+            "kind": "success",
+            "name": "List tokens",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "List tokens for the calling user",
+            "expected": {
+              "tokens": [
+                {
+                  "createdAt": "2026-01-01T00:00:00.000Z",
+                  "id": "tok_alice",
+                  "name": "alice-dev",
+                  "revoked": false,
+                  "scopes": [
+                    "snippet:write",
+                    "snippet:interact",
+                    "token:manage",
+                    "search:admin"
+                  ]
+                },
+                {
+                  "createdAt": "2026-01-01T00:00:00.000Z",
+                  "id": "tok_alice_spare",
+                  "name": "alice-spare",
+                  "revoked": false,
+                  "scopes": [
+                    "snippet:write"
+                  ]
+                }
+              ],
+              "total": 2
+            }
+          }
+        ],
+        "input": {
+          "properties": {},
+          "type": "object"
+        },
+        "intent": "read",
+        "output": {
+          "properties": {
+            "tokens": {
+              "items": {
+                "properties": {
+                  "createdAt": {
+                    "type": "string"
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "revoked": {
+                    "type": "boolean"
+                  },
+                  "scopes": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "createdAt",
+                  "id",
+                  "name",
+                  "revoked",
+                  "scopes"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "total": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "tokens",
+            "total"
+          ],
+          "type": "object"
+        },
+        "permit": {
+          "scopes": [
+            "token:manage"
+          ]
+        },
+        "resources": [
+          "stash.db"
+        ]
+      },
+      {
+        "exampleCount": 2,
+        "id": "token.revoke",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "token",
+            "revoke"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "token",
+                "revoke"
+              ],
+              "source": "derived",
+              "target": "token.revoke"
+            }
+          ]
+        },
+        "description": "Revoke one of your tokens; revoked tokens stop authenticating",
+        "examples": [
+          {
+            "input": {
+              "id": "tok_alice_spare"
+            },
+            "kind": "success",
+            "name": "Revoke a token",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Revoke a spare token",
+            "expected": {
+              "id": "tok_alice_spare",
+              "revoked": true
+            }
+          },
+          {
+            "input": {
+              "id": "tok_missing"
+            },
+            "kind": "error",
+            "name": "Revoke a missing token",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Unknown ids — and other users’ tokens — return NotFoundError",
+            "error": "NotFoundError"
+          }
+        ],
+        "input": {
+          "properties": {
+            "id": {
+              "description": "Token id to revoke",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "type": "object"
+        },
+        "output": {
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "revoked": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "id",
+            "revoked"
+          ],
+          "type": "object"
+        },
+        "permit": {
+          "scopes": [
+            "token:manage"
+          ]
+        },
+        "resources": [
+          "stash.db"
+        ]
+      },
+      {
+        "exampleCount": 1,
+        "id": "user.me",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "user",
+            "me"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "user",
+                "me"
+              ],
+              "source": "derived",
+              "target": "user.me"
+            }
+          ]
+        },
+        "description": "Show the user and scopes behind the calling token",
+        "examples": [
+          {
+            "input": {},
+            "kind": "success",
+            "name": "Who am I",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Identify the calling token",
+            "expected": {
+              "id": "usr_alice",
+              "name": "alice",
+              "scopes": [
+                "snippet:write",
+                "snippet:interact",
+                "token:manage",
+                "search:admin"
+              ]
+            }
+          }
+        ],
+        "input": {
+          "properties": {},
+          "type": "object"
+        },
+        "intent": "read",
+        "output": {
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "scopes": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "id",
+            "name",
+            "scopes"
+          ],
+          "type": "object"
+        },
+        "permit": {
+          "scopes": []
+        },
+        "resources": [
+          "stash.db"
+        ]
+      }
+    ],
+    "library": {
+      "app": "stash",
+      "collisions": [],
+      "excluded": [
+        {
+          "reason": "activation",
+          "trailId": "search.index"
+        }
+      ],
+      "exports": [
+        {
+          "description": "Serve one file of one revision as raw bytes with a content type derived from its extension",
+          "exportName": "fileRaw",
+          "input": {
+            "properties": {
+              "name": {
+                "description": "File name within the revision",
+                "type": "string"
+              },
+              "seq": {
+                "description": "Revision sequence number",
+                "type": "number"
+              },
+              "snippetId": {
+                "description": "Snippet id",
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "seq",
+              "snippetId"
+            ],
+            "type": "object"
+          },
+          "intent": "read",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "kind": {
+                "const": "blob"
+              },
+              "mimeType": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "size": {
+                "type": "number"
+              },
+              "uri": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "kind",
+              "mimeType",
+              "name",
+              "size",
+              "uri"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "stash.db"
+          ],
+          "trailId": "file.raw"
+        },
+        {
+          "description": "Naive line diff between two revisions of a snippet",
+          "exportName": "revisionDiff",
+          "input": {
+            "properties": {
+              "from": {
+                "description": "Base revision seq",
+                "type": "number"
+              },
+              "snippetId": {
+                "description": "Snippet id",
+                "type": "string"
+              },
+              "to": {
+                "description": "Target revision seq",
+                "type": "number"
+              }
+            },
+            "required": [
+              "from",
+              "snippetId",
+              "to"
+            ],
+            "type": "object"
+          },
+          "intent": "read",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "files": {
+                "items": {
+                  "properties": {
+                    "addedLines": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "removedLines": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "status": {
+                      "enum": [
+                        "added",
+                        "removed",
+                        "modified",
+                        "unchanged"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "addedLines",
+                    "name",
+                    "removedLines",
+                    "status"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "from": {
+                "type": "number"
+              },
+              "to": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "files",
+              "from",
+              "to"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "stash.db"
+          ],
+          "trailId": "revision.diff"
+        },
+        {
+          "description": "Read one revision of a snippet, including full file contents",
+          "exportName": "revisionGet",
+          "input": {
+            "properties": {
+              "seq": {
+                "description": "Revision sequence number",
+                "type": "number"
+              },
+              "snippetId": {
+                "description": "Snippet id",
+                "type": "string"
+              }
+            },
+            "required": [
+              "seq",
+              "snippetId"
+            ],
+            "type": "object"
+          },
+          "intent": "read",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "createdAt": {
+                "type": "string"
+              },
+              "files": {
+                "items": {
+                  "properties": {
+                    "content": {
+                      "description": "File content: UTF-8 text, or base64 when encoding is \"base64\"",
+                      "type": "string"
+                    },
+                    "encoding": {
+                      "default": "utf8",
+                      "description": "Content encoding; use \"base64\" for binary files",
+                      "enum": [
+                        "utf8",
+                        "base64"
+                      ],
+                      "type": "string"
+                    },
+                    "language": {
+                      "description": "Language hint, e.g. \"typescript\" (optional)",
+                      "type": "string"
+                    },
+                    "name": {
+                      "description": "File name including extension",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "content",
+                    "name"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "message": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "seq": {
+                "type": "number"
+              },
+              "snippetId": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "createdAt",
+              "files",
+              "message",
+              "seq",
+              "snippetId"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "stash.db"
+          ],
+          "trailId": "revision.get"
+        },
+        {
+          "description": "List a snippet’s revisions in seq order",
+          "exportName": "revisionList",
+          "input": {
+            "properties": {
+              "snippetId": {
+                "description": "Snippet id",
+                "type": "string"
+              }
+            },
+            "required": [
+              "snippetId"
+            ],
+            "type": "object"
+          },
+          "intent": "read",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "revisions": {
+                "items": {
+                  "properties": {
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "fileNames": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "message": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "seq": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "createdAt",
+                    "fileNames",
+                    "message",
+                    "seq"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "total": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "revisions",
+              "total"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "stash.db"
+          ],
+          "trailId": "revision.list"
+        },
+        {
+          "description": "Search public snippets by keyword over the derived index",
+          "exportName": "searchQuery",
+          "input": {
+            "properties": {
+              "limit": {
+                "default": 10,
+                "description": "Maximum results",
+                "type": "number"
+              },
+              "query": {
+                "description": "Search terms (AND across words)",
+                "type": "string"
+              }
+            },
+            "required": [
+              "query"
+            ],
+            "type": "object"
+          },
+          "intent": "read",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "query": {
+                "type": "string"
+              },
+              "results": {
+                "items": {
+                  "properties": {
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "forkOf": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "ownerId": {
+                      "type": "string"
+                    },
+                    "starCount": {
+                      "type": "number"
+                    },
+                    "updatedAt": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "number"
+                    },
+                    "visibility": {
+                      "enum": [
+                        "public",
+                        "secret"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "createdAt",
+                    "description",
+                    "forkOf",
+                    "id",
+                    "ownerId",
+                    "starCount",
+                    "updatedAt",
+                    "version",
+                    "visibility"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "total": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "query",
+              "results",
+              "total"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "stash.db"
+          ],
+          "trailId": "search.query"
+        },
+        {
+          "description": "Rebuild the entire search index from scratch; requires the search:admin scope",
+          "exportName": "searchReindex",
+          "input": {
+            "properties": {},
+            "type": "object"
+          },
+          "intent": "write",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "snippets": {
+                "type": "number"
+              },
+              "terms": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "snippets",
+              "terms"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "stash.db"
+          ],
+          "trailId": "search.reindex"
+        },
+        {
+          "description": "Create a snippet with its first revision",
+          "exportName": "snippetCreate",
+          "input": {
+            "properties": {
+              "description": {
+                "description": "What this snippet is about",
+                "type": "string"
+              },
+              "files": {
+                "description": "Files for revision 1 (at least one)",
+                "items": {
+                  "properties": {
+                    "content": {
+                      "description": "File content: UTF-8 text, or base64 when encoding is \"base64\"",
+                      "type": "string"
+                    },
+                    "encoding": {
+                      "default": "utf8",
+                      "description": "Content encoding; use \"base64\" for binary files",
+                      "enum": [
+                        "utf8",
+                        "base64"
+                      ],
+                      "type": "string"
+                    },
+                    "language": {
+                      "description": "Language hint, e.g. \"typescript\" (optional)",
+                      "type": "string"
+                    },
+                    "name": {
+                      "description": "File name including extension",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "content",
+                    "name"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "message": {
+                "description": "Optional revision message for revision 1",
+                "type": "string"
+              },
+              "visibility": {
+                "default": "public",
+                "description": "Snippet visibility: public, or secret (owner-only)",
+                "enum": [
+                  "public",
+                  "secret"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "description",
+              "files"
+            ],
+            "type": "object"
+          },
+          "intent": "write",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "createdAt": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "forkOf": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "id": {
+                "type": "string"
+              },
+              "latestRevision": {
+                "properties": {
+                  "createdAt": {
+                    "type": "string"
+                  },
+                  "fileNames": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "message": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "seq": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "createdAt",
+                  "fileNames",
+                  "message",
+                  "seq"
+                ],
+                "type": "object"
+              },
+              "ownerId": {
+                "type": "string"
+              },
+              "starCount": {
+                "type": "number"
+              },
+              "updatedAt": {
+                "type": "string"
+              },
+              "version": {
+                "type": "number"
+              },
+              "visibility": {
+                "enum": [
+                  "public",
+                  "secret"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "createdAt",
+              "description",
+              "forkOf",
+              "id",
+              "ownerId",
+              "starCount",
+              "updatedAt",
+              "version",
+              "visibility",
+              "latestRevision"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "stash.db"
+          ],
+          "trailId": "snippet.create"
+        },
+        {
+          "description": "Delete a snippet and cascade its revisions, stars, and index entries",
+          "exportName": "snippetDelete",
+          "input": {
+            "properties": {
+              "id": {
+                "description": "Snippet id",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "type": "object"
+          },
+          "intent": "destroy",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "deleted": {
+                "type": "boolean"
+              },
+              "id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "deleted",
+              "id"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "stash.db"
+          ],
+          "trailId": "snippet.delete"
+        },
+        {
+          "description": "Fork a snippet you can see into your own account, preserving lineage",
+          "exportName": "snippetFork",
+          "input": {
+            "properties": {
+              "id": {
+                "description": "Snippet id to fork",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "type": "object"
+          },
+          "intent": "write",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "createdAt": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "forkOf": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "id": {
+                "type": "string"
+              },
+              "latestRevision": {
+                "properties": {
+                  "createdAt": {
+                    "type": "string"
+                  },
+                  "fileNames": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "message": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "seq": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "createdAt",
+                  "fileNames",
+                  "message",
+                  "seq"
+                ],
+                "type": "object"
+              },
+              "ownerId": {
+                "type": "string"
+              },
+              "starCount": {
+                "type": "number"
+              },
+              "updatedAt": {
+                "type": "string"
+              },
+              "version": {
+                "type": "number"
+              },
+              "visibility": {
+                "enum": [
+                  "public",
+                  "secret"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "createdAt",
+              "description",
+              "forkOf",
+              "id",
+              "ownerId",
+              "starCount",
+              "updatedAt",
+              "version",
+              "visibility",
+              "latestRevision"
+            ],
+            "type": "object"
+          },
+          "resources": [],
+          "trailId": "snippet.fork"
+        },
+        {
+          "description": "Show a snippet with its latest revision; secret snippets are owner-only",
+          "exportName": "snippetGet",
+          "input": {
+            "properties": {
+              "id": {
+                "description": "Snippet id",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "type": "object"
+          },
+          "intent": "read",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "createdAt": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "forkOf": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "id": {
+                "type": "string"
+              },
+              "latestRevision": {
+                "properties": {
+                  "createdAt": {
+                    "type": "string"
+                  },
+                  "fileNames": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "message": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "seq": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "createdAt",
+                  "fileNames",
+                  "message",
+                  "seq"
+                ],
+                "type": "object"
+              },
+              "ownerId": {
+                "type": "string"
+              },
+              "starCount": {
+                "type": "number"
+              },
+              "updatedAt": {
+                "type": "string"
+              },
+              "version": {
+                "type": "number"
+              },
+              "visibility": {
+                "enum": [
+                  "public",
+                  "secret"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "createdAt",
+              "description",
+              "forkOf",
+              "id",
+              "ownerId",
+              "starCount",
+              "updatedAt",
+              "version",
+              "visibility",
+              "latestRevision"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "stash.db"
+          ],
+          "trailId": "snippet.get"
+        },
+        {
+          "description": "List snippets with owner and visibility filters; secret snippets appear only for their owner",
+          "exportName": "snippetList",
+          "input": {
+            "properties": {
+              "limit": {
+                "default": 20,
+                "description": "Page size",
+                "type": "number"
+              },
+              "offset": {
+                "default": 0,
+                "description": "Pagination offset",
+                "type": "number"
+              },
+              "owner": {
+                "description": "Filter by owner user id",
+                "type": "string"
+              },
+              "visibility": {
+                "description": "Filter by visibility (secret only matches your own)",
+                "enum": [
+                  "public",
+                  "secret"
+                ],
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "intent": "read",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "snippets": {
+                "items": {
+                  "properties": {
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "forkOf": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "ownerId": {
+                      "type": "string"
+                    },
+                    "starCount": {
+                      "type": "number"
+                    },
+                    "updatedAt": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "number"
+                    },
+                    "visibility": {
+                      "enum": [
+                        "public",
+                        "secret"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "createdAt",
+                    "description",
+                    "forkOf",
+                    "id",
+                    "ownerId",
+                    "starCount",
+                    "updatedAt",
+                    "version",
+                    "visibility"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "total": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "snippets",
+              "total"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "stash.db"
+          ],
+          "trailId": "snippet.list"
+        },
+        {
+          "description": "Star a snippet (idempotent)",
+          "exportName": "snippetStar",
+          "input": {
+            "properties": {
+              "id": {
+                "description": "Snippet id",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "type": "object"
+          },
+          "intent": "write",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "snippetId": {
+                "type": "string"
+              },
+              "starCount": {
+                "type": "number"
+              },
+              "starred": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "snippetId",
+              "starCount",
+              "starred"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "stash.db"
+          ],
+          "trailId": "snippet.star"
+        },
+        {
+          "description": "Remove your star from a snippet (idempotent)",
+          "exportName": "snippetUnstar",
+          "input": {
+            "properties": {
+              "id": {
+                "description": "Snippet id",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "type": "object"
+          },
+          "intent": "write",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "snippetId": {
+                "type": "string"
+              },
+              "starCount": {
+                "type": "number"
+              },
+              "starred": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "snippetId",
+              "starCount",
+              "starred"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "stash.db"
+          ],
+          "trailId": "snippet.unstar"
+        },
+        {
+          "description": "Add a new revision to a snippet; earlier revisions are never mutated",
+          "exportName": "snippetUpdate",
+          "input": {
+            "properties": {
+              "files": {
+                "description": "Full file set for the new revision",
+                "items": {
+                  "properties": {
+                    "content": {
+                      "description": "File content: UTF-8 text, or base64 when encoding is \"base64\"",
+                      "type": "string"
+                    },
+                    "encoding": {
+                      "default": "utf8",
+                      "description": "Content encoding; use \"base64\" for binary files",
+                      "enum": [
+                        "utf8",
+                        "base64"
+                      ],
+                      "type": "string"
+                    },
+                    "language": {
+                      "description": "Language hint, e.g. \"typescript\" (optional)",
+                      "type": "string"
+                    },
+                    "name": {
+                      "description": "File name including extension",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "content",
+                    "name"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "id": {
+                "description": "Snippet id",
+                "type": "string"
+              },
+              "message": {
+                "description": "Optional revision message",
+                "type": "string"
+              }
+            },
+            "required": [
+              "files",
+              "id"
+            ],
+            "type": "object"
+          },
+          "intent": "write",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "createdAt": {
+                "type": "string"
+              },
+              "files": {
+                "items": {
+                  "properties": {
+                    "content": {
+                      "description": "File content: UTF-8 text, or base64 when encoding is \"base64\"",
+                      "type": "string"
+                    },
+                    "encoding": {
+                      "default": "utf8",
+                      "description": "Content encoding; use \"base64\" for binary files",
+                      "enum": [
+                        "utf8",
+                        "base64"
+                      ],
+                      "type": "string"
+                    },
+                    "language": {
+                      "description": "Language hint, e.g. \"typescript\" (optional)",
+                      "type": "string"
+                    },
+                    "name": {
+                      "description": "File name including extension",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "content",
+                    "name"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "message": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "seq": {
+                "type": "number"
+              },
+              "snippetId": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "createdAt",
+              "files",
+              "message",
+              "seq",
+              "snippetId"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "stash.db"
+          ],
+          "trailId": "snippet.update"
+        },
+        {
+          "description": "Reconcile a snippet row by versioned upsert (last-write-wins on conflict)",
+          "exportName": "snippetsReconcile",
+          "input": {
+            "properties": {
+              "createdAt": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "forkOf": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Snippet id this snippet was forked from, or null"
+              },
+              "id": {
+                "type": "string"
+              },
+              "ownerId": {
+                "type": "string"
+              },
+              "updatedAt": {
+                "type": "string"
+              },
+              "version": {
+                "type": "number"
+              },
+              "visibility": {
+                "description": "Snippet visibility: public, or secret (owner-only)",
+                "enum": [
+                  "public",
+                  "secret"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "description",
+              "forkOf",
+              "ownerId",
+              "visibility",
+              "version"
+            ],
+            "type": "object"
+          },
+          "intent": "write",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "createdAt": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "forkOf": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Snippet id this snippet was forked from, or null"
+              },
+              "id": {
+                "type": "string"
+              },
+              "ownerId": {
+                "type": "string"
+              },
+              "updatedAt": {
+                "type": "string"
+              },
+              "version": {
+                "type": "number"
+              },
+              "visibility": {
+                "description": "Snippet visibility: public, or secret (owner-only)",
+                "enum": [
+                  "public",
+                  "secret"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "createdAt",
+              "description",
+              "forkOf",
+              "id",
+              "ownerId",
+              "updatedAt",
+              "visibility",
+              "version"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "stash.db"
+          ],
+          "trailId": "snippets.reconcile"
+        },
+        {
+          "description": "Create an API token; the secret is returned once and never again",
+          "exportName": "tokenCreate",
+          "input": {
+            "properties": {
+              "name": {
+                "description": "Label for this token",
+                "type": "string"
+              },
+              "scopes": {
+                "description": "Scopes to grant: snippet:write, snippet:interact, token:manage, search:admin",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "name",
+              "scopes"
+            ],
+            "type": "object"
+          },
+          "intent": "write",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "createdAt": {
+                "type": "string"
+              },
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "revoked": {
+                "type": "boolean"
+              },
+              "scopes": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "secret": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "createdAt",
+              "id",
+              "name",
+              "revoked",
+              "scopes",
+              "secret"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "stash.db"
+          ],
+          "trailId": "token.create"
+        },
+        {
+          "description": "List your tokens with secrets redacted",
+          "exportName": "tokenList",
+          "input": {
+            "properties": {},
+            "type": "object"
+          },
+          "intent": "read",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "tokens": {
+                "items": {
+                  "properties": {
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "revoked": {
+                      "type": "boolean"
+                    },
+                    "scopes": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "createdAt",
+                    "id",
+                    "name",
+                    "revoked",
+                    "scopes"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "total": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "tokens",
+              "total"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "stash.db"
+          ],
+          "trailId": "token.list"
+        },
+        {
+          "description": "Revoke one of your tokens; revoked tokens stop authenticating",
+          "exportName": "tokenRevoke",
+          "input": {
+            "properties": {
+              "id": {
+                "description": "Token id to revoke",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "type": "object"
+          },
+          "intent": "write",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "revoked": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "id",
+              "revoked"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "stash.db"
+          ],
+          "trailId": "token.revoke"
+        },
+        {
+          "description": "Show the user and scopes behind the calling token",
+          "exportName": "userMe",
+          "input": {
+            "properties": {},
+            "type": "object"
+          },
+          "intent": "read",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "scopes": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "scopes"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "stash.db"
+          ],
+          "trailId": "user.me"
+        }
+      ]
+    },
+    "topoGraphSchemaVersion": 3
+  },
+  "topoGraphHash": "817d29ad50be02ca230b34a9436935421589626b53a740bd886763d8c8f08e6a",
+  "version": 4
+}

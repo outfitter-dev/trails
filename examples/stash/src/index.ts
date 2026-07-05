@@ -1,8 +1,19 @@
 /**
- * Placeholder module for the `stash` showcase app.
+ * stash — self-hosted gists on Trails.
  *
- * The real app lands in its own build run confined to `examples/stash/`.
- * This placeholder only reserves the workspace so `bun.lock` takes the
- * membership churn once, before the parallel builds start.
+ * The topo is the public entry: compile it, surface it, or embed it.
  */
-export const workspaceName = 'stash';
+
+/**
+ * The stash topo: snippets, immutable revisions, forks, stars, tokens, and
+ * the signal-driven search index.
+ *
+ * @example
+ * ```typescript
+ * import { run } from '@ontrails/core';
+ * import { graph } from 'stash';
+ *
+ * const result = await run(graph, 'snippet.get', { id: 'snip_hello' });
+ * ```
+ */
+export { graph } from './app.js';
