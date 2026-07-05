@@ -143,6 +143,25 @@
     "examples/junction": {
       "name": "junction",
       "version": "0.0.0",
+      "bin": {
+        "junction": "./bin/junction.ts",
+      },
+      "dependencies": {
+        "@ontrails/cli": "workspace:^",
+        "@ontrails/commander": "workspace:^",
+        "@ontrails/core": "workspace:^",
+        "@ontrails/drizzle": "workspace:^",
+        "@ontrails/hono": "workspace:^",
+        "@ontrails/http": "workspace:^",
+        "@ontrails/mcp": "workspace:^",
+        "@ontrails/permits": "workspace:^",
+        "@ontrails/store": "workspace:^",
+        "hono": "^4.7.0",
+        "zod": "catalog:",
+      },
+      "devDependencies": {
+        "@ontrails/testing": "workspace:^",
+      },
     },
     "examples/lookout": {
       "name": "lookout",

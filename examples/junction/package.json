@@ -2,6 +2,9 @@
   "name": "junction",
   "version": "0.0.0",
   "private": true,
+  "bin": {
+    "junction": "./bin/junction.ts"
+  },
   "type": "module",
   "scripts": {
     "build": "tsc -b",
@@ -9,5 +12,21 @@
     "typecheck": "tsc --noEmit",
     "lint": "oxlint ./src",
     "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@ontrails/cli": "workspace:^",
+    "@ontrails/commander": "workspace:^",
+    "@ontrails/core": "workspace:^",
+    "@ontrails/drizzle": "workspace:^",
+    "@ontrails/hono": "workspace:^",
+    "@ontrails/http": "workspace:^",
+    "@ontrails/mcp": "workspace:^",
+    "@ontrails/permits": "workspace:^",
+    "@ontrails/store": "workspace:^",
+    "hono": "^4.7.0",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@ontrails/testing": "workspace:^"
   }
 }

@@ -1,0 +1,6040 @@
+{
+  "scope": {
+    "app": "junction"
+  },
+  "summary": {
+    "contours": 0,
+    "resources": 3,
+    "signals": 16,
+    "trails": 23
+  },
+  "topoGraph": {
+    "activationGraph": {
+      "edgeCount": 2,
+      "edges": [
+        {
+          "hasWhere": false,
+          "sourceId": "event.received",
+          "sourceKey": "signal:event.received",
+          "sourceKind": "signal",
+          "trailId": "relay.dispatch"
+        },
+        {
+          "hasWhere": false,
+          "sourceId": "webhook.inbound",
+          "sourceKey": "webhook:webhook.inbound",
+          "sourceKind": "webhook",
+          "trailId": "webhook.receive"
+        }
+      ],
+      "sourceCount": 2,
+      "sourceKeys": [
+        "signal:event.received",
+        "webhook:webhook.inbound"
+      ],
+      "trailIds": [
+        "relay.dispatch",
+        "webhook.receive"
+      ]
+    },
+    "activationSources": {
+      "signal:event.received": {
+        "id": "event.received",
+        "key": "signal:event.received",
+        "kind": "signal"
+      },
+      "webhook:webhook.inbound": {
+        "hasParse": true,
+        "id": "webhook.inbound",
+        "key": "webhook:webhook.inbound",
+        "kind": "webhook",
+        "method": "POST",
+        "parseOutputSchema": {
+          "properties": {
+            "endpointId": {
+              "description": "Endpoint the webhook was addressed to",
+              "type": "string"
+            },
+            "headers": {
+              "description": "Inbound request headers (lowercased names)"
+            },
+            "rawBody": {
+              "description": "Exact raw request body the sender signed",
+              "type": "string"
+            }
+          },
+          "required": [
+            "endpointId",
+            "headers",
+            "rawBody"
+          ],
+          "type": "object"
+        },
+        "path": "/hooks/:endpointId"
+      }
+    },
+    "entries": [
+      {
+        "exampleCount": 0,
+        "id": "auth",
+        "kind": "resource",
+        "surfaces": [],
+        "description": "Authentication adapter"
+      },
+      {
+        "exampleCount": 2,
+        "id": "delivery.list",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "delivery",
+            "list"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "delivery",
+                "list"
+              ],
+              "source": "derived",
+              "target": "delivery.list"
+            }
+          ]
+        },
+        "description": "List deliveries filtered by status or target",
+        "examples": [
+          {
+            "input": {},
+            "kind": "success",
+            "name": "List deliveries",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "List every delivery"
+          },
+          {
+            "input": {
+              "status": "failed"
+            },
+            "kind": "success",
+            "name": "List failed deliveries",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "List only failed deliveries"
+          }
+        ],
+        "input": {
+          "properties": {
+            "status": {
+              "description": "Outcome of the delivery",
+              "enum": [
+                "pending",
+                "delivered",
+                "failed"
+              ],
+              "type": "string"
+            },
+            "targetId": {
+              "description": "Only deliveries to this target",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "intent": "read",
+        "layers": [
+          {
+            "input": {
+              "properties": {
+                "limit": {
+                  "default": 20,
+                  "description": "Maximum items to return",
+                  "type": "number"
+                },
+                "offset": {
+                  "default": 0,
+                  "description": "Items to skip before the first result",
+                  "type": "number"
+                }
+              },
+              "type": "object"
+            },
+            "name": "pagination",
+            "scope": "trail"
+          }
+        ],
+        "output": {
+          "properties": {
+            "hasMore": {
+              "description": "Whether more items exist beyond this window",
+              "type": "boolean"
+            },
+            "items": {
+              "description": "Items in the current window",
+              "items": {
+                "properties": {
+                  "attempts": {
+                    "description": "POST attempts made so far",
+                    "type": "number"
+                  },
+                  "eventId": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null,
+                    "description": "Event the delivery carries; null for target test pings"
+                  },
+                  "id": {
+                    "description": "Delivery identifier",
+                    "type": "string"
+                  },
+                  "lastError": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null,
+                    "description": "Most recent delivery error, when any attempt failed"
+                  },
+                  "status": {
+                    "description": "Outcome of the delivery",
+                    "enum": [
+                      "pending",
+                      "delivered",
+                      "failed"
+                    ],
+                    "type": "string"
+                  },
+                  "targetId": {
+                    "description": "Target the delivery POSTs to",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "attempts",
+                  "id",
+                  "status",
+                  "targetId"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "total": {
+              "description": "Total matching items before windowing",
+              "type": "number"
+            }
+          },
+          "required": [
+            "hasMore",
+            "items",
+            "total"
+          ],
+          "type": "object"
+        },
+        "permit": {
+          "scopes": [
+            "relay:read"
+          ]
+        },
+        "resources": [
+          "junction.store"
+        ]
+      },
+      {
+        "exampleCount": 2,
+        "id": "delivery.retry",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "delivery",
+            "retry"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "delivery",
+                "retry"
+              ],
+              "source": "derived",
+              "target": "delivery.retry"
+            }
+          ]
+        },
+        "composes": [
+          "delivery.send"
+        ],
+        "description": "Re-send one failed delivery through the delivery path",
+        "examples": [
+          {
+            "input": {
+              "id": "dlv_seed_failed"
+            },
+            "kind": "error",
+            "name": "Retry a failed delivery",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Retrying the seeded failed delivery re-attempts its unreachable target and exhausts the detour",
+            "error": "RetryExhaustedError"
+          },
+          {
+            "input": {
+              "id": "dlv_missing"
+            },
+            "kind": "error",
+            "name": "Retry unknown delivery",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Returns NotFoundError for an unknown delivery id",
+            "error": "NotFoundError"
+          }
+        ],
+        "input": {
+          "properties": {
+            "id": {
+              "description": "Delivery identifier",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "type": "object"
+        },
+        "output": {
+          "properties": {
+            "attempts": {
+              "description": "POST attempts made so far",
+              "type": "number"
+            },
+            "eventId": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Event the delivery carries; null for target test pings"
+            },
+            "id": {
+              "description": "Delivery identifier",
+              "type": "string"
+            },
+            "lastError": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Most recent delivery error, when any attempt failed"
+            },
+            "status": {
+              "description": "Outcome of the delivery",
+              "enum": [
+                "pending",
+                "delivered",
+                "failed"
+              ],
+              "type": "string"
+            },
+            "targetId": {
+              "description": "Target the delivery POSTs to",
+              "type": "string"
+            }
+          },
+          "required": [
+            "attempts",
+            "id",
+            "status",
+            "targetId"
+          ],
+          "type": "object"
+        },
+        "permit": {
+          "scopes": [
+            "relay:write"
+          ]
+        },
+        "resources": [
+          "junction.store"
+        ]
+      },
+      {
+        "exampleCount": 3,
+        "id": "delivery.send",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "delivery",
+            "send"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "delivery",
+                "send"
+              ],
+              "source": "derived",
+              "target": "delivery.send"
+            }
+          ]
+        },
+        "description": "POST a payload to one target, recording attempts; network failures retry through the bounded backoff detour",
+        "detours": [
+          {
+            "maxAttempts": 3,
+            "on": "NetworkError"
+          }
+        ],
+        "examples": [
+          {
+            "input": {
+              "payload": {
+                "junction": "ping"
+              },
+              "targetId": "tgt_logbook"
+            },
+            "kind": "success",
+            "name": "Deliver to a reachable target",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Deliver a payload to the reachable logbook target"
+          },
+          {
+            "input": {
+              "payload": {
+                "junction": "ping"
+              },
+              "targetId": "tgt_unreachable"
+            },
+            "kind": "error",
+            "name": "Deliver to an unreachable target",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "An unreachable target exhausts the three-retry detour and fails with RetryExhaustedError",
+            "error": "RetryExhaustedError"
+          },
+          {
+            "input": {
+              "payload": {
+                "junction": "ping"
+              },
+              "targetId": "tgt_disabled"
+            },
+            "kind": "error",
+            "name": "Deliver to a disabled target",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Disabled targets are rejected before any POST",
+            "error": "ValidationError"
+          }
+        ],
+        "input": {
+          "properties": {
+            "eventId": {
+              "description": "Event the delivery carries; omitted for target test pings",
+              "type": "string"
+            },
+            "payload": {
+              "description": "JSON payload to POST to the target",
+              "properties": {},
+              "type": "object"
+            },
+            "targetId": {
+              "description": "Target to deliver to",
+              "type": "string"
+            }
+          },
+          "required": [
+            "payload",
+            "targetId"
+          ],
+          "type": "object"
+        },
+        "output": {
+          "properties": {
+            "attempts": {
+              "description": "POST attempts made so far",
+              "type": "number"
+            },
+            "eventId": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Event the delivery carries; null for target test pings"
+            },
+            "id": {
+              "description": "Delivery identifier",
+              "type": "string"
+            },
+            "lastError": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Most recent delivery error, when any attempt failed"
+            },
+            "status": {
+              "description": "Outcome of the delivery",
+              "enum": [
+                "pending",
+                "delivered",
+                "failed"
+              ],
+              "type": "string"
+            },
+            "targetId": {
+              "description": "Target the delivery POSTs to",
+              "type": "string"
+            }
+          },
+          "required": [
+            "attempts",
+            "id",
+            "status",
+            "targetId"
+          ],
+          "type": "object"
+        },
+        "permit": "public",
+        "resources": [
+          "junction.http",
+          "junction.store"
+        ]
+      },
+      {
+        "exampleCount": 2,
+        "id": "endpoint.create",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "endpoint",
+            "create"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "endpoint",
+                "create"
+              ],
+              "source": "derived",
+              "target": "endpoint.create"
+            }
+          ]
+        },
+        "description": "Register an inbound endpoint; returns the signing secret exactly once",
+        "examples": [
+          {
+            "input": {
+              "name": "CI hooks",
+              "source": "github"
+            },
+            "kind": "success",
+            "name": "Create a GitHub endpoint",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Register a GitHub endpoint and receive its secret"
+          },
+          {
+            "input": {
+              "name": "Internal jobs",
+              "source": "generic-hmac"
+            },
+            "kind": "success",
+            "name": "Create a generic endpoint",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Register a generic HMAC endpoint"
+          }
+        ],
+        "input": {
+          "properties": {
+            "name": {
+              "description": "Human-readable endpoint name",
+              "type": "string"
+            },
+            "source": {
+              "description": "Webhook source type the endpoint verifies against",
+              "enum": [
+                "github",
+                "stripe",
+                "generic-hmac"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "name",
+            "source"
+          ],
+          "type": "object"
+        },
+        "output": {
+          "properties": {
+            "createdAt": {
+              "description": "ISO-8601 creation timestamp",
+              "type": "string"
+            },
+            "enabled": {
+              "description": "Whether the endpoint accepts webhooks",
+              "type": "boolean"
+            },
+            "id": {
+              "description": "Endpoint identifier",
+              "type": "string"
+            },
+            "name": {
+              "description": "Human-readable endpoint name",
+              "type": "string"
+            },
+            "secret": {
+              "description": "HMAC secret senders sign payloads with",
+              "type": "string"
+            },
+            "source": {
+              "description": "Webhook source type the endpoint verifies against",
+              "enum": [
+                "github",
+                "stripe",
+                "generic-hmac"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "enabled",
+            "id",
+            "name",
+            "secret",
+            "source"
+          ],
+          "type": "object"
+        },
+        "permit": {
+          "scopes": [
+            "relay:write"
+          ]
+        },
+        "resources": [
+          "junction.store"
+        ]
+      },
+      {
+        "exampleCount": 2,
+        "id": "endpoint.disable",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "endpoint",
+            "disable"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "endpoint",
+                "disable"
+              ],
+              "source": "derived",
+              "target": "endpoint.disable"
+            }
+          ]
+        },
+        "description": "Stop accepting webhooks on an endpoint",
+        "examples": [
+          {
+            "input": {
+              "id": "ep_disabled_demo"
+            },
+            "kind": "success",
+            "name": "Disable an endpoint",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Disable the seeded already-disabled endpoint (idempotent)",
+            "expected": {
+              "createdAt": "2026-07-01T00:00:00.000Z",
+              "enabled": false,
+              "id": "ep_disabled_demo",
+              "name": "Disabled endpoint",
+              "source": "generic-hmac"
+            }
+          },
+          {
+            "input": {
+              "id": "ep_missing"
+            },
+            "kind": "error",
+            "name": "Disable unknown endpoint",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Returns NotFoundError for an unknown endpoint id",
+            "error": "NotFoundError"
+          }
+        ],
+        "input": {
+          "properties": {
+            "id": {
+              "description": "Endpoint identifier",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "type": "object"
+        },
+        "output": {
+          "properties": {
+            "createdAt": {
+              "description": "ISO-8601 creation timestamp",
+              "type": "string"
+            },
+            "enabled": {
+              "description": "Whether the endpoint accepts webhooks",
+              "type": "boolean"
+            },
+            "id": {
+              "description": "Endpoint identifier",
+              "type": "string"
+            },
+            "name": {
+              "description": "Human-readable endpoint name",
+              "type": "string"
+            },
+            "source": {
+              "description": "Webhook source type the endpoint verifies against",
+              "enum": [
+                "github",
+                "stripe",
+                "generic-hmac"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "enabled",
+            "id",
+            "name",
+            "source"
+          ],
+          "type": "object"
+        },
+        "permit": {
+          "scopes": [
+            "relay:write"
+          ]
+        },
+        "resources": [
+          "junction.store"
+        ]
+      },
+      {
+        "exampleCount": 2,
+        "id": "endpoint.get",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "endpoint",
+            "get"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "endpoint",
+                "get"
+              ],
+              "source": "derived",
+              "target": "endpoint.get"
+            }
+          ]
+        },
+        "description": "Show one endpoint with its secret redacted",
+        "examples": [
+          {
+            "input": {
+              "id": "ep_github_demo"
+            },
+            "kind": "success",
+            "name": "Get an endpoint",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Look up the seeded GitHub endpoint",
+            "expected": {
+              "createdAt": "2026-07-01T00:00:00.000Z",
+              "enabled": true,
+              "id": "ep_github_demo",
+              "name": "GitHub demo endpoint",
+              "source": "github"
+            }
+          },
+          {
+            "input": {
+              "id": "ep_missing"
+            },
+            "kind": "error",
+            "name": "Endpoint not found",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Returns NotFoundError for an unknown endpoint id",
+            "error": "NotFoundError"
+          }
+        ],
+        "input": {
+          "properties": {
+            "id": {
+              "description": "Endpoint identifier",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "type": "object"
+        },
+        "intent": "read",
+        "output": {
+          "properties": {
+            "createdAt": {
+              "description": "ISO-8601 creation timestamp",
+              "type": "string"
+            },
+            "enabled": {
+              "description": "Whether the endpoint accepts webhooks",
+              "type": "boolean"
+            },
+            "id": {
+              "description": "Endpoint identifier",
+              "type": "string"
+            },
+            "name": {
+              "description": "Human-readable endpoint name",
+              "type": "string"
+            },
+            "source": {
+              "description": "Webhook source type the endpoint verifies against",
+              "enum": [
+                "github",
+                "stripe",
+                "generic-hmac"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "enabled",
+            "id",
+            "name",
+            "source"
+          ],
+          "type": "object"
+        },
+        "permit": {
+          "scopes": [
+            "relay:read"
+          ]
+        },
+        "resources": [
+          "junction.store"
+        ]
+      },
+      {
+        "exampleCount": 2,
+        "id": "endpoint.list",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "endpoint",
+            "list"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "endpoint",
+                "list"
+              ],
+              "source": "derived",
+              "target": "endpoint.list"
+            }
+          ]
+        },
+        "description": "List registered endpoints with secrets redacted",
+        "examples": [
+          {
+            "input": {},
+            "kind": "success",
+            "name": "List endpoints",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "List every registered endpoint"
+          },
+          {
+            "input": {},
+            "kind": "success",
+            "name": "List endpoints again",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Listing is stable when called repeatedly"
+          }
+        ],
+        "input": {
+          "properties": {},
+          "type": "object"
+        },
+        "intent": "read",
+        "output": {
+          "properties": {
+            "endpoints": {
+              "items": {
+                "properties": {
+                  "createdAt": {
+                    "description": "ISO-8601 creation timestamp",
+                    "type": "string"
+                  },
+                  "enabled": {
+                    "description": "Whether the endpoint accepts webhooks",
+                    "type": "boolean"
+                  },
+                  "id": {
+                    "description": "Endpoint identifier",
+                    "type": "string"
+                  },
+                  "name": {
+                    "description": "Human-readable endpoint name",
+                    "type": "string"
+                  },
+                  "source": {
+                    "description": "Webhook source type the endpoint verifies against",
+                    "enum": [
+                      "github",
+                      "stripe",
+                      "generic-hmac"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "createdAt",
+                  "enabled",
+                  "id",
+                  "name",
+                  "source"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "endpoints"
+          ],
+          "type": "object"
+        },
+        "permit": {
+          "scopes": [
+            "relay:read"
+          ]
+        },
+        "resources": [
+          "junction.store"
+        ]
+      },
+      {
+        "exampleCount": 2,
+        "id": "endpoint.rotate-secret",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "endpoint",
+            "rotate-secret"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "endpoint",
+                "rotate-secret"
+              ],
+              "source": "derived",
+              "target": "endpoint.rotate-secret"
+            }
+          ]
+        },
+        "description": "Rotate an endpoint secret; the new secret is returned exactly once and previously stored events are unaffected",
+        "examples": [
+          {
+            "input": {
+              "id": "ep_rotate_demo"
+            },
+            "kind": "success",
+            "name": "Rotate a secret",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Rotate the generic endpoint used for rotation demos"
+          },
+          {
+            "input": {
+              "id": "ep_missing"
+            },
+            "kind": "error",
+            "name": "Rotate unknown endpoint",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Returns NotFoundError for an unknown endpoint id",
+            "error": "NotFoundError"
+          }
+        ],
+        "input": {
+          "properties": {
+            "id": {
+              "description": "Endpoint identifier",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "type": "object"
+        },
+        "output": {
+          "properties": {
+            "createdAt": {
+              "description": "ISO-8601 creation timestamp",
+              "type": "string"
+            },
+            "enabled": {
+              "description": "Whether the endpoint accepts webhooks",
+              "type": "boolean"
+            },
+            "id": {
+              "description": "Endpoint identifier",
+              "type": "string"
+            },
+            "name": {
+              "description": "Human-readable endpoint name",
+              "type": "string"
+            },
+            "secret": {
+              "description": "HMAC secret senders sign payloads with",
+              "type": "string"
+            },
+            "source": {
+              "description": "Webhook source type the endpoint verifies against",
+              "enum": [
+                "github",
+                "stripe",
+                "generic-hmac"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "enabled",
+            "id",
+            "name",
+            "secret",
+            "source"
+          ],
+          "type": "object"
+        },
+        "permit": {
+          "scopes": [
+            "relay:write"
+          ]
+        },
+        "resources": [
+          "junction.store"
+        ]
+      },
+      {
+        "exampleCount": 2,
+        "id": "event.get",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "event",
+            "get"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "event",
+                "get"
+              ],
+              "source": "derived",
+              "target": "event.get"
+            }
+          ]
+        },
+        "description": "Show one stored event including its payload and headers",
+        "examples": [
+          {
+            "input": {
+              "id": "evt_seed_push"
+            },
+            "kind": "success",
+            "name": "Get an event",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Look up the seeded push event",
+            "expected": {
+              "endpointId": "ep_github_demo",
+              "headers": {
+                "x-github-event": "push"
+              },
+              "id": "evt_seed_push",
+              "payload": {
+                "action": "push",
+                "repository": "outfitter-dev/trails"
+              },
+              "receivedAt": "2026-07-01T08:00:00.000Z",
+              "signatureValid": true,
+              "status": "relayed"
+            }
+          },
+          {
+            "input": {
+              "id": "evt_missing"
+            },
+            "kind": "error",
+            "name": "Event not found",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Returns NotFoundError for an unknown event id",
+            "error": "NotFoundError"
+          }
+        ],
+        "input": {
+          "properties": {
+            "id": {
+              "description": "Event identifier",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "type": "object"
+        },
+        "intent": "read",
+        "output": {
+          "properties": {
+            "endpointId": {
+              "description": "Endpoint that received the event",
+              "type": "string"
+            },
+            "headers": {
+              "description": "Allowlisted subset of the inbound request headers",
+              "properties": {},
+              "type": "object"
+            },
+            "id": {
+              "description": "Event identifier",
+              "type": "string"
+            },
+            "payload": {
+              "description": "JSON payload the sender delivered",
+              "properties": {},
+              "type": "object"
+            },
+            "receivedAt": {
+              "description": "ISO-8601 receipt timestamp",
+              "type": "string"
+            },
+            "signatureValid": {
+              "description": "Whether the inbound signature verified against the secret",
+              "type": "boolean"
+            },
+            "status": {
+              "description": "Relay lifecycle status of the event",
+              "enum": [
+                "received",
+                "relayed",
+                "dead"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "endpointId",
+            "headers",
+            "id",
+            "payload",
+            "receivedAt",
+            "signatureValid",
+            "status"
+          ],
+          "type": "object"
+        },
+        "permit": {
+          "scopes": [
+            "relay:read"
+          ]
+        },
+        "resources": [
+          "junction.store"
+        ]
+      },
+      {
+        "exampleCount": 2,
+        "id": "event.list",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "event",
+            "list"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "event",
+                "list"
+              ],
+              "source": "derived",
+              "target": "event.list"
+            }
+          ]
+        },
+        "description": "List received events, newest first, filtered by endpoint, status, or receipt time",
+        "examples": [
+          {
+            "input": {},
+            "kind": "success",
+            "name": "List events",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "List every stored event"
+          },
+          {
+            "input": {
+              "status": "dead"
+            },
+            "kind": "success",
+            "name": "List dead events",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "List only events that failed signature verification"
+          }
+        ],
+        "input": {
+          "properties": {
+            "endpointId": {
+              "description": "Only events received on this endpoint",
+              "type": "string"
+            },
+            "since": {
+              "description": "Only events received at or after this ISO-8601 timestamp",
+              "type": "string"
+            },
+            "status": {
+              "description": "Relay lifecycle status of the event",
+              "enum": [
+                "received",
+                "relayed",
+                "dead"
+              ],
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "intent": "read",
+        "layers": [
+          {
+            "input": {
+              "properties": {
+                "limit": {
+                  "default": 20,
+                  "description": "Maximum items to return",
+                  "type": "number"
+                },
+                "offset": {
+                  "default": 0,
+                  "description": "Items to skip before the first result",
+                  "type": "number"
+                }
+              },
+              "type": "object"
+            },
+            "name": "pagination",
+            "scope": "trail"
+          }
+        ],
+        "output": {
+          "properties": {
+            "hasMore": {
+              "description": "Whether more items exist beyond this window",
+              "type": "boolean"
+            },
+            "items": {
+              "description": "Items in the current window",
+              "items": {
+                "properties": {
+                  "endpointId": {
+                    "description": "Endpoint that received the event",
+                    "type": "string"
+                  },
+                  "headers": {
+                    "description": "Allowlisted subset of the inbound request headers",
+                    "properties": {},
+                    "type": "object"
+                  },
+                  "id": {
+                    "description": "Event identifier",
+                    "type": "string"
+                  },
+                  "payload": {
+                    "description": "JSON payload the sender delivered",
+                    "properties": {},
+                    "type": "object"
+                  },
+                  "receivedAt": {
+                    "description": "ISO-8601 receipt timestamp",
+                    "type": "string"
+                  },
+                  "signatureValid": {
+                    "description": "Whether the inbound signature verified against the secret",
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "description": "Relay lifecycle status of the event",
+                    "enum": [
+                      "received",
+                      "relayed",
+                      "dead"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "endpointId",
+                  "headers",
+                  "id",
+                  "payload",
+                  "receivedAt",
+                  "signatureValid",
+                  "status"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "total": {
+              "description": "Total matching items before windowing",
+              "type": "number"
+            }
+          },
+          "required": [
+            "hasMore",
+            "items",
+            "total"
+          ],
+          "type": "object"
+        },
+        "permit": {
+          "scopes": [
+            "relay:read"
+          ]
+        },
+        "resources": [
+          "junction.store"
+        ]
+      },
+      {
+        "exampleCount": 1,
+        "id": "event.received",
+        "kind": "signal",
+        "surfaces": [],
+        "consumers": [
+          "relay.dispatch"
+        ],
+        "description": "A verified webhook event was stored and awaits relay.",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "examples": [
+          {
+            "kind": "payload",
+            "payload": {
+              "endpointId": "ep_github_demo",
+              "eventId": "evt_seed_push"
+            },
+            "provenance": {
+              "source": "signal.examples"
+            }
+          }
+        ],
+        "from": [
+          "event.replay",
+          "webhook.receive"
+        ],
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "input": {
+          "properties": {
+            "endpointId": {
+              "description": "Endpoint the event arrived on",
+              "type": "string"
+            },
+            "eventId": {
+              "description": "Stored event awaiting relay",
+              "type": "string"
+            }
+          },
+          "required": [
+            "endpointId",
+            "eventId"
+          ],
+          "type": "object"
+        },
+        "payload": {
+          "properties": {
+            "endpointId": {
+              "description": "Endpoint the event arrived on",
+              "type": "string"
+            },
+            "eventId": {
+              "description": "Stored event awaiting relay",
+              "type": "string"
+            }
+          },
+          "required": [
+            "endpointId",
+            "eventId"
+          ],
+          "type": "object"
+        },
+        "producers": [
+          "event.replay",
+          "webhook.receive"
+        ]
+      },
+      {
+        "exampleCount": 2,
+        "id": "event.replay",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "event",
+            "replay"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "event",
+                "replay"
+              ],
+              "source": "derived",
+              "target": "event.replay"
+            }
+          ]
+        },
+        "description": "Re-fire event.received for one stored event",
+        "examples": [
+          {
+            "input": {
+              "id": "evt_seed_push"
+            },
+            "kind": "success",
+            "name": "Replay an event",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Replay the seeded push event through the relay pipeline",
+            "expected": {
+              "eventId": "evt_seed_push",
+              "replayed": true
+            }
+          },
+          {
+            "input": {
+              "id": "evt_missing"
+            },
+            "kind": "error",
+            "name": "Replay unknown event",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Returns NotFoundError for an unknown event id",
+            "error": "NotFoundError"
+          }
+        ],
+        "fires": [
+          "event.received"
+        ],
+        "input": {
+          "properties": {
+            "id": {
+              "description": "Event identifier to replay",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "type": "object"
+        },
+        "output": {
+          "properties": {
+            "eventId": {
+              "description": "Event that was replayed",
+              "type": "string"
+            },
+            "replayed": {
+              "description": "Whether the signal fired",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "eventId",
+            "replayed"
+          ],
+          "type": "object"
+        },
+        "permit": {
+          "scopes": [
+            "relay:write"
+          ]
+        },
+        "resources": [
+          "junction.store"
+        ]
+      },
+      {
+        "exampleCount": 0,
+        "id": "junction.http",
+        "kind": "resource",
+        "surfaces": [],
+        "description": "Outbound fetch client junction uses to POST deliveries to targets."
+      },
+      {
+        "exampleCount": 0,
+        "id": "junction.store",
+        "kind": "resource",
+        "surfaces": [],
+        "description": "SQLite-backed relay store for junction endpoints and events.",
+        "healthcheck": true
+      },
+      {
+        "exampleCount": 0,
+        "id": "junction.store:delivery.created",
+        "kind": "signal",
+        "surfaces": [],
+        "consumers": [],
+        "description": "Fired after a \"delivery\" entity is created.",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "input": {
+          "properties": {
+            "attempts": {
+              "description": "POST attempts made so far",
+              "type": "number"
+            },
+            "eventId": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Event the delivery carries; null for target test pings"
+            },
+            "id": {
+              "description": "Delivery identifier",
+              "type": "string"
+            },
+            "lastError": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Most recent delivery error, when any attempt failed"
+            },
+            "status": {
+              "description": "Outcome of the delivery",
+              "enum": [
+                "pending",
+                "delivered",
+                "failed"
+              ],
+              "type": "string"
+            },
+            "targetId": {
+              "description": "Target the delivery POSTs to",
+              "type": "string"
+            }
+          },
+          "required": [
+            "attempts",
+            "id",
+            "status",
+            "targetId"
+          ],
+          "type": "object"
+        },
+        "payload": {
+          "properties": {
+            "attempts": {
+              "description": "POST attempts made so far",
+              "type": "number"
+            },
+            "eventId": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Event the delivery carries; null for target test pings"
+            },
+            "id": {
+              "description": "Delivery identifier",
+              "type": "string"
+            },
+            "lastError": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Most recent delivery error, when any attempt failed"
+            },
+            "status": {
+              "description": "Outcome of the delivery",
+              "enum": [
+                "pending",
+                "delivered",
+                "failed"
+              ],
+              "type": "string"
+            },
+            "targetId": {
+              "description": "Target the delivery POSTs to",
+              "type": "string"
+            }
+          },
+          "required": [
+            "attempts",
+            "id",
+            "status",
+            "targetId"
+          ],
+          "type": "object"
+        },
+        "producers": []
+      },
+      {
+        "exampleCount": 0,
+        "id": "junction.store:delivery.removed",
+        "kind": "signal",
+        "surfaces": [],
+        "consumers": [],
+        "description": "Fired after a \"delivery\" entity is removed.",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "input": {
+          "properties": {
+            "attempts": {
+              "description": "POST attempts made so far",
+              "type": "number"
+            },
+            "eventId": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Event the delivery carries; null for target test pings"
+            },
+            "id": {
+              "description": "Delivery identifier",
+              "type": "string"
+            },
+            "lastError": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Most recent delivery error, when any attempt failed"
+            },
+            "status": {
+              "description": "Outcome of the delivery",
+              "enum": [
+                "pending",
+                "delivered",
+                "failed"
+              ],
+              "type": "string"
+            },
+            "targetId": {
+              "description": "Target the delivery POSTs to",
+              "type": "string"
+            }
+          },
+          "required": [
+            "attempts",
+            "id",
+            "status",
+            "targetId"
+          ],
+          "type": "object"
+        },
+        "payload": {
+          "properties": {
+            "attempts": {
+              "description": "POST attempts made so far",
+              "type": "number"
+            },
+            "eventId": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Event the delivery carries; null for target test pings"
+            },
+            "id": {
+              "description": "Delivery identifier",
+              "type": "string"
+            },
+            "lastError": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Most recent delivery error, when any attempt failed"
+            },
+            "status": {
+              "description": "Outcome of the delivery",
+              "enum": [
+                "pending",
+                "delivered",
+                "failed"
+              ],
+              "type": "string"
+            },
+            "targetId": {
+              "description": "Target the delivery POSTs to",
+              "type": "string"
+            }
+          },
+          "required": [
+            "attempts",
+            "id",
+            "status",
+            "targetId"
+          ],
+          "type": "object"
+        },
+        "producers": []
+      },
+      {
+        "exampleCount": 0,
+        "id": "junction.store:delivery.updated",
+        "kind": "signal",
+        "surfaces": [],
+        "consumers": [],
+        "description": "Fired after a \"delivery\" entity is updated.",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "input": {
+          "properties": {
+            "attempts": {
+              "description": "POST attempts made so far",
+              "type": "number"
+            },
+            "eventId": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Event the delivery carries; null for target test pings"
+            },
+            "id": {
+              "description": "Delivery identifier",
+              "type": "string"
+            },
+            "lastError": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Most recent delivery error, when any attempt failed"
+            },
+            "status": {
+              "description": "Outcome of the delivery",
+              "enum": [
+                "pending",
+                "delivered",
+                "failed"
+              ],
+              "type": "string"
+            },
+            "targetId": {
+              "description": "Target the delivery POSTs to",
+              "type": "string"
+            }
+          },
+          "required": [
+            "attempts",
+            "id",
+            "status",
+            "targetId"
+          ],
+          "type": "object"
+        },
+        "payload": {
+          "properties": {
+            "attempts": {
+              "description": "POST attempts made so far",
+              "type": "number"
+            },
+            "eventId": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Event the delivery carries; null for target test pings"
+            },
+            "id": {
+              "description": "Delivery identifier",
+              "type": "string"
+            },
+            "lastError": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Most recent delivery error, when any attempt failed"
+            },
+            "status": {
+              "description": "Outcome of the delivery",
+              "enum": [
+                "pending",
+                "delivered",
+                "failed"
+              ],
+              "type": "string"
+            },
+            "targetId": {
+              "description": "Target the delivery POSTs to",
+              "type": "string"
+            }
+          },
+          "required": [
+            "attempts",
+            "id",
+            "status",
+            "targetId"
+          ],
+          "type": "object"
+        },
+        "producers": []
+      },
+      {
+        "exampleCount": 0,
+        "id": "junction.store:endpoint.created",
+        "kind": "signal",
+        "surfaces": [],
+        "consumers": [],
+        "description": "Fired after a \"endpoint\" entity is created.",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "input": {
+          "properties": {
+            "createdAt": {
+              "description": "ISO-8601 creation timestamp",
+              "type": "string"
+            },
+            "enabled": {
+              "description": "Whether the endpoint accepts webhooks",
+              "type": "boolean"
+            },
+            "id": {
+              "description": "Endpoint identifier",
+              "type": "string"
+            },
+            "name": {
+              "description": "Human-readable endpoint name",
+              "type": "string"
+            },
+            "secret": {
+              "description": "HMAC secret senders sign payloads with",
+              "type": "string"
+            },
+            "source": {
+              "description": "Webhook source type the endpoint verifies against",
+              "enum": [
+                "github",
+                "stripe",
+                "generic-hmac"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "enabled",
+            "id",
+            "name",
+            "secret",
+            "source"
+          ],
+          "type": "object"
+        },
+        "payload": {
+          "properties": {
+            "createdAt": {
+              "description": "ISO-8601 creation timestamp",
+              "type": "string"
+            },
+            "enabled": {
+              "description": "Whether the endpoint accepts webhooks",
+              "type": "boolean"
+            },
+            "id": {
+              "description": "Endpoint identifier",
+              "type": "string"
+            },
+            "name": {
+              "description": "Human-readable endpoint name",
+              "type": "string"
+            },
+            "secret": {
+              "description": "HMAC secret senders sign payloads with",
+              "type": "string"
+            },
+            "source": {
+              "description": "Webhook source type the endpoint verifies against",
+              "enum": [
+                "github",
+                "stripe",
+                "generic-hmac"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "enabled",
+            "id",
+            "name",
+            "secret",
+            "source"
+          ],
+          "type": "object"
+        },
+        "producers": []
+      },
+      {
+        "exampleCount": 0,
+        "id": "junction.store:endpoint.removed",
+        "kind": "signal",
+        "surfaces": [],
+        "consumers": [],
+        "description": "Fired after a \"endpoint\" entity is removed.",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "input": {
+          "properties": {
+            "createdAt": {
+              "description": "ISO-8601 creation timestamp",
+              "type": "string"
+            },
+            "enabled": {
+              "description": "Whether the endpoint accepts webhooks",
+              "type": "boolean"
+            },
+            "id": {
+              "description": "Endpoint identifier",
+              "type": "string"
+            },
+            "name": {
+              "description": "Human-readable endpoint name",
+              "type": "string"
+            },
+            "secret": {
+              "description": "HMAC secret senders sign payloads with",
+              "type": "string"
+            },
+            "source": {
+              "description": "Webhook source type the endpoint verifies against",
+              "enum": [
+                "github",
+                "stripe",
+                "generic-hmac"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "enabled",
+            "id",
+            "name",
+            "secret",
+            "source"
+          ],
+          "type": "object"
+        },
+        "payload": {
+          "properties": {
+            "createdAt": {
+              "description": "ISO-8601 creation timestamp",
+              "type": "string"
+            },
+            "enabled": {
+              "description": "Whether the endpoint accepts webhooks",
+              "type": "boolean"
+            },
+            "id": {
+              "description": "Endpoint identifier",
+              "type": "string"
+            },
+            "name": {
+              "description": "Human-readable endpoint name",
+              "type": "string"
+            },
+            "secret": {
+              "description": "HMAC secret senders sign payloads with",
+              "type": "string"
+            },
+            "source": {
+              "description": "Webhook source type the endpoint verifies against",
+              "enum": [
+                "github",
+                "stripe",
+                "generic-hmac"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "enabled",
+            "id",
+            "name",
+            "secret",
+            "source"
+          ],
+          "type": "object"
+        },
+        "producers": []
+      },
+      {
+        "exampleCount": 0,
+        "id": "junction.store:endpoint.updated",
+        "kind": "signal",
+        "surfaces": [],
+        "consumers": [],
+        "description": "Fired after a \"endpoint\" entity is updated.",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "input": {
+          "properties": {
+            "createdAt": {
+              "description": "ISO-8601 creation timestamp",
+              "type": "string"
+            },
+            "enabled": {
+              "description": "Whether the endpoint accepts webhooks",
+              "type": "boolean"
+            },
+            "id": {
+              "description": "Endpoint identifier",
+              "type": "string"
+            },
+            "name": {
+              "description": "Human-readable endpoint name",
+              "type": "string"
+            },
+            "secret": {
+              "description": "HMAC secret senders sign payloads with",
+              "type": "string"
+            },
+            "source": {
+              "description": "Webhook source type the endpoint verifies against",
+              "enum": [
+                "github",
+                "stripe",
+                "generic-hmac"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "enabled",
+            "id",
+            "name",
+            "secret",
+            "source"
+          ],
+          "type": "object"
+        },
+        "payload": {
+          "properties": {
+            "createdAt": {
+              "description": "ISO-8601 creation timestamp",
+              "type": "string"
+            },
+            "enabled": {
+              "description": "Whether the endpoint accepts webhooks",
+              "type": "boolean"
+            },
+            "id": {
+              "description": "Endpoint identifier",
+              "type": "string"
+            },
+            "name": {
+              "description": "Human-readable endpoint name",
+              "type": "string"
+            },
+            "secret": {
+              "description": "HMAC secret senders sign payloads with",
+              "type": "string"
+            },
+            "source": {
+              "description": "Webhook source type the endpoint verifies against",
+              "enum": [
+                "github",
+                "stripe",
+                "generic-hmac"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "createdAt",
+            "enabled",
+            "id",
+            "name",
+            "secret",
+            "source"
+          ],
+          "type": "object"
+        },
+        "producers": []
+      },
+      {
+        "exampleCount": 0,
+        "id": "junction.store:event.created",
+        "kind": "signal",
+        "surfaces": [],
+        "consumers": [],
+        "description": "Fired after a \"event\" entity is created.",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "input": {
+          "properties": {
+            "endpointId": {
+              "description": "Endpoint that received the event",
+              "type": "string"
+            },
+            "headers": {
+              "description": "Allowlisted subset of the inbound request headers",
+              "properties": {},
+              "type": "object"
+            },
+            "id": {
+              "description": "Event identifier",
+              "type": "string"
+            },
+            "payload": {
+              "description": "JSON payload the sender delivered",
+              "properties": {},
+              "type": "object"
+            },
+            "receivedAt": {
+              "description": "ISO-8601 receipt timestamp",
+              "type": "string"
+            },
+            "signatureValid": {
+              "description": "Whether the inbound signature verified against the secret",
+              "type": "boolean"
+            },
+            "status": {
+              "description": "Relay lifecycle status of the event",
+              "enum": [
+                "received",
+                "relayed",
+                "dead"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "endpointId",
+            "headers",
+            "id",
+            "payload",
+            "receivedAt",
+            "signatureValid",
+            "status"
+          ],
+          "type": "object"
+        },
+        "payload": {
+          "properties": {
+            "endpointId": {
+              "description": "Endpoint that received the event",
+              "type": "string"
+            },
+            "headers": {
+              "description": "Allowlisted subset of the inbound request headers",
+              "properties": {},
+              "type": "object"
+            },
+            "id": {
+              "description": "Event identifier",
+              "type": "string"
+            },
+            "payload": {
+              "description": "JSON payload the sender delivered",
+              "properties": {},
+              "type": "object"
+            },
+            "receivedAt": {
+              "description": "ISO-8601 receipt timestamp",
+              "type": "string"
+            },
+            "signatureValid": {
+              "description": "Whether the inbound signature verified against the secret",
+              "type": "boolean"
+            },
+            "status": {
+              "description": "Relay lifecycle status of the event",
+              "enum": [
+                "received",
+                "relayed",
+                "dead"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "endpointId",
+            "headers",
+            "id",
+            "payload",
+            "receivedAt",
+            "signatureValid",
+            "status"
+          ],
+          "type": "object"
+        },
+        "producers": []
+      },
+      {
+        "exampleCount": 0,
+        "id": "junction.store:event.removed",
+        "kind": "signal",
+        "surfaces": [],
+        "consumers": [],
+        "description": "Fired after a \"event\" entity is removed.",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "input": {
+          "properties": {
+            "endpointId": {
+              "description": "Endpoint that received the event",
+              "type": "string"
+            },
+            "headers": {
+              "description": "Allowlisted subset of the inbound request headers",
+              "properties": {},
+              "type": "object"
+            },
+            "id": {
+              "description": "Event identifier",
+              "type": "string"
+            },
+            "payload": {
+              "description": "JSON payload the sender delivered",
+              "properties": {},
+              "type": "object"
+            },
+            "receivedAt": {
+              "description": "ISO-8601 receipt timestamp",
+              "type": "string"
+            },
+            "signatureValid": {
+              "description": "Whether the inbound signature verified against the secret",
+              "type": "boolean"
+            },
+            "status": {
+              "description": "Relay lifecycle status of the event",
+              "enum": [
+                "received",
+                "relayed",
+                "dead"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "endpointId",
+            "headers",
+            "id",
+            "payload",
+            "receivedAt",
+            "signatureValid",
+            "status"
+          ],
+          "type": "object"
+        },
+        "payload": {
+          "properties": {
+            "endpointId": {
+              "description": "Endpoint that received the event",
+              "type": "string"
+            },
+            "headers": {
+              "description": "Allowlisted subset of the inbound request headers",
+              "properties": {},
+              "type": "object"
+            },
+            "id": {
+              "description": "Event identifier",
+              "type": "string"
+            },
+            "payload": {
+              "description": "JSON payload the sender delivered",
+              "properties": {},
+              "type": "object"
+            },
+            "receivedAt": {
+              "description": "ISO-8601 receipt timestamp",
+              "type": "string"
+            },
+            "signatureValid": {
+              "description": "Whether the inbound signature verified against the secret",
+              "type": "boolean"
+            },
+            "status": {
+              "description": "Relay lifecycle status of the event",
+              "enum": [
+                "received",
+                "relayed",
+                "dead"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "endpointId",
+            "headers",
+            "id",
+            "payload",
+            "receivedAt",
+            "signatureValid",
+            "status"
+          ],
+          "type": "object"
+        },
+        "producers": []
+      },
+      {
+        "exampleCount": 0,
+        "id": "junction.store:event.updated",
+        "kind": "signal",
+        "surfaces": [],
+        "consumers": [],
+        "description": "Fired after a \"event\" entity is updated.",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "input": {
+          "properties": {
+            "endpointId": {
+              "description": "Endpoint that received the event",
+              "type": "string"
+            },
+            "headers": {
+              "description": "Allowlisted subset of the inbound request headers",
+              "properties": {},
+              "type": "object"
+            },
+            "id": {
+              "description": "Event identifier",
+              "type": "string"
+            },
+            "payload": {
+              "description": "JSON payload the sender delivered",
+              "properties": {},
+              "type": "object"
+            },
+            "receivedAt": {
+              "description": "ISO-8601 receipt timestamp",
+              "type": "string"
+            },
+            "signatureValid": {
+              "description": "Whether the inbound signature verified against the secret",
+              "type": "boolean"
+            },
+            "status": {
+              "description": "Relay lifecycle status of the event",
+              "enum": [
+                "received",
+                "relayed",
+                "dead"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "endpointId",
+            "headers",
+            "id",
+            "payload",
+            "receivedAt",
+            "signatureValid",
+            "status"
+          ],
+          "type": "object"
+        },
+        "payload": {
+          "properties": {
+            "endpointId": {
+              "description": "Endpoint that received the event",
+              "type": "string"
+            },
+            "headers": {
+              "description": "Allowlisted subset of the inbound request headers",
+              "properties": {},
+              "type": "object"
+            },
+            "id": {
+              "description": "Event identifier",
+              "type": "string"
+            },
+            "payload": {
+              "description": "JSON payload the sender delivered",
+              "properties": {},
+              "type": "object"
+            },
+            "receivedAt": {
+              "description": "ISO-8601 receipt timestamp",
+              "type": "string"
+            },
+            "signatureValid": {
+              "description": "Whether the inbound signature verified against the secret",
+              "type": "boolean"
+            },
+            "status": {
+              "description": "Relay lifecycle status of the event",
+              "enum": [
+                "received",
+                "relayed",
+                "dead"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "endpointId",
+            "headers",
+            "id",
+            "payload",
+            "receivedAt",
+            "signatureValid",
+            "status"
+          ],
+          "type": "object"
+        },
+        "producers": []
+      },
+      {
+        "exampleCount": 0,
+        "id": "junction.store:route.created",
+        "kind": "signal",
+        "surfaces": [],
+        "consumers": [],
+        "description": "Fired after a \"route\" entity is created.",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "input": {
+          "properties": {
+            "enabled": {
+              "description": "Whether the route relays events",
+              "type": "boolean"
+            },
+            "endpointId": {
+              "description": "Endpoint the route listens on",
+              "type": "string"
+            },
+            "filterEquals": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Value the payload path must equal for the route to match"
+            },
+            "filterPath": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Dot-separated payload path the filter reads"
+            },
+            "id": {
+              "description": "Route identifier",
+              "type": "string"
+            },
+            "targetId": {
+              "description": "Target the route delivers to",
+              "type": "string"
+            }
+          },
+          "required": [
+            "enabled",
+            "endpointId",
+            "id",
+            "targetId"
+          ],
+          "type": "object"
+        },
+        "payload": {
+          "properties": {
+            "enabled": {
+              "description": "Whether the route relays events",
+              "type": "boolean"
+            },
+            "endpointId": {
+              "description": "Endpoint the route listens on",
+              "type": "string"
+            },
+            "filterEquals": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Value the payload path must equal for the route to match"
+            },
+            "filterPath": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Dot-separated payload path the filter reads"
+            },
+            "id": {
+              "description": "Route identifier",
+              "type": "string"
+            },
+            "targetId": {
+              "description": "Target the route delivers to",
+              "type": "string"
+            }
+          },
+          "required": [
+            "enabled",
+            "endpointId",
+            "id",
+            "targetId"
+          ],
+          "type": "object"
+        },
+        "producers": []
+      },
+      {
+        "exampleCount": 0,
+        "id": "junction.store:route.removed",
+        "kind": "signal",
+        "surfaces": [],
+        "consumers": [],
+        "description": "Fired after a \"route\" entity is removed.",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "input": {
+          "properties": {
+            "enabled": {
+              "description": "Whether the route relays events",
+              "type": "boolean"
+            },
+            "endpointId": {
+              "description": "Endpoint the route listens on",
+              "type": "string"
+            },
+            "filterEquals": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Value the payload path must equal for the route to match"
+            },
+            "filterPath": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Dot-separated payload path the filter reads"
+            },
+            "id": {
+              "description": "Route identifier",
+              "type": "string"
+            },
+            "targetId": {
+              "description": "Target the route delivers to",
+              "type": "string"
+            }
+          },
+          "required": [
+            "enabled",
+            "endpointId",
+            "id",
+            "targetId"
+          ],
+          "type": "object"
+        },
+        "payload": {
+          "properties": {
+            "enabled": {
+              "description": "Whether the route relays events",
+              "type": "boolean"
+            },
+            "endpointId": {
+              "description": "Endpoint the route listens on",
+              "type": "string"
+            },
+            "filterEquals": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Value the payload path must equal for the route to match"
+            },
+            "filterPath": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Dot-separated payload path the filter reads"
+            },
+            "id": {
+              "description": "Route identifier",
+              "type": "string"
+            },
+            "targetId": {
+              "description": "Target the route delivers to",
+              "type": "string"
+            }
+          },
+          "required": [
+            "enabled",
+            "endpointId",
+            "id",
+            "targetId"
+          ],
+          "type": "object"
+        },
+        "producers": []
+      },
+      {
+        "exampleCount": 0,
+        "id": "junction.store:route.updated",
+        "kind": "signal",
+        "surfaces": [],
+        "consumers": [],
+        "description": "Fired after a \"route\" entity is updated.",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "input": {
+          "properties": {
+            "enabled": {
+              "description": "Whether the route relays events",
+              "type": "boolean"
+            },
+            "endpointId": {
+              "description": "Endpoint the route listens on",
+              "type": "string"
+            },
+            "filterEquals": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Value the payload path must equal for the route to match"
+            },
+            "filterPath": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Dot-separated payload path the filter reads"
+            },
+            "id": {
+              "description": "Route identifier",
+              "type": "string"
+            },
+            "targetId": {
+              "description": "Target the route delivers to",
+              "type": "string"
+            }
+          },
+          "required": [
+            "enabled",
+            "endpointId",
+            "id",
+            "targetId"
+          ],
+          "type": "object"
+        },
+        "payload": {
+          "properties": {
+            "enabled": {
+              "description": "Whether the route relays events",
+              "type": "boolean"
+            },
+            "endpointId": {
+              "description": "Endpoint the route listens on",
+              "type": "string"
+            },
+            "filterEquals": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Value the payload path must equal for the route to match"
+            },
+            "filterPath": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Dot-separated payload path the filter reads"
+            },
+            "id": {
+              "description": "Route identifier",
+              "type": "string"
+            },
+            "targetId": {
+              "description": "Target the route delivers to",
+              "type": "string"
+            }
+          },
+          "required": [
+            "enabled",
+            "endpointId",
+            "id",
+            "targetId"
+          ],
+          "type": "object"
+        },
+        "producers": []
+      },
+      {
+        "exampleCount": 0,
+        "id": "junction.store:target.created",
+        "kind": "signal",
+        "surfaces": [],
+        "consumers": [],
+        "description": "Fired after a \"target\" entity is created.",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "input": {
+          "properties": {
+            "enabled": {
+              "description": "Whether the target receives deliveries",
+              "type": "boolean"
+            },
+            "id": {
+              "description": "Target identifier",
+              "type": "string"
+            },
+            "name": {
+              "description": "Human-readable target name",
+              "type": "string"
+            },
+            "url": {
+              "description": "URL deliveries are POSTed to",
+              "type": "string"
+            }
+          },
+          "required": [
+            "enabled",
+            "id",
+            "name",
+            "url"
+          ],
+          "type": "object"
+        },
+        "payload": {
+          "properties": {
+            "enabled": {
+              "description": "Whether the target receives deliveries",
+              "type": "boolean"
+            },
+            "id": {
+              "description": "Target identifier",
+              "type": "string"
+            },
+            "name": {
+              "description": "Human-readable target name",
+              "type": "string"
+            },
+            "url": {
+              "description": "URL deliveries are POSTed to",
+              "type": "string"
+            }
+          },
+          "required": [
+            "enabled",
+            "id",
+            "name",
+            "url"
+          ],
+          "type": "object"
+        },
+        "producers": []
+      },
+      {
+        "exampleCount": 0,
+        "id": "junction.store:target.removed",
+        "kind": "signal",
+        "surfaces": [],
+        "consumers": [],
+        "description": "Fired after a \"target\" entity is removed.",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "input": {
+          "properties": {
+            "enabled": {
+              "description": "Whether the target receives deliveries",
+              "type": "boolean"
+            },
+            "id": {
+              "description": "Target identifier",
+              "type": "string"
+            },
+            "name": {
+              "description": "Human-readable target name",
+              "type": "string"
+            },
+            "url": {
+              "description": "URL deliveries are POSTed to",
+              "type": "string"
+            }
+          },
+          "required": [
+            "enabled",
+            "id",
+            "name",
+            "url"
+          ],
+          "type": "object"
+        },
+        "payload": {
+          "properties": {
+            "enabled": {
+              "description": "Whether the target receives deliveries",
+              "type": "boolean"
+            },
+            "id": {
+              "description": "Target identifier",
+              "type": "string"
+            },
+            "name": {
+              "description": "Human-readable target name",
+              "type": "string"
+            },
+            "url": {
+              "description": "URL deliveries are POSTed to",
+              "type": "string"
+            }
+          },
+          "required": [
+            "enabled",
+            "id",
+            "name",
+            "url"
+          ],
+          "type": "object"
+        },
+        "producers": []
+      },
+      {
+        "exampleCount": 0,
+        "id": "junction.store:target.updated",
+        "kind": "signal",
+        "surfaces": [],
+        "consumers": [],
+        "description": "Fired after a \"target\" entity is updated.",
+        "diagnostics": {
+          "codes": [
+            "signal.fire.suppressed",
+            "signal.handler.failed",
+            "signal.handler.predicate_failed",
+            "signal.handler.rejected",
+            "signal.invalid",
+            "signal.unknown"
+          ],
+          "strictMode": true
+        },
+        "governance": {
+          "consumers": "trail.on",
+          "payload": "signal.payload",
+          "producers": "trail.fires"
+        },
+        "input": {
+          "properties": {
+            "enabled": {
+              "description": "Whether the target receives deliveries",
+              "type": "boolean"
+            },
+            "id": {
+              "description": "Target identifier",
+              "type": "string"
+            },
+            "name": {
+              "description": "Human-readable target name",
+              "type": "string"
+            },
+            "url": {
+              "description": "URL deliveries are POSTed to",
+              "type": "string"
+            }
+          },
+          "required": [
+            "enabled",
+            "id",
+            "name",
+            "url"
+          ],
+          "type": "object"
+        },
+        "payload": {
+          "properties": {
+            "enabled": {
+              "description": "Whether the target receives deliveries",
+              "type": "boolean"
+            },
+            "id": {
+              "description": "Target identifier",
+              "type": "string"
+            },
+            "name": {
+              "description": "Human-readable target name",
+              "type": "string"
+            },
+            "url": {
+              "description": "URL deliveries are POSTed to",
+              "type": "string"
+            }
+          },
+          "required": [
+            "enabled",
+            "id",
+            "name",
+            "url"
+          ],
+          "type": "object"
+        },
+        "producers": []
+      },
+      {
+        "exampleCount": 2,
+        "id": "relay.dispatch",
+        "kind": "trail",
+        "surfaces": [],
+        "activationSources": [
+          {
+            "source": {
+              "id": "event.received",
+              "key": "signal:event.received",
+              "kind": "signal"
+            }
+          }
+        ],
+        "cli": {
+          "path": [
+            "relay",
+            "dispatch"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "relay",
+                "dispatch"
+              ],
+              "source": "derived",
+              "target": "relay.dispatch"
+            }
+          ]
+        },
+        "composes": [
+          "delivery.send"
+        ],
+        "description": "Match one received event against enabled routes and compose delivery.send per match",
+        "examples": [
+          {
+            "input": {
+              "endpointId": "ep_github_demo",
+              "eventId": "evt_seed_push"
+            },
+            "kind": "success",
+            "name": "Dispatch a matched event",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Dispatch the seeded push event across its single enabled GitHub route",
+            "expected": {
+              "dispatched": 1,
+              "eventId": "evt_seed_push",
+              "matched": 1
+            }
+          },
+          {
+            "input": {
+              "endpointId": "ep_github_demo",
+              "eventId": "evt_missing"
+            },
+            "kind": "error",
+            "name": "Dispatch unknown event",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Returns NotFoundError for an unknown event id",
+            "error": "NotFoundError"
+          }
+        ],
+        "input": {
+          "properties": {
+            "endpointId": {
+              "description": "Endpoint the event arrived on",
+              "type": "string"
+            },
+            "eventId": {
+              "description": "Stored event awaiting relay",
+              "type": "string"
+            }
+          },
+          "required": [
+            "endpointId",
+            "eventId"
+          ],
+          "type": "object"
+        },
+        "on": [
+          "event.received"
+        ],
+        "output": {
+          "properties": {
+            "dispatched": {
+              "description": "Deliveries that were sent successfully",
+              "type": "number"
+            },
+            "eventId": {
+              "description": "Event that was dispatched",
+              "type": "string"
+            },
+            "matched": {
+              "description": "Enabled routes that matched",
+              "type": "number"
+            }
+          },
+          "required": [
+            "dispatched",
+            "eventId",
+            "matched"
+          ],
+          "type": "object"
+        },
+        "permit": "public",
+        "resources": [
+          "junction.store"
+        ]
+      },
+      {
+        "exampleCount": 3,
+        "id": "route.create",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "route",
+            "create"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "route",
+                "create"
+              ],
+              "source": "derived",
+              "target": "route.create"
+            }
+          ]
+        },
+        "description": "Bind an endpoint to a target with an optional payload filter",
+        "examples": [
+          {
+            "input": {
+              "endpointId": "ep_rotate_demo",
+              "targetId": "tgt_logbook"
+            },
+            "kind": "success",
+            "name": "Create a route",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Route the rotation-demo endpoint to the logbook target"
+          },
+          {
+            "input": {
+              "endpointId": "ep_missing",
+              "targetId": "tgt_logbook"
+            },
+            "kind": "error",
+            "name": "Route with unknown endpoint",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Returns NotFoundError when the endpoint does not exist",
+            "error": "NotFoundError"
+          },
+          {
+            "input": {
+              "endpointId": "ep_github_demo",
+              "targetId": "tgt_missing"
+            },
+            "kind": "error",
+            "name": "Route with unknown target",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Returns NotFoundError when the target does not exist",
+            "error": "NotFoundError"
+          }
+        ],
+        "input": {
+          "properties": {
+            "endpointId": {
+              "description": "Endpoint the route listens on",
+              "type": "string"
+            },
+            "filterEquals": {
+              "description": "Value the payload path must equal for the route to match",
+              "type": "string"
+            },
+            "filterPath": {
+              "description": "Dot-separated payload path the filter reads",
+              "type": "string"
+            },
+            "targetId": {
+              "description": "Target the route delivers to",
+              "type": "string"
+            }
+          },
+          "required": [
+            "endpointId",
+            "targetId"
+          ],
+          "type": "object"
+        },
+        "output": {
+          "properties": {
+            "enabled": {
+              "description": "Whether the route relays events",
+              "type": "boolean"
+            },
+            "endpointId": {
+              "description": "Endpoint the route listens on",
+              "type": "string"
+            },
+            "filterEquals": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Value the payload path must equal for the route to match"
+            },
+            "filterPath": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Dot-separated payload path the filter reads"
+            },
+            "id": {
+              "description": "Route identifier",
+              "type": "string"
+            },
+            "targetId": {
+              "description": "Target the route delivers to",
+              "type": "string"
+            }
+          },
+          "required": [
+            "enabled",
+            "endpointId",
+            "id",
+            "targetId"
+          ],
+          "type": "object"
+        },
+        "permit": {
+          "scopes": [
+            "relay:write"
+          ]
+        },
+        "resources": [
+          "junction.store"
+        ]
+      },
+      {
+        "exampleCount": 2,
+        "id": "route.disable",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "route",
+            "disable"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "route",
+                "disable"
+              ],
+              "source": "derived",
+              "target": "route.disable"
+            }
+          ]
+        },
+        "description": "Pause relaying events across a route",
+        "examples": [
+          {
+            "input": {
+              "id": "rt_disabled"
+            },
+            "kind": "success",
+            "name": "Disable a route",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Disable the seeded already-disabled route (idempotent)",
+            "expected": {
+              "enabled": false,
+              "endpointId": "ep_github_demo",
+              "filterEquals": null,
+              "filterPath": null,
+              "id": "rt_disabled",
+              "targetId": "tgt_disabled"
+            }
+          },
+          {
+            "input": {
+              "id": "rt_missing"
+            },
+            "kind": "error",
+            "name": "Disable unknown route",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Returns NotFoundError for an unknown route id",
+            "error": "NotFoundError"
+          }
+        ],
+        "input": {
+          "properties": {
+            "id": {
+              "description": "Route identifier",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "type": "object"
+        },
+        "output": {
+          "properties": {
+            "enabled": {
+              "description": "Whether the route relays events",
+              "type": "boolean"
+            },
+            "endpointId": {
+              "description": "Endpoint the route listens on",
+              "type": "string"
+            },
+            "filterEquals": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Value the payload path must equal for the route to match"
+            },
+            "filterPath": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Dot-separated payload path the filter reads"
+            },
+            "id": {
+              "description": "Route identifier",
+              "type": "string"
+            },
+            "targetId": {
+              "description": "Target the route delivers to",
+              "type": "string"
+            }
+          },
+          "required": [
+            "enabled",
+            "endpointId",
+            "id",
+            "targetId"
+          ],
+          "type": "object"
+        },
+        "permit": {
+          "scopes": [
+            "relay:write"
+          ]
+        },
+        "resources": [
+          "junction.store"
+        ]
+      },
+      {
+        "exampleCount": 2,
+        "id": "route.enable",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "route",
+            "enable"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "route",
+                "enable"
+              ],
+              "source": "derived",
+              "target": "route.enable"
+            }
+          ]
+        },
+        "description": "Resume relaying events across a route",
+        "examples": [
+          {
+            "input": {
+              "id": "rt_toggle_demo"
+            },
+            "kind": "success",
+            "name": "Enable a route",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Enable the seeded toggle demo route"
+          },
+          {
+            "input": {
+              "id": "rt_missing"
+            },
+            "kind": "error",
+            "name": "Enable unknown route",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Returns NotFoundError for an unknown route id",
+            "error": "NotFoundError"
+          }
+        ],
+        "input": {
+          "properties": {
+            "id": {
+              "description": "Route identifier",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "type": "object"
+        },
+        "output": {
+          "properties": {
+            "enabled": {
+              "description": "Whether the route relays events",
+              "type": "boolean"
+            },
+            "endpointId": {
+              "description": "Endpoint the route listens on",
+              "type": "string"
+            },
+            "filterEquals": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Value the payload path must equal for the route to match"
+            },
+            "filterPath": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Dot-separated payload path the filter reads"
+            },
+            "id": {
+              "description": "Route identifier",
+              "type": "string"
+            },
+            "targetId": {
+              "description": "Target the route delivers to",
+              "type": "string"
+            }
+          },
+          "required": [
+            "enabled",
+            "endpointId",
+            "id",
+            "targetId"
+          ],
+          "type": "object"
+        },
+        "permit": {
+          "scopes": [
+            "relay:write"
+          ]
+        },
+        "resources": [
+          "junction.store"
+        ]
+      },
+      {
+        "exampleCount": 2,
+        "id": "route.list",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "route",
+            "list"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "route",
+                "list"
+              ],
+              "source": "derived",
+              "target": "route.list"
+            }
+          ]
+        },
+        "description": "List routes, optionally scoped to one endpoint",
+        "examples": [
+          {
+            "input": {},
+            "kind": "success",
+            "name": "List routes",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "List every route"
+          },
+          {
+            "input": {
+              "endpointId": "ep_stripe_demo"
+            },
+            "kind": "success",
+            "name": "List routes for one endpoint",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "List routes for the seeded Stripe endpoint",
+            "expected": {
+              "routes": [
+                {
+                  "enabled": true,
+                  "endpointId": "ep_stripe_demo",
+                  "filterEquals": "payment_intent.succeeded",
+                  "filterPath": "type",
+                  "id": "rt_stripe_payments",
+                  "targetId": "tgt_logbook"
+                }
+              ]
+            }
+          }
+        ],
+        "input": {
+          "properties": {
+            "endpointId": {
+              "description": "Only list routes bound to this endpoint",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "intent": "read",
+        "output": {
+          "properties": {
+            "routes": {
+              "items": {
+                "properties": {
+                  "enabled": {
+                    "description": "Whether the route relays events",
+                    "type": "boolean"
+                  },
+                  "endpointId": {
+                    "description": "Endpoint the route listens on",
+                    "type": "string"
+                  },
+                  "filterEquals": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null,
+                    "description": "Value the payload path must equal for the route to match"
+                  },
+                  "filterPath": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null,
+                    "description": "Dot-separated payload path the filter reads"
+                  },
+                  "id": {
+                    "description": "Route identifier",
+                    "type": "string"
+                  },
+                  "targetId": {
+                    "description": "Target the route delivers to",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "enabled",
+                  "endpointId",
+                  "id",
+                  "targetId"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "routes"
+          ],
+          "type": "object"
+        },
+        "permit": {
+          "scopes": [
+            "relay:read"
+          ]
+        },
+        "resources": [
+          "junction.store"
+        ]
+      },
+      {
+        "exampleCount": 2,
+        "id": "status.health",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "status",
+            "health"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "status",
+                "health"
+              ],
+              "source": "derived",
+              "target": "status.health"
+            }
+          ]
+        },
+        "description": "Public liveness check",
+        "examples": [
+          {
+            "input": {},
+            "kind": "success",
+            "name": "Health check",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "The relay reports healthy",
+            "expected": {
+              "status": "ok"
+            }
+          },
+          {
+            "input": {},
+            "kind": "success",
+            "name": "Health check again",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Health stays ok on repeated probes",
+            "expected": {
+              "status": "ok"
+            }
+          }
+        ],
+        "input": {
+          "properties": {},
+          "type": "object"
+        },
+        "intent": "read",
+        "output": {
+          "properties": {
+            "status": {
+              "description": "Liveness indicator",
+              "type": "string"
+            }
+          },
+          "required": [
+            "status"
+          ],
+          "type": "object"
+        },
+        "permit": "public"
+      },
+      {
+        "exampleCount": 2,
+        "id": "target.create",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "target",
+            "create"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "target",
+                "create"
+              ],
+              "source": "derived",
+              "target": "target.create"
+            }
+          ]
+        },
+        "description": "Register an outbound delivery target",
+        "examples": [
+          {
+            "input": {
+              "name": "Ops receiver",
+              "url": "https://ops.example.test/hooks"
+            },
+            "kind": "success",
+            "name": "Create a target",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Register a target URL for deliveries"
+          },
+          {
+            "input": {
+              "name": "Audit log",
+              "url": "https://audit.example.test/ingest"
+            },
+            "kind": "success",
+            "name": "Create another target",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Register a second target"
+          }
+        ],
+        "input": {
+          "properties": {
+            "name": {
+              "description": "Human-readable target name",
+              "type": "string"
+            },
+            "url": {
+              "description": "URL deliveries are POSTed to",
+              "type": "string"
+            }
+          },
+          "required": [
+            "name",
+            "url"
+          ],
+          "type": "object"
+        },
+        "output": {
+          "properties": {
+            "enabled": {
+              "description": "Whether the target receives deliveries",
+              "type": "boolean"
+            },
+            "id": {
+              "description": "Target identifier",
+              "type": "string"
+            },
+            "name": {
+              "description": "Human-readable target name",
+              "type": "string"
+            },
+            "url": {
+              "description": "URL deliveries are POSTed to",
+              "type": "string"
+            }
+          },
+          "required": [
+            "enabled",
+            "id",
+            "name",
+            "url"
+          ],
+          "type": "object"
+        },
+        "permit": {
+          "scopes": [
+            "relay:write"
+          ]
+        },
+        "resources": [
+          "junction.store"
+        ]
+      },
+      {
+        "exampleCount": 2,
+        "id": "target.disable",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "target",
+            "disable"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "target",
+                "disable"
+              ],
+              "source": "derived",
+              "target": "target.disable"
+            }
+          ]
+        },
+        "description": "Stop delivering to a target",
+        "examples": [
+          {
+            "input": {
+              "id": "tgt_disabled"
+            },
+            "kind": "success",
+            "name": "Disable a target",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Disable the seeded already-disabled target (idempotent)",
+            "expected": {
+              "enabled": false,
+              "id": "tgt_disabled",
+              "name": "Disabled receiver",
+              "url": "https://targets.junction.test/disabled"
+            }
+          },
+          {
+            "input": {
+              "id": "tgt_missing"
+            },
+            "kind": "error",
+            "name": "Disable unknown target",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Returns NotFoundError for an unknown target id",
+            "error": "NotFoundError"
+          }
+        ],
+        "input": {
+          "properties": {
+            "id": {
+              "description": "Target identifier",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "type": "object"
+        },
+        "output": {
+          "properties": {
+            "enabled": {
+              "description": "Whether the target receives deliveries",
+              "type": "boolean"
+            },
+            "id": {
+              "description": "Target identifier",
+              "type": "string"
+            },
+            "name": {
+              "description": "Human-readable target name",
+              "type": "string"
+            },
+            "url": {
+              "description": "URL deliveries are POSTed to",
+              "type": "string"
+            }
+          },
+          "required": [
+            "enabled",
+            "id",
+            "name",
+            "url"
+          ],
+          "type": "object"
+        },
+        "permit": {
+          "scopes": [
+            "relay:write"
+          ]
+        },
+        "resources": [
+          "junction.store"
+        ]
+      },
+      {
+        "exampleCount": 2,
+        "id": "target.get",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "target",
+            "get"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "target",
+                "get"
+              ],
+              "source": "derived",
+              "target": "target.get"
+            }
+          ]
+        },
+        "description": "Show one delivery target",
+        "examples": [
+          {
+            "input": {
+              "id": "tgt_logbook"
+            },
+            "kind": "success",
+            "name": "Get a target",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Look up the seeded logbook target",
+            "expected": {
+              "enabled": true,
+              "id": "tgt_logbook",
+              "name": "Logbook receiver",
+              "url": "https://targets.junction.test/logbook"
+            }
+          },
+          {
+            "input": {
+              "id": "tgt_missing"
+            },
+            "kind": "error",
+            "name": "Target not found",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Returns NotFoundError for an unknown target id",
+            "error": "NotFoundError"
+          }
+        ],
+        "input": {
+          "properties": {
+            "id": {
+              "description": "Target identifier",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "type": "object"
+        },
+        "intent": "read",
+        "output": {
+          "properties": {
+            "enabled": {
+              "description": "Whether the target receives deliveries",
+              "type": "boolean"
+            },
+            "id": {
+              "description": "Target identifier",
+              "type": "string"
+            },
+            "name": {
+              "description": "Human-readable target name",
+              "type": "string"
+            },
+            "url": {
+              "description": "URL deliveries are POSTed to",
+              "type": "string"
+            }
+          },
+          "required": [
+            "enabled",
+            "id",
+            "name",
+            "url"
+          ],
+          "type": "object"
+        },
+        "permit": {
+          "scopes": [
+            "relay:read"
+          ]
+        },
+        "resources": [
+          "junction.store"
+        ]
+      },
+      {
+        "exampleCount": 2,
+        "id": "target.list",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "target",
+            "list"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "target",
+                "list"
+              ],
+              "source": "derived",
+              "target": "target.list"
+            }
+          ]
+        },
+        "description": "List registered delivery targets",
+        "examples": [
+          {
+            "input": {},
+            "kind": "success",
+            "name": "List targets",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "List every registered target"
+          },
+          {
+            "input": {},
+            "kind": "success",
+            "name": "List targets again",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Listing is stable when called repeatedly"
+          }
+        ],
+        "input": {
+          "properties": {},
+          "type": "object"
+        },
+        "intent": "read",
+        "output": {
+          "properties": {
+            "targets": {
+              "items": {
+                "properties": {
+                  "enabled": {
+                    "description": "Whether the target receives deliveries",
+                    "type": "boolean"
+                  },
+                  "id": {
+                    "description": "Target identifier",
+                    "type": "string"
+                  },
+                  "name": {
+                    "description": "Human-readable target name",
+                    "type": "string"
+                  },
+                  "url": {
+                    "description": "URL deliveries are POSTed to",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "enabled",
+                  "id",
+                  "name",
+                  "url"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "targets"
+          ],
+          "type": "object"
+        },
+        "permit": {
+          "scopes": [
+            "relay:read"
+          ]
+        },
+        "resources": [
+          "junction.store"
+        ]
+      },
+      {
+        "exampleCount": 2,
+        "id": "target.test",
+        "kind": "trail",
+        "surfaces": [],
+        "cli": {
+          "path": [
+            "target",
+            "test"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "target",
+                "test"
+              ],
+              "source": "derived",
+              "target": "target.test"
+            }
+          ]
+        },
+        "composes": [
+          "delivery.send"
+        ],
+        "description": "Send a ping payload through the real delivery path",
+        "examples": [
+          {
+            "input": {
+              "id": "tgt_logbook"
+            },
+            "kind": "success",
+            "name": "Test a reachable target",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Ping the reachable logbook target",
+            "expected": {
+              "delivered": true,
+              "targetId": "tgt_logbook"
+            }
+          },
+          {
+            "input": {
+              "id": "tgt_missing"
+            },
+            "kind": "error",
+            "name": "Test unknown target",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Returns NotFoundError for an unknown target id",
+            "error": "NotFoundError"
+          }
+        ],
+        "input": {
+          "properties": {
+            "id": {
+              "description": "Target identifier",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "type": "object"
+        },
+        "output": {
+          "properties": {
+            "delivered": {
+              "description": "Whether the ping was delivered",
+              "type": "boolean"
+            },
+            "targetId": {
+              "description": "Target that received the ping",
+              "type": "string"
+            }
+          },
+          "required": [
+            "delivered",
+            "targetId"
+          ],
+          "type": "object"
+        },
+        "permit": {
+          "scopes": [
+            "relay:write"
+          ]
+        },
+        "resources": [
+          "junction.store"
+        ]
+      },
+      {
+        "exampleCount": 5,
+        "id": "webhook.receive",
+        "kind": "trail",
+        "surfaces": [],
+        "activationSources": [
+          {
+            "source": {
+              "hasParse": true,
+              "id": "webhook.inbound",
+              "key": "webhook:webhook.inbound",
+              "kind": "webhook",
+              "method": "POST",
+              "parseOutputSchema": {
+                "properties": {
+                  "endpointId": {
+                    "description": "Endpoint the webhook was addressed to",
+                    "type": "string"
+                  },
+                  "headers": {
+                    "description": "Inbound request headers (lowercased names)"
+                  },
+                  "rawBody": {
+                    "description": "Exact raw request body the sender signed",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "endpointId",
+                  "headers",
+                  "rawBody"
+                ],
+                "type": "object"
+              },
+              "path": "/hooks/:endpointId"
+            }
+          }
+        ],
+        "cli": {
+          "path": [
+            "webhook",
+            "receive"
+          ],
+          "routes": [
+            {
+              "kind": "canonical",
+              "path": [
+                "webhook",
+                "receive"
+              ],
+              "source": "derived",
+              "target": "webhook.receive"
+            }
+          ]
+        },
+        "description": "Receive a webhook, verify its HMAC signature over the raw body, record the event, and fire event.received",
+        "examples": [
+          {
+            "input": {
+              "endpointId": "ep_github_demo",
+              "headers": {
+                "x-github-event": "ping",
+                "x-hub-signature-256": "sha256=81a7433d2a01f5cc903dfe82dab32559f4fef3203a0e8c1da4eea0ff07ed701a"
+              },
+              "rawBody": "{\"zen\":\"Design for failure.\"}"
+            },
+            "kind": "success",
+            "name": "Valid GitHub webhook",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Valid GitHub delivery signed with the endpoint secret (GitHub's published docs vector)"
+          },
+          {
+            "input": {
+              "endpointId": "ep_stripe_demo",
+              "headers": {
+                "stripe-signature": "t=1751500000,v1=431b963fbb5a3d5152ae923741576fe1503dc213c25473d61487007b001fec54"
+              },
+              "rawBody": "{\"id\":\"evt_123\",\"type\":\"payment_intent.succeeded\"}"
+            },
+            "kind": "success",
+            "name": "Valid Stripe webhook",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Valid Stripe delivery with a timestamped v1 signature"
+          },
+          {
+            "input": {
+              "endpointId": "ep_generic_demo",
+              "headers": {
+                "x-junction-signature": "4a226af3f20e3c5b45acafa69811a392be579d5ad5e6dfade7285b9a33b08aa8"
+              },
+              "rawBody": "{\"event\":\"ping\",\"ok\":true}"
+            },
+            "kind": "success",
+            "name": "Valid generic webhook",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Valid generic HMAC-SHA256 delivery"
+          },
+          {
+            "input": {
+              "endpointId": "ep_github_demo",
+              "headers": {
+                "x-hub-signature-256": "sha256=0000000000000000000000000000000000000000000000000000000000000000"
+              },
+              "rawBody": "{\"zen\":\"Design for failure.\"}"
+            },
+            "kind": "error",
+            "name": "Invalid signature",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "A tampered signature is rejected with AuthError and recorded with signatureValid: false",
+            "error": "AuthError"
+          },
+          {
+            "input": {
+              "endpointId": "ep_missing",
+              "headers": {},
+              "rawBody": "{}"
+            },
+            "kind": "error",
+            "name": "Unknown endpoint",
+            "provenance": {
+              "source": "trail.examples"
+            },
+            "description": "Unknown endpoints return NotFoundError",
+            "error": "NotFoundError"
+          }
+        ],
+        "fires": [
+          "event.received"
+        ],
+        "input": {
+          "properties": {
+            "endpointId": {
+              "description": "Endpoint the webhook was addressed to",
+              "type": "string"
+            },
+            "headers": {
+              "description": "Inbound request headers (lowercased names)"
+            },
+            "rawBody": {
+              "description": "Exact raw request body the sender signed",
+              "type": "string"
+            }
+          },
+          "required": [
+            "endpointId",
+            "headers",
+            "rawBody"
+          ],
+          "type": "object"
+        },
+        "output": {
+          "properties": {
+            "eventId": {
+              "description": "Stored event identifier",
+              "type": "string"
+            },
+            "signatureValid": {
+              "description": "Whether the signature verified against the endpoint secret",
+              "type": "boolean"
+            },
+            "status": {
+              "description": "Initial relay status of the event",
+              "type": "string"
+            }
+          },
+          "required": [
+            "eventId",
+            "signatureValid",
+            "status"
+          ],
+          "type": "object"
+        },
+        "permit": "public",
+        "resources": [
+          "junction.store"
+        ]
+      }
+    ],
+    "library": {
+      "app": "junction",
+      "collisions": [],
+      "excluded": [
+        {
+          "reason": "internal",
+          "trailId": "delivery.send"
+        },
+        {
+          "reason": "activation",
+          "trailId": "relay.dispatch"
+        },
+        {
+          "reason": "activation",
+          "trailId": "webhook.receive"
+        }
+      ],
+      "exports": [
+        {
+          "description": "List deliveries filtered by status or target",
+          "exportName": "deliveryList",
+          "input": {
+            "properties": {
+              "status": {
+                "description": "Outcome of the delivery",
+                "enum": [
+                  "pending",
+                  "delivered",
+                  "failed"
+                ],
+                "type": "string"
+              },
+              "targetId": {
+                "description": "Only deliveries to this target",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "intent": "read",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "hasMore": {
+                "description": "Whether more items exist beyond this window",
+                "type": "boolean"
+              },
+              "items": {
+                "description": "Items in the current window",
+                "items": {
+                  "properties": {
+                    "attempts": {
+                      "description": "POST attempts made so far",
+                      "type": "number"
+                    },
+                    "eventId": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "default": null,
+                      "description": "Event the delivery carries; null for target test pings"
+                    },
+                    "id": {
+                      "description": "Delivery identifier",
+                      "type": "string"
+                    },
+                    "lastError": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "default": null,
+                      "description": "Most recent delivery error, when any attempt failed"
+                    },
+                    "status": {
+                      "description": "Outcome of the delivery",
+                      "enum": [
+                        "pending",
+                        "delivered",
+                        "failed"
+                      ],
+                      "type": "string"
+                    },
+                    "targetId": {
+                      "description": "Target the delivery POSTs to",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "attempts",
+                    "id",
+                    "status",
+                    "targetId"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "total": {
+                "description": "Total matching items before windowing",
+                "type": "number"
+              }
+            },
+            "required": [
+              "hasMore",
+              "items",
+              "total"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "junction.store"
+          ],
+          "trailId": "delivery.list"
+        },
+        {
+          "description": "Re-send one failed delivery through the delivery path",
+          "exportName": "deliveryRetry",
+          "input": {
+            "properties": {
+              "id": {
+                "description": "Delivery identifier",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "type": "object"
+          },
+          "intent": "write",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "attempts": {
+                "description": "POST attempts made so far",
+                "type": "number"
+              },
+              "eventId": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Event the delivery carries; null for target test pings"
+              },
+              "id": {
+                "description": "Delivery identifier",
+                "type": "string"
+              },
+              "lastError": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Most recent delivery error, when any attempt failed"
+              },
+              "status": {
+                "description": "Outcome of the delivery",
+                "enum": [
+                  "pending",
+                  "delivered",
+                  "failed"
+                ],
+                "type": "string"
+              },
+              "targetId": {
+                "description": "Target the delivery POSTs to",
+                "type": "string"
+              }
+            },
+            "required": [
+              "attempts",
+              "id",
+              "status",
+              "targetId"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "junction.store"
+          ],
+          "trailId": "delivery.retry"
+        },
+        {
+          "description": "Register an inbound endpoint; returns the signing secret exactly once",
+          "exportName": "endpointCreate",
+          "input": {
+            "properties": {
+              "name": {
+                "description": "Human-readable endpoint name",
+                "type": "string"
+              },
+              "source": {
+                "description": "Webhook source type the endpoint verifies against",
+                "enum": [
+                  "github",
+                  "stripe",
+                  "generic-hmac"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "source"
+            ],
+            "type": "object"
+          },
+          "intent": "write",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "createdAt": {
+                "description": "ISO-8601 creation timestamp",
+                "type": "string"
+              },
+              "enabled": {
+                "description": "Whether the endpoint accepts webhooks",
+                "type": "boolean"
+              },
+              "id": {
+                "description": "Endpoint identifier",
+                "type": "string"
+              },
+              "name": {
+                "description": "Human-readable endpoint name",
+                "type": "string"
+              },
+              "secret": {
+                "description": "HMAC secret senders sign payloads with",
+                "type": "string"
+              },
+              "source": {
+                "description": "Webhook source type the endpoint verifies against",
+                "enum": [
+                  "github",
+                  "stripe",
+                  "generic-hmac"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "createdAt",
+              "enabled",
+              "id",
+              "name",
+              "secret",
+              "source"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "junction.store"
+          ],
+          "trailId": "endpoint.create"
+        },
+        {
+          "description": "Stop accepting webhooks on an endpoint",
+          "exportName": "endpointDisable",
+          "input": {
+            "properties": {
+              "id": {
+                "description": "Endpoint identifier",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "type": "object"
+          },
+          "intent": "write",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "createdAt": {
+                "description": "ISO-8601 creation timestamp",
+                "type": "string"
+              },
+              "enabled": {
+                "description": "Whether the endpoint accepts webhooks",
+                "type": "boolean"
+              },
+              "id": {
+                "description": "Endpoint identifier",
+                "type": "string"
+              },
+              "name": {
+                "description": "Human-readable endpoint name",
+                "type": "string"
+              },
+              "source": {
+                "description": "Webhook source type the endpoint verifies against",
+                "enum": [
+                  "github",
+                  "stripe",
+                  "generic-hmac"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "createdAt",
+              "enabled",
+              "id",
+              "name",
+              "source"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "junction.store"
+          ],
+          "trailId": "endpoint.disable"
+        },
+        {
+          "description": "Show one endpoint with its secret redacted",
+          "exportName": "endpointGet",
+          "input": {
+            "properties": {
+              "id": {
+                "description": "Endpoint identifier",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "type": "object"
+          },
+          "intent": "read",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "createdAt": {
+                "description": "ISO-8601 creation timestamp",
+                "type": "string"
+              },
+              "enabled": {
+                "description": "Whether the endpoint accepts webhooks",
+                "type": "boolean"
+              },
+              "id": {
+                "description": "Endpoint identifier",
+                "type": "string"
+              },
+              "name": {
+                "description": "Human-readable endpoint name",
+                "type": "string"
+              },
+              "source": {
+                "description": "Webhook source type the endpoint verifies against",
+                "enum": [
+                  "github",
+                  "stripe",
+                  "generic-hmac"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "createdAt",
+              "enabled",
+              "id",
+              "name",
+              "source"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "junction.store"
+          ],
+          "trailId": "endpoint.get"
+        },
+        {
+          "description": "List registered endpoints with secrets redacted",
+          "exportName": "endpointList",
+          "input": {
+            "properties": {},
+            "type": "object"
+          },
+          "intent": "read",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "endpoints": {
+                "items": {
+                  "properties": {
+                    "createdAt": {
+                      "description": "ISO-8601 creation timestamp",
+                      "type": "string"
+                    },
+                    "enabled": {
+                      "description": "Whether the endpoint accepts webhooks",
+                      "type": "boolean"
+                    },
+                    "id": {
+                      "description": "Endpoint identifier",
+                      "type": "string"
+                    },
+                    "name": {
+                      "description": "Human-readable endpoint name",
+                      "type": "string"
+                    },
+                    "source": {
+                      "description": "Webhook source type the endpoint verifies against",
+                      "enum": [
+                        "github",
+                        "stripe",
+                        "generic-hmac"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "createdAt",
+                    "enabled",
+                    "id",
+                    "name",
+                    "source"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "endpoints"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "junction.store"
+          ],
+          "trailId": "endpoint.list"
+        },
+        {
+          "description": "Rotate an endpoint secret; the new secret is returned exactly once and previously stored events are unaffected",
+          "exportName": "endpointRotateSecret",
+          "input": {
+            "properties": {
+              "id": {
+                "description": "Endpoint identifier",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "type": "object"
+          },
+          "intent": "write",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "createdAt": {
+                "description": "ISO-8601 creation timestamp",
+                "type": "string"
+              },
+              "enabled": {
+                "description": "Whether the endpoint accepts webhooks",
+                "type": "boolean"
+              },
+              "id": {
+                "description": "Endpoint identifier",
+                "type": "string"
+              },
+              "name": {
+                "description": "Human-readable endpoint name",
+                "type": "string"
+              },
+              "secret": {
+                "description": "HMAC secret senders sign payloads with",
+                "type": "string"
+              },
+              "source": {
+                "description": "Webhook source type the endpoint verifies against",
+                "enum": [
+                  "github",
+                  "stripe",
+                  "generic-hmac"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "createdAt",
+              "enabled",
+              "id",
+              "name",
+              "secret",
+              "source"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "junction.store"
+          ],
+          "trailId": "endpoint.rotate-secret"
+        },
+        {
+          "description": "Show one stored event including its payload and headers",
+          "exportName": "eventGet",
+          "input": {
+            "properties": {
+              "id": {
+                "description": "Event identifier",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "type": "object"
+          },
+          "intent": "read",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "endpointId": {
+                "description": "Endpoint that received the event",
+                "type": "string"
+              },
+              "headers": {
+                "description": "Allowlisted subset of the inbound request headers",
+                "properties": {},
+                "type": "object"
+              },
+              "id": {
+                "description": "Event identifier",
+                "type": "string"
+              },
+              "payload": {
+                "description": "JSON payload the sender delivered",
+                "properties": {},
+                "type": "object"
+              },
+              "receivedAt": {
+                "description": "ISO-8601 receipt timestamp",
+                "type": "string"
+              },
+              "signatureValid": {
+                "description": "Whether the inbound signature verified against the secret",
+                "type": "boolean"
+              },
+              "status": {
+                "description": "Relay lifecycle status of the event",
+                "enum": [
+                  "received",
+                  "relayed",
+                  "dead"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "endpointId",
+              "headers",
+              "id",
+              "payload",
+              "receivedAt",
+              "signatureValid",
+              "status"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "junction.store"
+          ],
+          "trailId": "event.get"
+        },
+        {
+          "description": "List received events, newest first, filtered by endpoint, status, or receipt time",
+          "exportName": "eventList",
+          "input": {
+            "properties": {
+              "endpointId": {
+                "description": "Only events received on this endpoint",
+                "type": "string"
+              },
+              "since": {
+                "description": "Only events received at or after this ISO-8601 timestamp",
+                "type": "string"
+              },
+              "status": {
+                "description": "Relay lifecycle status of the event",
+                "enum": [
+                  "received",
+                  "relayed",
+                  "dead"
+                ],
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "intent": "read",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "hasMore": {
+                "description": "Whether more items exist beyond this window",
+                "type": "boolean"
+              },
+              "items": {
+                "description": "Items in the current window",
+                "items": {
+                  "properties": {
+                    "endpointId": {
+                      "description": "Endpoint that received the event",
+                      "type": "string"
+                    },
+                    "headers": {
+                      "description": "Allowlisted subset of the inbound request headers",
+                      "properties": {},
+                      "type": "object"
+                    },
+                    "id": {
+                      "description": "Event identifier",
+                      "type": "string"
+                    },
+                    "payload": {
+                      "description": "JSON payload the sender delivered",
+                      "properties": {},
+                      "type": "object"
+                    },
+                    "receivedAt": {
+                      "description": "ISO-8601 receipt timestamp",
+                      "type": "string"
+                    },
+                    "signatureValid": {
+                      "description": "Whether the inbound signature verified against the secret",
+                      "type": "boolean"
+                    },
+                    "status": {
+                      "description": "Relay lifecycle status of the event",
+                      "enum": [
+                        "received",
+                        "relayed",
+                        "dead"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "endpointId",
+                    "headers",
+                    "id",
+                    "payload",
+                    "receivedAt",
+                    "signatureValid",
+                    "status"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "total": {
+                "description": "Total matching items before windowing",
+                "type": "number"
+              }
+            },
+            "required": [
+              "hasMore",
+              "items",
+              "total"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "junction.store"
+          ],
+          "trailId": "event.list"
+        },
+        {
+          "description": "Re-fire event.received for one stored event",
+          "exportName": "eventReplay",
+          "input": {
+            "properties": {
+              "id": {
+                "description": "Event identifier to replay",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "type": "object"
+          },
+          "intent": "write",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "eventId": {
+                "description": "Event that was replayed",
+                "type": "string"
+              },
+              "replayed": {
+                "description": "Whether the signal fired",
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "eventId",
+              "replayed"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "junction.store"
+          ],
+          "trailId": "event.replay"
+        },
+        {
+          "description": "Bind an endpoint to a target with an optional payload filter",
+          "exportName": "routeCreate",
+          "input": {
+            "properties": {
+              "endpointId": {
+                "description": "Endpoint the route listens on",
+                "type": "string"
+              },
+              "filterEquals": {
+                "description": "Value the payload path must equal for the route to match",
+                "type": "string"
+              },
+              "filterPath": {
+                "description": "Dot-separated payload path the filter reads",
+                "type": "string"
+              },
+              "targetId": {
+                "description": "Target the route delivers to",
+                "type": "string"
+              }
+            },
+            "required": [
+              "endpointId",
+              "targetId"
+            ],
+            "type": "object"
+          },
+          "intent": "write",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "enabled": {
+                "description": "Whether the route relays events",
+                "type": "boolean"
+              },
+              "endpointId": {
+                "description": "Endpoint the route listens on",
+                "type": "string"
+              },
+              "filterEquals": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Value the payload path must equal for the route to match"
+              },
+              "filterPath": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Dot-separated payload path the filter reads"
+              },
+              "id": {
+                "description": "Route identifier",
+                "type": "string"
+              },
+              "targetId": {
+                "description": "Target the route delivers to",
+                "type": "string"
+              }
+            },
+            "required": [
+              "enabled",
+              "endpointId",
+              "id",
+              "targetId"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "junction.store"
+          ],
+          "trailId": "route.create"
+        },
+        {
+          "description": "Pause relaying events across a route",
+          "exportName": "routeDisable",
+          "input": {
+            "properties": {
+              "id": {
+                "description": "Route identifier",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "type": "object"
+          },
+          "intent": "write",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "enabled": {
+                "description": "Whether the route relays events",
+                "type": "boolean"
+              },
+              "endpointId": {
+                "description": "Endpoint the route listens on",
+                "type": "string"
+              },
+              "filterEquals": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Value the payload path must equal for the route to match"
+              },
+              "filterPath": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Dot-separated payload path the filter reads"
+              },
+              "id": {
+                "description": "Route identifier",
+                "type": "string"
+              },
+              "targetId": {
+                "description": "Target the route delivers to",
+                "type": "string"
+              }
+            },
+            "required": [
+              "enabled",
+              "endpointId",
+              "id",
+              "targetId"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "junction.store"
+          ],
+          "trailId": "route.disable"
+        },
+        {
+          "description": "Resume relaying events across a route",
+          "exportName": "routeEnable",
+          "input": {
+            "properties": {
+              "id": {
+                "description": "Route identifier",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "type": "object"
+          },
+          "intent": "write",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "enabled": {
+                "description": "Whether the route relays events",
+                "type": "boolean"
+              },
+              "endpointId": {
+                "description": "Endpoint the route listens on",
+                "type": "string"
+              },
+              "filterEquals": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Value the payload path must equal for the route to match"
+              },
+              "filterPath": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Dot-separated payload path the filter reads"
+              },
+              "id": {
+                "description": "Route identifier",
+                "type": "string"
+              },
+              "targetId": {
+                "description": "Target the route delivers to",
+                "type": "string"
+              }
+            },
+            "required": [
+              "enabled",
+              "endpointId",
+              "id",
+              "targetId"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "junction.store"
+          ],
+          "trailId": "route.enable"
+        },
+        {
+          "description": "List routes, optionally scoped to one endpoint",
+          "exportName": "routeList",
+          "input": {
+            "properties": {
+              "endpointId": {
+                "description": "Only list routes bound to this endpoint",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "intent": "read",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "routes": {
+                "items": {
+                  "properties": {
+                    "enabled": {
+                      "description": "Whether the route relays events",
+                      "type": "boolean"
+                    },
+                    "endpointId": {
+                      "description": "Endpoint the route listens on",
+                      "type": "string"
+                    },
+                    "filterEquals": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "default": null,
+                      "description": "Value the payload path must equal for the route to match"
+                    },
+                    "filterPath": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "default": null,
+                      "description": "Dot-separated payload path the filter reads"
+                    },
+                    "id": {
+                      "description": "Route identifier",
+                      "type": "string"
+                    },
+                    "targetId": {
+                      "description": "Target the route delivers to",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "enabled",
+                    "endpointId",
+                    "id",
+                    "targetId"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "routes"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "junction.store"
+          ],
+          "trailId": "route.list"
+        },
+        {
+          "description": "Public liveness check",
+          "exportName": "statusHealth",
+          "input": {
+            "properties": {},
+            "type": "object"
+          },
+          "intent": "read",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "status": {
+                "description": "Liveness indicator",
+                "type": "string"
+              }
+            },
+            "required": [
+              "status"
+            ],
+            "type": "object"
+          },
+          "resources": [],
+          "trailId": "status.health"
+        },
+        {
+          "description": "Register an outbound delivery target",
+          "exportName": "targetCreate",
+          "input": {
+            "properties": {
+              "name": {
+                "description": "Human-readable target name",
+                "type": "string"
+              },
+              "url": {
+                "description": "URL deliveries are POSTed to",
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "url"
+            ],
+            "type": "object"
+          },
+          "intent": "write",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "enabled": {
+                "description": "Whether the target receives deliveries",
+                "type": "boolean"
+              },
+              "id": {
+                "description": "Target identifier",
+                "type": "string"
+              },
+              "name": {
+                "description": "Human-readable target name",
+                "type": "string"
+              },
+              "url": {
+                "description": "URL deliveries are POSTed to",
+                "type": "string"
+              }
+            },
+            "required": [
+              "enabled",
+              "id",
+              "name",
+              "url"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "junction.store"
+          ],
+          "trailId": "target.create"
+        },
+        {
+          "description": "Stop delivering to a target",
+          "exportName": "targetDisable",
+          "input": {
+            "properties": {
+              "id": {
+                "description": "Target identifier",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "type": "object"
+          },
+          "intent": "write",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "enabled": {
+                "description": "Whether the target receives deliveries",
+                "type": "boolean"
+              },
+              "id": {
+                "description": "Target identifier",
+                "type": "string"
+              },
+              "name": {
+                "description": "Human-readable target name",
+                "type": "string"
+              },
+              "url": {
+                "description": "URL deliveries are POSTed to",
+                "type": "string"
+              }
+            },
+            "required": [
+              "enabled",
+              "id",
+              "name",
+              "url"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "junction.store"
+          ],
+          "trailId": "target.disable"
+        },
+        {
+          "description": "Show one delivery target",
+          "exportName": "targetGet",
+          "input": {
+            "properties": {
+              "id": {
+                "description": "Target identifier",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "type": "object"
+          },
+          "intent": "read",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "enabled": {
+                "description": "Whether the target receives deliveries",
+                "type": "boolean"
+              },
+              "id": {
+                "description": "Target identifier",
+                "type": "string"
+              },
+              "name": {
+                "description": "Human-readable target name",
+                "type": "string"
+              },
+              "url": {
+                "description": "URL deliveries are POSTed to",
+                "type": "string"
+              }
+            },
+            "required": [
+              "enabled",
+              "id",
+              "name",
+              "url"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "junction.store"
+          ],
+          "trailId": "target.get"
+        },
+        {
+          "description": "List registered delivery targets",
+          "exportName": "targetList",
+          "input": {
+            "properties": {},
+            "type": "object"
+          },
+          "intent": "read",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "targets": {
+                "items": {
+                  "properties": {
+                    "enabled": {
+                      "description": "Whether the target receives deliveries",
+                      "type": "boolean"
+                    },
+                    "id": {
+                      "description": "Target identifier",
+                      "type": "string"
+                    },
+                    "name": {
+                      "description": "Human-readable target name",
+                      "type": "string"
+                    },
+                    "url": {
+                      "description": "URL deliveries are POSTed to",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "enabled",
+                    "id",
+                    "name",
+                    "url"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "targets"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "junction.store"
+          ],
+          "trailId": "target.list"
+        },
+        {
+          "description": "Send a ping payload through the real delivery path",
+          "exportName": "targetTest",
+          "input": {
+            "properties": {
+              "id": {
+                "description": "Target identifier",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "type": "object"
+          },
+          "intent": "write",
+          "nameSource": "derived",
+          "output": {
+            "properties": {
+              "delivered": {
+                "description": "Whether the ping was delivered",
+                "type": "boolean"
+              },
+              "targetId": {
+                "description": "Target that received the ping",
+                "type": "string"
+              }
+            },
+            "required": [
+              "delivered",
+              "targetId"
+            ],
+            "type": "object"
+          },
+          "resources": [
+            "junction.store"
+          ],
+          "trailId": "target.test"
+        }
+      ]
+    },
+    "topoGraphSchemaVersion": 3
+  },
+  "topoGraphHash": "439544b77dc76149335579da3348ae608b11f342b4f5870b4ccf754cc056b0ac",
+  "version": 4
+}
