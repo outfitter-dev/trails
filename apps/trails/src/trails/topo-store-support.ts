@@ -26,6 +26,7 @@ import type { StoredTopoExport } from '@ontrails/topographer/backend-support';
 import {
   annotateTopoGraphForces,
   carryForwardTopoGraphForces,
+  deriveSourceFingerprint,
   deriveTopoGraphDiff,
   deriveTopoGraphHash,
   readTopoGraph,
@@ -60,6 +61,7 @@ const persistAndReadStoredExport = (
 > => {
   const snapshotResult = createStoredTopoSnapshot(db, app, {
     cliAliases: options?.cliAliases,
+    sourceFingerprint: deriveSourceFingerprint(rootDir),
     ...readGitState(rootDir),
     ...deriveTopoCounts(app),
   });
@@ -219,6 +221,10 @@ const writeStoredExportArtifacts = async (
   const lockManifest = JSON.parse(
     storedExport.lockManifestJson
   ) as LockManifest;
+  // Omit wallclock provenance from the committed artifact so recompiling the
+  // same sources yields byte-identical lock files; the hash never covered it.
+  const { generatedAt: _generatedAt, ...committedTopoGraph } =
+    prepared.topoGraph;
   const lockPath = await writeTrailsLock(
     {
       scope: lockManifest.scope,
@@ -236,7 +242,7 @@ const writeStoredExportArtifacts = async (
           (entry) => entry.kind === 'trail'
         ).length,
       },
-      topoGraph: prepared.topoGraph,
+      topoGraph: committedTopoGraph,
       topoGraphHash: prepared.hash,
       version: 4,
     } as TrailsLock,

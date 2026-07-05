@@ -1276,7 +1276,12 @@ describe('deriveTopoGraph', () => {
       const tp = topoFrom({ t });
       const map = deriveTopoGraph(tp);
 
-      expect(new Date(map.generatedAt).toISOString()).toBe(map.generatedAt);
+      expect(map.generatedAt).toBeDefined();
+      expect(
+        map.generatedAt === undefined
+          ? undefined
+          : new Date(map.generatedAt).toISOString()
+      ).toBe(map.generatedAt);
     });
   });
 

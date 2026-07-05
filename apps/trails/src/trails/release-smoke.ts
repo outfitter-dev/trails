@@ -14,7 +14,8 @@ const releaseSmokeInputSchema = z.object({
 });
 
 const releaseSmokeCheckResultSchema = z.object({
-  check: z.enum(['packed-artifacts', 'wayfinder-dogfood']),
+  check: z.enum(['lock-roundtrip', 'packed-artifacts', 'wayfinder-dogfood']),
+  lockCount: z.number().optional(),
   message: z.string(),
   packageCount: z.number().optional(),
   passed: z.literal(true),

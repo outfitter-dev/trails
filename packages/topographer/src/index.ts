@@ -19,6 +19,7 @@ export type {
   TrailActivationReport,
 } from './activation-report.js';
 export { deriveTopoGraphHash } from './hash.js';
+export { deriveSourceFingerprint } from './source-fingerprint.js';
 export { deriveTopoGraphDiff } from './diff.js';
 export {
   annotateTopoGraphForces,

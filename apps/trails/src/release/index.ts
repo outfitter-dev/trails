@@ -128,6 +128,11 @@ export {
   type ReleaseSmokeResult,
 } from './smoke.js';
 export {
+  runLockRoundtripSmoke,
+  type LockRoundtripSmokeOptions,
+  type LockRoundtripSmokeResult,
+} from './lock-roundtrip-smoke.js';
+export {
   runPackedArtifactsSmoke,
   type PackedArtifactsSmokeResult,
 } from './packed-artifacts-smoke.js';

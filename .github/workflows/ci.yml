@@ -106,6 +106,9 @@ jobs:
       - name: ADR check
         run: bun scripts/adr.ts check
 
+      - name: Lock round-trip
+        run: bun run lock:roundtrip
+
   changeset:
     name: Changeset
     if: github.event_name == 'pull_request'

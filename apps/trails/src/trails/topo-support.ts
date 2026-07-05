@@ -29,6 +29,7 @@ export const topoSnapshotOutput = z.object({
   pinnedAs: z.string().optional(),
   resourceCount: z.number(),
   signalCount: z.number(),
+  sourceFingerprint: z.string().optional(),
   trailCount: z.number(),
 });
 

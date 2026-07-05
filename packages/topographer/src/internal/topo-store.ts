@@ -29,6 +29,7 @@ import type {
 
 import { addPermitRequirement } from '../permit.js';
 import { collectLibraryProjection } from '../library-projection.js';
+import { deriveStableHash } from '../hash.js';
 import { TOPO_GRAPH_SCHEMA_VERSION } from '../types.js';
 import { projectTrailVersions } from '../versioning.js';
 import type {
@@ -349,8 +350,6 @@ const hashText = (text: string): string => {
   hasher.update(text);
   return hasher.digest('hex');
 };
-
-const hashValue = (value: unknown): string => hashText(stableJson(value));
 
 const parseJsonRecord = (value: string): JsonRecord =>
   JSON.parse(value) as JsonRecord;
@@ -675,44 +674,20 @@ const normalizeTopoProjection = (
 };
 
 /**
- * Look up a cached JSON schema by content hash.
+ * Materialize the JSON Schema row for an owner, always generating fresh
+ * output from the live Zod schema.
  *
- * The query matches on `zod_hash` without filtering by `snapshot_id` because the
- * cache is intentionally compose-snapshot: if the Zod schema definition has not
- * changed (same hash), the serialized JSON Schema is reused regardless of
- * which snapshot produced it. This is safe as long as `zodToJsonSchema` is
- * deterministic for a given `_def` hash — the `schemaDefinitionHash` pipeline
- * guarantees that structurally identical schemas produce the same hash.
+ * Earlier revisions reused a previously stored `json_schema` when the
+ * `zod_hash` matched, across all snapshots in the store. That hash is
+ * computed from `JSON.stringify` over the Zod definition, which cannot see
+ * `.describe()` metadata or object field order, so schema edits that change
+ * the generated JSON Schema could keep serving pre-edit bytes and make a
+ * freshly compiled lock diverge from a fresh derivation (TRL-1191). The
+ * `zod_hash` column remains as per-snapshot provenance only — it is never
+ * a substitute for generation.
  */
-const readCachedJsonSchema = (
-  db: Database,
-  ownerId: string,
-  ownerKind: TopoSchemaRow['ownerKind'],
-  schemaKind: TopoSchemaRow['schemaKind'],
-  zodHash: string
-): string | undefined => {
-  const row = db
-    .query<
-      {
-        readonly json_schema: string;
-      },
-      [string, string, string, string]
-    >(
-      `SELECT json_schema
-       FROM topo_schemas
-       WHERE owner_id = ?
-         AND owner_kind = ?
-         AND schema_kind = ?
-         AND zod_hash = ?
-       LIMIT 1`
-    )
-    .get(ownerId, ownerKind, schemaKind, zodHash);
-
-  return row?.json_schema;
-};
-
 const resolveSchemaRow = (
-  db: Database,
+  _db: Database,
   ownerId: string,
   ownerKind: TopoSchemaRow['ownerKind'],
   snapshotId: string,
@@ -723,28 +698,6 @@ const resolveSchemaRow = (
   readonly value: JsonRecord;
 } => {
   const zodHash = schemaDefinitionHash(schema);
-  const cachedJson = readCachedJsonSchema(
-    db,
-    ownerId,
-    ownerKind,
-    schemaKind,
-    zodHash
-  );
-
-  if (cachedJson !== undefined) {
-    return {
-      row: {
-        jsonSchema: cachedJson,
-        ownerId,
-        ownerKind,
-        schemaKind,
-        snapshotId,
-        zodHash,
-      },
-      value: parseJsonRecord(cachedJson),
-    };
-  }
-
   const generated = sortedJsonSchema(schema);
   return {
     row: {
@@ -1336,8 +1289,10 @@ const buildTopoGraph = (
 };
 
 const hashTopoGraphRecord = (topoGraph: TopoGraphRecord): string => {
+  // Same canonical hash path as `deriveTopoGraphHash`: strip `generatedAt`,
+  // then key-sorted SHA-256 via the shared `deriveStableHash`.
   const { generatedAt: _unused, ...rest } = topoGraph;
-  return hashValue(rest);
+  return deriveStableHash(rest);
 };
 
 const countEntriesForKind = (

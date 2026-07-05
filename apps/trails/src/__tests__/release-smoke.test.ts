@@ -21,6 +21,7 @@ describe('release.smoke surface', () => {
 
     expect(releaseSmokeCheckValues).toEqual([
       'all',
+      'lock-roundtrip',
       'packed-artifacts',
       'wayfinder-dogfood',
     ]);

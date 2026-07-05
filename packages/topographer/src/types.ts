@@ -252,7 +252,12 @@ export interface TopoGraph {
   readonly activationSources: Readonly<
     Record<string, TopoGraphActivationSource>
   >;
-  readonly generatedAt: string;
+  /**
+   * Wallclock provenance for in-memory derivations only. The committed
+   * `trails.lock` omits it so recompiles are byte-identical; it is always
+   * excluded from the graph hash.
+   */
+  readonly generatedAt?: string | undefined;
   readonly entries: readonly TopoGraphEntry[];
   readonly trailheads?: readonly TopoGraphTrailheadEntry[] | undefined;
   readonly forces?: readonly TopoGraphForceEntry[] | undefined;
@@ -413,7 +418,7 @@ export const topoGraphSchema = z
         .passthrough()
     ),
     forces: z.array(topoGraphForceEntrySchema).optional(),
-    generatedAt: z.string(),
+    generatedAt: z.string().optional(),
     library: topoGraphLibraryProjectionSchema.optional(),
     topoGraphSchemaVersion: z.literal(TOPO_GRAPH_SCHEMA_VERSION),
     trailheads: z.array(topoGraphTrailheadEntrySchema).optional(),

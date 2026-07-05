@@ -9,6 +9,7 @@ import {
   TOPO_GRAPH_SCHEMA_VERSION,
   TOPO_STORE_SCHEMA_VERSION,
   createTopoStore,
+  deriveSourceFingerprint,
   deriveTopoGraphHash,
   isTopoArtifactRegenerationError,
   readLockManifest,
@@ -257,6 +258,27 @@ const summariesEqual = (
   left.signals === right.signals &&
   left.trails === right.trails;
 
+const sourceFingerprintReason = (
+  topoStore: WayfinderTopoStoreLoad,
+  options?: WayfinderArtifactLoaderOptions
+): WayfinderStaleReason | undefined => {
+  const recorded = topoStore.snapshot.sourceFingerprint;
+  const rootDir = options?.rootDir;
+  if (recorded === undefined || rootDir === undefined) {
+    return undefined;
+  }
+  const current = deriveSourceFingerprint(rootDir);
+  if (current === recorded) {
+    return undefined;
+  }
+  return {
+    actual: current,
+    expected: recorded,
+    reason: 'topo-store-source-fingerprint-mismatch',
+    snapshotId: topoStore.snapshot.id,
+  };
+};
+
 const staleReasons = (
   topoGraph: TopoGraph,
   lockManifest: LockManifest,
@@ -374,7 +396,11 @@ export const loadWayfinderArtifacts = async (
     });
   }
 
-  const reasons = staleReasons(topoGraph, lockManifest, topoStore);
+  const fingerprintReason = sourceFingerprintReason(topoStore, options);
+  const reasons = [
+    ...staleReasons(topoGraph, lockManifest, topoStore),
+    ...(fingerprintReason === undefined ? [] : [fingerprintReason]),
+  ];
   return artifactLoad({
     artifactStatus:
       reasons.length === 0 ? { status: 'fresh' } : { reasons, status: 'stale' },

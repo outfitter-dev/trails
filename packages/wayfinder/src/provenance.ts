@@ -54,6 +54,12 @@ export type WayfinderStaleReason =
       readonly snapshotId: string;
     }
   | {
+      readonly actual: string;
+      readonly expected: string;
+      readonly reason: 'topo-store-source-fingerprint-mismatch';
+      readonly snapshotId: string;
+    }
+  | {
       readonly reason: 'topo-store-export-missing';
     };
 

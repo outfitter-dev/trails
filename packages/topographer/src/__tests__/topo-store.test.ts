@@ -902,6 +902,90 @@ describe('topo store projection', () => {
     });
   });
 
+  test('regenerates schema JSON per snapshot instead of serving stale zod-hash cache hits', () => {
+    // Regression for TRL-1191: `.describe()` edits and field reorders do not
+    // change the zod definition hash, so a warm store used to serve the
+    // pre-edit JSON Schema bytes into freshly compiled lock graphs.
+    withProjectionDb((db) => {
+      const buildApp = (edited: boolean) =>
+        topo('schema-freshness-app', {
+          read: trail('note.read', {
+            blaze: noop,
+            input: edited
+              ? z.object({
+                  count: z.number(),
+                  title: z.string().describe('The note title'),
+                })
+              : z.object({ count: z.number(), title: z.string() }),
+            intent: 'read',
+            output: z.object({ ok: z.boolean() }),
+          }),
+        });
+
+      unwrap(
+        createTopoSnapshot(db, buildApp(false), {
+          createdAt: '2026-04-03T12:00:00.000Z',
+        })
+      );
+      const second = unwrap(
+        createTopoSnapshot(db, buildApp(true), {
+          createdAt: '2026-04-03T12:05:00.000Z',
+        })
+      );
+
+      const stored = requireStoredExport(db, second.id);
+      expect(stored.topoGraphJson).toContain('The note title');
+    });
+  });
+
+  test('reordering schema fields is reflected in the stored export from a warm store', () => {
+    withProjectionDb((db) => {
+      // Shapes are built from entry lists so key order survives lint
+      // autofixes that alphabetize inline object literals — the order IS
+      // the fixture here.
+      const shapeFromEntries = (names: readonly string[]) =>
+        z.object(
+          Object.fromEntries(
+            names.map((name) => [
+              name,
+              name === 'count' ? z.number() : z.string(),
+            ])
+          )
+        );
+      const buildApp = (reordered: boolean) =>
+        topo('schema-reorder-app', {
+          read: trail('note.read', {
+            blaze: noop,
+            input: reordered
+              ? shapeFromEntries(['title', 'count'])
+              : shapeFromEntries(['count', 'title']),
+            intent: 'read',
+            output: z.object({ ok: z.boolean() }),
+          }),
+        });
+
+      unwrap(
+        createTopoSnapshot(db, buildApp(false), {
+          createdAt: '2026-04-03T12:00:00.000Z',
+        })
+      );
+      const second = unwrap(
+        createTopoSnapshot(db, buildApp(true), {
+          createdAt: '2026-04-03T12:05:00.000Z',
+        })
+      );
+
+      const stored = requireStoredExport(db, second.id);
+      const topoGraph = JSON.parse(stored.topoGraphJson) as {
+        entries: readonly { id?: string; input?: { required?: string[] } }[];
+      };
+      const entry = topoGraph.entries.find(
+        (candidate) => candidate.id === 'note.read'
+      );
+      expect(entry?.input?.required).toEqual(['title', 'count']);
+    });
+  });
+
   test('stored TopoGraph rejects surface-owned CLI aliases for unknown trails', () => {
     withProjectionDb((db) => {
       const search = trail('wayfind.search', {

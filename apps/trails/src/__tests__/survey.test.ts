@@ -15,6 +15,7 @@ import {
   SURFACE_LAYER_NAMES_KEY,
   ValidationError,
   contour,
+  deriveTrailsDbPath,
   openReadTrailsDb,
   resource,
   schedule,
@@ -177,7 +178,11 @@ const countTopoSnapshots = (rootDir: string): number => {
 
 const writeSurveyAppFixture = (
   dir: string,
-  options?: { readonly helloNameRequired?: boolean; readonly withBye?: boolean }
+  options?: {
+    readonly helloNameDescription?: string;
+    readonly helloNameRequired?: boolean;
+    readonly withBye?: boolean;
+  }
 ) => {
   mkdirSync(join(dir, 'src'), { recursive: true });
   const byeSource = options?.withBye
@@ -200,7 +205,7 @@ import { z } from 'zod';
 
 const hello = trail('hello', {
   blaze: async (input) => Result.ok({ message: \`Hello, \${input.name ?? 'world'}!\` }),
-  input: z.object({ name: z.string()${options?.helloNameRequired ? '' : '.optional()'} }),
+  input: z.object({ name: z.string()${options?.helloNameRequired ? '' : '.optional()'}${options?.helloNameDescription === undefined ? '' : `.describe('${options.helloNameDescription}')`} }),
   intent: 'read',
   output: z.object({ message: z.string() }),
   resources: [
@@ -1519,6 +1524,159 @@ describe('trails compile', () => {
     }
   });
 
+  test('a poisoned per-user store never reaches the lock, with or without --force', async () => {
+    // TRL-1196: the store is a cache, never an authority. Corrupt every
+    // stored export and cached schema row, then prove compile output is
+    // derived fresh from source on both the normal and --force paths.
+    const dir = repoTempDir();
+
+    try {
+      writeSurveyAppFixture(dir);
+      expectOk(
+        await compileTrail.blaze({ module: './src/app.ts' }, {
+          cwd: dir,
+        } as never)
+      );
+
+      const { Database } = await import('bun:sqlite');
+      const db = new Database(deriveTrailsDbPath({ rootDir: dir }));
+      db.run(
+        `UPDATE topo_schemas SET json_schema = '{"properties":{"poisoned":{"type":"string"}},"type":"object"}'`
+      );
+      db.run(
+        `UPDATE topo_exports SET topo_graph = replace(topo_graph, '"hello"', '"poisoned"')`
+      );
+      db.close();
+
+      expectOk(
+        await compileTrail.blaze({ module: './src/app.ts' }, {
+          cwd: dir,
+        } as never)
+      );
+      expect(readFileSync(join(dir, 'trails.lock'), 'utf8')).not.toContain(
+        'poisoned'
+      );
+
+      expectOk(
+        await compileTrail.blaze({ force: true, module: './src/app.ts' }, {
+          cwd: dir,
+        } as never)
+      );
+      expect(readFileSync(join(dir, 'trails.lock'), 'utf8')).not.toContain(
+        'poisoned'
+      );
+
+      const validated = expectOk(
+        await validateTrail.blaze({ module: './src/app.ts' }, {
+          cwd: dir,
+        } as never)
+      );
+      expect(validated.stale).toBe(false);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('compile records a source fingerprint and consumers flag source drift', async () => {
+    const dir = repoTempDir();
+
+    try {
+      writeSurveyAppFixture(dir);
+      const compiled = expectOk(
+        await compileTrail.blaze({ module: './src/app.ts' }, {
+          cwd: dir,
+        } as never)
+      ) as {
+        readonly snapshot: { readonly sourceFingerprint?: string };
+      };
+      expect(compiled.snapshot.sourceFingerprint).toMatch(/^[0-9a-f]{64}$/);
+
+      const fresh = await loadWayfinderArtifacts({ rootDir: dir });
+      expect(fresh.artifactStatus).toEqual({ status: 'fresh' });
+
+      writeSurveyAppFixture(dir, { helloNameDescription: 'Edited source' });
+      const stale = await loadWayfinderArtifacts({ rootDir: dir });
+      expect(stale.artifactStatus.status).toBe('stale');
+      if (stale.artifactStatus.status === 'stale') {
+        expect(stale.artifactStatus.reasons).toEqual([
+          expect.objectContaining({
+            expected: compiled.snapshot.sourceFingerprint,
+            reason: 'topo-store-source-fingerprint-mismatch',
+          }),
+        ]);
+      }
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('compile → validate round-trips green and recompiles byte-identical', async () => {
+    const dir = repoTempDir();
+
+    try {
+      writeSurveyAppFixture(dir);
+
+      expectOk(
+        await compileTrail.blaze({ module: './src/app.ts' }, {
+          cwd: dir,
+        } as never)
+      );
+      const firstLock = readFileSync(join(dir, 'trails.lock'), 'utf8');
+      expect(firstLock).not.toContain('"generatedAt"');
+
+      const validated = expectOk(
+        await validateTrail.blaze({ module: './src/app.ts' }, {
+          cwd: dir,
+        } as never)
+      );
+      expect(validated.stale).toBe(false);
+
+      expectOk(
+        await compileTrail.blaze({ module: './src/app.ts' }, {
+          cwd: dir,
+        } as never)
+      );
+      const secondLock = readFileSync(join(dir, 'trails.lock'), 'utf8');
+      expect(secondLock).toBe(firstLock);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('schema description edits reach the lock through a warm store and stay validate-green', async () => {
+    // Regression for TRL-1191: the warm per-user store used to serve stale
+    // JSON Schema bytes for zod-hash-invisible edits (`.describe()`, field
+    // reorders), making a fresh compile → validate immediately stale.
+    const dir = repoTempDir();
+
+    try {
+      writeSurveyAppFixture(dir);
+      expectOk(
+        await compileTrail.blaze({ module: './src/app.ts' }, {
+          cwd: dir,
+        } as never)
+      );
+
+      writeSurveyAppFixture(dir, { helloNameDescription: 'The caller name' });
+      expectOk(
+        await compileTrail.blaze({ module: './src/app.ts' }, {
+          cwd: dir,
+        } as never)
+      );
+
+      const lock = readFileSync(join(dir, 'trails.lock'), 'utf8');
+      expect(lock).toContain('The caller name');
+      const validated = expectOk(
+        await validateTrail.blaze({ module: './src/app.ts' }, {
+          cwd: dir,
+        } as never)
+      );
+      expect(validated.stale).toBe(false);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
   test('blocks breaking topo changes unless forced and records force events', async () => {
     const dir = repoTempDir();
 
@@ -1595,7 +1753,7 @@ describe('trails compile', () => {
     }
   });
 
-  test('blocked breaking compile keeps saved Wayfinder artifacts fresh', async () => {
+  test('blocked breaking compile does not corrupt saved Wayfinder artifacts', async () => {
     const dir = repoTempDir();
 
     try {
@@ -1616,8 +1774,18 @@ describe('trails compile', () => {
       expect(blocked.error?.message).toContain('breaking change');
       expect(countTopoSnapshots(dir)).toBe(snapshotCountAfterExport);
 
+      // The rejected compile leaves lock, store, and their hashes intact;
+      // the only staleness signal is the source fingerprint, which honestly
+      // reports that sources changed after the last successful compile.
       const loaded = await loadWayfinderArtifacts({ rootDir: dir });
-      expect(loaded.artifactStatus).toEqual({ status: 'fresh' });
+      expect(loaded.artifactStatus.status).toBe('stale');
+      if (loaded.artifactStatus.status === 'stale') {
+        expect(loaded.artifactStatus.reasons).toEqual([
+          expect.objectContaining({
+            reason: 'topo-store-source-fingerprint-mismatch',
+          }),
+        ]);
+      }
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }

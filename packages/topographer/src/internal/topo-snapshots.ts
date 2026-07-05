@@ -14,6 +14,7 @@ const TOPO_TABLE_STATEMENTS = [
     resource_count INTEGER NOT NULL DEFAULT 0,
     pinned_as TEXT,
     app_name TEXT,
+    source_fingerprint TEXT,
     created_at TEXT NOT NULL
   )`,
   `CREATE TABLE IF NOT EXISTS topo_trails (
@@ -171,6 +172,7 @@ interface TopoSnapshotRow {
   readonly pinned_as: string | null;
   readonly resource_count: number;
   readonly signal_count: number;
+  readonly source_fingerprint: string | null;
   readonly trail_count: number;
 }
 
@@ -190,6 +192,12 @@ export interface TopoSnapshot {
   readonly pinnedAs?: string;
   readonly resourceCount: number;
   readonly signalCount: number;
+  /**
+   * Content fingerprint of the app source set the snapshot was derived
+   * from. Consumers serving stored exports compare it against a freshly
+   * derived fingerprint and treat a mismatch as stale.
+   */
+  readonly sourceFingerprint?: string;
   readonly trailCount: number;
 }
 
@@ -204,6 +212,7 @@ export interface CreateTopoSnapshotInput {
   readonly id?: string;
   readonly resourceCount?: number;
   readonly signalCount?: number;
+  readonly sourceFingerprint?: string;
   readonly trailCount?: number;
 }
 
@@ -223,6 +232,9 @@ const rowToSnapshot = (row: TopoSnapshotRow): TopoSnapshot => ({
   ...(row.app_name === null ? {} : { appName: row.app_name }),
   ...(row.git_sha === null ? {} : { gitSha: row.git_sha }),
   ...(row.pinned_as === null ? {} : { pinnedAs: row.pinned_as }),
+  ...(row.source_fingerprint === null
+    ? {}
+    : { sourceFingerprint: row.source_fingerprint }),
 });
 
 const tableExists = (db: Database, tableName: string): boolean => {
@@ -294,6 +306,10 @@ const createAllTopoTables = (db: Database): void => {
 /**
  * Current topo subsystem schema version.
  *
+ * Version 14 adds optional `source_fingerprint` provenance to
+ * `topo_snapshots` so consumers serving stored exports can detect that the
+ * app source set changed since the snapshot was taken (TRL-1196).
+ *
  * Version 13 renames `topo_crossings` to `topo_composings`.
  *
  * Version 12 renames the serialized export columns from surface-era names to
@@ -316,7 +332,7 @@ const createAllTopoTables = (db: Database): void => {
  * tables and advance the subsystem version without translating or deleting
  * legacy rows.
  */
-export const TOPO_SCHEMA_VERSION = 13;
+export const TOPO_SCHEMA_VERSION = 14;
 
 export const ensureTopoSnapshotSchema = (db: Database): void => {
   ensureSubsystemSchema(db, {
@@ -356,31 +372,46 @@ export const ensureTopoSnapshotSchema = (db: Database): void => {
           'lock_manifest'
         );
       }
+      if (currentVersion >= 7 && currentVersion < 14) {
+        addColumnIfMissing(
+          db,
+          'topo_snapshots',
+          'source_fingerprint',
+          'source_fingerprint TEXT'
+        );
+      }
     },
     subsystem: TOPO_SUBSYSTEM,
     version: TOPO_SCHEMA_VERSION,
   });
 };
 
+const snapshotRecordFromInput = (
+  input?: CreateTopoSnapshotInput
+): TopoSnapshot => ({
+  createdAt: input?.createdAt ?? new Date().toISOString(),
+  gitDirty: input?.gitDirty ?? false,
+  id: input?.id ?? Bun.randomUUIDv7(),
+  resourceCount: input?.resourceCount ?? 0,
+  signalCount: input?.signalCount ?? 0,
+  trailCount: input?.trailCount ?? 0,
+  ...(input?.appName === undefined ? {} : { appName: input.appName }),
+  ...(input?.gitSha === undefined ? {} : { gitSha: input.gitSha }),
+  ...(input?.sourceFingerprint === undefined
+    ? {}
+    : { sourceFingerprint: input.sourceFingerprint }),
+});
+
 export const insertTopoSnapshotRecord = (
   db: Database,
   input?: CreateTopoSnapshotInput
 ): TopoSnapshot => {
-  const record: TopoSnapshot = {
-    createdAt: input?.createdAt ?? new Date().toISOString(),
-    gitDirty: input?.gitDirty ?? false,
-    id: input?.id ?? Bun.randomUUIDv7(),
-    resourceCount: input?.resourceCount ?? 0,
-    signalCount: input?.signalCount ?? 0,
-    trailCount: input?.trailCount ?? 0,
-    ...(input?.appName === undefined ? {} : { appName: input.appName }),
-    ...(input?.gitSha === undefined ? {} : { gitSha: input.gitSha }),
-  };
+  const record = snapshotRecordFromInput(input);
 
   db.run(
     `INSERT INTO topo_snapshots (
-      id, git_sha, git_dirty, trail_count, signal_count, resource_count, pinned_as, app_name, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      id, git_sha, git_dirty, trail_count, signal_count, resource_count, pinned_as, app_name, source_fingerprint, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       record.id,
       record.gitSha ?? null,
@@ -390,6 +421,7 @@ export const insertTopoSnapshotRecord = (
       record.resourceCount,
       null,
       record.appName ?? null,
+      record.sourceFingerprint ?? null,
       record.createdAt,
     ]
   );
@@ -413,7 +445,7 @@ export const readTopoSnapshot = (
   }
   const row = db
     .query<TopoSnapshotRow, [string]>(
-      `SELECT id, git_sha, git_dirty, trail_count, signal_count, resource_count, pinned_as, app_name, created_at
+      `SELECT id, git_sha, git_dirty, trail_count, signal_count, resource_count, pinned_as, app_name, source_fingerprint, created_at
        FROM topo_snapshots
        WHERE id = ?`
     )
@@ -430,7 +462,7 @@ export const readPinnedTopoSnapshot = (
   }
   const row = db
     .query<TopoSnapshotRow, [string]>(
-      `SELECT id, git_sha, git_dirty, trail_count, signal_count, resource_count, pinned_as, app_name, created_at
+      `SELECT id, git_sha, git_dirty, trail_count, signal_count, resource_count, pinned_as, app_name, source_fingerprint, created_at
        FROM topo_snapshots
        WHERE pinned_as = ?
        LIMIT 1`
@@ -511,7 +543,7 @@ const listSnapshotRows = (
 
   return db
     .query<TopoSnapshotRow, SQLQueryBindings[]>(
-      `SELECT id, git_sha, git_dirty, trail_count, signal_count, resource_count, pinned_as, app_name, created_at
+      `SELECT id, git_sha, git_dirty, trail_count, signal_count, resource_count, pinned_as, app_name, source_fingerprint, created_at
        FROM topo_snapshots${whereClause}
        ORDER BY created_at DESC, id DESC${limitClause}`
     )

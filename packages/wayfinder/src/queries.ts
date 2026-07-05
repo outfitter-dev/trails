@@ -1147,7 +1147,7 @@ export const wayfindOverviewTrail = trail('wayfind.overview', {
           trails: trailSummaries(graph).length,
           versions: versionSummaries(graph).length,
         },
-        generatedAt: graph.generatedAt,
+        generatedAt: graph.generatedAt ?? null,
         workspace:
           graph.workspace === undefined
             ? null
@@ -1172,7 +1172,7 @@ export const wayfindOverviewTrail = trail('wayfind.overview', {
       trails: z.number(),
       versions: z.number(),
     }),
-    generatedAt: z.string(),
+    generatedAt: z.string().nullable(),
     workspace: z
       .object({
         collisionCount: z.number(),
