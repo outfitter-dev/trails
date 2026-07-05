@@ -2,6 +2,7 @@ import { ConflictError, Result, ValidationError, trail } from '@ontrails/core';
 import type {
   AnySignal,
   Detour,
+  PermitRequirement,
   Resource,
   Trail,
   TrailContext,
@@ -18,6 +19,7 @@ import type {
 } from '../types.js';
 import { versionFieldName } from '../store.js';
 import { createTableContour, mapStoreTrailError } from './utils.js';
+import type { TableContour } from './utils.js';
 
 type ReconcileConnection<TTable extends AnyStoreTable> = Readonly<
   Record<TTable['name'], StoreAccessor<TTable>>
@@ -39,9 +41,19 @@ export interface ReconcileOptions<
   TTable extends AnyStoreTable,
   TConnection extends ReconcileConnection<TTable>,
 > {
+  /**
+   * Existing table contour to register on the reconcile trail. Pass the
+   * contour a `crud()` call over the same table exposes (its `contour`
+   * property) so `topo()` sees one shared instance instead of rejecting
+   * two same-named rebuilds as duplicates. When omitted, the factory
+   * builds its own.
+   */
+  readonly contour?: TableContour<TTable>;
   readonly description?: string;
   readonly id?: string;
   readonly on?: readonly (AnySignal | string)[];
+  /** Permit requirement declared on the reconcile trail. */
+  readonly permit?: PermitRequirement;
   readonly resource: Resource<TConnection>;
   readonly strategy?: ReconcileStrategy<TTable>;
   readonly table: TTable;
@@ -260,7 +272,7 @@ export const reconcile = <
   }
 
   const id = options.id ?? `${options.table.name}.reconcile`;
-  const entityContour = createTableContour(options.table);
+  const entityContour = options.contour ?? createTableContour(options.table);
   const strategy = options.strategy ?? 'last-write-wins';
 
   return trail(id, {
@@ -276,6 +288,7 @@ export const reconcile = <
     on: options.on,
     output: options.table.schema as unknown as z.ZodType<EntityOf<TTable>>,
     pattern: 'reconcile',
+    ...(options.permit === undefined ? {} : { permit: options.permit }),
     resources: [options.resource],
   });
 };

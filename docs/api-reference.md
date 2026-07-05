@@ -356,7 +356,14 @@ CrudTrails<T>, CrudOptions<T>, CrudBlazeOverrides<T>
 SyncEndpoint<T, C>, SyncOptions<TSource, TTarget, TSourceConnection, TTargetConnection>
 SyncTransform<TSource, TTarget>
 ReconcileConflict<T>, ReconcileOptions<T, C>, ReconcileStrategy<T>
-CrudOperation, CrudAccessorExpectation
+CrudOperation, CrudAccessorExpectation, TableContour<T>
+
+// crud() options: `permit` declares a permit on every produced trail;
+// `permits: { delete: {...} }` overrides per operation (destroy trails need
+// one for permit governance); `contour` accepts an existing table contour.
+// The returned tuple exposes the contour it registered as `.contour` —
+// pass it to reconcile({ contour }) so one table registers one contour.
+// reconcile() likewise accepts `permit` to declare its trail's requirement.
 ```
 
 ### `@ontrails/store/adapter-support`

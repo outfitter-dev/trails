@@ -1,4 +1,9 @@
-import type { Implementation, Resource, Trail } from '@ontrails/core';
+import type {
+  Implementation,
+  PermitRequirement,
+  Resource,
+  Trail,
+} from '@ontrails/core';
 import { deriveTrail } from '@ontrails/core/trails';
 import type {
   DeriveTrailInput,
@@ -137,7 +142,15 @@ export type CrudTrails<TTable extends AnyStoreTable> = readonly [
   update: UpdateTrailOf<TTable>,
   remove: DeleteTrailOf<TTable>,
   list: ListTrailOf<TTable>,
-];
+] & {
+  /**
+   * The table contour the factory registered on its trails. Pass it to
+   * `reconcile({ contour })` (or other factories over the same table) so
+   * the topo sees one shared contour instance instead of rejecting two
+   * same-named rebuilds as duplicates.
+   */
+  readonly contour: TableContour<TTable>;
+};
 
 export interface CrudBlazeOverrides<TTable extends AnyStoreTable> {
   readonly create?: Implementation<InsertOf<TTable>, EntityOf<TTable>>;
@@ -152,6 +165,24 @@ export interface CrudBlazeOverrides<TTable extends AnyStoreTable> {
 
 export interface CrudOptions<TTable extends AnyStoreTable> {
   readonly blaze?: CrudBlazeOverrides<TTable>;
+  /**
+   * Existing table contour to register on the produced trails. When
+   * omitted, the factory builds one from the table. Pass a shared
+   * instance when another factory (e.g. `reconcile()`) covers the same
+   * table so `topo()` sees a single contour registration.
+   */
+  readonly contour?: TableContour<TTable>;
+  /**
+   * Permit requirement declared on every produced trail. Factory trails
+   * carry authored defaults like any hand-written trail; per-operation
+   * entries in `permits` override this baseline.
+   */
+  readonly permit?: PermitRequirement;
+  /**
+   * Per-operation permit overrides. At minimum, destroy-intent trails
+   * (`delete`) need a declaration to satisfy permit governance.
+   */
+  readonly permits?: Partial<Record<CrudOperation, PermitRequirement>>;
 }
 
 interface InternalCrudBlazeOverrides<TTable extends AnyStoreTable> {
@@ -179,6 +210,9 @@ interface InternalCrudBlazeOverrides<TTable extends AnyStoreTable> {
 
 interface InternalCrudOptions<TTable extends AnyStoreTable> {
   readonly blaze?: InternalCrudBlazeOverrides<TTable>;
+  readonly contour?: TableContour<TTable>;
+  readonly permit?: PermitRequirement;
+  readonly permits?: Partial<Record<CrudOperation, PermitRequirement>>;
 }
 
 const normalizeExampleForOutput = <TInput, TOutput>(
@@ -225,6 +259,7 @@ const finalizeTrail = <TInput, TOutput>(
     readonly blaze?: Implementation<TInput, TOutput> | undefined;
     readonly output?: z.ZodType<TOutput> | undefined;
     readonly pattern?: string | undefined;
+    readonly permit?: PermitRequirement | undefined;
   } = {}
 ): Trail<TInput, TOutput> =>
   Object.freeze({
@@ -237,6 +272,7 @@ const finalizeTrail = <TInput, TOutput>(
           output: options.output,
         }),
     ...(options.pattern === undefined ? {} : { pattern: options.pattern }),
+    ...(options.permit === undefined ? {} : { permit: options.permit }),
   }) as Trail<TInput, TOutput>;
 
 const deriveCrudBaseTrails = <
@@ -244,9 +280,9 @@ const deriveCrudBaseTrails = <
   TConnection extends CrudConnection<TTable>,
 >(
   table: TTable,
-  resource: Resource<TConnection>
+  resource: Resource<TConnection>,
+  entityContour: TableContour<TTable>
 ): InternalCrudBaseTrails<TTable> => {
-  const entityContour = createTableContour(table);
   // Narrow the store's `readonly string[]` to the contour's typed field-key
   // array so `deriveTrail`'s `TGenerated` generic picks up the precise
   // key-of shape that `CreateInputOf<Contour, TGenerated>` expects. The
@@ -282,38 +318,51 @@ const deriveCrudBaseTrails = <
 
 const buildCrudTrails = <TTable extends AnyStoreTable>(
   baseTrails: InternalCrudBaseTrails<TTable>,
-  overrides: InternalCrudBlazeOverrides<TTable>,
+  options: InternalCrudOptions<TTable>,
   entityOutput: z.ZodType<DerivedOutput<TTable, 'create'>>,
   listOutput: z.ZodType<DerivedOutput<TTable, 'list'>>
-): InternalCrudTrails<TTable> =>
-  Object.freeze([
+): InternalCrudTrails<TTable> => {
+  const overrides = options.blaze ?? {};
+  const permitFor = (operation: CrudOperation): PermitRequirement | undefined =>
+    options.permits?.[operation] ?? options.permit;
+
+  return Object.freeze([
     finalizeTrail(baseTrails.createBase, {
       ...(overrides.create === undefined ? {} : { blaze: overrides.create }),
       output: entityOutput,
       pattern: 'crud',
+      permit: permitFor('create'),
     }),
     finalizeTrail(baseTrails.readBase, {
       ...(overrides.read === undefined ? {} : { blaze: overrides.read }),
       output: entityOutput,
       pattern: 'crud',
+      permit: permitFor('read'),
     }),
     finalizeTrail(baseTrails.updateBase, {
       ...(overrides.update === undefined ? {} : { blaze: overrides.update }),
       output: entityOutput,
       pattern: 'crud',
+      permit: permitFor('update'),
     }),
     overrides.delete === undefined
-      ? finalizeTrail(baseTrails.deleteBase, { pattern: 'crud' })
+      ? finalizeTrail(baseTrails.deleteBase, {
+          pattern: 'crud',
+          permit: permitFor('delete'),
+        })
       : finalizeTrail(baseTrails.deleteBase, {
           blaze: overrides.delete,
           pattern: 'crud',
+          permit: permitFor('delete'),
         }),
     finalizeTrail(baseTrails.listBase, {
       ...(overrides.list === undefined ? {} : { blaze: overrides.list }),
       output: listOutput,
       pattern: 'crud',
+      permit: permitFor('list'),
     }),
   ]) as InternalCrudTrails<TTable>;
+};
 
 /**
  * Produce the standard CRUD trail tuple for one normalized store table.
@@ -340,8 +389,8 @@ export function crud<
   resource: Resource<TConnection>,
   options: InternalCrudOptions<TTable> = {}
 ) {
-  const overrides = options.blaze ?? {};
-  const baseTrails = deriveCrudBaseTrails(table, resource);
+  const entityContour = options.contour ?? createTableContour(table);
+  const baseTrails = deriveCrudBaseTrails(table, resource, entityContour);
   // Narrow `table.schema` (typed `StoreObjectSchema`, which is
   // `z.ZodObject<Record<string, z.ZodType>>`) to a ZodObject keyed by the
   // concrete shape so its `z.output` unifies with the contour-derived
@@ -352,5 +401,12 @@ export function crud<
   const listOutput: z.ZodType<DerivedOutput<TTable, 'list'>> =
     entitySchema.array();
 
-  return buildCrudTrails(baseTrails, overrides, entityOutput, listOutput);
+  const trails = buildCrudTrails(baseTrails, options, entityOutput, listOutput);
+  // Expose the registered contour so other factories over the same table
+  // (reconcile, sync) can share the instance instead of rebuilding it.
+  return Object.freeze(
+    Object.assign([...trails], { contour: entityContour })
+  ) as unknown as InternalCrudTrails<TTable> & {
+    readonly contour: TableContour<TTable>;
+  };
 }
