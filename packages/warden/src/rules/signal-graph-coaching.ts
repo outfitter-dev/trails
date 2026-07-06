@@ -1,3 +1,4 @@
+import { getLateBoundSignalRef } from '@ontrails/core';
 import type { Topo } from '@ontrails/core';
 
 import type { TopoAwareWardenRule, WardenDiagnostic } from './types.js';
@@ -69,6 +70,25 @@ const collectProducerResources = (
     ])
   );
 };
+
+/**
+ * Signal ids whose contracts are store-derived advertisements.
+ *
+ * @remarks
+ * Store resources advertise `created`/`updated`/`removed` signals for every
+ * table as available capability. Leaving them unconsumed is a legitimate
+ * steady state, so produced-without-consumer coaching would be pure noise for
+ * store-backed apps.
+ */
+const collectStoreDerivedSignalIds = (topo: Topo): ReadonlySet<string> =>
+  new Set(
+    topo
+      .listSignals()
+      .filter(
+        (signal) => getLateBoundSignalRef(signal)?.kind === 'store-derived'
+      )
+      .map((signal) => signal.id)
+  );
 
 const collectConsumers = (
   topo: Topo
@@ -162,7 +182,8 @@ const hasConsumer = ({ consumers }: SignalRelations): boolean =>
   consumers.length > 0;
 
 const buildDiagnostics = (
-  relationsBySignal: ReadonlyMap<string, SignalRelations>
+  relationsBySignal: ReadonlyMap<string, SignalRelations>,
+  storeDerivedSignalIds: ReadonlySet<string>
 ): readonly WardenDiagnostic[] => {
   const diagnostics: WardenDiagnostic[] = [];
 
@@ -172,7 +193,11 @@ const buildDiagnostics = (
       continue;
     }
 
-    if (hasProducer(relations) && !hasConsumer(relations)) {
+    if (
+      hasProducer(relations) &&
+      !hasConsumer(relations) &&
+      !storeDerivedSignalIds.has(signalId)
+    ) {
       diagnostics.push(
         buildProducedWithoutConsumerDiagnostic(signalId, relations)
       );
@@ -183,7 +208,11 @@ const buildDiagnostics = (
 };
 
 export const signalGraphCoaching: TopoAwareWardenRule = {
-  checkTopo: (topo) => buildDiagnostics(collectRelations(topo)),
+  checkTopo: (topo) =>
+    buildDiagnostics(
+      collectRelations(topo),
+      collectStoreDerivedSignalIds(topo)
+    ),
   description:
     'Warn when typed signal contracts are declared or produced without reactive consumers.',
   name: RULE_NAME,

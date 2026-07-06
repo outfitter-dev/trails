@@ -3,7 +3,14 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { Result, resource, signal, topo, trail } from '@ontrails/core';
+import {
+  attachLateBoundSignalRef,
+  Result,
+  resource,
+  signal,
+  topo,
+  trail,
+} from '@ontrails/core';
 import { z } from 'zod';
 
 import { runWarden } from '../cli.js';
@@ -115,6 +122,42 @@ describe('signal-graph-coaching', () => {
         severity: 'warn',
       },
     ]);
+  });
+
+  test('stays quiet for store-derived producer signals without consumers', async () => {
+    const packCreated = attachLateBoundSignalRef(
+      signal('store:pack.created', {
+        payload: z.object({ id: z.string() }),
+      }),
+      { kind: 'store-derived', token: 'test-token-pack-created' }
+    );
+    const store = resource('store', {
+      create: () => Result.ok({ ok: true }),
+      signals: [packCreated],
+    });
+
+    const diagnostics = await signalGraphCoaching.checkTopo(
+      topo('signal-graph-store-derived', { store })
+    );
+
+    expect(diagnostics).toEqual([]);
+  });
+
+  test('still warns for non-store resource-produced signals without consumers', async () => {
+    const emitted = signal('queue:job.enqueued', {
+      payload: z.object({ jobId: z.string() }),
+    });
+    const queue = resource('queue', {
+      create: () => Result.ok({ ok: true }),
+      signals: [emitted],
+    });
+
+    const diagnostics = await signalGraphCoaching.checkTopo(
+      topo('signal-graph-non-store-resource', { queue })
+    );
+
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0]?.message).toContain('"queue:job.enqueued"');
   });
 
   test('leaves consumed-without-producer coaching to activation-orphan', async () => {
