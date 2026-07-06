@@ -5,7 +5,6 @@
  * resource served through the env bridge.
  */
 
-import type { BunPlugin } from 'bun';
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { Miniflare } from 'miniflare';
 
@@ -13,36 +12,18 @@ const fixtureEntrypoint = new URL('fixtures/demo-worker.ts', import.meta.url)
   .pathname;
 
 /**
- * Runtime-constraint audit workaround (TRL: bun:sqlite in the core barrel):
- * `@ontrails/core` re-exports `trails-db.js`, whose top-level
- * `import { Database } from 'bun:sqlite'` survives bundling even though the
- * Worker never touches it. workerd refuses module graphs that import
- * `bun:sqlite`, so Worker bundles must stub it — the same aliasing a wrangler
- * consumer would configure. Filed as a fix-or-document issue; remove this
- * stub once core stops importing bun:sqlite eagerly on the barrel path.
+ * Portability gate (TRL-1198): the bundle is built with no `bun:sqlite`
+ * stub, no `node:*` externals, and executed without `nodejs_compat`. Core
+ * loads runtime builtins lazily, so the execution-path module graph must
+ * be free of `bun:`/`node:` imports — an eager builtin import regressing
+ * onto the barrel fails this bundle or the workerd boot below,
+ * structurally, without an audit.
  */
-const bunSqliteStub: BunPlugin = {
-  name: 'stub-bun-sqlite',
-  setup(build) {
-    build.onResolve({ filter: /^bun:sqlite$/ }, () => ({
-      namespace: 'bun-sqlite-stub',
-      path: 'bun:sqlite',
-    }));
-    build.onLoad({ filter: /.*/, namespace: 'bun-sqlite-stub' }, () => ({
-      contents:
-        'export class Database { constructor() { throw new Error("bun:sqlite is unavailable on Cloudflare Workers"); } }',
-      loader: 'js',
-    }));
-  },
-};
-
 const bundleWorkerScript = async (): Promise<string> => {
   const build = await Bun.build({
     entrypoints: [fixtureEntrypoint],
-    external: ['node:*'],
     format: 'esm',
     minify: false,
-    plugins: [bunSqliteStub],
     target: 'browser',
   });
   if (!build.success) {
@@ -64,7 +45,6 @@ describe('demo worker under miniflare', () => {
     const script = await bundleWorkerScript();
     mf = new Miniflare({
       compatibilityDate: '2026-06-01',
-      compatibilityFlags: ['nodejs_compat'],
       kvNamespaces: ['FLAGS'],
       modules: true,
       script,

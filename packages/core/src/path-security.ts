@@ -4,10 +4,14 @@
  * All functions are runtime-agnostic (Node / Bun compatible).
  */
 
-import { resolve, relative, normalize, isAbsolute } from 'node:path';
-
 import { PermissionError } from './errors.js';
 import { Result } from './result.js';
+// Path security guards filesystem access on tooling paths: node:path
+// loads lazily at first use so the core barrel's module graph stays
+// execution-portable on runtimes without node: builtins (TRL-1198).
+import { loadRuntimeBuiltin } from './runtime-builtins.js';
+
+const nodePath = () => loadRuntimeBuiltin('node:path');
 
 // ---------------------------------------------------------------------------
 // Internal
@@ -15,6 +19,7 @@ import { Result } from './result.js';
 
 /** Returns true when `target` is equal to or a descendant of `base`. */
 const isWithin = (base: string, target: string): boolean => {
+  const { isAbsolute, relative } = nodePath();
   const rel = relative(base, target);
   // Empty string means they are the same directory.
   // A relative path starting with ".." means it escapes.
@@ -39,6 +44,7 @@ export const securePath = (
   basePath: string,
   userPath: string
 ): Result<string, PermissionError> => {
+  const { resolve } = nodePath();
   const base = resolve(basePath);
   const resolved = resolve(base, userPath);
 
@@ -61,6 +67,7 @@ export const securePath = (
  * `basePath`.
  */
 export const isPathSafe = (basePath: string, userPath: string): boolean => {
+  const { resolve } = nodePath();
   const base = resolve(basePath);
   const resolved = resolve(base, userPath);
   return isWithin(base, resolved);
@@ -74,6 +81,7 @@ export const deriveSafePath = (
   basePath: string,
   ...segments: string[]
 ): Result<string, PermissionError> => {
+  const { normalize, resolve } = nodePath();
   const base = resolve(basePath);
   const joined = resolve(base, ...segments.map((s) => normalize(s)));
 

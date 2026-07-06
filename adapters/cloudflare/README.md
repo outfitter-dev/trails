@@ -46,10 +46,8 @@ Missing or mistyped bindings fail the request with a redacted 500 and log full d
 
 ### Runtime notes
 
-These come straight from the runtime-constraint audit that shipped with this subpath (each is also filed as a Trails issue):
-
-- Enable the `nodejs_compat` compatibility flag and use a recent `compatibility_date`: modules on the `@ontrails/core` barrel import `node:fs`, `node:path`, and `node:crypto`, and workerd's `node:fs` support is compatibility-date gated (the integration lane pins `2026-06-01`).
-- Stub `bun:sqlite` in your Worker bundle: the core barrel re-exports `trails-db.js`, whose top-level `import { Database } from 'bun:sqlite'` survives bundling even though the Worker never calls it, and workerd refuses module graphs importing `bun:sqlite`. With wrangler, alias it to a stub module (see the `bunSqliteStub` plugin in `src/__tests__/miniflare.test.ts` for the shape).
+- The core execution path is runtime-portable (TRL-1198): `@ontrails/core` loads `bun:sqlite` and `node:` builtins lazily at first use, so a Worker bundle needs no stub plugin and no `nodejs_compat` flag to serve trails. The integration lane (`src/__tests__/miniflare.test.ts`) bundles the demo Worker with no externals and boots workerd without `nodejs_compat` as the structural regression gate.
+- Tooling helpers on the core barrel (the trails-db store, workspace discovery) still require a Bun or Node runtime when actually called; on workerd they throw a clear `InternalError` naming the missing builtin instead of poisoning the module graph.
 - Explicit `resources` overrides win over env-bound resolution, which is how tests substitute fakes.
 
 ## `/kv` — the key-value resource

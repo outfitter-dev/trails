@@ -1,10 +1,19 @@
-import { Database } from 'bun:sqlite';
-import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync } from 'node:fs';
-import { homedir } from 'node:os';
-import { basename, dirname, join, resolve } from 'node:path';
+import type { Database } from 'bun:sqlite';
 
 import { NotFoundError } from './errors.js';
+import { loadRuntimeBuiltin } from './runtime-builtins.js';
+import { sha256Hex } from './sha256.js';
+
+// Altitude ruling (TRL-1198, ADR-0051 lens): trails-db stays core-owned
+// shared framework infrastructure (ADR-0014) and stays on the barrel —
+// topographer, tracing, warden, wayfinder, and the operator app all
+// consume it from `@ontrails/core`. What it may NOT do is assume runtime
+// capabilities eagerly: `bun:sqlite` and the node builtins load lazily at
+// first use so the barrel's module graph stays execution-portable.
+const sqlite = () => loadRuntimeBuiltin('bun:sqlite');
+const fs = () => loadRuntimeBuiltin('node:fs');
+const os = () => loadRuntimeBuiltin('node:os');
+const nodePath = () => loadRuntimeBuiltin('node:path');
 
 const TRAILS_DIR = '.trails';
 const TRAILS_DB_FILE = 'trails.db';
@@ -46,7 +55,7 @@ interface SchemaVersionRow {
 }
 
 const deriveRootDir = (rootDir?: string): string =>
-  resolve(rootDir ?? process.cwd());
+  nodePath().resolve(rootDir ?? process.cwd());
 
 const sanitizeProjectKeyName = (name: string): string => {
   const normalized = name.replaceAll(/[^a-zA-Z0-9._-]+/g, '-');
@@ -54,33 +63,30 @@ const sanitizeProjectKeyName = (name: string): string => {
 };
 
 const projectHash = (rootDir: string): string =>
-  createHash('sha256')
-    .update(rootDir)
-    .digest('hex')
-    .slice(0, PROJECT_KEY_HASH_LENGTH);
+  sha256Hex(rootDir).slice(0, PROJECT_KEY_HASH_LENGTH);
 
 export const deriveTrailsProjectKey = (
   options?: TrailsDbLocationOptions
 ): string => {
   const rootDir = deriveRootDir(options?.rootDir);
-  return `${sanitizeProjectKeyName(basename(rootDir))}-${projectHash(rootDir)}`;
+  return `${sanitizeProjectKeyName(nodePath().basename(rootDir))}-${projectHash(rootDir)}`;
 };
 
 export const deriveTrailsStateHome = (
   options?: TrailsDbLocationOptions
 ): string => {
   const env = options?.env ?? process.env;
-  return resolve(
+  return nodePath().resolve(
     env['TRAILS_STATE_HOME'] ??
       env['XDG_STATE_HOME'] ??
-      join(homedir(), '.local', 'state')
+      nodePath().join(os().homedir(), '.local', 'state')
   );
 };
 
 export const deriveTrailsStateDir = (
   options?: TrailsDbLocationOptions
 ): string =>
-  join(
+  nodePath().join(
     deriveTrailsStateHome(options),
     TRAILS_STORE_DIR,
     TRAILS_PROJECTS_DIR,
@@ -88,15 +94,15 @@ export const deriveTrailsStateDir = (
   );
 
 export const deriveTrailsDir = (options?: TrailsDbLocationOptions): string =>
-  join(deriveRootDir(options?.rootDir), TRAILS_DIR);
+  nodePath().join(deriveRootDir(options?.rootDir), TRAILS_DIR);
 
 export const deriveTrailsDbPath = (options?: TrailsDbLocationOptions): string =>
   options?.path
-    ? resolve(options.path)
-    : join(deriveTrailsStateDir(options), TRAILS_DB_FILE);
+    ? nodePath().resolve(options.path)
+    : nodePath().join(deriveTrailsStateDir(options), TRAILS_DB_FILE);
 
 const ensureDbParentDir = (dbPath: string): void => {
-  mkdirSync(dirname(dbPath), { recursive: true });
+  fs().mkdirSync(nodePath().dirname(dbPath), { recursive: true });
 };
 
 /**
@@ -108,7 +114,7 @@ const ensureDbParentDir = (dbPath: string): void => {
  */
 export const ensureTrailsWorkspace = (rootDir: string): void => {
   const trailsDir = deriveTrailsDir({ rootDir });
-  mkdirSync(trailsDir, { recursive: true });
+  fs().mkdirSync(trailsDir, { recursive: true });
 };
 
 const initializeWritePragmas = (db: Database): void => {
@@ -168,7 +174,7 @@ export const openWriteTrailsDb = (
 
   ensureDbParentDir(dbPath);
 
-  const db = new Database(dbPath, { create: true });
+  const db = new (sqlite().Database)(dbPath, { create: true });
   initializeWritePragmas(db);
   ensureSchemaVersionTable(db);
   return db;
@@ -178,12 +184,12 @@ export const openReadTrailsDb = (
   options?: TrailsDbLocationOptions
 ): Database => {
   const dbPath = deriveTrailsDbPath(options);
-  if (!existsSync(dbPath)) {
+  if (!fs().existsSync(dbPath)) {
     throw new NotFoundError(
       `Trails database not found at "${dbPath}". Run a write operation first to initialize it.`
     );
   }
-  const db = new Database(dbPath, { readonly: true });
+  const db = new (sqlite().Database)(dbPath, { readonly: true });
   initializeReadPragmas(db);
   return db;
 };

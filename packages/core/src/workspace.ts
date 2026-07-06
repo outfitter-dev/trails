@@ -5,11 +5,15 @@
  * helpers for working with paths relative to a workspace.
  */
 
-import { existsSync, readFileSync, readdirSync, realpathSync } from 'node:fs';
-import { resolve, relative, dirname, join, isAbsolute } from 'node:path';
-
 import { NotFoundError } from './errors.js';
 import { Result } from './result.js';
+// Workspace discovery is a tooling path: the node builtins load lazily at
+// first use so the core barrel's module graph stays execution-portable on
+// runtimes without node: builtins (TRL-1198).
+import { loadRuntimeBuiltin } from './runtime-builtins.js';
+
+const fs = () => loadRuntimeBuiltin('node:fs');
+const nodePath = () => loadRuntimeBuiltin('node:path');
 
 export interface WorkspaceRootManifest {
   readonly workspaces?: unknown;
@@ -31,33 +35,24 @@ const normalizePath = (path: string): string => path.replaceAll('\\', '/');
 
 const normalizeRealPath = (path: string): string => {
   try {
-    return normalizePath(realpathSync(path));
+    return normalizePath(fs().realpathSync(path));
   } catch {
-    return normalizePath(resolve(path));
+    return normalizePath(nodePath().resolve(path));
   }
 };
 
 const readJsonSync = <T>(path: string): T | undefined => {
   try {
-    return JSON.parse(readFileSync(path, 'utf8')) as T;
+    return JSON.parse(fs().readFileSync(path, 'utf8')) as T;
   } catch {
     return undefined;
   }
 };
 
 /** Check if a directory has a package.json with a `workspaces` field. */
-const hasWorkspacesField = async (dir: string): Promise<boolean> => {
-  const pkgPath = join(dir, 'package.json');
-  const file = Bun.file(pkgPath);
-  if (!(await file.exists())) {
-    return false;
-  }
-  try {
-    const pkg: unknown = await file.json();
-    return typeof pkg === 'object' && pkg !== null && 'workspaces' in pkg;
-  } catch {
-    return false;
-  }
+const hasWorkspacesField = (dir: string): boolean => {
+  const pkg = readJsonSync<unknown>(nodePath().join(dir, 'package.json'));
+  return typeof pkg === 'object' && pkg !== null && 'workspaces' in pkg;
 };
 
 /**
@@ -93,19 +88,24 @@ const workspaceDirsForPattern = (
   pattern: string
 ): readonly string[] => {
   if (!pattern.endsWith('/*')) {
-    const workspaceDir = join(rootDir, pattern);
-    return existsSync(join(workspaceDir, 'package.json')) ? [workspaceDir] : [];
+    const workspaceDir = nodePath().join(rootDir, pattern);
+    return fs().existsSync(nodePath().join(workspaceDir, 'package.json'))
+      ? [workspaceDir]
+      : [];
   }
 
-  const groupDir = join(rootDir, pattern.slice(0, -2));
-  if (!existsSync(groupDir)) {
+  const groupDir = nodePath().join(rootDir, pattern.slice(0, -2));
+  if (!fs().existsSync(groupDir)) {
     return [];
   }
 
-  return readdirSync(groupDir, { withFileTypes: true })
+  return fs()
+    .readdirSync(groupDir, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
-    .map((entry) => join(groupDir, entry.name))
-    .filter((workspaceDir) => existsSync(join(workspaceDir, 'package.json')))
+    .map((entry) => nodePath().join(groupDir, entry.name))
+    .filter((workspaceDir) =>
+      fs().existsSync(nodePath().join(workspaceDir, 'package.json'))
+    )
     .toSorted();
 };
 
@@ -140,7 +140,7 @@ export const listWorkspacePackages = <
 ): readonly WorkspacePackage<Manifest>[] => {
   const normalizedRoot = normalizeRealPath(rootDir);
   const rootManifest = readJsonSync<WorkspaceRootManifest>(
-    join(normalizedRoot, 'package.json')
+    nodePath().join(normalizedRoot, 'package.json')
   );
   const packages: WorkspacePackage<Manifest>[] = [];
 
@@ -148,18 +148,20 @@ export const listWorkspacePackages = <
     normalizedRoot,
     listWorkspacePatterns(rootManifest)
   )) {
-    const packageJsonPath = join(workspaceDir, 'package.json');
+    const packageJsonPath = nodePath().join(workspaceDir, 'package.json');
     const manifest = readJsonSync<Manifest>(packageJsonPath);
     if (!manifest || typeof manifest.name !== 'string') {
       continue;
     }
 
-    const packageRoot = normalizeRealPath(dirname(packageJsonPath));
+    const packageRoot = normalizeRealPath(nodePath().dirname(packageJsonPath));
     packages.push({
       manifest,
       packageJsonPath: normalizeRealPath(packageJsonPath),
       packageRoot,
-      workspacePath: normalizePath(relative(normalizedRoot, packageRoot)),
+      workspacePath: normalizePath(
+        nodePath().relative(normalizedRoot, packageRoot)
+      ),
     });
   }
 
@@ -196,15 +198,15 @@ export const findWorkspacePackage = <
 export const findWorkspaceRoot = async (
   startDir?: string
 ): Promise<Result<string, NotFoundError>> => {
-  let current = resolve(startDir ?? process.cwd());
+  let current = nodePath().resolve(startDir ?? process.cwd());
 
   // eslint-disable-next-line no-constant-condition
   while (true) {
-    if (await hasWorkspacesField(current)) {
+    if (hasWorkspacesField(current)) {
       return Result.ok(current);
     }
 
-    const parent = dirname(current);
+    const parent = nodePath().dirname(current);
 
     if (parent === current) {
       return Result.err(
@@ -225,6 +227,7 @@ export const isInsideWorkspace = (
   filePath: string,
   workspaceRoot: string
 ): boolean => {
+  const { isAbsolute, relative, resolve } = nodePath();
   const rel = relative(resolve(workspaceRoot), resolve(filePath));
   return rel !== '' && !rel.startsWith('..') && !isAbsolute(rel);
 };
@@ -235,4 +238,7 @@ export const isInsideWorkspace = (
 export const deriveRelativePath = (
   filePath: string,
   workspaceRoot: string
-): string => relative(resolve(workspaceRoot), resolve(filePath));
+): string => {
+  const { relative, resolve } = nodePath();
+  return relative(resolve(workspaceRoot), resolve(filePath));
+};

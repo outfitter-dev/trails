@@ -5,11 +5,10 @@
  * observable without changing the best-effort producer API.
  */
 
-import { createHash } from 'node:crypto';
-
 import type { z } from 'zod';
 
 import type { ActivationProvenance } from './activation-provenance.js';
+import { sha256Hex } from './sha256.js';
 import type { Logger } from './types.js';
 
 export const SIGNAL_DIAGNOSTICS_SINK_KEY =
@@ -349,8 +348,9 @@ const stableJson = (value: unknown): string => {
   }
 };
 
-const hashText = (text: string): string =>
-  createHash('sha256').update(text).digest('hex');
+// Pure sha256 keeps payload summarization on the execution path portable:
+// node:crypto is unavailable on edge runtimes without compat flags.
+const hashText = (text: string): string => sha256Hex(text);
 
 export const summarizeSignalPayload = (
   payload: unknown
