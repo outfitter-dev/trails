@@ -633,7 +633,7 @@ export interface RegradeReport {
   readonly history?: {
     readonly path: string;
     readonly schemaVersion: number;
-    readonly status: 'applied';
+    readonly status: 'applied' | 'checked' | 'replay';
   };
   /**
    * @deprecated Persisted transition record evidence for vocabulary regrades.
@@ -1184,8 +1184,10 @@ export const regradeReportOutput = z.object({
       path: z.string().describe('Root-relative applied history entry path'),
       schemaVersion: z.number().describe('Regrade history schema version'),
       status: z
-        .literal('applied')
-        .describe('How this command used the Regrade history entry'),
+        .enum(['applied', 'checked', 'replay'])
+        .describe(
+          'How this command used the Regrade history file: applied = run appended, replay = identical re-run recognized and not duplicated, checked = consolidated history verified per-run'
+        ),
     })
     .optional()
     .describe('Saved applied Regrade history evidence'),

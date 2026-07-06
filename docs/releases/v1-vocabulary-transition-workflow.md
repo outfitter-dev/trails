@@ -93,7 +93,7 @@ bun apps/trails/bin/trails.ts regrade apply \
   --json > .tmp-regrade/facet-trailhead-apply.json
 ```
 
-Regrade is the primary migration engine. Apply consumes an active plan artifact and moves the evidence to `.trails/regrade/history/<slug>-<hash>.json`. Manual edits are reviewed follow-up after Regrade exhausts the safe slice, not a substitute for running the transition.
+Regrade is the primary migration engine. Apply consumes an active plan artifact and appends the evidence as a run entry in the transition's consolidated history file at `.trails/regrade/history/<slug>.json`. Manual edits are reviewed follow-up after Regrade exhausts the safe slice, not a substitute for running the transition.
 
 Use `trails regrade check --root-dir . --plan "$PLAN_PATH"` when a family should prove the saved plan gate without writing. The check succeeds only when the plan is fresh and its completion gate is green. Use `trails regrade plans --root-dir .` when more than one active plan may exist, because commands without `--plan <path-or-name>` intentionally fail on ambiguity.
 

@@ -38,7 +38,6 @@ import type {
   VocabularyPreserveInventoryEntry,
 } from '@ontrails/regrade';
 import { execFileSync } from 'node:child_process';
-import { createHash } from 'node:crypto';
 import {
   existsSync,
   mkdirSync,
@@ -48,18 +47,33 @@ import {
   writeFileSync,
 } from 'node:fs';
 import type { Dirent } from 'node:fs';
-import {
-  basename,
-  dirname,
-  isAbsolute,
-  join,
-  normalize,
-  relative,
-} from 'node:path';
+import { basename, dirname, isAbsolute, join } from 'node:path';
 import { z } from 'zod';
 
 import { loadRegradeConfig } from '../regrade/config.js';
+import {
+  REGRADE_HISTORY_SCHEMA_VERSION,
+  appendRegradeHistoryRun,
+  readRegradeHistoryArtifact,
+  regradeHistoryPathForPlan,
+  resolveRegradeHistoryPath,
+  verifyRegradeHistoryRuns,
+} from '../regrade/history.js';
+import type { RegradeHistorySummary } from '../regrade/history.js';
 import { deriveLiveApiPreserveInventory } from '../regrade/live-api-preserve.js';
+import {
+  REGRADE_PLAN_SCHEMA_VERSION,
+  regradePlanArtifactSchema,
+  regradePlanPathForPlan,
+  regradeSourceHash,
+  rootRelativePath,
+} from '../regrade/plan-artifact.js';
+import type {
+  ClassRegradePlan,
+  RegradePlanArtifact,
+  RegradePlanExpansion,
+  VocabularyRegradePlanArtifact,
+} from '../regrade/plan-artifact.js';
 import { resolveTrailRootDir } from './root-dir.js';
 
 const regradePathScopeInputSchema = pathScopeSchema.extend({
@@ -162,113 +176,6 @@ const regradeInputSchema = regradePathScopeInputSchema.extend({
 
 type RegradeInput = z.output<typeof regradeInputSchema>;
 
-const REGRADE_PLAN_SCHEMA_VERSION = 1;
-
-const regradePlanProvenanceValueSchema = z.enum(['authored', 'derived']);
-
-const classRegradePlanScopeSchema = z
-  .object({
-    exclude: z
-      .array(z.string())
-      .optional()
-      .describe('Root-relative path globs excluded from the class run'),
-    extensions: z
-      .array(z.string())
-      .optional()
-      .describe('Source file extensions scanned by the class run'),
-  })
-  .strict();
-
-/**
- * A saved class-mode Regrade plan: which classes run, over what scope, and
- * why. The parallel payload to {@link vocabularyRegradePlanSchema} — the
- * `kind` discriminant keeps existing vocabulary plan artifacts
- * byte-compatible.
- */
-const classRegradePlanSchema = z.object({
-  classIds: z
-    .array(z.string().min(1))
-    .min(1)
-    .describe('Regrade class ids this plan runs'),
-  id: z.string().min(1).describe('Stable Regrade plan identifier'),
-  intent: z
-    .string()
-    .optional()
-    .describe('Human-authored migration intent for the class run'),
-  kind: z.literal('class').describe('Regrade plan kind'),
-  scope: classRegradePlanScopeSchema
-    .optional()
-    .describe('Collection scope for the class run'),
-});
-
-type ClassRegradePlan = z.output<typeof classRegradePlanSchema>;
-
-const regradePlanBodySchema = z.discriminatedUnion('kind', [
-  vocabularyRegradePlanSchema,
-  classRegradePlanSchema,
-]);
-
-type RegradePlanBody = VocabularyRegradePlan | ClassRegradePlan;
-
-const regradeExpansionCandidateSchema = z.union([
-  z.object({
-    evidence: z
-      .array(
-        z.object({
-          column: z.number().optional(),
-          detail: z.string().optional(),
-          line: z.number().optional(),
-          path: z.string(),
-        })
-      )
-      .default([]),
-    kind: z.enum(['file-rename', 'form', 'namespace', 'preserve']),
-    reason: z.string().optional(),
-    status: z.enum(['pending', 'rejected']).default('pending'),
-    suggestedClassification: z.string(),
-    value: z.string(),
-  }),
-  z
-    .object({
-      detail: z.string().optional(),
-      path: z.string(),
-      status: z.enum(['pending', 'rejected']).default('pending'),
-    })
-    .transform((candidate) => ({
-      evidence: [
-        {
-          ...(candidate.detail === undefined
-            ? {}
-            : { detail: candidate.detail }),
-          path: candidate.path,
-        },
-      ],
-      kind: 'file-rename' as const,
-      ...(candidate.detail === undefined ? {} : { reason: candidate.detail }),
-      status: candidate.status,
-      suggestedClassification: 'legacy-path-candidate',
-      value: candidate.path,
-    })),
-]);
-
-const regradePlanArtifactSchema = z
-  .object({
-    expansion: z
-      .object({
-        candidates: z.array(regradeExpansionCandidateSchema).default([]),
-      })
-      .optional(),
-    kind: z.literal('regrade-plan'),
-    path: z.string(),
-    plan: regradePlanBodySchema,
-    provenance: z.object({
-      fields: z.record(z.string(), regradePlanProvenanceValueSchema),
-    }),
-    schemaVersion: z.literal(REGRADE_PLAN_SCHEMA_VERSION),
-    sourceHash: z.string(),
-  })
-  .strict();
-
 const regradePlanSummarySchema = z.object({
   classIds: z
     .array(z.string())
@@ -293,7 +200,11 @@ const regradePlansOutputSchema = z.object({
 const regradeCheckOutputSchema = regradeReportOutput.extend({
   check: z
     .object({
-      plan: z.string().describe('Saved Regrade plan path that passed checks'),
+      plan: z
+        .string()
+        .describe(
+          'Saved Regrade plan or graduated history path that passed checks'
+        ),
       status: z.literal('passed').describe('Check result'),
     })
     .describe('Saved Regrade plan check result'),
@@ -374,34 +285,6 @@ type RegradePlanReferenceInput = z.output<
   typeof regradePlanReferenceInputSchema
 >;
 type RegradeApplyPlanInput = z.output<typeof regradeApplyPlanInputSchema>;
-
-interface RegradePlanExpansion {
-  readonly candidates: readonly {
-    readonly evidence: readonly {
-      readonly column?: number | undefined;
-      readonly detail?: string | undefined;
-      readonly line?: number | undefined;
-      readonly path: string;
-    }[];
-    readonly kind: 'file-rename' | 'form' | 'namespace' | 'preserve';
-    readonly reason?: string | undefined;
-    readonly status: 'pending' | 'rejected';
-    readonly suggestedClassification: string;
-    readonly value: string;
-  }[];
-}
-
-interface RegradePlanArtifact {
-  readonly expansion?: RegradePlanExpansion | undefined;
-  readonly kind: 'regrade-plan';
-  readonly path: string;
-  readonly plan: RegradePlanBody;
-  readonly provenance: {
-    readonly fields: Readonly<Record<string, 'authored' | 'derived'>>;
-  };
-  readonly schemaVersion: typeof REGRADE_PLAN_SCHEMA_VERSION;
-  readonly sourceHash: string;
-}
 
 const hasVocabularyInput = (input: RegradeInput) =>
   input.from !== undefined ||
@@ -1226,92 +1109,6 @@ const vocabularyRecordEnvironment = (
   };
 };
 
-const regradeSlugText = (text: string): string =>
-  text
-    .toLowerCase()
-    .replaceAll(/[^a-z0-9]+/g, '-')
-    .replaceAll(/^-|-$/g, '');
-
-const regradePlanSlug = (plan: Pick<VocabularyRegradePlan, 'from' | 'to'>) =>
-  regradeSlugText(`${plan.from}-to-${plan.to}`);
-
-const regradePlanSlugForBody = (plan: RegradePlanBody): string =>
-  plan.kind === 'class'
-    ? regradeSlugText(plan.classIds.join('-'))
-    : regradePlanSlug(plan);
-
-const normalizeRelativePath = (path: string): string =>
-  normalize(path).replaceAll('\\', '/');
-
-const rootRelativePath = (rootDir: string, absolutePath: string): string =>
-  normalizeRelativePath(relative(rootDir, absolutePath));
-
-const regradePlanDirectory = (rootDir: string): string =>
-  join(rootDir, '.trails', 'regrade');
-
-const regradePlanPathForPlan = (
-  rootDir: string,
-  plan: RegradePlanBody
-): string =>
-  join(regradePlanDirectory(rootDir), `${regradePlanSlugForBody(plan)}.json`);
-
-const sourceHashEntryFacts = (
-  entries: readonly RegradeReportEntry[]
-): readonly Pick<
-  RegradeReportEntry,
-  'classId' | 'notes' | 'outcome' | 'path' | 'reason' | 'reviewDetails'
->[] =>
-  entries
-    .filter(
-      (entry) => entry.outcome === 'rewrite' || entry.outcome === 'needs-review'
-    )
-    .map(({ classId, notes, outcome, path, reason, reviewDetails }) => ({
-      ...(classId === undefined ? {} : { classId }),
-      ...(notes === undefined ? {} : { notes }),
-      outcome,
-      path,
-      ...(reason === undefined ? {} : { reason }),
-      ...(reviewDetails === undefined ? {} : { reviewDetails }),
-    }));
-
-const regradeSourceHash = (report: RegradeReport): string =>
-  createHash('sha256')
-    .update(
-      JSON.stringify({
-        entries: sourceHashEntryFacts(report.entries),
-        ledger: report.run?.ledger,
-        selectedClassIds: report.selectedClassIds,
-      })
-    )
-    .digest('hex');
-
-const regradeHistorySlug = (
-  report: RegradeReport,
-  planBody?: RegradePlanBody
-): string => {
-  if (planBody !== undefined) {
-    return regradePlanSlugForBody(planBody);
-  }
-  const { run } = report;
-  if (run === undefined) {
-    return 'unknown-regrade';
-  }
-  return regradePlanSlug({ from: run.plan.from, to: run.plan.to });
-};
-
-const regradeHistoryPathForReport = (
-  rootDir: string,
-  report: RegradeReport,
-  planBody?: RegradePlanBody
-): string => {
-  const slug = regradeHistorySlug(report, planBody);
-  const hash = createHash('sha256')
-    .update(regradeSourceHash(report))
-    .digest('hex')
-    .slice(0, 7);
-  return join(regradePlanDirectory(rootDir), 'history', `${slug}-${hash}.json`);
-};
-
 const pendingExpansionCandidateCount = (plan: RegradePlanArtifact): number =>
   plan.expansion?.candidates.filter(
     (candidate) => candidate.status === 'pending'
@@ -1335,20 +1132,15 @@ const reportWithPlanSummary = (
 
 const reportWithHistorySummary = (
   report: RegradeReport,
-  params: { readonly path: string; readonly schemaVersion: number }
+  params: RegradeHistorySummary
 ): RegradeReport => ({
   ...report,
   history: {
     path: params.path,
     schemaVersion: params.schemaVersion,
-    status: 'applied',
+    status: params.status,
   },
 });
-
-/** A plan artifact narrowed to a vocabulary plan body. */
-type VocabularyRegradePlanArtifact = RegradePlanArtifact & {
-  readonly plan: VocabularyRegradePlan;
-};
 
 const authoredPlanFieldKeys = [
   'caseSensitive',
@@ -2530,14 +2322,68 @@ const loadPlanForInput = async (
   return Result.ok({ artifact: artifact.value, path: path.value });
 };
 
+const reportWithCheckedHistorySummary = (
+  report: RegradeReport,
+  historyPath: string
+): RegradeReport => ({
+  ...report,
+  history: {
+    path: historyPath,
+    schemaVersion: REGRADE_HISTORY_SCHEMA_VERSION,
+    status: 'checked',
+  },
+});
+
+/**
+ * Check a graduated transition: verify every recorded run in the
+ * consolidated history at its own stamped lock. Historical runs are not
+ * re-executed — per-run stamp verification is the machine acceptance.
+ */
+const checkGraduatedRegradeHistory = (
+  historyPath: string
+): TrailsResult<RegradeReport, Error> => {
+  const artifact = readRegradeHistoryArtifact(historyPath);
+  if (artifact.isErr()) {
+    return artifact;
+  }
+  const verified = verifyRegradeHistoryRuns(artifact.value);
+  if (verified.isErr()) {
+    return verified;
+  }
+  const lastRun = artifact.value.runs.at(-1);
+  if (lastRun === undefined) {
+    return Result.err(
+      new ValidationError('Regrade history has no recorded runs.', {
+        context: { path: artifact.value.path },
+      })
+    );
+  }
+  return validateRegradeReport(
+    reportWithCheckedHistorySummary(lastRun.report, artifact.value.path)
+  );
+};
+
 const runCheckRegradePlan = async (
   input: RegradePlanReferenceInput,
   rootDir: string
 ): Promise<TrailsResult<RegradeReport, Error>> => {
-  const loaded = await loadPlanForInput(input, rootDir);
-  if (loaded.isErr()) {
-    return loaded;
+  const planPath = resolveRegradePlanPath(rootDir, input.plan);
+  if (planPath.isErr()) {
+    if (input.plan !== undefined && !isPlanPathReference(input.plan)) {
+      const historyPath = resolveRegradeHistoryPath(rootDir, input.plan);
+      if (historyPath.isOk()) {
+        return checkGraduatedRegradeHistory(historyPath.value);
+      }
+    }
+    return planPath;
   }
+  const artifact = readRegradePlanArtifact(planPath.value);
+  if (artifact.isErr()) {
+    return artifact;
+  }
+  const loaded = {
+    value: { artifact: artifact.value, path: planPath.value },
+  };
   const report = await runPlanArtifactDryRun({
     artifact: loaded.value.artifact,
     includeEntries: input.includeEntries,
@@ -2606,39 +2452,44 @@ const writeRegradeHistory = (params: {
   readonly planPath: string;
   readonly report: RegradeReport;
   readonly rootDir: string;
-}): TrailsResult<
-  { readonly path: string; readonly schemaVersion: number },
-  Error
-> => {
-  const absolutePath = regradeHistoryPathForReport(
+}): TrailsResult<RegradeHistorySummary, Error> => {
+  const absolutePath = regradeHistoryPathForPlan(
     params.rootDir,
-    params.report,
     params.artifact.plan
   );
-  const relativePath = rootRelativePath(params.rootDir, absolutePath);
-  const history = {
-    kind: 'regrade-history',
-    path: relativePath,
-    plan: params.artifact,
+  let priorHistoryBytes: string | undefined;
+  if (existsSync(absolutePath)) {
+    try {
+      priorHistoryBytes = readFileSync(absolutePath, 'utf8');
+    } catch (error) {
+      return Result.err(
+        new InternalError('Failed to read Regrade history entry.', {
+          ...(error instanceof Error ? { cause: error } : {}),
+          context: { path: rootRelativePath(params.rootDir, absolutePath) },
+        })
+      );
+    }
+  }
+  const appended = appendRegradeHistoryRun({
+    artifact: params.artifact,
     report: params.report,
-    schemaVersion: REGRADE_PLAN_SCHEMA_VERSION,
-  };
-  try {
-    mkdirSync(dirname(absolutePath), { recursive: true });
-    writeFileSync(absolutePath, `${JSON.stringify(history, null, 2)}\n`);
-  } catch (error) {
-    return Result.err(
-      new InternalError('Failed to write Regrade history entry.', {
-        ...(error instanceof Error ? { cause: error } : {}),
-        context: { path: relativePath },
-      })
-    );
+    rootDir: params.rootDir,
+  });
+  if (appended.isErr()) {
+    return appended;
   }
   try {
+    // Apply always consumes the active plan, replay included: the plan is a
+    // single-use apply intent, and the consolidated history already records
+    // the run the replay repeats.
     rmSync(params.planPath, { force: true });
   } catch (error) {
     try {
-      rmSync(absolutePath, { force: true });
+      if (priorHistoryBytes === undefined) {
+        rmSync(absolutePath, { force: true });
+      } else {
+        writeFileSync(absolutePath, priorHistoryBytes);
+      }
     } catch {
       // Best-effort rollback; the surfaced error below preserves the primary failure.
     }
@@ -2646,16 +2497,13 @@ const writeRegradeHistory = (params: {
       new InternalError('Failed to remove active Regrade plan.', {
         ...(error instanceof Error ? { cause: error } : {}),
         context: {
-          history: relativePath,
+          history: appended.value.path,
           plan: rootRelativePath(params.rootDir, params.planPath),
         },
       })
     );
   }
-  return Result.ok({
-    path: relativePath,
-    schemaVersion: REGRADE_PLAN_SCHEMA_VERSION,
-  });
+  return appended;
 };
 
 const runApplyRegradePlan = async (
@@ -2714,10 +2562,14 @@ const runApplyRegradePlan = async (
   if (applied.isErr()) {
     return applied;
   }
+  // The recorded run evidence is the freshness-gated dry-run report: its
+  // source hash is the lock state this run ran against (the staleness gate
+  // holds it equal to the plan's own sourceHash), and unlike the post-apply
+  // rescan it preserves the rewrite entries the run graduated.
   const history = writeRegradeHistory({
     artifact: loaded.value.artifact,
     planPath: loaded.value.path,
-    report: applied.value,
+    report: dryRunReport.value,
     rootDir,
   });
   if (history.isErr()) {
@@ -2905,7 +2757,11 @@ export const checkRegradeTrail = trail('check.regrade', {
     const checked = {
       ...result.value,
       check: {
-        plan: result.value.plan?.path ?? input.plan ?? '',
+        plan:
+          result.value.plan?.path ??
+          result.value.history?.path ??
+          input.plan ??
+          '',
         status: 'passed' as const,
       },
     };
