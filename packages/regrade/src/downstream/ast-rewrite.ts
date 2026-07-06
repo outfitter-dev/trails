@@ -292,11 +292,17 @@ export const createAstIdentifierRenameClass = (
       const span = identifierTokenSpan(node, context.source, options.from);
       if (span === null) {
         const location = offsetToLineColumn(context.source, node.start);
+        const caution = `Identifier "${options.from}" token span could not be verified; routed to review.`;
         return {
           detail: {
+            candidateReplacement: options.to,
             expectedTarget: `Rename identifier "${options.from}" to "${options.to}".`,
+            judgment: 'unresolved',
+            matchedForm: options.from,
             nodeKind: node.type,
+            preserveCautions: [caution],
             reason: 'ast-identifier-token-span-unverified',
+            signals: ['ast:identifier-rename'],
             span: {
               column: location.column,
               end: node.end,
@@ -307,7 +313,7 @@ export const createAstIdentifierRenameClass = (
             symbol: options.from,
           },
           kind: 'review',
-          note: `Identifier "${options.from}" token span could not be verified; routed to review.`,
+          note: caution,
           reason: 'ast-identifier-token-span-unverified',
         };
       }
@@ -328,11 +334,17 @@ export const createAstIdentifierRenameClass = (
       const declaration = context.getDeclaration(options.from);
       if (declaration && reviewDeclarationTypes.has(declaration.type)) {
         const location = offsetToLineColumn(context.source, span.start);
+        const caution = `Identifier "${options.from}" resolves to ${declaration.type}; routed to review.`;
         return {
           detail: {
+            candidateReplacement: options.to,
             expectedTarget: `Rename identifier "${options.from}" to "${options.to}".`,
+            judgment: 'unresolved',
+            matchedForm: options.from,
             nodeKind: node.type,
+            preserveCautions: [caution],
             reason: 'ast-identifier-review-declaration',
+            signals: ['ast:identifier-rename'],
             span: {
               column: location.column,
               end: span.end,
@@ -343,7 +355,7 @@ export const createAstIdentifierRenameClass = (
             symbol: options.from,
           },
           kind: 'review',
-          note: `Identifier "${options.from}" resolves to ${declaration.type}; routed to review.`,
+          note: caution,
           reason: 'ast-identifier-review-declaration',
         };
       }
@@ -388,11 +400,17 @@ export const createAstStringLiteralRenameClass = (
       const span = stringLiteralValueSpan(node, context.source, options.from);
       if (span === null) {
         const location = offsetToLineColumn(context.source, node.start);
+        const caution = `String literal "${options.from}" token span could not be verified; routed to review.`;
         return {
           detail: {
+            candidateReplacement: options.to,
             expectedTarget: `Rename string literal "${options.from}" to "${options.to}".`,
+            judgment: 'unresolved',
+            matchedForm: options.from,
             nodeKind: node.type,
+            preserveCautions: [caution],
             reason: 'ast-string-literal-token-span-unverified',
+            signals: ['ast:string-literal-rename'],
             span: {
               column: location.column,
               end: node.end,
@@ -403,7 +421,7 @@ export const createAstStringLiteralRenameClass = (
             symbol: options.from,
           },
           kind: 'review',
-          note: `String literal "${options.from}" token span could not be verified; routed to review.`,
+          note: caution,
           reason: 'ast-string-literal-token-span-unverified',
         };
       }

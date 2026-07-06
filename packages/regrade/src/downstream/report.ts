@@ -8,6 +8,7 @@ import type { ScanTargets } from '@ontrails/core';
 import type {
   WardenDiagnostic,
   WardenFixEdit,
+  WardenGuidance,
   WardenRule,
 } from '@ontrails/warden';
 import {
@@ -143,18 +144,39 @@ export interface RegradeReviewSpan {
   readonly start: number;
 }
 
+/**
+ * Verdict state for a review detail.
+ *
+ * - `unresolved`: the class could not complete occurrence judgment; a human or
+ *   agent decision is still needed.
+ * - `preserve`: a completed verdict to keep the occurrence as-is.
+ * - `rewrite`: a completed verdict that a rewrite is intended but this run
+ *   could not apply it (for example invalid or missing edits).
+ */
+export type RegradeReviewJudgment = 'preserve' | 'rewrite' | 'unresolved';
+
 /** Structured detail explaining why a source match needs review. */
 export interface RegradeReviewDetail {
+  /** Concrete replacement the class would apply if the occurrence were judged safe. */
+  readonly candidateReplacement?: string;
   /** Class that produced the review detail, injected by report building. */
   readonly classId?: string;
   /** Expected target shape when the class can describe one. */
   readonly expectedTarget?: string;
   /** Fixture or example reference that illustrates the expected migration. */
   readonly fixture?: string;
+  /** Whether occurrence judgment is unresolved or a preserve/rewrite verdict completed. */
+  readonly judgment?: RegradeReviewJudgment;
+  /** Exact matched source text for the occurrence under review. */
+  readonly matchedForm?: string;
   /** AST node kind or source construct kind. */
   readonly nodeKind?: string;
+  /** Cautions explaining why a blind rewrite of this occurrence is unsafe. */
+  readonly preserveCautions?: readonly string[];
   /** Machine-readable reason for review. */
   readonly reason: string;
+  /** Machine-readable provenance tags for the producing rule or class. */
+  readonly signals?: readonly string[];
   /** Source span and line/column for the review-required match. */
   readonly span?: RegradeReviewSpan;
   /** Suggested validation command after the review is resolved. */
@@ -317,7 +339,9 @@ const diagnosticSpan = (
   return spanForSymbolOnDiagnosticLine(source, diagnostic.line, symbol);
 };
 
-const expectedTarget = (diagnostic: WardenDiagnostic): string | undefined => {
+const diagnosticCandidateReplacement = (
+  diagnostic: WardenDiagnostic
+): string | undefined => {
   const replacements = new Set(
     (diagnostic.fix?.edits ?? []).map((edit) => edit.replacement)
   );
@@ -325,32 +349,98 @@ const expectedTarget = (diagnostic: WardenDiagnostic): string | undefined => {
     return undefined;
   }
   const [replacement] = replacements;
+  return replacement;
+};
+
+const expectedTarget = (diagnostic: WardenDiagnostic): string | undefined => {
+  const replacement = diagnosticCandidateReplacement(diagnostic);
   return replacement === undefined
     ? undefined
     : `Replace with "${replacement}".`;
 };
 
+const isValidEditSpan = (
+  source: string,
+  edit: WardenFixEdit | undefined
+): edit is WardenFixEdit =>
+  edit !== undefined &&
+  Number.isInteger(edit.start) &&
+  Number.isInteger(edit.end) &&
+  edit.start >= 0 &&
+  edit.end >= edit.start &&
+  edit.end <= source.length;
+
+const diagnosticMatchedForm = (
+  source: string,
+  diagnostic: WardenDiagnostic,
+  symbol: string | undefined
+): string | undefined => {
+  const [edit] = diagnostic.fix?.edits ?? [];
+  if (isValidEditSpan(source, edit)) {
+    return source.slice(edit.start, edit.end);
+  }
+  return symbol;
+};
+
+const diagnosticSignals = (diagnostic: WardenDiagnostic): readonly string[] => [
+  `warden:${diagnostic.rule}`,
+  ...(diagnostic.code === undefined
+    ? []
+    : [`${diagnostic.rule}:${diagnostic.code}`]),
+];
+
+interface WardenReviewMappingOptions {
+  /** Verdict state for this review path. */
+  readonly judgment: RegradeReviewJudgment;
+  /** Machine-readable review reason. */
+  readonly reason: string;
+  /** Rule-level guidance used when a finding carries none of its own. */
+  readonly ruleGuidance?: WardenGuidance;
+}
+
+const reviewDetailFromDiagnostic = (
+  source: string,
+  diagnostic: WardenDiagnostic,
+  options: WardenReviewMappingOptions
+): RegradeReviewDetail => {
+  const symbol =
+    firstQuotedValue(diagnostic.fix?.reason) ??
+    firstQuotedValue(diagnostic.message);
+  const span = diagnosticSpan(source, diagnostic, symbol);
+  const target = expectedTarget(diagnostic);
+  const replacement = diagnosticCandidateReplacement(diagnostic);
+  const matchedForm = diagnosticMatchedForm(source, diagnostic, symbol);
+  const guidance = diagnostic.guidance ?? options.ruleGuidance;
+  const preserveCautions =
+    guidance === undefined
+      ? undefined
+      : [guidance.summary, ...(guidance.steps ?? [])];
+  const suggestedValidation = guidance?.commands?.[0];
+  return {
+    ...(replacement === undefined ? {} : { candidateReplacement: replacement }),
+    ...(target === undefined ? {} : { expectedTarget: target }),
+    ...(diagnostic.fix?.fixture === undefined
+      ? {}
+      : { fixture: diagnostic.fix.fixture }),
+    judgment: options.judgment,
+    ...(matchedForm === undefined ? {} : { matchedForm }),
+    ...(preserveCautions === undefined ? {} : { preserveCautions }),
+    reason: options.reason,
+    signals: diagnosticSignals(diagnostic),
+    ...(span === undefined ? {} : { span }),
+    ...(suggestedValidation === undefined ? {} : { suggestedValidation }),
+    ...(symbol === undefined ? {} : { symbol }),
+  } satisfies RegradeReviewDetail;
+};
+
 const reviewDetailsFromDiagnostics = (
   source: string,
   diagnostics: readonly WardenDiagnostic[],
-  reason: string
+  options: WardenReviewMappingOptions
 ): readonly RegradeReviewDetail[] | undefined => {
-  const details = diagnostics.map((diagnostic) => {
-    const symbol =
-      firstQuotedValue(diagnostic.fix?.reason) ??
-      firstQuotedValue(diagnostic.message);
-    const span = diagnosticSpan(source, diagnostic, symbol);
-    const target = expectedTarget(diagnostic);
-    return {
-      ...(target === undefined ? {} : { expectedTarget: target }),
-      ...(diagnostic.fix?.fixture === undefined
-        ? {}
-        : { fixture: diagnostic.fix.fixture }),
-      reason,
-      ...(span === undefined ? {} : { span }),
-      ...(symbol === undefined ? {} : { symbol }),
-    } satisfies RegradeReviewDetail;
-  });
+  const details = diagnostics.map((diagnostic) =>
+    reviewDetailFromDiagnostic(source, diagnostic, options)
+  );
   return details.length === 0 ? undefined : details;
 };
 
@@ -431,10 +521,18 @@ export const createWardenTermRewriteClass = (
         (diagnostic) => diagnostic.fix?.safety !== 'safe'
       );
       if (reviewDiagnostics.length > 0) {
+        // The rule flagged the occurrence but marked it review: occurrence
+        // judgment is unresolved and needs a human or agent decision.
         const reviewDetails = reviewDetailsFromDiagnostics(
           source,
           reviewDiagnostics,
-          'warden-review-required'
+          {
+            judgment: 'unresolved',
+            reason: 'warden-review-required',
+            ...(metadata.guidance === undefined
+              ? {}
+              : { ruleGuidance: metadata.guidance }),
+          }
         );
         return {
           kind: 'needs-review',
@@ -448,10 +546,18 @@ export const createWardenTermRewriteClass = (
         (diagnostic) => (diagnostic.fix?.edits?.length ?? 0) === 0
       );
       if (diagnosticsMissingEdits.length > 0) {
+        // A safe fix without concrete edits cannot complete occurrence
+        // judgment on its own, so the verdict stays unresolved.
         const reviewDetails = reviewDetailsFromDiagnostics(
           source,
           diagnosticsMissingEdits,
-          'warden-fix-missing-edits'
+          {
+            judgment: 'unresolved',
+            reason: 'warden-fix-missing-edits',
+            ...(metadata.guidance === undefined
+              ? {}
+              : { ruleGuidance: metadata.guidance }),
+          }
         );
         return {
           kind: 'needs-review',
@@ -466,10 +572,18 @@ export const createWardenTermRewriteClass = (
       );
       const application = applyWardenEdits(source, edits);
       if (!application.ok) {
+        // The rule completed judgment — it authored concrete edits — but this
+        // run could not apply them, so the verdict is a rewrite left undone.
         const reviewDetails = reviewDetailsFromDiagnostics(
           source,
           diagnostics,
-          'warden-fix-invalid'
+          {
+            judgment: 'rewrite',
+            reason: 'warden-fix-invalid',
+            ...(metadata.guidance === undefined
+              ? {}
+              : { ruleGuidance: metadata.guidance }),
+          }
         );
         return {
           kind: 'needs-review',
@@ -1125,6 +1239,12 @@ const regradeReportEntrySchema = z.object({
   reviewDetails: z
     .array(
       z.object({
+        candidateReplacement: z
+          .string()
+          .optional()
+          .describe(
+            'Concrete replacement the class would apply if the occurrence were judged safe'
+          ),
         classId: z
           .string()
           .optional()
@@ -1137,11 +1257,35 @@ const regradeReportEntrySchema = z.object({
           .string()
           .optional()
           .describe('Fixture or example reference for the migration'),
+        judgment: z
+          .enum(['preserve', 'rewrite', 'unresolved'])
+          .optional()
+          .describe(
+            'Verdict state: unresolved = occurrence judgment is incomplete and needs a human or agent decision; preserve = completed verdict to keep the occurrence; rewrite = completed verdict that a rewrite is intended but this run could not apply it'
+          ),
+        matchedForm: z
+          .string()
+          .optional()
+          .describe(
+            'Exact matched source text for the occurrence under review'
+          ),
         nodeKind: z
           .string()
           .optional()
           .describe('AST node kind or source construct kind'),
+        preserveCautions: z
+          .array(z.string())
+          .optional()
+          .describe(
+            'Cautions explaining why a blind rewrite of this occurrence is unsafe'
+          ),
         reason: z.string().describe('Machine-readable review reason'),
+        signals: z
+          .array(z.string())
+          .optional()
+          .describe(
+            'Machine-readable provenance tags for the producing rule or class'
+          ),
         span: z
           .object({
             column: z.number().describe('One-based source column'),

@@ -259,19 +259,33 @@ describe('createAstIdentifierRenameClass', () => {
     expect(result.notes.join('\n')).toContain('FunctionParam');
     expect(result.reviewDetails).toEqual([
       {
+        candidateReplacement: 'targetTerm',
         classId: 'ast-identifier-rename:sourceTerm->targetTerm',
         expectedTarget: 'Rename identifier "sourceTerm" to "targetTerm".',
+        judgment: 'unresolved',
+        matchedForm: 'sourceTerm',
         nodeKind: 'Identifier',
+        preserveCautions: [
+          'Identifier "sourceTerm" resolves to FunctionParam; routed to review.',
+        ],
         reason: 'ast-identifier-review-declaration',
+        signals: ['ast:identifier-rename'],
         span: { column: 16, end: 106, line: 3, start: 96 },
         suggestedValidation: 'bun run typecheck',
         symbol: 'sourceTerm',
       },
       {
+        candidateReplacement: 'targetTerm',
         classId: 'ast-identifier-rename:sourceTerm->targetTerm',
         expectedTarget: 'Rename identifier "sourceTerm" to "targetTerm".',
+        judgment: 'unresolved',
+        matchedForm: 'sourceTerm',
         nodeKind: 'Identifier',
+        preserveCautions: [
+          'Identifier "sourceTerm" resolves to FunctionParam; routed to review.',
+        ],
         reason: 'ast-identifier-review-declaration',
+        signals: ['ast:identifier-rename'],
         span: { column: 10, end: 141, line: 4, start: 131 },
         suggestedValidation: 'bun run typecheck',
         symbol: 'sourceTerm',
@@ -373,19 +387,33 @@ describe('createAstIdentifierRenameClass', () => {
     expect(result.nextSource).toBeUndefined();
     expect(result.reviewDetails).toEqual([
       {
+        candidateReplacement: 'composeInput',
         classId: 'ast-symbol-rename:cross-compose:crossInput->composeInput',
         expectedTarget: 'Rename identifier "crossInput" to "composeInput".',
+        judgment: 'unresolved',
+        matchedForm: 'crossInput',
         nodeKind: 'Identifier',
+        preserveCautions: [
+          'Identifier "crossInput" resolves to FunctionParam; routed to review.',
+        ],
         reason: 'ast-identifier-review-declaration',
+        signals: ['ast:identifier-rename'],
         span: { column: 16, end: 104, line: 3, start: 94 },
         suggestedValidation: 'bun run typecheck',
         symbol: 'crossInput',
       },
       {
+        candidateReplacement: 'composeInput',
         classId: 'ast-symbol-rename:cross-compose:crossInput->composeInput',
         expectedTarget: 'Rename identifier "crossInput" to "composeInput".',
+        judgment: 'unresolved',
+        matchedForm: 'crossInput',
         nodeKind: 'Identifier',
+        preserveCautions: [
+          'Identifier "crossInput" resolves to FunctionParam; routed to review.',
+        ],
         reason: 'ast-identifier-review-declaration',
+        signals: ['ast:identifier-rename'],
         span: { column: 10, end: 135, line: 4, start: 125 },
         suggestedValidation: 'bun run typecheck',
         symbol: 'crossInput',

@@ -47,6 +47,7 @@ export type {
   RegradeReportEntry,
   RegradeReportEntrySelection,
   RegradeReviewDetail,
+  RegradeReviewJudgment,
   RegradeReviewSpan,
   RegradeScanTargets,
   RegradeSelection,

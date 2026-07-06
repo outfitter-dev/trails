@@ -112,7 +112,7 @@ describe('createTermRewriteClass', () => {
     });
 
     expect(report.entries[0]?.outcome).toBe('needs-review');
-    expect(report.entries[0]?.reviewDetails?.[0]?.span.start).toBe(
+    expect(report.entries[0]?.reviewDetails?.[0]?.span?.start).toBe(
       source.indexOf('facets')
     );
   });
@@ -167,6 +167,8 @@ describe('wardenTermRewriteClasses', () => {
     expect(result?.notes.join('\n')).toContain(
       'Retired composition vocabulary'
     );
+    // Safe rewrite entries keep their existing report shape: no reviewDetails.
+    expect(result?.reviewDetails).toBeUndefined();
   });
 
   test('routes review-required Warden term rewrites to review', () => {
@@ -188,7 +190,10 @@ describe('wardenTermRewriteClasses', () => {
     );
     expect(result?.reviewDetails).toEqual([
       {
+        judgment: 'unresolved',
+        matchedForm: 'authLayer',
         reason: 'warden-review-required',
+        signals: ['warden:no-legacy-layer-imports'],
         span: { column: 10, end: 18, line: 1, start: 9 },
         symbol: 'authLayer',
       },
@@ -209,12 +214,18 @@ describe('wardenTermRewriteClasses', () => {
     expect(result?.kind).toBe('needs-review');
     expect(result?.reviewDetails).toEqual([
       {
+        judgment: 'unresolved',
+        matchedForm: 'cross',
         reason: 'warden-review-required',
+        signals: ['warden:no-retired-cross-vocabulary'],
         span: { column: 7, end: 11, line: 1, start: 6 },
         symbol: 'cross',
       },
       {
+        judgment: 'unresolved',
+        matchedForm: 'cross',
         reason: 'warden-review-required',
+        signals: ['warden:no-retired-cross-vocabulary'],
         span: { column: 7, end: 31, line: 2, start: 26 },
         symbol: 'cross',
       },
@@ -235,11 +246,17 @@ describe('wardenTermRewriteClasses', () => {
     expect(result?.kind).toBe('needs-review');
     expect(result?.reviewDetails).toEqual([
       {
+        judgment: 'unresolved',
+        matchedForm: 'cross',
         reason: 'warden-review-required',
+        signals: ['warden:no-retired-cross-vocabulary'],
         symbol: 'cross',
       },
       {
+        judgment: 'unresolved',
+        matchedForm: 'cross',
         reason: 'warden-review-required',
+        signals: ['warden:no-retired-cross-vocabulary'],
         symbol: 'cross',
       },
     ]);
@@ -266,7 +283,10 @@ describe('wardenTermRewriteClasses', () => {
     expect(report.entries[0]?.reviewDetails).toEqual([
       {
         classId: 'term-rewrite:no-legacy-layer-imports',
+        judgment: 'unresolved',
+        matchedForm: 'authLayer',
         reason: 'warden-review-required',
+        signals: ['warden:no-legacy-layer-imports'],
         span: { column: 10, end: 18, line: 1, start: 9 },
         symbol: 'authLayer',
       },
@@ -340,6 +360,141 @@ describe('wardenTermRewriteClasses', () => {
     expect(result?.notes.join('\n')).toContain(
       'Safe fix metadata was missing concrete edits.'
     );
+  });
+
+  test('carries structured Warden review context into review details', () => {
+    const source = 'export const legacyThing = 1;\n';
+    const rule = {
+      check: () => [
+        {
+          code: 'legacy-term',
+          filePath: '/repo/src/legacy.ts',
+          fix: {
+            class: 'term-rewrite',
+            edits: [{ end: 24, replacement: 'modernThing', start: 13 }],
+            fixture: 'docs/examples/legacy-thing.md',
+            reason: "Rename 'legacyThing' after human review.",
+            safety: 'review',
+          },
+          guidance: {
+            commands: ['bun test packages/regrade'],
+            steps: [
+              'Confirm the occurrence is not part of the compatibility bridge.',
+              'Rename it to modernThing.',
+            ],
+            summary: 'legacyThing occurrences need occurrence-level judgment.',
+          },
+          line: 1,
+          message: "Rename 'legacyThing' after human review.",
+          rule: 'project-review-term',
+          severity: 'error',
+        },
+      ],
+      description: 'Test structured Warden review context.',
+      metadata: {
+        concern: 'meta',
+        depth: 'source',
+        fix: { class: 'term-rewrite', safety: 'review' },
+        invariant: 'Warden review findings carry structured review context.',
+        lifecycle: { retireWhen: 'migration completes', state: 'temporary' },
+        scope: 'repo-local',
+        tier: 'source-static',
+      },
+      name: 'project-review-term',
+      severity: 'error',
+    } satisfies WardenRule;
+    const cls = createWardenTermRewriteClass(rule);
+    expect(cls).not.toBeNull();
+
+    const report = buildRegradeReport({
+      classes: cls ? [cls] : [],
+      files: [{ path: 'src/legacy.ts', source }],
+      root: '/repo',
+      skipped: [],
+    });
+
+    expect(report.entries[0]?.outcome).toBe('needs-review');
+    expect(report.entries[0]?.reviewDetails).toEqual([
+      {
+        candidateReplacement: 'modernThing',
+        classId: 'term-rewrite:project-review-term',
+        expectedTarget: 'Replace with "modernThing".',
+        fixture: 'docs/examples/legacy-thing.md',
+        judgment: 'unresolved',
+        matchedForm: 'legacyThing',
+        preserveCautions: [
+          'legacyThing occurrences need occurrence-level judgment.',
+          'Confirm the occurrence is not part of the compatibility bridge.',
+          'Rename it to modernThing.',
+        ],
+        reason: 'warden-review-required',
+        signals: [
+          'warden:project-review-term',
+          'project-review-term:legacy-term',
+        ],
+        span: { column: 14, end: 24, line: 1, start: 13 },
+        suggestedValidation: 'bun test packages/regrade',
+        symbol: 'legacyThing',
+      },
+    ]);
+  });
+
+  test('marks unapplicable safe edits as a completed rewrite verdict', () => {
+    const source = 'const legacyTerm = 1;\n';
+    const rule = {
+      check: () => [
+        {
+          filePath: '/repo/src/legacy.ts',
+          fix: {
+            class: 'term-rewrite',
+            edits: [
+              { end: 16, replacement: 'modernTerm', start: 6 },
+              { end: 18, replacement: 'other', start: 10 },
+            ],
+            reason: "Rename 'legacyTerm' with overlapping edits.",
+            safety: 'safe',
+          },
+          line: 1,
+          message: "Rename 'legacyTerm' with overlapping edits.",
+          rule: 'project-safe-term',
+          severity: 'error',
+        },
+      ],
+      description: 'Test invalid Warden fix edits.',
+      metadata: {
+        concern: 'meta',
+        depth: 'source',
+        fix: { class: 'term-rewrite', safety: 'safe' },
+        invariant: 'Invalid Warden fix edits stay visible as review entries.',
+        lifecycle: { retireWhen: 'migration completes', state: 'temporary' },
+        scope: 'repo-local',
+        tier: 'source-static',
+      },
+      name: 'project-safe-term',
+      severity: 'error',
+    } satisfies WardenRule;
+    const cls = createWardenTermRewriteClass(rule);
+
+    const result = cls?.apply(source, {
+      absolutePath: '/repo/src/legacy.ts',
+      path: 'src/legacy.ts',
+    });
+
+    expect(result?.kind).toBe('needs-review');
+    expect(result?.reason).toBe('warden-fix-invalid');
+    expect(result?.notes.join('\n')).toContain('overlapping-edit-spans');
+    // The rule completed judgment (it authored concrete edits); the run could
+    // not apply them, so the detail carries a completed rewrite verdict.
+    expect(result?.reviewDetails).toEqual([
+      {
+        judgment: 'rewrite',
+        matchedForm: 'legacyTerm',
+        reason: 'warden-fix-invalid',
+        signals: ['warden:project-safe-term'],
+        span: { column: 7, end: 16, line: 1, start: 6 },
+        symbol: 'legacyTerm',
+      },
+    ]);
   });
 
   test('projects rule-local term-rewrite metadata for project rules', () => {
