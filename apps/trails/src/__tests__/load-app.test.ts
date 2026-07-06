@@ -93,6 +93,39 @@ const assertLoadAppDependencyCaching = async (cwd: string): Promise<void> => {
   expect(fresh.name).toBe('second');
 };
 
+const writeExtensionlessSpecifierLoadAppFixture = (
+  cwd: string,
+  name: string
+): void => {
+  writeFileSync(resolve(cwd, 'src/name.ts'), `export const name = '${name}';`);
+  writeFileSync(
+    resolve(cwd, 'src/app.ts'),
+    `import { name } from './name';
+
+export const app = {
+  name,
+  trails: new Map(),
+  signals: new Map(),
+  resources: new Map()
+};`
+  );
+};
+
+const assertLoadAppExtensionlessSpecifierCaching = async (
+  cwd: string
+): Promise<void> => {
+  writeExtensionlessSpecifierLoadAppFixture(cwd, 'first');
+
+  const first = await loadApp('./src/app.ts', cwd);
+
+  writeExtensionlessSpecifierLoadAppFixture(cwd, 'second');
+
+  const fresh = await loadApp('./src/app.ts', cwd, { fresh: true });
+
+  expect(first.name).toBe('first');
+  expect(fresh.name).toBe('second');
+};
+
 const assertLoadAppJsSpecifierCaching = async (cwd: string): Promise<void> => {
   writeJsSpecifierLoadAppFixture(cwd, 'first');
 
@@ -450,6 +483,59 @@ describe('loadApp', () => {
     try {
       mkdirSync(resolve(cwd, 'src'), { recursive: true });
       await assertLoadAppJsSpecifierCaching(cwd);
+    } finally {
+      rmSync(cwd, { force: true, recursive: true });
+    }
+  });
+
+  test('fresh loading resolves extensionless relative specifiers like the runtime', async () => {
+    const cwd = resolve(
+      tmpdir(),
+      `trails-load-app-extensionless-${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2)}`
+    );
+
+    try {
+      mkdirSync(resolve(cwd, 'src'), { recursive: true });
+      await assertLoadAppExtensionlessSpecifierCaching(cwd);
+    } finally {
+      rmSync(cwd, { force: true, recursive: true });
+    }
+  });
+
+  test('fresh loading names unresolvable relative imports instead of failing opaquely', async () => {
+    const cwd = resolve(
+      tmpdir(),
+      `trails-load-app-unresolvable-${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2)}`
+    );
+
+    try {
+      mkdirSync(resolve(cwd, 'src'), { recursive: true });
+      writeFileSync(
+        resolve(cwd, 'src/app.ts'),
+        `import { missing } from './missing';
+
+export const app = {
+  name: missing,
+  trails: new Map(),
+  signals: new Map(),
+  resources: new Map()
+};`
+      );
+
+      const result = await tryLoadFreshAppLease('./src/app.ts', cwd);
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error).toBeInstanceOf(ValidationError);
+        expect(result.error.message).toContain('Cannot resolve import');
+        expect(result.error.message).toContain('"./missing"');
+        expect(result.error.message).toContain('src/app.ts');
+        expect(result.error.message).not.toBe('Internal server error');
+      }
     } finally {
       rmSync(cwd, { force: true, recursive: true });
     }

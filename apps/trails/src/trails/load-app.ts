@@ -358,10 +358,33 @@ const resolveImportedModulePath = (
     importPath,
     pathToFileURL(importerPath).href
   );
-  return resolveFilesystemModulePath(
+  const literalPath = resolveFilesystemModulePath(
     fileURLToPath(resolved),
     dirname(importerPath)
   );
+  if (safeStat(literalPath)?.isFile()) {
+    return literalPath;
+  }
+
+  // `import.meta.resolve` joins relative specifiers without probing the
+  // filesystem, so extensionless imports point at paths that do not exist even
+  // though Bun resolves them at runtime. Fall back to the runtime resolver so
+  // runtime-valid apps stay fresh-loadable.
+  try {
+    return resolveFilesystemModulePath(
+      Bun.resolveSync(importPath, dirname(importerPath)),
+      dirname(importerPath)
+    );
+  } catch (error) {
+    const extensionlessHint =
+      extname(importPath) === ''
+        ? ' Extensionless relative imports must match a .ts/.tsx/.js module or a directory index.'
+        : '';
+    throw new ValidationError(
+      `Cannot resolve import "${importPath}" from "${importerPath}" while mirroring the app for fresh loading: "${literalPath}" does not exist and runtime resolution found no match. Fix the specifier or add the missing file.${extensionlessHint}`,
+      { cause: asError(error), context: { importPath, importerPath } }
+    );
+  }
 };
 
 interface WorkspacePackage {
