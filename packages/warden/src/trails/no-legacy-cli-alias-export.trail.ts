@@ -17,9 +17,9 @@ export const noLegacyCliAliasExportTrail = wrapRule({
           {
             filePath: 'apps/example/src/app.ts',
             fix: {
-              class: 'term-rewrite',
+              class: 'export-restructure',
               reason:
-                "Legacy CLI alias export 'trailsCliAliases' must be rewritten into a surfaceOverlay({ cli: { ... } }) entry inside the module's trailsOverlays array export; regrade class export-restructure (TRL-1210) will automate this restructure.",
+                "Legacy CLI alias export 'trailsCliAliases' must be rewritten into a surfaceOverlay({ cli: { ... } }) entry inside the module's trailsOverlays array export; run the Regrade class export-restructure:cli-aliases (TRL-1210) to automate this restructure.",
               safety: 'review',
             },
             line: 1,

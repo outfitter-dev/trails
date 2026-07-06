@@ -6,7 +6,7 @@ Self-hosted GitHub-Gists-style snippet service — the showcase suite's delibera
 
 | Capability | Where it appears |
 | --- | --- |
-| Trailheads | [src/mcp-options.ts](src/mcp-options.ts) groups the dense topo into `snippets`, `history`, `search`, and `account` entries for MCP; member trail identity is preserved per ADR-0050 ([`__tests__/trailheads.test.ts`](__tests__/trailheads.test.ts)) |
+| Trailheads | [src/app.ts](src/app.ts) authors the `snippets`, `history`, `search`, and `account` group bindings as a `surfaceOverlay({ mcp })` entry in `trailsOverlays` — the lock-visible default. [src/mcp-options.ts](src/mcp-options.ts) keeps the call-site map as the richer-metadata override-in-context; member trail identity is preserved per ADR-0050 ([`__tests__/trailheads.test.ts`](__tests__/trailheads.test.ts)) |
 | Permits | [src/resources/auth.ts](src/resources/auth.ts) resolves bearer tokens against the `tokens` table on every surface; owner checks live in the blazes ([src/trails/snippet.ts](src/trails/snippet.ts)) |
 | Secret snippets without existence leaks | [src/trails/shared.ts](src/trails/shared.ts) — one visibility choke point; proven per surface in [`__tests__/permit-parity.test.ts`](__tests__/permit-parity.test.ts) |
 | Domain revisions | [src/store.ts](src/store.ts) + [src/trails/revision.ts](src/trails/revision.ts) — immutable revision rows; immutability proven in [`__tests__/revisions.test.ts`](__tests__/revisions.test.ts) |
@@ -20,7 +20,7 @@ Twenty trails, two resources, twenty signals, all mocked-db testable with one `t
 
 ## The agent story (MCP first)
 
-Agents are the primary user here: "save this snippet," "find my sqlite snippets," "fork and modify." The MCP surface exposes the hot-path tools directly and groups the rest behind four trailheads, so a dense topo reads as a short tool list.
+Agents are the primary user here: "save this snippet," "find my sqlite snippets," "fork and modify." The MCP surface exposes the hot-path tools directly and groups the rest behind four trailheads, so a dense topo reads as a short tool list. The groupings are authored once as module overlay bindings in `app.ts` (so they land in `trails.lock` and any surface or reader can see them), while the call-site map in `mcp-options.ts` overrides the same members at runtime with richer descriptions.
 
 A real tool-call transcript, captured against the seeded app (`stash_snippet_create` with alice's bearer token, then `stash_search_query` — no reindex step in between; the `snippet.created` signal drove `search.index` reactively):
 

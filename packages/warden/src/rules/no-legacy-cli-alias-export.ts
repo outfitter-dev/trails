@@ -201,14 +201,15 @@ const buildMessage = (name: string): string =>
  * Build the fix metadata for a legacy CLI alias export finding.
  *
  * The rewrite is an export restructure, not a rename, so there is no
- * mechanical single-span replacement: the fix is review-required and carries
- * no edits. The intended regrade class is `export-restructure` (TRL-1210);
- * the {@link WardenFix} class union only carries `term-rewrite` today, so the
- * reason string names the target class for downstream regrade routing.
+ * mechanical single-span replacement: the fix carries no edits and Warden
+ * never applies it. Downstream, the `export-restructure` fix class routes the
+ * finding to the Regrade `export-restructure:cli-aliases` class (TRL-1210),
+ * which inverts the alias map into `surfaceOverlay({ cli: { ... } })`
+ * bindings inside the module's `trailsOverlays` array export.
  */
 const buildFix = (name: string): WardenFix => ({
-  class: 'term-rewrite',
-  reason: `Legacy CLI alias export '${name}' must be rewritten into a surfaceOverlay({ cli: { ... } }) entry inside the module's trailsOverlays array export; regrade class export-restructure (TRL-1210) will automate this restructure.`,
+  class: 'export-restructure',
+  reason: `Legacy CLI alias export '${name}' must be rewritten into a surfaceOverlay({ cli: { ... } }) entry inside the module's trailsOverlays array export; run the Regrade class export-restructure:cli-aliases (TRL-1210) to automate this restructure.`,
   safety: 'review',
 });
 

@@ -23,4 +23,4 @@ The execution plan is [v1 Vocabulary Reset Transition Plan](releases/v1-vocabula
 
 Completed family:
 
-- `facet` -> `trailhead` landed as the live code/API term for grouped surface entries. Current API identifiers include `trailheads`, `trailheadId`, `McpSurfaceTrailheadMap`, `wayfind.trailheads`, and `surface-trailhead-coherence`.
+- `facet` -> `trailhead` landed, and the surfaces-overlay cutover (TRL-1207/TRL-1210) then re-classed `trailhead` as a prose/teaching word: grouped entries are authored as `surfaceOverlay({ mcp })` group bindings in `trailsOverlays`. Live API identifiers such as `trailheads`, `trailheadId`, `McpSurfaceTrailheadMap`, `wayfind.trailheads`, and `surface-trailhead-coherence` remain the call-site/override and governance spellings.

@@ -303,7 +303,24 @@ await surface(graph, {
 });
 ```
 
-Use layers for authored behavior such as rate limits, tenant guards, telemetry wrappers, or CLI verbosity. Framework-owned behavior such as permit enforcement and tracing stays in the execution pipeline. See [ADR-0043: Layer Evolution](./adr/0043-layer-evolution.md).
+Use layers for authored behavior such as rate limits, tenant guards, telemetry wrappers, or CLI verbosity. Framework-owned behavior such as permit enforcement and tracing stays in the execution pipeline. Layers contrast with [`overlay`](#overlay): layers wrap what runs; overlays enrich the map. See [ADR-0043: Layer Evolution](./adr/0043-layer-evolution.md).
+
+### `overlay`
+
+A named, schema-registered, provenance-tagged sheet of facts laid over the topo. An overlay contributes facts under one lock namespace — the app-authored `surfaces` overlay carries CLI and MCP bindings, and adapters contribute their own namespaces — and readers are tolerant: overlay facts are additive, and a consumer that does not understand a namespace ignores it without breaking.
+
+```typescript
+export const trailsOverlays = [
+  surfaceOverlay({
+    cli: { ls: 'gear.list' },
+    mcp: { snippets: ['snippet.create', 'snippet.get'] },
+  }),
+];
+```
+
+Overlays contrast with [`layer`](#layer): layers wrap what runs; overlays enrich the map. An overlay is never a subdivision of an individual trail — it lays facts over the whole graph, keyed by namespace, and trail contracts stay whole underneath it.
+
+Known homophone: the app module export is named `trailsOverlays` because app-module exports carry the `trails*` prefix convention. That export is a collection of overlay envelopes, not a separate concept.
 
 ### `resource` / `resources`
 
@@ -486,10 +503,10 @@ A mechanically derived output from authored information. The topo store is a rel
 | `surface entry` | Invocable affordance exposed by a surface: CLI command, MCP tool, HTTP route, or library export |
 | `approach` | Surface-specific way for a caller to reach a surface entry |
 | `path` | Surface-local realization of an approach: command path, tool name, HTTP path, or export name |
-| `alias` | Alternate approach to the same surface entry and same trail contract |
+| `alias` | Prose/teaching word for a scalar surface binding: an alternate approach converging on the same surface entry and trail contract. Authored through `surfaceOverlay()` scalar bindings, not an `aliases` API identifier |
 | `input mapping` | Surface-shaped input normalization into the same authored trail input contract |
 | `facet` | Retired bare vocabulary; use `trailhead` for grouped surface entries or `schema facet` only as descriptive schema prose |
-| `trailhead` | Surface-side grouped entry over existing trails; not a graph node, package category, or core `Facet` primitive |
+| `trailhead` | Prose/teaching word for a grouped surface entry — a list surface binding over existing trails, authored through `surfaceOverlay()` group bindings. Not a graph node, package category, or core `Facet` primitive |
 | `schema facet` | Descriptive phrase for a schema-owned slice or view when docs need it; not a decided public API |
 | `trail fork` | Doctrine phrase for the point where a surface accommodation would change semantics or merge or hide member identity; author a distinct trail, composing trail, or trailhead that preserves identity instead |
 | `MCP resources` | MCP protocol resources used for cold context; not Trails `resource()` infrastructure declarations |
@@ -521,7 +538,7 @@ These are directional. They should not be reused for unrelated concepts.
 | `pack` | Distributable capability bundle |
 | `depot` | Registry or distribution point for packs and shared assets |
 | `dispatch` | Activation/source fan-out from a source to consuming trails; not the direct execution helper |
-| `trailhead()` | Historical boundary API retired in favor of `surface()`. Use `trailhead` only for a grouped surface entry over existing trails. |
+| `trailhead()` | Historical boundary API retired in favor of `surface()`. Use `trailhead` as prose only, for a grouped surface entry (a list surface binding) over existing trails. |
 | `connector` | Historical package-boundary term retired from active user-facing taxonomy. Use `adapter` in docs, examples, and public APIs. |
 | `_draft.` | Reserved ID prefix for draft state. Trails, signals, and other primitives with `_draft.` IDs are visible in source but excluded from the resolved graph, established surfaces, and graph exports. Draft state is visible debt — it must never leak into established outputs. See ADR-0021. |
 

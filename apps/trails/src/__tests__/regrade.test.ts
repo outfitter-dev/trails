@@ -391,6 +391,173 @@ describe('trails regrade', () => {
     }
   });
 
+  test('CLI runs the class-mode plan lifecycle: plan, check, apply, history', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(
+        dir,
+        'src/app.ts',
+        [
+          "import { topo } from '@ontrails/core';",
+          '',
+          'export const trailsCliAliases = {',
+          "  'survey.diff': [['diff']],",
+          '} as const;',
+          '',
+          "export const app = topo('example');",
+          '',
+        ].join('\n')
+      );
+
+      const planResult = runRawCli([
+        'regrade',
+        'plan',
+        '--type',
+        'class',
+        '--class-ids',
+        'export-restructure:cli-aliases',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+      expect(planResult.exitCode).toBe(0);
+      const plan = parseCliJson<{
+        readonly path?: string;
+        readonly plan?: {
+          readonly classIds?: readonly string[];
+          readonly kind?: string;
+        };
+        readonly sourceHash?: string;
+      }>(planResult);
+      expect(plan).toMatchObject({
+        kind: 'regrade-plan',
+        path: '.trails/regrade/export-restructure-cli-aliases.json',
+        plan: {
+          classIds: ['export-restructure:cli-aliases'],
+          kind: 'class',
+        },
+      });
+      if (plan.path === undefined) {
+        throw new Error('Expected Regrade plan path.');
+      }
+      expect(existsSync(join(dir, plan.path))).toBe(true);
+
+      const plansResult = runRawCli([
+        'regrade',
+        'plans',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+      expect(plansResult.exitCode).toBe(0);
+      expect(parseCliJson(plansResult)).toMatchObject({
+        plans: [
+          {
+            classIds: ['export-restructure:cli-aliases'],
+            kind: 'class',
+            path: plan.path,
+            status: 'active',
+          },
+        ],
+      });
+
+      // The gate stays open while the safe rewrite is pending.
+      const checkResult = runRawCli([
+        'regrade',
+        'check',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+      expect(checkResult.exitCode).not.toBe(0);
+      expect(checkResult.stderr).toContain('Regrade plan gate is open');
+
+      const applyResult = runRawCli([
+        'regrade',
+        'apply',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+      expect(applyResult.exitCode).toBe(0);
+      const applied = parseCliJson<{
+        readonly apply?: { readonly applied?: number };
+        readonly history?: { readonly path?: string };
+        readonly plan?: { readonly status?: string };
+      }>(applyResult);
+      expect(applied.apply).toMatchObject({ applied: 1 });
+      expect(applied.plan).toMatchObject({ status: 'active' });
+      const historyPath = applied.history?.path;
+      if (historyPath === undefined) {
+        throw new Error('Expected Regrade history path.');
+      }
+      expect(historyPath).toContain(
+        '.trails/regrade/history/export-restructure-cli-aliases-'
+      );
+      expect(existsSync(join(dir, historyPath))).toBe(true);
+      // Apply graduates the plan out of the active directory.
+      expect(existsSync(join(dir, plan.path))).toBe(false);
+
+      const rewritten = readFileSync(join(dir, 'src', 'app.ts'), 'utf8');
+      expect(rewritten).toContain(
+        "import { surfaceOverlay, topo } from '@ontrails/core';"
+      );
+      expect(rewritten).toContain('export const trailsOverlays = [');
+      expect(rewritten).toContain("diff: 'survey.diff',");
+      expect(rewritten).not.toContain('trailsCliAliases');
+
+      // A fresh plan over the migrated tree is clean and checks green.
+      const replanResult = runRawCli([
+        'regrade',
+        'plan',
+        '--type',
+        'class',
+        '--class-ids',
+        'export-restructure:cli-aliases',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+      expect(replanResult.exitCode).toBe(0);
+      const recheckResult = runRawCli([
+        'regrade',
+        'check',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+      expect(recheckResult.exitCode).toBe(0);
+      expect(parseCliJson(recheckResult)).toMatchObject({
+        check: { status: 'passed' },
+        rewritten: 0,
+      });
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('CLI rejects class-mode plans with unknown class ids', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(dir, 'src/app.ts', 'export const app = 1;\n');
+      const result = runRawCli([
+        'regrade',
+        'plan',
+        '--type',
+        'class',
+        '--class-ids',
+        'export-restructure:not-a-class',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+      expect(result.exitCode).not.toBe(0);
+      expect(result.stderr).toContain('Unknown Regrade class ids');
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
   test('CLI writes distinct history entries for symbol-only plans', () => {
     const dir = makeTempDir();
     try {

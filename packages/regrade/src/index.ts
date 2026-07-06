@@ -14,6 +14,13 @@ export {
   wardenTermRewriteClasses,
 } from './downstream/report.js';
 export {
+  cliAliasesExportRestructureClass,
+  createWardenExportRestructureClass,
+  exportRestructureClasses,
+  loadWardenRegradeClasses,
+  mcpTrailheadsExportRestructureClass,
+} from './downstream/export-restructure.js';
+export {
   VOCABULARY_TRANSITION_RECORD_SCHEMA_VERSION,
   buildVocabularyTransitionRecord,
   readVocabularyTransitionRecord,

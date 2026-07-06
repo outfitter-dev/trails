@@ -44,6 +44,7 @@ export const wardenRuleLifecycleStates = [
 ] as const satisfies readonly WardenRuleLifecycleState[];
 
 export const wardenFixClasses = [
+  'export-restructure',
   'term-rewrite',
 ] as const satisfies readonly WardenFixClass[];
 
@@ -382,7 +383,7 @@ const builtinWardenRuleMetadataInput = {
     tier: 'source-static',
   },
   'no-legacy-cli-alias-export': {
-    fix: { class: 'term-rewrite', safety: 'review' },
+    fix: { class: 'export-restructure', safety: 'review' },
     invariant:
       'Legacy app-module CLI alias exports (cliAliases, trailsCliAliases) removed in the TRL-1207 surfaces-overlay cutover do not reappear in committed source.',
     lifecycle: {

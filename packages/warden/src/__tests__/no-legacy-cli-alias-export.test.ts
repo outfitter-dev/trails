@@ -103,7 +103,7 @@ describe('no-legacy-cli-alias-export', () => {
       '/repo/apps/example/src/app.ts'
     )[0]?.fix;
 
-    expect(fix?.class).toBe('term-rewrite');
+    expect(fix?.class).toBe('export-restructure');
     // The rewrite is an export restructure with no mechanical single-span
     // replacement, so the fix is review-required and carries no edits.
     expect(fix?.safety).toBe('review');

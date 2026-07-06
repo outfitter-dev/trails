@@ -105,8 +105,13 @@ export interface WardenGuidance {
  * Names the kind of mechanical change so agents, the guide, and downstream
  * regrades can route by class. `term-rewrite` is the durable name for retired
  * vocabulary renames (`vocab-cutover` is historical wording only).
+ * `export-restructure` names structural export rewrites — the finding is not
+ * a rename but a reshaping of a module export (for example wrapping a legacy
+ * CLI alias map into a `surfaceOverlay({ cli })` entry inside
+ * `trailsOverlays`), so downstream Regrade routes it to a structural
+ * transform class instead of a span replacement.
  */
-export type WardenFixClass = 'term-rewrite';
+export type WardenFixClass = 'export-restructure' | 'term-rewrite';
 
 /**
  * How safe a fix is to apply without human review.

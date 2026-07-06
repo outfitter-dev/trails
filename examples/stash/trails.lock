@@ -6034,8 +6034,98 @@
         }
       ]
     },
-    "topoGraphSchemaVersion": 3
+    "overlays": {
+      "surfaces": {
+        "mcp": {
+          "account": [
+            "token.create",
+            "token.list",
+            "token.revoke",
+            "user.me"
+          ],
+          "history": [
+            "revision.list",
+            "revision.get",
+            "revision.diff",
+            "file.raw"
+          ],
+          "search": [
+            "search.query"
+          ],
+          "snippets": [
+            "snippet.create",
+            "snippet.get",
+            "snippet.list",
+            "snippet.update",
+            "snippet.delete",
+            "snippet.fork",
+            "snippet.star",
+            "snippet.unstar"
+          ]
+        }
+      }
+    },
+    "topoGraphSchemaVersion": 3,
+    "trailheads": [
+      {
+        "description": "Grouped MCP entry over: token.create, token.list, token.revoke, user.me.",
+        "id": "account",
+        "memberIds": [
+          "token.create",
+          "token.list",
+          "token.revoke",
+          "user.me"
+        ],
+        "memberSetHash": "db649dbb52835d08483444176b626dae6e0b2f429906410d0ba62a6e8cfb5e3d",
+        "surfaces": [
+          "mcp"
+        ]
+      },
+      {
+        "description": "Grouped MCP entry over: file.raw, revision.diff, revision.get, revision.list.",
+        "id": "history",
+        "memberIds": [
+          "file.raw",
+          "revision.diff",
+          "revision.get",
+          "revision.list"
+        ],
+        "memberSetHash": "f1389800379a6794ebb88f693ed8a9bb8354b944f9a19a5119805c2a0ef80657",
+        "surfaces": [
+          "mcp"
+        ]
+      },
+      {
+        "description": "Grouped MCP entry over: search.query.",
+        "id": "search",
+        "memberIds": [
+          "search.query"
+        ],
+        "memberSetHash": "5f4f083df69016695c5d181a26d77211a2fd94d98fed144de35ad6d3be031ca1",
+        "surfaces": [
+          "mcp"
+        ]
+      },
+      {
+        "description": "Grouped MCP entry over: snippet.create, snippet.delete, snippet.fork, snippet.get, snippet.list, snippet.star, snippet.unstar, snippet.update.",
+        "id": "snippets",
+        "memberIds": [
+          "snippet.create",
+          "snippet.delete",
+          "snippet.fork",
+          "snippet.get",
+          "snippet.list",
+          "snippet.star",
+          "snippet.unstar",
+          "snippet.update"
+        ],
+        "memberSetHash": "411a7228c262b98ff8595c728fb336255335e73c58bc8a74c6ae28f450d4ce1f",
+        "surfaces": [
+          "mcp"
+        ]
+      }
+    ]
   },
-  "topoGraphHash": "817d29ad50be02ca230b34a9436935421589626b53a740bd886763d8c8f08e6a",
+  "topoGraphHash": "e89c7fcfb21f8e50f0ca9411791a0533be9daa6a15110e612a5b180c8cddbebc",
   "version": 4
 }

@@ -282,9 +282,10 @@ describe('wardenTermRewriteClasses', () => {
       skipped: [],
     });
 
+    // `no-legacy-cli-alias-export` routes through the `export-restructure`
+    // fix class (TRL-1210), so it no longer projects a term-rewrite class.
     expect(report.selectedClassIds).toEqual([
       'term-rewrite:governed-symbol-residue',
-      'term-rewrite:no-legacy-cli-alias-export',
       'term-rewrite:no-legacy-layer-imports',
       'term-rewrite:no-retired-cross-vocabulary',
     ]);

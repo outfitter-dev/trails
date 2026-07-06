@@ -66,6 +66,7 @@ Use the project language consistently:
 - `surface`, not transport terminology (the API function and user-facing noun)
 - `resource`, not service or dependency
 - `layer`, not middleware
+- `overlay`, not section or contribution (the lock's one extension mechanism; layers wrap what runs; overlays enrich the map)
 
 `mount` is reserved for cross-app composition. See `docs/lexicon.md` for the full lexicon.
 

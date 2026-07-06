@@ -12,7 +12,7 @@ import { describe, expect, test } from 'bun:test';
 import { MCP_TOOL_TRAILHEAD_META_KEY, deriveMcpTools } from '@ontrails/mcp';
 import type { McpToolDefinition } from '@ontrails/mcp';
 
-import { graph } from '../src/app.js';
+import { graph, trailsOverlays } from '../src/app.js';
 import { stashTrailheads } from '../src/mcp-options.js';
 import { createMockDb, db } from '../src/resources/db.js';
 
@@ -74,5 +74,21 @@ describe('MCP trailheads', () => {
       {}
     );
     expect(result.isError).toBe(true);
+  });
+});
+
+describe('authored overlay / call-site override alignment', () => {
+  test('the module overlay authors the same members the call-site map selects', () => {
+    const overlay = trailsOverlays.find(
+      (entry) => entry.namespace === 'surfaces'
+    );
+    const mcpBindings = overlay?.bindings.mcp ?? {};
+
+    expect(Object.keys(mcpBindings).toSorted()).toEqual(
+      Object.keys(stashTrailheads).toSorted()
+    );
+    for (const [name, definition] of Object.entries(stashTrailheads)) {
+      expect(mcpBindings[name]).toEqual(definition.trails);
+    }
   });
 });

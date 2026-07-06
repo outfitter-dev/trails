@@ -5,12 +5,19 @@
  * tool listing. A trailhead call is `{ trail, input }` and the response
  * carries `{ trail, output }`: member trail identity is preserved at
  * invocation and response time (ADR-0050), never merged away.
+ *
+ * The authored, lock-visible defaults live in `app.ts` as
+ * `surfaceOverlay({ mcp })` group bindings inside `trailsOverlays`; this
+ * call-site map is the richer-metadata runtime override over the same member
+ * trails.
  */
 
 import type {
   CreateServerOptions,
   McpSurfaceTrailheadMap,
 } from '@ontrails/mcp';
+
+import { trailsOverlays } from './app.js';
 
 export const stashTrailheads = {
   account: {
@@ -48,6 +55,10 @@ export const stashMcpOptions = {
   description:
     'Self-hosted gists for agents: save, search, fork, and retrieve snippets with immutable revision history.',
   name: 'stash',
+  // The overlay authors the lockable trailhead defaults; the call-site map
+  // below is the runtime override-in-context with richer metadata
+  // (descriptions) over the same member selectors.
+  overlays: trailsOverlays,
   trailheads: stashTrailheads,
   version: '0.1.0',
 } satisfies CreateServerOptions;
