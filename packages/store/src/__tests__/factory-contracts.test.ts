@@ -1,16 +1,21 @@
 /**
- * Factory contract completeness (TRL-1195): crud()/reconcile() declare
- * permits and share one table contour instead of forcing consuming apps
- * to post-process the produced trails.
+ * Factory contract completeness (TRL-1195, TRL-1201): crud()/reconcile()/
+ * sync() declare permits and share table contours instead of forcing
+ * consuming apps to post-process the produced trails.
  */
 
 import { describe, expect, test } from 'bun:test';
 import { Result, resource, topo } from '@ontrails/core';
 import { z } from 'zod';
 
-import type { EntityOf, StoreAccessor } from '../index.js';
+import type {
+  EntityOf,
+  ReadOnlyStoreTableAccessor,
+  StoreAccessor,
+} from '../index.js';
 import { store } from '../index.js';
-import { crud, reconcile } from '../trails/index.js';
+import type { TableContour } from '../trails/index.js';
+import { crud, reconcile, sync } from '../trails/index.js';
 
 const noteSchema = z.object({
   body: z.string(),
@@ -155,5 +160,188 @@ describe('shared table contours', () => {
     });
     expect(second.contour).toBe(first.contour);
     expect(second[0].contours[0]).toBe(first.contour);
+  });
+});
+
+const externalNoteSchema = z.object({
+  bodyText: z.string(),
+  createdAt: z.string(),
+  heading: z.string(),
+  id: z.string(),
+});
+
+const externalDefinition = store({
+  externalNotes: {
+    fixtures: [
+      {
+        bodyText: 'Copied body',
+        createdAt: '2026-04-10T12:00:00.000Z',
+        heading: 'Copied title',
+        id: 'external-1',
+      },
+    ],
+    identity: 'id',
+    schema: externalNoteSchema,
+  },
+});
+
+type ExternalTable = typeof externalDefinition.tables.externalNotes;
+type ExternalConnection = Readonly<
+  Record<'externalNotes', ReadOnlyStoreTableAccessor<ExternalTable>>
+>;
+
+const createExternalAccessor =
+  (): ReadOnlyStoreTableAccessor<ExternalTable> => {
+    const records = new Map<string, EntityOf<ExternalTable>>();
+    return {
+      get(id) {
+        const entity = records.get(id);
+        return Promise.resolve(
+          entity === undefined ? null : structuredClone(entity)
+        );
+      },
+      list() {
+        return Promise.resolve(
+          [...records.values()].map((entity) => structuredClone(entity))
+        );
+      },
+    };
+  };
+
+const externalResource = resource<ExternalConnection>('db.external.factory', {
+  create: () => Result.ok({ externalNotes: createExternalAccessor() }),
+});
+
+type WritableExternalConnection = Readonly<
+  Record<'externalNotes', StoreAccessor<ExternalTable>>
+>;
+
+const createWritableExternalAccessor = (): StoreAccessor<ExternalTable> => {
+  const records = new Map<string, EntityOf<ExternalTable>>();
+  return {
+    get(id) {
+      const entity = records.get(id);
+      return Promise.resolve(
+        entity === undefined ? null : structuredClone(entity)
+      );
+    },
+    list() {
+      return Promise.resolve(
+        [...records.values()].map((entity) => structuredClone(entity))
+      );
+    },
+    remove(id) {
+      return Promise.resolve({ deleted: records.delete(id) });
+    },
+    upsert(entity) {
+      const stored = structuredClone(entity) as EntityOf<ExternalTable>;
+      records.set(String(stored.id), stored);
+      return Promise.resolve(structuredClone(stored));
+    },
+  };
+};
+
+const writableExternalResource = resource<WritableExternalConnection>(
+  'db.external.crud.factory',
+  {
+    create: () =>
+      Result.ok({ externalNotes: createWritableExternalAccessor() }),
+  }
+);
+
+const syncNotes = (options?: {
+  readonly fromContour?: TableContour<ExternalTable>;
+  readonly permit?: Parameters<typeof sync>[0]['permit'];
+  readonly toContour?: TableContour<typeof noteDefinition.tables.notes>;
+}) =>
+  sync({
+    from: {
+      ...(options?.fromContour === undefined
+        ? {}
+        : { contour: options.fromContour }),
+      resource: externalResource,
+      table: externalDefinition.tables.externalNotes,
+    },
+    ...(options?.permit === undefined ? {} : { permit: options.permit }),
+    to: {
+      ...(options?.toContour === undefined
+        ? {}
+        : { contour: options.toContour }),
+      resource: notesResource,
+      table: noteDefinition.tables.notes,
+    },
+    transform: (entity) => ({
+      body: entity.bodyText,
+      id: entity.id,
+      title: entity.heading,
+    }),
+  });
+
+describe('sync() permits', () => {
+  test('permit is declared on the produced trail', () => {
+    const syncTrail = syncNotes({ permit: { scopes: ['notes:write'] } });
+    expect(syncTrail.permit).toEqual({ scopes: ['notes:write'] });
+  });
+
+  test('trail carries no permit when none is declared', () => {
+    expect(syncNotes().permit).toBeUndefined();
+  });
+});
+
+describe('sync() shared contours', () => {
+  test('sync reuses a crud bundle contour so topo sees one instance', () => {
+    const crudTrails = crud(noteDefinition.tables.notes, notesResource);
+    const syncTrail = syncNotes({ toContour: crudTrails.contour });
+    expect(syncTrail.contours[1]).toBe(crudTrails.contour);
+
+    const [create, read, update, remove, list] = crudTrails;
+    expect(() =>
+      topo('factory-sync-shared-app', {
+        create,
+        list,
+        read,
+        remove,
+        syncTrail,
+        update,
+      })
+    ).not.toThrow();
+  });
+
+  test('unshared contours still collide at topo() so the sharing is load-bearing', () => {
+    const crudTrails = crud(noteDefinition.tables.notes, notesResource);
+    const syncTrail = syncNotes();
+
+    const [create, read, update, remove, list] = crudTrails;
+    expect(() =>
+      topo('factory-sync-collision-app', {
+        create,
+        list,
+        read,
+        remove,
+        syncTrail,
+        update,
+      })
+    ).toThrow(/[Dd]uplicate contour/);
+  });
+
+  test('sync reuses a source-side crud contour so topo sees one instance', () => {
+    const externalCrud = crud(
+      externalDefinition.tables.externalNotes,
+      writableExternalResource
+    );
+    const syncTrail = syncNotes({ fromContour: externalCrud.contour });
+    expect(syncTrail.contours[0]).toBe(externalCrud.contour);
+
+    const [create, read, update, remove, list] = externalCrud;
+    expect(() =>
+      topo('factory-sync-source-shared-app', {
+        create,
+        list,
+        read,
+        remove,
+        syncTrail,
+        update,
+      })
+    ).not.toThrow();
   });
 });

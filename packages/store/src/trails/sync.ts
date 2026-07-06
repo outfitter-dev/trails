@@ -1,6 +1,7 @@
 import { InternalError, NotFoundError, Result, trail } from '@ontrails/core';
 import type {
   AnySignal,
+  PermitRequirement,
   Resource,
   Trail,
   TrailContext,
@@ -17,6 +18,7 @@ import type {
   UpsertOf,
 } from '../types.js';
 import { createTableContour, mapStoreTrailError } from './utils.js';
+import type { TableContour } from './utils.js';
 
 type IdentityInputOf<TTable extends AnyStoreTable> = Readonly<
   Record<Extract<TTable['identity'], string>, StoreIdentifierOf<TTable>>
@@ -34,6 +36,14 @@ export interface SyncEndpoint<
   TTable extends AnyStoreTable,
   TConnection extends SourceConnection<TTable> | TargetConnection<TTable>,
 > {
+  /**
+   * Existing table contour to register on the produced trail for this
+   * endpoint. Pass the contour a `crud()` bundle over the same table
+   * exposes (its `contour` property) so `topo()` sees one shared
+   * instance instead of rejecting two same-named rebuilds as
+   * duplicates. When omitted, the factory builds one from the table.
+   */
+  readonly contour?: TableContour<TTable>;
   readonly resource: Resource<TConnection>;
   readonly table: TTable;
 }
@@ -56,6 +66,11 @@ export interface SyncOptions<
   readonly from: SyncEndpoint<TSourceTable, TSourceConnection>;
   readonly id?: string;
   readonly on?: readonly (AnySignal | string)[];
+  /**
+   * Permit requirement declared on the produced trail. Factory trails
+   * carry authored defaults like any hand-written trail.
+   */
+  readonly permit?: PermitRequirement;
   readonly to: SyncEndpoint<TTargetTable, TTargetConnection>;
   readonly transform?: SyncTransform<TSourceTable, TTargetTable>;
 }
@@ -175,8 +190,10 @@ export const sync = <
   >
 ): Trail<IdentityInputOf<TSourceTable>, EntityOf<TTargetTable>> => {
   const id = options.id ?? `${options.to.table.name}.sync`;
-  const sourceContour = createTableContour(options.from.table);
-  const targetContour = createTableContour(options.to.table);
+  const sourceContour =
+    options.from.contour ?? createTableContour(options.from.table);
+  const targetContour =
+    options.to.contour ?? createTableContour(options.to.table);
 
   return trail(id, {
     // oxlint-disable-next-line max-statements -- sync blaze reads more clearly as one try/catch with schema validation, transform, and accessor call inline
@@ -246,6 +263,7 @@ export const sync = <
       EntityOf<TTargetTable>
     >,
     pattern: 'sync',
+    ...(options.permit === undefined ? {} : { permit: options.permit }),
     resources: [options.from.resource, options.to.resource],
   });
 };
