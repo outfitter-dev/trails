@@ -79,6 +79,7 @@ describe('Trails MCP surface shaping', () => {
       'trails_adapter_check',
       'trails_add_surface',
       'trails_add_trail',
+      'trails_adjust_regrade',
       'trails_apply_regrade',
       'trails_check_regrade',
       'trails_compile',

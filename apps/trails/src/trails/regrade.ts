@@ -71,6 +71,7 @@ import {
 import type {
   ClassRegradePlan,
   RegradePlanArtifact,
+  RegradePlanBody,
   RegradePlanExpansion,
   VocabularyRegradePlanArtifact,
 } from '../regrade/plan-artifact.js';
@@ -280,11 +281,20 @@ const regradePlanReferenceInputSchema = z.object({
 
 const regradeApplyPlanInputSchema = regradePlanReferenceInputSchema;
 
+const regradeAdjustInputSchema = z.object({
+  rootDir: z.string().optional().describe('Workspace root directory'),
+  transition: z
+    .string()
+    .min(1)
+    .describe('Graduated transition name, e.g. facet-to-trailhead'),
+});
+
 type RegradePlanInput = z.output<typeof regradePlanInputSchema>;
 type RegradePlanReferenceInput = z.output<
   typeof regradePlanReferenceInputSchema
 >;
 type RegradeApplyPlanInput = z.output<typeof regradeApplyPlanInputSchema>;
+type RegradeAdjustInput = z.output<typeof regradeAdjustInputSchema>;
 
 const hasVocabularyInput = (input: RegradeInput) =>
   input.from !== undefined ||
@@ -1240,6 +1250,7 @@ const buildRegradePlanArtifact = (params: {
   readonly plan: VocabularyRegradePlan;
   readonly report: RegradeReport;
   readonly rootDir: string;
+  readonly transitionId?: string | undefined;
 }): RegradePlanArtifact => {
   const absolutePath = regradePlanPathForPlan(params.rootDir, params.plan);
   return {
@@ -1250,6 +1261,9 @@ const buildRegradePlanArtifact = (params: {
     provenance: regradePlanProvenanceForInput(params.input, params.plan),
     schemaVersion: REGRADE_PLAN_SCHEMA_VERSION,
     sourceHash: regradeSourceHash(params.report),
+    ...(params.transitionId === undefined
+      ? {}
+      : { transitionId: params.transitionId }),
   };
 };
 
@@ -1320,6 +1334,26 @@ const readRegradePlanArtifact = (
     );
   }
   return Result.ok(parsed.data as unknown as RegradePlanArtifact);
+};
+
+/**
+ * Transition identity is not an authored plan field — it follows the
+ * transition. Plan re-derivation (including `--fresh`) carries it forward
+ * from the existing active plan of the same kind so a subsequent apply
+ * appends to the same consolidated history spine instead of forking it.
+ */
+const priorTransitionId = (
+  currentPath: string,
+  kind: RegradePlanBody['kind']
+): string | undefined => {
+  if (!existsSync(currentPath)) {
+    return undefined;
+  }
+  const existing = readRegradePlanArtifact(currentPath);
+  if (existing.isErr() || existing.value.plan.kind !== kind) {
+    return undefined;
+  }
+  return existing.value.transitionId;
 };
 
 const hasPathSeparator = (value: string): boolean =>
@@ -2203,6 +2237,7 @@ const runClassPlanRegrade = async (
     );
   }
 
+  const transitionId = priorTransitionId(currentPath, 'class');
   const artifact: RegradePlanArtifact = {
     kind: 'regrade-plan',
     path: rootRelativePath(rootDir, currentPath),
@@ -2210,6 +2245,7 @@ const runClassPlanRegrade = async (
     provenance: classPlanProvenance(plan, authoredScope, current),
     schemaVersion: REGRADE_PLAN_SCHEMA_VERSION,
     sourceHash: regradeSourceHash(report.value),
+    ...(transitionId === undefined ? {} : { transitionId }),
   };
   if (shouldDryRun) {
     return validateRegradePlanArtifact(artifact);
@@ -2279,12 +2315,14 @@ const runPlanRegrade = async (
     input.expand ? expansionForReport(report.value) : undefined,
     plan
   );
+  const transitionId = priorTransitionId(currentPath, 'vocabulary');
   const artifact = buildRegradePlanArtifact({
     ...(expansion === undefined ? {} : { expansion }),
     input,
     plan,
     report: report.value,
     rootDir,
+    ...(transitionId === undefined ? {} : { transitionId }),
   });
   const mergedArtifact =
     current === undefined
@@ -2583,6 +2621,78 @@ const runApplyRegradePlan = async (
   );
 };
 
+/**
+ * Pull a graduated transition back from consolidated history into an active
+ * plan for adjustment. The pulled-back artifact is authored intent only —
+ * plan body, provenance, and any staged expansion; the run ledger stays
+ * behind in the graduated history file, which adjust never touches. The
+ * transition's stable id is preserved so the re-run's apply appends to the
+ * same consolidated history spine instead of forking it.
+ */
+const runAdjustRegrade = async (
+  input: RegradeAdjustInput,
+  rootDir: string,
+  shouldDryRun: boolean
+): Promise<TrailsResult<RegradePlanArtifact, Error>> => {
+  const historyPath = resolveRegradeHistoryPath(rootDir, input.transition);
+  if (historyPath.isErr()) {
+    return historyPath;
+  }
+  const history = readRegradeHistoryArtifact(historyPath.value);
+  if (history.isErr()) {
+    return history;
+  }
+  const lastRun = history.value.runs.at(-1);
+  if (lastRun === undefined) {
+    return Result.err(
+      new ValidationError('Regrade history has no recorded runs.', {
+        context: { path: history.value.path },
+      })
+    );
+  }
+  const lastPlan = lastRun.plan;
+  const activePath = regradePlanPathForPlan(rootDir, lastPlan.plan);
+  if (existsSync(activePath)) {
+    return Result.err(
+      new ValidationError(
+        'An active Regrade plan for this transition already exists; edit or apply it instead of adjusting again.',
+        { context: { plan: rootRelativePath(rootDir, activePath) } }
+      )
+    );
+  }
+  const draft: RegradePlanArtifact = {
+    ...(lastPlan.expansion === undefined
+      ? {}
+      : { expansion: lastPlan.expansion }),
+    kind: 'regrade-plan',
+    path: rootRelativePath(rootDir, activePath),
+    plan: lastPlan.plan,
+    provenance: lastPlan.provenance,
+    schemaVersion: REGRADE_PLAN_SCHEMA_VERSION,
+    sourceHash: lastPlan.sourceHash,
+    transitionId: history.value.id,
+  };
+  // Re-derive the source hash against the current tree so the later apply's
+  // staleness gate compares with today's occurrences, not the graduated
+  // run's.
+  const report = await runPlanArtifactDryRun({
+    artifact: draft,
+    includeEntries: 'actionable',
+    rootDir,
+  });
+  if (report.isErr()) {
+    return report;
+  }
+  const artifact: RegradePlanArtifact = {
+    ...draft,
+    sourceHash: regradeSourceHash(report.value),
+  };
+  if (shouldDryRun) {
+    return validateRegradePlanArtifact(artifact);
+  }
+  return writeRegradePlanArtifact(rootDir, artifact);
+};
+
 const listRegradePlans = async (
   rootDir: string
 ): Promise<TrailsResult<z.output<typeof regradePlansOutputSchema>, Error>> => {
@@ -2828,5 +2938,39 @@ export const applyRegradeTrail = trail('apply.regrade', {
   input: regradeApplyPlanInputSchema,
   intent: 'write',
   output: regradeReportOutput,
+  permit: 'public',
+});
+
+export const adjustRegradeTrail = trail('adjust.regrade', {
+  args: ['transition'],
+  blaze: async (input, ctx) => {
+    const rootDirResult = resolveTrailRootDir(input.rootDir, ctx.cwd);
+    if (rootDirResult.isErr()) {
+      return rootDirResult;
+    }
+    const result = await runAdjustRegrade(
+      input,
+      rootDirResult.value,
+      ctx.dryRun === true
+    );
+    if (result.isErr()) {
+      return result;
+    }
+    const output = regradePlanArtifactSchema.safeParse(result.value);
+    if (!output.success) {
+      return Result.err(
+        new ValidationError('Invalid Regrade plan output.', {
+          context: { issues: output.error.issues },
+        })
+      );
+    }
+    return Result.ok(output.data);
+  },
+  cli: { path: ['regrade', 'adjust'] },
+  description:
+    'Pull a graduated Regrade transition back to an active plan for adjustment',
+  input: regradeAdjustInputSchema,
+  intent: 'write',
+  output: regradePlanArtifactSchema,
   permit: 'public',
 });

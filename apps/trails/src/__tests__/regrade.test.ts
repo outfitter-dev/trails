@@ -178,6 +178,7 @@ describe('trails regrade', () => {
 
     expect(regradeCommands).toEqual([
       { id: 'regrade', path: ['regrade'] },
+      { id: 'adjust.regrade', path: ['regrade', 'adjust'] },
       { id: 'apply.regrade', path: ['regrade', 'apply'] },
       { id: 'check.regrade', path: ['regrade', 'check'] },
       { id: 'plan.regrade', path: ['regrade', 'plan'] },
@@ -488,6 +489,186 @@ describe('trails regrade', () => {
     },
     cliTimeoutMs
   );
+
+  test('CLI adjust pulls a graduated transition back and the re-run appends to the same spine', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(dir, 'docs/surface.md', 'Facet docs mention facet.\n');
+
+      const planResult = runRawCli([
+        'regrade',
+        'plan',
+        'facet',
+        'trailhead',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+      expect(planResult.exitCode).toBe(0);
+      const activePlanPath = join(
+        dir,
+        '.trails',
+        'regrade',
+        'facet-to-trailhead.json'
+      );
+      expect(existsSync(activePlanPath)).toBe(true);
+
+      const applyResult = runRawCli([
+        'regrade',
+        'apply',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+      expect(applyResult.exitCode).toBe(0);
+      const historyFile = join(
+        dir,
+        '.trails',
+        'regrade',
+        'history',
+        'facet-to-trailhead.json'
+      );
+      expect(existsSync(historyFile)).toBe(true);
+      // Apply graduates the plan out of the active directory.
+      expect(existsSync(activePlanPath)).toBe(false);
+
+      interface HistoryFile {
+        readonly id?: string;
+        readonly runs?: readonly {
+          readonly lockHashAtRun?: string;
+          readonly plan?: { readonly plan?: Record<string, unknown> };
+          readonly planContentHash?: string;
+        }[];
+      }
+      const historyBytesBeforeAdjust = readFileSync(historyFile, 'utf8');
+      const graduated = JSON.parse(historyBytesBeforeAdjust) as HistoryFile;
+      expect(graduated.id).toMatch(/^[0-9a-f]{12}$/);
+      expect(graduated.runs).toHaveLength(1);
+
+      const adjustResult = runRawCli([
+        'regrade',
+        'adjust',
+        'facet-to-trailhead',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+      expect(adjustResult.exitCode).toBe(0);
+      const adjusted = parseCliJson<{
+        readonly kind?: string;
+        readonly transitionId?: string;
+      }>(adjustResult);
+      expect(adjusted.kind).toBe('regrade-plan');
+      expect(adjusted.transitionId).toBe(graduated.id ?? 'missing');
+      expect(existsSync(activePlanPath)).toBe(true);
+
+      // The pulled-back active plan is authored intent only: the plan body
+      // matches the graduated last run's body and no run-ledger keys leak
+      // into the active clone.
+      const activeArtifact = JSON.parse(
+        readFileSync(activePlanPath, 'utf8')
+      ) as Record<string, unknown>;
+      expect(activeArtifact['plan']).toEqual(
+        graduated.runs?.[0]?.plan?.plan ?? { missing: true }
+      );
+      expect(Object.keys(activeArtifact)).not.toContain('runs');
+      expect(Object.keys(activeArtifact)).not.toContain('report');
+      // Adjust leaves the graduated history file untouched.
+      expect(readFileSync(historyFile, 'utf8')).toBe(historyBytesBeforeAdjust);
+
+      // Edit the tree and the plan; the spine survives plan re-derivation.
+      writeFile(dir, 'docs/more.md', 'facet again\n');
+      const replanResult = runRawCli([
+        'regrade',
+        'plan',
+        'facet',
+        'trailhead',
+        '--intent',
+        'second pass',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+      expect(replanResult.exitCode).toBe(0);
+      const replanned = parseCliJson<{ readonly transitionId?: string }>(
+        replanResult
+      );
+      expect(replanned.transitionId).toBe(graduated.id ?? 'missing');
+
+      const reapplyResult = runRawCli([
+        'regrade',
+        'apply',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+      expect(reapplyResult.exitCode).toBe(0);
+
+      // Same spine, not a fork: the consolidated file keeps its id, appends
+      // the adjusted run, and leaves the original run's stamps untouched.
+      const after = JSON.parse(
+        readFileSync(historyFile, 'utf8')
+      ) as HistoryFile;
+      expect(after.id).toBe(graduated.id ?? 'missing');
+      expect(after.runs).toHaveLength(2);
+      expect(after.runs?.[1]?.planContentHash).not.toBe(
+        after.runs?.[0]?.planContentHash ?? 'missing'
+      );
+      expect(after.runs?.[0]).toEqual(
+        graduated.runs?.[0] ?? { lockHashAtRun: 'missing' }
+      );
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('CLI adjust refuses when an active plan for the transition already exists', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(dir, 'docs/surface.md', 'Facet docs mention facet.\n');
+      const planResult = runRawCli([
+        'regrade',
+        'plan',
+        'facet',
+        'trailhead',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+      expect(planResult.exitCode).toBe(0);
+      const applyResult = runRawCli([
+        'regrade',
+        'apply',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+      expect(applyResult.exitCode).toBe(0);
+
+      const firstAdjust = runRawCli([
+        'regrade',
+        'adjust',
+        'facet-to-trailhead',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+      expect(firstAdjust.exitCode).toBe(0);
+
+      const secondAdjust = runRawCli([
+        'regrade',
+        'adjust',
+        'facet-to-trailhead',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+      expect(secondAdjust.exitCode).not.toBe(0);
+      expect(secondAdjust.stderr).toContain('already exists');
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
 
   test('CLI runs the class-mode plan lifecycle: plan, check, apply, history', () => {
     const dir = makeTempDir();
@@ -3073,6 +3254,7 @@ describe('trails regrade', () => {
     expect(
       parsed.namespace?.commands?.map((command) => command.commandPath)
     ).toEqual([
+      ['regrade', 'adjust'],
       ['regrade', 'apply'],
       ['regrade', 'check'],
       ['regrade', 'plan'],

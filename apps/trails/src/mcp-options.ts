@@ -19,6 +19,7 @@ export const trailsMcpIncludedTrails = [
   'doctor',
   'draft.promote',
   'guide',
+  'adjust.regrade',
   'apply.regrade',
   'check.regrade',
   'list.regrades',
