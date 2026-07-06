@@ -179,14 +179,11 @@ const writeArtifactsAt = async (
 ): Promise<TopoGraph> => {
   const baseTopoGraph = withSurfaces(
     deriveTopoGraph(app(), {
-      overlays: [surfaceOverlay({ cli: { 'u.create': 'user.create' } })],
-      trailheads: [
-        {
-          description: 'User operations.',
-          id: 'users',
-          surfaces: ['mcp'],
-          trails: 'user.*',
-        },
+      overlays: [
+        surfaceOverlay({
+          cli: { 'u.create': 'user.create' },
+          mcp: { users: ['user.*'] },
+        }),
       ],
     })
   );
@@ -585,6 +582,23 @@ describe('wayfinder graph-read query trails', () => {
     expect(result.namespaces).toEqual(['cloudflare', 'future.family']);
     expect(result.facts).toEqual({ workers: [{ name: 'edge' }] });
     expect(result.source.kind).toBe('topoGraph');
+  });
+
+  test('reads the app-authored surfaces overlay through the generic overlay read', async () => {
+    await writeArtifacts();
+
+    const result = await expectOk(
+      wayfindOverlayTrail.blaze(
+        { namespace: 'surfaces', rootDir: tempDir },
+        ctx()
+      )
+    );
+
+    expect(result.namespace).toBe('surfaces');
+    expect(result.facts).toEqual({
+      cli: { 'u.create': 'user.create' },
+      mcp: { users: ['user.*'] },
+    });
   });
 
   test('lists available namespaces when the requested overlay is missing', async () => {

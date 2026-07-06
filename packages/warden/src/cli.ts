@@ -8,8 +8,13 @@
 import { isAbsolute, relative, resolve } from 'node:path';
 
 import { resolveTrailsProjectRoot } from '@ontrails/config';
-import { getContourReferences, matchesAnyPathGlob } from '@ontrails/core';
-import type { Topo } from '@ontrails/core';
+import {
+  getContourReferences,
+  matchesAnyPathGlob,
+  resolveSurfaceOverlayBindings,
+  surfaceBindingsFromLockOverlays,
+} from '@ontrails/core';
+import type { SurfaceBindings, Topo } from '@ontrails/core';
 import { deriveTopoGraph } from '@ontrails/topographer';
 import type {
   TopoGraph,
@@ -61,6 +66,7 @@ import {
   isWardenSourceScanTarget,
 } from './rules/scan.js';
 import type {
+  AuthoredMcpSurfaceBindingSet,
   ProjectAwareWardenRule,
   ProjectContext,
   TopoAwareWardenRule,
@@ -365,6 +371,9 @@ interface SourceFile {
 }
 
 interface MutableProjectContext {
+  authoredMcpSurfaceBindingSets:
+    | readonly AuthoredMcpSurfaceBindingSet[]
+    | undefined;
   contourReferencesByName: Map<string, Set<string>>;
   crudTableIds: Set<string>;
   composeTargetTrailIds: Set<string>;
@@ -390,6 +399,7 @@ interface MutableProjectContext {
 }
 
 const createMutableProjectContext = (): MutableProjectContext => ({
+  authoredMcpSurfaceBindingSets: undefined,
   composeTargetTrailIds: new Set<string>(),
   contourReferencesByName: new Map<string, Set<string>>(),
   crudCoverageByEntity: new Map<string, Set<string>>(),
@@ -428,6 +438,9 @@ const addContourReferenceTargets = (
 };
 
 const toProjectContext = (context: MutableProjectContext): ProjectContext => ({
+  ...(context.authoredMcpSurfaceBindingSets === undefined
+    ? {}
+    : { authoredMcpSurfaceBindingSets: context.authoredMcpSurfaceBindingSets }),
   ...(context.contourReferencesByName.size > 0
     ? {
         contourReferencesByName: new Map(
@@ -886,13 +899,54 @@ const collectFileExportedSymbolDefinitions = (
   }
 };
 
+/**
+ * Resolve per-app authored `mcp` surface bindings across the run's topo
+ * targets, so project-aware source rules can compare call-site surface
+ * options against the authored default of the app they belong to.
+ *
+ * Prefers the serialized graph overlays when a target carries a precomputed
+ * graph; otherwise reads the app-module overlay registrations. Invalid
+ * overlays are skipped here — `surface-overlay-coherence` reports them on
+ * the topo-aware path.
+ */
+const collectAuthoredMcpSurfaceBindingSets = (
+  topoTargets: readonly WardenTopoTarget[]
+): readonly AuthoredMcpSurfaceBindingSet[] | undefined => {
+  const sets: AuthoredMcpSurfaceBindingSet[] = [];
+  for (const target of topoTargets) {
+    let bindings: SurfaceBindings | undefined;
+    try {
+      const graphOverlays = target.graph?.overlays;
+      bindings =
+        graphOverlays === undefined
+          ? resolveSurfaceOverlayBindings(target.overlays)?.mcp
+          : surfaceBindingsFromLockOverlays(graphOverlays)?.mcp;
+    } catch {
+      continue;
+    }
+    if (bindings === undefined) {
+      continue;
+    }
+    sets.push({
+      appName: target.name ?? target.topo.name,
+      bindings,
+      trailIds: [...target.topo.trails.keys()],
+    });
+  }
+  return sets.length > 0 ? sets : undefined;
+};
+
 const buildProjectContext = (
   sourceFiles: readonly SourceFile[],
   rootDir: string,
   appTopos: readonly Topo[] = [],
-  scope: WardenScope = EMPTY_WARDEN_SCOPE
+  scope: WardenScope = EMPTY_WARDEN_SCOPE,
+  authoredMcpSurfaceBindingSets:
+    | readonly AuthoredMcpSurfaceBindingSet[]
+    | undefined = undefined
 ): ProjectContext => {
   const context = createMutableProjectContext();
+  context.authoredMcpSurfaceBindingSets = authoredMcpSurfaceBindingSets;
   const typeScriptSourceFiles = sourceFiles.filter(
     (sourceFile) => sourceFile.kind === 'typescript'
   );
@@ -1240,7 +1294,8 @@ const lintFiles = async (
     sourceFiles,
     rootDir,
     topoTargets.map((target) => target.topo),
-    scope
+    scope,
+    collectAuthoredMcpSurfaceBindingSets(topoTargets)
   );
   const allDiagnostics: WardenDiagnostic[] = [
     ...lintSourceFiles(sourceFiles, context, extraSourceRules, selector),

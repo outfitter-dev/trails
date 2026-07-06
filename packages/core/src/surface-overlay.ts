@@ -391,6 +391,9 @@ export type CliSurfaceBindingAliases = Readonly<
 const CLI_BINDING_FIX =
   'Fix the binding in surfaceOverlay({ cli }) in the app module.';
 
+const MCP_BINDING_FIX =
+  'Fix the binding in surfaceOverlay({ mcp }) in the app module.';
+
 const assertCliBindingName = (name: string): readonly string[] => {
   const segments = name.split('.');
   if (segments.some((segment) => segment.length === 0 || /\s/.test(segment))) {
@@ -411,19 +414,22 @@ const expandSelector = (
 
 const expandSynonymBinding = (
   trailIds: readonly string[],
+  surfaceKey: string,
   name: string,
-  selector: SurfaceBindingRef
+  selector: SurfaceBindingRef,
+  groupNoun: string,
+  fix: string
 ): string => {
   const matches = expandSelector(trailIds, selector);
   const [first] = matches;
   if (first === undefined) {
     throw new ValidationError(
-      `The "${SURFACES_OVERLAY_NAMESPACE}" overlay cli binding "${name}" resolves to no trails: selector "${selector}" matched none. ${CLI_BINDING_FIX}`
+      `The "${SURFACES_OVERLAY_NAMESPACE}" overlay ${surfaceKey} binding "${name}" resolves to no trails: selector "${selector}" matched none. ${fix}`
     );
   }
   if (matches.length > 1) {
     throw new ValidationError(
-      `The "${SURFACES_OVERLAY_NAMESPACE}" overlay cli binding "${name}" resolves to ${matches.length} trails (${matches.join(', ')}). A scalar binding is a synonym for exactly one trail — use a list value to expose a command group instead. ${CLI_BINDING_FIX}`
+      `The "${SURFACES_OVERLAY_NAMESPACE}" overlay ${surfaceKey} binding "${name}" resolves to ${matches.length} trails (${matches.join(', ')}). A scalar binding is a synonym for exactly one trail — use a list value to expose a ${groupNoun} instead. ${fix}`
     );
   }
   return first;
@@ -431,8 +437,10 @@ const expandSynonymBinding = (
 
 const expandGroupBinding = (
   trailIds: readonly string[],
+  surfaceKey: string,
   name: string,
-  selectors: readonly SurfaceBindingRef[]
+  selectors: readonly SurfaceBindingRef[],
+  fix: string
 ): readonly string[] => {
   const members = [
     ...new Set(
@@ -441,7 +449,7 @@ const expandGroupBinding = (
   ].toSorted();
   if (members.length === 0) {
     throw new ValidationError(
-      `The "${SURFACES_OVERLAY_NAMESPACE}" overlay cli group binding "${name}" resolves to no trails: selectors ${selectors.map((selector) => `"${selector}"`).join(', ')} matched none. ${CLI_BINDING_FIX}`
+      `The "${SURFACES_OVERLAY_NAMESPACE}" overlay ${surfaceKey} group binding "${name}" resolves to no trails: selectors ${selectors.map((selector) => `"${selector}"`).join(', ')} matched none. ${fix}`
     );
   }
   return members;
@@ -504,15 +512,156 @@ export const expandCliSurfaceBindings = (
     const pathSegments = assertCliBindingName(name);
     const shape = classifySurfaceBinding(value);
     if (shape.kind === 'synonym') {
-      addAlias(expandSynonymBinding(trailIds, name, shape.trail), pathSegments);
+      addAlias(
+        expandSynonymBinding(
+          trailIds,
+          'cli',
+          name,
+          shape.trail,
+          'command group',
+          CLI_BINDING_FIX
+        ),
+        pathSegments
+      );
       continue;
     }
-    for (const member of expandGroupBinding(trailIds, name, shape.members)) {
+    for (const member of expandGroupBinding(
+      trailIds,
+      'cli',
+      name,
+      shape.members,
+      CLI_BINDING_FIX
+    )) {
       addAlias(member, [...pathSegments, ...member.split('.')]);
     }
   }
 
   return Object.fromEntries(aliasesByTrail);
+};
+
+/**
+ * The expanded shape of the `surfaces` overlay's `mcp` bindings.
+ *
+ * `synonyms` maps MCP-safe binding names to the single trail id each one
+ * aliases; `groups` maps binding names to the sorted, deduplicated member
+ * trail ids of each grouped entry (an MCP trailhead).
+ *
+ * @example
+ * ```ts
+ * import type { McpSurfaceBindingExpansion } from '@ontrails/core';
+ *
+ * const expansion: McpSurfaceBindingExpansion = {
+ *   groups: { snippets: ['snippet.create', 'snippet.get'] },
+ *   synonyms: { gear_ls: 'gear.list' },
+ * };
+ * ```
+ */
+export interface McpSurfaceBindingExpansion {
+  /** Grouped entries: binding name to sorted expanded member trail ids. */
+  readonly groups: Readonly<Record<string, readonly string[]>>;
+  /** Tool synonyms: binding name to the one trail id it aliases. */
+  readonly synonyms: Readonly<Record<string, string>>;
+}
+
+const MCP_SAFE_BINDING_NAME_PATTERN = /^[a-z0-9_]+$/;
+
+const assertMcpSynonymBindingName = (name: string): void => {
+  if (!MCP_SAFE_BINDING_NAME_PATTERN.test(name)) {
+    throw new ValidationError(
+      `The "${SURFACES_OVERLAY_NAMESPACE}" overlay mcp binding "${name}" is not an MCP-safe tool name — synonym binding names become tool names verbatim and must use lowercase letters, digits, and underscores only. ${MCP_BINDING_FIX}`
+    );
+  }
+};
+
+/**
+ * Derive the deterministic default description for an MCP grouped entry
+ * projected from the `surfaces` overlay.
+ *
+ * Both the MCP surface (the runtime tool description) and Topographer (the
+ * lock's trailhead entry description) read this helper, so the authored
+ * binding projects one description everywhere.
+ *
+ * @example
+ * ```ts
+ * import { deriveMcpTrailheadDescription } from '@ontrails/core';
+ *
+ * deriveMcpTrailheadDescription(['gear.create', 'gear.list']);
+ * // => 'Grouped MCP entry over: gear.create, gear.list.'
+ * ```
+ */
+export const deriveMcpTrailheadDescription = (
+  memberIds: readonly string[]
+): string => `Grouped MCP entry over: ${memberIds.join(', ')}.`;
+
+/**
+ * Expand the `surfaces` overlay's `mcp` bindings against the topo's trail
+ * ids, validating every binding.
+ *
+ * A scalar binding is a tool synonym: its name is published verbatim as an
+ * additional MCP tool name, so it must be MCP-safe (`[a-z0-9_]+`) and must
+ * expand to exactly one trail — zero or multiple matches are a
+ * `ValidationError` naming the binding. A list binding is a grouped entry
+ * (an MCP trailhead): its members are the sorted union of the expanded
+ * selectors, and an empty union is a `ValidationError`. Binding names are
+ * processed in sorted order so the expansion is deterministic. Returns
+ * `undefined` when there are no `mcp` bindings.
+ *
+ * @example
+ * ```ts
+ * import { expandMcpSurfaceBindings } from '@ontrails/core';
+ *
+ * expandMcpSurfaceBindings(
+ *   { gear_ls: 'gear.list', gear: ['gear.*'] },
+ *   ['gear.create', 'gear.list']
+ * );
+ * // => {
+ * //   groups: { gear: ['gear.create', 'gear.list'] },
+ * //   synonyms: { gear_ls: 'gear.list' },
+ * // }
+ * ```
+ */
+export const expandMcpSurfaceBindings = (
+  bindings: SurfaceBindings | undefined,
+  trailIds: readonly string[]
+): McpSurfaceBindingExpansion | undefined => {
+  if (bindings === undefined) {
+    return undefined;
+  }
+  const names = Object.keys(bindings).toSorted();
+  if (names.length === 0) {
+    return undefined;
+  }
+
+  const groups: Record<string, readonly string[]> = {};
+  const synonyms: Record<string, string> = {};
+  for (const name of names) {
+    const value = bindings[name];
+    if (value === undefined) {
+      continue;
+    }
+    const shape = classifySurfaceBinding(value);
+    if (shape.kind === 'synonym') {
+      assertMcpSynonymBindingName(name);
+      synonyms[name] = expandSynonymBinding(
+        trailIds,
+        'mcp',
+        name,
+        shape.trail,
+        'grouped entry',
+        MCP_BINDING_FIX
+      );
+      continue;
+    }
+    groups[name] = expandGroupBinding(
+      trailIds,
+      'mcp',
+      name,
+      shape.members,
+      MCP_BINDING_FIX
+    );
+  }
+
+  return { groups, synonyms };
 };
 
 /**

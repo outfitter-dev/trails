@@ -108,7 +108,25 @@ export const exportedSymbolDefinitionSchema = z.object({
  * Adds `knownTrailIds` so the caller can supply compose-file context and avoid
  * false positives for `@see` references or compose-file contour relationships.
  */
+export const authoredMcpSurfaceBindingSetSchema = z.object({
+  appName: z.string().describe('App/topo label the bindings were authored for'),
+  bindings: z
+    .record(z.string(), z.union([z.string(), z.array(z.string()).readonly()]))
+    .describe('Surfaces overlay mcp bindings: binding name to selector(s)'),
+  trailIds: z
+    .array(z.string())
+    .readonly()
+    .describe('Trail ids registered in the owning app topo'),
+});
+
 export const projectAwareRuleInput = ruleInput.extend({
+  authoredMcpSurfaceBindingSets: z
+    .array(authoredMcpSurfaceBindingSetSchema)
+    .readonly()
+    .optional()
+    .describe(
+      'Per-app authored surfaces overlay mcp bindings with owning-app trail ids'
+    ),
   composeTargetTrailIds: z
     .array(z.string())
     .optional()

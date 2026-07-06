@@ -108,7 +108,7 @@ See [ADR-0050](docs/adr/0050-surface-accommodations-preserve-trail-identity.md) 
 This section is generated from the live `@ontrails/warden` rule manifest. Keep the human-authored guidance above as orientation; use this block as the enforceable-rule index.
 
 - Guide input command: `bun apps/trails/bin/trails.ts warden guide --manifest`
-- Rule count: 72
+- Rule count: 73
 
 ### Rule Index
 
@@ -172,6 +172,7 @@ This section is generated from the live `@ontrails/warden` rule manifest. Keep t
 - `surface-overlay-coherence` (warn, topo/topo-aware, external): Surface overlay bindings resolve to real trails without group overlap or canonical-entry shadowing.
 - `surface-trailhead-coherence` (warn, source/source-static, external): Trailhead maps avoid selector overlap, hidden visibility widening, and drift-prone dynamic selectors.
 - `trail-fork-coaching` (warn, all/source-static, advisory): Trails avoid hiding distinct capabilities behind branching action or operation inputs.
+- `trailhead-override-divergence` (warn, project/project-static, external): Call-site MCP trailhead maps stay aligned with authored surfaces overlay mcp bindings.
 
 #### Permits
 
@@ -228,6 +229,7 @@ This section is generated from the live `@ontrails/warden` rule manifest. Keep t
 - `surface-overlay-coherence`: Keep surface overlay bindings pointed at real trails without shadowing canonical surface entries.
 - `surface-trailhead-coherence`: Keep trailhead maps reviewable before they reach MCP projection.
 - `trail-fork-coaching`: Keep surface accommodations from hiding several capabilities behind one branching trail input.
+- `trailhead-override-divergence`: Keep call-site MCP trailhead overrides aligned with the authored overlay default.
 
 <!-- warden-guide:end -->
 

@@ -424,7 +424,9 @@ export type { Topo, TopoIdentity } from './topo.js';
 export {
   SURFACES_OVERLAY_NAMESPACE,
   classifySurfaceBinding,
+  deriveMcpTrailheadDescription,
   expandCliSurfaceBindings,
+  expandMcpSurfaceBindings,
   resolveSurfaceOverlayBindings,
   surfaceBindingsFromLockOverlays,
   surfaceOverlay,
@@ -432,6 +434,7 @@ export {
 } from './surface-overlay.js';
 export type {
   CliSurfaceBindingAliases,
+  McpSurfaceBindingExpansion,
   OverlayEnvelopeLike,
   OverlayProvenance,
   SurfaceBindingRef,

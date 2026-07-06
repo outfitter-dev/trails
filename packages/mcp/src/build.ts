@@ -8,12 +8,15 @@
 
 import {
   AuthError,
+  InternalError,
   Result,
   ValidationError,
   collectAttachedTypedLayers,
+  deriveMcpTrailheadDescription,
   deriveSurfaceTrailVersionProjections,
   deriveStructuredTrailExamples,
   executeTrail,
+  expandMcpSurfaceBindings,
   filterSurfaceTrails,
   isBlobRef,
   isTrailsError,
@@ -21,6 +24,7 @@ import {
   matchesTrailPattern,
   projectLayerFieldName,
   projectPublicSurfaceError,
+  resolveSurfaceOverlayBindings,
   toBlobRefDescriptor,
   validateSurfaceTopo,
   withSurfaceLayerNames,
@@ -32,6 +36,8 @@ import type {
   BaseSurfaceOptions,
   BlobRef,
   Layer,
+  McpSurfaceBindingExpansion,
+  OverlayEnvelopeLike,
   ResourceOverrideMap,
   SurfaceErrorProjection,
   SurfaceTrailVersionProjection,
@@ -107,6 +113,18 @@ export interface DeriveMcpToolsOptions extends BaseSurfaceOptions {
   readonly createContext?:
     | (() => TrailContextInit | Promise<TrailContextInit>)
     | undefined;
+  /**
+   * App-authored overlay envelopes (the same collection compile embeds in
+   * `trails.lock`). The `surfaces` overlay's `mcp` bindings are the authored,
+   * lockable default: list bindings become grouped trailhead tools and scalar
+   * bindings become tool synonyms.
+   */
+  readonly overlays?: readonly OverlayEnvelopeLike[] | undefined;
+  /**
+   * Call-site trailhead map. Override-in-context by design: when both this
+   * map and overlay `mcp` list bindings are present, the call-site map wins
+   * at runtime.
+   */
   readonly trailheads?: McpSurfaceTrailheadMap | undefined;
   readonly layers?: readonly Layer[] | undefined;
   readonly resources?: ResourceOverrideMap | undefined;
@@ -1305,15 +1323,75 @@ const registerTrailhead = (
   return Result.ok();
 };
 
+/**
+ * Resolve the `surfaces` overlay's `mcp` bindings against the
+ * surface-eligible trails.
+ *
+ * Framework overlay/binding validation failures are represented as
+ * `Result.err` so `deriveMcpTools` keeps its no-throw contract.
+ */
+const resolveOverlayBindingExpansion = (
+  options: DeriveMcpToolsOptions,
+  availableTrails: readonly Trail<unknown, unknown, unknown>[]
+): Result<McpSurfaceBindingExpansion | undefined, Error> => {
+  try {
+    const bindings = resolveSurfaceOverlayBindings(options.overlays);
+    return Result.ok(
+      expandMcpSurfaceBindings(
+        bindings?.mcp,
+        availableTrails.map((trailItem) => trailItem.id)
+      )
+    );
+  } catch (error) {
+    return Result.err(
+      error instanceof Error
+        ? error
+        : new InternalError(
+            `MCP surface overlay resolution failed: ${String(error)}`
+          )
+    );
+  }
+};
+
+/**
+ * Construct call-site-equivalent trailhead definitions from the overlay's
+ * `mcp` list bindings.
+ *
+ * Each grouped binding becomes one definition with the expanded member trail
+ * ids as exact selectors and the shared derived default description, so the
+ * existing trailhead machinery builds the tool exactly as a call-site map
+ * would.
+ */
+const trailheadDefinitionsFromOverlay = (
+  expansion: McpSurfaceBindingExpansion | undefined
+): McpSurfaceTrailheadMap | undefined => {
+  if (expansion === undefined) {
+    return undefined;
+  }
+  const groups = Object.entries(expansion.groups);
+  if (groups.length === 0) {
+    return undefined;
+  }
+  return Object.fromEntries(
+    groups.map(([name, memberIds]) => [
+      name,
+      {
+        description: deriveMcpTrailheadDescription(memberIds),
+        trails: memberIds,
+      },
+    ])
+  );
+};
+
 const registerTrailheads = (
   graph: Topo,
+  trailheads: McpSurfaceTrailheadMap | undefined,
   options: DeriveMcpToolsOptions,
   layers: readonly Layer[],
   availableTrails: readonly Trail<unknown, unknown, unknown>[],
   nameToSourceId: Map<string, string>,
   tools: McpToolDefinition[]
 ): Result<ReadonlySet<string>, Error> => {
-  const { trailheads } = options;
   const consumedTrailIds = new Set<string>();
   const ownerByTrailId = new Map<string, string>();
 
@@ -1360,6 +1438,49 @@ const registerTrailheads = (
   return Result.ok(consumedTrailIds);
 };
 
+/**
+ * Register overlay tool synonyms: additional MCP tools whose names are the
+ * scalar binding names, sharing the target trail's schema, annotations, and
+ * handler.
+ */
+const registerSynonymTools = (
+  graph: Topo,
+  options: DeriveMcpToolsOptions,
+  layers: readonly Layer[],
+  availableTrails: readonly Trail<unknown, unknown, unknown>[],
+  synonyms: Readonly<Record<string, string>>,
+  nameToSourceId: Map<string, string>,
+  tools: McpToolDefinition[]
+): Result<void, Error> => {
+  const trailById = new Map(
+    availableTrails.map((trailItem) => [trailItem.id, trailItem])
+  );
+  for (const [name, trailId] of Object.entries(synonyms)) {
+    const trailItem = trailById.get(trailId);
+    if (trailItem === undefined) {
+      return Result.err(
+        new ValidationError(
+          `MCP overlay binding "${name}" targets trail "${trailId}", which is not surface-eligible`
+        )
+      );
+    }
+    const existingId = nameToSourceId.get(name);
+    if (existingId !== undefined) {
+      return Result.err(
+        new ValidationError(
+          `MCP tool-name collision: "${existingId}" and "binding:${name}" both use the tool name "${name}"`
+        )
+      );
+    }
+    nameToSourceId.set(name, `binding:${name}`);
+    tools.push({
+      ...buildToolDefinition(graph, trailItem, layers, options),
+      name,
+    });
+  }
+  return Result.ok();
+};
+
 const registerTools = (
   graph: Topo,
   options: DeriveMcpToolsOptions,
@@ -1368,8 +1489,17 @@ const registerTools = (
   const tools: McpToolDefinition[] = [];
   const nameToSourceId = new Map<string, string>();
   const availableTrails = eligibleTrails(graph, options);
+  const expansion = resolveOverlayBindingExpansion(options, availableTrails);
+  if (expansion.isErr()) {
+    return expansion;
+  }
+  // Override-in-context: the call-site trailhead map wins over the authored
+  // overlay default whenever the caller supplies one.
+  const trailheads =
+    options.trailheads ?? trailheadDefinitionsFromOverlay(expansion.value);
   const registeredTrailheads = registerTrailheads(
     graph,
+    trailheads,
     options,
     layers,
     availableTrails,
@@ -1396,6 +1526,19 @@ const registerTools = (
     if (registered.isErr()) {
       return registered;
     }
+  }
+
+  const registeredSynonyms = registerSynonymTools(
+    graph,
+    options,
+    layers,
+    availableTrails,
+    expansion.value?.synonyms ?? {},
+    nameToSourceId,
+    tools
+  );
+  if (registeredSynonyms.isErr()) {
+    return registeredSynonyms;
   }
 
   return Result.ok(tools);

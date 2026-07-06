@@ -56,6 +56,7 @@ import { staticResourceAccessorPreference } from './static-resource-accessor-pre
 import { surfaceOverlayCoherence } from './surface-overlay-coherence.js';
 import { surfaceTrailheadCoherence } from './surface-trailhead-coherence.js';
 import { trailForkCoaching } from './trail-fork-coaching.js';
+import { trailheadOverrideDivergence } from './trailhead-override-divergence.js';
 import {
   forkWithoutPreservedBlaze,
   markerSchemaUnsupported,
@@ -194,6 +195,7 @@ export { staticResourceAccessorPreference } from './static-resource-accessor-pre
 export { surfaceOverlayCoherence } from './surface-overlay-coherence.js';
 export { surfaceTrailheadCoherence } from './surface-trailhead-coherence.js';
 export { trailForkCoaching } from './trail-fork-coaching.js';
+export { trailheadOverrideDivergence } from './trailhead-override-divergence.js';
 export {
   forkWithoutPreservedBlaze,
   markerSchemaUnsupported,
@@ -251,6 +253,7 @@ export const wardenRules: ReadonlyMap<string, WardenRule> = new Map<
   [staticResourceAccessorPreference.name, staticResourceAccessorPreference],
   [surfaceTrailheadCoherence.name, surfaceTrailheadCoherence],
   [trailForkCoaching.name, trailForkCoaching],
+  [trailheadOverrideDivergence.name, trailheadOverrideDivergence],
   [validDescribeRefs.name, validDescribeRefs],
   [noDevPermitInSource.name, noDevPermitInSource],
   [noDestructuredCompose.name, noDestructuredCompose],

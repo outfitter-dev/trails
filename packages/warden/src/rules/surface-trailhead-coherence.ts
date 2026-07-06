@@ -91,7 +91,7 @@ const hasTrailheadMapTypeAnnotation = (
   const typeAnnotation = getNodeTypeAnnotation(node);
   return (
     typeAnnotation !== undefined &&
-    /\b(?:McpSurfaceTrailheadMap|TopoGraphTrailheadDeclaration|TrailheadMap)\b/.test(
+    /\b(?:McpSurfaceTrailheadMap|TrailheadMap)\b/.test(
       sourceCode.slice(typeAnnotation.start, typeAnnotation.end)
     )
   );

@@ -3,18 +3,25 @@
  *
  * Both derivation pipelines — `deriveTopoGraph` and the store-side
  * `buildTopoGraph` — resolve the app-authored `surfaces` overlay's `cli`
- * bindings into per-trail CLI alias inputs through this single helper, so
- * compiled locks and fresh derivations cannot diverge from the runtime CLI's
+ * bindings into per-trail CLI alias inputs and its `mcp` list bindings into
+ * projected trailhead entries through this single helper module, so compiled
+ * locks and fresh derivations cannot diverge from the runtime surfaces'
  * reading of the same bindings.
  */
 
 import {
+  deriveMcpTrailheadDescription,
   expandCliSurfaceBindings,
+  expandMcpSurfaceBindings,
   resolveSurfaceOverlayBindings,
 } from '@ontrails/core';
 import type { CliSurfaceBindingAliases, Topo } from '@ontrails/core';
 
-import type { TopoGraphOverlayRegistration } from './types.js';
+import { deriveStableHash } from './hash.js';
+import type {
+  TopoGraphOverlayRegistration,
+  TopoGraphTrailheadEntry,
+} from './types.js';
 
 /**
  * Resolve per-trail CLI alias inputs from overlay registrations.
@@ -45,4 +52,50 @@ export const resolveCliAliasInputsFromOverlays = (
     return undefined;
   }
   return expandCliSurfaceBindings(bindings.cli, [...topo.trails.keys()]);
+};
+
+/**
+ * Resolve projected trailhead entries from overlay registrations.
+ *
+ * Finds the app-authored `surfaces` overlay among the registrations and
+ * projects each `mcp` list binding into one `TopoGraphTrailheadEntry`: the
+ * binding name becomes the trailhead id, the sorted expanded member trail
+ * ids become `memberIds`, the surfaces list is `['mcp']`, and the
+ * description is the deterministic derived default shared with the MCP
+ * surface. Scalar `mcp` bindings are tool synonyms, not grouped entries, so
+ * they project no trailhead. Throws a `ValidationError` for group bindings
+ * whose member union is empty or synonym bindings that violate the shared
+ * expansion rules. Returns `undefined` when no `mcp` list bindings exist.
+ *
+ * @example
+ * ```ts
+ * import { resolveTrailheadEntriesFromOverlays } from './surface-bindings.js';
+ *
+ * const trailheads = resolveTrailheadEntriesFromOverlays(app, overlays);
+ * // => [{ id: 'gear', memberIds: ['gear.create', 'gear.list'], surfaces: ['mcp'], ... }]
+ * ```
+ */
+export const resolveTrailheadEntriesFromOverlays = (
+  topo: Topo,
+  registrations: readonly TopoGraphOverlayRegistration[] | undefined
+): readonly TopoGraphTrailheadEntry[] | undefined => {
+  const bindings = resolveSurfaceOverlayBindings(registrations);
+  const expansion = expandMcpSurfaceBindings(bindings?.mcp, [
+    ...topo.trails.keys(),
+  ]);
+  if (expansion === undefined) {
+    return undefined;
+  }
+  const entries = Object.entries(expansion.groups)
+    .map(
+      ([id, memberIds]): TopoGraphTrailheadEntry => ({
+        description: deriveMcpTrailheadDescription(memberIds),
+        id,
+        memberIds,
+        memberSetHash: deriveStableHash(memberIds),
+        surfaces: ['mcp'],
+      })
+    )
+    .toSorted((a, b) => a.id.localeCompare(b.id));
+  return entries.length > 0 ? entries : undefined;
 };

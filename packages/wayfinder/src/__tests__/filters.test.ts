@@ -2,7 +2,14 @@ import { describe, expect, test } from 'bun:test';
 
 import { z } from 'zod';
 
-import { Result, resource, signal, topo, trail } from '@ontrails/core';
+import {
+  Result,
+  resource,
+  signal,
+  surfaceOverlay,
+  topo,
+  trail,
+} from '@ontrails/core';
 import { deriveTopoGraph } from '@ontrails/topographer';
 import type { TopoGraph, TopoGraphEntry } from '@ontrails/topographer';
 
@@ -106,14 +113,7 @@ const makeGraph = (): TopoGraph =>
         userShow,
       }),
       {
-        trailheads: [
-          {
-            description: 'User operations.',
-            id: 'users',
-            surfaces: ['mcp'],
-            trails: 'user.*',
-          },
-        ],
+        overlays: [surfaceOverlay({ mcp: { users: ['user.*'] } })],
       }
     )
   );

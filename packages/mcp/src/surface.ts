@@ -14,6 +14,7 @@ import {
 import type {
   BaseSurfaceOptions,
   Layer,
+  OverlayEnvelopeLike,
   ResourceOverrideMap,
   Topo,
   TrailContextInit,
@@ -38,6 +39,18 @@ export interface CreateServerOptions extends BaseSurfaceOptions {
     | (() => TrailContextInit | Promise<TrailContextInit>)
     | undefined;
   readonly description?: string | undefined;
+  /**
+   * App-authored overlay envelopes (the same collection compile embeds in
+   * `trails.lock`). The `surfaces` overlay's `mcp` bindings are the authored,
+   * lockable default: list bindings become grouped trailhead tools and scalar
+   * bindings become tool synonyms.
+   */
+  readonly overlays?: readonly OverlayEnvelopeLike[] | undefined;
+  /**
+   * Call-site trailhead map. Override-in-context by design: when both this
+   * map and overlay `mcp` list bindings are present, the call-site map wins
+   * at runtime.
+   */
   readonly trailheads?: McpSurfaceTrailheadMap | undefined;
   readonly layers?: readonly Layer[] | undefined;
   readonly mcpResources?: McpResourcesConfig | false | undefined;
@@ -223,6 +236,7 @@ export const createServer = (
     include: options.include,
     intent: options.intent,
     layers: options.layers,
+    overlays: options.overlays,
     resolvePermit: options.resolvePermit,
     resources: options.resources,
     trailheads: options.trailheads,

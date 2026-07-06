@@ -9,6 +9,7 @@ import {
   createBlobRef,
   resource,
   signal,
+  surfaceOverlay,
   trail,
   topo,
 } from '@ontrails/core';
@@ -769,6 +770,228 @@ describe('deriveMcpTools', () => {
 
       expect(result.isErr()).toBe(true);
       expect(result.error?.message).toMatch(/trailhead overlap/i);
+    });
+
+    describe('overlay mcp list bindings', () => {
+      test('collapses selected member trails into one trailheaded tool', () => {
+        const app = topo('myapp', {
+          describeTopoTrail,
+          echoTrail,
+          readTopoTrail,
+        });
+        const tools = buildTools(app, {
+          overlays: [surfaceOverlay({ mcp: { topo: ['topo.*'] } })],
+        });
+
+        expect(tools.map((tool) => tool.name).toSorted()).toEqual([
+          'myapp_echo',
+          'myapp_topo',
+        ]);
+
+        const trailheadTool = requireTool(tools, 'myapp_topo');
+        expect(trailheadTool.trailId).toBeUndefined();
+        expect(trailheadTool.trailheadId).toBe('topo');
+        expect(trailheadTool.memberTrailIds).toEqual([
+          'topo.describe',
+          'topo.read',
+        ]);
+        expect(trailheadTool._meta?.[MCP_TOOL_TRAILHEAD_META_KEY]).toEqual({
+          id: 'topo',
+          memberTrailIds: ['topo.describe', 'topo.read'],
+        });
+        expect(trailheadTool.description).toBe(
+          'Grouped MCP entry over: topo.describe, topo.read.'
+        );
+        expect(trailheadTool.inputSchema).toMatchObject({
+          properties: {
+            trail: { enum: ['topo.describe', 'topo.read'], type: 'string' },
+          },
+          required: ['trail', 'input'],
+          type: 'object',
+        });
+      });
+
+      test('dispatches to the selected trail and correlates output', async () => {
+        const app = topo('myapp', { describeTopoTrail, readTopoTrail });
+        const tool = requireOnlyTool(
+          buildTools(app, {
+            overlays: [surfaceOverlay({ mcp: { topo: ['topo.*'] } })],
+          })
+        );
+
+        const result = await tool.handler(
+          { input: { id: 'topo-1' }, trail: 'topo.read' },
+          noExtra
+        );
+
+        expect(result.isError).toBeUndefined();
+        expect(result.structuredContent).toEqual({
+          output: { id: 'topo-1', title: 'Topo' },
+          trail: 'topo.read',
+        });
+        expect(parseJsonContent(result.content[0])).toEqual({
+          output: { id: 'topo-1', title: 'Topo' },
+          trail: 'topo.read',
+        });
+      });
+
+      test('returns a validation error for unknown trailhead trail selectors', async () => {
+        const app = topo('myapp', { readTopoTrail });
+        const tool = requireOnlyTool(
+          buildTools(app, {
+            overlays: [surfaceOverlay({ mcp: { topo: ['topo.*'] } })],
+          })
+        );
+
+        const result = await tool.handler(
+          { input: {}, trail: 'topo.missing' },
+          noExtra
+        );
+
+        expect(result.isError).toBe(true);
+        expect(result.content[0]?.text).toContain('unknown trail selector');
+      });
+
+      test('rejects overlay group bindings that overlap without narrowing', () => {
+        const app = topo('myapp', { describeTopoTrail, readTopoTrail });
+        const result = deriveMcpTools(app, {
+          overlays: [
+            surfaceOverlay({
+              mcp: {
+                one: ['topo.*'],
+                two: ['topo.read'],
+              },
+            }),
+          ],
+        });
+
+        expect(result.isErr()).toBe(true);
+        expect(result.error?.message).toMatch(/trailhead overlap/i);
+      });
+
+      test('rejects overlay group bindings that resolve to no trails', () => {
+        const app = topo('myapp', { echoTrail });
+        const result = deriveMcpTools(app, {
+          overlays: [surfaceOverlay({ mcp: { topo: ['topo.*'] } })],
+        });
+
+        expect(result.isErr()).toBe(true);
+        expect(result.error?.message).toContain('resolves to no trails');
+      });
+
+      test('the call-site trailhead map wins over the overlay default', () => {
+        const app = topo('myapp', { describeTopoTrail, readTopoTrail });
+        const tools = buildTools(app, {
+          overlays: [surfaceOverlay({ mcp: { overlay_topo: ['topo.*'] } })],
+          trailheads: {
+            inspect: {
+              description: 'Call-site inspection entry.',
+              trails: ['topo.read'],
+            },
+          },
+        });
+
+        const names = tools.map((tool) => tool.name).toSorted();
+        expect(names).toEqual(['myapp_inspect', 'myapp_topo_describe']);
+        const trailheadTool = requireTool(tools, 'myapp_inspect');
+        expect(trailheadTool.description).toBe('Call-site inspection entry.');
+        expect(trailheadTool.memberTrailIds).toEqual(['topo.read']);
+      });
+    });
+
+    describe('overlay mcp scalar bindings', () => {
+      test('publishes an additional synonym tool with the binding name', async () => {
+        const app = topo('myapp', { echoTrail });
+        const tools = buildTools(app, {
+          overlays: [surfaceOverlay({ mcp: { shout: 'echo' } })],
+        });
+
+        expect(tools.map((tool) => tool.name).toSorted()).toEqual([
+          'myapp_echo',
+          'shout',
+        ]);
+
+        const canonical = requireTool(tools, 'myapp_echo');
+        const synonym = requireTool(tools, 'shout');
+        expect(synonym.trailId).toBe('echo');
+        expect(synonym.inputSchema).toEqual(canonical.inputSchema);
+        expect(synonym.annotations).toEqual(canonical.annotations);
+        expect(synonym.description).toBe(canonical.description);
+
+        const result = await synonym.handler({ message: 'hi' }, noExtra);
+        expect(result.structuredContent).toEqual({ reply: 'hi' });
+      });
+
+      test('rejects binding names that are not MCP-safe', () => {
+        const app = topo('myapp', { echoTrail });
+        const result = deriveMcpTools(app, {
+          overlays: [surfaceOverlay({ mcp: { 'echo-alias': 'echo' } })],
+        });
+
+        expect(result.isErr()).toBe(true);
+        expect(result.error?.message).toContain('echo-alias');
+        expect(result.error?.message).toContain('MCP-safe');
+        expect(result.error?.name).toBe('ValidationError');
+      });
+
+      test('rejects scalar bindings that expand to more than one trail', () => {
+        const app = topo('myapp', { describeTopoTrail, readTopoTrail });
+        const result = deriveMcpTools(app, {
+          overlays: [surfaceOverlay({ mcp: { topo_any: 'topo.*' } })],
+        });
+
+        expect(result.isErr()).toBe(true);
+        expect(result.error?.message).toContain('resolves to 2 trails');
+        expect(result.error?.name).toBe('ValidationError');
+      });
+
+      test('rejects scalar bindings that expand to no trails', () => {
+        const app = topo('myapp', { echoTrail });
+        const result = deriveMcpTools(app, {
+          overlays: [surfaceOverlay({ mcp: { missing: 'nope.*' } })],
+        });
+
+        expect(result.isErr()).toBe(true);
+        expect(result.error?.message).toContain('matched none');
+        expect(result.error?.name).toBe('ValidationError');
+      });
+
+      test('rejects synonym names that collide with derived tool names', () => {
+        const app = topo('myapp', { echoTrail });
+        const result = deriveMcpTools(app, {
+          overlays: [surfaceOverlay({ mcp: { myapp_echo: 'echo' } })],
+        });
+
+        expect(result.isErr()).toBe(true);
+        expect(result.error?.message).toMatch(/tool-name collision/i);
+      });
+
+      test('synonyms still apply when a call-site trailhead map overrides groups', async () => {
+        const app = topo('myapp', { describeTopoTrail, echoTrail });
+        const tools = buildTools(app, {
+          overlays: [
+            surfaceOverlay({
+              mcp: { overlay_group: ['topo.*'], shout: 'echo' },
+            }),
+          ],
+          trailheads: {
+            inspect: {
+              description: 'Call-site inspection entry.',
+              trails: ['topo.*'],
+            },
+          },
+        });
+
+        expect(tools.map((tool) => tool.name).toSorted()).toEqual([
+          'myapp_echo',
+          'myapp_inspect',
+          'shout',
+        ]);
+
+        const synonym = requireTool(tools, 'shout');
+        const result = await synonym.handler({ message: 'hi' }, noExtra);
+        expect(result.structuredContent).toEqual({ reply: 'hi' });
+      });
     });
   });
 

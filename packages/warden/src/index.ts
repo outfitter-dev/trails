@@ -255,6 +255,7 @@ export {
   surfaceOverlayCoherenceTrail,
   surfaceTrailheadCoherenceTrail,
   trailForkCoachingTrail,
+  trailheadOverrideDivergenceTrail,
   unmaterializedActivationSourceTrail,
   topoAwareRuleInput,
   unreachableDetourShadowingTrail,

@@ -64,6 +64,7 @@ import { staticResourceAccessorPreference } from './static-resource-accessor-pre
 import { surfaceOverlayCoherence } from './surface-overlay-coherence.js';
 import { surfaceTrailheadCoherence } from './surface-trailhead-coherence.js';
 import { trailForkCoaching } from './trail-fork-coaching.js';
+import { trailheadOverrideDivergence } from './trailhead-override-divergence.js';
 import {
   forkWithoutPreservedBlaze,
   markerSchemaUnsupported,
@@ -151,6 +152,7 @@ export const registeredRuleNames: readonly string[] = [
   surfaceOverlayCoherence.name,
   surfaceTrailheadCoherence.name,
   trailForkCoaching.name,
+  trailheadOverrideDivergence.name,
   unmaterializedActivationSource.name,
   unreachableDetourShadowing.name,
   validDetourContract.name,

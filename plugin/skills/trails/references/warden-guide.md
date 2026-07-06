@@ -5,7 +5,7 @@
 This file is generated from the live `@ontrails/warden` rule manifest. Repo-tracked skills, agents, and plugin prompts should reference this file instead of copying rule prose by hand.
 
 - Guide input command: `bun apps/trails/bin/trails.ts warden guide --agent-json`
-- Rule count: 72
+- Rule count: 73
 
 ## Agent Instructions
 
@@ -77,6 +77,7 @@ This file is generated from the live `@ontrails/warden` rule manifest. Repo-trac
 - `surface-overlay-coherence` (warn, topo/topo-aware, external): Surface overlay bindings resolve to real trails without group overlap or canonical-entry shadowing. Guidance: Keep surface overlay bindings pointed at real trails without shadowing canonical surface entries.
 - `surface-trailhead-coherence` (warn, source/source-static, external): Trailhead maps avoid selector overlap, hidden visibility widening, and drift-prone dynamic selectors. Guidance: Keep trailhead maps reviewable before they reach MCP projection.
 - `trail-fork-coaching` (warn, all/source-static, advisory): Trails avoid hiding distinct capabilities behind branching action or operation inputs. Guidance: Keep surface accommodations from hiding several capabilities behind one branching trail input.
+- `trailhead-override-divergence` (warn, project/project-static, external): Call-site MCP trailhead maps stay aligned with authored surfaces overlay mcp bindings. Guidance: Keep call-site MCP trailhead overrides aligned with the authored overlay default.
 
 ### Permits
 

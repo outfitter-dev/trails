@@ -9,7 +9,12 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
+import {
+  createTrailContext,
+  resolveSurfaceOverlayBindings,
+} from '@ontrails/core';
 import {
   MCP_EXAMPLES_RESOURCE_PREFIX,
   MCP_SURFACE_MAP_RESOURCE_URI,
@@ -18,7 +23,9 @@ import {
   buildMcpResources,
   deriveMcpTools,
 } from '@ontrails/mcp';
+import { trailheadOverrideDivergenceTrail } from '@ontrails/warden';
 
+import { trailsOverlays } from '../app.js';
 import { trailsMcpApp } from '../mcp-app.js';
 import {
   trailsMcpTrailheads,
@@ -843,5 +850,40 @@ describe('Trails MCP surface shaping', () => {
         trailId: 'wayfind.search',
       })
     );
+  });
+
+  test('the authored overlay inspect binding matches the call-site override', async () => {
+    const bindings = resolveSurfaceOverlayBindings(trailsOverlays);
+    const authoredMembers = bindings?.mcp?.['inspect'];
+    expect(Array.isArray(authoredMembers)).toBe(true);
+    expect([...(authoredMembers ?? [])].toSorted()).toEqual(
+      [...trailsMcpTrailheads.inspect.trails].toSorted()
+    );
+
+    const sourceCode = readFileSync(
+      fileURLToPath(new URL('../mcp-options.ts', import.meta.url)),
+      'utf8'
+    );
+    const divergence = await trailheadOverrideDivergenceTrail.blaze(
+      {
+        ...(bindings?.mcp === undefined
+          ? {}
+          : {
+              authoredMcpSurfaceBindingSets: [
+                {
+                  appName: trailsMcpApp.name,
+                  bindings: bindings.mcp,
+                  trailIds: [...trailsMcpApp.trails.keys()],
+                },
+              ],
+            }),
+        filePath: 'apps/trails/src/mcp-options.ts',
+        sourceCode,
+      },
+      createTrailContext({})
+    );
+
+    expect(divergence.isOk()).toBe(true);
+    expect(divergence.isOk() ? divergence.value.diagnostics : null).toEqual([]);
   });
 });

@@ -30,7 +30,10 @@ import type {
 import { addPermitRequirement } from '../permit.js';
 import { collectLibraryProjection } from '../library-projection.js';
 import { collectTopoGraphOverlays } from '../overlays.js';
-import { resolveCliAliasInputsFromOverlays } from '../surface-bindings.js';
+import {
+  resolveCliAliasInputsFromOverlays,
+  resolveTrailheadEntriesFromOverlays,
+} from '../surface-bindings.js';
 import { deriveStableHash } from '../hash.js';
 import { TOPO_GRAPH_SCHEMA_VERSION } from '../types.js';
 import { projectTrailVersions } from '../versioning.js';
@@ -40,6 +43,7 @@ import type {
   TopoGraphFieldOverrideKey,
   TopoGraphLibraryProjection,
   TopoGraphOverlays,
+  TopoGraphTrailheadEntry,
 } from '../types.js';
 import type {
   CreateTopoSnapshotInput,
@@ -65,6 +69,7 @@ type TopoGraphRecord = Readonly<{
   readonly library: TopoGraphLibraryProjection;
   readonly overlays?: TopoGraphOverlays | undefined;
   readonly topoGraphSchemaVersion: typeof TOPO_GRAPH_SCHEMA_VERSION;
+  readonly trailheads?: readonly TopoGraphTrailheadEntry[] | undefined;
 }>;
 
 type JsonRecord = Readonly<Record<string, unknown>>;
@@ -1263,6 +1268,10 @@ const buildTopoGraph = (
     topo,
     options?.overlays
   );
+  const trailheads = resolveTrailheadEntriesFromOverlays(
+    topo,
+    options?.overlays
+  );
   const signalRelations = collectSignalGraphRelations(signals, trails);
   const activationSources = collectActivationSourceCatalog(trails);
   const activationEdges = collectActivationGraphEdges(trails);
@@ -1299,6 +1308,7 @@ const buildTopoGraph = (
     library: collectLibraryProjection(topo),
     ...(overlays === undefined ? {} : { overlays }),
     topoGraphSchemaVersion: TOPO_GRAPH_SCHEMA_VERSION,
+    ...(trailheads === undefined ? {} : { trailheads }),
   };
 };
 

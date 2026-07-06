@@ -128,18 +128,6 @@ export interface TopoGraphForceEntry {
   readonly source: 'trails compile --force';
 }
 
-export type TopoGraphTrailheadTrailSelector = string | readonly string[];
-
-export interface TopoGraphTrailheadDeclaration {
-  readonly id: string;
-  readonly trails: TopoGraphTrailheadTrailSelector;
-  readonly description: string;
-  readonly surfaces?: readonly string[] | undefined;
-  readonly visibility?: 'public' | 'internal' | undefined;
-  readonly descriptionStableThrough?: string | undefined;
-  readonly visibilityWideningAccepted?: true | undefined;
-}
-
 export interface TopoGraphTrailheadEntry {
   readonly id: string;
   readonly description: string;
@@ -300,7 +288,6 @@ export interface TopoGraph {
 
 export interface DeriveTopoGraphOptions {
   readonly overlays?: readonly TopoGraphOverlayRegistration[] | undefined;
-  readonly trailheads?: readonly TopoGraphTrailheadDeclaration[] | undefined;
 }
 
 // ---------------------------------------------------------------------------

@@ -45,6 +45,8 @@ The invariant is: gather without merging.
 
 Those axes are related, but not interchangeable. An alias is not a trailhead. A trailhead is not a generic action bag. An input mapping is not alternate behavior.
 
+Both axes are authored in the app's `surfaceOverlay()`: scalar bindings are synonyms on the approach axis, list bindings are grouped entries on the entry axis. The overlay is the lockable default; MCP surface options may still carry a call-site trailhead map as an override-in-context that wins at runtime. See [Trailheads](surface-trailheads.md) for the two channels.
+
 ## Fork Test
 
 Use the fork test before adding an accommodation:

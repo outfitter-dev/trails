@@ -88,9 +88,7 @@ export type {
 export type {
   TopoGraph,
   TopoGraphEntry,
-  TopoGraphTrailheadDeclaration,
   TopoGraphTrailheadEntry,
-  TopoGraphTrailheadTrailSelector,
   TopoGraphForceEntry,
   TopoGraphFieldOverride,
   TopoGraphFieldOverrideKey,

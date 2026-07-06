@@ -31,14 +31,41 @@ That boundary has two parts:
 - **Semantic:** the trailhead does not change member intent, permits, errors, outputs, lifecycle, or side effects.
 - **Structural:** the trailhead keeps member trail identity visible at invocation and response time.
 
-## MCP Authoring Shape
+## Authoring Channels
+
+Trailheads have two authoring channels that share one implementation:
+
+- **The overlay default.** An `mcp` list binding in the app's `surfaceOverlay({ mcp })` authors the grouped entry once: it lands in `trails.lock` under `overlays.surfaces`, projects into the graph's trailhead facts for Wayfinder reads, and the MCP surface derives the grouped tool from it with a deterministic default description. This is the authored, lockable default.
+- **The call-site override.** The `trailheads` option in MCP surface options carries the same grouped entry with richer metadata: authored prose, deferred loading, visibility acknowledgements. This is override-in-context by design, not a compatibility bridge: when both channels are present, the call-site map wins at runtime.
+
+### Overlay Default
+
+```typescript
+import { surfaceOverlay } from '@ontrails/core';
+import { surface } from '@ontrails/mcp';
+import { graph } from './app';
+
+export const appOverlays = [
+  surfaceOverlay({
+    mcp: {
+      inspect: ['survey', 'survey.diff', 'topo', 'guide'],
+    },
+  }),
+];
+
+await surface(graph, { overlays: appOverlays });
+```
+
+`trails compile` embeds the bindings in the lock and derives trailhead facts from the list bindings, so agents can read grouped-entry membership from the committed graph without loading surface code.
+
+### Call-Site Override
 
 `@ontrails/mcp` accepts the `trailheads` option in surface options:
 
 ```typescript
 import type { McpSurfaceTrailheadMap } from '@ontrails/mcp';
 import { surface } from '@ontrails/mcp';
-import { graph } from './app';
+import { appOverlays, graph } from './app';
 
 const trailheads = {
   governance: {
@@ -56,10 +83,13 @@ const trailheads = {
 } satisfies McpSurfaceTrailheadMap;
 
 await surface(graph, {
+  overlays: appOverlays,
   trailheads,
   mcpResources: { examples: true, surfaceMap: true },
 });
 ```
+
+Keep the override aligned with the authored overlay default. Warden's `trailhead-override-divergence` rule warns when a call-site map's binding names or member selectors diverge from the app's authored `mcp` list bindings, so an agent reading the lock is not misled about what the running surface projects. Intentional divergence is legal; make it visible by renaming one side.
 
 Prefer explicit lists for editorial groups. Glob selectors such as `topo.*` reuse the normal surface filtering grammar, but broad selectors need more care: membership drift can make descriptions stale and can create trailhead overlap.
 

@@ -60,6 +60,7 @@ export { staticResourceAccessorPreferenceTrail } from './static-resource-accesso
 export { surfaceOverlayCoherenceTrail } from './surface-overlay-coherence.trail.js';
 export { surfaceTrailheadCoherenceTrail } from './surface-trailhead-coherence.trail.js';
 export { trailForkCoachingTrail } from './trail-fork-coaching.trail.js';
+export { trailheadOverrideDivergenceTrail } from './trailhead-override-divergence.trail.js';
 export { unmaterializedActivationSourceTrail } from './unmaterialized-activation-source.trail.js';
 export { unreachableDetourShadowingTrail } from './unreachable-detour-shadowing.trail.js';
 export { validDetourContractTrail } from './valid-detour-contract.trail.js';

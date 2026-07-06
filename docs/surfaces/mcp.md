@@ -72,11 +72,37 @@ Trail examples are exposed as structured tool metadata under `_meta["ontrails/ex
 
 Dense MCP surfaces can use trailheads to group related trails into fewer agent-facing tools while preserving the underlying trail contracts. Trailheads are surface accommodations on the entry axis: they group and select without merging. The full guide is [Trailheads](surface-trailheads.md), and the accepted cross-surface doctrine is [ADR-0050](../adr/0050-surface-accommodations-preserve-trail-identity.md). The short version:
 
-- author a trailhead map in MCP surface options;
+- author the grouped entry as an `mcp` list binding in the app's `surfaceOverlay({ mcp })` — this is the authored, lockable default, embedded in `trails.lock` and projected into the graph's trailhead facts;
+- optionally pass a call-site trailhead map in MCP surface options when the running surface needs richer metadata (description, deferred loading) — the call-site map is an override-in-context and wins at runtime;
 - each trailhead becomes one MCP tool;
 - call the trailhead with `{ trail, input }`;
 - successful responses return `{ trail, output }`;
 - inspect `trails://surface-map` for trailhead IDs, member trail IDs, schemas, and deferred-loading hints, and use `trails://examples/<trailId>` for member examples.
+
+## Overlay Bindings
+
+The `surfaces` overlay's `mcp` bindings feed the MCP surface the same way `cli` bindings feed the CLI:
+
+```typescript
+export const trailsOverlays = [
+  surfaceOverlay({
+    mcp: {
+      // List binding: a grouped trailhead tool over the expanded members.
+      snippets: ['snippet.create', 'snippet.get', 'snippet.fork'],
+      // Scalar binding: an additional tool synonym for exactly one trail.
+      snippet_new: 'snippet.create',
+    },
+  }),
+];
+
+await surface(graph, { overlays: trailsOverlays });
+```
+
+A list binding is exactly a trailhead: one derived grouped tool per binding name, with member selection in the input and member identity preserved in the response. The derived tool uses a deterministic default description over the expanded members; author a call-site trailhead map when the entry needs richer prose or deferred loading.
+
+A scalar binding is a tool synonym: an additional MCP tool whose name is the binding name, sharing the target trail's schema, annotations, and handler. Synonym names are published verbatim, so they must be MCP-safe (`[a-z0-9_]+`), and a scalar selector must expand to exactly one trail.
+
+Binding selectors use dotted trail-id globs (`snippet.*`), the same grammar as CLI bindings and surface filters. `trails compile` embeds the bindings in `trails.lock` under `overlays.surfaces` and derives the graph's trailhead facts from the `mcp` list bindings, so `trails wayfind --trailheads`-style reads flow from the committed lock.
 
 ## MCP Resources For Cold Context
 

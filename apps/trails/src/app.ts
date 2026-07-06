@@ -143,6 +143,23 @@ export const trailsCliIncludedTrails = [
 export const trailsOverlays = [
   surfaceOverlay({
     cli: { diff: 'survey.diff' },
+    // Authored, lockable default for the operator MCP `inspect` trailhead.
+    // The call-site map in `mcp-options.ts` overrides it at runtime with
+    // richer metadata (description, deferred loading) over the same members.
+    mcp: {
+      inspect: [
+        'survey',
+        'topo',
+        'guide',
+        'survey.brief',
+        'survey.diff',
+        'survey.resource',
+        'survey.signal',
+        'survey.surfaces',
+        'survey.trail',
+        'topo.history',
+      ],
+    },
   }),
 ];
 

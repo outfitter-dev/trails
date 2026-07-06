@@ -11,7 +11,6 @@ import {
   getContourReferences,
   projectActivationSourceDeclaration,
   validateEstablishedTopo,
-  matchesTrailPattern,
   signalDiagnosticDefinitions,
   zodToJsonSchema,
 } from '@ontrails/core';
@@ -29,10 +28,12 @@ import type {
 } from '@ontrails/core';
 
 import { addPermitRequirement } from './permit.js';
-import { deriveStableHash } from './hash.js';
 import { collectLibraryProjection } from './library-projection.js';
 import { collectTopoGraphOverlays } from './overlays.js';
-import { resolveCliAliasInputsFromOverlays } from './surface-bindings.js';
+import {
+  resolveCliAliasInputsFromOverlays,
+  resolveTrailheadEntriesFromOverlays,
+} from './surface-bindings.js';
 import { TOPO_GRAPH_SCHEMA_VERSION } from './types.js';
 import { projectTrailVersions } from './versioning.js';
 import type {
@@ -43,8 +44,6 @@ import type {
   TopoGraphActivationGraph,
   TopoGraphActivationSource,
   TopoGraphEntry,
-  TopoGraphTrailheadDeclaration,
-  TopoGraphTrailheadEntry,
   TopoGraphFieldOverride,
   TopoGraphFieldOverrideKey,
 } from './types.js';
@@ -649,62 +648,6 @@ const collectEntries = (
   ];
 };
 
-const selectorPatterns = (
-  selector: TopoGraphTrailheadDeclaration['trails']
-): readonly string[] => (typeof selector === 'string' ? [selector] : selector);
-
-const resolveTrailheadMemberIds = (
-  topo: Topo,
-  trailhead: TopoGraphTrailheadDeclaration
-): readonly string[] => {
-  const patterns = selectorPatterns(trailhead.trails);
-  return [...topo.trails.values()]
-    .filter((trail) =>
-      patterns.some((pattern) => matchesTrailPattern(trail.id, pattern))
-    )
-    .map((trail) => trail.id)
-    .toSorted();
-};
-
-const trailheadToEntry = (
-  topo: Topo,
-  trailhead: TopoGraphTrailheadDeclaration
-): TopoGraphTrailheadEntry => {
-  const memberIds = resolveTrailheadMemberIds(topo, trailhead);
-  const entry: Record<string, unknown> = {
-    description: trailhead.description,
-    id: trailhead.id,
-    memberIds,
-    memberSetHash: deriveStableHash(memberIds),
-    surfaces: (trailhead.surfaces ?? []).toSorted(),
-  };
-
-  if (trailhead.descriptionStableThrough !== undefined) {
-    entry['descriptionStableThrough'] = trailhead.descriptionStableThrough;
-  }
-  if (trailhead.visibility !== undefined) {
-    entry['visibility'] = trailhead.visibility;
-  }
-  if (trailhead.visibilityWideningAccepted === true) {
-    entry['visibilityWideningAccepted'] = true;
-  }
-
-  return sortKeys(entry) as unknown as TopoGraphTrailheadEntry;
-};
-
-const collectTrailheads = (
-  topo: Topo,
-  options: DeriveTopoGraphOptions | undefined
-): readonly TopoGraphTrailheadEntry[] | undefined => {
-  const trailheads = options?.trailheads;
-  if (trailheads === undefined || trailheads.length === 0) {
-    return undefined;
-  }
-  return trailheads
-    .map((trailhead) => trailheadToEntry(topo, trailhead))
-    .toSorted((a, b) => a.id.localeCompare(b.id));
-};
-
 /**
  * Derive a deterministic topo graph from a Topo.
  *
@@ -725,7 +668,10 @@ export const deriveTopoGraph = (
   );
   const activationSources = collectActivationSourceCatalog(topo);
   const activationEdges = collectActivationGraphEdges(topo);
-  const trailheads = collectTrailheads(topo, options);
+  const trailheads = resolveTrailheadEntriesFromOverlays(
+    topo,
+    options?.overlays
+  );
   const overlays = collectTopoGraphOverlays(topo, options?.overlays);
   const library = collectLibraryProjection(topo);
 

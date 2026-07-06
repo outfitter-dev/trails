@@ -3,6 +3,7 @@ import type {
   Intent,
   RuleDiagnosticBase,
   ScanTargets,
+  SurfaceBindings,
   Topo,
 } from '@ontrails/core';
 import type { TopoGraph } from '@ontrails/topographer';
@@ -282,9 +283,32 @@ export interface WardenRule {
 }
 
 /**
+ * One app's authored `surfaces` overlay `mcp` bindings plus the trail ids
+ * that scope which source files the bindings can be compared against.
+ */
+export interface AuthoredMcpSurfaceBindingSet {
+  /** Stable app/topo label the bindings were authored for. */
+  readonly appName: string;
+  /** The `mcp` bindings from the app's `surfaces` overlay. */
+  readonly bindings: SurfaceBindings;
+  /** Trail ids registered in the owning app's topo. */
+  readonly trailIds: readonly string[];
+}
+
+/**
  * Options for compose-file rules that need knowledge of all trail IDs in a project.
  */
 export interface ProjectContext {
+  /**
+   * Per-app authored `mcp` surface bindings, resolved from the project's
+   * topo targets (the serialized graph overlays when available, else the
+   * app-module overlay registrations). Each set carries the owning app's
+   * trail ids so source rules can attribute a call-site surface option to
+   * the app whose overlay authored the default before comparing.
+   */
+  readonly authoredMcpSurfaceBindingSets?:
+    | readonly AuthoredMcpSurfaceBindingSet[]
+    | undefined;
   /** All known contour names in the project. */
   readonly knownContourIds?: ReadonlySet<string>;
   /** Store table IDs used with the CRUD factory across the project. */

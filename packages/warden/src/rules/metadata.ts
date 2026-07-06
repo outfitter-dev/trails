@@ -115,6 +115,7 @@ const concernByRuleName: Partial<Record<string, WardenRuleConcern>> = {
   'surface-overlay-coherence': 'meta',
   'surface-trailhead-coherence': 'meta',
   'trail-fork-coaching': 'meta',
+  'trailhead-override-divergence': 'meta',
   'unmaterialized-activation-source': 'lifecycle',
   'valid-detour-contract': 'results',
   'version-gap': 'lifecycle',
@@ -721,6 +722,30 @@ const builtinWardenRuleMetadataInput = {
       'Trails avoid hiding distinct capabilities behind branching action or operation inputs.',
     scope: 'advisory',
     tier: 'source-static',
+  },
+  'trailhead-override-divergence': {
+    ...durableExternal,
+    guidance: {
+      docs: [
+        {
+          label: 'Surface Accommodations',
+          path: 'docs/surfaces/surface-accommodations.md',
+        },
+      ],
+      relatedRules: [
+        'surface-overlay-coherence',
+        'surface-trailhead-coherence',
+      ],
+      steps: [
+        'Author the grouped entry as an mcp list binding in surfaceOverlay({ mcp }) so the lock carries the default.',
+        'Keep the call-site trailhead map aligned with the authored binding names and member selectors, or rename one side to make the intentional divergence explicit.',
+      ],
+      summary:
+        'Keep call-site MCP trailhead overrides aligned with the authored overlay default.',
+    },
+    invariant:
+      'Call-site MCP trailhead maps stay aligned with authored surfaces overlay mcp bindings.',
+    tier: 'project-static',
   },
   'unmaterialized-activation-source': {
     ...durableExternal,

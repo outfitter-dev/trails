@@ -3,6 +3,8 @@ import type {
   McpSurfaceTrailheadMap,
 } from '@ontrails/mcp';
 
+import { trailsOverlays } from './app.js';
+
 export const trailsMcpIncludedTrails = [
   'adapter.check',
   'add.surface',
@@ -80,5 +82,9 @@ export const trailsMcpSurfaceOptions = {
   include: trailsMcpIncludedTrails,
   mcpResources: { examples: true, graph: true, surfaceMap: true },
   name: 'trails',
+  // The overlay authors the lockable `inspect` default; the call-site map
+  // below is the runtime override-in-context with richer metadata
+  // (description, deferred loading) over the same member selectors.
+  overlays: trailsOverlays,
   trailheads: trailsMcpTrailheads,
 } satisfies CreateServerOptions;

@@ -1204,7 +1204,7 @@ describe('deriveTopoGraph', () => {
   });
 
   describe('trailheads', () => {
-    test('derives sorted resolved trailhead metadata from selectors', () => {
+    test('derives sorted trailhead entries from mcp overlay list bindings', () => {
       const describeTopo = trail('topo.describe', {
         blaze: noop,
         input: z.object({ root: z.string() }),
@@ -1221,29 +1221,22 @@ describe('deriveTopoGraph', () => {
       const map = deriveTopoGraph(
         topoFrom({ describeTopo, listTopo, resetDev }),
         {
-          trailheads: [
-            {
-              description: 'Read and inspect topo state.',
-              id: 'topo',
-              surfaces: ['mcp'],
-              trails: 'topo.*',
-            },
-          ],
+          overlays: [surfaceOverlay({ mcp: { topo: ['topo.*'] } })],
         }
       );
 
       expect(map.trailheads).toEqual([
-        expect.objectContaining({
-          description: 'Read and inspect topo state.',
+        {
+          description: 'Grouped MCP entry over: topo.describe, topo.list.',
           id: 'topo',
           memberIds: ['topo.describe', 'topo.list'],
           memberSetHash: expect.stringMatching(/^[0-9a-f]{64}$/),
           surfaces: ['mcp'],
-        }),
+        },
       ]);
     });
 
-    test('sorts trailhead members and surfaces for deterministic output', () => {
+    test('sorts trailhead members and ids for deterministic output', () => {
       const read = trail('topo.read', {
         blaze: noop,
         input: z.object({}),
@@ -1254,13 +1247,12 @@ describe('deriveTopoGraph', () => {
       });
 
       const map = deriveTopoGraph(topoFrom({ read, write }), {
-        trailheads: [
-          {
-            description: 'Topo operations.',
-            id: 'topo',
-            surfaces: ['mcp', 'cli'],
-            trails: ['topo.write', 'topo.read'],
-          },
+        overlays: [
+          surfaceOverlay({
+            mcp: {
+              topo: ['topo.write', 'topo.read'],
+            },
+          }),
         ],
       });
 
@@ -1268,7 +1260,20 @@ describe('deriveTopoGraph', () => {
         'topo.read',
         'topo.write',
       ]);
-      expect(map.trailheads?.[0]?.surfaces).toEqual(['cli', 'mcp']);
+      expect(map.trailheads?.[0]?.surfaces).toEqual(['mcp']);
+    });
+
+    test('scalar mcp bindings project no trailhead entries', () => {
+      const read = trail('topo.read', {
+        blaze: noop,
+        input: z.object({}),
+      });
+
+      const map = deriveTopoGraph(topoFrom({ read }), {
+        overlays: [surfaceOverlay({ mcp: { topo_read: 'topo.read' } })],
+      });
+
+      expect(map.trailheads).toBeUndefined();
     });
   });
 

@@ -51,6 +51,9 @@ const buildRuleMeta = (rule: WardenRule | TopoAwareWardenRule) => {
 };
 
 const buildProjectContext = (input: ProjectAwareRuleInput): ProjectContext => ({
+  ...(input.authoredMcpSurfaceBindingSets
+    ? { authoredMcpSurfaceBindingSets: input.authoredMcpSurfaceBindingSets }
+    : {}),
   ...(input.contourReferencesByName
     ? {
         contourReferencesByName: new Map(
