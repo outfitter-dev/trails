@@ -1,6 +1,13 @@
 import { describe, expect, test } from 'bun:test';
 
-import { Result, topo, trail } from '@ontrails/core';
+import {
+  contour,
+  deriveTrail,
+  resource,
+  Result,
+  topo,
+  trail,
+} from '@ontrails/core';
 import { deriveTopoGraph } from '@ontrails/topographer';
 import { z } from 'zod';
 
@@ -31,7 +38,7 @@ describe('duplicate-public-contract', () => {
         filePath: '<topo>',
         line: 1,
         message:
-          'Likely duplicate public trail contracts "diff", "survey.diff" share the same input, output, intent, permits, resources, composes, signals, and detours. Keep one contract with aliases/input mappings, compose a distinct wrapper, or document why these public contracts are separate.',
+          'Likely duplicate public trail contracts "diff", "survey.diff" share the same input, output, intent, permits, resources, contours, composes, signals, and detours. Keep one contract with aliases/input mappings, compose a distinct wrapper, or document why these public contracts are separate.',
         rule: 'duplicate-public-contract',
         severity: 'warn',
       },
@@ -70,6 +77,63 @@ describe('duplicate-public-contract', () => {
     );
 
     expect(diagnostics).toEqual([]);
+  });
+
+  test('stays quiet for factory CRUD deletes anchored to different contours', async () => {
+    const pack = contour(
+      'pack',
+      { id: z.string(), name: z.string() },
+      { identity: 'id' }
+    );
+    const trip = contour(
+      'trip',
+      { id: z.string(), name: z.string() },
+      { identity: 'id' }
+    );
+    const db = resource('db.main', {
+      create: () => Result.ok({}),
+      mock: () => ({}),
+    });
+    const packDelete = deriveTrail(pack, 'delete', {
+      blaze: () => Result.ok(),
+      resource: db,
+    });
+    const tripDelete = deriveTrail(trip, 'delete', {
+      blaze: () => Result.ok(),
+      resource: db,
+    });
+
+    const diagnostics = await duplicatePublicContract.checkTopo(
+      topo('factory-crud-tables', { db, packDelete, tripDelete })
+    );
+
+    expect(diagnostics).toEqual([]);
+  });
+
+  test('still warns for identical contracts anchored to the same contour', async () => {
+    const pack = contour(
+      'pack',
+      { id: z.string(), name: z.string() },
+      { identity: 'id' }
+    );
+    const canonical = trail('pack.remove', {
+      blaze: () => Result.ok({ ok: true }),
+      contours: [pack],
+      input,
+      output,
+    });
+    const duplicate = trail('pack.destroy', {
+      blaze: () => Result.ok({ ok: true }),
+      contours: [pack],
+      input,
+      output,
+    });
+
+    const diagnostics = await duplicatePublicContract.checkTopo(
+      topo('same-contour-duplicates', { canonical, duplicate })
+    );
+
+    expect(diagnostics).toHaveLength(1);
   });
 
   test('uses provided graph facts when available', async () => {
