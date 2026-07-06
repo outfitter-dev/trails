@@ -7,6 +7,8 @@ import {
   Result,
   ValidationError,
   openWriteTrailsDb,
+  surfaceOverlay,
+  surfaceOverlayBindingsSchema,
   topo,
   trail,
 } from '@ontrails/core';
@@ -155,6 +157,56 @@ describe('topo graph overlays', () => {
         'zeta.family',
       ]);
       expect(graph.overlays?.['zeta.family']).toEqual({ trailCount: 1 });
+    });
+  });
+
+  describe('surfaces namespace', () => {
+    test('embeds a surfaceOverlay()\'s bindings under "surfaces"', () => {
+      const overlays = collectTopoGraphOverlays(buildApp(), [
+        cloudflareOverlay,
+        surfaceOverlay({
+          cli: { add: 'entity.add' },
+          mcp: { entities: ['entity.*'] },
+        }),
+      ]);
+
+      expect(overlays?.['surfaces']).toEqual({
+        cli: { add: 'entity.add' },
+        mcp: { entities: ['entity.*'] },
+      });
+      // Existing adapter namespaces are unaffected by the surfaces gate.
+      expect(overlays?.['cloudflare']).toEqual({
+        workers: [{ name: 'edge', routes: ['b-route', 'a-route'] }],
+      });
+    });
+
+    test('throws for a "surfaces" registration without app-authored provenance', () => {
+      const error = captureValidationError(() =>
+        collectTopoGraphOverlays(buildApp(), [
+          {
+            derive: () => ({ cli: { add: 'entity.add' } }),
+            namespace: 'surfaces',
+            schema: surfaceOverlayBindingsSchema,
+          },
+        ])
+      );
+      expect(error.message).toContain('surfaces');
+      expect(error.message).toContain('surfaceOverlay()');
+      expect(error.message).toContain('trails compile');
+    });
+
+    test('throws for an explicit adapter-derived "surfaces" registration', () => {
+      const error = captureValidationError(() =>
+        collectTopoGraphOverlays(buildApp(), [
+          {
+            derive: () => ({ cli: { add: 'entity.add' } }),
+            namespace: 'surfaces',
+            provenance: 'adapter-derived',
+            schema: surfaceOverlayBindingsSchema,
+          },
+        ])
+      );
+      expect(error.message).toContain('surfaceOverlay()');
     });
   });
 

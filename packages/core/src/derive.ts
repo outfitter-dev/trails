@@ -382,6 +382,27 @@ const normalizeCliAlias = ({
   };
 };
 
+/**
+ * Convert app name + trail ID to an MCP-safe tool name.
+ *
+ * MCP tool names must be `[a-z0-9_]+`: the app name prefixes the trail id,
+ * dots and hyphens collapse to underscores, and everything lowercases. This
+ * is the one owner for the projection — the MCP surface renders tools with
+ * it and Warden checks binding-name collisions against it, so the two
+ * readers cannot drift.
+ *
+ * @example
+ * ```ts
+ * deriveMcpToolName('myapp', 'entity.show'); // "myapp_entity_show"
+ * deriveMcpToolName('dispatch', 'patch.search'); // "dispatch_patch_search"
+ * ```
+ */
+export const deriveMcpToolName = (appName: string, trailId: string): string => {
+  const prefix = appName.toLowerCase().replaceAll(/[.-]/g, '_');
+  const suffix = trailId.toLowerCase().replaceAll(/[.-]/g, '_');
+  return `${prefix}_${suffix}`;
+};
+
 /** Derive resolved CLI command routes for one trail. */
 export const deriveTrailCliCommandProjection = (
   trail: TrailCliProjectionInput,

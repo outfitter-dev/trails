@@ -1,7 +1,7 @@
 /**
- * The adapter overlay overlay contract.
+ * The adapter overlay contract.
  *
- * Adapters export a overlay object describing one namespaced fact
+ * Adapters export an overlay object describing one namespaced fact
  * overlay; the app module re-exports it (conventionally as
  * `trailsOverlays`), and the compile path validates `derive(topo)`
  * output against the overlay's schema before embedding the facts as
@@ -10,13 +10,13 @@
  * toolchains (tolerant reader).
  */
 
-import type { Topo } from '@ontrails/core';
+import type { OverlayProvenance, Topo } from '@ontrails/core';
 import type { z } from 'zod';
 
 /**
  * One adapter-owned namespaced fact overlay for `trails.lock`.
  *
- * A overlay is authored by an adapter package and opted into by the
+ * An overlay is authored by an adapter package and opted into by the
  * app: the app module exports `trailsOverlays` next to its topo export,
  * and `trails compile` runs each overlay's {@link derive} over the
  * compiled topo, validates the result against {@link schema}, and embeds it
@@ -56,6 +56,16 @@ export interface Overlay {
    * break existing lock readers.
    */
   readonly namespace: string;
+  /**
+   * Who authored this overlay. Absent means adapter-derived.
+   *
+   * Surfaces obey app-authored overlays only: the well-known `surfaces`
+   * namespace requires `provenance: 'app-authored'` (authored via
+   * `surfaceOverlay()` in the app module), and the compile path rejects
+   * adapter-derived envelopes that claim it. Adapter overlays contribute
+   * facts, never bindings, and can leave this field absent.
+   */
+  readonly provenance?: OverlayProvenance | undefined;
   /**
    * The elevated fact schema.
    *

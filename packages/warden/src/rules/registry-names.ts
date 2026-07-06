@@ -60,6 +60,7 @@ import { resourceMockCoverage } from './resource-mock-coverage.js';
 import { scheduledDestroyIntent } from './scheduled-destroy-intent.js';
 import { signalGraphCoaching } from './signal-graph-coaching.js';
 import { staticResourceAccessorPreference } from './static-resource-accessor-preference.js';
+import { surfaceOverlayCoherence } from './surface-overlay-coherence.js';
 import { surfaceTrailheadCoherence } from './surface-trailhead-coherence.js';
 import { trailForkCoaching } from './trail-fork-coaching.js';
 import {
@@ -145,6 +146,7 @@ export const registeredRuleNames: readonly string[] = [
   scheduledDestroyIntent.name,
   signalGraphCoaching.name,
   staticResourceAccessorPreference.name,
+  surfaceOverlayCoherence.name,
   surfaceTrailheadCoherence.name,
   trailForkCoaching.name,
   unmaterializedActivationSource.name,

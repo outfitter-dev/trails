@@ -52,6 +52,7 @@ import { resourceMockCoverage } from './resource-mock-coverage.js';
 import { scheduledDestroyIntent } from './scheduled-destroy-intent.js';
 import { signalGraphCoaching } from './signal-graph-coaching.js';
 import { staticResourceAccessorPreference } from './static-resource-accessor-preference.js';
+import { surfaceOverlayCoherence } from './surface-overlay-coherence.js';
 import { surfaceTrailheadCoherence } from './surface-trailhead-coherence.js';
 import { trailForkCoaching } from './trail-fork-coaching.js';
 import {
@@ -188,6 +189,7 @@ export { resourceMockCoverage } from './resource-mock-coverage.js';
 export { scheduledDestroyIntent } from './scheduled-destroy-intent.js';
 export { signalGraphCoaching } from './signal-graph-coaching.js';
 export { staticResourceAccessorPreference } from './static-resource-accessor-preference.js';
+export { surfaceOverlayCoherence } from './surface-overlay-coherence.js';
 export { surfaceTrailheadCoherence } from './surface-trailhead-coherence.js';
 export { trailForkCoaching } from './trail-fork-coaching.js';
 export {
@@ -292,6 +294,7 @@ export const wardenTopoRules: ReadonlyMap<string, TopoAwareWardenRule> =
     [publicUnionOutputDiscriminants.name, publicUnionOutputDiscriminants],
     [scheduledDestroyIntent.name, scheduledDestroyIntent],
     [signalGraphCoaching.name, signalGraphCoaching],
+    [surfaceOverlayCoherence.name, surfaceOverlayCoherence],
     [unmaterializedActivationSource.name, unmaterializedActivationSource],
     [validDetourContract.name, validDetourContract],
     [deprecationWithoutGuidance.name, deprecationWithoutGuidance],

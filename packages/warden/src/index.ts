@@ -251,6 +251,7 @@ export {
   scheduledDestroyIntentTrail,
   signalGraphCoachingTrail,
   staticResourceAccessorPreferenceTrail,
+  surfaceOverlayCoherenceTrail,
   surfaceTrailheadCoherenceTrail,
   trailForkCoachingTrail,
   unmaterializedActivationSourceTrail,

@@ -6,7 +6,7 @@
  * collection path so compiled locks and fresh derivations cannot diverge.
  */
 
-import { ValidationError } from '@ontrails/core';
+import { SURFACES_OVERLAY_NAMESPACE, ValidationError } from '@ontrails/core';
 import type { Topo } from '@ontrails/core';
 
 import type {
@@ -68,6 +68,24 @@ const assertValidNamespace = (namespace: string): void => {
   }
 };
 
+/**
+ * Enforce the reserved `surfaces` namespace: surfaces obey app-authored
+ * overlays only, so an adapter-derived registration (absent provenance is
+ * adapter-derived) can never own it.
+ */
+const assertSurfacesProvenance = (
+  registration: TopoGraphOverlayRegistration
+): void => {
+  if (
+    registration.namespace === SURFACES_OVERLAY_NAMESPACE &&
+    registration.provenance !== 'app-authored'
+  ) {
+    throw new ValidationError(
+      `Adapter-derived overlays cannot own the "${SURFACES_OVERLAY_NAMESPACE}" namespace. Author bindings with \`surfaceOverlay()\` in the app module and rerun \`trails compile\`.`
+    );
+  }
+};
+
 const deriveOverlayFacts = (
   topo: Topo,
   registration: TopoGraphOverlayRegistration
@@ -117,6 +135,7 @@ export const collectTopoGraphOverlays = (
   const collected = new Map<string, unknown>();
   for (const registration of registrations) {
     assertValidNamespace(registration.namespace);
+    assertSurfacesProvenance(registration);
     if (collected.has(registration.namespace)) {
       throw new ValidationError(
         `Duplicate overlay namespace "${registration.namespace}". Each contribution owns one namespace; remove the duplicate registration and rerun \`trails compile\`.`

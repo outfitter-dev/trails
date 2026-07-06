@@ -420,6 +420,26 @@ export type {
 export { topo } from './topo.js';
 export type { Topo, TopoIdentity } from './topo.js';
 
+// Surface overlay
+export {
+  SURFACES_OVERLAY_NAMESPACE,
+  classifySurfaceBinding,
+  resolveSurfaceOverlayBindings,
+  surfaceBindingsFromLockOverlays,
+  surfaceOverlay,
+  surfaceOverlayBindingsSchema,
+} from './surface-overlay.js';
+export type {
+  OverlayEnvelopeLike,
+  OverlayProvenance,
+  SurfaceBindingRef,
+  SurfaceBindingShape,
+  SurfaceBindingValue,
+  SurfaceBindings,
+  SurfaceOverlay,
+  SurfaceOverlayBindings,
+} from './surface-overlay.js';
+
 // Generic trails-db helpers (shared framework infrastructure per ADR-0014).
 // The topo-store public API that previously lived here moved to
 // `@ontrails/topographer` per ADR-0042.
@@ -490,6 +510,7 @@ export type {
 export {
   deriveCliPath,
   deriveFields,
+  deriveMcpToolName,
   deriveTrailCliCommandProjection,
   normalizeCliCommandPath,
 } from './derive.js';

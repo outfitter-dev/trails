@@ -5,6 +5,7 @@
 import type {
   CliCommandAliasInput,
   CliCommandRoute,
+  OverlayProvenance,
   StructuredSignalExample,
   StructuredTrailExample,
   Topo,
@@ -209,6 +210,11 @@ export type TopoGraphOverlays = Readonly<Record<string, unknown>>;
 export interface TopoGraphOverlayRegistration {
   /** Unique dotted-kebab namespace, e.g. "cloudflare" or "cloudflare.workers". */
   readonly namespace: string;
+  /**
+   * Who authored the registration. Absent means adapter-derived. The
+   * reserved `surfaces` namespace requires `'app-authored'` provenance.
+   */
+  readonly provenance?: OverlayProvenance | undefined;
   /** Zod schema the derived facts must satisfy before they enter the graph. */
   readonly schema: z.ZodType;
   /** Derive the namespace's facts from the topo. Must be deterministic. */

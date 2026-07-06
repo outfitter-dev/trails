@@ -56,6 +56,7 @@ export { resourceMockCoverageTrail } from './resource-mock-coverage.trail.js';
 export { scheduledDestroyIntentTrail } from './scheduled-destroy-intent.trail.js';
 export { signalGraphCoachingTrail } from './signal-graph-coaching.trail.js';
 export { staticResourceAccessorPreferenceTrail } from './static-resource-accessor-preference.trail.js';
+export { surfaceOverlayCoherenceTrail } from './surface-overlay-coherence.trail.js';
 export { surfaceTrailheadCoherenceTrail } from './surface-trailhead-coherence.trail.js';
 export { trailForkCoachingTrail } from './trail-fork-coaching.trail.js';
 export { unmaterializedActivationSourceTrail } from './unmaterialized-activation-source.trail.js';

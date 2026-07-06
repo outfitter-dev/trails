@@ -111,6 +111,7 @@ const concernByRuleName: Partial<Record<string, WardenRuleConcern>> = {
   'scheduled-destroy-intent': 'lifecycle',
   'signal-graph-coaching': 'signals',
   'static-resource-accessor-preference': 'resources',
+  'surface-overlay-coherence': 'meta',
   'surface-trailhead-coherence': 'meta',
   'trail-fork-coaching': 'meta',
   'unmaterialized-activation-source': 'lifecycle',
@@ -636,6 +637,25 @@ const builtinWardenRuleMetadataInput = {
       'Trail logic should prefer static resource helpers over dynamic accessors.',
     scope: 'advisory',
     tier: 'source-static',
+  },
+  'surface-overlay-coherence': {
+    ...durableExternal,
+    guidance: {
+      relatedRules: [
+        'cli-command-route-coherence',
+        'surface-trailhead-coherence',
+      ],
+      steps: [
+        'Point every binding selector at an existing trail id or dotted trail-id glob.',
+        'Narrow overlapping grouped bindings so each trail has one grouped owner per surface.',
+        'Rename bindings that shadow canonical CLI command paths or derived MCP tool names.',
+      ],
+      summary:
+        'Keep surface overlay bindings pointed at real trails without shadowing canonical surface entries.',
+    },
+    invariant:
+      'Surface overlay bindings resolve to real trails without group overlap or canonical-entry shadowing.',
+    tier: 'topo-aware',
   },
   'surface-trailhead-coherence': {
     ...durableExternal,
