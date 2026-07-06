@@ -7,12 +7,12 @@
  * binding names do not shadow real surface entries (single-segment CLI
  * routes, derived MCP tool names).
  *
- * Activation note: standard `trails warden` runs derive the comparison graph
- * fresh, and fresh derivations only carry overlays once they collect the
- * app-module `trailsOverlays` export through the shared channel compile uses.
- * That wiring is TRL-1209 (drift symmetry), the next branch in this stack;
- * until it lands this rule fires only for callers that supply a graph with
- * overlays (committed locks, tests, the rule trail).
+ * Activation note: standard `trails warden` runs fire this rule. Warden's
+ * fresh topo loading collects the app-module overlays export through the
+ * shared `resolveTrailsOverlays` channel compile uses (TRL-1209 drift
+ * symmetry), so the topo-aware rule context graph carries the same overlays
+ * the committed lock embeds. Callers that supply a precomputed graph
+ * (committed locks, tests, the rule trail) keep working unchanged.
  */
 
 import {

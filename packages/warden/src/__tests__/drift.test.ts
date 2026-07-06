@@ -19,7 +19,7 @@ import {
 import { createStoredTopoSnapshot } from '@ontrails/topographer/backend-support';
 import { z } from 'zod';
 
-import { checkDrift } from '../drift.js';
+import { checkDrift, staleDriftMessage } from '../drift.js';
 
 const makeTopo = () => {
   const t = trail('test.hello', {
@@ -252,5 +252,31 @@ describe('checkDrift', () => {
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }
+  });
+});
+
+describe('staleDriftMessage', () => {
+  test('names drifted overlay namespaces and the fixing command', () => {
+    const message = staleDriftMessage({
+      committedHash: 'aaa',
+      currentHash: 'bbb',
+      driftedOverlayNamespaces: ['acme', 'surfaces'],
+      stale: true,
+    });
+
+    expect(message).toContain('drifted overlay namespaces: acme, surfaces');
+    expect(message).toContain('`trails compile`');
+  });
+
+  test('stays byte-identical to the pre-namespace message when none are identified', () => {
+    const message = staleDriftMessage({
+      committedHash: 'aaa',
+      currentHash: 'bbb',
+      stale: true,
+    });
+
+    expect(message).toBe(
+      'trails.lock is stale (regenerate with `trails compile`)'
+    );
   });
 });

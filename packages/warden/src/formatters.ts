@@ -7,6 +7,7 @@
  */
 
 import type { WardenReport } from './cli.js';
+import { staleDriftMessage } from './drift.js';
 import type { WardenGuidanceLink, WardenSeverity } from './rules/types.js';
 
 /** Map warden severity to GitHub Actions annotation level. */
@@ -35,9 +36,7 @@ export const formatGitHubAnnotations = (report: WardenReport): string => {
   if (report.drift?.blockedReason !== undefined) {
     lines.push(`::error::drift: ${report.drift.blockedReason}`);
   } else if (report.drift?.stale) {
-    lines.push(
-      '::error::drift: trails.lock is stale (regenerate with `trails compile`)'
-    );
+    lines.push(`::error::drift: ${staleDriftMessage(report.drift)}`);
   }
 
   return lines.join('\n');
@@ -144,11 +143,7 @@ const driftSection = (drift: WardenReport['drift']): readonly string[] => {
   if (!drift?.stale) {
     return [];
   }
-  return [
-    '',
-    '### Drift',
-    '- trails.lock is stale (regenerate with `trails compile`)',
-  ];
+  return ['', '### Drift', `- ${staleDriftMessage(drift)}`];
 };
 
 /** Render safe-fix counts when a fix pass was requested. */

@@ -10,6 +10,7 @@
  * toolchains (tolerant reader).
  */
 
+import { ValidationError } from '@ontrails/core';
 import type { OverlayProvenance, Topo } from '@ontrails/core';
 import type { z } from 'zod';
 
@@ -100,10 +101,7 @@ const isFunction = (value: unknown): value is (...args: unknown[]) => unknown =>
  * ```ts
  * import { isOverlay } from '@ontrails/adapter-kit';
  *
- * const overlays = moduleExports['trailsOverlays'];
- * if (Array.isArray(overlays)) {
- *   const recognized = overlays.filter(isOverlay);
- * }
+ * const recognized = candidates.filter(isOverlay);
  * ```
  */
 export const isOverlay = (value: unknown): value is Overlay => {
@@ -118,4 +116,43 @@ export const isOverlay = (value: unknown): value is Overlay => {
     isFunction((candidate.schema as { safeParse?: unknown }).safeParse) &&
     isFunction(candidate.derive)
   );
+};
+
+/**
+ * Read an app module's `trailsOverlays` export as validated overlays.
+ *
+ * This is the one shared collection channel for app-module overlays: the
+ * compile path's fresh app lease and Warden's fresh topo loading both read
+ * the export through this function, so every fresh derivation carries the
+ * same overlays the committed lock embeds. An absent export returns
+ * `undefined`; a present export that is not an array of {@link Overlay}
+ * values throws a fix-forward `ValidationError` naming `sourceLabel`.
+ *
+ * @example
+ * ```ts
+ * import { resolveTrailsOverlays } from '@ontrails/adapter-kit';
+ *
+ * const mod = await import(appModulePath);
+ * const overlays = resolveTrailsOverlays(
+ *   mod as Record<string, unknown>,
+ *   appModulePath
+ * );
+ * // => readonly Overlay[] | undefined
+ * ```
+ */
+export const resolveTrailsOverlays = (
+  moduleExports: Record<string, unknown>,
+  sourceLabel: string
+): readonly Overlay[] | undefined => {
+  const value = moduleExports['trailsOverlays'];
+  if (value === undefined) {
+    return undefined;
+  }
+  if (!Array.isArray(value) || !value.every(isOverlay)) {
+    throw new ValidationError(
+      `trailsOverlays export in "${sourceLabel}" must be an array of overlays ({ namespace, schema, derive }). Fix the app module export and rerun \`trails compile\`.`
+    );
+  }
+
+  return value;
 };

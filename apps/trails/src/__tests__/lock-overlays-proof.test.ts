@@ -46,7 +46,7 @@ const writeFixtureApp = (dir: string): void => {
   mkdirSync(join(dir, 'src'), { recursive: true });
   writeFileSync(
     join(dir, 'src', 'app.ts'),
-    `import { Result, topo, trail } from '@ontrails/core';
+    `import { Result, surfaceOverlay, topo, trail } from '@ontrails/core';
 import { cloudflareKv } from '@ontrails/cloudflare/kv';
 import { cloudflareOverlay } from '@ontrails/cloudflare';
 import { z } from 'zod';
@@ -62,7 +62,10 @@ const readFlag = trail('flags.read', {
 });
 
 export const app = topo('lock-overlays-fixture', { flags, readFlag });
-export const trailsOverlays = [cloudflareOverlay];
+export const trailsOverlays = [
+  cloudflareOverlay,
+  surfaceOverlay({ cli: { ls: 'flags.read' } }),
+];
 `
   );
 };
@@ -99,11 +102,15 @@ describe('lock overlays proof (TRL-1199 compile-path collection)', () => {
     // (a) compile succeeds.
     await compileFixture(dir);
 
-    // (b) the committed lock embeds the validated cloudflare facts.
+    // (b) the committed lock embeds the validated cloudflare facts and the
+    // app-authored surface bindings (through the provenance gate).
     const overlays = readLockOverlays(dir);
     expect(overlays).toEqual({
       cloudflare: {
         bindings: [{ binding: 'FLAGS', resourceId: 'flags' }],
+      },
+      surfaces: {
+        cli: { ls: 'flags.read' },
       },
     });
 

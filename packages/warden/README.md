@@ -171,7 +171,7 @@ This is the same factory used internally to build all built-in rule trails.
 | --- | --- |
 | `runWarden(options?)` | Run all rules and drift checks, return a report |
 | `formatWardenReport(report)` | Human-readable report |
-| `checkDrift(rootDir, topo?)` | Check if the lock file matches the current topo |
+| `checkDrift(rootDir, topo?, options?)` | Check if the lock file matches the current topo; pass `{ overlays }` from the app module so the comparison graph carries the overlay content compile embeds. Stale results name `driftedOverlayNamespaces` when overlays diverge |
 | `wardenRules` | Registry of all built-in rules |
 | `builtinWardenRuleMetadata` | Tier, scope, lifecycle, and invariant metadata for built-in rules |
 | `getWardenRuleMetadata(ruleOrName)` | Resolve inline or built-in metadata for a Warden rule |

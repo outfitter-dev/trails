@@ -25,7 +25,7 @@ import {
   ValidationError,
 } from '@ontrails/core';
 import type { CliCommandAliasInput, Topo } from '@ontrails/core';
-import { isOverlay } from '@ontrails/adapter-kit';
+import { resolveTrailsOverlays } from '@ontrails/adapter-kit';
 import type { TopoGraphOverlayRegistration } from '@ontrails/topographer';
 import { findAppModule } from '@ontrails/cli';
 
@@ -1048,23 +1048,6 @@ const resolveLoadedCliAliases = (
   return aliases as LoadedCliAliases;
 };
 
-const resolveLoadedOverlayRegistrations = (
-  effectivePath: string,
-  mod: Record<string, unknown>
-): readonly TopoGraphOverlayRegistration[] | undefined => {
-  const value = mod['trailsOverlays'];
-  if (value === undefined) {
-    return undefined;
-  }
-  if (!Array.isArray(value) || !value.every(isOverlay)) {
-    throw new ValidationError(
-      `trailsOverlays export in "${effectivePath}" must be an array of adapter overlay overlays ({ namespace, schema, derive }). Fix the app module export and rerun \`trails compile\`.`
-    );
-  }
-
-  return value;
-};
-
 export interface FreshAppLease {
   readonly app: Topo;
   readonly cliAliases?: LoadedCliAliases | undefined;
@@ -1093,7 +1076,7 @@ const createUrlSchemeLease = async (
     app: resolveLoadedTopo(effectivePath, mod),
     cliAliases: resolveLoadedCliAliases(effectivePath, mod),
     mirrorRoot: absolutePath,
-    overlays: resolveLoadedOverlayRegistrations(effectivePath, mod),
+    overlays: resolveTrailsOverlays(mod, effectivePath),
     release: noopRelease,
   };
 };
@@ -1116,7 +1099,7 @@ const createFilesystemLease = async (
       app: resolveLoadedTopo(effectivePath, mod),
       cliAliases: resolveLoadedCliAliases(effectivePath, mod),
       mirrorRoot,
-      overlays: resolveLoadedOverlayRegistrations(effectivePath, mod),
+      overlays: resolveTrailsOverlays(mod, effectivePath),
       release,
     };
   } catch (error) {

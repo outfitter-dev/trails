@@ -11,7 +11,10 @@ import { resolveTrailsProjectRoot } from '@ontrails/config';
 import { getContourReferences, matchesAnyPathGlob } from '@ontrails/core';
 import type { Topo } from '@ontrails/core';
 import { deriveTopoGraph } from '@ontrails/topographer';
-import type { TopoGraph } from '@ontrails/topographer';
+import type {
+  TopoGraph,
+  TopoGraphOverlayRegistration,
+} from '@ontrails/topographer';
 
 import type {
   EffectiveWardenConfig,
@@ -28,7 +31,7 @@ import { resolveWardenConfig } from './config.js';
 import { isDraftMarkedFile } from './draft.js';
 import { applySafeFixesToSource, hasSafeFixEdits } from './fix.js';
 import type { DriftResult } from './drift.js';
-import { checkDrift } from './drift.js';
+import { checkDrift, staleDriftMessage } from './drift.js';
 import { loadProjectWardenRules } from './project-rules.js';
 import type { ProjectWardenRules } from './project-rules.js';
 import {
@@ -77,6 +80,12 @@ export interface WardenTopoTarget {
   readonly graph?: TopoGraph | undefined;
   /** Stable app/topo label used to tag topo-aware diagnostics. */
   readonly name?: string | undefined;
+  /**
+   * App-module overlay registrations collected through the shared
+   * `resolveTrailsOverlays` channel, so fresh drift and topo-aware rule
+   * derivations carry the same overlays the committed lock embeds.
+   */
+  readonly overlays?: readonly TopoGraphOverlayRegistration[] | undefined;
   /** Resolved topo module to inspect. */
   readonly topo: Topo;
 }
@@ -1075,6 +1084,7 @@ const topoRuleFailureDiagnostic = (
 const lintTopo = async (
   appTopo: Topo,
   graph: TopoGraph | undefined,
+  overlays: readonly TopoGraphOverlayRegistration[] | undefined,
   extraTopoRules: readonly TopoAwareWardenRule[],
   selector: WardenRuleSelector
 ): Promise<readonly WardenDiagnostic[]> => {
@@ -1085,7 +1095,7 @@ const lintTopo = async (
   ].filter((rule) => isSelectedTopoRule(rule, selector));
   let contextGraph: TopoGraph;
   try {
-    contextGraph = graph ?? deriveTopoGraph(appTopo);
+    contextGraph = graph ?? deriveTopoGraph(appTopo, { overlays });
   } catch (error) {
     for (const rule of rules) {
       diagnostics.push(topoRuleFailureDiagnostic(rule, error));
@@ -1170,6 +1180,7 @@ const lintTopoTargets = async (
     const topoDiagnostics = await lintTopo(
       target.topo,
       target.graph,
+      target.overlays,
       extraTopoRules,
       selector
     );
@@ -1307,11 +1318,18 @@ const checkDriftForTopoTargets = async (
   topoTargets: readonly WardenTopoTarget[]
 ): Promise<DriftResult> => {
   if (topoTargets.length <= 1) {
-    return checkDrift(rootDir, topoTargets[0]?.topo);
+    const [target] = topoTargets;
+    return checkDrift(
+      rootDir,
+      target?.topo,
+      target === undefined ? undefined : { overlays: target.overlays }
+    );
   }
 
   const driftResults = await Promise.all(
-    topoTargets.map((target) => checkDrift(rootDir, target.topo))
+    topoTargets.map((target) =>
+      checkDrift(rootDir, target.topo, { overlays: target.overlays })
+    )
   );
   const committedHashes = new Set(
     driftResults.map((result) => result.committedHash)
@@ -1345,9 +1363,17 @@ const checkDriftForTopoTargets = async (
   }
 
   const currentHash = aggregateDriftHash(topoTargets, driftResults);
+  const driftedOverlayNamespaces = [
+    ...new Set(
+      driftResults.flatMap((result) => result.driftedOverlayNamespaces ?? [])
+    ),
+  ].toSorted();
   return {
     committedHash,
     currentHash,
+    ...(driftedOverlayNamespaces.length === 0
+      ? {}
+      : { driftedOverlayNamespaces }),
     stale: committedHash !== null && committedHash !== currentHash,
   };
 };
@@ -1667,7 +1693,7 @@ const formatDriftSection = (drift: DriftResult | null): string[] => {
     return [`Drift: blocked (${drift.blockedReason})`, ''];
   }
   const label = drift.stale
-    ? 'Drift: trails.lock is stale (regenerate with `trails compile`)'
+    ? `Drift: ${staleDriftMessage(drift)}`
     : 'Drift: clean';
   return [label, ''];
 };

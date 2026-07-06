@@ -1,5 +1,5 @@
 export { checkAdapters } from './check.js';
-export { isOverlay } from './overlay.js';
+export { isOverlay, resolveTrailsOverlays } from './overlay.js';
 export type { Overlay } from './overlay.js';
 export type {
   AdapterCheckDiagnostic,

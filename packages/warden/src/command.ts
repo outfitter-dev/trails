@@ -12,8 +12,10 @@ import type {
   CliFlagValueAlias,
   CliFlagValueAliasDeclaration,
 } from '@ontrails/cli';
+import { resolveTrailsOverlays } from '@ontrails/adapter-kit';
 import type { Topo } from '@ontrails/core';
 import { AmbiguousError, NotFoundError } from '@ontrails/core';
+import type { TopoGraphOverlayRegistration } from '@ontrails/topographer';
 import {
   loadTrailsConfigValue,
   resolveTrailsProjectRoot,
@@ -682,12 +684,22 @@ const resolveNamedAppModulePath = (
     : resolveFilesystemModulePath(rootDir, matched);
 };
 
-const importTopoFromModulePath = async (modulePath: string): Promise<Topo> => {
+interface LoadedWardenTopoModule {
+  /** App-module overlay registrations read through the shared channel. */
+  readonly overlays?: readonly TopoGraphOverlayRegistration[] | undefined;
+  readonly topo: Topo;
+}
+
+const importTopoFromModulePath = async (
+  modulePath: string
+): Promise<LoadedWardenTopoModule> => {
   const loaded = (await import(pathToFileURL(modulePath).href)) as Record<
     string,
     unknown
   >;
-  return extractTopo(modulePath, loaded);
+  const topo = extractTopo(modulePath, loaded);
+  const overlays = resolveTrailsOverlays(loaded, modulePath);
+  return overlays === undefined ? { topo } : { overlays, topo };
 };
 
 const topoLoadDiagnostic = ({
@@ -759,9 +771,11 @@ export const resolveWardenTopoTargets = async ({
     for (const appName of apps) {
       try {
         const modulePath = resolveNamedAppModulePath(rootDir, appName);
+        const loaded = await importTopoFromModulePath(modulePath);
         topos.push({
           name: appName,
-          topo: await importTopoFromModulePath(modulePath),
+          overlays: loaded.overlays,
+          topo: loaded.topo,
         });
       } catch (error) {
         diagnostics.push(
@@ -778,10 +792,16 @@ export const resolveWardenTopoTargets = async ({
 
   try {
     const modulePath = resolveDiscoveredModulePath(rootDir);
-    const topo = await importTopoFromModulePath(modulePath);
+    const loaded = await importTopoFromModulePath(modulePath);
     return {
       diagnostics,
-      topos: [{ name: topo.name, topo }],
+      topos: [
+        {
+          name: loaded.topo.name,
+          overlays: loaded.overlays,
+          topo: loaded.topo,
+        },
+      ],
     };
   } catch (error) {
     if (error instanceof NotFoundError) {

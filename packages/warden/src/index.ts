@@ -141,7 +141,7 @@ export {
 } from './formatters.js';
 
 // Drift detection
-export type { DriftResult } from './drift.js';
+export type { CheckDriftOptions, DriftResult } from './drift.js';
 export { checkDrift } from './drift.js';
 
 // Project-local rule loading
