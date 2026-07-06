@@ -202,6 +202,62 @@ describe('appendRegradeHistoryRun', () => {
       expect(pinned.error.message).toContain('transition id mismatch');
     });
   });
+
+  test('refuses a different plan identity under the same transition name unless the plan carries the transition id', () => {
+    withFixtureDir((dir) => {
+      const firstBody: RegradePlanBody = {
+        classIds: ['export-restructure:cli-aliases'],
+        id: 'class:export-restructure:cli-aliases',
+        kind: 'class',
+        name: 'shared',
+      };
+      const first = appendRegradeHistoryRun({
+        artifact: makePlanArtifact(firstBody),
+        report: makeReport(['first-class']),
+        rootDir: dir,
+      });
+      expect(first.isOk()).toBe(true);
+      const historyPath = regradeHistoryPathForPlan(dir, firstBody);
+      const written = readRegradeHistoryArtifact(historyPath);
+      if (written.isErr()) {
+        throw written.error;
+      }
+
+      const otherBody: RegradePlanBody = {
+        classIds: ['export-restructure:mcp-trailheads'],
+        id: 'class:export-restructure:mcp-trailheads',
+        kind: 'class',
+        name: 'shared',
+      };
+      const collision = appendRegradeHistoryRun({
+        artifact: makePlanArtifact(otherBody),
+        report: makeReport(['second-class']),
+        rootDir: dir,
+      });
+      expect(collision.isErr()).toBe(true);
+      if (collision.isOk()) {
+        throw new Error('Expected plan identity mismatch error.');
+      }
+      expect(collision.error.message).toContain('different plan identity');
+
+      // Carrying the transition id sanctions plan evolution on the spine.
+      const evolved = appendRegradeHistoryRun({
+        artifact: {
+          ...makePlanArtifact(otherBody),
+          transitionId: written.value.id,
+        },
+        report: makeReport(['second-class']),
+        rootDir: dir,
+      });
+      expect(evolved.isOk()).toBe(true);
+      const afterEvolution = readRegradeHistoryArtifact(historyPath);
+      if (afterEvolution.isErr()) {
+        throw afterEvolution.error;
+      }
+      expect(afterEvolution.value.runs).toHaveLength(2);
+      expect(afterEvolution.value.id).toBe(written.value.id);
+    });
+  });
 });
 
 describe('verifyRegradeHistoryRuns', () => {

@@ -837,6 +837,372 @@ describe('trails regrade', () => {
     }
   });
 
+  test('CLI applies one class transition in scoped parts onto one consolidated history', () => {
+    const dir = makeTempDir();
+    const legacyAliasModule = [
+      "import { topo } from '@ontrails/core';",
+      '',
+      'export const trailsCliAliases = {',
+      "  'survey.diff': [['diff']],",
+      '} as const;',
+      '',
+      "export const app = topo('example');",
+      '',
+    ].join('\n');
+    try {
+      writeFile(dir, 'src/a/app.ts', legacyAliasModule);
+      writeFile(dir, 'src/b/app.ts', legacyAliasModule);
+
+      const firstPlan = runRawCli([
+        'regrade',
+        'plan',
+        '--type',
+        'class',
+        '--class-ids',
+        'export-restructure:cli-aliases',
+        '--name',
+        'alias-cutover',
+        '--include',
+        'src/a/**',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+      expect(firstPlan.exitCode).toBe(0);
+      const firstPlanArtifact = parseCliJson<{
+        readonly path?: string;
+        readonly plan?: {
+          readonly name?: string;
+          readonly scope?: { readonly include?: readonly string[] };
+        };
+        readonly provenance?: {
+          readonly fields?: Record<string, string>;
+        };
+      }>(firstPlan);
+      expect(firstPlanArtifact.path).toBe('.trails/regrade/alias-cutover.json');
+      expect(firstPlanArtifact.plan?.name).toBe('alias-cutover');
+      expect(firstPlanArtifact.plan?.scope?.include).toEqual(['src/a/**']);
+      expect(firstPlanArtifact.provenance?.fields?.['name']).toBe('authored');
+
+      const firstApply = runRawCli([
+        'regrade',
+        'apply',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+      expect(firstApply.exitCode).toBe(0);
+      const firstApplied = parseCliJson<{
+        readonly history?: { readonly path?: string };
+      }>(firstApply);
+      expect(firstApplied.history?.path).toBe(
+        '.trails/regrade/history/alias-cutover.json'
+      );
+      const rewrittenA = readFileSync(join(dir, 'src', 'a', 'app.ts'), 'utf8');
+      expect(rewrittenA).not.toContain('trailsCliAliases');
+      expect(rewrittenA).toContain('export const trailsOverlays = [');
+      // The other part is out of the first scoped pass entirely.
+      expect(readFileSync(join(dir, 'src', 'b', 'app.ts'), 'utf8')).toBe(
+        legacyAliasModule
+      );
+
+      interface HistoryFile {
+        readonly id?: string;
+        readonly runs?: readonly { readonly planContentHash?: string }[];
+      }
+      const historyFile = join(
+        dir,
+        '.trails/regrade/history/alias-cutover.json'
+      );
+      const firstHistory = JSON.parse(
+        readFileSync(historyFile, 'utf8')
+      ) as HistoryFile;
+      expect(firstHistory.id).toBeDefined();
+      expect(firstHistory.runs).toHaveLength(1);
+      const firstRun = firstHistory.runs?.[0];
+
+      const secondPlan = runRawCli([
+        'regrade',
+        'plan',
+        '--type',
+        'class',
+        '--class-ids',
+        'export-restructure:cli-aliases',
+        '--name',
+        'alias-cutover',
+        '--include',
+        'src/b/**',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+      expect(secondPlan.exitCode).toBe(0);
+      const secondApply = runRawCli([
+        'regrade',
+        'apply',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+      expect(secondApply.exitCode).toBe(0);
+      const secondApplied = parseCliJson<{
+        readonly history?: { readonly path?: string };
+      }>(secondApply);
+      expect(secondApplied.history?.path).toBe(
+        '.trails/regrade/history/alias-cutover.json'
+      );
+      expect(
+        readFileSync(join(dir, 'src', 'b', 'app.ts'), 'utf8')
+      ).not.toContain('trailsCliAliases');
+
+      const consolidated = JSON.parse(
+        readFileSync(historyFile, 'utf8')
+      ) as HistoryFile;
+      expect(consolidated.id).toBe(firstHistory.id ?? 'missing');
+      expect(consolidated.runs).toHaveLength(2);
+      // Scope is part of the plan body, so each part carries its own stamp.
+      expect(consolidated.runs?.[0]?.planContentHash).not.toBe(
+        consolidated.runs?.[1]?.planContentHash
+      );
+      expect(consolidated.runs?.[0]).toEqual(
+        firstRun ?? { planContentHash: 'missing' }
+      );
+      expect(
+        readdirSync(join(dir, '.trails', 'regrade', 'history'))
+      ).toHaveLength(1);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('multi-class transitions produce a sane named filename', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(
+        dir,
+        'src/app.ts',
+        [
+          "import { topo } from '@ontrails/core';",
+          '',
+          'export const trailsCliAliases = {',
+          "  'survey.diff': [['diff']],",
+          '} as const;',
+          '',
+          "export const app = topo('example');",
+          '',
+        ].join('\n')
+      );
+      // The mcp-trailheads rewrite shape pinned by
+      // packages/regrade/src/downstream/__tests__/export-restructure.test.ts
+      // ("rewrites in place when the same module exports trailsOverlays").
+      writeFile(
+        dir,
+        'src/mcp-options.ts',
+        [
+          "import { surfaceOverlay, topo } from '@ontrails/core';",
+          '',
+          'export const trailsOverlays = [',
+          '  surfaceOverlay({',
+          "    cli: { ls: 'gear.list' },",
+          '  }),',
+          '];',
+          '',
+          'export const gearTrailheads = {',
+          '  gear: {',
+          "    description: 'Gear management.',",
+          "    trails: ['gear.create', 'gear.list'],",
+          '  },',
+          '};',
+          '',
+        ].join('\n')
+      );
+
+      const planResult = runRawCli([
+        'regrade',
+        'plan',
+        '--type',
+        'class',
+        '--class-ids',
+        'export-restructure:cli-aliases',
+        'export-restructure:mcp-trailheads',
+        '--name',
+        'overlay-cutover',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+      expect(planResult.exitCode).toBe(0);
+      const plan = parseCliJson<{ readonly path?: string }>(planResult);
+      expect(plan.path).toBe('.trails/regrade/overlay-cutover.json');
+      expect(plan.path).not.toContain(
+        'export-restructure-cli-aliases-export-restructure'
+      );
+
+      const applyResult = runRawCli([
+        'regrade',
+        'apply',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+      expect(applyResult.exitCode).toBe(0);
+      const applied = parseCliJson<{
+        readonly history?: { readonly path?: string };
+      }>(applyResult);
+      expect(applied.history?.path).toBe(
+        '.trails/regrade/history/overlay-cutover.json'
+      );
+      expect(applied.history?.path).not.toContain(
+        'export-restructure-cli-aliases-export-restructure'
+      );
+      expect(existsSync(join(dir, applied.history?.path ?? 'missing'))).toBe(
+        true
+      );
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('CLI rejects reusing a transition name for different class ids', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(
+        dir,
+        'src/app.ts',
+        [
+          "import { topo } from '@ontrails/core';",
+          '',
+          'export const trailsCliAliases = {',
+          "  'survey.diff': [['diff']],",
+          '} as const;',
+          '',
+          "export const app = topo('example');",
+          '',
+        ].join('\n')
+      );
+      const firstPlan = runRawCli([
+        'regrade',
+        'plan',
+        '--type',
+        'class',
+        '--class-ids',
+        'export-restructure:cli-aliases',
+        '--name',
+        'shared',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+      expect(firstPlan.exitCode).toBe(0);
+
+      const collision = runRawCli([
+        'regrade',
+        'plan',
+        '--type',
+        'class',
+        '--class-ids',
+        'export-restructure:mcp-trailheads',
+        '--name',
+        'shared',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+      expect(collision.exitCode).not.toBe(0);
+      expect(collision.stderr).toContain('different class ids');
+
+      // --fresh replaces authored fields, never a different transition.
+      const freshCollision = runRawCli([
+        'regrade',
+        'plan',
+        '--type',
+        'class',
+        '--class-ids',
+        'export-restructure:mcp-trailheads',
+        '--name',
+        'shared',
+        '--fresh',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+      expect(freshCollision.exitCode).not.toBe(0);
+      expect(freshCollision.stderr).toContain('different class ids');
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('CLI rejects --name on vocabulary plans', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(dir, 'src/app.ts', 'export const facet = 1;\n');
+      const result = runRawCli([
+        'regrade',
+        'plan',
+        'facet',
+        'trailhead',
+        '--name',
+        'nope',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+      expect(result.exitCode).not.toBe(0);
+      expect(result.stderr).toContain('class-mode');
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
+  test('CLI accepts --include on an unnamed class-mode plan', () => {
+    const dir = makeTempDir();
+    try {
+      writeFile(
+        dir,
+        'src/a/app.ts',
+        [
+          "import { topo } from '@ontrails/core';",
+          '',
+          'export const trailsCliAliases = {',
+          "  'survey.diff': [['diff']],",
+          '} as const;',
+          '',
+          "export const app = topo('example');",
+          '',
+        ].join('\n')
+      );
+      const result = runRawCli([
+        'regrade',
+        'plan',
+        '--type',
+        'class',
+        '--class-ids',
+        'export-restructure:cli-aliases',
+        '--include',
+        'src/a/**',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+      expect(result.exitCode).toBe(0);
+      const plan = parseCliJson<{ readonly path?: string }>(result);
+      expect(plan.path).toBe(
+        '.trails/regrade/export-restructure-cli-aliases.json'
+      );
+      const saved = JSON.parse(
+        readFileSync(join(dir, plan.path ?? 'missing'), 'utf8')
+      ) as {
+        readonly plan?: {
+          readonly scope?: { readonly include?: readonly string[] };
+        };
+      };
+      expect(saved.plan?.scope?.include).toEqual(['src/a/**']);
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  });
+
   test('CLI consolidates history per transition across repeated applies', () => {
     const dir = makeTempDir();
     try {

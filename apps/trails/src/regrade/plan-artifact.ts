@@ -28,6 +28,10 @@ const classRegradePlanScopeSchema = z
       .array(z.string())
       .optional()
       .describe('Source file extensions scanned by the class run'),
+    include: z
+      .array(z.string())
+      .optional()
+      .describe('Root-relative path globs collected during the class run'),
   })
   .strict();
 
@@ -48,6 +52,13 @@ const classRegradePlanSchema = z.object({
     .optional()
     .describe('Human-authored migration intent for the class run'),
   kind: z.literal('class').describe('Regrade plan kind'),
+  name: z
+    .string()
+    .min(1)
+    .optional()
+    .describe(
+      'Authored transition name; keys the saved plan and consolidated history filenames'
+    ),
   scope: classRegradePlanScopeSchema
     .optional()
     .describe('Collection scope for the class run'),
@@ -173,7 +184,7 @@ const regradePlanSlug = (plan: Pick<VocabularyRegradePlan, 'from' | 'to'>) =>
 
 export const regradePlanSlugForBody = (plan: RegradePlanBody): string =>
   plan.kind === 'class'
-    ? regradeSlugText(plan.classIds.join('-'))
+    ? regradeSlugText(plan.name ?? plan.classIds.join('-'))
     : regradePlanSlug(plan);
 
 const normalizeRelativePath = (path: string): string =>

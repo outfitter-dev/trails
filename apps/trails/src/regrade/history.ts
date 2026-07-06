@@ -182,6 +182,29 @@ export const appendRegradeHistoryRun = (params: {
       );
     }
     const lastRun = prior.runs.at(-1);
+    // A plan that carries the transition id (adjust round-trips, plan
+    // re-derivation) may evolve the plan identity on the same spine. A plan
+    // WITHOUT the id that disagrees with the recorded plan identity is a
+    // name collision, not a continuation — refuse instead of mixing runs
+    // from unrelated transitions into one history.
+    if (
+      params.artifact.transitionId === undefined &&
+      lastRun !== undefined &&
+      lastRun.plan.plan.id !== params.artifact.plan.id
+    ) {
+      return Result.err(
+        new ValidationError(
+          'Regrade history already records a different plan identity under this transition name. Use `regrade adjust <transition>` to continue it, or pick a different plan name.',
+          {
+            context: {
+              history: lastRun.plan.plan.id,
+              path: relativePath,
+              plan: params.artifact.plan.id,
+            },
+          }
+        )
+      );
+    }
     if (
       lastRun !== undefined &&
       lastRun.planContentHash === planContentHash &&

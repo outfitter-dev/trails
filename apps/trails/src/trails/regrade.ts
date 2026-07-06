@@ -237,6 +237,9 @@ const regradePlanInputSchema = regradePathScopeInputSchema.extend({
     .min(1)
     .optional()
     .describe('Source vocabulary term or phrase'),
+  include: pathScopeSchema.shape.include.describe(
+    'Root-relative path globs to collect during the plan run'
+  ),
   includeEntries: z
     .enum(['actionable', 'all'])
     .default('actionable')
@@ -247,6 +250,13 @@ const regradePlanInputSchema = regradePathScopeInputSchema.extend({
     .string()
     .optional()
     .describe('Human-authored migration intent for the plan'),
+  name: z
+    .string()
+    .min(1)
+    .optional()
+    .describe(
+      'Transition name for a class-mode plan; names the plan and history files'
+    ),
   overrides: z
     .record(z.string().min(1), z.string().min(1))
     .optional()
@@ -1598,6 +1608,7 @@ interface ClassRegradeCoreParams {
     | {
         readonly exclude?: readonly string[] | undefined;
         readonly extensions?: readonly string[] | undefined;
+        readonly include?: readonly string[] | undefined;
       }
     | undefined;
   readonly includeEntries: RegradeInput['includeEntries'];
@@ -1629,6 +1640,9 @@ const runClassRegradeCore = async (
           ...(params.collection.extensions === undefined
             ? {}
             : { extensions: params.collection.extensions }),
+          ...(params.collection.include === undefined
+            ? {}
+            : { include: params.collection.include }),
         };
   const reportResult: TrailsResult<RegradeReport | null, Error> = runRegrade({
     apply: params.apply,
@@ -2071,12 +2085,18 @@ const classPlanScopeForInput = (
 ): ClassRegradePlan['scope'] => {
   const exclude = input.exclude ?? configScope?.exclude;
   const extensions = input.extensions ?? configScope?.extensions;
-  if (exclude === undefined && extensions === undefined) {
+  const include = input.include ?? configScope?.include;
+  if (
+    exclude === undefined &&
+    extensions === undefined &&
+    include === undefined
+  ) {
     return undefined;
   }
   return {
     ...(exclude === undefined ? {} : { exclude: [...exclude] }),
     ...(extensions === undefined ? {} : { extensions: [...extensions] }),
+    ...(include === undefined ? {} : { include: [...include] }),
   };
 };
 
@@ -2101,11 +2121,6 @@ const validateClassPlanInput = (
   if (input.expand) {
     return new ValidationError(
       '`expand` stages vocabulary review candidates and is not supported for class-mode plans.'
-    );
-  }
-  if (input.include !== undefined) {
-    return new ValidationError(
-      'Class-mode Regrade plans do not support `include`; scope the run with `exclude` and `extensions`.'
     );
   }
   return null;
@@ -2152,6 +2167,13 @@ const mergeAuthoredClassPlanFields = (
     merged = { ...merged, intent: current.plan.intent };
   }
   if (
+    input.name === undefined &&
+    current.provenance.fields['name'] === 'authored' &&
+    current.plan.name !== undefined
+  ) {
+    merged = { ...merged, name: current.plan.name };
+  }
+  if (
     !authoredScope &&
     current.provenance.fields['scope'] === 'authored' &&
     current.plan.scope !== undefined
@@ -2171,6 +2193,7 @@ const classPlanProvenance = (
     id: 'derived',
     kind: 'derived',
     ...(plan.intent === undefined ? {} : { intent: 'authored' }),
+    ...(plan.name === undefined ? {} : { name: 'authored' }),
     ...(plan.scope === undefined
       ? {}
       : {
@@ -2181,6 +2204,43 @@ const classPlanProvenance = (
         }),
   },
 });
+
+/**
+ * A named class plan keys its file on the name alone, so a reused name with
+ * different class ids would silently overwrite an unrelated in-progress plan
+ * (and later mix runs into its consolidated history). Refuse the collision;
+ * unreadable or non-class artifacts keep their existing handling.
+ */
+const classPlanIdentityConflict = (
+  rootDir: string,
+  currentPath: string,
+  classIds: readonly string[]
+): ValidationError | null => {
+  if (!existsSync(currentPath)) {
+    return null;
+  }
+  const existing = readRegradePlanArtifact(currentPath);
+  if (existing.isErr() || existing.value.plan.kind !== 'class') {
+    return null;
+  }
+  const existingIds = existing.value.plan.classIds;
+  if (
+    existingIds.length === classIds.length &&
+    existingIds.every((id, index) => id === classIds[index])
+  ) {
+    return null;
+  }
+  return new ValidationError(
+    'An active class-mode Regrade plan with this name already runs different class ids. Pick a different `name`, or delete the existing plan file if it is abandoned.',
+    {
+      context: {
+        existing: [...existingIds],
+        path: rootRelativePath(rootDir, currentPath),
+        planned: [...classIds],
+      },
+    }
+  );
+};
 
 const runClassPlanRegrade = async (
   input: RegradePlanInput,
@@ -2203,16 +2263,23 @@ const runClassPlanRegrade = async (
     id: `class:${classIds.join('+')}`,
     ...(input.intent === undefined ? {} : { intent: input.intent }),
     kind: 'class',
+    ...(input.name === undefined ? {} : { name: input.name }),
     ...(inputScope === undefined ? {} : { scope: inputScope }),
   };
   const currentPath = regradePlanPathForPlan(rootDir, basePlan);
+  const conflict = classPlanIdentityConflict(rootDir, currentPath, classIds);
+  if (conflict !== null) {
+    return Result.err(conflict);
+  }
   const currentResult = readCurrentClassPlanArtifact(input, currentPath);
   if (currentResult.isErr()) {
     return currentResult;
   }
   const current = currentResult.value;
   const authoredScope =
-    input.exclude !== undefined || input.extensions !== undefined;
+    input.exclude !== undefined ||
+    input.extensions !== undefined ||
+    input.include !== undefined;
   const plan = mergeAuthoredClassPlanFields(
     basePlan,
     input,
@@ -2253,6 +2320,24 @@ const runClassPlanRegrade = async (
   return writeRegradePlanArtifact(rootDir, artifact);
 };
 
+const readCurrentVocabularyPlanArtifact = (
+  input: RegradePlanInput,
+  currentPath: string
+): TrailsResult<VocabularyRegradePlanArtifact | null, Error> => {
+  if (input.fresh || !existsSync(currentPath)) {
+    return Result.ok(null);
+  }
+  const currentResult = readRegradePlanArtifact(currentPath);
+  if (currentResult.isErr()) {
+    return currentResult;
+  }
+  const candidate = currentResult.value;
+  if (candidate.plan.kind !== 'vocabulary') {
+    return Result.ok(null);
+  }
+  return Result.ok({ ...candidate, plan: candidate.plan });
+};
+
 const runPlanRegrade = async (
   input: RegradePlanInput,
   rootDir: string,
@@ -2265,6 +2350,13 @@ const runPlanRegrade = async (
   if (input.type !== undefined && input.type !== 'vocabulary') {
     return Result.err(
       new ValidationError(`Unsupported Regrade plan type "${input.type}".`)
+    );
+  }
+  if (input.name !== undefined) {
+    return Result.err(
+      new ValidationError(
+        '`name` names a class-mode transition; vocabulary transitions are keyed by `from`/`to`.'
+      )
     );
   }
   const planInput: RegradeInput = {
@@ -2284,17 +2376,11 @@ const runPlanRegrade = async (
     return regradeRootNotFound(rootDir);
   }
   const currentPath = regradePlanPathForPlan(rootDir, planResult.value);
-  let current: VocabularyRegradePlanArtifact | undefined;
-  if (!input.fresh && existsSync(currentPath)) {
-    const currentResult = readRegradePlanArtifact(currentPath);
-    if (currentResult.isErr()) {
-      return currentResult;
-    }
-    const candidate = currentResult.value;
-    if (candidate.plan.kind === 'vocabulary') {
-      current = { ...candidate, plan: candidate.plan };
-    }
+  const currentResult = readCurrentVocabularyPlanArtifact(input, currentPath);
+  if (currentResult.isErr()) {
+    return currentResult;
   }
+  const current = currentResult.value ?? undefined;
   const plan =
     current === undefined
       ? planResult.value
