@@ -101,7 +101,9 @@ jobs:
       - uses: ./.github/actions/setup
 
       - name: Warden
-        run: bun packages/warden/bin/warden.ts --ci --apps trails,trails-demo
+        # App selection comes from warden.apps in root trails.config.ts so the
+        # framework apps and examples/* stay covered from one source of truth.
+        run: bun packages/warden/bin/warden.ts --ci
 
       - name: ADR check
         run: bun scripts/adr.ts check

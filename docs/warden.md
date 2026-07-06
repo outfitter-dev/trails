@@ -46,10 +46,10 @@ bun trails warden
 bun trails warden --pre-push
 ```
 
-CI can use the direct Warden bin:
+CI can use the direct Warden bin. When `warden.apps` is set in `trails.config.ts`, the config governs app selection; pass `--apps` only to override it for a single run:
 
 ```bash
-bunx @ontrails/warden --ci --apps trails,trails-demo
+bunx @ontrails/warden --ci
 ```
 
 `--ci` is a preset on the Warden bin. It runs all depths, emits GitHub annotations by default, fails on errors, and suppresses lockfile mutation. Use `--fail-on warning` or `--strict` when warnings should block the run.
