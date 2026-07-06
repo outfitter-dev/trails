@@ -12,8 +12,10 @@
 
 import { z } from 'zod';
 
+import type { CliCommandAliasInput } from './derive.js';
 import { ValidationError } from './errors.js';
 import type { Topo } from './topo.js';
+import { matchesTrailIdGlob } from './trail-id-glob.js';
 
 /**
  * The well-known lock overlay namespace owned by app-authored surface
@@ -313,6 +315,14 @@ export interface OverlayEnvelopeLike {
   readonly schema: z.ZodType;
   /** Project the envelope's facts. */
   derive(topo?: Topo): unknown;
+  /**
+   * Static surface bindings, when the envelope carries them directly.
+   *
+   * `surfaceOverlay()` envelopes expose their validated bindings here;
+   * consumption prefers this over invoking {@link derive}, so a `surfaces`
+   * envelope must never derive facts that differ from its authored bindings.
+   */
+  readonly bindings?: unknown;
 }
 
 /**
@@ -356,9 +366,153 @@ export const resolveSurfaceOverlayBindings = (
     );
   }
   return parseSurfaceOverlayBindings(
-    first.derive(),
+    first.bindings ?? first.derive(),
     'Author the bindings with surfaceOverlay() in the app module.'
   );
+};
+
+/**
+ * Per-trail CLI alias inputs expanded from the `surfaces` overlay's `cli`
+ * bindings: trail id to the absolute command paths that alias it.
+ *
+ * @example
+ * ```ts
+ * import type { CliSurfaceBindingAliases } from '@ontrails/core';
+ *
+ * const aliases: CliSurfaceBindingAliases = {
+ *   'gear.list': [['gear', 'ls']],
+ * };
+ * ```
+ */
+export type CliSurfaceBindingAliases = Readonly<
+  Record<string, readonly CliCommandAliasInput[]>
+>;
+
+const CLI_BINDING_FIX =
+  'Fix the binding in surfaceOverlay({ cli }) in the app module.';
+
+const assertCliBindingName = (name: string): readonly string[] => {
+  const segments = name.split('.');
+  if (segments.some((segment) => segment.length === 0 || /\s/.test(segment))) {
+    throw new ValidationError(
+      `The "${SURFACES_OVERLAY_NAMESPACE}" overlay cli binding "${name}" is not a valid command path — every dot-separated segment must be non-empty and contain no whitespace. ${CLI_BINDING_FIX}`
+    );
+  }
+  return segments;
+};
+
+const expandSelector = (
+  trailIds: readonly string[],
+  selector: SurfaceBindingRef
+): readonly string[] =>
+  trailIds
+    .filter((trailId) => matchesTrailIdGlob(trailId, selector))
+    .toSorted();
+
+const expandSynonymBinding = (
+  trailIds: readonly string[],
+  name: string,
+  selector: SurfaceBindingRef
+): string => {
+  const matches = expandSelector(trailIds, selector);
+  const [first] = matches;
+  if (first === undefined) {
+    throw new ValidationError(
+      `The "${SURFACES_OVERLAY_NAMESPACE}" overlay cli binding "${name}" resolves to no trails: selector "${selector}" matched none. ${CLI_BINDING_FIX}`
+    );
+  }
+  if (matches.length > 1) {
+    throw new ValidationError(
+      `The "${SURFACES_OVERLAY_NAMESPACE}" overlay cli binding "${name}" resolves to ${matches.length} trails (${matches.join(', ')}). A scalar binding is a synonym for exactly one trail — use a list value to expose a command group instead. ${CLI_BINDING_FIX}`
+    );
+  }
+  return first;
+};
+
+const expandGroupBinding = (
+  trailIds: readonly string[],
+  name: string,
+  selectors: readonly SurfaceBindingRef[]
+): readonly string[] => {
+  const members = [
+    ...new Set(
+      selectors.flatMap((selector) => expandSelector(trailIds, selector))
+    ),
+  ].toSorted();
+  if (members.length === 0) {
+    throw new ValidationError(
+      `The "${SURFACES_OVERLAY_NAMESPACE}" overlay cli group binding "${name}" resolves to no trails: selectors ${selectors.map((selector) => `"${selector}"`).join(', ')} matched none. ${CLI_BINDING_FIX}`
+    );
+  }
+  return members;
+};
+
+/**
+ * Expand the `surfaces` overlay's `cli` bindings into per-trail CLI alias
+ * inputs, validating every binding against the topo's trail ids.
+ *
+ * A scalar binding is a transparent synonym: its name splits on `.` into an
+ * absolute command path aliasing exactly one trail — zero or multiple matches
+ * are a `ValidationError` naming the binding and its matches. A list binding
+ * is a command group: each expanded member trail gets an alias route at
+ * `[...groupName.split('.'), ...memberTrailId.split('.')]`, and a group whose
+ * member union is empty is a `ValidationError`. Binding names and member ids
+ * are processed in sorted order so the expansion is deterministic. Returns
+ * `undefined` when there are no `cli` bindings.
+ *
+ * @example
+ * ```ts
+ * import { expandCliSurfaceBindings } from '@ontrails/core';
+ *
+ * expandCliSurfaceBindings(
+ *   { 'gear.ls': 'gear.list', gear: ['gear.create', 'gear.list'] },
+ *   ['gear.create', 'gear.list']
+ * );
+ * // => {
+ * //   'gear.create': [['gear', 'gear', 'create']],
+ * //   'gear.list': [['gear', 'gear', 'list'], ['gear', 'ls']],
+ * // }
+ * ```
+ */
+export const expandCliSurfaceBindings = (
+  bindings: SurfaceBindings | undefined,
+  trailIds: readonly string[]
+): CliSurfaceBindingAliases | undefined => {
+  if (bindings === undefined) {
+    return undefined;
+  }
+  const names = Object.keys(bindings).toSorted();
+  if (names.length === 0) {
+    return undefined;
+  }
+
+  const aliasesByTrail = new Map<string, (readonly string[])[]>();
+  const addAlias = (trailId: string, path: readonly string[]): void => {
+    const existing = aliasesByTrail.get(trailId);
+    if (existing === undefined) {
+      aliasesByTrail.set(trailId, [path]);
+      return;
+    }
+    existing.push(path);
+  };
+
+  for (const name of names) {
+    const value = bindings[name];
+    if (value === undefined) {
+      continue;
+    }
+    const pathSegments = assertCliBindingName(name);
+    const shape = classifySurfaceBinding(value);
+    if (shape.kind === 'synonym') {
+      addAlias(expandSynonymBinding(trailIds, name, shape.trail), pathSegments);
+      continue;
+    }
+    for (const member of expandGroupBinding(trailIds, name, shape.members)) {
+      addAlias(member, [...pathSegments, ...member.split('.')]);
+    }
+  }
+
+  return Object.fromEntries(aliasesByTrail);
 };
 
 /**

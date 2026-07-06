@@ -20,6 +20,7 @@ import {
   resource,
   schedule,
   signal,
+  surfaceOverlay,
   topo,
   trail,
   webhook,
@@ -1909,7 +1910,7 @@ describe('trails survey diff', () => {
   test('top-level diff projects as a root CLI alias with target arg', () => {
     const commands = expectOk(
       deriveCliCommands(topo('diff-cli', { surveyDiffTrail }), {
-        aliases: { 'survey.diff': [['diff']] },
+        overlays: [surfaceOverlay({ cli: { diff: 'survey.diff' } })],
       })
     );
     const command = commands.find(

@@ -138,7 +138,7 @@ const writeOperatorAppWrapper = async (tempRoot: string): Promise<void> => {
   const appModuleUrl = pathToFileURL(join(repoRoot, 'apps/trails/src/app.ts'));
   await writeFile(
     join(srcDir, 'app.ts'),
-    `export { app, trailsCliAliases } from ${JSON.stringify(appModuleUrl.href)};\n`
+    `export { app, trailsOverlays } from ${JSON.stringify(appModuleUrl.href)};\n`
   );
 };
 

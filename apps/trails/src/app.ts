@@ -1,4 +1,4 @@
-import { topo } from '@ontrails/core';
+import { surfaceOverlay, topo } from '@ontrails/core';
 import {
   wayfindAdaptersTrail,
   wayfindContoursTrail,
@@ -140,8 +140,10 @@ export const trailsCliIncludedTrails = [
   ]),
 ];
 
-export const trailsCliAliases = {
-  'survey.diff': [['diff']],
-} as const;
+export const trailsOverlays = [
+  surfaceOverlay({
+    cli: { diff: 'survey.diff' },
+  }),
+];
 
 export const app = topo('trails', operatorTrails, cliWayfinderTrails);

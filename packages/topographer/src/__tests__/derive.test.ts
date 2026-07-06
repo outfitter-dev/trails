@@ -9,6 +9,7 @@ import {
   resource,
   Result,
   schedule,
+  surfaceOverlay,
   topo,
   trail,
   webhook,
@@ -201,7 +202,7 @@ describe('deriveTopoGraph', () => {
       });
     });
 
-    test('surface-owned CLI aliases are serialized when derivation receives surface context', () => {
+    test('surface overlay cli bindings are serialized as surface-owned alias routes', () => {
       const t = trail('wayfind.search', {
         blaze: noop,
         cli: {
@@ -212,9 +213,9 @@ describe('deriveTopoGraph', () => {
       });
       const entry = getFirstEntry(
         deriveTopoGraph(topoFrom({ t }), {
-          cliAliases: {
-            'wayfind.search': [['wf', 'search']],
-          },
+          overlays: [
+            surfaceOverlay({ cli: { 'wf.search': 'wayfind.search' } }),
+          ],
         })
       );
 
@@ -240,7 +241,41 @@ describe('deriveTopoGraph', () => {
       ]);
     });
 
-    test('rejects surface-owned CLI aliases for unknown trails', () => {
+    test('surface overlay cli group bindings serialize member routes with group-prefixed paths', () => {
+      const search = trail('wayfind.search', {
+        blaze: noop,
+        input: z.object({ query: z.string() }),
+        output: z.array(z.string()),
+      });
+      const impact = trail('wayfind.impact', {
+        blaze: noop,
+        input: z.object({ id: z.string() }),
+        output: z.array(z.string()),
+      });
+      const graph = deriveTopoGraph(topoFrom({ impact, search }), {
+        overlays: [surfaceOverlay({ cli: { wf: ['wayfind.*'] } })],
+      });
+      const searchEntry = graph.entries.find(
+        (entry) => entry.id === 'wayfind.search'
+      );
+
+      expect(searchEntry?.cli?.routes).toEqual([
+        {
+          kind: 'canonical',
+          path: ['wayfind', 'search'],
+          source: 'derived',
+          target: 'wayfind.search',
+        },
+        {
+          kind: 'alias',
+          path: ['wf', 'wayfind', 'search'],
+          source: 'surface',
+          target: 'wayfind.search',
+        },
+      ]);
+    });
+
+    test('rejects surface overlay cli bindings that resolve to no trails', () => {
       const t = trail('wayfind.search', {
         blaze: noop,
         input: z.object({ query: z.string() }),
@@ -249,9 +284,7 @@ describe('deriveTopoGraph', () => {
 
       expect(() =>
         deriveTopoGraph(topoFrom({ t }), {
-          cliAliases: {
-            'wayfind.serch': [['wf', 'search']],
-          },
+          overlays: [surfaceOverlay({ cli: { 'wf.search': 'wayfind.serch' } })],
         })
       ).toThrow(ValidationError);
     });

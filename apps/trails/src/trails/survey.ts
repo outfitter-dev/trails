@@ -7,7 +7,7 @@
 
 import { basename, extname, join } from 'node:path';
 
-import type { CliCommandAliasInput, Topo } from '@ontrails/core';
+import type { Topo } from '@ontrails/core';
 import {
   deriveSafePath,
   NotFoundError,
@@ -511,14 +511,10 @@ const buildSurveyLookup = (
   app: Topo,
   entityId: string,
   rootDir: string,
-  cliAliases:
-    | Readonly<Record<string, readonly CliCommandAliasInput[]>>
-    | undefined,
   overlays: readonly TopoGraphOverlayRegistration[] | undefined,
   surfaceLayerNames?: Partial<SurfaceLayerNames> | undefined
 ): Result<object, Error> => {
   const matches = deriveCurrentTopoMatches(app, entityId, {
-    cliAliases,
     overlays,
     rootDir,
     surfaceLayerNames,
@@ -530,14 +526,10 @@ const buildSurveyTrailDetail = (
   app: Topo,
   id: string,
   rootDir: string,
-  cliAliases:
-    | Readonly<Record<string, readonly CliCommandAliasInput[]>>
-    | undefined,
   overlays: readonly TopoGraphOverlayRegistration[] | undefined,
   surfaceLayerNames?: Partial<SurfaceLayerNames> | undefined
 ): Result<object, Error> => {
   const detail = deriveCurrentTrailDetail(app, id, {
-    cliAliases,
     overlays,
     rootDir,
     surfaceLayerNames,
@@ -590,26 +582,16 @@ type SurveyHandler = (
   app: Topo,
   input: SurveyInput,
   rootDir: string,
-  cliAliases:
-    | Readonly<Record<string, readonly CliCommandAliasInput[]>>
-    | undefined,
   overlays: readonly TopoGraphOverlayRegistration[] | undefined,
   surfaceLayerNames?: Partial<SurfaceLayerNames> | undefined
 ) => Result<object, Error> | Promise<Result<object, Error>>;
 
 /** Handlers keyed by survey mode. */
 const surveyHandlers: Record<SurveyMode, SurveyHandler> = {
-  lookup: (app, input, rootDir, cliAliases, overlays, surfaceLayerNames) =>
+  lookup: (app, input, rootDir, overlays, surfaceLayerNames) =>
     input.id === undefined || input.id === ''
       ? Result.err(new ValidationError('Survey lookup requires an id'))
-      : buildSurveyLookup(
-          app,
-          input.id,
-          rootDir,
-          cliAliases,
-          overlays,
-          surfaceLayerNames
-        ),
+      : buildSurveyLookup(app, input.id, rootDir, overlays, surfaceLayerNames),
   overview: (app, _input, rootDir) =>
     Result.ok(deriveCurrentTopoList(app, { rootDir })),
 };
@@ -624,9 +606,6 @@ const dispatchSurvey = async (
   app: Topo,
   input: SurveyInput,
   rootDir: string,
-  cliAliases:
-    | Readonly<Record<string, readonly CliCommandAliasInput[]>>
-    | undefined,
   overlays: readonly TopoGraphOverlayRegistration[] | undefined,
   surfaceLayerNames?: Partial<SurfaceLayerNames> | undefined
 ): Promise<Result<SurveyEnvelope, Error>> => {
@@ -636,7 +615,6 @@ const dispatchSurvey = async (
     app,
     input,
     rootDir,
-    cliAliases,
     overlays,
     surfaceLayerNames
   );
@@ -657,14 +635,11 @@ const withFreshSurveyApp = async <T>(
   rootDir: string,
   consume: (
     app: Topo,
-    cliAliases:
-      | Readonly<Record<string, readonly CliCommandAliasInput[]>>
-      | undefined,
     overlays: readonly TopoGraphOverlayRegistration[] | undefined
   ) => Promise<Result<T, Error>> | Result<T, Error>
 ): Promise<Result<T, Error>> =>
   withFreshAppLease(input.module, rootDir, (lease) =>
-    consume(lease.app, lease.cliAliases, lease.overlays)
+    consume(lease.app, lease.overlays)
   );
 
 const withResolvedSurveyApp = async <T>(
@@ -676,15 +651,12 @@ const withResolvedSurveyApp = async <T>(
   consume: (
     app: Topo,
     rootDir: string,
-    cliAliases:
-      | Readonly<Record<string, readonly CliCommandAliasInput[]>>
-      | undefined,
     overlays: readonly TopoGraphOverlayRegistration[] | undefined
   ) => Promise<Result<T, Error>> | Result<T, Error>
 ): Promise<Result<T, Error>> =>
   withOperatorRootDir(input, { cwd }, (rootDir) =>
-    withFreshSurveyApp(input, rootDir, (app, cliAliases, overlays) =>
-      consume(app, rootDir, cliAliases, overlays)
+    withFreshSurveyApp(input, rootDir, (app, overlays) =>
+      consume(app, rootDir, overlays)
     )
   );
 
@@ -758,18 +730,14 @@ const surveyMatchOutput = z.discriminatedUnion('kind', [
 export const surveyTrail = trail('survey', {
   args: ['id'],
   blaze: async (input, ctx) =>
-    withResolvedSurveyApp(
-      input,
-      ctx.cwd,
-      (app, rootDir, cliAliases, overlays) =>
-        dispatchSurvey(
-          app,
-          input,
-          rootDir,
-          cliAliases,
-          overlays,
-          readSurfaceLayerNamesFromContext(ctx)
-        )
+    withResolvedSurveyApp(input, ctx.cwd, (app, rootDir, overlays) =>
+      dispatchSurvey(
+        app,
+        input,
+        rootDir,
+        overlays,
+        readSurfaceLayerNamesFromContext(ctx)
+      )
     ),
   description: 'Full topo introspection',
   examples: [
@@ -923,18 +891,14 @@ export const surveyDiffTrail = trail('survey.diff', {
 export const surveyTrailDetailTrail = trail('survey.trail', {
   args: ['id'],
   blaze: async (input, ctx) =>
-    withResolvedSurveyApp(
-      input,
-      ctx.cwd,
-      (app, rootDir, cliAliases, overlays) =>
-        buildSurveyTrailDetail(
-          app,
-          input.id,
-          rootDir,
-          cliAliases,
-          overlays,
-          readSurfaceLayerNamesFromContext(ctx)
-        )
+    withResolvedSurveyApp(input, ctx.cwd, (app, rootDir, overlays) =>
+      buildSurveyTrailDetail(
+        app,
+        input.id,
+        rootDir,
+        overlays,
+        readSurfaceLayerNamesFromContext(ctx)
+      )
     ),
   description: 'Inspect one trail by ID',
   examples: [

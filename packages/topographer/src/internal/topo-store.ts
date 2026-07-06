@@ -3,7 +3,6 @@ import type { Database, SQLQueryBindings } from 'bun:sqlite';
 import {
   DETOUR_MAX_ATTEMPTS_CAP,
   Result,
-  ValidationError,
   activationSourceKey,
   deriveCliPath,
   deriveStructuredSignalExamples,
@@ -22,6 +21,7 @@ import type {
   AnyResource,
   AnySignal,
   AnyTrail,
+  CliSurfaceBindingAliases,
   FieldOverride,
   Layer,
   Topo,
@@ -30,6 +30,7 @@ import type {
 import { addPermitRequirement } from '../permit.js';
 import { collectLibraryProjection } from '../library-projection.js';
 import { collectTopoGraphOverlays } from '../overlays.js';
+import { resolveCliAliasInputsFromOverlays } from '../surface-bindings.js';
 import { deriveStableHash } from '../hash.js';
 import { TOPO_GRAPH_SCHEMA_VERSION } from '../types.js';
 import { projectTrailVersions } from '../versioning.js';
@@ -1010,7 +1011,7 @@ const buildTrailEntryBase = (
     readonly input: JsonRecord;
     readonly output?: JsonRecord;
   }>,
-  options?: Pick<CreateTopoSnapshotInput, 'cliAliases'> | undefined
+  surfaceAliases: CliSurfaceBindingAliases | undefined
 ): {
   readonly entry: Record<string, unknown>;
   readonly raw: Record<string, unknown>;
@@ -1019,7 +1020,7 @@ const buildTrailEntryBase = (
   const entry: Record<string, unknown> = {
     cli: deriveTrailCliCommandProjection(trail, {
       aliasSource: 'surface',
-      aliases: options?.cliAliases?.[trail.id],
+      aliases: surfaceAliases?.[trail.id],
     }),
     exampleCount: trail.examples?.length ?? 0,
     id: trail.id,
@@ -1081,9 +1082,13 @@ const trailToEntryRecord = (
     readonly input: JsonRecord;
     readonly output?: JsonRecord;
   }>,
-  options?: Pick<CreateTopoSnapshotInput, 'cliAliases'> | undefined
+  surfaceAliases: CliSurfaceBindingAliases | undefined
 ): TopoGraphEntryRecord => {
-  const { entry, raw } = buildTrailEntryBase(trail, trailSchema, options);
+  const { entry, raw } = buildTrailEntryBase(
+    trail,
+    trailSchema,
+    surfaceAliases
+  );
   addSafetyMarkers(entry, trail);
   addPermitRequirement(entry, trail);
   addExtendedMetadata(entry, raw, trail);
@@ -1251,9 +1256,13 @@ const buildTopoGraph = (
     }>
   >,
   trails: readonly AnyTrail[],
-  options?: Pick<CreateTopoSnapshotInput, 'cliAliases' | 'overlays'> | undefined
+  options?: Pick<CreateTopoSnapshotInput, 'overlays'> | undefined
 ): TopoGraphRecord => {
   const overlays = collectTopoGraphOverlays(topo, options?.overlays);
+  const surfaceAliases = resolveCliAliasInputsFromOverlays(
+    topo,
+    options?.overlays
+  );
   const signalRelations = collectSignalGraphRelations(signals, trails);
   const activationSources = collectActivationSourceCatalog(trails);
   const activationEdges = collectActivationGraphEdges(trails);
@@ -1264,7 +1273,7 @@ const buildTopoGraph = (
         trail,
         topoLayers,
         requireTrailSchema(trailSchemas, trail.id),
-        options
+        surfaceAliases
       )
     ),
     ...signals.map((signal) =>
@@ -1326,7 +1335,7 @@ const buildStoredTopoExport = (
   db: Database,
   snapshot: TopoSnapshot,
   topo: Topo,
-  options?: Pick<CreateTopoSnapshotInput, 'cliAliases' | 'overlays'> | undefined
+  options?: Pick<CreateTopoSnapshotInput, 'overlays'> | undefined
 ): MaterializedTopoArtifacts => {
   const contours = topo
     .listContours()
@@ -1576,20 +1585,23 @@ export const getStoredTopoExport = (
   };
 };
 
-const validateCliAliasTargets = (
+/**
+ * Fail-fast boundary validation for the app-authored `surfaces` overlay's
+ * `cli` bindings, run before the snapshot transaction opens so an invalid
+ * binding surfaces as a Result instead of aborting mid-write.
+ */
+const validateSurfaceCliBindings = (
   topo: Topo,
-  input?: Pick<CreateTopoSnapshotInput, 'cliAliases'> | undefined
+  input?: Pick<CreateTopoSnapshotInput, 'overlays'> | undefined
 ): Result<void, Error> => {
-  for (const trailId of Object.keys(input?.cliAliases ?? {})) {
-    if (!topo.trails.has(trailId)) {
-      return Result.err(
-        new ValidationError(
-          `CLI command aliases target unknown trail "${trailId}". Surface-owned aliases must target existing trail IDs.`
-        )
-      );
-    }
+  try {
+    resolveCliAliasInputsFromOverlays(topo, input?.overlays);
+    return Result.ok();
+  } catch (error: unknown) {
+    return Result.err(
+      error instanceof Error ? error : new Error(String(error))
+    );
   }
-  return Result.ok();
 };
 
 export const createTopoSnapshot = (
@@ -1601,9 +1613,9 @@ export const createTopoSnapshot = (
   if (validated.isErr()) {
     return validated;
   }
-  const cliAliasTargets = validateCliAliasTargets(topo, input);
-  if (cliAliasTargets.isErr()) {
-    return cliAliasTargets;
+  const cliBindings = validateSurfaceCliBindings(topo, input);
+  if (cliBindings.isErr()) {
+    return cliBindings;
   }
 
   ensureTopoSnapshotSchema(db);

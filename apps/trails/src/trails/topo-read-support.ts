@@ -8,7 +8,7 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
-import type { CliCommandAliasInput, Topo, TrailContext } from '@ontrails/core';
+import type { Topo, TrailContext } from '@ontrails/core';
 import {
   ConflictError,
   deriveTrailsDbPath,
@@ -76,9 +76,6 @@ export interface CurrentTopoMatch {
 }
 
 export interface CurrentTopoReadOptions {
-  readonly cliAliases?:
-    | Readonly<Record<string, readonly CliCommandAliasInput[]>>
-    | undefined;
   readonly rootDir?: string | undefined;
   readonly overlays?: readonly TopoGraphOverlayRegistration[] | undefined;
   readonly surfaceLayerNames?: Partial<SurfaceLayerNames> | undefined;
@@ -205,7 +202,6 @@ export const deriveCurrentTrailDetail = (
     : deriveTrailDetail(trail, app, undefined, {
         surfaceLayerNames: options?.surfaceLayerNames,
         topoGraph: deriveTopoGraph(app, {
-          cliAliases: options?.cliAliases,
           overlays: options?.overlays,
         }),
       });
@@ -247,7 +243,6 @@ export const deriveCurrentTopoMatches = (
   let topoGraph: ReturnType<typeof deriveTopoGraph> | undefined;
   const getTopoGraph = (): ReturnType<typeof deriveTopoGraph> =>
     (topoGraph ??= deriveTopoGraph(app, {
-      cliAliases: options?.cliAliases,
       overlays: options?.overlays,
     }));
 
@@ -278,9 +273,6 @@ export const deriveCurrentTopoMatches = (
 export const validateCurrentTopo = async (
   app: Topo,
   options?: {
-    readonly cliAliases?:
-      | Readonly<Record<string, readonly CliCommandAliasInput[]>>
-      | undefined;
     readonly rootDir?: string;
     readonly overlays?: readonly TopoGraphOverlayRegistration[] | undefined;
   }
@@ -310,7 +302,6 @@ export const validateCurrentTopo = async (
   }
 
   const currentExport = deriveCurrentTopoExport(app, {
-    cliAliases: options?.cliAliases,
     overlays: options?.overlays,
     rootDir,
   });

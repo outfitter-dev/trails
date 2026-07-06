@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { Result, trail, topo } from '@ontrails/core';
+import { Result, surfaceOverlay, trail, topo } from '@ontrails/core';
 import { defaultOnResult, deriveCliCommands } from '@ontrails/cli';
 import { z } from 'zod';
 
@@ -78,17 +78,15 @@ describe('surface', () => {
     expect(program.commands[0]?.name()).toBe('greet');
   });
 
-  test('createProgram forwards surface-owned command aliases', () => {
+  test('createProgram forwards surface overlay cli bindings', () => {
     const t = trail('wayfind.search', {
       blaze: (input: { query: string }) => Result.ok(input.query),
       input: z.object({ query: z.string() }),
     });
     const app = topo('surface-aliases', { [t.id]: t });
     const program = createProgram(app, {
-      aliases: {
-        'wayfind.search': [['wf', 'search']],
-      },
       description: 'Surface alias smoke',
+      overlays: [surfaceOverlay({ cli: { 'wf.search': 'wayfind.search' } })],
     });
 
     const wf = program.commands.find((command) => command.name() === 'wf');

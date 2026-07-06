@@ -7,7 +7,7 @@
 
 import { Database } from 'bun:sqlite';
 
-import type { CliCommandAliasInput, Topo } from '@ontrails/core';
+import type { Topo } from '@ontrails/core';
 import {
   ConflictError,
   deriveTrailsDir,
@@ -47,10 +47,6 @@ import {
   readGitState,
 } from './topo-support.js';
 
-type CliAliasesOption = Readonly<
-  Record<string, readonly CliCommandAliasInput[]>
->;
-
 type OverlaysOption = readonly TopoGraphOverlayRegistration[];
 
 const persistAndReadStoredExport = (
@@ -59,7 +55,6 @@ const persistAndReadStoredExport = (
   rootDir: string,
   options?:
     | {
-        readonly cliAliases?: CliAliasesOption | undefined;
         readonly overlays?: OverlaysOption | undefined;
       }
     | undefined
@@ -68,7 +63,6 @@ const persistAndReadStoredExport = (
   Error
 > => {
   const snapshotResult = createStoredTopoSnapshot(db, app, {
-    cliAliases: options?.cliAliases,
     overlays: options?.overlays,
     sourceFingerprint: deriveSourceFingerprint(rootDir),
     ...readGitState(rootDir),
@@ -136,7 +130,6 @@ export const mapTopoExportError = (error: unknown): Error => {
 export const deriveCurrentTopoExport = (
   app: Topo,
   options?: {
-    readonly cliAliases?: CliAliasesOption | undefined;
     readonly rootDir?: string;
     readonly overlays?: OverlaysOption | undefined;
   }
@@ -146,7 +139,6 @@ export const deriveCurrentTopoExport = (
 
   try {
     const projected = persistAndReadStoredExport(app, db, rootDir, {
-      cliAliases: options?.cliAliases,
       overlays: options?.overlays,
     });
     return projected.isErr()
@@ -273,7 +265,6 @@ const writeStoredExportArtifacts = async (
 export const exportCurrentTopo = async (
   app: Topo,
   options?: {
-    readonly cliAliases?: CliAliasesOption | undefined;
     readonly force?: boolean | undefined;
     readonly rootDir?: string;
     readonly overlays?: OverlaysOption | undefined;
@@ -284,7 +275,6 @@ export const exportCurrentTopo = async (
 
   try {
     const candidate = deriveCurrentTopoExport(app, {
-      cliAliases: options?.cliAliases,
       overlays: options?.overlays,
       rootDir,
     });
@@ -302,7 +292,6 @@ export const exportCurrentTopo = async (
 
     db = openWriteTrailsDb({ rootDir });
     const persisted = persistAndReadStoredExport(app, db, rootDir, {
-      cliAliases: options?.cliAliases,
       overlays: options?.overlays,
     });
     if (persisted.isErr()) {

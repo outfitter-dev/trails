@@ -12,6 +12,7 @@ import {
   deriveTrailsDbPath,
   resource,
   signal,
+  surfaceOverlay,
   topo,
   trail,
 } from '@ontrails/core';
@@ -178,9 +179,7 @@ const writeArtifactsAt = async (
 ): Promise<TopoGraph> => {
   const baseTopoGraph = withSurfaces(
     deriveTopoGraph(app(), {
-      cliAliases: {
-        'user.create': [['u', 'create']],
-      },
+      overlays: [surfaceOverlay({ cli: { 'u.create': 'user.create' } })],
       trailheads: [
         {
           description: 'User operations.',
@@ -613,6 +612,10 @@ describe('wayfinder graph-read query trails', () => {
   });
 
   test('reports no overlays when the graph carries none', async () => {
+    // The shared fixture embeds the app-authored `surfaces` overlay, so
+    // rewrite the artifacts without any overlays for this scenario.
+    await writeArtifacts(({ overlays: _overlays, ...rest }) => rest);
+
     const result = await wayfindOverlayTrail.blaze(
       { namespace: 'cloudflare', rootDir: tempDir },
       ctx()

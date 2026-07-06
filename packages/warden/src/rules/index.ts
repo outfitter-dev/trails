@@ -24,6 +24,7 @@ import { missingVisibility } from './missing-visibility.js';
 import { missingReconcile } from './missing-reconcile.js';
 import { noDevPermitInSource } from './no-dev-permit-in-source.js';
 import { noDestructuredCompose } from './no-destructured-compose.js';
+import { noLegacyCliAliasExport } from './no-legacy-cli-alias-export.js';
 import { noLegacyLayerImports } from './no-legacy-layer-imports.js';
 import { noDirectImplementationCall } from './no-direct-implementation-call.js';
 import { noNativeErrorResult } from './no-native-error-result.js';
@@ -163,6 +164,7 @@ export { missingReconcile } from './missing-reconcile.js';
 export { onReferencesExist } from './on-references-exist.js';
 export { noDevPermitInSource } from './no-dev-permit-in-source.js';
 export { noDestructuredCompose } from './no-destructured-compose.js';
+export { noLegacyCliAliasExport } from './no-legacy-cli-alias-export.js';
 export { noLegacyLayerImports } from './no-legacy-layer-imports.js';
 export { noDirectImplementationCall } from './no-direct-implementation-call.js';
 export { noNativeErrorResult } from './no-native-error-result.js';
@@ -253,6 +255,7 @@ export const wardenRules: ReadonlyMap<string, WardenRule> = new Map<
   [noDevPermitInSource.name, noDevPermitInSource],
   [noDestructuredCompose.name, noDestructuredCompose],
   [noDirectImplementationCall.name, noDirectImplementationCall],
+  [noLegacyCliAliasExport.name, noLegacyCliAliasExport],
   [noLegacyLayerImports.name, noLegacyLayerImports],
   [noNativeErrorResult.name, noNativeErrorResult],
   [noRedundantResultErrorWrap.name, noRedundantResultErrorWrap],

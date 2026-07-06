@@ -91,6 +91,7 @@ const concernByRuleName: Partial<Record<string, WardenRuleConcern>> = {
   'no-destructured-compose': 'composition',
   'no-dev-permit-in-source': 'permits',
   'no-direct-implementation-call': 'composition',
+  'no-legacy-cli-alias-export': 'general',
   'no-native-error-result': 'results',
   'no-redundant-result-error-wrap': 'results',
   'no-retired-cross-vocabulary': 'composition',
@@ -377,6 +378,18 @@ const builtinWardenRuleMetadataInput = {
   'no-direct-implementation-call': {
     ...durableExternal,
     invariant: 'Application code composes trails through ctx.compose().',
+    tier: 'source-static',
+  },
+  'no-legacy-cli-alias-export': {
+    fix: { class: 'term-rewrite', safety: 'review' },
+    invariant:
+      'Legacy app-module CLI alias exports (cliAliases, trailsCliAliases) removed in the TRL-1207 surfaces-overlay cutover do not reappear in committed source.',
+    lifecycle: {
+      retireWhen:
+        'TRL-1207 surfaces-overlay migration window closes and supported apps have moved CLI bindings into surfaceOverlay entries in their trailsOverlays exports.',
+      state: 'temporary',
+    },
+    scope: 'external',
     tier: 'source-static',
   },
   'no-legacy-layer-imports': {

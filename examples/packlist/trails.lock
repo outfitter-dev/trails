@@ -1130,6 +1130,15 @@
               ],
               "source": "derived",
               "target": "gear.create"
+            },
+            {
+              "kind": "alias",
+              "path": [
+                "gear",
+                "add"
+              ],
+              "source": "surface",
+              "target": "gear.create"
             }
           ]
         },
@@ -1523,6 +1532,15 @@
               ],
               "source": "derived",
               "target": "gear.list"
+            },
+            {
+              "kind": "alias",
+              "path": [
+                "gear",
+                "ls"
+              ],
+              "source": "surface",
+              "target": "gear.list"
             }
           ]
         },
@@ -1641,6 +1659,15 @@
                 "read"
               ],
               "source": "derived",
+              "target": "gear.read"
+            },
+            {
+              "kind": "alias",
+              "path": [
+                "gear",
+                "get"
+              ],
+              "source": "surface",
               "target": "gear.read"
             }
           ]
@@ -2420,6 +2447,15 @@
               ],
               "source": "derived",
               "target": "pack.list"
+            },
+            {
+              "kind": "alias",
+              "path": [
+                "pack",
+                "ls"
+              ],
+              "source": "surface",
+              "target": "pack.list"
             }
           ]
         },
@@ -2523,6 +2559,15 @@
                 "read"
               ],
               "source": "derived",
+              "target": "pack.read"
+            },
+            {
+              "kind": "alias",
+              "path": [
+                "pack",
+                "get"
+              ],
+              "source": "surface",
               "target": "pack.read"
             }
           ]
@@ -3926,6 +3971,15 @@
               ],
               "source": "derived",
               "target": "trip.list"
+            },
+            {
+              "kind": "alias",
+              "path": [
+                "trip",
+                "ls"
+              ],
+              "source": "surface",
+              "target": "trip.list"
             }
           ]
         },
@@ -4050,6 +4104,15 @@
                 "read"
               ],
               "source": "derived",
+              "target": "trip.read"
+            },
+            {
+              "kind": "alias",
+              "path": [
+                "trip",
+                "get"
+              ],
+              "source": "surface",
               "target": "trip.read"
             }
           ]
@@ -6214,8 +6277,21 @@
         }
       ]
     },
+    "overlays": {
+      "surfaces": {
+        "cli": {
+          "gear.add": "gear.create",
+          "gear.get": "gear.read",
+          "gear.ls": "gear.list",
+          "pack.get": "pack.read",
+          "pack.ls": "pack.list",
+          "trip.get": "trip.read",
+          "trip.ls": "trip.list"
+        }
+      }
+    },
     "topoGraphSchemaVersion": 3
   },
-  "topoGraphHash": "38e6c1180c853844867e8070381c75bc14f57aa0333e4e0824bc14c12626d0ca",
+  "topoGraphHash": "11c9e2ba44a1f443cf86440c530d09b3355f4bb54849b4ce55fe94350554e904",
   "version": 4
 }

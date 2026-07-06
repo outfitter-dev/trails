@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { Result, trail, topo } from '@ontrails/core';
+import { Result, surfaceOverlay, trail, topo } from '@ontrails/core';
 import { z } from 'zod';
 
 import { deriveCliCommands } from '../build.js';
@@ -20,9 +20,7 @@ const buildSchema = () => {
   const result = deriveCliCommands(
     topo('schema-test', { [search.id]: search }),
     {
-      aliases: {
-        'wayfind.search': [['wf', 'search']],
-      },
+      overlays: [surfaceOverlay({ cli: { 'wf.search': 'wayfind.search' } })],
     }
   );
   if (result.isErr()) {

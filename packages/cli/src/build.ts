@@ -5,10 +5,11 @@
 import type {
   BasePermit,
   BaseSurfaceOptions,
-  CliCommandAliasInput,
+  CliSurfaceBindingAliases,
   Field,
   Layer,
   LayerInputSchema,
+  OverlayEnvelopeLike,
   ResourceOverrideMap,
   TrailVersionReference,
   Topo,
@@ -24,7 +25,9 @@ import {
   deriveSurfaceTrailVersionProjections,
   deriveTrailCliCommandProjection,
   executeTrail,
+  expandCliSurfaceBindings,
   filterSurfaceTrails,
+  resolveSurfaceOverlayBindings,
   LAYER_FIELD_RESERVED_NAMES,
   LAYER_FIELD_RESERVED_NAMES_KEBAB,
   projectLayerFieldName,
@@ -99,14 +102,19 @@ export type ResolveCliPermitFromToken = (
 
 /** Options for CLI command projection. */
 export interface DeriveCliCommandsOptions extends BaseSurfaceOptions {
-  aliases?:
-    | Readonly<Record<string, readonly CliCommandAliasInput[]>>
-    | undefined;
   createContext?:
     | (() => TrailContextInit | Promise<TrailContextInit>)
     | undefined;
   layers?: readonly Layer[] | undefined;
   onResult?: ((ctx: ActionResultContext) => Promise<void>) | undefined;
+  /**
+   * App-authored overlay envelopes (conventionally the app module's
+   * `trailsOverlays` export). The `surfaces` envelope's `cli` bindings
+   * project synonym and command-group alias routes onto the derived
+   * commands — the same expansion the compiled lock embeds, so runtime CLI
+   * routes and lock routes come from one semantic.
+   */
+  overlays?: readonly OverlayEnvelopeLike[] | undefined;
   presets?: readonly (readonly CliFlag[])[] | undefined;
   resources?: ResourceOverrideMap | undefined;
   resolvePermitFromToken?: ResolveCliPermitFromToken | undefined;
@@ -144,23 +152,35 @@ const mergeStructuredInputFlags = (derived: CliFlag[]): CliFlag[] => {
 const validateCliCommandBuild = (
   graph: Topo,
   options?: DeriveCliCommandsOptions
-): Result<void, Error> => {
-  const surfaceValidation = validateSurfaceTopo(graph, options);
-  if (surfaceValidation.isErr()) {
-    return surfaceValidation;
-  }
+): Result<void, Error> => validateSurfaceTopo(graph, options);
 
-  for (const trailId of Object.keys(options?.aliases ?? {})) {
-    if (!graph.trails.has(trailId)) {
-      return Result.err(
-        new ValidationError(
-          `CLI command aliases target unknown trail "${trailId}". Surface-owned aliases must target existing trail IDs.`
-        )
-      );
+/**
+ * Resolve the app-authored `surfaces` overlay's `cli` bindings into
+ * per-trail alias inputs, validated against the graph's trail ids.
+ *
+ * This is the runtime CLI's read of the same expansion the compiled lock
+ * embeds: scalar bindings become synonym command paths for exactly one
+ * trail, list bindings become command groups with member-identity routes.
+ * Binding failures come back as `Result.err(ValidationError)` so the
+ * surface can report them through the standard error path.
+ */
+const resolveCliBindingAliases = (
+  graph: Topo,
+  options?: DeriveCliCommandsOptions
+): Result<CliSurfaceBindingAliases | undefined, Error> => {
+  try {
+    const bindings = resolveSurfaceOverlayBindings(options?.overlays);
+    if (bindings?.cli === undefined) {
+      return Result.ok();
     }
+    return Result.ok(
+      expandCliSurfaceBindings(bindings.cli, [...graph.trails.keys()])
+    );
+  } catch (error: unknown) {
+    return Result.err(
+      error instanceof Error ? error : new Error(String(error))
+    );
   }
-
-  return Result.ok();
 };
 
 // ---------------------------------------------------------------------------
@@ -1244,6 +1264,7 @@ const addStructuredInlineJsonArg = (
 const toCliCommand = (
   graph: Topo,
   t: AnyTrail,
+  surfaceAliases: CliSurfaceBindingAliases | undefined,
   options?: DeriveCliCommandsOptions
 ): CliCommand => {
   const fields = deriveFields(t.input, t.fields);
@@ -1300,7 +1321,7 @@ const toCliCommand = (
   const versions = deriveSurfaceTrailVersionProjections(t);
   const cliProjection = deriveTrailCliCommandProjection(t, {
     aliasSource: 'surface',
-    aliases: options?.aliases?.[t.id],
+    aliases: surfaceAliases?.[t.id],
   });
 
   return {
@@ -1331,13 +1352,14 @@ const toCliCommand = (
 
 const collectCommands = (
   graph: Topo,
+  surfaceAliases: CliSurfaceBindingAliases | undefined,
   options?: DeriveCliCommandsOptions
 ): CliCommand[] =>
   filterSurfaceTrails(graph.list(), {
     exclude: options?.exclude,
     include: options?.include,
     intent: options?.intent,
-  }).map((trail) => toCliCommand(graph, trail, options));
+  }).map((trail) => toCliCommand(graph, trail, surfaceAliases, options));
 
 /**
  * Build an array of framework-agnostic CLI commands from a graph.
@@ -1363,7 +1385,12 @@ export const deriveCliCommands = (
     return validation;
   }
 
-  const commands = collectCommands(graph, options);
+  const surfaceAliases = resolveCliBindingAliases(graph, options);
+  if (surfaceAliases.isErr()) {
+    return surfaceAliases;
+  }
+
+  const commands = collectCommands(graph, surfaceAliases.value, options);
   try {
     validateCliCommands(commands);
     return Result.ok(commands);

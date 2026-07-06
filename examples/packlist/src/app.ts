@@ -5,7 +5,7 @@
  * points (`bin/packlist.ts`, `src/http.ts`, `src/mcp.ts`).
  */
 
-import { topo } from '@ontrails/core';
+import { surfaceOverlay, topo } from '@ontrails/core';
 
 import * as dbResource from './resources/db.js';
 import * as signals from './signals.js';
@@ -32,3 +32,23 @@ export const graph = topo(
   seed,
   reconcileTrails
 );
+
+/**
+ * App-authored surface bindings: each scalar `cli` binding is a transparent
+ * synonym command (`packlist gear ls` ≡ `packlist gear list`). `trails
+ * compile` embeds them in `trails.lock` under `overlays.surfaces`, and the
+ * CLI surface projects the same bindings at runtime.
+ */
+export const trailsOverlays = [
+  surfaceOverlay({
+    cli: {
+      'gear.add': 'gear.create',
+      'gear.get': 'gear.read',
+      'gear.ls': 'gear.list',
+      'pack.get': 'pack.read',
+      'pack.ls': 'pack.list',
+      'trip.get': 'trip.read',
+      'trip.ls': 'trip.list',
+    },
+  }),
+];

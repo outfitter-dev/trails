@@ -13,6 +13,7 @@ import {
   resource,
   schedule,
   signal,
+  surfaceOverlay,
   topo,
   trail,
   webhook,
@@ -858,10 +859,10 @@ describe('topo store projection', () => {
 
       const snapshot = unwrap(
         createTopoSnapshot(db, topo('contract-export-app', { search }), {
-          cliAliases: {
-            'wayfind.search': [['wf', 'search']],
-          },
           createdAt: '2026-04-03T12:00:00.000Z',
+          overlays: [
+            surfaceOverlay({ cli: { 'wf.search': 'wayfind.search' } }),
+          ],
         })
       );
 
@@ -986,7 +987,7 @@ describe('topo store projection', () => {
     });
   });
 
-  test('stored TopoGraph rejects surface-owned CLI aliases for unknown trails', () => {
+  test('stored TopoGraph rejects surface overlay cli bindings that resolve to no trails', () => {
     withProjectionDb((db) => {
       const search = trail('wayfind.search', {
         blaze: noop,
@@ -998,10 +999,8 @@ describe('topo store projection', () => {
         db,
         topo('contract-export-app', { search }),
         {
-          cliAliases: {
-            'wayfind.serch': [['wf', 'search']],
-          },
           createdAt: '2026-04-03T12:00:00.000Z',
+          overlays: [surfaceOverlay({ cli: { 'wf.search': 'wayfind.serch' } })],
         }
       );
 
@@ -1009,7 +1008,7 @@ describe('topo store projection', () => {
       if (snapshot.isErr()) {
         expect(snapshot.error).toBeInstanceOf(ValidationError);
         expect(snapshot.error.message).toContain(
-          'CLI command aliases target unknown trail "wayfind.serch"'
+          'cli binding "wf.search" resolves to no trails'
         );
       }
     });

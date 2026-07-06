@@ -8,7 +8,6 @@ export const validateTrail = trail('validate', {
   blaze: async (input, ctx) =>
     withFreshOperatorApp(input, ctx, ({ lease, rootDir }) =>
       validateCurrentTopo(lease.app, {
-        cliAliases: lease.cliAliases,
         overlays: lease.overlays,
         rootDir,
       })

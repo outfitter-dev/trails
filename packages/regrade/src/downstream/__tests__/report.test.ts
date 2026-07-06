@@ -284,6 +284,7 @@ describe('wardenTermRewriteClasses', () => {
 
     expect(report.selectedClassIds).toEqual([
       'term-rewrite:governed-symbol-residue',
+      'term-rewrite:no-legacy-cli-alias-export',
       'term-rewrite:no-legacy-layer-imports',
       'term-rewrite:no-retired-cross-vocabulary',
     ]);

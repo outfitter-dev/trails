@@ -220,6 +220,7 @@ export {
   noDevPermitInSourceTrail,
   noDestructuredComposeTrail,
   noDirectImplementationCallTrail,
+  noLegacyCliAliasExportTrail,
   noLegacyLayerImportsTrail,
   noNativeErrorResultTrail,
   noRedundantResultErrorWrapTrail,

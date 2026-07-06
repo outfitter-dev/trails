@@ -5,6 +5,7 @@ import {
   NotFoundError,
   PermitError,
   Result,
+  surfaceOverlay,
   TimeoutError,
   trail,
   topo,
@@ -236,7 +237,7 @@ describe('toCommander command trees', () => {
     expect(calls).toEqual(['trails']);
   });
 
-  test('materializes surface-owned aliases that execute the same command', async () => {
+  test('materializes surface overlay synonym bindings that execute the same command', async () => {
     const calls: string[] = [];
     const search = trail('wayfind.search', {
       blaze: (input: { query: string }) => {
@@ -247,10 +248,8 @@ describe('toCommander command trees', () => {
     });
     const app = makeApp(search);
     const commands = buildCommands(app, {
-      aliases: {
-        'wayfind.search': [['wf', 'search']],
-      },
       onResult: noopResult,
+      overlays: [surfaceOverlay({ cli: { 'wf.search': 'wayfind.search' } })],
     });
     const program = toCommander(commands, { name: 'test' });
     program.exitOverride();
@@ -260,6 +259,54 @@ describe('toCommander command trees', () => {
     await program.parseAsync(['node', 'test', 'wf', 'search', 'trails']);
 
     expect(calls).toEqual(['trails']);
+  });
+
+  test('materializes surface overlay group member commands that dispatch the member trail', async () => {
+    const calls: string[] = [];
+    const create = trail('gear.create', {
+      blaze: (input: { name: string }) => {
+        calls.push(`create:${input.name}`);
+        return Result.ok({ name: input.name });
+      },
+      input: z.object({ name: z.string() }),
+    });
+    const list = trail('gear.list', {
+      blaze: () => {
+        calls.push('list');
+        return Result.ok([]);
+      },
+      input: z.object({}),
+    });
+    const app = makeApp(create, list);
+    const commands = buildCommands(app, {
+      onResult: noopResult,
+      overlays: [
+        surfaceOverlay({ cli: { tools: ['gear.create', 'gear.list'] } }),
+      ],
+    });
+    const program = toCommander(commands, { name: 'test' });
+    program.exitOverride();
+
+    // Member identity: the group route is [group, ...memberTrailId segments]
+    // and dispatches the member trail with its full contract.
+    expect(
+      requireNestedCommand(program, ['tools', 'gear', 'create'])
+    ).toBeDefined();
+    expect(
+      requireNestedCommand(program, ['tools', 'gear', 'list'])
+    ).toBeDefined();
+
+    await program.parseAsync([
+      'node',
+      'test',
+      'tools',
+      'gear',
+      'create',
+      'tent',
+    ]);
+    await program.parseAsync(['node', 'test', 'tools', 'gear', 'list']);
+
+    expect(calls).toEqual(['create:tent', 'list']);
   });
 
   test('supports executable parents alongside child commands', async () => {

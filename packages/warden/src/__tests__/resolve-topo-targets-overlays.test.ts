@@ -46,7 +46,7 @@ export const trailsOverlays = [
 `;
 
 describe('warden topo targets carry app-module overlays (TRL-1209)', () => {
-  test('resolveWardenTopoTargets loads trailsOverlays and topo-aware dispatch fires surface-overlay-coherence', async () => {
+  test('resolveWardenTopoTargets loads trailsOverlays and topo-aware dispatch reports the incoherent binding', async () => {
     const dir = newFixtureDir();
     writeAppModule(dir, incoherentOverlayApp);
 
@@ -66,12 +66,16 @@ describe('warden topo targets carry app-module overlays (TRL-1209)', () => {
       topos: resolved.topos,
     });
 
+    // Since the TRL-1207 cutover, an unmatched cli binding is fail-fast
+    // boundary validation: fresh graph derivation throws a ValidationError,
+    // which the topo-aware dispatch surfaces as a rule diagnostic instead
+    // of the coherence rule's softer zero-match warning.
     const finding = report.diagnostics.find(
       (diagnostic) => diagnostic.rule === 'surface-overlay-coherence'
     );
     expect(finding).toBeDefined();
     expect(finding?.message).toContain('ghost');
-    expect(finding?.message).toContain('matches no trails');
+    expect(finding?.message).toContain('resolves to no trails');
   });
 
   test('an invalid trailsOverlays export surfaces as a topo-load diagnostic, not a crash', async () => {

@@ -5,16 +5,16 @@ import { describe, expect, test } from 'bun:test';
 import {
   app,
   operatorApp,
-  trailsCliAliases,
   trailsCliIncludedTrails,
+  trailsOverlays,
 } from '../app.js';
 import { formatWayfindOutlineText } from '../run-wayfind-outline.js';
 import { wayfindTrail } from '../trails/wayfind.js';
 
 const unwrapCommands = () => {
   const result = deriveCliCommands(app, {
-    aliases: trailsCliAliases,
     include: trailsCliIncludedTrails,
+    overlays: trailsOverlays,
   });
   if (result.isErr()) {
     throw result.error;

@@ -195,27 +195,27 @@ const topographArtifactFamilyRetiredMatches = [
   { line: 228, path: 'apps/trails/src/__tests__/create.test.ts' },
   // The topo-store migration and fixture must name pre-v12 columns exactly.
   {
-    line: 364,
+    line: 360,
     path: 'packages/topographer/src/internal/topo-snapshots.ts',
   },
   {
-    line: 374,
+    line: 370,
     path: 'packages/topographer/src/internal/topo-snapshots.ts',
   },
   {
-    line: 1525,
+    line: 1524,
     path: 'packages/topographer/src/__tests__/topo-store.test.ts',
   },
   {
-    line: 1527,
+    line: 1526,
     path: 'packages/topographer/src/__tests__/topo-store.test.ts',
   },
   {
-    line: 1541,
+    line: 1540,
     path: 'packages/topographer/src/__tests__/topo-store.test.ts',
   },
   {
-    line: 1543,
+    line: 1542,
     path: 'packages/topographer/src/__tests__/topo-store.test.ts',
   },
 ] as const;

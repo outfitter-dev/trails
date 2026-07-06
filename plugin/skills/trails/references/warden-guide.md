@@ -5,7 +5,7 @@
 This file is generated from the live `@ontrails/warden` rule manifest. Repo-tracked skills, agents, and plugin prompts should reference this file instead of copying rule prose by hand.
 
 - Guide input command: `bun apps/trails/bin/trails.ts warden guide --agent-json`
-- Rule count: 71
+- Rule count: 72
 
 ## Agent Instructions
 
@@ -41,6 +41,7 @@ This file is generated from the live `@ontrails/warden` rule manifest. Repo-trac
 - `incomplete-accessor-for-standard-op` (error, topo/topo-aware, external): Standard CRUD operations expose the expected accessor shape.
 - `incomplete-crud` (warn, project/project-static, external): Versioned CRUD entities expose complete operation coverage.
 - `layer-field-name-drift` (error, source/source-static, external): Layer input field reserved names are shared across surface projections.
+- `no-legacy-cli-alias-export` (error, source/source-static, external): Legacy app-module CLI alias exports (cliAliases, trailsCliAliases) removed in the TRL-1207 surfaces-overlay cutover do not reappear in committed source.
 - `no-legacy-layer-imports` (error, source/source-static, external): Legacy layer exports removed across TRL-475/TRL-476 (authLayer, autoIterateLayer, dateShortcutsLayer) do not reappear in committed source.
 - `no-top-level-surface` (warn, source/source-static, external): Topo export modules do not open surfaces at module top level. Guidance: Keep topo entry modules side-effect-free for survey, guide, compile, and lock generation.
 - `owner-projection-parity` (error, source/source-static, internal): Framework projections stay aligned with owner exports.

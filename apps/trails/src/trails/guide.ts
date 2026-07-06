@@ -54,7 +54,6 @@ export const guideTrail = trail('guide', {
     withFreshOperatorApp<GuideTrailOutput>(input, ctx, ({ lease, rootDir }) => {
       if (input.trailId) {
         const detail = deriveCurrentTopoDetail(lease.app, input.trailId, {
-          cliAliases: lease.cliAliases,
           overlays: lease.overlays,
           rootDir,
           surfaceLayerNames: readSurfaceLayerNamesFromContext(ctx),

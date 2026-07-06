@@ -424,12 +424,14 @@ export type { Topo, TopoIdentity } from './topo.js';
 export {
   SURFACES_OVERLAY_NAMESPACE,
   classifySurfaceBinding,
+  expandCliSurfaceBindings,
   resolveSurfaceOverlayBindings,
   surfaceBindingsFromLockOverlays,
   surfaceOverlay,
   surfaceOverlayBindingsSchema,
 } from './surface-overlay.js';
 export type {
+  CliSurfaceBindingAliases,
   OverlayEnvelopeLike,
   OverlayProvenance,
   SurfaceBindingRef,

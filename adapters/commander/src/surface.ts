@@ -4,8 +4,8 @@
 
 import type {
   BaseSurfaceOptions,
-  CliCommandAliasInput,
   Layer,
+  OverlayEnvelopeLike,
   ResourceOverrideMap,
   Topo,
   TrailContextInit,
@@ -28,9 +28,6 @@ import { toCommander } from './to-commander.js';
  * Options for creating Commander CLI surfaces from a Trails topo.
  */
 export interface CreateProgramOptions extends BaseSurfaceOptions {
-  readonly aliases?:
-    | Readonly<Record<string, readonly CliCommandAliasInput[]>>
-    | undefined;
   readonly createContext?:
     | (() => TrailContextInit | Promise<TrailContextInit>)
     | undefined;
@@ -38,6 +35,12 @@ export interface CreateProgramOptions extends BaseSurfaceOptions {
   readonly layers?: readonly Layer[] | undefined;
   readonly name?: string | undefined;
   readonly onResult?: ((ctx: ActionResultContext) => Promise<void>) | undefined;
+  /**
+   * App-authored overlay envelopes (conventionally the app module's
+   * `trailsOverlays` export); the `surfaces` envelope's `cli` bindings
+   * project synonym and command-group routes onto the program.
+   */
+  readonly overlays?: readonly OverlayEnvelopeLike[] | undefined;
   readonly presets?: CliFlag[][] | undefined;
   readonly resources?: ResourceOverrideMap | undefined;
   readonly resolveInput?: InputResolver | undefined;
@@ -93,7 +96,6 @@ export const createProgram = (
   options: CreateProgramOptions = {}
 ) => {
   const commandsResult = deriveCliCommands(graph, {
-    aliases: options.aliases,
     configValues: options.configValues,
     createContext: options.createContext,
     exclude: options.exclude,
@@ -101,6 +103,7 @@ export const createProgram = (
     intent: options.intent,
     layers: options.layers,
     onResult: options.onResult ?? defaultOnResult,
+    overlays: options.overlays,
     presets: options.presets,
     resolveInput: options.resolveInput,
     resolvePermitFromToken: options.resolvePermitFromToken,

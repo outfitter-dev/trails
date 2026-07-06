@@ -28,6 +28,7 @@ export { missingReconcileTrail } from './missing-reconcile.trail.js';
 export { onReferencesExistTrail } from './on-references-exist.trail.js';
 export { noDevPermitInSourceTrail } from './no-dev-permit-in-source.trail.js';
 export { noDestructuredComposeTrail } from './no-destructured-compose.trail.js';
+export { noLegacyCliAliasExportTrail } from './no-legacy-cli-alias-export.trail.js';
 export { noLegacyLayerImportsTrail } from './no-legacy-layer-imports.trail.js';
 export { noDirectImplementationCallTrail } from './no-direct-implementation-call.trail.js';
 export { noNativeErrorResultTrail } from './no-native-error-result.trail.js';

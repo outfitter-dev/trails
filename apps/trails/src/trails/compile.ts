@@ -1,5 +1,5 @@
 import { trail } from '@ontrails/core';
-import type { CliCommandAliasInput, Result, Topo } from '@ontrails/core';
+import type { Result, Topo } from '@ontrails/core';
 import type { TopoGraphOverlayRegistration } from '@ontrails/topographer';
 import { z } from 'zod';
 
@@ -14,9 +14,6 @@ import {
 export const compileCurrentTopo = async (
   app: Topo,
   options?: {
-    readonly cliAliases?:
-      | Readonly<Record<string, readonly CliCommandAliasInput[]>>
-      | undefined;
     readonly force?: boolean | undefined;
     readonly rootDir?: string;
     readonly overlays?: readonly TopoGraphOverlayRegistration[] | undefined;
@@ -38,7 +35,6 @@ export const compileTrail = trail('compile', {
   blaze: async (input: CompileTrailInput, ctx) =>
     withFreshOperatorApp(input, ctx, ({ lease, rootDir }) =>
       compileCurrentTopo(lease.app, {
-        cliAliases: lease.cliAliases,
         force: input.force,
         overlays: lease.overlays,
         rootDir,

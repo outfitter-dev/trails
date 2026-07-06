@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { Result, topo, trail } from '@ontrails/core';
+import { Result, surfaceOverlay, topo, trail } from '@ontrails/core';
 import type { SurfaceOverlayBindings, Topo } from '@ontrails/core';
 import { deriveTopoGraph } from '@ontrails/topographer';
 import type { TopoGraph } from '@ontrails/topographer';
@@ -146,12 +146,17 @@ describe('surface-overlay-coherence', () => {
     ]);
   });
 
-  test('warns when a cli binding name shadows a single-segment alias route', async () => {
-    const app = buildApp();
-    const graph: TopoGraph = {
-      ...deriveTopoGraph(app, { cliAliases: { 'gear.list': [['ls-cmd']] } }),
-      overlays: { surfaces: { cli: { 'ls-cmd': 'gear.create' } } },
-    };
+  test('warns when a cli binding name shadows a single-segment trail-owned alias route', async () => {
+    const aliasedList = trail('gear.aliased-list', {
+      blaze: () => Result.ok([]),
+      cli: { aliases: [['ls-cmd']] },
+      input: z.object({}),
+      output: z.array(z.string()),
+    });
+    const app = topo('demo', { aliasedList, gearCreate });
+    const graph = graphWithSurfaces(app, {
+      cli: { 'ls-cmd': 'gear.create' },
+    });
 
     const diagnostics = await surfaceOverlayCoherence.checkTopo(app, {
       graph,
@@ -162,11 +167,25 @@ describe('surface-overlay-coherence', () => {
         filePath: '<topo>',
         line: 1,
         message:
-          'Surface overlay binding "ls-cmd" on "cli" shadows the alias CLI route "ls-cmd" for trail "gear.list". Rename the binding so it does not shadow a real entry.',
+          'Surface overlay binding "ls-cmd" on "cli" shadows the alias CLI route "ls-cmd" for trail "gear.aliased-list". Rename the binding so it does not shadow a real entry.',
         rule: 'surface-overlay-coherence',
         severity: 'warn',
       },
     ]);
+  });
+
+  test('does not warn when a cli binding name matches only its own projected surface route', async () => {
+    const app = buildApp();
+    // The binding "ls" itself projects the single-segment alias route
+    // ["ls"] into the graph; that self-projection is not shadowing.
+    const graph: TopoGraph = {
+      ...deriveTopoGraph(app, {
+        overlays: [surfaceOverlay({ cli: { ls: 'gear.list' } })],
+      }),
+      overlays: { surfaces: { cli: { ls: 'gear.list' } } },
+    };
+
+    expect(await surfaceOverlayCoherence.checkTopo(app, { graph })).toEqual([]);
   });
 
   test('warns when an mcp binding name shadows a derived tool name', async () => {

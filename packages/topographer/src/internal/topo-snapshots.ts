@@ -1,7 +1,6 @@
 import type { Database, SQLQueryBindings } from 'bun:sqlite';
 
 import { ensureSubsystemSchema } from '@ontrails/core';
-import type { CliCommandAliasInput } from '@ontrails/core';
 
 import type { TopoGraphOverlayRegistration } from '../types.js';
 
@@ -205,9 +204,6 @@ export interface TopoSnapshot {
 
 export interface CreateTopoSnapshotInput {
   readonly appName?: string;
-  readonly cliAliases?:
-    | Readonly<Record<string, readonly CliCommandAliasInput[]>>
-    | undefined;
   readonly createdAt?: string;
   readonly gitDirty?: boolean;
   readonly gitSha?: string;

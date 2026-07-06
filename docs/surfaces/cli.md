@@ -60,17 +60,33 @@ String aliases are sibling leaf aliases. For `wayfind.search`, `find` accepts `w
 
 Use `cli: 'find'` or `cli: { path: ['wayfind', 'search'] }` only when the canonical command path itself should change. Prefer aliases for compatibility and migration paths.
 
-App-owned aliases live on the CLI surface, alongside the app that consumes them:
+App-owned bindings live on the `surfaces` overlay, authored with `surfaceOverlay()` in the app module and passed to the surface as `trailsOverlays`:
 
 ```typescript
-export const cliAliases = {
-  'wayfind.search': [['wf', 'search']],
-} as const;
+import { surfaceOverlay } from '@ontrails/core';
 
-await surface(app, { aliases: cliAliases });
+export const trailsOverlays = [
+  surfaceOverlay({
+    cli: {
+      // Scalar binding: a transparent synonym. The binding name splits on
+      // '.' into the command path, so `wf search` invokes wayfind.search
+      // with its full contract.
+      'wf.search': 'wayfind.search',
+      // List binding: a command group. Each member trail gets a
+      // group-prefixed route (`wf wayfind search`, `wf wayfind impact`)
+      // that dispatches the member trail with its identity preserved.
+      // A singleton list is still a group, never a bare synonym.
+      wf: ['wayfind.search', 'wayfind.impact'],
+    },
+  }),
+];
+
+await surface(app, { overlays: trailsOverlays });
 ```
 
-If an app writes root `trails.lock` with `trails compile`, export the same alias map as `cliAliases` or `trailsCliAliases` from the app module. Compile, validate, survey, Wayfinder, and schema inspection then see the same accepted command routes as the runtime CLI.
+A scalar binding must resolve (by exact id or dotted trail-id glob) to exactly one trail; a group's expanded member union must be non-empty. Violations fail fast with a `ValidationError` naming the binding.
+
+Because `trails compile` reads the same `trailsOverlays` export, the committed `trails.lock` embeds the bindings under `overlays.surfaces` and projects the same alias routes onto each trail entry. Compile, validate, survey, Wayfinder, and schema inspection then see the same accepted command routes as the runtime CLI.
 
 If an alternate CLI shape needs to reshape input before it reaches the trail, that is richer than an alias. Treat it as an input mapping only if it normalizes honestly into the same authored trail input contract. If it changes behavior, permits, intent, errors, outputs, lifecycle, side effects, or hides which trail is running, it is a trail fork: author a new trail or a composing trail instead of hiding the split in CLI wiring.
 

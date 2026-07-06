@@ -8,6 +8,7 @@ import {
   createTrailContext,
   resource,
   signal,
+  surfaceOverlay,
   trail,
   topo,
 } from '@ontrails/core';
@@ -136,7 +137,7 @@ describe('buildCommands path derivation', () => {
     ]);
   });
 
-  test('projects trail-owned and surface-owned CLI aliases as routes', () => {
+  test('projects trail-owned aliases and surface overlay cli bindings as routes', () => {
     const search = trail('wayfind.search', {
       blaze: () => Result.ok([]),
       cli: {
@@ -146,9 +147,7 @@ describe('buildCommands path derivation', () => {
     });
     const app = makeApp(search);
     const commands = buildCommands(app, {
-      aliases: {
-        'wayfind.search': [['wf', 'search']],
-      },
+      overlays: [surfaceOverlay({ cli: { 'wf.search': 'wayfind.search' } })],
     });
 
     expect(commands[0]?.path).toEqual(['wayfind', 'search']);
@@ -174,23 +173,155 @@ describe('buildCommands path derivation', () => {
     ]);
   });
 
-  test('rejects surface-owned aliases for unknown trail ids', () => {
+  test('scalar cli bindings accept a glob that resolves to exactly one trail', () => {
+    const search = trail('wayfind.search', {
+      blaze: () => Result.ok([]),
+      input: z.object({ query: z.string() }),
+    });
+    const commands = buildCommands(makeApp(search), {
+      overlays: [surfaceOverlay({ cli: { find: 'wayfind.*' } })],
+    });
+
+    expect(commands[0]?.routes).toEqual([
+      {
+        kind: 'canonical',
+        path: ['wayfind', 'search'],
+        source: 'derived',
+        target: 'wayfind.search',
+      },
+      {
+        kind: 'alias',
+        path: ['find'],
+        source: 'surface',
+        target: 'wayfind.search',
+      },
+    ]);
+  });
+
+  test('rejects scalar cli bindings that resolve to no trails', () => {
     const search = trail('wayfind.search', {
       blaze: () => Result.ok([]),
       input: z.object({ query: z.string() }),
     });
     const result = deriveCliCommands(makeApp(search), {
-      aliases: {
-        'wayfind.serch': [['wf', 'search']],
-      },
+      overlays: [surfaceOverlay({ cli: { 'wf.search': 'wayfind.serch' } })],
     });
 
     expect(result.isErr()).toBe(true);
     if (result.isErr()) {
       expect(result.error).toBeInstanceOf(ValidationError);
-      expect(result.error.message).toContain(
-        'CLI command aliases target unknown trail "wayfind.serch"'
-      );
+      expect(result.error.message).toContain('cli binding "wf.search"');
+      expect(result.error.message).toContain('resolves to no trails');
+    }
+  });
+
+  test('rejects scalar cli bindings whose glob resolves to multiple trails', () => {
+    const search = trail('wayfind.search', {
+      blaze: () => Result.ok([]),
+      input: z.object({ query: z.string() }),
+    });
+    const impact = trail('wayfind.impact', {
+      blaze: () => Result.ok([]),
+      input: z.object({ id: z.string() }),
+    });
+    const result = deriveCliCommands(makeApp(search, impact), {
+      overlays: [surfaceOverlay({ cli: { find: 'wayfind.*' } })],
+    });
+
+    expect(result.isErr()).toBe(true);
+    if (result.isErr()) {
+      expect(result.error).toBeInstanceOf(ValidationError);
+      expect(result.error.message).toContain('cli binding "find"');
+      expect(result.error.message).toContain('wayfind.impact, wayfind.search');
+    }
+  });
+
+  test('group cli bindings produce member routes with group-prefixed paths', () => {
+    const create = trail('gear.create', {
+      blaze: (input: { name: string }) => Result.ok({ name: input.name }),
+      input: z.object({ name: z.string() }),
+    });
+    const list = trail('gear.list', {
+      blaze: () => Result.ok([]),
+      input: z.object({}),
+    });
+    const commands = buildCommands(makeApp(create, list), {
+      overlays: [
+        surfaceOverlay({ cli: { gear: ['gear.create', 'gear.list'] } }),
+      ],
+    });
+
+    const createCommand = commands.find((c) => c.trail.id === 'gear.create');
+    const listCommand = commands.find((c) => c.trail.id === 'gear.list');
+    expect(createCommand?.routes).toEqual([
+      {
+        kind: 'canonical',
+        path: ['gear', 'create'],
+        source: 'derived',
+        target: 'gear.create',
+      },
+      {
+        kind: 'alias',
+        path: ['gear', 'gear', 'create'],
+        source: 'surface',
+        target: 'gear.create',
+      },
+    ]);
+    expect(listCommand?.routes).toEqual([
+      {
+        kind: 'canonical',
+        path: ['gear', 'list'],
+        source: 'derived',
+        target: 'gear.list',
+      },
+      {
+        kind: 'alias',
+        path: ['gear', 'gear', 'list'],
+        source: 'surface',
+        target: 'gear.list',
+      },
+    ]);
+  });
+
+  test('a singleton-list cli binding stays a group with a member route, not a bare synonym', () => {
+    const list = trail('gear.list', {
+      blaze: () => Result.ok([]),
+      input: z.object({}),
+    });
+    const commands = buildCommands(makeApp(list), {
+      overlays: [surfaceOverlay({ cli: { inventory: ['gear.list'] } })],
+    });
+
+    expect(commands[0]?.routes).toEqual([
+      {
+        kind: 'canonical',
+        path: ['gear', 'list'],
+        source: 'derived',
+        target: 'gear.list',
+      },
+      {
+        kind: 'alias',
+        path: ['inventory', 'gear', 'list'],
+        source: 'surface',
+        target: 'gear.list',
+      },
+    ]);
+  });
+
+  test('rejects group cli bindings whose member union is empty', () => {
+    const list = trail('gear.list', {
+      blaze: () => Result.ok([]),
+      input: z.object({}),
+    });
+    const result = deriveCliCommands(makeApp(list), {
+      overlays: [surfaceOverlay({ cli: { ghost: ['no.such.*'] } })],
+    });
+
+    expect(result.isErr()).toBe(true);
+    if (result.isErr()) {
+      expect(result.error).toBeInstanceOf(ValidationError);
+      expect(result.error.message).toContain('cli group binding "ghost"');
+      expect(result.error.message).toContain('resolves to no trails');
     }
   });
 
