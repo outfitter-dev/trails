@@ -19,6 +19,7 @@ import type {
   Trail,
 } from '@ontrails/core';
 
+import { isBlobOutputSchema } from './blob-output.js';
 import { deriveHttpOperationMethod } from './method.js';
 
 type JsonSchema = Readonly<Record<string, unknown>>;
@@ -213,6 +214,21 @@ const buildSuccessResponse = (
 ): Record<string, unknown> => {
   if (!t.output) {
     return { '200': { description: 'Success' } };
+  }
+  if (isBlobOutputSchema(t.output)) {
+    // BlobRef routes stream raw bytes at runtime (`fetch.ts` serves the
+    // blob's declared mimeType and Content-Length), so the spec documents
+    // a binary body instead of the JSON data envelope. The concrete
+    // Content-Type is per-blob runtime data, hence the `*/*` range.
+    return {
+      '200': {
+        content: {
+          '*/*': { schema: { format: 'binary', type: 'string' } },
+        },
+        description:
+          "Binary content: raw blob bytes served with the blob's declared mimeType",
+      },
+    };
   }
   const outputSchema = toJsonSchema(t.output);
   return {

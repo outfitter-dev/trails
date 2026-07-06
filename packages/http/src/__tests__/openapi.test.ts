@@ -1,9 +1,18 @@
 import { describe, expect, test } from 'bun:test';
 
-import { Result, ValidationError, signal, topo, trail } from '@ontrails/core';
+import {
+  Result,
+  ValidationError,
+  blobRefSchema,
+  createBlobRef,
+  signal,
+  topo,
+  trail,
+} from '@ontrails/core';
 import type { Topo } from '@ontrails/core';
 import { z } from 'zod';
 
+import { createFetchHandler } from '../fetch.js';
 import { deriveOpenApiSpec } from '../openapi.js';
 
 // ---------------------------------------------------------------------------
@@ -750,6 +759,98 @@ const registerMetadataAndStructureTests = () => {
   });
 };
 
+const registerBlobResponseTests = () => {
+  describe('BlobRef responses', () => {
+    const fileBytes = new TextEncoder().encode('raw file bytes');
+    const blobTrail = trail('file.raw', {
+      blaze: (input: { name: string }) =>
+        Result.ok(
+          createBlobRef({
+            data: fileBytes,
+            mimeType: 'text/plain; charset=utf-8',
+            name: input.name,
+            size: fileBytes.byteLength,
+          })
+        ),
+      input: z.object({ name: z.string() }),
+      intent: 'read',
+      output: blobRefSchema,
+    });
+
+    const blobSuccessResponse = (): Record<string, unknown> => {
+      const spec = deriveOpenApiSpec(topoFrom({ blobTrail }));
+      const responses = getOperation(spec, '/file/raw', 'get')[
+        'responses'
+      ] as Record<string, unknown>;
+      return responses['200'] as Record<string, unknown>;
+    };
+
+    test('blob output → 200 documents a binary body, not a JSON descriptor envelope', () => {
+      const success = blobSuccessResponse();
+      const content = success['content'] as Record<string, unknown>;
+
+      expect(content['application/json']).toBeUndefined();
+      const binary = content['*/*'] as Record<string, unknown>;
+      expect(binary['schema']).toEqual({ format: 'binary', type: 'string' });
+      expect(success['description']).toContain('mimeType');
+    });
+
+    test('blob route error responses keep the JSON error envelope', () => {
+      const failingBlobTrail = trail('file.raw', {
+        blaze: blobTrail.blaze,
+        examples: [
+          {
+            error: 'NotFoundError',
+            input: { name: 'missing.txt' },
+            name: 'missing file',
+          },
+        ],
+        input: z.object({ name: z.string() }),
+        intent: 'read',
+        output: blobRefSchema,
+      });
+      const spec = deriveOpenApiSpec(topoFrom({ failingBlobTrail }));
+      const responses = getOperation(spec, '/file/raw', 'get')[
+        'responses'
+      ] as Record<string, unknown>;
+
+      const validation = responses['400'] as Record<string, unknown>;
+      const validationContent = validation['content'] as Record<
+        string,
+        unknown
+      >;
+      expect(validationContent['application/json']).toBeDefined();
+      expect(validationContent['*/*']).toBeUndefined();
+
+      // Example-derived error statuses are documented without a content
+      // entry (description only, for every trail shape) — the binary body
+      // must not leak onto them.
+      const notFound = responses['404'] as Record<string, unknown>;
+      expect(notFound['description']).toBeDefined();
+      expect(notFound['content']).toBeUndefined();
+    });
+
+    test('the documented binary response matches what the runtime serves', async () => {
+      const app = topo('blob-api', { blobTrail });
+      const success = blobSuccessResponse();
+      const handler = createFetchHandler(app);
+
+      const response = await handler(
+        new Request('http://localhost/file/raw?name=notes.txt')
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get('Content-Type')).toBe(
+        'text/plain; charset=utf-8'
+      );
+      expect(new Uint8Array(await response.arrayBuffer())).toEqual(fileBytes);
+      // The spec's only 200 content entry is the binary body — the JSON
+      // descriptor envelope the runtime never serves is not documented.
+      expect(Object.keys(success['content'] as object)).toEqual(['*/*']);
+    });
+  });
+};
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -759,5 +860,6 @@ describe('deriveOpenApiSpec', () => [
   registerGetQueryParameterTests(),
   registerRequestBodyTests(),
   registerResponseTests(),
+  registerBlobResponseTests(),
   registerMetadataAndStructureTests(),
 ]);

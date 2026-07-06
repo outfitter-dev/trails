@@ -1,5 +1,4 @@
 import {
-  BLOB_REF_SCHEMA_META_KEY,
   CancelledError,
   isBlobRef,
   isTrailsError,
@@ -12,6 +11,7 @@ import {
 } from '@ontrails/core';
 import type { BlobRef, Topo } from '@ontrails/core';
 
+import { isBlobOutputSchema } from './blob-output.js';
 import { deriveHttpRoutes } from './build.js';
 import type { DeriveHttpRoutesOptions, HttpRouteDefinition } from './build.js';
 
@@ -345,22 +345,8 @@ interface ResultLike {
  * True when the route's trail declares a BlobRef output schema — the
  * authored fact that selects byte streaming over the JSON envelope.
  */
-const rendersBlobOutput = (route: HttpRouteDefinition): boolean => {
-  const { output } = route.trail;
-  if (output === undefined) {
-    return false;
-  }
-  const maybeMeta = (output as { meta?: () => unknown }).meta;
-  if (typeof maybeMeta !== 'function') {
-    return false;
-  }
-  const meta = maybeMeta.call(output);
-  return (
-    typeof meta === 'object' &&
-    meta !== null &&
-    (meta as Record<string, unknown>)[BLOB_REF_SCHEMA_META_KEY] === true
-  );
-};
+const rendersBlobOutput = (route: HttpRouteDefinition): boolean =>
+  isBlobOutputSchema(route.trail.output);
 
 /**
  * Narrow blob bytes for `Response`. `BlobRef.data` is typed `Uint8Array`
