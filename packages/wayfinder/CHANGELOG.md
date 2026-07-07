@@ -1,5 +1,16 @@
 # @ontrails/wayfinder
 
+## 1.0.0-beta.39
+
+### Minor Changes
+
+- [`adf6419`](https://github.com/outfitter-dev/trails/commit/adf64191ea9e458d7405465ab6fa96ca72ab574c): Add `trails wayfind --overlay <namespace>`: a generic read of namespaced lock overlays (adapter-contributed facts) from saved artifacts, listing available namespaces on a miss — new fact families become inspectable with zero wayfinder edits.
+
+### Patch Changes
+
+- [`a89d469`](https://github.com/outfitter-dev/trails/commit/a89d4696aa78f3dda9394c14665ab3ea8c0f313c): Make `trails compile` → `trails validate` round-trip deterministically (TRL-1191). The per-user topo store no longer reuses previously stored JSON Schema bytes by zod definition hash — that hash cannot see `.describe()` metadata or object field order, so a warm store could serve pre-edit schema values into a freshly compiled lock and make `validate` report it stale immediately. Every snapshot now regenerates schema JSON from the live Zod schema, the store's graph hash goes through the same shared `deriveStableHash` path as `deriveTopoGraphHash`, and the committed `trails.lock` omits the wallclock `generatedAt` field so recompiling unchanged sources yields a byte-identical lock. `TopoGraph.generatedAt` is now optional; locks written by earlier versions still parse.
+- [`a89d469`](https://github.com/outfitter-dev/trails/commit/a89d4696aa78f3dda9394c14665ab3ea8c0f313c): Make the per-user topo store an honest cache (TRL-1196). Every snapshot now records a content fingerprint of the app source set (`topo_snapshots.source_fingerprint`, store schema v14), `trails compile` reports it in its output, and Wayfinder artifact loading compares it against a freshly derived fingerprint — a mismatch surfaces as a `topo-store-source-fingerprint-mismatch` stale reason instead of silently serving pre-edit facts. Compile derives everything from live source on every run, so a poisoned or stale store can never reach `trails.lock`, with or without `--force`.
+
 ## 1.0.0-beta.38
 
 ## 1.0.0-beta.37

@@ -1,5 +1,13 @@
 # @ontrails/http
 
+## 1.0.0-beta.39
+
+### Patch Changes
+
+- [`6517f67`](https://github.com/outfitter-dev/trails/commit/6517f67b9dcc9d0ab64b1c7201b5d326905498e4): The OpenAPI projection now documents BlobRef routes as binary responses (`content: { '*/*': { schema: { type: 'string', format: 'binary' } } }`) instead of a JSON data envelope, matching the raw bytes the runtime serves with the blob's declared mimeType. Error responses keep the JSON error envelope. Both the fetch handler and the OpenAPI projection now share one BlobRef output recognition helper.
+- [`ab5c767`](https://github.com/outfitter-dev/trails/commit/ab5c7670446baa89cc10241686d51c16d0215e04): Serve `BlobRef` trail outputs as bytes on HTTP (TRL-1192). When a trail's output schema is `blobRefSchema`, the route handler streams the blob's data with `Content-Type` from its `mimeType` and a `Content-Length` from its `size` — for both `Uint8Array` and `ReadableStream` payloads — instead of wrapping the value in the JSON envelope. Error results keep the JSON error envelope, and non-blob trails are unchanged. Apps no longer need to hand-mount raw-byte routes beside the derived surface.
+- [`b9e82a3`](https://github.com/outfitter-dev/trails/commit/b9e82a33546356c93fbc302fb934a83f19f1c2c5): Webhook ingress v2 (TRL-1194, absorbing TRL-1174 and TRL-1175): store-verified, per-endpoint webhook ingress becomes framework-expressible. `webhook()` accepts dynamic path segments (`path: '/hooks/:endpoint'`) whose values are delivered as envelope fields, opt-in `rawBody: true` delivery (a non-JSON body is no longer a surface-level failure — the trail owns payload interpretation), an allowlisted `headers` list delivered lowercased, and `resources` that make `verify` resource-capable: the HTTP surface resolves the declared resources into a context for the verifier and releases them afterwards, so signature checks can reach stores holding per-endpoint secrets. Envelope-mode ingress responds 202 Accepted; classic static webhooks keep their exact-match, JSON-gated, 200 behavior. Core exports `parseWebhookPathParams`, `matchWebhookPath`, `webhookPathPatternsOverlap`, and `createResources`. The `webhook-route-collision` Warden rule now also flags dynamic patterns that overlap other webhook or derived routes, not just exact method/path duplicates.
+
 ## 1.0.0-beta.38
 
 ## 1.0.0-beta.37

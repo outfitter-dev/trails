@@ -1,5 +1,16 @@
 # @ontrails/regrade
 
+## 1.0.0-beta.39
+
+### Minor Changes
+
+- [`65b362f`](https://github.com/outfitter-dev/trails/commit/65b362f65fa2a75e2121d1a8b31882d52fa0376b): Regrade history consolidates per transition, append-only: `regrade apply` appends a run entry stamped `{ planContentHash, lockHashAtRun }` to `.trails/regrade/history/<transition>.json` instead of overwriting lockhash-named files, identical re-runs are recognized as replays, the artifact carries a stable internal transition `id`, and `regrade check <transition>` verifies each recorded run at its own stamped lock. The report `history.status` union widens to `applied | checked | replay`.
+- [`d3f7a25`](https://github.com/outfitter-dev/trails/commit/d3f7a25e66b6f0149ab2f33ac31ae1458860dce3): Regrade review entries carry structured review detail through Warden-backed and AST-backed classes: matched form, candidate replacement, machine-readable signals, preserve cautions, and a `judgment` field that distinguishes unresolved occurrence judgment from completed preserve/rewrite verdicts. Safe rewrite entries keep their existing report shape.
+
+### Patch Changes
+
+- [`b077fb7`](https://github.com/outfitter-dev/trails/commit/b077fb7ba6d9724cac6f0e59bc3fec9aec28984c): Add the export-restructure Regrade class family (TRL-1210). `export-restructure:cli-aliases` inverts legacy `cliAliases`/`trailsCliAliases` exports into `surfaceOverlay({ cli })` bindings inside the module's `trailsOverlays` export — adding the `@ontrails/core` import, deleting the legacy export, and routing anything it cannot prove safe (computed keys, spreads, in-module `aliases:` references) to `needs-review` with the exact target shape named. `export-restructure:mcp-trailheads` projects call-site MCP trailhead maps into `surfaceOverlay({ mcp })` group bindings: it rewrites in place when the same module exports `trailsOverlays`, and otherwise emits a classified `needs-review` handoff naming the module-overlay target while the call-site map stays as the richer-metadata override-in-context. Warden's fix-class union grows to `'export-restructure' | 'term-rewrite'`, `no-legacy-cli-alias-export` now advertises the `export-restructure` class, and `loadWardenRegradeClasses` supersedes `loadWardenTermRewriteClasses` (still exported) as the full Warden-routed class loader. Class-mode Regrade also gains the full plan lifecycle: `trails regrade plan --type class --class-ids ...` writes a `.trails/regrade/<slug>.json` plan carrying class ids, scope, and intent, `regrade check` re-runs the dry run and gates on outstanding rewrites or review, and `regrade apply` applies and graduates the plan to `.trails/regrade/history/<slug>-<hash>.json` — the same plan → check → apply → history evidence trail vocabulary regrades already had, now available to structural transforms. The class family ships for downstream apps bridging the pre-1.0 gap, so pre-cutover alias exports and trailhead maps migrate mechanically instead of by hand.
+
 ## 1.0.0-beta.38
 
 ## 1.0.0-beta.37

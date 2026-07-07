@@ -1,5 +1,16 @@
 # @ontrails/adapter-kit
 
+## 1.0.0-beta.39
+
+### Minor Changes
+
+- [`cc169e2`](https://github.com/outfitter-dev/trails/commit/cc169e2a9b580036b0c6e4ce77d396db6a34f830): Add the `Overlay` contract (namespace + elevated zod fact schema + deterministic derive function) so adapters can contribute namespaced fact overlays to `trails.lock` without any edits to the lock schema or graph type, plus an `isOverlay` guard for compile-side collection.
+
+### Patch Changes
+
+- [`bafde1f`](https://github.com/outfitter-dev/trails/commit/bafde1fc8172abb8d8617f69a3c7a70667626d10): Fresh derivations now collect app-module overlays through the shared channel compile uses. `@ontrails/adapter-kit` exports `resolveTrailsOverlays()`, the one reader of an app module's `trailsOverlays` export; the compile-path fresh app lease and Warden's fresh topo loading both go through it, making per-namespace drift asymmetry structurally impossible. Warden drift checks (`checkDrift` now accepts derive options carrying overlays) and the topo-aware rule context graph derive with the same overlays the committed lock embeds, so rules like `surface-overlay-coherence` fire on standard runs. Stale drift results name the drifted overlay namespaces (`DriftResult.driftedOverlayNamespaces`) and point at `trails compile` as the remediation.
+- [`820b4ad`](https://github.com/outfitter-dev/trails/commit/820b4ad9c40ea383b3c489a05fe7e4b2328e324f): Add `surfaceOverlay` — the shared surface-naming schema (scalar binding = synonym, list binding = grouped entry, singleton list stays a group) with app-authored/adapter-derived overlay provenance enforced at collection and consumption, and the `surface-overlay-coherence` Warden rule. MCP tool-name derivation moves to `@ontrails/core` (`deriveMcpToolName`) so the surface and governance read one projection; `@ontrails/mcp`'s `deriveToolName` now delegates to it. The coherence rule activates on standard warden runs once fresh derivations collect app-module overlays through the shared compile channel (TRL-1209, next in this stack).
+
 ## 1.0.0-beta.38
 
 ## 1.0.0-beta.37

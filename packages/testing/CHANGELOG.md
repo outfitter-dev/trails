@@ -1,5 +1,11 @@
 # @ontrails/testing
 
+## 1.0.0-beta.39
+
+### Patch Changes
+
+- [`4797bee`](https://github.com/outfitter-dev/trails/commit/4797bee8b7edb80d39c032a3a12a8b3bfd0402cf): `createMcpHarness` now forwards the full `McpExtra` from `options.extra` — `authorization`, `permit`, and `sessionId` in addition to the already-forwarded `abortSignal`, `progressToken`, and `sendProgress` — so bearer-token permit enforcement can be exercised through the harness instead of invoking `deriveMcpTools` handlers directly (TRL-1176).
+
 ## 1.0.0-beta.38
 
 ## 1.0.0-beta.37

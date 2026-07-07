@@ -1,5 +1,12 @@
 # @ontrails/store
 
+## 1.0.0-beta.39
+
+### Patch Changes
+
+- [`f7ec225`](https://github.com/outfitter-dev/trails/commit/f7ec225c01482f8fb55afd174add3d961a63171b): `sync()` gains the factory-contract options `crud()` and `reconcile()` received in TRL-1195: a `permit` option declared on the produced trail, and per-endpoint `contour` options on `SyncEndpoint` so a `crud()` bundle's table contour can be shared instead of colliding as a duplicate registration at `topo()`.
+- [`5a38c73`](https://github.com/outfitter-dev/trails/commit/5a38c73092f81612769be4b44944d828c3436e07): Complete the store factory trail contracts (TRL-1195, absorbing TRL-1177 and TRL-1178). `crud()` gains `permit` (applied to every produced trail) and `permits` (per-operation overrides, so destroy trails satisfy permit governance) plus a `contour` option, and the returned tuple now exposes the table contour it registered as a `contour` property. `reconcile()` gains `permit` and accepts a shared `contour` instance, so crud + reconcile on one table register cleanly in a single `topo()` instead of colliding on a duplicate contour name. `TableContour` is exported from `@ontrails/store/trails`. Consuming apps no longer need to post-process factory trails to attach permits or strip contours.
+
 ## 1.0.0-beta.38
 
 ## 1.0.0-beta.37
