@@ -58,3 +58,4 @@ ADRs document the significant design decisions behind Trails — the choices tha
 | [0049](0049-composition-is-compose-not-cross.md) | Composition is `compose`, not `cross` | Accepted |
 | [0050](0050-surface-accommodations-preserve-trail-identity.md) | Surface Accommodations Preserve Trail Identity | Accepted |
 | [0051](0051-package-ownership-follows-natural-altitude.md) | Package Ownership Follows Natural Altitude | Accepted |
+| [0052](0052-overlays-one-extension-mechanism.md) | Overlays Are the Lock's One Extension Mechanism | Accepted |

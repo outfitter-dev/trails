@@ -1,14 +1,15 @@
 ---
+id: 52
 slug: overlays-one-extension-mechanism
 title: Overlays Are the Lock's One Extension Mechanism
-status: draft
+status: accepted
 created: 2026-07-05
-updated: 2026-07-05
+updated: 2026-07-07
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [17, 46, 50, 51]
 ---
 
-# ADR: Overlays Are the Lock's One Extension Mechanism
+# ADR-0052: Overlays Are the Lock's One Extension Mechanism
 
 ## Context
 
@@ -18,7 +19,7 @@ The lock accumulated three separate ways for information that is not core graph 
 
 - **CLI aliases** rode an ad-hoc export convention (`cliAliases` / `trailsCliAliases`) that compile lifted into `deriveTopoGraph` through a dedicated option. Warden's drift check derived a fresh graph *without* that lift, so every alias-exporting app compared dirty against its own committed lock — permanently "stale" the moment it compiled ([TRL-1179](https://linear.app/outfitter/issue/TRL-1179/warden-drift-check-ignores-clialiases-so-alias-exporting-app-modules)).
 - **MCP trailheads** never reached the lock in practice. The map passed at the `surface()` call is runtime-correct — the ADR-0050 identity tests pass — but lock-blind: invisible to Wayfinder, invisible to drift detection, un-inspectable by agents reading the committed story ([TRL-1193](https://linear.app/outfitter/issue/TRL-1193/app-authored-mcp-trailheads-have-no-channel-into-the-compiled-lock)). Topographer grew a `DeriveTopoGraphOptions.trailheads` declaration option, but nothing on the compile path ever wires it.
-- **Adapter facts** (the Cloudflare adapter's deployment metadata) landed as the right shape on the first try: a named, schema-registered, namespace-keyed sheet collected on the compile path, round-tripped byte-preserved when unrecognized, covered by the canonical hash, and readable generically through `trails wayfind --overlay <namespace>` ([#900](https://github.com/outfitter-dev/trails/pull/900)–[#903](https://github.com/outfitter-dev/trails/pull/903)). One gap remains: the shipped channel is compile-path-only — Warden's fresh drift derivation does not collect it yet, which is exactly the asymmetry the drift-symmetry decision below closes.
+- **Adapter facts** (the Cloudflare adapter's deployment metadata) landed as the right shape on the first try: a named, schema-registered, namespace-keyed sheet collected on the compile path, round-tripped byte-preserved when unrecognized, covered by the canonical hash, and readable generically through `trails wayfind --overlay <namespace>` ([#900](https://github.com/outfitter-dev/trails/pull/900)–[#903](https://github.com/outfitter-dev/trails/pull/903)). One gap remained at drafting time: the shipped channel was compile-path-only — Warden's fresh drift derivation did not collect it, exactly the asymmetry the drift-symmetry decision below closes. Wave 2 closed it before acceptance ([TRL-1209](https://linear.app/outfitter/issue/TRL-1209/wave-2-drift-symmetry-compile-and-warden-derive-collect-overlays)): compile and Warden fresh derivation now read `trailsOverlays` through one shared collection function.
 
 The third channel is the tell. It shipped without per-kind plumbing because it is a *mechanism*, not a feature: register a schema, collect through one path, preserve tolerantly, hash canonically. The first two channels are the same shape wearing bespoke plumbing — and the bespoke plumbing is exactly where the bugs live. [TRL-1179](https://linear.app/outfitter/issue/TRL-1179/warden-drift-check-ignores-clialiases-so-alias-exporting-app-modules) is not an alias bug; it is an asymmetric-lifting bug. Any per-kind lift can drift from any fresh derivation that forgets it.
 
@@ -68,7 +69,7 @@ Per-surface keys (`cli`, `mcp`, future `ws`/`http`) map names to `TrailRef | Tra
 - A **list** value is a grouped entry — the old "trailhead." One derived surface entry over the members, member identity preserved at invocation and response.
 - **A singleton list stays a group.** Cardinality is not the discriminator; value shape is. A group of one keeps its grouped invocation envelope and does not change contract when member two arrives.
 
-ADR-0050's protections re-key onto the shapes rather than the retired nouns: [converge-without-lying](../0050-surface-accommodations-preserve-trail-identity.md#two-axes) governs scalar bindings; [gather-without-merging](../0050-surface-accommodations-preserve-trail-identity.md#two-axes) identity preservation governs list bindings. The doctrine is unchanged; only the carrier moved.
+ADR-0050's protections re-key onto the shapes rather than the retired nouns: [converge-without-lying](0050-surface-accommodations-preserve-trail-identity.md#two-axes) governs scalar bindings; [gather-without-merging](0050-surface-accommodations-preserve-trail-identity.md#two-axes) identity preservation governs list bindings. The doctrine is unchanged; only the carrier moved.
 
 The subsumption also makes both capabilities symmetric across surfaces for free: list bindings on CLI are command groups (`app gear list`); scalar bindings on MCP are tool synonyms. The trailhead concept was never MCP-specific — the bespoke plumbing just made it look that way.
 
@@ -84,7 +85,7 @@ Compile and every fresh derivation (Warden drift, `trails validate`, Wayfinder l
 
 ### The call-site option survives as override-in-context
 
-The MCP surface's call-site map is not deleted; it is re-classed under the [authored-defaults-overridable pattern](../../tenets.md#authored-defaults-overridable-in-context). The module overlay is the authored, lockable default; a map passed at `surface()` still works and wins at runtime — and is *visible as an override*: Warden warns when the runtime override diverges from the authored overlay. This is a permanent feature of the model, not a compatibility bridge.
+The MCP surface's call-site map is not deleted; it is re-classed under the [authored-defaults-overridable pattern](../tenets.md#authored-defaults-overridable-in-context). The module overlay is the authored, lockable default; a map passed at `surface()` still works and wins at runtime — and is *visible as an override*: Warden warns when the runtime override diverges from the authored overlay. This is a permanent feature of the model, not a compatibility bridge.
 
 ### Vocabulary rulings
 
@@ -94,7 +95,7 @@ The MCP surface's call-site map is not deleted; it is re-classed under the [auth
 
 ### Natural altitude extends to vocabulary
 
-[ADR-0051](../0051-package-ownership-follows-natural-altitude.md) says a reusable capability lives in the lowest package where it is coherent. This ADR extends the doctrine from code to *concepts*: a vocabulary item belongs to the package that acts on it. `@ontrails/cli` owns what a `cli` binding means; the MCP projection owns what an `mcp` binding means; core and topographer know only the overlay envelope — determinism, tolerant preservation, provenance, hash coverage. Adding accommodation kind N+1 is a schema plus a consumer; core diffs zero lines.
+[ADR-0051](0051-package-ownership-follows-natural-altitude.md) says a reusable capability lives in the lowest package where it is coherent. This ADR extends the doctrine from code to *concepts*: a vocabulary item belongs to the package that acts on it. `@ontrails/cli` owns what a `cli` binding means; the MCP projection owns what an `mcp` binding means; core and topographer know only the overlay envelope — determinism, tolerant preservation, provenance, hash coverage. Adding accommodation kind N+1 is a schema plus a consumer; core diffs zero lines.
 
 ### Hard cutover
 
@@ -144,10 +145,10 @@ Two adjacent pressures, answered in advance so they do not grow channels:
 ## References
 
 - [Design: overlays — one extension mechanism, and the migration semantics for cliAliases + MCP trailheads](https://linear.app/outfitter/document/design-overlays-one-extension-mechanism-and-the-migration-semantics-be1578213cd9) — the ratified binding spec this ADR records
-- [ADR-0050: Surface Accommodations Preserve Trail Identity](../0050-surface-accommodations-preserve-trail-identity.md) — amended: the accommodation doctrine stands; its implementation story re-keys from named machinery (alias maps, trailhead maps) onto binding shapes
-- [ADR-0051: Package Ownership Follows Natural Altitude](../0051-package-ownership-follows-natural-altitude.md) — extended: natural altitude now governs vocabulary, not just code
-- [ADR-0017: Serialized Topo Graph](../0017-serialized-topo-graph.md) — the lock promise overlays extend
-- [ADR-0046: Lock v3 Artifact Family](../0046-lock-v3-artifact-family.md) — the artifact family the `overlays` field lives in
+- [ADR-0050: Surface Accommodations Preserve Trail Identity](0050-surface-accommodations-preserve-trail-identity.md) — amended: the accommodation doctrine stands; its implementation story re-keys from named machinery (alias maps, trailhead maps) onto binding shapes
+- [ADR-0051: Package Ownership Follows Natural Altitude](0051-package-ownership-follows-natural-altitude.md) — extended: natural altitude now governs vocabulary, not just code
+- [ADR-0017: Serialized Topo Graph](0017-serialized-topo-graph.md) — the lock promise overlays extend
+- [ADR-0046: Lock v3 Artifact Family](0046-lock-v3-artifact-family.md) — the artifact family the `overlays` field lives in
 - Shipped mechanism evidence: [#900](https://github.com/outfitter-dev/trails/pull/900), [#901](https://github.com/outfitter-dev/trails/pull/901), [#902](https://github.com/outfitter-dev/trails/pull/902), [#903](https://github.com/outfitter-dev/trails/pull/903) (generic namespaced overlays: registration, compile-path collection, tolerant reader, canonical hash, generic wayfind read)
 - [TRL-1179](https://linear.app/outfitter/issue/TRL-1179/warden-drift-check-ignores-clialiases-so-alias-exporting-app-modules) — the asymmetric-lift drift bug this design retires as a class
 - [TRL-1193](https://linear.app/outfitter/issue/TRL-1193/app-authored-mcp-trailheads-have-no-channel-into-the-compiled-lock) — the lock-blind trailheads gap this design closes

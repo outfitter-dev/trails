@@ -56,8 +56,3 @@ Draft map: `docs/adr/drafts/decision-map.json`; numbered map: `docs/adr/decision
   - depends on [ADR-0008: Deterministic Surface Derivation](../0008-deterministic-trailhead-derivation.md), [ADR-0019: Hierarchical Command Trees from Trail IDs](../0019-hierarchical-command-trees-from-trail-ids.md), [ADR-0035: Surface APIs Render the Graph](../0035-surface-apis-render-the-graph.md), [ADR-0047: Stable Release Line Discipline](../0047-stable-release-line-discipline.md), [ADR-0050: Surface Accommodations Preserve Trail Identity](../0050-surface-accommodations-preserve-trail-identity.md)
 - [Project Substrate Names Its Truth](20260622-project-substrate-names-its-truth.md)
   - depends on [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md), [ADR-0042: Core/Topographer Boundary Doctrine](../0042-core-topographer-boundary-doctrine.md), [ADR-0046: Lock v3 Artifact Family](../0046-lock-v3-artifact-family.md), [ADR-0050: Surface Accommodations Preserve Trail Identity](../0050-surface-accommodations-preserve-trail-identity.md)
-
-## 2026-07
-
-- [Overlays Are the Lock's One Extension Mechanism](20260705-overlays-one-extension-mechanism.md)
-  - depends on [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md), [ADR-0046: Lock v3 Artifact Family](../0046-lock-v3-artifact-family.md), [ADR-0050: Surface Accommodations Preserve Trail Identity](../0050-surface-accommodations-preserve-trail-identity.md), [ADR-0051: Package Ownership Follows Natural Altitude](../0051-package-ownership-follows-natural-altitude.md)

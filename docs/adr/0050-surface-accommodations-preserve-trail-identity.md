@@ -4,12 +4,14 @@ slug: surface-accommodations-preserve-trail-identity
 title: Surface Accommodations Preserve Trail Identity
 status: accepted
 created: 2026-06-14
-updated: 2026-06-14
+updated: 2026-07-07
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [0, 1, 8, 19, 27, 35, 46]
 ---
 
 # ADR-0050: Surface Accommodations Preserve Trail Identity
+
+> **Status update (2026-07-07):** Amended by [ADR-0052: Overlays Are the Lock's One Extension Mechanism](0052-overlays-one-extension-mechanism.md). The accommodation doctrine here stands — converge without lying, gather without merging, the trail fork test. The implementation carrier moved: `alias` and `trailhead` are no longer API identifiers; both dissolve into surface-overlay binding shapes (scalar = synonym, list = grouped entry), and the protections re-key onto those shapes.
 
 ## Context
 

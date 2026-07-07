@@ -1453,6 +1453,11 @@
           "fromPath": "docs/adr/0048-trail-versioning-v3.md"
         },
         {
+          "context": "- [ADR-0017: Serialized Topo Graph](0017-serialized-topo-graph.md) — the lock promise overlays extend",
+          "from": "0052",
+          "fromPath": "docs/adr/0052-overlays-one-extension-mechanism.md"
+        },
+        {
           "context": "- [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md) -- rig state captured in the lockfile graph; rig lock state occupies a section in `trails.lock`",
           "from": "20260331",
           "fromPath": "docs/adr/drafts/20260331-external-trailheads-as-trails.md"
@@ -1476,11 +1481,6 @@
           "context": "- [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md) — established the resolved graph as a serialized artifact.",
           "from": "20260622",
           "fromPath": "docs/adr/drafts/20260622-project-substrate-names-its-truth.md"
-        },
-        {
-          "context": "- [ADR-0017: Serialized Topo Graph](../0017-serialized-topo-graph.md) — the lock promise overlays extend",
-          "from": "20260705",
-          "fromPath": "docs/adr/drafts/20260705-overlays-one-extension-mechanism.md"
         },
         {
           "context": "- **[ADR-0017: The Serialized Topo Graph](./adr/0017-serialized-topo-graph.md)** — Lockfile as resolved graph",
@@ -2718,6 +2718,11 @@
           "fromPath": "docs/adr/0050-surface-accommodations-preserve-trail-identity.md"
         },
         {
+          "context": "- [ADR-0046: Lock v3 Artifact Family](0046-lock-v3-artifact-family.md) — the artifact family the `overlays` field lives in",
+          "from": "0052",
+          "fromPath": "docs/adr/0052-overlays-one-extension-mechanism.md"
+        },
+        {
           "context": "- [ADR-0046: Lock v3 Artifact Family](../0046-lock-v3-artifact-family.md) - `.trails/topo.lock` as the inspectable topo content artifact",
           "from": "20260603",
           "fromPath": "docs/adr/drafts/20260603-surface-trailheads-shape-dense-topos.md"
@@ -2736,11 +2741,6 @@
           "context": "- [ADR-0046: Lock v3 Artifact Family](../0046-lock-v3-artifact-family.md) — the artifact family this ADR collapses into one root lock.",
           "from": "20260622",
           "fromPath": "docs/adr/drafts/20260622-project-substrate-names-its-truth.md"
-        },
-        {
-          "context": "- [ADR-0046: Lock v3 Artifact Family](../0046-lock-v3-artifact-family.md) — the artifact family the `overlays` field lives in",
-          "from": "20260705",
-          "fromPath": "docs/adr/drafts/20260705-overlays-one-extension-mechanism.md"
         },
         {
           "context": "Typed view over the saved `TopoGraph` content artifact for a snapshot. This is the `topo_graph` member of the lock v3 artifact family defined in [ADR-0046](./adr/0046-lock-v3-artifact-family.md):",
@@ -2881,6 +2881,11 @@
           "fromPath": "AGENTS.md"
         },
         {
+          "context": "ADR-0050's protections re-key onto the shapes rather than the retired nouns: [converge-without-lying](0050-surface-accommodations-preserve-trail-identity.md#two-axes) governs scalar bindings; [gather-",
+          "from": "0052",
+          "fromPath": "docs/adr/0052-overlays-one-extension-mechanism.md"
+        },
+        {
           "context": "- [ADR-0050: Surface Accommodations Preserve Trail Identity](../0050-surface-accommodations-preserve-trail-identity.md) - surface accommodation vocabulary and fork test",
           "from": "20260603",
           "fromPath": "docs/adr/drafts/20260603-surface-trailheads-shape-dense-topos.md"
@@ -2894,11 +2899,6 @@
           "context": "- [ADR-0050: Surface Accommodations Preserve Trail Identity](../0050-surface-accommodations-preserve-trail-identity.md) — preserve authored contract identity.",
           "from": "20260622",
           "fromPath": "docs/adr/drafts/20260622-project-substrate-names-its-truth.md"
-        },
-        {
-          "context": "ADR-0050's protections re-key onto the shapes rather than the retired nouns: [converge-without-lying](../0050-surface-accommodations-preserve-trail-identity.md#two-axes) governs scalar bindings; [gath",
-          "from": "20260705",
-          "fromPath": "docs/adr/drafts/20260705-overlays-one-extension-mechanism.md"
         },
         {
           "context": "CLI routes are a surface accommodation. In CLI terms, the surface entry is the command, the command path is the path for an approach, and an alias is an alternate approach to the same command. See [AD",
@@ -2933,16 +2933,16 @@
       "status": "accepted",
       "superseded_by": null,
       "title": "Surface Accommodations Preserve Trail Identity",
-      "updated": "2026-06-14"
+      "updated": "2026-07-07"
     },
     {
       "created": "2026-07-01",
       "depends_on": ["1", "9", "41"],
       "inbound": [
         {
-          "context": "[ADR-0051](../0051-package-ownership-follows-natural-altitude.md) says a reusable capability lives in the lowest package where it is coherent. This ADR extends the doctrine from code to *concepts*: a ",
-          "from": "20260705",
-          "fromPath": "docs/adr/drafts/20260705-overlays-one-extension-mechanism.md"
+          "context": "[ADR-0051](0051-package-ownership-follows-natural-altitude.md) says a reusable capability lives in the lowest package where it is coherent. This ADR extends the doctrine from code to *concepts*: a voc",
+          "from": "0052",
+          "fromPath": "docs/adr/0052-overlays-one-extension-mechanism.md"
         }
       ],
       "number": "0051",
@@ -2953,6 +2953,25 @@
       "superseded_by": null,
       "title": "Package Ownership Follows Natural Altitude",
       "updated": "2026-07-01"
+    },
+    {
+      "created": "2026-07-05",
+      "depends_on": ["17", "46", "50", "51"],
+      "inbound": [
+        {
+          "context": "> **Status update (2026-07-07):** Amended by [ADR-0052: Overlays Are the Lock's One Extension Mechanism](0052-overlays-one-extension-mechanism.md). The accommodation doctrine here stands — converge wi",
+          "from": "0050",
+          "fromPath": "docs/adr/0050-surface-accommodations-preserve-trail-identity.md"
+        }
+      ],
+      "number": "0052",
+      "owners": ["[galligan](https://github.com/galligan)"],
+      "path": "docs/adr/0052-overlays-one-extension-mechanism.md",
+      "slug": "overlays-one-extension-mechanism",
+      "status": "accepted",
+      "superseded_by": null,
+      "title": "Overlays Are the Lock's One Extension Mechanism",
+      "updated": "2026-07-07"
     }
   ],
   "version": 1
