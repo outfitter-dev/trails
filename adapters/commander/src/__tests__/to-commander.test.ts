@@ -615,6 +615,861 @@ describe('toCommander validation', () => {
     expect(calls).toEqual(['survey:trail', 'survey.trail:shared']);
   });
 
+  test('keeps child command tokens out of child positionals when structured input selects the child', async () => {
+    const calls: string[] = [];
+    const commands = [
+      {
+        args: [
+          { name: 'from', required: false, variadic: false },
+          { name: 'to', required: false, variadic: false },
+        ],
+        execute: async (args: Record<string, unknown>) => {
+          calls.push(`regrade:${String(args['from'])}:${String(args['to'])}`);
+          return await Result.ok('regrade');
+        },
+        flags: [
+          {
+            name: 'input-json',
+            required: false,
+            role: 'structured-input' as const,
+            type: 'string' as const,
+            variadic: false,
+          },
+        ],
+        intent: 'write' as const,
+        path: ['regrade'] as const,
+        trail: trail('regrade', {
+          implementation: () => Result.ok('regrade'),
+          input: z.object({}),
+        }),
+      },
+      {
+        args: [
+          { name: 'from', required: false, variadic: false },
+          { name: 'to', required: false, variadic: false },
+        ],
+        execute: async (
+          args: Record<string, unknown>,
+          opts: Record<string, unknown>
+        ) => {
+          calls.push(
+            `regrade.plan:${String(args['from'])}:${String(args['to'])}:${String(
+              opts['inputJson']
+            )}`
+          );
+          return await Result.ok('regrade.plan');
+        },
+        flags: [
+          {
+            name: 'input-json',
+            required: false,
+            role: 'structured-input' as const,
+            type: 'string' as const,
+            variadic: false,
+          },
+        ],
+        intent: 'write' as const,
+        path: ['regrade', 'plan'] as const,
+        trail: trail('plan.regrade', {
+          implementation: () => Result.ok('regrade.plan'),
+          input: z.object({}),
+        }),
+      },
+    ];
+
+    const program = toCommander(commands, { name: 'test' });
+    program.exitOverride();
+
+    await program.parseAsync([
+      'node',
+      'test',
+      'regrade',
+      'plan',
+      '--input-json',
+      '{"from":"@ontrails/warden/ast","to":"@ontrails/source"}',
+    ]);
+    await program.parseAsync([
+      'node',
+      'test',
+      'regrade',
+      'plan',
+      'plan',
+      '@ontrails/source',
+      '--input-json',
+      '{"from":"structured"}',
+    ]);
+
+    expect(calls).toEqual([
+      'regrade.plan:undefined:undefined:{"from":"@ontrails/warden/ast","to":"@ontrails/source"}',
+      'regrade.plan:plan:@ontrails/source:{"from":"structured"}',
+    ]);
+  });
+
+  test('matches Commander value consumption before resolving a structured-input child path', async () => {
+    const calls: string[] = [];
+    const sharedFlags = [
+      {
+        name: 'limit',
+        required: false,
+        type: 'number' as const,
+        variadic: false,
+      },
+      {
+        name: 'tags',
+        required: false,
+        type: 'string[]' as const,
+        variadic: true,
+      },
+      {
+        name: 'input-json',
+        required: false,
+        role: 'structured-input' as const,
+        type: 'string' as const,
+        variadic: false,
+      },
+    ];
+    const commands = [
+      {
+        args: [{ name: 'id', required: false, variadic: false }],
+        execute: async () => {
+          calls.push('survey');
+          return await Result.ok('survey');
+        },
+        flags: sharedFlags,
+        intent: 'read' as const,
+        path: ['survey'] as const,
+        trail: trail('survey', {
+          implementation: () => Result.ok('survey'),
+          input: z.object({}),
+        }),
+      },
+      {
+        args: [],
+        execute: async (
+          _args: Record<string, unknown>,
+          opts: Record<string, unknown>
+        ) => {
+          calls.push(
+            `survey.trail:${String(opts['limit'])}:${JSON.stringify(opts['tags'])}`
+          );
+          return await Result.ok('survey.trail');
+        },
+        flags: sharedFlags,
+        intent: 'read' as const,
+        path: ['survey', 'trail'] as const,
+        trail: trail('survey.trail', {
+          implementation: () => Result.ok('survey.trail'),
+          input: z.object({}),
+        }),
+      },
+    ];
+
+    const program = toCommander(commands, { name: 'test' });
+    program.exitOverride();
+    await program.parseAsync([
+      'node',
+      'test',
+      'survey',
+      '--limit',
+      '-1',
+      'trail',
+      '--input-json',
+      '{}',
+    ]);
+    await program.parseAsync([
+      'node',
+      'test',
+      'survey',
+      'trail',
+      '--input-json',
+      '{}',
+      '--tags',
+      'x',
+      'survey',
+      'trail',
+    ]);
+
+    expect(calls).toEqual([
+      'survey.trail:-1:undefined',
+      'survey.trail:undefined:["x","survey","trail"]',
+    ]);
+  });
+
+  test('resolves pre-child option arity against the parent command', async () => {
+    const calls: string[] = [];
+    const commands = [
+      {
+        args: [{ name: 'id', required: false, variadic: false }],
+        execute: async () => {
+          calls.push('survey');
+          return await Result.ok('survey');
+        },
+        flags: [
+          {
+            name: 'scope',
+            required: true,
+            type: 'string' as const,
+            variadic: false,
+          },
+          {
+            name: 'module',
+            required: false,
+            type: 'boolean' as const,
+            variadic: false,
+          },
+        ],
+        intent: 'read' as const,
+        path: ['survey'] as const,
+        trail: trail('survey', {
+          implementation: () => Result.ok('survey'),
+          input: z.object({}),
+        }),
+      },
+      {
+        args: [],
+        execute: async () => {
+          calls.push('survey.trail');
+          return await Result.ok('survey.trail');
+        },
+        flags: [
+          {
+            name: 'scope',
+            required: true,
+            type: 'string' as const,
+            variadic: false,
+          },
+          {
+            name: 'module',
+            required: true,
+            type: 'string' as const,
+            variadic: false,
+          },
+          {
+            name: 'input-json',
+            required: false,
+            role: 'structured-input' as const,
+            type: 'string' as const,
+            variadic: false,
+          },
+        ],
+        intent: 'read' as const,
+        path: ['survey', 'trail'] as const,
+        trail: trail('survey.trail', {
+          implementation: () => Result.ok('survey.trail'),
+          input: z.object({}),
+        }),
+      },
+    ];
+
+    const program = toCommander(commands, { name: 'test' });
+    program.exitOverride();
+    await program.parseAsync([
+      'node',
+      'test',
+      'survey',
+      '--scope',
+      'prod',
+      '--module',
+      'trail',
+      '--input-json',
+      '{}',
+    ]);
+
+    expect(calls).toEqual(['survey.trail']);
+  });
+
+  test('ends variadic collection after an inline option value', async () => {
+    const calls: string[] = [];
+    const sharedFlags = [
+      {
+        name: 'tags',
+        required: false,
+        type: 'string[]' as const,
+        variadic: true,
+      },
+      {
+        name: 'input-json',
+        required: false,
+        role: 'structured-input' as const,
+        type: 'string' as const,
+        variadic: false,
+      },
+    ];
+    const commands = [
+      {
+        args: [{ name: 'id', required: false, variadic: false }],
+        execute: async () => {
+          calls.push('survey');
+          return await Result.ok('survey');
+        },
+        flags: sharedFlags,
+        intent: 'read' as const,
+        path: ['survey'] as const,
+        trail: trail('survey', {
+          implementation: () => Result.ok('survey'),
+          input: z.object({}),
+        }),
+      },
+      {
+        args: [],
+        execute: async () => {
+          calls.push('survey.trail');
+          return await Result.ok('survey.trail');
+        },
+        flags: sharedFlags,
+        intent: 'read' as const,
+        path: ['survey', 'trail'] as const,
+        trail: trail('survey.trail', {
+          implementation: () => Result.ok('survey.trail'),
+          input: z.object({}),
+        }),
+      },
+    ];
+
+    const program = toCommander(commands, { name: 'test' });
+    program.exitOverride();
+    await program.parseAsync([
+      'node',
+      'test',
+      'survey',
+      '--tags=x',
+      'trail',
+      '--input-json',
+      '{}',
+    ]);
+
+    expect(calls).toEqual(['survey.trail']);
+  });
+
+  test('does not treat grandparent structured input as an immediate parent signal', async () => {
+    const calls: string[] = [];
+    const commands = [
+      {
+        args: [{ name: 'id', required: false, variadic: false }],
+        execute: async () => {
+          calls.push('a');
+          return await Result.ok('a');
+        },
+        flags: [
+          {
+            name: 'input-json',
+            required: false,
+            role: 'structured-input' as const,
+            type: 'string' as const,
+            variadic: false,
+          },
+        ],
+        intent: 'read' as const,
+        path: ['a'] as const,
+        trail: trail('a', {
+          implementation: () => Result.ok('a'),
+          input: z.object({}),
+        }),
+      },
+      {
+        args: [{ name: 'id', required: false, variadic: false }],
+        execute: async () => {
+          calls.push('a.b');
+          return await Result.ok('a.b');
+        },
+        flags: [
+          {
+            name: 'input-json',
+            required: false,
+            role: 'structured-input' as const,
+            type: 'string' as const,
+            variadic: false,
+          },
+        ],
+        intent: 'read' as const,
+        path: ['a', 'b'] as const,
+        trail: trail('a.b', {
+          implementation: () => Result.ok('a.b'),
+          input: z.object({}),
+        }),
+      },
+      {
+        args: [],
+        execute: async () => {
+          calls.push('a.b.c');
+          return await Result.ok('a.b.c');
+        },
+        flags: [
+          {
+            name: 'input-json',
+            required: false,
+            role: 'structured-input' as const,
+            type: 'string' as const,
+            variadic: false,
+          },
+        ],
+        intent: 'read' as const,
+        path: ['a', 'b', 'c'] as const,
+        trail: trail('a.b.c', {
+          implementation: () => Result.ok('a.b.c'),
+          input: z.object({}),
+        }),
+      },
+    ];
+
+    const program = toCommander(commands, { name: 'test' });
+    program.exitOverride();
+    await program.parseAsync([
+      'node',
+      'test',
+      'a',
+      '--input-json',
+      '{}',
+      'b',
+      'c',
+    ]);
+
+    expect(calls).toEqual(['a.b.c']);
+  });
+
+  test('does not treat an option value as child-owned structured input', async () => {
+    const calls: string[] = [];
+    const sharedFlags = [
+      {
+        name: 'input-json',
+        required: false,
+        role: 'structured-input' as const,
+        type: 'string' as const,
+        variadic: false,
+      },
+      {
+        name: 'label',
+        required: true,
+        type: 'string' as const,
+        variadic: false,
+      },
+    ];
+    const commands = [
+      {
+        args: [{ name: 'id', required: false, variadic: false }],
+        execute: async (
+          args: Record<string, unknown>,
+          opts: Record<string, unknown>
+        ) => {
+          calls.push(
+            `survey:${String(args['id'])}:${String(opts['inputJson'])}`
+          );
+          return await Result.ok('survey');
+        },
+        flags: sharedFlags,
+        intent: 'read' as const,
+        path: ['survey'] as const,
+        trail: trail('survey', {
+          implementation: () => Result.ok('survey'),
+          input: z.object({}),
+        }),
+      },
+      {
+        args: [],
+        execute: async () => {
+          calls.push('survey.trail');
+          return await Result.ok('survey.trail');
+        },
+        flags: sharedFlags,
+        intent: 'read' as const,
+        path: ['survey', 'trail'] as const,
+        trail: trail('survey.trail', {
+          implementation: () => Result.ok('survey.trail'),
+          input: z.object({}),
+        }),
+      },
+    ];
+
+    const program = toCommander(commands, { name: 'test' });
+    program.exitOverride();
+    await program.parseAsync([
+      'node',
+      'test',
+      'survey',
+      '--input-json',
+      '{}',
+      'trail',
+      '--label',
+      '--input-json',
+    ]);
+
+    expect(calls).toEqual(['survey:trail:{}']);
+  });
+
+  test('preserves parent option arity after a child path', async () => {
+    const calls: string[] = [];
+    const commands = [
+      {
+        args: [],
+        execute: async () => {
+          calls.push('survey');
+          return await Result.ok('survey');
+        },
+        flags: [
+          {
+            name: 'module',
+            required: false,
+            type: 'boolean' as const,
+            variadic: false,
+          },
+        ],
+        intent: 'read' as const,
+        path: ['survey'] as const,
+        trail: trail('survey', {
+          implementation: () => Result.ok('survey'),
+          input: z.object({}),
+        }),
+      },
+      {
+        args: [],
+        execute: async () => {
+          calls.push('survey.trail');
+          return await Result.ok('survey.trail');
+        },
+        flags: [
+          {
+            name: 'module',
+            required: false,
+            type: 'string' as const,
+            variadic: false,
+          },
+          {
+            name: 'input-json',
+            required: false,
+            role: 'structured-input' as const,
+            type: 'string' as const,
+            variadic: false,
+          },
+        ],
+        intent: 'read' as const,
+        path: ['survey', 'trail'] as const,
+        trail: trail('survey.trail', {
+          implementation: () => Result.ok('survey.trail'),
+          input: z.object({}),
+        }),
+      },
+    ];
+
+    const program = toCommander(commands, { name: 'test' });
+    program.exitOverride();
+    await program.parseAsync([
+      'node',
+      'test',
+      'survey',
+      'trail',
+      '--module',
+      '--input-json',
+      '{}',
+    ]);
+
+    expect(calls).toEqual(['survey.trail']);
+  });
+
+  test('keeps parent-owned input-json flags on bare child-name fallback', async () => {
+    const calls: string[] = [];
+    const commands = [
+      {
+        args: [{ name: 'id', required: false, variadic: false }],
+        execute: async (
+          args: Record<string, unknown>,
+          opts: Record<string, unknown>
+        ) => {
+          calls.push(
+            `survey:${String(args['id'])}:${String(opts['inputJson'])}`
+          );
+          return await Result.ok('survey');
+        },
+        flags: [
+          {
+            name: 'input-json',
+            required: false,
+            type: 'string' as const,
+            variadic: false,
+          },
+          {
+            name: 'label',
+            required: false,
+            type: 'string' as const,
+            variadic: false,
+          },
+        ],
+        intent: 'read' as const,
+        path: ['survey'] as const,
+        trail: trail('survey', {
+          implementation: () => Result.ok('survey'),
+          input: z.object({}),
+        }),
+      },
+      {
+        args: [{ name: 'id', required: false, variadic: false }],
+        execute: async (
+          args: Record<string, unknown>,
+          opts: Record<string, unknown>
+        ) => {
+          calls.push(
+            `survey.trail:${String(args['id'])}:${String(opts['inputJson'])}`
+          );
+          return await Result.ok('survey.trail');
+        },
+        flags: [
+          {
+            name: 'input-json',
+            required: false,
+            type: 'string' as const,
+            variadic: false,
+          },
+          {
+            name: 'label',
+            required: false,
+            type: 'string' as const,
+            variadic: false,
+          },
+        ],
+        intent: 'read' as const,
+        path: ['survey', 'trail'] as const,
+        trail: trail('survey.trail', {
+          implementation: () => Result.ok('survey.trail'),
+          input: z.object({}),
+        }),
+      },
+    ];
+
+    const program = toCommander(commands, { name: 'test' });
+    program.exitOverride();
+
+    await program.parseAsync([
+      'node',
+      'test',
+      'survey',
+      '--label',
+      'trail',
+      '--input-json',
+      'parent-value',
+      'trail',
+    ]);
+
+    expect(calls).toEqual(['survey:trail:parent-value']);
+  });
+
+  test('does not treat schema-derived input-json flags as structured input', async () => {
+    const calls: string[] = [];
+    const sharedFlag = {
+      name: 'input-json',
+      required: false,
+      type: 'string' as const,
+      variadic: false,
+    };
+    const commands = [
+      {
+        args: [{ name: 'id', required: false, variadic: false }],
+        execute: async (
+          args: Record<string, unknown>,
+          opts: Record<string, unknown>
+        ) => {
+          calls.push(
+            `survey:${String(args['id'])}:${String(opts['inputJson'])}`
+          );
+          return await Result.ok('survey');
+        },
+        flags: [sharedFlag],
+        intent: 'read' as const,
+        path: ['survey'] as const,
+        trail: trail('survey', {
+          implementation: () => Result.ok('survey'),
+          input: z.object({}),
+        }),
+      },
+      {
+        args: [{ name: 'id', required: false, variadic: false }],
+        execute: async (
+          args: Record<string, unknown>,
+          opts: Record<string, unknown>
+        ) => {
+          calls.push(
+            `survey.trail:${String(args['id'])}:${String(opts['inputJson'])}`
+          );
+          return await Result.ok('survey.trail');
+        },
+        flags: [sharedFlag],
+        intent: 'read' as const,
+        path: ['survey', 'trail'] as const,
+        trail: trail('survey.trail', {
+          implementation: () => Result.ok('survey.trail'),
+          input: z.object({}),
+        }),
+      },
+    ];
+
+    const program = toCommander(commands, { name: 'test' });
+    program.exitOverride();
+
+    await program.parseAsync([
+      'node',
+      'test',
+      'survey',
+      'trail',
+      '--input-json',
+      'parent-value',
+    ]);
+
+    expect(calls).toEqual(['survey:trail:parent-value']);
+  });
+
+  test('recognizes child structured input when an ancestor owns the same token', async () => {
+    const calls: string[] = [];
+    const commands = [
+      {
+        args: [{ name: 'id', required: false, variadic: false }],
+        execute: async (args: Record<string, unknown>) => {
+          calls.push(`survey:${String(args['id'])}`);
+          return await Result.ok('survey');
+        },
+        flags: [
+          {
+            name: 'input-json',
+            required: false,
+            type: 'string' as const,
+            variadic: false,
+          },
+        ],
+        intent: 'read' as const,
+        path: ['survey'] as const,
+        trail: trail('survey', {
+          implementation: () => Result.ok('survey'),
+          input: z.object({}),
+        }),
+      },
+      {
+        args: [{ name: 'id', required: false, variadic: false }],
+        execute: async (
+          args: Record<string, unknown>,
+          opts: Record<string, unknown>
+        ) => {
+          calls.push(
+            `survey.trail:${String(args['id'])}:${String(opts['inputJson'])}`
+          );
+          return await Result.ok('survey.trail');
+        },
+        flags: [
+          {
+            name: 'input-json',
+            required: false,
+            role: 'structured-input' as const,
+            type: 'string' as const,
+            variadic: false,
+          },
+        ],
+        intent: 'read' as const,
+        path: ['survey', 'trail'] as const,
+        trail: trail('survey.trail', {
+          implementation: () => Result.ok('survey.trail'),
+          input: z.object({}),
+        }),
+      },
+    ];
+
+    const program = toCommander(commands, { name: 'test' });
+    program.exitOverride();
+
+    await program.parseAsync([
+      'node',
+      'test',
+      'survey',
+      'trail',
+      '--input-json',
+      '{"id":"shared"}',
+    ]);
+
+    expect(calls).toEqual(['survey.trail:undefined:{"id":"shared"}']);
+  });
+
+  test('recognizes compact short structured input after the child path', async () => {
+    const calls: string[] = [];
+    const commands = [
+      {
+        args: [{ name: 'id', required: false, variadic: false }],
+        execute: async (args: Record<string, unknown>) => {
+          calls.push(`survey:${String(args['id'])}`);
+          return await Result.ok('survey');
+        },
+        flags: [
+          {
+            name: 'verbose',
+            required: false,
+            short: 'v',
+            type: 'boolean' as const,
+            variadic: false,
+          },
+          {
+            name: 'input-json',
+            required: false,
+            role: 'structured-input' as const,
+            short: 'i',
+            type: 'string' as const,
+            variadic: false,
+          },
+        ],
+        intent: 'read' as const,
+        path: ['survey'] as const,
+        trail: trail('survey', {
+          implementation: () => Result.ok('survey'),
+          input: z.object({}),
+        }),
+      },
+      {
+        args: [],
+        execute: async (
+          _args: Record<string, unknown>,
+          opts: Record<string, unknown>
+        ) => {
+          calls.push(`survey.trail:${String(opts['inputJson'])}`);
+          return await Result.ok('survey.trail');
+        },
+        flags: [
+          {
+            name: 'verbose',
+            required: false,
+            short: 'v',
+            type: 'boolean' as const,
+            variadic: false,
+          },
+          {
+            name: 'input-json',
+            required: false,
+            role: 'structured-input' as const,
+            short: 'i',
+            type: 'string' as const,
+            variadic: false,
+          },
+        ],
+        intent: 'read' as const,
+        path: ['survey', 'trail'] as const,
+        trail: trail('survey.trail', {
+          implementation: () => Result.ok('survey.trail'),
+          input: z.object({}),
+        }),
+      },
+    ];
+
+    for (const compactInput of ['-i=equals', '-icompact', '-vi{}']) {
+      const program = toCommander(commands, { name: 'test' });
+      program.exitOverride();
+      await program.parseAsync([
+        'node',
+        'test',
+        'survey',
+        'trail',
+        compactInput,
+      ]);
+    }
+
+    expect(calls).toEqual([
+      'survey.trail:=equals',
+      'survey.trail:compact',
+      'survey.trail:{}',
+    ]);
+  });
+
   test('parent flag aliases can target IDs that match child command names', async () => {
     const calls: string[] = [];
     const commands = [

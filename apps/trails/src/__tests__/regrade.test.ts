@@ -16,7 +16,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { operatorApp } from '../app.js';
-import { regradeTrail } from '../trails/regrade.js';
+import { planRegradeTrail, regradeTrail } from '../trails/regrade.js';
 
 const makeTempDir = (): string =>
   mkdtempSync(join(tmpdir(), `trails-regrade-test-${Date.now()}-`));
@@ -3988,6 +3988,75 @@ describe('trails regrade', () => {
     expectRegradeSchemaFlags(planCommand);
     expect(applyCommand?.input?.properties).toHaveProperty('plan');
     expect(applyCommand?.input?.properties).not.toHaveProperty('dryRun');
+  });
+
+  test('CLI regrade plan keeps structured vocabulary input off the child command token', async () => {
+    const dir = makeTempDir();
+    const input = {
+      from: '@ontrails/warden/ast',
+      rootDir: dir,
+      to: '@ontrails/source',
+    };
+    try {
+      writeFile(
+        dir,
+        'docs/source.md',
+        '@ontrails/warden/ast should become @ontrails/source.\n'
+      );
+      const inputPath = join(dir, 'input.json');
+      writeFileSync(inputPath, JSON.stringify(input));
+
+      const directResult = await planRegradeTrail.implementation(input, {
+        cwd: dir,
+        dryRun: true,
+        env: {},
+      } as never);
+      expect(directResult.isOk()).toBe(true);
+      if (directResult.isErr()) {
+        throw directResult.error;
+      }
+      expect(directResult.value.plan).toMatchObject({
+        from: '@ontrails/warden/ast',
+        to: '@ontrails/source',
+      });
+
+      const runs = [
+        runRawCli([
+          'regrade',
+          'plan',
+          '--dry-run',
+          '--json',
+          '--input-json',
+          JSON.stringify(input),
+        ]),
+        runRawCli([
+          'regrade',
+          'plan',
+          '--dry-run',
+          '--json',
+          '--input',
+          inputPath,
+        ]),
+      ];
+
+      for (const result of runs) {
+        expect(result.exitCode).toBe(0);
+        const parsed = parseCliJson<{
+          readonly plan?: {
+            readonly from?: string;
+            readonly id?: string;
+            readonly to?: string;
+          };
+        }>(result);
+        expect(parsed.plan).toMatchObject({
+          from: '@ontrails/warden/ast',
+          id: 'vocabulary:@ontrails/warden/ast->@ontrails/source',
+          to: '@ontrails/source',
+        });
+      }
+    } finally {
+      rmSync(dir, { force: true, recursive: true });
+    }
   });
 
   test('rejects vocabulary-only inputs without a source and target', async () => {

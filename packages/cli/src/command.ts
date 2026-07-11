@@ -31,6 +31,8 @@ export interface CliFlagValueAlias {
 /** A single CLI flag derived from a Zod schema field or preset. */
 export interface CliFlag {
   readonly name: string;
+  /** Framework-owned behavior that adapters may need to distinguish. */
+  readonly role?: 'structured-input' | undefined;
   readonly short?: string | undefined;
   readonly description?: string | undefined;
   readonly type: 'string' | 'number' | 'boolean' | 'string[]' | 'number[]';

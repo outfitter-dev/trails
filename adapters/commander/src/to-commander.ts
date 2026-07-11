@@ -84,6 +84,8 @@ const buildRepeatableArrayParser =
     return [...(Array.isArray(previous) ? previous : []), parsed];
   };
 
+const structuredInputOptions = new WeakSet<Option>();
+
 /** Apply common modifiers (choices, default, arg parser) to a Commander Option. */
 const applyOptionModifiers = (opt: Option, flag: CliFlag): void => {
   if (isRepeatableArrayFlag(flag)) {
@@ -107,6 +109,9 @@ const applyOptionModifiers = (opt: Option, flag: CliFlag): void => {
 /** Build Commander Option(s) from a CliFlag. Returns one or two options. */
 const buildOptions = (flag: CliFlag): Option[] => {
   const opt = new Option(buildFlagString(flag), flag.description);
+  if (flag.role === 'structured-input') {
+    structuredInputOptions.add(opt);
+  }
   applyOptionModifiers(opt, flag);
   const valueAliasOptions = (flag.valueAliases ?? []).map(
     (alias) =>
@@ -198,6 +203,199 @@ const INHERITED_SURFACE_OPTION_KEYS = new Set([
   'trace',
   'watch',
 ]);
+const commandPathCommands = (command: Command): readonly Command[] => {
+  const commands: Command[] = [];
+  let current: Command | null = command;
+  while (current !== null && current.parent !== null) {
+    commands.push(current);
+    current = current.parent;
+  }
+  return commands.toReversed();
+};
+
+const rootCommandFor = (command: Command): Command => {
+  let root = command;
+  while (root.parent !== null) {
+    root = root.parent;
+  }
+  return root;
+};
+
+const invocationArgsFor = (command: Command): readonly string[] =>
+  rootCommandFor(command).args;
+
+const visibleOptionsFor = (command: Command): readonly Option[] => {
+  const commands: Command[] = [];
+  let current: Command | null = command;
+  while (current !== null) {
+    commands.push(current);
+    current = current.parent;
+  }
+  return commands.toReversed().flatMap((owner) => owner.options);
+};
+
+interface InvocationOptionMatch {
+  readonly inlineValue: boolean;
+  readonly option: Option;
+}
+
+const findShortOption = (
+  options: readonly Option[],
+  short: string
+): Option | undefined => options.find((candidate) => candidate.short === short);
+
+const invocationOptionMatches = (
+  options: readonly Option[],
+  token: string
+): readonly InvocationOptionMatch[] => {
+  const exact = options.filter(
+    (option) => token === option.long || token === option.short
+  );
+  if (exact.length > 0) {
+    return exact.map((option) => ({ inlineValue: false, option }));
+  }
+
+  const longWithValue = options.filter(
+    (option) =>
+      option.long !== undefined &&
+      (option.required || option.optional) &&
+      token.startsWith(`${option.long}=`)
+  );
+  if (longWithValue.length > 0) {
+    return longWithValue.map((option) => ({ inlineValue: true, option }));
+  }
+
+  if (token.length <= 2 || token[0] !== '-' || token[1] === '-') {
+    return [];
+  }
+
+  const matches: InvocationOptionMatch[] = [];
+  let group = token.slice(1);
+  while (group.length > 0) {
+    const option = findShortOption(options, `-${group[0]}`);
+    if (option === undefined) {
+      break;
+    }
+    const inlineValue =
+      (option.required || option.optional) && group.length > 1;
+    matches.push({ inlineValue, option });
+    if (option.required || option.optional) {
+      break;
+    }
+    group = group.slice(1);
+  }
+  return matches;
+};
+
+const isNegativeNumberArg = (command: Command, token: string): boolean => {
+  if (!/^-(\d+|\d*\.\d+)(e[+-]?\d+)?$/.test(token)) {
+    return false;
+  }
+
+  for (
+    let current: Command | null = command;
+    current !== null;
+    current = current.parent
+  ) {
+    if (current.options.some((option) => /^-\d$/.test(option.short ?? ''))) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
+const isVariadicOptionValue = (
+  command: Command,
+  option: Option | undefined,
+  token: string
+): boolean =>
+  option !== undefined &&
+  (!token.startsWith('-') || isNegativeNumberArg(command, token));
+
+const optionConsumesFollowingValue = (
+  command: Command,
+  match: InvocationOptionMatch,
+  nextToken: string | undefined
+): boolean =>
+  !match.inlineValue &&
+  (match.option.required ||
+    (match.option.optional &&
+      nextToken !== undefined &&
+      (!nextToken.startsWith('-') || isNegativeNumberArg(command, nextToken))));
+
+interface InvocationScan {
+  readonly pathEnd: number | undefined;
+  readonly structuredInputIndexes: ReadonlySet<number>;
+}
+
+const scanInvocation = (command: Command): InvocationScan => {
+  const rawArgs = invocationArgsFor(command);
+  const pathCommands = commandPathCommands(command);
+  const structuredInputIndexes = new Set<number>();
+  let activeCommand = rootCommandFor(command);
+  let activeVariadicOption: Option | undefined;
+  let optionsEnded = false;
+  let pathEnd: number | undefined;
+  let pathOffset = 0;
+  for (let index = 0; index < rawArgs.length; index += 1) {
+    const token = rawArgs[index];
+    if (token === undefined) {
+      continue;
+    }
+    if (!optionsEnded && token === '--') {
+      optionsEnded = true;
+      activeVariadicOption = undefined;
+      continue;
+    }
+    if (isVariadicOptionValue(command, activeVariadicOption, token)) {
+      continue;
+    }
+    activeVariadicOption = undefined;
+    const optionMatches = optionsEnded
+      ? []
+      : invocationOptionMatches(visibleOptionsFor(activeCommand), token);
+    const finalOptionMatch = optionMatches.at(-1);
+    if (finalOptionMatch !== undefined) {
+      if (
+        optionMatches.some((match) => structuredInputOptions.has(match.option))
+      ) {
+        structuredInputIndexes.add(index);
+      }
+      activeVariadicOption =
+        finalOptionMatch.option.variadic && !finalOptionMatch.inlineValue
+          ? finalOptionMatch.option
+          : undefined;
+      if (
+        optionConsumesFollowingValue(
+          command,
+          finalOptionMatch,
+          rawArgs[index + 1]
+        )
+      ) {
+        index += 1;
+      }
+      continue;
+    }
+    const nextPathCommand = pathCommands[pathOffset];
+    if (nextPathCommand?.name() === token) {
+      activeCommand = nextPathCommand;
+      pathOffset += 1;
+      if (pathOffset === pathCommands.length) {
+        pathEnd = index;
+      }
+    }
+  }
+  return { pathEnd, structuredInputIndexes };
+};
+
+const hasStructuredInputAfterCommandPath = (command: Command): boolean => {
+  const { pathEnd, structuredInputIndexes } = scanInvocation(command);
+  if (pathEnd === undefined) {
+    return false;
+  }
+  return [...structuredInputIndexes].some((index) => index > pathEnd);
+};
 
 const hasUserSuppliedOptionOutside = (
   sourceCommand: Command,
@@ -216,6 +414,28 @@ const hasAnyPositionalValue = (
   cmd: CliCommand,
   parsedArgs: Readonly<Record<string, unknown>>
 ): boolean => cmd.args.some((arg) => parsedArgs[arg.name] !== undefined);
+
+const hasUserSuppliedStructuredInput = (
+  command: Command,
+  fallback?: BareChildFallback | undefined,
+  ownOptionsOnly = false
+): boolean => {
+  for (const option of command.options) {
+    if (!structuredInputOptions.has(option)) {
+      continue;
+    }
+    const name = option.attributeName();
+    const source = ownOptionsOnly
+      ? command.getOptionValueSource(name)
+      : command.getOptionValueSourceWithGlobals(name);
+    if (source !== undefined && source !== 'default' && source !== 'implied') {
+      return (
+        fallback === undefined || hasStructuredInputAfterCommandPath(command)
+      );
+    }
+  }
+  return false;
+};
 
 const getActionTarget = (fallbackTarget: Command, actionArgs: unknown[]) => {
   const candidate = actionArgs.at(-1);
@@ -510,12 +730,15 @@ const maybeUseBareChildFallback = (
   readonly parsedFlags: Record<string, unknown>;
   readonly userSuppliedFlagKeys: ReadonlySet<string>;
 } => {
-  const hasParentOnlySignal = fallback
-    ? hasUserSuppliedOptionOutside(fallback.parentTarget, target)
-    : false;
+  const hasParentOnlySignal =
+    fallback !== undefined &&
+    (hasUserSuppliedOptionOutside(fallback.parentTarget, target) ||
+      (hasUserSuppliedStructuredInput(fallback.parentTarget, undefined, true) &&
+        !hasStructuredInputAfterCommandPath(target)));
   if (
     !fallback ||
     hasAnyPositionalValue(cmd, parsedArgs) ||
+    hasUserSuppliedStructuredInput(target, fallback) ||
     hasUserSuppliedOptionOutside(target, fallback.parentTarget) ||
     (fallback.requiresParentSignal && !hasParentOnlySignal)
   ) {
