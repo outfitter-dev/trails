@@ -1,4 +1,4 @@
-// `@ontrails/topographer` owns durable graph artifacts derived from the
+// `@ontrails/topography` owns durable graph artifacts derived from the
 // resolved graph (per ADR-0042). Wayfind reads those artifacts through
 // graph-read trails exported from this package.
 
@@ -126,7 +126,7 @@ export type {
 
 // Topo-store public API. Persistence layer for the resolved topo graph; relies
 // on `@ontrails/core` for primitive types and the generic `trails-db` helpers.
-// See ADR-0042 for the core/topographer boundary doctrine.
+// See ADR-0042 for the core/topography boundary doctrine.
 export {
   createTopoSnapshot,
   createMockTopoStore,
@@ -159,7 +159,7 @@ export type {
 } from './topo-store.js';
 
 // Wayfind graph-read APIs. The product, trail IDs, and public type names remain
-// Wayfinder/wayfind even though the package owner is now Topographer.
+// Wayfinder/wayfind even though the package owner is now Topography.
 export { deriveTrailErrorFacts } from './wayfind/error-facts.js';
 export type {
   TrailErrorEvidenceInput,

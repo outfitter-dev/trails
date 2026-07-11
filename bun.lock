@@ -105,7 +105,7 @@
         "@ontrails/permits": "workspace:^",
         "@ontrails/regrade": "workspace:^",
         "@ontrails/source": "workspace:^",
-        "@ontrails/topographer": "workspace:^",
+        "@ontrails/topography": "workspace:^",
         "@ontrails/tracing": "workspace:^",
         "@ontrails/warden": "workspace:^",
         "commander": "catalog:",
@@ -136,7 +136,7 @@
       },
       "devDependencies": {
         "@ontrails/testing": "workspace:^",
-        "@ontrails/topographer": "workspace:^",
+        "@ontrails/topography": "workspace:^",
         "@ontrails/warden": "workspace:^",
       },
     },
@@ -242,7 +242,7 @@
       },
       "devDependencies": {
         "@ontrails/testing": "workspace:^",
-        "@ontrails/topographer": "workspace:^",
+        "@ontrails/topography": "workspace:^",
         "@ontrails/warden": "workspace:^",
       },
     },
@@ -362,7 +362,7 @@
       },
       "devDependencies": {
         "@ontrails/testing": "workspace:^",
-        "@ontrails/topographer": "workspace:^",
+        "@ontrails/topography": "workspace:^",
       },
     },
     "packages/source": {
@@ -404,8 +404,8 @@
         "@ontrails/mcp",
       ],
     },
-    "packages/topographer": {
-      "name": "@ontrails/topographer",
+    "packages/topography": {
+      "name": "@ontrails/topography",
       "version": "1.0.0-beta.39",
       "dependencies": {
         "@ontrails/adapter-kit": "workspace:^",
@@ -447,7 +447,7 @@
       },
       "peerDependencies": {
         "@ontrails/core": "workspace:^",
-        "@ontrails/topographer": "workspace:^",
+        "@ontrails/topography": "workspace:^",
       },
     },
   },
@@ -654,7 +654,7 @@
 
     "@ontrails/testing": ["@ontrails/testing@workspace:packages/testing"],
 
-    "@ontrails/topographer": ["@ontrails/topographer@workspace:packages/topographer"],
+    "@ontrails/topography": ["@ontrails/topography@workspace:packages/topography"],
 
     "@ontrails/tracing": ["@ontrails/tracing@workspace:packages/tracing"],
 

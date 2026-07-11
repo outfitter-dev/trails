@@ -110,7 +110,7 @@ v1 does not merge runtime observations into the resolved graph. Traces, logs, se
 - [ADR-0017: The Serialized Topo Graph](0017-serialized-topo-graph.md)
 - [ADR-0026: Error Taxonomy as Transport-Independent Behavior Contract](0026-error-taxonomy-as-transport-independent-behavior-contract.md)
 - [ADR-0033: Detour Execution for Recovery](0033-detour-execution-for-recovery.md)
-- [ADR-0042: Core/Topographer Boundary Doctrine](0042-core-topographer-boundary-doctrine.md)
+- [ADR-0042: Core/Topography Boundary Doctrine](0042-core-topography-boundary-doctrine.md)
 - [ADR-0046: Lock v3 Artifact Family](0046-lock-v3-artifact-family.md)
 
 [TRL-649]: https://linear.app/outfitter/issue/TRL-649

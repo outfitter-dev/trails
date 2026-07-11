@@ -22,8 +22,8 @@ import type {
   TopoGraphOverlayRegistration,
   TopoSnapshot,
   TrailsLock,
-} from '@ontrails/topographer';
-import type { StoredTopoExport } from '@ontrails/topographer/backend-support';
+} from '@ontrails/topography';
+import type { StoredTopoExport } from '@ontrails/topography/backend-support';
 import {
   annotateTopoGraphForces,
   carryForwardTopoGraphForces,
@@ -34,11 +34,11 @@ import {
   readTopoGraph,
   TRAILS_LOCK_SCHEMA_VERSION,
   writeTrailsLock,
-} from '@ontrails/topographer';
+} from '@ontrails/topography';
 import {
   createStoredTopoSnapshot,
   getStoredTopoExport,
-} from '@ontrails/topographer/backend-support';
+} from '@ontrails/topography/backend-support';
 
 import { removeRootRelativeFileIfPresent } from '../local-state-io.js';
 

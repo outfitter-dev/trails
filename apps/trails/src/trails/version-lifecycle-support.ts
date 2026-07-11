@@ -3,8 +3,8 @@ import { join } from 'node:path';
 
 import { Result, ValidationError } from '@ontrails/core';
 import type { AnyTrail, Topo } from '@ontrails/core';
-import { deriveTopoGraph } from '@ontrails/topographer';
-import type { TopoGraph, TopoGraphForceEntry } from '@ontrails/topographer';
+import { deriveTopoGraph } from '@ontrails/topography';
+import type { TopoGraph, TopoGraphForceEntry } from '@ontrails/topography';
 import { findTrailDefinitions, parse } from '@ontrails/source';
 
 import {

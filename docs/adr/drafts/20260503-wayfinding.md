@@ -6,7 +6,7 @@ created: 2026-05-03
 updated: 2026-07-10
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [17, 27, 37, 42]
-description: "Defines Wayfinder as the navigation layer over `@ontrails/topographer` artifacts: a shared resolver/filter/view query model that renders to CLI, MCP, docs, and future maps without inventing surface-specific navigation semantics."
+description: "Defines Wayfinder as the navigation layer over `@ontrails/topography` artifacts: a shared resolver/filter/view query model that renders to CLI, MCP, docs, and future maps without inventing surface-specific navigation semantics."
 references:
   - docs/adr/0008-deterministic-trailhead-derivation.md
   - docs/adr/0013-tracing.md
@@ -14,7 +14,7 @@ references:
   - docs/adr/0027-visibility-and-filtering.md
   - docs/adr/0037-owner-first-authority.md
   - docs/adr/0041-unified-observability.md
-  - docs/adr/0042-core-topographer-boundary-doctrine.md
+  - docs/adr/0042-core-topography-boundary-doctrine.md
   - .scratch/adr/wayfinding-and-signposts.md
 linear:
   - TRL-613
@@ -33,7 +33,7 @@ impl_status: partial
 # ADR: Wayfinding
 
 > **Package placement superseded by ADR-0042.** The reusable Wayfind graph-read
-> catalog now ships from `@ontrails/topographer`; CLI and MCP wrappers remain
+> catalog now ships from `@ontrails/topography`; CLI and MCP wrappers remain
 > app-owned. The navigation model and `wayfind.*` product vocabulary in this
 > draft remain current, but references to a separate `@ontrails/wayfinder`
 > package below are historical design context.
@@ -66,7 +66,7 @@ This is the LSP analogy at its sharpest: human developers in modern IDEs do not 
 
 ### Substrate honesty
 
-The serialized graph today is the TopoGraph plus the topo store, not yet every possible runtime observation described in [ADR-0017]. [ADR-0042] settled the substrate boundary: durable graph artifacts live in `@ontrails/topographer`, core stays runtime-only. Wayfinding v0 sits on top of those artifacts, and must be honest about what they contain — every query must be answerable from the shipped `TopoGraph` and topo-store record shapes, or be marked deferred.
+The serialized graph today is the TopoGraph plus the topo store, not yet every possible runtime observation described in [ADR-0017]. [ADR-0042] settled the substrate boundary: durable graph artifacts live in `@ontrails/topography`, core stays runtime-only. Wayfinding v0 sits on top of those artifacts, and must be honest about what they contain — every query must be answerable from the shipped `TopoGraph` and topo-store record shapes, or be marked deferred.
 
 ### The recursive property
 
@@ -74,9 +74,9 @@ A query against the topo has typed input, typed output, and a pure implementatio
 
 ## Decision
 
-### Wayfinding is trails over `@ontrails/topographer` artifacts
+### Wayfinding is trails over `@ontrails/topography` artifacts
 
-Wayfinding does not introduce a new primitive. The wayfinder is a package of trails whose implementations read the durable graph artifacts owned by `@ontrails/topographer`: `TopoGraph`, lock manifest helpers, `DiffResult`, and the read-only topo store records (`TopoStoreTrailRecord`, `TopoStoreTrailDetailRecord`, `TopoStoreResourceRecord`, `TopoStoreSignalRecord`).
+Wayfinding does not introduce a new primitive. The wayfinder is a package of trails whose implementations read the durable graph artifacts owned by `@ontrails/topography`: `TopoGraph`, lock manifest helpers, `DiffResult`, and the read-only topo store records (`TopoStoreTrailRecord`, `TopoStoreTrailDetailRecord`, `TopoStoreResourceRecord`, `TopoStoreSignalRecord`).
 
 This means:
 
@@ -85,7 +85,7 @@ This means:
 - Surfaces render the trails through the same mechanism every other trail
   uses. No bespoke navigation runtime exists.
 - Reusable Wayfind graph-read and query mechanics ship with
-  `@ontrails/topographer`. CLI and MCP wrappers remain app-owned and render the
+  `@ontrails/topography`. CLI and MCP wrappers remain app-owned and render the
   same query contracts without creating a second substrate package.
 - Substrate access is read-only and lockfile-shaped. Wayfinding never opens
   network connections, resolves resources, or boots the app.
@@ -247,10 +247,7 @@ Wayfinder trails are operator and developer tools, not app-public verbs. The def
   through exact IDs while the unified command grammar lands. This is not
   wildcard namespace exposure and does not promote deferred queries.
 
-This means an app that imports the reusable Wayfind catalog does not
-accidentally hand its agents a self-documenting treasure chest. The graph stays
-locked unless the operator projects selected internal trails. ADR-0027 already
-provides the levers; wayfinding leans on them.
+This means an app that imports the reusable Wayfind catalog does not accidentally hand its agents a self-documenting treasure chest. The graph stays locked unless the operator projects selected internal trails. ADR-0027 already provides the levers; wayfinding leans on them.
 
 ### Stale-graph policy
 
@@ -267,7 +264,7 @@ trails wayfind --source locked ...
 trails wayfind --source live ...
 ```
 
-`locked` reads committed Topographer artifacts. It is the default because it is deterministic for docs, CI, release checks, and agent replay. `live` derives an in-memory graph from the current app without writing artifacts. It is the development and self-description path.
+`locked` reads committed Topography artifacts. It is the default because it is deterministic for docs, CI, release checks, and agent replay. `live` derives an in-memory graph from the current app without writing artifacts. It is the development and self-description path.
 
 The source selector is explicit and never auto-falls back. If a caller asks for `locked` and artifacts are absent, Wayfinder returns an absent/drift diagnostic. If a caller asks for `live` and the app cannot load, Wayfinder returns the load failure. This preserves determinism and makes the envelope trustworthy.
 
@@ -291,22 +288,17 @@ Every wayfinding query is a trail invocation, so the tracing primitive ([ADR-001
 ### Package placement
 
 ```text
-@ontrails/topographer # graph artifacts, readers, diff helpers, Wayfind catalog
+@ontrails/topography # graph artifacts, readers, diff helpers, Wayfind catalog
 ```
 
-`@ontrails/topographer` owns both the durable substrate and the reusable query
-catalog over that substrate. The fold keeps `@ontrails/core` runtime-only (per
-[ADR-0042]) without asking consumers to install a second graph package. A
-future semantic-search implementation must earn its own owner and package
-boundary when that substrate exists; this draft no longer reserves a package
-route for it.
+`@ontrails/topography` owns both the durable substrate and the reusable query catalog over that substrate. The fold keeps `@ontrails/core` runtime-only (per [ADR-0042]) without asking consumers to install a second graph package. A future semantic-search implementation must earn its own owner and package boundary when that substrate exists; this draft no longer reserves a package route for it.
 
 ### Lexicon impact
 
 Two new vocabulary items, kept conservative:
 
 - **`wayfinding`** (noun, the capability) and **`wayfinder`** (agent-noun, the
-  package and tool). Parallels `warden`, `topographer`.
+  package and tool). Parallels `warden`, `topography`.
 - Trail IDs use the `wayfind.` namespace (`wayfind.overview`,
   `wayfind.search`, `wayfind.contract`). Reserved for query trails and prose.
 
@@ -320,7 +312,7 @@ Avoid introducing a top-level `wayfind()` function — "wayfind" is unusual as a
   `wayfind.nearby` replace minutes of grep with one tool call returning
   a typed, contract-backed result.
 - **Zero new primitives.** Wayfinding rides on `trail`, the surface mechanism,
-  tracing, and the topographer's durable artifacts. The framework's evaluation
+  tracing, and the topography's durable artifacts. The framework's evaluation
   hierarchy ([Tenets, "Add with intent"]) is satisfied without new authored
   surface area.
 - **Cross-project agent transfer.** Same query shapes in every Trails app.
@@ -338,21 +330,21 @@ Avoid introducing a top-level `wayfind()` function — "wayfind" is unusual as a
 ### Tradeoffs
 
 - **Substrate coupling is real.** Wayfinding's promises are bounded by what
-  the topographer's artifacts contain today. Gaps (`wayfind.errors`,
+  the topography's artifacts contain today. Gaps (`wayfind.errors`,
   adapter evidence beyond the bounded adapter-kit package/conformance facts,
   semantic search, exhaustive per-trail errors, and live runtime views) move
   with their substrates, not the wayfinder. v0 ships honest about the gaps.
 - **Visibility defaults add a one-time projection step.** Apps that want
   wayfinding on MCP or HTTP must opt in. The default is correct (internal),
   but the consuming app must select which trails to render.
-- **The substrate package grows.** `@ontrails/topographer` now owns the
+- **The substrate package grows.** `@ontrails/topography` now owns the
   reusable Wayfind query catalog as well as durable graph facts. ADR-0042 keeps
   the boundary explicit so app-owned CLI/MCP rendering does not leak into the
   substrate package.
 
 ### Risks
 
-- **Drift between v0 promises and substrate growth.** If the topographer adds
+- **Drift between v0 promises and substrate growth.** If the topography adds
   fields faster than wayfinding adapts, the catalog could lag. Mitigation:
   every catalog query references the substrate field it reads, so the
   warden can flag mismatches when the substrate changes.
@@ -402,9 +394,9 @@ Avoid introducing a top-level `wayfind()` function — "wayfind" is unusual as a
   substrate wayfinding queries
 - [ADR-0027: Trail Visibility and Surface Filtering](../0027-visibility-and-filtering.md)
   — visibility and permit posture for wayfinder trails
-- [ADR-0042: Core/Topographer Boundary Doctrine](../0042-core-topographer-boundary-doctrine.md)
+- [ADR-0042: Core/Topography Boundary Doctrine](../0042-core-topography-boundary-doctrine.md)
   — the package boundary that places durable graph facts and reusable Wayfind
-  queries in `@ontrails/topographer`
+  queries in `@ontrails/topography`
 - [ADR-0008: Deterministic Surface Derivation](../0008-deterministic-trailhead-derivation.md)
   — the surface rendering mechanism wayfinding queries reuse
 - [ADR-0013: Tracing](../0013-tracing.md) and
@@ -416,4 +408,4 @@ Avoid introducing a top-level `wayfind()` function — "wayfind" is unusual as a
 [ADR-0017]: ../0017-serialized-topo-graph.md
 [ADR-0027]: ../0027-visibility-and-filtering.md
 [ADR-0041]: ../0041-unified-observability.md
-[ADR-0042]: ../0042-core-topographer-boundary-doctrine.md
+[ADR-0042]: ../0042-core-topography-boundary-doctrine.md

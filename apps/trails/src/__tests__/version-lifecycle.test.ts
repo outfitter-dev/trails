@@ -10,8 +10,8 @@ import { join, resolve } from 'node:path';
 
 import { deriveCliCommands } from '@ontrails/cli';
 import { isTrailsError, Result, topo, trail } from '@ontrails/core';
-import { TOPO_GRAPH_SCHEMA_VERSION } from '@ontrails/topographer';
-import type { TopoGraph } from '@ontrails/topographer';
+import { TOPO_GRAPH_SCHEMA_VERSION } from '@ontrails/topography';
+import type { TopoGraph } from '@ontrails/topography';
 import { z } from 'zod';
 
 import { app } from '../app.js';

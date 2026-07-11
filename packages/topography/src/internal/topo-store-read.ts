@@ -278,14 +278,14 @@ const parseTopoGraph = (stored: StoredTopoExport): TopoGraph => {
   const parsed = JSON.parse(stored.topoGraphJson) as unknown;
   if (hasRetiredDomainVocabulary(parsed)) {
     throw new ValidationError(
-      'Stored topo export uses retired "contour" vocabulary. Regenerate the Topographer store before reading it.'
+      'Stored topo export uses retired "contour" vocabulary. Regenerate the Topography store before reading it.'
     );
   }
 
   const result = topoGraphSchema.safeParse(parsed);
   if (!result.success) {
     throw new ValidationError(
-      `Stored topo export is not compatible with the current TopoGraph schema (${formatTopoGraphIssues(result.error.issues)}). Regenerate the Topographer store before reading it.`
+      `Stored topo export is not compatible with the current TopoGraph schema (${formatTopoGraphIssues(result.error.issues)}). Regenerate the Topography store before reading it.`
     );
   }
 

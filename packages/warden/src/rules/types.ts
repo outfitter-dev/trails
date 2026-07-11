@@ -6,7 +6,7 @@ import type {
   SurfaceBindings,
   Topo,
 } from '@ontrails/core';
-import type { TopoGraph } from '@ontrails/topographer';
+import type { TopoGraph } from '@ontrails/topography';
 
 import type { WardenDepth } from '../config.js';
 import type { WardenImportResolution } from '../resolve.js';

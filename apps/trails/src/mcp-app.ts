@@ -14,7 +14,7 @@ import {
   wayfindSearchTrail,
   wayfindSurfacesTrail,
   wayfindTrailsTrail,
-} from '@ontrails/topographer';
+} from '@ontrails/topography';
 
 import { operatorApp } from './app.js';
 import { wayfindOutlineTrail } from './trails/wayfind-outline.js';

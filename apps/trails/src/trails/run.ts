@@ -37,11 +37,11 @@ import {
   run,
   trail,
 } from '@ontrails/core';
-import { buildWorkspaceTrailIndex } from '@ontrails/topographer';
+import { buildWorkspaceTrailIndex } from '@ontrails/topography';
 import type {
   WorkspaceTrailCollision,
   WorkspaceTrailEntry,
-} from '@ontrails/topographer';
+} from '@ontrails/topography';
 import { z } from 'zod';
 
 import {

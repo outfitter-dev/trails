@@ -1,7 +1,7 @@
 ---
 '@ontrails/core': patch
 '@ontrails/mcp': patch
-'@ontrails/topographer': patch
+'@ontrails/topography': patch
 '@ontrails/warden': patch
 '@ontrails/trails': patch
 ---

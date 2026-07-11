@@ -47,12 +47,12 @@ The review question:
 | Bounded memory trace sink | `@ontrails/observe` | `@ontrails/tracing`, CLI trace rendering, tests | `owned` | Observe owns `createMemorySink` and `DEFAULT_MEMORY_SINK_MAX_RECORDS`. Tracing keeps a compatibility wrapper over the observe sink without a second retained-record implementation. |
 | Tracing dev-state store | `@ontrails/tracing` | tracing query/status trails, local dev tooling | `owned` | SQLite dev store, trace store registry, cleanup helpers, and query/status trails remain tracing-owned because they are developer-state tooling, not production sink contracts. |
 | OpenTelemetry trace adapter | `@ontrails/tracing/otel` for v1 | users exporting traces | `owned` | ADR-0041 keeps the v1 OTel adapter at the current `@ontrails/tracing/otel` subpath. It is an adapter boundary, not an observe memory-sink contract. |
-| Activation graph derived facts | `@ontrails/topographer` | Trails app topo reports | `owned` | Prior cleanup moved activation-derived facts to Topographer so app reports do not re-project the activation graph. |
-| Stable topo hashing | `@ontrails/topographer` | watch mode, topo artifacts | `proposal` | `apps/trails/src/run-watch.ts` has carried stable JSON hashing parallel to `packages/topographer/src/hash.ts`. Proposed extraction: expose the Topographer-owned stable hash needed by watch mode. |
+| Activation graph derived facts | `@ontrails/topography` | Trails app topo reports | `owned` | Prior cleanup moved activation-derived facts to Topography so app reports do not re-project the activation graph. |
+| Stable topo hashing | `@ontrails/topography` | watch mode, topo artifacts | `proposal` | `apps/trails/src/run-watch.ts` has carried stable JSON hashing parallel to `packages/topography/src/hash.ts`. Proposed extraction: expose the Topography-owned stable hash needed by watch mode. |
 | Adapter source scanning | `@ontrails/adapter-kit` | adapter generator, adapter checks/catalog | `proposal` | `apps/trails/src/trails/create-adapter.ts` duplicates source masking and import/export scans from adapter-kit. Proposed extraction: adapter-kit owns reusable scanning helpers; CLI consumes them. |
 | Public/internal export-map boundary checks | `@ontrails/warden` plus source facts from packages | repo governance | `proposal` | Warden should encode the durable rule, but packages own their export maps. Do not move package export truth into Warden. |
-| Topo summary facts for read/report trails | likely Trails app or Topographer, depending on fact | Trails CLI reports, Wayfinder | `unknown` | `buildCurrentTopo*` naming drift was identified, but the ownership split still needs a focused pass: pure graph facts belong lower; presentation-specific summaries may remain app-owned. |
-| Serialization and lock IO | Topographer and Trails app split | compile, validate, Wayfinder | `unknown` | Not audited in this first pass. Future map update should separate lock schema ownership from CLI file IO. |
+| Topo summary facts for read/report trails | likely Trails app or Topography, depending on fact | Trails CLI reports, Wayfinder | `unknown` | `buildCurrentTopo*` naming drift was identified, but the ownership split still needs a focused pass: pure graph facts belong lower; presentation-specific summaries may remain app-owned. |
+| Serialization and lock IO | Topography and Trails app split | compile, validate, Wayfinder | `unknown` | Not audited in this first pass. Future map update should separate lock schema ownership from CLI file IO. |
 | Markdown rendering | package that owns the content domain | docs, Warden guide, release notes | `unknown` | Not audited in this first pass. Do not extract until a real duplicate has evidence and a clear owner. |
 | CLI argument parsing | Trails app CLI surface | CLI routes and commands | `unknown` | Not audited in this first pass. Parsing can stay surface-owned unless it reimplements contract derivation. |
 
@@ -60,7 +60,7 @@ The review question:
 
 The advisory `captured-kernel` Warden rule identifies one ownership-review signal: a non-root public package subpath re-exports its own internal source and at least two distinct production packages consume that subpath. The warning is evidence to review the owner, not proof that the current package is wrong.
 
-`@ontrails/topographer/backend-support` is the current named watch case. Its internal-backed subpath remains legitimate because the Trails operator is its only production external consumer; Warden exercises it only in tests, which do not satisfy the rule's consumer threshold. Revisit the boundary if a second independently owned production capability begins to consume it.
+`@ontrails/topography/backend-support` is the current named watch case. Its internal-backed subpath remains legitimate because the Trails operator is its only production external consumer; Warden exercises it only in tests, which do not satisfy the rule's consumer threshold. Revisit the boundary if a second independently owned production capability begins to consume it.
 
 Moving a captured kernel into `@ontrails/source` is conditional. The machinery must be reusable source analysis shared by at least two independent toolchain capabilities, expose one genuinely shared contract, and own no verdict policy, migration plan, graph query, or surface rendering. Otherwise, preserve the current owner or choose another doctrinal owner.
 
@@ -70,7 +70,7 @@ These are open findings from the map. They are not newly created Linear issues i
 
 | Finding | Proposed extraction | Why it belongs there |
 | --- | --- | --- |
-| Stable topo hash duplicate | Expose or consume the Topographer-owned stable hash from watch mode. | Topographer owns topo artifact identity. |
+| Stable topo hash duplicate | Expose or consume the Topography-owned stable hash from watch mode. | Topography owns topo artifact identity. |
 | Adapter source scan duplicate | Move reusable source masking and import/export scans to adapter-kit; let `create-adapter` consume it. | Adapter-kit owns adapter authoring conformance. |
 
 ## Tracked Unknowns

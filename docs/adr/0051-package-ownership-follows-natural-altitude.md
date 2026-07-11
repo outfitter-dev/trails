@@ -18,7 +18,7 @@ Trails has been cleaning up repeated helper logic across packages. The repeated 
 The useful cases follow one pattern:
 
 - glob and path-scope logic belongs in `@ontrails/core`;
-- activation graph facts belong in `@ontrails/topographer`;
+- activation graph facts belong in `@ontrails/topography`;
 - diagnostic base fields belong in `@ontrails/core`;
 - app and package code should consume those owners instead of copying the kernel locally.
 

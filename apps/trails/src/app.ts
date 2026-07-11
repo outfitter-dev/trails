@@ -18,7 +18,7 @@ import {
   wayfindSurfacesTrail,
   wayfindTrailsTrail,
   wayfindVersionsTrail,
-} from '@ontrails/topographer';
+} from '@ontrails/topography';
 
 import * as addSurface from './trails/add-surface.js';
 import * as addTrail from './trails/add-trail.js';

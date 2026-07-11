@@ -14,7 +14,7 @@ depends_on: [17, 42, 46, 50]
 
 The pre-1.0 project substrate grew from several correct local choices that no longer compose cleanly.
 
-Topographer wrote a `.trails/trails.lock` manifest beside `.trails/topo.lock`. The store moved toward XDG state, but older docs and tests still taught `.trails` as a mixed home for committed lock files, disposable cache, local state, and project-local rules. Config existed as a schema-backed primitive, while Trails itself still privileged direct module imports. Warden rules briefly looked like a reason to reserve a root `trails/` control directory, even though Trails also allows `trails/` or `src/trails/` to be the user's authored trail definitions.
+Topography wrote a `.trails/trails.lock` manifest beside `.trails/topo.lock`. The store moved toward XDG state, but older docs and tests still taught `.trails` as a mixed home for committed lock files, disposable cache, local state, and project-local rules. Config existed as a schema-backed primitive, while Trails itself still privileged direct module imports. Warden rules briefly looked like a reason to reserve a root `trails/` control directory, even though Trails also allows `trails/` or `src/trails/` to be the user's authored trail definitions.
 
 That makes agents pause in the wrong place. When a path is named `.trails/X`, the path should tell the reader whether it is authored, derived, safe to delete, or the resolved truth. If the answer requires a table of exceptions, the substrate is asking agents and developers to memorize lifecycle instead of reading it from shape.
 
@@ -101,7 +101,7 @@ Content-addressed cache keys make worktrees and agents safe to share the same gl
 ### Tradeoffs
 
 - `rm -rf .trails` stops being a cache-clearing reflex. It is a control directory and should be treated like `.github/`.
-- The migration touches Topographer, Wayfinder, Warden drift checks, CLI compile/validate flows, scaffolds, docs, and agent guidance.
+- The migration touches Topography, Wayfinder, Warden drift checks, CLI compile/validate flows, scaffolds, docs, and agent guidance.
 - Tools need explicit cache and state management commands because the easy answer is no longer "look inside `.trails/cache`."
 - The lock envelope needs a compatibility bridge for older beta artifact families so existing consumers get a clear migration error instead of a generic parse failure.
 
@@ -121,6 +121,6 @@ Incremental compilation remains deferred. The cache key shape should not foreclo
 ## References
 
 - [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md) — established the resolved graph as a serialized artifact.
-- [ADR-0042: Core/Topographer Boundary Doctrine](../0042-core-topographer-boundary-doctrine.md) — keeps durable graph derivation owned outside core runtime contracts.
+- [ADR-0042: Core/Topography Boundary Doctrine](../0042-core-topography-boundary-doctrine.md) — keeps durable graph derivation owned outside core runtime contracts.
 - [ADR-0046: Lock v3 Artifact Family](../0046-lock-v3-artifact-family.md) — the artifact family this ADR collapses into one root lock.
 - [ADR-0050: Surface Accommodations Preserve Trail Identity](../0050-surface-accommodations-preserve-trail-identity.md) — preserve authored contract identity.

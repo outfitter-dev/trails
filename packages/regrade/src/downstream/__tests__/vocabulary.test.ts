@@ -82,6 +82,7 @@ describe('runVocabularyRegrade', () => {
           '**/.trails/regrade/history/**',
           '**/CHANGELOG.md',
           '**/.tmp-tests/**',
+          'packages/warden/src/__tests__/retired-vocabulary.test.ts',
           'packages/warden/src/rules/retired-vocabulary.ts',
         ]),
       },
@@ -158,7 +159,7 @@ describe('runVocabularyRegrade', () => {
       writeFile(
         dir,
         'docs/api-reference.md',
-        'The @ontrails/warden/ast compatibility facade remains live.\n'
+        'The @ontrails/warden/ast helpers remain documented here.\n'
       );
       writeFile(
         dir,
@@ -217,7 +218,7 @@ describe('runVocabularyRegrade', () => {
         '@ontrails/source'
       );
       expect(readFileSync(join(dir, 'docs', 'api-reference.md'), 'utf8')).toBe(
-        'The @ontrails/warden/ast compatibility facade remains live.\n'
+        'The @ontrails/source helpers remain documented here.\n'
       );
       expect(
         readFileSync(
@@ -325,7 +326,7 @@ describe('runVocabularyRegrade', () => {
 
   test('moves the exact Wayfinder package route without rewriting near routes', () => {
     const transition = getGovernedVocabularyTransition(
-      'v1-wayfinder-topographer'
+      'v1-wayfinder-topography'
     );
     expect(transition).toBeDefined();
     if (transition === undefined) {
@@ -335,11 +336,11 @@ describe('runVocabularyRegrade', () => {
     const plan = vocabularyRegradePlanFromTransition(transition);
     expect(plan).toMatchObject({
       from: '@ontrails/wayfinder',
-      id: 'v1-wayfinder-topographer',
+      id: 'v1-wayfinder-topography',
       overrides: {
-        '@ontrails/wayfinder': '@ontrails/topographer',
+        '@ontrails/wayfinder': '@ontrails/topography',
       },
-      to: '@ontrails/topographer',
+      to: '@ontrails/topography',
     });
     expect(plan?.overrides).not.toHaveProperty('@ontrails/wayfinders');
     if (plan === null) {
@@ -369,7 +370,7 @@ describe('runVocabularyRegrade', () => {
 
       expect(readFileSync(join(dir, 'docs', 'routes.md'), 'utf8')).toBe(
         [
-          'Move @ontrails/topographer to its new package.',
+          'Move @ontrails/topography to its new package.',
           'Keep @ontrails/wayfinder/internal for review.',
           'Keep @ontrails/wayfinders untouched.',
           '',

@@ -181,6 +181,7 @@ const v1VocabularyHistoricalPreservePaths = [
 ];
 
 const v1VocabularySelfExcludes = [
+  'packages/warden/src/__tests__/retired-vocabulary.test.ts',
   'packages/warden/src/rules/retired-vocabulary.ts',
 ];
 
@@ -340,6 +341,94 @@ export const governedVocabularyTransitions =
     }),
     defineV1Transition({
       codeIdentifiers: [
+        '@ontrails/topographer',
+        '@ontrails/topographer/backend-support',
+        '0042-core-topographer-boundary-doctrine',
+        'core-topographer-boundary-doctrine',
+        'Topographer-owned',
+        'packages/topographer',
+        'topographer',
+        'topographers',
+      ],
+      docs: {
+        guidance: [
+          'Treat topographer code/API identifiers as governed symbols, with case and compound forms handled by identifier-segment matching.',
+          'Rewrite only exact package route/module-specifier occurrences; near routes and larger route strings stay untouched.',
+        ],
+        summary:
+          'The graph artifact package and vocabulary moved from topographer to topography.',
+      },
+      from: 'topographer',
+      id: 'v1-topographer-topography',
+      intent:
+        'Move graph artifact package routes and code vocabulary from topographer to topography for v1.',
+      kind: 'vocabulary',
+      oldForms: [
+        '@ontrails/topographer',
+        '@ontrails/topographer/backend-support',
+        '0042-core-topographer-boundary-doctrine',
+        'core-topographer-boundary-doctrine',
+        'Topographer-owned',
+        'packages/topographer',
+        'topographer',
+        'topographers',
+        'Topographer',
+      ],
+      reviewForms: ['Topographer'],
+      safeRewriteForms: {
+        '0042-core-topographer-boundary-doctrine':
+          '0042-core-topography-boundary-doctrine',
+        '@ontrails/topographer': '@ontrails/topography',
+        '@ontrails/topographer/backend-support':
+          '@ontrails/topography/backend-support',
+        'Topographer-owned': 'Topography-owned',
+        'core-topographer-boundary-doctrine':
+          'core-topography-boundary-doctrine',
+        'packages/topographer': 'packages/topography',
+        topographer: 'topography',
+        topographers: 'topographies',
+      },
+      status: 'complete',
+      stringLiteralRenames: [
+        {
+          from: '@ontrails/topographer',
+          moduleSpecifier: { targetPackage: '@ontrails/topography' },
+          to: '@ontrails/topography',
+        },
+        {
+          from: '@ontrails/topographer/backend-support',
+          moduleSpecifier: { targetPackage: '@ontrails/topography' },
+          to: '@ontrails/topography/backend-support',
+        },
+        {
+          from: '0042-core-topographer-boundary-doctrine',
+          to: '0042-core-topography-boundary-doctrine',
+        },
+        {
+          from: 'core-topographer-boundary-doctrine',
+          to: 'core-topography-boundary-doctrine',
+        },
+        { from: 'Topographer-owned', to: 'Topography-owned' },
+        { from: 'packages/topographer', to: 'packages/topography' },
+      ],
+      symbolRenames: [
+        {
+          ...reviewFunctionParamDeclarations,
+          from: 'topographer',
+          match: 'identifier-segment',
+          to: 'topography',
+        },
+        {
+          ...reviewFunctionParamDeclarations,
+          from: 'topographers',
+          match: 'identifier-segment',
+          to: 'topographies',
+        },
+      ],
+      target: { kind: 'single', to: 'topography' },
+    }),
+    defineV1Transition({
+      codeIdentifiers: [
         'facets',
         'facetId',
         'McpSurfaceFacetMap',
@@ -412,18 +501,14 @@ export const governedVocabularyTransitions =
             'adapters/commander/src/__tests__/to-commander.test.ts',
             'apps/trails/src/__tests__/mcp.test.ts',
             'apps/trails/src/__tests__/regrade.test.ts',
-            'docs/api-reference.md',
             'packages/regrade/src/downstream/__tests__/ast-rewrite.test.ts',
             'packages/regrade/src/downstream/__tests__/vocabulary.test.ts',
-            'packages/warden/README.md',
-            'packages/warden/src/__tests__/ast-export-contract.test.ts',
-            'packages/warden/src/__tests__/public-api.test.ts',
             'packages/warden/src/__tests__/retired-vocabulary.test.ts',
             'scripts/verify-oxc-resolver-published.ts',
           ],
           pattern: '^@ontrails/warden/ast$',
           reason:
-            'Preserve current-live facade guidance and contract coverage until the following hard-cut branch retires the route.',
+            'Preserve transition regression fixtures and the intentional negative resolver assertion after the public route is retired.',
         },
       ],
       reviewForms: [],
@@ -448,27 +533,27 @@ export const governedVocabularyTransitions =
           'Rewrite only the exact package route; subpaths, near routes, and larger strings stay untouched for review.',
         ],
         summary:
-          'The Wayfinder package API moved into @ontrails/topographer while Wayfind remains the operator-facing product name.',
+          'The Wayfinder package API moved into @ontrails/topography while Wayfind remains the operator-facing product name.',
       },
       from: '@ontrails/wayfinder',
-      id: 'v1-wayfinder-topographer',
+      id: 'v1-wayfinder-topography',
       intent:
-        'Move programmatic Wayfinder imports into @ontrails/topographer while preserving Wayfind surface vocabulary.',
+        'Move programmatic Wayfinder imports into @ontrails/topography while preserving Wayfind surface vocabulary.',
       kind: 'vocabulary',
       oldForms: ['@ontrails/wayfinder'],
       reviewForms: [],
       safeRewriteForms: {
-        '@ontrails/wayfinder': '@ontrails/topographer',
+        '@ontrails/wayfinder': '@ontrails/topography',
       },
       status: 'complete',
       stringLiteralRenames: [
         {
           from: '@ontrails/wayfinder',
-          moduleSpecifier: { targetPackage: '@ontrails/topographer' },
-          to: '@ontrails/topographer',
+          moduleSpecifier: { targetPackage: '@ontrails/topography' },
+          to: '@ontrails/topography',
         },
       ],
-      target: { kind: 'single', to: '@ontrails/topographer' },
+      target: { kind: 'single', to: '@ontrails/topography' },
     }),
     defineV1Transition({
       codeIdentifiers: [],

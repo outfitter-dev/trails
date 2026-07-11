@@ -7,7 +7,7 @@ import { executeTrail, RecoverableCompletionError } from '@ontrails/core';
 import {
   TOPO_GRAPH_SCHEMA_VERSION,
   TRAILS_LOCK_SCHEMA_VERSION,
-} from '@ontrails/topographer';
+} from '@ontrails/topography';
 
 import { renderTrailExampleCompletions } from '../completions.js';
 import { completionsCompleteTrail } from '../trails/completions-complete.js';

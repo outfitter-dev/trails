@@ -9,7 +9,7 @@ const packageJson = JSON.parse(
   peerDependencies?: Record<string, string>;
 };
 
-describe('@ontrails/topographer Wayfind package boundary', () => {
+describe('@ontrails/topography Wayfind package boundary', () => {
   test('keeps the folded Wayfind dependency floor explicit', () => {
     expect(packageJson.dependencies).toEqual({
       '@ontrails/adapter-kit': 'workspace:^',

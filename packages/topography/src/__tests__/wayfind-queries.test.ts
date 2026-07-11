@@ -17,40 +17,37 @@ import {
   trail,
 } from '@ontrails/core';
 import {
+  createTopoSnapshot,
   deriveTopoGraph,
   deriveTopoGraphHash,
-  createTopoSnapshot,
   LOCK_MANIFEST_SCHEMA_VERSION,
-  writeLockManifest,
-  writeTopoGraph,
-  writeTrailsLock,
-} from '@ontrails/topographer';
-import type {
-  LockManifest,
-  TrailsLock,
-  TopoGraph,
-  TopoGraphEntry,
-} from '@ontrails/topographer';
-
-import {
+  resolveWayfinderPopulation,
+  resolveWayfinderRelations,
   wayfindAdaptersTrail,
   wayfindContractTrail,
   wayfindDescribeTrail,
   wayfindDiffTrail,
   wayfindErrorsTrail,
   wayfindExamplesTrail,
-  wayfindOverlayTrail,
   wayfindImpactTrail,
   wayfindNearbyTrail,
+  wayfindOverlayTrail,
   wayfindOverviewTrail,
+  wayfinderTopo,
   wayfindSearchTrail,
   wayfindSurfacesTrail,
   wayfindTrailsTrail,
   wayfindVersionsTrail,
-  wayfinderTopo,
-  resolveWayfinderPopulation,
-  resolveWayfinderRelations,
+  writeLockManifest,
+  writeTopoGraph,
+  writeTrailsLock,
 } from '../index.js';
+import type {
+  LockManifest,
+  TopoGraph,
+  TopoGraphEntry,
+  TrailsLock,
+} from '../types.js';
 
 let tempDir: string;
 

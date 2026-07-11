@@ -1,5 +1,5 @@
 ---
-"@ontrails/topographer": minor
+"@ontrails/topography": minor
 ---
 
 **BREAKING:** Rename surface-map exposure fields from `trailheads` to `surfaces`.

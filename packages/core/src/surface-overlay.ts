@@ -577,7 +577,7 @@ const assertMcpSynonymBindingName = (name: string): void => {
  * Derive the deterministic default description for an MCP grouped entry
  * projected from the `surfaces` overlay.
  *
- * Both the MCP surface (the runtime tool description) and Topographer (the
+ * Both the MCP surface (the runtime tool description) and Topography (the
  * lock's trailhead entry description) read this helper, so the authored
  * binding projects one description everywhere.
  *

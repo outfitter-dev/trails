@@ -16,7 +16,7 @@ depends_on: [10, 11, 15, 17, 42, 45]
 
 ADR-0017 set the long-term goal correctly: the resolved topo should be a machine-readable story that agents, CI, and tools can inspect without guessing from source. Its chosen container was too broad. It put every graph fact into `.trails/trails.lock` and made that one file responsible for both drift verification and full graph inspection.
 
-The current v1 implementation proved that those are related but separate jobs. Topographer already derives a rich graph artifact with trails, signals, resources, contours, schemas, examples, activation sources, governance metadata, and surface projections. The existing `SurfaceMap` name understates what that artifact contains, while the current `trails.lock` is only a hash envelope and optional workspace index.
+The current v1 implementation proved that those are related but separate jobs. Topography already derives a rich graph artifact with trails, signals, resources, contours, schemas, examples, activation sources, governance metadata, and surface projections. The existing `SurfaceMap` name understates what that artifact contains, while the current `trails.lock` is only a hash envelope and optional workspace index.
 
 For v1, Trails needs the resolved topo to stay inspectable without turning the most frequently reviewed drift gate into a large graph payload.
 
@@ -74,7 +74,7 @@ The TopoGraph hash canonicalizes around `generatedAt`, so regeneration time does
 
 ### Naming
 
-The public topographer API uses `TopoGraph` vocabulary:
+The public Topography API uses `TopoGraph` vocabulary:
 
 - `SurfaceMap` becomes `TopoGraph`;
 - `SurfaceMapEntry` becomes `TopoGraphEntry`;
@@ -124,7 +124,7 @@ Lock v3 is the v1 target. Legacy v2 hash envelopes and hash-only files are not s
   one flat lock hash.
 - Agents inspect `topo.lock` or typed topo-store query views for graph detail.
   They should not reverse-engineer graph facts from `trails.lock`.
-- Topographer owns the durable artifact family: derivation, hashing, semantic
+- Topography owns the durable artifact family: derivation, hashing, semantic
   diffing, lock/topo I/O, topo-store exports, and query views.
 - Pre-v1 breaking changes are acceptable here. The old `SurfaceMap`,
   `_surface.json`, `surface_map`, `serialized_lock`, `.trails/trails.db`, and
@@ -147,5 +147,5 @@ Lock v3 is the v1 target. Legacy v2 hash envelopes and hash-only files are not s
 - [ADR-0011: Schema-Driven Config](0011-schema-driven-config.md)
 - [ADR-0015: Topo Store](0015-topo-store.md)
 - [ADR-0017: The Serialized Topo Graph](0017-serialized-topo-graph.md)
-- [ADR-0042: Core/Topographer Boundary Doctrine](0042-core-topographer-boundary-doctrine.md)
+- [ADR-0042: Core/Topography Boundary Doctrine](0042-core-topography-boundary-doctrine.md)
 - [ADR-0045: v1 Resolved Graph Error Scope](0045-v1-resolved-graph-error-scope.md)

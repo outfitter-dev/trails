@@ -18,7 +18,7 @@ import {
   deriveTopoGraphDiff,
   deriveTopoGraph,
   deriveTopoGraphHash,
-} from '@ontrails/topographer';
+} from '@ontrails/topography';
 import { z } from 'zod';
 
 import { graph } from '../src/app.js';

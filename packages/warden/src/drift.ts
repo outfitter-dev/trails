@@ -24,12 +24,12 @@ import {
   readLockManifest,
   readTopoGraph,
   readTrailsLock,
-} from '@ontrails/topographer';
+} from '@ontrails/topography';
 import type {
   DeriveTopoGraphOptions,
   LockManifest,
   TopoGraphOverlays,
-} from '@ontrails/topographer';
+} from '@ontrails/topography';
 
 /**
  * Derive options `checkDrift` accepts so the fresh comparison graph carries

@@ -271,7 +271,7 @@ SELECT id FROM closure
 Create a read-only interface.
 
 ```typescript
-import { createTopoStore } from '@ontrails/topographer';
+import { createTopoStore } from '@ontrails/topography';
 
 const store = createTopoStore({ rootDir: '/path/to/workspace' });
 store.trails.list({ intent: 'write' });
@@ -289,7 +289,7 @@ store.snapshots.latest();
 Create a mock for testing.
 
 ```typescript
-import { createMockTopoStore } from '@ontrails/topographer';
+import { createMockTopoStore } from '@ontrails/topography';
 
 const mock = createMockTopoStore({
   trails: [{ id: 'auth.login', intent: 'write', hasOutput: true, ... }],
@@ -302,7 +302,7 @@ const mock = createMockTopoStore({
 Read-only resource for accessing the topo store in trails.
 
 ```typescript
-import { topoStore } from '@ontrails/topographer';
+import { topoStore } from '@ontrails/topography';
 
 trail('warden.check', {
   resources: [topoStore],

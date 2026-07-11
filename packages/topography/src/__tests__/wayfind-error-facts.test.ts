@@ -9,7 +9,7 @@ import {
   topo,
   trail,
 } from '@ontrails/core';
-import { deriveTopoGraph } from '@ontrails/topographer';
+import { deriveTopoGraph } from '@ontrails/topography';
 
 import { deriveTrailErrorFacts } from '../index.js';
 

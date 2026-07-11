@@ -75,7 +75,7 @@ The mapper is built with the shared Trails error taxonomy, so new categories mus
 
 ## Governance and dogfood
 
-Library projection facts are embedded in `TopoGraph.library` by Topographer. Warden's `library-projection-coherence` rule checks that serialized projection facts do not drift from the graph, including missing target trails and export name collisions.
+Library projection facts are embedded in `TopoGraph.library` by Topography. Warden's `library-projection-coherence` rule checks that serialized projection facts do not drift from the graph, including missing target trails and export name collisions.
 
 Run the focused package checks while changing the surface:
 

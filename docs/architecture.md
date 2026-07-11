@@ -55,6 +55,8 @@ The left side is where the world calls in -- CLI commands, MCP tool calls, HTTP 
 
 **The contract is machine-readable at runtime.** Topo artifacts, Wayfinder queries, compatibility survey/guide commands, and committed locks make the trail system queryable by agents, tooling, and CI.
 
+**The roles stay separate.** Author with core. Resolve to the topography. Render with surfaces. Govern with Warden. Core remains the in-process authoring and execution boundary; Topography is the durable substrate that records TopoGraphs, hashes, diffs, lockfiles, and topo-store state; surfaces render the graph for callers; Warden turns the same graph evidence into governance.
+
 **Entities are graph nodes; trails are executable edges.** Entities declare the domain objects the graph is about. Trails declare the typed work that moves through that graph. The topo carries both so surfaces, testing, and governance can reason about nouns and verbs from the same authored source.
 
 ## Information Architecture
@@ -138,7 +140,7 @@ Overrides are escape hatches. They're visible in the TopoGraph as explicit devia
 
 ### Foundation
 
-`@ontrails/core` is the only package with an external dependency: `zod`. It contains Result, error taxonomy, safe public and diagnostic error projection, `entity()`/`trail()`/`signal()`, `topo()`, validation, patterns, redaction, branded types, guards, collections, execution pipeline utilities including `Layer`/`composeLayers()`, generic `trails-db` helpers (`openReadTrailsDb`, `ensureSubsystemSchema`, etc.), and adapter port interfaces. Persistence of the resolved topo graph (the topo-store API) lives in `@ontrails/topographer` per ADR-0042.
+`@ontrails/core` is the only package with an external dependency: `zod`. It contains Result, error taxonomy, safe public and diagnostic error projection, `entity()`/`trail()`/`signal()`, `topo()`, validation, patterns, redaction, branded types, guards, collections, execution pipeline utilities including `Layer`/`composeLayers()`, generic `trails-db` helpers (`openReadTrailsDb`, `ensureSubsystemSchema`, etc.), and adapter port interfaces. Persistence of the resolved topo graph (the topo-store API) lives in `@ontrails/topography` per ADR-0042.
 
 **The test:** if you are building a surface adapter or ecosystem package, you should only need `@ontrails/core`.
 
@@ -172,7 +174,7 @@ Overrides are escape hatches. They're visible in the TopoGraph as explicit devia
 | Package | What it does |
 | --- | --- |
 | `@ontrails/testing` | `testAll()`, `testExamples()`, `testTrail()`, contract testing, surface harnesses |
-| `@ontrails/topographer` | TopoGraphs, semantic diffing, `trails.lock` helpers, topo-store persistence, and Wayfind graph-read query APIs over saved artifacts |
+| `@ontrails/topography` | Durable topography: TopoGraphs, semantic diffing, `trails.lock` helpers, topo-store persistence, and Wayfind graph-read query APIs over saved artifacts |
 | `@ontrails/source` | Shared source-code AST parsing, walking, locations, edits, literals, and generic Trails syntax recognition |
 | `@ontrails/warden` | Lint rules, drift detection, CI gating |
 
@@ -199,16 +201,16 @@ Overrides are escape hatches. They're visible in the TopoGraph as explicit devia
 @ontrails/observe (core)
 @ontrails/tracing (core)
 @ontrails/testing (core, cli, mcp, observe)
-@ontrails/topographer (core, zod, adapter-kit)
+@ontrails/topography (core, zod, adapter-kit)
 @ontrails/source (oxc-parser, oxc-walker)
-@ontrails/warden (core, topographer, source, framework support packages)
+@ontrails/warden (core, topography, source, framework support packages)
 @ontrails/regrade (core, source, warden)
      ^
 @ontrails/commander (cli, commander)
 @ontrails/hono (http, hono)
 @ontrails/vite (node:stream only, no workspace deps)
 @ontrails/logtape (observe)
-apps/trails (surface packages, source, regrade, topographer, tracing, warden)
+apps/trails (surface packages, source, regrade, topography, tracing, warden)
 ```
 
 Clean DAG. Core at the center. No cycles. Surface adapters depend only on core. Framework adapters depend on their parent package.

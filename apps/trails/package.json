@@ -38,7 +38,7 @@
     "@ontrails/permits": "workspace:^",
     "@ontrails/regrade": "workspace:^",
     "@ontrails/source": "workspace:^",
-    "@ontrails/topographer": "workspace:^",
+    "@ontrails/topography": "workspace:^",
     "@ontrails/tracing": "workspace:^",
     "@ontrails/warden": "workspace:^",
     "commander": "catalog:",

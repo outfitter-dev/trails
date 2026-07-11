@@ -5,7 +5,7 @@
 "@ontrails/http": minor
 "@ontrails/mcp": minor
 "@ontrails/permits": minor
-"@ontrails/topographer": minor
+"@ontrails/topography": minor
 "@ontrails/testing": minor
 "@ontrails/tracing": minor
 "@ontrails/warden": minor

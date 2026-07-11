@@ -167,19 +167,19 @@ The root package also exposes a few low-level contracts that other framework pac
 
 See the [API Reference](../../docs/api-reference.md) for the full list.
 
-## Migration: topo-store moved to `@ontrails/topographer`
+## Migration: topo-store moved to `@ontrails/topography`
 
-Per [ADR-0042](../../docs/adr/0042-core-topographer-boundary-doctrine.md), the topo-store public API previously exported from `@ontrails/core` now lives in `@ontrails/topographer`. Generic `trails-db` helpers (`openReadTrailsDb`, `openWriteTrailsDb`, `ensureSubsystemSchema`, `deriveTrailsDbPath`, `deriveTrailsStateDir`, `deriveTrailsStateHome`, `deriveTrailsProjectKey`, `deriveTrailsDir`) stay in core because tracing and other subsystems share them.
+Per [ADR-0042](../../docs/adr/0042-core-topography-boundary-doctrine.md), the topo-store public API previously exported from `@ontrails/core` now lives in `@ontrails/topography`. Generic `trails-db` helpers (`openReadTrailsDb`, `openWriteTrailsDb`, `ensureSubsystemSchema`, `deriveTrailsDbPath`, `deriveTrailsStateDir`, `deriveTrailsStateHome`, `deriveTrailsProjectKey`, `deriveTrailsDir`) stay in core because tracing and other subsystems share them.
 
 Update consumer imports:
 
 ```diff
 - import { topoStore, createTopoStore, createMockTopoStore, createTopoSnapshot, listTopoSnapshots, pinTopoSnapshot, unpinTopoSnapshot, createStoredTopoSnapshot, getStoredTopoExport, countTopoSnapshots, countPinnedSnapshots, countPrunableSnapshots, pruneUnpinnedSnapshots } from '@ontrails/core';
-+ import { topoStore, createTopoStore, createMockTopoStore, createTopoSnapshot, listTopoSnapshots, pinTopoSnapshot, unpinTopoSnapshot } from '@ontrails/topographer';
-+ import { createStoredTopoSnapshot, getStoredTopoExport, countTopoSnapshots, countPinnedSnapshots, countPrunableSnapshots, pruneUnpinnedSnapshots } from '@ontrails/topographer/backend-support';
++ import { topoStore, createTopoStore, createMockTopoStore, createTopoSnapshot, listTopoSnapshots, pinTopoSnapshot, unpinTopoSnapshot } from '@ontrails/topography';
++ import { createStoredTopoSnapshot, getStoredTopoExport, countTopoSnapshots, countPinnedSnapshots, countPrunableSnapshots, pruneUnpinnedSnapshots } from '@ontrails/topography/backend-support';
 ```
 
-Types `ReadOnlyTopoStore`, `MockTopoStoreSeed`, `TopoSnapshot`, `TopoStoreRef`, `TopoStoreExportRecord`, `TopoStoreResourceRecord`, `TopoStoreTrailRecord`, `TopoStoreTrailDetailRecord`, `CreateTopoSnapshotInput`, and `ListTopoSnapshotsOptions` move to `@ontrails/topographer`. `StoredTopoExport` moves to `@ontrails/topographer/backend-support`.
+Types `ReadOnlyTopoStore`, `MockTopoStoreSeed`, `TopoSnapshot`, `TopoStoreRef`, `TopoStoreExportRecord`, `TopoStoreResourceRecord`, `TopoStoreTrailRecord`, `TopoStoreTrailDetailRecord`, `CreateTopoSnapshotInput`, and `ListTopoSnapshotsOptions` move to `@ontrails/topography`. `StoredTopoExport` moves to `@ontrails/topography/backend-support`.
 
 ## Installation
 

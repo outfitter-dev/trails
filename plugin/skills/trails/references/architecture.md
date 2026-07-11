@@ -78,9 +78,9 @@ Every piece of information has a clear ownership model.
 | Error types returned | `Result.err(new XError(...))` patterns |
 | TopoGraph entries and lock hash | All established trails, resources, signals, entities, examples, and derived fields, canonicalized into root `trails.lock` |
 
-Warden uses inference to verify declarations match actual code. Topographer captures the resolved `TopoGraph`, semantic diff, and root `trails.lock` artifact for CI governance. Consumer artifact workflow uses the top-level CLI commands `trails compile`, `trails validate`, and `trails diff`; `trails topo` is for topo-store history and pin management.
+Warden uses inference to verify declarations match actual code. Topography captures the resolved `TopoGraph`, semantic diff, and root `trails.lock` artifact for CI governance. Consumer artifact workflow uses the top-level CLI commands `trails compile`, `trails validate`, and `trails diff`; `trails topo` is for topo-store history and pin management.
 
-Wayfinder is the first agent navigation move over those saved artifacts. For graph questions, start with `trails wayfind --overview --root-dir . --json`, then use target selectors, population filters, contract, dependency, impact, map, outline, or diff views before reconstructing topo facts with raw source search. Use `trails schema <command...>` when you need accepted CLI routes, aliases, flags, and schemas for an operator command. Source reads remain the right fallback for stale or missing artifacts and implementation details Topographer does not project.
+Wayfinder is the first agent navigation move over those saved artifacts. For graph questions, start with `trails wayfind --overview --root-dir . --json`, then use target selectors, population filters, contract, dependency, impact, map, outline, or diff views before reconstructing topo facts with raw source search. Use `trails schema <command...>` when you need accepted CLI routes, aliases, flags, and schemas for an operator command. Source reads remain the right fallback for stale or missing artifacts and implementation details Topography does not project.
 
 ## Package Layout
 
@@ -118,7 +118,7 @@ Wayfinder is the first agent navigation move over those saved artifacts. For gra
 | Package | Purpose |
 |---------|---------|
 | `@ontrails/testing` | `testAll()`, `testExamples()`, `testTrail()`, contract testing, opt-in surface harness subpaths |
-| `@ontrails/topographer` | TopoGraphs, semantic diffing, `trails.lock` helpers, topo-store persistence, Wayfind graph-read query APIs |
+| `@ontrails/topography` | TopoGraphs, semantic diffing, `trails.lock` helpers, topo-store persistence, Wayfind graph-read query APIs |
 | `@ontrails/warden` | Lint rules, drift detection, CI gating |
 
 ### Dependency graph
@@ -136,8 +136,8 @@ Wayfinder is the first agent navigation move over those saved artifacts. For gra
   <- @ontrails/store (core)
   <- @ontrails/drizzle (store, drizzle-orm)
   <- @ontrails/testing (core, observe; optional cli/mcp/http subpaths)
-  <- @ontrails/topographer (core, zod, adapter-kit)
-     <- @ontrails/warden (core, topographer)
+  <- @ontrails/topography (core, zod, adapter-kit)
+     <- @ontrails/warden (core, topography)
   <- @ontrails/commander (cli, commander)
   <- @ontrails/hono (http, hono)
   <- @ontrails/vite (node:stream only)

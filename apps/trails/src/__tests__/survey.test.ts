@@ -37,8 +37,8 @@ import {
   writeTopoGraph,
   writeTrailsLock,
   loadWayfinderArtifacts,
-} from '@ontrails/topographer';
-import type { TopoGraph } from '@ontrails/topographer';
+} from '@ontrails/topography';
+import type { TopoGraph } from '@ontrails/topography';
 import { z } from 'zod';
 
 import {

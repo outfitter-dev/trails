@@ -153,7 +153,7 @@ When this value matches the new member-set hash, governance can treat the existi
 
 Trailhead projection can run at surface runtime, but lockfile drift protection requires compile-time visibility. A trailhead declared only inside an effectful `surface()` call cannot appear in `.trails/topo.lock` unless the compile pipeline receives the same declaration.
 
-Therefore implementations must provide a compile-time-readable path for trailhead declarations. The exact host may be project config, explicit topographer options, or a future surface config artifact. The requirement is the important part: durable trailhead metadata is derived from the graph plus compile-time trailhead declarations, not from executing a live surface.
+Therefore implementations must provide a compile-time-readable path for trailhead declarations. The exact host may be project config, explicit topography options, or a future surface config artifact. The requirement is the important part: durable trailhead metadata is derived from the graph plus compile-time trailhead declarations, not from executing a live surface.
 
 If a caller uses runtime-only trailheads, the MCP projection may still work, but the resolved topo artifact family cannot promise drift protection for that trailhead. That limitation must stay visible in docs and diagnostics.
 
@@ -186,15 +186,15 @@ Runtime adapter packages may need to understand surface projection metadata late
 The dependency direction is:
 
 - adapter-kit emits raw adapter evidence, such as `adapterType`;
-- topographer, Warden, or surface packages interpret that evidence against resolved trailhead declarations;
-- adapter-kit does not import topographer and does not learn the trailhead ontology.
+- topography, Warden, or surface packages interpret that evidence against resolved trailhead declarations;
+- adapter-kit does not import topography and does not learn the trailhead ontology.
 
 The seam is intentionally asymmetric:
 
 - **contract-content conformance** remains adapter-kit's job. It answers whether an adapter package is placed correctly, declares its owner target, exports the expected entrypoints, and carries target conformance tests.
 - **surface-projection conformance** belongs to the surface or governance layer that already has the resolved projection. It may ask whether a grouped affordance is backed by resolved data such as trailhead ID, member trail IDs, effective visibility, description, member-set hash, and `{ trail, output }` correlation.
 
-No adapter target is required to support grouping. A future adapter can claim grouped affordances explicitly, but the validator for that claim should consume resolved surface projection evidence instead of adding trailhead authoring configuration to adapter-kit. The current adapter-kit seam is the existing raw subject evidence (`adapterType`, owner package, placement, target, conformance paths); it is sufficient for this stack because MCP trailhead projection is owned by `@ontrails/mcp` and Topographer, not by adapter authoring.
+No adapter target is required to support grouping. A future adapter can claim grouped affordances explicitly, but the validator for that claim should consume resolved surface projection evidence instead of adding trailhead authoring configuration to adapter-kit. The current adapter-kit seam is the existing raw subject evidence (`adapterType`, owner package, placement, target, conformance paths); it is sufficient for this stack because MCP trailhead projection is owned by `@ontrails/mcp` and Topography, not by adapter authoring.
 
 ### Wayfinder reads trailheads directly, not through a projections bucket
 
@@ -242,7 +242,7 @@ This ADR does not decide:
 This decision is not distribution-ready until the implementation stack updates:
 
 - MCP package docs and examples;
-- topographer lockfile/schema docs where trailhead metadata serializes;
+- topography lockfile/schema docs where trailhead metadata serializes;
 - Warden guidance for overlap, visibility, and description drift;
 - Trails skill and plugin guidance for agents;
 - changesets and release notes for package-impacting work;
@@ -254,7 +254,7 @@ This decision is not distribution-ready until the implementation stack updates:
 - [ADR-0017: The Serialized Topo Graph](../0017-serialized-topo-graph.md) - resolved graph inspection and drift protection
 - [ADR-0027: Trail Visibility and Surface Filtering](../0027-visibility-and-filtering.md) - selector grammar and visibility semantics
 - [ADR-0035: Surface APIs Render the Graph](../0035-surface-apis-render-the-graph.md) - `derive*`, `create*`, and `surface()` projection ladder
-- [ADR-0042: Core/Topographer Boundary Doctrine](../0042-core-topographer-boundary-doctrine.md) - durable graph artifacts belong to topographer
+- [ADR-0042: Core/Topography Boundary Doctrine](../0042-core-topography-boundary-doctrine.md) - durable graph artifacts belong to topography
 - [ADR-0046: Lock v3 Artifact Family](../0046-lock-v3-artifact-family.md) - `.trails/topo.lock` as the inspectable topo content artifact
 - [ADR-0050: Surface Accommodations Preserve Trail Identity](../0050-surface-accommodations-preserve-trail-identity.md) - surface accommodation vocabulary and fork test
 

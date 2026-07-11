@@ -68,6 +68,7 @@ const facetTrailheadRegistryExcludes = [
   '**/.trails/regrade/history/**',
   '**/CHANGELOG.md',
   '**/.tmp-tests/**',
+  'packages/warden/src/__tests__/retired-vocabulary.test.ts',
   'packages/warden/src/rules/retired-vocabulary.ts',
 ];
 

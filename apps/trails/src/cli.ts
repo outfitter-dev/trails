@@ -19,7 +19,7 @@ import type {
 import { createProgram } from '@ontrails/commander';
 import type { CreateProgramOptions } from '@ontrails/commander';
 import { resolvePermitFromBearerToken } from '@ontrails/permits';
-import { deriveTopoGraph } from '@ontrails/topographer';
+import { deriveTopoGraph } from '@ontrails/topography';
 
 import { app, trailsCliIncludedTrails, trailsOverlays } from './app.js';
 import { resolveInputWithClack } from './clack.js';

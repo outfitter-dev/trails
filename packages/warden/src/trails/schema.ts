@@ -7,7 +7,7 @@
 
 import { intentValues } from '@ontrails/core';
 import type { Topo } from '@ontrails/core';
-import type { TopoGraph } from '@ontrails/topographer';
+import type { TopoGraph } from '@ontrails/topography';
 import { z } from 'zod';
 import { wardenImportResolutionErrorKinds } from '../resolve.js';
 import { wardenFixClasses, wardenFixSafeties } from '../rules/metadata.js';

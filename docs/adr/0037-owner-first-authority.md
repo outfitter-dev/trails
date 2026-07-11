@@ -66,7 +66,7 @@ Ownership belongs at the lowest package altitude where the fact remains true wit
 Use this test before extracting a helper or moving a duplicated fact:
 
 1. **Concept fact:** if the fact defines a primitive or contract category, it belongs to that concept's package.
-2. **Durable graph fact:** if the fact is derived from the resolved graph and is persisted, hashed, diffed, or compared across processes, it belongs to Topographer.
+2. **Durable graph fact:** if the fact is derived from the resolved graph and is persisted, hashed, diffed, or compared across processes, it belongs to Topography.
 3. **Surface fact:** if the fact only exists because a surface renders the graph in that surface's idiom, it belongs to that surface package.
 4. **App fact:** if the fact is true only for one app or operator command, it stays in the app.
 5. **Repo fact:** if the fact only helps this repository build, test, or migrate itself, it stays in repo tooling or repo-local Warden rules.

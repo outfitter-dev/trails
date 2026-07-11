@@ -1,6 +1,6 @@
 ---
 "@ontrails/core": patch
-"@ontrails/topographer": patch
+"@ontrails/topography": patch
 "@ontrails/cli": patch
 "@ontrails/commander": patch
 "@ontrails/warden": patch

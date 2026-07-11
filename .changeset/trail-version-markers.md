@@ -1,6 +1,6 @@
 ---
 "@ontrails/core": patch
-"@ontrails/topographer": patch
+"@ontrails/topography": patch
 ---
 
 Project content-addressed trail version markers and marker-prefix resolution.

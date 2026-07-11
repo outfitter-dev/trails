@@ -11,7 +11,7 @@ import {
   countPrunableSnapshots,
   countTopoSnapshots,
   pruneUnpinnedSnapshots,
-} from '@ontrails/topographer/backend-support';
+} from '@ontrails/topography/backend-support';
 import {
   DEFAULT_MAX_AGE,
   DEFAULT_MAX_RECORDS,

@@ -15,7 +15,7 @@ import type {
 import { resolveTrailsOverlays } from '@ontrails/adapter-kit';
 import type { Topo } from '@ontrails/core';
 import { AmbiguousError, NotFoundError } from '@ontrails/core';
-import type { TopoGraphOverlayRegistration } from '@ontrails/topographer';
+import type { TopoGraphOverlayRegistration } from '@ontrails/topography';
 import {
   loadTrailsConfigValue,
   resolveTrailsProjectRoot,

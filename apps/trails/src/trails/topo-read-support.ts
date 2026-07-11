@@ -27,12 +27,12 @@ import {
   readTopoGraph,
   readTrailsLock,
   stripTopoGraphForces,
-} from '@ontrails/topographer';
+} from '@ontrails/topography';
 import type {
   LockManifest,
   TopoGraph,
   TopoGraphOverlayRegistration,
-} from '@ontrails/topographer';
+} from '@ontrails/topography';
 
 import type {
   BriefReport,

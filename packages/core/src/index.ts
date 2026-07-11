@@ -447,7 +447,7 @@ export type {
 
 // Generic trails-db helpers (shared framework infrastructure per ADR-0014).
 // The topo-store public API that previously lived here moved to
-// `@ontrails/topographer` per ADR-0042.
+// `@ontrails/topography` per ADR-0042.
 export {
   deriveTrailsDbPath,
   deriveTrailsDir,

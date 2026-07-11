@@ -4,7 +4,7 @@
 "@ontrails/mcp": major
 "@ontrails/testing": major
 "@ontrails/warden": major
-"@ontrails/topographer": major
+"@ontrails/topography": major
 "@ontrails/trails": major
 ---
 

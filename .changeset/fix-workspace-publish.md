@@ -4,7 +4,7 @@
 "@ontrails/mcp": patch
 "@ontrails/testing": patch
 "@ontrails/warden": patch
-"@ontrails/topographer": patch
+"@ontrails/topography": patch
 "@ontrails/trails": patch
 ---
 

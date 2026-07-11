@@ -9,7 +9,7 @@ import type { AnyTrail, Signal, Topo } from '@ontrails/core';
 import { deriveHttpMethod } from '@ontrails/http';
 import type { HttpMethod } from '@ontrails/http';
 import { deriveToolName } from '@ontrails/mcp';
-import { deriveTopoGraph } from '@ontrails/topographer';
+import { deriveTopoGraph } from '@ontrails/topography';
 import type {
   JsonSchema,
   TopoGraph,
@@ -18,7 +18,7 @@ import type {
   TopoGraphFieldOverride,
   TopoGraphLayerReference,
   TopoGraphVersionEntry,
-} from '@ontrails/topographer';
+} from '@ontrails/topography';
 import { z } from 'zod';
 
 import type {

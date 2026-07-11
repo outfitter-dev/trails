@@ -1,8 +1,8 @@
-import { deriveTopoGraph } from '@ontrails/topographer';
+import { deriveTopoGraph } from '@ontrails/topography';
 import type {
   TopoGraph,
   TopoGraphLibraryProjection,
-} from '@ontrails/topographer';
+} from '@ontrails/topography';
 
 import type { TopoAwareWardenRule, WardenDiagnostic } from './types.js';
 

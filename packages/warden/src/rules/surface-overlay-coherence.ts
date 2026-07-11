@@ -27,7 +27,7 @@ import type {
   SurfaceOverlayBindings,
   Topo,
 } from '@ontrails/core';
-import type { TopoGraph } from '@ontrails/topographer';
+import type { TopoGraph } from '@ontrails/topography';
 
 import type { TopoAwareWardenRule, WardenDiagnostic } from './types.js';
 

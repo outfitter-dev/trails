@@ -1,7 +1,7 @@
 ---
 '@ontrails/core': major
 '@ontrails/testing': major
-'@ontrails/topographer': major
+'@ontrails/topography': major
 '@ontrails/warden': major
 '@ontrails/cli': major
 '@ontrails/trails': major

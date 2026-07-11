@@ -78,11 +78,11 @@ An entity is a node in the domain graph. Trails operate on entities. Stores pers
 
 Governance and contract enforcement tooling. Active governance — completeness checking, drift detection, contract validation — not just linting. Lint rules and CI gating live here.
 
-### `topographer`
+### `topography`
 
-The durable graph substrate. `@ontrails/topographer` owns the artifacts derived from the resolved graph that survive across processes or compare state across time: TopoGraphs, hashes, semantic diffs, `trails.lock` I/O, snapshots, and pinned history. Core resolves the graph; Topographer persists and compares it.
+The durable graph substrate. `@ontrails/topography` owns the artifacts derived from the resolved graph that survive across processes or compare state across time: TopoGraphs, hashes, semantic diffs, `trails.lock` I/O, snapshots, and pinned history. Core resolves the graph; Topography persists and compares it.
 
-A package needs Topographer only when it crosses a process boundary or compares state across time. The runtime never reads Topographer artifacts to execute trails — every `topo()` call resolves entirely in core. See [ADR-0042](adr/0042-core-topographer-boundary-doctrine.md) for the boundary doctrine.
+A package needs Topography only when it crosses a process boundary or compares state across time. The runtime never reads Topography artifacts to execute trails — every `topo()` call resolves entirely in core. See [ADR-0042](adr/0042-core-topography-boundary-doctrine.md) for the boundary doctrine.
 
 ### TopoGraph Lock
 
@@ -137,6 +137,7 @@ These names are historical or migration vocabulary, not current target-state lan
 | `contour` / `contours` | `entity` / `entities` |
 | `cross` / `crosses` | `compose` / `composes` |
 | `crossInput` | `composeInput` |
+| `topographer` | `topography` |
 | `serialized_lock` | `lock_manifest` when referring to stored manifest export content; `trails.lock` when referring to the committed resolved-truth file |
 | `.trails/config/local.*` | `trails.config.local.*` |
 | `.trails/config.local.*` | `trails.config.local.*` |

@@ -18,7 +18,7 @@ depends_on: [17, 46, 50, 51]
 The lock accumulated three separate ways for information that is not core graph structure to reach it, each with its own plumbing:
 
 - **CLI aliases** rode an ad-hoc export convention (`cliAliases` / `trailsCliAliases`) that compile lifted into `deriveTopoGraph` through a dedicated option. Warden's drift check derived a fresh graph *without* that lift, so every alias-exporting app compared dirty against its own committed lock — permanently "stale" the moment it compiled ([TRL-1179](https://linear.app/outfitter/issue/TRL-1179/warden-drift-check-ignores-clialiases-so-alias-exporting-app-modules)).
-- **MCP trailheads** never reached the lock in practice. The map passed at the `surface()` call is runtime-correct — the ADR-0050 identity tests pass — but lock-blind: invisible to Wayfinder, invisible to drift detection, un-inspectable by agents reading the committed story ([TRL-1193](https://linear.app/outfitter/issue/TRL-1193/app-authored-mcp-trailheads-have-no-channel-into-the-compiled-lock)). Topographer grew a `DeriveTopoGraphOptions.trailheads` declaration option, but nothing on the compile path ever wires it.
+- **MCP trailheads** never reached the lock in practice. The map passed at the `surface()` call is runtime-correct — the ADR-0050 identity tests pass — but lock-blind: invisible to Wayfinder, invisible to drift detection, un-inspectable by agents reading the committed story ([TRL-1193](https://linear.app/outfitter/issue/TRL-1193/app-authored-mcp-trailheads-have-no-channel-into-the-compiled-lock)). Topography grew a `DeriveTopoGraphOptions.trailheads` declaration option, but nothing on the compile path ever wires it.
 - **Adapter facts** (the Cloudflare adapter's deployment metadata) landed as the right shape on the first try: a named, schema-registered, namespace-keyed sheet collected on the compile path, round-tripped byte-preserved when unrecognized, covered by the canonical hash, and readable generically through `trails wayfind --overlay <namespace>` ([#900](https://github.com/outfitter-dev/trails/pull/900)–[#903](https://github.com/outfitter-dev/trails/pull/903)). One gap remained at drafting time: the shipped channel was compile-path-only — Warden's fresh drift derivation did not collect it, exactly the asymmetry the drift-symmetry decision below closes. Wave 2 closed it before acceptance ([TRL-1209](https://linear.app/outfitter/issue/TRL-1209/wave-2-drift-symmetry-compile-and-warden-derive-collect-overlays)): compile and Warden fresh derivation now read `trailsOverlays` through one shared collection function.
 
 The third channel is the tell. It shipped without per-kind plumbing because it is a *mechanism*, not a feature: register a schema, collect through one path, preserve tolerantly, hash canonically. The first two channels are the same shape wearing bespoke plumbing — and the bespoke plumbing is exactly where the bugs live. [TRL-1179](https://linear.app/outfitter/issue/TRL-1179/warden-drift-check-ignores-clialiases-so-alias-exporting-app-modules) is not an alias bug; it is an asymmetric-lifting bug. Any per-kind lift can drift from any fresh derivation that forgets it.
@@ -39,7 +39,7 @@ One noun, projected consistently (one write, many reads):
 
 | Position | Name |
 | --- | --- |
-| Topographer type | `Overlay` |
+| Topography type | `Overlay` |
 | App-module export (the sole channel) | `trailsOverlays` |
 | Lock field | `overlays` |
 | Wayfinder read | `wayfind overlay <namespace>` (shipped today as the `--overlay` flag on `trails wayfind`; the positional spelling is the ratified read, riding the `wayfind.overlay` trail's canonical CLI derivation) |
@@ -95,7 +95,7 @@ The MCP surface's call-site map is not deleted; it is re-classed under the [auth
 
 ### Natural altitude extends to vocabulary
 
-[ADR-0051](0051-package-ownership-follows-natural-altitude.md) says a reusable capability lives in the lowest package where it is coherent. This ADR extends the doctrine from code to *concepts*: a vocabulary item belongs to the package that acts on it. `@ontrails/cli` owns what a `cli` binding means; the MCP projection owns what an `mcp` binding means; core and topographer know only the overlay envelope — determinism, tolerant preservation, provenance, hash coverage. Adding accommodation kind N+1 is a schema plus a consumer; core diffs zero lines.
+[ADR-0051](0051-package-ownership-follows-natural-altitude.md) says a reusable capability lives in the lowest package where it is coherent. This ADR extends the doctrine from code to *concepts*: a vocabulary item belongs to the package that acts on it. `@ontrails/cli` owns what a `cli` binding means; the MCP projection owns what an `mcp` binding means; core and topography know only the overlay envelope — determinism, tolerant preservation, provenance, hash coverage. Adding accommodation kind N+1 is a schema plus a consumer; core diffs zero lines.
 
 ### Hard cutover
 

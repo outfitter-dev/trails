@@ -5,8 +5,8 @@ import { join } from 'node:path';
 
 import { Result, resource, signal, topo, trail } from '@ontrails/core';
 import type { Layer, Topo } from '@ontrails/core';
-import { deriveTopoGraph } from '@ontrails/topographer';
-import type { TopoGraphEntry } from '@ontrails/topographer';
+import { deriveTopoGraph } from '@ontrails/topography';
+import type { TopoGraphEntry } from '@ontrails/topography';
 import { z } from 'zod';
 
 import {

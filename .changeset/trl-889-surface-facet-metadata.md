@@ -1,5 +1,5 @@
 ---
-'@ontrails/topographer': minor
+'@ontrails/topography': minor
 '@ontrails/adapter-kit': patch
 ---
 

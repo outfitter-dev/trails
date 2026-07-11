@@ -1,6 +1,6 @@
 ---
 "@ontrails/store": major
-"@ontrails/topographer": major
+"@ontrails/topography": major
 "@ontrails/core": patch
 "@ontrails/drizzle": patch
 "@ontrails/trails": patch

@@ -62,7 +62,7 @@ Review the new root `trails.lock` diff, then remove the legacy committed artifac
 Consumers that previously parsed `_surface.json` or `.trails/topo.lock` should read root `trails.lock` through `readTopoGraph()` or use the typed topo-store views:
 
 ```typescript
-import { createTopoStore, readTopoGraph } from '@ontrails/topographer';
+import { createTopoStore, readTopoGraph } from '@ontrails/topography';
 
 const topoGraph = await readTopoGraph({ dir: process.cwd() });
 const store = createTopoStore();

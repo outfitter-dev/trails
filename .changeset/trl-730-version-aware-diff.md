@@ -1,5 +1,5 @@
 ---
-"@ontrails/topographer": patch
+"@ontrails/topography": patch
 "@ontrails/trails": patch
 ---
 

@@ -1,6 +1,6 @@
 ---
 '@ontrails/core': major
-'@ontrails/topographer': minor
+'@ontrails/topography': minor
 '@ontrails/warden': patch
 '@ontrails/trails': patch
 ---

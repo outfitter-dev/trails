@@ -15,7 +15,7 @@ import {
   deriveTopoGraphHash,
   LOCK_MANIFEST_SCHEMA_VERSION,
   writeLockManifest,
-} from '@ontrails/topographer';
+} from '@ontrails/topography';
 import { z } from 'zod';
 
 import {

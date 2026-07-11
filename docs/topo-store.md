@@ -52,7 +52,7 @@ Retired shapes such as `trails topo compile`, `trails topo verify`, and `trails 
 - `trails validate` checks root `trails.lock` against the current topo.
 - `trails diff` compares the current topo against a saved TopoGraph target.
 
-Programmatic consumers use `@ontrails/topographer` APIs directly; the package does not ship a separate CLI binary.
+Programmatic consumers use `@ontrails/topography` APIs directly; the package does not ship a separate CLI binary.
 
 ### `trails topo pin`
 
@@ -172,7 +172,7 @@ trails compile
 Use the `topoStore` resource for programmatic access:
 
 ```typescript
-import { topoStore } from '@ontrails/topographer';
+import { topoStore } from '@ontrails/topography';
 
 trail('warden.check-outputs', {
   resources: [topoStore],

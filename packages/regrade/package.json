@@ -29,6 +29,6 @@
   },
   "devDependencies": {
     "@ontrails/testing": "workspace:^",
-    "@ontrails/topographer": "workspace:^"
+    "@ontrails/topography": "workspace:^"
   }
 }

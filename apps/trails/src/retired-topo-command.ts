@@ -30,7 +30,7 @@ export const getRetiredTopoCommandDiagnostic = (
 
   return {
     attempted,
-    message: `"${attempted}" was retired. Use "${replacement}" instead.\nTopographer artifact commands now live at the top level: "trails compile", "trails validate", and "trails diff". "trails topo" is for topo-store history, pin, and unpin.`,
+    message: `"${attempted}" was retired. Use "${replacement}" instead.\nTopography artifact commands now live at the top level: "trails compile", "trails validate", and "trails diff". "trails topo" is for topo-store history, pin, and unpin.`,
     replacement,
   };
 };

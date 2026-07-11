@@ -41,6 +41,6 @@
   },
   "peerDependencies": {
     "@ontrails/core": "workspace:^",
-    "@ontrails/topographer": "workspace:^"
+    "@ontrails/topography": "workspace:^"
   }
 }

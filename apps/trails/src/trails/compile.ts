@@ -1,6 +1,6 @@
 import { trail } from '@ontrails/core';
 import type { Result, Topo } from '@ontrails/core';
-import type { TopoGraphOverlayRegistration } from '@ontrails/topographer';
+import type { TopoGraphOverlayRegistration } from '@ontrails/topography';
 import { z } from 'zod';
 
 import { withFreshOperatorApp } from './operator-context.js';

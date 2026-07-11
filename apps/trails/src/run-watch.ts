@@ -27,7 +27,7 @@ import { watch as nodeWatch } from 'node:fs';
 import type { FSWatcher } from 'node:fs';
 import { dirname, extname } from 'node:path';
 
-import type { TopoGraphEntry } from '@ontrails/topographer';
+import type { TopoGraphEntry } from '@ontrails/topography';
 
 // ---------------------------------------------------------------------------
 // Constants

@@ -6,7 +6,7 @@ import { sha256Hex } from './sha256.js';
 
 // Altitude ruling (TRL-1198, ADR-0051 lens): trails-db stays core-owned
 // shared framework infrastructure (ADR-0014) and stays on the barrel —
-// topographer, tracing, warden, wayfinder, and the operator app all
+// topography, tracing, warden, wayfinder, and the operator app all
 // consume it from `@ontrails/core`. What it may NOT do is assume runtime
 // capabilities eagerly: `bun:sqlite` and the node builtins load lazily at
 // first use so the barrel's module graph stays execution-portable.

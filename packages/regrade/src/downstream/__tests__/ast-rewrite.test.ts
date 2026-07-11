@@ -1514,7 +1514,7 @@ describe('createAstIdentifierRenameClass', () => {
 
   test('rewrites the retired Wayfinder package route in module specifiers only', () => {
     const transition = getGovernedVocabularyTransition(
-      'v1-wayfinder-topographer'
+      'v1-wayfinder-topography'
     );
     expect(transition).toBeDefined();
     if (transition === undefined) {
@@ -1525,7 +1525,7 @@ describe('createAstIdentifierRenameClass', () => {
       transition
     ).find((cls) =>
       cls.id.includes(
-        'ast-string-literal-rename:v1-wayfinder-topographer:@ontrails/wayfinder->@ontrails/topographer'
+        'ast-string-literal-rename:v1-wayfinder-topography:@ontrails/wayfinder->@ontrails/topography'
       )
     );
     if (routeLiteralClass === undefined) {
@@ -1540,7 +1540,7 @@ describe('createAstIdentifierRenameClass', () => {
     ].join('\n');
     const result = routeLiteralClass.apply(source, {
       package: {
-        dependencies: ['@ontrails/topographer'],
+        dependencies: ['@ontrails/topography'],
         name: 'consumer',
         path: 'package.json',
       },
@@ -1550,12 +1550,31 @@ describe('createAstIdentifierRenameClass', () => {
     expect(result.kind).toBe('rewrite');
     expect(result.nextSource).toBe(
       [
-        "import { wayfindOverviewTrail } from '@ontrails/topographer';",
-        "export * from '@ontrails/topographer';",
+        "import { wayfindOverviewTrail } from '@ontrails/topography';",
+        "export * from '@ontrails/topography';",
         "const product = 'Wayfinder remains Wayfind';",
         '',
       ].join('\n')
     );
+
+    const adjacentResult = routeLiteralClass.apply(
+      "const internal = '@ontrails/wayfinder/internal';",
+      {
+        package: {
+          dependencies: ['@ontrails/topography'],
+          name: 'consumer',
+          path: 'package.json',
+        },
+        path: 'src/wayfind.ts',
+      }
+    );
+    expect(adjacentResult).toMatchObject({
+      kind: 'needs-review',
+      reason: 'ast-string-literal-adjacent-module-route',
+    });
+    expect(adjacentResult.reviewDetails?.[0]).toMatchObject({
+      matchedForm: '@ontrails/wayfinder/internal',
+    });
   });
 
   test('routes governed registry shadow declarations to review', () => {

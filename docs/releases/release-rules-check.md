@@ -37,7 +37,7 @@ The current default rules inspect two fact families:
 - `package-content`: changed shipping files inside non-private publishable `@ontrails/*` workspaces.
 - `public-trail-contract`: changed public trail additions/removals, visibility transitions, input schemas, output schemas, or surface exposure.
 
-The public contract detector is intentionally source-static for this first slice. It reports trail id, changed aspect, source path, affected package, and base/current source hashes when available. Future release facts can graduate to Topographer or Wayfinder graph diffs once baseline/current artifact handling is settled.
+The public contract detector is intentionally source-static for this first slice. It reports trail id, changed aspect, source path, affected package, and base/current source hashes when available. Future release facts can graduate to Topography or Wayfinder graph diffs once baseline/current artifact handling is settled.
 
 ## Rules
 

@@ -52,7 +52,7 @@ export const changelogHistoryPaths = [
   'packages/source/CHANGELOG.md',
   'packages/store/CHANGELOG.md',
   'packages/testing/CHANGELOG.md',
-  'packages/topographer/CHANGELOG.md',
+  'packages/topography/CHANGELOG.md',
   'packages/tracing/CHANGELOG.md',
   'packages/warden/CHANGELOG.md',
 ] as const;
@@ -115,7 +115,7 @@ const reviewedSurfaceMentionPaths = [
   'packages/oxlint-plugin/src/__tests__/rules.test.ts',
   'packages/store/.agents',
   'packages/store/src/__tests__/sync-reconcile.test.ts',
-  'packages/topographer/src/__tests__/topo-store.test.ts',
+  'packages/topography/src/__tests__/topo-store.test.ts',
   'scripts/rename-audit.sh',
 ] as const;
 
@@ -161,7 +161,7 @@ const legacyExtractedAdapterSubpathMentionPaths = [
 
 const topographArtifactFamilyRetiredMentionPaths = [
   ...historicalMentionPaths,
-  'docs/adr/0042-core-topographer-boundary-doctrine.md',
+  'docs/adr/0042-core-topography-boundary-doctrine.md',
   'docs/adr/0046-lock-v3-artifact-family.md',
   'docs/lexicon.md',
 ] as const;
@@ -200,27 +200,27 @@ const topographArtifactFamilyRetiredMatches = [
   // The topo-store migration and fixture must name pre-v12 columns exactly.
   {
     line: 360,
-    path: 'packages/topographer/src/internal/topo-snapshots.ts',
+    path: 'packages/topography/src/internal/topo-snapshots.ts',
   },
   {
     line: 370,
-    path: 'packages/topographer/src/internal/topo-snapshots.ts',
+    path: 'packages/topography/src/internal/topo-snapshots.ts',
   },
   {
-    line: 1524,
-    path: 'packages/topographer/src/__tests__/topo-store.test.ts',
+    line: 1527,
+    path: 'packages/topography/src/__tests__/topo-store.test.ts',
   },
   {
-    line: 1526,
-    path: 'packages/topographer/src/__tests__/topo-store.test.ts',
+    line: 1529,
+    path: 'packages/topography/src/__tests__/topo-store.test.ts',
   },
   {
-    line: 1540,
-    path: 'packages/topographer/src/__tests__/topo-store.test.ts',
+    line: 1543,
+    path: 'packages/topography/src/__tests__/topo-store.test.ts',
   },
   {
-    line: 1542,
-    path: 'packages/topographer/src/__tests__/topo-store.test.ts',
+    line: 1545,
+    path: 'packages/topography/src/__tests__/topo-store.test.ts',
   },
 ] as const;
 
@@ -235,8 +235,8 @@ export const auditRules: readonly VocabAuditRule[] = [
       'packages/store/src/__tests__/jsonfile.test.ts',
       'packages/store/src/testing.ts',
       'packages/testing/src/harness-cli.ts',
-      'packages/topographer/src/__tests__/topo-store.test.ts',
-      'packages/topographer/src/topo-store.ts',
+      'packages/topography/src/__tests__/topo-store.test.ts',
+      'packages/topography/src/topo-store.ts',
       'packages/tracing/src/internal/dev-state.ts',
     ],
     id: 'run-field',
@@ -317,7 +317,7 @@ export const auditRules: readonly VocabAuditRule[] = [
     excludePaths: [
       ...historicalMentionPaths,
       'docs/adr/0030-contours-as-first-class-domain-objects.md',
-      'docs/adr/0042-core-topographer-boundary-doctrine.md',
+      'docs/adr/0042-core-topography-boundary-doctrine.md',
       'apps/trails/src/__tests__/mcp.test.ts',
       'apps/trails/src/__tests__/regrade.test.ts',
       'packages/regrade/src/downstream/__tests__/ast-rewrite.test.ts',

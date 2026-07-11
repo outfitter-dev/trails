@@ -1228,7 +1228,7 @@
         {
           "context": "[ADR-0014: Core Database Primitive](0014-core-database-primitive.md) treats `.trails/state/trails.db` as shared framework infrastructure with subsystem namespaces (`topo_*`, `track_*`, `cache_*`). Thi",
           "from": "0042",
-          "fromPath": "docs/adr/0042-core-topographer-boundary-doctrine.md"
+          "fromPath": "docs/adr/0042-core-topography-boundary-doctrine.md"
         },
         {
           "context": "- **[ADR-0014: Core Database Primitive](./adr/0014-core-database-primitive.md)** — Shared `trails.db`, subsystem schema versioning",
@@ -1272,7 +1272,7 @@
         {
           "context": "But the topo store is the read-only *projection of a persisted snapshot* established by [ADR-0015: Topo Store](0015-topo-store.md). It writes rows to `.trails/state/trails.db`. It tracks history acros",
           "from": "0042",
-          "fromPath": "docs/adr/0042-core-topographer-boundary-doctrine.md"
+          "fromPath": "docs/adr/0042-core-topography-boundary-doctrine.md"
         },
         {
           "context": "- [ADR-0015: Topo Store](0015-topo-store.md)",
@@ -1430,7 +1430,7 @@
         {
           "context": "- [ADR-0017: The Serialized Topo Graph](0017-serialized-topo-graph.md) — the lockfile as the resolved-graph artifact. This ADR keeps the lockfile firmly in tooling, not on the runtime path.",
           "from": "0042",
-          "fromPath": "docs/adr/0042-core-topographer-boundary-doctrine.md"
+          "fromPath": "docs/adr/0042-core-topography-boundary-doctrine.md"
         },
         {
           "context": "- [ADR-0017: The Serialized Topo Graph](0017-serialized-topo-graph.md)",
@@ -2271,7 +2271,7 @@
         {
           "context": "- Decide the public teaching path for build-time surfaces (SDK, OpenAPI, docs). [ADR-0035: Surface APIs Render the Graph](0035-surface-apis-render-the-graph.md) already establishes `surface(graph, { o",
           "from": "0042",
-          "fromPath": "docs/adr/0042-core-topographer-boundary-doctrine.md"
+          "fromPath": "docs/adr/0042-core-topography-boundary-doctrine.md"
         },
         {
           "context": "- [ADR-0035: Surface APIs Render the Graph](0035-surface-apis-render-the-graph.md)",
@@ -2542,43 +2542,43 @@
       "depends_on": ["14", "15", "17", "35"],
       "inbound": [
         {
-          "context": "- [ADR-0042: Core/Topographer Boundary Doctrine](0042-core-topographer-boundary-doctrine.md)",
+          "context": "- [ADR-0042: Core/Topography Boundary Doctrine](0042-core-topography-boundary-doctrine.md)",
           "from": "0045",
           "fromPath": "docs/adr/0045-v1-resolved-graph-error-scope.md"
         },
         {
-          "context": "- [ADR-0042: Core/Topographer Boundary Doctrine](0042-core-topographer-boundary-doctrine.md)",
+          "context": "- [ADR-0042: Core/Topography Boundary Doctrine](0042-core-topography-boundary-doctrine.md)",
           "from": "0046",
           "fromPath": "docs/adr/0046-lock-v3-artifact-family.md"
         },
         {
-          "context": "- docs/adr/0042-core-topographer-boundary-doctrine.md",
+          "context": "- docs/adr/0042-core-topography-boundary-doctrine.md",
           "from": "20260503",
           "fromPath": "docs/adr/drafts/20260503-wayfinding.md"
         },
         {
-          "context": "- [ADR-0042: Core/Topographer Boundary Doctrine](../0042-core-topographer-boundary-doctrine.md) - durable graph artifacts belong to topographer",
+          "context": "- [ADR-0042: Core/Topography Boundary Doctrine](../0042-core-topography-boundary-doctrine.md) - durable graph artifacts belong to topography",
           "from": "20260603",
           "fromPath": "docs/adr/drafts/20260603-surface-trailheads-shape-dense-topos.md"
         },
         {
-          "context": "- [ADR-0042: Core/Topographer Boundary Doctrine](../0042-core-topographer-boundary-doctrine.md) — keeps durable graph derivation owned outside core runtime contracts.",
+          "context": "- [ADR-0042: Core/Topography Boundary Doctrine](../0042-core-topography-boundary-doctrine.md) — keeps durable graph derivation owned outside core runtime contracts.",
           "from": "20260622",
           "fromPath": "docs/adr/drafts/20260622-project-substrate-names-its-truth.md"
         },
         {
-          "context": "A package needs Topographer only when it crosses a process boundary or compares state across time. The runtime never reads Topographer artifacts to execute trails — every `topo()` call resolves entire",
+          "context": "A package needs Topography only when it crosses a process boundary or compares state across time. The runtime never reads Topography artifacts to execute trails — every `topo()` call resolves entirely",
           "from": "lexicon",
           "fromPath": "docs/lexicon.md"
         }
       ],
       "number": "0042",
       "owners": ["[galligan](https://github.com/galligan)"],
-      "path": "docs/adr/0042-core-topographer-boundary-doctrine.md",
-      "slug": "core-topographer-boundary-doctrine",
+      "path": "docs/adr/0042-core-topography-boundary-doctrine.md",
+      "slug": "core-topography-boundary-doctrine",
       "status": "accepted",
       "superseded_by": null,
-      "title": "Core/Topographer Boundary Doctrine",
+      "title": "Core/Topography Boundary Doctrine",
       "updated": "2026-07-10"
     },
     {
@@ -2695,7 +2695,7 @@
         {
           "context": "- 2026-05-11: [ADR-0046: Lock v3 Artifact Family](0046-lock-v3-artifact-family.md)",
           "from": "0042",
-          "fromPath": "docs/adr/0042-core-topographer-boundary-doctrine.md"
+          "fromPath": "docs/adr/0042-core-topography-boundary-doctrine.md"
         },
         {
           "context": "- [ADR-0046: Lock v3 Artifact Family](0046-lock-v3-artifact-family.md)",

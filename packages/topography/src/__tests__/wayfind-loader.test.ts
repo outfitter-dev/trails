@@ -20,22 +20,15 @@ import {
   createTopoSnapshot,
   deriveTopoGraph,
   deriveTopoGraphHash,
-  writeLockManifest,
-  writeTopoGraph,
-  writeTrailsLock,
-} from '@ontrails/topographer';
-import type {
-  LockManifest,
-  TopoGraph,
-  TrailsLock,
-} from '@ontrails/topographer';
-
-import {
   loadWayfinderArtifacts,
   wayfinderFact,
   wayfinderTopoGraphSource,
   wayfinderTopoStoreSource,
+  writeLockManifest,
+  writeTopoGraph,
+  writeTrailsLock,
 } from '../index.js';
+import type { LockManifest, TopoGraph, TrailsLock } from '../types.js';
 
 let tempDir: string;
 let originalTrailsStateHome: string | undefined;

@@ -2,8 +2,8 @@ import { describe, expect, test } from 'bun:test';
 
 import { Result, surfaceOverlay, topo, trail } from '@ontrails/core';
 import type { SurfaceOverlayBindings, Topo } from '@ontrails/core';
-import { deriveTopoGraph } from '@ontrails/topographer';
-import type { TopoGraph } from '@ontrails/topographer';
+import { deriveTopoGraph } from '@ontrails/topography';
+import type { TopoGraph } from '@ontrails/topography';
 import { z } from 'zod';
 
 import { surfaceOverlayCoherence } from '../rules/surface-overlay-coherence.js';

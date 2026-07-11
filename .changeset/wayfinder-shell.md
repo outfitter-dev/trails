@@ -1,6 +1,6 @@
 ---
 '@ontrails/observe': patch
-'@ontrails/topographer': patch
+'@ontrails/topography': patch
 ---
 
 Remove draft ADR anchors from public source comments.

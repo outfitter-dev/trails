@@ -334,7 +334,7 @@ const canonicalize = (value: unknown): unknown => {
 /**
  * Canonicalize a value for schema definition hashing.
  *
- * Matches the canonicalization logic used in `@ontrails/topographer` so that
+ * Matches the canonicalization logic used in `@ontrails/topography` so that
  * schema hashes are consistent regardless of which code path computes them.
  * Unlike the general `canonicalize`, this does not convert `Date`, `RegExp`,
  * or `undefined` to sentinel strings — Zod `_zod.def` objects are plain

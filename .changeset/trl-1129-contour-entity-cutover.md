@@ -3,7 +3,7 @@
 '@ontrails/regrade': patch
 '@ontrails/store': minor
 '@ontrails/testing': minor
-'@ontrails/topographer': minor
+'@ontrails/topography': minor
 '@ontrails/trails': minor
 '@ontrails/warden': minor
 ---

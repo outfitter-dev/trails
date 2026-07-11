@@ -1,5 +1,5 @@
 import { topo } from '@ontrails/core';
-import { deriveTopoGraph } from '@ontrails/topographer';
+import { deriveTopoGraph } from '@ontrails/topography';
 
 import { pendingForce } from '../rules/trail-versioning-topo.js';
 import { wrapTopoRule } from './wrap-rule.js';

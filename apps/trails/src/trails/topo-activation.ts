@@ -2,7 +2,7 @@ export {
   deriveActivationGraph,
   deriveDeclaredTrailActivation,
   deriveSignalActivationRelations,
-} from '@ontrails/topographer';
+} from '@ontrails/topography';
 export type {
   ActivationChainReport,
   ActivationEdgeReport,
@@ -11,4 +11,4 @@ export type {
   ActivationSourceReport,
   SignalActivationRelations,
   TrailActivationReport,
-} from '@ontrails/topographer';
+} from '@ontrails/topography';

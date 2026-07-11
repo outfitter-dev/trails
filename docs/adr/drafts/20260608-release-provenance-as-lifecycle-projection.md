@@ -34,7 +34,7 @@ Release is not a surface. A CLI command or future MCP tool may inspect release f
 
 ### Vocabulary
 
-A **release fact** is a deterministic lower-case view over package, topo, and source diffs. Release facts are evidence, not authored primitives. Examples: "`@ontrails/trails` has package-affecting source changes", "`wayfind.contract` output changed", or "`create` gained CLI exposure". A release fact may be derived from source-static inspection in early checks and from Topographer or Wayfinder graph diffs as that substrate becomes cheap enough for CI.
+A **release fact** is a deterministic lower-case view over package, topo, and source diffs. Release facts are evidence, not authored primitives. Examples: "`@ontrails/trails` has package-affecting source changes", "`wayfind.contract` output changed", or "`create` gained CLI exposure". A release fact may be derived from source-static inspection in early checks and from Topography or Wayfinder graph diffs as that substrate becomes cheap enough for CI.
 
 A **release rule** is a configured policy that decides which release facts require positive intent. Rules are project policy, not one-off branch paperwork. A rule may say that public trail input/output changes require a Changeset, that package docs changes require a package note, or that a certain source-only fact is advisory.
 
@@ -85,7 +85,7 @@ Stacked branches make release provenance easy to smear. A top cleanup branch can
 
 - Public trail contract movement becomes visible to release review at the same time package file movement is already visible.
 - Changesets remains the concrete version and changelog mechanism instead of being replaced by a speculative release system.
-- Future Wayfinder, Topographer, and release-note tooling can share vocabulary: facts are deterministic, rules are configured, intent is authored, outputs are emitted.
+- Future Wayfinder, Topography, and release-note tooling can share vocabulary: facts are deterministic, rules are configured, intent is authored, outputs are emitted.
 - Graphite stacks keep one issue or reason per branch, including release provenance.
 
 ### Tradeoffs

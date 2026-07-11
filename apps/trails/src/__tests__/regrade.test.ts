@@ -46,6 +46,7 @@ const facetTrailheadRegistryExcludes = [
   '**/.trails/regrade/history/**',
   '**/CHANGELOG.md',
   '**/.tmp-tests/**',
+  'packages/warden/src/__tests__/retired-vocabulary.test.ts',
   'packages/warden/src/rules/retired-vocabulary.ts',
 ];
 const facetTrailheadRegistryHistoricalPreserve = {
@@ -1640,170 +1641,182 @@ describe('trails regrade', () => {
     }
   });
 
-  test('CLI plan expansion preserves judged candidates and suppresses adopted candidates', () => {
-    const dir = makeTempDir();
-    try {
-      writeFile(
-        dir,
-        'docs/alpha.md',
-        'The alpha path is safe.\nThe alphaing path needs review.\n'
-      );
+  test(
+    'CLI plan expansion preserves judged candidates and suppresses adopted candidates',
+    () => {
+      const dir = makeTempDir();
+      try {
+        writeFile(
+          dir,
+          'docs/alpha.md',
+          'The alpha path is safe.\nThe alphaing path needs review.\n'
+        );
 
-      const initial = runRawCli([
-        'regrade',
-        'plan',
-        'alpha',
-        'omega',
-        '--expand',
-        '--root-dir',
-        dir,
-        '--json',
-      ]);
-      expect(initial.exitCode).toBe(0);
-      const initialPlan = parseCliJson<{ readonly path?: string }>(initial);
-      if (initialPlan.path === undefined) {
-        throw new Error('Expected expanded Regrade plan path.');
-      }
+        const initial = runRawCli([
+          'regrade',
+          'plan',
+          'alpha',
+          'omega',
+          '--expand',
+          '--root-dir',
+          dir,
+          '--json',
+        ]);
+        expect(initial.exitCode).toBe(0);
+        const initialPlan = parseCliJson<{ readonly path?: string }>(initial);
+        if (initialPlan.path === undefined) {
+          throw new Error('Expected expanded Regrade plan path.');
+        }
 
-      const planPath = join(dir, initialPlan.path);
-      const rejected = JSON.parse(readFileSync(planPath, 'utf8')) as {
-        expansion?: {
-          candidates?: {
-            reason?: string;
-            status?: string;
-            value?: string;
-          }[];
+        const planPath = join(dir, initialPlan.path);
+        const rejected = JSON.parse(readFileSync(planPath, 'utf8')) as {
+          expansion?: {
+            candidates?: {
+              reason?: string;
+              status?: string;
+              value?: string;
+            }[];
+          };
         };
-      };
-      if (rejected.expansion?.candidates?.[0] === undefined) {
-        throw new Error('Expected staged expansion candidate.');
-      }
-      rejected.expansion.candidates[0] = {
-        ...rejected.expansion.candidates[0],
-        reason: 'Intentional idiom preserve.',
-        status: 'rejected',
-      };
-      writeFileSync(planPath, `${JSON.stringify(rejected, null, 2)}\n`);
-
-      const rerunRejected = runRawCli([
-        'regrade',
-        'plan',
-        'alpha',
-        'omega',
-        '--expand',
-        '--root-dir',
-        dir,
-        '--json',
-      ]);
-      expect(rerunRejected.exitCode).toBe(0);
-      const rejectedSaved = JSON.parse(readFileSync(planPath, 'utf8')) as {
-        expansion?: {
-          candidates?: readonly {
-            readonly reason?: string;
-            readonly status?: string;
-            readonly value?: string;
-          }[];
-        };
-      };
-      expect(rejectedSaved.expansion?.candidates).toEqual([
-        expect.objectContaining({
+        if (rejected.expansion?.candidates?.[0] === undefined) {
+          throw new Error('Expected staged expansion candidate.');
+        }
+        rejected.expansion.candidates[0] = {
+          ...rejected.expansion.candidates[0],
           reason: 'Intentional idiom preserve.',
           status: 'rejected',
-          value: 'alphaing',
-        }),
-      ]);
-
-      const adopted = JSON.parse(readFileSync(planPath, 'utf8')) as {
-        expansion?: unknown;
-        plan?: { deferForms?: string[] };
-        provenance?: { fields?: { deferForms?: string } };
-      };
-      adopted.plan = { ...adopted.plan, deferForms: ['alphaing'] };
-      adopted.provenance = {
-        fields: {
-          ...adopted.provenance?.fields,
-          deferForms: 'authored',
-        },
-      };
-      writeFileSync(planPath, `${JSON.stringify(adopted, null, 2)}\n`);
-
-      const rerunAdopted = runRawCli([
-        'regrade',
-        'plan',
-        'alpha',
-        'omega',
-        '--expand',
-        '--root-dir',
-        dir,
-        '--json',
-      ]);
-      expect(rerunAdopted.exitCode).toBe(0);
-      const adoptedSaved = JSON.parse(readFileSync(planPath, 'utf8')) as {
-        expansion?: { candidates?: readonly unknown[] };
-        plan?: { deferForms?: readonly string[] };
-        provenance?: { fields?: { deferForms?: string } };
-      };
-      expect(adoptedSaved.plan?.deferForms).toEqual(['alphaing']);
-      expect(adoptedSaved.provenance?.fields?.deferForms).toBe('authored');
-      expect(adoptedSaved.expansion).toBeUndefined();
-    } finally {
-      rmSync(dir, { force: true, recursive: true });
-    }
-  });
-
-  test('CLI plan expansion keeps candidates outside path-scoped preserve rules', () => {
-    const dir = makeTempDir();
-    try {
-      writeFile(dir, 'src/surface.ts', 'export const facetId = "preserved";\n');
-      writeFile(dir, 'docs/surface.md', 'The facetId field needs review.\n');
-
-      const result = runRawCli([
-        'regrade',
-        'plan',
-        'facet',
-        'trailhead',
-        '--expand',
-        '--root-dir',
-        dir,
-        '--input-json',
-        JSON.stringify({
-          include: ['src/**', 'docs/**'],
-          preserve: [
-            {
-              disposition: 'preserve-current-live-api',
-              paths: ['src/**'],
-              pattern: '^facetId$',
-              reason: 'live-api-identifier',
-            },
-          ],
-        }),
-        '--json',
-      ]);
-
-      expect(result.exitCode).toBe(0);
-      const plan = parseCliJson<{
-        readonly expansion?: {
-          readonly candidates?: readonly {
-            readonly evidence?: readonly {
-              readonly path?: string;
-            }[];
-            readonly kind?: string;
-            readonly value?: string;
-          }[];
         };
-      }>(result);
+        writeFileSync(planPath, `${JSON.stringify(rejected, null, 2)}\n`);
 
-      expect(plan.expansion?.candidates).toEqual([
-        expect.objectContaining({
-          evidence: [expect.objectContaining({ path: 'docs/surface.md' })],
-          kind: 'form',
-          value: 'facetId',
-        }),
-      ]);
-    } finally {
-      rmSync(dir, { force: true, recursive: true });
-    }
-  });
+        const rerunRejected = runRawCli([
+          'regrade',
+          'plan',
+          'alpha',
+          'omega',
+          '--expand',
+          '--root-dir',
+          dir,
+          '--json',
+        ]);
+        expect(rerunRejected.exitCode).toBe(0);
+        const rejectedSaved = JSON.parse(readFileSync(planPath, 'utf8')) as {
+          expansion?: {
+            candidates?: readonly {
+              readonly reason?: string;
+              readonly status?: string;
+              readonly value?: string;
+            }[];
+          };
+        };
+        expect(rejectedSaved.expansion?.candidates).toEqual([
+          expect.objectContaining({
+            reason: 'Intentional idiom preserve.',
+            status: 'rejected',
+            value: 'alphaing',
+          }),
+        ]);
+
+        const adopted = JSON.parse(readFileSync(planPath, 'utf8')) as {
+          expansion?: unknown;
+          plan?: { deferForms?: string[] };
+          provenance?: { fields?: { deferForms?: string } };
+        };
+        adopted.plan = { ...adopted.plan, deferForms: ['alphaing'] };
+        adopted.provenance = {
+          fields: {
+            ...adopted.provenance?.fields,
+            deferForms: 'authored',
+          },
+        };
+        writeFileSync(planPath, `${JSON.stringify(adopted, null, 2)}\n`);
+
+        const rerunAdopted = runRawCli([
+          'regrade',
+          'plan',
+          'alpha',
+          'omega',
+          '--expand',
+          '--root-dir',
+          dir,
+          '--json',
+        ]);
+        expect(rerunAdopted.exitCode).toBe(0);
+        const adoptedSaved = JSON.parse(readFileSync(planPath, 'utf8')) as {
+          expansion?: { candidates?: readonly unknown[] };
+          plan?: { deferForms?: readonly string[] };
+          provenance?: { fields?: { deferForms?: string } };
+        };
+        expect(adoptedSaved.plan?.deferForms).toEqual(['alphaing']);
+        expect(adoptedSaved.provenance?.fields?.deferForms).toBe('authored');
+        expect(adoptedSaved.expansion).toBeUndefined();
+      } finally {
+        rmSync(dir, { force: true, recursive: true });
+      }
+    },
+    cliTimeoutMs
+  );
+
+  test(
+    'CLI plan expansion keeps candidates outside path-scoped preserve rules',
+    () => {
+      const dir = makeTempDir();
+      try {
+        writeFile(
+          dir,
+          'src/surface.ts',
+          'export const facetId = "preserved";\n'
+        );
+        writeFile(dir, 'docs/surface.md', 'The facetId field needs review.\n');
+
+        const result = runRawCli([
+          'regrade',
+          'plan',
+          'facet',
+          'trailhead',
+          '--expand',
+          '--root-dir',
+          dir,
+          '--input-json',
+          JSON.stringify({
+            include: ['src/**', 'docs/**'],
+            preserve: [
+              {
+                disposition: 'preserve-current-live-api',
+                paths: ['src/**'],
+                pattern: '^facetId$',
+                reason: 'live-api-identifier',
+              },
+            ],
+          }),
+          '--json',
+        ]);
+
+        expect(result.exitCode).toBe(0);
+        const plan = parseCliJson<{
+          readonly expansion?: {
+            readonly candidates?: readonly {
+              readonly evidence?: readonly {
+                readonly path?: string;
+              }[];
+              readonly kind?: string;
+              readonly value?: string;
+            }[];
+          };
+        }>(result);
+
+        expect(plan.expansion?.candidates).toEqual([
+          expect.objectContaining({
+            evidence: [expect.objectContaining({ path: 'docs/surface.md' })],
+            kind: 'form',
+            value: 'facetId',
+          }),
+        ]);
+      } finally {
+        rmSync(dir, { force: true, recursive: true });
+      }
+    },
+    cliTimeoutMs
+  );
 
   test('CLI plan expansion requires preserve patterns to match form candidates', () => {
     const dir = makeTempDir();

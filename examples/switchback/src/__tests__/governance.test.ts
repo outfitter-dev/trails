@@ -8,7 +8,7 @@
 import { describe, expect, test } from 'bun:test';
 import { join } from 'node:path';
 
-import { deriveTopoGraph } from '@ontrails/topographer';
+import { deriveTopoGraph } from '@ontrails/topography';
 import { runWarden } from '@ontrails/warden';
 
 import { app } from '../app.js';

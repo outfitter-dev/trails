@@ -5,7 +5,7 @@
 "@ontrails/cli": patch
 "@ontrails/mcp": patch
 "@ontrails/http": patch
-"@ontrails/topographer": patch
+"@ontrails/topography": patch
 "@ontrails/trails": patch
 ---
 

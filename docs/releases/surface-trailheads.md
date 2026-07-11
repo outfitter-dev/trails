@@ -6,7 +6,7 @@ Surface trailheads are an additive beta feature for dense MCP surfaces. They let
 
 The Surface Trailheads & MCP Shaping stack changes these publishable packages:
 
-- `@ontrails/topographer`: serializes resolved trailhead metadata in TopoGraph artifacts and semantic diffs.
+- `@ontrails/topography`: serializes resolved trailhead metadata in TopoGraph artifacts and semantic diffs.
 - `@ontrails/mcp`: adds MCP surface trailheads, MCP resource projection for cold context, and deferred-loading metadata hints.
 - `@ontrails/trails`: adds the Trails operator MCP entrypoint and deferred trailhead map.
 - `@ontrails/warden`: adds `surface-trailhead-coherence` guidance for overlap, dynamic selectors, visibility acknowledgement, and description hygiene.

@@ -4,7 +4,7 @@
 "@ontrails/mcp": minor
 "@ontrails/testing": minor
 "@ontrails/warden": minor
-"@ontrails/topographer": minor
+"@ontrails/topography": minor
 ---
 
 Initial v1 beta release of the Trails framework.

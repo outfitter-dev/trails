@@ -77,7 +77,7 @@ describe('Warden-as-library dogfood', () => {
         ['@ontrails/permits', 'packages/permits'],
         ['@ontrails/store', 'packages/store'],
         ['@ontrails/testing', 'packages/testing'],
-        ['@ontrails/topographer', 'packages/topographer'],
+        ['@ontrails/topography', 'packages/topography'],
         ['@ontrails/warden', 'packages/warden'],
         ['@types', 'node_modules/@types'],
         ['oxc-parser', 'node_modules/oxc-parser'],

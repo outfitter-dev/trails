@@ -10,8 +10,8 @@ import {
   topo,
   trail,
 } from '@ontrails/core';
-import { deriveTopoGraph } from '@ontrails/topographer';
-import type { TopoGraph, TopoGraphEntry } from '@ontrails/topographer';
+import { deriveTopoGraph } from '@ontrails/topography';
+import type { TopoGraph, TopoGraphEntry } from '@ontrails/topography';
 
 import {
   createWayfinderEntityPredicate,

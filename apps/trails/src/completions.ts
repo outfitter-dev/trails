@@ -21,7 +21,7 @@ import {
   Result,
   ValidationError,
 } from '@ontrails/core';
-import { buildWorkspaceTrailIndex } from '@ontrails/topographer';
+import { buildWorkspaceTrailIndex } from '@ontrails/topography';
 
 import { tryLoadFreshAppLease } from './trails/load-app.js';
 

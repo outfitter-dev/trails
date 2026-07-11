@@ -20,7 +20,7 @@ import type {
   DiffResult,
   TopoGraph,
   TopoGraphOverlayRegistration,
-} from '@ontrails/topographer';
+} from '@ontrails/topography';
 import {
   createTopoStore,
   deriveTopoGraphDiff,
@@ -28,7 +28,7 @@ import {
   resolveTopoGraphVersionReference,
   TOPO_GRAPH_SCHEMA_VERSION,
   readTopoGraph,
-} from '@ontrails/topographer';
+} from '@ontrails/topography';
 import { z } from 'zod';
 
 import { writeIsolatedExampleJsonFile } from '../local-state-io.js';

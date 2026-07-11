@@ -69,4 +69,4 @@ Create CLI or HTTP implementation issues only after one of these is true:
 
 - the MCP field notes show repeated agent wins that map cleanly to CLI or HTTP;
 - downstream apps ask for grouped surface affordances outside MCP;
-- Warden or Topographer evidence shows a durable projection pattern that surfaces can consume without weakening trail identity.
+- Warden or Topography evidence shows a durable projection pattern that surfaces can consume without weakening trail identity.

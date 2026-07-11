@@ -26,7 +26,7 @@ import {
 } from '@ontrails/core';
 import type { Topo } from '@ontrails/core';
 import { resolveTrailsOverlays } from '@ontrails/adapter-kit';
-import type { TopoGraphOverlayRegistration } from '@ontrails/topographer';
+import type { TopoGraphOverlayRegistration } from '@ontrails/topography';
 import { findAppModule } from '@ontrails/cli';
 
 import {

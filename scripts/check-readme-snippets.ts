@@ -264,7 +264,7 @@ export const PACKAGE_APP_ADAPTER_READMES = [
   'packages/testing/README.md',
   'packages/http/README.md',
   'packages/warden/README.md',
-  'packages/topographer/README.md',
+  'packages/topography/README.md',
   'packages/store/README.md',
   'adapters/commander/README.md',
   'adapters/hono/README.md',
@@ -335,7 +335,7 @@ export const README_SNIPPET_CONFIGS: readonly ReadmeSnippetConfig[] = [
   },
   {
     prelude: COMMON_README_PRELUDE,
-    readmePath: 'packages/topographer/README.md',
+    readmePath: 'packages/topography/README.md',
   },
   {
     prelude: COMMON_README_PRELUDE,

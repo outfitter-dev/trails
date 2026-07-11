@@ -16,8 +16,8 @@ import {
   deriveTopoGraph,
   LOCK_MANIFEST_SCHEMA_VERSION,
   writeLockManifest,
-} from '@ontrails/topographer';
-import { createStoredTopoSnapshot } from '@ontrails/topographer/backend-support';
+} from '@ontrails/topography';
+import { createStoredTopoSnapshot } from '@ontrails/topography/backend-support';
 import { z } from 'zod';
 
 import { checkDrift, staleDriftMessage } from '../drift.js';

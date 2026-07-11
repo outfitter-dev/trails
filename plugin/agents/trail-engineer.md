@@ -21,7 +21,7 @@ trails wayfind --trails --root-dir . --json
 trails wayfind <trail-id> --contract --root-dir . --json
 ```
 
-Read the app's topo file or use `rg "trail\\(" --type ts -l` only when Wayfinder reports missing or stale artifacts, when you need implementation source that Topographer does not project, or when the current authority does not allow refreshing artifacts.
+Read the app's topo file or use `rg "trail\\(" --type ts -l` only when Wayfinder reports missing or stale artifacts, when you need implementation source that Topography does not project, or when the current authority does not allow refreshing artifacts.
 
 ### 2. Design Contract First
 
@@ -112,7 +112,7 @@ Do not stop at green tests when the change reaches users, operators, or agents. 
 - agent guidance, skills, or plugin prompts that need the new rule;
 - Warden rules, generated guides, or drift checks for governable boundaries;
 - branch-local release intent for publishable package changes;
-- Wayfinder dogfood smoke for framework surface, operator topo, Topographer artifact, Wayfinder, or fresh-loader changes;
+- Wayfinder dogfood smoke for framework surface, operator topo, Topography artifact, Wayfinder, or fresh-loader changes;
 - migration or bridge guidance for existing apps.
 
 ## Debugging

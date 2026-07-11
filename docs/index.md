@@ -15,7 +15,7 @@
 - **[Trailheads Release Notes](./releases/surface-trailheads.md)** — Release prep, migration posture, and publish path for MCP trailheads
 - **[Wayfinder V0 Release Notes](./releases/wayfinder-v0.md)** — Release prep, MCP exposure posture, and non-goals for the first real Wayfinder catalog
 - **[Beta 15](./releases/beta15.md)** — Beta 15 release-prep notes and known CLI follow-up work
-- **[Beta 15 to Beta 19](./releases/beta15-to-beta19.md)** — Downstream operator guide: package install, surface decisions, `cross`→`compose` rename, trail versioning, adapter authoring, Topographer adoption, validation checklist
+- **[Beta 15 to Beta 19](./releases/beta15-to-beta19.md)** — Downstream operator guide: package install, surface decisions, `cross`→`compose` rename, trail versioning, adapter authoring, Topography adoption, validation checklist
 
 ## Building something?
 
@@ -43,7 +43,7 @@
 ## Governing your codebase?
 
 - **[Warden](./warden.md)** — Trails correctness rules, rule-home boundaries, drift detection, CI integration
-- **[Topographer](../packages/topographer/README.md)** — TopoGraphs, durable artifact helpers, semantic diffing, lock manifests, topo-store persistence, and Wayfind graph-read query APIs
+- **[Topography](../packages/topography/README.md)** — TopoGraphs, durable artifact helpers, semantic diffing, lock manifests, topo-store persistence, and Wayfind graph-read query APIs
 
 ## Contributing to Trails?
 

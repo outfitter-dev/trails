@@ -18,15 +18,17 @@ describe('governed vocabulary registry', () => {
       'cross-compose',
       'v1-blaze-implementation',
       'v1-contour-entity',
+      'v1-topographer-topography',
       'v1-facet-trailhead',
       'v1-warden-ast-source',
-      'v1-wayfinder-topographer',
+      'v1-wayfinder-topography',
       'v1-projection-derive-render',
     ]);
     expect(transitions.map((transition) => transition.from)).toEqual([
       'cross',
       'blaze',
       'contour',
+      'topographer',
       'facet',
       '@ontrails/warden/ast',
       '@ontrails/wayfinder',
@@ -46,6 +48,11 @@ describe('governed vocabulary registry', () => {
       'v1-blaze-implementation'
     );
     expect(implementation?.status).toBe('complete');
+
+    const topography = getGovernedVocabularyTransition(
+      'v1-topographer-topography'
+    );
+    expect(topography?.status).toBe('complete');
   });
 
   test('validates registry shape and rejects incomplete entries', () => {
@@ -231,6 +238,135 @@ describe('governed vocabulary registry', () => {
     expect(literalSources).not.toContain('counter-contour');
   });
 
+  test('governs topographer identifier segments for topography migration', () => {
+    const topography = getGovernedVocabularyTransition(
+      'v1-topographer-topography'
+    );
+
+    expect(topography).toMatchObject({
+      codeIdentifiers: [
+        '@ontrails/topographer',
+        '@ontrails/topographer/backend-support',
+        '0042-core-topographer-boundary-doctrine',
+        'core-topographer-boundary-doctrine',
+        'Topographer-owned',
+        'packages/topographer',
+        'topographer',
+        'topographers',
+      ],
+      from: 'topographer',
+      status: 'complete',
+      target: { kind: 'single', to: 'topography' },
+    });
+    expect(topography?.safeRewriteForms).toMatchObject({
+      '0042-core-topographer-boundary-doctrine':
+        '0042-core-topography-boundary-doctrine',
+      'Topographer-owned': 'Topography-owned',
+      'core-topographer-boundary-doctrine': 'core-topography-boundary-doctrine',
+      'packages/topographer': 'packages/topography',
+      topographer: 'topography',
+      topographers: 'topographies',
+    });
+    expect(topography?.symbolRenames).toEqual([
+      {
+        from: 'topographer',
+        match: 'identifier-segment',
+        reviewDeclarationTypes: ['FunctionParam'],
+        to: 'topography',
+      },
+      {
+        from: 'topographers',
+        match: 'identifier-segment',
+        reviewDeclarationTypes: ['FunctionParam'],
+        to: 'topographies',
+      },
+    ]);
+  });
+
+  test('governs topographer package routes as exact literals only', () => {
+    const topography = getGovernedVocabularyTransition(
+      'v1-topographer-topography'
+    );
+
+    expect(topography?.safeRewriteForms).toMatchObject({
+      '@ontrails/topographer': '@ontrails/topography',
+      '@ontrails/topographer/backend-support':
+        '@ontrails/topography/backend-support',
+    });
+    expect(topography?.stringLiteralRenames).toEqual([
+      {
+        from: '@ontrails/topographer',
+        moduleSpecifier: { targetPackage: '@ontrails/topography' },
+        to: '@ontrails/topography',
+      },
+      {
+        from: '@ontrails/topographer/backend-support',
+        moduleSpecifier: { targetPackage: '@ontrails/topography' },
+        to: '@ontrails/topography/backend-support',
+      },
+      {
+        from: '0042-core-topographer-boundary-doctrine',
+        to: '0042-core-topography-boundary-doctrine',
+      },
+      {
+        from: 'core-topographer-boundary-doctrine',
+        to: 'core-topography-boundary-doctrine',
+      },
+      { from: 'Topographer-owned', to: 'Topography-owned' },
+      { from: 'packages/topographer', to: 'packages/topography' },
+    ]);
+    expect(topography?.reviewForms).toEqual(['Topographer']);
+
+    const rewriteSources = new Set([
+      ...Object.keys(topography?.safeRewriteForms ?? {}),
+      ...(topography?.stringLiteralRenames.map((rename) => rename.from) ?? []),
+    ]);
+    expect(rewriteSources).not.toContain('Topographer');
+    expect(rewriteSources).not.toContain('Topographers-owned');
+    expect(rewriteSources).not.toContain('@ontrails/topographers');
+    expect(rewriteSources).not.toContain('@ontrails/topographer-extra');
+    expect(rewriteSources).not.toContain(
+      '@ontrails/topographer/backend-support-extra'
+    );
+    expect(rewriteSources).not.toContain('packages/topographers');
+    expect(rewriteSources).not.toContain('packages/topographer-extra');
+    expect(rewriteSources).not.toContain(
+      '0042-core-topographer-boundary-doctrines'
+    );
+    expect(rewriteSources).not.toContain(
+      '0042-core-topographer-boundary-doctrine-extra'
+    );
+    expect(rewriteSources).not.toContain('core-topographer-boundary-doctrines');
+    expect(rewriteSources).not.toContain(
+      'core-topographer-boundary-doctrine-extra'
+    );
+  });
+
+  test('keeps topographer historical paths protected through v1 transition scope', () => {
+    const topography = getGovernedVocabularyTransition(
+      'v1-topographer-topography'
+    );
+
+    expect(topography?.scope?.exclude).toContain(
+      'packages/warden/src/rules/retired-vocabulary.ts'
+    );
+    expect(topography?.scope?.exclude).toContain(
+      'packages/warden/src/__tests__/retired-vocabulary.test.ts'
+    );
+    expect(topography?.scope?.exclude).toContain('.scratch/**');
+    expect(topography?.scope?.exclude).toContain('.agents/memory/**');
+    expect(topography?.scope?.exclude).toContain('**/.agents/memory/**');
+
+    const historical = topography?.preserve.find((rule) =>
+      rule.paths?.includes('docs/adr/0*.md')
+    );
+    expect(historical?.paths).toContain('.agents/plans/**');
+    expect(historical?.paths).toContain('docs/releases/v1-vocabulary-reset.md');
+    expect(historical?.pattern).toBe(
+      '(?:@ontrails/topographer|@ontrails/topographer/backend-support|0042-core-topographer-boundary-doctrine|core-topographer-boundary-doctrine|Topographer-owned|packages/topographer|topographer|topographers|Topographer)'
+    );
+  });
+
   test('governs the warden ast package route as an exact code string only', () => {
     const source = getGovernedVocabularyTransition('v1-warden-ast-source');
 
@@ -249,16 +385,22 @@ describe('governed vocabulary registry', () => {
           'adapters/commander/src/__tests__/to-commander.test.ts',
           'apps/trails/src/__tests__/mcp.test.ts',
           'apps/trails/src/__tests__/regrade.test.ts',
-          'docs/api-reference.md',
           'packages/regrade/src/downstream/__tests__/ast-rewrite.test.ts',
           'packages/regrade/src/downstream/__tests__/vocabulary.test.ts',
-          'packages/warden/README.md',
-          'packages/warden/src/__tests__/ast-export-contract.test.ts',
-          'packages/warden/src/__tests__/public-api.test.ts',
           'packages/warden/src/__tests__/retired-vocabulary.test.ts',
           'scripts/verify-oxc-resolver-published.ts',
         ]),
         pattern: '^@ontrails/warden/ast$',
+      })
+    );
+    expect(source?.preserve).not.toContainEqual(
+      expect.objectContaining({
+        paths: expect.arrayContaining([
+          'docs/api-reference.md',
+          'packages/warden/README.md',
+          'packages/warden/src/__tests__/ast-export-contract.test.ts',
+          'packages/warden/src/__tests__/public-api.test.ts',
+        ]),
       })
     );
     expect(source?.stringLiteralRenames).toEqual([
@@ -274,23 +416,23 @@ describe('governed vocabulary registry', () => {
 
   test('governs the retired Wayfinder package route without renaming the product', () => {
     const wayfinder = getGovernedVocabularyTransition(
-      'v1-wayfinder-topographer'
+      'v1-wayfinder-topography'
     );
 
     expect(wayfinder).toMatchObject({
       codeIdentifiers: ['@ontrails/wayfinder'],
       from: '@ontrails/wayfinder',
       status: 'complete',
-      target: { kind: 'single', to: '@ontrails/topographer' },
+      target: { kind: 'single', to: '@ontrails/topography' },
     });
     expect(wayfinder?.safeRewriteForms).toEqual({
-      '@ontrails/wayfinder': '@ontrails/topographer',
+      '@ontrails/wayfinder': '@ontrails/topography',
     });
     expect(wayfinder?.stringLiteralRenames).toEqual([
       {
         from: '@ontrails/wayfinder',
-        moduleSpecifier: { targetPackage: '@ontrails/topographer' },
-        to: '@ontrails/topographer',
+        moduleSpecifier: { targetPackage: '@ontrails/topography' },
+        to: '@ontrails/topography',
       },
     ]);
     expect(wayfinder?.symbolRenames).toEqual([]);

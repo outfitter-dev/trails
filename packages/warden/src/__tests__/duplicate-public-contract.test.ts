@@ -8,7 +8,7 @@ import {
   topo,
   trail,
 } from '@ontrails/core';
-import { deriveTopoGraph } from '@ontrails/topographer';
+import { deriveTopoGraph } from '@ontrails/topography';
 import { z } from 'zod';
 
 import { duplicatePublicContract } from '../rules/duplicate-public-contract.js';

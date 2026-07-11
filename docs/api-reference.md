@@ -26,7 +26,7 @@ openReadTrailsDb(options?), openWriteTrailsDb(options?), ensureSubsystemSchema(d
 deriveTrailsDir(options?), deriveTrailsDbPath(options?), deriveTrailsStateDir(options?)
 deriveTrailsStateHome(options?), deriveTrailsProjectKey(options?)
 // topo-store API (createTopoStore, createMockTopoStore, topoStore, snapshot helpers, etc.)
-// has moved to @ontrails/topographer per ADR-0042. See that section below.
+// has moved to @ontrails/topography per ADR-0042. See that section below.
 
 // Types
 Trail<I, O>, Signal<T>, ScheduleSource, WebhookSource<T>, Entity<TName, TShape, TIdentity>, Resource<T>, Topo, Intent
@@ -247,9 +247,9 @@ createApp(graph, options?)             // create a Hono app without serving
 CreateAppOptions, SurfaceHttpResult
 ```
 
-## `@ontrails/topographer`
+## `@ontrails/topography`
 
-These are programmatic Topographer APIs for deriving, hashing, diffing, reading, and writing TopoGraph artifacts. App authors usually run the artifact lifecycle through the top-level CLI commands instead: `trails compile`, `trails validate`, and `trails diff`. The package does not expose a separate CLI binary, and retired `trails topo compile` / `trails topo verify` / `trails topo check` forms are not aliases.
+These are programmatic Topography APIs for deriving, hashing, diffing, reading, and writing TopoGraph artifacts. App authors usually run the artifact lifecycle through the top-level CLI commands instead: `trails compile`, `trails validate`, and `trails diff`. The package does not expose a separate CLI binary, and retired `trails topo compile` / `trails topo verify` / `trails topo check` forms are not aliases.
 
 ```typescript
 // TopoGraph and lock artifact helpers
@@ -303,20 +303,20 @@ WayfinderEntityFilters, WayfinderEntityFilterInput, WayfinderEntityKind
 WayfinderEntityRef, WayfinderFilterContext, WayfinderIntent
 ```
 
-Wayfind graph reads are part of `@ontrails/topographer` because they query the durable TopoGraph, lock, topo-store, and adapter evidence that Topographer owns. The product, trail IDs, CLI/MCP routes, and public type names remain Wayfinder/Wayfind; the package import path is `@ontrails/topographer`.
+Wayfind graph reads are part of `@ontrails/topography` because they query the durable TopoGraph, lock, topo-store, and adapter evidence that Topography owns. The product, trail IDs, CLI/MCP routes, and public type names remain Wayfinder/Wayfind; the package import path is `@ontrails/topography`.
 
 Wayfind trails are internal by default. Surface hosts expose selected query trails deliberately, usually by exact trail ID for operator tooling.
 
-The removed `@ontrails/wayfinder` package has no compatibility route. Move programmatic imports to `@ontrails/topographer`:
+The removed `@ontrails/wayfinder` package has no compatibility route. Move programmatic imports to `@ontrails/topography`:
 
 ```diff
 - import { wayfinderTopo, loadWayfinderArtifacts } from '@ontrails/wayfinder';
-+ import { wayfinderTopo, loadWayfinderArtifacts } from '@ontrails/topographer';
++ import { wayfinderTopo, loadWayfinderArtifacts } from '@ontrails/topography';
 ```
 
-The Trails operator owns the file-outline composite view. Use `trails wayfind file <file> --outline` when you need source-to-graph reconciliation for one source file; Topographer owns the reusable saved-artifact loading, provenance, filtering, and graph-read query trails behind that operator surface.
+The Trails operator owns the file-outline composite view. Use `trails wayfind file <file> --outline` when you need source-to-graph reconciliation for one source file; Topography owns the reusable saved-artifact loading, provenance, filtering, and graph-read query trails behind that operator surface.
 
-### `@ontrails/topographer/backend-support`
+### `@ontrails/topography/backend-support`
 
 ```typescript
 createStoredTopoSnapshot(db, topo, input?), getStoredTopoExport(db, snapshotId)

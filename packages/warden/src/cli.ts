@@ -15,11 +15,11 @@ import {
   surfaceBindingsFromLockOverlays,
 } from '@ontrails/core';
 import type { SurfaceBindings, Topo } from '@ontrails/core';
-import { deriveTopoGraph } from '@ontrails/topographer';
+import { deriveTopoGraph } from '@ontrails/topography';
 import type {
   TopoGraph,
   TopoGraphOverlayRegistration,
-} from '@ontrails/topographer';
+} from '@ontrails/topography';
 
 import type {
   EffectiveWardenConfig,

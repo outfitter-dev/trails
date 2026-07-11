@@ -45,7 +45,7 @@ const createFixture = (): CapturedKernelFixture => {
   const cliRoot = join(rootDir, 'packages', 'cli');
   const trailsRoot = join(rootDir, 'apps', 'trails');
   const wardenRoot = join(rootDir, 'packages', 'warden');
-  const topographerRoot = join(rootDir, 'packages', 'topographer');
+  const topographyRoot = join(rootDir, 'packages', 'topography');
   const coreKernelPath = join(coreRoot, 'src', 'kernel.ts');
   const storeImporterPath = join(storeRoot, 'src', 'store.ts');
   const cliImporterPath = join(cliRoot, 'src', 'cli.ts');
@@ -63,7 +63,7 @@ const createFixture = (): CapturedKernelFixture => {
     join(cliRoot, 'src'),
     join(trailsRoot, 'src'),
     join(wardenRoot, 'src', '__tests__'),
-    join(topographerRoot, 'src', 'internal'),
+    join(topographyRoot, 'src', 'internal'),
     join(rootDir, 'node_modules', '@ontrails'),
   ]) {
     mkdirSync(dir, { recursive: true });
@@ -95,22 +95,22 @@ const createFixture = (): CapturedKernelFixture => {
     type: 'module',
   });
   writeJson(join(trailsRoot, 'package.json'), {
-    dependencies: { '@ontrails/topographer': 'workspace:*' },
+    dependencies: { '@ontrails/topography': 'workspace:*' },
     name: '@ontrails/trails',
     type: 'module',
   });
   writeJson(join(wardenRoot, 'package.json'), {
-    dependencies: { '@ontrails/topographer': 'workspace:*' },
+    dependencies: { '@ontrails/topography': 'workspace:*' },
     exports: { '.': './src/index.ts' },
     name: '@ontrails/warden',
     type: 'module',
   });
-  writeJson(join(topographerRoot, 'package.json'), {
+  writeJson(join(topographyRoot, 'package.json'), {
     exports: {
       '.': './src/index.ts',
       './backend-support': './src/backend-support.ts',
     },
-    name: '@ontrails/topographer',
+    name: '@ontrails/topography',
     type: 'module',
   });
 
@@ -130,15 +130,15 @@ const createFixture = (): CapturedKernelFixture => {
     'export const warden = 1;\n'
   );
   writeSource(
-    join(topographerRoot, 'src', 'index.ts'),
-    'export const topographer = 1;\n'
+    join(topographyRoot, 'src', 'index.ts'),
+    'export const topography = 1;\n'
   );
   writeSource(
-    join(topographerRoot, 'src', 'internal', 'backend-support.ts'),
+    join(topographyRoot, 'src', 'internal', 'backend-support.ts'),
     'export const backend = 1;\n'
   );
   writeSource(
-    join(topographerRoot, 'src', 'backend-support.ts'),
+    join(topographyRoot, 'src', 'backend-support.ts'),
     "export { backend } from './internal/backend-support.js';\n"
   );
 
@@ -148,7 +148,7 @@ const createFixture = (): CapturedKernelFixture => {
     ['cli', cliRoot],
     ['trails', trailsRoot],
     ['warden', wardenRoot],
-    ['topographer', topographerRoot],
+    ['topography', topographyRoot],
   ] as const) {
     symlinkSync(
       target,
@@ -482,7 +482,7 @@ describe('captured-kernel', () => {
         checkKernelWithProductionConsumers(
           fixture,
           fixture.coreKernelPath,
-          "export { backend } from '../../topographer/src/internal/backend-support.js';\n"
+          "export { backend } from '../../topography/src/internal/backend-support.js';\n"
         )
       ).toEqual([]);
     } finally {
@@ -872,16 +872,16 @@ describe('captured-kernel', () => {
       const backendPath = join(
         fixture.rootDir,
         'packages',
-        'topographer',
+        'topography',
         'src',
         'backend-support.ts'
       );
       const backendSource =
         "export { backend } from './internal/backend-support.js';\n";
       const trailsSource =
-        "import { backend } from '@ontrails/topographer/backend-support';\n";
+        "import { backend } from '@ontrails/topography/backend-support';\n";
       const wardenTestSource =
-        "import { backend } from '@ontrails/topographer/backend-support';\n";
+        "import { backend } from '@ontrails/topography/backend-support';\n";
       writeSource(fixture.trailsImporterPath, trailsSource);
       writeSource(fixture.wardenTestImporterPath, wardenTestSource);
 

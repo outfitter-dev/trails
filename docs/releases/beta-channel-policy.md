@@ -87,7 +87,7 @@ That check requires every public workspace package to exist at the repo target v
 For a small representative spot check:
 
 ```bash
-for pkg in @ontrails/core @ontrails/commander @ontrails/testing @ontrails/topographer; do
+for pkg in @ontrails/core @ontrails/commander @ontrails/testing @ontrails/topography; do
   npm view "$pkg" dist-tags --json
 done
 ```

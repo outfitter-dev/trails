@@ -175,15 +175,15 @@ The generated package is one package with subpath exports — no sibling package
 
 ### The resolved projection lives in the artifact family
 
-The resolved `LibraryProjection` — every export name, its source (derived / trail-owned hint / package config), its target trail ID, and every collision decision — is graph content, governed like the rest of the resolved topo artifact family (ADR-0046): manifest-verified, CI-diffable, queryable by Topographer, Wayfinder, and Warden. The emitter consumes it; it does not privately invent it.
+The resolved `LibraryProjection` — every export name, its source (derived / trail-owned hint / package config), its target trail ID, and every collision decision — is graph content, governed like the rest of the resolved topo artifact family (ADR-0046): manifest-verified, CI-diffable, queryable by Topography, Wayfinder, and Warden. The emitter consumes it; it does not privately invent it.
 
-The projection embeds in `topo.lock` as part of `TopoGraph`. That follows the existing precedent for resolved surface projections rather than introducing a separate hashed artifact role for one surface. Topographer serializes the durable facts (exports, exclusions, collisions, schemas, resources, version, and source metadata); `@ontrails/library` keeps the richer runtime Zod references for in-memory calls and package emission.
+The projection embeds in `topo.lock` as part of `TopoGraph`. That follows the existing precedent for resolved surface projections rather than introducing a separate hashed artifact role for one surface. Topography serializes the durable facts (exports, exclusions, collisions, schemas, resources, version, and source metadata); `@ontrails/library` keeps the richer runtime Zod references for in-memory calls and package emission.
 
 ### Current governance and dogfood proof
 
 The first implementation slices intentionally prove the surface through both artifact governance and a real generated-package consumer:
 
-- Topographer embeds durable `TopoGraph.library` facts.
+- Topography embeds durable `TopoGraph.library` facts.
 - Warden's `library-projection-coherence` rule checks that serialized library exports still target known trails and that export-name collisions stay visible.
 - `bun run library:smoke` typechecks and dry-run packs a generated fixture package.
 - `bun run library:dogfood:warden` compiles the Warden topo into a generated package, typechecks it, runs root/result/schemas/trails subpath consumer assertions, and dry-run packs it.

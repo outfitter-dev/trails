@@ -2,7 +2,7 @@
 "@ontrails/core": patch
 "@ontrails/http": patch
 "@ontrails/regrade": patch
-"@ontrails/topographer": patch
+"@ontrails/topography": patch
 "@ontrails/trails": patch
 "@ontrails/warden": patch
 ---

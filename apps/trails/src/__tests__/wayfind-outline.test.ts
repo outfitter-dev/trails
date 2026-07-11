@@ -14,12 +14,12 @@ import {
   deriveTopoGraph,
   deriveTopoGraphHash,
   writeTrailsLock,
-} from '@ontrails/topographer';
+} from '@ontrails/topography';
 import type {
   TopoGraph,
   TopoGraphEntry,
   TrailsLock,
-} from '@ontrails/topographer';
+} from '@ontrails/topography';
 import { z } from 'zod';
 
 import { wayfindOutlineTrail } from '../trails/wayfind-outline.js';

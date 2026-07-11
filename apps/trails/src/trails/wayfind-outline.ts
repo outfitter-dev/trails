@@ -10,12 +10,12 @@ import {
   trail,
 } from '@ontrails/core';
 import type { TrailsError } from '@ontrails/core';
-import { loadWayfinderArtifacts } from '@ontrails/topographer';
+import { loadWayfinderArtifacts } from '@ontrails/topography';
 import type {
   TopoGraph,
   TopoGraphEntry,
   WayfinderArtifactLoad,
-} from '@ontrails/topographer';
+} from '@ontrails/topography';
 import {
   findTrailDefinitions,
   getStringValue,

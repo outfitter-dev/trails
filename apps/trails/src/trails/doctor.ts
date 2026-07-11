@@ -5,7 +5,7 @@ import {
   Result,
   trail,
 } from '@ontrails/core';
-import { readTopoGraph } from '@ontrails/topographer';
+import { readTopoGraph } from '@ontrails/topography';
 import { z } from 'zod';
 
 import {

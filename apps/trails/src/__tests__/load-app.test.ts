@@ -179,27 +179,27 @@ const writeFirstPartyWorkspacePackageFixture = (cwd: string): void => {
       workspaces: ['packages/*'],
     })
   );
-  mkdirSync(resolve(cwd, 'packages/topographer/src'), { recursive: true });
+  mkdirSync(resolve(cwd, 'packages/topography/src'), { recursive: true });
   writeFileSync(
-    resolve(cwd, 'packages/topographer/package.json'),
+    resolve(cwd, 'packages/topography/package.json'),
     JSON.stringify({
       exports: {
         '.': './src/index.ts',
       },
-      name: '@ontrails/topographer',
+      name: '@ontrails/topography',
       type: 'module',
     })
   );
   writeFileSync(
-    resolve(cwd, 'packages/topographer/src/index.ts'),
-    "export const topographerName = 'workspace-topographer';"
+    resolve(cwd, 'packages/topography/src/index.ts'),
+    "export const topographyName = 'workspace-topography';"
   );
   writeFileSync(
     resolve(cwd, 'src/app.ts'),
-    `import { topographerName } from '@ontrails/topographer';
+    `import { topographyName } from '@ontrails/topography';
 
 export const app = {
-  name: topographerName,
+  name: topographyName,
   trails: new Map(),
   signals: new Map(),
   resources: new Map()
@@ -826,7 +826,7 @@ export const app = {
 
       const app = await loadApp('./src/app.ts', cwd, { fresh: true });
 
-      expect(app.name).toBe('workspace-topographer');
+      expect(app.name).toBe('workspace-topography');
     } finally {
       rmSync(cwd, { force: true, recursive: true });
     }

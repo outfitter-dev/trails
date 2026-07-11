@@ -3,7 +3,7 @@
 "@ontrails/cli": minor
 "@ontrails/http": minor
 "@ontrails/mcp": minor
-"@ontrails/topographer": minor
+"@ontrails/topography": minor
 "@ontrails/testing": minor
 "@ontrails/warden": minor
 ---

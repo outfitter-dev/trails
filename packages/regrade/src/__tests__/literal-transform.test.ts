@@ -5,7 +5,7 @@ import {
   validateInput,
 } from '@ontrails/core';
 import { testExamples } from '@ontrails/testing';
-import { deriveTopoGraph } from '@ontrails/topographer';
+import { deriveTopoGraph } from '@ontrails/topography';
 
 import {
   literalRegradeTopo,

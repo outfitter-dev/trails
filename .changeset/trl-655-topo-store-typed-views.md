@@ -1,5 +1,5 @@
 ---
-'@ontrails/topographer': patch
+'@ontrails/topography': patch
 ---
 
 Added typed topo-store views over saved `TopoGraph` content, including typed

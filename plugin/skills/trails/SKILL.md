@@ -61,7 +61,7 @@ Current public packages are lockstep at the same Trails framework version.
 - **Surfaces:** `@ontrails/commander`, `@ontrails/mcp`, `@ontrails/hono`, and `@ontrails/http/bun` open the same topo on CLI, MCP, Hono HTTP, or Bun-native HTTP. `@ontrails/http` owns shared route derivation, OpenAPI, and the Web Fetch kernel; `@ontrails/cli` owns the framework-agnostic CLI command model; `@ontrails/vite` adapts Trails surfaces for Vite projects.
 - **Infrastructure:** `@ontrails/config`, `@ontrails/permits`, `@ontrails/store`, and `@ontrails/drizzle` cover config, authorization, schema-derived stores, and Drizzle SQLite bindings.
 - **Observability:** `@ontrails/observe` defines sink contracts; `@ontrails/tracing`, `@ontrails/logtape`, and `@ontrails/pino` provide tracing/dev-state and sink adapters.
-- **Ecosystem:** `@ontrails/testing` provides contract tests and surface harnesses; `@ontrails/topographer` owns TopoGraphs, semantic diffing, lock manifests, topo-store persistence, and Wayfind graph-read query APIs; `@ontrails/warden` owns governance rules.
+- **Ecosystem:** `@ontrails/testing` provides contract tests and surface harnesses; `@ontrails/topography` owns TopoGraphs, semantic diffing, lock manifests, topo-store persistence, and Wayfind graph-read query APIs; `@ontrails/warden` owns governance rules.
 - **Beta install policy:** While `.changeset/pre.json` is in prerelease mode, install published Trails packages with exact `1.0.0-beta.N` pins or `@beta`; do not rely on unqualified `latest` unless release notes explicitly advance it.
 
 ## Release Rules
@@ -86,7 +86,7 @@ Before moving work out of draft, check the affected surfaces:
 - **Agent guidance:** Update skills, plugin guidance, AGENTS files, or tool-specific prompts when agents need a new rule, workflow, or vocabulary.
 - **Governance:** Add or update Warden rules, generated Warden guides, or drift checks when the behavior creates a governable boundary.
 - **Release path:** Add a branch-local changeset for publishable package changes, or carry an explicit no-release reason when the change is truly not user-visible.
-- **Wayfinder dogfood:** Run the Wayfinder dogfood smoke when changing framework surfaces, operator topo exposure, Topographer artifacts, Wayfinder queries, or fresh app loading.
+- **Wayfinder dogfood:** Run the Wayfinder dogfood smoke when changing framework surfaces, operator topo exposure, Topography artifacts, Wayfinder queries, or fresh app loading.
 - **Migration path:** Document compatibility windows, bridge commands, or intentional non-support when existing apps may need to move.
 - **Publication readiness:** Run publish checks for package-impacting work and record first-time package, dist-tag, registry, or auth considerations.
 
@@ -94,7 +94,7 @@ Small internal refactors do not need ceremonial docs. They do need an explicit "
 
 ## Agent Wayfinding
 
-When saved Topographer artifacts can answer a graph question, use Wayfinder before raw text search:
+When saved Topography artifacts can answer a graph question, use Wayfinder before raw text search:
 
 ```bash
 trails wayfind --overview --root-dir . --json
@@ -106,13 +106,13 @@ trails schema wayfind
 ```
 
 - Start with `trails wayfind --overview` to learn artifact source, freshness, and graph counts.
-- Use the selected operator CLI shape for filtered discovery: `trails wayfind --trails`, `--resources`, `--signals`, `--surfaces`, `--trailheads`, `--entities`, `--errors`, or `--adapter <package>`. Attach bounded related facts with `--include adapters`, `errors`, `examples`, `surfaces`, or `versions`. Topographer may expose graph-query APIs beyond the operator CLI/MCP selection; check `trails schema wayfind` before constructing shell calls.
+- Use the selected operator CLI shape for filtered discovery: `trails wayfind --trails`, `--resources`, `--signals`, `--surfaces`, `--trailheads`, `--entities`, `--errors`, or `--adapter <package>`. Attach bounded related facts with `--include adapters`, `errors`, `examples`, `surfaces`, or `versions`. Topography may expose graph-query APIs beyond the operator CLI/MCP selection; check `trails schema wayfind` before constructing shell calls.
 - Use `trails schema <command...>` when you need accepted CLI routes, aliases, flags, and schemas before constructing shell calls.
 - Use `wayfind.describe` for a full saved entity record and `wayfind.contract` for a trail or version input/output/intent summary.
 - Use `wayfind.nearby`, `wayfind.impact`, and `wayfind.diff` for relation context, blast-radius reads, and explicit saved-baseline comparison.
 - Use `trails wayfind query "<phrase>"` for indexed text queries. Treat Wayfinder as graph-read only; do not assume semantic search, signposts, or implications exist in v0.
 
-Wayfinder trails are internal by default. Host apps expose selected queries deliberately, usually as read-only operator tools or MCP resources protected by the host's authorization boundary. Fall back to `rg`, qmd, source reads, or a fresh compile when Wayfinder reports missing or stale artifacts, when the task needs source code that Topographer does not project, or when writing artifacts is outside your current authority.
+Wayfinder trails are internal by default. Host apps expose selected queries deliberately, usually as read-only operator tools or MCP resources protected by the host's authorization boundary. Fall back to `rg`, qmd, source reads, or a fresh compile when Wayfinder reports missing or stale artifacts, when the task needs source code that Topography does not project, or when writing artifacts is outside your current authority.
 
 ## Creating Trails
 

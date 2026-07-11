@@ -1,8 +1,21 @@
-# @ontrails/topographer
+# @ontrails/topography
 
-Durable graph substrate for Trails: deterministic TopoGraphs, lockfile helpers, semantic diffing, topo-store persistence, and Wayfind graph-read APIs.
+Topography is the durable graph substrate for Trails: deterministic TopoGraphs, lockfile helpers, semantic diffing, topo-store persistence, and Wayfind graph-read APIs.
 
-Most applications reach this package through top-level `trails compile`, `trails validate`, and `trails diff`. Those CLI trails layer workspace and topo-store behavior on top of the building blocks in `@ontrails/topographer`. The package itself ships library entry points, not a separate CLI binary, and retired `trails topo compile`, `trails topo verify`, and `trails topo check` forms are not aliases.
+Most applications reach this package through top-level `trails compile`, `trails validate`, and `trails diff`. Those CLI trails layer workspace and topo-store behavior on top of the building blocks in `@ontrails/topography`. The package itself ships library entry points, not a separate CLI binary, and retired `trails topo compile`, `trails topo verify`, and `trails topo check` forms are not aliases.
+
+## Why this package earns a README
+
+[ADR-0042](../../docs/adr/0042-core-topography-boundary-doctrine.md) draws the boundary by lifecycle: core owns the in-process graph, while Topography owns durable graph artifacts that cross process boundaries or compare state across time. That boundary is easy to blur because the same authored topo feeds both runtime execution and saved evidence, so this README keeps the package's job explicit.
+
+The four-role story is:
+
+- author with core;
+- resolve to the topography;
+- render with surfaces;
+- govern with Warden.
+
+This is not a private helper package. The Trails operator app consumes Topography for compile, validate, run, survey, topo history, and Wayfind support. `@ontrails/warden` consumes it for drift detection and topo-aware governance rules. `apps/trails-demo` consumes it as the example app's governance proof. Regrade's contract suite also derives TopoGraph evidence through it. Those independent consumers make the package boundary worth documenting directly.
 
 ## What it owns
 
@@ -15,11 +28,11 @@ Most applications reach this package through top-level `trails compile`, `trails
   `trails.db` in the per-user Trails state store, including snapshots, pinning,
   history, and read-only query accessors (relocated from `@ontrails/core` per
   ADR-0042)
-- Wayfind graph-read trails and helpers over saved Topographer artifacts,
+- Wayfind graph-read trails and helpers over saved Topography artifacts,
   including artifact loading, provenance envelopes, typed entity filters,
   relation traversal, error facts, adapter facts, and explicit graph diffs
 
-`@ontrails/topographer` is the durable graph substrate for Trails. Generic `trails-db` plumbing (read/write SQLite handles, subsystem schema management, derived paths) stays in `@ontrails/core` so other subsystems (tracing, signals) can share it without depending on topographer.
+`@ontrails/topography` is the durable graph substrate for Trails. Generic `trails-db` plumbing (read/write SQLite handles, subsystem schema management, derived paths) stays in `@ontrails/core` so other subsystems (tracing, signals) can share it without depending on Topography.
 
 ## Usage
 
@@ -29,7 +42,7 @@ import {
   deriveTopoGraphDiff,
   deriveTopoGraphHash,
   writeTrailsLock,
-} from '@ontrails/topographer';
+} from '@ontrails/topography';
 
 const topoGraph = deriveTopoGraph(graph);
 const hash = deriveTopoGraphHash(topoGraph);
@@ -88,7 +101,7 @@ Compatibility helpers still read the previous `.trails/trails.lock` plus `.trail
 
 ## Wayfind graph reads
 
-Wayfind remains the product, trail-id, CLI, and MCP brand for graph navigation. The package boundary is Topographer: there is no `@ontrails/wayfinder` compatibility package. Programmatic consumers should import the Wayfind APIs from `@ontrails/topographer`:
+Wayfind remains the product, trail-id, CLI, and MCP brand for graph navigation. The package boundary is Topography: there is no `@ontrails/wayfinder` compatibility package. Programmatic consumers should import the Wayfind APIs from `@ontrails/topography`:
 
 ```typescript
 import {
@@ -96,7 +109,7 @@ import {
   wayfindContractTrail,
   wayfindOverviewTrail,
   wayfinderTopo,
-} from '@ontrails/topographer';
+} from '@ontrails/topography';
 ```
 
 The Wayfind catalog is cold and deterministic. Graph queries read root `trails.lock` and topo-store records; adapter queries read `@ontrails/adapter-kit` package and conformance evidence. They do not boot apps, resolve resources, reach the network, or mutate local state.
@@ -123,7 +136,7 @@ File outline is an operator capability, not a public Topographer query trail. Us
 
 ### Backend Support Subpath
 
-Direct shared database helper APIs are public, but they are backend-support APIs rather than root graph contracts. Import them from `@ontrails/topographer/backend-support`:
+Direct shared database helper APIs are public, but they are backend-support APIs rather than root graph contracts. Import them from `@ontrails/topography/backend-support`:
 
 ```typescript
 import {
@@ -133,7 +146,7 @@ import {
   createStoredTopoSnapshot,
   getStoredTopoExport,
   pruneUnpinnedSnapshots,
-} from '@ontrails/topographer/backend-support';
+} from '@ontrails/topography/backend-support';
 ```
 
 This subpath owns lower-level snapshot counters, pruning helpers, and direct DB-handle variants for callers that already hold an open `trails.db` handle.
@@ -164,7 +177,7 @@ Because CLI paths are now full hierarchical command paths, command-tree changes 
 ## Drift detection with warden
 
 ```typescript
-import { deriveTopoGraph, deriveTopoGraphHash, readTrailsLock } from '@ontrails/topographer';
+import { deriveTopoGraph, deriveTopoGraphHash, readTrailsLock } from '@ontrails/topography';
 
 const current = deriveTopoGraphHash(deriveTopoGraph(graph));
 const committed = await readTrailsLock();
@@ -179,5 +192,5 @@ The `@ontrails/warden` package wraps this into `checkDrift()` with CI-friendly r
 ## Installation
 
 ```bash
-bun add -d @ontrails/topographer
+bun add -d @ontrails/topography
 ```

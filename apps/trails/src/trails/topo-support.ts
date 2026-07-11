@@ -8,8 +8,8 @@ import {
   listTopoSnapshots as readTopoSnapshots,
   pinTopoSnapshot,
   unpinTopoSnapshot,
-} from '@ontrails/topographer';
-import type { TopoSnapshot } from '@ontrails/topographer';
+} from '@ontrails/topography';
+import type { TopoSnapshot } from '@ontrails/topography';
 import { z } from 'zod';
 
 import {

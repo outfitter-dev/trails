@@ -25,7 +25,7 @@ The package root is the public API. Import from `@ontrails/source`; there are no
 - The Trails operator uses it to assemble live source-file outlines.
 - The `trails` operator uses it for draft promotion and version-lifecycle support.
 
-The package is admitted only for reusable source machinery with at least two independent toolchain owners and a genuinely shared contract. It must not absorb product verdicts, release plans, query semantics, rendering, Warden rule policy, Regrade engines, Topographer artifact assembly, or Wayfinder answer composition.
+The package is admitted only for reusable source machinery with at least two independent toolchain owners and a genuinely shared contract. It must not absorb product verdicts, release plans, query semantics, rendering, Warden rule policy, Regrade engines, Topography artifact assembly, or Wayfinder answer composition.
 
 This boundary follows the package-worthiness rule in [ADR-0051: Package Ownership Follows Natural Altitude](../../docs/adr/0051-package-ownership-follows-natural-altitude.md): move code when the natural owner is above one consumer, not when a file merely feels crowded.
 
@@ -75,6 +75,6 @@ const updated = applySourceEdits('const name = "old";\n', [
 
 - Warden rule policy and rule-specific facts remain in `@ontrails/warden`.
 - Regrade migration planning and execution remain in `@ontrails/regrade`.
-- Topographer graph artifacts and outline assembly remain outside this package.
-- Wayfind query trails and answer rendering remain in `@ontrails/topographer`.
+- Topography graph artifacts and outline assembly remain outside this package.
+- Wayfind query trails and answer rendering remain in `@ontrails/topography`.
 - Runtime Trails contracts remain in `@ontrails/core`.

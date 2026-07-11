@@ -1,7 +1,7 @@
 ---
 '@ontrails/trails': major
 '@ontrails/warden': patch
-'@ontrails/topographer': patch
+'@ontrails/topography': patch
 ---
 
 Introduce `topo.compile` as the canonical trail for writing `.trails` lockfile

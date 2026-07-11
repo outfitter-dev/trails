@@ -243,7 +243,7 @@ const readTopoStoreArtifact = (
       return {
         artifact: 'topoStore',
         kind: 'schema-version-drift',
-        message: `${error.message} Regenerate the Topographer store with \`trails compile\`.`,
+        message: `${error.message} Regenerate the Topography store with \`trails compile\`.`,
       };
     }
     throw error;

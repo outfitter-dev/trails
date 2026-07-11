@@ -8,9 +8,9 @@
  * topo, and reading its trail ids.
  *
  * @remarks
- * **Boundary.** This module lives in `@ontrails/topographer` because it
+ * **Boundary.** This module lives in `@ontrails/topography` because it
  * persists artifacts derived from the resolved graph (per ADR-0042). Compose-app
- * resolution is CLI tooling that reads Topographer artifacts before runtime
+ * resolution is CLI tooling that reads Topography artifacts before runtime
  * begins — `@ontrails/core` resolves a single in-memory graph and stays
  * unaware of workspace topology.
  */
