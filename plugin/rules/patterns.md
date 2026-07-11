@@ -1,15 +1,15 @@
 # Trails Code Patterns
 
-## Blazes
+## Implementations
 
 - Return `Result`, never throw. Use `Result.ok(value)` and `Result.err(new XError(...))`.
-- Keep the blaze surface-agnostic. No `process.exit()`, no `console.log()`, no `Request`/`Response`.
-- A blaze receives `(input, ctx)` — validated input and `TrailContext`.
+- Keep the implementation surface-agnostic. No `process.exit()`, no `console.log()`, no `Request`/`Response`.
+- A implementation receives `(input, ctx)` — validated input and `TrailContext`.
 - Sync authoring is fine for pure work. The runtime normalizes to async.
 
 ## Composition
 
-- Trails with `composes` compose through `ctx.compose()`, never by calling `.blaze()` directly.
+- Trails with `composes` compose through `ctx.compose()`, never by calling `.implementation()` directly.
 - Declare `composes` on trails that compose others. The warden verifies these match actual `ctx.compose()` calls.
 - Propagate errors: `if (result.isErr()) return result;`
 
@@ -27,7 +27,7 @@ Declare infrastructure dependencies as resources. Access them through `db.from(c
 // Correct: declare and access via resource definition
 const search = trail('search', {
   resources: [db],
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const conn = db.from(ctx);
     return Result.ok(await conn.search(input.query));
   },
@@ -39,7 +39,7 @@ Do not construct dependencies inline:
 ```typescript
 // Wrong: inline construction hides dependencies, breaks testing
 const search = trail('search', {
-  blaze: async (input) => {
+  implementation: async (input) => {
     const conn = openDatabase();       // invisible to framework
     try {
       return Result.ok(await conn.search(input.query));

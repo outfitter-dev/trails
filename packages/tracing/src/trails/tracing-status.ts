@@ -22,7 +22,13 @@ const tracingStatusOutput = z.object({
  * the `tracingResource` state.
  */
 export const tracingStatus = trail('tracing.status', {
-  blaze: (_input, ctx) => {
+  examples: [
+    {
+      input: {},
+      name: 'Check tracing status',
+    },
+  ],
+  implementation: (_input, ctx) => {
     const state = tracingResource.from(ctx);
     return Result.ok({
       active: state.active,
@@ -30,12 +36,6 @@ export const tracingStatus = trail('tracing.status', {
       samplingConfig: { ...state.sampling },
     });
   },
-  examples: [
-    {
-      input: {},
-      name: 'Check tracing status',
-    },
-  ],
   input: z.object({}),
   intent: 'read',
   meta: { category: 'infrastructure' },

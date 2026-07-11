@@ -55,15 +55,15 @@ const withCapturedIO = async (
 // ---------------------------------------------------------------------------
 
 const stubRunTrail = trail('run.examples', {
-  blaze: () => Result.ok(),
   description: 'stub run trail for examples-listing tests',
+  implementation: () => Result.ok(),
   input: z.object({ trailId: z.string() }),
   output: z.unknown(),
 });
 
 const stubOtherTrail = trail('other', {
-  blaze: () => Result.ok(),
   description: 'stub non-run trail',
+  implementation: () => Result.ok(),
   input: z.object({}),
   output: z.unknown(),
 });
@@ -147,7 +147,7 @@ describe('tryExamplesRunOutput', () => {
   test('returns false on the run trail because listings now come from run.examples', async () => {
     const ctx = buildCtx(
       trail('run', {
-        blaze: () => Result.ok(),
+        implementation: () => Result.ok(),
         input: z.object({}),
         output: z.unknown(),
       }) as typeof stubRunTrail,
@@ -304,7 +304,7 @@ describe('tryExamplesRunOutput', () => {
 });
 
 // ---------------------------------------------------------------------------
-// run.examples blaze (workspace-fixture integration)
+// run.examples implementation (workspace-fixture integration)
 // ---------------------------------------------------------------------------
 
 interface AppSpec {

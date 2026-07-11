@@ -46,14 +46,6 @@ const toSummary = (entity: Entity) => ({
 });
 
 export const show = trail('entity.show', {
-  blaze: async (input, ctx) => {
-    const store = entityStoreResource.from(ctx);
-    const entity = await store.entities.get(input.name);
-    if (!entity) {
-      return Result.err(new NotFoundError(`Entity "${input.name}" not found`));
-    }
-    return Result.ok(toEntity(entity));
-  },
   description: 'Show an entity by name',
   examples: [
     {
@@ -68,6 +60,14 @@ export const show = trail('entity.show', {
       name: 'Entity not found',
     },
   ],
+  implementation: async (input, ctx) => {
+    const store = entityStoreResource.from(ctx);
+    const entity = await store.entities.get(input.name);
+    if (!entity) {
+      return Result.err(new NotFoundError(`Entity "${input.name}" not found`));
+    }
+    return Result.ok(toEntity(entity));
+  },
   input: z.object({
     name: z.string().describe('Entity name to look up'),
   }),
@@ -81,7 +81,22 @@ export const show = trail('entity.show', {
 // ---------------------------------------------------------------------------
 
 export const add = trail('entity.add', {
-  blaze: async (input, ctx) => {
+  description: 'Create a new entity',
+  examples: [
+    {
+      description: 'Create an entity with name, type, and tags',
+      input: { name: 'Beta', tags: ['automation'], type: 'tool' },
+      name: 'Add a new entity',
+    },
+    {
+      description: 'Returns AlreadyExistsError when the name is taken',
+      error: 'AlreadyExistsError',
+      input: { name: 'Alpha', type: 'concept' },
+      name: 'Duplicate entity returns conflict',
+    },
+  ],
+  fires: [entityUpdated],
+  implementation: async (input, ctx) => {
     const store = entityStoreResource.from(ctx);
     try {
       const entity = await store.entities.insert({
@@ -106,21 +121,6 @@ export const add = trail('entity.add', {
       );
     }
   },
-  description: 'Create a new entity',
-  examples: [
-    {
-      description: 'Create an entity with name, type, and tags',
-      input: { name: 'Beta', tags: ['automation'], type: 'tool' },
-      name: 'Add a new entity',
-    },
-    {
-      description: 'Returns AlreadyExistsError when the name is taken',
-      error: 'AlreadyExistsError',
-      input: { name: 'Alpha', type: 'concept' },
-      name: 'Duplicate entity returns conflict',
-    },
-  ],
-  fires: [entityUpdated],
   input: z.object({
     name: z.string().describe('Entity name'),
     tags: z
@@ -141,7 +141,22 @@ export const add = trail('entity.add', {
 // ---------------------------------------------------------------------------
 
 export const remove = trail('entity.delete', {
-  blaze: async (input, ctx) => {
+  description: 'Delete an entity by name',
+  examples: [
+    {
+      description: 'Successfully delete an entity that exists',
+      input: { name: 'Deletable' },
+      name: 'Delete an existing entity',
+    },
+    {
+      description: 'Returns NotFoundError when the entity does not exist',
+      error: 'NotFoundError',
+      input: { name: 'nonexistent' },
+      name: 'Delete non-existent entity returns not found',
+    },
+  ],
+  fires: [entityUpdated],
+  implementation: async (input, ctx) => {
     const store = entityStoreResource.from(ctx);
     // Look up the entity first so we can emit its real id on the signal —
     // `input.name` is a natural key, not the generated entity id.
@@ -161,21 +176,6 @@ export const remove = trail('entity.delete', {
     });
     return Result.ok({ deleted: true, name: input.name });
   },
-  description: 'Delete an entity by name',
-  examples: [
-    {
-      description: 'Successfully delete an entity that exists',
-      input: { name: 'Deletable' },
-      name: 'Delete an existing entity',
-    },
-    {
-      description: 'Returns NotFoundError when the entity does not exist',
-      error: 'NotFoundError',
-      input: { name: 'nonexistent' },
-      name: 'Delete non-existent entity returns not found',
-    },
-  ],
-  fires: [entityUpdated],
   input: z.object({
     name: z.string().describe('Entity name to delete'),
   }),
@@ -193,7 +193,20 @@ export const remove = trail('entity.delete', {
 // ---------------------------------------------------------------------------
 
 export const list = trail('entity.list', {
-  blaze: async (input, ctx) => {
+  description: 'List entities with optional type filter',
+  examples: [
+    {
+      description: 'List all entities without filtering',
+      input: { limit: 20, offset: 0 },
+      name: 'List all entities',
+    },
+    {
+      description: 'Filter entities by their type',
+      input: { limit: 20, offset: 0, type: 'concept' },
+      name: 'List entities by type',
+    },
+  ],
+  implementation: async (input, ctx) => {
     const store = entityStoreResource.from(ctx);
     const filters = input.type === undefined ? undefined : { type: input.type };
     const [entities, allMatching] = await Promise.all([
@@ -208,19 +221,6 @@ export const list = trail('entity.list', {
       total: allMatching.length,
     });
   },
-  description: 'List entities with optional type filter',
-  examples: [
-    {
-      description: 'List all entities without filtering',
-      input: { limit: 20, offset: 0 },
-      name: 'List all entities',
-    },
-    {
-      description: 'Filter entities by their type',
-      input: { limit: 20, offset: 0, type: 'concept' },
-      name: 'List entities by type',
-    },
-  ],
   input: z.object({
     limit: z.number().optional().default(20).describe('Maximum results'),
     offset: z.number().optional().default(0).describe('Pagination offset'),

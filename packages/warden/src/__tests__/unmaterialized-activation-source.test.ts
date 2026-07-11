@@ -15,7 +15,7 @@ const webhookSource = webhook('webhook.invoice.paid', {
 });
 
 const webhookConsumer = trail('invoice.audit-webhook', {
-  blaze: () => Result.ok({ ok: true }),
+  implementation: () => Result.ok({ ok: true }),
   input: z.object({ invoiceId: z.string() }),
   on: [webhookSource],
   output: z.object({ ok: z.boolean() }),
@@ -27,14 +27,14 @@ const created = signal('invoice.created', {
 });
 
 const signalProducer = trail('invoice.create', {
-  blaze: () => Result.ok({ invoiceId: 'inv_1' }),
   fires: [created],
+  implementation: () => Result.ok({ invoiceId: 'inv_1' }),
   input: z.object({}),
   output: z.object({ invoiceId: z.string() }),
 });
 
 const signalConsumer = trail('invoice.index', {
-  blaze: () => Result.ok({ ok: true }),
+  implementation: () => Result.ok({ ok: true }),
   input: z.object({ invoiceId: z.string() }),
   on: [created],
   output: z.object({ ok: z.boolean() }),
@@ -43,7 +43,7 @@ const signalConsumer = trail('invoice.index', {
 describe('unmaterialized-activation-source', () => {
   test('stays quiet for webhook sources now that HTTP materializes them', async () => {
     const notifyConsumer = trail('invoice.notify-webhook', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({ invoiceId: z.string() }),
       on: [
         {
@@ -66,7 +66,7 @@ describe('unmaterialized-activation-source', () => {
 
   test('stays quiet for schedule, signal, and webhook activation sources', async () => {
     const scheduleConsumer = trail('invoice.reconcile', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({}),
       on: [schedule('schedule.invoice.reconcile', { cron: '0 * * * *' })],
       output: z.object({ ok: z.boolean() }),
@@ -95,20 +95,20 @@ describe('unmaterialized-activation-source', () => {
       payload: z.object({ id: z.string() }),
     });
     const webhookTrail = trail('shared.webhook-consumer', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({ id: z.string() }),
       on: [sameIdWebhook],
       output: z.object({ ok: z.boolean() }),
     });
     const signalTrail = trail('shared.signal-consumer', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({ id: z.string() }),
       on: [sameIdSignal],
       output: z.object({ ok: z.boolean() }),
     });
     const producer = trail('shared.producer', {
-      blaze: () => Result.ok({ id: 's1' }),
       fires: [sameIdSignal],
+      implementation: () => Result.ok({ id: 's1' }),
       input: z.object({}),
       output: z.object({ id: z.string() }),
     });

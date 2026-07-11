@@ -9,7 +9,7 @@ describe('missing-visibility', () => {
     const code = `
 trail('entity.resolve', {
   composeInput: z.object({ forkedFrom: z.string() }),
-  blaze: async () => Result.ok({}),
+  implementation: async () => Result.ok({}),
 });
 `;
 
@@ -31,7 +31,7 @@ trail('entity.resolve', {
 trail('entity.resolve', {
   meta: { internal: true },
   composeInput: z.object({ forkedFrom: z.string() }),
-  blaze: async () => Result.ok({}),
+  implementation: async () => Result.ok({}),
 });
 `;
 
@@ -48,7 +48,7 @@ trail('entity.resolve', {
 trail('entity.resolve', {
   meta: { description: "this has internal: true in it" },
   composeInput: z.object({ forkedFrom: z.string() }),
-  blaze: async () => Result.ok({}),
+  implementation: async () => Result.ok({}),
 });
 `;
 
@@ -67,7 +67,7 @@ trail('entity.resolve', {
 trail('entity.resolve', {
   visibility: 'internal',
   composeInput: z.object({ forkedFrom: z.string() }),
-  blaze: async () => Result.ok({}),
+  implementation: async () => Result.ok({}),
 });
 `;
 
@@ -83,7 +83,7 @@ trail('entity.resolve', {
     const code = `
 trail('entity.resolve', {
   composeInput: z.object({ forkedFrom: z.string().optional() }),
-  blaze: async () => Result.ok({}),
+  implementation: async () => Result.ok({}),
 });
 `;
 
@@ -99,7 +99,7 @@ trail('entity.resolve', {
     const code = `
 trail('entity.resolve', {
   composeInput: z.object({ forkedFrom: z.string() }),
-  blaze: async () => Result.ok({}),
+  implementation: async () => Result.ok({}),
 });
 `;
 

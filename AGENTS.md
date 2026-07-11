@@ -60,7 +60,7 @@ Fall back to `rg`, qmd, source reads, or a fresh compile when Wayfinder reports 
 Use the project language consistently:
 
 - `trail`, not action or handler
-- `blaze`, not handler or impl (the authored implementation that establishes how a trail runs)
+- `implementation`, not handler or impl (the authored behavior that establishes how a trail runs)
 - `topo`, not registry or collection
 - `compose`, not cross or follow (for composition declaration and runtime invocation)
 - `surface`, not transport terminology (the API function and user-facing noun)
@@ -74,11 +74,11 @@ Use the project language consistently:
 
 ## Trail Rules
 
-- Blazes return `Result`, never throw.
+- Implementations return `Result`, never throw.
 - Use `Result.ok()` and `Result.err()` to construct outcomes.
 - Branch on results with `isOk()`, `isErr()`, or `match()`.
-- Keep `TrailContext` and blazes surface-agnostic. Do not import `Request`, `Response`, `McpSession`, or similar surface types into trail logic.
-- Trails with `composes` compose through `ctx.compose()`, never by calling another trail's `.blaze()` directly.
+- Keep `TrailContext` and implementations surface-agnostic. Do not import `Request`, `Response`, `McpSession`, or similar surface types into trail logic.
+- Trails with `composes` compose through `ctx.compose()`, never by calling another trail's `.implementation()` directly.
 - Keep `composes` declarations aligned with actual `ctx.compose()` usage.
 - Every trail exposed on MCP or HTTP surfaces must define an `output` schema.
 - Use `meta` for annotations and ownership data.
@@ -121,7 +121,7 @@ This section is generated from the live `@ontrails/warden` rule manifest. Keep t
 - `dead-public-trail` (warn, project/project-static, external): Exported public trails are anchored in configured app topos, composition, or activation.
 - `intent-propagation` (warn, project/project-static, external): Composite trail intent cannot be safer than composed trails.
 - `missing-visibility` (warn, project/project-static, external): Composition-only trails declare internal visibility.
-- `no-destructured-compose` (warn, source/source-static, external): Trail blazes compose through ctx.compose() directly instead of destructuring compose from the context.
+- `no-destructured-compose` (warn, source/source-static, external): Trail implementations compose through ctx.compose() directly instead of destructuring compose from the context.
 - `no-direct-implementation-call` (warn, source/source-static, external): Application code composes trails through ctx.compose().
 - `no-retired-cross-vocabulary` (error, source/source-static, external): Retired cross composition vocabulary does not remain in downstream source after the beta.19 compose cutover.
 - `resolved-import-boundary` (error, project/project-static, external): Cross-package imports resolve through public export maps.
@@ -156,7 +156,7 @@ This section is generated from the live `@ontrails/warden` rule manifest. Keep t
 - `deprecation-without-guidance` (error, topo/topo-aware, external): Deprecated trail version entries carry successor, migration, or note guidance.
 - `draft-file-marking` (error, source/source-static, external): Draft-authored state is visibly marked in filenames.
 - `draft-visible-debt` (warn, source/source-static, external): Draft-authored IDs remain visible debt.
-- `fork-without-preserved-blaze` (error, source/source-static, external): Fork version entries preserve their historical blaze.
+- `fork-without-preserved-implementation` (error, source/source-static, external): Fork version entries preserve their historical implementation.
 - `governed-symbol-residue` (error, source/source-static, external): Active governed vocabulary symbol renames do not leave retired identifiers in source.
 - `marker-schema-unsupported` (error, source/source-static, external): Versioned schemas stay inside the supported marker projection subset.
 - `pending-force` (warn, topo/topo-aware, external): Forced topo break audit events do not remain pending indefinitely.
@@ -192,12 +192,12 @@ This section is generated from the live `@ontrails/warden` rule manifest. Keep t
 #### Results
 
 - `error-mapping-completeness` (error, source/source-static, extension): Registered surface error mappers cover every error category.
-- `implementation-returns-result` (error, source/source-static, external): Blazes return Result values.
+- `implementation-returns-result` (error, source/source-static, external): Implementations return Result values.
 - `no-native-error-result` (error, source/source-static, external): Result error boundaries carry specific TrailsError subclasses.
 - `no-redundant-result-error-wrap` (warn, source/source-static, external): Result error pass-throughs preserve the original Result boundary.
 - `no-sync-result-assumption` (error, source/source-static, external): Result accessors are not used before async results are awaited.
 - `no-throw-in-detour-recover` (error, source/source-static, external): Detour recovery returns Result instead of throwing.
-- `no-throw-in-implementation` (error, source/source-static, external): Blazes return Result.err() instead of throwing.
+- `no-throw-in-implementation` (error, source/source-static, external): Implementations return Result.err() instead of throwing.
 - `public-output-schema` (error, topo/topo-aware, external): Public MCP/HTTP surface trails declare output schemas.
 - `valid-detour-contract` (error, topo/topo-aware, external): Runtime detour contracts use error constructors and recover functions.
 
@@ -218,7 +218,7 @@ This section is generated from the live `@ontrails/warden` rule manifest. Keep t
 - `duplicate-public-contract`: Keep duplicate public contract facts from drifting into separate capabilities.
 - `example-valid`: Keep trail examples synchronized with their authored schemas.
 - `library-projection-coherence`: Keep resolved library projection exports collision-free and attached to one trail contract.
-- `no-throw-in-implementation`: Convert thrown failures in blazes into explicit Result.err() outcomes.
+- `no-throw-in-implementation`: Convert thrown failures in implementations into explicit Result.err() outcomes.
 - `no-top-level-surface`: Keep topo entry modules side-effect-free for survey, guide, compile, and lock generation.
 - `permit-governance`: Make destructive trail authorization visible on the trail contract.
 - `prefer-schema-inference`: Let schemas remain the owner for field metadata unless an override adds new information.

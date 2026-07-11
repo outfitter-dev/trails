@@ -67,7 +67,7 @@ const setupFixture = (): TestFixture => {
   };
 };
 
-const noopBlaze = () => Result.ok({ ok: true });
+const noopImplementation = () => Result.ok({ ok: true });
 
 const passThroughLayer = (name: string, input?: Layer['input']): Layer => ({
   ...(input === undefined ? {} : { input }),
@@ -103,12 +103,12 @@ const buildWatchedApp = (options: WatchedAppOptions = {}): Topo => {
     payload: z.object({ id: z.string() }),
   });
   const helper = trail('entity.helper', {
-    blaze: noopBlaze,
+    implementation: noopImplementation,
     input: options.helperInput ?? z.object({}),
     output: z.object({ ok: z.boolean() }),
   });
   const watched = trail('entity.watch', {
-    blaze: noopBlaze,
+    implementation: noopImplementation,
     ...(options.composes === true ? { composes: ['entity.helper'] } : {}),
     ...(options.examples === undefined ? {} : { examples: options.examples }),
     ...(options.fires === true ? { fires: ['entity.changed'] } : {}),

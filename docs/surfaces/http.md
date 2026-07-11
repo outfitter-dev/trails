@@ -89,7 +89,7 @@ Input parsing depends on the HTTP method:
 - **POST / DELETE** -- The JSON request body is parsed via `req.json()`.
 - **Webhook routes** -- The shared Fetch kernel reads the raw body first, runs the webhook `verify` hook if one is defined, parses JSON, then validates the parsed payload against the source's `parse` schema before executing the trail.
 
-For direct routes, the parsed input is validated against the trail's Zod schema before the blaze receives it. For webhook routes, the source `parse` schema validates the JSON payload first, then the receiving trail's `input` schema validates the value passed into the trail.
+For direct routes, the parsed input is validated against the trail's Zod schema before the implementation receives it. For webhook routes, the source `parse` schema validates the JSON payload first, then the receiving trail's `input` schema validates the value passed into the trail.
 
 ## Webhook Activation Sources
 
@@ -146,7 +146,7 @@ const paymentReceived = webhook('webhook.payment.received', {
 });
 
 const receivePayment = trail('payment.receive', {
-  blaze: async (input) => Result.ok({ recorded: input.paymentId }),
+  implementation: async (input) => Result.ok({ recorded: input.paymentId }),
   input: z.object({
     amount: z.number(),
     paymentId: z.string(),
@@ -238,7 +238,7 @@ When a trail declares `output: blobRefSchema`, the derived route streams the ret
 
 ```ts
 const fileRaw = trail('file.raw', {
-  blaze: async (input, ctx) => Result.ok(createBlobRef({ /* ... */ })),
+  implementation: async (input, ctx) => Result.ok(createBlobRef({ /* ... */ })),
   input: z.object({ name: z.string() }),
   intent: 'read',
   output: blobRefSchema,
@@ -276,7 +276,7 @@ Unrecognized errors (non-`TrailsError` exceptions) return 500 with `category: 'i
 
 ## Execution Layers
 
-HTTP accepts execution layers in the surface options. They wrap trail execution for requests on that surface before execution enters the blaze; they are not declared on the topo or surfaced as contract graph nodes in v1.
+HTTP accepts execution layers in the surface options. They wrap trail execution for requests on that surface before execution enters the implementation; they are not declared on the topo or surfaced as contract graph nodes in v1.
 
 ```typescript
 import { surface } from '@ontrails/hono';
@@ -303,7 +303,7 @@ Layers run in order, wrapping trail execution. They have access to the trail and
 | `hostname` | `string` | `'0.0.0.0'` | Bind address used by `surface()` |
 | `include` | `readonly string[]` | *none* | Narrow the surface to matching trail IDs |
 | `intent` | `readonly Intent[]` | *none* | Filter exposed trails by intent |
-| `layers` | `readonly Layer[]` | `[]` | Execution layers to compose around blazes |
+| `layers` | `readonly Layer[]` | `[]` | Execution layers to compose around implementations |
 | `name` | `string` | *none* | Accepted but currently unused — reserved for future use |
 | `port` | `number` | `3000` | Listen port used by `surface()` |
 | `resources` | `ResourceOverrideMap` | *none* | Explicit resource instances for this surface |
@@ -355,11 +355,11 @@ This gives you full control over the HTTP framework while preserving the shared 
 
 ## Request Context and AbortSignal Propagation
 
-The HTTP request's abort signal is forwarded to `TrailContext.abortSignal`. If the client disconnects or cancels the request mid-flight, the trail's blaze sees the aborted signal. Pass request headers as the fourth `execute` argument when the HTTP surface should resolve Bearer credentials into `ctx.permit`.
+The HTTP request's abort signal is forwarded to `TrailContext.abortSignal`. If the client disconnects or cancels the request mid-flight, the trail's implementation sees the aborted signal. Pass request headers as the fourth `execute` argument when the HTTP surface should resolve Bearer credentials into `ctx.permit`.
 
 ```typescript
 const longTask = trail('report.generate', {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     for (const chunk of data) {
       if (ctx.abortSignal?.aborted) {
         return Result.err(new CancelledError('Request cancelled'));

@@ -3,13 +3,13 @@ import { describe, expect, test } from 'bun:test';
 import { noDestructuredCompose } from '../rules/no-destructured-compose.js';
 
 describe('no-destructured-compose', () => {
-  test('flags body destructuring from the blaze context', () => {
+  test('flags body destructuring from the implementation context', () => {
     const code = `
 import { trail, Result } from '@ontrails/core';
 
 export const onboard = trail('entity.onboard', {
   composes: ['entity.create'],
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const { compose } = ctx;
     return compose('entity.create', input);
   },
@@ -28,11 +28,11 @@ export const onboard = trail('entity.onboard', {
     expect(diagnostics[0]?.message).toContain('Warden can recognize');
   });
 
-  test('flags aliased body destructuring from the blaze context', () => {
+  test('flags aliased body destructuring from the implementation context', () => {
     const code = `
 trail('entity.onboard', {
   composes: ['entity.create'],
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const { compose: compose } = ctx;
     return compose('entity.create', input);
   },
@@ -48,11 +48,11 @@ trail('entity.onboard', {
     expect(diagnostics[0]?.message).toContain('entity.onboard');
   });
 
-  test('flags assignment destructuring from the blaze context', () => {
+  test('flags assignment destructuring from the implementation context', () => {
     const code = `
 trail('entity.onboard', {
   composes: ['entity.create'],
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     let compose;
     ({ compose } = ctx);
     return compose('entity.create', input);
@@ -69,11 +69,11 @@ trail('entity.onboard', {
     expect(diagnostics[0]?.message).toContain('ctx.compose');
   });
 
-  test('flags aliased assignment destructuring from the blaze context', () => {
+  test('flags aliased assignment destructuring from the implementation context', () => {
     const code = `
 trail('entity.onboard', {
   composes: ['entity.create'],
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     let compose;
     ({ compose: compose } = ctx);
     return compose('entity.create', input);
@@ -89,11 +89,11 @@ trail('entity.onboard', {
     expect(diagnostics).toHaveLength(1);
   });
 
-  test('flags parameter destructuring from the blaze context', () => {
+  test('flags parameter destructuring from the implementation context', () => {
     const code = `
 trail('entity.onboard', {
   composes: ['entity.create'],
-  blaze: async (input, { compose }) => compose('entity.create', input),
+  implementation: async (input, { compose }) => compose('entity.create', input),
 });
 `;
 
@@ -106,11 +106,11 @@ trail('entity.onboard', {
     expect(diagnostics[0]?.message).toContain('composition stays visible');
   });
 
-  test('flags aliased parameter destructuring from the blaze context', () => {
+  test('flags aliased parameter destructuring from the implementation context', () => {
     const code = `
 trail('entity.onboard', {
   composes: ['entity.create'],
-  blaze: async (input, { compose: compose }) =>
+  implementation: async (input, { compose: compose }) =>
     compose('entity.create', input),
 });
 `;
@@ -127,7 +127,7 @@ trail('entity.onboard', {
     const code = `
 trail('entity.onboard', {
   composes: ['entity.create'],
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     return ctx.compose('entity.create', input);
   },
 });
@@ -141,7 +141,7 @@ trail('entity.onboard', {
     expect(diagnostics).toHaveLength(0);
   });
 
-  test('ignores destructuring outside trail blazes', () => {
+  test('ignores destructuring outside trail implementations', () => {
     const code = `
 function run(ctx) {
   const { compose } = ctx;
@@ -161,7 +161,7 @@ function run(ctx) {
     const code = `
 trail('entity.onboard', {
   composes: ['entity.create'],
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const helper = (other) => {
       const { compose } = other;
       return compose;
@@ -183,7 +183,7 @@ trail('entity.onboard', {
     const code = `
 trail('entity.onboard', {
   composes: ['entity.create'],
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     {
       const ctx = { compose: () => null };
       const { compose } = ctx;
@@ -206,7 +206,7 @@ trail('entity.onboard', {
     const code = `
 trail('entity.onboard', {
   composes: ['entity.create'],
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     {
       const ctx = { compose: () => null };
       let compose;
@@ -229,7 +229,7 @@ trail('entity.onboard', {
   test('ignores test files', () => {
     const code = `
 trail('entity.onboard', {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const { compose } = ctx;
     return compose('entity.create', input);
   },

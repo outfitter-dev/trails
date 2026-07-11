@@ -332,7 +332,7 @@ describe('sync()', () => {
       }),
     });
 
-    const result = await syncNote.blaze(
+    const result = await syncNote.implementation(
       { id: sourceFixture.id },
       createSyncContext(targetRecords)
     );
@@ -362,7 +362,7 @@ describe('sync()', () => {
     });
     const records = new Map<string, EntityOf<TargetTable>>();
 
-    const result = await syncNote.blaze(
+    const result = await syncNote.implementation(
       { id: sourceFixture.id },
       createSyncContext(records)
     );

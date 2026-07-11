@@ -32,8 +32,8 @@ const userCreated = signal('user.created', {
 });
 
 const userShow = trail('user.show', {
-  blaze: () => Result.ok({ id: 'u1' }),
   examples: [{ expected: { id: 'u1' }, input: {}, name: 'Basic' }],
+  implementation: () => Result.ok({ id: 'u1' }),
   input: z.object({}),
   intent: 'read',
   output: z.object({ id: z.string() }),
@@ -41,8 +41,8 @@ const userShow = trail('user.show', {
 });
 
 const userCreate = trail('user.create', {
-  blaze: () => Result.ok({ id: 'u1' }),
   fires: [userCreated],
+  implementation: () => Result.ok({ id: 'u1' }),
   input: z.object({ name: z.string() }),
   intent: 'write',
   output: z.object({ id: z.string() }),
@@ -50,14 +50,14 @@ const userCreate = trail('user.create', {
 });
 
 const userAdminAudit = trail('user.admin.audit', {
-  blaze: () => Result.ok({ ok: true }),
+  implementation: () => Result.ok({ ok: true }),
   input: z.object({}),
   intent: 'read',
   output: z.object({ ok: z.boolean() }),
 });
 
 const auditRebuild = trail('audit.rebuild', {
-  blaze: () => Result.ok({ ok: true }),
+  implementation: () => Result.ok({ ok: true }),
   input: z.object({}),
   intent: 'destroy',
   on: [userCreated],
@@ -65,13 +65,12 @@ const auditRebuild = trail('audit.rebuild', {
 });
 
 const inviteCreate = trail('invite.create', {
-  blaze: (input) => Result.ok({ greeting: `Hello, ${input.name}!` }),
+  implementation: (input) => Result.ok({ greeting: `Hello, ${input.name}!` }),
   input: z.object({ name: z.string() }),
   output: z.object({ greeting: z.string() }),
   version: 2,
   versions: {
     1: {
-      blaze: (input) => Result.ok({ greeting: `Hi, ${input.name}.` }),
       examples: [
         {
           expected: { greeting: 'Hello, Ada!' },
@@ -79,6 +78,7 @@ const inviteCreate = trail('invite.create', {
           name: 'Legacy greeting',
         },
       ],
+      implementation: (input) => Result.ok({ greeting: `Hi, ${input.name}.` }),
       input: z.object({ name: z.string() }),
       output: z.object({ greeting: z.string() }),
       resources: [db],

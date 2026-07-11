@@ -120,7 +120,7 @@ const listRepos = trail('github.repos.list', {
   intent: 'read',
   input: z.object({ org: z.string().optional() }),
   output: z.object({ repos: z.array(RepoSchema) }),
-  blaze: async (input, ctx) => { /* ... */ },
+  implementation: async (input, ctx) => { /* ... */ },
 });
 ```
 
@@ -231,7 +231,7 @@ const webhookReceived = signal('github.webhook.received', {
 
 const processWebhook = trail('github.webhook.process', {
   fires: [webhookReceived],
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     await ctx.fire(webhookReceived, {
       action: input.action,
       payload: input.body,
@@ -295,7 +295,7 @@ const listPRs = trail('github.pr.list', {
     repo: z.string().describe('owner/repo format'),
     state: z.enum(['open', 'closed', 'all']).default('open'),
   }),
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const [owner, repo] = input.repo.split('/');
     return ctx.compose('github.core.raw-list-prs', { owner, repo, state: input.state });
   },

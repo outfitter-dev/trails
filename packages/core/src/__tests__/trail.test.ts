@@ -49,8 +49,8 @@ describe('trail()', () => {
   const outputSchema = z.object({ greeting: z.string() });
 
   const greet = trail('greet', {
-    blaze: (input) => Result.ok({ greeting: `Hello, ${input.name}!` }),
     description: 'Greet someone',
+    implementation: (input) => Result.ok({ greeting: `Hello, ${input.name}!` }),
     input: inputSchema,
     output: outputSchema,
   });
@@ -74,14 +74,14 @@ describe('trail()', () => {
 
     test('output schema is optional', () => {
       const minimal = trail('noop', {
-        blaze: () => Result.ok(),
+        implementation: () => Result.ok(),
         input: z.object({}),
       });
       expect(minimal.output).toBeUndefined();
     });
 
     test('implementation is callable', async () => {
-      const result = await greet.blaze({ name: 'World' }, stubCtx);
+      const result = await greet.implementation({ name: 'World' }, stubCtx);
       expect(result.isOk()).toBe(true);
       expect(result.unwrap()).toEqual({ greeting: 'Hello, World!' });
     });
@@ -90,7 +90,7 @@ describe('trail()', () => {
   describe('versioning', () => {
     test('keeps unversioned trails current-only', () => {
       const unversioned = trail('plain.current', {
-        blaze: () => Result.ok({ ok: true }),
+        implementation: () => Result.ok({ ok: true }),
         input: z.object({}),
         output: z.object({ ok: z.boolean() }),
       });
@@ -111,7 +111,8 @@ describe('trail()', () => {
         },
       ];
       const versioned = trail('invite.create', {
-        blaze: (input) => Result.ok({ greeting: `Hello, ${input.name}!` }),
+        implementation: (input) =>
+          Result.ok({ greeting: `Hello, ${input.name}!` }),
         input: inputSchema,
         output: outputSchema,
         version: 3,
@@ -143,7 +144,7 @@ describe('trail()', () => {
 
     test('allows metadata-only revision entries for unchanged schemas', () => {
       const versioned = trail('metadata.revision', {
-        blaze: () => Result.ok({ ok: true }),
+        implementation: () => Result.ok({ ok: true }),
         input: z.object({ id: z.string() }),
         output: z.object({ ok: z.boolean() }),
         version: 2,
@@ -162,7 +163,7 @@ describe('trail()', () => {
 
     test('allows metadata-only revisions when equivalent schema arrays differ in order', () => {
       const versioned = trail('metadata.reordered-schema', {
-        blaze: (input) => Result.ok({ state: input.state }),
+        implementation: (input) => Result.ok({ state: input.state }),
         input: z.object({
           id: z.string(),
           state: z.enum(['queued', 'sent']),
@@ -191,7 +192,7 @@ describe('trail()', () => {
 
     test('allows metadata-only revisions when current output schema is absent', () => {
       const versioned = trail('metadata.no-current-output', {
-        blaze: () => Result.ok(),
+        implementation: () => Result.ok(),
         input: z.object({ id: z.string() }),
         version: 2,
         versions: {
@@ -210,7 +211,7 @@ describe('trail()', () => {
     test('rejects schema-changing revision entries without transpose', () => {
       expect(() =>
         trail('missing.input.transpose', {
-          blaze: (input) => Result.ok({ id: input.id }),
+          implementation: (input) => Result.ok({ id: input.id }),
           input: z.object({ id: z.string(), requiredNow: z.string() }),
           output: z.object({ id: z.string() }),
           version: 2,
@@ -225,7 +226,7 @@ describe('trail()', () => {
 
       expect(() =>
         trail('missing.output.transpose', {
-          blaze: () => Result.ok({ state: 'queued' as const }),
+          implementation: () => Result.ok({ state: 'queued' as const }),
           input: z.object({}),
           output: z.object({ state: z.enum(['queued', 'sent']) }),
           version: 2,
@@ -241,18 +242,17 @@ describe('trail()', () => {
 
     test('stores fork entries with normalized runtime references', () => {
       const target = trail('target.read', {
-        blaze: () => Result.ok({ ok: true }),
+        implementation: () => Result.ok({ ok: true }),
         input: z.object({}),
         output: z.object({ ok: z.boolean() }),
       });
       const versioned = trail('forked.run', {
-        blaze: () => Result.ok({ ok: true }),
+        implementation: () => Result.ok({ ok: true }),
         input: z.object({}),
         output: z.object({ ok: z.boolean() }),
         version: 2,
         versions: {
           1: {
-            blaze: () => Result.ok({ ok: true }),
             composes: [target],
             detours: [
               {
@@ -260,6 +260,7 @@ describe('trail()', () => {
                 recover: async () => Result.ok({ ok: true }),
               },
             ],
+            implementation: () => Result.ok({ ok: true }),
             input: z.object({}),
             output: z.object({ ok: z.boolean() }),
             resources: [dbResource],
@@ -279,7 +280,7 @@ describe('trail()', () => {
 
     test('allows version gaps and excludes archived entries from support', () => {
       const versioned = trail('gap.versioned', {
-        blaze: () => Result.ok({ ok: true }),
+        implementation: () => Result.ok({ ok: true }),
         input: z.object({}),
         output: z.object({ ok: z.boolean() }),
         version: 5,
@@ -324,7 +325,7 @@ describe('trail()', () => {
 
     test('rejects invalid version entry shapes', () => {
       const base = {
-        blaze: () => Result.ok({ ok: true }),
+        implementation: () => Result.ok({ ok: true }),
         input: z.object({}),
         output: z.object({ ok: z.boolean() }),
         version: 2,
@@ -335,7 +336,7 @@ describe('trail()', () => {
           ...base,
           versions: {
             1: {
-              blaze: () => Result.ok({ ok: true }),
+              implementation: () => Result.ok({ ok: true }),
               input: z.object({}),
               output: z.object({ ok: z.boolean() }),
               transpose: {
@@ -456,7 +457,7 @@ describe('trail()', () => {
 
       expect(() =>
         trail('bad.no-current', {
-          blaze: () => Result.ok({ ok: true }),
+          implementation: () => Result.ok({ ok: true }),
           input: z.object({}),
           output: z.object({ ok: z.boolean() }),
           versions: {
@@ -611,11 +612,11 @@ describe('trail()', () => {
   describe('meta', () => {
     test('examples are stored', () => {
       const withExamples = trail('echo', {
-        blaze: (input) => Result.ok({ text: input.text }),
         examples: [
           { error: 'ValidationError', input: { text: '' }, name: 'error-case' },
           { expected: { text: 'hi' }, input: { text: 'hi' }, name: 'basic' },
         ],
+        implementation: (input) => Result.ok({ text: input.text }),
         input: z.object({ text: z.string() }),
       });
       expect(withExamples.examples).toHaveLength(2);
@@ -627,7 +628,7 @@ describe('trail()', () => {
 
     test('meta is stored', () => {
       const withMeta = trail('tagged', {
-        blaze: () => Result.ok(),
+        implementation: () => Result.ok(),
         input: z.object({}),
         meta: { domain: 'billing', tier: 1 },
       });
@@ -636,7 +637,7 @@ describe('trail()', () => {
 
     test('pattern is stored when declared', () => {
       const withPattern = trail('feature.enable', {
-        blaze: () => Result.ok({ enabled: true }),
+        implementation: () => Result.ok({ enabled: true }),
         input: z.object({ id: z.string() }),
         pattern: 'toggle',
       });
@@ -646,9 +647,9 @@ describe('trail()', () => {
 
     test('detours are stored', () => {
       const withDetours = trail('orchestrator', {
-        blaze: () => Result.ok(),
         /* oxlint-disable-next-line require-await -- test stub */
         detours: [{ on: ConflictError, recover: async () => Result.ok() }],
+        implementation: () => Result.ok(),
         input: z.object({}),
       });
       expect(withDetours.detours).toHaveLength(1);
@@ -657,7 +658,7 @@ describe('trail()', () => {
 
     test('detours default to empty frozen array when omitted', () => {
       const noDetours = trail('bare', {
-        blaze: () => Result.ok(),
+        implementation: () => Result.ok(),
         input: z.object({}),
       });
       expect(noDetours.detours).toEqual([]);
@@ -668,7 +669,7 @@ describe('trail()', () => {
   describe('composes', () => {
     test('defaults to empty frozen array when omitted', () => {
       const minimal = trail('bare', {
-        blaze: () => Result.ok(),
+        implementation: () => Result.ok(),
         input: z.object({}),
       });
       expect(minimal.composes).toEqual([]);
@@ -677,8 +678,8 @@ describe('trail()', () => {
 
     test('preserves composes array', () => {
       const withComposes = trail('composed', {
-        blaze: () => Result.ok(),
         composes: ['authenticate', 'validate-session'],
+        implementation: () => Result.ok(),
         input: z.object({}),
       });
       expect(withComposes.composes).toEqual([
@@ -689,8 +690,8 @@ describe('trail()', () => {
 
     test('composes array is frozen', () => {
       const withComposes = trail('composed', {
-        blaze: () => Result.ok(),
         composes: ['authenticate'],
+        implementation: () => Result.ok(),
         input: z.object({}),
       });
       expect(Object.isFrozen(withComposes.composes)).toBe(true);
@@ -698,12 +699,12 @@ describe('trail()', () => {
 
     test('trail object in composes is normalized to its id', () => {
       const target = trail('target.trail', {
-        blaze: () => Result.ok(),
+        implementation: () => Result.ok(),
         input: z.object({}),
       });
       const composed = trail('composed', {
-        blaze: () => Result.ok(),
         composes: [target],
+        implementation: () => Result.ok(),
         input: z.object({}),
       });
       expect(composed.composes).toEqual(['target.trail']);
@@ -711,12 +712,12 @@ describe('trail()', () => {
 
     test('mixed string and trail object in composes normalizes correctly', () => {
       const target = trail('target.trail', {
-        blaze: () => Result.ok(),
+        implementation: () => Result.ok(),
         input: z.object({}),
       });
       const composed = trail('composed', {
-        blaze: () => Result.ok(),
         composes: ['string-id', target],
+        implementation: () => Result.ok(),
         input: z.object({}),
       });
       expect(composed.composes).toEqual(['string-id', 'target.trail']);
@@ -727,8 +728,8 @@ describe('trail()', () => {
         forkedFrom: z.string().optional(),
       });
       const t = trail('gist.create', {
-        blaze: () => Result.ok(),
         composeInput: composeInputSchema,
+        implementation: () => Result.ok(),
         input: z.object({ content: z.string() }),
       });
       expect(t.composeInput).toBe(composeInputSchema);
@@ -736,7 +737,7 @@ describe('trail()', () => {
 
     test('composeInput is undefined when omitted', () => {
       const t = trail('bare', {
-        blaze: () => Result.ok(),
+        implementation: () => Result.ok(),
         input: z.object({}),
       });
       expect(t.composeInput).toBeUndefined();
@@ -746,7 +747,7 @@ describe('trail()', () => {
   describe('contours', () => {
     test('defaults to empty frozen array when omitted', () => {
       const minimal = trail('bare', {
-        blaze: () => Result.ok(),
+        implementation: () => Result.ok(),
         input: z.object({}),
       });
       expect(minimal.contours).toEqual([]);
@@ -755,8 +756,8 @@ describe('trail()', () => {
 
     test('preserves declared contour objects', () => {
       const withContours = trail('user.create', {
-        blaze: () => Result.ok(),
         contours: [userContour],
+        implementation: () => Result.ok(),
         input: z.object({}),
       });
       expect(withContours.contours).toEqual([userContour]);
@@ -765,8 +766,8 @@ describe('trail()', () => {
 
     test('contours array is frozen', () => {
       const withContours = trail('user.create', {
-        blaze: () => Result.ok(),
         contours: [userContour],
+        implementation: () => Result.ok(),
         input: z.object({}),
       });
       expect(Object.isFrozen(withContours.contours)).toBe(true);
@@ -776,7 +777,7 @@ describe('trail()', () => {
   describe('resources', () => {
     test('defaults to empty frozen array when omitted', () => {
       const minimal = trail('bare', {
-        blaze: () => Result.ok(),
+        implementation: () => Result.ok(),
         input: z.object({}),
       });
       expect(minimal.resources).toEqual([]);
@@ -785,7 +786,7 @@ describe('trail()', () => {
 
     test('preserves declared resource objects', () => {
       const withResources = trail('search', {
-        blaze: () => Result.ok(),
+        implementation: () => Result.ok(),
         input: z.object({}),
         resources: [dbResource],
       });
@@ -795,7 +796,7 @@ describe('trail()', () => {
 
     test('resources array is frozen', () => {
       const withResources = trail('search', {
-        blaze: () => Result.ok(),
+        implementation: () => Result.ok(),
         input: z.object({}),
         resources: [dbResource],
       });
@@ -811,7 +812,7 @@ describe('trail()', () => {
 
     test('intent defaults to write', () => {
       const minimal = trail('bare', {
-        blaze: () => Result.ok(),
+        implementation: () => Result.ok(),
         input: z.object({}),
       });
       expect(minimal.intent).toBe('write');
@@ -820,14 +821,14 @@ describe('trail()', () => {
 
     test('intent is preserved when set', () => {
       const readTrail = trail('reader', {
-        blaze: () => Result.ok(),
+        implementation: () => Result.ok(),
         input: z.object({}),
         intent: 'read',
       });
       expect(readTrail.intent).toBe('read');
 
       const destroyTrail = trail('destroyer', {
-        blaze: () => Result.ok(),
+        implementation: () => Result.ok(),
         input: z.object({}),
         intent: 'destroy',
       });
@@ -836,8 +837,8 @@ describe('trail()', () => {
 
     test('idempotent is preserved when set', () => {
       const t = trail('idempotent', {
-        blaze: () => Result.ok(),
         idempotent: true,
+        implementation: () => Result.ok(),
         input: z.object({}),
       });
       expect(t.idempotent).toBe(true);
@@ -845,8 +846,8 @@ describe('trail()', () => {
 
     test('dryRun capability is preserved when set', () => {
       const t = trail('supports.dry-run', {
-        blaze: () => Result.ok(),
         dryRun: true,
+        implementation: () => Result.ok(),
         input: z.object({}),
       });
       expect(t.dryRun).toBe(true);
@@ -854,7 +855,7 @@ describe('trail()', () => {
 
     test('visibility defaults to public', () => {
       const minimal = trail('visible', {
-        blaze: () => Result.ok(),
+        implementation: () => Result.ok(),
         input: z.object({}),
       });
       expect(minimal.visibility).toBe('public');
@@ -862,7 +863,7 @@ describe('trail()', () => {
 
     test('visibility is preserved when set', () => {
       const t = trail('internal.helper', {
-        blaze: () => Result.ok(),
+        implementation: () => Result.ok(),
         input: z.object({}),
         visibility: 'internal',
       });
@@ -873,9 +874,9 @@ describe('trail()', () => {
   describe('single-object overload', () => {
     test('accepts spec with id property', () => {
       const t = trail({
-        blaze: (input: { name: string }, _ctx: TrailContext) =>
-          Result.ok({ greeting: `Hi, ${input.name}` }),
         id: 'entity.show',
+        implementation: (input: { name: string }, _ctx: TrailContext) =>
+          Result.ok({ greeting: `Hi, ${input.name}` }),
         input: inputSchema,
       });
       expect(t.id).toBe('entity.show');
@@ -884,11 +885,11 @@ describe('trail()', () => {
 
     test('preserves all spec fields', () => {
       const t = trail({
-        blaze: (input: { name: string }, _ctx: TrailContext) =>
-          Result.ok({ greeting: `Hi, ${input.name}` }),
         description: 'A full trail',
         examples: [{ input: { name: 'World' }, name: 'test' }],
         id: 'full',
+        implementation: (input: { name: string }, _ctx: TrailContext) =>
+          Result.ok({ greeting: `Hi, ${input.name}` }),
         input: inputSchema,
         intent: 'read',
         output: outputSchema,
@@ -902,22 +903,23 @@ describe('trail()', () => {
 
     test('implementation is callable', async () => {
       const t = trail({
-        blaze: (input: { x: number }) => Result.ok(input.x * 2),
         id: 'callable',
+        implementation: (input: { x: number }) => Result.ok(input.x * 2),
         input: z.object({ x: z.number() }),
       });
-      const result = await t.blaze({ x: 5 }, stubCtx);
+      const result = await t.implementation({ x: 5 }, stubCtx);
       expect(result.isOk()).toBe(true);
       expect(result.unwrap()).toBe(10);
     });
 
     test('sync implementations are normalized to an awaitable runtime function', async () => {
       const t = trail('normalized', {
-        blaze: (input: { value: number }) => Result.ok(input.value + 1),
+        implementation: (input: { value: number }) =>
+          Result.ok(input.value + 1),
         input: z.object({ value: z.number() }),
       });
 
-      const promise = t.blaze({ value: 2 }, stubCtx);
+      const promise = t.implementation({ value: 2 }, stubCtx);
       expect(promise).toBeInstanceOf(Promise);
 
       const result = await promise;
@@ -937,8 +939,8 @@ describe('trail() fires/on normalization', () => {
 
   test('Signal value in fires: is normalized to its id', () => {
     const t = trail('checkout', {
-      blaze: () => Result.ok({}),
       fires: [orderPlaced],
+      implementation: () => Result.ok({}),
       input: z.object({}),
     });
     expect(t.fires).toEqual(['order.placed']);
@@ -946,7 +948,7 @@ describe('trail() fires/on normalization', () => {
 
   test('Signal value in on: is normalized to its id', () => {
     const t = trail('notify', {
-      blaze: () => Result.ok({}),
+      implementation: () => Result.ok({}),
       input: z.object({}),
       on: [orderPlaced],
     });
@@ -958,12 +960,12 @@ describe('trail() fires/on normalization', () => {
 
   test('object-form on: source normalizes to the same activation graph', () => {
     const bare = trail('notify.bare', {
-      blaze: () => Result.ok({}),
+      implementation: () => Result.ok({}),
       input: z.object({}),
       on: [orderPlaced],
     });
     const objectForm = trail('notify.object', {
-      blaze: () => Result.ok({}),
+      implementation: () => Result.ok({}),
       input: z.object({}),
       on: [{ source: orderPlaced }],
     });
@@ -977,7 +979,7 @@ describe('trail() fires/on normalization', () => {
 
   test('object-form signal activation source preserves source metadata', () => {
     const t = trail('notify.object-source', {
-      blaze: () => Result.ok({}),
+      implementation: () => Result.ok({}),
       input: z.object({}),
       on: [
         {
@@ -1017,7 +1019,7 @@ describe('trail() fires/on normalization', () => {
     });
 
     const t = trail('billing.reconcile', {
-      blaze: () => Result.ok({}),
+      implementation: () => Result.ok({}),
       input: z.object({}),
       on: [
         scheduleSource,
@@ -1038,8 +1040,8 @@ describe('trail() fires/on normalization', () => {
 
   test('mixed string + Signal value in fires: is normalized', () => {
     const t = trail('checkout', {
-      blaze: () => Result.ok({}),
       fires: ['metric.emitted', orderPlaced, auditLogged],
+      implementation: () => Result.ok({}),
       input: z.object({}),
     });
     expect(t.fires).toEqual(['metric.emitted', 'order.placed', 'audit.logged']);
@@ -1047,7 +1049,7 @@ describe('trail() fires/on normalization', () => {
 
   test('defaults to empty frozen arrays when omitted', () => {
     const minimal = trail('bare', {
-      blaze: () => Result.ok(),
+      implementation: () => Result.ok(),
       input: z.object({}),
     });
     expect(minimal.fires).toEqual([]);

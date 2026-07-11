@@ -26,7 +26,7 @@ TSDoc explains the contract of exported APIs. Start there before reaching for in
 - Use `@param` and `@returns` when exported function behavior is not trivial.
 - Use `@remarks` for tradeoffs, lifecycle notes, or caveats that would clutter the summary.
 - Use `@see` for closely related APIs.
-- Avoid `@throws` for blazes. Document `Result` error shapes or relevant `TrailsError` types instead.
+- Avoid `@throws` for implementations. Document `Result` error shapes or relevant `TrailsError` types instead.
 
 ### Trails-Specific TSDoc
 

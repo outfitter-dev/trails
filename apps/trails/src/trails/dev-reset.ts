@@ -6,7 +6,17 @@ import { resolveTrailRootDir } from './root-dir.js';
 import { createIsolatedExampleInput } from './topo-support.js';
 
 export const devResetTrail = trail('dev.reset', {
-  blaze: (input, ctx) => {
+  description: 'Remove local Trails database artifacts',
+  examples: [
+    {
+      input: {
+        dryRun: true,
+        rootDir: createIsolatedExampleInput('dev-reset').rootDir,
+      },
+      name: 'Preview local reset',
+    },
+  ],
+  implementation: (input, ctx) => {
     if (input.dryRun !== true && input.yes !== true) {
       return Result.err(
         new ValidationError(
@@ -22,16 +32,6 @@ export const devResetTrail = trail('dev.reset', {
     const rootDir = rootDirResult.value;
     return Result.ok(resetDevState({ dryRun: input.dryRun, rootDir }));
   },
-  description: 'Remove local Trails database artifacts',
-  examples: [
-    {
-      input: {
-        dryRun: true,
-        rootDir: createIsolatedExampleInput('dev-reset').rootDir,
-      },
-      name: 'Preview local reset',
-    },
-  ],
   input: z.object({
     dryRun: z
       .boolean()

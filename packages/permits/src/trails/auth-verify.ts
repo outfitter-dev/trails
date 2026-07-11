@@ -48,7 +48,13 @@ const getSurface = (ctx: TrailContext): PermitExtractionInput['surface'] => {
  * succeeds with a null permit, so `testAll(app)` works without configuration.
  */
 export const authVerify = trail('auth.verify', {
-  blaze: async (input, ctx) => {
+  examples: [
+    {
+      input: { token: 'test-token' },
+      name: 'Verify a token',
+    },
+  ],
+  implementation: async (input, ctx) => {
     const adapter = authResource.from(ctx);
     const result = await adapter.authenticate({
       bearerToken: input.token,
@@ -78,12 +84,6 @@ export const authVerify = trail('auth.verify', {
       valid: true,
     });
   },
-  examples: [
-    {
-      input: { token: 'test-token' },
-      name: 'Verify a token',
-    },
-  ],
   input: z.object({
     token: z.string().min(1).describe('Bearer token to verify'),
   }),

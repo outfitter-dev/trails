@@ -42,7 +42,7 @@ const noop = () => Result.ok({ ok: true });
 const buildApp = (): Topo =>
   topo('overlays-app', {
     entityAdd: trail('entity.add', {
-      blaze: noop,
+      implementation: noop,
       input: z.object({ name: z.string() }),
       output: z.object({ ok: z.boolean() }),
     }),

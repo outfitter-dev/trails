@@ -1,7 +1,7 @@
 /**
  * Notification dispatch — channel fan-out for incident lifecycle events.
  *
- * The console channel reports through the structured logger (blazes stay
+ * The console channel reports through the structured logger (implementations stay
  * pure — no direct console output); the webhook channel posts JSON through
  * the shared HTTP resource when `LOOKOUT_WEBHOOK_URL` is configured. Every
  * delivery records a notification row.
@@ -23,7 +23,21 @@ const webhookUrl = (ctx: TrailContext): string | undefined =>
   ctx.env?.['LOOKOUT_WEBHOOK_URL'];
 
 export const dispatchNotification = trail('notify.dispatch', {
-  blaze: async (input, ctx) => {
+  description:
+    'Fan an incident lifecycle event out to the configured channels and record each delivery.',
+  examples: [
+    {
+      description: 'Console delivery always runs; webhook only when configured',
+      expected: { deliveries: [{ channel: 'console', ok: true }] },
+      input: {
+        incidentId: 'inc_demo',
+        kind: 'opened',
+        message: 'check "flaky" is down',
+      },
+      name: 'Dispatch to console',
+    },
+  ],
+  implementation: async (input, ctx) => {
     const store = db.from(ctx);
     const sentAt = new Date().toISOString();
     const deliveries: z.output<typeof deliverySchema>[] = [];
@@ -62,20 +76,6 @@ export const dispatchNotification = trail('notify.dispatch', {
 
     return Result.ok({ deliveries });
   },
-  description:
-    'Fan an incident lifecycle event out to the configured channels and record each delivery.',
-  examples: [
-    {
-      description: 'Console delivery always runs; webhook only when configured',
-      expected: { deliveries: [{ channel: 'console', ok: true }] },
-      input: {
-        incidentId: 'inc_demo',
-        kind: 'opened',
-        message: 'check "flaky" is down',
-      },
-      name: 'Dispatch to console',
-    },
-  ],
   input: z.object({
     incidentId: z.string().describe('Incident this notification belongs to'),
     kind: z

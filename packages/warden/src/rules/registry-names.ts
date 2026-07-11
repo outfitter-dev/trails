@@ -66,7 +66,7 @@ import { surfaceTrailheadCoherence } from './surface-trailhead-coherence.js';
 import { trailForkCoaching } from './trail-fork-coaching.js';
 import { trailheadOverrideDivergence } from './trailhead-override-divergence.js';
 import {
-  forkWithoutPreservedBlaze,
+  forkWithoutPreservedImplementation,
   markerSchemaUnsupported,
   versionPinnedCompose,
 } from './trail-versioning-source.js';
@@ -107,7 +107,7 @@ export const registeredRuleNames: readonly string[] = [
   exampleValid.name,
   firesDeclarations.name,
   governedSymbolResidue.name,
-  forkWithoutPreservedBlaze.name,
+  forkWithoutPreservedImplementation.name,
   implementationReturnsResult.name,
   incompleteAccessorForStandardOp.name,
   incompleteCrud.name,

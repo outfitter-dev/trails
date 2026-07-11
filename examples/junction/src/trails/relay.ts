@@ -42,7 +42,25 @@ const routeMatches = (
 };
 
 export const dispatch = trail('relay.dispatch', {
-  blaze: async (input, ctx) => {
+  composes: ['delivery.send'],
+  description:
+    'Match one received event against enabled routes and compose delivery.send per match',
+  examples: [
+    {
+      description:
+        'Dispatch the seeded push event across its single enabled GitHub route',
+      expected: { dispatched: 1, eventId: 'evt_seed_push', matched: 1 },
+      input: { endpointId: 'ep_github_demo', eventId: 'evt_seed_push' },
+      name: 'Dispatch a matched event',
+    },
+    {
+      description: 'Returns NotFoundError for an unknown event id',
+      error: 'NotFoundError',
+      input: { endpointId: 'ep_github_demo', eventId: 'evt_missing' },
+      name: 'Dispatch unknown event',
+    },
+  ],
+  implementation: async (input, ctx) => {
     const store = relayStoreResource.from(ctx);
     const event = await store.event.get(input.eventId);
     if (!event) {
@@ -85,24 +103,6 @@ export const dispatch = trail('relay.dispatch', {
       matched: matching.length,
     });
   },
-  composes: ['delivery.send'],
-  description:
-    'Match one received event against enabled routes and compose delivery.send per match',
-  examples: [
-    {
-      description:
-        'Dispatch the seeded push event across its single enabled GitHub route',
-      expected: { dispatched: 1, eventId: 'evt_seed_push', matched: 1 },
-      input: { endpointId: 'ep_github_demo', eventId: 'evt_seed_push' },
-      name: 'Dispatch a matched event',
-    },
-    {
-      description: 'Returns NotFoundError for an unknown event id',
-      error: 'NotFoundError',
-      input: { endpointId: 'ep_github_demo', eventId: 'evt_missing' },
-      name: 'Dispatch unknown event',
-    },
-  ],
   input: eventReceivedPayloadSchema,
   intent: 'write',
   on: [eventReceived],

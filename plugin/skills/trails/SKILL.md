@@ -3,12 +3,12 @@ name: trails
 description: Build with the Trails framework — define trail contracts, open CLI/MCP surfaces, test with examples, debug errors, migrate codebases, run governance. Use when creating trails, adding surfaces, testing, debugging Trails errors, migrating to Trails, running warden, or any work involving @ontrails/* packages.
 metadata:
   trails:
-    version: 1.0.0-beta.35
+    version: 1.0.0-beta.39
 ---
 
 # Trails
 
-Contract-first TypeScript framework. Define a trail once with typed input, Result output, examples, meta, and a blaze that establishes how it runs — then surface it on CLI, MCP, or HTTP today, with WebSocket planned on the same contract-first model.
+Contract-first TypeScript framework. Define a trail once with typed input, Result output, examples, meta, and an implementation that establishes how it runs — then surface it on CLI, MCP, or HTTP today, with WebSocket planned on the same contract-first model.
 
 ## Quick Start
 
@@ -19,7 +19,7 @@ const greet = trail('greet', {
   output: z.object({ message: z.string() }),
   intent: 'read',
   examples: [{ name: 'Basic', input: { name: 'World' }, expected: { message: 'Hello, World!' } }],
-  blaze: (input) => Result.ok({ message: `Hello, ${input.name}!` }),
+  implementation: (input) => Result.ok({ message: `Hello, ${input.name}!` }),
 });
 
 // 2. Collect into topo
@@ -46,7 +46,7 @@ Use these terms — they are non-negotiable in Trails codebases.
 | `trail` | Unit of work (atomic or composite) | handler, action |
 | `compose` | Composition declaration and runtime verb | workflow, route |
 | `topo` | Queryable graph of trails, signals, resources, and relationships | registry, collection |
-| `blaze` | Authored implementation that establishes how a trail runs from validated input to Result | handler, impl |
+| `implementation` | Authored behavior that establishes how a trail runs from validated input to Result | handler, impl |
 | `surface` | The boundary-owned one-liner that opens a graph | serve, mount |
 | `graph` | Local name for a topo instance | app, registry |
 | `projection` | Deterministic derivation of graph onto a surface shape | mapping |
@@ -120,7 +120,7 @@ Wayfinder trails are internal by default. Host apps expose selected queries deli
 
 - **Atomic trail**: does one thing. `(input, ctx) => Result`. Default choice.
 - **Composite trail**: composes other trails. Declares `composes: [...]`, uses `ctx.compose()`.
-- **Blazed trail**: a runnable contract. The runtime runs trails, not blazes.
+- **Runnable trail**: an authored contract with an implementation. The runtime runs trails, not implementations.
 
 ### Trail ID Conventions
 
@@ -245,7 +245,7 @@ const search = trail('search', {
   resources: [db],
   input: z.object({ query: z.string() }),
   output: z.array(z.object({ id: z.string(), title: z.string() })),
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const conn = db.from(ctx);
     return Result.ok(await conn.search(input.query));
   },
@@ -308,7 +308,7 @@ Converting existing code to Trails:
 
 1. Inventory handlers (routes, CLI commands, MCP tools)
 2. Extract Zod input/output schemas
-3. Convert blazes to return Result (replace throw/console.log/process.exit)
+3. Convert implementations to return Result (replace throw/console.log/process.exit)
 4. Compose into topo, open surfaces
 5. Add examples, run `testAll()`
 6. Run warden for governance

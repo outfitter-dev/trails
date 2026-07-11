@@ -5,7 +5,7 @@ import { versionWithoutExamples } from '../rules/trail-versioning-topo.js';
 import { wrapTopoRule } from './wrap-rule.js';
 
 const archivedWithoutExamples = trail('version.examples.archived', {
-  blaze: () => Result.ok({ ok: true }),
+  implementation: () => Result.ok({ ok: true }),
   input: z.object({}),
   output: z.object({ ok: z.boolean() }),
   version: 2,

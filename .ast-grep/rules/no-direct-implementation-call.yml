@@ -1,7 +1,7 @@
-id: trails-no-direct-blaze-call
+id: trails-no-direct-implementation-call
 language: TypeScript
 severity: error
-message: Use ctx.compose(...) instead of direct .blaze() calls.
+message: Use ctx.compose(...) instead of direct .implementation() calls.
 ignores:
   - '**/__tests__/**'
   - '**/*.test.ts'
@@ -9,4 +9,4 @@ ignores:
   - 'packages/testing/**'
   - 'packages/warden/**'
 rule:
-  pattern: $TARGET.blaze($$$ARGS)
+  pattern: $TARGET.implementation($$$ARGS)

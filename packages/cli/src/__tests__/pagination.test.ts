@@ -67,7 +67,7 @@ const makePaginatedTrail = (
   let calls = 0;
   const cursors: (string | undefined)[] = [];
   const t = trail('items.list', {
-    blaze: (input: PageInput): Result<StringPage, Error> => {
+    implementation: (input: PageInput): Result<StringPage, Error> => {
       cursors.push(input.cursor);
       const idx = calls;
       calls += 1;
@@ -105,7 +105,8 @@ describe('CLI surface absorbs pagination — flag derivation', () => {
 
   test('non-paginated trail does NOT get --all flag', () => {
     const t = trail('greet', {
-      blaze: (input: { name: string }) => Result.ok(`Hello, ${input.name}`),
+      implementation: (input: { name: string }) =>
+        Result.ok(`Hello, ${input.name}`),
       input: z.object({ name: z.string() }),
     });
     const app = topo('test-app', { [t.id]: t });
@@ -117,7 +118,7 @@ describe('CLI surface absorbs pagination — flag derivation', () => {
 
   test('trail whose output has items but no hasMore does NOT get --all', () => {
     const t = trail('partial', {
-      blaze: () => Result.ok({ items: [] }),
+      implementation: () => Result.ok({ items: [] }),
       input: z.object({}),
       output: z.object({ items: z.array(z.string()) }),
     });
@@ -129,7 +130,7 @@ describe('CLI surface absorbs pagination — flag derivation', () => {
 
   test('trail whose output has items + hasMore but no nextCursor does NOT get --all', () => {
     const t = trail('partial-no-cursor', {
-      blaze: () => Result.ok({ hasMore: false, items: [] }),
+      implementation: () => Result.ok({ hasMore: false, items: [] }),
       input: z.object({}),
       output: z.object({
         hasMore: z.boolean(),
@@ -144,7 +145,7 @@ describe('CLI surface absorbs pagination — flag derivation', () => {
 
   test('trail with paginated output but no input cursor does NOT get --all', () => {
     const t = trail('custom-cursor', {
-      blaze: () =>
+      implementation: () =>
         Result.ok({
           hasMore: false,
           items: [],
@@ -162,7 +163,7 @@ describe('CLI surface absorbs pagination — flag derivation', () => {
   test('non-paginated trail can own an all field without the meta flag stripping it', async () => {
     let receivedInput: { readonly all: boolean } | undefined;
     const t = trail('all-field', {
-      blaze: (input: { all: boolean }) => {
+      implementation: (input: { all: boolean }) => {
         receivedInput = input;
         return Result.ok({ all: input.all });
       },
@@ -389,7 +390,7 @@ describe('CLI surface absorbs pagination — --all --jsonl streaming', () => {
   test('streams a terminal non-page value when runtime pagination drifts', async () => {
     let calls = 0;
     const t = trail('items.list', {
-      blaze: (): Result<unknown, Error> => {
+      implementation: (): Result<unknown, Error> => {
         calls += 1;
         return Result.ok(
           calls === 1

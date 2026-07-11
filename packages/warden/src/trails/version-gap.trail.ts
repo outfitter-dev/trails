@@ -5,7 +5,7 @@ import { versionGap } from '../rules/trail-versioning-topo.js';
 import { wrapTopoRule } from './wrap-rule.js';
 
 const versionedTrail = trail('version.gap.clean', {
-  blaze: () => Result.ok({ ok: true }),
+  implementation: () => Result.ok({ ok: true }),
   input: z.object({}),
   output: z.object({ ok: z.boolean() }),
   version: 2,

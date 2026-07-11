@@ -105,7 +105,7 @@ const writeAppFixture = (
   const authTrail = options?.includeAuthTrail
     ? `
 const authCheck = trail('auth.check', {
-  blaze: async () => Result.ok({ ok: true }),
+  implementation: async () => Result.ok({ ok: true }),
   input: z.object({}),
   intent: 'read',
   output: z.object({ ok: z.boolean() }),
@@ -122,7 +122,7 @@ const authCheck = trail('auth.check', {
 import { z } from 'zod';
 
 const hello = trail('hello', {
-  blaze: async (input) => Result.ok({ message: \`Hello, \${input.name ?? 'world'}!\` }),
+  implementation: async (input) => Result.ok({ message: \`Hello, \${input.name ?? 'world'}!\` }),
   composes: ['goodbye'],
   examples: [{ input: {}, name: 'Default greeting' }],
   input: z.object({ name: z.string().optional() }),
@@ -136,7 +136,7 @@ const hello = trail('hello', {
 });
 
 const goodbye = trail('goodbye', {
-  blaze: async () => Result.ok({ ok: true }),
+  implementation: async () => Result.ok({ ok: true }),
   input: z.object({}),
   intent: 'write',
   output: z.object({ ok: z.boolean() }),
@@ -179,7 +179,7 @@ describe('topo and dev trails', () => {
       writeAppFixture(dir);
 
       const summary = expectOk(
-        await topoTrail.blaze(moduleInput, { cwd: dir } as never)
+        await topoTrail.implementation(moduleInput, { cwd: dir } as never)
       );
       expect(summary.app.name).toBe('fixture-app');
       expect(summary.list.count).toBe(2);
@@ -187,9 +187,12 @@ describe('topo and dev trails', () => {
       expect(summary.lockExists).toBe(false);
 
       const detail = expectOk(
-        await surveyTrailDetailTrail.blaze({ ...moduleInput, id: 'hello' }, {
-          cwd: dir,
-        } as never)
+        await surveyTrailDetailTrail.implementation(
+          { ...moduleInput, id: 'hello' },
+          {
+            cwd: dir,
+          } as never
+        )
       );
       expect(detail.id).toBe('hello');
       expect(detail.kind).toBe('trail');
@@ -199,7 +202,7 @@ describe('topo and dev trails', () => {
       );
 
       const compileResult = expectOk(
-        await compileTrail.blaze(moduleInput, { cwd: dir } as never)
+        await compileTrail.implementation(moduleInput, { cwd: dir } as never)
       );
       const snapshotCountAfterExport = countTopoSnapshots(dir);
       expect(compileResult.hash).toHaveLength(64);
@@ -213,19 +216,19 @@ describe('topo and dev trails', () => {
       });
 
       const summaryAfterExport = expectOk(
-        await topoTrail.blaze(moduleInput, { cwd: dir } as never)
+        await topoTrail.implementation(moduleInput, { cwd: dir } as never)
       );
       expect(summaryAfterExport.lockExists).toBe(true);
 
       const verifyResult = expectOk(
-        await validateTrail.blaze(moduleInput, { cwd: dir } as never)
+        await validateTrail.implementation(moduleInput, { cwd: dir } as never)
       );
       expect(verifyResult.stale).toBe(false);
       expect(countTopoSnapshots(dir)).toBe(snapshotCountAfterExport);
 
       writeAppFixture(dir, { includeAuthTrail: true });
       const currentSummary = expectOk(
-        await topoTrail.blaze(moduleInput, { cwd: dir } as never)
+        await topoTrail.implementation(moduleInput, { cwd: dir } as never)
       );
       expect(currentSummary.list.count).toBe(3);
       expect(currentSummary.list.entries.map((entry) => entry.id)).toContain(
@@ -233,7 +236,7 @@ describe('topo and dev trails', () => {
       );
 
       const driftError = expectErr(
-        await validateTrail.blaze(moduleInput, { cwd: dir } as never)
+        await validateTrail.implementation(moduleInput, { cwd: dir } as never)
       );
       expect(driftError.message).toContain('trails.lock is stale');
       expect(countTopoSnapshots(dir)).toBe(snapshotCountAfterExport);
@@ -243,7 +246,7 @@ describe('topo and dev trails', () => {
         `${JSON.stringify({ hash: '1'.repeat(64), version: 2 }, null, 2)}\n`
       );
       const verifyError = expectErr(
-        await validateTrail.blaze(moduleInput, { cwd: dir } as never)
+        await validateTrail.implementation(moduleInput, { cwd: dir } as never)
       );
       expect(verifyError.message).toContain('regenerate with `trails compile`');
       expect(countTopoSnapshots(dir)).toBe(snapshotCountAfterExport);
@@ -259,7 +262,7 @@ describe('topo and dev trails', () => {
       writeAppFixture(dir);
 
       const surveyList = expectOk(
-        await surveyTrail.blaze({ module: './src/app.ts' }, {
+        await surveyTrail.implementation({ module: './src/app.ts' }, {
           cwd: dir,
         } as never)
       );
@@ -270,7 +273,7 @@ describe('topo and dev trails', () => {
       });
 
       const surveyBrief = expectOk(
-        await surveyBriefTrail.blaze({ module: './src/app.ts' }, {
+        await surveyBriefTrail.implementation({ module: './src/app.ts' }, {
           cwd: dir,
         } as never)
       );
@@ -285,9 +288,12 @@ describe('topo and dev trails', () => {
       });
 
       const surveyDetail = expectOk(
-        await surveyTrail.blaze({ id: 'hello', module: './src/app.ts' }, {
-          cwd: dir,
-        } as never)
+        await surveyTrail.implementation(
+          { id: 'hello', module: './src/app.ts' },
+          {
+            cwd: dir,
+          } as never
+        )
       );
       expect(surveyDetail).toMatchObject({
         matches: [
@@ -303,7 +309,7 @@ describe('topo and dev trails', () => {
       });
 
       const guideList = expectOk(
-        await guideTrail.blaze({ module: './src/app.ts' }, {
+        await guideTrail.implementation({ module: './src/app.ts' }, {
           cwd: dir,
         } as never)
       );
@@ -326,9 +332,12 @@ describe('topo and dev trails', () => {
       });
 
       const guideDetail = expectOk(
-        await guideTrail.blaze({ module: './src/app.ts', trailId: 'hello' }, {
-          cwd: dir,
-        } as never)
+        await guideTrail.implementation(
+          { module: './src/app.ts', trailId: 'hello' },
+          {
+            cwd: dir,
+          } as never
+        )
       );
       expect(guideDetail).toMatchObject({
         detail: {
@@ -356,17 +365,20 @@ describe('topo and dev trails', () => {
       writeAppFixture(dir);
 
       const firstPin = expectOk(
-        await topoPinTrail.blaze({ ...moduleInput, name: 'before-auth' }, {
-          cwd: dir,
-        } as never)
+        await topoPinTrail.implementation(
+          { ...moduleInput, name: 'before-auth' },
+          {
+            cwd: dir,
+          } as never
+        )
       );
       expect(firstPin.snapshot.pinnedAs).toBe('before-auth');
 
       const firstCompile = expectOk(
-        await compileTrail.blaze(moduleInput, { cwd: dir } as never)
+        await compileTrail.implementation(moduleInput, { cwd: dir } as never)
       );
       const secondCompile = expectOk(
-        await compileTrail.blaze(moduleInput, { cwd: dir } as never)
+        await compileTrail.implementation(moduleInput, { cwd: dir } as never)
       );
       expect(firstCompile.hash).toBe(secondCompile.hash);
       expect(
@@ -440,7 +452,7 @@ describe('topo and dev trails', () => {
       }
 
       const history = expectOk(
-        await topoHistoryTrail.blaze({}, { cwd: dir } as never)
+        await topoHistoryTrail.implementation({}, { cwd: dir } as never)
       );
       expect(history.pinnedCount).toBe(1);
       expect(history.snapshotCount).toBeGreaterThanOrEqual(3);
@@ -456,7 +468,7 @@ describe('topo and dev trails', () => {
       ).toBe(true);
 
       const stats = expectOk(
-        await devStatsTrail.blaze({}, { cwd: dir } as never)
+        await devStatsTrail.implementation({}, { cwd: dir } as never)
       );
       expect(stats.lock.path).toBe(join(dir, 'trails.lock'));
       expect(stats.lock.exists).toBe(true);
@@ -464,7 +476,7 @@ describe('topo and dev trails', () => {
       expect(stats.tracing.recordCount).toBe(2);
 
       const cleanPreview = expectOk(
-        await devCleanTrail.blaze(
+        await devCleanTrail.implementation(
           { dryRun: true, snapshots: 0, traceAgeMs: 0 },
           {
             cwd: dir,
@@ -476,7 +488,7 @@ describe('topo and dev trails', () => {
       expect(cleanPreview.removed.traceRecords).toBe(2);
 
       const cleanResult = expectOk(
-        await devCleanTrail.blaze(
+        await devCleanTrail.implementation(
           { dryRun: false, snapshots: 0, traceAgeMs: 0, yes: true },
           { cwd: dir } as never
         )
@@ -485,15 +497,18 @@ describe('topo and dev trails', () => {
       expect(cleanResult.remaining.pinnedCount).toBe(1);
 
       const unpinPreview = expectOk(
-        await topoUnpinTrail.blaze({ dryRun: true, name: 'before-auth' }, {
-          cwd: dir,
-        } as never)
+        await topoUnpinTrail.implementation(
+          { dryRun: true, name: 'before-auth' },
+          {
+            cwd: dir,
+          } as never
+        )
       );
       expect(unpinPreview.dryRun).toBe(true);
       expect(unpinPreview.snapshot?.pinnedAs).toBe('before-auth');
 
       const unpinResult = expectOk(
-        await topoUnpinTrail.blaze(
+        await topoUnpinTrail.implementation(
           { dryRun: false, name: 'before-auth', yes: true },
           { cwd: dir } as never
         )
@@ -501,14 +516,16 @@ describe('topo and dev trails', () => {
       expect(unpinResult.removed).toBe(true);
 
       const resetPreview = expectOk(
-        await devResetTrail.blaze({ dryRun: true }, { cwd: dir } as never)
+        await devResetTrail.implementation({ dryRun: true }, {
+          cwd: dir,
+        } as never)
       );
       const dbPath = deriveTrailsDbPath({ rootDir: dir });
       expect(resetPreview.dryRun).toBe(true);
       expect(resetPreview.removedFiles).toContain(dbPath);
 
       const resetResult = expectOk(
-        await devResetTrail.blaze({ dryRun: false, yes: true }, {
+        await devResetTrail.implementation({ dryRun: false, yes: true }, {
           cwd: dir,
         } as never)
       );
@@ -529,7 +546,9 @@ describe('topo and dev trails', () => {
       mkdirSync(dir, { recursive: true });
 
       const preview = expectOk(
-        await devCleanTrail.blaze({ dryRun: true }, { cwd: dir } as never)
+        await devCleanTrail.implementation({ dryRun: true }, {
+          cwd: dir,
+        } as never)
       );
       expect(preview.dryRun).toBe(true);
       expect(preview.removed.topoSnapshots).toBe(0);
@@ -537,7 +556,7 @@ describe('topo and dev trails', () => {
       expect(existsSync(deriveTrailsDbPath({ rootDir: dir }))).toBe(false);
 
       const applied = expectOk(
-        await devCleanTrail.blaze({ dryRun: false, yes: true }, {
+        await devCleanTrail.implementation({ dryRun: false, yes: true }, {
           cwd: dir,
         } as never)
       );

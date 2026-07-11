@@ -108,7 +108,7 @@ export const show = trail('entity.show', {
       error: 'NotFoundError',
     },
   ],
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const store = entityStoreResource.from(ctx);
     /* ... */
   },
@@ -127,7 +127,7 @@ Key concepts:
 ```typescript
 export const onboard = trail('entity.onboard', {
   composes: ['entity.add', 'search'],
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const added = await ctx.compose('entity.add', {
       /* ... */
     });
@@ -215,7 +215,7 @@ To add `entity.update`:
      examples: [
        { name: 'Update tags', input: { name: 'Alpha', tags: ['updated'] } },
      ],
-     blaze: async (input, ctx) => {
+     implementation: async (input, ctx) => {
        /* ... */
      },
    });
@@ -256,7 +256,7 @@ Use `trails topo *` for topo history and pin management. Use `trails compile` to
 
 ## Signals
 
-The demo exercises the lexicon's reactive activation primitive end-to-end. A producer trail declares the signal it fires, calls `ctx.fire()` from its blaze, and any trail that lists the signal in `on:` runs automatically.
+The demo exercises the lexicon's reactive activation primitive end-to-end. A producer trail declares the signal it fires, calls `ctx.fire()` from its implementation, and any trail that lists the signal in `on:` runs automatically.
 
 ```typescript
 // src/signals/entity-signals.ts
@@ -273,7 +273,7 @@ export const updated = signal('entity.updated', {
 // src/trails/entity.ts -- producer
 export const add = trail('entity.add', {
   fires: [updated],
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const entity = await store.entities.insert(input);
     await ctx.fire?.(updated, {
       action: 'created',
@@ -289,7 +289,7 @@ export const add = trail('entity.add', {
 // src/trails/notify.ts -- consumer
 export const notifyEntityUpdated = trail('entity.notify-updated', {
   on: ['entity.updated'],
-  blaze: (input, ctx) => {
+  implementation: (input, ctx) => {
     // runs automatically whenever entity.updated fires
     return Result.ok({ notified: true });
   },

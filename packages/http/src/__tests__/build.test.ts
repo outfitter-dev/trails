@@ -52,43 +52,43 @@ const findTraceRecord = (
 // ---------------------------------------------------------------------------
 
 const echoTrail = trail('echo', {
-  blaze: (input) => Result.ok({ reply: input.message }),
   description: 'Echo a message back',
+  implementation: (input) => Result.ok({ reply: input.message }),
   input: z.object({ message: z.string() }),
   intent: 'read',
   output: z.object({ reply: z.string() }),
 });
 
 const createTrail = trail('item.create', {
-  blaze: (input) => Result.ok({ id: '123', name: input.name }),
   description: 'Create an item',
+  implementation: (input) => Result.ok({ id: '123', name: input.name }),
   input: z.object({ name: z.string() }),
   output: z.object({ id: z.string(), name: z.string() }),
 });
 
 const deleteTrail = trail('item.delete', {
-  blaze: (_input) => Result.ok({ deleted: true }),
   description: 'Delete an item',
+  implementation: (_input) => Result.ok({ deleted: true }),
   input: z.object({ id: z.string() }),
   intent: 'destroy',
 });
 
 const notFoundTrail = trail('item.get', {
-  blaze: (_input) => Result.err(new NotFoundError('Item not found')),
   description: 'Get an item that does not exist',
+  implementation: (_input) => Result.err(new NotFoundError('Item not found')),
   input: z.object({ id: z.string() }),
   intent: 'read',
 });
 
 const internalTrail = trail('crash', {
-  blaze: () => Result.err(new InternalError('Something broke')),
   description: 'Always fails with internal error',
+  implementation: () => Result.err(new InternalError('Something broke')),
   input: z.object({}),
 });
 
 const internalVisibilityTrail = trail('secret', {
-  blaze: () => Result.ok({ ok: true }),
   description: 'Internal trail that should be skipped',
+  implementation: () => Result.ok({ ok: true }),
   input: z.object({}),
   visibility: 'internal',
 });
@@ -321,9 +321,9 @@ describe('deriveHttpRoutes', () => {
 
     test('consumer trails (on: [...]) are skipped', () => {
       const consumerTrail = trail('notify.email', {
-        blaze: (input: { orderId: string }) =>
-          Result.ok({ delivered: true, orderId: input.orderId }),
         description: 'Send email on order placed',
+        implementation: (input: { orderId: string }) =>
+          Result.ok({ delivered: true, orderId: input.orderId }),
         input: z.object({ orderId: z.string() }),
         on: ['order.placed'],
       });
@@ -347,7 +347,7 @@ describe('deriveHttpRoutes', () => {
         path: '/webhooks/payment',
       });
       const receiver = trail('payment.receive', {
-        blaze: (input) => Result.ok({ paymentId: input.paymentId }),
+        implementation: (input) => Result.ok({ paymentId: input.paymentId }),
         input: z.object({ paymentId: z.string() }),
         on: [source],
         output: z.object({ paymentId: z.string() }),
@@ -376,7 +376,7 @@ describe('deriveHttpRoutes', () => {
       });
       const invoked: string[] = [];
       const audit = trail('payment.audit', {
-        blaze: (input) => {
+        implementation: (input) => {
           invoked.push(`audit:${input.paymentId}`);
           return Result.ok({ audited: input.paymentId });
         },
@@ -385,7 +385,7 @@ describe('deriveHttpRoutes', () => {
         output: z.object({ audited: z.string() }),
       });
       const notify = trail('payment.notify', {
-        blaze: (input) => {
+        implementation: (input) => {
           invoked.push(`notify:${input.paymentId}`);
           return Result.ok({ notified: input.paymentId });
         },
@@ -440,7 +440,7 @@ describe('deriveHttpRoutes', () => {
       };
       let observedInput: unknown;
       const receiver = trail('payment.receive', {
-        blaze: (input) => {
+        implementation: (input) => {
           observedInput = input;
           return Result.ok({ paymentId: input.paymentId });
         },
@@ -477,7 +477,7 @@ describe('deriveHttpRoutes', () => {
       const rootFireIds: (string | undefined)[] = [];
       const sourceIds: (string | undefined)[] = [];
       const audit = trail('payment.audit', {
-        blaze: (input, ctx) => {
+        implementation: (input, ctx) => {
           const activation = getActivationProvenance(ctx);
           fireIds.push(activation?.fireId);
           rootFireIds.push(activation?.rootFireId);
@@ -489,7 +489,7 @@ describe('deriveHttpRoutes', () => {
         output: z.object({ audited: z.string() }),
       });
       const notify = trail('payment.notify', {
-        blaze: (input, ctx) => {
+        implementation: (input, ctx) => {
           const activation = getActivationProvenance(ctx);
           fireIds.push(activation?.fireId);
           rootFireIds.push(activation?.rootFireId);
@@ -553,7 +553,7 @@ describe('deriveHttpRoutes', () => {
         path: '/webhooks/payment',
       });
       const receiver = trail('payment.receive', {
-        blaze: () => Result.ok({ ok: true }),
+        implementation: () => Result.ok({ ok: true }),
         input: z.object({ paymentId: z.string() }),
         on: [source],
       });
@@ -578,7 +578,7 @@ describe('deriveHttpRoutes', () => {
         path: ' /webhooks/payment ',
       };
       const receiver = trail('payment.receive', {
-        blaze: () => Result.ok({ ok: true }),
+        implementation: () => Result.ok({ ok: true }),
         input: z.object({ paymentId: z.string() }),
         on: [source],
       });
@@ -605,7 +605,7 @@ describe('deriveHttpRoutes', () => {
       let activationSourceId: string | undefined;
       let activationFireId: string | undefined;
       const receiver = trail('payment.receive', {
-        blaze: (input, ctx) => {
+        implementation: (input, ctx) => {
           const activation = getActivationProvenance(ctx);
           activationSourceId = activation?.source.id;
           activationFireId = activation?.fireId;
@@ -660,7 +660,7 @@ describe('deriveHttpRoutes', () => {
       });
       let invoked = 0;
       const receiver = trail('payment.receive', {
-        blaze: (input) => {
+        implementation: (input) => {
           invoked += 1;
           return Result.ok({ paymentId: input.paymentId });
         },
@@ -701,7 +701,7 @@ describe('deriveHttpRoutes', () => {
         path: ' /webhooks/payment ',
       };
       const receiver = trail('payment.receive', {
-        blaze: (input) => Result.ok({ paymentId: input.paymentId }),
+        implementation: (input) => Result.ok({ paymentId: input.paymentId }),
         input: z.object({ paymentId: z.string() }),
         on: [source],
         output: z.object({ paymentId: z.string() }),
@@ -761,7 +761,7 @@ describe('deriveHttpRoutes', () => {
         path: '/webhooks/payment',
       });
       const receiver = trail('payment.receive', {
-        blaze: (input) => Result.ok({ paymentId: input.paymentId }),
+        implementation: (input) => Result.ok({ paymentId: input.paymentId }),
         input: z.object({ paymentId: z.string() }),
         on: [source],
         output: z.object({ paymentId: z.string() }),
@@ -806,12 +806,12 @@ describe('deriveHttpRoutes', () => {
         path: '/webhooks/payment',
       });
       const receiver = trail('payment.receive', {
-        blaze: () => Result.ok({ ok: true }),
+        implementation: () => Result.ok({ ok: true }),
         input: z.object({ paymentId: z.string() }),
         on: [source],
       });
       const direct = trail('webhooks.payment', {
-        blaze: () => Result.ok({ ok: true }),
+        implementation: () => Result.ok({ ok: true }),
         input: z.object({}),
       });
 
@@ -839,13 +839,13 @@ describe('deriveHttpRoutes', () => {
         verify: verifyB,
       });
       const audit = trail('payment.audit', {
-        blaze: (input) => Result.ok({ audited: input.paymentId }),
+        implementation: (input) => Result.ok({ audited: input.paymentId }),
         input: z.object({ paymentId: z.string() }),
         on: [sourceA],
         output: z.object({ audited: z.string() }),
       });
       const notify = trail('payment.notify', {
-        blaze: (input) => Result.ok({ notified: input.paymentId }),
+        implementation: (input) => Result.ok({ notified: input.paymentId }),
         input: z.object({ paymentId: z.string() }),
         on: [sourceB],
         output: z.object({ notified: z.string() }),
@@ -881,13 +881,13 @@ describe('deriveHttpRoutes', () => {
         verify,
       });
       const audit = trail('payment.audit', {
-        blaze: (input) => Result.ok({ audited: input.paymentId }),
+        implementation: (input) => Result.ok({ audited: input.paymentId }),
         input: z.object({ paymentId: z.string() }),
         on: [sourceA],
         output: z.object({ audited: z.string() }),
       });
       const notify = trail('payment.notify', {
-        blaze: (input) => Result.ok({ notified: input.paymentId }),
+        implementation: (input) => Result.ok({ notified: input.paymentId }),
         input: z.object({ paymentId: z.string() }),
         on: [sourceB],
         output: z.object({ notified: z.string() }),
@@ -917,13 +917,13 @@ describe('deriveHttpRoutes', () => {
         verify,
       });
       const audit = trail('payment.audit', {
-        blaze: (input) => Result.ok({ audited: input.paymentId }),
+        implementation: (input) => Result.ok({ audited: input.paymentId }),
         input: z.object({ paymentId: z.string() }),
         on: [sourceA],
         output: z.object({ audited: z.string() }),
       });
       const notify = trail('payment.notify', {
-        blaze: (input) => Result.ok({ notified: input.paymentId }),
+        implementation: (input) => Result.ok({ notified: input.paymentId }),
         input: z.object({ paymentId: z.string() }),
         on: [sourceB],
         output: z.object({ notified: z.string() }),
@@ -960,13 +960,13 @@ describe('deriveHttpRoutes', () => {
         verify,
       });
       const audit = trail('payment.audit', {
-        blaze: (input) => Result.ok({ audited: input.paymentId }),
+        implementation: (input) => Result.ok({ audited: input.paymentId }),
         input: z.object({ paymentId: z.string() }),
         on: [sourceA],
         output: z.object({ audited: z.string() }),
       });
       const notify = trail('payment.notify', {
-        blaze: (input) => Result.ok({ notified: input.paymentId }),
+        implementation: (input) => Result.ok({ notified: input.paymentId }),
         input: z.object({ paymentId: z.string() }),
         on: [sourceB],
         output: z.object({ notified: z.string() }),
@@ -1026,7 +1026,7 @@ describe('deriveHttpRoutes', () => {
       });
       const invoked: string[] = [];
       const failing = trail('payment.audit', {
-        blaze: (input) => {
+        implementation: (input) => {
           invoked.push(`audit:${input.paymentId}`);
           return Result.err(new ValidationError('audit blew up'));
         },
@@ -1035,7 +1035,7 @@ describe('deriveHttpRoutes', () => {
         output: z.object({ audited: z.string() }),
       });
       const succeeding = trail('payment.notify', {
-        blaze: (input) => {
+        implementation: (input) => {
           invoked.push(`notify:${input.paymentId}`);
           return Result.ok({ notified: input.paymentId });
         },
@@ -1114,7 +1114,7 @@ describe('deriveHttpRoutes', () => {
 
     test('projects live versions and executes selected request version', async () => {
       const versioned = trail('versioned.greet', {
-        blaze: (input: { name: string }) =>
+        implementation: (input: { name: string }) =>
           Result.ok({ message: `Hello, ${input.name}!` }),
         input: z.object({ name: z.string() }),
         output: z.object({ message: z.string() }),
@@ -1249,9 +1249,9 @@ describe('deriveHttpRoutes', () => {
       expect(result.error.message).toBe('Something broke');
     });
 
-    test('returns err Result when blaze throws', async () => {
+    test('returns err Result when implementation throws', async () => {
       const throwingTrail = trail('throwing', {
-        blaze: () => {
+        implementation: () => {
           throw new Error('unexpected throw');
         },
         input: z.object({}),
@@ -1300,7 +1300,7 @@ describe('deriveHttpRoutes', () => {
     test('passes topo to executeTrail so HTTP-invoked producers can fan out', async () => {
       const captured: string[] = [];
       const consumer = trail('notify.email', {
-        blaze: (input: { orderId: string }) => {
+        implementation: (input: { orderId: string }) => {
           captured.push(input.orderId);
           return Result.ok({ delivered: true });
         },
@@ -1308,13 +1308,13 @@ describe('deriveHttpRoutes', () => {
         on: ['order.placed'],
       });
       const producer = trail('order.create', {
-        blaze: async (input: { orderId: string }, ctx) => {
+        fires: [orderPlaced],
+        implementation: async (input: { orderId: string }, ctx) => {
           await requireFire(ctx.fire)(orderPlaced, {
             orderId: input.orderId,
           });
           return Result.ok({ ok: true });
         },
-        fires: [orderPlaced],
         input: z.object({ orderId: z.string() }),
       });
       const app = topo('signal-http', { consumer, orderPlaced, producer });
@@ -1336,7 +1336,7 @@ describe('deriveHttpRoutes', () => {
       let capturedRequestId: string | undefined;
 
       const ctxTrail = trail('ctx.check', {
-        blaze: (_input, ctx) => {
+        implementation: (_input, ctx) => {
           capturedRequestId = ctx.requestId;
           return Result.ok({ ok: true });
         },
@@ -1361,7 +1361,7 @@ describe('deriveHttpRoutes', () => {
       let capturedRequestId: string | undefined;
 
       const ctxTrail = trail('ctx.default', {
-        blaze: (_input, ctx) => {
+        implementation: (_input, ctx) => {
           capturedRequestId = ctx.requestId;
           return Result.ok({ ok: true });
         },
@@ -1385,7 +1385,7 @@ describe('deriveHttpRoutes', () => {
 
     test('forwards resource overrides into executeTrail', async () => {
       const resourceTrail = trail('resource.check', {
-        blaze: (_input, ctx) =>
+        implementation: (_input, ctx) =>
           Result.ok({ source: dbResource.from(ctx).source as string }),
         input: z.object({}),
         output: z.object({ source: z.string() }),
@@ -1414,7 +1414,7 @@ describe('deriveHttpRoutes', () => {
     test('resolves Authorization Bearer credentials into ctx.permit', async () => {
       let observedPermit: TrailContext['permit'];
       const protectedTrail = trail('permit.read', {
-        blaze: (_input, ctx) => {
+        implementation: (_input, ctx) => {
           observedPermit = ctx.permit;
           return Result.ok({ ok: true });
         },
@@ -1448,7 +1448,7 @@ describe('deriveHttpRoutes', () => {
 
     test('missing Authorization on a protected route falls through to PermitError', async () => {
       const protectedTrail = trail('permit.missing', {
-        blaze: () => Result.ok({ ok: true }),
+        implementation: () => Result.ok({ ok: true }),
         input: z.object({}),
         intent: 'read',
         permit: { scopes: ['thing:read'] },
@@ -1530,7 +1530,7 @@ describe('deriveHttpRoutes', () => {
 
     test('Bearer Authorization without a resolver still lets protected routes fail at the permit gate', async () => {
       const protectedTrail = trail('permit.no-resolver', {
-        blaze: () => Result.ok({ ok: true }),
+        implementation: () => Result.ok({ ok: true }),
         input: z.object({}),
         intent: 'read',
         permit: { scopes: ['thing:read'] },
@@ -1556,7 +1556,7 @@ describe('deriveHttpRoutes', () => {
     test('malformed Authorization header fails before execution', async () => {
       let invoked = false;
       const protectedTrail = trail('permit.malformed', {
-        blaze: () => {
+        implementation: () => {
           invoked = true;
           return Result.ok({ ok: true });
         },
@@ -1589,7 +1589,7 @@ describe('deriveHttpRoutes', () => {
 
     test('resolved permit with missing scopes returns PermitError', async () => {
       const protectedTrail = trail('permit.scope', {
-        blaze: () => Result.ok({ ok: true }),
+        implementation: () => Result.ok({ ok: true }),
         input: z.object({}),
         intent: 'read',
         permit: { scopes: ['thing:read'] },
@@ -1664,8 +1664,8 @@ describe('deriveHttpRoutes', () => {
       const surfaceLayer = makeLayer('surface');
       const topoLayer = makeLayer('topo');
       const layeredTrail = trail('layered.echo', {
-        blaze: (input) => {
-          calls.push('blaze');
+        implementation: (input) => {
+          calls.push('implementation');
           return Result.ok({ reply: input.message });
         },
         input: z.object({ message: z.string() }),
@@ -1687,7 +1687,7 @@ describe('deriveHttpRoutes', () => {
         'topo:before',
         'surface:before',
         'trail:before',
-        'blaze',
+        'implementation',
         'trail:after',
         'surface:after',
         'topo:after',
@@ -1700,7 +1700,7 @@ describe('deriveHttpRoutes', () => {
       const contextState = { custom: false, surfaceMarker: false };
 
       const ctxTrail = trail('ctx.custom', {
-        blaze: (_input, ctx) => {
+        implementation: (_input, ctx) => {
           contextState.custom = ctx.extensions?.['custom'] === true;
           contextState.surfaceMarker = ctx.extensions?.[SURFACE_KEY] === 'http';
           return Result.ok({ ok: true });
@@ -1737,14 +1737,14 @@ describe('deriveHttpRoutes', () => {
       // "entity/show" derives path /entity/show (slashes are preserved)
       // Both have intent: read -> GET, so they collide on GET /entity/show
       const dotTrail = trail('entity.show', {
-        blaze: () => Result.ok({ dot: true }),
         description: 'Show entity (dot notation)',
+        implementation: () => Result.ok({ dot: true }),
         input: z.object({}),
         intent: 'read',
       });
       const slashTrail = trail('entity/show', {
-        blaze: () => Result.ok({ slash: true }),
         description: 'Show entity (slash notation)',
+        implementation: () => Result.ok({ slash: true }),
         input: z.object({}),
         intent: 'read',
       });
@@ -1764,14 +1764,14 @@ describe('deriveHttpRoutes', () => {
       // "item/resource" derives POST /item/resource (default intent: write)
       // Same path, different methods — no collision
       const getItem = trail('item.resource', {
-        blaze: () => Result.ok({ get: true }),
         description: 'Get item',
+        implementation: () => Result.ok({ get: true }),
         input: z.object({}),
         intent: 'read',
       });
       const createItem = trail('item/resource', {
-        blaze: () => Result.ok({ created: true }),
         description: 'Create item',
+        implementation: () => Result.ok({ created: true }),
         input: z.object({ name: z.string() }),
       });
       const app = topo('testapp', { createItem, getItem });
@@ -1786,14 +1786,14 @@ describe('deriveHttpRoutes', () => {
 
     test('collision error message identifies both trail IDs', () => {
       const dotTrail = trail('entity.show', {
-        blaze: () => Result.ok({ one: true }),
         description: 'Trail one',
+        implementation: () => Result.ok({ one: true }),
         input: z.object({}),
         intent: 'read',
       });
       const slashTrail = trail('entity/show', {
-        blaze: () => Result.ok({ two: true }),
         description: 'Trail two',
+        implementation: () => Result.ok({ two: true }),
         input: z.object({}),
         intent: 'read',
       });
@@ -1811,8 +1811,8 @@ describe('deriveHttpRoutes', () => {
   describe('established graph enforcement', () => {
     test('returns err when draft contamination remains', () => {
       const draftTrail = trail('entity.export', {
-        blaze: () => Result.ok({ ok: true }),
         composes: ['_draft.entity.prepare'],
+        implementation: () => Result.ok({ ok: true }),
         input: z.object({}),
       });
 

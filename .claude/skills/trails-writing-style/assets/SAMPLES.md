@@ -92,7 +92,7 @@ Earned:
 
 Forced:
 
-> "Pack your provisions and blaze a path through the untamed wilderness of your domain logic."
+> "Pack your provisions and implementation a path through the untamed wilderness of your domain logic."
 
 Strip the theme and nothing is lost, which means it was never carrying meaning. Reader eye-roll incoming.
 

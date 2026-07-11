@@ -67,7 +67,13 @@ const redactSecretFields = (
 };
 
 export const configCheck = trail('config.check', {
-  blaze: (input, ctx) => {
+  examples: [
+    {
+      input: {},
+      name: 'Check current config',
+    },
+  ],
+  implementation: (input, ctx) => {
     const state = configResource.from(ctx);
     const effective = mergeValues(state.resolved, input.values);
     const checked = checkConfig(state.schema, effective);
@@ -76,12 +82,6 @@ export const configCheck = trail('config.check', {
       valid: checked.valid,
     });
   },
-  examples: [
-    {
-      input: {},
-      name: 'Check current config',
-    },
-  ],
   input: z.object({
     values: z
       .record(z.string(), z.unknown())

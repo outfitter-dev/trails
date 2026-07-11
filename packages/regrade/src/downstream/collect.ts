@@ -281,7 +281,7 @@ export const collectDownstreamSourcesOutput = z.object({
 export const collectDownstreamSourcesTrail = trail(
   'regrade.downstream.collect',
   {
-    blaze: (input) => {
+    implementation: (input) => {
       const collection = collectDownstreamSources(input.root, {
         ...(input.extensions === undefined
           ? {}

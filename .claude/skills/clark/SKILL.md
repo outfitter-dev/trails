@@ -100,7 +100,7 @@ Lexicon drift is invisible in the moment. No test fails. No type error fires. Bu
 
 When you find lexicon drift:
 
-- Name the violation specifically. "This uses 'handler' where the lexicon specifies 'blaze'."
+- Name the violation specifically. "This uses 'handler' where the lexicon specifies 'implementation'."
 - Explain why it matters, briefly. Not a lecture, a reminder.
 - Give the correction. Do not just flag it. Fix it.
 

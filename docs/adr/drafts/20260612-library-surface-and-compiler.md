@@ -67,7 +67,7 @@ The library emitter is `compile` (bare, matching bare `surface`) on `@ontrails/l
 
 ### Root API: return values and thrown errors are surface error mapping
 
-The root API returns successful output directly and throws on failure. **This is not a violation of "blazes return Result, never throw."** Blazes still return `Result`. The library surface unwraps `Result.ok` to a return value and maps `Result.err` to a thrown package-facing typed error — exactly as HTTP maps `Result.err(NotFoundError)` to a 404 and CLI maps it to exit code 2. The thrown error is the library surface's *representation* of the taxonomy, derived mechanically.
+The root API returns successful output directly and throws on failure. **This is not a violation of "implementations return Result, never throw."** Implementations still return `Result`. The library surface unwraps `Result.ok` to a return value and maps `Result.err` to a thrown package-facing typed error — exactly as HTTP maps `Result.err(NotFoundError)` to a 404 and CLI maps it to exit code 2. The thrown error is the library surface's *representation* of the taxonomy, derived mechanically.
 
 | Surface | `Result.ok` | `Result.err` |
 | --- | --- | --- |
@@ -129,7 +129,7 @@ If yes, the export is a surface rendering of that trail. It may use a consumer-n
 
 The v0 generated library is **runtime-backed**, not standalone: execution delegates to a Trails runtime layer. But "runtime-backed first, standalone later" is only safe if standalone is reachable as a *delivery swap* rather than a rewrite. The mechanism is a **runtime kernel**.
 
-A compiled library's irreducible framework runtime is small: `Result` (a pure ~90-line value type), the error classes (the taxonomy is data), a context shim, the `compose` dispatcher, layer ordering, and the `executeTrail` orchestration. Stripped of the authored blaze and Zod, that set is a few hundred dependency-free lines. The blocker to standalone has never been size — it is *entanglement*, because those primitives live throughout `@ontrails/core`.
+A compiled library's irreducible framework runtime is small: `Result` (a pure ~90-line value type), the error classes (the taxonomy is data), a context shim, the `compose` dispatcher, layer ordering, and the `executeTrail` orchestration. Stripped of the authored implementation and Zod, that set is a few hundred dependency-free lines. The blocker to standalone has never been size — it is *entanglement*, because those primitives live throughout `@ontrails/core`.
 
 The decision:
 

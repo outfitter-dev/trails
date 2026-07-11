@@ -108,7 +108,7 @@ The input schema requires a trail discriminator plus the selected trail input:
 }
 ```
 
-The handler runs the selected constituent trail through the same MCP execution path as an ordinary one-trail-one-tool projection. It does not call a blaze directly, and it does not invent a second behavior path for the grouped entry.
+The handler runs the selected constituent trail through the same MCP execution path as an ordinary one-trail-one-tool projection. It does not call an implementation directly, and it does not invent a second behavior path for the grouped entry.
 
 Successful outputs are correlated with the selected trail:
 

@@ -1,6 +1,6 @@
 # Pending Lexicon Changes
 
-`docs/lexicon.md` is the source of truth for current vocabulary. The terms below are ratified to change in the v1 ADR Canon Reset (TRL). This file is a heads-up, not a second lexicon — until the reset lands:
+`docs/lexicon.md` is the source of truth for current vocabulary. The terms below are ratified to change in the v1 ADR Canon Reset (TRL). This file is a heads-up, not a second lexicon — until each family lands:
 
 - current code, API identifiers, examples, and lexicon entries use the **Current** column — keep using it when describing live API reality;
 - the **Target** column is the agreed direction — do not treat the current term as permanent;
@@ -8,7 +8,6 @@
 
 | Current (live) | Target (v1 reset) | Scope |
 | --- | --- | --- |
-| `blaze` | `implementation` | the authored-behavior field on a trail |
 | `contour` | `entity` | the domain-object declaration (schema + identity + examples) |
 | `projection` / `project` (verb) | `derive` + `render` | split by stage: `derive` = canonical facts, `render` = surface presentation; the information-architecture category `Projected` becomes `Derived` |
 
@@ -23,4 +22,5 @@ The execution plan is [v1 Vocabulary Reset Transition Plan](releases/v1-vocabula
 
 Completed family:
 
+- `blaze` -> `implementation` landed for the authored-behavior field on a trail. Current code, examples, and active docs use `implementation`; historical ADRs, release notes, and migration archaeology may still mention `blaze` when describing published beta history.
 - `facet` -> `trailhead` landed, and the surfaces-overlay cutover (TRL-1207/TRL-1210) then re-classed `trailhead` as a prose/teaching word: grouped entries are authored as `surfaceOverlay({ mcp })` group bindings in `trailsOverlays`. Live API identifiers such as `trailheads`, `trailheadId`, `McpSurfaceTrailheadMap`, `wayfind.trailheads`, and `surface-trailhead-coherence` remain the call-site/override and governance spellings.

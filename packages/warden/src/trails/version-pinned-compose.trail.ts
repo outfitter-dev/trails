@@ -9,7 +9,7 @@ export const versionPinnedComposeTrail = wrapRule({
         filePath: 'src/trails/current.ts',
         sourceCode: `
 trail('current.parent', {
-  blaze: async (_input, ctx) => {
+  implementation: async (_input, ctx) => {
     await ctx.compose('current.child', {});
     return Result.ok({});
   },

@@ -8,8 +8,6 @@ import { runSurfaceParityExample } from '../surface-parity.js';
 describe('runSurfaceParityExample', () => {
   test('normalizes matching success payloads across CLI, MCP, and HTTP', async () => {
     const show = trail('entity.show', {
-      blaze: (input: { name: string }) =>
-        Result.ok({ greeting: `Hello, ${input.name}` }),
       examples: [
         {
           expected: { greeting: 'Hello, Ada Lovelace' },
@@ -17,6 +15,8 @@ describe('runSurfaceParityExample', () => {
           name: 'Show Ada',
         },
       ],
+      implementation: (input: { name: string }) =>
+        Result.ok({ greeting: `Hello, ${input.name}` }),
       input: z.object({ name: z.string() }),
       intent: 'read',
       output: z.object({ greeting: z.string() }),
@@ -39,7 +39,6 @@ describe('runSurfaceParityExample', () => {
   test('merges per-surface context options instead of clobbering them', async () => {
     const requestId = 'surface-request-123';
     const show = trail('context.show', {
-      blaze: (_input, ctx) => Result.ok({ requestId: ctx.requestId }),
       examples: [
         {
           expected: { requestId },
@@ -47,6 +46,7 @@ describe('runSurfaceParityExample', () => {
           name: 'Show request context',
         },
       ],
+      implementation: (_input, ctx) => Result.ok({ requestId: ctx.requestId }),
       input: z.object({}),
       intent: 'read',
       output: z.object({ requestId: z.string() }),
@@ -72,7 +72,6 @@ describe('runSurfaceParityExample', () => {
 
   test('normalizes MCP structuredContent data envelopes for array output', async () => {
     const list = trail('entity.list', {
-      blaze: () => Result.ok(['one', 'two']),
       examples: [
         {
           expected: ['one', 'two'],
@@ -80,6 +79,7 @@ describe('runSurfaceParityExample', () => {
           name: 'List entities',
         },
       ],
+      implementation: () => Result.ok(['one', 'two']),
       input: z.object({}),
       intent: 'read',
       output: z.array(z.string()),
@@ -101,7 +101,6 @@ describe('runSurfaceParityExample', () => {
 
   test('normalizes TrailsError category and code across surfaces', async () => {
     const missing = trail('entity.missing', {
-      blaze: () => Result.err(new NotFoundError('Entity not found')),
       examples: [
         {
           error: 'NotFoundError',
@@ -109,6 +108,7 @@ describe('runSurfaceParityExample', () => {
           name: 'Missing entity',
         },
       ],
+      implementation: () => Result.err(new NotFoundError('Entity not found')),
       input: z.object({ name: z.string() }),
       intent: 'read',
       output: z.object({ name: z.string() }),

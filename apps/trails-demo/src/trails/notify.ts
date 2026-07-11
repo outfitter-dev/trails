@@ -28,7 +28,20 @@ import { notificationStoreResource } from '../resources/notification-store.js';
  * AND for resource access from a consumer context.
  */
 export const notifyEntityUpdated = trail('entity.notify-updated', {
-  blaze: (input, ctx) => {
+  description: 'Log a notification whenever an entity.updated signal is fired.',
+  examples: [
+    {
+      description: 'Notify on a created entity',
+      input: {
+        action: 'created',
+        entityId: 'ent_1',
+        entityName: 'Epsilon',
+        timestamp: '2026-04-07T00:00:00.000Z',
+      },
+      name: 'Notify created',
+    },
+  ],
+  implementation: (input, ctx) => {
     const store = notificationStoreResource.from(ctx);
     store.push({
       action: input.action,
@@ -43,19 +56,6 @@ export const notifyEntityUpdated = trail('entity.notify-updated', {
     });
     return Result.ok({ notified: true });
   },
-  description: 'Log a notification whenever an entity.updated signal is fired.',
-  examples: [
-    {
-      description: 'Notify on a created entity',
-      input: {
-        action: 'created',
-        entityId: 'ent_1',
-        entityName: 'Epsilon',
-        timestamp: '2026-04-07T00:00:00.000Z',
-      },
-      name: 'Notify created',
-    },
-  ],
   input: z.object({
     action: z.enum(['created', 'updated', 'deleted']),
     entityId: z.string(),

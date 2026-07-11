@@ -9,7 +9,7 @@
  * `webhook.receive` is the consumer: it verifies the signature against
  * the endpoint's stored secret, records the event either way
  * (`signatureValid` marks failures), and fires `event.received` so
- * `relay.dispatch` fans the event out. Verification lives in the blaze
+ * `relay.dispatch` fans the event out. Verification lives in the implementation
  * rather than the source's `verify` hook because a rejected signature
  * must still leave an audit record behind before the AuthError → 401
  * response.
@@ -90,61 +90,6 @@ const parseJsonObject = (
 };
 
 export const receive = trail('webhook.receive', {
-  blaze: async (input, ctx) => {
-    const store = relayStoreResource.from(ctx);
-    const endpoint = await store.endpoint.get(input.endpointId);
-    if (!endpoint || !endpoint.enabled) {
-      return Result.err(
-        new NotFoundError(`Endpoint "${input.endpointId}" not found`)
-      );
-    }
-
-    const headers = pickAllowlistedHeaders(input.headers);
-    const signatureHeader = signatureHeaderBySource[endpoint.source];
-    const signature = headers[signatureHeader];
-
-    const payload = parseJsonObject(input.rawBody);
-    if (payload.isErr()) {
-      return payload;
-    }
-
-    const signatureValid =
-      signature !== undefined &&
-      verifySignature(endpoint.source, {
-        rawBody: input.rawBody,
-        secret: endpoint.secret,
-        signature,
-      });
-
-    const event = await store.event.insert({
-      endpointId: endpoint.id,
-      headers,
-      payload: payload.value,
-      receivedAt: new Date().toISOString(),
-      signatureValid,
-      status: signatureValid ? 'received' : 'dead',
-    });
-
-    if (!signatureValid) {
-      return Result.err(
-        new AuthError(
-          `Signature verification failed for endpoint "${endpoint.id}"`,
-          { context: { eventId: event.id, source: endpoint.source } }
-        )
-      );
-    }
-
-    await ctx.fire?.(eventReceived, {
-      endpointId: endpoint.id,
-      eventId: event.id,
-    });
-
-    return Result.ok({
-      eventId: event.id,
-      signatureValid: true,
-      status: event.status,
-    });
-  },
   description:
     'Receive a webhook, verify its HMAC signature over the raw body, record the event, and fire event.received',
   examples: [
@@ -209,6 +154,61 @@ export const receive = trail('webhook.receive', {
     },
   ],
   fires: [eventReceived],
+  implementation: async (input, ctx) => {
+    const store = relayStoreResource.from(ctx);
+    const endpoint = await store.endpoint.get(input.endpointId);
+    if (!endpoint || !endpoint.enabled) {
+      return Result.err(
+        new NotFoundError(`Endpoint "${input.endpointId}" not found`)
+      );
+    }
+
+    const headers = pickAllowlistedHeaders(input.headers);
+    const signatureHeader = signatureHeaderBySource[endpoint.source];
+    const signature = headers[signatureHeader];
+
+    const payload = parseJsonObject(input.rawBody);
+    if (payload.isErr()) {
+      return payload;
+    }
+
+    const signatureValid =
+      signature !== undefined &&
+      verifySignature(endpoint.source, {
+        rawBody: input.rawBody,
+        secret: endpoint.secret,
+        signature,
+      });
+
+    const event = await store.event.insert({
+      endpointId: endpoint.id,
+      headers,
+      payload: payload.value,
+      receivedAt: new Date().toISOString(),
+      signatureValid,
+      status: signatureValid ? 'received' : 'dead',
+    });
+
+    if (!signatureValid) {
+      return Result.err(
+        new AuthError(
+          `Signature verification failed for endpoint "${endpoint.id}"`,
+          { context: { eventId: event.id, source: endpoint.source } }
+        )
+      );
+    }
+
+    await ctx.fire?.(eventReceived, {
+      endpointId: endpoint.id,
+      eventId: event.id,
+    });
+
+    return Result.ok({
+      eventId: event.id,
+      signatureValid: true,
+      status: event.status,
+    });
+  },
   input: receiveInputSchema,
   intent: 'write',
   on: [inboundWebhook],

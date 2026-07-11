@@ -875,7 +875,7 @@ describe('Trails MCP surface shaping', () => {
       fileURLToPath(new URL('../mcp-options.ts', import.meta.url)),
       'utf8'
     );
-    const divergence = await trailheadOverrideDivergenceTrail.blaze(
+    const divergence = await trailheadOverrideDivergenceTrail.implementation(
       {
         ...(bindings?.mcp === undefined
           ? {}

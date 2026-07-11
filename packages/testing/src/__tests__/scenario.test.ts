@@ -13,38 +13,39 @@ import type { ScenarioStep } from '../types.js';
 // ---------------------------------------------------------------------------
 
 const createTrail = trail('item.create', {
-  blaze: (input: { name: string }) => Result.ok({ id: 'g1', name: input.name }),
   description: 'Create an item',
+  implementation: (input: { name: string }) =>
+    Result.ok({ id: 'g1', name: input.name }),
   input: z.object({ name: z.string() }),
   output: z.object({ id: z.string(), name: z.string() }),
 });
 
 const showTrail = trail('item.show', {
-  blaze: (input: { id: string }) =>
-    Result.ok({ found: true, id: input.id, name: 'Test' }),
   description: 'Show an item',
+  implementation: (input: { id: string }) =>
+    Result.ok({ found: true, id: input.id, name: 'Test' }),
   input: z.object({ id: z.string() }),
   output: z.object({ found: z.boolean(), id: z.string(), name: z.string() }),
 });
 
 const failTrail = trail('item.fail', {
-  blaze: () => Result.err(new Error('intentional failure')),
   description: 'Always fails',
+  implementation: () => Result.err(new Error('intentional failure')),
   input: z.object({}),
   output: z.object({}),
 });
 
 /** A trail that uses ctx.compose() to delegate to item.create. */
 const createViaProxy = trail('item.create-via-proxy', {
-  blaze: (input: { name: string }, ctx: TrailContext) => {
+  composes: [createTrail],
+  description: 'Delegates to item.create via ctx.compose()',
+  implementation: (input: { name: string }, ctx: TrailContext) => {
     const composeFn = ctx.compose;
     if (!composeFn) {
       return Promise.resolve(Result.err(new Error('ctx.compose is undefined')));
     }
     return composeFn(createTrail, input);
   },
-  composes: [createTrail],
-  description: 'Delegates to item.create via ctx.compose()',
   input: z.object({ name: z.string() }),
   output: z.object({ id: z.string(), name: z.string() }),
 });
@@ -57,11 +58,11 @@ const db = resource<{ query: (sql: string) => string }>('db', {
 
 /** A trail that uses a resource via ctx.resource(). */
 const queryTrail = trail('item.query', {
-  blaze: (_input: { sql: string }, ctx: TrailContext) => {
+  description: 'Run a query via the db resource',
+  implementation: (_input: { sql: string }, ctx: TrailContext) => {
     const instance = db.from(ctx);
     return Result.ok({ result: instance.query(_input.sql) });
   },
-  description: 'Run a query via the db resource',
   input: z.object({ sql: z.string() }),
   output: z.object({ result: z.string() }),
   resources: [db],
@@ -204,26 +205,26 @@ describe('scenario()', () => {
 describe('executeScenarioSteps concurrent composing support', () => {
   test('matches concurrent fan-out arrays with ok result helpers', async () => {
     const alphaTrail = trail('scenario.batch.alpha', {
-      blaze: () => Result.ok({ label: 'alpha' }),
+      implementation: () => Result.ok({ label: 'alpha' }),
       input: z.object({}),
       output: z.object({ label: z.string() }),
       visibility: 'internal',
     });
     const betaTrail = trail('scenario.batch.beta', {
-      blaze: () => Result.ok({ label: 'beta' }),
+      implementation: () => Result.ok({ label: 'beta' }),
       input: z.object({}),
       output: z.object({ label: z.string() }),
       visibility: 'internal',
     });
     const fanoutTrail = trail('scenario.batch.fanout', {
-      blaze: async (_input, ctx) => {
+      composes: [alphaTrail, betaTrail],
+      implementation: async (_input, ctx) => {
         const results = await requireComposeFn(ctx)([
           [alphaTrail, {}],
           [betaTrail, {}],
         ] as const);
         return Result.ok({ results });
       },
-      composes: [alphaTrail, betaTrail],
       input: z.object({}),
       output: concurrentBatchOutput,
     });
@@ -249,26 +250,26 @@ describe('executeScenarioSteps concurrent composing support', () => {
 
   test('matches mixed ok/err batch results for partial failure scenarios', async () => {
     const successTrail = trail('scenario.batch.partial.success', {
-      blaze: () => Result.ok({ label: 'success' }),
+      implementation: () => Result.ok({ label: 'success' }),
       input: z.object({}),
       output: z.object({ label: z.string() }),
       visibility: 'internal',
     });
     const failureTrail = trail('scenario.batch.partial.failure', {
-      blaze: () => Result.err(new Error('branch failure')),
+      implementation: () => Result.err(new Error('branch failure')),
       input: z.object({}),
       output: z.object({}),
       visibility: 'internal',
     });
     const partialTrail = trail('scenario.batch.partial.root', {
-      blaze: async (_input, ctx) => {
+      composes: [successTrail, failureTrail],
+      implementation: async (_input, ctx) => {
         const results = await requireComposeFn(ctx)([
           [successTrail, {}],
           [failureTrail, {}],
         ] as const);
         return Result.ok({ results });
       },
-      composes: [successTrail, failureTrail],
       input: z.object({}),
       output: concurrentBatchOutput,
     });
@@ -298,7 +299,7 @@ describe('executeScenarioSteps concurrent composing support', () => {
     const releaseFirstBatch = createReadyController();
     const startedIds: string[] = [];
     const slowTrail = trail('scenario.batch.limited.slow', {
-      blaze: async () => {
+      implementation: async () => {
         startedIds.push('slow');
         slowStarted.resolve(readySignal);
         await releaseFirstBatch.promise;
@@ -310,7 +311,7 @@ describe('executeScenarioSteps concurrent composing support', () => {
       visibility: 'internal',
     });
     const fastTrail = trail('scenario.batch.limited.fast', {
-      blaze: async () => {
+      implementation: async () => {
         startedIds.push('fast');
         fastStarted.resolve(readySignal);
         await releaseFirstBatch.promise;
@@ -322,7 +323,7 @@ describe('executeScenarioSteps concurrent composing support', () => {
       visibility: 'internal',
     });
     const queuedTrail = trail('scenario.batch.limited.queued', {
-      blaze: () => {
+      implementation: () => {
         startedIds.push('queued');
         return Result.ok({ id: 'queued' });
       },
@@ -331,7 +332,8 @@ describe('executeScenarioSteps concurrent composing support', () => {
       visibility: 'internal',
     });
     const limitedTrail = trail('scenario.batch.limited.root', {
-      blaze: async (_input, ctx) => {
+      composes: [slowTrail, fastTrail, queuedTrail],
+      implementation: async (_input, ctx) => {
         const run = requireComposeFn(ctx)(
           [
             [slowTrail, {}],
@@ -355,7 +357,6 @@ describe('executeScenarioSteps concurrent composing support', () => {
           ),
         });
       },
-      composes: [slowTrail, fastTrail, queuedTrail],
       input: z.object({}),
       output: z.object({
         startedBeforeRelease: z.array(z.string()),

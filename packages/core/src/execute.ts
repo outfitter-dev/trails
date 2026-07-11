@@ -103,7 +103,7 @@ export interface ExecuteTrailOptions {
   /**
    * Typed layers supplied for this execution.
    *
-   * Layers compose around the blaze. Layers without `input`
+   * Layers compose around the implementation. Layers without `input`
    * schemas are surface-invisible wrappers for concerns such as tenant guards,
    * rate limiting, circuit breaking, or custom audit logging.
    */
@@ -113,7 +113,7 @@ export interface ExecuteTrailOptions {
    *
    * Surfaces (CLI, MCP, HTTP) forward their `layers` option here so they
    * compose around every trail dispatched through that surface. The final
-   * composition order is `topo → surface → trail → blaze` (outermost-first).
+   * composition order is `topo → surface → trail → implementation` (outermost-first).
    */
   readonly surfaceLayers?: readonly Layer[] | undefined;
   /**
@@ -121,7 +121,7 @@ export interface ExecuteTrailOptions {
    *
    * The CLI/MCP/HTTP surfaces typically forward `topo.layers` here so the
    * topo's declared layers wrap every trail invocation. The final
-   * composition order is `topo → surface → trail → blaze` (outermost-first).
+   * composition order is `topo → surface → trail → implementation` (outermost-first).
    */
   readonly topoLayers?: readonly Layer[] | undefined;
   /** Factory that produces a base TrailContext (takes precedence over defaults). */
@@ -1117,22 +1117,22 @@ const runDetourRecovery = async (
 };
 
 /**
- * Wrap a blaze with the detour recovery loop.
+ * Wrap an implementation with the detour recovery loop.
  *
- * If the trail has no detours, returns the blaze unchanged (no wrapper overhead).
- * The detour loop runs inside the layer stack, closest to the blaze.
+ * If the trail has no detours, returns the implementation unchanged (no wrapper overhead).
+ * The detour loop runs inside the layer stack, closest to the implementation.
  */
 const wrapWithDetours = (
-  blaze: Implementation<unknown, unknown>,
+  implementation: Implementation<unknown, unknown>,
   /* oxlint-disable-next-line no-explicit-any -- existential detour array from AnyTrail */
   detours: readonly Detour<any, any, TrailsError>[]
 ): Implementation<unknown, unknown> => {
   if (detours.length === 0) {
-    return blaze;
+    return implementation;
   }
 
   return async (input, ctx) => {
-    const result = await blaze(input, ctx);
+    const result = await implementation(input, ctx);
     if (result.isOk()) {
       return result;
     }
@@ -1189,11 +1189,11 @@ const prepareRunImpl = (
     options,
     trail.id
   );
-  // Detour loop wraps the blaze (inside layer stack, closest to blaze)
+  // Detour loop wraps the implementation (inside layer stack, closest to implementation)
   let impl = wrapWithDetours(
     bindFireAtLayerBoundary(
       bindComposeAtLayerBoundary(
-        trail.blaze as Implementation<unknown, unknown>,
+        trail.implementation as Implementation<unknown, unknown>,
         topo,
         options
       ),
@@ -1302,9 +1302,9 @@ const runTrail = async (
 /**
  * Compose the typed layers attached at topo, surface, and trail scope.
  *
- * Composition order is topo → surface → trail → execution-supplied → blaze
+ * Composition order is topo → surface → trail → execution-supplied → implementation
  * (outermost-first): trail-scope layers run inside surface/topo layers, and
- * `executeTrail({ layers })` layers wrap closest to the blaze for per-call
+ * `executeTrail({ layers })` layers wrap closest to the implementation for per-call
  * behavior.
  */
 const composeAttachedLayers = (
@@ -1352,7 +1352,7 @@ const createForkTrailVersion = (
   entry: TrailVersionForkEntry
 ): AnyTrail => {
   const {
-    blaze: _blaze,
+    implementation: _implementation,
     composeInput: _composeInput,
     composes: _composes,
     detours: _detours,
@@ -1366,12 +1366,12 @@ const createForkTrailVersion = (
 
   return Object.freeze({
     ...base,
-    blaze: entry.blaze,
     composes: Object.freeze([...(entry.composes ?? [])]),
     detours: Object.freeze([...(entry.detours ?? [])]),
     ...(entry.composeInput === undefined
       ? {}
       : { composeInput: entry.composeInput }),
+    implementation: entry.implementation,
     input: entry.input,
     output: entry.output,
     resources: Object.freeze([...(entry.resources ?? [])]),

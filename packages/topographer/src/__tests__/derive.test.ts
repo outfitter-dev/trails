@@ -102,11 +102,11 @@ describe('deriveTopoGraph', () => {
   describe('entries', () => {
     test('produces entries for all trails in the topo', () => {
       const a = trail('a.create', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({ name: z.string() }),
       });
       const b = trail('b.list', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({}),
       });
       const tp = topoFrom({ a, b });
@@ -118,15 +118,15 @@ describe('deriveTopoGraph', () => {
 
     test('entries are sorted alphabetically by id', () => {
       const z2 = trail('z.trail', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({}),
       });
       const a2 = trail('a.trail', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({}),
       });
       const m2 = trail('m.trail', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({}),
       });
       const tp = topoFrom({ a2, m2, z2 });
@@ -141,7 +141,7 @@ describe('deriveTopoGraph', () => {
 
     test('trail with input/output schemas produces valid JSON Schema entries', () => {
       const t = trail('entity.create', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({ age: z.number(), name: z.string() }),
         output: z.object({ id: z.string(), name: z.string() }),
         resources: [dbResource],
@@ -168,10 +168,10 @@ describe('deriveTopoGraph', () => {
 
     test('trail-owned CLI projection metadata is serialized with route facts', () => {
       const t = trail('wayfind.search', {
-        blaze: noop,
         cli: {
           aliases: ['find', ['wf', 'search']],
         },
+        implementation: noop,
         input: z.object({ query: z.string() }),
         output: z.array(z.string()),
       });
@@ -204,10 +204,10 @@ describe('deriveTopoGraph', () => {
 
     test('surface overlay cli bindings are serialized as surface-owned alias routes', () => {
       const t = trail('wayfind.search', {
-        blaze: noop,
         cli: {
           aliases: ['find'],
         },
+        implementation: noop,
         input: z.object({ query: z.string() }),
         output: z.array(z.string()),
       });
@@ -243,12 +243,12 @@ describe('deriveTopoGraph', () => {
 
     test('surface overlay cli group bindings serialize member routes with group-prefixed paths', () => {
       const search = trail('wayfind.search', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({ query: z.string() }),
         output: z.array(z.string()),
       });
       const impact = trail('wayfind.impact', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({ id: z.string() }),
         output: z.array(z.string()),
       });
@@ -277,7 +277,7 @@ describe('deriveTopoGraph', () => {
 
     test('rejects surface overlay cli bindings that resolve to no trails', () => {
       const t = trail('wayfind.search', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({ query: z.string() }),
         output: z.array(z.string()),
       });
@@ -294,8 +294,8 @@ describe('deriveTopoGraph', () => {
         payload: z.object({ id: z.string() }),
       });
       const read = trail('widget.read', {
-        blaze: noop,
         description: 'Read a widget.',
+        implementation: noop,
         input: z.object({ id: z.string() }),
         intent: 'read',
         output: z.object({ id: z.string(), name: z.string() }),
@@ -303,13 +303,13 @@ describe('deriveTopoGraph', () => {
         version: 2,
       });
       const internal = trail('widget.internal', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({}),
         output: z.object({ ok: z.boolean() }),
         visibility: 'internal',
       });
       const activated = trail('widget.onCreated', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({}),
         on: [created],
         output: z.object({ ok: z.boolean() }),
@@ -361,7 +361,7 @@ describe('deriveTopoGraph', () => {
         z.object({ attempts: z.number().int() })
       );
       const t = trail('entity.layered', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({}),
         layers: [trailLayer],
       });
@@ -398,8 +398,8 @@ describe('deriveTopoGraph', () => {
 
     test('trail entries include declared contours when present', () => {
       const t = trail('gist.create', {
-        blaze: noop,
         contours: [gistContour, userContour],
+        implementation: noop,
         input: z.object({}),
       });
       const entry = deriveTopoGraph(topoFrom({ t })).entries.find(
@@ -411,7 +411,7 @@ describe('deriveTopoGraph', () => {
 
     test('trail without output schema has output undefined', () => {
       const t = trail('fire.forget', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({ msg: z.string() }),
       });
       const tp = topoFrom({ t });
@@ -422,18 +422,17 @@ describe('deriveTopoGraph', () => {
 
     test('versioned trail entries project historical contracts and support', () => {
       const audit = trail('audit.log', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({ id: z.string() }),
         output: z.object({ ok: z.boolean() }),
       });
       const versioned = trail('invite.create', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({ email: z.string(), notify: z.boolean() }),
         output: z.object({ inviteId: z.string(), status: z.string() }),
         version: 3,
         versions: {
           1: {
-            blaze: noop,
             composes: [audit],
             detours: [
               {
@@ -443,6 +442,7 @@ describe('deriveTopoGraph', () => {
                 recover: async () => Result.ok({ legacyId: 'i_1' }),
               },
             ],
+            implementation: noop,
             input: z.object({ email: z.string() }),
             output: z.object({ legacyId: z.string() }),
             resources: [dbResource],
@@ -507,8 +507,8 @@ describe('deriveTopoGraph', () => {
     test('version markers ignore mutable examples and status', () => {
       const makeVersioned = (statusReason: string, exampleName: string) =>
         trail('marker.stable', {
-          blaze: () => Result.ok({ ok: true }),
           examples: [{ expected: { ok: true }, input: {}, name: exampleName }],
+          implementation: () => Result.ok({ ok: true }),
           input: z.object({}),
           output: z.object({ ok: z.boolean() }),
           version: 2,
@@ -539,7 +539,7 @@ describe('deriveTopoGraph', () => {
     test('version markers change when resolved contract content changes', () => {
       const makeVersioned = (required: boolean) =>
         trail('marker.contract', {
-          blaze: () => Result.ok({ ok: true }),
+          implementation: () => Result.ok({ ok: true }),
           input: required
             ? z.object({ id: z.string(), required: z.boolean() })
             : z.object({ id: z.string() }),
@@ -578,7 +578,7 @@ describe('deriveTopoGraph', () => {
 
     test('resolves version references by unambiguous marker prefix', () => {
       const versioned = trail('marker.resolve', {
-        blaze: () => Result.ok({ ok: true }),
+        implementation: () => Result.ok({ ok: true }),
         input: z.object({ id: z.string() }),
         output: z.object({ ok: z.boolean() }),
         version: 2,
@@ -660,7 +660,7 @@ describe('deriveTopoGraph', () => {
 
     test('rejects duplicate version markers within a trail', () => {
       const versioned = trail('marker.collision', {
-        blaze: () => Result.ok({ ok: true }),
+        implementation: () => Result.ok({ ok: true }),
         input: z.object({ id: z.string() }),
         output: z.object({ ok: z.boolean() }),
         version: 3,
@@ -683,7 +683,7 @@ describe('deriveTopoGraph', () => {
 
     test('rejects unsupported marker schema projections', () => {
       const versioned = trail('marker.unsupported', {
-        blaze: (input) => Result.ok({ value: input.value }),
+        implementation: (input) => Result.ok({ value: input.value }),
         input: z.object({ value: z.any() }),
         output: z.object({ value: z.string() }),
         version: 2,
@@ -706,7 +706,7 @@ describe('deriveTopoGraph', () => {
 
     test('rejects unsupported marker validation checks with schema paths', () => {
       const versioned = trail('marker.validation-check', {
-        blaze: (input) => Result.ok({ value: input.value }),
+        implementation: (input) => Result.ok({ value: input.value }),
         input: z.object({ value: z.string().min(3) }),
         output: z.object({ value: z.string() }),
         version: 2,
@@ -729,12 +729,12 @@ describe('deriveTopoGraph', () => {
 
     test('trail entries include composes array when non-empty', () => {
       const base = trail('user.get', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({ id: z.string() }),
       });
       const r = trail('user.update', {
-        blaze: noop,
         composes: ['user.get'],
+        implementation: noop,
         input: z.object({ id: z.string(), name: z.string() }),
       });
       const tp = topoFrom({ base, r });
@@ -755,7 +755,7 @@ describe('deriveTopoGraph', () => {
         payload: z.object({ userId: z.string() }),
       });
       const createUser = trail('user.create', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({}),
       });
       const entry = deriveTopoGraph(topoFrom({ createUser, e })).entries.find(
@@ -787,12 +787,12 @@ describe('deriveTopoGraph', () => {
         payload: z.object({ userId: z.string() }),
       });
       const producer = trail('user.create', {
-        blaze: noop,
         fires: [created],
+        implementation: noop,
         input: z.object({}),
       });
       const consumer = trail('user.index', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({}),
         on: [created],
       });
@@ -830,12 +830,12 @@ describe('deriveTopoGraph', () => {
         timezone: 'UTC',
       });
       const producer = trail('user.create', {
-        blaze: noop,
         fires: [created],
+        implementation: noop,
         input: z.object({}),
       });
       const consumer = trail('user.index', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({}),
         on: [
           {
@@ -845,7 +845,7 @@ describe('deriveTopoGraph', () => {
         ],
       });
       const scheduled = trail('user.scheduled-index', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({ id: z.string() }),
         on: [nightly],
       });
@@ -922,7 +922,7 @@ describe('deriveTopoGraph', () => {
         verify: () => Result.ok(),
       });
       const receiver = trail('user.webhook.receive', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({ userId: z.string() }),
         on: [webhookSource],
       });
@@ -994,9 +994,9 @@ describe('deriveTopoGraph', () => {
   describe('meta', () => {
     test('safety markers are included when set', () => {
       const t = trail('safe.trail', {
-        blaze: noop,
         dryRun: true,
         idempotent: true,
+        implementation: noop,
         input: z.object({}),
         intent: 'read',
       });
@@ -1009,12 +1009,12 @@ describe('deriveTopoGraph', () => {
 
     test('trail permit requirements are included when declared', () => {
       const scoped = trail('secure.write', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({}),
         permit: { scopes: ['write:entity', 'read:entity'] },
       });
       const publicTrail = trail('status.read', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({}),
         permit: 'public',
       });
@@ -1030,12 +1030,12 @@ describe('deriveTopoGraph', () => {
 
     test('exampleCount reflects the number of examples', () => {
       const t = trail('with.examples', {
-        blaze: noop,
         examples: [
           { expected: { y: 2 }, input: { x: 1 }, name: 'basic' },
           { expected: { y: 0 }, input: { x: 0 }, name: 'zero' },
           { expected: { y: -2 }, input: { x: -1 }, name: 'negative' },
         ],
+        implementation: noop,
         input: z.object({ x: z.number() }),
         output: z.object({ y: z.number() }),
       });
@@ -1050,7 +1050,6 @@ describe('deriveTopoGraph', () => {
         payload: z.object({ id: z.string() }),
       });
       const t = trail('with.examples', {
-        blaze: noop,
         examples: [
           {
             description: 'Happy path',
@@ -1070,6 +1069,7 @@ describe('deriveTopoGraph', () => {
             name: 'negative',
           },
         ],
+        implementation: noop,
         input: z.object({ x: z.number() }),
         output: z.object({ y: z.number() }),
       });
@@ -1102,13 +1102,13 @@ describe('deriveTopoGraph', () => {
 
     test('omits structured examples that cannot be JSON serialized', () => {
       const t = trail('with.dynamic.examples', {
-        blaze: noop,
         examples: [
           {
             input: { value: 1n },
             name: 'bigint input',
           },
         ],
+        implementation: noop,
         input: z.any(),
       });
       const map = deriveTopoGraph(topoFrom({ t }));
@@ -1121,7 +1121,6 @@ describe('deriveTopoGraph', () => {
 
     test('field overrides expose projection-local provenance', () => {
       const t = trail('with.field.overrides', {
-        blaze: noop,
         fields: {
           name: { hint: 'Shown in prompts' },
           status: {
@@ -1131,6 +1130,7 @@ describe('deriveTopoGraph', () => {
             ],
           },
         },
+        implementation: noop,
         input: z.object({
           name: z.string(),
           status: z.enum(['active', 'inactive']),
@@ -1154,7 +1154,6 @@ describe('deriveTopoGraph', () => {
 
     test('detours are included with error class names', () => {
       const t = trail('with.detours', {
-        blaze: noop,
         detours: [
           {
             maxAttempts: 100,
@@ -1163,6 +1162,7 @@ describe('deriveTopoGraph', () => {
             recover: async () => Result.ok(),
           },
         ],
+        implementation: noop,
         input: z.object({}),
       });
       const entry = getFirstEntry(deriveTopoGraph(topoFrom({ t })));
@@ -1174,7 +1174,6 @@ describe('deriveTopoGraph', () => {
 
     test('detours preserve in-range maxAttempts values', () => {
       const t = trail('with.in-range.detour', {
-        blaze: noop,
         detours: [
           {
             maxAttempts: 2,
@@ -1183,6 +1182,7 @@ describe('deriveTopoGraph', () => {
             recover: async () => Result.ok(),
           },
         ],
+        implementation: noop,
         input: z.object({}),
       });
       const entry = getFirstEntry(deriveTopoGraph(topoFrom({ t })));
@@ -1192,8 +1192,8 @@ describe('deriveTopoGraph', () => {
 
     test('description is included when present', () => {
       const t = trail('described', {
-        blaze: noop,
         description: 'A described trail',
+        implementation: noop,
         input: z.object({}),
       });
       const tp = topoFrom({ t });
@@ -1206,15 +1206,15 @@ describe('deriveTopoGraph', () => {
   describe('trailheads', () => {
     test('derives sorted trailhead entries from mcp overlay list bindings', () => {
       const describeTopo = trail('topo.describe', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({ root: z.string() }),
       });
       const listTopo = trail('topo.list', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({ root: z.string() }),
       });
       const resetDev = trail('dev.reset', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({}),
       });
 
@@ -1238,11 +1238,11 @@ describe('deriveTopoGraph', () => {
 
     test('sorts trailhead members and ids for deterministic output', () => {
       const read = trail('topo.read', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({}),
       });
       const write = trail('topo.write', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({}),
       });
 
@@ -1265,7 +1265,7 @@ describe('deriveTopoGraph', () => {
 
     test('scalar mcp bindings project no trailhead entries', () => {
       const read = trail('topo.read', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({}),
       });
 
@@ -1280,8 +1280,8 @@ describe('deriveTopoGraph', () => {
   describe('stability', () => {
     test('determinism: same topo produces identical output', () => {
       const t = trail('stable', {
-        blaze: noop,
         description: 'Stable trail',
+        implementation: noop,
         input: z.object({ a: z.string(), b: z.number() }),
         intent: 'read',
         output: z.object({ c: z.boolean() }),
@@ -1297,7 +1297,7 @@ describe('deriveTopoGraph', () => {
 
     test('schema version is set to the current TopoGraph schema version', () => {
       const t = trail('v.check', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({}),
       });
       const tp = topoFrom({ t });
@@ -1308,7 +1308,7 @@ describe('deriveTopoGraph', () => {
 
     test('generatedAt is an ISO timestamp', () => {
       const t = trail('ts.check', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({}),
       });
       const tp = topoFrom({ t });
@@ -1326,8 +1326,8 @@ describe('deriveTopoGraph', () => {
   describe('established graph enforcement', () => {
     test('rejects draft-contaminated topologies', () => {
       const exportTrail = trail('entity.export', {
-        blaze: noop,
         composes: ['_draft.entity.prepare'],
+        implementation: noop,
         input: z.object({}),
       });
 
@@ -1338,8 +1338,8 @@ describe('deriveTopoGraph', () => {
 
     test('rejects producer references to missing signals', () => {
       const producer = trail('entity.produce', {
-        blaze: noop,
         fires: ['entity.missing'],
+        implementation: noop,
         input: z.object({}),
       });
 
@@ -1351,7 +1351,7 @@ describe('deriveTopoGraph', () => {
 
     test('rejects consumer references to missing signals', () => {
       const consumer = trail('entity.consume', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({}),
         on: ['entity.missing'],
       });

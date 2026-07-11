@@ -7,13 +7,13 @@ import { wrapTopoRule } from './wrap-rule.js';
 const output = z.object({ ok: z.boolean() });
 
 const dotted = trail('widget.ping', {
-  blaze: () => Result.ok({ ok: true }),
+  implementation: () => Result.ok({ ok: true }),
   input: z.object({}),
   output,
 });
 
 const kebab = trail('widget-ping', {
-  blaze: () => Result.ok({ ok: true }),
+  implementation: () => Result.ok({ ok: true }),
   input: z.object({}),
   output,
 });

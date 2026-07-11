@@ -25,7 +25,7 @@ This file is generated from the live `@ontrails/warden` rule manifest. Repo-trac
 - `dead-public-trail` (warn, project/project-static, external): Exported public trails are anchored in configured app topos, composition, or activation. Guidance: Anchor exported public trails in a topo, composition edge, or activation source.
 - `intent-propagation` (warn, project/project-static, external): Composite trail intent cannot be safer than composed trails.
 - `missing-visibility` (warn, project/project-static, external): Composition-only trails declare internal visibility.
-- `no-destructured-compose` (warn, source/source-static, external): Trail blazes compose through ctx.compose() directly instead of destructuring compose from the context.
+- `no-destructured-compose` (warn, source/source-static, external): Trail implementations compose through ctx.compose() directly instead of destructuring compose from the context.
 - `no-direct-implementation-call` (warn, source/source-static, external): Application code composes trails through ctx.compose().
 - `no-retired-cross-vocabulary` (error, source/source-static, external): Retired cross composition vocabulary does not remain in downstream source after the beta.19 compose cutover.
 - `resolved-import-boundary` (error, project/project-static, external): Cross-package imports resolve through public export maps.
@@ -60,7 +60,7 @@ This file is generated from the live `@ontrails/warden` rule manifest. Repo-trac
 - `deprecation-without-guidance` (error, topo/topo-aware, external): Deprecated trail version entries carry successor, migration, or note guidance.
 - `draft-file-marking` (error, source/source-static, external): Draft-authored state is visibly marked in filenames.
 - `draft-visible-debt` (warn, source/source-static, external): Draft-authored IDs remain visible debt.
-- `fork-without-preserved-blaze` (error, source/source-static, external): Fork version entries preserve their historical blaze.
+- `fork-without-preserved-implementation` (error, source/source-static, external): Fork version entries preserve their historical implementation.
 - `governed-symbol-residue` (error, source/source-static, external): Active governed vocabulary symbol renames do not leave retired identifiers in source.
 - `marker-schema-unsupported` (error, source/source-static, external): Versioned schemas stay inside the supported marker projection subset.
 - `pending-force` (warn, topo/topo-aware, external): Forced topo break audit events do not remain pending indefinitely.
@@ -96,12 +96,12 @@ This file is generated from the live `@ontrails/warden` rule manifest. Repo-trac
 ### Results
 
 - `error-mapping-completeness` (error, source/source-static, extension): Registered surface error mappers cover every error category.
-- `implementation-returns-result` (error, source/source-static, external): Blazes return Result values.
+- `implementation-returns-result` (error, source/source-static, external): Implementations return Result values.
 - `no-native-error-result` (error, source/source-static, external): Result error boundaries carry specific TrailsError subclasses.
 - `no-redundant-result-error-wrap` (warn, source/source-static, external): Result error pass-throughs preserve the original Result boundary.
 - `no-sync-result-assumption` (error, source/source-static, external): Result accessors are not used before async results are awaited.
 - `no-throw-in-detour-recover` (error, source/source-static, external): Detour recovery returns Result instead of throwing.
-- `no-throw-in-implementation` (error, source/source-static, external): Blazes return Result.err() instead of throwing. Guidance: Convert thrown failures in blazes into explicit Result.err() outcomes.
+- `no-throw-in-implementation` (error, source/source-static, external): Implementations return Result.err() instead of throwing. Guidance: Convert thrown failures in implementations into explicit Result.err() outcomes.
 - `public-output-schema` (error, topo/topo-aware, external): Public MCP/HTTP surface trails declare output schemas. Guidance: Make public surface result contracts explicit before MCP/HTTP projection.
 - `valid-detour-contract` (error, topo/topo-aware, external): Runtime detour contracts use error constructors and recover functions.
 

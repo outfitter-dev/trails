@@ -62,7 +62,7 @@ import { z } from 'zod';
 const flags = cloudflareKv('flags', { binding: 'FLAGS' });
 
 const showFlag = trail('flag.show', {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const value = await flags.from(ctx).get(input.key);
     return Result.ok({ value });
   },

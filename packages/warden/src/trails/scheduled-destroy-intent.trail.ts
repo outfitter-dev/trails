@@ -5,7 +5,7 @@ import { scheduledDestroyIntent } from '../rules/scheduled-destroy-intent.js';
 import { wrapTopoRule } from './wrap-rule.js';
 
 export const scheduledDestroyTrail = trail('billing.purge-expired', {
-  blaze: () => Result.ok({ ok: true }),
+  implementation: () => Result.ok({ ok: true }),
   input: z.object({}),
   intent: 'destroy',
   on: [
@@ -18,7 +18,7 @@ export const scheduledDestroyTrail = trail('billing.purge-expired', {
 });
 
 const scheduledWriteTrail = trail('billing.reconcile', {
-  blaze: () => Result.ok({ ok: true }),
+  implementation: () => Result.ok({ ok: true }),
   input: z.object({}),
   on: [schedule('schedule.billing.reconcile', { cron: '0 * * * *' })],
   output: z.object({ ok: z.boolean() }),

@@ -77,7 +77,33 @@ const noRevisions = (id: string): InternalError =>
 // ---------------------------------------------------------------------------
 
 export const create = trail('snippet.create', {
-  blaze: async (input, ctx) => {
+  composeInput: z.object({
+    forkOf: z
+      .string()
+      .optional()
+      .describe('Composition-only lineage pointer set by snippet.fork'),
+  }),
+  description: 'Create a snippet with its first revision',
+  examples: [
+    {
+      description: 'Create a public snippet with one file',
+      input: {
+        description: 'A tiny JSON config example',
+        files: [
+          {
+            content: '{ "retries": 3 }\n',
+            language: 'json',
+            name: 'config.json',
+          },
+        ],
+        message: 'initial revision',
+        visibility: 'public',
+      },
+      name: 'Create a snippet',
+    },
+  ],
+  fires: [snippetCreated],
+  implementation: async (input, ctx) => {
     const subject = requireSubject(ctx);
     if (subject.isErr()) {
       return subject;
@@ -106,32 +132,6 @@ export const create = trail('snippet.create', {
     }
     return Result.ok(detail);
   },
-  composeInput: z.object({
-    forkOf: z
-      .string()
-      .optional()
-      .describe('Composition-only lineage pointer set by snippet.fork'),
-  }),
-  description: 'Create a snippet with its first revision',
-  examples: [
-    {
-      description: 'Create a public snippet with one file',
-      input: {
-        description: 'A tiny JSON config example',
-        files: [
-          {
-            content: '{ "retries": 3 }\n',
-            language: 'json',
-            name: 'config.json',
-          },
-        ],
-        message: 'initial revision',
-        visibility: 'public',
-      },
-      name: 'Create a snippet',
-    },
-  ],
-  fires: [snippetCreated],
   input: z.object({
     description: z.string().min(1).describe('What this snippet is about'),
     files: z
@@ -155,18 +155,6 @@ export const create = trail('snippet.create', {
 // ---------------------------------------------------------------------------
 
 export const get = trail('snippet.get', {
-  blaze: async (input, ctx) => {
-    const conn = db.from(ctx);
-    const snippet = await loadVisibleSnippet(conn, input.id, viewerId(ctx));
-    if (snippet === null) {
-      return Result.err(snippetNotFound(input.id));
-    }
-    const detail = await buildDetail(conn, snippet);
-    if (detail === null) {
-      return Result.err(noRevisions(input.id));
-    }
-    return Result.ok(detail);
-  },
   description:
     'Show a snippet with its latest revision; secret snippets are owner-only',
   examples: [
@@ -199,6 +187,18 @@ export const get = trail('snippet.get', {
       name: 'Get a missing snippet',
     },
   ],
+  implementation: async (input, ctx) => {
+    const conn = db.from(ctx);
+    const snippet = await loadVisibleSnippet(conn, input.id, viewerId(ctx));
+    if (snippet === null) {
+      return Result.err(snippetNotFound(input.id));
+    }
+    const detail = await buildDetail(conn, snippet);
+    if (detail === null) {
+      return Result.err(noRevisions(input.id));
+    }
+    return Result.ok(detail);
+  },
   input: z.object({
     id: z.string().describe('Snippet id'),
   }),
@@ -212,7 +212,21 @@ export const get = trail('snippet.get', {
 // ---------------------------------------------------------------------------
 
 export const list = trail('snippet.list', {
-  blaze: async (input, ctx) => {
+  description:
+    'List snippets with owner and visibility filters; secret snippets appear only for their owner',
+  examples: [
+    {
+      description: 'List every snippet visible to the caller',
+      input: { limit: 20, offset: 0 },
+      name: 'List snippets',
+    },
+    {
+      description: 'Filter by owner',
+      input: { limit: 20, offset: 0, owner: 'usr_alice' },
+      name: 'List snippets by owner',
+    },
+  ],
+  implementation: async (input, ctx) => {
     const conn = db.from(ctx);
     const viewer = viewerId(ctx);
     const filters = {
@@ -235,20 +249,6 @@ export const list = trail('snippet.list', {
     );
     return Result.ok({ snippets, total: visible.length });
   },
-  description:
-    'List snippets with owner and visibility filters; secret snippets appear only for their owner',
-  examples: [
-    {
-      description: 'List every snippet visible to the caller',
-      input: { limit: 20, offset: 0 },
-      name: 'List snippets',
-    },
-    {
-      description: 'Filter by owner',
-      input: { limit: 20, offset: 0, owner: 'usr_alice' },
-      name: 'List snippets by owner',
-    },
-  ],
   input: z.object({
     limit: z.coerce
       .number()
@@ -281,34 +281,6 @@ export const list = trail('snippet.list', {
 // ---------------------------------------------------------------------------
 
 export const update = trail('snippet.update', {
-  blaze: async (input, ctx) => {
-    const subject = requireSubject(ctx);
-    if (subject.isErr()) {
-      return subject;
-    }
-    const conn = db.from(ctx);
-    const owned = await loadOwnedSnippet(conn, input.id, subject.value);
-    if (owned.isErr()) {
-      return owned;
-    }
-    const seq = await nextRevisionSeq(conn, input.id);
-    const revision = await conn.revisions.insert({
-      files: input.files,
-      message: input.message ?? null,
-      seq,
-      snippetId: input.id,
-    });
-    // Touch the snippet row so `updatedAt` and the concurrency `version`
-    // advance; revision rows themselves are insert-only.
-    await conn.snippets.update(input.id, {
-      description: owned.value.description,
-    });
-    await ctx.fire?.(snippetUpdated, {
-      action: 'updated',
-      snippetId: input.id,
-    });
-    return Result.ok(toRevisionDetail(revision));
-  },
   description:
     'Add a new revision to a snippet; earlier revisions are never mutated',
   examples: [
@@ -338,6 +310,34 @@ export const update = trail('snippet.update', {
     },
   ],
   fires: [snippetUpdated],
+  implementation: async (input, ctx) => {
+    const subject = requireSubject(ctx);
+    if (subject.isErr()) {
+      return subject;
+    }
+    const conn = db.from(ctx);
+    const owned = await loadOwnedSnippet(conn, input.id, subject.value);
+    if (owned.isErr()) {
+      return owned;
+    }
+    const seq = await nextRevisionSeq(conn, input.id);
+    const revision = await conn.revisions.insert({
+      files: input.files,
+      message: input.message ?? null,
+      seq,
+      snippetId: input.id,
+    });
+    // Touch the snippet row so `updatedAt` and the concurrency `version`
+    // advance; revision rows themselves are insert-only.
+    await conn.snippets.update(input.id, {
+      description: owned.value.description,
+    });
+    await ctx.fire?.(snippetUpdated, {
+      action: 'updated',
+      snippetId: input.id,
+    });
+    return Result.ok(toRevisionDetail(revision));
+  },
   input: z.object({
     files: z
       .array(fileSchema)
@@ -357,7 +357,24 @@ export const update = trail('snippet.update', {
 // ---------------------------------------------------------------------------
 
 export const remove = trail('snippet.delete', {
-  blaze: async (input, ctx) => {
+  description:
+    'Delete a snippet and cascade its revisions, stars, and index entries',
+  examples: [
+    {
+      description: 'Delete a snippet you own',
+      expected: { deleted: true, id: 'snip_scratch' },
+      input: { id: 'snip_scratch' },
+      name: 'Delete a snippet',
+    },
+    {
+      description: 'Unknown ids return NotFoundError',
+      error: 'NotFoundError',
+      input: { id: 'snip_missing' },
+      name: 'Delete a missing snippet',
+    },
+  ],
+  fires: [snippetUpdated],
+  implementation: async (input, ctx) => {
     const subject = requireSubject(ctx);
     if (subject.isErr()) {
       return subject;
@@ -388,23 +405,6 @@ export const remove = trail('snippet.delete', {
     });
     return Result.ok({ deleted: true, id: input.id });
   },
-  description:
-    'Delete a snippet and cascade its revisions, stars, and index entries',
-  examples: [
-    {
-      description: 'Delete a snippet you own',
-      expected: { deleted: true, id: 'snip_scratch' },
-      input: { id: 'snip_scratch' },
-      name: 'Delete a snippet',
-    },
-    {
-      description: 'Unknown ids return NotFoundError',
-      error: 'NotFoundError',
-      input: { id: 'snip_missing' },
-      name: 'Delete a missing snippet',
-    },
-  ],
-  fires: [snippetUpdated],
   input: z.object({
     id: z.string().describe('Snippet id'),
   }),

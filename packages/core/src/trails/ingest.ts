@@ -17,7 +17,13 @@ type ExampleBearingSchema<TSchema extends z.ZodType> = TSchema & {
 
 interface IngestBaseOptions<TSchema extends z.ZodType, TSignal> extends Omit<
   TrailSpec<SchemaValue<TSchema>, void>,
-  'blaze' | 'examples' | 'fires' | 'input' | 'intent' | 'output' | 'pattern'
+  | 'implementation'
+  | 'examples'
+  | 'fires'
+  | 'input'
+  | 'intent'
+  | 'output'
+  | 'pattern'
 > {
   /** Override the derived trail id. Defaults to `${signal}.ingest`. */
   readonly id?: string | undefined;
@@ -63,7 +69,7 @@ const deriveExamples = <TSchema extends z.ZodType>(
   );
 };
 
-const createIngestBlaze =
+const createIngestImplementation =
   <TSchema extends z.ZodType, TSignal>(
     signalRef: Signal<TSignal>,
     signalId: string,
@@ -108,7 +114,7 @@ export const ingest = <
   const signalId = options.signal.id;
   const id = options.id ?? `${signalId}.ingest`;
   const { id: _id, schema, signal, transform, verify, ...trailSpec } = options;
-  const baseBlaze = createIngestBlaze<TSchema, TSignal>(
+  const baseImplementation = createIngestImplementation<TSchema, TSignal>(
     signal,
     signalId,
     id,
@@ -116,9 +122,12 @@ export const ingest = <
   );
   const baseSpec = {
     ...trailSpec,
-    blaze: baseBlaze as TrailSpec<unknown, unknown>['blaze'],
     examples: deriveExamples(schema as ExampleBearingSchema<TSchema>, signalId),
     fires: [signal],
+    implementation: baseImplementation as TrailSpec<
+      unknown,
+      unknown
+    >['implementation'],
     input: schema as z.ZodType<unknown>,
     intent: 'write',
     output: z.void(),
@@ -134,6 +143,10 @@ export const ingest = <
   // mutating runner-wide layer configuration.
   return Object.freeze({
     ...baseTrail,
-    blaze: composeLayers([verify], baseTrail, baseTrail.blaze),
+    implementation: composeLayers(
+      [verify],
+      baseTrail,
+      baseTrail.implementation
+    ),
   }) as Trail<SchemaValue<TSchema>, void>;
 };

@@ -32,7 +32,7 @@ Generated projects include `.trails/scaffold.json`, a minimal provenance breadcr
 
 ## Your First Trail
 
-A trail is the atomic unit of work in Trails. It has a Zod input schema, a `blaze` that establishes how the trail runs and returns `Result`, and optional examples that double as tests and agent documentation.
+A trail is the atomic unit of work in Trails. It has a Zod input schema, an `implementation` that establishes how the trail runs and returns `Result`, and optional examples that double as tests and agent documentation.
 
 Create `src/trails/greet.ts`:
 
@@ -60,7 +60,7 @@ export const greet = trail('greet', {
       expected: { message: 'HELLO, WORLD!' },
     },
   ],
-  blaze: (input) => {
+  implementation: (input) => {
     const message = `Hello, ${input.name}!`;
     return Result.ok({
       message: input.loud ? message.toUpperCase() : message,
@@ -71,7 +71,7 @@ export const greet = trail('greet', {
 
 What you get from this single definition:
 
-- A typed blaze that receives validated input and returns `Result`
+- A typed implementation that receives validated input and returns `Result`
 - CLI derivation: `name` auto-promoted to a positional arg (sole required string), `--loud` as a flag
 - An MCP tool with JSON Schema input and annotations (`readOnlyHint: true`)
 - Two examples that serve as agent documentation AND test cases
@@ -140,13 +140,13 @@ import { graph } from './app';
 await surface(graph);
 ```
 
-Same blazed trail. Different surface. The MCP server exposes a `myapp_greet` tool with:
+Same runnable trail. Different surface. The MCP server exposes a `myapp_greet` tool with:
 
 - JSON Schema input derived from the Zod schema
 - `readOnlyHint: true` annotation from `intent: 'read'`
 - Examples available for agent planning
 
-Pure blazes can return `Result` directly. Trails with `composes` and I/O-heavy blazes can stay `async`; Trails normalizes both forms before surfaces run the trail.
+Pure implementations can return `Result` directly. Trails with `composes` and I/O-heavy implementations can stay `async`; Trails normalizes both forms before surfaces run the trail.
 
 ## Open an HTTP Surface
 
@@ -159,7 +159,7 @@ import { graph } from './app';
 await surface(graph, { port: 3000 });
 ```
 
-Same topo. Same blazed trail. Different shipped surface. The HTTP adapter derives routes from trail IDs and verbs from `intent`:
+Same topo. Same runnable trail. Different shipped surface. The HTTP adapter derives routes from trail IDs and verbs from `intent`:
 
 - `greet` becomes `GET /greet` because the trail declares `intent: 'read'`
 - Input validation still comes from the same Zod schema
@@ -195,7 +195,7 @@ $ bun test
 That single `testAll(graph)` call runs the full contract suite:
 
 1. **Topo validation** via `validateTopo` -- composed trails exist, no recursive composition, signal origins, example schema validation, output schema presence
-2. **Example execution** -- for each trail, validates input, runs the blazed trail, asserts the result matches `expected` (or validates against the output schema when no `expected` is declared)
+2. **Example execution** -- for each trail, validates input, runs the trail, asserts the result matches `expected` (or validates against the output schema when no `expected` is declared)
 3. **Contract checks** -- verifies successful trail results against declared output schemas
 4. **Detour contract validation** -- confirms detours declare valid `on` / `recover` semantics and sane ordering
 
@@ -234,7 +234,7 @@ export const add = trail('math.add', {
       expected: { result: 5 },
     },
   ],
-  blaze: (input) => Result.ok({ result: input.a + input.b }),
+  implementation: (input) => Result.ok({ result: input.a + input.b }),
 });
 ```
 
@@ -262,7 +262,7 @@ export const addAndDouble = trail('math.add-and-double', {
   composes: ['math.add'],
   input: z.object({ a: z.number(), b: z.number() }),
   output: z.object({ result: z.number() }),
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const sum = await ctx.compose('math.add', input);
     if (sum.isErr()) return sum;
     return Result.ok({ result: sum.value.result * 2 });
@@ -291,7 +291,7 @@ export const listUsers = trail('user.list', {
   input: z.object({}),
   output: z.object({ users: z.array(UserSchema) }),
   intent: 'read',
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const pool = db.from(ctx);
     const rows = await pool.query('SELECT * FROM users');
     return Result.ok({ users: rows });

@@ -37,22 +37,6 @@ const revisionNotFound = (snippetId: string, seq: number): NotFoundError =>
 // ---------------------------------------------------------------------------
 
 export const list = trail('revision.list', {
-  blaze: async (input, ctx) => {
-    const conn = db.from(ctx);
-    const snippet = await loadVisibleSnippet(
-      conn,
-      input.snippetId,
-      viewerId(ctx)
-    );
-    if (snippet === null) {
-      return Result.err(snippetNotFound(input.snippetId));
-    }
-    const revisions = await orderedRevisions(conn, input.snippetId);
-    return Result.ok({
-      revisions: revisions.map(toRevisionSummary),
-      total: revisions.length,
-    });
-  },
   description: 'List a snippet’s revisions in seq order',
   examples: [
     {
@@ -78,6 +62,22 @@ export const list = trail('revision.list', {
       name: 'List revisions of a missing snippet',
     },
   ],
+  implementation: async (input, ctx) => {
+    const conn = db.from(ctx);
+    const snippet = await loadVisibleSnippet(
+      conn,
+      input.snippetId,
+      viewerId(ctx)
+    );
+    if (snippet === null) {
+      return Result.err(snippetNotFound(input.snippetId));
+    }
+    const revisions = await orderedRevisions(conn, input.snippetId);
+    return Result.ok({
+      revisions: revisions.map(toRevisionSummary),
+      total: revisions.length,
+    });
+  },
   input: z.object({
     snippetId: z.string().describe('Snippet id'),
   }),
@@ -94,23 +94,6 @@ export const list = trail('revision.list', {
 // ---------------------------------------------------------------------------
 
 export const get = trail('revision.get', {
-  blaze: async (input, ctx) => {
-    const conn = db.from(ctx);
-    const snippet = await loadVisibleSnippet(
-      conn,
-      input.snippetId,
-      viewerId(ctx)
-    );
-    if (snippet === null) {
-      return Result.err(snippetNotFound(input.snippetId));
-    }
-    const revisions = await orderedRevisions(conn, input.snippetId);
-    const revision = revisions.find((row) => row.seq === input.seq);
-    if (revision === undefined) {
-      return Result.err(revisionNotFound(input.snippetId, input.seq));
-    }
-    return Result.ok(toRevisionDetail(revision));
-  },
   description: 'Read one revision of a snippet, including full file contents',
   examples: [
     {
@@ -139,6 +122,23 @@ export const get = trail('revision.get', {
       name: 'Get a missing revision',
     },
   ],
+  implementation: async (input, ctx) => {
+    const conn = db.from(ctx);
+    const snippet = await loadVisibleSnippet(
+      conn,
+      input.snippetId,
+      viewerId(ctx)
+    );
+    if (snippet === null) {
+      return Result.err(snippetNotFound(input.snippetId));
+    }
+    const revisions = await orderedRevisions(conn, input.snippetId);
+    const revision = revisions.find((row) => row.seq === input.seq);
+    if (revision === undefined) {
+      return Result.err(revisionNotFound(input.snippetId, input.seq));
+    }
+    return Result.ok(toRevisionDetail(revision));
+  },
   input: z.object({
     seq: z.coerce.number().int().min(1).describe('Revision sequence number'),
     snippetId: z.string().describe('Snippet id'),
@@ -200,7 +200,33 @@ const diffFile = (
 };
 
 export const diff = trail('revision.diff', {
-  blaze: async (input, ctx) => {
+  description: 'Naive line diff between two revisions of a snippet',
+  examples: [
+    {
+      description: 'Diff a revision against itself',
+      expected: {
+        files: [
+          {
+            addedLines: [],
+            name: 'greet.ts',
+            removedLines: [],
+            status: 'unchanged',
+          },
+        ],
+        from: 1,
+        to: 1,
+      },
+      input: { from: 1, snippetId: 'snip_hello', to: 1 },
+      name: 'Diff identical revisions',
+    },
+    {
+      description: 'Unknown seqs return NotFoundError',
+      error: 'NotFoundError',
+      input: { from: 1, snippetId: 'snip_hello', to: 99 },
+      name: 'Diff a missing revision',
+    },
+  ],
+  implementation: async (input, ctx) => {
     const conn = db.from(ctx);
     const snippet = await loadVisibleSnippet(
       conn,
@@ -234,32 +260,6 @@ export const diff = trail('revision.diff', {
     );
     return Result.ok({ files, from: input.from, to: input.to });
   },
-  description: 'Naive line diff between two revisions of a snippet',
-  examples: [
-    {
-      description: 'Diff a revision against itself',
-      expected: {
-        files: [
-          {
-            addedLines: [],
-            name: 'greet.ts',
-            removedLines: [],
-            status: 'unchanged',
-          },
-        ],
-        from: 1,
-        to: 1,
-      },
-      input: { from: 1, snippetId: 'snip_hello', to: 1 },
-      name: 'Diff identical revisions',
-    },
-    {
-      description: 'Unknown seqs return NotFoundError',
-      error: 'NotFoundError',
-      input: { from: 1, snippetId: 'snip_hello', to: 99 },
-      name: 'Diff a missing revision',
-    },
-  ],
   input: z.object({
     from: z.coerce.number().int().min(1).describe('Base revision seq'),
     snippetId: z.string().describe('Snippet id'),

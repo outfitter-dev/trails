@@ -24,7 +24,7 @@ const buildTrail = (
   } = {}
 ) =>
   trail(id, {
-    blaze: () => Result.ok({ ok: true }),
+    implementation: () => Result.ok({ ok: true }),
     input: emptyInput,
     ...options,
   });

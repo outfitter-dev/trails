@@ -72,8 +72,8 @@ The runbook keeps plugin version `0.3.3` separate from the bundled skill's Trail
 
 ### Rules
 
-- **lexicon** — Enforces Trails-branded terms (trail, surface, topo, blaze, compose, resource, signal, layer, tracing)
-- **patterns** — Core coding patterns (Result over throw, surface-agnostic blazes)
+- **lexicon** — Enforces Trails-branded terms (trail, surface, topo, implementation, compose, resource, signal, layer, tracing)
+- **patterns** — Core coding patterns (Result over throw, surface-agnostic implementations)
 
 ## License
 

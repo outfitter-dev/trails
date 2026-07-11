@@ -17,7 +17,6 @@ import { testComposes } from '../composes.js';
 // ---------------------------------------------------------------------------
 
 const addTrail = trail('entity.add', {
-  blaze: (input: { name: string }) => Result.ok({ id: '1', name: input.name }),
   description: 'Add an entity',
   examples: [
     { input: { name: 'Alpha' }, name: 'success' },
@@ -28,14 +27,16 @@ const addTrail = trail('entity.add', {
       name: 'duplicate',
     },
   ],
+  implementation: (input: { name: string }) =>
+    Result.ok({ id: '1', name: input.name }),
   input: z.object({ name: z.string() }),
   output: z.object({ id: z.string(), name: z.string() }),
 });
 
 const relateTrail = trail('entity.relate', {
-  blaze: (input: { from: string; to: string }) =>
-    Result.ok({ from: input.from, to: input.to }),
   description: 'Relate two entities',
+  implementation: (input: { from: string; to: string }) =>
+    Result.ok({ from: input.from, to: input.to }),
   input: z.object({ from: z.string(), to: z.string() }),
   output: z.object({ from: z.string(), to: z.string() }),
 });
@@ -45,7 +46,8 @@ const relateTrail = trail('entity.relate', {
 // ---------------------------------------------------------------------------
 
 const onboardTrail = trail('entity.onboard', {
-  blaze: async (
+  composes: ['entity.add', 'entity.relate'],
+  implementation: async (
     input: { name: string; relatedTo: string },
     ctx: TrailContext
   ) => {
@@ -73,7 +75,6 @@ const onboardTrail = trail('entity.onboard', {
       relatedTo: relateResult.value.to,
     });
   },
-  composes: ['entity.add', 'entity.relate'],
   input: z.object({ name: z.string(), relatedTo: z.string() }),
   output: z.object({ name: z.string(), relatedTo: z.string() }),
 });
@@ -173,14 +174,17 @@ describe('testComposes: expectValue', () => {
 // ---------------------------------------------------------------------------
 
 const leafTrail = trail('step.leaf', {
-  blaze: (input: { value: string }) => Result.ok({ leaf: input.value }),
   description: 'Leaf trail in a nested chain',
+  implementation: (input: { value: string }) =>
+    Result.ok({ leaf: input.value }),
   input: z.object({ value: z.string() }),
   output: z.object({ leaf: z.string() }),
 });
 
 const middleTrail = trail('step.middle', {
-  blaze: async (input: { value: string }, ctx: TrailContext) => {
+  composes: ['step.leaf'],
+  description: 'Middle trail that composes the leaf',
+  implementation: async (input: { value: string }, ctx: TrailContext) => {
     if (!ctx.compose) {
       return Result.err(new Error('compose not available'));
     }
@@ -190,14 +194,14 @@ const middleTrail = trail('step.middle', {
     }
     return Result.ok({ middle: leafResult.value.leaf });
   },
-  composes: ['step.leaf'],
-  description: 'Middle trail that composes the leaf',
   input: z.object({ value: z.string() }),
   output: z.object({ middle: z.string() }),
 });
 
 const nestedRootTrail = trail('step.root', {
-  blaze: async (input: { value: string }, ctx: TrailContext) => {
+  composes: ['step.middle'],
+  description: 'Root trail that composes the middle trail',
+  implementation: async (input: { value: string }, ctx: TrailContext) => {
     if (!ctx.compose) {
       return Result.err(new Error('compose not available'));
     }
@@ -210,8 +214,6 @@ const nestedRootTrail = trail('step.root', {
     }
     return Result.ok({ root: midResult.value.middle });
   },
-  composes: ['step.middle'],
-  description: 'Root trail that composes the middle trail',
   input: z.object({ value: z.string() }),
   output: z.object({ root: z.string() }),
 });
@@ -243,16 +245,19 @@ const mockDbResource = resource('db.mock.composes', {
 });
 
 const resourceMockLeafTrail = trail('resource.leaf', {
-  blaze: (_input, ctx) =>
-    Result.ok({ childSource: mockDbResource.from(ctx).source }),
   description: 'Leaf trail that reads from a resource',
+  implementation: (_input, ctx) =>
+    Result.ok({ childSource: mockDbResource.from(ctx).source }),
   input: z.object({}),
   output: z.object({ childSource: z.string() }),
   resources: [mockDbResource],
 });
 
 const resourceMockRootTrail = trail('resource.root', {
-  blaze: async (_input, ctx: TrailContext) => {
+  composes: ['resource.leaf'],
+  description:
+    'Root trail that reads from a resource and composes a child trail',
+  implementation: async (_input, ctx: TrailContext) => {
     if (!ctx.compose) {
       return Result.err(new Error('compose not available'));
     }
@@ -269,9 +274,6 @@ const resourceMockRootTrail = trail('resource.root', {
       rootSource: mockDbResource.from(ctx).source,
     });
   },
-  composes: ['resource.leaf'],
-  description:
-    'Root trail that reads from a resource and composes a child trail',
   input: z.object({}),
   output: z.object({ childSource: z.string(), rootSource: z.string() }),
   resources: [mockDbResource],
@@ -287,16 +289,19 @@ const statefulMockDbResource = resource('db.mock.composes.stateful', {
 });
 
 const statefulResourceLeafTrail = trail('resource.stateful.leaf', {
-  blaze: (_input, ctx) =>
-    Result.ok({ childCount: statefulMockDbResource.from(ctx).count }),
   description: 'Leaf trail that observes the current mock resource state',
+  implementation: (_input, ctx) =>
+    Result.ok({ childCount: statefulMockDbResource.from(ctx).count }),
   input: z.object({}),
   output: z.object({ childCount: z.number() }),
   resources: [statefulMockDbResource],
 });
 
 const statefulResourceRootTrail = trail('resource.stateful.root', {
-  blaze: async (_input, ctx: TrailContext) => {
+  composes: ['resource.stateful.leaf'],
+  description:
+    'Root trail that mutates a mocked resource and composes a child trail',
+  implementation: async (_input, ctx: TrailContext) => {
     if (!ctx.compose) {
       return Result.err(new Error('compose not available'));
     }
@@ -317,9 +322,6 @@ const statefulResourceRootTrail = trail('resource.stateful.root', {
       rootCount: statefulResource.count,
     });
   },
-  composes: ['resource.stateful.leaf'],
-  description:
-    'Root trail that mutates a mocked resource and composes a child trail',
   input: z.object({}),
   output: z.object({ childCount: z.number(), rootCount: z.number() }),
   resources: [statefulMockDbResource],
@@ -335,16 +337,18 @@ const scenarioStateResource = resource('db.mock.scenarios', {
 });
 
 const scenarioLeafTrail = trail('resource.scenario.leaf', {
-  blaze: (_input, ctx) =>
-    Result.ok({ count: scenarioStateResource.from(ctx).count }),
   description: 'Leaf trail that reads mutable scenario state',
+  implementation: (_input, ctx) =>
+    Result.ok({ count: scenarioStateResource.from(ctx).count }),
   input: z.object({}),
   output: z.object({ count: z.number() }),
   resources: [scenarioStateResource],
 });
 
 const scenarioRootTrail = trail('resource.scenario.root', {
-  blaze: async (_input, ctx: TrailContext) => {
+  composes: ['resource.scenario.leaf'],
+  description: 'Root trail that mutates scenario state and composes a leaf',
+  implementation: async (_input, ctx: TrailContext) => {
     if (!ctx.compose) {
       return Result.err(new Error('compose not available'));
     }
@@ -362,8 +366,6 @@ const scenarioRootTrail = trail('resource.scenario.root', {
 
     return Result.ok({ count: leafResult.value.count });
   },
-  composes: ['resource.scenario.leaf'],
-  description: 'Root trail that mutates scenario state and composes a leaf',
   input: z.object({}),
   output: z.object({ count: z.number() }),
   resources: [scenarioStateResource],
@@ -374,14 +376,17 @@ const scenarioResourceTrailsMap = new Map<string, AnyTrail>([
 ]);
 
 const transformedComposeLeafTrail = trail('compose.transformed.leaf', {
-  blaze: (input: { value: number }) => Result.ok({ value: input.value }),
   description: 'Leaf trail in a transformed compose chain',
+  implementation: (input: { value: number }) =>
+    Result.ok({ value: input.value }),
   input: z.object({ value: z.number() }),
   output: z.object({ value: z.number() }),
 });
 
 const transformedComposeRootTrail = trail('compose.transformed.root', {
-  blaze: async (input: { value: number }, ctx: TrailContext) => {
+  composes: ['compose.transformed.leaf'],
+  description: 'Root trail that transforms input once before composing',
+  implementation: async (input: { value: number }, ctx: TrailContext) => {
     if (!ctx.compose) {
       return Result.err(new Error('compose not available'));
     }
@@ -396,8 +401,6 @@ const transformedComposeRootTrail = trail('compose.transformed.root', {
 
     return Result.ok({ root: leafResult.value.value });
   },
-  composes: ['compose.transformed.leaf'],
-  description: 'Root trail that transforms input once before composing',
   input: z
     .object({ value: z.string() })
     .transform(({ value }) => ({ value: Number(value) + 1 })),
@@ -414,16 +417,18 @@ const undeclaredComposeResource = resource('db.undeclared.composes', {
 });
 
 const undeclaredResourceLeafTrail = trail('resource.undeclared.leaf', {
-  blaze: (_input, ctx) =>
-    Result.ok({ childSource: undeclaredComposeResource.from(ctx).source }),
   description: 'Leaf trail that declares the shared resource',
+  implementation: (_input, ctx) =>
+    Result.ok({ childSource: undeclaredComposeResource.from(ctx).source }),
   input: z.object({}),
   output: z.object({ childSource: z.string() }),
   resources: [undeclaredComposeResource],
 });
 
 const undeclaredResourceRootTrail = trail('resource.undeclared.root', {
-  blaze: async (_input, ctx: TrailContext) => {
+  composes: ['resource.undeclared.leaf'],
+  description: 'Root trail that uses a resource without declaring it',
+  implementation: async (_input, ctx: TrailContext) => {
     if (!ctx.compose) {
       return Result.err(new Error('compose not available'));
     }
@@ -441,8 +446,6 @@ const undeclaredResourceRootTrail = trail('resource.undeclared.root', {
       rootSource: undeclaredComposeResource.from(ctx).source,
     });
   },
-  composes: ['resource.undeclared.leaf'],
-  description: 'Root trail that uses a resource without declaring it',
   input: z.object({}),
   output: z.object({ childSource: z.string(), rootSource: z.string() }),
 });
@@ -459,9 +462,9 @@ const unrelatedComposeResource = resource('db.unrelated.composes', {
 });
 
 const unrelatedResourceTrail = trail('resource.unrelated', {
-  blaze: (_input, ctx) =>
-    Result.ok({ source: unrelatedComposeResource.from(ctx).source }),
   description: 'Trail that should not be traversed or mocked',
+  implementation: (_input, ctx) =>
+    Result.ok({ source: unrelatedComposeResource.from(ctx).source }),
   input: z.object({}),
   output: z.object({ source: z.string() }),
   resources: [unrelatedComposeResource],

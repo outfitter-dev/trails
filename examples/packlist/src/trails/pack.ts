@@ -3,7 +3,7 @@
  *
  * The five CRUD trails (`pack.create`, `pack.read`, `pack.update`,
  * `pack.delete`, `pack.list`) come straight from the CRUD factory: schemas,
- * examples, blazes, permits, and resource wiring are all derived from the
+ * examples, implementations, permits, and resource wiring are all derived from the
  * table definition and the factory options.
  *
  * `pack.add-gear` and `pack.remove-gear` are authored by hand: they carry
@@ -46,27 +46,6 @@ export const packEntitySchema = z.object({
 });
 
 export const addGear = trail('pack.add-gear', {
-  blaze: async (input, ctx) => {
-    const connection = db.from(ctx);
-    const pack = await connection.pack.get(input.packId);
-    if (!pack) {
-      return Result.err(new NotFoundError(`Pack "${input.packId}" not found`));
-    }
-    const gear = await connection.gear.get(input.gearId);
-    if (!gear) {
-      return Result.err(new NotFoundError(`Gear "${input.gearId}" not found`));
-    }
-    const existing = pack.items.find((item) => item.gearId === input.gearId);
-    const items = existing
-      ? pack.items.map((item) =>
-          item.gearId === input.gearId
-            ? { gearId: item.gearId, quantity: item.quantity + input.quantity }
-            : item
-        )
-      : [...pack.items, { gearId: input.gearId, quantity: input.quantity }];
-    const updated = await connection.pack.update(input.packId, { items });
-    return Result.ok(updated);
-  },
   description: 'Add gear to a pack (or increase its quantity)',
   examples: [
     {
@@ -88,6 +67,27 @@ export const addGear = trail('pack.add-gear', {
       name: 'Add missing gear',
     },
   ],
+  implementation: async (input, ctx) => {
+    const connection = db.from(ctx);
+    const pack = await connection.pack.get(input.packId);
+    if (!pack) {
+      return Result.err(new NotFoundError(`Pack "${input.packId}" not found`));
+    }
+    const gear = await connection.gear.get(input.gearId);
+    if (!gear) {
+      return Result.err(new NotFoundError(`Gear "${input.gearId}" not found`));
+    }
+    const existing = pack.items.find((item) => item.gearId === input.gearId);
+    const items = existing
+      ? pack.items.map((item) =>
+          item.gearId === input.gearId
+            ? { gearId: item.gearId, quantity: item.quantity + input.quantity }
+            : item
+        )
+      : [...pack.items, { gearId: input.gearId, quantity: input.quantity }];
+    const updated = await connection.pack.update(input.packId, { items });
+    return Result.ok(updated);
+  },
   input: z.object({
     gearId: z.string().describe('Gear id to add'),
     packId: z.string().describe('Pack id to modify'),
@@ -100,19 +100,6 @@ export const addGear = trail('pack.add-gear', {
 });
 
 export const removeGear = trail('pack.remove-gear', {
-  blaze: async (input, ctx) => {
-    const connection = db.from(ctx);
-    const pack = await connection.pack.get(input.packId);
-    if (!pack) {
-      return Result.err(new NotFoundError(`Pack "${input.packId}" not found`));
-    }
-    const items = pack.items.filter((item) => item.gearId !== input.gearId);
-    if (items.length === pack.items.length) {
-      return Result.ok(pack);
-    }
-    const updated = await connection.pack.update(input.packId, { items });
-    return Result.ok(updated);
-  },
   description: 'Remove gear from a pack (idempotent)',
   examples: [
     {
@@ -134,6 +121,19 @@ export const removeGear = trail('pack.remove-gear', {
       name: 'Remove from missing pack',
     },
   ],
+  implementation: async (input, ctx) => {
+    const connection = db.from(ctx);
+    const pack = await connection.pack.get(input.packId);
+    if (!pack) {
+      return Result.err(new NotFoundError(`Pack "${input.packId}" not found`));
+    }
+    const items = pack.items.filter((item) => item.gearId !== input.gearId);
+    if (items.length === pack.items.length) {
+      return Result.ok(pack);
+    }
+    const updated = await connection.pack.update(input.packId, { items });
+    return Result.ok(updated);
+  },
   input: z.object({
     gearId: z.string().describe('Gear id to remove'),
     packId: z.string().describe('Pack id to modify'),

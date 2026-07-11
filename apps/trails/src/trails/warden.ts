@@ -171,7 +171,27 @@ export const buildWardenCommandArgs = (
 };
 
 export const wardenTrail = trail('warden', {
-  blaze: async (input, ctx) => {
+  description: 'Run governance checks (lint + drift)',
+  examples: [
+    {
+      input: {
+        depth: 'source',
+        lock: 'skip',
+        rootDir: createIsolatedWardenExampleRoot('default'),
+      },
+      name: 'Default warden run',
+    },
+    {
+      input: {
+        depth: 'source',
+        format: 'github',
+        lock: 'skip',
+        rootDir: createIsolatedWardenExampleRoot('github'),
+      },
+      name: 'GitHub Actions annotations',
+    },
+  ],
+  implementation: async (input, ctx) => {
     const rootDirResult = resolveTrailRootDir(input.rootDir, ctx.cwd);
     if (rootDirResult.isErr()) {
       return rootDirResult;
@@ -194,26 +214,6 @@ export const wardenTrail = trail('warden', {
       warnCount: report.warnCount,
     });
   },
-  description: 'Run governance checks (lint + drift)',
-  examples: [
-    {
-      input: {
-        depth: 'source',
-        lock: 'skip',
-        rootDir: createIsolatedWardenExampleRoot('default'),
-      },
-      name: 'Default warden run',
-    },
-    {
-      input: {
-        depth: 'source',
-        format: 'github',
-        lock: 'skip',
-        rootDir: createIsolatedWardenExampleRoot('github'),
-      },
-      name: 'GitHub Actions annotations',
-    },
-  ],
   input: wardenInputSchema,
   intent: 'write',
   output: z.object({

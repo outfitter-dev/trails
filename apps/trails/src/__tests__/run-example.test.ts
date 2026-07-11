@@ -58,15 +58,15 @@ const withCapturedIO = async (
 // ---------------------------------------------------------------------------
 
 const stubRunTrail = trail('run.example', {
-  blaze: () => Result.ok(),
   description: 'stub run trail for example-comparison tests',
+  implementation: () => Result.ok(),
   input: z.object({ trailId: z.string() }),
   output: z.unknown(),
 });
 
 const stubOtherTrail = trail('other', {
-  blaze: () => Result.ok(),
   description: 'stub non-run trail',
+  implementation: () => Result.ok(),
   input: z.object({}),
   output: z.unknown(),
 });
@@ -142,7 +142,7 @@ describe('tryExampleRunOutput', () => {
   test('returns false on the base run trail', async () => {
     const ctx = buildCtx(
       trail('run', {
-        blaze: () => Result.ok(),
+        implementation: () => Result.ok(),
         input: z.object({}),
         output: z.unknown(),
       }) as typeof stubRunTrail,
@@ -257,7 +257,7 @@ describe('tryExampleRunOutput', () => {
 });
 
 // ---------------------------------------------------------------------------
-// run.example blaze integration tests (workspace-fixture)
+// run.example implementation integration tests (workspace-fixture)
 // ---------------------------------------------------------------------------
 
 interface ExampleSpec {
@@ -282,8 +282,8 @@ const writeFixture = (filePath: string, contents: string): void => {
 /**
  * Build a stub Topo whose trails have:
  * - examples on disk (so run.example can look them up)
- * - blaze functions that return either a fixed value (returnValue) or a
- *   fixed error (returnError) keyed by example.name. The blaze inspects
+ * - implementation functions that return either a fixed value (returnValue) or a
+ *   fixed error (returnError) keyed by example.name. The implementation inspects
  *   `input.__exampleName` to choose; the example fixtures embed that key
  *   into their input so dispatch is deterministic.
  */
@@ -326,7 +326,7 @@ const writeWorkspace = (
   // Build the per-example dispatch table and the examples literal. The
   // examples on the trail definition mirror the structured-trail-example
   // shape (`expected` / `expectedMatch` / `error`), and each example's
-  // input embeds `__exampleName` so the blaze can dispatch deterministically
+  // input embeds `__exampleName` so the implementation can dispatch deterministically
   // via the in-memory `dispatch` map.
   const buildExampleFragment = (ex: ExampleSpec): string => {
     const baseFragments: readonly string[] = [
@@ -374,7 +374,7 @@ const writeWorkspace = (
     `  output: z.unknown(),`,
     permitLine,
     `  examples: ${examplesArrayLiteral},`,
-    `  blaze: (input) => {`,
+    `  implementation: (input) => {`,
     `    const config = dispatch.get(input.__exampleName);`,
     `    if (!config) {`,
     `      return Result.ok(undefined);`,

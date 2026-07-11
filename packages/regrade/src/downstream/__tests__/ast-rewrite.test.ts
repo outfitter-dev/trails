@@ -570,17 +570,17 @@ describe('createAstIdentifierRenameClass', () => {
     }
 
     const classes = createGovernedAstIdentifierRenameClasses(transition);
-    const blazeLiteralClass = classes.find((cls) =>
+    const implementationLiteralClass = classes.find((cls) =>
       cls.id.includes(
         'ast-string-literal-rename:v1-blaze-implementation:blaze->implementation'
       )
     );
-    expect(blazeLiteralClass).toBeDefined();
-    if (blazeLiteralClass === undefined) {
+    expect(implementationLiteralClass).toBeDefined();
+    if (implementationLiteralClass === undefined) {
       throw new Error('Expected blaze literal rename class.');
     }
 
-    const result = blazeLiteralClass.apply(
+    const result = implementationLiteralClass.apply(
       [
         "const authored = { ['blaze']: implementation };",
         'const keyed = { "blaze": implementation };',
@@ -605,7 +605,7 @@ describe('createAstIdentifierRenameClass', () => {
       'const label = "blaze";',
     ]) {
       expect(
-        blazeLiteralClass.apply(source, { path: 'src/trails.ts' })
+        implementationLiteralClass.apply(source, { path: 'src/trails.ts' })
       ).toMatchObject({
         kind: 'needs-review',
         reason: 'ast-string-literal-review-position',
@@ -645,17 +645,17 @@ describe('createAstIdentifierRenameClass', () => {
     }
 
     const classes = createGovernedAstIdentifierRenameClasses(transition);
-    const blazeSymbolClass = classes.find((cls) =>
+    const implementationSymbolClass = classes.find((cls) =>
       cls.id.includes(
         'ast-symbol-rename:v1-blaze-implementation:blaze->implementation'
       )
     );
-    expect(blazeSymbolClass).toBeDefined();
-    if (blazeSymbolClass === undefined) {
+    expect(implementationSymbolClass).toBeDefined();
+    if (implementationSymbolClass === undefined) {
       throw new Error('Expected blaze symbol rename class.');
     }
 
-    const result = blazeSymbolClass.apply(
+    const result = implementationSymbolClass.apply(
       [
         '// findBlazeBodies stays prose in identifier rewriting',
         'const label = "blazeInput stays a string";',

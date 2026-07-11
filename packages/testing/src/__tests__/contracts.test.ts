@@ -24,7 +24,6 @@ const requireContourExample = (
 
 /** Trail whose implementation matches the output schema. */
 const validTrail = trail('valid', {
-  blaze: (input: { name: string }) => Result.ok({ id: 1, name: input.name }),
   examples: [
     {
       expected: { id: 1, name: 'Alpha' },
@@ -32,20 +31,22 @@ const validTrail = trail('valid', {
       name: 'Valid output',
     },
   ],
+  implementation: (input: { name: string }) =>
+    Result.ok({ id: 1, name: input.name }),
   input: z.object({ name: z.string() }),
   output: z.object({ id: z.number(), name: z.string() }),
 });
 
 /** Trail without output schema -- should be skipped. */
 const noSchemaTrail = trail('noschema', {
-  blaze: (input: { x: number }) => Result.ok(input.x * 2),
   examples: [{ expected: 10, input: { x: 5 }, name: 'No schema' }],
+  implementation: (input: { x: number }) => Result.ok(input.x * 2),
   input: z.object({ x: z.number() }),
 });
 
 /** Trail without examples -- should be skipped. */
 const noExamplesTrail = trail('noexamples', {
-  blaze: (input: { x: number }) => Result.ok({ value: input.x }),
+  implementation: (input: { x: number }) => Result.ok({ value: input.x }),
   input: z.object({ x: z.number() }),
   output: z.object({ value: z.number() }),
 });
@@ -54,19 +55,28 @@ const noExamplesTrail = trail('noexamples', {
 // Composition trail
 // ---------------------------------------------------------------------------
 
-const compositionChildBlaze = mock((value: number) =>
+const compositionChildImplementation = mock((value: number) =>
   Result.ok({ total: value })
 );
 
 const compositionChildTrail = trail('composition.child', {
-  blaze: (input: { value: number }) => compositionChildBlaze(input.value),
+  implementation: (input: { value: number }) =>
+    compositionChildImplementation(input.value),
   input: z.object({ value: z.number() }),
   output: z.object({ total: z.number() }),
 });
 
 /** Composition trail whose implementation matches the output schema. */
 const compositionTrail = trail('composition.valid', {
-  blaze: async (input: { a: number; b: number }, ctx) => {
+  composes: [compositionChildTrail],
+  examples: [
+    {
+      expected: { total: 3 },
+      input: { a: 1, b: 2 },
+      name: 'Valid composition output',
+    },
+  ],
+  implementation: async (input: { a: number; b: number }, ctx) => {
     const composed = await ctx.compose?.(compositionChildTrail, {
       value: input.a + input.b,
     });
@@ -78,14 +88,6 @@ const compositionTrail = trail('composition.valid', {
     }
     return Result.ok({ total: composed.value.total });
   },
-  composes: [compositionChildTrail],
-  examples: [
-    {
-      expected: { total: 3 },
-      input: { a: 1, b: 2 },
-      name: 'Valid composition output',
-    },
-  ],
   input: z.object({ a: z.number(), b: z.number() }),
   output: z.object({ total: z.number() }),
 });
@@ -95,7 +97,16 @@ const compositionContractSignal = signal('composition.contract.fired', {
 });
 
 const compositionWithFireTrail = trail('composition.withFire', {
-  blaze: async (_input: Record<string, never>, ctx) => {
+  composes: [compositionChildTrail],
+  examples: [
+    {
+      expected: { composed: true, fired: true },
+      input: {},
+      name: 'Custom compose still keeps fire binding',
+    },
+  ],
+  fires: [compositionContractSignal],
+  implementation: async (_input: Record<string, never>, ctx) => {
     const composed = await ctx.compose?.(compositionChildTrail, { value: 3 });
     let fired = false;
     await ctx.fire?.(compositionContractSignal, {
@@ -108,21 +119,11 @@ const compositionWithFireTrail = trail('composition.withFire', {
       fired,
     });
   },
-  composes: [compositionChildTrail],
-  examples: [
-    {
-      expected: { composed: true, fired: true },
-      input: {},
-      name: 'Custom compose still keeps fire binding',
-    },
-  ],
-  fires: [compositionContractSignal],
   input: z.object({}),
   output: z.object({ composed: z.literal(true), fired: z.literal(true) }),
 });
 
 const transformedInputTrail = trail('contract.transformed', {
-  blaze: (input: { value: number }) => Result.ok({ value: input.value }),
   examples: [
     {
       expected: { value: 2 },
@@ -130,6 +131,8 @@ const transformedInputTrail = trail('contract.transformed', {
       name: 'Raw contract input is only transformed once',
     },
   ],
+  implementation: (input: { value: number }) =>
+    Result.ok({ value: input.value }),
   input: z
     .object({ value: z.string() })
     .transform(({ value }) => ({ value: Number(value) + 1 })),
@@ -142,11 +145,6 @@ const undeclaredContractDbResource = resource('db.undeclared.contracts', {
 });
 
 const undeclaredContractTrail = trail('resource.undeclared.contracts', {
-  blaze: (_input, ctx) =>
-    Result.ok({
-      hasInjectedResource:
-        ctx.extensions?.[undeclaredContractDbResource.id] !== undefined,
-    }),
   examples: [
     {
       expected: { hasInjectedResource: false },
@@ -154,6 +152,11 @@ const undeclaredContractTrail = trail('resource.undeclared.contracts', {
       name: 'Undeclared resources are not preloaded into contract contexts',
     },
   ],
+  implementation: (_input, ctx) =>
+    Result.ok({
+      hasInjectedResource:
+        ctx.extensions?.[undeclaredContractDbResource.id] !== undefined,
+    }),
   input: z.object({}),
   output: z.object({ hasInjectedResource: z.literal(false) }),
 });
@@ -164,8 +167,6 @@ const ctxOverrideContractResource = resource('db.mock.contracts', {
 });
 
 const ctxOverrideContractTrail = trail('resource.ctx.contracts', {
-  blaze: (_input, ctx) =>
-    Result.ok({ source: ctxOverrideContractResource.from(ctx).source }),
   examples: [
     {
       expected: { source: 'ctx' },
@@ -173,6 +174,8 @@ const ctxOverrideContractTrail = trail('resource.ctx.contracts', {
       name: 'Context extensions beat auto-resolved contract resource mocks',
     },
   ],
+  implementation: (_input, ctx) =>
+    Result.ok({ source: ctxOverrideContractResource.from(ctx).source }),
   input: z.object({}),
   output: z.object({ source: z.literal('ctx') }),
   resources: [ctxOverrideContractResource],
@@ -195,25 +198,24 @@ const derivedContractContour = contour(
   }
 );
 
-const derivedContractBlaze = mock(() =>
+const derivedContractImplementation = mock(() =>
   Result.ok(requireContourExample(derivedContractContour, 0))
 );
 
 const derivedContractTrail = trail('contract.derived', {
-  blaze: () => derivedContractBlaze(),
   contours: [derivedContractContour],
+  implementation: () => derivedContractImplementation(),
   input: z.object({ id: derivedContractContour.shape.id }),
   output: derivedContractContour,
 });
 
-const versionContractCurrentBlaze = mock((input: { name: string }) =>
+const versionContractCurrentImplementation = mock((input: { name: string }) =>
   Result.ok({ message: `current:${input.name}` })
 );
-const versionContractForkBlaze = mock((input: { code: string }) =>
+const versionContractForkImplementation = mock((input: { code: string }) =>
   Result.ok({ message: `fork:${input.code}` })
 );
 const versionedContractTrail = trail('contract.versioned', {
-  blaze: (input: { name: string }) => versionContractCurrentBlaze(input),
   examples: [
     {
       expected: { message: 'current:Ada' },
@@ -221,6 +223,8 @@ const versionedContractTrail = trail('contract.versioned', {
       name: 'Current contract example',
     },
   ],
+  implementation: (input: { name: string }) =>
+    versionContractCurrentImplementation(input),
   input: z.object({ name: z.string() }),
   output: z.object({ message: z.string() }),
   version: 5,
@@ -243,7 +247,6 @@ const versionedContractTrail = trail('contract.versioned', {
       },
     },
     2: {
-      blaze: (input: { code: string }) => versionContractForkBlaze(input),
       examples: [
         {
           expected: { message: 'fork:beta' },
@@ -251,6 +254,8 @@ const versionedContractTrail = trail('contract.versioned', {
           name: 'Fork contract example',
         },
       ],
+      implementation: (input: { code: string }) =>
+        versionContractForkImplementation(input),
       input: z.object({ code: z.string() }),
       output: z.object({ message: z.string() }),
       status: { note: 'Use the current version.', state: 'deprecated' },
@@ -313,7 +318,7 @@ describe('testContracts: validates output schemas for trails with compositions',
   );
 
   afterAll(() => {
-    expect(compositionChildBlaze).toHaveBeenCalledTimes(1);
+    expect(compositionChildImplementation).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -402,7 +407,7 @@ describe('testContracts derives contour examples when trail examples are absent'
   );
 
   afterAll(() => {
-    expect(derivedContractBlaze).toHaveBeenCalledTimes(1);
+    expect(derivedContractImplementation).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -411,7 +416,7 @@ describe('testContracts validates live version-entry outputs', () => {
   testContracts(topo('version-contract-app', { versionedContractTrail }));
 
   afterAll(() => {
-    expect(versionContractCurrentBlaze).toHaveBeenCalledTimes(2);
-    expect(versionContractForkBlaze).toHaveBeenCalledTimes(1);
+    expect(versionContractCurrentImplementation).toHaveBeenCalledTimes(2);
+    expect(versionContractForkImplementation).toHaveBeenCalledTimes(1);
   });
 });

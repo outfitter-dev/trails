@@ -1,4 +1,4 @@
-/* oxlint-disable require-await -- blazes satisfy async interface without awaiting */
+/* oxlint-disable require-await -- implementations satisfy async interface without awaiting */
 import { describe, test, expect } from 'bun:test';
 
 import { z } from 'zod';
@@ -17,13 +17,13 @@ import type { TrailContext, TrailContextInit } from '../types';
 // ---------------------------------------------------------------------------
 
 const echoTrail = trail('echo', {
-  blaze: (input) => Result.ok({ value: input.value }),
+  implementation: (input) => Result.ok({ value: input.value }),
   input: z.object({ value: z.string() }),
   output: z.object({ value: z.string() }),
 });
 
 const throwingTrail = trail('throws', {
-  blaze: () => {
+  implementation: () => {
     throw new Error('kaboom');
   },
   input: z.object({}),
@@ -50,7 +50,8 @@ describe('run', () => {
         create: () => Result.ok({ source: 'factory' }),
       });
       const searchTrail = trail('search', {
-        blaze: (_input, ctx) => Result.ok({ source: db.from(ctx).source }),
+        implementation: (_input, ctx) =>
+          Result.ok({ source: db.from(ctx).source }),
         input: z.object({}),
         output: z.object({ source: z.string() }),
         resources: [db],
@@ -122,7 +123,7 @@ describe('run', () => {
     test('context overrides work through run', async () => {
       let capturedCtx: TrailContext | undefined;
       const ctxTrail = trail('ctx-run-test', {
-        blaze: (_input, ctx) => {
+        implementation: (_input, ctx) => {
           capturedCtx = ctx;
           return Result.ok(null);
         },
@@ -143,7 +144,7 @@ describe('run', () => {
     test('createContext factory works through run', async () => {
       let capturedCtx: TrailContext | undefined;
       const ctxTrail = trail('factory-run-test', {
-        blaze: (_input, ctx) => {
+        implementation: (_input, ctx) => {
           capturedCtx = ctx;
           return Result.ok(null);
         },

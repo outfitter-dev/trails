@@ -55,7 +55,7 @@ export const run = trail('deploy.run', {
     { name: 'staging dry run', input: { service: 'api', env: 'staging', dryRun: true } },
     { name: 'production deploy', input: { service: 'api', env: 'production' } },
   ],
-  blaze: async (input) => {
+  implementation: async (input) => {
     try {
       const result = await runDeploy(input.service, input.env, {
         dryRun: input.dryRun,

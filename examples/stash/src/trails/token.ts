@@ -28,7 +28,19 @@ const tokenNotFound = (id: string): NotFoundError =>
 // ---------------------------------------------------------------------------
 
 export const create = trail('token.create', {
-  blaze: async (input, ctx) => {
+  description:
+    'Create an API token; the secret is returned once and never again',
+  examples: [
+    {
+      description: 'Mint a read-write token',
+      input: {
+        name: 'ci-publisher',
+        scopes: ['snippet:write', 'snippet:interact'],
+      },
+      name: 'Create a token',
+    },
+  ],
+  implementation: async (input, ctx) => {
     const subject = requireSubject(ctx);
     if (subject.isErr()) {
       return subject;
@@ -50,18 +62,6 @@ export const create = trail('token.create', {
       secret: token.secret,
     });
   },
-  description:
-    'Create an API token; the secret is returned once and never again',
-  examples: [
-    {
-      description: 'Mint a read-write token',
-      input: {
-        name: 'ci-publisher',
-        scopes: ['snippet:write', 'snippet:interact'],
-      },
-      name: 'Create a token',
-    },
-  ],
   input: z.object({
     name: z.string().min(1).describe('Label for this token'),
     scopes: z
@@ -84,24 +84,6 @@ export const create = trail('token.create', {
 // ---------------------------------------------------------------------------
 
 export const list = trail('token.list', {
-  blaze: async (_input, ctx) => {
-    const subject = requireSubject(ctx);
-    if (subject.isErr()) {
-      return subject;
-    }
-    const conn = db.from(ctx);
-    const rows = await conn.tokens.list({ userId: subject.value });
-    const tokens = rows
-      .toSorted((a, b) => a.id.localeCompare(b.id))
-      .map((row) => ({
-        createdAt: row.createdAt,
-        id: row.id,
-        name: row.name,
-        revoked: row.revoked,
-        scopes: [...row.scopes],
-      }));
-    return Result.ok({ tokens, total: tokens.length });
-  },
   description: 'List your tokens with secrets redacted',
   examples: [
     {
@@ -134,6 +116,24 @@ export const list = trail('token.list', {
       name: 'List tokens',
     },
   ],
+  implementation: async (_input, ctx) => {
+    const subject = requireSubject(ctx);
+    if (subject.isErr()) {
+      return subject;
+    }
+    const conn = db.from(ctx);
+    const rows = await conn.tokens.list({ userId: subject.value });
+    const tokens = rows
+      .toSorted((a, b) => a.id.localeCompare(b.id))
+      .map((row) => ({
+        createdAt: row.createdAt,
+        id: row.id,
+        name: row.name,
+        revoked: row.revoked,
+        scopes: [...row.scopes],
+      }));
+    return Result.ok({ tokens, total: tokens.length });
+  },
   input: z.object({}),
   intent: 'read',
   output: z.object({
@@ -149,19 +149,6 @@ export const list = trail('token.list', {
 // ---------------------------------------------------------------------------
 
 export const revoke = trail('token.revoke', {
-  blaze: async (input, ctx) => {
-    const subject = requireSubject(ctx);
-    if (subject.isErr()) {
-      return subject;
-    }
-    const conn = db.from(ctx);
-    const token = await conn.tokens.get(input.id);
-    if (token === null || token.userId !== subject.value) {
-      return Result.err(tokenNotFound(input.id));
-    }
-    await conn.tokens.update(input.id, { revoked: true });
-    return Result.ok({ id: input.id, revoked: true });
-  },
   description: 'Revoke one of your tokens; revoked tokens stop authenticating',
   examples: [
     {
@@ -178,6 +165,19 @@ export const revoke = trail('token.revoke', {
       name: 'Revoke a missing token',
     },
   ],
+  implementation: async (input, ctx) => {
+    const subject = requireSubject(ctx);
+    if (subject.isErr()) {
+      return subject;
+    }
+    const conn = db.from(ctx);
+    const token = await conn.tokens.get(input.id);
+    if (token === null || token.userId !== subject.value) {
+      return Result.err(tokenNotFound(input.id));
+    }
+    await conn.tokens.update(input.id, { revoked: true });
+    return Result.ok({ id: input.id, revoked: true });
+  },
   input: z.object({
     id: z.string().describe('Token id to revoke'),
   }),

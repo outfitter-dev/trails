@@ -59,8 +59,8 @@ Documentation correctness is `P2` by default. Reserve `P3` for style-only wordin
 - Do not recommend adding provider-specific operational instructions to `AGENTS.md` when the behavior can live in provider config or shared lifecycle scripts.
 - For publishable package changes, check release intent: changesets or an explicit `release:none` reason must live on the owning branch.
 - Treat generated artifacts as regenerated. Do not suggest hand-editing generated files unless the repo explicitly owns them.
-- Keep Trails vocabulary precise. Current live terms are `trail`, `blaze`, `topo`, `compose`, `surface`, `resource`, and `layer`; pending v1 vocabulary belongs only where the repo already documents the cutover.
-- Trail logic should remain surface-agnostic: no `Request`, `Response`, MCP session, or CLI-specific types inside blazes or shared trail code.
-- Blazes return `Result` values and should not throw for expected failures.
+- Keep Trails vocabulary precise. Current live terms are `trail`, `implementation`, `topo`, `compose`, `surface`, `resource`, and `layer`; pending v1 vocabulary belongs only where the repo already documents the cutover.
+- Trail logic should remain surface-agnostic: no `Request`, `Response`, MCP session, or CLI-specific types inside implementations or shared trail code.
+- Implementations return `Result` values and should not throw for expected failures.
 - Trails that compose other trails should use `ctx.compose()` and keep `composes` declarations aligned.
 - Public MCP/HTTP surface trails need output schemas, and examples/docs should stay aligned with authored schemas.

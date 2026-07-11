@@ -3,7 +3,7 @@
  *
  * Scenarios express multi-trail flows as structured data — arrays of steps
  * with compose-step references via `ref()`. Each step invokes a trail through
- * the normal execution pipeline (validation, layers, blaze, Result).
+ * the normal execution pipeline (validation, layers, implementation, Result).
  */
 
 import { describe, test } from 'bun:test';

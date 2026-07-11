@@ -49,7 +49,7 @@ const writeFixtureApp = (dir: string, options?: { edited?: boolean }) => {
 import { z } from 'zod';
 
 const hello = trail('hello', {
-  blaze: async (input) => Result.ok({ message: \`Hello, \${input.name ?? 'world'}!\` }),
+  implementation: async (input) => Result.ok({ message: \`Hello, \${input.name ?? 'world'}!\` }),
   input: z.object({ name: z.string().optional()${options?.edited ? ".describe('Staled after compile')" : ''} }),
   intent: 'read',
   output: z.object({ message: z.string() }),
@@ -61,9 +61,12 @@ export const app = topo('lock-roundtrip-fixture', { hello });
 };
 
 const compileFixture = async (dir: string): Promise<void> => {
-  const compiled = await compileTrail.blaze({ module: './src/app.ts' }, {
-    cwd: dir,
-  } as never);
+  const compiled = await compileTrail.implementation(
+    { module: './src/app.ts' },
+    {
+      cwd: dir,
+    } as never
+  );
   if (compiled.isErr()) {
     throw compiled.error;
   }

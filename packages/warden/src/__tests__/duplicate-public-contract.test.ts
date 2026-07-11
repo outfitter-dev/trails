@@ -19,12 +19,12 @@ const output = z.object({ ok: z.boolean() });
 describe('duplicate-public-contract', () => {
   test('warns when two public trails expose the same normalized contract facts', async () => {
     const canonical = trail('survey.diff', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input,
       output,
     });
     const duplicate = trail('diff', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input,
       output,
     });
@@ -47,12 +47,12 @@ describe('duplicate-public-contract', () => {
 
   test('stays quiet for Warden rule wrappers with matching schemas', async () => {
     const canonical = trail('warden.rule.a', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input,
       output,
     });
     const sibling = trail('warden.rule.b', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input,
       output,
     });
@@ -66,10 +66,10 @@ describe('duplicate-public-contract', () => {
 
   test('stays quiet for graph entries without input/output contracts', async () => {
     const first = trail('operator.first', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
     });
     const second = trail('operator.second', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
     });
 
     const diagnostics = await duplicatePublicContract.checkTopo(
@@ -95,11 +95,11 @@ describe('duplicate-public-contract', () => {
       mock: () => ({}),
     });
     const packDelete = deriveTrail(pack, 'delete', {
-      blaze: () => Result.ok(),
+      implementation: () => Result.ok(),
       resource: db,
     });
     const tripDelete = deriveTrail(trip, 'delete', {
-      blaze: () => Result.ok(),
+      implementation: () => Result.ok(),
       resource: db,
     });
 
@@ -117,14 +117,14 @@ describe('duplicate-public-contract', () => {
       { identity: 'id' }
     );
     const canonical = trail('pack.remove', {
-      blaze: () => Result.ok({ ok: true }),
       contours: [pack],
+      implementation: () => Result.ok({ ok: true }),
       input,
       output,
     });
     const duplicate = trail('pack.destroy', {
-      blaze: () => Result.ok({ ok: true }),
       contours: [pack],
+      implementation: () => Result.ok({ ok: true }),
       input,
       output,
     });
@@ -138,12 +138,12 @@ describe('duplicate-public-contract', () => {
 
   test('uses provided graph facts when available', async () => {
     const canonical = trail('survey.diff', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input,
       output,
     });
     const duplicate = trail('diff', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input,
       output,
     });

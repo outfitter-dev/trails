@@ -68,7 +68,7 @@ A query against the topo has typed input, typed output, and a pure implementatio
 
 ### Wayfinding is trails over `@ontrails/topographer` artifacts
 
-Wayfinding does not introduce a new primitive. The wayfinder is a package of trails whose blazes read the durable graph artifacts owned by `@ontrails/topographer`: `TopoGraph`, lock manifest helpers, `DiffResult`, and the read-only topo store records (`TopoStoreTrailRecord`, `TopoStoreTrailDetailRecord`, `TopoStoreResourceRecord`, `TopoStoreSignalRecord`).
+Wayfinding does not introduce a new primitive. The wayfinder is a package of trails whose implementations read the durable graph artifacts owned by `@ontrails/topographer`: `TopoGraph`, lock manifest helpers, `DiffResult`, and the read-only topo store records (`TopoStoreTrailRecord`, `TopoStoreTrailDetailRecord`, `TopoStoreResourceRecord`, `TopoStoreSignalRecord`).
 
 This means:
 

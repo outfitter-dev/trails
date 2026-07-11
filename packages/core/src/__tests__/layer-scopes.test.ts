@@ -2,7 +2,7 @@
  * TRL-472: Three attachment scopes for typed layers — trail, surface, topo.
  *
  * Verifies that layers attach declaratively at each scope and compose at
- * execute time in the order topo → surface → trail → blaze (outermost-first).
+ * execute time in the order topo → surface → trail → implementation (outermost-first).
  */
 
 import { describe, expect, test } from 'bun:test';
@@ -32,7 +32,7 @@ const recordingLayer = (label: string, log: string[]): Layer => ({
 
 const buildEchoTrail = (extra: { readonly layers?: readonly Layer[] } = {}) =>
   trail('echo', {
-    blaze: (input) => Result.ok({ value: input.value }),
+    implementation: (input) => Result.ok({ value: input.value }),
     input: z.object({ value: z.string() }),
     output: z.object({ value: z.string() }),
     ...(extra.layers === undefined ? {} : { layers: extra.layers }),
@@ -68,7 +68,7 @@ describe('trail-level layers', () => {
 // ---------------------------------------------------------------------------
 
 describe('surface-level layers', () => {
-  test('surfaceLayers wrap the blaze', async () => {
+  test('surfaceLayers wrap the implementation', async () => {
     const log: string[] = [];
     const layerB = recordingLayer('B', log);
     const echo = buildEchoTrail();
@@ -105,7 +105,7 @@ describe('topo-level layers', () => {
     expect(app.layers).toEqual([]);
   });
 
-  test('topoLayers wrap the blaze', async () => {
+  test('topoLayers wrap the implementation', async () => {
     const log: string[] = [];
     const layerC = recordingLayer('C', log);
     const echo = buildEchoTrail();
@@ -127,7 +127,7 @@ describe('topo-level layers', () => {
 // ---------------------------------------------------------------------------
 
 describe('layer composition order', () => {
-  test('runs C → B → A → blaze when topo, surface, and trail layers all present', async () => {
+  test('runs C → B → A → implementation when topo, surface, and trail layers all present', async () => {
     const log: string[] = [];
     const layerA = recordingLayer('A', log);
     const layerB = recordingLayer('B', log);

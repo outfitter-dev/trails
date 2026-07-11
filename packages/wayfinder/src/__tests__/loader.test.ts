@@ -48,16 +48,16 @@ const restoreTrailsStateHome = (value: string | undefined): void => {
 };
 
 const userShowTrail = trail('user.show', {
-  blaze: () => Result.ok({ ok: true }),
   examples: [{ expected: { ok: true }, input: {}, name: 'Basic' }],
+  implementation: () => Result.ok({ ok: true }),
   input: z.object({}),
   intent: 'read',
   output: z.object({ ok: z.boolean() }),
 });
 
 const accountListTrail = trail('account.list', {
-  blaze: () => Result.ok({ accounts: [] }),
   examples: [{ expected: { accounts: [] }, input: {}, name: 'Basic' }],
+  implementation: () => Result.ok({ accounts: [] }),
   input: z.object({}),
   intent: 'read',
   output: z.object({ accounts: z.array(z.object({ id: z.string() })) }),

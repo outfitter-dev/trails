@@ -29,7 +29,8 @@ const releaseSmokeOutputSchema = z.object({
 });
 
 export const releaseSmokeTrail = trail('release.smoke', {
-  blaze: async (input) => {
+  description: 'Run local release confidence smoke checks',
+  implementation: async (input) => {
     try {
       const check = releaseSmokeCheckSchema.parse(input.check);
       return Result.ok(await runReleaseSmoke(check));
@@ -41,7 +42,6 @@ export const releaseSmokeTrail = trail('release.smoke', {
       );
     }
   },
-  description: 'Run local release confidence smoke checks',
   input: releaseSmokeInputSchema,
   intent: 'read',
   output: releaseSmokeOutputSchema,

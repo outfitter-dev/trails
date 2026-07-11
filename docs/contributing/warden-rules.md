@@ -175,7 +175,7 @@ The repo-local `no-retired-lexicon-terms` Oxlint rule is the source-file guard f
 
 ## Ast-Grep Structural Rules
 
-The `.ast-grep/` ruleset is repo-local structural lint, paired with Warden rather than replacing it. Use it for high-confidence syntax shapes where the invariant is already owned and named by Warden, such as direct `.blaze()` calls or `Result.err(new Error(...))`. Keep topo-aware, project-static, owner-projection, and scope-sensitive checks in Warden.
+The `.ast-grep/` ruleset is repo-local structural lint, paired with Warden rather than replacing it. Use it for high-confidence syntax shapes where the invariant is already owned and named by Warden, such as direct `.implementation()` calls or `Result.err(new Error(...))`. Keep topo-aware, project-static, owner-projection, and scope-sensitive checks in Warden.
 
 Experimental ast-grep queries may live outside `.ast-grep/rules/` so they are available for audits without blocking CI. Promote one into the blocking rule directory only after it is clean on the current tree and its false-positive profile is understood.
 

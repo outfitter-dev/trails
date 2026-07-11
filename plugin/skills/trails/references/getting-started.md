@@ -47,7 +47,7 @@ export const greet = trail('greet', {
       expected: { message: 'HELLO, WORLD!' },
     },
   ],
-  blaze: (input) => {
+  implementation: (input) => {
     const message = `Hello, ${input.name}!`;
     return Result.ok({
       message: input.loud ? message.toUpperCase() : message,
@@ -56,7 +56,7 @@ export const greet = trail('greet', {
 });
 ```
 
-This gives you a blazed trail plus CLI flags (`--name`, `--loud`), an MCP tool with JSON Schema and `readOnlyHint: true`, examples as test cases, and sync authoring normalized to async at runtime.
+This gives you a runnable trail plus CLI flags (`--name`, `--loud`), an MCP tool with JSON Schema and `readOnlyHint: true`, examples as test cases, and sync authoring normalized to async at runtime.
 
 ## Collect Into a Topo
 
@@ -105,7 +105,7 @@ import { graph } from './app';
 await surface(graph);
 ```
 
-Same blazed trail, different surface. The MCP server exposes `myapp_greet` with JSON Schema input, `readOnlyHint: true`, and examples for agent planning.
+Same trail contract, different surface. The MCP server exposes `myapp_greet` with JSON Schema input, `readOnlyHint: true`, and examples for agent planning.
 
 ## Open an HTTP Surface
 
@@ -174,7 +174,7 @@ export const add = trail('math.add', {
   examples: [
     { name: 'Add two numbers', input: { a: 2, b: 3 }, expected: { result: 5 } },
   ],
-  blaze: (input) => Result.ok({ result: input.a + input.b }),
+  implementation: (input) => Result.ok({ result: input.a + input.b }),
 });
 ```
 
@@ -208,7 +208,7 @@ export const addAndDouble = trail('math.add-and-double', {
   composes: [add],
   input: z.object({ a: z.number(), b: z.number() }),
   output: z.object({ result: z.number() }),
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const sum = await ctx.compose(add, input);
     if (sum.isErr()) return sum;
     return Result.ok({ result: sum.value.result * 2 });
@@ -256,7 +256,7 @@ const lookup = trail('lookup', {
   input: z.object({ id: z.string().describe('Record ID') }),
   output: z.object({ name: z.string() }),
   intent: 'read',
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const conn = db.from(ctx);
     const record = await conn.findById(input.id);
     if (!record) return Result.err(new NotFoundError(`No record: ${input.id}`));

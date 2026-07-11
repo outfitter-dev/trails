@@ -8,16 +8,16 @@ import { Result, topo, trail } from '@ontrails/core';
 import { z } from 'zod';
 
 export const dotted = trail('widget.get.thing', {
-  blaze: () => Result.ok({ via: 'dotted' }),
   description: 'Collides via a dotted id.',
+  implementation: () => Result.ok({ via: 'dotted' }),
   input: z.object({}),
   intent: 'read',
   output: z.object({ via: z.string() }),
 });
 
 export const kebab = trail('widget.get-thing', {
-  blaze: () => Result.ok({ via: 'kebab' }),
   description: 'Collides via a hyphenated tail segment.',
+  implementation: () => Result.ok({ via: 'kebab' }),
   input: z.object({}),
   intent: 'read',
   output: z.object({ via: z.string() }),

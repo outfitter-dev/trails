@@ -15,7 +15,7 @@ const greet = trail('greet', {
   examples: [
     { name: 'Hello', input: { name: 'World' }, expected: { message: 'Hello, World!' } },
   ],
-  blaze: (input) => Result.ok({ message: `Hello, ${input.name}!` }),
+  implementation: (input) => Result.ok({ message: `Hello, ${input.name}!` }),
 });
 
 const graph = topo('myapp', { greet });
@@ -27,7 +27,7 @@ Trails compose other trails through `composes` and `ctx.compose()`:
 const onboard = trail('entity.onboard', {
   composes: ['entity.add', 'entity.relate'],
   input: z.object({ name: z.string(), type: z.string() }),
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const added = await ctx.compose('entity.add', input);
     if (added.isErr()) return added;
     return Result.ok({ entity: added.value });
@@ -54,7 +54,7 @@ const onboard = trail('entity.onboard', {
 
 | Export | What it does |
 | --- | --- |
-| `executeTrail(trail, rawInput, options?)` | Centralized execution pipeline: validates input, builds context, composes layers, runs the blazed trail. Never throws -- exceptions become `Result.err(InternalError)`. |
+| `executeTrail(trail, rawInput, options?)` | Centralized execution pipeline: validates input, builds context, composes layers, runs the trail. Never throws -- exceptions become `Result.err(InternalError)`. |
 | `run(topo, id, input, options?)` | Headless trail execution by ID. Looks up the trail in the topo, then delegates to `executeTrail`. Returns `Result.err(NotFoundError)` if the ID is not registered. |
 
 ```typescript

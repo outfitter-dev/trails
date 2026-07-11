@@ -10,12 +10,12 @@ describe('intent-propagation', () => {
 trail('entity.read', {
   intent: 'read',
   composes: ['entity.refresh'],
-  blaze: async (_input, ctx) => ctx.compose('entity.refresh', {}),
+  implementation: async (_input, ctx) => ctx.compose('entity.refresh', {}),
 });
 
 trail('entity.refresh', {
   intent: 'write',
-  blaze: async () => Result.ok({}),
+  implementation: async () => Result.ok({}),
 });
 `;
 
@@ -33,7 +33,7 @@ trail('entity.refresh', {
 trail('entity.read', {
   intent: 'read',
   composes: ['entity.delete'],
-  blaze: async (_input, ctx) => ctx.compose('entity.delete', {}),
+  implementation: async (_input, ctx) => ctx.compose('entity.delete', {}),
 });
 `;
 
@@ -54,12 +54,12 @@ trail('entity.read', {
 trail('entity.read', {
   intent: 'read',
   composes: ['entity.lookup'],
-  blaze: async (_input, ctx) => ctx.compose('entity.lookup', {}),
+  implementation: async (_input, ctx) => ctx.compose('entity.lookup', {}),
 });
 
 trail('entity.lookup', {
   intent: 'read',
-  blaze: async () => Result.ok({}),
+  implementation: async () => Result.ok({}),
 });
 `;
 
@@ -81,12 +81,12 @@ import * as core from '@ontrails/core';
 core.trail('entity.read', {
   intent: 'read',
   composes: ['entity.refresh'],
-  blaze: async (_input, ctx) => ctx.compose('entity.refresh', {}),
+  implementation: async (_input, ctx) => ctx.compose('entity.refresh', {}),
 });
 
 core.trail('entity.refresh', {
   intent: 'write',
-  blaze: async () => Result.ok({}),
+  implementation: async () => Result.ok({}),
 });
 `;
 
@@ -102,12 +102,12 @@ core.trail('entity.refresh', {
 trail('entity.update', {
   intent: 'write',
   composes: ['entity.delete'],
-  blaze: async (_input, ctx) => ctx.compose('entity.delete', {}),
+  implementation: async (_input, ctx) => ctx.compose('entity.delete', {}),
 });
 
 trail('entity.delete', {
   intent: 'destroy',
-  blaze: async () => Result.ok({}),
+  implementation: async () => Result.ok({}),
 });
 `;
 

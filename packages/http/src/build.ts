@@ -133,7 +133,7 @@ export interface HttpRouteDefinition {
     | undefined;
   readonly webhookSource?: WebhookSource | undefined;
   /**
-   * Validate input, compose layers, and run the blazed trail.
+   * Validate input, compose layers, and run the trail implementation.
    *
    * The caller is responsible for parsing raw input from the request and
    * mapping the Result to an HTTP response. This function is framework-agnostic.

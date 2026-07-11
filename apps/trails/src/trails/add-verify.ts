@@ -92,7 +92,8 @@ const updatePackageJsonForVerify = async (
 // ---------------------------------------------------------------------------
 
 export const addVerify = trail('add.verify', {
-  blaze: async (input) => {
+  description: 'Add testing and warden verification',
+  implementation: async (input) => {
     const projectDirResult = resolveProjectDir(input.dir ?? '.', input.name);
     if (projectDirResult.isErr()) {
       return projectDirResult;
@@ -141,7 +142,6 @@ export const addVerify = trail('add.verify', {
 
     return Result.ok({ created: files });
   },
-  description: 'Add testing and warden verification',
   input: z.object({
     dir: z.string().optional().describe('Parent directory'),
     name: z

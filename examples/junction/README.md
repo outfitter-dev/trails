@@ -104,7 +104,7 @@ One error class hierarchy maps deterministically onto every surface. The rows ju
 Building the first cut of this app surfaced three framework gaps, filed as Linear issues and since fixed upstream — the app now uses the real APIs:
 
 1. **TRL-1174 (fixed by webhook ingress v2)** — `webhook()` sources now support dynamic path segments, so `POST /hooks/:endpointId` is declared on the [`webhook.inbound`](src/trails/webhook.ts) source instead of a hand-authored route.
-2. **TRL-1175 (fixed by webhook ingress v2)** — sources can opt into `rawBody` delivery and an allowlisted `headers` envelope, so `webhook.receive` gets the exact signed bytes through the primitive. Verification stays in the blaze deliberately: a rejected signature must still record its audit event before the 401.
+2. **TRL-1175 (fixed by webhook ingress v2)** — sources can opt into `rawBody` delivery and an allowlisted `headers` envelope, so `webhook.receive` gets the exact signed bytes through the primitive. Verification stays in the implementation deliberately: a rejected signature must still record its audit event before the 401.
 3. **TRL-1176 (fixed)** — `createMcpHarness` forwards the full `McpExtra`, so the permit-parity suite drives bearer tokens straight through the harness.
 
 ## Layout

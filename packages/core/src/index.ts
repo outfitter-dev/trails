@@ -222,7 +222,7 @@ export {
 } from './version-resolution.js';
 export type {
   AnyTrail,
-  BlazeInput,
+  ImplementationInput,
   Intent,
   Trail,
   TrailVersionEntry,

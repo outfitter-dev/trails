@@ -11,12 +11,12 @@ export const intentPropagationTrail = wrapRule({
         sourceCode: `trail('entity.read', {
   intent: 'read',
   composes: ['entity.lookup'],
-  blaze: async (_input, ctx) => ctx.compose('entity.lookup', {}),
+  implementation: async (_input, ctx) => ctx.compose('entity.lookup', {}),
 });
 
 trail('entity.lookup', {
   intent: 'read',
-  blaze: async () => Result.ok({}),
+  implementation: async () => Result.ok({}),
 });`,
         trailIntentsById: {
           'entity.lookup': 'read',

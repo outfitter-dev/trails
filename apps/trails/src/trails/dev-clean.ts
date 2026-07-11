@@ -9,7 +9,17 @@ import { resolveTrailRootDir } from './root-dir.js';
 import { createIsolatedExampleInput } from './topo-support.js';
 
 export const devCleanTrail = trail('dev.clean', {
-  blaze: (input, ctx) => {
+  description: 'Prune unpinned topo snapshots and old trace records',
+  examples: [
+    {
+      input: {
+        dryRun: true,
+        rootDir: createIsolatedExampleInput('dev-clean').rootDir,
+      },
+      name: 'Preview local cleanup',
+    },
+  ],
+  implementation: (input, ctx) => {
     if (input.dryRun !== true && input.yes !== true) {
       return Result.err(
         new ValidationError(
@@ -33,16 +43,6 @@ export const devCleanTrail = trail('dev.clean', {
       })
     );
   },
-  description: 'Prune unpinned topo snapshots and old trace records',
-  examples: [
-    {
-      input: {
-        dryRun: true,
-        rootDir: createIsolatedExampleInput('dev-clean').rootDir,
-      },
-      name: 'Preview local cleanup',
-    },
-  ],
   input: z.object({
     dryRun: z
       .boolean()

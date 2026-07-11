@@ -22,7 +22,7 @@ const unwrapOk = <T>(result: Result<T, Error>): T =>
 describe('surface', () => {
   test('smoke test: deriveCliCommands + toCommander wiring does not throw', () => {
     const t = trail('ping', {
-      blaze: () => Result.ok('pong'),
+      implementation: () => Result.ok('pong'),
       input: z.object({}),
     });
     const app = topo('smoke-test', { ping: t });
@@ -42,7 +42,7 @@ describe('surface', () => {
 
   test('uses defaultOnResult when none provided', () => {
     const t = trail('echo', {
-      blaze: (input: { msg: string }) => Result.ok(input.msg),
+      implementation: (input: { msg: string }) => Result.ok(input.msg),
       input: z.object({ msg: z.string() }),
     });
     const app = topo('default-on-result', { echo: t });
@@ -60,7 +60,8 @@ describe('surface', () => {
 
   test('deriveCliCommands returns Result and createProgram wires the new surface API', () => {
     const t = trail('greet', {
-      blaze: (input: { name: string }) => Result.ok(`Hello, ${input.name}!`),
+      implementation: (input: { name: string }) =>
+        Result.ok(`Hello, ${input.name}!`),
       input: z.object({ name: z.string() }),
     });
     const app = topo('surface-api', { greet: t });
@@ -80,7 +81,7 @@ describe('surface', () => {
 
   test('createProgram forwards surface overlay cli bindings', () => {
     const t = trail('wayfind.search', {
-      blaze: (input: { query: string }) => Result.ok(input.query),
+      implementation: (input: { query: string }) => Result.ok(input.query),
       input: z.object({ query: z.string() }),
     });
     const app = topo('surface-aliases', { [t.id]: t });
@@ -95,8 +96,8 @@ describe('surface', () => {
 
   test('surface throws on invalid topo', async () => {
     const t = trail('broken', {
-      blaze: () => Result.ok({}),
       composes: ['nonexistent.trail'],
+      implementation: () => Result.ok({}),
       input: z.object({}),
       output: z.object({}),
     });
@@ -106,8 +107,8 @@ describe('surface', () => {
 
   test('SurfaceCliOptions accepts validate: false without type errors', () => {
     const t = trail('broken', {
-      blaze: () => Result.ok({}),
       composes: ['nonexistent.trail'],
+      implementation: () => Result.ok({}),
       input: z.object({}),
       output: z.object({}),
     });
@@ -136,8 +137,8 @@ describe('surface', () => {
 
   test('deriveCliCommands returns Err on invalid topo', () => {
     const t = trail('broken', {
-      blaze: () => Result.ok({}),
       composes: ['nonexistent.trail'],
+      implementation: () => Result.ok({}),
       input: z.object({}),
       output: z.object({}),
     });
@@ -166,7 +167,8 @@ describe('surface', () => {
 
     try {
       const t = trail('greet', {
-        blaze: (input: { name: string }) => Result.ok(`Hello, ${input.name}!`),
+        implementation: (input: { name: string }) =>
+          Result.ok(`Hello, ${input.name}!`),
         input: z.object({ name: z.string() }),
       });
       const app = topo('e2e-test', { greet: t });

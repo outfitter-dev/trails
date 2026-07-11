@@ -37,11 +37,11 @@ const mockTrail = (
     resources?: readonly ReturnType<typeof resource>[];
   }
 ) => ({
-  blaze: noop,
   composes: Object.freeze([...(overrides?.composes ?? [])]),
   contours: Object.freeze([...(overrides?.contours ?? [])]),
   fires: Object.freeze([...(overrides?.fires ?? [])]),
   id,
+  implementation: noop,
   input: z.object({ name: z.string() }),
   kind: 'trail' as const,
   on: Object.freeze([...(overrides?.on ?? [])]),
@@ -145,14 +145,14 @@ describe('validateTopo', () => {
       const ok = async () => Result.ok({ ok: true });
       const app = topo('app', {
         versioned: trail('entity.versioned', {
-          blaze: ok,
+          implementation: ok,
           input: z.object({ name: z.string() }),
           output: z.object({ ok: z.boolean() }),
           version: 2,
           versions: {
             1: {
-              blaze: ok,
               composes: ['entity.missing'],
+              implementation: ok,
               input: z.object({ name: z.string() }),
               output: z.object({ ok: z.boolean() }),
             },
@@ -184,14 +184,14 @@ describe('validateTopo', () => {
       const ok = async () => Result.ok({ ok: true });
       const app = topo('app', {
         versioned: trail('entity.versioned', {
-          blaze: ok,
+          implementation: ok,
           input: z.object({ name: z.string() }),
           output: z.object({ ok: z.boolean() }),
           version: 2,
           versions: {
             1: {
-              blaze: ok,
               composes: ['entity.missing'],
+              implementation: ok,
               input: z.object({ name: z.string() }),
               output: z.object({ ok: z.boolean() }),
               status: { state: 'archived' },
@@ -208,20 +208,20 @@ describe('validateTopo', () => {
       const ok = async () => Result.ok({ ok: true });
       const app = topo('app', {
         a: trail('a', {
-          blaze: ok,
           composes: ['b'],
+          implementation: ok,
           input: z.object({ name: z.string() }),
           output: z.object({ ok: z.boolean() }),
         }),
         b: trail('b', {
-          blaze: ok,
+          implementation: ok,
           input: z.object({ name: z.string() }),
           output: z.object({ ok: z.boolean() }),
           version: 2,
           versions: {
             1: {
-              blaze: ok,
               composes: ['a'],
+              implementation: ok,
               input: z.object({ name: z.string() }),
               output: z.object({ ok: z.boolean() }),
             },
@@ -240,20 +240,20 @@ describe('validateTopo', () => {
       const ok = async () => Result.ok({ ok: true });
       const app = topo('app', {
         a: trail('a', {
-          blaze: ok,
           composes: ['b'],
+          implementation: ok,
           input: z.object({ name: z.string() }),
           output: z.object({ ok: z.boolean() }),
         }),
         b: trail('b', {
-          blaze: ok,
+          implementation: ok,
           input: z.object({ name: z.string() }),
           output: z.object({ ok: z.boolean() }),
           version: 2,
           versions: {
             1: {
-              blaze: ok,
               composes: ['a'],
+              implementation: ok,
               input: z.object({ name: z.string() }),
               output: z.object({ ok: z.boolean() }),
               status: { state: 'archived' },
@@ -377,13 +377,13 @@ describe('validateTopo', () => {
       const ok = async () => Result.ok({ ok: true });
       const app = topo('app', {
         versioned: trail('entity.versioned', {
-          blaze: ok,
+          implementation: ok,
           input: z.object({ name: z.string() }),
           output: z.object({ ok: z.boolean() }),
           version: 2,
           versions: {
             1: {
-              blaze: ok,
+              implementation: ok,
               input: z.object({ name: z.string() }),
               output: z.object({ ok: z.boolean() }),
               resources: [db],
@@ -508,7 +508,7 @@ describe('validateTopo', () => {
 
     test('version entry examples validate against historical schemas', () => {
       const versioned = trail('versioned.example', {
-        blaze: () => Result.ok({ current: true }),
+        implementation: () => Result.ok({ current: true }),
         input: z.object({ current: z.string() }),
         output: z.object({ current: z.boolean() }),
         version: 2,
@@ -543,7 +543,7 @@ describe('validateTopo', () => {
 
     test('archived version entry examples are preserved but skipped by default validation', () => {
       const versioned = trail('versioned.archived.example', {
-        blaze: () => Result.ok({ current: true }),
+        implementation: () => Result.ok({ current: true }),
         input: z.object({ current: z.string() }),
         output: z.object({ current: z.boolean() }),
         version: 2,
@@ -753,7 +753,7 @@ describe('validateTopo', () => {
     test('unsupported activation source kinds produce diagnostics', () => {
       const app = topo('app', {
         consumer: trail('entity.consume', {
-          blaze: noop,
+          implementation: noop,
           input: z.object({}),
           on: [{ id: 'queue.entity.created', kind: 'queue' }],
         }),
@@ -772,7 +772,7 @@ describe('validateTopo', () => {
     test('duplicate source-to-trail activation entries produce diagnostics', () => {
       const app = topo('app', {
         consumer: trail('order.consume', {
-          blaze: noop,
+          implementation: noop,
           input: z.object({ orderId: z.string() }),
           on: [
             'order.created',
@@ -803,7 +803,7 @@ describe('validateTopo', () => {
     test('conflicting source declarations for the same key produce diagnostics', () => {
       const app = topo('app', {
         morning: trail('report.morning', {
-          blaze: noop,
+          implementation: noop,
           input: z.object({ name: z.string() }),
           on: [
             {
@@ -815,7 +815,7 @@ describe('validateTopo', () => {
           ],
         }),
         nightly: trail('report.nightly', {
-          blaze: noop,
+          implementation: noop,
           input: z.object({ name: z.string() }),
           on: [
             {
@@ -847,12 +847,12 @@ describe('validateTopo', () => {
       const parse = z.object({ paymentId: z.string() });
       const app = topo('app', {
         explicit: trail('payment.explicit', {
-          blaze: noop,
+          implementation: noop,
           input: parse,
           on: [webhook('webhook.payment', { parse, path: '/webhooks/pay' })],
         }),
         manual: trail('payment.manual', {
-          blaze: noop,
+          implementation: noop,
           input: parse,
           on: [
             {
@@ -879,7 +879,7 @@ describe('validateTopo', () => {
       const verify = () => Result.ok();
       const app = topo('app', {
         first: trail('payment.first', {
-          blaze: noop,
+          implementation: noop,
           input: parse,
           on: [
             webhook('webhook.payment', {
@@ -890,7 +890,7 @@ describe('validateTopo', () => {
           ],
         }),
         second: trail('payment.second', {
-          blaze: noop,
+          implementation: noop,
           input: parse,
           on: [
             webhook('webhook.payment', {
@@ -915,7 +915,7 @@ describe('validateTopo', () => {
       const parse = z.object({ paymentId: z.string() });
       const app = topo('app', {
         first: trail('payment.first', {
-          blaze: noop,
+          implementation: noop,
           input: parse,
           on: [
             webhook('webhook.payment', {
@@ -926,7 +926,7 @@ describe('validateTopo', () => {
           ],
         }),
         second: trail('payment.second', {
-          blaze: noop,
+          implementation: noop,
           input: parse,
           on: [
             webhook('webhook.payment', {
@@ -953,7 +953,7 @@ describe('validateTopo', () => {
     test('compatible signal payload and trail input pass', () => {
       const app = topo('app', {
         consumer: trail('order.consume', {
-          blaze: noop,
+          implementation: noop,
           input: z.object({ orderId: z.string() }),
           on: ['order.created'],
         }),
@@ -974,7 +974,7 @@ describe('validateTopo', () => {
     test('defaulted source payload fields satisfy required trail input fields', () => {
       const app = topo('app', {
         consumer: trail('account.consume', {
-          blaze: noop,
+          implementation: noop,
           input: z.object({ accountId: z.string() }),
           on: ['account.created'],
         }),
@@ -994,7 +994,7 @@ describe('validateTopo', () => {
     test('literal-union source payload values satisfy wider target enums', () => {
       const app = topo('app', {
         consumer: trail('order.consume', {
-          blaze: noop,
+          implementation: noop,
           input: z.object({
             status: z.enum(['pending', 'settled', 'failed']),
           }),
@@ -1016,7 +1016,7 @@ describe('validateTopo', () => {
     test('matching source and target nullable unions pass', () => {
       const app = topo('app', {
         consumer: trail('order.consume', {
-          blaze: noop,
+          implementation: noop,
           input: z.object({
             orderId: z.string().nullable(),
           }),
@@ -1038,7 +1038,7 @@ describe('validateTopo', () => {
     test('incompatible signal payload and trail input produce a source diagnostic', () => {
       const app = topo('app', {
         consumer: trail('order.consume', {
-          blaze: noop,
+          implementation: noop,
           input: z.object({ orderId: z.string() }),
           on: ['order.created'],
         }),
@@ -1067,7 +1067,7 @@ describe('validateTopo', () => {
     test('compatible schedule input and trail input pass', () => {
       const app = topo('app', {
         reconcile: trail('account.reconcile', {
-          blaze: noop,
+          implementation: noop,
           input: z.object({ accountId: z.string() }),
           on: [
             {
@@ -1087,7 +1087,7 @@ describe('validateTopo', () => {
     test('incompatible schedule input and trail input produce a source diagnostic', () => {
       const app = topo('app', {
         reconcile: trail('account.reconcile', {
-          blaze: noop,
+          implementation: noop,
           input: z.object({ accountId: z.string() }),
           on: [
             {
@@ -1116,7 +1116,7 @@ describe('validateTopo', () => {
     test('omitted schedule input defaults to empty object for input compatibility', () => {
       const app = topo('app', {
         reconcile: trail('account.reconcile', {
-          blaze: noop,
+          implementation: noop,
           input: z.object({ accountId: z.string() }),
           on: [
             {
@@ -1143,7 +1143,7 @@ describe('validateTopo', () => {
     test('invalid schedule cron and timezone produce source diagnostics', () => {
       const app = topo('app', {
         reconcile: trail('account.reconcile', {
-          blaze: noop,
+          implementation: noop,
           input: z.object({}),
           on: [
             {
@@ -1175,7 +1175,7 @@ describe('validateTopo', () => {
     test('invalid webhook path and parse shape produce source diagnostics', () => {
       const app = topo('app', {
         receive: trail('payment.receive', {
-          blaze: noop,
+          implementation: noop,
           input: z.object({ paymentId: z.string() }),
           on: [
             {
@@ -1207,7 +1207,7 @@ describe('validateTopo', () => {
     test('compatible webhook parse output and trail input pass', () => {
       const app = topo('app', {
         receive: trail('payment.receive', {
-          blaze: noop,
+          implementation: noop,
           input: z.object({ paymentId: z.string() }),
           on: [
             webhook('webhook.stripe.payment', {
@@ -1227,7 +1227,7 @@ describe('validateTopo', () => {
     test('webhook parse output takes precedence over raw payload for input compatibility', () => {
       const app = topo('app', {
         receive: trail('issue.receive', {
-          blaze: noop,
+          implementation: noop,
           input: z.object({ issueId: z.string() }),
           on: [
             webhook('webhook.github.issue', {
@@ -1251,7 +1251,7 @@ describe('validateTopo', () => {
     test('incompatible webhook parse output and trail input produce a source diagnostic', () => {
       const app = topo('app', {
         receive: trail('payment.receive', {
-          blaze: noop,
+          implementation: noop,
           input: z.object({ paymentId: z.string() }),
           on: [
             webhook('webhook.stripe.payment', {
@@ -1280,7 +1280,7 @@ describe('validateTopo', () => {
     test('object-form where predicates do not narrow source payload schemas', () => {
       const app = topo('app', {
         consumer: trail('order.consume', {
-          blaze: noop,
+          implementation: noop,
           input: z.object({ orderId: z.string() }),
           on: [
             {
@@ -1550,7 +1550,7 @@ describe('validateEstablishedTopo', () => {
   test('allows activation source compatibility issues outside projection checks', () => {
     const app = topo('app', {
       consumer: trail('order.consume', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({ orderId: z.string() }),
         on: ['order.created'],
       }),
@@ -1574,7 +1574,7 @@ describe('validateEstablishedTopo', () => {
   test('fails when established activation source kind is unsupported', () => {
     const app = topo('app', {
       consume: trail('queue.consume', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({}),
         on: [{ id: 'queue.work', kind: 'queue' }],
       }),
@@ -1591,7 +1591,7 @@ describe('validateEstablishedTopo', () => {
   test('fails when established schedule activation source is invalid', () => {
     const app = topo('app', {
       consume: trail('schedule.consume', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({}),
         on: [
           {

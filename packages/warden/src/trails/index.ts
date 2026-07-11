@@ -14,7 +14,7 @@ export { duplicateExportedSymbolTrail } from './duplicate-exported-symbol.trail.
 export { errorMappingCompletenessTrail } from './error-mapping-completeness.trail.js';
 export { exampleValidTrail } from './example-valid.trail.js';
 export { firesDeclarationsTrail } from './fires-declarations.trail.js';
-export { forkWithoutPreservedBlazeTrail } from './fork-without-preserved-blaze.trail.js';
+export { forkWithoutPreservedImplementationTrail } from './fork-without-preserved-implementation.trail.js';
 export { governedSymbolResidueTrail } from './governed-symbol-residue.trail.js';
 export { implementationReturnsResultTrail } from './implementation-returns-result.trail.js';
 export { incompleteAccessorForStandardOpTrail } from './incomplete-accessor-for-standard-op.trail.js';

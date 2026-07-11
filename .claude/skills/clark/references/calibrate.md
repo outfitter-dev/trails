@@ -24,7 +24,7 @@ Scan all changed or new files for vocabulary violations. Highest-priority check.
 | serve, start, wire up | surface |
 | call, invoke, dispatch (for composition) | compose |
 | transport, interface | surface |
-| impl, fn, handler (for trail blaze) | blaze |
+| impl, fn, handler (for trail implementation) | implementation |
 | annotations, tags | meta |
 | fallbacks, retries, recovery | detours |
 | linter, checker, validator | warden |
@@ -35,7 +35,7 @@ Scan all changed or new files for vocabulary violations. Highest-priority check.
 | provision (legacy) | resource |
 | gate (legacy) | layer |
 
-`blaze` is the current live term for the authored behavior field; flag `impl`, `fn`, `handler`, action body, or endpoint language as `blaze`. `implementation` is the ratified target for the v1 reset — see `docs/lexicon-pending.md`. Do not flag live `blaze` as a violation or rewrite it to `implementation` before the cutover lands; when live code and ratified direction differ, say so explicitly.
+`implementation` is the current live term for the authored behavior field; flag `impl`, `fn`, `handler`, action body, or endpoint language as `implementation`. Preserve retired terms only when quoting explicitly historical release, migration, or decision evidence; do not present them as current guidance.
 
 The current Trails lexicon canonicalizes `resource` (the declared infrastructure primitive — see `docs/lexicon.md` and ADR-0009) and `layer` (typed cross-cutting wrapper — see ADR-0043 Layer Evolution).
 
@@ -93,7 +93,7 @@ For any new error usage:
 ## Calibrate: [scope]
 
 ### Vocabulary
-- [file:line] `handler` should be `blaze`
+- [file:line] `handler` should be `implementation`
 - [file:line] Comment says "invoke" should say "compose"
 
 ### Naming Conventions

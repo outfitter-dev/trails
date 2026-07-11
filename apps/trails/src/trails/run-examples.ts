@@ -99,7 +99,15 @@ type RunExamplesTrailInput = z.output<typeof runExamplesTrailInputSchema>;
 
 export const runExamplesTrail = trail('run.examples', {
   args: ['id'],
-  blaze: async (input: RunExamplesTrailInput, ctx) =>
+  description: "List a trail's examples without executing it",
+  examples: [
+    {
+      description: 'List examples authored on a target trail',
+      input: buildHappyExampleInput(),
+      name: 'List trail examples',
+    },
+  ],
+  implementation: async (input: RunExamplesTrailInput, ctx) =>
     withOperatorRootDir(input, ctx, async (rootDir) => {
       const moduleResolution = await resolveRunModulePath(
         rootDir,
@@ -115,14 +123,6 @@ export const runExamplesTrail = trail('run.examples', {
         buildExamplesListing(lease.app, input.id)
       );
     }),
-  description: "List a trail's examples without executing it",
-  examples: [
-    {
-      description: 'List examples authored on a target trail',
-      input: buildHappyExampleInput(),
-      name: 'List trail examples',
-    },
-  ],
   input: runExamplesTrailInputSchema,
   intent: 'read',
   output: runExamplesListingSchema,

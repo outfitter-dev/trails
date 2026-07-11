@@ -1,4 +1,4 @@
-/* oxlint-disable require-await -- blazes satisfy async interface without awaiting */
+/* oxlint-disable require-await -- implementations satisfy async interface without awaiting */
 import { describe, test, expect } from 'bun:test';
 
 import { z } from 'zod';
@@ -35,18 +35,18 @@ import type { TrailContext, TrailContextInit } from '../types';
 // ---------------------------------------------------------------------------
 
 const echoTrail = trail('echo', {
-  blaze: (input) => Result.ok({ value: input.value }),
+  implementation: (input) => Result.ok({ value: input.value }),
   input: z.object({ value: z.string() }),
   output: z.object({ value: z.string() }),
 });
 
 const failingTrail = trail('fails', {
-  blaze: () => Result.err(new ValidationError('bad input')),
+  implementation: () => Result.err(new ValidationError('bad input')),
   input: z.object({}),
 });
 
 const throwingTrail = trail('throws', {
-  blaze: () => {
+  implementation: () => {
     throw new Error('kaboom');
   },
   input: z.object({}),
@@ -73,7 +73,7 @@ const createEagerResourceTrail = (
   onRun: (value: number) => void
 ) =>
   trail('resource.eager', {
-    blaze: (_input, ctx) => {
+    implementation: (_input, ctx) => {
       const fromAccessor = ctx.resource<{ value: number }>(id);
       const fromDefinition = counter.from(ctx);
       onRun(fromDefinition.value);
@@ -106,7 +106,7 @@ const createSingletonTrail = (
   singleton: ReturnType<typeof createSingletonResource>
 ) =>
   trail('resource.singleton', {
-    blaze: (_input, ctx) =>
+    implementation: (_input, ctx) =>
       Result.ok({
         createdAtCall: singleton.from(ctx).createdAtCall,
       }),
@@ -150,7 +150,7 @@ const createConcurrentBranchResourceScopeScenario = () => {
   });
   const createReader = (trailId: string) =>
     trail(trailId, {
-      blaze: (_input, ctx) =>
+      implementation: (_input, ctx) =>
         Result.ok({ source: scopedResource.from(ctx).source }),
       input: z.object({}),
       output: z.object({ source: z.string() }),
@@ -160,7 +160,8 @@ const createConcurrentBranchResourceScopeScenario = () => {
   const left = createReader('entity.branch.left');
   const right = createReader('entity.branch.right');
   const entry = trail('entity.branch.resource-scope', {
-    blaze: async (_input, ctx) => {
+    composes: [left, right],
+    implementation: async (_input, ctx) => {
       const composed = await requireCompose(ctx)([
         [left, {}],
         [right, {}],
@@ -174,7 +175,6 @@ const createConcurrentBranchResourceScopeScenario = () => {
         ),
       });
     },
-    composes: [left, right],
     input: z.object({}),
     output: z.object({ sources: z.array(z.string()) }),
   });
@@ -195,7 +195,7 @@ const createConcurrentBranchResourceScopeScenario = () => {
 const createAbortSignalScenario = (seenSignals: AbortSignal[]) => {
   const createCancellable = (id: string) =>
     trail(id, {
-      blaze: async (_input, ctx) => {
+      implementation: async (_input, ctx) => {
         seenSignals.push(ctx.abortSignal);
         await waitForAbort(ctx.abortSignal);
         return Result.err(
@@ -209,7 +209,8 @@ const createAbortSignalScenario = (seenSignals: AbortSignal[]) => {
   const left = createCancellable('entity.cancel.left');
   const right = createCancellable('entity.cancel.right');
   const entry = trail('entity.branch.abort-signal', {
-    blaze: async (_input, ctx) => {
+    composes: [left, right],
+    implementation: async (_input, ctx) => {
       const composed = await requireCompose(ctx)([
         [left, {}],
         [right, {}],
@@ -224,7 +225,6 @@ const createAbortSignalScenario = (seenSignals: AbortSignal[]) => {
         ),
       });
     },
-    composes: [left, right],
     input: z.object({}),
     output: z.object({ statuses: z.array(z.string()) }),
   });
@@ -250,7 +250,7 @@ const createPermitScenario = (
 ) => {
   const createChild = (id: string) =>
     trail(id, {
-      blaze: (_input, ctx) => {
+      implementation: (_input, ctx) => {
         const branchPermit = ctx.permit as typeof permit;
         const permitCapture = {
           permitId: branchPermit.id,
@@ -269,7 +269,8 @@ const createPermitScenario = (
   const left = createChild('entity.permit.left');
   const right = createChild('entity.permit.right');
   const entry = trail('entity.branch.permit', {
-    blaze: async (_input, ctx) => {
+    composes: [left, right],
+    implementation: async (_input, ctx) => {
       const composed = await requireCompose(ctx)([
         [left, {}],
         [right, {}],
@@ -283,7 +284,6 @@ const createPermitScenario = (
         ),
       });
     },
-    composes: [left, right],
     input: z.object({}),
     output: z.object({
       permits: z.array(
@@ -316,14 +316,14 @@ const createSiblingFailureScopeScenario = () => {
     create: () => Result.ok({ source: 'sibling-branch-scope' }),
   });
   const failing = trail('entity.scope.fail', {
-    blaze: () => Result.ok({ ok: true }),
+    implementation: () => Result.ok({ ok: true }),
     input: z.object({}),
     output: z.object({ ok: z.boolean() }),
     resources: [failingResource],
     visibility: 'internal',
   });
   const succeeding = trail('entity.scope.ok', {
-    blaze: (_input, ctx) =>
+    implementation: (_input, ctx) =>
       Result.ok({ source: succeedingResource.from(ctx).source }),
     input: z.object({}),
     output: z.object({ source: z.string() }),
@@ -331,7 +331,8 @@ const createSiblingFailureScopeScenario = () => {
     visibility: 'internal',
   });
   const entry = trail('entity.branch.failure-scope', {
-    blaze: async (_input, ctx) => {
+    composes: [failing, succeeding],
+    implementation: async (_input, ctx) => {
       const [failed, succeeded] = await requireCompose(ctx)([
         [failing, {}],
         [succeeding, {}],
@@ -347,7 +348,6 @@ const createSiblingFailureScopeScenario = () => {
         }),
       });
     },
-    composes: [failing, succeeding],
     input: z.object({}),
     output: z.object({
       failed: z.string(),
@@ -376,7 +376,7 @@ const createConcurrencyWorkerScenario = () => {
     maxActive: 0,
   };
   const worker = trail('entity.concurrent.worker', {
-    blaze: async (input: { delayMs: number; label: string }) => {
+    implementation: async (input: { delayMs: number; label: string }) => {
       captures.active += 1;
       captures.maxActive = Math.max(captures.maxActive, captures.active);
       await Bun.sleep(input.delayMs);
@@ -411,7 +411,7 @@ describe('executeTrail', () => {
 
       test('validates successful output before returning it', async () => {
         const invalidOutputTrail = trail('output.invalid', {
-          blaze: () => Result.ok({ value: 42 }),
+          implementation: () => Result.ok({ value: 42 }),
           input: z.object({}),
           output: z.object({ value: z.string() }),
         });
@@ -427,7 +427,7 @@ describe('executeTrail', () => {
 
       test('returns parsed output schema values', async () => {
         const defaultedOutputTrail = trail('output.defaulted', {
-          blaze: () => Result.ok({}),
+          implementation: () => Result.ok({}),
           input: z.object({}),
           output: z.object({ ok: z.boolean().default(true) }),
         });
@@ -479,7 +479,7 @@ describe('executeTrail', () => {
           },
         });
         const resourceTrail = trail('resource.async-factory', {
-          blaze: (_input, ctx) =>
+          implementation: (_input, ctx) =>
             Result.ok({ source: db.from(ctx).source as string }),
           input: z.object({}),
           output: z.object({ source: z.string() }),
@@ -516,7 +516,7 @@ describe('executeTrail', () => {
           create: (ctx) => Result.ok({ value: String(ctx.env?.VAL) }),
         });
         const envAwareTrail = trail('resource.singleton-context', {
-          blaze: (_input, ctx) =>
+          implementation: (_input, ctx) =>
             Result.ok({ value: envAwareResource.from(ctx).value }),
           input: z.object({}),
           output: z.object({ value: z.string() }),
@@ -566,7 +566,7 @@ describe('executeTrail', () => {
           },
         });
         const resourceTrail = trail('resource.rollback', {
-          blaze: () => Result.ok(null),
+          implementation: () => Result.ok(null),
           input: z.object({}),
           resources: [created, failing],
         });
@@ -599,7 +599,7 @@ describe('executeTrail', () => {
           create: () => Result.err(original),
         });
         const resourceTrail = trail('resource.rollback-dispose-failure', {
-          blaze: () => Result.ok(null),
+          implementation: () => Result.ok(null),
           input: z.object({}),
           resources: [created, failing],
         });
@@ -646,12 +646,12 @@ describe('executeTrail', () => {
           create: () => Result.err(new ValidationError('second unavailable')),
         });
         const firstTrail = trail('resource.rollback-shared.first', {
-          blaze: () => Result.ok(null),
+          implementation: () => Result.ok(null),
           input: z.object({}),
           resources: [shared, failing],
         });
         const secondTrail = trail('resource.rollback-shared.second', {
-          blaze: async (_input, ctx) => {
+          implementation: async (_input, ctx) => {
             await secondCanRead.promise;
             return Result.ok({ closed: shared.from(ctx).closed });
           },
@@ -691,7 +691,7 @@ describe('executeTrail', () => {
           },
         });
         const resourceTrail = trail('resource.rollback-duplicate', {
-          blaze: () => Result.ok(null),
+          implementation: () => Result.ok(null),
           input: z.object({}),
           resources: [shared, shared, failing],
         });
@@ -721,7 +721,7 @@ describe('executeTrail', () => {
           },
         });
         const resourceTrail = trail('resource.cached-unconfigured', {
-          blaze: (_input, ctx) => Result.ok(cached.from(ctx).label),
+          implementation: (_input, ctx) => Result.ok(cached.from(ctx).label),
           input: z.object({}),
           output: z.string(),
           resources: [cached],
@@ -755,7 +755,7 @@ describe('executeTrail', () => {
           },
         });
         const resourceTrail = trail('resource.drain-pending', {
-          blaze: (_input, ctx) =>
+          implementation: (_input, ctx) =>
             Result.ok({ label: pending.from(ctx).label as string }),
           input: z.object({}),
           output: z.object({ label: z.string() }),
@@ -833,7 +833,7 @@ describe('executeTrail', () => {
           },
         });
         const resourceTrail = trail('resource.drain-context-miss', {
-          blaze: (_input, ctx) =>
+          implementation: (_input, ctx) =>
             Result.ok({ value: envAware.from(ctx).value }),
           input: z.object({}),
           output: z.object({ value: z.string() }),
@@ -884,7 +884,7 @@ describe('executeTrail', () => {
           },
         });
         const resourceTrail = trail('resource.drain-context-remainder', {
-          blaze: (_input, ctx) =>
+          implementation: (_input, ctx) =>
             Result.ok({ value: envAware.from(ctx).value }),
           input: z.object({}),
           output: z.object({ value: z.string() }),
@@ -960,7 +960,7 @@ describe('executeTrail', () => {
           },
         });
         const resourceTrail = trail('resource.drain', {
-          blaze: (_input, ctx) =>
+          implementation: (_input, ctx) =>
             Result.ok({
               first: first.from(ctx).label,
               second: second.from(ctx).label,
@@ -1006,7 +1006,7 @@ describe('executeTrail', () => {
           },
         });
         const resourceTrail = trail('resource.drain-invalid-config', {
-          blaze: (_input, ctx) =>
+          implementation: (_input, ctx) =>
             Result.ok({ token: configured.from(ctx).token }),
           input: z.object({}),
           output: z.object({ token: z.string() }),
@@ -1064,7 +1064,7 @@ describe('executeTrail', () => {
           },
         });
         const resourceTrail = trail('resource.drain-failure', {
-          blaze: (_input, ctx) =>
+          implementation: (_input, ctx) =>
             Result.ok({
               failing: failing.from(ctx).label,
               succeeding: succeeding.from(ctx).label,
@@ -1095,13 +1095,15 @@ describe('executeTrail', () => {
     describe('composing execution', () => {
       test('binds ctx.compose when topo access is available', async () => {
         const helper = trail('entity.secret.rotate', {
-          blaze: (input: { id: string }) => Result.ok({ rotated: input.id }),
+          implementation: (input: { id: string }) =>
+            Result.ok({ rotated: input.id }),
           input: z.object({ id: z.string() }),
           output: z.object({ rotated: z.string() }),
           visibility: 'internal',
         });
         const entry = trail('entity.rotate', {
-          blaze: async (input: { id: string }, ctx) => {
+          composes: ['entity.secret.rotate'],
+          implementation: async (input: { id: string }, ctx) => {
             const composed = await requireCompose(ctx)(
               'entity.secret.rotate',
               input
@@ -1111,7 +1113,6 @@ describe('executeTrail', () => {
               ok: (value) => Result.ok(value),
             });
           },
-          composes: ['entity.secret.rotate'],
           input: z.object({ id: z.string() }),
           output: z.object({ rotated: z.string() }),
         });
@@ -1129,15 +1130,16 @@ describe('executeTrail', () => {
 
       test('validates merged composeInput fields when invoking through ctx.compose', async () => {
         const helper = trail('entity.prepare', {
-          blaze: (input: { forkedFrom: string; id: string }) =>
-            Result.ok({ summary: `${input.id}:${input.forkedFrom}` }),
           composeInput: z.object({ forkedFrom: z.string() }),
+          implementation: (input: { forkedFrom: string; id: string }) =>
+            Result.ok({ summary: `${input.id}:${input.forkedFrom}` }),
           input: z.object({ id: z.string() }),
           output: z.object({ summary: z.string() }),
           visibility: 'internal',
         });
         const entry = trail('entity.run', {
-          blaze: async (input: { id: string }, ctx) => {
+          composes: [helper],
+          implementation: async (input: { id: string }, ctx) => {
             const composed = await requireCompose(ctx)(helper, {
               forkedFrom: 'entity.run',
               id: input.id,
@@ -1147,7 +1149,6 @@ describe('executeTrail', () => {
               ok: (value) => Result.ok(value),
             });
           },
-          composes: [helper],
           input: z.object({ id: z.string() }),
           output: z.object({ summary: z.string() }),
         });
@@ -1166,7 +1167,7 @@ describe('executeTrail', () => {
       test('executes batch ctx.compose() calls concurrently and preserves tuple order', async () => {
         const completionOrder: string[] = [];
         const slow = trail('entity.slow', {
-          blaze: async () => {
+          implementation: async () => {
             await Bun.sleep(10);
             completionOrder.push('slow');
             return Result.ok({ id: 'slow' });
@@ -1176,7 +1177,7 @@ describe('executeTrail', () => {
           visibility: 'internal',
         });
         const fast = trail('entity.fast', {
-          blaze: async () => {
+          implementation: async () => {
             await Bun.sleep(0);
             completionOrder.push('fast');
             return Result.ok({ id: 'fast' });
@@ -1186,7 +1187,8 @@ describe('executeTrail', () => {
           visibility: 'internal',
         });
         const entry = trail('entity.batch', {
-          blaze: async (_input, ctx) => {
+          composes: ['entity.fast', 'entity.slow'],
+          implementation: async (_input, ctx) => {
             const composed = await requireCompose(ctx)([
               ['entity.slow', {}],
               ['entity.fast', {}],
@@ -1201,7 +1203,6 @@ describe('executeTrail', () => {
               ),
             });
           },
-          composes: ['entity.fast', 'entity.slow'],
           input: z.object({}),
           output: z.object({
             completionOrder: z.array(z.string()),
@@ -1222,7 +1223,7 @@ describe('executeTrail', () => {
       test('returns every batch compose result without short-circuiting on errors', async () => {
         const completions: string[] = [];
         const failing = trail('entity.fail', {
-          blaze: async () => {
+          implementation: async () => {
             await Bun.sleep(0);
             completions.push('fail');
             return Result.err(new ValidationError('nope'));
@@ -1232,7 +1233,7 @@ describe('executeTrail', () => {
           visibility: 'internal',
         });
         const succeeding = trail('entity.ok', {
-          blaze: async () => {
+          implementation: async () => {
             await Bun.sleep(5);
             completions.push('ok');
             return Result.ok({ ok: true });
@@ -1242,7 +1243,8 @@ describe('executeTrail', () => {
           visibility: 'internal',
         });
         const entry = trail('entity.batch.errors', {
-          blaze: async (_input, ctx) => {
+          composes: [failing, succeeding],
+          implementation: async (_input, ctx) => {
             const composed = await requireCompose(ctx)([
               [failing, {}],
               [succeeding, {}],
@@ -1257,7 +1259,6 @@ describe('executeTrail', () => {
               ),
             });
           },
-          composes: [failing, succeeding],
           input: z.object({}),
           output: z.object({
             completions: z.array(z.string()),
@@ -1281,7 +1282,7 @@ describe('executeTrail', () => {
 
       test('returns an empty array for empty batch ctx.compose() calls', async () => {
         const entry = trail('entity.batch.empty', {
-          blaze: async (_input, ctx) => {
+          implementation: async (_input, ctx) => {
             const composed = await requireCompose(ctx)([]);
             return Result.ok({ count: composed.length });
           },
@@ -1299,7 +1300,8 @@ describe('executeTrail', () => {
       test('limits batch ctx.compose() execution to sequential flow when concurrency is 1', async () => {
         const { captures, worker } = createConcurrencyWorkerScenario();
         const entry = trail('entity.batch.sequential-limit', {
-          blaze: async (_input, ctx) => {
+          composes: [worker],
+          implementation: async (_input, ctx) => {
             const composed = await requireCompose(ctx)(
               [
                 [worker, { delayMs: 5, label: 'first' }],
@@ -1319,7 +1321,6 @@ describe('executeTrail', () => {
               ),
             });
           },
-          composes: [worker],
           input: z.object({}),
           output: z.object({
             completionOrder: z.array(z.string()),
@@ -1349,7 +1350,8 @@ describe('executeTrail', () => {
           (_, index) => `task-${index}`
         );
         const entry = trail('entity.batch.concurrent-limit', {
-          blaze: async (_input, ctx) => {
+          composes: [worker],
+          implementation: async (_input, ctx) => {
             const composed = await requireCompose(ctx)(
               labels.map((label) => [worker, { delayMs: 5, label }] as const),
               { concurrency: 3 }
@@ -1365,7 +1367,6 @@ describe('executeTrail', () => {
               ),
             });
           },
-          composes: [worker],
           input: z.object({}),
           output: z.object({
             completionCount: z.number(),
@@ -1399,7 +1400,7 @@ describe('executeTrail', () => {
           test('produces a ValidationError for every branch without running any', async () => {
             const branchRuns: string[] = [];
             const child = trail('entity.batch.invalid-concurrency.child', {
-              blaze: async () => {
+              implementation: async () => {
                 branchRuns.push('ran');
                 return Result.ok({ id: 'child' });
               },
@@ -1408,7 +1409,8 @@ describe('executeTrail', () => {
               visibility: 'internal',
             });
             const entry = trail('entity.batch.invalid-concurrency.entry', {
-              blaze: async (_input, ctx) => {
+              composes: [child],
+              implementation: async (_input, ctx) => {
                 const composed = await requireCompose(ctx)(
                   [
                     [child, {}],
@@ -1428,7 +1430,6 @@ describe('executeTrail', () => {
                   ),
                 });
               },
-              composes: [child],
               input: z.object({}),
               output: z.object({
                 statuses: z.array(
@@ -1595,7 +1596,7 @@ describe('executeTrail', () => {
     test('accepts context overrides', async () => {
       let capturedCtx: TrailContext | undefined;
       const ctxTrail = trail('ctx-test', {
-        blaze: (_input, ctx) => {
+        implementation: (_input, ctx) => {
           capturedCtx = ctx;
           return Result.ok(null);
         },
@@ -1610,7 +1611,7 @@ describe('executeTrail', () => {
     test('accepts abortSignal override', async () => {
       let capturedSignal: AbortSignal | undefined;
       const sigTrail = trail('sig-test', {
-        blaze: (_input, ctx) => {
+        implementation: (_input, ctx) => {
           capturedSignal = ctx.abortSignal;
           return Result.ok(null);
         },
@@ -1626,7 +1627,7 @@ describe('executeTrail', () => {
     test('accepts context factory', async () => {
       let capturedCtx: TrailContext | undefined;
       const ctxTrail = trail('factory-test', {
-        blaze: (_input, ctx) => {
+        implementation: (_input, ctx) => {
           capturedCtx = ctx;
           return Result.ok(null);
         },
@@ -1648,7 +1649,7 @@ describe('executeTrail', () => {
     test('context factory + ctx overrides merge correctly', async () => {
       let capturedCtx: TrailContext | undefined;
       const ctxTrail = trail('merge-test', {
-        blaze: (_input, ctx) => {
+        implementation: (_input, ctx) => {
           capturedCtx = ctx;
           return Result.ok(null);
         },
@@ -1677,7 +1678,7 @@ describe('executeTrail', () => {
     test('deep-merges extensions from factory and overrides', async () => {
       let captured: TrailContext | undefined;
       const t = trail('ext.test', {
-        blaze: (_input, ctx) => {
+        implementation: (_input, ctx) => {
           captured = ctx;
           return Result.ok({});
         },
@@ -1704,7 +1705,7 @@ describe('executeTrail', () => {
 
       let sawTraceContext = true;
       const probe = trail('ctx.trace.noop-sink', {
-        blaze: async (_input, ctx) => {
+        implementation: async (_input, ctx) => {
           const value = await ctx.trace('inner', () => Promise.resolve(42));
           sawTraceContext = ctx.extensions?.[TRACE_CONTEXT_KEY] !== undefined;
           return Result.ok({ value });
@@ -1725,7 +1726,7 @@ describe('executeTrail', () => {
 
       try {
         const invalidOutputTrail = trail('trace.output.invalid', {
-          blaze: () => Result.ok({ value: 42 }),
+          implementation: () => Result.ok({ value: 42 }),
           input: z.object({}),
           output: z.object({ value: z.string() }),
         });
@@ -1749,7 +1750,7 @@ describe('executeTrail', () => {
         create: () => Result.ok({ source: 'factory' }),
       });
       const resourceTrail = trail('ctx.resource.override', {
-        blaze: (_input, ctx) => {
+        implementation: (_input, ctx) => {
           resolvedSource = ctx.resource<{ source: string }>(db).source;
           return Result.ok({ source: resolvedSource });
         },
@@ -1785,7 +1786,7 @@ describe('executeTrail', () => {
       const id = nextResourceId('factory-seed');
       const widget = { id: 'widget-1' };
       const widgetTrail = trail('resource.factory-seed', {
-        blaze: (_input, ctx) => {
+        implementation: (_input, ctx) => {
           capturedCtx = ctx;
           return Result.ok(null);
         },
@@ -1810,7 +1811,7 @@ describe('executeTrail', () => {
   });
 
   describe('error handling', () => {
-    test('propagates Result.err from blaze', async () => {
+    test('propagates Result.err from implementation', async () => {
       const result = await executeTrail(failingTrail, {});
 
       expect(result.isErr()).toBe(true);
@@ -1833,7 +1834,7 @@ describe('executeTrail', () => {
       });
       let ran = false;
       const resourceTrail = trail('resource.factory-error', {
-        blaze: () => {
+        implementation: () => {
           ran = true;
           return Result.ok(null);
         },
@@ -1856,7 +1857,7 @@ describe('executeTrail', () => {
         },
       });
       const resourceTrail = trail('resource.factory-throw', {
-        blaze: () => Result.ok(null),
+        implementation: () => Result.ok(null),
         input: z.object({}),
         resources: [explodingResource],
       });
@@ -1881,7 +1882,7 @@ describe('executeTrail', () => {
         },
       });
       const resourceTrail = trail('resource.override', {
-        blaze: (_input, ctx) =>
+        implementation: (_input, ctx) =>
           Result.ok({ source: db.from(ctx).source as string }),
         input: z.object({}),
         output: z.object({ source: z.string() }),
@@ -1909,13 +1910,13 @@ describe('executeTrail', () => {
   describe('detour execution', () => {
     test('detour recovers successfully from matching error', async () => {
       const detourTrail = trail('detour.recover', {
-        blaze: () => Result.err(new ConflictError('version mismatch')),
         detours: [
           {
             on: ConflictError,
             recover: async () => Result.ok({ recovered: true }),
           },
         ],
+        implementation: () => Result.err(new ConflictError('version mismatch')),
         input: z.object({}),
         output: z.object({ recovered: z.boolean() }),
       });
@@ -1928,7 +1929,6 @@ describe('executeTrail', () => {
 
     test('exhaustion produces RetryExhaustedError with category inheritance', async () => {
       const detourTrail = trail('detour.exhaust', {
-        blaze: () => Result.err(new ConflictError('version mismatch')),
         detours: [
           {
             maxAttempts: 2,
@@ -1937,6 +1937,7 @@ describe('executeTrail', () => {
               Result.err(new ConflictError('still conflicting')),
           },
         ],
+        implementation: () => Result.err(new ConflictError('version mismatch')),
         input: z.object({}),
       });
 
@@ -1954,13 +1955,13 @@ describe('executeTrail', () => {
 
     test('non-matching error passes through unchanged', async () => {
       const detourTrail = trail('detour.nomatch', {
-        blaze: () => Result.err(new NotFoundError('missing')),
         detours: [
           {
             on: ConflictError,
             recover: async () => Result.ok({ recovered: true }),
           },
         ],
+        implementation: () => Result.err(new NotFoundError('missing')),
         input: z.object({}),
       });
 
@@ -1973,7 +1974,6 @@ describe('executeTrail', () => {
     test('declaration-order matching — first matching detour wins', async () => {
       const calls: string[] = [];
       const detourTrail = trail('detour.order', {
-        blaze: () => Result.err(new ConflictError('conflict')),
         detours: [
           {
             on: TrailsError,
@@ -1990,6 +1990,7 @@ describe('executeTrail', () => {
             },
           },
         ],
+        implementation: () => Result.err(new ConflictError('conflict')),
         input: z.object({}),
         output: z.object({ winner: z.string() }),
       });
@@ -2008,7 +2009,6 @@ describe('executeTrail', () => {
         Result.ok({ attempt: 2 }),
       ];
       const detourTrail = trail('detour.multi', {
-        blaze: () => Result.err(new ConflictError('conflict')),
         detours: [
           {
             maxAttempts: 3,
@@ -2019,6 +2019,7 @@ describe('executeTrail', () => {
             },
           },
         ],
+        implementation: () => Result.err(new ConflictError('conflict')),
         input: z.object({}),
         output: z.object({ attempt: z.number() }),
       });
@@ -2032,7 +2033,6 @@ describe('executeTrail', () => {
 
     test('non-TrailsError throw inside recover becomes InternalError', async () => {
       const detourTrail = trail('detour.throw', {
-        blaze: () => Result.err(new ConflictError('conflict')),
         detours: [
           {
             on: ConflictError,
@@ -2041,6 +2041,7 @@ describe('executeTrail', () => {
             },
           },
         ],
+        implementation: () => Result.err(new ConflictError('conflict')),
         input: z.object({}),
       });
 
@@ -2053,7 +2054,6 @@ describe('executeTrail', () => {
     test('maxAttempts hard cap is owner-held', async () => {
       let recoverCalls = 0;
       const detourTrail = trail('detour.cap', {
-        blaze: () => Result.err(new ConflictError('conflict')),
         detours: [
           {
             maxAttempts: 100,
@@ -2064,6 +2064,7 @@ describe('executeTrail', () => {
             },
           },
         ],
+        implementation: () => Result.err(new ConflictError('conflict')),
         input: z.object({}),
       });
 
@@ -2076,7 +2077,7 @@ describe('executeTrail', () => {
 
     test('no detours declared — baseline unchanged', async () => {
       const noDetourTrail = trail('detour.none', {
-        blaze: () => Result.err(new ConflictError('conflict')),
+        implementation: () => Result.err(new ConflictError('conflict')),
         input: z.object({}),
       });
 
@@ -2088,7 +2089,6 @@ describe('executeTrail', () => {
 
     test('compose-detour termination — different error type stops recovery', async () => {
       const detourTrail = trail('detour.compose-terminate', {
-        blaze: () => Result.err(new ConflictError('conflict')),
         detours: [
           {
             maxAttempts: 3,
@@ -2096,6 +2096,7 @@ describe('executeTrail', () => {
             recover: async () => Result.err(new NetworkError('disconnected')),
           },
         ],
+        implementation: () => Result.err(new ConflictError('conflict')),
         input: z.object({}),
       });
 
@@ -2135,7 +2136,6 @@ describe('executeTrail', () => {
           Result.ok({ done: true }),
         ];
         const detourTrail = trail('detour.layer-count', {
-          blaze: () => Result.err(new ConflictError('conflict')),
           detours: [
             {
               maxAttempts: 3,
@@ -2146,6 +2146,7 @@ describe('executeTrail', () => {
               },
             },
           ],
+          implementation: () => Result.err(new ConflictError('conflict')),
           input: z.object({}),
           output: z.object({ done: z.boolean() }),
         });
@@ -2168,7 +2169,7 @@ describe('executeTrail', () => {
     test('defaults ctx.dryRun to false when option omitted', async () => {
       let observed: boolean | undefined;
       const t = trail('observes-dry-run-default', {
-        blaze: (_input, ctx) => {
+        implementation: (_input, ctx) => {
           observed = ctx.dryRun;
           return Result.ok({ ok: true });
         },
@@ -2185,7 +2186,7 @@ describe('executeTrail', () => {
     test('sets ctx.dryRun to true when dryRun option is true', async () => {
       let observed: boolean | undefined;
       const t = trail('observes-dry-run-true', {
-        blaze: (_input, ctx) => {
+        implementation: (_input, ctx) => {
           observed = ctx.dryRun;
           return Result.ok({ ok: true });
         },
@@ -2202,7 +2203,7 @@ describe('executeTrail', () => {
     test('option dryRun: true overrides ctx.dryRun: false', async () => {
       let observed: boolean | undefined;
       const t = trail('dry-run-precedence', {
-        blaze: (_input, ctx) => {
+        implementation: (_input, ctx) => {
           observed = ctx.dryRun;
           return Result.ok({ ok: true });
         },
@@ -2226,7 +2227,7 @@ describe('executeTrail', () => {
     test('preserves ctx.dryRun: true when dryRun option is omitted', async () => {
       let observed: boolean | undefined;
       const t = trail('dry-run-ctx-preserved', {
-        blaze: (_input, ctx) => {
+        implementation: (_input, ctx) => {
           observed = ctx.dryRun;
           return Result.ok({ ok: true });
         },

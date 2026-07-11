@@ -16,10 +16,10 @@ const childInput = z.object({
 });
 
 /**
- * Parent input schema with its raw-to-blaze transform attached.
+ * Parent input schema with its raw-to-implementation transform attached.
  *
  * Naming the transformed schema lets examples and tests reference both its raw
- * pre-transform input (`z.input`) and its post-transform blaze input
+ * pre-transform input (`z.input`) and its post-transform implementation input
  * (`z.infer`) without restating either shape by hand.
  */
 const regradeTransformInputToChild = regradeTransformInput.transform(
@@ -32,15 +32,15 @@ const regradeTransformInputToChild = regradeTransformInput.transform(
  * Raw, pre-transform input accepted by {@link regradeTransformInputToChild}.
  *
  * Trail examples and `testExamples()` feed this shape through validation; the
- * Zod transform then projects it into the blaze input.
+ * Zod transform then projects it into the implementation input.
  */
 type RegradeTransformRawInput = z.input<typeof regradeTransformInputToChild>;
 
 /**
- * Post-transform blaze input shape — the trail's inferred input type `I`.
+ * Post-transform implementation input shape — the trail's inferred input type `I`.
  *
  * TRL-842: With a `.transform()` input schema, the trail's inferred input type
- * `I` is the transform OUTPUT (the blaze input), while examples and
+ * `I` is the transform OUTPUT (the implementation input), while examples and
  * `testExamples()` validate the raw pre-transform INPUT. Those two shapes are
  * disjoint, so an authored example must carry raw input typed as the
  * post-transform shape. A framework-level fix would thread a separate
@@ -49,7 +49,9 @@ type RegradeTransformRawInput = z.input<typeof regradeTransformInputToChild>;
  * then the divergence is captured by the two named types here and exercised by
  * the runtime validation test in `__tests__/literal-transform.test.ts`.
  */
-type RegradeTransformBlazeInput = z.infer<typeof regradeTransformInputToChild>;
+type RegradeTransformImplementationInput = z.infer<
+  typeof regradeTransformInputToChild
+>;
 
 /**
  * Raw example input, statically checked as valid pre-transform input. If the
@@ -63,7 +65,7 @@ const codeStringExampleInput: RegradeTransformRawInput = {
 export const normalizeExportConstTrail = trail(
   'regrade.literal.normalize-export-const',
   {
-    blaze: (input) => {
+    implementation: (input) => {
       const nextSource = input.source.replaceAll('export const', 'export let');
       return Result.ok({
         changed: nextSource !== input.source,
@@ -81,17 +83,6 @@ export const normalizeExportConstTrail = trail(
 );
 
 export const literalRegradeTrail = trail('regrade.literal.run', {
-  blaze: async (input, ctx) => {
-    if (!ctx.compose) {
-      return Result.err(
-        new InternalError(
-          'Literal Regrade tracer requires compose-capable execution.'
-        )
-      );
-    }
-    const blazeInput = input as RegradeTransformBlazeInput;
-    return await ctx.compose(normalizeExportConstTrail, blazeInput.child);
-  },
   composes: [normalizeExportConstTrail],
   examples: [
     {
@@ -103,11 +94,26 @@ export const literalRegradeTrail = trail('regrade.literal.run', {
       // TRL-842: author the raw pre-transform value (validated as
       // RegradeTransformRawInput) and widen through `unknown` to the trail's
       // inferred post-transform input type. The runtime still parses raw input;
-      // see RegradeTransformBlazeInput for why the two shapes diverge.
-      input: codeStringExampleInput as unknown as RegradeTransformBlazeInput,
+      // see RegradeTransformImplementationInput for why the two shapes diverge.
+      input:
+        codeStringExampleInput as unknown as RegradeTransformImplementationInput,
       name: 'code-string fixture',
     },
   ],
+  implementation: async (input, ctx) => {
+    if (!ctx.compose) {
+      return Result.err(
+        new InternalError(
+          'Literal Regrade tracer requires compose-capable execution.'
+        )
+      );
+    }
+    const implementationInput = input as RegradeTransformImplementationInput;
+    return await ctx.compose(
+      normalizeExportConstTrail,
+      implementationInput.child
+    );
+  },
   input: regradeTransformInputToChild,
   output: regradeTransformOutput,
 });

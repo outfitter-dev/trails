@@ -70,6 +70,8 @@ describe('runVocabularyRegrade', () => {
           '**/.agents/memory/**',
           '.agents/notes/**',
           '**/.agents/notes/**',
+          '.claude/agent-memory/**',
+          '**/.claude/agent-memory/**',
           '.agents/plans/archive/**',
           '**/.agents/plans/archive/**',
           '.changeset/**',
@@ -559,7 +561,11 @@ describe('runVocabularyRegrade', () => {
           verdict: occurrence.verdict,
         }))
       ).toEqual([
-        { form: 'blaze', reason: 'captured-form', verdict: 'modified' },
+        {
+          form: 'blaze',
+          reason: 'captured-form',
+          verdict: 'modified',
+        },
         { form: 'blazes', reason: 'captured-form', verdict: 'modified' },
         { form: 'blazed', reason: 'deferred-form', verdict: 'deferred' },
         { form: 'blazing', reason: 'deferred-form', verdict: 'deferred' },

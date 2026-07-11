@@ -231,7 +231,7 @@ describe('trails regrade', () => {
         ].join('\n')
       );
 
-      const result = await regradeTrail.blaze(
+      const result = await regradeTrail.implementation(
         {
           from: 'facet',
           include: ['docs/**/*.md'],
@@ -2379,7 +2379,7 @@ describe('trails regrade', () => {
         'export const facetId = "manual";\nexport const facet = "facet";\n'
       );
 
-      const recordResult = await regradeTrail.blaze(
+      const recordResult = await regradeTrail.implementation(
         {
           extensions: ['.md', '.ts'],
           from: 'facet',
@@ -2402,7 +2402,7 @@ describe('trails regrade', () => {
         throw new Error('Expected transition record path.');
       }
 
-      const result = await regradeTrail.blaze(
+      const result = await regradeTrail.implementation(
         {
           apply: true,
           planRecord: recordPath,
@@ -2454,7 +2454,7 @@ describe('trails regrade', () => {
     try {
       writeFile(dir, 'docs/surface.md', 'Facet docs mention facet.\n');
 
-      const result = await regradeTrail.blaze(
+      const result = await regradeTrail.implementation(
         {
           apply: true,
           from: 'facet',
@@ -3765,7 +3765,7 @@ describe('trails regrade', () => {
       writeFile(dir, 'docs/keep.md', 'facet\n');
       writeFile(dir, 'private/history.md', 'facet\n');
 
-      const result = await regradeTrail.blaze(
+      const result = await regradeTrail.implementation(
         {
           exclude: ['docs/ignored/**'],
           from: 'facet',
@@ -3829,7 +3829,7 @@ describe('trails regrade', () => {
   test('rejects vocabulary-only inputs without a source and target', async () => {
     const dir = makeTempDir();
     try {
-      const result = await regradeTrail.blaze(
+      const result = await regradeTrail.implementation(
         { include: ['src/**/*.ts'], rootDir: dir },
         { cwd: dir, env: {} } as never
       );
@@ -4006,7 +4006,7 @@ describe('trails regrade', () => {
         'export const play = trail("play", { crosses: [] });\n'
       );
 
-      const result = await regradeTrail.blaze({ rootDir: dir }, {
+      const result = await regradeTrail.implementation({ rootDir: dir }, {
         cwd: dir,
         env: {},
       } as never);
@@ -4033,10 +4033,13 @@ describe('trails regrade', () => {
         'export const play = trail("play", { crosses: [] });\n'
       );
 
-      const result = await regradeTrail.blaze({ apply: true, rootDir: dir }, {
-        cwd: dir,
-        env: {},
-      } as never);
+      const result = await regradeTrail.implementation(
+        { apply: true, rootDir: dir },
+        {
+          cwd: dir,
+          env: {},
+        } as never
+      );
 
       expect(result.isOk()).toBe(true);
       if (result.isErr()) {
@@ -4115,7 +4118,7 @@ export default rule;
 `
       );
 
-      const result = await regradeTrail.blaze(
+      const result = await regradeTrail.implementation(
         {
           apply: true,
           classIds: ['term-rewrite:repo-local-facet-vocab'],
@@ -4153,10 +4156,13 @@ export default rule;
       );
       chmodSync(target, 0o444);
 
-      const result = await regradeTrail.blaze({ apply: true, rootDir: dir }, {
-        cwd: dir,
-        env: {},
-      } as never);
+      const result = await regradeTrail.implementation(
+        { apply: true, rootDir: dir },
+        {
+          cwd: dir,
+          env: {},
+        } as never
+      );
 
       expect(result.isErr()).toBe(true);
       if (result.isErr()) {

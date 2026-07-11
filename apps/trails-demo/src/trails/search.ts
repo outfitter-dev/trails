@@ -14,7 +14,20 @@ import { entityStoreResource } from '../resources/entity-store.js';
 // ---------------------------------------------------------------------------
 
 export const search = trail('search', {
-  blaze: async (input, ctx) => {
+  description: 'Search entities by keyword',
+  examples: [
+    {
+      description: 'Search by keyword matching name, type, or tags',
+      input: { limit: 10, query: 'Alpha' },
+      name: 'Search for entities',
+    },
+    {
+      description: 'Search query that matches nothing',
+      input: { limit: 10, query: 'zzz_nonexistent_zzz' },
+      name: 'Search with no results',
+    },
+  ],
+  implementation: async (input, ctx) => {
     const store = entityStoreResource.from(ctx);
     const query = input.query.toLowerCase();
     const entities = await store.entities.list();
@@ -36,19 +49,6 @@ export const search = trail('search', {
       total: results.length,
     });
   },
-  description: 'Search entities by keyword',
-  examples: [
-    {
-      description: 'Search by keyword matching name, type, or tags',
-      input: { limit: 10, query: 'Alpha' },
-      name: 'Search for entities',
-    },
-    {
-      description: 'Search query that matches nothing',
-      input: { limit: 10, query: 'zzz_nonexistent_zzz' },
-      name: 'Search with no results',
-    },
-  ],
   input: z.object({
     limit: z.number().optional().default(10).describe('Maximum results'),
     query: z.string().describe('Search query'),

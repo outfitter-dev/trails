@@ -15,7 +15,7 @@ describe('executeTrailRevision', () => {
     let inputArgCount = 0;
     let outputArgCount = 0;
     const createInvite = trail('invite.create', {
-      blaze: (input) => {
+      implementation: (input) => {
         currentInput = input;
         return Result.ok({
           auditLevel: 'current' as const,
@@ -89,7 +89,7 @@ describe('executeTrailRevision', () => {
 
   test('allows metadata-only revisions with matching schemas', async () => {
     const echo = trail('echo.versioned', {
-      blaze: (input) => Result.ok({ value: input.value }),
+      implementation: (input) => Result.ok({ value: input.value }),
       input: z.object({ value: z.string() }),
       output: z.object({ value: z.string() }),
       version: 2,
@@ -115,7 +115,7 @@ describe('executeTrailRevision', () => {
 
   test('returns validation errors when transpose output violates historical output', async () => {
     const stateTrail = trail('state.versioned', {
-      blaze: () => Result.ok({ state: 'queued' as const }),
+      implementation: () => Result.ok({ state: 'queued' as const }),
       input: z.object({}),
       output: z.object({ state: z.enum(['queued', 'sent']) }),
       version: 2,
@@ -146,7 +146,7 @@ describe('executeTrailRevision', () => {
 
   test('returns validation errors when transpose input violates current input', async () => {
     const requiresCurrent = trail('requires.current', {
-      blaze: (input) => Result.ok({ id: input.id }),
+      implementation: (input) => Result.ok({ id: input.id }),
       input: z.object({ id: z.string(), requiredNow: z.string() }),
       output: z.object({ id: z.string() }),
       version: 2,

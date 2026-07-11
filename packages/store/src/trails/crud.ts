@@ -152,7 +152,7 @@ export type CrudTrails<TTable extends AnyStoreTable> = readonly [
   readonly contour: TableContour<TTable>;
 };
 
-export interface CrudBlazeOverrides<TTable extends AnyStoreTable> {
+export interface CrudImplementationOverrides<TTable extends AnyStoreTable> {
   readonly create?: Implementation<InsertOf<TTable>, EntityOf<TTable>>;
   readonly read?: Implementation<IdentityInputOf<TTable>, EntityOf<TTable>>;
   readonly update?: Implementation<
@@ -164,7 +164,7 @@ export interface CrudBlazeOverrides<TTable extends AnyStoreTable> {
 }
 
 export interface CrudOptions<TTable extends AnyStoreTable> {
-  readonly blaze?: CrudBlazeOverrides<TTable>;
+  readonly implementation?: CrudImplementationOverrides<TTable>;
   /**
    * Existing table contour to register on the produced trails. When
    * omitted, the factory builds one from the table. Pass a shared
@@ -185,7 +185,7 @@ export interface CrudOptions<TTable extends AnyStoreTable> {
   readonly permits?: Partial<Record<CrudOperation, PermitRequirement>>;
 }
 
-interface InternalCrudBlazeOverrides<TTable extends AnyStoreTable> {
+interface InternalCrudImplementationOverrides<TTable extends AnyStoreTable> {
   readonly create?: Implementation<
     DerivedInput<TTable, 'create'>,
     DerivedOutput<TTable, 'create'>
@@ -209,7 +209,7 @@ interface InternalCrudBlazeOverrides<TTable extends AnyStoreTable> {
 }
 
 interface InternalCrudOptions<TTable extends AnyStoreTable> {
-  readonly blaze?: InternalCrudBlazeOverrides<TTable>;
+  readonly implementation?: InternalCrudImplementationOverrides<TTable>;
   readonly contour?: TableContour<TTable>;
   readonly permit?: PermitRequirement;
   readonly permits?: Partial<Record<CrudOperation, PermitRequirement>>;
@@ -256,7 +256,7 @@ const normalizeExamplesForOutput = <TInput, TOutput>(
 const finalizeTrail = <TInput, TOutput>(
   base: Trail<TInput, TOutput>,
   options: {
-    readonly blaze?: Implementation<TInput, TOutput> | undefined;
+    readonly implementation?: Implementation<TInput, TOutput> | undefined;
     readonly output?: z.ZodType<TOutput> | undefined;
     readonly pattern?: string | undefined;
     readonly permit?: PermitRequirement | undefined;
@@ -264,7 +264,9 @@ const finalizeTrail = <TInput, TOutput>(
 ): Trail<TInput, TOutput> =>
   Object.freeze({
     ...base,
-    ...(options.blaze === undefined ? {} : { blaze: options.blaze }),
+    ...(options.implementation === undefined
+      ? {}
+      : { implementation: options.implementation }),
     ...(options.output === undefined
       ? {}
       : {
@@ -304,7 +306,7 @@ const deriveCrudBaseTrails = <
     readBase: deriveTrail(entityContour, 'read', {
       resource,
     }),
-    // The `update` blaze synthesized by `deriveTrail` handles the partial-patch
+    // The `update` implementation synthesized by `deriveTrail` handles the partial-patch
     // concern: when the accessor lacks a native `update`, the fallback path in
     // `derive-trail.ts` (`updateViaReadAndUpsert`) reads the current entity,
     // merges the patch, strips the `version` field, then calls `upsert` with
@@ -322,25 +324,31 @@ const buildCrudTrails = <TTable extends AnyStoreTable>(
   entityOutput: z.ZodType<DerivedOutput<TTable, 'create'>>,
   listOutput: z.ZodType<DerivedOutput<TTable, 'list'>>
 ): InternalCrudTrails<TTable> => {
-  const overrides = options.blaze ?? {};
+  const overrides = options.implementation ?? {};
   const permitFor = (operation: CrudOperation): PermitRequirement | undefined =>
     options.permits?.[operation] ?? options.permit;
 
   return Object.freeze([
     finalizeTrail(baseTrails.createBase, {
-      ...(overrides.create === undefined ? {} : { blaze: overrides.create }),
+      ...(overrides.create === undefined
+        ? {}
+        : { implementation: overrides.create }),
       output: entityOutput,
       pattern: 'crud',
       permit: permitFor('create'),
     }),
     finalizeTrail(baseTrails.readBase, {
-      ...(overrides.read === undefined ? {} : { blaze: overrides.read }),
+      ...(overrides.read === undefined
+        ? {}
+        : { implementation: overrides.read }),
       output: entityOutput,
       pattern: 'crud',
       permit: permitFor('read'),
     }),
     finalizeTrail(baseTrails.updateBase, {
-      ...(overrides.update === undefined ? {} : { blaze: overrides.update }),
+      ...(overrides.update === undefined
+        ? {}
+        : { implementation: overrides.update }),
       output: entityOutput,
       pattern: 'crud',
       permit: permitFor('update'),
@@ -351,12 +359,14 @@ const buildCrudTrails = <TTable extends AnyStoreTable>(
           permit: permitFor('delete'),
         })
       : finalizeTrail(baseTrails.deleteBase, {
-          blaze: overrides.delete,
+          implementation: overrides.delete,
           pattern: 'crud',
           permit: permitFor('delete'),
         }),
     finalizeTrail(baseTrails.listBase, {
-      ...(overrides.list === undefined ? {} : { blaze: overrides.list }),
+      ...(overrides.list === undefined
+        ? {}
+        : { implementation: overrides.list }),
       output: listOutput,
       pattern: 'crud',
       permit: permitFor('list'),
@@ -368,9 +378,9 @@ const buildCrudTrails = <TTable extends AnyStoreTable>(
  * Produce the standard CRUD trail tuple for one normalized store table.
  *
  * The factory derives schemas, examples, resources, and contour linkage from
- * the table metadata. Blazes default to the backend-agnostic store accessor
+ * the table metadata. Implementations default to the backend-agnostic store accessor
  * contract via `deriveTrail()`'s single-resource synthesis path. Per-operation
- * blaze overrides stay available for callers that need custom persistence
+ * implementation overrides stay available for callers that need custom persistence
  * behavior and are layered onto the derived trails in a single pass.
  */
 export function crud<

@@ -8,7 +8,7 @@ import { createHttpHarness } from '../harness-http.js';
 describe('createHttpHarness', () => {
   test('executes read trails through query input', async () => {
     const show = trail('entity.show', {
-      blaze: (input: { name: string }) =>
+      implementation: (input: { name: string }) =>
         Result.ok({ greeting: `Hello, ${input.name}!` }),
       input: z.object({ name: z.string() }),
       intent: 'read',
@@ -28,7 +28,8 @@ describe('createHttpHarness', () => {
 
   test('executes write trails through body input', async () => {
     const create = trail('entity.create', {
-      blaze: (input: { name: string }) => Result.ok({ id: '1', ...input }),
+      implementation: (input: { name: string }) =>
+        Result.ok({ id: '1', ...input }),
       input: z.object({ name: z.string() }),
       intent: 'write',
       output: z.object({ id: z.string(), name: z.string() }),
@@ -45,7 +46,8 @@ describe('createHttpHarness', () => {
 
   test('does not treat non-webhook body input as a parse Result', async () => {
     const create = trail('entity.create', {
-      blaze: (input: { isErr: boolean; name: string }) => Result.ok(input),
+      implementation: (input: { isErr: boolean; name: string }) =>
+        Result.ok(input),
       input: z.object({ isErr: z.boolean(), name: z.string() }),
       intent: 'write',
       output: z.object({ isErr: z.boolean(), name: z.string() }),
@@ -70,7 +72,7 @@ describe('createHttpHarness', () => {
       path: '/webhooks/payment',
     });
     const receiver = trail('payment.receive', {
-      blaze: (input: { paymentId: string }) => Result.ok(input),
+      implementation: (input: { paymentId: string }) => Result.ok(input),
       input: z.object({ paymentId: z.string() }),
       on: [source],
       output: z.object({ paymentId: z.string() }),
@@ -89,7 +91,8 @@ describe('createHttpHarness', () => {
 
   test('maps validation errors to the HTTP error envelope', async () => {
     const show = trail('entity.show', {
-      blaze: (input: { name: string }) => Result.ok({ name: input.name }),
+      implementation: (input: { name: string }) =>
+        Result.ok({ name: input.name }),
       input: z.object({ name: z.string() }),
       intent: 'read',
       output: z.object({ name: z.string() }),
@@ -110,7 +113,7 @@ describe('createHttpHarness', () => {
       create: () => Result.ok({ source: 'factory' }),
     });
     const readResource = trail('resource.read', {
-      blaze: (_input, ctx) =>
+      implementation: (_input, ctx) =>
         Result.ok({ source: dbResource.from(ctx).source as string }),
       input: z.object({}),
       intent: 'read',

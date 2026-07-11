@@ -1,5 +1,5 @@
 import {
-  findBlazeBodies,
+  findImplementationBodies,
   findTrailDefinitions,
   getNodeComputed,
   getNodeId,
@@ -24,7 +24,7 @@ import type { WardenDiagnostic, WardenRule } from './types.js';
 const RULE_NAME = 'no-destructured-compose';
 
 const diagnosticMessage = (trailId: string): string =>
-  `Trail "${trailId}" destructures compose from the blaze context. Use ctx.compose(...) directly so composition stays visible and Warden can recognize composed Result values.`;
+  `Trail "${trailId}" destructures compose from the implementation context. Use ctx.compose(...) directly so composition stays visible and Warden can recognize composed Result values.`;
 
 const propertyKeyName = (property: AstNode): string | null => {
   if (getNodeComputed(property) === true) {
@@ -60,8 +60,8 @@ const findComposeBinding = (pattern: AstNode | undefined): AstNode | null => {
   return null;
 };
 
-const blazeParams = (blaze: AstNode): readonly AstNode[] =>
-  getNodeParams(blaze) ?? [];
+const implementationParams = (implementation: AstNode): readonly AstNode[] =>
+  getNodeParams(implementation) ?? [];
 
 const destructuredComposeFromVariableDeclarator = (
   node: AstNode,
@@ -104,13 +104,13 @@ const checkBodyDestructuring = (
   sourceCode: string,
   filePath: string,
   trailId: string,
-  blaze: AstNode,
+  implementation: AstNode,
   contextName: string
 ): WardenDiagnostic[] => {
   const diagnostics: WardenDiagnostic[] = [];
 
   walkWithScopes(
-    blaze,
+    implementation,
     (node, scopes) => {
       if (isShadowed(contextName, scopes)) {
         return;
@@ -155,8 +155,10 @@ export const noDestructuredCompose: WardenRule = {
         continue;
       }
 
-      for (const blaze of findBlazeBodies(definition.config)) {
-        const params = blazeParams(blaze);
+      for (const implementation of findImplementationBodies(
+        definition.config
+      )) {
+        const params = implementationParams(implementation);
         const [, contextParam] = params;
         const paramComposeBinding = findComposeBinding(contextParam);
 
@@ -177,7 +179,7 @@ export const noDestructuredCompose: WardenRule = {
               sourceCode,
               filePath,
               definition.id,
-              blaze,
+              implementation,
               contextName
             )
           );
@@ -188,7 +190,7 @@ export const noDestructuredCompose: WardenRule = {
     return diagnostics;
   },
   description:
-    'Coach trail blazes to compose with ctx.compose(...) directly instead of destructuring compose from the context.',
+    'Coach trail implementations to compose with ctx.compose(...) directly instead of destructuring compose from the context.',
   name: RULE_NAME,
   severity: 'warn',
 };

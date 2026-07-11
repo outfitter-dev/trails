@@ -11,7 +11,7 @@ import { topo } from '../topo';
 import { trail } from '../trail';
 
 const protectedTrail = trail('permit.protected', {
-  blaze: () => Result.ok({ ok: true }),
+  implementation: () => Result.ok({ ok: true }),
   input: z.object({}),
   output: z.object({ ok: z.boolean() }),
   permit: { scopes: ['entity:write'] },
@@ -36,7 +36,7 @@ describe('executeTrail permit enforcement', () => {
   test('rejects scoped trails when no permit is available', async () => {
     let ran = false;
     const t = trail('permit.missing', {
-      blaze: () => {
+      implementation: () => {
         ran = true;
         return Result.ok({ ok: true });
       },
@@ -74,13 +74,13 @@ describe('executeTrail permit enforcement', () => {
 
   test('allows public and undeclared trails without a permit', async () => {
     const publicTrail = trail('permit.public', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({}),
       output: z.object({ ok: z.boolean() }),
       permit: 'public',
     });
     const undeclaredTrail = trail('permit.undeclared', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({}),
       output: z.object({ ok: z.boolean() }),
     });
@@ -109,7 +109,8 @@ describe('executeTrail permit enforcement', () => {
       },
     };
     const t = trail('permit.before-effects', {
-      blaze: (_input, ctx) => Result.ok({ ok: protectedResource.from(ctx).ok }),
+      implementation: (_input, ctx) =>
+        Result.ok({ ok: protectedResource.from(ctx).ok }),
       input: z.object({}),
       output: z.object({ ok: z.boolean() }),
       permit: { scopes: ['entity:write'] },
@@ -130,7 +131,7 @@ describe('executeTrail permit enforcement', () => {
     // never declares any layer; the permit check is owned entirely by
     // enforcePermitRequirement inside executeTrail.
     const adminTrail = trail('permit.trl475', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({}),
       output: z.object({ ok: z.boolean() }),
       permit: { scopes: ['admin'] },
@@ -149,21 +150,21 @@ describe('executeTrail permit enforcement', () => {
 
   test('rechecks permit requirements across ctx.compose boundaries', async () => {
     const child = trail('permit.child', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({}),
       output: z.object({ ok: z.boolean() }),
       permit: { scopes: ['child:write'] },
       visibility: 'internal',
     });
     const parent = trail('permit.parent', {
-      blaze: async (_input, ctx) => {
+      composes: [child],
+      implementation: async (_input, ctx) => {
         const composed = await ctx.compose?.(child, {});
         return Result.ok({
           childError:
             composed?.isErr() === true ? composed.error.message : undefined,
         });
       },
-      composes: [child],
       input: z.object({}),
       output: z.object({ childError: z.string().optional() }),
       permit: { scopes: ['parent:write'] },

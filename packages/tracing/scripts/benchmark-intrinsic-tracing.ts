@@ -42,13 +42,13 @@ const ioInput = z.object({
 });
 
 const trivialTrail = trail('bench.tracing.trivial', {
-  blaze: () => Result.ok({ ok: true }),
+  implementation: () => Result.ok({ ok: true }),
   input: emptyIO,
   output: z.object({ ok: z.boolean() }),
 });
 
 const typicalTrail = trail('bench.tracing.typical', {
-  blaze: (input) =>
+  implementation: (input) =>
     Result.ok({
       checksum: `${input.id}:${input.label}:${input.tags.length}`,
       count: input.count + 1,
@@ -63,7 +63,7 @@ const typicalTrail = trail('bench.tracing.typical', {
 });
 
 const ioTrail = trail('bench.tracing.io', {
-  blaze: async (input) => {
+  implementation: async (input) => {
     await Bun.sleep(1);
     return Result.ok({ jobId: input.jobId, ok: true });
   },

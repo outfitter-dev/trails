@@ -8,11 +8,11 @@ describe('no-direct-implementation-call', () => {
 import { trail, Result } from "@ontrails/core";
 
 const entityShow = trail("entity.show", {
-  blaze: async (input, ctx) => Result.ok({ id: input.id }),
+  implementation: async (input, ctx) => Result.ok({ id: input.id }),
 });
 
 async function run() {
-  const result = await entityShow.blaze({ id: "1" }, ctx);
+  const result = await entityShow.implementation({ id: "1" }, ctx);
   return result;
 }`;
 
@@ -28,8 +28,8 @@ async function run() {
     const code = `
 trail("entity.onboard", {
   composes: ["entity.create"],
-  blaze: async (input, ctx) => {
-    const result = await entityCreate.blaze(data);
+  implementation: async (input, ctx) => {
+    const result = await entityCreate.implementation(data);
     return Result.ok(result);
   }
 })`;
@@ -46,7 +46,7 @@ trail("entity.onboard", {
     const code = `
 trail("entity.onboard", {
   composes: ["entity.create"],
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const result = await ctx.compose("entity.create", input);
     return Result.ok(result);
   },
@@ -61,7 +61,7 @@ trail("entity.onboard", {
   test('ignores test files', () => {
     const code = `
 async function run() {
-  return await entityShow.blaze({ id: "1" }, ctx);
+  return await entityShow.implementation({ id: "1" }, ctx);
 }`;
 
     const diagnostics = noDirectImplementationCall.check(
@@ -75,7 +75,7 @@ async function run() {
   test('ignores framework internals that intentionally call implementations', () => {
     const code = `
 export async function run() {
-  return await entityShow.blaze({ id: "1" }, ctx);
+  return await entityShow.implementation({ id: "1" }, ctx);
 }`;
 
     const diagnostics = noDirectImplementationCall.check(
@@ -88,7 +88,7 @@ export async function run() {
 
   test('ignores implementation references inside template strings', () => {
     const code = `
-const generated = \`const result = await entityShow.blaze({ id: "1" }, ctx);\`;
+const generated = \`const result = await entityShow.implementation({ id: "1" }, ctx);\`;
 `;
 
     const diagnostics = noDirectImplementationCall.check(

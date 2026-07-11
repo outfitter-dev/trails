@@ -8,12 +8,12 @@ import { deriveCliSchema, findCliSchemaCommand } from '../schema.js';
 
 const buildSchema = () => {
   const search = trail('wayfind.search', {
-    blaze: (input: { query: string }) => Result.ok(input.query),
     cli: {
       aliases: ['find'],
     },
     description: 'Search the graph',
     examples: [{ input: { query: 'trail' }, name: 'Search trails' }],
+    implementation: (input: { query: string }) => Result.ok(input.query),
     input: z.object({ query: z.string() }),
     output: z.string(),
   });

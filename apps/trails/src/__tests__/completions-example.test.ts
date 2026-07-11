@@ -89,7 +89,7 @@ const writeWorkspace = (
       `  input: z.object({}).passthrough(),`,
       `  output: z.unknown(),`,
       `  examples: ${examplesArrayLiteral},`,
-      `  blaze: () => Result.ok({}),`,
+      `  implementation: () => Result.ok({}),`,
       `});`,
       '',
       `export const app = topo('app-a', [targetTrail]);`,

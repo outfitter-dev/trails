@@ -16,7 +16,27 @@ import type { Route } from '../store.js';
 import { routeSchema } from '../store.js';
 
 export const create = trail('route.create', {
-  blaze: async (input, ctx) => {
+  description: 'Bind an endpoint to a target with an optional payload filter',
+  examples: [
+    {
+      description: 'Route the rotation-demo endpoint to the logbook target',
+      input: { endpointId: 'ep_rotate_demo', targetId: 'tgt_logbook' },
+      name: 'Create a route',
+    },
+    {
+      description: 'Returns NotFoundError when the endpoint does not exist',
+      error: 'NotFoundError',
+      input: { endpointId: 'ep_missing', targetId: 'tgt_logbook' },
+      name: 'Route with unknown endpoint',
+    },
+    {
+      description: 'Returns NotFoundError when the target does not exist',
+      error: 'NotFoundError',
+      input: { endpointId: 'ep_github_demo', targetId: 'tgt_missing' },
+      name: 'Route with unknown target',
+    },
+  ],
+  implementation: async (input, ctx) => {
     const store = relayStoreResource.from(ctx);
     const endpoint = await store.endpoint.get(input.endpointId);
     if (!endpoint) {
@@ -39,26 +59,6 @@ export const create = trail('route.create', {
     });
     return Result.ok(route);
   },
-  description: 'Bind an endpoint to a target with an optional payload filter',
-  examples: [
-    {
-      description: 'Route the rotation-demo endpoint to the logbook target',
-      input: { endpointId: 'ep_rotate_demo', targetId: 'tgt_logbook' },
-      name: 'Create a route',
-    },
-    {
-      description: 'Returns NotFoundError when the endpoint does not exist',
-      error: 'NotFoundError',
-      input: { endpointId: 'ep_missing', targetId: 'tgt_logbook' },
-      name: 'Route with unknown endpoint',
-    },
-    {
-      description: 'Returns NotFoundError when the target does not exist',
-      error: 'NotFoundError',
-      input: { endpointId: 'ep_github_demo', targetId: 'tgt_missing' },
-      name: 'Route with unknown target',
-    },
-  ],
   input: z.object({
     endpointId: z.string().describe('Endpoint the route listens on'),
     filterEquals: z
@@ -78,15 +78,6 @@ export const create = trail('route.create', {
 });
 
 export const list = trail('route.list', {
-  blaze: async (input, ctx) => {
-    const store = relayStoreResource.from(ctx);
-    const routes = await store.route.list(
-      input.endpointId === undefined
-        ? undefined
-        : { endpointId: input.endpointId }
-    );
-    return Result.ok({ routes: [...routes] });
-  },
   description: 'List routes, optionally scoped to one endpoint',
   examples: [
     {
@@ -112,6 +103,15 @@ export const list = trail('route.list', {
       name: 'List routes for one endpoint',
     },
   ],
+  implementation: async (input, ctx) => {
+    const store = relayStoreResource.from(ctx);
+    const routes = await store.route.list(
+      input.endpointId === undefined
+        ? undefined
+        : { endpointId: input.endpointId }
+    );
+    return Result.ok({ routes: [...routes] });
+  },
   input: z.object({
     endpointId: z
       .string()
@@ -138,7 +138,6 @@ const setEnabled = async (
 };
 
 export const enable = trail('route.enable', {
-  blaze: (input, ctx) => setEnabled(ctx, input.id, true),
   description: 'Resume relaying events across a route',
   examples: [
     {
@@ -153,6 +152,7 @@ export const enable = trail('route.enable', {
       name: 'Enable unknown route',
     },
   ],
+  implementation: (input, ctx) => setEnabled(ctx, input.id, true),
   input: z.object({ id: z.string().describe('Route identifier') }),
   intent: 'write',
   output: routeSchema,
@@ -161,7 +161,6 @@ export const enable = trail('route.enable', {
 });
 
 export const disable = trail('route.disable', {
-  blaze: (input, ctx) => setEnabled(ctx, input.id, false),
   description: 'Pause relaying events across a route',
   examples: [
     {
@@ -184,6 +183,7 @@ export const disable = trail('route.disable', {
       name: 'Disable unknown route',
     },
   ],
+  implementation: (input, ctx) => setEnabled(ctx, input.id, false),
   input: z.object({ id: z.string().describe('Route identifier') }),
   intent: 'write',
   output: routeSchema,

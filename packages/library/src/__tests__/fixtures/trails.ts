@@ -58,11 +58,11 @@ const widgetSchema = z.object({ id: z.string(), name: z.string() });
 // --- stateless trail -> projects to a root named export ---
 
 export const ping = trail('widget.ping', {
-  blaze: (input) => Result.ok({ echo: input.message }),
   description: 'Stateless echo; projects to a root named export.',
   examples: [
     { expected: { echo: 'hi' }, input: { message: 'hi' }, name: 'echo' },
   ],
+  implementation: (input) => Result.ok({ echo: input.message }),
   input: z.object({ message: z.string() }),
   intent: 'read',
   output: z.object({ echo: z.string() }),
@@ -71,12 +71,6 @@ export const ping = trail('widget.ping', {
 // --- domain-negative output: a failing check is a RETURNED value, not a throw ---
 
 export const check = trail('widget.check', {
-  blaze: (input) =>
-    Result.ok(
-      input.name.length > 0
-        ? { issues: [] as string[], status: 'pass' as const }
-        : { issues: ['name is empty'], status: 'fail' as const }
-    ),
   description:
     'Check a widget name. A failing result is a normal returned value, never a thrown error.',
   examples: [
@@ -91,6 +85,12 @@ export const check = trail('widget.check', {
       name: 'fail (returned, not thrown)',
     },
   ],
+  implementation: (input) =>
+    Result.ok(
+      input.name.length > 0
+        ? { issues: [] as string[], status: 'pass' as const }
+        : { issues: ['name is empty'], status: 'fail' as const }
+    ),
   input: z.object({ name: z.string() }),
   intent: 'read',
   output: z.object({
@@ -102,14 +102,6 @@ export const check = trail('widget.check', {
 // --- resource-bearing read + an expectErr example (maps to a root throw) ---
 
 export const get = trail('widget.get', {
-  blaze: (input, ctx) => {
-    const store = widgetStore.from(ctx);
-    const widget = store.get(input.id);
-    if (!widget) {
-      return Result.err(new NotFoundError(`Widget "${input.id}" not found`));
-    }
-    return Result.ok(widget);
-  },
   description: 'Get a widget by id.',
   examples: [
     {
@@ -123,6 +115,14 @@ export const get = trail('widget.get', {
       name: 'not found -> throws at the root API',
     },
   ],
+  implementation: (input, ctx) => {
+    const store = widgetStore.from(ctx);
+    const widget = store.get(input.id);
+    if (!widget) {
+      return Result.err(new NotFoundError(`Widget "${input.id}" not found`));
+    }
+    return Result.ok(widget);
+  },
   input: z.object({ id: z.string() }),
   intent: 'read',
   output: widgetSchema,
@@ -132,12 +132,6 @@ export const get = trail('widget.get', {
 // --- resource-bearing write + permit ---
 
 export const add = trail('widget.add', {
-  blaze: (input, ctx) => {
-    const store = widgetStore.from(ctx);
-    const widget = { id: input.id, name: input.name };
-    store.add(widget);
-    return Result.ok(widget);
-  },
   description: 'Add a widget.',
   examples: [
     {
@@ -151,6 +145,12 @@ export const add = trail('widget.add', {
       name: 'add (partial match)',
     },
   ],
+  implementation: (input, ctx) => {
+    const store = widgetStore.from(ctx);
+    const widget = { id: input.id, name: input.name };
+    store.add(widget);
+    return Result.ok(widget);
+  },
   input: z.object({ id: z.string(), name: z.string() }),
   intent: 'write',
   output: widgetSchema,
@@ -161,7 +161,6 @@ export const add = trail('widget.add', {
 // --- versioned trail: library projects the CURRENT version only ---
 
 export const greet = trail('widget.greet', {
-  blaze: (input) => Result.ok({ message: `Hello, ${input.name}!` }),
   description:
     'Versioned greeting; the library projects the current version only.',
   examples: [
@@ -171,6 +170,7 @@ export const greet = trail('widget.greet', {
       name: 'greet (current version)',
     },
   ],
+  implementation: (input) => Result.ok({ message: `Hello, ${input.name}!` }),
   input: z.object({ name: z.string() }),
   intent: 'read',
   output: z.object({ message: z.string() }),
@@ -197,16 +197,6 @@ export const auditLayer: Layer = {
 // --- typed layer input: library projects and routes layer fields ---
 
 export const audited = trail('widget.audited', {
-  blaze: (input, ctx) => {
-    const layers = ctx.extensions?.[LAYER_INPUTS_KEY] as
-      | Record<string, { readonly message?: string; readonly token?: string }>
-      | undefined;
-    return Result.ok({
-      auditMessage: layers?.['audit']?.message,
-      auditToken: layers?.['audit']?.token,
-      message: input.message,
-    });
-  },
   description:
     'Audited widget call; proves library projection includes typed layer inputs.',
   examples: [
@@ -220,6 +210,16 @@ export const audited = trail('widget.audited', {
       name: 'audited',
     },
   ],
+  implementation: (input, ctx) => {
+    const layers = ctx.extensions?.[LAYER_INPUTS_KEY] as
+      | Record<string, { readonly message?: string; readonly token?: string }>
+      | undefined;
+    return Result.ok({
+      auditMessage: layers?.['audit']?.message,
+      auditToken: layers?.['audit']?.token,
+      message: input.message,
+    });
+  },
   input: z.object({ message: z.string() }),
   intent: 'read',
   layers: [auditLayer],
@@ -233,9 +233,9 @@ export const audited = trail('widget.audited', {
 // --- internal visibility: MUST be excluded from the projection ---
 
 export const diagnose = trail('widget.diagnose', {
-  blaze: () => Result.ok({ ok: true }),
   description:
     'Internal-only diagnostic; excluded from the library projection.',
+  implementation: () => Result.ok({ ok: true }),
   input: z.object({}),
   intent: 'read',
   output: z.object({ ok: z.boolean() }),
@@ -245,8 +245,8 @@ export const diagnose = trail('widget.diagnose', {
 // --- draft id: MUST be excluded from the projection ---
 
 export const experiment = trail('_draft.widget.experiment', {
-  blaze: () => Result.ok({ todo: true }),
   description: 'Draft-authored trail; excluded from the library projection.',
+  implementation: () => Result.ok({ todo: true }),
   input: z.object({}),
   intent: 'read',
   output: z.object({ todo: z.boolean() }),
@@ -262,8 +262,8 @@ export const widgetAdded = signal('widget.added', {
 // --- draft AND internal: excluded, exercises reason precedence (draft wins) ---
 
 export const secret = trail('_draft.widget.secret', {
-  blaze: () => Result.ok({ secret: true }),
   description: 'Draft and internal; excluded with primary reason "draft".',
+  implementation: () => Result.ok({ secret: true }),
   input: z.object({}),
   intent: 'read',
   output: z.object({ secret: z.boolean() }),
@@ -273,9 +273,9 @@ export const secret = trail('_draft.widget.secret', {
 // --- activation-driven: reacts to a signal; MUST be excluded (activation) ---
 
 export const onCreated = trail('widget.onCreated', {
-  blaze: () => Result.ok({ handled: true }),
   description:
     'Reacts to widget.added; excluded from the projection (activation-driven).',
+  implementation: () => Result.ok({ handled: true }),
   input: z.object({ id: z.string() }),
   intent: 'read',
   on: ['widget.added'],

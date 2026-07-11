@@ -34,7 +34,7 @@ If a trail uses the typed pre-bind handle and the store is bound once in the sam
 ```typescript
 trail('users.notify', {
   on: [definition.tables.users.signals.created],
-  blaze: (input) => Result.ok(input),
+  implementation: (input) => Result.ok(input),
 });
 ```
 
@@ -45,7 +45,7 @@ If the same store definition is bound more than once, update the trail to use th
 ```typescript
 trail('users.notify-identity', {
   on: ['identity:users.created'],
-  blaze: (input) => Result.ok(input),
+  implementation: (input) => Result.ok(input),
 });
 ```
 

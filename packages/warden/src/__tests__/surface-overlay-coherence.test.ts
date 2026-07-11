@@ -9,19 +9,19 @@ import { z } from 'zod';
 import { surfaceOverlayCoherence } from '../rules/surface-overlay-coherence.js';
 
 const gearList = trail('gear.list', {
-  blaze: () => Result.ok([]),
+  implementation: () => Result.ok([]),
   input: z.object({}),
   output: z.array(z.string()),
 });
 
 const gearCreate = trail('gear.create', {
-  blaze: () => Result.ok([]),
+  implementation: () => Result.ok([]),
   input: z.object({ name: z.string() }),
   output: z.array(z.string()),
 });
 
 const survey = trail('survey', {
-  blaze: () => Result.ok([]),
+  implementation: () => Result.ok([]),
   input: z.object({}),
   output: z.array(z.string()),
 });
@@ -148,8 +148,8 @@ describe('surface-overlay-coherence', () => {
 
   test('warns when a cli binding name shadows a single-segment trail-owned alias route', async () => {
     const aliasedList = trail('gear.aliased-list', {
-      blaze: () => Result.ok([]),
       cli: { aliases: [['ls-cmd']] },
+      implementation: () => Result.ok([]),
       input: z.object({}),
       output: z.array(z.string()),
     });

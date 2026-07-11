@@ -19,7 +19,7 @@ For each trail candidate:
   - [ ] Enums use `z.enum([...])` for CLI choices
   - [ ] Arrays have `.default([])` when empty is valid
 - [ ] Define Zod output schema
-  - [ ] Matches what the blaze actually returns
+  - [ ] Matches what the implementation actually returns
   - [ ] Required for any trail exposed on MCP or HTTP
 - [ ] Identify shared schemas (entity shapes used across multiple trails)
 
@@ -30,7 +30,7 @@ For each handler:
 - [ ] Create `trail()` definition (use `composes:` for composition)
 - [ ] Choose appropriate ID with dotted namespacing
 - [ ] Set flags: `intent`, `idempotent`
-- [ ] Blaze the trail by moving behavior into `blaze`
+- [ ] Implement the trail by moving behavior into `implementation`
 - [ ] Replace all `throw` with `Result.err(new XError(...))`
   - `throw new Error('not found')` → `Result.err(new NotFoundError(...))`
   - `throw new Error('already exists')` → `Result.err(new AlreadyExistsError(...))`

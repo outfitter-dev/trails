@@ -354,7 +354,7 @@ crud(table, resource, options?)        // derive create/read/update/delete/list 
 sync(options)                          // copy one source entity into a target store table
 reconcile(options)                     // upsert a versioned entity with conflict recovery
 
-CrudTrails<T>, CrudOptions<T>, CrudBlazeOverrides<T>
+CrudTrails<T>, CrudOptions<T>, CrudImplementationOverrides<T>
 SyncEndpoint<T, C>, SyncOptions<TSource, TTarget, TSourceConnection, TTargetConnection>
 SyncTransform<TSource, TTarget>
 ReconcileConflict<T>, ReconcileOptions<T, C>, ReconcileStrategy<T>
@@ -503,8 +503,8 @@ walkWithParents(ast, visitor), walkWithScopeContext(ast, visitor)
 offsetToLine(source, offset), offsetToLineColumn(source, offset)
 createSourceEdit(start, end, replacement)
 validateSourceEdits(edits), applySourceEdits(source, edits)
-findTrailDefinitions(ast), findBlazeBodies(node)
-findContourDefinitions(ast, context?, options?), isBlazeCall(node)
+findTrailDefinitions(ast), findImplementationBodies(node)
+findContourDefinitions(ast, context?, options?), isImplementationCall(node)
 findStringLiterals(ast, predicate?), isStringLiteral(node), getStringValue(node)
 
 AstNode, TrailDefinition, ContourDefinition, FindContourDefinitionsOptions
@@ -713,7 +713,7 @@ tracingResource                      // resource for tracing state
 tracingStatus                        // trail: report tracing state and record count
 tracingQuery                         // trail: query execution history with filters
 
-// Context access (inside a trail blaze)
+// Context access (inside a trail implementation)
 ctx.trace(label, fn)                 // record a nested span around fn
 getTraceContext(ctx)                 // get current trace context
 createChildTraceContext(parent)      // create a child trace context

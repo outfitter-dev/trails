@@ -6,7 +6,7 @@ import type { TopoGraph, TopoGraphEntry } from '@ontrails/topographer';
 import { z } from 'zod';
 
 import {
-  forkWithoutPreservedBlaze,
+  forkWithoutPreservedImplementation,
   markerSchemaUnsupported,
   versionPinnedCompose,
 } from '../rules/trail-versioning-source.js';
@@ -27,7 +27,7 @@ const graphWithEntry = (entry: TopoGraphEntry): TopoGraph => ({
 });
 
 const versionedTrail = trail('versioned.clean', {
-  blaze: () => Result.ok({ ok: true }),
+  implementation: () => Result.ok({ ok: true }),
   input: z.object({}),
   output: z.object({ ok: z.boolean() }),
   version: 2,
@@ -49,7 +49,7 @@ describe('trail versioning source Warden rules', () => {
     const diagnostics = versionPinnedCompose.check(
       `
 trail('parent', {
-  blaze: async (_input, ctx) => {
+  implementation: async (_input, ctx) => {
     await ctx.compose('child', {}, { version: 1 });
     return Result.ok({});
   },
@@ -70,7 +70,7 @@ trail('parent', {
     const diagnostics = versionPinnedCompose.check(
       `
 trail('parent', {
-  blaze: async (_input, ctx) => {
+  implementation: async (_input, ctx) => {
     await ctx.compose('child', { version: 1 });
     return Result.ok({});
   },
@@ -82,8 +82,8 @@ trail('parent', {
     expect(diagnostics).toEqual([]);
   });
 
-  test('fork-without-preserved-blaze rejects historical entries with no blaze or transpose', () => {
-    const diagnostics = forkWithoutPreservedBlaze.check(
+  test('fork-without-preserved-implementation rejects historical entries with no implementation or transpose', () => {
+    const diagnostics = forkWithoutPreservedImplementation.check(
       `
 trail('versioned.bad', {
   version: 2,
@@ -93,7 +93,7 @@ trail('versioned.bad', {
       output: z.object({ ok: z.boolean() }),
     },
   },
-  blaze: async () => Result.ok({ ok: true }),
+  implementation: async () => Result.ok({ ok: true }),
 });
 `,
       sourceFile
@@ -101,7 +101,7 @@ trail('versioned.bad', {
 
     expect(diagnostics).toEqual([
       expect.objectContaining({
-        rule: 'fork-without-preserved-blaze',
+        rule: 'fork-without-preserved-implementation',
         severity: 'error',
       }),
     ]);
@@ -114,7 +114,7 @@ trail('versioned.schema', {
   version: 2,
   input: z.object({ payload: z.any() }),
   output: z.object({ ok: z.boolean() }),
-  blaze: async () => Result.ok({ ok: true }),
+  implementation: async () => Result.ok({ ok: true }),
 });
 `,
       sourceFile
@@ -139,7 +139,7 @@ trail('versioned.schema-types', {
     keyed: z.record(z.string(), z.string()),
   }),
   output: z.object({ ok: z.boolean() }),
-  blaze: async () => Result.ok({ ok: true }),
+  implementation: async () => Result.ok({ ok: true }),
 });
 `,
       sourceFile
@@ -180,7 +180,7 @@ trail('versioned.validation-checks', {
     fromBinding: constrained,
   }),
   output: z.object({ ok: z.boolean() }),
-  blaze: async () => Result.ok({ ok: true }),
+  implementation: async () => Result.ok({ ok: true }),
 });
 `,
       sourceFile
@@ -208,7 +208,7 @@ trail('versioned.omitted-checks', {
     stepped: z.number().step(2),
   }),
   output: z.object({ ok: z.boolean() }),
-  blaze: async () => Result.ok({ ok: true }),
+  implementation: async () => Result.ok({ ok: true }),
 });
 `,
       sourceFile
@@ -235,7 +235,7 @@ trail('versioned.coerced', {
     b: z.coerce.boolean(),
   }),
   output: z.object({ ok: z.boolean() }),
-  blaze: async () => Result.ok({ ok: true }),
+  implementation: async () => Result.ok({ ok: true }),
 });
 `,
       sourceFile
@@ -298,7 +298,7 @@ trail('versioned.runtime-rejected', {
 	    constMultiLiteral: z.literal(['a', 'b'] as const),
 	  }),
   output: z.object({ ok: z.boolean() }),
-  blaze: async () => Result.ok({ ok: true }),
+  implementation: async () => Result.ok({ ok: true }),
 });
 `,
       sourceFile
@@ -326,7 +326,7 @@ trail('versioned.reference-values', {
     arrayEnum: z.enum({ A: ['value'] } as never),
   }),
   output: z.object({ ok: z.boolean() }),
-  blaze: async () => Result.ok({ ok: true }),
+  implementation: async () => Result.ok({ ok: true }),
 });
 `,
       sourceFile
@@ -362,7 +362,7 @@ trail('versioned.supported', {
     computedChoice: z.enum(statuses.map((status) => status)),
   }),
   output: z.object({ ok: z.boolean() }),
-  blaze: async () => Result.ok({ ok: true }),
+  implementation: async () => Result.ok({ ok: true }),
 });
 `,
       sourceFile
@@ -383,7 +383,7 @@ trail('versioned.defaults', {
     lossy: z.number().default(Number.NaN),
   }),
   output: z.object({ ok: z.boolean() }),
-  blaze: async () => Result.ok({ ok: true }),
+  implementation: async () => Result.ok({ ok: true }),
 });
 `,
       sourceFile
@@ -416,7 +416,7 @@ trail('versioned.json-lossy-values', {
 	    infiniteEnum: z.enum([Number.POSITIVE_INFINITY] as never),
   }),
   output: z.object({ ok: z.boolean() }),
-  blaze: async () => Result.ok({ ok: true }),
+  implementation: async () => Result.ok({ ok: true }),
 });
 `,
       sourceFile
@@ -444,7 +444,7 @@ trail('versioned.hidden-optional', {
     visibleReadonly: z.string().readonly().optional(),
   }),
   output: z.object({ ok: z.boolean() }),
-  blaze: async () => Result.ok({ ok: true }),
+  implementation: async () => Result.ok({ ok: true }),
 });
 `,
       sourceFile
@@ -474,7 +474,7 @@ trail('versioned.hidden-optional-alias', {
     nestedHidden: nested,
   }),
   output: z.object({ ok: z.boolean() }),
-  blaze: async () => Result.ok({ ok: true }),
+  implementation: async () => Result.ok({ ok: true }),
 });
 `,
       sourceFile
@@ -505,7 +505,7 @@ trail('versioned.optional-context', {
     nestedHidden: z.array(nested),
     directNestedHidden: z.array(z.string().optional()),
   }),
-  blaze: async () => Result.ok({ ok: true }),
+  implementation: async () => Result.ok({ ok: true }),
 });
 `,
       sourceFile
@@ -532,7 +532,7 @@ trail('versioned.schema-binding', {
     name: base.min(3),
   }),
   output: z.object({ ok: z.boolean() }),
-  blaze: async () => Result.ok({ ok: true }),
+  implementation: async () => Result.ok({ ok: true }),
 });
 `,
       sourceFile
@@ -563,7 +563,7 @@ trail('versioned.schema-binding', {
 	    status: z.literal(status),
 	  }),
 	  output: z.object({ ok: z.boolean() }),
-	  blaze: async () => Result.ok({ ok: true }),
+	  implementation: async () => Result.ok({ ok: true }),
 	});
 	`,
       sourceFile
@@ -584,7 +584,7 @@ function makeTrail(status: 'active') {
       status: z.literal(status),
     }),
     output: z.object({ ok: z.boolean() }),
-    blaze: async () => Result.ok({ ok: true }),
+    implementation: async () => Result.ok({ ok: true }),
   });
 }
 `,
@@ -609,7 +609,7 @@ trail('versioned.block-shadowed-binding', {
     status: z.literal(status),
   }),
   output: z.object({ ok: z.boolean() }),
-  blaze: async () => Result.ok({ ok: true }),
+  implementation: async () => Result.ok({ ok: true }),
 });
 `,
       sourceFile
@@ -630,7 +630,7 @@ trail('versioned.schema-alias', {
     name: field,
   }),
   output: z.object({ ok: z.boolean() }),
-  blaze: async () => Result.ok({ ok: true }),
+  implementation: async () => Result.ok({ ok: true }),
 });
 `,
       sourceFile
@@ -660,7 +660,7 @@ trail('versioned.helper-factories', {
     count: min(),
   }),
   output: z.object({ ok: z.boolean() }),
-  blaze: async () => Result.ok({ ok: true }),
+  implementation: async () => Result.ok({ ok: true }),
 });
 `,
       sourceFile
@@ -675,7 +675,7 @@ trail('versioned.helper-factories', {
 trail('unversioned.schema', {
   input: z.object({ payload: z.record(z.string(), z.string()) }),
   output: z.object({ ok: z.boolean() }),
-  blaze: async () => Result.ok({ ok: true }),
+  implementation: async () => Result.ok({ ok: true }),
 });
 `,
       sourceFile
@@ -697,7 +697,7 @@ trail('versioned.schema-callback', {
     payload: z.string().refine((value) => parser.transform(value).length > 0),
   }),
   output: z.object({ ok: z.boolean() }),
-  blaze: async () => Result.ok({ ok: true }),
+  implementation: async () => Result.ok({ ok: true }),
 });
 `,
       sourceFile
@@ -715,7 +715,7 @@ trail('versioned.schema-callback', {
 describe('trail versioning topo-aware Warden rules', () => {
   test('version-gap catches non-contiguous coverage', async () => {
     const gapTrail = trail('versioned.gap', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({}),
       output: z.object({ ok: z.boolean() }),
       version: 3,
@@ -746,7 +746,7 @@ describe('trail versioning topo-aware Warden rules', () => {
 
   test('version-without-examples warns for live entries and exempts archived entries', async () => {
     const missingExampleTrail = trail('versioned.examples', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({}),
       output: z.object({ ok: z.boolean() }),
       version: 2,
@@ -762,7 +762,7 @@ describe('trail versioning topo-aware Warden rules', () => {
       },
     });
     const archivedTrail = trail('versioned.archived', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({}),
       output: z.object({ ok: z.boolean() }),
       version: 2,

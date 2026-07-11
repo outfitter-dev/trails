@@ -5,16 +5,16 @@ import { cliCommandRouteCoherence } from '../rules/cli-command-route-coherence.j
 import { wrapTopoRule } from './wrap-rule.js';
 
 const searchTrail = trail('wayfind.search', {
-  blaze: () => Result.ok([]),
   cli: {
     aliases: ['find'],
   },
+  implementation: () => Result.ok([]),
   input: z.object({ query: z.string() }),
   output: z.array(z.string()),
 });
 
 const collidingTrail = trail('wayfind.find', {
-  blaze: () => Result.ok([]),
+  implementation: () => Result.ok([]),
   input: z.object({ query: z.string() }),
   output: z.array(z.string()),
 });

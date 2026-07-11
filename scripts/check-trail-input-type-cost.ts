@@ -137,7 +137,7 @@ const trail${index} = trail('almanac.typeCost.${index}', {
       },
     },
   ],
-  blaze: (input) =>
+  implementation: (input) =>
     Result.ok({
       id: input.query,
       limit: input.limit,

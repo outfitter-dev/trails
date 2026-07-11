@@ -5,7 +5,6 @@ import { validDetourContract } from '../rules/valid-detour-contract.js';
 import { wrapTopoRule } from './wrap-rule.js';
 
 const validTrail = trail('entity.save', {
-  blaze: () => Result.ok({ ok: true }),
   detours: [
     {
       on: ConflictError,
@@ -15,6 +14,7 @@ const validTrail = trail('entity.save', {
       },
     },
   ],
+  implementation: () => Result.ok({ ok: true }),
   input: z.object({}),
   output: z.object({ ok: z.boolean() }),
 });

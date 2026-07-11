@@ -24,7 +24,7 @@ const noopRun = () => Result.ok({});
 describe('destroyWithoutPermit', () => {
   test('error when destroy trail has no permit', () => {
     const t = trail('user.delete', {
-      blaze: noopRun,
+      implementation: noopRun,
       input: emptyInput,
       intent: 'destroy',
     });
@@ -40,7 +40,7 @@ describe('destroyWithoutPermit', () => {
 
   test('no diagnostic when destroy trail has a scoped permit', () => {
     const t = trail('user.delete', {
-      blaze: noopRun,
+      implementation: noopRun,
       input: emptyInput,
       intent: 'destroy',
       permit: { scopes: ['user:delete'] },
@@ -51,7 +51,7 @@ describe('destroyWithoutPermit', () => {
 
   test('error when destroy trail has permit: public', () => {
     const t = trail('user.delete', {
-      blaze: noopRun,
+      implementation: noopRun,
       input: emptyInput,
       intent: 'destroy',
       permit: 'public',
@@ -73,7 +73,7 @@ describe('destroyWithoutPermit', () => {
 describe('writeWithoutPermit', () => {
   test('warning when write trail has no permit', () => {
     const t = trail('user.create', {
-      blaze: noopRun,
+      implementation: noopRun,
       input: emptyInput,
     });
     const diagnostics = writeWithoutPermit([t]);
@@ -87,7 +87,7 @@ describe('writeWithoutPermit', () => {
 
   test('no warning when write trail has permit: public', () => {
     const t = trail('user.create', {
-      blaze: noopRun,
+      implementation: noopRun,
       input: emptyInput,
       permit: 'public',
     });
@@ -97,7 +97,7 @@ describe('writeWithoutPermit', () => {
 
   test('warning when trail has no intent (defaults to write)', () => {
     const t = trail('user.update', {
-      blaze: noopRun,
+      implementation: noopRun,
       input: emptyInput,
     });
     // Override intent to undefined to simulate a manually constructed trail
@@ -115,7 +115,7 @@ describe('writeWithoutPermit', () => {
 
   test('no diagnostic for read trail without permit', () => {
     const t = trail('user.list', {
-      blaze: noopRun,
+      implementation: noopRun,
       input: emptyInput,
       intent: 'read',
     });
@@ -131,7 +131,7 @@ describe('writeWithoutPermit', () => {
 describe('scopeNamingConsistency', () => {
   test('scope user:write passes naming check', () => {
     const t = trail('user.update', {
-      blaze: noopRun,
+      implementation: noopRun,
       input: emptyInput,
       permit: { scopes: ['user:write'] },
     });
@@ -141,7 +141,7 @@ describe('scopeNamingConsistency', () => {
 
   test('warning for scope without colon', () => {
     const t = trail('admin.panel', {
-      blaze: noopRun,
+      implementation: noopRun,
       input: emptyInput,
       permit: { scopes: ['admin'] },
     });
@@ -163,12 +163,12 @@ describe('scopeNamingConsistency', () => {
 describe('orphanScopeDetection', () => {
   test('warning for orphan scope (typo)', () => {
     const t1 = trail('user.read', {
-      blaze: noopRun,
+      implementation: noopRun,
       input: emptyInput,
       permit: { scopes: ['user:read'] },
     });
     const t2 = trail('user.write', {
-      blaze: noopRun,
+      implementation: noopRun,
       input: emptyInput,
       permit: { scopes: ['user:wirte'] },
     });
@@ -181,12 +181,12 @@ describe('orphanScopeDetection', () => {
 
   test('no warning for shared scopes', () => {
     const t1 = trail('user.read', {
-      blaze: noopRun,
+      implementation: noopRun,
       input: emptyInput,
       permit: { scopes: ['user:read'] },
     });
     const t2 = trail('user.profile', {
-      blaze: noopRun,
+      implementation: noopRun,
       input: emptyInput,
       permit: { scopes: ['user:read'] },
     });
@@ -203,21 +203,21 @@ describe('orphanScopeDetection', () => {
 describe('validatePermits', () => {
   test('runs all rules and aggregates diagnostics', () => {
     const destroyNoPerm = trail('user.delete', {
-      blaze: noopRun,
+      implementation: noopRun,
       input: emptyInput,
       intent: 'destroy',
     });
     const writeNoPerm = trail('user.create', {
-      blaze: noopRun,
+      implementation: noopRun,
       input: emptyInput,
     });
     const badScope = trail('admin.panel', {
-      blaze: noopRun,
+      implementation: noopRun,
       input: emptyInput,
       permit: { scopes: ['admin'] },
     });
     const orphanScope = trail('analytics.export', {
-      blaze: noopRun,
+      implementation: noopRun,
       input: emptyInput,
       permit: { scopes: ['analytics:exportt'] },
     });

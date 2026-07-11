@@ -1,4 +1,4 @@
-/* oxlint-disable require-await -- blazes satisfy async interface without awaiting */
+/* oxlint-disable require-await -- implementations satisfy async interface without awaiting */
 import { describe, expect, test } from 'bun:test';
 
 import { z } from 'zod';
@@ -38,7 +38,7 @@ const suffixResource = resource('version.runtime.suffix', {
 });
 
 const versionHelper = trail('version.runtime.helper', {
-  blaze: (input) => Result.ok({ value: `helper:${input.id}` }),
+  implementation: (input) => Result.ok({ value: `helper:${input.id}` }),
   input: z.object({ id: z.string() }),
   output: z.object({ value: z.string() }),
   visibility: 'internal',
@@ -52,7 +52,7 @@ const requireCompose = (
 };
 
 const versionedTrail = trail('version.runtime.greet', {
-  blaze: (input) =>
+  implementation: (input) =>
     Result.ok({
       message: `${input.loud ? 'HELLO' : 'hello'} ${input.name}`,
       source: 'current',
@@ -84,7 +84,16 @@ const versionedTrail = trail('version.runtime.greet', {
       },
     },
     5: {
-      blaze: async (input, ctx) => {
+      composeInput: forkComposeInput,
+      composes: [versionHelper],
+      detours: [
+        {
+          on: ConflictError,
+          recover: ({ input }) =>
+            Result.ok({ summary: `detoured:${input.id}` }),
+        },
+      ],
+      implementation: async (input, ctx) => {
         if (input.id === 'detour') {
           return Result.err(new ConflictError('fork conflict'));
         }
@@ -98,15 +107,6 @@ const versionedTrail = trail('version.runtime.greet', {
           summary: `${input.source}:${helper.value.value}:${suffixResource.from(ctx).value}`,
         });
       },
-      composeInput: forkComposeInput,
-      composes: [versionHelper],
-      detours: [
-        {
-          on: ConflictError,
-          recover: ({ input }) =>
-            Result.ok({ summary: `detoured:${input.id}` }),
-        },
-      ],
       input: forkInput,
       output: forkOutput,
       resources: [suffixResource],
@@ -120,7 +120,7 @@ const versionedTopo = topo('version-runtime-topo', {
 });
 
 const numericMarkerTrail = trail('version.runtime.numeric-marker', {
-  blaze: (input) => Result.ok({ value: `current:${input.current}` }),
+  implementation: (input) => Result.ok({ value: `current:${input.current}` }),
   input: z.object({ current: z.string() }),
   output: z.object({ value: z.string() }),
   version: 2,
@@ -188,7 +188,7 @@ describe('trail version execution', () => {
     });
   });
 
-  test('runs fork entries with their own blaze, resources, composes, and detours', async () => {
+  test('runs fork entries with their own implementation, resources, composes, and detours', async () => {
     const result = await executeTrail(
       versionedTrail,
       { id: 'forked', source: 'direct' },
@@ -242,14 +242,15 @@ describe('trail version execution', () => {
 
   test('does not leak current composeInput validation into forks without composeInput', async () => {
     const target = trail('version.runtime.fork.without-compose-input', {
-      blaze: (input) => Result.ok({ seen: `current:${input.id}` }),
       composeInput: z.object({ source: z.literal('current') }),
+      implementation: (input) => Result.ok({ seen: `current:${input.id}` }),
       input: z.object({ id: z.string() }),
       output: z.object({ seen: z.string() }),
       version: 2,
       versions: {
         1: {
-          blaze: (input) => Result.ok({ seen: `fork:${input.source}` }),
+          implementation: (input) =>
+            Result.ok({ seen: `fork:${input.source}` }),
           input: z.object({
             id: z.string(),
             source: z.literal('fork'),
@@ -259,7 +260,8 @@ describe('trail version execution', () => {
       },
     });
     const parent = trail('version.runtime.fork.compose-input.parent', {
-      blaze: async (_input, ctx) => {
+      composes: [target],
+      implementation: async (_input, ctx) => {
         const composed = await requireCompose(ctx)(
           'version.runtime.fork.without-compose-input',
           {
@@ -273,7 +275,6 @@ describe('trail version execution', () => {
           ok: (value) => Result.ok(value),
         });
       },
-      composes: [target],
       input: z.object({}),
       output: z.object({ seen: z.string() }),
     });
@@ -351,7 +352,8 @@ describe('trail version execution', () => {
 
   test('keeps ctx.compose() current by default and allows explicit version pins', async () => {
     const parent = trail('version.runtime.parent', {
-      blaze: async (_input, ctx) => {
+      composes: [versionedTrail],
+      implementation: async (_input, ctx) => {
         const compose = requireCompose(ctx);
         const current = await compose('version.runtime.greet', { name: 'Ada' });
         const legacy = await compose(
@@ -379,7 +381,6 @@ describe('trail version execution', () => {
           legacy: (legacy.value as { text: string }).text,
         });
       },
-      composes: [versionedTrail],
       input: z.object({}),
       output: z.object({
         current: z.string(),
@@ -434,7 +435,7 @@ describe('trail version execution', () => {
 
   test('preserves literal run() trail ids containing @ without version suffixes', async () => {
     const literal = trail('version.runtime.literal@alpha', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({}),
       output: z.object({ ok: z.boolean() }),
     });
@@ -447,17 +448,17 @@ describe('trail version execution', () => {
   });
 
   test('executes a forkVersion-authored entry with schema-validated typed input', async () => {
-    // TRL-1180: forkVersion threads the entry schemas into the blaze, so the
-    // v1 blaze below reads typed fields without re-parsing.
+    // TRL-1180: forkVersion threads the entry schemas into the implementation, so the
+    // v1 implementation below reads typed fields without re-parsing.
     const gearTrail = trail('version.runtime.fork-helper', {
-      blaze: (input) =>
+      implementation: (input) =>
         Result.ok({ id: input.name, weightGrams: input.weightGrams }),
       input: z.object({ name: z.string(), weightGrams: z.number() }),
       output: z.object({ id: z.string(), weightGrams: z.number() }),
       version: 2,
       versions: {
         1: forkVersion({
-          blaze: (input) =>
+          implementation: (input) =>
             Result.ok({ id: input.name, weightOz: input.weightOz * 2 }),
           input: z.object({ name: z.string(), weightOz: z.number() }),
           output: z.object({ id: z.string(), weightOz: z.number() }),

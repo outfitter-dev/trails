@@ -39,7 +39,7 @@ const generateTrailFile = (
 import { z } from 'zod';
 
 export const ${trailName} = trail(${literal(id)}, {
-  blaze: async () => {
+  implementation: async () => {
     return Result.ok({ message: ${literal(exampleMessage)} });
   },
   description: ${literal(description)},
@@ -79,7 +79,8 @@ testTrail(${trailName}, [
 
 export const addTrail = trail('add.trail', {
   args: ['id'],
-  blaze: async (input, ctx) => {
+  description: 'Scaffold a new trail with tests and examples',
+  implementation: async (input, ctx) => {
     const { id } = input;
     const validated = validateTrailId(id);
     if (validated.isErr()) {
@@ -114,7 +115,6 @@ export const addTrail = trail('add.trail', {
 
     return Result.ok({ created: [...files.keys()] });
   },
-  description: 'Scaffold a new trail with tests and examples',
   input: z.object({
     description: z
       .string()

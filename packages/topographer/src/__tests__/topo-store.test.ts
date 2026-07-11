@@ -132,8 +132,6 @@ const exampleApp = () => {
   });
 
   const entityAdd = trail('entity.add', {
-    blaze: (input: { readonly name: string }) =>
-      Result.ok({ id: input.name.toLowerCase(), ok: true }),
     contours: [entityContour],
     description: 'Add a new entity',
     examples: [
@@ -155,6 +153,8 @@ const exampleApp = () => {
         name: 'Conflict on duplicate',
       },
     ],
+    implementation: (input: { readonly name: string }) =>
+      Result.ok({ id: input.name.toLowerCase(), ok: true }),
     input: z.object({ name: z.string() }),
     meta: { owner: 'core', tags: ['write', 'entity'] },
     output: z.object({ id: z.string(), ok: z.boolean() }),
@@ -162,12 +162,12 @@ const exampleApp = () => {
   });
 
   const entityList = trail('entity.list', {
-    blaze: () => Result.ok({ items: ['ada'] }),
     composes: ['entity.add'],
     contours: [entityContour],
     description: 'List entities',
     dryRun: true,
     idempotent: true,
+    implementation: () => Result.ok({ items: ['ada'] }),
     input: z.object({}),
     intent: 'read',
     output: z.object({ items: z.array(z.string()) }),
@@ -432,14 +432,14 @@ const expectProjectedFixtureRows = (
 const simpleProjectionApp = (withList: boolean) =>
   topo('projection-app', {
     entityAdd: trail('entity.add', {
-      blaze: noop,
+      implementation: noop,
       input: z.object({}),
       output: z.object({ ok: z.boolean() }),
     }),
     ...(withList
       ? {
           entityList: trail('entity.list', {
-            blaze: () => Result.ok({ items: ['one'] }),
+            implementation: () => Result.ok({ items: ['one'] }),
             input: z.object({}),
             intent: 'read',
             output: z.object({ items: z.array(z.string()) }),
@@ -477,13 +477,13 @@ const buildSignalPruneApp = () => {
     payload: z.object({ id: z.string() }),
   });
   const createTrail = trail('entity.create', {
-    blaze: () => Result.ok({ id: 'x' }),
     fires: ['entity.created'],
+    implementation: () => Result.ok({ id: 'x' }),
     input: z.object({}),
     output: z.object({ id: z.string() }),
   });
   const indexTrail = trail('entity.index', {
-    blaze: () => Result.ok({ ok: true }),
+    implementation: () => Result.ok({ ok: true }),
     input: z.object({}),
     on: ['entity.created'],
     output: z.object({ ok: z.boolean() }),
@@ -760,9 +760,9 @@ describe('topo store projection', () => {
         payload: z.object({ id: z.string() }),
       });
       const process = trail('entity.process', {
-        blaze: () => Result.ok({ ok: true }),
         fields: { id: { hint: 'Entity id to process' } },
         fires: [created],
+        implementation: () => Result.ok({ ok: true }),
         input: z.object({ id: z.string() }),
         layers: [trailAudit],
         on: [updated],
@@ -849,10 +849,10 @@ describe('topo store projection', () => {
   test('stored TopoGraph includes surface-owned CLI alias route facts', () => {
     withProjectionDb((db) => {
       const search = trail('wayfind.search', {
-        blaze: noop,
         cli: {
           aliases: ['find'],
         },
+        implementation: noop,
         input: z.object({ query: z.string() }),
         output: z.object({ ok: z.boolean() }),
       });
@@ -911,7 +911,7 @@ describe('topo store projection', () => {
       const buildApp = (edited: boolean) =>
         topo('schema-freshness-app', {
           read: trail('note.read', {
-            blaze: noop,
+            implementation: noop,
             input: edited
               ? z.object({
                   count: z.number(),
@@ -956,7 +956,7 @@ describe('topo store projection', () => {
       const buildApp = (reordered: boolean) =>
         topo('schema-reorder-app', {
           read: trail('note.read', {
-            blaze: noop,
+            implementation: noop,
             input: reordered
               ? shapeFromEntries(['title', 'count'])
               : shapeFromEntries(['count', 'title']),
@@ -990,7 +990,7 @@ describe('topo store projection', () => {
   test('stored TopoGraph rejects surface overlay cli bindings that resolve to no trails', () => {
     withProjectionDb((db) => {
       const search = trail('wayfind.search', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({ query: z.string() }),
         output: z.object({ ok: z.boolean() }),
       });
@@ -1091,13 +1091,13 @@ describe('topo store projection', () => {
       });
 
       const createTrail = trail('entity.create', {
-        blaze: () => Result.ok({ id: 'x' }),
         fires: ['entity.created', 'entity.updated'],
+        implementation: () => Result.ok({ id: 'x' }),
         input: z.object({}),
         output: z.object({ id: z.string() }),
       });
       const indexTrail = trail('entity.index', {
-        blaze: () => Result.ok({ ok: true }),
+        implementation: () => Result.ok({ ok: true }),
         input: z.object({}),
         on: [
           {
@@ -1108,13 +1108,13 @@ describe('topo store projection', () => {
         output: z.object({ ok: z.boolean() }),
       });
       const auditTrail = trail('entity.audit', {
-        blaze: () => Result.ok({ ok: true }),
+        implementation: () => Result.ok({ ok: true }),
         input: z.object({}),
         on: ['entity.created', 'entity.updated'],
         output: z.object({ ok: z.boolean() }),
       });
       const scheduledAuditTrail = trail('entity.scheduled-audit', {
-        blaze: () => Result.ok({ ok: true }),
+        implementation: () => Result.ok({ ok: true }),
         input: z.object({ id: z.string() }),
         on: [dailyAudit],
         output: z.object({ ok: z.boolean() }),
@@ -1343,7 +1343,7 @@ describe('topo store projection', () => {
         verify: () => Result.ok(),
       });
       const receiver = trail('user.webhook.receive', {
-        blaze: () => Result.ok({ ok: true }),
+        implementation: () => Result.ok({ ok: true }),
         input: z.object({ userId: z.string() }),
         on: [webhookSource],
         output: z.object({ ok: z.boolean() }),
@@ -1387,13 +1387,13 @@ describe('topo store projection', () => {
   test('rejects signal edges that are not in the signal namespace before projection', () => {
     withProjectionDb((db) => {
       const producer = trail('entity.produce', {
-        blaze: () => Result.ok({ ok: true }),
         fires: ['entity.missing'],
+        implementation: () => Result.ok({ ok: true }),
         input: z.object({}),
         output: z.object({ ok: z.boolean() }),
       });
       const consumer = trail('entity.consume', {
-        blaze: () => Result.ok({ ok: true }),
+        implementation: () => Result.ok({ ok: true }),
         input: z.object({}),
         on: ['entity.missing'],
         output: z.object({ ok: z.boolean() }),
@@ -1662,7 +1662,7 @@ describe('signal edge normalizers', () => {
     }
   ) =>
     trail(id, {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       ...(opts.fires ? { fires: opts.fires } : {}),
       input: z.object({}),
       ...(opts.on ? { on: opts.on } : {}),
@@ -1715,7 +1715,7 @@ describe('signal edge normalizers', () => {
     });
     const trails = [
       trail('t.one', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({ id: z.string() }),
         on: [
           nightly,
@@ -1764,7 +1764,7 @@ describe('signal edge normalizers', () => {
     });
     const trails = [
       trail('t.one', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({ id: z.string() }),
         on: [
           nightly,
@@ -1776,7 +1776,7 @@ describe('signal edge normalizers', () => {
         ],
       }),
       trail('t.two', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({}),
         on: ['s.a'],
       }),

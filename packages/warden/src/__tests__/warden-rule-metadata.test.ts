@@ -79,7 +79,7 @@ describe('warden rule metadata', () => {
           'no-native-error-result',
         ],
         summary:
-          'Convert thrown failures in blazes into explicit Result.err() outcomes.',
+          'Convert thrown failures in implementations into explicit Result.err() outcomes.',
       })
     );
   });

@@ -61,22 +61,23 @@ const withCapturedIO = async (
 // ---------------------------------------------------------------------------
 
 const stubRunTrail = trail('run', {
-  blaze: () => Result.ok(),
   description: 'stub run trail for trace tests',
+  implementation: () => Result.ok(),
   input: z.object({ trailId: z.string() }),
   output: z.unknown(),
 });
 
 const greetTrail = trail('greet', {
-  blaze: ({ name }: { name: string }) => Result.ok({ greeting: `hi ${name}` }),
   description: 'simple trail used to drive executeTrail and emit a record',
+  implementation: ({ name }: { name: string }) =>
+    Result.ok({ greeting: `hi ${name}` }),
   input: z.object({ name: z.string() }),
   output: z.object({ greeting: z.string() }),
 });
 
 const failingTrail = trail('fail', {
-  blaze: () => Result.err(new ValidationError('intentional failure')),
   description: 'trail that always fails for trace-error tests',
+  implementation: () => Result.err(new ValidationError('intentional failure')),
   input: z.object({}),
   output: z.unknown(),
 });

@@ -1,4 +1,4 @@
-/* oxlint-disable require-await -- blazes satisfy async interface without awaiting */
+/* oxlint-disable require-await -- implementations satisfy async interface without awaiting */
 import { describe, expect, test } from 'bun:test';
 
 import { z } from 'zod';
@@ -31,7 +31,7 @@ const createSingletonConfigTrail = (id: string) => {
   return {
     captures,
     trail: trail('resource-config.singleton', {
-      blaze: (_input, ctx) =>
+      implementation: (_input, ctx) =>
         Result.ok({
           createCall: configuredResource.from(ctx).createCall,
           key: configuredResource.from(ctx).key,
@@ -61,7 +61,8 @@ describe('ResourceContext.config', () => {
     });
 
     const dbTrail = trail('resource-config.typed', {
-      blaze: (_input, ctx) => Result.ok({ connected: db.from(ctx).connected }),
+      implementation: (_input, ctx) =>
+        Result.ok({ connected: db.from(ctx).connected }),
       input: z.object({}),
       output: z.object({ connected: z.boolean() }),
       resources: [db],
@@ -93,7 +94,7 @@ describe('ResourceContext.config', () => {
     });
 
     const counterTrail = trail('resource-config.no-config', {
-      blaze: (_input, ctx) => Result.ok({ value: counter.from(ctx) }),
+      implementation: (_input, ctx) => Result.ok({ value: counter.from(ctx) }),
       input: z.object({}),
       resources: [counter],
     });
@@ -113,7 +114,7 @@ describe('ResourceContext.config', () => {
     });
 
     const dbTrail = trail('resource-config.invalid', {
-      blaze: () => Result.ok(null),
+      implementation: () => Result.ok(null),
       input: z.object({}),
       resources: [db],
     });
@@ -141,7 +142,7 @@ describe('ResourceContext.config', () => {
     });
 
     const dbTrail = trail('resource-config.missing', {
-      blaze: () => Result.ok(null),
+      implementation: () => Result.ok(null),
       input: z.object({}),
       resources: [db],
     });
@@ -165,7 +166,7 @@ describe('ResourceContext.config', () => {
     });
 
     const configuredResourceTrail = trail('resource-config.defaulted', {
-      blaze: (_input, ctx) =>
+      implementation: (_input, ctx) =>
         Result.ok({ mode: configuredResource.from(ctx).mode }),
       input: z.object({}),
       output: z.object({ mode: z.literal('noop') }),
@@ -188,7 +189,8 @@ describe('ResourceContext.config', () => {
     });
 
     const dbTrail = trail('resource-config.override', {
-      blaze: (_input, ctx) => Result.ok({ value: db.from(ctx) as number }),
+      implementation: (_input, ctx) =>
+        Result.ok({ value: db.from(ctx) as number }),
       input: z.object({}),
       output: z.object({ value: z.number() }),
       resources: [db],
@@ -213,7 +215,7 @@ describe('ResourceContext.config', () => {
     });
 
     const configuredResourceTrail = trail('resource-config.options', {
-      blaze: (_input, ctx) =>
+      implementation: (_input, ctx) =>
         Result.ok({ key: configuredResource.from(ctx).key }),
       input: z.object({}),
       output: z.object({ key: z.string() }),

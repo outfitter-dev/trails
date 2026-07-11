@@ -11,7 +11,7 @@ export const onReferencesExistTrail = wrapRule({
         knownTrailIds: ['notify'],
         sourceCode: `trail("notify", {
   on: ["entity.created"],
-  blaze: async (input, ctx) => Result.ok({}),
+  implementation: async (input, ctx) => Result.ok({}),
 })`,
       },
       name: 'Resolved on: reference',

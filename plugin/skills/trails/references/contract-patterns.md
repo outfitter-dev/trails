@@ -173,7 +173,7 @@ const search = trail('search', {
   resources: [db],
   input: z.object({ query: z.string().describe('Search term') }),
   output: z.array(z.object({ id: z.string(), title: z.string() })),
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const conn = db.from(ctx);
     return Result.ok(await conn.search(input.query));
   },

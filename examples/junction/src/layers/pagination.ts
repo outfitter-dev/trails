@@ -4,7 +4,7 @@
  * The layer owns the `limit`/`offset` input fields: surfaces project them
  * alongside the trail's own input (HTTP query params, CLI flags, MCP tool
  * params), and the layer applies them to the trail's full result set. List
- * blazes stay pagination-free — they return every matching item and this
+ * implementations stay pagination-free — they return every matching item and this
  * layer windows the response.
  */
 

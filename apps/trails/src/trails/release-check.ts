@@ -62,7 +62,14 @@ const releaseCheckOutputSchema = z.object({
 });
 
 export const releaseCheckTrail = trail('release.check', {
-  blaze: async (input, ctx) => {
+  description: 'Check branch-local release rules',
+  examples: [
+    {
+      input: { baseRef: 'HEAD' },
+      name: 'Check release rules from the current HEAD',
+    },
+  ],
+  implementation: async (input, ctx) => {
     const rootDirResult = resolveTrailRootDir(input.rootDir, ctx.cwd);
     if (rootDirResult.isErr()) {
       return rootDirResult;
@@ -91,13 +98,6 @@ export const releaseCheckTrail = trail('release.check', {
       );
     }
   },
-  description: 'Check branch-local release rules',
-  examples: [
-    {
-      input: { baseRef: 'HEAD' },
-      name: 'Check release rules from the current HEAD',
-    },
-  ],
   input: releaseCheckInputSchema,
   intent: 'read',
   output: releaseCheckOutputSchema,

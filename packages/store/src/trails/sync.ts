@@ -196,8 +196,22 @@ export const sync = <
     options.to.contour ?? createTableContour(options.to.table);
 
   return trail(id, {
-    // oxlint-disable-next-line max-statements -- sync blaze reads more clearly as one try/catch with schema validation, transform, and accessor call inline
-    blaze: async (input, ctx) => {
+    contours: [sourceContour, targetContour],
+    description:
+      options.description ??
+      `Sync one "${options.from.table.name}" entity into "${options.to.table.name}".`,
+    examples: deriveExamples(
+      options.from.table,
+      options.to.table,
+      options.transform
+    ) as
+      | readonly TrailExample<
+          IdentityInputOf<TSourceTable>,
+          EntityOf<TTargetTable>
+        >[]
+      | undefined,
+    // oxlint-disable-next-line max-statements -- sync implementation reads more clearly as one try/catch with schema validation, transform, and accessor call inline
+    implementation: async (input, ctx) => {
       try {
         const identifier = input[
           options.from.table.identity as keyof typeof input
@@ -242,20 +256,6 @@ export const sync = <
         return Result.err(mapStoreTrailError(id, error));
       }
     },
-    contours: [sourceContour, targetContour],
-    description:
-      options.description ??
-      `Sync one "${options.from.table.name}" entity into "${options.to.table.name}".`,
-    examples: deriveExamples(
-      options.from.table,
-      options.to.table,
-      options.transform
-    ) as
-      | readonly TrailExample<
-          IdentityInputOf<TSourceTable>,
-          EntityOf<TTargetTable>
-        >[]
-      | undefined,
     input: identityInputSchema(options.from.table),
     intent: 'write',
     on: options.on,

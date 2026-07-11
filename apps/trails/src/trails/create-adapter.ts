@@ -909,7 +909,19 @@ const runPlannedOperations = async (
 
 export const createAdapterTrail = trail('create.adapter', {
   args: ['name'],
-  blaze: async (input: CreateAdapterInput, ctx) => {
+  description: 'Scaffold an adapter package from adapter target catalog facts',
+  fields: {
+    placement: {
+      options: [
+        {
+          hint: 'Standalone package under adapters/',
+          label: 'Extracted',
+          value: 'extracted',
+        },
+      ],
+    },
+  },
+  implementation: async (input: CreateAdapterInput, ctx) => {
     const rootDirResult = resolveTrailRootDir(input.rootDir, ctx.cwd);
     if (rootDirResult.isErr()) {
       return rootDirResult;
@@ -955,18 +967,6 @@ export const createAdapterTrail = trail('create.adapter', {
       plannedOperations: [...plannedOperations.value],
       targetKey: plan.value.targetKey,
     } satisfies CreateAdapterResult);
-  },
-  description: 'Scaffold an adapter package from adapter target catalog facts',
-  fields: {
-    placement: {
-      options: [
-        {
-          hint: 'Standalone package under adapters/',
-          label: 'Extracted',
-          value: 'extracted',
-        },
-      ],
-    },
   },
   input: z.object({
     dryRun: z

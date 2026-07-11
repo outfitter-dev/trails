@@ -12,7 +12,7 @@ const entityLoaded = signal('entity.loaded', { payload: z.object({}) });
 trail('entity.read', {
   intent: 'read',
   fires: [entityLoaded],
-  blaze: async () => Result.ok({}),
+  implementation: async () => Result.ok({}),
 });
 `;
 
@@ -35,7 +35,7 @@ const auditLogged = signal('audit.logged', { payload: z.object({}) });
 trail('entity.read', {
   intent: 'read',
   fires: [entityLoaded, auditLogged],
-  blaze: async () => Result.ok({}),
+  implementation: async () => Result.ok({}),
 });
 `;
 
@@ -54,7 +54,7 @@ const fires = [entityLoaded];
 trail('entity.read', {
   intent: 'read',
   fires,
-  blaze: async () => Result.ok({}),
+  implementation: async () => Result.ok({}),
 });
 `;
 
@@ -70,7 +70,7 @@ trail('entity.read', {
 trail('entity.read', {
   intent: 'read',
   fires: ['entity.loaded'],
-  blaze: async () => Result.ok({}),
+  implementation: async () => Result.ok({}),
 });
 `;
 
@@ -88,7 +88,7 @@ trail({
   id: 'entity.read',
   intent: 'read',
   fires: [entityLoaded],
-  blaze: async () => Result.ok({}),
+  implementation: async () => Result.ok({}),
 });
 `;
 
@@ -108,7 +108,7 @@ const entityLoaded = core.signal('entity.loaded', { payload: z.object({}) });
 core.trail('entity.read', {
   intent: 'read',
   fires: [entityLoaded],
-  blaze: async () => Result.ok({}),
+  implementation: async () => Result.ok({}),
 });
 `;
 
@@ -125,18 +125,18 @@ const entityLoaded = signal('entity.loaded', { payload: z.object({}) });
 trail('entity.write', {
   intent: 'write',
   fires: [entityLoaded],
-  blaze: async () => Result.ok({}),
+  implementation: async () => Result.ok({}),
 });
 
 trail('entity.delete', {
   intent: 'destroy',
   fires: [entityLoaded],
-  blaze: async () => Result.ok({}),
+  implementation: async () => Result.ok({}),
 });
 
 trail('entity.default', {
   fires: [entityLoaded],
-  blaze: async () => Result.ok({}),
+  implementation: async () => Result.ok({}),
 });
 `;
 
@@ -147,13 +147,13 @@ trail('entity.default', {
     const code = `
 trail('entity.read', {
   intent: 'read',
-  blaze: async () => Result.ok({}),
+  implementation: async () => Result.ok({}),
 });
 
 trail('entity.inspect', {
   intent: 'read',
   fires: [],
-  blaze: async () => Result.ok({}),
+  implementation: async () => Result.ok({}),
 });
 `;
 

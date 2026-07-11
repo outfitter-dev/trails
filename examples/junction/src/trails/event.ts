@@ -16,7 +16,21 @@ import { eventReceived } from '../signals.js';
 import { eventSchema, eventStatusSchema } from '../store.js';
 
 export const list = trail('event.list', {
-  blaze: async (input, ctx) => {
+  description:
+    'List received events, newest first, filtered by endpoint, status, or receipt time',
+  examples: [
+    {
+      description: 'List every stored event',
+      input: {},
+      name: 'List events',
+    },
+    {
+      description: 'List only events that failed signature verification',
+      input: { status: 'dead' },
+      name: 'List dead events',
+    },
+  ],
+  implementation: async (input, ctx) => {
     const store = relayStoreResource.from(ctx);
     const filters = {
       ...(input.endpointId === undefined
@@ -41,20 +55,6 @@ export const list = trail('event.list', {
       total: ordered.length,
     });
   },
-  description:
-    'List received events, newest first, filtered by endpoint, status, or receipt time',
-  examples: [
-    {
-      description: 'List every stored event',
-      input: {},
-      name: 'List events',
-    },
-    {
-      description: 'List only events that failed signature verification',
-      input: { status: 'dead' },
-      name: 'List dead events',
-    },
-  ],
   input: z.object({
     endpointId: z
       .string()
@@ -74,14 +74,6 @@ export const list = trail('event.list', {
 });
 
 export const get = trail('event.get', {
-  blaze: async (input, ctx) => {
-    const store = relayStoreResource.from(ctx);
-    const event = await store.event.get(input.id);
-    if (!event) {
-      return Result.err(new NotFoundError(`Event "${input.id}" not found`));
-    }
-    return Result.ok(event);
-  },
   description: 'Show one stored event including its payload and headers',
   examples: [
     {
@@ -105,6 +97,14 @@ export const get = trail('event.get', {
       name: 'Event not found',
     },
   ],
+  implementation: async (input, ctx) => {
+    const store = relayStoreResource.from(ctx);
+    const event = await store.event.get(input.id);
+    if (!event) {
+      return Result.err(new NotFoundError(`Event "${input.id}" not found`));
+    }
+    return Result.ok(event);
+  },
   input: z.object({ id: z.string().describe('Event identifier') }),
   intent: 'read',
   output: eventSchema,
@@ -113,18 +113,6 @@ export const get = trail('event.get', {
 });
 
 export const replay = trail('event.replay', {
-  blaze: async (input, ctx) => {
-    const store = relayStoreResource.from(ctx);
-    const event = await store.event.get(input.id);
-    if (!event) {
-      return Result.err(new NotFoundError(`Event "${input.id}" not found`));
-    }
-    await ctx.fire?.(eventReceived, {
-      endpointId: event.endpointId,
-      eventId: event.id,
-    });
-    return Result.ok({ eventId: event.id, replayed: true });
-  },
   description: 'Re-fire event.received for one stored event',
   examples: [
     {
@@ -141,6 +129,18 @@ export const replay = trail('event.replay', {
     },
   ],
   fires: [eventReceived],
+  implementation: async (input, ctx) => {
+    const store = relayStoreResource.from(ctx);
+    const event = await store.event.get(input.id);
+    if (!event) {
+      return Result.err(new NotFoundError(`Event "${input.id}" not found`));
+    }
+    await ctx.fire?.(eventReceived, {
+      endpointId: event.endpointId,
+      eventId: event.id,
+    });
+    return Result.ok({ eventId: event.id, replayed: true });
+  },
   input: z.object({ id: z.string().describe('Event identifier to replay') }),
   intent: 'write',
   output: z.object({

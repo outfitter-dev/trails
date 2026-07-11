@@ -13,13 +13,13 @@ import type {
 import { inputOf, outputOf } from '../type-utils';
 
 const greetTrail = trail('greet', {
-  blaze: (input) => Result.ok({ message: `Hello, ${input.name}!` }),
+  implementation: (input) => Result.ok({ message: `Hello, ${input.name}!` }),
   input: z.object({ name: z.string() }),
   output: z.object({ message: z.string() }),
 });
 
 const noOutputTrail = trail('ping', {
-  blaze: () => Result.ok(),
+  implementation: () => Result.ok(),
   input: z.object({}),
 });
 
@@ -82,8 +82,8 @@ describe('type-utils', () => {
 
     test('merges composeInput with base input when composeInput defined', () => {
       const composeTrail = trail('compose.test', {
-        blaze: (input) => Result.ok({ name: input.name }),
         composeInput: z.object({ forkedFrom: z.string() }),
+        implementation: (input) => Result.ok({ name: input.name }),
         input: z.object({ name: z.string() }),
         output: z.object({ name: z.string() }),
       });
@@ -99,7 +99,7 @@ describe('type-utils', () => {
   describe('TrailResult', () => {
     test('extracts Result<Output, Error> from a trail', () => {
       const t = trail('test.result', {
-        blaze: (input) => Result.ok({ answer: input.q }),
+        implementation: (input) => Result.ok({ answer: input.q }),
         input: z.object({ q: z.string() }),
         output: z.object({ answer: z.string() }),
       });

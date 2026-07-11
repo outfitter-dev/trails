@@ -10,7 +10,7 @@ export const noRedundantResultErrorWrapTrail = wrapRule({
         sourceCode: `import { Result, trail } from "@ontrails/core";
 
 trail("entity.load", {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const loaded = await ctx.compose("entity.fetch", input);
     if (loaded.isErr()) {
       return loaded;
@@ -39,7 +39,7 @@ trail("entity.load", {
         sourceCode: `import { Result, trail } from "@ontrails/core";
 
 trail("entity.load", {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const loaded = await ctx.compose("entity.fetch", input);
     if (loaded.isErr()) {
       return Result.err(loaded.error);

@@ -2,7 +2,7 @@
  * Check trails — CRUD and scheduling toggles for monitored endpoints.
  *
  * Management trails carry the admin permit; the schema enforces the 30-second
- * interval floor at the boundary so blazes never re-validate it. Pause and
+ * interval floor at the boundary so implementations never re-validate it. Pause and
  * resume flip `enabled`, which is the flag the cron sweep reads — flipping it
  * is what starts and stops probe scheduling for a check.
  */
@@ -24,26 +24,6 @@ const checkIdInput = z.object({
 // ---------------------------------------------------------------------------
 
 export const createCheck = trail('check.create', {
-  blaze: async (input, ctx) => {
-    const created = await db.from(ctx).checks.insert({
-      enabled: true,
-      expect: {
-        ...(input.expectStatus === undefined
-          ? {}
-          : { status: input.expectStatus }),
-        ...(input.expectBodyIncludes === undefined
-          ? {}
-          : { bodyIncludes: input.expectBodyIncludes }),
-      },
-      intervalSeconds: input.intervalSeconds,
-      method: input.method,
-      name: input.name,
-      state: 'unknown',
-      timeoutMs: input.timeoutMs,
-      url: input.url,
-    });
-    return Result.ok(created);
-  },
   description: 'Register a new endpoint check and start monitoring it.',
   examples: [
     {
@@ -63,6 +43,26 @@ export const createCheck = trail('check.create', {
       name: 'Create a check',
     },
   ],
+  implementation: async (input, ctx) => {
+    const created = await db.from(ctx).checks.insert({
+      enabled: true,
+      expect: {
+        ...(input.expectStatus === undefined
+          ? {}
+          : { status: input.expectStatus }),
+        ...(input.expectBodyIncludes === undefined
+          ? {}
+          : { bodyIncludes: input.expectBodyIncludes }),
+      },
+      intervalSeconds: input.intervalSeconds,
+      method: input.method,
+      name: input.name,
+      state: 'unknown',
+      timeoutMs: input.timeoutMs,
+      url: input.url,
+    });
+    return Result.ok(created);
+  },
   input: z.object({
     expectBodyIncludes: z
       .string()
@@ -105,12 +105,6 @@ export const createCheck = trail('check.create', {
 // ---------------------------------------------------------------------------
 
 export const listChecks = trail('check.list', {
-  blaze: async (input, ctx) => {
-    const filters =
-      input.enabled === undefined ? undefined : { enabled: input.enabled };
-    const checks = await db.from(ctx).checks.list(filters);
-    return Result.ok({ checks: [...checks], total: checks.length });
-  },
   description: 'List registered checks.',
   examples: [
     {
@@ -119,6 +113,12 @@ export const listChecks = trail('check.list', {
       name: 'List checks',
     },
   ],
+  implementation: async (input, ctx) => {
+    const filters =
+      input.enabled === undefined ? undefined : { enabled: input.enabled };
+    const checks = await db.from(ctx).checks.list(filters);
+    return Result.ok({ checks: [...checks], total: checks.length });
+  },
   input: z.object({
     enabled: z.boolean().optional().describe('Filter by enabled state'),
   }),
@@ -136,13 +136,6 @@ export const listChecks = trail('check.list', {
 // ---------------------------------------------------------------------------
 
 export const getCheck = trail('check.get', {
-  blaze: async (input, ctx) => {
-    const check = await db.from(ctx).checks.get(input.id);
-    if (!check) {
-      return Result.err(new NotFoundError(`Check "${input.id}" not found`));
-    }
-    return Result.ok(check);
-  },
   description: 'Show one check by id.',
   examples: [
     {
@@ -158,6 +151,13 @@ export const getCheck = trail('check.get', {
       name: 'Get a missing check',
     },
   ],
+  implementation: async (input, ctx) => {
+    const check = await db.from(ctx).checks.get(input.id);
+    if (!check) {
+      return Result.err(new NotFoundError(`Check "${input.id}" not found`));
+    }
+    return Result.ok(check);
+  },
   input: checkIdInput,
   intent: 'read',
   output: checkSchema,
@@ -170,7 +170,16 @@ export const getCheck = trail('check.get', {
 // ---------------------------------------------------------------------------
 
 export const updateCheck = trail('check.update', {
-  blaze: async (input, ctx) => {
+  description: 'Update fields on an existing check.',
+  examples: [
+    {
+      description: 'Tighten the probe interval on a seeded check',
+      expectedMatch: { id: 'chk_flaky', intervalSeconds: 45 },
+      input: { id: 'chk_flaky', intervalSeconds: 45 },
+      name: 'Update a check interval',
+    },
+  ],
+  implementation: async (input, ctx) => {
     const { id, expectBodyIncludes, expectStatus, ...patch } = input;
     const existing = await db.from(ctx).checks.get(id);
     if (!existing) {
@@ -196,15 +205,6 @@ export const updateCheck = trail('check.update', {
     }
     return Result.ok(updated);
   },
-  description: 'Update fields on an existing check.',
-  examples: [
-    {
-      description: 'Tighten the probe interval on a seeded check',
-      expectedMatch: { id: 'chk_flaky', intervalSeconds: 45 },
-      input: { id: 'chk_flaky', intervalSeconds: 45 },
-      name: 'Update a check interval',
-    },
-  ],
   input: z.object({
     expectBodyIncludes: z
       .string()
@@ -243,13 +243,6 @@ export const updateCheck = trail('check.update', {
 // ---------------------------------------------------------------------------
 
 export const deleteCheck = trail('check.delete', {
-  blaze: async (input, ctx) => {
-    const removed = await db.from(ctx).checks.remove(input.id);
-    if (!removed.deleted) {
-      return Result.err(new NotFoundError(`Check "${input.id}" not found`));
-    }
-    return Result.ok({ deleted: true, id: input.id });
-  },
   description: 'Delete a check and stop monitoring it.',
   examples: [
     {
@@ -265,6 +258,13 @@ export const deleteCheck = trail('check.delete', {
       name: 'Delete a missing check',
     },
   ],
+  implementation: async (input, ctx) => {
+    const removed = await db.from(ctx).checks.remove(input.id);
+    if (!removed.deleted) {
+      return Result.err(new NotFoundError(`Check "${input.id}" not found`));
+    }
+    return Result.ok({ deleted: true, id: input.id });
+  },
   input: checkIdInput,
   intent: 'destroy',
   output: z.object({
@@ -283,13 +283,6 @@ const setEnabled = async (ctx: TrailContext, id: string, enabled: boolean) =>
   await db.from(ctx).checks.update(id, { enabled });
 
 export const pauseCheck = trail('check.pause', {
-  blaze: async (input, ctx) => {
-    const updated = await setEnabled(ctx, input.id, false);
-    if (!updated) {
-      return Result.err(new NotFoundError(`Check "${input.id}" not found`));
-    }
-    return Result.ok(updated);
-  },
   description: 'Pause a check — the cron sweep stops scheduling probes for it.',
   examples: [
     {
@@ -299,6 +292,13 @@ export const pauseCheck = trail('check.pause', {
       name: 'Pause a check',
     },
   ],
+  implementation: async (input, ctx) => {
+    const updated = await setEnabled(ctx, input.id, false);
+    if (!updated) {
+      return Result.err(new NotFoundError(`Check "${input.id}" not found`));
+    }
+    return Result.ok(updated);
+  },
   input: checkIdInput,
   intent: 'write',
   output: checkSchema,
@@ -307,13 +307,6 @@ export const pauseCheck = trail('check.pause', {
 });
 
 export const resumeCheck = trail('check.resume', {
-  blaze: async (input, ctx) => {
-    const updated = await setEnabled(ctx, input.id, true);
-    if (!updated) {
-      return Result.err(new NotFoundError(`Check "${input.id}" not found`));
-    }
-    return Result.ok(updated);
-  },
   description: 'Resume a paused check — the cron sweep schedules probes again.',
   examples: [
     {
@@ -323,6 +316,13 @@ export const resumeCheck = trail('check.resume', {
       name: 'Resume a check',
     },
   ],
+  implementation: async (input, ctx) => {
+    const updated = await setEnabled(ctx, input.id, true);
+    if (!updated) {
+      return Result.err(new NotFoundError(`Check "${input.id}" not found`));
+    }
+    return Result.ok(updated);
+  },
   input: checkIdInput,
   intent: 'write',
   output: checkSchema,

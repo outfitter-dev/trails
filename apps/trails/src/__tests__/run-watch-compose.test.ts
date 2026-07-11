@@ -39,8 +39,9 @@ import {
 // ---------------------------------------------------------------------------
 
 const greetTrail = trail('greet', {
-  blaze: ({ name }: { name: string }) => Result.ok({ greeting: `hi ${name}` }),
   description: 'simple trail used to drive executeTrail and emit a record',
+  implementation: ({ name }: { name: string }) =>
+    Result.ok({ greeting: `hi ${name}` }),
   input: z.object({ name: z.string() }),
   output: z.object({ greeting: z.string() }),
 });

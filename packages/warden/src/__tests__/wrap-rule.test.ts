@@ -38,7 +38,7 @@ describe('wrapRule', () => {
     };
 
     const wrapped = wrapRule({ examples: [], rule });
-    const result = await wrapped.blaze(
+    const result = await wrapped.implementation(
       { filePath: 'entity.ts', sourceCode: '' },
       createTrailContext()
     );

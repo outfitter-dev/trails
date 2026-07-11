@@ -14,15 +14,6 @@ import { relayStoreResource } from '../resources/relay-store.js';
 import { targetSchema } from '../store.js';
 
 export const create = trail('target.create', {
-  blaze: async (input, ctx) => {
-    const store = relayStoreResource.from(ctx);
-    const target = await store.target.insert({
-      enabled: true,
-      name: input.name,
-      url: input.url,
-    });
-    return Result.ok(target);
-  },
   description: 'Register an outbound delivery target',
   examples: [
     {
@@ -36,6 +27,15 @@ export const create = trail('target.create', {
       name: 'Create another target',
     },
   ],
+  implementation: async (input, ctx) => {
+    const store = relayStoreResource.from(ctx);
+    const target = await store.target.insert({
+      enabled: true,
+      name: input.name,
+      url: input.url,
+    });
+    return Result.ok(target);
+  },
   input: z.object({
     name: z.string().min(1).describe('Human-readable target name'),
     url: z.url().describe('URL deliveries are POSTed to'),
@@ -47,11 +47,6 @@ export const create = trail('target.create', {
 });
 
 export const list = trail('target.list', {
-  blaze: async (_input, ctx) => {
-    const store = relayStoreResource.from(ctx);
-    const targets = await store.target.list();
-    return Result.ok({ targets: [...targets] });
-  },
   description: 'List registered delivery targets',
   examples: [
     {
@@ -65,6 +60,11 @@ export const list = trail('target.list', {
       name: 'List targets again',
     },
   ],
+  implementation: async (_input, ctx) => {
+    const store = relayStoreResource.from(ctx);
+    const targets = await store.target.list();
+    return Result.ok({ targets: [...targets] });
+  },
   input: z.object({}),
   intent: 'read',
   output: z.object({ targets: z.array(targetSchema) }),
@@ -73,14 +73,6 @@ export const list = trail('target.list', {
 });
 
 export const get = trail('target.get', {
-  blaze: async (input, ctx) => {
-    const store = relayStoreResource.from(ctx);
-    const target = await store.target.get(input.id);
-    if (!target) {
-      return Result.err(new NotFoundError(`Target "${input.id}" not found`));
-    }
-    return Result.ok(target);
-  },
   description: 'Show one delivery target',
   examples: [
     {
@@ -101,6 +93,14 @@ export const get = trail('target.get', {
       name: 'Target not found',
     },
   ],
+  implementation: async (input, ctx) => {
+    const store = relayStoreResource.from(ctx);
+    const target = await store.target.get(input.id);
+    if (!target) {
+      return Result.err(new NotFoundError(`Target "${input.id}" not found`));
+    }
+    return Result.ok(target);
+  },
   input: z.object({ id: z.string().describe('Target identifier') }),
   intent: 'read',
   output: targetSchema,
@@ -109,14 +109,6 @@ export const get = trail('target.get', {
 });
 
 export const disable = trail('target.disable', {
-  blaze: async (input, ctx) => {
-    const store = relayStoreResource.from(ctx);
-    const target = await store.target.update(input.id, { enabled: false });
-    if (!target) {
-      return Result.err(new NotFoundError(`Target "${input.id}" not found`));
-    }
-    return Result.ok(target);
-  },
   description: 'Stop delivering to a target',
   examples: [
     {
@@ -137,6 +129,14 @@ export const disable = trail('target.disable', {
       name: 'Disable unknown target',
     },
   ],
+  implementation: async (input, ctx) => {
+    const store = relayStoreResource.from(ctx);
+    const target = await store.target.update(input.id, { enabled: false });
+    if (!target) {
+      return Result.err(new NotFoundError(`Target "${input.id}" not found`));
+    }
+    return Result.ok(target);
+  },
   input: z.object({ id: z.string().describe('Target identifier') }),
   intent: 'write',
   output: targetSchema,
@@ -145,7 +145,23 @@ export const disable = trail('target.disable', {
 });
 
 export const test = trail('target.test', {
-  blaze: async (input, ctx) => {
+  composes: ['delivery.send'],
+  description: 'Send a ping payload through the real delivery path',
+  examples: [
+    {
+      description: 'Ping the reachable logbook target',
+      expected: { delivered: true, targetId: 'tgt_logbook' },
+      input: { id: 'tgt_logbook' },
+      name: 'Test a reachable target',
+    },
+    {
+      description: 'Returns NotFoundError for an unknown target id',
+      error: 'NotFoundError',
+      input: { id: 'tgt_missing' },
+      name: 'Test unknown target',
+    },
+  ],
+  implementation: async (input, ctx) => {
     const store = relayStoreResource.from(ctx);
     const target = await store.target.get(input.id);
     if (!target) {
@@ -165,22 +181,6 @@ export const test = trail('target.test', {
     }
     return Result.ok({ delivered: true, targetId: target.id });
   },
-  composes: ['delivery.send'],
-  description: 'Send a ping payload through the real delivery path',
-  examples: [
-    {
-      description: 'Ping the reachable logbook target',
-      expected: { delivered: true, targetId: 'tgt_logbook' },
-      input: { id: 'tgt_logbook' },
-      name: 'Test a reachable target',
-    },
-    {
-      description: 'Returns NotFoundError for an unknown target id',
-      error: 'NotFoundError',
-      input: { id: 'tgt_missing' },
-      name: 'Test unknown target',
-    },
-  ],
   input: z.object({ id: z.string().describe('Target identifier') }),
   intent: 'write',
   output: z.object({

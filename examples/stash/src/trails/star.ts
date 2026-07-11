@@ -31,7 +31,23 @@ const starInputSchema = z.object({
 // ---------------------------------------------------------------------------
 
 export const star = trail('snippet.star', {
-  blaze: async (input, ctx) => {
+  description: 'Star a snippet (idempotent)',
+  examples: [
+    {
+      description: 'Star a public snippet',
+      expected: { snippetId: 'snip_hello', starCount: 2, starred: true },
+      input: { id: 'snip_hello' },
+      name: 'Star a snippet',
+    },
+    {
+      description: 'Unknown ids return NotFoundError',
+      error: 'NotFoundError',
+      input: { id: 'snip_missing' },
+      name: 'Star a missing snippet',
+    },
+  ],
+  idempotent: true,
+  implementation: async (input, ctx) => {
     const subject = requireSubject(ctx);
     if (subject.isErr()) {
       return subject;
@@ -54,22 +70,6 @@ export const star = trail('snippet.star', {
       starred: true,
     });
   },
-  description: 'Star a snippet (idempotent)',
-  examples: [
-    {
-      description: 'Star a public snippet',
-      expected: { snippetId: 'snip_hello', starCount: 2, starred: true },
-      input: { id: 'snip_hello' },
-      name: 'Star a snippet',
-    },
-    {
-      description: 'Unknown ids return NotFoundError',
-      error: 'NotFoundError',
-      input: { id: 'snip_missing' },
-      name: 'Star a missing snippet',
-    },
-  ],
-  idempotent: true,
   input: starInputSchema,
   intent: 'write',
   output: starOutputSchema,
@@ -82,7 +82,17 @@ export const star = trail('snippet.star', {
 // ---------------------------------------------------------------------------
 
 export const unstar = trail('snippet.unstar', {
-  blaze: async (input, ctx) => {
+  description: 'Remove your star from a snippet (idempotent)',
+  examples: [
+    {
+      description: 'Unstar a snippet you have not starred is a no-op',
+      expected: { snippetId: 'snip_hello', starCount: 1, starred: false },
+      input: { id: 'snip_hello' },
+      name: 'Unstar a snippet',
+    },
+  ],
+  idempotent: true,
+  implementation: async (input, ctx) => {
     const subject = requireSubject(ctx);
     if (subject.isErr()) {
       return subject;
@@ -105,16 +115,6 @@ export const unstar = trail('snippet.unstar', {
       starred: false,
     });
   },
-  description: 'Remove your star from a snippet (idempotent)',
-  examples: [
-    {
-      description: 'Unstar a snippet you have not starred is a no-op',
-      expected: { snippetId: 'snip_hello', starCount: 1, starred: false },
-      input: { id: 'snip_hello' },
-      name: 'Unstar a snippet',
-    },
-  ],
-  idempotent: true,
   input: starInputSchema,
   intent: 'write',
   output: starOutputSchema,

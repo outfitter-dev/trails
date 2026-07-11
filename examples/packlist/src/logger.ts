@@ -1,7 +1,7 @@
 /**
  * Minimal stderr logger for the packlist surfaces.
  *
- * Blazes never print — they log through `ctx.logger`, and each surface
+ * Implementations never print — they log through `ctx.logger`, and each surface
  * entry point decides where that goes. This one writes info and above to
  * stderr so reactive work (like `pack.recalculate`) is visible in normal
  * CLI output without polluting stdout's structured results.

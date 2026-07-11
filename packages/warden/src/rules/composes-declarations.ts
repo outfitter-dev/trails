@@ -1,13 +1,13 @@
 /**
  * Validates that `ctx.compose()` calls match the declared `composes` array.
  *
- * Statically analyzes trail `blaze` functions to find `ctx.compose('trailId', ...)`
+ * Statically analyzes trail `implementation` functions to find `ctx.compose('trailId', ...)`
  * calls and compares them against the `composes: [...]` declaration in the trail
  * config. Reports errors for undeclared compositions and warnings for unused ones.
  */
 
 import {
-  findBlazeBodies,
+  findImplementationBodies,
   findConfigProperty,
   findTrailDefinitions,
   getNodeArguments,
@@ -220,15 +220,17 @@ const extractMemberPair = (
 };
 
 /**
- * Extract the second parameter name from a blaze function node.
+ * Extract the second parameter name from a implementation function node.
  *
  * Handles `(input, ctx) => ...`, `async (input, context) => ...`,
  * `function(input, ctx) { ... }`, and defaulted params like
  * `(input, ctx = fallback) => ...` (AssignmentPattern whose `.left` is the
  * Identifier).
  */
-const extractContextParamName = (blazeBody: AstNode): string | null => {
-  const params = blazeBody['params'] as readonly AstNode[] | undefined;
+const extractContextParamName = (
+  implementationBody: AstNode
+): string | null => {
+  const params = implementationBody['params'] as readonly AstNode[] | undefined;
   if (!params || params.length < 2) {
     return null;
   }
@@ -422,10 +424,10 @@ const extractComposeCall = (
 /**
  * Build the set of context parameter names to match against.
  *
- * Returns ONLY the actual second-parameter name from the blaze signature.
- * No seeded defaults: if the blaze has no second parameter, the returned set
+ * Returns ONLY the actual second-parameter name from the implementation signature.
+ * No seeded defaults: if the implementation has no second parameter, the returned set
  * is empty and no `ctx.compose(...)` / `context.compose(...)` calls are tracked
- * for that blaze. An unrelated closure-scoped `ctx` identifier is not the
+ * for that implementation. An unrelated closure-scoped `ctx` identifier is not the
  * trail context and must not be treated as one.
  *
  * Mirrors `fires-declarations.ts` and `resource-declarations.ts` for the same
@@ -613,7 +615,7 @@ interface CalledComposes {
   readonly hasUnresolved: boolean;
 }
 
-/** Collect compose call results from a single blaze body. */
+/** Collect compose call results from a single implementation body. */
 const collectComposeCallsFromBody = (
   body: AstNode,
   ids: Set<string>,
@@ -682,7 +684,7 @@ const collectComposeCallsFromBody = (
   return foundUnresolved;
 };
 
-/** Walk blaze bodies and collect all statically resolvable ctx.compose() trail IDs. */
+/** Walk implementation bodies and collect all statically resolvable ctx.compose() trail IDs. */
 const extractCalledComposes = (
   config: AstNode,
   ast: AstNode,
@@ -692,7 +694,7 @@ const extractCalledComposes = (
   let hasUnresolved = false;
   const helpers = collectComposeHelpers(ast);
 
-  for (const body of findBlazeBodies(config)) {
+  for (const body of findImplementationBodies(config)) {
     if (collectComposeCallsFromBody(body, ids, sourceCode, helpers)) {
       hasUnresolved = true;
     }

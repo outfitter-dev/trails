@@ -37,7 +37,7 @@ export const myTrail = trail('namespace.verb', {
   }),
 
   // --- Output schema ---
-  // Required for MCP/HTTP. Must match what the blaze returns via Result.ok().
+  // Required for MCP/HTTP. Must match what the implementation returns via Result.ok().
   output: outputSchema,
 
   // --- Intent and flags ---
@@ -90,7 +90,7 @@ export const myTrail = trail('namespace.verb', {
     },
   ],
 
-  // --- Blaze ---
+  // --- Implementation ---
   // Establishes how the trail runs from validated input to Result output.
   // Receives validated input and TrailContext.
   // Return Result — never throw.
@@ -99,7 +99,7 @@ export const myTrail = trail('namespace.verb', {
   // Declare external dependencies so the framework manages lifecycle and testing.
   // resources: [db],
 
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     // Establish the path through this trail. Input types are guaranteed by the schema.
     // Use ctx for resources, logging, tracing, signals, and composing other trails.
 

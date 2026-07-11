@@ -674,7 +674,7 @@ const resolvePromotionAppModule = async (
  * @remarks
  * The lease deletes its on-disk mirror on release. Any Topo consumption that
  * may trigger deferred filesystem imports (for example inside a trail's
- * `blaze` or a lazy relative `import()`) must run before the lease is
+ * `implementation` or a lazy relative `import()`) must run before the lease is
  * released, otherwise those resolutions race the mirror teardown. Collapsing
  * consumption into the leased critical section keeps that contract
  * structural rather than relying on the caller to discover it.
@@ -884,7 +884,6 @@ const promoteDraftState = async (
 };
 
 export const draftPromoteTrail = trail('draft.promote', {
-  blaze: promoteDraftState,
   description:
     'Promote a draft id to an established id, rewrite inbound references, and verify the result against a fresh topo load.',
   examples: [
@@ -900,6 +899,7 @@ export const draftPromoteTrail = trail('draft.promote', {
       name: 'Rejects a missing project root before any rewrite begins',
     },
   ],
+  implementation: promoteDraftState,
   input: z.object({
     appModule: z
       .string()

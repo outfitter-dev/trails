@@ -12,10 +12,6 @@ import { deriveCurrentGuideEntries } from '../trails/topo-read-support.js';
 // ---------------------------------------------------------------------------
 
 const helloTrail = trail('hello', {
-  blaze: (input) => {
-    const name = input.name ?? 'world';
-    return Result.ok({ message: `Hello, ${name}!` });
-  },
   description: 'Say hello',
   detours: [
     {
@@ -36,6 +32,10 @@ const helloTrail = trail('hello', {
       name: 'Named greeting',
     },
   ],
+  implementation: (input) => {
+    const name = input.name ?? 'world';
+    return Result.ok({ message: `Hello, ${name}!` });
+  },
   input: z.object({ name: z.string().optional() }),
   intent: 'read',
   output: z.object({ message: z.string() }),
@@ -87,7 +87,7 @@ describe('trails guide', () => {
 
   test('guide list counts live version-entry examples', () => {
     const versioned = trail('guide.versioned', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({ name: z.string() }),
       output: z.object({ ok: z.boolean() }),
       version: 3,

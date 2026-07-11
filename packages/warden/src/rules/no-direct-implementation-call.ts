@@ -1,16 +1,16 @@
 /**
- * Flags direct `.blaze()` calls in application code.
+ * Flags direct `.implementation()` calls in application code.
  *
- * Uses AST parsing to find `.blaze()` call expressions,
+ * Uses AST parsing to find `.implementation()` call expressions,
  * ignoring occurrences in strings and comments.
  */
 
-import { isBlazeCall, offsetToLine, parse, walk } from './ast.js';
+import { isImplementationCall, offsetToLine, parse, walk } from './ast.js';
 import { isFrameworkInternalFile, isTestFile } from './scan.js';
 import type { WardenDiagnostic, WardenRule } from './types.js';
 
 /**
- * Flags direct `.blaze()` calls in application code.
+ * Flags direct `.implementation()` calls in application code.
  */
 export const noDirectImplementationCall: WardenRule = {
   check(sourceCode: string, filePath: string): readonly WardenDiagnostic[] {
@@ -26,12 +26,12 @@ export const noDirectImplementationCall: WardenRule = {
     const diagnostics: WardenDiagnostic[] = [];
 
     walk(ast, (node) => {
-      if (isBlazeCall(node)) {
+      if (isImplementationCall(node)) {
         diagnostics.push({
           filePath,
           line: offsetToLine(sourceCode, node.start),
           message:
-            'Use ctx.compose("trailId", input) instead of direct .blaze() calls. Direct implementation access bypasses validation, tracing, and layers.',
+            'Use ctx.compose("trailId", input) instead of direct .implementation() calls. Direct implementation access bypasses validation, tracing, and layers.',
           rule: 'no-direct-implementation-call',
           severity: 'warn',
         });
@@ -41,7 +41,7 @@ export const noDirectImplementationCall: WardenRule = {
     return diagnostics;
   },
   description:
-    'Disallow direct .blaze() calls in application code. Use ctx.compose() instead.',
+    'Disallow direct .implementation() calls in application code. Use ctx.compose() instead.',
   name: 'no-direct-implementation-call',
   severity: 'warn',
 };

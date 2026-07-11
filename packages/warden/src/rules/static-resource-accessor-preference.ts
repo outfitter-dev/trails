@@ -9,7 +9,7 @@
 import {
   collectNamedResourceIds,
   extractFirstStringArg,
-  findBlazeBodies,
+  findImplementationBodies,
   findConfigProperty,
   findTrailDefinitions,
   getNodeCallee,
@@ -125,16 +125,20 @@ const extractDeclaredStaticResources = (
     return name ? [{ id: resourceIdsByName.get(name) ?? null, name }] : [];
   });
 
-const extractContextParamNode = (blazeBody: AstNode): AstNode | null => {
-  const params = blazeBody['params'] as readonly AstNode[] | undefined;
+const extractContextParamNode = (
+  implementationBody: AstNode
+): AstNode | null => {
+  const params = implementationBody['params'] as readonly AstNode[] | undefined;
   if (!params || params.length < 2) {
     return null;
   }
   return params[1] ?? null;
 };
 
-const extractContextParamName = (blazeBody: AstNode): string | null => {
-  const param = extractContextParamNode(blazeBody);
+const extractContextParamName = (
+  implementationBody: AstNode
+): string | null => {
+  const param = extractContextParamNode(implementationBody);
   if (!param) {
     return null;
   }
@@ -340,7 +344,7 @@ const collectResourceLookups = (
 ): readonly ResourceLookup[] => {
   const lookups: ResourceLookup[] = [];
 
-  for (const body of findBlazeBodies(config)) {
+  for (const body of findImplementationBodies(config)) {
     const ctxNames = buildCtxNames(body);
     const resourceAliases = new Set([
       ...collectParamResourceAliases(body),
@@ -465,7 +469,7 @@ const collectInlineDependencyConstructions = (
 ): readonly InlineDependencyConstruction[] => {
   const constructions: InlineDependencyConstruction[] = [];
 
-  for (const body of findBlazeBodies(config)) {
+  for (const body of findImplementationBodies(config)) {
     walkWithScopes(
       body,
       (node, scopes) => {
@@ -517,7 +521,7 @@ const buildInlineDependencyDiagnostic = (
   line: offsetToLine(sourceCode, construction.start),
   message:
     `Trail "${trailId}": ${construction.rendered} constructs an external dependency ` +
-    'inside blaze logic. Move the client behind a resource definition and declare it in resources.',
+    'inside implementation logic. Move the client behind a resource definition and declare it in resources.',
   rule: RULE_NAME,
   severity: 'warn',
 });

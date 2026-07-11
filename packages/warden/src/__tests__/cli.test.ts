@@ -176,7 +176,8 @@ const writeManifest = (rootDir: string, hash: string): Promise<string> =>
 
 const buildFixtureTopo = (name = 'fixture') => {
   const echo = trail('fixture.echo', {
-    blaze: (input: { value: string }) => Result.ok({ value: input.value }),
+    implementation: (input: { value: string }) =>
+      Result.ok({ value: input.value }),
     input: z.object({ value: z.string() }),
     intent: 'read',
     output: z.object({ value: z.string() }),
@@ -272,7 +273,7 @@ describe('runWarden basics', () => {
       writeFileSync(
         join(dir, 'bad.ts'),
         `trail("entity.show", {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     throw new Error("boom");
   }
 })`
@@ -292,7 +293,7 @@ describe('runWarden basics', () => {
       writeFileSync(
         join(dir, 'good.ts'),
         `trail("entity.show", {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     return Result.ok(data);
   }
 })`
@@ -324,7 +325,7 @@ describe('runWarden basics', () => {
       // Even with bad code, driftOnly should produce 0 diagnostics
       writeFileSync(
         join(dir, 'bad.ts'),
-        `trail("x", { blaze: async () => { throw new Error("x"); } })`
+        `trail("x", { implementation: async () => { throw new Error("x"); } })`
       );
       const report = await runWarden({ driftOnly: true, rootDir: dir });
       expect(report.diagnostics.length).toBe(0);
@@ -341,7 +342,7 @@ describe('runWarden basics', () => {
         join(dir, 'mixed.ts'),
         `trail('entity.show', {
   on: ['entity.changed'],
-  blaze: async () => {
+  implementation: async () => {
     throw new Error('boom');
   },
 });`
@@ -400,7 +401,7 @@ describe('runWarden basics', () => {
         `import { Result, trail } from '@ontrails/core';
 
 export const badTrail = trail('bad.throw', {
-  blaze: async () => {
+  implementation: async () => {
     throw new Error('boom');
   },
 });
@@ -422,7 +423,7 @@ export const badTrail = trail('bad.throw', {
             'no-native-error-result',
           ],
           summary:
-            'Convert thrown failures in blazes into explicit Result.err() outcomes.',
+            'Convert thrown failures in implementations into explicit Result.err() outcomes.',
         })
       );
     } finally {
@@ -532,7 +533,7 @@ export const second = contour('second', {
         join(dir, 'mixed.ts'),
         `trail('entity.show', {
   on: ['entity.changed'],
-  blaze: async () => {
+  implementation: async () => {
     throw new Error('boom');
   },
 });`
@@ -557,7 +558,7 @@ export const second = contour('second', {
     try {
       writeFileSync(
         join(dir, 'bad.ts'),
-        `trail('x', { blaze: async () => { throw new Error('x'); } })`
+        `trail('x', { implementation: async () => { throw new Error('x'); } })`
       );
 
       const report = await runWarden({ rootDir: dir, tier: 'drift' });
@@ -574,7 +575,7 @@ export const second = contour('second', {
     try {
       writeFileSync(
         join(dir, 'bad.ts'),
-        `trail('x', { blaze: async () => { throw new Error('x'); } })`
+        `trail('x', { implementation: async () => { throw new Error('x'); } })`
       );
 
       const report = await runWarden({
@@ -597,7 +598,7 @@ export const second = contour('second', {
     try {
       writeFileSync(
         join(dir, 'bad.ts'),
-        `trail('x', { blaze: async () => { throw new Error('x'); } })`
+        `trail('x', { implementation: async () => { throw new Error('x'); } })`
       );
 
       const report = await runWarden({
@@ -650,7 +651,7 @@ export const second = contour('second', {
   fields: {
     firstName: { label: "First Name" },
   },
-  blaze: async () => {
+  implementation: async () => {
     throw new Error("boom");
   },
 })`
@@ -703,7 +704,7 @@ export const second = contour('second', {
         join(dir, 'mixed.ts'),
         `trail('entity.show', {
   on: ['entity.changed'],
-  blaze: async () => {
+  implementation: async () => {
     throw new Error('boom');
   },
 });`
@@ -735,7 +736,7 @@ export const second = contour('second', {
         join(dir, 'source-only.ts'),
         `trail('entity.show', {
   on: ['entity.changed'],
-  blaze: async () => Result.ok({ ok: true }),
+  implementation: async () => Result.ok({ ok: true }),
 });`
       );
       const report = await runWarden({
@@ -808,7 +809,8 @@ export const second = contour('second', {
     try {
       const primary = buildFixtureTopo('fixture.primary');
       const adminTrail = trail('admin.echo', {
-        blaze: (input: { value: string }) => Result.ok({ value: input.value }),
+        implementation: (input: { value: string }) =>
+          Result.ok({ value: input.value }),
         input: z.object({ value: z.string() }),
         intent: 'read',
         output: z.object({ value: z.string() }),
@@ -841,7 +843,7 @@ export const second = contour('second', {
       writeFileSync(
         join(dir, 'bad-source.ts'),
         `trail("entity.show", {
-  blaze: async () => {
+  implementation: async () => {
     throw new Error("boom");
   },
 });`
@@ -894,7 +896,7 @@ describe('runWarden project context', () => {
       },
     },
   ],
-  blaze: () => Result.err(new ConflictError("conflict")),
+  implementation: () => Result.err(new ConflictError("conflict")),
 })`
       );
 
@@ -921,7 +923,7 @@ trail("entity.save", {
     { on: TrailsError, recover: async () => Result.ok({ winner: "broad" }) },
     { on: ConflictError, recover: async () => Result.ok({ winner: "specific" }) },
   ],
-  blaze: () => Result.err(new ConflictError("boom")),
+  implementation: () => Result.err(new ConflictError("boom")),
 });`
       );
 
@@ -940,13 +942,13 @@ trail("entity.save", {
 
   test('includes topo-aware detour contract diagnostics when topo is supplied', async () => {
     const validTrail = trail('entity.save', {
-      blaze: () => Result.ok({ ok: true }),
       detours: [
         {
           on: ConflictError,
           recover: async () => Result.ok({ ok: true }),
         },
       ],
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({}),
       output: z.object({ ok: z.boolean() }),
     });
@@ -1023,7 +1025,7 @@ const db = resource('db.main', {
 
 trail('entity.show', {
   resources: [db],
-  blaze: async (_input, ctx) => Result.ok(db.from(ctx)),
+  implementation: async (_input, ctx) => Result.ok(db.from(ctx)),
 });`
       );
 
@@ -1132,7 +1134,7 @@ trail('notes.notify', {
     definition.tables.notes.signals.updated,
     definition.tables.notes.signals.removed,
   ],
-  blaze: async () => Result.ok({ ok: true }),
+  implementation: async () => Result.ok({ ok: true }),
   output: z.object({ ok: z.boolean() }),
 });`
       );
@@ -1162,7 +1164,7 @@ describe('runWarden draft markers', () => {
       writeFileSync(
         join(dir, 'draft-id.ts'),
         `trail("_draft.entity.prepare", {
-  blaze: async () => Result.ok({ ok: true }),
+  implementation: async () => Result.ok({ ok: true }),
   input: z.object({})
 })`
       );
@@ -1189,7 +1191,7 @@ describe('runWarden draft markers', () => {
       writeFileSync(
         join(dir, '_draft.entity.ts'),
         `trail("_draft.entity.prepare", {
-  blaze: async () => Result.ok({ ok: true }),
+  implementation: async () => Result.ok({ ok: true }),
   input: z.object({})
 })`
       );
@@ -1216,7 +1218,7 @@ describe('runWarden draft markers', () => {
       writeFileSync(
         join(dir, '_draft.entity.ts'),
         `trail("_draft.entity.prepare", {
-  blaze: async () => {
+  implementation: async () => {
     throw new Error("draft boom");
   },
 })`
@@ -1224,7 +1226,7 @@ describe('runWarden draft markers', () => {
       writeFileSync(
         join(dir, 'entity.ts'),
         `trail("entity.show", {
-  blaze: async () => {
+  implementation: async () => {
     throw new Error("established boom");
   },
 })`
@@ -1271,7 +1273,7 @@ describe('runWarden draft markers', () => {
       writeFileSync(
         join(dir, 'entity.draft.ts'),
         `trail("entity.prepare", {
-  blaze: async () => Result.ok({ ok: true }),
+  implementation: async () => Result.ok({ ok: true }),
   input: z.object({})
 })`
       );
@@ -1854,7 +1856,7 @@ describe('formatWardenReport', () => {
         {
           filePath: 'src/trails/entity.ts',
           line: 3,
-          message: 'Do not throw inside the blaze.',
+          message: 'Do not throw inside the implementation.',
           rule: 'no-throw-in-implementation',
           severity: 'error',
         },
@@ -1882,7 +1884,7 @@ describe('formatWardenReport', () => {
             summary: 'Convert thrown failures into Result.err().',
           },
           line: 3,
-          message: 'Do not throw inside the blaze.',
+          message: 'Do not throw inside the implementation.',
           rule: 'no-throw-in-implementation',
           severity: 'error',
         },
@@ -1915,7 +1917,7 @@ describe('formatWardenReport', () => {
             summary: 'Use the Warden guidance.',
           },
           line: 3,
-          message: 'Do not throw inside the blaze.',
+          message: 'Do not throw inside the implementation.',
           rule: 'no-throw-in-implementation',
           severity: 'error',
         },

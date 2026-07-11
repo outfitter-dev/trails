@@ -12,7 +12,7 @@ trail('versioned.schema', {
   version: 2,
   input: z.object({ name: z.string() }),
   output: z.object({ message: z.string() }),
-  blaze: async () => Result.ok({ message: 'ok' }),
+  implementation: async () => Result.ok({ message: 'ok' }),
 });
 `,
       },

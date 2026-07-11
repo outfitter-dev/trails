@@ -15,7 +15,7 @@ const paymentWebhook = webhook('webhook.payment.received', {
 });
 
 const paymentReceiver = trail('payment.receive', {
-  blaze: () => Result.ok({ ok: true }),
+  implementation: () => Result.ok({ ok: true }),
   input: z.object({ paymentId: z.string() }),
   on: [paymentWebhook],
   output: z.object({ ok: z.boolean() }),
@@ -28,7 +28,7 @@ describe('webhook-route-collision', () => {
       path: '/webhooks/invoice',
     });
     const invoiceReceiver = trail('invoice.receive', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({ invoiceId: z.string() }),
       on: [invoiceWebhook],
       output: z.object({ ok: z.boolean() }),
@@ -50,7 +50,7 @@ describe('webhook-route-collision', () => {
       path: '/webhooks/payment',
     });
     const duplicateReceiver = trail('payment.duplicate-receive', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({ paymentId: z.string() }),
       on: [duplicateWebhook],
       output: z.object({ ok: z.boolean() }),
@@ -77,7 +77,7 @@ describe('webhook-route-collision', () => {
 
   test('allows one webhook source to fan out to multiple trails', async () => {
     const auditReceiver = trail('payment.audit-receive', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({ paymentId: z.string() }),
       on: [paymentWebhook],
       output: z.object({ ok: z.boolean() }),
@@ -100,7 +100,7 @@ describe('webhook-route-collision', () => {
       path: '/webhooks/payment',
     });
     const patchReceiver = trail('payment.patch-receive', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({ paymentId: z.string() }),
       on: [patchWebhook],
       output: z.object({ ok: z.boolean() }),
@@ -118,7 +118,7 @@ describe('webhook-route-collision', () => {
 
   test('errors when a webhook route collides with a derived direct HTTP route', async () => {
     const directRoute = trail('webhooks.payment', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({}),
       output: z.object({ ok: z.boolean() }),
     });
@@ -146,7 +146,7 @@ describe('webhook-route-collision', () => {
 
   test('stays quiet when a webhook overlaps an internal direct trail (not materialized by default)', async () => {
     const directRoute = trail('webhooks.payment', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({}),
       output: z.object({ ok: z.boolean() }),
       visibility: 'internal',
@@ -164,7 +164,7 @@ describe('webhook-route-collision', () => {
 
   test('stays quiet when a webhook overlaps a legacy meta.internal direct trail', async () => {
     const directRoute = trail('webhooks.payment', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({}),
       meta: { internal: true },
       output: z.object({ ok: z.boolean() }),
@@ -182,7 +182,7 @@ describe('webhook-route-collision', () => {
 
   test('stays quiet when an internal trail consumes a webhook (not materialized by default)', async () => {
     const internalConsumer = trail('payment.internal-consumer', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({ paymentId: z.string() }),
       on: [paymentWebhook],
       output: z.object({ ok: z.boolean() }),
@@ -194,7 +194,7 @@ describe('webhook-route-collision', () => {
       path: '/webhooks/payment',
     });
     const publicConsumer = trail('payment.public-consumer', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({ paymentId: z.string() }),
       on: [distinctWebhook],
       output: z.object({ ok: z.boolean() }),
@@ -230,13 +230,13 @@ describe('webhook-route-collision', () => {
     });
 
     const trailA = trail('payment.shared-a', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({ paymentId: z.string() }),
       on: [sourceA],
       output: z.object({ ok: z.boolean() }),
     });
     const trailB = trail('payment.shared-b', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({ paymentId: z.string() }),
       on: [sourceB],
       output: z.object({ ok: z.boolean() }),
@@ -274,13 +274,13 @@ describe('webhook-route-collision', () => {
     });
 
     const trailA = trail('payment.shared-parse-a', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({ paymentId: z.string() }),
       on: [sourceA],
       output: z.object({ ok: z.boolean() }),
     });
     const trailB = trail('payment.shared-parse-b', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({ paymentId: z.string() }),
       on: [sourceB],
       output: z.object({ ok: z.boolean() }),
@@ -307,7 +307,7 @@ describe('webhook-route-collision', () => {
   test('runWarden includes webhook route collision checks when topo is supplied', async () => {
     const rootDir = mkdtempSync(join(tmpdir(), 'warden-webhook-route-'));
     const directRoute = trail('webhooks.payment', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({}),
       output: z.object({ ok: z.boolean() }),
     });
@@ -341,7 +341,7 @@ describe('webhook-route-collision', () => {
       path: '/webhooks/:endpoint',
     });
     const dynamicReceiver = trail('relay.receive', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({ endpoint: z.string() }),
       on: [dynamicIngress],
       output: z.object({ ok: z.boolean() }),
@@ -369,7 +369,7 @@ describe('webhook-route-collision', () => {
       path: '/hooks/:endpoint',
     });
     const hooksReceiver = trail('relay.hooks.receive', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({ endpoint: z.string() }),
       on: [hooksIngress],
       output: z.object({ ok: z.boolean() }),

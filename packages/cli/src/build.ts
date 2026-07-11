@@ -551,7 +551,7 @@ const safeMergeInput = async (
   }
 };
 
-/** Strip the --all meta flag from input so the trail's blaze never sees it. */
+/** Strip the --all meta flag from input so the trail's implementation never sees it. */
 const stripAllFlag = (
   input: Record<string, unknown>
 ): Record<string, unknown> => {

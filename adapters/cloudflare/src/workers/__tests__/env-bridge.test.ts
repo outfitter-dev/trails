@@ -16,7 +16,7 @@ import { createWorkersHandler } from '../index.js';
 const flags = cloudflareKv('flags', { binding: 'FLAGS' });
 
 const showFlag = trail('flag.show', {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const value = await flags.from(ctx).get(input.key);
     return Result.ok({ value });
   },
@@ -151,7 +151,7 @@ describe('workers env bridge', () => {
 
   test('trails filtered off the surface never require their env bindings', async () => {
     const ping = trail('ping', {
-      blaze: (input) => Result.ok({ reply: input.message }),
+      implementation: (input) => Result.ok({ reply: input.message }),
       input: z.object({ message: z.string() }),
       intent: 'read',
       output: z.object({ reply: z.string() }),
@@ -174,14 +174,14 @@ describe('workers env bridge', () => {
 
   test('resolves env bindings declared only by fork version entries', async () => {
     const versionedFlag = trail('flag.versioned', {
-      blaze: (input) => Result.ok({ value: `static:${input.key}` }),
+      implementation: (input) => Result.ok({ value: `static:${input.key}` }),
       input: z.object({ key: z.string() }),
       intent: 'read',
       output: z.object({ value: z.string().nullable() }),
       version: 2,
       versions: {
         1: {
-          blaze: async (_input, ctx) => {
+          implementation: async (_input, ctx) => {
             const value = await flags.from(ctx).get('color');
             return Result.ok({ value });
           },

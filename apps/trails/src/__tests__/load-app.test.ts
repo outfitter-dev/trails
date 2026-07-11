@@ -160,7 +160,7 @@ const writeWorkspaceDependencyFixture = (cwd: string): void => {
 import { z } from 'zod';
 
 const sample = trail('sample', {
-  blaze: async () => Result.ok({ ok: true }),
+  implementation: async () => Result.ok({ ok: true }),
   input: z.object({}),
   output: z.object({ ok: z.boolean() }),
 });

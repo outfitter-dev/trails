@@ -366,7 +366,7 @@ import { Result, trail } from '@ontrails/core';
 import { z } from 'zod';
 
 export const userCreate = trail('user.create', {
-  blaze: () => Result.ok({ id: 'u1' }),
+  implementation: () => Result.ok({ id: 'u1' }),
   input: z.object({ name: z.string() }),
   output: z.object({ id: z.string() }),
 });

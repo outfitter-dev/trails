@@ -76,42 +76,42 @@ afterEach(() => {
 });
 
 const echoTrail = trail('echo', {
-  blaze: (input) => Result.ok({ reply: input.message }),
+  implementation: (input) => Result.ok({ reply: input.message }),
   input: z.object({ message: z.string() }),
   intent: 'read',
   output: z.object({ reply: z.string() }),
 });
 
 const tagsTrail = trail('tags', {
-  blaze: (input) => Result.ok({ tags: input.tags }),
+  implementation: (input) => Result.ok({ tags: input.tags }),
   input: z.object({ tags: z.array(z.string()) }),
   intent: 'read',
   output: z.object({ tags: z.array(z.string()) }),
 });
 
 const echoBodyTrail = trail('echo.body', {
-  blaze: (input) => Result.ok({ length: input.message.length }),
+  implementation: (input) => Result.ok({ length: input.message.length }),
   input: z.object({ message: z.string() }),
   intent: 'write',
   output: z.object({ length: z.number() }),
 });
 
 const emptyBodyTrail = trail('empty.body', {
-  blaze: () => Result.ok({ ok: true }),
+  implementation: () => Result.ok({ ok: true }),
   input: z.object({}),
   intent: 'write',
   output: z.object({ ok: z.boolean() }),
 });
 
 const genericErrorTrail = trail('generic.error', {
-  blaze: () => Result.err(new Error('database password=secret')),
+  implementation: () => Result.err(new Error('database password=secret')),
   input: z.object({}),
   intent: 'read',
   output: z.object({ ok: z.boolean() }),
 });
 
 const protectedTrail = trail('permit.scope', {
-  blaze: (_input, ctx) =>
+  implementation: (_input, ctx) =>
     Result.ok({
       permitId: ctx.permit?.id,
       requestId: ctx.requestId,
@@ -126,7 +126,7 @@ const protectedTrail = trail('permit.scope', {
 });
 
 const abortTrail = trail('abort.delay', {
-  blaze: async (_input, ctx) => {
+  implementation: async (_input, ctx) => {
     await Bun.sleep(5);
     return Result.ok({ aborted: ctx.abortSignal.aborted });
   },
@@ -137,7 +137,7 @@ const abortTrail = trail('abort.delay', {
 
 const errorTrail = (id: string, error: Error) =>
   trail(id, {
-    blaze: () => Result.err(error),
+    implementation: () => Result.err(error),
     input: z.object({}),
     intent: 'read',
     output: z.object({ ok: z.boolean() }),
@@ -154,7 +154,7 @@ const paymentWebhook = webhook('webhook.payment.received', {
 });
 
 const paymentWebhookTrail = trail('payment.receive', {
-  blaze: (input) => Result.ok({ paymentId: input.paymentId }),
+  implementation: (input) => Result.ok({ paymentId: input.paymentId }),
   input: z.object({ paymentId: z.string() }),
   on: [paymentWebhook],
   output: z.object({ paymentId: z.string() }),

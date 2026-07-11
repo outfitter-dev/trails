@@ -66,7 +66,8 @@ const captureLayerInput = (
 
 const makeReadEcho = (overrides: { readonly layers?: readonly Layer[] } = {}) =>
   trail('echo', {
-    blaze: (input: { value: string }) => Result.ok({ value: input.value }),
+    implementation: (input: { value: string }) =>
+      Result.ok({ value: input.value }),
     input: z.object({ value: z.string() }),
     intent: 'read',
     output: z.object({ value: z.string() }),
@@ -77,7 +78,7 @@ const makeWriteCreate = (
   overrides: { readonly layers?: readonly Layer[] } = {}
 ) =>
   trail('item.create', {
-    blaze: (input: { name: string }) =>
+    implementation: (input: { name: string }) =>
       Result.ok({ id: '123', name: input.name }),
     input: z.object({ name: z.string() }),
     intent: 'write',
@@ -146,12 +147,12 @@ describe('TRL-474 HTTP layer input projection — schema merge', () => {
       wrap: (_t, impl) => impl,
     };
     const a = trail('alpha', {
-      blaze: () => Result.ok(1),
+      implementation: () => Result.ok(1),
       input: z.object({}),
       intent: 'read',
     });
     const b = trail('beta', {
-      blaze: () => Result.ok(2),
+      implementation: () => Result.ok(2),
       input: z.object({}),
       intent: 'write',
     });
@@ -205,7 +206,7 @@ describe('TRL-474 HTTP layer input projection — schema merge', () => {
       wrap: (_t, impl) => impl,
     };
     const audit = trail('payment.audit', {
-      blaze: (input: { paymentId: string }) =>
+      implementation: (input: { paymentId: string }) =>
         Result.ok({ audited: input.paymentId }),
       input: z.object({ paymentId: z.string() }),
       layers: [auditLayer],
@@ -213,7 +214,7 @@ describe('TRL-474 HTTP layer input projection — schema merge', () => {
       output: z.object({ audited: z.string() }),
     });
     const notify = trail('payment.notify', {
-      blaze: (input: { paymentId: string }) =>
+      implementation: (input: { paymentId: string }) =>
         Result.ok({ notified: input.paymentId }),
       input: z.object({ paymentId: z.string() }),
       layers: [tenantLayer],
@@ -286,7 +287,7 @@ describe('TRL-474 HTTP layer input projection — runtime routing', () => {
     );
     let observedInput: unknown;
     const recorded = trail('rec', {
-      blaze: (input: { value: string }) => {
+      implementation: (input: { value: string }) => {
         observedInput = input;
         return Result.ok({ value: input.value });
       },
@@ -335,7 +336,8 @@ describe('TRL-474 HTTP layer input projection — collisions', () => {
       bucket
     );
     const echo = trail('echo', {
-      blaze: (input: { value: string }) => Result.ok({ value: input.value }),
+      implementation: (input: { value: string }) =>
+        Result.ok({ value: input.value }),
       input: z.object({ value: z.string() }),
       intent: 'read',
       layers: [collidingLayer],
@@ -385,8 +387,11 @@ describe('TRL-474 HTTP layer input projection — collisions', () => {
       bucket
     );
     const echo = trail('echo', {
-      blaze: (input: { authToken: string; token: string; value: string }) =>
-        Result.ok({ value: input.value }),
+      implementation: (input: {
+        authToken: string;
+        token: string;
+        value: string;
+      }) => Result.ok({ value: input.value }),
       input: z.object({
         authToken: z.string(),
         token: z.string(),
@@ -422,7 +427,8 @@ describe('TRL-474 HTTP layer input projection — collisions', () => {
         wrap: (_t, impl) => impl,
       };
       const echo = trail('echo', {
-        blaze: (input: { value: string }) => Result.ok({ value: input.value }),
+        implementation: (input: { value: string }) =>
+          Result.ok({ value: input.value }),
         input: z.object({ value: z.string() }),
         intent: 'read',
         layers: [collidingLayer],

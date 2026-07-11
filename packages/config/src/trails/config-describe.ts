@@ -25,17 +25,17 @@ const outputSchema = z.object({
 });
 
 export const configDescribe = trail('config.describe', {
-  blaze: (_input, ctx) => {
-    const state = configResource.from(ctx);
-    const fields = deriveConfigFields(state.schema);
-    return Result.ok({ fields: [...fields] });
-  },
   examples: [
     {
       input: {},
       name: 'Describe all config fields',
     },
   ],
+  implementation: (_input, ctx) => {
+    const state = configResource.from(ctx);
+    const fields = deriveConfigFields(state.schema);
+    return Result.ok({ fields: [...fields] });
+  },
   input: z.object({}),
   intent: 'read',
   meta: { category: 'infrastructure' },

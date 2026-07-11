@@ -61,7 +61,7 @@ Typed layer inputs are projected into the same public method input object as tra
 
 ## Errors
 
-The root API throws package-facing `LibraryError` subclasses. This is a surface mapping, not a blaze behavior change: blazes still return `Result`.
+The root API throws package-facing `LibraryError` subclasses. This is a surface mapping, not an implementation behavior change: implementations still return `Result`.
 
 The `/result` subpath preserves the no-throw envelope:
 

@@ -131,8 +131,8 @@ const crudTopo = topo('store-crud-app', {
 
 const crudTrails = [createNote, deleteNote, listNote, readNote, updateNote];
 
-type CreateNoteInput = Parameters<typeof createNote.blaze>[0];
-type UpdateNoteInput = Parameters<typeof updateNote.blaze>[0];
+type CreateNoteInput = Parameters<typeof createNote.implementation>[0];
+type UpdateNoteInput = Parameters<typeof updateNote.implementation>[0];
 
 const createInputHasTitle: 'title' extends keyof CreateNoteInput
   ? true
@@ -351,36 +351,39 @@ describe('crud()', () => {
     return crud(partialDefinition.tables.notes, notesResource);
   };
 
-  test('default blazes delegate to the store accessor contract', async () => {
+  test('default implementations delegate to the store accessor contract', async () => {
     const ctx = createCrudContext();
 
     const created = expectOk(
-      await createNote.blaze(
+      await createNote.implementation(
         { body: 'Hello, Trails', title: 'First note' },
         ctx
       )
     );
     expect(created).toEqual(noteFixture);
 
-    expect(expectOk(await readNote.blaze({ id: noteFixture.id }, ctx))).toEqual(
-      noteFixture
-    );
+    expect(
+      expectOk(await readNote.implementation({ id: noteFixture.id }, ctx))
+    ).toEqual(noteFixture);
 
     const updated = expectOk(
-      await updateNote.blaze({ id: noteFixture.id, title: 'Renamed' }, ctx)
+      await updateNote.implementation(
+        { id: noteFixture.id, title: 'Renamed' },
+        ctx
+      )
     );
     expect(updated).toEqual({
       ...noteFixture,
       title: 'Renamed',
     });
 
-    expect(expectOk(await listNote.blaze({ id: noteFixture.id }, ctx))).toEqual(
-      [updated]
-    );
+    expect(
+      expectOk(await listNote.implementation({ id: noteFixture.id }, ctx))
+    ).toEqual([updated]);
 
-    expect(await deleteNote.blaze({ id: noteFixture.id }, ctx)).toEqual(
-      Result.ok()
-    );
+    expect(
+      await deleteNote.implementation({ id: noteFixture.id }, ctx)
+    ).toEqual(Result.ok());
   });
 
   test('keeps CRUD outputs strict even when fixtures omit generated fields', () => {
@@ -419,7 +422,7 @@ describe('crud()', () => {
     ]);
   });
 
-  test('accepts per-operation blaze overrides', async () => {
+  test('accepts per-operation implementation overrides', async () => {
     const createOverride = mock((input: InsertOf<NotesTable>) =>
       Result.ok({
         ...noteFixture,
@@ -428,12 +431,12 @@ describe('crud()', () => {
       })
     );
     const [customCreate] = crud(noteDefinition.tables.notes, notesResource, {
-      blaze: {
+      implementation: {
         create: createOverride,
       },
     });
 
-    const result = await customCreate.blaze(
+    const result = await customCreate.implementation(
       { title: 'Custom note' },
       createCrudContext()
     );

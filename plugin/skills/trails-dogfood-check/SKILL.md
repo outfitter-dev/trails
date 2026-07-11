@@ -9,7 +9,7 @@ Use this skill when framework-owned trails, CLI helpers, loaders, or generators 
 
 ## Workflow
 
-1. Locate the trail blaze, helper, loader, surface binding, or runtime boundary
+1. Locate the trail implementation, helper, loader, surface binding, or runtime boundary
    under review.
 2. Decide which boundary it lives on:
    - Trail runtime behavior should return `Result` and specific `TrailsError` values.
@@ -32,7 +32,7 @@ Use this skill when framework-owned trails, CLI helpers, loaders, or generators 
 ## Must Not
 
 - Do not call every throw a bug. Construction and programmer-error seams can stay throws when documented and tested.
-- Do not move surface concerns into trail blaze logic.
+- Do not move surface concerns into trail implementation logic.
 - Do not replace explicit config or resource inputs with ambient `process.cwd()` or `process.env` reads.
 - Do not hide native `Error` values inside `Result.err` where a specific `TrailsError` exists.
 

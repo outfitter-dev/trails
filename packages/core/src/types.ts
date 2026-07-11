@@ -11,7 +11,7 @@ import type { TrailVersionReference } from './version-resolution.js';
 // Detour
 // ---------------------------------------------------------------------------
 
-/** A recovery path that activates when a trail's blaze fails with a matching error. */
+/** A recovery path that activates when a trail's implementation fails with a matching error. */
 export interface Detour<Input, Output, TErr extends TrailsError = TrailsError> {
   /* oxlint-disable-next-line no-explicit-any -- standard pattern for matching abstract+concrete class constructors */
   readonly on: abstract new (...args: any[]) => TErr;
@@ -69,7 +69,7 @@ export interface ComposeOptions {
    * Execute a specific live version of the composed trail.
    *
    * Omit to keep composition current by default. Historical revision entries
-   * transpose through the current trail; fork entries run their own blaze.
+   * transpose through the current trail; fork entries run their own implementation.
    */
   readonly version?: TrailVersionReference | undefined;
 }
@@ -277,7 +277,7 @@ export interface TrailContext {
   readonly trace?: TraceFn | undefined;
 }
 
-/** Trail context for blazes that declare trail composition. */
+/** Trail context for implementations that declare trail composition. */
 export interface ComposeTrailContext extends TrailContext {
   readonly compose: ComposeFn;
 }

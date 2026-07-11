@@ -9,7 +9,7 @@ trail("entity.show", {
   input: z.object({
     query: z.string().describe("Search query. @see entity.search"),
   }),
-  blaze: (input) => Result.ok(input),
+  implementation: (input) => Result.ok(input),
 })`;
 
     const diagnostics = validDescribeRefs.check(code, 'src/entity.ts');
@@ -23,14 +23,14 @@ trail("entity.show", {
     const code = `
 trail("entity.search", {
   input: z.object({ query: z.string() }),
-  blaze: (input) => Result.ok(input),
+  implementation: (input) => Result.ok(input),
 })
 
 trail("entity.show", {
   input: z.object({
     query: z.string().describe("Search query. @see entity.search"),
   }),
-  blaze: (input) => Result.ok(input),
+  implementation: (input) => Result.ok(input),
 })`;
 
     const diagnostics = validDescribeRefs.check(code, 'src/entity.ts');
@@ -44,7 +44,7 @@ trail("entity.show", {
   input: z.object({
     query: z.string().describe("Search query. @see entity.search"),
   }),
-  blaze: (input) => Result.ok(input),
+  implementation: (input) => Result.ok(input),
 })`;
 
     const diagnostics = validDescribeRefs.checkWithContext(
@@ -64,7 +64,7 @@ const docs = "see also @see entity.ghost in the other doc";
 
 trail("entity.show", {
   input: z.object({ query: z.string() }),
-  blaze: (input) => Result.ok(input),
+  implementation: (input) => Result.ok(input),
 })`;
 
     const diagnostics = validDescribeRefs.check(code, 'src/entity.ts');
@@ -93,7 +93,7 @@ trail("entity.show", {
   input: z.object({
     query: z.string().describe(\`Search query. @see entity.ghost\`),
   }),
-  blaze: (input) => Result.ok(input),
+  implementation: (input) => Result.ok(input),
 })`;
 
     const diagnostics = validDescribeRefs.check(code, 'src/entity.ts');
@@ -109,7 +109,7 @@ trail("entity.show", {
   input: z.object({
     query: z.string().describe(\`search for \${query}. @see entity.ghost\`),
   }),
-  blaze: (input) => Result.ok(input),
+  implementation: (input) => Result.ok(input),
 })`;
 
       const diagnostics = validDescribeRefs.check(code, 'src/entity.ts');
@@ -124,7 +124,7 @@ trail("entity.show", {
   input: z.object({
     query: z.string().describe(\`\${prefix} @see missing.trail\`),
   }),
-  blaze: (input) => Result.ok(input),
+  implementation: (input) => Result.ok(input),
 })`;
 
       const diagnostics = validDescribeRefs.check(code, 'src/entity.ts');
@@ -139,7 +139,7 @@ trail("entity.show", {
   input: z.object({
     query: z.string().describe(\`path\\\\to\\\\docs. @see missing.trail\`),
   }),
-  blaze: (input) => Result.ok(input),
+  implementation: (input) => Result.ok(input),
 })`;
 
       const diagnostics = validDescribeRefs.check(code, 'src/entity.ts');
@@ -154,7 +154,7 @@ trail("entity.show", {
   input: z.object({
     query: z.string().describe(\`@s\${x}ee missing\`),
   }),
-  blaze: (input) => Result.ok(input),
+  implementation: (input) => Result.ok(input),
 })`;
 
       const diagnostics = validDescribeRefs.check(code, 'src/entity.ts');
@@ -168,7 +168,7 @@ trail("entity.show", {
   input: z.object({
     query: z.string().describe(\`@s\${x}ee \${y} missing\`),
   }),
-  blaze: (input) => Result.ok(input),
+  implementation: (input) => Result.ok(input),
 })`;
 
       const diagnostics = validDescribeRefs.check(code, 'src/entity.ts');
@@ -182,7 +182,7 @@ trail("entity.show", {
   input: z.object({
     query: z.string().describe(\`@see missing.trail \${x}\`),
   }),
-  blaze: (input) => Result.ok(input),
+  implementation: (input) => Result.ok(input),
 })`;
 
       const diagnostics = validDescribeRefs.check(code, 'src/entity.ts');
@@ -197,7 +197,7 @@ trail("entity.show", {
   input: z.object({
     query: z.string().describe(\`\${prefix}\${suffix}\`),
   }),
-  blaze: (input) => Result.ok(input),
+  implementation: (input) => Result.ok(input),
 })`;
 
       const diagnostics = validDescribeRefs.check(code, 'src/entity.ts');
@@ -213,7 +213,7 @@ stream.describe(() => mapFn);
 
 trail("entity.show", {
   input: z.object({ query: z.string() }),
-  blaze: (input) => Result.ok(input),
+  implementation: (input) => Result.ok(input),
 })`;
 
     const diagnostics = validDescribeRefs.check(code, 'src/entity.ts');
@@ -231,7 +231,7 @@ trail("entity.show", {
   input: z.object({
     query: z.string().describe("Search query. @see entity.updated"),
   }),
-  blaze: (input) => Result.ok(input),
+  implementation: (input) => Result.ok(input),
 })`;
 
     const diagnostics = validDescribeRefs.check(code, 'src/entity.ts');

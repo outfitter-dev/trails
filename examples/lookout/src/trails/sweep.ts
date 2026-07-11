@@ -57,7 +57,18 @@ const sweepResultSchema = z.object({
 });
 
 export const sweepProbes = trail('probe.sweep', {
-  blaze: async (_input, ctx) => {
+  composes: [runProbe],
+  description:
+    'Probe every enabled check that is due per its own interval; the cron source ticks this each minute.',
+  examples: [
+    {
+      description: 'Both enabled demo checks are due on a fresh store',
+      expectedMatch: { probed: 2 },
+      input: {},
+      name: 'Sweep due checks',
+    },
+  ],
+  implementation: async (_input, ctx) => {
     const store = db.from(ctx);
     const enabled = await store.checks.list({ enabled: true });
     const nowMs = Date.now();
@@ -86,17 +97,6 @@ export const sweepProbes = trail('probe.sweep', {
       results,
     });
   },
-  composes: [runProbe],
-  description:
-    'Probe every enabled check that is due per its own interval; the cron source ticks this each minute.',
-  examples: [
-    {
-      description: 'Both enabled demo checks are due on a fresh store',
-      expectedMatch: { probed: 2 },
-      input: {},
-      name: 'Sweep due checks',
-    },
-  ],
   input: z.object({}),
   intent: 'write',
   on: [probeSweepSchedule],

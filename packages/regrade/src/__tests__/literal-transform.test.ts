@@ -58,10 +58,10 @@ describe('literal Regrade transform tracer', () => {
 });
 
 describe('transformed input schema validation (TRL-842)', () => {
-  test('validates raw pre-transform input and projects it to blaze input', () => {
+  test('validates raw pre-transform input and projects it to implementation input', () => {
     // The parent trail's input schema is a `.transform()` schema. Examples and
     // testExamples() feed RAW pre-transform input ({ source }); validation must
-    // accept it and project it into the post-transform blaze input
+    // accept it and project it into the post-transform implementation input
     // ({ child: { source } }). This pins the runtime contract that the
     // type-level divergence documented in literal-transform.ts depends on.
     const validated = validateInput(literalRegradeTrail.input, {

@@ -83,7 +83,7 @@ In `@ontrails/mcp`, a trailhead projects as one MCP tool. The input discriminato
 }
 ```
 
-The handler dispatches to the selected constituent trail through the same surface execution path that ordinary MCP tools use. The trailhead does not call a blaze directly and does not create a second implementation path.
+The handler dispatches to the selected constituent trail through the same surface execution path that ordinary MCP tools use. The trailhead does not call an implementation directly and does not create a second implementation path.
 
 This is grouped selection, not a hidden action bag. The selected trail ID is the member identity, and the selected member's input schema remains the contract for the nested `input` payload.
 

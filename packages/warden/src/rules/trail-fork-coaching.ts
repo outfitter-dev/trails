@@ -1,6 +1,6 @@
 import {
   extractStringOrTemplateLiteral,
-  findBlazeBodies,
+  findImplementationBodies,
   findConfigProperty,
   findTrailDefinitions,
   getNodeArgument,
@@ -49,7 +49,7 @@ interface SchemaBindingRecord {
 
 type SchemaBindings = ReadonlyMap<string, readonly SchemaBindingRecord[]>;
 
-interface BlazeInputBindings {
+interface ImplementationInputBindings {
   readonly aliases: ReadonlyMap<string, string>;
   readonly inputParamName: string | null;
 }
@@ -344,8 +344,8 @@ const findControlFields = (
   return fields;
 };
 
-const blazeParams = (blaze: AstNode): readonly AstNode[] =>
-  getNodeParams(blaze) ?? [];
+const implementationParams = (implementation: AstNode): readonly AstNode[] =>
+  getNodeParams(implementation) ?? [];
 
 const memberFieldName = (
   node: AstNode | undefined,
@@ -397,13 +397,13 @@ const collectDestructuredFieldAliasesFromPattern = (
 };
 
 const collectDestructuredFieldAliases = (
-  blaze: AstNode,
+  implementation: AstNode,
   inputParamName: string,
   fields: ReadonlySet<string>
 ): ReadonlyMap<string, string> => {
   const aliases = new Map<string, string>();
 
-  walkScope(blaze, (node) => {
+  walkScope(implementation, (node) => {
     if (node.type !== 'VariableDeclarator') {
       return;
     }
@@ -427,15 +427,19 @@ const collectDestructuredFieldAliases = (
   return aliases;
 };
 
-const collectBlazeInputBindings = (
-  blaze: AstNode,
+const collectImplementationInputBindings = (
+  implementation: AstNode,
   fields: ReadonlySet<string>
-): BlazeInputBindings | null => {
-  const [inputParam] = blazeParams(blaze);
+): ImplementationInputBindings | null => {
+  const [inputParam] = implementationParams(implementation);
   const inputParamName = identifierName(inputParam);
   if (inputParamName) {
     return {
-      aliases: collectDestructuredFieldAliases(blaze, inputParamName, fields),
+      aliases: collectDestructuredFieldAliases(
+        implementation,
+        inputParamName,
+        fields
+      ),
       inputParamName,
     };
   }
@@ -511,13 +515,13 @@ const comparisonBranchesOnField = (
 };
 
 const branchesOnField = (
-  blaze: AstNode,
+  implementation: AstNode,
   inputParamName: string | null,
   fieldName: string,
   aliases: ReadonlyMap<string, string>
 ): AstNode | null => {
   let found: AstNode | null = null;
-  walkScope(blaze, (node) => {
+  walkScope(implementation, (node) => {
     if (found) {
       return;
     }
@@ -579,15 +583,20 @@ export const trailForkCoaching: WardenRule = {
       }
       const fieldNames = new Set(fields.map((field) => field.name));
 
-      for (const blaze of findBlazeBodies(definition.config)) {
-        const inputBindings = collectBlazeInputBindings(blaze, fieldNames);
+      for (const implementation of findImplementationBodies(
+        definition.config
+      )) {
+        const inputBindings = collectImplementationInputBindings(
+          implementation,
+          fieldNames
+        );
         if (!inputBindings) {
           continue;
         }
 
         for (const field of fields) {
           const branchNode = branchesOnField(
-            blaze,
+            implementation,
             inputBindings.inputParamName,
             field.name,
             inputBindings.aliases

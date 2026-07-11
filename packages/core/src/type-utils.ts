@@ -42,7 +42,7 @@ export type TrailInput<T extends AnyTrail> = T extends {
 
 /** Extract the output type from a Trail. */
 export type TrailOutput<T extends AnyTrail> = T extends {
-  readonly blaze: Implementation<any, infer O>;
+  readonly implementation: Implementation<any, infer O>;
 }
   ? O
   : never;

@@ -1,6 +1,6 @@
 import {
   collectScopeFrameBindings,
-  findBlazeBodies,
+  findImplementationBodies,
   findTrailDefinitions,
   getMemberExpression,
   getNodeArguments,
@@ -344,12 +344,12 @@ export const noRedundantResultErrorWrap: WardenRule = {
     const helperNames = collectAllResultHelperNames(ast, sourceCode, filePath);
     const namespaceHelpers = collectNamespaceHelperImports(ast, filePath);
     const resultTypeNames = collectResultTypeNames(ast);
-    const blazeStarts = new Set<number>();
+    const implementationStarts = new Set<number>();
     for (const def of findTrailDefinitions(ast)) {
-      for (const blaze of findBlazeBodies(def.config)) {
-        blazeStarts.add(blaze.start);
+      for (const implementation of findImplementationBodies(def.config)) {
+        implementationStarts.add(implementation.start);
         checkFunctionBody(
-          blaze,
+          implementation,
           `Trail "${def.id}"`,
           filePath,
           sourceCode,
@@ -361,7 +361,7 @@ export const noRedundantResultErrorWrap: WardenRule = {
       }
     }
     walkWithParents(ast, (node, context) => {
-      if (!isFunctionLike(node) || blazeStarts.has(node.start)) {
+      if (!isFunctionLike(node) || implementationStarts.has(node.start)) {
         return;
       }
       checkFunctionBody(

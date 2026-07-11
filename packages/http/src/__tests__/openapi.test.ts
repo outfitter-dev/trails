@@ -45,7 +45,7 @@ const registerPathAndMethodTests = () => {
   describe('path and method derivation', () => {
     test('dotted trail ID becomes a path', () => {
       const t = trail('entity.show', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({ id: z.string() }),
         intent: 'read',
       });
@@ -56,7 +56,7 @@ const registerPathAndMethodTests = () => {
 
     test('single-segment trail ID becomes a root path', () => {
       const t = trail('search', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({ q: z.string() }),
         intent: 'read',
       });
@@ -67,7 +67,7 @@ const registerPathAndMethodTests = () => {
 
     test('intent read → GET', () => {
       const t = trail('entity.show', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({ id: z.string() }),
         intent: 'read',
       });
@@ -78,7 +78,7 @@ const registerPathAndMethodTests = () => {
 
     test('intent destroy → DELETE', () => {
       const t = trail('entity.remove', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({ id: z.string() }),
         intent: 'destroy',
       });
@@ -89,7 +89,7 @@ const registerPathAndMethodTests = () => {
 
     test('intent write (default) → POST', () => {
       const t = trail('entity.create', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({ name: z.string() }),
       });
       const spec = deriveOpenApiSpec(topoFrom({ t }));
@@ -99,7 +99,7 @@ const registerPathAndMethodTests = () => {
 
     test('basePath is prepended to all paths', () => {
       const t = trail('entity.show', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({ id: z.string() }),
         intent: 'read',
       });
@@ -112,7 +112,7 @@ const registerPathAndMethodTests = () => {
 
     test('basePath trailing slash is normalized', () => {
       const t = trail('entity.show', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({ id: z.string() }),
         intent: 'read',
       });
@@ -126,12 +126,12 @@ const registerPathAndMethodTests = () => {
 
     test('same derived path with different methods keeps both operations', () => {
       const getItem = trail('item.resource', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({}),
         intent: 'read',
       });
       const createItem = trail('item/resource', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({ name: z.string() }),
       });
       const spec = deriveOpenApiSpec(topoFrom({ createItem, getItem }));
@@ -143,12 +143,12 @@ const registerPathAndMethodTests = () => {
 
     test('throws on duplicate method and path derivation', () => {
       const dotTrail = trail('entity.show', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({}),
         intent: 'read',
       });
       const slashTrail = trail('entity/show', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({}),
         intent: 'read',
       });
@@ -169,7 +169,7 @@ const registerGetQueryParameterTests = () => {
   describe('GET query parameters', () => {
     const buildReadSpec = () => {
       const t = trail('entity.show', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({ id: z.string(), verbose: z.boolean().optional() }),
         intent: 'read',
       });
@@ -200,7 +200,7 @@ const registerRequestBodyTests = () => {
   describe('request body', () => {
     test('omits requestBody for empty input schema', () => {
       const t = trail('action.trigger', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({}),
       });
       const spec = deriveOpenApiSpec(topoFrom({ t }));
@@ -214,7 +214,7 @@ const registerRequestBodyTests = () => {
 
     test('POST input schema becomes requestBody', () => {
       const t = trail('entity.create', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({ name: z.string() }),
       });
       const spec = deriveOpenApiSpec(topoFrom({ t }));
@@ -232,7 +232,7 @@ const registerRequestBodyTests = () => {
 
     test('requestBody required is false when all input fields are optional', () => {
       const t = trail('entity.update', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({
           name: z.string().optional(),
           tag: z.string().optional(),
@@ -250,7 +250,7 @@ const registerRequestBodyTests = () => {
 
     test('requestBody required is true when input has required fields', () => {
       const t = trail('entity.create', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({
           name: z.string(),
           tag: z.string().optional(),
@@ -272,7 +272,7 @@ const registerResponseTests = () => {
   describe('responses', () => {
     test('trail with output schema → 200 response wrapped in { data }', () => {
       const t = trail('entity.show', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({ id: z.string() }),
         intent: 'read',
         output: z.object({ id: z.string(), name: z.string() }),
@@ -297,7 +297,7 @@ const registerResponseTests = () => {
 
     test('trail without output → 200 with no schema', () => {
       const t = trail('fire.forget', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({ msg: z.string() }),
       });
       const spec = deriveOpenApiSpec(topoFrom({ t }));
@@ -314,7 +314,6 @@ const registerResponseTests = () => {
 
     test('trail with error examples → appropriate error responses', () => {
       const t = trail('entity.show', {
-        blaze: noop,
         examples: [
           { input: { id: '123' }, name: 'found' },
           {
@@ -323,6 +322,7 @@ const registerResponseTests = () => {
             name: 'not found',
           },
         ],
+        implementation: noop,
         input: z.object({ id: z.string() }),
         intent: 'read',
         output: z.object({ id: z.string() }),
@@ -336,7 +336,6 @@ const registerResponseTests = () => {
 
     test('fixed-category error examples derive status codes from owner metadata', () => {
       const t = trail('entity.create', {
-        blaze: noop,
         examples: [
           {
             error: 'PermitError',
@@ -349,6 +348,7 @@ const registerResponseTests = () => {
             name: 'projection failed',
           },
         ],
+        implementation: noop,
         input: z.object({ name: z.string() }),
       });
       const spec = deriveOpenApiSpec(topoFrom({ t }));
@@ -364,7 +364,6 @@ const registerResponseTests = () => {
 
     test('dynamic-category error examples are not projected to a fixed response code', () => {
       const t = trail('entity.create', {
-        blaze: noop,
         examples: [
           {
             error: 'RetryExhaustedError',
@@ -372,6 +371,7 @@ const registerResponseTests = () => {
             name: 'recovery exhausted',
           },
         ],
+        implementation: noop,
         input: z.object({ name: z.string() }),
       });
       const spec = deriveOpenApiSpec(topoFrom({ t }));
@@ -388,7 +388,7 @@ const registerResponseTests = () => {
 
     test('every trail includes a default 400 validation error response', () => {
       const t = trail('entity.show', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({ id: z.string() }),
         intent: 'read',
         output: z.object({ id: z.string() }),
@@ -410,8 +410,8 @@ const registerResponseTests = () => {
 
     test('example-derived 400 does not override the default 400', () => {
       const t = trail('entity.show', {
-        blaze: noop,
         examples: [{ error: 'ValidationError', input: {}, name: 'bad input' }],
+        implementation: noop,
         input: z.object({ id: z.string() }),
         intent: 'read',
         output: z.object({ id: z.string() }),
@@ -439,7 +439,7 @@ const registerMetadataAndStructureTests = () => {
   describe('operationId', () => {
     test('dots replaced with underscores', () => {
       const t = trail('entity.show', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({ id: z.string() }),
         intent: 'read',
       });
@@ -451,7 +451,7 @@ const registerMetadataAndStructureTests = () => {
 
     test('single segment ID preserved', () => {
       const t = trail('search', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({ q: z.string() }),
         intent: 'read',
       });
@@ -463,12 +463,12 @@ const registerMetadataAndStructureTests = () => {
 
     test('throws on duplicate operationId derivation', () => {
       const dotTrail = trail('foo.bar', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({}),
         intent: 'read',
       });
       const underscoreTrail = trail('foo_bar', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({}),
         intent: 'read',
       });
@@ -487,7 +487,7 @@ const registerMetadataAndStructureTests = () => {
   describe('tags', () => {
     test('tag is first segment of dotted ID', () => {
       const t = trail('entity.show', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({ id: z.string() }),
         intent: 'read',
       });
@@ -499,7 +499,7 @@ const registerMetadataAndStructureTests = () => {
 
     test('single-segment ID uses itself as tag', () => {
       const t = trail('search', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({ q: z.string() }),
         intent: 'read',
       });
@@ -513,16 +513,16 @@ const registerMetadataAndStructureTests = () => {
   describe('multiple trails', () => {
     test('all trails populate paths', () => {
       const a = trail('entity.create', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({ name: z.string() }),
       });
       const b = trail('entity.show', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({ id: z.string() }),
         intent: 'read',
       });
       const c = trail('entity.remove', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({ id: z.string() }),
         intent: 'destroy',
       });
@@ -538,12 +538,12 @@ const registerMetadataAndStructureTests = () => {
   describe('internal trails', () => {
     test('trails with visibility internal are skipped', () => {
       const pub = trail('entity.show', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({ id: z.string() }),
         intent: 'read',
       });
       const internal = trail('internal.helper', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({}),
         visibility: 'internal',
       });
@@ -561,12 +561,12 @@ const registerMetadataAndStructureTests = () => {
         payload: z.object({ id: z.string() }),
       });
       const pub = trail('entity.show', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({ id: z.string() }),
         intent: 'read',
       });
       const consumer = trail('entity.onChanged', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({ id: z.string() }),
         on: [changed],
       });
@@ -579,12 +579,12 @@ const registerMetadataAndStructureTests = () => {
 
     test('intent filters narrow the generated paths', () => {
       const readTrail = trail('entity.show', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({ id: z.string() }),
         intent: 'read',
       });
       const destroyTrail = trail('entity.remove', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({ id: z.string() }),
         intent: 'destroy',
       });
@@ -599,12 +599,12 @@ const registerMetadataAndStructureTests = () => {
 
     test('intent filters compose with include patterns using AND logic', () => {
       const readTrail = trail('entity.show', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({ id: z.string() }),
         intent: 'read',
       });
       const destroyTrail = trail('entity.remove', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({ id: z.string() }),
         intent: 'destroy',
       });
@@ -670,8 +670,8 @@ const registerMetadataAndStructureTests = () => {
   describe('summary from description', () => {
     test('trail description becomes operation summary', () => {
       const t = trail('entity.show', {
-        blaze: noop,
         description: 'Show an entity by ID',
+        implementation: noop,
         input: z.object({ id: z.string() }),
         intent: 'read',
       });
@@ -683,7 +683,7 @@ const registerMetadataAndStructureTests = () => {
 
     test('trail without description has no summary', () => {
       const t = trail('entity.show', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({ id: z.string() }),
         intent: 'read',
       });
@@ -697,8 +697,8 @@ const registerMetadataAndStructureTests = () => {
   describe('established graph enforcement', () => {
     test('rejects draft-contaminated topologies', () => {
       const exportTrail = trail('entity.export', {
-        blaze: noop,
         composes: ['_draft.entity.prepare'],
+        implementation: noop,
         input: z.object({}),
       });
 
@@ -709,8 +709,8 @@ const registerMetadataAndStructureTests = () => {
 
     test('rejects structural validation issues', () => {
       const exportTrail = trail('entity.export', {
-        blaze: noop,
         composes: ['entity.missing'],
+        implementation: noop,
         input: z.object({}),
       });
 
@@ -723,12 +723,12 @@ const registerMetadataAndStructureTests = () => {
   describe('include / exclude filters', () => {
     test('include narrows the generated spec to matching trails', () => {
       const publicShow = trail('public.show', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({}),
         intent: 'read',
       });
       const privateShow = trail('private.show', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({}),
         intent: 'read',
       });
@@ -741,12 +741,12 @@ const registerMetadataAndStructureTests = () => {
 
     test('exclude removes matching trails from the generated spec', () => {
       const publicShow = trail('public.show', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({}),
         intent: 'read',
       });
       const publicHide = trail('public.hide', {
-        blaze: noop,
+        implementation: noop,
         input: z.object({}),
         intent: 'read',
       });
@@ -763,7 +763,7 @@ const registerBlobResponseTests = () => {
   describe('BlobRef responses', () => {
     const fileBytes = new TextEncoder().encode('raw file bytes');
     const blobTrail = trail('file.raw', {
-      blaze: (input: { name: string }) =>
+      implementation: (input: { name: string }) =>
         Result.ok(
           createBlobRef({
             data: fileBytes,
@@ -797,7 +797,6 @@ const registerBlobResponseTests = () => {
 
     test('blob route error responses keep the JSON error envelope', () => {
       const failingBlobTrail = trail('file.raw', {
-        blaze: blobTrail.blaze,
         examples: [
           {
             error: 'NotFoundError',
@@ -805,6 +804,7 @@ const registerBlobResponseTests = () => {
             name: 'missing file',
           },
         ],
+        implementation: blobTrail.implementation,
         input: z.object({ name: z.string() }),
         intent: 'read',
         output: blobRefSchema,

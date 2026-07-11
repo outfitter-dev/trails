@@ -17,7 +17,7 @@ const user = contour('user', {
 
 trail('user.create', {
   contours: [user],
-  blaze: async () => Result.ok({ ok: true }),
+  implementation: async () => Result.ok({ ok: true }),
 });
 `;
 
@@ -35,7 +35,7 @@ const user = contour('user', {
 
 trail('user.create', {
   contours: [user],
-  blaze: async () => Result.ok({ ok: true }),
+  implementation: async () => Result.ok({ ok: true }),
 });
 `;
 
@@ -56,7 +56,7 @@ import { user } from './contours';
 
 trail('user.create', {
   contours: [user],
-  blaze: async () => Result.ok({ ok: true }),
+  implementation: async () => Result.ok({ ok: true }),
 });
 `;
 
@@ -79,7 +79,7 @@ import { user as userModel } from './contours';
 
 trail('user.create', {
   contours: [userModel],
-  blaze: async () => Result.ok({ ok: true }),
+  implementation: async () => Result.ok({ ok: true }),
 });
 `;
 
@@ -98,7 +98,7 @@ import { user } from './contours';
 
 trail('user.create', {
   contours: [user],
-  blaze: async () => Result.ok({ ok: true }),
+  implementation: async () => Result.ok({ ok: true }),
 });
 `;
 
@@ -119,7 +119,7 @@ import userModel from './contours';
 
 trail('user.create', {
   contours: [userModel],
-  blaze: async () => Result.ok({ ok: true }),
+  implementation: async () => Result.ok({ ok: true }),
 });
 `;
 
@@ -142,7 +142,7 @@ import * as contours from './contours';
 
 trail('user.create', {
   contours: [contours.user],
-  blaze: async () => Result.ok({ ok: true }),
+  implementation: async () => Result.ok({ ok: true }),
 });
 `;
 
@@ -163,7 +163,7 @@ import * as contours from './contours';
 
 trail('user.create', {
   contours: [contours.user],
-  blaze: async () => Result.ok({ ok: true }),
+  implementation: async () => Result.ok({ ok: true }),
 });
 `;
 
@@ -184,7 +184,7 @@ function makeTrail() {
   const contours = { user: 'not-a-contour' };
   return trail('user.create', {
     contours: [contours.user],
-    blaze: async () => Result.ok({ ok: true }),
+    implementation: async () => Result.ok({ ok: true }),
   });
 }
 

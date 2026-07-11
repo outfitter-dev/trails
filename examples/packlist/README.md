@@ -10,7 +10,7 @@ Gear & trip checklists — the "show me a normal app" Trails showcase. Three ent
 | SQLite resource + zero-config mock | [`src/resources/db.ts`](src/resources/db.ts) — file-backed at runtime, in-memory for `testAll` |
 | CRUD factory | [`src/trails/pack.ts`](src/trails/pack.ts), [`src/trails/trip.ts`](src/trails/trip.ts) — five trails per table, derived from the table definition |
 | Hand-authored trails that tighten the contract | [`src/trails/gear.ts`](src/trails/gear.ts) — duplicate-name conflict, error-path examples |
-| **Trail versioning (the hero)** | [`src/trails/gear.ts`](src/trails/gear.ts) — `gear.create` v1 (`weightOz`) → v2 (`weightGrams`) with a preserved fork blaze |
+| **Trail versioning (the hero)** | [`src/trails/gear.ts`](src/trails/gear.ts) — `gear.create` v1 (`weightOz`) → v2 (`weightGrams`) with a preserved fork implementation |
 | Store-derived signals | `db:gear.updated` and friends — emitted by the store resource, no hand-rolled plumbing |
 | Authored signal + reactive consumer | [`src/signals.ts`](src/signals.ts), [`src/trails/weight.ts`](src/trails/weight.ts) — `gear.update` fires `pack.weight-stale`, `pack.recalculate` consumes it |
 | Compose | [`src/trails/weight.ts`](src/trails/weight.ts) (`pack.weight` → `gear.read`), [`src/trails/trip.ts`](src/trails/trip.ts) (`trip.checklist` → `pack.read` + `gear.list`) |
@@ -88,13 +88,13 @@ Then call the `packlist_trip_checklist` tool with `{ "id": "trip-lostcoast" }` t
 
 Nobody demos schema versioning honestly, so here it is with real history. `gear.create` v1 shipped with `weightOz`. The v2 contract moved to `weightGrams`. Both live on the same trail in [`src/trails/gear.ts`](src/trails/gear.ts) — and the v1 world is real committed history on this branch, not a retrofit.
 
-**Here's v1** — preserved as a fork entry with its own blaze, so the old contract still runs exactly as it used to (ounces in, ounces out, converted to grams at the store boundary):
+**Here's v1** — preserved as a fork entry with its own implementation, so the old contract still runs exactly as it used to (ounces in, ounces out, converted to grams at the store boundary):
 
 ```ts
 version: 2,
 versions: {
   1: {
-    blaze: async (rawInput, ctx) => {
+    implementation: async (rawInput, ctx) => {
       // accepts weightOz, stores grams, reports weightOz back
     },
     input: gearCreateV1Input,          // { name, category, weightOz, notes? }
@@ -135,7 +135,7 @@ The row lands in the store in grams (`453.592`); the v1 caller keeps seeing ounc
 **Here's what the warden says.** Four rules govern this history, and the app passes all of them:
 
 - `version-gap` (error) — coverage must be contiguous from v1 through the current version. Skip a number and the build fails.
-- `fork-without-preserved-blaze` (error) — a historical entry must either preserve its blaze (fork) or declare a `transpose` (revision). Deleting the v1 blaze without one fails.
+- `fork-without-preserved-implementation` (error) — a historical entry must either preserve its implementation (fork) or declare a `transpose` (revision). Deleting the v1 implementation without one fails.
 - `deprecation-without-guidance` (error) — drop the `successor`/`migration`/`note` guidance from the deprecated entry and warden reports: `Trail "gear.create@1" is deprecated without successor, migration, or note guidance.`
 - `version-without-examples` (warn) — live historical versions keep their examples, and `testAll` executes them (they run here as `gear.create@1` targets).
 
@@ -143,7 +143,7 @@ Versioned contracts also stay inside the marker-safe schema subset (`marker-sche
 
 ## Errors: one class, three mappings
 
-The blaze returns `Result.err(new NotFoundError(...))` once; every surface derives its own representation:
+The implementation returns `Result.err(new NotFoundError(...))` once; every surface derives its own representation:
 
 | Error | CLI exit code | HTTP status | MCP |
 | --- | --- | --- | --- |

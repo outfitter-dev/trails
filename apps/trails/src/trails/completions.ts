@@ -16,8 +16,6 @@ const COMPLETIONS_BIN_NAME = 'trails';
 
 export const completionsTrail = trail('completions', {
   args: ['shell'],
-  blaze: async (input) =>
-    renderCompletionScript(input.shell, COMPLETIONS_BIN_NAME),
   description:
     'Print a shell completion script for the trails CLI; pipe into your shell rc to register tab-completion',
   examples: [
@@ -37,6 +35,8 @@ export const completionsTrail = trail('completions', {
       name: 'Render fish completion',
     },
   ],
+  implementation: async (input) =>
+    renderCompletionScript(input.shell, COMPLETIONS_BIN_NAME),
   input: z.object({
     shell: z
       .enum(['bash', 'zsh', 'fish'])

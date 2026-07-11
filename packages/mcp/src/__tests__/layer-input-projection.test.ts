@@ -68,7 +68,8 @@ const makeEchoTrail = (
   overrides: { readonly layers?: readonly Layer[] } = {}
 ) =>
   trail('echo', {
-    blaze: (input: { value: string }) => Result.ok({ value: input.value }),
+    implementation: (input: { value: string }) =>
+      Result.ok({ value: input.value }),
     input: z.object({ value: z.string() }),
     output: z.object({ value: z.string() }),
     ...(overrides.layers === undefined ? {} : { layers: overrides.layers }),
@@ -117,11 +118,11 @@ describe('TRL-474 MCP layer input projection — schema merge', () => {
       wrap: (_t, impl) => impl,
     };
     const a = trail('alpha', {
-      blaze: () => Result.ok(1),
+      implementation: () => Result.ok(1),
       input: z.object({}),
     });
     const b = trail('beta', {
-      blaze: () => Result.ok(2),
+      implementation: () => Result.ok(2),
       input: z.object({}),
     });
     const app = topo('app', { [a.id]: a, [b.id]: b });
@@ -142,11 +143,11 @@ describe('TRL-474 MCP layer input projection — schema merge', () => {
       wrap: (_t, impl) => impl,
     };
     const a = trail('alpha', {
-      blaze: () => Result.ok(1),
+      implementation: () => Result.ok(1),
       input: z.object({}),
     });
     const b = trail('beta', {
-      blaze: () => Result.ok(2),
+      implementation: () => Result.ok(2),
       input: z.object({}),
     });
     const app = topo('app', { [a.id]: a, [b.id]: b }, { layers: [layer] });
@@ -217,7 +218,7 @@ describe('TRL-474 MCP layer input projection — runtime mapping', () => {
     );
     let observedInput: unknown;
     const recorded = trail('rec', {
-      blaze: (input: { value: string }) => {
+      implementation: (input: { value: string }) => {
         observedInput = input;
         return Result.ok({ value: input.value });
       },
@@ -271,7 +272,8 @@ describe('TRL-474 MCP layer input projection — collisions', () => {
       bucket
     );
     const echo = trail('echo', {
-      blaze: (input: { value: string }) => Result.ok({ value: input.value }),
+      implementation: (input: { value: string }) =>
+        Result.ok({ value: input.value }),
       input: z.object({ value: z.string() }),
       layers: [collidingLayer],
       output: z.object({ value: z.string() }),
@@ -326,8 +328,11 @@ describe('TRL-474 MCP layer input projection — collisions', () => {
       bucket
     );
     const echo = trail('echo', {
-      blaze: (input: { authToken: string; token: string; value: string }) =>
-        Result.ok({ value: input.value }),
+      implementation: (input: {
+        authToken: string;
+        token: string;
+        value: string;
+      }) => Result.ok({ value: input.value }),
       input: z.object({
         authToken: z.string(),
         token: z.string(),
@@ -365,7 +370,8 @@ describe('TRL-474 MCP layer input projection — collisions', () => {
         wrap: (_t, impl) => impl,
       };
       const echo = trail('echo', {
-        blaze: (input: { value: string }) => Result.ok({ value: input.value }),
+        implementation: (input: { value: string }) =>
+          Result.ok({ value: input.value }),
         input: z.object({ value: z.string() }),
         layers: [collidingLayer],
         output: z.object({ value: z.string() }),

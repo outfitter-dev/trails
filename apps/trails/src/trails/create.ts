@@ -200,7 +200,41 @@ const writeReadme = async (
 // ---------------------------------------------------------------------------
 
 export const createTrail = trail('create', {
-  blaze: async (input: CreateInput, ctx) => {
+  composes: ['create.scaffold', 'add.surface', 'add.verify'],
+  description: 'Create a new Trails project',
+  fields: {
+    starter: {
+      options: [
+        {
+          hint: 'One trail, one example',
+          label: 'Hello world',
+          value: 'hello',
+        },
+        {
+          hint: '4 trails, signal, store',
+          label: 'Entity CRUD',
+          value: 'entity',
+        },
+        { hint: 'Just the structure', label: 'Empty', value: 'empty' },
+      ],
+    },
+    surfaces: {
+      options: [
+        { hint: 'Commander-based command line', label: 'CLI', value: 'cli' },
+        {
+          hint: 'Model Context Protocol for agents',
+          label: 'MCP',
+          value: 'mcp',
+        },
+        {
+          hint: 'Hono-powered HTTP endpoints',
+          label: 'HTTP',
+          value: 'http',
+        },
+      ],
+    },
+  },
+  implementation: async (input: CreateInput, ctx) => {
     if (!hasCompose(ctx)) {
       return Result.err(new InternalError('create trail requires ctx.compose'));
     }
@@ -256,40 +290,6 @@ export const createTrail = trail('create', {
     };
 
     return finishCreate();
-  },
-  composes: ['create.scaffold', 'add.surface', 'add.verify'],
-  description: 'Create a new Trails project',
-  fields: {
-    starter: {
-      options: [
-        {
-          hint: 'One trail, one example',
-          label: 'Hello world',
-          value: 'hello',
-        },
-        {
-          hint: '4 trails, signal, store',
-          label: 'Entity CRUD',
-          value: 'entity',
-        },
-        { hint: 'Just the structure', label: 'Empty', value: 'empty' },
-      ],
-    },
-    surfaces: {
-      options: [
-        { hint: 'Commander-based command line', label: 'CLI', value: 'cli' },
-        {
-          hint: 'Model Context Protocol for agents',
-          label: 'MCP',
-          value: 'mcp',
-        },
-        {
-          hint: 'Hono-powered HTTP endpoints',
-          label: 'HTTP',
-          value: 'http',
-        },
-      ],
-    },
   },
   input: z.object({
     dir: z.string().optional().describe('Parent directory'),

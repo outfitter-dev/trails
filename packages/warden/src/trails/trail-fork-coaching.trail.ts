@@ -25,7 +25,7 @@ export const usersManage = trail("users.manage", {
   input: z.object({
     action: z.enum(["create", "delete"]),
   }),
-  blaze: async (input) => {
+  implementation: async (input) => {
     switch (input.action) {
       case "create":
         return Result.ok({ created: true });

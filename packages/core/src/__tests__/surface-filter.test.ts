@@ -13,47 +13,47 @@ const orderPlaced = signal('order.placed', {
 });
 
 const publicTrail = trail('entity.show', {
-  blaze: () => Result.ok({ ok: true }),
+  implementation: () => Result.ok({ ok: true }),
   input: z.object({}),
   intent: 'read',
 });
 
 const nestedTrail = trail('entity.admin.audit', {
-  blaze: () => Result.ok({ ok: true }),
+  implementation: () => Result.ok({ ok: true }),
   input: z.object({}),
   intent: 'destroy',
 });
 
 const internalTrail = trail('entity.secret.rotate', {
-  blaze: () => Result.ok({ ok: true }),
+  implementation: () => Result.ok({ ok: true }),
   input: z.object({}),
   visibility: 'internal',
 });
 
 const legacyInternalTrail = trail('entity.legacy.rotate', {
-  blaze: () => Result.ok({ ok: true }),
+  implementation: () => Result.ok({ ok: true }),
   input: z.object({}),
   meta: { internal: true },
 });
 
 const bareEntityTrail = trail('entity', {
-  blaze: () => Result.ok({ ok: true }),
+  implementation: () => Result.ok({ ok: true }),
   input: z.object({}),
 });
 
 const otherTrail = trail('other', {
-  blaze: () => Result.ok({ ok: true }),
+  implementation: () => Result.ok({ ok: true }),
   input: z.object({}),
 });
 
 const consumerTrail = trail('notify.email', {
-  blaze: () => Result.ok({ ok: true }),
+  implementation: () => Result.ok({ ok: true }),
   input: z.object({}),
   on: [orderPlaced],
 });
 
 const webhookConsumerTrail = trail('payment.receive', {
-  blaze: () => Result.ok({ ok: true }),
+  implementation: () => Result.ok({ ok: true }),
   input: z.object({ paymentId: z.string() }),
   on: [
     webhook('webhook.payment.received', {

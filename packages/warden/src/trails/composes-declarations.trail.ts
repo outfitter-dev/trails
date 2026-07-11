@@ -9,7 +9,7 @@ export const composesDeclarationsTrail = wrapRule({
         filePath: 'clean.ts',
         sourceCode: `trail("entity.onboard", {
   composes: ["entity.create"],
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const result = await ctx.compose("entity.create", input);
     return Result.ok(result);
   }

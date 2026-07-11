@@ -10,7 +10,7 @@ export const firesDeclarationsTrail = wrapRule({
         sourceCode: `const entityCreated = signal("entity.created", { payload: z.object({}) });
 trail("entity.onboard", {
   fires: [entityCreated],
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     await ctx.fire(entityCreated, { id: input.id });
     return Result.ok({});
   }

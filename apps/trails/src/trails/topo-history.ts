@@ -20,14 +20,6 @@ const topoHistoryTrailInputSchema = z.object({
 type TopoHistoryTrailInput = z.output<typeof topoHistoryTrailInputSchema>;
 
 export const topoHistoryTrail = trail('topo.history', {
-  blaze: (input: TopoHistoryTrailInput, ctx) => {
-    const rootDirResult = resolveTrailRootDir(input.rootDir, ctx.cwd);
-    if (rootDirResult.isErr()) {
-      return rootDirResult;
-    }
-    const rootDir = rootDirResult.value;
-    return Result.ok(listTopoHistory({ limit: input.limit, rootDir }));
-  },
   description: 'List saved topo snapshots, including pinned references',
   examples: [
     {
@@ -35,6 +27,14 @@ export const topoHistoryTrail = trail('topo.history', {
       name: 'Show topo history',
     },
   ],
+  implementation: (input: TopoHistoryTrailInput, ctx) => {
+    const rootDirResult = resolveTrailRootDir(input.rootDir, ctx.cwd);
+    if (rootDirResult.isErr()) {
+      return rootDirResult;
+    }
+    const rootDir = rootDirResult.value;
+    return Result.ok(listTopoHistory({ limit: input.limit, rootDir }));
+  },
   input: topoHistoryTrailInputSchema,
   intent: 'read',
   output: z.object({

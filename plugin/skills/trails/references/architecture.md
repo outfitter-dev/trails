@@ -30,7 +30,7 @@ Core defines ports. Everything on the edges is an adapter.
 - The trail is the product, not the surface. Surfaces are projections.
 - Drift is structurally harder than alignment — one schema, one Result type, one error taxonomy.
 - Surfaces are peers. CLI, MCP, HTTP, and library are shipped adapters. Adding a surface is a `surface()` call.
-- Blazes are surface-agnostic authored implementations: input in, `Result` out.
+- Implementations are surface-agnostic authored implementations: input in, `Result` out.
 - The contract is machine-readable at runtime via root `trails.lock`, Wayfinder, and compatibility survey/guide commands.
 
 ## Information Architecture
@@ -44,7 +44,7 @@ Every piece of information has a clear ownership model.
 | Input/output Zod schemas | The shape of your domain |
 | Intent and flags: `intent`, `idempotent` | Behavioral assertions |
 | Examples (input + expected result or error) | Concrete specifications |
-| The `blaze` | Authored implementation that establishes how the trail runs |
+| The `implementation` | Authored behavior that establishes how the trail runs |
 | Trail ID (`entity.show`) | Your domain hierarchy |
 
 ### Projected — mechanically derived, guaranteed correct
@@ -63,9 +63,9 @@ Every piece of information has a clear ownership model.
 
 | Declaration | Constrains |
 |------------|-----------|
-| `output: z.object({...})` | Blaze return type must match |
+| `output: z.object({...})` | Implementation return type must match |
 | `Result<T, Error>` | Cannot throw — must return `Result.ok()` or `Result.err()` |
-| `TrailContext` interface | Blaze receives only framework-provided fields |
+| `TrailContext` interface | Implementation receives only framework-provided fields |
 | `composes: [...]` on trail | Warden verifies `ctx.compose()` calls match |
 | `resources: [...]` on trail | Warden verifies `resource.from(ctx)` / `ctx.resource()` calls match |
 
@@ -73,7 +73,7 @@ Every piece of information has a clear ownership model.
 
 | Inferred | From |
 |----------|------|
-| Which trails a trail composes | `ctx.compose()` calls in the blaze function |
+| Which trails a trail composes | `ctx.compose()` calls in the implementation function |
 | Error types returned | `Result.err(new XError(...))` patterns |
 | TopoGraph entries and lock hash | All established trails, resources, signals, contours, examples, and derived fields, canonicalized into root `trails.lock` |
 
@@ -150,15 +150,15 @@ Wayfinder is the first agent navigation move over those saved artifacts. For gra
 
 ### Shared Execution Pipeline
 
-All surfaces delegate to `executeTrail(trail, rawInput, options)` from `@ontrails/core`. It is the single runtime path for validation, context setup, layers, and the blazed trail:
+All surfaces delegate to `executeTrail(trail, rawInput, options)` from `@ontrails/core`. It is the single runtime path for validation, context setup, layers, and the trail implementation:
 
 ```text
 executeTrail(trail, rawInput, options)
   -> Zod validates input against trail's schema  -> Result.err(ValidationError) on failure
   -> TrailContext created (requestId, logger, abortSignal)
   -> Resources resolved (create singletons or retrieve cached)
-  -> Layers composed around the blaze (layers can access resources)
-  -> blaze(validatedInput, ctx) entered
+  -> Layers composed around the implementation (layers can access resources)
+  -> implementation(validatedInput, ctx) entered
   -> Result returned (never throws)
 ```
 
@@ -204,7 +204,7 @@ run(myTopo, 'entity.show', { name: 'Alpha' })
   -> Result returned
 ```
 
-The blazed trail is identical across all paths. Only the edges change.
+The implemented trail contract is identical across all paths. Only the edges change.
 
 ## Error Taxonomy
 

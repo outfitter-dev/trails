@@ -108,7 +108,7 @@ describe('tracing.query', () => {
 
     test('returns empty records when state has no store', async () => {
       const ctx = buildCtx(noStoreState);
-      const result = await tracingQuery.blaze({}, ctx);
+      const result = await tracingQuery.implementation({}, ctx);
       expect(result.isOk()).toBe(true);
       const value = result.unwrap();
       expect(value.count).toBe(0);
@@ -132,7 +132,7 @@ describe('tracing.query', () => {
       );
 
       const ctx = buildCtx(stateWithStore(testStore.store));
-      const result = await tracingQuery.blaze({}, ctx);
+      const result = await tracingQuery.implementation({}, ctx);
       const value = result.unwrap();
 
       expect(value.count).toBe(1);
@@ -170,7 +170,7 @@ describe('tracing.query', () => {
       );
 
       const ctx = buildCtx(stateWithStore(testStore.store));
-      const result = await tracingQuery.blaze({}, ctx);
+      const result = await tracingQuery.implementation({}, ctx);
       const value = result.unwrap();
 
       expect(value.count).toBe(1);
@@ -207,7 +207,7 @@ describe('tracing.query', () => {
       );
 
       const ctx = buildCtx(stateWithStore(testStore.store));
-      const result = await tracingQuery.blaze({}, ctx);
+      const result = await tracingQuery.implementation({}, ctx);
       const value = result.unwrap();
 
       expect(value.count).toBe(1);
@@ -232,7 +232,10 @@ describe('tracing.query', () => {
       testStore.store.write(makeRecord({ id: 'b', trailId: 'user.list' }));
 
       const ctx = buildCtx(stateWithStore(testStore.store));
-      const result = await tracingQuery.blaze({ trailId: 'user.create' }, ctx);
+      const result = await tracingQuery.implementation(
+        { trailId: 'user.create' },
+        ctx
+      );
       const value = result.unwrap();
 
       expect(value.count).toBe(1);
@@ -246,7 +249,10 @@ describe('tracing.query', () => {
       testStore.store.write(makeRecord({ id: 'err-1', status: 'err' }));
 
       const ctx = buildCtx(stateWithStore(testStore.store));
-      const result = await tracingQuery.blaze({ errorsOnly: true }, ctx);
+      const result = await tracingQuery.implementation(
+        { errorsOnly: true },
+        ctx
+      );
       const value = result.unwrap();
 
       expect(value.count).toBe(1);

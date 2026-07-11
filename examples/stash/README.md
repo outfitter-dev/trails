@@ -7,7 +7,7 @@ Self-hosted GitHub-Gists-style snippet service — the showcase suite's delibera
 | Capability | Where it appears |
 | --- | --- |
 | Trailheads | [src/app.ts](src/app.ts) authors the `snippets`, `history`, `search`, and `account` group bindings as a `surfaceOverlay({ mcp })` entry in `trailsOverlays` — the lock-visible default. [src/mcp-options.ts](src/mcp-options.ts) keeps the call-site map as the richer-metadata override-in-context; member trail identity is preserved per ADR-0050 ([`__tests__/trailheads.test.ts`](__tests__/trailheads.test.ts)) |
-| Permits | [src/resources/auth.ts](src/resources/auth.ts) resolves bearer tokens against the `tokens` table on every surface; owner checks live in the blazes ([src/trails/snippet.ts](src/trails/snippet.ts)) |
+| Permits | [src/resources/auth.ts](src/resources/auth.ts) resolves bearer tokens against the `tokens` table on every surface; owner checks live in the implementations ([src/trails/snippet.ts](src/trails/snippet.ts)) |
 | Secret snippets without existence leaks | [src/trails/shared.ts](src/trails/shared.ts) — one visibility choke point; proven per surface in [`__tests__/permit-parity.test.ts`](__tests__/permit-parity.test.ts) |
 | Domain revisions | [src/store.ts](src/store.ts) + [src/trails/revision.ts](src/trails/revision.ts) — immutable revision rows; immutability proven in [`__tests__/revisions.test.ts`](__tests__/revisions.test.ts) |
 | Compose | [src/trails/fork.ts](src/trails/fork.ts) — `snippet.fork` composes `snippet.get`, `revision.get`, and `snippet.create`, carrying lineage through the composition-only `composeInput` field |

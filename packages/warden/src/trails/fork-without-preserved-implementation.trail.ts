@@ -1,7 +1,7 @@
-import { forkWithoutPreservedBlaze } from '../rules/trail-versioning-source.js';
+import { forkWithoutPreservedImplementation } from '../rules/trail-versioning-source.js';
 import { wrapRule } from './wrap-rule.js';
 
-export const forkWithoutPreservedBlazeTrail = wrapRule({
+export const forkWithoutPreservedImplementationTrail = wrapRule({
   examples: [
     {
       expected: { diagnostics: [] },
@@ -20,12 +20,12 @@ trail('versioned.clean', {
       },
     },
   },
-  blaze: async () => Result.ok({ message: 'ok' }),
+  implementation: async () => Result.ok({ message: 'ok' }),
 });
 `,
       },
       name: 'Revision entries use transpose',
     },
   ],
-  rule: forkWithoutPreservedBlaze,
+  rule: forkWithoutPreservedImplementation,
 });

@@ -9,7 +9,18 @@ import {
 import { resolveTrailRootDir } from './root-dir.js';
 
 export const topoUnpinTrail = trail('topo.unpin', {
-  blaze: (input, ctx) => {
+  description: 'Remove a named topo pin',
+  examples: [
+    {
+      input: {
+        ...createIsolatedExampleInput('topo-unpin'),
+        dryRun: true,
+        name: 'before-auth-refactor',
+      },
+      name: 'Preview pin removal',
+    },
+  ],
+  implementation: (input, ctx) => {
     if (input.dryRun !== true && input.yes !== true) {
       return Result.err(
         new ValidationError(
@@ -31,17 +42,6 @@ export const topoUnpinTrail = trail('topo.unpin', {
       })
     );
   },
-  description: 'Remove a named topo pin',
-  examples: [
-    {
-      input: {
-        ...createIsolatedExampleInput('topo-unpin'),
-        dryRun: true,
-        name: 'before-auth-refactor',
-      },
-      name: 'Preview pin removal',
-    },
-  ],
   input: z.object({
     dryRun: z
       .boolean()

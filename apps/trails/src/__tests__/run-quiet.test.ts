@@ -13,15 +13,15 @@ import { INNER_TRAIL_RESULT_KIND } from '../trails/run.js';
 // ---------------------------------------------------------------------------
 
 const stubRunTrail = trail('run', {
-  blaze: () => Result.ok(),
   description: 'stub run trail for quiet tests',
+  implementation: () => Result.ok(),
   input: z.object({ id: z.string() }),
   output: z.unknown(),
 });
 
 const stubOtherTrail = trail('other', {
-  blaze: () => Result.ok(),
   description: 'stub non-run trail',
+  implementation: () => Result.ok(),
   input: z.object({}),
   output: z.unknown(),
 });

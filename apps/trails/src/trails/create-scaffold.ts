@@ -164,7 +164,7 @@ bun run guide
 ## Lexicon
 
 - \`trail\`, not action or handler
-- \`blaze\`, not handler or impl
+- \`implementation\`, not handler or impl
 - \`topo\`, not registry or collection
 - \`compose\`, not follow
 - \`surface\`, not transport
@@ -173,9 +173,9 @@ bun run guide
 
 ## Trail Rules
 
-- Blazes return \`Result\`; never throw from trail logic.
+- Implementations return \`Result\`; never throw from trail logic.
 - Use \`Result.ok()\` and \`Result.err()\`; branch with \`isOk()\`, \`isErr()\`, or \`match()\`.
-- Keep trail logic surface-agnostic. Do not import CLI, MCP, HTTP, request, or response types into blazes.
+- Keep trail logic surface-agnostic. Do not import CLI, MCP, HTTP, request, or response types into implementations.
 - Public MCP or HTTP trails declare an \`output\` schema.
 - Trails that compose other trails declare \`composes: [...]\` and invoke them with \`ctx.compose(...)\`.
 - Trails that use infrastructure declare \`resources: [...]\` and access them through the resource helpers.
@@ -236,7 +236,7 @@ const generateHelloTrail = (): string =>
 import { z } from 'zod';
 
 export const hello = trail('hello', {
-  blaze: (input) => {
+  implementation: (input) => {
     const name = input.name ?? 'world';
     return Result.ok({ message: \`Hello, \${name}!\` });
   },
@@ -277,7 +277,7 @@ const entitySchema = z.object({
 });
 
 export const show = trail('entity.show', {
-  blaze: (input, ctx) => {
+  implementation: (input, ctx) => {
     const store = entityStore.from(ctx);
     const entity = store.get(input.id);
     if (!entity) {
@@ -300,7 +300,7 @@ export const show = trail('entity.show', {
 });
 
 export const add = trail('entity.add', {
-  blaze: (input, ctx) => {
+  implementation: (input, ctx) => {
     const store = entityStore.from(ctx);
     const entity = { id: randomUUID(), name: input.name };
     store.add(entity);
@@ -322,7 +322,7 @@ export const add = trail('entity.add', {
 });
 
 export const list = trail('entity.list', {
-  blaze: (_input, ctx) => {
+  implementation: (_input, ctx) => {
     const store = entityStore.from(ctx);
     return Result.ok({ entities: store.list() });
   },
@@ -343,7 +343,7 @@ export const list = trail('entity.list', {
 });
 
 export const remove = trail('entity.delete', {
-  blaze: (input, ctx) => {
+  implementation: (input, ctx) => {
     const store = entityStore.from(ctx);
     const deleted = store.delete(input.id);
     return Result.ok({ deleted, id: input.id });
@@ -372,7 +372,7 @@ const generateSearchTrail = (): string =>
 import { z } from 'zod';
 
 export const search = trail('search', {
-  blaze: () => {
+  implementation: () => {
     return Result.ok({ results: [] });
   },
   description: 'Search entities by query',
@@ -396,7 +396,7 @@ const generateOnboardTrail = (): string =>
 import { z } from 'zod';
 
 export const onboard = trail('entity.onboard', {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const result = await ctx.compose('entity.add', { name: input.name });
     if (result.isErr()) {
       return result;
@@ -569,7 +569,8 @@ const collectScaffoldOperations = (
 // ---------------------------------------------------------------------------
 
 export const createScaffold = trail('create.scaffold', {
-  blaze: async (input) => {
+  description: 'Scaffold a new Trails project',
+  implementation: async (input) => {
     const projectDirResult = resolveProjectDir(input.dir ?? '.', input.name);
     if (projectDirResult.isErr()) {
       return projectDirResult;
@@ -606,7 +607,6 @@ export const createScaffold = trail('create.scaffold', {
       plannedOperations: plannedOperations.value,
     } satisfies ScaffoldResult);
   },
-  description: 'Scaffold a new Trails project',
   input: z.object({
     dir: z.string().optional().describe('Parent directory'),
     dryRun: z

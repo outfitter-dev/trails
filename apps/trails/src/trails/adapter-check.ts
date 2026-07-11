@@ -208,7 +208,14 @@ export const formatAdapterCheckReport = (
 };
 
 export const adapterCheckTrail = trail('adapter.check', {
-  blaze: (input, ctx) => {
+  description: 'Check adapter authoring readiness',
+  examples: [
+    {
+      input: {},
+      name: 'Check adapters in the current workspace',
+    },
+  ],
+  implementation: (input, ctx) => {
     const rootDirResult = resolveTrailRootDir(input.rootDir, ctx.cwd);
     if (rootDirResult.isErr()) {
       return rootDirResult;
@@ -230,13 +237,6 @@ export const adapterCheckTrail = trail('adapter.check', {
       targets: [...report.targets],
     });
   },
-  description: 'Check adapter authoring readiness',
-  examples: [
-    {
-      input: {},
-      name: 'Check adapters in the current workspace',
-    },
-  ],
   input: adapterCheckInputSchema,
   intent: 'read',
   output: adapterCheckOutputSchema,

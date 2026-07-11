@@ -118,7 +118,16 @@ const SUBCOMMAND_HANDLERS: Readonly<Record<string, CompletionHandler>> = {
 };
 
 export const completionsCompleteTrail = trail('completions.__complete', {
-  blaze: async (input, ctx) => {
+  description:
+    'Internal: emit dynamic completion suggestions for the current partial argv. Invoked by the static shell completion script at tab-press time.',
+  examples: [
+    {
+      description: 'Empty argv yields no suggestions',
+      input: { args: [] },
+      name: 'Empty args',
+    },
+  ],
+  implementation: async (input, ctx) => {
     const rootDirResult = resolveTrailRootDir(input.rootDir, ctx.cwd);
     if (rootDirResult.isErr()) {
       return rootDirResult;
@@ -138,15 +147,6 @@ export const completionsCompleteTrail = trail('completions.__complete', {
     const suggestions = await handler({ args: input.args, rootDir });
     return Result.ok(renderSuggestions(suggestions));
   },
-  description:
-    'Internal: emit dynamic completion suggestions for the current partial argv. Invoked by the static shell completion script at tab-press time.',
-  examples: [
-    {
-      description: 'Empty argv yields no suggestions',
-      input: { args: [] },
-      name: 'Empty args',
-    },
-  ],
   input: z.object({
     args: z
       .array(z.string())

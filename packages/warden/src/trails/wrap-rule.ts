@@ -145,7 +145,12 @@ export function wrapRule(
   if (isProjectAware) {
     const projectAwareRule = rule as ProjectAwareWardenRule;
     return trail(`warden.rule.${rule.name}`, {
-      blaze: (input: ProjectAwareRuleInput) => {
+      description: rule.description,
+      examples: examples as Trail<
+        ProjectAwareRuleInput,
+        RuleOutput
+      >['examples'],
+      implementation: (input: ProjectAwareRuleInput) => {
         const diagnostics = projectAwareRule.checkWithContext(
           input.sourceCode,
           input.filePath,
@@ -153,11 +158,6 @@ export function wrapRule(
         );
         return Result.ok({ diagnostics: [...diagnostics] });
       },
-      description: rule.description,
-      examples: examples as Trail<
-        ProjectAwareRuleInput,
-        RuleOutput
-      >['examples'],
       input: projectAwareRuleInput,
       intent: 'read',
       meta: buildRuleMeta(rule),
@@ -166,12 +166,12 @@ export function wrapRule(
   }
 
   return trail(`warden.rule.${rule.name}`, {
-    blaze: (input: RuleInput) => {
+    description: rule.description,
+    examples: examples as Trail<RuleInput, RuleOutput>['examples'],
+    implementation: (input: RuleInput) => {
       const diagnostics = rule.check(input.sourceCode, input.filePath);
       return Result.ok({ diagnostics: [...diagnostics] });
     },
-    description: rule.description,
-    examples: examples as Trail<RuleInput, RuleOutput>['examples'],
     input: ruleInput,
     intent: 'read',
     meta: buildRuleMeta(rule),
@@ -198,7 +198,9 @@ export const wrapTopoRule = (
 ): Trail<TopoAwareRuleInput, RuleOutput> => {
   const { rule, examples } = options;
   return trail(`warden.rule.${rule.name}`, {
-    blaze: async (input: TopoAwareRuleInput) => {
+    description: rule.description,
+    examples,
+    implementation: async (input: TopoAwareRuleInput) => {
       try {
         const diagnostics = await rule.checkTopo(input.topo, {
           graph: input.graph,
@@ -214,8 +216,6 @@ export const wrapTopoRule = (
         );
       }
     },
-    description: rule.description,
-    examples,
     input: topoAwareRuleInput,
     intent: 'read',
     meta: buildRuleMeta(rule),

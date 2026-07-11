@@ -22,14 +22,14 @@ import { createWorkersHandler } from '../../workers/index.js';
 const flags = cloudflareKv('flags', { binding: 'FLAGS' });
 
 const ping = trail('ping', {
-  blaze: (input) => Result.ok({ reply: `pong:${input.message}` }),
+  implementation: (input) => Result.ok({ reply: `pong:${input.message}` }),
   input: z.object({ message: z.string() }),
   intent: 'read',
   output: z.object({ reply: z.string() }),
 });
 
 const saveFlag = trail('flag.save', {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     await flags.from(ctx).put(input.key, input.value);
     return Result.ok({ saved: true });
   },
@@ -40,7 +40,7 @@ const saveFlag = trail('flag.save', {
 });
 
 const showFlag = trail('flag.show', {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const value = await flags.from(ctx).get(input.key);
     return Result.ok({ value });
   },
@@ -61,7 +61,7 @@ const deployWebhook = webhook('webhook.deploy.finished', {
 });
 
 const recordDeploy = trail('deploy.record', {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     await flags.from(ctx).put(`deploy/${input.deployId}`, 'finished');
     return Result.ok({ deployId: input.deployId });
   },

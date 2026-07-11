@@ -62,7 +62,7 @@ export const search = trail('docs.search', {
     { name: 'api search', input: { query: 'authentication', section: 'api' } },
     { name: 'limited results', input: { query: 'deploy', section: 'guides', limit: 3 } },
   ],
-  blaze: async (input) => {
+  implementation: async (input) => {
     try {
       const results = await searchIndex(input.query, {
         limit: input.limit,

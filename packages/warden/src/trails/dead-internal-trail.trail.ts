@@ -11,12 +11,12 @@ export const deadInternalTrailTrail = wrapRule({
         knownTrailIds: ['entity.public', 'entity.sync'],
         sourceCode: `trail('entity.public', {
   composes: ['entity.sync'],
-  blaze: async (_input, ctx) => ctx.compose('entity.sync', {}),
+  implementation: async (_input, ctx) => ctx.compose('entity.sync', {}),
 });
 
 trail('entity.sync', {
   visibility: 'internal',
-  blaze: async () => Result.ok({}),
+  implementation: async () => Result.ok({}),
 });`,
       },
       name: 'Internal trails stay clean when another trail composes them',

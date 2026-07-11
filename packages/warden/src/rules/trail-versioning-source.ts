@@ -1,5 +1,5 @@
 import {
-  findBlazeBodies,
+  findImplementationBodies,
   findConfigProperty,
   findTrailDefinitions,
   getNodeArgument,
@@ -28,7 +28,8 @@ import type { AstNode } from './ast.js';
 import type { WardenDiagnostic, WardenRule } from './types.js';
 
 const VERSION_PINNED_COMPOSE = 'version-pinned-compose';
-const FORK_WITHOUT_PRESERVED_BLAZE = 'fork-without-preserved-blaze';
+const FORK_WITHOUT_PRESERVED_IMPLEMENTATION =
+  'fork-without-preserved-implementation';
 const MARKER_SCHEMA_UNSUPPORTED = 'marker-schema-unsupported';
 
 interface SchemaBindingRecord {
@@ -893,8 +894,8 @@ export const versionPinnedCompose: WardenRule = {
     }
 
     const diagnostics: WardenDiagnostic[] = [];
-    for (const blaze of findBlazeBodies(ast)) {
-      walk(blaze, (node) => {
+    for (const implementation of findImplementationBodies(ast)) {
+      walk(implementation, (node) => {
         if (!composeCallHasVersionPin(node)) {
           return;
         }
@@ -918,7 +919,7 @@ export const versionPinnedCompose: WardenRule = {
   severity: 'warn',
 };
 
-export const forkWithoutPreservedBlaze: WardenRule = {
+export const forkWithoutPreservedImplementation: WardenRule = {
   check(sourceCode, filePath) {
     const ast = parse(filePath, sourceCode);
     if (!ast) {
@@ -931,17 +932,20 @@ export const forkWithoutPreservedBlaze: WardenRule = {
         continue;
       }
       for (const entry of versionEntries(definition.config)) {
-        if (hasProperty(entry, 'transpose') || hasProperty(entry, 'blaze')) {
+        if (
+          hasProperty(entry, 'transpose') ||
+          hasProperty(entry, 'implementation')
+        ) {
           continue;
         }
         diagnostics.push(
           diagnostic(
-            FORK_WITHOUT_PRESERVED_BLAZE,
+            FORK_WITHOUT_PRESERVED_IMPLEMENTATION,
             'error',
             filePath,
             sourceCode,
             entry,
-            `Trail "${definition.id}" has a historical version entry without transpose or blaze. Add transpose for a revision entry, or preserve the historical blaze for a fork entry.`
+            `Trail "${definition.id}" has a historical version entry without transpose or implementation. Add transpose for a revision entry, or preserve the historical implementation for a fork entry.`
           )
         );
       }
@@ -949,8 +953,8 @@ export const forkWithoutPreservedBlaze: WardenRule = {
     return diagnostics;
   },
   description:
-    'Require historical fork version entries to preserve a blaze, while revision entries declare transpose.',
-  name: FORK_WITHOUT_PRESERVED_BLAZE,
+    'Require historical fork version entries to preserve an implementation, while revision entries declare transpose.',
+  name: FORK_WITHOUT_PRESERVED_IMPLEMENTATION,
   severity: 'error',
 };
 

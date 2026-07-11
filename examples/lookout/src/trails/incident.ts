@@ -37,28 +37,6 @@ const openIncidentFor = async (
 // ---------------------------------------------------------------------------
 
 export const openIncident = trail('incident.open', {
-  blaze: async (input, ctx) => {
-    const existing = await openIncidentFor(ctx, input.checkId);
-    if (existing) {
-      // Transition dedupe: a failure signal for an already-open incident is
-      // a no-op, never a second incident.
-      return Result.ok({ deduped: true, incident: existing, notified: false });
-    }
-    const incident = await db.from(ctx).incidents.insert({
-      acknowledgedBy: null,
-      checkId: input.checkId,
-      openedAt: input.at,
-      probeCount: 1,
-      resolvedAt: null,
-      status: 'open',
-    });
-    const notify = await ctx.compose(dispatchNotification, {
-      incidentId: incident.id,
-      kind: 'opened',
-      message: `check "${input.checkName}" is down (${input.failureReason ?? 'unknown reason'})`,
-    });
-    return Result.ok({ deduped: false, incident, notified: notify.isOk() });
-  },
   composes: [dispatchNotification],
   description:
     'Open an incident when a check transitions to down; dedupes when one is already open.',
@@ -91,6 +69,28 @@ export const openIncident = trail('incident.open', {
       name: 'Dedupe against an open incident',
     },
   ],
+  implementation: async (input, ctx) => {
+    const existing = await openIncidentFor(ctx, input.checkId);
+    if (existing) {
+      // Transition dedupe: a failure signal for an already-open incident is
+      // a no-op, never a second incident.
+      return Result.ok({ deduped: true, incident: existing, notified: false });
+    }
+    const incident = await db.from(ctx).incidents.insert({
+      acknowledgedBy: null,
+      checkId: input.checkId,
+      openedAt: input.at,
+      probeCount: 1,
+      resolvedAt: null,
+      status: 'open',
+    });
+    const notify = await ctx.compose(dispatchNotification, {
+      incidentId: incident.id,
+      kind: 'opened',
+      message: `check "${input.checkName}" is down (${input.failureReason ?? 'unknown reason'})`,
+    });
+    return Result.ok({ deduped: false, incident, notified: notify.isOk() });
+  },
   input: probeTransitionPayloadSchema,
   intent: 'write',
   on: [probeFailed],
@@ -108,25 +108,6 @@ export const openIncident = trail('incident.open', {
 // ---------------------------------------------------------------------------
 
 export const resolveIncident = trail('incident.resolve', {
-  blaze: async (input, ctx) => {
-    const existing = await openIncidentFor(ctx, input.checkId);
-    if (!existing) {
-      return Result.ok({ incident: null, notified: false, resolved: false });
-    }
-    const incident = await db.from(ctx).incidents.update(existing.id, {
-      resolvedAt: input.at,
-      status: 'resolved',
-    });
-    if (!incident) {
-      return Result.ok({ incident: null, notified: false, resolved: false });
-    }
-    const notify = await ctx.compose(dispatchNotification, {
-      incidentId: incident.id,
-      kind: 'resolved',
-      message: `check "${input.checkName}" recovered`,
-    });
-    return Result.ok({ incident, notified: notify.isOk(), resolved: true });
-  },
   composes: [dispatchNotification],
   description: 'Resolve the open incident when a check transitions back to up.',
   examples: [
@@ -157,6 +138,25 @@ export const resolveIncident = trail('incident.resolve', {
       name: 'Recovery without an incident',
     },
   ],
+  implementation: async (input, ctx) => {
+    const existing = await openIncidentFor(ctx, input.checkId);
+    if (!existing) {
+      return Result.ok({ incident: null, notified: false, resolved: false });
+    }
+    const incident = await db.from(ctx).incidents.update(existing.id, {
+      resolvedAt: input.at,
+      status: 'resolved',
+    });
+    if (!incident) {
+      return Result.ok({ incident: null, notified: false, resolved: false });
+    }
+    const notify = await ctx.compose(dispatchNotification, {
+      incidentId: incident.id,
+      kind: 'resolved',
+      message: `check "${input.checkName}" recovered`,
+    });
+    return Result.ok({ incident, notified: notify.isOk(), resolved: true });
+  },
   input: probeTransitionPayloadSchema,
   intent: 'write',
   on: [probeRecovered],
@@ -174,15 +174,6 @@ export const resolveIncident = trail('incident.resolve', {
 // ---------------------------------------------------------------------------
 
 export const listIncidents = trail('incident.list', {
-  blaze: async (input, ctx) => {
-    const filters =
-      input.status === undefined ? undefined : { status: input.status };
-    const incidents = await db.from(ctx).incidents.list(filters);
-    const sorted = [...incidents].toSorted((a, b) =>
-      b.openedAt.localeCompare(a.openedAt)
-    );
-    return Result.ok({ incidents: sorted, total: sorted.length });
-  },
   description: 'List incidents, newest first.',
   examples: [
     {
@@ -192,6 +183,15 @@ export const listIncidents = trail('incident.list', {
       name: 'List incidents',
     },
   ],
+  implementation: async (input, ctx) => {
+    const filters =
+      input.status === undefined ? undefined : { status: input.status };
+    const incidents = await db.from(ctx).incidents.list(filters);
+    const sorted = [...incidents].toSorted((a, b) =>
+      b.openedAt.localeCompare(a.openedAt)
+    );
+    return Result.ok({ incidents: sorted, total: sorted.length });
+  },
   input: z.object({
     status: z
       .enum(['open', 'acknowledged', 'resolved'])
@@ -208,13 +208,6 @@ export const listIncidents = trail('incident.list', {
 });
 
 export const getIncident = trail('incident.get', {
-  blaze: async (input, ctx) => {
-    const incident = await db.from(ctx).incidents.get(input.id);
-    if (!incident) {
-      return Result.err(new NotFoundError(`Incident "${input.id}" not found`));
-    }
-    return Result.ok(incident);
-  },
   description: 'Show one incident by id.',
   examples: [
     {
@@ -230,6 +223,13 @@ export const getIncident = trail('incident.get', {
       name: 'Get a missing incident',
     },
   ],
+  implementation: async (input, ctx) => {
+    const incident = await db.from(ctx).incidents.get(input.id);
+    if (!incident) {
+      return Result.err(new NotFoundError(`Incident "${input.id}" not found`));
+    }
+    return Result.ok(incident);
+  },
   input: z.object({
     id: z.string().describe('Incident id'),
   }),
@@ -240,7 +240,16 @@ export const getIncident = trail('incident.get', {
 });
 
 export const acknowledgeIncident = trail('incident.acknowledge', {
-  blaze: async (input, ctx) => {
+  description: 'Acknowledge an incident so on-call knows it is being handled.',
+  examples: [
+    {
+      description: 'Acknowledge the seeded demo incident',
+      expectedMatch: { id: 'inc_demo', status: 'acknowledged' },
+      input: { by: 'matt', id: 'inc_demo' },
+      name: 'Acknowledge an incident',
+    },
+  ],
+  implementation: async (input, ctx) => {
     const existing = await db.from(ctx).incidents.get(input.id);
     if (!existing) {
       return Result.err(new NotFoundError(`Incident "${input.id}" not found`));
@@ -255,15 +264,6 @@ export const acknowledgeIncident = trail('incident.acknowledge', {
     }
     return Result.ok(incident);
   },
-  description: 'Acknowledge an incident so on-call knows it is being handled.',
-  examples: [
-    {
-      description: 'Acknowledge the seeded demo incident',
-      expectedMatch: { id: 'inc_demo', status: 'acknowledged' },
-      input: { by: 'matt', id: 'inc_demo' },
-      name: 'Acknowledge an incident',
-    },
-  ],
   input: z.object({
     by: z.string().optional().describe('Who is acknowledging'),
     id: z.string().describe('Incident id'),

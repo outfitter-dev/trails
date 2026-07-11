@@ -40,7 +40,7 @@ Trails has `run()` as a programmatic API. It doesn't have a direct CLI command f
 
 ### `run()` is already the universal pipeline
 
-Every invocation path converges on `run()` which calls `executeTrail()`: validate input, resolve context, compose layers, run the blazed trail, return Result. CLI trailheads call it. MCP trailheads call it. HTTP trailheads call it. Crossings call it. Triggers call it.
+Every invocation path converges on `run()` which calls `executeTrail()`: validate input, resolve context, compose layers, run the trail, return Result. CLI trailheads call it. MCP trailheads call it. HTTP trailheads call it. Crossings call it. Triggers call it.
 
 `trails run` is `run()` wired to stdin/stdout. The infrastructure is already there. The execution semantics are identical to every other invocation path. The trail doesn't know it's being run from `trails run` vs a CLI surface vs an MCP tool call. The pipeline is the pipeline.
 
@@ -456,7 +456,7 @@ trails run booking.confirm '{"slotId": "slot_1"}' --dev-permit
 trails run entity.show '{"name": "Alpha"}' --watch
 ```
 
-Reruns the trail whenever the trail's source file, schema definitions, or resource implementations change. The developer edits the blaze, saves, and sees the new result immediately. Same hot-reload loop as `bun --watch` but scoped to one trail's execution.
+Reruns the trail whenever the trail's source file, schema definitions, or resource implementations change. The developer edits the implementation, saves, and sees the new result immediately. Same hot-reload loop as `bun --watch` but scoped to one trail's execution.
 
 Combined with `trails run example`:
 
@@ -464,9 +464,9 @@ Combined with `trails run example`:
 trails run example entity.show "Found" --watch
 ```
 
-Edit the blaze, save, the example reruns, match/mismatch updates instantly. This is TDD without leaving the terminal. The example is the assertion. The watch loop is the runner.
+Edit the implementation, save, the example reruns, match/mismatch updates instantly. This is TDD without leaving the terminal. The example is the assertion. The watch loop is the runner.
 
-The feedback loop is straightforward: write an example that captures the behavior you want, watch the trail under that example, and edit the blaze until the comparison envelope flips from `MISMATCH` to `OK`. The example envelope is rebuilt per rerun, so each save shows the current diff between expected and actual without any state carrying over from the previous attempt. When the example matches, the watch loop is quiet — no diff block, just the compact match summary. When it does not, the `input / expected / actual / diff` block is the next step the developer needs to take.
+The feedback loop is straightforward: write an example that captures the behavior you want, watch the trail under that example, and edit the implementation until the comparison envelope flips from `MISMATCH` to `OK`. The example envelope is rebuilt per rerun, so each save shows the current diff between expected and actual without any state carrying over from the previous attempt. When the example matches, the watch loop is quiet — no diff block, just the compact match summary. When it does not, the `input / expected / actual / diff` block is the next step the developer needs to take.
 
 Because the example is structured data on the trail, not a separate test file, the assertion travels with the trail definition. A trail that ships with examples ships with its own test suite. `trails run example <id> <exampleName> --watch` is the inner loop that drives each example to green; `bun test` is the outer loop that asserts every example on every trail across the workspace. The two surfaces share the same source of truth, so an example tightened in the terminal during development is the same example exercised in CI.
 
@@ -476,7 +476,7 @@ Combined with `--trace`:
 trails run booking.confirm '{"slotId": "slot_1"}' --watch --trace
 ```
 
-Edit, save, and the full execution tree re-renders. The tracing shows whether a change in the blaze affected timing, crossing behavior, or event emission. The developer sees the ripple effects of every edit.
+Edit, save, and the full execution tree re-renders. The tracing shows whether a change in the implementation affected timing, crossing behavior, or event emission. The developer sees the ripple effects of every edit.
 
 ### Dry run
 
@@ -486,7 +486,7 @@ For trails with `intent: 'write'` or `intent: 'destroy'`:
 trails run booking.cancel '{"bookingId": "bk_123"}' --dry-run
 ```
 
-Passes `ctx.dryRun = true` to the blaze. The same flag the CLI trailhead adds automatically for destroy trails. The blaze decides what dry-run means (preview the changes, validate without committing, etc.).
+Passes `ctx.dryRun = true` to the implementation. The same flag the CLI trailhead adds automatically for destroy trails. The implementation decides what dry-run means (preview the changes, validate without committing, etc.).
 
 ### Topo resolution
 
@@ -584,7 +584,7 @@ Trail IDs are completed from the topo. Example names are completed from the trai
 ### Positive
 
 - **Zero-ceremony invocation.** Run any trail from the terminal with one command. No trailhead setup, no bin entry, no server. The topo is the interface.
-- **Examples become directly executable.** `trails run example` bridges exploration and testing. The developer runs a specific example, sees actual vs expected, adjusts the blaze. TDD in the terminal.
+- **Examples become directly executable.** `trails run example` bridges exploration and testing. The developer runs a specific example, sees actual vs expected, adjusts the implementation. TDD in the terminal.
 - **Unix-native composition.** JSON in, JSON out, exit codes, pipes. `trails run` composes with `jq`, `xargs`, other `trails run` invocations, and any JSONL-aware tool. Trails become first-class Unix citizens.
 - **Full pipeline execution.** Validation, layers, resources, events, triggers, tracing. Everything fires. The developer sees production-equivalent behavior without production infrastructure (via mock resources).
 - **Watch mode tightens the loop.** Edit, save, see the result. Combined with `trails run example`, it's TDD without a test framework. The example is the assertion. The file system is the trigger.

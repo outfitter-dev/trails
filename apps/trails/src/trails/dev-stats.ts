@@ -9,7 +9,14 @@ import { resolveTrailRootDir } from './root-dir.js';
 import { createIsolatedExampleInput } from './topo-support.js';
 
 export const devStatsTrail = trail('dev.stats', {
-  blaze: (input, ctx) => {
+  description: 'Show local Trails workspace state and retention',
+  examples: [
+    {
+      input: { rootDir: createIsolatedExampleInput('dev-stats').rootDir },
+      name: 'Show local dev state',
+    },
+  ],
+  implementation: (input, ctx) => {
     const rootDirResult = resolveTrailRootDir(input.rootDir, ctx.cwd);
     if (rootDirResult.isErr()) {
       return rootDirResult;
@@ -24,13 +31,6 @@ export const devStatsTrail = trail('dev.stats', {
       })
     );
   },
-  description: 'Show local Trails workspace state and retention',
-  examples: [
-    {
-      input: { rootDir: createIsolatedExampleInput('dev-stats').rootDir },
-      name: 'Show local dev state',
-    },
-  ],
   input: z.object({
     rootDir: z.string().optional().describe('Workspace root directory'),
     snapshots: z

@@ -6,7 +6,7 @@ created: 2026-06-03
 updated: 2026-06-03
 owners: ['[galligan](https://github.com/galligan)']
 depends_on: [0, 6, 20, 24, 48]
-description: "Records proposed doctrine for deriving caller-side and blaze-side TypeScript input projections from one authored trail input schema without adding public callInput/blazeInput fields."
+description: "Records proposed doctrine for deriving caller-side and implementation-side TypeScript input projections from one authored trail input schema without adding public callInput/implementationInput fields."
 references:
   - docs/adr/0000-core-premise.md
   - docs/adr/0006-shared-execution-pipeline.md
@@ -30,23 +30,23 @@ This doctrine is proposed, not accepted. It records the Lewis/Clark input-shape 
 
 Trails already promises one input schema per trail. That schema feeds validation, surface derivation, examples, composition, guide output, survey output, and the resolved graph. Almanac adoption exposed a TypeScript pressure point inside that promise: a schema with defaults naturally has two TypeScript views.
 
-Callers may omit defaulted fields. The blaze receives the parsed value after validation/defaulting and can rely on those fields being present. Splitting the public authoring API into `callInput` and `blazeInput` would make that difference explicit, but it would also create a second authored contract and a new place for drift.
+Callers may omit defaulted fields. The implementation receives the parsed value after validation/defaulting and can rely on those fields being present. Splitting the public authoring API into `callInput` and `implementationInput` would make that difference explicit, but it would also create a second authored contract and a new place for drift.
 
-The framework should absorb that distinction internally. The author writes one schema. Trails reads it as caller-side input at public boundaries and as materialized input at the blaze boundary.
+The framework should absorb that distinction internally. The author writes one schema. Trails reads it as caller-side input at public boundaries and as materialized input at the implementation boundary.
 
 ## Decision
 
 ### One authored input schema, two internal reads
 
-> A trail has one authored input schema. The framework reads it two ways — what a caller may send, and what the blaze receives — but only the first is ever public. We do not author the split; we derive it. Contract schemas validate and default; they never transform.
+> A trail has one authored input schema. The framework reads it two ways — what a caller may send, and what the implementation receives — but only the first is ever public. We do not author the split; we derive it. Contract schemas validate and default; they never transform.
 
-Internally, the framework may use `z.input<S>` and `z.output<S>` to derive the caller-side and blaze-side TypeScript projections from the authored schema. Those are implementation projections, not public ontology. Guide, survey, and resolved graph output continue to expose one input contract.
+Internally, the framework may use `z.input<S>` and `z.output<S>` to derive the caller-side and implementation-side TypeScript projections from the authored schema. Those are implementation projections, not public ontology. Guide, survey, and resolved graph output continue to expose one input contract.
 
 ### Validation matrix
 
 | Schema feature | Proposed treatment |
 | --- | --- |
-| Optionality and defaults | Allowed. Defaults are the sanctioned source of visible caller/blaze divergence: callers may omit defaulted fields; blazes receive materialized values. |
+| Optionality and defaults | Allowed. Defaults are the sanctioned source of visible caller/implementation divergence: callers may omit defaulted fields; implementations receive materialized values. |
 | Standard type-preserving refinements | Allowed and queryable where Zod and Trails projection support them. Examples include common string, number, array, and enum constraints. |
 | Type-preserving custom `.refine()` | Allowed but opaque. Prefer standard refinements when the contract should be queryable. |
 | Type-changing `.transform()` | Deferred to a future adapter/codec ADR. Contract schemas validate/default only in v1. |
@@ -67,19 +67,19 @@ Public surfaces expose caller-side input:
 - `ctx.compose()` accepts caller-side input for the target trail, plus any explicitly declared composition-only fields.
 - `examples[].input` is caller-side input and must not be forced into post-default or materialized shape.
 
-Blazes receive materialized input after validation/defaults. That is a type system guarantee and an execution-pipeline guarantee, not a second public contract.
+Implementations receive materialized input after validation/defaults. That is a type system guarantee and an execution-pipeline guarantee, not a second public contract.
 
-Historical version transpose stays materialized-to-materialized: a historical revision validates the historical caller input, materializes it through that historical schema, transposes into the current materialized input shape, runs the current blazed trail, then transposes current materialized output into the historical output shape.
+Historical version transpose stays materialized-to-materialized: a historical revision validates the historical caller input, materializes it through that historical schema, transposes into the current materialized input shape, runs the current implementation, then transposes current materialized output into the historical output shape.
 
 ### Resolved graph and guidance
 
 Guide, survey, and resolved graph output continue to expose one input contract with field metadata such as `type`, `optional`, `default`, and `describe`. They must not expose separate public `accepted` or `materialized` contracts.
 
-If tooling needs to explain defaults, it should say that fields with defaults may be omitted by callers and are present when the blaze runs. It should not ask authors or consumers to learn a second input-contract vocabulary.
+If tooling needs to explain defaults, it should say that fields with defaults may be omitted by callers and are present when the implementation runs. It should not ask authors or consumers to learn a second input-contract vocabulary.
 
 ### Non-goals
 
-- Do not introduce public `callInput`, `blazeInput`, `accepted`, or `materialized` authoring fields.
+- Do not introduce public `callInput`, `implementationInput`, `accepted`, or `materialized` authoring fields.
 - Do not create the future adapter/codec API here.
 - Do not ban defaults.
 - Do not make examples post-default/materialized input.
@@ -93,8 +93,8 @@ This draft becomes acceptable only if TRL-884 proves that schema-owned typing ca
 
 ### Positive
 
-- Trail authors keep one public input schema and do not author a `callInput`/`blazeInput` split.
-- Defaults become an explicit, sanctioned way for caller-side and blaze-side TypeScript shapes to differ without creating contract drift.
+- Trail authors keep one public input schema and do not author a `callInput`/`implementationInput` split.
+- Defaults become an explicit, sanctioned way for caller-side and implementation-side TypeScript shapes to differ without creating contract drift.
 - Examples stay caller-facing and continue to serve documentation, testing, and agent guidance.
 - Surface and graph projections stay aligned with the Tenets: one input contract, many reads.
 

@@ -23,7 +23,7 @@ const search = trail('search', {
       expected: [],
     },
   ],
-  blaze: searchImpl,
+  implementation: searchImplementation,
 });
 ```
 
@@ -43,8 +43,8 @@ Those examples serve six consumers at once:
 Red -> Green -> Refactor, with examples as the starting point:
 
 1. **Define the trail** with input schema, output schema, and examples
-2. **Run tests** -- examples fail because the trail is not blazed yet (red)
-3. **Blaze the trail** until examples pass (green)
+2. **Run tests** -- examples fail because the implementation does not satisfy them yet (red)
+3. **Implement the trail** until examples pass (green)
 4. **Refactor** while tests stay green
 5. **Add edge-case tests** with `testTrail()` for scenarios that should not appear in agent-facing examples
 
@@ -119,7 +119,7 @@ describe("search") {
 
 Trails with no examples produce no tests -- they simply do not participate in example-driven testing.
 
-The blaze is always awaited at runtime, so `testExamples()` behaves the same for sync-authored and async-authored trails.
+The implementation is always awaited at runtime, so `testExamples()` behaves the same for sync-authored and async-authored trails.
 
 ## Progressive Assertion
 
@@ -236,7 +236,7 @@ testTrail(onboardTrail, [
 
 ## `testContracts(graph)`
 
-Catches output-schema drift. Runs every example through the blazed trail, then validates the `Result.ok` value against the trail's `output` schema. Reports detailed Zod errors on mismatch.
+Catches output-schema drift. Runs every example through the trail, then validates the `Result.ok` value against the trail's `output` schema. Reports detailed Zod errors on mismatch.
 
 ```typescript
 import { testContracts } from '@ontrails/testing';
@@ -249,7 +249,7 @@ TypeScript checks types at compile time, but a trail could return `{ name: "foo"
 
 ## `testDetours(graph)`
 
-Structural validation. Verifies every detour declares a real `on` error constructor, a callable `recover`, and no later detour is shadowed by an earlier broader `on:` type. No blaze execution needed.
+Structural validation. Verifies every detour declares a real `on` error constructor, a callable `recover`, and no later detour is shadowed by an earlier broader `on:` type. No implementation execution needed.
 
 ```typescript
 import { testDetours } from '@ontrails/testing';

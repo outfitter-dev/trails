@@ -54,7 +54,7 @@ export const app = topo('draft-test', { draftPrepare, exportTrail });
 import { z } from 'zod';
 
 export const draftPrepare = trail('_draft.entity.prepare', {
-  blaze: async () => Result.ok({ ready: true }),
+  implementation: async () => Result.ok({ ready: true }),
   input: z.object({}),
   output: z.object({ ready: z.boolean() }),
 });
@@ -70,7 +70,7 @@ import { z } from 'zod';
 export const dependencies = [draftPrepare];
 
 export const exportTrail = trail('entity.export', {
-  blaze: async () => Result.ok({ exported: true }),
+  implementation: async () => Result.ok({ exported: true }),
   composes: ['_draft.entity.prepare'],
   input: z.object({}),
   output: z.object({ exported: z.boolean() }),
@@ -104,7 +104,7 @@ describe('draft.promote', () => {
       writeDraftPromoteFixture(dir);
 
       const result = expectOk(
-        await draftPromoteTrail.blaze(
+        await draftPromoteTrail.implementation(
           {
             fromId: '_draft.entity.prepare',
             renameFiles: true,
@@ -144,7 +144,7 @@ describe('draft.promote', () => {
       const originalApp = readFileSync(join(dir, 'src', 'app.ts'), 'utf8');
 
       const dryRun = expectOk(
-        await draftPromoteTrail.blaze(
+        await draftPromoteTrail.implementation(
           {
             dryRun: true,
             fromId: '_draft.entity.prepare',
@@ -185,7 +185,7 @@ describe('draft.promote', () => {
       );
 
       const applied = expectOk(
-        await draftPromoteTrail.blaze(
+        await draftPromoteTrail.implementation(
           {
             fromId: '_draft.entity.prepare',
             renameFiles: true,
@@ -212,7 +212,7 @@ describe('draft.promote', () => {
       writeDraftPromoteFixture(dir);
 
       const result = expectOk(
-        await draftPromoteTrail.blaze(
+        await draftPromoteTrail.implementation(
           {
             fromId: '_draft.entity.prepare',
             renameFiles: true,
@@ -244,7 +244,7 @@ describe('draft.promote', () => {
       writeDraftPromoteFixture(dir);
 
       const result = expectOk(
-        await draftPromoteTrail.blaze(
+        await draftPromoteTrail.implementation(
           {
             fromId: '_draft.entity.prepare',
             renameFiles: true,
@@ -275,7 +275,7 @@ describe('draft.promote', () => {
       writeDraftPromoteFixture(dir);
 
       const result = expectOk(
-        await draftPromoteTrail.blaze(
+        await draftPromoteTrail.implementation(
           {
             fromId: '_draft.entity.prepare',
             renameFiles: true,
@@ -301,7 +301,7 @@ describe('draft.promote', () => {
 
   test('returns ValidationError when rootDir does not exist', async () => {
     const error = expectErr(
-      await draftPromoteTrail.blaze(
+      await draftPromoteTrail.implementation(
         {
           fromId: '_draft.entity.prepare',
           renameFiles: true,
@@ -324,7 +324,7 @@ describe('draft.promote', () => {
       chmodSync(join(dir, 'src', 'export.ts'), 0o000);
 
       const error = expectErr(
-        await draftPromoteTrail.blaze(
+        await draftPromoteTrail.implementation(
           {
             fromId: '_draft.entity.prepare',
             renameFiles: true,

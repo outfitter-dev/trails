@@ -206,7 +206,7 @@ export {
   errorMappingCompletenessTrail,
   exampleValidTrail,
   firesDeclarationsTrail,
-  forkWithoutPreservedBlazeTrail,
+  forkWithoutPreservedImplementationTrail,
   governedSymbolResidueTrail,
   implementationReturnsResultTrail,
   incompleteAccessorForStandardOpTrail,

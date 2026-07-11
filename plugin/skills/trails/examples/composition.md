@@ -49,7 +49,7 @@ export const get = trail('customer.get', {
   intent: 'read',
   resources: [db],
   examples: [{ name: 'existing', input: { id: 'cust_123' } }],
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const conn = db.from(ctx);
     const customer = await conn.customers.findById(input.id);
     if (!customer) return Result.err(new NotFoundError('Customer not found'));
@@ -66,7 +66,7 @@ export const check = trail('inventory.check', {
   intent: 'read',
   resources: [db],
   examples: [{ name: 'in stock', input: { items: [{ sku: 'TRAIL-001', qty: 1 }] } }],
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const conn = db.from(ctx);
     const result = await conn.warehouse.check(input.items);
     return Result.ok(result);
@@ -91,7 +91,7 @@ export const create = trail('order.create', {
   examples: [
     { name: 'happy path', input: { customerId: 'cust_123', items: [{ sku: 'TRAIL-001', qty: 1 }] } },
   ],
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const customer = await ctx.compose(customerGet, { id: input.customerId });
     if (customer.isErr()) return customer;
 

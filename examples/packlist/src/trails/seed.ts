@@ -51,7 +51,16 @@ const demoTrips = [
 ] as const;
 
 export const seedDemo = trail('seed.demo', {
-  blaze: async (_input, ctx) => {
+  description: 'Load the demo gear, pack, and trip (idempotent)',
+  examples: [
+    {
+      description: 'Seeding reports how many rows were written',
+      expected: { gear: 4, packs: 1, trips: 1 },
+      input: {},
+      name: 'Seed the demo data',
+    },
+  ],
+  implementation: async (_input, ctx) => {
     const connection = db.from(ctx);
     for (const gear of demoGear) {
       await connection.gear.upsert(gear);
@@ -71,15 +80,6 @@ export const seedDemo = trail('seed.demo', {
       trips: demoTrips.length,
     });
   },
-  description: 'Load the demo gear, pack, and trip (idempotent)',
-  examples: [
-    {
-      description: 'Seeding reports how many rows were written',
-      expected: { gear: 4, packs: 1, trips: 1 },
-      input: {},
-      name: 'Seed the demo data',
-    },
-  ],
   input: z.object({}),
   intent: 'write',
   output: z.object({

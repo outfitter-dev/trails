@@ -66,7 +66,7 @@ export const show = trail('project.show', {
   resources: [db],
   description: 'Get a project by ID',
   examples: [{ name: 'existing', input: { id: '550e8400-e29b-41d4-a716-446655440000' } }],
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const conn = db.from(ctx);
     const project = await conn.projects.findById(input.id);
     if (!project) return Result.err(new NotFoundError('Project not found'));
@@ -80,7 +80,7 @@ export const destroy = trail('project.destroy', {
   intent: 'destroy',
   resources: [db],
   description: 'Delete a project',
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     if (!ctx.permit) return Result.err(new PermissionError('Admin required'));
     const conn = db.from(ctx);
     const deleted = await conn.projects.delete(input.id);

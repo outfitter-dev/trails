@@ -14,7 +14,7 @@ export const noThrowInDetourRecoverTrail = wrapRule({
       recover: async () => Result.ok({ recovered: true }),
     },
   ],
-  blaze: () => Result.err(new ConflictError("conflict")),
+  implementation: () => Result.err(new ConflictError("conflict")),
 })`,
       },
       name: 'Detour recover without throw',

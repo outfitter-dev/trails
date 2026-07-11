@@ -12,7 +12,7 @@ describe('createMcpHarness', () => {
       create: () => Result.ok({ source: 'factory' }),
     });
     const readResource = trail('resource.read', {
-      blaze: (_input, ctx) =>
+      implementation: (_input, ctx) =>
         Result.ok({ source: dbResource.from(ctx).source as string }),
       input: z.object({}),
       output: z.object({ source: z.string() }),
@@ -40,7 +40,7 @@ describe('createMcpHarness', () => {
     // permit, and sessionId from options.extra, so permit-guarded tools
     // always failed with "No permit provided" even for valid tokens.
     const protectedTrail = trail('permit.guarded', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({}),
       output: z.object({ ok: z.boolean() }),
       permit: { scopes: ['thing:read'] },
@@ -80,7 +80,7 @@ describe('createMcpHarness', () => {
 
   test('forwards an explicit permit from options.extra', async () => {
     const protectedTrail = trail('permit.direct', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({}),
       output: z.object({ ok: z.boolean() }),
       permit: { scopes: ['thing:read'] },

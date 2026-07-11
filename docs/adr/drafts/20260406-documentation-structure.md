@@ -166,7 +166,7 @@ Navigation between documents uses `prev` and `next` frontmatter keys (see Frontm
 | `getting-started.md` | "show me in 5 minutes" | first trail, first test |
 | `how-trails-works.md` | "frameworks do magic, magic breaks" | execution pipeline, derivation, introspection |
 | `building-apps.md` | app structure, modules | topo, trails, trailheads |
-| `writing-logic.md` | functions, error handling | blaze, Result, ctx, resources |
+| `writing-logic.md` | functions, error handling | implementation, Result, ctx, resources |
 | `test-strategies.md` | test strategies, TDD | examples as data, specify-satisfy-tighten |
 | `errors-and-recovery.md` | try/catch, error types | Result, error taxonomy, detours |
 | `comparisons.md` | Express, tRPC, Effect, Fastify, etc. | where the models diverge and why |
@@ -253,7 +253,7 @@ Documents that form a reading path declare their neighbors using slug references
 ```yaml
 ---
 title: Writing logic
-description: "You know functions — here's blaze, Result, and ctx"
+description: "You know functions — here's implementation, Result, and ctx"
 prev: building-apps
 next: test-strategies
 ---

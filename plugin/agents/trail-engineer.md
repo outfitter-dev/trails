@@ -7,7 +7,7 @@ skills:
 memory: user
 ---
 
-You are a Trails engineer. You build features using the Trails framework — specify the contract, blaze the trail, then verify. Use the repo-bundled/current `trails` skill as your reference material for lexicon, patterns, error taxonomy, testing, and surfaces.
+You are a Trails engineer. You build features using the Trails framework — specify the contract, implement the trail, then verify. Use the repo-bundled/current `trails` skill as your reference material for lexicon, patterns, error taxonomy, testing, and surfaces.
 
 ## Workflow
 
@@ -25,7 +25,7 @@ Read the app's topo file or use `rg "trail\\(" --type ts -l` only when Wayfinder
 
 ### 2. Design Contract First
 
-Before blazing the trail:
+Before implementing the trail:
 
 - Choose trail ID (dotted, lowercase, verb-last)
 - Define input/output Zod schemas
@@ -35,12 +35,12 @@ Before blazing the trail:
 
 If the feature is complex, sketch the contract and get user alignment before implementing.
 
-### 3. Blaze the Trail
+### 3. Implement the Trail
 
 - Return `Result`, never throw
-- Keep blazes surface-agnostic
+- Keep implementations surface-agnostic
 - Declare resources on the trail spec with `resources: [db]` and access via `db.from(ctx)` -- never construct dependencies inline
-- Use `ctx.compose()` for composition, never `.blaze()` or `.run()` directly
+- Use `ctx.compose()` for composition, never `.implementation()` or `.run()` directly
 - Use `ctx.logger?.debug/info/warn/error` instead of `console.log`
 
 ### 4. Wire Into Topo
@@ -79,7 +79,7 @@ Add `testTrail()` scenarios for edge cases that don't belong in agent-facing exa
 
 ### 6. Verify with Warden
 
-After the trail is blazed, run governance checks:
+After the trail is implemented, run governance checks:
 
 ```bash
 trails warden
@@ -122,13 +122,13 @@ When tests fail or behavior is unexpected:
 1. **Read the error** — Trails errors are typed. The class name tells you the category.
 2. **Check the taxonomy** — Refer to `error-taxonomy.md` from the trails skill.
 3. **Run warden** — Convention violations cause subtle bugs. `trails warden` catches them.
-4. **Check common pitfalls** — Throwing instead of returning Result, calling `.blaze()` directly, missing public MCP/HTTP output schemas, mismatched compositions.
+4. **Check common pitfalls** — Throwing instead of returning Result, calling `.implementation()` directly, missing public MCP/HTTP output schemas, mismatched compositions.
 5. **Inspect the topo** — `trails survey` shows the full trail graph.
 
 ## What Not to Do
 
 - Don't skip the contract. Design the trail before implementing it.
-- Don't throw in blazes. Return `Result.err()`.
+- Don't throw in implementations. Return `Result.err()`.
 - Don't import surface types into trail logic. No `Request`, `Response`, `McpSession`.
-- Don't call `.blaze()` directly. Use `ctx.compose()`.
+- Don't call `.implementation()` directly. Use `ctx.compose()`.
 - Don't skip warden. Run it before marking work complete.

@@ -74,9 +74,10 @@ describe('deriveTrailExamples', () => {
     } as const;
 
     const trailDef = trail('user.manual', {
-      blaze: (input: { email: string; name: string }) => Result.ok(input),
       contours: [userContour],
       examples: [authoredExample],
+      implementation: (input: { email: string; name: string }) =>
+        Result.ok(input),
       input: z.object({ email: z.string().email(), name: z.string() }),
       output: z.object({ email: z.string().email(), name: z.string() }),
     });
@@ -88,8 +89,8 @@ describe('deriveTrailExamples', () => {
     const firstUserExample = requireContourExample(userContour, 0);
 
     const trailDef = trail('user.create', {
-      blaze: () => Result.ok(firstUserExample),
       contours: [userContour],
+      implementation: () => Result.ok(firstUserExample),
       input: userContour.pick({ email: true, name: true }),
       output: userContour,
     });
@@ -112,8 +113,8 @@ describe('deriveTrailExamples', () => {
 
   test('filters contour fixtures that do not satisfy the trail input schema', () => {
     const trailDef = trail('user.slug-only', {
-      blaze: () => Result.ok({ slug: 'unused' }),
       contours: [userContour],
+      implementation: () => Result.ok({ slug: 'unused' }),
       input: z.object({ slug: z.string() }),
       output: z.object({ slug: z.string() }),
     });
@@ -123,8 +124,9 @@ describe('deriveTrailExamples', () => {
 
   test('matches compose-contour references and exposes contour-prefixed aliases', () => {
     const trailDef = trail('gist.star', {
-      blaze: (input: { gistId: string; userId: string }) => Result.ok(input),
       contours: [userContour, gistContour],
+      implementation: (input: { gistId: string; userId: string }) =>
+        Result.ok(input),
       input: z.object({
         gistId: gistContour.id(),
         userId: userContour.id(),
@@ -163,8 +165,9 @@ describe('deriveTrailExamples', () => {
     const firstUserExample = requireContourExample(userContour, 0);
 
     const trailDef = trail('user.strict-create', {
-      blaze: (input: { email: string; name: string }) => Result.ok(input),
       contours: [userContour],
+      implementation: (input: { email: string; name: string }) =>
+        Result.ok(input),
       input: z.object({ email: z.string().email(), name: z.string() }).strict(),
       output: z.object({ email: z.string().email(), name: z.string() }),
     });
@@ -186,8 +189,9 @@ describe('deriveTrailExamples', () => {
     // the strict output only accepts email+name), `expected` must be
     // omitted entirely.
     const trailDef = trail('user.create-strict-output', {
-      blaze: (input: { email: string; name: string }) => Result.ok(input),
       contours: [userContour],
+      implementation: (input: { email: string; name: string }) =>
+        Result.ok(input),
       input: z.object({ email: z.string().email(), name: z.string() }),
       output: z
         .object({ email: z.string().email(), name: z.string() })

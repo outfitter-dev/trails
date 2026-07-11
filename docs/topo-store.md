@@ -115,7 +115,7 @@ trails diff --forces
 
 ### `trails revise`
 
-Scaffold trail version lifecycle entries from source. The default shape creates a revision entry for the current version and bumps the trail to the next version. Use `--as fork` when the historical version needs its own preserved blaze.
+Scaffold trail version lifecycle entries from source. The default shape creates a revision entry for the current version and bumps the trail to the next version. Use `--as fork` when the historical version needs its own preserved implementation.
 
 ```bash
 trails revise billing.quote
@@ -177,7 +177,7 @@ import { topoStore } from '@ontrails/topographer';
 trail('warden.check-outputs', {
   resources: [topoStore],
   intent: 'read',
-  blaze: async (_input, ctx) => {
+  implementation: async (_input, ctx) => {
     const store = topoStore.from(ctx);
     const writeTrails = store.trails.list({ intent: 'write' });
     const missing = writeTrails.filter(t => !t.hasOutput);

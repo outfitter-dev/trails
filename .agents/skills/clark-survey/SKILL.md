@@ -48,8 +48,8 @@ Check for: factories without `create*`, derivations without `derive*`, test help
 
 Look for code smells that indicate architectural drift:
 
-- **Surface types in blazes:** imports of `Request`, `Response`, `McpSession` in trail files
-- **Direct throws:** `throw` statements in blaze code (should be `Result.err()`)
+- **Surface types in implementations:** imports of `Request`, `Response`, `McpSession` in trail files
+- **Direct throws:** `throw` statements in implementation code (should be `Result.err()`)
 - **Console usage:** `console.log`, `console.error` in non-surface code
 - **Direct `.run()` calls:** should be `ctx.compose()`
 

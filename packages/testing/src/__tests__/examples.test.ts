@@ -22,8 +22,6 @@ import { runExample, testExamples } from '../examples.js';
 // ---------------------------------------------------------------------------
 
 const greetTrail = trail('greet', {
-  blaze: (input: { name: string }) =>
-    Result.ok({ greeting: `Hello, ${input.name}` }),
   description: 'Greet someone',
   examples: [
     {
@@ -32,13 +30,13 @@ const greetTrail = trail('greet', {
       name: 'Greet Alice',
     },
   ],
+  implementation: (input: { name: string }) =>
+    Result.ok({ greeting: `Hello, ${input.name}` }),
   input: z.object({ name: z.string() }),
   output: z.object({ greeting: z.string() }),
 });
 
 const searchTrail = trail('search', {
-  blaze: (input: { query: string }) =>
-    Result.ok({ results: [`result for ${input.query}`] }),
   description: 'Search for things',
   examples: [
     {
@@ -46,17 +44,13 @@ const searchTrail = trail('search', {
       name: 'Schema-only search',
     },
   ],
+  implementation: (input: { query: string }) =>
+    Result.ok({ results: [`result for ${input.query}`] }),
   input: z.object({ query: z.string() }),
   output: z.object({ results: z.array(z.string()) }),
 });
 
 const entityTrail = trail('entity.show', {
-  blaze: (input: { name: string }) => {
-    if (input.name === 'missing') {
-      return Result.err(new NotFoundError('Entity not found'));
-    }
-    return Result.ok({ id: 1, name: input.name });
-  },
   description: 'Show entity',
   examples: [
     {
@@ -70,27 +64,22 @@ const entityTrail = trail('entity.show', {
       name: 'Entity not found returns NotFoundError',
     },
   ],
+  implementation: (input: { name: string }) => {
+    if (input.name === 'missing') {
+      return Result.err(new NotFoundError('Entity not found'));
+    }
+    return Result.ok({ id: 1, name: input.name });
+  },
   input: z.object({ name: z.string() }),
   output: z.object({ id: z.number(), name: z.string() }),
 });
 
 const noExamplesTrail = trail('noexamples', {
-  blaze: (input: { x: number }) => Result.ok(input.x * 2),
+  implementation: (input: { x: number }) => Result.ok(input.x * 2),
   input: z.object({ x: z.number() }),
 });
 
 const taxonomyErrorTrail = trail('taxonomy.errors', {
-  blaze: (input: { type: 'derivation' | 'retry' }) => {
-    if (input.type === 'derivation') {
-      return Result.err(new DerivationError('could not derive projection'));
-    }
-    return Result.err(
-      new RetryExhaustedError(new ConflictError('version mismatch'), {
-        attempts: 3,
-        detour: 'ConflictError',
-      })
-    );
-  },
   examples: [
     {
       error: 'DerivationError',
@@ -103,6 +92,17 @@ const taxonomyErrorTrail = trail('taxonomy.errors', {
       name: 'Exhausted detour returns RetryExhaustedError',
     },
   ],
+  implementation: (input: { type: 'derivation' | 'retry' }) => {
+    if (input.type === 'derivation') {
+      return Result.err(new DerivationError('could not derive projection'));
+    }
+    return Result.err(
+      new RetryExhaustedError(new ConflictError('version mismatch'), {
+        attempts: 3,
+        detour: 'ConflictError',
+      })
+    );
+  },
   input: z.object({ type: z.enum(['derivation', 'retry']) }),
 });
 
@@ -112,8 +112,6 @@ const mockDbResource = resource('db.mock.examples', {
 });
 
 const mockResourceTrail = trail('resource.mocked', {
-  blaze: (_input, ctx) =>
-    Result.ok({ source: mockDbResource.from(ctx).source }),
   description: 'Trail that reads from a mocked resource',
   examples: [
     {
@@ -122,14 +120,14 @@ const mockResourceTrail = trail('resource.mocked', {
       name: 'Uses auto-resolved resource mock',
     },
   ],
+  implementation: (_input, ctx) =>
+    Result.ok({ source: mockDbResource.from(ctx).source }),
   input: z.object({}),
   output: z.object({ source: z.string() }),
   resources: [mockDbResource],
 });
 
 const explicitOverrideTrail = trail('resource.override', {
-  blaze: (_input, ctx) =>
-    Result.ok({ source: mockDbResource.from(ctx).source }),
   description: 'Trail whose resource mock can be overridden explicitly',
   examples: [
     {
@@ -138,13 +136,14 @@ const explicitOverrideTrail = trail('resource.override', {
       name: 'Explicit resource override wins over mock factory',
     },
   ],
+  implementation: (_input, ctx) =>
+    Result.ok({ source: mockDbResource.from(ctx).source }),
   input: z.object({}),
   output: z.object({ source: z.string() }),
   resources: [mockDbResource],
 });
 
 const transformedInputTrail = trail('example.transformed', {
-  blaze: (input: { value: number }) => Result.ok({ value: input.value }),
   description: 'Trail whose input schema transforms once',
   examples: [
     {
@@ -153,6 +152,8 @@ const transformedInputTrail = trail('example.transformed', {
       name: 'Raw example input is only transformed once',
     },
   ],
+  implementation: (input: { value: number }) =>
+    Result.ok({ value: input.value }),
   input: z
     .object({ value: z.string() })
     .transform(({ value }) => ({ value: Number(value) + 1 })),
@@ -160,8 +161,6 @@ const transformedInputTrail = trail('example.transformed', {
 });
 
 const ctxOverrideTrail = trail('resource.ctx-override', {
-  blaze: (_input, ctx) =>
-    Result.ok({ source: mockDbResource.from(ctx).source }),
   description: 'Trail whose resource mock can be overridden by ctx.extensions',
   examples: [
     {
@@ -170,6 +169,8 @@ const ctxOverrideTrail = trail('resource.ctx-override', {
       name: 'Context extensions beat auto-resolved mock resources',
     },
   ],
+  implementation: (_input, ctx) =>
+    Result.ok({ source: mockDbResource.from(ctx).source }),
   input: z.object({}),
   output: z.object({ source: z.string() }),
   resources: [mockDbResource],
@@ -181,8 +182,6 @@ const undeclaredDbResource = resource('db.undeclared.examples', {
 });
 
 const undeclaredResourceTrail = trail('resource.undeclared.examples', {
-  blaze: (_input, ctx) =>
-    Result.ok({ source: undeclaredDbResource.from(ctx).source }),
   description: 'Trail that uses a resource without declaring it',
   examples: [
     {
@@ -191,6 +190,8 @@ const undeclaredResourceTrail = trail('resource.undeclared.examples', {
       name: 'Undeclared resources stay unavailable during example execution',
     },
   ],
+  implementation: (_input, ctx) =>
+    Result.ok({ source: undeclaredDbResource.from(ctx).source }),
   input: z.object({}),
   output: z.object({ source: z.string() }),
 });
@@ -200,16 +201,25 @@ const composeDbResource = resource('db.mock.examples.composes', {
 });
 
 const composeLeafTrail = trail('resource.composes.leaf', {
-  blaze: (_input, ctx) =>
-    Result.ok({ childSource: composeDbResource.from(ctx).source }),
   description: 'Leaf trail that resolves a resource inside a compose chain',
+  implementation: (_input, ctx) =>
+    Result.ok({ childSource: composeDbResource.from(ctx).source }),
   input: z.object({}),
   output: z.object({ childSource: z.string() }),
   resources: [composeDbResource],
 });
 
 const composeRootTrail = trail('resource.composes.root', {
-  blaze: async (_input, ctx) => {
+  composes: ['resource.composes.leaf'],
+  description: 'Root trail that composes a child trail using resources',
+  examples: [
+    {
+      expected: { childSource: 'mock', rootSource: 'mock' },
+      input: {},
+      name: 'Propagates resource mocks through compose execution',
+    },
+  ],
+  implementation: async (_input, ctx) => {
     if (!ctx.compose) {
       return Result.err(new Error('compose not available'));
     }
@@ -225,15 +235,6 @@ const composeRootTrail = trail('resource.composes.root', {
       rootSource: composeDbResource.from(ctx).source,
     });
   },
-  composes: ['resource.composes.leaf'],
-  description: 'Root trail that composes a child trail using resources',
-  examples: [
-    {
-      expected: { childSource: 'mock', rootSource: 'mock' },
-      input: {},
-      name: 'Propagates resource mocks through compose execution',
-    },
-  ],
   input: z.object({}),
   output: z.object({ childSource: z.string(), rootSource: z.string() }),
   resources: [composeDbResource],
@@ -244,22 +245,32 @@ const composeRootTrail = trail('resource.composes.root', {
 // ---------------------------------------------------------------------------
 
 const addTrail = trail('entity.add', {
-  blaze: (input: { name: string }) => Result.ok({ id: '1', name: input.name }),
   description: 'Add an entity',
+  implementation: (input: { name: string }) =>
+    Result.ok({ id: '1', name: input.name }),
   input: z.object({ name: z.string() }),
   output: z.object({ id: z.string(), name: z.string() }),
 });
 
 const relateTrail = trail('entity.relate', {
-  blaze: (input: { from: string; to: string }) =>
-    Result.ok({ from: input.from, to: input.to }),
   description: 'Relate entities',
+  implementation: (input: { from: string; to: string }) =>
+    Result.ok({ from: input.from, to: input.to }),
   input: z.object({ from: z.string(), to: z.string() }),
   output: z.object({ from: z.string(), to: z.string() }),
 });
 
 const onboardTrail = trail('entity.onboard', {
-  blaze: async (input: { name: string }, ctx) => {
+  composes: ['entity.add', 'entity.relate'],
+  description: 'Onboard a new entity',
+  examples: [
+    {
+      expected: { id: '1', name: 'Alpha' },
+      input: { name: 'Alpha' },
+      name: 'Onboard Alpha',
+    },
+  ],
+  implementation: async (input: { name: string }, ctx) => {
     if (!ctx.compose) {
       return Result.err(new Error('compose not available'));
     }
@@ -276,15 +287,6 @@ const onboardTrail = trail('entity.onboard', {
     }
     return Result.ok({ id: '1', name: input.name });
   },
-  composes: ['entity.add', 'entity.relate'],
-  description: 'Onboard a new entity',
-  examples: [
-    {
-      expected: { id: '1', name: 'Alpha' },
-      input: { name: 'Alpha' },
-      name: 'Onboard Alpha',
-    },
-  ],
   input: z.object({ name: z.string() }),
   output: z.object({ id: z.string(), name: z.string() }),
 });
@@ -298,14 +300,6 @@ const profileUpdated = signal('profile.updated', {
 });
 
 const profileUpdateTrail = trail('profile.update', {
-  blaze: async (input: { displayName: string; id: string }, ctx) => {
-    await ctx.fire?.(profileUpdated, {
-      displayName: input.displayName,
-      id: input.id,
-      revision: 2,
-    });
-    return Result.ok({ ok: true });
-  },
   examples: [
     {
       expected: { ok: true },
@@ -320,6 +314,14 @@ const profileUpdateTrail = trail('profile.update', {
     },
   ],
   fires: [profileUpdated],
+  implementation: async (input: { displayName: string; id: string }, ctx) => {
+    await ctx.fire?.(profileUpdated, {
+      displayName: input.displayName,
+      id: input.id,
+      revision: 2,
+    });
+    return Result.ok({ ok: true });
+  },
   input: z.object({ displayName: z.string(), id: z.string() }),
   output: z.object({ ok: z.boolean() }),
 });
@@ -490,14 +492,13 @@ describe('testExamples resource mocks through compose', () => {
   );
 });
 
-const versionExampleCurrentBlaze = mock((input: { name: string }) =>
+const versionExampleCurrentImplementation = mock((input: { name: string }) =>
   Result.ok({ message: `current:${input.name}` })
 );
-const versionExampleForkBlaze = mock((input: { code: string }) =>
+const versionExampleForkImplementation = mock((input: { code: string }) =>
   Result.ok({ message: `fork:${input.code}` })
 );
 const versionedExampleTrail = trail('version.examples', {
-  blaze: (input: { name: string }) => versionExampleCurrentBlaze(input),
   examples: [
     {
       expected: { message: 'current:Ada' },
@@ -505,6 +506,8 @@ const versionedExampleTrail = trail('version.examples', {
       name: 'Current example',
     },
   ],
+  implementation: (input: { name: string }) =>
+    versionExampleCurrentImplementation(input),
   input: z.object({ name: z.string() }),
   output: z.object({ message: z.string() }),
   version: 5,
@@ -527,7 +530,6 @@ const versionedExampleTrail = trail('version.examples', {
       },
     },
     2: {
-      blaze: (input: { code: string }) => versionExampleForkBlaze(input),
       examples: [
         {
           expected: { message: 'fork:beta' },
@@ -535,6 +537,8 @@ const versionedExampleTrail = trail('version.examples', {
           name: 'Deprecated fork example',
         },
       ],
+      implementation: (input: { code: string }) =>
+        versionExampleForkImplementation(input),
       input: z.object({ code: z.string() }),
       output: z.object({ message: z.string() }),
       status: { note: 'Use the current version.', state: 'deprecated' },
@@ -563,16 +567,17 @@ describe('testExamples runs current plus live version-entry examples', () => {
   testExamples(topo('version-examples-app', { versionedExampleTrail }));
 
   afterAll(() => {
-    expect(versionExampleCurrentBlaze).toHaveBeenCalledTimes(2);
-    expect(versionExampleForkBlaze).toHaveBeenCalledTimes(1);
+    expect(versionExampleCurrentImplementation).toHaveBeenCalledTimes(2);
+    expect(versionExampleForkImplementation).toHaveBeenCalledTimes(1);
   });
 });
 
-const batchVersionChildBlaze = mock((input: { name: string }) =>
+const batchVersionChildImplementation = mock((input: { name: string }) =>
   Result.ok({ message: `batch:${input.name}` })
 );
 const batchVersionChildTrail = trail('version.examples.batch.child', {
-  blaze: (input: { name: string }) => batchVersionChildBlaze(input),
+  implementation: (input: { name: string }) =>
+    batchVersionChildImplementation(input),
   input: z.object({ name: z.string() }),
   output: z.object({ message: z.string() }),
   version: 2,
@@ -588,7 +593,15 @@ const batchVersionChildTrail = trail('version.examples.batch.child', {
   },
 });
 const batchVersionParentTrail = trail('version.examples.batch.parent', {
-  blaze: async (_input, ctx) => {
+  composes: [batchVersionChildTrail],
+  examples: [
+    {
+      expected: { message: 'batch:Ada' },
+      input: {},
+      name: 'Batch compose resolves inline version reference',
+    },
+  ],
+  implementation: async (_input, ctx) => {
     if (!ctx.compose) {
       return Result.err(new Error('compose not available'));
     }
@@ -603,14 +616,6 @@ const batchVersionParentTrail = trail('version.examples.batch.parent', {
     }
     return Result.ok(child.value as { message: string });
   },
-  composes: [batchVersionChildTrail],
-  examples: [
-    {
-      expected: { message: 'batch:Ada' },
-      input: {},
-      name: 'Batch compose resolves inline version reference',
-    },
-  ],
   input: z.object({}),
   output: z.object({ message: z.string() }),
 });
@@ -625,7 +630,7 @@ describe('testExamples resolves inline version references through batch compose'
   );
 
   afterAll(() => {
-    expect(batchVersionChildBlaze).toHaveBeenCalledTimes(1);
+    expect(batchVersionChildImplementation).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -634,14 +639,17 @@ describe('testExamples resolves inline version references through batch compose'
 // ---------------------------------------------------------------------------
 
 const leafTrail = trail('step.leaf', {
-  blaze: (input: { value: string }) => Result.ok({ leaf: input.value }),
   description: 'Leaf trail in a nested chain',
+  implementation: (input: { value: string }) =>
+    Result.ok({ leaf: input.value }),
   input: z.object({ value: z.string() }),
   output: z.object({ leaf: z.string() }),
 });
 
 const middleTrail = trail('step.middle', {
-  blaze: async (input: { value: string }, ctx) => {
+  composes: ['step.leaf'],
+  description: 'Middle trail that composes the leaf',
+  implementation: async (input: { value: string }, ctx) => {
     if (!ctx.compose) {
       return Result.err(new Error('compose not available'));
     }
@@ -651,14 +659,21 @@ const middleTrail = trail('step.middle', {
     }
     return Result.ok({ middle: leafResult.value.leaf });
   },
-  composes: ['step.leaf'],
-  description: 'Middle trail that composes the leaf',
   input: z.object({ value: z.string() }),
   output: z.object({ middle: z.string() }),
 });
 
 const rootTrail = trail('step.root', {
-  blaze: async (input: { value: string }, ctx) => {
+  composes: ['step.middle'],
+  description: 'Root trail that composes the middle trail',
+  examples: [
+    {
+      expected: { root: 'hello' },
+      input: { value: 'hello' },
+      name: 'Nested compose chain A→B→C',
+    },
+  ],
+  implementation: async (input: { value: string }, ctx) => {
     if (!ctx.compose) {
       return Result.err(new Error('compose not available'));
     }
@@ -671,15 +686,6 @@ const rootTrail = trail('step.root', {
     }
     return Result.ok({ root: midResult.value.middle });
   },
-  composes: ['step.middle'],
-  description: 'Root trail that composes the middle trail',
-  examples: [
-    {
-      expected: { root: 'hello' },
-      input: { value: 'hello' },
-      name: 'Nested compose chain A→B→C',
-    },
-  ],
   input: z.object({ value: z.string() }),
   output: z.object({ root: z.string() }),
 });
@@ -700,7 +706,15 @@ describe('testExamples nested compose chain (A → B → C)', () => {
 // ---------------------------------------------------------------------------
 
 const scopedTrail = trail('scoped.trail', {
-  blaze: (_input, ctx) => {
+  description: 'Trail requiring admin scope',
+  examples: [
+    {
+      expected: { ok: true },
+      input: {},
+      name: 'Runs with auto-minted permit',
+    },
+  ],
+  implementation: (_input, ctx) => {
     // Verify the permit was auto-minted with declared scopes
     const permit = ctx.permit as
       | { id: string; scopes: readonly string[] }
@@ -710,27 +724,12 @@ const scopedTrail = trail('scoped.trail', {
     }
     return Result.ok({ ok: true });
   },
-  description: 'Trail requiring admin scope',
-  examples: [
-    {
-      expected: { ok: true },
-      input: {},
-      name: 'Runs with auto-minted permit',
-    },
-  ],
   input: z.object({}),
   output: z.object({ ok: z.boolean() }),
   permit: { scopes: ['admin'] },
 });
 
 const publicTrail = trail('public.trail', {
-  blaze: (_input, ctx) => {
-    // Public trail should NOT get a permit
-    if (ctx.permit !== undefined) {
-      return Result.err(new Error('Unexpected permit on public trail'));
-    }
-    return Result.ok({ ok: true });
-  },
   description: 'Public trail — no permit needed',
   examples: [
     {
@@ -739,6 +738,13 @@ const publicTrail = trail('public.trail', {
       name: 'Runs without a permit',
     },
   ],
+  implementation: (_input, ctx) => {
+    // Public trail should NOT get a permit
+    if (ctx.permit !== undefined) {
+      return Result.err(new Error('Unexpected permit on public trail'));
+    }
+    return Result.ok({ ok: true });
+  },
   input: z.object({}),
   output: z.object({ ok: z.boolean() }),
   permit: 'public',
@@ -765,8 +771,6 @@ describe('testExamples auto-minting permits', () => {
 
   describe('strictPermits skips auto-minting', () => {
     const strictScopedTrail = trail('strict.scoped', {
-      blaze: (_input, ctx) =>
-        Result.ok({ hasPermit: ctx.permit !== undefined }),
       description: 'Trail that requires an explicit permit under strictPermits',
       examples: [
         {
@@ -775,6 +779,8 @@ describe('testExamples auto-minting permits', () => {
           name: 'Fails without an explicit permit when strictPermits is true',
         },
       ],
+      implementation: (_input, ctx) =>
+        Result.ok({ hasPermit: ctx.permit !== undefined }),
       input: z.object({}),
       output: z.object({ hasPermit: z.boolean() }),
       permit: { scopes: ['admin'] },
@@ -811,14 +817,18 @@ const itemContour = contour(
 );
 
 const helperTrail = trail('derived.helper', {
-  blaze: (input: { id: string }) => Result.ok({ id: input.id, ok: true }),
   description: 'Helper referenced by a conditional compose',
+  implementation: (input: { id: string }) =>
+    Result.ok({ id: input.id, ok: true }),
   input: z.object({ id: z.string() }),
   output: z.object({ id: z.string(), ok: z.boolean() }),
 });
 
 const conditionalComposeTrail = trail('derived.conditional', {
-  blaze: async (input: { id: string; name: string }, ctx) => {
+  composes: ['derived.helper'],
+  contours: [itemContour],
+  description: 'Composition trail with a compose that derived fixtures skip',
+  implementation: async (input: { id: string; name: string }, ctx) => {
     // The conditional compose is never taken for derived fixtures because
     // `shouldCompose` is always false in the synthesized input. This is
     // exactly the case the provenance gate exists to protect: if we
@@ -837,9 +847,6 @@ const conditionalComposeTrail = trail('derived.conditional', {
     }
     return Result.ok({ id: input.id, name: input.name });
   },
-  composes: ['derived.helper'],
-  contours: [itemContour],
-  description: 'Composition trail with a compose that derived fixtures skip',
   input: z.object({ id: z.string(), name: z.string() }),
   output: z.object({ id: z.string(), name: z.string() }),
 });

@@ -27,7 +27,14 @@ const createVersionsOutputSchema = z.object({
 });
 
 export const createVersionsTrail = trail('create.versions', {
-  blaze: async (input, ctx) => {
+  description: 'Sync generated scaffold dependency versions',
+  examples: [
+    {
+      input: { check: true },
+      name: 'Verify generated scaffold versions are current',
+    },
+  ],
+  implementation: async (input, ctx) => {
     const rootDirResult = resolveTrailRootDir(input.rootDir, ctx.cwd);
     if (rootDirResult.isErr()) {
       return rootDirResult;
@@ -48,13 +55,6 @@ export const createVersionsTrail = trail('create.versions', {
       );
     }
   },
-  description: 'Sync generated scaffold dependency versions',
-  examples: [
-    {
-      input: { check: true },
-      name: 'Verify generated scaffold versions are current',
-    },
-  ],
   input: createVersionsInputSchema,
   intent: 'write',
   output: createVersionsOutputSchema,

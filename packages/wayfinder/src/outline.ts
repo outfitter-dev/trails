@@ -858,7 +858,6 @@ const buildOutline = async (
 
 export const wayfindOutlineTrail = trail('wayfind.outline', {
   args: ['file'],
-  blaze: async (input, ctx) => buildOutline(input, ctx.cwd),
   description:
     'Outline one source file and connect source structure to saved Trails graph facts',
   examples: [
@@ -867,6 +866,7 @@ export const wayfindOutlineTrail = trail('wayfind.outline', {
       name: 'Outline a Trails source file',
     },
   ],
+  implementation: async (input, ctx) => buildOutline(input, ctx.cwd),
   input: outlineInputSchema,
   intent: 'read',
   output: outlineOutputSchema,

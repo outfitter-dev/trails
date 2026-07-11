@@ -91,10 +91,6 @@ describe('createMemoryKv', () => {
 const flags = cloudflareKv('flags', { binding: 'FLAGS' });
 
 const saveFlag = trail('flag.save', {
-  blaze: async (input, ctx) => {
-    await flags.from(ctx).put(input.key, input.value);
-    return Result.ok({ saved: true });
-  },
   examples: [
     {
       expected: { saved: true },
@@ -102,6 +98,10 @@ const saveFlag = trail('flag.save', {
       name: 'saves a flag',
     },
   ],
+  implementation: async (input, ctx) => {
+    await flags.from(ctx).put(input.key, input.value);
+    return Result.ok({ saved: true });
+  },
   input: z.object({ key: z.string(), value: z.string() }),
   intent: 'write',
   output: z.object({ saved: z.boolean() }),
@@ -109,10 +109,6 @@ const saveFlag = trail('flag.save', {
 });
 
 const showFlag = trail('flag.show', {
-  blaze: async (input, ctx) => {
-    const value = await flags.from(ctx).get(input.key);
-    return Result.ok({ value });
-  },
   examples: [
     {
       expected: { value: null },
@@ -120,6 +116,10 @@ const showFlag = trail('flag.show', {
       name: 'reads a missing flag as null',
     },
   ],
+  implementation: async (input, ctx) => {
+    const value = await flags.from(ctx).get(input.key);
+    return Result.ok({ value });
+  },
   input: z.object({ key: z.string() }),
   intent: 'read',
   output: z.object({ value: z.string().nullable() }),

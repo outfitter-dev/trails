@@ -75,18 +75,18 @@ export interface TrailExample<I, O> {
 }
 
 // ---------------------------------------------------------------------------
-// Blaze input — merges composeInput when declared
+// Implementation input — merges composeInput when declared
 // ---------------------------------------------------------------------------
 
 /**
- * The input type received by a trail's blaze function.
+ * The input type received by a trail's implementation function.
  *
  * When a trail declares `composeInput`, the runtime merges those fields into
- * the input object before calling blaze. This type makes the compiler aware
+ * the input object before calling implementation. This type makes the compiler aware
  * of the merged shape so developers can access composeInput fields without a
  * cast. Falls back to plain `I` when `CI` is `never` (the default).
  */
-export type BlazeInput<I, CI> = [CI] extends [never] ? I : I & CI;
+export type ImplementationInput<I, CI> = [CI] extends [never] ? I : I & CI;
 
 type TrailRef = string | { readonly id: string };
 
@@ -105,13 +105,18 @@ type SchemaOwnedTrailSpec<
     ComposeSchemaOutput<TComposeInputSchema>,
     C
   >,
-  'blaze' | 'composeInput' | 'detours' | 'examples' | 'input' | 'versions'
+  | 'implementation'
+  | 'composeInput'
+  | 'detours'
+  | 'examples'
+  | 'input'
+  | 'versions'
 > & {
-  /** Zod schema for validating caller input and materializing blaze input. */
+  /** Zod schema for validating caller input and materializing implementation input. */
   readonly input: TInputSchema;
   /** The pure function receives schema-materialized input after validation/defaults. */
-  readonly blaze: Implementation<
-    BlazeInput<
+  readonly implementation: Implementation<
+    ImplementationInput<
       z.output<TInputSchema>,
       ComposeSchemaOutput<TComposeInputSchema>
     >,
@@ -122,7 +127,7 @@ type SchemaOwnedTrailSpec<
   readonly examples?:
     | readonly TrailExample<z.input<TInputSchema>, O>[]
     | undefined;
-  /** Recovery paths see the same materialized input as the blaze. */
+  /** Recovery paths see the same materialized input as the implementation. */
   readonly detours?:
     | readonly Detour<z.output<TInputSchema>, O, TrailsError>[]
     | undefined;
@@ -167,9 +172,9 @@ type LegacyOutputTrailSpec<
   O,
   CI,
   C extends readonly TrailRef[] | undefined,
-> = Omit<TrailSpec<I, O, CI, C>, 'blaze' | 'output'> & {
-  readonly blaze: Implementation<
-    BlazeInput<I, CI>,
+> = Omit<TrailSpec<I, O, CI, C>, 'implementation' | 'output'> & {
+  readonly implementation: Implementation<
+    ImplementationInput<I, CI>,
     NoInfer<O>,
     ComposeContextFor<C>
   >;
@@ -181,8 +186,12 @@ type LegacyOutputlessTrailSpec<
   O,
   CI,
   C extends readonly TrailRef[] | undefined,
-> = Omit<TrailSpec<I, O, CI, C>, 'blaze' | 'output'> & {
-  readonly blaze: Implementation<BlazeInput<I, CI>, O, ComposeContextFor<C>>;
+> = Omit<TrailSpec<I, O, CI, C>, 'implementation' | 'output'> & {
+  readonly implementation: Implementation<
+    ImplementationInput<I, CI>,
+    O,
+    ComposeContextFor<C>
+  >;
   readonly output?: undefined;
 };
 
@@ -253,7 +262,7 @@ export interface TrailVersionRevisionEntry<
   CurrentInput = unknown,
   CurrentOutput = unknown,
 > extends VersionEntry<VersionContract<VersionInput, VersionOutput>> {
-  readonly blaze?: never;
+  readonly implementation?: never;
   readonly composeInput?: never;
   readonly composes?: never;
   readonly detours?: never;
@@ -274,8 +283,8 @@ export interface TrailVersionForkEntry<
   VersionOutput = unknown,
   ComposeInput = never,
 > extends VersionEntry<VersionContract<VersionInput, VersionOutput>> {
-  readonly blaze: Implementation<
-    BlazeInput<VersionInput, ComposeInput>,
+  readonly implementation: Implementation<
+    ImplementationInput<VersionInput, ComposeInput>,
     VersionOutput
   >;
   readonly composes?: readonly (string | AnyTrail)[] | undefined;
@@ -316,7 +325,7 @@ export type TrailVersions<
 >;
 
 /**
- * Spec for {@link forkVersion}: a fork entry whose blaze signature is owned
+ * Spec for {@link forkVersion}: a fork entry whose implementation signature is owned
  * by the entry's own schemas instead of falling back to `unknown`.
  */
 export interface TrailVersionForkSpec<
@@ -324,9 +333,9 @@ export interface TrailVersionForkSpec<
   TOutputSchema extends z.ZodType,
   TComposeInputSchema extends z.ZodType | undefined = undefined,
 > {
-  /** The historical blaze, typed by this entry's schemas. */
-  readonly blaze: Implementation<
-    BlazeInput<
+  /** The historical implementation, typed by this entry's schemas. */
+  readonly implementation: Implementation<
+    ImplementationInput<
       z.output<TInputSchema>,
       ComposeSchemaOutput<TComposeInputSchema>
     >,
@@ -351,15 +360,15 @@ export interface TrailVersionForkSpec<
 }
 
 /**
- * Author a fork version entry with a blaze typed by the entry's own schemas.
+ * Author a fork version entry with a implementation typed by the entry's own schemas.
  *
- * `TrailVersions` fixes every entry's generics to `unknown`, so a fork blaze
+ * `TrailVersions` fixes every entry's generics to `unknown`, so a fork implementation
  * written inline receives `unknown` input and authors end up re-parsing the
  * already-validated value just to narrow it. This helper threads the entry's
- * `input`/`output` schemas into the blaze signature and erases the generics
+ * `input`/`output` schemas into the implementation signature and erases the generics
  * on the way out. The erasure is sound because the fork pipeline validates
  * raw input against this entry's own `input` schema before dispatching to
- * the entry blaze (see `createForkTrailVersion` in execute.ts).
+ * the entry implementation (see `createForkTrailVersion` in execute.ts).
  *
  * @example
  * ```ts
@@ -371,7 +380,7 @@ export interface TrailVersionForkSpec<
  *   version: 2,
  *   versions: {
  *     1: forkVersion({
- *       blaze: (input) =>
+ *       implementation: (input) =>
  *         // input is { name: string; weightOz: number } — no re-parse
  *         Result.ok({ id: input.name, weightOz: input.weightOz }),
  *       input: gearV1Input,
@@ -390,14 +399,14 @@ export const forkVersion = <
 ): TrailVersionForkEntry =>
   // Erasing the per-entry generics narrows function parameters, which TS
   // cannot express without a conversion. Safe: the fork pipeline re-validates
-  // input against `spec.input` before the blaze runs.
+  // input against `spec.input` before the implementation runs.
   spec as unknown as TrailVersionForkEntry;
 
 export const getTrailVersionEntryKind = (
   entry: TrailVersionEntry
 ): TrailVersionEntryKind => {
   const raw = entry as unknown as Record<string, unknown>;
-  return typeof raw['blaze'] === 'function' ? 'fork' : 'revision';
+  return typeof raw['implementation'] === 'function' ? 'fork' : 'revision';
 };
 
 export const isArchivedTrailVersionEntry = (
@@ -455,7 +464,11 @@ export interface TrailSpec<
   /** Zod schema for validating output (optional — some trails are fire-and-forget) */
   readonly output?: z.ZodType<O> | undefined;
   /** The pure function that does the work (sync or async authoring) */
-  readonly blaze: Implementation<BlazeInput<I, CI>, O, ComposeContextFor<C>>;
+  readonly implementation: Implementation<
+    ImplementationInput<I, CI>,
+    O,
+    ComposeContextFor<C>
+  >;
   /** Human-readable description */
   readonly description?: string | undefined;
   /** Declared operational shape for governance, derivation, and agent guidance. */
@@ -478,16 +491,16 @@ export interface TrailSpec<
   readonly visibility?: TrailVisibility | undefined;
   /** Arbitrary meta for tooling and filtering */
   readonly meta?: Readonly<Record<string, unknown>> | undefined;
-  /** Recovery paths activated when blaze fails with a matching error class. */
+  /** Recovery paths activated when implementation fails with a matching error class. */
   readonly detours?: readonly Detour<I, O, TrailsError>[] | undefined;
   /**
    * Typed layers attached at trail scope.
    *
    * Layers declared here wrap this trail's implementation on every execution,
    * regardless of which surface invokes it. The execution pipeline composes
-   * trail-scope layers innermost — closer to the blaze than surface-scope
+   * trail-scope layers innermost — closer to the implementation than surface-scope
    * or topo-scope layers — so the final order is
-   * `topo → surface → trail → blaze` (outermost-first).
+   * `topo → surface → trail → implementation` (outermost-first).
    *
    * Layers are typed and inspectable. Omit `input` for surface-invisible
    * wrappers that do not project any fields.
@@ -505,7 +518,7 @@ export interface TrailSpec<
    * Composition-only input schema — merged with `input` for `ctx.compose()` calls,
    * invisible to public surfaces (CLI, MCP, HTTP).
    *
-   * Fields here are available in the blaze but are not derived into CLI flags,
+   * Fields here are available in the implementation but are not derived into CLI flags,
    * MCP tool parameters, or HTTP request bodies. Use for data that only makes
    * sense when one trail composes another (e.g. `forkedFrom`).
    */
@@ -564,7 +577,7 @@ export type TrailVisibility = 'public' | 'internal';
 export interface Trail<I, O, CI = never> extends Omit<
   TrailSpec<I, O, CI, readonly TrailRef[] | undefined>,
   | 'args'
-  | 'blaze'
+  | 'implementation'
   | 'contours'
   | 'composes'
   | 'composeInput'
@@ -577,20 +590,20 @@ export interface Trail<I, O, CI = never> extends Omit<
 > {
   readonly kind: 'trail';
   readonly id: string;
-  readonly blaze: Implementation<BlazeInput<I, CI>, O>;
+  readonly implementation: Implementation<ImplementationInput<I, CI>, O>;
   /** Contours this trail operates on (always present, default []). */
   readonly contours: readonly AnyContour[];
   /** IDs of downstream trails this trail may invoke via ctx.compose() (always present, default []) */
   readonly composes: readonly string[];
   /** Composition-only input schema, merged with `input` for ctx.compose() calls (optional) */
   readonly composeInput?: z.ZodType<CI> | undefined;
-  /** Recovery paths activated when blaze fails with a matching error (always present, default []). */
+  /** Recovery paths activated when implementation fails with a matching error (always present, default []). */
   readonly detours: readonly Detour<I, O, TrailsError>[];
   /**
    * Typed layers attached at trail scope (always present, default []).
    *
-   * Composed innermost in the layer chain — closest to the blaze. The final
-   * composition order is `topo → surface → trail → blaze` (outermost-first).
+   * Composed innermost in the layer chain — closest to the implementation. The final
+   * composition order is `topo → surface → trail → implementation` (outermost-first).
    */
   readonly layers: readonly Layer[];
   /** Resources this trail may access via resource.from(ctx) (always present, default []) */
@@ -992,11 +1005,11 @@ const normalizeVersionEntry = <CurrentInput, CurrentOutput>(
     );
   }
 
-  const hasBlaze = typeof raw['blaze'] === 'function';
+  const hasImplementation = typeof raw['implementation'] === 'function';
   const hasTranspose = raw['transpose'] !== undefined;
-  if (hasBlaze && hasTranspose) {
+  if (hasImplementation && hasTranspose) {
     throw new ValidationError(
-      `Trail "${trailId}" version ${version} cannot declare both blaze and transpose`
+      `Trail "${trailId}" version ${version} cannot declare both implementation and transpose`
     );
   }
 
@@ -1013,11 +1026,14 @@ const normalizeVersionEntry = <CurrentInput, CurrentOutput>(
       : { status: normalizeVersionStatus(trailId, version, raw['status']) }),
   };
 
-  if (hasBlaze) {
+  if (hasImplementation) {
     return Object.freeze({
       ...base,
-      blaze: async (input: unknown, ctx: TrailContext) =>
-        await (raw['blaze'] as Implementation<unknown, unknown>)(input, ctx),
+      implementation: async (input: unknown, ctx: TrailContext) =>
+        await (raw['implementation'] as Implementation<unknown, unknown>)(
+          input,
+          ctx
+        ),
       ...(raw['composeInput'] === undefined
         ? {}
         : { composeInput: raw['composeInput'] }),
@@ -1184,14 +1200,14 @@ const normalizeCollections = <
  * // ID as first argument (recommended for human authoring)
  * const show = trail("entity.show", {
  *   input: z.object({ name: z.string() }),
- *   blaze: (input) => Result.ok(entity),
+ *   implementation: (input) => Result.ok(entity),
  * });
  *
  * // Full spec object (for programmatic generation)
  * const show = trail({
  *   id: "entity.show",
  *   input: z.object({ name: z.string() }),
- *   blaze: (input) => Result.ok(entity),
+ *   implementation: (input) => Result.ok(entity),
  * });
  * ```
  */
@@ -1288,7 +1304,7 @@ export function trail<
   }
 
   const {
-    blaze,
+    implementation,
     composeInput,
     composes: rawComposes,
     intent: rawIntent,
@@ -1317,11 +1333,13 @@ export function trail<
   return Object.freeze({
     ...spec,
     ...collections,
-    blaze: async (input: BlazeInput<I, CI>, ctx: TrailContext) =>
-      await blaze(input, ctx as ComposeContextFor<C>),
     composeInput,
     composes: Object.freeze((rawComposes ?? []).map(normalizeComposeRef)),
     id: resolved.id,
+    implementation: async (
+      input: ImplementationInput<I, CI>,
+      ctx: TrailContext
+    ) => await implementation(input, ctx as ComposeContextFor<C>),
     intent: rawIntent ?? 'write',
     kind: 'trail' as const,
     ...(rawVersion === undefined ? {} : { version: rawVersion }),
@@ -1331,14 +1349,14 @@ export function trail<
 }
 
 // Re-export types that callers of trail() will need
-// The Omit+override avoids a TypeScript limitation where BlazeInput's conditional type
+// The Omit+override avoids a TypeScript limitation where ImplementationInput's conditional type
 // makes Trail<any, any, any> structurally incompatible with Trail<I, O, never>.
 /* oxlint-disable no-explicit-any -- existential type for heterogeneous collections */
 export type AnyTrail = Omit<
   Trail<any, any, never>,
-  'blaze' | 'composeInput'
+  'implementation' | 'composeInput'
 > & {
-  readonly blaze: Implementation<any, any>;
+  readonly implementation: Implementation<any, any>;
   readonly composeInput?: z.ZodType<any> | undefined;
 };
 /* oxlint-enable no-explicit-any */

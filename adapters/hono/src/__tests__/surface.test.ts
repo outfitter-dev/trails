@@ -32,35 +32,35 @@ afterEach(() => {
 });
 
 const echoTrail = trail('echo', {
-  blaze: (input) => Result.ok({ reply: input.message }),
+  implementation: (input) => Result.ok({ reply: input.message }),
   input: z.object({ message: z.string() }),
   intent: 'read',
   output: z.object({ reply: z.string() }),
 });
 
 const tagsTrail = trail('tags', {
-  blaze: (input) => Result.ok({ tags: input.tags }),
+  implementation: (input) => Result.ok({ tags: input.tags }),
   input: z.object({ tags: z.array(z.string()) }),
   intent: 'read',
   output: z.object({ tags: z.array(z.string()) }),
 });
 
 const echoBodyTrail = trail('echo.body', {
-  blaze: (input) => Result.ok({ length: input.message.length }),
+  implementation: (input) => Result.ok({ length: input.message.length }),
   input: z.object({ message: z.string() }),
   intent: 'write',
   output: z.object({ length: z.number() }),
 });
 
 const genericErrorTrail = trail('generic.error', {
-  blaze: () => Result.err(new Error('database password=secret')),
+  implementation: () => Result.err(new Error('database password=secret')),
   input: z.object({}),
   intent: 'read',
   output: z.object({ ok: z.boolean() }),
 });
 
 const sensitivePermissionTrail = trail('sensitive.permission', {
-  blaze: () =>
+  implementation: () =>
     Result.err(new PermissionError('Denied Bearer abcdefghijklmnop')),
   input: z.object({}),
   intent: 'read',
@@ -78,7 +78,7 @@ const paymentWebhook = webhook('webhook.payment.received', {
 });
 
 const paymentWebhookTrail = trail('payment.receive', {
-  blaze: (input) => Result.ok({ paymentId: input.paymentId }),
+  implementation: (input) => Result.ok({ paymentId: input.paymentId }),
   input: z.object({ paymentId: z.string() }),
   on: [paymentWebhook],
   output: z.object({ paymentId: z.string() }),
@@ -90,7 +90,7 @@ const emptyWebhook = webhook('webhook.empty', {
 });
 
 const emptyWebhookTrail = trail('webhook.empty.receive', {
-  blaze: () => Result.ok({ ok: true }),
+  implementation: () => Result.ok({ ok: true }),
   input: z.object({}),
   on: [emptyWebhook],
   output: z.object({ ok: z.boolean() }),
@@ -423,7 +423,7 @@ describe('surface API (Hono adapter)', () => {
   test('malformed Authorization fails as 401 through Hono permit resolution', async () => {
     let invoked = false;
     const protectedTrail = trail('permit.malformed', {
-      blaze: () => {
+      implementation: () => {
         invoked = true;
         return Result.ok({ ok: true });
       },
@@ -470,7 +470,7 @@ describe('surface API (Hono adapter)', () => {
     let observedBearerToken: string | undefined;
     let observedHeaders: Headers | undefined;
     const protectedTrail = trail('permit.scope', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({}),
       intent: 'read',
       output: z.object({ ok: z.boolean() }),

@@ -37,6 +37,11 @@ describe('governed vocabulary registry', () => {
 
     const facet = getGovernedVocabularyTransition('v1-facet-trailhead');
     expect(facet?.status).toBe('complete');
+
+    const implementation = getGovernedVocabularyTransition(
+      'v1-blaze-implementation'
+    );
+    expect(implementation?.status).toBe('complete');
   });
 
   test('validates registry shape and rejects incomplete entries', () => {
@@ -125,28 +130,34 @@ describe('governed vocabulary registry', () => {
   });
 
   test('preserves historical compounds with escaped old-form patterns', () => {
-    const blaze = getGovernedVocabularyTransition('v1-blaze-implementation');
+    const implementation = getGovernedVocabularyTransition(
+      'v1-blaze-implementation'
+    );
 
-    const blazeHistorical = blaze?.preserve.find((rule) =>
+    const implementationHistorical = implementation?.preserve.find((rule) =>
       rule.paths?.includes('.agents/plans/**')
     );
 
-    expect(blazeHistorical?.pattern).toBe(
+    expect(implementationHistorical?.pattern).toBe(
       '(?:blaze|blazes|Blaze|blazing|blazed|trailblaze)'
     );
-    expect('blazeBody').toMatch(new RegExp(blazeHistorical?.pattern ?? ''));
+    expect('blazeBody').toMatch(
+      new RegExp(implementationHistorical?.pattern ?? '')
+    );
   });
 
   test('governs exact blaze string literals without inflected literal rewrites', () => {
-    const blaze = getGovernedVocabularyTransition('v1-blaze-implementation');
+    const implementation = getGovernedVocabularyTransition(
+      'v1-blaze-implementation'
+    );
 
-    expect(blaze?.status).toBe('planned');
-    expect(blaze?.stringLiteralRenames).toEqual([
+    expect(implementation?.status).toBe('complete');
+    expect(implementation?.stringLiteralRenames).toEqual([
       { from: 'blaze', match: 'property-key', to: 'implementation' },
     ]);
 
     const literalSources =
-      blaze?.stringLiteralRenames.map((rename) => rename.from) ?? [];
+      implementation?.stringLiteralRenames.map((rename) => rename.from) ?? [];
     expect(literalSources).not.toContain('Blaze');
     expect(literalSources).not.toContain('blazes');
     expect(literalSources).not.toContain('blazing');
@@ -155,10 +166,12 @@ describe('governed vocabulary registry', () => {
   });
 
   test('opts singular blaze symbols into segment matching without changing status', () => {
-    const blaze = getGovernedVocabularyTransition('v1-blaze-implementation');
+    const implementation = getGovernedVocabularyTransition(
+      'v1-blaze-implementation'
+    );
 
-    expect(blaze?.status).toBe('planned');
-    expect(blaze?.symbolRenames).toEqual([
+    expect(implementation?.status).toBe('complete');
+    expect(implementation?.symbolRenames).toEqual([
       {
         from: 'blaze',
         match: 'identifier-segment',

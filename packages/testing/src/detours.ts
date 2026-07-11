@@ -1,7 +1,7 @@
 /**
  * testDetours — validate the live detour contract for every trail.
  *
- * Pure structural validation. No blaze or detour recovery execution needed.
+ * Pure structural validation. No implementation or detour recovery execution needed.
  */
 
 import { describe, test } from 'bun:test';

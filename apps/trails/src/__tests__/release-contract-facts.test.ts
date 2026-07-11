@@ -27,7 +27,7 @@ import { Result, trail } from '@ontrails/core';
 import { z } from 'zod';
 
 export const userCreate = trail('user.create', {
-  blaze: () => Result.ok({ id: 'u1' }),
+  implementation: () => Result.ok({ id: 'u1' }),
   ${body}
 });
 `;
@@ -105,7 +105,7 @@ import { Result, trail } from '@ontrails/core';
 import { z } from 'zod';
 
 export const teamCreate = trail('team.create', {
-  blaze: () => Result.ok({ id: 't1' }),
+  implementation: () => Result.ok({ id: 't1' }),
   input: z.object({ name: z.string() }),
   output: z.object({ id: z.string() }),
 });
@@ -167,7 +167,7 @@ const inputSchema = z.object({ name: z.string() });
 const outputSchema = z.object({ id: z.string() });
 
 export const userCreate = trail('user.create', {
-  blaze: () => Result.ok({ id: 'u1' }),
+  implementation: () => Result.ok({ id: 'u1' }),
   input: inputSchema,
   output: outputSchema,
 });
@@ -180,7 +180,7 @@ const inputSchema = z.object({ email: z.string(), name: z.string() });
 const outputSchema = z.object({ id: z.string() });
 
 export const userCreate = trail('user.create', {
-  blaze: () => Result.ok({ id: 'u1' }),
+  implementation: () => Result.ok({ id: 'u1' }),
   input: inputSchema,
   output: outputSchema,
 });

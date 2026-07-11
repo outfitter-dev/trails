@@ -3,7 +3,7 @@
  * backing resource accessor is missing the method the trail will call at
  * runtime.
  *
- * The warden cannot invoke blazes directly, but most resources declare a
+ * The warden cannot invoke implementations directly, but most resources declare a
  * `mock` factory that returns a structurally real accessor for testing. We
  * exploit that: invoke the mock with no arguments, look up the accessor by
  * contour name (which equals every CRUD-emitted trail ID's leading
@@ -248,7 +248,7 @@ const evaluateTrail = async (
 
 /**
  * Topo-aware rule that flags CRUD trails whose backing accessor is missing
- * the method invoked by the synthesized blaze.
+ * the method invoked by the synthesized implementation.
  *
  * @remarks
  * Introspects each resource's `mock()` factory to determine the accessor
@@ -266,7 +266,7 @@ export const incompleteAccessorForStandardOp: TopoAwareWardenRule = {
     return diagnostics;
   },
   description:
-    'Flag CRUD-pattern trails whose resource accessor lacks the method the synthesized blaze will call at runtime.',
+    'Flag CRUD-pattern trails whose resource accessor lacks the method the synthesized implementation will call at runtime.',
   name: RULE_NAME,
   severity: 'error',
 };

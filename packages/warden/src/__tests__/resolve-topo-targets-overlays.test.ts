@@ -33,7 +33,7 @@ const incoherentOverlayApp = `import { Result, surfaceOverlay, topo, trail } fro
 import { z } from 'zod';
 
 const listGear = trail('gear.list', {
-  blaze: async () => Result.ok({ items: [] }),
+  implementation: async () => Result.ok({ items: [] }),
   input: z.object({}),
   intent: 'read',
   output: z.object({ items: z.array(z.string()) }),
@@ -86,7 +86,7 @@ describe('warden topo targets carry app-module overlays (TRL-1209)', () => {
 import { z } from 'zod';
 
 const listGear = trail('gear.list', {
-  blaze: async () => Result.ok({ items: [] }),
+  implementation: async () => Result.ok({ items: [] }),
   input: z.object({}),
   intent: 'read',
   output: z.object({ items: z.array(z.string()) }),

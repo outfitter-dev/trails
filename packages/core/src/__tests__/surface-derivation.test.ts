@@ -14,8 +14,8 @@ import { trail } from '../trail.js';
 import { SURFACE_KEY, SURFACE_LAYER_NAMES_KEY } from '../types.js';
 
 const exportTrail = trail('entity.export', {
-  blaze: () => Result.ok({ ok: true }),
   composes: ['_draft.entity.prepare'],
+  implementation: () => Result.ok({ ok: true }),
   input: z.object({}),
 });
 

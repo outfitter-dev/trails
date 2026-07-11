@@ -145,7 +145,7 @@ describe('library surface', () => {
 
   // `abortSignal` is a thin pass-through (surface -> kernel -> run options).
   // Abort *semantics* are core's contract, tested in core's execute suite; a
-  // trivial blaze completes before any abort check, so asserting abort behavior
+  // trivial implementation completes before any abort check, so asserting abort behavior
   // here would test core through the library rather than the forwarding itself.
   test('accepts an abort signal without breaking normal execution', async () => {
     const lib = await surface(fixtureApp, {

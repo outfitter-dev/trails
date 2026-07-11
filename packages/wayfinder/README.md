@@ -52,7 +52,7 @@ Use `wayfind.overview` to inspect the saved graph shape before asking narrower q
 import { createTrailContext } from '@ontrails/core';
 import { wayfindOverviewTrail } from '@ontrails/wayfinder';
 
-const result = await wayfindOverviewTrail.blaze(
+const result = await wayfindOverviewTrail.implementation(
   { rootDir: process.cwd() },
   createTrailContext()
 );
@@ -68,7 +68,7 @@ The output includes counts for trails, contours, resources, signals, surfaces, t
 import { wayfindSearchTrail } from '@ontrails/wayfinder';
 import { createTrailContext } from '@ontrails/core';
 
-const result = await wayfindSearchTrail.blaze(
+const result = await wayfindSearchTrail.implementation(
   {
     filters: {
       kind: 'trail',
@@ -110,17 +110,17 @@ import {
 } from '@ontrails/wayfinder';
 import { createTrailContext } from '@ontrails/core';
 
-await wayfindDescribeTrail.blaze(
+await wayfindDescribeTrail.implementation(
   { id: 'user.create', kind: 'trail', rootDir: process.cwd() },
   createTrailContext()
 );
 
-await wayfindContractTrail.blaze(
+await wayfindContractTrail.implementation(
   { id: 'user.create', rootDir: process.cwd() },
   createTrailContext()
 );
 
-await wayfindContractTrail.blaze(
+await wayfindContractTrail.implementation(
   { id: 'user.create', kind: 'version', rootDir: process.cwd(), version: 1 },
   createTrailContext()
 );
@@ -136,7 +136,7 @@ Use `wayfind.outline` when an agent needs to inspect a file's shape before readi
 import { createTrailContext } from '@ontrails/core';
 import { wayfindOutlineTrail } from '@ontrails/wayfinder';
 
-await wayfindOutlineTrail.blaze(
+await wayfindOutlineTrail.implementation(
   { file: 'apps/trails/src/app.ts', rootDir: process.cwd(), review: true },
   createTrailContext()
 );
@@ -179,12 +179,12 @@ import {
 } from '@ontrails/wayfinder';
 import { createTrailContext } from '@ontrails/core';
 
-await wayfindNearbyTrail.blaze(
+await wayfindNearbyTrail.implementation(
   { id: 'user.create', kind: 'trail', rootDir: process.cwd() },
   createTrailContext()
 );
 
-await wayfindImpactTrail.blaze(
+await wayfindImpactTrail.implementation(
   {
     id: 'db.main',
     kind: 'resource',
@@ -194,7 +194,7 @@ await wayfindImpactTrail.blaze(
   createTrailContext()
 );
 
-await wayfindDiffTrail.blaze(
+await wayfindDiffTrail.implementation(
   {
     againstRootDir: '/path/to/baseline-workspace',
     rootDir: process.cwd(),

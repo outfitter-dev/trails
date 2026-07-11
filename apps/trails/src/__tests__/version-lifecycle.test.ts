@@ -75,7 +75,7 @@ const writeLifecycleFixture = (
   dir: string,
   options?: {
     readonly nestedOutputField?: boolean;
-    readonly nestedTemplateBlaze?: boolean;
+    readonly nestedTemplateImplementation?: boolean;
   }
 ): void => {
   mkdirSync(join(dir, 'src'), { recursive: true });
@@ -87,7 +87,7 @@ const writeLifecycleFixture = (
     name: z.string(),
   })`
     : 'z.object({ name: z.string() })';
-  const blaze = options?.nestedTemplateBlaze
+  const implementation = options?.nestedTemplateImplementation
     ? `async (input) => {
     const nested = \`\${\`\${input.name}\`}\`;
     return Result.ok({ message: \`Hello, \${nested}!\` });
@@ -99,7 +99,7 @@ const writeLifecycleFixture = (
 import { z } from 'zod';
 
 const hello = trail('hello', {
-  blaze: ${blaze},
+  implementation: ${implementation},
   input: ${input},
   output: z.object({ message: z.string() }),
 });
@@ -117,7 +117,7 @@ const writeLifecycleNumericVersionKeyFixture = (dir: string): void => {
 import { z } from 'zod';
 
 const hello = trail('hello', {
-  blaze: async (input) => Result.ok({ message: \`Hello, \${input.name}!\` }),
+  implementation: async (input) => Result.ok({ message: \`Hello, \${input.name}!\` }),
   version: 3,
   input: z.object({ name: z.string() }),
   output: z.object({ message: z.string() }),
@@ -157,7 +157,7 @@ const writeLifecycleLastVersionNoTrailingCommaFixture = (dir: string): void => {
 import { z } from 'zod';
 
 const hello = trail('hello', {
-  blaze: async (input) => Result.ok({ message: \`Hello, \${input.name}!\` }),
+  implementation: async (input) => Result.ok({ message: \`Hello, \${input.name}!\` }),
   version: 2,
   input: z.object({ name: z.string() }),
   output: z.object({ message: z.string() }),
@@ -186,7 +186,7 @@ const writeLifecycleNoResultFixture = (dir: string): void => {
 import { z } from 'zod';
 
 const hello = trail('hello', {
-  blaze: async () => ({ ok: true }) as never,
+  implementation: async () => ({ ok: true }) as never,
   version: 2,
   input: z.object({}),
   output: z.object({ ok: z.boolean() }),
@@ -218,7 +218,7 @@ const writeLifecycleResultImportShapeFixture = (
 import { z } from 'zod';
 
 const hello = trail('hello', {
-  blaze: async () => ({ ok: true }) as never,
+  implementation: async () => ({ ok: true }) as never,
   version: 2,
   input: z.object({}),
   output: z.object({ ok: z.boolean() }),
@@ -279,7 +279,7 @@ describe('trails lifecycle commands', () => {
     try {
       writeLifecycleFixture(dir);
 
-      const revised = await reviseTrail.blaze(
+      const revised = await reviseTrail.implementation(
         { module: './src/app.ts', target: 'hello' },
         { cwd: dir } as never
       );
@@ -294,7 +294,7 @@ describe('trails lifecycle commands', () => {
       expect(source).toContain('1: {');
       expect(source).toContain('transpose: {');
 
-      const deprecated = await deprecateTrail.blaze(
+      const deprecated = await deprecateTrail.implementation(
         {
           module: './src/app.ts',
           note: 'Use v2.',
@@ -314,7 +314,7 @@ describe('trails lifecycle commands', () => {
       );
       expect(source).not.toMatch(/^status:/m);
 
-      const alreadyDeprecated = await deprecateTrail.blaze(
+      const alreadyDeprecated = await deprecateTrail.implementation(
         {
           module: './src/app.ts',
           note: 'Use v2.',
@@ -329,7 +329,7 @@ describe('trails lifecycle commands', () => {
       }
       expect(alreadyDeprecated.value.updated).toBe(false);
 
-      const forked = await reviseTrail.blaze(
+      const forked = await reviseTrail.implementation(
         { as: 'fork', module: './src/app.ts', target: 'hello@1' },
         { cwd: dir } as never
       );
@@ -339,11 +339,11 @@ describe('trails lifecycle commands', () => {
       }
       expect(forked.value.updated).toBe(true);
       source = readFileSync(join(dir, 'src', 'app.ts'), 'utf8');
-      expect(source).toContain('      blaze: async () => Result.err');
-      expect(source).not.toMatch(/^blaze:/m);
+      expect(source).toContain('      implementation: async () => Result.err');
+      expect(source).not.toMatch(/^implementation:/m);
       expect(source).not.toContain('transpose: {');
 
-      const alreadyForked = await reviseTrail.blaze(
+      const alreadyForked = await reviseTrail.implementation(
         { as: 'fork', module: './src/app.ts', target: 'hello@1' },
         { cwd: dir } as never
       );
@@ -357,12 +357,12 @@ describe('trails lifecycle commands', () => {
     }
   });
 
-  test('revise preserves blaze values with nested template literals', async () => {
+  test('revise preserves implementation values with nested template literals', async () => {
     const dir = repoTempDir();
     try {
-      writeLifecycleFixture(dir, { nestedTemplateBlaze: true });
+      writeLifecycleFixture(dir, { nestedTemplateImplementation: true });
 
-      const revised = await reviseTrail.blaze(
+      const revised = await reviseTrail.implementation(
         { as: 'fork', module: './src/app.ts', target: 'hello' },
         { cwd: dir } as never
       );
@@ -376,7 +376,7 @@ describe('trails lifecycle commands', () => {
       expect(source).toContain(nestedTemplateSnippet);
       expect(source).toContain('version: 2');
       expect(source).toContain('1: {');
-      expect(source).toContain('blaze: async (input) => {');
+      expect(source).toContain('implementation: async (input) => {');
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }
@@ -387,7 +387,7 @@ describe('trails lifecycle commands', () => {
     try {
       writeLifecycleFixture(dir, { nestedOutputField: true });
 
-      const revised = await reviseTrail.blaze(
+      const revised = await reviseTrail.implementation(
         { module: './src/app.ts', target: 'hello' },
         { cwd: dir } as never
       );
@@ -413,7 +413,7 @@ describe('trails lifecycle commands', () => {
     try {
       writeLifecycleNumericVersionKeyFixture(dir);
 
-      const deprecated = await deprecateTrail.blaze(
+      const deprecated = await deprecateTrail.implementation(
         {
           module: './src/app.ts',
           note: 'Use v3.',
@@ -447,7 +447,7 @@ describe('trails lifecycle commands', () => {
     try {
       writeLifecycleLastVersionNoTrailingCommaFixture(dir);
 
-      const deprecated = await deprecateTrail.blaze(
+      const deprecated = await deprecateTrail.implementation(
         {
           module: './src/app.ts',
           note: 'Use v2.',
@@ -477,7 +477,7 @@ describe('trails lifecycle commands', () => {
     try {
       writeLifecycleNoResultFixture(dir);
 
-      const forked = await reviseTrail.blaze(
+      const forked = await reviseTrail.implementation(
         { as: 'fork', module: './src/app.ts', target: 'hello@1' },
         { cwd: dir } as never
       );
@@ -487,10 +487,10 @@ describe('trails lifecycle commands', () => {
       }
       expect(forked.value.updated).toBe(true);
       expect(forked.value.warnings).toEqual([
-        'Fork blaze placeholder references Result.err, but this file does not import Result from @ontrails/core.',
+        'Fork implementation placeholder references Result.err, but this file does not import Result from @ontrails/core.',
       ]);
       const source = readFileSync(join(dir, 'src', 'app.ts'), 'utf8');
-      expect(source).toContain('      blaze: async () => Result.err');
+      expect(source).toContain('      implementation: async () => Result.err');
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }
@@ -515,7 +515,7 @@ import { topo, trail } from '@ontrails/core';`,
       try {
         writeLifecycleResultImportShapeFixture(dir, fixture.coreImport);
 
-        const forked = await reviseTrail.blaze(
+        const forked = await reviseTrail.implementation(
           { as: 'fork', module: './src/app.ts', target: 'hello@1' },
           { cwd: dir } as never
         );
@@ -524,7 +524,7 @@ import { topo, trail } from '@ontrails/core';`,
           throw new Error(`${fixture.name}: ${forked.error.message}`);
         }
         expect(forked.value.warnings).toEqual([
-          'Fork blaze placeholder references Result.err, but this file does not import Result from @ontrails/core.',
+          'Fork implementation placeholder references Result.err, but this file does not import Result from @ontrails/core.',
         ]);
       } finally {
         rmSync(dir, { force: true, recursive: true });
@@ -563,17 +563,23 @@ import { topo, trail } from '@ontrails/core';`,
     const dir = repoTempDir();
     try {
       writeLifecycleFixture(dir);
-      await reviseTrail.blaze({ module: './src/app.ts', target: 'hello' }, {
-        cwd: dir,
-      } as never);
-      await deprecateTrail.blaze(
+      await reviseTrail.implementation(
+        { module: './src/app.ts', target: 'hello' },
+        {
+          cwd: dir,
+        } as never
+      );
+      await deprecateTrail.implementation(
         { archive: true, module: './src/app.ts', target: 'hello@1' },
         { cwd: dir } as never
       );
 
-      const doctor = await doctorTrail.blaze({ module: './src/app.ts' }, {
-        cwd: dir,
-      } as never);
+      const doctor = await doctorTrail.implementation(
+        { module: './src/app.ts' },
+        {
+          cwd: dir,
+        } as never
+      );
 
       if (doctor.isErr()) {
         throw doctor.error;
@@ -593,19 +599,25 @@ import { topo, trail } from '@ontrails/core';`,
     const dir = repoTempDir();
     try {
       writeLifecycleFixture(dir);
-      await reviseTrail.blaze({ module: './src/app.ts', target: 'hello' }, {
-        cwd: dir,
-      } as never);
-      await deprecateTrail.blaze(
+      await reviseTrail.implementation(
+        { module: './src/app.ts', target: 'hello' },
+        {
+          cwd: dir,
+        } as never
+      );
+      await deprecateTrail.implementation(
         { archive: true, module: './src/app.ts', target: 'hello@1' },
         { cwd: dir } as never
       );
       mkdirSync(join(dir, '.trails'), { recursive: true });
       writeFileSync(join(dir, '.trails', 'topo.lock'), '{');
 
-      const doctor = await doctorTrail.blaze({ module: './src/app.ts' }, {
-        cwd: dir,
-      } as never);
+      const doctor = await doctorTrail.implementation(
+        { module: './src/app.ts' },
+        {
+          cwd: dir,
+        } as never
+      );
 
       if (doctor.isErr()) {
         throw doctor.error;
@@ -638,7 +650,7 @@ const store = resource<{ ping: () => string }>('orphan-store', {
 });
 
 const ping = trail('ping', {
-  blaze: (_input, ctx) => Result.ok({ message: store.from(ctx).ping() }),
+  implementation: (_input, ctx) => Result.ok({ message: store.from(ctx).ping() }),
   input: z.object({}),
   intent: 'read',
   output: z.object({ message: z.string() }),
@@ -650,9 +662,12 @@ export const app = topo('doctor-invalid', { ping });
 `
       );
 
-      const doctor = await doctorTrail.blaze({ module: './src/app.ts' }, {
-        cwd: dir,
-      } as never);
+      const doctor = await doctorTrail.implementation(
+        { module: './src/app.ts' },
+        {
+          cwd: dir,
+        } as never
+      );
 
       expect(doctor.isErr()).toBe(true);
       if (doctor.isOk()) {
@@ -685,9 +700,12 @@ export const app = topo('doctor-invalid', { ping });
 `
       );
 
-      const doctor = await doctorTrail.blaze({ module: './src/app.ts' }, {
-        cwd: dir,
-      } as never);
+      const doctor = await doctorTrail.implementation(
+        { module: './src/app.ts' },
+        {
+          cwd: dir,
+        } as never
+      );
 
       expect(doctor.isErr()).toBe(true);
       if (doctor.isOk()) {
@@ -713,9 +731,12 @@ export const app = topo('doctor-invalid', { ping });
         JSON.stringify(createDoctorForceGraph())
       );
 
-      const doctor = await doctorTrail.blaze({ module: './src/app.ts' }, {
-        cwd: dir,
-      } as never);
+      const doctor = await doctorTrail.implementation(
+        { module: './src/app.ts' },
+        {
+          cwd: dir,
+        } as never
+      );
 
       if (doctor.isErr()) {
         throw doctor.error;
@@ -734,7 +755,7 @@ export const app = topo('doctor-invalid', { ping });
 
   test('doctor summary reports entry and graph force details', () => {
     const current = trail('force.current', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({}),
       output: z.object({ ok: z.boolean() }),
     });
@@ -771,7 +792,7 @@ export const app = topo('doctor-invalid', { ping });
 
   test('doctor summary deduplicates overlapping entry and graph force details', () => {
     const current = trail('force.current', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({}),
       output: z.object({ ok: z.boolean() }),
     });
@@ -799,7 +820,7 @@ export const app = topo('doctor-invalid', { ping });
 
   test('doctor summary ignores malformed stale force payloads', () => {
     const current = trail('force.current', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({}),
       output: z.object({ ok: z.boolean() }),
     });

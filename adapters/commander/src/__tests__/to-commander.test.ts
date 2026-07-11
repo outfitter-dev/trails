@@ -91,14 +91,14 @@ const requireNestedCommand = (
 
 const buildExecutableParentProgram = (calls: string[]) => {
   const topoShow = trail('topo', {
-    blaze: () => {
+    implementation: () => {
       calls.push('topo');
       return Result.ok('topo');
     },
     input: z.object({}),
   });
   const topoPin = trail('topo.pin', {
-    blaze: () => {
+    implementation: () => {
       calls.push('topo.pin');
       return Result.ok('topo.pin');
     },
@@ -118,7 +118,7 @@ const makeCliExit = () =>
 
 const buildFailingProgram = () => {
   const failTrail = trail('fail', {
-    blaze: () => Result.ok('ok'),
+    implementation: () => Result.ok('ok'),
     input: z.object({}),
   });
 
@@ -162,7 +162,8 @@ const withMockedProcess = async (
 describe('toCommander command trees', () => {
   test('creates a Commander program with correct commands', () => {
     const t = trail('greet', {
-      blaze: (input: { name: string }) => Result.ok(`Hello, ${input.name}`),
+      implementation: (input: { name: string }) =>
+        Result.ok(`Hello, ${input.name}`),
       input: z.object({ name: z.string() }),
     });
     const app = makeApp(t);
@@ -177,11 +178,11 @@ describe('toCommander command trees', () => {
 
   test('grouped commands create parent/subcommand structure', () => {
     const show = trail('entity.show', {
-      blaze: () => Result.ok({}),
+      implementation: () => Result.ok({}),
       input: z.object({ id: z.string() }),
     });
     const add = trail('entity.add', {
-      blaze: () => Result.ok({}),
+      implementation: () => Result.ok({}),
       input: z.object({ name: z.string() }),
     });
     const app = makeApp(show, add);
@@ -196,7 +197,7 @@ describe('toCommander command trees', () => {
 
   test('supports arbitrary-depth nested command trees', () => {
     const remove = trail('topo.pin.remove', {
-      blaze: () => Result.ok({ removed: true }),
+      implementation: () => Result.ok({ removed: true }),
       input: z.object({ name: z.string() }),
     });
     const app = makeApp(remove);
@@ -215,12 +216,12 @@ describe('toCommander command trees', () => {
   test('materializes trail-owned aliases that execute the same command', async () => {
     const calls: string[] = [];
     const search = trail('wayfind.search', {
-      blaze: (input: { query: string }) => {
-        calls.push(input.query);
-        return Result.ok(input.query);
-      },
       cli: {
         aliases: ['find'],
+      },
+      implementation: (input: { query: string }) => {
+        calls.push(input.query);
+        return Result.ok(input.query);
       },
       input: z.object({ query: z.string() }),
     });
@@ -240,7 +241,7 @@ describe('toCommander command trees', () => {
   test('materializes surface overlay synonym bindings that execute the same command', async () => {
     const calls: string[] = [];
     const search = trail('wayfind.search', {
-      blaze: (input: { query: string }) => {
+      implementation: (input: { query: string }) => {
         calls.push(input.query);
         return Result.ok(input.query);
       },
@@ -264,14 +265,14 @@ describe('toCommander command trees', () => {
   test('materializes surface overlay group member commands that dispatch the member trail', async () => {
     const calls: string[] = [];
     const create = trail('gear.create', {
-      blaze: (input: { name: string }) => {
+      implementation: (input: { name: string }) => {
         calls.push(`create:${input.name}`);
         return Result.ok({ name: input.name });
       },
       input: z.object({ name: z.string() }),
     });
     const list = trail('gear.list', {
-      blaze: () => {
+      implementation: () => {
         calls.push('list');
         return Result.ok([]);
       },
@@ -326,13 +327,13 @@ describe('toCommander command trees', () => {
     const calls: string[] = [];
     const navigate = trail('wayfind.navigate', {
       args: ['target'],
-      blaze: (input: { resources: boolean; target?: string }) => {
+      cli: { path: 'wayfind' },
+      implementation: (input: { resources: boolean; target?: string }) => {
         calls.push(
           `navigate:${String(input.target)}:${String(input.resources)}`
         );
         return Result.ok(input);
       },
-      cli: { path: 'wayfind' },
       input: z
         .object({
           resources: z.boolean().default(false),
@@ -341,7 +342,7 @@ describe('toCommander command trees', () => {
         .strict(),
     });
     const search = trail('wayfind.search', {
-      blaze: (input: { query: string }) => {
+      implementation: (input: { query: string }) => {
         calls.push(`search:${input.query}`);
         return Result.ok(input);
       },
@@ -361,11 +362,11 @@ describe('toCommander command trees', () => {
     const calls: string[] = [];
     const navigate = trail('wayfind.navigate', {
       args: ['target'],
-      blaze: (input: { errors: boolean; target?: string }) => {
+      cli: { path: 'wayfind' },
+      implementation: (input: { errors: boolean; target?: string }) => {
         calls.push(`navigate:${String(input.target)}:${String(input.errors)}`);
         return Result.ok(input);
       },
-      cli: { path: 'wayfind' },
       input: z
         .object({
           errors: z.boolean().default(false),
@@ -374,7 +375,7 @@ describe('toCommander command trees', () => {
         .strict(),
     });
     const search = trail('wayfind.search', {
-      blaze: () => {
+      implementation: () => {
         calls.push('search');
         return Result.ok({});
       },
@@ -403,7 +404,7 @@ describe('toCommander validation', () => {
         intent: 'read' as const,
         path: duplicatePath,
         trail: trail('first', {
-          blaze: () => Result.ok('first'),
+          implementation: () => Result.ok('first'),
           input: z.object({}),
         }),
       },
@@ -414,7 +415,7 @@ describe('toCommander validation', () => {
         intent: 'read' as const,
         path: duplicatePath,
         trail: trail('second', {
-          blaze: () => Result.ok('second'),
+          implementation: () => Result.ok('second'),
           input: z.object({}),
         }),
       },
@@ -447,7 +448,7 @@ describe('toCommander validation', () => {
         intent: 'read' as const,
         path: ['render'] as const,
         trail: trail('render', {
-          blaze: () => Result.ok('ok'),
+          implementation: () => Result.ok('ok'),
           input: z.object({}),
         }),
       },
@@ -482,7 +483,7 @@ describe('toCommander validation', () => {
         intent: 'read' as const,
         path: ['render'] as const,
         trail: trail('render', {
-          blaze: () => Result.ok('ok'),
+          implementation: () => Result.ok('ok'),
           input: z.object({}),
         }),
       },
@@ -517,7 +518,7 @@ describe('toCommander validation', () => {
         intent: 'read' as const,
         path: ['render'] as const,
         trail: trail('render', {
-          blaze: () => Result.ok('ok'),
+          implementation: () => Result.ok('ok'),
           input: z.object({}),
         }),
       },
@@ -543,7 +544,7 @@ describe('toCommander validation', () => {
         intent: 'read' as const,
         path: ['survey'] as const,
         trail: trail('survey', {
-          blaze: () => Result.ok('survey'),
+          implementation: () => Result.ok('survey'),
           input: z.object({}),
         }),
       },
@@ -557,7 +558,7 @@ describe('toCommander validation', () => {
         intent: 'read' as const,
         path: ['survey', 'trail'] as const,
         trail: trail('survey.trail', {
-          blaze: () => Result.ok('survey.trail'),
+          implementation: () => Result.ok('survey.trail'),
           input: z.object({}),
         }),
       },
@@ -585,7 +586,7 @@ describe('toCommander validation', () => {
         intent: 'read' as const,
         path: ['survey'] as const,
         trail: trail('survey', {
-          blaze: () => Result.ok('survey'),
+          implementation: () => Result.ok('survey'),
           input: z.object({}),
         }),
       },
@@ -599,7 +600,7 @@ describe('toCommander validation', () => {
         intent: 'read' as const,
         path: ['survey', 'trail'] as const,
         trail: trail('survey.trail', {
-          blaze: () => Result.ok('survey.trail'),
+          implementation: () => Result.ok('survey.trail'),
           input: z.object({}),
         }),
       },
@@ -637,7 +638,7 @@ describe('toCommander validation', () => {
         intent: 'read' as const,
         path: ['survey'] as const,
         trail: trail('survey', {
-          blaze: () => Result.ok('survey'),
+          implementation: () => Result.ok('survey'),
           input: z.object({}),
         }),
       },
@@ -651,7 +652,7 @@ describe('toCommander validation', () => {
         intent: 'read' as const,
         path: ['survey', 'trail'] as const,
         trail: trail('survey.trail', {
-          blaze: () => Result.ok('survey.trail'),
+          implementation: () => Result.ok('survey.trail'),
           input: z.object({}),
         }),
       },
@@ -687,7 +688,7 @@ describe('toCommander validation', () => {
         intent: 'read' as const,
         path: ['survey'] as const,
         trail: trail('survey', {
-          blaze: () => Result.ok('survey'),
+          implementation: () => Result.ok('survey'),
           input: z.object({}),
         }),
       },
@@ -717,7 +718,7 @@ describe('toCommander validation', () => {
         intent: 'read' as const,
         path: ['survey', 'trail'] as const,
         trail: trail('survey.trail', {
-          blaze: () => Result.ok('survey.trail'),
+          implementation: () => Result.ok('survey.trail'),
           input: z.object({}),
         }),
       },
@@ -766,7 +767,7 @@ describe('toCommander validation', () => {
         intent: 'read' as const,
         path: ['survey'] as const,
         trail: trail('survey', {
-          blaze: () => Result.ok('survey'),
+          implementation: () => Result.ok('survey'),
           input: z.object({}),
         }),
       },
@@ -792,7 +793,7 @@ describe('toCommander validation', () => {
         intent: 'read' as const,
         path: ['survey', 'trail'] as const,
         trail: trail('survey.trail', {
-          blaze: () => Result.ok('survey.trail'),
+          implementation: () => Result.ok('survey.trail'),
           input: z.object({}),
         }),
       },
@@ -829,7 +830,7 @@ describe('toCommander validation', () => {
         intent: 'read' as const,
         path: ['survey'] as const,
         trail: trail('survey', {
-          blaze: () => Result.ok('survey'),
+          implementation: () => Result.ok('survey'),
           input: z.object({}),
         }),
       },
@@ -855,7 +856,7 @@ describe('toCommander validation', () => {
         intent: 'read' as const,
         path: ['survey', 'trail'] as const,
         trail: trail('survey.trail', {
-          blaze: () => Result.ok('survey.trail'),
+          implementation: () => Result.ok('survey.trail'),
           input: z.object({}),
         }),
       },
@@ -906,7 +907,7 @@ describe('toCommander validation', () => {
         intent: 'read' as const,
         path: ['wayfind'] as const,
         trail: trail('wayfind.navigate', {
-          blaze: () => Result.ok('wayfind'),
+          implementation: () => Result.ok('wayfind'),
           input: z.object({}),
         }),
       },
@@ -917,7 +918,7 @@ describe('toCommander validation', () => {
         intent: 'read' as const,
         path: ['wayfind', 'search'] as const,
         trail: trail('wayfind.search', {
-          blaze: () => Result.ok('search'),
+          implementation: () => Result.ok('search'),
           input: z.object({}),
         }),
       },
@@ -966,7 +967,7 @@ describe('toCommander validation', () => {
         intent: 'read' as const,
         path: ['survey'] as const,
         trail: trail('survey', {
-          blaze: () => Result.ok('survey'),
+          implementation: () => Result.ok('survey'),
           input: z.object({}),
         }),
       },
@@ -992,7 +993,7 @@ describe('toCommander validation', () => {
         intent: 'read' as const,
         path: ['survey', 'trail'] as const,
         trail: trail('survey.trail', {
-          blaze: () => Result.ok('survey.trail'),
+          implementation: () => Result.ok('survey.trail'),
           input: z.object({}),
         }),
       },
@@ -1030,7 +1031,7 @@ describe('toCommander validation', () => {
         intent: 'read' as const,
         path: ['survey'] as const,
         trail: trail('survey', {
-          blaze: () => Result.ok('survey'),
+          implementation: () => Result.ok('survey'),
           input: z.object({}),
         }),
       },
@@ -1047,7 +1048,7 @@ describe('toCommander validation', () => {
         intent: 'read' as const,
         path: ['survey', 'trail'] as const,
         trail: trail('survey.trail', {
-          blaze: () => Result.ok('survey.trail'),
+          implementation: () => Result.ok('survey.trail'),
           input: z.object({}),
         }),
       },
@@ -1086,7 +1087,7 @@ describe('toCommander validation', () => {
           intent: 'read' as const,
           path: ['wayfind'] as const,
           trail: trail('wayfind.navigate', {
-            blaze: () => Result.ok('wayfind'),
+            implementation: () => Result.ok('wayfind'),
             input: z.object({}),
           }),
         },
@@ -1097,7 +1098,7 @@ describe('toCommander validation', () => {
           intent: 'read' as const,
           path: ['wayfind', 'file'] as const,
           trail: trail('wayfind.file', {
-            blaze: () => Result.ok('wayfind.file'),
+            implementation: () => Result.ok('wayfind.file'),
             input: z.object({}),
           }),
         },
@@ -1131,7 +1132,7 @@ describe('toCommander validation', () => {
 describe('toCommander option wiring', () => {
   test('flag types map correctly to Commander options', () => {
     const t = trail('search', {
-      blaze: () => Result.ok([]),
+      implementation: () => Result.ok([]),
       input: z.object({
         format: z.enum(['json', 'text']).optional(),
         limit: z.number().optional(),
@@ -1178,7 +1179,7 @@ describe('toCommander option wiring', () => {
         intent: 'read' as const,
         path: ['render'] as const,
         trail: trail('render', {
-          blaze: () => Result.ok('ok'),
+          implementation: () => Result.ok('ok'),
           input: z.object({}),
         }),
       },
@@ -1216,7 +1217,7 @@ describe('toCommander option wiring', () => {
         intent: 'read' as const,
         path: ['render'] as const,
         trail: trail('render', {
-          blaze: () => Result.ok('ok'),
+          implementation: () => Result.ok('ok'),
           input: z.object({}),
         }),
       },
@@ -1232,12 +1233,12 @@ describe('toCommander option wiring', () => {
   test('default-valued aliases override structured input', async () => {
     let observed: unknown;
     const t = trail('render', {
-      blaze: (input) => {
-        observed = input;
-        return Result.ok(input);
-      },
       fields: {
         outputFormat: { aliases: true },
+      },
+      implementation: (input) => {
+        observed = input;
+        return Result.ok(input);
       },
       input: z.object({
         outputFormat: z.enum(['json', 'text']).default('text'),
@@ -1285,7 +1286,7 @@ describe('toCommander option wiring', () => {
         intent: 'read' as const,
         path: ['render'] as const,
         trail: trail('render', {
-          blaze: () => Result.ok('ok'),
+          implementation: () => Result.ok('ok'),
           input: z.object({}),
         }),
       },
@@ -1311,7 +1312,7 @@ describe('toCommander option wiring', () => {
 
   test('complex schemas expose structured input options instead of lossy nested flags', () => {
     const t = trail('gist.create', {
-      blaze: () => Result.ok('ok'),
+      implementation: () => Result.ok('ok'),
       input: z.object({
         files: z.array(
           z.object({
@@ -1335,7 +1336,7 @@ describe('toCommander option wiring', () => {
   describe('boolean flag negation', () => {
     test('boolean flags get --no-<name> negation options', () => {
       const t = trail('check', {
-        blaze: () => Result.ok('ok'),
+        implementation: () => Result.ok('ok'),
         input: z.object({ strict: z.boolean() }),
       });
       const app = makeApp(t);
@@ -1352,7 +1353,7 @@ describe('toCommander option wiring', () => {
 
     test('--no-<flag> sets value to false via parseAsync', async () => {
       const t = trail('check', {
-        blaze: () => Result.ok('ok'),
+        implementation: () => Result.ok('ok'),
         input: z.object({ strict: z.boolean().default(true) }),
       });
       const app = makeApp(t);
@@ -1367,7 +1368,7 @@ describe('toCommander option wiring', () => {
 
     test('--flag sets boolean value to true via parseAsync', async () => {
       const t = trail('check', {
-        blaze: () => Result.ok('ok'),
+        implementation: () => Result.ok('ok'),
         input: z.object({ strict: z.boolean().default(false) }),
       });
       const app = makeApp(t);
@@ -1383,7 +1384,7 @@ describe('toCommander option wiring', () => {
     test('explicit --no-<flag> overrides structured input through Commander', async () => {
       let observed: unknown;
       const t = trail('regrade-like', {
-        blaze: (input) => {
+        implementation: (input) => {
           observed = input;
           return Result.ok(input);
         },
@@ -1415,7 +1416,7 @@ describe('toCommander option wiring', () => {
     test('omitted --dry-run preserves a createContext dryRun default through Commander', async () => {
       let observed: boolean | undefined;
       const t = trail('thing.delete', {
-        blaze: (_input, ctx) => {
+        implementation: (_input, ctx) => {
           observed = ctx.dryRun;
           return Result.ok({ ok: true });
         },
@@ -1447,7 +1448,7 @@ describe('toCommander option wiring', () => {
   describe('strict number parsing', () => {
     const buildNumberProgram = () => {
       const t = trail('count', {
-        blaze: () => Result.ok('ok'),
+        implementation: () => Result.ok('ok'),
         input: z.object({ limit: z.number() }),
       });
       const app = makeApp(t);
@@ -1520,7 +1521,7 @@ describe('toCommander option wiring', () => {
       { expected: -5, input: '-5' },
     ])('accepts valid number "$input"', async ({ expected, input }) => {
       const t = trail('count', {
-        blaze: () => Result.ok('ok'),
+        implementation: () => Result.ok('ok'),
         input: z.object({ limit: z.number() }),
       });
       const app = makeApp(t);
@@ -1536,7 +1537,7 @@ describe('toCommander option wiring', () => {
 
   test('sets version when provided', () => {
     const t = trail('ping', {
-      blaze: () => Result.ok('pong'),
+      implementation: () => Result.ok('pong'),
       input: z.object({}),
     });
     const app = makeApp(t);
@@ -1565,7 +1566,7 @@ describe('toCommander option wiring', () => {
   test('error handling hides unknown error messages from stderr', async () => {
     await withMockedProcess(async () => {
       const failTrail = trail('fail', {
-        blaze: () => Result.ok('ok'),
+        implementation: () => Result.ok('ok'),
         input: z.object({}),
       });
       const program = toCommander([
@@ -1593,7 +1594,7 @@ describe('toCommander option wiring', () => {
   test('error handling emits structured stderr under --json', async () => {
     await withMockedProcess(async () => {
       const failTrail = trail('fail', {
-        blaze: () => Result.ok('ok'),
+        implementation: () => Result.ok('ok'),
         input: z.object({}),
       });
       const program = toCommander([
@@ -1651,7 +1652,7 @@ describe('toCommander option wiring', () => {
   test('error handling treats value alias output modes as explicit', async () => {
     await withMockedProcess(async () => {
       const failTrail = trail('fail', {
-        blaze: () => Result.ok('ok'),
+        implementation: () => Result.ok('ok'),
         input: z.object({}),
       });
       const program = toCommander([
@@ -1698,7 +1699,7 @@ describe('toCommander option wiring', () => {
     try {
       await withMockedProcess(async () => {
         const failTrail = trail('fail', {
-          blaze: () => Result.ok('ok'),
+          implementation: () => Result.ok('ok'),
           input: z.object({}),
         });
         const program = toCommander(
@@ -1747,7 +1748,7 @@ describe('toCommander option wiring', () => {
     try {
       await withMockedProcess(async () => {
         const failTrail = trail('fail', {
-          blaze: () => Result.ok('ok'),
+          implementation: () => Result.ok('ok'),
           input: z.object({}),
         });
         const program = toCommander(
@@ -1792,7 +1793,7 @@ describe('toCommander option wiring', () => {
   test('error handling lists validation issues from error context', async () => {
     await withMockedProcess(async () => {
       const failTrail = trail('fail', {
-        blaze: () => Result.ok('ok'),
+        implementation: () => Result.ok('ok'),
         input: z.object({}),
       });
       const program = toCommander([
@@ -1844,7 +1845,7 @@ describe('toCommander option wiring', () => {
   test('error handling names required permit scopes and the --permit form', async () => {
     await withMockedProcess(async () => {
       const failTrail = trail('fail', {
-        blaze: () => Result.ok('ok'),
+        implementation: () => Result.ok('ok'),
         input: z.object({}),
       });
       const program = toCommander([
@@ -1880,7 +1881,7 @@ describe('toCommander option wiring', () => {
   test('error handling JSON-escapes permit scopes in the grant form', async () => {
     await withMockedProcess(async () => {
       const failTrail = trail('fail', {
-        blaze: () => Result.ok('ok'),
+        implementation: () => Result.ok('ok'),
         input: z.object({}),
       });
       const program = toCommander([
@@ -1910,7 +1911,7 @@ describe('toCommander option wiring', () => {
   test('error handling builds the permit grant from all required scopes', async () => {
     await withMockedProcess(async () => {
       const failTrail = trail('fail', {
-        blaze: () => Result.ok('ok'),
+        implementation: () => Result.ok('ok'),
         input: z.object({}),
       });
       const program = toCommander([

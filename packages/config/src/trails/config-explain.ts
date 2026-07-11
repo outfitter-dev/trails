@@ -67,19 +67,19 @@ const enrichOptions = (
 };
 
 export const configExplain = trail('config.explain', {
-  blaze: (input, ctx) => {
-    const state = configResource.from(ctx);
-    const options = enrichOptions(state, toExplainOptions(state));
-    const entries = deriveConfigProvenance(options);
-    const filtered = filterByPath(entries, input.path);
-    return Result.ok({ entries: [...filtered] });
-  },
   examples: [
     {
       input: {},
       name: 'Explain all fields',
     },
   ],
+  implementation: (input, ctx) => {
+    const state = configResource.from(ctx);
+    const options = enrichOptions(state, toExplainOptions(state));
+    const entries = deriveConfigProvenance(options);
+    const filtered = filterByPath(entries, input.path);
+    return Result.ok({ entries: [...filtered] });
+  },
   input: z.object({
     path: z
       .string()

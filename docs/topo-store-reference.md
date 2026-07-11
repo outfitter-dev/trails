@@ -306,7 +306,7 @@ import { topoStore } from '@ontrails/topographer';
 
 trail('warden.check', {
   resources: [topoStore],
-  blaze: async (_input, ctx) => {
+  implementation: async (_input, ctx) => {
     const store = topoStore.from(ctx);
     // store.trails, store.resources, store.entries, store.topoGraph, store.query()
   },

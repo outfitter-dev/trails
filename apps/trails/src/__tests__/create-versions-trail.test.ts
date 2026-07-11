@@ -64,8 +64,8 @@ const makeTempRoot = (
   return root;
 };
 
-const blaze = async (input: { check: boolean; rootDir: string }) =>
-  await createVersionsTrail.blaze(input, {
+const implementation = async (input: { check: boolean; rootDir: string }) =>
+  await createVersionsTrail.implementation(input, {
     cwd: input.rootDir,
     env: { TRAILS_ENV: 'test' },
   } as never);
@@ -125,7 +125,7 @@ describe('create.versions trail', () => {
   test('writes the generated file from root package.json versions', async () => {
     const root = makeTempRoot();
 
-    const result = await blaze({ check: false, rootDir: root });
+    const result = await implementation({ check: false, rootDir: root });
 
     expect(result.isOk()).toBe(true);
     if (result.isErr()) {
@@ -151,7 +151,7 @@ describe('create.versions trail', () => {
     const root = makeTempRoot();
     await syncScaffoldVersions({ check: false, rootDir: root });
 
-    const result = await blaze({ check: true, rootDir: root });
+    const result = await implementation({ check: true, rootDir: root });
 
     expect(result.isOk()).toBe(true);
     if (result.isErr()) {
@@ -170,7 +170,7 @@ describe('create.versions trail', () => {
   test('check mode reports drift when the generated file is missing', async () => {
     const root = makeTempRoot();
 
-    const result = await blaze({ check: true, rootDir: root });
+    const result = await implementation({ check: true, rootDir: root });
 
     expect(result.isErr()).toBe(true);
     if (result.isOk()) {
@@ -184,7 +184,7 @@ describe('create.versions trail', () => {
       fixturePackageJson.devDependencies;
     const root = makeTempRoot({ ...fixturePackageJson, devDependencies });
 
-    const result = await blaze({ check: false, rootDir: root });
+    const result = await implementation({ check: false, rootDir: root });
 
     expect(result.isErr()).toBe(true);
     if (result.isOk()) {

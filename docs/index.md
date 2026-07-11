@@ -4,7 +4,7 @@
 
 1. **[Why Trails](./why-trails.md)** — The problem, the approach, why contracts beat conventions
 2. **[Getting Started](./getting-started.md)** — Install, define your first trail, open CLI/MCP/HTTP surfaces, test it
-3. **[Lexicon](./lexicon.md)** — The terms you'll use every day: trail, blaze, topo, contour, surface, compose, resource, signal, execution layers, tracing
+3. **[Lexicon](./lexicon.md)** — The terms you'll use every day: trail, implementation, topo, contour, surface, compose, resource, signal, execution layers, tracing
 
 ## Release Notes
 
@@ -49,7 +49,7 @@
 ## Contributing to Trails?
 
 - **[Contributing Guide](./contributing/README.md)** — House guides for changing the Trails repository
-- **[Language Styleguide](./contributing/language-styleguide.md)** — How to write about Trails terms precisely, starting with `blaze`
+- **[Language Styleguide](./contributing/language-styleguide.md)** — How to write about Trails terms precisely, starting with `implementation`
 - **[Code Standards](./contributing/code-standards.md)** — TSDoc, source anchors, escape-hatch criteria, and code-shape conventions
 - **[Codebase Navigation](./contributing/codebase-navigation.md)** — Repo orientation, source-of-truth locations, generated files, and symbol navigation
 - **[Warden Rules](./contributing/warden-rules.md)** — Methodology for durable Warden rules, owner-held rule data, and rule-family collapse

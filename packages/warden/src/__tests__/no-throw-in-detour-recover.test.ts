@@ -16,7 +16,7 @@ trail("entity.save", {
       },
     },
   ],
-  blaze: () => Result.err(new ConflictError("conflict")),
+  implementation: () => Result.err(new ConflictError("conflict")),
 })`;
 
     const diagnostics = noThrowInDetourRecover.check(code, TEST_FILE);
@@ -39,7 +39,7 @@ trail("entity.save", {
       recover: recoverConflict,
     },
   ],
-  blaze: () => Result.err(new ConflictError("conflict")),
+  implementation: () => Result.err(new ConflictError("conflict")),
 })`;
 
     const diagnostics = noThrowInDetourRecover.check(code, TEST_FILE);
@@ -62,7 +62,7 @@ trail("entity.save", {
       },
     },
   ],
-  blaze: () => Result.err(new ConflictError("conflict")),
+  implementation: () => Result.err(new ConflictError("conflict")),
 })`;
 
     const diagnostics = noThrowInDetourRecover.check(code, TEST_FILE);
@@ -83,7 +83,7 @@ trail("entity.save", {
       recover: async () => Result.err(new ConflictError("still conflicting")),
     },
   ],
-  blaze: () => Result.err(new ConflictError("conflict")),
+  implementation: () => Result.err(new ConflictError("conflict")),
 })`;
 
     const diagnostics = noThrowInDetourRecover.check(code, TEST_FILE);

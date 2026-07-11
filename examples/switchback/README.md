@@ -9,7 +9,7 @@ This is the app for "I don't want a server, I want a package." One authored trai
 | Capability | Where it appears |
 | --- | --- |
 | Library surface + projection artifacts | [quickstart.ts](quickstart.ts) consumes the topo through `@ontrails/library`; the committed [trails.lock](trails.lock) embeds the collision-free projection, and [governance.test.ts](src/__tests__/governance.test.ts) keeps `library-projection-coherence` clean |
-| Pure, deterministic blazes | [engine.ts](src/engine.ts) is a pure function of (flag definition, evaluation context) — no clock, no randomness; [engine.test.ts](src/__tests__/engine.test.ts) pins fixed hash vectors forever |
+| Pure, deterministic implementations | [engine.ts](src/engine.ts) is a pure function of (flag definition, evaluation context) — no clock, no randomness; [engine.test.ts](src/__tests__/engine.test.ts) pins fixed hash vectors forever |
 | Explainability | every `flag.evaluate` result carries a rule-by-rule `EvalTrace`; the CLI renders it with `--explain` ([evaluate.ts](src/trails/evaluate.ts)) |
 | Percentage rollouts | seeded FNV-1a hashing buckets each flag+subject stably ([engine.ts](src/engine.ts)) |
 | Non-DB resource | the `flags` resource is a JSON file reloaded on every read, deliberately not a database ([resources/flags.ts](src/resources/flags.ts)) |

@@ -41,26 +41,26 @@ type Signal = typeof SIGNAL;
 type SignalController = ReturnType<typeof Promise.withResolvers<Signal>>;
 
 const okTrail = trail('intrinsic.ok', {
-  blaze: () => Result.ok({ value: 1 }),
+  implementation: () => Result.ok({ value: 1 }),
   input: emptyIO,
   intent: 'read',
   output: z.object({ value: z.number() }),
 });
 
 const errTrail = trail('intrinsic.err', {
-  blaze: () => Result.err(new NotFoundError('nope')),
+  implementation: () => Result.err(new NotFoundError('nope')),
   input: emptyIO,
   output: emptyIO,
 });
 
 const genericErrTrail = trail('intrinsic.err.generic', {
-  blaze: () => Result.err(new Error('boom')),
+  implementation: () => Result.err(new Error('boom')),
   input: emptyIO,
   output: emptyIO,
 });
 
 const throwTrail = trail('intrinsic.throw', {
-  blaze: () => {
+  implementation: () => {
     throw new InternalError('boom');
   },
   input: emptyIO,
@@ -68,7 +68,7 @@ const throwTrail = trail('intrinsic.throw', {
 });
 
 const spanOkTrail = trail('intrinsic.span.ok', {
-  blaze: async (_input, ctx) => {
+  implementation: async (_input, ctx) => {
     const value = await ctx.trace('inner', () => Promise.resolve(42));
     return Result.ok({ value });
   },
@@ -77,7 +77,7 @@ const spanOkTrail = trail('intrinsic.span.ok', {
 });
 
 const spanErrTrail = trail('intrinsic.span.err', {
-  blaze: async (_input, ctx) => {
+  implementation: async (_input, ctx) => {
     try {
       await ctx.trace('doomed', () =>
         Promise.reject(new NotFoundError('missing'))
@@ -92,7 +92,7 @@ const spanErrTrail = trail('intrinsic.span.err', {
 });
 
 const spanSiblingsTrail = trail('intrinsic.span.siblings', {
-  blaze: async (_input, ctx) => {
+  implementation: async (_input, ctx) => {
     await ctx.trace('a', () => Promise.resolve(1));
     await ctx.trace('b', () => Promise.resolve(2));
     return Result.ok({});
@@ -102,7 +102,7 @@ const spanSiblingsTrail = trail('intrinsic.span.siblings', {
 });
 
 const noSinkTrail = trail('intrinsic.nosink', {
-  blaze: async (_input, ctx) => {
+  implementation: async (_input, ctx) => {
     await ctx.trace('span', () => Promise.resolve(1));
     return Result.ok({});
   },
@@ -111,13 +111,13 @@ const noSinkTrail = trail('intrinsic.nosink', {
 });
 
 const routingTrail = trail('intrinsic.routing', {
-  blaze: () => Result.ok({}),
+  implementation: () => Result.ok({}),
   input: emptyIO,
   output: emptyIO,
 });
 
 const childTrail = trail('trace.child', {
-  blaze: () => Result.ok({ ok: true }),
+  implementation: () => Result.ok({ ok: true }),
   input: z.object({}),
 });
 
@@ -183,12 +183,12 @@ const createBatchComposeParent = (
   options?: ComposeBatchOptions
 ) =>
   trail(id, {
-    blaze: async (_input, ctx) => {
+    composes: [...children],
+    implementation: async (_input, ctx) => {
       const calls = children.map((child) => [child, {}] as const);
       await requireCompose(ctx)(calls, options);
       return Result.ok({ completed: true });
     },
-    composes: [...children],
     input: emptyIO,
     output: completedOutput,
   });
@@ -199,7 +199,7 @@ const createGatedComposeChild = (
   gate: Promise<unknown>
 ) =>
   trail(id, {
-    blaze: async () => {
+    implementation: async () => {
       started.resolve(SIGNAL);
       await gate;
       return Result.ok({ ok: true });
@@ -217,7 +217,7 @@ const createTimedComposeChild = (
   delayMs: number
 ) =>
   trail(id, {
-    blaze: async () => {
+    implementation: async () => {
       startedIds.push(id);
       started.resolve(SIGNAL);
       await gate;
@@ -340,7 +340,7 @@ const createParallelSignalFanoutScenario = () => {
   const release = createSignalController();
   const createSignalConsumer = (id: string, started: SignalController) =>
     trail(id, {
-      blaze: async (_input, ctx) => {
+      implementation: async (_input, ctx) => {
         await ctx.trace('work', async () => {
           started.resolve(SIGNAL);
           await release.promise;
@@ -355,11 +355,11 @@ const createParallelSignalFanoutScenario = () => {
   const left = createSignalConsumer('trace.signal.left', leftStarted);
   const right = createSignalConsumer('trace.signal.right', rightStarted);
   const producer = trail('trace.signal.producer', {
-    blaze: async (input, ctx) => {
+    fires: [emitted],
+    implementation: async (input, ctx) => {
       await ctx.fire?.(emitted, input);
       return Result.ok({ ok: true });
     },
-    fires: [emitted],
     input: z.object({ id: z.string() }),
     output: z.object({ ok: z.boolean() }),
   });
@@ -582,20 +582,20 @@ describe('intrinsic tracing via executeTrail + ctx.trace', () => {
   describe('compose-trail tracing', () => {
     test('single ctx.compose() produces a child trail record under the parent trail', async () => {
       const composed = trail('trace.compose.single.child', {
-        blaze: () => Result.ok({ ok: true }),
+        implementation: () => Result.ok({ ok: true }),
         input: emptyIO,
         output: z.object({ ok: z.boolean() }),
         visibility: 'internal',
       });
       const parent = trail('trace.compose.single.parent', {
-        blaze: async (_input, ctx) => {
+        composes: [composed],
+        implementation: async (_input, ctx) => {
           const result = await requireCompose(ctx)(composed, {});
           return result.match({
             err: (error) => Result.err(error),
             ok: (value) => Result.ok(value),
           });
         },
-        composes: [composed],
         input: emptyIO,
         output: z.object({ ok: z.boolean() }),
       });

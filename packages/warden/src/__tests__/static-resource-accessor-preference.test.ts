@@ -15,7 +15,7 @@ const db = resource('db.main', {
 
 trail('entity.show', {
   resources: [db],
-  blaze: async (_input, ctx) => {
+  implementation: async (_input, ctx) => {
     return Result.ok(ctx.resource('db.main'));
   },
 });
@@ -40,7 +40,7 @@ const db = resource('db.main', {
 
 trail('entity.show', {
   resources: [db],
-  blaze: async (_input, ctx) => {
+  implementation: async (_input, ctx) => {
     return Result.ok(ctx.resource(db));
   },
 });
@@ -60,7 +60,7 @@ import { db } from './resources';
 
 trail('entity.show', {
   resources: [db],
-  blaze: async (_input, ctx) => {
+  implementation: async (_input, ctx) => {
     return Result.ok(ctx.resource(db));
   },
 });
@@ -83,7 +83,7 @@ const db = resource('db.main', {
 
 trail('entity.show', {
   resources: [db],
-  blaze: async (_input, ctx) => {
+  implementation: async (_input, ctx) => {
     const { resource: getResource } = ctx;
     return Result.ok(getResource(db));
   },
@@ -106,7 +106,7 @@ const db = resource('db.main', {
 
 trail('entity.show', {
   resources: [db],
-  blaze: async (_input, ctx) => {
+  implementation: async (_input, ctx) => {
     return Result.ok(db.from(ctx));
   },
 });
@@ -122,7 +122,7 @@ import { db } from './resources';
 
 trail('entity.show', {
   resources: [db],
-  blaze: async (_input, ctx) => {
+  implementation: async (_input, ctx) => {
     return Result.ok(ctx.resource('db.main'));
   },
 });
@@ -137,7 +137,7 @@ import { Result, trail } from '@ontrails/core';
 
 trail('entity.show', {
   resources: ['db.main'],
-  blaze: async (_input, ctx) => {
+  implementation: async (_input, ctx) => {
     return Result.ok(ctx.resource('db.main'));
   },
 });
@@ -156,7 +156,7 @@ const db = resource('db.main', {
 
 trail('entity.show', {
   resources: [db],
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     return Result.ok(ctx.resource(input.resourceId));
   },
 });
@@ -175,7 +175,7 @@ const db = resource('db.main', {
 
 trail('entity.show', {
   resources: [db],
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const db = input.resourceId;
     return Result.ok(ctx.resource(db));
   },
@@ -195,7 +195,7 @@ const db = resource('db.main', {
 
 trail('entity.show', {
   resources: [db],
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const db = input.override;
     return Result.ok(ctx.resource('db.main'));
   },
@@ -211,7 +211,7 @@ import { Result, trail } from '@ontrails/core';
 import { PrismaClient } from '@prisma/client';
 
 trail('entity.show', {
-  blaze: async () => {
+  implementation: async () => {
     const PrismaClient = class LocalClient {};
     const db = new PrismaClient();
     return Result.ok(db);
@@ -232,7 +232,7 @@ const db = resource('db.main', {
 
 trail('entity.show', {
   resources: [db],
-  blaze: async (_input, ctx) => Result.ok(ctx.resource(db)),
+  implementation: async (_input, ctx) => Result.ok(ctx.resource(db)),
 });
 `;
 
@@ -244,13 +244,13 @@ trail('entity.show', {
     ).toEqual([]);
   });
 
-  test('warns for obvious imported external client construction inside blaze', () => {
+  test('warns for obvious imported external client construction inside implementation', () => {
     const code = `
 import { Result, trail } from '@ontrails/core';
 import { PrismaClient } from '@prisma/client';
 
 trail('entity.show', {
-  blaze: async () => {
+  implementation: async () => {
     const db = new PrismaClient();
     return Result.ok(db);
   },
@@ -266,13 +266,13 @@ trail('entity.show', {
     );
   });
 
-  test('warns for renamed AWS SDK client constructors inside blaze', () => {
+  test('warns for renamed AWS SDK client constructors inside implementation', () => {
     const code = `
 import { Result, trail } from '@ontrails/core';
 import { HeadBucketCommand, S3Client as Storage } from '@aws-sdk/client-s3';
 
 trail('entity.show', {
-  blaze: async () => {
+  implementation: async () => {
     const storage = new Storage({ region: 'us-east-1' });
     const command = new HeadBucketCommand({ Bucket: 'docs' });
     return Result.ok({ command, storage });
@@ -294,7 +294,7 @@ import { Result, trail } from '@ontrails/core';
 class Client {}
 
 trail('entity.show', {
-  blaze: async () => {
+  implementation: async () => {
     const client = new Client();
     return Result.ok(client);
   },

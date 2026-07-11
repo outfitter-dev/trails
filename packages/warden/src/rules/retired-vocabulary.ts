@@ -270,7 +270,7 @@ export const governedVocabularyTransitions =
         blaze: 'implementation',
         blazes: 'implementations',
       },
-      status: 'planned',
+      status: 'complete',
       stringLiteralRenames: [
         { from: 'blaze', match: 'property-key', to: 'implementation' },
       ],

@@ -158,7 +158,7 @@ const writeProjectOnlyErrorFixture = (dir: string): void => {
     join(dir, 'project-only.ts'),
     `trail('entity.show', {
   on: ['entity.changed'],
-  blaze: async () => Result.ok({ ok: true }),
+  implementation: async () => Result.ok({ ok: true }),
 });`
   );
 };
@@ -171,7 +171,7 @@ const writeAllDepthWarningFixture = (dir: string): void => {
   fields: {
     firstName: { label: 'First Name' },
   },
-  blaze: async () => Result.ok({ ok: true }),
+  implementation: async () => Result.ok({ ok: true }),
 });`
   );
 };
@@ -237,13 +237,13 @@ describe('trails warden', () => {
       writeFileSync(
         join(dir, 'bad.ts'),
         `trail("hello", {
-  blaze: async () => {
+  implementation: async () => {
     throw new Error("boom");
   },
 });`
       );
 
-      const result = await wardenTrail.blaze(
+      const result = await wardenTrail.implementation(
         { depth: 'source', format: 'summary', lock: 'skip', rootDir: dir },
         { cwd: dir, env: {} } as never
       );
@@ -255,7 +255,7 @@ describe('trails warden', () => {
       expect(result.value.passed).toBe(false);
       expect(result.value.errorCount).toBe(1);
       expect(result.value.diagnostics[0]?.guidance?.summary).toBe(
-        'Convert thrown failures in blazes into explicit Result.err() outcomes.'
+        'Convert thrown failures in implementations into explicit Result.err() outcomes.'
       );
       expect(result.value.formatted).toContain('## Warden Report');
     } finally {
@@ -268,7 +268,7 @@ describe('trails warden', () => {
     try {
       writeFileSync(join(dir, 'empty.ts'), 'export {};');
 
-      const result = await wardenTrail.blaze(
+      const result = await wardenTrail.implementation(
         { depth: 'source', json: true, lock: 'skip', rootDir: dir },
         { cwd: dir, env: {} } as never
       );
@@ -287,10 +287,13 @@ describe('trails warden', () => {
   });
 
   test('warden guide projects markdown from the Warden manifest', async () => {
-    const result = await wardenGuideTrail.blaze({ guideFormat: 'markdown' }, {
-      cwd: repoRoot,
-      env: {},
-    } as never);
+    const result = await wardenGuideTrail.implementation(
+      { guideFormat: 'markdown' },
+      {
+        cwd: repoRoot,
+        env: {},
+      } as never
+    );
 
     expect(result.isOk()).toBe(true);
     if (result.isErr()) {
@@ -302,7 +305,7 @@ describe('trails warden', () => {
       '### `no-throw-in-implementation`'
     );
     expect(result.value.formatted).toContain(
-      'Convert thrown failures in blazes into explicit Result.err() outcomes.'
+      'Convert thrown failures in implementations into explicit Result.err() outcomes.'
     );
   });
 
@@ -319,10 +322,11 @@ describe('trails warden', () => {
           },
           guidance: {
             docs: [{ label: 'Trail Rules', path: 'AGENTS.md#trail-rules' }],
-            summary: 'Convert thrown failures in blazes into Result.err().',
+            summary:
+              'Convert thrown failures in implementations into Result.err().',
           },
           line: 3,
-          message: 'Do not throw inside the blaze.',
+          message: 'Do not throw inside the implementation.',
           rule: 'no-throw-in-implementation',
           severity: 'error',
           topoName: 'demo',

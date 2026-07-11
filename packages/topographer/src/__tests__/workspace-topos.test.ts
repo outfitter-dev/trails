@@ -108,17 +108,17 @@ const writeWorkspace = async (
 
 const buildTopo = (name: string, ids: readonly string[]): Topo => {
   // Construct a fake trail-shaped object for each id. The loader pipeline only
-  // calls topo.ids(), so we never actually invoke a blaze; the shape just has
+  // calls topo.ids(), so we never actually invoke a implementation; the shape just has
   // to satisfy the registrable kind discriminant.
   const trailModules = ids.map((id, index) => ({
     [`trail_${index}`]: {
-      // biome-ignore lint/suspicious/useAwait: trail blaze placeholder
-      blaze: async () => {
-        throw new Error(`fixture trail ${id} should never run`);
-      },
+      // biome-ignore lint/suspicious/useAwait: trail implementation placeholder
       composes: [],
       examples: [],
       id,
+      implementation: async () => {
+        throw new Error(`fixture trail ${id} should never run`);
+      },
       input: undefined,
       kind: 'trail' as const,
       output: undefined,

@@ -10,7 +10,7 @@ export const readIntentFiresTrail = wrapRule({
         sourceCode: `const entityLoaded = signal('entity.loaded', { payload: z.object({}) });
 trail('entity.read', {
   intent: 'read',
-  blaze: async () => Result.ok({}),
+  implementation: async () => Result.ok({}),
 });`,
       },
       name: 'Read trails without fires stay quiet',

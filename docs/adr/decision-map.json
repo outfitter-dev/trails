@@ -1826,7 +1826,7 @@
           "fromPath": "docs/adr/drafts/20260603-one-schema-trail-input.md"
         },
         {
-          "context": "`composeInput` fields are merged with `input` for the blaze. When invoked via a surface, `composeInput` fields are absent. When invoked via `ctx.compose()`, the caller can pass both. See [ADR-0024](ad",
+          "context": "`composeInput` fields are merged with `input` for the implementation. When invoked via a surface, `composeInput` fields are absent. When invoked via `ctx.compose()`, the caller can pass both. See [ADR",
           "from": "lexicon",
           "fromPath": "docs/lexicon.md"
         }

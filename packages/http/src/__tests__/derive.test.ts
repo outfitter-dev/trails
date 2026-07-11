@@ -17,7 +17,7 @@ describe('deriveHttpRoutes', () => {
   test('aliases the HTTP projection API', () => {
     const graph = topo('testapp', {
       echo: trail('echo', {
-        blaze: (input: { message: string }) =>
+        implementation: (input: { message: string }) =>
           Result.ok({ reply: input.message }),
         input: z.object({ message: z.string() }),
         intent: 'read',

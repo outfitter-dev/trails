@@ -104,14 +104,6 @@ const wardenGuideFields = {
 >;
 
 export const wardenGuideTrail = trail('warden.guide', {
-  blaze: (input) => {
-    const manifest = buildWardenGuideManifest();
-    return Result.ok({
-      format: input.guideFormat,
-      formatted: formatWardenGuide(manifest, input.guideFormat),
-      manifest,
-    });
-  },
   description: 'Project Warden rule guidance as markdown or JSON',
   examples: [
     {
@@ -124,6 +116,14 @@ export const wardenGuideTrail = trail('warden.guide', {
     },
   ],
   fields: wardenGuideFields,
+  implementation: (input) => {
+    const manifest = buildWardenGuideManifest();
+    return Result.ok({
+      format: input.guideFormat,
+      formatted: formatWardenGuide(manifest, input.guideFormat),
+      manifest,
+    });
+  },
   input: wardenGuideInputSchema,
   intent: 'read',
   output: z.object({

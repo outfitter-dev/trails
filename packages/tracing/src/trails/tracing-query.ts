@@ -81,7 +81,12 @@ const buildQueryOptions = (input: {
  * result set when no store has been configured.
  */
 export const tracingQuery = trail('tracing.query', {
-  blaze: (input, ctx) => {
+  examples: [
+    { input: {}, name: 'Recent traces' },
+    { input: { trailId: 'user.create' }, name: 'Filter by trail' },
+    { input: { errorsOnly: true }, name: 'Errors only' },
+  ],
+  implementation: (input, ctx) => {
     const state = tracingResource.from(ctx);
     if (!state.store) {
       return Result.ok({ count: 0, records: [] });
@@ -90,11 +95,6 @@ export const tracingQuery = trail('tracing.query', {
     const mapped = records.map(mapRecord);
     return Result.ok({ count: mapped.length, records: mapped });
   },
-  examples: [
-    { input: {}, name: 'Recent traces' },
-    { input: { trailId: 'user.create' }, name: 'Filter by trail' },
-    { input: { errorsOnly: true }, name: 'Errors only' },
-  ],
   input: z.object({
     errorsOnly: z.boolean().describe('Show only failed traces').default(false),
     limit: z.number().describe('Max results').default(20),

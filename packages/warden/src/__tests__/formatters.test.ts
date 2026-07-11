@@ -29,10 +29,11 @@ const reportWithDiagnostics: WardenReport = {
         docs: [{ label: 'Trail Rules', path: 'AGENTS.md#trail-rules' }],
         relatedRules: ['implementation-returns-result'],
         steps: ['Return Result.err() instead of throwing.'],
-        summary: 'Convert thrown failures in blazes into Result.err().',
+        summary:
+          'Convert thrown failures in implementations into Result.err().',
       },
       line: 42,
-      message: 'Throw statement found in blaze',
+      message: 'Throw statement found in implementation',
       rule: 'no-throw-in-implementation',
       severity: 'error',
     },
@@ -123,7 +124,7 @@ describe('formatJson', () => {
       docs: [{ label: 'Trail Rules', path: 'AGENTS.md#trail-rules' }],
       relatedRules: ['implementation-returns-result'],
       steps: ['Return Result.err() instead of throwing.'],
-      summary: 'Convert thrown failures in blazes into Result.err().',
+      summary: 'Convert thrown failures in implementations into Result.err().',
     });
     expect(parsed.diagnostics[1].guidance).toBeUndefined();
   });
@@ -182,7 +183,7 @@ describe('formatSummary', () => {
   test('renders guidance next steps when present', () => {
     const output = formatSummary(reportWithDiagnostics);
     expect(output).toContain(
-      'Next: Convert thrown failures in blazes into Result.err().'
+      'Next: Convert thrown failures in implementations into Result.err().'
     );
     expect(output).toContain('Docs: [Trail Rules](AGENTS.md#trail-rules)');
     expect(output).toContain('Commands: `bun test packages/core`');

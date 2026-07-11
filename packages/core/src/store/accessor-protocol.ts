@@ -1,6 +1,6 @@
 /**
  * Structural accessor protocol used by `deriveTrail()` to synthesize default
- * blazes for standard CRUD operations without depending on `@ontrails/store`.
+ * implementations for standard CRUD operations without depending on `@ontrails/store`.
  *
  * @remarks
  * This type is intentionally minimal and structural. `@ontrails/store`'s
@@ -35,14 +35,14 @@ export interface StoreAccessorProtocol<
   remove(id: TId): Promise<{ readonly deleted: boolean }>;
   /**
    * Optional insert — available on tabular adapters that distinguish
-   * create from update. When absent, synthesized blazes fall back to
+   * create from update. When absent, synthesized implementations fall back to
    * `upsert`.
    */
   insert?(input: TInput): Promise<TEntity>;
   /**
    * Optional patch-by-identity — available on tabular adapters. Returns
    * `null` when no row with the given identity exists. When absent,
-   * synthesized update blazes fall back to `get` + merge + `upsert`.
+   * synthesized update implementations fall back to `get` + merge + `upsert`.
    */
   update?(id: TId, patch: Partial<TInput>): Promise<TEntity | null>;
 }

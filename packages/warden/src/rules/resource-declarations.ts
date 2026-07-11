@@ -1,7 +1,7 @@
 /**
  * Validates that resource access matches the declared `resources` array.
  *
- * Statically analyzes trail `blaze` functions to find `db.from(ctx)` and
+ * Statically analyzes trail `implementation` functions to find `db.from(ctx)` and
  * `ctx.resource('db.main')` calls and compares them against the declared
  * `resources: [...]` array in the trail config. Reports errors for undeclared
  * access and warnings for unused declarations.
@@ -10,7 +10,7 @@
 import {
   collectNamedResourceIds,
   extractFirstStringArg,
-  findBlazeBodies,
+  findImplementationBodies,
   findConfigProperty,
   findTrailDefinitions,
   getNodeCallee,
@@ -127,9 +127,11 @@ const extractDeclaredResources = (
 // Called resource extraction
 // ---------------------------------------------------------------------------
 
-/** Extract the raw second parameter node from a blaze function. */
-const extractContextParamNode = (blazeBody: AstNode): AstNode | null => {
-  const params = blazeBody['params'] as readonly AstNode[] | undefined;
+/** Extract the raw second parameter node from a implementation function. */
+const extractContextParamNode = (
+  implementationBody: AstNode
+): AstNode | null => {
+  const params = implementationBody['params'] as readonly AstNode[] | undefined;
   if (!params || params.length < 2) {
     return null;
   }
@@ -137,7 +139,7 @@ const extractContextParamNode = (blazeBody: AstNode): AstNode | null => {
 };
 
 /**
- * Extract the second parameter name from a blaze function node.
+ * Extract the second parameter name from a implementation function node.
  *
  * Returns null when the parameter is not a plain Identifier (e.g. when the
  * author destructures `{ resource }` in the parameter list). Parameter-level
@@ -147,8 +149,10 @@ const extractContextParamNode = (blazeBody: AstNode): AstNode | null => {
  * (AssignmentPattern whose `.left` is the Identifier). Without this, valid
  * signatures would silently drop out of ctx-access analysis.
  */
-const extractContextParamName = (blazeBody: AstNode): string | null => {
-  const param = extractContextParamNode(blazeBody);
+const extractContextParamName = (
+  implementationBody: AstNode
+): string | null => {
+  const param = extractContextParamNode(implementationBody);
   if (!param) {
     return null;
   }
@@ -175,7 +179,7 @@ const extractResourceAlias = (property: AstNode): string | null => {
  * Collect `resource` aliases bound via parameter-level destructuring.
  *
  * Recognizes `(input, { resource }) => ...` and `(input, { resource: r }) => ...`.
- * When the blaze author destructures in the parameter list, there is no
+ * When the implementation author destructures in the parameter list, there is no
  * enclosing `ctx` identifier to track — we seed the resource alias set directly
  * from the ObjectPattern in `params[1]`.
  */
@@ -198,10 +202,10 @@ const collectParamResourceAliases = (body: AstNode): ReadonlySet<string> => {
 /**
  * Build the set of context parameter names to match against.
  *
- * Returns ONLY the actual second-parameter name from the blaze signature.
- * No seeded defaults: if the blaze has no second parameter, the returned set
+ * Returns ONLY the actual second-parameter name from the implementation signature.
+ * No seeded defaults: if the implementation has no second parameter, the returned set
  * is empty and no `ctx.resource(...)` / `context.resource(...)` calls are
- * tracked for that blaze. An unrelated closure-scoped `ctx` identifier is not
+ * tracked for that implementation. An unrelated closure-scoped `ctx` identifier is not
  * the trail context and must not be treated as one.
  *
  * Mirrors `fires-declarations.ts` `buildCtxNames` for the same reason.
@@ -363,13 +367,13 @@ const collectResourceAliases = (
   return aliases;
 };
 
-/** Walk blaze bodies and collect resource access that can be resolved statically. */
+/** Walk implementation bodies and collect resource access that can be resolved statically. */
 const extractCalledResources = (config: AstNode): CalledResources => {
   const fromNames = new Set<string>();
   const lookupIds = new Set<string>();
   const lookupNames = new Set<string>();
 
-  for (const body of findBlazeBodies(config)) {
+  for (const body of findImplementationBodies(config)) {
     const ctxNames = buildCtxNames(body);
     const paramAliases = collectParamResourceAliases(body);
     const bodyAliases = collectResourceAliases(body, ctxNames);

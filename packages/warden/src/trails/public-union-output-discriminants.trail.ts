@@ -10,7 +10,7 @@ const cleanOutput = z.discriminatedUnion('kind', [
 ]);
 
 const cleanTrail = trail('report.read', {
-  blaze: () => Result.ok({ kind: 'message' as const, message: 'ok' }),
+  implementation: () => Result.ok({ kind: 'message' as const, message: 'ok' }),
   input: z.object({}),
   output: cleanOutput,
 });

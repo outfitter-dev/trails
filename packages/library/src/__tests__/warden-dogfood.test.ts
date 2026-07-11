@@ -123,7 +123,7 @@ describe('Warden-as-library dogfood', () => {
           "import { schemas } from '../src/schemas.js';",
           "import { app } from '../src/trails.js';",
           '',
-          'const sourceCode = \'export const run = trail("sample", { blaze: () => { throw new Error("boom"); } });\';',
+          'const sourceCode = \'export const run = trail("sample", { implementation: () => { throw new Error("boom"); } });\';',
           '',
           "describe('generated Warden library', () => {",
           "  test('root, result, schemas, and trails subpaths work', async () => {",

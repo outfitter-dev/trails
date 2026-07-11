@@ -30,16 +30,6 @@ const generateSecret = (): string =>
   `jsec_${crypto.randomUUID().replaceAll('-', '')}`;
 
 export const create = trail('endpoint.create', {
-  blaze: async (input, ctx) => {
-    const store = relayStoreResource.from(ctx);
-    const endpoint = await store.endpoint.insert({
-      enabled: true,
-      name: input.name,
-      secret: generateSecret(),
-      source: input.source,
-    });
-    return Result.ok(endpoint);
-  },
   description:
     'Register an inbound endpoint; returns the signing secret exactly once',
   examples: [
@@ -54,6 +44,16 @@ export const create = trail('endpoint.create', {
       name: 'Create a generic endpoint',
     },
   ],
+  implementation: async (input, ctx) => {
+    const store = relayStoreResource.from(ctx);
+    const endpoint = await store.endpoint.insert({
+      enabled: true,
+      name: input.name,
+      secret: generateSecret(),
+      source: input.source,
+    });
+    return Result.ok(endpoint);
+  },
   input: z.object({
     name: z.string().min(1).describe('Human-readable endpoint name'),
     source: endpointSourceSchema,
@@ -65,11 +65,6 @@ export const create = trail('endpoint.create', {
 });
 
 export const list = trail('endpoint.list', {
-  blaze: async (_input, ctx) => {
-    const store = relayStoreResource.from(ctx);
-    const endpoints = await store.endpoint.list();
-    return Result.ok({ endpoints: endpoints.map(toSummary) });
-  },
   description: 'List registered endpoints with secrets redacted',
   examples: [
     {
@@ -83,6 +78,11 @@ export const list = trail('endpoint.list', {
       name: 'List endpoints again',
     },
   ],
+  implementation: async (_input, ctx) => {
+    const store = relayStoreResource.from(ctx);
+    const endpoints = await store.endpoint.list();
+    return Result.ok({ endpoints: endpoints.map(toSummary) });
+  },
   input: z.object({}),
   intent: 'read',
   output: z.object({ endpoints: z.array(endpointSummarySchema) }),
@@ -91,14 +91,6 @@ export const list = trail('endpoint.list', {
 });
 
 export const get = trail('endpoint.get', {
-  blaze: async (input, ctx) => {
-    const store = relayStoreResource.from(ctx);
-    const endpoint = await store.endpoint.get(input.id);
-    if (!endpoint) {
-      return Result.err(new NotFoundError(`Endpoint "${input.id}" not found`));
-    }
-    return Result.ok(toSummary(endpoint));
-  },
   description: 'Show one endpoint with its secret redacted',
   examples: [
     {
@@ -120,6 +112,14 @@ export const get = trail('endpoint.get', {
       name: 'Endpoint not found',
     },
   ],
+  implementation: async (input, ctx) => {
+    const store = relayStoreResource.from(ctx);
+    const endpoint = await store.endpoint.get(input.id);
+    if (!endpoint) {
+      return Result.err(new NotFoundError(`Endpoint "${input.id}" not found`));
+    }
+    return Result.ok(toSummary(endpoint));
+  },
   input: z.object({ id: z.string().describe('Endpoint identifier') }),
   intent: 'read',
   output: endpointSummarySchema,
@@ -128,14 +128,6 @@ export const get = trail('endpoint.get', {
 });
 
 export const disable = trail('endpoint.disable', {
-  blaze: async (input, ctx) => {
-    const store = relayStoreResource.from(ctx);
-    const endpoint = await store.endpoint.update(input.id, { enabled: false });
-    if (!endpoint) {
-      return Result.err(new NotFoundError(`Endpoint "${input.id}" not found`));
-    }
-    return Result.ok(toSummary(endpoint));
-  },
   description: 'Stop accepting webhooks on an endpoint',
   examples: [
     {
@@ -157,6 +149,14 @@ export const disable = trail('endpoint.disable', {
       name: 'Disable unknown endpoint',
     },
   ],
+  implementation: async (input, ctx) => {
+    const store = relayStoreResource.from(ctx);
+    const endpoint = await store.endpoint.update(input.id, { enabled: false });
+    if (!endpoint) {
+      return Result.err(new NotFoundError(`Endpoint "${input.id}" not found`));
+    }
+    return Result.ok(toSummary(endpoint));
+  },
   input: z.object({ id: z.string().describe('Endpoint identifier') }),
   intent: 'write',
   output: endpointSummarySchema,
@@ -165,16 +165,6 @@ export const disable = trail('endpoint.disable', {
 });
 
 export const rotateSecret = trail('endpoint.rotate-secret', {
-  blaze: async (input, ctx) => {
-    const store = relayStoreResource.from(ctx);
-    const endpoint = await store.endpoint.update(input.id, {
-      secret: generateSecret(),
-    });
-    if (!endpoint) {
-      return Result.err(new NotFoundError(`Endpoint "${input.id}" not found`));
-    }
-    return Result.ok(endpoint);
-  },
   description:
     'Rotate an endpoint secret; the new secret is returned exactly once and previously stored events are unaffected',
   examples: [
@@ -190,6 +180,16 @@ export const rotateSecret = trail('endpoint.rotate-secret', {
       name: 'Rotate unknown endpoint',
     },
   ],
+  implementation: async (input, ctx) => {
+    const store = relayStoreResource.from(ctx);
+    const endpoint = await store.endpoint.update(input.id, {
+      secret: generateSecret(),
+    });
+    if (!endpoint) {
+      return Result.err(new NotFoundError(`Endpoint "${input.id}" not found`));
+    }
+    return Result.ok(endpoint);
+  },
   input: z.object({ id: z.string().describe('Endpoint identifier') }),
   intent: 'write',
   output: endpointSchema,

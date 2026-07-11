@@ -6,7 +6,7 @@
  * built-in rule implementation until they have a stable public contract.
  */
 export {
-  findBlazeBodies,
+  findImplementationBodies,
   findContourDefinitions,
   findStringLiterals,
   findTrailDefinitions,
@@ -59,7 +59,7 @@ export {
   isAstNode,
   isBinaryExpression,
   isBlockStatement,
-  isBlazeCall,
+  isImplementationCall,
   isCallExpression,
   isClassMember,
   isDeclarationWithId,

@@ -12,14 +12,14 @@ import { vite } from '../index.js';
 import type { ViteMiddleware } from '../index.js';
 
 const echoTrail = trail('echo', {
-  blaze: (input) => Result.ok({ reply: input.message }),
+  implementation: (input) => Result.ok({ reply: input.message }),
   input: z.object({ message: z.string() }),
   intent: 'read',
   output: z.object({ reply: z.string() }),
 });
 
 const submitTrail = trail('submit', {
-  blaze: (input) => Result.ok({ accepted: input.message }),
+  implementation: (input) => Result.ok({ accepted: input.message }),
   input: z.object({ message: z.string() }),
   output: z.object({ accepted: z.string() }),
 });

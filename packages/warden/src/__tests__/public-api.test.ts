@@ -4,7 +4,7 @@ import * as warden from '@ontrails/warden';
 import {
   applySourceEdits,
   createSourceEdit,
-  findBlazeBodies,
+  findImplementationBodies,
   findContourDefinitions,
   findTrailDefinitions,
   getNodeAlternate,
@@ -14,7 +14,7 @@ import {
   getNodeId,
   getNodeInit,
   identifierName,
-  isBlazeCall,
+  isImplementationCall,
   isCallExpression,
   isIdentifier,
   isImportDeclaration,
@@ -149,8 +149,8 @@ import {
 const user = contour('user', { id: z.string() });
 
 export const showUser = trail('user.show', {
-  blaze: async (input, ctx) => {
-    return userShow.blaze(input, ctx);
+  implementation: async (input, ctx) => {
+    return userShow.implementation(input, ctx);
   },
 });
 
@@ -170,20 +170,20 @@ const selectedTrail = enabled ? loadPrimary() : loadFallback();
       findContourDefinitions(ast).map((definition) => definition.name)
     ).toEqual(['user']);
 
-    const [blazeBody] = findBlazeBodies(ast);
-    expect(blazeBody).toBeDefined();
+    const [implementationBody] = findImplementationBodies(ast);
+    expect(implementationBody).toBeDefined();
 
-    let sawBlazeCall = false;
+    let sawImplementationCall = false;
     let alternateNodeType: string | undefined;
-    walk(blazeBody, (node) => {
-      sawBlazeCall ||= isBlazeCall(node);
+    walk(implementationBody, (node) => {
+      sawImplementationCall ||= isImplementationCall(node);
     });
     walk(ast, (node) => {
       if (node.type === 'ConditionalExpression') {
         alternateNodeType = getNodeAlternate(node)?.type;
       }
     });
-    expect(sawBlazeCall).toBe(true);
+    expect(sawImplementationCall).toBe(true);
     expect(alternateNodeType).toBe('CallExpression');
 
     const namespaceContext = {
@@ -193,14 +193,14 @@ const selectedTrail = enabled ? loadPrimary() : loadFallback();
     expect(namespaceContext.namespaces.has('core')).toBe(true);
 
     const scopedNodeTypes: string[] = [];
-    let hasScopedBlazeCall = false;
+    let hasScopedImplementationCall = false;
     walkScope(ast, (node) => {
       scopedNodeTypes.push(node.type);
-      hasScopedBlazeCall ||= isBlazeCall(node);
+      hasScopedImplementationCall ||= isImplementationCall(node);
     });
     expect(scopedNodeTypes.length).toBeGreaterThan(0);
     expect(scopedNodeTypes).toContain('ArrowFunctionExpression');
-    expect(hasScopedBlazeCall).toBe(false);
+    expect(hasScopedImplementationCall).toBe(false);
   });
 
   test('exposes parent-aware, scope-aware, and edit helpers on the ast entrypoint', () => {

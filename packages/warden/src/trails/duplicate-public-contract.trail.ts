@@ -8,13 +8,13 @@ const sharedInput = z.object({ target: z.string() });
 const sharedOutput = z.object({ ok: z.boolean() });
 
 const canonicalTrail = trail('survey.diff', {
-  blaze: () => Result.ok({ ok: true }),
+  implementation: () => Result.ok({ ok: true }),
   input: sharedInput,
   output: sharedOutput,
 });
 
 const duplicateTrail = trail('diff', {
-  blaze: () => Result.ok({ ok: true }),
+  implementation: () => Result.ok({ ok: true }),
   input: sharedInput,
   output: sharedOutput,
 });

@@ -97,10 +97,10 @@ export type DeriveTrailOutput<
  * Extra authored data accepted by `deriveTrail()` in addition to the
  * operation-derived contract pieces.
  *
- * `blaze` is optional for single-resource calls: when omitted, the helper
- * synthesizes a default blaze that delegates to the resource's accessor via
+ * `implementation` is optional for single-resource calls: when omitted, the helper
+ * synthesizes a default implementation that delegates to the resource's accessor via
  * the structural {@link StoreAccessorProtocol}. When multiple resources are
- * declared, an explicit `blaze` is required.
+ * declared, an explicit `implementation` is required.
  */
 export interface DeriveTrailSpec<
   TContour extends AnyContour,
@@ -113,7 +113,7 @@ export interface DeriveTrailSpec<
     DeriveTrailInput<TContour, TOperation, TGenerated>,
     DeriveTrailOutput<TContour, TOperation>
   >,
-  | 'blaze'
+  | 'implementation'
   | 'contours'
   | 'examples'
   | 'input'
@@ -123,10 +123,10 @@ export interface DeriveTrailSpec<
 > {
   /**
    * Implementation of the trail. Optional for single-resource calls: when
-   * omitted, the helper derives a default blaze from the resource accessor
+   * omitted, the helper derives a default implementation from the resource accessor
    * for standard CRUD operations.
    */
-  readonly blaze?: Implementation<
+  readonly implementation?: Implementation<
     DeriveTrailInput<TContour, TOperation, TGenerated>,
     DeriveTrailOutput<TContour, TOperation>
   >;
@@ -137,8 +137,8 @@ export interface DeriveTrailSpec<
   readonly generated?: TGenerated;
   /**
    * Resource dependency declared on the derived trail. Pass a single
-   * resource for default-blaze synthesis, or an array for multi-resource
-   * trails that must provide an explicit `blaze`.
+   * resource for default-implementation synthesis, or an array for multi-resource
+   * trails that must provide an explicit `implementation`.
    */
   readonly resource: AnyResource | readonly AnyResource[];
 }
@@ -363,7 +363,7 @@ const formatExampleName = (
  * array (`expected: [example]`) and uses the fixture's identity as input
  * filters. This means the expected output is always a one-element array,
  * which may not match the real accessor behavior when multiple fixtures
- * share the same filter. A custom `blaze` with hand-authored examples is
+ * share the same filter. A custom `implementation` with hand-authored examples is
  * required for multi-result list assertions.
  */
 const deriveExample = (
@@ -457,7 +457,7 @@ const deriveExamples = (
 };
 
 // ---------------------------------------------------------------------------
-// Default-blaze synthesis
+// Default-implementation synthesis
 // ---------------------------------------------------------------------------
 
 type GenericAccessor = StoreAccessorProtocol<
@@ -477,7 +477,7 @@ const wrapUnexpected = (
   }
   const cause = error instanceof Error ? error : new Error(String(error));
   return new InternalError(
-    `deriveTrail("${contourName}.${operation}") synthesized blaze failed: ${cause.message}`,
+    `deriveTrail("${contourName}.${operation}") synthesized implementation failed: ${cause.message}`,
     { cause }
   );
 };
@@ -697,7 +697,7 @@ const callDelete = async (
  * Default `list` synthesis passes the entire input as the filter bag. The
  * derived input type is `Partial<ContourInput>` which matches the accessor's
  * filter shape field-for-field. Pagination controls are not derived — callers
- * that need pagination must provide an explicit blaze.
+ * that need pagination must provide an explicit implementation.
  */
 const callList = async (
   contour: AnyContour,
@@ -719,7 +719,7 @@ const callList = async (
   }
 };
 
-const synthesizeDefaultBlaze = <
+const synthesizeDefaultImplementation = <
   TContour extends AnyContour,
   TOperation extends DeriveTrailOperation,
   TGenerated extends readonly ContourFieldKey<TContour>[] | undefined,
@@ -768,10 +768,10 @@ const synthesizeDefaultBlaze = <
 /**
  * Mechanically project one CRUD-shaped trail from a contour declaration.
  *
- * When `spec.blaze` is omitted and the call declares a single resource, the
- * helper derives a default blaze that dispatches to the resource accessor
+ * When `spec.implementation` is omitted and the call declares a single resource, the
+ * helper derives a default implementation that dispatches to the resource accessor
  * through the structural {@link StoreAccessorProtocol}. Multi-resource calls
- * must supply an explicit blaze and are rejected with {@link DerivationError}
+ * must supply an explicit implementation and are rejected with {@link DerivationError}
  * at construction time when they do not.
  */
 export const deriveTrail = <
@@ -793,35 +793,34 @@ export const deriveTrail = <
     spec.generated as readonly string[] | undefined
   );
 
-  let blaze: Implementation<
+  let implementation: Implementation<
     DeriveTrailInput<TContour, TOperation, TGenerated>,
     DeriveTrailOutput<TContour, TOperation>
   >;
-  if (typeof spec.blaze === 'function') {
-    ({ blaze } = spec);
+  if (typeof spec.implementation === 'function') {
+    ({ implementation } = spec);
   } else if (resources.length === 1) {
-    blaze = synthesizeDefaultBlaze<TContour, TOperation, TGenerated>(
-      contour,
-      operation,
-      resources[0] as AnyResource,
-      generated
-    );
+    implementation = synthesizeDefaultImplementation<
+      TContour,
+      TOperation,
+      TGenerated
+    >(contour, operation, resources[0] as AnyResource, generated);
   } else {
     throw new DerivationError(
-      `deriveTrail("${contour.name}.${operation}") requires an explicit \`blaze\` when ${describeDeriveTrailResourceDeclaration(resources.length)} — default synthesis is single-resource only`
+      `deriveTrail("${contour.name}.${operation}") requires an explicit \`implementation\` when ${describeDeriveTrailResourceDeclaration(resources.length)} — default synthesis is single-resource only`
     );
   }
   const {
-    blaze: _blaze,
+    implementation: _implementation,
     resource: _resource,
     generated: _generated,
     ...trailSpec
   } = spec;
   const derivedSpec = {
     ...trailSpec,
-    blaze,
     contours: [contour],
     examples: deriveExamples(contour, operation, generated),
+    implementation,
     input: deriveInputSchema<TContour, TOperation, TGenerated>(
       contour,
       operation,

@@ -26,8 +26,8 @@ const parseJson = (text: string | undefined): unknown => {
 describe('buildMcpResources', () => {
   test('projects a surface map resource with trailheaded tool metadata', () => {
     const readTopo = trail('topo.read', {
-      blaze: () => Result.ok({ ok: true }),
       description: 'Read topo.',
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({}),
       output: z.object({ ok: z.boolean() }),
     });
@@ -64,7 +64,6 @@ describe('buildMcpResources', () => {
 
   test('projects examples for trails exposed through a trailhead', () => {
     const readTopo = trail('topo.read', {
-      blaze: (input) => Result.ok({ id: input.id }),
       examples: [
         {
           expected: { id: 'topo-1' },
@@ -72,6 +71,7 @@ describe('buildMcpResources', () => {
           name: 'basic',
         },
       ],
+      implementation: (input) => Result.ok({ id: input.id }),
       input: z.object({ id: z.string() }),
       output: z.object({ id: z.string() }),
     });
@@ -104,7 +104,7 @@ describe('buildMcpResources', () => {
 
   test('can disable surface map and example resources', () => {
     const readTopo = trail('topo.read', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({}),
     });
     const app = topo('myapp', { readTopo });

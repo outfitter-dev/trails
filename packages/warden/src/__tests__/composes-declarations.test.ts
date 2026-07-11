@@ -12,7 +12,7 @@ import { trail, Result } from '@ontrails/core';
 const t = trail('onboard', {
   composes: ['entity.add', 'search'],
   input: z.object({ name: z.string() }),
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     await ctx.compose('entity.add', { name: input.name });
     await ctx.compose('search', { query: input.name });
     return Result.ok({});
@@ -30,7 +30,7 @@ const t = trail('onboard', {
 trail('onboard', {
   composes: ['entity.add', 'search'],
   input: z.object({ name: z.string() }),
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     await ctx.compose([
       ['entity.add', { name: input.name }],
       ['search', { query: input.name }],
@@ -49,7 +49,7 @@ trail('onboard', {
       const code = `
 trail('simple', {
   input: z.object({ name: z.string() }),
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     return Result.ok({ greeting: 'hello ' + input.name });
   },
 });
@@ -69,7 +69,7 @@ const viewEntity = async (input, ctx) => ctx.compose('entity.add', input);
 trail('onboard', {
   composes: ['entity.add'],
   input: z.object({ name: z.string() }),
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const result = await viewEntity(input, ctx);
     return result.isErr() ? result : Result.ok({});
   },
@@ -93,7 +93,7 @@ const viewEntity = async (input, ctx) => {
 trail('onboard', {
   composes: ['entity.add'],
   input: z.object({ name: z.string() }),
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const result = await viewEntity(input, ctx);
     return result.isErr() ? result : Result.ok({});
   },
@@ -121,7 +121,7 @@ const composeAll = async (input, ctx) => {
 trail('onboard', {
   composes: ['entity.add', 'search'],
   input: z.object({ name: z.string() }),
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const result = await composeAll(input, ctx);
     return result.isErr() ? result : Result.ok({});
   },
@@ -139,7 +139,7 @@ trail('onboard', {
       const code = `
 trail('onboard', {
   input: z.object({ name: z.string() }),
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     await ctx.compose('entity.add', { name: input.name });
     return Result.ok({});
   },
@@ -163,7 +163,7 @@ trail('onboard', {
 trail('onboard', {
   composes: ['entity.add'],
   input: z.object({ name: z.string() }),
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     await ctx.compose([
       ['entity.add', { name: input.name }],
       ['search', { query: input.name }],
@@ -191,7 +191,7 @@ const viewEntity = async (input, ctx) => {
 
 trail('onboard', {
   input: z.object({ name: z.string() }),
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const result = await viewEntity(input, ctx);
     return result.isErr() ? result : Result.ok({});
   },
@@ -205,7 +205,7 @@ trail('onboard', {
       expect(diagnostics[0]?.message).toContain("ctx.compose('entity.add')");
     });
 
-    test('does not follow a shadowed helper name inside the blaze body', () => {
+    test('does not follow a shadowed helper name inside the implementation body', () => {
       const code = `
 import { trail, Result } from '@ontrails/core';
 
@@ -213,7 +213,7 @@ const viewEntity = async (input, ctx) => ctx.compose('entity.add', input);
 
 trail('onboard', {
   input: z.object({ name: z.string() }),
-  blaze: async () => {
+  implementation: async () => {
     const viewEntity = async () => Result.ok({});
     return viewEntity();
   },
@@ -233,7 +233,7 @@ const viewEntity = async (input, ctx) => ctx.compose('entity.add', input);
 
 trail('onboard', {
   input: z.object({ name: z.string() }),
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     if (input.name) {
       const viewEntity = async () => Result.ok({});
       return viewEntity(input, ctx);
@@ -254,7 +254,7 @@ trail('onboard', {
       const code = `
 trail('onboard', {
   composes: ['entity.add', 'search'],
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     await ctx.compose('entity.add', { name: input.name });
     return Result.ok({});
   },
@@ -274,13 +274,13 @@ trail('onboard', {
   });
 
   describe('single-object overload', () => {
-    test('recognizes trail({ id, composes, blaze }) form', () => {
+    test('recognizes trail({ id, composes, implementation }) form', () => {
       const code = `
 trail({
   id: 'onboard',
   composes: ['entity.add'],
   input: z.object({ name: z.string() }),
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     await ctx.compose('entity.add', { name: input.name });
     return Result.ok({});
   },
@@ -297,7 +297,7 @@ trail({
 trail({
   id: 'onboard',
   input: z.object({ name: z.string() }),
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     await ctx.compose('entity.add', { name: input.name });
     return Result.ok({});
   },
@@ -318,7 +318,7 @@ trail({
 trail('onboard', {
   composes: ['entity.add'],
   input: z.object({ name: z.string() }),
-  blaze: async (input, context) => {
+  implementation: async (input, context) => {
     await context.compose('entity.add', { name: input.name });
     return Result.ok({});
   },
@@ -334,7 +334,7 @@ trail('onboard', {
       const code = `
 trail('onboard', {
   input: z.object({ name: z.string() }),
-  blaze: async (input, context) => {
+  implementation: async (input, context) => {
     await context.compose('entity.add', { name: input.name });
     return Result.ok({});
   },
@@ -352,7 +352,7 @@ trail('onboard', {
 trail('onboard', {
   composes: ['entity.add'],
   input: z.object({ name: z.string() }),
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const { compose } = ctx;
     await compose('entity.add', { name: input.name });
     return Result.ok({});
@@ -369,7 +369,7 @@ trail('onboard', {
       const code = `
 trail('onboard', {
   input: z.object({ name: z.string() }),
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const compose = (id) => ({ id });
     compose('entity.add');
     await ctx.compose('search', { query: input.name });
@@ -389,7 +389,7 @@ trail('onboard', {
 trail('onboard', {
   composes: ['entity.add'],
   input: z.object({ name: z.string() }),
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const { compose: runTrail } = ctx;
     await runTrail('entity.add', { name: input.name });
     return Result.ok({});
@@ -402,14 +402,14 @@ trail('onboard', {
       expect(diagnostics.length).toBe(0);
     });
 
-    test('blaze with no second parameter: unrelated closure ctx.compose is not tracked', () => {
+    test('implementation with no second parameter: unrelated closure ctx.compose is not tracked', () => {
       const code = `
 import { trail, Result } from '@ontrails/core';
 
 const ctx = { compose: () => ({}) };
 
 trail('demo', {
-  blaze: async () => {
+  implementation: async () => {
     ctx.compose('entity.add');
     return Result.ok({ ok: true });
   },
@@ -418,20 +418,20 @@ trail('demo', {
 `;
 
       const diagnostics = composesDeclarations.check(code, TEST_FILE);
-      // The blaze has no context parameter, so `ctx` in the body is an
+      // The implementation has no context parameter, so `ctx` in the body is an
       // unrelated closure-scoped binding, not the trail context. It must
       // not be tracked — no diagnostics.
       expect(diagnostics.length).toBe(0);
     });
 
-    test('blaze with no second parameter: unrelated closure context.compose is not tracked', () => {
+    test('implementation with no second parameter: unrelated closure context.compose is not tracked', () => {
       const code = `
 import { trail, Result } from '@ontrails/core';
 
 const context = { compose: () => ({}) };
 
 trail('demo', {
-  blaze: async () => {
+  implementation: async () => {
     context.compose('entity.add');
     return Result.ok({ ok: true });
   },
@@ -443,12 +443,12 @@ trail('demo', {
       expect(diagnostics.length).toBe(0);
     });
 
-    test('real blaze ctx.compose to undeclared target is still flagged', () => {
+    test('real implementation ctx.compose to undeclared target is still flagged', () => {
       const code = `
 import { trail, Result } from '@ontrails/core';
 
 trail('demo', {
-  blaze: async (_, ctx) => {
+  implementation: async (_, ctx) => {
     await ctx.compose('undeclared');
     return Result.ok({ ok: true });
   },
@@ -469,7 +469,7 @@ import { trail, Result } from '@ontrails/core';
 const fallbackCtx = { compose: async () => Result.ok({}) };
 
 trail('demo', {
-  blaze: async (_input, ctx = fallbackCtx) => {
+  implementation: async (_input, ctx = fallbackCtx) => {
     await ctx.compose('undeclared');
     return Result.ok({ ok: true });
   },
@@ -490,8 +490,8 @@ trail('demo', {
 trail('onboard', {
   composes: ['entity.add'],
   input: z.object({ name: z.string() }),
-  meta: { blaze: async () => ctx.compose('phantom') },
-  blaze: async (input, ctx) => {
+  meta: { implementation: async () => ctx.compose('phantom') },
+  implementation: async (input, ctx) => {
     await ctx.compose('entity.add', { name: input.name });
     return Result.ok({});
   },
@@ -511,7 +511,7 @@ const ENTITY_ADD = 'entity.add';
 trail('onboard', {
   composes: [ENTITY_ADD],
   input: z.object({ name: z.string() }),
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     await ctx.compose('entity.add', { name: input.name });
     return Result.ok({});
   },
@@ -529,7 +529,7 @@ const ENTITY_ADD = 'entity.add';
 trail('onboard', {
   composes: [ENTITY_ADD],
   input: z.object({ name: z.string() }),
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     await ctx.compose('search', { name: input.name });
     return Result.ok({});
   },
@@ -550,7 +550,7 @@ import { showGist } from '../gist/show';
 trail('gist.fork', {
   composes: [showGist],
   input: z.object({ id: z.string() }),
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     await ctx.compose('gist.create', { id: input.id });
     return Result.ok({});
   },
@@ -571,7 +571,7 @@ import { showGist } from '../gist/show';
 trail('gist.fork', {
   composes: ['gist.create', showGist],
   input: z.object({ id: z.string() }),
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     await ctx.compose('gist.create', { id: input.id });
     return Result.ok({});
   },
@@ -590,7 +590,7 @@ import { showGist } from '../gist/show';
 trail('gist.fork', {
   composes: [showGist],
   input: z.object({ id: z.string() }),
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     return Result.ok({});
   },
 });
@@ -610,7 +610,7 @@ import { showGist } from '../gist/show';
 trail('gist.fork', {
   composes: [showGist],
   input: z.object({ id: z.string() }),
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     await ctx.compose(showGist, { id: input.id });
     return Result.ok({});
   },
@@ -628,7 +628,7 @@ import { showGist } from '../gist/show';
 trail('gist.fork', {
   composes: ['gist.create', showGist],
   input: z.object({ id: z.string() }),
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     await ctx.compose('gist.create', { id: input.id });
     await ctx.compose(showGist, { id: input.id });
     return Result.ok({});
@@ -648,7 +648,7 @@ import { showGist } from '../gist/show';
 trail('gist.fork', {
   composes: [showGist],
   input: z.object({ id: z.string() }),
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     await ctx.compose(showGist, { id: input.id });
     await ctx.compose('undeclared.trail', { id: input.id });
     return Result.ok({});
@@ -669,7 +669,7 @@ trail('gist.fork', {
       const code = `
 trail('dispatch', {
   composes: ['entity.add'],
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const trailId = input.target;
     await ctx.compose(trailId, input);
     await ctx.compose('entity.add', input);
@@ -687,14 +687,14 @@ trail('dispatch', {
       const code = `
 trail('alpha', {
   composes: ['shared'],
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     await ctx.compose('shared', input);
     return Result.ok({});
   },
 });
 
 trail('beta', {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     await ctx.compose('undeclared', input);
     return Result.ok({});
   },
@@ -712,7 +712,7 @@ trail('beta', {
     test('skips test files', () => {
       const code = `
 trail('onboard', {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     await ctx.compose('entity.add', input);
     return Result.ok({});
   },

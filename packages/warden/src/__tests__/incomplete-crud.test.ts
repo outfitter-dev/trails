@@ -34,7 +34,7 @@ const notesResource = resource('db.notes', {
 });
 
 export const ${operation}Note = deriveTrail(note, '${operation}', {
-  blaze: async () => Result.ok({}),
+  implementation: async () => Result.ok({}),
   resource: notesResource,
 });
 `;
@@ -53,7 +53,7 @@ const notesResource = resource('db.notes', {
 });
 
 export const ${operation}Note = deriveTrail(note, '${operation}', {
-  blaze: async () => Result.ok({}),
+  implementation: async () => Result.ok({}),
   resource: notesResource,
 });
 `;
@@ -75,7 +75,7 @@ const notesResource = resource('db.notes', {
 });
 
 export const ${operation}Note = deriveTrail(noteContour, '${operation}', {
-  blaze: async () => Result.ok({}),
+  implementation: async () => Result.ok({}),
   resource: notesResource,
 });
 `;
@@ -91,7 +91,7 @@ const notesResource = resource('db.notes', {
 });
 
 export const ${operation}Note = deriveTrail(noteContour, '${operation}', {
-  blaze: async () => Result.ok({}),
+  implementation: async () => Result.ok({}),
   resource: notesResource,
 });
 `;
@@ -115,12 +115,12 @@ const notesResource = resource('db.notes', {
 });
 
 export const createNote = deriveTrail(note, 'create', {
-  blaze: async () => Result.ok({}),
+  implementation: async () => Result.ok({}),
   resource: notesResource,
 });
 
 export const readNote = deriveTrail(note, 'read', {
-  blaze: async () => Result.ok({}),
+  implementation: async () => Result.ok({}),
   resource: notesResource,
 });
 `;
@@ -212,12 +212,12 @@ const notesResource = resource('db.notes', {
 });
 
 export const createNote = deriveTrail(note, 'create', {
-  blaze: async () => Result.ok({}),
+  implementation: async () => Result.ok({}),
   resource: notesResource,
 });
 
 export const readNote = deriveTrail(note, 'read', {
-  blaze: async () => Result.ok({}),
+  implementation: async () => Result.ok({}),
   resource: notesResource,
 });
 `;
@@ -244,11 +244,11 @@ const notesResource = resource('db.notes', {
   mock: () => ({}),
 });
 
-export const createNote = deriveTrail(note, 'create', { blaze: async () => Result.ok({}), resource: notesResource });
-export const readNote = deriveTrail(note, 'read', { blaze: async () => Result.ok({}), resource: notesResource });
-export const updateNote = deriveTrail(note, 'update', { blaze: async () => Result.ok({}), resource: notesResource });
-export const deleteNote = deriveTrail(note, 'delete', { blaze: async () => Result.ok({}), resource: notesResource });
-export const listNote = deriveTrail(note, 'list', { blaze: async () => Result.ok({}), resource: notesResource });
+export const createNote = deriveTrail(note, 'create', { implementation: async () => Result.ok({}), resource: notesResource });
+export const readNote = deriveTrail(note, 'read', { implementation: async () => Result.ok({}), resource: notesResource });
+export const updateNote = deriveTrail(note, 'update', { implementation: async () => Result.ok({}), resource: notesResource });
+export const deleteNote = deriveTrail(note, 'delete', { implementation: async () => Result.ok({}), resource: notesResource });
+export const listNote = deriveTrail(note, 'list', { implementation: async () => Result.ok({}), resource: notesResource });
 `;
 
     expect(incompleteCrud.check(code, TEST_FILE)).toEqual([]);
@@ -390,7 +390,7 @@ const notesResource = resource('db.notes', {
 });
 
 export const readNote = deriveTrail(noteContour, 'read', {
-  blaze: async () => Result.ok({}),
+  implementation: async () => Result.ok({}),
   resource: notesResource,
 });
 `;
@@ -463,11 +463,11 @@ const notesResource = resource('db.notes', {
   mock: () => ({}),
 });
 
-export const createNote = deriveTrail(note, 'create', { blaze: async () => Result.ok({}), resource: notesResource });
-export const readNote = deriveTrail(note, 'read', { blaze: async () => Result.ok({}), resource: notesResource });
-export const updateNote = deriveTrail(note, 'update', { blaze: async () => Result.ok({}), resource: notesResource });
-export const deleteNote = deriveTrail(note, 'delete', { blaze: async () => Result.ok({}), resource: notesResource });
-export const listNote = deriveTrail(note, 'list', { blaze: async () => Result.ok({}), resource: notesResource });
+export const createNote = deriveTrail(note, 'create', { implementation: async () => Result.ok({}), resource: notesResource });
+export const readNote = deriveTrail(note, 'read', { implementation: async () => Result.ok({}), resource: notesResource });
+export const updateNote = deriveTrail(note, 'update', { implementation: async () => Result.ok({}), resource: notesResource });
+export const deleteNote = deriveTrail(note, 'delete', { implementation: async () => Result.ok({}), resource: notesResource });
+export const listNote = deriveTrail(note, 'list', { implementation: async () => Result.ok({}), resource: notesResource });
 `;
 
       expect(

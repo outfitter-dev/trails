@@ -47,7 +47,7 @@ Every command route for a trail resolves to the same authored trail:
 - same input schema;
 - same output schema;
 - same `Result` boundary;
-- same blaze;
+- same implementation;
 - same permit requirements;
 - same intent;
 - same error taxonomy.
@@ -62,7 +62,7 @@ Most trails author no CLI metadata.
 trail('wayfind.search', {
   input,
   output,
-  blaze,
+  implementation,
 });
 ```
 
@@ -83,7 +83,7 @@ trail('wayfind.search', {
   cli: 'wayfind search',
   input,
   output,
-  blaze,
+  implementation,
 });
 ```
 
@@ -100,7 +100,7 @@ trail('wayfind.search', {
   },
   input,
   output,
-  blaze,
+  implementation,
 });
 ```
 
@@ -147,7 +147,7 @@ trail('wayfind.search', {
   },
   input,
   output,
-  blaze,
+  implementation,
 });
 ```
 
@@ -264,7 +264,7 @@ Day-one governance should include:
 - single-segment grammar for string aliases;
 - deprecated alias guidance when deprecations are introduced;
 - structural enforcement that aliases cannot carry permit, intent, output, or
-blaze changes.
+implementation changes.
 
 ### Schema output becomes more valuable to agents
 

@@ -50,7 +50,22 @@ const fileBytes = (file: StashFile): Uint8Array => {
 };
 
 export const raw = trail('file.raw', {
-  blaze: async (input, ctx) => {
+  description:
+    'Serve one file of one revision as raw bytes with a content type derived from its extension',
+  examples: [
+    {
+      description: 'Fetch the raw bytes of a seeded file',
+      input: { name: 'greet.ts', seq: 1, snippetId: 'snip_hello' },
+      name: 'Raw file bytes',
+    },
+    {
+      description: 'Unknown file names return NotFoundError',
+      error: 'NotFoundError',
+      input: { name: 'nope.ts', seq: 1, snippetId: 'snip_hello' },
+      name: 'Raw missing file',
+    },
+  ],
+  implementation: async (input, ctx) => {
     const conn = db.from(ctx);
     const snippet = await loadVisibleSnippet(
       conn,
@@ -89,21 +104,6 @@ export const raw = trail('file.raw', {
       })
     );
   },
-  description:
-    'Serve one file of one revision as raw bytes with a content type derived from its extension',
-  examples: [
-    {
-      description: 'Fetch the raw bytes of a seeded file',
-      input: { name: 'greet.ts', seq: 1, snippetId: 'snip_hello' },
-      name: 'Raw file bytes',
-    },
-    {
-      description: 'Unknown file names return NotFoundError',
-      error: 'NotFoundError',
-      input: { name: 'nope.ts', seq: 1, snippetId: 'snip_hello' },
-      name: 'Raw missing file',
-    },
-  ],
   input: z.object({
     name: z.string().describe('File name within the revision'),
     seq: z.coerce.number().int().min(1).describe('Revision sequence number'),

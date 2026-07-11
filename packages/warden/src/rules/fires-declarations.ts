@@ -1,7 +1,7 @@
 /**
  * Validates that `ctx.fire()` calls match the declared `fires` array.
  *
- * Statically analyzes trail `blaze` functions to find `ctx.fire(signal, ...)`
+ * Statically analyzes trail `implementation` functions to find `ctx.fire(signal, ...)`
  * calls and compares locally-resolved `Signal` values against the `fires: [...]`
  * declaration in the trail config. Reports errors for undeclared fires, string
  * fire calls that no longer match the public runtime API, and warnings for
@@ -15,7 +15,7 @@ import {
   buildSignalIdentifierResolver,
   deriveConstString,
   extractStringLiteral,
-  findBlazeBodies,
+  findImplementationBodies,
   findConfigProperty,
   findTrailDefinitions,
   getNodeBodyNode,
@@ -164,14 +164,16 @@ const extractMemberPair = (
 };
 
 /**
- * Extract the second parameter node from a blaze function node.
+ * Extract the second parameter node from a implementation function node.
  *
  * Handles `(input, ctx) => ...`, `async (input, context) => ...`,
  * `function(input, ctx) { ... }`, and parameter-level destructuring
  * like `(input, { fire }) => ...`.
  */
-const extractContextParamNode = (blazeBody: AstNode): AstNode | null => {
-  const params = blazeBody['params'] as readonly AstNode[] | undefined;
+const extractContextParamNode = (
+  implementationBody: AstNode
+): AstNode | null => {
+  const params = implementationBody['params'] as readonly AstNode[] | undefined;
   if (!params || params.length < 2) {
     return null;
   }
@@ -212,7 +214,7 @@ const collectFireNamesFromPattern = (
 };
 
 /**
- * Extract the second parameter name from a blaze function node.
+ * Extract the second parameter name from a implementation function node.
  *
  * Returns null when the parameter is not a plain Identifier (e.g. when the
  * author destructures `{ fire }` in the parameter list). Parameter-level
@@ -222,8 +224,10 @@ const collectFireNamesFromPattern = (
  * (AssignmentPattern whose `.left` is the Identifier). Without this, valid
  * signatures would silently drop out of ctx-access analysis.
  */
-const extractContextParamName = (blazeBody: AstNode): string | null => {
-  const param = extractContextParamNode(blazeBody);
+const extractContextParamName = (
+  implementationBody: AstNode
+): string | null => {
+  const param = extractContextParamNode(implementationBody);
   if (!param) {
     return null;
   }
@@ -238,7 +242,7 @@ const extractContextParamName = (blazeBody: AstNode): string | null => {
  * Collect `fire` local names bound via parameter-level destructuring.
  *
  * Recognizes `(input, { fire }) => ...` and `(input, { fire: emit }) => ...`.
- * When the blaze author destructures in the parameter list, there is no
+ * When the implementation author destructures in the parameter list, there is no
  * enclosing `ctx` identifier to track — we seed the fire local set directly
  * from the ObjectPattern in `params[1]`.
  */
@@ -350,7 +354,7 @@ const extractFireCallId = (
 };
 
 /**
- * Walk a blaze body and collect local names bound to `ctx.fire` via destructure.
+ * Walk a implementation body and collect local names bound to `ctx.fire` via destructure.
  *
  * Recognizes:
  *   - `const { fire } = ctx;` → adds `fire`
@@ -382,8 +386,8 @@ const getCtxDestructurePattern = (
 
 /**
  * Collect `fire` local names destructured from ctx at the TOP LEVEL of the
- * blaze body. Destructures inside nested functions are intentionally ignored
- * to avoid leaking nested-scope bindings into the outer blaze scope — a
+ * implementation body. Destructures inside nested functions are intentionally ignored
+ * to avoid leaking nested-scope bindings into the outer implementation scope — a
  * `const { fire } = ctx` inside a nested helper should not cause an outer
  * bare `fire('x')` to be treated as a ctx-bound call.
  *
@@ -398,7 +402,7 @@ const getCtxDestructurePattern = (
  * class of false positives. The runtime + signal-id compose-check still
  * validate real undeclared fires.
  */
-/** Get the top-level statements of a blaze function's BlockStatement body. */
+/** Get the top-level statements of a implementation function's BlockStatement body. */
 const getTopLevelStatements = (body: AstNode): readonly AstNode[] => {
   const blockBody = getNodeBodyNode(body);
   if (!blockBody || blockBody.type !== 'BlockStatement') {
@@ -448,10 +452,10 @@ const collectDestructuredFireNames = (
 /**
  * Build the set of context parameter names to match against.
  *
- * Returns ONLY the actual second-parameter name from the blaze signature.
- * No seeded defaults: if the blaze has no second parameter, the returned set
+ * Returns ONLY the actual second-parameter name from the implementation signature.
+ * No seeded defaults: if the implementation has no second parameter, the returned set
  * is empty and no `ctx.fire(...)` / `context.fire(...)` calls are tracked
- * for that blaze. An unrelated closure-scoped `ctx` identifier is not the
+ * for that implementation. An unrelated closure-scoped `ctx` identifier is not the
  * trail context and must not be treated as one.
  */
 const buildCtxNames = (body: AstNode): ReadonlySet<string> => {
@@ -464,7 +468,7 @@ const buildCtxNames = (body: AstNode): ReadonlySet<string> => {
 };
 
 /**
- * Walk blaze bodies and collect all statically resolvable ctx.fire() signal IDs.
+ * Walk implementation bodies and collect all statically resolvable ctx.fire() signal IDs.
  *
  * Traversal uses `walkScope`, which stops at nested function boundaries
  * (FunctionDeclaration, FunctionExpression, ArrowFunctionExpression). This
@@ -473,7 +477,7 @@ const buildCtxNames = (body: AstNode): ReadonlySet<string> => {
  * destructured `fire` local:
  *
  * ```ts
- * blaze: async (_, ctx) => {
+ * implementation: async (_, ctx) => {
  *   const { fire } = ctx;
  *   function nested(fire) { fire(orderPlaced); } // ignored — shadowed
  *   function other(ctx)  { ctx.fire(orderPlaced); } // ignored — shadowed
@@ -558,7 +562,7 @@ const extractCalledFires = (
   const stringIds = new Set<string>();
   const merged = { hasUnresolved: false, ids, stringIds };
 
-  for (const body of findBlazeBodies(config)) {
+  for (const body of findImplementationBodies(config)) {
     mergeCalledFires(
       merged,
       extractCalledFiresFromBody(body, sourceCode, signalIds)

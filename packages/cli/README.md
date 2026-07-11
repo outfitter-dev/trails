@@ -11,7 +11,7 @@ import { z } from 'zod';
 
 const greet = trail('greet', {
   input: z.object({ name: z.string().describe('Who to greet') }),
-  blaze: (input) => Result.ok(`Hello, ${input.name}!`),
+  implementation: (input) => Result.ok(`Hello, ${input.name}!`),
 });
 
 const graph = topo('myapp', { greet });
@@ -98,7 +98,7 @@ When a trail's input schema has exactly one required `string` field with no defa
 ```typescript
 const greet = trail('greet', {
   input: z.object({ name: z.string().describe('Who to greet') }),
-  blaze: (input) => Result.ok(`Hello, ${input.name}!`),
+  implementation: (input) => Result.ok(`Hello, ${input.name}!`),
 });
 ```
 
@@ -113,7 +113,7 @@ The heuristic is intentionally conservative: multiple required strings stay as f
 const copy = trail('file.copy', {
   input: z.object({ src: z.string(), dest: z.string() }),
   args: ['src'],
-  blaze: (input) => Result.ok({ src: input.src, dest: input.dest }),
+  implementation: (input) => Result.ok({ src: input.src, dest: input.dest }),
 });
 ```
 
@@ -170,7 +170,7 @@ Command-path nodes may be both executable and parents, so `myapp topo` and `myap
 
 ## Resource Resolution
 
-Declared resources on each trail are resolved into the context before execution enters the blaze.
+Declared resources on each trail are resolved into the context before execution enters the implementation.
 
 ## Filtering
 

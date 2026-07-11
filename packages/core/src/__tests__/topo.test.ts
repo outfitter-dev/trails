@@ -36,9 +36,9 @@ const mockTrail = (
   contours?: readonly ReturnType<typeof mockContour>[]
 ) =>
   trail(id, {
-    blaze: () => Result.ok({ y: 0 }),
     composes,
     contours,
+    implementation: () => Result.ok({ y: 0 }),
     input: z.object({ x: z.number() }),
     output: z.object({ y: z.number() }),
   });
@@ -50,7 +50,7 @@ const mockEvent = (id: string) =>
 
 const mockSignalConsumer = (on: readonly ReturnType<typeof mockEvent>[]) =>
   trail('notify.users', {
-    blaze: () => Result.ok({ ok: true }),
+    implementation: () => Result.ok({ ok: true }),
     input: z.object({ payload: z.string() }),
     on,
     output: z.object({ ok: z.boolean() }),
@@ -201,8 +201,8 @@ describe('topo', () => {
       };
       try {
         const logged = trail('observe.default-logger', {
-          blaze: (_input, ctx) => {
-            ctx.logger?.info('default observed', { step: 'blaze' });
+          implementation: (_input, ctx) => {
+            ctx.logger?.info('default observed', { step: 'implementation' });
             return Result.ok({ ok: true });
           },
           input: z.object({}),
@@ -219,7 +219,7 @@ describe('topo', () => {
         expect(parsed['level']).toBe('info');
         expect(parsed['message']).toBe('default observed');
         expect(parsed['metadata']).toMatchObject({
-          step: 'blaze',
+          step: 'implementation',
           topo: 'app',
           trailId: 'observe.default-logger',
         });
@@ -256,8 +256,8 @@ describe('topo', () => {
       expect(t.observe?.trace).toBeUndefined();
 
       const logged = trail('observe.explicit-logger.run', {
-        blaze: (_input, ctx) => {
-          ctx.logger?.info('explicit', { step: 'blaze' });
+        implementation: (_input, ctx) => {
+          ctx.logger?.info('explicit', { step: 'implementation' });
           return Result.ok({ ok: true });
         },
         input: z.object({}),
@@ -332,8 +332,8 @@ describe('topo', () => {
         write: (record) => records.push(record),
       };
       const logged = trail('observe.log', {
-        blaze: (_input, ctx) => {
-          ctx.logger?.info('observed trail', { step: 'blaze' });
+        implementation: (_input, ctx) => {
+          ctx.logger?.info('observed trail', { step: 'implementation' });
           return Result.ok({ ok: true });
         },
         input: z.object({}),
@@ -350,7 +350,7 @@ describe('topo', () => {
         level: 'info',
         message: 'observed trail',
         metadata: {
-          step: 'blaze',
+          step: 'implementation',
           topo: 'app',
           trailId: 'observe.log',
         },
@@ -364,7 +364,7 @@ describe('topo', () => {
         write: (record) => records.push(record),
       };
       const child = trail('observe.child', {
-        blaze: (_input, ctx) => {
+        implementation: (_input, ctx) => {
           ctx.logger?.info('child trail');
           return Result.ok({ ok: true });
         },
@@ -372,7 +372,8 @@ describe('topo', () => {
         output: z.object({ ok: z.boolean() }),
       });
       const parent = trail('observe.parent', {
-        blaze: async (_input, ctx) => {
+        composes: [child],
+        implementation: async (_input, ctx) => {
           ctx.logger?.info('parent trail');
           const composed = await ctx.compose?.('observe.child', {});
           if (!composed) {
@@ -383,7 +384,6 @@ describe('topo', () => {
           }
           return Result.ok({ ok: true });
         },
-        composes: [child],
         input: z.object({}),
         output: z.object({ ok: z.boolean() }),
       });
@@ -412,7 +412,7 @@ describe('topo', () => {
         payload: z.object({ orderId: z.string() }),
       });
       const consumer = trail('observe.consumer', {
-        blaze: (_input, ctx) => {
+        implementation: (_input, ctx) => {
           ctx.logger?.info('consumer trail');
           return Result.ok({ ok: true });
         },
@@ -421,12 +421,12 @@ describe('topo', () => {
         output: z.object({ ok: z.boolean() }),
       });
       const producer = trail('observe.producer', {
-        blaze: async (input, ctx) => {
+        fires: [orderPlaced],
+        implementation: async (input, ctx) => {
           ctx.logger?.info('producer trail');
           await ctx.fire?.(orderPlaced, { orderId: input.orderId });
           return Result.ok({ ok: true });
         },
-        fires: [orderPlaced],
         input: z.object({ orderId: z.string() }),
         output: z.object({ ok: z.boolean() }),
       });
@@ -458,7 +458,7 @@ describe('topo', () => {
         write: (record) => records.push(record),
       };
       const left = trail('observe.branch.left', {
-        blaze: (_input, ctx) => {
+        implementation: (_input, ctx) => {
           ctx.logger?.info('left branch');
           return Result.ok({ ok: true });
         },
@@ -466,7 +466,7 @@ describe('topo', () => {
         output: z.object({ ok: z.boolean() }),
       });
       const right = trail('observe.branch.right', {
-        blaze: (_input, ctx) => {
+        implementation: (_input, ctx) => {
           ctx.logger?.info('right branch');
           return Result.ok({ ok: true });
         },
@@ -474,7 +474,8 @@ describe('topo', () => {
         output: z.object({ ok: z.boolean() }),
       });
       const parent = trail('observe.branch.parent', {
-        blaze: async (_input, ctx) => {
+        composes: [left, right],
+        implementation: async (_input, ctx) => {
           const { compose } = ctx;
           if (compose === undefined) {
             return Result.err(new Error('missing ctx.compose'));
@@ -488,7 +489,6 @@ describe('topo', () => {
           }
           return Result.ok({ ok: true });
         },
-        composes: [left, right],
         input: z.object({}),
         output: z.object({ ok: z.boolean() }),
       });
@@ -888,7 +888,7 @@ describe('topo', () => {
 
       const app = topo('billing', {
         reconcile: trail('billing.reconcile', {
-          blaze: () => Result.ok({ ok: true }),
+          implementation: () => Result.ok({ ok: true }),
           input: z.object({}),
           on: [scheduleSource, { source: webhookSource }],
           output: z.object({ ok: z.boolean() }),
@@ -920,13 +920,13 @@ describe('topo', () => {
       );
 
       const identityConsumer = trail('notify.identity-users', {
-        blaze: () => Result.ok({ ok: true }),
+        implementation: () => Result.ok({ ok: true }),
         input: z.object({ payload: z.string() }),
         on: [identityScoped],
         output: z.object({ ok: z.boolean() }),
       });
       const billingConsumer = trail('notify.billing-users', {
-        blaze: () => Result.ok({ ok: true }),
+        implementation: () => Result.ok({ ok: true }),
         input: z.object({ payload: z.string() }),
         on: [billingScoped],
         output: z.object({ ok: z.boolean() }),
@@ -968,13 +968,13 @@ describe('topo', () => {
       );
 
       const demoConsumer = trail('notify.demo-gists', {
-        blaze: () => Result.ok({ ok: true }),
+        implementation: () => Result.ok({ ok: true }),
         input: z.object({ payload: z.string() }),
         on: [demoScoped],
         output: z.object({ ok: z.boolean() }),
       });
       const otherConsumer = trail('notify.other-gists', {
-        blaze: () => Result.ok({ ok: true }),
+        implementation: () => Result.ok({ ok: true }),
         input: z.object({ payload: z.string() }),
         on: [otherScoped],
         output: z.object({ ok: z.boolean() }),
@@ -1007,7 +1007,7 @@ describe('topo', () => {
         token: 'non-canonical',
       });
       const nonCanonicalConsumer = trail('notify.non-canonical', {
-        blaze: () => Result.ok({ ok: true }),
+        implementation: () => Result.ok({ ok: true }),
         input: z.object({ payload: z.string() }),
         on: [nonCanonical],
         output: z.object({ ok: z.boolean() }),
@@ -1020,7 +1020,7 @@ describe('topo', () => {
       });
       const scoped = cloneSignalWithId(canonical, 'identity:users.created');
       const canonicalConsumer = trail('notify.canonical', {
-        blaze: () => Result.ok({ ok: true }),
+        implementation: () => Result.ok({ ok: true }),
         input: z.object({ payload: z.string() }),
         on: [scoped],
         output: z.object({ ok: z.boolean() }),

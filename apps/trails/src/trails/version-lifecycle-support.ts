@@ -432,7 +432,7 @@ const missingResultImportWarning = (source: string): readonly string[] =>
   hasDirectResultImport(source)
     ? []
     : [
-        'Fork blaze placeholder references Result.err, but this file does not import Result from @ontrails/core.',
+        'Fork implementation placeholder references Result.err, but this file does not import Result from @ontrails/core.',
       ];
 
 const lineIndentAt = (source: string, index: number): string => {
@@ -460,13 +460,13 @@ const buildVersionEntry = (
   kind: LifecycleEntryKind,
   input: string,
   output: string,
-  blaze: string | undefined
+  implementation: string | undefined
 ): string => {
   if (kind === 'fork') {
     return `    ${version}: {
       input: ${input},
       output: ${output},
-      blaze: ${blaze ?? 'async () => Result.err(new Error("TODO: implement fork blaze"))'},
+      implementation: ${implementation ?? 'async () => Result.err(new Error("TODO: implement fork implementation"))'},
     },`;
   }
 
@@ -542,8 +542,9 @@ export const reviseTrailSource = (
 
   const currentVersion = trail.version ?? 1;
   const nextVersion = currentVersion + 1;
-  const blaze = findConfigProperty(match.value, 'blaze');
-  const usesForkPlaceholder = kind === 'fork' && blaze?.value === undefined;
+  const implementation = findConfigProperty(match.value, 'implementation');
+  const usesForkPlaceholder =
+    kind === 'fork' && implementation?.value === undefined;
   let nextSource = upsertCurrentVersion(
     match.value.source,
     match.value,
@@ -563,7 +564,7 @@ export const reviseTrailSource = (
       kind,
       input.value,
       output.value,
-      blaze?.value
+      implementation?.value
     )
   );
   const written = writeLifecycleSourceFile(match.value.sourcePath, nextSource);
@@ -596,8 +597,8 @@ const forkVersionEntry = (
     configEnd: entry.valueEnd,
     configStart: propertyObjectStart(source, entry),
   };
-  const forkBlaze =
-    'blaze: async () => Result.err(new Error("TODO: implement fork blaze"))';
+  const forkImplementation =
+    'implementation: async () => Result.err(new Error("TODO: implement fork implementation"))';
   const transpose = findConfigProperty(entryMatch, 'transpose');
   if (transpose !== undefined) {
     const indent = lineIndentAt(source, transpose.start);
@@ -606,13 +607,13 @@ const forkVersionEntry = (
         source,
         transpose.start,
         transpose.end,
-        `${indent}${forkBlaze},`
+        `${indent}${forkImplementation},`
       ),
       usedPlaceholder: true,
     };
   }
-  const blaze = findConfigProperty(entryMatch, 'blaze');
-  if (blaze !== undefined) {
+  const implementation = findConfigProperty(entryMatch, 'implementation');
+  if (implementation !== undefined) {
     return { source, usedPlaceholder: false };
   }
   return {
@@ -620,7 +621,7 @@ const forkVersionEntry = (
       source,
       propertyObjectCloseLineStart(source, entry),
       propertyObjectCloseLineStart(source, entry),
-      `      ${forkBlaze},\n`
+      `      ${forkImplementation},\n`
     ),
     usedPlaceholder: true,
   };

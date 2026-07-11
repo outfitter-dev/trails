@@ -81,10 +81,6 @@ import type {
 // ---------------------------------------------------------------------------
 
 const helloTrail = trail('hello', {
-  blaze: (input) => {
-    const name = input.name ?? 'world';
-    return Result.ok({ message: `Hello, ${name}!` });
-  },
   description: 'Say hello',
   detours: [
     {
@@ -100,6 +96,10 @@ const helloTrail = trail('hello', {
       name: 'Default greeting',
     },
   ],
+  implementation: (input) => {
+    const name = input.name ?? 'world';
+    return Result.ok({ message: `Hello, ${name}!` });
+  },
   input: z.object({ name: z.string().optional() }),
   intent: 'read',
   output: z.object({ message: z.string() }),
@@ -111,8 +111,8 @@ const helloTrail = trail('hello', {
 });
 
 const byeTrail = trail('bye', {
-  blaze: (input) => Result.ok({ message: `Goodbye, ${input.name}!` }),
   description: 'Say goodbye',
+  implementation: (input) => Result.ok({ message: `Goodbye, ${input.name}!` }),
   input: z.object({ name: z.string() }),
   output: z.object({ message: z.string() }),
 });
@@ -136,14 +136,14 @@ const helloGreeted = signal('hello.greeted', {
 });
 
 const signalProducer = trail('signal.producer', {
-  blaze: (input) => Result.ok({ name: input.name }),
   fires: [helloGreeted],
+  implementation: (input) => Result.ok({ name: input.name }),
   input: z.object({ name: z.string() }),
   output: z.object({ name: z.string() }),
 });
 
 const signalConsumer = trail('signal.consumer', {
-  blaze: () => Result.ok({ ok: true }),
+  implementation: () => Result.ok({ ok: true }),
   input: z.object({}),
   on: [helloGreeted],
   output: z.object({ ok: z.boolean() }),
@@ -189,7 +189,7 @@ const writeSurveyAppFixture = (
   const byeSource = options?.withBye
     ? `
 const bye = trail('bye', {
-  blaze: async (input) => Result.ok({ message: \`Bye, \${input.name ?? 'world'}!\` }),
+  implementation: async (input) => Result.ok({ message: \`Bye, \${input.name ?? 'world'}!\` }),
   input: z.object({ name: z.string().optional() }),
   intent: 'read',
   output: z.object({ message: z.string() }),
@@ -205,7 +205,7 @@ const bye = trail('bye', {
 import { z } from 'zod';
 
 const hello = trail('hello', {
-  blaze: async (input) => Result.ok({ message: \`Hello, \${input.name ?? 'world'}!\` }),
+  implementation: async (input) => Result.ok({ message: \`Hello, \${input.name ?? 'world'}!\` }),
   input: z.object({ name: z.string()${options?.helloNameRequired ? '' : '.optional()'}${options?.helloNameDescription === undefined ? '' : `.describe('${options.helloNameDescription}')`} }),
   intent: 'read',
   output: z.object({ message: z.string() }),
@@ -253,7 +253,7 @@ const writeVersionedDiffAppFixture = (
 import { z } from 'zod';
 
 const versioned = trail('versioned', {
-  blaze: async () => Result.ok({ ok: true }),
+  implementation: async () => Result.ok({ ok: true }),
   input: z.object({}),
   output: z.object({ ok: z.boolean() }),
   version: 3,
@@ -292,7 +292,7 @@ const sharedSignal = signal('shared', {
 });
 
 const sharedTrail = trail('shared', {
-  blaze: async () => Result.ok({ ok: true }),
+  implementation: async () => Result.ok({ ok: true }),
   fires: [sharedSignal],
   input: z.object({}),
   intent: 'read',
@@ -442,7 +442,7 @@ describe('trails survey brief', () => {
 
   test('detects and counts live version-entry examples', () => {
     const versioned = trail('brief.versioned', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({ name: z.string() }),
       output: z.object({ ok: z.boolean() }),
       version: 3,
@@ -507,7 +507,7 @@ describe('trails survey brief', () => {
       writeSurveyAppFixture(dir);
 
       const report = expectOk(
-        await surveyBriefTrail.blaze({ module: './src/app.ts' }, {
+        await surveyBriefTrail.implementation({ module: './src/app.ts' }, {
           cwd: dir,
         } as never)
       ) as BriefReport;
@@ -530,7 +530,7 @@ describe('trails survey brief', () => {
       writeSurveyAppFixture(dir);
 
       const report = expectOk(
-        await surveySurfacesTrail.blaze({ module: './src/app.ts' }, {
+        await surveySurfacesTrail.implementation({ module: './src/app.ts' }, {
           cwd: dir,
         } as never)
       ) as ShippedSurfaceInventoryReport;
@@ -573,7 +573,7 @@ describe('trails survey detail', () => {
 
   test('trail detail reports version-entry example coverage', () => {
     const versioned = trail('survey.versioned', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({ id: z.string() }),
       output: z.object({ ok: z.boolean() }),
       version: 2,
@@ -626,7 +626,7 @@ describe('trails survey detail', () => {
       wrap: (_t: unknown, impl: unknown) => impl as never,
     };
     const layered = trail('layered.surveyed', {
-      blaze: () => Result.ok({}),
+      implementation: () => Result.ok({}),
       input: z.object({}),
       layers: [trailLayer],
     });
@@ -657,7 +657,7 @@ describe('trails survey detail', () => {
       wrap: (_t: unknown, impl: unknown) => impl as never,
     };
     const layered = trail('layered.current', {
-      blaze: () => Result.ok({}),
+      implementation: () => Result.ok({}),
       input: z.object({}),
       layers: [layer],
     });
@@ -800,10 +800,10 @@ describe('trails survey detail', () => {
       timezone: 'UTC',
     });
     const process = trail('entity.process', {
-      blaze: () => Result.ok({ ok: true }),
       contours: [entity],
       fields: { id: { hint: 'Entity id to process' } },
       fires: [created],
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({ id: z.string() }),
       layers: [trailAudit],
       on: [auditSchedule],
@@ -890,13 +890,13 @@ describe('trails survey detail', () => {
       timezone: 'UTC',
     });
     const rebuild = trail('report.rebuild', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({}),
       on: [rebuildSchedule],
       output: z.object({ ok: z.boolean() }),
     });
     const prune = trail('report.prune', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({}),
       on: [pruneSchedule],
       output: z.object({ ok: z.boolean() }),
@@ -927,7 +927,7 @@ describe('trails survey detail', () => {
 
   test('trail detail reports complete shipped projections with authored provenance', () => {
     const httpVisible = trail('entity.http', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({}),
       output: z.object({ ok: z.boolean() }),
       surfaces: ['http'],
@@ -993,7 +993,7 @@ describe('trails survey detail', () => {
 
   test('shipped surface inventory covers public trails and planned websocket exclusion', () => {
     const internal = trail('entity.internal', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({}),
       output: z.object({ ok: z.boolean() }),
       visibility: 'internal',
@@ -1002,13 +1002,13 @@ describe('trails survey detail', () => {
       cron: '0 5 * * *',
     });
     const activated = trail('entity.activated', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({}),
       on: [rebuildSchedule],
       output: z.object({ ok: z.boolean() }),
     });
     const show = trail('entity.show', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({}),
       intent: 'read',
       output: z.object({ ok: z.boolean() }),
@@ -1060,7 +1060,6 @@ describe('trails survey detail', () => {
   test('trail detail clamps detour maxAttempts to the owner cap', () => {
     const detail = deriveTrailDetail(
       trail('retrying', {
-        blaze: () => Result.ok(),
         detours: [
           {
             maxAttempts: 100,
@@ -1068,6 +1067,7 @@ describe('trails survey detail', () => {
             recover: () => Result.ok(),
           },
         ],
+        implementation: () => Result.ok(),
         input: z.object({}),
       })
     );
@@ -1142,7 +1142,7 @@ describe('trails survey lookup', () => {
       writeSurveyAppFixture(dir);
 
       const overview = expectOk(
-        await surveyTrail.blaze({ module: './src/app.ts' }, {
+        await surveyTrail.implementation({ module: './src/app.ts' }, {
           cwd: dir,
         } as never)
       );
@@ -1165,9 +1165,12 @@ describe('trails survey lookup', () => {
       writeMultiMatchAppFixture(dir);
 
       const lookup = expectOk(
-        await surveyTrail.blaze({ id: 'shared', module: './src/app.ts' }, {
-          cwd: dir,
-        } as never)
+        await surveyTrail.implementation(
+          { id: 'shared', module: './src/app.ts' },
+          {
+            cwd: dir,
+          } as never
+        )
       ) as {
         readonly matches: readonly {
           readonly detail: { readonly id: string };
@@ -1212,9 +1215,12 @@ describe('trails survey lookup', () => {
       writeSurveyAppFixture(dir);
 
       const lookup = expectOk(
-        await surveyTrail.blaze({ id: 'missing', module: './src/app.ts' }, {
-          cwd: dir,
-        } as never)
+        await surveyTrail.implementation(
+          { id: 'missing', module: './src/app.ts' },
+          {
+            cwd: dir,
+          } as never
+        )
       ) as {
         readonly matches: readonly unknown[];
         readonly mode: 'lookup';
@@ -1233,7 +1239,7 @@ describe('trails survey lookup', () => {
       writeMultiMatchAppFixture(dir);
 
       const trailDetail = expectOk(
-        await surveyTrailDetailTrail.blaze(
+        await surveyTrailDetailTrail.implementation(
           { id: 'shared', module: './src/app.ts' },
           { cwd: dir } as never
         )
@@ -1241,7 +1247,7 @@ describe('trails survey lookup', () => {
       expect(trailDetail.kind).toBe('trail');
 
       const resourceDetail = expectOk(
-        await surveyResourceTrail.blaze(
+        await surveyResourceTrail.implementation(
           { id: 'shared', module: './src/app.ts' },
           { cwd: dir } as never
         )
@@ -1249,14 +1255,14 @@ describe('trails survey lookup', () => {
       expect(resourceDetail.kind).toBe('resource');
 
       const signalDetail = expectOk(
-        await surveySignalTrail.blaze(
+        await surveySignalTrail.implementation(
           { id: 'shared', module: './src/app.ts' },
           { cwd: dir } as never
         )
       );
       expect(signalDetail.kind).toBe('signal');
 
-      const missing = await surveyTrailDetailTrail.blaze(
+      const missing = await surveyTrailDetailTrail.implementation(
         { id: 'missing', module: './src/app.ts' },
         { cwd: dir } as never
       );
@@ -1339,7 +1345,7 @@ describe('trails survey activation graph', () => {
       timezone: 'UTC',
     });
     const scheduledTrail = trail('report.rebuild', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({ id: z.string() }),
       on: [nightly],
       output: z.object({ ok: z.boolean() }),
@@ -1398,7 +1404,7 @@ describe('trails survey activation graph', () => {
       verify: () => Result.ok(),
     });
     const receiver = trail('user.webhook.receive', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({ userId: z.string() }),
       on: [webhookSource],
       output: z.object({ ok: z.boolean() }),
@@ -1489,7 +1495,7 @@ describe('trails compile', () => {
       writeSurveyAppFixture(dir);
 
       const compiled = expectOk(
-        await compileTrail.blaze({ module: './src/app.ts' }, {
+        await compileTrail.implementation({ module: './src/app.ts' }, {
           cwd: dir,
         } as never)
       ) as {
@@ -1513,7 +1519,7 @@ describe('trails compile', () => {
       writeFileSync(join(dir, '.trails', 'topo.lock'), '{}\n');
       writeFileSync(join(dir, '.trails', 'trails.lock'), '{}\n');
       expectOk(
-        await compileTrail.blaze({ module: './src/app.ts' }, {
+        await compileTrail.implementation({ module: './src/app.ts' }, {
           cwd: dir,
         } as never)
       );
@@ -1534,7 +1540,7 @@ describe('trails compile', () => {
     try {
       writeSurveyAppFixture(dir);
       expectOk(
-        await compileTrail.blaze({ module: './src/app.ts' }, {
+        await compileTrail.implementation({ module: './src/app.ts' }, {
           cwd: dir,
         } as never)
       );
@@ -1550,7 +1556,7 @@ describe('trails compile', () => {
       db.close();
 
       expectOk(
-        await compileTrail.blaze({ module: './src/app.ts' }, {
+        await compileTrail.implementation({ module: './src/app.ts' }, {
           cwd: dir,
         } as never)
       );
@@ -1559,16 +1565,19 @@ describe('trails compile', () => {
       );
 
       expectOk(
-        await compileTrail.blaze({ force: true, module: './src/app.ts' }, {
-          cwd: dir,
-        } as never)
+        await compileTrail.implementation(
+          { force: true, module: './src/app.ts' },
+          {
+            cwd: dir,
+          } as never
+        )
       );
       expect(readFileSync(join(dir, 'trails.lock'), 'utf8')).not.toContain(
         'poisoned'
       );
 
       const validated = expectOk(
-        await validateTrail.blaze({ module: './src/app.ts' }, {
+        await validateTrail.implementation({ module: './src/app.ts' }, {
           cwd: dir,
         } as never)
       );
@@ -1584,7 +1593,7 @@ describe('trails compile', () => {
     try {
       writeSurveyAppFixture(dir);
       const compiled = expectOk(
-        await compileTrail.blaze({ module: './src/app.ts' }, {
+        await compileTrail.implementation({ module: './src/app.ts' }, {
           cwd: dir,
         } as never)
       ) as {
@@ -1618,7 +1627,7 @@ describe('trails compile', () => {
       writeSurveyAppFixture(dir);
 
       expectOk(
-        await compileTrail.blaze({ module: './src/app.ts' }, {
+        await compileTrail.implementation({ module: './src/app.ts' }, {
           cwd: dir,
         } as never)
       );
@@ -1626,14 +1635,14 @@ describe('trails compile', () => {
       expect(firstLock).not.toContain('"generatedAt"');
 
       const validated = expectOk(
-        await validateTrail.blaze({ module: './src/app.ts' }, {
+        await validateTrail.implementation({ module: './src/app.ts' }, {
           cwd: dir,
         } as never)
       );
       expect(validated.stale).toBe(false);
 
       expectOk(
-        await compileTrail.blaze({ module: './src/app.ts' }, {
+        await compileTrail.implementation({ module: './src/app.ts' }, {
           cwd: dir,
         } as never)
       );
@@ -1653,14 +1662,14 @@ describe('trails compile', () => {
     try {
       writeSurveyAppFixture(dir);
       expectOk(
-        await compileTrail.blaze({ module: './src/app.ts' }, {
+        await compileTrail.implementation({ module: './src/app.ts' }, {
           cwd: dir,
         } as never)
       );
 
       writeSurveyAppFixture(dir, { helloNameDescription: 'The caller name' });
       expectOk(
-        await compileTrail.blaze({ module: './src/app.ts' }, {
+        await compileTrail.implementation({ module: './src/app.ts' }, {
           cwd: dir,
         } as never)
       );
@@ -1668,7 +1677,7 @@ describe('trails compile', () => {
       const lock = readFileSync(join(dir, 'trails.lock'), 'utf8');
       expect(lock).toContain('The caller name');
       const validated = expectOk(
-        await validateTrail.blaze({ module: './src/app.ts' }, {
+        await validateTrail.implementation({ module: './src/app.ts' }, {
           cwd: dir,
         } as never)
       );
@@ -1684,23 +1693,29 @@ describe('trails compile', () => {
     try {
       writeSurveyAppFixture(dir);
       expectOk(
-        await compileTrail.blaze({ module: './src/app.ts' }, {
+        await compileTrail.implementation({ module: './src/app.ts' }, {
           cwd: dir,
         } as never)
       );
 
       writeSurveyAppFixture(dir, { helloNameRequired: true });
-      const blocked = await compileTrail.blaze({ module: './src/app.ts' }, {
-        cwd: dir,
-      } as never);
+      const blocked = await compileTrail.implementation(
+        { module: './src/app.ts' },
+        {
+          cwd: dir,
+        } as never
+      );
       expect(blocked.isErr()).toBe(true);
       expect(blocked.error).toBeInstanceOf(ConflictError);
       expect(blocked.error?.message).toContain('breaking change');
 
       const forced = expectOk(
-        await compileTrail.blaze({ force: true, module: './src/app.ts' }, {
-          cwd: dir,
-        } as never)
+        await compileTrail.implementation(
+          { force: true, module: './src/app.ts' },
+          {
+            cwd: dir,
+          } as never
+        )
       ) as {
         readonly hash: string;
         readonly lockPath: string;
@@ -1719,7 +1734,7 @@ describe('trails compile', () => {
         topoGraphHash: forced.hash,
       });
       const validated = expectOk(
-        await validateTrail.blaze({ module: './src/app.ts' }, {
+        await validateTrail.implementation({ module: './src/app.ts' }, {
           cwd: dir,
         } as never)
       );
@@ -1731,7 +1746,7 @@ describe('trails compile', () => {
       );
       expect(validated.currentHash).not.toBe(validated.committedHash);
       const recompiled = expectOk(
-        await compileTrail.blaze({ module: './src/app.ts' }, {
+        await compileTrail.implementation({ module: './src/app.ts' }, {
           cwd: dir,
         } as never)
       ) as {
@@ -1760,16 +1775,19 @@ describe('trails compile', () => {
     try {
       writeSurveyAppFixture(dir);
       expectOk(
-        await compileTrail.blaze({ module: './src/app.ts' }, {
+        await compileTrail.implementation({ module: './src/app.ts' }, {
           cwd: dir,
         } as never)
       );
       const snapshotCountAfterExport = countTopoSnapshots(dir);
 
       writeSurveyAppFixture(dir, { helloNameRequired: true });
-      const blocked = await compileTrail.blaze({ module: './src/app.ts' }, {
-        cwd: dir,
-      } as never);
+      const blocked = await compileTrail.implementation(
+        { module: './src/app.ts' },
+        {
+          cwd: dir,
+        } as never
+      );
       expect(blocked.isErr()).toBe(true);
       expect(blocked.error).toBeInstanceOf(ConflictError);
       expect(blocked.error?.message).toContain('breaking change');
@@ -1798,7 +1816,7 @@ describe('trails compile', () => {
     try {
       writeSurveyAppFixture(dir);
       expectOk(
-        await compileTrail.blaze({ module: './src/app.ts' }, {
+        await compileTrail.implementation({ module: './src/app.ts' }, {
           cwd: dir,
         } as never)
       );
@@ -1828,9 +1846,12 @@ describe('trails compile', () => {
         { dir }
       );
 
-      const validated = await validateTrail.blaze({ module: './src/app.ts' }, {
-        cwd: dir,
-      } as never);
+      const validated = await validateTrail.implementation(
+        { module: './src/app.ts' },
+        {
+          cwd: dir,
+        } as never
+      );
 
       expect(validated.isErr()).toBe(true);
       expect(validated.error).toBeInstanceOf(ValidationError);
@@ -1848,16 +1869,19 @@ describe('trails compile', () => {
     try {
       writeSurveyAppFixture(dir, { withBye: true });
       expectOk(
-        await compileTrail.blaze({ module: './src/app.ts' }, {
+        await compileTrail.implementation({ module: './src/app.ts' }, {
           cwd: dir,
         } as never)
       );
 
       writeSurveyAppFixture(dir);
       const forced = expectOk(
-        await compileTrail.blaze({ force: true, module: './src/app.ts' }, {
-          cwd: dir,
-        } as never)
+        await compileTrail.implementation(
+          { force: true, module: './src/app.ts' },
+          {
+            cwd: dir,
+          } as never
+        )
       ) as {
         readonly hash: string;
       };
@@ -1877,13 +1901,13 @@ describe('trails compile', () => {
         topoGraphHash: forced.hash,
       });
       const validated = expectOk(
-        await validateTrail.blaze({ module: './src/app.ts' }, {
+        await validateTrail.implementation({ module: './src/app.ts' }, {
           cwd: dir,
         } as never)
       );
       expect(validated.stale).toBe(false);
       const recompiled = expectOk(
-        await compileTrail.blaze({ module: './src/app.ts' }, {
+        await compileTrail.implementation({ module: './src/app.ts' }, {
           cwd: dir,
         } as never)
       ) as {
@@ -1948,9 +1972,12 @@ describe('trails survey diff', () => {
     try {
       writeSurveyAppFixture(dir);
 
-      const result = await surveyDiffTrail.blaze({ module: './src/app.ts' }, {
-        cwd: dir,
-      } as never);
+      const result = await surveyDiffTrail.implementation(
+        { module: './src/app.ts' },
+        {
+          cwd: dir,
+        } as never
+      );
 
       expect(result.isErr()).toBe(true);
       expect(result.error.message).toContain('Run `trails compile` first');
@@ -1971,9 +1998,12 @@ describe('trails survey diff', () => {
 
       writeSurveyAppFixture(dir, { withBye: true });
 
-      const result = await surveyDiffTrail.blaze({ module: './src/app.ts' }, {
-        cwd: dir,
-      } as never);
+      const result = await surveyDiffTrail.implementation(
+        { module: './src/app.ts' },
+        {
+          cwd: dir,
+        } as never
+      );
 
       expect(result.isOk()).toBe(true);
       expect(result.value).toMatchObject({
@@ -2004,11 +2034,11 @@ describe('trails survey diff', () => {
 
       writeSurveyAppFixture(dir, { withBye: true });
 
-      const byeDiff = await surveyDiffTrail.blaze(
+      const byeDiff = await surveyDiffTrail.implementation(
         { module: './src/app.ts', target: 'bye' },
         { cwd: dir } as never
       );
-      const helloDiff = await surveyDiffTrail.blaze(
+      const helloDiff = await surveyDiffTrail.implementation(
         { module: './src/app.ts', target: 'hello' },
         { cwd: dir } as never
       );
@@ -2034,7 +2064,7 @@ describe('trails survey diff', () => {
         dir: join(dir, '.trails'),
       });
 
-      const result = await surveyDiffTrail.blaze(
+      const result = await surveyDiffTrail.implementation(
         { module: './src/app.ts', target: 'missing.plain' },
         { cwd: dir } as never
       );
@@ -2082,7 +2112,7 @@ describe('trails survey diff', () => {
         } satisfies TopoGraph)
       );
 
-      const result = await surveyDiffTrail.blaze(
+      const result = await surveyDiffTrail.implementation(
         {
           against: 'baseline.json',
           forces: true,
@@ -2114,7 +2144,7 @@ describe('trails survey diff', () => {
 
       writeSurveyAppFixture(dir, { withBye: true });
 
-      const result = await surveyDiffTrail.blaze(
+      const result = await surveyDiffTrail.implementation(
         { against: 'baselines', breakingOnly: true, module: './src/app.ts' },
         { cwd: dir } as never
       );
@@ -2144,7 +2174,7 @@ describe('trails survey diff', () => {
 
       writeVersionedDiffAppFixture(dir, { archiveV1: true });
 
-      const result = await surveyDiffTrail.blaze(
+      const result = await surveyDiffTrail.implementation(
         {
           against: 'baselines',
           module: './src/app.ts',
@@ -2180,7 +2210,7 @@ describe('trails survey diff', () => {
         deprecateV2: true,
       });
 
-      const result = await surveyDiffTrail.blaze(
+      const result = await surveyDiffTrail.implementation(
         {
           against: 'baselines',
           module: './src/app.ts',
@@ -2228,7 +2258,7 @@ describe('trails survey diff', () => {
 
       writeVersionedDiffAppFixture(dir, { omitV1: true });
 
-      const result = await surveyDiffTrail.blaze(
+      const result = await surveyDiffTrail.implementation(
         {
           against: 'baselines',
           module: './src/app.ts',
@@ -2262,7 +2292,7 @@ describe('trails survey diff', () => {
         dir: join(dir, 'baselines'),
       });
 
-      const result = await surveyDiffTrail.blaze(
+      const result = await surveyDiffTrail.implementation(
         {
           against: 'baselines',
           module: './src/app.ts',
@@ -2293,7 +2323,7 @@ describe('trails survey diff', () => {
 
       writeSurveyAppFixture(dir, { withBye: true });
 
-      const result = await surveyDiffTrail.blaze(
+      const result = await surveyDiffTrail.implementation(
         { against: 'baseline.json', module: './src/app.ts' },
         { cwd: dir } as never
       );
@@ -2327,7 +2357,7 @@ describe('trails survey diff', () => {
 
       writeSurveyAppFixture(dir, { withBye: true });
 
-      const result = await surveyDiffTrail.blaze(
+      const result = await surveyDiffTrail.implementation(
         { against: 'baseline-dir/topo.lock', module: './src/app.ts' },
         { cwd: dir } as never
       );
@@ -2355,7 +2385,7 @@ describe('trails survey diff', () => {
     try {
       writeSurveyAppFixture(dir);
 
-      const result = await surveyDiffTrail.blaze(
+      const result = await surveyDiffTrail.implementation(
         { against: 'baselins', module: './src/app.ts' },
         { cwd: dir } as never
       );
@@ -2389,7 +2419,7 @@ describe('trails survey diff', () => {
 
       writeSurveyAppFixture(dir, { withBye: true });
 
-      const result = await surveyDiffTrail.blaze(
+      const result = await surveyDiffTrail.implementation(
         { against: 'baselines', module: './src/app.ts' },
         { cwd: dir } as never
       );

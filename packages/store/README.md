@@ -69,7 +69,7 @@ The bound store is a resource. Use it directly in trails:
 export const list = trail('gist.list', {
   resources: [db],
   intent: 'read',
-  blaze: async (_input, ctx) => {
+  implementation: async (_input, ctx) => {
     const conn = db.from(ctx);
     const gists = await conn.gists.list();
     return Result.ok(gists);

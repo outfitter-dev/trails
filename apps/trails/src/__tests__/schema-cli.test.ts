@@ -9,7 +9,7 @@ import { attachSchemaCommand } from '../run-schema.js';
 
 const buildProgram = () => {
   const search = trail('wayfind.search', {
-    blaze: (input: { query: string }) => Result.ok(input.query),
+    implementation: (input: { query: string }) => Result.ok(input.query),
     input: z.object({ query: z.string() }),
     output: z.string(),
   });

@@ -267,7 +267,7 @@ describe('Trails Wayfinder CLI surface', () => {
 
   test('dispatches --overlay through the generic overlay read', async () => {
     const facts = fakeWayfindContext();
-    const result = await wayfindTrail.blaze(
+    const result = await wayfindTrail.implementation(
       parseWayfindInput({ overlay: 'cloudflare', rootDir: '/repo' }),
       facts.ctx
     );
@@ -308,7 +308,7 @@ describe('Trails Wayfinder CLI surface', () => {
 
   test('normalizes target views, explicit patterns, and include facts', async () => {
     const target = fakeWayfindContext();
-    const targetResult = await wayfindTrail.blaze(
+    const targetResult = await wayfindTrail.implementation(
       parseWayfindInput({ target: 'wayfind.search' }),
       target.ctx
     );
@@ -324,7 +324,7 @@ describe('Trails Wayfinder CLI surface', () => {
     });
 
     const glob = fakeWayfindContext();
-    const globResult = await wayfindTrail.blaze(
+    const globResult = await wayfindTrail.implementation(
       parseWayfindInput({ resolver: 'pattern', target: 'wayfind.*' }),
       glob.ctx
     );
@@ -337,7 +337,7 @@ describe('Trails Wayfinder CLI surface', () => {
     ]);
 
     const bareGlob = fakeWayfindContext();
-    const bareGlobResult = await wayfindTrail.blaze(
+    const bareGlobResult = await wayfindTrail.implementation(
       parseWayfindInput({ target: 'wayfind.*' }),
       bareGlob.ctx
     );
@@ -345,7 +345,7 @@ describe('Trails Wayfinder CLI surface', () => {
     expect(bareGlob.calls).toEqual([]);
 
     const barePathGlob = fakeWayfindContext();
-    const barePathGlobResult = await wayfindTrail.blaze(
+    const barePathGlobResult = await wayfindTrail.implementation(
       parseWayfindInput({
         target: 'packages/*/src/index.ts',
         view: 'outline',
@@ -356,7 +356,7 @@ describe('Trails Wayfinder CLI surface', () => {
     expect(barePathGlob.calls).toEqual([]);
 
     const explicitFile = fakeWayfindContext();
-    const explicitFileResult = await wayfindTrail.blaze(
+    const explicitFileResult = await wayfindTrail.implementation(
       parseWayfindInput({
         resolver: 'file',
         target: 'apps/trails/src/app.ts',
@@ -373,7 +373,7 @@ describe('Trails Wayfinder CLI surface', () => {
     ]);
 
     const outlineId = fakeWayfindContext();
-    const outlineIdResult = await wayfindTrail.blaze(
+    const outlineIdResult = await wayfindTrail.implementation(
       parseWayfindInput({
         target: 'wayfind.search',
         view: 'outline',
@@ -390,7 +390,7 @@ describe('Trails Wayfinder CLI surface', () => {
     expect(outlineId.calls).toEqual([]);
 
     const included = fakeWayfindContext();
-    const includeResult = await wayfindTrail.blaze(
+    const includeResult = await wayfindTrail.implementation(
       parseWayfindInput({
         include: ['examples'],
         target: 'wayfind.search',
@@ -415,7 +415,7 @@ describe('Trails Wayfinder CLI surface', () => {
     });
 
     const adapterInclude = fakeWayfindContext();
-    const adapterIncludeResult = await wayfindTrail.blaze(
+    const adapterIncludeResult = await wayfindTrail.implementation(
       parseWayfindInput({
         adapter: '@ontrails/hono',
         include: ['adapters'],
@@ -450,7 +450,7 @@ describe('Trails Wayfinder CLI surface', () => {
 
   test('normalizes relation flags through target-bound impact', async () => {
     const deps = fakeWayfindContext();
-    const depsResult = await wayfindTrail.blaze(
+    const depsResult = await wayfindTrail.implementation(
       parseWayfindInput({
         deps: true,
         resources: true,
@@ -478,7 +478,7 @@ describe('Trails Wayfinder CLI surface', () => {
       ['trailheads', 'wayfind.trailheads'],
     ] as const) {
       const context = fakeWayfindContext();
-      const result = await wayfindTrail.blaze(
+      const result = await wayfindTrail.implementation(
         parseWayfindInput({ [flag]: true }),
         context.ctx
       );

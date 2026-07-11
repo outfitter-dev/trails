@@ -64,8 +64,8 @@ const userCreated = signal('user.created', {
 });
 
 const userShow = trail('user.show', {
-  blaze: () => Result.ok({ id: 'u1' }),
   examples: [{ expected: { id: 'u1' }, input: {}, name: 'Basic' }],
+  implementation: () => Result.ok({ id: 'u1' }),
   input: z.object({}),
   intent: 'read',
   output: z.object({ id: z.string() }),
@@ -73,11 +73,11 @@ const userShow = trail('user.show', {
 });
 
 const userCreate = trail('user.create', {
-  blaze: () => Result.ok({ id: 'u1' }),
   cli: {
     aliases: ['add'],
   },
   fires: [userCreated],
+  implementation: () => Result.ok({ id: 'u1' }),
   input: z.object({ name: z.string() }),
   intent: 'write',
   output: z.object({ id: z.string() }),
@@ -85,7 +85,7 @@ const userCreate = trail('user.create', {
 });
 
 const auditRebuild = trail('audit.rebuild', {
-  blaze: () => Result.ok({ ok: true }),
+  implementation: () => Result.ok({ ok: true }),
   input: z.object({}),
   intent: 'destroy',
   on: [userCreated],
@@ -93,7 +93,6 @@ const auditRebuild = trail('audit.rebuild', {
 });
 
 const inviteCreate = trail('invite.create', {
-  blaze: (input) => Result.ok({ greeting: `Hello, ${input.name}!` }),
   examples: [
     {
       expected: { greeting: 'Hello, Ada!' },
@@ -101,12 +100,12 @@ const inviteCreate = trail('invite.create', {
       name: 'Current greeting',
     },
   ],
+  implementation: (input) => Result.ok({ greeting: `Hello, ${input.name}!` }),
   input: z.object({ name: z.string() }),
   output: z.object({ greeting: z.string() }),
   version: 2,
   versions: {
     1: {
-      blaze: (input) => Result.ok({ greeting: `Hi, ${input.name}.` }),
       examples: [
         {
           expected: { greeting: 'Hi, Ada.' },
@@ -114,6 +113,7 @@ const inviteCreate = trail('invite.create', {
           name: 'Legacy greeting',
         },
       ],
+      implementation: (input) => Result.ok({ greeting: `Hi, ${input.name}.` }),
       input: z.object({ name: z.string() }),
       output: z.object({ greeting: z.string() }),
       resources: [db],
@@ -370,7 +370,7 @@ describe('wayfinder graph-read query trails', () => {
       [
         "import { Result, topo, trail } from '@ontrails/core';",
         "export const userCreateTrail = trail('user.create', {",
-        '  blaze: () => Result.ok({ id: "u1" }),',
+        '  implementation: () => Result.ok({ id: "u1" }),',
         '  input: z.object({ name: z.string() }),',
         '  output: z.object({ id: z.string() }),',
         '});',
@@ -380,7 +380,7 @@ describe('wayfinder graph-read query trails', () => {
     );
 
     const result = await expectOk(
-      wayfindOutlineTrail.blaze({ file: 'src/app.ts' }, ctx())
+      wayfindOutlineTrail.implementation({ file: 'src/app.ts' }, ctx())
     );
 
     expect(result.features).toMatchObject({
@@ -420,7 +420,7 @@ describe('wayfinder graph-read query trails', () => {
       [
         "import { Result, topo, trail } from '@ontrails/core';",
         "export const userCreateTrail = trail('user.create', {",
-        '  blaze: () => Result.ok({ id: "u1" }),',
+        '  implementation: () => Result.ok({ id: "u1" }),',
         '});',
         'export const app = topo("demo", { userCreateTrail });',
         '',
@@ -428,7 +428,7 @@ describe('wayfinder graph-read query trails', () => {
     );
 
     const result = await expectOk(
-      wayfindOutlineTrail.blaze(
+      wayfindOutlineTrail.implementation(
         { features: 'surfaces', file: 'src/app.ts' },
         ctx()
       )
@@ -451,7 +451,7 @@ describe('wayfinder graph-read query trails', () => {
           "import { sourceName as localName } from './dependency';",
           "export function helper() { return 'ok'; }",
           "export const localTrail = trail('local.read', {",
-          '  blaze: () => Result.ok({ ok: true }),',
+          '  implementation: () => Result.ok({ ok: true }),',
           '  input: z.object({}),',
           '});',
           '',
@@ -459,7 +459,7 @@ describe('wayfinder graph-read query trails', () => {
       );
 
       const result = await expectOk(
-        wayfindOutlineTrail.blaze(
+        wayfindOutlineTrail.implementation(
           { file: 'src/source.ts', rootDir: sourceRoot, source: true },
           ctx()
         )
@@ -505,7 +505,7 @@ describe('wayfinder graph-read query trails', () => {
     await writeAdapterWorkspace(tempDir);
 
     const result = await expectOk(
-      wayfindAdaptersTrail.blaze({ rootDir: tempDir }, ctx())
+      wayfindAdaptersTrail.implementation({ rootDir: tempDir }, ctx())
     );
 
     expect(result.counts).toEqual({
@@ -552,7 +552,7 @@ describe('wayfinder graph-read query trails', () => {
       result.adapters.filter((entry) => entry.kind === 'configured')
     ).toHaveLength(1);
     const configured = await expectOk(
-      wayfindAdaptersTrail.blaze(
+      wayfindAdaptersTrail.implementation(
         { filters: { kind: 'configured' }, rootDir: tempDir },
         ctx()
       )
@@ -572,7 +572,7 @@ describe('wayfinder graph-read query trails', () => {
     }));
 
     const result = await expectOk(
-      wayfindOverlayTrail.blaze(
+      wayfindOverlayTrail.implementation(
         { namespace: 'cloudflare', rootDir: tempDir },
         ctx()
       )
@@ -588,7 +588,7 @@ describe('wayfinder graph-read query trails', () => {
     await writeArtifacts();
 
     const result = await expectOk(
-      wayfindOverlayTrail.blaze(
+      wayfindOverlayTrail.implementation(
         { namespace: 'surfaces', rootDir: tempDir },
         ctx()
       )
@@ -610,7 +610,7 @@ describe('wayfinder graph-read query trails', () => {
       },
     }));
 
-    const result = await wayfindOverlayTrail.blaze(
+    const result = await wayfindOverlayTrail.implementation(
       { namespace: 'missing', rootDir: tempDir },
       ctx()
     );
@@ -630,7 +630,7 @@ describe('wayfinder graph-read query trails', () => {
     // rewrite the artifacts without any overlays for this scenario.
     await writeArtifacts(({ overlays: _overlays, ...rest }) => rest);
 
-    const result = await wayfindOverlayTrail.blaze(
+    const result = await wayfindOverlayTrail.implementation(
       { namespace: 'cloudflare', rootDir: tempDir },
       ctx()
     );
@@ -644,7 +644,7 @@ describe('wayfinder graph-read query trails', () => {
 
   test('summarizes saved graph shape and provenance', async () => {
     const overview = await expectOk(
-      wayfindOverviewTrail.blaze({ rootDir: tempDir }, ctx())
+      wayfindOverviewTrail.implementation({ rootDir: tempDir }, ctx())
     );
 
     expect(overview.drift).toEqual({
@@ -689,7 +689,7 @@ describe('wayfinder graph-read query trails', () => {
       })}\n`
     );
 
-    const result = await wayfindOverviewTrail.blaze(
+    const result = await wayfindOverviewTrail.implementation(
       { rootDir: tempDir },
       ctx()
     );
@@ -706,7 +706,10 @@ describe('wayfinder graph-read query trails', () => {
     const invalidDir = join(tempDir, 'not-a-directory');
     await Bun.write(invalidDir, 'plain file');
 
-    const result = await wayfindOverviewTrail.blaze({ dir: invalidDir }, ctx());
+    const result = await wayfindOverviewTrail.implementation(
+      { dir: invalidDir },
+      ctx()
+    );
 
     expect(result.isErr()).toBe(true);
     expect(result.isErr() ? result.error.name : '').toBe('DerivationError');
@@ -727,7 +730,7 @@ describe('wayfinder graph-read query trails', () => {
     );
 
     const overview = await expectOk(
-      wayfindOverviewTrail.blaze(
+      wayfindOverviewTrail.implementation(
         { dir: artifactsDirFor(artifactRoot) },
         createTrailContext({ cwd: cwdRoot, workspaceRoot: cwdRoot })
       )
@@ -739,7 +742,7 @@ describe('wayfinder graph-read query trails', () => {
     });
 
     const overviewWithStateStore = await expectOk(
-      wayfindOverviewTrail.blaze(
+      wayfindOverviewTrail.implementation(
         {
           dir: artifactsDirFor(artifactRoot),
           trailsDbPath: deriveTrailsDbPath({ rootDir: artifactRoot }),
@@ -753,7 +756,7 @@ describe('wayfinder graph-read query trails', () => {
 
   test('finds entities with typed filters', async () => {
     const search = await expectOk(
-      wayfindSearchTrail.blaze(
+      wayfindSearchTrail.implementation(
         {
           filters: { kind: 'trail', surface: 'mcp' },
           limit: 100,
@@ -786,7 +789,7 @@ describe('wayfinder graph-read query trails', () => {
 
   test('finds current and historical versions with typed filters', async () => {
     const search = await expectOk(
-      wayfindSearchTrail.blaze(
+      wayfindSearchTrail.implementation(
         {
           filters: { kind: 'version' },
           limit: 100,
@@ -804,13 +807,13 @@ describe('wayfinder graph-read query trails', () => {
 
   test('lists trail and surface summaries', async () => {
     const trails = await expectOk(
-      wayfindTrailsTrail.blaze(
+      wayfindTrailsTrail.implementation(
         { filters: { usesResource: 'db.main' }, limit: 100, rootDir: tempDir },
         ctx()
       )
     );
     const surfaces = await expectOk(
-      wayfindSurfacesTrail.blaze(
+      wayfindSurfacesTrail.implementation(
         { filters: {}, limit: 100, rootDir: tempDir },
         ctx()
       )
@@ -855,13 +858,13 @@ describe('wayfinder graph-read query trails', () => {
 
   test('lists version and example records without executing trails', async () => {
     const versions = await expectOk(
-      wayfindVersionsTrail.blaze(
+      wayfindVersionsTrail.implementation(
         { filters: {}, limit: 100, rootDir: tempDir },
         ctx()
       )
     );
     const examples = await expectOk(
-      wayfindExamplesTrail.blaze(
+      wayfindExamplesTrail.implementation(
         { filters: {}, limit: 100, rootDir: tempDir },
         ctx()
       )
@@ -902,7 +905,7 @@ describe('wayfinder graph-read query trails', () => {
     }));
 
     const errors = await expectOk(
-      wayfindErrorsTrail.blaze(
+      wayfindErrorsTrail.implementation(
         {
           filters: { id: 'user.show', kind: 'trail' },
           limit: 100,
@@ -956,7 +959,7 @@ describe('wayfinder graph-read query trails', () => {
     }));
 
     const versions = await expectOk(
-      wayfindVersionsTrail.blaze(
+      wayfindVersionsTrail.implementation(
         { filters: {}, limit: 100, rootDir: tempDir },
         ctx()
       )
@@ -971,7 +974,7 @@ describe('wayfinder graph-read query trails', () => {
 
   test('filters examples through parent trails and exact versions', async () => {
     const byTrail = await expectOk(
-      wayfindExamplesTrail.blaze(
+      wayfindExamplesTrail.implementation(
         {
           filters: { id: 'invite.create', kind: 'trail' },
           limit: 100,
@@ -981,7 +984,7 @@ describe('wayfinder graph-read query trails', () => {
       )
     );
     const byVersion = await expectOk(
-      wayfindExamplesTrail.blaze(
+      wayfindExamplesTrail.implementation(
         {
           filters: { id: 'invite.create@1', kind: 'version' },
           limit: 100,
@@ -991,7 +994,7 @@ describe('wayfinder graph-read query trails', () => {
       )
     );
     const byCurrentVersion = await expectOk(
-      wayfindExamplesTrail.blaze(
+      wayfindExamplesTrail.implementation(
         {
           filters: { id: 'invite.create@2', kind: 'version' },
           limit: 100,
@@ -1024,7 +1027,7 @@ describe('wayfinder graph-read query trails', () => {
     }));
 
     const byResource = await expectOk(
-      wayfindExamplesTrail.blaze(
+      wayfindExamplesTrail.implementation(
         {
           filters: { kind: 'resource', usesResource: 'db.main' },
           limit: 100,
@@ -1052,7 +1055,7 @@ describe('wayfinder graph-read query trails', () => {
     }));
 
     const uncoveredTrail = await expectOk(
-      wayfindExamplesTrail.blaze(
+      wayfindExamplesTrail.implementation(
         {
           filters: {
             exampleCoverage: false,
@@ -1080,7 +1083,7 @@ describe('wayfinder graph-read query trails', () => {
     }));
 
     const byTrail = await expectOk(
-      wayfindExamplesTrail.blaze(
+      wayfindExamplesTrail.implementation(
         {
           filters: { id: 'version.runtime.literal@alpha', kind: 'trail' },
           limit: 100,
@@ -1105,7 +1108,7 @@ describe('wayfinder graph-read query trails', () => {
     }));
 
     const byResource = await expectOk(
-      wayfindExamplesTrail.blaze(
+      wayfindExamplesTrail.implementation(
         {
           filters: { id: 'invite.create@2', kind: 'resource' },
           limit: 100,
@@ -1120,12 +1123,12 @@ describe('wayfinder graph-read query trails', () => {
 
   test('describes entities and returns explicit not found results', async () => {
     const described = await expectOk(
-      wayfindDescribeTrail.blaze(
+      wayfindDescribeTrail.implementation(
         { id: 'users', kind: 'trailhead', rootDir: tempDir },
         ctx()
       )
     );
-    const missing = await wayfindDescribeTrail.blaze(
+    const missing = await wayfindDescribeTrail.implementation(
       { id: 'missing.trail', kind: 'trail', rootDir: tempDir },
       ctx()
     );
@@ -1141,13 +1144,19 @@ describe('wayfinder graph-read query trails', () => {
 
   test('describes non-entry entities by id when the kind is omitted', async () => {
     const trailhead = await expectOk(
-      wayfindDescribeTrail.blaze({ id: 'users', rootDir: tempDir }, ctx())
+      wayfindDescribeTrail.implementation(
+        { id: 'users', rootDir: tempDir },
+        ctx()
+      )
     );
     const surface = await expectOk(
-      wayfindDescribeTrail.blaze({ id: 'cli', rootDir: tempDir }, ctx())
+      wayfindDescribeTrail.implementation(
+        { id: 'cli', rootDir: tempDir },
+        ctx()
+      )
     );
     const version = await expectOk(
-      wayfindDescribeTrail.blaze(
+      wayfindDescribeTrail.implementation(
         { id: 'invite.create@1', rootDir: tempDir },
         ctx()
       )
@@ -1171,11 +1180,11 @@ describe('wayfinder graph-read query trails', () => {
       ),
     }));
 
-    const described = await wayfindDescribeTrail.blaze(
+    const described = await wayfindDescribeTrail.implementation(
       { id: 'user.show', rootDir: tempDir },
       ctx()
     );
-    const contract = await wayfindContractTrail.blaze(
+    const contract = await wayfindContractTrail.implementation(
       { id: 'user.show', rootDir: tempDir },
       ctx()
     );
@@ -1190,10 +1199,13 @@ describe('wayfinder graph-read query trails', () => {
 
   test('returns contract details for current and historical trail versions', async () => {
     const current = await expectOk(
-      wayfindContractTrail.blaze({ id: 'user.create', rootDir: tempDir }, ctx())
+      wayfindContractTrail.implementation(
+        { id: 'user.create', rootDir: tempDir },
+        ctx()
+      )
     );
     const historical = await expectOk(
-      wayfindContractTrail.blaze(
+      wayfindContractTrail.implementation(
         { id: 'invite.create', kind: 'version', rootDir: tempDir, version: 1 },
         ctx()
       )
@@ -1237,10 +1249,13 @@ describe('wayfinder graph-read query trails', () => {
 
   test('returns contract details for non-entry entities by id when the kind is omitted', async () => {
     const surface = await expectOk(
-      wayfindContractTrail.blaze({ id: 'cli', rootDir: tempDir }, ctx())
+      wayfindContractTrail.implementation(
+        { id: 'cli', rootDir: tempDir },
+        ctx()
+      )
     );
     const version = await expectOk(
-      wayfindContractTrail.blaze(
+      wayfindContractTrail.implementation(
         { id: 'invite.create@1', rootDir: tempDir },
         ctx()
       )
@@ -1265,7 +1280,7 @@ describe('wayfinder graph-read query trails', () => {
     }));
 
     const surface = await expectOk(
-      wayfindContractTrail.blaze(
+      wayfindContractTrail.implementation(
         { id: 'user.show', kind: 'surface', rootDir: tempDir },
         ctx()
       )
@@ -1280,7 +1295,7 @@ describe('wayfinder graph-read query trails', () => {
 
   test('returns direct nearby graph relationships around an entity', async () => {
     const nearby = await expectOk(
-      wayfindNearbyTrail.blaze(
+      wayfindNearbyTrail.implementation(
         { id: 'user.create', kind: 'trail', rootDir: tempDir },
         ctx()
       )
@@ -1319,7 +1334,7 @@ describe('wayfinder graph-read query trails', () => {
 
   test('includes trailhead-rendered trails in surface graph relationships', async () => {
     const nearby = await expectOk(
-      wayfindNearbyTrail.blaze(
+      wayfindNearbyTrail.implementation(
         { id: 'mcp', kind: 'surface', rootDir: tempDir },
         ctx()
       )
@@ -1342,7 +1357,7 @@ describe('wayfinder graph-read query trails', () => {
 
   test('traverses directional impact from a graph entity', async () => {
     const impact = await expectOk(
-      wayfindImpactTrail.blaze(
+      wayfindImpactTrail.implementation(
         {
           id: 'db.main',
           kind: 'resource',
@@ -1365,7 +1380,7 @@ describe('wayfinder graph-read query trails', () => {
 
   test('filters impact edges with the relation result set', async () => {
     const impact = await expectOk(
-      wayfindImpactTrail.blaze(
+      wayfindImpactTrail.implementation(
         {
           direction: 'both',
           filters: { kind: 'resource' },
@@ -1451,7 +1466,7 @@ describe('wayfinder graph-read query trails', () => {
 
   test('traverses upstream and both-direction impact', async () => {
     const upstream = await expectOk(
-      wayfindImpactTrail.blaze(
+      wayfindImpactTrail.implementation(
         {
           direction: 'upstream',
           id: 'invite.create@1',
@@ -1464,7 +1479,7 @@ describe('wayfinder graph-read query trails', () => {
       )
     );
     const both = await expectOk(
-      wayfindImpactTrail.blaze(
+      wayfindImpactTrail.implementation(
         {
           direction: 'both',
           id: 'user.create',
@@ -1491,7 +1506,7 @@ describe('wayfinder graph-read query trails', () => {
 
   test('applies impact depth and limit boundaries', async () => {
     const limited = await expectOk(
-      wayfindImpactTrail.blaze(
+      wayfindImpactTrail.implementation(
         {
           id: 'invite.create',
           kind: 'trail',
@@ -1503,7 +1518,7 @@ describe('wayfinder graph-read query trails', () => {
       )
     );
     const depthOne = await expectOk(
-      wayfindImpactTrail.blaze(
+      wayfindImpactTrail.implementation(
         {
           id: 'invite.create',
           kind: 'trail',
@@ -1533,19 +1548,19 @@ describe('wayfinder graph-read query trails', () => {
       ),
     }));
 
-    const ambiguousNearby = await wayfindNearbyTrail.blaze(
+    const ambiguousNearby = await wayfindNearbyTrail.implementation(
       { id: 'user.show', rootDir: tempDir },
       ctx()
     );
-    const missingNearby = await wayfindNearbyTrail.blaze(
+    const missingNearby = await wayfindNearbyTrail.implementation(
       { id: 'missing.trail', kind: 'trail', rootDir: tempDir },
       ctx()
     );
-    const ambiguousImpact = await wayfindImpactTrail.blaze(
+    const ambiguousImpact = await wayfindImpactTrail.implementation(
       { id: 'user.show', rootDir: tempDir },
       ctx()
     );
-    const missingImpact = await wayfindImpactTrail.blaze(
+    const missingImpact = await wayfindImpactTrail.implementation(
       { id: 'missing.trail', kind: 'trail', rootDir: tempDir },
       ctx()
     );
@@ -1587,7 +1602,7 @@ describe('wayfinder graph-read query trails', () => {
     }));
 
     const diff = await expectOk(
-      wayfindDiffTrail.blaze(
+      wayfindDiffTrail.implementation(
         { againstRootDir: baselineRoot, rootDir: tempDir },
         ctx()
       )
@@ -1599,12 +1614,12 @@ describe('wayfinder graph-read query trails', () => {
     );
   });
 
-  test('diff rejects missing and conflicting baselines through direct blaze calls', async () => {
-    const missingBaseline = await wayfindDiffTrail.blaze(
+  test('diff rejects missing and conflicting baselines through direct implementation calls', async () => {
+    const missingBaseline = await wayfindDiffTrail.implementation(
       { rootDir: tempDir },
       ctx()
     );
-    const conflictingBaseline = await wayfindDiffTrail.blaze(
+    const conflictingBaseline = await wayfindDiffTrail.implementation(
       {
         againstDir: artifactsDir(),
         againstRootDir: tempDir,

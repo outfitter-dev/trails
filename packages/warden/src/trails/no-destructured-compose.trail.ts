@@ -9,10 +9,10 @@ export const noDestructuredComposeTrail = wrapRule({
         filePath: 'clean.ts',
         sourceCode: `trail("entity.onboard", {
   composes: ["entity.create"],
-  blaze: async (input, ctx) => ctx.compose("entity.create", input),
+  implementation: async (input, ctx) => ctx.compose("entity.create", input),
 });`,
       },
-      name: 'Clean blaze using ctx.compose directly',
+      name: 'Clean implementation using ctx.compose directly',
     },
     {
       expected: {
@@ -21,7 +21,7 @@ export const noDestructuredComposeTrail = wrapRule({
             filePath: 'destructured.ts',
             line: 4,
             message:
-              'Trail "entity.onboard" destructures compose from the blaze context. Use ctx.compose(...) directly so composition stays visible and Warden can recognize composed Result values.',
+              'Trail "entity.onboard" destructures compose from the implementation context. Use ctx.compose(...) directly so composition stays visible and Warden can recognize composed Result values.',
             rule: 'no-destructured-compose',
             severity: 'warn',
           },
@@ -31,13 +31,13 @@ export const noDestructuredComposeTrail = wrapRule({
         filePath: 'destructured.ts',
         sourceCode: `trail("entity.onboard", {
   composes: ["entity.create"],
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const { compose } = ctx;
     return compose("entity.create", input);
   },
 });`,
       },
-      name: 'Warns when compose is destructured from the blaze context',
+      name: 'Warns when compose is destructured from the implementation context',
     },
   ],
   rule: noDestructuredCompose,

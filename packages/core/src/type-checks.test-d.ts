@@ -102,10 +102,6 @@ const topoMissingReference: BarrelTopoMissingReference = {
 void topoMissingReference;
 
 const defaultedTrail = trail('typecheck.defaulted-input', {
-  blaze: (input) => {
-    const { limit }: { limit: number } = input;
-    return Result.ok({ limit });
-  },
   examples: [
     {
       expected: { limit: 20 },
@@ -113,6 +109,10 @@ const defaultedTrail = trail('typecheck.defaulted-input', {
       name: 'Caller omits defaulted limit',
     },
   ],
+  implementation: (input) => {
+    const { limit }: { limit: number } = input;
+    return Result.ok({ limit });
+  },
   input: z.object({
     limit: z.number().int().positive().default(20),
     name: z.string(),
@@ -122,7 +122,9 @@ const defaultedTrail = trail('typecheck.defaulted-input', {
 
 type DefaultedCallerInput = TrailInput<typeof defaultedTrail>;
 type DefaultedComposeInput = ComposeInput<typeof defaultedTrail>;
-type DefaultedBlazeInput = Parameters<typeof defaultedTrail.blaze>[0];
+type DefaultedImplementationInput = Parameters<
+  typeof defaultedTrail.implementation
+>[0];
 
 export type DefaultedCallerInputIsCallerSide = Assert<
   IsExact<DefaultedCallerInput, { name: string; limit?: number | undefined }>
@@ -130,13 +132,13 @@ export type DefaultedCallerInputIsCallerSide = Assert<
 export type DefaultedComposeInputIsCallerSide = Assert<
   IsExact<DefaultedComposeInput, DefaultedCallerInput>
 >;
-export type DefaultedBlazeInputIsMaterialized = Assert<
-  IsExact<DefaultedBlazeInput, { name: string; limit: number }>
+export type DefaultedImplementationInputIsMaterialized = Assert<
+  IsExact<DefaultedImplementationInput, { name: string; limit: number }>
 >;
 
 trail('typecheck.output-schema-mismatch', {
-  // @ts-expect-error blaze output must match the authored output schema.
-  blaze: () => Result.ok({ id: 123 }),
+  // @ts-expect-error implementation output must match the authored output schema.
+  implementation: () => Result.ok({ id: 123 }),
   input: z.object({}),
   output: z.object({ id: z.string() }),
 });
@@ -151,15 +153,15 @@ const composeDefaultSchema = z.object({
   forkedFrom: z.string().default('root'),
 });
 const composedDefaultedTrail = trail('typecheck.defaulted-compose-input', {
-  blaze: (input) => Result.ok({ forkedFrom: input.forkedFrom }),
   composeInput: composeDefaultSchema,
+  implementation: (input) => Result.ok({ forkedFrom: input.forkedFrom }),
   input: z.object({ name: z.string() }),
   output: z.object({ forkedFrom: z.string() }),
 });
 
 type DefaultedComposeOnlyInput = ComposeInput<typeof composedDefaultedTrail>;
-type DefaultedComposeOnlyBlazeInput = Parameters<
-  typeof composedDefaultedTrail.blaze
+type DefaultedComposeOnlyImplementationInput = Parameters<
+  typeof composedDefaultedTrail.implementation
 >[0];
 
 export type DefaultedComposeOnlyInputIsCallerSide = Assert<
@@ -168,9 +170,9 @@ export type DefaultedComposeOnlyInputIsCallerSide = Assert<
     { name: string } & { forkedFrom?: string | undefined }
   >
 >;
-export type DefaultedComposeOnlyBlazeInputIsMaterialized = Assert<
+export type DefaultedComposeOnlyImplementationInputIsMaterialized = Assert<
   IsExact<
-    DefaultedComposeOnlyBlazeInput,
+    DefaultedComposeOnlyImplementationInput,
     { name: string } & { forkedFrom: string }
   >
 >;
@@ -280,38 +282,44 @@ type StringIdComposeCallable = ComposeFn extends {
 export type StringIdComposeStillCallable = Assert<StringIdComposeCallable>;
 
 // ---------------------------------------------------------------------------
-// BlazeInput: blaze receives composeInput fields when declared
+// ImplementationInput: implementation receives composeInput fields when declared
 // ---------------------------------------------------------------------------
 
 /**
- * When a trail has composeInput, the blaze's first parameter must include
+ * When a trail has composeInput, the implementation's first parameter must include
  * both the public input fields AND the composeInput fields. Before the fix,
- * blaze was typed as Implementation<I, O>, losing the CI fields.
+ * implementation was typed as Implementation<I, O>, losing the CI fields.
  */
-type ComposeBlazeParam = Parameters<ComposeTrail['blaze']>[0];
+type ComposeImplementationParam = Parameters<ComposeTrail['implementation']>[0];
 
-type AssertBlazeHasComposeFields = ComposeBlazeParam extends {
+type AssertImplementationHasComposeFields = ComposeImplementationParam extends {
   name: string;
   forkedFrom: string;
 }
   ? true
   : false;
-export type BlazeWithCompose = [AssertBlazeHasComposeFields] extends [true]
+export type ImplementationWithCompose = [
+  AssertImplementationHasComposeFields,
+] extends [true]
   ? 'pass'
   : never;
 
-// Plain trail blaze should only receive the public input type.
-type PlainBlazeParam = Parameters<PlainTrail['blaze']>[0];
+// Plain trail implementation should only receive the public input type.
+type PlainImplementationParam = Parameters<PlainTrail['implementation']>[0];
 
-type AssertPlainBlazeIsInput = PlainBlazeParam extends { name: string }
+type AssertPlainImplementationIsInput = PlainImplementationParam extends {
+  name: string;
+}
   ? true
   : false;
-type AssertPlainBlazeNoExtra = { name: string } extends PlainBlazeParam
+type AssertPlainImplementationNoExtra = {
+  name: string;
+} extends PlainImplementationParam
   ? true
   : false;
-export type BlazeWithoutCompose = [
-  AssertPlainBlazeIsInput,
-  AssertPlainBlazeNoExtra,
+export type ImplementationWithoutCompose = [
+  AssertPlainImplementationIsInput,
+  AssertPlainImplementationNoExtra,
 ] extends [true, true]
   ? 'pass'
   : never;
@@ -532,19 +540,19 @@ export type RevisionRuntimeFieldContract = [
   : never;
 
 // ---------------------------------------------------------------------------
-// forkVersion threads the entry's own schemas into the fork blaze (TRL-1180)
+// forkVersion threads the entry's own schemas into the fork implementation (TRL-1180)
 // ---------------------------------------------------------------------------
 
 const forkV1Input = z.object({ name: z.string(), weightOz: z.number() });
 const forkV1Output = z.object({ id: z.string(), weightOz: z.number() });
 
 const _typedForkEntry = forkVersion({
-  blaze: (input) => {
-    type AssertForkBlazeInputTyped = Assert<
+  implementation: (input) => {
+    type AssertForkImplementationInputTyped = Assert<
       IsExact<typeof input, { name: string; weightOz: number }>
     >;
-    const _forkBlazeInputTyped: AssertForkBlazeInputTyped = true;
-    void _forkBlazeInputTyped;
+    const _forkImplementationInputTyped: AssertForkImplementationInputTyped = true;
+    void _forkImplementationInputTyped;
     return Result.ok({ id: input.name, weightOz: input.weightOz });
   },
   input: forkV1Input,
@@ -563,15 +571,16 @@ export type ForkVersionEntryContract = [AssertForkEntryAssignable] extends [
   : never;
 
 const _typedForkEntryOutputChecked = forkVersion({
-  // @ts-expect-error — blaze must return the entry output shape, not extras
-  blaze: (input) => Result.ok({ unexpected: input.name }),
+  // @ts-expect-error — implementation must return the entry output shape, not extras
+  implementation: (input) => Result.ok({ unexpected: input.name }),
   input: forkV1Input,
   output: forkV1Output,
 });
 export type ForkVersionOutputEnforced = typeof _typedForkEntryOutputChecked;
 
 const _typedForkEntryComposeInput = forkVersion({
-  blaze: (input) => {
+  composeInput: z.object({ source: z.string() }),
+  implementation: (input) => {
     type AssertForkComposeMerged = Assert<
       IsExact<
         typeof input,
@@ -582,7 +591,6 @@ const _typedForkEntryComposeInput = forkVersion({
     void _forkComposeMerged;
     return Result.ok({ id: input.source, weightOz: input.weightOz });
   },
-  composeInput: z.object({ source: z.string() }),
   input: forkV1Input,
   output: forkV1Output,
 });

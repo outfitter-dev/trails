@@ -35,7 +35,7 @@ Use this skill when a change touches error classes, `Result.err`, CLI/HTTP/MCP p
 - Do not collapse all throws into bugs; verify whether the throw is a construction or programmer-error boundary.
 - Do not add parallel error-code maps when core owner data already exposes the mapping.
 - Do not leak raw native `Error` values through public runtime Results when a specific `TrailsError` exists.
-- Do not put surface projection policy inside trail blaze logic.
+- Do not put surface projection policy inside trail implementation logic.
 
 ## Output
 

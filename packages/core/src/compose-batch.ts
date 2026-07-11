@@ -43,7 +43,7 @@ export const normalizeComposeBatchConcurrency = (
 /**
  * Produce one validation-error result per call, preserving the original
  * call order. Used when `normalizeComposeBatchConcurrency` fails so the caller
- * can surface a uniform batch shape to the blaze.
+ * can surface a uniform batch shape to the implementation.
  */
 export const createComposeBatchValidationResults = <TCall>(
   calls: readonly TCall[],

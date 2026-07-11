@@ -10,7 +10,7 @@ Use [Warden Rules](./contributing/warden-rules.md) when authoring or auditing ru
 
 Use Warden for durable Trails correctness:
 
-- trail, blaze, `Result`, detour, resource, topo, or surface doctrine
+- trail, implementation, `Result`, detour, resource, topo, or surface doctrine
 - checks that compare declarations to actual usage, such as `composes` or `resources`
 - checks that need project-wide context or the resolved topo
 - checks that should be available through the public Trails CLI or programmatic Warden API

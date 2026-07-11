@@ -21,14 +21,14 @@ const producerSignal = signal('invoice.created', {
 });
 
 const producerTrail = trail('invoice.create', {
-  blaze: () => Result.ok({ invoiceId: 'inv_1' }),
   fires: [producerSignal],
+  implementation: () => Result.ok({ invoiceId: 'inv_1' }),
   input: z.object({}),
   output: z.object({ invoiceId: z.string() }),
 });
 
 const consumerTrail = trail('invoice.index', {
-  blaze: () => Result.ok({ ok: true }),
+  implementation: () => Result.ok({ ok: true }),
   input: z.object({ invoiceId: z.string() }),
   on: [producerSignal],
   output: z.object({ ok: z.boolean() }),
@@ -49,7 +49,7 @@ describe('activation-orphan', () => {
 
   test('stays quiet for schedule activation sources', async () => {
     const scheduledTrail = trail('invoice.reconcile', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({}),
       on: [schedule('schedule.invoice.reconcile', { cron: '0 * * * *' })],
       output: z.object({ ok: z.boolean() }),
@@ -71,7 +71,7 @@ describe('activation-orphan', () => {
       signals: [usersCreated],
     });
     const consumer = trail('users.index', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({ userId: z.string() }),
       on: [usersCreated],
       output: z.object({ ok: z.boolean() }),
@@ -89,7 +89,7 @@ describe('activation-orphan', () => {
       payload: z.object({ invoiceId: z.string() }),
     });
     const auditTrail = trail('invoice.audit', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({ invoiceId: z.string() }),
       on: [
         paid,
@@ -101,7 +101,7 @@ describe('activation-orphan', () => {
       output: z.object({ ok: z.boolean() }),
     });
     const notifyTrail = trail('invoice.notify', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({ invoiceId: z.string() }),
       on: [paid],
       output: z.object({ ok: z.boolean() }),
@@ -128,13 +128,13 @@ describe('activation-orphan', () => {
       payload: z.object({ id: z.string() }),
     });
     const signalConsumer = trail('shared.signal-consumer', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({ id: z.string() }),
       on: [sharedSignal],
       output: z.object({ ok: z.boolean() }),
     });
     const scheduleConsumer = trail('shared.schedule-consumer', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({ id: z.string() }),
       on: [
         schedule('shared.source', {
@@ -167,7 +167,7 @@ describe('activation-orphan', () => {
       payload: z.object({ invoiceId: z.string() }),
     });
     const auditTrail = trail('invoice.audit', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({ invoiceId: z.string() }),
       on: [paid],
       output: z.object({ ok: z.boolean() }),

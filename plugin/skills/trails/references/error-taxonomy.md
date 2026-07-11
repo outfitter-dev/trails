@@ -22,7 +22,7 @@ The taxonomy has 17 fixed-category classes across 10 categories, plus the dynami
 ### permission (exit 4, HTTP 403)
 
 - **PermissionError** — Authenticated but not authorized. `new PermissionError('cannot delete admin users')`
-- **PermitError** — Permit extraction or enforcement failed before execution entered the blaze. `new PermitError('Missing required scope', { context: { scope: 'entity:write' } })`
+- **PermitError** — Permit extraction or enforcement failed before execution entered the implementation. `new PermitError('Missing required scope', { context: { scope: 'entity:write' } })`
 
 ### timeout (exit 5, HTTP 504)
 

@@ -72,10 +72,6 @@ const summaryOutput = z.object({
 });
 
 export const topoTrail = trail('topo', {
-  blaze: async (input, ctx) =>
-    withFreshOperatorApp(input, ctx, ({ lease, rootDir }) =>
-      Result.ok(deriveTopoSummary(lease.app, { rootDir }))
-    ),
   description: 'Show the current topo summary and entry list',
   examples: [
     {
@@ -83,6 +79,10 @@ export const topoTrail = trail('topo', {
       name: 'Show the current topo summary',
     },
   ],
+  implementation: async (input, ctx) =>
+    withFreshOperatorApp(input, ctx, ({ lease, rootDir }) =>
+      Result.ok(deriveTopoSummary(lease.app, { rootDir }))
+    ),
   input: z.object({
     module: z.string().optional().describe('Path to the app module'),
     rootDir: z.string().optional().describe('Workspace root directory'),

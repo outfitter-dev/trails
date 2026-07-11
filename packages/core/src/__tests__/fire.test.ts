@@ -1,4 +1,4 @@
-/* oxlint-disable require-await -- blazes satisfy async interface without awaiting */
+/* oxlint-disable require-await -- implementations satisfy async interface without awaiting */
 import { describe, expect, test } from 'bun:test';
 import { z } from 'zod';
 
@@ -64,7 +64,7 @@ const makeConsumer = (
   behavior: 'ok' | 'err' = 'ok'
 ) =>
   trail(id, {
-    blaze: (input) => {
+    implementation: (input) => {
       capture.invocations.push({ payload: input, trailId: id });
       if (behavior === 'err') {
         return Result.err(new Error(`${id} failed`));
@@ -84,7 +84,7 @@ const makeWhereConsumer = (
   }) => boolean | Promise<boolean>
 ) =>
   trail(id, {
-    blaze: (input) => {
+    implementation: (input) => {
       capture.invocations.push({ payload: input, trailId: id });
       return Result.ok({ received: input });
     },
@@ -94,7 +94,8 @@ const makeWhereConsumer = (
 
 const makeProducer = (fireCapture: { fired?: boolean }) =>
   trail('order.create', {
-    blaze: async (input, ctx) => {
+    fires: ['order.placed'],
+    implementation: async (input, ctx) => {
       await ctx.fire?.(orderPlaced, {
         orderId: input.orderId,
         total: input.total,
@@ -102,7 +103,6 @@ const makeProducer = (fireCapture: { fired?: boolean }) =>
       fireCapture.fired = true;
       return Result.ok({ ok: true });
     },
-    fires: ['order.placed'],
     input: z.object({ orderId: z.string(), total: z.number() }),
   });
 
@@ -251,7 +251,7 @@ const createBlockingConsumer = (
   release: Promise<Ready>
 ) =>
   trail(id, {
-    blaze: async () => {
+    implementation: async () => {
       started.resolve(READY);
       await release;
       return Result.ok({ ok: true });
@@ -269,7 +269,7 @@ const createIsolatedConsumer = (
   seen: Map<string, string>
 ) =>
   trail(id, {
-    blaze: async (_input, ctx) => {
+    implementation: async (_input, ctx) => {
       const extensions = ctx.extensions as Record<string, unknown>;
       extensions.currentConsumer = value;
       started.resolve(READY);
@@ -289,12 +289,12 @@ const createCycleConsumer = (
   invocations: string[]
 ) =>
   trail(id, {
-    blaze: async (input, ctx) => {
+    fires: [nextSignal],
+    implementation: async (input, ctx) => {
       invocations.push(signalId === 'loop.a' ? 'a' : 'b');
       await ctx.fire?.(nextSignal, { id: input.id });
       return Result.ok({ ok: true });
     },
-    fires: [nextSignal],
     input: cyclePayload,
     on: [signalId],
   });
@@ -360,7 +360,7 @@ const createDispatchInitiationScenario = () => {
   const release = createReadyGate();
   const state = { consumerCompleted: false };
   const consumer = trail('notify.blocking', {
-    blaze: async () => {
+    implementation: async () => {
       await release.promise;
       state.consumerCompleted = true;
       return Result.ok({ ok: true });
@@ -370,7 +370,8 @@ const createDispatchInitiationScenario = () => {
     output: z.object({ ok: z.boolean() }),
   });
   const producer = trail('order.create', {
-    blaze: async (input, ctx) => {
+    fires: ['order.placed'],
+    implementation: async (input, ctx) => {
       await ctx.fire?.(orderPlaced, {
         orderId: input.orderId,
         total: input.total,
@@ -378,7 +379,6 @@ const createDispatchInitiationScenario = () => {
       fireReturned.resolve(READY);
       return Result.ok({ ok: true });
     },
-    fires: ['order.placed'],
     input: z.object({ orderId: z.string(), total: z.number() }),
   });
   const app = topo('fire-dispatch-initiated', {
@@ -449,11 +449,11 @@ const createCycleScenario = (invocations: string[]) =>
     loopA,
     loopB,
     producer: trail('loop.producer', {
-      blaze: async (input, ctx) => {
+      fires: [loopA],
+      implementation: async (input, ctx) => {
         await ctx.fire?.(loopA, { id: input.id });
         return Result.ok({ ok: true });
       },
-      fires: [loopA],
       input: cyclePayload,
     }),
   });
@@ -468,14 +468,14 @@ const createDepthChainScenario = (chainLength: number) => {
     signals.slice(0, -1).map((sig, i) => [
       `consumer${i}`,
       trail(`chain.consumer.${i}`, {
-        blaze: async (_input, ctx) => {
+        fires: signals[i + 1] === undefined ? [] : [signals[i + 1]],
+        implementation: async (_input, ctx) => {
           const next = signals[i + 1];
           if (next !== undefined) {
             await ctx.fire?.(next, { n: i + 1 });
           }
           return Result.ok({ step: i });
         },
-        fires: signals[i + 1] === undefined ? [] : [signals[i + 1]],
         input: chainPayload,
         on: [sig.id],
       }),
@@ -489,13 +489,13 @@ const createDepthChainScenario = (chainLength: number) => {
       ...consumers,
       ...signalEntries,
       producer: trail('chain.start', {
-        blaze: async (input: { n: number }, ctx) => {
+        fires: firstSignal === undefined ? [] : [firstSignal],
+        implementation: async (input: { n: number }, ctx) => {
           if (firstSignal !== undefined) {
             await ctx.fire?.(firstSignal, input);
           }
           return Result.ok({ started: true });
         },
-        fires: firstSignal === undefined ? [] : [firstSignal],
         input: chainPayload,
       }),
     }),
@@ -523,7 +523,7 @@ const createThrowingPayloadScenario = () => {
   const fragileSignal = signal('fragile.payload', { payload: z.any() });
   const invocations: unknown[] = [];
   const consumer = trail('fragile.consumer', {
-    blaze: (input) => {
+    implementation: (input) => {
       invocations.push(input);
       return Result.ok({ ok: true });
     },
@@ -531,11 +531,11 @@ const createThrowingPayloadScenario = () => {
     on: [fragileSignal.id],
   });
   const producer = trail('fragile.producer', {
-    blaze: async (_input, ctx) => {
+    fires: [fragileSignal],
+    implementation: async (_input, ctx) => {
       await ctx.fire?.(fragileSignal, createPayloadWithThrowingGetter());
       return Result.ok({ ok: true });
     },
-    fires: [fragileSignal],
     input: z.object({}),
   });
   return {
@@ -654,18 +654,18 @@ const expectSiblingTraceShape = (
 
 const createConsumerComposeScenario = () => {
   const composeTarget = trail('notify.audit', {
-    blaze: () => Result.ok({ audited: true }),
+    implementation: () => Result.ok({ audited: true }),
     input: z.object({ orderId: z.string() }),
     output: z.object({ audited: z.boolean() }),
   });
   const consumer = trail('notify.email', {
-    blaze: async (input, ctx) => {
+    composes: [composeTarget],
+    implementation: async (input, ctx) => {
       const composeFn = ctx.compose as NonNullable<typeof ctx.compose>;
       return (await composeFn(composeTarget, {
         orderId: input.orderId,
       })) as Result<unknown, Error>;
     },
-    composes: [composeTarget],
     input: z.object({ orderId: z.string(), total: z.number() }),
     on: ['order.placed'],
   });
@@ -838,7 +838,7 @@ describe('fire', () => {
     test('duplicate signal activation entries dispatch one consumer edge', async () => {
       const capture = createCapture();
       const consumer = trail('notify.dedupe', {
-        blaze: (input) => {
+        implementation: (input) => {
           capture.invocations.push({
             payload: input,
             trailId: 'notify.dedupe',
@@ -873,7 +873,7 @@ describe('fire', () => {
     test('duplicate guarded signal entries match when any predicate matches', async () => {
       const capture = createCapture();
       const consumer = trail('notify.guarded-dedupe', {
-        blaze: (input) => {
+        implementation: (input) => {
           capture.invocations.push({
             payload: input,
             trailId: 'notify.guarded-dedupe',
@@ -911,7 +911,7 @@ describe('fire', () => {
     test('consumer contexts carry signal activation provenance', async () => {
       const activations: ActivationProvenance[] = [];
       const consumer = trail('provenance.consumer', {
-        blaze: (_input, ctx) => {
+        implementation: (_input, ctx) => {
           if (ctx.activation !== undefined) {
             activations.push(ctx.activation);
           }
@@ -922,11 +922,11 @@ describe('fire', () => {
         output: z.object({ ok: z.boolean() }),
       });
       const producer = trail('provenance.producer', {
-        blaze: async (input, ctx) => {
+        fires: [orderPlaced],
+        implementation: async (input, ctx) => {
           await ctx.fire?.(orderPlaced, input);
           return Result.ok({ ok: true });
         },
-        fires: [orderPlaced],
         input: z.object({ orderId: z.string(), total: z.number() }),
         output: z.object({ ok: z.boolean() }),
       });
@@ -959,29 +959,29 @@ describe('fire', () => {
       });
       const activations: ActivationProvenance[] = [];
       const producer = trail('provenance.root', {
-        blaze: async (_input, ctx) => {
+        fires: [firstSignal],
+        implementation: async (_input, ctx) => {
           await ctx.fire?.(firstSignal, { id: 'chain' });
           return Result.ok({ ok: true });
         },
-        fires: [firstSignal],
         input: z.object({}),
         output: z.object({ ok: z.boolean() }),
       });
       const firstConsumer = trail('provenance.first.consumer', {
-        blaze: async (input, ctx) => {
+        fires: [secondSignal],
+        implementation: async (input, ctx) => {
           if (ctx.activation !== undefined) {
             activations.push(ctx.activation);
           }
           await ctx.fire?.(secondSignal, input);
           return Result.ok({ ok: true });
         },
-        fires: [secondSignal],
         input: z.object({ id: z.string() }),
         on: [firstSignal],
         output: z.object({ ok: z.boolean() }),
       });
       const secondConsumer = trail('provenance.second.consumer', {
-        blaze: (_input, ctx) => {
+        implementation: (_input, ctx) => {
           if (ctx.activation !== undefined) {
             activations.push(ctx.activation);
           }
@@ -1029,7 +1029,7 @@ describe('fire', () => {
       const capture = createCapture();
       const consumer = makeConsumer('notify.email', capture);
       const badProducer = trail('bad.producer', {
-        blaze: async (_input, ctx) => {
+        implementation: async (_input, ctx) => {
           const fireByString = ctx.fire as unknown as (
             signalId: string,
             payload: unknown
@@ -1054,7 +1054,7 @@ describe('fire', () => {
     test('unknown signal values do not fail the producer', async () => {
       const ghostSignal = signal('ghost.signal', { payload: z.object({}) });
       const badProducer = trail('bad.producer', {
-        blaze: async (_input, ctx) => {
+        implementation: async (_input, ctx) => {
           await ctx.fire?.(ghostSignal, {});
           return Result.ok({ ok: true });
         },
@@ -1071,7 +1071,7 @@ describe('fire', () => {
       const diagnostics: SignalDiagnostic[] = [];
       const ghostSignal = signal('ghost.signal', { payload: z.object({}) });
       const badProducer = trail('bad.producer', {
-        blaze: async (_input, ctx) => {
+        implementation: async (_input, ctx) => {
           await ctx.fire?.(ghostSignal, {});
           return Result.ok({ ok: true });
         },
@@ -1124,7 +1124,7 @@ describe('fire', () => {
       const consumer = makeConsumer('notify.email', capture);
 
       const badProducer = trail('bad.payload', {
-        blaze: async (_input, ctx) => {
+        implementation: async (_input, ctx) => {
           await ctx.fire?.(orderPlaced as Signal<unknown>, { orderId: 123 });
           return Result.ok({ ok: true });
         },
@@ -1148,14 +1148,14 @@ describe('fire', () => {
       const consumer = makeConsumer('notify.email', capture);
 
       const badProducer = trail('bad.payload', {
-        blaze: async (_input, ctx) => {
+        fires: ['order.placed'],
+        implementation: async (_input, ctx) => {
           await ctx.fire?.(orderPlaced as Signal<unknown>, {
             orderId: 'o-redacted',
             total: 'secret-total',
           });
           return Result.ok({ ok: true });
         },
-        fires: ['order.placed'],
         input: z.object({}),
       });
 
@@ -1222,11 +1222,11 @@ describe('fire', () => {
       });
 
       const badProducer = trail('bad.payload.getter', {
-        blaze: async (_input, ctx) => {
+        fires: ['order.placed'],
+        implementation: async (_input, ctx) => {
           await ctx.fire?.(orderPlaced as Signal<unknown>, payload);
           return Result.ok({ ok: true });
         },
-        fires: ['order.placed'],
         input: z.object({}),
       });
 
@@ -1288,11 +1288,11 @@ describe('fire', () => {
       revoke();
 
       const badProducer = trail('bad.payload.revoked-proxy', {
-        blaze: async (_input, ctx) => {
+        fires: ['order.placed'],
+        implementation: async (_input, ctx) => {
           await ctx.fire?.(orderPlaced as Signal<unknown>, proxy);
           return Result.ok({ ok: true });
         },
-        fires: ['order.placed'],
         input: z.object({}),
       });
 
@@ -1346,11 +1346,11 @@ describe('fire', () => {
         },
       };
       const badProducer = trail('bad.payload', {
-        blaze: async (_input, ctx) => {
+        fires: ['order.placed'],
+        implementation: async (_input, ctx) => {
           await ctx.fire?.(orderPlaced as Signal<unknown>, { orderId: 123 });
           return Result.ok({ ok: true });
         },
-        fires: ['order.placed'],
         input: z.object({}),
       });
       const app = topo('fire-bad-payload-traced-diagnostics', {
@@ -1420,21 +1420,21 @@ describe('fire', () => {
         payload: z.object({ chargeId: z.string() }),
       });
       const producer = trail('producer.ready-fire', {
-        blaze: async (input, ctx) => {
+        fires: [producerReady],
+        implementation: async (input, ctx) => {
           await ctx.fire?.(producerReady, { orderId: input.orderId });
           return Result.ok({ ok: true });
         },
-        fires: [producerReady],
         input: z.object({ orderId: z.string() }),
       });
       const consumer = trail('consumer.invalid-fire', {
-        blaze: async (_input, ctx) => {
+        fires: [consumerInvalid],
+        implementation: async (_input, ctx) => {
           await ctx.fire?.(consumerInvalid as Signal<unknown>, {
             chargeId: 123,
           });
           return Result.ok({ ok: true });
         },
-        fires: [consumerInvalid],
         input: z.object({ orderId: z.string() }),
         on: [producerReady.id],
       });
@@ -1498,11 +1498,11 @@ describe('fire', () => {
         },
       };
       const badProducer = trail('bad.payload', {
-        blaze: async (_input, ctx) => {
+        fires: ['order.placed'],
+        implementation: async (_input, ctx) => {
           await ctx.fire?.(orderPlaced as Signal<unknown>, { orderId: 123 });
           return Result.ok({ ok: true });
         },
-        fires: ['order.placed'],
         input: z.object({}),
       });
       const app = topo('fire-bad-payload-strict-diagnostics', {
@@ -1792,7 +1792,7 @@ describe('fire', () => {
     test('ctx.fire is undefined when executeTrail is called without a topo', async () => {
       const { executeTrail } = await import('../execute');
       const standalone = trail('standalone', {
-        blaze: async (_input, ctx) =>
+        implementation: async (_input, ctx) =>
           Result.ok({ hasFire: ctx.fire !== undefined }),
         input: z.object({}),
       });
@@ -1818,14 +1818,14 @@ describe('fire', () => {
       }) as NonNullable<TrailContext['fire']>;
 
       const producer = trail('order.create-with-injected-fire', {
-        blaze: async (_input, ctx) => {
+        fires: ['order.placed'],
+        implementation: async (_input, ctx) => {
           await ctx.fire?.(orderPlaced, {
             orderId: 'o-injected',
             total: 1,
           });
           return Result.ok({ ok: true });
         },
-        fires: ['order.placed'],
         input: z.object({}),
       });
       const consumer = makeConsumer('notify.email', createCapture());
@@ -1848,14 +1848,14 @@ describe('fire', () => {
       const capture = createCapture();
       const consumerA = makeConsumer('notify.email', capture);
       const valueProducer = trail('order.create-by-value', {
-        blaze: async (input, ctx) => {
+        fires: ['order.placed'],
+        implementation: async (input, ctx) => {
           await ctx.fire?.(orderPlaced, {
             orderId: input.orderId,
             total: input.total,
           });
           return Result.ok({ ok: true });
         },
-        fires: ['order.placed'],
         input: z.object({ orderId: z.string(), total: z.number() }),
       });
       const app = topo('fire-signal-value', {
@@ -1888,7 +1888,7 @@ describe('fire', () => {
       };
 
       const consumer = trail('layered.consumer', {
-        blaze: () => Result.ok({ ok: true }),
+        implementation: () => Result.ok({ ok: true }),
         input: z.object({ orderId: z.string(), total: z.number() }),
         on: ['order.placed'],
       });
@@ -2273,7 +2273,7 @@ describe('fire', () => {
     test('consumer inherits producer logger and requestId', async () => {
       const captured: { requestId: string; loggerExists: boolean }[] = [];
       const consumer = trail('inherit.consumer', {
-        blaze: (_input, ctx) => {
+        implementation: (_input, ctx) => {
           captured.push({
             loggerExists: ctx.logger !== undefined,
             requestId: ctx.requestId,
@@ -2304,7 +2304,7 @@ describe('fire', () => {
     test('consumer inherits layer-mutated producer requestId', async () => {
       const captured: string[] = [];
       const consumer = trail('inherit.layered.consumer', {
-        blaze: (_input, ctx) => {
+        implementation: (_input, ctx) => {
           captured.push(ctx.requestId);
           return Result.ok({ ok: true });
         },
@@ -2343,7 +2343,7 @@ describe('fire', () => {
     test('extracted fire inherits layer-mutated producer requestId', async () => {
       const captured: string[] = [];
       const consumer = trail('inherit.extracted.consumer', {
-        blaze: (_input, ctx) => {
+        implementation: (_input, ctx) => {
           captured.push(ctx.requestId);
           return Result.ok({ ok: true });
         },
@@ -2351,7 +2351,8 @@ describe('fire', () => {
         on: ['order.placed'],
       });
       const producer = trail('inherit.extracted.producer', {
-        blaze: async (input, ctx) => {
+        fires: ['order.placed'],
+        implementation: async (input, ctx) => {
           const { fire } = ctx;
           await fire?.(orderPlaced, {
             orderId: input.orderId,
@@ -2359,7 +2360,6 @@ describe('fire', () => {
           });
           return Result.ok({ ok: true });
         },
-        fires: ['order.placed'],
         input: z.object({ orderId: z.string(), total: z.number() }),
       });
       const requestIdLayer: Layer = {

@@ -8,7 +8,7 @@ export const implementationReturnsResultTrail = wrapRule({
       input: {
         filePath: 'clean.ts',
         sourceCode: `trail("entity.show", {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     return Result.ok({ name: "test" });
   }
 })`,

@@ -69,18 +69,6 @@ const uptimeReportOutputSchema = z.object({
 const HISTORY_WINDOW_LIMIT = 10_000;
 
 export const uptimeReport = trail('uptime.report', {
-  blaze: async (input, ctx) => {
-    const history = await ctx.compose(probeHistory, {
-      checkId: input.checkId,
-      limit: HISTORY_WINDOW_LIMIT,
-      sinceHours: input.days * 24,
-    });
-    if (history.isErr()) {
-      return history;
-    }
-    const stats = computeUptime(history.value.probes);
-    return Result.ok({ checkId: input.checkId, days: input.days, ...stats });
-  },
   composes: [probeHistory],
   description:
     'Windowed uptime percentages computed from recorded probe outcomes.',
@@ -100,6 +88,18 @@ export const uptimeReport = trail('uptime.report', {
       name: 'Uptime with no history',
     },
   ],
+  implementation: async (input, ctx) => {
+    const history = await ctx.compose(probeHistory, {
+      checkId: input.checkId,
+      limit: HISTORY_WINDOW_LIMIT,
+      sinceHours: input.days * 24,
+    });
+    if (history.isErr()) {
+      return history;
+    }
+    const stats = computeUptime(history.value.probes);
+    return Result.ok({ checkId: input.checkId, days: input.days, ...stats });
+  },
   input: z.object({
     checkId: z.string().describe('Check id'),
     days: z
@@ -130,7 +130,19 @@ const summaryCheckSchema = z.object({
 });
 
 export const statusSummary = trail('status.summary', {
-  blaze: async (_input, ctx) => {
+  cli: ['status'],
+  composes: [listIncidents, uptimeReport],
+  description:
+    'The public status page payload: per-check state, 7d/30d uptime, and open incident count.',
+  examples: [
+    {
+      description: 'The demo store seeds three checks and one open incident',
+      expectedMatch: { openIncidents: 1 },
+      input: {},
+      name: 'Status summary',
+    },
+  ],
+  implementation: async (_input, ctx) => {
     const checks = await db.from(ctx).checks.list();
     const incidents = await ctx.compose(listIncidents, {});
     if (incidents.isErr()) {
@@ -163,18 +175,6 @@ export const statusSummary = trail('status.summary', {
       openIncidents: openIncidents.length,
     });
   },
-  cli: ['status'],
-  composes: [listIncidents, uptimeReport],
-  description:
-    'The public status page payload: per-check state, 7d/30d uptime, and open incident count.',
-  examples: [
-    {
-      description: 'The demo store seeds three checks and one open incident',
-      expectedMatch: { openIncidents: 1 },
-      input: {},
-      name: 'Status summary',
-    },
-  ],
   input: z.object({}),
   intent: 'read',
   output: z.object({
@@ -191,7 +191,23 @@ export const statusSummary = trail('status.summary', {
 // ---------------------------------------------------------------------------
 
 export const statusBadge = trail('status.badge', {
-  blaze: async (input, ctx) => {
+  composes: [uptimeReport],
+  description:
+    'Tiny per-check JSON payload for embedding (badge-shaped, JSON in v1).',
+  examples: [
+    {
+      description: 'A fresh check reports its state with no uptime claim',
+      expected: {
+        checkId: 'chk_steady',
+        label: 'steady',
+        state: 'unknown',
+        uptime7d: null,
+      },
+      input: { checkId: 'chk_steady' },
+      name: 'Badge for a check',
+    },
+  ],
+  implementation: async (input, ctx) => {
     const check = await db.from(ctx).checks.get(input.checkId);
     if (!check) {
       return Result.err(
@@ -209,22 +225,6 @@ export const statusBadge = trail('status.badge', {
       uptime7d: uptime.isOk() ? uptime.value.uptimePercent : null,
     });
   },
-  composes: [uptimeReport],
-  description:
-    'Tiny per-check JSON payload for embedding (badge-shaped, JSON in v1).',
-  examples: [
-    {
-      description: 'A fresh check reports its state with no uptime claim',
-      expected: {
-        checkId: 'chk_steady',
-        label: 'steady',
-        state: 'unknown',
-        uptime7d: null,
-      },
-      input: { checkId: 'chk_steady' },
-      name: 'Badge for a check',
-    },
-  ],
   input: z.object({
     checkId: z.string().describe('Check id'),
   }),

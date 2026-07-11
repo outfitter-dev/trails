@@ -20,7 +20,7 @@ const greet = trail('greet', {
       name: 'Ada',
     },
   ],
-  blaze: (input) => Result.ok({ greeting: `Hello, ${input.name}!` }),
+  implementation: (input) => Result.ok({ greeting: `Hello, ${input.name}!` }),
 });
 
 const graph = topo('myapp', { greet });
@@ -112,15 +112,15 @@ Trail IDs become MCP tool names with the app prefix: `entity.show` in app `myapp
 
 ## Resource resolution
 
-Declared resources on each trail are resolved into the context before the blaze receives input.
+Declared resources on each trail are resolved into the context before the implementation receives input.
 
 ## Progress bridge
 
-Blazes report progress through `ctx.progress`. On MCP, these bridge to `notifications/progress` when the client sends a `progressToken`:
+Implementations report progress through `ctx.progress`. On MCP, these bridge to `notifications/progress` when the client sends a `progressToken`:
 
 ```typescript
 const importTrail = trail('data.import', {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     for (let i = 0; i < items.length; i++) {
       await processItem(items[i]);
       ctx.progress?.({ type: 'progress', current: i + 1, total: items.length });

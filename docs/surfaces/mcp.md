@@ -217,11 +217,11 @@ If the result contains a `BlobRef` declared with `blobRefSchema`, MCP projects t
 
 ## Progress Bridging
 
-A trail's blaze can report progress via `ctx.progress`. On the MCP surface, these are bridged to MCP `notifications/progress`:
+A trail's implementation can report progress via `ctx.progress`. On the MCP surface, these are bridged to MCP `notifications/progress`:
 
 ```typescript
 const importTrail = trail('data.import', {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     for (let i = 0; i < items.length; i++) {
       await processItem(items[i]);
       ctx.progress?.({ type: 'progress', current: i + 1, total: items.length });
@@ -280,11 +280,11 @@ await surface(graph, {
 
 ## AbortSignal Propagation
 
-The MCP client's abort signal is propagated through to `TrailContext.abortSignal`. If the client cancels a tool call, the trail's blaze sees the aborted signal.
+The MCP client's abort signal is propagated through to `TrailContext.abortSignal`. If the client cancels a tool call, the trail's implementation sees the aborted signal.
 
 ```typescript
 const longTask = trail('long.task', {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     for (const item of items) {
       if (ctx.abortSignal?.aborted) {
         return Result.err(new CancelledError('Task cancelled'));
@@ -298,7 +298,7 @@ const longTask = trail('long.task', {
 
 ## Layers
 
-The MCP surface accepts execution layers in its options and uses `composeLayers()` from `@ontrails/core` to wrap execution before the blaze.
+The MCP surface accepts execution layers in its options and uses `composeLayers()` from `@ontrails/core` to wrap execution before the implementation.
 
 No MCP-specific layers ship in v1. The infrastructure is wired for surface-scoped behavior such as rate limiting, caching, or auth layers, but these layers are not topo primitives or graph nodes.
 

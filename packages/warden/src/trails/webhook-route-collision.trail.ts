@@ -10,14 +10,14 @@ const paymentWebhook = webhook('webhook.payment.received', {
 });
 
 const paymentReceiver = trail('payment.receive', {
-  blaze: () => Result.ok({ ok: true }),
+  implementation: () => Result.ok({ ok: true }),
   input: z.object({ paymentId: z.string() }),
   on: [paymentWebhook],
   output: z.object({ ok: z.boolean() }),
 });
 
 const directRoute = trail('webhooks.payment', {
-  blaze: () => Result.ok({ ok: true }),
+  implementation: () => Result.ok({ ok: true }),
   input: z.object({}),
   output: z.object({ ok: z.boolean() }),
 });

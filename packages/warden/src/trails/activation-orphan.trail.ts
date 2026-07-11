@@ -9,7 +9,7 @@ const orphanSignal = signal('invoice.paid', {
 });
 
 const orphanConsumer = trail('invoice.audit', {
-  blaze: () => Result.ok({ ok: true }),
+  implementation: () => Result.ok({ ok: true }),
   input: z.object({ invoiceId: z.string() }),
   on: [orphanSignal],
   output: z.object({ ok: z.boolean() }),
@@ -21,24 +21,24 @@ const producedSignal = signal('invoice.created', {
 });
 
 const producerTrail = trail('invoice.create', {
-  blaze: async (_input, ctx) => {
+  fires: [producedSignal],
+  implementation: async (_input, ctx) => {
     await ctx.fire?.(producedSignal, { invoiceId: 'inv_1' });
     return Result.ok({ invoiceId: 'inv_1' });
   },
-  fires: [producedSignal],
   input: z.object({}),
   output: z.object({ invoiceId: z.string() }),
 });
 
 const producedConsumer = trail('invoice.index', {
-  blaze: () => Result.ok({ ok: true }),
+  implementation: () => Result.ok({ ok: true }),
   input: z.object({ invoiceId: z.string() }),
   on: [producedSignal],
   output: z.object({ ok: z.boolean() }),
 });
 
 const scheduledConsumer = trail('invoice.reconcile', {
-  blaze: () => Result.ok({ ok: true }),
+  implementation: () => Result.ok({ ok: true }),
   input: z.object({}),
   on: [schedule('schedule.invoice.reconcile', { cron: '0 * * * *' })],
   output: z.object({ ok: z.boolean() }),

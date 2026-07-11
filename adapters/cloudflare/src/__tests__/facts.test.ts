@@ -17,7 +17,7 @@ import { cloudflareKv } from '../kv/index.js';
 const flags = cloudflareKv('flags', { binding: 'FLAGS' });
 
 const showFlag = trail('flag.show', {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const value = await flags.from(ctx).get(input.key);
     return Result.ok({ value });
   },
@@ -74,7 +74,7 @@ describe('cloudflareOverlay', () => {
 
   test('a topo with no env-bound resources yields empty bindings', () => {
     const ping = trail('ping', {
-      blaze: () => Result.ok({ pong: true }),
+      implementation: () => Result.ok({ pong: true }),
       input: z.object({}),
       intent: 'read',
       output: z.object({ pong: z.boolean() }),

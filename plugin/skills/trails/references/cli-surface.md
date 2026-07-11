@@ -71,7 +71,7 @@ Groups are created automatically from the dot-separated prefix.
 
 ## Destructive Trails
 
-When a trail has `intent: 'destroy'`, the CLI surface automatically adds a `--dry-run` flag. If the blaze needs to branch on it, declare `dryRun` in the trail input schema so validation preserves it. You can also add this explicitly:
+When a trail has `intent: 'destroy'`, the CLI surface automatically adds a `--dry-run` flag. If the implementation needs to branch on it, declare `dryRun` in the trail input schema so validation preserves it. You can also add this explicitly:
 
 ```typescript
 const destroy = trail('project.destroy', {
@@ -80,7 +80,7 @@ const destroy = trail('project.destroy', {
     id: z.string().describe('Project ID'),
     dryRun: z.boolean().default(false).describe('Preview without deleting'),
   }),
-  blaze: async (input) => {
+  implementation: async (input) => {
     if (input.dryRun) return Result.ok({ deleted: false });
     // Delete for real.
   },
@@ -119,7 +119,7 @@ surface(graph, {
 
 ## Execution Pipeline
 
-The CLI surface delegates to `executeTrail()` from `@ontrails/core` — the same pipeline used by MCP, HTTP, and `run()`. Input is validated by Zod before the blaze receives it. Layers are applied in order. The Result is mapped to an exit code and stdout/stderr by the surface; blazes never call `process.exit()` directly.
+The CLI surface delegates to `executeTrail()` from `@ontrails/core` — the same pipeline used by MCP, HTTP, and `run()`. Input is validated by Zod before the implementation receives it. Layers are applied in order. The Result is mapped to an exit code and stdout/stderr by the surface; implementations never call `process.exit()` directly.
 
 ## Escape Hatch
 

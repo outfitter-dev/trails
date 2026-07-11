@@ -104,7 +104,7 @@ const db = resource('db.main', dbSpec);`;
   test('does not flag non-resource calls', () => {
     const code = `
 const t = trail('entity.show', {
-  blaze: async () => Result.ok({ ok: true }),
+  implementation: async () => Result.ok({ ok: true }),
 });`;
     expect(resourceMockCoverage.check(code, TEST_FILE)).toHaveLength(0);
   });

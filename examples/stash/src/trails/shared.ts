@@ -63,8 +63,8 @@ export const viewerId = (ctx: TrailContext): string | undefined =>
 
 /**
  * The permit subject for a mutation. Enforcement rejects unauthenticated
- * callers before the blaze runs; this narrows the type and keeps a truthful
- * error if a caller ever reaches the blaze without one.
+ * callers before the implementation runs; this narrows the type and keeps a truthful
+ * error if a caller ever reaches the implementation without one.
  */
 export const requireSubject = (ctx: TrailContext): Result<string, Error> => {
   const subject = viewerId(ctx);

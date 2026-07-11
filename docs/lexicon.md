@@ -30,7 +30,7 @@ The atomic unit of work. A defined path from typed input to `Result` output. `tr
 const show = trail('entity.show', {
   input: z.object({ name: z.string() }),
   intent: 'read',
-  blaze: async (input) => Result.ok({ name: input.name }),
+  implementation: async (input) => Result.ok({ name: input.name }),
 });
 ```
 
@@ -151,31 +151,31 @@ The resolved identity shape that authentication produces. A permit is the artifa
 
 Trails declare permit requirements with the `permit` field.
 
-## Branded — Inside `trail()` Declarations
+## Inside `trail()` Declarations
 
-Six terms that appear as field names inside `trail()`. The constrained context — alongside `input:`, `intent:`, `output:` — lowers the evaluation bar because the meaning is structural.
+Terms that appear as field names inside `trail()`. The constrained context — alongside `input:`, `intent:`, `output:` — makes the meaning structural.
 
-### `blaze`
+### `implementation`
 
-The authored implementation that makes a trail runnable.
+The authored behavior that makes a trail runnable.
 
-A trail can be specified before it is blazed: schemas, examples, intent, resources, compositions, signals, detours, and metadata can all exist as contract. The `blaze` establishes the path through that contract, from validated input to `Result` output.
+A trail can be specified before its implementation is complete: schemas, examples, intent, resources, compositions, signals, detours, and metadata can all exist as contract. The `implementation` establishes the path through that contract, from validated input to `Result` output.
 
-The runtime runs trails, not blazes. A blazed trail can be exposed through any surface because its implementation is surface-agnostic: input in, `Result` out.
+The runtime runs trails, not bare implementation functions. A trail with an implementation can be exposed through any surface because its implementation is surface-agnostic: input in, `Result` out.
 
 ```typescript
 const create = trail('entity.create', {
   input: entityInput,
   output: entityOutput,
   resources: [db],
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const conn = db.from(ctx);
     return Result.ok(await conn.create(input));
   },
 });
 ```
 
-"Blaze a trail" is real English, not manufactured. In Trails, it means establishing the trail for use, not walking it. See [Language Styleguide](contributing/language-styleguide.md#blaze) for the full grammar.
+"Blaze a trail" remains useful ordinary English for establishing a path, but it is no longer framework vocabulary. See [Language Styleguide](contributing/language-styleguide.md#implementation) for the full grammar.
 
 ### `fires`
 
@@ -185,14 +185,14 @@ Producer-side signal declaration. Lists the signals this trail fires.
 const create = trail('entity.create', {
   fires: [created],
   input: entityInput,
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     await ctx.fire(created, { id: input.id });
     return Result.ok({ id: input.id });
   },
 });
 ```
 
-Pairs with `blaze` for lexicon coherence. Combined with `signal`, the resonance is mnemonic: signal fire.
+Combined with `signal`, the resonance is mnemonic: signal fire.
 
 ### `on`
 
@@ -201,7 +201,7 @@ Consumer-side signal declaration. Lists the signals that activate this trail.
 ```typescript
 const notify = trail('entity.notify', {
   on: [created],
-  blaze: async (_input) => Result.ok({ delivered: true }),
+  implementation: async (_input) => Result.ok({ delivered: true }),
 });
 ```
 
@@ -209,7 +209,7 @@ const notify = trail('entity.notify', {
 
 ### `detour` / `detours`
 
-Recovery paths when the trail is blocked or fails. A blazed trail proceeds through the normal path; if blocked, it detours. Coherent pair with `blaze`.
+Recovery paths when the trail is blocked or fails. A runnable trail proceeds through the normal path; if blocked, it detours.
 
 ### `compose` / `composes`
 
@@ -219,7 +219,7 @@ Trail-to-trail composition. `composes` is the declaration on the trail spec. `ct
 const onboard = trail('entity.onboard', {
   composes: ['entity.create', 'entity.relate'],
   input: onboardingInput,
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const created = await ctx.compose('entity.create', input);
     if (created.isErr()) return created;
     return ctx.compose('entity.relate', {
@@ -247,14 +247,14 @@ const create = trail('gist.create', {
   composeInput: z.object({
     forkedFrom: z.string().optional(),
   }),
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     // input.forkedFrom is available here (undefined from surfaces)
     return Result.ok({ id: '1' });
   },
 });
 ```
 
-`composeInput` fields are merged with `input` for the blaze. When invoked via a surface, `composeInput` fields are absent. When invoked via `ctx.compose()`, the caller can pass both. See [ADR-0024](adr/0024-typed-trail-composition.md).
+`composeInput` fields are merged with `input` for the implementation. When invoked via a surface, `composeInput` fields are absent. When invoked via `ctx.compose()`, the caller can pass both. See [ADR-0024](adr/0024-typed-trail-composition.md).
 
 ### `signal`
 
@@ -287,7 +287,7 @@ Terms that name concepts existing cleanly across software. The standard word wor
 
 Lexicon enforcement is role-scoped. The framework bans generic synonyms when a word is claiming the canonical slot for a Trails concept, not whenever the word appears in ordinary explanation.
 
-A substitution claim should use the Trails term. For example, code or docs should not describe a `topo` as a registry, a `trail` as an action, a `blaze` as a handler, or a `surface` as transport terminology when the sentence is naming the framework concept itself.
+A substitution claim should use the Trails term. For example, code or docs should not describe a `topo` as a registry, a `trail` as an action, an `implementation` as a handler, or a `surface` as transport terminology when the sentence is naming the framework concept itself.
 
 A mention can use the external or generic word when it is doing a different job: contrasting Trails with another system, naming an upstream library concept, quoting external API vocabulary, or explaining why a standard word is not the Trails term. The sentence "MCP calls these tools, while Trails authors trails" is a valid mention; the sentence "register this action in the topo" is a substitution and should be corrected.
 
@@ -345,7 +345,7 @@ const normalizePayload = trail('github.normalize-payload', {
   visibility: 'internal',
   input: PayloadSchema,
   output: NormalizedSchema,
-  blaze: async (input) => Result.ok(input),
+  implementation: async (input) => Result.ok(input),
 });
 ```
 
@@ -375,7 +375,7 @@ A declared operational shape on a trail. Recognized structural forms — `crud`,
 const enableFeature = trail('feature.enable', {
   pattern: 'toggle',
   input: featureInput,
-  blaze: async (input) => Result.ok({ enabled: true }),
+  implementation: async (input) => Result.ok({ enabled: true }),
 });
 ```
 
@@ -387,7 +387,7 @@ Direct programmatic execution through the full pipeline.
 const result = await run(graph, 'entity.show', { id: '123' });
 ```
 
-`run()` is for "invoke this specific trail now." It is not the authored `blaze` on a trail.
+`run()` is for "invoke this specific trail now." It is not the authored `implementation` on a trail.
 
 ### `version` / `versions`
 
@@ -397,7 +397,7 @@ Trail-only contract evolution fields. `version: N` declares the current version 
 const create = trail('invite.create', {
   input: currentInput,
   output: currentOutput,
-  blaze: currentBlaze,
+  implementation: currentImplementation,
   version: 3,
   versions: {
     2: { input: v2Input, output: v2Output, transpose: v2Transpose },
@@ -411,9 +411,9 @@ The current contract stays top-level. Historical entries must declare `input` an
 
 Kinds of trail version entries, projected by the resolved graph rather than authored as a source `kind:` field.
 
-A **revision** has `transpose:` and uses pure data transforms into and out of current. The current blazed trail still runs.
+A **revision** has `transpose:` and uses pure data transforms into and out of current. The current implementation still runs.
 
-A **fork** has its own `blaze:` and may own `composes`, `resources`, and `detours` because its historical blazed trail runs for that version.
+A **fork** has its own `implementation:` and may own `composes`, `resources`, and `detours` because its historical implementation runs for that version.
 
 ### `transpose`
 
@@ -463,7 +463,7 @@ const db = store({
 });
 ```
 
-A store is infrastructure declared as data. A resource is how that infrastructure reaches blazes. A store becomes usable through a resource; they are complementary, not interchangeable.
+A store is infrastructure declared as data. A resource is how that infrastructure reaches implementations. A store becomes usable through a resource; they are complementary, not interchangeable.
 
 ### `binding`
 
@@ -561,7 +561,7 @@ When introducing Trails, use this order.
 ### Beginner
 
 1. `trail()` — define a unit of work
-2. `blaze:` — establish how the trail runs
+2. `implementation:` — establish how the trail runs
 3. `topo()` — collect trails into a graph
 4. `surface()` — open the graph on CLI, MCP, HTTP, or WebSocket
 
@@ -588,9 +588,9 @@ When introducing Trails, use this order.
 
 ## Writing Style
 
-- Lead with code: `trail()` → `blaze:` → `topo()` → `surface()`
+- Lead with code: `trail()` → `implementation:` → `topo()` → `surface()`
 - Use the lexicon consistently: "compose" instead of "cross," "surface"
   instead of generic transport vocabulary
 - Keep the metaphor disciplined. The words should clarify behavior, not turn the docs into theme writing.
 - Prefer the lexicon's nouns even for internal architecture explanations. Leaving generic words in place only creates translation tax later.
-- Use `implementation` to clarify `blaze`, not to replace it as the concept. A blazed trail is a runnable contract.
+- Use `implementation` for the authored behavior field, while keeping `trail` as the runnable unit. A trail with an implementation is a runnable contract.

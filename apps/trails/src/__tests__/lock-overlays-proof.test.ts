@@ -54,7 +54,7 @@ import { z } from 'zod';
 const flags = cloudflareKv('flags', { binding: 'FLAGS' });
 
 const readFlag = trail('flags.read', {
-  blaze: async () => Result.ok({ value: null }),
+  implementation: async () => Result.ok({ value: null }),
   input: z.object({ key: z.string() }),
   intent: 'read',
   output: z.object({ value: z.string().nullable() }),
@@ -71,9 +71,12 @@ export const trailsOverlays = [
 };
 
 const compileFixture = async (dir: string): Promise<void> => {
-  const compiled = await compileTrail.blaze({ module: './src/app.ts' }, {
-    cwd: dir,
-  } as never);
+  const compiled = await compileTrail.implementation(
+    { module: './src/app.ts' },
+    {
+      cwd: dir,
+    } as never
+  );
   if (compiled.isErr()) {
     throw compiled.error;
   }
@@ -124,9 +127,12 @@ describe('lock overlays proof (TRL-1199 compile-path collection)', () => {
     expect(roundtrip.message).toContain('byte-identical');
 
     // (d) validate re-derives the same graph, overlays included.
-    const validated = await validateTrail.blaze({ module: './src/app.ts' }, {
-      cwd: dir,
-    } as never);
+    const validated = await validateTrail.implementation(
+      { module: './src/app.ts' },
+      {
+        cwd: dir,
+      } as never
+    );
     if (validated.isErr()) {
       throw validated.error;
     }

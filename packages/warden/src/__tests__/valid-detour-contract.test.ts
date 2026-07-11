@@ -6,13 +6,13 @@ import { z } from 'zod';
 import { validDetourContract } from '../rules/valid-detour-contract.js';
 
 const validTrail = trail('entity.save', {
-  blaze: () => Result.ok({ ok: true }),
   detours: [
     {
       on: ConflictError,
       recover: async () => Result.ok({ ok: true }),
     },
   ],
+  implementation: () => Result.ok({ ok: true }),
   input: z.object({}),
   output: z.object({ ok: z.boolean() }),
 });

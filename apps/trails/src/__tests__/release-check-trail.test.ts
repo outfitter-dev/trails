@@ -132,7 +132,7 @@ describe('trails release check', () => {
       'apps/trails/src/app.ts',
     ]);
 
-    const result = await releaseCheckTrail.blaze(
+    const result = await releaseCheckTrail.implementation(
       { changedFiles: changedFilesPath, rootDir: root },
       { cwd: root, env: { TRAILS_ENV: 'test' } } as never
     );
@@ -168,7 +168,7 @@ describe('trails release check', () => {
 `
     );
 
-    const result = await releaseCheckTrail.blaze(
+    const result = await releaseCheckTrail.implementation(
       { changedFiles: changedFilesPath, rootDir: root },
       { cwd: root, env: { TRAILS_ENV: 'test' } } as never
     );
@@ -198,7 +198,7 @@ describe('trails release check', () => {
       },
     });
 
-    const result = await releaseCheckTrail.blaze(
+    const result = await releaseCheckTrail.implementation(
       { changedFiles: changedFilesPath, rootDir: root },
       { cwd: root, env: { TRAILS_ENV: 'test' } } as never
     );

@@ -371,7 +371,30 @@ const resolveInnerTrailInput = (
 
 export const runTrail = trail('run', {
   args: ['id'],
-  blaze: async (input: RunTrailInput, ctx) =>
+  description:
+    'Resolve a trail by ID in the current app and execute it through the shared pipeline',
+  examples: [
+    {
+      description:
+        'Resolve and execute a trail by ID, returning the inner trail Result value',
+      input: buildHappyExampleInput(),
+      name: 'Run trail by ID',
+    },
+    {
+      description: 'Reject an unknown trail ID with NotFoundError',
+      error: 'NotFoundError',
+      input: buildNotFoundExampleInput(),
+      name: 'Reject unknown trail ID',
+    },
+    {
+      description:
+        'Reject an ambiguous trail ID without --app with AmbiguousError so non-TTY callers see exit code 1',
+      error: 'AmbiguousError',
+      input: buildAmbiguousExampleInput(),
+      name: 'Reject ambiguous trail ID without --app',
+    },
+  ],
+  implementation: async (input: RunTrailInput, ctx) =>
     withOperatorRootDir(input, ctx, async (rootDir) => {
       const innerInput = resolveInnerTrailInput(input);
       if (innerInput.isErr()) {
@@ -404,29 +427,6 @@ export const runTrail = trail('run', {
         });
       });
     }),
-  description:
-    'Resolve a trail by ID in the current app and execute it through the shared pipeline',
-  examples: [
-    {
-      description:
-        'Resolve and execute a trail by ID, returning the inner trail Result value',
-      input: buildHappyExampleInput(),
-      name: 'Run trail by ID',
-    },
-    {
-      description: 'Reject an unknown trail ID with NotFoundError',
-      error: 'NotFoundError',
-      input: buildNotFoundExampleInput(),
-      name: 'Reject unknown trail ID',
-    },
-    {
-      description:
-        'Reject an ambiguous trail ID without --app with AmbiguousError so non-TTY callers see exit code 1',
-      error: 'AmbiguousError',
-      input: buildAmbiguousExampleInput(),
-      name: 'Reject ambiguous trail ID without --app',
-    },
-  ],
   input: runTrailInputSchema,
   intent: 'write',
   output: innerTrailResultSchema,

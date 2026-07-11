@@ -16,7 +16,7 @@ const db = resource('db.main', {
 
 trail('entity.show', {
   resources: [db],
-  blaze: async (_input, ctx) => {
+  implementation: async (_input, ctx) => {
     return Result.ok({ source: db.from(ctx).source });
   },
 });
@@ -37,7 +37,7 @@ const db = resource('db.main', {
 
 trail('entity.show', {
   resources: [db],
-  blaze: async (_input, ctx) => {
+  implementation: async (_input, ctx) => {
     const resource = (id: string) => id;
     return Result.ok({
       resolved: resource('db.main'),
@@ -62,7 +62,7 @@ const db = resource('db.main', {
 
 trail('entity.show', {
   resources: [db],
-  blaze: async (_input, ctx) => {
+  implementation: async (_input, ctx) => {
     const resolved = ctx.resource('db.main');
     return Result.ok(resolved);
   },
@@ -84,7 +84,7 @@ const db = resource('db.main', {
 
 trail('entity.show', {
   resources: [db],
-  blaze: async (_input, ctx) => {
+  implementation: async (_input, ctx) => {
     const { resource } = ctx;
     return Result.ok(resource('db.main'));
   },
@@ -106,7 +106,7 @@ const db = resource('db.main', {
 
 trail('entity.show', {
   resources: [db],
-  blaze: async (_input, { resource }) => {
+  implementation: async (_input, { resource }) => {
     return Result.ok(resource('db.main'));
   },
 });
@@ -127,7 +127,7 @@ const db = resource('db.main', {
 
 trail('entity.show', {
   resources: [db],
-  blaze: async (_input, { resource: r }) => {
+  implementation: async (_input, { resource: r }) => {
     return Result.ok(r('db.main'));
   },
 });
@@ -148,7 +148,7 @@ const db = resource('db.main', {
 
 trail('entity.show', {
   resources: [db],
-  blaze: async (_input, ctx) => {
+  implementation: async (_input, ctx) => {
     return Result.ok(ctx.resource(db));
   },
 });
@@ -170,7 +170,7 @@ const db = resource('db.main', {
 });
 
 trail('entity.show', {
-  blaze: async (_input, ctx) => {
+  implementation: async (_input, ctx) => {
     return Result.ok({ source: db.from(ctx).source });
   },
 });
@@ -189,7 +189,7 @@ trail('entity.show', {
     test('ctx.resource() without a declaration produces an error', () => {
       const code = `
 trail('entity.show', {
-  blaze: async (_input, ctx) => {
+  implementation: async (_input, ctx) => {
     return Result.ok(ctx.resource('billing.primary'));
   },
 });
@@ -221,7 +221,7 @@ import { db } from './resources';
 
 trail('entity.show', {
   resources: [db],
-  blaze: async (_input, ctx) => {
+  implementation: async (_input, ctx) => {
     return Result.ok(ctx.resource('db.main'));
   },
 });
@@ -243,7 +243,7 @@ const db = resource('db.main', {
 });
 
 trail('entity.show', {
-  blaze: async (_input, ctx) => {
+  implementation: async (_input, ctx) => {
     return Result.ok(ctx.resource(db));
   },
 });
@@ -269,7 +269,7 @@ const db = resource('db.main', {
 
 trail('entity.show', {
   resources: [db],
-  blaze: async () => {
+  implementation: async () => {
     return Result.ok({ ok: true });
   },
 });
@@ -287,7 +287,7 @@ trail('entity.show', {
   });
 
   describe('single-object overload', () => {
-    test('recognizes trail({ id, resources, blaze }) form', () => {
+    test('recognizes trail({ id, resources, implementation }) form', () => {
       const code = `
 import { Result, resource, trail } from '@ontrails/core';
 
@@ -298,7 +298,7 @@ const db = resource('db.main', {
 trail({
   id: 'entity.show',
   resources: [db],
-  blaze: async (_input, ctx) => {
+  implementation: async (_input, ctx) => {
     return Result.ok({ source: db.from(ctx).source });
   },
 });
@@ -321,7 +321,7 @@ const database = resource('db.main', {
 
 trail('entity.show', {
   resources: [database],
-  blaze: async (_input, context) => {
+  implementation: async (_input, context) => {
     return Result.ok(database.from(context));
   },
 });
@@ -332,14 +332,14 @@ trail('entity.show', {
       expect(diagnostics.length).toBe(0);
     });
 
-    test('blaze with no second parameter: unrelated closure ctx.resource is not tracked', () => {
+    test('implementation with no second parameter: unrelated closure ctx.resource is not tracked', () => {
       const code = `
 import { trail, Result } from '@ontrails/core';
 
 const ctx = { resource: () => ({}) };
 
 trail('demo', {
-  blaze: async () => {
+  implementation: async () => {
     ctx.resource('db.main');
     return Result.ok({ ok: true });
   },
@@ -348,20 +348,20 @@ trail('demo', {
 `;
 
       const diagnostics = resourceDeclarations.check(code, TEST_FILE);
-      // The blaze has no context parameter, so `ctx` in the body is an
+      // The implementation has no context parameter, so `ctx` in the body is an
       // unrelated closure-scoped binding, not the trail context. It must
       // not be tracked — no diagnostics.
       expect(diagnostics.length).toBe(0);
     });
 
-    test('blaze with no second parameter: unrelated closure context.resource is not tracked', () => {
+    test('implementation with no second parameter: unrelated closure context.resource is not tracked', () => {
       const code = `
 import { trail, Result } from '@ontrails/core';
 
 const context = { resource: () => ({}) };
 
 trail('demo', {
-  blaze: async () => {
+  implementation: async () => {
     context.resource('db.main');
     return Result.ok({ ok: true });
   },
@@ -380,7 +380,7 @@ import { trail, Result } from '@ontrails/core';
 const fallbackCtx = { resource: () => ({}) };
 
 trail('demo', {
-  blaze: async (_input, ctx = fallbackCtx) => {
+  implementation: async (_input, ctx = fallbackCtx) => {
     ctx.resource('db.main');
     return Result.ok({ ok: true });
   },
@@ -405,7 +405,7 @@ import { trail, Result } from '@ontrails/core';
 const ctx = { resource: () => ({}) };
 
 trail('customCtx', {
-  blaze: async (_input, c) => {
+  implementation: async (_input, c) => {
     ctx.resource('whatever');
     return Result.ok(c);
   },
@@ -432,8 +432,8 @@ const db = resource('db.main', {
 
 trail('entity.show', {
   resources: [db],
-  meta: { blaze: async () => ctx.resource('phantom') },
-  blaze: async (_input, ctx) => {
+  meta: { implementation: async () => ctx.resource('phantom') },
+  implementation: async (_input, ctx) => {
     return Result.ok(db.from(ctx));
   },
 });
@@ -448,7 +448,7 @@ trail('entity.show', {
   test('skips test files', () => {
     const code = `
 trail('entity.show', {
-  blaze: async (_input, ctx) => {
+  implementation: async (_input, ctx) => {
     return Result.ok(ctx.resource('db.main'));
   },
 });

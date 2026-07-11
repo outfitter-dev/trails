@@ -82,7 +82,7 @@ const runScenario = async (
   }
   const validatedInput = expectOk(validated);
 
-  const result = await trailDef.blaze(validatedInput, testCtx);
+  const result = await trailDef.implementation(validatedInput, testCtx);
   assertScenarioResult(result, scenario, trailDef);
 };
 

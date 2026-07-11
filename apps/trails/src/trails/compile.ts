@@ -32,14 +32,6 @@ const compileTrailInputSchema = z.object({
 type CompileTrailInput = z.output<typeof compileTrailInputSchema>;
 
 export const compileTrail = trail('compile', {
-  blaze: async (input: CompileTrailInput, ctx) =>
-    withFreshOperatorApp(input, ctx, ({ lease, rootDir }) =>
-      compileCurrentTopo(lease.app, {
-        force: input.force,
-        overlays: lease.overlays,
-        rootDir,
-      })
-    ),
   description: 'Compile the current topo to trails.lock',
   examples: [
     {
@@ -47,6 +39,14 @@ export const compileTrail = trail('compile', {
       name: 'Compile the current topo to trails.lock',
     },
   ],
+  implementation: async (input: CompileTrailInput, ctx) =>
+    withFreshOperatorApp(input, ctx, ({ lease, rootDir }) =>
+      compileCurrentTopo(lease.app, {
+        force: input.force,
+        overlays: lease.overlays,
+        rootDir,
+      })
+    ),
   input: compileTrailInputSchema,
   intent: 'write',
   output: z.object({

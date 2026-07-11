@@ -470,8 +470,8 @@ describe('signal registration', () => {
       id: 'primary-store',
     });
     const onCreated = trail('items.on-created', {
-      blaze: () => Result.ok({ seen: true }),
       description: 'Consumer that reacts to items.created on the scoped store.',
+      implementation: () => Result.ok({ seen: true }),
       input: z.object({}).passthrough(),
       on: [definition.tables.items.signals.created],
     });
@@ -531,9 +531,9 @@ describe('signal registration', () => {
       id: 'identity',
     });
     const onCreated = trail('items.on-created', {
-      blaze: () => Result.ok({ seen: true }),
       description:
         'Consumer that must choose a scoped store signal when bindings are ambiguous.',
+      implementation: () => Result.ok({ seen: true }),
       input: z.object({}).passthrough(),
       on: [definition.tables.items.signals.created],
     });

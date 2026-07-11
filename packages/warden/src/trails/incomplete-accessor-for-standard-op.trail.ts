@@ -20,7 +20,7 @@ const buildCrudTrail = (
   resourceValue: ReturnType<typeof buildResource>
 ) =>
   trail(trailId, {
-    blaze: () => Result.ok({ ok: true }),
+    implementation: () => Result.ok({ ok: true }),
     input: z.object({}),
     output: z.object({ ok: z.boolean() }),
     pattern: 'crud',

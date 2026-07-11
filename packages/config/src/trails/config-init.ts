@@ -62,7 +62,13 @@ const writeArtifacts = async (
 };
 
 export const configInit = trail('config.init', {
-  blaze: async (input, ctx) => {
+  examples: [
+    {
+      input: {},
+      name: 'Generate TOML example',
+    },
+  ],
+  implementation: async (input, ctx) => {
     const state = configResource.from(ctx);
     const schema = state.schema as z.ZodObject<Record<string, z.ZodType>>;
     const content = deriveConfigExample(schema, input.format);
@@ -74,12 +80,6 @@ export const configInit = trail('config.init', {
 
     return Result.ok({ content, format: input.format });
   },
-  examples: [
-    {
-      input: {},
-      name: 'Generate TOML example',
-    },
-  ],
   input: zod.object({
     dir: zod
       .string()

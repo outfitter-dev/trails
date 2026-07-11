@@ -87,7 +87,7 @@ describe('createScheduleRuntime()', () => {
   test('keeps topo construction and runtime creation inert until start', async () => {
     const fakeCron = createFakeCron();
     const worker = trail('billing.close', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({ olderThanDays: z.number() }),
       on: [
         schedule('schedule.billing.close', {
@@ -124,7 +124,7 @@ describe('createScheduleRuntime()', () => {
     const fakeCron = createFakeCron();
     const seenInputs: unknown[] = [];
     const worker = trail('data.archive-old', {
-      blaze: (input) => {
+      implementation: (input) => {
         seenInputs.push(input);
         return Result.ok({ archived: true });
       },
@@ -151,7 +151,7 @@ describe('createScheduleRuntime()', () => {
     const activations: ActivationProvenance[] = [];
     const records: ScheduleRuntimeRunRecord[] = [];
     const worker = trail('provenance.run', {
-      blaze: (_input, ctx) => {
+      implementation: (_input, ctx) => {
         if (ctx.activation !== undefined) {
           activations.push(ctx.activation);
         }
@@ -202,7 +202,7 @@ describe('createScheduleRuntime()', () => {
     const fakeCron = createFakeCron();
     const records: TraceRecord[] = [];
     const worker = trail('provenance.trace', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({}),
       on: [
         schedule('schedule.provenance.trace', {
@@ -254,7 +254,7 @@ describe('createScheduleRuntime()', () => {
     const fakeCron = createFakeCron();
     const seenInputs: unknown[] = [];
     const worker = trail('heartbeat.run', {
-      blaze: (input) => {
+      implementation: (input) => {
         seenInputs.push(input);
         return Result.ok({ ok: true });
       },
@@ -296,7 +296,7 @@ describe('createScheduleRuntime()', () => {
       },
     });
     const worker = trail('resource.cleanup', {
-      blaze: async (_input, ctx) => {
+      implementation: async (_input, ctx) => {
         db.from(ctx);
         events.push('run:start');
         startedRun.resolve();
@@ -335,7 +335,7 @@ describe('createScheduleRuntime()', () => {
   test('stop reports drain context failures without getting stuck stopping', async () => {
     const fakeCron = createFakeCron();
     const worker = trail('drain-context.run', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({}),
       on: [schedule('schedule.drain-context', { cron: '0 * * * *' })],
       output: z.object({ ok: z.boolean() }),
@@ -372,7 +372,7 @@ describe('createScheduleRuntime()', () => {
     const records: ScheduleRuntimeRunRecord[] = [];
     let calls = 0;
     const worker = trail('flaky.run', {
-      blaze: () => {
+      implementation: () => {
         calls += 1;
         return calls === 1
           ? Result.err(new ValidationError('first run failed'))
@@ -407,7 +407,7 @@ describe('createScheduleRuntime()', () => {
       cron: '*/15 * * * *',
     });
     const first = trail('shared.first', {
-      blaze: () => {
+      implementation: () => {
         runs.push('first');
         return Result.ok({ ok: true });
       },
@@ -416,7 +416,7 @@ describe('createScheduleRuntime()', () => {
       output: z.object({ ok: z.boolean() }),
     });
     const second = trail('shared.second', {
-      blaze: () => {
+      implementation: () => {
         runs.push('second');
         return Result.ok({ ok: true });
       },
@@ -450,7 +450,7 @@ describe('createScheduleRuntime()', () => {
     const fakeCron = createFakeCron();
     const warnings: unknown[] = [];
     const worker = trail('timezone.run', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({}),
       on: [
         schedule('schedule.timezone', {
@@ -500,7 +500,7 @@ describe('createScheduleRuntime()', () => {
     const records: ScheduleRuntimeRunRecord[] = [];
     const runs: string[] = [];
     const skipped = trail('where.skipped', {
-      blaze: () => {
+      implementation: () => {
         runs.push('skipped');
         return Result.ok({ ok: true });
       },
@@ -514,7 +514,7 @@ describe('createScheduleRuntime()', () => {
       output: z.object({ ok: z.boolean() }),
     });
     const broken = trail('where.broken', {
-      blaze: () => {
+      implementation: () => {
         runs.push('broken');
         return Result.ok({ ok: true });
       },
@@ -552,7 +552,7 @@ describe('createScheduleRuntime()', () => {
     const fakeCron = createFakeCron();
     const records: TraceRecord[] = [];
     const skipped = trail('where.trace.skipped', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({}),
       on: [
         {
@@ -563,7 +563,7 @@ describe('createScheduleRuntime()', () => {
       output: z.object({ ok: z.boolean() }),
     });
     const broken = trail('where.trace.broken', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({}),
       on: [
         {
@@ -609,7 +609,7 @@ describe('createScheduleRuntime()', () => {
       },
     };
     const worker = trail('options.run', {
-      blaze: (_input, ctx) => {
+      implementation: (_input, ctx) => {
         events.push(
           `${configured.from(ctx).label}:${ctx.requestId}:${String(ctx.extensions?.['marker'])}`
         );

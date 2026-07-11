@@ -6,7 +6,6 @@ import { Result, trail } from '@ontrails/core';
 import { z } from 'zod';
 
 export const health = trail('status.health', {
-  blaze: () => Result.ok({ status: 'ok' }),
   description: 'Public liveness check',
   examples: [
     {
@@ -22,6 +21,7 @@ export const health = trail('status.health', {
       name: 'Health check again',
     },
   ],
+  implementation: () => Result.ok({ status: 'ok' }),
   input: z.object({}),
   intent: 'read',
   output: z.object({ status: z.string().describe('Liveness indicator') }),

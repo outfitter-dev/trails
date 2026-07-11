@@ -44,7 +44,7 @@ type SendInput = z.output<typeof sendInputSchema>;
 
 /**
  * One delivery attempt: resolve the target, POST the payload, and record
- * the outcome on the delivery row. Shared by the blaze (first attempt) and
+ * the outcome on the delivery row. Shared by the implementation (first attempt) and
  * the detour recover (retries), so every attempt updates the same row.
  */
 const attemptDelivery = async (
@@ -106,7 +106,6 @@ const attemptDelivery = async (
 };
 
 export const send = trail('delivery.send', {
-  blaze: (input, ctx) => attemptDelivery(input, ctx),
   description:
     'POST a payload to one target, recording attempts; network failures retry through the bounded backoff detour',
   detours: [
@@ -148,6 +147,7 @@ export const send = trail('delivery.send', {
       name: 'Deliver to a disabled target',
     },
   ],
+  implementation: (input, ctx) => attemptDelivery(input, ctx),
   input: sendInputSchema,
   intent: 'write',
   output: deliverySchema,
@@ -157,7 +157,20 @@ export const send = trail('delivery.send', {
 });
 
 export const list = trail('delivery.list', {
-  blaze: async (input, ctx) => {
+  description: 'List deliveries filtered by status or target',
+  examples: [
+    {
+      description: 'List every delivery',
+      input: {},
+      name: 'List deliveries',
+    },
+    {
+      description: 'List only failed deliveries',
+      input: { status: 'failed' },
+      name: 'List failed deliveries',
+    },
+  ],
+  implementation: async (input, ctx) => {
     const store = relayStoreResource.from(ctx);
     const filters = {
       ...(input.status === undefined ? {} : { status: input.status }),
@@ -172,19 +185,6 @@ export const list = trail('delivery.list', {
       total: deliveries.length,
     });
   },
-  description: 'List deliveries filtered by status or target',
-  examples: [
-    {
-      description: 'List every delivery',
-      input: {},
-      name: 'List deliveries',
-    },
-    {
-      description: 'List only failed deliveries',
-      input: { status: 'failed' },
-      name: 'List failed deliveries',
-    },
-  ],
   input: z.object({
     status: deliveryStatusSchema.optional(),
     targetId: z.string().optional().describe('Only deliveries to this target'),
@@ -197,7 +197,24 @@ export const list = trail('delivery.list', {
 });
 
 export const retry = trail('delivery.retry', {
-  blaze: async (input, ctx) => {
+  composes: ['delivery.send'],
+  description: 'Re-send one failed delivery through the delivery path',
+  examples: [
+    {
+      description:
+        'Retrying the seeded failed delivery re-attempts its unreachable target and exhausts the detour',
+      error: 'RetryExhaustedError',
+      input: { id: 'dlv_seed_failed' },
+      name: 'Retry a failed delivery',
+    },
+    {
+      description: 'Returns NotFoundError for an unknown delivery id',
+      error: 'NotFoundError',
+      input: { id: 'dlv_missing' },
+      name: 'Retry unknown delivery',
+    },
+  ],
+  implementation: async (input, ctx) => {
     const store = relayStoreResource.from(ctx);
     const delivery = await store.delivery.get(input.id);
     if (!delivery) {
@@ -229,23 +246,6 @@ export const retry = trail('delivery.retry', {
     }
     return Result.ok(deliverySchema.parse(sent.value));
   },
-  composes: ['delivery.send'],
-  description: 'Re-send one failed delivery through the delivery path',
-  examples: [
-    {
-      description:
-        'Retrying the seeded failed delivery re-attempts its unreachable target and exhausts the detour',
-      error: 'RetryExhaustedError',
-      input: { id: 'dlv_seed_failed' },
-      name: 'Retry a failed delivery',
-    },
-    {
-      description: 'Returns NotFoundError for an unknown delivery id',
-      error: 'NotFoundError',
-      input: { id: 'dlv_missing' },
-      name: 'Retry unknown delivery',
-    },
-  ],
   input: z.object({ id: z.string().describe('Delivery identifier') }),
   intent: 'write',
   output: deliverySchema,

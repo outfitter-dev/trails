@@ -30,41 +30,40 @@ import type { McpExtra, McpToolDefinition } from '../build.js';
 // ---------------------------------------------------------------------------
 
 const echoTrail = trail('echo', {
-  blaze: (input) => Result.ok({ reply: input.message }),
   description: 'Echo a message back',
+  implementation: (input) => Result.ok({ reply: input.message }),
   input: z.object({ message: z.string() }),
   intent: 'read',
   output: z.object({ reply: z.string() }),
 });
 
 const deleteTrail = trail('item.delete', {
-  blaze: (_input) => Result.ok({ deleted: true }),
   description: 'Delete an item',
+  implementation: (_input) => Result.ok({ deleted: true }),
   input: z.object({ id: z.string() }),
   intent: 'destroy',
 });
 
 const failTrail = trail('fail', {
-  blaze: (input) => Result.err(new Error(input.reason)),
   description: 'Always fails',
+  implementation: (input) => Result.err(new Error(input.reason)),
   input: z.object({ reason: z.string() }),
 });
 
 const notFoundTrail = trail('item.find', {
-  blaze: () => Result.err(new NotFoundError('Item not found')),
   description: 'Always fails with a TrailsError',
+  implementation: () => Result.err(new NotFoundError('Item not found')),
   input: z.object({ id: z.string() }),
 });
 
 const sensitivePermissionTrail = trail('secret.permission', {
-  blaze: () =>
-    Result.err(new PermissionError('Denied Bearer abcdefghijklmnop')),
   description: 'Always fails with a sensitive TrailsError message',
+  implementation: () =>
+    Result.err(new PermissionError('Denied Bearer abcdefghijklmnop')),
   input: z.object({}),
 });
 
 const exampleTrail = trail('with.examples', {
-  blaze: (input) => Result.ok({ greeting: `hello ${input.name}` }),
   description: 'A trail with examples',
   examples: [
     {
@@ -73,12 +72,13 @@ const exampleTrail = trail('with.examples', {
       name: 'basic',
     },
   ],
+  implementation: (input) => Result.ok({ greeting: `hello ${input.name}` }),
   input: z.object({ name: z.string() }),
   output: z.object({ greeting: z.string() }),
 });
 
 const internalTrail = trail('internal.secret', {
-  blaze: () => Result.ok({ ok: true }),
+  implementation: () => Result.ok({ ok: true }),
   input: z.object({}),
   visibility: 'internal',
 });
@@ -196,7 +196,7 @@ describe('deriveMcpTools', () => {
 
     test('non-object output schemas are wrapped for MCP structured content', () => {
       const listTrail = trail('items.list', {
-        blaze: () => Result.ok(['one', 'two']),
+        implementation: () => Result.ok(['one', 'two']),
         input: z.object({}),
         output: z.array(z.string()),
       });
@@ -216,7 +216,7 @@ describe('deriveMcpTools', () => {
 
     test('scalar union output schemas are wrapped for MCP structured content', () => {
       const scalarUnionTrail = trail('scalar.union', {
-        blaze: () => Result.ok('one'),
+        implementation: () => Result.ok('one'),
         input: z.object({}),
         output: z.union([z.string(), z.number()]),
       });
@@ -241,7 +241,7 @@ describe('deriveMcpTools', () => {
       // therefore also wrap, even when the value happens to be the object
       // branch — otherwise outputSchema and structuredContent diverge.
       const mixedTrail = trail('mixed.union', {
-        blaze: () => Result.ok({ a: 'hello' }),
+        implementation: () => Result.ok({ a: 'hello' }),
         input: z.object({}),
         output: z.union([z.object({ a: z.string() }), z.string()]),
       });
@@ -257,7 +257,7 @@ describe('deriveMcpTools', () => {
 
     test('z.any() output wraps object structured content under data envelope', async () => {
       const anyTrail = trail('anything', {
-        blaze: () => Result.ok({ shape: 'object' }),
+        implementation: () => Result.ok({ shape: 'object' }),
         input: z.object({}),
         output: z.any(),
       });
@@ -280,7 +280,7 @@ describe('deriveMcpTools', () => {
       // `{ type: 'object', properties: { data: { anyOf: [...] } }, required: ['data'] }`,
       // and structuredContent matches under `data`.
       const unionTrail = trail('surveyish', {
-        blaze: () => Result.ok({ entries: [], mode: 'list' as const }),
+        implementation: () => Result.ok({ entries: [], mode: 'list' as const }),
         input: z.object({}),
         output: z.discriminatedUnion('mode', [
           z.object({ entries: z.array(z.unknown()), mode: z.literal('list') }),
@@ -389,7 +389,7 @@ describe('deriveMcpTools', () => {
 
     test('projects live versions and executes selected tool version', async () => {
       const versioned = trail('versioned.greet', {
-        blaze: (input: { name: string }) =>
+        implementation: (input: { name: string }) =>
           Result.ok({ message: `Hello, ${input.name}!` }),
         input: z.object({ name: z.string() }),
         output: z.object({ message: z.string() }),
@@ -435,7 +435,7 @@ describe('deriveMcpTools', () => {
 
     test('handler wraps non-object outputs as structured content data', async () => {
       const listTrail = trail('items.list', {
-        blaze: () => Result.ok(['one', 'two']),
+        implementation: () => Result.ok(['one', 'two']),
         input: z.object({}),
         output: z.array(z.string()),
       });
@@ -449,7 +449,7 @@ describe('deriveMcpTools', () => {
     test('passes topo to executeTrail so MCP-invoked producers can fan out', async () => {
       const captured: string[] = [];
       const consumer = trail('notify.email', {
-        blaze: (input: { orderId: string }) => {
+        implementation: (input: { orderId: string }) => {
           captured.push(input.orderId);
           return Result.ok({ delivered: true });
         },
@@ -457,13 +457,13 @@ describe('deriveMcpTools', () => {
         on: ['order.placed'],
       });
       const producer = trail('order.create', {
-        blaze: async (input: { orderId: string }, ctx) => {
+        fires: [orderPlaced],
+        implementation: async (input: { orderId: string }, ctx) => {
           await requireFire(ctx.fire)(orderPlaced, {
             orderId: input.orderId,
           });
           return Result.ok({ ok: true });
         },
-        fires: [orderPlaced],
         input: z.object({ orderId: z.string() }),
       });
       const tool = requireTool(
@@ -479,13 +479,13 @@ describe('deriveMcpTools', () => {
 
     test('consumer trails with on: are not exposed as MCP tools', () => {
       const consumer = trail('notify.email', {
-        blaze: () => Result.ok({ delivered: true }),
+        implementation: () => Result.ok({ delivered: true }),
         input: z.object({ orderId: z.string() }),
         on: ['order.placed'],
       });
       const producer = trail('order.create', {
-        blaze: () => Result.ok({ ok: true }),
         fires: ['order.placed'],
+        implementation: () => Result.ok({ ok: true }),
         input: z.object({ orderId: z.string() }),
       });
       const tools = buildTools(
@@ -547,7 +547,7 @@ describe('deriveMcpTools', () => {
 
     test('handler catches thrown exceptions', async () => {
       const throwTrail = trail('throw', {
-        blaze: () => {
+        implementation: () => {
           throw new Error('unexpected crash');
         },
         input: z.object({}),
@@ -646,15 +646,15 @@ describe('deriveMcpTools', () => {
 
   describe('trailheads', () => {
     const readTopoTrail = trail('topo.read', {
-      blaze: (input) => Result.ok({ id: input.id, title: 'Topo' }),
       description: 'Read topo.',
+      implementation: (input) => Result.ok({ id: input.id, title: 'Topo' }),
       input: z.object({ id: z.string() }),
       intent: 'read',
       output: z.object({ id: z.string(), title: z.string() }),
     });
     const describeTopoTrail = trail('topo.describe', {
-      blaze: () => Result.ok({ summary: 'Topo summary' }),
       description: 'Describe topo.',
+      implementation: () => Result.ok({ summary: 'Topo summary' }),
       input: z.object({}),
       intent: 'read',
       output: z.object({ summary: z.string() }),
@@ -1036,8 +1036,8 @@ describe('deriveMcpTools', () => {
       const surfaceLayer = makeLayer('surface');
       const topoLayer = makeLayer('topo');
       const layeredTrail = trail('layered.echo', {
-        blaze: (input) => {
-          calls.push('blaze');
+        implementation: (input) => {
+          calls.push('implementation');
           return Result.ok({ reply: input.message });
         },
         input: z.object({ message: z.string() }),
@@ -1053,7 +1053,7 @@ describe('deriveMcpTools', () => {
         'topo:before',
         'surface:before',
         'trail:before',
-        'blaze',
+        'implementation',
         'trail:after',
         'surface:after',
         'topo:after',
@@ -1064,7 +1064,7 @@ describe('deriveMcpTools', () => {
       let capturedSignal: AbortSignal | undefined;
 
       const signalTrail = trail('signal.check', {
-        blaze: (_input, ctx) => {
+        implementation: (_input, ctx) => {
           capturedSignal = ctx.abortSignal;
           return Result.ok({ ok: true });
         },
@@ -1099,7 +1099,7 @@ describe('deriveMcpTools', () => {
       let surfaceMarkerUsed = false;
 
       const ctxTrail = trail('ctx.check', {
-        blaze: (_input, ctx) => {
+        implementation: (_input, ctx) => {
           contextUsed = ctx.extensions?.['custom'] === true;
           surfaceMarkerUsed = ctx.extensions?.[SURFACE_KEY] === 'mcp';
           return Result.ok({ ok: true });
@@ -1125,7 +1125,7 @@ describe('deriveMcpTools', () => {
 
     test('resource overrides are forwarded to executeTrail', async () => {
       const resourceTrail = trail('resource.check', {
-        blaze: (_input, ctx) =>
+        implementation: (_input, ctx) =>
           Result.ok({ source: dbResource.from(ctx).source as string }),
         input: z.object({}),
         output: z.object({ source: z.string() }),
@@ -1148,7 +1148,7 @@ describe('deriveMcpTools', () => {
     test('session permit from MCP extra lands in ctx.permit', async () => {
       let observedPermit: TrailContext['permit'];
       const protectedTrail = trail('permit.read', {
-        blaze: (_input, ctx) => {
+        implementation: (_input, ctx) => {
           observedPermit = ctx.permit;
           return Result.ok({ ok: true });
         },
@@ -1173,7 +1173,7 @@ describe('deriveMcpTools', () => {
       let seenSession: string | undefined;
       let observedPermit: TrailContext['permit'];
       const protectedTrail = trail('permit.token', {
-        blaze: (_input, ctx) => {
+        implementation: (_input, ctx) => {
           observedPermit = ctx.permit;
           return Result.ok({ ok: true });
         },
@@ -1206,7 +1206,7 @@ describe('deriveMcpTools', () => {
 
     test('MCP Bearer credentials without a resolver do not block public tools', async () => {
       const publicTrail = trail('permit.public', {
-        blaze: () => Result.ok({ ok: true }),
+        implementation: () => Result.ok({ ok: true }),
         input: z.object({}),
         output: z.object({ ok: z.boolean() }),
       });
@@ -1223,7 +1223,7 @@ describe('deriveMcpTools', () => {
 
     test('MCP Bearer credentials without a resolver fall through to the permit gate', async () => {
       const protectedTrail = trail('permit.unresolved-token', {
-        blaze: () => Result.ok({ ok: true }),
+        implementation: () => Result.ok({ ok: true }),
         input: z.object({}),
         output: z.object({ ok: z.boolean() }),
         permit: { scopes: ['thing:read'] },
@@ -1244,7 +1244,7 @@ describe('deriveMcpTools', () => {
     test('per-call MCP permit override wins over session authorization', async () => {
       let observedPermit: TrailContext['permit'];
       const protectedTrail = trail('permit.override', {
-        blaze: (_input, ctx) => {
+        implementation: (_input, ctx) => {
           observedPermit = ctx.permit;
           return Result.ok({ ok: true });
         },
@@ -1276,7 +1276,7 @@ describe('deriveMcpTools', () => {
 
     test('missing MCP credentials on a protected tool returns a permit error response', async () => {
       const protectedTrail = trail('permit.missing', {
-        blaze: () => Result.ok({ ok: true }),
+        implementation: () => Result.ok({ ok: true }),
         input: z.object({}),
         permit: { scopes: ['thing:read'] },
       });
@@ -1293,7 +1293,7 @@ describe('deriveMcpTools', () => {
     test('malformed MCP authorization fails before execution', async () => {
       let invoked = false;
       const protectedTrail = trail('permit.malformed', {
-        blaze: () => {
+        implementation: () => {
           invoked = true;
           return Result.ok({ ok: true });
         },
@@ -1313,7 +1313,7 @@ describe('deriveMcpTools', () => {
 
     test('resolved MCP permit with missing scopes returns a permit error response', async () => {
       const protectedTrail = trail('permit.scope', {
-        blaze: () => Result.ok({ ok: true }),
+        implementation: () => Result.ok({ ok: true }),
         input: z.object({}),
         permit: { scopes: ['thing:read'] },
       });
@@ -1333,7 +1333,7 @@ describe('deriveMcpTools', () => {
   describe('blob outputs', () => {
     test('BlobRef output converts to image content', async () => {
       const blobTrail = trail('blob.image', {
-        blaze: () =>
+        implementation: () =>
           Result.ok(
             createBlobRef({
               data: new Uint8Array([1, 2, 3]),
@@ -1355,7 +1355,7 @@ describe('deriveMcpTools', () => {
 
     test('BlobRef output converts to resource content for non-images', async () => {
       const blobTrail = trail('blob.file', {
-        blaze: () =>
+        implementation: () =>
           Result.ok(
             createBlobRef({
               data: new Uint8Array([1, 2, 3]),
@@ -1384,7 +1384,7 @@ describe('deriveMcpTools', () => {
         },
       });
       const blobTrail = trail('blob.file-stream', {
-        blaze: () =>
+        implementation: () =>
           Result.ok(
             createBlobRef({
               data: stream,
@@ -1416,7 +1416,7 @@ describe('deriveMcpTools', () => {
         },
       });
       const blobTrail = trail('blob.stream', {
-        blaze: () =>
+        implementation: () =>
           Result.ok(
             createBlobRef({
               data: stream,
@@ -1439,7 +1439,7 @@ describe('deriveMcpTools', () => {
 
     test('BlobRef output with outputSchema keeps structuredContent present', async () => {
       const blobTrail = trail('blob.structured', {
-        blaze: () =>
+        implementation: () =>
           Result.ok({
             attachment: createBlobRef({
               data: new Uint8Array([1, 2, 3]),
@@ -1503,7 +1503,7 @@ describe('deriveMcpTools', () => {
 
     test('nested BlobRef output materializes MCP content entries', async () => {
       const blobTrail = trail('blob.nested', {
-        blaze: () =>
+        implementation: () =>
           Result.ok({
             files: [
               createBlobRef({
@@ -1572,7 +1572,7 @@ describe('deriveMcpTools', () => {
         uri: 'blob://shared.pdf',
       };
       const blobTrail = trail('blob.shared-reference', {
-        blaze: () => Result.ok({ first: shared, second: shared }),
+        implementation: () => Result.ok({ first: shared, second: shared }),
         input: z.object({}),
         output: z.object({
           first: z.object({ attachment: blobRefSchema }),
@@ -1628,7 +1628,7 @@ describe('deriveMcpTools', () => {
         uri: 'blob://shared-stream.png',
       };
       const blobTrail = trail('blob.shared-stream-reference', {
-        blaze: () => Result.ok({ group: [shared, shared] }),
+        implementation: () => Result.ok({ group: [shared, shared] }),
         input: z.object({}),
         output: z.object({
           group: z.array(z.object({ attachment: blobRefSchema })),
@@ -1672,7 +1672,7 @@ describe('deriveMcpTools', () => {
         uri: 'blob://cycle.pdf',
       };
       const blobTrail = trail('blob.cycle', {
-        blaze: () => Result.ok(cyclic),
+        implementation: () => Result.ok(cyclic),
         input: z.object({}),
         output: z.any(),
       });
@@ -1707,11 +1707,11 @@ describe('deriveMcpTools', () => {
   describe('tool-name collision detection', () => {
     test('returns Err on trails that produce the same derived tool name', () => {
       const dotTrail = trail('foo.bar', {
-        blaze: () => Result.ok({ ok: true }),
+        implementation: () => Result.ok({ ok: true }),
         input: z.object({}),
       });
       const underscoreTrail = trail('foo_bar', {
-        blaze: () => Result.ok({ ok: true }),
+        implementation: () => Result.ok({ ok: true }),
         input: z.object({}),
       });
 
@@ -1723,11 +1723,11 @@ describe('deriveMcpTools', () => {
 
     test('returns Err on trails where hyphen and underscore collide', () => {
       const hyphenTrail = trail('foo-bar', {
-        blaze: () => Result.ok({ ok: true }),
+        implementation: () => Result.ok({ ok: true }),
         input: z.object({}),
       });
       const underscoreTrail = trail('foo_bar', {
-        blaze: () => Result.ok({ ok: true }),
+        implementation: () => Result.ok({ ok: true }),
         input: z.object({}),
       });
 
@@ -1739,11 +1739,11 @@ describe('deriveMcpTools', () => {
 
     test('returns Ok when trail names are distinct after normalization', () => {
       const fooTrail = trail('foo', {
-        blaze: () => Result.ok({ ok: true }),
+        implementation: () => Result.ok({ ok: true }),
         input: z.object({}),
       });
       const barTrail = trail('bar', {
-        blaze: () => Result.ok({ ok: true }),
+        implementation: () => Result.ok({ ok: true }),
         input: z.object({}),
       });
 
@@ -1756,9 +1756,10 @@ describe('deriveMcpTools', () => {
   describe('end-to-end', () => {
     test('full pipeline from trail to MCP response', async () => {
       const greetTrail = trail('greet', {
-        blaze: (input) => Result.ok({ greeting: `Hello, ${input.name}!` }),
         description: 'Greet someone',
         idempotent: true,
+        implementation: (input) =>
+          Result.ok({ greeting: `Hello, ${input.name}!` }),
         input: z.object({ name: z.string() }),
         intent: 'read',
         output: z.object({ greeting: z.string() }),
@@ -1793,8 +1794,8 @@ describe('deriveMcpTools', () => {
   describe('established graph enforcement', () => {
     test('returns Err when draft contamination remains', () => {
       const draftTrail = trail('entity.export', {
-        blaze: () => Result.ok({ ok: true }),
         composes: ['_draft.entity.prepare'],
+        implementation: () => Result.ok({ ok: true }),
         input: z.object({}),
       });
 

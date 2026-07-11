@@ -81,7 +81,8 @@ const requireFire = (fire: TrailContext['fire']) => {
 describe('buildCommands path derivation', () => {
   test('builds commands from a simple app with one trail', () => {
     const t = trail('greet', {
-      blaze: (input: { name: string }) => Result.ok(`Hello, ${input.name}`),
+      implementation: (input: { name: string }) =>
+        Result.ok(`Hello, ${input.name}`),
       input: z.object({ name: z.string() }),
     });
     const app = topo('test-app', { 'db.main': dbResource, [t.id]: t });
@@ -92,11 +93,12 @@ describe('buildCommands path derivation', () => {
 
   test('builds full ordered paths from dotted trail IDs', () => {
     const show = trail('entity.show', {
-      blaze: (input: { id: string }) => Result.ok({ id: input.id }),
+      implementation: (input: { id: string }) => Result.ok({ id: input.id }),
       input: z.object({ id: z.string() }),
     });
     const add = trail('entity.add', {
-      blaze: (input: { name: string }) => Result.ok({ name: input.name }),
+      implementation: (input: { name: string }) =>
+        Result.ok({ name: input.name }),
       input: z.object({ name: z.string() }),
     });
     const app = makeApp(show, add);
@@ -108,7 +110,7 @@ describe('buildCommands path derivation', () => {
 
   test('preserves deeper CLI hierarchies from multi-dot trail IDs', () => {
     const remove = trail('topo.pin.remove', {
-      blaze: () => Result.ok({ removed: true }),
+      implementation: () => Result.ok({ removed: true }),
       input: z.object({ name: z.string() }),
     });
     const app = makeApp(remove);
@@ -119,8 +121,8 @@ describe('buildCommands path derivation', () => {
 
   test('uses trail-owned CLI canonical path overrides', () => {
     const search = trail('wayfind.search', {
-      blaze: () => Result.ok([]),
       cli: 'find',
+      implementation: () => Result.ok([]),
       input: z.object({ query: z.string() }),
     });
     const app = makeApp(search);
@@ -139,10 +141,10 @@ describe('buildCommands path derivation', () => {
 
   test('projects trail-owned aliases and surface overlay cli bindings as routes', () => {
     const search = trail('wayfind.search', {
-      blaze: () => Result.ok([]),
       cli: {
         aliases: ['find'],
       },
+      implementation: () => Result.ok([]),
       input: z.object({ query: z.string() }),
     });
     const app = makeApp(search);
@@ -175,7 +177,7 @@ describe('buildCommands path derivation', () => {
 
   test('scalar cli bindings accept a glob that resolves to exactly one trail', () => {
     const search = trail('wayfind.search', {
-      blaze: () => Result.ok([]),
+      implementation: () => Result.ok([]),
       input: z.object({ query: z.string() }),
     });
     const commands = buildCommands(makeApp(search), {
@@ -200,7 +202,7 @@ describe('buildCommands path derivation', () => {
 
   test('rejects scalar cli bindings that resolve to no trails', () => {
     const search = trail('wayfind.search', {
-      blaze: () => Result.ok([]),
+      implementation: () => Result.ok([]),
       input: z.object({ query: z.string() }),
     });
     const result = deriveCliCommands(makeApp(search), {
@@ -217,11 +219,11 @@ describe('buildCommands path derivation', () => {
 
   test('rejects scalar cli bindings whose glob resolves to multiple trails', () => {
     const search = trail('wayfind.search', {
-      blaze: () => Result.ok([]),
+      implementation: () => Result.ok([]),
       input: z.object({ query: z.string() }),
     });
     const impact = trail('wayfind.impact', {
-      blaze: () => Result.ok([]),
+      implementation: () => Result.ok([]),
       input: z.object({ id: z.string() }),
     });
     const result = deriveCliCommands(makeApp(search, impact), {
@@ -238,11 +240,12 @@ describe('buildCommands path derivation', () => {
 
   test('group cli bindings produce member routes with group-prefixed paths', () => {
     const create = trail('gear.create', {
-      blaze: (input: { name: string }) => Result.ok({ name: input.name }),
+      implementation: (input: { name: string }) =>
+        Result.ok({ name: input.name }),
       input: z.object({ name: z.string() }),
     });
     const list = trail('gear.list', {
-      blaze: () => Result.ok([]),
+      implementation: () => Result.ok([]),
       input: z.object({}),
     });
     const commands = buildCommands(makeApp(create, list), {
@@ -285,7 +288,7 @@ describe('buildCommands path derivation', () => {
 
   test('a singleton-list cli binding stays a group with a member route, not a bare synonym', () => {
     const list = trail('gear.list', {
-      blaze: () => Result.ok([]),
+      implementation: () => Result.ok([]),
       input: z.object({}),
     });
     const commands = buildCommands(makeApp(list), {
@@ -310,7 +313,7 @@ describe('buildCommands path derivation', () => {
 
   test('rejects group cli bindings whose member union is empty', () => {
     const list = trail('gear.list', {
-      blaze: () => Result.ok([]),
+      implementation: () => Result.ok([]),
       input: z.object({}),
     });
     const result = deriveCliCommands(makeApp(list), {
@@ -327,7 +330,7 @@ describe('buildCommands path derivation', () => {
 
   test('derives flags from input schema', () => {
     const t = trail('search', {
-      blaze: () => Result.ok([]),
+      implementation: () => Result.ok([]),
       input: z.object({
         limit: z.number().optional(),
         query: z.string(),
@@ -352,9 +355,9 @@ describe('buildCommands path derivation', () => {
       format: { aliases: true },
     } as const;
     const t = trail('render', {
-      blaze: (input: { format: 'agent-json' | 'markdown' }) =>
-        Result.ok(input.format),
       fields,
+      implementation: (input: { format: 'agent-json' | 'markdown' }) =>
+        Result.ok(input.format),
       input: z.object({
         format: z.enum(['markdown', 'agent-json']).default('markdown'),
       }),
@@ -370,7 +373,7 @@ describe('buildCommands path derivation', () => {
 
   test('adds structured input flags for non-empty object schemas', () => {
     const t = trail('search', {
-      blaze: () => Result.ok([]),
+      implementation: () => Result.ok([]),
       input: z.object({
         query: z.string(),
       }),
@@ -386,7 +389,7 @@ describe('buildCommands path derivation', () => {
 
   test('adds --dry-run for destroy intent trails', () => {
     const t = trail('entity.delete', {
-      blaze: () => Result.ok(),
+      implementation: () => Result.ok(),
       input: z.object({ id: z.string() }),
       intent: 'destroy',
     });
@@ -399,7 +402,7 @@ describe('buildCommands path derivation', () => {
 
   test('adds --dry-run for write intent trails', () => {
     const t = trail('entity.create', {
-      blaze: () => Result.ok({ id: 'x' }),
+      implementation: () => Result.ok({ id: 'x' }),
       input: z.object({ name: z.string() }),
       intent: 'write',
       output: z.object({ id: z.string() }),
@@ -413,7 +416,7 @@ describe('buildCommands path derivation', () => {
 
   test('does not add --dry-run for read intent trails', () => {
     const t = trail('entity.show', {
-      blaze: (input: { id: string }) => Result.ok({ id: input.id }),
+      implementation: (input: { id: string }) => Result.ok({ id: input.id }),
       input: z.object({ id: z.string() }),
       intent: 'read',
       output: z.object({ id: z.string() }),
@@ -430,7 +433,7 @@ describe('buildCommands execution', () => {
     test('receives correct context', async () => {
       let captured: ActionResultContext | undefined;
       const t = trail('ping', {
-        blaze: (input: { msg: string }) => Result.ok(input.msg),
+        implementation: (input: { msg: string }) => Result.ok(input.msg),
         input: z.object({ msg: z.string() }),
       });
       const app = makeApp(t);
@@ -452,7 +455,7 @@ describe('buildCommands execution', () => {
     test('receives validated (coerced) input on success', async () => {
       let captured: ActionResultContext | undefined;
       const t = trail('coerce', {
-        blaze: (input: { count: number }) => Result.ok(input.count),
+        implementation: (input: { count: number }) => Result.ok(input.count),
         input: z.object({ count: z.coerce.number() }),
       });
       const app = makeApp(t);
@@ -476,7 +479,7 @@ describe('buildCommands execution', () => {
       // Regression: the error path previously passed only parsedFlags, dropping parsedArgs.
       let captured: ActionResultContext | undefined;
       const t = trail('fail-merge', {
-        blaze: () => Result.ok('ok'),
+        implementation: () => Result.ok('ok'),
         // z.coerce.number on a non-numeric value will fail validation later,
         // but we need merge itself to fail — pass invalid JSON via input-json to
         // trigger a merge error before execution.
@@ -510,7 +513,7 @@ describe('buildCommands execution', () => {
   test('validates input before calling implementation', async () => {
     let implCalled = false;
     const t = trail('strict', {
-      blaze: () => {
+      implementation: () => {
         implCalled = true;
         return Result.ok('done');
       },
@@ -531,7 +534,7 @@ describe('buildCommands execution', () => {
   test('applies layers in order', async () => {
     const order: string[] = [];
     const t = trail('layered', {
-      blaze: (input: { x: string }) => {
+      implementation: (input: { x: string }) => {
         order.push('impl');
         return Result.ok(input.x);
       },
@@ -571,7 +574,7 @@ describe('buildCommands execution', () => {
     ]);
   });
 
-  test('composes topo, surface, and trail layers in C → B → A → blaze order', async () => {
+  test('composes topo, surface, and trail layers in C → B → A → implementation order', async () => {
     const order: string[] = [];
 
     const trailLayer = {
@@ -612,7 +615,7 @@ describe('buildCommands execution', () => {
     } as never;
 
     const t = trail('layered.scopes', {
-      blaze: (input: { x: string }) => {
+      implementation: (input: { x: string }) => {
         order.push('impl');
         return Result.ok(input.x);
       },
@@ -640,7 +643,7 @@ describe('buildCommands execution', () => {
     let usedCustom = false;
     let usedSurfaceMarker = false;
     const t = trail('ctx-test', {
-      blaze: (_input: Record<string, never>, ctx: TrailContext) => {
+      implementation: (_input: Record<string, never>, ctx: TrailContext) => {
         usedRequestId = ctx.requestId;
         usedCustom = ctx.extensions?.['custom'] === true;
         usedSurfaceMarker = ctx.extensions?.[SURFACE_KEY] === 'cli';
@@ -666,7 +669,7 @@ describe('buildCommands execution', () => {
   test('converts kebab-case flags back to camelCase for input', async () => {
     let receivedInput: unknown;
     const t = trail('camel', {
-      blaze: (input) => {
+      implementation: (input) => {
         receivedInput = input;
         return Result.ok('ok');
       },
@@ -682,7 +685,7 @@ describe('buildCommands execution', () => {
   test('does not drop derived fields that collide with structured input flag names', async () => {
     let receivedInput: unknown;
     const t = trail('collision', {
-      blaze: (input) => {
+      implementation: (input) => {
         receivedInput = input;
         return Result.ok('ok');
       },
@@ -699,7 +702,7 @@ describe('buildCommands execution', () => {
   test('merges structured input before explicit flags and args', async () => {
     let receivedInput: unknown;
     const t = trail('search', {
-      blaze: (input) => {
+      implementation: (input) => {
         receivedInput = input;
         return Result.ok(input);
       },
@@ -728,7 +731,7 @@ describe('buildCommands execution', () => {
   test('structured input beats parsed flag defaults', async () => {
     let receivedInput: unknown;
     const t = trail('regrade-like', {
-      blaze: (input) => {
+      implementation: (input) => {
         receivedInput = input;
         return Result.ok(input);
       },
@@ -759,7 +762,7 @@ describe('buildCommands execution', () => {
   test('explicit same-as-default flags beat structured input', async () => {
     let receivedInput: unknown;
     const t = trail('regrade-explicit', {
-      blaze: (input) => {
+      implementation: (input) => {
         receivedInput = input;
         return Result.ok(input);
       },
@@ -790,7 +793,7 @@ describe('buildCommands execution', () => {
   test('direct default-valued flags without provenance beat structured input', async () => {
     let receivedInput: unknown;
     const t = trail('regrade-direct-explicit', {
-      blaze: (input) => {
+      implementation: (input) => {
         receivedInput = input;
         return Result.ok(input);
       },
@@ -819,7 +822,7 @@ describe('buildCommands execution', () => {
   test('resolveInput only fills missing values and never overwrites explicit input', async () => {
     let receivedInput: unknown;
     const t = trail('prompted', {
-      blaze: (input) => {
+      implementation: (input) => {
         receivedInput = input;
         return Result.ok(input);
       },
@@ -847,7 +850,7 @@ describe('buildCommands execution', () => {
 
   test('validation errors for complex schemas point back to structured input', async () => {
     const t = trail('gist.create', {
-      blaze: () => Result.ok('ok'),
+      implementation: () => Result.ok('ok'),
       input: z.object({
         files: z.array(
           z.object({
@@ -868,9 +871,9 @@ describe('buildCommands execution', () => {
     );
   });
 
-  test('returns InternalError when blaze function throws', async () => {
+  test('returns InternalError when implementation function throws', async () => {
     const throwing = trail('throw.test', {
-      blaze: () => {
+      implementation: () => {
         throw new Error('unexpected kaboom');
       },
       input: z.object({}),
@@ -886,7 +889,7 @@ describe('buildCommands execution', () => {
 
   test('projects live versions and executes selected version flag', async () => {
     const versioned = trail('versioned.greet', {
-      blaze: (input: { name: string }) =>
+      implementation: (input: { name: string }) =>
         Result.ok({ message: `Hello, ${input.name}!` }),
       input: z.object({ name: z.string() }),
       output: z.object({ message: z.string() }),
@@ -939,7 +942,7 @@ describe('buildCommands resource overrides', () => {
   test('passes topo to executeTrail so CLI-invoked producers can fan out', async () => {
     const captured: string[] = [];
     const consumer = trail('notify.email', {
-      blaze: (input: { orderId: string }) => {
+      implementation: (input: { orderId: string }) => {
         captured.push(input.orderId);
         return Result.ok({ delivered: true });
       },
@@ -947,13 +950,13 @@ describe('buildCommands resource overrides', () => {
       on: ['order.placed'],
     });
     const producer = trail('order.create', {
-      blaze: async (input: { orderId: string }, ctx) => {
+      fires: [orderPlaced],
+      implementation: async (input: { orderId: string }, ctx) => {
         await requireFire(ctx.fire)(orderPlaced, {
           orderId: input.orderId,
         });
         return Result.ok({ ok: true });
       },
-      fires: [orderPlaced],
       input: z.object({ orderId: z.string() }),
     });
     const app = topo('signal-cli', { consumer, orderPlaced, producer });
@@ -969,7 +972,7 @@ describe('buildCommands resource overrides', () => {
 
   test('forwards resource overrides into executeTrail', async () => {
     const t = trail('resource-test', {
-      blaze: (_input, ctx) =>
+      implementation: (_input, ctx) =>
         Result.ok({ name: dbResource.from(ctx).name as string }),
       input: z.object({}),
       output: z.object({ name: z.string() }),
@@ -992,11 +995,11 @@ describe('buildCommands resource overrides', () => {
 describe('buildCommands filtering', () => {
   test('internal trails are excluded by default', () => {
     const publicTrail = trail('entity.show', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({}),
     });
     const internalTrail = trail('entity.secret.rotate', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({}),
       visibility: 'internal',
     });
@@ -1009,11 +1012,11 @@ describe('buildCommands filtering', () => {
 
   test('exact include can expose an internal trail', () => {
     const publicTrail = trail('entity.show', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({}),
     });
     const internalTrail = trail('entity.secret.rotate', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({}),
       visibility: 'internal',
     });
@@ -1028,11 +1031,11 @@ describe('buildCommands filtering', () => {
 
   test('exclude patterns apply before include narrowing', () => {
     const show = trail('entity.show', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({}),
     });
     const remove = trail('entity.remove', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({}),
     });
     const commands = buildCommands(makeApp(show, remove), {
@@ -1047,12 +1050,12 @@ describe('buildCommands filtering', () => {
 
   test('intent filters narrow the command set', () => {
     const show = trail('entity.show', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({}),
       intent: 'read',
     });
     const remove = trail('entity.remove', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({}),
       intent: 'destroy',
     });
@@ -1068,12 +1071,12 @@ describe('buildCommands filtering', () => {
 
   test('intent filters compose with include patterns using AND logic', () => {
     const show = trail('entity.show', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({}),
       intent: 'read',
     });
     const remove = trail('entity.remove', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({}),
       intent: 'destroy',
     });
@@ -1090,12 +1093,12 @@ describe('buildCommands filtering', () => {
 
   test('consumer trails (on: [...]) are excluded', () => {
     const producer = trail('order.create', {
-      blaze: () => Result.ok({ ok: true }),
       fires: ['order.placed'],
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({ orderId: z.string() }),
     });
     const consumer = trail('notify.email', {
-      blaze: (input: { orderId: string }) =>
+      implementation: (input: { orderId: string }) =>
         Result.ok({ delivered: true, orderId: input.orderId }),
       input: z.object({ orderId: z.string() }),
       on: ['order.placed'],
@@ -1109,21 +1112,22 @@ describe('buildCommands filtering', () => {
 
   test('internal trails remain crossable even when they stay hidden', async () => {
     const helper = trail('entity.secret.rotate', {
-      blaze: (input: { id: string }) => Result.ok({ rotated: input.id }),
+      implementation: (input: { id: string }) =>
+        Result.ok({ rotated: input.id }),
       input: z.object({ id: z.string() }),
       intent: 'read',
       output: z.object({ rotated: z.string() }),
       visibility: 'internal',
     });
     const entry = trail('entity.rotate', {
-      blaze: async (input: { id: string }, ctx) => {
+      composes: ['entity.secret.rotate'],
+      implementation: async (input: { id: string }, ctx) => {
         const result = await ctx.compose('entity.secret.rotate', input);
         return result.match({
           err: (error) => Result.err(error),
           ok: (value) => Result.ok(value),
         });
       },
-      composes: ['entity.secret.rotate'],
       input: z.object({ id: z.string() }),
       intent: 'read',
       output: z.object({ rotated: z.string() }),
@@ -1144,7 +1148,7 @@ describe('buildCommands filtering', () => {
 describe('positional arg derivation', () => {
   test('auto-promotes single required string field to positional arg', () => {
     const t = trail('file.read', {
-      blaze: (input: { path: string }) => Result.ok(input.path),
+      implementation: (input: { path: string }) => Result.ok(input.path),
       input: z.object({ path: z.string() }),
     });
     const app = makeApp(t);
@@ -1162,7 +1166,7 @@ describe('positional arg derivation', () => {
 
   test('does not auto-promote when multiple required string fields exist', () => {
     const t = trail('file.copy', {
-      blaze: (input: { dest: string; src: string }) =>
+      implementation: (input: { dest: string; src: string }) =>
         Result.ok({ dest: input.dest, src: input.src }),
       input: z.object({ dest: z.string(), src: z.string() }),
     });
@@ -1177,7 +1181,7 @@ describe('positional arg derivation', () => {
 
   test('auto-promotes single required string alongside other optional fields', () => {
     const t = trail('search', {
-      blaze: () => Result.ok([]),
+      implementation: () => Result.ok([]),
       input: z.object({
         limit: z.number().optional(),
         query: z.string(),
@@ -1196,7 +1200,7 @@ describe('positional arg derivation', () => {
   test('explicit args promotes field even with multiple strings', () => {
     const t = trail('file.copy', {
       args: ['src'],
-      blaze: (input: { dest: string; src: string }) =>
+      implementation: (input: { dest: string; src: string }) =>
         Result.ok({ dest: input.dest, src: input.src }),
       input: z.object({ dest: z.string(), src: z.string() }),
     });
@@ -1213,7 +1217,7 @@ describe('positional arg derivation', () => {
   test('multiple explicit args preserve declared order', () => {
     const t = trail('file.copy', {
       args: ['src', 'dest'],
-      blaze: (input: { dest: string; src: string }) =>
+      implementation: (input: { dest: string; src: string }) =>
         Result.ok({ dest: input.dest, src: input.src }),
       input: z.object({ dest: z.string(), src: z.string() }),
     });
@@ -1228,7 +1232,7 @@ describe('positional arg derivation', () => {
   test('args: false suppresses auto-promotion', () => {
     const t = trail('file.read', {
       args: false,
-      blaze: (input: { path: string }) => Result.ok(input.path),
+      implementation: (input: { path: string }) => Result.ok(input.path),
       input: z.object({ path: z.string() }),
     });
     const app = makeApp(t);
@@ -1242,7 +1246,7 @@ describe('positional arg derivation', () => {
   test('args with non-existent field name is silently ignored', () => {
     const t = trail('file.read', {
       args: ['path', 'nonexistent'],
-      blaze: (input: { path: string }) => Result.ok(input.path),
+      implementation: (input: { path: string }) => Result.ok(input.path),
       input: z.object({ path: z.string() }),
     });
     const app = makeApp(t);
@@ -1254,7 +1258,7 @@ describe('positional arg derivation', () => {
 
   test('no positional args when no required string fields exist', () => {
     const t = trail('config.set', {
-      blaze: (input: { count: number; verbose: boolean }) =>
+      implementation: (input: { count: number; verbose: boolean }) =>
         Result.ok({ count: input.count, verbose: input.verbose }),
       input: z.object({ count: z.number(), verbose: z.boolean() }),
     });
@@ -1266,7 +1270,8 @@ describe('positional arg derivation', () => {
 
   test('does not auto-promote a required string field that has a default', () => {
     const t = trail('greet', {
-      blaze: (input: { name: string }) => Result.ok(`Hello, ${input.name}`),
+      implementation: (input: { name: string }) =>
+        Result.ok(`Hello, ${input.name}`),
       input: z.object({ name: z.string().default('World') }),
     });
     const app = makeApp(t);
@@ -1279,8 +1284,8 @@ describe('positional arg derivation', () => {
 describe('buildCommands established graph enforcement', () => {
   test('throws when draft contamination remains', () => {
     const draftTrail = trail('entity.export', {
-      blaze: () => Result.ok({ ok: true }),
       composes: ['_draft.entity.prepare'],
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({}),
     });
 
@@ -1300,7 +1305,8 @@ const captureInput =
 describe('buildCommands structured input', () => {
   test('merges --input file payloads at the top level', async () => {
     const t = trail('search', {
-      blaze: (input: { query: string }) => Result.ok({ received: input }),
+      implementation: (input: { query: string }) =>
+        Result.ok({ received: input }),
       input: z.object({ query: z.string() }),
     });
     const captured: { input?: unknown } = {};
@@ -1321,7 +1327,8 @@ describe('buildCommands structured input', () => {
 
   test('keeps --input reserved for file payloads when the schema has an input field', async () => {
     const t = trail('echo-input', {
-      blaze: (input: { input: string }) => Result.ok({ received: input }),
+      implementation: (input: { input: string }) =>
+        Result.ok({ received: input }),
       input: z.object({ input: z.string() }),
     });
     const captured: { input?: unknown } = {};
@@ -1342,7 +1349,7 @@ describe('buildCommands structured input', () => {
 
   test('rejects when --input and --input-json are both provided', async () => {
     const t = trail('search', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({ query: z.string() }),
     });
     const cmd = requireCommand(buildCommands(makeApp(t)));
@@ -1362,7 +1369,7 @@ describe('buildCommands structured input', () => {
 
   test('merges positional inline JSON for structured-only fields', async () => {
     const t = trail('gist.create', {
-      blaze: (input: {
+      implementation: (input: {
         files: readonly {
           readonly content: string;
           readonly filename: string;
@@ -1399,7 +1406,7 @@ describe('buildCommands structured input', () => {
 
   test('rejects when positional inline JSON conflicts with structured flags', async () => {
     const t = trail('gist.create', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({
         files: z.array(
           z.object({
@@ -1430,7 +1437,7 @@ describe('buildCommands structured input', () => {
 
   test('rejects missing structured flag values before schema validation', async () => {
     const t = trail('search', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({ query: z.string() }),
     });
     const cmd = requireCommand(buildCommands(makeApp(t)));
@@ -1456,7 +1463,7 @@ describe('buildCommands date-shortcut absorption', () => {
   // and Zod accepts the resulting ISO string. The shortcut detection still
   // matches because the schema declares `.datetime()`.
   const eventsTrail = trail('events.list', {
-    blaze: (input: {
+    implementation: (input: {
       since?: string | undefined;
       until?: string | undefined;
     }) => Result.ok(input),
@@ -1467,19 +1474,21 @@ describe('buildCommands date-shortcut absorption', () => {
   });
 
   const greetTrail = trail('greet', {
-    blaze: (input: { name: string }) => Result.ok(`Hello, ${input.name}`),
+    implementation: (input: { name: string }) =>
+      Result.ok(`Hello, ${input.name}`),
     input: z.object({ name: z.string() }),
   });
 
   const dateOnlyTrail = trail('events.by-day', {
-    blaze: (input: { day?: string | undefined }) => Result.ok(input),
+    implementation: (input: { day?: string | undefined }) => Result.ok(input),
     input: z.object({
       day: z.iso.date().optional(),
     }),
   });
 
   const nativeDateTrail = trail('events.by-instant', {
-    blaze: (input: { occurredAt?: Date | undefined }) => Result.ok(input),
+    implementation: (input: { occurredAt?: Date | undefined }) =>
+      Result.ok(input),
     input: z.object({
       occurredAt: z.date().optional(),
     }),
@@ -1597,7 +1606,7 @@ describe('--dry-run wiring', () => {
   test('--dry-run flag sets ctx.dryRun to true on the trail', async () => {
     let observed: boolean | undefined;
     const t = trail('thing.delete', {
-      blaze: (_input, ctx) => {
+      implementation: (_input, ctx) => {
         observed = ctx.dryRun;
         return Result.ok({ ok: true });
       },
@@ -1621,7 +1630,7 @@ describe('--dry-run wiring', () => {
   test('omitted --dry-run leaves ctx.dryRun as false', async () => {
     let observed: boolean | undefined;
     const t = trail('thing.delete-default', {
-      blaze: (_input, ctx) => {
+      implementation: (_input, ctx) => {
         observed = ctx.dryRun;
         return Result.ok({ ok: true });
       },
@@ -1642,7 +1651,7 @@ describe('--dry-run wiring', () => {
   test('omitted --dry-run preserves a context factory dryRun default', async () => {
     let observed: boolean | undefined;
     const t = trail('thing.delete-factory-default', {
-      blaze: (_input, ctx) => {
+      implementation: (_input, ctx) => {
         observed = ctx.dryRun;
         return Result.ok({ ok: true });
       },
@@ -1667,7 +1676,7 @@ describe('--dry-run wiring', () => {
   test('--dry-run does not leak into trail input', async () => {
     let receivedInput: unknown;
     const t = trail('thing.write', {
-      blaze: (input: { name: string }) => {
+      implementation: (input: { name: string }) => {
         receivedInput = input;
         return Result.ok({ name: input.name });
       },
@@ -1692,7 +1701,7 @@ describe('--dry-run wiring', () => {
     let observedInput: { dryRun: boolean; id: string } | undefined;
     let observedCtxDryRun: boolean | undefined;
     const t = trail('thing.preview', {
-      blaze: (input: { dryRun: boolean; id: string }, ctx) => {
+      implementation: (input: { dryRun: boolean; id: string }, ctx) => {
         observedInput = input;
         observedCtxDryRun = ctx.dryRun;
         return Result.ok({ ok: true });
@@ -1720,7 +1729,7 @@ describe('--permit wiring', () => {
   test('--permit JSON sets ctx.permit to the parsed permit object', async () => {
     let observed: TrailContext['permit'];
     const t = trail('thing.read', {
-      blaze: (_input, ctx) => {
+      implementation: (_input, ctx) => {
         observed = ctx.permit;
         return Result.ok({ ok: true });
       },
@@ -1743,7 +1752,7 @@ describe('--permit wiring', () => {
   test('omitted --permit leaves ctx.permit undefined', async () => {
     let observed: TrailContext['permit'] = { id: 'sentinel', scopes: [] };
     const t = trail('thing.read-default', {
-      blaze: (_input, ctx) => {
+      implementation: (_input, ctx) => {
         observed = ctx.permit;
         return Result.ok({ ok: true });
       },
@@ -1762,7 +1771,7 @@ describe('--permit wiring', () => {
 
   test('--permit with invalid JSON fails with ValidationError', async () => {
     const t = trail('thing.read-bad-json', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({ id: z.string() }),
       output: z.object({ ok: z.boolean() }),
     });
@@ -1785,7 +1794,7 @@ describe('--permit wiring', () => {
 
   test('--permit missing scopes field fails with ValidationError', async () => {
     const t = trail('thing.read-missing-scopes', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({ id: z.string() }),
       output: z.object({ ok: z.boolean() }),
     });
@@ -1807,7 +1816,7 @@ describe('--permit wiring', () => {
 
   test('--permit with non-string id fails with ValidationError', async () => {
     const t = trail('thing.read-bad-id', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({ id: z.string() }),
       output: z.object({ ok: z.boolean() }),
     });
@@ -1830,7 +1839,7 @@ describe('--permit wiring', () => {
   test('--permit does not leak into trail input', async () => {
     let receivedInput: unknown;
     const t = trail('thing.read-no-leak', {
-      blaze: (input: { id: string }) => {
+      implementation: (input: { id: string }) => {
         receivedInput = input;
         return Result.ok({ ok: true });
       },
@@ -1852,7 +1861,8 @@ describe('--permit wiring', () => {
 
   test('--permit satisfies permit-protected trails when scopes match', async () => {
     const t = trail('thing.write-protected', {
-      blaze: (_input, ctx) => Result.ok({ ok: true, permitId: ctx.permit?.id }),
+      implementation: (_input, ctx) =>
+        Result.ok({ ok: true, permitId: ctx.permit?.id }),
       input: z.object({ id: z.string() }),
       output: z.object({ ok: z.boolean(), permitId: z.string().optional() }),
       permit: { scopes: ['entity:write'] },
@@ -1969,7 +1979,7 @@ describe('--token wiring', () => {
   test('--token resolves a permit via the auth adapter and lands ctx.permit', async () => {
     let observed: TrailContext['permit'];
     const t = trail('thing.token-read', {
-      blaze: (_input, ctx) => {
+      implementation: (_input, ctx) => {
         observed = ctx.permit;
         return Result.ok({ ok: true });
       },
@@ -2000,7 +2010,7 @@ describe('--token wiring', () => {
 
   test('--token without a registered auth resource fails with ValidationError', async () => {
     const t = trail('thing.no-auth', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({ id: z.string() }),
       output: z.object({ ok: z.boolean() }),
     });
@@ -2024,7 +2034,7 @@ describe('--token wiring', () => {
 
   test('--token with invalid token surfaces an AuthError (auth category, exit 9)', async () => {
     const t = trail('thing.bad-token', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({ id: z.string() }),
       output: z.object({ ok: z.boolean() }),
     });
@@ -2056,7 +2066,7 @@ describe('--token wiring', () => {
 
   test('--token returning a null permit fails with AuthError (missing credentials)', async () => {
     const t = trail('thing.null-permit', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({ id: z.string() }),
       output: z.object({ ok: z.boolean() }),
     });
@@ -2088,7 +2098,7 @@ describe('--token wiring', () => {
 
   test('--token and --permit together fail with ValidationError', async () => {
     const t = trail('thing.both-flags', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({ id: z.string() }),
       output: z.object({ ok: z.boolean() }),
     });
@@ -2121,7 +2131,7 @@ describe('--token wiring', () => {
   test('omitted --token and --permit leaves ctx.permit undefined', async () => {
     let observed: TrailContext['permit'] = { id: 'sentinel', scopes: [] };
     const t = trail('thing.no-flags', {
-      blaze: (_input, ctx) => {
+      implementation: (_input, ctx) => {
         observed = ctx.permit;
         return Result.ok({ ok: true });
       },
@@ -2146,7 +2156,7 @@ describe('--token wiring', () => {
   test('--token does not leak into trail input', async () => {
     let receivedInput: unknown;
     const t = trail('thing.token-no-leak', {
-      blaze: (input: { id: string }) => {
+      implementation: (input: { id: string }) => {
         receivedInput = input;
         return Result.ok({ ok: true });
       },
@@ -2180,7 +2190,7 @@ describe('--token wiring', () => {
         }
       | undefined;
     const t = trail('thing.token-forward', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({ id: z.string() }),
       output: z.object({ ok: z.boolean() }),
     });
@@ -2215,7 +2225,7 @@ describe('dev permit flag wiring', () => {
   test('injects a synthetic permit covering every declared scope', async () => {
     let observed: TrailContext['permit'];
     const writer = trail('thing.dev-write', {
-      blaze: (_input, ctx) => {
+      implementation: (_input, ctx) => {
         observed = ctx.permit;
         return Result.ok({ ok: true });
       },
@@ -2224,7 +2234,7 @@ describe('dev permit flag wiring', () => {
       permit: { scopes: ['entity:write', 'entity:admin'] },
     });
     const reader = trail('thing.dev-read', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({ id: z.string() }),
       output: z.object({ ok: z.boolean() }),
       permit: { scopes: ['entity:read'] },
@@ -2258,7 +2268,8 @@ describe('dev permit flag wiring', () => {
 
   test('satisfies a permit-protected trail without permit or token flags', async () => {
     const t = trail('thing.dev-protected', {
-      blaze: (_input, ctx) => Result.ok({ ok: true, permitId: ctx.permit?.id }),
+      implementation: (_input, ctx) =>
+        Result.ok({ ok: true, permitId: ctx.permit?.id }),
       input: z.object({ id: z.string() }),
       output: z.object({ ok: z.boolean(), permitId: z.string().optional() }),
       permit: { scopes: ['entity:write'] },
@@ -2281,7 +2292,7 @@ describe('dev permit flag wiring', () => {
 
   test('dev permit plus permit fails with ValidationError listing both flags', async () => {
     const t = trail('thing.dev-and-permit', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({ id: z.string() }),
       output: z.object({ ok: z.boolean() }),
     });
@@ -2329,7 +2340,7 @@ describe('dev permit flag wiring', () => {
     });
 
     const t = trail('thing.dev-and-token', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({ id: z.string() }),
       output: z.object({ ok: z.boolean() }),
     });
@@ -2355,7 +2366,7 @@ describe('dev permit flag wiring', () => {
   test('omitted dev permit flag leaves ctx.permit undefined', async () => {
     let observed: TrailContext['permit'] = { id: 'sentinel', scopes: [] };
     const t = trail('thing.dev-omitted', {
-      blaze: (_input, ctx) => {
+      implementation: (_input, ctx) => {
         observed = ctx.permit;
         return Result.ok({ ok: true });
       },
@@ -2375,7 +2386,7 @@ describe('dev permit flag wiring', () => {
   test('dev permit flag does not leak into trail input', async () => {
     let receivedInput: unknown;
     const t = trail('thing.dev-no-leak', {
-      blaze: (input: { id: string }) => {
+      implementation: (input: { id: string }) => {
         receivedInput = input;
         return Result.ok({ ok: true });
       },

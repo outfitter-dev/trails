@@ -5,14 +5,14 @@ import { permitGovernance } from '../rules/permit-governance.js';
 import { wrapTopoRule } from './wrap-rule.js';
 
 const destroyWithoutPermit = trail('entity.delete', {
-  blaze: () => Result.ok({ ok: true }),
+  implementation: () => Result.ok({ ok: true }),
   input: z.object({}),
   intent: 'destroy',
   output: z.object({ ok: z.boolean() }),
 });
 
 const scopedDestroy = trail('entity.delete', {
-  blaze: () => Result.ok({ ok: true }),
+  implementation: () => Result.ok({ ok: true }),
   input: z.object({}),
   intent: 'destroy',
   output: z.object({ ok: z.boolean() }),

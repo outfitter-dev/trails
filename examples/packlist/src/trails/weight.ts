@@ -25,7 +25,28 @@ const weightItemSchema = z.object({
 });
 
 export const weight = trail('pack.weight', {
-  blaze: async (input, ctx) => {
+  composes: ['gear.read'],
+  description:
+    'Derive a pack’s total weight from current gear weights (never stored)',
+  examples: [
+    {
+      description: 'Weekend Loop carries the tent and stove fixtures',
+      expectedMatch: {
+        name: 'Weekend Loop',
+        packId: 'pack-weekend',
+        totalWeightGrams: 2020,
+      },
+      input: { packId: 'pack-weekend' },
+      name: 'Weigh a pack',
+    },
+    {
+      description: 'Unknown pack ids report not found',
+      error: 'NotFoundError',
+      input: { packId: 'pack-missing' },
+      name: 'Weigh a missing pack',
+    },
+  ],
+  implementation: async (input, ctx) => {
     const connection = db.from(ctx);
     const pack = await connection.pack.get(input.packId);
     if (!pack) {
@@ -58,27 +79,6 @@ export const weight = trail('pack.weight', {
       totalWeightGrams,
     });
   },
-  composes: ['gear.read'],
-  description:
-    'Derive a pack’s total weight from current gear weights (never stored)',
-  examples: [
-    {
-      description: 'Weekend Loop carries the tent and stove fixtures',
-      expectedMatch: {
-        name: 'Weekend Loop',
-        packId: 'pack-weekend',
-        totalWeightGrams: 2020,
-      },
-      input: { packId: 'pack-weekend' },
-      name: 'Weigh a pack',
-    },
-    {
-      description: 'Unknown pack ids report not found',
-      error: 'NotFoundError',
-      input: { packId: 'pack-missing' },
-      name: 'Weigh a missing pack',
-    },
-  ],
   input: z.object({
     packId: z.string().describe('Pack id to weigh'),
   }),
@@ -93,33 +93,6 @@ export const weight = trail('pack.weight', {
 });
 
 export const recalculate = trail('pack.recalculate', {
-  blaze: async (input, ctx) => {
-    const recalculated = [];
-    for (const packId of input.packIds) {
-      const result = await ctx.compose<{
-        name: string;
-        packId: string;
-        totalWeightGrams: number;
-      }>('pack.weight', { packId });
-      if (result.isErr()) {
-        ctx.logger?.warn('pack.recalculate skipped a pack', {
-          error: result.error.message,
-          packId,
-        });
-        continue;
-      }
-      ctx.logger?.info(
-        `pack "${result.value.name}" recalculated: ${result.value.totalWeightGrams} g (${input.gearName}: ${input.previousWeightGrams} g → ${input.weightGrams} g)`,
-        { packId }
-      );
-      recalculated.push({
-        name: result.value.name,
-        packId: result.value.packId,
-        totalWeightGrams: result.value.totalWeightGrams,
-      });
-    }
-    return Result.ok({ recalculated });
-  },
   composes: ['pack.weight'],
   description:
     'React to pack.weight-stale by recomputing and logging affected pack weights',
@@ -148,6 +121,33 @@ export const recalculate = trail('pack.recalculate', {
       name: 'Recalculate nothing',
     },
   ],
+  implementation: async (input, ctx) => {
+    const recalculated = [];
+    for (const packId of input.packIds) {
+      const result = await ctx.compose<{
+        name: string;
+        packId: string;
+        totalWeightGrams: number;
+      }>('pack.weight', { packId });
+      if (result.isErr()) {
+        ctx.logger?.warn('pack.recalculate skipped a pack', {
+          error: result.error.message,
+          packId,
+        });
+        continue;
+      }
+      ctx.logger?.info(
+        `pack "${result.value.name}" recalculated: ${result.value.totalWeightGrams} g (${input.gearName}: ${input.previousWeightGrams} g → ${input.weightGrams} g)`,
+        { packId }
+      );
+      recalculated.push({
+        name: result.value.name,
+        packId: result.value.packId,
+        totalWeightGrams: result.value.totalWeightGrams,
+      });
+    }
+    return Result.ok({ recalculated });
+  },
   input: z.object({
     gearId: z.string().describe('Gear whose weight changed'),
     gearName: z.string().describe('Name of the changed gear'),

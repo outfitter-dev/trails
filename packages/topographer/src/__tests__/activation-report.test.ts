@@ -23,17 +23,17 @@ describe('activation report derivation', () => {
       timezone: 'UTC',
     });
     const producer = trail('user.create', {
-      blaze: noop,
       fires: [created],
+      implementation: noop,
       input: z.object({}),
     });
     const consumer = trail('user.index', {
-      blaze: noop,
+      implementation: noop,
       input: z.object({}),
       on: [created],
     });
     const scheduled = trail('user.scheduled-index', {
-      blaze: noop,
+      implementation: noop,
       input: z.object({ id: z.string() }),
       on: [nightly],
     });
@@ -77,7 +77,7 @@ describe('activation report derivation', () => {
       payload: z.object({ userId: z.string() }),
     });
     const consumer = trail('user.index', {
-      blaze: noop,
+      implementation: noop,
       input: z.object({}),
       on: [created],
     });

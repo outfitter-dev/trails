@@ -13,7 +13,16 @@ import { z } from 'zod';
 // ---------------------------------------------------------------------------
 
 export const onboard = trail('entity.onboard', {
-  blaze: async (input, ctx) => {
+  composes: ['entity.add', 'search'],
+  description: 'Create an entity and verify it appears in search',
+  examples: [
+    {
+      description: 'Create an entity and verify it appears in search results',
+      input: { name: 'Gamma', tags: ['workflow'], type: 'pattern' },
+      name: 'Onboard a new entity',
+    },
+  ],
+  implementation: async (input, ctx) => {
     if (!ctx.compose) {
       return Result.err(new InternalError('Trail requires a compose function'));
     }
@@ -55,15 +64,6 @@ export const onboard = trail('entity.onboard', {
       searchable,
     });
   },
-  composes: ['entity.add', 'search'],
-  description: 'Create an entity and verify it appears in search',
-  examples: [
-    {
-      description: 'Create an entity and verify it appears in search results',
-      input: { name: 'Gamma', tags: ['workflow'], type: 'pattern' },
-      name: 'Onboard a new entity',
-    },
-  ],
   input: z.object({
     name: z.string().describe('Entity name'),
     tags: z.array(z.string()).optional().default([]),

@@ -30,7 +30,6 @@ const makeTempDir = (): string => {
 
 const buildFixtureTopo = () => {
   const echo = trail('fixture.echo', {
-    blaze: (input: { value: string }) => Result.ok({ value: input.value }),
     description: 'echo',
     examples: [
       {
@@ -39,6 +38,8 @@ const buildFixtureTopo = () => {
         name: 'roundtrips',
       },
     ],
+    implementation: (input: { value: string }) =>
+      Result.ok({ value: input.value }),
     input: z.object({ value: z.string() }),
     intent: 'read',
     output: z.object({ value: z.string() }),
@@ -48,14 +49,14 @@ const buildFixtureTopo = () => {
 
 const buildBrokenFixtureTopo = () => {
   const alpha = trail('fixture.alpha', {
-    blaze: () => Result.ok({ value: 'a' }),
     composes: ['fixture.beta'],
+    implementation: () => Result.ok({ value: 'a' }),
     input: z.object({}),
     output: z.object({ value: z.string() }),
   });
   const beta = trail('fixture.beta', {
-    blaze: () => Result.ok({ value: 'b' }),
     composes: ['fixture.alpha'],
+    implementation: () => Result.ok({ value: 'b' }),
     input: z.object({}),
     output: z.object({ value: z.string() }),
   });
@@ -157,7 +158,7 @@ describe('TopoAwareWardenRule dispatch', () => {
     try {
       await Bun.write(
         join(dir, 'bad-source.ts'),
-        `trail('x', { blaze: async () => { throw new Error('x'); } })`
+        `trail('x', { implementation: async () => { throw new Error('x'); } })`
       );
       const seen: string[] = [];
       const report = await runWarden({
@@ -236,7 +237,7 @@ describe('TopoAwareWardenRule dispatch', () => {
     };
 
     const wrapped = wrapTopoRule({ examples: [], rule: placeholder });
-    const result = await wrapped.blaze(
+    const result = await wrapped.implementation(
       { topo: buildFixtureTopo() },
       createTrailContext()
     );
@@ -344,7 +345,7 @@ describe('TopoAwareWardenRule dispatch', () => {
     };
 
     const wrapped = wrapTopoRule({ examples: [], rule: throwing });
-    const result = await wrapped.blaze(
+    const result = await wrapped.implementation(
       { topo: buildFixtureTopo() },
       createTrailContext()
     );

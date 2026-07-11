@@ -8,10 +8,10 @@ import { runWarden } from '../cli.js';
 import { cliCommandRouteCoherence } from '../rules/cli-command-route-coherence.js';
 
 const searchTrail = trail('wayfind.search', {
-  blaze: () => Result.ok([]),
   cli: {
     aliases: ['find'],
   },
+  implementation: () => Result.ok([]),
   input: z.object({ query: z.string() }),
   output: z.array(z.string()),
 });
@@ -27,7 +27,7 @@ describe('cli-command-route-coherence', () => {
 
   test('errors when an alias collides with another command route', async () => {
     const collidingTrail = trail('wayfind.find', {
-      blaze: () => Result.ok([]),
+      implementation: () => Result.ok([]),
       input: z.object({ query: z.string() }),
       output: z.array(z.string()),
     });
@@ -50,10 +50,10 @@ describe('cli-command-route-coherence', () => {
 
   test('errors when a string alias is more than one segment', async () => {
     const invalid = trail('wayfind.search', {
-      blaze: () => Result.ok([]),
       cli: {
         aliases: ['wayfind find'],
       },
+      implementation: () => Result.ok([]),
       input: z.object({ query: z.string() }),
       output: z.array(z.string()),
     });
@@ -116,12 +116,12 @@ describe('cli-command-route-coherence', () => {
 
   test('errors when serialized surface-owned aliases collide', async () => {
     const search = trail('wayfind.search', {
-      blaze: () => Result.ok([]),
+      implementation: () => Result.ok([]),
       input: z.object({ query: z.string() }),
       output: z.array(z.string()),
     });
     const collidingTrail = trail('wayfind.find', {
-      blaze: () => Result.ok([]),
+      implementation: () => Result.ok([]),
       input: z.object({ query: z.string() }),
       output: z.array(z.string()),
     });
@@ -171,7 +171,7 @@ describe('cli-command-route-coherence', () => {
 
   test('runWarden dispatches the rule from wardenTopoRules', async () => {
     const collidingTrail = trail('wayfind.find', {
-      blaze: () => Result.ok([]),
+      implementation: () => Result.ok([]),
       input: z.object({ query: z.string() }),
       output: z.array(z.string()),
     });

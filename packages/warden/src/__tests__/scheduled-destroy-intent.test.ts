@@ -30,7 +30,7 @@ describe('scheduled-destroy-intent', () => {
 
   test('aggregates multiple schedule sources on the same destroy trail', async () => {
     const worker = trail('billing.purge-expired', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({}),
       intent: 'destroy',
       on: [
@@ -56,7 +56,7 @@ describe('scheduled-destroy-intent', () => {
       cron: '0 3 * * *',
     });
     const worker = trail('billing.object-form-purge', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({}),
       intent: 'destroy',
       on: [{ source }],
@@ -77,13 +77,13 @@ describe('scheduled-destroy-intent', () => {
       payload: z.object({ accountId: z.string() }),
     });
     const scheduledWrite = trail('billing.reconcile', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({}),
       on: [schedule('schedule.billing.reconcile', { cron: '0 * * * *' })],
       output: z.object({ ok: z.boolean() }),
     });
     const signalDestroy = trail('account.remove', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({ accountId: z.string() }),
       intent: 'destroy',
       on: [accountClosed],

@@ -23,7 +23,7 @@ import { checkDrift, staleDriftMessage } from '../drift.js';
 
 const makeTopo = () => {
   const t = trail('test.hello', {
-    blaze: () => Result.ok({ greeting: 'hi' }),
+    implementation: () => Result.ok({ greeting: 'hi' }),
     input: z.object({ name: z.string() }),
     output: z.object({ greeting: z.string() }),
   });
@@ -32,7 +32,7 @@ const makeTopo = () => {
 
 const makeChangedTopo = () => {
   const t = trail('test.hello', {
-    blaze: () => Result.ok({ greeting: 'hi', punctuation: '!' }),
+    implementation: () => Result.ok({ greeting: 'hi', punctuation: '!' }),
     input: z.object({ name: z.string() }),
     output: z.object({ greeting: z.string(), punctuation: z.string() }),
   });
@@ -238,8 +238,8 @@ describe('checkDrift', () => {
     const dir = createTempDir();
     try {
       const draftTrail = trail('test.hello', {
-        blaze: () => Result.ok({ greeting: 'hi' }),
         composes: ['_draft.test.prepare'],
+        implementation: () => Result.ok({ greeting: 'hi' }),
         input: z.object({ name: z.string() }),
         output: z.object({ greeting: z.string() }),
       });

@@ -59,17 +59,6 @@ const gearEntityV1Schema = z.object({
 });
 
 export const create = trail('gear.create', {
-  blaze: async (input, ctx) => {
-    const connection = db.from(ctx);
-    const duplicates = await connection.gear.list({ name: input.name });
-    if (duplicates.length > 0) {
-      return Result.err(
-        new AlreadyExistsError(`Gear named "${input.name}" already exists`)
-      );
-    }
-    const gear = await connection.gear.insert(input);
-    return Result.ok(gear);
-  },
   description: 'Add a piece of gear to the locker',
   examples: [
     {
@@ -89,6 +78,17 @@ export const create = trail('gear.create', {
       name: 'Duplicate gear name conflicts',
     },
   ],
+  implementation: async (input, ctx) => {
+    const connection = db.from(ctx);
+    const duplicates = await connection.gear.list({ name: input.name });
+    if (duplicates.length > 0) {
+      return Result.err(
+        new AlreadyExistsError(`Gear named "${input.name}" already exists`)
+      );
+    }
+    const gear = await connection.gear.insert(input);
+    return Result.ok(gear);
+  },
   input: z.object({
     category: categorySchema,
     name: z.string().describe('Unique gear name'),
@@ -102,7 +102,21 @@ export const create = trail('gear.create', {
   version: 2,
   versions: {
     1: forkVersion({
-      blaze: async (input, ctx) => {
+      examples: [
+        {
+          description: 'The v1 contract accepts ounces and reports ounces',
+          expectedMatch: { category: 'shelter', name: 'Ultralight Tarp' },
+          input: { category: 'shelter', name: 'Ultralight Tarp', weightOz: 16 },
+          name: 'Add gear in ounces (v1)',
+        },
+        {
+          description: 'The duplicate-name conflict predates v2',
+          error: 'AlreadyExistsError',
+          input: { category: 'shelter', name: 'Tent', weightOz: 60 },
+          name: 'Duplicate gear name conflicts (v1)',
+        },
+      ],
+      implementation: async (input, ctx) => {
         const connection = db.from(ctx);
         const duplicates = await connection.gear.list({ name: input.name });
         if (duplicates.length > 0) {
@@ -122,20 +136,6 @@ export const create = trail('gear.create', {
           weightOz: weightGrams / GRAMS_PER_OUNCE,
         });
       },
-      examples: [
-        {
-          description: 'The v1 contract accepts ounces and reports ounces',
-          expectedMatch: { category: 'shelter', name: 'Ultralight Tarp' },
-          input: { category: 'shelter', name: 'Ultralight Tarp', weightOz: 16 },
-          name: 'Add gear in ounces (v1)',
-        },
-        {
-          description: 'The duplicate-name conflict predates v2',
-          error: 'AlreadyExistsError',
-          input: { category: 'shelter', name: 'Tent', weightOz: 60 },
-          name: 'Duplicate gear name conflicts (v1)',
-        },
-      ],
       input: gearCreateV1Input,
       output: gearEntityV1Schema,
       resources: [db],
@@ -153,14 +153,6 @@ export const create = trail('gear.create', {
 });
 
 export const read = trail('gear.read', {
-  blaze: async (input, ctx) => {
-    const connection = db.from(ctx);
-    const gear = await connection.gear.get(input.id);
-    if (!gear) {
-      return Result.err(new NotFoundError(`Gear "${input.id}" not found`));
-    }
-    return Result.ok(gear);
-  },
   description: 'Show one piece of gear by id',
   examples: [
     {
@@ -176,6 +168,14 @@ export const read = trail('gear.read', {
       name: 'Read missing gear',
     },
   ],
+  implementation: async (input, ctx) => {
+    const connection = db.from(ctx);
+    const gear = await connection.gear.get(input.id);
+    if (!gear) {
+      return Result.err(new NotFoundError(`Gear "${input.id}" not found`));
+    }
+    return Result.ok(gear);
+  },
   input: z.object({
     id: z.string().describe('Gear id to look up'),
   }),
@@ -185,7 +185,34 @@ export const read = trail('gear.read', {
 });
 
 export const update = trail('gear.update', {
-  blaze: async (input, ctx) => {
+  description:
+    'Update fields on a piece of gear; weight changes mark carrying packs stale',
+  examples: [
+    {
+      description: 'Re-weighing gear carried by a pack fires pack.weight-stale',
+      expectedMatch: { id: 'gear-stove', weightGrams: 250 },
+      input: { id: 'gear-stove', weightGrams: 250 },
+      name: 'Update gear weight',
+      signals: [
+        {
+          payloadMatch: {
+            gearId: 'gear-stove',
+            packIds: ['pack-weekend'],
+            weightGrams: 250,
+          },
+          signal: packWeightStale,
+        },
+      ],
+    },
+    {
+      description: 'Missing ids report not found',
+      error: 'NotFoundError',
+      input: { id: 'gear-missing', weightGrams: 1 },
+      name: 'Update missing gear',
+    },
+  ],
+  fires: [packWeightStale],
+  implementation: async (input, ctx) => {
     const connection = db.from(ctx);
     const existing = await connection.gear.get(input.id);
     if (!existing) {
@@ -219,33 +246,6 @@ export const update = trail('gear.update', {
     }
     return Result.ok(gear);
   },
-  description:
-    'Update fields on a piece of gear; weight changes mark carrying packs stale',
-  examples: [
-    {
-      description: 'Re-weighing gear carried by a pack fires pack.weight-stale',
-      expectedMatch: { id: 'gear-stove', weightGrams: 250 },
-      input: { id: 'gear-stove', weightGrams: 250 },
-      name: 'Update gear weight',
-      signals: [
-        {
-          payloadMatch: {
-            gearId: 'gear-stove',
-            packIds: ['pack-weekend'],
-            weightGrams: 250,
-          },
-          signal: packWeightStale,
-        },
-      ],
-    },
-    {
-      description: 'Missing ids report not found',
-      error: 'NotFoundError',
-      input: { id: 'gear-missing', weightGrams: 1 },
-      name: 'Update missing gear',
-    },
-  ],
-  fires: [packWeightStale],
   input: z.object({
     category: categorySchema.optional(),
     id: z.string().describe('Gear id to update'),
@@ -260,15 +260,6 @@ export const update = trail('gear.update', {
 });
 
 export const remove = trail('gear.delete', {
-  blaze: async (input, ctx) => {
-    const connection = db.from(ctx);
-    const existing = await connection.gear.get(input.id);
-    if (!existing) {
-      return Result.err(new NotFoundError(`Gear "${input.id}" not found`));
-    }
-    await connection.gear.remove(input.id);
-    return Result.ok({ deleted: true, id: input.id });
-  },
   description: 'Remove a piece of gear from the locker',
   examples: [
     {
@@ -284,6 +275,15 @@ export const remove = trail('gear.delete', {
       name: 'Delete missing gear',
     },
   ],
+  implementation: async (input, ctx) => {
+    const connection = db.from(ctx);
+    const existing = await connection.gear.get(input.id);
+    if (!existing) {
+      return Result.err(new NotFoundError(`Gear "${input.id}" not found`));
+    }
+    await connection.gear.remove(input.id);
+    return Result.ok({ deleted: true, id: input.id });
+  },
   input: z.object({
     id: z.string().describe('Gear id to delete'),
   }),
@@ -297,13 +297,6 @@ export const remove = trail('gear.delete', {
 });
 
 export const list = trail('gear.list', {
-  blaze: async (input, ctx) => {
-    const connection = db.from(ctx);
-    const filters =
-      input.category === undefined ? undefined : { category: input.category };
-    const gear = await connection.gear.list(filters);
-    return Result.ok(gear);
-  },
   description: 'List gear, optionally filtered by category',
   examples: [
     {
@@ -317,6 +310,13 @@ export const list = trail('gear.list', {
       name: 'List cook gear',
     },
   ],
+  implementation: async (input, ctx) => {
+    const connection = db.from(ctx);
+    const filters =
+      input.category === undefined ? undefined : { category: input.category };
+    const gear = await connection.gear.list(filters);
+    return Result.ok(gear);
+  },
   input: z.object({
     category: categorySchema.optional(),
   }),

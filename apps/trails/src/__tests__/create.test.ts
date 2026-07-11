@@ -129,13 +129,13 @@ const runCompose = async (
 ): Promise<Result<unknown, Error>> => {
   switch (id) {
     case 'create.scaffold': {
-      return await createScaffold.blaze(input as never, {} as never);
+      return await createScaffold.implementation(input as never, {} as never);
     }
     case 'add.surface': {
-      return await addSurface.blaze(input as never, {} as never);
+      return await addSurface.implementation(input as never, {} as never);
     }
     case 'add.verify': {
-      return await addVerify.blaze(input as never, {} as never);
+      return await addVerify.implementation(input as never, {} as never);
     }
     default: {
       return Result.err(new Error(`Unknown compose target: ${id}`));
@@ -151,7 +151,7 @@ const runCreate = (
     verify: boolean;
   }>
 ) =>
-  createTrail.blaze(
+  createTrail.implementation(
     {
       dir: dirname(projectDir),
       name: basename(projectDir),
@@ -266,13 +266,13 @@ const assertAgentGuidance = (dir: string): void => {
     'This is a Trails project.',
     'agent-native, contract-first TypeScript framework',
     '`trail`, not action or handler',
-    '`blaze`, not handler or impl',
+    '`implementation`, not handler or impl',
     '`topo`, not registry or collection',
     '`compose`, not follow',
     '`surface`, not transport',
     '`resource`, not service or dependency',
     '`layer`, for cross-cutting trail wrapping',
-    'Blazes return `Result`; never throw',
+    'Implementations return `Result`; never throw',
     '`Result.ok()` and `Result.err()`',
     '`ctx.compose(...)`',
     '`resources: [...]`',
@@ -577,7 +577,7 @@ describe('trails create', () => {
     test('plans scaffold writes without touching disk and applies the same operations', async () => {
       await withTempProject(async (dir) => {
         const dryRun = expectOk(
-          await createScaffold.blaze(
+          await createScaffold.implementation(
             {
               dir: dirname(dir),
               dryRun: true,
@@ -603,7 +603,7 @@ describe('trails create', () => {
         expect(existsSync(dir)).toBe(false);
 
         const applied = expectOk(
-          await createScaffold.blaze(
+          await createScaffold.implementation(
             {
               dir: dirname(dir),
               name: basename(dir),
@@ -776,7 +776,7 @@ describe('trails create', () => {
     test('rejects path-shaped project names before writing', async () => {
       await withTempProject(async (dir) => {
         const error = expectErr(
-          await createScaffold.blaze(
+          await createScaffold.implementation(
             { dir: dirname(dir), name: '../escape', starter: 'hello' },
             {} as never
           )
@@ -823,7 +823,7 @@ describe('trails create', () => {
       await withTempProject(async (dir) => {
         setupMinimalProject(dir);
         const result = expectOk(
-          await addSurface.blaze({ dir, surface: 'mcp' }, {} as never)
+          await addSurface.implementation({ dir, surface: 'mcp' }, {} as never)
         );
 
         expect(result.created).toBe('src/mcp.ts');
@@ -844,7 +844,7 @@ describe('trails create', () => {
       await withTempProject(async (dir) => {
         setupMinimalProject(dir);
         const result = expectOk(
-          await addSurface.blaze({ dir, surface: 'http' }, {} as never)
+          await addSurface.implementation({ dir, surface: 'http' }, {} as never)
         );
 
         expect(result.created).toBe('src/http.ts');
@@ -864,7 +864,7 @@ describe('trails create', () => {
         writeFileSync(join(dir, 'src', 'mcp.ts'), 'existing content');
 
         const result = expectOk(
-          await addSurface.blaze({ dir, surface: 'mcp' }, {} as never)
+          await addSurface.implementation({ dir, surface: 'mcp' }, {} as never)
         );
         expect(result.created).toBeNull();
         expect(readText(dir, 'src/mcp.ts')).toBe('existing content');

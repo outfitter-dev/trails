@@ -12,7 +12,7 @@ export const missingVisibilityTrail = wrapRule({
         sourceCode: `trail('entity.resolve', {
   visibility: 'internal',
   composeInput: z.object({ forkedFrom: z.string() }),
-  blaze: async () => Result.ok({}),
+  implementation: async () => Result.ok({}),
 });`,
       },
       name: 'Composition-only trails stay quiet when already internal',

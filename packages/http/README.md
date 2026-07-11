@@ -13,7 +13,7 @@ const greet = trail('greet', {
   input: z.object({ name: z.string().describe('Who to greet') }),
   output: z.object({ message: z.string() }),
   intent: 'read',
-  blaze: (input) => Result.ok({ message: `Hello, ${input.name}!` }),
+  implementation: (input) => Result.ok({ message: `Hello, ${input.name}!` }),
 });
 
 const graph = topo('myapp', { greet });
@@ -114,7 +114,7 @@ Trail IDs map to paths: `entity.show` becomes `/entity/show`. Dots become slashe
 
 ## Resource resolution
 
-Declared resources on each trail are resolved into the context before the blaze receives input.
+Declared resources on each trail are resolved into the context before the implementation receives input.
 
 ## Filtering
 
@@ -142,7 +142,7 @@ Each route definition produced by `deriveHttpRoutes` includes:
 | `trailId` | `string` | The trail ID this route was derived from |
 | `inputSource` | `'query' \| 'body'` | Where to read input |
 | `trail` | `Trail` | The original trail definition |
-| `execute` | `(input, requestId?, abortSignal?, context?) => Promise<Result>` | Validates, layers, resolves request auth when configured, and runs the blazed trail |
+| `execute` | `(input, requestId?, abortSignal?, context?) => Promise<Result>` | Validates, layers, resolves request auth when configured, and runs the trail |
 
 For GET routes on the Hono surface, repeated query keys are passed through as arrays (`?tag=one&tag=two` -> `{ tag: ['one', 'two'] }`) while a single occurrence stays a scalar string. The adapter does not coerce singleton query values into arrays.
 

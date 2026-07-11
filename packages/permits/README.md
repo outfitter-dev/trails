@@ -11,15 +11,15 @@ The permits package owns adapter-agnostic auth resources, adapters, and helpers.
 ```typescript
 export const create = trail('gist.create', {
   permit: { scopes: ['gist:write'] },
-  blaze: async (input, ctx) => {
-    // executeTrail enforces scopes before execution enters the blaze
+  implementation: async (input, ctx) => {
+    // executeTrail enforces scopes before execution enters the implementation
     return Result.ok(newGist);
   },
 });
 
 export const search = trail('gist.search', {
   permit: 'public',
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     // No authentication required
     return Result.ok(results);
   },
@@ -108,13 +108,13 @@ interface Permit {
 }
 ```
 
-Access the permit in your blaze:
+Access the permit in your implementation:
 
 ```typescript
 import { getPermit } from '@ontrails/permits';
 
 const myTrail = trail('do.something', {
-  blaze: async (_input, ctx) => {
+  implementation: async (_input, ctx) => {
     const permit = getPermit(ctx);
     if (!permit) return Result.err(new Error('Not authenticated'));
     return Result.ok({ userId: permit.id });

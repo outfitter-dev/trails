@@ -27,7 +27,6 @@ const findTrailFacts = (
 describe('deriveTrailErrorFacts', () => {
   test('projects documented error examples and handled detours with taxonomy', () => {
     const audited = trail('audit.save', {
-      blaze: () => Result.err(new ValidationError('Invalid audit')),
       detours: [
         {
           maxAttempts: 1,
@@ -42,6 +41,7 @@ describe('deriveTrailErrorFacts', () => {
           name: 'Invalid id',
         },
       ],
+      implementation: () => Result.err(new ValidationError('Invalid audit')),
       input: z.object({ id: z.string() }),
       output: z.object({ ok: z.boolean() }),
     });
@@ -98,7 +98,6 @@ describe('deriveTrailErrorFacts', () => {
 
   test('does not invent fixed surface codes for dynamic-category errors', () => {
     const withDynamic = trail('batch.retry', {
-      blaze: () => Result.ok({ ok: true }),
       detours: [
         {
           maxAttempts: 1,
@@ -106,6 +105,7 @@ describe('deriveTrailErrorFacts', () => {
           recover: () => Result.ok({ ok: true }),
         },
       ],
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({}),
       output: z.object({ ok: z.boolean() }),
     });
@@ -125,7 +125,7 @@ describe('deriveTrailErrorFacts', () => {
 
   test('represents supplied inferred and observed facts without source scanning', () => {
     const read = trail('user.read', {
-      blaze: () => Result.ok({ id: 'u1' }),
+      implementation: () => Result.ok({ id: 'u1' }),
       input: z.object({ id: z.string() }),
       output: z.object({ id: z.string() }),
     });
@@ -183,7 +183,7 @@ describe('deriveTrailErrorFacts', () => {
 
   test('keeps empty trails explicit about unknown emitted-error completeness', () => {
     const empty = trail('empty.read', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({}),
       output: z.object({ ok: z.boolean() }),
     });

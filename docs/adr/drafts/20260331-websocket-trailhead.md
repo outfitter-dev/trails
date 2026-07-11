@@ -270,7 +270,7 @@ Trail ID to WebSocket method name follows the same convention as MCP: the trail 
 
 Signal ID to subscription channel follows the same convention: the signal ID is the channel name. `booking.confirmed` would be subscribable as `"signals": ["booking.confirmed"]`. The signal declaration would be the channel declaration.
 
-### BlazeWsOptions
+### ImplementationWsOptions
 
 | Option | Type | Default | Description |
 | --- | --- | --- | --- |

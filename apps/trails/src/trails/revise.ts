@@ -11,7 +11,8 @@ import {
 
 export const reviseTrail = trail('revise', {
   args: ['target'],
-  blaze: async (input, ctx) =>
+  description: 'Scaffold the next trail version entry',
+  implementation: async (input, ctx) =>
     withLifecycleApp(input, ctx.cwd, async (app, rootDir) => {
       const target = parseLifecycleTarget(input.target);
       if (target.isErr()) {
@@ -32,7 +33,6 @@ export const reviseTrail = trail('revise', {
       }
       return reviseTrailSource(rootDir, found.value, input.as);
     }),
-  description: 'Scaffold the next trail version entry',
   input: z.object({
     as: z
       .enum(['revision', 'fork'])

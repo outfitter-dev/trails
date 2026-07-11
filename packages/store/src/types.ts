@@ -532,7 +532,7 @@ export interface StoreAccessor<
 // Compile-time assertion: StoreAccessor satisfies the core accessor protocol.
 //
 // `@ontrails/core/store` declares a structural protocol that `deriveTrail()`
-// uses to synthesize default blazes without importing `@ontrails/store`. We
+// uses to synthesize default implementations without importing `@ontrails/store`. We
 // pin the relationship here rather than in core so that any drift between
 // the two shapes fails the store build immediately. If this check fails, the
 // protocol in core has diverged from the store accessor contract — fix the

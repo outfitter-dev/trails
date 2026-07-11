@@ -12,30 +12,6 @@ import { flagsResource } from '../resources/flags.js';
 import { requireLiveFlag, validateFlagInvariants } from './shared.js';
 
 export const create = trail('flag.create', {
-  blaze: async (input, ctx) => {
-    const store = flagsResource.from(ctx);
-    if (await store.get(input.key)) {
-      return Result.err(
-        new AlreadyExistsError(`Flag "${input.key}" already exists`)
-      );
-    }
-    const flag: Flag = {
-      archived: false,
-      defaultValue: input.defaultValue,
-      description: input.description,
-      enabled: input.enabled,
-      key: input.key,
-      kind: input.kind,
-      rules: input.rules,
-      ...(input.variants === undefined ? {} : { variants: input.variants }),
-    };
-    const valid = validateFlagInvariants(flag);
-    if (valid.isErr()) {
-      return valid;
-    }
-    await store.put(flag);
-    return Result.ok(flag);
-  },
   description: 'Create a new feature flag',
   examples: [
     {
@@ -69,6 +45,30 @@ export const create = trail('flag.create', {
       name: 'Duplicate key conflicts',
     },
   ],
+  implementation: async (input, ctx) => {
+    const store = flagsResource.from(ctx);
+    if (await store.get(input.key)) {
+      return Result.err(
+        new AlreadyExistsError(`Flag "${input.key}" already exists`)
+      );
+    }
+    const flag: Flag = {
+      archived: false,
+      defaultValue: input.defaultValue,
+      description: input.description,
+      enabled: input.enabled,
+      key: input.key,
+      kind: input.kind,
+      rules: input.rules,
+      ...(input.variants === undefined ? {} : { variants: input.variants }),
+    };
+    const valid = validateFlagInvariants(flag);
+    if (valid.isErr()) {
+      return valid;
+    }
+    await store.put(flag);
+    return Result.ok(flag);
+  },
   input: z.object({
     defaultValue: flagValueSchema.describe(
       'Value served when disabled or when no rule matches'
@@ -86,13 +86,6 @@ export const create = trail('flag.create', {
 });
 
 export const list = trail('flag.list', {
-  blaze: async (input, ctx) => {
-    const store = flagsResource.from(ctx);
-    const flags = await store.list();
-    return Result.ok({
-      flags: flags.filter((flag) => input.includeArchived || !flag.archived),
-    });
-  },
   description: 'List flag definitions, sorted by key',
   examples: [
     {
@@ -106,6 +99,13 @@ export const list = trail('flag.list', {
       name: 'List all flags including archived',
     },
   ],
+  implementation: async (input, ctx) => {
+    const store = flagsResource.from(ctx);
+    const flags = await store.list();
+    return Result.ok({
+      flags: flags.filter((flag) => input.includeArchived || !flag.archived),
+    });
+  },
   input: z.object({
     includeArchived: z
       .boolean()
@@ -120,14 +120,6 @@ export const list = trail('flag.list', {
 });
 
 export const get = trail('flag.get', {
-  blaze: async (input, ctx) => {
-    const store = flagsResource.from(ctx);
-    const flag = await store.get(input.key);
-    if (!flag) {
-      return Result.err(new NotFoundError(`Flag "${input.key}" not found`));
-    }
-    return Result.ok(flag);
-  },
   description: 'Show one flag definition by key, including archived flags',
   examples: [
     {
@@ -167,6 +159,14 @@ export const get = trail('flag.get', {
       name: 'Unknown flag is not found',
     },
   ],
+  implementation: async (input, ctx) => {
+    const store = flagsResource.from(ctx);
+    const flag = await store.get(input.key);
+    if (!flag) {
+      return Result.err(new NotFoundError(`Flag "${input.key}" not found`));
+    }
+    return Result.ok(flag);
+  },
   input: z.object({
     key: z.string().describe('Flag key to look up'),
   }),
@@ -176,7 +176,24 @@ export const get = trail('flag.get', {
 });
 
 export const update = trail('flag.update', {
-  blaze: async (input, ctx) => {
+  description: 'Update the description, default value, or variants of a flag',
+  examples: [
+    {
+      description: 'Only the provided fields change',
+      input: {
+        description: 'Dark mode for every plan',
+        key: 'dark-mode',
+      },
+      name: 'Update a description',
+    },
+    {
+      description: 'Archived and unknown flags cannot be updated',
+      error: 'NotFoundError',
+      input: { description: 'Bring it back', key: 'legacy-banner' },
+      name: 'Archived flag cannot be updated',
+    },
+  ],
+  implementation: async (input, ctx) => {
     const store = flagsResource.from(ctx);
     const existing = await requireLiveFlag(store, input.key);
     if (existing.isErr()) {
@@ -199,23 +216,6 @@ export const update = trail('flag.update', {
     await store.put(updated);
     return Result.ok(updated);
   },
-  description: 'Update the description, default value, or variants of a flag',
-  examples: [
-    {
-      description: 'Only the provided fields change',
-      input: {
-        description: 'Dark mode for every plan',
-        key: 'dark-mode',
-      },
-      name: 'Update a description',
-    },
-    {
-      description: 'Archived and unknown flags cannot be updated',
-      error: 'NotFoundError',
-      input: { description: 'Bring it back', key: 'legacy-banner' },
-      name: 'Archived flag cannot be updated',
-    },
-  ],
   input: z.object({
     defaultValue: flagValueSchema
       .optional()
@@ -230,19 +230,6 @@ export const update = trail('flag.update', {
 });
 
 export const archive = trail('flag.archive', {
-  blaze: async (input, ctx) => {
-    const store = flagsResource.from(ctx);
-    const flag = await store.get(input.key);
-    if (!flag) {
-      return Result.err(new NotFoundError(`Flag "${input.key}" not found`));
-    }
-    if (flag.archived) {
-      return Result.ok(flag);
-    }
-    const archived: Flag = { ...flag, archived: true };
-    await store.put(archived);
-    return Result.ok(archived);
-  },
   description:
     'Archive a flag: it disappears from evaluation and listings but its definition is kept',
   examples: [
@@ -262,6 +249,19 @@ export const archive = trail('flag.archive', {
     },
   ],
   idempotent: true,
+  implementation: async (input, ctx) => {
+    const store = flagsResource.from(ctx);
+    const flag = await store.get(input.key);
+    if (!flag) {
+      return Result.err(new NotFoundError(`Flag "${input.key}" not found`));
+    }
+    if (flag.archived) {
+      return Result.ok(flag);
+    }
+    const archived: Flag = { ...flag, archived: true };
+    await store.put(archived);
+    return Result.ok(archived);
+  },
   input: z.object({
     key: z.string().describe('Flag key to archive'),
   }),

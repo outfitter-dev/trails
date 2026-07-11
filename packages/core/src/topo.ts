@@ -49,7 +49,7 @@ export interface Topo {
    *
    * The CLI/MCP/HTTP surfaces forward these into `executeTrail` as
    * `topoLayers`, where they are composed outermost in the layer chain.
-   * The final composition order is `topo → surface → trail → blaze`
+   * The final composition order is `topo → surface → trail → implementation`
    * (outermost-first).
    */
   readonly layers: readonly Layer[];

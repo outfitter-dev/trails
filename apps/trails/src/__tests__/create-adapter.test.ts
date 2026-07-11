@@ -155,7 +155,7 @@ describe('trails create adapter', () => {
     writeHttpOwner(root);
 
     const result = expectOk(
-      await createAdapterTrail.blaze(
+      await createAdapterTrail.implementation(
         {
           dryRun: false,
           name: 'hono-lite',
@@ -223,7 +223,7 @@ describe('trails create adapter', () => {
     );
 
     const result = expectOk(
-      await createAdapterTrail.blaze(
+      await createAdapterTrail.implementation(
         {
           dryRun: false,
           name: 'hono-star',
@@ -254,7 +254,7 @@ describe('trails create adapter', () => {
     );
 
     const result = expectOk(
-      await createAdapterTrail.blaze(
+      await createAdapterTrail.implementation(
         {
           dryRun: false,
           name: 'hono-same-file',
@@ -285,7 +285,7 @@ describe('trails create adapter', () => {
     );
 
     const error = expectValidationError(
-      await createAdapterTrail.blaze(
+      await createAdapterTrail.implementation(
         {
           dryRun: false,
           name: 'value-only-type-support',
@@ -318,7 +318,7 @@ describe('trails create adapter', () => {
     );
 
     const result = expectOk(
-      await createAdapterTrail.blaze(
+      await createAdapterTrail.implementation(
         {
           dryRun: false,
           name: 'hono-import-barrel',
@@ -352,7 +352,7 @@ describe('trails create adapter', () => {
     );
 
     const result = expectOk(
-      await createAdapterTrail.blaze(
+      await createAdapterTrail.implementation(
         {
           dryRun: false,
           name: 'hono-type-import-barrel',
@@ -395,7 +395,7 @@ describe('trails create adapter', () => {
     );
 
     const error = expectValidationError(
-      await createAdapterTrail.blaze(
+      await createAdapterTrail.implementation(
         {
           dryRun: false,
           name: 'type-only-support',
@@ -426,7 +426,7 @@ describe('trails create adapter', () => {
     );
 
     const error = expectValidationError(
-      await createAdapterTrail.blaze(
+      await createAdapterTrail.implementation(
         {
           dryRun: false,
           name: 'ambient-http-support',
@@ -464,7 +464,7 @@ describe('trails create adapter', () => {
     );
 
     expectOk(
-      await createAdapterTrail.blaze(
+      await createAdapterTrail.implementation(
         {
           dryRun: false,
           name: 'async-http',
@@ -488,7 +488,7 @@ describe('trails create adapter', () => {
     writeHttpOwner(root);
 
     const result = expectOk(
-      await createAdapterTrail.blaze(
+      await createAdapterTrail.implementation(
         {
           dryRun: true,
           name: 'dry-http',
@@ -520,7 +520,7 @@ describe('trails create adapter', () => {
     writeFile(root, 'adapters/hono-lite/src/index.ts', 'export {};\n');
 
     const error = expectValidationError(
-      await createAdapterTrail.blaze(
+      await createAdapterTrail.implementation(
         {
           dryRun: false,
           name: 'hono-lite',
@@ -549,7 +549,7 @@ describe('trails create adapter', () => {
     });
 
     const error = expectValidationError(
-      await createAdapterTrail.blaze(
+      await createAdapterTrail.implementation(
         {
           dryRun: false,
           name: 'hono-lite',
@@ -576,7 +576,7 @@ describe('trails create adapter', () => {
     writeHttpOwner(root);
 
     const error = expectValidationError(
-      await createAdapterTrail.blaze(
+      await createAdapterTrail.implementation(
         {
           dryRun: false,
           name: 'hono-lite',
@@ -597,7 +597,7 @@ describe('trails create adapter', () => {
     writeHttpOwner(root);
 
     const error = expectValidationError(
-      await createAdapterTrail.blaze(
+      await createAdapterTrail.implementation(
         {
           dryRun: false,
           name: 'edge',
@@ -632,7 +632,7 @@ describe('trails create adapter', () => {
     });
 
     const error = expectValidationError(
-      await createAdapterTrail.blaze(
+      await createAdapterTrail.implementation(
         {
           dryRun: false,
           name: 'missing-factory',
@@ -654,7 +654,7 @@ describe('trails create adapter', () => {
     writeFile(root, 'packages/http/src/index.ts', 'export {};\n');
 
     const error = expectValidationError(
-      await createAdapterTrail.blaze(
+      await createAdapterTrail.implementation(
         {
           dryRun: false,
           name: 'missing-http-support',
@@ -686,7 +686,7 @@ describe('trails create adapter', () => {
     });
 
     const result = expectOk(
-      await createAdapterTrail.blaze(
+      await createAdapterTrail.implementation(
         {
           dryRun: false,
           name: 'conditional-http-root',
@@ -718,7 +718,7 @@ describe('trails create adapter', () => {
     });
 
     const error = expectValidationError(
-      await createAdapterTrail.blaze(
+      await createAdapterTrail.implementation(
         {
           dryRun: false,
           name: 'types-only-http-root',
@@ -749,7 +749,7 @@ describe('trails create adapter', () => {
     );
 
     const error = expectValidationError(
-      await createAdapterTrail.blaze(
+      await createAdapterTrail.implementation(
         {
           dryRun: false,
           name: 'masked-http-support',
@@ -778,7 +778,7 @@ describe('trails create adapter', () => {
     );
 
     const error = expectValidationError(
-      await createAdapterTrail.blaze(
+      await createAdapterTrail.implementation(
         {
           dryRun: false,
           name: 'masked-star-support',
@@ -831,7 +831,7 @@ describe('trails create adapter', () => {
     );
 
     const error = expectValidationError(
-      await createAdapterTrail.blaze(
+      await createAdapterTrail.implementation(
         {
           dryRun: false,
           name: 'ambiguous-http',

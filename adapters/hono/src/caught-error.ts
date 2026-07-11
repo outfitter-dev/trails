@@ -7,7 +7,7 @@ import { z } from 'zod';
 const caughtErrors = new Map<string, Error>();
 const caughtErrorInput = z.object({ errorId: z.string() });
 const caughtErrorTrail = trail('__ontrails.hono.error', {
-  blaze: () =>
+  implementation: () =>
     Result.err(new InternalError('Hono error fallback executed directly')),
   input: caughtErrorInput,
   intent: 'read',

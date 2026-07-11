@@ -20,7 +20,7 @@ export const deadPublicTrailTrail = wrapRule({
         filePath: 'packages/regrade/src/downstream/report.ts',
         knownTrailIds: ['regrade.downstream.report', 'regrade'],
         sourceCode: `export const regradeReportTrail = trail('regrade.downstream.report', {
-  blaze: async () => Result.ok({}),
+  implementation: async () => Result.ok({}),
 });`,
         topoTrailIds: ['regrade'],
       },

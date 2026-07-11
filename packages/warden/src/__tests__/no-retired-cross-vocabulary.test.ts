@@ -17,7 +17,7 @@ describe('no-retired-cross-vocabulary', () => {
       'export const play = trail("play", {',
       '  crosses: [loadTrack],',
       '  input: crossInput,',
-      '  blaze: (input, ctx) => ctx.cross(loadTrack, input),',
+      '  implementation: (input, ctx) => ctx.cross(loadTrack, input),',
       '});',
     ].join('\n');
 
@@ -130,7 +130,7 @@ describe('no-retired-cross-vocabulary', () => {
         'export const play = trail("play", {',
         '  composes: [loadTrack],',
         '  input: composeInput,',
-        '  blaze: (input, ctx) => ctx.compose(loadTrack, input),',
+        '  implementation: (input, ctx) => ctx.compose(loadTrack, input),',
         '});',
       ].join('\n')
     );

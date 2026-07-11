@@ -203,7 +203,7 @@ export const cloudflare = bundle('cloudflare', (options) => ({
     trail('cloudflare.health', {
       intent: 'read',
       resources: [d1, r2, kv],
-      blaze: async (input, ctx) => {
+      implementation: async (input, ctx) => {
         // ping all three, report health
       },
     }),

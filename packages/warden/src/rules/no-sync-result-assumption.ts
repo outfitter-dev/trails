@@ -24,7 +24,7 @@ import {
   getNodeRight,
   getNodeValueNode,
   identifierName,
-  isBlazeCall,
+  isImplementationCall,
   offsetToLine,
   parse,
 } from './ast.js';
@@ -37,7 +37,7 @@ const RESULT_ACCESSOR_PROPERTIES: ReadonlySet<string> = new Set(
 );
 
 const MISSING_AWAIT_MESSAGE =
-  'Missing await: .blaze() returns Promise<Result> after normalization. Use `const result = await trail.blaze(input, ctx)`.';
+  'Missing await: .implementation() returns Promise<Result> after normalization. Use `const result = await trail.implementation(input, ctx)`.';
 
 const createMissingAwaitDiagnostic = (
   filePath: string,
@@ -91,9 +91,9 @@ const buildParentMap = (ast: AstNode): WeakMap<AstNode, AstNode> => {
  * Walk up the parent chain and return true when the expression is awaited
  * before any result-accessing member access fires on it.
  *
- * `await x.blaze(...)` → awaited.
- * `(await x.blaze(...)).isOk()` → awaited (await wraps before member access).
- * `x.blaze(...).isOk()` → NOT awaited (member access on raw call).
+ * `await x.implementation(...)` → awaited.
+ * `(await x.implementation(...)).isOk()` → awaited (await wraps before member access).
+ * `x.implementation(...).isOk()` → NOT awaited (member access on raw call).
  */
 const TRANSPARENT_WRAPPER_TYPES = new Set([
   'ParenthesizedExpression',
@@ -123,8 +123,8 @@ const skipParens = (
  *
  * Conservative: we only hop across a conditional when the node is one of
  * its branches (not the `test` position). This lets us treat both
- * `const r = cond ? x.blaze(...) : fallback` and
- * `await (cond ? x.blaze(...) : fallback)` correctly without misattributing
+ * `const r = cond ? x.implementation(...) : fallback` and
+ * `await (cond ? x.implementation(...) : fallback)` correctly without misattributing
  * calls used as conditions.
  */
 const isBranchOfConditional = (outer: AstNode, parent: AstNode): boolean => {
@@ -137,9 +137,9 @@ const isBranchOfConditional = (outer: AstNode, parent: AstNode): boolean => {
 };
 
 /**
- * Logical expressions (`&&`, `||`, `??`) carry the blaze result through either
- * side. A `.blaze()` on either operand may be the value ultimately bound to a
- * declarator (e.g. `const r = cond && trail.blaze(...)`), so we treat both
+ * Logical expressions (`&&`, `||`, `??`) carry the implementation result through either
+ * side. A `.implementation()` on either operand may be the value ultimately bound to a
+ * declarator (e.g. `const r = cond && trail.implementation(...)`), so we treat both
  * operands as carriers.
  */
 const isOperandOfLogical = (outer: AstNode, parent: AstNode): boolean => {
@@ -175,9 +175,9 @@ const isAwaited = (
   node: AstNode,
   parents: WeakMap<AstNode, AstNode>
 ): boolean => {
-  // Walk up through parens and any conditional whose branch is the blaze
-  // call. `await (c ? x.blaze(...) : fallback)` awaits the conditional as a
-  // whole, so the blaze call in a branch is effectively awaited.
+  // Walk up through parens and any conditional whose branch is the implementation
+  // call. `await (c ? x.implementation(...) : fallback)` awaits the conditional as a
+  // whole, so the implementation call in a branch is effectively awaited.
   const outer = skipParensAndBranchConditionals(node, parents);
   return parents.get(outer)?.type === 'AwaitExpression';
 };
@@ -197,19 +197,19 @@ const memberPropertyName = (node: AstNode): string | null => {
 };
 
 /**
- * Check if the blaze call is directly consumed by a result accessor
- * (e.g. `foo.blaze(...).isOk()` or `foo.blaze(...).value`).
+ * Check if the implementation call is directly consumed by a result accessor
+ * (e.g. `foo.implementation(...).isOk()` or `foo.implementation(...).value`).
  */
 const hasDirectResultAccess = (
-  blazeCall: AstNode,
+  implementationCall: AstNode,
   parents: WeakMap<AstNode, AstNode>
 ): boolean => {
   // Unwrap wrapping parentheses, conditional branches, and logical-operator
-  // operands so `(x.blaze(...)).isOk()`,
-  // `(cond ? x.blaze(...) : fb).isOk()`, and
-  // `(cond && x.blaze(...)).isOk()` are all detected the same way as the
-  // bare `x.blaze(...).isOk()` shape.
-  const outer = skipParensAndBranchConditionals(blazeCall, parents);
+  // operands so `(x.implementation(...)).isOk()`,
+  // `(cond ? x.implementation(...) : fb).isOk()`, and
+  // `(cond && x.implementation(...)).isOk()` are all detected the same way as the
+  // bare `x.implementation(...).isOk()` shape.
+  const outer = skipParensAndBranchConditionals(implementationCall, parents);
   const parent = parents.get(outer);
   if (!parent) {
     return false;
@@ -219,15 +219,15 @@ const hasDirectResultAccess = (
 };
 
 /**
- * If the blaze call is the init of a VariableDeclarator (directly, through
+ * If the implementation call is the init of a VariableDeclarator (directly, through
  * parens, or as a branch of a ConditionalExpression init), return the bound
  * identifier name. Otherwise null.
  */
 const extractAssignedBinding = (
-  blazeCall: AstNode,
+  implementationCall: AstNode,
   parents: WeakMap<AstNode, AstNode>
 ): string | null => {
-  const outer = skipParensAndBranchConditionals(blazeCall, parents);
+  const outer = skipParensAndBranchConditionals(implementationCall, parents);
   const parent = parents.get(outer);
   if (!parent || parent.type !== 'VariableDeclarator') {
     return null;
@@ -539,7 +539,7 @@ const collectBlockStatementBindings = (scope: AstNode): Set<string> => {
   // so `var` declarations inside them do not escape into the enclosing class
   // or function scope. `collectHoistedVarBindings` correctly refuses to compose
   // a `StaticBlock` boundary from the outside, which means nothing else will
-  // register these bindings. Hoist them here so `var result = trail.blaze(...)`
+  // register these bindings. Hoist them here so `var result = trail.implementation(...)`
   // inside a `static { ... }` block is tracked against the block itself.
   if (scope.type === 'StaticBlock') {
     // `collectHoistedVarBindings` is called with the StaticBlock as the root,
@@ -586,7 +586,7 @@ interface ScopeFrame {
    * For function frames: names that came from parameters (not hoisted `var`s).
    * A `var` declaration with the same name as a parameter is redundant in JS —
    * the parameter is the real binding. We track params separately so we don't
-   * register a pending `.blaze()` binding that is actually shadowed by a param.
+   * register a pending `.implementation()` binding that is actually shadowed by a param.
    */
   readonly paramBindings?: Set<string>;
 }
@@ -647,7 +647,7 @@ interface AnalyzeState {
   readonly diagnostics: WardenDiagnostic[];
   readonly sourceCode: string;
   readonly filePath: string;
-  /** Pending `.blaze()` bindings seen so far, keyed by scope id + name. */
+  /** Pending `.implementation()` bindings seen so far, keyed by scope id + name. */
   readonly pendingByScopeAndName: Map<string, PendingBinding>;
   readonly scopeStack: ScopeFrame[];
   readonly reportedAt: Set<number>;
@@ -683,15 +683,15 @@ const resolveNearestScope = (
 };
 
 /**
- * Resolve the blaze call to a `{ name, declarator }` pair when it is the init
+ * Resolve the implementation call to a `{ name, declarator }` pair when it is the init
  * of a `VariableDeclarator` (directly, through parens, or as a branch of a
  * `ConditionalExpression` init). Returns null otherwise.
  */
-const resolveBlazeBinding = (
-  blazeCall: AstNode,
+const resolveImplementationBinding = (
+  implementationCall: AstNode,
   parents: WeakMap<AstNode, AstNode>
 ): { readonly name: string; readonly declarator: AstNode } | null => {
-  const name = extractAssignedBinding(blazeCall, parents);
+  const name = extractAssignedBinding(implementationCall, parents);
   if (!name) {
     return null;
   }
@@ -699,22 +699,22 @@ const resolveBlazeBinding = (
   // conditionals so the stored declaration node points at the
   // `VariableDeclarator`, not at an intermediate `ParenthesizedExpression`
   // or `ConditionalExpression`.
-  const outer = skipParensAndBranchConditionals(blazeCall, parents);
+  const outer = skipParensAndBranchConditionals(implementationCall, parents);
   const declarator = parents.get(outer);
   return declarator ? { declarator, name } : null;
 };
 
 /**
- * Resolve the blaze call to a `{ name, assignment }` pair when it is the RHS
+ * Resolve the implementation call to a `{ name, assignment }` pair when it is the RHS
  * of a plain `=` `AssignmentExpression` with an `Identifier` LHS (directly,
  * through parens, or as a branch of a conditional/logical expression).
  *
  * Covers patterns like:
  *   let result;
- *   result = trail.blaze(input, ctx);
+ *   result = trail.implementation(input, ctx);
  *   result.isOk();
  *
- * Member-expression LHS (`obj.result = blaze(...)`) is intentionally skipped —
+ * Member-expression LHS (`obj.result = implementation(...)`) is intentionally skipped —
  * those are property writes, not bare bindings we can track by name.
  */
 const extractPlainIdentifierAssignmentName = (
@@ -726,7 +726,7 @@ const extractPlainIdentifierAssignmentName = (
   const operator = getNodeOperator(parent);
   const left = getNodeLeft(parent);
   // Only plain `=` assignments to a bare identifier. Member-expression LHS
-  // (`obj.result = blaze(...)`) is a property write, not a bare binding we
+  // (`obj.result = implementation(...)`) is a property write, not a bare binding we
   // can track by name.
   if (operator !== '=' || !left || left.type !== 'Identifier') {
     return null;
@@ -734,11 +734,11 @@ const extractPlainIdentifierAssignmentName = (
   return identifierName(left);
 };
 
-const resolveBlazeAssignment = (
-  blazeCall: AstNode,
+const resolveImplementationAssignment = (
+  implementationCall: AstNode,
   parents: WeakMap<AstNode, AstNode>
 ): { readonly name: string; readonly assignment: AstNode } | null => {
-  const outer = skipParensAndBranchConditionals(blazeCall, parents);
+  const outer = skipParensAndBranchConditionals(implementationCall, parents);
   const parent = parents.get(outer);
   const name = extractPlainIdentifierAssignmentName(parent);
   return name && parent ? { assignment: parent, name } : null;
@@ -767,7 +767,7 @@ const isVarDeclaratorOfParamName = (
  * that name is a function parameter, the assignment re-initializes the
  * parameter's slot in the VariableEnvironment, just like `var <name> = ...`.
  * Compound assignments (`+=`, `??=`, etc.) are excluded because they do not
- * unconditionally replace the slot with the blaze result.
+ * unconditionally replace the slot with the implementation result.
  */
 const isAssignmentToParamName = (node: AstNode): boolean => {
   if (node.type !== 'AssignmentExpression') {
@@ -779,13 +779,16 @@ const isAssignmentToParamName = (node: AstNode): boolean => {
 };
 
 const recordPendingBinding = (
-  blazeCall: AstNode,
+  implementationCall: AstNode,
   state: AnalyzeState
 ): void => {
   const binding =
-    resolveBlazeBinding(blazeCall, state.parents) ??
+    resolveImplementationBinding(implementationCall, state.parents) ??
     (() => {
-      const asn = resolveBlazeAssignment(blazeCall, state.parents);
+      const asn = resolveImplementationAssignment(
+        implementationCall,
+        state.parents
+      );
       return asn ? { declarator: asn.assignment, name: asn.name } : null;
     })();
   if (!binding) {
@@ -802,21 +805,21 @@ const recordPendingBinding = (
   }
   // If the name resolves to a function parameter, the `var` that visually
   // appears to declare it is redundant — the parameter is the real binding,
-  // and parameters are not pending `.blaze()` results.
+  // and parameters are not pending `.implementation()` results.
   //
-  // Carve-out: a `var <name> = blaze(...)` *initializer* inside the same
+  // Carve-out: a `var <name> = implementation(...)` *initializer* inside the same
   // function body legitimately re-binds the parameter at that point. `var`
   // and parameters share the function's VariableEnvironment, so the `var`
   // writes to the existing parameter slot and the subsequent use resolves
-  // to the freshly-assigned `.blaze()` result. Treat that as a pending
+  // to the freshly-assigned `.implementation()` result. Treat that as a pending
   // binding.
   //
-  // The same logic applies to a bare `result = blaze(...)` assignment: it
+  // The same logic applies to a bare `result = implementation(...)` assignment: it
   // writes to the parameter's existing slot in the same VariableEnvironment,
-  // so the subsequent `result.isOk()` observes the blaze result. Only
+  // so the subsequent `result.isOk()` observes the implementation result. Only
   // compound assignments (`+=`, `??=`, etc.) and member-expression LHS fall
   // through the param-shadow suppression, because they do not
-  // unconditionally replace the parameter slot with the blaze result.
+  // unconditionally replace the parameter slot with the implementation result.
   if (
     owningFrame.paramBindings?.has(name) &&
     !isVarDeclaratorOfParamName(declarator, state.parents) &&
@@ -833,12 +836,12 @@ const recordPendingBinding = (
 
 /**
  * True when `expr`, descended through wrapping parens, conditional branches,
- * and logical-operator operands, contains a `.blaze()` call that would be
+ * and logical-operator operands, contains a `.implementation()` call that would be
  * registered by `recordPendingBinding` for this assignment.
  *
  * This mirrors the *upward* carrier walk done by
- * `skipParensAndBranchConditionals` — if a blaze call is anywhere along a
- * carrier path descending from `expr`, then visiting that blaze call will
+ * `skipParensAndBranchConditionals` — if a implementation call is anywhere along a
+ * carrier path descending from `expr`, then visiting that implementation call will
  * re-register the pending binding, so we must not clear it on the way in.
  */
 type CarrierChildExtractor = (
@@ -862,23 +865,23 @@ const unwrapTransparentWrapper = (expr: AstNode): AstNode | undefined =>
 
 // biome-ignore lint/style/useConst: hoisted for recursive call
 // eslint-disable-next-line func-style
-function rhsCarriesBlazeReinit(expr: AstNode | undefined): boolean {
+function rhsCarriesImplementationReinit(expr: AstNode | undefined): boolean {
   if (!expr) {
     return false;
   }
   if (TRANSPARENT_WRAPPER_TYPES.has(expr.type)) {
-    return rhsCarriesBlazeReinit(unwrapTransparentWrapper(expr));
+    return rhsCarriesImplementationReinit(unwrapTransparentWrapper(expr));
   }
   const extractor = CARRIER_CHILDREN[expr.type];
   if (extractor) {
-    return extractor(expr).some(rhsCarriesBlazeReinit);
+    return extractor(expr).some(rhsCarriesImplementationReinit);
   }
-  return isBlazeCall(expr);
+  return isImplementationCall(expr);
 }
 
 /**
  * Nullish/falsy-skip compound assignments (`??=`, `||=`) only write to the slot
- * when the LHS is nullish or falsy. A pending `.blaze()` binding holds a
+ * when the LHS is nullish or falsy. A pending `.implementation()` binding holds a
  * truthy `Promise<Result>`, so the RHS never runs and the pending binding must
  * survive them.
  *
@@ -924,10 +927,10 @@ const resolvePendingKeyFor = (
 
 /**
  * Handle a plain `=` assignment (or clearing compound assignment) to a bare
- * identifier whose name currently has a pending `.blaze()` binding in scope.
+ * identifier whose name currently has a pending `.implementation()` binding in scope.
  *
- * A plain `=` whose RHS carries another blaze call leaves the pending entry
- * alone — `recordPendingBinding` will re-register it when the blaze call
+ * A plain `=` whose RHS carries another implementation call leaves the pending entry
+ * alone — `recordPendingBinding` will re-register it when the implementation call
  * itself is visited. Otherwise, clear the pending entry: the identifier has
  * been overwritten with a non-Result value, so the original
  * `result.isOk()`-style diagnostic no longer applies.
@@ -951,11 +954,14 @@ const handleAssignmentReassignment = (
   if (!key) {
     return;
   }
-  // Plain `=` with a blaze-carrying RHS will re-register via
-  // `recordPendingBinding` when the blaze call itself is visited. Other
+  // Plain `=` with a implementation-carrying RHS will re-register via
+  // `recordPendingBinding` when the implementation call itself is visited. Other
   // compound operators (`+=`, `-=`, `*=`, etc.) produce a primitive value
   // from the existing slot, so they always clear.
-  if (assignment.operator === '=' && rhsCarriesBlazeReinit(assignment.right)) {
+  if (
+    assignment.operator === '=' &&
+    rhsCarriesImplementationReinit(assignment.right)
+  ) {
     return;
   }
   state.pendingByScopeAndName.delete(key);
@@ -1005,12 +1011,12 @@ const checkPendingAccess = (node: AstNode, state: AnalyzeState): void => {
 };
 
 /**
- * If the blaze call is the init of a VariableDeclarator whose id is an
+ * If the implementation call is the init of a VariableDeclarator whose id is an
  * ObjectPattern that destructures any known Result accessor property,
  * return the declarator node. Otherwise null.
  *
  * Catches the core missing-await shape when written as destructuring:
- *   `const { isOk } = entityShow.blaze(input, ctx)` — no await, immediate
+ *   `const { isOk } = entityShow.implementation(input, ctx)` — no await, immediate
  *   access to a Result accessor, should fire.
  */
 const propertyDestructuresResultAccessor = (prop: AstNode): boolean => {
@@ -1027,14 +1033,14 @@ const objectPatternHasResultAccessorKey = (pattern: AstNode): boolean => {
 };
 
 const getDestructuredResultAccessorDeclarator = (
-  blazeCall: AstNode,
+  implementationCall: AstNode,
   parents: WeakMap<AstNode, AstNode>
 ): AstNode | null => {
   // Unwrap any wrapping parentheses and branch-position conditionals so
-  // `const { isOk } = (trail.blaze(...));` and
-  // `const { isOk } = cond ? trail.blaze(...) : fallback;` are treated as
-  // `const { isOk } = trail.blaze(...);`.
-  const outer = skipParensAndBranchConditionals(blazeCall, parents);
+  // `const { isOk } = (trail.implementation(...));` and
+  // `const { isOk } = cond ? trail.implementation(...) : fallback;` are treated as
+  // `const { isOk } = trail.implementation(...);`.
+  const outer = skipParensAndBranchConditionals(implementationCall, parents);
   const parent = parents.get(outer);
   if (!parent || parent.type !== 'VariableDeclarator') {
     return null;
@@ -1046,8 +1052,8 @@ const getDestructuredResultAccessorDeclarator = (
   return objectPatternHasResultAccessorKey(id) ? parent : null;
 };
 
-const visitBlazeCall = (node: AstNode, state: AnalyzeState): void => {
-  if (!isBlazeCall(node) || isAwaited(node, state.parents)) {
+const visitImplementationCall = (node: AstNode, state: AnalyzeState): void => {
+  if (!isImplementationCall(node) || isAwaited(node, state.parents)) {
     return;
   }
   if (hasDirectResultAccess(node, state.parents)) {
@@ -1066,7 +1072,7 @@ const visitBlazeCall = (node: AstNode, state: AnalyzeState): void => {
 };
 
 const visitNode = (node: AstNode, state: AnalyzeState): void => {
-  visitBlazeCall(node, state);
+  visitImplementationCall(node, state);
   checkPendingAccess(node, state);
 };
 
@@ -1173,7 +1179,7 @@ const analyze = (
 };
 
 /**
- * Flags code that assumes `.blaze()` returns a synchronous result.
+ * Flags code that assumes `.implementation()` returns a synchronous result.
  */
 export const noSyncResultAssumption: WardenRule = {
   check(sourceCode: string, filePath: string): readonly WardenDiagnostic[] {
@@ -1187,7 +1193,7 @@ export const noSyncResultAssumption: WardenRule = {
     return analyze(ast, sourceCode, filePath);
   },
   description:
-    'Disallow treating .blaze() as synchronous after normalization. Always await the returned Promise<Result>.',
+    'Disallow treating .implementation() as synchronous after normalization. Always await the returned Promise<Result>.',
   name: 'no-sync-result-assumption',
   severity: 'error',
 };

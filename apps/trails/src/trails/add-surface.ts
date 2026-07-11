@@ -132,7 +132,8 @@ const writeSurfaceEntry = async (
 };
 
 export const addSurface = trail('add.surface', {
-  blaze: async (input) => {
+  description: 'Add a surface to an existing project',
+  implementation: async (input) => {
     const cwd = resolve(input.dir ?? '.');
     const { surface } = input;
     const entryFile = getEntryFile(surface);
@@ -160,7 +161,6 @@ export const addSurface = trail('add.surface', {
       dependency: dependency.value,
     });
   },
-  description: 'Add a surface to an existing project',
   input: z.object({
     dir: z.string().optional().describe('Project directory'),
     surface: z.enum(['cli', 'http', 'mcp']).describe('Surface to add'),

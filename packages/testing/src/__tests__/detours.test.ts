@@ -8,7 +8,6 @@ import { z } from 'zod';
 import { testDetours } from '../detours.js';
 
 const showTrail = trail('entity.show', {
-  blaze: (input: { id: string }) => Result.ok({ id: input.id }),
   detours: [
     {
       on: ConflictError,
@@ -16,11 +15,12 @@ const showTrail = trail('entity.show', {
       recover: async () => Result.ok({ id: 'recovered' }),
     },
   ],
+  implementation: (input: { id: string }) => Result.ok({ id: input.id }),
   input: z.object({ id: z.string() }),
 });
 
 const noDetoursTrail = trail('entity.plain', {
-  blaze: () => Result.ok('ok'),
+  implementation: () => Result.ok('ok'),
   input: z.object({}),
 });
 
@@ -30,7 +30,6 @@ const createBlankNamedDetourTrail = () => {
   Object.defineProperty(BlankNamedConflictError, 'name', { value: '' });
 
   return trail('entity.blank-name', {
-    blaze: (input: { id: string }) => Result.ok({ id: input.id }),
     detours: [
       {
         on: BlankNamedConflictError,
@@ -38,6 +37,7 @@ const createBlankNamedDetourTrail = () => {
         recover: async () => Result.ok({ id: 'recovered' }),
       },
     ],
+    implementation: (input: { id: string }) => Result.ok({ id: input.id }),
     input: z.object({ id: z.string() }),
   });
 };
@@ -57,7 +57,7 @@ import { testDetours } from '../../src/index.ts';
 import { z } from 'zod';
 
 const baseTrail = trail('entity.save', {
-  blaze: () => Result.err(new ConflictError('conflict')),
+  implementation: () => Result.err(new ConflictError('conflict')),
   detours: [
     {
       on: ConflictError,
@@ -103,7 +103,7 @@ testDetours(topo('detour-invalid-recover', { candidate } as Record<string, unkno
 
   return `${shared}
 const candidate = trail('entity.shadowed', {
-  blaze: () => Result.err(new ConflictError('conflict')),
+  implementation: () => Result.err(new ConflictError('conflict')),
   detours: [
     {
       on: TrailsError,

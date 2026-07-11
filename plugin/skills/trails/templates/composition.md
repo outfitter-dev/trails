@@ -58,7 +58,7 @@ export const myComposite = trail('namespace.compound-verb', {
   // --- Run ---
   // Compose trails through ctx.compose() — never call .run() directly.
   // Always await, always check isErr() before accessing .value.
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     // Step 1: Compose the first trail
     // Type the generic when you need the return shape.
     const first = await ctx.compose(namespaceFirst, {

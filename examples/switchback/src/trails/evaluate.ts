@@ -36,18 +36,6 @@ const renderTrace = (evaluation: Evaluation): string[] => {
  * every result carries the rule-by-rule EvalTrace explaining why.
  */
 export const evaluate = trail('flag.evaluate', {
-  blaze: async (input, ctx) => {
-    const store = flagsResource.from(ctx);
-    const flag = await requireLiveFlag(store, input.key);
-    if (flag.isErr()) {
-      return flag;
-    }
-    const evaluation = evaluateFlag(flag.value, input.context);
-    if (!input.explain) {
-      return Result.ok(evaluation);
-    }
-    return Result.ok({ ...evaluation, explanation: renderTrace(evaluation) });
-  },
   description:
     'Evaluate one flag for a subject, returning the served value and a rule-by-rule trace of why',
   examples: [
@@ -188,6 +176,18 @@ export const evaluate = trail('flag.evaluate', {
       name: 'Explain the evaluation',
     },
   ],
+  implementation: async (input, ctx) => {
+    const store = flagsResource.from(ctx);
+    const flag = await requireLiveFlag(store, input.key);
+    if (flag.isErr()) {
+      return flag;
+    }
+    const evaluation = evaluateFlag(flag.value, input.context);
+    if (!input.explain) {
+      return Result.ok(evaluation);
+    }
+    return Result.ok({ ...evaluation, explanation: renderTrace(evaluation) });
+  },
   input: z.object({
     context: evalContextSchema.describe('Who the flag is evaluated for'),
     explain: z
@@ -211,18 +211,6 @@ export const evaluate = trail('flag.evaluate', {
  * payload is recorded in the in-memory demo audit log.
  */
 export const evaluateAll = trail('flag.evaluate-all', {
-  blaze: async (input, ctx) => {
-    const store = flagsResource.from(ctx);
-    const audit = auditResource.from(ctx);
-    const flags = await store.list();
-    const live = flags.filter((flag) => !flag.archived);
-    const values: Record<string, FlagValue> = {};
-    for (const flag of live) {
-      values[flag.key] = evaluateFlag(flag, input.context).value;
-    }
-    audit.record({ subjectId: input.context.subjectId, values });
-    return Result.ok({ evaluated: live.length, values });
-  },
   description:
     'Evaluate every live flag for one subject — the bootstrap payload pattern',
   examples: [
@@ -259,6 +247,18 @@ export const evaluateAll = trail('flag.evaluate-all', {
       name: 'Bootstrap payload for a pro subject',
     },
   ],
+  implementation: async (input, ctx) => {
+    const store = flagsResource.from(ctx);
+    const audit = auditResource.from(ctx);
+    const flags = await store.list();
+    const live = flags.filter((flag) => !flag.archived);
+    const values: Record<string, FlagValue> = {};
+    for (const flag of live) {
+      values[flag.key] = evaluateFlag(flag, input.context).value;
+    }
+    audit.record({ subjectId: input.context.subjectId, values });
+    return Result.ok({ evaluated: live.length, values });
+  },
   input: z.object({
     context: evalContextSchema.describe('Who the flags are evaluated for'),
   }),

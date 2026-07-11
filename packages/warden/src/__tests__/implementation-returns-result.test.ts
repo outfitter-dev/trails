@@ -34,7 +34,7 @@ export default helper;
 } from './barrel-readcount.js';
 
 trail("entity.report", {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     return foo();
   }
 })`
@@ -43,10 +43,10 @@ trail("entity.report", {
 };
 
 describe('implementation-returns-result', () => {
-  test('flags raw object return in blaze', () => {
+  test('flags raw object return in implementation', () => {
     const code = `
 trail("entity.show", {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     return { name: "foo" };
   }
 })`;
@@ -67,14 +67,14 @@ trail("entity.show", {
     const code = `
 trail("entity.onboard", {
   composes: ["entity.create"],
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const result = await ctx.compose("entity.create", input);
     return result;
   }
 })
 
 trail("entity.create", {
-  blaze: async (input, ctx) => Result.ok({ id: "123" })
+  implementation: async (input, ctx) => Result.ok({ id: "123" })
 })`;
 
     const diagnostics = implementationReturnsResult.check(code, TEST_FILE);
@@ -85,7 +85,7 @@ trail("entity.create", {
   test('allows conditional returns whose branches are both Result expressions', () => {
     const code = `
 trail("entity.show", {
-  blaze: (input, ctx) => {
+  implementation: (input, ctx) => {
     const note = store.get(input.id);
     return note === undefined
       ? Result.err(new NotFoundError("missing"))
@@ -101,7 +101,7 @@ trail("entity.show", {
   test('allows conditional returns mixing Result literals and Result variables', () => {
     const code = `
 trail("entity.pick", {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const fallback = await ctx.compose("entity.default", {});
     return input.id === undefined ? fallback : Result.ok({ id: input.id });
   }
@@ -115,7 +115,7 @@ trail("entity.pick", {
   test('allows awaited conditional returns whose branches produce Results', () => {
     const code = `
 trail("entity.pick", {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     return await (input.id === undefined
       ? ctx.compose("entity.default", {})
       : Result.ok({ id: input.id }));
@@ -130,7 +130,7 @@ trail("entity.pick", {
   test('flags conditional Result variables shadowed by non-Result bindings', () => {
     const code = `
 trail("entity.pick", {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const fallback = await ctx.compose("entity.default", {});
     if (input.raw) {
       const fallback = { id: "raw" };
@@ -146,10 +146,10 @@ trail("entity.pick", {
     expect(diagnostics[0]?.message).toContain('entity.pick');
   });
 
-  test('allows concise ternary blaze bodies with Result branches', () => {
+  test('allows concise ternary implementation bodies with Result branches', () => {
     const code = `
 trail("entity.toggle", {
-  blaze: (input, ctx) => input.on ? Result.ok({ on: true }) : Result.err(new ValidationError("off"))
+  implementation: (input, ctx) => input.on ? Result.ok({ on: true }) : Result.err(new ValidationError("off"))
 })`;
 
     const diagnostics = implementationReturnsResult.check(code, TEST_FILE);
@@ -157,10 +157,10 @@ trail("entity.toggle", {
     expect(diagnostics.length).toBe(0);
   });
 
-  test('allows awaited concise ternary blaze bodies with Result branches', () => {
+  test('allows awaited concise ternary implementation bodies with Result branches', () => {
     const code = `
 trail("entity.toggle", {
-  blaze: async (input, ctx) => await (input.on
+  implementation: async (input, ctx) => await (input.on
     ? ctx.compose("entity.default", {})
     : Result.ok({ on: false }))
 })`;
@@ -173,7 +173,7 @@ trail("entity.toggle", {
   test('flags conditional returns when a branch is not a Result expression', () => {
     const code = `
 trail("entity.show", {
-  blaze: (input, ctx) => {
+  implementation: (input, ctx) => {
     return input.raw ? { id: "123" } : Result.ok({ id: "123" });
   }
 })`;
@@ -184,10 +184,10 @@ trail("entity.show", {
     expect(diagnostics[0]?.message).toContain('entity.show');
   });
 
-  test('flags concise raw blaze bodies', () => {
+  test('flags concise raw implementation bodies', () => {
     const code = `
 trail("entity.create", {
-  blaze: async (input, ctx) => ({ id: "123" })
+  implementation: async (input, ctx) => ({ id: "123" })
 })`;
 
     const diagnostics = implementationReturnsResult.check(code, TEST_FILE);
@@ -199,7 +199,7 @@ trail("entity.create", {
   test('ignores return statements inside nested callbacks like .map()', () => {
     const code = `
 trail("entity.list", {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const items = ["a", "b", "c"];
     const mapped = items.map((item) => {
       return { name: item };
@@ -219,7 +219,7 @@ trail("entity.list", {
   test('ignores return statements inside .then() callbacks', () => {
     const code = `
 trail("entity.fetch", {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const data = await somePromise.then((res) => {
       return res.json();
     });
@@ -235,7 +235,7 @@ trail("entity.fetch", {
   test('still flags raw returns at the implementation level', () => {
     const code = `
 trail("entity.list", {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const items = ["a", "b"].map((item) => {
       return { name: item };
     });
@@ -280,7 +280,7 @@ trail("entity.list", {
 } from './result-helper.js';
 
 trail("entity.report", {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     return buildReport();
   }
 })`
@@ -312,7 +312,7 @@ export const parseAndValidateBody = (): ResultType<object, Error> =>
 } from './aliased-result-helper.js';
 
 trail("message.transmit", {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const validated = parseAndValidateBody();
     if (validated.isErr()) {
       return validated;
@@ -344,7 +344,7 @@ trail("message.transmit", {
 } from './plain-helper.js';
 
 trail("entity.report", {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     return buildReport();
   }
 })`
@@ -366,7 +366,7 @@ trail("entity.report", {
 } from 'some-package';
 
 trail("entity.report", {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     return buildReport();
   }
 })`
@@ -388,7 +388,7 @@ trail("entity.report", {
 } from './does-not-exist.js';
 
 trail("entity.report", {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     return buildReport();
   }
 })`
@@ -422,7 +422,7 @@ trail("entity.report", {
 } from './barrel-specifier.js';
 
 trail("entity.report", {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     return helper();
   }
 })`
@@ -455,7 +455,7 @@ trail("entity.report", {
 } from './barrel-aliased.js';
 
 trail("entity.report", {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     return aliased();
   }
 })`
@@ -485,7 +485,7 @@ export { helper };
 } from './barrel-samefile.js';
 
 trail("entity.report", {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     return helper();
   }
 })`
@@ -520,7 +520,7 @@ export default helper;
 } from './barrel-default.js';
 
 trail("entity.report", {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     return foo();
   }
 })`
@@ -588,7 +588,7 @@ trail("entity.report", {
 } from './depth-a.js';
 
 trail("entity.report", {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     return deepHelper();
   }
 })`
@@ -630,7 +630,7 @@ export { helper as aliasedFromA } from './ctx-a.js';
 } from './ctx-a.js';
 
 trail("entity.first", {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     return helper();
   }
 })`
@@ -642,7 +642,7 @@ trail("entity.first", {
 } from './ctx-b.js';
 
 trail("entity.second", {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     return helper();
   }
 })`
@@ -679,7 +679,7 @@ export default helper;
           `import buildReport from './impl-default-import.js';
 
 trail("entity.report", {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     return buildReport();
   }
 })`
@@ -707,7 +707,7 @@ trail("entity.report", {
           `import * as ns from './impl-namespace.js';
 
 trail("entity.report", {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     return ns.helper();
   }
 })`
@@ -735,7 +735,7 @@ export const nonResultFn = async () => ({ ok: true });
           `import * as ns from './impl-namespace-mixed.js';
 
 trail("entity.report", {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     return ns.nonResultFn();
   }
 })`
@@ -755,7 +755,7 @@ trail("entity.report", {
           `import * as ns from './missing-namespace.js';
 
 trail("entity.report", {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     return ns.helper();
   }
 })`
@@ -770,7 +770,7 @@ trail("entity.report", {
       });
 
       describe('shadowing by param/const/let', () => {
-        test('flags ns.helper() when blaze parameter shadows the namespace import', () => {
+        test('flags ns.helper() when implementation parameter shadows the namespace import', () => {
           writeFile(
             'impl-ns-shadow-param.ts',
             `export const helper = async (): Promise<Result<object, Error>> =>
@@ -782,7 +782,7 @@ trail("entity.report", {
             `import * as ns from './impl-ns-shadow-param.js';
 
 trail("entity.report", {
-  blaze: async (ns, ctx) => {
+  implementation: async (ns, ctx) => {
     return ns.helper(ctx);
   }
 })`
@@ -793,7 +793,7 @@ trail("entity.report", {
             caller
           );
 
-          // The blaze parameter \`ns\` shadows the namespace import; \`ns.helper()\`
+          // The implementation parameter \`ns\` shadows the namespace import; \`ns.helper()\`
           // is a call on the parameter, not on the namespace, so the return
           // must be flagged rather than silently treated as a Result helper.
           expect(diagnostics.length).toBe(1);
@@ -811,7 +811,7 @@ trail("entity.report", {
             `import * as ns from './impl-ns-shadow-const.js';
 
 trail("entity.report", {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const ns = { helper: () => ({ ok: true }) };
     return ns.helper(input);
   }
@@ -838,7 +838,7 @@ trail("entity.report", {
             `import * as ns from './impl-ns-shadow-let.js';
 
 trail("entity.report", {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     let ns = input;
     return ns.helper(input);
   }
@@ -867,7 +867,7 @@ trail("entity.report", {
             `import * as ns from './impl-ns-shadow-for-init.js';
 
 trail("entity.report", {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     for (const ns = 0; ns < 1; ns++) {
       return ns.helper(input);
     }
@@ -896,7 +896,7 @@ trail("entity.report", {
             `import * as ns from './impl-ns-shadow-for-of.js';
 
 trail("entity.report", {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     for (const ns of [1, 2, 3]) {
       return ns.helper(input);
     }
@@ -925,7 +925,7 @@ trail("entity.report", {
             `import * as ns from './impl-ns-shadow-catch.js';
 
 trail("entity.report", {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     try {
       return Result.ok({});
     } catch (ns) {
@@ -955,7 +955,7 @@ trail("entity.report", {
             `import * as ns from './impl-ns-shadow-catch-destructure.js';
 
 trail("entity.report", {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     try {
       return Result.ok({});
     } catch ({ ns }) {
@@ -975,7 +975,7 @@ trail("entity.report", {
       });
 
       describe('scope-frame coverage (TRL-347)', () => {
-        test('flags ns.helper() when a const ns shadow sits in a function-expression blaze body (FunctionBody frame)', () => {
+        test('flags ns.helper() when a const ns shadow sits in a function-expression implementation body (FunctionBody frame)', () => {
           // Regression: oxc-parser emits `FunctionBody` for regular
           // `function expression() { ... }` bodies, not `BlockStatement`. Without
           // a FunctionBody scope-frame collector, the `const ns = ...` at the
@@ -992,7 +992,7 @@ trail("entity.report", {
             `import * as ns from './impl-ns-shadow-fn-expr.js';
 
 trail("entity.report", {
-  blaze: async function(input, ctx) {
+  implementation: async function(input, ctx) {
     const ns = { helper: () => ({ ok: true }) };
     return ns.helper(input);
   }
@@ -1009,7 +1009,7 @@ trail("entity.report", {
 
         test('flags ns.helper() when a hoisted var ns shadows the namespace import', () => {
           // Regression: a `var ns` nested inside a block hoists to the
-          // enclosing blaze's function scope. Without function-body-level var
+          // enclosing implementation's function scope. Without function-body-level var
           // hoisting, the namespace import is read as the receiver and the
           // return is silently treated as a Result helper.
           writeFile(
@@ -1023,7 +1023,7 @@ trail("entity.report", {
             `import * as ns from './impl-ns-shadow-hoisted-var.js';
 
 trail("entity.report", {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     if (input) {
       var ns = { helper: () => ({ ok: true }) };
     }
@@ -1055,7 +1055,7 @@ trail("entity.report", {
             `import * as ns from './impl-ns-shadow-switch.js';
 
 trail("entity.report", {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     switch (input.kind) {
       case 'a':
         const ns = { helper: () => ({ ok: true }) };
@@ -1092,7 +1092,7 @@ trail("entity.report", {
             `import * as ns from './impl-ns-shadow-switch-fallthrough.js';
 
 trail("entity.report", {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     switch (input.kind) {
       case 'a':
         const ns = { helper: () => ({ ok: true }) };
@@ -1132,7 +1132,7 @@ trail("entity.report", {
             `import * as ns from './impl-ns-shadow-switch-braced.js';
 
 trail("entity.report", {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     switch (input.kind) {
       case 'a': {
         const ns = { helper: () => ({ ok: true }) };
@@ -1175,7 +1175,7 @@ trail("entity.report", {
             `import * as ns from './impl-ns-empty.js';
 
 trail("entity.report", {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     return ns.nonResultFn();
   }
 })`
@@ -1209,7 +1209,7 @@ trail("entity.report", {
 } from './barrel-star.js';
 
 trail("entity.report", {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     return helper();
   }
 })`
@@ -1241,7 +1241,7 @@ trail("entity.report", {
 } from './star-cycle-a.js';
 
 trail("entity.report", {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     return helper();
   }
 })`
@@ -1274,7 +1274,7 @@ trail("entity.report", {
 } from './cycle-a.js';
 
 trail("entity.report", {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     return helper();
   }
 })`
@@ -1301,7 +1301,7 @@ const buildDiff = async (): Promise<Result<object, Error>> =>
   Result.ok({ breaking: [] });
 
 trail("survey", {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     if (input.diff) {
       return await buildDiff();
     }
@@ -1325,7 +1325,7 @@ const validateReplyTo = (replyTo: string | undefined): ResultType<object, Error>
   Result.ok({ replyTo });
 
 trail("message.transmit", {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const replyToResult = validateReplyTo(input.replyTo);
     if (replyToResult.isErr()) {
       return replyToResult;
@@ -1345,7 +1345,7 @@ trail("message.transmit", {
 const validateExternal = (value: string) => externalValidate(value);
 
 trail("message.transmit", {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const validated = validateExternal(input.replyTo);
     if (validated.isErr()) {
       return validated;
@@ -1368,7 +1368,7 @@ trail("message.transmit", {
 const validateExternal = (value: string) => externalValidate(value);
 
 trail("message.transmit", {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const validated: Result<object, Error> = validateExternal(input.replyTo);
     if (validated.isErr()) {
       return validated;
@@ -1386,7 +1386,7 @@ trail("message.transmit", {
   test('flags guarded pass-through of plain objects with isErr methods', () => {
     const code = `
 trail("message.transmit", {
-  blaze: async () => {
+  implementation: async () => {
     const maybeResult = {
       isErr: () => true,
       value: { ok: true },
@@ -1413,7 +1413,7 @@ const parseInput = (): Result<object, Error> =>
   Result.ok({ ok: true });
 
 trail("message.transmit", {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const parseInput = () => ({ ok: true });
     return parseInput();
   }
@@ -1435,7 +1435,7 @@ import {
 } from '@ontrails/core';
 
 trail("message.transmit", {
-  blaze: async () => {
+  implementation: async () => {
     const finishCreate = async (): Promise<Result<object, Error>> =>
       Result.ok({ ok: true });
 

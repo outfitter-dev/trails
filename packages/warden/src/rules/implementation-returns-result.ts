@@ -1,7 +1,7 @@
 /**
  * Finds implementations that return raw values instead of `Result`.
  *
- * Uses AST parsing to find `blaze:` bodies and check that
+ * Uses AST parsing to find `implementation:` bodies and check that
  * every return statement returns Result.ok(), Result.err(), ctx.compose(),
  * or a tracked Result-typed variable.
  */
@@ -12,7 +12,7 @@ import { escapeRegExp } from '@ontrails/core';
 import type { AstNode } from './ast.js';
 import {
   collectScopeFrameBindings,
-  findBlazeBodies,
+  findImplementationBodies,
   findTrailDefinitions,
   getMemberExpression,
   getNodeAlternate,
@@ -61,7 +61,7 @@ const isResultMemberCall = (callee: AstNode): boolean => {
   if (objName === 'ctx' && propName === 'compose') {
     return true;
   }
-  return propName === 'blaze';
+  return propName === 'implementation';
 };
 
 // ---------------------------------------------------------------------------
@@ -131,7 +131,7 @@ const isScopedResultVariableBinding = (
  *
  * When a non-empty `scopes` stack is provided, the namespace binding must not
  * be shadowed by a parameter or local declaration in any enclosing scope at
- * the call site. Without this check, any local `ns` (e.g. a blaze parameter
+ * the call site. Without this check, any local `ns` (e.g. a implementation parameter
  * named `ns`, or `const ns = ...` inside the body) would be misread as the
  * module-scope namespace import.
  */
@@ -1603,7 +1603,7 @@ const checkAllDefinitions = (
 
   for (const def of findTrailDefinitions(ast)) {
     const info = { id: def.id, label: 'Trail' };
-    for (const implValue of findBlazeBodies(def.config as AstNode)) {
+    for (const implValue of findImplementationBodies(def.config as AstNode)) {
       checkImplementation(
         implValue,
         info,

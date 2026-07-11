@@ -81,7 +81,7 @@ const concernByRuleName: Partial<Record<string, WardenRuleConcern>> = {
   'duplicate-public-contract': 'meta',
   'error-mapping-completeness': 'results',
   'fires-declarations': 'signals',
-  'fork-without-preserved-blaze': 'lifecycle',
+  'fork-without-preserved-implementation': 'lifecycle',
   'governed-symbol-residue': 'lifecycle',
   'implementation-returns-result': 'results',
   'intent-propagation': 'composition',
@@ -286,9 +286,9 @@ const builtinWardenRuleMetadataInput = {
     invariant: 'Declared fires stay aligned with signal firing usage.',
     tier: 'source-static',
   },
-  'fork-without-preserved-blaze': {
+  'fork-without-preserved-implementation': {
     ...durableExternal,
-    invariant: 'Fork version entries preserve their historical blaze.',
+    invariant: 'Fork version entries preserve their historical implementation.',
     tier: 'source-static',
   },
   'governed-symbol-residue': {
@@ -300,7 +300,7 @@ const builtinWardenRuleMetadataInput = {
   },
   'implementation-returns-result': {
     ...durableExternal,
-    invariant: 'Blazes return Result values.',
+    invariant: 'Implementations return Result values.',
     tier: 'source-static',
   },
   'incomplete-accessor-for-standard-op': {
@@ -368,7 +368,7 @@ const builtinWardenRuleMetadataInput = {
   'no-destructured-compose': {
     ...durableExternal,
     invariant:
-      'Trail blazes compose through ctx.compose() directly instead of destructuring compose from the context.',
+      'Trail implementations compose through ctx.compose() directly instead of destructuring compose from the context.',
     tier: 'source-static',
   },
   'no-dev-permit-in-source': {
@@ -447,12 +447,12 @@ const builtinWardenRuleMetadataInput = {
       relatedRules: ['implementation-returns-result', 'no-native-error-result'],
       steps: [
         'Return Result.err() with the most specific TrailsError subclass available.',
-        'Use detours for recoverable runtime strategies instead of throwing inside the blaze.',
+        'Use detours for recoverable runtime strategies instead of throwing inside the implementation.',
       ],
       summary:
-        'Convert thrown failures in blazes into explicit Result.err() outcomes.',
+        'Convert thrown failures in implementations into explicit Result.err() outcomes.',
     },
-    invariant: 'Blazes return Result.err() instead of throwing.',
+    invariant: 'Implementations return Result.err() instead of throwing.',
     tier: 'source-static',
   },
   'no-top-level-surface': {

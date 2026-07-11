@@ -9,12 +9,6 @@ import {
 } from './topo-support.js';
 
 export const topoPinTrail = trail('topo.pin', {
-  blaze: async (input, ctx) =>
-    withFreshOperatorApp(input, ctx, ({ lease, rootDir }) =>
-      Result.ok(
-        pinCurrentTopoSnapshot(lease.app, { name: input.name, rootDir })
-      )
-    ),
   description: 'Pin the current topo under a durable name',
   examples: [
     {
@@ -25,6 +19,12 @@ export const topoPinTrail = trail('topo.pin', {
       name: 'Pin the current topo',
     },
   ],
+  implementation: async (input, ctx) =>
+    withFreshOperatorApp(input, ctx, ({ lease, rootDir }) =>
+      Result.ok(
+        pinCurrentTopoSnapshot(lease.app, { name: input.name, rootDir })
+      )
+    ),
   input: z.object({
     module: z.string().optional().describe('Path to the app module'),
     name: z.string().describe('Pin name'),

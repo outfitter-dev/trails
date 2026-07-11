@@ -68,7 +68,7 @@ import { configResource } from '@ontrails/config';
 
 export const getStatus = trail('status.get', {
   resources: [configResource],
-  blaze: (_input, ctx) => {
+  implementation: (_input, ctx) => {
     const state = configResource.from(ctx);
     return Result.ok({
       port: state.resolved.port,
@@ -155,7 +155,7 @@ import { configResource } from '@ontrails/config';
 
 export const myTrail = trail('my.trail', {
   resources: [configResource],
-  blaze: (_input, ctx) => {
+  implementation: (_input, ctx) => {
     const state = configResource.from(ctx);
     return Result.ok(state.resolved);
   },

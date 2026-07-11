@@ -40,9 +40,9 @@ const noteResource = resource('db.notes', {
 
 const noteExample = note.examples?.[0];
 
-const createBlaze = () => Result.ok(noteExample);
-const deleteBlaze = () => Result.ok();
-const listBlaze = () => Result.ok([noteExample]);
+const createImplementation = () => Result.ok(noteExample);
+const deleteImplementation = () => Result.ok();
+const listImplementation = () => Result.ok([noteExample]);
 
 const unsupportedOperation = (operation: never): never => {
   throw new TypeError(`Unsupported test operation: ${String(operation)}`);
@@ -54,33 +54,33 @@ const deriveNoteTrail = <TOperation extends DeriveTrailOperation>(
   switch (operation) {
     case 'create': {
       return deriveTrail(note, operation, {
-        blaze: createBlaze,
         generated: ['id', 'createdAt'],
+        implementation: createImplementation,
         resource: noteResource,
       });
     }
     case 'read': {
       return deriveTrail(note, operation, {
-        blaze: createBlaze,
+        implementation: createImplementation,
         resource: noteResource,
       });
     }
     case 'update': {
       return deriveTrail(note, operation, {
-        blaze: createBlaze,
         generated: ['id', 'createdAt'],
+        implementation: createImplementation,
         resource: noteResource,
       });
     }
     case 'delete': {
       return deriveTrail(note, operation, {
-        blaze: deleteBlaze,
+        implementation: deleteImplementation,
         resource: noteResource,
       });
     }
     case 'list': {
       return deriveTrail(note, operation, {
-        blaze: listBlaze,
+        implementation: listImplementation,
         resource: noteResource,
       });
     }
@@ -241,8 +241,8 @@ describe('deriveTrail()', () => {
 
   test('preserves a caller-declared pattern', () => {
     const created = deriveTrail(note, 'create', {
-      blaze: createBlaze,
       generated: ['id', 'createdAt'],
+      implementation: createImplementation,
       pattern: 'crud',
       resource: noteResource,
     });
@@ -252,7 +252,7 @@ describe('deriveTrail()', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Default-blaze synthesis
+// Default-implementation synthesis
 // ---------------------------------------------------------------------------
 
 interface NoteEntity {
@@ -435,8 +435,8 @@ const ctxFor = (accessor: FakeNoteAccessor) =>
     },
   });
 
-describe('deriveTrail() default blaze synthesis — create', () => {
-  test('synthesizes create blaze that calls accessor.insert', async () => {
+describe('deriveTrail() default implementation synthesis — create', () => {
+  test('synthesizes create implementation that calls accessor.insert', async () => {
     const accessor = createFakeAccessor();
     const notesResource = makeNotesResource(accessor);
 
@@ -445,7 +445,7 @@ describe('deriveTrail() default blaze synthesis — create', () => {
       resource: notesResource,
     });
 
-    const result = await created.blaze(
+    const result = await created.implementation(
       { body: 'Bye, Trails', title: 'Second note' },
       ctxFor(accessor)
     );
@@ -461,40 +461,43 @@ describe('deriveTrail() default blaze synthesis — create', () => {
       resource: notesResource,
     });
 
-    const result = await created.blaze(
+    const result = await created.implementation(
       { body: 'Upsert body', title: 'Upsert note' },
       ctxFor(accessor)
     );
     expect(result.isOk()).toBe(true);
   });
 
-  test('custom blaze wins over default synthesis', async () => {
+  test('custom implementation wins over default synthesis', async () => {
     const accessor = createFakeAccessor();
     const notesResource = makeNotesResource(accessor);
     // eslint-disable-next-line @typescript-eslint/require-await
-    const customBlaze = mock(async () => Result.ok(seedNote));
+    const customImplementation = mock(async () => Result.ok(seedNote));
 
     const created = deriveTrail(note, 'create', {
-      blaze: customBlaze,
       generated: ['id', 'createdAt'],
+      implementation: customImplementation,
       resource: notesResource,
     });
 
-    await created.blaze(
+    await created.implementation(
       { body: 'ignored', title: 'ignored' },
       ctxFor(accessor)
     );
-    expect(customBlaze).toHaveBeenCalledTimes(1);
+    expect(customImplementation).toHaveBeenCalledTimes(1);
   });
 });
 
-describe('deriveTrail() default blaze synthesis — read', () => {
-  test('synthesizes read blaze that returns entity', async () => {
+describe('deriveTrail() default implementation synthesis — read', () => {
+  test('synthesizes read implementation that returns entity', async () => {
     const accessor = createFakeAccessor();
     const notesResource = makeNotesResource(accessor);
 
     const read = deriveTrail(note, 'read', { resource: notesResource });
-    const result = await read.blaze({ id: 'note-1' }, ctxFor(accessor));
+    const result = await read.implementation(
+      { id: 'note-1' },
+      ctxFor(accessor)
+    );
     const value = expectOk(result);
     expect(value.id).toBe('note-1');
   });
@@ -508,7 +511,7 @@ describe('deriveTrail() default blaze synthesis — read', () => {
     const notesResource = makeNotesResource(broken);
 
     const read = deriveTrail(note, 'read', { resource: notesResource });
-    const result = await read.blaze({ id: 'note-1' }, ctxFor(broken));
+    const result = await read.implementation({ id: 'note-1' }, ctxFor(broken));
     expect(expectErr(result)).toBeInstanceOf(InternalError);
   });
 
@@ -517,7 +520,7 @@ describe('deriveTrail() default blaze synthesis — read', () => {
     const notesResource = makeNotesResource(accessor);
 
     const read = deriveTrail(note, 'read', { resource: notesResource });
-    const result = await read.blaze(
+    const result = await read.implementation(
       { id: 'note-1' },
       createTrailContext({ extensions: {} })
     );
@@ -526,7 +529,7 @@ describe('deriveTrail() default blaze synthesis — read', () => {
   });
 });
 
-describe('deriveTrail() default blaze synthesis — update', () => {
+describe('deriveTrail() default implementation synthesis — update', () => {
   test('update uses accessor.update when present', async () => {
     const accessor = createFakeAccessor();
     const notesResource = makeNotesResource(accessor);
@@ -536,7 +539,7 @@ describe('deriveTrail() default blaze synthesis — update', () => {
       resource: notesResource,
     });
 
-    const result = await updated.blaze(
+    const result = await updated.implementation(
       { id: 'note-1', title: 'Renamed' },
       ctxFor(accessor)
     );
@@ -553,7 +556,7 @@ describe('deriveTrail() default blaze synthesis — update', () => {
       resource: notesResource,
     });
 
-    const result = await updated.blaze(
+    const result = await updated.implementation(
       { id: 'missing', title: 'Nope' },
       ctxFor(accessor)
     );
@@ -569,7 +572,7 @@ describe('deriveTrail() default blaze synthesis — update', () => {
       resource: notesResource,
     });
 
-    const result = await updated.blaze(
+    const result = await updated.implementation(
       { id: 'missing', title: 'Nope' },
       ctxFor(accessor)
     );
@@ -587,7 +590,7 @@ describe('deriveTrail() default blaze synthesis — update', () => {
       resource: notesResource,
     });
 
-    const result = await updated.blaze(
+    const result = await updated.implementation(
       { id: 'note-1', title: 'Via fallback' },
       ctxFor(accessor)
     );
@@ -603,7 +606,7 @@ describe('deriveTrail() default blaze synthesis — update', () => {
       resource: makeNotesResource(accessor),
     });
 
-    const result = await updated.blaze(
+    const result = await updated.implementation(
       { id: 'note-1', title: 'No version' },
       ctxFor(accessor)
     );
@@ -617,23 +620,26 @@ describe('deriveTrail() default blaze synthesis — update', () => {
   });
 });
 
-describe('deriveTrail() default blaze synthesis — delete and list', () => {
-  test('synthesizes delete blaze returning Result.ok(undefined)', async () => {
+describe('deriveTrail() default implementation synthesis — delete and list', () => {
+  test('synthesizes delete implementation returning Result.ok(undefined)', async () => {
     const accessor = createFakeAccessor();
     const notesResource = makeNotesResource(accessor);
 
     const removed = deriveTrail(note, 'delete', { resource: notesResource });
-    const result = await removed.blaze({ id: 'note-1' }, ctxFor(accessor));
+    const result = await removed.implementation(
+      { id: 'note-1' },
+      ctxFor(accessor)
+    );
 
     expect(expectOk(result)).toBeUndefined();
   });
 
-  test('synthesizes list blaze returning array', async () => {
+  test('synthesizes list implementation returning array', async () => {
     const accessor = createFakeAccessor();
     const notesResource = makeNotesResource(accessor);
 
     const listed = deriveTrail(note, 'list', { resource: notesResource });
-    const result = await listed.blaze({}, ctxFor(accessor));
+    const result = await listed.implementation({}, ctxFor(accessor));
 
     const value = expectOk(result);
     expect(Array.isArray(value)).toBe(true);
@@ -642,7 +648,7 @@ describe('deriveTrail() default blaze synthesis — delete and list', () => {
 });
 
 describe('deriveTrail() multi-resource and invalid input', () => {
-  test('rejects multi-resource derivation without a blaze', () => {
+  test('rejects multi-resource derivation without a implementation', () => {
     const accessor = createFakeAccessor();
     const a = makeNotesResource(accessor);
     const b = makeNotesResource(accessor);
@@ -655,14 +661,14 @@ describe('deriveTrail() multi-resource and invalid input', () => {
     ).toThrow(DerivationError);
   });
 
-  test('rejects derivation with empty resource array and no blaze', () => {
+  test('rejects derivation with empty resource array and no implementation', () => {
     expect(() =>
       deriveTrail(note, 'create', {
         generated: ['id', 'createdAt'],
         resource: [],
       })
     ).toThrow(
-      'deriveTrail("note.create") requires an explicit `blaze` when no resources are declared'
+      'deriveTrail("note.create") requires an explicit `implementation` when no resources are declared'
     );
   });
 });

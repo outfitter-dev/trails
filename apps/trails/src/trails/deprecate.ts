@@ -9,7 +9,8 @@ import {
 
 export const deprecateTrail = trail('deprecate', {
   args: ['target'],
-  blaze: async (input, ctx) =>
+  description: 'Mark a historical trail version deprecated or archived',
+  implementation: async (input, ctx) =>
     withLifecycleApp(input, ctx.cwd, async (_app, rootDir) => {
       const target = parseLifecycleTarget(input.target);
       if (target.isErr()) {
@@ -27,7 +28,6 @@ export const deprecateTrail = trail('deprecate', {
         }
       );
     }),
-  description: 'Mark a historical trail version deprecated or archived',
   input: z.object({
     archive: z
       .boolean()

@@ -11,7 +11,7 @@ export const contourExistsTrail = wrapRule({
         knownTrailIds: ['user.create'],
         sourceCode: `trail("user.create", {
   contours: [user],
-  blaze: async (input, ctx) => Result.ok({ ok: true }),
+  implementation: async (input, ctx) => Result.ok({ ok: true }),
 })`,
       },
       name: 'Declared contours resolve to known project contours',

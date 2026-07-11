@@ -4,9 +4,9 @@
 
 **Author what's new. Derive what's known. Override what's wrong.**
 
-When you define a trail, you author the things only you know: the input schema, the output schema, the `blaze` that establishes how the trail runs, and the examples that specify behavior. Everything else — CLI flags, MCP tool definitions, test assertions, error codes, command names — is derived from what you already wrote. If the derivation is wrong for your case, you override it.
+When you define a trail, you author the things only you know: the input schema, the output schema, the `implementation` that establishes how the trail runs, and the examples that specify behavior. Everything else — CLI flags, MCP tool definitions, test assertions, error codes, command names — is derived from what you already wrote. If the derivation is wrong for your case, you override it.
 
-This is DRY applied not just to code, but to information. Frameworks have always been good at eliminating duplicate code. Trails extends that principle to duplicate authorship — across the entire surface area of a project, from the blaze to the CLI to the MCP tools to the tests to the agent documentation.
+This is DRY applied not just to code, but to information. Frameworks have always been good at eliminating duplicate code. Trails extends that principle to duplicate authorship — across the entire surface area of a project, from the implementation to the CLI to the MCP tools to the tests to the agent documentation.
 
 The conservation law at the center of Trails is simple: if the developer already authored the truth once, the framework should spend it everywhere it can. A schema should not stop at validation. An example should not stop at testing. Intent should not stop at documentation. Error taxonomy should not stop at one transport. Each authored fact should keep paying rent across surfaces, governance, tests, artifacts, docs, and agent ergonomics.
 
@@ -32,7 +32,7 @@ These aren't lint rules. They're structural constraints. The framework makes inc
 
 ## How It Works
 
-A trail is a typed contract with a Zod schema, examples, metadata, and a `blaze`:
+A trail is a typed contract with a Zod schema, examples, metadata, and an `implementation`:
 
 ```typescript
 import { trail, Result, NotFoundError } from '@ontrails/core';
@@ -52,7 +52,7 @@ export const show = trail('entity.show', {
       error: 'NotFoundError',
     },
   ],
-  blaze: (input, ctx) => {
+  implementation: (input, ctx) => {
     const entity = store.get(input.name);
     if (!entity)
       return Result.err(new NotFoundError(`Entity "${input.name}" not found`));
@@ -77,19 +77,19 @@ await mcpSurface(graph);
 
 The same topo can also open on HTTP today via `@ontrails/hono`. WebSocket follows the same peer-surface model, but does not ship yet.
 
-One blazed trail. Every surface. The rest is derived.
+One runnable trail. Every surface. The rest is derived.
 
-Pure blazes can return `Result` directly. Trails with `composes` and I/O-bound blazes can stay `async`. Core normalizes both forms to one awaitable runtime shape before surfaces and layers run the blazed trail.
+Pure implementations can return `Result` directly. Trails with `composes` and I/O-bound implementations can stay `async`. Core normalizes both forms to one awaitable runtime shape before surfaces and layers run the trail.
 
 ---
 
 ## The Services Problem
 
-Pure blazes are great until they need a database. The typical escape hatch — constructing clients inline or importing singletons — couples authored behavior to concrete infrastructure and makes testing painful.
+Pure implementations are great until they need a database. The typical escape hatch — constructing clients inline or importing singletons — couples authored behavior to concrete infrastructure and makes testing painful.
 
 Trails solves this with `resource()` declarations. A resource defines its factory, a `mock` factory for tests, and an optional `dispose` hook for cleanup. Trails declare their dependencies with `resources: [...]` and access them through `db.from(ctx)`. The framework manages the lifecycle, surfaces can inspect the dependency graph, and `testAll(graph)` resolves mocks automatically.
 
-The result: blazes stay pure (input in, `Result` out), infrastructure is declared rather than imported, and the entire app remains testable without configuration.
+The result: implementations stay pure (input in, `Result` out), infrastructure is declared rather than imported, and the entire app remains testable without configuration.
 
 ---
 
@@ -97,9 +97,9 @@ The result: blazes stay pure (input in, `Result` out), infrastructure is declare
 
 Every piece of information in a Trails app has a clear ownership model. Six categories, from what you write to what the system learns. (See [Architecture](./architecture.md#information-architecture) for the full reference tables.)
 
-- **Authored:** New information only you know — Zod schemas, intent and metadata, examples, the blaze, trail IDs. Everything else flows from these.
+- **Authored:** New information only you know — Zod schemas, intent and metadata, examples, the implementation, trail IDs. Everything else flows from these.
 - **Projected:** Mechanically derived, guaranteed correct — CLI flags from Zod fields, MCP tool names from trail IDs, exit codes from error classes. Projections can't be wrong because they're computed from the source.
-- **Enforced:** Constrained by the type system — output schemas bound the return type, `Result<T, Error>` eliminates throw/catch, `TrailContext` scopes what the blaze can access. The compiler makes non-compliance an error.
+- **Enforced:** Constrained by the type system — output schemas bound the return type, `Result<T, Error>` eliminates throw/catch, `TrailContext` scopes what the implementation can access. The compiler makes non-compliance an error.
 - **Inferred:** Detected by static analysis, best-effort — which trails a trail composes (from `ctx.compose()` calls), error types returned (from `Result.err()` patterns). Warden verifies these. Useful for governance, not guaranteed.
 - **Observed:** Learned from runtime (future) — error distributions, latency profiles, resource usage patterns from the tracing system. Observations close the loop between declared intent and actual behavior.
 - **Overridden:** When derivation doesn't fit — any derived value can be explicitly set when the default is wrong. Overrides are escape hatches, visible in the TopoGraph. If you're overriding everything, the derivation rules are wrong.
@@ -114,12 +114,12 @@ Most frameworks optimize for flexibility — the handler can do anything, and co
 
 Trails makes a different tradeoff. The trail declaration creates a bounded environment:
 
-- **`output: schema`** constrains the return type. The blaze can't return data the contract doesn't describe.
+- **`output: schema`** constrains the return type. The implementation can't return data the contract doesn't describe.
 - **`Result<T, Error>`** eliminates throw/catch. Every code path returns a typed result.
 - **`examples`** specify concrete inputs plus expected results or error classes. `testExamples(graph)` runs them as assertions. One authoring act — three purposes: specification for builders, documentation for consumers, test coverage for CI.
 - **`intent` / `idempotent`** are behavioral assertions that surfaces honor. `intent: 'read'` means no confirmation prompts on CLI, `readOnlyHint` on MCP, GET on HTTP. These aren't suggestions — they're projections.
 
-The blaze satisfies the specification. The framework enforces the boundaries. An agent building a trail writes the irreducible information — schema, examples, logic — and the framework handles the rest.
+The implementation satisfies the specification. The framework enforces the boundaries. An agent building a trail writes the irreducible information — schema, examples, logic — and the framework handles the rest.
 
 This is also a fundamentally better task description for an agent than "write a handler that does X." It's: "here's the input shape, here's the output shape, here are concrete examples, here are the safety properties. Write the code that satisfies all of this." That's a constrained, verifiable, testable task — the kind agents are best at.
 
@@ -141,11 +141,11 @@ One line. Every trail. Every example. Progressive assertion — full match when 
 
 Examples serve triple duty:
 
-1. **Specification** for agents blazing the trail
+1. **Specification** for agents implementing the trail
 2. **Documentation** for agents consuming the trail
 3. **Assertions** for CI verifying correctness
 
-One write, three reads. If someone changes the business rule, they change the example, the test fails, and the blaze is updated to match. The examples are the source of truth — not a separate test file that hopes to stay in sync.
+One write, three reads. If someone changes the business rule, they change the example, the test fails, and the implementation is updated to match. The examples are the source of truth — not a separate test file that hopes to stay in sync.
 
 ---
 
@@ -165,7 +165,7 @@ Trails wasn't designed from framework theory. It emerged from 18 months of build
 
 - Adding MCP to an existing CLI app required restating every schema, duplicating error handling, and maintaining two parallel behavior paths.
 - Agents building feature areas in different sessions produced working but structurally inconsistent code — different error formats, different validation approaches, different naming conventions.
-- Test suites drifted from blazes because they were separate artifacts maintained by separate authoring acts.
+- Test suites drifted from implementations because they were separate artifacts maintained by separate authoring acts.
 - Agent-to-agent communication was fragile because there was no machine-readable contract — just freeform documentation that might be outdated.
 
 Each of these failures traced back to the same root cause: **the same information was being authored in multiple places, and the copies diverged.**
@@ -174,7 +174,7 @@ The questions that became Trails:
 
 - How do we make it structurally hard to do anything but the right thing?
 - How do we make agents consistent in their work without relying on memory they don't have?
-- What if the contract wasn't documentation about the blaze, but the specification that bounds it?
+- What if the contract wasn't documentation about the implementation, but the specification that bounds it?
 
 The answers became the principles: author what's new, derive what's known, override what's wrong. Make drift structurally harder than alignment. The trail is the product, not the surface.
 
@@ -184,7 +184,7 @@ The answers became the principles: author what's new, derive what's known, overr
 
 The v1 implementation delivers the foundation: Result types, error taxonomy, trail, signal, and contour definitions, CLI/MCP/HTTP surfaces, contract-driven testing, schema governance, and the warden. These establish the contract layer and prove the core loop — define once, surface everywhere.
 
-The architecture points toward capabilities that follow naturally — resource capability shaping, derived dependency graphs, cross-app contract negotiation, blaze synthesis from examples. Each follows from the same principle: if the information exists in the system, don't ask the developer to restate it.
+The architecture points toward capabilities that follow naturally — resource capability shaping, derived dependency graphs, cross-app contract negotiation, implementation synthesis from examples. Each follows from the same principle: if the information exists in the system, don't ask the developer to restate it.
 
 See [Horizons](./horizons.md) for the full roadmap of what this architecture unlocks.
 

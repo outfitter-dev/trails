@@ -12,7 +12,7 @@ describe('no-throw-in-implementation', () => {
   test('flags throw inside implementation body', () => {
     const code = `
 trail("entity.show", {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     throw new Error("boom");
   }
 })`;
@@ -25,7 +25,7 @@ trail("entity.show", {
   test('allows Result.err() in implementation', () => {
     const code = `
 trail("entity.show", {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     return Result.err(new NotFoundError("not found"));
   }
 })`;
@@ -40,7 +40,7 @@ function helper() {
 }
 
 trail("entity.show", {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     return Result.ok(data);
   }
 })`;
@@ -57,7 +57,7 @@ describe('context-no-surface-types', () => {
     const code = `
 import { Request, Response } from "express";
 trail("entity.show", {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     return Result.ok(data);
   }
 })`;
@@ -71,7 +71,7 @@ trail("entity.show", {
     const code = `
 import type { McpSession } from "@modelcontextprotocol/sdk";
 trail("entity.show", {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     return Result.ok(data);
   }
 })`;
@@ -83,7 +83,7 @@ trail("entity.show", {
     const code = `
 import { trail, Result } from "@ontrails/core";
 trail("entity.show", {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     return Result.ok(data);
   }
 })`;
@@ -106,7 +106,7 @@ export function handleRequest(req: Request, res: Response) {}`;
     const code = `
 import { Request, Response } from "express";
 const trail = "entity.show";
-ns[trail]("entity.show", { blaze: async () => Result.ok(null) });
+ns[trail]("entity.show", { implementation: async () => Result.ok(null) });
 export function handleRequest(req: Request, res: Response) {}`;
     const diagnostics = contextNoSurfaceTypes.check(code, TEST_FILE);
     expect(diagnostics.length).toBe(0);

@@ -74,7 +74,7 @@ describe('add.trail', () => {
       mkdirSync(dir, { recursive: true });
 
       const result = expectOk(
-        await addTrail.blaze(
+        await addTrail.implementation(
           {
             description: 'Prepare an entity for export',
             exampleName: 'Prepare a draft entity',
@@ -102,7 +102,7 @@ describe('add.trail', () => {
       mkdirSync(dir, { recursive: true });
 
       const result = expectOk(
-        await addTrail.blaze(
+        await addTrail.implementation(
           {
             description: 'Prepare a draft entity',
             exampleName: 'Prepare draft',
@@ -136,7 +136,7 @@ describe('add.trail', () => {
       mkdirSync(dir, { recursive: true });
 
       const error = expectValidationError(
-        await addTrail.blaze(
+        await addTrail.implementation(
           {
             description: 'Escape the project',
             exampleName: 'Escape',

@@ -791,41 +791,6 @@ const viewPopulation = async (
 
 export const wayfindTrail = trail('wayfind.navigate', {
   args: ['target'],
-  blaze: async (input, ctx) => {
-    if (input.source === 'live') {
-      const dispatched = await viewLiveSource(input, ctx);
-      if (dispatched !== undefined) {
-        return envelopeFor(
-          await dispatched.result,
-          input,
-          ctx,
-          dispatched.view
-        );
-      }
-    }
-    if (input.overlay !== undefined) {
-      return envelopeFor(
-        await ctx.compose('wayfind.overlay', {
-          namespace: input.overlay,
-          ...sourceInput(input),
-        }),
-        input,
-        ctx,
-        'list'
-      );
-    }
-    const dispatched =
-      (await viewRelation(input, ctx)) ??
-      (await (input.target === undefined
-        ? viewPopulation(input, ctx)
-        : viewTarget(input, ctx)));
-    if (dispatched === undefined) {
-      return Result.err(
-        new ValidationError('Provide a Wayfinder target or population filter.')
-      );
-    }
-    return envelopeFor(await dispatched.result, input, ctx, dispatched.view);
-  },
   cli: {
     path: 'wayfind',
   },
@@ -926,6 +891,41 @@ export const wayfindTrail = trail('wayfind.navigate', {
       name: 'List read trails',
     },
   ],
+  implementation: async (input, ctx) => {
+    if (input.source === 'live') {
+      const dispatched = await viewLiveSource(input, ctx);
+      if (dispatched !== undefined) {
+        return envelopeFor(
+          await dispatched.result,
+          input,
+          ctx,
+          dispatched.view
+        );
+      }
+    }
+    if (input.overlay !== undefined) {
+      return envelopeFor(
+        await ctx.compose('wayfind.overlay', {
+          namespace: input.overlay,
+          ...sourceInput(input),
+        }),
+        input,
+        ctx,
+        'list'
+      );
+    }
+    const dispatched =
+      (await viewRelation(input, ctx)) ??
+      (await (input.target === undefined
+        ? viewPopulation(input, ctx)
+        : viewTarget(input, ctx)));
+    if (dispatched === undefined) {
+      return Result.err(
+        new ValidationError('Provide a Wayfinder target or population filter.')
+      );
+    }
+    return envelopeFor(await dispatched.result, input, ctx, dispatched.view);
+  },
   input: wayfindInputSchema,
   intent: 'read',
   output: wayfindOutputSchema,
@@ -963,14 +963,6 @@ const selectorSourceInput = (
 
 export const wayfindPatternTrail = trail('wayfind.pattern', {
   args: ['selector'],
-  blaze: (input, ctx) =>
-    ctx.compose('wayfind.navigate', {
-      limit: input.limit,
-      resolver: 'pattern',
-      target: input.selector,
-      view: 'list',
-      ...selectorSourceInput(input),
-    }),
   cli: {
     path: 'wayfind pattern',
   },
@@ -982,6 +974,14 @@ export const wayfindPatternTrail = trail('wayfind.pattern', {
       name: 'Find Wayfinder trails',
     },
   ],
+  implementation: (input, ctx) =>
+    ctx.compose('wayfind.navigate', {
+      limit: input.limit,
+      resolver: 'pattern',
+      target: input.selector,
+      view: 'list',
+      ...selectorSourceInput(input),
+    }),
   input: wayfindPatternInputSchema,
   intent: 'read',
   meta: {
@@ -993,14 +993,6 @@ export const wayfindPatternTrail = trail('wayfind.pattern', {
 
 export const wayfindQueryTrail = trail('wayfind.query', {
   args: ['selector'],
-  blaze: (input, ctx) =>
-    ctx.compose('wayfind.navigate', {
-      limit: input.limit,
-      resolver: 'query',
-      target: input.selector,
-      view: 'list',
-      ...selectorSourceInput(input),
-    }),
   cli: {
     path: 'wayfind query',
   },
@@ -1012,6 +1004,14 @@ export const wayfindQueryTrail = trail('wayfind.query', {
       name: 'Find release drift facts',
     },
   ],
+  implementation: (input, ctx) =>
+    ctx.compose('wayfind.navigate', {
+      limit: input.limit,
+      resolver: 'query',
+      target: input.selector,
+      view: 'list',
+      ...selectorSourceInput(input),
+    }),
   input: wayfindQueryInputSchema,
   intent: 'read',
   meta: {
@@ -1023,15 +1023,6 @@ export const wayfindQueryTrail = trail('wayfind.query', {
 
 export const wayfindFileTrail = trail('wayfind.file', {
   args: ['selector'],
-  blaze: (input, ctx) =>
-    ctx.compose('wayfind.navigate', {
-      limit: input.limit,
-      outline: input.outline,
-      resolver: 'file',
-      target: input.selector,
-      view: 'outline',
-      ...selectorSourceInput(input),
-    }),
   cli: {
     path: 'wayfind file',
   },
@@ -1043,6 +1034,15 @@ export const wayfindFileTrail = trail('wayfind.file', {
       name: 'Outline the Trails app module',
     },
   ],
+  implementation: (input, ctx) =>
+    ctx.compose('wayfind.navigate', {
+      limit: input.limit,
+      outline: input.outline,
+      resolver: 'file',
+      target: input.selector,
+      view: 'outline',
+      ...selectorSourceInput(input),
+    }),
   input: wayfindFileInputSchema,
   intent: 'read',
   meta: {

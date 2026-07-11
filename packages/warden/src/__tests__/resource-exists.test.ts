@@ -16,7 +16,7 @@ const db: Resource<{ source: string }> = resource('db.main', {
 
 trail('entity.show', {
   resources: [db],
-  blaze: async (_input, ctx) => Result.ok(db.from(ctx)),
+  implementation: async (_input, ctx) => Result.ok(db.from(ctx)),
 });
 `;
 
@@ -29,7 +29,7 @@ import { Result, trail } from '@ontrails/core';
 
 trail('entity.show', {
   resources: ['db.main'],
-  blaze: async (_input, ctx) => Result.ok(ctx.resource('db.main')),
+  implementation: async (_input, ctx) => Result.ok(ctx.resource('db.main')),
 });
 
 // const db = resource('db.main', {
@@ -56,7 +56,7 @@ const db = resource('db.main', {
 
 trail('entity.show', {
   resources: [db],
-  blaze: async (_input, ctx) => Result.ok(db.from(ctx)),
+  implementation: async (_input, ctx) => Result.ok(db.from(ctx)),
 });
 `;
 
@@ -80,7 +80,7 @@ const db = resource('db.main', {
 
 trail('entity.show', {
   resources: [db],
-  blaze: async (_input, ctx) => Result.ok(db.from(ctx)),
+  implementation: async (_input, ctx) => Result.ok(db.from(ctx)),
 });
 `;
 
@@ -99,7 +99,7 @@ import { db } from './resources';
 
 trail('entity.show', {
   resources: [db],
-  blaze: async (_input, ctx) => Result.ok(db.from(ctx)),
+  implementation: async (_input, ctx) => Result.ok(db.from(ctx)),
 });
 `;
 
@@ -115,7 +115,7 @@ trail('entity.show', {
     const code = `
 trail('entity.show', {
   resources: ['db.main'],
-  blaze: async (_input, ctx) => Result.ok(ctx.resource('db.main')),
+  implementation: async (_input, ctx) => Result.ok(ctx.resource('db.main')),
 });
 `;
 

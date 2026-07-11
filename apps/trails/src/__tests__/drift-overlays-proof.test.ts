@@ -50,7 +50,7 @@ import type { Topo } from '@ontrails/core';
 import { z } from 'zod';
 
 const readFlag = trail('flags.read', {
-  blaze: async () => Result.ok({ value: null }),
+  implementation: async () => Result.ok({ value: null }),
   input: z.object({ key: z.string() }),
   intent: 'read',
   output: z.object({ value: z.string().nullable() }),
@@ -73,9 +73,12 @@ export const trailsOverlays = [
 };
 
 const compileFixture = async (dir: string): Promise<void> => {
-  const compiled = await compileTrail.blaze({ module: './src/app.ts' }, {
-    cwd: dir,
-  } as never);
+  const compiled = await compileTrail.implementation(
+    { module: './src/app.ts' },
+    {
+      cwd: dir,
+    } as never
+  );
   if (compiled.isErr()) {
     throw compiled.error;
   }

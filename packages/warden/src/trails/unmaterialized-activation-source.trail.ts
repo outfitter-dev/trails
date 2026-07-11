@@ -10,7 +10,7 @@ const invoicePaidWebhook = webhook('webhook.invoice.paid', {
 });
 
 const webhookConsumer = trail('invoice.audit-webhook', {
-  blaze: () => Result.ok({ ok: true }),
+  implementation: () => Result.ok({ ok: true }),
   input: z.object({ invoiceId: z.string() }),
   on: [invoicePaidWebhook],
   output: z.object({ ok: z.boolean() }),
@@ -22,24 +22,24 @@ const invoiceCreated = signal('invoice.created', {
 });
 
 const signalProducer = trail('invoice.create', {
-  blaze: async (_input, ctx) => {
+  fires: [invoiceCreated],
+  implementation: async (_input, ctx) => {
     await ctx.fire?.(invoiceCreated, { invoiceId: 'inv_1' });
     return Result.ok({ invoiceId: 'inv_1' });
   },
-  fires: [invoiceCreated],
   input: z.object({}),
   output: z.object({ invoiceId: z.string() }),
 });
 
 const signalConsumer = trail('invoice.index', {
-  blaze: () => Result.ok({ ok: true }),
+  implementation: () => Result.ok({ ok: true }),
   input: z.object({ invoiceId: z.string() }),
   on: [invoiceCreated],
   output: z.object({ ok: z.boolean() }),
 });
 
 const scheduleConsumer = trail('invoice.reconcile', {
-  blaze: () => Result.ok({ ok: true }),
+  implementation: () => Result.ok({ ok: true }),
   input: z.object({}),
   on: [schedule('schedule.invoice.reconcile', { cron: '0 * * * *' })],
   output: z.object({ ok: z.boolean() }),

@@ -19,7 +19,7 @@ const stubCtx: TrailContext = createTrailContext({
 });
 
 const echoTrail = trail('echo', {
-  blaze: (input) => Result.ok({ value: input.value }),
+  implementation: (input) => Result.ok({ value: input.value }),
   input: z.object({ value: z.string() }),
   meta: { domain: 'test' },
   output: z.object({ value: z.string() }),
@@ -57,7 +57,11 @@ describe('Layer', () => {
       },
     };
 
-    const wrapped = composeLayers([prefixGate], echoTrail, echoTrail.blaze);
+    const wrapped = composeLayers(
+      [prefixGate],
+      echoTrail,
+      echoTrail.implementation
+    );
     const result = await wrapped({ value: 'hello' }, stubCtx);
 
     expect(result.isOk()).toBe(true);
@@ -91,7 +95,11 @@ describe('Layer', () => {
       },
     };
 
-    const wrapped = composeLayers([outer, inner], echoTrail, echoTrail.blaze);
+    const wrapped = composeLayers(
+      [outer, inner],
+      echoTrail,
+      echoTrail.implementation
+    );
     await wrapped({ value: 'x' }, stubCtx);
 
     expect(log).toEqual([
@@ -110,7 +118,11 @@ describe('Layer', () => {
       },
     };
 
-    const wrapped = composeLayers([shortCircuit], echoTrail, echoTrail.blaze);
+    const wrapped = composeLayers(
+      [shortCircuit],
+      echoTrail,
+      echoTrail.implementation
+    );
     const result = await wrapped({ value: 'hello' }, stubCtx);
 
     expect(result.isErr()).toBe(true);
@@ -129,14 +141,14 @@ describe('Layer', () => {
       },
     };
 
-    composeLayers([inspectGate], echoTrail, echoTrail.blaze);
+    composeLayers([inspectGate], echoTrail, echoTrail.implementation);
 
     expect(capturedDomain).toBe('test');
   });
 
   test('empty layers array returns implementation unchanged', () => {
-    const wrapped = composeLayers([], echoTrail, echoTrail.blaze);
-    expect(wrapped).toBe(echoTrail.blaze);
+    const wrapped = composeLayers([], echoTrail, echoTrail.implementation);
+    expect(wrapped).toBe(echoTrail.implementation);
   });
 
   test('typed layer accepts optional input schema', () => {
@@ -161,7 +173,9 @@ describe('Layer', () => {
     };
 
     expect(noInput.input).toBeUndefined();
-    expect(composeLayers([noInput], echoTrail, echoTrail.blaze)).toBeDefined();
+    expect(
+      composeLayers([noInput], echoTrail, echoTrail.implementation)
+    ).toBeDefined();
   });
 });
 
@@ -192,7 +206,7 @@ describe('executeTrail layers option', () => {
       },
     };
     const tenantTrail = trail('tenant.echo', {
-      blaze: (input) => Result.ok({ value: input.value }),
+      implementation: (input) => Result.ok({ value: input.value }),
       input: z.object({ tenantId: z.string(), value: z.string() }),
       output: z.object({ value: z.string() }),
     });

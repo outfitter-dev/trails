@@ -235,7 +235,7 @@ Synthesized from ADR-000 (Core Premise) and ADR-001 (Naming Conventions).
 
 - **Context tells a story** — Start with the problem as experienced, not as an abstract concern. The reader should feel the tension before the decision resolves it. Use `###` subsections named descriptively: "Where this came from", "The missing inner loop" — not "Background", "Problem", "Motivation."
 - **Decision subsections start with a one-sentence thesis, then expand** — The thesis should stand alone as a summary. The expansion says why it matters and what breaks without it.
-- **Show the concrete failure** — Don't just say what's good — say what goes wrong without it. "If a blaze touches stdout, it can't run on MCP" is more persuasive than "blazes should avoid stdout for portability."
+- **Show the concrete failure** — Don't just say what's good — say what goes wrong without it. "If an implementation touches stdout, it can't run on MCP" is more persuasive than "implementations should avoid stdout for portability."
 - **Code examples are primary evidence** — An agent or developer should understand the decision from a code example without reading the prose. The prose explains *why*. The code shows *what*. Before/after snippets are especially effective for showing what changes and why. Use code liberally if it makes the point clearer than prose would.
 - **Claims must be backed up** — Assertions about how systems work, what's possible, what fails, or how other tools behave must be supported. Reference the specific code, ADR, doc, or external source. For external claims (how another framework works, an industry pattern, a protocol behavior), cite the source with a footnote. Unsubstantiated claims undermine the ADR's credibility — if you can't back it up, soften the claim or remove it.
 - **Thorough external references** — When the decision draws on external patterns, protocols, specifications, or prior art, cite them properly in footnotes. Link to official documentation, RFCs, specifications, or authoritative sources. A well-referenced ADR helps future readers understand not just what was decided but the broader context that informed it.
@@ -269,7 +269,7 @@ Synthesized from ADR-000 (Core Premise) and ADR-001 (Naming Conventions).
 
 ### Vocabulary
 
-Use the accepted project vocabulary consistently: trail (not action/handler), topo (not registry), compose (not follow or cross), blaze (not handler/impl), surface (not transport), and tracing (not crumbs or tracker). Vocabulary is mid-cutover toward the v1 reset — write current ADRs in current terms and see `docs/lexicon-pending.md` for what is changing (and `trails-writing-style` for prose craft).
+Use the accepted project vocabulary consistently: trail (not action/handler), topo (not registry), compose (not follow or cross), implementation (not handler/impl), surface (not transport), and tracing (not crumbs or tracker). Write current ADRs in current terms, preserve retired terms only in explicitly historical release, migration, or decision evidence, and see `docs/lexicon-pending.md` for remaining changes (and `trails-writing-style` for prose craft).
 
 Read `docs/tenets.md` before writing. Every ADR must be consistent with the tenets.
 

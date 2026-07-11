@@ -16,7 +16,7 @@ export const usersManage = trail('users.manage', {
     action: z.enum(['create', 'delete']),
     id: z.string().optional(),
   }),
-  blaze: async (input) => {
+  implementation: async (input) => {
     switch (input.action) {
       case 'create':
         return Result.ok({ created: true });
@@ -55,7 +55,7 @@ const manageInput = z.object({
 
 export const usersManage = trail('users.manage', {
   input: manageInput,
-  blaze: async (input) => {
+  implementation: async (input) => {
     if (input.action === 'delete') {
       return Result.ok({ deleted: true });
     }
@@ -78,7 +78,7 @@ export const usersManage = trail('users.manage', {
     action: z.enum(['create', 'delete']),
     id: z.string().optional(),
   }),
-  blaze: async ({ action }) => {
+  implementation: async ({ action }) => {
     if (action === 'delete') {
       return Result.ok({ deleted: true });
     }
@@ -101,7 +101,7 @@ export const migration = trail('migration.run', {
     operation: z.union([z.literal('apply'), z.literal('review')]),
     root: z.string(),
   }),
-  blaze: async (input) => {
+  implementation: async (input) => {
     const { operation: selectedOperation } = input;
     if (selectedOperation === 'apply') {
       return Result.ok({ applied: true });
@@ -127,7 +127,7 @@ export const notify = trail('entity.notify', {
     action: z.enum(['created', 'updated', 'deleted']),
     entityId: z.string(),
   }),
-  blaze: async (input) => Result.ok({ action: input.action }),
+  implementation: async (input) => Result.ok({ action: input.action }),
 });
 `);
 
@@ -144,7 +144,7 @@ export const notify = trail('entity.notify', {
     action: z.enum(['created', 'updated', 'deleted']),
     entityId: z.string(),
   }),
-  blaze: async (input) => Result.ok({ isCreated: input.action === 'created' }),
+  implementation: async (input) => Result.ok({ isCreated: input.action === 'created' }),
 });
 `);
 
@@ -161,7 +161,7 @@ export const entityChanged = signal('entity.changed', {
     action: z.enum(['created', 'updated', 'deleted']),
     entityId: z.string(),
   }),
-  blaze: async (input) => Result.ok(input),
+  implementation: async (input) => Result.ok(input),
 });
 `);
 
@@ -177,7 +177,7 @@ export const publish = trail('release.publish', {
   input: z.object({
     status: z.enum(['draft', 'published']),
   }),
-  blaze: async (input) => {
+  implementation: async (input) => {
     if (input.status === 'published') {
       return Result.ok({ visible: true });
     }

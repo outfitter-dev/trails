@@ -189,8 +189,8 @@ const buildReconcileInputSchema = <TTable extends AnyStoreTable>(
     [versionFieldName]: z.number().int(),
   }) as unknown as z.ZodType<UpsertOf<TTable>>;
 
-/** The blaze performs only the initial upsert; conflict recovery is handled by the detour. */
-const createReconcileBlaze =
+/** The implementation performs only the initial upsert; conflict recovery is handled by the detour. */
+const createReconcileImplementation =
   <
     TTable extends AnyStoreTable,
     TConnection extends ReconcileConnection<TTable>,
@@ -276,13 +276,13 @@ export const reconcile = <
   const strategy = options.strategy ?? 'last-write-wins';
 
   return trail(id, {
-    blaze: createReconcileBlaze(options, id),
     contours: [entityContour],
     description:
       options.description ??
       `Reconcile version conflicts for "${options.table.name}" entities.`,
     detours: [createReconcileDetour(options, id, strategy)],
     examples: deriveExamples(options.table),
+    implementation: createReconcileImplementation(options, id),
     input: buildReconcileInputSchema(options.table),
     intent: 'write',
     on: options.on,

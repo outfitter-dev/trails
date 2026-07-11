@@ -111,7 +111,7 @@ const writeExecutableWorkspace = (workspaceRoot: string): void => {
       `import { z } from 'zod';`,
       ``,
       `const add = trail('entity.add', {`,
-      `  blaze: (input) => Result.ok({ name: input.name }),`,
+      `  implementation: (input) => Result.ok({ name: input.name }),`,
       `  input: z.object({ name: z.string() }),`,
       `  intent: 'write',`,
       `  output: z.object({ name: z.string() }),`,

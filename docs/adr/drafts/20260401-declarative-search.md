@@ -243,7 +243,7 @@ export const search = trail('gist.search', {
   input: z.object({ query: z.string(), language: z.string().optional() }),
   output: paginatedOutput(gistSchema),
   intent: 'read',
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const conn = db.from(ctx);
     // Custom: filter by language before FTS, or do multi-table search
     const results = await conn.gists.search(input.query, { ... });

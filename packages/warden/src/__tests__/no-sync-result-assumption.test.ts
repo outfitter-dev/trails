@@ -7,7 +7,7 @@ describe('no-sync-result-assumption', () => {
     test('flags direct result access on implementation calls', () => {
       const code = `
 async function run() {
-  const isOk = entityShow.blaze({ id: "1" }, ctx).isOk();
+  const isOk = entityShow.implementation({ id: "1" }, ctx).isOk();
   return isOk;
 }`;
 
@@ -21,7 +21,7 @@ async function run() {
 
     test('flags a stored implementation result that is used synchronously', () => {
       const code = `
-const result = entityShow.blaze({ id: "1" }, ctx);
+const result = entityShow.implementation({ id: "1" }, ctx);
 
 if (result.isOk()) {
   console.log("ok");
@@ -36,7 +36,7 @@ if (result.isOk()) {
     test('allows awaited implementation calls before result access', () => {
       const code = `
 async function run() {
-  const result = await entityShow.blaze({ id: "1" }, ctx);
+  const result = await entityShow.implementation({ id: "1" }, ctx);
   return result.isOk();
 }`;
 
@@ -48,7 +48,7 @@ async function run() {
     test('allows awaited implementation calls when the property access is chained', () => {
       const code = `
 async function run() {
-  return (await entityShow.blaze({ id: "1" }, ctx)).isOk();
+  return (await entityShow.implementation({ id: "1" }, ctx)).isOk();
 }`;
 
       const diagnostics = noSyncResultAssumption.check(code, 'src/app.ts');
@@ -58,7 +58,7 @@ async function run() {
 
     test('ignores test files', () => {
       const code = `
-const result = entityShow.blaze({ id: "1" }, ctx);
+const result = entityShow.implementation({ id: "1" }, ctx);
 result.isOk();
 `;
 
@@ -72,7 +72,7 @@ result.isOk();
 
     test('ignores framework internals that intentionally call implementations', () => {
       const code = `
-const result = entityShow.blaze({ id: "1" }, ctx);
+const result = entityShow.implementation({ id: "1" }, ctx);
 result.isOk();
 `;
 
@@ -84,17 +84,18 @@ result.isOk();
       expect(diagnostics).toHaveLength(0);
     });
 
-    test('ignores .blaze() inside a template-literal string payload', () => {
+    test('ignores .implementation() inside a template-literal string payload', () => {
       const code =
-        'const example = `const x = entityShow.blaze(input, ctx).isOk()`;';
+        'const example = `const x = entityShow.implementation(input, ctx).isOk()`;';
 
       const diagnostics = noSyncResultAssumption.check(code, 'src/app.ts');
 
       expect(diagnostics).toHaveLength(0);
     });
 
-    test('ignores .blaze() inside a double-quoted string payload', () => {
-      const code = 'const example = "entityShow.blaze(input, ctx).isOk()";';
+    test('ignores .implementation() inside a double-quoted string payload', () => {
+      const code =
+        'const example = "entityShow.implementation(input, ctx).isOk()";';
 
       const diagnostics = noSyncResultAssumption.check(code, 'src/app.ts');
 
@@ -104,7 +105,7 @@ result.isOk();
     test('allows awaited indirection through destructured call', () => {
       const code = `
 async function run() {
-  const result = (await entityShow.blaze({ id: "1" }, ctx));
+  const result = (await entityShow.implementation({ id: "1" }, ctx));
   return result.isErr();
 }`;
 
@@ -117,7 +118,7 @@ async function run() {
   describe('lexical scoping', () => {
     test('does not flag a parameter that shadows a pending binding', () => {
       const code = `
-const result = entityShow.blaze({ id: "1" }, ctx);
+const result = entityShow.implementation({ id: "1" }, ctx);
 function ok(result) {
   return result.isOk();
 }`;
@@ -129,7 +130,7 @@ function ok(result) {
 
     test('does not flag a local block-scoped shadow of a pending binding', () => {
       const code = `
-const result = entityShow.blaze({ id: "1" }, ctx);
+const result = entityShow.implementation({ id: "1" }, ctx);
 {
   const result = { isOk: () => true };
   if (result.isOk()) {
@@ -144,7 +145,7 @@ const result = entityShow.blaze({ id: "1" }, ctx);
 
     test('does not flag a local block-scoped class that shadows a pending binding', () => {
       const code = `
-const result = entityShow.blaze({ id: "1" }, ctx);
+const result = entityShow.implementation({ id: "1" }, ctx);
 {
   class result {
     static isOk() { return true; }
@@ -161,7 +162,7 @@ const result = entityShow.blaze({ id: "1" }, ctx);
 
     test('does not flag an arrow parameter that shadows a pending binding', () => {
       const code = `
-const result = entityShow.blaze({ id: "1" }, ctx);
+const result = entityShow.implementation({ id: "1" }, ctx);
 const f = (result) => result.isOk();`;
 
       const diagnostics = noSyncResultAssumption.check(code, 'src/app.ts');
@@ -171,7 +172,7 @@ const f = (result) => result.isOk();`;
 
     test('does not flag a deeply nested shadowed parameter', () => {
       const code = `
-const result = entityShow.blaze({ id: "1" }, ctx);
+const result = entityShow.implementation({ id: "1" }, ctx);
 function outer() {
   const result = 1;
   function inner(result) {
@@ -187,7 +188,7 @@ function outer() {
 
     test('still flags outer pending binding referenced from a non-shadowing nested function', () => {
       const code = `
-const result = entityShow.blaze({ id: "1" }, ctx);
+const result = entityShow.implementation({ id: "1" }, ctx);
 function ok() {
   return result.isOk();
 }`;
@@ -200,7 +201,7 @@ function ok() {
 
     test('does not flag a destructured parameter that shadows a pending binding', () => {
       const code = `
-const result = entityShow.blaze({ id: "1" }, ctx);
+const result = entityShow.implementation({ id: "1" }, ctx);
 function ok({ result }) {
   return result.isOk();
 }`;
@@ -212,7 +213,7 @@ function ok({ result }) {
 
     test('does not flag a catch binding that shadows a pending binding', () => {
       const code = `
-const result = entityShow.blaze({ id: "1" }, ctx);
+const result = entityShow.implementation({ id: "1" }, ctx);
 try {
   doThing();
 } catch (result) {
@@ -230,7 +231,7 @@ try {
       const code = `
 function run() {
   if (cond) {
-    var result = entityShow.blaze({ id: "1" }, ctx);
+    var result = entityShow.implementation({ id: "1" }, ctx);
   }
   result.isOk();
 }`;
@@ -244,7 +245,7 @@ function run() {
     test('var declared in a for-head hoists to the enclosing function', () => {
       const code = `
 function run() {
-  for (var result = entityShow.blaze({ id: "1" }, ctx); ;) { break; }
+  for (var result = entityShow.implementation({ id: "1" }, ctx); ;) { break; }
   result.isOk();
 }`;
 
@@ -258,7 +259,7 @@ function run() {
       const code = `
 function run() {
   if (cond) {
-    let result = entityShow.blaze({ id: "1" }, ctx);
+    let result = entityShow.implementation({ id: "1" }, ctx);
   }
   result.isOk();
 }`;
@@ -270,12 +271,12 @@ function run() {
 
     test('var re-init of a same-named parameter registers as a pending binding', () => {
       // `var` and parameters share the function's VariableEnvironment, so
-      // `var result = blaze(...)` writes to the parameter's slot. After the
-      // declaration runs, `result.isOk()` observes the blaze result and
+      // `var result = implementation(...)` writes to the parameter's slot. After the
+      // declaration runs, `result.isOk()` observes the implementation result and
       // must fire, just as it would in the no-parameter case.
       const code = `
 function run(result) {
-  var result = entityShow.blaze({ id: "1" }, ctx);
+  var result = entityShow.implementation({ id: "1" }, ctx);
   result.isOk();
 }`;
 
@@ -289,7 +290,7 @@ function run(result) {
       const code = `
 function run(result) {
   if (cond) {
-    var result = entityShow.blaze({ id: "1" }, ctx);
+    var result = entityShow.implementation({ id: "1" }, ctx);
   }
   result.isOk();
 }`;
@@ -305,7 +306,7 @@ function run(result) {
       // as a sync `Result`, so no diagnostic is emitted.
       const code = `
 function run(result) {
-  var result = entityShow.blaze({ id: "1" }, ctx);
+  var result = entityShow.implementation({ id: "1" }, ctx);
 }`;
 
       const diagnostics = noSyncResultAssumption.check(code, 'src/app.ts');
@@ -314,12 +315,12 @@ function run(result) {
     });
 
     test('plain `=` re-assignment to a same-named parameter registers as a pending binding', () => {
-      // `result = blaze(...)` writes to the parameter's existing slot in
+      // `result = implementation(...)` writes to the parameter's existing slot in
       // the same VariableEnvironment, so the subsequent `result.isOk()`
-      // observes the blaze result and must fire.
+      // observes the implementation result and must fire.
       const code = `
 function run(result) {
-  result = entityShow.blaze({ id: "1" }, ctx);
+  result = entityShow.implementation({ id: "1" }, ctx);
   result.isOk();
 }`;
 
@@ -331,7 +332,7 @@ function run(result) {
 
     test('parameter used directly as a Result without re-init is not flagged', () => {
       // The parameter is the real binding; nothing made it a pending
-      // `.blaze()` result, so `result.isOk()` is just a call on whatever
+      // `.implementation()` result, so `result.isOk()` is just a call on whatever
       // was passed in.
       const code = `
 function run(result) {
@@ -347,7 +348,7 @@ function run(result) {
   describe('static blocks', () => {
     test('inner const in static block shadows outer pending binding', () => {
       const code = `
-const result = trail.blaze({ id: "1" }, ctx);
+const result = trail.implementation({ id: "1" }, ctx);
 class Foo {
   static {
     const result = 42;
@@ -364,7 +365,7 @@ class Foo {
       const code = `
 class Foo {
   static {
-    const result = trail.blaze({ id: "1" }, ctx);
+    const result = trail.implementation({ id: "1" }, ctx);
     result.isOk();
   }
 }`;
@@ -379,7 +380,7 @@ class Foo {
       const code = `
 class Foo {
   static {
-    const result = trail.blaze({ id: "1" }, ctx);
+    const result = trail.implementation({ id: "1" }, ctx);
   }
 }
 result.isOk();`;
@@ -389,11 +390,11 @@ result.isOk();`;
       expect(diagnostics).toHaveLength(0);
     });
 
-    test('flags var-declared blaze result used inside the same static block', () => {
+    test('flags var-declared implementation result used inside the same static block', () => {
       const code = `
 class Foo {
   static {
-    var result = entityShow.blaze({ id: "1" }, ctx);
+    var result = entityShow.implementation({ id: "1" }, ctx);
     result.isOk();
   }
 }`;
@@ -408,7 +409,7 @@ class Foo {
       const code = `
 class Foo {
   static {
-    var result = entityShow.blaze({ id: "1" }, ctx);
+    var result = entityShow.implementation({ id: "1" }, ctx);
   }
 }
 
@@ -422,11 +423,11 @@ function outer() {
     });
   });
 
-  describe('parenthesized blaze calls', () => {
-    test('flags member access on a parens-wrapped blaze call', () => {
+  describe('parenthesized implementation calls', () => {
+    test('flags member access on a parens-wrapped implementation call', () => {
       const code = `
 function run() {
-  return (entityShow.blaze({ id: "1" }, ctx)).isOk();
+  return (entityShow.implementation({ id: "1" }, ctx)).isOk();
 }`;
 
       const diagnostics = noSyncResultAssumption.check(code, 'src/app.ts');
@@ -435,10 +436,10 @@ function run() {
       expect(diagnostics[0]?.message).toContain('Missing await');
     });
 
-    test('flags .value access on a parens-wrapped blaze call', () => {
+    test('flags .value access on a parens-wrapped implementation call', () => {
       const code = `
 function run() {
-  return (entityShow.blaze({ id: "1" }, ctx)).value;
+  return (entityShow.implementation({ id: "1" }, ctx)).value;
 }`;
 
       const diagnostics = noSyncResultAssumption.check(code, 'src/app.ts');
@@ -450,7 +451,7 @@ function run() {
     test('flags member access through double-wrapped parens', () => {
       const code = `
 function run() {
-  return ((entityShow.blaze({ id: "1" }, ctx))).isOk();
+  return ((entityShow.implementation({ id: "1" }, ctx))).isOk();
 }`;
 
       const diagnostics = noSyncResultAssumption.check(code, 'src/app.ts');
@@ -459,10 +460,10 @@ function run() {
       expect(diagnostics[0]?.message).toContain('Missing await');
     });
 
-    test('flags accessor use on a binding whose init is a parens-wrapped blaze call', () => {
+    test('flags accessor use on a binding whose init is a parens-wrapped implementation call', () => {
       const code = `
 function run() {
-  const result = (entityShow.blaze({ id: "1" }, ctx));
+  const result = (entityShow.implementation({ id: "1" }, ctx));
   return result.isOk();
 }`;
 
@@ -472,10 +473,10 @@ function run() {
       expect(diagnostics[0]?.message).toContain('Missing await');
     });
 
-    test('flags accessor use on a binding whose init is a double-parens blaze call', () => {
+    test('flags accessor use on a binding whose init is a double-parens implementation call', () => {
       const code = `
 function run() {
-  const result = ((entityShow.blaze({ id: "1" }, ctx)));
+  const result = ((entityShow.implementation({ id: "1" }, ctx)));
   return result.isOk();
 }`;
 
@@ -485,10 +486,10 @@ function run() {
       expect(diagnostics[0]?.message).toContain('Missing await');
     });
 
-    test('flags destructuring of a Result accessor from a parens-wrapped blaze call', () => {
+    test('flags destructuring of a Result accessor from a parens-wrapped implementation call', () => {
       const code = `
 function run() {
-  const { isOk } = (entityShow.blaze({ id: "1" }, ctx));
+  const { isOk } = (entityShow.implementation({ id: "1" }, ctx));
   return isOk();
 }`;
 
@@ -498,10 +499,10 @@ function run() {
       expect(diagnostics[0]?.message).toContain('Missing await');
     });
 
-    test('flags accessor use on a binding whose init is a TSAsExpression-wrapped blaze call', () => {
+    test('flags accessor use on a binding whose init is a TSAsExpression-wrapped implementation call', () => {
       const code = `
 function run() {
-  const result = entityShow.blaze({ id: "1" }, ctx) as any;
+  const result = entityShow.implementation({ id: "1" }, ctx) as any;
   return result.isOk();
 }`;
 
@@ -511,10 +512,10 @@ function run() {
       expect(diagnostics[0]?.message).toContain('Missing await');
     });
 
-    test('flags accessor use on a binding whose init is a TSSatisfiesExpression-wrapped blaze call', () => {
+    test('flags accessor use on a binding whose init is a TSSatisfiesExpression-wrapped implementation call', () => {
       const code = `
 function run() {
-  const result = entityShow.blaze({ id: "1" }, ctx) satisfies unknown;
+  const result = entityShow.implementation({ id: "1" }, ctx) satisfies unknown;
   return result.isOk();
 }`;
 
@@ -524,10 +525,10 @@ function run() {
       expect(diagnostics[0]?.message).toContain('Missing await');
     });
 
-    test('flags accessor use on a binding whose init is a TSNonNullExpression-wrapped blaze call', () => {
+    test('flags accessor use on a binding whose init is a TSNonNullExpression-wrapped implementation call', () => {
       const code = `
 function run() {
-  const result = entityShow.blaze({ id: "1" }, ctx)!;
+  const result = entityShow.implementation({ id: "1" }, ctx)!;
   return result.isOk();
 }`;
 
@@ -539,10 +540,10 @@ function run() {
   });
 
   describe('destructured bindings', () => {
-    test('flags object destructuring of a Result accessor from an unawaited blaze call', () => {
+    test('flags object destructuring of a Result accessor from an unawaited implementation call', () => {
       const code = `
 function run() {
-  const { isOk } = entityShow.blaze({ id: "1" }, ctx);
+  const { isOk } = entityShow.implementation({ id: "1" }, ctx);
   return isOk();
 }`;
 
@@ -552,10 +553,10 @@ function run() {
       expect(diagnostics[0]?.message).toContain('Missing await');
     });
 
-    test('flags destructuring of value from an unawaited blaze call', () => {
+    test('flags destructuring of value from an unawaited implementation call', () => {
       const code = `
 function run() {
-  const { value } = entityShow.blaze({ id: "1" }, ctx);
+  const { value } = entityShow.implementation({ id: "1" }, ctx);
   return value;
 }`;
 
@@ -565,10 +566,10 @@ function run() {
       expect(diagnostics[0]?.message).toContain('Missing await');
     });
 
-    test('does not flag destructuring of a Result accessor from an awaited blaze call', () => {
+    test('does not flag destructuring of a Result accessor from an awaited implementation call', () => {
       const code = `
 async function run() {
-  const { isOk } = await entityShow.blaze({ id: "1" }, ctx);
+  const { isOk } = await entityShow.implementation({ id: "1" }, ctx);
   return isOk();
 }`;
 
@@ -578,10 +579,10 @@ async function run() {
     });
   });
 
-  test('flags .value access on unawaited blaze call', () => {
+  test('flags .value access on unawaited implementation call', () => {
     const code = `
 function run() {
-  return entityShow.blaze({ id: "1" }, ctx).value;
+  return entityShow.implementation({ id: "1" }, ctx).value;
 }`;
 
     const diagnostics = noSyncResultAssumption.check(code, 'src/app.ts');
@@ -590,10 +591,10 @@ function run() {
     expect(diagnostics[0]?.message).toContain('Missing await');
   });
 
-  test('flags .unwrap() access on unawaited blaze call', () => {
+  test('flags .unwrap() access on unawaited implementation call', () => {
     const code = `
 function run() {
-  return entityShow.blaze({ id: "1" }, ctx).unwrap();
+  return entityShow.implementation({ id: "1" }, ctx).unwrap();
 }`;
 
     const diagnostics = noSyncResultAssumption.check(code, 'src/app.ts');
@@ -606,23 +607,26 @@ function run() {
     ['flatMap', 'flatMap((value) => Result.ok(value))'],
     ['mapErr', 'mapErr((error) => error)'],
     ['unwrapOr', 'unwrapOr(null)'],
-  ])('flags .%s access on unawaited blaze call', (_name, expression) => {
-    const code = `
+  ])(
+    'flags .%s access on unawaited implementation call',
+    (_name, expression) => {
+      const code = `
 function run() {
-  return entityShow.blaze({ id: "1" }, ctx).${expression};
+  return entityShow.implementation({ id: "1" }, ctx).${expression};
 }`;
 
-    const diagnostics = noSyncResultAssumption.check(code, 'src/app.ts');
+      const diagnostics = noSyncResultAssumption.check(code, 'src/app.ts');
 
-    expect(diagnostics).toHaveLength(1);
-    expect(diagnostics[0]?.message).toContain('Missing await');
-  });
+      expect(diagnostics).toHaveLength(1);
+      expect(diagnostics[0]?.message).toContain('Missing await');
+    }
+  );
 
   describe('conditional-expression inits', () => {
-    test('flags accessor use when blaze call is the consequent branch', () => {
+    test('flags accessor use when implementation call is the consequent branch', () => {
       const code = `
 function run(cond, fallback) {
-  const result = cond ? entityShow.blaze({ id: "1" }, ctx) : fallback;
+  const result = cond ? entityShow.implementation({ id: "1" }, ctx) : fallback;
   return result.isOk();
 }`;
 
@@ -632,10 +636,10 @@ function run(cond, fallback) {
       expect(diagnostics[0]?.message).toContain('Missing await');
     });
 
-    test('flags accessor use when blaze call is the alternate branch', () => {
+    test('flags accessor use when implementation call is the alternate branch', () => {
       const code = `
 function run(cond, fallback) {
-  const result = cond ? fallback : entityShow.blaze({ id: "1" }, ctx);
+  const result = cond ? fallback : entityShow.implementation({ id: "1" }, ctx);
   return result.isOk();
 }`;
 
@@ -645,12 +649,12 @@ function run(cond, fallback) {
       expect(diagnostics[0]?.message).toContain('Missing await');
     });
 
-    test('flags accessor use when both branches are blaze calls', () => {
+    test('flags accessor use when both branches are implementation calls', () => {
       const code = `
 function run(cond) {
   const result = cond
-    ? entityShow.blaze({ id: "1" }, ctx)
-    : entityEdit.blaze({ id: "1" }, ctx);
+    ? entityShow.implementation({ id: "1" }, ctx)
+    : entityEdit.implementation({ id: "1" }, ctx);
   return result.isOk();
 }`;
 
@@ -663,7 +667,7 @@ function run(cond) {
     test('does not flag when the conditional is awaited as a whole', () => {
       const code = `
 async function run(cond, fallback) {
-  const result = await (cond ? entityShow.blaze({ id: "1" }, ctx) : fallback);
+  const result = await (cond ? entityShow.implementation({ id: "1" }, ctx) : fallback);
   return result.isOk();
 }`;
 
@@ -675,7 +679,7 @@ async function run(cond, fallback) {
     test('flags destructuring of a Result accessor from a conditional branch', () => {
       const code = `
 function run(cond, fallback) {
-  const { isOk } = cond ? entityShow.blaze({ id: "1" }, ctx) : fallback;
+  const { isOk } = cond ? entityShow.implementation({ id: "1" }, ctx) : fallback;
   return isOk();
 }`;
 
@@ -688,7 +692,7 @@ function run(cond, fallback) {
     test('flags direct accessor call through a conditional wrapper', () => {
       const code = `
 function run(cond, fallback) {
-  return (cond ? entityShow.blaze({ id: "1" }, ctx) : fallback).isOk();
+  return (cond ? entityShow.implementation({ id: "1" }, ctx) : fallback).isOk();
 }`;
 
       const diagnostics = noSyncResultAssumption.check(code, 'src/app.ts');
@@ -699,10 +703,10 @@ function run(cond, fallback) {
   });
 
   describe('logical-expression inits', () => {
-    test('flags accessor use when blaze is the right operand of &&', () => {
+    test('flags accessor use when implementation is the right operand of &&', () => {
       const code = `
 function run(cond) {
-  const result = cond && entityShow.blaze({ id: "1" }, ctx);
+  const result = cond && entityShow.implementation({ id: "1" }, ctx);
   return result.isOk();
 }`;
 
@@ -712,10 +716,10 @@ function run(cond) {
       expect(diagnostics[0]?.message).toContain('Missing await');
     });
 
-    test('flags accessor use when blaze is the right operand of ??', () => {
+    test('flags accessor use when implementation is the right operand of ??', () => {
       const code = `
 function run(maybe) {
-  const result = maybe ?? entityShow.blaze({ id: "1" }, ctx);
+  const result = maybe ?? entityShow.implementation({ id: "1" }, ctx);
   return result.isOk();
 }`;
 
@@ -725,10 +729,10 @@ function run(maybe) {
       expect(diagnostics[0]?.message).toContain('Missing await');
     });
 
-    test('flags accessor use when blaze is the right operand of ||', () => {
+    test('flags accessor use when implementation is the right operand of ||', () => {
       const code = `
 function run(fallback) {
-  const result = fallback || entityShow.blaze({ id: "1" }, ctx);
+  const result = fallback || entityShow.implementation({ id: "1" }, ctx);
   return result.isOk();
 }`;
 
@@ -741,7 +745,7 @@ function run(fallback) {
     test('flags direct accessor call through a logical wrapper', () => {
       const code = `
 function run(cond) {
-  return (cond && entityShow.blaze({ id: "1" }, ctx)).isOk();
+  return (cond && entityShow.implementation({ id: "1" }, ctx)).isOk();
 }`;
 
       const diagnostics = noSyncResultAssumption.check(code, 'src/app.ts');
@@ -753,7 +757,7 @@ function run(cond) {
     test('does not flag when the logical expression is awaited as a whole', () => {
       const code = `
 async function run(cond) {
-  const result = await (cond && entityShow.blaze({ id: "1" }, ctx));
+  const result = await (cond && entityShow.implementation({ id: "1" }, ctx));
   return result?.isOk();
 }`;
 
@@ -768,7 +772,7 @@ async function run(cond) {
       const code = `
 async function run(ctx) {
   let result;
-  result = entityShow.blaze({ id: "1" }, ctx);
+  result = entityShow.implementation({ id: "1" }, ctx);
   result.isOk();
 }`;
 
@@ -782,7 +786,7 @@ async function run(ctx) {
       const code = `
 async function run(cond, ctx) {
   let result;
-  result = cond && entityShow.blaze({ id: "1" }, ctx);
+  result = cond && entityShow.implementation({ id: "1" }, ctx);
   result.isOk();
 }`;
 
@@ -795,7 +799,7 @@ async function run(cond, ctx) {
     test('ignores member-expression assignment', () => {
       const code = `
 async function run(obj, ctx) {
-  obj.result = entityShow.blaze({ id: "1" }, ctx);
+  obj.result = entityShow.implementation({ id: "1" }, ctx);
   obj.result.isOk();
 }`;
 
@@ -804,7 +808,7 @@ async function run(obj, ctx) {
       expect(diagnostics).toHaveLength(0);
     });
 
-    test('ignores plain assignments unrelated to blaze', () => {
+    test('ignores plain assignments unrelated to implementation', () => {
       const code = `
 async function run() {
   let result = 0;
@@ -821,10 +825,10 @@ async function run() {
 
 describe('no-sync-result-assumption — pending re-assignment', () => {
   describe('pending binding re-assignment', () => {
-    test('clears pending after re-assignment to a non-blaze value', () => {
+    test('clears pending after re-assignment to a non-implementation value', () => {
       const code = `
 async function run(ctx) {
-  let result = entityShow.blaze({ id: "1" }, ctx);
+  let result = entityShow.implementation({ id: "1" }, ctx);
   result = 42;
   result.isOk();
 }`;
@@ -834,11 +838,11 @@ async function run(ctx) {
       expect(diagnostics).toHaveLength(0);
     });
 
-    test('keeps pending after re-assignment to another blaze call', () => {
+    test('keeps pending after re-assignment to another implementation call', () => {
       const code = `
 async function run(ctx) {
-  let result = entityShow.blaze({ id: "1" }, ctx);
-  result = entityShow.blaze({ id: "2" }, ctx);
+  let result = entityShow.implementation({ id: "1" }, ctx);
+  result = entityShow.implementation({ id: "2" }, ctx);
   result.isOk();
 }`;
 
@@ -851,7 +855,7 @@ async function run(ctx) {
     test('does not clear pending when a member-expression LHS is written', () => {
       const code = `
 async function run(ctx, obj) {
-  let result = entityShow.blaze({ id: "1" }, ctx);
+  let result = entityShow.implementation({ id: "1" }, ctx);
   obj.result = 42;
   result.isOk();
 }`;
@@ -865,7 +869,7 @@ async function run(ctx, obj) {
     test('clears pending after a mathematical compound assignment', () => {
       const code = `
 async function run(ctx) {
-  let result = entityShow.blaze({ id: "1" }, ctx);
+  let result = entityShow.implementation({ id: "1" }, ctx);
   result += 1;
   result.isOk();
 }`;
@@ -878,7 +882,7 @@ async function run(ctx) {
     test('keeps pending after a logical compound assignment (??=)', () => {
       const code = `
 async function run(ctx, fallback) {
-  let result = entityShow.blaze({ id: "1" }, ctx);
+  let result = entityShow.implementation({ id: "1" }, ctx);
   result ??= fallback;
   result.isOk();
 }`;
@@ -895,7 +899,7 @@ async function run(ctx, fallback) {
       // survive.
       const code = `
 async function run(ctx, fallback) {
-  let result = entityShow.blaze({ id: "1" }, ctx);
+  let result = entityShow.implementation({ id: "1" }, ctx);
   result ||= fallback;
   result.isOk();
 }`;
@@ -914,7 +918,7 @@ async function run(ctx, fallback) {
       // the same pending slot.
       const code = `
 async function run(ctx) {
-  let result = entityShow.blaze({ id: "1" }, ctx);
+  let result = entityShow.implementation({ id: "1" }, ctx);
   result = result.value;
 }`;
 
@@ -928,10 +932,10 @@ async function run(ctx) {
       // `&&=` writes the RHS when the LHS is truthy. A pending
       // Promise<Result> is truthy, so the RHS always runs and the pending
       // slot is overwritten — the subsequent `result.isOk()` observes the
-      // fallback, not the blaze result, so no diagnostic should fire.
+      // fallback, not the implementation result, so no diagnostic should fire.
       const code = `
 async function run(ctx, fallback) {
-  let result = entityShow.blaze({ id: "1" }, ctx);
+  let result = entityShow.implementation({ id: "1" }, ctx);
   result &&= fallback;
   result.isOk();
 }`;

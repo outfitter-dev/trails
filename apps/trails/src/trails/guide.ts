@@ -50,7 +50,15 @@ type GuideTrailInput = z.output<typeof guideTrailInputSchema>;
 // ---------------------------------------------------------------------------
 
 export const guideTrail = trail('guide', {
-  blaze: async (input: GuideTrailInput, ctx) =>
+  description: 'Runtime guidance for trails',
+  examples: [
+    {
+      description: 'Lists all trails with descriptions and example counts',
+      input: createIsolatedExampleInput('guide-list'),
+      name: 'List trail guidance',
+    },
+  ],
+  implementation: async (input: GuideTrailInput, ctx) =>
     withFreshOperatorApp<GuideTrailOutput>(input, ctx, ({ lease, rootDir }) => {
       if (input.trailId) {
         const detail = deriveCurrentTopoDetail(lease.app, input.trailId, {
@@ -76,14 +84,6 @@ export const guideTrail = trail('guide', {
         mode: 'list' as const,
       });
     }),
-  description: 'Runtime guidance for trails',
-  examples: [
-    {
-      description: 'Lists all trails with descriptions and example counts',
-      input: createIsolatedExampleInput('guide-list'),
-      name: 'List trail guidance',
-    },
-  ],
   input: guideTrailInputSchema,
   intent: 'read',
   output: z.discriminatedUnion('mode', [

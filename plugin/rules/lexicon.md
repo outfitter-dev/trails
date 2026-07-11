@@ -9,7 +9,7 @@ Use Trails-branded terms consistently. These are non-negotiable in code, docs, a
 | `trail` | handler, action, endpoint, route |
 | `compose` | cross, call, invoke, workflow, pipeline, chain, route (for composition) |
 | `topo` | registry, collection, manifest |
-| `blaze` | handler, impl, action body; do not rename the authored `blaze` field to run/execute |
+| `implementation` | handler, impl, action body; use the authored `implementation` field |
 | `surface` | serve, mount, start, wire up |
 | `surface accommodation` | surface workaround, alternate behavior, generic route vocabulary |
 | `surface entry` | endpoint, route, action (when cross-surface) |
@@ -30,9 +30,9 @@ Use Trails-branded terms consistently. These are non-negotiable in code, docs, a
 ## When Writing
 
 - The framework is "Trails" (capitalized). The primitive is "trail" (lowercase).
-- Lead with code: `trail()` -> `blaze:` -> `topo()` -> `surface()` before explaining.
-- Do not overextend the metaphor. "Define a trail" is good. "Blaze a path through the wilderness" is not.
-- Use `implementation` to clarify `blaze`, not to replace it as the concept. A blazed trail is a runnable contract.
+- Lead with code: `trail()` -> `implementation:` -> `topo()` -> `surface()` before explaining.
+- Do not overextend the metaphor. "Define a trail" is good. Decorative outdoor prose is not.
+- A trail with an `implementation` is a runnable contract. The runtime runs the trail through its shared execution pipeline.
 - Standard terms stay standard: `config`, `Result`, and `Error`.
 - `connector` is retired public taxonomy. Use `adapter` for a thin runtime-specific layer.
 - `resource` is a branded term: `resource()` defines a typed infrastructure dependency. Use `resources: [...]` on trail specs to declare dependencies. Do not use "resource" for generic helpers or utility classes.

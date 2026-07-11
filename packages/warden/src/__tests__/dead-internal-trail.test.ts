@@ -9,7 +9,7 @@ describe('dead-internal-trail', () => {
     const code = `
 trail('entity.sync', {
   visibility: 'internal',
-  blaze: async () => Result.ok({}),
+  implementation: async () => Result.ok({}),
 });
 `;
 
@@ -25,12 +25,12 @@ trail('entity.sync', {
     const code = `
 trail('entity.public', {
   composes: ['entity.sync'],
-  blaze: async (_input, ctx) => ctx.compose('entity.sync', {}),
+  implementation: async (_input, ctx) => ctx.compose('entity.sync', {}),
 });
 
 trail('entity.sync', {
   visibility: 'internal',
-  blaze: async () => Result.ok({}),
+  implementation: async () => Result.ok({}),
 });
 `;
 
@@ -41,7 +41,7 @@ trail('entity.sync', {
     const code = `
 trail('entity.sync', {
   visibility: 'internal',
-  blaze: async () => Result.ok({}),
+  implementation: async () => Result.ok({}),
 });
 `;
 
@@ -57,7 +57,7 @@ trail('entity.sync', {
     const code = `
 trail('entity.sync', {
   visibility: 'internal',
-  blaze: async () => Result.ok({}),
+  implementation: async () => Result.ok({}),
 });
 `;
 
@@ -79,12 +79,12 @@ trail('entity.sync', {
     const code = `
 const normalizeExportConstTrail = trail('regrade.literal.normalize-export-const', {
   visibility: 'internal',
-  blaze: async () => Result.ok({}),
+  implementation: async () => Result.ok({}),
 });
 
 const literalRegradeTrail = trail('regrade.literal.run', {
   composes: [normalizeExportConstTrail],
-  blaze: async (_input, ctx) => ctx.compose(normalizeExportConstTrail, {}),
+  implementation: async (_input, ctx) => ctx.compose(normalizeExportConstTrail, {}),
 });
 `;
 
@@ -105,7 +105,7 @@ const literalRegradeTrail = trail('regrade.literal.run', {
 trail('entity.audit', {
   visibility: 'internal',
   on: ['entity.created'],
-  blaze: async () => Result.ok({}),
+  implementation: async () => Result.ok({}),
 });
 `;
 
@@ -119,7 +119,7 @@ const activationSignals = ['entity.created', 'entity.updated'];
 trail('entity.audit', {
   visibility: 'internal',
   on: activationSignals,
-  blaze: async () => Result.ok({}),
+  implementation: async () => Result.ok({}),
 });
 `;
 

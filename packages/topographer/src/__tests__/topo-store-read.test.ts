@@ -116,8 +116,6 @@ const exampleApp = () => {
   });
 
   const entityAdd = trail('entity.add', {
-    blaze: (input: { readonly name: string }) =>
-      Result.ok({ id: input.name.toLowerCase(), ok: true }),
     description: 'Add a new entity',
     examples: [
       {
@@ -133,13 +131,14 @@ const exampleApp = () => {
         ],
       },
     ],
+    implementation: (input: { readonly name: string }) =>
+      Result.ok({ id: input.name.toLowerCase(), ok: true }),
     input: z.object({ name: z.string() }),
     output: z.object({ id: z.string(), ok: z.boolean() }),
     resources: [dbMain],
   });
 
   const entityList = trail('entity.list', {
-    blaze: noop,
     composes: ['entity.add'],
     description: 'List entities',
     /* oxlint-disable-next-line require-await -- test stub */
@@ -151,6 +150,7 @@ const exampleApp = () => {
       },
     ],
     idempotent: true,
+    implementation: noop,
     input: z.object({}),
     intent: 'read',
     output: z.object({ ok: z.boolean() }),
@@ -184,37 +184,37 @@ const signalBatchApp = () => {
   });
 
   const createTrail = trail('entity.create', {
-    blaze: noop,
     fires: ['entity.created', 'entity.updated'],
+    implementation: noop,
     input: z.object({}),
     output: z.object({ ok: z.boolean() }),
   });
   const updateTrail = trail('entity.update', {
-    blaze: noop,
     fires: [updated],
+    implementation: noop,
     input: z.object({}),
     output: z.object({ ok: z.boolean() }),
   });
   const deleteTrail = trail('entity.delete', {
-    blaze: noop,
     fires: [deleted],
+    implementation: noop,
     input: z.object({}),
     output: z.object({ ok: z.boolean() }),
   });
   const archiveTrail = trail('entity.archive', {
-    blaze: noop,
     fires: [archived],
+    implementation: noop,
     input: z.object({}),
     output: z.object({ ok: z.boolean() }),
   });
   const auditTrail = trail('entity.audit', {
-    blaze: noop,
+    implementation: noop,
     input: z.object({}),
     on: ['entity.created', 'entity.updated', 'entity.deleted'],
     output: z.object({ ok: z.boolean() }),
   });
   const indexTrail = trail('entity.index', {
-    blaze: noop,
+    implementation: noop,
     input: z.object({}),
     on: [created],
     output: z.object({ ok: z.boolean() }),
@@ -270,10 +270,10 @@ const graphAttachmentApp = () => {
     timezone: 'UTC',
   });
   const process = trail('entity.process', {
-    blaze: () => Result.ok({ ok: true }),
     contours: [entity],
     fields: { id: { hint: 'Entity id to process' } },
     fires: [created],
+    implementation: () => Result.ok({ ok: true }),
     input: z.object({ id: z.string() }),
     layers: [trailAudit],
     meta: { owner: 'core' },
@@ -781,13 +781,13 @@ describe('read-only topo store', () => {
       timezone: 'UTC',
     });
     const rebuild = trail('report.rebuild', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({}),
       on: [rebuildSchedule],
       output: z.object({ ok: z.boolean() }),
     });
     const prune = trail('report.prune', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({}),
       on: [pruneSchedule],
       output: z.object({ ok: z.boolean() }),
@@ -874,7 +874,6 @@ describe('read-only topo store', () => {
   test('defaults omitted detour maxAttempts to one in detailed views', async () => {
     const rootDir = makeRoot();
     const withDefaultDetour = trail('entity.with-default-detour', {
-      blaze: noop,
       /* oxlint-disable-next-line require-await -- test stub */
       detours: [
         {
@@ -882,6 +881,7 @@ describe('read-only topo store', () => {
           recover: async () => Result.ok(),
         },
       ],
+      implementation: noop,
       input: z.object({}),
     });
     const snapshot = await expectOk(

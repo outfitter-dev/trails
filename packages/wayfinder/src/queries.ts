@@ -1139,7 +1139,9 @@ const filteredErrorFacts = (
 };
 
 export const wayfindOverviewTrail = trail('wayfind.overview', {
-  blaze: async (input, ctx) =>
+  description: 'Summarize the saved Wayfinder topo graph',
+  examples: [{ input: {}, name: 'Overview' }],
+  implementation: async (input, ctx) =>
     withGraph(input, ctx.cwd, (loaded) => {
       const { graph } = loaded;
       return {
@@ -1164,8 +1166,6 @@ export const wayfindOverviewTrail = trail('wayfind.overview', {
               },
       };
     }),
-  description: 'Summarize the saved Wayfinder topo graph',
-  examples: [{ input: {}, name: 'Overview' }],
   input: sourceInputSchema,
   intent: 'read',
   output: envelopeSchema.extend({
@@ -1191,7 +1191,9 @@ export const wayfindOverviewTrail = trail('wayfind.overview', {
 });
 
 export const wayfindSearchTrail = trail('wayfind.search', {
-  blaze: async (input, ctx) =>
+  description: 'Find topo graph entities with typed filters',
+  examples: [{ input: { filters: { kind: 'trail' } }, name: 'Find trails' }],
+  implementation: async (input, ctx) =>
     withGraph(input, ctx.cwd, (loaded) => ({
       ...envelope(loaded),
       matches: resolveWayfinderPopulation(loaded.graph, {
@@ -1204,8 +1206,6 @@ export const wayfindSearchTrail = trail('wayfind.search', {
         ...(ref.versionKey === undefined ? {} : { versionKey: ref.versionKey }),
       })),
     })),
-  description: 'Find topo graph entities with typed filters',
-  examples: [{ input: { filters: { kind: 'trail' } }, name: 'Find trails' }],
   input: filteredInputSchema,
   intent: 'read',
   output: envelopeSchema.extend({
@@ -1215,7 +1215,9 @@ export const wayfindSearchTrail = trail('wayfind.search', {
 });
 
 export const wayfindTrailsTrail = trail('wayfind.trails', {
-  blaze: async (input, ctx) =>
+  description: 'List saved trail contracts',
+  examples: [{ input: {}, name: 'List trails' }],
+  implementation: async (input, ctx) =>
     withGraph(input, ctx.cwd, (loaded) => {
       const ids = filteredIds(
         loaded.graph,
@@ -1230,8 +1232,6 @@ export const wayfindTrailsTrail = trail('wayfind.trails', {
         ),
       };
     }),
-  description: 'List saved trail contracts',
-  examples: [{ input: {}, name: 'List trails' }],
   input: filteredInputSchema,
   intent: 'read',
   output: envelopeSchema.extend({
@@ -1241,7 +1241,9 @@ export const wayfindTrailsTrail = trail('wayfind.trails', {
 });
 
 export const wayfindContoursTrail = trail('wayfind.contours', {
-  blaze: async (input, ctx) =>
+  description: 'List saved contour contracts',
+  examples: [{ input: {}, name: 'List contours' }],
+  implementation: async (input, ctx) =>
     withGraph(input, ctx.cwd, (loaded) => {
       const ids = filteredIds(
         loaded.graph,
@@ -1256,8 +1258,6 @@ export const wayfindContoursTrail = trail('wayfind.contours', {
         ),
       };
     }),
-  description: 'List saved contour contracts',
-  examples: [{ input: {}, name: 'List contours' }],
   input: filteredInputSchema,
   intent: 'read',
   output: envelopeSchema.extend({
@@ -1267,7 +1267,9 @@ export const wayfindContoursTrail = trail('wayfind.contours', {
 });
 
 export const wayfindResourcesTrail = trail('wayfind.resources', {
-  blaze: async (input, ctx) =>
+  description: 'List saved resource contracts and usage',
+  examples: [{ input: {}, name: 'List resources' }],
+  implementation: async (input, ctx) =>
     withGraph(input, ctx.cwd, (loaded) => {
       const ids = filteredIds(
         loaded.graph,
@@ -1282,8 +1284,6 @@ export const wayfindResourcesTrail = trail('wayfind.resources', {
         ),
       };
     }),
-  description: 'List saved resource contracts and usage',
-  examples: [{ input: {}, name: 'List resources' }],
   input: filteredInputSchema,
   intent: 'read',
   output: envelopeSchema.extend({
@@ -1293,7 +1293,9 @@ export const wayfindResourcesTrail = trail('wayfind.resources', {
 });
 
 export const wayfindSignalsTrail = trail('wayfind.signals', {
-  blaze: async (input, ctx) =>
+  description: 'List saved signal contracts and graph usage',
+  examples: [{ input: {}, name: 'List signals' }],
+  implementation: async (input, ctx) =>
     withGraph(input, ctx.cwd, (loaded) => {
       const ids = filteredIds(
         loaded.graph,
@@ -1308,8 +1310,6 @@ export const wayfindSignalsTrail = trail('wayfind.signals', {
         ),
       };
     }),
-  description: 'List saved signal contracts and graph usage',
-  examples: [{ input: {}, name: 'List signals' }],
   input: filteredInputSchema,
   intent: 'read',
   output: envelopeSchema.extend({
@@ -1319,7 +1319,9 @@ export const wayfindSignalsTrail = trail('wayfind.signals', {
 });
 
 export const wayfindSurfacesTrail = trail('wayfind.surfaces', {
-  blaze: async (input, ctx) =>
+  description: 'List saved direct and trailhead-rendered surfaces',
+  examples: [{ input: {}, name: 'List surfaces' }],
+  implementation: async (input, ctx) =>
     withGraph(input, ctx.cwd, (loaded) => {
       const ids = filteredIds(
         loaded.graph,
@@ -1334,8 +1336,6 @@ export const wayfindSurfacesTrail = trail('wayfind.surfaces', {
         ),
       };
     }),
-  description: 'List saved direct and trailhead-rendered surfaces',
-  examples: [{ input: {}, name: 'List surfaces' }],
   input: filteredInputSchema,
   intent: 'read',
   output: envelopeSchema.extend({
@@ -1345,7 +1345,9 @@ export const wayfindSurfacesTrail = trail('wayfind.surfaces', {
 });
 
 export const wayfindTrailheadsTrail = trail('wayfind.trailheads', {
-  blaze: async (input, ctx) =>
+  description: 'List saved trailhead membership',
+  examples: [{ input: {}, name: 'List trailheads' }],
+  implementation: async (input, ctx) =>
     withGraph(input, ctx.cwd, (loaded) => {
       const ids = filteredIds(
         loaded.graph,
@@ -1360,8 +1362,6 @@ export const wayfindTrailheadsTrail = trail('wayfind.trailheads', {
         ),
       };
     }),
-  description: 'List saved trailhead membership',
-  examples: [{ input: {}, name: 'List trailheads' }],
   input: filteredInputSchema,
   intent: 'read',
   output: envelopeSchema.extend({
@@ -1371,7 +1371,9 @@ export const wayfindTrailheadsTrail = trail('wayfind.trailheads', {
 });
 
 export const wayfindVersionsTrail = trail('wayfind.versions', {
-  blaze: async (input, ctx) =>
+  description: 'List saved trail version contracts',
+  examples: [{ input: {}, name: 'List versions' }],
+  implementation: async (input, ctx) =>
     withGraph(input, ctx.cwd, (loaded) => ({
       ...envelope(loaded),
       versions: filteredVersionSummaries(
@@ -1380,8 +1382,6 @@ export const wayfindVersionsTrail = trail('wayfind.versions', {
         input.limit
       ),
     })),
-  description: 'List saved trail version contracts',
-  examples: [{ input: {}, name: 'List versions' }],
   input: filteredInputSchema,
   intent: 'read',
   output: envelopeSchema.extend({
@@ -1391,7 +1391,9 @@ export const wayfindVersionsTrail = trail('wayfind.versions', {
 });
 
 export const wayfindExamplesTrail = trail('wayfind.examples', {
-  blaze: async (input, ctx) =>
+  description: 'List saved examples without executing trails',
+  examples: [{ input: {}, name: 'List examples' }],
+  implementation: async (input, ctx) =>
     withGraph(input, ctx.cwd, (loaded) => ({
       ...envelope(loaded),
       examples: filteredExampleSummaries(
@@ -1400,8 +1402,6 @@ export const wayfindExamplesTrail = trail('wayfind.examples', {
         input.limit
       ),
     })),
-  description: 'List saved examples without executing trails',
-  examples: [{ input: {}, name: 'List examples' }],
   input: filteredInputSchema,
   intent: 'read',
   output: envelopeSchema.extend({
@@ -1411,13 +1411,13 @@ export const wayfindExamplesTrail = trail('wayfind.examples', {
 });
 
 export const wayfindErrorsTrail = trail('wayfind.errors', {
-  blaze: async (input, ctx) =>
+  description: 'List saved trail error facts with provenance',
+  examples: [{ input: {}, name: 'List trail error facts' }],
+  implementation: async (input, ctx) =>
     withGraph(input, ctx.cwd, (loaded) => ({
       ...envelope(loaded),
       errors: filteredErrorFacts(loaded.graph, input.filters, input.limit),
     })),
-  description: 'List saved trail error facts with provenance',
-  examples: [{ input: {}, name: 'List trail error facts' }],
   input: filteredInputSchema,
   intent: 'read',
   output: errorsOutputSchema,
@@ -1425,9 +1425,9 @@ export const wayfindErrorsTrail = trail('wayfind.errors', {
 });
 
 export const wayfindAdaptersTrail = trail('wayfind.adapters', {
-  blaze: (input, ctx) => filteredAdapterFacts(input, ctx.cwd),
   description: 'List adapter facts with package and conformance provenance',
   examples: [{ input: {}, name: 'List adapter facts' }],
+  implementation: (input, ctx) => filteredAdapterFacts(input, ctx.cwd),
   input: adapterFactsInputSchema,
   intent: 'read',
   output: adaptersOutputSchema,
@@ -1435,7 +1435,11 @@ export const wayfindAdaptersTrail = trail('wayfind.adapters', {
 });
 
 export const wayfindOverlayTrail = trail('wayfind.overlay', {
-  blaze: async (input, ctx) => {
+  description: 'Read a namespaced fact overlay from the saved graph',
+  examples: [
+    { input: { namespace: 'cloudflare' }, name: 'Read cloudflare lock facts' },
+  ],
+  implementation: async (input, ctx) => {
     const loaded = await loadGraph(input, ctx.cwd);
     if (loaded.isErr()) {
       return loaded;
@@ -1456,10 +1460,6 @@ export const wayfindOverlayTrail = trail('wayfind.overlay', {
       namespaces,
     });
   },
-  description: 'Read a namespaced fact overlay from the saved graph',
-  examples: [
-    { input: { namespace: 'cloudflare' }, name: 'Read cloudflare lock facts' },
-  ],
   input: overlayInputSchema,
   intent: 'read',
   output: envelopeSchema.extend({
@@ -1472,7 +1472,9 @@ export const wayfindOverlayTrail = trail('wayfind.overlay', {
 
 export const wayfindDescribeTrail = trail('wayfind.describe', {
   args: ['id'],
-  blaze: async (input, ctx) => {
+  description: 'Inspect one saved topo graph entity',
+  examples: [{ input: { id: 'user.create' }, name: 'Describe entity' }],
+  implementation: async (input, ctx) => {
     const loaded = await loadGraph(input, ctx.cwd);
     if (loaded.isErr()) {
       return loaded;
@@ -1486,8 +1488,6 @@ export const wayfindDescribeTrail = trail('wayfind.describe', {
     }
     return Result.ok({ ...envelope(loaded.value), entity: entity.value });
   },
-  description: 'Inspect one saved topo graph entity',
-  examples: [{ input: { id: 'user.create' }, name: 'Describe entity' }],
   input: inspectInputSchema,
   intent: 'read',
   output: describeOutputSchema,
@@ -1496,7 +1496,9 @@ export const wayfindDescribeTrail = trail('wayfind.describe', {
 
 export const wayfindContractTrail = trail('wayfind.contract', {
   args: ['id'],
-  blaze: async (input, ctx) => {
+  description: 'Inspect one saved input/output contract',
+  examples: [{ input: { id: 'user.create' }, name: 'Inspect contract' }],
+  implementation: async (input, ctx) => {
     const loaded = await loadGraph(input, ctx.cwd);
     if (loaded.isErr()) {
       return loaded;
@@ -1510,8 +1512,6 @@ export const wayfindContractTrail = trail('wayfind.contract', {
     }
     return Result.ok({ ...envelope(loaded.value), contract: contract.value });
   },
-  description: 'Inspect one saved input/output contract',
-  examples: [{ input: { id: 'user.create' }, name: 'Inspect contract' }],
   input: contractInputSchema,
   intent: 'read',
   output: contractOutputSchema,
@@ -1520,7 +1520,9 @@ export const wayfindContractTrail = trail('wayfind.contract', {
 
 export const wayfindNearbyTrail = trail('wayfind.nearby', {
   args: ['id'],
-  blaze: async (input, ctx) => {
+  description: 'Inspect direct graph relationships around one topo entity',
+  examples: [{ input: { id: 'user.create' }, name: 'Nearby graph context' }],
+  implementation: async (input, ctx) => {
     const loaded = await loadGraph(input, ctx.cwd);
     if (loaded.isErr()) {
       return loaded;
@@ -1547,8 +1549,6 @@ export const wayfindNearbyTrail = trail('wayfind.nearby', {
       target: resolved.value.target,
     });
   },
-  description: 'Inspect direct graph relationships around one topo entity',
-  examples: [{ input: { id: 'user.create' }, name: 'Nearby graph context' }],
   input: relationInputSchema,
   intent: 'read',
   output: nearbyOutputSchema,
@@ -1557,7 +1557,14 @@ export const wayfindNearbyTrail = trail('wayfind.nearby', {
 
 export const wayfindImpactTrail = trail('wayfind.impact', {
   args: ['id'],
-  blaze: async (input, ctx) => {
+  description: 'Traverse multi-hop graph impact from one topo entity',
+  examples: [
+    {
+      input: { direction: 'downstream', id: 'db.main', kind: 'resource' },
+      name: 'Resource impact',
+    },
+  ],
+  implementation: async (input, ctx) => {
     const impactInput = {
       ...input,
       direction: input.direction ?? 'downstream',
@@ -1591,13 +1598,6 @@ export const wayfindImpactTrail = trail('wayfind.impact', {
       target: resolved.value.target,
     });
   },
-  description: 'Traverse multi-hop graph impact from one topo entity',
-  examples: [
-    {
-      input: { direction: 'downstream', id: 'db.main', kind: 'resource' },
-      name: 'Resource impact',
-    },
-  ],
   input: impactInputSchema,
   intent: 'read',
   output: impactOutputSchema,
@@ -1605,7 +1605,14 @@ export const wayfindImpactTrail = trail('wayfind.impact', {
 });
 
 export const wayfindDiffTrail = trail('wayfind.diff', {
-  blaze: async (input, ctx) => {
+  description: 'Diff two saved Wayfinder topo graph artifacts',
+  examples: [
+    {
+      input: { againstDir: '.trails-baseline' },
+      name: 'Diff against saved artifacts',
+    },
+  ],
+  implementation: async (input, ctx) => {
     const baselineError = diffBaselineError(input);
     if (baselineError !== undefined) {
       return Result.err(baselineError);
@@ -1625,13 +1632,6 @@ export const wayfindDiffTrail = trail('wayfind.diff', {
       diff: diffResult(diff),
     });
   },
-  description: 'Diff two saved Wayfinder topo graph artifacts',
-  examples: [
-    {
-      input: { againstDir: '.trails-baseline' },
-      name: 'Diff against saved artifacts',
-    },
-  ],
   input: diffInputSchema,
   intent: 'read',
   output: diffOutputSchema,

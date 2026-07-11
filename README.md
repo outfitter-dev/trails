@@ -2,7 +2,7 @@
 
 **Define once. Surface everywhere.**
 
-Trails is a contract-first TypeScript framework. Define a trail — typed input, Result output, examples, intent, and a `blaze` that establishes how it runs — and the framework projects it onto CLI, MCP, HTTP, or WebSocket. One definition, every surface, zero drift.
+Trails is a contract-first TypeScript framework. Define a trail — typed input, Result output, examples, intent, and an `implementation` that establishes how it runs — and the framework projects it onto CLI, MCP, HTTP, or WebSocket. One definition, every surface, zero drift.
 
 Trails ships CLI, MCP, and HTTP surfaces today. WebSocket is part of the architecture and roadmap, but not yet built.
 
@@ -74,7 +74,7 @@ const show = trail('project.show', {
     { name: 'Found', input: { id: 'p_1' }, expected: { id: 'p_1', name: 'Acme' } },
     { name: 'Missing', input: { id: 'p_0' }, error: 'NotFoundError' },
   ],
-  blaze: async (input) => {
+  implementation: async (input) => {
     const project = await db.projects.findById(input.id);
     if (!project) return Result.err(new NotFoundError(`Project ${input.id} not found`));
     return Result.ok(project);
@@ -82,14 +82,14 @@ const show = trail('project.show', {
 });
 ```
 
-Same behavior, now established as a blazed trail. The framework derives:
+Same behavior, now captured as a runnable trail contract. The framework derives:
 
 - **CLI**: `myapp project show --id p_1` with `--help` text, exit code 2 for not-found
 - **MCP**: tool `myapp_project_show` with JSON Schema input, `readOnlyHint` annotation
 - **Tests**: both examples run as assertions — `testAll(graph)` validates the happy path and the error path
 - **Governance**: warden checks for throws, surface-specific imports in trail code, missing output schemas
 
-You authored the contract and blazed the trail. The framework did the rest.
+You authored the contract and implementation. The framework did the rest.
 
 ## What compounds
 
@@ -121,7 +121,7 @@ const greet = trail('greet', {
   input: z.object({ name: z.string().describe('Who to greet') }),
   output: z.object({ message: z.string() }),
   intent: 'read',
-  blaze: (input) => Result.ok({ message: `Hello, ${input.name}!` }),
+  implementation: (input) => Result.ok({ message: `Hello, ${input.name}!` }),
 });
 
 // 2. Collect into topo
@@ -129,7 +129,7 @@ const graph = topo('myapp', { greet });
 
 // 3. Open surfaces with any adapter
 await cliSurface(graph);      // CLI
-// await mcpSurface(graph);   // MCP — same blazed trails
+// await mcpSurface(graph);   // MCP — same runnable trails
 ```
 
 The same topo can be opened on HTTP today with `@ontrails/hono` or Bun-native `@ontrails/http/bun`. WebSocket follows the same peer-surface model, but is still planned.

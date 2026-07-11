@@ -42,7 +42,22 @@ const tripEntitySchema = z.object({
 });
 
 export const complete = trail('trip.complete', {
-  blaze: async (input, ctx) => {
+  description: 'Mark a trip as done',
+  examples: [
+    {
+      description: 'Completing a planned trip flips its status',
+      expectedMatch: { id: 'trip-lostcoast', status: 'done' },
+      input: { id: 'trip-lostcoast' },
+      name: 'Complete a planned trip',
+    },
+    {
+      description: 'Trips cannot be completed twice',
+      error: 'ValidationError',
+      input: { id: 'trip-done' },
+      name: 'Complete an already-done trip',
+    },
+  ],
+  implementation: async (input, ctx) => {
     const connection = db.from(ctx);
     const trip = await connection.trip.get(input.id);
     if (!trip) {
@@ -59,21 +74,6 @@ export const complete = trail('trip.complete', {
     }
     return Result.ok(updated);
   },
-  description: 'Mark a trip as done',
-  examples: [
-    {
-      description: 'Completing a planned trip flips its status',
-      expectedMatch: { id: 'trip-lostcoast', status: 'done' },
-      input: { id: 'trip-lostcoast' },
-      name: 'Complete a planned trip',
-    },
-    {
-      description: 'Trips cannot be completed twice',
-      error: 'ValidationError',
-      input: { id: 'trip-done' },
-      name: 'Complete an already-done trip',
-    },
-  ],
   input: z.object({
     id: z.string().describe('Trip id to complete'),
   }),
@@ -92,7 +92,27 @@ const checklistRowSchema = z.object({
 });
 
 export const checklist = trail('trip.checklist', {
-  blaze: async (input, ctx) => {
+  composes: ['pack.read', 'gear.list'],
+  description: 'Build the packing checklist for a trip from its pack',
+  examples: [
+    {
+      description: 'Checklist rows join pack items with current gear',
+      expectedMatch: {
+        packName: 'Weekend Loop',
+        totalWeightGrams: 2020,
+        tripName: 'Lost Coast',
+      },
+      input: { id: 'trip-lostcoast' },
+      name: 'Checklist for a planned trip',
+    },
+    {
+      description: 'Unknown trip ids report not found',
+      error: 'NotFoundError',
+      input: { id: 'trip-missing' },
+      name: 'Checklist for a missing trip',
+    },
+  ],
+  implementation: async (input, ctx) => {
     const connection = db.from(ctx);
     const trip = await connection.trip.get(input.id);
     if (!trip) {
@@ -138,26 +158,6 @@ export const checklist = trail('trip.checklist', {
       tripName: trip.name,
     });
   },
-  composes: ['pack.read', 'gear.list'],
-  description: 'Build the packing checklist for a trip from its pack',
-  examples: [
-    {
-      description: 'Checklist rows join pack items with current gear',
-      expectedMatch: {
-        packName: 'Weekend Loop',
-        totalWeightGrams: 2020,
-        tripName: 'Lost Coast',
-      },
-      input: { id: 'trip-lostcoast' },
-      name: 'Checklist for a planned trip',
-    },
-    {
-      description: 'Unknown trip ids report not found',
-      error: 'NotFoundError',
-      input: { id: 'trip-missing' },
-      name: 'Checklist for a missing trip',
-    },
-  ],
   input: z.object({
     id: z.string().describe('Trip id to build a checklist for'),
   }),

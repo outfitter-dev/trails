@@ -14,7 +14,7 @@ import {
 
 trail('entity.load', {
   composes: ['entity.fetch'],
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const fetched = await ctx.compose('entity.fetch', input);
     if (fetched.isErr()) {
       return Result.err(fetched.error);
@@ -47,7 +47,7 @@ const parseInput = (): ResultType<{ readonly id: string }, Error> =>
   Result.err(new Error('bad'));
 
 trail('entity.load', {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const parsed = parseInput();
     if (parsed.isErr()) {
       return Result.err(parsed.error);
@@ -72,7 +72,7 @@ import {
 
 trail('entity.load', {
   composes: ['entity.fetch'],
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const fetched = await ctx.compose('entity.fetch', input);
     if (fetched.isErr()) {
       return fetched;
@@ -95,7 +95,7 @@ import {
 
 trail('entity.load', {
   composes: ['entity.fetch'],
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const fetched = await ctx.compose('entity.fetch', input);
     if (fetched.isErr()) {
       return Result.err(new InternalError(fetched.error.message));
@@ -116,7 +116,7 @@ import {
 } from '@ontrails/core';
 
 trail('entity.load', {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const response = await fetch(input.url);
     if (!response.ok) {
       return Result.err(response.error);
@@ -138,7 +138,7 @@ import {
 
 trail('entity.load', {
   composes: ['entity.fetch'],
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     let fetched = await ctx.compose('entity.fetch', input);
     fetched = { error: new Error('different') };
     return Result.err(fetched.error);
@@ -158,7 +158,7 @@ import {
 
 trail('entity.load', {
   composes: ['entity.fetch'],
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const fetched = { error: new Error('plain') };
     if (input.fetch) {
       const fetched = await ctx.compose('entity.fetch', input);
@@ -183,7 +183,7 @@ import {
 
 trail('entity.load', {
   composes: ['entity.fetch'],
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const fetched = await ctx.compose('entity.fetch', input);
     if (input.local) {
       const fetched = { error: new Error('plain') };
@@ -217,7 +217,7 @@ const parseInput = (): ResultType<{ readonly id: string }, Error> =>
   Result.err(new Error('bad'));
 
 trail('entity.load', {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const parseInput = () => ({ error: new Error('plain') });
     const parsed = parseInput();
     return Result.err(parsed.error);
@@ -239,7 +239,7 @@ import type {
 } from '@ontrails/core';
 
 trail('entity.load', {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const parseInput = (): ResultType<{ readonly id: string }, Error> =>
       Result.err(new Error('bad'));
     const parsed = parseInput();
@@ -263,7 +263,7 @@ import {
 
 trail('entity.load', {
   composes: ['entity.fetch'],
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const fetched = await ctx.compose('entity.fetch', input);
     input.items.map(() => {
       return Result.err(fetched.error);
@@ -276,7 +276,7 @@ trail('entity.load', {
     expect(noRedundantResultErrorWrap.check(code, TEST_FILE)).toEqual([]);
   });
 
-  test('flags Result.err(result.error) in non-blaze Result helpers', () => {
+  test('flags Result.err(result.error) in non-implementation Result helpers', () => {
     const code = `
 import {
   Result

@@ -8,7 +8,7 @@ import type { Implementation } from './types.js';
 // ---------------------------------------------------------------------------
 
 /**
- * A composable, named layer that wraps blazes.
+ * A composable, named layer that wraps implementations.
  *
  * Layers attach at trail, surface, or topo scope and may declare an object
  * `input` schema describing the configuration they need from the surrounding

@@ -54,8 +54,8 @@ type CrudOutput = z.infer<typeof crudOutputSchema>;
 const baseCrudSpec = (
   resourceValue: AnyResource
 ): TrailSpec<CrudInput, CrudOutput> => ({
-  blaze: () => Result.ok({ ok: true }),
   description: 'synthetic crud trail',
+  implementation: () => Result.ok({ ok: true }),
   input: crudInputSchema,
   output: crudOutputSchema,
   resources: [resourceValue],

@@ -273,7 +273,32 @@ const probeDetours: readonly Detour<
 // ---------------------------------------------------------------------------
 
 export const runProbe = trail('probe.run', {
-  blaze: async (input, ctx) => {
+  description:
+    'Probe one check: transient failures recover through detours, resolved probes record a row and move the derived check state. Fires probe.failed on up→down and probe.recovered on down→up.',
+  detours: probeDetours,
+  examples: [
+    {
+      description: 'A healthy endpoint resolves up on the first attempt',
+      expectedMatch: {
+        attempts: 1,
+        checkId: 'chk_steady',
+        failureReason: null,
+        outcome: 'up',
+        state: 'up',
+        transition: 'none',
+      },
+      input: { checkId: 'chk_steady' },
+      name: 'Probe an up check',
+    },
+    {
+      description: 'Unknown check ids return NotFoundError',
+      error: 'NotFoundError',
+      input: { checkId: 'chk_missing' },
+      name: 'Probe a missing check',
+    },
+  ],
+  fires: [probeFailed, probeRecovered],
+  implementation: async (input, ctx) => {
     const check = await db.from(ctx).checks.get(input.checkId);
     if (!check) {
       return Result.err(
@@ -309,31 +334,6 @@ export const runProbe = trail('probe.run', {
     }
     return final;
   },
-  description:
-    'Probe one check: transient failures recover through detours, resolved probes record a row and move the derived check state. Fires probe.failed on up→down and probe.recovered on down→up.',
-  detours: probeDetours,
-  examples: [
-    {
-      description: 'A healthy endpoint resolves up on the first attempt',
-      expectedMatch: {
-        attempts: 1,
-        checkId: 'chk_steady',
-        failureReason: null,
-        outcome: 'up',
-        state: 'up',
-        transition: 'none',
-      },
-      input: { checkId: 'chk_steady' },
-      name: 'Probe an up check',
-    },
-    {
-      description: 'Unknown check ids return NotFoundError',
-      error: 'NotFoundError',
-      input: { checkId: 'chk_missing' },
-      name: 'Probe a missing check',
-    },
-  ],
-  fires: [probeFailed, probeRecovered],
   input: probeRunInputSchema,
   intent: 'write',
   output: probeRunOutputSchema,
@@ -346,7 +346,17 @@ export const runProbe = trail('probe.run', {
 // ---------------------------------------------------------------------------
 
 export const probeHistory = trail('probe.history', {
-  blaze: async (input, ctx) => {
+  description:
+    'Probe history for one check, newest first, windowed and paginated.',
+  examples: [
+    {
+      description: 'A fresh check has no probe history yet',
+      expected: { probes: [], total: 0 },
+      input: { checkId: 'chk_steady' },
+      name: 'Empty history',
+    },
+  ],
+  implementation: async (input, ctx) => {
     const all = await db.from(ctx).probes.list({ checkId: input.checkId });
     const cutoff =
       input.sinceHours === undefined
@@ -360,16 +370,6 @@ export const probeHistory = trail('probe.history', {
       total: windowed.length,
     });
   },
-  description:
-    'Probe history for one check, newest first, windowed and paginated.',
-  examples: [
-    {
-      description: 'A fresh check has no probe history yet',
-      expected: { probes: [], total: 0 },
-      input: { checkId: 'chk_steady' },
-      name: 'Empty history',
-    },
-  ],
   input: z.object({
     checkId: z.string().describe('Check id'),
     limit: z
@@ -406,7 +406,18 @@ export const probeHistory = trail('probe.history', {
 // ---------------------------------------------------------------------------
 
 export const pruneProbes = trail('probe.prune', {
-  blaze: async (input, ctx) => {
+  description:
+    'Reconcile stored probe volume against the retention cap, pruning the oldest rows per check.',
+  dryRun: true,
+  examples: [
+    {
+      description: 'Nothing to prune when history is within retention',
+      expected: { dryRun: false, removed: 0 },
+      input: {},
+      name: 'Prune within retention',
+    },
+  ],
+  implementation: async (input, ctx) => {
     const store = db.from(ctx);
     const checks = await store.checks.list();
     let removed = 0;
@@ -424,17 +435,6 @@ export const pruneProbes = trail('probe.prune', {
     }
     return Result.ok({ dryRun: ctx.dryRun === true, removed });
   },
-  description:
-    'Reconcile stored probe volume against the retention cap, pruning the oldest rows per check.',
-  dryRun: true,
-  examples: [
-    {
-      description: 'Nothing to prune when history is within retention',
-      expected: { dryRun: false, removed: 0 },
-      input: {},
-      name: 'Prune within retention',
-    },
-  ],
   input: z.object({
     keepPerCheck: z
       .number()

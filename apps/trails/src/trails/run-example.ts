@@ -439,7 +439,15 @@ type RunExampleTrailInput = z.output<typeof runExampleTrailInputSchema>;
 
 export const runExampleTrail = trail('run.example', {
   args: ['id', 'exampleName'],
-  blaze: async (input: RunExampleTrailInput, ctx) =>
+  description: 'Run a named example on a trail and compare actual vs expected',
+  examples: [
+    {
+      description: 'Run a named example on a target trail',
+      input: buildHappyExampleInput(),
+      name: 'Run named example',
+    },
+  ],
+  implementation: async (input: RunExampleTrailInput, ctx) =>
     withOperatorRootDir(input, ctx, async (rootDir) => {
       const moduleResolution = await resolveRunModulePath(
         rootDir,
@@ -460,14 +468,6 @@ export const runExampleTrail = trail('run.example', {
         )
       );
     }),
-  description: 'Run a named example on a trail and compare actual vs expected',
-  examples: [
-    {
-      description: 'Run a named example on a target trail',
-      input: buildHappyExampleInput(),
-      name: 'Run named example',
-    },
-  ],
   input: runExampleTrailInputSchema,
   intent: 'write',
   output: runExampleComparisonSchema,

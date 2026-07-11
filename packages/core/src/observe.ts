@@ -28,7 +28,7 @@ export interface TopoOptions {
    * Layers declared here wrap every trail invoked through this topo, on every
    * surface. The execution pipeline composes topo-scope layers outermost —
    * around surface-scope and trail-scope layers — so the final order is
-   * `topo → surface → trail → blaze` (outermost-first).
+   * `topo → surface → trail → implementation` (outermost-first).
    */
   readonly layers?: readonly Layer[] | undefined;
 }

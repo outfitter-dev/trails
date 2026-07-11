@@ -17,7 +17,7 @@ const auditLogged = signal('audit.logged', { payload: z.object({}) });
 const t = trail('onboard', {
   fires: [entityCreated, auditLogged],
   input: z.object({ name: z.string() }),
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     await ctx.fire(entityCreated, { name: input.name });
     await ctx.fire(auditLogged, { actor: input.name });
     return Result.ok({});
@@ -36,7 +36,7 @@ const declaredSignal = signal('declared.signal', { payload: z.object({}) });
 trail('optionalChain', {
   fires: [declaredSignal],
   input: z.object({ name: z.string() }),
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     await ctx.fire?.(declaredSignal, { name: input.name });
     return Result.ok({});
   },
@@ -54,7 +54,7 @@ trail('optionalChain', {
       const code = `
 trail('simple', {
   input: z.object({ name: z.string() }),
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     return Result.ok({ greeting: 'hello ' + input.name });
   },
 });
@@ -72,7 +72,7 @@ trail('simple', {
 const entityCreated = signal('entity.created', { payload: z.object({}) });
 trail('onboard', {
   input: z.object({ name: z.string() }),
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     await ctx.fire(entityCreated, { name: input.name });
     return Result.ok({});
   },
@@ -93,7 +93,7 @@ trail('onboard', {
 trail('onboard', {
   fires: ['entity.created'],
   input: z.object({ name: z.string() }),
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     await ctx.fire('entity.created', { name: input.name });
     return Result.ok({});
   },
@@ -118,7 +118,7 @@ const entityCreated = signal('entity.created', { payload: z.object({}) });
 const auditLogged = signal('audit.logged', { payload: z.object({}) });
 trail('onboard', {
   fires: [entityCreated, auditLogged],
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     await ctx.fire(entityCreated, { name: input.name });
     return Result.ok({});
   },
@@ -138,14 +138,14 @@ trail('onboard', {
   });
 
   describe('single-object overload', () => {
-    test('recognizes trail({ id, fires, blaze }) form', () => {
+    test('recognizes trail({ id, fires, implementation }) form', () => {
       const code = `
 const entityCreated = signal('entity.created', { payload: z.object({}) });
 trail({
   id: 'onboard',
   fires: [entityCreated],
   input: z.object({ name: z.string() }),
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     await ctx.fire(entityCreated, { name: input.name });
     return Result.ok({});
   },
@@ -163,7 +163,7 @@ const entityCreated = signal('entity.created', { payload: z.object({}) });
 trail({
   id: 'onboard',
   input: z.object({ name: z.string() }),
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     await ctx.fire(entityCreated, { name: input.name });
     return Result.ok({});
   },
@@ -185,7 +185,7 @@ const entityCreated = signal('entity.created', { payload: z.object({}) });
 trail('onboard', {
   fires: [entityCreated],
   input: z.object({ name: z.string() }),
-  blaze: async (input, context) => {
+  implementation: async (input, context) => {
     await context.fire(entityCreated, { name: input.name });
     return Result.ok({});
   },
@@ -197,11 +197,11 @@ trail('onboard', {
       expect(diagnostics.length).toBe(0);
     });
 
-    test('blaze with no second parameter: unrelated closure ctx.fire is not tracked', () => {
+    test('implementation with no second parameter: unrelated closure ctx.fire is not tracked', () => {
       const code = `
 const ctx = { fire: (_: string) => {} };
 trail('noCtxParam', {
-  blaze: async (input) => {
+  implementation: async (input) => {
     ctx.fire('closure.signal');
     return Result.ok({});
   },
@@ -209,7 +209,7 @@ trail('noCtxParam', {
 `;
 
       const diagnostics = firesDeclarations.check(code, TEST_FILE);
-      // The blaze has no context parameter, so `ctx` in the body refers to
+      // The implementation has no context parameter, so `ctx` in the body refers to
       // some unrelated closure identifier, not a trail context. It must not
       // be tracked — no diagnostics.
       expect(diagnostics.length).toBe(0);
@@ -221,7 +221,7 @@ const declared = signal('declared.id', { payload: z.object({}) });
 const ctx = { fire: (_: string) => {} };
 trail('customCtx', {
   fires: [declared],
-  blaze: async (input, c) => {
+  implementation: async (input, c) => {
     await c.fire(declared, {});
     ctx.fire('whatever');
     return Result.ok({});
@@ -242,7 +242,7 @@ const declared = signal('declared.id', { payload: z.object({}) });
 const undeclared = signal('undeclared.id', { payload: z.object({}) });
 trail('customCtxUndeclared', {
   fires: [declared],
-  blaze: async (input, c) => {
+  implementation: async (input, c) => {
     await c.fire(undeclared, {});
     return Result.ok({});
   },
@@ -263,7 +263,7 @@ const entityCreated = signal('entity.created', { payload: z.object({}) });
 trail('onboard', {
   fires: [entityCreated],
   input: z.object({ name: z.string() }),
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const { fire } = ctx;
     await fire(entityCreated, { name: input.name });
     return Result.ok({});
@@ -278,14 +278,14 @@ trail('onboard', {
   });
 
   describe('nested run false positives', () => {
-    test('meta.blaze with phantom fire does not trigger false positives', () => {
+    test('meta.implementation with phantom fire does not trigger false positives', () => {
       const code = `
 const entityCreated = signal('entity.created', { payload: z.object({}) });
 trail('onboard', {
   fires: [entityCreated],
   input: z.object({ name: z.string() }),
-  meta: { blaze: async () => ctx.fire('phantom') },
-  blaze: async (input, ctx) => {
+  meta: { implementation: async () => ctx.fire('phantom') },
+  implementation: async (input, ctx) => {
     await ctx.fire(entityCreated, { name: input.name });
     return Result.ok({});
   },
@@ -306,7 +306,7 @@ const ENTITY_CREATED = 'entity.created';
 trail('onboard', {
   fires: [ENTITY_CREATED],
   input: z.object({ name: z.string() }),
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     await ctx.fire(entityCreated, { name: input.name });
     return Result.ok({});
   },
@@ -325,7 +325,7 @@ trail('onboard', {
 const entityCreated = signal('entity.created', { payload: z.object({}) });
 trail('dispatch', {
   fires: ['entity.created'],
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const signalId = input.target;
     await ctx.fire(signalId, input);
     await ctx.fire(entityCreated, input);
@@ -345,14 +345,14 @@ const sharedSignal = signal('shared.signal', { payload: z.object({}) });
 const undeclaredSignal = signal('undeclared.signal', { payload: z.object({}) });
 trail('alpha', {
   fires: [sharedSignal],
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     await ctx.fire(sharedSignal, input);
     return Result.ok({});
   },
 });
 
 trail('beta', {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     await ctx.fire(undeclaredSignal, input);
     return Result.ok({});
   },
@@ -370,7 +370,7 @@ trail('beta', {
     test('skips test files', () => {
       const code = `
 trail('onboard', {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     await ctx.fire('entity.created', input);
     return Result.ok({});
   },
@@ -391,7 +391,7 @@ const declaredOnly = signal('declared.only', { payload: z.object({}) });
 const calledOnly = signal('called.only', { payload: z.object({}) });
 trail('mixed', {
   fires: [declaredOnly],
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     await ctx.fire(calledOnly, input);
     return Result.ok({});
   },
@@ -418,7 +418,7 @@ import {
 const fire = (x: number) => x * 2;
 const t = trail('calc', {
   input: z.object({ n: z.number() }),
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const doubled = fire(input.n);
     return Result.ok({ doubled });
   },
@@ -436,7 +436,7 @@ const t = trail('calc', {
 const entityCreated = signal('entity.created', { payload: z.object({}) });
 trail('onboard', {
   fires: [entityCreated],
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const { fire } = ctx;
     await fire(entityCreated, { name: input.name });
     return Result.ok({});
@@ -447,10 +447,10 @@ trail('onboard', {
       const diagnostics = firesDeclarations.check(code, TEST_FILE);
       expect(diagnostics.length).toBe(0);
     });
-    test('nested-scope destructure does not leak to outer blaze scope', () => {
+    test('nested-scope destructure does not leak to outer implementation scope', () => {
       const code = `
 trail('outer', {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     function nested() {
       const { fire } = ctx;
       return fire;
@@ -471,7 +471,7 @@ trail('outer', {
       const code = `
 const undeclared = signal('undeclared.signal', { payload: z.object({}) });
 trail('tracked', {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const { fire } = ctx;
     await fire(undeclared, {});
     return Result.ok({});
@@ -488,7 +488,7 @@ trail('tracked', {
     test('nested function parameter shadowing fire is not flagged', () => {
       const code = `
 trail('shadowFire', {
-  blaze: async (_, ctx) => {
+  implementation: async (_, ctx) => {
     const { fire } = ctx;
     function nested(fire) {
       fire('shadow.only');
@@ -508,7 +508,7 @@ trail('shadowFire', {
     test('nested function parameter shadowing ctx is not flagged', () => {
       const code = `
 trail('shadowCtx', {
-  blaze: async (_, ctx) => {
+  implementation: async (_, ctx) => {
     function nested(ctx) {
       ctx.fire('shadow.ctx');
     }
@@ -527,7 +527,7 @@ trail('shadowCtx', {
 const declaredSignal = signal('declared.signal', { payload: z.object({}) });
 trail('regression', {
   fires: [declaredSignal],
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     await ctx.fire(declaredSignal, {});
     return Result.ok({});
   },
@@ -541,7 +541,7 @@ trail('regression', {
     test('let { fire: emit } = ctx is not tracked (precision tradeoff)', () => {
       const code = `
 trail('letDestructure', {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     let { fire: emit } = ctx;
     emit('some.id');
     return Result.ok({});
@@ -561,7 +561,7 @@ trail('letDestructure', {
 const entityCreated = signal('entity.created', { payload: z.object({}) });
 trail('onboard', {
   fires: [entityCreated],
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const { fire: emit } = ctx;
     await emit(entityCreated, { name: input.name });
     return Result.ok({});
@@ -585,7 +585,7 @@ import {
 const orderPlaced = signal('order.placed', { payload: z.object({}) });
 trail('checkout', {
   fires: [orderPlaced],
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     await ctx.fire(orderPlaced, {});
     return Result.ok({});
   },
@@ -609,7 +609,7 @@ import {
 const auditLogged = signal('audit.logged', { payload: z.object({}) });
 trail('checkout', {
   fires: [orderPlaced],
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     await ctx.fire(auditLogged, {});
     return Result.ok({});
   },
@@ -636,7 +636,7 @@ import {
 } from './signals';
 trail('checkout', {
   fires: [orderPlaced],
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     await ctx.fire(orderPlaced, {});
     return Result.ok({});
   },
@@ -658,7 +658,7 @@ const orderPlaced = signal('order.placed', { payload: z.object({}) });
 const auditLogged = signal('audit.logged', { payload: z.object({}) });
 trail('checkout', {
   fires: ['audit.logged', orderPlaced],
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     await ctx.fire(orderPlaced, {});
     await ctx.fire(auditLogged, {});
     return Result.ok({});
@@ -670,7 +670,7 @@ trail('checkout', {
       expect(diagnostics.length).toBe(0);
     });
 
-    test('fires array resolves module-scope signal when blaze shadows the name', () => {
+    test('fires array resolves module-scope signal when implementation shadows the name', () => {
       const code = `
 import {
   Result,
@@ -680,7 +680,7 @@ import {
 const orderPlaced = signal('order.placed', { payload: z.object({}) });
 trail('checkout', {
   fires: [orderPlaced],
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const orderPlaced = signal('audit.logged', { payload: z.object({}) });
     await ctx.fire(orderPlaced, {});
     return Result.ok({});
@@ -711,7 +711,7 @@ import {
 } from './signals';
 trail('checkout', {
   fires: [orderPlaced],
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const orderPlaced = signal('audit.logged', { payload: z.object({}) });
     await ctx.fire(orderPlaced, {});
     return Result.ok({});
@@ -738,7 +738,7 @@ import {
 const orderPlaced = signal('order.placed', { payload: z.object({}) });
 trail('checkout', {
   fires: [orderPlaced],
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const orderPlaced = input.target;
     await ctx.fire(orderPlaced, {});
     return Result.ok({});
@@ -761,7 +761,7 @@ describe('fires-declarations helper-scoped blind spots', () => {
     const code = `
 trail('nestedLegit', {
   fires: ['legitimate.signal'],
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const runLater = () => ctx.fire('legitimate.signal', {});
     runLater();
     return Result.ok({});
@@ -788,7 +788,7 @@ trail('nestedLegit', {
     const code = `
 trail('nestedDestructure', {
   fires: ['helper.signal'],
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const runLater = () => {
       const { fire } = ctx;
       return fire('helper.signal', {});

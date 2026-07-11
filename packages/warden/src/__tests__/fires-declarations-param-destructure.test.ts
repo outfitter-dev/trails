@@ -10,7 +10,7 @@ describe('fires-declarations — parameter-level destructure', () => {
 const entityCreated = signal('entity.created', { payload: z.object({}) });
 trail('paramDestructure', {
   fires: [entityCreated],
-  blaze: async (input, { fire }) => {
+  implementation: async (input, { fire }) => {
     await fire(entityCreated, { name: input.name });
     return Result.ok({});
   },
@@ -25,7 +25,7 @@ trail('paramDestructure', {
     const code = `
 const undeclaredSignal = signal('undeclared.signal', { payload: z.object({}) });
 trail('paramDestructureUndeclared', {
-  blaze: async (input, { fire }) => {
+  implementation: async (input, { fire }) => {
     await fire(undeclaredSignal, { name: input.name });
     return Result.ok({});
   },
@@ -42,7 +42,7 @@ trail('paramDestructureUndeclared', {
     const code = `
 const undeclaredRenamed = signal('undeclared.renamed', { payload: z.object({}) });
 trail('paramRename', {
-  blaze: async (input, { fire: emit }) => {
+  implementation: async (input, { fire: emit }) => {
     await emit(undeclaredRenamed, { name: input.name });
     return Result.ok({});
   },

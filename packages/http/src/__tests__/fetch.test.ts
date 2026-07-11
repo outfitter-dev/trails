@@ -34,35 +34,35 @@ afterEach(() => {
 });
 
 const echoTrail = trail('echo', {
-  blaze: (input) => Result.ok({ reply: input.message }),
+  implementation: (input) => Result.ok({ reply: input.message }),
   input: z.object({ message: z.string() }),
   intent: 'read',
   output: z.object({ reply: z.string() }),
 });
 
 const tagsTrail = trail('tags', {
-  blaze: (input) => Result.ok({ tags: input.tags }),
+  implementation: (input) => Result.ok({ tags: input.tags }),
   input: z.object({ tags: z.array(z.string()) }),
   intent: 'read',
   output: z.object({ tags: z.array(z.string()) }),
 });
 
 const echoBodyTrail = trail('echo.body', {
-  blaze: (input) => Result.ok({ length: input.message.length }),
+  implementation: (input) => Result.ok({ length: input.message.length }),
   input: z.object({ message: z.string() }),
   intent: 'write',
   output: z.object({ length: z.number() }),
 });
 
 const genericErrorTrail = trail('generic.error', {
-  blaze: () => Result.err(new Error('database password=secret')),
+  implementation: () => Result.err(new Error('database password=secret')),
   input: z.object({}),
   intent: 'read',
   output: z.object({ ok: z.boolean() }),
 });
 
 const protectedTrail = trail('permit.scope', {
-  blaze: (_input, ctx) =>
+  implementation: (_input, ctx) =>
     Result.ok({
       permitId: ctx.permit?.id,
       requestId: ctx.requestId,
@@ -87,7 +87,7 @@ const paymentWebhook = webhook('webhook.payment.received', {
 });
 
 const paymentWebhookTrail = trail('payment.receive', {
-  blaze: (input) => Result.ok({ paymentId: input.paymentId }),
+  implementation: (input) => Result.ok({ paymentId: input.paymentId }),
   input: z.object({ paymentId: z.string() }),
   on: [paymentWebhook],
   output: z.object({ paymentId: z.string() }),
@@ -290,7 +290,7 @@ describe('@ontrails/http/fetch', () => {
     let observedHeader: string | null | undefined;
     let observedSignalAborted: boolean | undefined;
     const abortingTrail = trail('abort.check', {
-      blaze: (_input, ctx) => {
+      implementation: (_input, ctx) => {
         observedSignalAborted = ctx.abortSignal.aborted;
         return Result.ok({ aborted: ctx.abortSignal.aborted });
       },
@@ -452,7 +452,7 @@ describe('BlobRef byte serving (TRL-1192)', () => {
   const fileBytes = new TextEncoder().encode('raw file bytes');
 
   const fileRawTrail = trail('file.raw', {
-    blaze: (input) =>
+    implementation: (input) =>
       input.name === 'missing.txt'
         ? Result.err(new NotFoundError('No such file'))
         : Result.ok(
@@ -485,7 +485,7 @@ describe('BlobRef byte serving (TRL-1192)', () => {
 
   test('streams ReadableStream blob data', async () => {
     const streamTrail = trail('file.stream', {
-      blaze: () =>
+      implementation: () =>
         Result.ok(
           createBlobRef({
             data: new Response(fileBytes).body ?? new ReadableStream(),
@@ -548,7 +548,7 @@ describe('webhook ingress v2 (TRL-1194)', () => {
   });
 
   const receiveTrail = trail('ingress.receive', {
-    blaze: (input) =>
+    implementation: (input) =>
       Result.ok({
         endpoint: input.endpoint,
         headerNames: Object.keys(input.headers).toSorted(),
@@ -667,7 +667,7 @@ describe('webhook ingress v2 (TRL-1194)', () => {
       },
     });
     const verifiedTrail = trail('verified.receive', {
-      blaze: (input) => Result.ok({ endpoint: input.endpoint }),
+      implementation: (input) => Result.ok({ endpoint: input.endpoint }),
       input: z.object({ endpoint: z.string(), rawBody: z.string() }),
       on: [verifiedWebhook],
       output: z.object({ endpoint: z.string() }),

@@ -44,13 +44,13 @@ await run(graph, 'user.create', { name: 'alice' });
 // sink.records() now contains a root TraceRecord for the execution
 ```
 
-### 3. Manual spans inside a blaze
+### 3. Manual spans inside an implementation
 
 Use `ctx.trace(label, fn)` to record nested spans for substeps:
 
 ```typescript
 export const processUser = trail('user.process', {
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const user = await ctx.trace('load-user', async () => {
       return await db.users.get(input.userId);
     });
@@ -73,7 +73,7 @@ import { tracingResource } from '@ontrails/tracing';
 
 export const checkStatus = trail('status.check', {
   resources: [tracingResource],
-  blaze: (_input, ctx) => {
+  implementation: (_input, ctx) => {
     const state = tracingResource.from(ctx);
     return Result.ok({
       active: state.active,

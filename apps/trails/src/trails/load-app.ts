@@ -75,7 +75,7 @@ const getImportScanner = (loader: TranspilerLoader): Bun.Transpiler => {
  * @remarks
  * A fresh-loaded module may expose functions whose deferred relative imports
  * are resolved only when those functions run (for example inside a trail's
- * `blaze`). If we deleted the mirror tree immediately after the initial
+ * `implementation`). If we deleted the mirror tree immediately after the initial
  * `import()` resolved, those later resolutions would hit an ENOENT. We keep
  * the mirrors on disk and clean them up once, on process exit.
  */
@@ -964,7 +964,7 @@ const mirrorFreshImportGraph = async (
  * filesystem imports are mirrored into the fresh temp root. The mirror tree
  * is retained for the lifetime of the process so that deferred relative
  * `import()`/`require()` calls originating from the loaded module (e.g.
- * inside a trail's `blaze`) can still resolve. If the graph walk itself
+ * inside a trail's `implementation`) can still resolve. If the graph walk itself
  * fails, the partially-written mirror is removed immediately so failed
  * loads do not leak disk space.
  */

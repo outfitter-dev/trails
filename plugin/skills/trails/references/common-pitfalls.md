@@ -1,15 +1,15 @@
 # Common Pitfalls
 
-## 1. Throwing in blazes
+## 1. Throwing in implementations
 
 **Symptom:** Unhandled exception crashes the surface adapter. Stack trace instead of structured error.
 
-**Why it's wrong:** Blazes must return `Result`, never throw. Surfaces expect `Result.ok` or `Result.err` — a thrown exception bypasses error mapping, exit codes, and serialization.
+**Why it's wrong:** Implementations must return `Result`, never throw. Surfaces expect `Result.ok` or `Result.err` — a thrown exception bypasses error mapping, exit codes, and serialization.
 
 **Fix:** Wrap risky code with try/catch and return `Result.err`:
 
 ```typescript
-blaze: async (input) => {
+implementation: async (input) => {
   try {
     const data = await fetchExternal(input.url);
     return Result.ok(data);
@@ -21,15 +21,15 @@ blaze: async (input) => {
 
 ## 2. Importing surface types
 
-**Symptom:** Blaze depends on `Request`, `Response`, `McpSession`, or `process`.
+**Symptom:** The implementation depends on `Request`, `Response`, `McpSession`, or `process`.
 
-**Why it's wrong:** Blazes must be surface-agnostic. Importing surface types couples logic to a specific surface and breaks portability.
+**Why it's wrong:** Implementations must be surface-agnostic. Importing surface types couples logic to a specific surface and breaks portability.
 
-**Fix:** Keep blazes pure: `(input, ctx) => Result`. Access surface-specific features through `ctx` only.
+**Fix:** Keep implementations pure: `(input, ctx) => Result`. Access surface-specific features through `ctx` only.
 
-## 3. Calling .blaze() directly
+## 3. Calling .implementation() directly
 
-**Symptom:** Tests or composite trails call `myTrail.blaze(input)` and skip validation, layers, and tracing.
+**Symptom:** Tests or composite trails call `myTrail.implementation(input)` and skip validation, layers, and tracing.
 
 **Why it's wrong:** Direct calls bypass the framework pipeline. Input isn't validated, layers don't run, and traces aren't recorded.
 
@@ -71,7 +71,7 @@ input: z.object({
 
 **Why it's wrong:** A trail's `composes` array must match the actual `ctx.compose()` calls. The warden enforces this to prevent undeclared dependencies and dead declarations.
 
-**Fix:** Keep `composes` in sync with the blaze. If you add or remove a `ctx.compose()` call, update `composes`:
+**Fix:** Keep `composes` in sync with the implementation. If you add or remove a `ctx.compose()` call, update `composes`:
 
 ```typescript
 import { trail } from '@ontrails/core';
@@ -80,7 +80,7 @@ import { userWelcome } from './user-welcome.js';
 
 trail('onboard', {
   composes: [userCreate, userWelcome], // must match ctx.compose() calls
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const user = await ctx.compose(userCreate, input);
     if (user.isErr()) return user;
     return ctx.compose(userWelcome, { userId: user.value.id });
@@ -97,7 +97,7 @@ trail('onboard', {
 **Fix:** Use `ctx.logger` for debug output:
 
 ```typescript
-blaze: async (input, ctx) => {
+implementation: async (input, ctx) => {
   ctx.logger?.debug('Processing', { input });
   // ...
 }
@@ -129,7 +129,7 @@ const db = resource('db.main', {
 // Declare and access
 const search = trail('search', {
   resources: [db],
-  blaze: async (input, ctx) => {
+  implementation: async (input, ctx) => {
     const conn = db.from(ctx);
     // ...
   },
@@ -173,6 +173,6 @@ const api = resource('api.client', {
 
 **Symptom:** Test expects synchronous execution but gets a pending Promise.
 
-**Why it's wrong:** Even synchronous blazes are awaited at runtime. The framework normalizes all blazes uniformly.
+**Why it's wrong:** Even synchronous implementations are awaited at runtime. The framework normalizes all implementations uniformly.
 
-**Fix:** Always `await` trail results in tests. Use `testTrail(myTrail, input)` instead of calling `.blaze()` directly.
+**Fix:** Always `await` trail results in tests. Use `testTrail(myTrail, input)` instead of calling `.implementation()` directly.

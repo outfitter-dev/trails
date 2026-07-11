@@ -106,7 +106,7 @@ describe('config.check trail', () => {
         schema,
       };
       const ctx = buildCtx(state);
-      const result = await configCheck.blaze({ values: {} }, ctx);
+      const result = await configCheck.implementation({ values: {} }, ctx);
 
       expect(result.isOk()).toBe(true);
       const value = result.unwrap();
@@ -124,7 +124,7 @@ describe('config.check trail', () => {
         schema,
       };
       const ctx = buildCtx(state);
-      const result = await configCheck.blaze({ values: {} }, ctx);
+      const result = await configCheck.implementation({ values: {} }, ctx);
 
       expect(result.isOk()).toBe(true);
       const value = result.unwrap();
@@ -142,7 +142,10 @@ describe('config.check trail', () => {
         schema,
       };
       const ctx = buildCtx(state);
-      const result = await configCheck.blaze({ values: { port: 8080 } }, ctx);
+      const result = await configCheck.implementation(
+        { values: { port: 8080 } },
+        ctx
+      );
 
       expect(result.isOk()).toBe(true);
       const value = result.unwrap();
@@ -161,7 +164,7 @@ describe('config.check trail', () => {
         schema,
       };
       const ctx = buildCtx(state);
-      const result = await configCheck.blaze({ values: {} }, ctx);
+      const result = await configCheck.implementation({ values: {} }, ctx);
 
       expect(result.isOk()).toBe(true);
       const apiKey = result.unwrap().fields.find((f) => f.path === 'apiKey');
@@ -191,7 +194,7 @@ describe('config.check trail', () => {
         schema,
       };
       const ctx = buildCtx(state);
-      const result = await configCheck.blaze({ values: {} }, ctx);
+      const result = await configCheck.implementation({ values: {} }, ctx);
 
       expect(result.isOk()).toBe(true);
       const apiKey = result.unwrap().fields.find((f) => f.path === 'apiKey');
@@ -214,7 +217,7 @@ describe('config.check trail', () => {
         schema,
       };
       const ctx = buildCtx(state);
-      const result = await configCheck.blaze({ values: {} }, ctx);
+      const result = await configCheck.implementation({ values: {} }, ctx);
 
       expect(result.isOk()).toBe(true);
       const { fields } = result.unwrap();
@@ -253,7 +256,7 @@ describe('config.check trail', () => {
         schema,
       };
       const ctx = buildCtx(state);
-      const result = await configCheck.blaze({ values: {} }, ctx);
+      const result = await configCheck.implementation({ values: {} }, ctx);
 
       expect(result.isOk()).toBe(true);
       const { fields } = result.unwrap();
@@ -298,7 +301,7 @@ describe('config.check trail', () => {
         schema,
       };
       const ctx = buildCtx(state);
-      const result = await configCheck.blaze({ values: {} }, ctx);
+      const result = await configCheck.implementation({ values: {} }, ctx);
 
       expect(result.isOk()).toBe(true);
       const { fields } = result.unwrap();
@@ -337,7 +340,7 @@ describe('config.check trail', () => {
         schema,
       };
       const ctx = buildCtx(state);
-      const result = await configCheck.blaze(
+      const result = await configCheck.implementation(
         { values: { db: { port: 6543 } } },
         ctx
       );
@@ -367,7 +370,7 @@ describe('config.check trail', () => {
         schema,
       };
       const ctx = buildCtx(state);
-      const result = await configCheck.blaze({ values: {} }, ctx);
+      const result = await configCheck.implementation({ values: {} }, ctx);
 
       expect(result.isOk()).toBe(true);
       const defaults = result

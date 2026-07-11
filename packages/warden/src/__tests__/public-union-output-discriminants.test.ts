@@ -18,7 +18,7 @@ const buildTrail = <TOutput>(
   } = {}
 ) =>
   trail(id, {
-    blaze: () => Result.ok(undefined as TOutput),
+    implementation: () => Result.ok(undefined as TOutput),
     input: emptyInput,
     output,
     ...options,

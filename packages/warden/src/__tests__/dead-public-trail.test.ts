@@ -8,7 +8,7 @@ describe('dead-public-trail', () => {
   test('warns when an exported public trail is not topo-registered, composed, or activated', () => {
     const code = `
 export const regradeReportTrail = trail('regrade.downstream.report', {
-  blaze: async () => Result.ok({}),
+  implementation: async () => Result.ok({}),
 });
 `;
 
@@ -32,7 +32,7 @@ export const regradeReportTrail = trail('regrade.downstream.report', {
   test('stays quiet when the exported public trail is registered in a configured topo', () => {
     const code = `
 export const operatorTrail = trail('regrade', {
-  blaze: async () => Result.ok({}),
+  implementation: async () => Result.ok({}),
 });
 `;
 
@@ -47,7 +47,7 @@ export const operatorTrail = trail('regrade', {
   test('stays quiet when another trail composes the exported public trail', () => {
     const code = `
 export const packageTrail = trail('package.report', {
-  blaze: async () => Result.ok({}),
+  implementation: async () => Result.ok({}),
 });
 `;
 
@@ -63,7 +63,7 @@ export const packageTrail = trail('package.report', {
   test('stays quiet for unexported local public helpers', () => {
     const code = `
 const helperTrail = trail('package.helper', {
-  blaze: async () => Result.ok({}),
+  implementation: async () => Result.ok({}),
 });
 `;
 
@@ -78,7 +78,7 @@ const helperTrail = trail('package.helper', {
   test('warns when a local public trail is exported through a named specifier', () => {
     const code = `
 const packageTrail = trail('package.report', {
-  blaze: async () => Result.ok({}),
+  implementation: async () => Result.ok({}),
 });
 
 export { packageTrail as regradeReportTrail };
@@ -104,7 +104,7 @@ export { packageTrail as regradeReportTrail };
   test('warns when a local public trail is exported as default by identifier', () => {
     const code = `
 const packageTrail = trail('package.report', {
-  blaze: async () => Result.ok({}),
+  implementation: async () => Result.ok({}),
 });
 
 export default packageTrail;
@@ -130,7 +130,7 @@ export default packageTrail;
   test('stays quiet without topo context', () => {
     const code = `
 export const packageTrail = trail('package.report', {
-  blaze: async () => Result.ok({}),
+  implementation: async () => Result.ok({}),
 });
 `;
 

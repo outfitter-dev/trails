@@ -30,7 +30,8 @@ const toDoctorSummaryError = (error: unknown): InternalError =>
     : new InternalError(`Unable to derive doctor summary: ${String(error)}`);
 
 export const doctorTrail = trail('doctor', {
-  blaze: async (input, ctx) =>
+  description: 'Diagnose trail versioning lifecycle state',
+  implementation: async (input, ctx) =>
     withLifecycleApp(input, ctx.cwd, async (app, rootDir) => {
       const forceGraph = await readDoctorForceGraph(rootDir);
       try {
@@ -45,7 +46,6 @@ export const doctorTrail = trail('doctor', {
         return Result.err(toDoctorSummaryError(error));
       }
     }),
-  description: 'Diagnose trail versioning lifecycle state',
   input: z.object({
     module: z.string().optional().describe('Path to the app module'),
     rootDir: z.string().optional().describe('Workspace root directory'),

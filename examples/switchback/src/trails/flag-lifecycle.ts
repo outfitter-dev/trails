@@ -25,8 +25,6 @@ const setEnabled = async (
 };
 
 export const enable = trail('flag.enable', {
-  blaze: async (input, ctx) =>
-    setEnabled(flagsResource.from(ctx), input.key, true),
   description: 'Enable a flag so its rules apply; idempotent',
   examples: [
     {
@@ -45,6 +43,8 @@ export const enable = trail('flag.enable', {
     },
   ],
   idempotent: true,
+  implementation: async (input, ctx) =>
+    setEnabled(flagsResource.from(ctx), input.key, true),
   input: z.object({
     key: z.string().describe('Flag key to enable'),
   }),
@@ -54,8 +54,6 @@ export const enable = trail('flag.enable', {
 });
 
 export const disable = trail('flag.disable', {
-  blaze: async (input, ctx) =>
-    setEnabled(flagsResource.from(ctx), input.key, false),
   description:
     'Disable a flag so it always serves its default value; idempotent',
   examples: [
@@ -73,6 +71,8 @@ export const disable = trail('flag.disable', {
     },
   ],
   idempotent: true,
+  implementation: async (input, ctx) =>
+    setEnabled(flagsResource.from(ctx), input.key, false),
   input: z.object({
     key: z.string().describe('Flag key to disable'),
   }),

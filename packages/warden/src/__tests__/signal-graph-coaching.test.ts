@@ -21,14 +21,14 @@ const invoiceCreated = signal('invoice.created', {
 });
 
 const invoiceProducer = trail('invoice.create', {
-  blaze: () => Result.ok({ invoiceId: 'inv_1' }),
   fires: [invoiceCreated],
+  implementation: () => Result.ok({ invoiceId: 'inv_1' }),
   input: z.object({}),
   output: z.object({ invoiceId: z.string() }),
 });
 
 const invoiceConsumer = trail('invoice.index', {
-  blaze: () => Result.ok({ ok: true }),
+  implementation: () => Result.ok({ ok: true }),
   input: z.object({ invoiceId: z.string() }),
   on: [invoiceCreated],
   output: z.object({ ok: z.boolean() }),

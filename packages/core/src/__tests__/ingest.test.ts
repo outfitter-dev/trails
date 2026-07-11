@@ -45,7 +45,7 @@ const createConsumer = (
   source = paymentCompleted
 ) =>
   trail(id, {
-    blaze: (input) => {
+    implementation: (input) => {
       capture.payloads.push(input);
       return Result.ok({ ok: true });
     },

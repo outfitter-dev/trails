@@ -5,10 +5,6 @@ import { flagValueSchema } from '../model.js';
 import { auditResource } from '../resources/audit.js';
 
 export const list = trail('audit.list', {
-  blaze: (_input, ctx) => {
-    const audit = auditResource.from(ctx);
-    return Result.ok({ entries: audit.list() });
-  },
   description:
     'List the in-memory demo log of bootstrap payloads served by flag.evaluate-all',
   examples: [
@@ -19,6 +15,10 @@ export const list = trail('audit.list', {
       name: 'Empty audit log',
     },
   ],
+  implementation: (_input, ctx) => {
+    const audit = auditResource.from(ctx);
+    return Result.ok({ entries: audit.list() });
+  },
   input: z.object({}),
   intent: 'read',
   output: z.object({

@@ -11,7 +11,7 @@ const output = z.object({ ok: z.boolean() });
 
 const buildTrail = (id: string) =>
   trail(id, {
-    blaze: () => Result.ok({ ok: true }),
+    implementation: () => Result.ok({ ok: true }),
     input: z.object({}),
     output,
   });

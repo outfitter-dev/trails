@@ -85,14 +85,6 @@ const createOverrideStore = () => {
 const mockDbResource = createDbResource();
 
 const mockedTrail = trail('resource.mocked.all', {
-  blaze: async (_input, ctx) => {
-    const entity = await mockDbResource.from(ctx).entities.get('seed-1');
-    if (entity === null) {
-      return Result.err(new Error('expected seeded entity to exist'));
-    }
-
-    return Result.ok({ name: entity.name, source: entity.source });
-  },
   description:
     'Trail that uses a mocked adapter-bound resource through testAll',
   examples: [
@@ -102,20 +94,20 @@ const mockedTrail = trail('resource.mocked.all', {
       name: 'Uses auto-resolved resource mock',
     },
   ],
+  implementation: async (_input, ctx) => {
+    const entity = await mockDbResource.from(ctx).entities.get('seed-1');
+    if (entity === null) {
+      return Result.err(new Error('expected seeded entity to exist'));
+    }
+
+    return Result.ok({ name: entity.name, source: entity.source });
+  },
   input: z.object({}),
   output: z.object({ name: z.string(), source: z.string() }),
   resources: [mockDbResource],
 });
 
 const overrideTrail = trail('resource.override.all', {
-  blaze: async (_input, ctx) => {
-    const entity = await mockDbResource.from(ctx).entities.get('seed-1');
-    if (entity === null) {
-      return Result.err(new Error('expected overridden entity to exist'));
-    }
-
-    return Result.ok({ name: entity.name, source: entity.source });
-  },
   description: 'Trail that prefers explicit overrides over mock factories',
   examples: [
     {
@@ -124,6 +116,14 @@ const overrideTrail = trail('resource.override.all', {
       name: 'Explicit resource override wins',
     },
   ],
+  implementation: async (_input, ctx) => {
+    const entity = await mockDbResource.from(ctx).entities.get('seed-1');
+    if (entity === null) {
+      return Result.err(new Error('expected overridden entity to exist'));
+    }
+
+    return Result.ok({ name: entity.name, source: entity.source });
+  },
   input: z.object({}),
   output: z.object({ name: z.string(), source: z.string() }),
   resources: [mockDbResource],
@@ -146,26 +146,25 @@ const contourFixture = contour(
   }
 );
 
-const contourDerivedBlaze = mock(() =>
+const contourDerivedImplementation = mock(() =>
   Result.ok(requireContourExample(contourFixture, 0))
 );
 
 const contourDerivedTrail = trail('contour.derived.all', {
-  blaze: () => contourDerivedBlaze(),
   contours: [contourFixture],
   description: 'Trail that relies on contour-derived fixtures inside testAll',
+  implementation: () => contourDerivedImplementation(),
   input: z.object({ id: contourFixture.shape.id }),
   output: contourFixture,
 });
 
-const versionAllCurrentBlaze = mock((input: { name: string }) =>
+const versionAllCurrentImplementation = mock((input: { name: string }) =>
   Result.ok({ message: `current:${input.name}` })
 );
-const versionAllForkBlaze = mock((input: { code: string }) =>
+const versionAllForkImplementation = mock((input: { code: string }) =>
   Result.ok({ message: `fork:${input.code}` })
 );
 const versionedAllTrail = trail('versioned.all', {
-  blaze: (input: { name: string }) => versionAllCurrentBlaze(input),
   examples: [
     {
       expected: { message: 'current:Ada' },
@@ -173,6 +172,8 @@ const versionedAllTrail = trail('versioned.all', {
       name: 'Current version example',
     },
   ],
+  implementation: (input: { name: string }) =>
+    versionAllCurrentImplementation(input),
   input: z.object({ name: z.string() }),
   output: z.object({ message: z.string() }),
   version: 5,
@@ -195,7 +196,6 @@ const versionedAllTrail = trail('versioned.all', {
       },
     },
     2: {
-      blaze: (input: { code: string }) => versionAllForkBlaze(input),
       examples: [
         {
           expected: { message: 'fork:beta' },
@@ -203,6 +203,8 @@ const versionedAllTrail = trail('versioned.all', {
           name: 'Deprecated fork version example',
         },
       ],
+      implementation: (input: { code: string }) =>
+        versionAllForkImplementation(input),
       input: z.object({ code: z.string() }),
       output: z.object({ message: z.string() }),
       status: { note: 'Use the current version.', state: 'deprecated' },
@@ -251,7 +253,7 @@ import { ${helperName} } from '${helperImport}';
 import { z } from 'zod';
 
 const draftTrail = trail('_draft.entity.prepare', {
-  blaze: async () => Result.ok({ ok: true }),
+  implementation: async () => Result.ok({ ok: true }),
   input: z.object({}),
   output: z.object({ ok: z.boolean() }),
 });
@@ -293,7 +295,7 @@ import { testAllEstablished } from '../../src/all-established.ts';
 import { z } from 'zod';
 
 const show = trail('entity.show', {
-  blaze: async (input) => Result.ok({ name: input.name }),
+  implementation: async (input) => Result.ok({ name: input.name }),
   examples: [
     {
       expected: { name: 'Alpha' },
@@ -371,7 +373,7 @@ describe('testAll contour-derived fixtures', () => {
   );
 
   afterAll(() => {
-    expect(contourDerivedBlaze).toHaveBeenCalledTimes(2);
+    expect(contourDerivedImplementation).toHaveBeenCalledTimes(2);
   });
 });
 
@@ -380,8 +382,8 @@ describe('testAll version entries', () => {
   testAll(topo('test-all-versioned-app', { versionedAllTrail }));
 
   afterAll(() => {
-    expect(versionAllCurrentBlaze).toHaveBeenCalledTimes(4);
-    expect(versionAllForkBlaze).toHaveBeenCalledTimes(2);
+    expect(versionAllCurrentImplementation).toHaveBeenCalledTimes(4);
+    expect(versionAllForkImplementation).toHaveBeenCalledTimes(2);
   });
 });
 

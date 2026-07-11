@@ -43,13 +43,13 @@ The left side is where the world calls in -- CLI commands, MCP tool calls, HTTP 
 
 ## Core Principles
 
-**The trail is the product, not the surface.** A trail is a typed contract with a Zod schema, `Result` output, error taxonomy, examples, metadata, and a `blaze` that establishes how it runs. CLI commands, MCP tools, HTTP endpoints, and plain TypeScript library functions are projections of that trail onto surfaces.
+**The trail is the product, not the surface.** A trail is a typed contract with a Zod schema, `Result` output, error taxonomy, examples, metadata, and an `implementation` that establishes how it runs. CLI commands, MCP tools, HTTP endpoints, and plain TypeScript library functions are projections of that trail onto surfaces.
 
 **Drift is structurally harder than alignment.** One schema, one `Result` type, one error taxonomy. You cannot have different parameter names across surfaces because there is only one schema.
 
 **Surfaces are peers.** No surface is privileged. CLI, MCP, HTTP, library, and WebSocket are all equal adapters reading from the same topo. CLI, MCP, HTTP, and library ship today; WebSocket is still planned. Adding a surface is a `surface()` call, not an architecture change.
 
-**Blazes are pure functions.** Input in, `Result` out. No `process.exit()`, no `console.log()`, no `req.headers`. The blaze does not know which surface invoked it. Authoring can be sync or async; runtime execution is normalized to one awaitable shape before layers and surfaces run the blazed trail.
+**Implementations are pure functions.** Input in, `Result` out. No `process.exit()`, no `console.log()`, no `req.headers`. The implementation does not know which surface invoked it. Authoring can be sync or async; runtime execution is normalized to one awaitable shape before layers and surfaces run the trail.
 
 **The framework defines ports -- everything concrete is an adapter.** CLI framework (Commander, yargs), logging backend (LogTape, pino), storage engine, telemetry exporter -- all pluggable. The framework never imports a concrete implementation.
 
@@ -71,7 +71,7 @@ These are the creative contributions. They can't be derived because they don't e
 | Contour schemas, identities, and examples | The domain nodes your trails operate on |
 | Safety properties: `intent`, `idempotent` | Behavioral assertions about intent |
 | Examples (input plus expected result or error) | Concrete specifications of behavior |
-| The `blaze` | The authored behavior that establishes how the trail runs |
+| The `implementation` | The authored behavior that establishes how the trail runs |
 | Trail ID (`entity.show`) | Your domain hierarchy and naming |
 
 ### Projected — mechanically derived, guaranteed correct
@@ -90,24 +90,24 @@ These are deterministic transformations from authored information. If the input 
 
 ### Enforced — constrained by the type system
 
-These are boundaries the compiler enforces on the blaze at development time.
+These are boundaries the compiler enforces on the implementation at development time.
 
 | Declaration | What it constrains |
 | --- | --- |
-| `output: z.object({...})` | Blaze return type must match the schema shape |
-| `Result<T, Error>` | Blaze cannot throw — must return `Result.ok()` or `Result.err()` |
-| `TrailContext` interface | Blaze receives only the fields the framework provides |
+| `output: z.object({...})` | Implementation return type must match the schema shape |
+| `Result<T, Error>` | Implementation cannot throw — must return `Result.ok()` or `Result.err()` |
+| `TrailContext` interface | Implementation receives only the fields the framework provides |
 | `composes: [...]` on trails | Declares the composition graph; trail objects give typed `ctx.compose()` — warden verifies calls match |
 | `composeInput: z.object({...})` | Composition-only input merged for `ctx.compose()`, invisible to public surfaces |
 | `resources: [...]` on trails | Declares infrastructure dependencies; warden verifies `resource.from(ctx)` / `ctx.resource()` usage match |
 
 ### Inferred — detected by static analysis, best-effort
 
-These are derived from blaze code itself. Useful for governance and documentation, but not compiler-guaranteed.
+These are derived from implementation code itself. Useful for governance and documentation, but not compiler-guaranteed.
 
 | Inferred                     | From                                       |
 | ---------------------------- | ------------------------------------------ |
-| Which trails a trail composes | `ctx.compose()` calls in the blaze |
+| Which trails a trail composes | `ctx.compose()` calls in the implementation |
 | Error types returned | `Result.err(new XError(...))` patterns |
 | TopoGraph entries and lock metadata | All of the above, canonicalized into root `trails.lock` |
 
@@ -230,7 +230,7 @@ CLI input ("myapp entity show --name Alpha")
   -> TrailContext created (requestId, logger, abortSignal, env, cwd)
   -> Declared resources resolved into ctx
   -> Execution layers run (auth, rate limit, telemetry)
-  -> blaze(validatedInput, ctx) entered
+  -> implementation(validatedInput, ctx) entered
   -> Result returned
   -> Execution layers post-process
   -> Result mapped to exit code + stdout output
@@ -244,7 +244,7 @@ MCP tool call ({ name: "myapp_entity_show", arguments: { name: "Alpha" } })
   -> Zod validates input
   -> TrailContext created
   -> Declared resources resolved into ctx
-  -> Same blaze(validatedInput, ctx) entered
+  -> Same implementation(validatedInput, ctx) entered
   -> Same Result returned
   -> Result mapped to MCP tool response
 ```
@@ -258,12 +258,12 @@ HTTP request (GET /entity/show?name=Alpha)
   -> Zod validates input (query params for GET, JSON body for POST/DELETE)
   -> TrailContext created
   -> Declared resources resolved into ctx
-  -> Same blaze(validatedInput, ctx) entered
+  -> Same implementation(validatedInput, ctx) entered
   -> Same Result returned
   -> Result mapped to JSON response with status code from error taxonomy
 ```
 
-The blazed trail is identical. Only the edges change.
+The runnable trail is identical. Only the edges change.
 
 ### Headless Execution via `run()`
 
@@ -288,7 +288,7 @@ executeTrail(trail, rawInput, options?)
   -> TrailContext resolved from options/createContext
   -> Declared resources resolved into ctx
   -> Execution layers composed via composeLayers()
-  -> blaze(validatedInput, ctx) entered
+  -> implementation(validatedInput, ctx) entered
   -> Result returned
 ```
 

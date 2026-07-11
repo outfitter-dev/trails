@@ -729,16 +729,6 @@ const surveyMatchOutput = z.discriminatedUnion('kind', [
 
 export const surveyTrail = trail('survey', {
   args: ['id'],
-  blaze: async (input, ctx) =>
-    withResolvedSurveyApp(input, ctx.cwd, (app, rootDir, overlays) =>
-      dispatchSurvey(
-        app,
-        input,
-        rootDir,
-        overlays,
-        readSurfaceLayerNamesFromContext(ctx)
-      )
-    ),
   description: 'Full topo introspection',
   examples: [
     {
@@ -752,6 +742,16 @@ export const surveyTrail = trail('survey', {
       name: 'Lookup by ID',
     },
   ],
+  implementation: async (input, ctx) =>
+    withResolvedSurveyApp(input, ctx.cwd, (app, rootDir, overlays) =>
+      dispatchSurvey(
+        app,
+        input,
+        rootDir,
+        overlays,
+        readSurfaceLayerNamesFromContext(ctx)
+      )
+    ),
   input: z.object({
     id: z
       .string()
@@ -809,10 +809,6 @@ export const surveyTrail = trail('survey', {
 });
 
 export const surveyBriefTrail = trail('survey.brief', {
-  blaze: async (input, ctx) =>
-    withResolvedSurveyApp(input, ctx.cwd, (app, rootDir) =>
-      Result.ok(deriveCurrentTopoBrief(app, { rootDir }))
-    ),
   description: 'Summarize topo capabilities',
   examples: [
     {
@@ -821,16 +817,16 @@ export const surveyBriefTrail = trail('survey.brief', {
       name: 'Brief capability report',
     },
   ],
+  implementation: async (input, ctx) =>
+    withResolvedSurveyApp(input, ctx.cwd, (app, rootDir) =>
+      Result.ok(deriveCurrentTopoBrief(app, { rootDir }))
+    ),
   input: moduleInputSchema,
   intent: 'read',
   output: briefReportSchema,
 });
 
 export const surveySurfacesTrail = trail('survey.surfaces', {
-  blaze: async (input, ctx) =>
-    withResolvedSurveyApp(input, ctx.cwd, (app) =>
-      buildSurveySurfaceInventory(app)
-    ),
   description: 'Inventory shipped surface projections',
   examples: [
     {
@@ -839,6 +835,10 @@ export const surveySurfacesTrail = trail('survey.surfaces', {
       name: 'Shipped surface inventory',
     },
   ],
+  implementation: async (input, ctx) =>
+    withResolvedSurveyApp(input, ctx.cwd, (app) =>
+      buildSurveySurfaceInventory(app)
+    ),
   input: moduleInputSchema,
   intent: 'read',
   output: shippedSurfaceInventoryOutput,
@@ -846,10 +846,6 @@ export const surveySurfacesTrail = trail('survey.surfaces', {
 
 export const surveyDiffTrail = trail('survey.diff', {
   args: ['target'],
-  blaze: async (input, ctx) =>
-    withResolvedSurveyApp(input, ctx.cwd, (app, rootDir) =>
-      buildSurveyDiff(app, rootDir, input)
-    ),
   description: 'Diff the current topo against a saved TopoGraph',
   examples: [
     {
@@ -883,6 +879,10 @@ export const surveyDiffTrail = trail('survey.diff', {
       name: 'Reject empty breaking-only target',
     },
   ],
+  implementation: async (input, ctx) =>
+    withResolvedSurveyApp(input, ctx.cwd, (app, rootDir) =>
+      buildSurveyDiff(app, rootDir, input)
+    ),
   input: diffInputSchema,
   intent: 'read',
   output: diffOutput,
@@ -890,16 +890,6 @@ export const surveyDiffTrail = trail('survey.diff', {
 
 export const surveyTrailDetailTrail = trail('survey.trail', {
   args: ['id'],
-  blaze: async (input, ctx) =>
-    withResolvedSurveyApp(input, ctx.cwd, (app, rootDir, overlays) =>
-      buildSurveyTrailDetail(
-        app,
-        input.id,
-        rootDir,
-        overlays,
-        readSurfaceLayerNamesFromContext(ctx)
-      )
-    ),
   description: 'Inspect one trail by ID',
   examples: [
     {
@@ -911,6 +901,16 @@ export const surveyTrailDetailTrail = trail('survey.trail', {
       name: 'Trail detail',
     },
   ],
+  implementation: async (input, ctx) =>
+    withResolvedSurveyApp(input, ctx.cwd, (app, rootDir, overlays) =>
+      buildSurveyTrailDetail(
+        app,
+        input.id,
+        rootDir,
+        overlays,
+        readSurfaceLayerNamesFromContext(ctx)
+      )
+    ),
   input: detailInputSchema,
   intent: 'read',
   output: trailDetailOutput,
@@ -918,10 +918,6 @@ export const surveyTrailDetailTrail = trail('survey.trail', {
 
 export const surveyResourceTrail = trail('survey.resource', {
   args: ['id'],
-  blaze: async (input, ctx) =>
-    withResolvedSurveyApp(input, ctx.cwd, (app, rootDir) =>
-      buildSurveyResourceDetail(app, input.id, rootDir)
-    ),
   description: 'Inspect one resource by ID',
   examples: [
     {
@@ -934,6 +930,10 @@ export const surveyResourceTrail = trail('survey.resource', {
       name: 'Resource detail',
     },
   ],
+  implementation: async (input, ctx) =>
+    withResolvedSurveyApp(input, ctx.cwd, (app, rootDir) =>
+      buildSurveyResourceDetail(app, input.id, rootDir)
+    ),
   input: detailInputSchema,
   intent: 'read',
   output: resourceDetailOutput,
@@ -941,10 +941,6 @@ export const surveyResourceTrail = trail('survey.resource', {
 
 export const surveySignalTrail = trail('survey.signal', {
   args: ['id'],
-  blaze: async (input, ctx) =>
-    withResolvedSurveyApp(input, ctx.cwd, (app, rootDir) =>
-      buildSurveySignalDetail(app, input.id, rootDir)
-    ),
   description: 'Inspect one signal by ID',
   examples: [
     {
@@ -957,6 +953,10 @@ export const surveySignalTrail = trail('survey.signal', {
       name: 'Signal detail',
     },
   ],
+  implementation: async (input, ctx) =>
+    withResolvedSurveyApp(input, ctx.cwd, (app, rootDir) =>
+      buildSurveySignalDetail(app, input.id, rootDir)
+    ),
   input: detailInputSchema,
   intent: 'read',
   output: signalDetailOutput,

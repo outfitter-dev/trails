@@ -15,7 +15,7 @@ export const resourceExistsTrail = wrapRule({
 
 trail("entity.show", {
   resources: [db],
-  blaze: async (_input, ctx) => {
+  implementation: async (_input, ctx) => {
     return Result.ok(db.from(ctx));
   }
 })`,

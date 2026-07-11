@@ -12,7 +12,7 @@ import { permitGovernance } from '../rules/permit-governance.js';
 describe('permitGovernance', () => {
   test('emits permit diagnostics from the compiled topo', async () => {
     const destroyTrail = trail('entity.delete', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({}),
       intent: 'destroy',
       output: z.object({ ok: z.boolean() }),
@@ -37,7 +37,7 @@ describe('permitGovernance', () => {
   test('runWarden includes permit governance when topo is supplied', async () => {
     const rootDir = mkdtempSync(join(tmpdir(), 'warden-permit-'));
     const destroyTrail = trail('entity.delete', {
-      blaze: () => Result.ok({ ok: true }),
+      implementation: () => Result.ok({ ok: true }),
       input: z.object({}),
       intent: 'destroy',
       output: z.object({ ok: z.boolean() }),

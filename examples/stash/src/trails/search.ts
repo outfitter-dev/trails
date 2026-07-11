@@ -49,11 +49,6 @@ const indexSnippet = async (
 // ---------------------------------------------------------------------------
 
 export const index = trail('search.index', {
-  blaze: async (input, ctx) => {
-    const conn = db.from(ctx);
-    const outcome = await indexSnippet(conn, input.snippetId);
-    return Result.ok({ snippetId: input.snippetId, ...outcome });
-  },
   description:
     'Re-derive the search index rows for one snippet; deletes and secret snippets deindex',
   examples: [
@@ -63,6 +58,11 @@ export const index = trail('search.index', {
       name: 'Index a snippet',
     },
   ],
+  implementation: async (input, ctx) => {
+    const conn = db.from(ctx);
+    const outcome = await indexSnippet(conn, input.snippetId);
+    return Result.ok({ snippetId: input.snippetId, ...outcome });
+  },
   input: z.object({
     snippetId: z.string().describe('Snippet id to (re)index'),
   }),
@@ -83,7 +83,38 @@ export const index = trail('search.index', {
 // ---------------------------------------------------------------------------
 
 export const query = trail('search.query', {
-  blaze: async (input, ctx) => {
+  description: 'Search public snippets by keyword over the derived index',
+  examples: [
+    {
+      description: 'Find a snippet by a word in its description',
+      expected: {
+        query: 'greet',
+        results: [
+          {
+            createdAt: '2026-01-01T00:00:00.000Z',
+            description: 'Greet the trail crew from TypeScript',
+            forkOf: null,
+            id: 'snip_hello',
+            ownerId: 'usr_alice',
+            starCount: 1,
+            updatedAt: '2026-01-01T00:00:00.000Z',
+            version: 1,
+            visibility: 'public',
+          },
+        ],
+        total: 1,
+      },
+      input: { limit: 10, query: 'greet' },
+      name: 'Search finds a match',
+    },
+    {
+      description: 'Queries with no matches return an empty result set',
+      expected: { query: 'zebra', results: [], total: 0 },
+      input: { limit: 10, query: 'zebra' },
+      name: 'Search finds nothing',
+    },
+  ],
+  implementation: async (input, ctx) => {
     const conn = db.from(ctx);
     const tokens = tokenizeQuery(input.query);
     if (tokens.length === 0) {
@@ -116,37 +147,6 @@ export const query = trail('search.query', {
       total: summaries.length,
     });
   },
-  description: 'Search public snippets by keyword over the derived index',
-  examples: [
-    {
-      description: 'Find a snippet by a word in its description',
-      expected: {
-        query: 'greet',
-        results: [
-          {
-            createdAt: '2026-01-01T00:00:00.000Z',
-            description: 'Greet the trail crew from TypeScript',
-            forkOf: null,
-            id: 'snip_hello',
-            ownerId: 'usr_alice',
-            starCount: 1,
-            updatedAt: '2026-01-01T00:00:00.000Z',
-            version: 1,
-            visibility: 'public',
-          },
-        ],
-        total: 1,
-      },
-      input: { limit: 10, query: 'greet' },
-      name: 'Search finds a match',
-    },
-    {
-      description: 'Queries with no matches return an empty result set',
-      expected: { query: 'zebra', results: [], total: 0 },
-      input: { limit: 10, query: 'zebra' },
-      name: 'Search finds nothing',
-    },
-  ],
   input: z.object({
     limit: z.coerce
       .number()
@@ -171,7 +171,16 @@ export const query = trail('search.query', {
 // ---------------------------------------------------------------------------
 
 export const reindex = trail('search.reindex', {
-  blaze: async (_input, ctx) => {
+  description:
+    'Rebuild the entire search index from scratch; requires the search:admin scope',
+  examples: [
+    {
+      description: 'Full rebuild over every public snippet',
+      input: {},
+      name: 'Reindex everything',
+    },
+  ],
+  implementation: async (_input, ctx) => {
     const conn = db.from(ctx);
     const stale = await conn.searchEntries.list();
     for (const row of stale) {
@@ -189,15 +198,6 @@ export const reindex = trail('search.reindex', {
     }
     return Result.ok({ snippets: indexed, terms });
   },
-  description:
-    'Rebuild the entire search index from scratch; requires the search:admin scope',
-  examples: [
-    {
-      description: 'Full rebuild over every public snippet',
-      input: {},
-      name: 'Reindex everything',
-    },
-  ],
   input: z.object({}),
   intent: 'write',
   output: z.object({

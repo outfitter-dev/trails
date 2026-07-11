@@ -58,7 +58,7 @@ import { surfaceTrailheadCoherence } from './surface-trailhead-coherence.js';
 import { trailForkCoaching } from './trail-fork-coaching.js';
 import { trailheadOverrideDivergence } from './trailhead-override-divergence.js';
 import {
-  forkWithoutPreservedBlaze,
+  forkWithoutPreservedImplementation,
   markerSchemaUnsupported,
   versionPinnedCompose,
 } from './trail-versioning-source.js';
@@ -197,7 +197,7 @@ export { surfaceTrailheadCoherence } from './surface-trailhead-coherence.js';
 export { trailForkCoaching } from './trail-fork-coaching.js';
 export { trailheadOverrideDivergence } from './trailhead-override-divergence.js';
 export {
-  forkWithoutPreservedBlaze,
+  forkWithoutPreservedImplementation,
   markerSchemaUnsupported,
   versionPinnedCompose,
 } from './trail-versioning-source.js';
@@ -270,7 +270,7 @@ export const wardenRules: ReadonlyMap<string, WardenRule> = new Map<
   [unreachableDetourShadowing.name, unreachableDetourShadowing],
   [wardenExportSymmetry.name, wardenExportSymmetry],
   [wardenRulesUseAst.name, wardenRulesUseAst],
-  [forkWithoutPreservedBlaze.name, forkWithoutPreservedBlaze],
+  [forkWithoutPreservedImplementation.name, forkWithoutPreservedImplementation],
   [markerSchemaUnsupported.name, markerSchemaUnsupported],
   [versionPinnedCompose.name, versionPinnedCompose],
 ]);

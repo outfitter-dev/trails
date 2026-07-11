@@ -2857,7 +2857,8 @@ const runClassModeRegrade = (
 
 export const regradeTrail = trail('regrade', {
   args: ['from', 'to'],
-  blaze: async (input, ctx) => {
+  description: 'Run downstream migration checks and safe rewrites',
+  implementation: async (input, ctx) => {
     const rootDirResult = resolveTrailRootDir(input.rootDir, ctx.cwd);
     if (rootDirResult.isErr()) {
       return rootDirResult;
@@ -2894,7 +2895,6 @@ export const regradeTrail = trail('regrade', {
     }
     return Result.ok(outputResult.value);
   },
-  description: 'Run downstream migration checks and safe rewrites',
   input: regradeInputSchema,
   intent: 'write',
   output: regradeReportOutput,
@@ -2903,7 +2903,9 @@ export const regradeTrail = trail('regrade', {
 
 export const planRegradeTrail = trail('plan.regrade', {
   args: ['from', 'to'],
-  blaze: async (input, ctx) => {
+  cli: { path: ['regrade', 'plan'] },
+  description: 'Write or update a reviewed Regrade plan',
+  implementation: async (input, ctx) => {
     const rootDirResult = resolveTrailRootDir(input.rootDir, ctx.cwd);
     if (rootDirResult.isErr()) {
       return rootDirResult;
@@ -2939,8 +2941,6 @@ export const planRegradeTrail = trail('plan.regrade', {
     }
     return Result.ok(output.data);
   },
-  cli: { path: ['regrade', 'plan'] },
-  description: 'Write or update a reviewed Regrade plan',
   input: regradePlanInputSchema,
   intent: 'write',
   output: regradePlanArtifactSchema,
@@ -2948,7 +2948,9 @@ export const planRegradeTrail = trail('plan.regrade', {
 });
 
 export const listRegradesTrail = trail('list.regrades', {
-  blaze: async (input, ctx) => {
+  cli: { path: ['regrade', 'plans'] },
+  description: 'List active Regrade plans and freshness status',
+  implementation: async (input, ctx) => {
     const rootDirResult = resolveTrailRootDir(input.rootDir, ctx.cwd);
     if (rootDirResult.isErr()) {
       return rootDirResult;
@@ -2959,8 +2961,6 @@ export const listRegradesTrail = trail('list.regrades', {
     }
     return Result.ok(result.value);
   },
-  cli: { path: ['regrade', 'plans'] },
-  description: 'List active Regrade plans and freshness status',
   input: z.object({
     rootDir: z.string().optional().describe('Workspace root directory'),
   }),
@@ -2970,7 +2970,9 @@ export const listRegradesTrail = trail('list.regrades', {
 });
 
 export const checkRegradeTrail = trail('check.regrade', {
-  blaze: async (input, ctx) => {
+  cli: { path: ['regrade', 'check'] },
+  description: 'Check a saved Regrade plan gate without writing source',
+  implementation: async (input, ctx) => {
     const rootDirResult = resolveTrailRootDir(input.rootDir, ctx.cwd);
     if (rootDirResult.isErr()) {
       return rootDirResult;
@@ -2996,8 +2998,6 @@ export const checkRegradeTrail = trail('check.regrade', {
     }
     return Result.ok(output.value);
   },
-  cli: { path: ['regrade', 'check'] },
-  description: 'Check a saved Regrade plan gate without writing source',
   input: regradePlanReferenceInputSchema,
   intent: 'read',
   output: regradeCheckOutputSchema,
@@ -3005,7 +3005,9 @@ export const checkRegradeTrail = trail('check.regrade', {
 });
 
 export const previewRegradeTrail = trail('preview.regrade', {
-  blaze: async (input, ctx) => {
+  cli: { path: ['regrade', 'preview'] },
+  description: 'Preview a saved Regrade plan without writing source',
+  implementation: async (input, ctx) => {
     const rootDirResult = resolveTrailRootDir(input.rootDir, ctx.cwd);
     if (rootDirResult.isErr()) {
       return rootDirResult;
@@ -3020,8 +3022,6 @@ export const previewRegradeTrail = trail('preview.regrade', {
     }
     return Result.ok(output.value);
   },
-  cli: { path: ['regrade', 'preview'] },
-  description: 'Preview a saved Regrade plan without writing source',
   input: regradePlanReferenceInputSchema,
   intent: 'read',
   output: regradeReportOutput,
@@ -3029,7 +3029,9 @@ export const previewRegradeTrail = trail('preview.regrade', {
 });
 
 export const applyRegradeTrail = trail('apply.regrade', {
-  blaze: async (input, ctx) => {
+  cli: { path: ['regrade', 'apply'] },
+  description: 'Apply a saved Regrade plan and move it to history',
+  implementation: async (input, ctx) => {
     const rootDirResult = resolveTrailRootDir(input.rootDir, ctx.cwd);
     if (rootDirResult.isErr()) {
       return rootDirResult;
@@ -3048,8 +3050,6 @@ export const applyRegradeTrail = trail('apply.regrade', {
     }
     return Result.ok(output.value);
   },
-  cli: { path: ['regrade', 'apply'] },
-  description: 'Apply a saved Regrade plan and move it to history',
   input: regradeApplyPlanInputSchema,
   intent: 'write',
   output: regradeReportOutput,
@@ -3058,7 +3058,10 @@ export const applyRegradeTrail = trail('apply.regrade', {
 
 export const adjustRegradeTrail = trail('adjust.regrade', {
   args: ['transition'],
-  blaze: async (input, ctx) => {
+  cli: { path: ['regrade', 'adjust'] },
+  description:
+    'Pull a graduated Regrade transition back to an active plan for adjustment',
+  implementation: async (input, ctx) => {
     const rootDirResult = resolveTrailRootDir(input.rootDir, ctx.cwd);
     if (rootDirResult.isErr()) {
       return rootDirResult;
@@ -3081,9 +3084,6 @@ export const adjustRegradeTrail = trail('adjust.regrade', {
     }
     return Result.ok(output.data);
   },
-  cli: { path: ['regrade', 'adjust'] },
-  description:
-    'Pull a graduated Regrade transition back to an active plan for adjustment',
   input: regradeAdjustInputSchema,
   intent: 'write',
   output: regradePlanArtifactSchema,

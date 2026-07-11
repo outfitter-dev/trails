@@ -120,7 +120,7 @@ const writeHttpOwner = (root: string): void => {
 };
 
 const expectValidationError = (
-  result: Awaited<ReturnType<typeof adapterCheckTrail.blaze>>
+  result: Awaited<ReturnType<typeof adapterCheckTrail.implementation>>
 ): ValidationError => {
   expect(result.isErr()).toBe(true);
   if (result.isOk()) {
@@ -179,7 +179,7 @@ describe('trails adapter check', () => {
     writeHttpOwner(root);
     writeHonoAdapter(root);
 
-    const result = await adapterCheckTrail.blaze({ rootDir: root }, {
+    const result = await adapterCheckTrail.implementation({ rootDir: root }, {
       cwd: root,
       env: {},
     } as never);
@@ -238,10 +238,13 @@ describe('trails adapter check', () => {
     const root = makeRoot();
     const missingRoot = join(root, 'missing-root');
 
-    const result = await adapterCheckTrail.blaze({ rootDir: missingRoot }, {
-      cwd: root,
-      env: {},
-    } as never);
+    const result = await adapterCheckTrail.implementation(
+      { rootDir: missingRoot },
+      {
+        cwd: root,
+        env: {},
+      } as never
+    );
 
     const error = expectValidationError(result);
     expect(error.message).toContain('rootDir does not exist');
@@ -253,7 +256,7 @@ describe('trails adapter check', () => {
       name: 'not-a-workspace-root',
     });
 
-    const result = await adapterCheckTrail.blaze({ rootDir: root }, {
+    const result = await adapterCheckTrail.implementation({ rootDir: root }, {
       cwd: root,
       env: {},
     } as never);

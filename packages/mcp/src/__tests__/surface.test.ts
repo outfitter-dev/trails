@@ -45,15 +45,15 @@ const deriveTools = (
 
 const createIntegrationFixtures = () => {
   const greetTrail = trail('greet', {
-    blaze: (input) => Result.ok({ greeting: `Hello, ${input.name}!` }),
     description: 'Greet someone',
+    implementation: (input) => Result.ok({ greeting: `Hello, ${input.name}!` }),
     input: z.object({ name: z.string() }),
     intent: 'read',
   });
 
   const deleteTrail = trail('item.delete', {
-    blaze: (_input) => Result.ok({ deleted: true }),
     description: 'Delete an item',
+    implementation: (_input) => Result.ok({ deleted: true }),
     input: z.object({ id: z.string() }),
     intent: 'destroy',
   });
@@ -65,8 +65,8 @@ const createIntegrationFixtures = () => {
 describe('surface', () => {
   test('surface throws on invalid topo', async () => {
     const t = trail('broken', {
-      blaze: () => Result.ok({}),
       composes: ['nonexistent.trail'],
+      implementation: () => Result.ok({}),
       input: z.object({}),
       output: z.object({}),
     });
@@ -76,8 +76,8 @@ describe('surface', () => {
 
   test('surface skips validation when validate: false', async () => {
     const t = trail('broken', {
-      blaze: () => Result.ok({}),
       composes: ['nonexistent.trail'],
+      implementation: () => Result.ok({}),
       input: z.object({}),
       output: z.object({}),
     });
@@ -120,8 +120,8 @@ describe('surface', () => {
 
   test('createServer registers tools that can be listed', () => {
     const echoTrail = trail('echo', {
-      blaze: (input) => Result.ok({ reply: input.message }),
       description: 'Echo',
+      implementation: (input) => Result.ok({ reply: input.message }),
       input: z.object({ message: z.string() }),
       intent: 'read',
     });
@@ -138,14 +138,14 @@ describe('surface', () => {
 
   test('createServer handles multiple tools', () => {
     const echoTrail = trail('echo', {
-      blaze: (input) => Result.ok({ reply: input.message }),
       description: 'Echo',
+      implementation: (input) => Result.ok({ reply: input.message }),
       input: z.object({ message: z.string() }),
     });
 
     const searchTrail = trail('search', {
-      blaze: (input) => Result.ok({ results: [input.query] }),
       description: 'Search',
+      implementation: (input) => Result.ok({ results: [input.query] }),
       input: z.object({ query: z.string() }),
       intent: 'read',
     });
@@ -189,8 +189,8 @@ describe('surface', () => {
 
   test('deriveMcpTools returns tools and createServer materializes the server', () => {
     const echoTrail = trail('echo', {
-      blaze: (input) => Result.ok({ reply: input.message }),
       description: 'Echo',
+      implementation: (input) => Result.ok({ reply: input.message }),
       input: z.object({ message: z.string() }),
     });
     const app = topo('surface-api', { echoTrail });

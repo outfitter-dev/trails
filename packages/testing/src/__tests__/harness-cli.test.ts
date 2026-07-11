@@ -8,7 +8,8 @@ import { createCliHarness } from '../harness-cli.js';
 describe('createCliHarness', () => {
   test('runs top-level commands', async () => {
     const greet = trail('greet', {
-      blaze: (input: { name: string }) => Result.ok(`Hello, ${input.name}!`),
+      implementation: (input: { name: string }) =>
+        Result.ok(`Hello, ${input.name}!`),
       input: z.object({ name: z.string() }),
     });
     const harness = createCliHarness({
@@ -23,7 +24,8 @@ describe('createCliHarness', () => {
 
   test('runs nested commands using the full ordered path', async () => {
     const pin = trail('topo.pin', {
-      blaze: (input: { name: string }) => Result.ok(`Pinned ${input.name}`),
+      implementation: (input: { name: string }) =>
+        Result.ok(`Pinned ${input.name}`),
       input: z.object({ name: z.string() }),
     });
     const harness = createCliHarness({
@@ -39,14 +41,14 @@ describe('createCliHarness', () => {
   test('prefers the deepest matching executable path', async () => {
     const calls: string[] = [];
     const topoShow = trail('topo', {
-      blaze: () => {
+      implementation: () => {
         calls.push('topo');
         return Result.ok('topo');
       },
       input: z.object({}),
     });
     const topoPin = trail('topo.pin', {
-      blaze: () => {
+      implementation: () => {
         calls.push('topo.pin');
         return Result.ok('topo.pin');
       },
@@ -69,7 +71,7 @@ describe('createCliHarness', () => {
       create: () => Result.ok({ source: 'factory' }),
     });
     const readResource = trail('resource.read', {
-      blaze: (_input, ctx) =>
+      implementation: (_input, ctx) =>
         Result.ok({ source: dbResource.from(ctx).source as string }),
       input: z.object({}),
       output: z.object({ source: z.string() }),

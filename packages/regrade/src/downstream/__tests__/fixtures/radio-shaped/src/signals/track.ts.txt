@@ -2,12 +2,12 @@ import { Result, trail } from '@ontrails/core';
 import { z } from 'zod';
 
 const loadTrack = trail('track.load', {
-  blaze: () => Result.ok({ title: 'Lost Coast' }),
+  implementation: () => Result.ok({ title: 'Lost Coast' }),
   output: z.object({ title: z.string() }),
 });
 
 export const playTrack = trail('play.track', {
   crosses: [loadTrack],
   input: crossInput,
-  blaze: (input, ctx) => ctx.cross(loadTrack, input),
+  implementation: (input, ctx) => ctx.cross(loadTrack, input),
 });

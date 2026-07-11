@@ -105,10 +105,11 @@ Current high-signal direction (stable terms; for terms mid-cutover see `docs/lex
 - `surface`, not transport, when naming the outside boundary.
 - `topo` for the assembled Trails graph primitive.
 - `compose`, not cross, follow, call, invoke, route, or workflow for trail-to-trail composition.
+- `implementation` for the authored behavior field.
 - `resource` for declared infrastructure dependencies.
 - `layer` for typed execution wrappers.
 
-The authored-behavior field, grouped surface entries, and the derive/render split are mid-cutover. Describe current code in current terms and follow `docs/lexicon-pending.md`. Do not silently rewrite history or pretend a cutover has already landed.
+Grouped surface entries and the derive/render split are mid-cutover. Describe current code in current terms and follow `docs/lexicon-pending.md`. Preserve retired terms only in explicitly historical release, migration, or decision evidence.
 
 `docs/lexicon-pending.md` is the transition control surface. Its Current column describes live reality; its Target column describes ratified reset direction. Do not adopt target terms in code, docs, examples, or plugin guidance before the cutover unless the work is explicitly part of that reset.
 
@@ -132,7 +133,7 @@ Use plain words unless the themed word carries the concept better.
 | --- | --- |
 | "This is a flexible way to expose functionality." | "This renders the same trail contract on CLI and MCP without re-authoring behavior." |
 | "We might want to consider adding checks." | "Add a Warden rule when drift can be detected from authored facts." |
-| "The handler processes the request." | "The trail receives validated input; its blaze returns a `Result`." |
+| "The handler processes the request." | "The trail receives validated input; its implementation returns a `Result`." |
 | "Run the implementation directly." | "Run the trail through the shared execution pipeline." |
 | "The CLI route has different behavior." | "This needs a distinct trail unless the input normalizes into the same contract without lying." |
 

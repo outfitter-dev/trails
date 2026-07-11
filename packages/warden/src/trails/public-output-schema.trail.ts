@@ -5,7 +5,7 @@ import { publicOutputSchema } from '../rules/public-output-schema.js';
 import { wrapTopoRule } from './wrap-rule.js';
 
 const cleanTrail = trail('report.read', {
-  blaze: () => Result.ok({ ok: true }),
+  implementation: () => Result.ok({ ok: true }),
   input: z.object({}),
   output: z.object({ ok: z.boolean() }),
 });
@@ -15,7 +15,7 @@ const cleanTopo = topo('public-output-schema-clean', {
 });
 
 const missingOutputTrail = trail('report.missing', {
-  blaze: () => Result.ok({ ok: true }),
+  implementation: () => Result.ok({ ok: true }),
   input: z.object({}),
 });
 

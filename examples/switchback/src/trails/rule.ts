@@ -18,33 +18,6 @@ const withRules = (flag: Flag, rules: readonly Rule[]): Flag => ({
 });
 
 export const add = trail('rule.add', {
-  blaze: async (input, ctx) => {
-    const store = flagsResource.from(ctx);
-    const existing = await requireLiveFlag(store, input.key);
-    if (existing.isErr()) {
-      return existing;
-    }
-    const flag = existing.value;
-    if (flag.rules.some((rule) => rule.id === input.rule.id)) {
-      return Result.err(
-        new AlreadyExistsError(
-          `Rule "${input.rule.id}" already exists on flag "${flag.key}"`
-        )
-      );
-    }
-    const position = Math.min(
-      input.position ?? flag.rules.length,
-      flag.rules.length
-    );
-    const rules = [...flag.rules];
-    rules.splice(position, 0, input.rule);
-    const valid = validateFlagInvariants(withRules(flag, rules));
-    if (valid.isErr()) {
-      return valid;
-    }
-    await store.put(valid.value);
-    return Result.ok(valid.value);
-  },
   description:
     'Add an ordered rule to a flag; earlier rules win, so position matters',
   examples: [
@@ -96,6 +69,33 @@ export const add = trail('rule.add', {
       name: 'Unservable value is rejected',
     },
   ],
+  implementation: async (input, ctx) => {
+    const store = flagsResource.from(ctx);
+    const existing = await requireLiveFlag(store, input.key);
+    if (existing.isErr()) {
+      return existing;
+    }
+    const flag = existing.value;
+    if (flag.rules.some((rule) => rule.id === input.rule.id)) {
+      return Result.err(
+        new AlreadyExistsError(
+          `Rule "${input.rule.id}" already exists on flag "${flag.key}"`
+        )
+      );
+    }
+    const position = Math.min(
+      input.position ?? flag.rules.length,
+      flag.rules.length
+    );
+    const rules = [...flag.rules];
+    rules.splice(position, 0, input.rule);
+    const valid = validateFlagInvariants(withRules(flag, rules));
+    if (valid.isErr()) {
+      return valid;
+    }
+    await store.put(valid.value);
+    return Result.ok(valid.value);
+  },
   input: z.object({
     key: z.string().describe('Flag key to add the rule to'),
     position: z
@@ -112,27 +112,6 @@ export const add = trail('rule.add', {
 });
 
 export const remove = trail('rule.remove', {
-  blaze: async (input, ctx) => {
-    const store = flagsResource.from(ctx);
-    const existing = await requireLiveFlag(store, input.key);
-    if (existing.isErr()) {
-      return existing;
-    }
-    const flag = existing.value;
-    if (!flag.rules.some((rule) => rule.id === input.ruleId)) {
-      return Result.err(
-        new NotFoundError(
-          `Rule "${input.ruleId}" not found on flag "${flag.key}"`
-        )
-      );
-    }
-    const updated = withRules(
-      flag,
-      flag.rules.filter((rule) => rule.id !== input.ruleId)
-    );
-    await store.put(updated);
-    return Result.ok(updated);
-  },
   description: 'Remove a rule from a flag by rule id',
   examples: [
     {
@@ -156,6 +135,27 @@ export const remove = trail('rule.remove', {
       name: 'Unknown rule is not found',
     },
   ],
+  implementation: async (input, ctx) => {
+    const store = flagsResource.from(ctx);
+    const existing = await requireLiveFlag(store, input.key);
+    if (existing.isErr()) {
+      return existing;
+    }
+    const flag = existing.value;
+    if (!flag.rules.some((rule) => rule.id === input.ruleId)) {
+      return Result.err(
+        new NotFoundError(
+          `Rule "${input.ruleId}" not found on flag "${flag.key}"`
+        )
+      );
+    }
+    const updated = withRules(
+      flag,
+      flag.rules.filter((rule) => rule.id !== input.ruleId)
+    );
+    await store.put(updated);
+    return Result.ok(updated);
+  },
   input: z.object({
     key: z.string().describe('Flag key to remove the rule from'),
     ruleId: z.string().describe('Rule id to remove'),
@@ -166,34 +166,6 @@ export const remove = trail('rule.remove', {
 });
 
 export const reorder = trail('rule.reorder', {
-  blaze: async (input, ctx) => {
-    const store = flagsResource.from(ctx);
-    const existing = await requireLiveFlag(store, input.key);
-    if (existing.isErr()) {
-      return existing;
-    }
-    const flag = existing.value;
-    const current = flag.rules.map((rule) => rule.id);
-    const requested = [...input.ruleIds];
-    if (
-      requested.length !== current.length ||
-      [...requested].toSorted().join('\n') !==
-        [...current].toSorted().join('\n')
-    ) {
-      return Result.err(
-        new ValidationError(
-          `Rule order for flag "${flag.key}" must be a permutation of [${current.join(', ')}]`
-        )
-      );
-    }
-    const byId = new Map(flag.rules.map((rule) => [rule.id, rule]));
-    const updated = withRules(
-      flag,
-      requested.map((id) => byId.get(id) as Rule)
-    );
-    await store.put(updated);
-    return Result.ok(updated);
-  },
   description:
     'Reorder the rules of a flag; the list must be a permutation of the current rule ids',
   examples: [
@@ -239,6 +211,34 @@ export const reorder = trail('rule.reorder', {
       name: 'Partial order is rejected',
     },
   ],
+  implementation: async (input, ctx) => {
+    const store = flagsResource.from(ctx);
+    const existing = await requireLiveFlag(store, input.key);
+    if (existing.isErr()) {
+      return existing;
+    }
+    const flag = existing.value;
+    const current = flag.rules.map((rule) => rule.id);
+    const requested = [...input.ruleIds];
+    if (
+      requested.length !== current.length ||
+      [...requested].toSorted().join('\n') !==
+        [...current].toSorted().join('\n')
+    ) {
+      return Result.err(
+        new ValidationError(
+          `Rule order for flag "${flag.key}" must be a permutation of [${current.join(', ')}]`
+        )
+      );
+    }
+    const byId = new Map(flag.rules.map((rule) => [rule.id, rule]));
+    const updated = withRules(
+      flag,
+      requested.map((id) => byId.get(id) as Rule)
+    );
+    await store.put(updated);
+    return Result.ok(updated);
+  },
   input: z.object({
     key: z.string().describe('Flag key to reorder rules on'),
     ruleIds: z

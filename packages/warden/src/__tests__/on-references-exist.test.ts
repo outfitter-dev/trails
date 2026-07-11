@@ -15,7 +15,7 @@ const created = signal('entity.created', { payload: z.object({ id: z.string() })
 trail('notify', {
   on: ['entity.created'],
   input: z.object({ id: z.string() }),
-  blaze: async (input, ctx) => Result.ok({}),
+  implementation: async (input, ctx) => Result.ok({}),
 });
 `;
 
@@ -28,7 +28,7 @@ import { trail, Result } from '@ontrails/core';
 
 trail('notify', {
   on: ['entity.created'],
-  blaze: async (input, ctx) => Result.ok({}),
+  implementation: async (input, ctx) => Result.ok({}),
 });
 `;
 
@@ -51,7 +51,7 @@ import { trail, Result } from '@ontrails/core';
 
 trail('notify', {
   on: ['entity.created'],
-  blaze: async (input, ctx) => Result.ok({}),
+  implementation: async (input, ctx) => Result.ok({}),
 });
 `;
 
@@ -69,7 +69,7 @@ import { trail, Result } from '@ontrails/core';
 
 trail('notify', {
   on: ['entity.created', 'audit.logged'],
-  blaze: async (input, ctx) => Result.ok({}),
+  implementation: async (input, ctx) => Result.ok({}),
 });
 `;
 
@@ -87,7 +87,7 @@ trail('notify', {
 import { trail, Result } from '@ontrails/core';
 
 trail('plain', {
-  blaze: async (input, ctx) => Result.ok({}),
+  implementation: async (input, ctx) => Result.ok({}),
 });
 `;
 
@@ -107,7 +107,7 @@ const ENTITY_CREATED = 'entity.created';
 
 trail('notify', {
   on: [ENTITY_CREATED],
-  blaze: async (input, ctx) => Result.ok({}),
+  implementation: async (input, ctx) => Result.ok({}),
 });
 `;
 
@@ -123,7 +123,7 @@ trail('notify', {
     const code = `
 trail('notify', {
   on: ['unknown.signal'],
-  blaze: async (input, ctx) => Result.ok({}),
+  implementation: async (input, ctx) => Result.ok({}),
 });
 `;
 
@@ -138,7 +138,7 @@ import { trail, signal, Result } from '@ontrails/core';
 const orderPlaced = signal('order.placed', { payload: z.object({}) });
 trail('notify', {
   on: [orderPlaced],
-  blaze: async (input, ctx) => Result.ok({}),
+  implementation: async (input, ctx) => Result.ok({}),
 });
 `;
 

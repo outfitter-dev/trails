@@ -2,7 +2,7 @@
  * Shared AST utilities for warden rules.
  *
  * Uses oxc-parser for native-speed TypeScript parsing. Provides a lightweight
- * walker and helpers for finding blaze bodies.
+ * walker and helpers for finding implementation bodies.
  */
 
 import { existsSync, readFileSync } from 'node:fs';
@@ -3240,15 +3240,15 @@ export const collectContourReferenceTargetsByName = (
 };
 
 // ---------------------------------------------------------------------------
-// Blaze body extraction
+// Implementation body extraction
 // ---------------------------------------------------------------------------
 
 /**
- * Extract top-level `blaze:` property values from an ObjectExpression's direct properties.
+ * Extract top-level `implementation:` property values from an ObjectExpression's direct properties.
  *
- * Does not recurse into nested objects, so `meta: { blaze: ... }` is ignored.
+ * Does not recurse into nested objects, so `meta: { implementation: ... }` is ignored.
  */
-const extractBlazeFromConfig = (config: AstNode): AstNode[] => {
+const extractImplementationFromConfig = (config: AstNode): AstNode[] => {
   const bodies: AstNode[] = [];
   const properties = config['properties'] as readonly AstNode[] | undefined;
   if (!properties) {
@@ -3257,7 +3257,7 @@ const extractBlazeFromConfig = (config: AstNode): AstNode[] => {
   for (const prop of properties) {
     if (
       isProperty(prop) &&
-      identifierName(prop.key) === 'blaze' &&
+      identifierName(prop.key) === 'implementation' &&
       isAstNode(prop.value)
     ) {
       bodies.push(prop.value);
@@ -3267,22 +3267,22 @@ const extractBlazeFromConfig = (config: AstNode): AstNode[] => {
 };
 
 /**
- * Find `blaze:` property values.
+ * Find `implementation:` property values.
  *
- * When given an ObjectExpression (trail config), returns only its direct `blaze:`
+ * When given an ObjectExpression (trail config), returns only its direct `implementation:`
  * properties. When given a full AST, finds trail definitions first and extracts
- * `blaze:` from each config — in both cases ignoring nested `blaze:` properties
- * (e.g. `meta: { blaze: ... }`).
+ * `implementation:` from each config — in both cases ignoring nested `implementation:` properties
+ * (e.g. `meta: { implementation: ... }`).
  */
-export const findBlazeBodies = (node: AstNode): AstNode[] => {
+export const findImplementationBodies = (node: AstNode): AstNode[] => {
   if (node.type === 'ObjectExpression') {
-    return extractBlazeFromConfig(node);
+    return extractImplementationFromConfig(node);
   }
 
-  // Full AST — find trail definitions and extract blaze from their configs
+  // Full AST — find trail definitions and extract implementation from their configs
   const bodies: AstNode[] = [];
   for (const def of findTrailDefinitions(node)) {
-    bodies.push(...extractBlazeFromConfig(def.config));
+    bodies.push(...extractImplementationFromConfig(def.config));
   }
   return bodies;
 };
@@ -4120,8 +4120,8 @@ export const collectOnTargetSignalIds = (
 // Misc helpers
 // ---------------------------------------------------------------------------
 
-/** Check if a node is a call to `.blaze()` on some object. */
-export const isBlazeCall = (node: AstNode): boolean => {
+/** Check if a node is a call to `.implementation()` on some object. */
+export const isImplementationCall = (node: AstNode): boolean => {
   if (node.type !== 'CallExpression') {
     return false;
   }
@@ -4138,6 +4138,6 @@ export const isBlazeCall = (node: AstNode): boolean => {
   const prop = (callee as unknown as { property?: AstNode }).property;
   return (
     prop?.type === 'Identifier' &&
-    (prop as unknown as { name: string }).name === 'blaze'
+    (prop as unknown as { name: string }).name === 'implementation'
   );
 };
