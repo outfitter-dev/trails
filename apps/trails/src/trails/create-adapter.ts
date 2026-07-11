@@ -3,6 +3,8 @@
  */
 
 import {
+  adapterSourceExportKind,
+  adapterSourceExports,
   adapterTargetPlacements,
   checkAdapters,
   deriveAdapterTargetCatalog,
@@ -22,7 +24,7 @@ import {
 } from '@ontrails/core';
 import type { WorkspaceRootManifest } from '@ontrails/core';
 import { existsSync, readFileSync, realpathSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 import { z } from 'zod';
 
 import {
@@ -79,18 +81,6 @@ interface AdapterOperationPlan {
 interface WorkspacePackageManifest {
   readonly exports?: unknown;
   readonly name?: unknown;
-}
-
-interface LocalNamedReexport {
-  readonly local: string;
-  readonly specifier: string;
-  readonly typeOnly: boolean;
-}
-
-interface LocalNamedImport {
-  readonly imported: string;
-  readonly specifier: string;
-  readonly typeOnly: boolean;
 }
 
 const literal = (value: string): string => JSON.stringify(value);
@@ -208,392 +198,6 @@ const packageRootExportTarget = (
   return resolve(target.packageRoot, exportTarget);
 };
 
-const maskSource = (source: string, options: { strings: boolean }): string => {
-  const output = [...source];
-  let index = 0;
-
-  const maskRange = (start: number, end: number): void => {
-    for (let cursor = start; cursor < end; cursor += 1) {
-      if (output[cursor] !== '\n') {
-        output[cursor] = ' ';
-      }
-    }
-  };
-
-  const skipQuoted = (quote: '"' | "'" | '`'): void => {
-    const start = index;
-    index += 1;
-    while (index < source.length) {
-      if (source[index] === '\\') {
-        index += 2;
-        continue;
-      }
-      if (source[index] === quote) {
-        index += 1;
-        break;
-      }
-      index += 1;
-    }
-    if (options.strings) {
-      maskRange(start, index);
-    }
-  };
-
-  while (index < source.length) {
-    if (source.startsWith('//', index)) {
-      const end = source.indexOf('\n', index + 2);
-      const stop = end === -1 ? source.length : end;
-      maskRange(index, stop);
-      index = stop;
-      continue;
-    }
-    if (source.startsWith('/*', index)) {
-      const end = source.indexOf('*/', index + 2);
-      const stop = end === -1 ? source.length : end + 2;
-      maskRange(index, stop);
-      index = stop;
-      continue;
-    }
-    const char = source[index];
-    if (char === '"' || char === "'" || char === '`') {
-      skipQuoted(char);
-      continue;
-    }
-    index += 1;
-  }
-
-  return output.join('');
-};
-
-const sameFileExportListLocalForIdentifier = (
-  source: string,
-  identifier: string,
-  expected: 'type' | 'value'
-): string | undefined => {
-  const exportCode = maskSource(source, { strings: false });
-  const stringsMaskedCode = maskSource(source, { strings: true });
-  const exportListPattern =
-    /\bexport\s+(?<typeOnly>type\s+)?\{(?<exports>[\s\S]*?)\}(?<from>\s+from\s+['"][^'"]+['"])?/gu;
-  for (const match of exportCode.matchAll(exportListPattern)) {
-    if (!stringsMaskedCode.startsWith('export', match.index ?? 0)) {
-      continue;
-    }
-
-    if (match.groups?.['from']) {
-      continue;
-    }
-
-    const namedExports = match.groups?.['exports'] ?? '';
-    for (const item of namedExports.split(',')) {
-      const trimmedItem = item.trim();
-      const specifierTypeOnly =
-        Boolean(match.groups?.['typeOnly']) || trimmedItem.startsWith('type ');
-      const specifierText = trimmedItem.replace(/^type\s+/u, '');
-      const exported =
-        /^(?<local>[A-Za-z_$][\w$]*)(?:\s+as\s+(?<name>[A-Za-z_$][\w$]*))?$/u.exec(
-          specifierText
-        )?.groups;
-      if (
-        !exported?.['local'] ||
-        (exported['name'] ?? exported['local']) !== identifier
-      ) {
-        continue;
-      }
-      if (expected === 'type') {
-        return exported['local'];
-      }
-      if (!specifierTypeOnly) {
-        return exported['local'];
-      }
-    }
-  }
-
-  return undefined;
-};
-
-const declaresTypeBinding = (source: string, identifier: string): boolean => {
-  const code = maskSource(source, { strings: true });
-  const escapedIdentifier = identifier.replaceAll(
-    /[.*+?^${}()|[\]\\]/gu,
-    '\\$&'
-  );
-  return new RegExp(
-    `(?:^|[;\\n\\r])\\s*(?:export\\s+)?(?:declare\\s+)?(?:interface|type)\\s+${escapedIdentifier}\\b`,
-    'u'
-  ).test(code);
-};
-
-const declaresValueBinding = (source: string, identifier: string): boolean => {
-  const code = maskSource(source, { strings: true });
-  const escapedIdentifier = identifier.replaceAll(
-    /[.*+?^${}()|[\]\\]/gu,
-    '\\$&'
-  );
-  return new RegExp(
-    `(?:^|[;\\n\\r])\\s*(?:export\\s+)?(?:(?:async\\s+)?function|const|let|var|class|enum)\\s+${escapedIdentifier}\\b`,
-    'u'
-  ).test(code);
-};
-
-const sourceExportsIdentifier = (
-  source: string,
-  identifier: string,
-  expected: 'type' | 'value'
-): boolean => {
-  const code = maskSource(source, { strings: true });
-  const escapedIdentifier = identifier.replaceAll(
-    /[.*+?^${}()|[\]\\]/gu,
-    '\\$&'
-  );
-  const valueDeclarationPattern = new RegExp(
-    `\\bexport\\s+(?:(?:async\\s+)?function|const|let|var|class|enum)\\s+${escapedIdentifier}\\b`,
-    'u'
-  );
-  if (expected === 'value' && valueDeclarationPattern.test(code)) {
-    return true;
-  }
-
-  const typeDeclarationPattern = new RegExp(
-    `\\bexport\\s+(?:declare\\s+)?(?:interface|type)\\s+${escapedIdentifier}\\b`,
-    'u'
-  );
-  const sameFileLocal = sameFileExportListLocalForIdentifier(
-    source,
-    identifier,
-    expected
-  );
-  return (
-    (expected === 'type' &&
-      (typeDeclarationPattern.test(code) ||
-        (sameFileLocal !== undefined &&
-          declaresTypeBinding(source, sameFileLocal)))) ||
-    (expected === 'value' &&
-      sameFileLocal !== undefined &&
-      declaresValueBinding(source, sameFileLocal))
-  );
-};
-
-const localNamedImports = (
-  source: string,
-  identifier: string
-): readonly LocalNamedImport[] => {
-  const code = maskSource(source, { strings: false });
-  const stringsMaskedCode = maskSource(source, { strings: true });
-  const imports: LocalNamedImport[] = [];
-  const pattern =
-    /\bimport\s+(?<typeOnly>type\s+)?\{(?<imports>[\s\S]*?)\}\s+from\s+['"](?<specifier>[^'"]+)['"]/gu;
-
-  for (const match of code.matchAll(pattern)) {
-    if (!stringsMaskedCode.startsWith('import', match.index ?? 0)) {
-      continue;
-    }
-
-    const specifier = match.groups?.['specifier'];
-    if (!specifier?.startsWith('.')) {
-      continue;
-    }
-
-    const namedImports = match.groups?.['imports'] ?? '';
-    for (const item of namedImports.split(',')) {
-      const trimmedItem = item.trim();
-      if (!trimmedItem) {
-        continue;
-      }
-
-      const specifierTypeOnly =
-        Boolean(match.groups?.['typeOnly']) || trimmedItem.startsWith('type ');
-      const specifierText = trimmedItem.replace(/^type\s+/u, '');
-      const imported =
-        /^(?<imported>[A-Za-z_$][\w$]*)(?:\s+as\s+(?<local>[A-Za-z_$][\w$]*))?$/u.exec(
-          specifierText
-        )?.groups;
-      if (
-        !imported?.['imported'] ||
-        (imported['local'] ?? imported['imported']) !== identifier
-      ) {
-        continue;
-      }
-
-      imports.push({
-        imported: imported['imported'],
-        specifier,
-        typeOnly: specifierTypeOnly,
-      });
-    }
-  }
-
-  return imports;
-};
-
-const localNamedReexports = (
-  source: string,
-  identifier: string
-): readonly LocalNamedReexport[] => {
-  const code = maskSource(source, { strings: false });
-  const stringsMaskedCode = maskSource(source, { strings: true });
-  const exports: LocalNamedReexport[] = [];
-  const pattern =
-    /\bexport\s+(?<typeOnly>type\s+)?\{(?<exports>[\s\S]*?)\}\s+from\s+['"](?<specifier>[^'"]+)['"]/gu;
-
-  for (const match of code.matchAll(pattern)) {
-    if (!stringsMaskedCode.startsWith('export', match.index ?? 0)) {
-      continue;
-    }
-
-    const specifier = match.groups?.['specifier'];
-    if (!specifier?.startsWith('.')) {
-      continue;
-    }
-
-    const namedExports = match.groups?.['exports'] ?? '';
-    for (const item of namedExports.split(',')) {
-      const trimmedItem = item.trim();
-      if (!trimmedItem) {
-        continue;
-      }
-
-      const specifierTypeOnly =
-        Boolean(match.groups?.['typeOnly']) || trimmedItem.startsWith('type ');
-      const specifierText = trimmedItem.replace(/^type\s+/u, '');
-      const exported =
-        /^(?<local>[A-Za-z_$][\w$]*)(?:\s+as\s+(?<name>[A-Za-z_$][\w$]*))?$/u.exec(
-          specifierText
-        )?.groups;
-      if (
-        !exported?.['local'] ||
-        (exported['name'] ?? exported['local']) !== identifier
-      ) {
-        continue;
-      }
-
-      exports.push({
-        local: exported['local'],
-        specifier,
-        typeOnly: specifierTypeOnly,
-      });
-    }
-  }
-
-  return exports;
-};
-
-const localStarReexports = (
-  source: string
-): readonly { readonly specifier: string; readonly typeOnly: boolean }[] => {
-  const code = maskSource(source, { strings: false });
-  const stringsMaskedCode = maskSource(source, { strings: true });
-  return [
-    ...code.matchAll(
-      /\bexport\s+(?<typeOnly>type\s+)?\*\s+from\s+['"](?<specifier>[^'"]+)['"]/gu
-    ),
-  ]
-    .filter((match) => stringsMaskedCode.startsWith('export', match.index ?? 0))
-    .map((match) => ({
-      specifier: match.groups?.['specifier'] ?? '',
-      typeOnly: Boolean(match.groups?.['typeOnly']),
-    }))
-    .filter((entry) => entry.specifier.startsWith('.'));
-};
-
-const resolveLocalModuleSpecifier = (
-  sourcePath: string,
-  specifier: string
-): string | undefined => {
-  const basePath = resolve(dirname(sourcePath), specifier);
-  const candidates = [
-    basePath,
-    basePath.endsWith('.js') ? `${basePath.slice(0, -3)}.ts` : undefined,
-    basePath.endsWith('.js') ? `${basePath.slice(0, -3)}.tsx` : undefined,
-    `${basePath}.ts`,
-    `${basePath}.tsx`,
-    join(basePath, 'index.ts'),
-    join(basePath, 'index.tsx'),
-  ].filter((candidate): candidate is string => candidate !== undefined);
-
-  return candidates.find((candidate) => existsSync(candidate));
-};
-
-const sourcePathExportsIdentifier = (
-  sourcePath: string,
-  identifier: string,
-  expected: 'type' | 'value',
-  visited = new Set<string>()
-): boolean => {
-  const normalizedSourcePath = realpathSync(sourcePath);
-  const visitKey = `${normalizedSourcePath}:${identifier}:${expected}`;
-  if (visited.has(visitKey)) {
-    return false;
-  }
-  visited.add(visitKey);
-
-  const source = readFileSync(normalizedSourcePath, 'utf8');
-  if (sourceExportsIdentifier(source, identifier, expected)) {
-    return true;
-  }
-
-  const sameFileLocal = sameFileExportListLocalForIdentifier(
-    source,
-    identifier,
-    expected
-  );
-  if (sameFileLocal) {
-    for (const localImport of localNamedImports(source, sameFileLocal)) {
-      if (expected === 'value' && localImport.typeOnly) {
-        continue;
-      }
-      const targetPath = resolveLocalModuleSpecifier(
-        normalizedSourcePath,
-        localImport.specifier
-      );
-      if (
-        targetPath &&
-        sourcePathExportsIdentifier(
-          targetPath,
-          localImport.imported,
-          expected,
-          visited
-        )
-      ) {
-        return true;
-      }
-    }
-  }
-
-  for (const reexport of localNamedReexports(source, identifier)) {
-    if (expected === 'value' && reexport.typeOnly) {
-      continue;
-    }
-    const targetPath = resolveLocalModuleSpecifier(
-      normalizedSourcePath,
-      reexport.specifier
-    );
-    if (
-      targetPath &&
-      sourcePathExportsIdentifier(targetPath, reexport.local, expected, visited)
-    ) {
-      return true;
-    }
-  }
-
-  for (const reexport of localStarReexports(source)) {
-    if (expected === 'value' && reexport.typeOnly) {
-      continue;
-    }
-    const targetPath = resolveLocalModuleSpecifier(
-      normalizedSourcePath,
-      reexport.specifier
-    );
-    if (
-      targetPath &&
-      sourcePathExportsIdentifier(targetPath, identifier, expected, visited)
-    ) {
-      return true;
-    }
-  }
-
-  return false;
-};
-
 const assertHttpOwnerSupport = (
   target: AdapterTargetCatalogEntry
 ): Result<void, ValidationError> => {
@@ -605,13 +209,22 @@ const assertHttpOwnerSupport = (
   }
 
   const requiredExports = [
-    ['createFetchHandler', 'value'],
-    ['CreateFetchHandlerOptions', 'type'],
+    ['createFetchHandler', 'value', false],
+    ['CreateFetchHandlerOptions', 'type', true],
   ] as const;
-  const missing = requiredExports.filter(
-    ([identifier, expected]) =>
-      !sourcePathExportsIdentifier(rootExportTarget, identifier, expected)
-  );
+  const missing = requiredExports.filter(([identifier, expected, typeOnly]) => {
+    if (typeOnly) {
+      const exportKind = adapterSourceExportKind(rootExportTarget, identifier);
+      return (
+        exportKind !== 'type' &&
+        exportKind !== 'interface-value' &&
+        exportKind !== 'interface-value-erased' &&
+        exportKind !== 'type-alias-value' &&
+        exportKind !== 'type-alias-value-erased'
+      );
+    }
+    return !adapterSourceExports(rootExportTarget, identifier, expected);
+  });
   if (missing.length === 0) {
     return Result.ok();
   }

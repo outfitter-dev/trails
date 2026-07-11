@@ -13,6 +13,16 @@ export type {
   AdapterCheckSubject,
 } from './check.js';
 export {
+  adapterSourceExportKind,
+  adapterSourceExportKindHasType,
+  adapterSourceExportKindHasValue,
+  adapterSourceExports,
+} from './source.js';
+export type {
+  AdapterSourceExportExpectation,
+  AdapterSourceExportKind,
+} from './source.js';
+export {
   adapterTargetPlacements,
   deriveAdapterTargetCatalog,
   parseAdapterTargetsFromManifest,

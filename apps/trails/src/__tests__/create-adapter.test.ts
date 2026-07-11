@@ -270,6 +270,68 @@ describe('trails create adapter', () => {
     expect(result.diagnostics).toEqual([]);
   });
 
+  test('accepts HTTP options that share type and value declarations', async () => {
+    const root = makeRoot();
+    writeHttpOwner(root);
+    writeFile(
+      root,
+      'packages/http/src/index.ts',
+      [
+        'export interface CreateFetchHandlerOptions {}',
+        'export const CreateFetchHandlerOptions = {};',
+        'export const createFetchHandler = () => undefined;',
+        '',
+      ].join('\n')
+    );
+
+    const result = expectOk(
+      await createAdapterTrail.implementation(
+        {
+          dryRun: false,
+          name: 'merged-options',
+          placement: 'extracted',
+          rootDir: root,
+          target: 'http',
+        },
+        { cwd: root } as never
+      )
+    );
+
+    expect(result.created).toContain('adapters/merged-options/src/index.ts');
+    expect(result.diagnostics).toEqual([]);
+  });
+
+  test('accepts HTTP option type aliases that share a value name', async () => {
+    const root = makeRoot();
+    writeHttpOwner(root);
+    writeFile(
+      root,
+      'packages/http/src/index.ts',
+      [
+        'export type CreateFetchHandlerOptions = { enabled?: boolean };',
+        'export const CreateFetchHandlerOptions = { enabled: true };',
+        'export const createFetchHandler = () => undefined;',
+        '',
+      ].join('\n')
+    );
+
+    const result = expectOk(
+      await createAdapterTrail.implementation(
+        {
+          dryRun: false,
+          name: 'aliased-options',
+          placement: 'extracted',
+          rootDir: root,
+          target: 'http',
+        },
+        { cwd: root } as never
+      )
+    );
+
+    expect(result.created).toContain('adapters/aliased-options/src/index.ts');
+    expect(result.diagnostics).toEqual([]);
+  });
+
   test('fails before writing when same-file HTTP support type exports resolve only to values', async () => {
     const root = makeRoot();
     writeHttpOwner(root);
@@ -301,6 +363,36 @@ describe('trails create adapter', () => {
     expect(existsSync(join(root, 'adapters/value-only-type-support'))).toBe(
       false
     );
+  });
+
+  test('fails before writing when HTTP options are exported as an enum', async () => {
+    const root = makeRoot();
+    writeHttpOwner(root);
+    writeFile(
+      root,
+      'packages/http/src/index.ts',
+      [
+        'export enum CreateFetchHandlerOptions {}',
+        'export const createFetchHandler = () => undefined;',
+        '',
+      ].join('\n')
+    );
+
+    const error = expectValidationError(
+      await createAdapterTrail.implementation(
+        {
+          dryRun: false,
+          name: 'enum-options',
+          placement: 'extracted',
+          rootDir: root,
+          target: 'http',
+        },
+        { cwd: root } as never
+      )
+    );
+
+    expect(error.message).toContain('CreateFetchHandlerOptions');
+    expect(existsSync(join(root, 'adapters/enum-options'))).toBe(false);
   });
 
   test('accepts HTTP scaffold support through owner root import-export barrels', async () => {
@@ -368,6 +460,49 @@ describe('trails create adapter', () => {
       'adapters/hono-type-import-barrel/src/index.ts'
     );
     expect(result.diagnostics).toEqual([]);
+  });
+
+  test('rejects enum options hidden behind a type-only import-export barrel', async () => {
+    const root = makeRoot();
+    writeHttpOwner(root);
+    writeFile(
+      root,
+      'packages/http/src/fetch.ts',
+      [
+        'export enum CreateFetchHandlerOptions {}',
+        'export const createFetchHandler = () => undefined;',
+        '',
+      ].join('\n')
+    );
+    writeFile(
+      root,
+      'packages/http/src/index.ts',
+      [
+        'import { createFetchHandler } from "./fetch.js";',
+        'import type { CreateFetchHandlerOptions } from "./fetch.js";',
+        'export type { CreateFetchHandlerOptions };',
+        'export { createFetchHandler };',
+        '',
+      ].join('\n')
+    );
+
+    const error = expectValidationError(
+      await createAdapterTrail.implementation(
+        {
+          dryRun: false,
+          name: 'enum-type-import-barrel',
+          placement: 'extracted',
+          rootDir: root,
+          target: 'http',
+        },
+        { cwd: root } as never
+      )
+    );
+
+    expect(error.message).toContain('CreateFetchHandlerOptions');
+    expect(existsSync(join(root, 'adapters/enum-type-import-barrel'))).toBe(
+      false
+    );
   });
 
   test('fails before writing when HTTP support value re-exports resolve only to types', async () => {
