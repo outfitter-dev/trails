@@ -10,8 +10,8 @@
  *
  * Overrides are re-resolved whenever a new `env` object arrives, and core
  * resolves overrides before its singleton resource cache, so no resource
- * instance can capture a stale env. Every Cloudflare subpath (`/kv` today,
- * `/d1`, `/queues`, `/r2` later) consumes this one seam.
+ * instance can capture a stale env. Every Cloudflare service subpath consumes
+ * this one seam.
  */
 
 import {
@@ -32,7 +32,8 @@ import type {
 /**
  * The ambient Worker environment: bindings keyed by their wrangler-configured
  * names. Values are runtime binding objects (KV namespaces, D1 databases,
- * queues), so they are typed as `unknown` and narrowed by each subpath.
+ * R2 buckets, queues), so they are typed as `unknown` and narrowed by each
+ * subpath.
  */
 export type WorkersEnv = Readonly<Record<string, unknown>>;
 

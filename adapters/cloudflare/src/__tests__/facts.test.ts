@@ -16,6 +16,7 @@ import { cloudflareOverlay } from '../facts.js';
 import { cloudflareD1 } from '../d1/index.js';
 import { cloudflareKv } from '../kv/index.js';
 import { cloudflareQueue } from '../queues/index.js';
+import { cloudflareR2 } from '../r2/index.js';
 
 const flags = cloudflareKv('flags', { binding: 'FLAGS' });
 const notesStore = defineStore({
@@ -94,6 +95,25 @@ describe('cloudflareOverlay', () => {
 
     expect(cloudflareOverlay.derive(app)).toEqual({
       bindings: [{ binding: 'JOBS', resourceId: 'jobs' }],
+    });
+  });
+
+  test('derives R2 bucket resources through the shared env binding registry', () => {
+    const assets = cloudflareR2('assets', { binding: 'ASSETS' });
+    const inspectAsset = trail('asset.inspect', {
+      implementation: async (input, ctx) => {
+        const object = await assets.from(ctx).head(input.key);
+        return Result.ok({ size: object?.size ?? null });
+      },
+      input: z.object({ key: z.string() }),
+      intent: 'read',
+      output: z.object({ size: z.number().nullable() }),
+      resources: [assets],
+    });
+    const app = topo('cf-facts-r2', { assets, inspectAsset });
+
+    expect(cloudflareOverlay.derive(app)).toEqual({
+      bindings: [{ binding: 'ASSETS', resourceId: 'assets' }],
     });
   });
 

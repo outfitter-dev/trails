@@ -8,7 +8,7 @@ The Cloudflare adapter collection for Trails. One package, one subpath per Cloud
 | `@ontrails/cloudflare/kv` | Key-value resource | ✅ |
 | `@ontrails/cloudflare/d1` | D1-backed store resource | ✅ |
 | `@ontrails/cloudflare/queues` | Queue producer resource + consumer materializer | ✅ |
-| `/r2` | Blob/object resource | Planned |
+| `@ontrails/cloudflare/r2` | R2 blob/object resource | ✅ |
 
 Adapter composition doctrine applies throughout: subpaths take primitive-authored declarations (a resource definition, a surface config) and never shadow authoring verbs. Bindings arrive ambiently on the Worker `env`, so runtime dependencies are near-zero.
 
@@ -143,6 +143,55 @@ Capability boundaries are explicit:
 
 Every `cloudflareD1` resource carries an in-memory mock factory seeded from table fixtures or `mockSeed`, so `testAll(app)` remains configuration-free. Miniflare can provide a real D1 binding for local integration tests without a Cloudflare account.
 
+## `/r2` — blob/object resource
+
+`cloudflareR2(id, { binding })` authors a resource wrapping a Cloudflare R2 bucket binding. Trails declare it with `resources: [...]` and use `bucket.from(ctx)` to call the Worker binding's object operations (`put`, `get`, `head`, `delete`, and `list`).
+
+```ts
+import {
+  NotFoundError,
+  Result,
+  blobRefSchema,
+  trail,
+} from '@ontrails/core';
+import { cloudflareR2, r2ObjectToBlobRef } from '@ontrails/cloudflare/r2';
+import { z } from 'zod';
+
+const assets = cloudflareR2('assets', { binding: 'ASSETS' });
+
+const readAsset = trail('asset.read', {
+  implementation: async (input, ctx) => {
+    const object = await assets.from(ctx).get(input.key);
+    if (object === null || !('body' in object)) {
+      return Result.err(new NotFoundError(`Asset "${input.key}" not found`));
+    }
+    return Result.ok(r2ObjectToBlobRef(object));
+  },
+  input: z.object({ key: z.string() }),
+  intent: 'read',
+  output: blobRefSchema,
+  resources: [assets],
+});
+```
+
+Declare the binding in wrangler config:
+
+```toml
+[[r2_buckets]]
+binding = "ASSETS"
+bucket_name = "my-assets"
+```
+
+The resource surface follows the R2 Worker binding structurally. A real R2 bucket binding passes through unchanged, including Cloudflare's conditional operation behavior where `get()` can return metadata without a body and `put()` can return `null` when a precondition fails. `r2ObjectToBlobRef(object)` is the small bridge from a fetched R2 object body to core's `BlobRef` binary-output contract; the HTTP and MCP surfaces already know how to project `blobRefSchema`.
+
+Capability boundaries are explicit:
+
+- The adapter does not expose public bucket URLs, signed URLs, S3 clients, multipart upload helpers, or object-event subscriptions.
+- The in-memory mock implements object bytes, metadata, `put`, `get`, `head`, `delete`, and lexicographic `list` pagination with prefix/cursor/delimiter grouping. It accepts SSE-C option shapes for binding compatibility but does not encrypt objects, validate keys, or emit `ssecKeyMd5`; it also does not model R2 preconditions, range reads, checksums, storage-tier billing behavior, or multipart uploads.
+- For raw HTTP upload/download routes, keep authorization in your own trails or surface layer; the R2 resource only materializes the bucket binding.
+
+Every `cloudflareR2` resource carries an in-memory mock (`createMemoryR2`) so object trails work in `testAll(app)` and focused unit tests without a Cloudflare account or wrangler.
+
 ## `/queues` — Queue producer and consumer support
 
 `cloudflareQueue(id, { binding })` authors a resource wrapping a Cloudflare Queue producer binding. Trails declare it with `resources: [...]` and send messages with `jobs.from(ctx).send(...)` or `sendBatch(...)`.
@@ -201,7 +250,7 @@ Every `cloudflareQueue` resource carries an in-memory mock (`createMemoryQueue`)
 
 ## Local integration testing
 
-Integration runs are local-first via [miniflare](https://miniflare.dev) (workerd in-process): the test lane bundles a demo Worker with `Bun.build`, boots it with real KV and D1 bindings, and exercises HTTP, webhook, KV, and D1 store routes. Queue producer and consumer behavior is covered by focused Worker-handler tests under `src/queues/__tests__/queues.test.ts`. Real-account deploys are manual and never CI-required.
+Integration runs are local-first via [miniflare](https://miniflare.dev) (workerd in-process): the test lane bundles a demo Worker with `Bun.build`, boots it with real KV and D1 bindings, and exercises HTTP, webhook, KV, and D1 store routes. Queue producer/consumer behavior and R2 object behavior are covered by focused structural tests under `src/queues/__tests__/queues.test.ts` and `src/r2/__tests__/r2.test.ts`. Real-account deploys are manual and never CI-required.
 
 ## Lock facts
 

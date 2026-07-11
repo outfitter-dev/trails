@@ -120,6 +120,7 @@ export const PUBLIC_API_EXAMPLE_TARGETS: readonly PublicApiPackageTarget[] = [
       'cloudflareKv',
       'cloudflareD1',
       'cloudflareQueue',
+      'cloudflareR2',
     ],
     packageName: '@ontrails/cloudflare',
   },

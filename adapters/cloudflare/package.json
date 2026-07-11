@@ -15,6 +15,7 @@
     "./workers": "./src/workers/index.ts",
     "./kv": "./src/kv/index.ts",
     "./d1": "./src/d1/index.ts",
+    "./r2": "./src/r2/index.ts",
     "./queues": "./src/queues/index.ts",
     "./package.json": "./package.json"
   },
