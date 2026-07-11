@@ -87,7 +87,6 @@ export {
   wayfindImpactTrail,
   wayfindNearbyTrail,
   wayfindOverviewTrail,
-  wayfindOutlineTrail,
   wayfindResourcesTrail,
   wayfindSearchTrail,
   wayfindSignalsTrail,
@@ -96,13 +95,6 @@ export {
   wayfindVersionsTrail,
   wayfinderTopo,
 } from './queries.js';
-export type {
-  OutlineFeature,
-  OutlineInput,
-  OutlineOutput,
-  OutlineView,
-} from './outline.js';
-export { outlineInputSchema, outlineOutputSchema } from './outline.js';
 export {
   wayfinderDriftFromArtifactStatus,
   wayfinderDriftFromFreshness,

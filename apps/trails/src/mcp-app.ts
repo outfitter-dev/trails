@@ -10,7 +10,6 @@ import {
   wayfindImpactTrail,
   wayfindNearbyTrail,
   wayfindOverviewTrail,
-  wayfindOutlineTrail,
   wayfindResourcesTrail,
   wayfindSearchTrail,
   wayfindSurfacesTrail,
@@ -18,6 +17,7 @@ import {
 } from '@ontrails/wayfinder';
 
 import { operatorApp } from './app.js';
+import { wayfindOutlineTrail } from './trails/wayfind-outline.js';
 
 const operatorTrails = Object.fromEntries(
   operatorApp.list().map((trailItem) => [trailItem.id, trailItem])

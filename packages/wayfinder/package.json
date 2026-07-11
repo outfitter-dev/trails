@@ -23,8 +23,7 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
-    "@ontrails/adapter-kit": "workspace:^",
-    "@ontrails/source": "workspace:^"
+    "@ontrails/adapter-kit": "workspace:^"
   },
   "peerDependencies": {
     "@ontrails/core": "workspace:^",

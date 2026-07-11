@@ -22,7 +22,7 @@ The package root is the public API. Import from `@ontrails/source`; there are no
 
 - Warden uses it to implement source-static governance without owning the parser facade.
 - Regrade uses it for safe downstream source rewrites.
-- Wayfinder uses it for source-file outlines.
+- The Trails operator uses it to assemble live source-file outlines.
 - The `trails` operator uses it for draft promotion and version-lifecycle support.
 
 The package is admitted only for reusable source machinery with at least two independent toolchain owners and a genuinely shared contract. It must not absorb product verdicts, release plans, query semantics, rendering, Warden rule policy, Regrade engines, Topographer artifact assembly, or Wayfinder answer composition.

@@ -1,7 +1,11 @@
 import { deriveOutputMode, output } from '@ontrails/cli';
 import type { ActionResultContext } from '@ontrails/cli';
-import { outlineOutputSchema } from '@ontrails/wayfinder';
-import type { OutlineFeature, OutlineOutput } from '@ontrails/wayfinder';
+
+import { outlineOutputSchema } from './trails/wayfind-outline.js';
+import type {
+  OutlineFeature,
+  OutlineOutput,
+} from './trails/wayfind-outline.js';
 
 const includesFeature = (
   outline: OutlineOutput,

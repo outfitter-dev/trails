@@ -35,10 +35,9 @@ import {
   walkWithParents,
 } from '@ontrails/source';
 import type { AstNode, AstParentContext } from '@ontrails/source';
+import { loadWayfinderArtifacts } from '@ontrails/wayfinder';
+import type { WayfinderArtifactLoad } from '@ontrails/wayfinder';
 import { z } from 'zod';
-
-import { loadWayfinderArtifacts } from './loader.js';
-import type { WayfinderArtifactLoad } from './loader.js';
 
 const outlineFeatureNames = [
   'source',

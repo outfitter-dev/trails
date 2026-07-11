@@ -298,10 +298,10 @@ These are cold read trails and helpers for querying saved graph artifacts and pa
 wayfinderTopo
 wayfindOverviewTrail, wayfindSearchTrail
 wayfindTrailsTrail, wayfindEntitiesTrail, wayfindResourcesTrail, wayfindSignalsTrail
-wayfindSurfacesTrail, wayfindFacetsTrail, wayfindVersionsTrail, wayfindExamplesTrail
+wayfindSurfacesTrail, wayfindTrailheadsTrail, wayfindVersionsTrail, wayfindExamplesTrail
 wayfindErrorsTrail, wayfindAdaptersTrail, wayfindOverlayTrail
 wayfindDescribeTrail, wayfindContractTrail, wayfindNearbyTrail, wayfindImpactTrail
-wayfindOutlineTrail, wayfindDiffTrail
+wayfindDiffTrail
 
 // Artifact loading, provenance, and typed filters
 loadWayfinderArtifacts, wayfinderTopoGraphSource, wayfinderTopoStoreSource
@@ -317,10 +317,11 @@ WayfinderFreshnessFresh, WayfinderFreshnessMissing
 WayfinderFreshnessSchemaVersionDrift, WayfinderFreshnessStale, WayfinderStaleReason
 WayfinderEntityFilters, WayfinderEntityFilterInput, WayfinderEntityKind
 WayfinderEntityRef, WayfinderFilterContext, WayfinderIntent
-OutlineFeature, OutlineInput, OutlineOutput, OutlineView
 ```
 
 Wayfinder trails are internal by default. Surface hosts expose selected query trails deliberately, usually by exact trail ID for operator tooling.
+
+The Trails operator owns the file-outline composite view. Use `trails wayfind file <file> --outline` when you need source-to-graph reconciliation for one source file; `@ontrails/wayfinder` remains the public home for reusable saved-artifact loading, provenance, filtering, and graph-read query trails.
 
 ## `@ontrails/store`
 

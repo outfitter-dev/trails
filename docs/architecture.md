@@ -175,13 +175,13 @@ Overrides are escape hatches. They're visible in the TopoGraph as explicit devia
 | `@ontrails/topographer` | TopoGraphs, semantic diffing, `trails.lock` helpers, topo-store persistence (relocated from `@ontrails/core` per ADR-0042) |
 | `@ontrails/source` | Shared source-code AST parsing, walking, locations, edits, literals, and generic Trails syntax recognition |
 | `@ontrails/warden` | Lint rules, drift detection, CI gating |
-| `@ontrails/wayfinder` | Graph-read query trails and source outlines over saved Topographer artifacts for agent navigation |
+| `@ontrails/wayfinder` | Graph-read query trails, artifact loading, provenance, and filters over saved Topographer artifacts for agent navigation |
 
 ### Apps
 
 | App                | What it does                                           |
 | ------------------ | ------------------------------------------------------ |
-| `apps/trails`      | The `trails` CLI -- create, survey, topo/dev workflows, draft promotion, guide, warden |
+| `apps/trails`      | The `trails` CLI -- create, survey, topo/dev workflows, draft promotion, guide, warden, and operator file outlines |
 | `apps/trails-demo` | Example app demonstrating the framework                |
 
 ## Dependency Graph
@@ -204,7 +204,7 @@ Overrides are escape hatches. They're visible in the TopoGraph as explicit devia
 @ontrails/source (oxc-parser, oxc-walker)
 @ontrails/warden (core, topographer, source, framework support packages)
 @ontrails/regrade (core, source, warden)
-@ontrails/wayfinder (core, topographer, source, adapter-kit)
+@ontrails/wayfinder (core, topographer, adapter-kit)
      ^
 @ontrails/commander (cli, commander)
 @ontrails/hono (http, hono)

@@ -32,6 +32,7 @@ import {
   trailsMcpIncludedTrails,
   trailsMcpSurfaceOptions,
 } from '../mcp-options.js';
+import { wayfindOutlineTrail } from '../trails/wayfind-outline.js';
 
 const unwrapTools = (...args: Parameters<typeof deriveMcpTools>) => {
   const result = deriveMcpTools(...args);
@@ -274,6 +275,11 @@ describe('Trails MCP surface shaping', () => {
     expect(shapedTrailIds).toContain('wayfind.errors');
     expect(shapedTrailIds).not.toContain('wayfind.outline');
     expect(shapedTrailIds).not.toContain('wayfind.query');
+  });
+
+  test('keeps the app-owned outline contract in the MCP operator topo', () => {
+    expect(trailsMcpApp.get('wayfind.outline')).toBe(wayfindOutlineTrail);
+    expect(trailsMcpIncludedTrails).not.toContain('wayfind.outline');
   });
 
   test('executes regrade plan and preview through MCP tool handlers', async () => {

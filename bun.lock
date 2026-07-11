@@ -453,7 +453,6 @@
       "version": "1.0.0-beta.39",
       "dependencies": {
         "@ontrails/adapter-kit": "workspace:^",
-        "@ontrails/source": "workspace:^",
       },
       "peerDependencies": {
         "@ontrails/core": "workspace:^",

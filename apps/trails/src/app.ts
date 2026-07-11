@@ -12,7 +12,6 @@ import {
   wayfindImpactTrail,
   wayfindNearbyTrail,
   wayfindOverviewTrail,
-  wayfindOutlineTrail,
   wayfindResourcesTrail,
   wayfindSearchTrail,
   wayfindSignalsTrail,
@@ -55,6 +54,7 @@ import * as validate from './trails/validate.js';
 import * as warden from './trails/warden.js';
 import * as wardenGuide from './trails/warden-guide.js';
 import * as wayfind from './trails/wayfind.js';
+import { wayfindOutlineTrail } from './trails/wayfind-outline.js';
 
 export const operatorApp = topo(
   'trails',
