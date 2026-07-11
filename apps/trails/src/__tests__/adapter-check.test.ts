@@ -119,6 +119,36 @@ const writeHttpOwner = (root: string): void => {
   writeFile(root, 'packages/http/src/testing.ts', 'export {};\n');
 };
 
+const writeHttpOwnerWithSubpathAdapter = (root: string): void => {
+  writePackage(root, 'packages/http', {
+    exports: {
+      '.': './src/index.ts',
+      './edge': './src/edge/index.ts',
+      './package.json': './package.json',
+      './testing': './src/testing.ts',
+    },
+    name: '@ontrails/http',
+    trails: {
+      adapterTargets: {
+        http: {
+          placements: ['extracted', 'subpath'],
+          testingImport: '@ontrails/http/testing',
+        },
+      },
+      adapters: {
+        './edge': { target: 'http' },
+      },
+    },
+  });
+  writeFile(root, 'packages/http/src/index.ts', 'export {};\n');
+  writeFile(root, 'packages/http/src/testing.ts', 'export {};\n');
+  writeFile(
+    root,
+    'packages/http/src/edge/index.ts',
+    'export const edgeAdapter = {};\n'
+  );
+};
+
 const expectValidationError = (
   result: Awaited<ReturnType<typeof adapterCheckTrail.implementation>>
 ): ValidationError => {
@@ -176,7 +206,7 @@ describe('trails adapter check', () => {
 
   test('returns the same diagnostic codes as the Warden projection', async () => {
     const root = makeRoot();
-    writeHttpOwner(root);
+    writeHttpOwnerWithSubpathAdapter(root);
     writeHonoAdapter(root);
 
     const result = await adapterCheckTrail.implementation({ rootDir: root }, {
@@ -193,8 +223,11 @@ describe('trails adapter check', () => {
     const wardenCodes = runWardenAdapterChecks(root).map((entry) => entry.code);
 
     expect(result.value.passed).toBe(false);
-    expect(localCodes).toEqual(['missing-conformance']);
+    expect(localCodes).toEqual(['missing-conformance', 'missing-conformance']);
     expect(wardenCodes).toEqual(localCodes);
+    expect(result.value.subjects.map((subject) => subject.packageName)).toEqual(
+      ['@ontrails/hono', '@ontrails/http/edge']
+    );
   });
 
   test('runs locally and exits non-zero for adapter readiness failures', () => {

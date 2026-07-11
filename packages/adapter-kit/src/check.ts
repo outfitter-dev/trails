@@ -114,9 +114,23 @@ interface AdapterMetadata {
   readonly target: string;
 }
 
+interface SubpathAdapterMetadata extends AdapterMetadata {
+  readonly exportKey: string;
+}
+
+interface AdapterCheckCandidate {
+  readonly exportKey?: string | undefined;
+  readonly key: string;
+  readonly metadata: AdapterMetadata;
+  readonly packageName: string;
+  readonly placement: AdapterTargetPlacement;
+}
+
 const adapterKitPackageName = '@ontrails/adapter-kit';
 
 const targetIdPattern = /^[a-z][a-z0-9-]*$/u;
+const subpathAdapterExportKeyPattern =
+  /^\.\/[a-z0-9][a-z0-9-]*(?:\/[a-z0-9][a-z0-9-]*)*$/u;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   Boolean(value && typeof value === 'object' && !Array.isArray(value));
@@ -169,38 +183,45 @@ const exportTargetIsFile = (packageRoot: string, target: string): boolean => {
   }
 };
 
-const hasResolvableExport = (
+const resolvableExportTarget = (
   workspace: WorkspacePackage,
   key: string
-): boolean => {
+): string | undefined => {
   const { exports: exportsValue } = workspace.manifest;
   if (typeof exportsValue === 'string') {
-    return (
-      key === '.' && exportTargetIsFile(workspace.packageRoot, exportsValue)
-    );
+    return key === '.' &&
+      exportTargetIsFile(workspace.packageRoot, exportsValue)
+      ? normalizeRealPath(resolve(workspace.packageRoot, exportsValue))
+      : undefined;
   }
 
   if (!isRecord(exportsValue)) {
-    return false;
+    return undefined;
   }
 
   if (!Object.hasOwn(exportsValue, key)) {
     if (key !== '.') {
-      return false;
+      return undefined;
     }
 
     const rootTarget = resolveExportTarget(exportsValue);
-    return (
-      rootTarget !== undefined &&
+    return rootTarget !== undefined &&
       exportTargetIsFile(workspace.packageRoot, rootTarget)
-    );
+      ? normalizeRealPath(resolve(workspace.packageRoot, rootTarget))
+      : undefined;
   }
 
   const target = resolveExportTarget(exportsValue[key]);
-  return (
-    target !== undefined && exportTargetIsFile(workspace.packageRoot, target)
-  );
+  return target !== undefined &&
+    exportTargetIsFile(workspace.packageRoot, target)
+    ? normalizeRealPath(resolve(workspace.packageRoot, target))
+    : undefined;
 };
+
+const hasResolvableExport = (
+  workspace: WorkspacePackage,
+  key: string
+): boolean => resolvableExportTarget(workspace, key) !== undefined;
 
 const dependencyMap = (value: unknown): Readonly<Record<string, unknown>> =>
   isRecord(value) ? value : {};
@@ -230,6 +251,37 @@ const trailAdapterMetadata = (
   return typeof target === 'string' && targetIdPattern.test(target)
     ? { target }
     : null;
+};
+
+const trailSubpathAdapterMetadata = (
+  manifest: AdapterCheckPackageManifest
+): readonly SubpathAdapterMetadata[] | undefined | null => {
+  const trails = isRecord(manifest.trails) ? manifest.trails : undefined;
+  const adapters = trails?.['adapters'];
+  if (adapters === undefined) {
+    return undefined;
+  }
+  if (!isRecord(adapters)) {
+    return null;
+  }
+
+  const metadata: SubpathAdapterMetadata[] = [];
+  for (const [exportKey, adapter] of Object.entries(adapters).toSorted()) {
+    if (!subpathAdapterExportKeyPattern.test(exportKey)) {
+      return null;
+    }
+    if (!isRecord(adapter)) {
+      return null;
+    }
+
+    const { target } = adapter;
+    if (typeof target !== 'string' || !targetIdPattern.test(target)) {
+      return null;
+    }
+    metadata.push({ exportKey, target });
+  }
+
+  return metadata;
 };
 
 const placementForWorkspace = (
@@ -302,7 +354,10 @@ const adapterFacts = (
       placement: subject.placement,
       provenance: {
         packageJsonPath: subject.packageJsonPath,
-        source: 'adapter-package-manifest',
+        source:
+          subject.placement === 'subpath'
+            ? 'owner-package-manifest'
+            : 'adapter-package-manifest',
       },
       target: subject.target,
       targetKey: subject.targetKey,
@@ -1923,30 +1978,189 @@ const assertToolingBoundary = (
   }
 };
 
+const sourceFilesForCandidate = (
+  workspace: WorkspacePackage,
+  candidate: AdapterCheckCandidate,
+  sourceFiles: readonly string[]
+): readonly string[] => {
+  if (!candidate.exportKey) {
+    return sourceFiles;
+  }
+
+  const exportTarget = resolvableExportTarget(workspace, candidate.exportKey);
+  if (!exportTarget) {
+    return sourceFiles;
+  }
+
+  const normalizedTarget = normalizePath(exportTarget);
+  const targetDir = normalizePath(dirname(normalizedTarget));
+  if (normalizedTarget.endsWith('/index.ts')) {
+    return sourceFiles.filter((sourceFile) =>
+      normalizePath(sourceFile).startsWith(`${targetDir}/`)
+    );
+  }
+
+  const targetStem = normalizedTarget.replace(/\.ts$/u, '');
+  return sourceFiles.filter((sourceFile) => {
+    const normalizedSourceFile = normalizePath(sourceFile);
+    return (
+      normalizedSourceFile === normalizedTarget ||
+      normalizedSourceFile.startsWith(`${targetStem}.`) ||
+      normalizedSourceFile.startsWith(`${targetStem}/`)
+    );
+  });
+};
+
 const checkAdapterPackage = (
   workspace: WorkspacePackage,
   targetById: ReadonlyMap<string, AdapterTargetCatalogEntry>
 ): {
   readonly diagnostics: readonly AdapterCheckDiagnostic[];
-  readonly subject?: AdapterCheckSubject | undefined;
+  readonly subjects: readonly AdapterCheckSubject[];
 } => {
   const packageName = workspace.manifest.name as string;
   const diagnostics: AdapterCheckDiagnostic[] = [];
   const placement = placementForWorkspace(workspace.workspacePath);
   const metadata = trailAdapterMetadata(workspace.manifest);
+  const subpathMetadata = trailSubpathAdapterMetadata(workspace.manifest);
 
-  if (!placement || metadata === undefined) {
-    return { diagnostics: [] };
+  if ((!placement || metadata === undefined) && subpathMetadata === undefined) {
+    return { diagnostics: [], subjects: [] };
   }
 
   assertPackageExports(workspace, diagnostics);
   const sourceFiles = collectSourceFiles(join(workspace.packageRoot, 'src'));
   assertToolingBoundary(workspace, sourceFiles, diagnostics);
 
-  if (metadata === null) {
+  const subjects: AdapterCheckSubject[] = [];
+  const checkCandidate = (
+    candidate: AdapterCheckCandidate
+  ): AdapterCheckSubject | undefined => {
+    if (
+      candidate.exportKey &&
+      !hasResolvableExport(workspace, candidate.exportKey)
+    ) {
+      diagnostics.push(
+        diagnostic(
+          workspace.packageJsonPath,
+          candidate.packageName,
+          'missing-package-export',
+          `${packageName} must export "${candidate.exportKey}" so ${candidate.packageName} can be resolved as a subpath adapter.`,
+          candidate.metadata.target,
+          candidate.placement
+        )
+      );
+    }
+
+    const targetEntry = targetById.get(candidate.metadata.target);
+    if (!targetEntry) {
+      diagnostics.push(
+        diagnostic(
+          workspace.packageJsonPath,
+          candidate.packageName,
+          'unknown-adapter-target',
+          `${candidate.packageName} declares unknown adapter target "${candidate.metadata.target}".`,
+          candidate.metadata.target,
+          candidate.placement
+        )
+      );
+      return undefined;
+    }
+
+    if (
+      candidate.placement === 'subpath' &&
+      targetEntry.ownerPackage !== packageName
+    ) {
+      diagnostics.push(
+        diagnostic(
+          workspace.packageJsonPath,
+          candidate.packageName,
+          'invalid-adapter-metadata',
+          `${candidate.packageName} declares target "${targetEntry.target}", but subpath adapters must live in the owner package ${targetEntry.ownerPackage}.`,
+          targetEntry.target,
+          candidate.placement
+        )
+      );
+      return undefined;
+    }
+
+    if (!targetEntry.placements.includes(candidate.placement)) {
+      diagnostics.push(
+        diagnostic(
+          workspace.packageJsonPath,
+          candidate.packageName,
+          'unsupported-placement',
+          `${targetEntry.ownerPackage}:${targetEntry.target} does not support ${candidate.placement} adapter placement.`,
+          targetEntry.target,
+          candidate.placement
+        )
+      );
+    }
+
+    if (candidate.placement === 'extracted') {
+      assertDependencyDirection(workspace, targetEntry, diagnostics);
+    }
+
+    const { conformance, testingImport } = targetEntry;
+    const candidateSourceFiles = sourceFilesForCandidate(
+      workspace,
+      candidate,
+      sourceFiles
+    );
+    const conformanceTestPaths = testingImport
+      ? pathsProvingConformance(
+          candidateSourceFiles.filter(isTestFile),
+          targetEntry
+        )
+      : [];
+
+    if (!testingImport) {
+      diagnostics.push(
+        diagnostic(
+          workspace.packageJsonPath,
+          candidate.packageName,
+          'missing-owner-conformance',
+          `${targetEntry.ownerPackage}:${targetEntry.target} must declare testingImport before adapters can prove conformance.`,
+          targetEntry.target,
+          candidate.placement
+        )
+      );
+    } else if (conformanceTestPaths.length === 0) {
+      const conformanceHint = conformance
+        ? ` and call ${conformance.runner}(adapter, ${conformance.casesFactory}(...))`
+        : '';
+      diagnostics.push(
+        diagnostic(
+          workspace.packageJsonPath,
+          candidate.packageName,
+          'missing-conformance',
+          `${candidate.packageName} must import ${testingImport} from a conformance test${conformanceHint}.`,
+          targetEntry.target,
+          candidate.placement
+        )
+      );
+    }
+
     return {
-      diagnostics: [
-        ...diagnostics,
+      conformanceTestPaths,
+      key: candidate.key,
+      ownerPackage: targetEntry.ownerPackage,
+      packageJsonPath: workspace.packageJsonPath,
+      packageName: candidate.packageName,
+      packageRoot: workspace.packageRoot,
+      placement: candidate.placement,
+      target: targetEntry.target,
+      targetKey: targetEntry.key,
+      ...(conformance?.adapterType
+        ? { adapterType: conformance.adapterType }
+        : {}),
+      ...(testingImport ? { testingImport } : {}),
+    };
+  };
+
+  if (placement && metadata !== undefined) {
+    if (metadata === null) {
+      diagnostics.push(
         diagnostic(
           workspace.packageJsonPath,
           packageName,
@@ -1954,95 +2168,54 @@ const checkAdapterPackage = (
           `${packageName} must declare trails.adapter as an object with a kebab-case target string.`,
           undefined,
           placement
-        ),
-      ],
-    };
+        )
+      );
+    } else {
+      const subject = checkCandidate({
+        key: packageName,
+        metadata,
+        packageName,
+        placement,
+      });
+      if (subject) {
+        subjects.push(subject);
+      }
+    }
   }
 
-  const targetEntry = targetById.get(metadata.target);
-  if (!targetEntry) {
-    return {
-      diagnostics: [
-        ...diagnostics,
-        diagnostic(
-          workspace.packageJsonPath,
-          packageName,
-          'unknown-adapter-target',
-          `${packageName} declares unknown adapter target "${metadata.target}".`,
-          metadata.target,
-          placement
-        ),
-      ],
-    };
-  }
-
-  if (!targetEntry.placements.includes(placement)) {
+  if (subpathMetadata === null) {
     diagnostics.push(
       diagnostic(
         workspace.packageJsonPath,
         packageName,
-        'unsupported-placement',
-        `${targetEntry.ownerPackage}:${targetEntry.target} does not support ${placement} adapter placement.`,
-        targetEntry.target,
-        placement
+        'invalid-adapter-metadata',
+        `${packageName} must declare trails.adapters as an object keyed by exported subpath, with each value declaring a kebab-case target string.`,
+        undefined,
+        'subpath'
       )
     );
+  } else if (subpathMetadata !== undefined) {
+    for (const subpathAdapter of subpathMetadata) {
+      const subpathPackageName = `${packageName}/${subpathAdapter.exportKey.slice(2)}`;
+      const targetEntry = targetById.get(subpathAdapter.target);
+      const subpathPlacement =
+        targetEntry?.ownerPackage === packageName
+          ? 'subpath'
+          : (placement ?? 'subpath');
+      const subject = checkCandidate({
+        exportKey: subpathAdapter.exportKey,
+        key: subpathPackageName,
+        metadata: subpathAdapter,
+        packageName: subpathPackageName,
+        placement: subpathPlacement,
+      });
+      if (subject) {
+        subjects.push(subject);
+      }
+    }
   }
 
-  if (placement === 'extracted') {
-    assertDependencyDirection(workspace, targetEntry, diagnostics);
-  }
-
-  const { conformance, testingImport } = targetEntry;
-  const conformanceTestPaths = testingImport
-    ? pathsProvingConformance(sourceFiles.filter(isTestFile), targetEntry)
-    : [];
-
-  if (!testingImport) {
-    diagnostics.push(
-      diagnostic(
-        workspace.packageJsonPath,
-        packageName,
-        'missing-owner-conformance',
-        `${targetEntry.ownerPackage}:${targetEntry.target} must declare testingImport before adapters can prove conformance.`,
-        targetEntry.target,
-        placement
-      )
-    );
-  } else if (conformanceTestPaths.length === 0) {
-    const conformanceHint = conformance
-      ? ` and call ${conformance.runner}(adapter, ${conformance.casesFactory}(...))`
-      : '';
-    diagnostics.push(
-      diagnostic(
-        workspace.packageJsonPath,
-        packageName,
-        'missing-conformance',
-        `${packageName} must import ${testingImport} from a conformance test${conformanceHint}.`,
-        targetEntry.target,
-        placement
-      )
-    );
-  }
-
-  return {
-    diagnostics,
-    subject: {
-      conformanceTestPaths,
-      key: packageName,
-      ownerPackage: targetEntry.ownerPackage,
-      packageJsonPath: workspace.packageJsonPath,
-      packageName,
-      packageRoot: workspace.packageRoot,
-      placement,
-      target: targetEntry.target,
-      targetKey: targetEntry.key,
-      ...(conformance?.adapterType
-        ? { adapterType: conformance.adapterType }
-        : {}),
-      ...(testingImport ? { testingImport } : {}),
-    },
-  };
+  return { diagnostics, subjects };
 };
 
 export const checkAdapters = (rootDir: string): AdapterCheckReport => {
@@ -2056,9 +2229,7 @@ export const checkAdapters = (rootDir: string): AdapterCheckReport => {
   for (const workspace of workspacePackages(rootDir)) {
     const result = checkAdapterPackage(workspace, targetById);
     diagnostics.push(...result.diagnostics);
-    if (result.subject) {
-      subjects.push(result.subject);
-    }
+    subjects.push(...result.subjects);
   }
 
   const sortedSubjects = subjects.toSorted((left, right) =>

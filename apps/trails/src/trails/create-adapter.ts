@@ -24,7 +24,7 @@ import {
 } from '@ontrails/core';
 import type { WorkspaceRootManifest } from '@ontrails/core';
 import { existsSync, readFileSync, realpathSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { dirname, join, relative, resolve } from 'node:path';
 import { z } from 'zod';
 
 import {
@@ -49,7 +49,7 @@ const packageNameMessage =
 
 type CreateAdapterPlacement = AdapterTargetPlacement;
 
-const createAdapterPlacements = ['extracted'] as const;
+const createAdapterPlacements = adapterTargetPlacements;
 
 interface CreateAdapterInput {
   readonly dryRun: boolean;
@@ -81,6 +81,7 @@ interface AdapterOperationPlan {
 interface WorkspacePackageManifest {
   readonly exports?: unknown;
   readonly name?: unknown;
+  readonly trails?: unknown;
 }
 
 const literal = (value: string): string => JSON.stringify(value);
@@ -159,6 +160,9 @@ const resolvePhysicalRootDir = (
 const isRecord = (value: unknown): value is Readonly<Record<string, unknown>> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
+const toMutableRecord = (value: unknown): Record<string, unknown> =>
+  isRecord(value) ? { ...value } : {};
+
 const runtimeExportTarget = (value: unknown, depth = 0): string | undefined => {
   if (typeof value === 'string') {
     return value;
@@ -196,6 +200,15 @@ const packageRootExportTarget = (
   }
 
   return resolve(target.packageRoot, exportTarget);
+};
+
+const relativeImportSpecifier = (fromFile: string, toFile: string): string => {
+  const withoutExtension = relative(dirname(fromFile), toFile)
+    .replaceAll('\\', '/')
+    .replace(/\.ts$/u, '.js');
+  return withoutExtension.startsWith('.')
+    ? withoutExtension
+    : `./${withoutExtension}`;
 };
 
 const assertHttpOwnerSupport = (
@@ -379,6 +392,21 @@ export const createApp = (
 });
 `;
 
+const generateHttpSubpathIndex = (supportImportPath: string): string =>
+  `import type { Topo } from '@ontrails/core';
+import { createFetchHandler } from ${literal(supportImportPath)};
+import type { CreateFetchHandlerOptions } from ${literal(supportImportPath)};
+
+export interface CreateAppOptions extends CreateFetchHandlerOptions {}
+
+export const createApp = (
+  graph: Topo,
+  options: CreateAppOptions = {}
+) => ({
+  fetch: createFetchHandler(graph, options),
+});
+`;
+
 const generateConformanceTest = (
   target: AdapterTargetCatalogEntry,
   adapterImport: string,
@@ -494,13 +522,128 @@ const buildExtractedPlan = (
 };
 
 const buildSubpathPlan = (
-  _rootDir: string,
-  _input: CreateAdapterInput,
-  _target: AdapterTargetCatalogEntry
-): Result<AdapterOperationPlan, Error> =>
-  fail(
-    'Subpath adapter scaffolding is deferred until shared adapter checks discover subpath adapter subjects.'
+  rootDir: string,
+  input: CreateAdapterInput,
+  target: AdapterTargetCatalogEntry
+): Result<AdapterOperationPlan, Error> => {
+  if (input.packageName !== undefined) {
+    return fail(
+      'packageName is only supported for extracted adapter placement.'
+    );
+  }
+
+  const ownerPackage = findWorkspacePackage<WorkspacePackageManifest>(
+    rootDir,
+    target.ownerPackage
   );
+  if (!ownerPackage) {
+    return fail(
+      `Adapter target "${target.key}" owner package ${target.ownerPackage} is not a workspace package.`
+    );
+  }
+
+  const manifest = readJson<WorkspacePackageManifest>(
+    ownerPackage.packageJsonPath
+  );
+  if (!manifest || !isRecord(manifest)) {
+    return fail(
+      `Adapter target "${target.key}" owner package manifest could not be read.`
+    );
+  }
+
+  const manifestExports = manifest['exports'];
+  if (
+    manifestExports !== undefined &&
+    typeof manifestExports !== 'string' &&
+    !isRecord(manifestExports)
+  ) {
+    return fail(
+      `${target.ownerPackage} package.json exports must be an object before create.adapter can add a subpath adapter.`
+    );
+  }
+
+  const exportKey = `./${input.name}`;
+  const packageExports =
+    typeof manifestExports === 'string'
+      ? { '.': manifestExports }
+      : toMutableRecord(manifestExports);
+  if (Object.hasOwn(packageExports, exportKey)) {
+    return fail(`${target.ownerPackage} already exports "${exportKey}".`);
+  }
+
+  const manifestTrails = manifest['trails'];
+  const trails = toMutableRecord(manifestTrails);
+  if (manifestTrails !== undefined && !isRecord(manifestTrails)) {
+    return fail(
+      `${target.ownerPackage} package.json trails must be an object.`
+    );
+  }
+
+  const adapters = toMutableRecord(trails['adapters']);
+  if (trails['adapters'] !== undefined && !isRecord(trails['adapters'])) {
+    return fail(
+      `${target.ownerPackage} package.json trails.adapters must be an object before create.adapter can add a subpath adapter.`
+    );
+  }
+  if (Object.hasOwn(adapters, exportKey)) {
+    return fail(
+      `${target.ownerPackage} package.json trails.adapters already declares "${exportKey}".`
+    );
+  }
+
+  const sourcePath = `${ownerPackage.workspacePath}/src/${input.name}/index.ts`;
+  const sourceRoot = resolveProjectPath(
+    rootDir,
+    `${ownerPackage.workspacePath}/src/${input.name}`
+  );
+  if (sourceRoot.isErr()) {
+    return sourceRoot;
+  }
+  if (existsSync(sourceRoot.value)) {
+    return fail(
+      `Subpath adapter source already exists at ${ownerPackage.workspacePath}/src/${input.name}.`
+    );
+  }
+
+  const supportTarget = packageRootExportTarget(target);
+  if (!supportTarget) {
+    return fail(
+      `Adapter target "${target.key}" cannot use the HTTP subpath template because ${target.ownerPackage} does not expose a readable package root export.`
+    );
+  }
+
+  packageExports[exportKey] = `./src/${input.name}/index.ts`;
+  adapters[exportKey] = { target: target.target };
+  trails['adapters'] = adapters;
+
+  const adapterImport = `${target.ownerPackage}/${input.name}`;
+  const sourceFile = resolve(rootDir, sourcePath);
+  const packageJson = formatJson({
+    ...manifest,
+    exports: packageExports,
+    trails,
+  });
+  const operations = [
+    writeOperation(`${ownerPackage.workspacePath}/package.json`, packageJson),
+    writeOperation(
+      sourcePath,
+      generateHttpSubpathIndex(
+        relativeImportSpecifier(sourceFile, supportTarget)
+      )
+    ),
+    writeOperation(
+      `${ownerPackage.workspacePath}/src/${input.name}/__tests__/conformance.test.ts`,
+      generateConformanceTest(target, adapterImport, '../index.js')
+    ),
+  ];
+
+  return Result.ok({
+    adapterImport,
+    operations,
+    packageName: adapterImport,
+    targetKey: target.key,
+  });
+};
 
 const buildOperationPlan = (
   rootDir: string,
@@ -530,6 +673,11 @@ export const createAdapterTrail = trail('create.adapter', {
           hint: 'Standalone package under adapters/',
           label: 'Extracted',
           value: 'extracted',
+        },
+        {
+          hint: 'Owner package subpath export',
+          label: 'Subpath',
+          value: 'subpath',
         },
       ],
     },
@@ -576,7 +724,7 @@ export const createAdapterTrail = trail('create.adapter', {
       diagnostics: [...report.diagnostics],
       dryRun: input.dryRun,
       packageName: plan.value.packageName,
-      placement: 'extracted',
+      placement: input.placement,
       plannedOperations: [...plannedOperations.value],
       targetKey: plan.value.targetKey,
     } satisfies CreateAdapterResult);

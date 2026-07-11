@@ -66,6 +66,7 @@ const writeHttpOwner = (
       },
     },
   });
+  writeFile(root, 'packages/http/src/index.ts', 'export const http = {};\n');
   writeFile(
     root,
     'packages/http/src/testing.ts',
@@ -120,6 +121,64 @@ const writeHttpConformanceTest = (
   );
 };
 
+const writeHttpSubpathAdapter = (
+  root: string,
+  options: {
+    readonly exportSubpath?: boolean;
+    readonly writeConformance?: boolean;
+  } = {}
+): void => {
+  const exportSubpath = options.exportSubpath ?? true;
+  const writeConformance = options.writeConformance ?? true;
+  writePackage(root, 'packages/http', {
+    exports: {
+      '.': './src/index.ts',
+      ...(exportSubpath ? { './edge': './src/edge/index.ts' } : {}),
+      './package.json': './package.json',
+      './testing': './src/testing.ts',
+    },
+    name: '@ontrails/http',
+    trails: {
+      adapterTargets: {
+        http: {
+          conformance: {
+            adapterType: 'HttpAdapterConformanceAdapter',
+            casesFactory: 'createHttpAdapterConformanceCases',
+            runner: 'runConformance',
+          },
+          placements: ['subpath'],
+          testingImport: '@ontrails/http/testing',
+        },
+      },
+      adapters: {
+        './edge': { target: 'http' },
+      },
+    },
+  });
+  writeFile(root, 'packages/http/src/index.ts', 'export const http = {};\n');
+  writeFile(
+    root,
+    'packages/http/src/testing.ts',
+    [
+      'export interface HttpAdapterConformanceAdapter {}',
+      'export const createHttpAdapterConformanceCases = () => [];',
+      'export const runConformance = () => undefined;',
+      '',
+    ].join('\n')
+  );
+  writeFile(
+    root,
+    'packages/http/src/edge/index.ts',
+    'export const edgeAdapter = {};\n'
+  );
+  if (writeConformance) {
+    writeHttpConformanceTest(
+      root,
+      'packages/http/src/edge/__tests__/conformance.test.ts'
+    );
+  }
+};
+
 const codes = (
   diagnostics: readonly { readonly code: AdapterCheckDiagnosticCode }[]
 ): readonly AdapterCheckDiagnosticCode[] =>
@@ -157,6 +216,226 @@ describe('checkAdapters', () => {
       targetKey: '@ontrails/http:http',
       testingImport: '@ontrails/http/testing',
     });
+  });
+
+  test('accepts a valid owner package subpath adapter', () => {
+    const root = makeRoot();
+    writeHttpSubpathAdapter(root);
+
+    const report = checkAdapters(root);
+
+    expect(report.diagnostics).toEqual([]);
+    expect(report.subjects).toHaveLength(1);
+    expect(report.subjects[0]).toMatchObject({
+      adapterType: 'HttpAdapterConformanceAdapter',
+      conformanceTestPaths: [
+        expect.stringContaining(
+          'packages/http/src/edge/__tests__/conformance.test.ts'
+        ),
+      ],
+      key: '@ontrails/http/edge',
+      ownerPackage: '@ontrails/http',
+      packageName: '@ontrails/http/edge',
+      placement: 'subpath',
+      target: 'http',
+      targetKey: '@ontrails/http:http',
+      testingImport: '@ontrails/http/testing',
+    });
+    expect(report.facts).toContainEqual(
+      expect.objectContaining({
+        key: '@ontrails/http/edge:http:configured',
+        kind: 'configured',
+        packageName: '@ontrails/http/edge',
+        placement: 'subpath',
+        provenance: expect.objectContaining({
+          source: 'owner-package-manifest',
+        }),
+      })
+    );
+  });
+
+  test('treats collection subpaths outside the owner as extracted adapters', () => {
+    const root = makeRoot();
+    writePackage(root, 'packages/store', {
+      exports: {
+        '.': './src/index.ts',
+        './package.json': './package.json',
+        './testing': './src/testing.ts',
+      },
+      name: '@ontrails/store',
+      trails: {
+        adapterTargets: {
+          store: {
+            placements: ['extracted', 'subpath'],
+            testingImport: '@ontrails/store/testing',
+          },
+        },
+      },
+    });
+    writeFile(
+      root,
+      'packages/store/src/index.ts',
+      'export const store = {};\n'
+    );
+    writeFile(
+      root,
+      'packages/store/src/testing.ts',
+      'export const createStoreAccessorContractCases = () => [];\n'
+    );
+    writePackage(root, 'adapters/cloudflare', {
+      exports: {
+        '.': './src/index.ts',
+        './d1': './src/d1/index.ts',
+        './package.json': './package.json',
+      },
+      name: '@ontrails/cloudflare',
+      peerDependencies: {
+        '@ontrails/store': 'workspace:^',
+      },
+      trails: {
+        adapters: {
+          './d1': { target: 'store' },
+        },
+      },
+    });
+    writeFile(root, 'adapters/cloudflare/src/index.ts', 'export {};\n');
+    writeFile(
+      root,
+      'adapters/cloudflare/src/d1/index.ts',
+      'export const cloudflareD1 = {};\n'
+    );
+    writeFile(
+      root,
+      'adapters/cloudflare/src/d1/__tests__/d1.test.ts',
+      [
+        "import { createStoreAccessorContractCases } from '@ontrails/store/testing';",
+        'createStoreAccessorContractCases();',
+        '',
+      ].join('\n')
+    );
+
+    const report = checkAdapters(root);
+
+    expect(report.diagnostics).toEqual([]);
+    expect(report.subjects).toContainEqual(
+      expect.objectContaining({
+        key: '@ontrails/cloudflare/d1',
+        ownerPackage: '@ontrails/store',
+        packageName: '@ontrails/cloudflare/d1',
+        placement: 'extracted',
+        target: 'store',
+      })
+    );
+  });
+
+  test('reports missing conformance for owner package subpath adapters', () => {
+    const root = makeRoot();
+    writeHttpSubpathAdapter(root, { writeConformance: false });
+
+    const report = checkAdapters(root);
+
+    expect(report.subjects[0]?.conformanceTestPaths).toEqual([]);
+    expect(report.diagnostics).toHaveLength(1);
+    expect(report.diagnostics[0]).toMatchObject({
+      code: 'missing-conformance',
+      packageName: '@ontrails/http/edge',
+      placement: 'subpath',
+      target: 'http',
+    });
+  });
+
+  test('scopes owner package subpath conformance to each export source area', () => {
+    const root = makeRoot();
+    writePackage(root, 'packages/http', {
+      exports: {
+        '.': './src/index.ts',
+        './edge': './src/edge/index.ts',
+        './package.json': './package.json',
+        './testing': './src/testing.ts',
+        './worker': './src/worker/index.ts',
+      },
+      name: '@ontrails/http',
+      trails: {
+        adapterTargets: {
+          http: {
+            conformance: {
+              adapterType: 'HttpAdapterConformanceAdapter',
+              casesFactory: 'createHttpAdapterConformanceCases',
+              runner: 'runConformance',
+            },
+            placements: ['subpath'],
+            testingImport: '@ontrails/http/testing',
+          },
+        },
+        adapters: {
+          './edge': { target: 'http' },
+          './worker': { target: 'http' },
+        },
+      },
+    });
+    writeFile(root, 'packages/http/src/index.ts', 'export const http = {};\n');
+    writeFile(
+      root,
+      'packages/http/src/testing.ts',
+      [
+        'export interface HttpAdapterConformanceAdapter {}',
+        'export const createHttpAdapterConformanceCases = () => [];',
+        'export const runConformance = () => undefined;',
+        '',
+      ].join('\n')
+    );
+    writeFile(
+      root,
+      'packages/http/src/edge/index.ts',
+      'export const edgeAdapter = {};\n'
+    );
+    writeFile(
+      root,
+      'packages/http/src/worker/index.ts',
+      'export const workerAdapter = {};\n'
+    );
+    writeHttpConformanceTest(
+      root,
+      'packages/http/src/edge/__tests__/conformance.test.ts'
+    );
+
+    const report = checkAdapters(root);
+
+    expect(report.subjects).toHaveLength(2);
+    expect(
+      report.subjects.find(
+        (subject) => subject.packageName === '@ontrails/http/edge'
+      )?.conformanceTestPaths
+    ).toHaveLength(1);
+    expect(
+      report.subjects.find(
+        (subject) => subject.packageName === '@ontrails/http/worker'
+      )?.conformanceTestPaths
+    ).toEqual([]);
+    expect(report.diagnostics).toHaveLength(1);
+    expect(report.diagnostics[0]).toMatchObject({
+      code: 'missing-conformance',
+      packageName: '@ontrails/http/worker',
+      placement: 'subpath',
+      target: 'http',
+    });
+  });
+
+  test('reports missing owner exports for subpath adapter metadata', () => {
+    const root = makeRoot();
+    writeHttpSubpathAdapter(root, { exportSubpath: false });
+
+    const report = checkAdapters(root);
+
+    expect(report.subjects).toHaveLength(1);
+    expect(report.diagnostics).toHaveLength(1);
+    expect(report.diagnostics[0]).toMatchObject({
+      code: 'missing-package-export',
+      packageName: '@ontrails/http/edge',
+      placement: 'subpath',
+      target: 'http',
+    });
+    expect(report.diagnostics[0]?.message).toContain('export "./edge"');
   });
 
   test('accepts owner testing imports exported through wildcard keys', () => {

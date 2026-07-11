@@ -60,6 +60,36 @@ const writeHttpOwner = (root: string): void => {
   writeFile(root, 'packages/http/src/testing.ts', 'export {};\n');
 };
 
+const writeHttpOwnerWithSubpathAdapter = (root: string): void => {
+  writePackage(root, 'packages/http', {
+    exports: {
+      '.': './src/index.ts',
+      './edge': './src/edge/index.ts',
+      './package.json': './package.json',
+      './testing': './src/testing.ts',
+    },
+    name: '@ontrails/http',
+    trails: {
+      adapterTargets: {
+        http: {
+          placements: ['subpath'],
+          testingImport: '@ontrails/http/testing',
+        },
+      },
+      adapters: {
+        './edge': { target: 'http' },
+      },
+    },
+  });
+  writeFile(root, 'packages/http/src/index.ts', 'export {};\n');
+  writeFile(root, 'packages/http/src/testing.ts', 'export {};\n');
+  writeFile(
+    root,
+    'packages/http/src/edge/index.ts',
+    'export const edgeAdapter = {};\n'
+  );
+};
+
 const writeHonoAdapter = (root: string): void => {
   writePackage(root, 'adapters/hono', {
     exports: {
@@ -103,6 +133,22 @@ describe('Warden adapter checks', () => {
       rule: 'adapter-check',
       severity: 'warn',
     });
+    expect(diagnostics[0]?.message).toContain('@ontrails/http/testing');
+  });
+
+  test('maps subpath adapter diagnostics into Warden diagnostics', () => {
+    const root = makeRoot();
+    writeHttpOwnerWithSubpathAdapter(root);
+
+    const diagnostics = runWardenAdapterChecks(root);
+
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0]).toMatchObject({
+      code: 'missing-conformance',
+      rule: 'adapter-check',
+      severity: 'warn',
+    });
+    expect(diagnostics[0]?.message).toContain('@ontrails/http/edge');
     expect(diagnostics[0]?.message).toContain('@ontrails/http/testing');
   });
 

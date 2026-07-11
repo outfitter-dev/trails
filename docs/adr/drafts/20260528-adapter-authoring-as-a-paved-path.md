@@ -39,7 +39,8 @@ The owner package owns the truth an adapter must conform to. It already does —
 @ontrails/<owner>/adapter-support   support helpers an adapter needs
 @ontrails/<owner>/testing            conformance cases, as a factory
 @ontrails/<owner>/trails             owner-side trails where relevant
-package.json trails.adapterTargets   the small facts derivation can't know
+package.json trails.adapterTargets   owner target facts derivation can't know
+package.json trails.adapters         exported adapter subjects within one package
 ```
 
 This is not a new source of truth. It is the owner's existing contract, made explicit and reusable. The owner writes the contract and its conformance cases once; every adapter's scaffold, tests, and checks read from them. One write, many reads — applied to adapter authoring.
@@ -48,10 +49,10 @@ This is not a new source of truth. It is the owner's existing contract, made exp
 
 The choice between an extracted package and a subpath is **`placement`** — not `kind`, which already carries store-domain meaning in the lexicon ([ADR-0023](../0023-simplifying-the-trails-lexicon.md)).
 
-- **Extracted** adapters live under `adapters/` when they earn a dependency or release boundary — `@ontrails/hono`, `@ontrails/drizzle`, `@ontrails/commander`, `@ontrails/vite`.
+- **Extracted** adapters live under `adapters/` when they earn a dependency or release boundary — `@ontrails/hono`, `@ontrails/drizzle`, `@ontrails/commander`, `@ontrails/vite`. An extracted adapter collection may expose several targets through package subpaths, but those subjects remain extracted because they cross their owner packages' dependency boundaries.
 - **Subpath** adapters live inside the owner package when [ADR-0029](../0029-connector-extraction-and-the-with-packaging-model.md)'s dependency-boundary test says a standalone package would add ceremony without buying a real boundary — `@ontrails/http/bun`, `@ontrails/store/jsonfile`, platform-native and built-in materializers.
 
-The placement choice *is* the dependency-boundary test from ADR-0029. Subpath adapters are a first-class carve-out — they should get the same scaffold and conformance path as extracted ones, not hand-authored exception status. The first implementation scaffolds extracted HTTP adapters and owner-package HTTP subpath adapters from the same catalog facts. The shared check engine still discovers extracted workspace adapter subjects first; subpath subject discovery remains follow-up drift-check coverage, not a reason to block scaffold generation.
+The placement choice *is* the dependency-boundary test from ADR-0029. A slash in the public package route does not decide placement: `@ontrails/cloudflare/d1` remains extracted from its Store owner, while `@ontrails/store/jsonfile` is an owner-package subpath. Subpath adapters are a first-class carve-out — they should get the same scaffold and conformance path as extracted ones, not hand-authored exception status. The first implementation scaffolds extracted HTTP adapters and owner-package HTTP subpath adapters from the same catalog facts. The shared check engine discovers extracted package roots, extracted collection subjects, and owner-package subpath subjects, so every declared subject enters the same local and Warden readiness loop immediately.
 
 ```bash
 trails create adapter hono --target http  --placement extracted

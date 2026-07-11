@@ -147,7 +147,7 @@ describe('trails create adapter', () => {
     );
     expect(
       createAdapter?.flags.find((flag) => flag.name === 'placement')?.choices
-    ).toEqual(['extracted']);
+    ).toEqual(['extracted', 'subpath']);
   });
 
   test('scaffolds an extracted HTTP adapter from catalog facts', async () => {
@@ -727,11 +727,11 @@ describe('trails create adapter', () => {
     expect(existsSync(join(root, 'adapters/hono-lite'))).toBe(false);
   });
 
-  test('rejects subpath scaffolding until shared checks discover subpath subjects', async () => {
+  test('scaffolds an HTTP subpath adapter from owner catalog facts', async () => {
     const root = makeRoot();
     writeHttpOwner(root);
 
-    const error = expectValidationError(
+    const result = expectOk(
       await createAdapterTrail.implementation(
         {
           dryRun: false,
@@ -744,20 +744,48 @@ describe('trails create adapter', () => {
       )
     );
 
-    expect(error.message).toContain('Subpath adapter scaffolding is deferred');
+    expect(result.created).toEqual([
+      'packages/http/package.json',
+      'packages/http/src/edge/index.ts',
+      'packages/http/src/edge/__tests__/conformance.test.ts',
+    ]);
+    expect(result.adapterImport).toBe('@ontrails/http/edge');
+    expect(result.packageName).toBe('@ontrails/http/edge');
+    expect(result.placement).toBe('subpath');
+    expect(result.targetKey).toBe('@ontrails/http:http');
+
     const { exports: packageExports } = readJson(
       root,
       'packages/http/package.json'
     );
     expect(packageExports).toMatchObject({
       '.': './src/index.ts',
+      './edge': './src/edge/index.ts',
       './package.json': './package.json',
       './testing': './src/testing.ts',
     });
-    expect((packageExports as Record<string, unknown>)['./edge']).toBe(
-      undefined
+    expect(
+      readJson(root, 'packages/http/package.json')['trails']
+    ).toMatchObject({
+      adapters: {
+        './edge': { target: 'http' },
+      },
+    });
+    expect(readText(root, 'packages/http/src/edge/index.ts')).toContain(
+      'from "../index.js"'
     );
-    expect(existsSync(join(root, 'packages/http/src/edge.ts'))).toBe(false);
+    expect(
+      readText(root, 'packages/http/src/edge/__tests__/conformance.test.ts')
+    ).toContain('import { createApp } from "../index.js";');
+
+    const report = checkAdapters(root);
+    expect(report.subjects[0]).toMatchObject({
+      packageName: '@ontrails/http/edge',
+      placement: 'subpath',
+      target: 'http',
+      testingImport: '@ontrails/http/testing',
+    });
+    expect(report.diagnostics).toEqual([]);
   });
 
   test('fails before writing when owner conformance metadata is missing', async () => {
