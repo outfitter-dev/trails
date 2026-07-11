@@ -233,12 +233,15 @@ export interface AstIdentifierRenameClassOptions {
   readonly describe?: string;
   readonly from: string;
   readonly id?: string;
+  readonly match?: AstIdentifierRenameMatchMode;
   readonly reviewDeclarationTypes?: ReadonlySet<string>;
   readonly shouldPreserve?: (
     occurrence: AstIdentifierRenameOccurrence
   ) => boolean;
   readonly to: string;
 }
+
+export type AstIdentifierRenameMatchMode = 'exact' | 'identifier-segment';
 
 export interface AstIdentifierRenameOccurrence {
   readonly end: number;
@@ -274,9 +277,167 @@ const identifierTokenSpan = (
     : null;
 };
 
+const toPascalIdentifierSegment = (value: string): string =>
+  value.length === 0
+    ? value
+    : `${value[0]?.toUpperCase() ?? ''}${value.slice(1)}`;
+
+const isScreamingSnakeIdentifier = (name: string): boolean =>
+  /^[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)*$/.test(name);
+
+const replaceScreamingSnakeIdentifierSegment = (
+  name: string,
+  from: string,
+  to: string
+): string | null => {
+  if (!isScreamingSnakeIdentifier(name)) {
+    return null;
+  }
+
+  const fromSegment = from.toUpperCase();
+  const toSegment = to.toUpperCase();
+  let changed = false;
+  const nextName = name
+    .split('_')
+    .map((segment) => {
+      if (segment !== fromSegment) {
+        return segment;
+      }
+      changed = true;
+      return toSegment;
+    })
+    .join('_');
+
+  return changed ? nextName : null;
+};
+
+const replaceCamelOrPascalIdentifierSegment = (
+  name: string,
+  from: string,
+  to: string
+): string | null => {
+  if (!/^[A-Za-z][A-Za-z0-9]*$/.test(name)) {
+    return null;
+  }
+
+  const fromPascalSegment = toPascalIdentifierSegment(from);
+  const toPascalSegment = toPascalIdentifierSegment(to);
+  const segmentPattern = /[A-Z]+(?=[A-Z][a-z]|$)|[A-Z]?[a-z]+|[0-9]+/g;
+  let cursor = 0;
+  let changed = false;
+  let nextName = '';
+
+  for (const match of name.matchAll(segmentPattern)) {
+    const [segment] = match;
+    const { index } = match;
+    if (index === undefined || index !== cursor) {
+      return null;
+    }
+
+    if (segment === from) {
+      changed = true;
+      nextName += to;
+    } else if (segment === fromPascalSegment) {
+      changed = true;
+      nextName += toPascalSegment;
+    } else {
+      nextName += segment;
+    }
+
+    cursor = index + segment.length;
+  }
+
+  if (cursor !== name.length || !changed) {
+    return null;
+  }
+
+  return nextName;
+};
+
+const deriveIdentifierSegmentTarget = (
+  name: string,
+  from: string,
+  to: string
+): string | null => {
+  const leadingUnderscores = /^_+/.exec(name)?.[0] ?? '';
+  const coreName =
+    leadingUnderscores.length > 0
+      ? name.slice(leadingUnderscores.length)
+      : name;
+  if (coreName.length === 0) {
+    return null;
+  }
+
+  const screamingSnakeTarget = replaceScreamingSnakeIdentifierSegment(
+    coreName,
+    from,
+    to
+  );
+  if (screamingSnakeTarget !== null) {
+    return `${leadingUnderscores}${screamingSnakeTarget}`;
+  }
+
+  const camelOrPascalTarget = replaceCamelOrPascalIdentifierSegment(
+    coreName,
+    from,
+    to
+  );
+  return camelOrPascalTarget === null
+    ? null
+    : `${leadingUnderscores}${camelOrPascalTarget}`;
+};
+
+interface AstIdentifierRenameMatch {
+  readonly from: string;
+  readonly span: { readonly end: number; readonly start: number } | null;
+  readonly to: string;
+}
+
+const resolveIdentifierRenameMatch = (
+  node: AstNode,
+  source: string,
+  options: {
+    readonly from: string;
+    readonly match: AstIdentifierRenameMatchMode;
+    readonly to: string;
+  }
+): AstIdentifierRenameMatch | null => {
+  if (options.match === 'exact') {
+    if (!isIdentifierNamed(node, options.from)) {
+      return null;
+    }
+
+    return {
+      from: options.from,
+      span: identifierTokenSpan(node, source, options.from),
+      to: options.to,
+    };
+  }
+
+  if (node.type !== 'Identifier') {
+    return null;
+  }
+
+  const name = identifierName(node);
+  if (name === null) {
+    return null;
+  }
+  const target = deriveIdentifierSegmentTarget(name, options.from, options.to);
+  if (target === null) {
+    return null;
+  }
+
+  return {
+    from: name,
+    span: identifierTokenSpan(node, source, name),
+    to: target,
+  };
+};
+
 export const createAstIdentifierRenameClass = (
   options: AstIdentifierRenameClassOptions
 ): RegradeClass => {
+  const matchMode = options.match ?? 'exact';
   const reviewDeclarationTypes =
     options.reviewDeclarationTypes ?? new Set<string>();
 
@@ -286,20 +447,25 @@ export const createAstIdentifierRenameClass = (
       `Rename identifier "${options.from}" to "${options.to}".`,
     id: options.id ?? `ast-identifier-rename:${options.from}->${options.to}`,
     visit: (node, context) => {
-      if (!isIdentifierNamed(node, options.from)) {
+      const match = resolveIdentifierRenameMatch(node, context.source, {
+        from: options.from,
+        match: matchMode,
+        to: options.to,
+      });
+      if (match === null) {
         return null;
       }
 
-      const span = identifierTokenSpan(node, context.source, options.from);
+      const { span } = match;
       if (span === null) {
         const location = offsetToLineColumn(context.source, node.start);
-        const caution = `Identifier "${options.from}" token span could not be verified; routed to review.`;
+        const caution = `Identifier "${match.from}" token span could not be verified; routed to review.`;
         return {
           detail: {
-            candidateReplacement: options.to,
-            expectedTarget: `Rename identifier "${options.from}" to "${options.to}".`,
+            candidateReplacement: match.to,
+            expectedTarget: `Rename identifier "${match.from}" to "${match.to}".`,
             judgment: 'unresolved',
-            matchedForm: options.from,
+            matchedForm: match.from,
             nodeKind: node.type,
             preserveCautions: [caution],
             reason: 'ast-identifier-token-span-unverified',
@@ -311,7 +477,7 @@ export const createAstIdentifierRenameClass = (
               start: node.start,
             },
             suggestedValidation: 'bun run typecheck',
-            symbol: options.from,
+            symbol: match.from,
           },
           kind: 'review',
           note: caution,
@@ -322,26 +488,26 @@ export const createAstIdentifierRenameClass = (
       if (
         options.shouldPreserve?.({
           end: span.end,
-          from: options.from,
+          from: match.from,
           path: context.path,
           source: context.source,
           start: span.start,
-          to: options.to,
+          to: match.to,
         }) === true
       ) {
         return null;
       }
 
-      const declaration = context.getDeclaration(options.from);
+      const declaration = context.getDeclaration(match.from);
       if (declaration && reviewDeclarationTypes.has(declaration.type)) {
         const location = offsetToLineColumn(context.source, span.start);
-        const caution = `Identifier "${options.from}" resolves to ${declaration.type}; routed to review.`;
+        const caution = `Identifier "${match.from}" resolves to ${declaration.type}; routed to review.`;
         return {
           detail: {
-            candidateReplacement: options.to,
-            expectedTarget: `Rename identifier "${options.from}" to "${options.to}".`,
+            candidateReplacement: match.to,
+            expectedTarget: `Rename identifier "${match.from}" to "${match.to}".`,
             judgment: 'unresolved',
-            matchedForm: options.from,
+            matchedForm: match.from,
             nodeKind: node.type,
             preserveCautions: [caution],
             reason: 'ast-identifier-review-declaration',
@@ -353,7 +519,7 @@ export const createAstIdentifierRenameClass = (
               start: span.start,
             },
             suggestedValidation: 'bun run typecheck',
-            symbol: options.from,
+            symbol: match.from,
           },
           kind: 'review',
           note: caution,
@@ -362,9 +528,9 @@ export const createAstIdentifierRenameClass = (
       }
 
       return {
-        edit: createSourceEdit(span.start, span.end, options.to),
+        edit: createSourceEdit(span.start, span.end, match.to),
         kind: 'edit',
-        note: `Renamed identifier "${options.from}" to "${options.to}".`,
+        note: `Renamed identifier "${match.from}" to "${match.to}".`,
       };
     },
   });
@@ -490,6 +656,7 @@ export const createGovernedAstIdentifierRenameClasses = (
       describe: `Rename governed symbol "${rename.from}" to "${rename.to}" for ${transition.id}.`,
       from: rename.from,
       id: `ast-symbol-rename:${transition.id}:${rename.from}->${rename.to}`,
+      match: rename.match,
       reviewDeclarationTypes: new Set(rename.reviewDeclarationTypes),
       ...(options.shouldPreserve === undefined
         ? {}

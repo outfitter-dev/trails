@@ -42,8 +42,14 @@ export const governedVocabularyScopeSchema = z.object({
   include: z.array(z.string().min(1)).optional(),
 });
 
+export const governedVocabularySymbolRenameMatchModes = [
+  'exact',
+  'identifier-segment',
+] as const;
+
 export const governedVocabularySymbolRenameSchema = z.object({
   from: z.string().min(1),
+  match: z.enum(governedVocabularySymbolRenameMatchModes).default('exact'),
   reviewDeclarationTypes: z.array(z.string().min(1)).default([]),
   to: z.string().min(1),
 });
@@ -272,6 +278,7 @@ export const governedVocabularyTransitions =
         {
           ...reviewFunctionParamDeclarations,
           from: 'blaze',
+          match: 'identifier-segment',
           to: 'implementation',
         },
         {

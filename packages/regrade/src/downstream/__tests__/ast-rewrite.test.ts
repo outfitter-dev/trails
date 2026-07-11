@@ -207,6 +207,127 @@ describe('createAstIdentifierRenameClass', () => {
     );
   });
 
+  test('keeps exact mode from rewriting identifier segments', () => {
+    const cls = createAstIdentifierRenameClass({
+      from: 'blaze',
+      to: 'implementation',
+    });
+    const result = cls.apply(
+      [
+        'const blaze = 1;',
+        'const blazeInput = blaze;',
+        'type BlazeInput = { value: typeof blazeInput };',
+        'const findBlazeBodies = () => blazeInput;',
+        'const _blaze = blaze;',
+        'const FORK_WITHOUT_PRESERVED_BLAZE = blaze;',
+        '',
+      ].join('\n'),
+      { path: 'src/blaze.ts' }
+    );
+
+    expect(result.kind).toBe('rewrite');
+    expect(result.nextSource).toBe(
+      [
+        'const implementation = 1;',
+        'const blazeInput = implementation;',
+        'type BlazeInput = { value: typeof blazeInput };',
+        'const findBlazeBodies = () => blazeInput;',
+        'const _blaze = implementation;',
+        'const FORK_WITHOUT_PRESERVED_BLAZE = implementation;',
+        '',
+      ].join('\n')
+    );
+  });
+
+  test('renames identifier segments across supported identifier shapes', () => {
+    const cls = createAstIdentifierRenameClass({
+      from: 'blaze',
+      match: 'identifier-segment',
+      to: 'implementation',
+    });
+    const result = cls.apply(
+      [
+        'const blaze = 1;',
+        'const blazeInput = blaze;',
+        'type BlazeInput = { value: typeof blazeInput };',
+        'const findBlazeBodies = () => blazeInput;',
+        'const _blaze = findBlazeBodies;',
+        'const BLAZE = _blaze;',
+        'const _BLAZE = BLAZE;',
+        'const FORK_WITHOUT_PRESERVED_BLAZE = _blaze;',
+        'const _BLAZE_INPUT = FORK_WITHOUT_PRESERVED_BLAZE;',
+        '',
+      ].join('\n'),
+      { path: 'src/blaze.ts' }
+    );
+
+    expect(result.kind).toBe('rewrite');
+    expect(result.nextSource).toBe(
+      [
+        'const implementation = 1;',
+        'const implementationInput = implementation;',
+        'type ImplementationInput = { value: typeof implementationInput };',
+        'const findImplementationBodies = () => implementationInput;',
+        'const _implementation = findImplementationBodies;',
+        'const IMPLEMENTATION = _implementation;',
+        'const _IMPLEMENTATION = IMPLEMENTATION;',
+        'const FORK_WITHOUT_PRESERVED_IMPLEMENTATION = _implementation;',
+        'const _IMPLEMENTATION_INPUT = FORK_WITHOUT_PRESERVED_IMPLEMENTATION;',
+        '',
+      ].join('\n')
+    );
+  });
+
+  test('does not treat substrings or inflections as identifier segments', () => {
+    const cls = createAstIdentifierRenameClass({
+      from: 'blaze',
+      match: 'identifier-segment',
+      to: 'implementation',
+    });
+    const source = [
+      'const trailblaze = 1;',
+      'const blazed = trailblaze;',
+      'const blazing = blazed;',
+      'const bblaze = blazing;',
+      'const nblazed = bblaze;',
+      'const TRAILBLAZE = nblazed;',
+      'const BLAZED = TRAILBLAZE;',
+      '',
+    ].join('\n');
+
+    const result = cls.apply(source, { path: 'src/blaze.ts' });
+
+    expect(result.kind).toBe('no-op');
+    expect(result.nextSource).toBeUndefined();
+  });
+
+  test('does not rewrite comments or string literal text in segment mode', () => {
+    const cls = createAstIdentifierRenameClass({
+      from: 'blaze',
+      match: 'identifier-segment',
+      to: 'implementation',
+    });
+    const result = cls.apply(
+      [
+        '// blazeInput, BlazeInput, findBlazeBodies, and _blaze stay prose',
+        'const label = "blazeInput BlazeInput findBlazeBodies _blaze";',
+        'const blazeInput = 1;',
+        '',
+      ].join('\n'),
+      { path: 'src/blaze.ts' }
+    );
+
+    expect(result.kind).toBe('rewrite');
+    expect(result.nextSource).toBe(
+      [
+        '// blazeInput, BlazeInput, findBlazeBodies, and _blaze stay prose',
+        'const label = "blazeInput BlazeInput findBlazeBodies _blaze";',
+        'const implementationInput = 1;',
+        '',
+      ].join('\n')
+    );
+  });
+
   test('preserves individual identifier occurrences when requested', () => {
     const cls = createAstIdentifierRenameClass({
       from: 'sourceTerm',
@@ -229,6 +350,50 @@ describe('createAstIdentifierRenameClass', () => {
       [
         'export const sourceTerm = 1;',
         'export const other = targetTerm;',
+        '',
+      ].join('\n')
+    );
+  });
+
+  test('preserves one concrete identifier-segment occurrence when requested', () => {
+    const preservedOccurrences: { from: string; to: string }[] = [];
+    const cls = createAstIdentifierRenameClass({
+      from: 'blaze',
+      match: 'identifier-segment',
+      shouldPreserve: (occurrence) => {
+        if (
+          occurrence.from === 'blazeInput' &&
+          preservedOccurrences.length === 0
+        ) {
+          preservedOccurrences.push({
+            from: occurrence.from,
+            to: occurrence.to,
+          });
+          return true;
+        }
+        return false;
+      },
+      to: 'implementation',
+    });
+    const result = cls.apply(
+      [
+        'const blazeInput = 1;',
+        'const current = blazeInput;',
+        'const findBlazeBodies = blazeInput;',
+        '',
+      ].join('\n'),
+      { path: 'src/blaze.ts' }
+    );
+
+    expect(preservedOccurrences).toEqual([
+      { from: 'blazeInput', to: 'implementationInput' },
+    ]);
+    expect(result.kind).toBe('rewrite');
+    expect(result.nextSource).toBe(
+      [
+        'const blazeInput = 1;',
+        'const current = implementationInput;',
+        'const findImplementationBodies = implementationInput;',
         '',
       ].join('\n')
     );
@@ -291,6 +456,47 @@ describe('createAstIdentifierRenameClass', () => {
         symbol: 'sourceTerm',
       },
     ]);
+  });
+
+  test('routes shadowed identifier-segment declarations to review with concrete details', () => {
+    const cls = createAstIdentifierRenameClass({
+      from: 'blaze',
+      match: 'identifier-segment',
+      reviewDeclarationTypes: new Set(['FunctionParam']),
+      to: 'implementation',
+    });
+
+    const result = cls.apply(
+      [
+        "import { blazeInput } from './runtime';",
+        'export const current = blazeInput();',
+        'function local(blazeInput: () => void) {',
+        '  return blazeInput();',
+        '}',
+        '',
+      ].join('\n'),
+      { path: 'src/blaze.ts' }
+    );
+
+    expect(result.kind).toBe('needs-review');
+    expect(result.reason).toBe('ast-identifier-review-declaration');
+    expect(result.nextSource).toBeUndefined();
+    expect(result.notes.join('\n')).toContain(
+      'Identifier "blazeInput" resolves to FunctionParam; routed to review.'
+    );
+    const details = result.reviewDetails ?? [];
+    expect(details).toHaveLength(2);
+    for (const detail of details) {
+      expect(detail.candidateReplacement).toBe('implementationInput');
+      expect(detail.expectedTarget).toBe(
+        'Rename identifier "blazeInput" to "implementationInput".'
+      );
+      expect(detail.matchedForm).toBe('blazeInput');
+      expect(detail.symbol).toBe('blazeInput');
+      expect(detail.preserveCautions).toEqual([
+        'Identifier "blazeInput" resolves to FunctionParam; routed to review.',
+      ]);
+    }
   });
 
   test('creates governed identifier rename classes from registry symbols', () => {
@@ -427,6 +633,108 @@ describe('createAstIdentifierRenameClass', () => {
         path: 'scripts/vocab-cutover-map.ts',
       })
     ).toMatchObject({ kind: 'no-op' });
+  });
+
+  test('uses identifier-segment mode for the governed blaze symbol rename', () => {
+    const transition = getGovernedVocabularyTransition(
+      'v1-blaze-implementation'
+    );
+    expect(transition).toBeDefined();
+    if (transition === undefined) {
+      throw new Error('Expected blaze vocabulary transition.');
+    }
+
+    const classes = createGovernedAstIdentifierRenameClasses(transition);
+    const blazeSymbolClass = classes.find((cls) =>
+      cls.id.includes(
+        'ast-symbol-rename:v1-blaze-implementation:blaze->implementation'
+      )
+    );
+    expect(blazeSymbolClass).toBeDefined();
+    if (blazeSymbolClass === undefined) {
+      throw new Error('Expected blaze symbol rename class.');
+    }
+
+    const result = blazeSymbolClass.apply(
+      [
+        '// findBlazeBodies stays prose in identifier rewriting',
+        'const label = "blazeInput stays a string";',
+        'const blaze = 1;',
+        'const blazeInput = blaze;',
+        'type BlazeInput = { value: typeof blazeInput };',
+        'const findBlazeBodies = () => blazeInput;',
+        'const _blaze = findBlazeBodies;',
+        'const FORK_WITHOUT_PRESERVED_BLAZE = _blaze;',
+        'const trailblaze = 1;',
+        'const blazed = trailblaze;',
+        'const blazing = blazed;',
+        'const bblaze = blazing;',
+        'const nblazed = bblaze;',
+        '',
+      ].join('\n'),
+      { path: 'src/blaze.ts' }
+    );
+
+    expect(result.kind).toBe('rewrite');
+    expect(result.nextSource).toBe(
+      [
+        '// findBlazeBodies stays prose in identifier rewriting',
+        'const label = "blazeInput stays a string";',
+        'const implementation = 1;',
+        'const implementationInput = implementation;',
+        'type ImplementationInput = { value: typeof implementationInput };',
+        'const findImplementationBodies = () => implementationInput;',
+        'const _implementation = findImplementationBodies;',
+        'const FORK_WITHOUT_PRESERVED_IMPLEMENTATION = _implementation;',
+        'const trailblaze = 1;',
+        'const blazed = trailblaze;',
+        'const blazing = blazed;',
+        'const bblaze = blazing;',
+        'const nblazed = bblaze;',
+        '',
+      ].join('\n')
+    );
+  });
+
+  test('keeps the governed blazes symbol rename exact', () => {
+    const transition = getGovernedVocabularyTransition(
+      'v1-blaze-implementation'
+    );
+    expect(transition).toBeDefined();
+    if (transition === undefined) {
+      throw new Error('Expected blaze vocabulary transition.');
+    }
+
+    const classes = createGovernedAstIdentifierRenameClasses(transition);
+    const blazesSymbolClass = classes.find((cls) =>
+      cls.id.includes(
+        'ast-symbol-rename:v1-blaze-implementation:blazes->implementations'
+      )
+    );
+    expect(blazesSymbolClass).toBeDefined();
+    if (blazesSymbolClass === undefined) {
+      throw new Error('Expected blazes symbol rename class.');
+    }
+
+    const result = blazesSymbolClass.apply(
+      [
+        'const blazes = 1;',
+        'const blazesInput = blazes;',
+        'const BlazeInput = blazesInput;',
+        '',
+      ].join('\n'),
+      { path: 'src/blazes.ts' }
+    );
+
+    expect(result.kind).toBe('rewrite');
+    expect(result.nextSource).toBe(
+      [
+        'const implementations = 1;',
+        'const blazesInput = implementations;',
+        'const BlazeInput = blazesInput;',
+        '',
+      ].join('\n')
+    );
   });
 
   test('routes governed registry shadow declarations to review', () => {

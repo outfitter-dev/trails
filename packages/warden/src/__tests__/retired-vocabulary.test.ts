@@ -5,6 +5,7 @@ import {
   formatGovernedVocabularyTransitionGuide,
   getGovernedVocabularyTransition,
   governedVocabularyRegistrySchema,
+  governedVocabularySymbolRenameSchema,
   governedVocabularyTransitions,
   listGovernedVocabularyTransitions,
 } from '../rules/retired-vocabulary.js';
@@ -52,6 +53,34 @@ describe('governed vocabulary registry', () => {
         },
       ])
     ).toThrow(ZodError);
+  });
+
+  test('defaults governed symbol rename matching to exact identifiers', () => {
+    expect(
+      governedVocabularySymbolRenameSchema.parse({
+        from: 'sourceTerm',
+        to: 'targetTerm',
+      })
+    ).toEqual({
+      from: 'sourceTerm',
+      match: 'exact',
+      reviewDeclarationTypes: [],
+      to: 'targetTerm',
+    });
+
+    expect(
+      governedVocabularySymbolRenameSchema.parse({
+        from: 'sourceTerm',
+        match: 'identifier-segment',
+        reviewDeclarationTypes: ['FunctionParam'],
+        to: 'targetTerm',
+      })
+    ).toEqual({
+      from: 'sourceTerm',
+      match: 'identifier-segment',
+      reviewDeclarationTypes: ['FunctionParam'],
+      to: 'targetTerm',
+    });
   });
 
   test('keeps v1 vocabulary transitions from rewriting the registry itself', () => {
@@ -123,6 +152,26 @@ describe('governed vocabulary registry', () => {
     expect(literalSources).not.toContain('blazing');
     expect(literalSources).not.toContain('blazed');
     expect(literalSources).not.toContain('trailblaze');
+  });
+
+  test('opts singular blaze symbols into segment matching without changing status', () => {
+    const blaze = getGovernedVocabularyTransition('v1-blaze-implementation');
+
+    expect(blaze?.status).toBe('planned');
+    expect(blaze?.symbolRenames).toEqual([
+      {
+        from: 'blaze',
+        match: 'identifier-segment',
+        reviewDeclarationTypes: ['FunctionParam'],
+        to: 'implementation',
+      },
+      {
+        from: 'blazes',
+        match: 'exact',
+        reviewDeclarationTypes: ['FunctionParam'],
+        to: 'implementations',
+      },
+    ]);
   });
 
   test('rejects duplicate ids and duplicate source terms', () => {
