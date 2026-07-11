@@ -1,7 +1,6 @@
+import { findConfigProperty } from '../source/literals.js';
+import { offsetToLine } from '../source/locations.js';
 import {
-  findImplementationBodies,
-  findConfigProperty,
-  findTrailDefinitions,
   getNodeArgument,
   getNodeArguments,
   getNodeCallee,
@@ -18,13 +17,15 @@ import {
   getNodeProperty,
   getNodeValue,
   getNodeValueNode,
-  isMemberAccessNonComputed,
-  offsetToLine,
-  parse,
-  walk,
-  walkScope,
-} from './ast.js';
-import type { AstNode } from './ast.js';
+} from '../source/nodes.js';
+import { parse } from '../source/parse.js';
+import { isMemberAccessNonComputed, walkScope } from '../source/scopes.js';
+import {
+  findImplementationBodies,
+  findTrailDefinitions,
+} from '../source/trails.js';
+import { walk } from '../source/walk.js';
+import type { AstNode } from '../source/nodes.js';
 import type { WardenDiagnostic, WardenRule } from './types.js';
 
 const VERSION_PINNED_COMPOSE = 'version-pinned-compose';

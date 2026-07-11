@@ -28,7 +28,7 @@ export const wardenRulesUseAstTrail = wrapRule({
             filePath: fakeRulePath,
             line: 1,
             message:
-              'warden-rules-use-ast: sourceCode.split(...) treats source text as a string. Warden rules must inspect the AST via packages/warden/src/rules/ast.ts helpers, not regex-scan raw source text. Use findStringLiterals, findTrailDefinitions, findConfigProperty, or a similar AST walker. Raw-text scanning produces false positives on string literals, template payloads, and docstrings — see TRL-335, ADR-0036.',
+              'warden-rules-use-ast: sourceCode.split(...) treats source text as a string. Warden rules must inspect the AST via packages/warden/src/source/* helpers, not regex-scan raw source text. Use findStringLiterals, findTrailDefinitions, findConfigProperty, or a similar AST walker. Raw-text scanning produces false positives on string literals, template payloads, and docstrings — see TRL-335, ADR-0036.',
             rule: 'warden-rules-use-ast',
             severity: 'error',
           },
@@ -47,7 +47,7 @@ export const wardenRulesUseAstTrail = wrapRule({
             filePath: fakeRulePath,
             line: 1,
             message:
-              'warden-rules-use-ast: raw AST node-field cast should use typed helpers from ./ast.js (callee -> getNodeCallee). Raw node-field casts drift from the curated @ontrails/warden/ast guard surface.',
+              'warden-rules-use-ast: raw AST node-field cast should use typed helpers from the shared source helpers (callee -> getNodeCallee). Raw node-field casts drift from the shared source helper surface.',
             rule: 'warden-rules-use-ast',
             severity: 'warn',
           },

@@ -1,11 +1,11 @@
+import { collectOnTargetSignalIds } from './source/signals.js';
 import {
   collectCrudTableIds,
-  collectOnTargetSignalIds,
   findStoreTableDefinitions,
-  offsetToLine,
-  parse,
-} from './ast.js';
-import type { AstNode } from './ast.js';
+} from './source/stores.js';
+import { offsetToLine } from '../source/locations.js';
+import { parse } from '../source/parse.js';
+import type { AstNode } from '../source/nodes.js';
 import { isTestFile } from './scan.js';
 import type {
   ProjectAwareWardenRule,

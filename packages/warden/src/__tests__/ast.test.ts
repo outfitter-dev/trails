@@ -1,17 +1,23 @@
 import { describe, expect, test } from 'bun:test';
 
 import {
-  __collectFrameworkNamespaceBindingsForTest,
-  __getTrailCalleeNameForTest,
-  applySourceEdits,
   collectEntityDefinitionIds,
   collectEntityReferenceSites,
   collectNamedEntityIds,
-  createSourceEdit,
   deriveEntityIdentifierName,
-  extractStringLiteral,
-  findEntityDefinitions,
-  findTrailDefinitions,
+} from '../rules/source/entities.js';
+import {
+  hasIgnoreCommentOnLine,
+  splitSourceLines,
+} from '../rules/source/pragmas.js';
+import {
+  applySourceEdits,
+  createSourceEdit,
+  validateSourceEdits,
+} from '../source/edits.js';
+import { extractStringLiteral, identifierName } from '../source/literals.js';
+import { offsetToLineColumn } from '../source/locations.js';
+import {
   getNodeArguments,
   getNodeBody,
   getNodeBodyStatements,
@@ -28,8 +34,6 @@ import {
   getNodeSpecifiers,
   getNodeValue,
   getNodeValueNode,
-  hasIgnoreCommentOnLine,
-  identifierName,
   isCallExpression,
   isDeclarationWithId,
   isExportDeclaration,
@@ -41,15 +45,17 @@ import {
   isProgram,
   isVariableDeclaration,
   isVariableDeclarator,
-  offsetToLineColumn,
-  parse,
-  parseWithDiagnostics,
-  splitSourceLines,
-  validateSourceEdits,
-  walkWithParents,
-  walkWithScopeContext,
-} from '../rules/ast.js';
-import type { VariableDeclarationNode } from '../rules/ast.js';
+} from '../source/nodes.js';
+import { parse, parseWithDiagnostics } from '../source/parse.js';
+import { walkWithScopeContext } from '../source/scopes.js';
+import {
+  __getTrailCalleeNameForTest,
+  collectFrameworkNamespaceBindings,
+  findEntityDefinitions,
+  findTrailDefinitions,
+} from '../source/trails.js';
+import { walkWithParents } from '../source/walk.js';
+import type { VariableDeclarationNode } from '../source/nodes.js';
 
 describe('deriveEntityIdentifierName', () => {
   test('supports the common *Entity binding suffix when resolving known entities', () => {
@@ -432,9 +438,9 @@ describe('collectFrameworkNamespaceBindings', () => {
     const ast = parseOrThrow(`
       import * as core from '@ontrails/core';
     `);
-    expect(
-      [...__collectFrameworkNamespaceBindingsForTest(ast)].toSorted()
-    ).toEqual(['core']);
+    expect([...collectFrameworkNamespaceBindings(ast)].toSorted()).toEqual([
+      'core',
+    ]);
   });
 
   test('collects bindings for any @ontrails/* scoped package', () => {
@@ -442,16 +448,17 @@ describe('collectFrameworkNamespaceBindings', () => {
       import * as core from '@ontrails/core';
       import * as warden from '@ontrails/warden';
     `);
-    expect(
-      [...__collectFrameworkNamespaceBindingsForTest(ast)].toSorted()
-    ).toEqual(['core', 'warden']);
+    expect([...collectFrameworkNamespaceBindings(ast)].toSorted()).toEqual([
+      'core',
+      'warden',
+    ]);
   });
 
   test('ignores namespace imports from non-framework packages', () => {
     const ast = parseOrThrow(`
       import * as analytics from 'analytics';
     `);
-    expect([...__collectFrameworkNamespaceBindingsForTest(ast)]).toEqual([]);
+    expect([...collectFrameworkNamespaceBindings(ast)]).toEqual([]);
   });
 
   test('ignores named imports from @ontrails/* packages', () => {
@@ -460,7 +467,7 @@ describe('collectFrameworkNamespaceBindings', () => {
   trail
 } from '@ontrails/core';
     `);
-    expect([...__collectFrameworkNamespaceBindingsForTest(ast)]).toEqual([]);
+    expect([...collectFrameworkNamespaceBindings(ast)]).toEqual([]);
   });
 });
 

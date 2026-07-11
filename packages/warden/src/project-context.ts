@@ -15,12 +15,13 @@ import type {
   WardenImportResolution,
   WardenResolverOptions,
 } from './resolve.js';
+import { offsetToLine } from './source/locations.js';
 import {
   getNodeBodyStatements,
   getNodeDeclaration,
   getNodeDeclarations,
-  getNodeExportKind,
   getNodeExported,
+  getNodeExportKind,
   getNodeId,
   getNodeLocal,
   getNodeName,
@@ -30,10 +31,9 @@ import {
   isDeclarationWithId,
   isExportNamedDeclaration,
   isVariableDeclaration,
-  offsetToLine,
-  parse,
-} from './rules/ast.js';
-import type { AstNode } from './rules/ast.js';
+} from './source/nodes.js';
+import { parse } from './source/parse.js';
+import type { AstNode } from './source/nodes.js';
 import type { WardenExportedSymbolDefinition } from './rules/types.js';
 import { collectPublicWorkspaces } from './workspaces.js';
 import type { WardenPublicWorkspace } from './workspaces.js';

@@ -3,11 +3,11 @@ import {
   collectNamedTrailIds,
   collectTrailIntentsById,
   extractDefinitionComposeTargetIds,
-  findTrailDefinitions,
-  offsetToLine,
-  parse,
-} from './ast.js';
-import type { AstNode } from './ast.js';
+} from './source/composition.js';
+import { offsetToLine } from '../source/locations.js';
+import { parse } from '../source/parse.js';
+import { findTrailDefinitions } from '../source/trails.js';
+import type { AstNode } from '../source/nodes.js';
 import { isTestFile } from './scan.js';
 import type {
   ProjectAwareWardenRule,

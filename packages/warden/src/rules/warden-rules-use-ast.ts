@@ -1,6 +1,6 @@
 /**
  * Self-governance rule: warden rules must inspect the AST via the helpers in
- * `./ast.ts` rather than regex-scanning raw source text. Raw-text scans
+ * `../source/*` helpers rather than regex-scanning raw source text. Raw-text scans
  * produce false positives on string literals, template payloads, and
  * docstrings — see TRL-335 and ADR-0036.
  *
@@ -16,17 +16,18 @@
  *    bug as scanning with one — see TRL-345.
  * 4. `rawNodeFieldCastSite` — asserting AST nodes through
  *    `as unknown as { field?: ... }` where a typed accessor exists on
- *    `./ast.ts`.
+ *    `../source/*`.
  *
  * This rule is path-anchored to this package's own `src/rules/` directory so
  * it never fires against a consumer repo that happens to share the same
- * folder layout. `ast.ts` itself is excluded because it IS the raw-text
- * interface to the parser; `types.ts`, `index.ts`, `registry-names.ts`, and
- * anything under `__tests__` are also excluded.
+ * folder layout. Support modules such as `types.ts`, `index.ts`,
+ * `registry-names.ts`, and anything under `__tests__` are excluded.
  */
 import { basename as pathBasename, dirname, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { getStringValue } from '../source/literals.js';
+import { offsetToLine } from '../source/locations.js';
 import {
   getNodeArgument,
   getNodeArguments,
@@ -49,13 +50,11 @@ import {
   getNodeProperty,
   getNodeTypeAnnotation,
   getNodeValueNode,
-  getStringValue,
   isAstNode,
-  offsetToLine,
-  parse,
-  walk,
-} from './ast.js';
-import type { AstNode } from './ast.js';
+} from '../source/nodes.js';
+import { parse } from '../source/parse.js';
+import { walk } from '../source/walk.js';
+import type { AstNode } from '../source/nodes.js';
 import type { WardenDiagnostic, WardenRule } from './types.js';
 
 const RULE_NAME = 'warden-rules-use-ast';
@@ -109,12 +108,10 @@ const SELF_RULES_DIRS: ReadonlySet<string> = new Set(
 
 /**
  * Stems of files in `src/rules/` (and their bundled `dist/rules/` twins) that
- * are NOT themselves warden rules and therefore must not be checked. `ast` is
- * the raw-text interface to the parser and legitimately touches source text;
- * the others are support modules without a `check()` function.
+ * are not themselves Warden rules and therefore must not be checked. These
+ * are support modules without a `check()` function.
  */
 const EXCLUDED_STEMS: readonly string[] = [
-  'ast',
   'index',
   'registry-names',
   'scan',
@@ -125,9 +122,7 @@ const EXCLUDED_STEMS: readonly string[] = [
 
 /**
  * Both `.ts` (source layout) and `.js` (dist layout) basenames must be
- * excluded so the rule stays silent when pointed at a bundled tree. The
- * dist-layout `ast.js` contains the same raw-text parser entry point as
- * `ast.ts` and would false-positive if scanned.
+ * excluded so the rule stays silent when pointed at a bundled tree.
  */
 const EXCLUDED_BASENAMES: ReadonlySet<string> = new Set(
   EXCLUDED_STEMS.flatMap((stem) => [`${stem}.ts`, `${stem}.js`])
@@ -374,7 +369,7 @@ const regexConstructionSite = (node: AstNode): RegexConstructionSite | null => {
 };
 
 const DIAGNOSTIC_ADVICE =
-  'Warden rules must inspect the AST via packages/warden/src/rules/ast.ts helpers, not regex-scan raw source text. ' +
+  'Warden rules must inspect the AST via packages/warden/src/source/* helpers, not regex-scan raw source text. ' +
   'Use findStringLiterals, findTrailDefinitions, findConfigProperty, or a similar AST walker. ' +
   'Raw-text scanning produces false positives on string literals, template payloads, and docstrings — see TRL-335, ADR-0036.';
 
@@ -514,7 +509,7 @@ const detectRawNodeFieldCast = (node: AstNode): DetectedSite | null => {
   const fields = entries.map(([field, accessor]) => `${field} -> ${accessor}`);
   return {
     identifier: expression,
-    message: `${RULE_NAME}: raw AST node-field cast should use typed helpers from ./ast.js (${fields.join(', ')}). Raw node-field casts drift from the curated @ontrails/warden/ast guard surface.`,
+    message: `${RULE_NAME}: raw AST node-field cast should use typed helpers from the shared source helpers (${fields.join(', ')}). Raw node-field casts drift from the shared source helper surface.`,
     severity: 'warn',
     start: node.start,
   };
@@ -1108,7 +1103,7 @@ export const wardenRulesUseAst: WardenRule = {
     return analyze(sourceCode, filePath, ast);
   },
   description:
-    'Enforces that warden rules inspect the AST via packages/warden/src/rules/ast.ts helpers rather than regex-scanning raw source text or hand-casting node fields.',
+    'Enforces that warden rules inspect the AST via packages/warden/src/source/* helpers rather than regex-scanning raw source text or hand-casting node fields.',
   name: RULE_NAME,
   severity: 'error',
 };

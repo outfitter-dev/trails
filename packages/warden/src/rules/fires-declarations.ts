@@ -11,13 +11,15 @@
  * shape, same const-identifier resolution, same context-parameter handling.
  */
 
+import { buildSignalIdentifierResolver } from './source/signals.js';
 import {
-  buildSignalIdentifierResolver,
   deriveConstString,
   extractStringLiteral,
-  findImplementationBodies,
   findConfigProperty,
-  findTrailDefinitions,
+  identifierName,
+} from '../source/literals.js';
+import { offsetToLine } from '../source/locations.js';
+import {
   getNodeBodyNode,
   getNodeBodyStatements,
   getNodeDeclarations,
@@ -30,12 +32,15 @@ import {
   getNodeProperties,
   getNodeProperty,
   getNodeValueNode,
-  identifierName,
-  offsetToLine,
-  parse,
-  walkScope,
-} from './ast.js';
-import type { AstNode, SignalIdentifierResolver } from './ast.js';
+} from '../source/nodes.js';
+import { parse } from '../source/parse.js';
+import { walkScope } from '../source/scopes.js';
+import {
+  findImplementationBodies,
+  findTrailDefinitions,
+} from '../source/trails.js';
+import type { SignalIdentifierResolver } from './source/signals.js';
+import type { AstNode } from '../source/nodes.js';
 import { isTestFile } from './scan.js';
 import type { WardenDiagnostic, WardenRule } from './types.js';
 

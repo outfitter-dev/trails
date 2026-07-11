@@ -4,19 +4,25 @@ import {
   collectImportAliasMap,
   collectNamedEntityIds,
   deriveEntityIdentifierName,
+  isUserNamespaceReceiverAllowed,
+} from './source/entities.js';
+import {
   extractFirstStringArg,
   findConfigProperty,
-  findTrailDefinitions,
+  identifierName,
+} from '../source/literals.js';
+import { offsetToLine } from '../source/locations.js';
+import {
   getNodeCallee,
   getNodeObject,
   getNodeProperty,
-  identifierName,
-  isMemberAccessNonComputed,
-  isUserNamespaceReceiverAllowed,
-  offsetToLine,
-  parse,
-} from './ast.js';
-import type { AstNode, TrailDefinition, UserNamespaceContext } from './ast.js';
+} from '../source/nodes.js';
+import { parse } from '../source/parse.js';
+import { isMemberAccessNonComputed } from '../source/scopes.js';
+import { findTrailDefinitions } from '../source/trails.js';
+import type { UserNamespaceContext } from './source/entities.js';
+import type { AstNode } from '../source/nodes.js';
+import type { TrailDefinition } from '../source/trails.js';
 import { mergeKnownEntityIds } from './entity-ids.js';
 import { isTestFile } from './scan.js';
 import type {

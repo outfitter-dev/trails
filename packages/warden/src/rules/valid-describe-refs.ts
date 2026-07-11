@@ -1,13 +1,9 @@
-import {
-  extractStringOrTemplateLiteral,
-  getNodeName,
-  getNodeProperty,
-  getNodeValue,
-  offsetToLine,
-  parse,
-  walk,
-} from './ast.js';
-import type { AstNode } from './ast.js';
+import { extractStringOrTemplateLiteral } from '../source/literals.js';
+import { offsetToLine } from '../source/locations.js';
+import { getNodeName, getNodeProperty, getNodeValue } from '../source/nodes.js';
+import { parse } from '../source/parse.js';
+import { walk } from '../source/walk.js';
+import type { AstNode } from '../source/nodes.js';
 import { isTestFile } from './scan.js';
 import { collectTrailIds } from './specs.js';
 import type {

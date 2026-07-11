@@ -6,12 +6,16 @@
  * Dynamic IDs and generic framework internals remain outside its scope.
  */
 
+import { collectNamedResourceIds } from './source/resources.js';
 import {
-  collectNamedResourceIds,
   extractFirstStringArg,
-  findImplementationBodies,
   findConfigProperty,
-  findTrailDefinitions,
+  getStringValue,
+  identifierName,
+  isStringLiteral,
+} from '../source/literals.js';
+import { offsetToLine } from '../source/locations.js';
+import {
   getNodeCallee,
   getNodeId,
   getNodeImported,
@@ -24,16 +28,15 @@ import {
   getNodeSource,
   getNodeValue,
   getNodeValueNode,
-  getStringValue,
-  identifierName,
-  isStringLiteral,
-  offsetToLine,
-  parse,
-  walk,
-  walkScope,
-  walkWithScopes,
-} from './ast.js';
-import type { AstNode } from './ast.js';
+} from '../source/nodes.js';
+import { parse } from '../source/parse.js';
+import { walkScope, walkWithScopes } from '../source/scopes.js';
+import {
+  findImplementationBodies,
+  findTrailDefinitions,
+} from '../source/trails.js';
+import { walk } from '../source/walk.js';
+import type { AstNode } from '../source/nodes.js';
 import { isFrameworkInternalFile, isTestFile } from './scan.js';
 import type { WardenDiagnostic, WardenRule } from './types.js';
 

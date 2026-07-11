@@ -1,10 +1,9 @@
+import { getMemberExpression } from './source/stores.js';
+import { identifierName } from '../source/literals.js';
+import { offsetToLine } from '../source/locations.js';
 import {
-  collectScopeFrameBindings,
-  findImplementationBodies,
-  findTrailDefinitions,
-  getMemberExpression,
-  getNodeArguments,
   getNodeArgument,
+  getNodeArguments,
   getNodeBodyNode,
   getNodeCallee,
   getNodeId,
@@ -13,13 +12,18 @@ import {
   getNodeOperator,
   getNodeProperty,
   getNodeRight,
-  identifierName,
+} from '../source/nodes.js';
+import { parse } from '../source/parse.js';
+import {
+  collectScopeFrameBindings,
   isMemberAccessNonComputed,
-  offsetToLine,
-  parse,
-  walkWithParents,
   walkWithScopes,
-} from './ast.js';
+} from '../source/scopes.js';
+import {
+  findImplementationBodies,
+  findTrailDefinitions,
+} from '../source/trails.js';
+import { walkWithParents } from '../source/walk.js';
 import {
   collectAllResultHelperNames,
   collectNamespaceHelperImports,
@@ -30,7 +34,7 @@ import {
   trackScopedResultHelperDeclaration,
 } from './implementation-returns-result.js';
 import { isTestFile } from './scan.js';
-import type { AstNode, AstParentContext } from './ast.js';
+import type { AstNode, AstParentContext } from '../source/nodes.js';
 import type {
   MutableScopedHelperMap,
   NamespaceHelperMap,

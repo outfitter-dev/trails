@@ -1,10 +1,10 @@
 import {
   collectEntityDefinitionIds,
   collectEntityReferenceSites,
-  offsetToLine,
-  parse,
-} from './ast.js';
-import type { AstNode } from './ast.js';
+} from './source/entities.js';
+import { offsetToLine } from '../source/locations.js';
+import { parse } from '../source/parse.js';
+import type { AstNode } from '../source/nodes.js';
 import { mergeKnownEntityIds } from './entity-ids.js';
 import { isTestFile } from './scan.js';
 import type {

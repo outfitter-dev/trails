@@ -3,7 +3,10 @@ import { TrailsError, errorClasses } from '@ontrails/core';
 import {
   extractStringLiteral,
   findConfigProperty,
-  findTrailDefinitions,
+  identifierName,
+} from '../source/literals.js';
+import { offsetToLine } from '../source/locations.js';
+import {
   getNodeId,
   getNodeImported,
   getNodeInit,
@@ -11,12 +14,11 @@ import {
   getNodeSource,
   getNodeSpecifiers,
   getNodeSuperClass,
-  identifierName,
-  offsetToLine,
-  parse,
-  walk,
-} from './ast.js';
-import type { AstNode } from './ast.js';
+} from '../source/nodes.js';
+import { parse } from '../source/parse.js';
+import { findTrailDefinitions } from '../source/trails.js';
+import { walk } from '../source/walk.js';
+import type { AstNode } from '../source/nodes.js';
 import { isTestFile } from './scan.js';
 import type { WardenDiagnostic, WardenRule } from './types.js';
 

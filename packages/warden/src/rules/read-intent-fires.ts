@@ -1,20 +1,19 @@
+import { buildSignalIdentifierResolver } from './source/signals.js';
 import {
-  buildSignalIdentifierResolver,
   deriveConstString,
   extractStringLiteral,
   findConfigProperty,
-  findTrailDefinitions,
-  getNodeElements,
-  getNodeId,
-  getNodeInit,
   getStringValue,
   identifierName,
   isStringLiteral,
-  offsetToLine,
-  parse,
-  walk,
-} from './ast.js';
-import type { AstNode, SignalIdentifierResolver } from './ast.js';
+} from '../source/literals.js';
+import { offsetToLine } from '../source/locations.js';
+import { getNodeElements, getNodeId, getNodeInit } from '../source/nodes.js';
+import { parse } from '../source/parse.js';
+import { findTrailDefinitions } from '../source/trails.js';
+import { walk } from '../source/walk.js';
+import type { SignalIdentifierResolver } from './source/signals.js';
+import type { AstNode } from '../source/nodes.js';
 import { isTestFile } from './scan.js';
 import type { WardenDiagnostic, WardenRule } from './types.js';
 

@@ -1,13 +1,10 @@
 import { isDraftId } from '@ontrails/core';
 
-import {
-  collectFrameworkDraftPrefixConstantOffsets,
-  findStringLiterals,
-  hasIgnoreCommentOnLine,
-  offsetToLine,
-  parse,
-  splitSourceLines,
-} from './ast.js';
+import { collectFrameworkDraftPrefixConstantOffsets } from './source/drafts.js';
+import { hasIgnoreCommentOnLine, splitSourceLines } from './source/pragmas.js';
+import { findStringLiterals } from '../source/literals.js';
+import { offsetToLine } from '../source/locations.js';
+import { parse } from '../source/parse.js';
 import type { WardenDiagnostic, WardenRule } from './types.js';
 
 const createDiagnostic = (

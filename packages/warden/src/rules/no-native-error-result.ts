@@ -1,15 +1,15 @@
+import { identifierName } from '../source/literals.js';
+import { offsetToLine } from '../source/locations.js';
 import {
   getNodeArguments,
   getNodeCallee,
   getNodeObject,
   getNodeProperty,
-  identifierName,
-  offsetToLine,
-  parse,
-  walk,
-} from './ast.js';
+} from '../source/nodes.js';
+import { parse } from '../source/parse.js';
+import { walk } from '../source/walk.js';
 import { isFrameworkInternalFile } from './scan.js';
-import type { AstNode } from './ast.js';
+import type { AstNode } from '../source/nodes.js';
 import type { WardenDiagnostic, WardenRule } from './types.js';
 
 const RULE_NAME = 'no-native-error-result';

@@ -5,7 +5,10 @@
  * ignoring occurrences in strings and comments.
  */
 
-import { isImplementationCall, offsetToLine, parse, walk } from './ast.js';
+import { isImplementationCall } from './source/composition.js';
+import { offsetToLine } from '../source/locations.js';
+import { parse } from '../source/parse.js';
+import { walk } from '../source/walk.js';
 import { isFrameworkInternalFile, isTestFile } from './scan.js';
 import type { WardenDiagnostic, WardenRule } from './types.js';
 

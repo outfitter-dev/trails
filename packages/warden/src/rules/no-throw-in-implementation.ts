@@ -7,12 +7,10 @@
  * to be avoided — only throws in the implementation body scope should be flagged.
  */
 
-import {
-  findImplementationBodies,
-  offsetToLine,
-  parse,
-  walkScope,
-} from './ast.js';
+import { offsetToLine } from '../source/locations.js';
+import { parse } from '../source/parse.js';
+import { walkScope } from '../source/scopes.js';
+import { findImplementationBodies } from '../source/trails.js';
 import type { WardenDiagnostic, WardenRule } from './types.js';
 
 export const noThrowInImplementation: WardenRule = {

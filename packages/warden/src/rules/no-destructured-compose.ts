@@ -1,6 +1,10 @@
 import {
-  findImplementationBodies,
-  findTrailDefinitions,
+  getStringValue,
+  identifierName,
+  isStringLiteral,
+} from '../source/literals.js';
+import { offsetToLine } from '../source/locations.js';
+import {
   getNodeComputed,
   getNodeId,
   getNodeInit,
@@ -9,16 +13,15 @@ import {
   getNodeParams,
   getNodeProperties,
   getNodeRight,
-  getStringValue,
-  identifierName,
-  isShadowed,
-  isStringLiteral,
-  offsetToLine,
-  parse,
-  walkWithScopes,
-} from './ast.js';
+} from '../source/nodes.js';
+import { parse } from '../source/parse.js';
+import { isShadowed, walkWithScopes } from '../source/scopes.js';
+import {
+  findImplementationBodies,
+  findTrailDefinitions,
+} from '../source/trails.js';
 import { isFrameworkInternalFile, isTestFile } from './scan.js';
-import type { AstNode } from './ast.js';
+import type { AstNode } from '../source/nodes.js';
 import type { WardenDiagnostic, WardenRule } from './types.js';
 
 const RULE_NAME = 'no-destructured-compose';

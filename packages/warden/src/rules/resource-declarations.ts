@@ -7,12 +7,16 @@
  * access and warnings for unused declarations.
  */
 
+import { collectNamedResourceIds } from './source/resources.js';
 import {
-  collectNamedResourceIds,
   extractFirstStringArg,
-  findImplementationBodies,
   findConfigProperty,
-  findTrailDefinitions,
+  getStringValue,
+  identifierName,
+  isStringLiteral,
+} from '../source/literals.js';
+import { offsetToLine } from '../source/locations.js';
+import {
   getNodeCallee,
   getNodeId,
   getNodeInit,
@@ -21,14 +25,14 @@ import {
   getNodeObject,
   getNodeProperty,
   getNodeValueNode,
-  getStringValue,
-  identifierName,
-  isStringLiteral,
-  offsetToLine,
-  parse,
-  walkScope,
-} from './ast.js';
-import type { AstNode } from './ast.js';
+} from '../source/nodes.js';
+import { parse } from '../source/parse.js';
+import { walkScope } from '../source/scopes.js';
+import {
+  findImplementationBodies,
+  findTrailDefinitions,
+} from '../source/trails.js';
+import type { AstNode } from '../source/nodes.js';
 import { isTestFile } from './scan.js';
 import type { WardenDiagnostic, WardenRule } from './types.js';
 

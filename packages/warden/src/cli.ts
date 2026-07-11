@@ -47,17 +47,23 @@ import {
 } from './project-context.js';
 import {
   collectComposeTargetTrailIds,
+  collectTrailIntentsById,
+} from './rules/source/composition.js';
+import {
   collectEntityDefinitionIds,
   collectEntityReferenceTargetsByName,
-  collectCrudTableIds as collectCrudTableIdsFromAst,
+} from './rules/source/entities.js';
+import { collectResourceDefinitionIds } from './rules/source/resources.js';
+import {
   collectOnTargetSignalIds as collectOnTargetSignalIdsFromAst,
-  collectReconcileTableIds as collectReconcileTableIdsFromAst,
-  collectResourceDefinitionIds,
   collectSignalDefinitionIds,
-  collectTrailIntentsById,
-  findTrailDefinitions,
-  parse,
-} from './rules/ast.js';
+} from './rules/source/signals.js';
+import {
+  collectCrudTableIds as collectCrudTableIdsFromAst,
+  collectReconcileTableIds as collectReconcileTableIdsFromAst,
+} from './rules/source/stores.js';
+import { parse } from './source/parse.js';
+import { findTrailDefinitions } from './source/trails.js';
 import { collectFileCrudCoverage } from './rules/incomplete-crud.js';
 import { wardenRules, wardenTopoRules } from './rules/index.js';
 import { getWardenRuleMetadata } from './rules/metadata.js';

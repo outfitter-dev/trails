@@ -3,17 +3,19 @@ import { isDraftId } from '@ontrails/core';
 import {
   collectNamedResourceIds,
   collectResourceDefinitionIds,
+} from './source/resources.js';
+import {
   extractFirstStringArg,
   findConfigProperty,
-  findTrailDefinitions,
-  getNodeCallee,
   getStringValue,
   identifierName,
   isStringLiteral,
-  offsetToLine,
-  parse,
-} from './ast.js';
-import type { AstNode } from './ast.js';
+} from '../source/literals.js';
+import { offsetToLine } from '../source/locations.js';
+import { getNodeCallee } from '../source/nodes.js';
+import { parse } from '../source/parse.js';
+import { findTrailDefinitions } from '../source/trails.js';
+import type { AstNode } from '../source/nodes.js';
 import { isTestFile } from './scan.js';
 import type {
   ProjectAwareWardenRule,

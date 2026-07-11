@@ -6,10 +6,9 @@
  * config. Reports errors for undeclared compositions and warnings for unused ones.
  */
 
+import { findConfigProperty } from '../source/literals.js';
+import { offsetToLine } from '../source/locations.js';
 import {
-  findImplementationBodies,
-  findConfigProperty,
-  findTrailDefinitions,
   getNodeArguments,
   getNodeBodyNode,
   getNodeBodyStatements,
@@ -28,12 +27,14 @@ import {
   getNodeProperty,
   getNodeValue,
   getNodeValueNode,
-  isShadowed,
-  offsetToLine,
-  parse,
-  walkWithScopes,
-} from './ast.js';
-import type { AstNode } from './ast.js';
+} from '../source/nodes.js';
+import { parse } from '../source/parse.js';
+import { isShadowed, walkWithScopes } from '../source/scopes.js';
+import {
+  findImplementationBodies,
+  findTrailDefinitions,
+} from '../source/trails.js';
+import type { AstNode } from '../source/nodes.js';
 import { isTestFile } from './scan.js';
 import type { WardenDiagnostic, WardenRule } from './types.js';
 

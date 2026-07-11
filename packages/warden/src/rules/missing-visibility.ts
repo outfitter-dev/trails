@@ -1,4 +1,5 @@
-import { collectComposeTargetTrailIds, parse } from './ast.js';
+import { collectComposeTargetTrailIds } from './source/composition.js';
+import { parse } from '../source/parse.js';
 import { isTestFile } from './scan.js';
 import {
   findTrailLikeSpecs,

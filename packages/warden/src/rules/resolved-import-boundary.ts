@@ -1,4 +1,4 @@
-import { hasIgnoreCommentOnLine, splitSourceLines } from './ast.js';
+import { hasIgnoreCommentOnLine, splitSourceLines } from './source/pragmas.js';
 import { isTestFile } from './scan.js';
 import type { WardenImportResolution } from '../resolve.js';
 import type {

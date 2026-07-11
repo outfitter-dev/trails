@@ -1,12 +1,9 @@
-import {
-  getNodeKey,
-  getNodeValueNode,
-  identifierName,
-  offsetToLine,
-  parseWithDiagnostics,
-  walkWithScopeContext,
-} from './ast.js';
-import type { AstNode, AstScopeContext } from './ast.js';
+import { identifierName } from '../source/literals.js';
+import { offsetToLine } from '../source/locations.js';
+import { getNodeKey, getNodeValueNode } from '../source/nodes.js';
+import type { AstNode, AstScopeContext } from '../source/nodes.js';
+import { parseWithDiagnostics } from '../source/parse.js';
+import { walkWithScopeContext } from '../source/scopes.js';
 import { listGovernedVocabularyTransitions } from './retired-vocabulary.js';
 import type {
   GovernedVocabularySymbolRename,

@@ -50,10 +50,10 @@ describe('warden-rules-use-ast', () => {
       expect(diagnostics).toEqual([]);
     });
 
-    test('ignores ast.ts itself even if it contains raw-text patterns', () => {
+    test('ignores nested Warden-private source helpers', () => {
       const diagnostics = wardenRulesUseAst.check(
-        `export const parse = (s: string) => s.split('\\n');\nconst x = sourceCode.split('\\n');\n`,
-        ruleFilePath('ast.ts')
+        `const lines = sourceCode.split('\\n');\n`,
+        ruleFilePath('source/entities.ts')
       );
       expect(diagnostics).toEqual([]);
     });
@@ -71,13 +71,11 @@ describe('warden-rules-use-ast', () => {
       ).toEqual([]);
     });
 
-    test('ignores dist-layout support modules (ast.js, index.js, types.js, etc.)', () => {
+    test('ignores dist-layout support modules', () => {
       // When this rule is bundled to packages/warden/dist/rules/, the support
-      // modules ship alongside it as `.js` files. `ast.js` in particular is
-      // the raw-text interface to the parser and would false-positive if
-      // scanned, so EXCLUDED_BASENAMES must cover both `.ts` and `.js` stems.
+      // modules ship alongside it as `.js` files, so EXCLUDED_BASENAMES must
+      // cover both `.ts` and `.js` stems.
       const raw = `export const parse = (s: string) => s.split('\\n');\nconst x = sourceCode.split('\\n');\n`;
-      expect(wardenRulesUseAst.check(raw, ruleFilePath('ast.js'))).toEqual([]);
       expect(wardenRulesUseAst.check(raw, ruleFilePath('index.js'))).toEqual(
         []
       );
@@ -433,12 +431,10 @@ describe('warden-rules-use-ast', () => {
     const targetFile = ruleFilePath('fake-rule.ts');
 
     test('does not flag AST helpers (findStringLiterals, walk)', () => {
-      const source = `import {
-  findStringLiterals,
-  findTrailDefinitions,
-  parse,
-  walk
-} from './ast.js';
+      const source = `import { findStringLiterals } from '../source/literals.js';
+import { parse } from '../source/parse.js';
+import { findTrailDefinitions } from '../source/trails.js';
+import { walk } from '../source/walk.js';
 export const r = {
   check(sourceCode: string, filePath: string) {
     const ast = parse(filePath, sourceCode);
@@ -454,12 +450,10 @@ export const r = {
     });
 
     test('does not flag findTrailDefinitions walker usage', () => {
-      const source = `import {
-  findStringLiterals,
-  findTrailDefinitions,
-  parse,
-  walk
-} from './ast.js';
+      const source = `import { findStringLiterals } from '../source/literals.js';
+import { parse } from '../source/parse.js';
+import { findTrailDefinitions } from '../source/trails.js';
+import { walk } from '../source/walk.js';
 export const r = { check(sourceCode: string, filePath: string) { const defs = findTrailDefinitions(sourceCode as unknown as never); return defs.length ? [] : []; } };
 `;
       const diagnostics = wardenRulesUseAst.check(source, targetFile);

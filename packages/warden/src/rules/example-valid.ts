@@ -4,16 +4,19 @@ import { z } from 'zod';
 import {
   extractStringLiteral,
   findConfigProperty,
-  findEntityDefinitions,
+  getStringValue,
+  identifierName,
+} from '../source/literals.js';
+import { offsetToLine } from '../source/locations.js';
+import {
   getNodeExpression,
   getNodeObject,
   getNodeProperty,
-  getStringValue,
-  identifierName,
-  offsetToLine,
-  parse,
-} from './ast.js';
-import type { AstNode, EntityDefinition } from './ast.js';
+} from '../source/nodes.js';
+import { parse } from '../source/parse.js';
+import { findEntityDefinitions } from '../source/trails.js';
+import type { AstNode } from '../source/nodes.js';
+import type { EntityDefinition } from '../source/trails.js';
 import { isTestFile } from './scan.js';
 import type { WardenDiagnostic, WardenRule } from './types.js';
 

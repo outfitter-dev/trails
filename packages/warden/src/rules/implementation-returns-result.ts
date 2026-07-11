@@ -9,12 +9,11 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, isAbsolute, resolve } from 'node:path';
 import { escapeRegExp } from '@ontrails/core';
-import type { AstNode } from './ast.js';
+import type { AstNode } from '../source/nodes.js';
+import { getMemberExpression } from './source/stores.js';
+import { identifierName } from '../source/literals.js';
+import { offsetToLine } from '../source/locations.js';
 import {
-  collectScopeFrameBindings,
-  findImplementationBodies,
-  findTrailDefinitions,
-  getMemberExpression,
   getNodeAlternate,
   getNodeArgument,
   getNodeBodyNode,
@@ -32,12 +31,14 @@ import {
   getNodeSource,
   getNodeTypeAnnotation,
   getNodeValue,
-  identifierName,
-  offsetToLine,
-  parse,
-  walk,
-  walkWithScopes,
-} from './ast.js';
+} from '../source/nodes.js';
+import { parse } from '../source/parse.js';
+import { collectScopeFrameBindings, walkWithScopes } from '../source/scopes.js';
+import {
+  findImplementationBodies,
+  findTrailDefinitions,
+} from '../source/trails.js';
+import { walk } from '../source/walk.js';
 import { isTestFile } from './scan.js';
 import type { WardenDiagnostic, WardenRule } from './types.js';
 

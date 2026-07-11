@@ -2,15 +2,12 @@ import { existsSync, realpathSync } from 'node:fs';
 import { resolve, sep } from 'node:path';
 import { matchesPathGlob } from '@ontrails/core';
 
-import {
-  extractStringLiteral,
-  getNodeSource,
-  hasIgnoreCommentOnLine,
-  offsetToLine,
-  parse,
-  splitSourceLines,
-  walk,
-} from './ast.js';
+import { hasIgnoreCommentOnLine, splitSourceLines } from './source/pragmas.js';
+import { extractStringLiteral } from '../source/literals.js';
+import { offsetToLine } from '../source/locations.js';
+import { getNodeSource } from '../source/nodes.js';
+import { parse } from '../source/parse.js';
+import { walk } from '../source/walk.js';
 import type {
   ProjectAwareWardenRule,
   ProjectContext,

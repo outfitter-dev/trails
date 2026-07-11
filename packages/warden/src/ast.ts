@@ -6,8 +6,8 @@
  * built-in rule implementation until they have a stable public contract.
  */
 export {
-  findImplementationBodies,
   findEntityDefinitions,
+  findImplementationBodies,
   findStringLiterals,
   findTrailDefinitions,
   applySourceEdits,
@@ -59,7 +59,6 @@ export {
   isAstNode,
   isBinaryExpression,
   isBlockStatement,
-  isImplementationCall,
   isCallExpression,
   isClassMember,
   isDeclarationWithId,
@@ -92,7 +91,8 @@ export {
   walkWithParents,
   walkWithScopeContext,
   walkScope,
-} from './rules/ast.js';
+} from './source/index.js';
+export { isImplementationCall } from './rules/source/composition.js';
 export type {
   ArrayExpressionNode,
   AssignmentPatternNode,
@@ -108,15 +108,15 @@ export type {
   BlockStatementNode,
   CallExpressionNode,
   ClassMemberNode,
-  EntityDefinition,
   CuratedAstNode,
   DeclarationWithIdNode,
   ExportDeclarationNode,
   ExportSpecifierNode,
   ExpressionStatementNode,
-  FindEntityDefinitionsOptions,
+  EntityDefinition,
   FrameworkNamespaceContext,
   FunctionLikeNode,
+  FindEntityDefinitionsOptions,
   IdentifierNode,
   ImportDeclarationNode,
   ImportSpecifierNode,
@@ -134,4 +134,4 @@ export type {
   UnaryExpressionNode,
   VariableDeclarationNode,
   VariableDeclaratorNode,
-} from './rules/ast.js';
+} from './source/index.js';

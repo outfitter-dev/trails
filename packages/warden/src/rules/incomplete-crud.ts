@@ -1,9 +1,18 @@
 import { crudOperations } from '@ontrails/store';
 
+import { collectNamedEntityIds } from './source/entities.js';
 import {
-  collectNamedEntityIds,
   collectNamedStoreTableIds,
   deriveStoreTableId,
+  isNamedCall,
+} from './source/stores.js';
+import {
+  getStringValue,
+  identifierName,
+  isStringLiteral,
+} from '../source/literals.js';
+import { offsetToLine } from '../source/locations.js';
+import {
   getNodeArguments,
   getNodeElements,
   getNodeId,
@@ -12,15 +21,10 @@ import {
   getNodeLocal,
   getNodeSource,
   getNodeSpecifiers,
-  getStringValue,
-  identifierName,
-  isNamedCall,
-  isStringLiteral,
-  offsetToLine,
-  parse,
-  walk,
-} from './ast.js';
-import type { AstNode } from './ast.js';
+} from '../source/nodes.js';
+import { parse } from '../source/parse.js';
+import { walk } from '../source/walk.js';
+import type { AstNode } from '../source/nodes.js';
 import { isTestFile } from './scan.js';
 import type {
   ProjectAwareWardenRule,
