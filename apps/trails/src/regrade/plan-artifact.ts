@@ -223,17 +223,6 @@ const sourceHashEntryFacts = (
       ...(reviewDetails === undefined ? {} : { reviewDetails }),
     }));
 
-export const regradeSourceHash = (report: RegradeReport): string =>
-  createHash('sha256')
-    .update(
-      JSON.stringify({
-        entries: sourceHashEntryFacts(report.entries),
-        ledger: report.run?.ledger,
-        selectedClassIds: report.selectedClassIds,
-      })
-    )
-    .digest('hex');
-
 const canonicalizeJsonValue = (value: unknown): unknown => {
   if (Array.isArray(value)) {
     return value.map((entry) => canonicalizeJsonValue(entry));
@@ -255,6 +244,37 @@ const canonicalizeJsonValue = (value: unknown): unknown => {
  */
 export const canonicalJsonStringify = (value: unknown): string =>
   JSON.stringify(canonicalizeJsonValue(value));
+
+const regradeSourceHashFacts = (report: RegradeReport): unknown => ({
+  entries: sourceHashEntryFacts(report.entries),
+  ledger: report.run?.ledger,
+  selectedClassIds: report.selectedClassIds,
+});
+
+const hashSerializedSourceFacts = (serialized: string): string =>
+  createHash('sha256').update(serialized).digest('hex');
+
+export const regradeSourceHash = (report: RegradeReport): string =>
+  hashSerializedSourceFacts(
+    canonicalJsonStringify(regradeSourceHashFacts(report))
+  );
+
+export const legacyRegradeSourceHash = (report: RegradeReport): string =>
+  hashSerializedSourceFacts(JSON.stringify(regradeSourceHashFacts(report)));
+
+/** Match source evidence written before canonical JSON hashing. */
+export const regradeSourceHashMatches = (
+  stampedHash: string,
+  report: RegradeReport
+): boolean =>
+  stampedHash === regradeSourceHash(report) ||
+  stampedHash === legacyRegradeSourceHash(report);
+
+export const regradeSourceHashes = (
+  report: RegradeReport
+): readonly string[] => [
+  ...new Set([regradeSourceHash(report), legacyRegradeSourceHash(report)]),
+];
 
 /**
  * Canonical content hash of a resolved Regrade plan body — the authored

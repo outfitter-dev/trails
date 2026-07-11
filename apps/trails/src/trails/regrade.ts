@@ -66,6 +66,7 @@ import {
   regradePlanArtifactSchema,
   regradePlanPathForPlan,
   regradeSourceHash,
+  regradeSourceHashMatches,
   rootRelativePath,
 } from '../regrade/plan-artifact.js';
 import type {
@@ -1480,7 +1481,7 @@ const planStatusForReport = (
   artifact: RegradePlanArtifact,
   report: RegradeReport
 ): 'active' | 'stale' =>
-  artifact.sourceHash === regradeSourceHash(report) ? 'active' : 'stale';
+  regradeSourceHashMatches(artifact.sourceHash, report) ? 'active' : 'stale';
 
 const regradePlanGateContext = (
   report: RegradeReport
@@ -2573,6 +2574,7 @@ const runPreviewRegradePlan = async (
 
 const writeRegradeHistory = (params: {
   readonly artifact: RegradePlanArtifact;
+  readonly completedReport: RegradeReport;
   readonly planPath: string;
   readonly report: RegradeReport;
   readonly rootDir: string;
@@ -2596,6 +2598,7 @@ const writeRegradeHistory = (params: {
   }
   const appended = appendRegradeHistoryRun({
     artifact: params.artifact,
+    completedReport: params.completedReport,
     report: params.report,
     rootDir: params.rootDir,
   });
@@ -2629,6 +2632,24 @@ const writeRegradeHistory = (params: {
   }
   return appended;
 };
+
+const historyReportForAppliedPlan = (
+  dryRunReport: RegradeReport,
+  appliedReport: RegradeReport
+): RegradeReport => ({
+  ...dryRunReport,
+  ...(appliedReport.apply === undefined ? {} : { apply: appliedReport.apply }),
+  ...(dryRunReport.run === undefined
+    ? {}
+    : {
+        run: {
+          ...dryRunReport.run,
+          report:
+            appliedReport.run?.report ??
+            transitionRunReportForRegradeReport(appliedReport),
+        },
+      }),
+});
 
 const runApplyRegradePlan = async (
   input: RegradeApplyPlanInput,
@@ -2686,14 +2707,22 @@ const runApplyRegradePlan = async (
   if (applied.isErr()) {
     return applied;
   }
-  // The recorded run evidence is the freshness-gated dry-run report: its
-  // source hash is the lock state this run ran against (the staleness gate
-  // holds it equal to the plan's own sourceHash), and unlike the post-apply
-  // rescan it preserves the rewrite entries the run graduated.
+  const completionReport = await runPlanArtifactDryRun({
+    artifact: loaded.value.artifact,
+    includeEntries: input.includeEntries,
+    rootDir,
+  });
+  if (completionReport.isErr()) {
+    return completionReport;
+  }
+  // Keep the pre-apply occurrence evidence that explains what this run changed,
+  // while carrying the completed counters and a separate post-apply source
+  // stamp so a later no-op apply can still be recognized as a replay.
   const history = writeRegradeHistory({
     artifact: loaded.value.artifact,
+    completedReport: completionReport.value,
     planPath: loaded.value.path,
-    report: dryRunReport.value,
+    report: historyReportForAppliedPlan(dryRunReport.value, applied.value),
     rootDir,
   });
   if (history.isErr()) {

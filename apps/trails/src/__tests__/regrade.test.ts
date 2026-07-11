@@ -1,5 +1,5 @@
 import { deriveCliCommands } from '@ontrails/cli';
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, setDefaultTimeout, test } from 'bun:test';
 import {
   chmodSync,
   existsSync,
@@ -26,6 +26,7 @@ const trailsBinPath = fileURLToPath(
   new URL('../../bin/trails.ts', import.meta.url)
 );
 const cliTimeoutMs = 30_000;
+setDefaultTimeout(cliTimeoutMs);
 const facetTrailheadRegistryExcludes = [
   '.agents/goals/**',
   '**/.agents/goals/**',
@@ -427,8 +428,9 @@ describe('trails regrade', () => {
         const historyFile = join(dir, applied.history.path);
         expect(existsSync(historyFile)).toBe(true);
 
-        // Re-plan the same transition over the migrated tree and re-apply: the
-        // consolidated file gains a second run instead of a sibling file.
+        // Re-plan the same transition over the migrated tree and re-apply. The
+        // completed post-apply source evidence matches the first run, so this
+        // is a replay rather than a duplicate history entry.
         const replanResult = runRawCli([
           'regrade',
           'plan',
@@ -454,6 +456,7 @@ describe('trails regrade', () => {
           };
         }>(reapplyResult);
         expect(reapplied.history?.path).toBe(applied.history.path);
+        expect(reapplied.history?.status).toBe('replay');
 
         interface HistoryFile {
           readonly id?: string;
@@ -470,13 +473,9 @@ describe('trails regrade', () => {
         expect(consolidated.kind).toBe('regrade-history');
         expect(consolidated.schemaVersion).toBe(2);
         expect(consolidated.id).toMatch(/^[0-9a-f]{12}$/);
-        expect(consolidated.runs).toHaveLength(2);
-        expect(consolidated.runs?.[0]?.planContentHash).toBe(
-          consolidated.runs?.[1]?.planContentHash ?? 'missing'
-        );
-        expect(consolidated.runs?.[0]?.lockHashAtRun).not.toBe(
-          consolidated.runs?.[1]?.lockHashAtRun
-        );
+        expect(consolidated.runs).toHaveLength(1);
+        expect(consolidated.runs?.[0]?.planContentHash).toBeDefined();
+        expect(consolidated.runs?.[0]?.lockHashAtRun).toBeDefined();
 
         // A third identical plan+apply over the unchanged tree is a replay: no
         // duplicate run is appended and the earlier stamps stay untouched.
@@ -506,7 +505,7 @@ describe('trails regrade', () => {
         const afterReplay = JSON.parse(
           readFileSync(historyFile, 'utf8')
         ) as HistoryFile;
-        expect(afterReplay.runs).toHaveLength(2);
+        expect(afterReplay.runs).toHaveLength(1);
         expect(afterReplay.id).toBe(consolidated.id ?? 'missing');
         expect(afterReplay.runs?.[0]).toEqual(
           consolidated.runs?.[0] ?? { lockHashAtRun: 'missing' }
@@ -1000,6 +999,39 @@ describe('trails regrade', () => {
       expect(
         readdirSync(join(dir, '.trails', 'regrade', 'history'))
       ).toHaveLength(1);
+
+      const replayPlan = runRawCli([
+        'regrade',
+        'plan',
+        '--type',
+        'class',
+        '--class-ids',
+        'export-restructure:cli-aliases',
+        '--name',
+        'alias-cutover',
+        '--include',
+        'src/b/**',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+      expect(replayPlan.exitCode).toBe(0);
+      const replayApply = runRawCli([
+        'regrade',
+        'apply',
+        '--root-dir',
+        dir,
+        '--json',
+      ]);
+      expect(replayApply.exitCode).toBe(0);
+      expect(
+        parseCliJson<{ readonly history?: { readonly status?: string } }>(
+          replayApply
+        ).history?.status
+      ).toBe('replay');
+      expect(
+        (JSON.parse(readFileSync(historyFile, 'utf8')) as HistoryFile).runs
+      ).toHaveLength(2);
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }
@@ -1233,98 +1265,133 @@ describe('trails regrade', () => {
     }
   });
 
-  test('CLI consolidates history per transition across repeated applies', () => {
+  test(
+    'CLI consolidates history per transition across repeated applies',
+    () => {
+      const dir = makeTempDir();
+      try {
+        writeFile(dir, 'docs/one.md', 'The facet groups related trails.\n');
+
+        const firstPlan = runRawCli([
+          'regrade',
+          'plan',
+          'facet',
+          'trailhead',
+          '--root-dir',
+          dir,
+          '--extensions',
+          '.md',
+          '--json',
+        ]);
+        expect(firstPlan.exitCode).toBe(0);
+        const firstApply = runRawCli([
+          'regrade',
+          'apply',
+          '--root-dir',
+          dir,
+          '--json',
+        ]);
+        expect(firstApply.exitCode).toBe(0);
+        const firstApplied = parseCliJson<{
+          readonly history?: { readonly path?: string };
+        }>(firstApply);
+        expect(firstApplied.history?.path).toBeDefined();
+
+        interface HistoryFile {
+          readonly runs?: readonly {
+            readonly lockHashAtRun?: string;
+            readonly planContentHash?: string;
+          }[];
+        }
+        const historyFile = join(
+          dir,
+          firstApplied.history?.path ?? 'missing-history.json'
+        );
+        const firstRun = (
+          JSON.parse(readFileSync(historyFile, 'utf8')) as HistoryFile
+        ).runs?.[0];
+        expect(firstRun).toBeDefined();
+
+        writeFile(dir, 'docs/two.md', 'A second facet appears later.\n');
+        const secondPlan = runRawCli([
+          'regrade',
+          'plan',
+          'facet',
+          'trailhead',
+          '--root-dir',
+          dir,
+          '--extensions',
+          '.md',
+          '--json',
+        ]);
+        expect(secondPlan.exitCode).toBe(0);
+        const secondApply = runRawCli([
+          'regrade',
+          'apply',
+          '--root-dir',
+          dir,
+          '--json',
+        ]);
+        expect(secondApply.exitCode).toBe(0);
+        const secondApplied = parseCliJson<{
+          readonly history?: { readonly path?: string };
+        }>(secondApply);
+
+        expect(secondApplied.history?.path).toBe(
+          firstApplied.history?.path ?? 'missing'
+        );
+        expect(
+          readdirSync(join(dir, '.trails', 'regrade', 'history'))
+        ).toHaveLength(1);
+        const consolidated = JSON.parse(
+          readFileSync(historyFile, 'utf8')
+        ) as HistoryFile;
+        expect(consolidated.runs).toHaveLength(2);
+        expect(consolidated.runs?.[0]).toEqual(
+          firstRun ?? { lockHashAtRun: 'missing' }
+        );
+
+        const thirdPlan = runRawCli([
+          'regrade',
+          'plan',
+          'facet',
+          'trailhead',
+          '--root-dir',
+          dir,
+          '--extensions',
+          '.md',
+          '--json',
+        ]);
+        expect(thirdPlan.exitCode).toBe(0);
+        const thirdApply = runRawCli([
+          'regrade',
+          'apply',
+          '--root-dir',
+          dir,
+          '--json',
+        ]);
+        expect(thirdApply.exitCode).toBe(0);
+        expect(
+          parseCliJson<{ readonly history?: { readonly status?: string } }>(
+            thirdApply
+          ).history?.status
+        ).toBe('replay');
+        expect(
+          (JSON.parse(readFileSync(historyFile, 'utf8')) as HistoryFile).runs
+        ).toHaveLength(2);
+      } finally {
+        rmSync(dir, { force: true, recursive: true });
+      }
+      // Six sequential CLI subprocesses can exceed Bun's default 5s test budget
+      // when the whole workspace suite runs in parallel.
+    },
+    cliTimeoutMs
+  );
+
+  test('regrade check reports graduated apply counters from history', () => {
     const dir = makeTempDir();
     try {
       writeFile(dir, 'src/one.ts', 'export const facet = 1;\n');
-
-      const firstPlan = runRawCli([
-        'regrade',
-        'plan',
-        'facet',
-        'trailhead',
-        '--root-dir',
-        dir,
-        '--extensions',
-        '.ts',
-        '--json',
-      ]);
-      expect(firstPlan.exitCode).toBe(0);
-      const firstApply = runRawCli([
-        'regrade',
-        'apply',
-        '--root-dir',
-        dir,
-        '--json',
-      ]);
-      expect(firstApply.exitCode).toBe(0);
-      const firstApplied = parseCliJson<{
-        readonly history?: { readonly path?: string };
-      }>(firstApply);
-      expect(firstApplied.history?.path).toBeDefined();
-
-      interface HistoryFile {
-        readonly runs?: readonly {
-          readonly lockHashAtRun?: string;
-          readonly planContentHash?: string;
-        }[];
-      }
-      const historyFile = join(
-        dir,
-        firstApplied.history?.path ?? 'missing-history.json'
-      );
-      const firstRun = (
-        JSON.parse(readFileSync(historyFile, 'utf8')) as HistoryFile
-      ).runs?.[0];
-      expect(firstRun).toBeDefined();
-
-      writeFile(dir, 'src/two.ts', 'export const facet = 2;\n');
-      const secondPlan = runRawCli([
-        'regrade',
-        'plan',
-        'facet',
-        'trailhead',
-        '--root-dir',
-        dir,
-        '--extensions',
-        '.ts',
-        '--json',
-      ]);
-      expect(secondPlan.exitCode).toBe(0);
-      const secondApply = runRawCli([
-        'regrade',
-        'apply',
-        '--root-dir',
-        dir,
-        '--json',
-      ]);
-      expect(secondApply.exitCode).toBe(0);
-      const secondApplied = parseCliJson<{
-        readonly history?: { readonly path?: string };
-      }>(secondApply);
-
-      expect(secondApplied.history?.path).toBe(
-        firstApplied.history?.path ?? 'missing'
-      );
-      expect(
-        readdirSync(join(dir, '.trails', 'regrade', 'history'))
-      ).toHaveLength(1);
-      const consolidated = JSON.parse(
-        readFileSync(historyFile, 'utf8')
-      ) as HistoryFile;
-      expect(consolidated.runs).toHaveLength(2);
-      expect(consolidated.runs?.[0]).toEqual(
-        firstRun ?? { lockHashAtRun: 'missing' }
-      );
-    } finally {
-      rmSync(dir, { force: true, recursive: true });
-    }
-  });
-
-  test('regrade check verifies each recorded run at its own stamped lock', () => {
-    const dir = makeTempDir();
-    try {
-      writeFile(dir, 'docs/surface.md', 'Facet docs mention facet.\n');
 
       const planResult = runRawCli([
         'regrade',
@@ -1333,17 +1400,44 @@ describe('trails regrade', () => {
         'trailhead',
         '--root-dir',
         dir,
+        '--extensions',
+        '.ts',
+        '--include-entries',
+        'all',
         '--json',
       ]);
       expect(planResult.exitCode).toBe(0);
+
       const applyResult = runRawCli([
         'regrade',
         'apply',
         '--root-dir',
         dir,
+        '--include-entries',
+        'all',
         '--json',
       ]);
       expect(applyResult.exitCode).toBe(0);
+      expect(parseCliJson(applyResult)).toMatchObject({
+        apply: { applied: 1, filesChanged: 1 },
+        entries: [
+          {
+            outcome: 'rewrite',
+            path: 'src/one.ts',
+          },
+        ],
+        history: {
+          path: '.trails/regrade/history/facet-to-trailhead.json',
+          status: 'applied',
+        },
+        run: {
+          report: {
+            applied: 1,
+            filesChanged: 1,
+            gate: { status: 'green' },
+          },
+        },
+      });
 
       const checkResult = runRawCli([
         'regrade',
@@ -1356,44 +1450,110 @@ describe('trails regrade', () => {
       ]);
       expect(checkResult.exitCode).toBe(0);
       expect(parseCliJson(checkResult)).toMatchObject({
-        check: { status: 'passed' },
+        check: {
+          plan: '.trails/regrade/history/facet-to-trailhead.json',
+          status: 'passed',
+        },
+        entries: [
+          {
+            outcome: 'rewrite',
+            path: 'src/one.ts',
+          },
+        ],
         history: {
           path: '.trails/regrade/history/facet-to-trailhead.json',
           status: 'checked',
         },
+        run: {
+          report: {
+            applied: 1,
+            filesChanged: 1,
+            gate: { status: 'green' },
+          },
+        },
       });
-
-      const historyFile = join(
-        dir,
-        '.trails/regrade/history/facet-to-trailhead.json'
-      );
-      interface HistoryFile {
-        readonly runs?: { lockHashAtRun?: string }[];
-      }
-      const tampered = JSON.parse(
-        readFileSync(historyFile, 'utf8')
-      ) as HistoryFile;
-      if (tampered.runs?.[0] === undefined) {
-        throw new Error('Expected a recorded history run to tamper.');
-      }
-      tampered.runs[0].lockHashAtRun = 'deadbeef'.repeat(8);
-      writeFileSync(historyFile, `${JSON.stringify(tampered, null, 2)}\n`);
-
-      const tamperedCheck = runRawCli([
-        'regrade',
-        'check',
-        '--plan',
-        'facet-to-trailhead',
-        '--root-dir',
-        dir,
-        '--json',
-      ]);
-      expect(tamperedCheck.exitCode).not.toBe(0);
-      expect(tamperedCheck.stderr).toContain('stamp mismatch');
     } finally {
       rmSync(dir, { force: true, recursive: true });
     }
   });
+
+  test(
+    'regrade check verifies each recorded run at its own stamped lock',
+    () => {
+      const dir = makeTempDir();
+      try {
+        writeFile(dir, 'docs/surface.md', 'Facet docs mention facet.\n');
+
+        const planResult = runRawCli([
+          'regrade',
+          'plan',
+          'facet',
+          'trailhead',
+          '--root-dir',
+          dir,
+          '--json',
+        ]);
+        expect(planResult.exitCode).toBe(0);
+        const applyResult = runRawCli([
+          'regrade',
+          'apply',
+          '--root-dir',
+          dir,
+          '--json',
+        ]);
+        expect(applyResult.exitCode).toBe(0);
+
+        const checkResult = runRawCli([
+          'regrade',
+          'check',
+          '--plan',
+          'facet-to-trailhead',
+          '--root-dir',
+          dir,
+          '--json',
+        ]);
+        expect(checkResult.exitCode).toBe(0);
+        expect(parseCliJson(checkResult)).toMatchObject({
+          check: { status: 'passed' },
+          history: {
+            path: '.trails/regrade/history/facet-to-trailhead.json',
+            status: 'checked',
+          },
+        });
+
+        const historyFile = join(
+          dir,
+          '.trails/regrade/history/facet-to-trailhead.json'
+        );
+        interface HistoryFile {
+          readonly runs?: { lockHashAtRun?: string }[];
+        }
+        const tampered = JSON.parse(
+          readFileSync(historyFile, 'utf8')
+        ) as HistoryFile;
+        if (tampered.runs?.[0] === undefined) {
+          throw new Error('Expected a recorded history run to tamper.');
+        }
+        tampered.runs[0].lockHashAtRun = 'deadbeef'.repeat(8);
+        writeFileSync(historyFile, `${JSON.stringify(tampered, null, 2)}\n`);
+
+        const tamperedCheck = runRawCli([
+          'regrade',
+          'check',
+          '--plan',
+          'facet-to-trailhead',
+          '--root-dir',
+          dir,
+          '--json',
+        ]);
+        expect(tamperedCheck.exitCode).not.toBe(0);
+        expect(tamperedCheck.stderr).toContain('stamp mismatch');
+      } finally {
+        rmSync(dir, { force: true, recursive: true });
+      }
+    },
+    cliTimeoutMs
+  );
 
   test('CLI plan dry-run derives a plan without writing it', () => {
     const dir = makeTempDir();
