@@ -1,5 +1,44 @@
 # @ontrails/cloudflare
 
+## 1.0.0-beta.40
+
+### Minor Changes
+
+- [`9874e0b`](https://github.com/outfitter-dev/trails/commit/9874e0bb034c0f98edeb19833d9d3519c2a07a4c): Add `@ontrails/cloudflare/d1`, an env-bound Cloudflare D1 store resource for `@ontrails/store` definitions. The new subpath exports `cloudflareD1` and `connectD1`, supports the backend-agnostic store accessor contract (`get`, `list`, `upsert`, `remove`), versioned-table optimistic concurrency, fixture/mock seeding, store-derived write signals, Miniflare-backed conformance tests, and Worker env-bridge integration.
+
+  `@ontrails/core` and `@ontrails/store` no longer require the Bun global for signal fire ids or late-bound store signal tokens, so store definitions and store-derived signal emission work inside Worker modules. `@ontrails/warden` now treats `cloudflareD1` as a required Cloudflare public export with `@example` coverage.
+
+- [`1e64ee7`](https://github.com/outfitter-dev/trails/commit/1e64ee7bc270901486c5bb51ac38bf045c924adc): Add first-class queue activation sources with `queue()` in `@ontrails/core`.
+  Queue sources validate their runtime queue name and parse contract, project the
+  queue name into durable topo facts, participate in activation input
+  compatibility, and block established outputs when malformed.
+
+  Add `@ontrails/cloudflare/queues` with `cloudflareQueue`, `createMemoryQueue`,
+  and `createQueueHandler`. Cloudflare Workers now expose both `fetch` and
+  `queue` entrypoints from `createWorkersHandler`, resolve env-bound resources for
+  queue-activated trails, acknowledge successful/skipped/cancelled messages, and
+  acknowledge traced non-retryable Trails errors so permanently invalid messages
+  do not churn through the queue. Failures explicitly marked retryable enter
+  Cloudflare's retry and DLQ flow, with rate-limit delays preserved.
+
+  `@ontrails/warden` now treats queue activation sources as materialized and
+  requires `cloudflareQueue` public export example coverage.
+
+- [`4086b5b`](https://github.com/outfitter-dev/trails/commit/4086b5b2f01b24660924fd8b667523f38caaed29): Add `@ontrails/cloudflare/r2`, an env-bound Cloudflare R2 bucket resource with
+  `cloudflareR2`, `createMemoryR2`, and `r2ObjectToBlobRef`. The resource
+  materializes Worker `r2_buckets` bindings through the shared env bridge, records
+  Cloudflare lock overlay facts, carries an in-memory object mock for
+  configuration-free tests, and documents the supported object operations plus
+  streaming/metadata boundaries.
+
+  `@ontrails/warden` now treats `cloudflareR2` as a required Cloudflare public
+  export with `@example` coverage.
+
+- [`5adb995`](https://github.com/outfitter-dev/trails/commit/5adb99551c2dda6190d46cce7f60bb08d63c99aa): Complete the v1 hard cutover from the authored `blaze` field to
+  `implementation` across trail contracts, surface projections, tests, examples,
+  and public source-analysis helpers. Existing applications must rename authored
+  trail behavior fields and direct trail-object access before upgrading.
+
 ## 1.0.0-beta.39
 
 ### Minor Changes

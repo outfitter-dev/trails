@@ -1,5 +1,23 @@
 # @ontrails/cli
 
+## 1.0.0-beta.40
+
+### Minor Changes
+
+- [`5adb995`](https://github.com/outfitter-dev/trails/commit/5adb99551c2dda6190d46cce7f60bb08d63c99aa): Complete the v1 hard cutover from the authored `blaze` field to
+  `implementation` across trail contracts, surface projections, tests, examples,
+  and public source-analysis helpers. Existing applications must rename authored
+  trail behavior fields and direct trail-object access before upgrading.
+
+### Patch Changes
+
+- [`4030698`](https://github.com/outfitter-dev/trails/commit/40306984467625844564f0f84156530d7118a79c): Keep structured input on nested child commands from being reinterpreted as a
+  bare child-name positional fallback, while preserving schema-authored
+  `inputJson` flags as ordinary trail input, including through the public Trails
+  CLI. Optional numeric flags now consume negative values with Commander's own
+  parsing semantics, and variadic flags consume every following value, before
+  nested command routing is resolved.
+
 ## 1.0.0-beta.39
 
 ### Patch Changes

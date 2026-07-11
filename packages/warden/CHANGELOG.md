@@ -1,5 +1,128 @@
 # @ontrails/warden
 
+## 1.0.0-beta.40
+
+### Minor Changes
+
+- [`5adb995`](https://github.com/outfitter-dev/trails/commit/5adb99551c2dda6190d46cce7f60bb08d63c99aa): Complete the v1 hard cutover from the authored `blaze` field to
+  `implementation` across trail contracts, surface projections, tests, examples,
+  and public source-analysis helpers. Existing applications must rename authored
+  trail behavior fields and direct trail-object access before upgrading.
+- [`6712075`](https://github.com/outfitter-dev/trails/commit/67120754df3f614c7f4dd98be1fa0ba9d69b7765): Complete the v1 hard cutover from the `contour` domain-object declaration
+  vocabulary to `entity` across contracts, topo facts, store helpers, Warden,
+  Wayfinder, operator surfaces, examples, and generated locks. Existing
+  applications must rename contour APIs, run `trails dev reset --yes` to discard
+  pre-cutover local Topographer snapshots, and then recompile committed
+  `trails.lock` artifacts before upgrading. Those derived snapshots are
+  intentionally not read through a compatibility layer.
+  The entity-shaped wire contract advances `TopoGraph` and split lock manifests
+  from schema version 3 to 4; old split artifacts fail with regeneration guidance,
+  while the canonical root `trails.lock` remains schema version 5.
+  Wayfinder reports those stale rows as topo-store drift while keeping current
+  committed lock facts available for inspection.
+- [`aedb87b`](https://github.com/outfitter-dev/trails/commit/aedb87b3b536c5849636c7a5951c51e1e7f0d1cc): Add governed identifier-segment renames for AST-backed migrations. Regrade can
+  now migrate camelCase, PascalCase, leading-underscore, and SCREAMING_SNAKE
+  identifier segments, including single-segment forms such as `BLAZE` and
+  `_BLAZE`, while preserving exact-mode behavior and rejecting lowercase
+  substring, concatenated acronym, or inflection matches.
+
+### Patch Changes
+
+- [`9874e0b`](https://github.com/outfitter-dev/trails/commit/9874e0bb034c0f98edeb19833d9d3519c2a07a4c): Add `@ontrails/cloudflare/d1`, an env-bound Cloudflare D1 store resource for `@ontrails/store` definitions. The new subpath exports `cloudflareD1` and `connectD1`, supports the backend-agnostic store accessor contract (`get`, `list`, `upsert`, `remove`), versioned-table optimistic concurrency, fixture/mock seeding, store-derived write signals, Miniflare-backed conformance tests, and Worker env-bridge integration.
+
+  `@ontrails/core` and `@ontrails/store` no longer require the Bun global for signal fire ids or late-bound store signal tokens, so store definitions and store-derived signal emission work inside Worker modules. `@ontrails/warden` now treats `cloudflareD1` as a required Cloudflare public export with `@example` coverage.
+
+- [`1e64ee7`](https://github.com/outfitter-dev/trails/commit/1e64ee7bc270901486c5bb51ac38bf045c924adc): Add first-class queue activation sources with `queue()` in `@ontrails/core`.
+  Queue sources validate their runtime queue name and parse contract, project the
+  queue name into durable topo facts, participate in activation input
+  compatibility, and block established outputs when malformed.
+
+  Add `@ontrails/cloudflare/queues` with `cloudflareQueue`, `createMemoryQueue`,
+  and `createQueueHandler`. Cloudflare Workers now expose both `fetch` and
+  `queue` entrypoints from `createWorkersHandler`, resolve env-bound resources for
+  queue-activated trails, acknowledge successful/skipped/cancelled messages, and
+  acknowledge traced non-retryable Trails errors so permanently invalid messages
+  do not churn through the queue. Failures explicitly marked retryable enter
+  Cloudflare's retry and DLQ flow, with rate-limit delays preserved.
+
+  `@ontrails/warden` now treats queue activation sources as materialized and
+  requires `cloudflareQueue` public export example coverage.
+
+- [`4086b5b`](https://github.com/outfitter-dev/trails/commit/4086b5b2f01b24660924fd8b667523f38caaed29): Add `@ontrails/cloudflare/r2`, an env-bound Cloudflare R2 bucket resource with
+  `cloudflareR2`, `createMemoryR2`, and `r2ObjectToBlobRef`. The resource
+  materializes Worker `r2_buckets` bindings through the shared env bridge, records
+  Cloudflare lock overlay facts, carries an in-memory object mock for
+  configuration-free tests, and documents the supported object operations plus
+  streaming/metadata boundaries.
+
+  `@ontrails/warden` now treats `cloudflareR2` as a required Cloudflare public
+  export with `@example` coverage.
+
+- [`01b9204`](https://github.com/outfitter-dev/trails/commit/01b92046db52c71f22a871e58a308d7a94483cab): Harden governed v1 vocabulary transitions with property-key-only blaze literal
+  rewrites, structured review for ambiguous literal positions, explicit
+  scratch/history boundaries, and scan-only preservation for migration plans and
+  historical decision evidence.
+- [`ce86e06`](https://github.com/outfitter-dev/trails/commit/ce86e06ea1624cb426f50f7333ae9b01c592868e): Treat same-scope inverse operation pairs such as enable/disable, pause/resume,
+  star/unstar, and archive/restore as intentional distinct public contracts in
+  the `duplicate-public-contract` rule.
+- [`3531b58`](https://github.com/outfitter-dev/trails/commit/3531b58ba5320753d6d2594257ef71bc950d28a1): Add the advisory captured-kernel Warden rule for ownership review when a public
+  subpath re-exports package internals and multiple production workspaces consume
+  that subpath, including import-then-export barrels that preserve the internal
+  binding through a local alias or default export.
+
+  Expose typed import-kind inspection from `@ontrails/source` so project rules
+  can keep erased type bindings separate from runtime exports.
+
+- [`35cbe28`](https://github.com/outfitter-dev/trails/commit/35cbe289db46539b3689dbf6cf8ab0e5d9a1b09c): Found `@ontrails/source` as the shared source-code AST kernel for parsing,
+  walking, locations, edits, literals, and generic Trails syntax recognition.
+  Warden, Regrade, Wayfinder, and the Trails operator now import those shared
+  mechanics from `@ontrails/source`; the legacy Warden AST route is removed by the
+  stacked hard cutover.
+- [`35e5fed`](https://github.com/outfitter-dev/trails/commit/35e5fedd228e498783f479f0dd502e2f3ec772b8): Fold the Wayfinder graph-read catalog into `@ontrails/topography`. Wayfind
+  remains the product, trail-id, CLI, and MCP brand, but there is no longer an
+  `@ontrails/wayfinder` package to install or import. Programmatic consumers
+  should move imports such as `wayfinderTopo`, `wayfindOverviewTrail`,
+  `loadWayfinderArtifacts`, and the Wayfinder filter/provenance types to
+  `@ontrails/topography`.
+
+  Expose that package move as a governed Regrade transition so exact
+  `@ontrails/wayfinder` imports can move safely while product vocabulary and near
+  routes remain unchanged for review. Regrade routes package manifests through
+  structured review instead of rewriting dependency keys as plain text.
+
+  The Trails operator now reads all `wayfind.*` query trails and artifact helpers
+  from `@ontrails/topography` while preserving the existing CLI/MCP schemas,
+  route IDs, output shapes, and internal trail visibility.
+
+- [`3a65ae3`](https://github.com/outfitter-dev/trails/commit/3a65ae363e05b7589f4a9876da4346886353b48c): Rename the durable graph substrate package from `@ontrails/topographer` to
+  `@ontrails/topography` after folding Wayfind graph queries into that owner.
+
+  Update imports to `@ontrails/topography` or
+  `@ontrails/topography/backend-support`. The pre-1.0 cutover does not ship a
+  compatibility package. TopoGraph, lock, topo-store, semantic diff, and Wayfind
+  APIs keep their existing contracts, and the `trails wayfind` CLI and MCP names
+  remain unchanged.
+
+  The governed package-route transition moves legacy `@ontrails/wayfinder`
+  imports directly to `@ontrails/topography`; it does not emit the retired
+  intermediate `@ontrails/topographer` route.
+
+- [`2b7da24`](https://github.com/outfitter-dev/trails/commit/2b7da245b7d689e056bfd642e3651244c95e7ff4): Split Warden's source-analysis implementation into focused shared mechanics and
+  Warden-owned policy modules while preserving the public AST helper contract.
+- [`76a9e1d`](https://github.com/outfitter-dev/trails/commit/76a9e1da974de24259f7384947e198e1f6380e44): Remove the legacy Warden AST compatibility export now that shared source-analysis helpers are published from `@ontrails/source`.
+- [`a45cead`](https://github.com/outfitter-dev/trails/commit/a45cead6e3ddf6ce606bf5e663b74c0d3b5664b8): Make the planned contour-to-entity Regrade transition code-fact complete for
+  apply readiness while leaving the repository cutover status planned.
+  Identifiers that already contain the target segment now stay in the review
+  inventory instead of producing duplicated target names.
+- [`8a1ac00`](https://github.com/outfitter-dev/trails/commit/8a1ac00b5d789be41ca6e464358c96b01e442bf4): Govern the exact `@ontrails/warden/ast` to `@ontrails/source` package route
+  transition for Regrade string-literal and module-specifier rewrites exposed
+  through the Trails CLI and MCP tools. Safe rewrites now require the owning
+  manifest to already declare the target package; otherwise Regrade preserves the
+  occurrence with dependency repair guidance. Invalid manifests remain unchanged
+  and produce structured repair guidance that names the owning manifest. Explicit
+  preserve rules remain no-ops before dependency validation, and dotted or
+  subpath-like near routes remain deferred instead of becoming invented imports.
+
 ## 1.0.0-beta.39
 
 ### Patch Changes

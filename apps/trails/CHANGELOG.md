@@ -1,5 +1,87 @@
 # trails
 
+## 1.0.0-beta.40
+
+### Minor Changes
+
+- [`5adb995`](https://github.com/outfitter-dev/trails/commit/5adb99551c2dda6190d46cce7f60bb08d63c99aa): Complete the v1 hard cutover from the authored `blaze` field to
+  `implementation` across trail contracts, surface projections, tests, examples,
+  and public source-analysis helpers. Existing applications must rename authored
+  trail behavior fields and direct trail-object access before upgrading.
+- [`6712075`](https://github.com/outfitter-dev/trails/commit/67120754df3f614c7f4dd98be1fa0ba9d69b7765): Complete the v1 hard cutover from the `contour` domain-object declaration
+  vocabulary to `entity` across contracts, topo facts, store helpers, Warden,
+  Wayfinder, operator surfaces, examples, and generated locks. Existing
+  applications must rename contour APIs, run `trails dev reset --yes` to discard
+  pre-cutover local Topographer snapshots, and then recompile committed
+  `trails.lock` artifacts before upgrading. Those derived snapshots are
+  intentionally not read through a compatibility layer.
+  The entity-shaped wire contract advances `TopoGraph` and split lock manifests
+  from schema version 3 to 4; old split artifacts fail with regeneration guidance,
+  while the canonical root `trails.lock` remains schema version 5.
+  Wayfinder reports those stale rows as topo-store drift while keeping current
+  committed lock facts available for inspection.
+
+### Patch Changes
+
+- [`4def007`](https://github.com/outfitter-dev/trails/commit/4def007a53c42881fba1d958a67f0c05f417e811): Move adapter source export scanning into adapter-kit and have `create.adapter`
+  consume the shared helper.
+- [`78575d5`](https://github.com/outfitter-dev/trails/commit/78575d5193242053b4dc1f4fa6150b94bacaff44): Discover owner-package subpath adapter subjects in shared adapter checks and
+  enable `trails create adapter --placement subpath` to generate immediately
+  checkable owner subpaths.
+- [`35cbe28`](https://github.com/outfitter-dev/trails/commit/35cbe289db46539b3689dbf6cf8ab0e5d9a1b09c): Found `@ontrails/source` as the shared source-code AST kernel for parsing,
+  walking, locations, edits, literals, and generic Trails syntax recognition.
+  Warden, Regrade, Wayfinder, and the Trails operator now import those shared
+  mechanics from `@ontrails/source`; the legacy Warden AST route is removed by the
+  stacked hard cutover.
+- [`10f2492`](https://github.com/outfitter-dev/trails/commit/10f24928d3bc9d995abf7aa261ecf515c295855d): Own the `wayfind.outline` implementation in the Trails operator app while preserving the existing `trails wayfind file <file> --outline` CLI and MCP composition behavior, and document `@ontrails/source` as the operator's live-source analysis kernel.
+- [`35e5fed`](https://github.com/outfitter-dev/trails/commit/35e5fedd228e498783f479f0dd502e2f3ec772b8): Fold the Wayfinder graph-read catalog into `@ontrails/topography`. Wayfind
+  remains the product, trail-id, CLI, and MCP brand, but there is no longer an
+  `@ontrails/wayfinder` package to install or import. Programmatic consumers
+  should move imports such as `wayfinderTopo`, `wayfindOverviewTrail`,
+  `loadWayfinderArtifacts`, and the Wayfinder filter/provenance types to
+  `@ontrails/topography`.
+
+  Expose that package move as a governed Regrade transition so exact
+  `@ontrails/wayfinder` imports can move safely while product vocabulary and near
+  routes remain unchanged for review. Regrade routes package manifests through
+  structured review instead of rewriting dependency keys as plain text.
+
+  The Trails operator now reads all `wayfind.*` query trails and artifact helpers
+  from `@ontrails/topography` while preserving the existing CLI/MCP schemas,
+  route IDs, output shapes, and internal trail visibility.
+
+- [`3a65ae3`](https://github.com/outfitter-dev/trails/commit/3a65ae363e05b7589f4a9876da4346886353b48c): Rename the durable graph substrate package from `@ontrails/topographer` to
+  `@ontrails/topography` after folding Wayfind graph queries into that owner.
+
+  Update imports to `@ontrails/topography` or
+  `@ontrails/topography/backend-support`. The pre-1.0 cutover does not ship a
+  compatibility package. TopoGraph, lock, topo-store, semantic diff, and Wayfind
+  APIs keep their existing contracts, and the `trails wayfind` CLI and MCP names
+  remain unchanged.
+
+  The governed package-route transition moves legacy `@ontrails/wayfinder`
+  imports directly to `@ontrails/topography`; it does not emit the retired
+  intermediate `@ontrails/topographer` route.
+
+- [`e5edace`](https://github.com/outfitter-dev/trails/commit/e5edace60281c76157512acc6e1446c8415633ba): Make Regrade history hashes stable across report serialization and preserve
+  pre-apply occurrence evidence alongside truthful completion counts and a
+  freshly scanned post-apply completion report for replay detection. Existing
+  plans and history stamped with the earlier hash serializer remain valid.
+- [`4030698`](https://github.com/outfitter-dev/trails/commit/40306984467625844564f0f84156530d7118a79c): Keep structured input on nested child commands from being reinterpreted as a
+  bare child-name positional fallback, while preserving schema-authored
+  `inputJson` flags as ordinary trail input, including through the public Trails
+  CLI. Optional numeric flags now consume negative values with Commander's own
+  parsing semantics, and variadic flags consume every following value, before
+  nested command routing is resolved.
+- [`8a1ac00`](https://github.com/outfitter-dev/trails/commit/8a1ac00b5d789be41ca6e464358c96b01e442bf4): Govern the exact `@ontrails/warden/ast` to `@ontrails/source` package route
+  transition for Regrade string-literal and module-specifier rewrites exposed
+  through the Trails CLI and MCP tools. Safe rewrites now require the owning
+  manifest to already declare the target package; otherwise Regrade preserves the
+  occurrence with dependency repair guidance. Invalid manifests remain unchanged
+  and produce structured repair guidance that names the owning manifest. Explicit
+  preserve rules remain no-ops before dependency validation, and dotted or
+  subpath-like near routes remain deferred instead of becoming invented imports.
+
 ## 1.0.0-beta.39
 
 ### Minor Changes

@@ -1,5 +1,16 @@
 # @ontrails/adapter-kit
 
+## 1.0.0-beta.40
+
+### Patch Changes
+
+- [`4def007`](https://github.com/outfitter-dev/trails/commit/4def007a53c42881fba1d958a67f0c05f417e811): Move adapter source export scanning into adapter-kit and have `create.adapter`
+  consume the shared helper.
+- [`78575d5`](https://github.com/outfitter-dev/trails/commit/78575d5193242053b4dc1f4fa6150b94bacaff44): Discover owner-package subpath adapter subjects in shared adapter checks and
+  enable `trails create adapter --placement subpath` to generate immediately
+  checkable owner subpaths.
+- [`9bf592d`](https://github.com/outfitter-dev/trails/commit/9bf592ddba46aa12e3f4e6ffc0f772f7a41ed3df): Declare verified first-party adapter metadata for Drizzle, HTTP/Bun, and Store/Jsonfile so shared adapter checks can dogfood real owner targets.
+
 ## 1.0.0-beta.39
 
 ### Minor Changes
