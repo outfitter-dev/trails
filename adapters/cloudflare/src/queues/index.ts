@@ -692,7 +692,9 @@ const processMessage = async (
  * `queue()` activation source for `batch.queue`. A message is acknowledged
  * after all matching consumer trails succeed, skip, cancel, or fail with a
  * non-retryable Trails error. Only failures explicitly marked retryable enter
- * Cloudflare's configured retry/DLQ policy.
+ * Cloudflare's configured retry/DLQ policy. `RateLimitError.retryAfter`
+ * becomes the queue retry's `delaySeconds`; other retryable errors use the
+ * queue's configured default delay.
  *
  * @example
  * ```ts

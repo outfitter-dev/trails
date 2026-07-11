@@ -13,7 +13,9 @@ Add `@ontrails/cloudflare/queues` with `cloudflareQueue`, `createMemoryQueue`,
 and `createQueueHandler`. Cloudflare Workers now expose both `fetch` and
 `queue` entrypoints from `createWorkersHandler`, resolve env-bound resources for
 queue-activated trails, acknowledge successful/skipped/cancelled messages, and
-retry failed messages so Cloudflare's retry and DLQ settings own redelivery.
+acknowledge traced non-retryable Trails errors so permanently invalid messages
+do not churn through the queue. Failures explicitly marked retryable enter
+Cloudflare's retry and DLQ flow, with rate-limit delays preserved.
 
 `@ontrails/warden` now treats queue activation sources as materialized and
 requires `cloudflareQueue` public export example coverage.
