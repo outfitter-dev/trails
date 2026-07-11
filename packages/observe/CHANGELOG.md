@@ -1,5 +1,7 @@
 # @ontrails/observe
 
+## 1.0.0-beta.41
+
 ## 1.0.0-beta.40
 
 ### Major Changes

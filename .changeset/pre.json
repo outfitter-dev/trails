@@ -114,6 +114,7 @@
     "public-helper-subpaths",
     "pure-transpose-revisions",
     "registry-etarget-prepublish",
+    "registry-first-publication-auth",
     "registry-tarball-proof",
     "regrade-actionable-report-entries",
     "regrade-adjust",
