@@ -178,7 +178,7 @@ Lineage follows the Trails-native `TraceRecord` fields. Root records without a p
 
 `batchSize` must be a positive integer and defaults to `1`, which means every write flushes immediately unless you set a higher value. Writes auto-flush when the buffer reaches that threshold, and `flush()` drains any remaining records. Concurrent `flush()` calls share the same in-flight drain. If the exporter rejects, the failed batch is restored ahead of newer queued records so a later `flush()` can retry without silent loss.
 
-Use `@ontrails/observe` for app-facing sink contracts, `combine(...)`, built-in console/file/memory sinks, and trace tree rendering. Use `@ontrails/pino` when you need to forward Trails log records to a Pino-shaped logger. The OTel adapter is trace export only; it complements those packages rather than replacing the observability boundary.
+Use `@ontrails/observe` for app-facing sink contracts, `combine(...)`, built-in console/file/memory sinks, and trace tree rendering. Use `@ontrails/observe/pino` when you need to forward Trails log records to a Pino-shaped logger. The OTel adapter is trace export only; it complements those packages rather than replacing the observability boundary.
 
 ## Sampling
 

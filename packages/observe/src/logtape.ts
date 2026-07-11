@@ -1,11 +1,7 @@
-import type { LogRecord, LogSink } from '@ontrails/observe';
-
-// ---------------------------------------------------------------------------
-// Minimal logtape logger interface (avoids importing @logtape/logtape)
-// ---------------------------------------------------------------------------
+import type { LogRecord, LogSink } from './index.js';
 
 /**
- * Subset of the logtape Logger interface that we forward records to.
+ * Subset of the LogTape logger interface that we forward records to.
  * Accepts any object that provides the standard log-level methods.
  */
 export interface LogtapeLoggerLike {
@@ -17,18 +13,10 @@ export interface LogtapeLoggerLike {
   fatal(message: string, props?: Record<string, unknown>): void;
 }
 
-// ---------------------------------------------------------------------------
-// Options
-// ---------------------------------------------------------------------------
-
 export interface LogtapeSinkOptions {
-  /** An existing logtape logger (or compatible object) to forward records to. */
+  /** An existing LogTape logger (or compatible object) to forward records to. */
   readonly logger: LogtapeLoggerLike;
 }
-
-// ---------------------------------------------------------------------------
-// createLogtapeSink
-// ---------------------------------------------------------------------------
 
 type ForwardMethod = 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal';
 
@@ -42,9 +30,9 @@ const LEVEL_MAP: Record<string, ForwardMethod> = {
 };
 
 /**
- * Sink adapter that forwards `LogRecord` instances to an existing logtape
- * logger. Redaction runs _before_ the sink receives records, so sensitive
- * data is scrubbed regardless of the backend.
+ * Sink adapter that forwards `LogRecord` instances to an existing LogTape
+ * logger. Redaction runs before the sink receives records, so sensitive data is
+ * scrubbed regardless of the backend.
  */
 export const createLogtapeSink = (options: LogtapeSinkOptions): LogSink => {
   const { logger } = options;

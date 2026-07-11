@@ -305,13 +305,6 @@
         "zod": "catalog:",
       },
     },
-    "packages/logtape": {
-      "name": "@ontrails/logtape",
-      "version": "1.0.0-beta.39",
-      "peerDependencies": {
-        "@ontrails/observe": "workspace:^",
-      },
-    },
     "packages/mcp": {
       "name": "@ontrails/mcp",
       "version": "1.0.0-beta.39",
@@ -343,13 +336,6 @@
       "peerDependencies": {
         "@ontrails/core": "workspace:^",
         "zod": "catalog:",
-      },
-    },
-    "packages/pino": {
-      "name": "@ontrails/pino",
-      "version": "1.0.0-beta.39",
-      "peerDependencies": {
-        "@ontrails/observe": "workspace:^",
       },
     },
     "packages/regrade": {
@@ -635,8 +621,6 @@
 
     "@ontrails/library": ["@ontrails/library@workspace:packages/library"],
 
-    "@ontrails/logtape": ["@ontrails/logtape@workspace:packages/logtape"],
-
     "@ontrails/mcp": ["@ontrails/mcp@workspace:packages/mcp"],
 
     "@ontrails/observe": ["@ontrails/observe@workspace:packages/observe"],
@@ -644,8 +628,6 @@
     "@ontrails/oxlint-plugin": ["@ontrails/oxlint-plugin@workspace:packages/oxlint-plugin"],
 
     "@ontrails/permits": ["@ontrails/permits@workspace:packages/permits"],
-
-    "@ontrails/pino": ["@ontrails/pino@workspace:packages/pino"],
 
     "@ontrails/regrade": ["@ontrails/regrade@workspace:packages/regrade"],
 

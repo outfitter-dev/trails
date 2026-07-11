@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'bun:test';
 
-import { createPinoSink, pinoPackageName } from '../index.js';
-import type { PinoLoggerLike } from '../index.js';
-import type { LogRecord } from '@ontrails/observe';
+import type { LogRecord } from '../index.js';
+import { createPinoSink, pinoPackageName } from '../pino.js';
+import type { PinoLoggerLike } from '../pino.js';
 
 interface PinoCall {
   readonly level: string;
@@ -46,9 +46,9 @@ const createRecord = (overrides: Partial<LogRecord> = {}): LogRecord => ({
   ...overrides,
 });
 
-describe('@ontrails/pino', () => {
+describe('@ontrails/observe/pino', () => {
   test('exports the package identifier', () => {
-    expect(pinoPackageName).toBe('@ontrails/pino');
+    expect(pinoPackageName).toBe('@ontrails/observe/pino');
   });
 
   test.each([
@@ -58,7 +58,7 @@ describe('@ontrails/pino', () => {
     ['warn'],
     ['error'],
     ['fatal'],
-  ] as const)('forwards %s records to the matching pino method', (level) => {
+  ] as const)('forwards %s records to the matching Pino method', (level) => {
     const { calls, logger } = createRecordingLogger();
     const sink = createPinoSink(logger);
 
@@ -77,7 +77,7 @@ describe('@ontrails/pino', () => {
     ]);
   });
 
-  test('forwards message and metadata in the pino object-first shape', () => {
+  test('forwards message and metadata in the Pino object-first shape', () => {
     const { calls, logger } = createRecordingLogger();
     const sink = createPinoSink(logger, { name: 'pino-test' });
 

@@ -1,5 +1,5 @@
 ---
-'@ontrails/pino': minor
+'@ontrails/observe': minor
 ---
 
-Add the publishable `@ontrails/pino` package scaffold.
+Add the supported `@ontrails/observe/pino` forwarding subpath.

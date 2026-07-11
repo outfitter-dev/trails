@@ -114,7 +114,7 @@ Each infrastructure package ships a zero-dependency built-in and optional adapte
 
 Adapters carry optional peer dependencies. Installing `@ontrails/permits` doesn't pull in Clerk's SDK. Installing `@ontrails/permits/clerk` does.
 
-The built-in for each package is functional enough for development and simple production cases. Adapters are for teams that need specific providers. The v1 observability package graph follows this posture through `@ontrails/observe` for sink contracts and `@ontrails/logtape` for LogTape forwarding.
+The built-in for each package is functional enough for development and simple production cases. Adapters are for teams that need specific providers. The v1 observability package graph follows this posture through `@ontrails/observe` for sink contracts and `@ontrails/observe/logtape` for LogTape forwarding.
 
 ### `testAll(graph)` just works
 

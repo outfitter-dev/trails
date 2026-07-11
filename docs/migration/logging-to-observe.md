@@ -9,13 +9,15 @@ How to migrate consumers from the retired `@ontrails/logging` package to the v1 
 | Log and trace sink contracts | `@ontrails/observe` |
 | Console/file log sinks and formatters | `@ontrails/observe` |
 | Bounded in-memory trace sink and trace rendering | `@ontrails/observe` |
-| LogTape forwarding | `@ontrails/logtape` |
-| Pino forwarding | `@ontrails/pino` |
+| LogTape forwarding | `@ontrails/observe/logtape` |
+| Pino forwarding | `@ontrails/observe/pino` |
 | Trace sink registry, `ctx.trace()`, and intrinsic execution records | `@ontrails/core` through `executeTrail`; registry helpers are re-exported by `@ontrails/tracing` |
 | Tracing query/status trails, SQLite dev store, sampling helpers | `@ontrails/tracing` |
 | OpenTelemetry export | `@ontrails/tracing/otel` |
 
 `@ontrails/logging` is no longer part of the workspace or prerelease package set. Do not add it to new apps.
+
+The `@ontrails/observe/logtape` and `@ontrails/observe/pino` subpaths first ship in `1.0.0-beta.40`. The beta.39 package exposes only the root `@ontrails/observe` entrypoint.
 
 ## Import Changes
 
@@ -36,11 +38,11 @@ Move sink contracts and built-in sinks to `@ontrails/observe`:
 + } from '@ontrails/observe';
 ```
 
-Rename the LogTape forwarding factory:
+Rename the LogTape forwarding factory and move it under the observe package:
 
 ```diff
 - import { logtapeSink } from '@ontrails/logtape';
-+ import { createLogtapeSink } from '@ontrails/logtape';
++ import { createLogtapeSink } from '@ontrails/observe/logtape';
 ```
 
 Use `@ontrails/tracing/otel` for OpenTelemetry trace export:
@@ -62,12 +64,12 @@ await sink.flush();
 
 There is no standalone `@ontrails/otel` package in v1. The adapter keeps the Trails-native `TraceRecord` model internal, emits stable `trails.*` attributes, and forwards OTel-shaped span batches through the exporter callback without forcing an OpenTelemetry SDK runtime dependency.
 
-Use `@ontrails/pino` when an app already owns a Pino logger:
+Use `@ontrails/observe/pino` when an app already owns a Pino logger:
 
 ```typescript
 import pino from 'pino';
 import { topo } from '@ontrails/core';
-import { createPinoSink } from '@ontrails/pino';
+import { createPinoSink } from '@ontrails/observe/pino';
 
 const logger = pino();
 // trails is your application's array of Trail definitions.
@@ -86,34 +88,32 @@ Remove the old dependency and add the replacement packages you actually need. Fo
 {
   "dependencies": {
 -   "@ontrails/logging": "^1.0.0-beta.15",
-+   "@ontrails/observe": "^1.0.0-beta.17",
-    "@ontrails/tracing": "^1.0.0-beta.17"
++   "@ontrails/observe": "1.0.0-beta.40",
+    "@ontrails/tracing": "1.0.0-beta.40"
   }
 }
 ```
 
-For apps that also forward to a LogTape-shaped logger, add `@ontrails/logtape` alongside `@ontrails/observe`:
+For apps that also forward to a LogTape-shaped logger, use the `@ontrails/observe/logtape` subpath from the same `@ontrails/observe` package:
 
 ```diff
 {
   "dependencies": {
 -   "@ontrails/logging": "^1.0.0-beta.15",
-+   "@ontrails/observe": "^1.0.0-beta.17",
-+   "@ontrails/logtape": "^1.0.0-beta.17",
-    "@ontrails/tracing": "^1.0.0-beta.17"
++   "@ontrails/observe": "1.0.0-beta.40",
+    "@ontrails/tracing": "1.0.0-beta.40"
   }
 }
 ```
 
-For apps that forward to a Pino-shaped logger, add `@ontrails/pino` alongside `@ontrails/observe`. Keep `pino` itself as an application dependency:
+For apps that forward to a Pino-shaped logger, use the `@ontrails/observe/pino` subpath from the same `@ontrails/observe` package. Keep `pino` itself as an application dependency:
 
 ```diff
 {
   "dependencies": {
 -   "@ontrails/logging": "^1.0.0-beta.15",
-+   "@ontrails/observe": "^1.0.0-beta.17",
-+   "@ontrails/pino": "^1.0.0-beta.17",
-+   "@ontrails/tracing": "^1.0.0-beta.17",
++   "@ontrails/observe": "1.0.0-beta.40",
++   "@ontrails/tracing": "1.0.0-beta.40",
 +   "pino": "^9.0.0"
   }
 }

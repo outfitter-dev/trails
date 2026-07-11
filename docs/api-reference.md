@@ -667,7 +667,7 @@ CombinedSink, ConsoleSinkOptions, FileSinkOptions, FileLogSink, FileSinkConfig
 MemorySinkOptions, MemoryTraceSink, PrettyFormatterOptions
 ```
 
-## `@ontrails/logtape`
+## `@ontrails/observe/logtape`
 
 ```typescript
 createLogtapeSink({ logger })         // forward observe LogRecord values to a LogTape-shaped logger
@@ -675,7 +675,7 @@ createLogtapeSink({ logger })         // forward observe LogRecord values to a L
 LogtapeLoggerLike, LogtapeSinkOptions
 ```
 
-## `@ontrails/pino`
+## `@ontrails/observe/pino`
 
 ```typescript
 createPinoSink(logger, options?)       // forward observe LogRecord values to a Pino-shaped logger
@@ -732,7 +732,7 @@ DEFAULT_SAMPLING                     // default sampling rates by intent
 TraceRecord, TraceSink, SamplingConfig, TraceContext, TraceFn, TraceCleanupReport
 ```
 
-For v1, OpenTelemetry trace export lives at `@ontrails/tracing/otel`; there is no standalone `@ontrails/otel` package. Use `@ontrails/pino` separately for Pino-shaped log forwarding.
+For v1, OpenTelemetry trace export lives at `@ontrails/tracing/otel`; there is no standalone `@ontrails/otel` package. Use `@ontrails/observe/pino` separately for Pino-shaped log forwarding.
 
 ## `@ontrails/tracing/otel`
 

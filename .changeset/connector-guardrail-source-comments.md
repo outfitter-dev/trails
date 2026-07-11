@@ -3,7 +3,6 @@
 "@ontrails/core": patch
 "@ontrails/hono": patch
 "@ontrails/http": patch
-"@ontrails/logtape": patch
 "@ontrails/mcp": patch
 "@ontrails/observe": patch
 ---

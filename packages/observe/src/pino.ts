@@ -1,12 +1,13 @@
-import type { LogLevel, LogRecord, LogSink } from '@ontrails/observe';
+import type { LogLevel, LogRecord, LogSink } from './index.js';
 
 /**
- * Package identifier for the publishable Pino adapter package.
+ * Package identifier for the supported Pino adapter subpath.
  */
-export const pinoPackageName = '@ontrails/pino';
+export const pinoPackageName = '@ontrails/observe/pino';
 
 /**
- * Signature for a Pino-compatible logger method used when forwarding Trails records.
+ * Signature for a Pino-compatible logger method used when forwarding Trails
+ * records.
  */
 export type PinoLogMethod = (
   payload: Record<string, unknown>,

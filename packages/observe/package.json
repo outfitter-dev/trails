@@ -12,7 +12,9 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./package.json": "./package.json"
+    "./logtape": "./src/logtape.ts",
+    "./package.json": "./package.json",
+    "./pino": "./src/pino.ts"
   },
   "scripts": {
     "build": "tsc -b",

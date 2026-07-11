@@ -1,7 +1,7 @@
 ---
 '@ontrails/commander': patch
 '@ontrails/hono': patch
-'@ontrails/pino': patch
+'@ontrails/observe': patch
 '@ontrails/vite': patch
 ---
 

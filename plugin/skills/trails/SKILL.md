@@ -60,7 +60,7 @@ Current public packages are lockstep at the same Trails framework version.
 - **Core model:** `@ontrails/core` owns Result, errors, trail/signal/entity/topo contracts, resources, layers, execution, validation, and adapter ports.
 - **Surfaces:** `@ontrails/commander`, `@ontrails/mcp`, `@ontrails/hono`, and `@ontrails/http/bun` open the same topo on CLI, MCP, Hono HTTP, or Bun-native HTTP. `@ontrails/http` owns shared route derivation, OpenAPI, and the Web Fetch kernel; `@ontrails/cli` owns the framework-agnostic CLI command model; `@ontrails/vite` adapts Trails surfaces for Vite projects.
 - **Infrastructure:** `@ontrails/config`, `@ontrails/permits`, `@ontrails/store`, and `@ontrails/drizzle` cover config, authorization, schema-derived stores, and Drizzle SQLite bindings.
-- **Observability:** `@ontrails/observe` defines sink contracts; `@ontrails/tracing`, `@ontrails/logtape`, and `@ontrails/pino` provide tracing/dev-state and sink adapters.
+- **Observability:** `@ontrails/observe` defines sink contracts; `@ontrails/tracing`, `@ontrails/observe/logtape`, and `@ontrails/observe/pino` provide tracing/dev-state and sink adapters.
 - **Ecosystem:** `@ontrails/testing` provides contract tests and surface harnesses; `@ontrails/topography` owns TopoGraphs, semantic diffing, lock manifests, topo-store persistence, and Wayfind graph-read query APIs; `@ontrails/warden` owns governance rules.
 - **Beta install policy:** While `.changeset/pre.json` is in prerelease mode, install published Trails packages with exact `1.0.0-beta.N` pins or `@beta`; do not rely on unqualified `latest` unless release notes explicitly advance it.
 

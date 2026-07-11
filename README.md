@@ -159,9 +159,9 @@ $ myapp greet --name World
 | [`@ontrails/source`](./packages/source) | Shared source-code AST parsing, walking, locations, edits, literals, and Trails syntax helpers |
 | [`@ontrails/observe`](./packages/observe) | Log and trace sink contracts, sink composition, built-in sinks, trace rendering |
 | [`@ontrails/tracing`](./packages/tracing) | Tracing compatibility, query/status trails, `trails.db` dev-state storage, sampling helpers, OTel adapter |
-| [`@ontrails/logtape`](./packages/logtape) | Adapter that forwards Trails log records to a LogTape-shaped logger |
-| [`@ontrails/pino`](./packages/pino) | Adapter that forwards Trails log records to a Pino-shaped logger |
-| [`@ontrails/warden`](./packages/warden) | Convention rules, drift detection, CI formatters |
+| [`@ontrails/observe/logtape`](./packages/observe) | Adapter subpath that forwards Trails log records to a LogTape-shaped logger |
+| [`@ontrails/observe/pino`](./packages/observe) | Adapter subpath that forwards Trails log records to a Pino-shaped logger |
+| [`@ontrails/warden`](./packages/warden) | AST-based convention rules, drift detection, CI formatters |
 
 ## Documentation
 

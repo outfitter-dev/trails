@@ -166,8 +166,8 @@ Overrides are escape hatches. They're visible in the TopoGraph as explicit devia
 | `@ontrails/drizzle` | Drizzle SQLite adapter, typed store bindings, read-only bindings | `drizzle-orm` |
 | `@ontrails/observe` | Production log and trace sink contracts, composition, and built-in sinks | None beyond core |
 | `@ontrails/tracing` | Tracing compatibility, query/status trails, Trails state-store dev storage, sampling helpers, OTel adapter | None beyond core |
-| `@ontrails/logtape` | LogTape sink adapter for `@ontrails/observe` | None (accepts any LogTape-shaped logger via a structural interface) |
-| `@ontrails/pino` | Pino sink adapter for `@ontrails/observe` | None (accepts any Pino-shaped logger via a structural interface) |
+| `@ontrails/observe/logtape` | LogTape sink adapter for `@ontrails/observe` | None (accepts any LogTape-shaped logger via a structural interface) |
+| `@ontrails/observe/pino` | Pino sink adapter for `@ontrails/observe` | None (accepts any Pino-shaped logger via a structural interface) |
 
 ### Ecosystem
 
@@ -209,7 +209,8 @@ Overrides are escape hatches. They're visible in the TopoGraph as explicit devia
 @ontrails/commander (cli, commander)
 @ontrails/hono (http, hono)
 @ontrails/vite (node:stream only, no workspace deps)
-@ontrails/logtape (observe)
+@ontrails/observe/logtape (observe)
+@ontrails/observe/pino (observe)
 apps/trails (surface packages, source, regrade, topography, tracing, warden)
 ```
 

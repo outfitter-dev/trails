@@ -1,5 +1,5 @@
 ---
-'@ontrails/pino': minor
+'@ontrails/observe': minor
 ---
 
-Implement the structural Pino log sink.
+Implement the structural Pino log sink under `@ontrails/observe/pino`.

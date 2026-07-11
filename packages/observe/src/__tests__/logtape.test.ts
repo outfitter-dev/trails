@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 
-import { createLogtapeSink } from '../index.js';
-import type { LogtapeLoggerLike } from '../index.js';
+import { createLogtapeSink } from '../logtape.js';
+import type { LogtapeLoggerLike } from '../logtape.js';
 
 const createRecordingLogger = () => {
   const calls: {
@@ -34,8 +34,8 @@ const createRecordingLogger = () => {
   return { calls, logger };
 };
 
-describe('createLogtapeSink', () => {
-  test('forwards records to the underlying logtape logger by level', () => {
+describe('@ontrails/observe/logtape', () => {
+  test('forwards records to the underlying LogTape logger by level', () => {
     const { calls, logger } = createRecordingLogger();
     const sink = createLogtapeSink({ logger });
 
@@ -56,7 +56,7 @@ describe('createLogtapeSink', () => {
     ]);
   });
 
-  test('ignores records whose level does not map to a logtape method', () => {
+  test('ignores records whose level does not map to a LogTape method', () => {
     const { calls, logger } = createRecordingLogger();
     const sink = createLogtapeSink({ logger });
 

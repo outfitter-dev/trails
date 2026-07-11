@@ -40,7 +40,7 @@ bun add -d @ontrails/trails@1.0.0-beta.19 \
 
 If the app authors its own HTTP adapter, add `@ontrails/adapter-kit@1.0.0-beta.19` (new in beta.19) as a dev dependency. See [Beta 18 → Beta 19](#beta-18-to-beta-19).
 
-If the app uses observability or LogTape/Pino forwarding, add `@ontrails/observe`, `@ontrails/tracing`, and one of `@ontrails/logtape` / `@ontrails/pino` from the same beta line. See [Logging to Observe](../migration/logging-to-observe.md).
+If the app uses observability or LogTape/Pino forwarding, add `@ontrails/observe`, `@ontrails/tracing`, and one of `@ontrails/logtape` or `@ontrails/pino` from the same beta line. These standalone forwarding packages are the beta.19 shape; current prereleases use subpaths of `@ontrails/observe` instead.
 
 During the beta line, `latest` may intentionally lag behind `beta`. The [Beta Channel Policy](./beta-channel-policy.md) explains the dist-tag posture, install pins versus `@beta`, and read-only registry checks. Do not mix `beta.15`, `beta.18`, `beta.19`, and `@beta` ranges in one app.
 
@@ -204,7 +204,7 @@ The migration question is not "should I adopt the taxonomy?" — public trails a
 
 ## Observability
 
-`@ontrails/logging` retired before v1. Use `@ontrails/observe` for sink contracts and built-in sinks, `@ontrails/tracing` for trace registry and SQLite dev store, `@ontrails/tracing/otel` for OpenTelemetry export, `@ontrails/logtape` for LogTape forwarding, and `@ontrails/pino` for Pino forwarding. The full import map is in [Logging to Observe](../migration/logging-to-observe.md).
+`@ontrails/logging` retired before v1. On beta.19, use `@ontrails/observe` for sink contracts and built-in sinks, `@ontrails/tracing` for trace registry and SQLite dev store, `@ontrails/tracing/otel` for OpenTelemetry export, `@ontrails/logtape` for LogTape forwarding, and `@ontrails/pino` for Pino forwarding. Do not substitute the current `@ontrails/observe/logtape` or `@ontrails/observe/pino` subpaths while the app remains pinned to beta.19; those subpaths landed later.
 
 For CLI and MCP apps that care about clean stdout, prefer file-backed sinks for logs and traces. The PatchOS modernization confirmed this is the right shape: opt-in file sinks, no polluted stdout, no MCP payload weirdness. `@ontrails/observe` ships `createConsoleSink`, `createFileSink`, and `createMemorySink` (useful for tests); compose sinks with the observe helpers rather than juggling multiple loggers in app code.
 
@@ -304,7 +304,7 @@ If `bun run validate` flags drift, regenerate locally with `bun run compile`, re
 - [Beta Channel Policy](./beta-channel-policy.md) — install pins, `@beta` versus exact, `latest` lag, version-bump cadence, no `npm publish` / `changeset publish`.
 - [Trailhead to Surface](../migration/trailhead-to-surface.md) — the surface-vocabulary cutover and trace/OTel/dev-store updates.
 - [Connector to Adapter](../migration/connector-to-adapter.md) — adapter package taxonomy and the `@ontrails/commander` cutover.
-- [Logging to Observe](../migration/logging-to-observe.md) — observability package graph, sink imports, OTel export.
+- [Observability](#observability) — the historical beta.19 package graph, sink imports, and OTel export.
 - [Layer Evolution](../migration/layer-evolution.md) — typed `Layer` primitive, attachment scopes, surface projection, removed exports.
 - [TopoGraph Artifact Family](../migration/topograph-artifact-family.md) — current artifact layout, rename map, consumer-API updates.
 - [Stable Cutover Runbook](./stable-cutover.md) — the eventual beta-to-1.0 sequence.

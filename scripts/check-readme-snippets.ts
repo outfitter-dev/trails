@@ -159,6 +159,7 @@ export const createMcpHarness: any;
 export const createMemorySink: any;
 export const createOtelAdapter: any;
 export const createPermitForTrail: any;
+export const createPinoSink: any;
 export const createProgram: any;
 export const createSourceEdit: any;
 export const createStoredTopoSnapshot: any;
@@ -252,7 +253,6 @@ export default {} as any;
 
 export const PACKAGE_APP_ADAPTER_READMES = [
   'packages/tracing/README.md',
-  'packages/logtape/README.md',
   'packages/source/README.md',
   'packages/core/README.md',
   'packages/config/README.md',
@@ -278,10 +278,6 @@ export const README_SNIPPET_CONFIGS: readonly ReadmeSnippetConfig[] = [
   {
     prelude: COMMON_README_PRELUDE,
     readmePath: 'packages/tracing/README.md',
-  },
-  {
-    prelude: COMMON_README_PRELUDE,
-    readmePath: 'packages/logtape/README.md',
   },
   {
     prelude: COMMON_README_PRELUDE,

@@ -110,8 +110,8 @@ Wayfinder is the first agent navigation move over those saved artifacts. For gra
 | `@ontrails/drizzle` | Drizzle SQLite adapter, typed store bindings, read-only bindings | `drizzle-orm` |
 | `@ontrails/observe` | Log and trace sink contracts, sink composition, built-in sinks, trace rendering | None beyond core |
 | `@ontrails/tracing` | Compatibility tracing exports, SQLite dev store, query/status trails, OTel adapter | None beyond core |
-| `@ontrails/logtape` | LogTape sink adapter over `@ontrails/observe` | None (accepts any LogTape-shaped logger via a structural interface) |
-| `@ontrails/pino` | Pino sink adapter over `@ontrails/observe` | None (accepts any Pino-shaped logger via a structural interface) |
+| `@ontrails/observe/logtape` | LogTape sink adapter over `@ontrails/observe` | None (accepts any LogTape-shaped logger via a structural interface) |
+| `@ontrails/observe/pino` | Pino sink adapter over `@ontrails/observe` | None (accepts any Pino-shaped logger via a structural interface) |
 
 ### Ecosystem
 
@@ -137,12 +137,12 @@ Wayfinder is the first agent navigation move over those saved artifacts. For gra
   <- @ontrails/drizzle (store, drizzle-orm)
   <- @ontrails/testing (core, observe; optional cli/mcp/http subpaths)
   <- @ontrails/topography (core, zod, adapter-kit)
-     <- @ontrails/warden (core, topography)
+     <- @ontrails/warden (core, topography, source)
   <- @ontrails/commander (cli, commander)
   <- @ontrails/hono (http, hono)
   <- @ontrails/vite (node:stream only)
-  <- @ontrails/logtape (observe)
-  <- @ontrails/pino (observe)
+  <- @ontrails/observe/logtape (observe)
+  <- @ontrails/observe/pino (observe)
 ```
 
 ## Data Flow
