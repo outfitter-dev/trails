@@ -83,6 +83,7 @@ const expectedRuntimeExportKeys = [
   'getNodeExported',
   'getNodeExpression',
   'getNodeId',
+  'getNodeImportKind',
   'getNodeImported',
   'getNodeInit',
   'getNodeKey',
@@ -206,7 +207,7 @@ const assertSourceTypeExportContract = <T extends SourceTypeExportContract>() =>
 describe('@ontrails/source public API', () => {
   test('keeps the exact sorted runtime export keys', () => {
     expect(Object.keys(source).toSorted()).toEqual(expectedRuntimeExportKeys);
-    expect(expectedRuntimeExportKeys).toHaveLength(110);
+    expect(expectedRuntimeExportKeys).toHaveLength(111);
   });
 
   test('keeps every public type export resolvable at compile time', () => {

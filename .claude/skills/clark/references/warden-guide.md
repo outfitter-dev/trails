@@ -5,7 +5,7 @@
 This file is generated from the live `@ontrails/warden` rule manifest. Repo-tracked skills, agents, and plugin prompts should reference this file instead of copying rule prose by hand.
 
 - Guide input command: `bun apps/trails/bin/trails.ts warden guide --agent-json`
-- Rule count: 73
+- Rule count: 74
 
 ## Agent Instructions
 
@@ -34,6 +34,7 @@ This file is generated from the live `@ontrails/warden` rule manifest. Repo-trac
 
 ### General
 
+- `captured-kernel` (warn, all/project-static, advisory): Public subpath exports that re-export internal kernels receive ownership review after multiple production packages consume them. Guidance: Review ownership before an internal re-exported kernel hardens into a public package seam.
 - `circular-refs` (warn, project/project-static, external): Entity reference graphs must be acyclic.
 - `duplicate-exported-symbol` (warn, project/project-static, repo-local): First-party packages should not define the same exported symbol name in parallel. Guidance: Keep exported symbol ownership from drifting across first-party packages.
 - `entity-exists` (error, project/project-static, external): Declared entity references resolve to known entities.

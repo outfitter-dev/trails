@@ -56,6 +56,14 @@ The review question:
 | Markdown rendering | package that owns the content domain | docs, Warden guide, release notes | `unknown` | Not audited in this first pass. Do not extract until a real duplicate has evidence and a clear owner. |
 | CLI argument parsing | Trails app CLI surface | CLI routes and commands | `unknown` | Not audited in this first pass. Parsing can stay surface-owned unless it reimplements contract derivation. |
 
+## Captured-Kernel Review
+
+The advisory `captured-kernel` Warden rule identifies one ownership-review signal: a non-root public package subpath re-exports its own internal source and at least two distinct production packages consume that subpath. The warning is evidence to review the owner, not proof that the current package is wrong.
+
+`@ontrails/topographer/backend-support` is the current named watch case. Its internal-backed subpath remains legitimate because the Trails operator is its only production external consumer; Warden exercises it only in tests, which do not satisfy the rule's consumer threshold. Revisit the boundary if a second independently owned production capability begins to consume it.
+
+Moving a captured kernel into `@ontrails/source` is conditional. The machinery must be reusable source analysis shared by at least two independent toolchain capabilities, expose one genuinely shared contract, and own no verdict policy, migration plan, graph query, or surface rendering. Otherwise, preserve the current owner or choose another doctrinal owner.
+
 ## Proposed Extractions
 
 These are open findings from the map. They are not newly created Linear issues in this branch.

@@ -40,12 +40,14 @@ export interface MemberExpressionNode extends AstNode {
 }
 
 export interface ImportDeclarationNode extends AstNode {
+  readonly importKind?: string;
   readonly type: 'ImportDeclaration';
   readonly source?: AstNode;
   readonly specifiers?: readonly AstNode[];
 }
 
 export interface ImportSpecifierNode extends AstNode {
+  readonly importKind?: string;
   readonly type:
     | 'ImportDefaultSpecifier'
     | 'ImportNamespaceSpecifier'
@@ -266,6 +268,7 @@ export interface AstFieldProjection {
   readonly expression?: AstNode;
   readonly id?: AstNode;
   readonly imported?: AstNode;
+  readonly importKind?: string;
   readonly init?: AstNode;
   readonly key?: AstNode;
   readonly kind?: string;
@@ -553,6 +556,10 @@ export const getNodeId = (
 export const getNodeImported = (
   node: AstNode | null | undefined
 ): AstNode | undefined => projectAstFields(node)?.imported;
+
+export const getNodeImportKind = (
+  node: AstNode | null | undefined
+): string | undefined => projectAstFields(node)?.importKind;
 
 export const getNodeInit = (
   node: AstNode | null | undefined

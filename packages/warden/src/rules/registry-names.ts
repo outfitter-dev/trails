@@ -7,6 +7,7 @@
  * the `warden-export-symmetry` rule will fail the build if they drift.
  */
 import { activationOrphan } from './activation-orphan.js';
+import { capturedKernel } from './captured-kernel.js';
 import { cliCommandRouteCoherence } from './cli-command-route-coherence.js';
 import { circularRefs } from './circular-refs.js';
 import { entityExists } from './entity-exists.js';
@@ -91,6 +92,7 @@ import { webhookRouteCollision } from './webhook-route-collision.js';
  */
 export const registeredRuleNames: readonly string[] = [
   activationOrphan.name,
+  capturedKernel.name,
   cliCommandRouteCoherence.name,
   circularRefs.name,
   contextNoSurfaceTypes.name,

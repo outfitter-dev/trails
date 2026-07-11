@@ -109,7 +109,7 @@ See [ADR-0050](docs/adr/0050-surface-accommodations-preserve-trail-identity.md) 
 This section is generated from the live `@ontrails/warden` rule manifest. Keep the human-authored guidance above as orientation; use this block as the enforceable-rule index.
 
 - Guide input command: `bun apps/trails/bin/trails.ts warden guide --manifest`
-- Rule count: 73
+- Rule count: 74
 
 ### Rule Index
 
@@ -130,6 +130,7 @@ This section is generated from the live `@ontrails/warden` rule manifest. Keep t
 
 #### General
 
+- `captured-kernel` (warn, all/project-static, advisory): Public subpath exports that re-export internal kernels receive ownership review after multiple production packages consume them.
 - `circular-refs` (warn, project/project-static, external): Entity reference graphs must be acyclic.
 - `duplicate-exported-symbol` (warn, project/project-static, repo-local): First-party packages should not define the same exported symbol name in parallel.
 - `entity-exists` (error, project/project-static, external): Declared entity references resolve to known entities.
@@ -212,6 +213,7 @@ This section is generated from the live `@ontrails/warden` rule manifest. Keep t
 
 ### Structured Guidance Summaries
 
+- `captured-kernel`: Review ownership before an internal re-exported kernel hardens into a public package seam.
 - `cli-command-route-coherence`: Keep every CLI command route and alias normalized into one trail contract.
 - `dead-public-trail`: Anchor exported public trails in a topo, composition edge, or activation source.
 - `duplicate-exported-symbol`: Keep exported symbol ownership from drifting across first-party packages.

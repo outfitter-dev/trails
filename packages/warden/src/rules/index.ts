@@ -1,4 +1,5 @@
 import { activationOrphan } from './activation-orphan.js';
+import { capturedKernel } from './captured-kernel.js';
 import { cliCommandRouteCoherence } from './cli-command-route-coherence.js';
 import { circularRefs } from './circular-refs.js';
 import { entityExists } from './entity-exists.js';
@@ -139,6 +140,7 @@ export {
 export type { BuiltinWardenRuleName } from './metadata.js';
 
 export { activationOrphan } from './activation-orphan.js';
+export { capturedKernel } from './captured-kernel.js';
 export { cliCommandRouteCoherence } from './cli-command-route-coherence.js';
 export { noThrowInImplementation } from './no-throw-in-implementation.js';
 export { circularRefs } from './circular-refs.js';
@@ -219,6 +221,7 @@ export const wardenRules: ReadonlyMap<string, WardenRule> = new Map<
   WardenRule
 >([
   [noThrowInImplementation.name, noThrowInImplementation],
+  [capturedKernel.name, capturedKernel],
   [circularRefs.name, circularRefs],
   [entityExists.name, entityExists],
   [contextNoSurfaceTypes.name, contextNoSurfaceTypes],

@@ -1,4 +1,5 @@
 export { activationOrphanTrail } from './activation-orphan.trail.js';
+export { capturedKernelTrail } from './captured-kernel.trail.js';
 export { cliCommandRouteCoherenceTrail } from './cli-command-route-coherence.trail.js';
 export { circularRefsTrail } from './circular-refs.trail.js';
 export { entityExistsTrail } from './entity-exists.trail.js';

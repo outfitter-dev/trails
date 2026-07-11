@@ -69,6 +69,7 @@ const depthByTier = {
 
 const concernByRuleName: Partial<Record<string, WardenRuleConcern>> = {
   'activation-orphan': 'signals',
+  'captured-kernel': 'general',
   'cli-command-route-coherence': 'meta',
   'composes-declarations': 'composition',
   'context-no-surface-types': 'composition',
@@ -156,6 +157,27 @@ const builtinWardenRuleMetadataInput = {
     invariant:
       'Signal activation consumers reference sources with producer declarations.',
     tier: 'topo-aware',
+  },
+  'captured-kernel': {
+    guidance: {
+      relatedRules: [
+        'duplicate-exported-symbol',
+        'public-internal-deep-imports',
+        'resolved-import-boundary',
+      ],
+      steps: [
+        'Review whether the public subpath should become an owned package surface, move back behind the package root, or be split into a better-owned package.',
+        'If the imported capability is reusable source-code machinery, serves at least two independently owned toolchain capabilities, exposes one genuinely shared contract, and owns no verdict, migration plan, graph query, or surface rendering, consider relocating it to @ontrails/source.',
+        'Otherwise, preserve the current owner or choose another doctrinal owner.',
+      ],
+      summary:
+        'Review ownership before an internal re-exported kernel hardens into a public package seam.',
+    },
+    invariant:
+      'Public subpath exports that re-export internal kernels receive ownership review after multiple production packages consume them.',
+    lifecycle: { state: 'durable' },
+    scope: 'advisory',
+    tier: 'project-static',
   },
   'circular-refs': {
     ...durableExternal,
