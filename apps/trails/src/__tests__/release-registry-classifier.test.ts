@@ -163,6 +163,11 @@ const packumentLagView: RegistryView = async (name) => ({
 
 const targetAbsent: RegistryVersionView = async () => false;
 const targetPublished: RegistryVersionView = async () => true;
+const unauthorizedNpmRunner: NpmCommandRunner = async () => ({
+  exitCode: 1,
+  stderr: 'npm error code E401\nnpm error 401 Unauthorized',
+  stdout: '',
+});
 
 describe('registryPostureErrors — live beta.28 incident', () => {
   test('ready phase passes (publish pending); published phase fails', async () => {
@@ -342,6 +347,39 @@ describe('npm registry fallback wiring', () => {
       ['view', '@ontrails/regrade', 'name', 'version', 'dist-tags', '--json'],
       ['dist-tag', 'ls', '@ontrails/regrade'],
     ]);
+  });
+
+  test('treats scoped dist-tag E401 after package E404 as first publication', async () => {
+    const commands: string[][] = [];
+    const runNpm: NpmCommandRunner = async (args) => {
+      commands.push([...args]);
+      if (args[0] === 'view') {
+        return notFoundResult;
+      }
+      if (args.join(' ') === 'dist-tag ls @ontrails/source') {
+        return {
+          exitCode: 1,
+          stderr:
+            'npm error code E401\nnpm error 401 Unauthorized - GET https://registry.npmjs.org/-/package/@ontrails%2fsource/dist-tags',
+          stdout: '',
+        };
+      }
+      throw new Error(`unexpected npm command: ${args.join(' ')}`);
+    };
+
+    await expect(
+      createNpmRegistryView(runNpm)('@ontrails/source')
+    ).resolves.toBeNull();
+    expect(commands).toEqual([
+      ['view', '@ontrails/source', 'name', 'version', 'dist-tags', '--json'],
+      ['dist-tag', 'ls', '@ontrails/source'],
+    ]);
+  });
+
+  test('keeps package-view authorization failures inaccessible', async () => {
+    await expect(
+      createNpmRegistryView(unauthorizedNpmRunner)('@ontrails/source')
+    ).rejects.toThrow('401 Unauthorized');
   });
 
   test('falls back from npm view exact-version 404 to npm pack proof', async () => {

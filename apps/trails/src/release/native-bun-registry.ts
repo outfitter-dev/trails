@@ -339,6 +339,11 @@ const isNpmNotFoundOutput = (stdout: string, stderr: string): boolean => {
   return combined.includes('E404') || combined.includes('404 Not Found');
 };
 
+const isNpmUnauthorizedOutput = (stdout: string, stderr: string): boolean => {
+  const combined = `${stdout}\n${stderr}`;
+  return combined.includes('E401') || combined.includes('401 Unauthorized');
+};
+
 const isNpmExactVersionMissingOutput = (
   stdout: string,
   stderr: string
@@ -403,7 +408,13 @@ const npmDistTagRegistryView = async (
 ): Promise<NpmView | null> => {
   const { exitCode, stderr, stdout } = await runNpm(['dist-tag', 'ls', name]);
   if (exitCode !== 0) {
-    if (isNpmNotFoundOutput(stdout, stderr)) {
+    // npm returns E401 for the dist-tag endpoint of an unpublished scoped
+    // package, even though the preceding package view returned E404. At this
+    // fallback boundary both responses mean the package does not exist yet.
+    if (
+      isNpmNotFoundOutput(stdout, stderr) ||
+      isNpmUnauthorizedOutput(stdout, stderr)
+    ) {
       return null;
     }
     throw new Error(stderr.trim() || `npm dist-tag ls failed for ${name}`);

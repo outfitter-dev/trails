@@ -260,6 +260,26 @@ describe('evaluateReleasePolicy', () => {
     );
   });
 
+  test('preserves registry probe errors in policy blockers', () => {
+    const report = evaluateReleasePolicy(
+      baseInput({
+        registryPackages: [
+          {
+            error: 'npm error 503 Service Unavailable',
+            name: '@ontrails/core',
+            status: 'inaccessible',
+            version: '1.0.0-beta.19',
+          },
+        ],
+      })
+    );
+
+    expect(report.decision).toBe('block');
+    expect(report.blockers).toContain(
+      '@ontrails/core: registry state is inaccessible: npm error 503 Service Unavailable'
+    );
+  });
+
   test('blocks already-published versions when the release tag is stale', () => {
     const report = evaluateReleasePolicy(
       baseInput({

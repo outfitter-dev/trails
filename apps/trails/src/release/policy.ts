@@ -59,6 +59,7 @@ export interface ReleasePolicySourcePullRequest {
 }
 
 export interface ReleasePolicyRegistryPackage {
+  readonly error?: string | undefined;
   readonly expectedTagVersion?: string | undefined;
   readonly name: string;
   readonly status: 'inaccessible' | 'missing' | 'published';
@@ -462,6 +463,7 @@ const readLabelFamily = <T extends string>(
 const factsFromPolicyPackage = (
   entry: ReleasePolicyRegistryPackage
 ): PackageRegistryFacts => ({
+  error: entry.error,
   expectedTagVersion: entry.expectedTagVersion,
   status: entry.status,
   targetVersion: entry.version,
@@ -485,7 +487,7 @@ const registryBlockers = (
   packages.flatMap((entry) => {
     const state = classifyPackageRegistryState(factsFromPolicyPackage(entry));
     if (state.kind === 'registry-inaccessible') {
-      return [`${entry.name}: registry state is inaccessible`];
+      return [`${entry.name}: registry state is inaccessible: ${state.error}`];
     }
     if (state.kind === 'tag-points-ahead') {
       return [
@@ -986,6 +988,7 @@ const registryPackagesFromResults = (
       };
     }
     return {
+      ...(result.status === 'inaccessible' ? { error: result.error } : {}),
       name: result.name,
       status: result.status,
       version: result.workspaceVersion,
