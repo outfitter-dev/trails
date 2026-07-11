@@ -62,8 +62,7 @@ import {
   collectCrudTableIds as collectCrudTableIdsFromAst,
   collectReconcileTableIds as collectReconcileTableIdsFromAst,
 } from './rules/source/stores.js';
-import { parse } from './source/parse.js';
-import { findTrailDefinitions } from './source/trails.js';
+import { findTrailDefinitions, parse } from '@ontrails/source';
 import { collectFileCrudCoverage } from './rules/incomplete-crud.js';
 import { wardenRules, wardenTopoRules } from './rules/index.js';
 import { getWardenRuleMetadata } from './rules/metadata.js';

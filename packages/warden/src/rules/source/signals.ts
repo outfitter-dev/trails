@@ -1,28 +1,23 @@
 /** Warden-private signal declaration and on-target helpers. */
 
-import type { AstNode } from '../../source/nodes.js';
 import {
+  buildFrameworkNamespaceContext,
+  collectScopeFrameBindings,
   deriveConstString,
   extractBindingName,
   extractPlainTemplateLiteral,
   extractStringLiteral,
-  findConfigProperty,
-  getStringValue,
-  getPropertyName,
-  identifierName,
-  isStringLiteral,
-} from '../../source/literals.js';
-import {
-  collectScopeFrameBindings,
-  isScopeFrameNode,
-} from '../../source/scopes.js';
-import {
-  buildFrameworkNamespaceContext,
   extractTrailDefinition,
+  findConfigProperty,
   findTrailDefinitions,
-} from '../../source/trails.js';
-import type { FrameworkNamespaceContext } from '../../source/trails.js';
-import { walk } from '../../source/walk.js';
+  getPropertyName,
+  getStringValue,
+  identifierName,
+  isScopeFrameNode,
+  isStringLiteral,
+  walk,
+} from '@ontrails/source';
+import type { AstNode, FrameworkNamespaceContext } from '@ontrails/source';
 import {
   collectNamedStoreTableIds,
   deriveStoreTableId,

@@ -104,6 +104,7 @@
         "@ontrails/observe": "workspace:^",
         "@ontrails/permits": "workspace:^",
         "@ontrails/regrade": "workspace:^",
+        "@ontrails/source": "workspace:^",
         "@ontrails/topographer": "workspace:^",
         "@ontrails/tracing": "workspace:^",
         "@ontrails/warden": "workspace:^",
@@ -356,12 +357,21 @@
       "version": "1.0.0-beta.39",
       "dependencies": {
         "@ontrails/core": "workspace:^",
+        "@ontrails/source": "workspace:^",
         "@ontrails/warden": "workspace:^",
         "zod": "catalog:",
       },
       "devDependencies": {
         "@ontrails/testing": "workspace:^",
         "@ontrails/topographer": "workspace:^",
+      },
+    },
+    "packages/source": {
+      "name": "@ontrails/source",
+      "version": "1.0.0-beta.39",
+      "dependencies": {
+        "oxc-parser": "^0.121.0",
+        "oxc-walker": "^1.0.0",
       },
     },
     "packages/store": {
@@ -425,10 +435,9 @@
         "@ontrails/cli": "workspace:^",
         "@ontrails/config": "workspace:^",
         "@ontrails/permits": "workspace:^",
+        "@ontrails/source": "workspace:^",
         "@ontrails/store": "workspace:^",
-        "oxc-parser": "^0.121.0",
         "oxc-resolver": "11.19.1",
-        "oxc-walker": "^1.0.0",
         "zod": "catalog:",
       },
       "devDependencies": {
@@ -444,11 +453,12 @@
       "version": "1.0.0-beta.39",
       "dependencies": {
         "@ontrails/adapter-kit": "workspace:^",
-        "@ontrails/warden": "workspace:^",
+        "@ontrails/source": "workspace:^",
       },
       "peerDependencies": {
         "@ontrails/core": "workspace:^",
         "@ontrails/topographer": "workspace:^",
+        "zod": "catalog:",
       },
     },
   },
@@ -648,6 +658,8 @@
     "@ontrails/pino": ["@ontrails/pino@workspace:packages/pino"],
 
     "@ontrails/regrade": ["@ontrails/regrade@workspace:packages/regrade"],
+
+    "@ontrails/source": ["@ontrails/source@workspace:packages/source"],
 
     "@ontrails/store": ["@ontrails/store@workspace:packages/store"],
 

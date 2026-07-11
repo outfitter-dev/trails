@@ -2,9 +2,8 @@ import {
   collectEntityDefinitionIds,
   collectEntityReferenceSites,
 } from './source/entities.js';
-import { offsetToLine } from '../source/locations.js';
-import { parse } from '../source/parse.js';
-import type { AstNode } from '../source/nodes.js';
+import { offsetToLine, parse } from '@ontrails/source';
+import type { AstNode } from '@ontrails/source';
 import { mergeKnownEntityIds } from './entity-ids.js';
 import { isTestFile } from './scan.js';
 import type {

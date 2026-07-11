@@ -7,12 +7,6 @@ import {
   isNamedCall,
 } from './source/stores.js';
 import {
-  getStringValue,
-  identifierName,
-  isStringLiteral,
-} from '../source/literals.js';
-import { offsetToLine } from '../source/locations.js';
-import {
   getNodeArguments,
   getNodeElements,
   getNodeId,
@@ -21,10 +15,14 @@ import {
   getNodeLocal,
   getNodeSource,
   getNodeSpecifiers,
-} from '../source/nodes.js';
-import { parse } from '../source/parse.js';
-import { walk } from '../source/walk.js';
-import type { AstNode } from '../source/nodes.js';
+  getStringValue,
+  identifierName,
+  isStringLiteral,
+  offsetToLine,
+  parse,
+  walk,
+} from '@ontrails/source';
+import type { AstNode } from '@ontrails/source';
 import { isTestFile } from './scan.js';
 import type {
   ProjectAwareWardenRule,

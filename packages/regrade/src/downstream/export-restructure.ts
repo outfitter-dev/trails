@@ -18,7 +18,7 @@
  * emitted on a guess.
  */
 
-import type { AstNode, SourceEdit } from '@ontrails/warden/ast';
+import type { AstNode, SourceEdit } from '@ontrails/source';
 import {
   applySourceEdits,
   createSourceEdit,
@@ -60,7 +60,7 @@ import {
   parseWithDiagnostics,
   validateSourceEdits,
   walkWithParents,
-} from '@ontrails/warden/ast';
+} from '@ontrails/source';
 import type { WardenRule } from '@ontrails/warden';
 import {
   getWardenRuleMetadata,

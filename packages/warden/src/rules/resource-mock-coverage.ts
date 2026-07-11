@@ -17,13 +17,13 @@
 import {
   extractFirstStringArg,
   findConfigProperty,
+  getNodeCallee,
   identifierName,
-} from '../source/literals.js';
-import { offsetToLine } from '../source/locations.js';
-import { getNodeCallee } from '../source/nodes.js';
-import { parse } from '../source/parse.js';
-import { walk } from '../source/walk.js';
-import type { AstNode } from '../source/nodes.js';
+  offsetToLine,
+  parse,
+  walk,
+} from '@ontrails/source';
+import type { AstNode } from '@ontrails/source';
 import { isFrameworkInternalFile, isTestFile } from './scan.js';
 import type { WardenDiagnostic, WardenRule } from './types.js';
 

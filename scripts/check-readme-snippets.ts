@@ -131,6 +131,7 @@ export type Topo = any;
 export type TraceRecord = any;
 
 export const applyCliFlagValueAliases: any;
+export const applySourceEdits: any;
 export const authVerify: any;
 export const bindStoreDefinition: any;
 export const checkDrift: any;
@@ -159,6 +160,7 @@ export const createMemorySink: any;
 export const createOtelAdapter: any;
 export const createPermitForTrail: any;
 export const createProgram: any;
+export const createSourceEdit: any;
 export const createStoredTopoSnapshot: any;
 export const createStoreAccessorContractCases: any;
 export const createTestContext: any;
@@ -181,6 +183,7 @@ export const devPermitPreset: any;
 export const dryRunPreset: any;
 export const env: any;
 export const executeTrail: any;
+export const findTrailDefinitions: any;
 export const findStringLiterals: any;
 export const formatGitHubAnnotations: any;
 export const formatJson: any;
@@ -228,6 +231,7 @@ export const validatePermits: any;
 export const ValidationError: any;
 export const vite: any;
 export const walk: any;
+export const walkWithParents: any;
 export const wardenTopo: any;
 export const wayfindContractTrail: any;
 export const wayfindDescribeTrail: any;
@@ -248,6 +252,7 @@ export default {} as any;
 export const PACKAGE_APP_ADAPTER_READMES = [
   'packages/tracing/README.md',
   'packages/logtape/README.md',
+  'packages/source/README.md',
   'packages/wayfinder/README.md',
   'packages/core/README.md',
   'packages/config/README.md',
@@ -277,6 +282,10 @@ export const README_SNIPPET_CONFIGS: readonly ReadmeSnippetConfig[] = [
   {
     prelude: COMMON_README_PRELUDE,
     readmePath: 'packages/logtape/README.md',
+  },
+  {
+    prelude: COMMON_README_PRELUDE,
+    readmePath: 'packages/source/README.md',
   },
   {
     allowNoSnippets: true,

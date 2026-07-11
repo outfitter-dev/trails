@@ -431,10 +431,10 @@ describe('warden-rules-use-ast', () => {
     const targetFile = ruleFilePath('fake-rule.ts');
 
     test('does not flag AST helpers (findStringLiterals, walk)', () => {
-      const source = `import { findStringLiterals } from '../source/literals.js';
-import { parse } from '../source/parse.js';
-import { findTrailDefinitions } from '../source/trails.js';
-import { walk } from '../source/walk.js';
+      const source = `import { findStringLiterals } from '@ontrails/source';
+import { parse } from '@ontrails/source';
+import { findTrailDefinitions } from '@ontrails/source';
+import { walk } from '@ontrails/source';
 export const r = {
   check(sourceCode: string, filePath: string) {
     const ast = parse(filePath, sourceCode);
@@ -450,10 +450,10 @@ export const r = {
     });
 
     test('does not flag findTrailDefinitions walker usage', () => {
-      const source = `import { findStringLiterals } from '../source/literals.js';
-import { parse } from '../source/parse.js';
-import { findTrailDefinitions } from '../source/trails.js';
-import { walk } from '../source/walk.js';
+      const source = `import { findStringLiterals } from '@ontrails/source';
+import { parse } from '@ontrails/source';
+import { findTrailDefinitions } from '@ontrails/source';
+import { walk } from '@ontrails/source';
 export const r = { check(sourceCode: string, filePath: string) { const defs = findTrailDefinitions(sourceCode as unknown as never); return defs.length ? [] : []; } };
 `;
       const diagnostics = wardenRulesUseAst.check(source, targetFile);

@@ -13,14 +13,14 @@ import { collectSignalDefinitionIds } from './source/signals.js';
 import {
   deriveConstString,
   findConfigProperty,
+  findTrailDefinitions,
   getStringValue,
   identifierName,
   isStringLiteral,
-} from '../source/literals.js';
-import { offsetToLine } from '../source/locations.js';
-import { parse } from '../source/parse.js';
-import { findTrailDefinitions } from '../source/trails.js';
-import type { AstNode } from '../source/nodes.js';
+  offsetToLine,
+  parse,
+} from '@ontrails/source';
+import type { AstNode } from '@ontrails/source';
 import { isTestFile } from './scan.js';
 import type {
   ProjectAwareWardenRule,

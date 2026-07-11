@@ -25,10 +25,6 @@ import type { SurfaceBindings } from '@ontrails/core';
 import {
   extractStringOrTemplateLiteral,
   findConfigProperty,
-  getPropertyName,
-} from '../source/literals.js';
-import { offsetToLine } from '../source/locations.js';
-import {
   getNodeArgument,
   getNodeElements,
   getNodeExpression,
@@ -39,10 +35,12 @@ import {
   getNodeProperties,
   getNodeTypeAnnotation,
   getNodeValueNode,
-} from '../source/nodes.js';
-import { parse } from '../source/parse.js';
-import { walk } from '../source/walk.js';
-import type { AstNode } from '../source/nodes.js';
+  getPropertyName,
+  offsetToLine,
+  parse,
+  walk,
+} from '@ontrails/source';
+import type { AstNode } from '@ontrails/source';
 import type {
   AuthoredMcpSurfaceBindingSet,
   ProjectAwareWardenRule,

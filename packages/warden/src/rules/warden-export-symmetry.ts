@@ -16,7 +16,6 @@
  */
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { offsetToLine } from '../source/locations.js';
 import {
   getNodeArgument,
   getNodeDeclaration,
@@ -33,10 +32,11 @@ import {
   getNodeSource,
   getNodeValue,
   getNodeValueNode,
-} from '../source/nodes.js';
-import { parse } from '../source/parse.js';
-import { walk } from '../source/walk.js';
-import type { AstNode } from '../source/nodes.js';
+  offsetToLine,
+  parse,
+  walk,
+} from '@ontrails/source';
+import type { AstNode } from '@ontrails/source';
 import { registeredRuleNames } from './registry-names.js';
 import type { WardenDiagnostic, WardenRule } from './types.js';
 

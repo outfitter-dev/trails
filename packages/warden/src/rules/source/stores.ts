@@ -1,13 +1,13 @@
 /** Warden-private store/factory pattern helpers. */
 
-import type { AstNode } from '../../source/nodes.js';
 import {
   extractBindingName,
   findConfigProperty,
   getPropertyName,
   identifierName,
-} from '../../source/literals.js';
-import { walk } from '../../source/walk.js';
+  walk,
+} from '@ontrails/source';
+import type { AstNode } from '@ontrails/source';
 
 export interface StoreTableDefinition {
   /** Table name declared inside store({ ... }). */

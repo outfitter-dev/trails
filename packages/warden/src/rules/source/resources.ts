@@ -1,12 +1,12 @@
 /** Warden-private resource declaration helpers. */
 
-import type { AstNode } from '../../source/nodes.js';
 import {
   extractBindingName,
   extractFirstStringArg,
   identifierName,
-} from '../../source/literals.js';
-import { walk } from '../../source/walk.js';
+  walk,
+} from '@ontrails/source';
+import type { AstNode } from '@ontrails/source';
 
 const isResourceCall = (node: AstNode | undefined): boolean =>
   !!node &&

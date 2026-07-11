@@ -209,6 +209,72 @@ export function internalOnly() {}
     expect(diagnostics).toEqual([]);
   });
 
+  test('allows the temporary Warden AST facade to mirror Source', () => {
+    const context: ProjectContext = {
+      exportedSymbolDefinitionsByName: new Map([
+        [
+          'findTrailDefinitions',
+          [
+            definition({
+              filePath: '/repo/packages/source/src/index.ts',
+              name: 'findTrailDefinitions',
+              workspaceName: '@ontrails/source',
+              workspaceRoot: '/repo/packages/source',
+            }),
+            definition({
+              filePath: '/repo/packages/warden/src/ast.ts',
+              name: 'findTrailDefinitions',
+              workspaceName: '@ontrails/warden',
+              workspaceRoot: '/repo/packages/warden',
+            }),
+          ],
+        ],
+      ]),
+      knownTrailIds: new Set(),
+    };
+
+    expect(
+      duplicateExportedSymbol.checkWithContext(
+        'export { findTrailDefinitions } from "@ontrails/source";',
+        '/repo/packages/warden/src/ast.ts',
+        context
+      )
+    ).toEqual([]);
+  });
+
+  test('still warns for Warden and Source duplicates outside the AST facade', () => {
+    const context: ProjectContext = {
+      exportedSymbolDefinitionsByName: new Map([
+        [
+          'findTrailDefinitions',
+          [
+            definition({
+              filePath: '/repo/packages/source/src/index.ts',
+              name: 'findTrailDefinitions',
+              workspaceName: '@ontrails/source',
+              workspaceRoot: '/repo/packages/source',
+            }),
+            definition({
+              filePath: '/repo/packages/warden/src/index.ts',
+              name: 'findTrailDefinitions',
+              workspaceName: '@ontrails/warden',
+              workspaceRoot: '/repo/packages/warden',
+            }),
+          ],
+        ],
+      ]),
+      knownTrailIds: new Set(),
+    };
+
+    expect(
+      duplicateExportedSymbol.checkWithContext(
+        'export const findTrailDefinitions = () => [];',
+        '/repo/packages/warden/src/index.ts',
+        context
+      )
+    ).toHaveLength(1);
+  });
+
   test('stays quiet for documented peer surface entry points', () => {
     const context: ProjectContext = {
       exportedSymbolDefinitionsByName: new Map([

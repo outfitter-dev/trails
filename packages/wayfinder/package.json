@@ -24,10 +24,11 @@
   },
   "dependencies": {
     "@ontrails/adapter-kit": "workspace:^",
-    "@ontrails/warden": "workspace:^"
+    "@ontrails/source": "workspace:^"
   },
   "peerDependencies": {
     "@ontrails/core": "workspace:^",
-    "@ontrails/topographer": "workspace:^"
+    "@ontrails/topographer": "workspace:^",
+    "zod": "catalog:"
   }
 }

@@ -1,12 +1,13 @@
 {
-  "name": "@ontrails/regrade",
+  "name": "@ontrails/source",
   "version": "1.0.0-beta.39",
-  "description": "Downstream migration reporting and safe rewrite helpers for Trails.",
+  "description": "Shared source-code AST parsing, walking, location, edit, literal, and Trails syntax helpers.",
   "files": [
     "src/**/*.ts",
     "!src/**/__tests__/**",
     "!src/**/*.test.ts",
     "!src/**/*.test-d.ts",
+    "README.md",
     "CHANGELOG.md"
   ],
   "type": "module",
@@ -22,13 +23,7 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
-    "@ontrails/core": "workspace:^",
-    "@ontrails/source": "workspace:^",
-    "@ontrails/warden": "workspace:^",
-    "zod": "catalog:"
-  },
-  "devDependencies": {
-    "@ontrails/testing": "workspace:^",
-    "@ontrails/topographer": "workspace:^"
+    "oxc-parser": "^0.121.0",
+    "oxc-walker": "^1.0.0"
   }
 }

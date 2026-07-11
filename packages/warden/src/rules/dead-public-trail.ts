@@ -1,11 +1,7 @@
 import { collectComposeTargetTrailIds } from './source/composition.js';
 import {
   findConfigProperty,
-  getStringValue,
-  isStringLiteral,
-} from '../source/literals.js';
-import { offsetToLine } from '../source/locations.js';
-import {
+  findTrailDefinitions,
   getNodeDeclaration,
   getNodeDeclarations,
   getNodeId,
@@ -14,11 +10,13 @@ import {
   getNodeName,
   getNodeSpecifiers,
   getNodeValue,
-} from '../source/nodes.js';
-import { parse } from '../source/parse.js';
-import { findTrailDefinitions } from '../source/trails.js';
-import { walkWithParents } from '../source/walk.js';
-import type { AstNode, AstParentContext } from '../source/nodes.js';
+  getStringValue,
+  isStringLiteral,
+  offsetToLine,
+  parse,
+  walkWithParents,
+} from '@ontrails/source';
+import type { AstNode, AstParentContext } from '@ontrails/source';
 import { isTestFile } from './scan.js';
 import type {
   ProjectAwareWardenRule,

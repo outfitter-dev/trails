@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import * as ast from '@ontrails/warden/ast';
+import * as source from '@ontrails/source';
 import type {
   ArrayExpressionNode,
   AssignmentPatternNode,
@@ -42,15 +42,29 @@ import type {
   UnaryExpressionNode,
   VariableDeclarationNode,
   VariableDeclaratorNode,
-} from '@ontrails/warden/ast';
+} from '@ontrails/source';
 
 const expectedRuntimeExportKeys = [
+  'SCOPE_FRAME_COLLECTORS',
   'applySourceEdits',
+  'buildFrameworkNamespaceContext',
+  'collectScopeFrameBindings',
   'createSourceEdit',
+  'deriveConstString',
+  'extractBindingName',
+  'extractEntityDefinition',
+  'extractFirstStringArg',
+  'extractPlainTemplateLiteral',
+  'extractStringLiteral',
+  'extractStringOrTemplateLiteral',
+  'extractTrailDefinition',
+  'findConfigProperty',
   'findEntityDefinitions',
   'findImplementationBodies',
   'findStringLiterals',
   'findTrailDefinitions',
+  'forEachAstChild',
+  'getImportSourceValue',
   'getNodeAlternate',
   'getNodeArgument',
   'getNodeArguments',
@@ -91,6 +105,7 @@ const expectedRuntimeExportKeys = [
   'getNodeTypeAnnotation',
   'getNodeValue',
   'getNodeValueNode',
+  'getPropertyName',
   'getStringValue',
   'identifierName',
   'isArrayExpression',
@@ -107,17 +122,21 @@ const expectedRuntimeExportKeys = [
   'isExportNamedDeclaration',
   'isExportSpecifier',
   'isExpressionStatement',
+  'isFrameworkNamespaceSource',
   'isFunctionLike',
   'isIdentifier',
   'isImplementationCall',
   'isImportDeclaration',
   'isImportSpecifier',
+  'isMemberAccessNonComputed',
   'isMemberExpression',
   'isObjectExpression',
   'isProgram',
   'isProperty',
   'isRestElement',
   'isReturnStatement',
+  'isScopeFrameNode',
+  'isShadowed',
   'isStringLiteral',
   'isUnaryExpression',
   'isVariableDeclaration',
@@ -126,14 +145,19 @@ const expectedRuntimeExportKeys = [
   'offsetToLineColumn',
   'parse',
   'parseWithDiagnostics',
+  'propertyKeyName',
+  'staticPropertyKeyName',
   'validateSourceEdits',
   'walk',
+  'walkChildren',
   'walkScope',
+  'walkWithOxcFacade',
   'walkWithParents',
   'walkWithScopeContext',
-] as const satisfies readonly (keyof typeof ast)[];
+  'walkWithScopes',
+] as const satisfies readonly (keyof typeof source)[];
 
-interface AstTypeExportContract {
+interface SourceTypeExportContract {
   readonly ArrayExpressionNode: ArrayExpressionNode;
   readonly AssignmentPatternNode: AssignmentPatternNode;
   readonly AstFieldProjection: AstFieldProjection;
@@ -176,62 +200,48 @@ interface AstTypeExportContract {
   readonly VariableDeclaratorNode: VariableDeclaratorNode;
 }
 
-const expectedTypeExportKeys = [
-  'ArrayExpressionNode',
-  'AssignmentPatternNode',
-  'AstFieldProjection',
-  'AstNode',
-  'AstParentContext',
-  'AstParseDiagnostic',
-  'AstParseDiagnosticLabel',
-  'AstParseResult',
-  'AstScopeContext',
-  'AstScopeDeclaration',
-  'BinaryExpressionNode',
-  'BlockStatementNode',
-  'CallExpressionNode',
-  'ClassMemberNode',
-  'CuratedAstNode',
-  'DeclarationWithIdNode',
-  'EntityDefinition',
-  'ExportDeclarationNode',
-  'ExportSpecifierNode',
-  'ExpressionStatementNode',
-  'FindEntityDefinitionsOptions',
-  'FrameworkNamespaceContext',
-  'FunctionLikeNode',
-  'IdentifierNode',
-  'ImportDeclarationNode',
-  'ImportSpecifierNode',
-  'MemberExpressionNode',
-  'ObjectExpressionNode',
-  'ProgramNode',
-  'PropertyNode',
-  'RestElementNode',
-  'ReturnStatementNode',
-  'SourceEdit',
-  'SourceLocation',
-  'StringLiteralMatch',
-  'StringLiteralNode',
-  'TrailDefinition',
-  'UnaryExpressionNode',
-  'VariableDeclarationNode',
-  'VariableDeclaratorNode',
-] as const satisfies readonly (keyof AstTypeExportContract)[];
-
-const assertAstTypeExportContract = <T extends AstTypeExportContract>() =>
+const assertSourceTypeExportContract = <T extends SourceTypeExportContract>() =>
   undefined as T | undefined;
 
-describe('@ontrails/warden/ast export contract', () => {
+describe('@ontrails/source public API', () => {
   test('keeps the exact sorted runtime export keys', () => {
-    expect(Object.keys(ast).toSorted()).toEqual(expectedRuntimeExportKeys);
-    expect(expectedRuntimeExportKeys).toHaveLength(86);
+    expect(Object.keys(source).toSorted()).toEqual(expectedRuntimeExportKeys);
+    expect(expectedRuntimeExportKeys).toHaveLength(110);
   });
 
   test('keeps every public type export resolvable at compile time', () => {
     expect(
-      assertAstTypeExportContract<AstTypeExportContract>()
+      assertSourceTypeExportContract<SourceTypeExportContract>()
     ).toBeUndefined();
-    expect(expectedTypeExportKeys).toHaveLength(40);
+  });
+
+  test('parses, walks, discovers trails, and recognizes implementation calls', () => {
+    const ast = source.parse(
+      'example.ts',
+      `
+        import { trail } from '@ontrails/core';
+
+        export const showUser = trail('user.show', {
+          implementation: async (input, ctx) => {
+            return userShow.implementation(input, ctx);
+          },
+        });
+      `
+    );
+
+    expect(ast).not.toBeNull();
+    if (!ast) {
+      return;
+    }
+
+    expect(source.findTrailDefinitions(ast).map((def) => def.id)).toEqual([
+      'user.show',
+    ]);
+
+    let sawImplementationCall = false;
+    source.walk(ast, (node) => {
+      sawImplementationCall ||= source.isImplementationCall(node);
+    });
+    expect(sawImplementationCall).toBe(true);
   });
 });

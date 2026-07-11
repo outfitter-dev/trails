@@ -1,8 +1,4 @@
-import type {
-  AstNode,
-  AstScopeContext,
-  SourceEdit,
-} from '@ontrails/warden/ast';
+import type { AstNode, AstScopeContext, SourceEdit } from '@ontrails/source';
 import {
   applySourceEdits,
   createSourceEdit,
@@ -15,7 +11,7 @@ import {
   parseWithDiagnostics,
   validateSourceEdits,
   walkWithScopeContext,
-} from '@ontrails/warden/ast';
+} from '@ontrails/source';
 import type { GovernedVocabularyTransition } from '@ontrails/warden';
 
 import type {

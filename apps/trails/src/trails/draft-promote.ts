@@ -21,7 +21,7 @@ import {
   isDraftMarkedFile,
   stripDraftFileMarkers,
 } from '@ontrails/warden';
-import { findStringLiterals, parse } from '@ontrails/warden/ast';
+import { findStringLiterals, parse } from '@ontrails/source';
 import { z } from 'zod';
 
 import {

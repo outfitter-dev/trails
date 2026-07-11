@@ -1,10 +1,13 @@
-import { findConfigProperty, identifierName } from '../source/literals.js';
-import { offsetToLine } from '../source/locations.js';
-import { parse } from '../source/parse.js';
-import { walkScope } from '../source/scopes.js';
-import { findTrailDefinitions } from '../source/trails.js';
-import { walk } from '../source/walk.js';
-import type { AstNode } from '../source/nodes.js';
+import {
+  findConfigProperty,
+  findTrailDefinitions,
+  identifierName,
+  offsetToLine,
+  parse,
+  walk,
+  walkScope,
+} from '@ontrails/source';
+import type { AstNode } from '@ontrails/source';
 import { isTestFile } from './scan.js';
 import type { WardenDiagnostic, WardenRule } from './types.js';
 

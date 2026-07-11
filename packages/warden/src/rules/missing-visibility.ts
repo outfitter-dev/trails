@@ -1,5 +1,5 @@
 import { collectComposeTargetTrailIds } from './source/composition.js';
-import { parse } from '../source/parse.js';
+import { parse } from '@ontrails/source';
 import { isTestFile } from './scan.js';
 import {
   findTrailLikeSpecs,

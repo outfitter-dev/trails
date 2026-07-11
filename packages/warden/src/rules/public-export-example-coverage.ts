@@ -30,7 +30,6 @@ import { readFileSync } from 'node:fs';
 import { dirname, join, normalize, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { offsetToLine } from '../source/locations.js';
 import {
   getNodeBodyStatements,
   getNodeDeclaration,
@@ -43,9 +42,10 @@ import {
   getNodeSource,
   getNodeSpecifiers,
   getNodeValue,
-} from '../source/nodes.js';
-import { parse } from '../source/parse.js';
-import type { AstNode } from '../source/nodes.js';
+  offsetToLine,
+  parse,
+} from '@ontrails/source';
+import type { AstNode } from '@ontrails/source';
 import type { WardenDiagnostic, WardenRule } from './types.js';
 
 const RULE_NAME = 'public-export-example-coverage';

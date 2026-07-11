@@ -1,11 +1,8 @@
 import {
   extractStringOrTemplateLiteral,
   findConfigProperty,
-  getPropertyName,
-  identifierName,
-} from '../source/literals.js';
-import { offsetToLine } from '../source/locations.js';
-import {
+  findImplementationBodies,
+  findTrailDefinitions,
   getNodeArgument,
   getNodeArguments,
   getNodeCallee,
@@ -24,14 +21,13 @@ import {
   getNodeRight,
   getNodeTest,
   getNodeValueNode,
-} from '../source/nodes.js';
-import { parse } from '../source/parse.js';
-import { walkScope } from '../source/scopes.js';
-import {
-  findImplementationBodies,
-  findTrailDefinitions,
-} from '../source/trails.js';
-import type { AstNode } from '../source/nodes.js';
+  getPropertyName,
+  identifierName,
+  offsetToLine,
+  parse,
+  walkScope,
+} from '@ontrails/source';
+import type { AstNode } from '@ontrails/source';
 import type { WardenDiagnostic, WardenRule } from './types.js';
 
 const RULE_NAME = 'trail-fork-coaching';

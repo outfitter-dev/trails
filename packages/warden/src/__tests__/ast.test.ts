@@ -13,11 +13,9 @@ import {
 import {
   applySourceEdits,
   createSourceEdit,
-  validateSourceEdits,
-} from '../source/edits.js';
-import { extractStringLiteral, identifierName } from '../source/literals.js';
-import { offsetToLineColumn } from '../source/locations.js';
-import {
+  extractStringLiteral,
+  findEntityDefinitions,
+  findTrailDefinitions,
   getNodeArguments,
   getNodeBody,
   getNodeBodyStatements,
@@ -34,6 +32,7 @@ import {
   getNodeSpecifiers,
   getNodeValue,
   getNodeValueNode,
+  identifierName,
   isCallExpression,
   isDeclarationWithId,
   isExportDeclaration,
@@ -45,17 +44,18 @@ import {
   isProgram,
   isVariableDeclaration,
   isVariableDeclarator,
-} from '../source/nodes.js';
-import { parse, parseWithDiagnostics } from '../source/parse.js';
-import { walkWithScopeContext } from '../source/scopes.js';
+  offsetToLineColumn,
+  parse,
+  parseWithDiagnostics,
+  validateSourceEdits,
+  walkWithParents,
+  walkWithScopeContext,
+} from '@ontrails/source';
+import type { VariableDeclarationNode } from '@ontrails/source';
 import {
   __getTrailCalleeNameForTest,
   collectFrameworkNamespaceBindings,
-  findEntityDefinitions,
-  findTrailDefinitions,
-} from '../source/trails.js';
-import { walkWithParents } from '../source/walk.js';
-import type { VariableDeclarationNode } from '../source/nodes.js';
+} from '../../../source/src/trails.js';
 
 describe('deriveEntityIdentifierName', () => {
   test('supports the common *Entity binding suffix when resolving known entities', () => {

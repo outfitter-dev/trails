@@ -32,10 +32,9 @@
     "@ontrails/cli": "workspace:^",
     "@ontrails/config": "workspace:^",
     "@ontrails/permits": "workspace:^",
+    "@ontrails/source": "workspace:^",
     "@ontrails/store": "workspace:^",
-    "oxc-parser": "^0.121.0",
     "oxc-resolver": "11.19.1",
-    "oxc-walker": "^1.0.0",
     "zod": "catalog:"
   },
   "devDependencies": {

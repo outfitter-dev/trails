@@ -1,8 +1,6 @@
 import { collectEntityReferenceTargetsByName } from './source/entities.js';
-import { offsetToLine } from '../source/locations.js';
-import { parse } from '../source/parse.js';
-import { findEntityDefinitions } from '../source/trails.js';
-import type { AstNode } from '../source/nodes.js';
+import { findEntityDefinitions, offsetToLine, parse } from '@ontrails/source';
+import type { AstNode } from '@ontrails/source';
 import { isTestFile } from './scan.js';
 import type {
   ProjectAwareWardenRule,

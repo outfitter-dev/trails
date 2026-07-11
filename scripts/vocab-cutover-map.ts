@@ -49,6 +49,7 @@ export const changelogHistoryPaths = [
   'packages/permits/CHANGELOG.md',
   'packages/pino/CHANGELOG.md',
   'packages/regrade/CHANGELOG.md',
+  'packages/source/CHANGELOG.md',
   'packages/store/CHANGELOG.md',
   'packages/testing/CHANGELOG.md',
   'packages/topographer/CHANGELOG.md',

@@ -5,16 +5,16 @@
  * imports in comments or strings.
  */
 
-import { offsetToLine } from '../source/locations.js';
 import {
   getNodeCallee,
   getNodeComputed,
   getNodeName,
   getNodeProperty,
-} from '../source/nodes.js';
-import { parse } from '../source/parse.js';
-import { walk } from '../source/walk.js';
-import type { AstNode } from '../source/nodes.js';
+  offsetToLine,
+  parse,
+  walk,
+} from '@ontrails/source';
+import type { AstNode } from '@ontrails/source';
 import type { WardenDiagnostic, WardenRule } from './types.js';
 
 const SURFACE_MODULES = new Set([

@@ -173,6 +173,7 @@ Overrides are escape hatches. They're visible in the TopoGraph as explicit devia
 | --- | --- |
 | `@ontrails/testing` | `testAll()`, `testExamples()`, `testTrail()`, contract testing, surface harnesses |
 | `@ontrails/topographer` | TopoGraphs, semantic diffing, `trails.lock` helpers, topo-store persistence (relocated from `@ontrails/core` per ADR-0042) |
+| `@ontrails/source` | Shared source-code AST parsing, walking, locations, edits, literals, and generic Trails syntax recognition |
 | `@ontrails/warden` | Lint rules, drift detection, CI gating |
 | `@ontrails/wayfinder` | Graph-read query trails and source outlines over saved Topographer artifacts for agent navigation |
 
@@ -200,14 +201,16 @@ Overrides are escape hatches. They're visible in the TopoGraph as explicit devia
 @ontrails/tracing (core)
 @ontrails/testing (core, cli, mcp, observe)
 @ontrails/topographer (core)
-@ontrails/warden (core, topographer)
-@ontrails/wayfinder (core, topographer, warden)
+@ontrails/source (oxc-parser, oxc-walker)
+@ontrails/warden (core, topographer, source, framework support packages)
+@ontrails/regrade (core, source, warden)
+@ontrails/wayfinder (core, topographer, source, adapter-kit)
      ^
 @ontrails/commander (cli, commander)
 @ontrails/hono (http, hono)
 @ontrails/vite (node:stream only, no workspace deps)
 @ontrails/logtape (observe)
-apps/trails (cli/commander, http, topographer, tracing, wayfinder)
+apps/trails (surface packages, source, regrade, topographer, tracing, warden, wayfinder)
 ```
 
 Clean DAG. Core at the center. No cycles. Surface adapters depend only on core. Framework adapters depend on their parent package.

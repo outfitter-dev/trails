@@ -5,10 +5,12 @@
  * ignoring occurrences in strings and comments.
  */
 
-import { isImplementationCall } from './source/composition.js';
-import { offsetToLine } from '../source/locations.js';
-import { parse } from '../source/parse.js';
-import { walk } from '../source/walk.js';
+import {
+  isImplementationCall,
+  offsetToLine,
+  parse,
+  walk,
+} from '@ontrails/source';
 import { isFrameworkInternalFile, isTestFile } from './scan.js';
 import type { WardenDiagnostic, WardenRule } from './types.js';
 

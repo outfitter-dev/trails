@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { createSourceEdit, getNodeName } from '@ontrails/warden/ast';
+import { createSourceEdit, getNodeName } from '@ontrails/source';
 import { getGovernedVocabularyTransition } from '@ontrails/warden';
 
 import {

@@ -1,11 +1,12 @@
 #!/usr/bin/env bun
 /**
  * Verifies the `oxc-resolver` signal Warden can rely on for packed package
- * export-map drift.
+ * export-map drift and the temporary Warden AST compatibility facade.
  *
- * The check intentionally uses a real Bun-packed `@ontrails/warden` tarball
- * and a temp consumer install of `oxc-resolver`. The target subpath is present
- * in the packed package contents but absent from the package `exports` map.
+ * The check intentionally uses real Bun-packed `@ontrails/source` and
+ * `@ontrails/warden` tarballs plus a temp consumer install of `oxc-resolver`.
+ * The blocked target subpath is present in Warden's packed package contents
+ * but absent from its package `exports` map.
  */
 
 import { spawnSync } from 'node:child_process';
@@ -16,6 +17,7 @@ import { fileURLToPath } from 'node:url';
 
 const resolverVersion = '11.19.1';
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const sourceRoot = join(repoRoot, 'packages', 'source');
 const wardenRoot = join(repoRoot, 'packages', 'warden');
 const keepTemp = process.argv.includes('--keep-temp');
 
@@ -146,7 +148,15 @@ const writeConsumerFiles = async (consumerRoot: string): Promise<void> => {
   );
   await writeFile(
     join(consumerRoot, 'importer.mjs'),
-    'import { wrapRule } from "@ontrails/warden/trails/wrap-rule";\n'
+    [
+      'import { parse } from "@ontrails/source";',
+      'import { parse as parseCompat } from "@ontrails/warden/ast";',
+      'import { wrapRule } from "@ontrails/warden/trails/wrap-rule";',
+      'void parse;',
+      'void parseCompat;',
+      'void wrapRule;',
+      '',
+    ].join('\n')
   );
   await writeFile(
     join(consumerRoot, 'resolver-check.mjs'),
@@ -163,6 +173,7 @@ const options = {
 };
 const resolver = new ResolverFactory(options);
 const specifiers = [
+  "@ontrails/source",
   "@ontrails/warden",
   "@ontrails/warden/ast",
   "@ontrails/warden/trails/wrap-rule",
@@ -183,6 +194,12 @@ const main = async (): Promise<void> => {
   const tempRoot = await mkdtemp(join(tmpdir(), 'trails-oxc-resolver-'));
   const packRoot = join(tempRoot, 'pack');
   const consumerRoot = join(tempRoot, 'consumer');
+  const packedSourceRoot = join(
+    consumerRoot,
+    'node_modules',
+    '@ontrails',
+    'source'
+  );
   const packedWardenRoot = join(
     consumerRoot,
     'node_modules',
@@ -192,10 +209,27 @@ const main = async (): Promise<void> => {
 
   try {
     await mkdir(packRoot, { recursive: true });
+    await mkdir(packedSourceRoot, { recursive: true });
     await mkdir(packedWardenRoot, { recursive: true });
     await writeConsumerFiles(consumerRoot);
 
-    const pack = run(
+    const sourcePack = run(
+      [
+        'bun',
+        'pm',
+        'pack',
+        '--destination',
+        packRoot,
+        '--ignore-scripts',
+        '--quiet',
+      ],
+      sourceRoot
+    );
+    const sourceTarballPath = lastOutputLine(
+      sourcePack.stdout || sourcePack.stderr
+    );
+
+    const wardenPack = run(
       [
         'bun',
         'pm',
@@ -207,14 +241,27 @@ const main = async (): Promise<void> => {
       ],
       wardenRoot
     );
-    const tarballPath = lastOutputLine(pack.stdout || pack.stderr);
+    const wardenTarballPath = lastOutputLine(
+      wardenPack.stdout || wardenPack.stderr
+    );
 
     run(['bun', 'install', '--ignore-scripts'], consumerRoot);
     run(
       [
         'tar',
         '-xzf',
-        tarballPath,
+        sourceTarballPath,
+        '-C',
+        packedSourceRoot,
+        '--strip-components=1',
+      ],
+      repoRoot
+    );
+    run(
+      [
+        'tar',
+        '-xzf',
+        wardenTarballPath,
         '-C',
         packedWardenRoot,
         '--strip-components=1',
@@ -236,6 +283,7 @@ const main = async (): Promise<void> => {
 
     const resolverRun = run(['bun', 'resolver-check.mjs'], consumerRoot);
     const check = JSON.parse(resolverRun.stdout) as ResolverCheckResult;
+    const sourceResult = assertResolved(check, '@ontrails/source');
     const rootResult = assertResolved(check, '@ontrails/warden');
     const astResult = assertResolved(check, '@ontrails/warden/ast');
     const blockedError = assertExportBlocked(
@@ -245,8 +293,10 @@ const main = async (): Promise<void> => {
 
     console.log('Published resolver verification passed');
     console.log(`resolver: oxc-resolver@${resolverVersion}`);
-    console.log(`tarball: ${basename(tarballPath)}`);
+    console.log(`source tarball: ${basename(sourceTarballPath)}`);
+    console.log(`warden tarball: ${basename(wardenTarballPath)}`);
     console.log(`conditions: ${conditionNames.join(', ')}`);
+    console.log(`source export: ${sourceResult.path}`);
     console.log(`root export: ${rootResult.path}`);
     console.log(`ast export: ${astResult.path}`);
     console.log(`packed internal target: ${packedInternalPath}`);

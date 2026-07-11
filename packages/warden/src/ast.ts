@@ -1,11 +1,11 @@
 /**
- * Public Warden AST helper surface.
+ * Temporary compatibility facade over the `@ontrails/source` public contract.
  *
- * These helpers are the supported parser primitives for repo-local tooling and
- * rule authoring. Broader Trails-aware discovery helpers stay internal to the
- * built-in rule implementation until they have a stable public contract.
+ * New source-analysis consumers import `@ontrails/source` directly. This file
+ * contains no independent implementation and is removed by the hard cutover.
  */
 export {
+  isImplementationCall,
   findEntityDefinitions,
   findImplementationBodies,
   findStringLiterals,
@@ -91,8 +91,7 @@ export {
   walkWithParents,
   walkWithScopeContext,
   walkScope,
-} from './source/index.js';
-export { isImplementationCall } from './rules/source/composition.js';
+} from '@ontrails/source';
 export type {
   ArrayExpressionNode,
   AssignmentPatternNode,
@@ -134,4 +133,4 @@ export type {
   UnaryExpressionNode,
   VariableDeclarationNode,
   VariableDeclaratorNode,
-} from './source/index.js';
+} from '@ontrails/source';

@@ -1,9 +1,12 @@
-import { identifierName } from '../source/literals.js';
-import { offsetToLine } from '../source/locations.js';
-import { getNodeKey, getNodeValueNode } from '../source/nodes.js';
-import type { AstNode, AstScopeContext } from '../source/nodes.js';
-import { parseWithDiagnostics } from '../source/parse.js';
-import { walkWithScopeContext } from '../source/scopes.js';
+import {
+  getNodeKey,
+  getNodeValueNode,
+  identifierName,
+  offsetToLine,
+  parseWithDiagnostics,
+  walkWithScopeContext,
+} from '@ontrails/source';
+import type { AstNode, AstScopeContext } from '@ontrails/source';
 import { listGovernedVocabularyTransitions } from './retired-vocabulary.js';
 import type {
   GovernedVocabularySymbolRename,

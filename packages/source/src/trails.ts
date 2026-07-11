@@ -802,3 +802,25 @@ export const findImplementationBodies = (node: AstNode): AstNode[] => {
   }
   return bodies;
 };
+
+/** Recognize direct `.implementation(...)` member calls in source code. */
+export const isImplementationCall = (node: AstNode): boolean => {
+  if (node.type !== 'CallExpression') {
+    return false;
+  }
+  const callee = node['callee'] as AstNode | undefined;
+  if (!callee) {
+    return false;
+  }
+  if (
+    callee.type !== 'StaticMemberExpression' &&
+    callee.type !== 'MemberExpression'
+  ) {
+    return false;
+  }
+  const prop = (callee as unknown as { property?: AstNode }).property;
+  return (
+    prop?.type === 'Identifier' &&
+    (prop as unknown as { name: string }).name === 'implementation'
+  );
+};

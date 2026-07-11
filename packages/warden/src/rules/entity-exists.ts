@@ -9,20 +9,17 @@ import {
 import {
   extractFirstStringArg,
   findConfigProperty,
-  identifierName,
-} from '../source/literals.js';
-import { offsetToLine } from '../source/locations.js';
-import {
+  findTrailDefinitions,
   getNodeCallee,
   getNodeObject,
   getNodeProperty,
-} from '../source/nodes.js';
-import { parse } from '../source/parse.js';
-import { isMemberAccessNonComputed } from '../source/scopes.js';
-import { findTrailDefinitions } from '../source/trails.js';
+  identifierName,
+  isMemberAccessNonComputed,
+  offsetToLine,
+  parse,
+} from '@ontrails/source';
+import type { AstNode, TrailDefinition } from '@ontrails/source';
 import type { UserNamespaceContext } from './source/entities.js';
-import type { AstNode } from '../source/nodes.js';
-import type { TrailDefinition } from '../source/trails.js';
 import { mergeKnownEntityIds } from './entity-ids.js';
 import { isTestFile } from './scan.js';
 import type {

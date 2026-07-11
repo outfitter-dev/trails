@@ -16,10 +16,8 @@ import {
   deriveConstString,
   extractStringLiteral,
   findConfigProperty,
-  identifierName,
-} from '../source/literals.js';
-import { offsetToLine } from '../source/locations.js';
-import {
+  findImplementationBodies,
+  findTrailDefinitions,
   getNodeBodyNode,
   getNodeBodyStatements,
   getNodeDeclarations,
@@ -32,15 +30,13 @@ import {
   getNodeProperties,
   getNodeProperty,
   getNodeValueNode,
-} from '../source/nodes.js';
-import { parse } from '../source/parse.js';
-import { walkScope } from '../source/scopes.js';
-import {
-  findImplementationBodies,
-  findTrailDefinitions,
-} from '../source/trails.js';
+  identifierName,
+  offsetToLine,
+  parse,
+  walkScope,
+} from '@ontrails/source';
+import type { AstNode } from '@ontrails/source';
 import type { SignalIdentifierResolver } from './source/signals.js';
-import type { AstNode } from '../source/nodes.js';
 import { isTestFile } from './scan.js';
 import type { WardenDiagnostic, WardenRule } from './types.js';
 

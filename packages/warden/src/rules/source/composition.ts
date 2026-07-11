@@ -1,23 +1,21 @@
-/** Warden-private composition and implementation-call helpers. */
+/** Warden-private composition helpers. */
 
 import { intentValues } from '@ontrails/core';
 import type { Intent } from '@ontrails/core';
 
-import type { AstNode } from '../../source/nodes.js';
 import {
+  buildFrameworkNamespaceContext,
   deriveConstString,
   extractBindingName,
+  extractTrailDefinition,
   findConfigProperty,
+  findTrailDefinitions,
   getStringValue,
   identifierName,
   isStringLiteral,
-} from '../../source/literals.js';
-import {
-  buildFrameworkNamespaceContext,
-  extractTrailDefinition,
-  findTrailDefinitions,
-} from '../../source/trails.js';
-import { walk } from '../../source/walk.js';
+  walk,
+} from '@ontrails/source';
+import type { AstNode } from '@ontrails/source';
 
 /** Collect `const foo = trail('id', ...)` bindings from a parsed file. */
 export const collectNamedTrailIds = (
@@ -164,29 +162,4 @@ export const collectTrailIntentsById = (
   }
 
   return intents;
-};
-
-// ---------------------------------------------------------------------------
-// Store / factory pattern extraction
-// ---------------------------------------------------------------------------
-
-export const isImplementationCall = (node: AstNode): boolean => {
-  if (node.type !== 'CallExpression') {
-    return false;
-  }
-  const callee = node['callee'] as AstNode | undefined;
-  if (!callee) {
-    return false;
-  }
-  if (
-    callee.type !== 'StaticMemberExpression' &&
-    callee.type !== 'MemberExpression'
-  ) {
-    return false;
-  }
-  const prop = (callee as unknown as { property?: AstNode }).property;
-  return (
-    prop?.type === 'Identifier' &&
-    (prop as unknown as { name: string }).name === 'implementation'
-  );
 };

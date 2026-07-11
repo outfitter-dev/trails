@@ -3,10 +3,8 @@ import { isDraftId } from '@ontrails/core';
 import { isDraftMarkedFile } from '../draft.js';
 import { collectFrameworkDraftPrefixConstantOffsets } from './source/drafts.js';
 import { hasIgnoreCommentOnLine, splitSourceLines } from './source/pragmas.js';
-import { findStringLiterals } from '../source/literals.js';
-import { offsetToLine } from '../source/locations.js';
-import { parse } from '../source/parse.js';
-import type { StringLiteralMatch } from '../source/literals.js';
+import { findStringLiterals, offsetToLine, parse } from '@ontrails/source';
+import type { StringLiteralMatch } from '@ontrails/source';
 import type { WardenDiagnostic, WardenRule } from './types.js';
 
 const messageForMissingMarker = (draftId: string): string =>

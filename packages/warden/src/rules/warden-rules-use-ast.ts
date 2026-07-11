@@ -26,8 +26,6 @@
 import { basename as pathBasename, dirname, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { getStringValue } from '../source/literals.js';
-import { offsetToLine } from '../source/locations.js';
 import {
   getNodeArgument,
   getNodeArguments,
@@ -50,11 +48,13 @@ import {
   getNodeProperty,
   getNodeTypeAnnotation,
   getNodeValueNode,
+  getStringValue,
   isAstNode,
-} from '../source/nodes.js';
-import { parse } from '../source/parse.js';
-import { walk } from '../source/walk.js';
-import type { AstNode } from '../source/nodes.js';
+  offsetToLine,
+  parse,
+  walk,
+} from '@ontrails/source';
+import type { AstNode } from '@ontrails/source';
 import type { WardenDiagnostic, WardenRule } from './types.js';
 
 const RULE_NAME = 'warden-rules-use-ast';
@@ -369,7 +369,7 @@ const regexConstructionSite = (node: AstNode): RegexConstructionSite | null => {
 };
 
 const DIAGNOSTIC_ADVICE =
-  'Warden rules must inspect the AST via packages/warden/src/source/* helpers, not regex-scan raw source text. ' +
+  'Warden rules must inspect source code via @ontrails/source helpers, not regex-scan raw source text. ' +
   'Use findStringLiterals, findTrailDefinitions, findConfigProperty, or a similar AST walker. ' +
   'Raw-text scanning produces false positives on string literals, template payloads, and docstrings — see TRL-335, ADR-0036.';
 
@@ -1103,7 +1103,7 @@ export const wardenRulesUseAst: WardenRule = {
     return analyze(sourceCode, filePath, ast);
   },
   description:
-    'Enforces that warden rules inspect the AST via packages/warden/src/source/* helpers rather than regex-scanning raw source text or hand-casting node fields.',
+    'Enforces that warden rules inspect source code via @ontrails/source helpers rather than regex-scanning raw source text or hand-casting node fields.',
   name: RULE_NAME,
   severity: 'error',
 };

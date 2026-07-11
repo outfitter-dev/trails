@@ -3,11 +3,13 @@ import { resolve, sep } from 'node:path';
 import { matchesPathGlob } from '@ontrails/core';
 
 import { hasIgnoreCommentOnLine, splitSourceLines } from './source/pragmas.js';
-import { extractStringLiteral } from '../source/literals.js';
-import { offsetToLine } from '../source/locations.js';
-import { getNodeSource } from '../source/nodes.js';
-import { parse } from '../source/parse.js';
-import { walk } from '../source/walk.js';
+import {
+  extractStringLiteral,
+  getNodeSource,
+  offsetToLine,
+  parse,
+  walk,
+} from '@ontrails/source';
 import type {
   ProjectAwareWardenRule,
   ProjectContext,

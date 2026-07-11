@@ -495,7 +495,7 @@ WardenScope
 
 Project `trails.config.*` files may provide `warden.scope.exclude` defaults, and `trails warden --scope-exclude <glob>` can override them for a single run. Scope globs are root-relative path-scope controls for governance; use Regrade `scope.exclude` for migration scan scope.
 
-## `@ontrails/warden/ast`
+## `@ontrails/source`
 
 ```typescript
 parse(filePath, sourceCode), parseWithDiagnostics(filePath, sourceCode)
@@ -513,6 +513,10 @@ FrameworkNamespaceContext, StringLiteralMatch
 AstParentContext, AstScopeContext, AstScopeDeclaration
 AstParseResult, AstParseDiagnostic, SourceEdit, SourceLocation
 ```
+
+`source` means source code. It is not activation source, signal source, data source, or execution source. Import these helpers from the package root; `@ontrails/source` does not publish `/ast`, `/trails`, or `/utils` subpaths.
+
+`@ontrails/warden/ast` is temporarily retained as a compatibility facade over the stable `@ontrails/source` helper set. New code should import `@ontrails/source`.
 
 ## `@ontrails/regrade`
 

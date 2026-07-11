@@ -6,13 +6,13 @@ import { fileURLToPath } from 'node:url';
 
 import { DRAFT_ID_PREFIX } from '@ontrails/core';
 
-import type { AstNode } from '../../source/nodes.js';
 import {
   getStringValue,
   identifierName,
   isStringLiteral,
-} from '../../source/literals.js';
-import { walk } from '../../source/walk.js';
+  walk,
+} from '@ontrails/source';
+import type { AstNode } from '@ontrails/source';
 
 /**
  * Names of framework constants whose value is a draft-marker prefix literal.

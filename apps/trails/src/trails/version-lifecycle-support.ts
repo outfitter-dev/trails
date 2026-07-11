@@ -5,7 +5,7 @@ import { Result, ValidationError } from '@ontrails/core';
 import type { AnyTrail, Topo } from '@ontrails/core';
 import { deriveTopoGraph } from '@ontrails/topographer';
 import type { TopoGraph, TopoGraphForceEntry } from '@ontrails/topographer';
-import { findTrailDefinitions, parse } from '@ontrails/warden/ast';
+import { findTrailDefinitions, parse } from '@ontrails/source';
 
 import {
   readLifecycleSourceFile,

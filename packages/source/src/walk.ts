@@ -76,8 +76,8 @@ export const walkWithOxcFacade = (
 
 /**
  * Walk an AST node tree with parent, key, and index context for each visited
- * node. This is the supported Warden facade over `oxc-walker` for rules and
- * regrades that need structural context.
+ * node. This is the supported source facade over `oxc-walker` for rules and
+ * rewriters that need structural context.
  */
 export const walkWithParents = (
   node: unknown,

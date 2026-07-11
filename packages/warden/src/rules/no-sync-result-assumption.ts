@@ -1,8 +1,5 @@
 import { resultAccessorNames } from '@ontrails/core';
 
-import { isImplementationCall } from './source/composition.js';
-import { identifierName } from '../source/literals.js';
-import { offsetToLine } from '../source/locations.js';
 import {
   getNodeAlternate,
   getNodeArgument,
@@ -26,9 +23,12 @@ import {
   getNodeProperty,
   getNodeRight,
   getNodeValueNode,
-} from '../source/nodes.js';
-import { parse } from '../source/parse.js';
-import type { AstNode } from '../source/nodes.js';
+  identifierName,
+  isImplementationCall,
+  offsetToLine,
+  parse,
+} from '@ontrails/source';
+import type { AstNode } from '@ontrails/source';
 import { isFrameworkInternalFile, isTestFile } from './scan.js';
 import type { WardenDiagnostic, WardenRule } from './types.js';
 

@@ -1,28 +1,24 @@
 /** Warden-private entity reference and user-namespace collectors. */
 
-import type { AstNode } from '../../source/nodes.js';
-import {
-  extractStringLiteral,
-  getPropertyName,
-  identifierName,
-} from '../../source/literals.js';
-import {
-  isMemberAccessNonComputed,
-  isShadowed,
-  walkWithScopes,
-} from '../../source/scopes.js';
 import {
   buildFrameworkNamespaceContext,
   extractEntityDefinition,
+  extractStringLiteral,
   findEntityDefinitions,
   getImportSourceValue,
+  getPropertyName,
+  identifierName,
   isFrameworkNamespaceSource,
-} from '../../source/trails.js';
+  isMemberAccessNonComputed,
+  isShadowed,
+  walk,
+  walkWithScopes,
+} from '@ontrails/source';
 import type {
+  AstNode,
   EntityDefinition,
   FrameworkNamespaceContext,
-} from '../../source/trails.js';
-import { walk } from '../../source/walk.js';
+} from '@ontrails/source';
 
 export const collectEntityDefinitionIds = (ast: AstNode): ReadonlySet<string> =>
   new Set(findEntityDefinitions(ast).map((def) => def.name));

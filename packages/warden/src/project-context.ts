@@ -15,7 +15,6 @@ import type {
   WardenImportResolution,
   WardenResolverOptions,
 } from './resolve.js';
-import { offsetToLine } from './source/locations.js';
 import {
   getNodeBodyStatements,
   getNodeDeclaration,
@@ -31,9 +30,10 @@ import {
   isDeclarationWithId,
   isExportNamedDeclaration,
   isVariableDeclaration,
-} from './source/nodes.js';
-import { parse } from './source/parse.js';
-import type { AstNode } from './source/nodes.js';
+  offsetToLine,
+  parse,
+} from '@ontrails/source';
+import type { AstNode } from '@ontrails/source';
 import type { WardenExportedSymbolDefinition } from './rules/types.js';
 import { collectPublicWorkspaces } from './workspaces.js';
 import type { WardenPublicWorkspace } from './workspaces.js';

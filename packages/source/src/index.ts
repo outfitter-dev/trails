@@ -12,7 +12,13 @@ export type {
   TrailDefinition,
 } from './trails.js';
 export {
+  buildFrameworkNamespaceContext,
+  extractEntityDefinition,
+  extractTrailDefinition,
   findEntityDefinitions,
   findImplementationBodies,
   findTrailDefinitions,
+  getImportSourceValue,
+  isImplementationCall,
+  isFrameworkNamespaceSource,
 } from './trails.js';

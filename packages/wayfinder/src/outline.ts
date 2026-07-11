@@ -33,8 +33,8 @@ import {
   offsetToLineColumn,
   parseWithDiagnostics,
   walkWithParents,
-} from '@ontrails/warden/ast';
-import type { AstNode, AstParentContext } from '@ontrails/warden/ast';
+} from '@ontrails/source';
+import type { AstNode, AstParentContext } from '@ontrails/source';
 import { z } from 'zod';
 
 import { loadWayfinderArtifacts } from './loader.js';
