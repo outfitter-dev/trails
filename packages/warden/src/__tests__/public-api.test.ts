@@ -28,8 +28,8 @@ import {
   walkScope,
   walkWithParents,
   walkWithScopeContext,
-} from '@ontrails/warden/ast';
-import type { FrameworkNamespaceContext } from '@ontrails/warden/ast';
+} from '@ontrails/source';
+import type { FrameworkNamespaceContext } from '@ontrails/source';
 import {
   collectImportSpecifiers,
   defaultWardenResolveOptions,
@@ -70,10 +70,12 @@ describe('@ontrails/warden public API', () => {
     expect(result.data?.failOn).toBe('error');
   });
 
-  test('keeps parser helpers on the ast entrypoint', () => {
+  test('does not export parser helpers from the Warden root entrypoint', () => {
     expect('parse' in warden).toBe(false);
     expect('walk' in warden).toBe(false);
+  });
 
+  test('uses parser helpers from the source package', () => {
     const ast = parse('example.ts', 'export const value = 1;');
     expect(ast).not.toBeNull();
     expect(
@@ -89,7 +91,7 @@ describe('@ontrails/warden public API', () => {
     expect(visited).toBeGreaterThan(0);
   });
 
-  test('exports curated AST node guards on the ast entrypoint', () => {
+  test('uses curated AST node guards from the source package', () => {
     const ast = parse(
       'example.ts',
       `
@@ -139,7 +141,7 @@ describe('@ontrails/warden public API', () => {
     ).toEqual([{ importSource: '@ontrails/core', line: 1 }]);
   });
 
-  test('exposes stable rule-authoring helpers on the ast entrypoint', () => {
+  test('uses stable rule-authoring helpers from the source package', () => {
     const source = `
 import {
   entity,
@@ -203,7 +205,7 @@ const selectedTrail = enabled ? loadPrimary() : loadFallback();
     expect(hasScopedImplementationCall).toBe(false);
   });
 
-  test('exposes parent-aware, scope-aware, and edit helpers on the ast entrypoint', () => {
+  test('uses parent-aware, scope-aware, and edit helpers from the source package', () => {
     const source = `
 import {
   trail
@@ -259,5 +261,17 @@ function wrapper(trail: (id: string) => void) {
         ),
       ])
     ).toContain('showAccount');
+  });
+
+  test('does not publish the removed ast subpath in package metadata', async () => {
+    const packageJson = (await Bun.file(
+      new URL('../../package.json', import.meta.url)
+    ).json()) as {
+      readonly dependencies?: Record<string, string>;
+      readonly exports?: Record<string, string>;
+    };
+
+    expect(packageJson.dependencies?.['@ontrails/source']).toBe('workspace:^');
+    expect(packageJson.exports?.['./ast']).toBeUndefined();
   });
 });

@@ -8,6 +8,6 @@
 
 Found `@ontrails/source` as the shared source-code AST kernel for parsing,
 walking, locations, edits, literals, and generic Trails syntax recognition.
-Warden keeps `/ast` as a temporary compatibility facade while Warden, Regrade,
-Wayfinder, and the Trails operator import the shared mechanics from
-`@ontrails/source`.
+Warden, Regrade, Wayfinder, and the Trails operator now import those shared
+mechanics from `@ontrails/source`; the legacy Warden AST route is removed by the
+stacked hard cutover.

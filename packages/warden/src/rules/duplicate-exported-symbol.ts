@@ -117,35 +117,12 @@ const ALLOWED_DUPLICATE_EXPORT_GROUPS: readonly {
 const definitionKey = (definition: WardenExportedSymbolDefinition): string =>
   `${definition.workspaceName}:${definition.filePath}:${definition.line}:${definition.name}`;
 
-const isSourceWardenAstFacadeGroup = (
-  definitions: readonly WardenExportedSymbolDefinition[]
-): boolean => {
-  const workspaceNames = new Set(
-    definitions.map((definition) => definition.workspaceName)
-  );
-  return (
-    workspaceNames.size === 2 &&
-    workspaceNames.has('@ontrails/source') &&
-    workspaceNames.has('@ontrails/warden') &&
-    definitions
-      .filter((definition) => definition.workspaceName === '@ontrails/warden')
-      .every((definition) =>
-        definition.filePath
-          .replaceAll('\\', '/')
-          .endsWith('/packages/warden/src/ast.ts')
-      )
-  );
-};
-
 const isAllowedDuplicateGroup = (
   definitions: readonly WardenExportedSymbolDefinition[]
 ): boolean => {
   const [first] = definitions;
   if (!first) {
     return false;
-  }
-  if (isSourceWardenAstFacadeGroup(definitions)) {
-    return true;
   }
   const workspaceNames = new Set(
     definitions.map((definition) => definition.workspaceName)

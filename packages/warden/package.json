@@ -16,7 +16,6 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./ast": "./src/ast.ts",
     "./resolve": "./src/resolve.ts",
     "./package.json": "./package.json"
   },

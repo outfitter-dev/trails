@@ -516,8 +516,6 @@ AstParseResult, AstParseDiagnostic, SourceEdit, SourceLocation
 
 `source` means source code. It is not activation source, signal source, data source, or execution source. Import these helpers from the package root; `@ontrails/source` does not publish `/ast`, `/trails`, or `/utils` subpaths.
 
-`@ontrails/warden/ast` is temporarily retained as a compatibility facade over the stable `@ontrails/source` helper set. New code should import `@ontrails/source`.
-
 ## `@ontrails/regrade`
 
 ```typescript

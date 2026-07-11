@@ -82,7 +82,8 @@ const isNamespacedTrailCallee = (callee: AstNode): boolean => {
  * `import * as ns from '@ontrails/core'` are detected as trail definitions.
  *
  * The inner `if (found)` guard skips further work in each callback invocation,
- * but the shared `walk` helper in `./ast.ts` exposes no abort mechanism, so
+ * but the shared `walk` helper from `@ontrails/source` exposes no abort
+ * mechanism, so
  * the full tree is still traversed once a match is seen. Acceptable: `walk`
  * is cheap and this rule only runs on files that already matched a path
  * filter upstream.

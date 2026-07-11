@@ -133,8 +133,6 @@ Reusable source-code parser helpers now live in `@ontrails/source`:
 import { findStringLiterals, parse, walk } from '@ontrails/source';
 ```
 
-`@ontrails/warden/ast` remains as a temporary compatibility facade for the same stable helper set while downstream packages migrate. New code should import `@ontrails/source`.
-
 ## Trail-based API
 
 Every built-in warden rule is also available as a composable trail. This makes rules queryable, testable, and invocable through any Trails surface.
@@ -187,7 +185,7 @@ This is the same factory used internally to build all built-in rule trails.
 | `formatSummary(report)` | Compact summary line |
 | `wrapRule(rule)` | Wrap a custom rule as a trail (same factory used for all built-in rule trails) |
 
-Source-code parser helpers are owned by `@ontrails/source`, not the Warden root runtime barrel. `@ontrails/warden/ast` temporarily forwards the stable compatibility set: `parse`, `walk`, `walkScope`, `walkWithParents`, `walkWithScopeContext`, `offsetToLine`, `offsetToLineColumn`, source-edit helpers, `findTrailDefinitions`, `findImplementationBodies`, `findEntityDefinitions`, `isImplementationCall`, and string-literal helpers.
+Source-code parser helpers are owned by `@ontrails/source`, not the Warden root runtime barrel.
 
 `runWarden({ tier })` can narrow a run to `source-static`, `project-static`, `topo-aware`, `drift`, or `advisory`. Omit `tier` for the default full run.
 

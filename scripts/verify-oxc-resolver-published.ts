@@ -1,16 +1,16 @@
 #!/usr/bin/env bun
 /**
  * Verifies the `oxc-resolver` signal Warden can rely on for packed package
- * export-map drift and the temporary Warden AST compatibility facade.
+ * export-map drift after source helpers moved to `@ontrails/source`.
  *
  * The check intentionally uses real Bun-packed `@ontrails/source` and
  * `@ontrails/warden` tarballs plus a temp consumer install of `oxc-resolver`.
- * The blocked target subpath is present in Warden's packed package contents
- * but absent from its package `exports` map.
+ * The resolver must accept the source package and reject removed or internal
+ * Warden subpaths through Warden's packed package `exports` map.
  */
 
 import { spawnSync } from 'node:child_process';
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -22,8 +22,9 @@ const wardenRoot = join(repoRoot, 'packages', 'warden');
 const keepTemp = process.argv.includes('--keep-temp');
 
 const conditionNames = ['bun', 'node', 'import', 'default'] as const;
-const expectedExportError =
-  '"./trails/wrap-rule" is not exported under the conditions ["bun", "node", "import", "default"] from package';
+
+const expectedExportError = (subpath: string): string =>
+  `"${subpath}" is not exported under the conditions ["bun", "node", "import", "default"] from package`;
 
 interface ResolveResult {
   readonly path?: string;
@@ -116,7 +117,8 @@ const assertResolved = (
 
 const assertExportBlocked = (
   check: ResolverCheckResult,
-  specifier: string
+  specifier: string,
+  subpath: string
 ): string => {
   const result = requireResult(check, specifier);
   if (result.error === undefined) {
@@ -124,7 +126,8 @@ const assertExportBlocked = (
       `${specifier} should be blocked by the packed export map, got ${JSON.stringify(result)}`
     );
   }
-  if (!result.error.includes(expectedExportError)) {
+  const expectedError = expectedExportError(subpath);
+  if (!result.error.includes(expectedError)) {
     throw new Error(
       `${specifier} produced an unexpected resolver error:\n${result.error}`
     );
@@ -269,6 +272,15 @@ const main = async (): Promise<void> => {
       repoRoot
     );
 
+    const packedWardenManifest = JSON.parse(
+      await readFile(join(packedWardenRoot, 'package.json'), 'utf8')
+    ) as {
+      readonly exports?: Record<string, string>;
+    };
+    if (packedWardenManifest.exports?.['./ast'] !== undefined) {
+      throw new Error('Packed @ontrails/warden metadata must not export ./ast');
+    }
+
     const packedInternalPath = join(
       packedWardenRoot,
       'src',
@@ -285,10 +297,15 @@ const main = async (): Promise<void> => {
     const check = JSON.parse(resolverRun.stdout) as ResolverCheckResult;
     const sourceResult = assertResolved(check, '@ontrails/source');
     const rootResult = assertResolved(check, '@ontrails/warden');
-    const astResult = assertResolved(check, '@ontrails/warden/ast');
-    const blockedError = assertExportBlocked(
+    const astBlockedError = assertExportBlocked(
       check,
-      '@ontrails/warden/trails/wrap-rule'
+      '@ontrails/warden/ast',
+      './ast'
+    );
+    const internalBlockedError = assertExportBlocked(
+      check,
+      '@ontrails/warden/trails/wrap-rule',
+      './trails/wrap-rule'
     );
 
     console.log('Published resolver verification passed');
@@ -298,10 +315,11 @@ const main = async (): Promise<void> => {
     console.log(`conditions: ${conditionNames.join(', ')}`);
     console.log(`source export: ${sourceResult.path}`);
     console.log(`root export: ${rootResult.path}`);
-    console.log(`ast export: ${astResult.path}`);
+    console.log('warden ./ast metadata export: absent');
     console.log(`packed internal target: ${packedInternalPath}`);
-    console.log(`non-exported subpath error: ${blockedError}`);
-    console.log(`usable error fragment: ${expectedExportError}`);
+    console.log(`removed ast subpath error: ${astBlockedError}`);
+    console.log(`non-exported internal subpath error: ${internalBlockedError}`);
+    console.log(`usable ast error fragment: ${expectedExportError('./ast')}`);
     if (keepTemp) {
       console.log(`temp root: ${tempRoot}`);
     }
